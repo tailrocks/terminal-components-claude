@@ -1330,17 +1330,12 @@ fn wide_history_preview() -> Vec<PreviewLine> {
     ]
 }
 
-/// 100×30 `parity-files` plate. Only a paused tick-40 frame.
-/// History plates, other sizes, later seeks, and every other scenario stay off it.
-pub fn parity_files_100x30_plate(w: &World, width: u16, height: u16) -> Option<ParityDiscovery> {
-    if w.scenario != Scenario::ParityFiles
-        || w.clock.running
-        || width != 100
-        || height != 30
-        || w.now_ms() != 80
-    {
-        return None;
-    }
+/// Paused tick-40 `parity-files` view. Later seeks and every other scenario stay off it.
+pub fn parity_files_tag_frame(w: &World) -> bool {
+    w.scenario == Scenario::ParityFiles && !w.clock.running && w.now_ms() == 80
+}
+
+fn parity_files_rows() -> ParityDiscovery {
     let explore = vec![tag_row(
         "System · mbp",
         "explore",
@@ -1382,109 +1377,18 @@ pub fn parity_files_100x30_plate(w: &World, width: u16, height: u16) -> Option<P
             wraps: false,
         },
     ];
-    Some(ParityDiscovery {
+    ParityDiscovery {
         lines,
         preview,
         preview_meta: String::new(),
         actions: Vec::new(),
         suggested_len: 0,
-    })
+    }
 }
 
-/// 80×24 `parity-files` plate. Only a paused tick-40 frame.
-/// The 100×30 plate, other sizes, later seeks, and every other scenario stay off it.
-pub fn parity_files_80x24_plate(w: &World, width: u16, height: u16) -> Option<ParityDiscovery> {
-    if w.scenario != Scenario::ParityFiles
-        || w.clock.running
-        || width != 80
-        || height != 24
-        || w.now_ms() != 80
-    {
-        return None;
-    }
-    let explore = vec![tag_row(
-        "System · mbp",
-        "explore",
-        "host",
-        false,
-        "available on this host",
-        None,
-        false,
-    )];
-    // The query gap is already one row. The leading blank keeps Recent under that gap.
-    let mut lines = vec![
-        FinderLine::Blank,
-        FinderLine::Heading("Recent here"),
-        FinderLine::Heading("nothing used here yet"),
-        FinderLine::Blank,
-        FinderLine::Heading("Explore"),
-        FinderLine::Chips(&["Tasks", "Git", "Files", "Disk", "Services", "System"]),
-    ];
-    for row in &explore {
-        lines.push(FinderLine::Row(row.clone()));
-    }
-    let preview = vec![
-        PreviewLine {
-            label: "Runs",
-            value: "opens inside holla".into(),
-            tone: PreviewTone::Secondary,
-            wraps: false,
-        },
-        PreviewLine {
-            label: "Scope",
-            value: "here".into(),
-            tone: PreviewTone::Text,
-            wraps: false,
-        },
-        PreviewLine {
-            label: "Risk",
-            value: "read-only".into(),
-            tone: PreviewTone::Meta,
-            wraps: false,
-        },
-    ];
-    Some(ParityDiscovery {
-        lines,
-        preview,
-        preview_meta: String::new(),
-        actions: Vec::new(),
-        suggested_len: 0,
-    })
-}
-
-/// 120×40 `parity-files` plate. Only a paused tick-40 frame.
-/// The 80×24 and 100×30 plates, other sizes, later seeks, and every other scenario stay off it.
-pub fn parity_files_120x40_plate(w: &World, width: u16, height: u16) -> Option<ParityDiscovery> {
-    if w.scenario != Scenario::ParityFiles
-        || w.clock.running
-        || width != 120
-        || height != 40
-        || w.now_ms() != 80
-    {
-        return None;
-    }
-    let explore = vec![tag_row(
-        "System · mbp",
-        "explore",
-        "host",
-        false,
-        "available on this host",
-        None,
-        false,
-    )];
-    // The query gap is already one row. The leading blank keeps Recent under that gap.
-    let mut lines = vec![
-        FinderLine::Blank,
-        FinderLine::Heading("Recent here"),
-        FinderLine::Heading("nothing used here yet"),
-        FinderLine::Blank,
-        FinderLine::Heading("Explore"),
-        FinderLine::Chips(&["Tasks", "Git", "Files", "Disk", "Services", "System"]),
-    ];
-    for row in &explore {
-        lines.push(FinderLine::Row(row.clone()));
-    }
-    let preview = vec![
+/// Wide-card preview rows for the 120-column band.
+fn wide_files_preview() -> Vec<PreviewLine> {
+    vec![
         PreviewLine {
             label: "Does",
             value: "project tasks from mise and the build system, here and around".into(),
@@ -1551,14 +1455,20 @@ pub fn parity_files_120x40_plate(w: &World, width: u16, height: u16) -> Option<P
             tone: PreviewTone::Muted,
             wraps: false,
         },
-    ];
-    Some(ParityDiscovery {
-        lines,
-        preview,
-        preview_meta: "explore · here".into(),
-        actions: Vec::new(),
-        suggested_len: 0,
-    })
+    ]
+}
+
+/// Single-column below 120, wide card from 120. Only the paused tick-40 frame.
+pub fn parity_files_view(w: &World, width: u16) -> Option<ParityDiscovery> {
+    if !parity_files_tag_frame(w) {
+        return None;
+    }
+    let mut view = parity_files_rows();
+    if (120..160).contains(&width) {
+        view.preview = wide_files_preview();
+        view.preview_meta = "explore · here".into();
+    }
+    Some(view)
 }
 
 /// Paused tick-40 `parity-browser` frame predicate.
@@ -5543,140 +5453,52 @@ mod tests {
     }
 
     #[test]
-    fn parity_files_100x30_plate_is_only_the_mid_tick_40_frame() {
+    fn parity_files_view_bands_are_only_the_paused_tick_40_frame() {
         let mut world = fixtures::world_for(Scenario::ParityFiles);
-        assert!(parity_files_100x30_plate(&world, 100, 30).is_none());
+        assert!(parity_files_view(&world, 80).is_none());
+        assert!(!parity_files_tag_frame(&world));
         world.seek(40);
         assert!(world.clock.running);
-        assert!(parity_files_100x30_plate(&world, 100, 30).is_none());
+        assert!(!parity_files_tag_frame(&world));
+        assert!(parity_files_view(&world, 80).is_none());
         world.clock.running = false;
         assert_eq!(world.now_ms(), 80);
-        assert!(parity_files_100x30_plate(&world, 80, 24).is_none());
-        assert!(parity_files_100x30_plate(&world, 120, 40).is_none());
-        assert!(parity_files_100x30_plate(&world, 160, 50).is_none());
-        assert!(parity_files_100x30_plate(&world, 100, 31).is_none());
-        assert!(parity_files_100x30_plate(&world, 99, 30).is_none());
+        assert!(parity_files_tag_frame(&world));
         assert!(!parity_history_tag_frame(&world));
-        let view = parity_files_100x30_plate(&world, 100, 30).expect("100x30 plate");
+        let single = parity_files_view(&world, 80).expect("single-column view");
         assert!(
-            view.lines
+            single
+                .lines
                 .iter()
                 .any(|line| matches!(line, FinderLine::Heading("Recent here")))
         );
-        assert!(view.lines.iter().any(|line| matches!(
-            line,
-            FinderLine::Row(row) if row.title == "System · mbp" && !row.selected && row.scope_word == "host"
-        )));
-        let runs = view
-            .preview
-            .iter()
-            .find(|line| line.label == "Runs")
-            .expect("runs line");
-        assert_eq!(runs.value, "opens inside holla");
-        world.seek(4_000);
-        world.clock.running = false;
-        assert!(parity_files_100x30_plate(&world, 100, 30).is_none());
-        for scenario in [
-            Scenario::ParityHistory,
-            Scenario::ParityDiscovery,
-            Scenario::FirstUse,
-            Scenario::ActivitiesMulti,
-        ] {
-            let mut other = fixtures::world_for(scenario);
-            other.seek(40);
-            other.clock.running = false;
-            assert!(parity_files_100x30_plate(&other, 100, 30).is_none());
-        }
-    }
-
-    #[test]
-    fn parity_files_80x24_plate_is_only_the_mid_tick_40_frame() {
-        let mut world = fixtures::world_for(Scenario::ParityFiles);
-        assert!(parity_files_80x24_plate(&world, 80, 24).is_none());
-        world.seek(40);
-        assert!(world.clock.running);
-        assert!(parity_files_80x24_plate(&world, 80, 24).is_none());
-        world.clock.running = false;
-        assert_eq!(world.now_ms(), 80);
-        assert!(parity_files_80x24_plate(&world, 100, 30).is_none());
-        assert!(parity_files_80x24_plate(&world, 120, 40).is_none());
-        assert!(parity_files_80x24_plate(&world, 160, 50).is_none());
-        assert!(parity_files_80x24_plate(&world, 80, 23).is_none());
-        assert!(parity_files_80x24_plate(&world, 81, 24).is_none());
-        assert!(parity_files_100x30_plate(&world, 80, 24).is_none());
-        assert!(!parity_history_tag_frame(&world));
-        let view = parity_files_80x24_plate(&world, 80, 24).expect("80x24 plate");
-        assert!(
-            view.lines
-                .iter()
-                .any(|line| matches!(line, FinderLine::Heading("Recent here")))
-        );
-        assert!(view.lines.iter().any(|line| matches!(
-            line,
-            FinderLine::Row(row) if row.title == "System · mbp" && !row.selected && row.scope_word == "host"
-        )));
-        let runs = view
-            .preview
-            .iter()
-            .find(|line| line.label == "Runs")
-            .expect("runs line");
-        assert_eq!(runs.value, "opens inside holla");
-        world.seek(4_000);
-        world.clock.running = false;
-        assert!(parity_files_80x24_plate(&world, 80, 24).is_none());
-        for scenario in [
-            Scenario::ParityHistory,
-            Scenario::ParityDiscovery,
-            Scenario::FirstUse,
-            Scenario::ActivitiesMulti,
-        ] {
-            let mut other = fixtures::world_for(scenario);
-            other.seek(40);
-            other.clock.running = false;
-            assert!(parity_files_80x24_plate(&other, 80, 24).is_none());
-            assert!(parity_files_100x30_plate(&other, 80, 24).is_none());
-        }
-    }
-
-    #[test]
-    fn parity_files_120x40_plate_is_only_the_mid_tick_40_frame() {
-        let mut world = fixtures::world_for(Scenario::ParityFiles);
-        assert!(parity_files_120x40_plate(&world, 120, 40).is_none());
-        world.seek(40);
-        assert!(world.clock.running);
-        assert!(parity_files_120x40_plate(&world, 120, 40).is_none());
-        world.clock.running = false;
-        assert_eq!(world.now_ms(), 80);
-        assert!(parity_files_120x40_plate(&world, 80, 24).is_none());
-        assert!(parity_files_120x40_plate(&world, 100, 30).is_none());
-        assert!(parity_files_120x40_plate(&world, 160, 50).is_none());
-        assert!(parity_files_120x40_plate(&world, 120, 39).is_none());
-        assert!(parity_files_120x40_plate(&world, 119, 40).is_none());
-        assert!(parity_files_80x24_plate(&world, 120, 40).is_none());
-        assert!(parity_files_100x30_plate(&world, 120, 40).is_none());
-        assert!(!parity_history_tag_frame(&world));
-        let view = parity_files_120x40_plate(&world, 120, 40).expect("120x40 plate");
-        assert!(view.lines.iter().any(|line| matches!(
+        assert!(single.lines.iter().any(|line| matches!(
             line,
             FinderLine::Chips(labels) if labels.first() == Some(&"Tasks")
         )));
-        assert!(view.lines.iter().any(|line| matches!(
+        assert!(single.lines.iter().any(|line| matches!(
             line,
             FinderLine::Row(row) if row.title == "System · mbp" && !row.selected && row.scope_word == "host"
         )));
         assert!(
-            view.lines
+            single
+                .lines
                 .iter()
                 .all(|line| !matches!(line, FinderLine::Row(row) if row.selected))
         );
-        let does = view
+        let runs = single
             .preview
             .iter()
-            .find(|line| line.label == "Does")
-            .expect("does line");
-        assert!(does.wraps);
-        assert!(does.value.contains("build system"));
-        let runs = view
+            .find(|line| line.label == "Runs")
+            .expect("runs line");
+        assert_eq!(runs.value, "opens inside holla");
+        let mid = parity_files_view(&world, 100).expect("mid view");
+        assert_eq!(mid.lines, single.lines);
+        assert_eq!(mid.preview, single.preview);
+        let card = parity_files_view(&world, 120).expect("card view");
+        assert_eq!(card.lines, single.lines);
+        assert_eq!(card.preview_meta, "explore · here");
+        let runs = card
             .preview
             .iter()
             .find(|line| line.label == "Runs")
@@ -5684,10 +5506,18 @@ mod tests {
         assert!(runs.wraps);
         assert_eq!(runs.value, "no command · opens inside holla");
         assert_eq!(runs.tone, PreviewTone::Muted);
-        assert_eq!(view.preview_meta, "explore · here");
+        let does = card
+            .preview
+            .iter()
+            .find(|line| line.label == "Does")
+            .expect("does line");
+        assert!(does.wraps);
+        assert!(does.value.contains("build system"));
         world.seek(4_000);
         world.clock.running = false;
-        assert!(parity_files_120x40_plate(&world, 120, 40).is_none());
+        assert!(!parity_files_tag_frame(&world));
+        assert!(parity_files_view(&world, 80).is_none());
+        assert!(parity_files_view(&world, 120).is_none());
         for scenario in [
             Scenario::ParityHistory,
             Scenario::ParityDiscovery,
@@ -5697,9 +5527,9 @@ mod tests {
             let mut other = fixtures::world_for(scenario);
             other.seek(40);
             other.clock.running = false;
-            assert!(parity_files_120x40_plate(&other, 120, 40).is_none());
-            assert!(parity_files_80x24_plate(&other, 120, 40).is_none());
-            assert!(parity_files_100x30_plate(&other, 120, 40).is_none());
+            assert!(!parity_files_tag_frame(&other));
+            assert!(parity_files_view(&other, 80).is_none());
+            assert!(parity_files_view(&other, 120).is_none());
         }
     }
 
@@ -5796,9 +5626,7 @@ mod tests {
         assert!(parity_git_current_100x30_plate(&world, 100, 31).is_none());
         assert!(parity_git_current_100x30_plate(&world, 99, 30).is_none());
         assert!(!parity_browser_tag_frame(&world));
-        assert!(parity_files_80x24_plate(&world, 100, 30).is_none());
-        assert!(parity_files_100x30_plate(&world, 100, 30).is_none());
-        assert!(parity_files_120x40_plate(&world, 100, 30).is_none());
+        assert!(!parity_files_tag_frame(&world));
         assert!(!parity_history_tag_frame(&world));
         assert!(!parity_discovery_tag_frame(&world));
         let view = parity_git_current_100x30_plate(&world, 100, 30).expect("100x30 plate");
@@ -5867,9 +5695,7 @@ mod tests {
         assert!(parity_git_current_100x30_plate(&world, 80, 24).is_none());
         assert!(parity_git_current_100x30_plate(&world, 100, 30).is_some());
         assert!(!parity_browser_tag_frame(&world));
-        assert!(parity_files_80x24_plate(&world, 80, 24).is_none());
-        assert!(parity_files_100x30_plate(&world, 80, 24).is_none());
-        assert!(parity_files_120x40_plate(&world, 80, 24).is_none());
+        assert!(!parity_files_tag_frame(&world));
         assert!(!parity_history_tag_frame(&world));
         assert!(!parity_discovery_tag_frame(&world));
         let view = parity_git_current_80x24_plate(&world, 80, 24).expect("80x24 plate");
@@ -5946,9 +5772,7 @@ mod tests {
         assert!(parity_git_current_100x30_plate(&world, 80, 24).is_none());
         assert!(parity_git_current_120x40_plate(&world, 80, 24).is_none());
         assert!(!parity_browser_tag_frame(&world));
-        assert!(parity_files_80x24_plate(&world, 80, 24).is_none());
-        assert!(parity_files_100x30_plate(&world, 80, 24).is_none());
-        assert!(parity_files_120x40_plate(&world, 80, 24).is_none());
+        assert!(!parity_files_tag_frame(&world));
         assert!(!parity_history_tag_frame(&world));
         assert!(!parity_discovery_tag_frame(&world));
         let view = parity_task_sources_80x24_plate(&world, 80, 24).expect("80x24 plate");
@@ -6042,9 +5866,7 @@ mod tests {
         assert!(parity_git_current_100x30_plate(&world, 80, 24).is_none());
         assert!(parity_git_current_120x40_plate(&world, 80, 24).is_none());
         assert!(!parity_browser_tag_frame(&world));
-        assert!(parity_files_80x24_plate(&world, 80, 24).is_none());
-        assert!(parity_files_100x30_plate(&world, 80, 24).is_none());
-        assert!(parity_files_120x40_plate(&world, 80, 24).is_none());
+        assert!(!parity_files_tag_frame(&world));
         assert!(!parity_history_tag_frame(&world));
         assert!(!parity_discovery_tag_frame(&world));
         let view = parity_cargo_80x24_plate(&world, 80, 24).expect("80x24 plate");
@@ -6132,9 +5954,7 @@ mod tests {
         assert!(parity_git_current_100x30_plate(&world, 80, 24).is_none());
         assert!(parity_git_current_120x40_plate(&world, 80, 24).is_none());
         assert!(!parity_browser_tag_frame(&world));
-        assert!(parity_files_80x24_plate(&world, 80, 24).is_none());
-        assert!(parity_files_100x30_plate(&world, 80, 24).is_none());
-        assert!(parity_files_120x40_plate(&world, 80, 24).is_none());
+        assert!(!parity_files_tag_frame(&world));
         assert!(!parity_history_tag_frame(&world));
         assert!(!parity_discovery_tag_frame(&world));
         let view = parity_git_batch_80x24_plate(&world, 80, 24).expect("80x24 plate");
@@ -6229,9 +6049,7 @@ mod tests {
         assert!(parity_git_current_100x30_plate(&world, 100, 30).is_none());
         assert!(parity_git_current_120x40_plate(&world, 100, 30).is_none());
         assert!(!parity_browser_tag_frame(&world));
-        assert!(parity_files_80x24_plate(&world, 100, 30).is_none());
-        assert!(parity_files_100x30_plate(&world, 100, 30).is_none());
-        assert!(parity_files_120x40_plate(&world, 100, 30).is_none());
+        assert!(!parity_files_tag_frame(&world));
         assert!(!parity_history_tag_frame(&world));
         assert!(!parity_discovery_tag_frame(&world));
         let view = parity_git_batch_100x30_plate(&world, 100, 30).expect("100x30 plate");
@@ -6328,9 +6146,7 @@ mod tests {
         assert!(parity_git_current_100x30_plate(&world, 120, 40).is_none());
         assert!(parity_git_current_120x40_plate(&world, 120, 40).is_none());
         assert!(!parity_browser_tag_frame(&world));
-        assert!(parity_files_80x24_plate(&world, 120, 40).is_none());
-        assert!(parity_files_100x30_plate(&world, 120, 40).is_none());
-        assert!(parity_files_120x40_plate(&world, 120, 40).is_none());
+        assert!(!parity_files_tag_frame(&world));
         assert!(!parity_history_tag_frame(&world));
         assert!(!parity_discovery_tag_frame(&world));
         let view = parity_git_batch_120x40_plate(&world, 120, 40).expect("120x40 plate");
@@ -6440,9 +6256,7 @@ mod tests {
         assert!(parity_git_current_100x30_plate(&world, 100, 30).is_none());
         assert!(parity_git_current_120x40_plate(&world, 100, 30).is_none());
         assert!(!parity_browser_tag_frame(&world));
-        assert!(parity_files_80x24_plate(&world, 100, 30).is_none());
-        assert!(parity_files_100x30_plate(&world, 100, 30).is_none());
-        assert!(parity_files_120x40_plate(&world, 100, 30).is_none());
+        assert!(!parity_files_tag_frame(&world));
         assert!(!parity_history_tag_frame(&world));
         assert!(!parity_discovery_tag_frame(&world));
         let view = parity_cargo_100x30_plate(&world, 100, 30).expect("100x30 plate");
@@ -6530,9 +6344,7 @@ mod tests {
         assert!(parity_git_current_100x30_plate(&world, 120, 40).is_none());
         assert!(parity_git_current_120x40_plate(&world, 120, 40).is_none());
         assert!(!parity_browser_tag_frame(&world));
-        assert!(parity_files_80x24_plate(&world, 120, 40).is_none());
-        assert!(parity_files_100x30_plate(&world, 120, 40).is_none());
-        assert!(parity_files_120x40_plate(&world, 120, 40).is_none());
+        assert!(!parity_files_tag_frame(&world));
         assert!(!parity_history_tag_frame(&world));
         assert!(!parity_discovery_tag_frame(&world));
         let view = parity_cargo_120x40_plate(&world, 120, 40).expect("120x40 plate");
@@ -6632,9 +6444,7 @@ mod tests {
         assert!(parity_git_current_80x24_plate(&world, 80, 24).is_some());
         assert!(parity_git_current_100x30_plate(&world, 100, 30).is_some());
         assert!(!parity_browser_tag_frame(&world));
-        assert!(parity_files_80x24_plate(&world, 120, 40).is_none());
-        assert!(parity_files_100x30_plate(&world, 120, 40).is_none());
-        assert!(parity_files_120x40_plate(&world, 120, 40).is_none());
+        assert!(!parity_files_tag_frame(&world));
         assert!(!parity_history_tag_frame(&world));
         assert!(!parity_discovery_tag_frame(&world));
         let view = parity_git_current_120x40_plate(&world, 120, 40).expect("120x40 plate");

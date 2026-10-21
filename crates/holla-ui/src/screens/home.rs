@@ -257,25 +257,8 @@ impl HomeState {
             area.width,
             area.height.saturating_sub(2),
         );
-        if let Some(view) =
-            catalogue::parity_files_80x24_plate(world, ui.full().width, ui.full().height)
-            && paint_parity_files_80x24(ui, rows_area, &view)
-        {
-            // Steady bar on the placeholder. CUP 5;4. Do not write cursor bytes.
-            ui.set_bar_cursor(QUERY, termrock::Position::new(3, 4));
-            return;
-        }
-        if let Some(view) =
-            catalogue::parity_files_100x30_plate(world, ui.full().width, ui.full().height)
-            && paint_parity_files_100x30(ui, rows_area, &view)
-        {
-            // Steady bar on the placeholder. CUP 5;4. Do not write cursor bytes.
-            ui.set_bar_cursor(QUERY, termrock::Position::new(3, 4));
-            return;
-        }
-        if let Some(view) =
-            catalogue::parity_files_120x40_plate(world, ui.full().width, ui.full().height)
-            && paint_parity_files_120x40(ui, rows_area, &view)
+        if let Some(view) = catalogue::parity_files_view(world, ui.full().width)
+            && paint_parity_files(ui, rows_area, &view)
         {
             // Steady bar on the placeholder. CUP 5;4. Do not write cursor bytes.
             ui.set_bar_cursor(QUERY, termrock::Position::new(3, 4));
@@ -969,34 +952,65 @@ fn paint_parity_history(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDis
 }
 
 /// Frozen columns. The explore chips keep the accent fill. The system row does not.
-/// Only the 80×24 frame reaches this painter, so the 100×30 plate stays on its own.
-fn paint_parity_files_80x24(
-    ui: &mut Ui<'_>,
-    area: Rect,
-    view: &catalogue::ParityDiscovery,
-) -> bool {
-    paint_parity_files_plate(ui, area, view, 80, 24)
+/// Single-column in the 80–119 band, wide card from 120.
+fn paint_parity_files(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
+    let full = ui.full();
+    if (80..120).contains(&full.width) {
+        return paint_parity_files_list(ui, area, view);
+    }
+    if (120..160).contains(&full.width) {
+        return paint_parity_files_card(ui, area, view);
+    }
+    false
 }
 
 /// Frozen columns. The explore chips keep the accent fill. The system row does not.
-/// Only the 100×30 frame reaches this painter.
-fn paint_parity_files_100x30(
-    ui: &mut Ui<'_>,
-    area: Rect,
-    view: &catalogue::ParityDiscovery,
-) -> bool {
-    paint_parity_files_plate(ui, area, view, 100, 30)
+fn paint_parity_files_list(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
+    let full = ui.full();
+    if !(80..120).contains(&full.width) || area.is_empty() {
+        return false;
+    }
+    let Some(text) = narrow_action_line(view) else {
+        return false;
+    };
+    let cols = TagCols {
+        label: 12,
+        kind: 7,
+        scope: 4,
+        reason: 65,
+    };
+    let footer_y = area.bottom().saturating_sub(1);
+    let gap_y = footer_y.saturating_sub(1);
+    let mut y = area.y;
+    for line in &view.lines {
+        if y >= gap_y {
+            break;
+        }
+        match line {
+            catalogue::FinderLine::Heading(text) => paint_tag_heading(ui, area, y, text, None),
+            catalogue::FinderLine::Blank => {}
+            catalogue::FinderLine::Chips(labels) => paint_tag_chips_selected(ui, area, y, labels),
+            catalogue::FinderLine::Row(row) => paint_tag_row(ui, area, y, row, &cols, None),
+        }
+        y = y.saturating_add(1);
+    }
+    ui.paint_str(
+        Rect::new(
+            area.x.saturating_add(3),
+            footer_y,
+            area.width.saturating_sub(3),
+            1,
+        ),
+        &text,
+        ink(ui, TAG_GREY_FG, BLACK, false),
+    );
+    true
 }
 
 /// Wide card. Explore chips keep the accent fill. The system row does not.
-/// Only the 120×40 frame reaches this painter, so the 80 and 100 plates stay single-column.
-fn paint_parity_files_120x40(
-    ui: &mut Ui<'_>,
-    area: Rect,
-    view: &catalogue::ParityDiscovery,
-) -> bool {
+fn paint_parity_files_card(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
     let full = ui.full();
-    if full.width != 120 || full.height != 40 || area.is_empty() {
+    if !(120..160).contains(&full.width) || area.is_empty() {
         return false;
     }
     let Some((master, detail)) = split_detail(area) else {
@@ -1038,54 +1052,6 @@ fn paint_parity_files_120x40(
         })
         .unwrap_or("");
     paint_tag_preview(ui, detail, view, &rows, Some(title));
-    true
-}
-
-fn paint_parity_files_plate(
-    ui: &mut Ui<'_>,
-    area: Rect,
-    view: &catalogue::ParityDiscovery,
-    width: u16,
-    height: u16,
-) -> bool {
-    let full = ui.full();
-    if full.width != width || full.height != height || area.is_empty() {
-        return false;
-    }
-    let Some(text) = narrow_action_line(view) else {
-        return false;
-    };
-    let cols = TagCols {
-        label: 12,
-        kind: 7,
-        scope: 4,
-        reason: 65,
-    };
-    let footer_y = area.bottom().saturating_sub(1);
-    let gap_y = footer_y.saturating_sub(1);
-    let mut y = area.y;
-    for line in &view.lines {
-        if y >= gap_y {
-            break;
-        }
-        match line {
-            catalogue::FinderLine::Heading(text) => paint_tag_heading(ui, area, y, text, None),
-            catalogue::FinderLine::Blank => {}
-            catalogue::FinderLine::Chips(labels) => paint_tag_chips_selected(ui, area, y, labels),
-            catalogue::FinderLine::Row(row) => paint_tag_row(ui, area, y, row, &cols, None),
-        }
-        y = y.saturating_add(1);
-    }
-    ui.paint_str(
-        Rect::new(
-            area.x.saturating_add(3),
-            footer_y,
-            area.width.saturating_sub(3),
-            1,
-        ),
-        &text,
-        ink(ui, TAG_GREY_FG, BLACK, false),
-    );
     true
 }
 
