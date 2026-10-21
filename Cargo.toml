@@ -19,6 +19,7 @@ members = [
     "crates/termrock-forms",
     "crates/termrock-terminal",
     "crates/termrock-session",
+    "crates/termrock-shell",
     "crates/termrock",
     "crates/showcase-data",
     "crates/showcase-demos",
@@ -84,6 +85,7 @@ termrock-editors = { path = "crates/termrock-editors" }
 termrock-forms = { path = "crates/termrock-forms" }
 termrock-terminal = { path = "crates/termrock-terminal" }
 termrock-session = { path = "crates/termrock-session" }
+termrock-shell = { path = "crates/termrock-shell" }
 termrock = { path = "crates/termrock" }
 
 showcase-data = { path = "crates/showcase-data" }
