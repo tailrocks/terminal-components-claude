@@ -856,3 +856,35 @@ unchanged. Rebased log: `tablepro-rebase-nextest-de6.log`, SHA-256
 ## Evidence index
 
 Populated as increments land.
+
+## Wave 1+2 false-parity removals (2026-10-22, coordinator consolidation-refresh)
+
+Base e5077810f; landed on parity via worker branches + coordinator merge
+(HEAD e39205fdb51b1eea002216c2c9822971e5f2043a at record time).
+
+- Showcase guards (w1-showcase-guards): no_false_parity scans all 23 pages,
+  renders every page at 3 sizes; deleted pickers/overview invisible mounts.
+  Digests byte-identical post-change. Merged with conflict resolution keeping
+  SOURCES-table guards + live selectable render test.
+- TablePro owner guard (w1-tablepro-owner): set_surface seeding deleted;
+  safe-mode + destructive owner-token guards; new safe_mode_owner_contract.
+- TablePro grid extract (w2-tablepro-grid): ResultGridView owns budgets/chrome/
+  scroll; thread-locals + repaint_presented_rows deleted. 23/23 pass.
+- Holla plates superseded: w1-holla-unshadow dropped in favor of live
+  width-band policy; w2-holla-plates removed cursor forcing + seeded query,
+  collapsed hint-clip to band rule.
+- Showcase sizes (w2-showcase-sizes): exact-size gates to breakpoints;
+  nav hit-region inset fixup (c459c14e) after stale pin found.
+- Jackin cursor/recolor (w1-jackin-cursor): cursor forcing deleted with gate
+  riding alongside; recolor into theme ladders; Black-on-Black eliminated.
+- Library line block (w1-lib-lineblock): blocks::paint_row + unit tests;
+  jackin zero-rect placeholder fixed.
+
+Superseded/excluded: R11/R12/F5 packets (retained in live parity); E1
+regression (target helper gone); old fixed-count R10 checker (structural
+verification instead); w1-holla-unshadow production change (live direction won).
+
+Pre-existing live failures (reproduced on clean base, not regressions):
+overlays theme placeholder test, fields note muted, tablepro query-editor
+unicode + visual + 2 perf, holla menu hover + visual, showcase 3 editor
+tests, conformance bindings/mono sets.
