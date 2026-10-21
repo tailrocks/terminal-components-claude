@@ -145,7 +145,6 @@ fn query_headers_results_and_uncommitted_draft_survive_switch() {
         Some(Tab::Query(tab)) if tab.editor_state.editor().is_editing() => {
             Some(tab.editor_state.editor().text().to_owned())
         }
-        Some(Tab::Query(_)) => None,
         _ => None,
     };
     assert!(
