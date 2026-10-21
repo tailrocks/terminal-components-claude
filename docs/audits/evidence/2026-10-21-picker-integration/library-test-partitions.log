@@ -1,0 +1,433 @@
+## termrock-navigation
+$ rustup run 1.99.1 cargo nextest run --locked --offline -p termrock-navigation --lib
+exit=0 seconds=1.52
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.28s
+────────────
+ Nextest run ID 66c970d7-5192-4cb2-9dac-d5939c8e0b9a with nextest profile: default
+    Starting 112 tests across 1 binary
+        PASS [   0.020s] (  1/112) termrock-navigation chip::tests::chip_bar_parts_are_exact
+        PASS [   0.021s] (  2/112) termrock-navigation chip::tests::toggle_action_uses_the_items_stable_key
+        PASS [   0.021s] (  3/112) termrock-navigation filter_list::tests::explicit_reset_selects_first_enabled_item_even_with_default_policy
+        PASS [   0.023s] (  4/112) termrock-navigation chip::tests::custom_row_meta_paints_without_joining_chip_bar_parts
+        PASS [   0.023s] (  5/112) termrock-navigation chip::tests::checked_membership_paints_marker_and_unchecked_stays_blank
+        PASS [   0.023s] (  6/112) termrock-navigation chip::tests::mono_pressed_brackets_the_reserved_pad_cells
+        PASS [   0.024s] (  7/112) termrock-navigation chip::tests::add_affordance_cannot_collide_with_item_identity
+        PASS [   0.024s] (  8/112) termrock-navigation chip::tests::the_strip_window_is_keyed_so_a_reordered_chip_stays_addressable
+        PASS [   0.025s] (  9/112) termrock-navigation chip::tests::mono_pressed_closable_chip_keeps_the_close_cell_after_the_bracket
+        PASS [   0.025s] ( 10/112) termrock-navigation chip::tests::checked_marker_paints_the_canonical_truecolor_glyph_in_one_cell
+        PASS [   0.025s] ( 11/112) termrock-navigation filter_list::tests::explicit_container_patch_reaches_an_opaque_preserved_surface
+        PASS [   0.025s] ( 12/112) termrock-navigation chip::tests::add_affordance_emits_add_requested_by_keyboard_and_mouse
+        PASS [   0.026s] ( 13/112) termrock-navigation chip::tests::toggle_and_close_name_the_chip
+        PASS [   0.026s] ( 14/112) termrock-navigation filter_list::tests::container_fill_is_not_skipped_for_an_opaque_unpreserved_area
+        PASS [   0.029s] ( 15/112) termrock-navigation chip::tests::chip_label_patch_changes_label_but_not_row_meta
+        PASS [   0.030s] ( 16/112) termrock-navigation chip::tests::a_slot_changes_painted_cells_for_exactly_close_and_overflow
+        PASS [   0.031s] ( 17/112) termrock-navigation filter_list::tests::busy_error_and_icon_slot_are_visible
+        PASS [   0.033s] ( 18/112) termrock-navigation chip::tests::checked_marker_honours_resolved_glyph_set_and_clear
+        PASS [   0.011s] ( 19/112) termrock-navigation filter_list::tests::same_key_navigation_reveals_a_reconciled_offscreen_cursor
+        PASS [   0.015s] ( 20/112) termrock-navigation filter_list::tests::filtering_borrowed_domain_items_reuses_one_index_buffer
+        PASS [   0.015s] ( 21/112) termrock-navigation filter_list::tests::filters_and_measures_from_semantic_label
+        PASS [   0.016s] ( 22/112) termrock-navigation filter_list::tests::results_have_stable_child_identity_and_arbitrate_query_keys
+        PASS [   0.019s] ( 23/112) termrock-navigation filter_list::tests::readiness_icon_is_declared_and_ready_reserves_no_geometry
+        PASS [   0.016s] ( 24/112) termrock-navigation list::tests::select_all_selects_only_enabled_items
+        PASS [   0.030s] ( 25/112) termrock-navigation filter_list::tests::live_query_uses_the_shared_editor_draft_and_external_set_keeps_active_editor
+        PASS [   0.027s] ( 26/112) termrock-navigation list::tests::bare_row_paints_the_label_at_the_row_origin
+        PASS [   0.031s] ( 27/112) termrock-navigation filter_list::tests::searchable_filter_list_draw_keeps_its_full_area_for_results
+        PASS [   0.025s] ( 28/112) termrock-navigation nav_list::tests::boundary_commands_are_consumed_without_false_moved_actions
+        PASS [   0.030s] ( 29/112) termrock-navigation list::tests::range_selection_uses_the_anchor
+        PASS [   0.033s] ( 30/112) termrock-navigation filter_list::tests::standalone_searchable_filter_list_owns_visible_focus_and_typing
+        PASS [   0.029s] ( 31/112) termrock-navigation nav_list::tests::a_section_heading_is_painted_once_per_change
+        PASS [   0.033s] ( 32/112) termrock-navigation list::tests::readiness_rail_is_conditional_root_owned_and_patchable
+        PASS [   0.027s] ( 33/112) termrock-navigation nav_list::tests::hover_state_belongs_only_to_the_exact_keyed_row
+        PASS [   0.030s] ( 34/112) termrock-navigation nav_list::tests::empty_sections_are_real_group_sentinels
+        PASS [   0.028s] ( 35/112) termrock-navigation nav_list::tests::marker_gap_moves_icon_and_label_as_one_leading_group
+        PASS [   0.024s] ( 36/112) termrock-navigation nav_list::tests::moving_the_cursor_never_navigates
+        PASS [   0.039s] ( 37/112) termrock-navigation filter_list::tests::themed_container_channels_reach_an_opaque_preserved_surface
+        PASS [   0.030s] ( 38/112) termrock-navigation nav_list::tests::header_text_patch_changes_text_ink_without_restyling_padding
+        PASS [   0.026s] ( 39/112) termrock-navigation nav_list::tests::owner_patches_and_badge_slots_do_not_leak_into_row_owned_parts
+        PASS [   0.043s] ( 40/112) termrock-navigation list::tests::chosen_marker_comes_only_from_semantic_state
+        PASS [   0.026s] ( 41/112) termrock-navigation nav_list::tests::reference_rendering_registers_no_control_or_row_regions
+        PASS [   0.023s] ( 42/112) termrock-navigation nav_list::tests::renderer_runs_only_for_visible_full_mode_item_rows
+        PASS [   0.023s] ( 43/112) termrock-navigation nav_list::tests::selected_style_comes_only_from_the_actual_current_key
+        PASS [   0.025s] ( 44/112) termrock-navigation nav_list::tests::the_collapsed_mode_paints_the_icon_and_not_the_label
+        PASS [   0.028s] ( 45/112) termrock-navigation nav_list::tests::stable_scrollbar_gutter_preserves_layout_and_keyboard_pointer_actions
+        PASS [   0.022s] ( 46/112) termrock-navigation nav_list::tests::the_cursor_skips_disabled_entries_in_both_directions
+        PASS [   0.029s] ( 47/112) termrock-navigation nav_list::tests::slot_scope_is_exact_and_every_allowed_slot_substitutes
+        PASS [   0.022s] ( 48/112) termrock-navigation steps::tests::boundary_movement_is_consumed_without_action_or_repaint
+        PASS [   0.024s] ( 49/112) termrock-navigation nav_list::tests::whole_header_slot_precedes_header_text_patch
+        PASS [   0.024s] ( 50/112) termrock-navigation steps::tests::a_display_rail_is_click_only_and_a_navigable_rail_is_in_the_ring
+        PASS [   0.020s] ( 51/112) termrock-navigation steps::tests::every_override_channel_is_forwarded_to_scrollbar
+        PASS [   0.036s] ( 52/112) termrock-navigation nav_list::tests::right_and_plain_l_enter_content_while_choose_inputs_stay_distinct
+        PASS [   0.025s] ( 53/112) termrock-navigation steps::tests::display_click_moves_and_double_click_activates_exact_key
+        PASS [   0.027s] ( 54/112) termrock-navigation steps::tests::every_lifecycle_state_paints_a_symbol_that_separates_it
+        PASS [   0.028s] ( 55/112) termrock-navigation steps::tests::completed_frontier_is_cached_until_invalidation
+        PASS [   0.036s] ( 56/112) termrock-navigation nav_list::tests::steady_current_reconciliation_is_constant_time_and_invalidation_repairs_reorder
+        PASS [   0.022s] ( 57/112) termrock-navigation steps::tests::fresh_navigable_update_seeds_first_key_silently
+        PASS [   0.029s] ( 58/112) termrock-navigation steps::tests::forced_reference_rendering_registers_no_nested_or_row_regions
+        PASS [   0.024s] ( 59/112) termrock-navigation steps::tests::icon_slot_replacement_and_glyph_clear_preserve_row_geometry
+        PASS [   0.013s] ( 60/112) termrock-navigation steps::tests::stable_cursor_identity_survives_same_endpoints_reorder
+        PASS [   0.016s] ( 61/112) termrock-navigation steps::tests::skipped_row_enter_and_click_remain_activatable_by_stable_key
+        PASS [   0.014s] ( 62/112) termrock-navigation steps::tests::the_frontier_is_the_first_unfinished_step
+        PASS [   0.026s] ( 63/112) termrock-navigation steps::tests::only_exact_slot_parts_invoke_real_replacement_painters
+        PASS [   0.080s] ( 64/112) termrock-navigation filter_list::tests::picker_tag_default_ink_tracks_resolved_owner_contrast
+        PASS [   0.018s] ( 65/112) termrock-navigation steps::tests::skipped_is_read_only_terminal_and_still_navigable
+        PASS [   0.019s] ( 66/112) termrock-navigation steps::tests::saturated_revision_recomputes_every_time
+        PASS [   0.019s] ( 67/112) termrock-navigation steps::tests::runtime_cache_clear_drops_only_frontier_acceleration
+        PASS [   0.016s] ( 68/112) termrock-navigation steps::tests::steps_parts_and_slot_parts_are_exact
+        PASS [   0.018s] ( 69/112) termrock-navigation steps::tests::steps_100k_rows_render_uses_incremental_frontier_accesses
+        PASS [   0.021s] ( 70/112) termrock-navigation steps::tests::owner_patch_reaches_owned_parts_but_not_row_meta_cell_or_custom_part
+        PASS [   0.019s] ( 71/112) termrock-navigation tabs::tests::close_targets_the_logical_tab_after_a_reorder
+        PASS [   0.022s] ( 72/112) termrock-navigation tabs::tests::active_rule_comes_only_from_semantic_state
+        PASS [   0.019s] ( 73/112) termrock-navigation tabs::tests::explicit_window_receipt_preserves_warm_overflow_reservation
+        PASS [   0.018s] ( 74/112) termrock-navigation tabs::tests::mono_pressed_closable_tab_keeps_the_close_cell_after_the_bracket
+        PASS [   0.017s] ( 75/112) termrock-navigation tabs::tests::planned_draw_consumes_owned_text_and_rejects_a_different_configuration
+        PASS [   0.022s] ( 76/112) termrock-navigation tabs::tests::mono_pressed_brackets_the_reserved_pad_cells
+        PASS [   0.016s] ( 77/112) termrock-navigation tabs::tests::semantic_layout_preserves_display_write_boundaries_and_custom_rows_stay_legacy
+        PASS [   0.013s] ( 78/112) termrock-navigation tree::tests::choose_action_uses_the_reordered_nodes_stable_key
+        PASS [   0.015s] ( 79/112) termrock-navigation tree::tests::a_lazy_node_reports_its_expansion_by_key
+        PASS [   0.014s] ( 80/112) termrock-navigation tree::tests::cached_weak_identity_prevents_replacement_address_reuse
+        PASS [   0.014s] ( 81/112) termrock-navigation tree::tests::chosen_marker_comes_only_from_semantic_key_and_survives_reorder
+        PASS [   0.017s] ( 82/112) termrock-navigation tabs::tests::semantic_rows_and_parts_keep_stable_keys_after_reordering
+        PASS [   0.018s] ( 83/112) termrock-navigation tabs::tests::semantic_layout_matches_legacy_for_left_clipped_segmented_labels
+        PASS [   0.016s] ( 84/112) termrock-navigation tree::tests::branch_disclosure_click_never_chooses_or_activates
+        PASS [   0.020s] ( 85/112) termrock-navigation tabs::tests::readiness_lane_is_far_right_conditional_patchable_and_replaceable
+        PASS [   0.016s] ( 86/112) termrock-navigation tree::tests::chosen_marker_follows_key_across_reorder
+        PASS [   0.016s] ( 87/112) termrock-navigation tree::tests::custom_leaf_icon_click_is_row_body
+        PASS [   0.010s] ( 88/112) termrock-navigation tree::tests::equal_source_generations_from_replaced_and_cloned_states_rebuild
+        PASS [   0.012s] ( 89/112) termrock-navigation tree::tests::expand_all_is_the_inverted_key_set
+        PASS [   0.014s] ( 90/112) termrock-navigation tree::tests::expand_collapse_is_keyed_not_positional
+        PASS [   0.014s] ( 91/112) termrock-navigation tree::tests::leaf_fold_cell_click_sets_cursor_and_chooses
+        PASS [   0.014s] ( 92/112) termrock-navigation tree::tests::owner_patches_reach_tree_parts_without_leaking_into_row_owned_parts
+        PASS [   0.018s] ( 93/112) termrock-navigation tree::tests::icon_trailing_mark_and_focused_patch_affect_paint
+        PASS [   0.014s] ( 94/112) termrock-navigation tree::tests::parts_include_the_component_owned_marker_in_paint_order
+        PASS [   0.017s] ( 95/112) termrock-navigation tree::tests::leaf_disclosure_placeholder_inherits_row_style_but_branch_keeps_icon_style
+        PASS [   0.013s] ( 96/112) termrock-navigation tree::tests::saturated_expansion_generation_rebuilds_after_every_mutation
+        PASS [   0.015s] ( 97/112) termrock-navigation tree::tests::mono_chosen_row_paints_marker_without_moving_the_label
+        PASS [   0.015s] ( 98/112) termrock-navigation tree::tests::marker_honours_clear_and_slot_replacement
+        PASS [   0.016s] ( 99/112) termrock-navigation tree::tests::leaf_fold_cell_registers_over_the_row
+        PASS [   0.013s] (100/112) termrock-navigation tree::tests::query_revision_rebuilds_once_preserves_ancestors_and_restores_expansion
+        PASS [   0.014s] (101/112) termrock-navigation tree::tests::query_navigation_reveals_results_without_mutating_expansion
+        PASS [   0.016s] (102/112) termrock-navigation tree::tests::matching_lazy_node_can_request_children_during_query
+        PASS [   0.012s] (103/112) termrock-navigation tree::tests::saturated_source_generation_never_reuses_a_stale_index
+        PASS [   0.015s] (104/112) termrock-navigation tree::tests::reference_focus_styles_only_the_runtime_cursor_without_selecting_it
+        PASS [   0.016s] (105/112) termrock-navigation tree::tests::query_preserves_chosen_until_the_source_removes_it
+        PASS [   0.012s] (106/112) termrock-navigation tree::tests::selected_click_without_prior_cursor_only_chooses
+        PASS [   0.025s] (107/112) termrock-navigation tree::tests::lazy_children_do_not_reflatten_the_world
+        PASS [   0.014s] (108/112) termrock-navigation tree::tests::source_invalidation_rebuilds_once_and_cache_clear_drops_only_derived_state
+        PASS [   0.013s] (109/112) termrock-navigation tree::tests::unselected_marker_is_blank_and_skips_theme_and_slot_resolution
+        PASS [   0.044s] (110/112) termrock-navigation tree::tests::tree_100k_nodes_flatten
+        PASS [   0.068s] (111/112) termrock-navigation tree::tests::tree_100k_nodes_render
+        PASS [   0.378s] (112/112) termrock-navigation tabs::tests::default_semantic_layout_matches_legacy_cells_parts_and_cursor_profiles
+────────────
+     Summary [   0.471s] 112 tests run: 112 passed, 0 skipped
+
+## termrock-runtime
+$ rustup run 1.99.1 cargo nextest run --locked --offline -p termrock-runtime --lib
+exit=0 seconds=1.06
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.17s
+────────────
+ Nextest run ID ea8a7b84-c474-44ec-bcae-8f89bfb5dc52 with nextest profile: default
+    Starting 261 tests across 1 binary
+        PASS [   0.016s] (  1/261) termrock-runtime author::tests::part_style_slot_lookup_is_part_scoped
+        PASS [   0.017s] (  2/261) termrock-runtime author::window::tests::maps_only_rows_inside_the_visible_source_window
+        PASS [   0.018s] (  3/261) termrock-runtime capture::tests::capture_claims_and_rejects_a_second_claim
+        PASS [   0.018s] (  4/261) termrock-runtime capture::pointer_tests::bar_input_routes_the_press_phases
+        PASS [   0.020s] (  5/261) termrock-runtime capture::pointer_tests::a_secondary_release_on_an_accepting_owner_is_a_click
+        PASS [   0.020s] (  6/261) termrock-runtime capture::pointer_tests::a_secondary_outside_a_backdrop_reopens_the_layer_beneath
+        PASS [   0.023s] (  7/261) termrock-runtime author::tests::part_style_merges_global_and_part_patches_in_order
+        PASS [   0.027s] (  8/261) termrock-runtime capture::runtime_tests::local_is_computed_against_the_captured_area_at_runtime
+        PASS [   0.026s] (  9/261) termrock-runtime author::window::tests::full_window_preserves_zero_size_and_checked_physical_coordinates
+        PASS [   0.028s] ( 10/261) termrock-runtime capture::runtime_tests::origin_is_the_press_position
+        PASS [   0.028s] ( 11/261) termrock-runtime capture::runtime_tests::capture_is_released_on_resize
+        PASS [   0.028s] ( 12/261) termrock-runtime capture::runtime_tests::drag_and_release_go_to_the_capture_owner
+        PASS [   0.029s] ( 13/261) termrock-runtime author::tests::part_style_flags_match_internal_override_union
+        PASS [   0.028s] ( 14/261) termrock-runtime capture::tests::capture_is_released_on_generation_mismatch
+        PASS [   0.032s] ( 15/261) termrock-runtime capture::runtime_tests::pressed_stays_set_while_the_pointer_leaves
+        PASS [   0.033s] ( 16/261) termrock-runtime author::window::tests::prepared_layout_facts_keep_the_optional_window_additive
+        PASS [   0.017s] ( 17/261) termrock-runtime capture::tests::capture_is_released_when_the_owner_disappears
+        PASS [   0.034s] ( 18/261) termrock-runtime author::window::tests::rejects_empty_or_out_of_range_windows_without_panicking
+        PASS [   0.035s] ( 19/261) termrock-runtime capture::runtime_tests::release_outside_the_captured_area_does_not_activate
+        PASS [   0.019s] ( 20/261) termrock-runtime clock_paste::tests::positive_decimal_milliseconds_only
+        PASS [   0.024s] ( 21/261) termrock-runtime capture::tests::local_is_computed_against_the_captured_area
+        PASS [   0.024s] ( 22/261) termrock-runtime cursor::tests::cursor_write_from_a_lower_layer_is_rejected
+        PASS [   0.021s] ( 23/261) termrock-runtime cursor::tests::cursor_write_from_an_unfocused_owner_is_rejected
+        PASS [   0.021s] ( 24/261) termrock-runtime empty::tests::empty_state_truncates_a_long_title_to_the_area
+        PASS [   0.033s] ( 25/261) termrock-runtime cursor::tests::cursor_write_is_kept_for_the_focused_owner_on_the_top_layer
+        PASS [   0.018s] ( 26/261) termrock-runtime focus::tests::reconcile_prefers_nearest_surviving_entry_by_previous_index
+        PASS [   0.020s] ( 27/261) termrock-runtime focus::tests::reconcile_yields_none_when_nothing_is_reachable
+        PASS [   0.023s] ( 28/261) termrock-runtime focus::tests::nested_scopes_resolve_innermost_first
+        PASS [   0.028s] ( 29/261) termrock-runtime focus::runtime_tests::read_only_entries_stay_in_the_ring
+        PASS [   0.028s] ( 30/261) termrock-runtime focus::tests::focus_visible_is_true_only_after_a_key
+        PASS [   0.027s] ( 31/261) termrock-runtime focus::tests::reconcile_falls_back_to_innermost_active_scope
+        PASS [   0.038s] ( 32/261) termrock-runtime cursor::tests::rejection_records_a_diagnostic
+        PASS [   0.034s] ( 33/261) termrock-runtime empty::tests::empty_state_covers_empty_loading_partial_error
+        PASS [   0.021s] ( 34/261) termrock-runtime focus::tests::scope_restore_returns_focus_to_the_opener
+        PASS [   0.033s] ( 35/261) termrock-runtime focus::runtime_tests::restore_target_receives_retained_key_after_the_next_publication
+        PASS [   0.038s] ( 36/261) termrock-runtime focus::runtime_tests::click_only_entries_are_never_reachable
+        PASS [   0.043s] ( 37/261) termrock-runtime cursor::tests::the_focused_owners_write_wins_on_the_same_layer
+        PASS [   0.040s] ( 38/261) termrock-runtime focus::tests::disabled_entries_are_registered_but_skipped
+        PASS [   0.035s] ( 39/261) termrock-runtime focus::tests::reconcile_falls_back_to_scope_first_enabled
+        PASS [   0.029s] ( 40/261) termrock-runtime focus::tests::shift_tab_is_the_exact_reverse
+        PASS [   0.031s] ( 41/261) termrock-runtime focus::tests::tab_cycles_forward_and_backward
+        PASS [   0.013s] ( 42/261) termrock-runtime hit::tests::a_lower_layer_region_registered_later_does_not_shadow_a_higher_one
+        PASS [   0.028s] ( 43/261) termrock-runtime focus::tests::trap_confines_traversal_to_the_scope
+        PASS [   0.024s] ( 44/261) termrock-runtime focus::tests::trap_is_armed_when_the_layer_is_pushed_not_when_it_draws
+        PASS [   0.019s] ( 45/261) termrock-runtime hit::tests::a_bar_resolves_to_its_owners_track_and_the_thumb_is_its_own_part
+        PASS [   0.018s] ( 46/261) termrock-runtime hit::tests::duplicate_id_is_reported_as_a_diagnostic_not_a_panic
+        PASS [   0.025s] ( 47/261) termrock-runtime focus::tests::trap_wraps_inside_the_scope
+        PASS [   0.018s] ( 48/261) termrock-runtime hit::tests::a_thumb_without_its_bar_is_ignored_and_an_empty_track_never_registers
+        PASS [   0.016s] ( 49/261) termrock-runtime hit::tests::hit_returns_part_ref_not_a_derived_id
+        PASS [   0.023s] ( 50/261) termrock-runtime hit::tests::generation_bump_invalidates_stale_regions
+        PASS [   0.018s] ( 51/261) termrock-runtime hit::tests::hit_scroll_skips_regions_that_do_not_handle_the_axis
+        PASS [   0.027s] ( 52/261) termrock-runtime hit::tests::empty_rects_are_rejected
+        PASS [   0.027s] ( 53/261) termrock-runtime hit::tests::higher_layer_shadows_lower
+        PASS [   0.018s] ( 54/261) termrock-runtime hit::tests::last_registration_wins
+        PASS [   0.033s] ( 55/261) termrock-runtime hit::tests::a_backdrop_catches_clicks_for_its_owner
+        PASS [   0.023s] ( 56/261) termrock-runtime hit::tests::pushing_an_empty_area_never_touches_the_previous_regions_scroll
+        PASS [   0.030s] ( 57/261) termrock-runtime hit::tests::hit_scroll_returns_the_innermost_handler_of_the_axis
+        PASS [   0.022s] ( 58/261) termrock-runtime keymap::label_on_tests::labels_follow_the_pr26_rules
+        PASS [   0.043s] ( 59/261) termrock-runtime hit::runtime_tests::inert_below_registers_nothing
+        PASS [   0.034s] ( 60/261) termrock-runtime hit::tests::hit_returns_a_lower_layer_region_for_the_outside_click_test
+        PASS [   0.023s] ( 61/261) termrock-runtime keymap::label_on_tests::shift_is_part_of_the_char_it_names
+        PASS [   0.032s] ( 62/261) termrock-runtime hit::tests::hit_scroll_returns_a_region_at_zero_headroom
+        PASS [   0.024s] ( 63/261) termrock-runtime keymap::label_on_tests::super_labels_per_platform
+        PASS [   0.024s] ( 64/261) termrock-runtime keymap::tests::capture_skips_bare_chars_while_typing
+        PASS [   0.024s] ( 65/261) termrock-runtime keymap::tests::duplicate_binding_action_is_rejected
+        PASS [   0.035s] ( 66/261) termrock-runtime hit::tests::releases_are_accepted_per_widget_and_source
+        PASS [   0.032s] ( 67/261) termrock-runtime keymap::tests::component_conflicts_use_effective_chord_identity
+        PASS [   0.027s] ( 68/261) termrock-runtime keymap::tests::duplicate_dynamic_action_rejects_the_additive_table
+        PASS [   0.023s] ( 69/261) termrock-runtime keymap::tests::dynamic_snapshot_invalidates_when_selected_base_descriptors_change
+        PASS [   0.022s] ( 70/261) termrock-runtime keymap::tests::effective_duplicate_chord_including_hidden_is_diagnosed
+        PASS [   0.025s] ( 71/261) termrock-runtime keymap::tests::dynamic_snapshot_is_bounded_structural_and_wrap_invalidates_identity
+        PASS [   0.017s] ( 72/261) termrock-runtime keymap::tests::focused_hint_dedup_uses_physical_chord_independent_of_display_case
+        PASS [   0.024s] ( 73/261) termrock-runtime keymap::tests::explicit_extension_combines_different_typed_actions_and_resets_per_frame
+        PASS [   0.016s] ( 74/261) termrock-runtime keymap::tests::focused_hints_refresh_when_selected_descriptors_change_under_same_table_id
+        PASS [   0.018s] ( 75/261) termrock-runtime keymap::tests::focused_hints_deduplicate_effective_chords
+        PASS [   0.022s] ( 76/261) termrock-runtime keymap::tests::explicit_extension_rejects_action_and_default_chord_conflicts
+        PASS [   0.017s] ( 77/261) termrock-runtime keymap::tests::focused_hints_refresh_when_keymap_remaps_a_stable_descriptor
+        PASS [   0.032s] ( 78/261) termrock-runtime keymap::tests::dynamic_publication_is_contiguous_after_an_intervening_owner
+        PASS [   0.018s] ( 79/261) termrock-runtime keymap::tests::hints_derive_from_visible_bindings_by_priority
+        PASS [   0.021s] ( 80/261) termrock-runtime keymap::tests::global_keymap_mutations_use_effective_chord_identity
+        PASS [   0.014s] ( 81/261) termrock-runtime keymap::tests::remove_remap_and_conflicts
+        PASS [   0.020s] ( 82/261) termrock-runtime keymap::tests::hidden_bindings_still_shadow_later_visible_hints
+        PASS [   0.012s] ( 83/261) termrock-runtime keymap::tests::table_conflicts_use_effective_chord_identity
+        PASS [   0.021s] ( 84/261) termrock-runtime keymap::tests::keymap_conflicts_use_effective_chord_identity
+        PASS [   0.017s] ( 85/261) termrock-runtime layer::runtime_tests::focus_out_dismisses_a_popover_but_never_a_modal
+        PASS [   0.019s] ( 86/261) termrock-runtime layer::runtime_tests::esc_reaches_the_focused_editor_before_the_layer
+        PASS [   0.015s] ( 87/261) termrock-runtime layer::runtime_tests::outside_click_is_layer_less_than_top_or_none
+        PASS [   0.017s] ( 88/261) termrock-runtime layer::runtime_tests::layer_id_is_assigned_at_open_not_at_draw
+        PASS [   0.014s] ( 89/261) termrock-runtime layer::tests::anchor_screen_balanced_centers_with_the_odd_row_above
+        PASS [   0.017s] ( 90/261) termrock-runtime layer::runtime_tests::nested_layers_each_trap
+        PASS [   0.015s] ( 91/261) termrock-runtime layer::tests::anchor_rect_flips_then_clamps
+        PASS [   0.013s] ( 92/261) termrock-runtime layer::tests::anchor_screen_geometric_center_centers_inside_offset_viewport
+        PASS [   0.015s] ( 93/261) termrock-runtime layer::tests::anchor_screen_center_sits_in_the_upper_third
+        PASS [   0.012s] ( 94/261) termrock-runtime layer::tests::anchor_screen_geometric_center_clamps_oversize_and_handles_tiny_viewports
+        PASS [   0.012s] ( 95/261) termrock-runtime layer::tests::dismissed_emits_the_reason
+        PASS [   0.013s] ( 96/261) termrock-runtime layer::tests::fill_resolves_to_the_whole_screen
+        PASS [   0.016s] ( 97/261) termrock-runtime layer::tests::closed_with_action_key_emits_layer_event_closed
+        PASS [   0.016s] ( 98/261) termrock-runtime layer::tests::backdrop_excludes_the_footer_row
+        PASS [   0.022s] ( 99/261) termrock-runtime layer::runtime_tests::resize_layer_re_resolves_the_anchor_on_the_next_draw
+        PASS [   0.021s] (100/261) termrock-runtime layer::runtime_tests::spec_geometry_is_the_only_mutable_field
+        PASS [   0.028s] (101/261) termrock-runtime layer::runtime_tests::esc_dismisses_only_the_top_layer
+        PASS [   0.027s] (102/261) termrock-runtime layer::runtime_tests::bootstrap_layer_resolves_against_actual_viewport_and_restores_desired_size
+        PASS [   0.010s] (103/261) termrock-runtime layer::tests::fixed_size_is_clamped_never_grown
+        PASS [   0.013s] (104/261) termrock-runtime layer::tests::modal_pushes_a_trap_and_a_pointer_barrier
+        PASS [   0.013s] (105/261) termrock-runtime layer::tests::opening_tokens_identify_runtime_generation_and_concrete_parent
+        PASS [   0.011s] (106/261) termrock-runtime layer::tests::popover_pushes_a_pointer_barrier_only
+        PASS [   0.012s] (107/261) termrock-runtime layer::tests::reopened_layers_keep_monotonic_ids
+        PASS [   0.015s] (108/261) termrock-runtime layer::tests::popover_flips_above_when_the_content_does_not_fit_below
+        PASS [   0.015s] (109/261) termrock-runtime layer::tests::point_anchor_flips_instead_of_covering_the_pointer
+        PASS [   0.015s] (110/261) termrock-runtime layer::tests::viewport_margin_does_not_change_fill_layer_semantics
+        PASS [   0.016s] (111/261) termrock-runtime layer::tests::receipts_retain_each_reopened_layer_opening_and_close_callback
+        PASS [   0.018s] (112/261) termrock-runtime layer::tests::push_and_pop_maintain_layer_order
+        PASS [   0.015s] (113/261) termrock-runtime layer::tests::viewport_margin_limits_fixed_size_without_changing_anchor_viewport
+        PASS [   0.017s] (114/261) termrock-runtime layer::tests::viewport_margin_handles_tiny_and_empty_viewports
+        PASS [   0.015s] (115/261) termrock-runtime rowui::tests::aligned_cell_padding_uses_explicit_constructor_set_and_reset_styles
+        PASS [   0.015s] (116/261) termrock-runtime rowui::tests::focused_fill_keeps_theme_family_override_above_fill_defaults
+        PASS [   0.017s] (117/261) termrock-runtime rowui::tests::explicit_label_patch_wins_over_the_forwarded_label_patch
+        PASS [   0.016s] (118/261) termrock-runtime rowui::tests::focused_fill_preserves_the_constructor_container_patch_in_row_padding
+        PASS [   0.013s] (119/261) termrock-runtime rowui::tests::in_place_number_formatting
+        PASS [   0.019s] (120/261) termrock-runtime rowui::tests::focused_fill_keeps_explicit_builtin_role_and_modifier
+        PASS [   0.016s] (121/261) termrock-runtime rowui::tests::forwarded_patches_reach_only_the_automatic_container_and_labels
+        PASS [   0.016s] (122/261) termrock-runtime rowui::tests::matched_labels_preserve_explicit_bold_and_only_emphasize_matches
+        PASS [   0.016s] (123/261) termrock-runtime rowui::tests::row_ui_label_writes_cells_without_an_intermediate_string
+        PASS [   0.016s] (124/261) termrock-runtime rowui::tests::row_ui_meta_is_dropped_all_or_none
+        PASS [   0.019s] (125/261) termrock-runtime rowui::tests::row_ui_columns_clip_to_the_row
+        PASS [   0.016s] (126/261) termrock-runtime rowui::tests::row_ui_part_paints_a_resolved_glyph_as_a_reserved_suffix
+        PASS [   0.016s] (127/261) termrock-runtime rowui::tests::row_ui_part_clear_reserves_a_blank_cell_and_differs_from_inherit
+        PASS [   0.014s] (128/261) termrock-runtime runtime::clipboard::tests::clipboard_storage_is_independent_and_debug_redacts_text
+        PASS [   0.015s] (129/261) termrock-runtime runtime::clipboard::tests::copy_hook_receives_each_copy_and_can_be_cleared
+        PASS [   0.019s] (130/261) termrock-runtime rowui::tests::row_ui_marker_honours_resolved_glyph_slot
+        PASS [   0.019s] (131/261) termrock-runtime runtime::tests::a_layer_attempted_only_in_reference_has_no_backdrop_or_focus_effect
+        PASS [   0.019s] (132/261) termrock-runtime runtime::tests::a_layer_owners_dismissal_is_diagnosed_when_the_owner_does_not_drain_it
+        PASS [   0.018s] (133/261) termrock-runtime runtime::tests::a_long_second_press_expires_double_click_at_captured_release
+        PASS [   0.018s] (134/261) termrock-runtime runtime::tests::a_long_second_press_expires_double_click_at_uncaptured_release
+        PASS [   0.015s] (135/261) termrock-runtime runtime::tests::click_slop_uses_release_position_for_uncaptured_clicks
+        PASS [   0.017s] (136/261) termrock-runtime runtime::tests::bootstrap_runs_once_before_first_draw_without_a_tick
+        PASS [   0.019s] (137/261) termrock-runtime runtime::tests::capture_interruption_resets_the_pointer_click_sequence
+        PASS [   0.014s] (138/261) termrock-runtime runtime::tests::click_window_is_exclusive_when_release_lands_on_deadline
+        PASS [   0.017s] (139/261) termrock-runtime runtime::tests::click_window_is_exclusive_at_exact_boundary
+        PASS [   0.021s] (140/261) termrock-runtime runtime::tests::click_slop_uses_release_position_for_captured_clicks
+        PASS [   0.014s] (141/261) termrock-runtime runtime::tests::declining_inner_scope_continues_to_outer_scoped_bubble
+        PASS [   0.014s] (142/261) termrock-runtime runtime::tests::direct_nested_closes_cancel_child_receipt_and_keep_parent_receipt
+        PASS [   0.017s] (143/261) termrock-runtime runtime::tests::component_author_ui_diagnostics_commit_to_the_bounded_runtime_store
+        PASS [   0.018s] (144/261) termrock-runtime runtime::tests::disabled_continuation_owner_receives_cancellation_not_success
+        PASS [   0.020s] (145/261) termrock-runtime runtime::tests::continuation_outcome_survives_owner_delay_until_exact_ack
+        PASS [   0.021s] (146/261) termrock-runtime runtime::tests::declining_scoped_bubble_falls_through_to_application_escape
+        PASS [   0.014s] (147/261) termrock-runtime runtime::tests::focus_moving_out_of_inner_scope_skips_stale_scope_candidates
+        PASS [   0.015s] (148/261) termrock-runtime runtime::tests::headless_tick_uses_the_same_update_cause_without_wall_clock
+        PASS [   0.017s] (149/261) termrock-runtime runtime::tests::legacy_draw_refuses_continuation_receipts_before_projection
+        PASS [   0.024s] (150/261) termrock-runtime runtime::tests::focus_continuation_and_close_receipt_settle_before_prepared_output
+        PASS [   0.018s] (151/261) termrock-runtime runtime::tests::focus_out_is_delivered_once_while_live_and_skipped_after_layer_close
+        PASS [   0.013s] (152/261) termrock-runtime runtime::tests::opening_modal_from_leaf_skips_stale_global_escape_fallback
+        PASS [   0.019s] (153/261) termrock-runtime runtime::tests::focus_redirect_during_result_ack_cancels_same_update_completion
+        PASS [   0.018s] (154/261) termrock-runtime runtime::tests::missing_continuation_ack_cancels_receipt_without_blocking_prepare
+        PASS [   0.015s] (155/261) termrock-runtime runtime::tests::opening_modal_from_inner_scope_skips_stale_outer_binding
+        PASS [   0.017s] (156/261) termrock-runtime runtime::tests::moving_focus_from_leaf_skips_stale_scope_and_global_fallbacks
+        PASS [   0.016s] (157/261) termrock-runtime runtime::tests::opening_and_dismissing_a_layer_resets_the_pointer_click_sequence
+        PASS [   0.014s] (158/261) termrock-runtime runtime::tests::pointer_press_count_resets_after_slop_and_target_change
+        PASS [   0.015s] (159/261) termrock-runtime runtime::tests::ordinary_layer_close_does_not_enqueue_completion_or_extra_update
+        PASS [   0.016s] (160/261) termrock-runtime runtime::tests::pointer_press_count_tracks_triples_and_keeps_double_click_phase
+        PASS [   0.014s] (161/261) termrock-runtime runtime::tests::prepare_reconciles_hover_geometry_before_output
+        PASS [   0.014s] (162/261) termrock-runtime runtime::tests::prepare_bounds_repeated_focus_redirection
+        PASS [   0.013s] (163/261) termrock-runtime runtime::tests::prepared_frame_publishes_geometry_but_blocks_input_until_acknowledged
+        PASS [   0.013s] (164/261) termrock-runtime runtime::tests::real_editable_overlay_typing_suppresses_retained_owner_when_caret_is_absent
+        PASS [   0.016s] (165/261) termrock-runtime runtime::tests::prepared_frame_tokens_are_runtime_and_generation_scoped
+        PASS [   0.014s] (166/261) termrock-runtime runtime::tests::same_update_layer_reopen_keeps_new_generation_live
+        PASS [   0.015s] (167/261) termrock-runtime runtime::tests::removed_continuation_owner_receives_cancellation_not_success
+        PASS [   0.015s] (168/261) termrock-runtime runtime::tests::same_id_reopen_cannot_reuse_closed_opening_success
+        PASS [   0.015s] (169/261) termrock-runtime runtime::tests::repaint_deadline_survives_unrelated_input_and_keeps_the_earliest
+        PASS [   0.015s] (170/261) termrock-runtime runtime::tests::selective_layer_receipts_preserve_mixed_intents_and_reject_old_generation
+        PASS [   0.015s] (171/261) termrock-runtime runtime::tests::successful_captured_clicks_keep_the_sequence_count
+        PASS [   0.015s] (172/261) termrock-runtime runtime::tests::state_changes_invalidate_prepared_frames
+        PASS [   0.011s] (173/261) termrock-runtime runtime::tests::visible_cursor_retention_respects_top_layer_cursor_owners
+        PASS [   0.014s] (174/261) termrock-runtime runtime::tests::unacknowledged_continuation_receipts_expire_with_diagnostic
+        PASS [   0.017s] (175/261) termrock-runtime runtime::tests::settle_skips_focus_out_from_closed_nonrestoring_modal
+        PASS [   0.017s] (176/261) termrock-runtime runtime::tests::tick_cause_is_delivered_once_when_focus_settles
+        PASS [   0.014s] (177/261) termrock-runtime scroll_region::tests::a_reference_scroll_region_registers_nothing
+        PASS [   0.013s] (178/261) termrock-runtime scroll_region::tests::clipped_legacy_slot_reports_and_registers_no_phantom_part
+        PASS [   0.018s] (179/261) termrock-runtime runtime::tests::update_tokens_are_unique_per_callback_and_runtime
+        PASS [   0.016s] (180/261) termrock-runtime scroll_region::tests::container_patch_paints_even_without_overflow
+        PASS [   0.016s] (181/261) termrock-runtime scroll_region::tests::direct_reference_press_targets_only_the_thumb
+        PASS [   0.016s] (182/261) termrock-runtime scroll_region::tests::draw_window_clips_track_and_thumb_without_creating_caps
+        PASS [   0.015s] (183/261) termrock-runtime scroll_region::tests::large_logical_window_keeps_thumb_grab_offset_when_pressed
+        PASS [   0.015s] (184/261) termrock-runtime scroll_region::tests::scrollbar_preserves_resolved_theme_bold
+        PASS [   0.017s] (185/261) termrock-runtime scroll_region::tests::scrollbar_drops_bold_inherited_from_the_cell_under_it
+        PASS [   0.017s] (186/261) termrock-runtime scroll_region::tests::resized_source_window_reuses_the_prepared_mapping_for_input
+        PASS [   0.016s] (187/261) termrock-runtime scroll_region::tests::scrollbar_paints_typed_caps_outside_the_thumb
+        PASS [   0.018s] (188/261) termrock-runtime scroll_region::tests::full_window_slot_render_matches_existing_draw
+        PASS [   0.014s] (189/261) termrock-runtime scroll_region::tests::thumb_drag_preserves_the_grab_offset
+        PASS [   0.015s] (190/261) termrock-runtime scroll_region::tests::track_click_and_captured_thumb_drag_use_logical_source_rows
+        PASS [   0.019s] (191/261) termrock-runtime scroll_region::tests::owner_state_never_leaks_into_the_scrollbar
+        PASS [   0.016s] (192/261) termrock-runtime scroll_region::tests::window_slot_receives_original_and_visible_source_intervals
+        PASS [   0.019s] (193/261) termrock-runtime scroll_region::tests::stable_gutter_reserves_one_column_without_overflow_and_once_with_it
+        PASS [   0.016s] (194/261) termrock-runtime support::tests::cell_at_is_empty_for_every_x_outside_the_area_on_either_side
+        PASS [   0.016s] (195/261) termrock-runtime scroll_region::tests::window_track_length_uses_usize_logical_rows_above_u16
+        PASS [   0.014s] (196/261) termrock-runtime support::tests::component_author_patch_changes_only_explicit_style_channels
+        PASS [   0.014s] (197/261) termrock-runtime support::tests::dialog_chrome_clear_resets_explicit_channels
+        PASS [   0.013s] (198/261) termrock-runtime support::tests::dialog_chrome_keeps_explicit_instance_container_channels
+        PASS [   0.012s] (199/261) termrock-runtime support::tests::dialog_chrome_resolves_theme_overlay_and_instance_precedence
+        PASS [   0.014s] (200/261) termrock-runtime support::tests::dialog_chrome_maps_the_covered_ink_through_the_backdrop
+        PASS [   0.012s] (201/261) termrock-runtime support::tests::picker_chrome_keeps_explicit_container_foreground_and_modifier
+        PASS [   0.014s] (202/261) termrock-runtime support::tests::picker_chrome_keeps_theme_container_channels
+        PASS [   0.014s] (203/261) termrock-runtime ui::composition::tests::column_uses_shared_gap_and_measured_heights
+        PASS [   0.014s] (204/261) termrock-runtime ui::composition::tests::component_logical_root_reflows_before_intersecting_parent_clip
+        PASS [   0.013s] (205/261) termrock-runtime ui::composition::tests::preserved_minimum_keeps_logical_bounds_and_clips_registration
+        PASS [   0.013s] (206/261) termrock-runtime ui::composition::tests::pure_measure_uses_resolved_width_reflow_without_drawing
+        PASS [   0.015s] (207/261) termrock-runtime ui::composition::tests::cursor_requests_outside_clips_are_ignored_without_relocation
+        PASS [   0.013s] (208/261) termrock-runtime ui::composition::tests::row_measures_each_leaf_once_and_registers_with_resolved_bounds
+        PASS [   0.013s] (209/261) termrock-runtime ui::composition::tests::row_remeasures_wrapping_content_at_allocated_flex_width
+        PASS [   0.012s] (210/261) termrock-runtime ui::derived::tests::derived_cache_drops_component_after_generation_gap
+        PASS [   0.011s] (211/261) termrock-runtime ui::derived::tests::derived_cache_is_keyed_by_id_and_type
+        PASS [   0.011s] (212/261) termrock-runtime ui::derived::tests::reference_targets_survive_cross_frame_draw_order_changes
+        PASS [   0.015s] (213/261) termrock-runtime ui::cx::diagnostics_tests::component_author_diagnostics_use_the_bounded_runtime_store
+        PASS [   0.016s] (214/261) termrock-runtime ui::composition::tests::wrapping_group_recomputes_bounds_for_changed_root_size
+        PASS [   0.012s] (215/261) termrock-runtime ui::layer_buf::tests::only_written_cells_composite
+        PASS [   0.012s] (216/261) termrock-runtime ui::measure::tests::measure_reports_min_and_preferred
+        PASS [   0.015s] (217/261) termrock-runtime ui::layer_buf::tests::reused_layer_clears_origins_and_inherited_channels_stay_local
+        PASS [   0.015s] (218/261) termrock-runtime ui::measure::tests::measure_does_not_touch_the_style_cache
+        PASS [   0.014s] (219/261) termrock-runtime ui::measure::tests::measure_records_no_roles_and_no_styled_parts
+        PASS [   0.016s] (220/261) termrock-runtime ui::measure::tests::natural_width_follows_the_themed_glyph
+        PASS [   0.014s] (221/261) termrock-runtime ui::paint::tests::dim_layer_zero_steps_is_byte_identical
+        PASS [   0.013s] (222/261) termrock-runtime ui::paint::tests::picker_overflow_fade_uses_area_height_when_the_viewport_is_unlaid
+        PASS [   0.015s] (223/261) termrock-runtime ui::paint::tests::modal_backdrop_uses_theme_mapping_and_clears_only_focus_glyph
+        PASS [   0.017s] (224/261) termrock-runtime ui::paint::tests::dim_layer_semantic_roles_step_monotonically_and_erase
+        PASS [   0.013s] (225/261) termrock-runtime ui::paint::tests::scroll_fade_changes_color_without_changing_role_provenance
+        PASS [   0.014s] (226/261) termrock-runtime ui::paint::tests::picker_overflow_fade_blends_the_last_two_rows_toward_the_card
+        PASS [   0.015s] (227/261) termrock-runtime ui::paint::tests::move_cell_transfers_underlay_intent_with_the_moved_cell
+        PASS [   0.014s] (228/261) termrock-runtime ui::paint::tests::underlay_fill_defers_ink_inheritance_until_composition
+        PASS [   0.014s] (229/261) termrock-runtime ui::tests::author_binding_extension_is_explicit_and_additive_for_same_owner
+        PASS [   0.013s] (230/261) termrock-runtime ui::tests::dim_layer_uses_the_role_of_the_painted_cell
+        PASS [   0.014s] (231/261) termrock-runtime ui::tests::conflicting_visible_cursor_owners_reject_the_retention
+        PASS [   0.012s] (232/261) termrock-runtime ui::tests::focus_only_is_reachable_without_an_area_or_hit_target
+        PASS [   0.014s] (233/261) termrock-runtime ui::tests::focus_only_click_only_is_a_no_op
+        PASS [   0.013s] (234/261) termrock-runtime ui::tests::focus_only_preserves_disabled_and_read_only_semantics
+        PASS [   0.015s] (235/261) termrock-runtime ui::tests::focus_scope_restores_the_open_scope_after_a_panic
+        PASS [   0.013s] (236/261) termrock-runtime ui::tests::focused_hints_are_suppressed_inside_a_reference_scope
+        PASS [   0.012s] (237/261) termrock-runtime ui::tests::nested_overlay_panic_restores_exactly_the_outer_overlay
+        PASS [   0.013s] (238/261) termrock-runtime ui::tests::layer_scope_parent_follows_active_order_after_id_gap
+        PASS [   0.015s] (239/261) termrock-runtime ui::tests::independent_carrier_layer_composite_keeps_origin
+        PASS [   0.034s] (240/261) termrock-runtime ui::measure::tests::metrics_are_surface_independent
+        PASS [   0.014s] (241/261) termrock-runtime ui::tests::nested_reference_restores_the_outer_target_even_after_a_panic
+        PASS [   0.015s] (242/261) termrock-runtime ui::tests::layer_restores_the_page_target_and_scope_after_a_panic
+        PASS [   0.012s] (243/261) termrock-runtime ui::tests::reference_cache_is_namespaced_from_live_and_sibling_scopes
+        PASS [   0.012s] (244/261) termrock-runtime ui::tests::reference_hides_stale_tab_shaped_area_and_layout
+        PASS [   0.012s] (245/261) termrock-runtime ui::tests::reference_injects_only_the_exact_target_and_hides_stale_live_state
+        PASS [   0.013s] (246/261) termrock-runtime ui::tests::reference_panic_cannot_poison_the_live_cache_namespace
+        PASS [   0.014s] (247/261) termrock-runtime ui::tests::reference_sinks_every_registration_and_runtime_output
+        PASS [   0.022s] (248/261) termrock-runtime ui::tests::focused_owner_cursor_can_be_retained_only_by_an_opted_in_nonmodal_popover
+        PASS [   0.012s] (249/261) termrock-runtime ui::tests::reference_state_has_exactly_the_four_runtime_bits
+        PASS [   0.012s] (250/261) termrock-runtime ui::tests::right_align_keeps_the_row_fill_in_the_vacated_prefix
+        PASS [   0.144s] (251/261) termrock-runtime rowui::tests::existing_fill_gutter_preserves_legacy_blank_cell_style_for_every_state_and_profile
+        PASS [   0.013s] (252/261) termrock-runtime ui::tests::right_aligned_padding_keeps_semantic_roles_through_dimming
+        PASS [   0.012s] (253/261) termrock-runtime ui::tests::surface_style_is_the_left_operand_of_the_final_patch
+        PASS [   0.013s] (254/261) termrock-runtime ui::tests::targetless_sibling_reference_scopes_do_not_share_cache
+        PASS [   0.012s] (255/261) termrock-runtime ui::tests::with_overlay_restores_the_stack_after_a_panic
+        PASS [   0.013s] (256/261) termrock-runtime ui::tests::with_part_resolves_once_and_records_the_role
+        PASS [   0.013s] (257/261) termrock-runtime ui::tests::with_area_and_with_surface_restore_the_outer_view_after_a_panic
+        PASS [   0.013s] (258/261) termrock-runtime ui::tests::zero_area_control_still_registers_nothing
+        PASS [   0.018s] (259/261) termrock-runtime ui::tests::visible_owner_cursor_can_be_retained_without_keyboard_focus
+        PASS [   0.099s] (260/261) termrock-runtime scroll_region::tests::slot_addressable_parts_are_exactly_track_and_thumb
+        PASS [   0.175s] (261/261) termrock-runtime ui::measure::tests::ui_resolve_equals_ui_style_for_every_family_variant_part
+────────────
+     Summary [   0.415s] 261 tests run: 261 passed, 0 skipped
+
+## termrock
+$ rustup run 1.99.1 cargo nextest run --locked --offline -p termrock --lib
+exit=0 seconds=7.77
+   Compiling termrock-core v0.1.0 (/private/var/tmp/picker-integration-c6dfab74-20261021/crates/termrock-core)
+   Compiling termrock-theme v0.1.0 (/private/var/tmp/picker-integration-c6dfab74-20261021/crates/termrock-theme)
+   Compiling termrock-layout v0.1.0 (/private/var/tmp/picker-integration-c6dfab74-20261021/crates/termrock-layout)
+   Compiling termrock-text v0.1.0 (/private/var/tmp/picker-integration-c6dfab74-20261021/crates/termrock-text)
+   Compiling termrock-render v0.1.0 (/private/var/tmp/picker-integration-c6dfab74-20261021/crates/termrock-render)
+   Compiling termrock-collections v0.1.0 (/private/var/tmp/picker-integration-c6dfab74-20261021/crates/termrock-collections)
+   Compiling termrock-runtime v0.1.0 (/private/var/tmp/picker-integration-c6dfab74-20261021/crates/termrock-runtime)
+   Compiling termrock-controls v0.1.0 (/private/var/tmp/picker-integration-c6dfab74-20261021/crates/termrock-controls)
+   Compiling termrock-shell v0.1.0 (/private/var/tmp/picker-integration-c6dfab74-20261021/crates/termrock-shell)
+   Compiling termrock-viewport v0.1.0 (/private/var/tmp/picker-integration-c6dfab74-20261021/crates/termrock-viewport)
+   Compiling termrock-fields v0.1.0 (/private/var/tmp/picker-integration-c6dfab74-20261021/crates/termrock-fields)
+   Compiling termrock-feedback v0.1.0 (/private/var/tmp/picker-integration-c6dfab74-20261021/crates/termrock-feedback)
+   Compiling termrock-terminal v0.1.0 (/private/var/tmp/picker-integration-c6dfab74-20261021/crates/termrock-terminal)
+   Compiling termrock-session v0.1.0 (/private/var/tmp/picker-integration-c6dfab74-20261021/crates/termrock-session)
+   Compiling termrock-navigation v0.1.0 (/private/var/tmp/picker-integration-c6dfab74-20261021/crates/termrock-navigation)
+   Compiling termrock-overlays v0.1.0 (/private/var/tmp/picker-integration-c6dfab74-20261021/crates/termrock-overlays)
+   Compiling termrock-grid v0.1.0 (/private/var/tmp/picker-integration-c6dfab74-20261021/crates/termrock-grid)
+   Compiling termrock-forms v0.1.0 (/private/var/tmp/picker-integration-c6dfab74-20261021/crates/termrock-forms)
+   Compiling termrock-editors v0.1.0 (/private/var/tmp/picker-integration-c6dfab74-20261021/crates/termrock-editors)
+   Compiling termrock v0.1.0 (/private/var/tmp/picker-integration-c6dfab74-20261021/crates/termrock)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 6.73s
+────────────
+ Nextest run ID 942cf9e1-0925-43bf-8f22-51f753f037b7 with nextest profile: default
+    Starting 11 tests across 1 binary
+        PASS [   0.012s] ( 1/11) termrock blocks::shell::tests::app_shell_slots_builder_shows_with_empty_defaults
+        PASS [   0.012s] ( 2/11) termrock blocks::shell::tests::the_shell_lays_three_named_slots_out_as_one_column
+        PASS [   0.013s] ( 3/11) termrock blocks::shell::tests::the_facade_shell_is_the_shell_crate_type
+        PASS [   0.013s] ( 4/11) termrock blocks::shell::tests::a_strip_slot_keeps_its_rows_and_the_body_flexes
+        PASS [   0.013s] ( 5/11) termrock blocks::shell::tests::the_shell_builder_names_its_strips
+        PASS [   0.013s] ( 6/11) termrock blocks::shell::tests::the_spec_carries_the_gap_and_inset
+        PASS [   0.013s] ( 7/11) termrock blocks::shell::tests::rows_reports_the_reserved_strips
+        PASS [   0.013s] ( 8/11) termrock tests::test_facade_reexports
+        PASS [   0.013s] ( 9/11) termrock blocks::shell::tests::the_extension_trait_delegates_to_shared_slot_types
+        PASS [   0.015s] (10/11) termrock blocks::shell::tests::regions_split_the_frame_once
+        PASS [   0.015s] (11/11) termrock blocks::master_detail::tests::facade_and_control_share_resolver_but_keep_default_breakpoints_and_rows
+────────────
+     Summary [   0.015s] 11 tests run: 11 passed, 0 skipped
