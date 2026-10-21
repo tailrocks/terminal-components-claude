@@ -2119,3 +2119,50 @@ change), recorded by that workstream with evidence:
   blessed. One concrete instance against the frozen oracle: the Overview palette
   table prints hex notes where the frozen capture prints the tier's colour
   (`swatch_note()` at the tag's `src/bin/showcase/pages/overview.rs`).
+
+### TablePro grid viewport extraction and the reviewed digest re-bless
+
+Branch `wip/tablepro-geometry-blocks-20261021`, tip
+`3cdbc322f4f643731ffc78bcc797567101cb0139`, merged into this session's branch.
+Four commits: the shared block, three refactor increments, plus the digest
+re-bless.
+
+What moved: the query-result and table grid viewport geometry, the vertical and
+horizontal scroll bars and the keyboard-focus bar now live in a new public
+component `crates/termrock-grid/src/grid_viewport.rs`
+(`GridViewportPolicy`, `solve_grid_viewport`, `GridContentChrome`,
+`GridBarPolicy`, `GridFocusPolicy`, `paint_grid_vertical_bar`,
+`paint_grid_horizontal_bar`, `paint_grid_focus_bar`). The application passes
+the host area and a policy and paints into the returned regions; the migrated
+family contains zero raw `Rect` literals, and `crates/tablepro-ui/src/app.rs`
+went from 301 to 286 raw geometry sites. Ownership counts for that file moved
+OWN-02 267 → 262, OWN-04 103 → 99, OWN-11 47 → 44; no count grew.
+`crates/termrock-grid/tests/grid_viewport_parity.rs` compares the pre-refactor
+app-owned painters with the shared block cell by cell.
+
+The digest re-bless, with its evidence (this is the documented-decision path,
+not a silent update of expected output):
+
+- The drift was bisected to `4d6ad4012` ("fix(jackin): match the 120-col capsule
+  command palette"), which moved the shared picker's ICON, META and scope parts
+  from muted ink to focused ink.
+- The frozen oracle frames in the `visual-baseline` tag
+  (`snapshots/tablepro/overlays/picker_open/120x40/truecolor.ansi`, and the
+  80x24 tier) paint the focused picker row with icon, meta and scope at
+  fg 255,255,255 (not bold) and the label bold at 255,255,255. Before
+  `4d6ad4012` the icon, meta and scope were 138,138,138, which the oracle does
+  not contain. The new rendering matches the oracle; the recorded expectation
+  was the stale side.
+- Only the six drifted keys were rewritten; the other 162 keys in
+  `crates/tablepro-ui/tests/baselines/tablepro.txt` are byte-identical. Old and
+  new digests are both recorded here so the decision stays reviewable:
+  `quick-switcher 120 40 junie truecolor` b206bc551015acfe → b90250e64f4bfb1e;
+  `quick-switcher 120 40 junie mono` af463bd8d299cf6b → 78505e73b0e1d4e9;
+  `quick-switcher 120 40 paper truecolor` 4a3a513037334603 → f0e457308ac3f510;
+  `quick-switcher 80 24 junie truecolor` 450f3c0e314c0f1a → 338fb5eae84b029a;
+  `quick-switcher 80 24 junie mono` 6c0efbe222fccfcc → a68a5d17dec3411a;
+  `quick-switcher 80 24 paper truecolor` a96c823a94774c57 → 67a19aae3341e1cc.
+
+After the merge, `cargo nextest run -p tablepro-ui -p termrock-grid --all-targets`
+is 364 passed, 0 failed, including `tablepro_visual_baseline`. This is a
+per-application result; it is not product acceptance for TablePro as a whole.
