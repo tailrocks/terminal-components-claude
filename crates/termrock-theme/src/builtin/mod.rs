@@ -138,7 +138,7 @@ fn button_variant(m: &mut PartMap<PartRecipe>, v: Variant) {
         .when(
             StateFlags::HOVERED,
             p().set_fg(Role::Fg(FgStep::Primary))
-                .set_bg(Role::RaisedSurface),
+                .set_bg(Role::Surface(Surface::Overlay)),
         )
         .when(
             StateFlags::FOCUSED,
