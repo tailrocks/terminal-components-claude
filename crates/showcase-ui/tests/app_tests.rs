@@ -552,7 +552,7 @@ fn first_data_row(h: &Harness<App>) -> String {
 
 #[test]
 fn table_sorts_both_directions_and_clears() {
-    let mut h = harness(PageId::Tables);
+    let mut h = Harness::new(App::with_page(PageId::Tables), Theme::junie(), 160, 50);
     let (x, y) = require(h.find("Changes"), "sortable Changes header");
     click(&mut h, x, y);
     assert!(
