@@ -617,17 +617,22 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
     pub fn reconcile(&self, st: &mut FilterListState, items: &[T]) {
         st.matches.clear();
         let query = st.query().to_owned();
-        if self.selection_policy == SelectionPolicy::FirstEnabledOnFilterChange {
-            let query_changed = st
-                .last_query
-                .as_deref()
-                .is_some_and(|previous| previous != query);
-            if st.reset_selection || query_changed {
-                st.core.clear_cursor();
-            }
-            st.last_query = Some(query.clone());
-        } else {
-            st.last_query = None;
+        let reset_for_query =
+            if self.selection_policy == SelectionPolicy::FirstEnabledOnFilterChange {
+                let query_changed = st
+                    .last_query
+                    .as_deref()
+                    .is_some_and(|previous| previous != query);
+                st.last_query = Some(query.clone());
+                query_changed
+            } else {
+                st.last_query = None;
+                false
+            };
+        // Explicit requests are unconditional; the policy controls only
+        // automatic cursor resets when a query changes.
+        if st.reset_selection || reset_for_query {
+            st.core.clear_cursor();
         }
         st.reset_selection = false;
         st.matches
@@ -1326,6 +1331,27 @@ mod tests {
         state.set_query("a");
         FilterList::<Domain, ItemRow>::new(Id::root("test")).reconcile(&mut state, &items);
         assert_eq!(state.matches.capacity(), capacity);
+    }
+
+    #[test]
+    fn explicit_reset_selects_first_enabled_item_even_with_default_policy() {
+        let items = [
+            Item::new(ItemKey::num(1), "disabled").disabled(true),
+            Item::new(ItemKey::num(2), "enabled"),
+            Item::new(ItemKey::num(3), "selected"),
+        ];
+        let list = FilterList::<Item<'_>, ItemRow>::new(Id::root("picker.reset"));
+        let mut state = FilterListState::default();
+        list.reconcile(&mut state, &items);
+        state.set_cursor(2, ItemKey::num(3));
+
+        state.reset_selection_on_next_reconcile();
+        list.reconcile(&mut state, &items);
+        assert_eq!(state.cursor(), Some(ItemKey::num(2)));
+
+        state.reset_selection_on_next_reconcile();
+        list.reconcile(&mut state, &[]);
+        assert_eq!(state.cursor(), None);
     }
 
     #[test]
