@@ -1,12 +1,12 @@
 {
-  "scope": "Readonly source inventory; no application flow replay performed. Candidate inventory data was first extracted at 819ef8ef949dfa536d7fba9ef73a5d1f3e476b0b; relevant application source/path inventory inputs were checked unchanged through the 8e502d7fb9e40420b844964ec933bac497ebb2ae integration base. The intervening changes in the four app crates were only restored expected files, which are excluded from product-flow evidence. This is structural inventory, not full flow coverage.",
+  "scope": "Readonly structural source inventory; no application flow replay performed. Route inventories were first extracted at 819ef8ef949dfa536d7fba9ef73a5d1f3e476b0b. Route definitions and candidate source inputs for Showcase, Jackin and Holla are unchanged through this local head. TablePro app source changed in unreviewed remote bfefea9ce4b3ab91f846239d5f315534ccc2ff43; its route inventory remains the same two routes, but the Alt+X interaction is explicitly not reviewed/approved here. Candidate expected/test paths modified between 819 and this head were restored to held 52e1572ca values. This JSON is structural inventory, not full-flow coverage or parity evidence.",
   "revisions": {
     "baseline_commit": "4169783ae883788186d161af09ba9c481bd84e5c",
     "baseline_tree": "ad0f7cf8899df8c5fea3ced3f60adf0ac9a2d297",
     "design_reference": "f4867e9b5f8a08a3bb61ce80d644198a29f51984",
     "design_tree": "58cbb5a66f0151c5396f140d61c7486aa5c0a1ec",
-    "current_pr38_remote": "8e502d7fb9e40420b844964ec933bac497ebb2ae",
-    "current_tree": "9c40a5e6474f66ce142cd34eb80625029afe5183",
+    "current_pr38_remote": "7ca251723a6783a9fffca79acebb5bf0c4fff731",
+    "current_tree": "c08f051748dd6203b285ce8f62dc44c0c6b25fb9",
     "tag_object": "2718a6b8127a522a3d351d0b4bdb7542fc8da542"
   },
   "showcase": {
@@ -1242,7 +1242,7 @@
       "baseline": "src/bin/tablepro/app.rs",
       "candidate": "crates/tablepro-ui/src/app.rs",
       "baseline_blob": "f8dfbc6f105bd1487de2c88cd55d8846505493e3",
-      "candidate_blob": "0958147eb967c6bcfdd463f136f6d4979acb29df"
+      "candidate_blob": "804559c4000a9cba780684a476a98118015cae9c"
     },
     "baseline_routes": [
       "Connections",
