@@ -676,8 +676,24 @@ fn picker(m: &mut PartMap<PartRecipe>) {
         StateFlags::ACTIVE | StateFlags::FOCUSED,
         p().set_fg(Role::Focus).add(Modifier::UNDERLINED),
     );
-    part(m, Part::ICON, p().set_fg(Role::Fg(FgStep::Muted)));
-    part(m, Part::META, p().set_fg(Role::Fg(FgStep::Muted)));
+    part(
+        m,
+        Part::ICON,
+        p().set_fg(Role::Fg(FgStep::Muted)).remove(Modifier::BOLD),
+    )
+    .when(
+        StateFlags::FOCUSED,
+        p().set_fg(Role::Fg(FgStep::Primary)).remove(Modifier::BOLD),
+    );
+    part(
+        m,
+        Part::META,
+        p().set_fg(Role::Fg(FgStep::Muted)).remove(Modifier::BOLD),
+    )
+    .when(
+        StateFlags::FOCUSED,
+        p().set_fg(Role::Fg(FgStep::Primary)).remove(Modifier::BOLD),
+    );
     part(
         m,
         Part::QUERY,
