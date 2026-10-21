@@ -1,0 +1,13 @@
+{
+  "schema": "termrock.architecture-contract.v1",
+  "candidate": "e9375eb4fb4a761a0882d617d7d1889c161237af",
+  "reference": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "decision": "REUSE_PICKER_ADD_GENERIC_LAYOUT_AND_MISSING_INTERACTIONS_THEN_ATOMIC_LIVE_ADOPTION",
+  "source_snapshot": "/private/tmp/jackin-picker-contract-architect-e937-20261021",
+  "source_only": true,
+  "tests_run": false,
+  "product_edits": false,
+  "reference_decision": "NONE; preserve frozen agent query behavior with FilterPolicy::Caller",
+  "theme_dependency": "Authored Theme73 palette/backdrop decision unresolved; no exact visual acceptance",
+  "plan_sha256": "0562925d7db5b23ce469417df74fd9a6e65a7b11bd6f29b634e6966a9f3821be"
+}
