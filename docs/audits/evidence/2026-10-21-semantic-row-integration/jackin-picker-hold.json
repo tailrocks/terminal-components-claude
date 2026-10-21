@@ -1,0 +1,127 @@
+{
+  "schema": "termrock.independent-review.v1",
+  "created_utc": "2026-10-21T12:01:50.003098+00:00",
+  "reviewer": "tree_adapter_independent_review",
+  "review_effort": "medium",
+  "reviewed_commit": "e9375eb4fb4a761a0882d617d7d1889c161237af",
+  "parent_commit": "7649ee7ed8e8645e49f859a171ea0193fccc1e82",
+  "decision": "HOLD_FALSE_PARITY_AND_CONFIRMED_PICKER_FUNCTIONAL_DEFECTS",
+  "findings": [
+    {
+      "priority": "P1",
+      "path": "crates/jackin-preview-app/src/app.rs:8243",
+      "related_paths": [
+        "crates/jackin-preview-app/src/app.rs:5169",
+        "crates/jackin-preview-app/src/app.rs:5381"
+      ],
+      "title": "Exact accent and scenario/animation selectors choose different functional picker flows",
+      "reproduction": "Public App::for_scenario(CapsuleMulti,Paused),120x40, Theme::junie downgradedAnsi256. Change only color.accent Indexed78\u2192Indexed79; CtrlB then quote.",
+      "observed": "78 selects static agent-card path, focus capsule-input, cursor(28,16).79 selects actual account-picker, cursor(39,6), title includes Account for Claude Code. All domain data/actions/size/capability equal.",
+      "source": "Host requires exact accent78 (or exact truecolorRGB) plus CapsuleMulti/Paused and size thresholds. The e937 OR adds ANSI256 to this inherited bypass.",
+      "required_fix": "Always open the same semantic agent-picker flow for these actions, independent of exact accent, scenario identity, or paused animation. Pass live offered-agent data through shared Picker/block APIs. Do not move/rename the selector into Termrock."
+    },
+    {
+      "priority": "P1",
+      "path": "crates/jackin-preview-app/src/app/capsule_split_view.rs:23",
+      "related_paths": [
+        "crates/jackin-preview-app/src/app/capsule_split_view.rs:49",
+        "crates/jackin-preview-app/src/app/capsule_split_view.rs:91",
+        "crates/jackin-preview-app/src/app/capsule_split_view.rs:179",
+        "crates/jackin-preview-app/src/app.rs:8817"
+      ],
+      "title": "Static reference painter replaces real picker state and repaints the underlying interface",
+      "reproduction": "Same accent78 flow; type QQQ, or independently press Down after opening.",
+      "observed": "QQQ never appears; Type to search remains. Down changes zero background cells, leaving hardcoded Claude selected. Painter accepts onlyUi and title, has no query/selection/item inputs; rows and metadata are fixed strings.",
+      "source": "Exact120x40 branch uses fixed CARD coordinates; fitted branch still paints the same fixed rows. repair_underlay rewrites menu gaps, pane text including running24tests and failure strings, and specific terminal cells after shell/layers draw. This is not merely legitimate terminal viewer/demo data.",
+      "required_fix": "Remove whole painter and correction passes in the same migration as live shared Picker adoption. App supplies semantic data/labels/actions; shared component owns layout,row parts,filtering,navigation,selection,scrolling,clipping,backdrop and cursor. Test interactions and changed data, not just opening image.",
+      "introduced_vs_inherited": "Painter existed beforee937; this change expands its color support and adds more correction rules instead of removing the bypass."
+    },
+    {
+      "priority": "P1",
+      "path": "crates/jackin-preview-app/src/app.rs:8827",
+      "related_paths": [
+        "crates/termrock-runtime/src/ui/mod.rs:1167"
+      ],
+      "title": "Painted search field is represented by an undrawn one-cell focus/cursor registration",
+      "reproduction": "Open same ANSI256accent78 card; query public Harness.focus/area_of/cursor.",
+      "observed": "focus jackin.preview \u25b8 capsule-input has Rect{x28,y16,width1,height1}, cursor(28,16), while painted search spans the wide card.",
+      "source": "set_undrawn_top_bar_cursor temporarily promotes layer to top and calls register_keyboard_editor without drawing the corresponding input. It is invoked after the hardcoded card paint.",
+      "required_fix": "Real shared picker search must own its full resolved bounds,hit region,focus layer and cursor. Remove synthetic undrawn control calls after replacement; preserve ordinary capsule terminal input as a separate real component."
+    },
+    {
+      "priority": "P2",
+      "path": "crates/jackin-preview-app/src/app/capsule_split_view.rs:578",
+      "related_paths": [
+        "crates/jackin-preview-app/src/app/capsule_split_view.rs:594",
+        "crates/jackin-preview-app/src/app.rs:10993",
+        "crates/jackin-preview-app/src/app.rs:8821",
+        "crates/termrock-runtime/src/ui/mod.rs:373"
+      ],
+      "title": "Application-local baseline palette and whole-frame recoloring bypass shared semantic theme ownership",
+      "source": "apply_baseline_ladder rewrites fg[2..4],borders/backdrop only for this selected frame; baseline_256 maps literalRGBs; draw_capsule_scene recolors the complete terminal region after paint. New with_theme documentation explicitly describes one screen following a baseline ladder the shared palette does not.",
+      "required_fix": "Restore pinned authored capability roles and actual Picker/backdrop state recipes in the shared Theme family with independently resolved reference decisions. Apply general semantic variants, not app/test/frame variants or RGB selectors. A generic scoped-theme API may remain only for a legitimate consumer with consistent layout/input/render contracts; it must not legitimize this screen replay."
+    }
+  ],
+  "frozen_contract": {
+    "source_commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+    "capsule_flow": "screens/capsule.rs566-609 creates real shared Picker(capsule.agent), title from typed intent, width72, live world.offered_agents and account counts/blocked state, then opens agent layer. No accent/capability/paused/viewport identity selector in spawn_flow.",
+    "selection_actions": "continue_spawn612+ maps selected agent to its live offered accounts; zero/one/multiple accounts follow real domain branches.",
+    "search": "Shared Picker advertises TypeFilter and owns query; application refresh_picker forwards query for dynamic screens. Candidate fixed painter does not implement these contracts.",
+    "limits": "Source-level frozen behavior verified. No frozen baseline binary capture or full decoded-frame comparison run in this task."
+  },
+  "independent_checks": {
+    "external_nextest": "5run1pass4fail0skip, intentionally proving current defects; not a green product gate.",
+    "failed_cases": [
+      "accent-only configuration changes account-versus-agent flow",
+      "typed query not displayed",
+      "synthetic one-cell search control",
+      "Down does not move painted selection"
+    ],
+    "with_theme_positive": "One public probe over4 color profiles passes: nested outer/inner/outer theme scopes restore theme references and clip, return closure result, and cached Ui.style matches uncached Theme.resolve before/during/after scopes. No Rust lifetime/aliasing or basic scoped-style defect found. This does not establish all measurement/input/layer contracts.",
+    "unique_source_target": "Fresh /private/tmp/ui-theme-capsule-picker-independent-e9375eb4-target-20261021, never parent or author targets. Full compile log binds all app/library paths to exact isolatede937 tree.",
+    "tooling": "Rust1.99.1,Nextest0.9.148; offline; external lock seeded from exact candidate source; build jobs2.",
+    "binaries": [
+      {
+        "path": "/private/tmp/ui-theme-capsule-picker-independent-e9375eb4-target-20261021/debug/deps/independent_capsule_picker_audit-c2838efff97d1b5b",
+        "sha256": "b677154ad1b462bd7cae83b17a0dd29386cccd5ce174b3610a5aa7c2160b4fd3"
+      }
+    ],
+    "git": "diffcheck exit0, reviewer detached product source clean"
+  },
+  "probe_correction": "Initial accent probe compared common search placeholder, which both real and fake pickers use; that check passed but did not establish flow equality. Preserved initial source/log; corrected assertion compares account-flow title. Corrected test is RED with recorded owner/cursor difference. Other3 initial app defects reproduced unchanged.",
+  "migration_contract": {
+    "replacement_owner": "Shared Picker/search block plus semantic item rows and shared Theme capability/state rules. Application retains offered-agent/account-domain mapping and typed capsule intents.",
+    "atomic_removal": [
+      "capsule_split_view painter including exact120 and fitted paths",
+      "repair_underlay/card/footer patch calls and whole-frame recolor",
+      "capsule_agent_picker_frame/host selectors controlling implementation",
+      "undrawn-top-cursor workaround for this card"
+    ],
+    "required_coverage": [
+      "same flow under accent78/79 and custom themes/all color profiles",
+      "real filter,Down/Up,selection,Enter agent/account result,Escape clear/dismiss,empty/large/reordered/changed-label data",
+      "real modal scope,fullsearch hit bounds,visible cursor owner,background blocking and focus restoration",
+      "registered five sizes plus adjacent119/121 and height39/41,breakpoints,Unicode and repeated open-close",
+      "pinned baseline realCLI/tuiscotti capture\u2192replay\u2192candidate complete frames and functional results; never approve expectations from candidate"
+    ]
+  },
+  "limits": [
+    "No unrelated Menu/runtime routing probe repeated; no whole Jackin suite/hostedCI green claim.",
+    "No expected artifact edits or blessing; matching appearance alone cannot clear these findings.",
+    "No production edits, original checkout mutation, pushes or helper agents."
+  ],
+  "artifacts": {
+    "consumer-Cargo.lock": "0cd213b606cbeff775c81209561e6e9249ac95da132fc0ae3385fe05adfa6121",
+    "consumer-Cargo.toml": "03d138bc8635ef747a6ce3f39a1f1dea92708262ae95a277c53faf6a9a1b45fe",
+    "consumer.rs": "a4bd0779d6550f2c2e227977f4e03b775a9cacb4800af73eedf433c7413d3064",
+    "final-probes-result.json": "4fef6ed8eaa9fdbd661dc1a4ddd9613a102e661a2e5eae8c5fc234c5a142ff61",
+    "final-probes.log": "625836fba4e7c7b9c9d786904ebf9f4dd6aa423db5bcf61e524f7a01aac57ff6",
+    "frozen-source-contract.json": "1dfdc9e4f83d99d5a07f6932cf4c4765b3d8f72ecf95dffb9e0886014982bfb4",
+    "initial-probe-source.rs": "42c761ed15fa55c3994304df51bc3ae8ce8813c5f9f1046c5951fe2dd20e3782",
+    "initial-probes.log": "24bc1a930d2176f616c1c7d650db981cf4d761c9e7d354a13ff7a6b3511d490a",
+    "interaction-probes-result.json": "abee56e8c20c4cfa8492a6809ef257730f6e24f8c5c7cecb1ae980cd1c6f1fce",
+    "interaction-probes.log": "24bc1a930d2176f616c1c7d650db981cf4d761c9e7d354a13ff7a6b3511d490a",
+    "reviewed-source.diff": "bc355a00ee0696bf90f0830a4a8867fb04c2d355417b5c0bb06650c1b01cf4de",
+    "scope-consumer-source.sha256": "a5c82e1762f768c042888c048e910094b37202ba0893181917e9756b689564cf"
+  }
+}
