@@ -416,24 +416,36 @@ impl<'a> TerminalView<'a> {
                     let rel_y = (pos.y.saturating_sub(area.y)) as usize + state.scroll.offset();
                     let rel_x = (pos.x.saturating_sub(area.x)) as usize;
 
+                    let completed_drag = phase == Phase::Click
+                        && state.selection.is_some_and(|selection| {
+                            let (start_line, start_col, end_line, end_col) = selection.normalized();
+                            (start_line, start_col) != (end_line, end_col)
+                                && state.selection_anchor != Some((rel_y, rel_x))
+                        });
+                    if completed_drag {
+                        state.selecting = false;
+                        continue;
+                    }
+
                     if let Some(resolver) = self.link_resolver
                         && let Some(key) = resolver(rel_y, rel_x)
                     {
-                        acc.action(TerminalAction::OpenLink { key });
-                        return acc.finish(self.id);
+                        if phase == Phase::Click {
+                            acc.action(TerminalAction::OpenLink { key });
+                            return acc.finish(self.id);
+                        }
+
+                        // A real link press must not begin a text selection. Keep
+                        // its point so a previous selection does not disguise
+                        // the ensuing genuine Click as a drag-completion Click.
+                        state.selecting = false;
+                        state.selection_anchor = Some((rel_y, rel_x));
+                        continue;
                     }
 
                     if self.interaction.allows_selection() {
                         if phase == Phase::Click {
                             state.selecting = false;
-                            let dragged = state.selection.is_some_and(|selection| {
-                                let (start_line, start_col, end_line, end_col) =
-                                    selection.normalized();
-                                (start_line, start_col) != (end_line, end_col)
-                            });
-                            if dragged {
-                                continue;
-                            }
                         } else {
                             let _ = cx.capture(self.id, PartRef::of(Part::CONTAINER));
                             state.selecting = true;
@@ -670,6 +682,16 @@ mod runtime_tests {
         forwarded: Vec<InputToken>,
     }
 
+    struct LinkedPage {
+        source: Source,
+        state: TerminalViewState,
+        actions: Vec<TerminalAction>,
+    }
+
+    fn endpoint_link(_line: usize, col: usize) -> Option<LinkKey> {
+        (col == 5).then(|| LinkKey::from("endpoint"))
+    }
+
     impl Page {
         fn view(&self) -> TerminalView<'_> {
             TerminalView::new(VIEW, &self.source).interaction(self.interaction)
@@ -696,7 +718,27 @@ mod runtime_tests {
         }
     }
 
-    fn present(runtime: &mut Runtime<Page>) {
+    impl App for LinkedPage {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            if cx.update_cause() == termrock_runtime::UpdateCause::Bootstrap {
+                cx.focus(VIEW);
+            }
+            let view = TerminalView::new(VIEW, &self.source).link_resolver(&endpoint_link);
+            let response = view.update(cx, &mut self.state);
+            if let Some(action) = response.action_ref() {
+                self.actions.push(action.clone());
+            }
+            response.erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let _ = TerminalView::new(VIEW, &self.source)
+                .link_resolver(&endpoint_link)
+                .draw(ui, SCREEN, &self.state);
+        }
+    }
+
+    fn present<A: App>(runtime: &mut Runtime<A>) {
         for _ in 0..12 {
             if runtime.needs_settle() {
                 let _ = runtime.settle();
@@ -711,7 +753,7 @@ mod runtime_tests {
         assert!(!runtime.needs_settle() && !runtime.needs_present());
     }
 
-    fn send(runtime: &mut Runtime<Page>, input: Input) {
+    fn send<A: App>(runtime: &mut Runtime<A>, input: Input) {
         let mut pending = Some(input);
         for _ in 0..8 {
             match runtime.handle(pending.take().expect("input remains pending")) {
@@ -735,6 +777,20 @@ mod runtime_tests {
                 state: TerminalViewState::new(),
                 interaction,
                 forwarded: Vec::new(),
+            },
+            Theme::junie(),
+        );
+        let _ = runtime.initialize();
+        present(&mut runtime);
+        runtime
+    }
+
+    fn linked_runtime() -> Runtime<LinkedPage> {
+        let mut runtime = Runtime::new(
+            LinkedPage {
+                source: Source,
+                state: TerminalViewState::new(),
+                actions: Vec::new(),
             },
             Theme::junie(),
         );
@@ -778,6 +834,41 @@ mod runtime_tests {
             (1, 1, 1, 5)
         );
         assert!(!runtime.app().state.selecting);
+    }
+
+    #[test]
+    fn captured_drag_ending_on_link_selects_without_opening_it() {
+        let mut runtime = linked_runtime();
+        send(&mut runtime, mouse_at(MouseKind::Down, 1, 1));
+        send(&mut runtime, mouse_at(MouseKind::Drag, 5, 1));
+        send(&mut runtime, mouse_at(MouseKind::Up, 5, 1));
+
+        assert_eq!(
+            runtime.app().state.selection.unwrap().normalized(),
+            (1, 1, 1, 5)
+        );
+        assert!(
+            !runtime
+                .app()
+                .actions
+                .iter()
+                .any(|action| matches!(action, TerminalAction::OpenLink { .. }))
+        );
+    }
+
+    #[test]
+    fn genuine_link_click_opens_exactly_once() {
+        let mut runtime = linked_runtime();
+        send(&mut runtime, mouse_at(MouseKind::Down, 5, 1));
+        send(&mut runtime, mouse_at(MouseKind::Up, 5, 1));
+
+        let opens = runtime
+            .app()
+            .actions
+            .iter()
+            .filter(|action| matches!(action, TerminalAction::OpenLink { .. }))
+            .count();
+        assert_eq!(opens, 1);
     }
 
     #[test]
