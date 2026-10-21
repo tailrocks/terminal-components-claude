@@ -211,4 +211,3 @@ fn the_selectable_page_renders_the_table_at_more_than_one_size() {
         }
     }
 }
-
