@@ -352,6 +352,7 @@ fn the_shared_viewport_resolves_the_legacy_table_grid_regions() {
                         filter_rows,
                         pending_rows: pending_gap,
                         status_rows: 1,
+                        status_inset: 1,
                         right_reserve: 0,
                     },
                 );
@@ -372,6 +373,11 @@ fn the_shared_viewport_resolves_the_legacy_table_grid_regions() {
                         viewport.filter,
                         Rect::new(area.x, area.y.saturating_add(3), area.width, 0)
                     );
+                    assert_eq!(
+                        viewport.filter_bar,
+                        Rect::ZERO,
+                        "table grid filter bar: {label}"
+                    );
                 } else {
                     assert_eq!(
                         viewport.filter,
@@ -381,7 +387,20 @@ fn the_shared_viewport_resolves_the_legacy_table_grid_regions() {
                         },
                         "table grid filter: {label}"
                     );
+                    assert_eq!(
+                        viewport.filter_bar, legacy_filter,
+                        "table grid filter bar: {label}"
+                    );
                 }
+                assert_eq!(
+                    viewport.status_text,
+                    Rect {
+                        x: legacy_status.x.saturating_add(1),
+                        width: legacy_status.width.saturating_sub(1),
+                        ..legacy_status
+                    },
+                    "table grid status text: {label}"
+                );
             }
         }
     }
