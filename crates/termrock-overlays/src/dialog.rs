@@ -1350,23 +1350,23 @@ mod tests {
         let (mut rt, mut buf) = scene();
         rt.draw_scene(SCREEN, &mut buf, |ui, _| {
             Dialog::info(DLG, "Debug info")
-                .width(66)
+                .width(38)
                 .body_rows(8)
                 .head_in_border()
                 .draw(
                     ui,
-                    Rect::new(2, 2, 66, 11),
+                    Rect::new(0, 0, 38, 11),
                     &DialogState::default(),
                     |_, _| {},
                 );
         });
-        let row: String = (2..12)
-            .map(|x| buf[(x, 2)].symbol().chars().next().unwrap())
+        let row: String = (0..16)
+            .map(|x| buf[(x, 0)].symbol().chars().next().unwrap())
             .collect();
         assert!(row.starts_with("\u{256d}\u{2500} Debug info"), "{row}");
-        // The body starts directly under the border: row 3 holds the first
+        // The body starts directly under the border: row 1 holds the first
         // body row, not an inner title row.
-        assert_eq!(buf[(4, 3)].symbol(), " ");
+        assert_eq!(buf[(4, 1)].symbol(), " ");
     }
 
     #[test]
@@ -1389,23 +1389,23 @@ mod tests {
         let (mut rt, mut buf) = scene();
         rt.draw_scene(SCREEN, &mut buf, |ui, _| {
             Dialog::info(DLG, "Debug info")
-                .width(66)
+                .width(38)
                 .body_rows(8)
                 .meta("read-only")
                 .head_in_border()
                 .draw(
                     ui,
-                    Rect::new(2, 2, 66, 11),
+                    Rect::new(0, 0, 38, 11),
                     &DialogState::default(),
                     |_, _| {},
                 );
         });
-        let row: String = (50..64)
-            .map(|x| buf[(x, 2)].symbol().chars().next().unwrap())
+        let row: String = (18..34)
+            .map(|x| buf[(x, 0)].symbol().chars().next().unwrap())
             .collect();
         assert!(row.contains(" read-only "), "{row}");
         // The close mark keeps its cell right of the caption.
-        assert_eq!(buf[(63, 2)].symbol(), "\u{d7}");
+        assert_eq!(buf[(34, 0)].symbol(), "\u{d7}");
     }
 
     #[test]
@@ -1413,20 +1413,20 @@ mod tests {
         let (mut rt, mut buf) = scene();
         rt.draw_scene(SCREEN, &mut buf, |ui, _| {
             Dialog::info(DLG, "Debug info")
-                .width(66)
+                .width(38)
                 .body_rows(8)
                 .head_in_border()
                 .draw(
                     ui,
-                    Rect::new(2, 2, 66, 11),
+                    Rect::new(0, 0, 38, 11),
                     &DialogState::default(),
                     |_, _| {},
                 );
         });
         // The action row is the last inner row; its label is plain, without a
         // red underlined first letter.
-        for x in 40..66 {
-            let cell = buf[(x, 12)].clone();
+        for x in 4..36 {
+            let cell = buf[(x, 10)].clone();
             assert_ne!(
                 cell.fg,
                 ratatui_core::style::Color::from_u32(0x00ff_6b6b),
