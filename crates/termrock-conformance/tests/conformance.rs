@@ -836,9 +836,16 @@ impl Conformance for DialogCase {
         LAUNCH
     }
 
-    fn open_overlay(cx: &mut Cx<'_>, _st: &mut Self::State, f: &Fixture) -> bool {
-        cx.open_layer(DLG, dialog(f).layer(cx));
+    fn opener_action() -> Option<Self::Action> {
+        Some(DialogAction::Action(K_OPEN))
+    }
+
+    fn activation_requires_overlay() -> bool {
         true
+    }
+
+    fn open_overlay(_cx: &mut Cx<'_>, _st: &mut Self::State, _f: &Fixture) -> bool {
+        false
     }
 
     fn update(
@@ -1057,7 +1064,6 @@ mod activation_probe_guards {
         assert_ne!(before.fingerprint(), after.fingerprint());
     }
 }
-
 #[test]
 fn dialog_prompt_renders_caller_owned_error_in_the_field() {
     const ERROR: &str = "Name cannot be empty";
