@@ -7,7 +7,7 @@ use termrock_overlays::picker::{Item, Picker, PickerAction, PickerLayout, Picker
 use termrock_runtime::layer::ScreenAlign;
 use termrock_runtime::{App, Cx, Ui};
 use termrock_test_support::Harness;
-use termrock_theme::Theme;
+use termrock_theme::{ColorLevel, Theme};
 
 const ID: Id = Id::root("picker.card-layout");
 const ITEMS: [Item<'static>; 13] = [
@@ -208,6 +208,55 @@ fn zero_footer_disables_hints_without_overlapping_live_results() {
         .area_of_part(ID, PartRef::item(Part::ROW, ItemKey::num(0)))
         .expect("live results retain a registered row");
     assert!(row_area.bottom() <= footer_y);
+}
+
+#[test]
+fn zero_footer_hides_hints_with_one_result_at_every_color_level() {
+    assert_footer_visibility(count_items(1), "one item");
+}
+
+#[test]
+fn zero_footer_hides_hints_with_empty_results_at_every_color_level() {
+    assert_footer_visibility(Vec::new(), "empty");
+}
+
+fn assert_footer_visibility(items: Vec<Item<'static>>, label: &str) {
+    for level in [
+        ColorLevel::TrueColor,
+        ColorLevel::Ansi256,
+        ColorLevel::Ansi16,
+        ColorLevel::Mono,
+    ] {
+        let without_footer = page_with_layout(
+            items.clone(),
+            true,
+            "VISIBLE_FOOTER",
+            PickerLayout::card().footer_rows(0),
+            120,
+            40,
+        )
+        .with_color(level);
+        assert_eq!(
+            without_footer.count("VISIBLE_FOOTER"),
+            0,
+            "zero-row footer must hide hints for {label} at {level:?}"
+        );
+
+        let with_footer = page_with_layout(
+            items.clone(),
+            true,
+            "VISIBLE_FOOTER",
+            PickerLayout::card().footer_rows(1),
+            120,
+            40,
+        )
+        .with_color(level);
+        assert_eq!(
+            with_footer.count("VISIBLE_FOOTER"),
+            1,
+            "one-row footer must show hints for {label} at {level:?}"
+        );
+    }
 }
 
 #[test]
