@@ -258,3 +258,8 @@ Worktree `/private/tmp/termrock-holla-20261021` stays on branch
 remains on `wip/holla-rate-limit-20261021` @ `098fcfcda` for history.
 
 Current additional work: `wip/holla-home-row-composition-20261021` at `ac315e2867136641e2b4cd71a00b8ca27c9153d3` is published but held pending actual reference layout/content comparison. FormDialog/chrome composition and close-button semantics are being implemented in a separate forms WIP; Showcase adoption remains required. Full workspace verification is running against `52e1572ca`; incoming CodeEditor styling `09aa3a18a` still needs an independent authored-channel review. Read the matrix for exact holds and receipts.
+
+
+## CodeEditor merged metadata and focused caret review (2026-10-21)
+
+Preservation branch: `wip/editor-meta-merged-review-20261021`; source tip before this handoff is `e0bfbe71cc855f648590bba0c9754410ccd468ce`. The normal merge `30eb0e5c9` retains current PR #38 marker/scrolling behavior while incorporating authored META defaults. The successor fixes a focused-cursor ownership defect, with all 75 editor tests, strict Clippy and formatting passing. Independent review is running against exact `30eb0e5c9` and this successor; do not publish to PR #38 until the current-parent complete-cell comparison and real retained-editing focus tests are cleared. Then normally merge latest PR #38, preserve the seven held expectation blobs, rerun exact-head gates, publish and verify the remote SHA. The standalone `671443` source is not a replacement for current PR #38: it lacks later marker behavior. All four application acceptance requirements remain incomplete.
