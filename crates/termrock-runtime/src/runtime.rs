@@ -78,11 +78,10 @@ fn select_cursor_owner(
 }
 
 fn next_runtime_id() -> u64 {
-    NEXT_RUNTIME_ID
-        .try_update(Ordering::Relaxed, Ordering::Relaxed, |next| {
-            next.checked_add(1)
-        })
-        .expect("runtime identity space exhausted")
+    // Runtime identity is unique per process. The counter wraps only after
+    // 2^64 runtimes, which no process reaches, and wrapping keeps the
+    // identity space usable instead of aborting the process.
+    NEXT_RUNTIME_ID.fetch_add(1, Ordering::Relaxed)
 }
 
 pub trait App {
@@ -1584,7 +1583,9 @@ impl<A: App> Runtime<A> {
                 actual,
             });
         }
-        let output = self.prepared.as_mut().expect("validated prepared frame");
+        let Some(output) = self.prepared.as_mut() else {
+            return Err(PreparedFrameError::Stale);
+        };
         frame.buffer_mut().merge(&output.buffer);
         if let Some(cursor) = output.cursor {
             frame.set_cursor_position(cursor);
@@ -1607,7 +1608,9 @@ impl<A: App> Runtime<A> {
         if !output.projected {
             return Err(PreparedFrameError::Stale);
         }
-        let output = self.prepared.take().expect("validated prepared frame");
+        let Some(output) = self.prepared.take() else {
+            return Err(PreparedFrameError::Stale);
+        };
         self.scratch_buffer = Some(output.buffer);
         self.presented = true;
         self.services.continuation_command_pending_present = None;
@@ -2879,6 +2882,22 @@ pub mod stub {
 mod tests {
     use super::stub::{Control, SCREEN, Stub, deliver, key, mouse, runtime, step};
     use super::*;
+
+    #[test]
+    fn the_runtime_identity_wraps_instead_of_aborting_when_the_counter_is_exhausted() {
+        /// Restores the identity counter even when the assertion fails.
+        struct Restore(u64);
+        impl Drop for Restore {
+            fn drop(&mut self) {
+                NEXT_RUNTIME_ID.store(self.0, Ordering::Relaxed);
+            }
+        }
+
+        let _restore = Restore(NEXT_RUNTIME_ID.load(Ordering::Relaxed));
+        NEXT_RUNTIME_ID.store(u64::MAX, Ordering::Relaxed);
+        assert_eq!(next_runtime_id(), u64::MAX);
+        assert_eq!(NEXT_RUNTIME_ID.load(Ordering::Relaxed), 0);
+    }
     use crate::event::MouseKind;
     use crate::focus::Focusability;
     use crate::focus::{ScopeId, ScopeMode};

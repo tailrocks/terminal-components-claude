@@ -220,6 +220,15 @@ impl core::fmt::Debug for Cx<'_> {
     }
 }
 
+/// Advance the serial that identifies one update within a runtime.
+///
+/// The serial saturates at the end of its range instead of aborting the
+/// process: only 2^64 updates in one runtime reach the limit.
+fn next_callback_serial(serial: &mut u64) -> u64 {
+    *serial = serial.saturating_add(1);
+    *serial
+}
+
 impl<'f> Cx<'f> {
     /// Append a component-author diagnostic to the runtime's bounded diagnostic
     /// stream. Components cannot clear diagnostics emitted by other owners.
@@ -265,11 +274,11 @@ impl<'f> Cx<'f> {
         command: Option<ActionKey>,
         update_cause: UpdateCause,
     ) -> Self {
-        services.callback_serial = services
-            .callback_serial
-            .checked_add(1)
-            .expect("runtime callback token exhausted");
-        let update_token = UpdateToken::new(services.runtime_id, services.callback_serial);
+        // The callback serial identifies one update within a runtime. It
+        // saturates only after 2^64 updates, and saturating keeps the token
+        // monotone instead of aborting the process.
+        let callback_serial = next_callback_serial(&mut services.callback_serial);
+        let update_token = UpdateToken::new(services.runtime_id, callback_serial);
         let cache = &mut core.cache;
         let keymap = &core.keymap;
         Cx {
@@ -935,5 +944,20 @@ mod diagnostics_tests {
                 field: Some(found_field),
             }) if *found_owner == owner && *found_field == field
         ));
+    }
+}
+
+#[cfg(test)]
+mod callback_serial_tests {
+    use super::*;
+
+    #[test]
+    fn the_callback_serial_saturates_instead_of_aborting_the_process() {
+        let mut serial = 0;
+        assert_eq!(next_callback_serial(&mut serial), 1);
+        assert_eq!(next_callback_serial(&mut serial), 2);
+        serial = u64::MAX;
+        assert_eq!(next_callback_serial(&mut serial), u64::MAX);
+        assert_eq!(serial, u64::MAX);
     }
 }
