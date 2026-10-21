@@ -365,6 +365,28 @@ impl<'f> Ui<'f> {
         }
     }
 
+    /// Draw one subtree with a different theme.
+    ///
+    /// The frame, buffer, and hit state stay. Only the theme reference
+    /// changes for the closure. Callers use this when one screen must follow
+    /// a baseline color ladder the shared capability palette does not.
+    pub fn with_theme<R>(&mut self, theme: &Theme, f: impl FnOnce(&mut Ui<'_>) -> R) -> R {
+        let mut nested = Ui {
+            frame: &mut *self.frame,
+            page: &mut *self.page,
+            core: &mut *self.core,
+            theme,
+            last: self.last,
+            clip: self.clip,
+            surface: self.surface,
+            target: self.target,
+            layer: self.layer,
+            inert: self.inert,
+            reference: self.reference,
+        };
+        f(&mut nested)
+    }
+
     pub const fn full(&self) -> Rect {
         self.clip
     }
