@@ -1,0 +1,271 @@
+{
+  "schema": 1,
+  "reviewed_at": "2026-10-21T02:03:41.861886+00:00",
+  "reviewer": "independent Rust reviewer /root/list_multiline_independent_reviewer",
+  "status": "cleared for component integration; product parity not established",
+  "candidate_commit": "7126662c97dc2a49a41e3ab35a6bd23976e2e6de",
+  "parent_commit": "2e900c317c9b54f5efec630e627c8f5a70c541dd",
+  "findings": [],
+  "source_review": {
+    "files_changed": [
+      "crates/termrock-navigation/src/list.rs",
+      "crates/termrock-navigation/tests/list_row_extent.rs",
+      "docs/audits/2026-10-21-list-multiline-viewport.md"
+    ],
+    "mechanism": "Private logical page distance is renamed from viewport to page_rows; both page navigation sites retain identical arithmetic. The final scroll_view receives the original cell-height viewport. No runtime, public API, rendering painter, dependency, or expected artifact changes.",
+    "candidate_source_sha256": "d5f970192f09fe74a9b6a448f8a15570f4063a0576c69d99c1779aefbfe89bbf",
+    "before_source_sha256": "71cf345bb054c745ee19b232714d45ee4ccbdb13a01e6bf82974a9e5cd5903ca",
+    "before_source_equals_5f656a183": true,
+    "regression_test_candidate_sha256": "6f1b691ddb64d73bae17caab0a8b324d559860275b7031ada6570dfb77e7e791",
+    "regression_test_before_sha256": "6f1b691ddb64d73bae17caab0a8b324d559860275b7031ada6570dfb77e7e791",
+    "production_worktree_clean": true
+  },
+  "checks": {
+    "after-clippy": {
+      "command": [
+        "cargo",
+        "clippy",
+        "-p",
+        "termrock-navigation",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit": 0,
+      "seconds": 5.629619457991794
+    },
+    "after-diff": {
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exit": 0,
+      "seconds": 0.25416875001974404
+    },
+    "after-final-clippy": {
+      "command": [
+        "cargo",
+        "clippy",
+        "-p",
+        "termrock-navigation",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit": 0,
+      "seconds": 1.4652864169911481
+    },
+    "after-final-fmt": {
+      "command": [
+        "cargo",
+        "fmt",
+        "--check",
+        "--package",
+        "termrock-navigation"
+      ],
+      "exit": 0,
+      "seconds": 0.13048004201846197
+    },
+    "after-final-nextest": {
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "-p",
+        "termrock-navigation",
+        "--all-targets"
+      ],
+      "exit": 0,
+      "seconds": 0.9712582920328714
+    },
+    "after-fmt": {
+      "command": [
+        "cargo",
+        "fmt",
+        "--check",
+        "--package",
+        "termrock-navigation"
+      ],
+      "exit": 0,
+      "seconds": 0.2130276249954477
+    },
+    "after-nextest": {
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "-p",
+        "termrock-navigation",
+        "--all-targets"
+      ],
+      "exit": 0,
+      "seconds": 13.968242208007723
+    },
+    "before-nextest": {
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "-p",
+        "termrock-navigation",
+        "--test",
+        "list_row_extent"
+      ],
+      "exit": 100,
+      "seconds": 3.2844897089526057
+    },
+    "independent-probe-isolated": {
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "-p",
+        "termrock-navigation",
+        "--test",
+        "independent_list_probe",
+        "-E",
+        "test(independent_)"
+      ],
+      "exit": 0,
+      "seconds": 3.0877347079804167
+    },
+    "independent-probe": {
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "-p",
+        "termrock-navigation",
+        "--test",
+        "independent_list_probe",
+        "-E",
+        "test(independent_)"
+      ],
+      "exit": 100,
+      "seconds": 1.302748333022464
+    }
+  },
+  "expanded_probe": {
+    "source_file": "independent_list_probe.rs",
+    "sha256": "b8e339f0d0983d77066811b810eb957eacbf4ce35f51733cfdf0aea6881ea7ca",
+    "result": "pass: one independently authored probe; copied existing harness fixtures are not counted as new tests",
+    "coverage": [
+      "Pointer Down before Release: focus owner, cursor key20, viewport8, stable row20 y4",
+      "Pointer Up chooses key20; terminal cursor absent",
+      "PageDown advances two logical items to key30; PageUp returns key10; cell viewport remains8",
+      "zero-sized, narrow, and adjacent viewport sizes; Home/End/PageUp/PageDown do not publish out-of-bounds row hits or cursor"
+    ],
+    "selection_range_coverage": "Existing native List Range and focus/cancellation tests pass within208; no new multiline Range-selection claim."
+  },
+  "paired_regression": {
+    "before_result": "11 run:7 passed4 failed0 skipped, including new checkpoint viewport2 versus8",
+    "after_result": "208 run:208 passed0 skipped, including11 row-extent tests",
+    "expected_failures": [
+      "three_lines_share_key_and_gap_has_no_item_hit",
+      "reveal_wheel_and_resize_preserve_stride_and_reach_last_key",
+      "scrollbar_drag_and_multi_step_wheel_share_row_aligned_extent",
+      "multiline_scroll_view_keeps_cell_extent_after_pointer_and_tick"
+    ],
+    "inputs": "identical candidate regression test bytes, TERM=dumb, NO_COLOR=1"
+  },
+  "cache_incident": {
+    "invalid_attempt": "independent-probe.log/.json",
+    "observation": "First expanded probe failed viewport2 versus8 after before/after copies used one Cargo target sequentially. Exact candidate source was clean. The identical probe passed using a new after-only target; final208 and strict gates were repeated using that dedicated target.",
+    "diagnosis": "Cross-copy Cargo target artifact contamination; underlying cache mechanism not fully diagnosed. Invalid first run retained, not treated as a product defect or pass.",
+    "after_only_target": "/private/tmp/list-multiline-review-after-only-target-20261021"
+  },
+  "limitations": [
+    "No real application binary, frozen baseline, tuiscotti, visual parity, or architecture gate was run.",
+    "No entire workspace gate or application adoption is implied.",
+    "Full zero-sized interaction probe is safety/bounds proof, not exact baseline frame comparison."
+  ],
+  "evidence": {
+    "after-clippy.json": {
+      "sha256": "ccab7b4a8b748a479707c6e900264f6004f4c97747594a98f359d53b0180388a",
+      "bytes": 188
+    },
+    "after-clippy.log": {
+      "sha256": "fed5ceabf5cab0306e2077267dba7c5c04084b62bfdb888673a5f49d243610f0",
+      "bytes": 4958
+    },
+    "after-diff.json": {
+      "sha256": "38f879bb773be524dd88393c1d25fb25d6620e8c4b90856bf0b77928f6f71e95",
+      "bytes": 107
+    },
+    "after-diff.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "after-final-clippy.json": {
+      "sha256": "c20bfcc4c19c4613d121360f04963a2e5b9299df9c9904085460a71291e19344",
+      "bytes": 189
+    },
+    "after-final-clippy.log": {
+      "sha256": "369215cc062c8d218ff71ebf5213c837f1c103e93993e4daa1967ec14de68429",
+      "bytes": 4948
+    },
+    "after-final-fmt.json": {
+      "sha256": "46f388857bd098cb3bd76ab6a4d819e5af4d9678970099258825ab01754b5748",
+      "bytes": 152
+    },
+    "after-final-fmt.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "after-final-nextest.json": {
+      "sha256": "5ac2a6811fc4f104364826a6aad78c39dcdd3f8951f853805078359d344c38d7",
+      "bytes": 165
+    },
+    "after-final-nextest.log": {
+      "sha256": "cd716080a6480733053f7c1d6061a04414c9ecb7124bbd44919f700d2b2eabb4",
+      "bytes": 27175
+    },
+    "after-fmt.json": {
+      "sha256": "aa14eb3258984b92a0e88cf278a648c803720e881d9476b7ab758e1454f141b8",
+      "bytes": 151
+    },
+    "after-fmt.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "after-nextest.json": {
+      "sha256": "a826da9878310f5e758d0388463c4ca85df8e058acbfe97d71245466c31edc34",
+      "bytes": 165
+    },
+    "after-nextest.log": {
+      "sha256": "5daaa6f3167e45a263750b4f2a6e63e4a631e07ed8ba8cac0ee2c7926f2716c6",
+      "bytes": 31803
+    },
+    "before-nextest.json": {
+      "sha256": "9081eee08c22114d443f20979e151edcf899260ab454a4da3c7d552e049be9e0",
+      "bytes": 183
+    },
+    "before-nextest.log": {
+      "sha256": "6976810b3a073791719a9c44184c9a89b2103cc3dfb7965c503872d25dc3ff49",
+      "bytes": 7415
+    },
+    "independent-probe-isolated.json": {
+      "sha256": "5983022f9e778ee43bb750caf2e18a4ce1da86a160f6fd5e9c880db63b618617",
+      "bytes": 224
+    },
+    "independent-probe-isolated.log": {
+      "sha256": "02dce0a0e6ad8fe08e4a990d04174ea0a0c63de06b392c3a93a310698e9b1187",
+      "bytes": 5341
+    },
+    "independent-probe.json": {
+      "sha256": "cf5594e192d1f913a9d26021589a75101b6bad9bf0f51cb10c80a79ab857ef10",
+      "bytes": 225
+    },
+    "independent-probe.log": {
+      "sha256": "906015108d97618dca49a4764a8617a1884762107d86a7e5cf140450950cab4a",
+      "bytes": 1515
+    },
+    "independent_list_probe.rs": {
+      "sha256": "b8e339f0d0983d77066811b810eb957eacbf4ce35f51733cfdf0aea6881ea7ca",
+      "bytes": 11179
+    }
+  }
+}
