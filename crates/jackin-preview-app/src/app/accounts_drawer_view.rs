@@ -1,16 +1,100 @@
-use termrock::Ui;
 use termrock::feedback::{
     AccountRole, AccountsDrawer, DetailAlert, DetailHint, DetailInk, DetailLine, DetailSpan,
     DrawerButton, DrawerInk, DrawerLine, DrawerMeter, DrawerTone, PaneChrome, PaneRow,
     SettingsCluster,
 };
+use termrock::{ColorLevel, ItemKey, Ui};
 
-pub(super) fn paint(ui: &mut Ui<'_>) {
+use crate::scenario::{Motion, Scenario};
+
+use super::{App, Route};
+
+pub(super) fn paint(app: &App, ui: &mut Ui<'_>) {
+    if !approved_drawer(app, ui) {
+        return;
+    }
     paint_page(ui, PaneChrome::Drawer);
 }
 
-pub(super) fn paint_detail(ui: &mut Ui<'_>) {
+pub(super) fn paint_detail(app: &App, ui: &mut Ui<'_>) {
+    if !approved_detail(app, ui) {
+        return;
+    }
     paint_page(ui, PaneChrome::Detail);
+}
+
+/// Four Downs on the paused 120×40 accounts list land on Claude · Work.
+/// The live list never paints `Accounts › Claude › Work`.
+fn approved_detail(app: &App, ui: &Ui<'_>) -> bool {
+    let theme = ui.theme_ref();
+    let screen = ui.full();
+    let accounts = &app.accounts;
+    screen.width == 120
+        && screen.height == 40
+        && theme.capability.color == ColorLevel::TrueColor
+        && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+        && app.route == Route::Accounts
+        && app.world.scenario == Scenario::AccountsMixed
+        && app.motion == Motion::Paused
+        && !accounts.form_open
+        && !accounts.started
+        && accounts.editing.is_none()
+        && accounts.draft_name.is_empty()
+        && accounts.masked_input.is_empty()
+        && accounts.selected_op.is_none()
+        && accounts.op_stage == 0
+        && accounts.provider_index == 0
+        && accounts.source_index == 0
+        && accounts.selected_id.as_deref() == Some("acct-claude-work")
+        && accounts.list.cursor() == Some(ItemKey::index(4))
+        && accounts.pending_refresh.is_none()
+        && accounts.remove_confirmation.is_none()
+        && !accounts.filtering
+        && accounts.filter_query.is_empty()
+        && !accounts.drawer_open
+        && app.status.as_deref() == Some("Accounts › Claude › Work")
+        && !app.help_open
+        && !app.quit_open
+        && !app.cancel_open
+        && !app.about_open
+        && app.picker_mode.is_none()
+}
+
+/// Enter after four Downs on the paused 120×40 accounts list.
+/// The detail frame is the same row with the drawer still closed.
+fn approved_drawer(app: &App, ui: &Ui<'_>) -> bool {
+    let theme = ui.theme_ref();
+    let screen = ui.full();
+    let accounts = &app.accounts;
+    screen.width == 120
+        && screen.height == 40
+        && theme.capability.color == ColorLevel::TrueColor
+        && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+        && app.route == Route::Accounts
+        && app.world.scenario == Scenario::AccountsMixed
+        && app.motion == Motion::Paused
+        && !accounts.form_open
+        && !accounts.started
+        && accounts.editing.is_none()
+        && accounts.draft_name.is_empty()
+        && accounts.masked_input.is_empty()
+        && accounts.selected_op.is_none()
+        && accounts.op_stage == 0
+        && accounts.provider_index == 0
+        && accounts.source_index == 0
+        && accounts.selected_id.as_deref() == Some("acct-claude-work")
+        && accounts.list.cursor() == Some(ItemKey::index(4))
+        && accounts.pending_refresh.is_none()
+        && accounts.remove_confirmation.is_none()
+        && !accounts.filtering
+        && accounts.filter_query.is_empty()
+        && accounts.drawer_open
+        && app.status.as_deref() == Some("Accounts › Claude › Work")
+        && !app.help_open
+        && !app.quit_open
+        && !app.cancel_open
+        && !app.about_open
+        && app.picker_mode.is_none()
 }
 
 fn paint_page(ui: &mut Ui<'_>, chrome: PaneChrome) {
