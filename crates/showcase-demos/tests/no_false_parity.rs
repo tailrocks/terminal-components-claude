@@ -1,24 +1,152 @@
 //! The showcase pages paint their content from live widgets.
 //!
-//! These tests guard the two properties the showcase lost when a page pasted
-//! frozen cells: no page holds a table of frozen cells, and no page
-//! picks a different screen for an exact page size.
+//! These tests guard the properties the showcase lost when a page pasted
+//! frozen cells or mounted invisible widgets: no page holds a table of
+//! frozen cells, no page picks a different screen for an exact page size,
+//! no page replays a historical frame, no page mounts widgets in a
+//! zero-area rect, and every page renders its content at more than one size.
 
 use showcase_demos::pages::Page;
+use showcase_demos::pages::{
+    buttons, chips, chrome, dialogs, editable, editor, forms, grid, inputs, lists, overview,
+    panels, pickers, progress, scrolling, settings, sidebars, tables, taskrunner, terminal,
+    textareas, trees,
+};
 use termrock::{App, Cx, Response, Theme, Ui};
 use termrock_test_support::Harness;
 
-const CHROME: &str = include_str!("../src/pages/chrome.rs");
-const TASKRUNNER: &str = include_str!("../src/pages/taskrunner.rs");
-const TERMINAL: &str = include_str!("../src/pages/terminal.rs");
+/// Every page source, so the source guards below cover new pages too. Adding
+/// a page means adding its line here; the count assertion in
+/// [`every_page_source_is_guarded`] refuses to let the list drift.
+const SOURCES: [(&str, &str); 23] = [
+    ("buttons", include_str!("../src/pages/buttons.rs")),
+    ("chips", include_str!("../src/pages/chips.rs")),
+    ("chrome", include_str!("../src/pages/chrome.rs")),
+    ("dialogs", include_str!("../src/pages/dialogs.rs")),
+    ("editable", include_str!("../src/pages/editable.rs")),
+    ("editor", include_str!("../src/pages/editor.rs")),
+    ("forms", include_str!("../src/pages/forms.rs")),
+    ("grid", include_str!("../src/pages/grid.rs")),
+    ("inputs", include_str!("../src/pages/inputs.rs")),
+    ("lists", include_str!("../src/pages/lists.rs")),
+    ("overview", include_str!("../src/pages/overview.rs")),
+    ("panels", include_str!("../src/pages/panels.rs")),
+    ("pickers", include_str!("../src/pages/pickers.rs")),
+    ("progress", include_str!("../src/pages/progress.rs")),
+    ("scrolling", include_str!("../src/pages/scrolling.rs")),
+    ("selectable", include_str!("../src/pages/selectable.rs")),
+    ("settings", include_str!("../src/pages/settings.rs")),
+    ("sidebars", include_str!("../src/pages/sidebars.rs")),
+    ("tables", include_str!("../src/pages/tables.rs")),
+    ("taskrunner", include_str!("../src/pages/taskrunner.rs")),
+    ("terminal", include_str!("../src/pages/terminal.rs")),
+    ("textareas", include_str!("../src/pages/textareas.rs")),
+    ("trees", include_str!("../src/pages/trees.rs")),
+];
+
+/// Pages whose exact-size switches are owned by later waves, not this one.
+/// Every other page must already be free of them.
+const SIZE_GATE_PAGES: [&str; 4] = ["lists", "progress", "selectable", "scrolling"];
+
+/// Pages whose `ui.reference(None, ..)` blocks mount visible widgets. The
+/// invisible mounts are gone from pickers and overview; a new reference
+/// block must draw visible widgets to land here.
+const VISIBLE_REFERENCE_PAGES: [&str; 3] = ["forms", "inputs", "textareas"];
+
+/// `area.width == <nonzero>` picks a screen by its exact size. `== 0` is an
+/// empty-area guard, which stays legal.
+fn exact_size_gate(source: &str) -> Option<String> {
+    for (index, line) in source.lines().enumerate() {
+        for probe in ["area.width ==", "area.height =="] {
+            let mut rest = line;
+            while let Some(at) = rest.find(probe) {
+                let rhs = rest[at + probe.len()..].trim_start();
+                if !rhs.starts_with('0') {
+                    return Some(format!("line {}: {}", index + 1, line.trim()));
+                }
+                rest = &rest[at + probe.len()..];
+            }
+        }
+    }
+    None
+}
+
+/// A `Rect::ZERO` that initialises a layout array (`[Rect::ZERO; N]`) is
+/// overwritten before use. Any other one mounts a widget nowhere.
+fn stray_zero_rect(source: &str) -> bool {
+    source.replace("[Rect::ZERO;", "").contains("Rect::ZERO")
+}
+
+/// A `Rect::new(.., 0, 0)` mounts a widget in a zero-area rect. The
+/// `[Rect::new(0, 0, 0, 0); N]` array initialisers are overwritten before
+/// use, and a bare `, 0, 0)` also matches non-rect argument lists, so the
+/// check parses each `Rect::new` call instead of substring matching.
+fn zero_area_mount(source: &str) -> Option<String> {
+    let mut index = 0;
+    while let Some(found) = source[index..].find("Rect::new(") {
+        let start = index + found;
+        if source[..start].trim_end().ends_with('[') {
+            index = start + "Rect::new(".len();
+            continue;
+        }
+        let mut depth = 0u32;
+        let mut end = None;
+        for (offset, ch) in source[start..].char_indices() {
+            match ch {
+                '(' => depth += 1,
+                ')' => {
+                    depth -= 1;
+                    if depth == 0 {
+                        end = Some(start + offset);
+                        break;
+                    }
+                }
+                _ => {}
+            }
+        }
+        let end = end.expect("a Rect::new call is parenthesised");
+        let call = &source[start..=end];
+        let args = &call["Rect::new(".len()..call.len() - 1];
+        let mut parts = Vec::new();
+        let mut depth = 0u32;
+        let mut last = 0;
+        for (offset, ch) in args.char_indices() {
+            match ch {
+                '(' => depth += 1,
+                ')' => depth -= 1,
+                ',' if depth == 0 => {
+                    parts.push(args[last..offset].trim());
+                    last = offset + 1;
+                }
+                _ => {}
+            }
+        }
+        parts.push(args[last..].trim());
+        if parts.len() == 4 && parts[2] == "0" && parts[3] == "0" {
+            return Some(call.to_string());
+        }
+        index = end + 1;
+    }
+    None
+}
+
+#[test]
+fn every_page_source_is_guarded() {
+    assert_eq!(
+        SOURCES.len(),
+        23,
+        "a page was added without extending the guard sources"
+    );
+    assert_eq!(
+        page_factories().len(),
+        22,
+        "a page was added without extending the render guard"
+    );
+}
 
 #[test]
 fn no_page_holds_a_captured_cell_table() {
-    for (name, source) in [
-        ("chrome", CHROME),
-        ("taskrunner", TASKRUNNER),
-        ("terminal", TERMINAL),
-    ] {
+    for (name, source) in SOURCES {
         assert!(
             !source.contains("&[(u16, u16, u32, u32, bool, &str)]"),
             "{name}: a captured cell table is back"
@@ -36,37 +164,174 @@ fn no_page_holds_a_captured_cell_table() {
 
 #[test]
 fn no_page_switches_on_an_exact_page_size() {
-    for (name, source) in [
-        ("chrome", CHROME),
-        ("taskrunner", TASKRUNNER),
-        ("terminal", TERMINAL),
-    ] {
+    for (name, source) in SOURCES {
+        if SIZE_GATE_PAGES.contains(&name) {
+            continue;
+        }
+        let gate = exact_size_gate(source);
         assert!(
-            !source.contains("area.width =="),
-            "{name}: a page still picks a screen by its exact width"
+            gate.is_none(),
+            "{name}: a page still picks a screen by its exact size: {gate:?}"
         );
-        assert!(
-            !source.contains("area.height =="),
-            "{name}: a page still picks a screen by its exact height"
-        );
+        for marker in [
+            "WIDE_PAGE_W",
+            "WIDE_PAGE_H",
+            "NARROW_PAGE",
+            "SHELL_80_PAGE",
+            "COMPACT_PAGE",
+        ] {
+            assert!(
+                !source.contains(marker),
+                "{name}: exact-size gate {marker} spread outside its owning wave"
+            );
+        }
     }
 }
 
 #[test]
 fn no_page_replays_a_historical_frame() {
-    for (name, source) in [
-        ("chrome", CHROME),
-        ("taskrunner", TASKRUNNER),
-        ("terminal", TERMINAL),
-    ] {
-        assert!(
-            !source.contains("historical"),
-            "{name}: a historical replay is back"
-        );
+    for (name, source) in SOURCES {
         assert!(
             !source.contains("paint_historical"),
             "{name}: a historical replay is back"
         );
+        // editable.rs keeps one comment naming the historical ID-first paint
+        // order. It describes a convention, not a replay; its cleanup belongs
+        // to a later wave.
+        if name != "editable" {
+            assert!(
+                !source.contains("historical"),
+                "{name}: a historical replay is back"
+            );
+        }
+    }
+}
+
+#[test]
+fn no_page_mounts_widgets_in_a_zero_area_rect() {
+    for (name, source) in SOURCES {
+        assert!(
+            !stray_zero_rect(source),
+            "{name}: a widget draws into Rect::ZERO"
+        );
+        let mount = zero_area_mount(source);
+        assert!(
+            mount.is_none(),
+            "{name}: a widget mounts in a zero-area rect: {mount:?}"
+        );
+    }
+}
+
+#[test]
+fn no_page_hides_reference_widgets_off_screen() {
+    for (name, source) in SOURCES {
+        if VISIBLE_REFERENCE_PAGES.contains(&name) {
+            continue;
+        }
+        assert!(
+            !source.contains("ui.reference(None"),
+            "{name}: a reference block mounts widgets; draw them visibly or not at all"
+        );
+    }
+}
+
+struct PageHost(Box<dyn Page>);
+
+impl App for PageHost {
+    fn update(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
+        Response::ignored()
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        self.0.draw(ui, ui.full());
+    }
+}
+
+type PageFactory = Box<dyn Fn() -> Box<dyn Page>>;
+
+/// Every page with a [`Page`] implementation. selectable renders through the
+/// showcase-ui app shell instead, so the shell and visual baselines cover it.
+fn page_factories() -> Vec<(&'static str, PageFactory)> {
+    vec![
+        (
+            "buttons",
+            Box::new(|| Box::new(buttons::ButtonsPage::new())),
+        ),
+        ("chips", Box::new(|| Box::new(chips::ChipsPage::new()))),
+        ("chrome", Box::new(|| Box::new(chrome::ChromePage::new()))),
+        (
+            "dialogs",
+            Box::new(|| Box::new(dialogs::DialogsPage::new())),
+        ),
+        (
+            "editable",
+            Box::new(|| Box::new(editable::EditablePage::new())),
+        ),
+        ("editor", Box::new(|| Box::new(editor::EditorPage::new()))),
+        ("forms", Box::new(|| Box::new(forms::FormsPage::new()))),
+        ("grid", Box::new(|| Box::new(grid::GridPage::new()))),
+        ("inputs", Box::new(|| Box::new(inputs::InputsPage::new()))),
+        ("lists", Box::new(|| Box::new(lists::ListsPage::new()))),
+        (
+            "overview",
+            Box::new(|| Box::new(overview::OverviewPage::new())),
+        ),
+        ("panels", Box::new(|| Box::new(panels::PanelsPage::new()))),
+        (
+            "pickers",
+            Box::new(|| Box::new(pickers::PickersPage::new())),
+        ),
+        (
+            "progress",
+            Box::new(|| Box::new(progress::ProgressPage::new())),
+        ),
+        (
+            "scrolling",
+            Box::new(|| Box::new(scrolling::ScrollingPage::new())),
+        ),
+        (
+            "settings",
+            Box::new(|| Box::new(settings::SettingsPage::new())),
+        ),
+        (
+            "sidebars",
+            Box::new(|| Box::new(sidebars::SidebarsPage::new())),
+        ),
+        ("tables", Box::new(|| Box::new(tables::TablesPage::new()))),
+        (
+            "taskrunner",
+            Box::new(|| Box::new(taskrunner::TaskRunnerPage::new())),
+        ),
+        (
+            "terminal",
+            Box::new(|| Box::new(terminal::TerminalPage::new())),
+        ),
+        (
+            "textareas",
+            Box::new(|| Box::new(textareas::TextAreasPage::new())),
+        ),
+        ("trees", Box::new(|| Box::new(trees::TreesPage::new()))),
+    ]
+}
+
+/// Every page paints its own title at every size: a page that renders
+/// nothing, or that picks a different screen per size, drops its title.
+#[test]
+fn every_page_renders_its_content_at_three_sizes() {
+    for (name, make) in page_factories() {
+        for (width, height) in [(120u16, 40u16), (80, 24), (51, 16)] {
+            let page = make();
+            let title = page.title();
+            assert!(!title.is_empty(), "{name}: page has no title");
+            let harness = Harness::new(PageHost(page), Theme::junie(), width, height);
+            let text = harness.text();
+            // Case-insensitive: some pages frame a longer title, such as the
+            // settings page painting "Project settings".
+            assert!(
+                text.to_lowercase().contains(&title.to_lowercase()),
+                "{name} {width}x{height}: title {title:?} missing"
+            );
+        }
     }
 }
 
