@@ -1,0 +1,65 @@
+{
+  "review": "independent-medium-effort Rust/API review",
+  "commit": "215c71df6caf22c2d28032b1f3c588fbfc780168",
+  "parent": "277c420e89e5c016e2f0cdf6385e86258a236d2b",
+  "verdict": "CLEAR for the additive Select composition adapter only",
+  "findings": [],
+  "scope": [
+    "crates/termrock/src/composition.rs",
+    "crates/termrock/Cargo.toml",
+    "crates/termrock/tests/select_composition_consumer.rs",
+    "docs/audits/2026-10-21-select-composition-leaf.md"
+  ],
+  "source_sha256": {
+    "crates/termrock/src/composition.rs": "a0d577ea00ae2b49bc8568d667fe173f2e4cd18d4efdff217652977254206c2a",
+    "crates/termrock/Cargo.toml": "04e4e606d87edb8583ed1abf3a4c56e994ae5ce6e63c317d9f35699200585ad0",
+    "crates/termrock/tests/select_composition_consumer.rs": "cdea5b8c03037730b18c53a41ae7c2d943a30d6cec49c194dd65de16b840020d"
+  },
+  "implementation_review": {
+    "API": "Additive select function; borrowed component/configuration/state/items. Existing signatures and existing adapters unchanged. Same configured component used for measure and draw. No additional trait or input system.",
+    "measurement": "SelectLeaf delegates existing Select::measure (fixed intrinsic 12/24 columns by one row, fit constraints); no draw, handlers, domain actions, item scans, state mutation, cursor registration, or layer opening.",
+    "rendering": "SelectLeaf delegates existing Select::draw with resolved logical rectangle inside existing composition clip; shared Select retains registration, layer scope, popup rendering, styles, cursor and actions. Ui::layer deliberately switches to popup clip.",
+    "ownership": "No application source dependencies, raw painting, reference imports, copied widget mechanics, unsafe code, synchronization or failure recovery added. Existing fallible Group measurement/show return propagation unchanged.",
+    "compatibility": "Existing production behavior unchanged unless the new adapter is called; direct Select and composed Select compared through complete decoded Buffer and runtime state at matched dimensions/input histories."
+  },
+  "validation": {
+    "native": "cargo nextest run -p termrock --features testing --test slots --test select_composition_consumer: 12 passed, 0 skipped",
+    "external": "Actual separate package with only termrock facade dependency: cargo nextest run --offline --all-targets: 5 passed, 0 skipped. New String-valued domain records with stable numeric ItemKeys; no application source imports.",
+    "external_coverage": [
+      "combining and wide Unicode",
+      "long labels and empty items",
+      "borrowed component/state/data configuration",
+      "disabled and read-only keyboard and pointer refusal",
+      "repeated keyboard open/Esc close and focus restoration",
+      "data reordering preserves selected stable key",
+      "pointer chooses keyed popup row",
+      "zero and narrow regions",
+      "repeated measurement preserves complete SelectState, style query count and cache counters",
+      "complete direct/composed Buffer, hit regions, focus, cursor visibility/position/shape, layer, registry generation and state equality across initial plus seven ordered keyboard checkpoints",
+      "open popup resizes through 53x12,24x5,8x3,1x1,0x0,52x12: complete Buffer, hit regions, layer and cursor equality"
+    ],
+    "lint": "cargo clippy -p termrock --features testing --test slots --test select_composition_consumer -- -D warnings: exit 0",
+    "format": "cargo fmt --all --check: exit 0; git diff --check: exit 0",
+    "isolation": "Detached sparse exact-commit working copy; dedicated target /private/tmp/select-composition-review-target-215c-20261021. No repository product edits or baseline updates."
+  },
+  "superseded_probe": {
+    "artifact": "select-composition-review-resize-diagnostic-215c-20261021.log",
+    "classification": "Reviewer harness defect, not an implementation finding. Reference fixture used Runtime::app_mut to change geometry before each resize, invalidating prepared projection and giving the reference a different layout history. Fixed test uses root-area first-row geometry without app_mut; all five external tests pass. Failed diagnostic preserved without product credit."
+  },
+  "limitations": [
+    "No standalone application binary or tuiscotti capture was executed.",
+    "No frozen-baseline visual comparison or full workspace/hosted CI acceptance.",
+    "Required real Showcase Options/States consumer is still queued; library-only evidence does not satisfy that consumer gate.",
+    "Original in-crate integration test is a public-surface consumer, not itself a standalone external Cargo package; this review supplies the separate package proof."
+  ],
+  "artifacts": {
+    "select-composition-review-native-215c-20261021.log": "851481566475063b7c6e398e206daeb7fb2b4c7476124aeef3fb93b6597c51e4",
+    "select-composition-review-lints-215c-20261021.log": "a25bcdbbd2ee0fb4967a97317eb0cda5e93ee9d8ae098f35a4a87778ebb28681",
+    "select-composition-review-external-215c-20261021-sealed.log": "3aa206ebac3b0c48bbcd9e85c6f0e4652923bea5d68a19642debcbf7baf01faa",
+    "select-composition-review-resize-diagnostic-215c-20261021.log": "b42465eb478b983d094dd64ec14cf84a8f35dd18584601a4ccc26311c9674103",
+    "external-consumer/Cargo.toml": "39c978bf3b3d8975f7fc96dae698519a7aa89ca878eab75a838e9d59c2fde374",
+    "external-consumer/Cargo.lock": "e721e5751489bf67bc9a4eb0df78273f7f87176cd955a792a8f2bf54e0b68dc6",
+    "external-consumer/rust-toolchain.toml": "007a7e2abbd4afe192a3ef190dfa54914800621e221196747cff9e172735dc00",
+    "external-consumer/consumer.rs": "0625ed06cbc3509637f9672564b66d319acae0d02c235ab76728224fa27142e0"
+  }
+}
