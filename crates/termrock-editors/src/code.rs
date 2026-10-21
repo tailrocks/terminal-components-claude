@@ -1318,7 +1318,8 @@ impl<'a> CodeEditor<'a> {
                     }
                 }
                 if removals.is_empty() {
-                    acc.consumed();
+                    st.after_edit(EditOutcome::Ignored);
+                    acc.action(CodeAction::Changed);
                     return;
                 }
                 let map_offset = |offset: usize| {
@@ -2031,9 +2032,16 @@ mod tests {
             let response = send_backtab(&mut runtime, &mut buffer);
 
             assert!(response.is_consumed(), "{text:?}, indent {indent}");
-            assert!(!response.is_changed(), "{text:?}, indent {indent}");
-            assert_eq!(runtime.app().last_action, None);
-            assert_eq!(runtime.app().state, before, "{text:?}, indent {indent}");
+            assert!(response.is_changed(), "{text:?}, indent {indent}");
+            assert_eq!(
+                runtime.app().last_action,
+                Some(CodeAction::Changed),
+                "{text:?}, indent {indent}"
+            );
+            assert_eq!(runtime.app().state.text(), before.text());
+            assert_eq!(runtime.app().state.cursor_offset(), before.cursor_offset());
+            assert_eq!(runtime.app().state.selected_text(), before.selected_text());
+            assert_eq!(runtime.app().state.edit_generation, before.edit_generation);
         }
     }
 
