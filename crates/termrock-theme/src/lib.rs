@@ -564,6 +564,17 @@ mod tests {
     use crate::response::StateFlags;
 
     #[test]
+    fn fingerprint_ignores_per_construction_revision() {
+        // `Recipes::revision` is cache bookkeeping, not theme content. Two
+        // independently built themes must fingerprint the same or every
+        // conformance harness comparing fingerprints fails order-dependently.
+        let first = Theme::junie();
+        let second = Theme::junie();
+        assert_eq!(first, second);
+        assert_eq!(first.fingerprint(), second.fingerprint());
+    }
+
+    #[test]
     fn metrics_is_the_sizing_path_for_update() {
         let mut t = Theme::junie();
 
