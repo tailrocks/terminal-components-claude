@@ -179,6 +179,13 @@ pub trait Conformance: 'static {
     }
     fn update(cx: &mut Cx<'_>, st: &mut Self::State, f: &Fixture) -> Response<Self::Action>;
     fn draw(ui: &mut Ui<'_>, area: Rect, st: &Self::State, f: &Fixture);
+    /// Base fixture each driver check starts from.
+    ///
+    /// A case whose widget cannot paint or register its focus target in the
+    /// default 30x6 rect widens it here instead of special-casing a check.
+    fn fixture() -> Fixture {
+        Fixture::default()
+    }
 
     fn activation_chords() -> &'static [Chord] {
         &[]

@@ -1977,7 +1977,16 @@ impl Bindings for CodeEditor<'_> {
     type Cmd = CodeCmd;
 
     fn bindings(&self, state: BindingState) -> &'static [Binding<CodeCmd>] {
-        if state.flags.contains(StateFlags::EDITING) {
+        // Focus starts editing under the default entry mode, so the editor
+        // really handles its edit table in that state even before the frame
+        // that marks it `EDITING`. Advertise what will be handled.
+        let immediate_entry = self.edit_entry.unwrap_or(EditEntry::Immediate)
+            == EditEntry::Immediate
+            && !self.read_only
+            && !self.disabled;
+        if state.flags.contains(StateFlags::EDITING)
+            || (immediate_entry && state.flags.contains(StateFlags::FOCUSED))
+        {
             EDIT_BINDINGS
         } else {
             NAV_BINDINGS

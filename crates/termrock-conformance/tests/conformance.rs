@@ -11,8 +11,8 @@
 
 use termrock::author::{
     Activated, Binding, BindingState, Bindings, Chord, Cx, Family, FgStep, Focusability, FrameRead,
-    GlyphRole, Id, Intent, ItemKey, KeyCode, Part, PartRef, Phase, Position, Rect, Response,
-    ScrollState, StateFlags, StylePatch, Ui, Variant,
+    GlyphRole, Id, Intent, ItemKey, KeyCode, KeyModifiers, Part, PartRef, Phase, Position, Rect,
+    Response, ScrollState, StateFlags, StylePatch, Ui, Variant,
 };
 use termrock::{
     Action, ActionKey, Anchor, Brand, Button, ButtonCmd, CellDecor, CellPos, CellRef, Checkbox,
@@ -41,6 +41,50 @@ use termrock_test_support::conformance::{
     Caps, Conformance, Fixture, FixtureRow, PointerGesture, mono_states_required_by,
 };
 use termrock_test_support::{Harness, Scene, conformance_suite};
+
+/// Chords a composite forwards to a focused inner text editor. The outer
+/// typed table cannot name them: the inner editor owns the command. The set
+/// mirrors the input table's editing chords.
+const INNER_EDITOR_CHORDS: &[Chord] = &[
+    Chord::key(KeyCode::Esc),
+    Chord::key(KeyCode::Enter),
+    Chord::key(KeyCode::Backspace),
+    Chord::key(KeyCode::Delete),
+    Chord::key(KeyCode::Home),
+    Chord::key(KeyCode::End),
+    Chord::key(KeyCode::Up),
+    Chord::key(KeyCode::Down),
+    Chord::key(KeyCode::Left),
+    Chord::key(KeyCode::Right),
+    Chord::with(KeyCode::Left, KeyModifiers::SHIFT),
+    Chord::with(KeyCode::Right, KeyModifiers::SHIFT),
+    Chord::with(KeyCode::Left, KeyModifiers::CONTROL),
+    Chord::with(KeyCode::Right, KeyModifiers::CONTROL),
+    Chord::with(KeyCode::Left, KeyModifiers::ALT),
+    Chord::with(KeyCode::Right, KeyModifiers::ALT),
+    Chord::with(KeyCode::Up, KeyModifiers::SHIFT),
+    Chord::with(KeyCode::Down, KeyModifiers::SHIFT),
+    Chord::with(KeyCode::Home, KeyModifiers::SHIFT),
+    Chord::with(KeyCode::End, KeyModifiers::SHIFT),
+    Chord::with(KeyCode::Home, KeyModifiers::CONTROL),
+    Chord::with(KeyCode::End, KeyModifiers::CONTROL),
+    Chord::with(KeyCode::Backspace, KeyModifiers::CONTROL),
+    Chord::with(KeyCode::Backspace, KeyModifiers::ALT),
+    Chord::with(KeyCode::Char('a'), KeyModifiers::CONTROL),
+    Chord::with(KeyCode::Char('e'), KeyModifiers::CONTROL),
+    Chord::with(KeyCode::Char('u'), KeyModifiers::CONTROL),
+    Chord::with(KeyCode::Char('k'), KeyModifiers::CONTROL),
+    Chord::with(KeyCode::Char('w'), KeyModifiers::CONTROL),
+    Chord::with(KeyCode::Char('l'), KeyModifiers::CONTROL),
+    Chord::with(KeyCode::Char('b'), KeyModifiers::ALT),
+    Chord::with(KeyCode::Char('f'), KeyModifiers::ALT),
+    Chord::key(KeyCode::Menu),
+    Chord::with(KeyCode::F(10), KeyModifiers::SHIFT),
+];
+
+/// The edit-menu chord the field family handles directly instead of through
+/// the keymap table.
+const EDIT_MENU_CHORDS: &[Chord] = &[Chord::with(KeyCode::F(10), KeyModifiers::SHIFT)];
 
 const PROBE: Id = Id::root("conformance.probe");
 
@@ -350,6 +394,10 @@ impl Conformance for TextInputCase {
         TextInput::new(INPUT).bindings(s)
     }
 
+    fn legacy_key_chords() -> &'static [Chord] {
+        EDIT_MENU_CHORDS
+    }
+
     fn mono_setup_chords(state: StateFlags) -> &'static [Chord] {
         const EDIT: &[Chord] = &[Chord::key(KeyCode::Char('x'))];
         if state.contains(StateFlags::EDITING) {
@@ -418,6 +466,10 @@ impl Conformance for FieldCase {
 
     fn bindings(s: BindingState) -> &'static [Binding<TextCmd>] {
         TextInput::new(FIELD_INPUT).bindings(s)
+    }
+
+    fn legacy_key_chords() -> &'static [Chord] {
+        EDIT_MENU_CHORDS
     }
 
     fn mono_setup_chords(state: StateFlags) -> &'static [Chord] {
@@ -807,6 +859,11 @@ impl Conformance for DialogCase {
         Some(Chord::key(KeyCode::F(4)))
     }
 
+    fn open_overlay(cx: &mut Cx<'_>, _st: &mut Self::State, f: &Fixture) -> bool {
+        cx.open_layer(DLG, dialog(f).layer(cx));
+        true
+    }
+
     fn layer_id() -> Option<Id> {
         Some(DLG)
     }
@@ -1118,6 +1175,10 @@ impl Conformance for TextAreaCase {
 
     fn bindings(s: BindingState) -> &'static [Binding<TextCmd>] {
         TextArea::new(TEXT_AREA, 4).bindings(s)
+    }
+
+    fn legacy_key_chords() -> &'static [Chord] {
+        EDIT_MENU_CHORDS
     }
 
     fn mono_setup_chords(state: StateFlags) -> &'static [Chord] {
@@ -2356,6 +2417,11 @@ impl Conformance for CodeEditorCase {
         CodeEditor::new(CODE_EDITOR, 6).bindings(state)
     }
 
+    fn legacy_key_chords() -> &'static [Chord] {
+        const CHORDS: &[Chord] = &[Chord::with(KeyCode::Char('f'), KeyModifiers::CONTROL)];
+        CHORDS
+    }
+
     fn mono_setup_chords(state: StateFlags) -> &'static [Chord] {
         const EDIT: &[Chord] = &[Chord::key(KeyCode::Enter)];
         if state.contains(StateFlags::EDITING) {
@@ -3175,6 +3241,9 @@ impl Conformance for FilterListCase {
     fn bindings(state: BindingState) -> &'static [Binding<Self::Cmd>] {
         FilterList::<Item<'static>>::new(FILTER_LIST).bindings(state)
     }
+    fn legacy_key_chords() -> &'static [Chord] {
+        INNER_EDITOR_CHORDS
+    }
     fn item_keys(f: &Fixture) -> Vec<ItemKey> {
         f.rows.iter().map(|r| r.key).collect()
     }
@@ -3267,7 +3336,45 @@ impl Conformance for PickerCase {
         FilterList::<Item<'static>>::new(PICKER).bindings(state)
     }
     fn legacy_key_chords() -> &'static [Chord] {
-        const CHORDS: &[Chord] = &[Chord::key(KeyCode::F(4))];
+        // The open route plus the chords the query field handles through its
+        // own typed table; the outer table cannot name them.
+        const CHORDS: &[Chord] = &[
+            Chord::key(KeyCode::F(4)),
+            Chord::key(KeyCode::Esc),
+            Chord::key(KeyCode::Enter),
+            Chord::key(KeyCode::Backspace),
+            Chord::key(KeyCode::Delete),
+            Chord::key(KeyCode::Home),
+            Chord::key(KeyCode::End),
+            Chord::key(KeyCode::Up),
+            Chord::key(KeyCode::Down),
+            Chord::key(KeyCode::Left),
+            Chord::key(KeyCode::Right),
+            Chord::with(KeyCode::Left, KeyModifiers::SHIFT),
+            Chord::with(KeyCode::Right, KeyModifiers::SHIFT),
+            Chord::with(KeyCode::Left, KeyModifiers::CONTROL),
+            Chord::with(KeyCode::Right, KeyModifiers::CONTROL),
+            Chord::with(KeyCode::Left, KeyModifiers::ALT),
+            Chord::with(KeyCode::Right, KeyModifiers::ALT),
+            Chord::with(KeyCode::Up, KeyModifiers::SHIFT),
+            Chord::with(KeyCode::Down, KeyModifiers::SHIFT),
+            Chord::with(KeyCode::Home, KeyModifiers::SHIFT),
+            Chord::with(KeyCode::End, KeyModifiers::SHIFT),
+            Chord::with(KeyCode::Home, KeyModifiers::CONTROL),
+            Chord::with(KeyCode::End, KeyModifiers::CONTROL),
+            Chord::with(KeyCode::Backspace, KeyModifiers::CONTROL),
+            Chord::with(KeyCode::Backspace, KeyModifiers::ALT),
+            Chord::with(KeyCode::Char('a'), KeyModifiers::CONTROL),
+            Chord::with(KeyCode::Char('e'), KeyModifiers::CONTROL),
+            Chord::with(KeyCode::Char('u'), KeyModifiers::CONTROL),
+            Chord::with(KeyCode::Char('k'), KeyModifiers::CONTROL),
+            Chord::with(KeyCode::Char('w'), KeyModifiers::CONTROL),
+            Chord::with(KeyCode::Char('l'), KeyModifiers::CONTROL),
+            Chord::with(KeyCode::Char('b'), KeyModifiers::ALT),
+            Chord::with(KeyCode::Char('f'), KeyModifiers::ALT),
+            Chord::key(KeyCode::Menu),
+            Chord::with(KeyCode::F(10), KeyModifiers::SHIFT),
+        ];
         CHORDS
     }
     fn item_keys(f: &Fixture) -> Vec<ItemKey> {
@@ -3531,6 +3638,7 @@ fn open_menu_bar_dropdown_consumes_dynamic_item_binding() {
 }
 
 const HELP_OVERLAY: Id = Id::root("conformance.help_overlay");
+const HELP_LAUNCH: Id = Id::root("conformance.help_overlay.launch");
 struct HelpOverlayCase;
 impl Conformance for HelpOverlayCase {
     const NAME: &'static str = "help_overlay";
@@ -3544,6 +3652,14 @@ impl Conformance for HelpOverlayCase {
     }
     fn id() -> Id {
         HELP_OVERLAY
+    }
+    fn opener_id() -> Id {
+        HELP_LAUNCH
+    }
+    fn fixture() -> Fixture {
+        let mut f = Fixture::default();
+        f.area = Rect::new(2, 2, 30, 10);
+        f
     }
     fn update(cx: &mut Cx<'_>, st: &mut Self::State, f: &Fixture) -> Response<Self::Action> {
         let layer = HintLayer::from_bindings(&[Binding {
@@ -3560,7 +3676,12 @@ impl Conformance for HelpOverlayCase {
             .map(|row| HelpSection::new(row.label.as_str(), &layer))
             .collect();
         let help = HelpOverlay::new(HELP_OVERLAY, "Application", &sections);
-        if cx.intents(HELP_OVERLAY).any(
+        let launch = Button::new(HELP_LAUNCH, "Help").update(cx);
+        if launch.activated()
+            || cx
+                .intents(HELP_LAUNCH)
+                .any(|intent| matches!(intent, Intent::Key(key) if Chord::key(KeyCode::F(4)).matches(&key)))
+            || cx.intents(HELP_OVERLAY).any(
             |intent| matches!(intent, Intent::Key(key) if Chord::key(KeyCode::F(4)).matches(&key)),
         ) {
             cx.open_layer(HELP_OVERLAY, help.layer(cx));
@@ -3583,12 +3704,36 @@ impl Conformance for HelpOverlayCase {
             .map(|row| HelpSection::new(row.label.as_str(), &layer))
             .collect();
         let help = HelpOverlay::new(HELP_OVERLAY, "Application", &sections).patch_part(patch_of(f));
+        let used = Button::new(HELP_LAUNCH, "Help").draw(ui, area);
+        let below = Rect {
+            y: area.y.saturating_add(used.height),
+            height: area.height.saturating_sub(used.height),
+            ..area
+        };
         let layer_drawn = ui.layer(HELP_OVERLAY, |ui, layer_area| {
             help.draw(ui, layer_area, st);
         });
         if layer_drawn.is_none() {
-            help.draw(ui, area, st);
+            help.draw(ui, below, st);
         }
+    }
+    fn open_overlay(cx: &mut Cx<'_>, _st: &mut Self::State, f: &Fixture) -> bool {
+        let layer = HintLayer::from_bindings(&[Binding {
+            action: ActionKey::custom("help-case.close"),
+            chord: Some(Chord::key(KeyCode::Enter)),
+            cmd: HelpCmd::Close,
+            label: "Close",
+            priority: 80,
+            visible: true,
+        }]);
+        let sections: Vec<_> = f
+            .rows
+            .iter()
+            .map(|row| HelpSection::new(row.label.as_str(), &layer))
+            .collect();
+        let help = HelpOverlay::new(HELP_OVERLAY, "Application", &sections);
+        cx.open_layer(HELP_OVERLAY, help.layer(cx));
+        true
     }
     fn bindings(state: BindingState) -> &'static [Binding<Self::Cmd>] {
         const EMPTY: &[HelpSection<'static>] = &[];
@@ -3891,6 +4036,10 @@ impl Conformance for FormCase {
         TextInput::new(FORM_SECRET)
             .secret(SecretPolicy::default())
             .bindings(state)
+    }
+
+    fn legacy_key_chords() -> &'static [Chord] {
+        EDIT_MENU_CHORDS
     }
 
     fn prepare_scroll_fixture(fixture: &mut Fixture) {
