@@ -177,7 +177,6 @@ fn the_chosen_rows_fill_follows_the_frozen_inactive_policy() {
     let focused_bg = focused.cell(4, chosen_row).bg;
 
     let _ = focused.key(termrock_core::keys::KeyCode::Tab);
-    println!("DBG2 focus={:?}", focused.focus());
     let blurred_bg = focused.cell(4, chosen_row).bg;
     let rest_bg = focused.cell(4, chosen_row + 1).bg;
     assert_ne!(
