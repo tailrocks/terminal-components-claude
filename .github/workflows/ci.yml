@@ -157,7 +157,7 @@ jobs:
         env:
           VELNOR_DEFAULT_REF: ${{ format('refs/heads/{0}', github.event.repository.default_branch) }}
           VELNOR_PR_HEAD_FORK: ${{ github.event.pull_request.head.repo.fork }}
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; set -eu; case \"$RUNNER_TEMP\" in /*) ;; *) printf '\\''%s\\n'\\'' '\\''RUNNER_TEMP must be absolute'\\'' >&2; exit 1 ;; esac; d=\"$RUNNER_TEMP/velnor/cache-keys\"; rm -rf \"$d\"; mkdir -p \"$d\"; s256() { sha256sum \"$1\" > \"$d/sum\"; h=; rest=; read -r h rest < \"$d/sum\" || [ -n \"$h\" ]; case \"$h\" in '\\'''\\''|*[!0-9a-f]*) printf '\\''%s\\n'\\'' '\\''sha256sum returned no digest'\\'' >&2; exit 1 ;; esac; [ \"${#h}\" -eq 64 ] || exit 1; }; uname -s > \"$d/platform\"; uname -m >> \"$d/platform\"; default_ref=\"${VELNOR_DEFAULT_REF:-}\"; trust=none; if [ \"${GITHUB_EVENT_NAME:-}\" = push ] && [ -n \"${default_ref#refs/heads/}\" ] && [ \"${GITHUB_REF:-}\" = \"$default_ref\" ] && [ \"${GITHUB_REF_PROTECTED:-}\" = true ]; then trust=trusted; elif [ \"${GITHUB_EVENT_NAME:-}\" = pull_request ] && [ \"${VELNOR_PR_HEAD_FORK:-}\" = false ]; then trust=pr; fi; check_key() { [ \"${#1}\" -le 512 ] || { printf '\\''cache key exceeds 512 bytes: %s\\n'\\'' \"$1\" >&2; exit 1; }; }; printf '\\''%s\\n'\\'' \"family=sources\" \"schema=2\" \"$RUNNER_TEMP/velnor/cargo/registry/index\" \"$RUNNER_TEMP/velnor/cargo/registry/cache\" \"$RUNNER_TEMP/velnor/cargo/git/db\" > \"$d/sources-compat\"; cat \"$d/platform\" >> \"$d/sources-compat\"; printf '\\''%s\\n'\\'' \"$RUNNER_TEMP/velnor/cargo\" >> \"$d/sources-compat\"; s256 \"$d/sources-compat\"; compat=\"s256-$h\"; : > \"$d/sources-locks\"; s256 \"$GITHUB_WORKSPACE/Cargo.lock\"; printf '\\''%s\\t%s\\n'\\'' \".\" \"$h\" >> \"$d/sources-locks\"; LC_ALL=C sort \"$d/sources-locks\" > \"$d/sources-snapshot\"; s256 \"$d/sources-snapshot\"; snap=\"s256-$h\"; trusted=\"velnor-v2-sources-trusted-$compat-\"; if [ \"$trust\" = pr ]; then key=\"velnor-v2-sources-pr-$compat-$snap\"; else key=\"$trusted$snap\"; fi; check_key \"$key\"; save=false; [ \"$trust\" = none ] || save=true; printf '\\''%s\\n'\\'' \"sources_key=$key\" \"sources_save=$save\" \"sources_snapshot=$snap\" '\\''sources_restore_keys<<VELNOR_CACHE_KEYS_EOF'\\'' >> \"$GITHUB_OUTPUT\"; if [ \"$trust\" = pr ]; then printf '\\''%s\\n'\\'' \"$trusted$snap\" >> \"$GITHUB_OUTPUT\"; fi; printf '\\''%s\\n'\\'' \"$trusted\" '\\''VELNOR_CACHE_KEYS_EOF'\\'' >> \"$GITHUB_OUTPUT\"; printf '\\''velnor: cache trust=%s sources key=%s save=%s\\n'\\'' \"$trust\" \"$key\" \"$save\"; printf '\\''%s\\n'\\'' \"trust=$trust\" >> \"$GITHUB_OUTPUT\"'"
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; set -eu; case \"$RUNNER_TEMP\" in /*) ;; *) printf '\\''%s\\n'\\'' '\\''RUNNER_TEMP must be absolute'\\'' >&2; exit 1 ;; esac; d=\"$RUNNER_TEMP/velnor/cache-keys\"; rm -rf \"$d\"; mkdir -p \"$d\"; s256() { sha256sum \"$1\" > \"$d/sum\"; h=; rest=; read -r h rest < \"$d/sum\" || [ -n \"$h\" ]; case \"$h\" in '\\'''\\''|*[!0-9a-f]*) printf '\\''%s\\n'\\'' '\\''sha256sum returned no digest'\\'' >&2; exit 1 ;; esac; [ \"${#h}\" -eq 64 ] || exit 1; }; uname -s > \"$d/platform\"; uname -m >> \"$d/platform\"; default_ref=\"${VELNOR_DEFAULT_REF:-}\"; trust=none; if [ \"${GITHUB_EVENT_NAME:-}\" = push ] && [ -n \"${default_ref#refs/heads/}\" ] && [ \"${GITHUB_REF:-}\" = \"$default_ref\" ] && [ \"${GITHUB_REF_PROTECTED:-}\" = true ]; then trust=trusted; elif [ \"${GITHUB_EVENT_NAME:-}\" = pull_request ] && [ \"${VELNOR_PR_HEAD_FORK:-}\" = false ]; then trust=pr; fi; check_key() { [ \"${#1}\" -le 512 ] || { printf '\\''cache key exceeds 512 bytes: %s\\n'\\'' \"$1\" >&2; exit 1; }; }; printf '\\''%s\\n'\\'' \"family=sources\" \"schema=2\" \"$RUNNER_TEMP/velnor/cargo/registry/index\" \"$RUNNER_TEMP/velnor/cargo/registry/cache\" \"$RUNNER_TEMP/velnor/cargo/git/db\" > \"$d/sources-compat\"; cat \"$d/platform\" >> \"$d/sources-compat\"; printf '\\''%s\\n'\\'' \"$RUNNER_TEMP/velnor/cargo\" >> \"$d/sources-compat\"; s256 \"$d/sources-compat\"; compat=\"s256-$h\"; : > \"$d/sources-locks\"; s256 \"$GITHUB_WORKSPACE/Cargo.lock\"; printf '\\''%s\\t%s\\n'\\'' \".\" \"$h\" >> \"$d/sources-locks\"; s256 \"$GITHUB_WORKSPACE/external-consumer-demo/Cargo.lock\"; printf '\\''%s\\t%s\\n'\\'' \"external-consumer-demo\" \"$h\" >> \"$d/sources-locks\"; LC_ALL=C sort \"$d/sources-locks\" > \"$d/sources-snapshot\"; s256 \"$d/sources-snapshot\"; snap=\"s256-$h\"; trusted=\"velnor-v2-sources-trusted-$compat-\"; if [ \"$trust\" = pr ]; then key=\"velnor-v2-sources-pr-$compat-$snap\"; else key=\"$trusted$snap\"; fi; check_key \"$key\"; save=false; [ \"$trust\" = none ] || save=true; printf '\\''%s\\n'\\'' \"sources_key=$key\" \"sources_save=$save\" \"sources_snapshot=$snap\" '\\''sources_restore_keys<<VELNOR_CACHE_KEYS_EOF'\\'' >> \"$GITHUB_OUTPUT\"; if [ \"$trust\" = pr ]; then printf '\\''%s\\n'\\'' \"$trusted$snap\" >> \"$GITHUB_OUTPUT\"; fi; printf '\\''%s\\n'\\'' \"$trusted\" '\\''VELNOR_CACHE_KEYS_EOF'\\'' >> \"$GITHUB_OUTPUT\"; printf '\\''velnor: cache trust=%s sources key=%s save=%s\\n'\\'' \"$trust\" \"$key\" \"$save\"; printf '\\''%s\\n'\\'' \"trust=$trust\" >> \"$GITHUB_OUTPUT\"'"
       - name: Restore Cargo sources
         id: sources-restore
         if: github.event_name != 'workflow_dispatch'
@@ -166,11 +166,15 @@ jobs:
           key: ${{steps.cache-keys.outputs.sources_key}}
           path: "${{ runner.temp }}/velnor/cargo/registry/index\n${{ runner.temp }}/velnor/cargo/registry/cache\n${{ runner.temp }}/velnor/cargo/git/db"
           restore-keys: ${{steps.cache-keys.outputs.sources_restore_keys}}
-      - name: Fetch Cargo sources
+      - &s10
+        name: Fetch Cargo sources
+        env: *m8
+        run: "sh -c 'mkdir -p \"$RUNNER_TEMP/velnor/cargo-clean\" && cd \"$RUNNER_TEMP/velnor/cargo-clean\" && if mise --no-config --no-env --no-hooks exec rust@'\"${VELNOR_TOOL_RUST}\"' -- cargo metadata --locked --offline --manifest-path \"$GITHUB_WORKSPACE/Cargo.toml\" >/dev/null 2>&1; then echo \"velnor: sources hit, skipping fetch\"; echo \"velnor: sources downloaded=0\"; else echo \"velnor: sources miss (source_missing), fetching\"; status=0; mise --no-config --no-env --no-hooks exec rust@'\"${VELNOR_TOOL_RUST}\"' -- cargo fetch --locked --manifest-path \"$GITHUB_WORKSPACE/Cargo.toml\" 2> \"$RUNNER_TEMP/velnor/cargo-clean/fetch-stderr.log\" || status=$?; cat \"$RUNNER_TEMP/velnor/cargo-clean/fetch-stderr.log\" >&2; grep -Ec '\\''^ *Downloaded [^ ]+ v[0-9]'\\'' \"$RUNNER_TEMP/velnor/cargo-clean/fetch-stderr.log\" > \"$RUNNER_TEMP/velnor/cargo-clean/fetch-downloads\" || true; n=; read -r n < \"$RUNNER_TEMP/velnor/cargo-clean/fetch-downloads\" || true; echo \"velnor: sources downloaded=${n:-0}\"; exit $status; fi'"
+      - name: Fetch Cargo sources (external-consumer-demo/Cargo.toml)
         id: sources-fetch
         env: *m8
-        run: &r5 "sh -c 'mkdir -p \"$RUNNER_TEMP/velnor/cargo-clean\" && cd \"$RUNNER_TEMP/velnor/cargo-clean\" && if mise --no-config --no-env --no-hooks exec rust@'\"${VELNOR_TOOL_RUST}\"' -- cargo metadata --locked --offline --manifest-path \"$GITHUB_WORKSPACE/Cargo.toml\" >/dev/null 2>&1; then echo \"velnor: sources hit, skipping fetch\"; echo \"velnor: sources downloaded=0\"; else echo \"velnor: sources miss (source_missing), fetching\"; status=0; mise --no-config --no-env --no-hooks exec rust@'\"${VELNOR_TOOL_RUST}\"' -- cargo fetch --locked --manifest-path \"$GITHUB_WORKSPACE/Cargo.toml\" 2> \"$RUNNER_TEMP/velnor/cargo-clean/fetch-stderr.log\" || status=$?; cat \"$RUNNER_TEMP/velnor/cargo-clean/fetch-stderr.log\" >&2; grep -Ec '\\''^ *Downloaded [^ ]+ v[0-9]'\\'' \"$RUNNER_TEMP/velnor/cargo-clean/fetch-stderr.log\" > \"$RUNNER_TEMP/velnor/cargo-clean/fetch-downloads\" || true; n=; read -r n < \"$RUNNER_TEMP/velnor/cargo-clean/fetch-downloads\" || true; echo \"velnor: sources downloaded=${n:-0}\"; exit $status; fi'"
-      - &s10
+        run: &r6 "sh -c 'mkdir -p \"$RUNNER_TEMP/velnor/cargo-clean\" && cd \"$RUNNER_TEMP/velnor/cargo-clean\" && if mise --no-config --no-env --no-hooks exec rust@'\"${VELNOR_TOOL_RUST}\"' -- cargo metadata --locked --offline --manifest-path \"$GITHUB_WORKSPACE/external-consumer-demo/Cargo.toml\" >/dev/null 2>&1; then echo \"velnor: sources hit, skipping fetch\"; echo \"velnor: sources downloaded=0\"; else echo \"velnor: sources miss (source_missing), fetching\"; status=0; mise --no-config --no-env --no-hooks exec rust@'\"${VELNOR_TOOL_RUST}\"' -- cargo fetch --locked --manifest-path \"$GITHUB_WORKSPACE/external-consumer-demo/Cargo.toml\" 2> \"$RUNNER_TEMP/velnor/cargo-clean/fetch-stderr.log\" || status=$?; cat \"$RUNNER_TEMP/velnor/cargo-clean/fetch-stderr.log\" >&2; grep -Ec '\\''^ *Downloaded [^ ]+ v[0-9]'\\'' \"$RUNNER_TEMP/velnor/cargo-clean/fetch-stderr.log\" > \"$RUNNER_TEMP/velnor/cargo-clean/fetch-downloads\" || true; n=; read -r n < \"$RUNNER_TEMP/velnor/cargo-clean/fetch-downloads\" || true; echo \"velnor: sources downloaded=${n:-0}\"; exit $status; fi'"
+      - &s11
         name: Acquire Velnor
         timeout-minutes: 6
         run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; d=\"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.32\"&&mkdir -p \"${d%/*}\"&&s=\"/opt/velnor/seed/generator/${d##*/}\"&&p=\"$VELNOR_ASSET_SHA256  \"&&if [ -f \"$s\" ]&&echo \"$p$s\"|sha256sum -c -;then cp \"$s\" \"$d\";else curl -fsSL --connect-timeout 15 --max-time 120 --retry 5 --retry-all-errors --retry-max-time 180 --proto '\\''=https'\\'' --tlsv1.2 \"$VELNOR_ASSET_URL\" -o \"$d\"&&echo \"$p$d\"|sha256sum -c -;fi&&chmod +x \"$d\"'"
@@ -178,7 +182,7 @@ jobs:
         env:
           VELNOR_INTERNAL_OP: write-request-v1
           VELNOR_REQUEST_FILE: ${{ runner.temp }}/velnor/request/plan-v1-request.json
-        run: &r7 "\"$RUNNER_TEMP\"'/velnor/bin/velnor-actions-0.1.32'"
+        run: &r8 "\"$RUNNER_TEMP\"'/velnor/bin/velnor-actions-0.1.32'"
       - name: Check generated files
         env: *m8
         run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; $RUNNER_TEMP/velnor/bin/velnor-actions-0.1.32 generate --output-dir \"$RUNNER_TEMP/velnor-actions-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}\" && test -L .github/CLAUDE.md && test -L \"$RUNNER_TEMP/velnor-actions-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}/.github/CLAUDE.md\" && readlink .github/CLAUDE.md | grep -qxF AGENTS.md && readlink \"$RUNNER_TEMP/velnor-actions-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}/.github/CLAUDE.md\" | grep -qxF AGENTS.md && diff -r --brief .github \"$RUNNER_TEMP/velnor-actions-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}/.github\"'"
@@ -189,7 +193,7 @@ jobs:
           VELNOR_REQUEST_FILE: ${{ runner.temp }}/velnor/request/plan-v1-request.json
           MISE_CARGO_HOME: ${{ runner.temp }}/velnor/cargo
           MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
-        run: *r7
+        run: *r8
       - name: Publish plan
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
@@ -232,6 +236,8 @@ jobs:
       actions: read
     needs:
       - plan
+      - rust-external-consumer-demo
+      - rust-external-consumer-demo-testing
       - rust-holla
       - rust-holla-domain
       - rust-holla-domain-testing
@@ -277,6 +283,8 @@ jobs:
       - rust-termrock-collections-testing
       - rust-termrock-conformance
       - rust-termrock-conformance-testing
+      - rust-termrock-consumer-example
+      - rust-termrock-consumer-example-testing
       - rust-termrock-controls
       - rust-termrock-controls-testing
       - rust-termrock-core
@@ -326,7 +334,7 @@ jobs:
     if: ${{ !cancelled() }}
     steps:
       - *s3
-      - *s10
+      - *s11
       - name: Prepare pinned tools
         env: *m8
         run: mise --no-config --no-env --no-hooks install gh@2.102.0
@@ -341,21 +349,21 @@ jobs:
           GH_REPO: ${{ github.repository }}
           GH_TOKEN: ${{ github.token }}
           VELNOR_INTERNAL_OP: fetch-reports-v1
-        run: *r7
+        run: *r8
       - name: Write request
         env:
           VELNOR_INTERNAL_OP: write-request-v1
           VELNOR_NEEDS_JSON: ${{ toJSON(needs) }}
-          VELNOR_NEEDS_EXPECTED: "[\"actionlint\",\"plan\",\"rust-holla\",\"rust-holla-domain\",\"rust-holla-domain-testing\",\"rust-holla-sim\",\"rust-holla-sim-testing\",\"rust-holla-testing\",\"rust-holla-ui\",\"rust-holla-ui-testing\",\"rust-jackin-preview\",\"rust-jackin-preview-app\",\"rust-jackin-preview-app-testing\",\"rust-jackin-preview-capsule-ui\",\"rust-jackin-preview-capsule-ui-testing\",\"rust-jackin-preview-domain\",\"rust-jackin-preview-domain-testing\",\"rust-jackin-preview-host-ui\",\"rust-jackin-preview-host-ui-testing\",\"rust-jackin-preview-presentation\",\"rust-jackin-preview-presentation-testing\",\"rust-jackin-preview-sim\",\"rust-jackin-preview-sim-testing\",\"rust-jackin-preview-testing\",\"rust-refactor-proof\",\"rust-refactor-proof-testing\",\"rust-showcase\",\"rust-showcase-demos\",\"rust-showcase-demos-testing\",\"rust-showcase-testing\",\"rust-showcase-ui\",\"rust-showcase-ui-testing\",\"rust-tablepro\",\"rust-tablepro-demo\",\"rust-tablepro-demo-testing\",\"rust-tablepro-domain\",\"rust-tablepro-domain-testing\",\"rust-tablepro-sql\",\"rust-tablepro-sql-testing\",\"rust-tablepro-testing\",\"rust-tablepro-ui\",\"rust-tablepro-ui-testing\",\"rust-termrock\",\"rust-termrock-collections\",\"rust-termrock-collections-testing\",\"rust-termrock-conformance\",\"rust-termrock-conformance-testing\",\"rust-termrock-controls\",\"rust-termrock-controls-testing\",\"rust-termrock-core\",\"rust-termrock-core-testing\",\"rust-termrock-editors\",\"rust-termrock-editors-testing\",\"rust-termrock-feedback\",\"rust-termrock-feedback-testing\",\"rust-termrock-fields\",\"rust-termrock-fields-testing\",\"rust-termrock-forms\",\"rust-termrock-forms-testing\",\"rust-termrock-grid\",\"rust-termrock-grid-testing\",\"rust-termrock-layout\",\"rust-termrock-layout-testing\",\"rust-termrock-navigation\",\"rust-termrock-navigation-testing\",\"rust-termrock-overlays\",\"rust-termrock-overlays-testing\",\"rust-termrock-render\",\"rust-termrock-render-testing\",\"rust-termrock-runtime\",\"rust-termrock-runtime-testing\",\"rust-termrock-session\",\"rust-termrock-session-testing\",\"rust-termrock-shell\",\"rust-termrock-shell-testing\",\"rust-termrock-terminal\",\"rust-termrock-terminal-testing\",\"rust-termrock-test-support\",\"rust-termrock-test-support-testing\",\"rust-termrock-testing\",\"rust-termrock-text\",\"rust-termrock-text-testing\",\"rust-termrock-theme\",\"rust-termrock-theme-testing\",\"rust-termrock-viewport\",\"rust-termrock-viewport-testing\",\"rust-termrock-visibility-publisher\",\"rust-termrock-visibility-publisher-testing\",\"rust-termrock-xtask\",\"rust-termrock-xtask-testing\",\"rust-visual-harness\",\"rust-visual-harness-testing\"]"
+          VELNOR_NEEDS_EXPECTED: "[\"actionlint\",\"plan\",\"rust-external-consumer-demo\",\"rust-external-consumer-demo-testing\",\"rust-holla\",\"rust-holla-domain\",\"rust-holla-domain-testing\",\"rust-holla-sim\",\"rust-holla-sim-testing\",\"rust-holla-testing\",\"rust-holla-ui\",\"rust-holla-ui-testing\",\"rust-jackin-preview\",\"rust-jackin-preview-app\",\"rust-jackin-preview-app-testing\",\"rust-jackin-preview-capsule-ui\",\"rust-jackin-preview-capsule-ui-testing\",\"rust-jackin-preview-domain\",\"rust-jackin-preview-domain-testing\",\"rust-jackin-preview-host-ui\",\"rust-jackin-preview-host-ui-testing\",\"rust-jackin-preview-presentation\",\"rust-jackin-preview-presentation-testing\",\"rust-jackin-preview-sim\",\"rust-jackin-preview-sim-testing\",\"rust-jackin-preview-testing\",\"rust-refactor-proof\",\"rust-refactor-proof-testing\",\"rust-showcase\",\"rust-showcase-demos\",\"rust-showcase-demos-testing\",\"rust-showcase-testing\",\"rust-showcase-ui\",\"rust-showcase-ui-testing\",\"rust-tablepro\",\"rust-tablepro-demo\",\"rust-tablepro-demo-testing\",\"rust-tablepro-domain\",\"rust-tablepro-domain-testing\",\"rust-tablepro-sql\",\"rust-tablepro-sql-testing\",\"rust-tablepro-testing\",\"rust-tablepro-ui\",\"rust-tablepro-ui-testing\",\"rust-termrock\",\"rust-termrock-collections\",\"rust-termrock-collections-testing\",\"rust-termrock-conformance\",\"rust-termrock-conformance-testing\",\"rust-termrock-consumer-example\",\"rust-termrock-consumer-example-testing\",\"rust-termrock-controls\",\"rust-termrock-controls-testing\",\"rust-termrock-core\",\"rust-termrock-core-testing\",\"rust-termrock-editors\",\"rust-termrock-editors-testing\",\"rust-termrock-feedback\",\"rust-termrock-feedback-testing\",\"rust-termrock-fields\",\"rust-termrock-fields-testing\",\"rust-termrock-forms\",\"rust-termrock-forms-testing\",\"rust-termrock-grid\",\"rust-termrock-grid-testing\",\"rust-termrock-layout\",\"rust-termrock-layout-testing\",\"rust-termrock-navigation\",\"rust-termrock-navigation-testing\",\"rust-termrock-overlays\",\"rust-termrock-overlays-testing\",\"rust-termrock-render\",\"rust-termrock-render-testing\",\"rust-termrock-runtime\",\"rust-termrock-runtime-testing\",\"rust-termrock-session\",\"rust-termrock-session-testing\",\"rust-termrock-shell\",\"rust-termrock-shell-testing\",\"rust-termrock-terminal\",\"rust-termrock-terminal-testing\",\"rust-termrock-test-support\",\"rust-termrock-test-support-testing\",\"rust-termrock-testing\",\"rust-termrock-text\",\"rust-termrock-text-testing\",\"rust-termrock-theme\",\"rust-termrock-theme-testing\",\"rust-termrock-viewport\",\"rust-termrock-viewport-testing\",\"rust-termrock-visibility-publisher\",\"rust-termrock-visibility-publisher-testing\",\"rust-termrock-xtask\",\"rust-termrock-xtask-testing\",\"rust-visual-harness\",\"rust-visual-harness-testing\"]"
           VELNOR_REQUEST_FILE: ${{ runner.temp }}/velnor/request/merge-v1-request.json
-        run: *r7
+        run: *r8
       - name: Merge reports
         env:
           VELNOR_INTERNAL_OP: merge-v1
           VELNOR_NEEDS_JSON: ${{ toJSON(needs) }}
-          VELNOR_NEEDS_EXPECTED: "[\"actionlint\",\"plan\",\"rust-holla\",\"rust-holla-domain\",\"rust-holla-domain-testing\",\"rust-holla-sim\",\"rust-holla-sim-testing\",\"rust-holla-testing\",\"rust-holla-ui\",\"rust-holla-ui-testing\",\"rust-jackin-preview\",\"rust-jackin-preview-app\",\"rust-jackin-preview-app-testing\",\"rust-jackin-preview-capsule-ui\",\"rust-jackin-preview-capsule-ui-testing\",\"rust-jackin-preview-domain\",\"rust-jackin-preview-domain-testing\",\"rust-jackin-preview-host-ui\",\"rust-jackin-preview-host-ui-testing\",\"rust-jackin-preview-presentation\",\"rust-jackin-preview-presentation-testing\",\"rust-jackin-preview-sim\",\"rust-jackin-preview-sim-testing\",\"rust-jackin-preview-testing\",\"rust-refactor-proof\",\"rust-refactor-proof-testing\",\"rust-showcase\",\"rust-showcase-demos\",\"rust-showcase-demos-testing\",\"rust-showcase-testing\",\"rust-showcase-ui\",\"rust-showcase-ui-testing\",\"rust-tablepro\",\"rust-tablepro-demo\",\"rust-tablepro-demo-testing\",\"rust-tablepro-domain\",\"rust-tablepro-domain-testing\",\"rust-tablepro-sql\",\"rust-tablepro-sql-testing\",\"rust-tablepro-testing\",\"rust-tablepro-ui\",\"rust-tablepro-ui-testing\",\"rust-termrock\",\"rust-termrock-collections\",\"rust-termrock-collections-testing\",\"rust-termrock-conformance\",\"rust-termrock-conformance-testing\",\"rust-termrock-controls\",\"rust-termrock-controls-testing\",\"rust-termrock-core\",\"rust-termrock-core-testing\",\"rust-termrock-editors\",\"rust-termrock-editors-testing\",\"rust-termrock-feedback\",\"rust-termrock-feedback-testing\",\"rust-termrock-fields\",\"rust-termrock-fields-testing\",\"rust-termrock-forms\",\"rust-termrock-forms-testing\",\"rust-termrock-grid\",\"rust-termrock-grid-testing\",\"rust-termrock-layout\",\"rust-termrock-layout-testing\",\"rust-termrock-navigation\",\"rust-termrock-navigation-testing\",\"rust-termrock-overlays\",\"rust-termrock-overlays-testing\",\"rust-termrock-render\",\"rust-termrock-render-testing\",\"rust-termrock-runtime\",\"rust-termrock-runtime-testing\",\"rust-termrock-session\",\"rust-termrock-session-testing\",\"rust-termrock-shell\",\"rust-termrock-shell-testing\",\"rust-termrock-terminal\",\"rust-termrock-terminal-testing\",\"rust-termrock-test-support\",\"rust-termrock-test-support-testing\",\"rust-termrock-testing\",\"rust-termrock-text\",\"rust-termrock-text-testing\",\"rust-termrock-theme\",\"rust-termrock-theme-testing\",\"rust-termrock-viewport\",\"rust-termrock-viewport-testing\",\"rust-termrock-visibility-publisher\",\"rust-termrock-visibility-publisher-testing\",\"rust-termrock-xtask\",\"rust-termrock-xtask-testing\",\"rust-visual-harness\",\"rust-visual-harness-testing\"]"
+          VELNOR_NEEDS_EXPECTED: "[\"actionlint\",\"plan\",\"rust-external-consumer-demo\",\"rust-external-consumer-demo-testing\",\"rust-holla\",\"rust-holla-domain\",\"rust-holla-domain-testing\",\"rust-holla-sim\",\"rust-holla-sim-testing\",\"rust-holla-testing\",\"rust-holla-ui\",\"rust-holla-ui-testing\",\"rust-jackin-preview\",\"rust-jackin-preview-app\",\"rust-jackin-preview-app-testing\",\"rust-jackin-preview-capsule-ui\",\"rust-jackin-preview-capsule-ui-testing\",\"rust-jackin-preview-domain\",\"rust-jackin-preview-domain-testing\",\"rust-jackin-preview-host-ui\",\"rust-jackin-preview-host-ui-testing\",\"rust-jackin-preview-presentation\",\"rust-jackin-preview-presentation-testing\",\"rust-jackin-preview-sim\",\"rust-jackin-preview-sim-testing\",\"rust-jackin-preview-testing\",\"rust-refactor-proof\",\"rust-refactor-proof-testing\",\"rust-showcase\",\"rust-showcase-demos\",\"rust-showcase-demos-testing\",\"rust-showcase-testing\",\"rust-showcase-ui\",\"rust-showcase-ui-testing\",\"rust-tablepro\",\"rust-tablepro-demo\",\"rust-tablepro-demo-testing\",\"rust-tablepro-domain\",\"rust-tablepro-domain-testing\",\"rust-tablepro-sql\",\"rust-tablepro-sql-testing\",\"rust-tablepro-testing\",\"rust-tablepro-ui\",\"rust-tablepro-ui-testing\",\"rust-termrock\",\"rust-termrock-collections\",\"rust-termrock-collections-testing\",\"rust-termrock-conformance\",\"rust-termrock-conformance-testing\",\"rust-termrock-consumer-example\",\"rust-termrock-consumer-example-testing\",\"rust-termrock-controls\",\"rust-termrock-controls-testing\",\"rust-termrock-core\",\"rust-termrock-core-testing\",\"rust-termrock-editors\",\"rust-termrock-editors-testing\",\"rust-termrock-feedback\",\"rust-termrock-feedback-testing\",\"rust-termrock-fields\",\"rust-termrock-fields-testing\",\"rust-termrock-forms\",\"rust-termrock-forms-testing\",\"rust-termrock-grid\",\"rust-termrock-grid-testing\",\"rust-termrock-layout\",\"rust-termrock-layout-testing\",\"rust-termrock-navigation\",\"rust-termrock-navigation-testing\",\"rust-termrock-overlays\",\"rust-termrock-overlays-testing\",\"rust-termrock-render\",\"rust-termrock-render-testing\",\"rust-termrock-runtime\",\"rust-termrock-runtime-testing\",\"rust-termrock-session\",\"rust-termrock-session-testing\",\"rust-termrock-shell\",\"rust-termrock-shell-testing\",\"rust-termrock-terminal\",\"rust-termrock-terminal-testing\",\"rust-termrock-test-support\",\"rust-termrock-test-support-testing\",\"rust-termrock-testing\",\"rust-termrock-text\",\"rust-termrock-text-testing\",\"rust-termrock-theme\",\"rust-termrock-theme-testing\",\"rust-termrock-viewport\",\"rust-termrock-viewport-testing\",\"rust-termrock-visibility-publisher\",\"rust-termrock-visibility-publisher-testing\",\"rust-termrock-xtask\",\"rust-termrock-xtask-testing\",\"rust-visual-harness\",\"rust-visual-harness-testing\"]"
           VELNOR_REQUEST_FILE: ${{ runner.temp }}/velnor/request/merge-v1-request.json
-        run: *r7
+        run: *r8
       - name: Publish final report
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
@@ -376,14 +384,14 @@ jobs:
       - name: Fail unless the verdict passed
         if: ${{ always() && needs.required.result != 'success' }}
         run: env -u ACTIONS_ID_TOKEN_REQUEST_TOKEN -u ACTIONS_ID_TOKEN_REQUEST_URL -u ACTIONS_RUNTIME_TOKEN -u GITHUB_TOKEN -u MISE_GITHUB_TOKEN -u GH_TOKEN -u GH_HOST -u GH_CONFIG_DIR false
-  rust-holla:
-    name: Rust / holla
+  rust-external-consumer-demo:
+    name: Rust / external-consumer-demo
     runs-on: ubuntu-26.04
     timeout-minutes: 15
     env: *m9
     needs:
       - plan
-    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-holla,')"
+    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-external-consumer-demo,')"
     steps:
       - name: Record optional cache budget
         id: velnor-cache-clock
@@ -393,20 +401,20 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - &s11
+      - &s12
         name: V2 identity
         id: v2
         uses: ./.github/actions/velnor-tools-prelude-u26 # zizmor: ignore[self-repository]
         with:
           d: 156ba95b59f53ef924f65d0f28b9b0218f5b8a265300537d454a01d75c41ba02-${{ env.VELNOR_TOOL_ACTIONLINT }}-${{ env.VELNOR_TOOL_ACTIONLINT_LOCK }}-${{ env.VELNOR_TOOL_NEXTEST }}-${{ env.VELNOR_TOOL_NEXTEST_LOCK }}-${{ env.VELNOR_TOOL_RUST }}-${{ env.VELNOR_TOOL_RUST_LOCK }}-${{ env.VELNOR_TOOL_SHELLCHECK }}-${{ env.VELNOR_TOOL_SHELLCHECK_LOCK }}-${{ env.VELNOR_TOOL_ZIZMOR }}-${{ env.VELNOR_TOOL_ZIZMOR_LOCK }}
       - *s4
-      - *s10
-      - &s12
+      - *s11
+      - &s13
         name: Download plan
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
         with: *m10
       - *s9
-      - &s13
+      - &s14
         name: Prepare Rust components
         env:
           CARGO_HOME: ${{ runner.temp }}/velnor/cargo
@@ -414,7 +422,7 @@ jobs:
           MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
           RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
         run: "mise --no-config --no-env --no-hooks exec 'rust@'\"${VELNOR_TOOL_RUST}\" -- rustup component add --toolchain \"${VELNOR_TOOL_RUST}\"'-x86_64-unknown-linux-gnu' clippy rustfmt"
-      - &s14
+      - &s15
         name: Restore Cargo sources
         if: github.event_name != 'workflow_dispatch'
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
@@ -422,10 +430,121 @@ jobs:
           key: ${{needs.plan.outputs.sources_key}}
           path: "${{ runner.temp }}/velnor/cargo/registry/index\n${{ runner.temp }}/velnor/cargo/registry/cache\n${{ runner.temp }}/velnor/cargo/git/db"
           restore-keys: ${{needs.plan.outputs.sources_restore_keys}}
-      - &s15
-        name: Fetch Cargo sources
+      - &s16
+        name: Fetch Cargo sources (external-consumer-demo/Cargo.toml)
         env: *m8
-        run: *r5
+        run: *r6
+      - name: Build test executables
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-1f86075878af41deb20cfe3d0442aa039e42db2ff37992a733fbc416b11851d5"}
+      - name: Format
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-dffaaaa11e0f0d0b96f1f46d9b406f723534007cabf66127e8d08b0053d3b06a"}
+      - name: Clippy
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-41c6e9ea1f075d77352f5f37d62ba22b5e828487af354e7cee2a705d784d6162"}
+      - name: Unit and integration tests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-48f499b5195697dda505e2d924da774d02a1b5c0e09d9a65e6c11d837c5e3d6c"}
+      - name: Documentation
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-fd95de2a4e4a355a5adab42c549cb63ccd5920a5feb2e20ef1ef1e3651391b27"}
+      - name: Wait for parallel checks
+        wait-all:
+      - name: Upload crate reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          if-no-files-found: error
+          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-external-consumer-demo
+          overwrite: "true"
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
+          retention-days: "30"
+      - name: Admit optional cache save
+        id: velnor-optional-tools-save-budget
+        if: success() && github.event_name == 'push' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) && github.ref_protected == true && steps.v2.outputs.enabled == 'true' && steps.tools-restore.outputs.cache-hit != 'true'
+        run: *r2
+        env:
+          VELNOR_CACHE_JOB_SECONDS: "900"
+          VELNOR_CACHE_STARTED: ${{ steps.velnor-cache-clock.outputs.started }}
+          VELNOR_CACHE_DEADLINE: ${{ steps.velnor-cache-clock.outputs.deadline }}
+          VELNOR_CACHE_REQUIRED_SECONDS: "90"
+      - *s6
+      - *s7
+  rust-external-consumer-demo-testing:
+    name: Rust / external-consumer-demo (testing)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env: *m9
+    needs:
+      - plan
+    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-external-consumer-demo-testing,')"
+    steps:
+      - *s2
+      - *s3
+      - *s8
+      - *s12
+      - *s4
+      - *s11
+      - *s13
+      - *s9
+      - *s14
+      - *s15
+      - *s16
+      - name: Build test executables
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-8c674307da2eb718447c97e72cfd89bfa20bae16d8d294021082306be367dfcb"}
+      - name: Format
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-e7f5d8fbda21dc44b5b4f371eedecd07883c9cda83a1c7487d5caaf8082eaadd"}
+      - name: Clippy
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-8652fd4fb7ac26c049796511668db972f58eeb5e2563f6973a68bbc8a58c7d17"}
+      - name: Unit and integration tests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-e3a2f7d6ee01dbcff98389b12c2485d053c5bf78f9def4609cea9873d718736a"}
+      - name: Documentation
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-93393c94129921741d8911b5e3fb61612bdbc84b58e9c0b9dae189db9b2d993c"}
+      - name: Wait for parallel checks
+        wait-all:
+      - name: Upload crate reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          if-no-files-found: error
+          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-external-consumer-demo-testing
+          overwrite: "true"
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
+          retention-days: "30"
+  rust-holla:
+    name: Rust / holla
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env: *m9
+    needs:
+      - plan
+    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-holla,')"
+    steps:
+      - *s2
+      - *s3
+      - *s8
+      - *s12
+      - *s4
+      - *s11
+      - *s13
+      - *s9
+      - *s14
+      - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-db067439dbf1e2066adc641e1cb8b1cbbe3e5c75381abfa2672f844458136ede"}
@@ -456,17 +575,6 @@ jobs:
           overwrite: "true"
           path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
           retention-days: "30"
-      - name: Admit optional cache save
-        id: velnor-optional-tools-save-budget
-        if: success() && github.event_name == 'push' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) && github.ref_protected == true && steps.v2.outputs.enabled == 'true' && steps.tools-restore.outputs.cache-hit != 'true'
-        run: *r2
-        env:
-          VELNOR_CACHE_JOB_SECONDS: "900"
-          VELNOR_CACHE_STARTED: ${{ steps.velnor-cache-clock.outputs.started }}
-          VELNOR_CACHE_DEADLINE: ${{ steps.velnor-cache-clock.outputs.deadline }}
-          VELNOR_CACHE_REQUIRED_SECONDS: "90"
-      - *s6
-      - *s7
   rust-holla-domain:
     name: Rust / holla-domain
     runs-on: ubuntu-26.04
@@ -479,14 +587,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-1af10ecb5ab568dc929c168f87f0907c9ec64cdf67735252e5e6338918a47edb"}
@@ -529,14 +637,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-8eba4d9b847fe11888a33819868777f2e63f1333982691dacacf8cbc3d9d2f2c"}
@@ -579,14 +687,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-24ae12653d8160e3a4682d56bbad1daaf87d90a72f216f102334b89195da4749"}
@@ -629,14 +737,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-701465209b66c94114808fc6f03edf1f9eaaf00344b0e111e17ad780394f7a08"}
@@ -679,14 +787,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-667f6fd95844df5fbe00c3094cd33dfc139947a4a2aab023a8cb19b33a88a640"}
@@ -729,14 +837,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-5aa1654c19af99b9191b877f46893a54cdbadfd501efea8cbfbc135ed9569d62"}
@@ -779,14 +887,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-634dd3029779d484e48866b7250669e5693c3852ef5954280eee17511463d237"}
@@ -829,14 +937,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-48beb20f1d44c1493cf50e9e348ab75d0dbf58c34c63c1c597b0352815f167e8"}
@@ -879,14 +987,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-bc2318184b4dee744b51cab3ff2e5ab896742a85a4ea337ce5b4812eeeb10485"}
@@ -929,14 +1037,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-9a9cd2d7df8151360e7ad4f21c0ef970f2d7f92c3ee8ef694b94a6d66e572bfb"}
@@ -979,14 +1087,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-68b462387e43acd4461db30c3a2d7f110d709eada2e993849b150dfb5e91b5d6"}
@@ -1029,14 +1137,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-f18db2798b1e13ec05aeb760ba577ee867effa5e7c918d284b42e385c3de1b95"}
@@ -1079,14 +1187,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-1e1b51cdd0f677bb3585c318fd4470ac0a49235dcd290ed229ec2b35452a1148"}
@@ -1129,14 +1237,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-414204debb94f374514a22af173bc019757eb2cda9916843ce447a59e779bac9"}
@@ -1179,14 +1287,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-873b68b3be4b3cb1924dcbee73888c3b5ccd866184b3a2dcc5d6ca2b44bc8d4e"}
@@ -1229,14 +1337,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-d69061b6d57a1ef24f7fda0868c92a7d4d9d98df55cb5f6fcf411002f70ccdaa"}
@@ -1279,14 +1387,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-20092f5baf951297f2f8feafa8aa7adc4c5b14fcb0b1dc95b9d0809d65f68afc"}
@@ -1329,14 +1437,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-4a0d8d99779784d22f72933695f83be0d2bacafa26aa648bc50ffa920b99cb1e"}
@@ -1379,14 +1487,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-b8f2c392398f89b377e0ca970947ae80537b8a1bd5ba3fc2eb6c6d9d2a6be231"}
@@ -1429,14 +1537,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-da5d3e3d7c96bfd72d3b0987602779a4a63e1be0455d3245faa3e53cdc24f320"}
@@ -1479,14 +1587,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-5d09532ed1fe630d49c3c702ade1ce48459c4018fe9467682e27ec0f6b5614dd"}
@@ -1529,14 +1637,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-a3462823003b64dee192d1565d70432881b6d473ed57d074c53a77080d1df66a"}
@@ -1579,14 +1687,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-0918136a8b856e8cc7b810004bc3dffa9d46598483784ef62fe75819f8d4de26"}
@@ -1629,14 +1737,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-efd63a90d7bc130b25119ba9ecb7116773f1f48635c6ca7cbf38f74af7f05dc6"}
@@ -1679,14 +1787,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-4fee642c498f00d72d5d2e07e917d911c27a7c900a0fa69c7179cef0ebcf7cf2"}
@@ -1729,14 +1837,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-85e2b1beeb3f93edcb9500d4111475218560dc1a3d1ba9ed8efb79aad53a66fe"}
@@ -1779,14 +1887,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-0618f497e09022d78e0e3808a3a58ee118e8df26b133cbcf2a0fd6c67909c663"}
@@ -1829,14 +1937,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-4be17931c984cc42c868977cae55f881ca64e95744a9aa3b3fc8c5f6debbcf54"}
@@ -1879,14 +1987,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-654ce048735e6fa9c4ffd3185ce54c835f822d0d68c7b3b5f975e372e771b62b"}
@@ -1929,14 +2037,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-562057a04bfdaea68a53207cc7c4e2b6d8d3f2ae91d69ed5485e74d67238abb8"}
@@ -1979,14 +2087,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-4d3d393754394852db3ed5c79dd3b8f690681249502d0701108169220a193b4a"}
@@ -2029,14 +2137,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-977bd3f6bdd5885a2ff44200fdcecc2d32b8d2332100be8100d07b1f2a03afbb"}
@@ -2079,14 +2187,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-7831a8c3fede7393a639c1ba41231d2447f0c11f5c4eb6fea8ed8196a360cff0"}
@@ -2129,14 +2237,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-2a518111c22b377da4673e7ad38b0a913ba889ca59b7ca4999a4c9d8469933c7"}
@@ -2179,14 +2287,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-1195decd083666654876712e295a468738296cfb28f5d89d1347b974e7a576f5"}
@@ -2229,14 +2337,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-0f5294e269957c5d344bec4cb0c84ebf01fe55f58efff959d7bcbc2930efefba"}
@@ -2279,14 +2387,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-3c99d8a82b9b49225b76f09480e6fd8b2dcebfa12cf033955b42aa6218508579"}
@@ -2329,14 +2437,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-e038677552558e3ce7d6c1fe3b4677cff3b7120bb367455f3cd65df44435fce7"}
@@ -2379,14 +2487,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-b50d532716adfc4cdd4a26f3fbe4dd26f8692db58f344c4e033cde9761000082"}
@@ -2429,14 +2537,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-658e15828a20ad4ee6c690577f14af46e16f786987a7450992854b34573b4608"}
@@ -2479,14 +2587,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-336acfcc0a751883bb7a34374a9e90bdea42c086fe44314872f8c80f7be5b69b"}
@@ -2529,14 +2637,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-1348b9486879fe46c718123e7ad99f7862da9c46557a52460a5c4e9a68371fb0"}
@@ -2579,14 +2687,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-b639c02f8105269fd045a3c543c54f565147278e5c1ac095dcf2290b6ccfe5c0"}
@@ -2629,14 +2737,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-4f41fc96bb9c0a8c20bc2ddbfdc9c3b83c6be14a374aec6a86b6c72c59f2235c"}
@@ -2667,6 +2775,106 @@ jobs:
           overwrite: "true"
           path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
           retention-days: "30"
+  rust-termrock-consumer-example:
+    name: Rust / termrock-consumer-example
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env: *m9
+    needs:
+      - plan
+    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-termrock-consumer-example,')"
+    steps:
+      - *s2
+      - *s3
+      - *s8
+      - *s12
+      - *s4
+      - *s11
+      - *s13
+      - *s9
+      - *s14
+      - *s15
+      - *s10
+      - name: Build test executables
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-016d317daafe5e89017821d23a3e7601248a0f2d88fe540afa59cde08698e95b"}
+      - name: Format
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-71b538ca528963a488a6579ba296196578bb59b966e5116557136b2db7c8bac1"}
+      - name: Clippy
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-049b4c6e3b1468f9e392e9fb4d1c9078ad898df5321d3c6d017d650945d58260"}
+      - name: Unit and integration tests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-626934f71aeb1e9600cd21afef4475cccce2559d1396a195d622966ab013cfa3"}
+      - name: Documentation
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-21cf07bfad716a8acaf460b0d618ff374a175757bfe3045b6822229d0c50ba28"}
+      - name: Wait for parallel checks
+        wait-all:
+      - name: Upload crate reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          if-no-files-found: error
+          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-termrock-consumer-example
+          overwrite: "true"
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
+          retention-days: "30"
+  rust-termrock-consumer-example-testing:
+    name: Rust / termrock-consumer-example (testing)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env: *m9
+    needs:
+      - plan
+    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-termrock-consumer-example-testing,')"
+    steps:
+      - *s2
+      - *s3
+      - *s8
+      - *s12
+      - *s4
+      - *s11
+      - *s13
+      - *s9
+      - *s14
+      - *s15
+      - *s10
+      - name: Build test executables
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-44ee683de54c4c63dde8fbc3bfb117d2d921b8dc8ea780777d07d11be059fcd9"}
+      - name: Format
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-24ee33d25981b8ce5a49e65a6112f33231c0b0528db3e00df9fa044ffcca2570"}
+      - name: Clippy
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-fbe2904e655c088f6c59109e89c564b23b5e143e5fc8e2d2e0bf600b382d3f04"}
+      - name: Unit and integration tests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-b2ddbeee387dc4fdf1b2bd30c4fd165eaa10849426979b34fab73b45fa657e06"}
+      - name: Documentation
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-72d822041c425db05a5012b529bfe4012b3367c9ceac734994388dd45e3e2859"}
+      - name: Wait for parallel checks
+        wait-all:
+      - name: Upload crate reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          if-no-files-found: error
+          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-termrock-consumer-example-testing
+          overwrite: "true"
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
+          retention-days: "30"
   rust-termrock-controls:
     name: Rust / termrock-controls
     runs-on: ubuntu-26.04
@@ -2679,14 +2887,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-5d015848d4becc43324dff623760a35e1e6d09616333785112a37c2d126a52b8"}
@@ -2729,14 +2937,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-c43d78d1f0ce41aa2a44ca7a733c57dfaa00bbec2226e0da6cf3300df7a105b3"}
@@ -2779,14 +2987,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-4976b18a93175e8fd1577b1bed2a464349872f4617246aba5e08b95d50257c7e"}
@@ -2829,14 +3037,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-9a74e66ee6fce48e0d7a6a39b08bfd0cc3f6b0371ad5ee6da9096006e976e4c6"}
@@ -2879,14 +3087,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-bb31e4249ffb76efc38779bbf777702ebf55edf6c00c0dd0c075691d0da138ea"}
@@ -2929,14 +3137,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-c315bdf4b3525065a0b523c8aeb7ba81733ea7d067ccd786d5a61ff110e7c360"}
@@ -2979,14 +3187,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-35088f588ec30fdae057eee7f2507bc3b52a18e0ee492887d9fc1df482f9c678"}
@@ -3029,14 +3237,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-5ac5fd610a303099a9ff4e59dbed57f9d84d6a821653ca2e0b0b0981669162be"}
@@ -3079,14 +3287,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-71e4b52d5a16c86fc179cd2292834fa00dd9f2a3123c9ff2ec9ef52ada7f0c21"}
@@ -3129,14 +3337,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-6d3eb7c4d8c5b685061ee28056bebaaf593403049b940bbd458f7c395765744a"}
@@ -3179,14 +3387,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-100bf64de3084f033cc51864824318b4fe483d5c7dcc926ac9f9a97b5141d11e"}
@@ -3229,14 +3437,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-59c8b73f820a72c123b360be0ba7326345fa2a8c60259b160accffc44b967d0e"}
@@ -3279,14 +3487,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-e8484682bd653efaa24def5e54d2e102a5819dfa82a43aa58c6a97dd23afa22e"}
@@ -3329,14 +3537,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-766745a0762884d72f2b68f5dd46d61eccf1b9177ea72fd635cbbd2eb09eb57a"}
@@ -3379,14 +3587,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-c9d6ab3bb888dc030a532c80570635e2254aa39fdc16962e9610038f66c8af50"}
@@ -3429,14 +3637,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-3c031475b7629e6d347b9bb25e7e5bd70cfa340cb97ef77e150ccd863e683ca5"}
@@ -3479,14 +3687,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-2a89cf4f9bb0cdc7a35c8f554c0e8d7f15a1bba2034729eabac165dd4fcbe176"}
@@ -3529,14 +3737,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-dbcb86d398e87b0fb055b9714eab5a1f65b9deac39507ea93ae2b5b16ee42c06"}
@@ -3579,14 +3787,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-6af065b6abe4f8bcc600e8ac69dd4038b2df9ab392fd06bfbbaaeae347b51c70"}
@@ -3629,14 +3837,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-e7adc2be19af90a95c33b3b9d1bb3b2d80e25461a8a4ee2cf81979e0f14f84de"}
@@ -3679,14 +3887,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-ac5584f6c28b23df53275ac5be533129e09466c2374be7941942d9e9509bced5"}
@@ -3729,14 +3937,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-165a467c5e39d0ee62a816e06d56e8122c0370e0206bdb341ff58f4349fe2c6b"}
@@ -3779,14 +3987,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-48d374cf7cb768950d1a39aaec77f51a8aaa63cb679534f3c6e299d06a020f06"}
@@ -3829,14 +4037,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-4b853928f48dda585bec770e1f00623bad1d598cffb7062696afcec53c85b02c"}
@@ -3879,14 +4087,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-462f21e6866d8951dee5f638378025efa362244976308f229de3d6b7072d50d0"}
@@ -3929,14 +4137,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-14cbad77cf5578fbf1263d3f22ef80dfcf3b09e71094a6207065454d7248774f"}
@@ -3979,14 +4187,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-8066ec1f85ab764c0683cc960ac00483a63807ca63222e4e215d31cb80a7e4c0"}
@@ -4029,14 +4237,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-176269b75505653a9503df63ed9b3ea4029e5faea43346bec813df7aaf24f300"}
@@ -4079,14 +4287,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-7b13883ac7de5c50be34937f645837f50292ebaa3bae3fd609ce93c13b7e6924"}
@@ -4129,14 +4337,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-2a972deb496a404ec348e3ef51818ecb25135e39ba29e57e5e3be56a6027f68d"}
@@ -4179,14 +4387,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-c2dea28b1f60bed4335e1f426997098d282ca8e67d7012db3b2982c63dcdfc3b"}
@@ -4229,14 +4437,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-35f790876585c03fa9cfcf5bb76681bbd77b00e3de98afd115df182e0a80356e"}
@@ -4279,14 +4487,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-f924bf372b0a175aff97fd4bdfa30c4c6b2b6648b0324eadc828eeabe0351930"}
@@ -4329,14 +4537,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-59649406874117a543bfb15f5590aa1b4339edcb3513c2377fbf4e487669da63"}
@@ -4379,14 +4587,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-e2eac016fdec13a40b463754aff01998032089472034cbaa9b2ad5060d1729ac"}
@@ -4429,14 +4637,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-58c102b2a1462e65dfb64e2806588da13ada21844beb698b791eaee6c389b147"}
@@ -4479,14 +4687,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-c554b00fec5c9a6ed0a2490580d070419fa68a92b4d53b3aba55d856b702a7b2"}
@@ -4529,14 +4737,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-6e3cce18761e23f3a12933e7aef746416015bb044c5b5abffe9f3a5bae13ad7d"}
@@ -4579,14 +4787,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-34bfc28c2c98f614eb3be589883ca65203d0edd44a8cf4ab9388aaabe1b50d77"}
@@ -4629,14 +4837,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-cd7bb236956f32d33bbc63e57f75cab897db17bbfcdb10a6b7e089f5dcde9934"}
@@ -4679,14 +4887,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-4b5d53fe2bdad51036758fde250522af7b4c8708db2a8b9ec954ac2c8ac5ba90"}
@@ -4729,14 +4937,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-808ae0f55a1fd545c2a8c0b890191fdb31873a6b6898fea5c2cec519fd37ce04"}
@@ -4779,14 +4987,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-014754e809cb14e80faa2269df1f950c8da0cb19aa87912e45c2c688256bbc1c"}
@@ -4829,14 +5037,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-69525fe6165a6ed511c9117a8c40a4e5e57a10ca0200a0a02a6997247b69af69"}
@@ -4879,14 +5087,14 @@ jobs:
       - *s2
       - *s3
       - *s8
-      - *s11
-      - *s4
-      - *s10
       - *s12
-      - *s9
+      - *s4
+      - *s11
       - *s13
+      - *s9
       - *s14
       - *s15
+      - *s10
       - name: Build test executables
         uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
         with: {"digest": "b3-825cdf0742df4d4b855c8b75723d7da2098e6eb3d6374fd36be6de219a4ea339"}
