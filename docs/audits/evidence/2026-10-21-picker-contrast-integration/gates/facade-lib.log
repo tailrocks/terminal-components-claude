@@ -1,0 +1,17 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.78s
+────────────
+ Nextest run ID a670a98a-4020-4551-b616-6d1cd85dc85f with nextest profile: default
+    Starting 11 tests across 1 binary
+        PASS [   0.016s] ( 1/11) termrock tests::test_facade_reexports
+        PASS [   0.016s] ( 2/11) termrock blocks::shell::tests::the_shell_builder_names_its_strips
+        PASS [   0.017s] ( 3/11) termrock blocks::shell::tests::regions_split_the_frame_once
+        PASS [   0.017s] ( 4/11) termrock blocks::shell::tests::the_spec_carries_the_gap_and_inset
+        PASS [   0.017s] ( 5/11) termrock blocks::shell::tests::rows_reports_the_reserved_strips
+        PASS [   0.020s] ( 6/11) termrock blocks::shell::tests::app_shell_slots_builder_shows_with_empty_defaults
+        PASS [   0.020s] ( 7/11) termrock blocks::master_detail::tests::facade_and_control_share_resolver_but_keep_default_breakpoints_and_rows
+        PASS [   0.020s] ( 8/11) termrock blocks::shell::tests::the_extension_trait_delegates_to_shared_slot_types
+        PASS [   0.020s] ( 9/11) termrock blocks::shell::tests::a_strip_slot_keeps_its_rows_and_the_body_flexes
+        PASS [   0.021s] (10/11) termrock blocks::shell::tests::the_shell_lays_three_named_slots_out_as_one_column
+        PASS [   0.021s] (11/11) termrock blocks::shell::tests::the_facade_shell_is_the_shell_crate_type
+────────────
+     Summary [   0.022s] 11 tests run: 11 passed, 0 skipped

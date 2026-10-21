@@ -1,0 +1,1462 @@
+{
+  "scope": "Readonly source inventory; no application flow replay performed. Candidate inventory data was first extracted at 819ef8ef949dfa536d7fba9ef73a5d1f3e476b0b; relevant application source/path inventory inputs were checked unchanged through the 8e502d7fb9e40420b844964ec933bac497ebb2ae integration base. The intervening changes in the four app crates were only restored expected files, which are excluded from product-flow evidence. This is structural inventory, not full flow coverage.",
+  "revisions": {
+    "baseline_commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+    "baseline_tree": "ad0f7cf8899df8c5fea3ced3f60adf0ac9a2d297",
+    "design_reference": "f4867e9b5f8a08a3bb61ce80d644198a29f51984",
+    "design_tree": "58cbb5a66f0151c5396f140d61c7486aa5c0a1ec",
+    "current_pr38_remote": "8e502d7fb9e40420b844964ec933bac497ebb2ae",
+    "current_tree": "9c40a5e6474f66ce142cd34eb80625029afe5183",
+    "tag_object": "2718a6b8127a522a3d351d0b4bdb7542fc8da542"
+  },
+  "showcase": {
+    "sources": {
+      "baseline": "src/bin/showcase/app.rs",
+      "candidate_app": "crates/showcase-ui/src/app.rs",
+      "candidate_pages": "crates/showcase-demos/src/pages/mod.rs",
+      "baseline_blob": "223200a5a83f71058346f54a4433167e315de3b5",
+      "candidate_blob": "92f4fed3ca2bad405b35101d9f3beb8021439095"
+    },
+    "baseline_nav": [
+      {
+        "index": 0,
+        "id": "Overview",
+        "label": "Overview",
+        "group": "",
+        "live": true
+      },
+      {
+        "index": 1,
+        "id": "Chrome",
+        "label": "Chrome",
+        "group": "App shell",
+        "live": true
+      },
+      {
+        "index": 2,
+        "id": "StatusHints",
+        "label": "Status & hints",
+        "group": "App shell",
+        "live": true
+      },
+      {
+        "index": 3,
+        "id": "BreadcrumbsRails",
+        "label": "Breadcrumbs & rails",
+        "group": "App shell",
+        "live": true
+      },
+      {
+        "index": 4,
+        "id": "HelpKeys",
+        "label": "Help & keys",
+        "group": "App shell",
+        "live": true
+      },
+      {
+        "index": 5,
+        "id": "QuitLeave",
+        "label": "Quit & leave",
+        "group": "App shell",
+        "live": true
+      },
+      {
+        "index": 6,
+        "id": "FocusNavigation",
+        "label": "Focus & navigation",
+        "group": "App shell",
+        "live": true
+      },
+      {
+        "index": 7,
+        "id": "Buttons",
+        "label": "Buttons",
+        "group": "Inputs & forms",
+        "live": true
+      },
+      {
+        "index": 8,
+        "id": "Inputs",
+        "label": "Inputs",
+        "group": "Inputs & forms",
+        "live": true
+      },
+      {
+        "index": 9,
+        "id": "TextAreas",
+        "label": "Text areas",
+        "group": "Inputs & forms",
+        "live": true
+      },
+      {
+        "index": 10,
+        "id": "Chips",
+        "label": "Chips & selects",
+        "group": "Inputs & forms",
+        "live": true
+      },
+      {
+        "index": 11,
+        "id": "Forms",
+        "label": "Forms",
+        "group": "Inputs & forms",
+        "live": true
+      },
+      {
+        "index": 12,
+        "id": "ChecksRadios",
+        "label": "Checks & radios",
+        "group": "Inputs & forms",
+        "live": true
+      },
+      {
+        "index": 13,
+        "id": "Toolbars",
+        "label": "Toolbars",
+        "group": "Inputs & forms",
+        "live": true
+      },
+      {
+        "index": 14,
+        "id": "Tables",
+        "label": "Basic table",
+        "group": "Tables",
+        "live": true
+      },
+      {
+        "index": 15,
+        "id": "Editable",
+        "label": "Editable",
+        "group": "Tables",
+        "live": true
+      },
+      {
+        "index": 16,
+        "id": "Grid",
+        "label": "Data grid",
+        "group": "Tables",
+        "live": true
+      },
+      {
+        "index": 17,
+        "id": "Selectable",
+        "label": "Selection",
+        "group": "Tables",
+        "live": true
+      },
+      {
+        "index": 18,
+        "id": "CellEditors",
+        "label": "Cell editors",
+        "group": "Tables",
+        "live": true
+      },
+      {
+        "index": 19,
+        "id": "Columns",
+        "label": "Columns",
+        "group": "Tables",
+        "live": true
+      },
+      {
+        "index": 20,
+        "id": "Lists",
+        "label": "Lists",
+        "group": "Navigation",
+        "live": true
+      },
+      {
+        "index": 21,
+        "id": "Trees",
+        "label": "Trees",
+        "group": "Navigation",
+        "live": true
+      },
+      {
+        "index": 22,
+        "id": "Sidebars",
+        "label": "Sidebars",
+        "group": "Navigation",
+        "live": true
+      },
+      {
+        "index": 23,
+        "id": "Tabs",
+        "label": "Tabs",
+        "group": "Navigation",
+        "live": true
+      },
+      {
+        "index": 24,
+        "id": "Menus",
+        "label": "Menus",
+        "group": "Navigation",
+        "live": true
+      },
+      {
+        "index": 25,
+        "id": "Dialogs",
+        "label": "Dialogs",
+        "group": "Overlays",
+        "live": true
+      },
+      {
+        "index": 26,
+        "id": "Pickers",
+        "label": "Pickers",
+        "group": "Overlays",
+        "live": true
+      },
+      {
+        "index": 27,
+        "id": "DialogKinds",
+        "label": "Dialog kinds",
+        "group": "Overlays",
+        "live": true
+      },
+      {
+        "index": 28,
+        "id": "PopupsTooltips",
+        "label": "Popups & tooltips",
+        "group": "Overlays",
+        "live": true
+      },
+      {
+        "index": 29,
+        "id": "FileBrowser",
+        "label": "File browser",
+        "group": "Overlays",
+        "live": true
+      },
+      {
+        "index": 30,
+        "id": "Progress",
+        "label": "Progress",
+        "group": "Feedback",
+        "live": true
+      },
+      {
+        "index": 31,
+        "id": "EmptyError",
+        "label": "Empty & error",
+        "group": "Feedback",
+        "live": true
+      },
+      {
+        "index": 32,
+        "id": "Meters",
+        "label": "Meters",
+        "group": "Feedback",
+        "live": true
+      },
+      {
+        "index": 33,
+        "id": "Notices",
+        "label": "Notices",
+        "group": "Feedback",
+        "live": true
+      },
+      {
+        "index": 34,
+        "id": "Panels",
+        "label": "Panels",
+        "group": "Layout",
+        "live": true
+      },
+      {
+        "index": 35,
+        "id": "Scrolling",
+        "label": "Scrolling",
+        "group": "Layout",
+        "live": true
+      },
+      {
+        "index": 36,
+        "id": "SplitsStacks",
+        "label": "Splits & stacks",
+        "group": "Layout",
+        "live": true
+      },
+      {
+        "index": 37,
+        "id": "MasterDetail",
+        "label": "Master-detail",
+        "group": "Layout",
+        "live": true
+      },
+      {
+        "index": 38,
+        "id": "PaneTree",
+        "label": "Pane tree",
+        "group": "Layout",
+        "live": true
+      },
+      {
+        "index": 39,
+        "id": "Editor",
+        "label": "Code editor",
+        "group": "Text & code",
+        "live": true
+      },
+      {
+        "index": 40,
+        "id": "Diff",
+        "label": "Diff",
+        "group": "Text & code",
+        "live": true
+      },
+      {
+        "index": 41,
+        "id": "Terminal",
+        "label": "Terminal",
+        "group": "Text & code",
+        "live": true
+      },
+      {
+        "index": 42,
+        "id": "TextUtilities",
+        "label": "Text utilities",
+        "group": "Text & code",
+        "live": true
+      },
+      {
+        "index": 43,
+        "id": "Settings",
+        "label": "Settings",
+        "group": "Screens",
+        "live": true
+      },
+      {
+        "index": 44,
+        "id": "TaskRunner",
+        "label": "Task runner",
+        "group": "Screens",
+        "live": true
+      },
+      {
+        "index": 45,
+        "id": "QueryWorkbench",
+        "label": "Query workbench",
+        "group": "Screens",
+        "live": true
+      },
+      {
+        "index": 46,
+        "id": "Connections",
+        "label": "Connections",
+        "group": "Screens",
+        "live": true
+      },
+      {
+        "index": 47,
+        "id": "Finder",
+        "label": "Finder",
+        "group": "Screens",
+        "live": true
+      },
+      {
+        "index": 48,
+        "id": "DiskCleanup",
+        "label": "Disk cleanup",
+        "group": "Screens",
+        "live": true
+      },
+      {
+        "index": 49,
+        "id": "Activity",
+        "label": "Activity",
+        "group": "Screens",
+        "live": true
+      },
+      {
+        "index": 50,
+        "id": "Workspaces",
+        "label": "Workspaces",
+        "group": "Screens",
+        "live": true
+      },
+      {
+        "index": 51,
+        "id": "AccountsUsage",
+        "label": "Accounts & usage",
+        "group": "Screens",
+        "live": true
+      },
+      {
+        "index": 52,
+        "id": "LaunchCockpit",
+        "label": "Launch cockpit",
+        "group": "Screens",
+        "live": true
+      },
+      {
+        "index": 53,
+        "id": "ReadOnlyReport",
+        "label": "Read-only report",
+        "group": "Screens",
+        "live": true
+      }
+    ],
+    "candidate_nav": [
+      {
+        "index": 0,
+        "id": "Overview",
+        "label": "Overview",
+        "group": "",
+        "live": true
+      },
+      {
+        "index": 1,
+        "id": "Chrome",
+        "label": "Chrome",
+        "group": "App shell",
+        "live": true
+      },
+      {
+        "index": 2,
+        "id": "Overview",
+        "label": "Status & hints",
+        "group": "App shell",
+        "live": false
+      },
+      {
+        "index": 3,
+        "id": "Overview",
+        "label": "Breadcrumbs & rails",
+        "group": "App shell",
+        "live": false
+      },
+      {
+        "index": 4,
+        "id": "Overview",
+        "label": "Help & keys",
+        "group": "App shell",
+        "live": false
+      },
+      {
+        "index": 5,
+        "id": "Overview",
+        "label": "Quit & leave",
+        "group": "App shell",
+        "live": false
+      },
+      {
+        "index": 6,
+        "id": "Overview",
+        "label": "Focus & navigation",
+        "group": "App shell",
+        "live": false
+      },
+      {
+        "index": 7,
+        "id": "Buttons",
+        "label": "Buttons",
+        "group": "Inputs & forms",
+        "live": true
+      },
+      {
+        "index": 8,
+        "id": "Inputs",
+        "label": "Inputs",
+        "group": "Inputs & forms",
+        "live": true
+      },
+      {
+        "index": 9,
+        "id": "TextAreas",
+        "label": "Text areas",
+        "group": "Inputs & forms",
+        "live": true
+      },
+      {
+        "index": 10,
+        "id": "Chips",
+        "label": "Chips & selects",
+        "group": "Inputs & forms",
+        "live": true
+      },
+      {
+        "index": 11,
+        "id": "Forms",
+        "label": "Forms",
+        "group": "Inputs & forms",
+        "live": true
+      },
+      {
+        "index": 12,
+        "id": "Overview",
+        "label": "Checks & radios",
+        "group": "Inputs & forms",
+        "live": false
+      },
+      {
+        "index": 13,
+        "id": "Overview",
+        "label": "Toolbars",
+        "group": "Inputs & forms",
+        "live": false
+      },
+      {
+        "index": 14,
+        "id": "Tables",
+        "label": "Basic table",
+        "group": "Tables",
+        "live": true
+      },
+      {
+        "index": 15,
+        "id": "Editable",
+        "label": "Editable",
+        "group": "Tables",
+        "live": true
+      },
+      {
+        "index": 16,
+        "id": "Grid",
+        "label": "Data grid",
+        "group": "Tables",
+        "live": true
+      },
+      {
+        "index": 17,
+        "id": "Overview",
+        "label": "Selection",
+        "group": "Tables",
+        "live": false
+      },
+      {
+        "index": 18,
+        "id": "Overview",
+        "label": "Cell editors",
+        "group": "Tables",
+        "live": false
+      },
+      {
+        "index": 19,
+        "id": "Overview",
+        "label": "Columns",
+        "group": "Tables",
+        "live": false
+      },
+      {
+        "index": 20,
+        "id": "Lists",
+        "label": "Lists",
+        "group": "Navigation",
+        "live": true
+      },
+      {
+        "index": 21,
+        "id": "Trees",
+        "label": "Trees",
+        "group": "Navigation",
+        "live": true
+      },
+      {
+        "index": 22,
+        "id": "Sidebars",
+        "label": "Sidebars",
+        "group": "Navigation",
+        "live": true
+      },
+      {
+        "index": 23,
+        "id": "Overview",
+        "label": "Tabs",
+        "group": "Navigation",
+        "live": false
+      },
+      {
+        "index": 24,
+        "id": "Overview",
+        "label": "Menus",
+        "group": "Navigation",
+        "live": false
+      },
+      {
+        "index": 25,
+        "id": "Dialogs",
+        "label": "Dialogs",
+        "group": "Overlays",
+        "live": true
+      },
+      {
+        "index": 26,
+        "id": "Pickers",
+        "label": "Pickers",
+        "group": "Overlays",
+        "live": true
+      },
+      {
+        "index": 27,
+        "id": "Overview",
+        "label": "Dialog kinds",
+        "group": "Overlays",
+        "live": false
+      },
+      {
+        "index": 28,
+        "id": "Overview",
+        "label": "Popups & tooltips",
+        "group": "Overlays",
+        "live": false
+      },
+      {
+        "index": 29,
+        "id": "Overview",
+        "label": "File browser",
+        "group": "Overlays",
+        "live": false
+      },
+      {
+        "index": 30,
+        "id": "Progress",
+        "label": "Progress",
+        "group": "Feedback",
+        "live": true
+      },
+      {
+        "index": 31,
+        "id": "Overview",
+        "label": "Empty & error",
+        "group": "Feedback",
+        "live": false
+      },
+      {
+        "index": 32,
+        "id": "Overview",
+        "label": "Meters",
+        "group": "Feedback",
+        "live": false
+      },
+      {
+        "index": 33,
+        "id": "Overview",
+        "label": "Notices",
+        "group": "Feedback",
+        "live": false
+      },
+      {
+        "index": 34,
+        "id": "Panels",
+        "label": "Panels",
+        "group": "Layout",
+        "live": true
+      },
+      {
+        "index": 35,
+        "id": "Scrolling",
+        "label": "Scrolling",
+        "group": "Layout",
+        "live": true
+      },
+      {
+        "index": 36,
+        "id": "Overview",
+        "label": "Splits & stacks",
+        "group": "Layout",
+        "live": false
+      },
+      {
+        "index": 37,
+        "id": "Overview",
+        "label": "Master-detail",
+        "group": "Layout",
+        "live": false
+      },
+      {
+        "index": 38,
+        "id": "Overview",
+        "label": "Pane tree",
+        "group": "Layout",
+        "live": false
+      },
+      {
+        "index": 39,
+        "id": "Editor",
+        "label": "Code editor",
+        "group": "Text & code",
+        "live": true
+      },
+      {
+        "index": 40,
+        "id": "Overview",
+        "label": "Diff",
+        "group": "Text & code",
+        "live": false
+      },
+      {
+        "index": 41,
+        "id": "Terminal",
+        "label": "Terminal",
+        "group": "Text & code",
+        "live": true
+      },
+      {
+        "index": 42,
+        "id": "Overview",
+        "label": "Text utilities",
+        "group": "Text & code",
+        "live": false
+      },
+      {
+        "index": 43,
+        "id": "Settings",
+        "label": "Settings",
+        "group": "Screens",
+        "live": true
+      },
+      {
+        "index": 44,
+        "id": "TaskRunner",
+        "label": "Task runner",
+        "group": "Screens",
+        "live": true
+      },
+      {
+        "index": 45,
+        "id": "Overview",
+        "label": "Query workbench",
+        "group": "Screens",
+        "live": false
+      },
+      {
+        "index": 46,
+        "id": "Overview",
+        "label": "Connections",
+        "group": "Screens",
+        "live": false
+      },
+      {
+        "index": 47,
+        "id": "Overview",
+        "label": "Finder",
+        "group": "Screens",
+        "live": false
+      },
+      {
+        "index": 48,
+        "id": "Overview",
+        "label": "Disk cleanup",
+        "group": "Screens",
+        "live": false
+      },
+      {
+        "index": 49,
+        "id": "Overview",
+        "label": "Activity",
+        "group": "Screens",
+        "live": false
+      },
+      {
+        "index": 50,
+        "id": "Overview",
+        "label": "Workspaces",
+        "group": "Screens",
+        "live": false
+      },
+      {
+        "index": 51,
+        "id": "Overview",
+        "label": "Accounts & usage",
+        "group": "Screens",
+        "live": false
+      },
+      {
+        "index": 52,
+        "id": "Overview",
+        "label": "Launch cockpit",
+        "group": "Screens",
+        "live": false
+      },
+      {
+        "index": 53,
+        "id": "Overview",
+        "label": "Read-only report",
+        "group": "Screens",
+        "live": false
+      }
+    ],
+    "baseline_live_count": 54,
+    "candidate_live_count": 22,
+    "same_entry_label_order": false,
+    "missing_live_entries": [
+      {
+        "index": 2,
+        "id": "StatusHints",
+        "label": "Status & hints",
+        "group": "App shell",
+        "live": true
+      },
+      {
+        "index": 3,
+        "id": "BreadcrumbsRails",
+        "label": "Breadcrumbs & rails",
+        "group": "App shell",
+        "live": true
+      },
+      {
+        "index": 4,
+        "id": "HelpKeys",
+        "label": "Help & keys",
+        "group": "App shell",
+        "live": true
+      },
+      {
+        "index": 5,
+        "id": "QuitLeave",
+        "label": "Quit & leave",
+        "group": "App shell",
+        "live": true
+      },
+      {
+        "index": 6,
+        "id": "FocusNavigation",
+        "label": "Focus & navigation",
+        "group": "App shell",
+        "live": true
+      },
+      {
+        "index": 12,
+        "id": "ChecksRadios",
+        "label": "Checks & radios",
+        "group": "Inputs & forms",
+        "live": true
+      },
+      {
+        "index": 13,
+        "id": "Toolbars",
+        "label": "Toolbars",
+        "group": "Inputs & forms",
+        "live": true
+      },
+      {
+        "index": 18,
+        "id": "CellEditors",
+        "label": "Cell editors",
+        "group": "Tables",
+        "live": true
+      },
+      {
+        "index": 19,
+        "id": "Columns",
+        "label": "Columns",
+        "group": "Tables",
+        "live": true
+      },
+      {
+        "index": 23,
+        "id": "Tabs",
+        "label": "Tabs",
+        "group": "Navigation",
+        "live": true
+      },
+      {
+        "index": 24,
+        "id": "Menus",
+        "label": "Menus",
+        "group": "Navigation",
+        "live": true
+      },
+      {
+        "index": 27,
+        "id": "DialogKinds",
+        "label": "Dialog kinds",
+        "group": "Overlays",
+        "live": true
+      },
+      {
+        "index": 28,
+        "id": "PopupsTooltips",
+        "label": "Popups & tooltips",
+        "group": "Overlays",
+        "live": true
+      },
+      {
+        "index": 29,
+        "id": "FileBrowser",
+        "label": "File browser",
+        "group": "Overlays",
+        "live": true
+      },
+      {
+        "index": 31,
+        "id": "EmptyError",
+        "label": "Empty & error",
+        "group": "Feedback",
+        "live": true
+      },
+      {
+        "index": 32,
+        "id": "Meters",
+        "label": "Meters",
+        "group": "Feedback",
+        "live": true
+      },
+      {
+        "index": 33,
+        "id": "Notices",
+        "label": "Notices",
+        "group": "Feedback",
+        "live": true
+      },
+      {
+        "index": 36,
+        "id": "SplitsStacks",
+        "label": "Splits & stacks",
+        "group": "Layout",
+        "live": true
+      },
+      {
+        "index": 37,
+        "id": "MasterDetail",
+        "label": "Master-detail",
+        "group": "Layout",
+        "live": true
+      },
+      {
+        "index": 38,
+        "id": "PaneTree",
+        "label": "Pane tree",
+        "group": "Layout",
+        "live": true
+      },
+      {
+        "index": 40,
+        "id": "Diff",
+        "label": "Diff",
+        "group": "Text & code",
+        "live": true
+      },
+      {
+        "index": 42,
+        "id": "TextUtilities",
+        "label": "Text utilities",
+        "group": "Text & code",
+        "live": true
+      },
+      {
+        "index": 45,
+        "id": "QueryWorkbench",
+        "label": "Query workbench",
+        "group": "Screens",
+        "live": true
+      },
+      {
+        "index": 46,
+        "id": "Connections",
+        "label": "Connections",
+        "group": "Screens",
+        "live": true
+      },
+      {
+        "index": 47,
+        "id": "Finder",
+        "label": "Finder",
+        "group": "Screens",
+        "live": true
+      },
+      {
+        "index": 48,
+        "id": "DiskCleanup",
+        "label": "Disk cleanup",
+        "group": "Screens",
+        "live": true
+      },
+      {
+        "index": 49,
+        "id": "Activity",
+        "label": "Activity",
+        "group": "Screens",
+        "live": true
+      },
+      {
+        "index": 50,
+        "id": "Workspaces",
+        "label": "Workspaces",
+        "group": "Screens",
+        "live": true
+      },
+      {
+        "index": 51,
+        "id": "AccountsUsage",
+        "label": "Accounts & usage",
+        "group": "Screens",
+        "live": true
+      },
+      {
+        "index": 52,
+        "id": "LaunchCockpit",
+        "label": "Launch cockpit",
+        "group": "Screens",
+        "live": true
+      },
+      {
+        "index": 53,
+        "id": "ReadOnlyReport",
+        "label": "Read-only report",
+        "group": "Screens",
+        "live": true
+      }
+    ],
+    "candidate_extra_live_entries": [],
+    "missing_factory_modules": [
+      "src/bin/showcase/pages/accounts_usage.rs",
+      "src/bin/showcase/pages/activity.rs",
+      "src/bin/showcase/pages/breadcrumbs_rails.rs",
+      "src/bin/showcase/pages/celleditors.rs",
+      "src/bin/showcase/pages/checks_radios.rs",
+      "src/bin/showcase/pages/columns.rs",
+      "src/bin/showcase/pages/connections.rs",
+      "src/bin/showcase/pages/dialog_kinds.rs",
+      "src/bin/showcase/pages/diff.rs",
+      "src/bin/showcase/pages/disk_cleanup.rs",
+      "src/bin/showcase/pages/empty_error.rs",
+      "src/bin/showcase/pages/file_browser.rs",
+      "src/bin/showcase/pages/finder.rs",
+      "src/bin/showcase/pages/focus_navigation.rs",
+      "src/bin/showcase/pages/help_keys.rs",
+      "src/bin/showcase/pages/launch_cockpit.rs",
+      "src/bin/showcase/pages/master_detail.rs",
+      "src/bin/showcase/pages/menus.rs",
+      "src/bin/showcase/pages/meters.rs",
+      "src/bin/showcase/pages/notices.rs",
+      "src/bin/showcase/pages/pane_tree.rs",
+      "src/bin/showcase/pages/popups_tooltips.rs",
+      "src/bin/showcase/pages/query_workbench.rs",
+      "src/bin/showcase/pages/quit_leave.rs",
+      "src/bin/showcase/pages/readonly_report.rs",
+      "src/bin/showcase/pages/row_menu.rs",
+      "src/bin/showcase/pages/selectable.rs",
+      "src/bin/showcase/pages/splits_stacks.rs",
+      "src/bin/showcase/pages/status_hints.rs",
+      "src/bin/showcase/pages/tabs.rs",
+      "src/bin/showcase/pages/template.rs",
+      "src/bin/showcase/pages/text_utilities.rs",
+      "src/bin/showcase/pages/toolbars.rs",
+      "src/bin/showcase/pages/workspaces.rs"
+    ],
+    "baseline_test_modules": [
+      "src/bin/showcase/app_tests.rs",
+      "src/bin/showcase/app_tests_catalog.rs",
+      "src/bin/showcase/app_tests_celleditors.rs",
+      "src/bin/showcase/app_tests_chrome.rs",
+      "src/bin/showcase/app_tests_code.rs",
+      "src/bin/showcase/app_tests_colour.rs",
+      "src/bin/showcase/app_tests_connections.rs",
+      "src/bin/showcase/app_tests_context.rs",
+      "src/bin/showcase/app_tests_coverage.rs",
+      "src/bin/showcase/app_tests_dialog_kinds.rs",
+      "src/bin/showcase/app_tests_dialogs.rs",
+      "src/bin/showcase/app_tests_feedback.rs",
+      "src/bin/showcase/app_tests_file_browser.rs",
+      "src/bin/showcase/app_tests_finder.rs",
+      "src/bin/showcase/app_tests_focusnav.rs",
+      "src/bin/showcase/app_tests_inputs_forms.rs",
+      "src/bin/showcase/app_tests_layout.rs",
+      "src/bin/showcase/app_tests_lists_trees.rs",
+      "src/bin/showcase/app_tests_master_detail.rs",
+      "src/bin/showcase/app_tests_menus.rs",
+      "src/bin/showcase/app_tests_meters_notices.rs",
+      "src/bin/showcase/app_tests_mouse.rs",
+      "src/bin/showcase/app_tests_nav.rs",
+      "src/bin/showcase/app_tests_options.rs",
+      "src/bin/showcase/app_tests_overview.rs",
+      "src/bin/showcase/app_tests_pane_tree.rs",
+      "src/bin/showcase/app_tests_pickers.rs",
+      "src/bin/showcase/app_tests_pointer.rs",
+      "src/bin/showcase/app_tests_popups.rs",
+      "src/bin/showcase/app_tests_reach.rs",
+      "src/bin/showcase/app_tests_screens.rs",
+      "src/bin/showcase/app_tests_screens_ops.rs",
+      "src/bin/showcase/app_tests_screens_report.rs",
+      "src/bin/showcase/app_tests_scrolling.rs",
+      "src/bin/showcase/app_tests_selectable.rs",
+      "src/bin/showcase/app_tests_shell_pages.rs",
+      "src/bin/showcase/app_tests_tables.rs",
+      "src/bin/showcase/app_tests_tabs.rs",
+      "src/bin/showcase/app_tests_template.rs",
+      "src/bin/showcase/app_tests_text.rs",
+      "src/bin/showcase/app_tests_toolbars.rs",
+      "src/bin/showcase/app_tests_workbench.rs"
+    ],
+    "candidate_test_files": [
+      "crates/showcase-ui/tests/app_tests.rs",
+      "crates/showcase-ui/tests/baselines/showcase.txt",
+      "crates/showcase-ui/tests/elapsed_contract.rs",
+      "crates/showcase-ui/tests/fixtures/holla-page-headings.tsv",
+      "crates/showcase-ui/tests/fixtures/holla-shell-headers.tsv",
+      "crates/showcase-ui/tests/page_headings.rs",
+      "crates/showcase-ui/tests/perf.rs",
+      "crates/showcase-ui/tests/perf_baseline.txt",
+      "crates/showcase-ui/tests/selectable_flow.rs",
+      "crates/showcase-ui/tests/sidebar_contract.rs",
+      "crates/showcase-ui/tests/visual.rs",
+      "crates/showcase-demos/tests/button_public_consumer.rs"
+    ],
+    "live_routing_evidence": {
+      "baseline_factory_lines": "416 app.rs:680-733 (53 variant factories)",
+      "candidate_factory_lines": "819 app.rs:712-735 (22 factories); from_name gates entry_is_live at :158-168; placeholder entries use PageId::Overview and return non-live at :554-559",
+      "baseline_tests": "src/bin/showcase/app_tests_dialog_kinds.rs and app_tests_connections.rs directly exercise opened FormDialog, stacked Picker, menu/connection CRUD and route behavior; candidate equivalents absent from executable module tree"
+    },
+    "critical_delta": "Navigation has same 54 labels/order. Candidate has 21 regular page ids including Overview, one special Selection path, and 31 labels mapped to PageId::Overview that render placeholders. Dialog kinds, Connections, and other named screens must not be counted as restored because their label remains.",
+    "special_routes": [
+      {
+        "label": "Selection",
+        "baseline_id": "Selectable",
+        "candidate_id": "Overview placeholder",
+        "candidate_behavior": "App::draw has dedicated label == \"Selection\" branch painting showcase_demos::pages::selectable::Model; update/hints/dialog paths also special-cased at crates/showcase-ui/src/app.rs:1762-1875. It is therefore a rendered flow, but not represented by PageId, page factory, or Page trait instance."
+      }
+    ],
+    "missing_screen_modules": {
+      "Status & hints": "status_hints.rs",
+      "Breadcrumbs & rails": "breadcrumbs_rails.rs",
+      "Help & keys": "help_keys.rs",
+      "Quit & leave": "quit_leave.rs",
+      "Focus & navigation": "focus_navigation.rs",
+      "Checks & radios": "checks_radios.rs",
+      "Toolbars": "toolbars.rs",
+      "Cell editors": "celleditors.rs",
+      "Columns": "columns.rs",
+      "Tabs": "tabs.rs",
+      "Menus": "menus.rs",
+      "Dialog kinds": "dialog_kinds.rs",
+      "Popups & tooltips": "popups_tooltips.rs",
+      "File browser": "file_browser.rs",
+      "Empty & error": "empty_error.rs",
+      "Meters": "meters.rs",
+      "Notices": "notices.rs",
+      "Splits & stacks": "splits_stacks.rs",
+      "Master-detail": "master_detail.rs",
+      "Pane tree": "pane_tree.rs",
+      "Diff": "diff.rs",
+      "Text utilities": "text_utilities.rs",
+      "Query workbench": "query_workbench.rs",
+      "Connections": "connections.rs",
+      "Finder": "finder.rs",
+      "Disk cleanup": "disk_cleanup.rs",
+      "Activity": "activity.rs",
+      "Workspaces": "workspaces.rs",
+      "Accounts & usage": "accounts_usage.rs",
+      "Launch cockpit": "launch_cockpit.rs",
+      "Read-only report": "readonly_report.rs"
+    },
+    "test_inventory_delta": {
+      "baseline_app_test_module_count": 42,
+      "candidate_app_test_source_files": [
+        "crates/showcase-ui/tests/app_tests.rs",
+        "crates/showcase-ui/tests/elapsed_contract.rs",
+        "crates/showcase-ui/tests/page_headings.rs",
+        "crates/showcase-ui/tests/selectable_flow.rs",
+        "crates/showcase-ui/tests/sidebar_contract.rs",
+        "crates/showcase-ui/tests/visual.rs"
+      ],
+      "candidate_page_heading_fixture_scope": "22 currently-instantiated PageId values \u00d7 16 width/color combinations; this exercises heading/header rows only, not page flow. Candidate selectable_flow covers special Selection branch. No candidate direct App flow test for missing DialogKinds or Connections page."
+    }
+  },
+  "jackin": {
+    "sources": {
+      "baseline": "src/bin/jackin_preview/app.rs",
+      "candidate": "crates/jackin-preview-app/src/app.rs",
+      "baseline_blob": "d2f5b0bd37d13cac82f1d2ea454f26fa39d921da",
+      "candidate_blob": "43687a231990e1e56ec1a24e648753a0396609c8"
+    },
+    "baseline_route_order": [
+      "Intro",
+      "Manager",
+      "Prelude",
+      "Editor",
+      "Settings",
+      "Accounts",
+      "Usage",
+      "Cockpit",
+      "Handoff",
+      "Capsule",
+      "Outro"
+    ],
+    "candidate_route_order": [
+      "Intro",
+      "Manager",
+      "Prelude",
+      "Editor",
+      "Accounts",
+      "Usage",
+      "Settings",
+      "Launch",
+      "Cockpit",
+      "Handoff",
+      "Capsule",
+      "Outro"
+    ],
+    "baseline_scenario_count": 8,
+    "candidate_scenario_source": "crates/jackin-preview-domain/src/scenario.rs (re-exported via crates/jackin-preview-app/src/lib.rs: scenario module)",
+    "route_delta": "candidate adds Route::Launch while retaining Cockpit; both title as Launch cockpit and feed update_launch. Baseline has one Cockpit route. Treat Launch as a potentially extra internal/user-visible state until transition timing/screens are paired.",
+    "screen_components": {
+      "baseline": "src/bin/jackin_preview/screens/{accounts,capsule,cockpit,config,editor,inspect,manager,modals,prelude,rowmenu,settings,usage}.rs",
+      "candidate": "crates/jackin-preview-host-ui/src/screens and crates/jackin-preview-capsule-ui/src/screens, wired through crates/jackin-preview-app/src/lib.rs"
+    },
+    "baseline_tests": "src/bin/jackin_preview/app_tests_*.rs; many full scenario/clock/colour/pointer tests. Candidate test inventory should be treated as moved/split until concrete test mapping is examined.",
+    "scenario_names_baseline": [
+      "first-use",
+      "returning",
+      "accounts-mixed",
+      "launch-running",
+      "launch-failure",
+      "capsule-multi",
+      "outro-last",
+      "hard-cases"
+    ],
+    "scenario_names_candidate": [
+      "first-use",
+      "returning",
+      "accounts-mixed",
+      "launch-running",
+      "launch-failure",
+      "capsule-multi",
+      "outro-last",
+      "hard-cases"
+    ],
+    "scenario_inventory_same": true,
+    "candidate_extra_route": "Launch",
+    "baseline_route_scenario_mapping": {
+      "FirstUse": "Intro then Manager by INTRO_END",
+      "Returning": "Manager",
+      "AccountsMixed": "Accounts",
+      "LaunchRunning/LaunchFailure": "Cockpit",
+      "CapsuleMulti": "Capsule",
+      "OutroLast": "Capsule then Outro",
+      "HardCases": "Manager"
+    },
+    "candidate_route_scenario_mapping": {
+      "FirstUse": "Intro or Manager at INTRO_END",
+      "Returning/HardCases": "Manager",
+      "AccountsMixed": "Accounts",
+      "LaunchRunning/LaunchFailure": "Cockpit",
+      "CapsuleMulti": "Capsule",
+      "OutroLast": "Capsule then Outro"
+    },
+    "test_mapping_gap": "Baseline app_tests_* modules are now split across jackin-preview crates. Inventory names alone does not establish flow coverage; paired behavior still needs the frozen inventory runner."
+  },
+  "tablepro": {
+    "sources": {
+      "baseline": "src/bin/tablepro/app.rs",
+      "candidate": "crates/tablepro-ui/src/app.rs",
+      "baseline_blob": "f8dfbc6f105bd1487de2c88cd55d8846505493e3",
+      "candidate_blob": "0958147eb967c6bcfdd463f136f6d4979acb29df"
+    },
+    "baseline_routes": [
+      "Connections",
+      "Workbench"
+    ],
+    "candidate_routes": [
+      "Connections",
+      "Workbench"
+    ],
+    "route_inventory_same": true,
+    "baseline_domain_requests": [
+      "EditFilter",
+      "FilterOnCell",
+      "ConfirmDiscard",
+      "CommitPending",
+      "PreviewSql",
+      "OpenQuery",
+      "OpenTableFiltered",
+      "OpenViewer",
+      "ConfirmCloseTab",
+      "Connected"
+    ],
+    "candidate_screen_surface_inventory": [
+      "Connections",
+      "ConnectionsFailed",
+      "WorkbenchDefault",
+      "ExplorerFocused",
+      "TableGrid",
+      "GridCellEditing",
+      "PendingChangeBar",
+      "StructureView",
+      "QueryEditing",
+      "CompletionPopup",
+      "ResultsGrid",
+      "ErrorResult",
+      "ExplainPlan",
+      "HistoryTab",
+      "QuickSwitcher",
+      "TabListPicker",
+      "SafeModePicker",
+      "FilterEditor",
+      "SafetyDialogTypedAck",
+      "HelpDialog",
+      "MaximisedTab"
+    ],
+    "retained_named_overlays": [
+      "quick switcher",
+      "tab-list picker",
+      "safe-mode picker",
+      "filter editor",
+      "help",
+      "confirmation dialogs"
+    ],
+    "important_gap": "Route equality is coarse: Workbench contains tabs/query/table/result/error/structure/history/maximized states and many overlays. Baseline page behavior lives in src/bin/tablepro/{connections,workbench,tabs,filter_editor,sql}.rs; candidate logic remains concentrated in a 10k-line app.rs plus workbench.rs and helper modules. Test inventory files under crates/tablepro-ui/tests must be mapped by action, not counted as route coverage."
+  },
+  "holla": {
+    "sources": {
+      "baseline_pages": "src/bin/holla/screens/mod.rs",
+      "baseline_app": "src/bin/holla/app.rs",
+      "candidate_routes": "crates/holla-ui/src/app.rs",
+      "candidate_scenario": "crates/holla-sim/src/scenario.rs",
+      "candidate_dispatch": "crates/holla-ui/src/dispatch.rs",
+      "baseline_pages_blob": "43a98715971e67af22ba79af22bce6d54da1d1c2",
+      "candidate_app_blob": "7e07b29930be7711ff5805ac27e5193c812c3abf"
+    },
+    "baseline_page_variants": [
+      "Finder",
+      "Disk",
+      "PlanReview",
+      "Review",
+      "Trust",
+      "Args",
+      "Snapshot",
+      "Files",
+      "Find",
+      "DiskOverview",
+      "TopFiles",
+      "Cleanup",
+      "CleanupGate",
+      "Report",
+      "Config"
+    ],
+    "candidate_routes": [
+      "Home",
+      "Plan",
+      "Activity",
+      "Disk",
+      "Files",
+      "Cleanup",
+      "Review",
+      "Snapshot"
+    ],
+    "candidate_scenario_count": 34,
+    "dynamic_baseline_push_sites": [
+      "src/bin/holla/app.rs:1432-1566 dispatches Go::Push/Go::Analyze/Go::CleanupPlan/Go::Trusted/Go::Exec",
+      "src/bin/holla/app.rs:1574-1593 constructs Finder/Disk/PlanReview/Review/Trust/Args/Snapshot/Files/Find/DiskOverview/TopFiles/Cleanup/CleanupGate/Report/Config pages",
+      "src/bin/holla/app.rs:1822-1951 routes action preview/trust/args/review/plan transitions",
+      "src/bin/holla/app.rs:2342-2399 routes DiskOverview/Disk/Files/Find/Cleanup/TopFiles/Config/Finder/Snapshot/PlanReview"
+    ],
+    "candidate_entry_routing": "opening_route maps only Scenario::screen to one of 8 Route values (crates/holla-ui/src/app.rs:151-160). Grep of current app route assignments shows Route::Files/Cleanup/Review/Snapshot assigned only by opening_route; they are never entered from runtime domain actions. Runtime actions instead use Notice/Preview/Trust/Plan/Database/Monitor/Clone/Activity in dispatch.rs and Route transitions Home/Plan/Activity.",
+    "route_delta": "Candidate declares 8 route values, yet four are scenario-entry-only (Files/Cleanup/Review/Snapshot) and have no runtime assignment after construction. Baseline owns a dynamic Page stack with 16 variants and Go transitions. Current screens/home.rs is a bespoke home action layer. The source proves structural loss of generic route/stack transitions; end-user effects require paired flow replay before asserting each missing workflow.",
+    "tests": "Baseline src/bin/holla/app_tests_*.rs include flow/context/route/pointer/page tests. Candidate route tests in crates/holla-ui/src/app.rs include scenario and direct route matrix, but direct route matrix does not prove runtime Go transitions.",
+    "candidate_route_lifecycle_delta": {
+      "candidate_routes_declared": 8,
+      "routes_enterable_from_runtime_domain_action_source_search": [
+        "Home",
+        "Plan",
+        "Activity"
+      ],
+      "scenario_entry_only_routes": [
+        "Files",
+        "Cleanup",
+        "Review",
+        "Snapshot"
+      ],
+      "baseline_dynamic_page_kinds": 15,
+      "baseline_dynamic_page_transitions": "Go::Push/Go::Pop and Launch/Request paths in src/bin/holla/app.rs:1411-1566,1574-1593,1822-1951,2342-2399",
+      "upgrade_plan_scenario": "baseline App::start pushes Page::PlanReview {plan:\"upgrade\"} (src/bin/holla/app.rs:204-207); candidate Scenario::UpgradePlan maps Screen::Plan to Route::Home, sets plan=None in constructor (crates/holla-ui/src/app.rs:151-160,1203-1230). This is an explicit initial-flow mismatch unless separately corrected."
+    },
+    "candidate_screen_functional_evidence": "Current command bindings F2-F8 open dialogs, not route pages (crates/holla-ui/src/app.rs:1198-1207,1305-1311). Baseline domain Launch variants can push Disk/Files/Find/Cleanup/TopFiles/Config/Snapshot/PlanReview pages and Go::Push supports navigation stacks; do not equate candidate dialogs with those pages without paired user-action proof.",
+    "baseline_scenario_names": [
+      "FirstUse",
+      "RustDirty",
+      "MonorepoRoot",
+      "MonorepoChild",
+      "DockerCleanup",
+      "DiskCleanup",
+      "UpgradePlan",
+      "ActivitiesMulti",
+      "RemoteHost",
+      "LaunchFailure",
+      "HardCases",
+      "ParityDiscovery",
+      "ParityHistory",
+      "ParityFiles",
+      "ParityBrowser",
+      "ParityGitCurrent",
+      "ParityGitBatch",
+      "ParityTaskSources",
+      "ParityCargo",
+      "ParityDocker",
+      "ParityBrewServices",
+      "ParityGradle",
+      "ParityIdea",
+      "ParityUpgradeManagers",
+      "ParityExecutor",
+      "ParityTaskInput",
+      "ParityCustomActions",
+      "ParityDiskScan",
+      "ParityDiskNavigation",
+      "ParityInsights",
+      "ParityDeleteSafety",
+      "ParityCleanupResults",
+      "ParityPlatforms",
+      "ParityPlatformsLinux"
+    ],
+    "candidate_scenario_names": [
+      "FirstUse",
+      "RustDirty",
+      "MonorepoRoot",
+      "MonorepoChild",
+      "DockerCleanup",
+      "DiskCleanup",
+      "UpgradePlan",
+      "ActivitiesMulti",
+      "RemoteHost",
+      "LaunchFailure",
+      "HardCases",
+      "ParityDiscovery",
+      "ParityHistory",
+      "ParityFiles",
+      "ParityBrowser",
+      "ParityGitCurrent",
+      "ParityGitBatch",
+      "ParityTaskSources",
+      "ParityCargo",
+      "ParityDocker",
+      "ParityBrewServices",
+      "ParityGradle",
+      "ParityIdea",
+      "ParityUpgradeManagers",
+      "ParityExecutor",
+      "ParityTaskInput",
+      "ParityCustomActions",
+      "ParityDiskScan",
+      "ParityDiskNavigation",
+      "ParityInsights",
+      "ParityDeleteSafety",
+      "ParityCleanupResults",
+      "ParityPlatforms",
+      "ParityPlatformsLinux"
+    ],
+    "scenario_inventory_same": true
+  },
+  "verification_gaps": [
+    "No full flow execution was performed.",
+    "Current PR38 remote source commit 819ef8ef949dfa536d7fba9ef73a5d1f3e476b0b; local integration worktree was e830877cdebe2461466f643f476a2dc1575b6ae8 (ahead 3/behind 2), so it was not used as authoritative source.",
+    "Fixed design reference f4867e9b5f8a08a3bb61ce80d644198a29f51984 is secondary only; no changes made.",
+    "Source structure and tests establish route inventory, reachability claims, and named missing screens, not complete visual or functional parity."
+  ],
+  "source_blobs": {
+    "4169783ae883788186d161af09ba9c481bd84e5c:src/bin/showcase/app.rs": "223200a5a83f71058346f54a4433167e315de3b5",
+    "4169783ae883788186d161af09ba9c481bd84e5c:src/bin/jackin_preview/app.rs": "d2f5b0bd37d13cac82f1d2ea454f26fa39d921da",
+    "4169783ae883788186d161af09ba9c481bd84e5c:src/bin/jackin_preview/scenario.rs": "50352dc62c76884d9e6c76dfca92635bd6fbfc19",
+    "4169783ae883788186d161af09ba9c481bd84e5c:src/bin/tablepro/app.rs": "f8dfbc6f105bd1487de2c88cd55d8846505493e3",
+    "4169783ae883788186d161af09ba9c481bd84e5c:src/bin/holla/app.rs": "fccd0c25f9ea73eb011827ccbd227f8bbf88ccd9",
+    "4169783ae883788186d161af09ba9c481bd84e5c:src/bin/holla/screens/mod.rs": "43a98715971e67af22ba79af22bce6d54da1d1c2",
+    "819ef8ef949dfa536d7fba9ef73a5d1f3e476b0b:crates/showcase-ui/src/app.rs": "92f4fed3ca2bad405b35101d9f3beb8021439095",
+    "819ef8ef949dfa536d7fba9ef73a5d1f3e476b0b:crates/showcase-demos/src/pages/mod.rs": "3b9887f5d7e5d9667e6930f1c5644ebe1b7d780a",
+    "819ef8ef949dfa536d7fba9ef73a5d1f3e476b0b:crates/jackin-preview-app/src/app.rs": "43687a231990e1e56ec1a24e648753a0396609c8",
+    "819ef8ef949dfa536d7fba9ef73a5d1f3e476b0b:crates/jackin-preview-domain/src/scenario.rs": "84f17288271367028da9c451cc54486fd1569a46",
+    "819ef8ef949dfa536d7fba9ef73a5d1f3e476b0b:crates/tablepro-ui/src/app.rs": "0958147eb967c6bcfdd463f136f6d4979acb29df",
+    "819ef8ef949dfa536d7fba9ef73a5d1f3e476b0b:crates/holla-ui/src/app.rs": "7e07b29930be7711ff5805ac27e5193c812c3abf",
+    "819ef8ef949dfa536d7fba9ef73a5d1f3e476b0b:crates/holla-sim/src/scenario.rs": "62f095e9d6b7b59c6b12eb4e89af660cd7ea6f8f",
+    "819ef8ef949dfa536d7fba9ef73a5d1f3e476b0b:crates/holla-ui/src/dispatch.rs": "535d5914365891e881d2a04ff3b5a801977eab77"
+  }
+}
