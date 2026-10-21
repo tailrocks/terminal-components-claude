@@ -266,10 +266,10 @@ mod capsule_menu_view;
 mod capsule_zoom_view;
 
 mod historical_hard_launch_picker;
-mod historical_inspect;
 mod historical_launch_picker;
 mod historical_manager_menu;
 mod historical_paint;
+mod inspect_view;
 mod launch_cockpit;
 mod launch_dialog_plate;
 mod manager_help;
@@ -9535,7 +9535,7 @@ impl TuiApp for App {
             && ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
             && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
         {
-            historical_inspect::paint(ui);
+            inspect_view::paint(ui);
         }
         self.draw_historical_manager_menu(ui, full);
         self.draw_historical_launch_picker(ui);
