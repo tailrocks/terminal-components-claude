@@ -1,0 +1,143 @@
+{
+  "commit": "f761f67b09c0a08fdcf7f9476e46b3175f532866",
+  "parent": "3be8fb60b100253f7c0e9fd6f075a33563819694",
+  "status": "Production marker repair independently verified; integration blocked by newly failing Mono-count contract test.",
+  "required_findings": [
+    {
+      "priority": "P2",
+      "path": "crates/termrock-theme/src/downgrade.rs",
+      "line": 1336,
+      "title": "Update and prove the Button-specific Mono rule-count contract",
+      "evidence": "The unchanged mono_rule_counts_match_the_documented_totals test passes on exact parent3be8fb60 and fails on f761f67b: responding_pairs(BUTTON) is18 while expected MONO_RULES_PER_FAMILY remains20. Full Theme suite now has this new failure in addition to the separately retained all73 palette failure.",
+      "required_change": "Document the intended Button exceptions and assert exact absence of only (MARKER,SELECTED) and (MARKER,CHECKED), plus the retained18 responding identities. Keep the generic public rule count20 and other-family expectations intact. Run full Theme/Controls and preserve the known all73 failure separately; do not suppress the guard or relax unrelated counts."
+    }
+  ],
+  "mechanism_review": {
+    "bounded_source": "Only generic Mono fallback iteration excludes two exact state/part rules for Family::BUTTON. Those two source rules consist solely of Chosen/Checked glyph substitutions; no foreground/background/modifier changes are lost by excluding them.",
+    "shared_contract": "Button owns semantic DotOn/DotOff fallback and its renderer/part resolver remains unchanged. This is a component-family semantic distinction alongside existing family-specific Mono rules, not an application identity, viewport, fixture, theme-name, accent-color, or captured-output selector.",
+    "overrides": "Targeted authored Mono/family recipe rules still execute through existing resolver; overlays, instance glyph Set/Clear, and content slots keep normal precedence. No new API, input handling, unsafe code, ownership or concurrency mechanism.",
+    "quantizer": "No raw RGB quantization, semantic color mapping or palette inference path changed."
+  },
+  "verification": {
+    "defect_sensitive_red": {
+      "command": "cargo nextest run --offline --test mono_showcase --test button_contract_new --no-fail-fast -E \"test(default_mono_checked_showcase_button_preserves_frozen_dot) | test(checked_button_marker_keeps_its_semantic_glyph_in_every_color_profile)\" against exact parent3be8fb60",
+      "exit": 100,
+      "failed": 2,
+      "passed": 0,
+      "explicitly_filtered": 11,
+      "evidence": "Unchanged real Showcase Verbose-button probe and exact copied new native marker regression both fail before repair with checkmark replacing semantic dot."
+    },
+    "corrected_external": {
+      "command": "cargo nextest run --offline --test mono_showcase --test matrix_inert --test button_contract_new --test marker_precedence --test scrollbar --no-fail-fast",
+      "exit": 0,
+      "passed": 17,
+      "skipped": 0,
+      "coverage": [
+        "Original mono_showcase.rs, matrix_inert.rs and scrollbar.rs bytes unchanged from independent source probes.",
+        "Real Showcase checked marker restored to dot;24 matrix specimens remain painted and inert in all four profiles.",
+        "96 real Harness cases across four profiles, checked/unchecked, live/inert, custom DotOn/DotOff, theme glyph, overlay glyph, instance Set/Clear, slot precedence. Inert instances have no control area or focus registration.",
+        "LIST and custom-family generic Mono MARKER SELECTED/ CHECKED still resolve Chosen/Checked; original authored SCROLLBAR Mono pressed-filter probe passes."
+      ]
+    },
+    "native_controls": {
+      "command": "cargo nextest run -p termrock-controls --all-targets --offline --no-fail-fast",
+      "exit": 0,
+      "passed": 144,
+      "failed": 0,
+      "skipped": 0,
+      "focused_button_contract": "12/12 separately pass."
+    },
+    "native_theme": {
+      "command": "cargo nextest run -p termrock-theme --all-targets --offline --no-fail-fast",
+      "exit": 100,
+      "tests": 140,
+      "passed": 138,
+      "failed": 2,
+      "skipped": 0,
+      "failures": [
+        "downgrade::tests::mono_rule_counts_match_the_documented_totals (new, independently parent-attributed)",
+        "capability_palettes::all_73_junie_slots_match_reference_capability_output (known retained failure; not changed/blessed)"
+      ]
+    },
+    "count_attribution": {
+      "parent": "1 selected pass,139 filtered, exit0",
+      "candidate": "1 selected fail,139 filtered, exit100; actual18 expected20"
+    },
+    "checks": [
+      {
+        "command": "cargo clippy -p termrock-theme -p termrock-controls --all-targets --offline -- -D warnings",
+        "exit": 0
+      },
+      {
+        "command": "rustfmt --edition2024 --check two changed Rust files; git diff --check exact source",
+        "exit": 0
+      }
+    ]
+  },
+  "remaining_findings_and_limits": [
+    "Older16-color pressed-ladder, focus-contract and unused SwitchOff ASCII findings remain separate open work; this glyph repair does not resolve, reclassify or waive them.",
+    "Prior913a Showcase pass and2d66 failure are cited author history; this review independently reran exact immediate-parent3be RED and f761 GREEN, not the older913a checkout.",
+    "No full four-application paired parity, hosted CI, reference approval or whole-library acceptance claimed."
+  ],
+  "preservation": {
+    "review_head": "f761f67b09c0a08fdcf7f9476e46b3175f532866",
+    "author_copy": "Untouched, including1301 pre-existing artifact deletions.",
+    "review_artifact_deletions_preserved": 1301,
+    "non_artifact_source_changes": [],
+    "remote": "No push/deletion/reference mutation or shared-lock bypass."
+  },
+  "artifacts": [
+    {
+      "path": "/private/tmp/termrock-button-marker-f761-mono-count.log",
+      "sha256": "e223526ce7c2b823c695abb88de6d87dcbbe881297bcc04f75db945fc7cb82f6"
+    },
+    {
+      "path": "/private/tmp/termrock-button-marker-f761-base-mono-count.log",
+      "sha256": "30a265b386e891e2de3b3f753559333b931c63fcf1575b32b3fd304ef11f637b"
+    },
+    {
+      "path": "/private/tmp/termrock-button-marker-f761-focused-button.log",
+      "sha256": "93c8fd14568a4cdaf36f92f9bd4fef84058b760185425c57b17ff43246de4baa"
+    },
+    {
+      "path": "/private/tmp/termrock-button-marker-f761-old-real-probes.log",
+      "sha256": "01283149fbb75ba10be80c830c23425e28a458b174639388dec0d1c859172570"
+    },
+    {
+      "path": "/private/tmp/termrock-button-marker-f761-real-probes.log",
+      "sha256": "dbe5f5d6f067fdc7b620a1e194de3a3f280ceff81a684158a7819b3cbad6e24a"
+    },
+    {
+      "path": "/private/tmp/termrock-button-marker-f761-theme-all.log",
+      "sha256": "8285d2f29b78fe6441e8370f5849b7ed74b2330cd9f08da0c4a27af4521a04b0"
+    },
+    {
+      "path": "/private/tmp/termrock-button-marker-f761-controls-all.log",
+      "sha256": "c1e12f9278cf097ab846d3bdd06b8c5348f303fafcadc79bd5b8cc0d764774ff"
+    },
+    {
+      "path": "/private/tmp/termrock-button-marker-f761-scoped-clippy.log",
+      "sha256": "8804ea6a8a078bbc1c6ccb535901c357e0024b84faf052b04df010ff64cba93e"
+    },
+    {
+      "path": "/private/tmp/termrock-button-marker-review-f761f67b/tests/mono_showcase.rs",
+      "sha256": "81e6da0f1b6fb187e72e904c494c3e60686c0ed8cb8d17245cea4c561ad601eb"
+    },
+    {
+      "path": "/private/tmp/termrock-button-marker-review-f761f67b/tests/matrix_inert.rs",
+      "sha256": "eba612d2885505fb026477b0f323a8f859d4e9c7e7970b1d37223a685ea289c6"
+    },
+    {
+      "path": "/private/tmp/termrock-button-marker-review-f761f67b/tests/scrollbar.rs",
+      "sha256": "22a1aaf9e0775f46cff97258caf333be4e61b50d197322bb65eeea0e1a14a925"
+    },
+    {
+      "path": "/private/tmp/termrock-button-marker-review-f761f67b/tests/marker_precedence.rs",
+      "sha256": "283479198648f10948d2f551cc74dfe194936c8b9c89c8ac7a6ee8cd41e45d18"
+    },
+    {
+      "path": "/private/tmp/termrock-button-marker-review-f761f67b/tests/button_contract_new.rs",
+      "sha256": "eb51883605dd1aefb0e55e2dc6ea85809724e04ab500f66716690b1d10a92930"
+    }
+  ]
+}
