@@ -1685,3 +1685,50 @@ Author `f0760cc204afc533e202604d0437f913b72bfd10` was merged locally at `e404a63
 [Independent diagnosis](../audits/evidence/2026-10-21-current-blockers/tablepro-e404-blank-validation-diagnosis.json) distinguishes an actual candidate defect from stale fixtures: PostgreSQL Database is incorrectly required although frozen validates Name/Port; named Unicode save and named dirty-work reconnect fail with `DATABASE`/`required`. The original guard fixture also supplies no Name and correctly fails `NAME`/`required`; supply Name through real UI without weakening the guard or Name validation. A disjoint domain validation writer is assigned; leave footer Unicode assertions unchanged. Existing port-zero acceptance and missing saved-name trimming are separate unresolved source findings.
 
 The [radio contract probes](../audits/evidence/2026-10-21-current-blockers/tablepro-c8-radio-contract-red.json) independently fail three baseline-qualified flows: arrows do not commit environment/safe-mode selection, and Form claims radio Enter and submits. A shared RadioGroup navigation-selection policy plus TablePro's existing Form EnterPolicy override is assigned. Pointer press must remain distinct from committed choice. The [name-prefix helper removal](../audits/evidence/2026-10-21-current-blockers/tablepro-c8-name-prefix-independent-clearance.json) is independently cleared after the blank prerequisite but still awaits parent integration. Its unchanged before tests fail four cases; 48 external flows pass afterward. `mirror_name_edit` remains a separate ownership finding. No frozen CLI comparison or product acceptance is claimed.
+
+## 2026-10-21: controls/navigation theme ink-API adoption audit and PR26 test ports
+
+The PR26 shared ink helpers (`Theme::gutter`, `Theme::gutter_symbol`,
+`Theme::chosen_in`, `Theme::inactive_look`) were evaluated for adoption at every
+gutter and selection-ink paint site in `termrock-controls` (`button.rs`,
+`choice.rs`) and `termrock-navigation` (`list.rs`, `tree.rs`, `steps.rs`,
+`item.rs` row gutters). Measured against the frozen reference across all five
+families, four colour tiers and the reachable state cross-product, no site can
+adopt the helpers byte-identically, so every site keeps its recipe-driven local
+path. Measured deltas, pinned as regression tests in
+`crates/termrock-controls/tests/frozen_ink_pins.rs` and
+`crates/termrock-navigation/tests/frozen_ink_pins.rs`:
+
+- `BUTTON` paints the focus bar only for focused AND focus-visible states;
+  `Theme::gutter_symbol` has no focus-visibility gate and would add a bar under
+  mouse-initiated focus. The widget also blanks the bar while disabled even when
+  the resolver would allow a focus-visible one.
+- Focused rows of `CHOICE`/`TREE`/`STEPS` keep the bar while disabled at the
+  truecolor, 256 and 16 tiers; `LIST` blanks it there, and every family blanks
+  it at the mono tier. The helpers blank it for every family and tier, so no
+  single default reproduces the frozen output.
+- The helpers stamp explicit fg/bg on unfocused gutter fills; the frozen path
+  inherits the container cell, producing byte-different (though visually equal)
+  cells, which fails the byte-identical bar at rest states.
+- Checked marks (`Part::MARKER`, `CHECKED`) keep the accent while focus is
+  elsewhere and under a modal backdrop (owner decision 2026-10-17, Accent);
+  `Theme::chosen_in(Accent, ..)` drops to primary ink under a backdrop, so the
+  recipes stay.
+- Chosen-row fills take the accent tint only while focused; unfocused chosen
+  rows read as the plain container surface. That is the neutral inactive
+  selection the frozen apps show; the PR26 reference default (accent fill kept
+  while unfocused, its test `an_unfocused_selected_row_keeps_its_inactive_selection`)
+  is NOT adopted. Flipping is a deliberate visual change and stays unmade.
+
+Widget-level ports of the PR26 test suite landed alongside:
+`choice_containment.rs` (cells and hit regions clipped to the widget area across
+kinds, widths 0-12, disabled, truecolor and mono; hidden radio registers
+nothing; tall lists clip; disabled choices reject pointer and keyboard; marks
+read without colour from three cells on — the PR26 compact fallback glyphs are
+not in the frozen output and are not adopted), `mouse_targets.rs` (registry
+slice: every control region routes to its owner, outside clicks change
+nothing), and `focus_gutter.rs` sweeps for the eight button variants and for
+list/tree rows. Gaps left open: `Theme::gutter`/`gutter_symbol` need a
+focus-visibility gate and per-family focused-disabled policy before any paint
+site can adopt them; the text-selection reverse-video and menu sweep assertions
+of the reference belong to the editors/overlays owners.
