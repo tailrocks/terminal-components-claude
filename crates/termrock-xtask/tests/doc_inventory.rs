@@ -19,6 +19,19 @@ fn tracked_workspace_documentation_has_no_unregistered_examples() {
 }
 
 #[test]
+fn termrock_shell_examples_remain_covered_after_empty_doctests_are_disabled() {
+    let shell_source = include_str!("../../termrock-shell/src/lib.rs");
+    let with_example = format!(
+        "{shell_source}\n/// # Examples\n/// ```rust\n/// fn shell_example() {{}}\n/// ```\n"
+    );
+    let issues = inspect_fixture("crates/termrock-shell/src/lib.rs", &with_example);
+    assert!(
+        !issues.is_empty(),
+        "the documentation guard accepted a Rust example in the target with doctests disabled"
+    );
+}
+
+#[test]
 fn rust_and_edition_fences_fail_closed() {
     for info in [
         "rust",
