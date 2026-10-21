@@ -79,6 +79,7 @@ struct EditorApp {
     actions: Vec<CodeAction>,
     read_only: bool,
     disabled: bool,
+    commit_on_blur: bool,
 }
 
 impl App for EditorApp {
@@ -87,6 +88,7 @@ impl App for EditorApp {
             .read_only(self.read_only)
             .disabled(self.disabled)
             .with_completion(POPUP, &self.provider)
+            .commit_on_blur(self.commit_on_blur)
             .update(cx, &mut self.state);
         if let Some(action) = response.action_ref() {
             self.actions.push(action.clone());
@@ -99,6 +101,7 @@ impl App for EditorApp {
             .read_only(self.read_only)
             .disabled(self.disabled)
             .with_completion(POPUP, &self.provider)
+            .commit_on_blur(self.commit_on_blur)
             .draw(ui, Rect::new(0, 0, 80, 8), &self.state);
         ui.register_focus_only(NEXT, Focusability::Focusable);
     }
@@ -127,6 +130,7 @@ fn runtime_with(text: &str, mode: ProviderMode) -> Runtime<EditorApp> {
             actions: Vec::new(),
             read_only: false,
             disabled: false,
+            commit_on_blur: true,
         },
         Theme::junie(),
     );
@@ -134,6 +138,14 @@ fn runtime_with(text: &str, mode: ProviderMode) -> Runtime<EditorApp> {
     let mut buffer = Buffer::empty(AREA);
     runtime.draw_buffer(AREA, &mut buffer).commit_presented();
     runtime.set_focus(Some(EDITOR));
+    runtime.draw_buffer(AREA, &mut buffer).commit_presented();
+    runtime
+}
+
+fn runtime_preserving_blur(text: &str) -> Runtime<EditorApp> {
+    let mut runtime = runtime(text);
+    runtime.app_mut().commit_on_blur = false;
+    let mut buffer = Buffer::empty(AREA);
     runtime.draw_buffer(AREA, &mut buffer).commit_presented();
     runtime
 }
@@ -542,4 +554,33 @@ fn outside_pointer_and_focus_loss_dismiss_and_commit() {
     assert_eq!(runtime.app().actions.last(), Some(&CodeAction::Committed));
     assert_eq!(runtime.focus(), Some(NEXT));
     assert!(!runtime.app().state.editor().is_editing());
+}
+
+#[test]
+fn focus_loss_dismisses_completion_but_preserves_configured_edit_session() {
+    let mut runtime = runtime_preserving_blur("SELECT co");
+    send(&mut runtime, KeyCode::Char(' '), KeyModifiers::CONTROL);
+    assert!(runtime.app().state.is_completion_open());
+    assert!(runtime.app().state.editor().is_editing());
+    let text = runtime.app().state.editor().text().to_owned();
+    let cursor = runtime.app().state.editor().cursor_offset();
+
+    runtime.set_focus(Some(NEXT));
+    let mut buffer = Buffer::empty(AREA);
+    runtime.draw_buffer(AREA, &mut buffer).commit_presented();
+    let _ = termrock_runtime::stub::deliver(&mut runtime, Input::Tick);
+    runtime.draw_buffer(AREA, &mut buffer).commit_presented();
+
+    assert!(!runtime.app().state.is_completion_open());
+    assert!(!runtime.is_open(POPUP));
+    assert!(runtime.app().state.editor().is_editing());
+    assert_eq!(runtime.app().state.editor().text(), text);
+    assert_eq!(runtime.app().state.editor().cursor_offset(), cursor);
+    assert_ne!(runtime.app().actions.last(), Some(&CodeAction::Committed));
+    assert_eq!(runtime.focus(), Some(NEXT));
+    assert!(
+        runtime.diagnostics().is_empty(),
+        "{:?}",
+        runtime.diagnostics()
+    );
 }
