@@ -1,6 +1,7 @@
 use termrock::{
-    Color, Cx, EmptyState, FrameRead, GlyphRole, Id, ItemKey, KeySet, List, ListAction, ListState,
-    Modifier, PaintStyle, Part, Rect, Response, SelectMode, StateFlags, StylePatch, Ui, width,
+    Color, Cx, EmptyState, Focusability, FrameRead, GlyphRole, Id, ItemKey, List, ListAction,
+    ListState, Modifier, PaintStyle, Part, PartRef, Rect, Response, SelectMode, StateFlags,
+    StylePatch, Ui, width,
 };
 
 use showcase_data::LANGUAGES;
@@ -556,16 +557,23 @@ fn paint_list_row(ui: &mut Ui<'_>, area: Rect, row: RowPaint, fade: Option<f32>)
     }
 }
 
-fn paint_list_scrollbar(ui: &mut Ui<'_>, area: Rect, rows: usize) {
+fn paint_list_scrollbar(ui: &mut Ui<'_>, area: Rect, rows: usize, offset: usize) {
     let viewport = usize::from(area.height);
     if viewport == 0 || rows <= viewport {
         return;
     }
     let len = viewport.saturating_mul(viewport) / rows;
     let thumb = len.max(1).min(viewport);
+    let max_offset = rows.saturating_sub(viewport);
+    let top = offset
+        .saturating_mul(viewport.saturating_sub(thumb))
+        .checked_div(max_offset)
+        .unwrap_or(0);
+    let bottom = top.saturating_add(thumb);
     let x = area.right().saturating_sub(1);
     for row in 0..area.height {
-        let on_thumb = usize::from(row) < thumb;
+        let r = usize::from(row);
+        let on_thumb = r >= top && r < bottom;
         let style = if on_thumb {
             ink(THUMB, SURFACE)
         } else {
@@ -593,21 +601,21 @@ fn fade_keep(index: usize, viewport: usize, total: usize) -> Option<f32> {
     }
 }
 
-fn position_label(viewport: usize, total: usize) -> String {
+fn position_label(viewport: usize, total: usize, offset: usize) -> String {
     if viewport == 0 || total <= viewport {
         return String::new();
     }
-    let end = viewport.min(total);
-    format!("1–{end} of {total}")
+    let start = offset.saturating_add(1);
+    let end = offset.saturating_add(viewport).min(total);
+    format!("{start}–{end} of {total}")
 }
 
-fn paint_language(ui: &mut Ui<'_>, card: Rect, chosen: &str) {
-    let label = position_label(
-        usize::from(card_inner(card).height.saturating_sub(2)),
-        LANGUAGES.len(),
-    );
-    paint_card_chrome(ui, card, "Language", &label);
+fn paint_language(ui: &mut Ui<'_>, card: Rect, chosen: &str, single: &ListState) {
     let inner = card_inner(card);
+    let list_h = inner.height.saturating_sub(2);
+    let scroll_offset = single.scroll().offset();
+    let label = position_label(usize::from(list_h), LANGUAGES.len(), scroll_offset);
+    paint_card_chrome(ui, card, "Language", &label);
     if inner.is_empty() {
         return;
     }
@@ -618,37 +626,60 @@ fn paint_language(ui: &mut Ui<'_>, card: Rect, chosen: &str) {
     );
     let list = Rect {
         y: inner.y.saturating_add(2),
-        height: inner.height.saturating_sub(2),
+        height: list_h,
         ..inner
     };
+    ui.register_control(SINGLE, list, Focusability::Focusable);
     let viewport = usize::from(list.height);
-    for (index, name) in LANGUAGES.iter().enumerate().take(viewport) {
-        let Ok(offset) = u16::try_from(index) else {
+    ui.report_layout(
+        SINGLE,
+        termrock::LayoutFacts::new(viewport, LANGUAGES.len(), list.height, list.width),
+    );
+    if !ui.is_inert() {
+        ui.publish_bindings(SINGLE, ui.state(SINGLE), single_list().table());
+    }
+    for (row_idx, (_, name)) in LANGUAGES
+        .iter()
+        .enumerate()
+        .skip(scroll_offset)
+        .take(viewport)
+        .enumerate()
+    {
+        let Ok(offset) = u16::try_from(row_idx) else {
             break;
         };
+        let row_rect = Rect {
+            y: list.y.saturating_add(offset),
+            height: 1,
+            ..list
+        };
+        ui.register_part(
+            SINGLE,
+            PartRef::item(Part::ROW, language_key(name)),
+            row_rect,
+        );
         paint_list_row(
             ui,
-            Rect {
-                y: list.y.saturating_add(offset),
-                height: 1,
-                ..list
-            },
+            row_rect,
             RowPaint {
                 label: name,
                 meta: "",
                 selected: name == &chosen,
                 disabled: false,
             },
-            fade_keep(index, viewport, LANGUAGES.len()),
+            fade_keep(row_idx, viewport, LANGUAGES.len()),
         );
     }
-    paint_list_scrollbar(ui, list, LANGUAGES.len());
+    paint_list_scrollbar(ui, list, LANGUAGES.len(), scroll_offset);
 }
 
-fn paint_files(ui: &mut Ui<'_>, card: Rect, checked: &KeySet) {
+fn paint_files(ui: &mut Ui<'_>, card: Rect, multi: &ListState) {
+    let checked = multi.checked();
     let count = checked.len_in(FILES.len());
-    paint_card_chrome(ui, card, "Files to include", &format!("{count} selected"));
     let inner = card_inner(card);
+    let list_h = inner.height.saturating_sub(2);
+    let scroll_offset = multi.scroll().offset();
+    paint_card_chrome(ui, card, "Files to include", &format!("{count} selected"));
     if inner.is_empty() {
         return;
     }
@@ -659,31 +690,47 @@ fn paint_files(ui: &mut Ui<'_>, card: Rect, checked: &KeySet) {
     );
     let list = Rect {
         y: inner.y.saturating_add(2),
-        height: inner.height.saturating_sub(2),
+        height: list_h,
         ..inner
     };
+    ui.register_control(MULTI, list, Focusability::Focusable);
     let viewport = usize::from(list.height);
-    for (index, file) in FILES.iter().enumerate().take(viewport) {
-        let Ok(offset) = u16::try_from(index) else {
+    ui.report_layout(
+        MULTI,
+        termrock::LayoutFacts::new(viewport, FILES.len(), list.height, list.width),
+    );
+    if !ui.is_inert() {
+        ui.publish_bindings(MULTI, ui.state(MULTI), multi_list().table());
+    }
+    for (row_idx, (_, file)) in FILES
+        .iter()
+        .enumerate()
+        .skip(scroll_offset)
+        .take(viewport)
+        .enumerate()
+    {
+        let Ok(offset) = u16::try_from(row_idx) else {
             break;
         };
+        let row_rect = Rect {
+            y: list.y.saturating_add(offset),
+            height: 1,
+            ..list
+        };
+        ui.register_part(MULTI, PartRef::item(Part::ROW, file_key(file)), row_rect);
         paint_list_row(
             ui,
-            Rect {
-                y: list.y.saturating_add(offset),
-                height: 1,
-                ..list
-            },
+            row_rect,
             RowPaint {
                 label: file.label,
                 meta: file.meta,
                 selected: checked.contains(file_key(file)),
                 disabled: file.disabled,
             },
-            fade_keep(index, viewport, FILES.len()),
+            fade_keep(row_idx, viewport, FILES.len()),
         );
     }
-    paint_list_scrollbar(ui, list, FILES.len());
+    paint_list_scrollbar(ui, list, FILES.len(), scroll_offset);
 }
 
 fn paint_search(ui: &mut Ui<'_>, card: Rect, center_title: bool) {
@@ -726,7 +773,14 @@ fn paint_wide_readout(ui: &mut Ui<'_>, area: Rect, cards_h: u16) {
     }
 }
 
-fn paint_playground(ui: &mut Ui<'_>, area: Rect, chosen: &str, checked: &KeySet, wide: bool) {
+fn paint_playground(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    chosen: &str,
+    single: &ListState,
+    multi: &ListState,
+    wide: bool,
+) {
     if area.is_empty() {
         return;
     }
@@ -749,8 +803,8 @@ fn paint_playground(ui: &mut Ui<'_>, area: Rect, chosen: &str, checked: &KeySet,
         let language = offset_card(view, cards.rects[0]);
         let files = offset_card(view, cards.rects[1]);
         let search = offset_card(view, cards.rects[2]);
-        paint_language(ui, language, chosen);
-        paint_files(ui, files, checked);
+        paint_language(ui, language, chosen, single);
+        paint_files(ui, files, multi);
         paint_search(ui, search, wide);
     });
     if wide {
@@ -862,7 +916,8 @@ impl Page for ListsPage {
                     ..body
                 },
                 chosen,
-                self.multi.checked(),
+                &self.single,
+                &self.multi,
                 wide,
             );
         });
