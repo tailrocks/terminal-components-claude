@@ -2,8 +2,8 @@ use ratatui_core::layout::Rect;
 
 use crate::author::LayerSlotAuthor;
 use crate::{
-    AsItem, Dialog, DialogState, LayerSlot, Picker, PickerState, PropsList, PropsRow, PropsState,
-    RowFn,
+    AsItem, Dialog, DialogState, FormDialog, FormDialogState, LayerSlot, Picker, PickerState,
+    PropsList, PropsRow, PropsState, RowFn,
 };
 
 /// Typed consumer methods for drawing a dialog in a resolved layer slot.
@@ -25,6 +25,27 @@ impl DialogSlotExt for LayerSlot<'_, '_> {
         body: impl FnOnce(&mut LayerSlot<'_, '_>),
     ) {
         self.render_component(|ui, area| dialog.draw_body_slot(ui, area, state, body));
+    }
+}
+
+/// Typed consumer method for drawing a reusable form dialog in its resolved slot.
+pub trait FormDialogSlotExt {
+    fn form_dialog<D: crate::forms::FormData + ?Sized>(
+        &mut self,
+        component: &FormDialog<'_>,
+        state: &FormDialogState,
+        data: &D,
+    );
+}
+
+impl FormDialogSlotExt for LayerSlot<'_, '_> {
+    fn form_dialog<D: crate::forms::FormData + ?Sized>(
+        &mut self,
+        component: &FormDialog<'_>,
+        state: &FormDialogState,
+        data: &D,
+    ) {
+        self.render_component(|ui, area| component.draw(ui, area, state, data));
     }
 }
 

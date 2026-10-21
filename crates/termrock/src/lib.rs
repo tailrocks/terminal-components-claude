@@ -91,7 +91,7 @@ pub use blocks::{
     MasterDetailError, MasterDetailPolicy, MasterDetailState, Regions, ShellSlots, SplitBlock,
     SplitBlockError,
 };
-pub use slots::{DialogSlotExt, PickerSlotExt, PropsSlotExt};
+pub use slots::{DialogSlotExt, FormDialogSlotExt, PickerSlotExt, PropsSlotExt};
 pub use termrock_runtime::ui::LayerSlot;
 pub use termrock_runtime::{
     Acc, ActivationFeedback, ActivationKey, App, ClockError, FeedbackClock, FeedbackClockError,
@@ -215,8 +215,10 @@ pub use termrock_editors::{
 };
 
 pub use termrock_forms::{
-    EnterPolicy, FieldKind, FieldMut, FieldRef, FieldSpan, FieldSpec, Form, FormAction, FormData,
-    FormState, GroupKey, Wizard, WizardAction, WizardCmd, WizardState, WizardStep,
+    EnterPolicy, FieldKind, FieldMut, FieldRef, FieldSizingPolicy, FieldSpan, FieldSpec, Form,
+    FormAction, FormData, FormDialog, FormDialogAction, FormDialogLayoutPolicy, FormDialogState,
+    FormDialogSubmitPolicy, FormState, GroupKey, Wizard, WizardAction, WizardCmd, WizardState,
+    WizardStep,
 };
 
 pub use termrock_render::{TerminalCell, TerminalCursor, TerminalSource};
