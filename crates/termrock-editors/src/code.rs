@@ -2622,13 +2622,17 @@ mod tests {
         assert!(runtime.cursor().is_some());
         runtime.set_focus(None);
         let _ = runtime.settle();
-        runtime.draw_buffer(buffer.area, &mut buffer).commit_presented();
+        runtime
+            .draw_buffer(buffer.area, &mut buffer)
+            .commit_presented();
         assert!(runtime.app().state.is_editing());
         assert_eq!(runtime.cursor(), None);
         assert!(runtime.diagnostics().is_empty());
         runtime.set_focus(Some(ID));
         let _ = runtime.settle();
-        runtime.draw_buffer(buffer.area, &mut buffer).commit_presented();
+        runtime
+            .draw_buffer(buffer.area, &mut buffer)
+            .commit_presented();
         assert!(runtime.app().state.is_editing());
         assert!(runtime.cursor().is_some());
         assert!(runtime.diagnostics().is_empty());
