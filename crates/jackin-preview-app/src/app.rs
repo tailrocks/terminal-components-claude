@@ -292,7 +292,6 @@ const CAPSULE_COMMANDS: &[Item<'static>] = &[
 ];
 const TICK_MS: u64 = crate::rain::TICK_MS;
 
-mod accounts_add_form_view;
 mod accounts_detail_view;
 mod accounts_drawer_view;
 mod accounts_filter_view;
@@ -6758,7 +6757,7 @@ impl App {
     }
 
     fn draw_accounts(&self, ui: &mut Ui<'_>, area: Rect) {
-        if self.accounts.form_open {
+        if self.accounts.form_open && !self.accounts_add_form_scene() {
             if !self.accounts.started {
                 paint_lines(
                     ui,
@@ -7257,12 +7256,9 @@ impl App {
             && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
     }
 
-    fn accounts_add_form_scene(&self, junie: bool, screen: Rect) -> bool {
-        // `a` on the paused 120×40 accounts list. The start button is not the dialog.
-        screen.width == 120
-            && screen.height == 40
-            && junie
-            && self.route == Route::Accounts
+    fn accounts_add_form_scene(&self) -> bool {
+        // `a` on the paused accounts list. The start button is not the dialog.
+        self.route == Route::Accounts
             && self.world.scenario == Scenario::AccountsMixed
             && self.motion == Motion::Paused
             && self.accounts.form_open
@@ -7288,19 +7284,54 @@ impl App {
             && self.picker_mode.is_none()
     }
 
-    fn historical_accounts_add_form(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        self.accounts_add_form_scene(Self::junie_truecolor(theme), screen)
-    }
-
     fn add_form_key_host(&self) -> bool {
-        self.accounts_add_form_scene(self.screen_junie, self.screen)
+        self.accounts_add_form_scene()
     }
 
-    fn draw_historical_accounts_add_form(&self, ui: &mut Ui<'_>, screen: Rect) {
-        if !self.historical_accounts_add_form(ui.theme_ref(), screen) {
+    fn accounts_add_form_dialog() -> Dialog<'static> {
+        const FORM_ACTIONS: &[Action<'static>] = &[
+            Action::quiet(ActionKey::custom("plain"), "Enter plain text instead"),
+            Action::new(ActionKey::custom("validate"), "Validate"),
+            Action::quiet(ActionKey::CANCEL, "Cancel"),
+            Action::new(ActionKey::CONFIRM, "Save"),
+        ];
+        Dialog::new(crate::screens::accounts::FORM)
+            .title("New account")
+            .meta("form · unsaved")
+            .head_in_border()
+            .width(70)
+            .body_rows(27)
+            .align(termrock::ScreenAlign::GeometricCenter)
+            .actions(FORM_ACTIONS)
+            .cancel(ActionKey::CANCEL)
+            .primary(ActionKey::CONFIRM)
+    }
+
+    fn draw_accounts_add_form(&self, ui: &mut Ui<'_>, screen: Rect) {
+        if !self.accounts_add_form_scene() {
             return;
         }
-        accounts_add_form_view::paint(ui);
+        let brand_style = ui.paint_patch(
+            &termrock::StylePatch::new()
+                .set_fg(termrock::Role::OnAccent)
+                .set_bg(termrock::Role::Accent),
+        );
+        ui.paint_str(Rect::new(1, 0, 9, 1), " jackin❯ ", brand_style);
+        ui.modal_backdrop(screen);
+        let dialog = Self::accounts_add_form_dialog();
+        let width = 70u16.min(screen.width);
+        let height = 30u16.min(screen.height);
+        let x = screen
+            .x
+            .saturating_add(screen.width.saturating_sub(width) / 2);
+        let y = screen
+            .y
+            .saturating_add(screen.height.saturating_sub(height) / 2);
+        let area = Rect::new(x, y, width, height);
+
+        dialog.draw(ui, area, &DialogState::default(), |ui, body| {
+            self.draw_accounts_add_form_body(ui, body);
+        });
         if self.add_form_required {
             // Backtab then Enter. The control row includes the focus gutter.
             let message_bg = ui.theme_ref().bg(termrock::Surface::Elevated);
@@ -7317,6 +7348,244 @@ impl App {
             );
         }
         ui.set_bar_cursor(crate::screens::accounts::START, Position::new(29, 7));
+    }
+
+    fn draw_accounts_add_form_body(&self, ui: &mut Ui<'_>, body: Rect) {
+        if body.is_empty() {
+            return;
+        }
+        let primary_bold = ui.paint_patch(
+            &termrock::StylePatch::new()
+                .set_fg(termrock::Role::Fg(termrock::FgStep::Primary))
+                .add(Modifier::BOLD),
+        );
+        let secondary_bold = ui.paint_patch(
+            &termrock::StylePatch::new()
+                .set_fg(termrock::Role::Fg(termrock::FgStep::Secondary))
+                .add(Modifier::BOLD),
+        );
+        let secondary = ui.paint_patch(
+            &termrock::StylePatch::new().set_fg(termrock::Role::Fg(termrock::FgStep::Secondary)),
+        );
+        let faint = ui.paint_patch(
+            &termrock::StylePatch::new().set_fg(termrock::Role::Fg(termrock::FgStep::Faint)),
+        );
+        let primary_plain = ui.paint_patch(
+            &termrock::StylePatch::new().set_fg(termrock::Role::Fg(termrock::FgStep::Primary)),
+        );
+        let field_fill = ui.paint_patch(
+            &termrock::StylePatch::new().set_bg(termrock::Role::Surface(termrock::Surface::Field)),
+        );
+        let field_text = ui.paint_patch(
+            &termrock::StylePatch::new()
+                .set_fg(termrock::Role::Fg(termrock::FgStep::Muted))
+                .set_bg(termrock::Role::Surface(termrock::Surface::Field)),
+        );
+        let field_value = ui.paint_patch(
+            &termrock::StylePatch::new()
+                .set_fg(termrock::Role::Fg(termrock::FgStep::Primary))
+                .set_bg(termrock::Role::Surface(termrock::Surface::Field)),
+        );
+        let gutter = ui.paint_patch(
+            &termrock::StylePatch::new()
+                .set_fg(termrock::Role::Focus)
+                .set_bg(termrock::Role::Surface(termrock::Surface::Field)),
+        );
+        let radio_active =
+            ui.paint_patch(&termrock::StylePatch::new().set_fg(termrock::Role::Accent));
+
+        // Row 0 (y = body.y): Display name *
+        ui.paint_str(
+            Rect::new(body.x.saturating_add(2), body.y, 13, 1),
+            "Display name ",
+            primary_bold,
+        );
+        ui.paint_str(
+            Rect::new(body.x.saturating_add(15), body.y, 1, 1),
+            "*",
+            secondary_bold,
+        );
+
+        // Row 1 (y = body.y + 1): Name input field
+        let field_width = body.width.saturating_sub(2);
+        ui.fill(
+            Rect::new(body.x, body.y.saturating_add(1), field_width, 1),
+            field_fill,
+        );
+        ui.paint_str(
+            Rect::new(body.x, body.y.saturating_add(1), 1, 1),
+            "▎",
+            gutter,
+        );
+        if !self.add_form_required {
+            ui.paint_str(
+                Rect::new(body.x.saturating_add(2), body.y.saturating_add(1), 21, 1),
+                "Personal, Work, Team…",
+                field_text,
+            );
+        }
+
+        // Row 4 (y = body.y + 4): Purpose label optional
+        ui.paint_str(
+            Rect::new(body.x.saturating_add(2), body.y.saturating_add(4), 15, 1),
+            "Purpose label  ",
+            secondary,
+        );
+        ui.paint_str(
+            Rect::new(body.x.saturating_add(17), body.y.saturating_add(4), 8, 1),
+            "optional",
+            faint,
+        );
+
+        // Row 5 (y = body.y + 5): Purpose input field
+        ui.fill(
+            Rect::new(
+                body.x.saturating_add(1),
+                body.y.saturating_add(5),
+                field_width,
+                1,
+            ),
+            field_fill,
+        );
+        ui.paint_str(
+            Rect::new(body.x.saturating_add(2), body.y.saturating_add(5), 29, 1),
+            "personal · work · experiments",
+            field_text,
+        );
+
+        // Row 8 (y = body.y + 8): Provider
+        ui.paint_str(
+            Rect::new(body.x.saturating_add(2), body.y.saturating_add(8), 8, 1),
+            "Provider",
+            secondary,
+        );
+
+        // Row 9 (y = body.y + 9): Provider dropdown
+        ui.fill(
+            Rect::new(
+                body.x.saturating_add(1),
+                body.y.saturating_add(9),
+                field_width,
+                1,
+            ),
+            field_fill,
+        );
+        ui.paint_str(
+            Rect::new(body.x.saturating_add(1), body.y.saturating_add(9), 34, 1),
+            " Claude Code · Anthropic / Claude",
+            field_value,
+        );
+        ui.paint_str(
+            Rect::new(body.x.saturating_add(63), body.y.saturating_add(9), 1, 1),
+            "▾",
+            field_text,
+        );
+
+        // Row 12 (y = body.y + 12): Provider runtime note
+        ui.paint_str(
+            Rect::new(
+                body.x.saturating_add(2),
+                body.y.saturating_add(12),
+                body.width.saturating_sub(4),
+                1,
+            ),
+            "Agent runtime Claude Code · provider Anthropic / Claude · usage surface Construct",
+            field_text,
+        );
+
+        // Row 14 (y = body.y + 14): Credential source
+        ui.paint_str(
+            Rect::new(body.x.saturating_add(2), body.y.saturating_add(14), 17, 1),
+            "Credential source",
+            secondary,
+        );
+
+        // Rows 15..17 (y = body.y + 15..17): Radios
+        ui.paint_str(
+            Rect::new(body.x.saturating_add(1), body.y.saturating_add(15), 3, 1),
+            "(●)",
+            radio_active,
+        );
+        ui.paint_str(
+            Rect::new(body.x.saturating_add(4), body.y.saturating_add(15), 38, 1),
+            " 1Password item / field  (recommended)",
+            primary_plain,
+        );
+        ui.paint_str(
+            Rect::new(body.x.saturating_add(1), body.y.saturating_add(16), 3, 1),
+            "( )",
+            field_text,
+        );
+        ui.paint_str(
+            Rect::new(body.x.saturating_add(4), body.y.saturating_add(16), 19, 1),
+            " Local agent folder",
+            primary_plain,
+        );
+        ui.paint_str(
+            Rect::new(body.x.saturating_add(1), body.y.saturating_add(17), 3, 1),
+            "( )",
+            field_text,
+        );
+        ui.paint_str(
+            Rect::new(body.x.saturating_add(4), body.y.saturating_add(17), 19, 1),
+            " Plain-text API key",
+            primary_plain,
+        );
+
+        // Row 19 (y = body.y + 19): 1Password reference
+        ui.paint_str(
+            Rect::new(body.x.saturating_add(2), body.y.saturating_add(19), 19, 1),
+            "1Password reference",
+            secondary,
+        );
+
+        // Row 20 (y = body.y + 20): not chosen + Choose button
+        ui.paint_str(
+            Rect::new(body.x.saturating_add(2), body.y.saturating_add(20), 10, 1),
+            "not chosen",
+            primary_plain,
+        );
+        Button::new(crate::screens::accounts::OP, "Choose…").draw(
+            ui,
+            Rect::new(body.x.saturating_add(55), body.y.saturating_add(20), 10, 1),
+        );
+
+        // Register control IDs for focus/tab navigation in test harness
+        ui.register_control(
+            crate::screens::accounts::NAME,
+            Rect::new(body.x, body.y.saturating_add(1), field_width, 1),
+            termrock::Focusability::Focusable,
+        );
+        ui.register_control(
+            crate::screens::accounts::START,
+            Rect::new(body.x, body.y.saturating_add(1), field_width, 1),
+            termrock::Focusability::Focusable,
+        );
+        ui.register_control(
+            crate::screens::accounts::PROVIDER,
+            Rect::new(
+                body.x.saturating_add(1),
+                body.y.saturating_add(9),
+                field_width,
+                1,
+            ),
+            termrock::Focusability::Focusable,
+        );
+        ui.register_control(
+            crate::screens::accounts::SOURCE,
+            Rect::new(
+                body.x.saturating_add(1),
+                body.y.saturating_add(15),
+                field_width,
+                3,
+            ),
+            termrock::Focusability::Focusable,
+        );
+        ui.register_control(
+            crate::screens::accounts::SAVE,
+            Rect::new(body.x.saturating_add(59), body.y.saturating_add(27), 6, 1),
+            termrock::Focusability::Focusable,
+        );
     }
 
     fn historical_accounts_filter(&self, theme: &termrock::Theme, screen: Rect) -> bool {
@@ -11241,7 +11510,7 @@ impl TuiApp for App {
         self.draw_accounts_boot_needle_80(ui, full);
         self.draw_accounts_boot_needle_rest(ui, full);
         self.draw_historical_audit_accounts_80(ui);
-        self.draw_historical_accounts_add_form(ui, full);
+        self.draw_accounts_add_form(ui, full);
         self.draw_historical_accounts_filter(ui, full);
         self.draw_historical_accounts_filter_80(ui);
         if self.route == Route::Settings
