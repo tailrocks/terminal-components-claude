@@ -3,7 +3,7 @@
 //!
 //! Ported from PR #26 `src/shell/footer.rs` (commit `f4867e9b5`). The parity
 //! adaptation keeps the compose rules and drops the rendering: the parity
-//! hint bar is [`termrock_feedback::HintBar`], which renders a runtime
+//! hint bar is `termrock_feedback::HintBar`, which renders a runtime
 //! [`termrock_runtime::keymap::HintLayer`]; an app maps the composed
 //! [`Hint`]s onto that layer at adoption time. The source's `Kind` status
 //! variant and the peek (`ui::reveal`) integration are not ported: parity
