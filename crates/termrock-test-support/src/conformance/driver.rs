@@ -234,8 +234,19 @@ fn prepare_activation<C: Conformance>(h: &mut Harness<CaseApp<C>>) {
         "{}: cannot focus activation setup control {initial_focus:?}",
         C::NAME
     );
-    if requires_overlay || (has::<C>(Caps::OVERLAY) && C::activation_id() != C::control_id()) {
-        let _ = open_component_layer::<C>(h);
+    let opened_layer =
+        if requires_overlay || (has::<C>(Caps::OVERLAY) && C::activation_id() != C::control_id()) {
+            let _ = open_component_layer::<C>(h);
+            C::layer_id()
+        } else {
+            None
+        };
+    if let Some(layer) = opened_layer {
+        assert!(
+            h.runtime().is_open(layer),
+            "{}: activation setup did not open layer {layer:?}",
+            C::NAME
+        );
     }
     if requires_overlay && C::control_id() != initial_focus {
         assert!(
@@ -306,6 +317,7 @@ pub fn keyboard_and_mouse_activation_are_equivalent<C: Conformance>() {
     );
     let mut mouse = harness::<C>(Fixture::default());
     prepare_activation::<C>(&mut mouse);
+    clear_activation_setup::<C>(&mut mouse);
     let area = part_area::<C>(&mouse);
     let (x, y) = centre(area);
     let _ = activate_at::<C>(&mut mouse, x, y);
@@ -317,11 +329,19 @@ pub fn keyboard_and_mouse_activation_are_equivalent<C: Conformance>() {
         C::NAME,
         C::activation_gesture(),
     );
+    assert_not_opener_action::<C>(&by_mouse, "mouse");
     for chord in chords {
         let mut kb = harness::<C>(Fixture::default());
         prepare_activation::<C>(&mut kb);
+        clear_activation_setup::<C>(&mut kb);
         let _ = kb.key_mod(chord.code, chord.mods);
         let by_key = kb.app_mut().last.take();
+        assert!(
+            by_key.is_some(),
+            "{}: {chord} did not produce an activation response",
+            C::NAME
+        );
+        assert_not_opener_action::<C>(&by_key, "keyboard");
         assert_eq!(
             by_key,
             by_mouse,
@@ -333,6 +353,37 @@ pub fn keyboard_and_mouse_activation_are_equivalent<C: Conformance>() {
             kb.app().last_flow,
             mouse_flow,
             "{}: flow/invalidate differ for {chord}",
+            C::NAME
+        );
+    }
+}
+
+fn clear_activation_setup<C: Conformance>(h: &mut Harness<CaseApp<C>>) {
+    if let Some(opener_action) = C::opener_action() {
+        assert_eq!(
+            h.app_mut().last.take(),
+            Some(opener_action),
+            "{}: expected the owning-layer opener response before activation",
+            C::NAME
+        );
+    } else {
+        // Other setup paths may produce a harmless response. It must never be
+        // mistaken for the result of the gesture under test.
+        let _ = h.app_mut().last.take();
+    }
+    assert!(
+        h.app().last.is_none(),
+        "{}: stale setup response remained before activation",
+        C::NAME
+    );
+}
+
+fn assert_not_opener_action<C: Conformance>(action: &Option<C::Action>, gesture: &str) {
+    if let Some(opener_action) = C::opener_action() {
+        assert_ne!(
+            *action,
+            Some(opener_action),
+            "{}: {gesture} activation reused the opener response",
             C::NAME
         );
     }
@@ -646,12 +697,19 @@ pub fn local_override_does_not_mutate_the_theme<C: Conformance>() {
     // Theme equality deliberately ignores only generated recipe revisions.
     let mut patched = harness::<C>(Fixture::default()).with_auto_draw(false);
     let before = patched.runtime().theme().clone();
+    let before_fingerprint = patched.runtime().theme().fingerprint();
     patched.app_mut().fixture.patch = f.patch;
     patched.draw();
     assert_eq!(
         patched.runtime().theme(),
         &before,
         "{}: the theme changed",
+        C::NAME
+    );
+    assert_eq!(
+        patched.runtime().theme().fingerprint(),
+        before_fingerprint,
+        "{}: the installed theme recipe revision changed",
         C::NAME
     );
     if patched.app().fixture.patch.is_some() && C::caps().bits() != 0 && !C::PARTS.is_empty() {

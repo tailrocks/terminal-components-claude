@@ -721,6 +721,10 @@ impl Conformance for DialogCase {
         LAUNCH
     }
 
+    fn opener_action() -> Option<Self::Action> {
+        Some(DialogAction::Action(K_OPEN))
+    }
+
     fn activation_requires_overlay() -> bool {
         true
     }
