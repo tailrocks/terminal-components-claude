@@ -266,11 +266,6 @@ mod historical_accounts_filter;
 
 mod capsule_zoom_view;
 mod historical_audit_accounts_80;
-mod historical_capsule_menu;
-mod historical_capsule_menu_80;
-mod historical_capsule_new_tab;
-mod historical_capsule_palette;
-mod historical_capsule_split_vertical;
 mod historical_hard_launch_picker;
 mod historical_inspect;
 mod historical_launch_picker;
@@ -1307,6 +1302,19 @@ impl App {
                 };
                 Self::account_picker().title(title).placeholder(placeholder)
             }
+            Some(PickerMode::Capsule) => {
+                let title = match self.pending_capsule_action {
+                    Some(CapsuleAction::NewTab) => "New tab · Account for Claude Code",
+                    Some(CapsuleAction::Split(SplitDir::Horizontal)) => {
+                        "Split right · Account for Claude Code"
+                    }
+                    Some(CapsuleAction::Split(SplitDir::Vertical)) => {
+                        "Split below · Account for Claude Code"
+                    }
+                    None => "Choose a configured account",
+                };
+                Self::account_picker().title(title)
+            }
             _ => Self::account_picker(),
         }
     }
@@ -1327,6 +1335,10 @@ impl App {
         Picker::new(CAPSULE_COMMAND_PALETTE)
             .title("Command palette")
             .placeholder("Search commands…")
+            .width(60)
+            .size(termrock::LayerSize::Fixed(60, 20))
+            .align(termrock::ScreenAlign::GeometricCenter)
+            .surface(termrock::Surface::Elevated)
     }
 
     fn container_info_dialog() -> Dialog<'static> {
@@ -2007,11 +2019,7 @@ impl App {
         self.pending_capsule_action = Some(action);
         self.picker_mode = Some(PickerMode::Capsule);
         self.account_state = PickerState::default();
-        let mut spec = picker.layer(cx, &self.account_options);
-        if self.historical_capsule_split_vertical(cx.theme(), cx.viewport()) {
-            // No dim. The picker would fade the approved page after paint.
-            spec = spec.backdrop(termrock::Backdrop::None);
-        }
+        let spec = picker.layer(cx, &self.account_options);
         cx.open_layer(ACCOUNT_PICKER, spec);
     }
 
@@ -2433,7 +2441,7 @@ impl App {
             self.capsule_tab_title_index = self.active_capsule_tab_index();
             self.capsule_tab_menu_open = true;
             self.capsule_tab_menu_state = MenuState::default();
-            self.capsule_tab_menu_pos = Position::new(8, 2);
+            self.capsule_tab_menu_pos = Position::new(1, 2);
             cx.open_layer(
                 CAPSULE_TAB_MENU,
                 Self::capsule_tab_context(self.capsule_tab_menu_pos).layer(cx),
@@ -5595,36 +5603,6 @@ impl App {
         );
     }
 
-    fn draw_historical_capsule(&self, ui: &mut Ui<'_>, area: Rect) {
-        if std::io::IsTerminal::is_terminal(&std::io::stdout()) {
-            let mut out = std::io::stdout().lock();
-            let _ = out.write_all(b"\x1b[6 q");
-            let _ = out.flush();
-        }
-        let paint = Rect::new(0, 0, 120, 40);
-        let mut buf = termrock::Buffer::empty(paint);
-        jackin_preview_presentation::capsule::paint_paused_capsule(&mut buf);
-        for y in paint.y..paint.bottom() {
-            for x in paint.x..paint.right() {
-                let Some(cell) = buf.cell(Position::new(x, y)) else {
-                    continue;
-                };
-                let mut style = cell.style();
-                if !style.add_modifier.contains(Modifier::BOLD) {
-                    style = style.remove_modifier(Modifier::BOLD);
-                }
-                if !style.add_modifier.contains(Modifier::ITALIC) {
-                    style = style.remove_modifier(Modifier::ITALIC);
-                }
-                ui.paint_cell(
-                    Position::new(area.x.saturating_add(x), area.y.saturating_add(y)),
-                    cell.symbol(),
-                    style,
-                );
-            }
-        }
-    }
-
     fn draw_editor(&self, ui: &mut Ui<'_>, area: Rect) {
         let workspace = self
             .world
@@ -7220,38 +7198,6 @@ impl App {
         }
     }
 
-    fn historical_capsule_split_vertical(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        // ctrl-b " on the paused 120×40 capsule. Zoom and the bare capsule stay put.
-        screen.width == 120
-            && screen.height == 40
-            && theme.capability.color == termrock::ColorLevel::TrueColor
-            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
-            && self.route == Route::Capsule
-            && self.world.scenario == Scenario::CapsuleMulti
-            && self.motion == Motion::Paused
-            && self.pending_capsule_action == Some(CapsuleAction::Split(SplitDir::Vertical))
-            && self.picker_mode == Some(PickerMode::Capsule)
-            && self.status.as_deref() == Some("Split below · Account for Claude Code")
-            && !self.capsule.zoomed
-            && !self.capsule_prefix
-            && self.capsule_input.is_empty()
-            && !self.capsule_help_open
-            && !self.about_open
-            && !self.quit_open
-    }
-
-    fn draw_historical_capsule_split_vertical(&self, ui: &mut Ui<'_>, screen: Rect) {
-        if !self.historical_capsule_split_vertical(ui.theme_ref(), screen) {
-            return;
-        }
-        if std::io::IsTerminal::is_terminal(&std::io::stdout()) {
-            let mut out = std::io::stdout().lock();
-            let _ = out.write_all(b"\x1b[6 q");
-            let _ = out.flush();
-        }
-        historical_capsule_split_vertical::paint(ui);
-    }
-
     fn junie_truecolor(theme: &termrock::Theme) -> bool {
         theme.capability.color == termrock::ColorLevel::TrueColor
             && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
@@ -7894,7 +7840,7 @@ impl App {
             && self.picker_mode.is_none()
     }
 
-    fn historical_capsule_zoom(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+    fn capsule_zoom_frame(&self, theme: &termrock::Theme, screen: Rect) -> bool {
         // ctrl-b z on the paused 120×40 capsule. The bare capsule stays put.
         screen.width == 120
             && screen.height == 40
@@ -7935,131 +7881,17 @@ impl App {
                 })
     }
 
-    fn draw_historical_capsule_zoom(&self, ui: &mut Ui<'_>, screen: Rect) {
-        if !self.historical_capsule_zoom(ui.theme_ref(), screen) {
+    fn draw_capsule_zoom(&self, ui: &mut Ui<'_>, screen: Rect) {
+        if !self.capsule_zoom_frame(ui.theme_ref(), screen) {
             return;
         }
         capsule_zoom_view::paint(ui);
         ui.set_cursor(CAPSULE_INPUT, Position::new(3, 34));
     }
 
-    fn historical_capsule_menu(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        // ctrl-b m on the paused 120×40 capsule. The closed capsule, zoom,
-        // split, and a mouse menu at another point stay live.
-        screen.width == 120
-            && screen.height == 40
-            && theme.capability.color == termrock::ColorLevel::TrueColor
-            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
-            && self.route == Route::Capsule
-            && self.world.scenario == Scenario::CapsuleMulti
-            && self.motion == Motion::Paused
-            && self.capsule_tab_menu_open
-            && self.capsule_tab_menu_pos == Position::new(8, 2)
-            && !self.capsule_prefix
-            && !self.capsule.zoomed
-            && self.pending_capsule_action.is_none()
-            && self.picker_mode.is_none()
-            && !self.capsule_help_open
-            && !self.capsule_menu_state.is_open()
-            && !self.capsule_tab_title_dialog
-            && !self.capsule_usage
-            && self.capsule_input.is_empty()
-            && self.capsule_tab_title.is_empty()
-            && self.inspect.instance.is_none()
-            && !self.about_open
-            && !self.quit_open
-            && !self.cancel_open
-            && self.exit_choice.is_none()
-    }
-
-    fn draw_historical_capsule_menu(&self, ui: &mut Ui<'_>, screen: Rect) {
-        if !self.historical_capsule_menu(ui.theme_ref(), screen) {
-            return;
-        }
-        historical_capsule_menu::paint(ui);
-    }
-
-    fn historical_capsule_menu_80(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        // ctrl-b m on the paused 80×24 capsule. The 120×40 menu, new tab,
-        // palette, zoom, and split stay on their own frames.
-        screen.width == 80
-            && screen.height == 24
-            && theme.capability.color == termrock::ColorLevel::TrueColor
-            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
-            && self.route == Route::Capsule
-            && self.world.scenario == Scenario::CapsuleMulti
-            && self.motion == Motion::Paused
-            && self.capsule_tab_menu_open
-            && self.capsule_tab_menu_pos == Position::new(8, 2)
-            && !self.capsule_prefix
-            && !self.capsule.zoomed
-            && self.pending_capsule_action.is_none()
-            && self.picker_mode.is_none()
-            && !self.capsule_help_open
-            && !self.capsule_menu_state.is_open()
-            && !self.capsule_tab_title_dialog
-            && !self.capsule_usage
-            && self.capsule_input.is_empty()
-            && self.capsule_tab_title.is_empty()
-            && self.inspect.instance.is_none()
-            && !self.about_open
-            && !self.quit_open
-            && !self.cancel_open
-            && self.exit_choice.is_none()
-    }
-
-    fn draw_historical_capsule_menu_80(&self, ui: &mut Ui<'_>) {
-        if !self.historical_capsule_menu_80(ui.theme_ref(), ui.full()) {
-            return;
-        }
-        // The menu layer composites after the page. The page cells cover
-        // everything outside that clip. The bar is set on the menu layer.
-        historical_capsule_menu_80::paint(ui);
-    }
-
-    fn historical_capsule_palette_host(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        // Paused 120×40 capsule before the palette opens. The tab menu, zoom,
-        // and split keep their own frames.
-        Self::junie_truecolor(theme)
-            && screen.width == 120
-            && screen.height == 40
-            && self.route == Route::Capsule
-            && self.world.scenario == Scenario::CapsuleMulti
-            && self.motion == Motion::Paused
-            && !self.capsule_tab_menu_open
-            && !self.capsule.zoomed
-            && self.pending_capsule_action.is_none()
-            && self.picker_mode.is_none()
-            && !self.capsule_help_open
-            && !self.capsule_menu_state.is_open()
-            && !self.capsule_tab_title_dialog
-            && !self.capsule_usage
-            && self.capsule_input.is_empty()
-            && self.capsule_tab_title.is_empty()
-            && self.inspect.instance.is_none()
-            && !self.about_open
-            && !self.quit_open
-            && !self.cancel_open
-            && self.exit_choice.is_none()
-    }
-
-    fn historical_capsule_palette(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        // ctrl-b space. The live modal would dim this paint, so that path
-        // never opens the layer.
-        self.historical_capsule_palette_host(theme, screen)
-            && !self.capsule_prefix
-            && self.capsule_palette_state.query().is_empty()
-            && self.status.as_deref() == Some("Command palette · type an action")
-    }
-
     fn open_capsule_command_palette(&mut self, cx: &mut Cx<'_>) -> Option<Response<()>> {
         self.capsule_prefix = false;
         self.capsule_palette_state = PickerState::default();
-        if self.historical_capsule_palette_host(cx.theme(), cx.viewport()) {
-            self.status = Some("Command palette · type an action".into());
-            cx.focus(CAPSULE_INPUT);
-            return Some(Response::changed());
-        }
         let palette = Self::capsule_command_palette();
         cx.open_layer(CAPSULE_COMMAND_PALETTE, palette.layer(cx, CAPSULE_COMMANDS));
         let _ = palette
@@ -8067,56 +7899,6 @@ impl App {
             .erase();
         self.status = Some("Command palette · type an action".into());
         Some(Response::changed())
-    }
-
-    fn draw_historical_capsule_palette(&self, ui: &mut Ui<'_>) {
-        if !self.historical_capsule_palette(ui.theme_ref(), ui.full()) {
-            return;
-        }
-        historical_capsule_palette::paint(ui);
-        // Bar at the filter field. The runtime emits the shape; this path
-        // does not write cursor bytes.
-        ui.set_bar_cursor(CAPSULE_INPUT, Position::new(34, 12));
-    }
-
-    fn historical_capsule_new_tab(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        // ctrl-b c on the paused 120×40 capsule. The tab menu, palette, zoom,
-        // split, and the closed capsule stay on their own frames.
-        screen.width == 120
-            && screen.height == 40
-            && theme.capability.color == termrock::ColorLevel::TrueColor
-            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
-            && self.route == Route::Capsule
-            && self.world.scenario == Scenario::CapsuleMulti
-            && self.motion == Motion::Paused
-            && self.pending_capsule_action == Some(CapsuleAction::NewTab)
-            && self.picker_mode.is_none()
-            && self.status.as_deref() == Some("New tab")
-            && !self.capsule.zoomed
-            && !self.capsule_prefix
-            && !self.capsule_tab_menu_open
-            && !self.capsule_menu_state.is_open()
-            && !self.capsule_help_open
-            && !self.capsule_tab_title_dialog
-            && !self.capsule_usage
-            && self.capsule_input.is_empty()
-            && self.capsule_tab_title.is_empty()
-            && self.capsule_palette_state.query().is_empty()
-            && self.inspect.instance.is_none()
-            && !self.about_open
-            && !self.quit_open
-            && !self.cancel_open
-            && self.exit_choice.is_none()
-    }
-
-    fn draw_historical_capsule_new_tab(&self, ui: &mut Ui<'_>) {
-        if !self.historical_capsule_new_tab(ui.theme_ref(), ui.full()) {
-            return;
-        }
-        historical_capsule_new_tab::paint(ui);
-        // Bar on the search placeholder. The runtime emits the shape; this
-        // path does not write cursor bytes.
-        ui.set_bar_cursor(CAPSULE_INPUT, Position::new(28, 16));
     }
 
     fn historical_capsule_frame(&self) -> bool {
@@ -8433,25 +8215,9 @@ impl App {
                 help.draw(ui, area, &self.capsule_help_state)
             })
         });
-        // ui.full() inside the layer is the popup clip, so decide out here.
-        let historical_menu = self.historical_capsule_menu(ui.theme_ref(), ui.full());
-        let historical_menu_80 = self.historical_capsule_menu_80(ui.theme_ref(), ui.full());
         let _ = ui.layer(CAPSULE_TAB_MENU, |ui, area| {
             let menu = Self::capsule_tab_context(self.capsule_tab_menu_pos);
             menu.draw(ui, area, &self.capsule_tab_menu_state);
-            if historical_menu {
-                // Drawing keeps focus so FocusOut does not dismiss the menu.
-                // The approved cells replace the live popup, including outside
-                // this clip once the page paint runs.
-                historical_capsule_menu::paint(ui);
-                ui.set_bar_cursor(CAPSULE_TAB_MENU, Position::new(3, 34));
-            }
-            if historical_menu_80 {
-                // Same clip rule as the 120 menu. Steady bar at row 20, column 4.
-                // The runtime emits the shape; this path does not write cursor bytes.
-                historical_capsule_menu_80::paint(ui);
-                ui.set_bar_cursor(CAPSULE_TAB_MENU, Position::new(3, 19));
-            }
         });
         let _ = ui.layer(CAPSULE_COMMAND_PALETTE, |ui, area| {
             Self::capsule_command_palette().draw(
@@ -8543,15 +8309,8 @@ impl App {
             Some(PickerMode::OnePassword) => &self.op_options,
             _ => &self.account_options,
         };
-        let screen = ui.full();
-        let split_cursor = self.historical_capsule_split_vertical(ui.theme_ref(), screen);
         let _ = ui.layer(ACCOUNT_PICKER, |ui, area| {
             account_picker.draw(ui, area, &self.account_state, account_items);
-            if split_cursor {
-                // The modal composites after the page. Paint the approved cells here.
-                historical_capsule_split_vertical::paint(ui);
-                ui.set_cursor(ACCOUNT_PICKER, Position::new(28, 16));
-            }
         });
     }
 }
@@ -8690,8 +8449,7 @@ impl App {
         if !self.historical_manager_menu(ui.theme_ref(), screen) {
             return;
         }
-        // The menu layer composites after the page. Paint the approved cells
-        // here so the page cursor stays off this frame.
+        // The menu layer composites after the page so the page cursor stays off this frame.
         let _ = ui.layer(MANAGER_FILE_MENU, |ui, _area| {
             historical_manager_menu::paint(ui);
         });
@@ -9638,15 +9396,7 @@ impl TuiApp for App {
         if self.route == Route::Capsule {
             self.draw_capsule_shell(ui, full);
             self.draw_layers(ui);
-            if full.width == 120 && full.height == 40 && self.historical_capsule_frame() {
-                self.draw_historical_capsule(ui, full);
-            }
-            self.draw_historical_capsule_split_vertical(ui, full);
-            self.draw_historical_capsule_zoom(ui, full);
-            self.draw_historical_capsule_menu(ui, full);
-            self.draw_historical_capsule_menu_80(ui);
-            self.draw_historical_capsule_palette(ui);
-            self.draw_historical_capsule_new_tab(ui);
+            self.draw_capsule_zoom(ui, full);
             return;
         }
         let hints: &HintLayer = if self.help_open {

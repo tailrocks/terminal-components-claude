@@ -25,6 +25,15 @@ Detailed clearances and blocked reviews are preserved under `docs/audits/evidenc
 
 ---
 
+## Architecture and input clearance — 2026-10-21
+
+Commit `83fcd0236` eliminated false-parity input violations identified by `tools/acceptance_architecture.py`:
+1. **TablePro snapshot include purge**: [`crates/tablepro-ui/src/app/connection_form_focus.rs`](file:///Users/donbeave/Projects/termrock-main-parity/crates/tablepro-ui/src/app/connection_form_focus.rs) had `include_str!` on `snapshots/tablepro/connections/form_advanced/120x40/truecolor.ansi`. Live test harness already asserts cursor suppression and component focus states. Purged snapshot inclusion and verified with `cargo nextest run -p tablepro-ui` (194/194 pass).
+2. **Dynamic include purge**: [`crates/termrock-shell/src/reach.rs`](file:///Users/donbeave/Projects/termrock-main-parity/crates/termrock-shell/src/reach.rs) macro `reach_tests!` had dynamic `include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/reach_allow.txt"))` referencing nonexistent fixture. Purged dynamic include path.
+3. **Checker state**: `python3 tools/acceptance_architecture.py` now attests 0 unaccounted inputs, 0 dependency violations, and 0 missing application shared closures. Remaining findings isolated to Jackin historical modules and frame comments currently under burndown.
+
+---
+
 ## Historical checkpoint:  parent integration gate (2026-10-21)
 
 Fields `332f40d`, Form window Stage1 `ae32d3f` and modal repair `02742e4` are integrated locally after independent clearances. The parent's scoped Fields/Forms/Runtime all-targets nextest, strict Clippy and package formatting now pass; the exact summary and remaining ignored tests are recorded in [parent evidence](../audits/2026-10-21-modal-fields-form-parent-integration.json). Modal's three review defects are resolved with 36,864 frozen-derived style cases and 10,092 legacy pair cases. This supersedes the earlier mapping rejections only for that bounded source contract. [Modal clearance](../audits/2026-10-21-modal-02742-independent-clearance.json).

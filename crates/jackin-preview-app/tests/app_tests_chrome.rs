@@ -177,7 +177,21 @@ fn capsule_prefix_space_paints_the_command_palette_cell() {
 fn capsule_prefix_m_paints_the_change_title_cell() {
     let closed = H::new(Scenario::CapsuleMulti, Motion::Paused, 40, 120, 40);
     let before = closed.buffer().cell((4, 5)).expect("closed capsule cell");
-    assert_ne!(before.symbol(), "C", "closed capsule has no Change title");
+    assert_ne!(
+        (
+            before.symbol(),
+            before.fg,
+            before.bg,
+            before.modifier.contains(termrock::Modifier::BOLD),
+        ),
+        (
+            "C",
+            termrock::Color::from_u32(0x00_ff_ff_ff),
+            termrock::Color::from_u32(0x00_2f_5a_a8),
+            true,
+        ),
+        "closed capsule has no Change title",
+    );
     assert!(
         !closed.text().contains("Change title…"),
         "closed capsule must stay off the menu frame: {}",
