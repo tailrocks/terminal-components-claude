@@ -60,3 +60,28 @@ resolver regression and MenuBar behavior across supported color profiles.
 Strict scoped Clippy and format checks passed. Full application-frame comparison
 was not run in this scoped task; the result does not certify application-level
 visual parity.
+
+## Superseded finding — e18 HOLD
+
+Independent review of `e18b33bf9c7c4e6a693aaf51a505ca6c66a238ae` found two
+incomplete paths: the new fallback resolver omitted the established Mono-rule
+and exact-profile restoration phase, and it read the built-in snapshot for
+families that callers had mutated through public `Recipes::get_mut` or
+`iter_mut`. The evidence and authoritative corrective plan are at
+`/private/tmp/menubar-e18b33bf-independent-evidence-20261021/review.json` and
+`correction-plan.json`.
+
+The follow-up records raw mutable access as private per-family provenance,
+retaining the public signatures and public `Recipe` fields. Such access is
+conservatively a whole-family author declaration; fallback resolution reads
+that family's live recipe. Typed Theme declarations use an internal tracked
+accessor, and the built-in initialization boundary clears provenance markers.
+Fallback resolution now also applies the same Mono rules and exact-profile
+restoration used by ordinary resolution. Focused regressions cover live raw
+family/default/special selectors, clone divergence, typed declarations before
+and after raw access, iterator access, no-op other-part access, explicit clear,
+ordinary-over-fallback precedence, and Mono behavior. The unchanged external
+consumer's four probes pass. Theme, runtime and overlay library tests pass
+446/446; strict scoped Clippy, formatting and diff checks pass. The result is
+still a WIP pending independent review of raw ordering and broader application
+comparison; it is not an acceptance claim.

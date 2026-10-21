@@ -895,10 +895,13 @@ pub fn bind_fallback_variant(
         .builtin(family)
         .unwrap_or_else(|| theme.recipes.get_or_neutral(family));
     let authored = theme.recipes.authored(family);
+    let raw = theme
+        .recipes
+        .is_raw_authored(family)
+        .then(|| theme.recipes.get_or_neutral(family));
     let effective = if requested == Variant::DEFAULT {
-        theme
-            .recipes
-            .authored_default_variant(family)
+        raw.map(|recipe| recipe.default_variant)
+            .or_else(|| theme.recipes.authored_default_variant(family))
             .unwrap_or(builtin.default_variant)
     } else {
         requested
@@ -906,6 +909,16 @@ pub fn bind_fallback_variant(
     let (mut acc, _) = apply_recipe(builtin, effective, part, flags, defaults.base);
     if let Some(delta) = builtin.variant(fallback).and_then(|parts| parts.get(part)) {
         acc = delta.apply(acc, flags);
+    }
+    // Public mutable recipes do not retain field-level provenance. Once a
+    // family has been exposed, resolve its current fallback selector live and
+    // treat the complete family as authored; never infer intent from values.
+    let mut raw_fallback_authored = StylePatch::new();
+    if let Some(delta) = raw.and_then(|recipe| recipe.variant(fallback))
+        && let Some(delta) = delta.get(part)
+    {
+        acc = delta.apply(acc, flags);
+        raw_fallback_authored = delta.apply(raw_fallback_authored, flags);
     }
 
     let (profiled_fallback, fallback_profile) = apply_level_profiles(
@@ -922,7 +935,7 @@ pub fn bind_fallback_variant(
     );
     acc = profiled_fallback;
 
-    let mut later_authored = StylePatch::new();
+    let mut later_authored = raw_fallback_authored;
     if let Some(authored) = theme.recipes.authored(family)
         && let Some(delta) = authored.variant(fallback).and_then(|parts| parts.get(part))
     {
@@ -940,6 +953,11 @@ pub fn bind_fallback_variant(
     acc = acc.merge(fallback_explicit);
     later_authored = later_authored.merge(fallback_explicit);
 
+    if let Some(raw) = raw {
+        let raw_delta = apply_recipe(raw, effective, part, flags, StylePatch::new()).0;
+        later_authored = later_authored.merge(raw_delta);
+        acc = apply_recipe(raw, effective, part, flags, acc).0;
+    }
     if let Some(authored) = authored {
         let authored_delta = apply_recipe(authored, effective, part, flags, StylePatch::new()).0;
         later_authored = later_authored.merge(authored_delta);
@@ -960,7 +978,25 @@ pub fn bind_fallback_variant(
         },
         acc,
     );
-    acc = profiled_ordinary;
+    acc = profiled_ordinary.merge(later_authored);
+
+    let mut exact_profile = ProfiledStyle::from_patch(fallback_profile.merge(ordinary_profile));
+    exact_profile.suppress(later_authored);
+    if theme.capability.color == super::ColorLevel::Mono {
+        let before_mono = acc;
+        acc = super::downgrade::apply_mono_with_defaults(
+            acc,
+            &theme.recipes,
+            family,
+            part,
+            flags,
+            Some(defaults.mono),
+        );
+        let targeted = authored_mono_override(theme, family, part, flags, Some(defaults.mono));
+        exact_profile.restore_profiled_channels(before_mono, &mut acc, targeted);
+        exact_profile.retain_unchanged(before_mono, acc);
+        exact_profile.suppress_targeted_exact_channels(targeted);
+    }
 
     let ordinary_explicit = apply_authored_explicit(
         theme,
@@ -971,10 +1007,11 @@ pub fn bind_fallback_variant(
         StylePatch::new(),
     );
     acc = acc.merge(ordinary_explicit);
-    later_authored = later_authored.merge(ordinary_explicit);
-    let mut profile = ProfiledStyle::from_patch(fallback_profile.merge(ordinary_profile));
-    profile.suppress(later_authored);
-    bind_with_profile(theme, acc, local, surface, profile)
+    exact_profile.suppress(fallback_explicit.merge(ordinary_explicit));
+    if let Some(local) = local {
+        exact_profile.suppress(*local);
+    }
+    bind_with_profile(theme, acc, local, surface, exact_profile)
 }
 
 fn apply_authored_explicit(
@@ -1778,6 +1815,185 @@ mod tests {
         assert_eq!(style.fg, Some(theme.color.fg[0]));
         assert!(style.add_modifier.contains(Modifier::UNDERLINED));
         assert!(style.add_modifier.contains(Modifier::ITALIC));
+    }
+
+    #[test]
+    fn fallback_resolution_uses_live_raw_recipe_and_tracks_clone_provenance() {
+        let fallback = Variant::custom("termrock.test.raw-fallback");
+        let mut theme = Theme::junie();
+        {
+            let recipe = theme.recipes.get_mut(Family::MENU);
+            recipe.default_variant = Variant::PRIMARY;
+            recipe.parts.entry(Part::TITLE).base =
+                StylePatch::new().set_bg(Role::Custom(Color::Rgb(7, 8, 9)));
+            recipe.variant_mut(Variant::PRIMARY).entry(Part::TITLE).base =
+                StylePatch::new().add(Modifier::ITALIC);
+            recipe.variant_mut(fallback).entry(Part::TITLE).base =
+                StylePatch::new().set_fg(Role::Custom(Color::Rgb(90, 91, 92)));
+        }
+        let mut cloned = theme.clone();
+        let mut divergent = theme.clone();
+        divergent
+            .recipes
+            .get_mut(Family::MENU)
+            .parts
+            .entry(Part::TITLE)
+            .base = StylePatch::new().set_bg(Role::Custom(Color::Rgb(1, 2, 3)));
+
+        for (candidate, background) in [
+            (&theme, Color::Rgb(7, 8, 9)),
+            (&cloned, Color::Rgb(7, 8, 9)),
+            (&divergent, Color::Rgb(1, 2, 3)),
+        ] {
+            let resolved = bind_fallback_variant(
+                candidate,
+                (Family::MENU, fallback, Variant::DEFAULT, Part::TITLE),
+                StateFlags::empty(),
+                &[],
+                Surface::Canvas,
+                StyleDefaults::default(),
+                None,
+            );
+            let style = resolved.style.as_style();
+            assert_eq!(style.fg, Some(Color::Rgb(90, 91, 92)));
+            assert_eq!(style.bg, Some(background));
+            assert!(style.add_modifier.contains(Modifier::ITALIC));
+        }
+
+        // A later typed declaration is retained as an explicit tier above the
+        // coarse raw family declaration, including when it writes the same value.
+        cloned = cloned.define_variant(Family::MENU, fallback, |edit| {
+            edit.part(Part::TITLE)
+                .base(StylePatch::new().set_fg(Role::Custom(Color::Rgb(11, 12, 13))));
+        });
+        let resolved = bind_fallback_variant(
+            &cloned,
+            (Family::MENU, fallback, Variant::DEFAULT, Part::TITLE),
+            StateFlags::empty(),
+            &[],
+            Surface::Canvas,
+            StyleDefaults::default(),
+            None,
+        );
+        assert_eq!(resolved.style.as_style().fg, Some(Color::Rgb(11, 12, 13)));
+    }
+
+    #[test]
+    fn fallback_resolution_applies_existing_mono_rules() {
+        let theme = Theme::junie().for_level(ColorLevel::Mono);
+        let ordinary = bind_defaults(
+            &theme,
+            (Family::BUTTON, Variant::DEFAULT, Part::LABEL),
+            StateFlags::FOCUSED,
+            &[],
+            Surface::Canvas,
+            StyleDefaults::default(),
+            None,
+        );
+        let fallback = bind_fallback_variant(
+            &theme,
+            (
+                Family::BUTTON,
+                Variant::custom("termrock.test.mono-fallback"),
+                Variant::DEFAULT,
+                Part::LABEL,
+            ),
+            StateFlags::FOCUSED,
+            &[],
+            Surface::Canvas,
+            StyleDefaults::default(),
+            None,
+        );
+        assert_eq!(fallback.style.as_style(), ordinary.style.as_style());
+    }
+
+    #[test]
+    fn fallback_raw_iter_mut_preserves_explicit_clear_and_no_op_access() {
+        let family = Family::custom("termrock.test.raw-iter-clear");
+        let fallback = Variant::custom("termrock.test.raw-iter-fallback");
+        let mut theme = Theme::junie();
+        theme.recipes.get_mut(family);
+        for (family, recipe) in theme.recipes.iter_mut() {
+            if family == Family::custom("termrock.test.raw-iter-clear") {
+                recipe.variant_mut(fallback).entry(Part::TITLE).base = StylePatch {
+                    fg: Slot::Clear,
+                    ..StylePatch::new()
+                };
+            }
+        }
+        let mut no_op_access = theme.clone();
+        no_op_access.recipes.get_mut(family).parts.entry(Part::META);
+
+        for candidate in [&theme, &no_op_access] {
+            let resolved = bind_fallback_variant(
+                candidate,
+                (family, fallback, Variant::DEFAULT, Part::TITLE),
+                StateFlags::empty(),
+                &[],
+                Surface::Canvas,
+                StyleDefaults::default(),
+                None,
+            );
+            assert_eq!(resolved.style.as_style().fg, None);
+        }
+    }
+
+    #[test]
+    fn fallback_raw_ordinary_family_and_default_variant_outweigh_special() {
+        let family = Family::custom("termrock.test.raw-priority");
+        let fallback = Variant::custom("termrock.test.raw-priority-fallback");
+        let mut theme = Theme::junie();
+        let recipe = theme.recipes.get_mut(family);
+        recipe.parts.entry(Part::TITLE).base =
+            StylePatch::new().set_fg(Role::Custom(Color::Rgb(21, 22, 23)));
+        recipe.variant_mut(Variant::PRIMARY).entry(Part::TITLE).base =
+            StylePatch::new().set_fg(Role::Custom(Color::Rgb(31, 32, 33)));
+        recipe.default_variant = Variant::PRIMARY;
+        recipe.variant_mut(fallback).entry(Part::TITLE).base =
+            StylePatch::new().set_fg(Role::Custom(Color::Rgb(41, 42, 43)));
+
+        let resolved = bind_fallback_variant(
+            &theme,
+            (family, fallback, Variant::DEFAULT, Part::TITLE),
+            StateFlags::empty(),
+            &[],
+            Surface::Canvas,
+            StyleDefaults::default(),
+            None,
+        );
+        assert_eq!(resolved.style.as_style().fg, Some(Color::Rgb(31, 32, 33)));
+    }
+
+    #[test]
+    fn fallback_builder_declaration_survives_later_raw_other_channel_access() {
+        let fallback = Variant::custom("termrock.test.typed-then-raw");
+        let mut theme = Theme::junie().define_variant(Family::MENU, fallback, |edit| {
+            edit.part(Part::TITLE)
+                .base(StylePatch::new().add(Modifier::ITALIC));
+        });
+        theme
+            .recipes
+            .get_mut(Family::MENU)
+            .parts
+            .entry(Part::META)
+            .base = StylePatch::new().set_bg(Role::Custom(Color::Rgb(61, 62, 63)));
+
+        let resolved = bind_fallback_variant(
+            &theme,
+            (Family::MENU, fallback, Variant::DEFAULT, Part::TITLE),
+            StateFlags::empty(),
+            &[],
+            Surface::Canvas,
+            StyleDefaults::default(),
+            None,
+        );
+        assert!(
+            resolved
+                .style
+                .as_style()
+                .add_modifier
+                .contains(Modifier::ITALIC)
+        );
     }
 
     #[test]

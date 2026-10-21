@@ -314,7 +314,7 @@ impl Theme {
         edit(&mut e);
         let default_variant = e.default_variant_set();
         if let Some(v) = default_variant {
-            self.recipes.get_mut(f).default_variant = v;
+            self.recipes.get_mut_tracked(f).default_variant = v;
             self.recipes.record_authored_default_variant(f, v);
         }
         let override_ = GlobalOverride {
@@ -338,7 +338,7 @@ impl Theme {
         edit(&mut e);
         let default_variant = e.default_variant_set();
         if let Some(dv) = default_variant {
-            self.recipes.get_mut(f).default_variant = dv;
+            self.recipes.get_mut_tracked(f).default_variant = dv;
             self.recipes.record_authored_default_variant(f, dv);
         }
         let override_ = GlobalOverride {
@@ -362,7 +362,7 @@ impl Theme {
         edit(&mut e);
         let default_variant = e.default_variant_set();
         let parts = e.into_parts();
-        let recipe = self.recipes.get_mut(f);
+        let recipe = self.recipes.get_mut_tracked(f);
         if let Some(dv) = default_variant {
             recipe.default_variant = dv;
         }
@@ -381,7 +381,7 @@ impl Theme {
         edit(&mut e);
         let default_variant = e.default_variant_set();
         let parts = e.into_parts();
-        let recipe = self.recipes.get_mut(f);
+        let recipe = self.recipes.get_mut_tracked(f);
         if let Some(dv) = default_variant {
             recipe.default_variant = dv;
         }
