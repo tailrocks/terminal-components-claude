@@ -70,6 +70,29 @@ mod tests {
     }
 
     #[test]
+    fn the_extension_trait_delegates_to_shared_slot_types() {
+        fn generic_header<'a, S: AppShellExt>(
+            shell: S,
+            leaf: &'a dyn CompositionLeaf,
+        ) -> AppShellSlots<'a> {
+            shell.header_slot(leaf)
+        }
+
+        let leaf = Blank;
+        let builders = [
+            AppShellExt::with_slots(AppShell::new()),
+            AppShellExt::header_slot(AppShell::new(), &leaf),
+            AppShellExt::body_slot(AppShell::new(), &leaf),
+            AppShellExt::footer_slot(AppShell::new(), &leaf),
+            generic_header(AppShell::new(), &leaf),
+        ];
+        for builder in builders {
+            let _: termrock_shell::AppShellSlots<'_> = builder;
+            let _: CompositionSlots<'_> = builder.slots();
+        }
+    }
+
+    #[test]
     fn the_facade_shell_is_the_shell_crate_type() {
         // Single source of truth: the block re-exports termrock_shell's
         // AppShell instead of a second, same-named copy.
