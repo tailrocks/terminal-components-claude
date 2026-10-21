@@ -877,8 +877,15 @@ fn activity_chip_style(ui: &Ui<'_>, fg: Color) -> termrock::PaintStyle {
 }
 
 fn launch_failure_activity_open(world: &World, ui: &Ui<'_>) -> bool {
+    // Unshadow wave 1: the catalogue no longer owns the frozen-reference size
+    // gate (the Activity/Disk routes now draw the real pages). The header,
+    // status and footer branches below still key off it until a later wave
+    // removes them, so the predicate lives here with identical semantics.
     let full = ui.full();
-    crate::sim::catalogue::launch_failure_activity_frame(world, full.width, full.height)
+    crate::sim::catalogue::launch_failure_tag_frame(world)
+        && ((full.width == 80 && full.height == 24)
+            || (full.width == 100 && full.height == 30)
+            || (full.width == 120 && full.height == 40))
 }
 
 /// Tag launch-failure status: child cwd, branch, ahead, dirty mark, failure, then the size label.
@@ -2264,23 +2271,8 @@ impl termrock::App for App {
                     plan.draw(ui, body);
                 }
             }
-            Route::Activity => {
-                let plate = launch_failure_activity_open(&self.world, ui)
-                    && home::paint_launch_failure_plate(ui);
-                if !plate {
-                    self.activities.draw(&self.world, ui, body);
-                }
-            }
-            Route::Disk => {
-                // The 100×30 fixture composes the mid preview; every other size only
-                // needs the tag frame gate (the old 100×30 plate wrapper was a no-op
-                // over it, so the size check is gone).
-                let allow = crate::sim::catalogue::disk_cleanup_tag_frame(&self.world);
-                let plate = allow && home::paint_disk_cleanup_plate(ui);
-                if !plate {
-                    disk::draw(&self.world, ui, body);
-                }
-            }
+            Route::Activity => self.activities.draw(&self.world, ui, body),
+            Route::Disk => disk::draw(&self.world, ui, body),
             Route::Files => files::draw(&self.world, ui, body),
             Route::Cleanup => cleanup::draw(&self.world, ui, body),
             Route::Review => review::draw(&self.world, ui, body),
@@ -3273,7 +3265,7 @@ mod tests {
         assert!(catalogue::docker_cleanup_view(&later.app().world, 100).is_none());
     }
     #[test]
-    fn disk_cleanup_frame_40_paints_the_tag_plate_and_later_seeks_keep_home() {
+    fn disk_cleanup_frame_40_paints_the_disk_page_and_later_seeks_keep_the_disk() {
         let plate = harness(
             App::for_scenario(Scenario::DiskCleanup, Motion::Paused, 40),
             Theme::junie(),
@@ -3289,30 +3281,20 @@ mod tests {
             lines[0]
         );
         assert!(lines[0].contains("mbp · local"), "{}", lines[0]);
-        assert!(lines[1].contains("Here › Disk › Usage"), "{}", lines[1]);
-        assert!(lines[2].contains("Here › Disk › Usage"), "{}", lines[2]);
-        assert!(lines[4].contains("Disk usage · ~/work"), "{}", lines[4]);
-        assert!(lines[5].contains("scan complete"), "{}", lines[5]);
-        assert!(lines[8].contains("842 of 926 GB"), "{}", lines[8]);
-        assert!(lines[12].contains("work"), "{}", lines[12]);
-        assert!(lines[13].contains("~/work"), "{}", lines[13]);
+        assert!(lines[1].trim().is_empty(), "{}", lines[1]);
+        assert!(lines[2].contains("Disk usage · ~/work"), "{}", lines[2]);
+        assert!(lines[3].contains("92% full · 6 entries"), "{}", lines[3]);
+        assert!(lines[5].contains("~/work/forge/target"), "{}", lines[5]);
+        assert!(lines[5].contains("cargo target"), "{}", lines[5]);
+        assert!(lines[6].contains("node_modules"), "{}", lines[6]);
+        assert!(lines[8].contains("~/.cache/mise"), "{}", lines[8]);
+        assert!(lines[10].contains("~/tmp/scratch"), "{}", lines[10]);
         assert!(lines[38].contains("3 selected · 24.2 GiB"), "{}", lines[38]);
         assert!(lines[39].contains("Esc Back"), "{}", lines[39]);
         assert!(lines[39].contains('…'), "{}", lines[39]);
         let file = plate.cell(12, 0);
         assert_eq!(file.symbol(), "F");
         assert!(!file.modifier.contains(termrock::Modifier::BOLD));
-        let gutter = plate.cell(1, 12);
-        assert_eq!(gutter.symbol(), "▎");
-        assert_eq!(gutter.fg, Color::Rgb(0x48, 0xe0, 0x54));
-        assert!(gutter.modifier.contains(termrock::Modifier::BOLD));
-        let hidden = plate.cell(1, 13);
-        assert_eq!(hidden.symbol(), " ");
-        assert_eq!(hidden.fg, Color::Rgb(0, 0, 0));
-        let card = plate.cell(75, 20);
-        assert_eq!(card.bg, Color::Rgb(0x11, 0x11, 0x11));
-        let tab = plate.cell(2, 2);
-        assert_eq!(tab.bg, Color::Rgb(0x27, 0x27, 0x2a));
         let meter = plate.cell(81, 38);
         assert_eq!(meter.symbol(), "━");
         assert_eq!(meter.fg, Color::Rgb(0xf5, 0x9e, 0x09));
@@ -3341,7 +3323,7 @@ mod tests {
         ));
     }
     #[test]
-    fn disk_cleanup_80x24_frame_40_paints_the_narrow_plate_and_later_seeks_keep_home() {
+    fn disk_cleanup_80x24_frame_40_paints_the_narrow_page_and_later_seeks_keep_the_disk() {
         let plate = harness(
             App::for_scenario(Scenario::DiskCleanup, Motion::Paused, 40),
             Theme::junie(),
@@ -3350,25 +3332,14 @@ mod tests {
         );
         let text = plate.text();
         let lines: Vec<&str> = text.lines().collect();
-        assert!(lines[5].contains("scan complete"), "{}", lines[5]);
-        assert!(lines[11].contains("largest first"), "{}", lines[11]);
-        assert!(!lines[11].contains("directory"), "{}", lines[11]);
-        assert!(lines[12].contains("31.8 GiB"), "{}", lines[12]);
-        assert!(!lines[12].contains("Path"), "{}", lines[12]);
+        assert!(lines[2].contains("Disk usage · ~/work"), "{}", lines[2]);
+        assert!(lines[3].contains("92% full · 6 entries"), "{}", lines[3]);
+        assert!(lines[5].contains("~/work/forge/target"), "{}", lines[5]);
+        assert!(lines[6].contains("node_modules"), "{}", lines[6]);
         assert!(lines[22].contains("3 selected · 24.2 GiB"), "{}", lines[22]);
         assert!(lines[23].contains("Esc Back"), "{}", lines[23]);
         assert!(lines[23].contains('…'), "{}", lines[23]);
         assert!(!lines[23].contains("Delete"), "{}", lines[23]);
-        let gap = plate.cell(3, 12);
-        assert_eq!(gap.symbol(), " ");
-        assert!(gap.modifier.contains(termrock::Modifier::BOLD));
-        let tail = plate.cell(78, 12);
-        assert_eq!(tail.symbol(), " ");
-        assert!(tail.modifier.contains(termrock::Modifier::BOLD));
-        let digit = plate.cell(63, 12);
-        assert_eq!(digit.symbol(), "3");
-        assert_eq!(digit.fg, Color::Rgb(0x8a, 0x8a, 0x8a));
-        assert!(digit.modifier.contains(termrock::Modifier::BOLD));
         let ellipsis = plate.cell(72, 23);
         assert_eq!(ellipsis.symbol(), "…");
         assert_eq!(ellipsis.fg, Color::Rgb(0x73, 0x73, 0x73));
@@ -3382,15 +3353,15 @@ mod tests {
             );
             let text = other.text();
             if width == 120 && height == 40 {
-                assert!(text.contains("directory"), "{text}");
+                assert!(text.contains("Disk usage · ~/work"), "{text}");
                 assert!(text.lines().nth(39).unwrap().contains("Delete"), "{text}");
             } else if width == 100 && height == 30 {
-                assert!(text.contains("scan complete"), "{text}");
+                assert!(text.contains("Disk usage · ~/work"), "{text}");
                 assert!(!text.contains("directory"), "{text}");
             } else {
                 assert!(
                     !text.contains("scan complete"),
-                    "{width}x{height} used the narrow plate\n{text}"
+                    "{width}x{height} unexpectedly shows a plate\n{text}"
                 );
             }
         }
@@ -3406,7 +3377,7 @@ mod tests {
         ));
     }
     #[test]
-    fn disk_cleanup_100x30_frame_40_paints_the_mid_plate_and_later_seeks_keep_home() {
+    fn disk_cleanup_100x30_frame_40_paints_the_mid_page_and_later_seeks_keep_the_disk() {
         let plate = harness(
             App::for_scenario(Scenario::DiskCleanup, Motion::Paused, 40),
             Theme::junie(),
@@ -3415,8 +3386,10 @@ mod tests {
         );
         let text = plate.text();
         let lines: Vec<&str> = text.lines().collect();
-        assert!(lines[5].contains("scan complete"), "{}", lines[5]);
-        assert!(lines[12].contains("31.8 GiB · 100%"), "{}", lines[12]);
+        assert!(lines[2].contains("Disk usage · ~/work"), "{}", lines[2]);
+        assert!(lines[3].contains("92% full · 6 entries"), "{}", lines[3]);
+        assert!(lines[5].contains("~/work/forge/target"), "{}", lines[5]);
+        assert!(lines[6].contains("node_modules"), "{}", lines[6]);
         assert!(!text.contains("directory"), "{text}");
         assert!(lines[28].contains("3 selected · 24.2 GiB"), "{}", lines[28]);
         assert!(lines[29].contains("d Delete…"), "{}", lines[29]);
@@ -3426,15 +3399,6 @@ mod tests {
         let ellipsis = plate.cell(83, 29);
         assert_eq!(ellipsis.symbol(), "…");
         assert_eq!(ellipsis.fg, Color::Rgb(0x73, 0x73, 0x73));
-        let size = plate.cell(83, 12);
-        assert_eq!(size.symbol(), "3");
-        assert!(size.modifier.contains(termrock::Modifier::BOLD));
-        let tail = plate.cell(98, 12);
-        assert_eq!(tail.symbol(), " ");
-        assert!(tail.modifier.contains(termrock::Modifier::BOLD));
-        let edge = plate.cell(99, 12);
-        assert_eq!(edge.symbol(), " ");
-        assert!(!edge.modifier.contains(termrock::Modifier::BOLD));
         assert!(plate.diagnostics().is_empty(), "{:?}", plate.diagnostics());
         let world = &plate.app().world;
         assert!(catalogue::disk_cleanup_tag_frame(world));
@@ -3444,7 +3408,11 @@ mod tests {
             120,
             40,
         );
-        assert!(wide.text().contains("directory"), "{}", wide.text());
+        assert!(
+            wide.text().contains("Disk usage · ~/work"),
+            "{}",
+            wide.text()
+        );
         assert_eq!(wide.cell(110, 39).symbol(), "…");
         let narrow = harness(
             App::for_scenario(Scenario::DiskCleanup, Motion::Paused, 40),
@@ -3723,7 +3691,7 @@ mod tests {
         assert!(catalogue::remote_host_view(&other.world, 100).is_none());
     }
     #[test]
-    fn launch_failure_frame_40_paints_the_tag_plate_and_later_seeks_keep_the_activity() {
+    fn launch_failure_frame_40_paints_the_activity_page_and_later_seeks_keep_the_activity() {
         let plate = harness(
             App::for_scenario(Scenario::LaunchFailure, Motion::Paused, 40),
             Theme::junie(),
@@ -3740,19 +3708,14 @@ mod tests {
         );
         assert!(lines[0].contains("mbp · local"), "{}", lines[0]);
         assert!(lines[1].trim().is_empty(), "{}", lines[1]);
-        assert!(lines[2].contains("frontend dev"), "{}", lines[2]);
-        assert!(lines[4].contains("failed · 1 s · exit 1"), "{}", lines[4]);
-        assert!(
-            lines[8].contains("$ mise run dev  (apps/frontend)"),
-            "{}",
-            lines[8]
-        );
-        assert!(lines[13].contains("EADDRINUSE"), "{}", lines[13]);
-        assert!(
-            lines[36].contains("Find the process on port 5173"),
-            "{}",
-            lines[36]
-        );
+        assert!(lines[2].contains("seed db"), "{}", lines[2]);
+        assert!(lines[4].contains("Scope"), "{}", lines[4]);
+        assert!(lines[4].contains("~/work/pave"), "{}", lines[4]);
+        assert!(lines[5].contains("failed · 1h ago"), "{}", lines[5]);
+        assert!(lines[6].contains("2 retained lines"), "{}", lines[6]);
+        assert!(lines[8].contains("psql: connection"), "{}", lines[8]);
+        assert!(lines[9].contains("exit code 1"), "{}", lines[9]);
+        assert!(!text.contains("EADDRINUSE"), "{text}");
         assert!(
             lines[38].contains("~/work/acme/apps/frontend"),
             "{}",
@@ -3768,13 +3731,6 @@ mod tests {
         let file = plate.cell(12, 0);
         assert_eq!(file.symbol(), "F");
         assert!(!file.modifier.contains(termrock::Modifier::BOLD));
-        let tab = plate.cell(23, 2);
-        assert_eq!(tab.symbol(), "!");
-        assert_eq!(tab.fg, Color::Rgb(0xf0, 0x5d, 0x5d));
-        assert_eq!(tab.bg, Color::Rgb(0x27, 0x27, 0x2a));
-        let gutter = plate.cell(8, 36);
-        assert_eq!(gutter.symbol(), " ");
-        assert_eq!(gutter.fg, Color::Rgb(0, 0, 0));
         let bang = plate.cell(89, 39);
         assert_eq!(bang.symbol(), "!");
         assert!(bang.modifier.contains(termrock::Modifier::BOLD));
@@ -3818,7 +3774,7 @@ mod tests {
         }
     }
     #[test]
-    fn launch_failure_80x24_frame_40_paints_the_narrow_plate_and_later_seeks_keep_the_activity() {
+    fn launch_failure_80x24_frame_40_paints_the_narrow_page_and_later_seeks_keep_the_activity() {
         let plate = harness(
             App::for_scenario(Scenario::LaunchFailure, Motion::Paused, 40),
             Theme::junie(),
@@ -3834,22 +3790,14 @@ mod tests {
         );
         assert!(lines[0].contains("mbp · local"), "{}", lines[0]);
         assert!(lines[1].trim().is_empty(), "{}", lines[1]);
-        assert!(lines[2].contains("frontend dev"), "{}", lines[2]);
-        assert!(lines[4].contains("failed · 1 s · exit 1"), "{}", lines[4]);
-        assert!(lines[8].contains("> vite --host"), "{}", lines[8]);
+        assert!(lines[2].contains("seed db"), "{}", lines[2]);
+        assert!(lines[4].contains("Scope"), "{}", lines[4]);
+        assert!(lines[4].contains("~/work/pave"), "{}", lines[4]);
+        assert!(lines[5].contains("failed · 1h ago"), "{}", lines[5]);
+        assert!(lines[8].contains("psql"), "{}", lines[8]);
         assert!(!lines[8].contains("mise run dev"), "{}", lines[8]);
-        assert!(lines[11].contains("EADDRINUSE"), "{}", lines[11]);
-        assert!(
-            lines[19].contains("Find the process on port 5173"),
-            "{}",
-            lines[19]
-        );
-        assert!(lines[19].contains("Retry frontend dev"), "{}", lines[19]);
-        assert!(
-            lines[20].contains("Open the mise task definition"),
-            "{}",
-            lines[20]
-        );
+        assert!(lines[9].contains("exit code 1"), "{}", lines[9]);
+        assert_eq!(lines[11].trim(), "▎", "{}", lines[11]);
         assert!(
             lines[22].contains("~/work/acme/apps/frontend"),
             "{}",
@@ -3866,16 +3814,7 @@ mod tests {
             "{}",
             lines[23]
         );
-        assert!(!text.contains("seed db"), "{text}");
-        let faded = plate.cell(4, 8);
-        assert_eq!(faded.symbol(), ">");
-        assert_eq!(faded.fg, Color::Rgb(0x8c, 0x8c, 0x8c));
-        let track = plate.cell(76, 8);
-        assert_eq!(track.symbol(), "┆");
-        assert_eq!(track.fg, Color::Rgb(0x47, 0x47, 0x47));
-        let thumb = plate.cell(76, 10);
-        assert_eq!(thumb.symbol(), "┃");
-        assert_eq!(thumb.fg, Color::Rgb(0x80, 0x80, 0x80));
+        assert!(text.contains("seed db"), "{text}");
         let status_mark = plate.cell(78, 22);
         assert_eq!(status_mark.symbol(), "…");
         assert_eq!(status_mark.fg, Color::Rgb(0x8a, 0x8a, 0x8a));
@@ -3885,23 +3824,18 @@ mod tests {
         assert_eq!(footer_mark.fg, Color::Rgb(0x73, 0x73, 0x73));
         assert!(plate.diagnostics().is_empty(), "{:?}", plate.diagnostics());
         let world = &plate.app().world;
-        assert!(!catalogue::launch_failure_activity_frame(world, 160, 50));
-        assert!(!catalogue::launch_failure_activity_frame(world, 80, 40));
-        assert!(!catalogue::launch_failure_activity_frame(world, 81, 24));
+        assert!(catalogue::launch_failure_tag_frame(world));
         let wide = harness(
             App::for_scenario(Scenario::LaunchFailure, Motion::Paused, 40),
             Theme::junie(),
             120,
             40,
         );
-        assert!(wide.text().contains("$ mise run dev  (apps/frontend)"));
+        assert!(wide.text().contains("seed db"));
+        assert!(!wide.text().contains("EADDRINUSE"));
         assert!(wide.text().contains("Node project · pnpm"));
         assert!(!wide.text().contains("Nod…ect"));
-        assert!(catalogue::launch_failure_activity_frame(
-            &wide.app().world,
-            120,
-            40
-        ));
+        assert!(catalogue::launch_failure_tag_frame(&wide.app().world));
         for (width, height) in [(80_u16, 40_u16), (160, 50)] {
             let other = harness(
                 App::for_scenario(Scenario::LaunchFailure, Motion::Paused, 40),
@@ -3915,11 +3849,7 @@ mod tests {
                 other.text()
             );
             assert!(!other.text().contains("EADDRINUSE"), "{width}x{height}");
-            assert!(!catalogue::launch_failure_activity_frame(
-                &other.app().world,
-                width,
-                height
-            ));
+            assert!(catalogue::launch_failure_tag_frame(&other.app().world));
         }
         let later = harness(
             App::for_scenario(Scenario::LaunchFailure, Motion::Paused, 4_000),
@@ -3929,15 +3859,10 @@ mod tests {
         );
         assert!(later.text().contains("seed db"), "{}", later.text());
         assert!(!later.text().contains("EADDRINUSE"));
-        assert!(!catalogue::launch_failure_activity_frame(
-            &later.app().world,
-            80,
-            24
-        ));
         assert!(!catalogue::launch_failure_tag_frame(&later.app().world));
     }
     #[test]
-    fn launch_failure_100x30_frame_40_paints_the_mid_plate_and_later_seeks_keep_the_activity() {
+    fn launch_failure_100x30_frame_40_paints_the_mid_page_and_later_seeks_keep_the_activity() {
         let plate = harness(
             App::for_scenario(Scenario::LaunchFailure, Motion::Paused, 40),
             Theme::junie(),
@@ -3953,31 +3878,15 @@ mod tests {
         );
         assert!(lines[0].contains("mbp · local"), "{}", lines[0]);
         assert!(lines[1].trim().is_empty(), "{}", lines[1]);
-        assert!(lines[2].contains("frontend dev"), "{}", lines[2]);
-        assert!(lines[4].contains("failed · 1 s · exit 1"), "{}", lines[4]);
-        assert!(
-            lines[4].contains("here · ~/work/acme/apps/frontend · mbp"),
-            "{}",
-            lines[4]
-        );
-        assert!(
-            lines[8].contains("$ mise run dev  (apps/frontend)"),
-            "{}",
-            lines[8]
-        );
-        assert!(lines[13].contains("EADDRINUSE"), "{}", lines[13]);
-        assert!(lines[24].contains('╰'), "{}", lines[24]);
-        assert!(
-            lines[26].contains("Find the process on port 5173"),
-            "{}",
-            lines[26]
-        );
-        assert!(lines[26].contains("Retry frontend dev"), "{}", lines[26]);
-        assert!(
-            lines[26].contains("Open the mise task definition"),
-            "{}",
-            lines[26]
-        );
+        assert!(lines[2].contains("seed db"), "{}", lines[2]);
+        assert!(lines[4].contains("Scope"), "{}", lines[4]);
+        assert!(lines[4].contains("~/work/pave"), "{}", lines[4]);
+        assert!(lines[5].contains("failed · 1h ago"), "{}", lines[5]);
+        assert!(lines[6].contains("2 retained lines"), "{}", lines[6]);
+        assert!(lines[8].contains("psql: connection"), "{}", lines[8]);
+        assert!(lines[9].contains("exit code 1"), "{}", lines[9]);
+        assert_eq!(lines[13].trim(), "▎", "{}", lines[13]);
+        assert_eq!(lines[24].trim(), "▎", "{}", lines[24]);
         assert!(
             lines[28].contains("~/work/acme/apps/frontend"),
             "{}",
@@ -3994,18 +3903,9 @@ mod tests {
             "{}",
             lines[29]
         );
-        assert!(!text.contains("seed db"), "{text}");
+        assert!(text.contains("seed db"), "{text}");
         assert!(!text.contains('┆'), "{text}");
-        let here = plate.cell(60, 4);
-        assert_eq!(here.symbol(), "h");
-        assert_eq!(here.fg, Color::Rgb(0x8a, 0x8a, 0x8a));
-        let bang = plate.cell(4, 12);
-        assert_eq!(bang.symbol(), "!");
-        assert!(bang.modifier.contains(termrock::Modifier::BOLD));
-        assert_eq!(bang.fg, Color::Rgb(0xf0, 0x5d, 0x5d));
-        let edge = plate.cell(98, 8);
-        assert_eq!(edge.symbol(), "│");
-        assert_eq!(edge.fg, Color::Rgb(0x4d, 0x4d, 0x4d));
+        assert!(!text.contains("EADDRINUSE"), "{text}");
         let footer_mark = plate.cell(58, 29);
         assert_eq!(footer_mark.symbol(), "…");
         assert_eq!(footer_mark.fg, Color::Rgb(0x73, 0x73, 0x73));
@@ -4015,9 +3915,7 @@ mod tests {
         assert_eq!(size.bg, Color::Rgb(0x18, 0x18, 0x1b));
         assert!(plate.diagnostics().is_empty(), "{:?}", plate.diagnostics());
         let world = &plate.app().world;
-        assert!(catalogue::launch_failure_activity_frame(world, 100, 30));
-        assert!(!catalogue::launch_failure_activity_frame(world, 100, 31));
-        assert!(!catalogue::launch_failure_activity_frame(world, 99, 30));
+        assert!(catalogue::launch_failure_tag_frame(world));
         let wide = harness(
             App::for_scenario(Scenario::LaunchFailure, Motion::Paused, 40),
             Theme::junie(),
@@ -4025,24 +3923,16 @@ mod tests {
             40,
         );
         assert!(wide.text().contains("Esc Back to Here"));
-        assert!(catalogue::launch_failure_activity_frame(
-            &wide.app().world,
-            120,
-            40
-        ));
+        assert!(catalogue::launch_failure_tag_frame(&wide.app().world));
         let narrow = harness(
             App::for_scenario(Scenario::LaunchFailure, Motion::Paused, 40),
             Theme::junie(),
             80,
             24,
         );
-        assert!(narrow.text().contains("> vite --host"));
+        assert!(narrow.text().contains("seed db"));
         assert!(!narrow.text().contains("$ mise run dev"));
-        assert!(catalogue::launch_failure_activity_frame(
-            &narrow.app().world,
-            80,
-            24
-        ));
+        assert!(catalogue::launch_failure_tag_frame(&narrow.app().world));
         let later = harness(
             App::for_scenario(Scenario::LaunchFailure, Motion::Paused, 4_000),
             Theme::junie(),
@@ -4051,18 +3941,9 @@ mod tests {
         );
         assert!(later.text().contains("seed db"), "{}", later.text());
         assert!(!later.text().contains("EADDRINUSE"));
-        assert!(!catalogue::launch_failure_activity_frame(
-            &later.app().world,
-            100,
-            30
-        ));
         assert!(!catalogue::launch_failure_tag_frame(&later.app().world));
         let other = App::for_scenario(Scenario::HardCases, Motion::Paused, 40);
-        assert!(!catalogue::launch_failure_activity_frame(
-            &other.world,
-            100,
-            30
-        ));
+        assert!(!catalogue::launch_failure_tag_frame(&other.world));
     }
     #[test]
     fn hard_cases_frame_40_paints_the_tag_plate_and_later_seeks_keep_home() {
