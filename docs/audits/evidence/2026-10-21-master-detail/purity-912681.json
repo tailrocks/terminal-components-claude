@@ -1,0 +1,118 @@
+{
+  "review_type": "Independent read-only bounded Controls MasterDetail pure-state/layout review",
+  "candidate": "912681032b137dc6aa91757fada4abe60c572840",
+  "source_change": "978a61fe3",
+  "pre_fix_parent": "f142ba9b086b2c8eca9884aa1442ed83c9b7f25c",
+  "remote_tip_verified": "912681032b137dc6aa91757fada4abe60c572840",
+  "decision": "Cleared for bounded MD-1 draw-state purity and MD-3 layout/draw agreement in termrock-controls::MasterDetail. No new actionable source finding in this scope. MD-2 separate facade mechanics duplication remains unresolved; no full block, facade, app or product acceptance.",
+  "source_review": {
+    "path": "crates/termrock-controls/src/master_detail.rs",
+    "source_git_blob": "d5e1c5c6846a8c0263efd65a5a805063ce2374e0",
+    "source_identical_to_978a61": true,
+    "changes": [
+      "drawer_open and return_focus Cell values replaced by ordinary private bool/Option fields.",
+      "Focus reconciliation moved to MasterDetail::update before routing current master/detail bindings; draw no longer changes state via shared reference.",
+      "layout now depends solely on area, configuration and immutable state; draw invokes that exact public layout result, including split, master/summary and drawer modes.",
+      "SplitPane remains split/seam geometry and input owner. Rendering reports framework layout and bindings but does not run domain/input handlers."
+    ],
+    "compatibility": "Existing public constructors/builders/update/layout/draw/state accessors unchanged. Existing defaults, focus policies and bindings retained. State fields remain private; default/clone/debug/equality continue to cover their actual values. No new unsafe, allocation ownership or cross-thread mechanism introduced.",
+    "tests_review": "Author adds real Buttons purity test and updates one former draw-mutation expectation to require update reconciliation. It does not waive draw purity or delete scenario coverage. All controls native tests pass independently."
+  },
+  "independent_tests": {
+    "original_regression": {
+      "source": "/private/tmp/termrock-masterdetail-efda-source-review-20261021/crates/termrock-controls/tests/review_master_detail_purity.rs",
+      "original_sha256": "997d56e65f72a4ca27b6068192256d9342535923c10336d850af817e3fd3c380",
+      "before_sha256": "997d56e65f72a4ca27b6068192256d9342535923c10336d850af817e3fd3c380",
+      "candidate_sha256": "997d56e65f72a4ca27b6068192256d9342535923c10336d850af817e3fd3c380",
+      "all_byte_identical": true,
+      "before_commit": "f142ba9b086b2c8eca9884aa1442ed83c9b7f25c",
+      "before_result": "RED: draw changes caller drawer_open false->true through Cell",
+      "before_log": "/private/tmp/masterdetail-912-before-public.log",
+      "candidate_result": "GREEN against exact912 source",
+      "note": "Original public probe was reused unchanged; no expected-state weakening."
+    },
+    "final_candidate_consumer": {
+      "run_id": "1f1e0e4b-2f9a-48a1-a1d5-a3be11e2024c",
+      "command": "cargo nextest run --no-fail-fast --manifest-path /private/tmp/masterdetail-912-after-probes/Cargo.toml",
+      "run": 4,
+      "passed": 4,
+      "skipped": 0,
+      "cases": [
+        "Original real-Button draw-purity regression",
+        "Real focused TextInput and Button across actual120x30->99x24->101x25 Harness resize: pure mode/layout equals delivered draw layout, actual controls fit assigned pane, hidden master unregisters in drawer, cursor fits visible editor",
+        "After narrow resize, pointer hits actual TEXT region, inserts into original draft, keyboard continues after wide resize, Enter commits exact acb value",
+        "Zero/narrow/adjacent breakpoint regions remain within root bounds; repeated drawing preserves caller MasterDetailState",
+        "Public explicit drawer open from actual Button activation before component update survives and focuses detail"
+      ]
+    },
+    "explicit_open_compatibility": {
+      "candidate_run_id": "dcc4f03d-710a-49d5-83fa-c9c40ec4ed81",
+      "before_run_id": "81870392-33f6-4438-bdba-904fa4fed1a0",
+      "before_and_after": "PASS with byte-identical final open_order.rs and shared public testing delivery helper; no opener-ordering defect established."
+    },
+    "native": {
+      "command": "cargo nextest run -p termrock-controls --all-targets --no-fail-fast",
+      "run_id": "6aaf1856-4b09-4c16-954a-8b8702959762",
+      "run": 139,
+      "passed": 139,
+      "skipped": 0
+    },
+    "strict_clippy": {
+      "command": "cargo clippy -p termrock-controls --all-targets -- -D warnings",
+      "exit": 0
+    },
+    "formatting": {
+      "command": "cargo fmt -p termrock-controls -- --check",
+      "exit": 0
+    },
+    "diff_check": {
+      "command": "git diff --check 978a61^ 9126810 -- crates/termrock-controls/src/master_detail.rs",
+      "exit": 0
+    }
+  },
+  "fixture_corrections_and_preservation": [
+    "Initial additional region fixture incorrectly expected intrinsic Button/TextInput hit regions to equal entire allocated panes. Corrected to assert pure layout equals delivered draw layout and actual control/cursor containment, while preserving exact breakpoint/mode and functional pointer/edit assertions. Original frozen regression source was never changed.",
+    "Initial exploratory opener fixtures ignored Runtime::handle PendingInput, so intended update/activation never occurred. Tick and activation guards proved these failures were fixture readiness errors. Final byte-identical opener probe uses existing public runtime::stub::deliver; passes before and after. Invalid failures are preserved in raw logs and not reported as product defects.",
+    "Harness backend resize can catch/retry AreaChanged during test publication. Settled real hit/cursor and next-input assertions pass; this does not independently clear all production terminal resize scheduling or modes."
+  ],
+  "md2_remaining": {
+    "path": "crates/termrock/src/blocks/master_detail.rs",
+    "status": "Open. It still has separate responsive composition state/behavior; root termrock::MasterDetail/State reexports this block at lib.rs:87, while this repair targets controls::MasterDetail. This review does not conflate or approve both implementations.",
+    "required": "Separate canonical owner/composition adaptation and real facade/application consumers, with compatibility and paired product checks."
+  },
+  "limits": [
+    "Native pointer/seam/modal/focus tests passing are scoped to controls suite; no complete new cross-profile matrix, Unicode editor suite or all drag/cancellation scenarios claimed.",
+    "No frozen real-CLI tuiscotti paired comparison, exact cell/frame parity or all four application verification executed.",
+    "No unrelated merge-parent Forms/runtime/theme changes reviewed as part of this MasterDetail delta.",
+    "No full workspace gate or facade MasterDetail acceptance."
+  ],
+  "evidence": {
+    "/private/tmp/masterdetail-912-after-order-activation.log": "3d1bb054ba8bbc5f4dc5fad3a9e2fc096fc0e1b408b0974e758ae73120b3b2e8",
+    "/private/tmp/masterdetail-912-after-order-published.log": "294ac3913359b18da152ad9024bf3b1e338f18dea8e10d06c6b1717abd3ede2b",
+    "/private/tmp/masterdetail-912-after-order-tick.log": "612958756076066139f4a1b1d53bdf8c331a467d2ca44a4e6057fb57c817af93",
+    "/private/tmp/masterdetail-912-after-public-cleared.log": "bf840c8c44602aa85bfa4c0594fe414b051a19a0149d633a44313453d568f3a3",
+    "/private/tmp/masterdetail-912-after-public-final.log": "1e421d92443740d83729bd7a8ca1e94fec422f5927eac76c07e6385004c3e96b",
+    "/private/tmp/masterdetail-912-after-public.log": "f8e46cd8a878f39b374f6165dc8603bda65e777ee4a7d5e58885eb00ba5e44cd",
+    "/private/tmp/masterdetail-912-before-order-activation.log": "51ddae95c86ccd7580e8f9aaf392feccaf83e604af7b4d6410069ab54a8846d8",
+    "/private/tmp/masterdetail-912-before-order-published.log": "4d107c1b485ad271feb42d9005fe476b71370452e2d897e1c092748e33ef0a6d",
+    "/private/tmp/masterdetail-912-before-order-tick.log": "2e9728c35fa57d8b5955d5825312efb265c726d5037f0711375857db8be9f251",
+    "/private/tmp/masterdetail-912-before-public-final.log": "968f12b6a5776bf842e1da0073474092ef4f50491ceebf7f86a78a9b07b27347",
+    "/private/tmp/masterdetail-912-before-public.log": "838c28f39ba1dd639669cd669f11b91d1ed3e1ae9c4d9209b4a79be0de50de20",
+    "/private/tmp/masterdetail-912-clippy.log": "6dca8ce06acc81a61d184f575b7e8a159d8adf4ca82fbea73ba0d40acb801ab2",
+    "/private/tmp/masterdetail-912-fmt.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "/private/tmp/masterdetail-912-native.log": "b8e460f087ec177eaaa788628f10a067956edc220d0b8d8423eb886afe15bdc9"
+  },
+  "external_probes": {
+    "/private/tmp/masterdetail-912-after-probes/tests/regions.rs": "f4ab786000981fb13ae8036fe7cb85534f49072cfeac90f5f80020bdab6017fe",
+    "/private/tmp/masterdetail-912-after-probes/tests/original.rs": "997d56e65f72a4ca27b6068192256d9342535923c10336d850af817e3fd3c380",
+    "/private/tmp/masterdetail-912-after-probes/tests/open_order.rs": "ebed6c2aab0747deb3d175eea6b1ac7e6871bb12056f878ec11cbcb699aa8c24"
+  },
+  "custody": {
+    "source_changes": [],
+    "tracked_target_artifact_changes_preserved": 1301,
+    "author_copy_touched": false,
+    "source_edits": false,
+    "helpers_activated": false,
+    "review_copy": "/private/tmp/termrock-button-9cf76-review"
+  }
+}
