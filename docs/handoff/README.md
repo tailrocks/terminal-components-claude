@@ -14,6 +14,11 @@ Pending tasks and exact next actions:
 
 Expanded component gate at `7f819a779`: 872 run, 869 pass, three fail, three existing skips. Two navigation failures and the incoming MenuBar precedence regression remain open. Holla all-target gate at the preceding header source: 144 run, 142 pass, hover and visual baseline failures. Focused merged Holla and Picker tests, scoped strict Clippy, public Picker consumer and formatting pass; this does not establish the full gate. Full twice-repeated pinned real-binary comparisons, all-branch consolidation, required CI and repository reviews remain missing.
 
+# 2026-10-21: external public consumer demonstrated
+
+- `9203efba5` lands `external-consumer-demo/` as a standalone (non-member) crate: facade-only imports enforced by a contract test, unrelated domain data, real widget update/draw/measure through the runtime; 9/9 nextest green, clippy/fmt clean, workspace untouched. Matrix "External public consumer" row updated RED→GREEN (API demonstration; not application parity). Evidence: `docs/audits/2026-10-21-external-public-consumer-standalone.md`.
+- Note: matrix was restructured to a lean current-decision summary by the concurrent session (bulk history moved to `docs/architecture/termrock-migration-record.md`); the full pre-restructure matrix is preserved at tag `9203efba5` in history.
+
 # 2026-10-21 second rate-limit stop (coordinator) — resumes 19:40:57 +0700
 
 All five coordinator agents died at ~16:38 +0700 on a 5-hour usage limit (reset 2026-10-21 19:40:57). Coordinator work is documented here so resume needs no transcript.
