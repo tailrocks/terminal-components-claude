@@ -1345,10 +1345,9 @@ mod tests {
     }
 
     #[test]
-    #[test]
     fn border_head_paints_the_padded_title_in_the_top_border_row() {
         let (mut rt, mut buf) = scene();
-        rt.draw_scene(SCREEN, &mut buf, |ui, _| {
+        drop(rt.draw_scene(SCREEN, &mut buf, |ui, _| {
             Dialog::info(DLG, "Debug info")
                 .width(38)
                 .body_rows(8)
@@ -1359,7 +1358,7 @@ mod tests {
                     &DialogState::default(),
                     |_, _| {},
                 );
-        });
+        }));
         let row: String = (0..16)
             .map(|x| buf[(x, 0)].symbol().chars().next().unwrap())
             .collect();
@@ -1373,21 +1372,21 @@ mod tests {
     fn border_head_height_is_border_plus_body_plus_actions() {
         let measured = Cell::new(0u16);
         let (mut rt, mut buf) = scene();
-        rt.draw_scene(SCREEN, &mut buf, |ui, _| {
+        drop(rt.draw_scene(SCREEN, &mut buf, |ui, _| {
             let dialog = Dialog::info(DLG, "Debug info")
                 .width(66)
                 .body_rows(8)
                 .head_in_border();
             let action_widths = dialog.action_widths_with(|_, _, default| default);
             measured.set(dialog.measured_height_for_width(ui.design(), 66, &action_widths));
-        });
+        }));
         assert_eq!(measured.get(), 11, "border 2 + body 8 + close action 1");
     }
 
     #[test]
     fn meta_paints_the_faint_caption_before_the_close_mark() {
         let (mut rt, mut buf) = scene();
-        rt.draw_scene(SCREEN, &mut buf, |ui, _| {
+        drop(rt.draw_scene(SCREEN, &mut buf, |ui, _| {
             Dialog::info(DLG, "Debug info")
                 .width(38)
                 .body_rows(8)
@@ -1399,7 +1398,7 @@ mod tests {
                     &DialogState::default(),
                     |_, _| {},
                 );
-        });
+        }));
         let row: String = (18..34)
             .map(|x| buf[(x, 0)].symbol().chars().next().unwrap())
             .collect();
@@ -1411,7 +1410,7 @@ mod tests {
     #[test]
     fn border_head_close_action_drops_the_mnemonic_mark() {
         let (mut rt, mut buf) = scene();
-        rt.draw_scene(SCREEN, &mut buf, |ui, _| {
+        drop(rt.draw_scene(SCREEN, &mut buf, |ui, _| {
             Dialog::info(DLG, "Debug info")
                 .width(38)
                 .body_rows(8)
@@ -1422,7 +1421,7 @@ mod tests {
                     &DialogState::default(),
                     |_, _| {},
                 );
-        });
+        }));
         // The action row is the last inner row; its label is plain, without a
         // red underlined first letter.
         for x in 4..36 {
@@ -1435,6 +1434,7 @@ mod tests {
         }
     }
 
+    #[test]
     fn body_is_total_and_clipped_when_the_dialog_cannot_draw() {
         let areas = [
             Rect::new(7, 5, 0, 0),
