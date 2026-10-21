@@ -53,6 +53,10 @@ Source `306d72f28627c39aa875ae14647ce6ddb68474b2`, published in WIP `3133b9a984d
 
 A fresh audit of `f8f3a576f2149b58d6e05ecfa42acb1f7605c307` found that InspectorBody does consume some live account data, but its actual filter consumer is still a viewport/theme/scenario/query-gated repaint with fixed positioning and no interactive controls or scroll state. Historical presentation-file deletion is beneficial cleanup; remaining launch painters and fixed `ENTRIES` tables still prevent architecture acceptance. [Independent source packet](../audits/evidence/2026-10-21-current-blockers/inspector-body-f8f3-independent-rejection.json). No source sync or native snapshot pass accepts these mechanisms.
 
+### Completed parent-owned preservation refs
+
+The exact-tip, independently reviewed preservation refs `wip/parent-picker-gate-20261021` (`9f6659a51b793fe60f9ffee86e986afc1d4824ba`) and `wip/parent-tablepro-blank-validation-20261021` (`2ff8d9348962b8334da39c1552f6b9087e1a4ffb`) were atomically deleted after fresh remote-identity, ancestry, open-PR and attached-worktree checks. Both have zero unique commits and their source/evidence remains in PR38. These completed retirements supersede earlier statements that the refs are needed for protection; historical records remain unchanged. Main, design/PR26, the frozen tag, user backups and unreviewed branches remain untouched. `parity/picker-stack-integration-20261020` remains because task ownership is unproven. [Review](../audits/evidence/2026-10-21-current-blockers/parent-wip-cleanup-independent-review.json) and [verified result](../audits/evidence/2026-10-21-current-blockers/parent-wip-cleanup-result.json).
+
 ---
 
 ## Architecture and input clearance — 2026-10-21 (Showcase Editor & Jackin Replay Purge)
