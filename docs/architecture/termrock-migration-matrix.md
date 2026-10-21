@@ -2016,3 +2016,10 @@ The independently reviewed FormDialog/chrome source at `7c46c63f0c6e99d26c872758
 The seven held expectation files remain at their `52e1572ca` content. The inherited MenuBar precedence failure remains open. Actual frozen Showcase DialogKinds and Connections flows and Jackin Accounts adoption are still required; library-only composition is not application acceptance. The frozen form footer uses a single right-aligned row; the earlier wrapping prerequisite is superseded by source evidence.
 
 The merged-source gate ran 149 Forms/Overlays library tests: 148 passed, one inherited `menu_bar_keeps_public_default_variant_overlay_and_local_patch_precedence` failure, no skips. Scoped strict Clippy, the facade `form_dialog_consumer` example build, formatting and diff checks passed. [Root logs and the exact seven held blob identities](../audits/evidence/2026-10-21-form-dialog-integration/) preserve these results. This is a scoped integration with an explicitly red existing gate, not full acceptance.
+
+
+## CodeEditor authored META integration candidate (2026-10-21)
+
+The footer/gutter provenance source `671443b89133dda618fb661cdf65e2d8edbd0664` was normally merged onto `8e502d7fb` to retain the later current-block marker and horizontal scrolling source. Its standalone branch remains unsuitable as a replacement: independent comparison against `5b3097a` found 60 missing current-block marker cells across 32 scenarios/128 checkpoints. The merged candidate retains the current source and requires a fresh complete-cell comparison before publication to PR #38.
+
+The merged editor gate ran 75 tests: 73 passed and two failed, with no skips. Independent exact-parent reproduction at `5b3097a` confirms both retained-edit-session tests already report `CursorRejected` after focus loss; these are not new merge failures. They remain defects, not passing checks. Scoped strict Clippy and formatting pass. [Merged gate logs](../audits/evidence/2026-10-21-code-editor-integration/) preserve the red result. No application parity or whole-editor approval is claimed.
