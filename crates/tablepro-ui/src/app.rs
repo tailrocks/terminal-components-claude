@@ -9893,18 +9893,21 @@ impl App for TableProApp {
                     response |= Response::changed();
                 }
                 c if c == EXPLAIN_ANALYZE => {
-                    self.commit_query_edit();
+                    // Analyze keeps the editor in edit mode, same as Explain.
                     if let Some(id) = self.query_id() {
                         cx.focus(id);
                     }
-                    if let Some(Tab::Query(query)) = self.workbench.active_mut()
-                        && let Ok(statement) = crate::sql::parse(query.query.trim())
-                        && let crate::sql::Statement::Select(select) = statement
-                        && let Ok(plan) = crate::sql::explain(&self.catalog, &select, true)
-                    {
-                        query.plan = Some(plan);
-                        query.error = None;
-                        "Explain plan ready".clone_into(&mut self.status);
+                    if let Some(Tab::Query(query)) = self.workbench.active_mut() {
+                        query.sync_query_text();
+                        query.editor_state.editor_mut().set_diagnostics(Vec::new());
+                        if let Ok(statement) = crate::sql::parse(query.query.trim())
+                            && let crate::sql::Statement::Select(select) = statement
+                            && let Ok(plan) = crate::sql::explain(&self.catalog, &select, true)
+                        {
+                            query.plan = Some(plan);
+                            query.error = None;
+                            "Explain plan ready".clone_into(&mut self.status);
+                        }
                     }
                     response |= Response::changed();
                 }

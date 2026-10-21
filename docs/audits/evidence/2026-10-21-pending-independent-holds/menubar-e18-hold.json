@@ -1,0 +1,112 @@
+{
+  "schema": 1,
+  "commit": "e18b33bf9c7c4e6a693aaf51a505ca6c66a238ae",
+  "source": "/private/tmp/menubar-e18b33bf-independent-20261021",
+  "source_clean": true,
+  "decision": "HOLD",
+  "closed_findings": [
+    "Both original b920 foreground and explicit special override failures pass unchanged; all original four probes pass"
+  ],
+  "findings": [
+    {
+      "priority": "P1",
+      "path": "crates/termrock-theme/src/resolve.rs",
+      "line": 884,
+      "problem": "bind_fallback_variant omits Mono rule application present in ordinary bind_defaults. Public builder mono_rules is ignored by Title scope.",
+      "observed": "HOVERED TITLE CROSSED_OUT mono rule yields Cell White/Black BOLD without CROSSED_OUT."
+    },
+    {
+      "priority": "P1",
+      "path": "crates/termrock-theme/src/recipe.rs",
+      "line": 499,
+      "problem": "Existing public mutable recipe APIs update live recipes but not new builtin/authored snapshots, and fallback resolver ignores the mutation.",
+      "observed": "get_mut(MENU).variant_mut(SPECIAL).entry(TITLE).base customBG RGB41,42,43+CROSSED_OUT yields builtinBG RGB28,28,31+BOLD."
+    }
+  ],
+  "checks": {
+    "native_theme_overlays_lib": {
+      "pass": 180,
+      "fail": 0,
+      "skip": 0
+    },
+    "external_original_unchanged": {
+      "pass": 4,
+      "fail": 0
+    },
+    "external_new_compatibility": {
+      "pass": 0,
+      "fail": 2
+    },
+    "external_total": {
+      "pass": 4,
+      "fail": 2,
+      "skip": 0
+    },
+    "strict_clippy": "PASS theme+overlays all-targets --no-deps -D warnings"
+  },
+  "source_audit": [
+    "define/override APIs record authored declaration source without equality inference",
+    "Clone derives provenance vectors; Recipes PartialEq includes them",
+    "Ordinary bind_defaults remains unchanged; no blanket other-widget output approval inferred",
+    "New authoring paths clone/store declaration metadata at theme construction, not each draw; fallback resolution has no new Vec allocation",
+    "Public Recipes get_mut and iter_mut remain callable; stale snapshot behavior is a functional compatibility defect"
+  ],
+  "limits": [
+    "No full application/frozen CLI comparison",
+    "No complete declaration/state/profile matrix claimed",
+    "No new before-commit execution claim",
+    "No product edits or expected updates",
+    "External probe emits one inherited unused_mut warning; product strict Clippy passes"
+  ],
+  "correction_plan": "correction-plan.json",
+  "artifacts": [
+    {
+      "path": "clippy.json",
+      "sha256": "063d32f7810393228eec296982332faf40b57f8f22218933e3da246644c685bf"
+    },
+    {
+      "path": "clippy.log",
+      "sha256": "a2301a1e1599037e67a248ad480cddf4eedecd1b8cbd611070e1a273ed10eb7d"
+    },
+    {
+      "path": "consumer/Cargo.lock",
+      "sha256": "167ddbb2102eb4226b751f2f30ae6e0ea24464c193e6b173d2087a7f757236d3"
+    },
+    {
+      "path": "consumer/Cargo.toml",
+      "sha256": "76570b45e98b6e8db9f2cbfa2254c8f40e0034c9c0407b6c0ed66f937bf158c4"
+    },
+    {
+      "path": "consumer/tests/precedence.rs",
+      "sha256": "1e070828ee8bfbc14c478271a2fd3ce4ea9624710ea137f155e381df25fd7cec"
+    },
+    {
+      "path": "consumer-run.json",
+      "sha256": "6b95279b7f79ce2fe14984612512008b26552bf326a441e4137415fa17675271"
+    },
+    {
+      "path": "consumer-run.log",
+      "sha256": "0ce91943b88ba40cafe5a6ed21f768c0c478bcf013c2bc475753e5c88d57b651"
+    },
+    {
+      "path": "correction-plan.json",
+      "sha256": "954f8ec3a78c98e4416edf39e098630467f11127420739cd05fcdf78506e8ed7"
+    },
+    {
+      "path": "native.json",
+      "sha256": "4e0c29464d83880502a287120a1f52663c6bb6693a96729ae49cb1c8cd8fe9e7"
+    },
+    {
+      "path": "native.log",
+      "sha256": "c35360143d24a8b2f7a5d50621956518af0f3fc797939e0b34b319dc725b8ef4"
+    },
+    {
+      "path": "source.diff",
+      "sha256": "841e0251743695a22047df2a982137dc407aea6c5fffe68a740ebdce6c566732"
+    },
+    {
+      "path": "unchanged-four.rs",
+      "sha256": "a135bb303bd6c47c563fae3308af05995653bf8b4dd6ac4541969d52e4107610"
+    }
+  ]
+}

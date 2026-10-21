@@ -1480,6 +1480,7 @@ impl<'a> Form<'a> {
         let enter_requested = self.enter == EnterPolicy::SubmitsWhenIdle
             && self.fields.iter().any(|field| {
                 self.shown(data, field)
+                    && !matches!(field.kind, FieldKind::Chooser(_))
                     && cx.state(field.id).contains(StateFlags::FOCUSED)
                     && !cx.state(field.id).contains(StateFlags::EDITING)
                     && !cx.swallows_typing(field.id)
@@ -1610,7 +1611,8 @@ impl<'a> Form<'a> {
         let enter_requested = self.enter == EnterPolicy::SubmitsWhenIdle
             && placed.iter().any(|index| {
                 self.fields.get(*index).is_some_and(|field| {
-                    cx.state(field.id).contains(StateFlags::FOCUSED)
+                    !matches!(field.kind, FieldKind::Chooser(_))
+                        && cx.state(field.id).contains(StateFlags::FOCUSED)
                         && !cx.state(field.id).contains(StateFlags::EDITING)
                         && !cx.swallows_typing(field.id)
                         && cx
@@ -2311,6 +2313,19 @@ impl<'a> Form<'a> {
         constraints: Constraints,
         data: &D,
     ) -> Size {
+        self.measure_with_data_design(ui.design(), constraints, data)
+    }
+
+    /// Measures with explicit design tokens so composed overlays can use the
+    /// same placement policy before a [`Ui`] draw pass exists.
+    ///
+    /// This is crate-visible; consumers should use [`Self::measure_with_data`].
+    pub(crate) fn measure_with_data_design<D: FormData + ?Sized>(
+        &self,
+        design: &DesignTokens,
+        constraints: Constraints,
+        data: &D,
+    ) -> Size {
         if self.layout.is_some() {
             if self.validate_layout(data).is_err() {
                 return Size::default().fit(constraints);
@@ -2320,7 +2335,7 @@ impl<'a> Form<'a> {
                 .1
                 .saturating_sub(u16::from(!self.actions.is_empty()));
             let plans = self.lane_plans(
-                ui.design(),
+                design,
                 Rect::new(0, 0, constraints.max.0, body_height),
                 data,
             );
@@ -2338,7 +2353,7 @@ impl<'a> Form<'a> {
             }
             .fit(constraints);
         }
-        let rows = Self::content_rows(self.placements(ui.design(), constraints.max.0), data)
+        let rows = Self::content_rows(self.placements(design, constraints.max.0), data)
             .saturating_add(usize::from(!self.actions.is_empty()))
             .try_into()
             .unwrap_or(u16::MAX);
@@ -3287,10 +3302,15 @@ mod tests {
             let (mut runtime, mut buffer) = matrix_runtime(kind);
             let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::Enter));
             runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+            let expected = if kind == MatrixKind::Chooser {
+                FormAction::Chose(MATRIX)
+            } else {
+                FormAction::Action(ActionKey::SAVE)
+            };
             assert_eq!(
                 runtime.app().last,
-                Some(FormAction::Action(ActionKey::SAVE)),
-                "{kind:?} did not yield Enter to Form"
+                Some(expected),
+                "{kind:?} did not deliver Enter to the focused control first"
             );
             assert_eq!(runtime.app().data.choice, 0, "{kind:?} changed choice");
             assert!(!runtime.app().data.flag, "{kind:?} changed flag");
@@ -3308,6 +3328,16 @@ mod tests {
                 "{kind:?} opened child popup"
             );
         }
+
+        let (mut runtime, mut buffer) = matrix_runtime(MatrixKind::Chooser);
+        runtime.set_focus(Some(MATRIX));
+        let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::Char(' ')));
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        assert_eq!(
+            runtime.app().last,
+            Some(FormAction::Chose(MATRIX)),
+            "Space should activate a focused chooser"
+        );
 
         for kind in [MatrixKind::Text, MatrixKind::Area] {
             let (mut runtime, mut buffer) = matrix_runtime(kind);

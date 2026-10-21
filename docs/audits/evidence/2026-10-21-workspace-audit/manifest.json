@@ -1,0 +1,355 @@
+{
+  "commit": "52e1572caaf7d9effd0265bbfdf6edcd0e57533b",
+  "worktree": "/private/tmp/pr38-verifier-52e1572-20261021",
+  "worktree_status": "## HEAD (no branch)",
+  "toolchain": "Rust 1.99.1 / cargo-nextest 0.9.148",
+  "pinned_tuiscotti": "a1ea27f757d75d07b05499276cd932e9f8e067ad",
+  "inventory": {
+    "total": 34189,
+    "ignored": 29516,
+    "default_selected": 4673,
+    "suite_count": 289
+  },
+  "full_workspace_nextest_partitions": [
+    {
+      "partition": "1/8",
+      "exit_status": 100,
+      "elapsed_seconds": 53.45,
+      "log_sha256": "c6ffd235abde6c875db3569f81ca67ebccbb8b670dbc8e6f9c8285d694d23740",
+      "summary": [
+        720,
+        670,
+        50,
+        33469
+      ]
+    },
+    {
+      "partition": "2/8",
+      "exit_status": 100,
+      "elapsed_seconds": 64.83,
+      "log_sha256": "03d6eefaa13ce86dfffbab475387212bacae66d4a75653152d158db187f703d6",
+      "summary": [
+        681,
+        634,
+        47,
+        33508
+      ]
+    },
+    {
+      "partition": "3/8",
+      "exit_status": 100,
+      "elapsed_seconds": 54.33,
+      "log_sha256": "e4fb1edd60d722697ff6ad734eb0a07c6d520df3f02de9a78b0070a621fe0023",
+      "summary": [
+        640,
+        596,
+        44,
+        33549
+      ]
+    },
+    {
+      "partition": "4/8",
+      "exit_status": 100,
+      "elapsed_seconds": 15.95,
+      "log_sha256": "a236b4ebee7c3ed7a313f392c98b32b1a9ccf95cd23b410287caa82b9c860947",
+      "summary": [
+        593,
+        550,
+        43,
+        33596
+      ]
+    },
+    {
+      "partition": "5/8",
+      "exit_status": 100,
+      "elapsed_seconds": 24.5,
+      "log_sha256": "a716b3f15fc085d86ffcceabd64c7f1852464a94773e753e19fb51c33ed6475e",
+      "summary": [
+        550,
+        510,
+        40,
+        33639
+      ]
+    },
+    {
+      "partition": "6/8",
+      "exit_status": 100,
+      "elapsed_seconds": 5.84,
+      "log_sha256": "7dcb898b3fb2b224b5e9bf5b7c8952a3d0967f385b62b6db79cc64708b600841",
+      "summary": [
+        524,
+        483,
+        41,
+        33665
+      ]
+    },
+    {
+      "partition": "7/8",
+      "exit_status": 100,
+      "elapsed_seconds": 23.35,
+      "log_sha256": "4d7bdc76fac68a7b5b4d03596b8deaef87e40793fdb61a97ac90dd0f91cf819f",
+      "summary": [
+        497,
+        455,
+        42,
+        33692
+      ]
+    },
+    {
+      "partition": "8/8",
+      "exit_status": 100,
+      "elapsed_seconds": 49.89,
+      "log_sha256": "09f68ad364301b9939e04018db1340e5a540e1a5e5ab2d74377076778b2beac4",
+      "summary": [
+        468,
+        435,
+        33,
+        33721
+      ]
+    }
+  ],
+  "aggregate_selected_cases": {
+    "run": 4673,
+    "passed": 4333,
+    "failed": 340,
+    "reported_skipped_sum_not_aggregate": 268839
+  },
+  "full_workspace_nextest_complete": true,
+  "application_binary_identities": {
+    "showcase": {
+      "path": "/private/tmp/pr38-verifier-52e1572-20261021/target/debug/showcase",
+      "sha256": "aa401b05d30d805656ac2871040f5df4309139e4dafaad216c2d8e46bc9db7c0",
+      "bytes": 15418424
+    },
+    "jackin-preview": {
+      "path": "/private/tmp/pr38-verifier-52e1572-20261021/target/debug/jackin-preview",
+      "sha256": "674cac4a5d9200a061e30c96487caea2ad44f13ff8ea1046afb513e226f9edd3",
+      "bytes": 16399152
+    },
+    "tablepro": {
+      "path": "/private/tmp/pr38-verifier-52e1572-20261021/target/debug/tablepro",
+      "sha256": "81d7586c81bb11e14c6dbe62e7b5cc51d0b366dacee9043c3d1f6ddfedb750c0",
+      "bytes": 13149448
+    },
+    "holla": {
+      "path": "/private/tmp/pr38-verifier-52e1572-20261021/target/debug/holla",
+      "sha256": "a771faa0bb2996048a53fbcf84ed8d6345c63e100233d61a166f143950b27240",
+      "bytes": 11664600
+    }
+  },
+  "termrock_normal_dependency_tree_sha256": "926cf86c85c92f30cf513d3239c2896e45966fbd2a0b0b192ab2294eb3557712",
+  "application_crates_in_termrock_normal_tree": [],
+  "checks": {
+    "nextest-list-complete": {
+      "commit": "52e1572caaf7d9effd0265bbfdf6edcd0e57533b",
+      "command": [
+        "rustup",
+        "run",
+        "1.99.1",
+        "cargo",
+        "nextest",
+        "list",
+        "--workspace",
+        "--all-targets",
+        "--message-format",
+        "json",
+        "--no-pager",
+        "--target-dir",
+        "/private/tmp/pr38-verifier-52e1572-target"
+      ],
+      "exit_status": 0,
+      "elapsed_seconds": 69.21,
+      "log": "/private/tmp/pr38-verifier-52e1572-evidence/nextest-list-complete.jsonl",
+      "log_sha256": "26fd98a8e72ec336e349ef4a22f042c074e500518fc1179d62d91a373f048435"
+    },
+    "clippy-workspace": {
+      "command": [
+        "rustup",
+        "run",
+        "1.99.1",
+        "cargo",
+        "clippy",
+        "--workspace",
+        "--all-targets",
+        "--target-dir",
+        "/private/tmp/pr38-verifier-52e1572-target"
+      ],
+      "exit_status": 101,
+      "elapsed_seconds": 27.37,
+      "log": "/private/tmp/pr38-verifier-52e1572-evidence/clippy-workspace.log",
+      "log_sha256": "de358dd6ed9e8695ab5fe00a598538e64df4479a8a157a5ab076a0a6e13030af"
+    },
+    "termrock-public-check": {
+      "command": [
+        "rustup",
+        "run",
+        "1.99.1",
+        "cargo",
+        "check",
+        "-p",
+        "termrock",
+        "--all-targets",
+        "--target-dir",
+        "/private/tmp/pr38-verifier-52e1572-target"
+      ],
+      "exit_status": 0,
+      "elapsed_seconds": 8.63,
+      "log": "/private/tmp/pr38-verifier-52e1572-evidence/termrock-public-check.log",
+      "log_sha256": "85ee3a9c355fb4f3c4af979fa61c6063094027d08bcef36042d5f65a3e0d2d2a"
+    },
+    "termrock-nextest": {
+      "command": [
+        "rustup",
+        "run",
+        "1.99.1",
+        "cargo",
+        "nextest",
+        "run",
+        "-p",
+        "termrock",
+        "--all-targets",
+        "--target-dir",
+        "/private/tmp/pr38-verifier-52e1572-target"
+      ],
+      "exit_status": 0,
+      "elapsed_seconds": 16.4,
+      "log": "/private/tmp/pr38-verifier-52e1572-evidence/termrock-nextest.log",
+      "log_sha256": "f28e7dba64c83fe01a9008d01f5ba8e9d4de5e77e5b36edab239e652fb29116c"
+    },
+    "workspace-binaries": {
+      "command": [
+        "rustup",
+        "run",
+        "1.99.1",
+        "cargo",
+        "build",
+        "--workspace",
+        "--bins",
+        "--target-dir",
+        "/private/tmp/pr38-verifier-52e1572-20261021/target"
+      ],
+      "exit_status": 0,
+      "elapsed_seconds": 41.69,
+      "log": "/private/tmp/pr38-verifier-52e1572-evidence/workspace-binaries.log",
+      "log_sha256": "182bb5d2afc6316bc2b24dbba2a222e644b1b5d4aad9f4471451a16f5d063e71"
+    },
+    "fmt": {
+      "command": [
+        "rustup",
+        "run",
+        "1.99.1",
+        "cargo",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit_status": 0,
+      "elapsed_seconds": 4.56,
+      "log": "/private/tmp/pr38-verifier-52e1572-evidence/fmt.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "doc-inventory-all-sources": {
+      "command": [
+        "rustup",
+        "run",
+        "1.99.1",
+        "cargo",
+        "nextest",
+        "run",
+        "-p",
+        "termrock-xtask",
+        "--test",
+        "doc_inventory",
+        "--target-dir",
+        "/private/tmp/pr38-verifier-52e1572-20261021/target"
+      ],
+      "exit_status": 100,
+      "elapsed_seconds": 3.17,
+      "log": "/private/tmp/pr38-verifier-52e1572-evidence/doc-inventory-all-sources.log",
+      "log_sha256": "0624a94fb6df5745d4adbb6a641e199f6c50c54d05230051207a169908904a6e"
+    },
+    "external-public-consumer": {
+      "command": [
+        "rustup",
+        "run",
+        "1.99.1",
+        "cargo",
+        "check",
+        "--manifest-path",
+        "/Users/donbeave/Projects/termrock-public-consumer-probe-20261021/Cargo.toml",
+        "--target-dir",
+        "/private/tmp/pr38-verifier-52e1572-evidence/external-target"
+      ],
+      "exit_status": 0,
+      "elapsed_seconds": 0.15,
+      "log": "/private/tmp/pr38-verifier-52e1572-evidence/external-consumer-check.log",
+      "log_sha256": "222568c5a9c78be717afec2c5cd003f63aa95f941f15453e994be8cc0fc5ff04"
+    },
+    "termrock-normal-dependency-tree": {
+      "command": [
+        "rustup",
+        "run",
+        "1.99.1",
+        "cargo",
+        "tree",
+        "-p",
+        "termrock",
+        "--edges",
+        "normal",
+        "--prefix",
+        "none"
+      ],
+      "exit_status": 0,
+      "log": "/private/tmp/pr38-verifier-52e1572-evidence/termrock-dependencies.txt",
+      "log_sha256": "926cf86c85c92f30cf513d3239c2896e45966fbd2a0b0b192ab2294eb3557712",
+      "contains_application_crates": false
+    }
+  },
+  "unverified": [
+    "Full paired frozen-reference CLI replay/comparison was not run; no parity claim.",
+    "All 29,516 ignored cases excluded by default nextest invocation; coverage not credited.",
+    "Independent external consumer crate with different data was not compiled.",
+    "Full hosted CI/review/DCO gate not run."
+  ],
+  "evidence_dir": "/private/tmp/pr38-verifier-52e1572-evidence",
+  "failure_inventory": {
+    "reported_failed_count": 340,
+    "named_rows_in_final_partition_summaries": 334,
+    "named_rows_sha256": "9bb4cb81dece0c5ceda1ffdd3f89e704c7dd0c3171cd616eb2f4b75722a641f2",
+    "unmatched_summary_failure_rows": 6,
+    "note": "Partition summaries are authoritative for pass/fail totals; raw logs contain six additional failed-result counts without corresponding final-list rows. Keep this discrepancy unresolved."
+  },
+  "setup_and_probe_attempts": [
+    {
+      "command": "cargo nextest list --workspace --all-targets --message-format json using sparse set crates tools/refactor-proof",
+      "exit_status": 101,
+      "classification": "incomplete setup, omitted tracked docs/verification/snapshot-migration-map.json and tests/conformance/required_cases.json",
+      "result": "Reran with required sparse directories included; successful inventory."
+    },
+    {
+      "command": "cargo nextest run --workspace --all-targets --partition count:N/8 --target-dir /private/tmp/pr38-verifier-52e1572-target (N=1..8)",
+      "exit_status": 100,
+      "classification": "invalid harness setup, visual runner hardcodes this worktree target/debug and could not spawn app binaries",
+      "result": "Not authoritative; repeated all 8 partitions with unique target inside worktree."
+    },
+    {
+      "command": "cargo nextest run -p termrock-xtask --test doc_inventory before complete sparse Rust/Markdown source inclusion",
+      "exit_status": 100,
+      "classification": "incomplete sparse checkout, inventory could not read tracked source inputs",
+      "result": "Reran after including all 163 tracked Markdown and 705 tracked Rust sources; test then exposed real unregistered examples."
+    },
+    {
+      "command": "cargo check --manifest-path /private/tmp/pr38-verifier-52e1572-evidence/external-consumer/Cargo.toml",
+      "exit_status": 101,
+      "classification": "setup path fell under unrelated /private/tmp/Cargo.toml workspace",
+      "result": "Moved task-owned probe outside that workspace and reran."
+    },
+    {
+      "command": "cargo check --manifest-path /Users/donbeave/Projects/termrock-public-consumer-probe-20261021/Cargo.toml (first source draft)",
+      "exit_status": 101,
+      "classification": "probe authoring error, unsupported Group::gap() call",
+      "result": "Used supported Group::row(...).show(ui); final external consumer compile passed."
+    }
+  ]
+}

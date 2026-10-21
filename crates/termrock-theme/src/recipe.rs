@@ -507,12 +507,25 @@ impl PartEdit {
     }
 
     pub fn glyph(&mut self, g: GlyphRole) -> &mut Self {
-        self.recipe.glyph = Slot::Set(g);
+        self.glyph_slot(Slot::Set(g))
+    }
+
+    /// Declare the glyph channel, including explicit clearing or inheritance.
+    ///
+    /// `Inherit` leaves the channel unspecified, `Set` authors a glyph, and
+    /// `Clear` explicitly removes a lower-priority glyph.
+    pub fn glyph_slot(&mut self, glyph: Slot<GlyphRole>) -> &mut Self {
+        self.recipe.glyph = glyph;
         self
     }
 
     pub fn size(&mut self, n: u16) -> &mut Self {
-        self.recipe.size = Slot::Set(n);
+        self.size_slot(Slot::Set(n))
+    }
+
+    /// Declare the size channel, including explicit clearing or inheritance.
+    pub fn size_slot(&mut self, size: Slot<u16>) -> &mut Self {
+        self.recipe.size = size;
         self
     }
 
@@ -596,6 +609,27 @@ impl Overlay {
 mod tests {
     use super::*;
     use crate::theme::role::Role;
+
+    #[test]
+    fn part_edit_slot_methods_preserve_set_clear_and_inherit_intent() {
+        let mut edit = PartEdit::default();
+        edit.glyph_slot(Slot::Set(GlyphRole::CheckboxOff));
+        // Reasserting the same value remains an explicit Set declaration.
+        edit.glyph_slot(Slot::Set(GlyphRole::CheckboxOff));
+        edit.size_slot(Slot::Set(3));
+        assert_eq!(edit.recipe().glyph, Slot::Set(GlyphRole::CheckboxOff));
+        assert_eq!(edit.recipe().size, Slot::Set(3));
+
+        edit.glyph_slot(Slot::Clear);
+        edit.size_slot(Slot::Clear);
+        assert_eq!(edit.recipe().glyph, Slot::Clear);
+        assert_eq!(edit.recipe().size, Slot::Clear);
+
+        edit.glyph_slot(Slot::Inherit);
+        edit.size_slot(Slot::Inherit);
+        assert_eq!(edit.recipe().glyph, Slot::Inherit);
+        assert_eq!(edit.recipe().size, Slot::Inherit);
+    }
 
     #[test]
     fn state_rules_are_stored_in_specificity_order() {
