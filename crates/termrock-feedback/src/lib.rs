@@ -29,6 +29,7 @@ pub mod section;
 pub mod session_chrome;
 pub mod settings_page;
 pub mod status;
+pub mod usage_overview;
 pub mod zoom_pane;
 
 pub use accounts_detail::{
@@ -63,4 +64,8 @@ pub use settings_page::{
     SettingsTab, paint_settings_page,
 };
 pub use status::{Emphasis, Group, MAX_ITEMS, StatusAction, StatusBar, StatusItem};
+pub use usage_overview::{
+    UsageDetailLine, UsageHint, UsageInk, UsageLine, UsageMark, UsageOverview, UsageProvider,
+    UsageSpan, UsageTrail, paint_usage_overview,
+};
 pub use zoom_pane::{ZoomHint, ZoomSpan, ZoomTab, ZoomTone, ZoomedPane, paint_zoomed_pane};
