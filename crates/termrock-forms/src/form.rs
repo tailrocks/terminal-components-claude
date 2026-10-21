@@ -2311,6 +2311,19 @@ impl<'a> Form<'a> {
         constraints: Constraints,
         data: &D,
     ) -> Size {
+        self.measure_with_data_design(ui.design(), constraints, data)
+    }
+
+    /// Measures with explicit design tokens so composed overlays can use the
+    /// same placement policy before a [`Ui`] draw pass exists.
+    ///
+    /// This is crate-visible; consumers should use [`Self::measure_with_data`].
+    pub(crate) fn measure_with_data_design<D: FormData + ?Sized>(
+        &self,
+        design: &DesignTokens,
+        constraints: Constraints,
+        data: &D,
+    ) -> Size {
         if self.layout.is_some() {
             if self.validate_layout(data).is_err() {
                 return Size::default().fit(constraints);
@@ -2320,7 +2333,7 @@ impl<'a> Form<'a> {
                 .1
                 .saturating_sub(u16::from(!self.actions.is_empty()));
             let plans = self.lane_plans(
-                ui.design(),
+                design,
                 Rect::new(0, 0, constraints.max.0, body_height),
                 data,
             );
@@ -2338,7 +2351,7 @@ impl<'a> Form<'a> {
             }
             .fit(constraints);
         }
-        let rows = Self::content_rows(self.placements(ui.design(), constraints.max.0), data)
+        let rows = Self::content_rows(self.placements(design, constraints.max.0), data)
             .saturating_add(usize::from(!self.actions.is_empty()))
             .try_into()
             .unwrap_or(u16::MAX);
