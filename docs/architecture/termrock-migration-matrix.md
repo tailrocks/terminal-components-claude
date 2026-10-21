@@ -2391,3 +2391,7 @@ The earlier coordinator note proposing a branch-wide sign-off rewrite and force-
 
 
 Matrix recovery note: the normal conflict resolution removed only three orphan `||||||| parent of ...` separator lines from the restored matrix; all adjacent landing-queue, shell, and theme text was retained. The `9399ef27d` appendix remains labeled historical, and its external-consumer row claim is now supported by the exact standalone gate receipt.
+
+## Exact-lease retirement of integrated task branches (2026-10-21)
+
+Two task-owned WIP refs were retired after their reviewed tips became ancestors of PR #38 tip `3a58052db775eadf37504b05705a110590c89fe1`. `wip/conformance-driver-corrections-20261021` was at reviewed tip `22366ab816b95ed71be970b4ea541fc332cb8e86`; `wip/showcase-form-pointer-reveal-20261021` was at reviewed tip `b40dd49bd3e2fbc57a4c647206351f920ca8ea9f`. Both tips are authored and committed by the repository owner, their bounded independent CLEAR packets are retained above, fresh open/all-state PR queries returned no associated PRs, and fresh branch queries matched those exact OIDs. The active branch ruleset targets only `~DEFAULT_BRANCH`; both branch-protection endpoints returned the documented 404 “Branch not protected.” The refs were deleted with exact `--force-with-lease` OIDs, and a post-delete `git ls-remote` confirmed both absent while PR #38 remained at the recorded tip. No other refs were changed; remaining branch inventory and full consolidation remain open work.
