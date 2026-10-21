@@ -1,0 +1,71 @@
+{
+  "schema": "termrock.theme-precedence-independent-decision.v1",
+  "candidate": "98106b687fd521bcf5faf10e98116d164a5e8cf0",
+  "fixed_reference": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "decision": "Approve the bounded architectural direction with the adjustments below. Do not approve the implementation, historical expectation migration, default palette, or product parity yet.",
+  "review_method": "Independent exact Git-object source review. No product edits, mutable checkout changes, tests, helpers, commits, or pushes. No prior test result is represented as an independently executed test.",
+  "source_manifest": {
+    "98106b687fd521bcf5faf10e98116d164a5e8cf0:crates/termrock-theme/src/lib.rs": "abcd6a7fff00260bee2d69bd6fde3ee5af1b7c32392702b043a6266149a56812",
+    "98106b687fd521bcf5faf10e98116d164a5e8cf0:crates/termrock-theme/src/recipe.rs": "03f00cc2c30bd25456d976a75aaea8034b8673493c1e284aa7d43040042708fe",
+    "98106b687fd521bcf5faf10e98116d164a5e8cf0:crates/termrock-theme/src/resolve.rs": "1ffebb215a87af1388058d7d8574073248333d46c8255ecbb85804450dcadc4c",
+    "98106b687fd521bcf5faf10e98116d164a5e8cf0:crates/termrock-theme/src/builtin/mod.rs": "a9d6fbe6662c99aa4b1584723e05a4ac90dc0ec3319d7ad93813748b9da6d2a6",
+    "98106b687fd521bcf5faf10e98116d164a5e8cf0:crates/termrock-runtime/src/rowui.rs": "82123f7e3f9bece79fa2531ecd9921185e09f1a17ab11abc1158c5d382876e75",
+    "98106b687fd521bcf5faf10e98116d164a5e8cf0:crates/termrock-navigation/src/item.rs": "a276412195816becde005f579fa9106b3b27dd6fdc195cdb11d1e3b1dfbdf1b1",
+    "98106b687fd521bcf5faf10e98116d164a5e8cf0:crates/termrock-navigation/tests/item_row_columns.rs": "d07d9510aba287b9c23b319b5c92799a5bab5ca363b752efa75e391fbdba195d",
+    "98106b687fd521bcf5faf10e98116d164a5e8cf0:crates/termrock-theme/tests/author_style_defaults.rs": "7fccda409856b34c0868fe98d0ad18b4bdd29229f50a0685f89f83b267d0932a",
+    "4169783ae883788186d161af09ba9c481bd84e5c:src/widgets/picker.rs": "1e77073b2a3e2273e01ab8140c7d083d521136d12dd958d3f67b67fea2f1f6e4",
+    "4169783ae883788186d161af09ba9c481bd84e5c:src/theme.rs": "9e72e36f973de33f40ff205aaf3a2cc790c880323c793225fd8a5a12561b4c86",
+    "4169783ae883788186d161af09ba9c481bd84e5c:src/ui/row.rs": "91de0630c389729574c4a6cd04186352d490d1871a318eaac2917d5f705614d3"
+  },
+  "findings": [
+    {
+      "severity": "required-contract-adjustment",
+      "path": "crates/termrock-theme/src/recipe.rs:190; crates/termrock-theme/src/resolve.rs:795,1747,1800",
+      "finding": "The public recipe contract is family base, variant base, then specificity-ordered state rules, then global/scope/instance overrides. define_family does not currently promise that its base defeats all inherited state rules. A general authored-base-over-state change would violate the existing state_rules_beat_a_variant_base and precedence tests.",
+      "required": "Classify the new PICKER focused ICON and cursor-fill content rules as component defaults below authored channels, rather than changing ordinary PartRecipe rule precedence. Preserve authored state specificity and declaration order."
+    },
+    {
+      "severity": "required-contract-adjustment",
+      "path": "crates/termrock-theme/src/resolve.rs:profile_covers_active_states,part_channel_unchanged; crates/termrock-theme/src/recipe.rs:170,293,375",
+      "finding": "Seed equality is eligibility by value, not proof of author provenance. Explicitly setting the same semantic role as the seed cannot be distinguished from an untouched channel by these helpers. PartRecipe and Recipe expose fields and Recipes exposes mutable references.",
+      "required": "Either record declaration provenance through supported editing APIs with a documented conservative direct-mutation policy, or explicitly document value-based eligibility and narrow its guarantee. Do not claim that unchanged seed equality honors every explicit same-value declaration. Do not add private fields to public struct-literal types as an incidental API break. Include clone, equality, cache revision/invalidation and for_level behavior in the design."
+    },
+    {
+      "severity": "existing-defect-within-scope",
+      "path": "crates/termrock-runtime/src/rowui.rs:129",
+      "finding": "The current Fill branch uses Role::Custom in either foreground or background as a whole-style switch. A semantic owner role is not recognized, and custom background suppresses unrelated foreground defaults.",
+      "required": "Use canonical per-channel ownership/eligibility; remove role-kind and coupled-channel inference. A foreground decision must not suppress background or modifier defaults."
+    },
+    {
+      "severity": "reference-correction-required",
+      "path": "crates/termrock-theme/src/builtin/mod.rs:679,688; crates/termrock-navigation/src/item.rs:180",
+      "finding": "FOCUSED is insufficient to whiten META. Frozen Picker explicitly gives focused ICON primary ink, but detail uses row.ink(muted), group row.ink(legible(muted,row background)), and tag row.ink(secondary). row_ink returns primary only on_fill. Current tag/group/detail share META without semantic fallback distinction.",
+      "required": "Carry the existing Bar/Fill context and semantic content role through shared components. Preserve whole-META owner overrides as fallback/authority while allowing tag-secondary and detail/group-muted defaults. Preserve group legibility and exact modifier behavior. Do not put these choices in application painters."
+    }
+  ],
+  "approved_contract": [
+    "Treat built-in component fallback policies and actual authored state rules as separate concepts. Preserve the existing global base/state/override tier contract outside the narrow defaults repair.",
+    "For untouched Picker defaults, focused ICON is primary with BOLD removed. Bar detail remains muted, Bar tag secondary, and group uses the frozen legibility rule. Fill content follows row.on_fill, not FOCUSED alone; background, disabled and inactive behavior must come from the corresponding frozen full widget execution.",
+    "Authored foreground, background, underline, modifier operations, glyph, size and alignment resolve independently. Semantic roles and explicit Clear count as authored channels; Role::Custom is not a proxy for ownership. Global overrides, scopes and instance patches keep existing precedence.",
+    "Theme operations remain pure resolution. No draw-time mutation, application identity, viewport identity, captured clock or test identity selects style behavior."
+  ],
+  "historical_fixture_decision": {
+    "status": "HOLD",
+    "reason": "The pre-policy constructor digest is a historical stability contract, not evidence of frozen product correctness. Reverting focused ICON to regain it would contradict frozen source. Moving the same digest to a new legacy fixture is an expectation/reference decision and cannot be approved from this source review alone.",
+    "allowed_path": "Preserve the old hashes and failure receipts. An explicit historical custom Theme fixture may be legitimate using the existing public recipe/token customization API, with documented original recipe and palette provenance and an independent comparison. It must be visibly a customization fixture, not a production legacy flag added solely to reproduce expected output. Keep default versus explicit Bar/gap-1 equivalence checks on current defaults.",
+    "prohibited": "No candidate digest refresh, switch to override_family merely to make the owner test pass, silently skipped assertions, captured-cell fallback, test-only production policy, or palette rollback.",
+    "separate_conflict": "ANSI256 muted/faint/disabled token restoration remains a separately serialized source-qualified reference decision. Do not mix palette repair into precedence repair."
+  },
+  "required_test_matrix": [
+    "Frozen public Picker and candidate public component consumers with identical different data: Bar and Fill, four color profiles, normal/focused/hovered/pressed/selected/disabled/inactive combinations. Compare complete cells, underline color, add/remove modifier effects, cursor, hit regions and focus metadata. Include group legibility/collision backgrounds and both repeated and changed groups.",
+    "Owner recipe matrix: family and variant base/state, global family/variant override, scope and local patch; independently set foreground only, background only, both, semantic role, custom RGB, explicit Clear, same-value-as-seed, added and removed modifiers, and combined state specificity. Verify untouched channels retain defaults.",
+    "Generic recipe negative protection: state_rules_beat_a_variant_base, specificity/tie-order and family/variant/global/scope/instance precedence remain unchanged. Verify direct mutable-recipe edits and supported builders, cloning, for_level, cache invalidation and public struct-literal consumers.",
+    "Historical pre-policy hashes retained under independently justified explicit customization fixture; default and explicit Bar/gap-1 buffers, cursor and hit regions remain equal. New default assertions must be derived from frozen widget execution, never candidate output.",
+    "Deliberate defects: focused ICON muted must fail frozen comparison; Bar META forced-primary must fail while Fill remains primary; semantic owner foreground overwritten must fail; background-only customization must not disable foreground defaults; a changed palette token must fail the separate authored-role gate."
+  ],
+  "remaining_held_choices": [
+    "No frozen public-widget execution has been independently run in this review. Source establishes the branches but does not prove full-cell behavior or all disabled/inactive combinations.",
+    "No approval for any expected digest replacement or relocation yet. No approval for the separate 44-role palette restoration, broad 73-slot assertions, or four-application parity.",
+    "A provenance representation and direct mutable-recipe compatibility policy must be made concrete and reviewed before claiming complete explicit-author coverage."
+  ]
+}
