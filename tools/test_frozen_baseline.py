@@ -2390,13 +2390,14 @@ class RunnerGuards(unittest.TestCase):
             root = base / "runner-root"
             root.mkdir()
             _plan_path, commitment_path, commitment_sha256, plan = self._publish_recovery_fixture(root)
+            plan_digest = runner.sha256(_plan_path)
             pending_path = Path(f"{commitment_path}.pending")
             key_path = base / "private-custody" / "run.key"
             captured = io.StringIO()
-            with patch.object(runner, "verify_fresh_plan", side_effect=lambda *_a, execution=None, **kwargs: self._assert_owned_plan_verification(plan, execution, commitment_path, commitment_sha256, pending_path, kwargs)), patch.object(runner, "_git_metadata_paths", side_effect=lambda _repo, execution=None: self._assert_owned_git_probe(execution)), patch.object(runner.sys, "stdout", captured), runner.PrepareExecution(20) as execution:
+            with patch.object(runner, "verify_fresh_plan", side_effect=lambda *_a, execution=None, **kwargs: self._assert_owned_plan_verification(plan, execution, commitment_path, commitment_sha256, pending_path, kwargs)), patch.object(runner, "_git_metadata_paths", side_effect=lambda repo, *, execution=None: self._assert_owned_git_probe(repo, execution=execution)), patch.object(runner.sys, "stdout", captured), runner.PrepareExecution(20) as execution:
                 manifest = runner.create_fresh_run(
                     root / "repo", root, "fixture-cohort", root / "bins", 30,
-                    plan["source"]["source_sha256"], key_path, execution=execution,
+                    plan_digest, key_path, execution=execution,
                     commitment_path=commitment_path, expected_commitment_sha256=commitment_sha256,
                     pending_receipt_path=pending_path,
                 )
@@ -2458,7 +2459,7 @@ class RunnerGuards(unittest.TestCase):
         return plan
 
     @staticmethod
-    def _assert_owned_git_probe(execution):
+    def _assert_owned_git_probe(_repo, *, execution=None):
         if execution is None:
             raise AssertionError("owned init must execute Git metadata probes in its PrepareExecution")
         execution.check_work()
@@ -2470,6 +2471,7 @@ class RunnerGuards(unittest.TestCase):
             root = base / "runner-root"
             root.mkdir()
             _plan_path, commitment_path, commitment_sha256, plan = self._publish_recovery_fixture(root)
+            plan_digest = runner.sha256(_plan_path)
             pending_path = Path(f"{commitment_path}.pending")
             key_path = base / "private-custody" / "run.key"
             output = io.StringIO()
@@ -2484,7 +2486,7 @@ class RunnerGuards(unittest.TestCase):
                 with runner.PrepareExecution(20) as execution, self.assertRaisesRegex(OSError, "injected manifest publication failure"):
                     runner.create_fresh_run(
                         root / "repo", root, "fixture-cohort", root / "bins", 30,
-                        plan["source"]["source_sha256"], key_path, execution=execution,
+                        plan_digest, key_path, execution=execution,
                         commitment_path=commitment_path, expected_commitment_sha256=commitment_sha256,
                         pending_receipt_path=pending_path,
                     )
@@ -2507,6 +2509,7 @@ class RunnerGuards(unittest.TestCase):
                 root = base / "runner-root"
                 root.mkdir()
                 _plan_path, commitment_path, commitment_sha256, plan = self._publish_recovery_fixture(root)
+                plan_digest = runner.sha256(_plan_path)
                 pending_path = Path(f"{commitment_path}.pending")
                 key_path = base / "private-custody" / "run.key"
                 output = io.StringIO()
@@ -2534,13 +2537,166 @@ class RunnerGuards(unittest.TestCase):
                             with self.assertRaisesRegex(runner.RunnerError, "deadline|cancelled by signal|root pathname|symlink"):
                                 runner.create_fresh_run(
                                     root / "repo", root, "fixture-cohort", root / "bins", 30,
-                                    plan["source"]["source_sha256"], key_path, execution=execution,
+                                    plan_digest, key_path, execution=execution,
                                     commitment_path=commitment_path, expected_commitment_sha256=commitment_sha256,
                                     pending_receipt_path=pending_path,
                                 )
                 self.assertFalse(key_path.exists())
                 self.assertFalse((root / "fresh-runs" / plan["plan_id"]).exists())
                 self.assertEqual(output.getvalue(), "")
+
+    def test_owned_fresh_run_verify_reuses_full_plan_owner_and_bound_root(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp).resolve()
+            root = base / "runner-root"
+            root.mkdir()
+            _plan_path, commitment_path, commitment_sha256, plan = self._publish_recovery_fixture(root)
+            plan_digest = runner.sha256(_plan_path)
+            pending_path = Path(f"{commitment_path}.pending")
+            key_path = base / "private-custody" / "run.key"
+            with patch.object(runner, "verify_fresh_plan", return_value=plan), patch.object(runner, "_git_metadata_paths", return_value=set()):
+                runner.create_fresh_run(root / "repo", root, "fixture-cohort", root / "bins", 30, plan_digest, key_path)
+
+            def verify_plan(*_args, execution=None, **kwargs):
+                return self._assert_owned_plan_verification(plan, execution, commitment_path, commitment_sha256, pending_path, kwargs)
+
+            stdout = io.StringIO()
+            with patch.object(runner, "EXPECTED_SCENARIOS", 1), patch.object(runner, "EXPECTED_ORDINARY_TESTS", 2), patch.object(runner, "ordinary_test_groups", return_value=(["source_only::fixture"], ["modes::showcase_boot_sets_terminal_modes"])), patch.object(runner, "verify_fresh_plan", side_effect=verify_plan), patch.object(runner, "_git_metadata_paths", side_effect=self._assert_owned_git_probe), patch.object(runner.sys, "stdout", stdout), runner.PrepareExecution(20) as execution:
+                manifest = runner.verify_fresh_run(
+                    root / "repo", root, "fixture-cohort", root / "bins", 30,
+                    plan_digest, key_path, execution=execution,
+                    commitment_path=commitment_path, expected_commitment_sha256=commitment_sha256,
+                    pending_receipt_path=pending_path,
+                )
+            output = json.loads(stdout.getvalue())
+            self.assertTrue(output["verified"])
+            self.assertFalse(output["executed"])
+            self.assertFalse(output["candidate_comparison_eligible"])
+            self.assertEqual(manifest["status"], "prepared-metadata-only")
+            self.assertNotIn(key_path.read_bytes().hex(), stdout.getvalue())
+
+    def test_owned_fresh_run_verify_rejects_root_replacement_from_plan_verification(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp).resolve()
+            root = base / "runner-root"
+            root.mkdir()
+            _plan_path, commitment_path, commitment_sha256, plan = self._publish_recovery_fixture(root)
+            plan_digest = runner.sha256(_plan_path)
+            pending_path = Path(f"{commitment_path}.pending")
+            key_path = base / "private-custody" / "run.key"
+            with patch.object(runner, "verify_fresh_plan", return_value=plan), patch.object(runner, "_git_metadata_paths", return_value=set()):
+                runner.create_fresh_run(root / "repo", root, "fixture-cohort", root / "bins", 30, plan_digest, key_path)
+
+            def replace_root(*_args, execution=None, **_kwargs):
+                self.assertIsInstance(execution, runner.PrepareExecution)
+                moved = base / "moved-root"
+                root.rename(moved)
+                root.symlink_to(moved, target_is_directory=True)
+                return plan
+
+            stdout = io.StringIO()
+            with patch.object(runner, "verify_fresh_plan", side_effect=replace_root), patch.object(runner, "_stable_secret_key") as key_read, patch.object(runner.sys, "stdout", stdout), runner.PrepareExecution(20) as execution, self.assertRaisesRegex(runner.RunnerError, "root pathname|symlink"):
+                runner.verify_fresh_run(
+                    root / "repo", root, "fixture-cohort", root / "bins", 30,
+                    plan_digest, key_path, execution=execution,
+                    commitment_path=commitment_path, expected_commitment_sha256=commitment_sha256,
+                    pending_receipt_path=pending_path,
+                )
+            key_read.assert_not_called()
+            self.assertEqual(stdout.getvalue(), "")
+
+    def test_owned_fresh_run_verify_detects_root_change_during_read_and_before_success_output(self) -> None:
+        for phase in ("manifest-read", "success-output"):
+            with self.subTest(phase=phase), tempfile.TemporaryDirectory() as temp:
+                base = Path(temp).resolve()
+                root = base / "runner-root"
+                root.mkdir()
+                plan_path, commitment_path, commitment_sha256, plan = self._publish_recovery_fixture(root)
+                plan_digest = runner.sha256(plan_path)
+                pending_path = Path(f"{commitment_path}.pending")
+                key_path = base / "private-custody" / "run.key"
+                with patch.object(runner, "verify_fresh_plan", return_value=plan), patch.object(runner, "_git_metadata_paths", return_value=set()):
+                    runner.create_fresh_run(root / "repo", root, "fixture-cohort", root / "bins", 30, plan_digest, key_path)
+
+                moved = base / "moved-root"
+
+                def replace_root() -> None:
+                    root.rename(moved)
+                    root.symlink_to(moved, target_is_directory=True)
+
+                if phase == "manifest-read":
+                    real_read = runner._read_stable_json
+
+                    def replace_after_manifest_read(path, label, *, check_work=None):
+                        result = real_read(path, label, check_work=check_work)
+                        if label == "fresh run manifest":
+                            replace_root()
+                        return result
+
+                    fault = patch.object(runner, "_read_stable_json", side_effect=replace_after_manifest_read)
+                else:
+                    real_dumps = runner.json.dumps
+
+                    def replace_before_output(value, *args, **kwargs):
+                        if isinstance(value, dict) and value.get("verified") is True:
+                            replace_root()
+                        return real_dumps(value, *args, **kwargs)
+
+                    fault = patch.object(runner.json, "dumps", side_effect=replace_before_output)
+                output = io.StringIO()
+                with (
+                    patch.object(runner, "EXPECTED_SCENARIOS", 1),
+                    patch.object(runner, "EXPECTED_ORDINARY_TESTS", 2),
+                    patch.object(runner, "ordinary_test_groups", return_value=(["source_only::fixture"], ["modes::showcase_boot_sets_terminal_modes"])),
+                    patch.object(runner, "verify_fresh_plan", return_value=plan),
+                    patch.object(runner, "_git_metadata_paths", return_value=set()),
+                    fault,
+                    patch.object(runner.sys, "stdout", output),
+                    runner.PrepareExecution(20) as execution,
+                    self.assertRaisesRegex(runner.RunnerError, "path or identity|root pathname|symlink"),
+                ):
+                    runner.verify_fresh_run(
+                        root / "repo", root, "fixture-cohort", root / "bins", 30, plan_digest, key_path,
+                        execution=execution, commitment_path=commitment_path,
+                        expected_commitment_sha256=commitment_sha256, pending_receipt_path=pending_path,
+                    )
+                self.assertEqual(output.getvalue(), "")
+                self.assertTrue(root.is_symlink())
+
+    def test_owned_fresh_run_verify_cli_reuses_exact_execution_context(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp).resolve()
+            root = base / "root"
+            root.mkdir()
+            commitment = base / "creation.json"
+            pending = base / "creation.json.pending"
+            captured = {}
+
+            def verify(*args, execution=None, commitment_path=None, expected_commitment_sha256=None, pending_receipt_path=None):
+                self.assertIsInstance(execution, runner.PrepareExecution)
+                execution.check_work()
+                captured.update({
+                    "cohort": args[2], "execution": execution,
+                    "commitment_path": commitment_path,
+                    "expected_commitment_sha256": expected_commitment_sha256,
+                    "pending_receipt_path": pending_receipt_path,
+                })
+                return {"status": "prepared-metadata-only"}
+
+            argv = [
+                "frozen_baseline.py", "--repo", str(root / "repo"), "--root", str(root), "fresh-run-verify",
+                "--cohort", runner.PREPARE_LIVE_OWNED_COHORT, "--baseline-bin-dir", str(root / "bins"),
+                "--expected-plan-sha256", "a" * 64, "--key-path", str(base / "custody" / "run.key"),
+                "--owned-lifecycle", "--owned-budget", "20", "--creation-commitment-path", str(commitment),
+                "--expected-commitment-sha256", "b" * 64, "--pending-receipt-path", str(pending),
+            ]
+            with patch.object(sys, "argv", argv), patch.object(runner, "verify_fresh_run", side_effect=verify) as verify_mock:
+                self.assertEqual(runner.main(), 0)
+            self.assertEqual(captured["cohort"], runner.PREPARE_LIVE_OWNED_COHORT)
+            self.assertEqual(captured["commitment_path"], commitment)
+            self.assertEqual(captured["expected_commitment_sha256"], "b" * 64)
+            self.assertEqual(captured["pending_receipt_path"], pending)
+            verify_mock.assert_called_once()
 
     def test_fresh_run_rejects_tampered_stale_or_untrusted_metadata(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
