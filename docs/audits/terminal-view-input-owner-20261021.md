@@ -51,3 +51,22 @@ then passed all 10 at the candidate in
 selection range, click completion, input forwarding, cursor/modal ownership,
 read-only behavior, and exhaustive public-state construction. Visual
 application parity remains outside this component increment.
+
+## Captured-link boundary follow-up
+
+A second independent review found that a captured drag's trailing `Click` was
+still passed to `link_resolver` before the range guard. The same 13-case public
+consumer now covers drag-to-link suppression, a genuine link click exactly
+once, and a genuine link click after an existing text selection. A pre-fix run
+against `cf9f5cac09d70a96221dc358f165450bd4d7d5fb` failed those three boundary
+cases (10 passed, 3 failed); the candidate passes all 13. The exact fixture and
+review are preserved under `/private/tmp/terminal-view-link-regression-20261021`
+and `/Users/donbeave/Projects/termrock-cli-evidence-20261021/branch-consolidation/terminal-view-drag-independent-review-33e4eb75-20261021/review.json`
+(SHA-256 `a01383af219c21506e9593493b90577beee6b06f7c09055e6734562fd462be2e`).
+
+The update path now classifies and skips a completed drag before link
+resolution. Link presses defer activation to the real Click phase, allowing
+captured drags to cancel link activation while preserving one OpenLink action
+for a real click. Existing view state stores the press point so a genuine link
+click following a previous selection is not mistaken for a trailing drag
+click. No application or runtime routing workaround was added.
