@@ -445,7 +445,25 @@ fn run_with_cursor_shape_startup<A: App>(
     startup: StartupInput,
     cursor_shape: SessionCursorShape,
 ) -> io::Result<()> {
-    prepare_startup_input(startup, std::thread::sleep, drain_pending_input);
+    // Install before any Crossterm poll/read. The process-wide reader binds
+    // to stdin on first use and does not follow a later dup2.
+    let bridged = crate::esc_bridge::install().is_ok();
+    prepare_startup_input(startup, std::thread::sleep, || {
+        if crate::esc_bridge::installed() {
+            crate::esc_bridge::drain_real()
+        } else {
+            drain_pending_input()
+        }
+    });
+    // Declared before `session`, so it drops after raw-mode restore and puts
+    // the real tty's original termios back last.
+    struct RestoreRealStdin;
+    impl Drop for RestoreRealStdin {
+        fn drop(&mut self) {
+            crate::esc_bridge::restore_stdin();
+        }
+    }
+    let _restore_real_stdin = RestoreRealStdin;
     let caret_supported = TerminalShapeSupport::current().caret;
     let mut session =
         TerminalSession::enter_with_cursor_shape_support(cursor_shape, caret_supported)?;
@@ -511,12 +529,22 @@ fn run_with_cursor_shape_startup<A: App>(
             continue;
         }
         let now = Moment::from_duration(origin.elapsed());
-        let ready = match rt.next_deadline() {
-            Some(at) => poll(
-                at.saturating_duration_since(now)
-                    .min(Duration::from_secs(60)),
-            )?,
-            None => true,
+        let ready = if bridged {
+            match rt.next_deadline() {
+                Some(at) => crate::esc_bridge::wait_for_event(Some(
+                    at.saturating_duration_since(now)
+                        .min(Duration::from_secs(60)),
+                ))?,
+                None => crate::esc_bridge::wait_for_event(None)?,
+            }
+        } else {
+            match rt.next_deadline() {
+                Some(at) => poll(
+                    at.saturating_duration_since(now)
+                        .min(Duration::from_secs(60)),
+                )?,
+                None => true,
+            }
         };
         if ready {
             pending = decode_session_input(read()?);
