@@ -1,0 +1,7 @@
+# Context menu live data contract — 2026-10-21
+
+Scope: shared `ContextMenu` implementation only. Frozen behavior reference remains `visual-baseline` source `4169783ae883788186d161af09ba9c481bd84e5c`; source diagnosis: `capsule-live-menu-contract-0b524f16-20261021/contract.json` (SHA-256 `e6589dbfc5f80a7282bcf1ff35bd93e98de65c829b6c1ea524cfd304ef8934f2`).
+
+This change adds borrowed display hints, keeps executable chords sourced only from `MenuItem::chord`, computes menu width from label/hint content, applies the frozen title inset, admits hints only when label plus hint plus five cells fit, and adds a generic `PartRef` owner anchor. `try_layer` fails closed when the current frame lacks that part. An open anchored menu closes when its owner part disappears and reanchors from the current part bounds on update. Existing constructors and fixed-anchor `layer` callers remain supported.
+
+Focused runtime tests cover pointer-only hints (`Ctrl+B %`, `2×click`) that do not bind `2`, visible hint content, row pointer activation, shared label/hint admission boundary, measured natural width, component-derived anchor geometry, moved-owner reanchoring, and missing-owner failure/close. These are shared widget tests; they do not prove Jackin adoption, frozen CLI parity, or removal of the application replay painter. Showcase/catalog adoption remains unassigned; current PR #38 has no catalog/allowlist gate. No expected frames or product references changed.
