@@ -1500,6 +1500,23 @@ class RunnerGuards(unittest.TestCase):
             self.assertTrue((root / runner.FRESH_PLAN_FILE).is_file())
             self.assertEqual(list(root.glob(".fresh-capture-plan.json.*")), [])
 
+    def test_owned_fresh_plan_chunked_write_stops_before_publication_and_cleans_temp(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            path = root / runner.FRESH_PLAN_FILE
+            checks = 0
+
+            def fail_during_second_chunk() -> None:
+                nonlocal checks
+                checks += 1
+                if checks == 6:
+                    raise runner.RunnerError("owned prepare work deadline expired")
+
+            with self.assertRaisesRegex(runner.RunnerError, "work deadline expired"):
+                runner._atomic_create_plan(path, {"payload": "x" * (2 * 1024 * 1024)}, check_work=fail_during_second_chunk)
+            self.assertFalse(path.exists())
+            self.assertEqual(list(root.glob(".fresh-capture-plan.json.*")), [])
+
     def test_owned_fresh_plan_final_output_is_flushed_then_postchecked(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp).resolve()
