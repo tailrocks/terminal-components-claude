@@ -265,6 +265,19 @@ pub fn legacy_mono(fg: Color, bg: Color, menu_row: bool) -> Option<LegacyMono> {
     })
 }
 
+/// Foreground for a selected tab on the overlay fill.
+///
+/// At 16 colors that fill is dark gray (`#666666`) and the baseline paints
+/// the label, prefix, and close mark in black. Filter chips and swatches
+/// keep light ink on the same gray, so this is not a global pair rewrite.
+pub fn filled_tab_fg(level: ColorLevel, rest: Role) -> Role {
+    if level == ColorLevel::Ansi16 {
+        Role::Custom(Color::Black)
+    } else {
+        rest
+    }
+}
+
 /// Downgrade a painted pair. On 16 colors, white on dark gray becomes black
 /// so the label keeps the baseline contrast.
 pub fn downgrade_pair(fg: Color, bg: Color, level: ColorLevel) -> (Color, Color) {
@@ -821,6 +834,18 @@ mod tests {
         assert_eq!(
             downgrade_color(Color::Rgb(0x2f, 0x5a, 0xa8), ColorLevel::Ansi256),
             Color::Indexed(25)
+        );
+        assert_eq!(
+            filled_tab_fg(ColorLevel::Ansi16, Role::Fg(FgStep::Primary)),
+            Role::Custom(Color::Black)
+        );
+        assert_eq!(
+            filled_tab_fg(ColorLevel::TrueColor, Role::Fg(FgStep::Primary)),
+            Role::Fg(FgStep::Primary)
+        );
+        assert_eq!(
+            filled_tab_fg(ColorLevel::Ansi256, Role::Fg(FgStep::Secondary)),
+            Role::Fg(FgStep::Secondary)
         );
         assert_eq!(
             downgrade_color(Color::Rgb(0x47, 0x47, 0x47), ColorLevel::Ansi256),

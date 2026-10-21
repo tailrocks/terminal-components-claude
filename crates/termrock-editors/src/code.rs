@@ -20,7 +20,8 @@ use crate::scroll::ScrollState;
 use crate::text::measure::{grapheme_width, graphemes};
 use crate::text::{EditAction, EditOutcome, Extend, Motion, TextEditorCore, width};
 use crate::theme::{
-    Family, FgStep, GlyphRole, Role, Slot, StyleDefaults, StylePatch, SyntaxRole, Variant,
+    ColorLevel, Family, FgStep, GlyphRole, Role, Slot, StyleDefaults, StylePatch, SyntaxRole,
+    Variant,
 };
 use crate::ui::{Cx, FrameRead, Ui};
 use termrock_core::edit_entry::EditEntry;
@@ -2001,7 +2002,14 @@ impl<'a> CodeEditor<'a> {
                     Part::META,
                     resolved.resolved,
                 );
-                let pos_style = resolved.resolved.style;
+                let mut pos_style = resolved.resolved.style;
+                // Baseline `text_faint` is Gray at 16 colors. The authored faint
+                // slot is DarkGray, and this corner label is the Gray one.
+                if ui.theme().capability.color == ColorLevel::Ansi16 {
+                    pos_style = pos_style.patch(
+                        ui.paint_patch(&StylePatch::new().set_fg(Role::Custom(Color::Gray))),
+                    );
+                }
                 ui.paint_str(
                     Rect {
                         x: pos_x,

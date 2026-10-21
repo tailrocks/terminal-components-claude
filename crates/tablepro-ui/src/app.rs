@@ -4128,19 +4128,28 @@ fn paint_query_error_results(ui: &mut Ui<'_>, area: termrock::Rect, message: &st
         return;
     }
     let plain = ui.surface_style();
+    let level = ui.theme().capability.color;
     let chip = plain.patch(
         ui.paint_patch(
             &StylePatch::new()
-                .set_fg(Role::Fg(FgStep::Primary))
+                .set_fg(termrock::theme::filled_tab_fg(
+                    level,
+                    Role::Fg(FgStep::Primary),
+                ))
                 .set_bg(Role::Surface(termrock::Surface::Overlay))
                 .add(Modifier::BOLD),
         ),
     );
-    let mark = chip.patch(ui.paint_patch(&StylePatch::new().set_fg(SQL_ERROR)));
+    let mark = chip.patch(
+        ui.paint_patch(&StylePatch::new().set_fg(termrock::theme::filled_tab_fg(level, SQL_ERROR))),
+    );
     let close = chip.patch(
         ui.paint_patch(
             &StylePatch::new()
-                .set_fg(Role::Fg(FgStep::Secondary))
+                .set_fg(termrock::theme::filled_tab_fg(
+                    level,
+                    Role::Fg(FgStep::Secondary),
+                ))
                 .remove(Modifier::BOLD),
         ),
     );
@@ -5677,19 +5686,23 @@ fn paint_legacy_tabs(
     }
     let base = ui.surface_style();
     let inactive = base.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_PATH_FG)));
+    let tab_ink = termrock::theme::filled_tab_fg(ui.theme().capability.color, TAG_PATH_FG);
     let active_fill = base.patch(
         ui.paint_patch(
             &StylePatch::new()
                 .set_bg(Role::Surface(termrock::Surface::Overlay))
-                .set_fg(Role::Fg(FgStep::Primary))
+                .set_fg(termrock::theme::filled_tab_fg(
+                    ui.theme().capability.color,
+                    Role::Fg(FgStep::Primary),
+                ))
                 .add(Modifier::BOLD),
         ),
     );
     let prefix_idle = base.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_CHROME_FG)));
     let prefix_active = active_fill
-        .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_PATH_FG).remove(Modifier::BOLD)));
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(tab_ink).remove(Modifier::BOLD)));
     let close_active = active_fill
-        .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_PATH_FG).remove(Modifier::BOLD)));
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(tab_ink).remove(Modifier::BOLD)));
     let mut x = area.x;
     let mut active_span: Option<(u16, u16)> = None;
     for tab in tabs {

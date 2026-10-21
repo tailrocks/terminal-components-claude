@@ -166,6 +166,9 @@ fn junie_16() -> ColorTokens {
     // DarkGray at 16 in every tier frame; the current 0x737373 source would
     // generically land on Gray.
     tokens.fg[3] = Color::DarkGray;
+    // Frozen apply_16 (`self.border_strong = Gray`). Nearest of #4d4d4d is
+    // DarkGray, and the query card rules render as #e5e5e5.
+    tokens.border_strong = Color::Gray;
     // Frozen apply_16 (`self.success = Green`): base ladder slot, not bright.
     tokens.success = Color::Green;
     tokens.meter.stale = Color::DarkGray;
