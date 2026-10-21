@@ -824,7 +824,7 @@ mod tests {
         let expected_ink = page
             .cell(target)
             .map(|cell| (cell.fg, cell.underline_color, cell.modifier));
-        layer.composite_onto(&mut page, &mut frame.roles, None);
+        layer.composite_onto(&mut page, &mut frame.roles, false);
         let composed = page.cell(target).expect("composited cell is present");
         assert_eq!(
             Some((composed.fg, composed.underline_color, composed.modifier)),
@@ -878,7 +878,7 @@ mod tests {
             });
         }
         let layer = frame.layers.active().first().expect("popup exists");
-        layer.composite_onto(&mut page, &mut frame.roles, None);
+        layer.composite_onto(&mut page, &mut frame.roles, false);
         let moved = page.cell(destination).expect("destination exists");
         assert_eq!(moved.symbol(), "X");
         assert_eq!(moved.fg, Color::Yellow);
