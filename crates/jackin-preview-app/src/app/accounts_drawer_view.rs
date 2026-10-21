@@ -417,6 +417,7 @@ fn field<'a>(label: &'a str, value: &'a str, ink: DrawerInk) -> DrawerLine<'a> {
     DrawerLine::Field { label, value, ink }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn meter<'a>(
     label: &'a str,
     readout: &'a str,
