@@ -3265,10 +3265,30 @@ def _fresh_journal_append(run_root: Path, envelope: dict[str, object], ordinal: 
     return journal / name
 
 
-def advance_fresh_run(repo: Path, root: Path, cohort_id: str, baseline_bin_dir: Path, timeout: int, expected_plan_sha256: str, key_path: Path) -> dict[str, object]:
+def advance_fresh_run(
+    repo: Path,
+    root: Path,
+    cohort_id: str,
+    baseline_bin_dir: Path,
+    timeout: int,
+    expected_plan_sha256: str,
+    key_path: Path,
+    *,
+    expected_ordinal: int | None = None,
+    expected_phase: str | None = None,
+) -> dict[str, object]:
     """Run exactly the next planned baseline capture or replay chunk; never candidate-check or finalize."""
     if not 1 <= timeout <= FRESH_PLAN_MAX_TIMEOUT:
         raise RunnerError(f"fresh run advance timeout must be 1..{FRESH_PLAN_MAX_TIMEOUT} seconds")
+    if (expected_ordinal is None) != (expected_phase is None):
+        raise RunnerError("expected fresh run ordinal and phase must be supplied together")
+    if expected_ordinal is not None and (type(expected_ordinal) is not int or expected_ordinal < 0):
+        raise RunnerError("expected fresh run ordinal must be a nonnegative integer")
+    if expected_phase is not None and (
+        type(expected_phase) is not str
+        or expected_phase not in {"baseline-capture", "baseline-replay"}
+    ):
+        raise RunnerError("expected fresh run phase must be baseline-capture or baseline-replay")
     repo, root, _source = paths(repo, root)
     plan_path = root / FRESH_PLAN_FILE
     plan = _read_self_sealed_plan(plan_path, expected_plan_sha256)
@@ -3307,6 +3327,11 @@ def advance_fresh_run(repo: Path, root: Path, cohort_id: str, baseline_bin_dir: 
         phase = step["phase"]
         if phase not in {"baseline-capture", "baseline-replay"}:
             raise RunnerError("ordinary-check advancement is not implemented; no phase was skipped")
+        if expected_ordinal is not None and (ordinal != expected_ordinal or phase != expected_phase):
+            raise RunnerError(
+                "fresh run next step differs from the expected ordinal and phase "
+                f"({expected_ordinal}, {expected_phase}); actual ({ordinal}, {phase})"
+            )
         chunk_index = step["chunk"]
         selected = list(step["selected_cases"])
         if not selected:
@@ -3938,6 +3963,8 @@ def parser() -> argparse.ArgumentParser:
     fresh_run_advance.add_argument("--baseline-bin-dir", type=Path, required=True)
     fresh_run_advance.add_argument("--expected-plan-sha256", required=True)
     fresh_run_advance.add_argument("--key-path", type=Path, required=True)
+    fresh_run_advance.add_argument("--expected-ordinal", type=int)
+    fresh_run_advance.add_argument("--expected-phase", choices=("baseline-capture", "baseline-replay"))
     plan.set_defaults(timeout=min(MAX_TIMEOUT, FRESH_PLAN_MAX_TIMEOUT))
     sub.add_parser("build")
     candidate_build = sub.add_parser("build-candidate")
@@ -3987,7 +4014,13 @@ def main() -> int:
         elif args.command == "fresh-run-verify":
             verify_fresh_run(args.repo, args.root, args.cohort, args.baseline_bin_dir, args.timeout, args.expected_plan_sha256, args.key_path)
         elif args.command == "fresh-run-advance":
-            advance_fresh_run(args.repo, args.root, args.cohort, args.baseline_bin_dir, args.timeout, args.expected_plan_sha256, args.key_path)
+            if (args.expected_ordinal is None) != (args.expected_phase is None):
+                raise RunnerError("--expected-ordinal and --expected-phase must be supplied together")
+            advance_fresh_run(
+                args.repo, args.root, args.cohort, args.baseline_bin_dir, args.timeout,
+                args.expected_plan_sha256, args.key_path,
+                expected_ordinal=args.expected_ordinal, expected_phase=args.expected_phase,
+            )
         elif args.command == "build":
             build(args.repo, args.root, args.timeout)
         elif args.command == "build-candidate":
