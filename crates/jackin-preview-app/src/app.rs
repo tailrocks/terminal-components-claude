@@ -1459,7 +1459,7 @@ impl App {
             "The pipeline stops at its current stage and the partially prepared instance is marked failed setup. Nothing is attached.",
         )
         .actions(&CANCEL_LAUNCH_ACTIONS)
-        .align(ScreenAlign::GeometricCenter)
+        .align(ScreenAlign::Balanced)
     }
 
     fn cockpit_info_dialog() -> Dialog<'static> {
@@ -9237,6 +9237,11 @@ impl TuiApp for App {
                 ..full
             },
         );
+        // The paused cockpit blit is page content: it must land before the
+        // layer pass so dialog chrome reads the real underlay ink.
+        if self.launch_cockpit_scene() {
+            launch_cockpit::paint(self, ui);
+        }
         self.draw_layers(ui);
         let historical_manager = self.route == Route::Manager
             && full.width == 120
@@ -9416,9 +9421,6 @@ impl TuiApp for App {
         self.draw_historical_editor_save(ui, full);
         if self.historical_launch_failure_frame(full) {
             self.draw_historical_launch_failure(ui);
-        }
-        if self.launch_cockpit_scene() {
-            launch_cockpit::paint(self, ui);
         }
         if self.cockpit_trace_open {
             self.paint_cockpit_trace(ui, full);
