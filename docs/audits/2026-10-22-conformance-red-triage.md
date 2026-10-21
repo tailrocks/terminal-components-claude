@@ -148,3 +148,33 @@ instance patch (`driver.rs:717`). The mutation-detection hardening
   (107/107 there; the binary has since grown from 107 to 126 tests) and red
   at the tip, so they belong to the same post-`1a947a251` regression window
   as the digest families; per-test commit attribution was not run.
+
+## Per-test attribution for the three `control_states` reds
+
+Follow-up (2026-10-22, later the same day): the per-test bisect that the
+previous section left open. Detached worktree at
+`/private/tmp/termrock-control-states-1`, own target directory, one focused
+probe per commit (`cargo nextest run --locked -p termrock-conformance --test
+control_states -E 'test(<name>)'`), `git bisect run` over
+`1a947a251..6ca6bdb42`. All three are red at the tip with these assertions:
+W02-01 TrueColor PRIMARY focused left `" "` right `"▎"`; W08-02 third mask
+cell left `Position(6,0)` right `Position(4,0)`; W13-02 backspace left `"a"`
+right `"a👩\u{200d}"`. No product source or expected output was changed; all
+three culprits are recorded deliberate changes, so classification (b)
+applies to each and no fix belongs to this lane.
+
+| Test | First-bad commit | Classification | Mechanism (verified at the tip) | Recorded decision behind the culprit | Recommended disposition |
+| --- | --- | --- | --- | --- | --- |
+| `w02_button_variants_all_states_and_focus_gutter` | `69e39a4b5` (`feat(theme): add button dot glyphs and focus-visible recipe`) | (b) deliberate consequence of a recorded decision | The Button `GUTTER` recipe trigger changed `StateFlags::FOCUSED` → `StateFlags::FOCUS_VISIBLE` (`crates/termrock-theme/src/builtin/mod.rs`), so a button carrying `ReferenceState::FOCUSED` inside an inert `Ui::reference` scope no longer paints the `▎` gutter | `docs/audits/2026-10-21-button-shared-contract.md`: "The shared color recipe changes only the Button gutter focus indicator to match `FOCUS_VISIBLE`", matching the frozen source | Not a regression; do not fix in product source. The control_states expectation (focused ⇒ `▎` regardless of focus visibility) predates the frozen-source contract and needs a deliberate revision by the conformance owner; files also sit in the active restoration stream's theme/controls territory |
+| `w08_input_masked_clicks_follow_display` | `39169524e` (`feat(fields): share contextual edit commands`) | (b) deliberate consequence of a recorded decision | Single click maps the mask cell (`geometry().leading` ≙ the old hardcoded `−2`), but the two probe clicks land one cell apart, within the default `pointer_click_slop` of 1 (`crates/termrock-runtime/src/runtime.rs:522`), so the second click reports press count 2 and `pointer_select` runs word selection; the caret ends at the word end (painted `inner.x+4 = 6`) instead of the clicked mask cell | `docs/audits/2026-10-20-picker-family-contracts.md`: "grapheme-safe pointer selection (single click, word, line, and drag)"; the slop semantics are pinned by `pointer_press_count_resets_after_slop_and_target_change` in `termrock-runtime` | Not a regression; double-click word selection on adjacent cells is the recorded pointer-selection contract (and macOS HIG behaviour). The W08-02 probe should either space its clicks beyond the slop or assert the word-selection outcome; conformance owner decides |
+| `w13_filter_backspace_removes_grapheme` | `06c8cea77` (`refactor(picker): delegate query editing to TextInput`) | (b) deliberate consequence of a recorded decision | The filter query now edits through the shared `TextInput`/`TextEditorCore`, whose Backspace deletes one grapheme cluster: `"a👩‍💻"` → `"a"`. The test pins the old char-wise deletion (`"a👩‍💻"` → `"a👩\u{200d}"`), despite its name saying "removes_grapheme" | `docs/audits/2026-10-20-picker-family-contracts.md`: query editing "moves … onto the shared `TextInput`/`TextInputState` editor core" with "grapheme-aware insertion/deletion" | Not a regression; grapheme-cluster deletion is the shared-editor contract and the terminal-interface standard. The W13-02 expectation pins char-wise deletion and needs a deliberate revision (expected `"a"`) by the conformance owner; the test name should follow the actual contract |
+
+None of the three culprits shares the digest regression's cause: all three
+postdate the window opener (`69e39a4b5` 10-21 04:22, `06c8cea77` 10-20 23:02,
+`39169524e` 10-20 23:02 committer date), and none touches a digest path —
+the first is `termrock-theme`/`termrock-controls` button recipe work, the
+others are `termrock-fields`/picker query editing, which do not feed the
+`render_components` digests.
+The control_states reds are therefore
+independent of the 143-red digest restoration and need no product fix from
+this lane.
