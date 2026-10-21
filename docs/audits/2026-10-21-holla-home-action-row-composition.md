@@ -45,9 +45,19 @@ rustup run 1.99.1 cargo fmt --all --check
 passed
 ```
 
+The broader package command
+`cargo nextest run --locked -p holla-ui --all-targets --no-fail-fast`
+finished with 144 passed, 1 failed, and 0 skipped. The failure is
+`holla-ui::visual::holla_visual_baseline`: `first-use 80 24 junie truecolor`
+changed from `e30768d9339a0fb9` to `d737412561a7e6fa`. The protected expected
+artifact was not changed. This is an unresolved cell-level conflict until the
+paired frozen-reference capture is run and independently reviewed; this
+increment does not claim visual acceptance.
+
 ## Limits
 
-These checks establish the shared row path and current Holla UI test contract.
-They do not establish complete frozen-baseline parity. Paired frozen-binary
-captures, full route inventory, and the other Home presentation paths remain
-required before Holla can be accepted.
+These checks establish the shared row path and current Holla UI interaction
+contract. They do not establish complete frozen-baseline parity. The protected
+Holla visual digest failure remains unresolved pending paired frozen-binary
+capture and independent review. Full route inventory and the other Home
+presentation paths also remain required before Holla can be accepted.
