@@ -95,6 +95,7 @@ fn focused_readonly_code_editor_keeps_its_published_bar_caret() {
     assert_eq!(rt.focus(), Some(EDITOR));
     assert_eq!(rt.typing_owner(), None);
     assert!(rt.cursor_position().is_some());
+    assert!(rt.cursor_bar());
     assert!(
         !rt.diagnostics()
             .iter()

@@ -13,11 +13,12 @@
     "crates/termrock-runtime/src/runtime/typing.rs": "41dca2dd88536644c09606d785303f960535bd7f421ce7d5228197d57257b6f1",
     "crates/termrock-runtime/src/cursor.rs": "fb3e9fef16e7591a31d8394e1ca9a3464b6dc19ea4cb97819d749d07786b8c66",
     "crates/termrock-runtime/src/runtime.rs": "f48245a61af64fb9e18538620404f52f9d6aa9941d001fa73acfd460ac4ff266",
-    "crates/termrock-runtime/tests/readonly_caret.rs": "25970f22890be4aabb0fa0ca985abf4a4cb55ce4df1b9b234f5dbb94ef0fb610"
+    "crates/termrock-runtime/tests/readonly_caret.rs": "0b45f54da6062153f99ca4f04b8512db1b2f19cfa8bea50ff5ce482eca4051ac"
   },
   "nextest": {
     "command": "rustup run 1.99.1 cargo nextest run -p termrock-runtime -p termrock-editors -p termrock-fields -p termrock-terminal --no-fail-fast",
     "result": "594 run, 594 passed, 3 skipped",
+    "tested_readonly_caret_source_sha256": "25970f22890be4aabb0fa0ca985abf4a4cb55ce4df1b9b234f5dbb94ef0fb610",
     "target_dir": "/private/tmp/termrock-readonly-caret-target-20261021-agent894a",
     "log": "runtime-nextest.log",
     "log_sha256": "52655f385573dd37c5079edb37028ceeaae0fe5666371e70cc81499c068673a1",
@@ -29,6 +30,14 @@
       "termrock_terminal-2c62a58628b69935": "238d7e4742c405c08ede90bf5df4bfec9ad86f6ec6f1c8203cddd04581b4fdfc",
       "typing_owner-243d46c808493acc": "a8f5c0172bdeefd31309d0183f1a46b1229d96e8744e620c7cbc81c1b4c41fc9"
     }
+  },
+  "focused_followup": {
+    "command": "rustup run 1.99.1 cargo nextest run -p termrock-runtime --test readonly_caret --no-fail-fast",
+    "result": "2 run, 2 passed, 0 skipped",
+    "tested_readonly_caret_source_sha256": "0b45f54da6062153f99ca4f04b8512db1b2f19cfa8bea50ff5ce482eca4051ac",
+    "binary_sha256": "6d2b9fb21c5158384d003c047afbacb28faae3e3beeab4bd44b1479a2be95d9f",
+    "log": "readonly-caret-focused.log",
+    "log_sha256": "2036ce83c0a3ba344730e37a1f3cb88e2a6ec53b90165dd0fdcf6e3cb18b1803"
   },
   "checks": {
     "targeted_rustfmt_check": "passed",
