@@ -1,17 +1,10 @@
    Compiling termrock-navigation v0.1.0 (/private/tmp/pr38-picker-contrast-integrate-20261021/crates/termrock-navigation)
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.20s
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.41s
 ────────────
- Nextest run ID c16fcee0-bf4d-4395-b93c-e7340584c3a2 with nextest profile: default
+ Nextest run ID a12012b9-0214-4497-ae8f-e0e70baede68 with nextest profile: default
     Starting 15 tests across 1 binary
-        PASS [   0.024s] ( 1/15) termrock-navigation::item_row_columns warmed_columns_paint_allocates_nothing
-        PASS [   0.025s] ( 2/15) termrock-navigation::item_row_columns independent_ancestor_top_clip_repeats_first_visible_group
-        PASS [   0.028s] ( 3/15) termrock-navigation::item_row_columns unselected_rows_render_matched_unicode_graphemes_only
-        PASS [   0.029s] ( 4/15) termrock-navigation::item_row_columns custom_callback_replaces_columns_and_keeps_nonsearchable_policy
-        PASS [   0.029s] ( 5/15) termrock-navigation::item_row_columns owner_part_styles_win_over_painter_defaults_in_columns_mode
-        PASS [   0.030s] ( 6/15) termrock-navigation::item_row_columns scroll_top_repeats_group_without_shifting_columns_or_mutating_on_draw
-        PASS [   0.033s] ( 7/15) termrock-navigation::item_row_columns full_row_hit_is_authoritative_including_group_and_disabled_rows
-        PASS [   0.035s] ( 8/15) termrock-navigation::item_row_columns measurement_uses_filtered_projection_not_hidden_source_items
-        FAIL [   0.037s] ( 9/15) termrock-navigation::item_row_columns constructor_defaults_match_the_pre_policy_full_cell_fixture
+        PASS [   0.025s] ( 1/15) termrock-navigation::item_row_columns scroll_top_repeats_group_without_shifting_columns_or_mutating_on_draw
+        FAIL [   0.029s] ( 2/15) termrock-navigation::item_row_columns constructor_defaults_match_the_pre_policy_full_cell_fixture
   stdout ───
 
     running 1 test
@@ -26,19 +19,26 @@
 
   stderr ───
 
-    thread 'constructor_defaults_match_the_pre_policy_full_cell_fixture' (148663408) panicked at crates/termrock-navigation/tests/item_row_columns.rs:483:13:
+    thread 'constructor_defaults_match_the_pre_policy_full_cell_fixture' (148884476) panicked at crates/termrock-navigation/tests/item_row_columns.rs:483:13:
     assertion `left == right` failed: historical full-cell fixture outside the corrected ANSI-256 palette
       left: 4189130516631402064
      right: 5235702202963140133
     note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
-        PASS [   0.043s] (10/15) termrock-navigation::item_row_columns picker_forwards_columns_and_custom_row_retains_width_search_and_caller_policy
-        PASS [   0.045s] (11/15) termrock-navigation::item_row_columns columns_align_complete_projection_and_emphasize_original_graphemes
-        PASS [   0.057s] (12/15) termrock-navigation::item_row_columns metadata_gap_only_changes_rows_with_metadata_columns
-        PASS [   0.069s] (13/15) termrock-navigation::item_row_columns fill_cursor_uses_selection_colors_and_keeps_the_reserved_gutter_blank
-        PASS [   0.103s] (14/15) termrock-navigation::item_row_columns picker_component_ink_defaults_are_per_channel_and_below_authored_styles
-        PASS [   0.349s] (15/15) termrock-navigation::item_row_columns narrow_columns_never_escape_registered_rows
+        PASS [   0.029s] ( 3/15) termrock-navigation::item_row_columns owner_part_styles_win_over_painter_defaults_in_columns_mode
+        PASS [   0.029s] ( 4/15) termrock-navigation::item_row_columns unselected_rows_render_matched_unicode_graphemes_only
+        PASS [   0.029s] ( 5/15) termrock-navigation::item_row_columns custom_callback_replaces_columns_and_keeps_nonsearchable_policy
+        PASS [   0.030s] ( 6/15) termrock-navigation::item_row_columns full_row_hit_is_authoritative_including_group_and_disabled_rows
+        PASS [   0.032s] ( 7/15) termrock-navigation::item_row_columns independent_ancestor_top_clip_repeats_first_visible_group
+        PASS [   0.032s] ( 8/15) termrock-navigation::item_row_columns warmed_columns_paint_allocates_nothing
+        PASS [   0.034s] ( 9/15) termrock-navigation::item_row_columns measurement_uses_filtered_projection_not_hidden_source_items
+        PASS [   0.040s] (10/15) termrock-navigation::item_row_columns columns_align_complete_projection_and_emphasize_original_graphemes
+        PASS [   0.042s] (11/15) termrock-navigation::item_row_columns picker_forwards_columns_and_custom_row_retains_width_search_and_caller_policy
+        PASS [   0.048s] (12/15) termrock-navigation::item_row_columns metadata_gap_only_changes_rows_with_metadata_columns
+        PASS [   0.071s] (13/15) termrock-navigation::item_row_columns fill_cursor_uses_selection_colors_and_keeps_the_reserved_gutter_blank
+        PASS [   0.089s] (14/15) termrock-navigation::item_row_columns picker_component_ink_defaults_are_per_channel_and_below_authored_styles
+        PASS [   0.169s] (15/15) termrock-navigation::item_row_columns narrow_columns_never_escape_registered_rows
 ────────────
-     Summary [   0.350s] 15 tests run: 14 passed, 1 failed, 0 skipped
-        FAIL [   0.037s] ( 9/15) termrock-navigation::item_row_columns constructor_defaults_match_the_pre_policy_full_cell_fixture
+     Summary [   0.170s] 15 tests run: 14 passed, 1 failed, 0 skipped
+        FAIL [   0.029s] ( 2/15) termrock-navigation::item_row_columns constructor_defaults_match_the_pre_policy_full_cell_fixture
 error: test run failed

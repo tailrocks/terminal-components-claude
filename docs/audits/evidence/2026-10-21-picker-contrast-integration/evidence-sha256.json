@@ -1,13 +1,13 @@
 {
-  "gates/clippy.log": "c5cf63453e92fbc5f8470343c4838497537e71f401a92ae07a15fa373d88fea5",
-  "gates/facade-lib.log": "bf1ad7a79e4642a77e32830d44278fb2f4d4c1f3855c2b5635909e6460d379ab",
+  "gates/clippy.log": "d9908b3f6c30a76e16690a045112bd2dcc590b3f27a134fc2f9082a3b62175c2",
+  "gates/facade-lib.log": "83b1f8054b8d31a5aad2eb37a95c3390c9adf8075da76636040900f15a632a47",
   "gates/fmt.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-  "gates/item-row-columns.log": "51d4690a408bbe770616cb6eb7cde0040d8fe1c55d85a4eb11681e7230042bf2",
-  "gates/navigation-lib.log": "30b7dbab24e9289354a398f0bf1748b2c5c7e60beb68c471bb5fe800c793e6af",
-  "gates/public-example-check.log": "f50d91ff9ad1201bd946c21d36dba61bfb2e9ce68854cbe1fdcd3f139a67a3e6",
-  "gates/public-example-run.log": "68d9dc5aaf0033890909a3a1f1ba9e1a2d6a69a14f66eba51bc0547e25235b3a",
-  "gates/runtime-lib.log": "9908eac192e0e1eb45f9b2f1b5daa27cc0aee47c26d977c59c0d991ec2521c48",
-  "held-expectations.json": "a51aea9741ddb3478682c7724f0aab6a0ef3c11e80e864089fafbaf1c17d9930",
+  "gates/item-row-columns.log": "1ef700c1f43e288746bb8ac669f9768b1b5473928c5e4f0b8e033df3a6bb1cb5",
+  "gates/navigation-lib.log": "155a202ee18397011c89a6dbcafd08c8256013d968c9fdf768f7cc48e8dff5d3",
+  "gates/public-example-check.log": "6dd827efe8859b04ae1d679bd60ed3fbad96f5477e61cdd2c2744c8da9a46891",
+  "gates/public-example-run.log": "fb6361ce4d1b04d4513f3480f54d0ecc8eebe493f241d2bdadd0b3055949afdb",
+  "gates/runtime-lib.log": "de744c85de3449629e3702eee32791ac43267254066d941104bb1d3c2a137d35",
+  "held-expectations.json": "b285a43df993b3f75fb17fcd99930e529337563df6866c42f6e3ee26791c50d2",
   "independent-review/clippy-receipt.json": "f442135ae407233df356dc955764d7139fd5196cc1ed2e827c3be8637c3eae23",
   "independent-review/clippy.log": "604cba06e01f3388372b9fe288a89ff15f0d3b6701dcbf5b3b076c6c02898a39",
   "independent-review/consumer/Cargo.lock": "9f77d68d4bc8e8eb00eff604513794f762f33f057da20c32c4a61b9e39a76de7",
@@ -32,6 +32,6 @@
   "independent-review/unchanged-global-receipt.json": "702451342a9b04be746a3cd08c693d807846c3916a1b4c0528db9d35add0a54a",
   "independent-review/unchanged-global.log": "a243911a61ac193a4330a7c991d826c147d30bbab6d94fc1ee6021fcbac4b8a6",
   "independent-review-sha256.txt": "9ba69c9e8501ec33ec8e4d3c16834ffbe000b556fce7b4ecf83d527bd58bdf00",
-  "integration-gates.json": "998dc25e813fc1855c70f62136f66f8a5e2ab1185a41904a0db70ea4fb84610b",
-  "reference-inventory-delta.json": "2db7c4d326685b652a6a5d320fa591786e405a660b72ba1927409aad1f57acd7"
+  "integration-gates.json": "cc2deda6f4f1ddf79dc423d3d8b9bae8dc5c2b3b7816bd873607eb5f872b12c9",
+  "reference-inventory-delta.json": "12864eee2a74f8fd9151651a421f9eb5118d451d47f4f3075773b2f8696b530e"
 }

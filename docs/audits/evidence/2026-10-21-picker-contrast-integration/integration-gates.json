@@ -47,6 +47,7 @@
   },
   "full_app_parity_claimed": false,
   "also_merged_remote": "bfefea9ce4b3ab91f846239d5f315534ccc2ff43",
-  "tested_local_head": "7ca251723a6783a9fffca79acebb5bf0c4fff731",
-  "scope_note": "Named package tests and public example only; no approval for the separately unreviewed Session/Alt source in the also_merged_remote commit, and no application parity claim."
+  "tested_local_head": "c6dfab74d6d7f22490ae0195a6b9a0a218331b0a",
+  "scope_note": "Named package tests and public example only; no approval for the separately unreviewed Session/Alt source in the also_merged_remote commit, and no application parity claim.",
+  "additional_normal_merge": "8e7480415a065eac03c0fdfbdd0810edeb85b186"
 }
