@@ -1,0 +1,31 @@
+{
+  "blocking_finding": {
+    "detail": "The helper constructs jackin_live from origin/<branch> before merge, then after merge writes jackin_restored computed from that remote-only text. If local HEAD has non-fast-forward/branch-ahead changes to the same file that merge auto-combines, or a permitted Jackin conflict is resolved with additional content, the later write discards the merged non-remote content. The per-key computation is correct for origin ad20 but is not applied to the post-merge worktree blob. This violates preservation of concurrent/unpushed content. After merge, re-read the merged worktree file (or verify the merged file is byte-identical to the pinned remote file outside the 22 targeted values), validate exact 22 preimages there, then archive and transform those merged bytes. Any unexpected local-only deltas should fail closed for review.",
+    "severity": "HOLD before execution"
+  },
+  "helper_sha256": "b6e756065b23166b91e6161a3ca50e615974cd25cde47d1617fdefcbf89ea16e",
+  "positive_findings": [
+    "Helper validates the exact audit packet SHA and all 22 live value preimages before the merge.",
+    "Pure in-memory transformation of exact ad20 blob yields the expected 22 pre-089 values; all 42 remaining rows, header/comments, and line bytes are identical; no row inventory change.",
+    "Theme73 remains correctly called out as separate and unadmitted."
+  ],
+  "pure_compare_and_set": {
+    "additions_or_removals": 0,
+    "exact_other_values_preserved": true,
+    "packet_sha256": "b5ffc1beef5221af37ecdf3b9b0ccc01c8ecfe0a4f48c9a95111fda014a44c8e",
+    "result_matches_prior_blob_content_sha256": "326308bbca17a9ed77df2f6b9e3faa9036bead2fdc58c30b2ed624f81be3cedc",
+    "result_sha256": "326308bbca17a9ed77df2f6b9e3faa9036bead2fdc58c30b2ed624f81be3cedc",
+    "targeted_keys": 22,
+    "total_digest_rows": 64,
+    "untouched_rows": 42
+  },
+  "review": "read-only static helper review; no helper execution, git mutation, lock, source edits, tests or push",
+  "reviewed_helper": "/private/tmp/termrock-parent-native-expectation-protection-20261021.py",
+  "safe_to_execute": "No. Pure transform is correct, but merge/worktree source mismatch is a data-preservation blocker unless coordinator proves HEAD is exactly synchronized and conflict cannot introduce preserved changes, or patches helper to transform merged bytes.",
+  "source_byte_count": 3301,
+  "source_commit": "ad20c7aadaa8c531ea639395a648ec6f624a2a8d",
+  "source_crlf_count": 0,
+  "source_git_blob": "1d69703e64c35448e957ed46a6e7b6e160d9ada8",
+  "source_lf_count": 65,
+  "source_path": "crates/jackin-preview-app/tests/baselines/jackin.txt"
+}
