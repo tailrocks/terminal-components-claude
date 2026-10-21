@@ -5,7 +5,7 @@ use super::downgrade::downgrade_color;
 use super::glyph::GlyphRole;
 use super::patch::{Slot, StylePatch};
 use super::recipe::{Family, Overlay, Variant};
-use super::role::{Align, MeterRole, Role, Surface, SyntaxRole};
+use super::role::{Align, FgStep, MeterRole, Role, Surface, SyntaxRole};
 use crate::id::{Part, fnv1a};
 use crate::response::StateFlags;
 
@@ -1157,11 +1157,23 @@ fn bind_with_profile(
         bind_profile_slot(theme, acc.underline, exact_profile.underline, surface);
     style.add_modifier = acc.add;
     style.sub_modifier = acc.remove;
+    let disabled_surface_ink = matches!(acc.fg, Slot::Set(Role::DisabledFg))
+        && matches!(acc.bg, Slot::Set(Role::CurrentSurface));
+    let disabled_collision = disabled_surface_ink && style.fg.is_some() && style.fg == style.bg;
+    let fg_role = if disabled_collision {
+        style.fg = bind_slot(theme, Slot::Set(Role::Fg(FgStep::Muted)), surface);
+        if !acc.remove.contains(Modifier::DIM) {
+            style.add_modifier |= Modifier::DIM;
+        }
+        Some(Role::Fg(FgStep::Muted))
+    } else {
+        acc.fg.get().map(|role| canonical_role(theme, role))
+    };
     let m = metrics_of(&acc);
     Resolved {
         style: PaintStyle::bound(
             style,
-            acc.fg.get().map(|role| canonical_role(theme, role)),
+            fg_role,
             acc.bg.get().map(|role| canonical_role(theme, role)),
             surface,
         )

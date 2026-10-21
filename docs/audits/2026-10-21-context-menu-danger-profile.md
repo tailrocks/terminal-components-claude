@@ -1,0 +1,126 @@
+# Junie context menu danger-row profile
+
+Date: 2026-10-21
+
+Scope: Junie `ContextMenu` rows using `Family::MENU`, `Variant::DANGER`,
+`Part::ROW` and its rendered label. Profile values use the existing
+`Theme::define_variant_for_level` resolver. No application-specific flag,
+widget painter, global quantizer change, palette rewrite, or public theme API
+was added.
+
+## Frozen source
+
+Reference source: commit
+`4169783ae883788186d161af09ba9c481bd84e5c`, tag object
+`2718a6b8127a522a3d351d0b4bdb7542fc8da542`.
+
+`src/widgets/menu.rs:686-708` builds a filled cursor row from focused, error,
+disabled, hovered, and pressed state. `src/theme.rs:1410-1611` selects the
+danger-highlight ladder, primary foreground, focused/fill modifiers, and
+disabled surface fallback. The source ladder is:
+
+| Capability | Rest | Hover | Press |
+|---|---|---|---|
+| TrueColor | `Rgb(122,42,42)` | `Rgb(140,48,48)` | `Rgb(90,31,31)` |
+| ANSI256 | `Indexed(88)` | `Indexed(124)` | `Indexed(52)` |
+| ANSI16 | `Red` | `Red` | `Red` |
+| Mono | `DarkGray` | `DarkGray` | `DarkGray` |
+
+The frozen text ink is primary for enabled danger cursor rows. Active enabled
+rows retain focused weight; ANSI16 flat hover adds underline; Mono fill uses
+reverse, flat hover adds underline, and pressed fill uses bold plus underline.
+Mono disabled rows use dim ink and the normal popover surface. Where disabled
+ink equals that surface, the frozen resolver falls back to muted ink.
+
+## Change
+
+`Theme::junie` adds capability profiles for the danger row's active, hover,
+pressed, disabled, and active-disabled combinations. The profiles provide exact source
+ladder colors and modifier precedence. More-specific hover/press/disabled
+rules preserve their state over the active rest value. The disabled profile
+returns to `CurrentSurface`, uses the frozen disabled-ink fallback, removes
+active focus modifiers, and adds DIM when the Junie disabled ink collides with
+the popover surface at ANSI16 and Mono. Inactive danger rows and normal menu
+rows do not receive the active profile.
+
+The profile uses existing provenance checks. Consumer token or recipe changes
+detach the profile channel; global, overlay-scope, instance, and part-local
+overrides still win. The test also verifies cache invalidation after replacing
+the runtime theme.
+
+Independent review found two disabled-state gaps. A disabled row must use the
+frozen disabled foreground across the row fill and text label, including the
+muted-ink-plus-DIM collision fallback at ANSI16 and Mono. The profile now
+applies that resolved style to both `ROW` and `LABEL`, and disabled precedence
+suppresses hover and press without changing normal menu rows.
+
+A second independent review found MENU-DANGER-03: disabled fallback ink was
+still selected by color capability rather than collision with the resolved
+host surface. The resolver now checks the final `DisabledFg` and
+`CurrentSurface` roles after profile and local patches are merged. It uses
+muted ink plus DIM only when those resolved colors collide, preserving
+ordinary disabled modifiers and explicit foreground overrides. This keeps the
+frozen default ANSI16 fallback unchanged, removes the fallback when a
+customized popover surface no longer collides, and applies the same semantic
+rule when a surface is customized to collide in another profile.
+
+## Evidence
+
+`crates/termrock-overlays/tests/context_menu_danger_profile.rs` drives the
+public `ContextMenu` through a live `Harness`: Tab focus, keyboard Down, pointer
+hover and press, and keyboard activation. It checks committed cells, selected
+row state, and typed `ActionKey`; checks normal and inactive disabled rows;
+checks disabled profile resolution and verifies disabled rows ignore hover and
+press; exercises same-valued custom, different
+custom, and Clear patches at global, scope, instance, and local precedence;
+and checks theme replacement.
+
+Before the profile, the real-widget regression failed on the frozen active
+hover cell (`TrueColor` rest `Rgb(122,42,42)` versus expected hover
+`Rgb(140,48,48)`). The disabled-hover resolver check also failed before the
+disabled precedence patch because that row resolved to the generic blue
+highlight. The independent full-row frozen cell probe then exposed incorrect
+disabled ink on padding and label cells and missing ANSI16 DIM. It now passes
+alongside nine authored focused cases over all four capabilities. Independent
+checks for a custom `Black` popover surface, foreground overrides,
+inactive/read-only overrides, and the 28-frame ordinary-menu corpus passed.
+Its unchanged SHA-256 is
+`e545c01e5151ca35b0ebb773c77e20f34d25cd0a0db81a8626029a8c3d028fdd`. No
+frozen artifacts or expected snapshots changed.
+
+Checks on the implementation: `cargo nextest run -p termrock-theme
+-p termrock-overlays --no-fail-fast` ran 283 tests: 282 passed, the known
+`capability_palettes::all_73_junie_slots_match_reference_capability_output`
+failed, and zero tests were skipped. `cargo clippy -p termrock-theme
+-p termrock-overlays --all-targets --no-deps -- -D warnings` passed.
+Scoped `cargo fmt --check --package termrock-theme --package termrock-overlays`
+passed. The full workspace `cargo fmt --all -- --check` fails only on an
+incoming, unowned blank line between module declarations in
+`crates/jackin-preview-app/src/app.rs:261`. The 73-slot failure remains
+intentionally unblessed; this work did not update its expectations.
+
+The changed packages pass scoped rustfmt and `git diff --check`. Workspace-wide
+formatting remains red only for the incoming, unowned
+`crates/jackin-preview-app/src/app.rs:261` blank line between module
+declarations; this WIP does not own or modify that file.
+
+This record establishes the cited Junie menu-row contract for frozen defaults,
+customized semantic popover surfaces, and tested overrides. It does not clear
+the global 73-role inventory, prove application adoption, or establish any
+application's complete visual or functional parity.
+
+## Independent review of MENU-DANGER-03
+
+Reviewer packet: `menu-danger-dynamic-review-1011159/review.json`, SHA-256
+`4a49b5e50a932a4a348e035f99471fc348861263493ffb93fbe2029d198d8ed8`.
+The independent reviewer cleared commit
+`1011159a72fc652ac1d849683ac03f9305502b8c` with no new actionable findings
+and closed MENU-DANGER-03. The review confirms that the generic resolver
+contract applies to any theme/component using exactly `DisabledFg` and
+`CurrentSurface`, not only ContextMenu. Its independent LIST coverage checked
+96 disabled-state combinations across four capabilities, six surfaces, and
+four disabled multistates. The unchanged normal-menu corpus remained 28
+frames / 21,504 cells, SHA-256
+`e545c01e5151ca35b0ebb773c77e20f34d25cd0a0db81a8626029a8c3d028fdd`.
+This is bounded resolver coverage; it does not establish every theme/component
+combination or application adoption.
