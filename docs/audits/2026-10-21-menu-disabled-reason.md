@@ -26,6 +26,20 @@ status decoration did not exist; after implementation the focused tests passed.
 The pre-existing natural-width assertion remains exact (`16` cells), and passed
 against the base and after the change.
 
+The unfiltered overlays library suite reports one failure:
+`menu::tests::default_menu_bar_scope_keeps_title_patches_off_the_padding_cells`.
+It reproduces at this WIP's base `6841e67ed4d240d9b39478b2e99f39ff48b8189b`,
+which contains incoming commit `262ac80ed138f14a204f8a1a32d4a48fe0cde111`.
+This establishes only that the failure exists at this task's base; it does not
+establish that it predates `262ac80`, nor that it is accepted globally.
+Independent review traced it to `262ac80`'s `MenuBar::draw` change at line
+1217: padding is added to the label string and receives the `Part::TITLE` style
+under the default title-only hover policy, violating the assertion that the
+default title patch applies only to title cells. This is outside the disabled
+reason contract and remains for its incoming-change owner to repair. The
+focused suite excluding this one test passes, as do scoped Clippy and
+formatting.
+
 **Not accepted as application parity:** Jackin/Capsule adoption, end-to-end CLI
 comparison, full frozen flow inventory, resize/reanchor behavior, all-disabled
 and zero/narrow Unicode matrix, independent review, full workspace gates, and
