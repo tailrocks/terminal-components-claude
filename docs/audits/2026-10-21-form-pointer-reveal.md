@@ -4,7 +4,7 @@ A chooser nested in a scrolling form could move after pointer-down when focus au
 
 `FormState` now tracks the child whose pointer press began, and defers Form's automatic focus, radio-cursor, and queued reveal scrolling until release, drag-end, cancellation, or the held field becoming hidden/disabled. This is shared by both ordinary forms and lane forms. A live `PRESSED` state only keeps an already observed gesture alive when no terminal intent is present; it does not independently start suppression. Explicit reveal requests remain queued during the hold. No button, runtime, or application behavior was changed.
 
-Regression coverage drives a public FormDialog through pointer Down, Tick, Up at the original chooser coordinates, asserts stable hit geometry and exactly one Chose action, and checks release outside cancels. A second test exercises the same contract through a lane-based Form. Existing form tests continue to cover keyboard focus, validation and explicit reveal behavior.
+Regression coverage drives a public FormDialog through pointer Down, Tick, Up at the original chooser coordinates and checks the typed action/cancel paths; a second test exercises the update path through a lane-based Form. A follow-on architecture review found the test helper `stub::deliver` does not draw between events, so `area_of` reads the previous hit registry. The assertion therefore does not prove post-draw geometry remains stable in a live runtime. Existing form tests continue to cover keyboard focus, validation and explicit reveal behavior, but actual application reflow remains unverified.
 
 ## Evidence
 
@@ -23,3 +23,8 @@ This source was merged as a separate integration commit into the current PR #38 
 ## Current merged-source verification
 
 On the merge candidate containing PR #38 tip `1b9bd580e5f46dff23630a8c15c85e7f14cf7c4e`, the combined locked all-target run for Runtime, Editors, Fields, Terminal, Session, and Forms passed **697/697**, with four pre-existing ignored fixtures. Strict all-target Clippy (`-D warnings`) and workspace formatting passed. The ignored tests are `termrock-runtime::monotonic::{idle_terminal_driver_fixture,immediate_rearm_terminal_input_fairness_fixture}`, `termrock-runtime::pointer_publication::hover_cycle_driver_queued_quit_fixture`, and `termrock-session::terminal_cleanup::terminal_cleanup_driver_fixture`. Logs are in [the evidence directory](evidence/2026-10-21-form-pointer-reveal/). All seven protected expectation/assertion blobs still match the manifest and the pre-merge parent. These are scoped crate gates only; no whole-workspace, CI, or application parity claim follows.
+
+
+## Follow-on verification limit
+
+The bounded independent CLEAR packet remains valid for its stated component logic scope. Subsequent integration review found that the committed pointer sequence does not force a draw/layout publication between Down, Tick and Up; the hit-area assertion can observe stale registry geometry. Treat the 697-test combined scoped pass as test-suite health, not proof of live chooser geometry or Showcase adoption. A real-runtime post-draw test is still required before claiming the user-visible integration is complete.
