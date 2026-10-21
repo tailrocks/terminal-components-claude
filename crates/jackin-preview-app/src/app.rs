@@ -258,11 +258,9 @@ const TICK_MS: u64 = crate::rain::TICK_MS;
 
 mod accounts_detail_view;
 mod accounts_drawer_view;
+mod accounts_filter_view;
 mod editor_view;
 mod historical_accounts_add_form;
-
-
-mod historical_accounts_filter;
 
 mod capsule_menu_view;
 mod capsule_zoom_view;
@@ -7300,7 +7298,7 @@ impl App {
         if !self.historical_accounts_filter(ui.theme_ref(), screen) {
             return;
         }
-        historical_accounts_filter::paint(ui);
+        accounts_filter_view::paint(ui, &self.world);
     }
 
     fn historical_accounts_filter_80(&self, theme: &termrock::Theme, screen: Rect) -> bool {
