@@ -1,0 +1,83 @@
+{
+  "schema": "termrock.archived-evidence-sha256.v1",
+  "files": [
+    {
+      "file": "fresh-plan-stage3d-atomic-supervisor-v13-stage3-20261021.py.txt",
+      "original_file": "fresh-plan-stage3d-atomic-supervisor-v13-stage3-20261021.py",
+      "sha256": "49a10dcc5cf82775287459ababbd22012d61c92f802c504dcf1264b92b834808",
+      "bytes": 40657
+    },
+    {
+      "file": "test_fresh_plan_stage3d_atomic_supervisor_v13-stage3-20261021.py.txt",
+      "original_file": "test_fresh_plan_stage3d_atomic_supervisor_v13-stage3-20261021.py",
+      "sha256": "2e2bf98fefc9fe2db086a83ba083faa6c477bd301d52c612b910583cf98d786e",
+      "bytes": 21151
+    },
+    {
+      "file": "fresh-plan-stage3d-atomic-supervisor-v13-stage3-author-handoff-20261021.json",
+      "original_file": "fresh-plan-stage3d-atomic-supervisor-v13-stage3-author-handoff-20261021.json",
+      "sha256": "8f513879ea74cab5c95981c15907173b6f8b5bfa06b40ba096a85bb8c1beda1a",
+      "bytes": 6360
+    },
+    {
+      "file": "stage3d-supervisor-v13-stage3-independent-review-20261021.json",
+      "original_file": "stage3d-supervisor-v13-stage3-independent-review-20261021.json",
+      "sha256": "e8a00010bb24e66a2f1b64ff965b8316206c73fca3853ac8b49ee7c27aa13618",
+      "bytes": 9032
+    },
+    {
+      "file": "fresh-plan-stage3d-supervisor-v13-parent-v13-stage3-20261021-051425-stage-03-event.json",
+      "original_file": "fresh-plan-stage3d-supervisor-v13-parent-v13-stage3-20261021-051425-stage-03-event.json",
+      "sha256": "9b601b6243bb16e5db47bf8b6e937ccc49fc3cb83fb2031fb076172e38033057",
+      "bytes": 8264
+    },
+    {
+      "file": "fresh-plan-stage3d-supervisor-v13-parent-v13-stage3-20261021-051425-stage-03.log",
+      "original_file": "fresh-plan-stage3d-supervisor-v13-parent-v13-stage3-20261021-051425-stage-03.log",
+      "sha256": "089c39dd2855577159a60bd644ff68672413e41eabcdf51b120c2ade960d71f5",
+      "bytes": 19070
+    },
+    {
+      "file": "stage3d-stage3-result-independent-review-20261021.json",
+      "original_file": "stage3d-stage3-result-independent-review-20261021.json",
+      "sha256": "56120b7cbc20b5523ae9a5c22832e6adbe4af2f8c04c1e51e6e9d86be24b8701",
+      "bytes": 8007
+    },
+    {
+      "file": "stage3d-stage3-result-independent-evidence-20261021.json",
+      "original_file": "stage3d-stage3-result-independent-evidence-20261021.json",
+      "sha256": "451c345217a75ea367bb9d4af76df2a2a94f81aa2ddac7059edb43b37f081f3f",
+      "bytes": 11520
+    },
+    {
+      "file": "stage3d-supervisor-v13-stage3-independent-structure-20261021.json",
+      "original_file": "stage3d-supervisor-v13-stage3-independent-structure-20261021.json",
+      "sha256": "dd04374bdf8b726ed75e46378bb75d47497df9ef5233bff560377ff969e91661",
+      "bytes": 1076
+    },
+    {
+      "file": "stage3d-supervisor-v13-stage3-independent-retained-generic-tests-20261021.log",
+      "original_file": "stage3d-supervisor-v13-stage3-independent-retained-generic-tests-20261021.log",
+      "sha256": "b3c46f51d249ab6b1ca89566ce063d6a76ffcef3d555e3a03f6e3907f4d32053",
+      "bytes": 1992
+    },
+    {
+      "file": "stage3d-supervisor-v13-stage3-independent-full-tests-20261021.log",
+      "original_file": "stage3d-supervisor-v13-stage3-independent-full-tests-20261021.log",
+      "sha256": "f84ea177c03e2a83131658b84c1837bc29f3f41e763660d41719a2fbad85bc90",
+      "bytes": 2570
+    },
+    {
+      "file": "stage3d-supervisor-v13-stage3-independent-test-results-20261021.json",
+      "original_file": "stage3d-supervisor-v13-stage3-independent-test-results-20261021.json",
+      "sha256": "d740278f7430fa4abc585f6613f69670c35d7bfa10b2f468d6e4b0f9c7695c17",
+      "bytes": 1707
+    },
+    {
+      "file": "stage3d-stage3-v13-preflight-environment-refusal-parent-observation-20261021.json",
+      "original_file": "stage3d-stage3-v13-preflight-environment-refusal-parent-observation-20261021.json",
+      "sha256": "81d39647a6b547328928897b28ca92e94ab1cddfe76efe08078126b7d0703911",
+      "bytes": 722
+    }
+  ]
+}

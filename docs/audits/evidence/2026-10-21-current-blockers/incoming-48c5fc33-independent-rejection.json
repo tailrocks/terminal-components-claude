@@ -1,0 +1,296 @@
+{
+  "schema": "termrock.independent-review.v1",
+  "decision": "HOLD",
+  "reviewed_commit": "48c5fc33b81626925d67facb278c7656e625b887",
+  "exact_parent_tested": "f24a0f7a97148056f3c2416343fd8516c8e4ef3c",
+  "prior_reviewed_commit": "671923ea2fffd29433de99b0f4bcc8677c4460d9",
+  "prior_hold_packet_sha256": "2098fdabf71a5c6257dd4847c6c909d8d2a0353f6ea3cb4832aabde9c3b932de",
+  "increment_identity": "48 adds the only manager_split.rs change between 671 and 48. Exact parent f24 and 671 manager_split.rs both have SHA256 b70b7e4ad08d737825a4a1892cc321098099c5234d31484cb014b3acac312929. This review inspects the new source rather than assuming the old verdict applies.",
+  "prior_findings": [
+    {
+      "id": "M1",
+      "status": "persists and expands",
+      "paths": {
+        "crates/termrock-feedback/src/manager_split.rs": [
+          51,
+          80,
+          168,
+          232,
+          614,
+          684
+        ],
+        "crates/jackin-preview-app/src/app.rs": [
+          6158,
+          10131
+        ]
+      },
+      "evidence": "The same application screen painter gains SplitAlert plus special saved-mode identity, detail metadata, and hint painters. HardCases now calls this painter instead of draw_historical_manager. There is still no shared Tree/Menu/Button implementation, update/measure/state contract, stable item keys or typed action output. New alert paths use literal Construct/daemon/domain wording and fixed x41/x31 positions. Moving another scenario into this painter extends rather than removes the prohibited mechanism."
+    },
+    {
+      "id": "M2",
+      "status": "persists",
+      "paths": {
+        "crates/jackin-preview-app/src/app.rs": [
+          5985,
+          5990,
+          5993,
+          6122,
+          6125,
+          10104,
+          10131
+        ]
+      },
+      "evidence": "Workspace selection still searches the literal payments-platform and fabricates that name if absent. Zero actual refresh age still becomes three seconds. The exact 120x40, paused-motion, Returning/HardCases and selected-row gates remain. Capability/accent selectors remain on neighboring historical alternatives. Application account wrapping remains fixed at 58 characters. New discovery-error extraction does not correct these sources."
+    },
+    {
+      "id": "M3",
+      "status": "persists; directly reproduced against exact parent and candidate",
+      "paths": {
+        "crates/termrock-feedback/src/manager_split.rs": [
+          576,
+          614
+        ],
+        "crates/jackin-preview-app/src/app.rs": [
+          5946,
+          6198
+        ]
+      },
+      "evidence": "The real app registers LAUNCH at Rect { x: 4, y: 35, width: 16, height: 1 }; the correction painter displays it at (42,36). Clicking (44,36) fails to open the real agent picker on both revisions. Standalone public painter still has zero focus entries. Recording route alone would not establish this failure, so an explicit unchanged picker-open assertion was added and preserved. A positive control clicks LAUNCH through its real registered bounds and opens the picker on both revisions. The action is available; only the painter places its visible button elsewhere."
+    },
+    {
+      "id": "M4",
+      "status": "persists; reproduced after adapting only newly required API fields",
+      "paths": {
+        "crates/termrock-feedback/src/manager_split.rs": [
+          93,
+          104,
+          157,
+          257,
+          576
+        ]
+      },
+      "evidence": "The supplied Rect(10,5,120,40) still produces a corner glyph at (1,2), outside the given bounds. Fixed absolute box/button geometry and put left/top omissions remain. New degraded identity/hint positions also use absolute x41 and x31."
+    },
+    {
+      "id": "M5",
+      "status": "partially improved, still open",
+      "paths": {
+        "crates/termrock-feedback/src/manager_split.rs": [
+          317,
+          319,
+          347,
+          380,
+          423
+        ],
+        "crates/jackin-preview-app/src/app.rs": [
+          9946
+        ]
+      },
+      "evidence": "Saved-mode workspace rows now use shared truncate_middle with LABEL_BUDGET 28. The original long Saved-row border assertion passes after the API-field adaptation; this improvement receives credit. Expanded-mode secondary workspace labels remain untruncated and overwrite the border: the new explicit Expanded probe fails at (37,5). Character-count padding/middle_ellipsis and application fixed account wrapping remain. This is not a claim that every old long-row case is still failing."
+    },
+    {
+      "id": "M6",
+      "status": "persists and expands",
+      "paths": {
+        "crates/termrock-feedback/src/manager_split.rs": [
+          16,
+          21,
+          22,
+          232,
+          684
+        ]
+      },
+      "evidence": "Existing fixed RGB UI colors remain, and INDEX_ERROR/STALE add raw RGB values. The Mono selection-fill probe still observes Rgb(23,63,28). The unchanged Returning Junie Mono digest remains red on exact parent and candidate; this is inherited from 671 rather than introduced again by 48. No expected value was changed."
+    }
+  ],
+  "new_findings": [
+    {
+      "id": "M7",
+      "priority": "P2",
+      "path": "crates/termrock-feedback/src/manager_split.rs",
+      "lines": [
+        50,
+        53,
+        65,
+        80
+      ],
+      "title": "New required public struct fields break the unchanged external consumer",
+      "evidence": "The original five-probe public consumer previously compiled against 671. On exact 48 it fails before tests with E0063: SplitWorkspace is missing expandable and ManagerSplit is missing alert. This is an actual public API source break, not a reviewer fixture typo. The unmodified source and compilation failure are preserved. A separate adapted consumer supplies expandable=true and alert=None solely to examine remaining behavior; its results are not labeled unchanged API compatibility.",
+      "repair": "Record the incompatible API change and do not report the old consumer as passing. Replace the prohibited screen API through the reviewed generic block/tree contracts, with stable construction/configuration and explicit view data. Do not expand or preserve a screenshot painter merely to make this consumer green."
+    }
+  ],
+  "checks": [
+    {
+      "scope": "Unchanged real app Returning snapshot and frame/geometry observations, explicit visible-button action, a registered-button positive control, and HardCases observations",
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "--no-fail-fast"
+      ],
+      "before": "5 run: 3 passed, 2 failed, 0 skipped",
+      "after": "5 run: 3 passed, 2 failed, 0 skipped",
+      "failures": [
+        "unchanged_returning_mono_scene_digest",
+        "painted_launch_button_activates_the_real_launch_picker"
+      ],
+      "qualification": "The two observation tests save data/frames/geometry, not product acceptance. The positive control clicks the actual LAUNCH registration and successfully opens the agent picker on both revisions, while clicking the painted button fails. Returning and HardCases observations cover widths 119,120,121 under Junie/Paper."
+    },
+    {
+      "scope": "Original five public API probes without changes",
+      "after": "Compilation fails with E0063 for required expandable/alert fields; zero tests executed. Not a pass."
+    },
+    {
+      "scope": "Separate minimally API-adapted original five probes plus new Expanded long-row boundary",
+      "after": "6 run: 3 passed, 3 failed, 0 skipped",
+      "passes": [
+        "long_workspace_does_not_erase_sidebar_border (Saved mode)",
+        "zero_and_narrow_regions_do_not_panic",
+        "interaction inventory facts"
+      ],
+      "failures": [
+        "expanded_long_workspace_does_not_erase_border",
+        "nonorigin_area_keeps_paint_inside_bounds",
+        "monochrome_ui_does_not_emit_rgb_selection_fill"
+      ]
+    },
+    {
+      "command": [
+        "git",
+        "diff",
+        "f24a0f7a97148056f3c2416343fd8516c8e4ef3c",
+        "48c5fc33b81626925d67facb278c7656e625b887",
+        "--check"
+      ],
+      "exit": 0
+    }
+  ],
+  "useful_changes_to_retain_in_correct_ownership": [
+    "Computing expandable from visible instances is legitimate application view-data preparation. A generic shared Tree should receive stable item keys and child availability rather than paint a special saved-screen marker.",
+    "Extracting discovery error text and stale-daemon state from the world is legitimate domain mapping. Supply these facts to generic Notice/Status/Hint components with semantic styles and typed application actions.",
+    "Using the existing shared truncate_middle for Saved-mode labels is an improvement over raw labels. It does not provide layout, clipping, state or interaction ownership for the rest of the screen."
+  ],
+  "new_alert_path_review": "No captured ANSI or expected screenshot import was added by this increment. The defect is a scenario-selected correction renderer with fixed geometry and domain-specific alert/header/footer pixels. Borrowed data and removal of the old call-site function name do not make the mechanism reusable.",
+  "limits_and_unrun_checks": [
+    "The full 318-test Jackin/Feedback native suite was not repeated because unchanged integration failures and the direct public API/source blockers already establish HOLD. The prior 671 native result is supplementary history, not a claimed run at 48.",
+    "No new strict Clippy, whole-workspace formatting/test gate, required CI, frozen CLI/Tuiscotti capture or independent zero-cell admission was performed.",
+    "The fixed frozen source remains 4169783ae883788186d161af09ba9c481bd84e5c. No references or expected output were changed.",
+    "Public consumer compilation and adapted behavior checks use exact detached parent/candidate copies and distinct targets. No author/parent source or prior fixture was edited; no commits or pushes were made.",
+    "An initial attempt to launch the fact runner occurred before worktree setup had written its script and returned file-not-found. It was an orchestration error, not a product result; the actual successful test invocations and their red outcomes are preserved separately.",
+    "The existing shared manager/tree block contract is queued for real component adoption. This review does not approve the current painter or suggest moving it back into the application."
+  ],
+  "evidence_files": {
+    "adapted-api-run.py": {
+      "sha256": "c4e7fd98ce2ccdae02ac216655af741f16c418794365d6dca4890bb0a80fd4e5",
+      "bytes": 1001
+    },
+    "adapted-api-status.json": {
+      "sha256": "ab0f7eb05864aa18b8b86dc5df6146e70c345de8c905f8068a49bbe922271a7c",
+      "bytes": 179
+    },
+    "after-adapted-api-consumer-Cargo.toml": {
+      "sha256": "100c544e5fdefb1334a12aa0cbbf718451d94a8c4695187daedcf8730fecd85d",
+      "bytes": 411
+    },
+    "after-adapted-api-consumer-api-facts.txt": {
+      "sha256": "86d84e5083f3b24d2ae890736af92064bec9ba77822cb922e932629cfb22fa99",
+      "bytes": 5356
+    },
+    "after-adapted-api-consumer-lib.rs": {
+      "sha256": "4bbf9d7b24c09a0abc1af69e2158fbe11584cf7ed306f949ea54d75d7a3c85e8",
+      "bytes": 2550
+    },
+    "after-adapted-api-consumer.log": {
+      "sha256": "308043a6435e41441343fba7056932f0d9c79c586b943676e3c7bb6edecd6a0f",
+      "bytes": 4330
+    },
+    "after-consumer-Cargo.toml": {
+      "sha256": "100c544e5fdefb1334a12aa0cbbf718451d94a8c4695187daedcf8730fecd85d",
+      "bytes": 411
+    },
+    "after-consumer-app-facts.txt": {
+      "sha256": "531c9f8e9cc5dfa1483f8a2623be8df68a59e0d3e4941504f0ecbf7678870455",
+      "bytes": 30770
+    },
+    "after-consumer-hard-cases-facts.txt": {
+      "sha256": "83cb1a371389d930c1ebefc03962f22abc3c3cd4080ed08da66b0b44d8793ef4",
+      "bytes": 31032
+    },
+    "after-consumer-lib.rs": {
+      "sha256": "4fb39c9b7509942f197ed558751e4587607a0e54d766c9aa8a1ee94ae1f883bb",
+      "bytes": 2395
+    },
+    "after-consumer.log": {
+      "sha256": "54414da20c3d4f0206b2d23187adf44e4834288d7c6cf6d13803cf776b786e65",
+      "bytes": 3657
+    },
+    "after-four-case-consumer.log": {
+      "sha256": "7d941a67521b14df3b250794a9a69253e18b20b360eaa8efb8582a7648059838",
+      "bytes": 3517
+    },
+    "after-original-api-consumer-Cargo.toml": {
+      "sha256": "100c544e5fdefb1334a12aa0cbbf718451d94a8c4695187daedcf8730fecd85d",
+      "bytes": 411
+    },
+    "after-original-api-consumer-lib.rs": {
+      "sha256": "ea53a3f610e7077e08fe674ce5f7fc80b6fb373aed5150a54d5e0fc8406f1790",
+      "bytes": 2135
+    },
+    "after-original-api-consumer.log": {
+      "sha256": "fa560f99385681609d120300f53aa72893b47e418f63da49e8c7fe31572551f8",
+      "bytes": 7190
+    },
+    "after-three-case-consumer.log": {
+      "sha256": "e6c275fd201ae34fa6658f8efde79103cbfc8ba45079e22cd6033cbeb8799495",
+      "bytes": 2597
+    },
+    "before-consumer-Cargo.toml": {
+      "sha256": "87341c577d5ac2177ab85a509096c0de8132a0042a1d4d49b5c1a07785d1cd13",
+      "bytes": 414
+    },
+    "before-consumer-app-facts.txt": {
+      "sha256": "531c9f8e9cc5dfa1483f8a2623be8df68a59e0d3e4941504f0ecbf7678870455",
+      "bytes": 30770
+    },
+    "before-consumer-hard-cases-facts.txt": {
+      "sha256": "acdba0a689002af0d7aff390f5210734ceff9f676b42e566f398cc3135ecfa2b",
+      "bytes": 30543
+    },
+    "before-consumer-lib.rs": {
+      "sha256": "4fb39c9b7509942f197ed558751e4587607a0e54d766c9aa8a1ee94ae1f883bb",
+      "bytes": 2395
+    },
+    "before-consumer.log": {
+      "sha256": "3f2997920d47f78bd32e652d7376fbe249cbd6b07c097cce93d4e6274276fb4d",
+      "bytes": 3606
+    },
+    "before-four-case-consumer.log": {
+      "sha256": "64035910c53da5970c9f6c498fb593571c341c8cea009d32e3413aef3ab87a99",
+      "bytes": 3556
+    },
+    "before-three-case-consumer.log": {
+      "sha256": "fa7f36b6fc0b01b61533f85b135d5e74f1f0ca0c0bb66508331c9027c91c002c",
+      "bytes": 2499
+    },
+    "consumer-run.py": {
+      "sha256": "d5855b3f3166862c697f71243f83aa0fe989c852147180339bcc820d7a11b04d",
+      "bytes": 983
+    },
+    "consumer-status.json": {
+      "sha256": "fa2e755d68e7e7d4ce6b5559b22bc652869a0d5b1311f7097c2bb5da544f7543",
+      "bytes": 357
+    },
+    "hard-cases-run.py": {
+      "sha256": "d5855b3f3166862c697f71243f83aa0fe989c852147180339bcc820d7a11b04d",
+      "bytes": 983
+    },
+    "original-api-run.py": {
+      "sha256": "2cd26fb8b8b48a21dd2813789d178dbe8cde196cb50e0dd37f4a782d08608bf2",
+      "bytes": 1004
+    },
+    "original-api-status.json": {
+      "sha256": "f8e3728404b0f40de711d6f96b2c56310919a19f807dc44ce981cbe81623afc6",
+      "bytes": 178
+    }
+  }
+}

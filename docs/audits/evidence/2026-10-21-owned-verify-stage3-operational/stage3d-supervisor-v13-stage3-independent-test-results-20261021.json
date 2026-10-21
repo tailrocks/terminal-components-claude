@@ -1,0 +1,43 @@
+{
+  "retained_generic": {
+    "run": 12,
+    "failures": 0,
+    "errors": 0,
+    "skips": 0,
+    "names": [
+      "test_all_nine_driver_inputs_are_hash_checked_with_fake_git",
+      "test_controlled_environment_is_allowlisted_and_new_target_only",
+      "test_environment_difference_rejected_without_value_disclosure",
+      "test_event_identity_uses_exact_external_supervisor_bytes",
+      "test_fake_subprocess_term_cleanup",
+      "test_inclusive_220_budget_reserves_cleanup_and_finalization",
+      "test_log_is_exclusive",
+      "test_nonzero_exit_never_succeeds",
+      "test_success_requires_zero_exit_no_timeout_and_reaped",
+      "test_timeout_cooperatively_signals_exact_direct_child_and_fails_closed",
+      "test_unreaped_direct_child_never_claims_success",
+      "test_v7_source_and_tests_remain_byte_identical"
+    ],
+    "log": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-supervisor-v13-stage3-independent-retained-generic-tests-20261021.log",
+    "sha256": "b3c46f51d249ab6b1ca89566ce063d6a76ffcef3d555e3a03f6e3907f4d32053"
+  },
+  "v13_full_suite": {
+    "exit_status": 0,
+    "log": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-supervisor-v13-stage3-independent-full-tests-20261021.log",
+    "sha256": "f84ea177c03e2a83131658b84c1837bc29f3f41e763660d41719a2fbad85bc90"
+  },
+  "all_handoff_artifacts_match": {
+    "canonical_source_copy": true,
+    "canonical_stage3_review": true,
+    "final_test_log": true,
+    "first_test_log": true,
+    "live_source_manifest": true,
+    "rerun_test_log": true,
+    "source": true,
+    "stage2_event": true,
+    "stage2_evidence": true,
+    "stage2_log": true,
+    "stage2_review": true,
+    "tests": true
+  }
+}
