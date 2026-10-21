@@ -30,7 +30,7 @@ use crate::measure::Size;
 #[cfg(any(test, feature = "testing"))]
 use crate::response::StateFlags;
 use crate::response::{Invalidate, Response};
-use crate::theme::Theme;
+use crate::theme::{ColorLevel, Theme};
 use crate::ui::cx::{FrameServices, LastFrame};
 use crate::ui::{Cx, FrameState, Ui, UiCore};
 
@@ -2416,6 +2416,22 @@ fn composite_layer(ui: &mut Ui<'_>, i: usize, screen: Rect) {
     }
     if drawn {
         ui.composite(i);
+        // The frozen renderer dims the modal layer's own content as well as the
+        // underlay at low color levels (16-color and mono): SGR 2 is added to
+        // every composed cell while fg/bg/bold are preserved. High color levels
+        // dim only the underlay.
+        if matches!(backdrop, Backdrop::Dim { .. })
+            && matches!(
+                ui.theme_ref().capability.color,
+                ColorLevel::Ansi16 | ColorLevel::Mono
+            )
+        {
+            let area = backdrop_area(screen, backdrop);
+            ui.dim_modal_content(
+                area,
+                matches!(ui.theme_ref().capability.color, ColorLevel::Ansi16),
+            );
+        }
     }
 }
 
