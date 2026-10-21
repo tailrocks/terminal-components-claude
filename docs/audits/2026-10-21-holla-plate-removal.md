@@ -59,8 +59,47 @@ on this branch, unchanged), `cargo clippy -p holla -p holla-sim -p holla-ui
 No-reference families: 15 parity families (brew-services, cleanup-results,
 custom-actions, delete-safety, disk-navigation, disk-scan, docker,
 executor, gradle, idea, insights, platforms, platforms-linux, task-input,
-upgrade-managers) have no tip reference capture; they never had plates and are
-unchanged by this work.
+upgrade-managers) never had plates and are unchanged by this work. They were
+captured and checked on 2026-10-21; the result is a pre-existing branch-level
+finding, recorded below.
+
+## 15 no-reference families vs the frozen oracle: both builds fail
+
+The frozen snapshots (`snapshots/holla/parity/<family>/<size>/<color>.ansi`,
+verified byte-identical to the `visual-baseline` tag for sampled files) show
+the old static home layout — "Recent here / nothing used here yet / Explore /
+→ opens inside holla · here · read-only" footer, `~/work` status row. Both the
+pre-change tip reference binaries
+(`/private/tmp/holla-fb-root/candidate-targets/build-1792537519863156000/debug/holla`,
+sha `3736b6478fe0b2f6df17ae23bee45d8cff34f6e7`) and the candidate build render
+the new adaptive home ("Monitor this host", "Scanning this folder…",
+`EDIT Type Filter …` hints) for these families.
+
+Paired frozen-oracle runs from the live-source harness
+(`cargo nextest run --locked -p junie-tui --test visual_baseline
+--run-ignored only -j 1 -E 'test(/^holla::parity::<15 families>::/)'`,
+`VISUAL_BIN_DIR` swapped per build):
+
+- candidate build (`/private/tmp/holla-wt-target/debug`): 0 passed / 435 failed
+  (`/tmp/holla-pair/frozen15-cand.log`)
+- tip reference build: 0 passed / 435 failed
+  (`/tmp/holla-pair/frozen15-tipref.log`)
+
+So the drift predates this workstream: these families capture the live home
+screen, which changed after the `visual-baseline` tag, and no plate was ever
+frozen for them. Per the no-expected-updates rule both results are preserved
+here and the snapshots are untouched; making these families pass would require
+replaying the pre-tag home screens, which the brief forbids.
+
+Candidate vs tip reference on the same 435 cases (fresh tip captures in
+`/tmp/holla-pair/nr-ref-r`, candidate in `/tmp/holla-pair/nr-post-r`):
+truecolor byte-identical everywhere; 16-color and 256-color variants differ in
+color-index quantization only (zero symbol diffs; e.g. fg `Indexed(7)` vs
+`Indexed(8)` at 16, `245`/`242` vs `244`/`238` at 256) across all 15 families
+— 285 of 435 identical, 150 quantization-only diffs. Both sides fail the
+frozen oracle at those variants anyway, so this delta is between the two
+binary trees' shared base (the tip-reference tree was built hours earlier),
+not a regression introduced by the band views.
 
 ## Reference quirks preserved deliberately (findings)
 
@@ -98,6 +137,7 @@ data, no fixed cell tables (`fit_cells` is a truncation helper; remaining
 ## Remaining work
 
 Full frozen-corpus live-compare acceptance for Holla is still open (the
-branch-level candidate corpus remains red for reasons outside Holla; see the
-matrix paired-test section). The 15 no-reference parity families need tip
-references before the same paired proof can cover them.
+branch-level candidate corpus remains red; the 15 no-reference parity families
+are the Holla portion of that red, documented above as pre-existing drift; see
+the matrix paired-test section). The pre-existing `holla_visual_baseline`
+digest red (de673f212d89ea84 vs e30768d9339a0fb9) still needs its decision.
