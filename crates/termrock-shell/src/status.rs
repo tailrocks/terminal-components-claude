@@ -5,8 +5,8 @@
 //! the shared [`Role`] vocabulary instead of the source's `Tone` enum, so the
 //! status message renders through the same theme roles as every component:
 //! `Tone::Error` lands on [`Role::Danger`], `Tone::Success` on
-//! [`Role::Success`], `Tone::Normal` on [`Role::Fg(FgStep::Primary)`] and
-//! `Tone::Secondary` on [`Role::Fg(FgStep::Secondary)`].
+//! [`Role::Success`], `Tone::Normal` on `Role::Fg(FgStep::Primary)` and
+//! `Tone::Secondary` on `Role::Fg(FgStep::Secondary)`.
 
 use termrock_core::event::{Input, MouseKind};
 use termrock_runtime::Moment;
