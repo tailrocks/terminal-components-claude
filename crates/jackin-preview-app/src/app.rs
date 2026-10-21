@@ -3015,14 +3015,7 @@ impl App {
     fn update_overlays(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut result = Response::ignored();
 
-        let historical_failure = self.historical_launch_failure_frame(cx.viewport());
-        if historical_failure {
-            if cx.is_open(LAUNCH_FAILURE_DIALOG) {
-                cx.close_layer(LAUNCH_FAILURE_DIALOG, Some(ActionKey::CLOSE));
-                result |= Response::changed();
-            }
-            self.launch_failure_open = false;
-        } else if self
+        if self
             .launch
             .as_ref()
             .is_some_and(|launch| launch.failure.is_some())
@@ -7046,14 +7039,6 @@ impl App {
             && !self.about_open
     }
 
-    fn paused_launch_scene(&self) -> bool {
-        self.launch_cockpit_scene() && !self.cockpit_info_open && !self.cancel_open
-    }
-
-    fn historical_launch_running_frame(&self, area: Rect) -> bool {
-        area.width == 120 && area.height == 40 && self.paused_launch_scene()
-    }
-
     fn paint_cockpit_trace(&self, ui: &mut Ui<'_>, screen: Rect) {
         let Some(label) = self
             .launch
@@ -7106,93 +7091,6 @@ impl App {
             &label,
             style,
         );
-    }
-
-    fn draw_historical_launch_running(&self, ui: &mut Ui<'_>) {
-        let area = Rect::new(0, 0, 120, 40);
-        let mut buf = termrock::Buffer::empty(area);
-        jackin_preview_presentation::launch_running::paint_paused_launch_running(&mut buf);
-        let level = ui.theme_ref().capability.color;
-        let indexed = matches!(
-            level,
-            termrock::ColorLevel::Ansi256 | termrock::ColorLevel::Ansi16
-        );
-        let mono_frame =
-            level == termrock::ColorLevel::Mono && std::env::var_os("NO_COLOR").is_none();
-        for y in area.y..area.bottom() {
-            for x in area.x..area.right() {
-                let Some(cell) = buf.cell(Position::new(x, y)) else {
-                    continue;
-                };
-                let mut style = cell.style();
-                if mono_frame {
-                    if let (Some(fg), Some(bg)) = (style.fg, style.bg)
-                        && let Some(ink) = termrock::theme::legacy_mono(fg, bg, y == 0)
-                    {
-                        style.fg = Some(ink.fg);
-                        style.bg = Some(ink.bg);
-                        if ink.underline {
-                            style = style.add_modifier(Modifier::UNDERLINED);
-                        }
-                        if ink.reverse {
-                            style = style.add_modifier(Modifier::REVERSED);
-                        }
-                    }
-                } else if indexed {
-                    if let (Some(fg), Some(bg)) = (style.fg, style.bg) {
-                        let (fg, bg) = termrock::theme::downgrade_pair(fg, bg, level);
-                        style.fg = Some(fg);
-                        style.bg = Some(bg);
-                    } else if let Some(fg) = style.fg {
-                        style.fg = Some(termrock::theme::downgrade_color(fg, level));
-                    } else if let Some(bg) = style.bg {
-                        style.bg = Some(termrock::theme::downgrade_color(bg, level));
-                    }
-                }
-                if !style.add_modifier.contains(Modifier::BOLD) {
-                    style = style.remove_modifier(Modifier::BOLD);
-                }
-                ui.paint_cell(Position::new(x, y), cell.symbol(), style);
-            }
-        }
-        if std::env::var_os("NO_COLOR").is_some() {
-            let brand = PaintStyle::new()
-                .fg(termrock::Color::Rgb(0, 0, 0))
-                .bg(termrock::Color::Reset)
-                .add_modifier(Modifier::BOLD | Modifier::REVERSED);
-            ui.paint_str(Rect::new(1, 0, 9, 1), " jackin❯ ", brand);
-        }
-    }
-
-    fn historical_launch_failure_frame(&self, area: Rect) -> bool {
-        area.width == 120
-            && area.height == 40
-            && self.route == Route::Cockpit
-            && self.motion == Motion::Paused
-            && self.world.scenario == Scenario::LaunchFailure
-            && self
-                .launch
-                .as_ref()
-                .is_some_and(|launch| launch.failure.is_some())
-    }
-
-    fn draw_historical_launch_failure(&self, ui: &mut Ui<'_>) {
-        let theme = ui.theme_ref().clone();
-        let area = Rect::new(0, 0, 120, 40);
-        let mut buf = termrock::Buffer::empty(area);
-        jackin_preview_presentation::launch_failure::paint_paused_launch_failure(&mut buf, &theme);
-        for y in area.y..area.bottom() {
-            for x in area.x..area.right() {
-                let Some(cell) = buf.cell(Position::new(x, y)) else {
-                    continue;
-                };
-                let mut style = cell.style();
-                if !style.add_modifier.contains(Modifier::BOLD) {
-                    style = style.remove_modifier(Modifier::BOLD);
-                }
-                ui.paint_cell(Position::new(x, y), cell.symbol(), style);
-            }
-        }
     }
 
     fn junie_truecolor(theme: &termrock::Theme) -> bool {
@@ -9356,16 +9254,7 @@ impl TuiApp for App {
         );
         // The paused launch pages are page content: they must land before the
         // layer pass so dialog chrome maps the real underlay ink.
-        let truecolor = ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor;
-        let presentation_page = full.width == 120
-            && full.height == 40
-            && self.launch_cockpit_scene()
-            && (self.historical_launch_running_frame(full)
-                || self.cockpit_info_open
-                || (self.cancel_open && !truecolor));
-        if presentation_page {
-            self.draw_historical_launch_running(ui);
-        } else if self.launch_cockpit_scene() {
+        if self.launch_cockpit_scene() {
             launch_cockpit::paint(self, ui);
         }
         self.draw_layers(ui);
@@ -9457,9 +9346,6 @@ impl TuiApp for App {
             && !self.editor_exit_open
         {
             editor_view::paint(self, ui, full);
-        }
-        if self.historical_launch_failure_frame(full) {
-            self.draw_historical_launch_failure(ui);
         }
         if self.launch_cockpit_scene() && self.cockpit_info_open {
             let facts = self.info_facts();
