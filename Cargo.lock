@@ -3452,6 +3452,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "termrock-consumer-example"
+version = "0.1.0"
+dependencies = [
+ "ratatui",
+ "termrock",
+]
+
+[[package]]
 name = "termrock-controls"
 version = "0.1.0"
 dependencies = [
