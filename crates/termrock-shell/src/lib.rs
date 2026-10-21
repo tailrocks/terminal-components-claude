@@ -18,7 +18,7 @@ pub mod keyboard;
 pub mod nav;
 pub mod page;
 pub mod quit;
-// pub mod reach;
+pub mod reach;
 pub mod router;
 pub mod shell;
 pub mod status;
