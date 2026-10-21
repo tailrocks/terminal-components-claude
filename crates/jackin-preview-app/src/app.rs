@@ -540,6 +540,8 @@ pub struct App {
     settings_env_armed: bool,
     settings_agents_armed: bool,
     settings_trust_armed: bool,
+    settings_trust_cursor: usize,
+    settings_trust_origin: Vec<bool>,
     settings_save_preview: bool,
     capsule_tab_menu_state: MenuState,
     capsule_tab_menu_pos: Position,
@@ -744,6 +746,8 @@ impl App {
             settings_env_armed: false,
             settings_agents_armed: false,
             settings_trust_armed: false,
+            settings_trust_cursor: 0,
+            settings_trust_origin: Vec::new(),
             settings_save_preview: false,
             capsule_tab_menu_state: MenuState::default(),
             capsule_tab_menu_pos: Position::new(0, 0),
@@ -3930,6 +3934,21 @@ impl App {
         });
     }
 
+    fn toggle_settings_trust_row(&mut self) {
+        if self.settings_trust_origin.is_empty() {
+            self.settings_trust_origin = self
+                .world
+                .global
+                .trust
+                .iter()
+                .map(|row| row.trusted)
+                .collect();
+        }
+        if let Some(row) = self.world.global.trust.get_mut(self.settings_trust_cursor) {
+            row.trusted = !row.trusted;
+        }
+    }
+
     fn update_settings(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let button = Self::settings_trust_button(self.trusted).update(cx);
         let chosen = button.activated();
@@ -5465,12 +5484,23 @@ impl App {
             }
             CMD_PRELUDE_SPACE if self.route == Route::Settings => {
                 if cx.update_cause() == UpdateCause::Event {
+                    if self.settings.tab == 4 {
+                        self.toggle_settings_trust_row();
+                    }
                     self.trusted = !self.trusted;
                     if self.settings.dirty {
                         self.settings.mark_dirty();
                     } else {
                         self.settings.begin_draft();
                     }
+                }
+                Some(Response::changed())
+            }
+            CMD_NAV_DOWN if self.route == Route::Settings && self.settings.tab == 4 => {
+                let count = self.world.global.trust.len();
+                if count > 0 {
+                    self.settings_trust_cursor =
+                        self.settings_trust_cursor.saturating_add(1).min(count - 1);
                 }
                 Some(Response::changed())
             }
