@@ -387,7 +387,8 @@ impl<'a> PropsList<'a> {
     fn scrollbar(&self) -> super::ScrollRegion<'a> {
         let mut scrollbar = super::ScrollRegion::new(self.id)
             .inherit_family(Family::PROPS)
-            .patch_part(self.parts);
+            .patch_part(self.parts)
+            .preserve_underlay(self.presentation == PropsPresentation::Sheet);
         if let Some(patch) = self.patch {
             scrollbar = scrollbar.patch(patch);
         }
@@ -455,39 +456,51 @@ impl<'a> PropsList<'a> {
             .sum()
     }
 
-    fn sheet_geometry(
-        rows: &[PropsRow<'_>],
-        width: u16,
-        active_key: Option<ItemKey>,
-    ) -> PropsGeometry {
-        let longest_label = Self::label_width(rows);
-        // Two leading cells belong to the gutter and its spacer. Keep one
-        // trailing cell clear, as in the frozen property sheet.
-        let room = width.saturating_sub(2 + 2 + 1 + 12);
-        let shared_limit = width.saturating_mul(40) / 100;
-        let label_limit = shared_limit.saturating_sub(2).min(room);
-        let label_width = if rows.is_empty() {
+    fn sheet_geometry(rows: &[PropsRow<'_>], width: u16) -> PropsGeometry {
+        // Frozen Sheet::column() first tries every full measured label plus
+        // its two-cell gap. Only when that leaves less than twelve value cells
+        // does it apply the configured 40% cap. Keep the gutter outside this
+        // label-column calculation, as the source implementation does.
+        let label_area = width.saturating_sub(2);
+        let full_label_column = Self::label_width(rows).saturating_add(2);
+        let label_column = if rows.is_empty() {
             0
+        } else if label_area.saturating_sub(full_label_column) >= 12 {
+            full_label_column
         } else {
-            longest_label
-                .min(label_limit)
-                .min(room)
-                .max(label_limit.min(3))
-        };
-        let hint_width = active_key
-            .and_then(|key| rows.iter().find(|row| row.key == key))
-            .filter(|row| row.can_copy())
-            .map_or(0, |_| 7);
+            let cap = u32::from(label_area).saturating_mul(40) / 100;
+            let cap = cap.min(u32::from(u16::MAX)) as u16;
+            rows.iter()
+                .map(|row| width_of(row.label).saturating_add(2))
+                .filter(|candidate| *candidate <= cap)
+                .max()
+                .unwrap_or(cap.max(1))
+        }
+        .max(if rows.is_empty() { 0 } else { 3 });
+        let label_width = label_column.saturating_sub(2);
         let value_width = width
             .saturating_sub(2)
             .saturating_sub(label_width)
             .saturating_sub(2)
-            .saturating_sub(hint_width)
             .saturating_sub(1);
         PropsGeometry {
             label_width,
             value_width,
         }
+    }
+
+    fn sheet_value_width(
+        geometry: PropsGeometry,
+        row: &PropsRow<'_>,
+        active_key: Option<ItemKey>,
+    ) -> u16 {
+        geometry
+            .value_width
+            .saturating_sub(if active_key == Some(row.key) && row.can_copy() {
+                8
+            } else {
+                0
+            })
     }
 
     fn resolved_content_len(
@@ -501,13 +514,13 @@ impl<'a> PropsList<'a> {
             return Self::content_len(rows, area.width.saturating_sub(1));
         }
         let active_key = focused.then_some(cursor).flatten();
-        let geometry = Self::sheet_geometry(rows, area.width, active_key);
+        let geometry = Self::sheet_geometry(rows, area.width);
         let full = rows
             .iter()
             .map(|row| {
                 usize::from(Self::sheet_row_height(
                     row,
-                    geometry.value_width,
+                    Self::sheet_value_width(geometry, row, active_key),
                     active_key,
                 ))
             })
@@ -515,12 +528,12 @@ impl<'a> PropsList<'a> {
         if full <= usize::from(area.height) || area.width == 0 {
             return full;
         }
-        let geometry = Self::sheet_geometry(rows, area.width.saturating_sub(1), active_key);
+        let geometry = Self::sheet_geometry(rows, area.width.saturating_sub(1));
         rows.iter()
             .map(|row| {
                 usize::from(Self::sheet_row_height(
                     row,
-                    geometry.value_width,
+                    Self::sheet_value_width(geometry, row, active_key),
                     active_key,
                 ))
             })
@@ -530,15 +543,19 @@ impl<'a> PropsList<'a> {
     fn row_at_visual_width(
         rows: &[PropsRow<'_>],
         visual: usize,
-        value_width: u16,
+        geometry: PropsGeometry,
         active_key: Option<ItemKey>,
         presentation: PropsPresentation,
     ) -> Option<(usize, usize)> {
         let mut start = 0usize;
         for (index, row) in rows.iter().enumerate() {
             let height = match presentation {
-                PropsPresentation::Columns => Self::row_height(row, value_width),
-                PropsPresentation::Sheet => Self::sheet_row_height(row, value_width, active_key),
+                PropsPresentation::Columns => Self::row_height(row, geometry.value_width),
+                PropsPresentation::Sheet => Self::sheet_row_height(
+                    row,
+                    Self::sheet_value_width(geometry, row, active_key),
+                    active_key,
+                ),
             };
             let end = start.saturating_add(usize::from(height));
             if visual < end {
@@ -559,17 +576,11 @@ impl<'a> PropsList<'a> {
             area.width
         };
         let geometry = match self.presentation {
-            PropsPresentation::Columns => Self::value_width(rows, width),
-            PropsPresentation::Sheet => {
-                Self::sheet_geometry(
-                    rows,
-                    width,
-                    focused
-                        .then(|| rows.get(index).map(|row| row.key))
-                        .flatten(),
-                )
-                .value_width
-            }
+            PropsPresentation::Columns => PropsGeometry {
+                label_width: 0,
+                value_width: Self::value_width(rows, width),
+            },
+            PropsPresentation::Sheet => Self::sheet_geometry(rows, width),
         };
         let active_key = match self.presentation {
             PropsPresentation::Columns => None,
@@ -580,8 +591,12 @@ impl<'a> PropsList<'a> {
             .iter()
             .take(index)
             .map(|row| match self.presentation {
-                PropsPresentation::Columns => Self::row_height(row, geometry),
-                PropsPresentation::Sheet => Self::sheet_row_height(row, geometry, active_key),
+                PropsPresentation::Columns => Self::row_height(row, geometry.value_width),
+                PropsPresentation::Sheet => Self::sheet_row_height(
+                    row,
+                    Self::sheet_value_width(geometry, row, active_key),
+                    active_key,
+                ),
             })
             .map(usize::from)
             .sum();
@@ -750,29 +765,22 @@ impl<'a> PropsList<'a> {
                     } else {
                         area.width
                     };
-                    let value_width = match self.presentation {
-                        PropsPresentation::Columns => Self::value_width(rows, content_width),
-                        PropsPresentation::Sheet => {
-                            Self::sheet_geometry(
-                                rows,
-                                content_width,
-                                cx.state(self.id)
-                                    .contains(StateFlags::FOCUSED)
-                                    .then_some(st.cursor())
-                                    .flatten(),
-                            )
-                            .value_width
-                        }
-                    };
                     let active_key = cx
                         .state(self.id)
                         .contains(StateFlags::FOCUSED)
                         .then_some(st.cursor())
                         .flatten();
+                    let geometry = match self.presentation {
+                        PropsPresentation::Columns => PropsGeometry {
+                            label_width: 0,
+                            value_width: Self::value_width(rows, content_width),
+                        },
+                        PropsPresentation::Sheet => Self::sheet_geometry(rows, content_width),
+                    };
                     let Some((index, _)) = Self::row_at_visual_width(
                         rows,
                         visual,
-                        value_width,
+                        geometry,
                         active_key,
                         self.presentation,
                     ) else {
@@ -845,20 +853,23 @@ impl<'a> PropsList<'a> {
             .contains(StateFlags::FOCUSED)
             .then_some(cursor)
             .flatten();
-        let sheet = Self::sheet_geometry(rows, content.width, focused_cursor);
-        let value_width = match self.presentation {
-            PropsPresentation::Columns => Self::value_width(rows, content.width),
-            PropsPresentation::Sheet => sheet.value_width,
+        let geometry = match self.presentation {
+            PropsPresentation::Columns => PropsGeometry {
+                label_width: Self::label_width(rows).min(content.width),
+                value_width: Self::value_width(rows, content.width),
+            },
+            PropsPresentation::Sheet => Self::sheet_geometry(rows, content.width),
         };
-        let label_width = match self.presentation {
-            PropsPresentation::Columns => Self::label_width(rows).min(content.width),
-            PropsPresentation::Sheet => sheet.label_width,
-        };
+        let label_width = geometry.label_width;
         let hover = ui.hovered_part(self.id);
         let pressed = ui.pressed_part(self.id);
         let mut visual = 0usize;
 
         for row in rows {
+            let value_width = match self.presentation {
+                PropsPresentation::Columns => geometry.value_width,
+                PropsPresentation::Sheet => Self::sheet_value_width(geometry, row, focused_cursor),
+            };
             let height = match self.presentation {
                 PropsPresentation::Columns => Self::row_height(row, value_width),
                 PropsPresentation::Sheet => {
@@ -904,7 +915,7 @@ impl<'a> PropsList<'a> {
             let visible_area = row_area.intersection(content);
             if self.presentation == PropsPresentation::Sheet {
                 {
-                    let mut row_ui = RowUi::new_with_author_style(
+                    let mut row_ui = RowUi::new_with_author_style_and_container_patch(
                         ui,
                         self.id,
                         Family::PROPS,
@@ -913,6 +924,7 @@ impl<'a> PropsList<'a> {
                         row.key,
                         visible_area,
                         self.ov,
+                        StylePatch::new().clear_fg(),
                     )
                     .with_cursor_style(CursorStyle::Bar)
                     .with_author_parts(Self::PARTS);
@@ -959,7 +971,11 @@ impl<'a> PropsList<'a> {
             } else {
                 label.style
             };
-            ui.paint_str(label_area, row.label, label_style);
+            ui.paint_str(
+                label_area.intersection(visible_area),
+                row.label,
+                label_style,
+            );
 
             let value_area = Rect {
                 x: label_origin.saturating_add(label_width).saturating_add(2),
@@ -967,10 +983,21 @@ impl<'a> PropsList<'a> {
                 width: value_width,
                 height,
             };
-            let value = self
-                .ov
-                .style(ui, self.id, Family::PROPS, self.variant, Part::LABEL, flags);
-            paint_value(ui, value_area, row, value.style);
+            let value_defaults = row
+                .tone
+                .map_or_else(StylePatch::new, |tone| StylePatch::new().set_fg(tone));
+            let authored_value =
+                self.ov
+                    .style(ui, self.id, Family::PROPS, self.variant, Part::LABEL, flags);
+            let value_style =
+                self.style_defaults(ui, Part::LABEL, flags, StyleDefaults::new(value_defaults));
+            paint_value(
+                ui,
+                value_area.intersection(visible_area),
+                row,
+                value_style,
+                None,
+            );
             if self.presentation == PropsPresentation::Sheet
                 && flags.contains(StateFlags::FOCUSED)
                 && row.can_copy()
@@ -985,15 +1012,16 @@ impl<'a> PropsList<'a> {
                             .remove(ratatui_core::style::Modifier::BOLD),
                     ),
                 );
+                let hint_x = row_area.right().saturating_sub(7).max(visible_area.x);
                 let hint = Rect {
-                    x: row_area.right().saturating_sub(7),
+                    x: hint_x,
                     y,
-                    width: 6,
+                    width: row_area.right().saturating_sub(hint_x).min(6),
                     height: 1,
                 };
-                ui.paint_str(hint, "y copy", hint_style);
+                ui.paint_str(hint.intersection(visible_area), "y copy", hint_style);
             }
-            if matches!(value.glyph, Slot::Set(GlyphRole::PressLeft)) {
+            if matches!(authored_value.glyph, Slot::Set(GlyphRole::PressLeft)) {
                 paint_pressed_bracket(
                     ui,
                     cell_at(row_area, label_origin.saturating_add(label_width)),
@@ -1001,7 +1029,7 @@ impl<'a> PropsList<'a> {
                         row_area,
                         label_origin.saturating_add(label_width).saturating_add(1),
                     ),
-                    value.style,
+                    value_style,
                 );
             }
 
@@ -1056,10 +1084,10 @@ impl<'a> PropsList<'a> {
             .max()
             .unwrap_or(0);
         let natural_width = 2u16
-            .saturating_add(natural_label.max(3))
+            .saturating_add(natural_label.saturating_add(2).max(3))
             .saturating_add(2)
             .saturating_add(natural_value)
-            .saturating_add(if hint { 7 } else { 0 })
+            .saturating_add(if hint { 8 } else { 0 })
             .saturating_add(1);
         let chosen_width = if c.tight_w {
             c.max.0
@@ -1067,26 +1095,26 @@ impl<'a> PropsList<'a> {
             natural_width.min(c.max.0)
         };
         let active_key = focused.then_some(state.cursor()).flatten();
-        let mut geometry = Self::sheet_geometry(rows, chosen_width, active_key);
+        let mut geometry = Self::sheet_geometry(rows, chosen_width);
         let mut height = rows
             .iter()
             .map(|row| {
                 usize::from(Self::sheet_row_height(
                     row,
-                    geometry.value_width,
+                    Self::sheet_value_width(geometry, row, active_key),
                     active_key,
                 ))
             })
             .sum::<usize>();
         let chosen_width = if height > usize::from(c.max.1) && chosen_width > 0 {
             let narrower = chosen_width.saturating_sub(1);
-            geometry = Self::sheet_geometry(rows, narrower, active_key);
+            geometry = Self::sheet_geometry(rows, narrower);
             height = rows
                 .iter()
                 .map(|row| {
                     usize::from(Self::sheet_row_height(
                         row,
-                        geometry.value_width,
+                        Self::sheet_value_width(geometry, row, active_key),
                         active_key,
                     ))
                 })
@@ -1179,7 +1207,13 @@ fn wrapped_rows(s: &str, width: u16) -> u16 {
     rows
 }
 
-fn paint_value(ui: &mut Ui<'_>, area: Rect, row: &PropsRow<'_>, style: PaintStyle) {
+fn paint_value(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    row: &PropsRow<'_>,
+    style: PaintStyle,
+    tone: Option<Role>,
+) {
     match row.value {
         PropsValue::Text(value) if row.wrap => {
             let mut x = area.x;
@@ -1190,17 +1224,17 @@ fn paint_value(ui: &mut Ui<'_>, area: Rect, row: &PropsRow<'_>, style: PaintStyl
                     y = y.saturating_add(1);
                     x = area.x;
                 }
-                WrapPiece::Text(text) => paint_piece(ui, area, &mut x, y, text, style, row.tone),
-                WrapPiece::Space => paint_piece(ui, area, &mut x, y, " ", style, row.tone),
+                WrapPiece::Text(text) => paint_piece(ui, area, &mut x, y, text, style, tone),
+                WrapPiece::Space => paint_piece(ui, area, &mut x, y, " ", style, tone),
             });
         }
         PropsValue::Text(value) => {
             let mut x = area.x;
-            paint_piece(ui, area, &mut x, area.y, value, style, row.tone);
+            paint_piece(ui, area, &mut x, area.y, value, style, tone);
         }
         PropsValue::Secret(secret) => {
             let mut cell = CellUi::new(ui.reborrow(), Rect { height: 1, ..area }, style);
-            if let Some(tone) = row.tone {
+            if let Some(tone) = tone {
                 cell.tone(tone);
             }
             secret.write_mask(&mut cell, secret.len(), SecretPolicy::default());
@@ -1427,6 +1461,7 @@ impl<'a> Props<'a> {
                 },
                 &resolved_row,
                 value_style,
+                None,
             );
             painted = painted.saturating_add(height);
         }
