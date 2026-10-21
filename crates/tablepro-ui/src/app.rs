@@ -2717,7 +2717,7 @@ impl TableProApp {
         shown: usize,
     ) {
         let loaded = grid_view.model.row_count();
-        let origin = GRID_SCROLL.with(|slot| slot.borrow().map_or(0, |(_, _, origin)| origin));
+        let origin = GRID_SCROLL.with(|slot| slot.borrow().map_or(0, |(_, _, origin, _)| origin));
         let last = origin.saturating_add(shown).min(loaded);
         let first = if loaded == 0 {
             1
@@ -3203,8 +3203,8 @@ impl TableProApp {
                 );
             }
         }
-        if let Some((grid_area, rows, origin)) = GRID_SCROLL.with(|slot| *slot.borrow()) {
-            paint_grid_scrollbar(ui, grid_area, rows, origin);
+        if let Some((grid_area, rows, origin, focused)) = GRID_SCROLL.with(|slot| *slot.borrow()) {
+            paint_grid_scrollbar(ui, grid_area, rows, origin, focused);
         }
         let blank_sql = self.blank_sql();
         if blank_sql
@@ -5107,7 +5107,7 @@ const KIND_FOREIGN: u8 = 2;
 thread_local! {
     static COL_BUDGETS: RefCell<Vec<ColBudget>> = const { RefCell::new(Vec::new()) };
     static GRID_CHROME: RefCell<Option<GridChrome>> = const { RefCell::new(None) };
-    static GRID_SCROLL: RefCell<Option<(termrock::Rect, usize, usize)>> =
+    static GRID_SCROLL: RefCell<Option<(termrock::Rect, usize, usize, Option<usize>)>> =
         const { RefCell::new(None) };
     static GRID_SEEN_ROW: RefCell<Option<usize>> = const { RefCell::new(None) };
     static GRID_SORT: RefCell<Option<(usize, SortDir)>> = const { RefCell::new(None) };
@@ -5635,7 +5635,13 @@ fn paint_grid_focus_bar(
     termrock::grid::paint_grid_focus_bar(ui, area, Some(row as u16), &GRID_FOCUS_BAR);
 }
 
-fn paint_grid_scrollbar(ui: &mut Ui<'_>, area: termrock::Rect, rows: usize, origin: usize) {
+fn paint_grid_scrollbar(
+    ui: &mut Ui<'_>,
+    area: termrock::Rect,
+    rows: usize,
+    origin: usize,
+    focused: Option<usize>,
+) {
     let Some(chrome) = GRID_CHROME.with(|chrome| chrome.borrow().clone()) else {
         return;
     };
@@ -5645,6 +5651,7 @@ fn paint_grid_scrollbar(ui: &mut Ui<'_>, area: termrock::Rect, rows: usize, orig
         &chrome.content_chrome(),
         rows,
         origin,
+        focused,
         &GRID_VERTICAL_BAR,
     );
 }
@@ -6369,6 +6376,21 @@ fn paint_row_numbers(
         } else {
             plain
         };
+        let fade = visible.saturating_sub(row);
+        let truecolor = ui.theme().capability.color == termrock::ColorLevel::TrueColor;
+        // These two pads sit in the grid body. The edge fade already ran.
+        // Repainting them in primary ink hides the bottom (and top) fade.
+        let pad = if truecolor && (fade == 1 || (origin > 0 && row == 0)) {
+            gutter.patch(ui.paint_patch(
+                &StylePatch::new().set_fg(Role::Custom(termrock::Color::from_u32(0x008c_8c8c))),
+            ))
+        } else if truecolor && (fade == 2 || (origin > 0 && row == 1)) {
+            gutter.patch(ui.paint_patch(
+                &StylePatch::new().set_fg(Role::Custom(termrock::Color::from_u32(0x00cc_cccc))),
+            ))
+        } else {
+            gutter
+        };
         for dx in 1..3 {
             ui.paint_str(
                 termrock::Rect {
@@ -6378,11 +6400,9 @@ fn paint_row_numbers(
                     height: 1,
                 },
                 " ",
-                gutter,
+                pad,
             );
         }
-        let fade = visible.saturating_sub(row);
-        let truecolor = ui.theme().capability.color == termrock::ColorLevel::TrueColor;
         let role = if !truecolor {
             if cursor == Some(model_row) {
                 TAG_PATH_FG
@@ -6682,7 +6702,8 @@ fn draw_painted_grid(
     let cursor = state.cursor().and_then(|(key, _)| {
         (0..model.row_count()).find(|row| GridModel::row_key(model, *row) == key)
     });
-    GRID_SCROLL.with(|slot| *slot.borrow_mut() = Some((area, model.row_count(), origin)));
+    let focused = cursor.and_then(|row| row.checked_sub(origin));
+    GRID_SCROLL.with(|slot| *slot.borrow_mut() = Some((area, model.row_count(), origin, focused)));
     paint_row_numbers(ui, area, model, cursor, origin);
     paint_grid_header(ui, area, columns, covered, calm_header);
 }
