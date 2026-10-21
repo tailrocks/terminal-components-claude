@@ -1352,6 +1352,18 @@ impl<'f> Ui<'f> {
                 }
             }
             Target::Layer(i) => {
+                if style.is_none() {
+                    let page_cell = self.page.cell(pos).cloned();
+                    let page_roles = self.roles_at(pos);
+                    if let Some(page_cell) = page_cell
+                        && let Some(d) = self.frame.layers.active_mut().get_mut(i)
+                    {
+                        // raw() clears the replay so a direct edit sticks.
+                        // Bake the inherited ink first, or the cleared cell
+                        // keeps the terminal default foreground.
+                        d.materialize_underlay(pos, &page_cell, page_roles);
+                    }
+                }
                 if let Some(d) = self.frame.layers.active_mut().get_mut(i) {
                     d.mark(pos, style);
                 }
