@@ -78,9 +78,9 @@ pub fn frame(
             StateFlags::empty(),
         )
         .style;
-    let meta_style = ui
-        .surface_style()
-        .fg(termrock::theme::baseline_muted(ui.theme().capability.color));
+    let meta_style = ui.surface_style().fg(termrock::theme::baseline_muted(
+        ui.theme_ref().capability.color,
+    ));
     let title_area = Rect { height: 1, ..area };
     let title_width = width(title).min(area.width);
     ui.paint_str(title_area, title, title_style);
