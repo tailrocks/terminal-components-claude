@@ -7885,8 +7885,9 @@ impl App {
             // that row for its own horizontal bar. Only the focused pane
             // reserves the input at rest.
             let shrink = split_frame || menu_frame || palette_frame;
-            let rest_bar =
-                self.historical_capsule_frame() && Self::resting_capsule_hbar(inner, projected);
+            let rest_bar = ui.full().width == 120
+                && self.historical_capsule_frame()
+                && Self::resting_capsule_hbar(inner, projected);
             let reserve_row = shrink
                 || rest_bar
                 || (focused
@@ -7904,6 +7905,19 @@ impl App {
                 .unwrap_or_default();
             let viewport = Self::capsule_viewport(pane_id, focused);
             viewport.draw_projected(ui, viewport_area, &state, projected);
+            if ui.theme_ref().capability.color == termrock::ColorLevel::Mono {
+                let (buf, clip) = ui.raw();
+                let area = viewport_area.intersection(clip);
+                for y in area.top()..area.bottom() {
+                    for x in area.left()..area.right() {
+                        if let Some(cell) = buf.cell_mut(Position::new(x, y))
+                            && cell.fg == cell.bg
+                        {
+                            cell.fg = termrock::Color::White;
+                        }
+                    }
+                }
+            }
             // The menu frame reserves the last row. Wide panes put the
             // horizontal bar there. Narrow panes stay blank. A resting
             // wide pane does the same on its own reserved row.
@@ -9746,7 +9760,6 @@ fn capsule_span_role(tone: crate::sim::pty::Tone) -> termrock::Role {
     match tone {
         // Baseline success is not the port token.
         Tone::Success => termrock::Role::Custom(termrock::Color::Rgb(0x3f, 0xb9, 0x50)),
-        // Baseline error is the frozen red, not the later port token.
         Tone::Error => termrock::Role::Custom(termrock::Color::Rgb(0xf0, 0x5d, 0x5d)),
         other => other.role(),
     }
