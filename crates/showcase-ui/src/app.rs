@@ -950,14 +950,14 @@ struct ShellLayout {
 }
 
 fn shell_layout(area: Rect, inspector: bool) -> ShellLayout {
-    let header = Rect::new(area.x, area.y, area.width, 1);
-    let footer = Rect::new(area.x, area.bottom().saturating_sub(1), area.width, 1);
-    let body = Rect::new(
-        area.x,
-        area.y.saturating_add(2),
-        area.width,
-        area.height.saturating_sub(4),
-    );
+    let regions = termrock::AppShell::new()
+        .header(1)
+        .gap(1)
+        .footer(1)
+        .regions(area);
+    let header = regions.header;
+    let footer = regions.footer;
+    let body = regions.body;
     let sidebar_span: u16 = if area.width >= 110 { 24 } else { 19 };
     let inspector_width = if inspector && area.width >= 100 {
         30

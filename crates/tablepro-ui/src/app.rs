@@ -6849,28 +6849,13 @@ fn result_grid<'a>(id: Id, columns: &'a [termrock::Column<'a>]) -> Grid<'a> {
 }
 
 fn shell_parts(area: termrock::Rect) -> [termrock::Rect; 3] {
-    let body_y = area.y.saturating_add(2);
-    let body_height = area.height.saturating_sub(4);
-    [
-        termrock::Rect {
-            x: area.x,
-            y: area.y,
-            width: area.width,
-            height: 1.min(area.height),
-        },
-        termrock::Rect {
-            x: area.x.saturating_add(1),
-            y: body_y,
-            width: area.width.saturating_sub(2),
-            height: body_height,
-        },
-        termrock::Rect {
-            x: area.x,
-            y: area.bottom().saturating_sub(1),
-            width: area.width,
-            height: 1.min(area.height),
-        },
-    ]
+    let regions = termrock::AppShell::new()
+        .header(1)
+        .gap(1)
+        .footer(1)
+        .inset(1)
+        .regions(area);
+    [regions.header, regions.body, regions.footer]
 }
 
 fn preserve_frame_gutter(_: &mut Ui<'_>, _: termrock::Rect) {}
