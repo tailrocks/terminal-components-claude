@@ -20,7 +20,7 @@ The new real-runtime regression toggles a conditional chooser from hidden to vis
 - Post-fix focused regression: passed (`cargo nextest run -p termrock-forms --lib intrinsic_visibility_changes_resize_before_next_pointer_input --no-fail-fast`).
 - Forms package full suite: passed, 82/82 (`cargo nextest run -p termrock-forms --all-targets --no-fail-fast`).
 - The independent app red remains to be rerun against a combined app+library worktree with exact source bindings before this change is integrated.
-- Strict package Clippy, formatting, exact-reference review, PR #38 integration, and remote verification remain pending.
+- Strict package Clippy (`cargo clippy -p termrock-forms --all-targets -- -D warnings`) passed; workspace formatting (`cargo fmt --check`) passed. Exact-reference review, independent review, and remote verification remain pending.
 
 ## Scope and references
 
