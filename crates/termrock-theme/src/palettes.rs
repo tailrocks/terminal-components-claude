@@ -109,12 +109,19 @@ const fn junie_256() -> ColorTokens {
         read_only_fg: Color::Indexed(249),
 
         syntax: SyntaxTokens {
-            keyword: Color::Indexed(231),
+            // The frozen `apply_256` table declares the keyword ink as 111
+            // (visual-baseline src/theme.rs:961) and the frozen TablePro
+            // capture paints it at 38;5;111.
+            keyword: Color::Indexed(111),
             ident: Color::Indexed(231),
             string: Color::Indexed(249),
             number: Color::Indexed(249),
-            operator: Color::Indexed(244),
-            punct: Color::Indexed(244),
+            // The syntax operator and punctuation follow the generic
+            // reference conversion of their source ink, which is 245 in the
+            // 256 tier; the frozen Holla, Jackin and TablePro captures never
+            // render 244.
+            operator: Color::Indexed(245),
+            punct: Color::Indexed(245),
             comment: Color::Indexed(238),
             plain: Color::Indexed(231),
             type_name: Color::Indexed(231),
@@ -214,7 +221,9 @@ const fn junie_mono() -> ColorTokens {
         read_only_fg: Color::Gray,
 
         syntax: SyntaxTokens {
-            keyword: Color::White,
+            // The frozen `apply_mono` table declares no syntax ink, so the
+            // keyword follows the generic mono rule, which lands on Gray.
+            keyword: Color::Gray,
             ident: Color::White,
             string: Color::Gray,
             number: Color::Gray,
