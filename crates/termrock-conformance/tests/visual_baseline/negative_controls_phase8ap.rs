@@ -456,7 +456,9 @@ fn render_button(focus: bool, hover: bool, disabled: bool) -> Frame {
     let mut buf = Buffer::empty(view);
     let mut state = ReferenceState::default();
     if focus {
-        state = state.union(ReferenceState::FOCUSED);
+        // A reference scope is inert: the control does not promote a focused
+        // state into a keyboard-visible one, so the state carries it.
+        state = state.union(ReferenceState::FOCUSED | ReferenceState::FOCUS_VISIBLE);
     }
     if hover {
         state = state.union(ReferenceState::HOVERED);

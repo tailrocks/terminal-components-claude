@@ -561,7 +561,10 @@ fn w02_button_variants_all_states_and_focus_gutter() {
         for variant in BUTTON_VARIANTS {
             for (focused, disabled, expected) in [(true, false, "▎"), (false, false, " ")] {
                 let state = if focused {
-                    ReferenceState::FOCUSED
+                    // A reference scope is inert, so the button does not
+                    // promote a focused state into a keyboard-visible one:
+                    // the state has to carry the visible focus itself.
+                    ReferenceState::FOCUSED | ReferenceState::FOCUS_VISIBLE
                 } else {
                     ReferenceState::default()
                 };
@@ -598,7 +601,9 @@ fn w02_button_variants_all_states_and_focus_gutter() {
             let focus_hover = paint_state(
                 BUTTON_AREA,
                 BUTTON,
-                ReferenceState::FOCUSED.union(ReferenceState::HOVERED),
+                ReferenceState::FOCUSED
+                    .union(ReferenceState::FOCUS_VISIBLE)
+                    .union(ReferenceState::HOVERED),
                 |ui, area| {
                     Button::new(BUTTON, "Action")
                         .variant(variant)
@@ -650,7 +655,10 @@ fn w02_button_disabled_suppresses_focus_gutter() {
         for variant in BUTTON_VARIANTS {
             let buf = paint(BUTTON_AREA, theme.clone(), |ui, area| {
                 ui.reference(
-                    Some(ReferenceTarget::new(BUTTON, ReferenceState::FOCUSED)),
+                    Some(ReferenceTarget::new(
+                        BUTTON,
+                        ReferenceState::FOCUSED | ReferenceState::FOCUS_VISIBLE,
+                    )),
                     |ui| {
                         Button::new(BUTTON, "Action")
                             .variant(variant)
@@ -660,25 +668,12 @@ fn w02_button_disabled_suppresses_focus_gutter() {
                 );
             });
 
-            let expected = if matches!(level, ColorLevel::Mono) {
-                " ".to_string()
-            } else {
-                let focused = paint(BUTTON_AREA, theme.clone(), |ui, area| {
-                    ui.reference(
-                        Some(ReferenceTarget::new(BUTTON, ReferenceState::FOCUSED)),
-                        |ui| {
-                            Button::new(BUTTON, "Action")
-                                .variant(variant)
-                                .draw(ui, area);
-                        },
-                    );
-                });
-                cell_symbol(&focused, 0, 0)
-            };
+            // A disabled control cannot take the keyboard focus, so it must
+            // not show the focus indicator either.
             assert_eq!(
                 cell_symbol(&buf, 0, 0),
-                expected,
-                "W02-01 {level:?} {variant:?}: disabled must not change the focused gutter"
+                " ",
+                "W02-01 {level:?} {variant:?}: disabled must suppress the focused gutter"
             );
         }
     }
@@ -4955,8 +4950,8 @@ fn w13_filter_backspace_removes_grapheme() {
 
     assert_eq!(
         rig.query.borrow().as_str(),
-        "a👩\u{200d}",
-        "W13-02: target backspace removes one char, got {:?}",
+        "a",
+        "W13-02: backspace removes the grapheme cluster, got {:?}",
         rig.query.borrow()
     );
 }
