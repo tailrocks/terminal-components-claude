@@ -3579,7 +3579,10 @@ def _atomic_create_plan(path: Path, document: dict[str, object], *, check_work: 
             check_work()
     finally:
         temporary.unlink(missing_ok=True)
-    return hashlib.sha256(payload).hexdigest()
+    digest = hashlib.sha256(payload).hexdigest()
+    if check_work is not None:
+        check_work()
+    return digest
 
 
 def create_fresh_plan(
