@@ -130,6 +130,27 @@ fn picker_row_defaults(family: Family, part: Part, flags: StateFlags) -> StylePa
     }
 }
 
+fn readable_picker_ink(
+    preferred: ratatui_core::style::Color,
+    bg: Option<ratatui_core::style::Color>,
+) -> Option<ratatui_core::style::Color> {
+    use crate::theme::contrast_ratio;
+    use ratatui_core::style::Color;
+
+    let bg = bg?;
+    let ratio = |fg| contrast_ratio(fg, bg).unwrap_or(0.0);
+    if ratio(preferred) >= 4.5 {
+        return None;
+    }
+    let (black, white) = (ratio(Color::Black), ratio(Color::White));
+    let (ink, contrast) = if black >= white {
+        (Color::Black, black)
+    } else {
+        (Color::White, white)
+    };
+    (contrast >= 4.5).then_some(ink)
+}
+
 #[expect(
     clippy::too_many_arguments,
     reason = "keeps the existing resolver inputs and adds only component defaults"
@@ -178,11 +199,28 @@ fn resolve_row_part_with_defaults(
     if cursor_style == CursorStyle::Fill && flags.contains(StateFlags::FOCUSED) {
         fallback = fallback.merge(selected_part_patch(part));
     }
-    let defaults = crate::theme::StyleDefaults::new(fallback).mono(component_defaults.mono);
+    let mut defaults = crate::theme::StyleDefaults::new(fallback).mono(component_defaults.mono);
     if fallback != StylePatch::new() || !component_defaults.mono.is_empty() {
-        let resolved = ui
-            .style_defaults_with_explicit(family, variant, part, flags, defaults, patch.as_ref())
-            .resolved;
+        let mut resolved =
+            ui.style_defaults_with_explicit(family, variant, part, flags, defaults, patch.as_ref());
+        if family == Family::PICKER
+            && matches!(part, Part::ICON | Part::META)
+            && resolved.explicit.fg == Slot::Inherit
+            && let Some(preferred) = resolved.resolved.style.fg
+            && let Some(ink) = readable_picker_ink(preferred, resolved.resolved.style.bg)
+        {
+            fallback = fallback.set_fg(Role::Custom(ink));
+            defaults = crate::theme::StyleDefaults::new(fallback).mono(component_defaults.mono);
+            resolved = ui.style_defaults_with_explicit(
+                family,
+                variant,
+                part,
+                flags,
+                defaults,
+                patch.as_ref(),
+            );
+        }
+        let resolved = resolved.resolved;
         if part == Part::GUTTER {
             let explicit = ui.style_defaults_with_explicit(
                 family,
