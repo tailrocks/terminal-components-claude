@@ -1096,4 +1096,24 @@ mod tests {
         assert_eq!(right_style.fg, Slot::Set(Role::Custom(Color::Indexed(39))));
         assert_eq!(cache.stats(), (0, 2));
     }
+
+    #[test]
+    fn fingerprint_tracks_theme_content_not_the_cache_revision() {
+        // The recipe revision is a process-global cache token, so two themes
+        // built from the same recipes carry different numbers. The
+        // fingerprint must follow the content, the way `PartialEq` does, or
+        // a local override looks like a theme mutation.
+        let left = Theme::junie();
+        let right = Theme::junie();
+        assert_eq!(left.fingerprint(), right.fingerprint());
+
+        let mut changed = Theme::junie();
+        changed
+            .recipes
+            .get_mut(Family::SPLIT)
+            .parts
+            .entry(Part::SEAM)
+            .base = StylePatch::new().set_fg(Role::Danger);
+        assert_ne!(changed.fingerprint(), left.fingerprint());
+    }
 }
