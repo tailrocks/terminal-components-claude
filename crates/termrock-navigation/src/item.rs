@@ -6,6 +6,15 @@ use termrock_layout::layout::Track;
 use termrock_layout::{ColumnSpec, solve_columns_first};
 use termrock_runtime::rowui::{RowFn, RowUi};
 use termrock_text::width;
+use termrock_theme::{FgStep, Role, StyleDefaults, StylePatch};
+
+fn picker_ink(role: FgStep) -> StyleDefaults<'static> {
+    StyleDefaults::new(
+        StylePatch::new()
+            .set_fg(Role::Fg(role))
+            .remove(Modifier::BOLD),
+    )
+}
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Item<'i> {
@@ -182,7 +191,12 @@ impl ItemColumns {
         );
 
         {
-            let mut icon = cells.cell_part(0, Part::ICON);
+            let icon_ink = if focused {
+                FgStep::Primary
+            } else {
+                FgStep::Muted
+            };
+            let mut icon = cells.cell_part_with_defaults(0, Part::ICON, picker_ink(icon_ink));
             if !icon.authored_modifiers().contains(Modifier::BOLD) {
                 icon.remove_modifier(Modifier::BOLD);
             }
@@ -200,21 +214,22 @@ impl ItemColumns {
             label.text_matched(item.label, item.matched);
         }
         if cells.rect(4).width >= 4 {
-            let mut meta = cells.cell_part(4, Part::META);
+            let mut meta = cells.cell_part_with_defaults(4, Part::META, picker_ink(FgStep::Muted));
             if !meta.authored_modifiers().contains(Modifier::BOLD) {
                 meta.remove_modifier(Modifier::BOLD);
             }
             meta.text_matched(item.detail, &[]);
         }
         {
-            let mut tag = cells.cell_part(6, Part::META);
+            let mut tag =
+                cells.cell_part_with_defaults(6, Part::META, picker_ink(FgStep::Secondary));
             if !tag.authored_modifiers().contains(Modifier::BOLD) {
                 tag.remove_modifier(Modifier::BOLD);
             }
             tag.text(item.tag.unwrap_or(""));
         }
         if show_group {
-            let mut group = cells.cell_part(8, Part::META);
+            let mut group = cells.cell_part_with_defaults(8, Part::META, picker_ink(FgStep::Muted));
             if !group.authored_modifiers().contains(Modifier::BOLD) {
                 group.remove_modifier(Modifier::BOLD);
             }
@@ -254,7 +269,7 @@ impl<T: AsItem> RowFn<T> for ItemRow {
         let item = value.as_item();
         row.gutter();
         if let Some(tag) = item.tag {
-            row.meta(tag);
+            row.meta_with_defaults(tag, picker_ink(FgStep::Secondary));
         }
         if !item.detail.is_empty() {
             row.meta(item.detail);
