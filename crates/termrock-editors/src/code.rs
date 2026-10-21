@@ -1026,13 +1026,32 @@ impl<'a> CodeEditor<'a> {
             ..area
         };
         let y = cursor.line.saturating_sub(st.scroll.offset());
-        let position = visible_cursor(text_area, cursor.col, y, usize::from(st.editor.hscroll()))?;
-        Some(Rect {
-            x: position.x,
-            y: position.y,
-            width: 1,
-            height: 1,
-        })
+        let hscroll = usize::from(st.editor.hscroll());
+        if let Some(position) = visible_cursor(text_area, cursor.col, y, hscroll) {
+            return Some(Rect {
+                x: position.x,
+                y: position.y,
+                width: 1,
+                height: 1,
+            });
+        }
+        // The hscroll clamp parks an end-of-line caret on the first hidden
+        // column. Completion still needs an anchor. The caret stays hidden.
+        if text_area.width > 0
+            && y < usize::from(text_area.height)
+            && cursor.col >= hscroll
+            && cursor.col.saturating_sub(hscroll) == usize::from(text_area.width)
+        {
+            return Some(Rect {
+                x: text_area.right().saturating_sub(1),
+                y: text_area
+                    .y
+                    .saturating_add(y.min(usize::from(u16::MAX)) as u16),
+                width: 1,
+                height: 1,
+            });
+        }
+        None
     }
 
     /// Open the find bar and focus this editor.
