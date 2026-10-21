@@ -46,7 +46,7 @@ keep every new API independent of application internals.
 
 ## Push protocol
 
-```
+```sh
 LOCK="$(git rev-parse --git-common-dir)/push.lock"
 mkdir "$LOCK" && printf 'branch=<name>\ndate=<iso>\n' > "$LOCK/owner"
 git fetch origin parity/termrock-visual-baseline
