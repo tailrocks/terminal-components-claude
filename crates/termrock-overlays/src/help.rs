@@ -13,8 +13,9 @@ use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
 use crate::scroll::ScrollState;
 use crate::text::width;
-use crate::theme::{Family, GlyphRole, Modifier, Role, StylePatch, Surface};
+use crate::theme::{Family, GlyphRole, Modifier, Role, StylePatch, Surface, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
+use termrock_runtime::hit::Axes;
 use termrock_feedback::keyhint::HintText;
 use termrock_runtime::scroll_region::ScrollRegion;
 
@@ -348,12 +349,14 @@ impl<'a> HelpOverlay<'a> {
     }
 
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &HelpOverlayState) -> Rect {
-        if area.is_empty() || area.width < 16 || area.height < 8 {
+        if area.is_empty() {
             return area;
         }
         ui.with_surface(Surface::Elevated, |ui| {
             self.paint_card(ui, area);
-            let live = PartStyle::flags(StateFlags::empty(), StateFlags::empty());
+            // The bindings are published for the focused owner, so the live
+            // flags have to carry the runtime focus.
+            let live = PartStyle::flags(FrameRead::state(ui, self.id), StateFlags::empty());
             let border = ink(ui, 0x004d_4d4d, 0x0018_181b, false);
             let _frame_inner = ui.frame(area, border);
             ui.register_control(self.id, area, Focusability::Focusable);
@@ -385,8 +388,16 @@ impl<'a> HelpOverlay<'a> {
                 height: body_h,
             };
             ui.scroll_edges(fade_area, &faded);
-            self.paint_scrollbar(ui, area, inner, usize::from(body_h), total);
-            self.paint_done(ui, inner);
+            self.paint_scrollbar(
+                ui,
+                area,
+                inner,
+                usize::from(body_h),
+                total,
+                st.scroll.headroom_v(),
+            );
+            let focused = FrameRead::state(ui, self.id).contains(StateFlags::FOCUSED);
+            self.paint_done(ui, inner, focused);
             let _ = self.scope;
         });
         area
@@ -408,7 +419,25 @@ impl<'a> HelpOverlay<'a> {
     }
 
     fn paint_card(&self, ui: &mut Ui<'_>, area: Rect) {
-        ui.fill_card_from_page(area, ratatui_core::style::Color::Rgb(0x18, 0x18, 0x1b));
+        // The card ink is the frozen corpus colour, but the container is a
+        // declared part: an instance patch has to reach it, so the surface
+        // comes from the resolved container style. Unpatched, that style is
+        // the elevated surface, which is the same colour the card paints.
+        let live = PartStyle::flags(StateFlags::empty(), StateFlags::empty());
+        let container = self.ov.style(
+            ui,
+            self.id,
+            Family::HELP,
+            Variant::DEFAULT,
+            Part::CONTAINER,
+            live,
+        );
+        let card = container
+            .style
+            .as_style()
+            .bg
+            .unwrap_or(ratatui_core::style::Color::Rgb(0x18, 0x18, 0x1b));
+        ui.fill_card_from_page(area, card);
     }
 
     fn paint_title(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -578,6 +607,7 @@ impl<'a> HelpOverlay<'a> {
         inner: Rect,
         viewport: usize,
         total: usize,
+        headroom: termrock_runtime::hit::Headroom,
     ) {
         if total <= viewport || viewport == 0 {
             return;
@@ -599,20 +629,55 @@ impl<'a> HelpOverlay<'a> {
             let glyph = if row < thumb { "┃" } else { "┆" };
             ui.paint_str(cell_row(x, inner.y.saturating_add(row), 1), glyph, style);
         }
+        // The bar is painted with the frozen ink, but it is still the
+        // scroll region: registering the parts routes the wheel to it.
+        ui.register_part(
+            self.id,
+            PartRef::of(Part::TRACK),
+            Rect {
+                x,
+                y: inner.y,
+                width: 1,
+                height: track_h,
+            },
+        );
+        ui.register_part(
+            self.id,
+            PartRef::of(Part::THUMB),
+            Rect {
+                x,
+                y: inner.y,
+                width: 1,
+                height: thumb,
+            },
+        );
+        ui.register_scroll(
+            self.id,
+            Rect {
+                x,
+                y: inner.y,
+                width: 1,
+                height: track_h,
+            },
+            Axes::V,
+            headroom,
+        );
     }
 
-    fn paint_done(&self, ui: &mut Ui<'_>, inner: Rect) {
+    fn paint_done(&self, ui: &mut Ui<'_>, inner: Rect, focused: bool) {
         let label = "Done ";
         let bw = width(label) as u16;
         let x = inner.right().saturating_sub(bw);
         let y = inner.bottom().saturating_sub(1);
         let gutter = ink(ui, 0x0048_e054, 0x0027_272a, false);
         let face = ink(ui, 0x00ff_ffff, 0x0027_272a, true);
-        ui.glyph(
-            cell_row(x.saturating_sub(1), y, 1),
-            GlyphRole::FocusBar,
-            gutter,
-        );
+        let bar = cell_row(x.saturating_sub(1), y, 1);
+        if focused {
+            ui.glyph(bar, GlyphRole::FocusBar, gutter);
+        } else {
+            // The focus bar belongs to the focused layer only.
+            ui.paint_str(bar, " ", gutter);
+        }
         ui.paint_str(cell_row(x, y, bw), label, face);
         ui.register_control(self.done_id(), cell_row(x, y, bw), Focusability::Focusable);
     }
