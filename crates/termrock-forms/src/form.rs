@@ -236,6 +236,18 @@ pub enum EnterPolicy {
     Never,
 }
 
+/// Controls whether content-only fields size themselves from their view data.
+///
+/// `Fixed` preserves the original Form geometry. `Intrinsic` gives notes one
+/// row per supplied line and gives choosers the rows their displayed value
+/// needs. Other field kinds keep their existing sizing rules.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub enum FieldSizingPolicy {
+    #[default]
+    Fixed,
+    Intrinsic,
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum FormAction {
     Changed(Id),
@@ -704,6 +716,7 @@ pub struct Form<'a> {
     actions: &'a [Action<'a>],
     submit: ActionKey,
     enter: EnterPolicy,
+    sizing: FieldSizingPolicy,
     columns: u8,
     group: GroupKey,
     ov: PartStyle<'a>,
@@ -719,6 +732,7 @@ impl fmt::Debug for Form<'_> {
             .field("actions", &self.actions.len())
             .field("submit", &self.submit)
             .field("enter", &self.enter)
+            .field("sizing", &self.sizing)
             .field("columns", &self.columns)
             .field("group", &self.group)
             .field("layout", &self.layout.is_some())
@@ -816,6 +830,7 @@ struct Placements<'fields, 'a> {
     width: u16,
     gap: u16,
     field_height: u16,
+    sizing: FieldSizingPolicy,
     index: usize,
     top: usize,
     half_height: Option<u16>,
@@ -832,7 +847,7 @@ impl Placements<'_, '_> {
             {
                 continue;
             }
-            let height = placement_height(field, self.field_height, data);
+            let height = placement_height(field, self.field_height, self.sizing, data);
             let is_half = self.columns == 2 && field.span == FieldSpan::Half;
             let half_width = self.width.saturating_sub(self.gap) / 2;
             if is_half && let Some(left_height) = self.half_height.take() {
@@ -872,12 +887,34 @@ impl Placements<'_, '_> {
     }
 }
 
-fn placement_height<D: FormData + ?Sized>(field: &FieldSpec<'_>, base: u16, data: &D) -> u16 {
+fn placement_height<D: FormData + ?Sized>(
+    field: &FieldSpec<'_>,
+    base: u16,
+    sizing: FieldSizingPolicy,
+    data: &D,
+) -> u16 {
     match &field.kind {
         FieldKind::Area(area) => base.max(area.rows_in_form().saturating_add(2)),
         FieldKind::Radio(_) => {
             let rows = u16::try_from(data.options(field.id).len()).unwrap_or(u16::MAX);
             base.max(rows.saturating_add(2))
+        }
+        FieldKind::Note if sizing == FieldSizingPolicy::Intrinsic => {
+            let rows = match data.value(field.id) {
+                FieldRef::Note(rows) => rows.len(),
+                _ => 0,
+            };
+            u16::try_from(rows).unwrap_or(u16::MAX)
+        }
+        FieldKind::Chooser(_) if sizing == FieldSizingPolicy::Intrinsic => {
+            let detail = matches!(
+                data.value(field.id),
+                FieldRef::Display {
+                    detail: Some(_),
+                    ..
+                }
+            );
+            2 + u16::from(detail)
         }
         _ => base,
     }
@@ -901,6 +938,7 @@ impl<'a> Form<'a> {
             actions: &[],
             submit: ActionKey::SAVE,
             enter: EnterPolicy::SubmitsWhenIdle,
+            sizing: FieldSizingPolicy::Fixed,
             columns: 1,
             group: GroupKey::ALL,
             ov: PartStyle::new(),
@@ -924,6 +962,15 @@ impl<'a> Form<'a> {
     #[must_use]
     pub const fn enter(mut self, policy: EnterPolicy) -> Self {
         self.enter = policy;
+        self
+    }
+
+    /// Sizes notes and chooser summaries from their supplied view data.
+    ///
+    /// The default [`FieldSizingPolicy::Fixed`] preserves existing geometry.
+    #[must_use]
+    pub const fn field_sizing(mut self, policy: FieldSizingPolicy) -> Self {
+        self.sizing = policy;
         self
     }
 
@@ -1031,6 +1078,7 @@ impl<'a> Form<'a> {
             width,
             gap: design.space.column_gap.min(width),
             field_height: design.size.field_height,
+            sizing: self.sizing,
             index: 0,
             top: 0,
             half_height: None,
@@ -1081,8 +1129,12 @@ impl<'a> Form<'a> {
                             else {
                                 continue;
                             };
-                            let min_height =
-                                placement_height(field, design.size.field_height, data);
+                            let min_height = placement_height(
+                                field,
+                                design.size.field_height,
+                                self.sizing,
+                                data,
+                            );
                             let height = if matches!(row, FormRow::Fill(_)) {
                                 let trailing_spacers = lane
                                     .rows()
@@ -1136,11 +1188,13 @@ impl<'a> Form<'a> {
                                     let first_height = placement_height(
                                         first_field,
                                         design.size.field_height,
+                                        self.sizing,
                                         data,
                                     );
                                     let second_height = placement_height(
                                         second_field,
                                         design.size.field_height,
+                                        self.sizing,
                                         data,
                                     );
                                     let height = first_height.max(second_height);
@@ -1161,8 +1215,12 @@ impl<'a> Form<'a> {
                                     y = y.saturating_add(usize::from(height));
                                 }
                                 (Some((index, field)), None) | (None, Some((index, field))) => {
-                                    let height =
-                                        placement_height(field, design.size.field_height, data);
+                                    let height = placement_height(
+                                        field,
+                                        design.size.field_height,
+                                        self.sizing,
+                                        data,
+                                    );
                                     placements.push(Placement {
                                         index,
                                         top: y,
@@ -1886,6 +1944,32 @@ impl<'a> Form<'a> {
         let disabled = data.disabled(field.id);
         let error = Self::field_error(st, data, field);
         let options = data.options(field.id);
+        if self.sizing == FieldSizingPolicy::Intrinsic
+            && let (FieldKind::Note, FieldRef::Note(rows)) = (&field.kind, data.value(field.id))
+        {
+            for (row, (text, role)) in area.rows().zip(rows.iter().skip(source_first_row)) {
+                ui.paint_str(row, text, ui.paint_patch(&StylePatch::new().set_fg(*role)));
+                ui.register_decor(field.id, PartRef::of(Part::HELP), row);
+            }
+            return;
+        }
+        if self.sizing == FieldSizingPolicy::Intrinsic
+            && let (FieldKind::Chooser(control), FieldRef::Display { value, detail }) =
+                (&field.kind, data.value(field.id))
+        {
+            self.draw_intrinsic_chooser(
+                ui,
+                area,
+                source_first_row,
+                logical_height,
+                field,
+                control,
+                value,
+                detail,
+                disabled,
+            );
+            return;
+        }
         if let (FieldKind::Radio(control), FieldRef::Choice(value)) =
             (&field.kind, data.value(field.id))
         {
@@ -1980,12 +2064,104 @@ impl<'a> Form<'a> {
                     Part::HELP,
                     StateFlags::empty(),
                 );
-                for (row, (text, _role)) in area.rows().zip(rows.iter()) {
+                for (row, (text, _role)) in area.rows().zip(rows.iter().skip(source_first_row)) {
                     ui.paint_str(row, text, style.style);
                     ui.register_decor(field.id, PartRef::of(Part::HELP), row);
                 }
             }
             _ => {}
+        }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn draw_intrinsic_chooser(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        source_first_row: usize,
+        logical_height: u16,
+        field: &FieldSpec<'_>,
+        control: &Button<'_>,
+        value: &str,
+        detail: Option<&str>,
+        disabled: bool,
+    ) {
+        let source_end = source_first_row.saturating_add(usize::from(area.height));
+        for source_row in source_first_row..source_end.min(usize::from(logical_height)) {
+            let row = Rect {
+                y: area.y.saturating_add(
+                    source_row
+                        .saturating_sub(source_first_row)
+                        .min(usize::from(u16::MAX)) as u16,
+                ),
+                height: 1,
+                ..area
+            };
+            match source_row {
+                0 => {
+                    let label_style = self.ov.style(
+                        ui,
+                        self.id,
+                        Family::FIELD,
+                        Variant::DEFAULT,
+                        Part::LABEL,
+                        StateFlags::empty(),
+                    );
+                    let label = Rect {
+                        x: row.x.saturating_add(2),
+                        width: row.width.saturating_sub(2),
+                        ..row
+                    };
+                    let used = ui.paint_str(label, field.label, label_style.style);
+                    if field.required && !field.label.is_empty() {
+                        ui.paint_str(
+                            Rect {
+                                x: label.x.saturating_add(used).saturating_add(1),
+                                width: 1,
+                                ..label
+                            },
+                            "*",
+                            label_style.style,
+                        );
+                    }
+                    ui.register_decor(field.id, PartRef::of(Part::LABEL), row);
+                }
+                1 => {
+                    let value_x = row.x.saturating_add(2);
+                    let right = row.right().saturating_sub(1);
+                    let button_width = control
+                        .measure(ui, Constraints::loose(u16::MAX, 1))
+                        .preferred
+                        .0
+                        .min(right.saturating_sub(value_x));
+                    let button_area = Rect {
+                        x: right.saturating_sub(button_width),
+                        width: button_width,
+                        ..row
+                    };
+                    let value_area = Rect {
+                        x: value_x,
+                        width: button_area.x.saturating_sub(value_x).saturating_sub(1),
+                        ..row
+                    };
+                    ui.paint_str(value_area, value, ui.surface_style());
+                    control.draw_in_form(ui, button_area, disabled);
+                }
+                2 => {
+                    if let Some(detail) = detail {
+                        ui.paint_str(
+                            Rect {
+                                x: row.x.saturating_add(2),
+                                width: row.width.saturating_sub(3),
+                                ..row
+                            },
+                            detail,
+                            ui.surface_style(),
+                        );
+                    }
+                }
+                _ => {}
+            }
         }
     }
 
@@ -2107,7 +2283,8 @@ impl<'a> Form<'a> {
     /// This compatibility method cannot account for data-dependent visibility,
     /// radio option counts, or the row pairing used when `columns(2)` is set.
     /// This estimate also ignores an explicit lane layout. Consumers with
-    /// form data should use [`Self::measure_with_data`].
+    /// form data or [`FieldSizingPolicy::Intrinsic`] should use
+    /// [`Self::measure_with_data`].
     pub fn measure(&self, ui: &Ui<'_>, constraints: Constraints) -> Size {
         let rows = self
             .fields
@@ -2411,6 +2588,7 @@ mod tests {
         Check,
         Toggle,
         Chooser,
+        Note,
     }
 
     fn matrix_field(kind: MatrixKind) -> FieldSpec<'static> {
@@ -2423,6 +2601,7 @@ mod tests {
             MatrixKind::Check => FieldKind::Check(Checkbox::new(MATRIX, "Check")),
             MatrixKind::Toggle => FieldKind::Toggle(Toggle::new(MATRIX, "Toggle")),
             MatrixKind::Chooser => FieldKind::Chooser(Button::new(MATRIX, "Choose")),
+            MatrixKind::Note => FieldKind::Note,
         };
         FieldSpec::new(MATRIX, "Field", field_kind)
     }
@@ -2465,6 +2644,9 @@ mod tests {
         flag: bool,
         validations: Cell<usize>,
         config: MatrixConfig,
+        notes: Vec<(&'static str, Role)>,
+        detail: Option<&'static str>,
+        display: &'static str,
     }
 
     impl MatrixData {
@@ -2477,6 +2659,9 @@ mod tests {
                 flag: false,
                 validations: Cell::new(0),
                 config: MatrixConfig::default(),
+                notes: Vec::new(),
+                detail: None,
+                display: "chosen",
             }
         }
     }
@@ -2489,9 +2674,10 @@ mod tests {
                 MatrixKind::Chips => FieldRef::Chips(&self.chips),
                 MatrixKind::Check | MatrixKind::Toggle => FieldRef::Flag(self.flag),
                 MatrixKind::Chooser => FieldRef::Display {
-                    value: "chosen",
-                    detail: None,
+                    value: self.display,
+                    detail: self.detail,
                 },
+                MatrixKind::Note => FieldRef::Note(&self.notes),
             }
         }
 
@@ -2501,7 +2687,7 @@ mod tests {
                 MatrixKind::Select | MatrixKind::Radio => FieldMut::Choice(&mut self.choice),
                 MatrixKind::Chips => FieldMut::Chips(&mut self.chips),
                 MatrixKind::Check | MatrixKind::Toggle => FieldMut::Flag(&mut self.flag),
-                MatrixKind::Chooser => FieldMut::ReadOnly,
+                MatrixKind::Chooser | MatrixKind::Note => FieldMut::ReadOnly,
             }
         }
 
@@ -2558,6 +2744,8 @@ mod tests {
         enter: EnterPolicy,
         reference: bool,
         target: Option<crate::ReferenceTarget>,
+        sizing: FieldSizingPolicy,
+        area: Rect,
     }
 
     impl MatrixApp {
@@ -2570,6 +2758,15 @@ mod tests {
                 enter: EnterPolicy::SubmitsWhenIdle,
                 reference: false,
                 target: None,
+                sizing: FieldSizingPolicy::Fixed,
+                area: SCREEN,
+            }
+        }
+
+        fn with_sizing(kind: MatrixKind, sizing: FieldSizingPolicy) -> Self {
+            Self {
+                sizing,
+                ..Self::new(kind)
             }
         }
     }
@@ -2580,6 +2777,7 @@ mod tests {
             let response = Form::new(FORM, &fields)
                 .actions(ACTIONS)
                 .enter(self.enter)
+                .field_sizing(self.sizing)
                 .update(cx, &mut self.state, &mut self.data);
             self.last = response.action_ref().copied();
             response.erase()
@@ -2587,13 +2785,16 @@ mod tests {
 
         fn draw(&self, ui: &mut Ui<'_>) {
             let fields = [matrix_field(self.data.kind)];
-            let form = Form::new(FORM, &fields).actions(ACTIONS).enter(self.enter);
+            let form = Form::new(FORM, &fields)
+                .actions(ACTIONS)
+                .enter(self.enter)
+                .field_sizing(self.sizing);
             if self.reference {
                 ui.reference(self.target, |ui| {
-                    form.draw(ui, SCREEN, &self.state, &self.data);
+                    form.draw(ui, self.area, &self.state, &self.data);
                 });
             } else {
-                form.draw(ui, SCREEN, &self.state, &self.data);
+                form.draw(ui, self.area, &self.state, &self.data);
             }
         }
 
@@ -2603,7 +2804,14 @@ mod tests {
     }
 
     fn matrix_runtime(kind: MatrixKind) -> (Runtime<MatrixApp>, Buffer) {
-        let mut runtime = Runtime::new(MatrixApp::new(kind), Theme::junie());
+        matrix_runtime_with_sizing(kind, FieldSizingPolicy::Fixed)
+    }
+
+    fn matrix_runtime_with_sizing(
+        kind: MatrixKind,
+        sizing: FieldSizingPolicy,
+    ) -> (Runtime<MatrixApp>, Buffer) {
+        let mut runtime = Runtime::new(MatrixApp::with_sizing(kind, sizing), Theme::junie());
         let _ = runtime.initialize();
         let mut buffer = Buffer::empty(SCREEN);
         runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
@@ -3179,6 +3387,139 @@ mod tests {
         let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::Char(' ')));
         runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
         assert_eq!(runtime.app().last, Some(FormAction::Chose(MATRIX)));
+    }
+
+    #[test]
+    fn intrinsic_note_rows_use_live_count_and_role_tones() {
+        let (mut runtime, mut buffer) =
+            matrix_runtime_with_sizing(MatrixKind::Note, FieldSizingPolicy::Intrinsic);
+        runtime.app_mut().data.notes = vec![
+            ("Info line", Role::Info),
+            ("Warning line", Role::Warning),
+            ("Success line", Role::Success),
+            ("Fourth line", Role::Fg(crate::theme::FgStep::Primary)),
+            ("Fifth line", Role::Danger),
+        ];
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        assert!(row_text(&buffer, 0).contains("Info line"));
+        assert!(row_text(&buffer, 1).contains("Warning line"));
+        assert!(row_text(&buffer, 4).contains("Fifth line"));
+        let info = buffer.cell((2, 0)).expect("info cell").fg;
+        let warning = buffer.cell((2, 1)).expect("warning cell").fg;
+        assert_ne!(info, warning, "each row uses its supplied semantic role");
+
+        let after = FieldSpec::new(
+            CLIP_AFTER,
+            "After",
+            FieldKind::Text(TextInput::new(CLIP_AFTER)),
+        );
+        let fields = [matrix_field(MatrixKind::Note), after];
+        let form = Form::new(FORM, &fields).field_sizing(FieldSizingPolicy::Intrinsic);
+        for count in [0, 1, 5] {
+            let rows = vec![("note", Role::Info); count];
+            let mut data = MatrixData::new(MatrixKind::Note);
+            data.notes = rows;
+            let mut placements = form.placements(&Theme::junie().design, SCREEN.width);
+            let note = placements.next(&data).expect("note placement");
+            let following = placements.next(&data).expect("following placement");
+            assert_eq!(note.height, count as u16);
+            assert_eq!(following.top, count);
+            assert_eq!(
+                Form::content_rows(form.placements(&Theme::junie().design, 60), &data),
+                count + 3
+            );
+            let measured = Cell::new(Size::default());
+            let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+            let mut buffer = Buffer::empty(SCREEN);
+            runtime
+                .draw_scene(SCREEN, &mut buffer, |ui, _| {
+                    measured.set(form.measure_with_data(
+                        ui,
+                        Constraints::loose(SCREEN.width, SCREEN.height),
+                        &data,
+                    ));
+                })
+                .commit_presented();
+            assert_eq!(measured.get().preferred.1, count as u16 + 3);
+        }
+    }
+
+    #[test]
+    fn partially_scrolled_intrinsic_note_starts_at_source_row() {
+        let (mut runtime, _) =
+            matrix_runtime_with_sizing(MatrixKind::Note, FieldSizingPolicy::Intrinsic);
+        let area = Rect::new(0, 0, SCREEN.width, 3);
+        runtime.app_mut().area = area;
+        runtime.app_mut().data.notes = vec![
+            ("note zero", Role::Info),
+            ("note one", Role::Info),
+            ("note two", Role::Info),
+            ("note three", Role::Info),
+            ("note four", Role::Info),
+        ];
+        runtime.app_mut().state.scroll.set_content(5);
+        runtime.app_mut().state.scroll.set_viewport(2);
+        runtime.app_mut().state.scroll.scroll_to(2);
+        let mut buffer = Buffer::empty(area);
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        assert!(row_text(&buffer, 0).contains("note two"));
+        assert!(row_text(&buffer, 1).contains("note three"));
+        assert!(!row_text(&buffer, 0).contains("note zero"));
+    }
+
+    #[test]
+    fn intrinsic_chooser_paints_value_before_trailing_button_and_hits_only_button() {
+        let (mut runtime, mut buffer) =
+            matrix_runtime_with_sizing(MatrixKind::Chooser, FieldSizingPolicy::Intrinsic);
+        runtime.app_mut().data.detail = Some("Unicode detail 界");
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        assert!(row_text(&buffer, 1).contains("chosen"));
+        assert!(row_text(&buffer, 2).contains("Unicode detail"));
+        assert_eq!(runtime.app().last, None);
+
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            crate::runtime::stub::mouse(crate::event::MouseKind::Down, 4, 1),
+        );
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            crate::runtime::stub::mouse(crate::event::MouseKind::Up, 4, 1),
+        );
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        assert_eq!(runtime.app().last, None, "value has no chooser hit region");
+
+        let button_x = row_text(&buffer, 1)
+            .find("Choose")
+            .expect("trailing Choose label") as u16;
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            crate::runtime::stub::mouse(crate::event::MouseKind::Down, button_x, 1),
+        );
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            crate::runtime::stub::mouse(crate::event::MouseKind::Up, button_x, 1),
+        );
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        assert_eq!(runtime.app().last, Some(FormAction::Chose(MATRIX)));
+    }
+
+    #[test]
+    fn intrinsic_chooser_clips_unicode_safely_in_narrow_and_wide_regions() {
+        let (mut runtime, _) =
+            matrix_runtime_with_sizing(MatrixKind::Chooser, FieldSizingPolicy::Intrinsic);
+        runtime.app_mut().data.display = "界e\u{301} 長い値";
+        runtime.app_mut().data.detail = Some("A detail line");
+        for width in [0, 1, 2, 8, 16, SCREEN.width] {
+            let area = Rect::new(0, 0, width, 4);
+            runtime.app_mut().area = area;
+            let mut buffer = Buffer::empty(area);
+            runtime.draw_buffer(area, &mut buffer).commit_presented();
+            if width >= 32 {
+                let value_row = row_text(&buffer, 1).replace(' ', "");
+                assert!(value_row.contains("界e"), "value row: {value_row:?}");
+                assert!(row_text(&buffer, 2).contains("A detail"));
+            }
+        }
     }
 
     #[test]
