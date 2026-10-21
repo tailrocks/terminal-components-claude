@@ -3,7 +3,7 @@ use ratatui_core::layout::{Position, Rect};
 use ratatui_core::style::{Color, Modifier, Style};
 use termrock_core::{Input, id::Id};
 use termrock_runtime::{Anchor, App, LayerSize, LayerSpec, Runtime, Ui, UpdateCause, stub};
-use termrock_theme::Theme;
+use termrock_theme::{ColorLevel, Role, StylePatch, Theme};
 
 const SCREEN: Rect = Rect {
     x: 0,
@@ -347,4 +347,218 @@ fn moved_label_vacated_cell_uses_explicit_reset_attributes() {
     };
 
     assert_eq!(draw(true), draw(false));
+}
+
+struct InheritedModifierModel {
+    inherit: bool,
+}
+
+impl App for InheritedModifierModel {
+    fn update(&mut self, cx: &mut termrock_runtime::Cx<'_>) -> termrock_core::Response<()> {
+        const POPUP: Id = Id::root("underlay.inherited-modifier-popup");
+        if !cx.is_open(POPUP) {
+            cx.open_layer(
+                POPUP,
+                LayerSpec::popover(POPUP, Anchor::Point(Position::new(1, 1)))
+                    .size(LayerSize::Fixed(8, 3)),
+            );
+        }
+        termrock_core::Response::ignored()
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        const POPUP: Id = Id::root("underlay.inherited-modifier-popup");
+        let base = Style::new()
+            .fg(Color::Red)
+            .bg(Color::Black)
+            .add_modifier(Modifier::BOLD);
+        ui.fill(ui.full(), base);
+        let _ = ui.layer(POPUP, |ui, area| {
+            if self.inherit {
+                ui.fill_keep_ink(area, Color::Black);
+            } else {
+                ui.fill(area, base);
+            }
+            ui.paint_str(
+                Rect::new(area.x, area.y, 1, 1),
+                "X",
+                Style {
+                    add_modifier: Modifier::BOLD,
+                    sub_modifier: Modifier::BOLD,
+                    ..Style::new()
+                },
+            );
+        });
+    }
+}
+
+#[test]
+fn overlapping_modifier_fields_remove_inherited_bold() {
+    for level in [
+        ColorLevel::TrueColor,
+        ColorLevel::Ansi256,
+        ColorLevel::Ansi16,
+        ColorLevel::Mono,
+    ] {
+        let draw = |inherit| {
+            let area = Rect::new(0, 0, 40, 10);
+            let mut runtime = Runtime::new(
+                InheritedModifierModel { inherit },
+                Theme::junie().for_level(level),
+            );
+            let _ = runtime.initialize();
+            let mut buffer = Buffer::empty(area);
+            runtime.draw_buffer(area, &mut buffer).commit_presented();
+            buffer
+        };
+
+        assert_eq!(draw(true), draw(false), "profile={level:?}");
+    }
+}
+
+#[derive(Clone, Copy)]
+enum FadeSequence {
+    BackgroundAfterFade,
+    ReverseAfterFade,
+    RemoveDimAfterFade,
+    ForegroundAfterFade,
+    RolePatchAfterFade,
+    Repeated,
+    RepeatedRgb,
+}
+
+struct FadeSequenceModel {
+    inherit: bool,
+    sequence: FadeSequence,
+}
+
+impl App for FadeSequenceModel {
+    fn update(&mut self, cx: &mut termrock_runtime::Cx<'_>) -> termrock_core::Response<()> {
+        const LOWER: Id = Id::root("underlay.fade-sequence-lower");
+        const POPUP: Id = Id::root("underlay.fade-sequence-popup");
+        if !cx.is_open(LOWER) {
+            cx.open_layer(
+                LOWER,
+                LayerSpec::popover(LOWER, Anchor::Point(Position::new(1, 1)))
+                    .size(LayerSize::Fixed(8, 6)),
+            );
+        }
+        if !cx.is_open(POPUP) {
+            cx.open_layer(
+                POPUP,
+                LayerSpec::popover(LOWER, Anchor::Point(Position::new(1, 1)))
+                    .size(LayerSize::Fixed(8, 6)),
+            );
+        }
+        termrock_core::Response::ignored()
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        const LOWER: Id = Id::root("underlay.fade-sequence-lower");
+        const POPUP: Id = Id::root("underlay.fade-sequence-popup");
+        let container = match self.sequence {
+            FadeSequence::RepeatedRgb => Color::Rgb(0, 0, 0),
+            _ => Color::Black,
+        };
+        let base = Style::new().fg(Color::Rgb(200, 40, 40)).bg(container);
+        let lower_ink = Style::new().fg(Color::Rgb(40, 80, 220)).bg(container);
+        ui.fill(ui.full(), base);
+        let _ = ui.layer(LOWER, |ui, area| ui.fill(area, lower_ink));
+        let _ = ui.layer(POPUP, |ui, area| {
+            if self.inherit {
+                ui.fill_keep_ink(area, container);
+            } else {
+                ui.fill(area, lower_ink);
+            }
+            let glyph = Rect::new(area.x, area.y, 1, 1);
+            ui.paint_str(glyph, "X", Style::new().fg(Color::Rgb(40, 200, 80)));
+            let mut scroll = termrock_runtime::ScrollState::new(100);
+            scroll.set_viewport(6);
+            scroll.scroll_by(1);
+            ui.scroll_edges(area, &scroll);
+            if matches!(
+                self.sequence,
+                FadeSequence::Repeated | FadeSequence::RepeatedRgb
+            ) {
+                ui.scroll_edges(area, &scroll);
+            }
+            match self.sequence {
+                FadeSequence::BackgroundAfterFade => {
+                    ui.paint_str(glyph, "X", Style::new().bg(Color::Yellow));
+                }
+                FadeSequence::ReverseAfterFade => {
+                    ui.paint_str(glyph, "X", Style::new().add_modifier(Modifier::REVERSED));
+                }
+                FadeSequence::RemoveDimAfterFade => {
+                    ui.paint_str(glyph, "X", Style::new().remove_modifier(Modifier::DIM));
+                }
+                FadeSequence::ForegroundAfterFade => {
+                    ui.paint_str(glyph, "X", Style::new().fg(Color::Magenta));
+                }
+                FadeSequence::RolePatchAfterFade => {
+                    let paint = ui.paint_patch(&StylePatch::new().set_fg(Role::Accent));
+                    ui.paint_str(glyph, "X", paint);
+                }
+                FadeSequence::Repeated | FadeSequence::RepeatedRgb => {}
+            }
+        });
+    }
+}
+
+fn compare_fade_sequence(sequence: FadeSequence) {
+    for level in [
+        ColorLevel::TrueColor,
+        ColorLevel::Ansi256,
+        ColorLevel::Ansi16,
+        ColorLevel::Mono,
+    ] {
+        let draw = |inherit| {
+            let area = Rect::new(0, 0, 40, 12);
+            let mut runtime = Runtime::new(
+                FadeSequenceModel { inherit, sequence },
+                Theme::junie().for_level(level),
+            );
+            let _ = runtime.initialize();
+            let mut buffer = Buffer::empty(area);
+            runtime.draw_buffer(area, &mut buffer).commit_presented();
+            buffer
+        };
+
+        assert_eq!(draw(true), draw(false), "profile={level:?}");
+    }
+}
+
+#[test]
+fn later_background_does_not_undo_earlier_fade() {
+    compare_fade_sequence(FadeSequence::BackgroundAfterFade);
+}
+
+#[test]
+fn later_reverse_does_not_undo_earlier_fade() {
+    compare_fade_sequence(FadeSequence::ReverseAfterFade);
+}
+
+#[test]
+fn later_modifier_removal_applies_after_fade() {
+    compare_fade_sequence(FadeSequence::RemoveDimAfterFade);
+}
+
+#[test]
+fn later_explicit_foreground_applies_after_fade() {
+    compare_fade_sequence(FadeSequence::ForegroundAfterFade);
+}
+
+#[test]
+fn later_role_patch_applies_after_fade() {
+    compare_fade_sequence(FadeSequence::RolePatchAfterFade);
+}
+
+#[test]
+fn repeated_fades_compose_in_order() {
+    compare_fade_sequence(FadeSequence::Repeated);
+}
+
+#[test]
+fn repeated_rgb_fades_compose_in_order() {
+    compare_fade_sequence(FadeSequence::RepeatedRgb);
 }
