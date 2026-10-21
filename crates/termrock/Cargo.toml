@@ -70,6 +70,9 @@ required-features = ["testing"]
 name = "tree_composition_consumer"
 required-features = ["testing"]
 
+[[example]]
+name = "master_detail_composition_consumer"
+
 # Rust documentation examples are guarded by the workspace doc inventory test.
 [lib]
 doctest = false
