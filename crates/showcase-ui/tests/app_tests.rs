@@ -1377,3 +1377,24 @@ fn overview_header_crumb_omits_foundations_and_idle_nav_rows_omit_the_gutter() {
         "focused diff row lost the gutter: {diff_side}"
     );
 }
+
+#[test]
+fn sidebar_matches_the_frozen_width() {
+    let narrow = Harness::new(App::for_page_name("buttons"), Theme::junie(), 72, 20);
+    let narrow_text = narrow.text();
+    assert!(narrow_text.contains("Editable tabl…"), "{narrow_text}");
+    assert!(narrow_text.contains('┃'), "{narrow_text}");
+    assert!(!narrow_text.contains("Foundations"), "{narrow_text}");
+
+    let mid = Harness::new(App::for_page_name("buttons"), Theme::junie(), 100, 30);
+    let mid_text = mid.text();
+    assert!(mid_text.contains("Editable tables"), "{mid_text}");
+    assert!(!mid_text.contains('┃'), "{mid_text}");
+    assert!(!mid_text.contains("Foundations"), "{mid_text}");
+
+    let wide = Harness::new(App::for_page_name("buttons"), Theme::junie(), 120, 40);
+    let wide_text = wide.text();
+    assert!(wide_text.contains("Foundations"), "{wide_text}");
+    assert!(wide_text.contains("Screens"), "{wide_text}");
+    assert!(!wide_text.contains('┃'), "{wide_text}");
+}
