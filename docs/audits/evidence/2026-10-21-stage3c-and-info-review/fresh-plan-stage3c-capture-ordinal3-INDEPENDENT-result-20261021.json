@@ -1,0 +1,103 @@
+{
+  "advance": {
+    "elapsed_seconds": 63.419,
+    "exit": 0,
+    "log_sha256": "48955c110a05341d70c3f81148c4e0369938f87a271be4581f842c46f959a626",
+    "receipt": {
+      "checkpoint_count": 32,
+      "chunk": 3,
+      "committed_chunk_sha256": "28717cceb2cd5b3b1e11fc7e730150df8f25e8492dff947a6eff863f9b677201",
+      "expected_tree_sha256": "9736b911aee3da3fc616c8c0f431fcfb359b8196af7ad8fb4cccd130a3cefd5e",
+      "ordinal": 3,
+      "phase": "baseline-capture",
+      "receipt_file_sha256": "9bdf6d2dbdef0476b1e9075f61f42a0640d9090a52f72d94c07829e1023bedd0"
+    }
+  },
+  "after_state": {
+    "candidate_comparison_eligible": false,
+    "capture_dirs": [
+      "chunk-00000",
+      "chunk-00001",
+      "chunk-00002",
+      "chunk-00003"
+    ],
+    "ordinary_exists": false,
+    "product_acceptance": false,
+    "replay_exists": false
+  },
+  "capture_chunks": [
+    {
+      "chunk": 0,
+      "committed_ok": true,
+      "expected_ok": true,
+      "expected_sha256": "5029c75622cd3a8cbadd6ac0ea51406ff67f4cbaa432a660842853e1654d491f"
+    },
+    {
+      "chunk": 1,
+      "committed_ok": true,
+      "expected_ok": true,
+      "expected_sha256": "2d5be8ca4f5cf17b025ab6e65b975ec2a2f505ae2977eb4b4cc1dce0f306427e"
+    },
+    {
+      "chunk": 2,
+      "committed_ok": true,
+      "expected_ok": true,
+      "expected_sha256": "74df81f7f698eda2e1897a371eb4dcfb350e01194ee3f9fd6c1c8a3620413516"
+    },
+    {
+      "chunk": 3,
+      "committed_ok": true,
+      "expected_ok": true,
+      "expected_sha256": "9736b911aee3da3fc616c8c0f431fcfb359b8196af7ad8fb4cccd130a3cefd5e"
+    }
+  ],
+  "new_plan_checkpoints": 128,
+  "old310_chunks": [
+    {
+      "chunk": 0,
+      "matches": true,
+      "sha256": "5029c75622cd3a8cbadd6ac0ea51406ff67f4cbaa432a660842853e1654d491f"
+    },
+    {
+      "chunk": 1,
+      "matches": true,
+      "sha256": "2d5be8ca4f5cf17b025ab6e65b975ec2a2f505ae2977eb4b4cc1dce0f306427e"
+    },
+    {
+      "chunk": 2,
+      "matches": true,
+      "sha256": "74df81f7f698eda2e1897a371eb4dcfb350e01194ee3f9fd6c1c8a3620413516"
+    },
+    {
+      "chunk": 3,
+      "matches": true,
+      "sha256": "9736b911aee3da3fc616c8c0f431fcfb359b8196af7ad8fb4cccd130a3cefd5e"
+    },
+    {
+      "chunk": 4,
+      "matches": true,
+      "sha256": "4704bd6f206ba84d7d2917c22fe43ae5454e1c219188c1265966fe54eba0b530"
+    },
+    {
+      "chunk": 5,
+      "matches": true,
+      "sha256": "d1e1d1e0a20fb4534751406b600c274ebcd000d36b8ced49eaaf5e3942bd08c0"
+    }
+  ],
+  "old310_separate_checkpoint_count": 192,
+  "old310_six_chunks_preserved": true,
+  "plan_sha256": "48ab669c719815a7899c55d8a4b5a4444e514701a947f85c541907fa83550bc7",
+  "post_verify_run": {
+    "completed_steps": 4,
+    "elapsed_seconds": 40.75,
+    "env_tool_match": true,
+    "exit": 0,
+    "log_sha256": "3c5ed63313180d300e898d30ec921975a2ec8132b59a30652b0503d48a96ab34"
+  },
+  "run_id": "8470dddf86b24e1e8dcf3293d2625b1f",
+  "runner_revision": "482cdaf48c42d8355a173e1faeee74e159c46d0b",
+  "runner_sha256": "f2a7583e155c7e85b7c8782c1b163b60bd0bf83038f5e736abe52271724139a8",
+  "schema": "termrock.stage3c-capture-ordinal3-independent-result.v1",
+  "scope": "ordinal3 baseline capture only; no replay, candidate, ordinary checks, or acceptance.",
+  "supervisor_sha256": "82c5b55120b19e11825204fd281fbb88b541724b46867ac5992b4db9e8c52a46"
+}
