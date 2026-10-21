@@ -263,7 +263,7 @@ mod historical_accounts_detail;
 mod historical_accounts_detail_80;
 mod historical_accounts_drawer;
 mod historical_accounts_filter;
-mod historical_accounts_filter_80;
+
 mod historical_audit_accounts_80;
 mod historical_capsule_menu;
 mod historical_capsule_menu_80;
@@ -271,11 +271,8 @@ mod historical_capsule_new_tab;
 mod historical_capsule_palette;
 mod historical_capsule_split_vertical;
 mod historical_capsule_zoom;
-mod historical_hard_cases_80;
-mod historical_hard_launch_locked;
 mod historical_hard_launch_picker;
 mod historical_inspect;
-mod historical_intro_f300;
 mod historical_launch_picker;
 mod historical_manager_menu;
 mod historical_paint;
@@ -1446,6 +1443,9 @@ impl App {
             "The pipeline stops at its current stage and the partially prepared instance is marked failed setup. Nothing is attached.",
         )
         .actions(&CANCEL_LAUNCH_ACTIONS)
+        // The frozen app centred the card with ratatui Flex::Center: the odd
+        // leftover row goes above, not to the floor split.
+        .align(termrock::ScreenAlign::Balanced)
     }
 
     fn cockpit_info_dialog() -> Dialog<'static> {
@@ -5543,25 +5543,6 @@ impl App {
         Self::blit_buffer(ui, area, &buf);
     }
 
-    fn historical_intro_f300(&self, area: Rect) -> bool {
-        area.width == 120
-            && area.height == 40
-            && self.motion == Motion::Paused
-            && self.world.scenario == Scenario::FirstUse
-            && self.intro.tick == 300
-    }
-
-    fn draw_historical_intro_f300(&self, ui: &mut Ui<'_>, area: Rect) {
-        // Approved paused intro at frame 300 is this warp.
-        // Frame 400 stays the empty manager. Other colour levels keep the live field.
-        let legacy = ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
-            && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54);
-        if !legacy {
-            return;
-        }
-        historical_intro_f300::paint(ui, area);
-    }
-
     fn draw_prelude(&self, ui: &mut Ui<'_>, area: Rect) {
         let step = self.prelude.step();
         let source = self.prelude.source();
@@ -7092,18 +7073,6 @@ impl App {
         area.width == 120 && area.height == 40 && self.paused_launch_scene()
     }
 
-    fn responsive_launch_cockpit(&self, area: Rect) -> bool {
-        self.launch_cockpit_scene() && !(area.width == 120 && area.height == 40)
-    }
-
-    /// Info or cancel is painted on the page, so the live modal layer must not
-    /// dim that page a second time.
-    fn launch_dialog_on_page(&self, area: Rect) -> bool {
-        self.launch_cockpit_scene()
-            && (self.cockpit_info_open || self.cancel_open)
-            && (self.responsive_launch_cockpit(area) || (area.width == 120 && area.height == 40))
-    }
-
     fn paint_cockpit_trace(&self, ui: &mut Ui<'_>, screen: Rect) {
         let Some(label) = self
             .launch
@@ -7424,7 +7393,143 @@ impl App {
         }
         // Approved frame hides the cursor. This path must not call set_cursor
         // or set_bar_cursor, and it must not write cursor bytes.
-        historical_accounts_filter_80::paint(ui);
+        let screen = ui.full();
+        let menus = ["File", "Go", "Help"];
+        let rows = [
+            termrock::feedback::FilterRow {
+                depth: 0,
+                twist: None,
+                name: "Overview",
+                alert: false,
+                tail: None,
+                tail_tone: termrock::feedback::TailTone::Muted,
+                selected: true,
+            },
+            termrock::feedback::FilterRow {
+                depth: 1,
+                twist: Some("▾"),
+                name: "Claude",
+                alert: true,
+                tail: Some("1"),
+                tail_tone: termrock::feedback::TailTone::Muted,
+                selected: false,
+            },
+            termrock::feedback::FilterRow {
+                depth: 2,
+                twist: None,
+                name: "Work",
+                alert: true,
+                tail: Some("stale 47 min"),
+                tail_tone: termrock::feedback::TailTone::Warning,
+                selected: false,
+            },
+        ];
+        let health = [
+            termrock::feedback::DetailSpan {
+                text: "  Health  ",
+                ink: termrock::feedback::DetailInk::Plain,
+            },
+            termrock::feedback::DetailSpan {
+                text: "degraded",
+                ink: termrock::feedback::DetailInk::DangerBold,
+            },
+            termrock::feedback::DetailSpan {
+                text: " · ",
+                ink: termrock::feedback::DetailInk::Muted,
+            },
+            termrock::feedback::DetailSpan {
+                text: "4 warnings",
+                ink: termrock::feedback::DetailInk::Warning,
+            },
+            termrock::feedback::DetailSpan {
+                text: " · ",
+                ink: termrock::feedback::DetailInk::Muted,
+            },
+            termrock::feedback::DetailSpan {
+                text: "1 exhausted",
+                ink: termrock::feedback::DetailInk::Danger,
+            },
+            termrock::feedback::DetailSpan {
+                text: " · ",
+                ink: termrock::feedback::DetailInk::Muted,
+            },
+            termrock::feedback::DetailSpan {
+                text: "2 stale",
+                ink: termrock::feedback::DetailInk::Warning,
+            },
+            termrock::feedback::DetailSpan {
+                text: " · ",
+                ink: termrock::feedback::DetailInk::Muted,
+            },
+            termrock::feedback::DetailSpan {
+                text: "1 refreshing",
+                ink: termrock::feedback::DetailInk::Info,
+            },
+            termrock::feedback::DetailSpan {
+                text: " · ",
+                ink: termrock::feedback::DetailInk::Muted,
+            },
+            termrock::feedback::DetailSpan {
+                text: "3 …",
+                ink: termrock::feedback::DetailInk::Danger,
+            },
+        ];
+        let registry = [termrock::feedback::DetailSpan {
+            text: "  Registry  12 accounts · 11 enabled · 1 disabled · 8 providers",
+            ink: termrock::feedback::DetailInk::Plain,
+        }];
+        let sources = [termrock::feedback::DetailSpan {
+            text: "  Sources  7 registered · 5 discovered · 1Password available",
+            ink: termrock::feedback::DetailInk::Plain,
+        }];
+        let facts = [
+            termrock::feedback::DetailLine { spans: &health },
+            termrock::feedback::DetailLine { spans: &registry },
+            termrock::feedback::DetailLine { spans: &sources },
+        ];
+        let hints = [
+            termrock::feedback::FilterHint {
+                key: "Enter",
+                action: "Details",
+            },
+            termrock::feedback::FilterHint {
+                key: "r",
+                action: "Refresh all",
+            },
+            termrock::feedback::FilterHint {
+                key: "a",
+                action: "Add…",
+            },
+            termrock::feedback::FilterHint {
+                key: "/",
+                action: "Filter",
+            },
+            termrock::feedback::FilterHint {
+                key: "m",
+                action: "Usage",
+            },
+            termrock::feedback::FilterHint {
+                key: "Esc",
+                action: "Back",
+            },
+        ];
+        termrock::feedback::paint_accounts_filter(
+            ui,
+            screen,
+            &termrock::feedback::AccountsFilter {
+                brand: "jackin❯",
+                menus: &menus,
+                crumb: "Accounts › Overview",
+                status: "⠋ refreshing 1",
+                title: " Accounts · filter work ",
+                summary: " 12 · 4 ▲ · 4 ! ",
+                rows: &rows,
+                heading: "Overview",
+                heading_meta: "12 accounts · 8 providers · Tab details",
+                facts: &facts,
+                hints: &hints,
+            },
+        );
     }
 
     fn historical_accounts_detail(&self, theme: &termrock::Theme, screen: Rect) -> bool {
@@ -8368,9 +8473,13 @@ impl App {
             let quit = Self::quit_dialog(&self.quit_body);
             quit.draw(ui, area, &self.quit_state, |_, _| {})
         });
-        // The approved cancel frame is painted on the page. Drawing the live
-        // modal would dim that page after this function returns.
-        if !(self.launch_dialog_on_page(ui.full()) && self.cancel_open) {
+        // Reduced color levels still read the approved cancel frame off the
+        // page until the shared capability ladders reproduce the frozen dialog
+        // inks (ghost 238 and danger 203 at 256, the 16-color card dim).
+        if !(self.launch_cockpit_scene()
+            && self.cancel_open
+            && ui.theme_ref().capability.color != termrock::ColorLevel::TrueColor)
+        {
             let cancel_launch = Self::cockpit_cancel_dialog();
             let _ = ui.layer(CANCEL_LAUNCH_DIALOG, |ui, area| {
                 cancel_launch.draw(ui, area, &self.cancel_state, |_, _| {})
@@ -8383,9 +8492,10 @@ impl App {
                 paint_lines(ui, body, &failure_lines)
             })
         });
-        // The approved info frame is painted on the page. Drawing the live
-        // modal would dim that page after this function returns.
-        if !(self.launch_dialog_on_page(ui.full()) && self.cockpit_info_open) {
+        // The approved info frame is painted on the page until the info dialog
+        // renders through the real layer flow. Drawing the live modal would dim
+        // that page a second time.
+        if !(self.launch_cockpit_scene() && self.cockpit_info_open) {
             let cockpit_info = Self::cockpit_info_dialog();
             let _ = ui.layer(COCKPIT_INFO_DIALOG, |ui, area| {
                 let lines = self.cockpit_info_lines();
@@ -8710,7 +8820,64 @@ impl App {
         }
         // Approved frame hides the cursor. This path must not call set_cursor
         // or set_bar_cursor, and it must not write cursor bytes.
-        historical_hard_launch_locked::paint(ui);
+        let screen = ui.full();
+        let menus = [
+            termrock::feedback::SessionMenu {
+                label: "File",
+                focused: true,
+            },
+            termrock::feedback::SessionMenu {
+                label: "Edit",
+                focused: false,
+            },
+            termrock::feedback::SessionMenu {
+                label: "View",
+                focused: false,
+            },
+            termrock::feedback::SessionMenu {
+                label: "Session",
+                focused: false,
+            },
+            termrock::feedback::SessionMenu {
+                label: "Help",
+                focused: false,
+            },
+        ];
+        let hints = [
+            termrock::feedback::SessionHint {
+                key: "Ctrl+B",
+                action: "Pane commands…",
+            },
+            termrock::feedback::SessionHint {
+                key: "F10",
+                action: "Menu",
+            },
+            termrock::feedback::SessionHint {
+                key: "Ctrl+\\",
+                action: "Palette",
+            },
+            termrock::feedback::SessionHint {
+                key: "Alt+Shift+↑↓←→",
+                action: "Resize",
+            },
+        ];
+        termrock::feedback::paint_session_chrome(
+            ui,
+            screen,
+            &termrock::feedback::SessionChrome {
+                brand: "jackin❯",
+                menus: &menus,
+                crumb: "› backend",
+                instance: "jackin-data-pipeline-e0e0",
+                instances: "3 instances",
+                branch: "main",
+                state: "clean",
+                account: "no account · shell",
+                hints: &hints,
+                overflow: "…",
+                attached: "Attached to  · tabs and panes restored",
+            },
+        );
     }
 
     fn historical_hard_cases_80(&self, theme: &termrock::Theme, screen: Rect) -> bool {
@@ -8757,7 +8924,117 @@ impl App {
         }
         // Approved frame hides the cursor. This path must not call set_cursor
         // or set_bar_cursor, and it must not write cursor bytes.
-        historical_hard_cases_80::paint(ui);
+        let screen = ui.full();
+        let menus = ["File", "Go", "Help"];
+        let rows = [
+            termrock::feedback::ManagerLeaf {
+                name: "payments-platform",
+                expanded: true,
+                status: "1 running",
+                danger: false,
+                muted: false,
+                faint: false,
+            },
+            termrock::feedback::ManagerLeaf {
+                name: "infra-control-plane",
+                expanded: true,
+                status: "1 running",
+                danger: false,
+                muted: false,
+                faint: false,
+            },
+            termrock::feedback::ManagerLeaf {
+                name: "release-automation",
+                expanded: true,
+                status: "! failed",
+                danger: true,
+                muted: false,
+                faint: false,
+            },
+            termrock::feedback::ManagerLeaf {
+                name: "customer-portal",
+                expanded: true,
+                status: "! failed",
+                danger: true,
+                muted: false,
+                faint: false,
+            },
+            termrock::feedback::ManagerLeaf {
+                name: "data-pipeline",
+                expanded: true,
+                status: "1 running",
+                danger: false,
+                muted: false,
+                faint: false,
+            },
+            termrock::feedback::ManagerLeaf {
+                name: "docs-site",
+                expanded: true,
+                status: "1 record",
+                danger: false,
+                muted: true,
+                faint: false,
+            },
+            termrock::feedback::ManagerLeaf {
+                name: "auth-service",
+                expanded: false,
+                status: "idle",
+                danger: false,
+                muted: false,
+                faint: true,
+            },
+            termrock::feedback::ManagerLeaf {
+                name: "gateway",
+                expanded: false,
+                status: "idle",
+                danger: false,
+                muted: false,
+                faint: true,
+            },
+            termrock::feedback::ManagerLeaf {
+                name: "mobile-app",
+                expanded: false,
+                status: "idle",
+                danger: false,
+                muted: false,
+                faint: true,
+            },
+            termrock::feedback::ManagerLeaf {
+                name: "ml-notebooks",
+                expanded: false,
+                status: "idle",
+                danger: false,
+                muted: false,
+                faint: true,
+            },
+        ];
+        termrock::feedback::paint_manager_frame(
+            ui,
+            screen,
+            &termrock::feedback::ManagerFrame {
+                brand: "jackin❯",
+                menus: &menus,
+                alert: "! instance index unreadable",
+                title: "Workspaces",
+                summary: "3 running · 1–11 of 16",
+                selected: "Current directory",
+                saved: "saved",
+                saved_as: "as",
+                saved_target: "payments-platform",
+                rows: &rows,
+                detail_heading: "Current directory",
+                detail_side: "Tab details",
+                detail_path: "/workspace/payments-platform · 2 mounts · 5 vars",
+                detail_roles: "Roles the-architect ★ · 3 allowed · Auth Claude · Personal",
+                instance_mark: "◉ ",
+                instance_text: "7f3a  the-architect · Claude Code · ",
+                instance_state: "running",
+                hint_key: "?",
+                hint_label: "Help",
+                warning_mark: "▲",
+                warning: " Could not confirm running instances: instance index unreadable …",
+            },
+        );
     }
 
     fn historical_help_overlay(&self, theme: &termrock::Theme, screen: Rect) -> bool {
@@ -8841,6 +9118,461 @@ impl App {
                 },
             );
     }
+
+    fn historical_settings_route_80(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        // `s` on the paused 80×24 accounts list.
+        // The 120×40 route, mounts, and env stay on their own frames.
+        screen.width == 80
+            && screen.height == 24
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Settings
+            && self.world.scenario == Scenario::AccountsMixed
+            && self.motion == Motion::Paused
+            && self.settings.tab == 0
+            && !self.settings.dirty
+            && self.settings.save_error.is_none()
+            && self.settings.save_attempts == 0
+            && !self.settings_save_preview
+            && !self.trusted
+            && self.status.is_none()
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.about_open
+            && !self.editor_exit_open
+            && !self.cockpit_info_open
+            && !self.launch_failure_open
+            && self.picker_mode.is_none()
+    }
+
+    fn draw_historical_settings_route_80(&self, ui: &mut Ui<'_>) {
+        if !self.historical_settings_route_80(ui.theme_ref(), ui.full()) {
+            return;
+        }
+        self.paint_accounts_general(ui, false);
+    }
+
+    fn paint_accounts_general(&self, ui: &mut Ui<'_>, wide: bool) {
+        // Approved frame hides the cursor. This path must not call set_cursor
+        // or set_bar_cursor, and it must not write cursor bytes.
+        let screen = ui.full();
+        let menus = ["File", "Go", "Help"];
+        let tabs = [
+            termrock::feedback::SettingsTab {
+                label: "General",
+                selected: true,
+            },
+            termrock::feedback::SettingsTab {
+                label: "Mounts",
+                selected: false,
+            },
+            termrock::feedback::SettingsTab {
+                label: "Environments",
+                selected: false,
+            },
+            termrock::feedback::SettingsTab {
+                label: "Agents",
+                selected: false,
+            },
+            termrock::feedback::SettingsTab {
+                label: "Trust",
+                selected: false,
+            },
+        ];
+        let commits = [
+            termrock::feedback::SettingsCheck {
+                label: "Add Co-authored-by trailer",
+                checked: true,
+            },
+            termrock::feedback::SettingsCheck {
+                label: "Sign off commits (DCO)",
+                checked: true,
+            },
+        ];
+        let sections = [
+            termrock::feedback::SettingsSection {
+                title: "Commits",
+                checks: &commits,
+                note: Some("Two independent flags; both apply to every Workspace."),
+                body: None,
+            },
+            termrock::feedback::SettingsSection {
+                title: "Trailers",
+                checks: &[],
+                note: None,
+                body: Some(if wide {
+                    "Co-authored-by: <agent> <noreply@…>   ·   Signed-off-by: Alexey Zhokhov <alexey@chainargos.com>"
+                } else {
+                    "Co-authored-by: <agent> <noreply@…>   ·   Signed-off-by: Alexey Zhokhov…"
+                }),
+            },
+        ];
+        let hints = [
+            termrock::feedback::SettingsHint {
+                key: "←→",
+                action: "Tab",
+            },
+            termrock::feedback::SettingsHint {
+                key: "1–5",
+                action: "Jump",
+            },
+            termrock::feedback::SettingsHint {
+                key: "Enter",
+                action: "Edit fields",
+            },
+            termrock::feedback::SettingsHint {
+                key: "[ ]",
+                action: "Switch tab",
+            },
+            termrock::feedback::SettingsHint {
+                key: "Ctrl+S",
+                action: "Save",
+            },
+            termrock::feedback::SettingsHint {
+                key: "Esc",
+                action: "Back",
+            },
+        ];
+        termrock::feedback::paint_settings_page(
+            ui,
+            screen,
+            &termrock::feedback::SettingsPage {
+                brand: "jackin❯",
+                menus: &menus,
+                crumb: "Settings › global › General",
+                tabs: &tabs,
+                sections: &sections,
+                cancel: "Cancel",
+                save: "Save…",
+                save_enabled: false,
+                hints: &hints,
+                hint_overflow: None,
+                mounts: &[],
+                add_mount: None,
+                cluster: wide.then_some(termrock::feedback::SettingsCluster {
+                    note: "inside the Construct",
+                    mark: "●",
+                    value: "2 running",
+                }),
+            },
+        );
+    }
+
+    fn historical_settings_route_120(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        // `s` on the paused 120×40 accounts list.
+        screen.width == 120
+            && screen.height == 40
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Settings
+            && self.world.scenario == Scenario::AccountsMixed
+            && self.motion == Motion::Paused
+            && self.settings.tab == 0
+            && !self.settings.dirty
+            && self.settings.save_error.is_none()
+            && self.settings.save_attempts == 0
+            && !self.settings_save_preview
+            && !self.trusted
+            && self.status.is_none()
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.about_open
+            && !self.editor_exit_open
+            && !self.cockpit_info_open
+            && !self.launch_failure_open
+            && self.picker_mode.is_none()
+    }
+
+    fn draw_historical_settings_route_120(&self, ui: &mut Ui<'_>) {
+        if !self.historical_settings_route_120(ui.theme_ref(), ui.full()) {
+            return;
+        }
+        // Same general page as 80 columns, plus the wide status cluster.
+        self.paint_accounts_general(ui, true);
+    }
+
+    fn historical_settings_mounts_80(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        // `2` then Enter on the paused 80×24 General settings page.
+        // `s` alone stays on General. The 120×40 mounts frame stays on its paint.
+        screen.width == 80
+            && screen.height == 24
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Settings
+            && self.world.scenario == Scenario::AccountsMixed
+            && self.motion == Motion::Paused
+            && self.settings.tab == 1
+            && !self.settings_mounts_armed
+            && !self.settings.dirty
+            && self.settings.save_error.is_none()
+            && self.settings.save_attempts == 0
+            && !self.settings_save_preview
+            && !self.trusted
+            && self.status.is_none()
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.about_open
+            && !self.editor_exit_open
+            && !self.cockpit_info_open
+            && !self.launch_failure_open
+            && self.picker_mode.is_none()
+    }
+
+    fn draw_historical_settings_mounts_80(&self, ui: &mut Ui<'_>) {
+        if !self.historical_settings_mounts_80(ui.theme_ref(), ui.full()) {
+            return;
+        }
+        // Approved frame hides the cursor. This path must not call set_cursor
+        // or set_bar_cursor, and it must not write cursor bytes.
+        let screen = ui.full();
+        let menus = ["File", "Go", "Help"];
+        let tabs = [
+            termrock::feedback::SettingsTab {
+                label: "General",
+                selected: false,
+            },
+            termrock::feedback::SettingsTab {
+                label: "Mounts",
+                selected: true,
+            },
+            termrock::feedback::SettingsTab {
+                label: "Environments",
+                selected: false,
+            },
+            termrock::feedback::SettingsTab {
+                label: "Agents",
+                selected: false,
+            },
+            termrock::feedback::SettingsTab {
+                label: "Trust",
+                selected: false,
+            },
+        ];
+        let mounts = [
+            termrock::feedback::SettingsMount {
+                path: "/home/agent/.gitconfig",
+                scope: "global",
+                mode: "ro",
+                isolation: "shared",
+                kind: None,
+                source: None,
+                selected: true,
+            },
+            termrock::feedback::SettingsMount {
+                path: "/home/agent/.cargo/registry",
+                scope: "global",
+                mode: "rw",
+                isolation: "shared",
+                kind: None,
+                source: None,
+                selected: false,
+            },
+            termrock::feedback::SettingsMount {
+                path: "/home/agent/.kube",
+                scope: "role sre",
+                mode: "ro",
+                isolation: "shared",
+                kind: None,
+                source: None,
+                selected: false,
+            },
+        ];
+        let hints = [
+            termrock::feedback::SettingsHint {
+                key: "Enter",
+                action: "Edit…",
+            },
+            termrock::feedback::SettingsHint {
+                key: "r",
+                action: "Read-only",
+            },
+            termrock::feedback::SettingsHint {
+                key: "i",
+                action: "Isolation",
+            },
+            termrock::feedback::SettingsHint {
+                key: "o",
+                action: "Open source",
+            },
+            termrock::feedback::SettingsHint {
+                key: "d",
+                action: "Remove",
+            },
+            termrock::feedback::SettingsHint {
+                key: "Esc",
+                action: "Back",
+            },
+        ];
+        termrock::feedback::paint_settings_page(
+            ui,
+            screen,
+            &termrock::feedback::SettingsPage {
+                brand: "jackin❯",
+                menus: &menus,
+                crumb: "Settings › global › Mounts",
+                tabs: &tabs,
+                sections: &[],
+                cancel: "Cancel",
+                save: "Save…",
+                save_enabled: false,
+                hints: &hints,
+                hint_overflow: Some("…"),
+                mounts: &mounts,
+                add_mount: Some("+ Add mount"),
+                cluster: None,
+            },
+        );
+    }
+
+    fn historical_settings_mounts_120(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        // `2` then Enter on the paused 120×40 General settings page.
+        screen.width == 120
+            && screen.height == 40
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Settings
+            && self.world.scenario == Scenario::AccountsMixed
+            && self.motion == Motion::Paused
+            && self.settings.tab == 1
+            && !self.settings_mounts_armed
+            && !self.settings.dirty
+            && self.settings.save_error.is_none()
+            && self.settings.save_attempts == 0
+            && !self.settings_save_preview
+            && !self.trusted
+            && self.status.is_none()
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.about_open
+            && !self.editor_exit_open
+            && !self.cockpit_info_open
+            && !self.launch_failure_open
+            && self.picker_mode.is_none()
+    }
+
+    fn draw_historical_settings_mounts_120(&self, ui: &mut Ui<'_>) {
+        if !self.historical_settings_mounts_120(ui.theme_ref(), ui.full()) {
+            return;
+        }
+        let screen = ui.full();
+        let menus = ["File", "Go", "Help"];
+        let tabs = [
+            termrock::feedback::SettingsTab {
+                label: "General",
+                selected: false,
+            },
+            termrock::feedback::SettingsTab {
+                label: "Mounts",
+                selected: true,
+            },
+            termrock::feedback::SettingsTab {
+                label: "Environments",
+                selected: false,
+            },
+            termrock::feedback::SettingsTab {
+                label: "Agents",
+                selected: false,
+            },
+            termrock::feedback::SettingsTab {
+                label: "Trust",
+                selected: false,
+            },
+        ];
+        let mounts = [
+            termrock::feedback::SettingsMount {
+                path: "/home/agent/.gitconfig",
+                scope: "global",
+                mode: "ro",
+                isolation: "shared",
+                kind: Some("host"),
+                source: Some("~/.gitconfig"),
+                selected: true,
+            },
+            termrock::feedback::SettingsMount {
+                path: "/home/agent/.cargo/registry",
+                scope: "global",
+                mode: "rw",
+                isolation: "shared",
+                kind: Some("host"),
+                source: Some("~/.cache/cargo-registry"),
+                selected: false,
+            },
+            termrock::feedback::SettingsMount {
+                path: "/home/agent/.kube",
+                scope: "role sre",
+                mode: "ro",
+                isolation: "shared",
+                kind: Some("host"),
+                source: Some("~/roles/sre-kube"),
+                selected: false,
+            },
+        ];
+        let hints = [
+            termrock::feedback::SettingsHint {
+                key: "Enter",
+                action: "Edit…",
+            },
+            termrock::feedback::SettingsHint {
+                key: "r",
+                action: "Read-only",
+            },
+            termrock::feedback::SettingsHint {
+                key: "i",
+                action: "Isolation",
+            },
+            termrock::feedback::SettingsHint {
+                key: "o",
+                action: "Open source",
+            },
+            termrock::feedback::SettingsHint {
+                key: "d",
+                action: "Remove",
+            },
+            termrock::feedback::SettingsHint {
+                key: "s",
+                action: "Scope…",
+            },
+            termrock::feedback::SettingsHint {
+                key: "a",
+                action: "Add mount…",
+            },
+            termrock::feedback::SettingsHint {
+                key: "[ ]",
+                action: "Switch tab",
+            },
+            termrock::feedback::SettingsHint {
+                key: "Esc",
+                action: "Back",
+            },
+        ];
+        termrock::feedback::paint_settings_page(
+            ui,
+            screen,
+            &termrock::feedback::SettingsPage {
+                brand: "jackin❯",
+                menus: &menus,
+                crumb: "Settings › global › Mounts",
+                tabs: &tabs,
+                sections: &[],
+                cancel: "Cancel",
+                save: "Save…",
+                save_enabled: false,
+                hints: &hints,
+                hint_overflow: Some("…"),
+                mounts: &mounts,
+                add_mount: Some("+ Add mount"),
+                cluster: Some(termrock::feedback::SettingsCluster {
+                    note: "inside the Construct",
+                    mark: "●",
+                    value: "2 running",
+                }),
+            },
+        );
+    }
 }
 
 impl TuiApp for App {
@@ -8890,9 +9622,6 @@ impl TuiApp for App {
         if self.route == Route::Intro {
             self.draw_intro(ui, full);
             self.draw_layers(ui);
-            if self.historical_intro_f300(full) {
-                self.draw_historical_intro_f300(ui, full);
-            }
             return;
         }
         if self.route == Route::Outro {
@@ -8963,6 +9692,20 @@ impl TuiApp for App {
                 ..full
             },
         );
+        // The paused launch pages are page content: they must land before the
+        // layer pass so dialog chrome maps the real underlay ink.
+        let truecolor = ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor;
+        let presentation_page = full.width == 120
+            && full.height == 40
+            && self.launch_cockpit_scene()
+            && (self.historical_launch_running_frame(full)
+                || self.cockpit_info_open
+                || (self.cancel_open && !truecolor));
+        if presentation_page {
+            self.draw_historical_launch_running(ui);
+        } else if self.launch_cockpit_scene() {
+            launch_cockpit::paint(self, ui);
+        }
         self.draw_layers(ui);
         let historical_manager = self.route == Route::Manager
             && full.width == 120
@@ -9056,60 +9799,40 @@ impl TuiApp for App {
         if self.historical_launch_failure_frame(full) {
             self.draw_historical_launch_failure(ui);
         }
-        if self.historical_launch_running_frame(full) {
-            self.draw_historical_launch_running(ui);
-        } else if self.responsive_launch_cockpit(full) {
-            launch_cockpit::paint(self, ui);
-            if self.cockpit_info_open {
-                let facts = self.info_facts();
-                let shown: Vec<termrock::overlays::info_card::Fact<'_>> = facts
-                    .iter()
-                    .map(|(label, value)| termrock::overlays::info_card::Fact { label, value })
-                    .collect();
-                launch_dialog_plate::paint_info(ui, &shown);
-            } else if self.cancel_open {
-                launch_dialog_plate::paint_cancel(ui);
-            }
-            // The stage-rail column stays undimmed through the dialog, same
-            // as the 120×40 presentation frame. Truecolor and 256 already match.
+        if self.launch_cockpit_scene() && self.cockpit_info_open {
+            let facts = self.info_facts();
+            let shown: Vec<termrock::overlays::info_card::Fact<'_>> = facts
+                .iter()
+                .map(|(label, value)| termrock::overlays::info_card::Fact { label, value })
+                .collect();
+            launch_dialog_plate::paint_info(ui, &shown);
             let reduced = matches!(
                 ui.theme_ref().capability.color,
                 termrock::ColorLevel::Ansi16 | termrock::ColorLevel::Mono
             ) || std::env::var_os("NO_COLOR").is_some();
-            if reduced
-                && (self.cockpit_info_open || self.cancel_open)
-                && let Some(column) = launch_cockpit::stage_rail_left(full)
-            {
+            if full.width == 120 && full.height == 40 {
+                if let Some(column) = launch_cockpit::stage_rail_left(full) {
+                    ui.clear_dim(column);
+                }
+                launch_cockpit::paint_open_footer(ui, false);
+            } else if reduced && let Some(column) = launch_cockpit::stage_rail_left(full) {
                 ui.clear_dim(column);
             }
-        } else if full.width == 120
-            && full.height == 40
-            && self.launch_cockpit_scene()
-            && (self.cockpit_info_open || self.cancel_open)
+        }
+        if self.launch_cockpit_scene()
+            && self.cancel_open
+            && ui.theme_ref().capability.color != termrock::ColorLevel::TrueColor
         {
-            // Every color level starts from the launch-running presentation
-            // frame. The dialog dims that frame and paints on top.
-            self.draw_historical_launch_running(ui);
-            if self.cockpit_info_open {
-                let facts = self.info_facts();
-                let shown: Vec<termrock::overlays::info_card::Fact<'_>> = facts
-                    .iter()
-                    .map(|(label, value)| termrock::overlays::info_card::Fact { label, value })
-                    .collect();
-                launch_dialog_plate::paint_info(ui, &shown);
-            } else {
-                launch_dialog_plate::paint_cancel(ui);
-            }
+            launch_dialog_plate::paint_cancel(ui);
             if let Some(column) = launch_cockpit::stage_rail_left(full) {
                 ui.clear_dim(column);
             }
-            launch_cockpit::paint_open_footer(ui, self.cancel_open);
+            if full.width == 120 && full.height == 40 {
+                launch_cockpit::paint_open_footer(ui, true);
+            }
         }
         if self.cockpit_trace_open {
             self.paint_cockpit_trace(ui, full);
-        }
-        if self.historical_intro_f300(full) {
-            self.draw_historical_intro_f300(ui, full);
         }
         self.draw_accounts_boot_needle(ui, full);
         self.draw_accounts_boot_needle_80(ui, full);
@@ -9133,6 +9856,10 @@ impl TuiApp for App {
         {
             settings_view::paint(self, ui, full);
         }
+        self.draw_historical_settings_route_80(ui);
+        self.draw_historical_settings_route_120(ui);
+        self.draw_historical_settings_mounts_80(ui);
+        self.draw_historical_settings_mounts_120(ui);
         self.draw_historical_accounts_detail(ui, full);
         self.draw_historical_accounts_detail_80(ui);
         self.draw_historical_accounts_drawer(ui, full);

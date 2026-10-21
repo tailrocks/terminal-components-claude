@@ -44,6 +44,34 @@ impl AppShell {
         self
     }
 
+    /// Set the header rows.
+    #[must_use]
+    pub const fn header(mut self, rows: u16) -> Self {
+        self.chrome = self.chrome.header(rows);
+        self
+    }
+
+    /// Set the gap rows.
+    #[must_use]
+    pub const fn gap(mut self, rows: u16) -> Self {
+        self.chrome = self.chrome.gap(rows);
+        self
+    }
+
+    /// Set the footer rows.
+    #[must_use]
+    pub const fn footer(mut self, rows: u16) -> Self {
+        self.chrome = self.chrome.footer(rows);
+        self
+    }
+
+    /// Set the body inset columns.
+    #[must_use]
+    pub const fn inset(mut self, cols: u16) -> Self {
+        self.chrome = self.chrome.inset(cols);
+        self
+    }
+
     /// Split `area` into the shell's three regions (a [`Chrome`] shortcut).
     pub fn regions(&self, area: Rect) -> Regions {
         self.chrome.regions(area)
@@ -128,6 +156,15 @@ mod tests {
         assert_eq!(r.footer, Rect::new(0, 21, 40, 3));
         assert_eq!(r.body, Rect::new(2, 3, 36, 17));
         let _ = slots;
+    }
+
+    #[test]
+    fn the_shell_builder_names_its_strips() {
+        let shell = AppShell::new().header(2).gap(0).footer(3).inset(1);
+        assert_eq!(shell.chrome.header, 2);
+        assert_eq!(shell.chrome.gap, 0);
+        assert_eq!(shell.chrome.footer, 3);
+        assert_eq!(shell.chrome.inset, 1);
     }
 
     #[test]

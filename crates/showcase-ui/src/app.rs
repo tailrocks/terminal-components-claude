@@ -4,8 +4,8 @@ use termrock::{
     ActionKey, App as TuiApp, Brand, ByIndex, Chord, ColorLevel, Cx, Dialog, DialogAction,
     DialogState, FrameRead, GlyphRole, Id, Intent, ItemKey, KeyCode, KeyMap, KeyPhase, Moment,
     Panel, PanelKind, Part, PartRef, Phase, Props, Rect, Response, RowFn, Size, StateFlags, Status,
-    StatusBar, StatusItem, TextSection, Theme, TooSmall, Tree, TreeAction, TreeNode, TreeState, Ui,
-    Variant, id, width,
+    StatusBar, StatusItem, TextSection, Theme, TooSmall, Tree, TreeAction, TreeBranchActivation,
+    TreeBranchClick, TreeNode, TreeState, Ui, Variant, id, width,
 };
 
 use showcase_demos::pages::forms::SUBMIT as FORM_SUBMIT;
@@ -636,6 +636,8 @@ fn nav_tree() -> Tree<'static, NavNode, ByIndex, impl RowFn<NavNode>> {
     Tree::new(NAV)
         .patch_part(&SIDEBAR_CHROME)
         .node(&node_of)
+        .branch_activation(TreeBranchActivation::Activate)
+        .branch_click(TreeBranchClick::Choose)
         .render_row(&paint_sidebar_row)
 }
 
@@ -677,7 +679,10 @@ fn visible_index(nodes: &[NavNode], source: usize, state: &TreeState) -> usize {
 
 fn entry_for_key(key: ItemKey, nodes: &[NavNode]) -> Option<usize> {
     let source = (0..nodes.len()).find(|&index| ItemKey::index(index) == key)?;
-    nodes.get(source)?.entry
+    nodes
+        .get(source)?
+        .entry
+        .or_else(|| nodes[source..].iter().find_map(|node| node.entry))
 }
 
 fn shell_brand() -> Brand<'static> {
@@ -1043,19 +1048,6 @@ fn tag_step(theme: &termrock::Theme, color: termrock::Color) -> termrock::Color 
     }
 }
 
-fn audit_flat_label(label: &str) -> bool {
-    matches!(
-        label,
-        "Buttons" | "Inputs" | "Text areas" | "Forms" | "Diff"
-    )
-}
-
-fn raw_fg(ui: &Ui<'_>, rgb: u32) -> PaintStyle {
-    ui.surface_style()
-        .remove_modifier(termrock::Modifier::all())
-        .fg(termrock::Color::from_u32(rgb))
-}
-
 fn tag_ink(ui: &Ui<'_>, style: PaintStyle) -> PaintStyle {
     let Some(color) = style.as_style().fg else {
         return style;
@@ -1107,12 +1099,6 @@ fn paint_header(
 
     let styles = header_styles(ui);
     let (title, secondary, muted, faint, marker) = styles;
-    let audit = audit_flat_label(label);
-    let (muted, faint) = if audit {
-        (raw_fg(ui, 0x0080_8080), raw_fg(ui, 0x004d_4d4d))
-    } else {
-        (muted, faint)
-    };
     let (_, inspector_x) = header_action_origins(area, inspector);
     let left = paint_header_breadcrumb(
         ui,
@@ -1120,7 +1106,6 @@ fn paint_header(
         section,
         label,
         (title, secondary, faint, marker),
-        audit,
         inspector_x,
     );
     paint_header_actions(
@@ -1168,7 +1153,6 @@ fn paint_header_breadcrumb(
     section: &str,
     label: &str,
     styles: (PaintStyle, PaintStyle, PaintStyle, PaintStyle),
-    audit: bool,
     inspector_x: u16,
 ) -> u16 {
     let (title, secondary, faint, marker) = styles;
@@ -1187,15 +1171,6 @@ fn paint_header_breadcrumb(
         secondary,
     );
     x = x.saturating_add(14);
-    if audit {
-        let ink = raw_fg(ui, 0x0080_8080);
-        for piece in ["/ ", "Components", " / ", label] {
-            let columns = width(piece);
-            ui.paint_str(Rect::new(x, area.y, columns, 1), piece, ink);
-            x = x.saturating_add(columns);
-        }
-        return x;
-    }
     // The brand advance already leaves one space. The baseline crumb starts one cell later.
     x = x.saturating_add(1);
     // The inspector pad owns its leading cell. One more cell stays clear of that pad.
@@ -1361,121 +1336,8 @@ fn header_action_style(ui: &mut Ui<'_>, id: Id, muted: PaintStyle) -> PaintStyle
     }
 }
 
-const AUDIT_NAV: &[&str] = &[
-    "Foundations",
-    "Overview",
-    "",
-    "Components",
-    "Buttons",
-    "Inputs",
-    "Text areas",
-    "Forms",
-    "Lists",
-    "Trees",
-    "Tables",
-    "Editable tables",
-    "Panels",
-    "Sidebars",
-    "Dialogs",
-    "Progress",
-    "Scrolling",
-    "Terminal",
-    "Code editor",
-    "Diff",
-    "Data grid",
-    "Chips & selects",
-    "Pickers",
-    "Chrome",
-    "",
-    "Screens",
-    "Settings",
-    "Task runner",
-];
-
-fn paint_audit_sidebar(ui: &mut Ui<'_>, area: Rect, selected: &str) {
-    let black = termrock::Color::from_u32(0);
-    ui.register_control(NAV, area, termrock::Focusability::Focusable);
-    ui.fill(area, ui.surface_style().bg(black));
-    let group = raw_fg(ui, 0x004d_4d4d).bg(black);
-    let item = raw_fg(ui, 0x00b3_b3b3).bg(black);
-    let chosen = raw_fg(ui, 0x00ff_ffff)
-        .bg(black)
-        .add_modifier(termrock::Modifier::BOLD);
-    let gutter = raw_fg(ui, 0x0048_e054)
-        .bg(black)
-        .add_modifier(termrock::Modifier::BOLD);
-    for (offset, label) in AUDIT_NAV.iter().enumerate() {
-        if label.is_empty() {
-            continue;
-        }
-        let Ok(row) = u16::try_from(offset) else {
-            break;
-        };
-        let y = area.y.saturating_add(row);
-        if y >= area.bottom() {
-            break;
-        }
-        let grouped = matches!(*label, "Foundations" | "Components" | "Screens");
-        let text_x = area.x.saturating_add(3);
-        if *label == selected {
-            ui.fill(Rect::new(text_x.saturating_sub(1), y, 22, 1), chosen);
-            ui.paint_str(Rect::new(area.x, y, 2, 1), "▎›", gutter);
-            ui.paint_str(Rect::new(text_x, y, width(label), 1), label, chosen);
-        } else {
-            let ink = if grouped { group } else { item };
-            if !grouped {
-                ui.fill(Rect::new(text_x, y, 20, 1), ink);
-                ui.paint_str(
-                    Rect::new(area.x, y, 1, 1),
-                    " ",
-                    raw_fg(ui, 0).bg(termrock::Color::from_u32(0)),
-                );
-            }
-            ui.paint_str(Rect::new(text_x, y, width(label), 1), label, ink);
-        }
-    }
-}
-
-fn paint_audit_footer(ui: &mut Ui<'_>, area: Rect) {
+fn paint_sidebar(ui: &mut Ui<'_>, area: Rect, state: &TreeState, _label: &str) {
     if area.is_empty() {
-        return;
-    }
-    let black = termrock::Color::from_u32(0);
-    ui.fill(
-        area,
-        ui.surface_style()
-            .remove_modifier(termrock::Modifier::all())
-            .bg(black),
-    );
-    let key = raw_fg(ui, 0x00ff_ffff)
-        .bg(black)
-        .add_modifier(termrock::Modifier::BOLD);
-    let gap = raw_fg(ui, 0x00ff_ffff).bg(black);
-    let action = raw_fg(ui, 0x0080_8080).bg(black);
-    let mut x = area.x.saturating_add(1);
-    for (keys, verb) in [
-        ("↑ ↓", "Move"),
-        ("Enter", "Open"),
-        ("Tab", "Into page"),
-        ("q", "Quit"),
-    ] {
-        ui.paint_str(Rect::new(x, area.y, width(keys), 1), keys, key);
-        x = x.saturating_add(width(keys));
-        ui.paint_str(Rect::new(x, area.y, 1, 1), " ", gap);
-        x = x.saturating_add(1);
-        ui.paint_str(Rect::new(x, area.y, width(verb), 1), verb, action);
-        x = x.saturating_add(width(verb));
-        ui.paint_str(Rect::new(x, area.y, 2, 1), "  ", gap);
-        x = x.saturating_add(2);
-    }
-}
-
-fn paint_sidebar(ui: &mut Ui<'_>, area: Rect, state: &TreeState, label: &str) {
-    if area.is_empty() {
-        return;
-    }
-    if audit_flat_label(label) {
-        paint_audit_sidebar(ui, area, label);
         return;
     }
     let plane = sidebar_plane(ui);
@@ -2005,9 +1867,6 @@ impl TuiApp for App {
             page_editing,
             self.status.as_ref().map(|(status, _)| status.0.as_str()),
         );
-        if audit_flat_label(label) {
-            paint_audit_footer(ui, shell.footer);
-        }
         ui.layer(HELP, |ui, area| {
             Self::help_dialog().draw(ui, area, &self.help_state, |ui, body| {
                 let _ = ui.paint_str(body, "q quit   ? help   Esc close", ui.surface_style());
