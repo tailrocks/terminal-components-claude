@@ -136,11 +136,8 @@ impl Theme {
                 Mono => Modifier::UNDERLINED,
                 TrueColor | Ansi256 => Modifier::empty(),
             };
-            let disabled_ink = match level {
-                Ansi16 | Mono => Role::Fg(FgStep::Muted),
-                TrueColor | Ansi256 => Role::DisabledFg,
-            };
-            let disabled_modifiers = if matches!(level, Ansi16 | Mono) {
+            let disabled_ink = Role::DisabledFg;
+            let disabled_modifiers = if level == Mono {
                 Modifier::DIM
             } else {
                 Modifier::empty()
