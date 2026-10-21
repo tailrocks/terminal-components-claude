@@ -217,17 +217,11 @@ impl ConnectionDraft {
     }
 
     pub fn validate_all(&self) -> Result<(), (Id, termrock::FieldError)> {
-        use field::{DATABASE, NAME, PORT};
+        use field::{NAME, PORT};
         if self.name.trim().is_empty() {
             return Err((
                 NAME,
                 termrock::FieldError::coded("Name is required", "required"),
-            ));
-        }
-        if self.engine == 0 && self.database.trim().is_empty() {
-            return Err((
-                DATABASE,
-                termrock::FieldError::coded("Database is required", "required"),
             ));
         }
         valid_port(&self.port).map_err(|e| (PORT, e))
@@ -424,5 +418,35 @@ impl ConnectionsScreen {
     }
     pub fn retry(&mut self) -> Option<Connection> {
         self.connect_selected()
+    }
+}
+
+#[cfg(test)]
+mod validation_tests {
+    use super::{ConnectionDraft, field};
+
+    #[test]
+    fn postgres_name_and_port_validate_without_requiring_database() {
+        let draft = ConnectionDraft {
+            name: "Local scratch".to_owned(),
+            port: "5432".to_owned(),
+            ..ConnectionDraft::new()
+        };
+
+        assert!(draft.database.is_empty());
+        assert!(draft.validate_all().is_ok());
+    }
+
+    #[test]
+    fn name_and_port_remain_required_validation_fields() {
+        let mut draft = ConnectionDraft {
+            port: "5432".to_owned(),
+            ..ConnectionDraft::new()
+        };
+        assert_eq!(draft.validate_all().unwrap_err().0, field::NAME);
+
+        draft.name = "Local scratch".to_owned();
+        draft.port = "not-a-port".to_owned();
+        assert_eq!(draft.validate_all().unwrap_err().0, field::PORT);
     }
 }
