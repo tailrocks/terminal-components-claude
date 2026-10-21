@@ -107,3 +107,11 @@ foreign `git stash` entry (its only visible content, deletions under
 stash disappeared around 07:15+07, check `git fsck --unreachable | grep
 commit`. Do not use the shared stash stack from worktrees.
 
+
+## TablePro shared Picker scope handoff (2026-10-21)
+
+Preservation branch: `wip/tablepro-picker-scope-20261021`, implementation source `d911e577a1342729719a746a1b314bea7880be46` based on candidate `5f82c4d35d12e0fb77b0f580a8ef200240661602`. This branch contains the shared FilterList/Picker backward-scope and explicit selection-policy contract, TablePro opt-in wiring, regression tests, and audit `../audits/2026-10-21-tablepro-picker-scope.md`. A follow-up optimization in `crates/termrock-navigation/src/filter_list.rs` avoids query cloning/storage for default `Preserve` consumers; its focused tests and strict shared Clippy pass. The exact final preservation tip is the commit that adds this entry.
+
+Verification is scoped, not full parity. The package nextest run had 545/557 passing and 12 failing; the same-source pre-change run had the identical 12 failures, listed in the audit. Focused navigation, Picker projection and real TablePro tests pass, as do strict shared Clippy, formatting, and `git diff --check`. Two deliberate negative probes failed as intended: removing BackTab scope binding and removing the Picker's query-reset rearm. Logs are preserved under `/private/tmp/termrock-tablepro-picker-scope-logs/`; package-before, package-final, package-verified, negative-probe, and focused/Clippy SHA-256 values are recorded in the audit or the agent handoff. No pinned real-CLI paired comparison was run; application parity is incomplete.
+
+Publication blocker: the repository push lock was owned by `termrock-fix-findings` (`.git/push.lock`, owner timestamp `2026-10-21T07:34:14Z`) when checked. This worktree did not acquire or alter it. Parent coordination owns publication and independent review. Next: review this exact source against current PR #38; assess incoming TablePro `app.rs`, `tab_ownership`, and native-baseline changes separately; resolve the lock; then normally synchronize, rerun the required gate on exact HEAD, publish this WIP and verify the remote SHA. Do not blindly rebase or treat fixtures as accepted output. The pinned paired app comparison and the remaining TablePro tab-strip repaint/geometry work are still required.
