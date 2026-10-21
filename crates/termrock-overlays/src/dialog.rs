@@ -281,6 +281,8 @@ fn action_rects(area: Rect, widths: &[u16], lines: &[ActionLine], spacing: u16) 
 pub struct Dialog<'a> {
     id: Id,
     title: Option<&'a str>,
+    meta: Option<&'a str>,
+    head_in_border: bool,
     description: Option<&'a str>,
     actions: &'a [Action<'a>],
     cancel: Option<ActionKey>,
@@ -326,6 +328,8 @@ impl<'a> Dialog<'a> {
         Dialog {
             id,
             title: None,
+            meta: None,
+            head_in_border: false,
             description: None,
             actions: &[],
             cancel: None,
@@ -418,6 +422,22 @@ impl<'a> Dialog<'a> {
     #[must_use]
     pub const fn title(mut self, s: &'a str) -> Self {
         self.title = Some(s);
+        self
+    }
+
+    /// Right-aligned border caption shown in the frame head next to the close
+    /// mark (for example `read-only`).
+    #[must_use]
+    pub const fn meta(mut self, s: &'a str) -> Self {
+        self.meta = Some(s);
+        self
+    }
+
+    /// Draws the title inside the top border row instead of the body, with the
+    /// body starting directly under the border (read-only card heads).
+    #[must_use]
+    pub const fn head_in_border(mut self) -> Self {
+        self.head_in_border = true;
         self
     }
 
@@ -781,7 +801,15 @@ impl<'a> Dialog<'a> {
     }
 
     fn layout(&self, outer: Rect, d: &DesignTokens, action_widths: &[u16]) -> DialogLayout {
-        let vertical_pad = u16::from(outer.height >= 8);
+        // A border head carries the title in the top border row, so the body
+        // starts directly under the border and the card keeps no inner title
+        // row or gap rows.
+        let border_head = self.head_in_border;
+        let vertical_pad = if border_head {
+            0
+        } else {
+            u16::from(outer.height >= 8)
+        };
         let content = crate::layout::inset(
             outer,
             crate::layout::Insets {
@@ -793,7 +821,7 @@ impl<'a> Dialog<'a> {
         );
         let lines = action_lines(action_widths, content.width, 2);
         let requested_action_height = u16::try_from(lines.len().max(1)).unwrap_or(u16::MAX);
-        let title_rows = u16::from(self.title.is_some());
+        let title_rows = u16::from(self.title.is_some() && !border_head);
         let title_gap = title_rows.min(vertical_pad);
         let action_height = requested_action_height.min(
             content
@@ -801,7 +829,8 @@ impl<'a> Dialog<'a> {
                 .saturating_sub(title_rows)
                 .saturating_sub(title_gap),
         );
-        let action_gap = u16::from(action_height > 0 && content.height > action_height);
+        let action_gap =
+            u16::from(!border_head && action_height > 0 && content.height > action_height);
         let body_block = self.body_block(d);
         let natural_description_rows = self
             .description
@@ -814,19 +843,23 @@ impl<'a> Dialog<'a> {
             .saturating_add(self.input_rows(d))
             .saturating_add(body_block)
             .saturating_add(requested_action_height)
-            .saturating_add(1);
+            .saturating_add(u16::from(!border_head));
         let mut y = content.y;
         let mut remaining = content.height;
-        let title = self.title.map(|_| {
-            let rect = Rect {
-                y,
-                height: u16::from(remaining > 0),
-                ..content
-            };
-            y = y.saturating_add(rect.height);
-            remaining = remaining.saturating_sub(rect.height);
-            rect
-        });
+        let title = if border_head {
+            None
+        } else {
+            self.title.map(|_| {
+                let rect = Rect {
+                    y,
+                    height: u16::from(remaining > 0),
+                    ..content
+                };
+                y = y.saturating_add(rect.height);
+                remaining = remaining.saturating_sub(rect.height);
+                rect
+            })
+        };
         y = y.saturating_add(title_gap);
         remaining = remaining.saturating_sub(title_gap);
         let fixed_after_description = self
@@ -1131,6 +1164,47 @@ impl<'a> Dialog<'a> {
                 out
             },
         );
+        // Border head and meta paint after the chrome: they live in the
+        // border row, outside the body clip.
+        if self.head_in_border
+            && let Some(t) = self.title
+        {
+            let ts = ui.paint_patch(
+                &StylePatch::new()
+                    .set_fg(Role::Fg(FgStep::Primary))
+                    .set_bg(Role::Surface(Surface::Elevated))
+                    .add(Modifier::BOLD),
+            );
+            let text = format!(" {t} ");
+            let cols = u16::try_from(text.chars().count()).unwrap_or(0);
+            let head = Rect {
+                x: chrome.x.saturating_add(2),
+                y: chrome.y,
+                width: cols,
+                height: 1,
+            };
+            ui.paint_str(head, &text, ts);
+            ui.register_decor(id, PartRef::of(Part::TITLE), head);
+        }
+        if let Some(m) = self.meta {
+            // The frozen border caption is a faint ink, dimmer than the
+            // DETAIL body style.
+            let ms = ui.paint_patch(
+                &StylePatch::new()
+                    .set_fg(Role::Fg(FgStep::Faint))
+                    .set_bg(Role::Surface(Surface::Elevated)),
+            );
+            let text = format!(" {m} ");
+            let cols = u16::try_from(text.chars().count()).unwrap_or(0);
+            let meta_rect = Rect {
+                x: chrome.right().saturating_sub(6).saturating_sub(cols),
+                y: chrome.y,
+                width: cols,
+                height: 1,
+            };
+            ui.paint_str(meta_rect, &text, ms);
+            ui.register_decor(id, PartRef::of(Part::DETAIL), meta_rect);
+        }
         self.paint_close(ui, chrome);
         painted
     }
