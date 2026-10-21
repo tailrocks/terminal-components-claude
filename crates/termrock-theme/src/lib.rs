@@ -112,7 +112,7 @@ fn add_menu_cursor_profile(recipe: &mut RecipeEdit, level: ColorLevel) {
     }
 }
 
-use self::recipe::GlobalOverride;
+use self::recipe::{AuthoredDeclaration, DeclarationKind, GlobalOverride};
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Theme {
@@ -154,7 +154,7 @@ impl Theme {
         ]
         .into_iter()
         .fold(theme, |theme, (level, rest, hover)| {
-            theme.define_family_for_level(level, Family::SPLIT, |recipe| {
+            theme.define_builtin_family_for_level(level, Family::SPLIT, |recipe| {
                 recipe
                     .part(Part::SEAM)
                     .base(StylePatch::new().set_fg(Role::Custom(rest)))
@@ -169,7 +169,7 @@ impl Theme {
             [TrueColor, Ansi256, Ansi16, Mono]
                 .into_iter()
                 .fold(profiled_theme, |theme, level| {
-                    theme.define_variant_for_level(
+                    theme.define_builtin_variant_for_level(
                         level,
                         Family::MENU,
                         Variant::DEFAULT,
@@ -200,7 +200,7 @@ impl Theme {
             let (active_modifiers, hover_modifiers, pressed_modifiers, disabled_modifiers) =
                 menu_cursor_modifiers(level);
             let disabled_ink = Role::DisabledFg;
-            theme.define_variant_for_level(level, Family::MENU, Variant::DANGER, |recipe| {
+            theme.define_builtin_variant_for_level(level, Family::MENU, Variant::DANGER, |recipe| {
                 add_menu_cursor_profile(recipe, level);
                 let disabled_style = StylePatch::new()
                     .set_fg(disabled_ink)
@@ -267,18 +267,23 @@ impl Theme {
         ]
         .into_iter()
         .fold(profiled_theme, |theme, (level, pressed)| {
-            theme.define_variant_for_level(level, Family::BUTTON, Variant::PRIMARY, |recipe| {
-                recipe
-                    .part(Part::CONTAINER)
-                    .when(
-                        StateFlags::HOVERED,
-                        StylePatch::new().set_bg(Role::AccentHover),
-                    )
-                    .when(
-                        StateFlags::PRESSED,
-                        StylePatch::new().set_bg(Role::Custom(pressed)),
-                    );
-            })
+            theme.define_builtin_variant_for_level(
+                level,
+                Family::BUTTON,
+                Variant::PRIMARY,
+                |recipe| {
+                    recipe
+                        .part(Part::CONTAINER)
+                        .when(
+                            StateFlags::HOVERED,
+                            StylePatch::new().set_bg(Role::AccentHover),
+                        )
+                        .when(
+                            StateFlags::PRESSED,
+                            StylePatch::new().set_bg(Role::Custom(pressed)),
+                        );
+                },
+            )
         })
     }
 
@@ -308,14 +313,19 @@ impl Theme {
     pub fn override_family(mut self, f: Family, edit: impl FnOnce(&mut RecipeEdit)) -> Theme {
         let mut e = RecipeEdit::default();
         edit(&mut e);
-        if let Some(v) = e.default_variant_set() {
-            self.recipes.get_mut(f).default_variant = v;
+        if let Some(declaration) =
+            AuthoredDeclaration::from_edit(f, None, DeclarationKind::FamilyOverride, None, None, &e)
+        {
+            if let Some(v) = declaration.default_variant {
+                self.recipes.get_mut(f).default_variant = v;
+            }
+            self.recipes.push_override(GlobalOverride {
+                family: f,
+                variant: None,
+                parts: declaration.parts.clone(),
+            });
+            self.recipes.push_declaration(declaration);
         }
-        self.recipes.push_override(GlobalOverride {
-            family: f,
-            variant: None,
-            parts: e.into_parts(),
-        });
         self
     }
 
@@ -328,14 +338,24 @@ impl Theme {
     ) -> Theme {
         let mut e = RecipeEdit::default();
         edit(&mut e);
-        if let Some(dv) = e.default_variant_set() {
-            self.recipes.get_mut(f).default_variant = dv;
+        if let Some(declaration) = AuthoredDeclaration::from_edit(
+            f,
+            Some(v),
+            DeclarationKind::VariantOverride,
+            None,
+            None,
+            &e,
+        ) {
+            if let Some(dv) = declaration.default_variant {
+                self.recipes.get_mut(f).default_variant = dv;
+            }
+            self.recipes.push_override(GlobalOverride {
+                family: f,
+                variant: Some(v),
+                parts: declaration.parts.clone(),
+            });
+            self.recipes.push_declaration(declaration);
         }
-        self.recipes.push_override(GlobalOverride {
-            family: f,
-            variant: Some(v),
-            parts: e.into_parts(),
-        });
         self
     }
 
@@ -348,13 +368,18 @@ impl Theme {
     ) -> Theme {
         let mut e = RecipeEdit::default();
         edit(&mut e);
-        let recipe = self.recipes.get_mut(f);
-        if let Some(dv) = e.default_variant_set() {
-            recipe.default_variant = dv;
-        }
-        let target = recipe.variant_mut(v);
-        for (p, part) in e.into_parts().iter() {
-            target.entry(p).merge_from(part);
+        if let Some(declaration) =
+            AuthoredDeclaration::from_edit(f, Some(v), DeclarationKind::Variant, None, None, &e)
+        {
+            let recipe = self.recipes.get_mut(f);
+            if let Some(dv) = declaration.default_variant {
+                recipe.default_variant = dv;
+            }
+            let target = recipe.variant_mut(v);
+            for (p, part) in declaration.parts.iter() {
+                target.entry(p).merge_from(part);
+            }
+            self.recipes.push_declaration(declaration);
         }
         self
     }
@@ -363,12 +388,17 @@ impl Theme {
     pub fn define_family(mut self, f: Family, edit: impl FnOnce(&mut RecipeEdit)) -> Theme {
         let mut e = RecipeEdit::default();
         edit(&mut e);
-        let recipe = self.recipes.get_mut(f);
-        if let Some(dv) = e.default_variant_set() {
-            recipe.default_variant = dv;
-        }
-        for (p, part) in e.into_parts().iter() {
-            recipe.parts.entry(p).merge_from(part);
+        if let Some(declaration) =
+            AuthoredDeclaration::from_edit(f, None, DeclarationKind::Family, None, None, &e)
+        {
+            let recipe = self.recipes.get_mut(f);
+            if let Some(dv) = declaration.default_variant {
+                recipe.default_variant = dv;
+            }
+            for (p, part) in declaration.parts.iter() {
+                recipe.parts.entry(p).merge_from(part);
+            }
+            self.recipes.push_declaration(declaration);
         }
         self
     }
@@ -385,7 +415,7 @@ impl Theme {
         family: Family,
         edit: impl FnOnce(&mut RecipeEdit),
     ) -> Theme {
-        self.define_profile_for_level(level, family, None, None, edit)
+        self.define_profile_for_level(level, family, None, None, edit, true)
     }
 
     /// Define capability-specific defaults for one resolved variant.
@@ -401,7 +431,7 @@ impl Theme {
         variant: Variant,
         edit: impl FnOnce(&mut RecipeEdit),
     ) -> Theme {
-        self.define_profile_for_level(level, family, Some(variant), None, edit)
+        self.define_profile_for_level(level, family, Some(variant), None, edit, true)
     }
 
     /// Define capability-specific defaults for one resolved variant on one surrounding surface.
@@ -417,7 +447,26 @@ impl Theme {
         surface: Surface,
         edit: impl FnOnce(&mut RecipeEdit),
     ) -> Theme {
-        self.define_profile_for_level(level, family, Some(variant), Some(surface), edit)
+        self.define_profile_for_level(level, family, Some(variant), Some(surface), edit, true)
+    }
+
+    fn define_builtin_family_for_level(
+        self,
+        level: ColorLevel,
+        family: Family,
+        edit: impl FnOnce(&mut RecipeEdit),
+    ) -> Theme {
+        self.define_profile_for_level(level, family, None, None, edit, false)
+    }
+
+    fn define_builtin_variant_for_level(
+        self,
+        level: ColorLevel,
+        family: Family,
+        variant: Variant,
+        edit: impl FnOnce(&mut RecipeEdit),
+    ) -> Theme {
+        self.define_profile_for_level(level, family, Some(variant), None, edit, false)
     }
 
     fn define_profile_for_level(
@@ -427,9 +476,25 @@ impl Theme {
         variant: Option<Variant>,
         surface: Option<Surface>,
         edit: impl FnOnce(&mut RecipeEdit),
+        consumer_authored: bool,
     ) -> Theme {
         let mut e = RecipeEdit::default();
         edit(&mut e);
+        let declaration = AuthoredDeclaration::from_edit(
+            family,
+            variant,
+            DeclarationKind::LevelProfile,
+            Some(level),
+            surface,
+            &e,
+        );
+        let parts = e.normalized_parts();
+        if parts.is_empty() {
+            if consumer_authored && let Some(declaration) = declaration {
+                self.recipes.push_declaration(declaration);
+            }
+            return self;
+        }
         let seed_source_tokens = self.color;
         let seed_level_tokens = self.downgrade(level).color;
         self.recipes.define_level_family(
@@ -439,10 +504,13 @@ impl Theme {
                 variant,
                 surface,
             },
-            e.into_parts(),
+            parts,
             seed_source_tokens,
             seed_level_tokens,
         );
+        if consumer_authored && let Some(declaration) = declaration {
+            self.recipes.push_declaration(declaration);
+        }
         self
     }
 
@@ -618,6 +686,117 @@ mod tests {
     use super::*;
     use crate::id::Part;
     use crate::response::StateFlags;
+
+    #[test]
+    fn empty_typed_recipe_edits_preserve_theme_equality_and_menu_resolution() {
+        let theme = Theme::junie();
+        let empty = theme
+            .clone()
+            .define_family(Family::MENU, |edit| {
+                edit.part(Part::TITLE);
+                edit.part(Part::META)
+                    .glyph_slot(Slot::Inherit)
+                    .size_slot(Slot::Inherit);
+            })
+            .define_variant(Family::MENU, Variant::DEFAULT, |_| {})
+            .override_family(Family::MENU, |_| {})
+            .override_variant(Family::MENU, Variant::DEFAULT, |_| {})
+            .define_family_for_level(ColorLevel::Mono, Family::MENU, |edit| {
+                edit.part(Part::LABEL);
+            })
+            .define_variant_for_level(ColorLevel::Ansi16, Family::MENU, Variant::DEFAULT, |_| {})
+            .define_variant_for_level_on_surface(
+                ColorLevel::Ansi256,
+                Family::MENU,
+                Variant::DEFAULT,
+                Surface::Canvas,
+                |_| {},
+            );
+
+        assert_eq!(theme, empty);
+        assert_eq!(theme.recipes.revision(), empty.recipes.revision());
+        for variant in [Variant::DEFAULT, Variant::PRIMARY, Variant::DANGER] {
+            for part in Part::ALL {
+                for state in [
+                    StateFlags::empty(),
+                    StateFlags::HOVERED,
+                    StateFlags::FOCUSED,
+                    StateFlags::SELECTED,
+                    StateFlags::PRESSED,
+                    StateFlags::DISABLED,
+                    StateFlags::HOVERED | StateFlags::FOCUSED,
+                ] {
+                    for surface in [Surface::Canvas, Surface::Overlay, Surface::Popover] {
+                        assert_eq!(
+                            theme.resolve(Family::MENU, variant, *part, state, surface),
+                            empty.resolve(Family::MENU, variant, *part, state, surface),
+                            "empty edit changed menu resolution: {variant:?}/{part:?}/{state:?}/{surface:?}"
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn typed_recipe_apis_store_channel_precise_consumer_declarations() {
+        let base = Theme::junie();
+        assert!(base.recipes.declarations().is_empty());
+        let base_revision = base.recipes.revision();
+        let theme = base
+            .define_family(Family::MENU, |edit| {
+                edit.default_variant(Variant::DEFAULT);
+                edit.part(Part::TITLE)
+                    .base(StylePatch::new().set_fg(Role::Accent));
+            })
+            .define_variant(Family::MENU, Variant::DANGER, |edit| {
+                edit.part(Part::TITLE)
+                    .base(StylePatch::new().clear_bg().remove(Modifier::BOLD));
+            })
+            .override_family(Family::MENU, |edit| {
+                edit.part(Part::META)
+                    .base(StylePatch::new().set_fg(Role::Warning));
+            })
+            .override_variant(Family::MENU, Variant::DANGER, |edit| {
+                edit.part(Part::ICON).glyph_slot(Slot::Clear);
+            })
+            .define_family_for_level(ColorLevel::Mono, Family::MENU, |edit| {
+                edit.part(Part::LABEL)
+                    .base(StylePatch::new().set_fg(Role::Info));
+            });
+
+        let declarations = theme.recipes.declarations();
+        assert_eq!(declarations.len(), 5);
+        assert_eq!(declarations[0].kind, DeclarationKind::Family);
+        assert_eq!(declarations[0].default_variant, Some(Variant::DEFAULT));
+        assert_eq!(
+            declarations[0].parts.get(Part::TITLE).unwrap().base.fg,
+            Slot::Set(Role::Accent)
+        );
+        assert_eq!(
+            declarations[0].parts.get(Part::TITLE).unwrap().base.bg,
+            Slot::Inherit
+        );
+        assert_eq!(declarations[1].kind, DeclarationKind::Variant);
+        assert_eq!(
+            declarations[1].parts.get(Part::TITLE).unwrap().base.bg,
+            Slot::Clear
+        );
+        assert_eq!(declarations[2].kind, DeclarationKind::FamilyOverride);
+        assert_eq!(declarations[3].kind, DeclarationKind::VariantOverride);
+        assert_eq!(
+            declarations[3].parts.get(Part::ICON).unwrap().glyph,
+            Slot::Clear
+        );
+        assert_eq!(declarations[4].kind, DeclarationKind::LevelProfile);
+        assert_eq!(declarations[4].level, Some(ColorLevel::Mono));
+        assert_eq!(declarations[4].parts.len(), 1);
+        assert_eq!(
+            declarations[4].parts.get(Part::LABEL).unwrap().base.fg,
+            Slot::Set(Role::Info)
+        );
+        assert_ne!(base_revision, theme.recipes.revision());
+    }
 
     #[test]
     fn metrics_is_the_sizing_path_for_update() {
