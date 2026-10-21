@@ -13,11 +13,12 @@ fn overview_shell_uses_baseline_sidebar_colors() {
     let h = Harness::new(App::new(), Theme::junie(), 120, 40);
     let text = h.text();
     assert!(text.contains("Junie Design system"));
-    assert!(text.contains("Components"));
-    assert!(text.contains("54"));
-    assert!(text.contains("Overview"));
-    let (sx, sy) = require(h.find("App shell"), "collapsed group");
-    assert_eq!(h.cell(sx, sy).bg, Color::Rgb(0x11, 0x11, 0x11));
+    assert!(text.contains("/ Foundations / Overview"));
+    assert!(text.contains("Text areas"));
+    assert!(!text.contains("App shell"));
+    let (sx, sy) = require(h.find("Text areas"), "flat catalog row");
+    assert_eq!(h.cell(sx, sy).fg, Color::Rgb(0xb3, 0xb3, 0xb3));
+    assert_eq!(h.cell(sx, sy).bg, Color::Rgb(0, 0, 0));
 }
 
 #[test]
