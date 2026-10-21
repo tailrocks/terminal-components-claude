@@ -57,12 +57,34 @@ fn all_73_junie_slots_match_reference_capability_output() {
                 _ => downgrade_color(color, level),
             });
         if level == ColorLevel::Ansi256 {
-            // Frozen Theme::apply_256 assigns these semantic roles explicitly
-            // (baseline src/theme.rs:921-962). Preserve those authored indexes;
-            // generic raw RGB conversion follows the frozen cube/gray rule.
-            expected.on_accent = Color::Indexed(232);
-            expected.border_strong = Color::Indexed(242);
-            expected.disabled_fg = Color::Indexed(239);
+            // Frozen authored slots. Slots whose corpus rendering equals the
+            // generic cube/gray rule stay on the formula; the rest carry the
+            // index the frozen corpus (baselines/tuiscotti-v1) renders, or —
+            // where the corpus never draws the slot — the frozen baseline
+            // apply_256 table (visual-baseline src/theme.rs:921-962).
+            expected.fg[2] = Color::Indexed(244);
+            expected.fg[3] = Color::Indexed(238);
+            expected.field_hover = Color::Indexed(237);
+            expected.accent_hover = Color::Indexed(77);
+            expected.accent_pressed = Color::Indexed(238);
+            expected.accent_tint = Color::Indexed(233);
+            expected.focus_ring = Color::Indexed(238);
+            expected.syntax.match_bg = Color::Indexed(233);
+            expected.highlight_bg = Color::Indexed(25);
+            expected.syntax.match_current_bg = Color::Indexed(55);
+            expected.highlight_danger_bg = Color::Indexed(88);
+            // Corpus stale/unknown meter ink shares the faint/chrome source.
+            expected.meter.stale = Color::Indexed(238);
+            expected.meter.unknown = Color::Indexed(238);
+        }
+        if level == ColorLevel::Ansi16 {
+            // Corpus faint ink renders DarkGray at 16; the current 0x737373
+            // source would generically land on Gray.
+            expected.fg[3] = Color::DarkGray;
+        }
+        if level == ColorLevel::Mono {
+            // Frozen baseline apply_mono keeps the hovered field black.
+            expected.field_hover = Color::Black;
         }
         assert_eq!(original.downgrade(level).color, expected, "{level:?}");
     }
