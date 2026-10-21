@@ -47,6 +47,8 @@ const SOURCES: [(&str, &str); 23] = [
 /// Pages whose exact-size switches are owned by later waves, not this one.
 /// Every other page must already be free of them. All four converted pages
 /// now pick their layout by width breakpoints, so the allowlist is empty.
+/// The breakpoints reproduce the old exact-size layouts at the covered sizes
+/// (51x16, 59x20 and 134x46 page rects), never a new screen there.
 const SIZE_GATE_PAGES: [&str; 0] = [];
 
 /// Pages whose `ui.reference(None, ..)` blocks mount visible widgets. The
