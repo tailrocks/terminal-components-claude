@@ -14,8 +14,7 @@ use super::{ACCOUNTS, App, Route};
 fn approved(app: &App, ui: &mut Ui<'_>, screen: Rect) -> bool {
     let theme = ui.theme_ref();
     app.route == Route::Manager
-        && screen.width == 120
-        && screen.height == 40
+        && screen.width >= 120
         && matches!(
             app.world.scenario,
             Scenario::Returning | Scenario::HardCases
