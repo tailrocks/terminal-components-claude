@@ -663,7 +663,6 @@ pub struct TableProApp {
     motion: Motion,
     tick: u64,
     explorer_pin: u8,
-    focus_new_query: u8,
     grid_sort: Option<(TabKey, u16, SortDir)>,
     filter_editor: Option<FilterDraft>,
 }
@@ -724,7 +723,6 @@ impl core::fmt::Debug for TableProApp {
             .field("motion", &self.motion)
             .field("tick", &self.tick)
             .field("explorer_pin", &self.explorer_pin)
-            .field("focus_new_query", &self.focus_new_query)
             .field("grid_sort", &self.grid_sort)
             .field("filter_editor", &self.filter_editor.is_some())
             .finish()
@@ -790,7 +788,6 @@ impl TableProApp {
             motion: Motion::Full,
             tick: 0,
             explorer_pin: 0,
-            focus_new_query: 0,
             grid_sort: None,
             filter_editor: None,
         };
@@ -1357,11 +1354,13 @@ impl TableProApp {
         opened
     }
 
-    fn new_query(&mut self, query: impl Into<String>) {
+    fn new_query(&mut self, cx: &mut Cx<'_>, query: impl Into<String>) {
         if self.workbench.new_query(query).is_some() {
             self.sync_tabs_state();
             self.surface = Surface::QueryEditing;
-            self.focus_new_query = 1;
+            if let Some(id) = self.query_id() {
+                cx.focus(id);
+            }
         }
     }
 
@@ -9900,7 +9899,7 @@ impl App for TableProApp {
                     response |= Response::changed();
                 }
                 c if c == NEW_QUERY => {
-                    self.new_query("");
+                    self.new_query(cx, "");
                     response |= Response::changed();
                 }
                 c if c == CLOSE_TAB
@@ -10119,7 +10118,7 @@ impl App for TableProApp {
                         self.request_close_tab(cx, tab.key());
                     }
                 }
-                TabsAction::New => self.new_query(""),
+                TabsAction::New => self.new_query(cx, ""),
             }
         }
         response |= tabs_response.erase();
@@ -10146,17 +10145,6 @@ impl App for TableProApp {
             && let Some(id) = self.query_id()
         {
             cx.focus(id);
-        }
-        if self.focus_new_query > 0 {
-            self.focus_new_query = 0;
-            let view = cx.viewport();
-            // Only 120×40 has the historical focused editor. Other sizes stay put.
-            if view.width == 120
-                && view.height == 40
-                && let Some(id) = self.query_id()
-            {
-                cx.focus(id);
-            }
         }
         if self.surface == Surface::FilterEditor
             && self
