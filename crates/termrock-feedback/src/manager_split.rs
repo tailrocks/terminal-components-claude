@@ -18,6 +18,9 @@ const EXPANDED_BG: Color = Color::Rgb(0x30, 0x30, 0x36);
 const RULE: Color = Color::Rgb(0x3a, 0x3a, 0x3a);
 const BADGE: Color = Color::Rgb(0x73, 0x73, 0x73);
 const DANGER_BUTTON: Color = Color::Rgb(0xff, 0x6b, 0x6b);
+const INDEX_ERROR: Color = Color::Rgb(0xf0, 0x5d, 0x5d);
+const STALE: Color = Color::Rgb(0xf5, 0x9e, 0x09);
+const LABEL_BUDGET: u16 = 28;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum SplitMode {
@@ -46,6 +49,15 @@ pub struct SplitInstance<'a> {
 
 pub struct SplitWorkspace<'a> {
     pub name: &'a str,
+    /// A collapsed row with at least one visible instance.
+    pub expandable: bool,
+}
+
+/// Discovery or daemon failure drawn on the saved split.
+#[derive(Clone, Copy)]
+pub struct SplitAlert<'a> {
+    pub index_error: Option<&'a str>,
+    pub daemon_stale: bool,
 }
 
 pub struct ManagerSplit<'a> {
@@ -65,6 +77,7 @@ pub struct ManagerSplit<'a> {
     pub running: u16,
     pub live_here: u16,
     pub daemon_ago: &'a str,
+    pub alert: Option<SplitAlert<'a>>,
 }
 
 struct Ink {
@@ -100,7 +113,7 @@ pub fn paint_manager_split(ui: &mut Ui<'_>, area: Rect, frame: &ManagerSplit<'_>
     paint_rows(ui, area, frame, &ink);
     paint_detail(ui, area, frame, &ink);
     paint_buttons(ui, area, frame, &ink);
-    paint_hints(ui, area, frame.mode, &ink);
+    paint_hints(ui, area, frame, &ink);
 }
 
 fn ink_from(ui: &Ui<'_>) -> Ink {
@@ -155,6 +168,12 @@ fn paint_menus(ui: &mut Ui<'_>, area: Rect, menus: &[&str], ink: &Ink) {
 }
 
 fn paint_identity(ui: &mut Ui<'_>, area: Rect, frame: &ManagerSplit<'_>, ink: &Ink) {
+    if frame.mode == SplitMode::Saved
+        && let Some(alert) = frame.alert
+    {
+        paint_degraded_identity(ui, area, alert, ink);
+        return;
+    }
     let y = area.y;
     let (crumb, crumb_x, inside_x, running_x, running) = match frame.mode {
         SplitMode::Empty => ("Workspaces", 72, 84, 106, "no instances".to_owned()),
@@ -208,6 +227,26 @@ fn paint_identity(ui: &mut Ui<'_>, area: Rect, frame: &ManagerSplit<'_>, ink: &I
         plain(ink.secondary, ink.canvas)
     };
     put(ui, area, running_x, y, &running, running_style);
+}
+
+fn paint_degraded_identity(ui: &mut Ui<'_>, area: Rect, alert: SplitAlert<'_>, ink: &Ink) {
+    let y = area.y;
+    let secondary = plain(ink.secondary, ink.canvas);
+    let mut x = 41u16;
+    let crumb = "Workspaces";
+    put(ui, area, x, y, crumb, secondary);
+    x = x.saturating_add(width(crumb)).saturating_add(2);
+    let inside = "inside the Construct";
+    put(ui, area, x, y, inside, secondary);
+    x = x.saturating_add(width(inside)).saturating_add(2);
+    if let Some(error) = alert.index_error.filter(|error| !error.is_empty()) {
+        let text = format!("! {error}");
+        put(ui, area, x, y, &text, plain(INDEX_ERROR, ink.canvas));
+        x = x.saturating_add(width(&text)).saturating_add(2);
+    }
+    if alert.daemon_stale {
+        put(ui, area, x, y, "▲ daemon stale", plain(STALE, ink.canvas));
+    }
 }
 
 fn box_top(summary: &str) -> (String, u16) {
@@ -275,15 +314,10 @@ fn paint_rows(ui: &mut Ui<'_>, area: Rect, frame: &ManagerSplit<'_>, ink: &Ink) 
             y = y.saturating_add(1);
             for workspace in frame.workspaces {
                 put(ui, area, 3, y, " ", plain(ink.canvas, ink.canvas));
-                put(ui, area, 5, y, "▸", plain(ink.secondary, ink.canvas));
-                put(
-                    ui,
-                    area,
-                    7,
-                    y,
-                    workspace.name,
-                    plain(ink.primary, ink.canvas),
-                );
+                let mark = if workspace.expandable { "▸" } else { " " };
+                put(ui, area, 5, y, mark, plain(ink.secondary, ink.canvas));
+                let label = crate::text::truncate_middle(workspace.name, LABEL_BUDGET);
+                put(ui, area, 7, y, &label, plain(ink.primary, ink.canvas));
                 y = y.saturating_add(1);
             }
             put(ui, area, 3, y, " ", plain(ink.canvas, ink.canvas));
@@ -503,7 +537,13 @@ fn paint_detail(ui: &mut Ui<'_>, area: Rect, frame: &ManagerSplit<'_>, ink: &Ink
             put(ui, area, 56, y, frame.policy_line, card);
             y = y.saturating_add(2);
             put(ui, area, 42, y, "Instances", bold(ink.secondary, ink.card));
-            let meta = format!("daemon · {}", frame.daemon_ago);
+            let stale = frame.mode == SplitMode::Saved
+                && frame.alert.is_some_and(|alert| alert.daemon_stale);
+            let meta = if stale {
+                format!("▲ daemon stale · {}", frame.daemon_ago)
+            } else {
+                format!("daemon · {}", frame.daemon_ago)
+            };
             let meta_x = 117u16.saturating_sub(width(&meta));
             put(ui, area, meta_x, y, &meta, badge);
             y = y.saturating_add(1);
@@ -574,12 +614,19 @@ fn paint_buttons(ui: &mut Ui<'_>, area: Rect, frame: &ManagerSplit<'_>, ink: &In
     }
 }
 
-fn paint_hints(ui: &mut Ui<'_>, area: Rect, mode: SplitMode, ink: &Ink) {
+fn paint_hints(ui: &mut Ui<'_>, area: Rect, frame: &ManagerSplit<'_>, ink: &Ink) {
     let y = area.bottom().saturating_sub(1);
     ui.paint_style(
         Rect::new(area.x, y, area.width, 1),
         plain(ink.primary, ink.canvas),
     );
+    if frame.mode == SplitMode::Saved
+        && let Some(alert) = frame.alert
+    {
+        paint_degraded_hints(ui, area, y, alert, ink);
+        return;
+    }
+    let mode = frame.mode;
     let key = bold(ink.primary, ink.canvas);
     let hint = plain(Color::Rgb(0x8a, 0x8a, 0x8a), ink.canvas);
     let pairs: &[(&str, &str)] = match mode {
@@ -634,6 +681,24 @@ fn paint_hints(ui: &mut Ui<'_>, area: Rect, mode: SplitMode, ink: &Ink) {
     }
 }
 
+fn paint_degraded_hints(ui: &mut Ui<'_>, area: Rect, y: u16, alert: SplitAlert<'_>, ink: &Ink) {
+    let key = bold(ink.primary, ink.canvas);
+    let hint = plain(Color::Rgb(0x8a, 0x8a, 0x8a), ink.canvas);
+    put(ui, area, 1, y, "Enter", key);
+    put(ui, area, 7, y, "Launch", hint);
+    put(ui, area, 15, y, "?", key);
+    put(ui, area, 17, y, "Help", hint);
+    put(ui, area, 23, y, "…", plain(BADGE, ink.canvas));
+    if alert.daemon_stale {
+        put(ui, area, 30, y, "▲", bold(STALE, ink.canvas));
+    }
+    if let Some(error) = alert.index_error.filter(|error| !error.is_empty()) {
+        let text =
+            format!(" Could not confirm running instances: {error} · list may be incomplete");
+        put(ui, area, 31, y, &text, plain(STALE, ink.canvas));
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::middle_ellipsis;
@@ -642,5 +707,14 @@ mod tests {
     fn live_child_keeps_the_baseline_middle_cut() {
         let text = middle_ellipsis(" 7f3a  ", "the-architect · Claude Code", 27);
         assert_eq!(text, " 7f3a  the-archite…ude Code");
+    }
+
+    #[test]
+    fn long_workspace_uses_the_baseline_middle_cut() {
+        let name = "billing-reconciliation-service-with-a-very-long-name-for-truncation";
+        assert_eq!(
+            crate::text::truncate_middle(name, super::LABEL_BUDGET),
+            "billing-reconcilia…runcation"
+        );
     }
 }
