@@ -9003,10 +9003,12 @@ fn help_footer_hints() -> Vec<Hint> {
 }
 
 fn picker_move_footer_hints() -> Vec<Hint> {
+    // The picker layer owns the footer hints; a picker that cannot be
+    // searched offers no "Type Filter" group.
     vec![
         Hint::new("↑↓", "Move"),
-        Hint::new("Enter", "Set level"),
-        Hint::new("Esc", "Keep"),
+        Hint::new("Enter", "Choose"),
+        Hint::new("Esc", "Cancel"),
     ]
 }
 
