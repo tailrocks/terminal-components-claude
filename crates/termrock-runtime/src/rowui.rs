@@ -6,7 +6,7 @@ use ratatui_core::layout::{Position, Rect};
 use ratatui_core::style::Modifier;
 
 use crate::id::{Id, ItemKey, Part};
-use crate::layout::{Track, distribute_into};
+use crate::layout::{ResolvedColumns, Track, distribute_into};
 use crate::response::StateFlags;
 use crate::text::{Span, width};
 use crate::theme::{
@@ -1025,8 +1025,16 @@ impl<'u> RowUi<'u> {
     pub fn columns_with_gap(&mut self, widths: &[Track], gap: u16) -> ColumnsUi<'_> {
         let area = self.remaining();
         let mut sizes = [0u16; MAX_COLUMNS];
+        let mut offsets = [0u16; MAX_COLUMNS];
+        let mut visible = [false; MAX_COLUMNS];
         let n = widths.len().min(MAX_COLUMNS);
         distribute_into(area.width, widths.get(..n).unwrap_or(&[]), gap, &mut sizes);
+        let mut offset = 0u16;
+        for index in 0..n {
+            offsets[index] = offset;
+            visible[index] = true;
+            offset = offset.saturating_add(sizes[index]).saturating_add(gap);
+        }
         let style = self.style_of(Part::CELL);
         self.left = self.left.saturating_add(area.width);
         ColumnsUi {
@@ -1039,8 +1047,71 @@ impl<'u> RowUi<'u> {
             ui: self.ui.reborrow(),
             area,
             sizes,
+            offsets,
+            visible,
             n,
-            gap,
+            style,
+            cursor_style: self.cursor_style,
+        }
+    }
+
+    /// Render a row against offsets, visibility, and widths already resolved by
+    /// the shared column layout solver. Unlike [`RowUi::columns_with_gap`], this
+    /// adapter does not reconstruct spacing, so hidden interior columns do not
+    /// add a second gap and visible zero-width columns keep their own slot.
+    ///
+    /// `leading_inset` and `trailing_inset` reserve component-owned row content
+    /// around the resolved columns. The supplied layout should be resolved for
+    /// the remaining width after those insets. All returned cells are clipped
+    /// to that content area, which is also the geometry consumers can use for
+    /// hit regions.
+    pub fn columns_resolved_with_insets(
+        &mut self,
+        resolved: &ResolvedColumns,
+        leading_inset: u16,
+        trailing_inset: u16,
+    ) -> ColumnsUi<'_> {
+        let remaining = self.remaining();
+        let leading = leading_inset.min(remaining.width);
+        let trailing = trailing_inset.min(remaining.width.saturating_sub(leading));
+        let area = Rect {
+            x: remaining.x.saturating_add(leading),
+            y: remaining.y,
+            width: remaining
+                .width
+                .saturating_sub(leading)
+                .saturating_sub(trailing),
+            height: remaining.height,
+        };
+        let mut sizes = [0u16; MAX_COLUMNS];
+        let mut offsets = [0u16; MAX_COLUMNS];
+        let mut visible = [false; MAX_COLUMNS];
+        let n = resolved.len().min(MAX_COLUMNS);
+        for index in 0..n {
+            if resolved.is_visible(index)
+                && let (Some(offset), Some(width)) = (resolved.offset(index), resolved.width(index))
+            {
+                offsets[index] = offset;
+                sizes[index] = width;
+                visible[index] = true;
+            }
+        }
+        let style = self.style_of(Part::CELL);
+        self.left = self.left.saturating_add(leading).saturating_add(area.width);
+        self.right = self.right.saturating_add(trailing);
+        ColumnsUi {
+            #[cfg(feature = "testing")]
+            owner: self.owner,
+            family: self.family,
+            variant: self.variant,
+            flags: self.flags,
+            label_patch: self.label_patch,
+            ui: self.ui.reborrow(),
+            area,
+            sizes,
+            offsets,
+            visible,
+            n,
             style,
             cursor_style: self.cursor_style,
         }
@@ -1337,8 +1408,9 @@ pub struct ColumnsUi<'u> {
     ui: Ui<'u>,
     area: Rect,
     sizes: [u16; MAX_COLUMNS],
+    offsets: [u16; MAX_COLUMNS],
+    visible: [bool; MAX_COLUMNS],
     n: usize,
-    gap: u16,
     style: PaintStyle,
     cursor_style: CursorStyle,
 }
@@ -1362,15 +1434,12 @@ impl ColumnsUi<'_> {
     }
 
     pub fn rect(&self, i: usize) -> Rect {
-        if i >= self.n {
+        if i >= self.n || !self.visible[i] {
             return Rect::ZERO;
         }
-        let mut x = self.area.x;
-        for (k, w) in self.sizes.iter().enumerate().take(i) {
-            let _ = k;
-            x = x.saturating_add(*w).saturating_add(self.gap);
-        }
-        let w = self.sizes.get(i).copied().unwrap_or(0);
+        let x = self.area.x.saturating_add(self.offsets[i]);
+        let x = x.min(self.area.right());
+        let w = self.sizes[i].min(self.area.right().saturating_sub(x));
         Rect {
             x,
             y: self.area.y,
@@ -1491,6 +1560,7 @@ impl termrock_text::secret::CellWriter for CellUi<'_> {
 #[cfg(test)]
 mod tests {
     use ratatui_core::buffer::Buffer;
+    use termrock_layout::{ColumnSpec, solve_columns};
 
     use super::*;
     use crate::theme::Theme;
@@ -2036,6 +2106,92 @@ mod tests {
                 Some(" ".to_owned())
             );
         }
+    }
+
+    #[test]
+    fn resolved_columns_keep_dropped_and_zero_width_slots_distinct() {
+        let specs = [
+            ColumnSpec::new(2, 2, 2, 0, None),
+            ColumnSpec::new(2, 2, 2, 0, Some(0)),
+            ColumnSpec::new(0, 0, 0, 0, None),
+            ColumnSpec::new(2, 2, 2, 0, None),
+        ];
+        let resolved = solve_columns(&specs, 7, 1);
+        assert!(!resolved.is_visible(1));
+        assert!(resolved.is_visible(2));
+        assert_eq!(resolved.width(2), Some(0));
+
+        let page = paint(Rect::new(2, 0, 7, 1), |row| {
+            let mut columns = row.columns_resolved_with_insets(&resolved, 0, 0);
+            assert_eq!(columns.rect(0), Rect::new(2, 0, 2, 1));
+            assert_eq!(columns.rect(1), Rect::ZERO);
+            assert_eq!(columns.rect(2), Rect::new(5, 0, 0, 1));
+            assert_eq!(columns.rect(3), Rect::new(6, 0, 2, 1));
+            columns.cell(0).text("A");
+            columns.cell(2).text("hidden");
+            columns.cell(3).text("Z");
+        });
+
+        assert_eq!(row_text(&page, 0, 2, 7), "A   Z");
+    }
+
+    #[test]
+    fn resolved_columns_clip_insets_and_hit_bounds_for_unicode_rows() {
+        let specs = [
+            ColumnSpec::new(2, 2, 2, 0, None),
+            ColumnSpec::new(2, 2, 2, 0, None),
+        ];
+        let resolved = solve_columns(&specs, 5, 1);
+        let first = Id::root("rowui.resolved.first");
+        let second = Id::root("rowui.resolved.second");
+        let theme = Theme::junie();
+        let mut frame = FrameState::default();
+        frame.reset(1, SCREEN);
+        let mut page = Buffer::empty(SCREEN);
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        {
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+            let mut row = RowUi::new(
+                &mut ui,
+                OWNER,
+                Family::LIST,
+                Variant::DEFAULT,
+                StateFlags::empty(),
+                ItemKey::index(0),
+                Rect::new(2, 0, 6, 1),
+            );
+            let mut columns = row.columns_resolved_with_insets(&resolved, 1, 1);
+            let first_rect = columns.rect(0);
+            let second_rect = columns.rect(1);
+            assert_eq!(first_rect, Rect::new(3, 0, 2, 1));
+            assert_eq!(second_rect, Rect::new(6, 0, 1, 1));
+            columns.cell(0).text("界");
+            columns.cell(1).text("x");
+            columns
+                .ui
+                .register_control(first, first_rect, crate::focus::Focusability::ClickOnly);
+            columns
+                .ui
+                .register_control(second, second_rect, crate::focus::Focusability::ClickOnly);
+        }
+
+        assert_eq!(page.cell((3, 0)).expect("wide glyph").symbol(), "界");
+        assert_eq!(page.cell((6, 0)).expect("clipped cell").symbol(), "x");
+        assert_eq!(
+            frame.registry.hit(Position::new(3, 0)).map(|hit| hit.owner),
+            Some(first)
+        );
+        assert_eq!(
+            frame.registry.hit(Position::new(4, 0)).map(|hit| hit.owner),
+            Some(first)
+        );
+        assert_eq!(frame.registry.hit(Position::new(5, 0)), None);
+        assert_eq!(
+            frame.registry.hit(Position::new(6, 0)).map(|hit| hit.owner),
+            Some(second)
+        );
+        assert_eq!(frame.registry.hit(Position::new(7, 0)), None);
     }
 
     #[test]
