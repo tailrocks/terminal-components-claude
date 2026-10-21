@@ -2299,7 +2299,9 @@ mod shell_layout_contract {
     #[test]
     fn shared_layout_keeps_all_visible_regions_at_width_boundaries() {
         for (x, y) in [(0, 0), (5, 3)] {
-            for width in [72, 73, 79, 80, 99, 100, 101, 109, 110, 111, 119, 120, 121, 160] {
+            for width in [
+                72, 73, 79, 80, 99, 100, 101, 109, 110, 111, 119, 120, 121, 160,
+            ] {
                 for height in [20, 24, 40] {
                     for inspector in [false, true] {
                         let area = Rect::new(x, y, width, height);
@@ -2308,7 +2310,10 @@ mod shell_layout_contract {
                         assert_eq!(new.header, old.header, "header {area:?} {inspector}");
                         assert_eq!(new.sidebar, old.sidebar, "sidebar {area:?} {inspector}");
                         assert_eq!(new.main, old.main, "main {area:?} {inspector}");
-                        assert_eq!(new.inspector, old.inspector, "inspector {area:?} {inspector}");
+                        assert_eq!(
+                            new.inspector, old.inspector,
+                            "inspector {area:?} {inspector}"
+                        );
                         assert_eq!(new.footer, old.footer, "footer {area:?} {inspector}");
                     }
                 }
@@ -2327,12 +2332,24 @@ mod shell_cache_contract {
         let compact = Rect::new(0, 0, 80, 24);
         let wide = Rect::new(5, 3, 120, 40);
         assert!(app.resolved_shell_layout(compact).inspector.is_none());
-        assert_eq!(app.resolved_shell_layout(compact).main, shell_layout(compact, false).main);
+        assert_eq!(
+            app.resolved_shell_layout(compact).main,
+            shell_layout(compact, false).main
+        );
         app.inspector = true;
-        assert_eq!(app.resolved_shell_layout(wide).inspector, shell_layout(wide, true).inspector);
-        assert_eq!(app.resolved_shell_layout(wide).main, shell_layout(wide, true).main);
+        assert_eq!(
+            app.resolved_shell_layout(wide).inspector,
+            shell_layout(wide, true).inspector
+        );
+        assert_eq!(
+            app.resolved_shell_layout(wide).main,
+            shell_layout(wide, true).main
+        );
         assert!(app.resolved_shell_layout(compact).inspector.is_none());
         app.inspector = false;
-        assert_eq!(app.resolved_shell_layout(wide).main, shell_layout(wide, false).main);
+        assert_eq!(
+            app.resolved_shell_layout(wide).main,
+            shell_layout(wide, false).main
+        );
     }
 }

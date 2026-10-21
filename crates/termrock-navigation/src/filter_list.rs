@@ -1704,7 +1704,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn reverse_scope_bindings_accept_backend_shift_and_plain_backtab_without_conflict() {
         use ratatui::crossterm::event as backend;
@@ -1739,12 +1738,14 @@ mod tests {
             assert_eq!(binding.cmd, super::FilterListCmd::PrevScope);
             assert!(!binding.visible);
         }
-        assert!(binding_conflicts(
-            Id::root("filter-list.reverse-scope"),
-            KeyPhase::Bubble,
-            super::BINDINGS,
-        )
-        .is_empty());
+        assert!(
+            binding_conflicts(
+                Id::root("filter-list.reverse-scope"),
+                KeyPhase::Bubble,
+                super::BINDINGS,
+            )
+            .is_empty()
+        );
     }
 
     #[test]
@@ -1775,8 +1776,8 @@ mod tests {
     fn substring_filter_uses_typed_field_caret_and_paste() {
         use termrock_core::response::Response;
         use termrock_runtime::event::{Input, Key, KeyCode, KeyModifiers};
-        use termrock_runtime::runtime::{App, Runtime};
         use termrock_runtime::runtime::stub::key;
+        use termrock_runtime::runtime::{App, Runtime};
         use termrock_runtime::ui::Cx;
 
         const ID: Id = Id::root("filter-list.query-editor-contract");
@@ -1821,7 +1822,8 @@ mod tests {
         let mut buffer = Buffer::empty(SCREEN);
         runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
 
-        let paste = termrock_runtime::runtime::stub::deliver(&mut runtime, Input::Paste("console".into()));
+        let paste =
+            termrock_runtime::runtime::stub::deliver(&mut runtime, Input::Paste("console".into()));
         assert!(paste.is_consumed());
         assert!(paste.is_changed());
         runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
@@ -1852,11 +1854,9 @@ mod tests {
         assert!(left.is_changed(), "caret movement requests a repaint");
         assert!(runtime.needs_present());
         runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        assert_eq!(
-            runtime.app().state.query_input.cursor_offset(),
-            Some(6)
-        );
-        let paste = termrock_runtime::runtime::stub::deliver(&mut runtime, Input::Paste("x".into()));
+        assert_eq!(runtime.app().state.query_input.cursor_offset(), Some(6));
+        let paste =
+            termrock_runtime::runtime::stub::deliver(&mut runtime, Input::Paste("x".into()));
         assert!(paste.is_consumed());
         assert!(paste.is_changed());
         runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
