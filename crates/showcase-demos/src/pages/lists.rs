@@ -49,9 +49,8 @@ const READOUT: [&str; 2] = [
     "nav default · type-ahead on (TypeAhead, 1000 ms pause) · click ClickPolicy { activate: Double, edit_on: Double, check: BoxOnly }, check BoxOnly · wrap false · skip_disabled true",
     "toggle platform+click · scrollbar_gap 1 · track_click Page · reveal tooltip · a ListCmd::ToggleAll · ⌘A ListCmd::SelectAll",
 ];
-// Page rect inside the 160×50 shell. Equal columns and this readout exist only there.
-const WIDE_PAGE_W: u16 = 134;
-const WIDE_PAGE_H: u16 = 46;
+// Equal columns and this readout kick in at the 160×50 shell width; any height works.
+const EQUAL_COLUMNS_MIN_W: u16 = 134;
 const WIDE_READOUT: [&str; 2] = [
     "nav default · type-ahead on (TypeAhead, 1000 ms pause) · click Double, check BoxOnly · wrap false · skip_disabled true",
     "toggle platform+click · scrollbar_gap 1 · track_click Page · reveal tooltip · a ListCmd::ToggleAll · Ctrl+A ListCmd::SelectAll",
@@ -928,7 +927,7 @@ impl Page for ListsPage {
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
         let chosen = self.chosen_label();
-        let wide = area.width == WIDE_PAGE_W && area.height == WIDE_PAGE_H;
+        let wide = area.width >= EQUAL_COLUMNS_MIN_W;
         frame(ui, area, self.title(), "", |ui, body| {
             paint_blurb(ui, body);
             paint_section_strip(

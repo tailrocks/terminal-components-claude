@@ -11,12 +11,10 @@ const SECTIONS: [&str; 3] = ["Playground", "Options", "States"];
 const SECTION_CAPTION: &str = "the live widget";
 const SECTION_WIDE: u16 = 76;
 const BLURB: &str = "Determinate, indeterminate, an aggregate tally, capacity meters";
-const NARROW_PAGE_W: u16 = 59;
-const NARROW_PAGE_H: u16 = 20;
-const COMPACT_PAGE_W: u16 = 51;
-const COMPACT_PAGE_H: u16 = 16;
-const WIDE_PAGE_W: u16 = 134;
-const WIDE_PAGE_H: u16 = 46;
+// Breakpoints, not exact sizes: narrow shells show the compact strip, and the
+// wide meter rows need the 160×50 shell width.
+const FULL_MIN_W: u16 = 60;
+const WIDE_MIN_W: u16 = 134;
 const NARROW_CONTENT_W: u16 = 94;
 
 const CANVAS: u32 = 0x000000;
@@ -139,16 +137,12 @@ fn tab_width(label: &str) -> u16 {
     width(label).saturating_add(3)
 }
 
-fn narrow_page(area: Rect) -> bool {
-    area.width == NARROW_PAGE_W && area.height == NARROW_PAGE_H
-}
-
 fn compact_page(area: Rect) -> bool {
-    area.width == COMPACT_PAGE_W && area.height == COMPACT_PAGE_H
+    area.width < FULL_MIN_W
 }
 
 fn wide_page(area: Rect) -> bool {
-    area.width == WIDE_PAGE_W && area.height == WIDE_PAGE_H
+    area.width >= WIDE_MIN_W
 }
 
 fn paint_blurb(ui: &mut Ui<'_>, body: Rect) {
@@ -1357,11 +1351,7 @@ impl Page for ProgressPage {
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
         frame(ui, area, self.title(), "", |ui, body| {
-            if narrow_page(area) {
-                paint_narrow(ui, body, self.build, self.paused, self.frame);
-                return;
-            }
-            // 51×16 is the page rect inside the 72×20 shell.
+            // Shells up to 80×24 show the compact strip.
             if compact_page(area) {
                 paint_narrow(ui, body, self.build, self.paused, self.frame);
                 return;
@@ -1423,7 +1413,7 @@ impl Page for ProgressPage {
                 cards,
                 Rect::new(cards.x, meters_y, cards.width, METERS_H),
             );
-            // 134×46 is the page rect inside the 160×50 shell.
+            // The wide meter rows need the 160×50 shell width.
             if wide_page(area) {
                 paint_wide_meters(
                     ui,
@@ -1527,8 +1517,7 @@ mod tests {
 
     #[test]
     fn narrow_page_matches_the_80x24_progress_strip() {
-        let h =
-            termrock_test_support::Harness::new(Host, Theme::junie(), NARROW_PAGE_W, NARROW_PAGE_H);
+        let h = termrock_test_support::Harness::new(Host, Theme::junie(), 59, 20);
         let text = h.text();
         assert!(
             text.contains("Determinate, indeterminate, an aggregate tally,…"),
@@ -1564,12 +1553,7 @@ mod tests {
 
     #[test]
     fn compact_page_matches_the_72x20_progress_strip() {
-        let h = termrock_test_support::Harness::new(
-            Host,
-            Theme::junie(),
-            COMPACT_PAGE_W,
-            COMPACT_PAGE_H,
-        );
+        let h = termrock_test_support::Harness::new(Host, Theme::junie(), 51, 16);
         let text = h.text();
         assert!(text.contains("an aggregat…"), "{text}");
         assert!(!text.contains("ticks at 80 ms"), "{text}");
@@ -1611,7 +1595,7 @@ mod tests {
 
     #[test]
     fn wide_page_matches_the_160x50_meter_rows() {
-        let h = termrock_test_support::Harness::new(Host, Theme::junie(), WIDE_PAGE_W, WIDE_PAGE_H);
+        let h = termrock_test_support::Harness::new(Host, Theme::junie(), 134, 46);
         let text = h.text();
         for needle in [
             "72% used ▲",
