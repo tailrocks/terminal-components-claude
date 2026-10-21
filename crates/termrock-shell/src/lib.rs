@@ -18,6 +18,8 @@
 //! default-off `testing` feature, so production builds never carry it.
 
 pub mod chrome;
+pub mod finder;
+pub mod finder_screen;
 pub mod footer;
 pub mod keyboard;
 pub mod nav;
@@ -31,6 +33,14 @@ pub mod shell;
 pub mod status;
 
 pub use chrome::{Chrome, Regions};
+pub use finder::{
+    FinderBand, FinderColumns, FinderContent, FinderLayout, FinderLine, FinderPlate, FinderPolicy,
+    FinderPreview, FinderPreviewTitle, FinderRow, FinderTone, finder_band,
+};
+pub use finder_screen::{
+    ActionRow, BAND_LABEL, BAND_META, BAND_RULE, BandChip, BandMarker, FINDER_GREY, FinderGrid,
+    FinderLead, ScopeBand, paint_action_row,
+};
 pub use footer::{Footer, FooterStatus, HINT_AUTO, HINT_NORMAL, HINT_PINNED, Hint};
 pub use nav::{Crumb, Nav, PageKey, Router};
 pub use page::{Page, PageLeaf, page_leaf, rebuild_on_tick, replay_key};
