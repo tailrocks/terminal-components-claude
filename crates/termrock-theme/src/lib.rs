@@ -260,7 +260,7 @@ impl Theme {
         });
 
         [
-            (TrueColor, Color::Rgb(46, 154, 56)),
+            (TrueColor, Color::from_u32(0x002b_8632)),
             (Ansi256, Color::Indexed(65)),
             (Ansi16, Color::LightGreen),
             (Mono, Color::White),
