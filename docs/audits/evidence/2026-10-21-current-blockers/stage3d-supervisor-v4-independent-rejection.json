@@ -1,0 +1,118 @@
+{
+  "schema": "termrock.stage3d.supervisor-v4.independent-review.v1",
+  "reviewer": "/root/runner_atomic_step_architect",
+  "created_at_utc": "2026-10-21T01:52:16.194029+00:00",
+  "decision": "HOLD v4. No real stages1-7 or capture are approved by this review. Correct the required supervision and readiness-binding gaps before execution.",
+  "scope": "Exact supervisor and synthetic-test source review plus synthetic subprocess probes only. No real frozen CLI, preparation, plan, key or capture operations were invoked.",
+  "artifacts": [
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-supervisor-v4-20261021.py",
+      "sha256": "d132b5359167ce03d17233cf9a5db0482dd7accb56e13eb23f72a157a44fc46f"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/test_fresh_plan_stage3d_atomic_supervisor_v4-20261021.py",
+      "sha256": "d035a2b4ae52a30356f92f3107e734e489befd97b4363cd81b9d92bee0d2e21a"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-supervisor-v4-independent-synthetic-probes-20261021.json",
+      "sha256": "37f2c4f66ee4d94c4f7e4798f1dbdfb95f2ad3d7250885235d4149d2adaabdb5"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-supervisor-v4-independent-detached-probe-20261021.json",
+      "sha256": "1e9a940fbf5b55fdb1ff22849fbad79b1ef9c2b448b25d27a8eaa7cb1a77476e"
+    }
+  ],
+  "checks": {
+    "author_tests": "The unchanged synthetic suite exited0 and reported18 checks. It was invoked twice; the first tool call exposed only empty stdout, so the second call retained the full exit0 result. No claim is made about the first invocation exit status.",
+    "argv": "Stages1-7 match the independent readiness argv, including explicit482 repository, reviewed runner path, new stage3d root/custody, chunk32 and external anchor. Stage8 builder and execution are disabled.",
+    "custody": "No private canonical runner import, key reader or key byte read occurs in supervisor source. Official CLI alone receives key path for stages6-7.",
+    "exclusive_outputs": "Log open xb, anchor/event open x reject overwrite. Anchor uses external full plan-file digest; stages5-7 recheck current plan bytes against it.",
+    "positive_timeout_scope": "The synthetic timeout test proves cleanup for direct child and same-session grandchild. It does not prove cleanup of canonical separate-session subprocesses.",
+    "no_acceptance": "No product, architecture or capture acceptance is claimed."
+  },
+  "required_findings": [
+    {
+      "id": "V4-1",
+      "priority": "P1",
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-supervisor-v4-20261021.py",
+      "lines": [
+        139,
+        151,
+        267,
+        291,
+        293
+      ],
+      "title": "Rejected process-group isolation can return success and allow anchor publication",
+      "evidence": "The not-isolated branch records rejection but can retain direct child exit_status0 and direct_worker_reaped=True. main does not require worker_group_isolated and defaults absent owned_group_empty_after_cleanup toTrue. An independent fake-child probe returned main exit0 for an explicitly rejected foreign observed PGID. Stage4 likewise only checks exit status and timeout before writing its anchor.",
+      "change": "Define a single explicit success predicate requiring proven isolation, no timeout, direct child reap, empty owned group and exit0. Use it for main success and stage4 anchor creation. Isolation rejection must always fail. Add mock foreign-PGID and already-exited child tests without signaling any foreign group."
+    },
+    {
+      "id": "V4-2",
+      "priority": "P1",
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-supervisor-v4-20261021.py",
+      "lines": [
+        165,
+        179,
+        191
+      ],
+      "title": "Timeout cleanup does not cover the canonical runner nested sessions",
+      "evidence": "An independent fixture launched a separate-session descendant. After v4 timed out and reported owned_group_empty_after_cleanup=True, that descendant remained alive. The reviewer terminated only that exact fixture-owned PID. Canonical tools/frozen_baseline.py run:482-493 and prepare:704-709 also start subprocesses with start_new_session=True, escaping the supervisor group.",
+      "change": "Provide separately reviewed cleanup/cancellation that covers the actual official runner child-session ownership, or an explicit approved operational policy that does not claim full cleanup/bounded descendant lifetime. Do not signal arbitrary observed process groups or kill processes by name. A canonical cleanup change requires a new source hash and reviewed readiness decision before plan creation."
+    },
+    {
+      "id": "V4-3",
+      "priority": "P1",
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-supervisor-v4-20261021.py",
+      "lines": [
+        52,
+        65,
+        254
+      ],
+      "title": "Exact482 driver inputs are not checked despite a source-pin claim",
+      "evidence": "validate_pin checks git HEAD and canonical runner bytes only. It does not hash the nine readiness-listed patch/helper/extension/registry/decision inputs. A temporary git fixture containing no harness inputs was accepted when only its expected HEAD constant was substituted; the real canonical runner SHA check remained unchanged. Official preparation pins patch/extensions, but helper content is accepted and recorded into the new plan rather than compared with the exact482 readiness hash.",
+      "change": "Before preparation, compare the exact nine readiness file hashes and reject absent, symlinked or changed inputs. Retain canonical official checks as well. Do not treat git HEAD alone as a clean working-tree/content guarantee. Add a helper mutation test that rejects before official launch."
+    },
+    {
+      "id": "V4-4",
+      "priority": "P1",
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-supervisor-v4-20261021.py",
+      "lines": [
+        122,
+        254,
+        262
+      ],
+      "title": "Controlled preparation environment and selected tools are not bound",
+      "evidence": "Popen inherits ambient environment and the wrapper does not compare the controlled allowlisted recipe or selected tool identities. A new plan would faithfully record that possibly changed environment, which does not prove preservation of the prior controlled baseline conditions. The fixed Python path alone does not pin its bytes, Cargo selection, terminal settings, fonts or clock-affecting environment.",
+      "change": "Use a reviewed controlled launcher/environment packet and verify the required effective environment and tool observations before real preparation; allow only the documented new-root CARGO_TARGET_DIR difference. This can be a separately reviewed precondition rather than duplicated canonical implementation. Retain raw-value redaction and official canonical verification."
+    },
+    {
+      "id": "V4-5",
+      "priority": "P2",
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-supervisor-v4-20261021.py",
+      "lines": [
+        192,
+        193,
+        267,
+        274,
+        290
+      ],
+      "title": "Inclusive deadline omits bounded evidence and anchor finalization",
+      "evidence": "START_NS includes imports and prechecks, and worker waiting reserves15seconds, but log.read_bytes hashing, plan hashing, anchor/event writes, fsync and final JSON output run without remaining-budget checks. Existing short synthetic tests do not prove the declared220-second inclusive total for large output or slow storage.",
+      "change": "Check and account for remaining budget during bounded streaming hashes and before/after finalization; reserve sufficient finalization time and report deadline failures without overwriting evidence. Avoid claiming an unconditional hard wall bound from the worker wait alone."
+    }
+  ],
+  "test_gaps": [
+    "The existing synthetic anchor test creates and compares local JSON itself; it does not exercise _write_anchor or _load_anchor. Add actual synthetic-path helper tests for tampering, symlinks and exclusive writes.",
+    "The existing no-key-access assertion is check(True), not an access trap. Add a trap on the actual custody path and ensure synthetic tests never invoke canonical operational commands.",
+    "No existing test exercises failed isolation, separate-session descendants, exact helper mutation, controlled environment drift or finalization budget exhaustion."
+  ],
+  "preservation": {
+    "real_sources_changed": false,
+    "real_plan_or_journal_changed": false,
+    "actual_key_read": false,
+    "actual_stage_executed": false,
+    "capture_executed": false,
+    "synthetic_cleanup": "Only the exact detached PID launched by the reviewer fixture received SIGTERM. No process-name or foreign-group signals were used."
+  },
+  "approved_stages": []
+}
