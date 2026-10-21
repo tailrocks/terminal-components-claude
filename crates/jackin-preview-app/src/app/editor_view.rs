@@ -34,7 +34,8 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
     let general = matches!(app.editor.tab, EditorTab::General);
     let mounts = matches!(app.editor.tab, EditorTab::Mounts);
     let roles = matches!(app.editor.tab, EditorTab::Roles);
-    let chrome = general || mounts || roles;
+    let env = matches!(app.editor.tab, EditorTab::Environments);
+    let chrome = general || mounts || roles || env;
     // The live shell is surface ink. These approved pages are canvas.
     if chrome {
         ui.fill(full, canvas());
@@ -159,7 +160,7 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
         EditorTab::General => paint_general_body(app, ui),
         EditorTab::Mounts => paint_mounts_body(app, ui),
         EditorTab::Roles => paint_roles_body(app, ui),
-        EditorTab::Environments => paint_env_body(ui),
+        EditorTab::Environments => paint_env_body(app, ui),
         EditorTab::Accounts => paint_accounts_body(ui),
     }
 
@@ -542,14 +543,146 @@ fn role_leaf(role: &str) -> &str {
     role.rsplit('/').next().unwrap_or(role)
 }
 
-fn paint_env_body(ui: &mut Ui<'_>) {
-    paint_str(ui, 8, 6, "Key", MUTED, BLACK, false);
-    paint_str(ui, 28, 6, "Source", MUTED, BLACK, false);
-    paint_str(ui, 58, 6, "Value", MUTED, BLACK, false);
+fn paint_env_body(app: &App, ui: &mut Ui<'_>) {
+    let pending = &app.editor.pending;
+    let mut y = 6u16;
+    paint_str(ui, 6, y, "Workspace", SECONDARY, BLACK, true);
+    paint_right(ui, y, &format!("{} vars", pending.env.len()), DARK_MUTED);
+    y = y.saturating_add(1);
+    for (index, env) in pending.env.iter().enumerate() {
+        paint_env_row(ui, y, &env.key, &env.value, index == 0);
+        y = y.saturating_add(1);
+    }
+    paint_env_gutter(ui, y);
+    paint_str(
+        ui,
+        8,
+        y,
+        "+ Add environment variable",
+        SECONDARY,
+        BLACK,
+        false,
+    );
+    y = y.saturating_add(1);
 
-    paint_str(ui, 8, 7, "DATABASE_URL", WHITE, BADGE_BG, true);
-    paint_str(ui, 28, 7, "Plain value", SECONDARY, BADGE_BG, true);
-    paint_str(ui, 58, 7, "••••••••", MUTED, BADGE_BG, true);
+    let configured = pending
+        .role_env
+        .values()
+        .filter(|vars| !vars.is_empty())
+        .count();
+    paint_str(ui, 6, y, "Role overrides", SECONDARY, BLACK, true);
+    paint_right(
+        ui,
+        y,
+        &format!(
+            "{configured} configured · {} in the registry",
+            app.world.roles.len()
+        ),
+        DARK_MUTED,
+    );
+    y = y.saturating_add(1);
+    for (role, vars) in &pending.role_env {
+        if vars.is_empty() {
+            continue;
+        }
+        let leaf = role_leaf(role);
+        paint_str(ui, 4, y, "▾", SECONDARY, BLACK, false);
+        paint_str(ui, 6, y, &format!("Role: {leaf}"), SECONDARY, BLACK, true);
+        paint_right(ui, y, &format!("{} var", vars.len()), DARK_MUTED);
+        y = y.saturating_add(1);
+        for env in vars {
+            paint_env_row(ui, y, &env.key, &env.value, false);
+            y = y.saturating_add(1);
+        }
+        paint_env_gutter(ui, y);
+        paint_str(
+            ui,
+            8,
+            y,
+            &format!("+ Add {leaf} environment variable"),
+            SECONDARY,
+            BLACK,
+            false,
+        );
+        y = y.saturating_add(1);
+    }
+    paint_env_gutter(ui, y);
+    paint_str(ui, 8, y, "+ Add role override…", SECONDARY, BLACK, false);
+
+    paint_str(ui, 97, 37, " ", BLACK, BLACK, false);
+    paint_str(ui, 98, 37, "Cancel ", SECONDARY, BLACK, false);
+    paint_str(ui, 108, 37, " ", ACTIVE_BG, ACTIVE_BG, false);
+    paint_str(
+        ui,
+        109,
+        37,
+        "Save… ",
+        Color::Rgb(0x4d, 0x4d, 0x4d),
+        ACTIVE_BG,
+        false,
+    );
+}
+
+fn paint_right(ui: &mut Ui<'_>, y: u16, text: &str, fg: Color) {
+    let width = text.chars().count() as u16;
+    paint_str(ui, 117u16.saturating_sub(width), y, text, fg, BLACK, false);
+}
+
+fn paint_env_gutter(ui: &mut Ui<'_>, y: u16) {
+    paint_str(ui, 2, y, " ", BLACK, BLACK, false);
+    paint_str(ui, 3, y, " ", SECONDARY, BLACK, false);
+}
+
+fn env_shown(value: &crate::domain::workspace::EnvValue) -> (String, String) {
+    match value {
+        crate::domain::workspace::EnvValue::Plain(secret) => (
+            "*".repeat(secret.chars().count().min(16)),
+            "plain".to_owned(),
+        ),
+        crate::domain::workspace::EnvValue::OnePassword(reference) => {
+            ("*".repeat(16), format!("[op] {}", reference.display_path()))
+        }
+        crate::domain::workspace::EnvValue::HostEnv(name) => {
+            (format!("${name}"), "host env".to_owned())
+        }
+    }
+}
+
+fn paint_env_row(
+    ui: &mut Ui<'_>,
+    y: u16,
+    key: &str,
+    value: &crate::domain::workspace::EnvValue,
+    selected: bool,
+) {
+    let (shown, source) = env_shown(value);
+    let key_cell = format!("    {key:<20}");
+    let value_cell = format!("{shown:<24}");
+    if selected {
+        paint_str(ui, 2, y, &" ".repeat(116), WHITE, BADGE_BG, true);
+        paint_str(ui, 2, y, "▎›", ACCENT, BADGE_BG, true);
+        paint_str(ui, 4, y, &key_cell, WHITE, BADGE_BG, true);
+        paint_str(ui, 28, y, &value_cell, SECONDARY, BADGE_BG, true);
+        paint_str(ui, 54, y, &source, SECONDARY, BADGE_BG, true);
+        let tail = 54u16.saturating_add(source.chars().count() as u16);
+        if tail < 117 {
+            paint_str(
+                ui,
+                tail,
+                y,
+                &" ".repeat(usize::from(117 - tail)),
+                MUTED,
+                BADGE_BG,
+                true,
+            );
+        }
+    } else {
+        paint_env_gutter(ui, y);
+        paint_str(ui, 4, y, &key_cell, WHITE, BLACK, false);
+        paint_str(ui, 28, y, &value_cell, SECONDARY, BLACK, false);
+        let source_cell = format!("{source:<63}");
+        paint_str(ui, 54, y, &source_cell, MUTED, BLACK, false);
+    }
 }
 
 fn paint_accounts_body(ui: &mut Ui<'_>) {
