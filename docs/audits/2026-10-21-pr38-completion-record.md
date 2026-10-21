@@ -229,3 +229,51 @@ entry for the increment.
 | Reusable Termrock library; thin applications | Incomplete — picker contracts and theme fix landed; Jackin/Holla/Showcase/TablePro bypasses remain |
 | Branch consolidation into PR #38 | In progress — ledger complete; two bounded integrations identified, six branches held for review |
 | Reference integrity | Frozen tag, PR #26 and Tuiscotti pin unchanged |
+
+## Integration onto tip `819ef8ef9` (2026-10-21, increment 2)
+
+The increment-1 branch `wip/pr38-completion-verify-20261021`
+(`8e976098d`) was merged into a sparse worktree based on
+`origin/parity/termrock-visual-baseline` tip `819ef8ef9`
+(merge `0fcfe6675`). One conflict, in `crates/termrock-overlays/src/picker.rs`:
+the tip had already grown the `PickerLayout` row policy
+(`PickerLayout::max_rows`, `Picker::max_rows`, searchable/footer/spare rows),
+so the branch's simpler `Picker::max_rows` was dropped in favour of the tip
+implementation. `Part::PLACEHOLDER` survives on the tip and the branch's
+`Substring` filter policy merged cleanly.
+
+After the merge:
+
+- `cargo nextest run -p termrock-theme -p termrock-navigation -p termrock-overlays`:
+  591 passed, 4 failed — the two known `item_row_columns` cases plus two
+  tip-side red tests (below).
+- `cargo nextest run -p termrock-conformance --test conformance`:
+  923 passed, **12 failed**. The increment-1 driver repairs hold on the new
+  tip (935 cases collected, up from 935; the earlier 23-failure count is gone).
+
+The 12 remaining failures and their owners:
+
+| Case | Cause | Owner |
+| --- | --- | --- |
+| `grid::mono_states_are_distinguishable`, `grid_error_is_real_cell_decor_and_mono_distinct` | ERROR decor is colour-only | grid workstream |
+| `help_overlay::mono_states_are_distinguishable`, `help_overlay::local_override_does_not_mutate_the_theme`, `help_overlay::bindings_match_handled_keys`, `help_overlay::wheel_at_boundary_is_consumed_without_repaint` | hardcoded ink, colour-only FOCUSED, `↑` owner, wheel ownership | help workstream |
+| `filter_list::hover_does_not_steal_focus`, `picker::hover_does_not_steal_focus` | hover restoration while the owned query editor edits | hover workstream |
+| `picker::wheel_at_boundary_is_consumed_without_repaint` | overlay scroll owner not wired to the layer hit region | hover workstream |
+| `scroll_region::mono_states_are_distinguishable` | `PRESSED` thumb carries state by colour only | scroll workstream |
+| `completion::mono_states_are_distinguishable` | same thumb path through `ScrollRegion` | fixed by the scroll workstream |
+| `registry::declared_parts_are_the_parts_actually_styled` | `Picker::PARTS` and `FilterList::PARTS` omitted `Part::PLACEHOLDER`, which both style | fixed here |
+
+`registry` fix: `Part::PLACEHOLDER` added to `Picker::PARTS` and
+`FilterList::PARTS`; the existing conformance case is the regression test and
+now passes.
+
+### Tip-side red tests observed (not caused by this merge)
+
+- `termrock-overlays menu::tests::menu_bar_keeps_public_default_variant_overlay_and_local_patch_precedence`:
+  expects `Rgb(7, 8, 9)` for the Title overlay background, tip commit
+  `84d6477d7` resolves it through `MENU_BAR_TITLE_VARIANT` to `Rgb(28, 28, 31)`.
+  The test expectation was not updated by that commit.
+- `termrock-theme capability_palettes::all_73_junie_slots_match_reference_capability_output`:
+  red on the merged tree; not touched by this merge, needs a separate look.
+
+Both are recorded, not accepted as green, and were not modified to pass.
