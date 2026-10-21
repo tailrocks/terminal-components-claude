@@ -1975,7 +1975,7 @@ impl<'a> CodeEditor<'a> {
         }
         // A focused editor that is not editing shows the position label and
         // hides the caret. Read-only focus still shows the caret.
-        let show_caret = st.editing || (self.read_only && live.contains(StateFlags::FOCUSED));
+        let show_caret = live.contains(StateFlags::FOCUSED) && (st.editing || self.read_only);
         if show_caret
             && !st.find.as_ref().is_some_and(|find| find.typing)
             && cursor.line >= view.offset()

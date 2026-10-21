@@ -1,0 +1,7 @@
+# CodeEditor cursor ownership after retained editing
+
+The exact PR #38 source `5b3097acab788ed4e189bc7e6aab27f1b6a6ee65` and merged metadata candidate `30eb0e5c9be3f09a6145f7ac143725745f2d554f` both fail the existing real-runtime tests `focus_out_commits_by_default_but_can_preserve_the_edit_session` and `focus_loss_dismisses_completion_but_preserves_configured_edit_session`. The latter reports `CursorRejected { owner: completion.composite.editor, layer: LayerId(0) }`; the former rejects nonempty runtime diagnostics. Neither test is changed.
+
+CodeEditor retained `editing` domain state when configured not to commit on blur, but used that state alone to request a terminal cursor. The runtime correctly rejects a cursor owned by an unfocused component. Retained editing and cursor ownership are separate contracts: the former preserves the draft and selection; the latter requires current focus. The renderer now requires `FOCUSED` for both editable and read-only caret requests. Find input still owns its cursor while typing. This changes the responsible shared renderer, without invisible focus controls or an application workaround.
+
+The coordinator made this one-line fix in its exclusive integration worktree while all five allowed subagent slots were occupied. Independent review of the exact successor remains required before PR #38 publication. The preceding metadata candidate is preserved remotely at `wip/editor-meta-merged-review-20261021`; its standalone branch default-marker differences remain recorded and are not accepted as parity.
