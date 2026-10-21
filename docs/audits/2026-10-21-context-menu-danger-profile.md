@@ -39,7 +39,8 @@ pressed, disabled, and active-disabled combinations. The profiles provide exact 
 ladder colors and modifier precedence. More-specific hover/press/disabled
 rules preserve their state over the active rest value. The disabled profile
 returns to `CurrentSurface`, uses the frozen disabled-ink fallback, removes
-active focus modifiers, and adds Mono dim. Inactive danger rows and normal menu
+active focus modifiers, and adds DIM when the Junie disabled ink collides with
+the popover surface at ANSI16 and Mono. Inactive danger rows and normal menu
 rows do not receive the active profile.
 
 The profile uses existing provenance checks. Consumer token or recipe changes
@@ -47,11 +48,11 @@ detach the profile channel; global, overlay-scope, instance, and part-local
 overrides still win. The test also verifies cache invalidation after replacing
 the runtime theme.
 
-An additional resolver check exposed that a disabled danger row could inherit
-generic hover styling. The disabled rule now retains the frozen `DangerSoft`
-ink and clears row fill and hover/press modifiers; the active-disabled rule
-also removes those transient modifiers while restoring the frozen surface and
-disabled ink. This keeps the disabled item inert at every capability level.
+Independent review found two disabled-state gaps. A disabled row must use the
+frozen disabled foreground across the row fill and text label, including the
+muted-ink-plus-DIM collision fallback at ANSI16 and Mono. The profile now
+applies that resolved style to both `ROW` and `LABEL`, and disabled precedence
+suppresses hover and press without changing normal menu rows.
 
 ## Evidence
 
@@ -68,11 +69,14 @@ Before the profile, the real-widget regression failed on the frozen active
 hover cell (`TrueColor` rest `Rgb(122,42,42)` versus expected hover
 `Rgb(140,48,48)`). The disabled-hover resolver check also failed before the
 disabled precedence patch because that row resolved to the generic blue
-highlight. After both profile fixes, all six focused cases passed across all
-four capabilities. No frozen artifacts or expected snapshots changed.
+highlight. The independent full-row frozen cell probe then exposed incorrect
+disabled ink on padding and label cells and missing ANSI16 DIM. It now passes
+alongside seven authored focused cases over all four capabilities. The
+independent 28-frame ordinary-menu corpus also passed unchanged. No frozen
+artifacts or expected snapshots changed.
 
 Checks on the implementation: `cargo nextest run -p termrock-theme
--p termrock-overlays --no-fail-fast` ran280 tests: 279 passed, the known
+-p termrock-overlays --no-fail-fast` ran281 tests: 280 passed, the known
 `capability_palettes::all_73_junie_slots_match_reference_capability_output`
 failed, and no tests were skipped. `cargo clippy -p termrock-theme
 -p termrock-overlays --all-targets --no-deps -- -D warnings` passed.
