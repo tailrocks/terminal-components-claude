@@ -1345,10 +1345,9 @@ mod tests {
     }
 
     #[test]
-    #[test]
     fn border_head_paints_the_padded_title_in_the_top_border_row() {
         let (mut rt, mut buf) = scene();
-        rt.draw_scene(SCREEN, &mut buf, |ui, _| {
+        let _ = rt.draw_scene(SCREEN, &mut buf, |ui, _| {
             Dialog::info(DLG, "Debug info")
                 .width(38)
                 .body_rows(8)
@@ -1373,7 +1372,7 @@ mod tests {
     fn border_head_height_is_border_plus_body_plus_actions() {
         let measured = Cell::new(0u16);
         let (mut rt, mut buf) = scene();
-        rt.draw_scene(SCREEN, &mut buf, |ui, _| {
+        let _ = rt.draw_scene(SCREEN, &mut buf, |ui, _| {
             let dialog = Dialog::info(DLG, "Debug info")
                 .width(66)
                 .body_rows(8)
@@ -1387,7 +1386,7 @@ mod tests {
     #[test]
     fn meta_paints_the_faint_caption_before_the_close_mark() {
         let (mut rt, mut buf) = scene();
-        rt.draw_scene(SCREEN, &mut buf, |ui, _| {
+        let _ = rt.draw_scene(SCREEN, &mut buf, |ui, _| {
             Dialog::info(DLG, "Debug info")
                 .width(38)
                 .body_rows(8)
@@ -1411,7 +1410,7 @@ mod tests {
     #[test]
     fn border_head_close_action_drops_the_mnemonic_mark() {
         let (mut rt, mut buf) = scene();
-        rt.draw_scene(SCREEN, &mut buf, |ui, _| {
+        let _ = rt.draw_scene(SCREEN, &mut buf, |ui, _| {
             Dialog::info(DLG, "Debug info")
                 .width(38)
                 .body_rows(8)
@@ -1435,6 +1434,7 @@ mod tests {
         }
     }
 
+    #[test]
     fn body_is_total_and_clipped_when_the_dialog_cannot_draw() {
         let areas = [
             Rect::new(7, 5, 0, 0),
