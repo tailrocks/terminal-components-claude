@@ -26,6 +26,11 @@ status decoration did not exist; after implementation the focused tests passed.
 The pre-existing natural-width assertion remains exact (`16` cells), and passed
 against the base and after the change.
 
+The integration test `crates/termrock-overlays/tests/context_menu_disabled_reason.rs`
+also compiles a consumer against public crate/runtime APIs with its own actions
+and data. It verifies disabled-hover reason output, nonactivation from Enter or
+the displayed chord, and reason clearing after keyboard movement.
+
 The unfiltered overlays library suite reports one failure:
 `menu::tests::default_menu_bar_scope_keeps_title_patches_off_the_padding_cells`.
 It reproduces at this WIP's base `6841e67ed4d240d9b39478b2e99f39ff48b8189b`,
