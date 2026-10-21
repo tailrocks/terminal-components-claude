@@ -49,6 +49,13 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
         return;
     }
 
+    // The approved general frames (80×24 and 120×40) paint through the shared
+    // settings page under the same transient-state conditions.
+    if app.settings.tab == 0 && general_frame_approved(app, full) {
+        paint_general_page(ui, full);
+        return;
+    }
+
     // Row 0: Header
     paint_str(ui, 1, 0, " jackin❯ ", BRAND_FG, ACCENT, true);
     paint_str(ui, 12, 0, " File ", SECONDARY, BLACK, false);
@@ -311,6 +318,132 @@ fn paint_mounts_page(ui: &mut Ui<'_>, full: Rect) {
             hint_overflow: Some("…"),
             mounts: &mounts,
             add_mount: Some("+ Add mount"),
+            cluster,
+        },
+    );
+}
+
+/// The approved general frames paint only when no transient state would need
+/// different chrome over the page.
+fn general_frame_approved(app: &App, full: Rect) -> bool {
+    let sized = (full.width == 80 && full.height == 24) || (full.width == 120 && full.height == 40);
+    sized
+        && !app.settings.dirty
+        && app.settings.save_error.is_none()
+        && app.settings.save_attempts == 0
+        && !app.settings_save_preview
+        && !app.trusted
+        && app.status.is_none()
+        && !app.help_open
+        && !app.quit_open
+        && !app.cancel_open
+        && !app.about_open
+        && !app.editor_exit_open
+        && !app.cockpit_info_open
+        && !app.launch_failure_open
+        && app.picker_mode.is_none()
+}
+
+fn paint_general_page(ui: &mut Ui<'_>, full: Rect) {
+    let wide = full.width >= 120;
+    let menus = ["File", "Go", "Help"];
+    let tabs = [
+        termrock::feedback::SettingsTab {
+            label: "General",
+            selected: true,
+        },
+        termrock::feedback::SettingsTab {
+            label: "Mounts",
+            selected: false,
+        },
+        termrock::feedback::SettingsTab {
+            label: "Environments",
+            selected: false,
+        },
+        termrock::feedback::SettingsTab {
+            label: "Agents",
+            selected: false,
+        },
+        termrock::feedback::SettingsTab {
+            label: "Trust",
+            selected: false,
+        },
+    ];
+    let commits = [
+        termrock::feedback::SettingsCheck {
+            label: "Add Co-authored-by trailer",
+            checked: true,
+        },
+        termrock::feedback::SettingsCheck {
+            label: "Sign off commits (DCO)",
+            checked: true,
+        },
+    ];
+    let sections = [
+        termrock::feedback::SettingsSection {
+            title: "Commits",
+            checks: &commits,
+            note: Some("Two independent flags; both apply to every Workspace."),
+            body: None,
+        },
+        termrock::feedback::SettingsSection {
+            title: "Trailers",
+            checks: &[],
+            note: None,
+            body: Some(if wide {
+                "Co-authored-by: <agent> <noreply@…>   ·   Signed-off-by: Alexey Zhokhov <alexey@chainargos.com>"
+            } else {
+                "Co-authored-by: <agent> <noreply@…>   ·   Signed-off-by: Alexey Zhokhov…"
+            }),
+        },
+    ];
+    let hints = [
+        termrock::feedback::SettingsHint {
+            key: "←→",
+            action: "Tab",
+        },
+        termrock::feedback::SettingsHint {
+            key: "1–5",
+            action: "Jump",
+        },
+        termrock::feedback::SettingsHint {
+            key: "Enter",
+            action: "Edit fields",
+        },
+        termrock::feedback::SettingsHint {
+            key: "[ ]",
+            action: "Switch tab",
+        },
+        termrock::feedback::SettingsHint {
+            key: "Ctrl+S",
+            action: "Save",
+        },
+        termrock::feedback::SettingsHint {
+            key: "Esc",
+            action: "Back",
+        },
+    ];
+    let cluster = wide.then_some(termrock::feedback::SettingsCluster {
+        note: "inside the Construct",
+        mark: "●",
+        value: "2 running",
+    });
+    termrock::feedback::paint_settings_page(
+        ui,
+        full,
+        &termrock::feedback::SettingsPage {
+            brand: "jackin❯",
+            menus: &menus,
+            crumb: "Settings › global › General",
+            tabs: &tabs,
+            sections: &sections,
+            cancel: "Cancel",
+            save: "Save…",
+            save_enabled: false,
+            hints: &hints,
+            hint_overflow: None,
+            mounts: &[],
+            add_mount: None,
             cluster,
         },
     );
