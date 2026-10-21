@@ -1,0 +1,85 @@
+{
+  "schema": "runtime-resize-session-input-replay-v1",
+  "candidate_commit": "a130b4041847772d4fa6f3533bb0490546dc2437",
+  "prior_runtime_packet": "/private/tmp/runtime-resize-input-verification-a130b404-20261021.json",
+  "prior_runtime_packet_sha256": "c6df79a5583776e0e7480354a16a4e9949680a05355df294f91a5586c122ae3c",
+  "source_files": {
+    "crates/termrock-session/src/session.rs": {
+      "sha256": "86205abf24340b39afaf54b643280c7ed86014cbbf701d50d7ea3478327683f2"
+    },
+    "crates/showcase-ui/src/app.rs": {
+      "sha256": "46917235048d03f96788a66f6518a349562b9fab63c4dba839bad6511d80a2e8"
+    },
+    "crates/jackin-preview-app/src/lib.rs": {
+      "sha256": "451d07f45f3f62c259ccbe5a0b0e95d0fa944c22031440a02e7e596b4961d78b"
+    },
+    "crates/tablepro-ui/src/cli.rs": {
+      "sha256": "515ece88e9f98dd7ac84118b418eff508c91ed0447803cf1065065bce3b0e684"
+    },
+    "crates/tablepro-ui/src/app.rs": {
+      "sha256": "07fd8d68740dd759362d798f0e009a853d59cf77a47563d46ec061eb9a00f497"
+    },
+    "crates/holla/src/main.rs": {
+      "sha256": "d9ccd2ff578718261bebb6c98c4e73e702d88170890758f442c5beb5551a5837"
+    },
+    "crates/termrock/src/lib.rs": {
+      "sha256": "1eca83dfadc45c20020d3fb74969143aec2a731d5a5dc6f7c8d2945b7b51ce67"
+    }
+  },
+  "session_flow": [
+    {
+      "path": "crates/termrock-session/src/session.rs",
+      "lines": "457-502",
+      "finding": "On each loop, terminal output is prepared, drawn, and acknowledged whenever runtime needs_present; loop continues through settlement/presentation until stable before input handling."
+    },
+    {
+      "path": "crates/termrock-session/src/session.rs",
+      "lines": "506-511",
+      "finding": "Already-read pending Input is taken only after presentation settles. Runtime Err(PendingInput) is converted back with into_input and stored in pending; loop continues, so next iteration presents before retrying the same event."
+    },
+    {
+      "path": "crates/termrock-session/src/session.rs",
+      "lines": "513-523",
+      "finding": "If no pending event exists, poll/read occurs only after the presentation loop. Kernel-buffered subsequent key/mouse events are not read until resize frame acknowledgement."
+    },
+    {
+      "path": "crates/termrock/src/lib.rs",
+      "lines": "104-106",
+      "finding": "Public termrock::run and run_with_feedback_clock re-export termrock-session service."
+    },
+    {
+      "path": "crates/showcase-ui/src/app.rs",
+      "lines": "1925-1928",
+      "finding": "Showcase app run uses termrock::run."
+    },
+    {
+      "path": "crates/jackin-preview-app/src/lib.rs",
+      "lines": "74-81",
+      "finding": "Jackin preview app run uses termrock::run."
+    },
+    {
+      "path": "crates/tablepro-ui/src/app.rs",
+      "lines": "10358-10360",
+      "finding": "TablePro run uses termrock::run_with_feedback_clock."
+    },
+    {
+      "path": "crates/holla/src/main.rs",
+      "lines": "35-47",
+      "finding": "Holla CLI uses termrock::run_with_feedback_clock."
+    }
+  ],
+  "verification": {
+    "command": "cargo nextest run -p termrock-session --lib --no-fail-fast",
+    "exit_status": 0,
+    "result": "20 passed, 0 skipped",
+    "target_dir": "/private/tmp/runtime-resize-input-verify-target-a130b404",
+    "deadline_seconds": 205
+  },
+  "conclusion": "Session service preserves and retries PendingInput only after fresh presentation. Resize itself invalidates presentation, so session loop draws and acknowledges resized geometry before processing next buffered terminal input. No discard or stale-geometry service gap found.",
+  "limits": [
+    "No PTY tool used; no real CLI launched.",
+    "No injectable event source in run loop; service behavior confirmed by direct source trace plus package tests.",
+    "No product source changes.",
+    "Temporary runtime probe remains untracked test-only file in detached sparse worktree."
+  ]
+}
