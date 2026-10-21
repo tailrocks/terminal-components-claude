@@ -4,7 +4,7 @@ use termrock_core::event::{Chord, KeyCode, MouseKind};
 use termrock_core::id::Id;
 use termrock_core::response::Response;
 use termrock_overlays::{ContextMenu, MenuAction, MenuItem, MenuState};
-use termrock_runtime::{App, Cx, Ui};
+use termrock_runtime::{App, Cx, KeyMap, Ui};
 use termrock_test_support::Harness;
 use termrock_theme::{ColorLevel, Theme};
 
@@ -31,6 +31,7 @@ const ITEMS: &[MenuItem<'static>] = &[
 struct Consumer {
     state: MenuState,
     chosen: Option<ActionKey>,
+    keymap: KeyMap,
 }
 
 fn menu() -> ContextMenu<'static> {
@@ -50,6 +51,10 @@ impl App for Consumer {
     fn draw(&self, ui: &mut Ui<'_>) {
         menu().draw(ui, Rect::new(0, 0, 40, 7), &self.state);
     }
+
+    fn keymap(&self) -> &KeyMap {
+        &self.keymap
+    }
 }
 
 #[test]
@@ -58,6 +63,7 @@ fn public_consumer_gets_reason_without_binding_or_activation() {
         Consumer {
             state: MenuState::default(),
             chosen: None,
+            keymap: KeyMap::default(),
         },
         Theme::junie(),
         40,
@@ -98,6 +104,7 @@ fn hidden_highlight_cannot_activate_until_keyboard_navigation_restores_it() {
         Consumer {
             state: MenuState::default(),
             chosen: None,
+            keymap: KeyMap::default(),
         },
         Theme::junie(),
         40,
@@ -129,6 +136,97 @@ fn hidden_highlight_cannot_activate_until_keyboard_navigation_restores_it() {
 }
 
 #[test]
+fn physical_enter_and_space_cannot_activate_remapped_item_bindings_when_hidden() {
+    for (physical, activation_action, alternate) in [
+        (
+            KeyCode::Enter,
+            ActionKey::custom("menu.context.activate.enter"),
+            KeyCode::F(9),
+        ),
+        (
+            KeyCode::Char(' '),
+            ActionKey::custom("menu.context.activate.space"),
+            KeyCode::F(8),
+        ),
+    ] {
+        let mut keymap = KeyMap::default();
+        keymap.remap_component(MENU_ID, RUN, Chord::key(physical));
+        keymap.remap_component(MENU_ID, activation_action, Chord::key(alternate));
+        let mut harness = Harness::new(
+            Consumer {
+                state: MenuState::default(),
+                chosen: None,
+                keymap,
+            },
+            Theme::junie(),
+            40,
+            7,
+        );
+
+        let _ = harness.mouse(MouseKind::Move, 4, 1);
+        let selected_bg = harness.cell(4, 1).bg;
+        let _ = harness.mouse(MouseKind::Move, 0, 0);
+        assert_ne!(harness.cell(4, 1).bg, selected_bg);
+        let _ = harness.key(physical);
+        assert_eq!(
+            harness.app().chosen,
+            None,
+            "physical {physical:?} must not activate the remapped item"
+        );
+        let _ = harness.key(alternate);
+        assert_eq!(
+            harness.app().chosen,
+            Some(RUN),
+            "the explicitly remapped activation command remains available"
+        );
+    }
+}
+
+#[test]
+fn ordinary_item_letter_shortcut_can_activate_while_highlight_is_hidden() {
+    let mut keymap = KeyMap::default();
+    keymap.remap_component(MENU_ID, RUN, Chord::key(KeyCode::Char('x')));
+    let mut harness = Harness::new(
+        Consumer {
+            state: MenuState::default(),
+            chosen: None,
+            keymap,
+        },
+        Theme::junie(),
+        40,
+        7,
+    );
+
+    let _ = harness.mouse(MouseKind::Move, 4, 1);
+    let selected_bg = harness.cell(4, 1).bg;
+    let _ = harness.mouse(MouseKind::Move, 0, 0);
+    assert_ne!(harness.cell(4, 1).bg, selected_bg);
+    let _ = harness.key(KeyCode::Char('x'));
+    assert_eq!(harness.app().chosen, Some(RUN));
+}
+
+#[test]
+fn pointer_activation_after_leave_remains_available() {
+    let mut harness = Harness::new(
+        Consumer {
+            state: MenuState::default(),
+            chosen: None,
+            keymap: KeyMap::default(),
+        },
+        Theme::junie(),
+        40,
+        7,
+    );
+
+    let _ = harness.mouse(MouseKind::Move, 4, 1);
+    let selected_bg = harness.cell(4, 1).bg;
+    let _ = harness.mouse(MouseKind::Move, 0, 0);
+    assert_ne!(harness.cell(4, 1).bg, selected_bg);
+    let _ = harness.click(4, 1);
+    assert_eq!(harness.app().chosen, Some(RUN));
+}
+
+#[test]
 fn disabled_reason_row_does_not_change_while_pointer_is_held_or_dragged() {
     for color in [
         ColorLevel::TrueColor,
@@ -140,6 +238,7 @@ fn disabled_reason_row_does_not_change_while_pointer_is_held_or_dragged() {
             Consumer {
                 state: MenuState::default(),
                 chosen: None,
+                keymap: KeyMap::default(),
             },
             Theme::junie().downgrade(color),
             40,
