@@ -913,10 +913,16 @@ impl<'a> PropsList<'a> {
                 flags |= StateFlags::PRESSED;
             }
             let visible_area = row_area.intersection(content);
-            let container_has_explicit_fg = self
-                .ov
-                .part_patch(Part::CONTAINER)
-                .is_some_and(|patch| patch.fg.speaks());
+            let container_part = self.ov.part_patch(Part::CONTAINER);
+            let container_defaults = ui.style_defaults_with_explicit(
+                Family::PROPS,
+                self.variant,
+                Part::CONTAINER,
+                flags,
+                StyleDefaults::new(StylePatch::new().clear_fg()),
+                container_part.as_ref(),
+            );
+            let container_has_explicit_fg = container_defaults.explicit.fg.speaks();
             if self.presentation == PropsPresentation::Sheet {
                 {
                     let mut row_ui = RowUi::new_with_author_style_and_container_patch(
