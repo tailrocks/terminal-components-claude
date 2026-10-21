@@ -2,7 +2,7 @@
 //! session header and hint bar through the shared feedback painter.
 
 use termrock::feedback::{SessionChrome, SessionHint, SessionMenu, paint_session_chrome};
-use termrock::{ColorLevel, Rect, Ui};
+use termrock::{Rect, Ui};
 
 use crate::scenario::{Motion, Scenario};
 use crate::screens::manager::ManagerRowKey;
@@ -11,12 +11,9 @@ use super::{App, Route};
 
 /// The captured launch keeps the manager on the approved chrome while the
 /// picker, menus, help, and every transient dialog stay closed.
-pub(super) fn approved(app: &App, ui: &Ui<'_>, screen: Rect) -> bool {
-    let theme = ui.theme_ref();
-    screen.width == 120
-        && screen.height == 40
-        && theme.capability.color == ColorLevel::TrueColor
-        && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+pub(super) fn approved(app: &App, _ui: &Ui<'_>, screen: Rect) -> bool {
+    screen.width >= 80
+        && screen.height >= 24
         && app.route == Route::Manager
         && app.world.scenario == Scenario::HardCases
         && app.motion == Motion::Paused
