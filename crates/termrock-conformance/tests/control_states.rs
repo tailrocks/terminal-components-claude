@@ -4961,6 +4961,13 @@ fn w13_filter_backspace_removes_grapheme() {
         "W13-02: backspace removes grapheme cluster, got {:?}",
         rig.query.borrow()
     );
+    let _ = rig.app.key(KeyCode::Backspace);
+    assert_eq!(
+        rig.query.borrow().as_str(),
+        "",
+        "W13-02: the second backspace must consume the rest of the query with no dangling ZWJ, got {:?}",
+        rig.query.borrow()
+    );
 }
 
 #[test]
