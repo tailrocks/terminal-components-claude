@@ -103,7 +103,7 @@ impl Theme {
             })
         });
 
-        [
+        let profiled_theme = [
             (
                 TrueColor,
                 Color::Rgb(122, 42, 42),
@@ -190,6 +190,28 @@ impl Theme {
                     .part(Part::LABEL)
                     .when(StateFlags::DISABLED, disabled_style)
                     .when(StateFlags::ACTIVE | StateFlags::DISABLED, disabled_style);
+            })
+        });
+
+        [
+            (TrueColor, Color::Rgb(46, 154, 56)),
+            (Ansi256, Color::Indexed(65)),
+            (Ansi16, Color::LightGreen),
+            (Mono, Color::White),
+        ]
+        .into_iter()
+        .fold(profiled_theme, |theme, (level, pressed)| {
+            theme.define_variant_for_level(level, Family::BUTTON, Variant::PRIMARY, |recipe| {
+                recipe
+                    .part(Part::CONTAINER)
+                    .when(
+                        StateFlags::HOVERED,
+                        StylePatch::new().set_bg(Role::AccentHover),
+                    )
+                    .when(
+                        StateFlags::PRESSED,
+                        StylePatch::new().set_bg(Role::Custom(pressed)),
+                    );
             })
         })
     }
