@@ -2740,3 +2740,37 @@ The reference defect is recorded at
 with the replaced fixtures preserved verbatim under
 [the evidence directory](../audits/evidence/2026-10-21-showcase-shell-header-fixture/).
 It still needs independent review before it counts as closed.
+
+### Workspace gate on the merged session branch (2026-10-21)
+
+`cargo nextest run --workspace --all-targets --no-fail-fast` on
+`ed458571f` is 4739 tests with 4522 passing and 217 failing. The failures
+fall into these groups, none introduced by this session's integrations:
+
+- `termrock-conformance` component and overlay renders (the digest
+  re-bless is pending the theme palette adjudication below).
+- `termrock-conformance` semantic checks (`bindings_match_handled_keys`
+  family, `registry::declared_parts`, `local_override_does_not_mutate_the_theme`,
+  `help_overlay` tiny rectangles, readiness collisions, `control_states`).
+- `termrock-editors` focus-out and completion-dismissal cases.
+- `termrock-navigation::item_row_columns::constructor_defaults_match_the_pre_policy_full_cell_fixture`.
+- `termrock-overlays` MenuBar precedence.
+- `visual-harness` determinism and overlay sites.
+- `termrock-xtask::ownership` (87 growth findings; see the ownership work list).
+- The Showcase editor `app_tests`, `showcase_visual_baseline` and the
+  `shell_chrome` 16-colour Overview pin.
+
+### Theme palette adjudication (open)
+
+The parity tip and this branch disagree on the Junie 256-colour palette.
+This branch carries the tag-table adjudication (muted 245, faint 242,
+`on_accent` 232, `border_strong` 242, `highlight_bg` 67, syntax 111/116/183/203),
+adjudicated from the frozen tag's `apply_256` table
+(`visual-baseline:src/theme.rs:921-963`). The tip carries the corpus
+adjudication (muted 244, faint 238, `border_strong` 238, `highlight_bg` 25),
+adjudicated from the frozen tier frames.
+
+The two produce different rendered output, so the conflict must be settled
+against the frozen reference before the branches are merged. A dedicated
+workstream is adjudicating it against both the tag source and the corpus
+frames, and recording the result and any reference defect in this record.
