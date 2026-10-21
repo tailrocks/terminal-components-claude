@@ -1482,7 +1482,7 @@ impl<'a> MenuBar<'a> {
                     let local = self.ov.part_patch(Part::TITLE);
                     let style = ui.style_defaults(
                         Family::MENU,
-                        Variant::DEFAULT,
+                        MENU_BAR_TITLE_VARIANT,
                         Part::TITLE,
                         flags,
                         crate::theme::StyleDefaults::new(defaults),
