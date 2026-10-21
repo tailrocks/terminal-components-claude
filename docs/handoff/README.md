@@ -160,3 +160,7 @@ The canonical prepare stages one/two, Editor live API, Menu danger profile, Pane
 ## Showcase Editor broad-gate hold (2026-10-21)
 
 Preserve reviewed live Editor source and current records on `wip/parent-showcase-editor-validation-20261021`. The combined all-target suite ran 203 cases: 200 passed, three heading/visual checks failed and zero were skipped. No PR38 push occurred. Independently compare exact revision161284db9 before with9c99356ab after in distinct targets; classify all three failures and any masked Editor differences. Resolve regressions or record proven existing failures before publication. Do not bless candidate digests. See the current matrix and log.
+
+## Showcase attribution hold superseded (2026-10-21)
+
+Independent before/after comparison proves the three broad heading/visual failures predate the reviewed Editor merge. Bounded PR38 publication is permitted with that gate explicitly red; no fixture update or full parity approval is granted. The first Buttons panic still masks Editor visual coverage. Preserve the earlier hold log and WIP evidence until publication is remotely verified, then retire the fully integrated parent WIP only after fresh independent checks.
