@@ -14,7 +14,6 @@ Independent review `code-editor-meta-precedence-09aa-20261021` found that `CodeE
 - The unchanged external probe source SHA-256 is `6ada49133bcfb5549d867f2dfac1be8ed80427c0e8e730385f8c443c52ef1454`. Review recorded it red against `09aa3a18aede41df9cd478859bed5bec519ef445`; the same source passed against this worktree through public `termrock` and `termrock-test-support` dependencies.
 - `CARGO_TARGET_DIR=/private/tmp/code-editor-meta-precedence-target-20261021 rustup run 1.99.1 cargo nextest run -p termrock-editors --lib`: 37 passed, 0 skipped.
 - `CARGO_TARGET_DIR=/private/tmp/code-editor-meta-precedence-target-20261021 rustup run 1.99.1 cargo nextest run --manifest-path /Users/donbeave/Projects/code-editor-meta-probe-current/Cargo.toml`: unchanged external probe passed, 1 passed, 0 skipped.
-- `CARGO_TARGET_DIR=/private/tmp/code-editor-meta-precedence-target-20261021 rustup run 1.99.1 cargo nextest run --manifest-path /Users/donbeave/Projects/code-editor-meta-probe-current/Cargo.toml`: unchanged external probe passed, 1 passed, 0 skipped.
 - `CARGO_TARGET_DIR=/private/tmp/code-editor-meta-precedence-target-20261021 rustup run 1.99.1 cargo clippy -p termrock-editors --all-targets -- -D warnings`: passed.
 - `rustup run 1.99.1 cargo fmt --all -- --check`: passed.
 
