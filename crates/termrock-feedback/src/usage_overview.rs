@@ -35,6 +35,8 @@ pub struct UsageLine {
     pub mark: UsageMark,
     pub meta: String,
     pub selected: bool,
+    /// Keyboard focus draws the accent gutter. A selected row in another pane does not.
+    pub focused: bool,
 }
 
 pub struct UsageHint<'a> {
@@ -84,6 +86,30 @@ pub struct UsageTrail<'a> {
     pub muted: bool,
 }
 
+pub struct UsageQuota {
+    pub label: String,
+    pub pct: u8,
+    pub detail: String,
+    pub meter: UsageInk,
+    pub italic: bool,
+}
+
+pub enum UsageAccountLine {
+    Blank,
+    Text {
+        text: String,
+        ink: UsageInk,
+        bold: bool,
+    },
+    Quota(UsageQuota),
+}
+
+pub struct UsageAccount<'a> {
+    pub title: &'a str,
+    pub status: &'a str,
+    pub lines: &'a [UsageAccountLine],
+}
+
 pub struct UsageOverview<'a> {
     pub brand: &'a str,
     pub menus: &'a [&'a str],
@@ -97,6 +123,7 @@ pub struct UsageOverview<'a> {
     pub detail_title: &'a str,
     pub detail_meta: &'a str,
     pub detail: &'a [UsageDetailLine],
+    pub account: Option<UsageAccount<'a>>,
 }
 
 struct Ink {
@@ -140,6 +167,15 @@ pub fn paint_usage_overview(ui: &mut Ui<'_>, area: Rect, page: &UsageOverview<'_
     let panel = panel_rect(area);
     paint_frame(ui, panel, page, &ink);
     let content = list_rect(panel);
+    if let Some(account) = page.account.as_ref() {
+        if area.width.saturating_sub(2) < 100 {
+            paint_account_card(ui, content, account, &ink);
+        } else {
+            paint_split_account(ui, content, page, account, &ink);
+        }
+        paint_hints(ui, area, page, &ink);
+        return;
+    }
     if area.width.saturating_sub(2) >= 100 {
         paint_split(ui, content, page, &ink);
     } else {
@@ -410,7 +446,7 @@ fn paint_account(ui: &mut Ui<'_>, list: Rect, y: u16, row_w: u16, row: &UsageLin
         (ink.primary, ink.canvas, plain(ink.primary, ink.canvas))
     };
     ui.fill(row_area, face);
-    if row.selected {
+    if row.selected && row.focused {
         put(ui, list, list.x, y, "▎", bold(ink.accent, SELECT_BG));
         put(
             ui,
@@ -419,6 +455,16 @@ fn paint_account(ui: &mut Ui<'_>, list: Rect, y: u16, row_w: u16, row: &UsageLin
             y,
             "›",
             bold(ink.accent, SELECT_BG),
+        );
+    } else if row.selected {
+        put(ui, list, list.x, y, " ", bold(SELECT_BG, SELECT_BG));
+        put(
+            ui,
+            list,
+            list.x.saturating_add(1),
+            y,
+            "›",
+            bold(ink.secondary, SELECT_BG),
         );
     } else {
         put(ui, list, list.x, y, " ", plain(ink.canvas, ink.canvas));
@@ -543,6 +589,35 @@ fn paint_bar(ui: &mut Ui<'_>, list: Rect, viewport: u16, content: u16, canvas: C
             plain(color, canvas),
         );
     }
+}
+
+fn paint_split_account(
+    ui: &mut Ui<'_>,
+    content: Rect,
+    page: &UsageOverview<'_>,
+    account: &UsageAccount<'_>,
+    ink: &Ink,
+) {
+    let list_w = (u32::from(content.width) * 34 / 100)
+        .clamp(28, 40)
+        .min(u32::from(content.width));
+    let list_w = u16::try_from(list_w).unwrap_or(40);
+    let list = Rect {
+        width: list_w,
+        ..content
+    };
+    paint_rows(ui, list, page.rows, ink);
+    let detail_x = content.x.saturating_add(list_w).saturating_add(2);
+    if detail_x >= content.right() {
+        return;
+    }
+    let detail = Rect::new(
+        detail_x,
+        content.y,
+        content.right().saturating_sub(detail_x),
+        content.height,
+    );
+    paint_account_card(ui, detail, account, ink);
 }
 
 fn paint_split(ui: &mut Ui<'_>, content: Rect, page: &UsageOverview<'_>, ink: &Ink) {
@@ -755,6 +830,143 @@ fn paint_meter(
         marker_style = marker_style.add_modifier(Modifier::BOLD);
     }
     put(ui, area, x.saturating_add(13), y, marker, marker_style);
+}
+
+fn paint_account_card(ui: &mut Ui<'_>, content: Rect, account: &UsageAccount<'_>, ink: &Ink) {
+    put(
+        ui,
+        content,
+        content.x,
+        content.y,
+        account.title,
+        bold(ink.primary, ink.canvas),
+    );
+    if !account.status.is_empty() {
+        put(
+            ui,
+            content,
+            content.right().saturating_sub(width(account.status)),
+            content.y,
+            account.status,
+            plain(ink.faint, ink.canvas),
+        );
+    }
+    let label_need = account
+        .lines
+        .iter()
+        .filter_map(|line| match line {
+            UsageAccountLine::Quota(row) => Some(width(&row.label)),
+            _ => None,
+        })
+        .max()
+        .unwrap_or(0);
+    let meter = if content.width >= 70 { 30 } else { 22 };
+    let label_cap = content
+        .width
+        .saturating_sub(meter)
+        .saturating_sub(4)
+        .saturating_sub(8);
+    let label_w = label_need.min(label_cap);
+    let mut y = content.y.saturating_add(2);
+    for line in account.lines {
+        if y >= content.bottom() {
+            break;
+        }
+        match line {
+            UsageAccountLine::Blank => {}
+            UsageAccountLine::Text {
+                text,
+                ink: tone,
+                bold: heavy,
+            } => {
+                put(
+                    ui,
+                    content,
+                    content.x,
+                    y,
+                    text,
+                    ink_style(ink, *tone, *heavy),
+                );
+            }
+            UsageAccountLine::Quota(row) => {
+                put(
+                    ui,
+                    content,
+                    content.x,
+                    y,
+                    &row.label,
+                    plain(ink.primary, ink.canvas),
+                );
+                let meter_x = content.x.saturating_add(label_w).saturating_add(2);
+                paint_quota_meter(ui, content, meter_x, y, meter, row, ink);
+                let detail_x = meter_x.saturating_add(meter).saturating_add(2);
+                let room = content.right().saturating_sub(detail_x);
+                let detail = crate::text::truncate(&row.detail, room);
+                put(
+                    ui,
+                    content,
+                    detail_x,
+                    y,
+                    &detail,
+                    plain(ink.muted, ink.canvas),
+                );
+            }
+        }
+        y = y.saturating_add(1);
+    }
+}
+
+fn paint_quota_meter(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    x: u16,
+    y: u16,
+    meter_w: u16,
+    row: &UsageQuota,
+    ink: &Ink,
+) {
+    let bg = match row.meter {
+        UsageInk::Danger => DANGER,
+        UsageInk::Warning => WARNING,
+        _ => INFO,
+    };
+    let track = Color::Rgb(0x1c, 0x1c, 0x1f);
+    let bar_w = meter_w.saturating_sub(2);
+    let label = format!(" {:>3}%", row.pct);
+    let mut glyphs: Vec<char> = label.chars().collect();
+    while u16::try_from(glyphs.len()).unwrap_or(0) < bar_w {
+        glyphs.push(' ');
+    }
+    let fill = usize::try_from((u32::from(row.pct) * u32::from(bar_w) + 50) / 100).unwrap_or(0);
+    let mut filled = bold(Color::Rgb(0, 0, 0), bg);
+    let mut empty = plain(ink.primary, track);
+    if row.italic {
+        filled = filled.add_modifier(Modifier::ITALIC);
+        empty = plain(ink.muted, track).add_modifier(Modifier::ITALIC);
+    }
+    for (index, glyph) in glyphs.iter().enumerate() {
+        let index_u = u16::try_from(index).unwrap_or(0);
+        if index_u >= bar_w {
+            break;
+        }
+        let style = if index < fill { filled } else { empty };
+        put(
+            ui,
+            area,
+            x.saturating_add(index_u),
+            y,
+            &glyph.to_string(),
+            style,
+        );
+    }
+    put(
+        ui,
+        area,
+        x.saturating_add(bar_w),
+        y,
+        "  ",
+        plain(bg, ink.canvas),
+    );
 }
 
 fn paint_hints(ui: &mut Ui<'_>, area: Rect, page: &UsageOverview<'_>, ink: &Ink) {

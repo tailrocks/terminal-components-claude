@@ -65,7 +65,7 @@ pub use settings_page::{
 };
 pub use status::{Emphasis, Group, MAX_ITEMS, StatusAction, StatusBar, StatusItem};
 pub use usage_overview::{
-    UsageDetailLine, UsageHint, UsageInk, UsageLine, UsageMark, UsageOverview, UsageProvider,
-    UsageSpan, UsageTrail, paint_usage_overview,
+    UsageAccount, UsageAccountLine, UsageDetailLine, UsageHint, UsageInk, UsageLine, UsageMark,
+    UsageOverview, UsageProvider, UsageQuota, UsageSpan, UsageTrail, paint_usage_overview,
 };
 pub use zoom_pane::{ZoomHint, ZoomSpan, ZoomTab, ZoomTone, ZoomedPane, paint_zoomed_pane};
