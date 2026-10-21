@@ -1,7 +1,7 @@
 //! The showcase pages paint their content from live widgets.
 //!
 //! These tests guard the two properties the showcase lost when a page pasted
-//! a captured frame: no page holds a table of captured cells, and no page
+//! frozen cells: no page holds a table of frozen cells, and no page
 //! picks a different screen for an exact page size.
 
 use showcase_demos::pages::Page;
