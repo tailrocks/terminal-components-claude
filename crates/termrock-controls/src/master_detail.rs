@@ -379,7 +379,11 @@ impl MasterDetail {
         }
     }
 
-    fn split_pane(&self) -> SplitPane<'static> {
+    /// Build the split pane used by this block's layout, update, and draw paths.
+    ///
+    /// Exposed for component-author adapters that need to measure the same
+    /// pane configuration without creating a second split policy.
+    pub fn split_pane(&self) -> SplitPane<'static> {
         SplitPane::new(self.id, SplitAxis::Horizontal)
             .gap(self.gap)
             .min_first(self.min_master)
