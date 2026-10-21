@@ -366,7 +366,10 @@ impl KeyRouter {
             .unwrap_or_else(|| host.page_paste(text))
     }
 
-    /// Route a key, suppressing hover the way a key press should.
+    /// Route a key: a layer above the page answers first, then an open menu
+    /// bar, then the shell's own tiers around the page. (Hover suppression
+    /// is the runtime's: on parity the runtime drops hover state on any key
+    /// press before app code runs, so the router does no hover work.)
     pub fn route<H: KeyHost + ?Sized>(host: &mut H, key: &Key) -> Response<()> {
         Self::replay(host, key)
     }
@@ -387,7 +390,9 @@ impl KeyRouter {
             {
                 return host.request_quit();
             }
-            return Response::consumed();
+            // A layer that passes still keeps the key from the page, but its
+            // own response payload (invalidate, state) survives the fold.
+            return out | Response::consumed();
         }
         if let Some(out) = host.menu_key(key) {
             return out;
