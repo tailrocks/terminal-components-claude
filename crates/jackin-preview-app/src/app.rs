@@ -7417,6 +7417,149 @@ impl App {
                 detail_title: "Overview",
                 detail_meta: &detail_meta,
                 detail: &detail,
+                account: None,
+            },
+        );
+    }
+
+    fn usage_detail_host(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        !(screen.width == 120 && screen.height == 40)
+            && screen.width >= 72
+            && screen.height >= 20
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Usage
+            && self.world.scenario == Scenario::AccountsMixed
+            && self.motion == Motion::Paused
+            && self.usage.tab == UsageTab::Registration
+            && self.usage.detail_open()
+            && self.usage.selected().is_some_and(|id| {
+                self.world
+                    .accounts
+                    .sorted()
+                    .first()
+                    .is_some_and(|account| account.id == id)
+            })
+            && !self.accounts.form_open
+            && !self.accounts.started
+            && self.accounts.editing.is_none()
+            && self.accounts.draft_name.is_empty()
+            && self.accounts.masked_input.is_empty()
+            && self.accounts.selected_op.is_none()
+            && self.accounts.op_stage == 0
+            && self.accounts.provider_index == 0
+            && self.accounts.source_index == 0
+            && self.accounts.pending_refresh.is_none()
+            && self.accounts.remove_confirmation.is_none()
+            && !self.accounts.filtering
+            && self.accounts.filter_query.is_empty()
+            && !self.accounts.drawer_open
+            && self.status.is_none()
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.about_open
+            && self.picker_mode.is_none()
+    }
+
+    fn draw_usage_detail_live(&self, ui: &mut Ui<'_>, screen: Rect) {
+        if !self.usage_detail_host(ui.theme_ref(), screen) {
+            return;
+        }
+        let Some(account) = self
+            .usage
+            .selected()
+            .and_then(|id| self.world.accounts.get(id))
+        else {
+            return;
+        };
+        let lines = usage_account_lines(account, &self.world);
+        let mut list_rows = self.usage_overview_lines();
+        let mut wanted = account.display_name.clone();
+        if account.default_for_provider {
+            wanted.push_str("  ★");
+        }
+        for row in &mut list_rows {
+            row.selected = !row.heading && row.label == wanted;
+            row.focused = false;
+        }
+        let title = account.title();
+        let status_word = account.status_word().to_owned();
+        let crumb = self.usage.crumb(Some((
+            account.surface.surface_name(),
+            account.display_name.as_str(),
+        )));
+        let refreshing = self
+            .world
+            .accounts
+            .accounts
+            .iter()
+            .filter(|item| item.usage.freshness.phase == Freshness::Refreshing)
+            .count();
+        let frame = usage_spinner(self.world.now_ms());
+        let panel_status = if refreshing > 0 {
+            format!("{frame} refreshing {refreshing}")
+        } else {
+            format!(
+                "broker · {}",
+                self.world.clock.ago(self.world.last_refresh_secs)
+            )
+        };
+        let running = self.world.running_count();
+        let trail_text = if running == 0 {
+            "no instances".to_owned()
+        } else {
+            format!("{running} running")
+        };
+        let note = if self.world.arbiter.entered_at_ms.is_some() || running > 0 {
+            "inside the Construct"
+        } else {
+            "outside the Construct"
+        };
+        let menus = ["File", "Go", "Help"];
+        let hints = [
+            termrock::feedback::UsageHint {
+                key: "↑↓",
+                action: "Scroll",
+            },
+            termrock::feedback::UsageHint {
+                key: "r",
+                action: "Refresh",
+            },
+            termrock::feedback::UsageHint {
+                key: "m",
+                action: "Manage in Accounts",
+            },
+            termrock::feedback::UsageHint {
+                key: "Esc",
+                action: "Back to list",
+            },
+        ];
+        termrock::feedback::paint_usage_overview(
+            ui,
+            screen,
+            &termrock::feedback::UsageOverview {
+                brand: "jackin❯",
+                menus: &menus,
+                crumb: &crumb,
+                note,
+                trail: Some(termrock::feedback::UsageTrail {
+                    mark: (running > 0).then_some("●"),
+                    text: &trail_text,
+                    muted: running == 0,
+                }),
+                title: "Usage · read-only",
+                status: &panel_status,
+                rows: &list_rows,
+                hints: &hints,
+                detail_title: "",
+                detail_meta: "",
+                detail: &[],
+                account: Some(termrock::feedback::UsageAccount {
+                    title: &title,
+                    status: &status_word,
+                    lines: &lines,
+                }),
             },
         );
     }
@@ -7432,6 +7575,7 @@ impl App {
             mark: termrock::feedback::UsageMark::None,
             meta: String::new(),
             selected: true,
+            focused: true,
         }];
         for surface in UsageSurface::ALL {
             let mut opened = false;
@@ -10040,6 +10184,135 @@ fn usage_spinner(now_ms: i64) -> &'static str {
     USAGE_SPINNER.get(index).copied().unwrap_or("⠋")
 }
 
+fn usage_account_lines(
+    account: &Account,
+    world: &World,
+) -> Vec<termrock::feedback::UsageAccountLine> {
+    use termrock::feedback::{UsageAccountLine, UsageInk, UsageQuota};
+    let text = |body: String, ink: UsageInk, heavy: bool| UsageAccountLine::Text {
+        text: body,
+        ink,
+        bold: heavy,
+    };
+    let mut lines = vec![
+        text(
+            format!(
+                "Provider     {} · surface {}",
+                account.provider.label(),
+                account.surface.surface_name()
+            ),
+            UsageInk::Plain,
+            false,
+        ),
+        text(
+            format!(
+                "Account      {} · {}",
+                account.identity.label(),
+                account
+                    .identity
+                    .plan
+                    .clone()
+                    .unwrap_or_else(|| "plan unknown".to_owned())
+            ),
+            if account.identity.subject.is_some() {
+                UsageInk::Plain
+            } else {
+                UsageInk::Muted
+            },
+            false,
+        ),
+        text(
+            format!(
+                "Credential   {} · {}",
+                account.source.origin_label(),
+                account.source.safe_detail()
+            ),
+            UsageInk::Plain,
+            false,
+        ),
+    ];
+    let status = match account.usage.freshness.phase {
+        Freshness::Current => format!(
+            "{} · current · refreshed {}",
+            account.lifecycle.label(),
+            account
+                .last_refresh_secs
+                .map(|secs| world.clock.ago(secs))
+                .unwrap_or_else(|| "never".to_owned())
+        ),
+        Freshness::Stale => format!(
+            "{} · stale · last good {}",
+            account.lifecycle.label(),
+            account
+                .usage
+                .freshness
+                .last_good_secs
+                .map(|secs| world.clock.ago(secs))
+                .unwrap_or_else(|| "?".to_owned())
+        ),
+        Freshness::Refreshing => format!("{} · refreshing…", account.lifecycle.label()),
+        Freshness::Failed => format!(
+            "{} · error: {}",
+            account.lifecycle.label(),
+            account
+                .issue
+                .as_ref()
+                .map(|issue| issue.message.clone())
+                .unwrap_or_else(|| "refresh failed".to_owned())
+        ),
+    };
+    let status_ink = match account.usage.freshness.phase {
+        Freshness::Failed => UsageInk::Danger,
+        Freshness::Stale => UsageInk::Warning,
+        _ => UsageInk::Plain,
+    };
+    lines.push(text(format!("Status       {status}"), status_ink, false));
+    lines.push(UsageAccountLine::Blank);
+    lines.push(text("Limits".to_owned(), UsageInk::Secondary, true));
+    let italic = matches!(
+        account.usage.freshness.phase,
+        Freshness::Stale | Freshness::Failed
+    );
+    for window in &account.usage.windows {
+        if !window.has_meter() {
+            continue;
+        }
+        let meter = match window.status {
+            QuotaStatus::Exhausted => UsageInk::Danger,
+            QuotaStatus::Warning => UsageInk::Warning,
+            _ => UsageInk::Info,
+        };
+        lines.push(UsageAccountLine::Quota(UsageQuota {
+            label: format!("  {}", window.label),
+            pct: window.used_pct.unwrap_or(0),
+            detail: usage_meter_detail(window, world),
+            meter,
+            italic,
+        }));
+    }
+    lines
+}
+
+fn usage_meter_detail(window: &crate::domain::usage::QuotaWindow, world: &World) -> String {
+    use crate::domain::usage::WindowUnit;
+    let mut parts = Vec::new();
+    if let (Some(used), Some(limit)) = (window.used, window.limit)
+        && window.unit != WindowUnit::Percent
+    {
+        parts.push(format!("{} / {} {}", used, limit, window.unit.label()));
+    }
+    if let Some(reset) = window.reset_secs {
+        parts.push(world.clock.reset_label(reset));
+    }
+    if let Some(spend) = &window.spend_label {
+        parts.push(spend.clone());
+    }
+    if window.status == QuotaStatus::Exhausted {
+        parts.push("exhausted".to_owned());
+    }
+    parts.join(" · ")
+}
+
 fn usage_detail_meta(world: &World) -> String {
     let summary = OverallSummary::compute(&world.accounts.accounts);
     format!(
@@ -10220,6 +10493,7 @@ fn usage_heading(label: &str) -> termrock::feedback::UsageLine {
         mark: termrock::feedback::UsageMark::None,
         meta: String::new(),
         selected: false,
+        focused: false,
     }
 }
 
@@ -10258,6 +10532,7 @@ fn usage_account_line(account: &Account, frame: &str) -> termrock::feedback::Usa
         mark,
         meta,
         selected: false,
+        focused: false,
     }
 }
 
@@ -10664,6 +10939,7 @@ impl TuiApp for App {
         self.draw_historical_accounts_detail_80(ui);
         self.draw_historical_accounts_drawer(ui, full);
         self.draw_usage_overview_narrow(ui, full);
+        self.draw_usage_detail_live(ui, full);
         self.draw_historical_usage_overview(ui, full);
         self.draw_historical_usage_detail(ui, full);
         if self.manager_inspect
