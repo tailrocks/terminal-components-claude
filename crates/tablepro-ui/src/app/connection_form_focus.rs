@@ -6,6 +6,29 @@ mod tests {
     use super::super::TableProApp;
 
     #[test]
+    fn new_connection_starts_with_blank_identity_fields_and_driver_defaults() {
+        let mut harness = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
+        let active_connection = harness.app().workbench().connection.clone();
+        let edit_draft = super::super::ConnectionDraft::from_connection(&active_connection);
+        assert_eq!(edit_draft.name, active_connection.name);
+        assert_eq!(edit_draft.database, active_connection.database);
+        assert_eq!(edit_draft.user, active_connection.user);
+        let _ = harness.ctrl('n');
+
+        let draft = harness
+            .app()
+            .connection_draft()
+            .expect("new connection form should own a draft");
+        assert_eq!(draft.name, "");
+        assert_eq!(draft.database, "");
+        assert_eq!(draft.user, "");
+        assert_eq!(draft.engine, 0);
+        assert_eq!(draft.host, "localhost");
+        assert_eq!(draft.port, "5432");
+        assert_eq!(harness.app().workbench().connection, active_connection);
+    }
+
+    #[test]
     fn backtab_right_focuses_test_connection_on_the_empty_card() {
         let test_connection = tablepro_domain::connections::FORM
             .part(Part::ACTIONS)
@@ -16,11 +39,11 @@ mod tests {
             opened.focus(),
             Some(tablepro_domain::connections::field::NAME)
         );
-        assert!(opened.app().empty_new_connection_draft());
+        assert!(opened.app().blank_new_connection_draft());
         let _ = opened.key(KeyCode::BackTab);
         let _ = opened.key(KeyCode::Right);
         assert_eq!(opened.focus(), Some(test_connection));
-        assert!(opened.app().empty_new_connection_draft());
+        assert!(opened.app().blank_new_connection_draft());
         assert!(
             !opened
                 .runtime()
@@ -43,6 +66,6 @@ mod tests {
             filled.focus(),
             Some(tablepro_domain::connections::field::NAME)
         );
-        assert!(!filled.app().empty_new_connection_draft());
+        assert!(!filled.app().blank_new_connection_draft());
     }
 }
