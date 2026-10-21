@@ -401,6 +401,7 @@ impl<'a, T, R> FilterList<'a, T, R> {
         Part::CONTAINER,
         Part::GUTTER,
         Part::ROW,
+        Part::PLACEHOLDER,
         Part::LABEL,
         Part::META,
         Part::ICON,
