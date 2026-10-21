@@ -134,6 +134,24 @@ pending suites are:
 
 The remaining ignores are journeys, pointer, audit and support checks.
 
+### Workspace gate baseline
+
+`cargo nextest run --all-targets --workspace` at the coordinator baseline
+(4687 tests): **4357 passed, 330 failed, 29516 skipped**. The failure set
+is dominated by one systemic cause: component render digests in
+`crates/termrock-conformance/tests/baselines/components.txt` no longer match
+the rendered output, because that baseline was last written at `032e9faa3`
+and later theme and render changes were never re-blessed. A diagnosis stream
+owns the bisect, the classification and the capture-or-revert decision.
+
+Other named failures at the same baseline:
+`termrock-xtask::ownership`, `termrock-xtask::doc_inventory`,
+`termrock-overlays menu::tests::menu_bar_keeps_public_default_variant_overlay_and_local_patch_precedence`,
+`termrock-navigation::item_row_columns constructor_defaults_match_the_pre_policy_full_cell_fixture`,
+`termrock-editors` focus-loss cases,
+`termrock-theme::capability_palettes all_73_junie_slots_match_reference_capability_output`,
+`visual-harness::visual_baseline determinism::sources_are_deterministic`.
+
 ## Coverage gaps
 
 ### False-parity inventory (read-only audit, revision `40bc297e5`)
@@ -254,6 +272,21 @@ so "5 sizes x 5 colours" coverage exists in the corpus and the extension
 manifest but not in the suite that runs.
 
 ### Blockers to clear before acceptance
+
+0. **CI blocker, fixed.** The generated `Plan` job failed at "Check generated
+   files" because velnor's crate discovery scanned
+   `docs/audits/evidence/2026-10-21-picker-contrast-integration/independent-review/consumer/Cargo.toml`,
+   a standalone consumer crate whose path dependencies point at an absolute
+   `/private/tmp/...` sparse copy. The detection error
+   `malformed_manifest:...:unresolved_path_edge` aborted generation, so every
+   downstream Rust job was skipped and `required` failed closed: hosted CI
+   provided zero validation for PR #38.
+   Fix: `[discovery] exclude` in `.velnor/config.toml` now also lists
+   `docs/audits/evidence/**`. Evidence trees are not crates. Verified
+   locally with velnor-actions 0.1.32: generation succeeds and
+   `diff -r --brief .github <generated>/.github` is empty, so the committed
+   generated files are already correct and needed no regeneration.
+   Commit `76a1a1094`.
 
 1. `baselines/oracle/ORACLE.toml` is `pending = true`, version 0, zero
    scenarios. The corpus was acquired by `legacy_replayed_conversion`, not by
