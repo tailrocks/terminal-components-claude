@@ -10,7 +10,9 @@ use crate::id::{Id, ItemKey, Part, PartRef};
 use crate::intent::{Intent, Phase};
 use crate::keymap::ChordCase;
 use crate::keymap::{Binding, BindingState, Bindings};
-use crate::layer::{Anchor, Dismiss, DismissReason, LayerEvent, LayerSize, LayerSpec};
+use crate::layer::{
+    Anchor, CrossAlign, Dismiss, DismissReason, LayerEvent, LayerSize, LayerSpec, Side,
+};
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
 use crate::text::width;
@@ -37,6 +39,7 @@ pub struct MenuItem<'a> {
     action: ActionKey,
     label: &'a str,
     chord: Option<Chord>,
+    hint: Option<&'a str>,
     disabled: bool,
     danger: bool,
     separator_after: bool,
@@ -49,6 +52,7 @@ impl<'a> MenuItem<'a> {
             action,
             label,
             chord: None,
+            hint: None,
             disabled: false,
             danger: false,
             separator_after: false,
@@ -59,6 +63,13 @@ impl<'a> MenuItem<'a> {
     #[must_use]
     pub const fn chord(mut self, chord: Chord) -> Self {
         self.chord = Some(chord);
+        self
+    }
+
+    /// Adds display-only help text. The text is not registered as a key binding.
+    #[must_use]
+    pub const fn hint(mut self, hint: &'a str) -> Self {
+        self.hint = Some(hint);
         self
     }
 
@@ -96,6 +107,10 @@ impl<'a> MenuItem<'a> {
 
     pub const fn chord_ref(&self) -> Option<Chord> {
         self.chord
+    }
+
+    pub const fn hint_ref(&self) -> Option<&'a str> {
+        self.hint
     }
 
     pub const fn is_disabled(&self) -> bool {
@@ -348,6 +363,7 @@ pub struct ContextMenu<'a> {
     id: Id,
     items: &'a [MenuItem<'a>],
     anchor: Anchor,
+    part_anchor: Option<(Id, PartRef, Side, CrossAlign)>,
     title: Option<&'a str>,
     ov: PartStyle<'a>,
     chord_case: ChordCase,
@@ -361,6 +377,7 @@ impl fmt::Debug for ContextMenu<'_> {
             .field("id", &self.id)
             .field("items", &self.items.len())
             .field("anchor", &self.anchor)
+            .field("part_anchor", &self.part_anchor)
             .field("title", &self.title)
             .field("bar_navigation", &self.bar_navigation)
             .field("retained_cursor", &self.retained_cursor)
@@ -385,6 +402,7 @@ impl<'a> ContextMenu<'a> {
             id,
             items,
             anchor,
+            part_anchor: None,
             title: None,
             ov: PartStyle::new(),
             chord_case: ChordCase::Preserve,
@@ -395,6 +413,21 @@ impl<'a> ContextMenu<'a> {
 
     pub const fn at(id: Id, items: &'a [MenuItem<'a>], position: Position) -> Self {
         Self::new(id, items, Anchor::Point(position))
+    }
+
+    /// Anchors this menu to a part registered by another rendered component.
+    /// Use [`Self::try_layer`] when opening it; that method returns `None` when
+    /// the owner or part is absent from the current frame.
+    #[must_use]
+    pub const fn anchor_to_part(
+        mut self,
+        owner: Id,
+        part: PartRef,
+        side: Side,
+        align: CrossAlign,
+    ) -> Self {
+        self.part_anchor = Some((owner, part, side, align));
+        self
     }
 
     #[must_use]
@@ -444,21 +477,47 @@ impl<'a> ContextMenu<'a> {
     }
 
     pub fn layer(&self, cx: &Cx<'_>) -> LayerSpec {
-        LayerSpec::popover(self.id, self.anchor)
+        let anchor = self.resolve_anchor(cx).unwrap_or(self.anchor);
+        LayerSpec::popover(self.id, anchor)
             .dismiss(Dismiss::ALL)
             .initial_focus(self.id)
             .size(self.measured_size(cx))
     }
 
+    /// Builds a layer only when its configured owner part is present.
+    /// Fixed point and rectangle anchors retain the compatibility behavior of
+    /// [`Self::layer`].
+    pub fn try_layer(&self, cx: &Cx<'_>) -> Option<LayerSpec> {
+        let anchor = self.resolve_anchor(cx)?;
+        Some(
+            LayerSpec::popover(self.id, anchor)
+                .dismiss(Dismiss::ALL)
+                .initial_focus(self.id)
+                .size(self.measured_size(cx)),
+        )
+    }
+
+    fn resolve_anchor(&self, cx: &Cx<'_>) -> Option<Anchor> {
+        let Some((owner, part, side, align)) = self.part_anchor else {
+            return Some(self.anchor);
+        };
+        FrameRead::area_of_part(cx, owner, part).map(|rect| Anchor::Rect { rect, side, align })
+    }
+
     fn natural_width(&self, effective: impl Fn(ActionKey, Option<Chord>) -> Option<Chord>) -> u16 {
         let title = self.title.map_or(0, width);
         let rows = self.items.iter().map(|item| {
-            let shortcut = effective(item.action, item.chord).map_or(0, |chord| {
-                width(ChordText::with_case(chord, self.chord_case).as_str()).saturating_add(2)
-            });
-            width(item.label)
-                .saturating_add(shortcut)
-                .saturating_add(u16::from(item.submenu.is_some()))
+            let label_width = width(item.label);
+            let row_width = if let Some(hint) = item.hint {
+                label_width.saturating_add(width(hint)).saturating_add(3)
+            } else if let Some(chord) = effective(item.action, item.chord) {
+                label_width
+                    .saturating_add(width(ChordText::with_case(chord, self.chord_case).as_str()))
+                    .saturating_add(3)
+            } else {
+                label_width
+            };
+            row_width.saturating_add(u16::from(item.submenu.is_some()))
         });
         rows.max().unwrap_or(4).max(title).saturating_add(6).max(8)
     }
@@ -589,8 +648,12 @@ impl<'a> ContextMenu<'a> {
             st.cursor = first;
         }
         if cx.is_open(self.id) {
+            let Some(anchor) = self.resolve_anchor(cx) else {
+                cx.close_layer(self.id, None);
+                return Response::action(MenuAction::Closed(DismissReason::Programmatic));
+            };
             cx.resize_layer(self.id, self.measured_size(cx));
-            cx.reanchor_layer(self.id, self.anchor);
+            cx.reanchor_layer(self.id, anchor);
         }
         let mut acc = Acc::new();
         for intent in cx.intents(self.id) {
@@ -674,7 +737,11 @@ impl<'a> ContextMenu<'a> {
             ui.register_decor(self.id, PartRef::of(Part::BORDER), area);
             let mut y = inner.y;
             if let Some(title) = self.title {
-                let row = first_row(Rect { y, ..inner });
+                let row = shift(first_row(Rect { y, ..inner }), 2);
+                let row = Rect {
+                    width: row.width.saturating_sub(1),
+                    ..row
+                };
                 let style = self.ov.style(
                     ui,
                     self.id,
@@ -782,11 +849,19 @@ impl<'a> ContextMenu<'a> {
         }
         let label = shift(row, 2);
         let effective_chord = ui.effective_chord(self.id, item.action, item.chord);
-        let key_width = effective_chord.map_or(0, |chord| {
-            width(ChordText::with_case(chord, self.chord_case).as_str())
-        });
+        let chord_text = effective_chord.map(|chord| ChordText::with_case(chord, self.chord_case));
+        let hint = item
+            .hint
+            .or_else(|| chord_text.as_ref().map(|text| text.as_str()));
+        let hint_width = hint.map_or(0, width);
+        let hint_admitted = hint.is_some() && admits_hint(item.label, hint_width, row.width);
+        let reserved_hint = if hint_admitted { hint_width } else { 0 };
         let label = Rect {
-            width: label.width.saturating_sub(key_width.saturating_add(2)),
+            width: if hint_admitted {
+                row.width.saturating_sub(reserved_hint.saturating_add(5))
+            } else {
+                row.width.saturating_sub(3)
+            },
             ..label
         };
         let label_style = self
@@ -800,17 +875,16 @@ impl<'a> ContextMenu<'a> {
             item.label,
             label_style.style,
         );
-        if let Some(chord) = effective_chord {
-            let text = ChordText::with_case(chord, self.chord_case);
+        if hint_admitted && let Some(text) = hint {
             let key = Rect {
-                x: row.right().saturating_sub(key_width.saturating_add(1)),
-                width: key_width.min(row.width),
+                x: row.right().saturating_sub(reserved_hint.saturating_add(1)),
+                width: reserved_hint.min(row.width),
                 ..row
             };
             let key_style = self
                 .ov
                 .style(ui, self.id, Family::MENU, variant, Part::KEY, flags);
-            paint_or_slot(ui, &self.ov, Part::KEY, key, text.as_str(), key_style.style);
+            paint_or_slot(ui, &self.ov, Part::KEY, key, text, key_style.style);
         }
         ui.register_part(
             self.id,
@@ -919,6 +993,7 @@ impl<'a> MenuBar<'a> {
             id: self.id,
             items: menu.items,
             anchor: self.anchor(cx, index),
+            part_anchor: None,
             title: None,
             ov: self.ov,
             chord_case: self.chord_case,
@@ -1171,6 +1246,7 @@ impl<'a> MenuBar<'a> {
                 id: self.id,
                 items: menu.items,
                 anchor: Anchor::Screen(crate::layer::ScreenAlign::UpperThird),
+                part_anchor: None,
                 title: None,
                 ov: self.ov,
                 chord_case: self.chord_case,
@@ -1215,6 +1291,10 @@ fn paint_or_slot(
 
 fn pressed_target(ui: &Ui<'_>, owner: Id, part: Part, index: usize) -> bool {
     FrameRead::pressed_part(ui, owner) == Some(PartRef::item(part, ItemKey::index(index)))
+}
+
+fn admits_hint(label: &str, hint_width: u16, row_width: u16) -> bool {
+    width(label).saturating_add(hint_width).saturating_add(5) <= row_width
 }
 
 fn moved(changed: bool) -> Response<MenuAction> {
@@ -1435,7 +1515,7 @@ mod tests {
                 });
             })
             .commit_presented();
-        let heading = buffer.cell(Position::new(1, 1)).expect("heading cell");
+        let heading = buffer.cell(Position::new(3, 1)).expect("heading cell");
         assert_eq!(heading.fg, ratatui_core::style::Color::Rgb(21, 22, 23));
         assert_eq!(heading.bg, ratatui_core::style::Color::Rgb(24, 25, 26));
     }
@@ -1459,6 +1539,245 @@ mod tests {
         assert!(chord.matches(&key(KeyCode::Char('o'))));
         assert_eq!(ChordText::of(chord).as_str(), "o");
         assert_eq!(item.action(), OPEN);
+    }
+
+    #[test]
+    fn display_hints_size_and_paint_without_becoming_bindings() {
+        const HINT_ACTION: ActionKey = ActionKey::custom("menu.hint.only");
+        const CLICK_ACTION: ActionKey = ActionKey::custom("menu.hint.pointer-only");
+        const HINT_ITEMS: [MenuItem<'static>; 2] = [
+            MenuItem::new(HINT_ACTION, "Split right").hint("Ctrl+B %"),
+            MenuItem::new(CLICK_ACTION, "Duplicate").hint("2×click"),
+        ];
+        const MENU: Id = Id::root("menu.hint-only.runtime");
+        let component = ContextMenu::at(MENU, &HINT_ITEMS, Position::new(0, 0));
+        assert_eq!(HINT_ITEMS[0].hint_ref(), Some("Ctrl+B %"));
+        assert_eq!(HINT_ITEMS[0].chord_ref(), None);
+        assert_eq!(HINT_ITEMS[1].hint_ref(), Some("2×click"));
+        assert_eq!(HINT_ITEMS[1].chord_ref(), None);
+        let required = width("Split right") + width("Ctrl+B %") + 5;
+        assert!(admits_hint("Split right", width("Ctrl+B %"), required));
+        assert!(!admits_hint("Split right", width("Ctrl+B %"), required - 1));
+        assert_eq!(component.natural_width(|_, chord| chord), 28);
+
+        assert!(admits_hint(
+            "壊れた",
+            width("2×click"),
+            width("壊れた") + width("2×click") + 5
+        ));
+        assert!(!admits_hint(
+            "壊れた",
+            width("2×click"),
+            width("壊れた") + width("2×click") + 4
+        ));
+        let area = Rect::new(0, 0, 40, 8);
+        for color in [
+            crate::ColorLevel::TrueColor,
+            crate::ColorLevel::Ansi256,
+            crate::ColorLevel::Ansi16,
+            crate::ColorLevel::Mono,
+        ] {
+            let mut buffer = Buffer::empty(area);
+            let mut runtime = Runtime::new(
+                HintMenuApp {
+                    state: MenuState::default(),
+                    chosen: None,
+                },
+                Theme::junie().downgrade(color),
+            );
+            let _ = runtime.initialize();
+            runtime.draw_buffer(area, &mut buffer).commit_presented();
+            let painted = buffer
+                .content()
+                .iter()
+                .map(ratatui_core::buffer::Cell::symbol)
+                .collect::<String>();
+            assert!(painted.contains("Ctrl+B %"), "first hint at {color:?}");
+            assert!(painted.contains("2×click"), "second hint at {color:?}");
+
+            let _ =
+                crate::runtime::stub::deliver(&mut runtime, Input::Key(key(KeyCode::Char('2'))));
+            assert_eq!(
+                runtime.app().chosen,
+                None,
+                "display hint bound key at {color:?}"
+            );
+
+            let _ = crate::runtime::stub::deliver(
+                &mut runtime,
+                Input::Mouse(Mouse {
+                    kind: MouseKind::Down,
+                    pos: Position::new(31, 1),
+                    mods: KeyModifiers::NONE,
+                }),
+            );
+            let _ = crate::runtime::stub::deliver(
+                &mut runtime,
+                Input::Mouse(Mouse {
+                    kind: MouseKind::Up,
+                    pos: Position::new(31, 1),
+                    mods: KeyModifiers::NONE,
+                }),
+            );
+            assert_eq!(
+                runtime.app().chosen,
+                Some(HINT_ACTION),
+                "row hit at {color:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn natural_width_does_not_reserve_a_shortcut_gutter_without_a_shortcut() {
+        const PLAIN: [MenuItem<'static>; 1] = [MenuItem::new(OPEN, "0123456789")];
+        const SHORTCUT: [MenuItem<'static>; 1] =
+            [MenuItem::new(OPEN, "0123456789").chord(Chord::key(KeyCode::Char('o')))];
+        const LONG_SHORTCUT: [MenuItem<'static>; 1] =
+            [MenuItem::new(OPEN, "012345678901234567890123456789")
+                .chord(Chord::key(KeyCode::Char('o')))];
+
+        let plain = ContextMenu::at(
+            Id::root("menu.tests.plain-width"),
+            &PLAIN,
+            Position::new(0, 0),
+        );
+        let shortcut = ContextMenu::at(
+            Id::root("menu.tests.shortcut-width"),
+            &SHORTCUT,
+            Position::new(0, 0),
+        );
+
+        assert_eq!(plain.natural_width(|_, chord| chord), 16);
+        assert_eq!(shortcut.natural_width(|_, chord| chord), 20);
+        let long_shortcut = ContextMenu::at(
+            Id::root("menu.tests.long-shortcut-width"),
+            &LONG_SHORTCUT,
+            Position::new(0, 0),
+        );
+        assert_eq!(long_shortcut.natural_width(|_, chord| chord), 40);
+    }
+
+    const ANCHOR_OWNER: Id = Id::root("menu.anchor.owner");
+    const ANCHOR_MENU: Id = Id::root("menu.anchor.menu");
+    const ANCHOR_MENUS: [Menu<'static>; 1] = [Menu::new("File", &ITEMS)];
+
+    struct AnchorProbeApp {
+        x: u16,
+        render_owner: bool,
+        request_open: bool,
+        state: MenuState,
+        anchor: Option<Anchor>,
+    }
+
+    impl App for AnchorProbeApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            let menu = ContextMenu::at(ANCHOR_MENU, &ITEMS, Position::new(0, 0)).anchor_to_part(
+                ANCHOR_OWNER,
+                PartRef::item(Part::TITLE, ItemKey::index(0)),
+                crate::layer::Side::Below,
+                crate::layer::CrossAlign::Start,
+            );
+            let layer = menu.try_layer(cx);
+            self.anchor = layer.map(|spec| spec.anchor);
+            if self.request_open {
+                self.request_open = false;
+                if let Some(layer) = layer {
+                    cx.open_layer(ANCHOR_MENU, layer);
+                }
+            }
+            menu.update(cx, &mut self.state).erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            if self.render_owner {
+                let _ = MenuBar::new(ANCHOR_OWNER, &ANCHOR_MENUS).draw(
+                    ui,
+                    Rect::new(self.x, 4, 24, 1),
+                    &MenuState::default(),
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn component_part_anchor_tracks_live_bounds_and_fails_closed_when_absent() {
+        let area = Rect::new(0, 0, 80, 24);
+        let mut buffer = Buffer::empty(area);
+        let mut runtime = Runtime::new(
+            AnchorProbeApp {
+                x: 5,
+                render_owner: true,
+                request_open: false,
+                state: MenuState::default(),
+                anchor: None,
+            },
+            Theme::junie(),
+        );
+        let _ = runtime.initialize();
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        let expected = runtime
+            .area_of_part(ANCHOR_OWNER, PartRef::item(Part::TITLE, ItemKey::index(0)))
+            .expect("the menu bar rendered the source title part");
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Key(key(KeyCode::Char('z'))));
+        assert_eq!(
+            runtime.app().anchor,
+            Some(Anchor::Rect {
+                rect: expected,
+                side: crate::layer::Side::Below,
+                align: crate::layer::CrossAlign::Start,
+            })
+        );
+
+        runtime.app_mut().x = 21;
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        let moved = runtime
+            .area_of_part(ANCHOR_OWNER, PartRef::item(Part::TITLE, ItemKey::index(0)))
+            .expect("the source title moved and rendered again");
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Key(key(KeyCode::Char('z'))));
+        assert_eq!(
+            runtime.app().anchor,
+            Some(Anchor::Rect {
+                rect: moved,
+                side: crate::layer::Side::Below,
+                align: crate::layer::CrossAlign::Start,
+            })
+        );
+
+        runtime.app_mut().request_open = true;
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Key(key(KeyCode::Char('z'))));
+        assert!(
+            runtime.is_open(ANCHOR_MENU),
+            "present owner opens anchored menu"
+        );
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+
+        runtime.app_mut().x = 26;
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        let moved_again = runtime
+            .area_of_part(ANCHOR_OWNER, PartRef::item(Part::TITLE, ItemKey::index(0)))
+            .expect("the source title moved while the menu stayed open");
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Key(key(KeyCode::Char('z'))));
+        assert_eq!(
+            runtime.app().anchor,
+            Some(Anchor::Rect {
+                rect: moved_again,
+                side: crate::layer::Side::Below,
+                align: crate::layer::CrossAlign::Start,
+            })
+        );
+
+        runtime.app_mut().render_owner = false;
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Key(key(KeyCode::Char('z'))));
+        assert_eq!(
+            runtime.app().anchor,
+            None,
+            "missing owner part must not open a layer"
+        );
+        assert!(
+            !runtime.is_open(ANCHOR_MENU),
+            "missing owner closes the anchored layer"
+        );
     }
 
     #[test]
@@ -1617,6 +1936,42 @@ mod tests {
 
         fn keymap(&self) -> &KeyMap {
             &self.keymap
+        }
+    }
+
+    const HINT_ACTION: ActionKey = ActionKey::custom("menu.hint.only");
+    const CLICK_ACTION: ActionKey = ActionKey::custom("menu.hint.pointer-only");
+    const HINT_ITEMS: [MenuItem<'static>; 2] = [
+        MenuItem::new(HINT_ACTION, "Split right").hint("Ctrl+B %"),
+        MenuItem::new(CLICK_ACTION, "Duplicate").hint("2×click"),
+    ];
+
+    struct HintMenuApp {
+        state: MenuState,
+        chosen: Option<ActionKey>,
+    }
+
+    impl App for HintMenuApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            let response = ContextMenu::at(
+                Id::root("menu.hint-only.runtime"),
+                &HINT_ITEMS,
+                Position::new(0, 0),
+            )
+            .update(cx, &mut self.state);
+            if let Some(MenuAction::Chosen(action)) = response.action_ref() {
+                self.chosen = Some(*action);
+            }
+            response.erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let _ = ContextMenu::at(
+                Id::root("menu.hint-only.runtime"),
+                &HINT_ITEMS,
+                Position::new(0, 0),
+            )
+            .draw(ui, Rect::new(0, 0, 40, 8), &self.state);
         }
     }
 
