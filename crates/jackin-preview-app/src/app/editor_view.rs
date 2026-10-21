@@ -31,6 +31,11 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
     if full.width == 0 || full.height == 0 {
         return;
     }
+    let general = matches!(app.editor.tab, EditorTab::General);
+    // The live shell is surface ink. The approved general page is canvas.
+    if general {
+        ui.fill(full, canvas());
+    }
 
     // Row 0: Header
     paint_str(ui, 1, 0, " jackin❯ ", BRAND_FG, ACCENT, true);
@@ -38,33 +43,60 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
     paint_str(ui, 19, 0, " Go ", SECONDARY, BLACK, false);
     paint_str(ui, 24, 0, " Help ", SECONDARY, BLACK, false);
 
-    paint_str(ui, 44, 0, "…", MUTED, BLACK, false);
-    paint_str(
-        ui,
-        47,
-        0,
-        "Workspaces › payments-platform › edit",
-        SECONDARY,
-        BLACK,
-        false,
-    );
-
-    if app.editor.dirty {
-        paint_str(ui, 86, 0, "•", AMBER, BLACK, false);
-        paint_str(ui, 88, 0, "1 change", AMBER, BLACK, false);
-    }
-
-    if full.width >= 120 {
-        let construct_x = if app.editor.dirty { 98 } else { 85 };
+    if general {
+        let name = app
+            .world
+            .workspaces
+            .first()
+            .map(|workspace| workspace.name.as_str())
+            .unwrap_or("payments-platform");
         paint_str(
             ui,
-            construct_x,
+            46,
             0,
-            "inside the Construct",
+            &format!("Workspaces › {name} › edit"),
             SECONDARY,
             BLACK,
             false,
         );
+        paint_str(ui, 85, 0, "inside the Construct", SECONDARY, BLACK, false);
+        paint_str(ui, 107, 0, "●", ACCENT, BLACK, false);
+        paint_str(
+            ui,
+            108,
+            0,
+            &format!(" {} running", app.world.running_count()),
+            SECONDARY,
+            BLACK,
+            false,
+        );
+    } else {
+        paint_str(ui, 44, 0, "…", MUTED, BLACK, false);
+        paint_str(
+            ui,
+            47,
+            0,
+            "Workspaces › payments-platform › edit",
+            SECONDARY,
+            BLACK,
+            false,
+        );
+        if app.editor.dirty {
+            paint_str(ui, 86, 0, "•", AMBER, BLACK, false);
+            paint_str(ui, 88, 0, "1 change", AMBER, BLACK, false);
+        }
+        if full.width >= 120 {
+            let construct_x = if app.editor.dirty { 98 } else { 85 };
+            paint_str(
+                ui,
+                construct_x,
+                0,
+                "inside the Construct",
+                SECONDARY,
+                BLACK,
+                false,
+            );
+        }
     }
 
     // Row 3: Tabs
@@ -101,8 +133,15 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
         .get(active_index)
         .map(|&(_, x, w)| (x, w))
         .unwrap_or((2, 11));
-    for col in 0..full.width {
-        if col >= active_x && col < active_x.saturating_add(active_w.saturating_sub(1)) {
+    let rule_start = if general { 2 } else { 0 };
+    let rule_end = if general {
+        full.width.saturating_sub(2)
+    } else {
+        full.width
+    };
+    let accent_end = active_x.saturating_add(active_w.saturating_sub(1));
+    for col in rule_start..rule_end {
+        if col >= active_x && col < accent_end {
             paint_cell(ui, col, 4, "━", ACCENT, BLACK, false);
         } else {
             paint_cell(ui, col, 4, "─", SEAM, BLACK, false);
@@ -111,7 +150,7 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
 
     // Body
     match app.editor.tab {
-        EditorTab::General => paint_general_body(ui),
+        EditorTab::General => paint_general_body(app, ui),
         EditorTab::Mounts => paint_mounts_body(app, ui),
         EditorTab::Roles => paint_roles_body(ui),
         EditorTab::Environments => paint_env_body(ui),
@@ -127,31 +166,76 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
     }
 }
 
-fn paint_general_body(ui: &mut Ui<'_>) {
+fn paint_general_body(app: &App, ui: &mut Ui<'_>) {
+    let workspace = app.world.workspaces.first();
+    let name = workspace
+        .map(|workspace| workspace.name.as_str())
+        .unwrap_or("");
+    let workdir = workspace
+        .map(|workspace| workspace.workdir.as_str())
+        .unwrap_or("");
+    let keep_awake = workspace.is_some_and(|workspace| workspace.keep_awake);
+    let git_pull = workspace.is_some_and(|workspace| workspace.git_pull);
+    let dirty = workspace
+        .map(|workspace| workspace.dirty_policy.label())
+        .unwrap_or("ask");
+    let field = Color::Rgb(0x1e, 0x1e, 0x22);
+    let faint = Color::Rgb(0x73, 0x73, 0x73);
+    let save_ink = Color::Rgb(0x4d, 0x4d, 0x4d);
+
     paint_str(ui, 6, 6, "Name ", SECONDARY, BLACK, false);
     paint_str(ui, 11, 6, "*", MUTED, BLACK, false);
+    paint_str(ui, 12, 6, &" ".repeat(64), SECONDARY, BLACK, false);
 
-    paint_str(ui, 4, 7, "  payments-platform", WHITE, BLACK, false);
+    paint_str(ui, 4, 7, " ", field, field, false);
+    paint_str(ui, 5, 7, &format!(" {name:<70}"), WHITE, field, false);
 
-    paint_str(ui, 6, 9, "Initial directory", SECONDARY, BLACK, false);
-    paint_str(ui, 4, 10, "  ~/src/payments-platform", WHITE, BLACK, false);
-
-    paint_str(ui, 6, 12, "Default agent", SECONDARY, BLACK, false);
-    paint_str(ui, 4, 13, "  Claude Code", WHITE, BLACK, false);
-
-    paint_str(ui, 6, 15, "Secret policy", SECONDARY, BLACK, false);
-    paint_str(ui, 4, 16, "  Prompt each session", WHITE, BLACK, false);
-
-    paint_str(ui, 6, 18, "DCO signoff", SECONDARY, BLACK, false);
     paint_str(
         ui,
-        4,
-        19,
-        "  [x] require Signed-off-by trailer",
-        WHITE,
+        6,
+        8,
+        "Directory basename by default",
+        MUTED,
         BLACK,
         false,
     );
+
+    paint_str(ui, 4, 10, "Working directory *", SECONDARY, BLACK, true);
+    paint_str(
+        ui,
+        4,
+        11,
+        &format!("{workdir: <58}"),
+        SECONDARY,
+        BLACK,
+        false,
+    );
+    paint_str(ui, 65, 11, " ", ACTIVE_BG, ACTIVE_BG, false);
+    paint_str(ui, 66, 11, "Choose… ", WHITE, ACTIVE_BG, false);
+    paint_str(ui, 4, 12, "Inside the Construct", faint, BLACK, false);
+
+    if keep_awake {
+        paint_str(ui, 4, 14, " ", BLACK, BLACK, false);
+        paint_str(ui, 5, 14, "[✓]", ACCENT, BLACK, false);
+        paint_str(ui, 8, 14, " Keep awake               ", WHITE, BLACK, false);
+        paint_str(ui, 34, 14, "macOS only", faint, BLACK, false);
+    }
+    if git_pull {
+        paint_str(ui, 4, 15, " ", BLACK, BLACK, false);
+        paint_str(ui, 5, 15, "[✓]", ACCENT, BLACK, false);
+        paint_str(ui, 8, 15, " Git pull before launch", WHITE, BLACK, false);
+    }
+
+    paint_str(ui, 6, 17, "On dirty exit", SECONDARY, BLACK, false);
+    paint_str(ui, 4, 18, " ", field, field, false);
+    let dirty_line = format!(" {dirty} · show the exit dialog");
+    paint_str(ui, 5, 18, &format!("{dirty_line:<47}"), WHITE, field, false);
+    paint_str(ui, 50, 18, "▾", SECONDARY, field, false);
+
+    paint_str(ui, 97, 37, " ", BLACK, BLACK, false);
+    paint_str(ui, 98, 37, "Cancel ", SECONDARY, BLACK, false);
+    paint_str(ui, 108, 37, " ", ACTIVE_BG, ACTIVE_BG, false);
+    paint_str(ui, 109, 37, "Save… ", save_ink, ACTIVE_BG, false);
 }
 
 fn paint_mounts_body(app: &App, ui: &mut Ui<'_>) {
@@ -476,8 +560,15 @@ fn paint_save_preview(ui: &mut Ui<'_>, full: Rect) {
     );
 }
 
+fn canvas() -> PaintStyle {
+    PaintStyle::new()
+        .fg(WHITE)
+        .bg(BLACK)
+        .remove_modifier(Modifier::BOLD | Modifier::ITALIC | Modifier::UNDERLINED | Modifier::DIM)
+}
+
 fn paint_str(ui: &mut Ui<'_>, x: u16, y: u16, text: &str, fg: Color, bg: Color, bold: bool) {
-    let mut style = PaintStyle::new().fg(fg).bg(bg);
+    let mut style = canvas().fg(fg).bg(bg);
     if bold {
         style = style.add_modifier(Modifier::BOLD);
     }
@@ -495,22 +586,18 @@ fn paint_styled(
     bold: bool,
     underline: bool,
 ) {
-    let mut style = PaintStyle::new().fg(fg).bg(bg);
-    let mut modifier = Modifier::empty();
+    let mut style = canvas().fg(fg).bg(bg);
     if bold {
-        modifier |= Modifier::BOLD;
+        style = style.add_modifier(Modifier::BOLD);
     }
     if underline {
-        modifier |= Modifier::UNDERLINED;
-    }
-    if !modifier.is_empty() {
-        style = style.add_modifier(modifier);
+        style = style.add_modifier(Modifier::UNDERLINED);
     }
     ui.paint_str(Rect::new(x, y, text.chars().count() as u16, 1), text, style);
 }
 
 fn paint_cell(ui: &mut Ui<'_>, x: u16, y: u16, symbol: &str, fg: Color, bg: Color, bold: bool) {
-    let mut style = PaintStyle::new().fg(fg).bg(bg);
+    let mut style = canvas().fg(fg).bg(bg);
     if bold {
         style = style.add_modifier(Modifier::BOLD);
     }
