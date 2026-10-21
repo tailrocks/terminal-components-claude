@@ -1,0 +1,158 @@
+{
+  "schema": "termrock.independent-review.v1",
+  "created_utc": "2026-10-21T10:34:43.523222+00:00",
+  "reviewer": "/root/menu_reason_independent_review",
+  "reviewed_commit": "02dde9678d3d2d3a6940659025a6551735bdb8d7",
+  "prior_hold_commit": "4d84ff9a2082075510708aedec1be76758001465",
+  "baseline_source": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "baseline_tag_object": "2718a6b8127a522a3d351d0b4bdb7542fc8da542",
+  "tuiscotti_pin": "a1ea27f757d75d07b05499276cd932e9f8e067ad",
+  "decision": "BOUNDED_MENU_MODIFIER_CORRECTION_CLEARANCE",
+  "findings": [],
+  "scope": "Clearance of the three prior Menu cursor-modifier findings and the explicitly sampled DEFAULT/DANGER active, hover, press, disabled and hidden modifier contracts only. Native palette gate remains RED; no full Theme/Menu color, application parity, main integration or expected-data approval.",
+  "closed_findings": [
+    {
+      "id": "MENU-4D-R1",
+      "evidence": "Identical unchanged public pressed_default_matches_frozen_modifier_precedence changes RED4d84 to GREEN02. DEFAULT and DANGER explicit shared pressed combinations remove active/hover cues, then add frozen pressed modifiers. Both fill modes match fixed416 pressed Ansi16 BOLD|REVERSED and Mono BOLD|UNDERLINED."
+    },
+    {
+      "id": "MENU-4D-R2",
+      "evidence": "Identical unchanged disabled_mono_retains_frozen_dim changes RED4d84 to GREEN02. Disabled profiles explicitly retain Ansi16/Mono DIM while removing BOLD/UNDERLINED/REVERSED cursor cues. All disabled initial/hover/pressed samples match frozen modifiers. The inherited Ansi16 missing-DIM gap is also closed by actual matrix evidence."
+    },
+    {
+      "id": "MENU-4D-R3",
+      "evidence": "Identical unchanged actual_owner_focused_hidden_label_matches_frozen_none changes RED4d84 to GREEN02 on actual owner-focused Harness cells. Menu row projection strips owner ACTIVE before deriving its own visible cursor ACTIVE. Shared profile base resets cursor weight; focused hidden labels now NONE. The author test now asserts actual screen cells rather than switching to a fresh unowned renderer."
+    },
+    {
+      "id": "INHERITED-DANGER-CURSOR-BOLD",
+      "evidence": "Shared DEFAULT/DANGER profile helper closes prior DANGER underlay BOLD omissions. All96 actual modifier samples now match48 frozen semantic-state samples, duplicated only across candidate fill modes; all previous22 mismatches are gone."
+    }
+  ],
+  "checks": [
+    {
+      "command": "cargo +1.99.1 nextest run -p termrock-theme -p termrock-overlays --all-targets --no-fail-fast",
+      "exit": 100,
+      "passed": 316,
+      "failed": 1,
+      "skipped": 0,
+      "log": "native.log",
+      "failure": "all_73_junie_slots_match_reference_capability_output: pre-existing separate reference-data conflict remains unapproved."
+    },
+    {
+      "command": "cargo +1.99.1 nextest run --all-targets --no-fail-fast (unchanged24 public probes)",
+      "exit": 0,
+      "passed": 24,
+      "failed": 0,
+      "skipped": 0,
+      "log": "public.log"
+    },
+    {
+      "command": "cargo +1.99.1 nextest run --all-targets --no-fail-fast (final public suite including two independent edge checks)",
+      "exit": 0,
+      "passed": 26,
+      "failed": 0,
+      "skipped": 0,
+      "log": "public-final.log",
+      "additional_coverage": "Press\u2192drag outside\u2192release outside\u2192hidden nonactivation\u2192Home restore\u2192Enter activation across4profiles\u00d72variants\u00d72fill modes; explicit global/local LABEL modifier overrides across4profiles\u00d72variants\u00d72fill modes\u00d72override contexts."
+    },
+    {
+      "command": "cargo +1.99.1 nextest run -p jackin-preview-app --all-targets --no-fail-fast -E test(capsule_prefix_m_paints_the_change_title_cell)",
+      "exit": 0,
+      "passed": 1,
+      "failed": 0,
+      "filtered": 181,
+      "log": "jackin.log",
+      "qualification": "Same selected App test source as exact385 (source-integrity.json). Prior reviewer-owned before385-jackin.log preserves its BOLD failure.181 filtered cases are not acceptance passes."
+    },
+    {
+      "command": "cargo +1.99.1 clippy -p termrock-theme -p termrock-overlays --all-targets -- -D warnings",
+      "exit": 0,
+      "log": "clippy.log"
+    },
+    {
+      "command": "cargo +1.99.1 fmt --check",
+      "exit": 0,
+      "log": "fmt.log"
+    }
+  ],
+  "frozen_comparison": {
+    "baseline": "Exact416 actual public ContextMenu cells from previous read-only frozen execution, preserved byte-identically; no regenerated or approved expectation data.",
+    "frozen_sample_count": 48,
+    "candidate_sample_count": 96,
+    "modifier_differences": 0,
+    "frozen_sha256": "3025f9ac95b62288be112af6b1d403e0577470e86c21b37f4a7d9f95eaaa5103",
+    "qualification": "These are label-cell MODIFIER comparisons over4profiles\u00d72variants\u00d72disabled states\u00d73visual states, with candidate duplicated across ordinary/keep_underlay modes. Full Cell objects including colors and transport are preserved, but complete color/frame equivalence is NOT asserted. Outer component geometry differs between API generations."
+  },
+  "implementation_review": {
+    "state_ownership": "Only local Menu derived-row projection now removes inherited ACTIVE, then derives visible cursor ACTIVE; no global FOCUSED or FOCUS_VISIBLE spoof, keyboard focus mutation, new registration or second input/rendering system. Existing canonical row/label painting and stable parts remain owners.",
+    "theme": "One private capability modifier helper and one shared profile helper for DEFAULT/DANGER define reset/active/hover/pressed/disabled precedence. Disabled combinations explicitly suppress active cues and retain DIM. Other families, scalar tokens and public signatures are unchanged in this delta.",
+    "overrides": "Unchanged scoped/key-part/reason custom style fixtures remain green. Additional real rendered global and local LABEL patches remove BOLD and add ITALIC successfully in every tested profile/variant/fill mode, so cursor defaults remain overridable. RULE slots/measurement and effective chords/submenus stay green.",
+    "focus_and_gutter": "No new gutter glyph or focus registration path added; Menu state uses ACTIVE for cursor style independently of keyboard FOCUSED. Actual owner-focused, blurred/unowned, hidden/Home and cancelled press flows are exercised. No full-screen inventory proving exactly one gutter under every possible composition was run.",
+    "api_and_safety": "Private helper/source-projection changes preserve public APIs. No unsafe code, new concurrency primitive, application data dependency, replay asset or direct application correction painter introduced."
+  },
+  "fixture_integrity": {
+    "candidate_worktree": "/private/tmp/menu-theme-02dde967-review-20261021",
+    "candidate_target_prefix": "/private/tmp/menu-theme-02dde967-",
+    "exact_source_clean": true,
+    "prior_failing_assertions_byte_identical": true,
+    "prior_control_fixtures_byte_identical": true,
+    "fixture_sha256": {
+      "edges.rs": "d5efb65520c29983744d0a94a2a4d670c0aaf2a3f748b5d2a34c0a058d8e7b8c",
+      "scoped.rs": "837dc7d0e4f91caef0d2099898533f46899901d1262bf6e305045187ea3aa8d0",
+      "unification.rs": "d13539e9b6af692ae19a1992624cc3c611f15fa9e948e8a92206c77c310b263f",
+      "hidden.rs": "e0c128c297bd583877130e8f69c897ca261d13393e1a990acbd96a2d4ab566fb",
+      "menu_observation.rs": "2ebdb34db27135c0077fe70f812694ad6d856b438f524302992d783466b3f4c2",
+      "navigation_guard.rs": "4f67d4c7e6cc90d9ba2b9232d355a1cd2aa5cbc04de169b9256e97105d665360",
+      "modifier_overrides.rs": "68add54267dd2e2e964c865392ae998f853b5b59e40683804def742540fa4a03",
+      "frozen_assertions.rs": "56c7227e694b9afb566e8bad462c54ff95ce878fb4ef7820b3cfa4912df84ed5",
+      "activation_paths.rs": "7cf2da7bee683b4911b7400a4d8f7531eead266b36adeae8c8cfd28ba8775538",
+      "reason.rs": "0ebbcedf6e11fc52fac159eea2a3ae633eb8283e99f83443a34bf47a6987543f",
+      "release_restore.rs": "44f98093da2ca26c36b54f81a6adcbf4a9c49f2b7f53a1c160b1cee936ed222a",
+      "menu_state_matrix.rs": "9feb40dbeb0a458c10039346b32ed3b4c8f6991a2f80d7a085dfdbf25d871ea9"
+    },
+    "output_paths_only": "Observation fixtures retain the same logic; only output artifact roots changed to this review directory.",
+    "external_probe_correction": "Added reviewer-owned release workflow initially lacked an explicit return lifetime; that external-only compilation failure is preserved in release.log. Corrected public helper lifetime compiled and final26 all passed; no product source edits."
+  },
+  "prior_hold": {
+    "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/branch-consolidation/menu-theme-4d84ff9a-independent-review-20261021/review.json",
+    "sha256": "389356f5018a4e26071e1989bfbe5e3f3a9f50ec2686f871a52ce9e885aeca8f"
+  },
+  "exclusions": [
+    "c487 expected refresh,912,40c,new Jackin expected updates and new palettes are explicitly excluded from any approval. This packet neither validates nor blesses unrelated source or reference-data revisions.",
+    "The73 scalar/capability reference conflict and candidate/frozen color differences remain held for documented reference decision and separate independent review.",
+    "No full real application paired Tuiscotti capture, full App suite, twice-repeated complete inventory, hosted CI or main integration gate.",
+    "No exhaustive busy/read-only/invalid state powerset, deeply nested overlay stress, performance/allocation benchmark or every possible gutter composition.",
+    "No Runtime098 re-review; its separate exact-commit clearance is not inferred from this Theme change.",
+    "Reviewer used no helpers and made no product edits, commits, pushes, tag changes or baseline changes; each owned command explicitly bounded <=210seconds."
+  ],
+  "artifacts": {
+    "Cargo.lock": "2646178e26bdffd64499a57cb266a8ac79e0212f02f4cd92b55e22dca923ea0e",
+    "Cargo.toml": "4b4480e8e25cb398c9c4ae5bc11ce92e104148b1fbac0757a02cca307221ab44",
+    "activation_paths.rs": "7cf2da7bee683b4911b7400a4d8f7531eead266b36adeae8c8cfd28ba8775538",
+    "candidate-menu-observation.txt": "92386dd2f679b37a218b8538d55be62a01937e418a484757bcca2e129f282938",
+    "candidate-state-matrix.txt": "ea31386a4bab5721971c79d06ea214f92e0aee0fc9f3873b1445032496c46f2f",
+    "candidate-unowned-cursor.txt": "7351136d56f5d40981261219bba8865acebf525b6e682f2741b82e86ead1aae0",
+    "clippy.log": "3fc77c16762096f759717dd245557fb749090d3458baf9b568faca55f52d8015",
+    "edges.rs": "d5efb65520c29983744d0a94a2a4d670c0aaf2a3f748b5d2a34c0a058d8e7b8c",
+    "fmt.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "frozen-state-matrix.txt": "3025f9ac95b62288be112af6b1d403e0577470e86c21b37f4a7d9f95eaaa5103",
+    "frozen_assertions.rs": "56c7227e694b9afb566e8bad462c54ff95ce878fb4ef7820b3cfa4912df84ed5",
+    "hidden.rs": "e0c128c297bd583877130e8f69c897ca261d13393e1a990acbd96a2d4ab566fb",
+    "jackin.log": "14eaec7281c2f6496085faeb7203278f9dd8cd469ee1da64b4d88913e7ad346c",
+    "menu_observation.rs": "2ebdb34db27135c0077fe70f812694ad6d856b438f524302992d783466b3f4c2",
+    "menu_state_matrix.rs": "9feb40dbeb0a458c10039346b32ed3b4c8f6991a2f80d7a085dfdbf25d871ea9",
+    "modifier_overrides.rs": "68add54267dd2e2e964c865392ae998f853b5b59e40683804def742540fa4a03",
+    "native.log": "c57b1e08de94640251840a16677a89f51d180a66cd57b198f29872442b91e841",
+    "navigation_guard.rs": "4f67d4c7e6cc90d9ba2b9232d355a1cd2aa5cbc04de169b9256e97105d665360",
+    "public-final.log": "bb8845ed34090de14644303155bf4f559ca852c0d175663da1f2d78209547f55",
+    "public.log": "e94613d284c90c0a339dc665a950a2848287ee0e0f21fbe233bcb943acdee33e",
+    "reason.rs": "0ebbcedf6e11fc52fac159eea2a3ae633eb8283e99f83443a34bf47a6987543f",
+    "release.log": "453ae23935e723126c523fdcb3a7b758073cf7eabbaf2dc8e8d590cb8acee3ec",
+    "release_restore.rs": "44f98093da2ca26c36b54f81a6adcbf4a9c49f2b7f53a1c160b1cee936ed222a",
+    "scoped.rs": "837dc7d0e4f91caef0d2099898533f46899901d1262bf6e305045187ea3aa8d0",
+    "source-integrity.json": "8c43d54b151372f6c4f5f7d015bfe2fe1005686a38ef5edbbe18dbcea6c039b1",
+    "source.diff": "6005fb85be92b45d6148c602c001b5b783d2e3c241aa61dc16b3b3bd1fadc6f8",
+    "state-modifier-differences.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "unification.rs": "d13539e9b6af692ae19a1992624cc3c611f15fa9e948e8a92206c77c310b263f"
+  }
+}
