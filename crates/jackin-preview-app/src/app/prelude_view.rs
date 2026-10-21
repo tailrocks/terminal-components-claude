@@ -1,7 +1,7 @@
 //! First-use new-workspace prelude at 120×40.
 
-use termrock::author::PaintStyle;
-use termrock::{Color, Modifier, Position, Rect, Style, Ui};
+use termrock::author::{PaintStyle, put_cell, put_fill, put_fill_in, put_text};
+use termrock::{Color, Modifier, Rect, Style, Ui};
 
 use super::App;
 
@@ -56,7 +56,7 @@ const ROWS: &[SourceRow] = &[
 ];
 
 pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
-    ui.fill(full, canvas());
+    put_fill_in(ui, full, canvas());
     paint_str(ui, 1, 0, " jackin❯ ", BRAND_FG, ACCENT, true);
     paint_str(ui, 12, 0, " File ", SECONDARY, BLACK, false);
     paint_str(ui, 19, 0, " Go ", SECONDARY, BLACK, false);
@@ -83,7 +83,7 @@ fn paint_dialog(app: &App, ui: &mut Ui<'_>) {
     let y = 9u16;
     let w = 84u16;
     let h = 22u16;
-    ui.fill(Rect::new(x, y, w, h), Style::default().fg(MUTED).bg(CARD));
+    put_fill(ui, x, y, w, h, Style::default().fg(MUTED).bg(CARD));
     paint_str(ui, x, y, "╭─", BORDER, CARD, false);
     paint_str(
         ui,
@@ -228,9 +228,9 @@ fn paint_str(ui: &mut Ui<'_>, x: u16, y: u16, text: &str, fg: Color, bg: Color, 
     if bold {
         style = style.add_modifier(Modifier::BOLD);
     }
-    ui.paint_str(Rect::new(x, y, text.chars().count() as u16, 1), text, style);
+    put_text(ui, x, y, text, style);
 }
 
 fn paint_cell(ui: &mut Ui<'_>, x: u16, y: u16, symbol: &str, fg: Color, bg: Color) {
-    ui.paint_cell(Position::new(x, y), symbol, canvas().fg(fg).bg(bg));
+    put_cell(ui, x, y, symbol, canvas().fg(fg).bg(bg));
 }

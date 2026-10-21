@@ -1,8 +1,8 @@
 //! Live settings screen rendering with termrock widgets and components.
 //! Replaces historical_settings_*.rs replay modules.
 
-use termrock::author::PaintStyle;
-use termrock::{Color, Modifier, Position, Rect, Style, Ui};
+use termrock::author::{PaintStyle, put_cell, put_fill, put_fill_in, put_text};
+use termrock::{Color, Modifier, Rect, Style, Ui};
 
 use super::App;
 
@@ -27,7 +27,7 @@ const TABS: &[(&str, u16, u16)] = &[
 ];
 
 pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
-    if full.width == 0 || full.height == 0 {
+    if full.is_empty() {
         return;
     }
     if full.width == 120 && full.height == 40 && matches!(app.settings.tab, 2..=4) {
@@ -579,7 +579,7 @@ fn paint_settings_chrome(
     tab_note: Option<&str>,
     crumb_note: Option<&str>,
 ) {
-    ui.fill(full, env_canvas());
+    put_fill_in(ui, full, env_canvas());
     let Some(tab) = TABS.get(active) else {
         return;
     };
@@ -849,11 +849,11 @@ fn env_paint(ui: &mut Ui<'_>, x: u16, y: u16, text: &str, fg: Color, bg: Color, 
     if bold {
         style = style.add_modifier(Modifier::BOLD);
     }
-    ui.paint_str(Rect::new(x, y, text.chars().count() as u16, 1), text, style);
+    put_text(ui, x, y, text, style);
 }
 
 fn env_cell(ui: &mut Ui<'_>, x: u16, y: u16, symbol: &str, fg: Color, bg: Color) {
-    ui.paint_cell(Position::new(x, y), symbol, env_canvas().fg(fg).bg(bg));
+    put_cell(ui, x, y, symbol, env_canvas().fg(fg).bg(bg));
 }
 
 fn paint_env_body(ui: &mut Ui<'_>) {
@@ -984,7 +984,9 @@ fn paint_agents_page(app: &App, ui: &mut Ui<'_>, full: Rect) {
 }
 
 fn paint_trust_page(app: &App, ui: &mut Ui<'_>, full: Rect) {
-    let preview = app.settings_save_preview && full.width == 120 && full.height == 40;
+    // The trust page is only reached on the approved 120x40 frame, so the
+    // save preview always shapes its chrome here.
+    let preview = app.settings_save_preview;
     let diffs = trust_diffs(app);
     if preview && !diffs.is_empty() {
         let note = format!("  • {}  ", change_label(diffs.len()));
@@ -1384,18 +1386,12 @@ fn paint_save_preview(app: &App, ui: &mut Ui<'_>, full: Rect) {
     let bg = Color::Rgb(0x18, 0x18, 0x1b);
     let border = Color::Rgb(0x4d, 0x4d, 0x4d);
 
-    ui.fill(
-        Rect::new(x, y, card_w, card_h),
-        Style::default().fg(MUTED).bg(bg),
-    );
+    put_fill(ui, x, y, card_w, card_h, Style::default().fg(MUTED).bg(bg));
     // Body rows keep two muted columns on each side. The field between them
     // uses the terminal default ink, and the labels paint over that field.
     let field = Style::default().fg(Color::Reset).bg(bg);
     for row in 4..10 {
-        ui.fill(
-            Rect::new(x.saturating_add(3), y.saturating_add(row), 60, 1),
-            field,
-        );
+        put_fill(ui, x.saturating_add(3), y.saturating_add(row), 60, 1, field);
     }
 
     // Top border (y)
@@ -1613,7 +1609,7 @@ fn paint_str(ui: &mut Ui<'_>, x: u16, y: u16, text: &str, fg: Color, bg: Color, 
     if bold {
         style = style.add_modifier(Modifier::BOLD);
     }
-    ui.paint_str(Rect::new(x, y, text.chars().count() as u16, 1), text, style);
+    put_text(ui, x, y, text, style);
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -1638,7 +1634,7 @@ fn paint_styled(
     if !modifier.is_empty() {
         style = style.add_modifier(modifier);
     }
-    ui.paint_str(Rect::new(x, y, text.chars().count() as u16, 1), text, style);
+    put_text(ui, x, y, text, style);
 }
 
 fn paint_cell(ui: &mut Ui<'_>, x: u16, y: u16, symbol: &str, fg: Color, bg: Color, bold: bool) {
@@ -1646,5 +1642,5 @@ fn paint_cell(ui: &mut Ui<'_>, x: u16, y: u16, symbol: &str, fg: Color, bg: Colo
     if bold {
         style = style.add_modifier(Modifier::BOLD);
     }
-    ui.paint_cell(Position::new(x, y), symbol, style);
+    put_cell(ui, x, y, symbol, style);
 }

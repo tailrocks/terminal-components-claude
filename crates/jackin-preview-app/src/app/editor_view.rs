@@ -1,8 +1,8 @@
 //! Live editor screen rendering with termrock widgets and components.
 //! Replaces historical_editor*.rs replay modules.
 
-use termrock::author::PaintStyle;
-use termrock::{Color, Modifier, Position, Rect, Style, Ui};
+use termrock::author::{PaintStyle, put_cell, put_fill, put_fill_in, put_scroll_edges, put_text};
+use termrock::{Color, Modifier, Rect, Style, Ui};
 
 use super::App;
 use crate::screens::editor::Tab as EditorTab;
@@ -28,7 +28,7 @@ const TABS: &[(&str, u16, u16)] = &[
 ];
 
 pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
-    if full.width == 0 || full.height == 0 {
+    if full.is_empty() {
         return;
     }
     let general = matches!(app.editor.tab, EditorTab::General);
@@ -39,7 +39,7 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
     let chrome = general || mounts || roles || env || accounts;
     // The live shell is surface ink. These approved pages are canvas.
     if chrome {
-        ui.fill(full, canvas());
+        put_fill_in(ui, full, canvas());
     }
 
     // Row 0: Header
@@ -550,7 +550,7 @@ fn paint_roles_body(app: &App, ui: &mut Ui<'_>) {
     // column stays out of the rect so the track glyph is not blended.
     let mut scroll = termrock::ScrollState::new(app.world.roles.len());
     scroll.set_viewport(visible);
-    ui.scroll_edges(Rect::new(2, 7, 115, visible as u16), &scroll);
+    put_scroll_edges(ui, Rect::new(2, 7, 115, visible as u16), &scroll);
 
     paint_str(ui, 97, 37, " ", BLACK, BLACK, false);
     paint_str(ui, 98, 37, "Cancel ", SECONDARY, BLACK, false);
@@ -1059,16 +1059,10 @@ fn paint_save_preview(app: &App, ui: &mut Ui<'_>, full: Rect, changes: &[String]
     let bg = Color::Rgb(0x18, 0x18, 0x1b);
     let border = Color::Rgb(0x4d, 0x4d, 0x4d);
 
-    ui.fill(
-        Rect::new(x, y, card_w, card_h),
-        Style::default().fg(MUTED).bg(bg),
-    );
+    put_fill(ui, x, y, card_w, card_h, Style::default().fg(MUTED).bg(bg));
     let field = Style::default().fg(Color::Reset).bg(bg);
     for row in 4..9 {
-        ui.fill(
-            Rect::new(x.saturating_add(3), y.saturating_add(row), 60, 1),
-            field,
-        );
+        put_fill(ui, x.saturating_add(3), y.saturating_add(row), 60, 1, field);
     }
 
     paint_str(
@@ -1234,7 +1228,7 @@ fn paint_str(ui: &mut Ui<'_>, x: u16, y: u16, text: &str, fg: Color, bg: Color, 
     if bold {
         style = style.add_modifier(Modifier::BOLD);
     }
-    ui.paint_str(Rect::new(x, y, text.chars().count() as u16, 1), text, style);
+    put_text(ui, x, y, text, style);
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -1255,7 +1249,7 @@ fn paint_styled(
     if underline {
         style = style.add_modifier(Modifier::UNDERLINED);
     }
-    ui.paint_str(Rect::new(x, y, text.chars().count() as u16, 1), text, style);
+    put_text(ui, x, y, text, style);
 }
 
 fn paint_cell(ui: &mut Ui<'_>, x: u16, y: u16, symbol: &str, fg: Color, bg: Color, bold: bool) {
@@ -1263,7 +1257,7 @@ fn paint_cell(ui: &mut Ui<'_>, x: u16, y: u16, symbol: &str, fg: Color, bg: Colo
     if bold {
         style = style.add_modifier(Modifier::BOLD);
     }
-    ui.paint_cell(Position::new(x, y), symbol, style);
+    put_cell(ui, x, y, symbol, style);
 }
 
 fn paint_footer(app: &App, ui: &mut Ui<'_>, full: Rect) {

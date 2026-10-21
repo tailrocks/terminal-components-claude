@@ -916,11 +916,13 @@ pub fn paint_grid_row_numbers(
             plain
         };
         let fade = visible.saturating_sub(row);
+        // A two-row body is the whole viewport. Keep it solid, as the baseline does.
+        let edge = visible > 2;
         // These two pads sit in the grid body. The edge fade already ran.
         // Repainting them in primary ink hides the bottom (and top) fade.
-        let pad = if truecolor && (fade == 1 || (origin > 0 && row == 0)) {
+        let pad = if truecolor && edge && (fade == 1 || (origin > 0 && row == 0)) {
             gutter.patch(ui.paint_patch(&StylePatch::new().set_fg(policy.pad_fade_edge)))
-        } else if truecolor && (fade == 2 || (origin > 0 && row == 1)) {
+        } else if truecolor && edge && (fade == 2 || (origin > 0 && row == 1)) {
             gutter.patch(ui.paint_patch(&StylePatch::new().set_fg(policy.pad_fade_soft)))
         } else {
             gutter
@@ -943,13 +945,13 @@ pub fn paint_grid_row_numbers(
             } else {
                 policy.muted
             }
-        } else if origin > 0 && row == 0 {
+        } else if edge && origin > 0 && row == 0 {
             policy.text_fade_edge
-        } else if origin > 0 && row == 1 {
+        } else if edge && origin > 0 && row == 1 {
             policy.text_fade_soft
-        } else if fade == 1 {
+        } else if edge && fade == 1 {
             policy.text_fade_edge
-        } else if fade == 2 {
+        } else if edge && fade == 2 {
             policy.text_fade_soft
         } else if cursor == Some(model_row) {
             policy.cursor

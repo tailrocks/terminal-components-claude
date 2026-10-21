@@ -3,7 +3,9 @@
 //! `ctrl-b` then `"` opens this picker. The card keeps dimmed underlay ink
 //! on empty cells and paints the frozen rows on top.
 
-use termrock::author::PaintStyle;
+use termrock::author::{
+    PaintStyle, put_cell_at, put_fill_in, put_text_w, repaint_cells, restyle_cells,
+};
 use termrock::{Color, Modifier, Position, Rect, Ui};
 
 const ACCENT: Color = Color::Rgb(0x48, 0xe0, 0x54);
@@ -53,7 +55,7 @@ fn paint_120(ui: &mut Ui<'_>, title: &str) {
     ui.modal_backdrop(full);
     repair_underlay(ui);
     let interior = Rect::new(CARD_X + 1, CARD_Y + 1, CARD_W - 2, CARD_H - 2);
-    ui.fill(interior, PaintStyle::new().bg(CARD));
+    put_fill_in(ui, interior, PaintStyle::new().bg(CARD));
     repair_card_pad(ui);
     paint_border(ui);
     paint_title(ui, title);
@@ -603,21 +605,22 @@ pub(super) fn finish_reduced(ui: &mut Ui<'_>) {
     let selected_y = card.y.saturating_add(4);
     let selected = Color::Rgb(0x2f, 0x5a, 0xa8);
     if !ansi16 {
-        let (buf, _) = ui.raw();
         let left = card.x.saturating_add(1);
         let right = card.x.saturating_add(card.width).saturating_sub(1);
-        for x in left..right {
-            let Some(cell) = buf.cell_mut(Position::new(x, selected_y)) else {
-                continue;
-            };
-            if cell.bg != selected {
-                continue;
-            }
-            cell.modifier.insert(Modifier::REVERSED);
-            if cell.modifier.contains(Modifier::BOLD) && cell.fg == WHITE {
-                cell.set_fg(Color::Indexed(0));
-            }
-        }
+        restyle_cells(
+            ui,
+            Rect::new(left, selected_y, right.saturating_sub(left), 1),
+            |_, cell| {
+                if cell.bg() != selected {
+                    return None;
+                }
+                let mut style = termrock::Style::new().add_modifier(Modifier::REVERSED);
+                if cell.modifier().contains(Modifier::BOLD) && cell.fg() == WHITE {
+                    style = style.fg(Color::Indexed(0));
+                }
+                Some(style)
+            },
+        );
     }
     ui.recolor_pair(underlay, move |fg, bg| {
         (reduced_ink(fg, ansi16), reduced_ink(bg, ansi16))
@@ -626,30 +629,23 @@ pub(super) fn finish_reduced(ui: &mut Ui<'_>) {
         // Mono turns the seam gray into black. The frozen rules stay gray.
         // A direct fg write is overwritten by the cell's paint role, so
         // paint the same glyph again.
-        let mut rules = Vec::new();
-        {
-            let gutter_x = card.x.saturating_add(2);
-            let option_top = card.y.saturating_add(4);
-            let option_bottom = card.y.saturating_add(8);
-            let (buf, _) = ui.raw();
-            for pos in underlay.positions() {
-                let Some(cell) = buf.cell(pos) else {
-                    continue;
-                };
-                let option_gutter = cell.symbol() == " "
-                    && pos.x == gutter_x
-                    && (option_top..=option_bottom).contains(&pos.y);
-                if is_black(cell.fg) && is_black(cell.bg) && !option_gutter {
-                    rules.push((pos, cell.symbol().to_owned()));
-                }
-            }
-        }
+        let gutter_x = card.x.saturating_add(2);
+        let option_top = card.y.saturating_add(4);
+        let option_bottom = card.y.saturating_add(8);
         let style = PaintStyle::new()
             .fg(Color::Indexed(7))
             .bg(Color::Indexed(0));
-        for (pos, symbol) in rules {
-            ui.paint_cell(pos, &symbol, style);
-        }
+        repaint_cells(
+            ui,
+            underlay,
+            |pos, cell| {
+                let option_gutter = cell.symbol == " "
+                    && pos.x == gutter_x
+                    && (option_top..=option_bottom).contains(&pos.y);
+                is_black(cell.fg()) && is_black(cell.bg()) && !option_gutter
+            },
+            style,
+        );
     }
     ui.add_dim(underlay);
     // Footer repairs paint truecolor RGB on the undimmed hint row.
@@ -770,13 +766,16 @@ fn ink(ui: &Ui<'_>, fg: Color, bg: Color, bold: bool) -> PaintStyle {
 }
 
 fn paint_str(ui: &mut Ui<'_>, x: u16, y: u16, text: &str, fg: Color, bg: Color, bold: bool) {
-    ui.paint_str(
-        Rect::new(x, y, text.chars().count() as u16, 1),
+    put_text_w(
+        ui,
+        x,
+        y,
+        text.chars().count() as u16,
         text,
         ink(ui, fg, bg, bold),
     );
 }
 
 fn paint_cell(ui: &mut Ui<'_>, x: u16, y: u16, symbol: &str, fg: Color, bg: Color, bold: bool) {
-    ui.paint_cell(Position::new(x, y), symbol, ink(ui, fg, bg, bold));
+    put_cell_at(ui, Position::new(x, y), symbol, ink(ui, fg, bg, bold));
 }

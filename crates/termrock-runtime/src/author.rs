@@ -1,5 +1,15 @@
 use core::fmt;
 
+mod canvas;
+pub use canvas::{
+    CellView, put_cell, put_cell_at, put_fill, put_fill_in, put_frame, put_frame_in,
+    put_scroll_edges, put_text, put_text_in, put_text_w, repaint_cells, restyle_cells,
+    restyle_clip, text_width,
+};
+
+mod surface;
+pub use surface::PaintSurface;
+
 mod window;
 pub use window::{VerticalWindow, VerticalWindowError};
 
