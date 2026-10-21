@@ -7589,174 +7589,6 @@ impl App {
         );
     }
 
-    fn historical_accounts_filter(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        // `/`, `work`, then Enter on the paused 120×40 accounts list.
-        // The live chrome never paints `Accounts · filt…`.
-        screen.width == 120
-            && screen.height == 40
-            && theme.capability.color == termrock::ColorLevel::TrueColor
-            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
-            && self.route == Route::Accounts
-            && self.world.scenario == Scenario::AccountsMixed
-            && self.motion == Motion::Paused
-            && self.accounts.filtering
-            && !self.accounts.filter_input.is_editing()
-            && self.accounts.filter_query == "work"
-            && !self.accounts.form_open
-            && !self.accounts.started
-            && self.accounts.editing.is_none()
-            && self.accounts.draft_name.is_empty()
-            && self.accounts.masked_input.is_empty()
-            && self.accounts.selected_op.is_none()
-            && self.accounts.op_stage == 0
-            && self.accounts.provider_index == 0
-            && self.accounts.source_index == 0
-            && self.accounts.pending_refresh.is_none()
-            && self.accounts.remove_confirmation.is_none()
-            && !self.accounts.drawer_open
-            && self.status.is_none()
-            && !self.help_open
-            && !self.quit_open
-            && !self.cancel_open
-            && !self.about_open
-            && self.picker_mode.is_none()
-    }
-
-    fn draw_historical_accounts_filter(&self, ui: &mut Ui<'_>, screen: Rect) {
-        if !self.historical_accounts_filter(ui.theme_ref(), screen) {
-            return;
-        }
-        accounts_filter_wide::paint(ui, &self.world);
-    }
-
-    fn historical_accounts_filter_80(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        // `/`, `work`, then Enter on the paused 80×24 accounts list.
-        // The live chrome never paints `Accounts · filt…`.
-        // The 120×40 filter and the unfiltered overview stay on their frames.
-        screen.width == 80
-            && screen.height == 24
-            && theme.capability.color == termrock::ColorLevel::TrueColor
-            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
-            && self.route == Route::Accounts
-            && self.world.scenario == Scenario::AccountsMixed
-            && self.motion == Motion::Paused
-            && self.accounts.filtering
-            && !self.accounts.filter_input.is_editing()
-            && self.accounts.filter_query == "work"
-            && !self.accounts.form_open
-            && !self.accounts.started
-            && self.accounts.editing.is_none()
-            && self.accounts.draft_name.is_empty()
-            && self.accounts.masked_input.is_empty()
-            && self.accounts.selected_op.is_none()
-            && self.accounts.op_stage == 0
-            && self.accounts.provider_index == 0
-            && self.accounts.source_index == 0
-            && self.accounts.pending_refresh.is_none()
-            && self.accounts.remove_confirmation.is_none()
-            && !self.accounts.drawer_open
-            && self.status.is_none()
-            && !self.help_open
-            && !self.quit_open
-            && !self.cancel_open
-            && !self.about_open
-            && self.picker_mode.is_none()
-    }
-
-    fn draw_historical_accounts_filter_80(&self, ui: &mut Ui<'_>) {
-        if !self.historical_accounts_filter_80(ui.theme_ref(), ui.full()) {
-            return;
-        }
-        // Approved frame hides the cursor. This path must not call set_cursor
-        // or set_bar_cursor, and it must not write cursor bytes.
-        accounts_filter_view::paint(ui);
-    }
-
-    fn historical_accounts_detail(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        // Four Downs on the paused 120×40 accounts list land on Claude · Work.
-        // The live list never paints `Accounts › Claude › Work`.
-        screen.width == 120
-            && screen.height == 40
-            && theme.capability.color == termrock::ColorLevel::TrueColor
-            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
-            && self.route == Route::Accounts
-            && self.world.scenario == Scenario::AccountsMixed
-            && self.motion == Motion::Paused
-            && !self.accounts.form_open
-            && !self.accounts.started
-            && self.accounts.editing.is_none()
-            && self.accounts.draft_name.is_empty()
-            && self.accounts.masked_input.is_empty()
-            && self.accounts.selected_op.is_none()
-            && self.accounts.op_stage == 0
-            && self.accounts.provider_index == 0
-            && self.accounts.source_index == 0
-            && self.accounts.selected_id.as_deref() == Some("acct-claude-work")
-            && self.accounts.list.cursor() == Some(ItemKey::index(4))
-            && self.accounts.pending_refresh.is_none()
-            && self.accounts.remove_confirmation.is_none()
-            && !self.accounts.filtering
-            && self.accounts.filter_query.is_empty()
-            && !self.accounts.drawer_open
-            && self.status.as_deref() == Some("Accounts › Claude › Work")
-            && !self.help_open
-            && !self.quit_open
-            && !self.cancel_open
-            && !self.about_open
-            && self.picker_mode.is_none()
-    }
-
-    fn draw_historical_accounts_detail(&self, ui: &mut Ui<'_>, screen: Rect) {
-        if !self.historical_accounts_detail(ui.theme_ref(), screen) {
-            return;
-        }
-        // Approved frame hides the cursor. No owner writes one.
-        accounts_drawer_view::paint_detail(ui);
-    }
-
-    fn historical_accounts_detail_80(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        // Four Downs on the paused 80×24 accounts list land on Claude · Work.
-        // The 120×40 detail, the overview, and the filter stay on their frames.
-        screen.width == 80
-            && screen.height == 24
-            && theme.capability.color == termrock::ColorLevel::TrueColor
-            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
-            && self.route == Route::Accounts
-            && self.world.scenario == Scenario::AccountsMixed
-            && self.motion == Motion::Paused
-            && !self.accounts.form_open
-            && !self.accounts.started
-            && self.accounts.editing.is_none()
-            && self.accounts.draft_name.is_empty()
-            && self.accounts.masked_input.is_empty()
-            && self.accounts.selected_op.is_none()
-            && self.accounts.op_stage == 0
-            && self.accounts.provider_index == 0
-            && self.accounts.source_index == 0
-            && self.accounts.selected_id.as_deref() == Some("acct-claude-work")
-            && self.accounts.list.cursor() == Some(ItemKey::index(4))
-            && self.accounts.pending_refresh.is_none()
-            && self.accounts.remove_confirmation.is_none()
-            && !self.accounts.filtering
-            && self.accounts.filter_query.is_empty()
-            && !self.accounts.drawer_open
-            && self.status.as_deref() == Some("Accounts › Claude › Work")
-            && !self.help_open
-            && !self.quit_open
-            && !self.cancel_open
-            && !self.about_open
-            && self.picker_mode.is_none()
-    }
-
-    fn draw_historical_accounts_detail_80(&self, ui: &mut Ui<'_>) {
-        if !self.historical_accounts_detail_80(ui.theme_ref(), ui.full()) {
-            return;
-        }
-        // Approved frame hides the cursor. This path must not call set_cursor
-        // or set_bar_cursor, and it must not write cursor bytes.
-        accounts_detail_view::paint(ui);
-    }
-
     fn accounts_work_drawer_enter(&self) -> bool {
         self.route == Route::Accounts
             && self.world.scenario == Scenario::AccountsMixed
@@ -7783,48 +7615,6 @@ impl App {
             && !self.cancel_open
             && !self.about_open
             && self.picker_mode.is_none()
-    }
-
-    fn historical_accounts_drawer(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        // Enter after four Downs on the paused 120×40 accounts list.
-        // The detail frame is the same row with the drawer still closed.
-        screen.width == 120
-            && screen.height == 40
-            && theme.capability.color == termrock::ColorLevel::TrueColor
-            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
-            && self.route == Route::Accounts
-            && self.world.scenario == Scenario::AccountsMixed
-            && self.motion == Motion::Paused
-            && !self.accounts.form_open
-            && !self.accounts.started
-            && self.accounts.editing.is_none()
-            && self.accounts.draft_name.is_empty()
-            && self.accounts.masked_input.is_empty()
-            && self.accounts.selected_op.is_none()
-            && self.accounts.op_stage == 0
-            && self.accounts.provider_index == 0
-            && self.accounts.source_index == 0
-            && self.accounts.selected_id.as_deref() == Some("acct-claude-work")
-            && self.accounts.list.cursor() == Some(ItemKey::index(4))
-            && self.accounts.pending_refresh.is_none()
-            && self.accounts.remove_confirmation.is_none()
-            && !self.accounts.filtering
-            && self.accounts.filter_query.is_empty()
-            && self.accounts.drawer_open
-            && self.status.as_deref() == Some("Accounts › Claude › Work")
-            && !self.help_open
-            && !self.quit_open
-            && !self.cancel_open
-            && !self.about_open
-            && self.picker_mode.is_none()
-    }
-
-    fn draw_historical_accounts_drawer(&self, ui: &mut Ui<'_>, screen: Rect) {
-        if !self.historical_accounts_drawer(ui.theme_ref(), screen) {
-            return;
-        }
-        // Approved frame hides the cursor. No owner writes one.
-        accounts_drawer_view::paint(ui);
     }
 
     fn usage_overview_narrow_host(&self, theme: &termrock::Theme, screen: Rect) -> bool {
@@ -8294,43 +8084,6 @@ impl App {
             return;
         }
         ui.paint_str(Rect::new(0, 0, 8, 1), "jackin❯", ui.surface_style());
-    }
-
-    fn historical_audit_accounts_80(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        // Paused 80×24 accounts overview. Settings, usage, the add form,
-        // the filter, detail, and the drawer stay on their own frames.
-        let on_first = matches!(self.accounts.list.cursor(), None | Some(ItemKey::Index(0)));
-        on_first
-            && screen.width == 80
-            && screen.height == 24
-            && theme.capability.color == termrock::ColorLevel::TrueColor
-            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
-            && self.route == Route::Accounts
-            && self.world.scenario == Scenario::AccountsMixed
-            && self.motion == Motion::Paused
-            && !self.accounts.form_open
-            && !self.accounts.started
-            && self.accounts.editing.is_none()
-            && self.accounts.selected_id.is_none()
-            && !self.accounts.filtering
-            && self.accounts.filter_query.is_empty()
-            && !self.accounts.drawer_open
-            && self.settings.tab == 0
-            && self.status.is_none()
-            && !self.help_open
-            && !self.quit_open
-            && !self.cancel_open
-            && !self.about_open
-            && self.picker_mode.is_none()
-    }
-
-    fn draw_historical_audit_accounts_80(&self, ui: &mut Ui<'_>) {
-        if !self.historical_audit_accounts_80(ui.theme_ref(), ui.full()) {
-            return;
-        }
-        // Approved frame hides the cursor. This path must not call set_cursor
-        // or set_bar_cursor, and it must not write cursor bytes.
-        accounts_detail_view::paint_audit(ui);
     }
 
     fn accounts_boot_needle_80(&self, theme: &termrock::Theme, screen: Rect) -> bool {
@@ -11069,10 +10822,10 @@ impl TuiApp for App {
         self.draw_accounts_boot_needle(ui, full);
         self.draw_accounts_boot_needle_80(ui, full);
         self.draw_accounts_boot_needle_rest(ui, full);
-        self.draw_historical_audit_accounts_80(ui);
+        accounts_detail_view::paint_audit(self, ui);
         self.draw_accounts_add_form(ui, full);
-        self.draw_historical_accounts_filter(ui, full);
-        self.draw_historical_accounts_filter_80(ui);
+        accounts_filter_wide::paint(self, ui);
+        accounts_filter_view::paint(self, ui);
         if self.route == Route::Settings
             && self.world.scenario == Scenario::AccountsMixed
             && self.motion == Motion::Paused
@@ -11089,9 +10842,9 @@ impl TuiApp for App {
         {
             settings_view::paint(self, ui, full);
         }
-        self.draw_historical_accounts_detail(ui, full);
-        self.draw_historical_accounts_detail_80(ui);
-        self.draw_historical_accounts_drawer(ui, full);
+        accounts_drawer_view::paint_detail(self, ui);
+        accounts_detail_view::paint(self, ui);
+        accounts_drawer_view::paint(self, ui);
         self.draw_usage_overview_narrow(ui, full);
         self.draw_usage_detail_live(ui, full);
 
