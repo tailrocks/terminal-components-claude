@@ -1904,7 +1904,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
             rest.width = rest.width.saturating_sub(reserve);
         }
         if rest.width > 0 && rest.x < row.rect.right() {
-            let mut r = RowUi::new_with_patches(
+            let mut r = RowUi::new_with_patches_and_container_width(
                 ui,
                 self.id,
                 Family::TREE,
@@ -1912,6 +1912,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
                 row.flags,
                 row.key,
                 rest,
+                row.rect.width,
                 merge_focus(self.ov.part_patch(Part::CONTAINER), focus),
                 merge_focus(self.ov.part_patch(Part::LABEL), focus),
             );
