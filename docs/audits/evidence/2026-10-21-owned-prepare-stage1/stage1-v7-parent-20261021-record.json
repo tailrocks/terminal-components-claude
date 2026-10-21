@@ -1,0 +1,12 @@
+{
+  "schema": "termrock.stage1.parent-integration-record.v1",
+  "supervisor_source_sha256": "30bb46c94af9590712d176e9e958978980d06969afe47ded23012d4a76dcd000",
+  "independent_review_sha256": "564722475625af4ff72a41f250411ac7eb30d3f9537827edee15d09c4614ce46",
+  "canonical_wip_remote": "9cd3f9f733065b452d13926ca0ae28049c0840dd",
+  "event_sha256": "66a27d3c9d6d84827d4e8e65ebf502d6847f0e4c46fb0dd3d3f1b788fc0ffdc7",
+  "result": "stage1 prepare CLI exited zero; no capture/replay/candidate credit",
+  "key_access": false,
+  "stages_2_to_8_enabled": false,
+  "old_capture_run_unchanged": true,
+  "independent_operational_result_review": "pending"
+}
