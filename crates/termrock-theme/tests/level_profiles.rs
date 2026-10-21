@@ -331,6 +331,69 @@ fn mono_authored_custom_defaults_keep_canonical_binding_without_profiles() {
 }
 
 #[test]
+fn same_valued_authored_mono_channels_take_ownership_over_exact_profile_channels() {
+    const MONO_RULES: [MonoRule; 1] = [(
+        Part::CONTAINER,
+        StateFlags::PRESSED,
+        StylePatch::new()
+            .set_fg(Role::Custom(Color::DarkGray))
+            .set_bg(Role::Custom(Color::Gray))
+            .set_underline(Role::Custom(Color::White)),
+    )];
+    let theme = Theme::junie()
+        .define_family(FAMILY, |recipe| {
+            recipe.default_variant(Variant::PRIMARY);
+        })
+        .define_variant(FAMILY, Variant::PRIMARY, |recipe| {
+            recipe.part(Part::CONTAINER).base(
+                StylePatch::new()
+                    .set_fg(Role::Accent)
+                    .set_bg(Role::Accent)
+                    .set_underline(Role::Accent),
+            );
+        })
+        .define_variant_for_level(ColorLevel::Mono, FAMILY, Variant::PRIMARY, |recipe| {
+            recipe.part(Part::CONTAINER).base(
+                StylePatch::new()
+                    .set_fg(Role::Custom(Color::DarkGray))
+                    .set_bg(Role::Custom(Color::Gray))
+                    .set_underline(Role::Custom(Color::White)),
+            );
+        })
+        .for_level(ColorLevel::Mono);
+    let defaults = StyleDefaults::default().mono(&MONO_RULES);
+    let flags = StateFlags::PRESSED;
+    let expected = (
+        termrock_theme::resolve::bind_role(&theme, Role::Custom(Color::DarkGray), Surface::Canvas),
+        termrock_theme::resolve::bind_role(&theme, Role::Custom(Color::Gray), Surface::Canvas),
+        termrock_theme::resolve::bind_role(&theme, Role::Custom(Color::White), Surface::Canvas),
+    );
+
+    let resolved = termrock_theme::resolve::bind_defaults(
+        &theme,
+        (FAMILY, Variant::DEFAULT, Part::CONTAINER),
+        flags,
+        &[],
+        Surface::Canvas,
+        defaults,
+        None,
+    );
+    let with_explicit = termrock_theme::resolve::bind_defaults_with_explicit(
+        &theme,
+        (FAMILY, Variant::DEFAULT, Part::CONTAINER),
+        flags,
+        &[],
+        Surface::Canvas,
+        defaults,
+        None,
+    );
+
+    for style in [resolved.style, with_explicit.resolved.style] {
+        assert_eq!((style.fg, style.bg, style.underline_color), expected);
+    }
+}
+
+#[test]
 fn ordinary_overrides_keep_family_variant_scope_and_instance_precedence() {
     static RULES: [OverlayRule; 1] = [(
         FAMILY,
