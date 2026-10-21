@@ -278,7 +278,6 @@ mod historical_editor_mounts_dirty;
 mod historical_editor_roles;
 mod historical_editor_save;
 mod historical_hard_cases_80;
-mod historical_hard_launch_locked;
 mod historical_hard_launch_picker;
 mod historical_inspect;
 mod historical_intro_f300;
@@ -9122,7 +9121,64 @@ impl App {
         }
         // Approved frame hides the cursor. This path must not call set_cursor
         // or set_bar_cursor, and it must not write cursor bytes.
-        historical_hard_launch_locked::paint(ui);
+        let screen = ui.full();
+        let menus = [
+            termrock::feedback::SessionMenu {
+                label: "File",
+                focused: true,
+            },
+            termrock::feedback::SessionMenu {
+                label: "Edit",
+                focused: false,
+            },
+            termrock::feedback::SessionMenu {
+                label: "View",
+                focused: false,
+            },
+            termrock::feedback::SessionMenu {
+                label: "Session",
+                focused: false,
+            },
+            termrock::feedback::SessionMenu {
+                label: "Help",
+                focused: false,
+            },
+        ];
+        let hints = [
+            termrock::feedback::SessionHint {
+                key: "Ctrl+B",
+                action: "Pane commands…",
+            },
+            termrock::feedback::SessionHint {
+                key: "F10",
+                action: "Menu",
+            },
+            termrock::feedback::SessionHint {
+                key: "Ctrl+\\",
+                action: "Palette",
+            },
+            termrock::feedback::SessionHint {
+                key: "Alt+Shift+↑↓←→",
+                action: "Resize",
+            },
+        ];
+        termrock::feedback::paint_session_chrome(
+            ui,
+            screen,
+            &termrock::feedback::SessionChrome {
+                brand: "jackin❯",
+                menus: &menus,
+                crumb: "› backend",
+                instance: "jackin-data-pipeline-e0e0",
+                instances: "3 instances",
+                branch: "main",
+                state: "clean",
+                account: "no account · shell",
+                hints: &hints,
+                overflow: "…",
+                attached: "Attached to  · tabs and panes restored",
+            },
+        );
     }
 
     fn historical_hard_cases_80(&self, theme: &termrock::Theme, screen: Rect) -> bool {
