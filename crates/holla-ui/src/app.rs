@@ -1962,12 +1962,8 @@ impl App {
                 )
                 .is_some();
             let hard_cases_mid = mid && crate::sim::catalogue::hard_cases_tag_frame(&self.world);
-            let discovery_mid = crate::sim::catalogue::parity_discovery_100x30_plate(
-                &self.world,
-                ui.full().width,
-                ui.full().height,
-            )
-            .is_some();
+            let discovery_mid =
+                mid && crate::sim::catalogue::parity_discovery_tag_frame(&self.world);
             let history_plate =
                 parity_history_clipped_plate(&self.world, ui.full().width, ui.full().height);
             let files_plate =
