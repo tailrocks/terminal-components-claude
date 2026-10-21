@@ -262,6 +262,110 @@ the frozen colour contract), `Chrome::fit` (it would move every dialog
 inside the frozen frames), the PR #26 `Splitter`, `Grid` and `Table`
 widgets wholesale, and the PR #26 specimen and coverage harness.
 
+### Measured parity state, candidate against the frozen approval
+
+Candidate built from `fcc748646` (before this run's stream merges),
+reference from the sealed cohort, comparison through the frozen harness.
+
+| Application | Cases | Passed | Failed | Failure classes |
+| --- | --- | --- | --- | --- |
+| tablepro | 2762 | 48 | 2714 | 1735 frame mismatch against the approved snapshot, 627 interaction timeout, 332 boot needle never appeared, 20 other |
+| showcase | 14549 | measurement in progress | | |
+| jackin | 5818 | measurement pending | | |
+| holla | 5766 | measurement pending | | |
+
+The three failure classes map to `tests/visual_baseline/support.rs:322`
+("baseline `{name}` failed", a decoded-cell difference against the approved
+snapshot), `support.rs:700` ("`wait:{needle}` timed out") and
+`support.rs:667` ("boot needle ... never appeared").
+
+### Stream results
+
+**Showcase — landed.** `crates/showcase-demos/src/pages/{chrome,taskrunner,terminal}.rs`
+and `pages/mod.rs`, plus the new guard test
+`crates/showcase-demos/tests/no_false_parity.rs`. 6914 lines deleted, 1309
+added.
+
+Removed: 11 captured cell tables (about 2400 cells) copied from the approved
+snapshot or the tuiscotti oracle; `taskrunner::paint_historical`; 11 exact
+page-rect size branches that each selected a different screen; the
+`UpdateCause::Tick` "settled" switch in the terminal page; the
+`historical_palette` style map together with the narrow-rail replay it
+served. Each page now has one responsive layout policy.
+
+The chrome page now matches the frozen approval cell for cell at every
+reference size:
+
+| size | cells differing before | after |
+| --- | --- | --- |
+| 72x20 | 56 | 0 |
+| 80x24 | 243 | 0 |
+| 100x30 | 758 | 0 |
+| 120x40 | 0 | 0 |
+| 160x50 | 2212 | 0 |
+
+The task runner and the terminal page no longer replay anything, but they
+still differ from their approved captures, because those captures show an
+older page design (the old "Targets/Pipeline/Log" sheet and the old launch
+transcript) while the pages now use the newer widget design. The two
+captures also disagree with each other. This part is NOT complete and is
+reported as a possible reference defect for an independent decision.
+
+Gate: `cargo nextest run -p showcase-demos -p showcase-ui --all-targets` gives
+135 run, 129 passed, 6 failed. The 6 failures are identical on the base
+commit: `editor_shell_completion_accepts_tab_then_next_tab_indents`,
+`editor_shell_completion_accepts_enter_then_tab_indents`,
+`editor_playground_keeps_live_find_completion_and_run_contracts`,
+`page_headings::all_page_headings_match_the_reference_capture_matrix`,
+`page_headings::all_shell_headers_match_reference_captures_and_visibility_thresholds`,
+`visual::showcase_visual_baseline`.
+
+**Theme and overlays — landed.** `849d26dad` restores the frozen SQL syntax
+ink (keywords bold white, operators mid grey, strings and numbers light grey,
+errors in the theme red) and the public MENU/DEFAULT/TITLE identity of the
+menu bar title, both of which had drifted from the frozen corpus. The theme
+and overlay suites are green: 366 tests run, 366 passed.
+
+### D-007 — Relocating a bypass is not removing it
+
+Commits on the delivery branch that move an approval predicate from the
+application dispatch into a view module, for example "jackin: gate the
+accounts frames in their view modules" (`8a9b28807`) and "holla: fold
+remaining size-keyed plate gates into frame predicates" (`8689fe270`),
+relocate the size, fixture-label and theme-identity guards. They do not
+remove them. The task requires the guard to be gone and the live chrome to
+produce the frame from real state, so a relocated guard is still open work
+and must not be counted as done.
+
+### D-008 — Expected digests are a product signal, not an output to bless
+
+`crates/termrock-conformance/tests/baselines/components.txt` is treated as
+an acceptance signal. The migration matrix records the standing decision
+that "the product differences remain work to fix, not output to bless", and
+that no pinned frozen capture or documented independent reference decision
+authorises replacing an expected digest. So the 231 red component digests
+are a product regression to be fixed in the library, not a baseline to
+re-bless. No stream may set `BLESS=1`, edit that file, or widen, skip or
+weaken an assertion.
+
+**Jackin — partially landed.** `fc2c3bd4e` replaces the four hard-coded
+accounts view modules with a real `accounts_page.rs` driven by the world
+state, and takes the 256-colour downgrade from the shared theme ladder
+instead of an app-local table. 188 tests run, 187 passed, 1 failed
+(`visual::jackin_visual_baseline`), which was already failing before the
+merge.
+The stream also re-blessed 8 app-local digests in
+`crates/jackin-preview-app/tests/baselines/jackin.txt` for the
+`accounts-mixed` scenario. That file is a candidate-side regression pin, not
+the frozen oracle, but the re-blessing still needs independent evidence
+that the new rendering matches the frozen reference. The test-integrity
+review owns that check.
+The remaining Jackin bypasses are open: the help overlay, the hard-launch
+chrome, the narrow hard-cases manager, the capsule split and zoom views,
+the settings and prelude pages, the editor tab strip, the detail drawer
+correction painter, the harness boot needles and the `historical_*` name
+space.
+
 ## Coverage gaps
 
 ### False-parity inventory (read-only audit, revision `40bc297e5`)
