@@ -4340,6 +4340,48 @@ def _atomic_create_bytes(path: Path, payload: bytes, mode: int = 0o400, *, check
         check_work()
 
 
+def _atomic_create_bytes_at(directory_fd: int, name: str, payload: bytes, mode: int = 0o400, *, expected_identity: tuple[int, int], check_work: Callable[[], None]) -> None:
+    """Publish immutable bytes relative to a previously pinned directory descriptor."""
+    if not name or Path(name).name != name or name in {".", ".."}:
+        raise RunnerError("owned metadata filename must be a single path component")
+
+    def check_directory() -> None:
+        check_work()
+        info = os.fstat(directory_fd)
+        if not stat.S_ISDIR(info.st_mode) or (info.st_dev, info.st_ino) != expected_identity:
+            raise RunnerError("owned metadata directory descriptor identity changed")
+
+    check_directory()
+    temporary = f".{name}.{secrets.token_hex(8)}"
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
+    fd = os.open(temporary, flags, mode, dir_fd=directory_fd)
+    try:
+        try:
+            os.fchmod(fd, mode)
+            view = memoryview(payload)
+            while view:
+                check_directory()
+                written = os.write(fd, view[:1024 * 1024])
+                if written <= 0:
+                    raise RunnerError("owned metadata write made no progress")
+                view = view[written:]
+            os.fsync(fd)
+        finally:
+            os.close(fd)
+        check_directory()
+        try:
+            os.link(temporary, name, src_dir_fd=directory_fd, dst_dir_fd=directory_fd, follow_symlinks=False)
+        except FileExistsError as error:
+            raise RunnerError(f"refusing to replace immutable fresh run metadata: {name}") from error
+        os.fsync(directory_fd)
+        check_directory()
+    finally:
+        try:
+            os.unlink(temporary, dir_fd=directory_fd)
+        except FileNotFoundError:
+            pass
+
+
 def _read_stable_json(path: Path, label: str, *, check_work: Callable[[], None] | None = None) -> tuple[dict[str, object], bytes]:
     if check_work is not None:
         check_work()
@@ -4522,6 +4564,21 @@ def _create_fresh_run_owned(
     except FileExistsError as error:
         raise RunnerError("fresh run directory already exists; refusing to reuse or clean evidence") from error
 
+    run_binding: tuple[Path, str, str] | None = None
+    run_fd = -1
+    run_identity: tuple[int, int] | None = None
+    execution.check_work()
+    _check_owned_root_binding(root_binding, check_work=execution.check_work)
+    run_binding = _owned_directory_binding(run_root, check_work=execution.check_work)
+    run_fd, run_info = _open_directory_chain(run_root)
+    run_identity = (run_info.st_dev, run_info.st_ino)
+    if run_identity != (int(run_binding[1]), int(run_binding[2])):
+        os.close(run_fd)
+        raise RunnerError("fresh run directory changed while opening its failure-evidence anchor")
+    execution.check_work()
+    _check_owned_root_binding(root_binding, check_work=execution.check_work)
+    _check_owned_directory_binding(run_binding, check_work=execution.check_work)
+
     stage = "key-create"
     key_may_exist = False
     try:
@@ -4582,12 +4639,22 @@ def _create_fresh_run_owned(
             "key_material_may_exist": key_may_exist,
             "executed": False,
         }
-        marker = run_root / "init-failure.json"
+        marker = "init-failure.json"
         try:
-            _atomic_create_bytes(marker, canonical_receipt_json(failure))
+            execution.check_work()
+            _check_owned_root_binding(root_binding, check_work=execution.check_work)
+            assert run_binding is not None and run_identity is not None and run_fd >= 0
+            _check_owned_directory_binding(run_binding, check_work=execution.check_work)
+            _atomic_create_bytes_at(run_fd, marker, canonical_receipt_json(failure), expected_identity=run_identity, check_work=execution.check_work)
+            execution.check_work()
+            _check_owned_root_binding(root_binding, check_work=execution.check_work)
+            _check_owned_directory_binding(run_binding, check_work=execution.check_work)
         except Exception as marker_error:
-            raise RunnerError(f"{error}; failed to preserve nonsecret fresh-run initialization failure evidence: {marker_error}") from error
+            raise RunnerError(f"{error}; failure marker publication could not be verified against the owned run directory: {marker_error}") from error
         raise
+    finally:
+        if run_fd >= 0:
+            os.close(run_fd)
 
 
 def verify_fresh_run(
