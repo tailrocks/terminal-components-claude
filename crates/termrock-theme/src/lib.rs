@@ -604,6 +604,12 @@ impl Theme {
         resolve::metrics_of(&resolve::accumulate(self, f, v, p, s, &[]))
     }
 
+    /// A fingerprint of the theme's content.
+    ///
+    /// Two themes that compare equal must fingerprint equally: the value
+    /// identifies the theme's *content*, so it may not depend on the
+    /// recipe-revision counter, which advances on every mutation anywhere in
+    /// the process and is not part of the theme's content.
     #[cfg(any(test, feature = "testing"))]
     pub fn fingerprint(&self) -> u64 {
         use std::hash::{Hash, Hasher};
@@ -730,6 +736,37 @@ mod tests {
         );
         assert_eq!(r.style.fg, Some(t.color.danger));
         assert_eq!(t.fingerprint(), before);
+    }
+
+    #[test]
+    fn equal_themes_fingerprint_equally() {
+        // The recipe-revision counter advances on every mutation anywhere in
+        // the process. It is a cache-invalidation token, not theme content,
+        // so it must not leak into a content fingerprint: a theme built
+        // twice must fingerprint identically, or a local override would
+        // look like it mutated the theme.
+        let a = Theme::junie();
+        let b = Theme::junie();
+        assert_eq!(a, b, "two freshly built Junie themes are equal");
+        assert_eq!(
+            a.fingerprint(),
+            b.fingerprint(),
+            "two equal themes must fingerprint equally"
+        );
+    }
+
+    #[test]
+    fn a_content_change_still_changes_the_fingerprint() {
+        let plain = Theme::junie();
+        let overridden = Theme::junie().override_family(Family::BUTTON, |r| {
+            r.part(Part::LABEL)
+                .base(StylePatch::new().set_fg(Role::Danger));
+        });
+        assert_ne!(
+            plain.fingerprint(),
+            overridden.fingerprint(),
+            "a content change must change the fingerprint"
+        );
     }
 
     #[test]
