@@ -315,6 +315,32 @@ fn disabled_active_danger_profile_returns_to_popover_surface() {
             expected_modifiers,
             "disabled row modifiers {level:?}"
         );
+
+        // Disabled danger rows never respond visually to pointer hover or press.
+        let disabled_only = theme.resolve(
+            Family::MENU,
+            Variant::DANGER,
+            Part::ROW,
+            StateFlags::DISABLED,
+            Surface::Popover,
+        );
+        for ignored_pointer_state in [
+            StateFlags::DISABLED | StateFlags::HOVERED,
+            StateFlags::DISABLED | StateFlags::PRESSED,
+            StateFlags::DISABLED | StateFlags::HOVERED | StateFlags::PRESSED,
+        ] {
+            let pointer_state = theme.resolve(
+                Family::MENU,
+                Variant::DANGER,
+                Part::ROW,
+                ignored_pointer_state,
+                Surface::Popover,
+            );
+            assert_eq!(
+                pointer_state.style, disabled_only.style,
+                "disabled row ignores pointer states {ignored_pointer_state:?} at {level:?}"
+            );
+        }
     }
 }
 
