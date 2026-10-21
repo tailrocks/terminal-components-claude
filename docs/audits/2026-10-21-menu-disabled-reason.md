@@ -30,9 +30,11 @@ The unfiltered overlays library suite reports one failure:
 `menu::tests::default_menu_bar_scope_keeps_title_patches_off_the_padding_cells`.
 It reproduces at this WIP's base `6841e67ed4d240d9b39478b2e99f39ff48b8189b`,
 which contains incoming commit `262ac80ed138f14a204f8a1a32d4a48fe0cde111`.
-This establishes only that the failure exists at this task's base; it does not
-establish that it predates `262ac80`, nor that it is accepted globally.
-Independent review traced it to `262ac80`'s `MenuBar::draw` change: padding was
+An independent before/after run confirms it is introduced by `262ac80`:
+before that commit, 125/125 overlays tests passed; after it, 124/125 passed and
+this was the sole failure (logs at
+`/private/tmp/incoming262-review-20261021/{before,after}-overlays.log`). Review
+traced it to `262ac80`'s `MenuBar::draw` change: padding was
 added to the label string and received the `Part::TITLE` style under the default
 title-only hover policy, violating the assertion that the default title patch
 applies only to title cells. A separate authorized fix restored painting the
