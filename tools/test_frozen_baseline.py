@@ -27,6 +27,15 @@ import frozen_baseline as runner
 
 
 class RunnerGuards(unittest.TestCase):
+    def test_fresh_ordinary_groups_have_disjoint_artifact_names(self) -> None:
+        source_only = runner._fresh_chunk_artifact_name("baseline-ordinary-checks", 0, "source-only")
+        baseline_cli = runner._fresh_chunk_artifact_name("baseline-ordinary-checks", 0, "baseline-cli")
+        self.assertNotEqual(source_only, baseline_cli)
+        self.assertEqual(source_only, "source-only-chunk-00000")
+        self.assertEqual(baseline_cli, "baseline-cli-chunk-00000")
+        with self.assertRaisesRegex(runner.RunnerError, "group is invalid"):
+            runner._fresh_chunk_artifact_name("baseline-ordinary-checks", 0, "unknown")
+
     def make_process_bundle(self, root: Path, *, phase: str = "candidate-check", app: str = "showcase") -> tuple[Path, Path, dict[str, str], dict[str, object], bytes, str, str]:
         bins = root / "bins"
         bins.mkdir(parents=True, exist_ok=True)
@@ -3022,7 +3031,8 @@ class RunnerGuards(unittest.TestCase):
                 expected_hash = "a" * 64
                 receipt = {
                     "schema": "termrock.frozen-cli-fresh-run-receipt-v2", "ordinal": ordinal,
-                    **step, "status": "passed", "checkpoint_count": 1 if step["phase"] != "baseline-ordinary-checks" else 0,
+                    "phase": step["phase"], "chunk": step["chunk"], "selected_cases": step["selected_cases"],
+                    "status": "passed", "checkpoint_count": 1 if step["phase"] != "baseline-ordinary-checks" else 0,
                     "ordinary_check_count": 1 if step["phase"] == "baseline-ordinary-checks" else 0,
                     "process_receipt_count": 1 if step["phase"] != "baseline-ordinary-checks" else 0,
                     "process_receipt_inventory_sha256": "b" * 64,
@@ -3035,6 +3045,28 @@ class RunnerGuards(unittest.TestCase):
                     "plan_self_sha256": plan["plan_sha256"], "cohort_id": manifest["cohort_id"],
                     "binary_hashes": manifest["binary_hashes"], "source_sha256": manifest["source"]["source_sha256"],
                     "runtime_sha256": runner.canonical_json_digest(manifest["runtime"]), "previous_receipt_sha256": previous,
+                }
+                receipt.update(changes)
+                return {"receipt": receipt, "hmac_sha256": runner.hmac.new(key, runner.canonical_receipt_json(receipt), runner.hashlib.sha256).hexdigest()}
+            def signed_ordinary(step: dict[str, object], ordinal: int, previous: str | None, **changes: object) -> dict[str, object]:
+                event_digest = "f" * 64
+                receipt = {
+                    "schema": "termrock.frozen-cli-fresh-run-receipt-v3", "ordinal": ordinal,
+                    "phase": step["phase"], "chunk": step["chunk"], "selected_cases": step["selected_cases"],
+                    "status": "passed", "checkpoint_count": 0, "ordinary_check_count": len(step["selected_cases"]),
+                    "process_receipt_count": 0, "process_receipt_inventory_sha256": runner.hashlib.sha256(b"").hexdigest(),
+                    "process_pid_count": 0, "checkpoint_inventory_sha256": runner.hashlib.sha256(b"").hexdigest(),
+                    "artifacts_sha256": "d" * 64, "committed_chunk_sha256": "e" * 64,
+                    "expected_chunk_sha256": None, "run_id": manifest["run_id"],
+                    "plan_creation_sha256": creation_digest, "plan_self_sha256": plan["plan_sha256"],
+                    "cohort_id": manifest["cohort_id"], "binary_hashes": manifest["binary_hashes"],
+                    "source_sha256": manifest["source"]["source_sha256"],
+                    "runtime_sha256": runner.canonical_json_digest(manifest["runtime"]),
+                    "previous_receipt_sha256": previous, "ordinary_group": step["group"],
+                    "ordinary_exit_status": 0, "ordinary_event_count": len(step["selected_cases"]),
+                    "ordinary_event_inventory_sha256": event_digest,
+                    "ordinary_stdout_sha256": "a" * 64, "ordinary_stderr_sha256": "b" * 64,
+                    "ordinary_plan_step_sha256": runner.hashlib.sha256(runner.canonical_receipt_json({"group": step["group"], "chunk": step["chunk"], "selected_cases": step["selected_cases"]})).hexdigest(),
                 }
                 receipt.update(changes)
                 return {"receipt": receipt, "hmac_sha256": runner.hmac.new(key, runner.canonical_receipt_json(receipt), runner.hashlib.sha256).hexdigest()}
@@ -3059,8 +3091,32 @@ class RunnerGuards(unittest.TestCase):
                 prefix = runner.validate_fresh_run_journal([first], key, manifest_envelope, plan_path, creation_digest)
                 complete = runner.validate_fresh_run_journal(chain, key, manifest_envelope, plan_path, creation_digest)
                 ordinary_receipt = signed(planned[len(chain)], len(chain), previous)
-                with self.assertRaisesRegex(runner.RunnerError, "unsupported phase"):
+                with self.assertRaisesRegex(runner.RunnerError, "version 2 receipts cannot claim ordinary-check execution"):
                     runner.validate_fresh_run_journal([*chain, ordinary_receipt], key, manifest_envelope, plan_path, creation_digest)
+                first_ordinary_step = planned[len(chain)]
+                first_ordinary = signed_ordinary(first_ordinary_step, len(chain), previous)
+                one_ordinary = runner.validate_fresh_run_journal([*chain, first_ordinary], key, manifest_envelope, plan_path, creation_digest)
+                self.assertFalse(one_ordinary["ordinary_checks_complete"])
+                wrong_group = signed_ordinary(first_ordinary_step, len(chain), previous, ordinary_group="baseline-cli")
+                with self.assertRaisesRegex(runner.RunnerError, "planned chunk differs"):
+                    runner.validate_fresh_run_journal([*chain, wrong_group], key, manifest_envelope, plan_path, creation_digest)
+                wrong_membership = signed_ordinary(first_ordinary_step, len(chain), previous, selected_cases=["modes::showcase_boot_sets_terminal_modes"], ordinary_event_count=1, ordinary_check_count=1)
+                with self.assertRaisesRegex(runner.RunnerError, "planned chunk differs"):
+                    runner.validate_fresh_run_journal([*chain, wrong_membership], key, manifest_envelope, plan_path, creation_digest)
+                incomplete_events = signed_ordinary(first_ordinary_step, len(chain), previous, ordinary_event_count=0)
+                with self.assertRaisesRegex(runner.RunnerError, "prove every selected test event"):
+                    runner.validate_fresh_run_journal([*chain, incomplete_events], key, manifest_envelope, plan_path, creation_digest)
+                final_chain = [*chain, first_ordinary]
+                prior = runner.hashlib.sha256(runner.canonical_receipt_json(first_ordinary)).hexdigest()
+                for offset, ordinary_step in enumerate(planned[len(chain) + 1:], start=1):
+                    envelope = signed_ordinary(ordinary_step, len(chain) + offset, prior)
+                    final_chain.append(envelope)
+                    prior = runner.hashlib.sha256(runner.canonical_receipt_json(envelope)).hexdigest()
+                ordinary_complete = runner.validate_fresh_run_journal(final_chain, key, manifest_envelope, plan_path, creation_digest)
+                self.assertTrue(ordinary_complete["ordinary_checks_complete"])
+                self.assertFalse(ordinary_complete["complete"])
+                self.assertFalse(ordinary_complete["candidate_comparison_eligible"])
+                self.assertEqual(ordinary_complete["checkpoint_reference_approval"], "none")
                 forged = json.loads(json.dumps(loaded_plan))
                 forged["execution"]["phases"][0]["chunks"][0]["selected_cases"] = ["arbitrary::not-in-inventory"]
                 forged["plan_sha256"] = runner.canonical_json_digest({field: value for field, value in forged.items() if field != "plan_sha256"})
@@ -3676,6 +3732,73 @@ class RunnerGuards(unittest.TestCase):
             self.assertEqual(candidate_report["status"], "failed")
             self.assertIn("isolation::env_isolation", candidate_report["selected_cases"])
             self.assertEqual(candidate_report["binary_dir"], str(candidate_bins.resolve()))
+
+    def test_owned_ordinary_nextest_requires_exact_real_child_events_and_zero_exit(self) -> None:
+        selected = ["source_fixture::alpha", "source_fixture::beta"]
+        prefix = f"{runner.TEST_PACKAGE}::{runner.TEST_TARGET}$"
+
+        def script_for(events: list[dict[str, str]], exit_status: int = 0) -> str:
+            payload = json.dumps(events)
+            return (
+                "import json, sys\n"
+                f"for event in json.loads({payload!r}): print(json.dumps(event))\n"
+                f"sys.exit({exit_status})\n"
+            )
+
+        valid_events = [{"type": "test", "event": "ok", "name": prefix + case} for case in selected]
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            live = root / "source"
+            live.mkdir()
+            stage = root / "stage"
+            stage.mkdir(mode=0o700)
+            script = root / "child.py"
+            script.write_text(script_for(valid_events))
+            result = runner._run_ordinary_nextest(
+                [sys.executable, str(script)], live=live, env={"PATH": os.defpath},
+                selected=selected, stage=stage, timeout=20,
+            )
+            receipt = {
+                "schema": "termrock.frozen-cli-fresh-run-receipt-v3",
+                "phase": "baseline-ordinary-checks", "ordinary_group": "source-only",
+                "ordinary_exit_status": result["exit_status"], "ordinary_event_count": result["event_count"],
+                "ordinary_event_inventory_sha256": result["event_inventory_sha256"],
+                "ordinary_stdout_sha256": result["stdout_sha256"], "ordinary_stderr_sha256": result["stderr_sha256"],
+                "ordinary_check_count": len(selected), "selected_cases": selected,
+                "artifacts_sha256": result["artifacts_sha256"],
+            }
+            runner._verify_fresh_ordinary_chunk(stage, receipt)
+            self.assertEqual(result["event_count"], len(selected))
+
+            invalid_event_sets = (
+                valid_events[:-1],
+                [*valid_events, valid_events[0]],
+                [*valid_events, {"type": "test", "event": "ok", "name": prefix + "unselected::case"}],
+                [{**valid_events[0], "event": "failed"}, valid_events[1]],
+                [{**valid_events[0], "event": "ignored"}, valid_events[1]],
+                [valid_events[0], {"type": "diagnostic", "event": "ok", "name": valid_events[1]["name"]}],
+            )
+            for invalid_events in invalid_event_sets:
+                with self.subTest(invalid_events=invalid_events):
+                    stage = root / f"stage-{len(list(root.glob('stage-*')))}"
+                    stage.mkdir(mode=0o700)
+                    script.write_text(script_for(invalid_events))
+                    with self.assertRaises(runner.RunnerError):
+                        runner._run_ordinary_nextest(
+                            [sys.executable, str(script)], live=live, env={"PATH": os.defpath},
+                            selected=selected, stage=stage, timeout=20,
+                        )
+
+            stage = root / "stage-nonzero"
+            stage.mkdir(mode=0o700)
+            script.write_text(script_for(valid_events, 7))
+            with self.assertRaisesRegex(runner.RunnerError, "command exited 7"):
+                runner._run_ordinary_nextest(
+                    [sys.executable, str(script)], live=live, env={"PATH": os.defpath},
+                    selected=selected, stage=stage, timeout=20,
+                )
+            self.assertTrue((stage / "nextest.stdout.jsonl").is_file())
+            self.assertFalse((stage / "nextest.stdout.jsonl").is_symlink())
 
     def test_live_source_provenance_rejects_binary_harness_drift(self) -> None:
         with tempfile.TemporaryDirectory() as temp:

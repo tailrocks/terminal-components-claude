@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 import gzip
 import hashlib
 import hmac
+import io
 import json
 import os
 from pathlib import Path, PurePosixPath
@@ -40,6 +41,7 @@ MAX_TIMEOUT = 230
 PREPARE_OWNED_MAX_BUDGET = 200
 PREPARE_OWNED_CLEANUP_RESERVE = 15
 PREPARE_OWNED_HARD_MAX = 220
+FRESH_ORDINARY_MAX_TIMEOUT = 200
 PREPARE_OWNED_TERM_GRACE = 2.0
 OWNED_NEXTTEST_READ_BYTES = 64 * 1024
 OWNED_NEXTTEST_MAX_LINE_BYTES = 1 * 1024 * 1024
@@ -5819,8 +5821,11 @@ def _fresh_run_receipt_body(envelope: object, key: bytes) -> dict[str, object]:
     expected = hmac.new(key, canonical_receipt_json(receipt), hashlib.sha256).hexdigest()
     if not hmac.compare_digest(expected, envelope["hmac_sha256"]):
         raise RunnerError("fresh run receipt authentication failed")
-    fields = {"schema", "ordinal", "phase", "chunk", "selected_cases", "status", "checkpoint_count", "ordinary_check_count", "process_receipt_count", "process_receipt_inventory_sha256", "process_pid_count", "checkpoint_inventory_sha256", "artifacts_sha256", "committed_chunk_sha256", "expected_chunk_sha256", "run_id", "plan_creation_sha256", "plan_self_sha256", "cohort_id", "binary_hashes", "source_sha256", "runtime_sha256", "previous_receipt_sha256"}
-    if set(receipt) != fields or receipt.get("schema") != "termrock.frozen-cli-fresh-run-receipt-v2":
+    visual_fields = {"schema", "ordinal", "phase", "chunk", "selected_cases", "status", "checkpoint_count", "ordinary_check_count", "process_receipt_count", "process_receipt_inventory_sha256", "process_pid_count", "checkpoint_inventory_sha256", "artifacts_sha256", "committed_chunk_sha256", "expected_chunk_sha256", "run_id", "plan_creation_sha256", "plan_self_sha256", "cohort_id", "binary_hashes", "source_sha256", "runtime_sha256", "previous_receipt_sha256"}
+    ordinary_fields = visual_fields | {"ordinary_group", "ordinary_exit_status", "ordinary_event_count", "ordinary_event_inventory_sha256", "ordinary_stdout_sha256", "ordinary_stderr_sha256", "ordinary_plan_step_sha256"}
+    schema = receipt.get("schema")
+    expected_fields = ordinary_fields if schema == "termrock.frozen-cli-fresh-run-receipt-v3" else visual_fields
+    if set(receipt) != expected_fields or schema not in {"termrock.frozen-cli-fresh-run-receipt-v2", "termrock.frozen-cli-fresh-run-receipt-v3"}:
         raise RunnerError("fresh run receipt schema is invalid")
     if receipt.get("status") != "passed":
         raise RunnerError("fresh run journal cannot trust failed, skipped, or unfinished work")
@@ -5835,11 +5840,25 @@ def _fresh_run_receipt_body(envelope: object, key: bytes) -> dict[str, object]:
         if type(receipt.get(field)) is not int or receipt[field] < 0:
             raise RunnerError(f"fresh run receipt {field} is invalid")
     if receipt["phase"] == "baseline-ordinary-checks":
-        if receipt["ordinary_check_count"] == 0 or receipt["checkpoint_count"] != 0:
-            raise RunnerError("ordinary-check receipt must prove checks and cannot claim visual checkpoints")
+        if schema != "termrock.frozen-cli-fresh-run-receipt-v3":
+            raise RunnerError("version 2 receipts cannot claim ordinary-check execution")
+        if type(receipt["ordinary_exit_status"]) is not int or receipt["ordinary_check_count"] != len(cases) or receipt["ordinary_event_count"] != len(cases) or receipt["checkpoint_count"] != 0 or receipt["ordinary_exit_status"] != 0:
+            raise RunnerError("ordinary-check receipt must prove every selected test event and cannot claim visual checkpoints")
+        if receipt["ordinary_group"] not in {"source-only", "baseline-cli"}:
+            raise RunnerError("ordinary-check receipt group is invalid")
+        for field in ("ordinary_event_inventory_sha256", "ordinary_stdout_sha256", "ordinary_stderr_sha256", "ordinary_plan_step_sha256"):
+            if not isinstance(receipt.get(field), str) or not re.fullmatch(r"[0-9a-f]{64}", receipt[field]):
+                raise RunnerError(f"fresh ordinary receipt {field} is invalid")
+        if receipt["expected_chunk_sha256"] is not None:
+            raise RunnerError("ordinary-check receipt cannot claim expected visual frames")
     elif receipt["checkpoint_count"] < len(cases) or receipt["ordinary_check_count"] != 0 or receipt["process_receipt_count"] == 0 or receipt["process_pid_count"] == 0:
         raise RunnerError("visual receipt must have nonzero checkpoints and cannot claim ordinary checks")
-    for field in ("plan_creation_sha256", "plan_self_sha256", "source_sha256", "runtime_sha256", "expected_chunk_sha256", "process_receipt_inventory_sha256", "checkpoint_inventory_sha256", "artifacts_sha256", "committed_chunk_sha256"):
+    if receipt["phase"] != "baseline-ordinary-checks" and schema != "termrock.frozen-cli-fresh-run-receipt-v2":
+        raise RunnerError("version 3 receipts are reserved for ordinary-check steps")
+    required_hashes = ["plan_creation_sha256", "plan_self_sha256", "source_sha256", "runtime_sha256", "process_receipt_inventory_sha256", "checkpoint_inventory_sha256", "artifacts_sha256", "committed_chunk_sha256"]
+    if receipt["phase"] != "baseline-ordinary-checks":
+        required_hashes.append("expected_chunk_sha256")
+    for field in required_hashes:
         if not isinstance(receipt.get(field), str) or not re.fullmatch(r"[0-9a-f]{64}", receipt[field]):
             raise RunnerError(f"fresh run receipt {field} is invalid")
     if not isinstance(receipt.get("binary_hashes"), dict) or set(receipt["binary_hashes"]) != set(APPS) or any(not isinstance(value, str) or not re.fullmatch(r"[0-9a-f]{64}", value) for value in receipt["binary_hashes"].values()):
@@ -5858,12 +5877,102 @@ def _fresh_plan_steps(plan: dict[str, object]) -> list[dict[str, object]]:
             for chunk in phase["chunks"]:
                 steps.append({"phase": phase["name"], "chunk": chunk["index"], "selected_cases": chunk["selected_cases"]})
         elif phase["name"] == "baseline-ordinary-checks":
+            if [group.get("name") for group in phase["groups"]] != ["source-only", "baseline-cli"]:
+                raise RunnerError("fresh plan ordinary-check group inventory differs")
             for group in phase["groups"]:
                 for chunk in group["chunks"]:
-                    steps.append({"phase": phase["name"], "chunk": chunk["index"], "selected_cases": chunk["selected_cases"]})
+                    steps.append({"phase": phase["name"], "group": group["name"], "chunk": chunk["index"], "selected_cases": chunk["selected_cases"]})
     if not steps or not any(step["phase"] == "baseline-capture" for step in steps) or not any(step["phase"] == "baseline-replay" for step in steps) or not any(step["phase"] == "baseline-ordinary-checks" for step in steps):
         raise RunnerError("fresh run plan has an empty required phase inventory")
     return steps
+
+
+def _fresh_chunk_artifact_name(phase: str, chunk: int, group: str | None = None) -> str:
+    if phase == "baseline-ordinary-checks":
+        if group not in {"source-only", "baseline-cli"}:
+            raise RunnerError("ordinary-check artifact group is invalid")
+        return f"{group}-chunk-{chunk:05}"
+    return f"chunk-{chunk:05}"
+
+
+def _ordinary_event_inventory_sha256(selected: list[str], events: dict[str, str]) -> str:
+    prefix = f"{TEST_PACKAGE}::{TEST_TARGET}$"
+    expected = {prefix + case for case in selected}
+    if set(events) != expected or any(events.get(prefix + case) != "ok" for case in selected):
+        raise RunnerError("ordinary Nextest event inventory differs from its exact selected cases")
+    return hashlib.sha256(canonical_receipt_json({"selected_cases": selected, "events": [[case, events[prefix + case]] for case in selected]})).hexdigest()
+
+
+def _verify_fresh_ordinary_chunk(chunk_root: Path, receipt: dict[str, object], *, check_work: Callable[[], None] | None = None) -> None:
+    selected = receipt["selected_cases"]
+    if receipt.get("schema") != "termrock.frozen-cli-fresh-run-receipt-v3" or receipt["phase"] != "baseline-ordinary-checks":
+        raise RunnerError("ordinary chunk requires a version 3 receipt")
+    stdout_path = chunk_root / "nextest.stdout.jsonl"
+    stderr_path = chunk_root / "nextest.stderr.log"
+    stdout = _read_bounded_file(stdout_path, OWNED_FS_PAYLOAD_MAX_BYTES, "ordinary Nextest stdout", check_work=check_work or (lambda: None))
+    stderr = _read_bounded_file(stderr_path, OWNED_FS_PAYLOAD_MAX_BYTES, "ordinary Nextest stderr", check_work=check_work or (lambda: None))
+    if hashlib.sha256(stdout).hexdigest() != receipt["ordinary_stdout_sha256"] or hashlib.sha256(stderr).hexdigest() != receipt["ordinary_stderr_sha256"]:
+        raise RunnerError("ordinary-check process output changed after publication")
+    events = nextest_events_stream(io.BytesIO(stdout), selected, check_work=check_work or (lambda: None))
+    event_digest = _ordinary_event_inventory_sha256(selected, events)
+    if len(events) != receipt["ordinary_event_count"] or event_digest != receipt["ordinary_event_inventory_sha256"]:
+        raise RunnerError("ordinary-check terminal event inventory changed after publication")
+    if receipt["ordinary_group"] not in {"source-only", "baseline-cli"} or receipt["ordinary_exit_status"] != 0:
+        raise RunnerError("ordinary-check group or process exit status is invalid")
+    if hashlib.sha256(canonical_receipt_json({"stdout": receipt["ordinary_stdout_sha256"], "stderr": receipt["ordinary_stderr_sha256"], "events": event_digest})).hexdigest() != receipt["artifacts_sha256"]:
+        raise RunnerError("ordinary-check artifact digest differs from its authenticated receipt")
+
+
+def _run_ordinary_nextest(command: list[str], *, live: Path, env: dict[str, str], selected: list[str], stage: Path, timeout: int) -> dict[str, object]:
+    if not 1 <= timeout <= FRESH_ORDINARY_MAX_TIMEOUT:
+        raise RunnerError(f"ordinary-check timeout must be 1..{FRESH_ORDINARY_MAX_TIMEOUT} seconds")
+    if not selected or len(selected) != len(set(selected)):
+        raise RunnerError("ordinary-check selection must be nonempty and unique")
+    if any(key.startswith("TERMROCK_PAIR_") for key in env):
+        raise RunnerError("pair runtime flags leaked into ordinary checks")
+    stdout_path = stage / "nextest.stdout.jsonl"
+    stderr_path = stage / "nextest.stderr.log"
+    temporary_dir = Path(tempfile.mkdtemp(prefix="termrock-ordinary-nextest-"))
+    temporary_stdout = temporary_dir / "stdout.jsonl"
+    temporary_stderr = temporary_dir / "stderr.log"
+    try:
+        with temporary_stdout.open("x+b") as stdout_file, temporary_stderr.open("x+b") as stderr_file:
+            with PrepareExecution(timeout) as execution:
+                try:
+                    execution.run(
+                        command, cwd=live, stdout_file=stdout_file, stderr_file=stderr_file,
+                        capture_stdout=False, capture_stderr=False, env=env, quiet=True,
+                    )
+                except RunnerError:
+                    # Preserve bounded output when the child failed inside the
+                    # work window. Expired attempts remain untrusted and are
+                    # not given extra time to publish artifacts.
+                    execution.check_work()
+                    failed_stdout = _read_bounded_file(temporary_stdout, OWNED_FS_PAYLOAD_MAX_BYTES, "failed ordinary Nextest stdout", check_work=execution.check_work)
+                    failed_stderr = _read_bounded_file(temporary_stderr, OWNED_FS_PAYLOAD_MAX_BYTES, "failed ordinary Nextest stderr", check_work=execution.check_work)
+                    root_binding = _owned_root_binding(stage, check_work=execution.check_work)
+                    _owned_publish_immutable(execution, root_binding, stdout_path.name, failed_stdout)
+                    _owned_publish_immutable(execution, root_binding, stderr_path.name, failed_stderr)
+                    raise
+                execution.check_work()
+                stdout = _read_bounded_file(temporary_stdout, OWNED_FS_PAYLOAD_MAX_BYTES, "ordinary Nextest stdout", check_work=execution.check_work)
+                stderr = _read_bounded_file(temporary_stderr, OWNED_FS_PAYLOAD_MAX_BYTES, "ordinary Nextest stderr", check_work=execution.check_work)
+                root_binding = _owned_root_binding(stage, check_work=execution.check_work)
+                _owned_publish_immutable(execution, root_binding, stdout_path.name, stdout)
+                _owned_publish_immutable(execution, root_binding, stderr_path.name, stderr)
+                events = nextest_events_stream(io.BytesIO(stdout), selected, check_work=execution.check_work)
+                event_digest = _ordinary_event_inventory_sha256(selected, events)
+                return {
+                    "selected_cases": selected,
+                    "event_count": len(events),
+                    "event_inventory_sha256": event_digest,
+                    "stdout_sha256": hashlib.sha256(stdout).hexdigest(),
+                    "stderr_sha256": hashlib.sha256(stderr).hexdigest(),
+                    "exit_status": 0,
+                    "artifacts_sha256": hashlib.sha256(canonical_receipt_json({"stdout": hashlib.sha256(stdout).hexdigest(), "stderr": hashlib.sha256(stderr).hexdigest(), "events": event_digest})).hexdigest(),
+                }
+    finally:
+        shutil.rmtree(temporary_dir, ignore_errors=True)
 
 
 def validate_fresh_run_journal(envelopes: list[object], key: bytes, manifest_envelope: object, plan_path: Path, expected_plan_sha256: str, *, check_work: Callable[[], None] | None = None) -> dict[str, object]:
@@ -5883,7 +5992,10 @@ def validate_fresh_run_journal(envelopes: list[object], key: bytes, manifest_env
         if check_work is not None:
             check_work()
         receipt = _fresh_run_receipt_body(envelope, key)
-        if receipt["ordinal"] != ordinal or expected_step != {"phase": receipt["phase"], "chunk": receipt["chunk"], "selected_cases": receipt["selected_cases"]}:
+        actual_step = {"phase": receipt["phase"], "chunk": receipt["chunk"], "selected_cases": receipt["selected_cases"]}
+        if receipt["phase"] == "baseline-ordinary-checks":
+            actual_step["group"] = receipt.get("ordinary_group")
+        if receipt["ordinal"] != ordinal or expected_step != actual_step:
             raise RunnerError("fresh run receipt order or planned chunk differs")
         expected_previous = prior_digest
         if receipt["previous_receipt_sha256"] != expected_previous:
@@ -5903,14 +6015,26 @@ def validate_fresh_run_journal(envelopes: list[object], key: bytes, manifest_env
         elif receipt["phase"] == "baseline-replay":
             if captured_chunks.get(receipt["chunk"]) != receipt["expected_chunk_sha256"]:
                 raise RunnerError("baseline replay does not bind its immutable captured expected chunk")
+        elif receipt["phase"] == "baseline-ordinary-checks":
+            expected_plan_digest = hashlib.sha256(canonical_receipt_json({"group": expected_step["group"], "chunk": expected_step["chunk"], "selected_cases": expected_step["selected_cases"]})).hexdigest()
+            if receipt["ordinary_plan_step_sha256"] != expected_plan_digest:
+                raise RunnerError("ordinary-check receipt does not bind the exact immutable plan step")
         else:
-            raise RunnerError("fresh run journal contains an unsupported phase; ordinary checks are not implemented")
+            raise RunnerError("fresh run journal contains an unsupported phase")
         prior_digest = hashlib.sha256(canonical_receipt_json(envelope)).hexdigest()
     visual_steps = sum(step["phase"] in {"baseline-capture", "baseline-replay"} for step in planned_steps)
     visual_complete = len(envelopes) >= visual_steps and all(step["phase"] in {"baseline-capture", "baseline-replay"} for step in planned_steps[:len(envelopes)])
+    ordinary_steps = [step for step in planned_steps if step["phase"] == "baseline-ordinary-checks"]
+    ordinary_receipts = [envelope["receipt"] for envelope in envelopes if isinstance(envelope, dict) and isinstance(envelope.get("receipt"), dict) and envelope["receipt"].get("phase") == "baseline-ordinary-checks"]
+    ordinary_complete = (
+        len(ordinary_receipts) == len(ordinary_steps)
+        and sum(receipt["ordinary_check_count"] for receipt in ordinary_receipts) == EXPECTED_ORDINARY_TESTS
+        and sum(len(step["selected_cases"]) for step in ordinary_steps) == EXPECTED_ORDINARY_TESTS
+        and [receipt["ordinary_group"] for receipt in ordinary_receipts] == [step["group"] for step in ordinary_steps]
+    )
     if check_work is not None:
         check_work()
-    return {"completed_steps": len(envelopes), "planned_steps": len(planned_steps), "visual_capture_replay_complete": visual_complete, "complete": False, "executed": bool(envelopes), "candidate_comparison_eligible": False, "product_acceptance": False}
+    return {"completed_steps": len(envelopes), "planned_steps": len(planned_steps), "visual_capture_replay_complete": visual_complete, "ordinary_checks_complete": ordinary_complete, "complete": False, "executed": bool(envelopes), "candidate_comparison_eligible": False, "checkpoint_reference_approval": "none", "product_acceptance": False}
 
 
 def _fresh_run_lock(run_root: Path):
@@ -6030,9 +6154,12 @@ def _verify_fresh_journal_artifacts(plan: dict[str, object], envelopes: list[obj
         receipt = envelope["receipt"]
         phase = receipt["phase"]
         chunk = receipt["chunk"]
-        committed = Path(roots[phase.replace("-", "_")]) / f"chunk-{chunk:05}"
+        committed = Path(roots[phase.replace("-", "_")]) / _fresh_chunk_artifact_name(phase, chunk, receipt.get("ordinary_group"))
         if committed.is_symlink() or not committed.is_dir() or _fresh_expected_tree_sha256(committed, check_work=check_work) != receipt["committed_chunk_sha256"]:
             raise RunnerError("fresh run committed chunk is missing, changed, or not immutable")
+        if phase == "baseline-ordinary-checks":
+            _verify_fresh_ordinary_chunk(committed, receipt, check_work=check_work)
+            continue
         captured_expected = capture_root / f"chunk-{chunk:05}" / "expected"
         if _fresh_expected_tree_sha256(captured_expected, check_work=check_work) != receipt["expected_chunk_sha256"]:
             raise RunnerError("fresh run immutable expected frame chunk changed")
@@ -6040,12 +6167,12 @@ def _verify_fresh_journal_artifacts(plan: dict[str, object], envelopes: list[obj
         check_work()
 
 
-def _verify_fresh_staged_chunk(plan: dict[str, object], envelope: dict[str, object], stage: Path) -> None:
+def _verify_fresh_staged_chunk(plan: dict[str, object], envelope: dict[str, object], stage: Path, *, check_work: Callable[[], None] | None = None) -> None:
     """Validate a frozen attempt before publishing its directory under the final chunk name."""
     receipt = envelope["receipt"]
     if stage.is_symlink() or not stage.is_dir():
         raise RunnerError("fresh run staged chunk is missing or unsafe")
-    if _fresh_expected_tree_sha256(stage) != receipt["committed_chunk_sha256"]:
+    if _fresh_expected_tree_sha256(stage, check_work=check_work) != receipt["committed_chunk_sha256"]:
         raise RunnerError("fresh run staged chunk changed before publication")
     phase = receipt["phase"]
     chunk = receipt["chunk"]
@@ -6054,9 +6181,12 @@ def _verify_fresh_staged_chunk(plan: dict[str, object], envelope: dict[str, obje
     elif phase == "baseline-replay":
         capture_root = Path(plan["execution"]["artifact_roots"]["baseline_capture"])
         expected_root = capture_root / f"chunk-{chunk:05}" / "expected"
+    elif phase == "baseline-ordinary-checks":
+        _verify_fresh_ordinary_chunk(stage, receipt, check_work=check_work)
+        return
     else:
         raise RunnerError("fresh run staged chunk has an unsupported phase")
-    if _fresh_expected_tree_sha256(expected_root) != receipt["expected_chunk_sha256"]:
+    if _fresh_expected_tree_sha256(expected_root, check_work=check_work) != receipt["expected_chunk_sha256"]:
         raise RunnerError("fresh run staged chunk expected frames changed before publication")
 
 
@@ -6112,7 +6242,7 @@ def advance_fresh_run(
     expected_ordinal: int | None = None,
     expected_phase: str | None = None,
 ) -> dict[str, object]:
-    """Run exactly the next planned baseline capture or replay chunk; never candidate-check or finalize."""
+    """Run exactly the next planned baseline capture, replay, or ordinary-check chunk; never compare candidates or finalize."""
     if not 1 <= timeout <= FRESH_PLAN_MAX_TIMEOUT:
         raise RunnerError(f"fresh run advance timeout must be 1..{FRESH_PLAN_MAX_TIMEOUT} seconds")
     if (expected_ordinal is None) != (expected_phase is None):
@@ -6121,7 +6251,7 @@ def advance_fresh_run(
         raise RunnerError("expected fresh run ordinal must be a nonnegative integer")
     if expected_phase is not None and (
         type(expected_phase) is not str
-        or expected_phase not in {"baseline-capture", "baseline-replay"}
+        or expected_phase not in {"baseline-capture", "baseline-replay", "baseline-ordinary-checks"}
     ):
         raise RunnerError("expected fresh run phase must be baseline-capture or baseline-replay")
     repo, root, _source = paths(repo, root)
@@ -6160,8 +6290,8 @@ def advance_fresh_run(
             raise RunnerError("fresh run has no remaining planned chunks; finalization is not implemented")
         step = planned[ordinal]
         phase = step["phase"]
-        if phase not in {"baseline-capture", "baseline-replay"}:
-            raise RunnerError("ordinary-check advancement is not implemented; no phase was skipped")
+        if phase not in {"baseline-capture", "baseline-replay", "baseline-ordinary-checks"}:
+            raise RunnerError("fresh run selected an unsupported planned phase")
         if expected_ordinal is not None and (ordinal != expected_ordinal or phase != expected_phase):
             raise RunnerError(
                 "fresh run next step differs from the expected ordinal and phase "
@@ -6170,7 +6300,7 @@ def advance_fresh_run(
         chunk_index = step["chunk"]
         selected = list(step["selected_cases"])
         if not selected:
-            raise RunnerError("fresh run planned an empty visual chunk")
+            raise RunnerError("fresh run planned an empty chunk")
         expected_capture_root = Path(plan["execution"]["artifact_roots"][phase.replace("-", "_")]).resolve()
         root_artifacts = Path(plan["execution"]["artifact_roots"]["run_root"]).resolve()
         if expected_capture_root != root_artifacts / phase or root_artifacts != root / "fresh-capture" / str(plan["plan_id"]):
@@ -6182,7 +6312,7 @@ def advance_fresh_run(
         phase_info = phase_root.lstat()
         if not stat.S_ISDIR(phase_info.st_mode) or phase_info.st_uid != os.geteuid() or stat.S_IMODE(phase_info.st_mode) != 0o700:
             raise RunnerError("fresh run phase artifact root must be an owned mode-0700 directory")
-        final_chunk = phase_root / f"chunk-{chunk_index:05}"
+        final_chunk = phase_root / _fresh_chunk_artifact_name(phase, chunk_index, step.get("group"))
         if final_chunk.exists() or final_chunk.is_symlink():
             raise RunnerError("fresh run chunk output already exists without a matching journal receipt")
         stage = phase_root / f".attempt-{ordinal:08}-{secrets.token_hex(8)}"
@@ -6193,33 +6323,50 @@ def advance_fresh_run(
         expected_hashes = {app: manifest["binary_hashes"][app] for app in APPS}
         if binary_hashes != expected_hashes:
             raise RunnerError("fresh run baseline binaries differ from the authenticated manifest")
-        expected_root = stage / "expected" if phase == "baseline-capture" else root_artifacts / "baseline-capture" / f"chunk-{chunk_index:05}" / "expected"
         expected_chunk_hash = None
-        if phase == "baseline-replay":
-            capture_step = next((envelopes[index]["receipt"] for index, prior in enumerate(planned[:len(envelopes)]) if prior["phase"] == "baseline-capture" and prior["chunk"] == chunk_index), None)
-            if not isinstance(capture_step, dict):
-                raise RunnerError("baseline replay has no authenticated completed capture chunk")
-            expected_chunk_hash = capture_step["expected_chunk_sha256"]
-            if _fresh_expected_tree_sha256(expected_root) != expected_chunk_hash:
-                raise RunnerError("captured expected chunk changed before replay")
-        extension_manifest = load_extension_manifest(repo / EXTENSION_MANIFEST)
-        result = run_live_chunk(
-            live, root, stage / "runner", phase, baseline_bin_dir, expected_root, selected, chunk_index,
-            remaining(), expected_hashes, extension_manifest,
-            term_profile=None if plan["runtime"]["terminal_profile"]["profile"] == "harness-default" else plan["runtime"]["terminal_profile"]["profile"],
-        )
-        if result["status"] != "passed" or result["checkpoint_count"] < len(selected) or result["successful_test_events"] != len(selected):
-            raise RunnerError("Tuiscotti chunk did not produce successful tests and nonzero checkpoints for every selected case")
-        if result["process_receipt_count"] == 0 or result["process_pid_count"] == 0:
-            raise RunnerError("Tuiscotti chunk has no verified child launch and close receipts")
-        if phase == "baseline-capture":
-            if Path(expected_root).is_symlink() or not Path(expected_root).is_dir():
-                raise RunnerError("baseline capture did not create an expected frame store")
-            expected_chunk_hash = _fresh_expected_tree_sha256(expected_root)
-            freeze_tree_readonly(expected_root)
-            expected_chunk_hash = _fresh_expected_tree_sha256(expected_root)
-        elif _fresh_expected_tree_sha256(expected_root) != expected_chunk_hash:
-            raise RunnerError("baseline replay changed its immutable expected chunk")
+        ordinary_result: dict[str, object] | None = None
+        if phase == "baseline-ordinary-checks":
+            group = step["group"]
+            inventory = plan["inventory"]
+            group_cases = inventory["ordinary_source_only" if group == "source-only" else "ordinary_baseline_cli"]
+            planned_group_chunks = next(group_item["chunks"] for group_item in plan["execution"]["phases"][-1]["groups"] if group_item["name"] == group)
+            expected_group_chunk = planned_group_chunks[chunk_index]
+            if expected_group_chunk["selected_cases"] != selected or not set(selected).issubset(group_cases):
+                raise RunnerError("ordinary-check chunk differs from its exact plan group membership")
+            env = fresh_clean_env()
+            env.update({"CARGO_TARGET_DIR": str(root / "live-target"), "NEXTEST_EXPERIMENTAL_LIBTEST_JSON": "1"})
+            if group == "baseline-cli":
+                env["VISUAL_BIN_DIR"] = str(baseline_bin_dir.resolve())
+            command = ["cargo", "nextest", "run", "--locked", "--manifest-path", str(live / "Cargo.toml"), "-p", TEST_PACKAGE, "--test", TEST_TARGET, "--filter-expr", selected_expression(selected), "--message-format", "libtest-json-plus", "--no-fail-fast"]
+            ordinary_result = _run_ordinary_nextest(command, live=live, env=env, selected=selected, stage=stage, timeout=min(remaining(), FRESH_ORDINARY_MAX_TIMEOUT))
+            result: dict[str, object] = {"status": "passed", "checkpoint_count": 0, "successful_test_events": ordinary_result["event_count"], "process_receipt_count": 0, "process_receipt_inventory_sha256": hashlib.sha256(b"").hexdigest(), "process_pid_count": 0, "checkpoint_inventory_sha256": hashlib.sha256(b"").hexdigest(), "artifacts_sha256": ordinary_result["artifacts_sha256"]}
+        else:
+            expected_root = stage / "expected" if phase == "baseline-capture" else root_artifacts / "baseline-capture" / f"chunk-{chunk_index:05}" / "expected"
+            if phase == "baseline-replay":
+                capture_step = next((envelopes[index]["receipt"] for index, prior in enumerate(planned[:len(envelopes)]) if prior["phase"] == "baseline-capture" and prior["chunk"] == chunk_index), None)
+                if not isinstance(capture_step, dict):
+                    raise RunnerError("baseline replay has no authenticated completed capture chunk")
+                expected_chunk_hash = capture_step["expected_chunk_sha256"]
+                if _fresh_expected_tree_sha256(expected_root) != expected_chunk_hash:
+                    raise RunnerError("captured expected chunk changed before replay")
+            extension_manifest = load_extension_manifest(repo / EXTENSION_MANIFEST)
+            result = run_live_chunk(
+                live, root, stage / "runner", phase, baseline_bin_dir, expected_root, selected, chunk_index,
+                remaining(), expected_hashes, extension_manifest,
+                term_profile=None if plan["runtime"]["terminal_profile"]["profile"] == "harness-default" else plan["runtime"]["terminal_profile"]["profile"],
+            )
+            if result["status"] != "passed" or result["checkpoint_count"] < len(selected) or result["successful_test_events"] != len(selected):
+                raise RunnerError("Tuiscotti chunk did not produce successful tests and nonzero checkpoints for every selected case")
+            if result["process_receipt_count"] == 0 or result["process_pid_count"] == 0:
+                raise RunnerError("Tuiscotti chunk has no verified child launch and close receipts")
+            if phase == "baseline-capture":
+                if Path(expected_root).is_symlink() or not Path(expected_root).is_dir():
+                    raise RunnerError("baseline capture did not create an expected frame store")
+                expected_chunk_hash = _fresh_expected_tree_sha256(expected_root)
+                freeze_tree_readonly(expected_root)
+                expected_chunk_hash = _fresh_expected_tree_sha256(expected_root)
+            elif _fresh_expected_tree_sha256(expected_root) != expected_chunk_hash:
+                raise RunnerError("baseline replay changed its immutable expected chunk")
         verify_fresh_run(repo, root, cohort_id, baseline_bin_dir, remaining(), expected_plan_sha256, key_path)
         after_hashes = phase_binary_hashes(baseline_bin_dir)
         if after_hashes != expected_hashes:
@@ -6228,16 +6375,17 @@ def advance_fresh_run(
         if source_digest != manifest["source"]["source_sha256"]:
             raise RunnerError("frozen baseline source changed during fresh chunk execution")
         remaining()
-        runner_chunk = stage / "runner" / phase / f"chunk-{chunk_index:05}" / "report.json"
-        chunk_report = json.loads(runner_chunk.read_text())
-        chunk_report["receipt_root"] = f"runner/{phase}/chunk-{chunk_index:05}/receipts"
-        chunk_report["artifact_dir"] = f"runner/{phase}/chunk-{chunk_index:05}/artifacts"
-        runner_chunk.write_text(json.dumps(chunk_report, indent=2) + "\n")
+        if phase != "baseline-ordinary-checks":
+            runner_chunk = stage / "runner" / phase / f"chunk-{chunk_index:05}" / "report.json"
+            chunk_report = json.loads(runner_chunk.read_text())
+            chunk_report["receipt_root"] = f"runner/{phase}/chunk-{chunk_index:05}/receipts"
+            chunk_report["artifact_dir"] = f"runner/{phase}/chunk-{chunk_index:05}/artifacts"
+            runner_chunk.write_text(json.dumps(chunk_report, indent=2) + "\n")
         previous = hashlib.sha256(canonical_receipt_json(envelopes[-1])).hexdigest() if envelopes else None
         receipt = {
-            "schema": "termrock.frozen-cli-fresh-run-receipt-v2", "ordinal": ordinal,
-            **step, "status": "passed", "checkpoint_count": result["checkpoint_count"],
-            "ordinary_check_count": 0, "process_receipt_count": result["process_receipt_count"],
+            "schema": "termrock.frozen-cli-fresh-run-receipt-v3" if phase == "baseline-ordinary-checks" else "termrock.frozen-cli-fresh-run-receipt-v2", "ordinal": ordinal,
+            "phase": phase, "chunk": chunk_index, "selected_cases": selected, "status": "passed", "checkpoint_count": result["checkpoint_count"],
+            "ordinary_check_count": len(selected) if phase == "baseline-ordinary-checks" else 0, "process_receipt_count": result["process_receipt_count"],
             "process_receipt_inventory_sha256": result["process_receipt_inventory_sha256"],
             "process_pid_count": result["process_pid_count"],
             "checkpoint_inventory_sha256": result["checkpoint_inventory_sha256"],
@@ -6248,12 +6396,21 @@ def advance_fresh_run(
             "binary_hashes": manifest["binary_hashes"], "source_sha256": source_digest,
             "runtime_sha256": canonical_json_digest(manifest["runtime"]), "previous_receipt_sha256": previous,
         }
+        if phase == "baseline-ordinary-checks":
+            assert ordinary_result is not None
+            receipt.update({
+                "ordinary_group": step["group"], "ordinary_exit_status": ordinary_result["exit_status"],
+                "ordinary_event_count": ordinary_result["event_count"], "ordinary_event_inventory_sha256": ordinary_result["event_inventory_sha256"],
+                "ordinary_stdout_sha256": ordinary_result["stdout_sha256"], "ordinary_stderr_sha256": ordinary_result["stderr_sha256"],
+                "ordinary_plan_step_sha256": hashlib.sha256(canonical_receipt_json({"group": step["group"], "chunk": chunk_index, "selected_cases": selected})).hexdigest(),
+                "expected_chunk_sha256": None,
+            })
         freeze_tree_readonly(stage)
         receipt["committed_chunk_sha256"] = _fresh_expected_tree_sha256(stage)
         remaining()
         envelope = {"receipt": receipt, "hmac_sha256": hmac.new(key, canonical_receipt_json(receipt), hashlib.sha256).hexdigest()}
         summary = validate_fresh_run_journal([*envelopes, envelope], key, manifest_envelope, plan_path, expected_plan_sha256)
-        _verify_fresh_staged_chunk(plan, envelope, stage)
+        _verify_fresh_staged_chunk(plan, envelope, stage, check_work=remaining)
         chunk_published = True
         os.rename(stage, final_chunk)
         _verify_fresh_journal_artifacts(plan, [*envelopes, envelope])
@@ -6272,7 +6429,7 @@ def advance_fresh_run(
             raise RunnerError(f"journal append raised after immutable ordinal {ordinal} was published; its evidence is preserved and requires verified resume: {append_error}") from append_error
         stage = None
         chunk_published = False
-        output = {"run_id": manifest["run_id"], "phase": phase, "chunk": chunk_index, "selected_cases": selected, "checkpoint_count": result["checkpoint_count"], "expected_chunk_sha256": expected_chunk_hash, "journal_ordinal": ordinal, "visual_capture_replay_complete": summary["visual_capture_replay_complete"], "complete": False, "candidate_comparison_eligible": False, "checkpoint_reference_approval": "none", "product_acceptance": False}
+        output = {"run_id": manifest["run_id"], "phase": phase, "group": step.get("group"), "chunk": chunk_index, "selected_cases": selected, "checkpoint_count": result["checkpoint_count"], "ordinary_check_count": len(selected) if phase == "baseline-ordinary-checks" else 0, "expected_chunk_sha256": expected_chunk_hash, "journal_ordinal": ordinal, "visual_capture_replay_complete": summary["visual_capture_replay_complete"], "ordinary_checks_complete": summary["ordinary_checks_complete"], "complete": False, "candidate_comparison_eligible": False, "checkpoint_reference_approval": "none", "product_acceptance": False}
         print(json.dumps(output, indent=2))
         return output
     except Exception as error:
@@ -6870,14 +7027,14 @@ def parser() -> argparse.ArgumentParser:
     fresh_run_verify.add_argument("--pending-receipt-path", type=Path)
     for command_parser in (fresh_run_init, fresh_run_verify):
         command_parser.set_defaults(timeout=min(MAX_TIMEOUT, FRESH_PLAN_MAX_TIMEOUT))
-    fresh_run_advance = sub.add_parser("fresh-run-advance", help="run exactly the next planned baseline capture or replay chunk; no candidate comparison or finalization")
+    fresh_run_advance = sub.add_parser("fresh-run-advance", help="run exactly the next planned baseline capture, replay, or ordinary-check chunk; no candidate comparison or finalization")
     fresh_run_advance.set_defaults(timeout=min(MAX_TIMEOUT, FRESH_PLAN_MAX_TIMEOUT))
     fresh_run_advance.add_argument("--cohort", required=True)
     fresh_run_advance.add_argument("--baseline-bin-dir", type=Path, required=True)
     fresh_run_advance.add_argument("--expected-plan-sha256", required=True)
     fresh_run_advance.add_argument("--key-path", type=Path, required=True)
     fresh_run_advance.add_argument("--expected-ordinal", type=int)
-    fresh_run_advance.add_argument("--expected-phase", choices=("baseline-capture", "baseline-replay"))
+    fresh_run_advance.add_argument("--expected-phase", choices=("baseline-capture", "baseline-replay", "baseline-ordinary-checks"))
     plan.set_defaults(timeout=min(MAX_TIMEOUT, FRESH_PLAN_MAX_TIMEOUT))
     sub.add_parser("build")
     candidate_build = sub.add_parser("build-candidate")
