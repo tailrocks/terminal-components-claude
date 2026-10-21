@@ -2074,3 +2074,24 @@ Required remedy, and what is NOT allowed:
 3. If the paired comparison contradicts it, the theme correction is reverted
    instead. Either way, writing new expected values from the candidate without
    that evidence is not acceptable.
+
+#### Evidence that the correction is reference-derived (not a candidate invention)
+
+`docs/audits/2026-10-20-library-reference-token-oracles.md` records the source of
+both changes and a red-before proof:
+
+- Faint/muted role: before the change Junie returned RGB `(77, 77, 77)` while
+  the same-level foreground role in the pinned reference returns
+  `(115, 115, 115)`; the candidate was wrong and the reference role was
+  applied. The audit names the red-before commit `ef1d6b37daca2ca895c6b35c3253ebe3e37f57d6`.
+- Scrollbar track glyph: the pinned reference source declares `┆` as the
+  scroll track glyph and `│` as the divider glyph; the mismatch was in the
+  test oracle, which expected `│` at height 2. The audit states the frozen
+  scroll-track glyph explicitly.
+
+So the shared theme now follows the pinned reference, and the artifacts that
+conflict with it are the recorded expectations captured earlier (the component
+digest file, and the old glyph expectation). This is the "frozen artifact
+conflicts with repeatable reference output" case from the acceptance rules:
+both results are preserved, the conflict is recorded here, and the re-bless
+decision needs independent review before the component digests are rewritten.
