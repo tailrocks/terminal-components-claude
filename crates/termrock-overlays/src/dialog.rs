@@ -913,6 +913,11 @@ impl<'a> Dialog<'a> {
         };
         let title_rows = u16::from(self.title.is_some() && !border_head);
         let title_gap = title_rows.min(vertical_pad);
+        // The chrome-only composition mode has no Dialog action footer when
+        // its action list is empty, so it must not retain the legacy footer
+        // row in its intrinsic height. Standalone Dialog geometry and a
+        // composed Dialog with real actions keep the original reservation.
+        let natural_footer_gap = !border_head && (!self.chrome_only || !self.actions.is_empty());
         let action_height = requested_action_height.min(
             content
                 .height
@@ -933,7 +938,7 @@ impl<'a> Dialog<'a> {
             .saturating_add(self.input_rows(d))
             .saturating_add(body_block)
             .saturating_add(requested_action_height)
-            .saturating_add(u16::from(!border_head));
+            .saturating_add(u16::from(natural_footer_gap));
         let mut y = content.y;
         let mut remaining = content.height;
         let title = if border_head {
@@ -1529,6 +1534,52 @@ mod tests {
             "regions: {:?}",
             rt.registry().regions()
         );
+    }
+
+    #[test]
+    fn chrome_empty_footer_removes_natural_action_gap_without_changing_legacy_dialogs() {
+        const ONE_ACTION: [Action<'static>; 1] = [Action::new(ActionKey::CANCEL, "Cancel")];
+        let (mut rt, mut buf) = scene();
+        let empty_chrome = Cell::new(0u16);
+        let legacy_empty = Cell::new(0u16);
+        let chrome_with_action = Cell::new(0u16);
+        let legacy_with_action = Cell::new(0u16);
+        drop(rt.draw_scene(SCREEN, &mut buf, |ui, _| {
+            empty_chrome.set(
+                Dialog::chrome(DLG)
+                    .title("Heading")
+                    .body_rows(3)
+                    .measured_height_for_width(ui.design(), 40, &[]),
+            );
+            legacy_empty.set(
+                Dialog::new(DLG)
+                    .title("Heading")
+                    .body_rows(3)
+                    .measured_height_for_width(ui.design(), 40, &[]),
+            );
+            chrome_with_action.set(
+                Dialog::chrome(DLG)
+                    .title("Heading")
+                    .body_rows(3)
+                    .actions(&ONE_ACTION)
+                    .measured_height_for_width(ui.design(), 40, &[8]),
+            );
+            legacy_with_action.set(
+                Dialog::new(DLG)
+                    .title("Heading")
+                    .body_rows(3)
+                    .actions(&ONE_ACTION)
+                    .measured_height_for_width(ui.design(), 40, &[8]),
+            );
+        }));
+
+        assert_eq!(empty_chrome.get(), 9, "frame + padding + heading + body");
+        assert_eq!(
+            legacy_empty.get(),
+            11,
+            "legacy Dialog preserves its footer gap"
+        );
+        assert_eq!(chrome_with_action.get(), legacy_with_action.get());
     }
 
     #[test]

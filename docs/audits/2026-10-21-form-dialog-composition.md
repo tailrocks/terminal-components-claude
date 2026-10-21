@@ -41,3 +41,15 @@ Evidence: FormDialog runtime tests verify hover and pressed frame changes, point
 ## Verification update (supersedes the earlier post-merge test count)
 
 After adding the opt-in close affordance, `cargo nextest run -p termrock-overlays -p termrock-forms --lib` ran 148 tests: 147 passed and the same single MenuBar local-patch precedence test failed (`menu.rs:1746`). The focused close/default-chrome group passed 3/3; FormDialog now has 63 tests. Scoped strict Clippy, the public facade example check, formatting, and diff checks passed on the updated source. The inherited MenuBar failure remains recorded as unresolved; the independent reviewer HOLD prevents importing its unrelated proposed fix.
+
+## Independent review correction: composed empty-footer height
+
+An independent public-consumer probe found `Dialog::chrome(...).title("Heading").body_rows(3)` at width 40 measured 10 rows, leaving one natural footer gap after the empty action row had already been removed. The focused regression was run before the fix and failed with observed 10, expected 9. The chrome-only empty-action path now omits that natural footer row; it measures 9. Regression assertions also keep legacy `Dialog::new` at 11 and prove a chrome-only Dialog with a nonempty action matches the legacy action-bearing Dialog height. Rendering and hit geometry continue to use the same `DialogLayout` calculation.
+
+The earlier architecture note that frozen FormDialog wraps actions is superseded: frozen `src/widgets/form_dialog.rs` lines 945–958 use `row_layout_right` for a single action row; `ButtonRow` is used for navigation. This increment does not claim wrapping parity. Optional wrapping remains a general Termrock layout capability, not an evidenced frozen FormDialog behavior.
+
+## Independent-review correction verification
+
+The exact 40-column public-consumer height probe from review commit `4a4c0a90791c946b79c6d836bcf003de3ec21f70` failed before the change with 10 rather than 9 rows, then passed after the chrome-only empty-footer condition. The regression also asserts legacy empty-action `Dialog::new` remains 11 rows and `Dialog::chrome` with an actual action has the same measured height as its legacy counterpart. After this fix, scoped nextest reported 148/149 passing; the sole failure is still the inherited MenuBar patch-precedence test. Strict Clippy, consumer-example check, and formatting/diff checks pass. The independent review's seven other live-consumer flows remain recorded in its external evidence packet; the chrome height defect was its only code HOLD.
+
+The correction is deliberately limited to `Dialog::layout`'s natural height. Frozen FormDialog directly composes its action row with `row_layout_right`; this implementation makes no claim that frozen action buttons wrap.
