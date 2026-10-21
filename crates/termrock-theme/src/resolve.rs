@@ -556,11 +556,12 @@ fn authored_mono_override(
     live: StateFlags,
     authored: Option<&[super::MonoRule]>,
 ) -> StylePatch {
+    let builtin = super::downgrade::builtin_family_mono_rules(family);
     theme
         .recipes
         .mono_rules(family)
-        .or(authored)
-        .unwrap_or_default()
+        .or(authored.filter(|rules| !rules.is_empty()))
+        .unwrap_or(builtin)
         .iter()
         .filter(|(rule_part, when, _)| *rule_part == part && live.contains(*when))
         .fold(StylePatch::new(), |patch, (_, _, rule)| patch.merge(*rule))
