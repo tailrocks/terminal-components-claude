@@ -2672,3 +2672,34 @@ parity tip already has (`query_editor_keeps_multiline_unicode_and_cursor_through
 `query_headers_results_and_uncommitted_draft_survive_switch`,
 `frame_tablepro_query_editor_2k_lines` and `tablepro_visual_baseline`), so the
 merge introduces no new failure.
+
+### Showcase page chrome block (integrated)
+
+Branch `wip/showcase-pages-migration-20261021`, tip
+`8997fd295fac600597dea013a73a7d9e49548182`, integrated into this branch.
+
+The fourteen demo pages stop painting their own frame, section strip and card
+chrome. The furniture moves into a new shared block
+`crates/termrock-feedback/src/page_chrome.rs`, and the pages call the block
+with the shared `chrome_ink()` palette policy. The ownership exceptions in
+`crates/termrock-xtask/exceptions/v1.json` are ratcheted down with the moved
+code (for example `pages/buttons.rs` OWN-02 11 to 4 and OWN-04 4 to 1,
+`pages/forms.rs` OWN-02 26 to 15); no exception is raised.
+
+The conflict in `crates/showcase-demos/src/pages/overview.rs` was resolved by
+keeping the parity tip's import list and its `planes_and_text` table, taking
+the shared-block draw path from the migration branch, and restoring the
+`ACCENT` and `TAB_ACTIVE` constants the tip had introduced.
+
+On the migration branch alone all 66 page frames matched the pre-migration
+digests, so the page chrome migration is pixel-preserving. Three Editor page
+digests were re-recorded because the parity branch's editor component work
+(`crates/termrock-editors/src/code.rs`, `crates/termrock-text/src/editor.rs`)
+changed that page's content; the test header records this.
+
+`cargo nextest run -p showcase-ui --all-targets` on the merged tree is 90
+tests with 83 passing and 7 failing. The failures are the two pre-existing
+editor `app_tests`, the two `page_headings` cases owned by the heading
+fixtures workstream, the `showcase_visual_baseline` case owned by the visual
+workstream, and the `shell_chrome` 16-colour Overview pin, which is under
+root-cause analysis and is NOT re-blessed here.

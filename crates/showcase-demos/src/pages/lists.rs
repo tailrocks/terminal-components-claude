@@ -6,7 +6,8 @@ use termrock::{
 
 use showcase_data::LANGUAGES;
 
-use super::{Page, PageUpdate, frame};
+use super::{Page, PageUpdate, chrome_ink};
+use termrock::feedback::{CardChrome, PageFrame, SectionStrip};
 
 const SINGLE: Id = termrock::Id::root("showcase_ui::pages::lists::lists.single");
 const MULTI: Id = termrock::Id::root("showcase_ui::pages::lists::lists.multi");
@@ -32,13 +33,10 @@ const FADE_INNER: f32 = 0.8;
 const CANVAS: u32 = 0x000000;
 const SURFACE: u32 = 0x111111;
 const WHITE: u32 = 0xffffff;
-const SECONDARY: u32 = 0xb3b3b3;
 const MUTED: u32 = 0x8a8a8a;
 const FAINT: u32 = 0x737373;
-const RULE: u32 = 0x3a3a3a;
 const ACCENT: u32 = 0x48e054;
 const ACCENT_BG: u32 = 0x173f1c;
-const TAB_ACTIVE: u32 = 0x27272a;
 const THUMB: u32 = 0x808080;
 const TRACK: u32 = 0x474747;
 const DISABLED: u32 = 0x4d4d4d;
@@ -244,67 +242,6 @@ fn paint_blurb(ui: &mut Ui<'_>, body: Rect) {
     );
 }
 
-fn tab_width(label: &str) -> u16 {
-    width(label).saturating_add(3)
-}
-
-fn paint_section_strip(ui: &mut Ui<'_>, area: Rect) {
-    if area.is_empty() {
-        return;
-    }
-    let mut x = area.x;
-    let mut tab_end = area.x;
-    for (index, label) in SECTIONS.iter().enumerate() {
-        let w = tab_width(label);
-        if x.saturating_add(w) > area.right() {
-            break;
-        }
-        let style = if index == 0 {
-            ink(WHITE, TAB_ACTIVE).add_modifier(Modifier::BOLD)
-        } else {
-            ink(SECONDARY, CANVAS)
-        };
-        ui.fill(Rect::new(x, area.y, w, 1), style);
-        ui.paint_str(
-            Rect::new(x.saturating_add(1), area.y, w.saturating_sub(1), 1),
-            label,
-            style,
-        );
-        tab_end = x.saturating_add(w);
-        x = tab_end.saturating_add(1);
-    }
-    if area.width >= SECTION_WIDE {
-        let caption_width = width(SECTION_CAPTION);
-        let caption_x = area.right().saturating_sub(caption_width.saturating_add(1));
-        if caption_x > tab_end.saturating_add(2) {
-            ui.paint_str(
-                Rect::new(caption_x, area.y, caption_width, 1),
-                SECTION_CAPTION,
-                ink(FAINT, CANVAS),
-            );
-        }
-    }
-    if area.height < 2 {
-        return;
-    }
-    let rule_y = area.y.saturating_add(1);
-    ui.paint_str(
-        Rect {
-            y: rule_y,
-            height: 1,
-            ..area
-        },
-        &"─".repeat(usize::from(area.width)),
-        ink(RULE, CANVAS),
-    );
-    let active = tab_width(SECTIONS[0]).min(area.width);
-    ui.paint_str(
-        Rect::new(area.x, rule_y, active, 1),
-        &"━".repeat(usize::from(active)),
-        ink(ACCENT, CANVAS),
-    );
-}
-
 struct CardLayout {
     rects: [Rect; 3],
     height: u16,
@@ -429,42 +366,6 @@ fn paint_scrollbar(ui: &mut Ui<'_>, bar: Rect, content_h: u16) {
             } else {
                 ink(TRACK, CANVAS)
             },
-        );
-    }
-}
-
-fn paint_card_chrome(ui: &mut Ui<'_>, card: Rect, title: &str, meta: &str) {
-    ui.fill(card, ink(WHITE, SURFACE));
-    if card.height == 0 || card.width < 3 {
-        return;
-    }
-    let text_x = card.x.saturating_add(2);
-    let text_w = card.width.saturating_sub(4);
-    ui.paint_str(
-        Rect::new(text_x, card.y, text_w, 1),
-        title,
-        ink(SECONDARY, SURFACE),
-    );
-    if !meta.is_empty() {
-        let meta_w = width(meta);
-        if meta_w < text_w {
-            ui.paint_str(
-                Rect::new(
-                    text_x.saturating_add(text_w.saturating_sub(meta_w)),
-                    card.y,
-                    meta_w,
-                    1,
-                ),
-                meta,
-                ink(FAINT, SURFACE),
-            );
-        }
-    }
-    if card.height > 1 && text_w > 0 {
-        ui.paint_str(
-            Rect::new(text_x, card.y.saturating_add(1), text_w, 1),
-            &"─".repeat(usize::from(text_w)),
-            ink(RULE, SURFACE),
         );
     }
 }
@@ -615,7 +516,10 @@ fn paint_language(ui: &mut Ui<'_>, card: Rect, chosen: &str, single: &ListState)
     let list_h = inner.height.saturating_sub(2);
     let scroll_offset = single.scroll().offset();
     let label = position_label(usize::from(list_h), LANGUAGES.len(), scroll_offset);
-    paint_card_chrome(ui, card, "Language", &label);
+    CardChrome::new("Language")
+        .meta(&label)
+        .ink(chrome_ink())
+        .draw(ui, card);
     if inner.is_empty() {
         return;
     }
@@ -696,7 +600,10 @@ fn paint_files(ui: &mut Ui<'_>, card: Rect, multi: &ListState) {
     let inner = card_inner(card);
     let list_h = inner.height.saturating_sub(2);
     let scroll_offset = multi.scroll().offset();
-    paint_card_chrome(ui, card, "Files to include", &format!("{count} selected"));
+    CardChrome::new("Files to include")
+        .meta(&format!("{count} selected"))
+        .ink(chrome_ink())
+        .draw(ui, card);
     if inner.is_empty() {
         return;
     }
@@ -768,7 +675,10 @@ fn paint_files(ui: &mut Ui<'_>, card: Rect, multi: &ListState) {
 }
 
 fn paint_search(ui: &mut Ui<'_>, card: Rect, center_title: bool) {
-    paint_card_chrome(ui, card, "Search results", "");
+    CardChrome::new("Search results")
+        .meta("")
+        .ink(chrome_ink())
+        .draw(ui, card);
     let inner = card_inner(card);
     if inner.height < 2 || inner.width == 0 {
         return;
@@ -929,32 +839,38 @@ impl Page for ListsPage {
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
         let chosen = self.chosen_label();
         let wide = area.width == WIDE_PAGE_W && area.height == WIDE_PAGE_H;
-        frame(ui, area, self.title(), "", |ui, body| {
-            paint_blurb(ui, body);
-            paint_section_strip(
-                ui,
-                Rect {
-                    height: 2.min(body.height),
-                    ..body
-                },
-            );
-            let top = body.y.saturating_add(3);
-            if top >= body.bottom() {
-                return;
-            }
-            paint_playground(
-                ui,
-                Rect {
-                    y: top,
-                    height: body.bottom().saturating_sub(top),
-                    ..body
-                },
-                chosen,
-                &self.single,
-                &self.multi,
-                wide,
-            );
-        });
+        PageFrame::new(self.title())
+            .meta("")
+            .draw_with(ui, area, |ui, body| {
+                paint_blurb(ui, body);
+                SectionStrip::new(&SECTIONS)
+                    .caption(SECTION_CAPTION)
+                    .caption_min_width(SECTION_WIDE)
+                    .ink(chrome_ink())
+                    .draw(
+                        ui,
+                        Rect {
+                            height: 2.min(body.height),
+                            ..body
+                        },
+                    );
+                let top = body.y.saturating_add(3);
+                if top >= body.bottom() {
+                    return;
+                }
+                paint_playground(
+                    ui,
+                    Rect {
+                        y: top,
+                        height: body.bottom().saturating_sub(top),
+                        ..body
+                    },
+                    chosen,
+                    &self.single,
+                    &self.multi,
+                    wide,
+                );
+            });
     }
 
     fn hints(&self, ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {

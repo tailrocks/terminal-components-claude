@@ -5,7 +5,8 @@ use termrock::{
     Variant, width,
 };
 
-use super::{Page, PageUpdate, frame};
+use super::{Page, PageUpdate};
+use termrock::feedback::PageFrame;
 
 const TAB: Id = termrock::Id::root("showcase_ui::pages::settings::settings.tabs");
 const MEMBERS: Id = termrock::Id::root("showcase_ui::pages::settings::settings.members");
@@ -812,12 +813,9 @@ impl Page for SettingsPage {
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
-        frame(
-            ui,
-            area,
-            "Project settings",
-            "Composed: tabs, form, editable table, list, dialogs",
-            |ui, body| {
+        PageFrame::new("Project settings")
+            .meta("Composed: tabs, form, editable table, list, dialogs")
+            .draw_with(ui, area, |ui, body| {
                 let member_tab = active_tab(&self.tabs) == 1;
                 Tabs::new(TAB).draw(ui, Rect { height: 2, ..body }, &self.tabs, TABS);
                 if member_tab {
@@ -844,8 +842,7 @@ impl Page for SettingsPage {
                 if !member_tab {
                     paint_general(ui, body, active_tab(&self.tabs));
                 }
-            },
-        );
+            });
         ui.layer(REMOVE_DIALOG, |ui, layer| {
             remove_dialog().draw(ui, layer, &self.remove_state, |ui, body| {
                 let _ = ui.paint_str(

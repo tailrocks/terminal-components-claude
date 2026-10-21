@@ -1,11 +1,12 @@
 use termrock::{
-    Color, Cx, Id, Modifier, PaintStyle, Rect, TextViewport, Ui, ViewportLine, ViewportState,
-    truncate, width, wrap,
+    Color, Cx, Id, PaintStyle, Rect, TextViewport, Ui, ViewportLine, ViewportState, truncate,
+    width, wrap,
 };
 
 use showcase_data::{PROSE, SCROLL_ROWS, log_lines};
 
-use super::{Page, PageUpdate, frame};
+use super::{Page, PageUpdate, chrome_ink};
+use termrock::feedback::{PageFrame, SectionStrip};
 
 const LIST_VIEW: Id = termrock::Id::root("showcase_ui::pages::scrolling::scrolling.list");
 
@@ -31,8 +32,6 @@ const SECONDARY: u32 = 0xb3b3b3;
 const MUTED: u32 = 0x8a8a8a;
 const FAINT: u32 = 0x737373;
 const RULE: u32 = 0x3a3a3a;
-const ACCENT: u32 = 0x48e054;
-const TAB_ACTIVE: u32 = 0x27272a;
 const THUMB: u32 = 0x808080;
 const TRACK: u32 = 0x474747;
 const WARNING: u32 = 0xf59e09;
@@ -90,10 +89,6 @@ fn list_lines() -> Vec<ViewportLine<'static>> {
         .collect()
 }
 
-fn tab_width(label: &str) -> u16 {
-    width(label).saturating_add(3)
-}
-
 fn paint_blurb(ui: &mut Ui<'_>, body: Rect) {
     let title_w = width("Scrolling");
     if body.width <= title_w.saturating_add(4) {
@@ -111,63 +106,6 @@ fn paint_blurb(ui: &mut Ui<'_>, body: Rect) {
         truncate(BLURB, area.width)
     };
     let _ = ui.paint_str(area, &shown, ink(MUTED, CANVAS));
-}
-
-fn paint_section_strip(ui: &mut Ui<'_>, area: Rect) {
-    if area.is_empty() {
-        return;
-    }
-    let mut x = area.x;
-    let mut tab_end = area.x;
-    for (index, label) in SECTIONS.iter().enumerate() {
-        let w = tab_width(label);
-        if x.saturating_add(w) > area.right() {
-            break;
-        }
-        let style = if index == 0 {
-            ink(WHITE, TAB_ACTIVE).add_modifier(Modifier::BOLD)
-        } else {
-            ink(SECONDARY, CANVAS)
-        };
-        ui.fill(Rect::new(x, area.y, w, 1), style);
-        let _ = ui.paint_str(
-            Rect::new(x.saturating_add(1), area.y, w.saturating_sub(1), 1),
-            label,
-            style,
-        );
-        tab_end = x.saturating_add(w);
-        x = tab_end.saturating_add(1);
-    }
-    if area.width >= SECTION_WIDE {
-        let caption_width = width(SECTION_CAPTION);
-        let caption_x = area.right().saturating_sub(caption_width.saturating_add(1));
-        if caption_x > tab_end.saturating_add(2) {
-            let _ = ui.paint_str(
-                Rect::new(caption_x, area.y, caption_width, 1),
-                SECTION_CAPTION,
-                ink(FAINT, CANVAS),
-            );
-        }
-    }
-    if area.height < 2 {
-        return;
-    }
-    let rule_y = area.y.saturating_add(1);
-    let _ = ui.paint_str(
-        Rect {
-            y: rule_y,
-            height: 1,
-            ..area
-        },
-        &"─".repeat(usize::from(area.width)),
-        ink(RULE, CANVAS),
-    );
-    let active = tab_width(SECTIONS[0]).min(area.width);
-    let _ = ui.paint_str(
-        Rect::new(area.x, rule_y, active, 1),
-        &"━".repeat(usize::from(active)),
-        ink(ACCENT, CANVAS),
-    );
 }
 
 fn thirds(area: Rect) -> [Rect; 3] {
@@ -1217,69 +1155,75 @@ impl Page for ScrollingPage {
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
         let list_offset = self.list_state.scroll().offset();
         let log_offset = self.log.len().saturating_sub(6);
-        frame(ui, area, self.title(), "", |ui, body| {
-            paint_blurb(ui, body);
-            paint_section_strip(
-                ui,
-                Rect {
-                    height: 2.min(body.height),
+        PageFrame::new(self.title())
+            .meta("")
+            .draw_with(ui, area, |ui, body| {
+                paint_blurb(ui, body);
+                SectionStrip::new(&SECTIONS)
+                    .caption(SECTION_CAPTION)
+                    .caption_min_width(SECTION_WIDE)
+                    .ink(chrome_ink())
+                    .draw(
+                        ui,
+                        Rect {
+                            height: 2.min(body.height),
+                            ..body
+                        },
+                    );
+                let top = body.y.saturating_add(3);
+                if top >= body.bottom() {
+                    return;
+                }
+                let playground = Rect {
+                    y: top,
+                    height: body.bottom().saturating_sub(top),
                     ..body
-                },
-            );
-            let top = body.y.saturating_add(3);
-            if top >= body.bottom() {
-                return;
-            }
-            let playground = Rect {
-                y: top,
-                height: body.bottom().saturating_sub(top),
-                ..body
-            };
-            let slots = bands(playground);
-            if area.width == NARROW_PAGE.0 && area.height == NARROW_PAGE.1 {
-                if slots[0].height > 0 {
-                    let list_area = content_narrow(narrow_columns(slots[0])[1]);
-                    list_view().draw(ui, list_area, &self.list_state, &self.list);
-                    paint_scrollers_narrow(ui, slots[0], list_offset, &self.log);
+                };
+                let slots = bands(playground);
+                if area.width == NARROW_PAGE.0 && area.height == NARROW_PAGE.1 {
+                    if slots[0].height > 0 {
+                        let list_area = content_narrow(narrow_columns(slots[0])[1]);
+                        list_view().draw(ui, list_area, &self.list_state, &self.list);
+                        paint_scrollers_narrow(ui, slots[0], list_offset, &self.log);
+                    }
+                    paint_page_thumb(ui, playground);
+                    return;
                 }
-                paint_page_thumb(ui, playground);
-                return;
-            }
-            if area.width == SHELL_80_PAGE.0 && area.height == SHELL_80_PAGE.1 {
-                if slots[0].height > 0 {
-                    let list_area = content_narrow(columns_80(slots[0])[1]);
-                    list_view().draw(ui, list_area, &self.list_state, &self.list);
-                    paint_scrollers_80(ui, slots[0], list_offset, &self.log);
+                if area.width == SHELL_80_PAGE.0 && area.height == SHELL_80_PAGE.1 {
+                    if slots[0].height > 0 {
+                        let list_area = content_narrow(columns_80(slots[0])[1]);
+                        list_view().draw(ui, list_area, &self.list_state, &self.list);
+                        paint_scrollers_80(ui, slots[0], list_offset, &self.log);
+                    }
+                    paint_page_thumb(ui, playground);
+                    return;
                 }
-                paint_page_thumb(ui, playground);
-                return;
-            }
-            if slots[0].height > 0 {
-                let list_area = content_of(thirds(slots[0])[1]);
-                list_view().draw(ui, list_area, &self.list_state, &self.list);
-                paint_scrollers(ui, slots[0], list_offset, &self.log);
-            }
-            if slots[1].height > 0 {
-                paint_mechanics(ui, slots[1]);
-            }
-            if slots[2].height > 0 {
-                paint_collections(ui, slots[2]);
-            }
-            if self.last != "top of document" {
-                let _ = ui.paint_str(
-                    Rect {
-                        y: body.bottom().saturating_sub(1),
-                        height: 1,
-                        ..body
-                    },
-                    &format!(
-                        "prose=0 · list={list_offset} · log={log_offset} · {}",
-                        self.last
-                    ),
-                    ink(WHITE, CANVAS),
-                );
-            }
-        });
+                if slots[0].height > 0 {
+                    let list_area = content_of(thirds(slots[0])[1]);
+                    list_view().draw(ui, list_area, &self.list_state, &self.list);
+                    paint_scrollers(ui, slots[0], list_offset, &self.log);
+                }
+                if slots[1].height > 0 {
+                    paint_mechanics(ui, slots[1]);
+                }
+                if slots[2].height > 0 {
+                    paint_collections(ui, slots[2]);
+                }
+                if self.last != "top of document" {
+                    let _ = ui.paint_str(
+                        Rect {
+                            y: body.bottom().saturating_sub(1),
+                            height: 1,
+                            ..body
+                        },
+                        &format!(
+                            "prose=0 · list={list_offset} · log={log_offset} · {}",
+                            self.last
+                        ),
+                        ink(WHITE, CANVAS),
+                    );
+                }
+            });
     }
 
     fn hints(&self, _ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {

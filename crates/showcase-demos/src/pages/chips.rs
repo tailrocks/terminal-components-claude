@@ -6,7 +6,8 @@ use termrock::{
 
 use showcase_data::LANGUAGES;
 
-use super::{Page, PageUpdate};
+use super::{Page, PageUpdate, chrome_ink};
+use termrock::feedback::SectionStrip;
 
 const CHIPS: Id = termrock::Id::root("showcase_ui::pages::chips::chips.filters");
 const SELECT: Id = termrock::Id::root("showcase_ui::pages::chips::chips.language");
@@ -31,9 +32,7 @@ const SECONDARY: u32 = 0xb3b3b3;
 const MUTED: u32 = 0x8a8a8a;
 const FAINT: u32 = 0x737373;
 const RULE: u32 = 0x3a3a3a;
-const ACCENT: u32 = 0x48e054;
 const CHIP_BG: u32 = 0x27272a;
-const TAB_ACTIVE: u32 = 0x27272a;
 const FIELD_BG: u32 = 0x1e1e22;
 const THUMB: u32 = 0x808080;
 const TRACK: u32 = 0x474747;
@@ -108,67 +107,6 @@ fn fill_in(ui: &mut Ui<'_>, view: Rect, rect: Rect, style: PaintStyle) {
     if !rect.is_empty() {
         ui.fill(rect, style);
     }
-}
-
-fn tab_width(label: &str) -> u16 {
-    width(label).saturating_add(3)
-}
-
-fn paint_section_strip(ui: &mut Ui<'_>, area: Rect) {
-    if area.is_empty() {
-        return;
-    }
-    let mut x = area.x;
-    let mut tab_end = area.x;
-    for (index, label) in SECTIONS.iter().enumerate() {
-        let w = tab_width(label);
-        if x.saturating_add(w) > area.right() {
-            break;
-        }
-        let style = if index == 0 {
-            bold(WHITE, TAB_ACTIVE)
-        } else {
-            ink(SECONDARY, CANVAS)
-        };
-        ui.fill(Rect::new(x, area.y, w, 1), style);
-        ui.paint_str(
-            Rect::new(x.saturating_add(1), area.y, w.saturating_sub(1), 1),
-            label,
-            style,
-        );
-        tab_end = x.saturating_add(w);
-        x = tab_end.saturating_add(1);
-    }
-    if area.width >= SECTION_WIDE {
-        let caption_width = width(SECTION_CAPTION);
-        let caption_x = area.right().saturating_sub(caption_width.saturating_add(1));
-        if caption_x > tab_end.saturating_add(2) {
-            ui.paint_str(
-                Rect::new(caption_x, area.y, caption_width, 1),
-                SECTION_CAPTION,
-                ink(FAINT, CANVAS),
-            );
-        }
-    }
-    if area.height < 2 {
-        return;
-    }
-    let rule_y = area.y.saturating_add(1);
-    ui.paint_str(
-        Rect {
-            y: rule_y,
-            height: 1,
-            ..area
-        },
-        &"─".repeat(usize::from(area.width)),
-        ink(RULE, CANVAS),
-    );
-    let active = tab_width(SECTIONS[0]).min(area.width);
-    ui.paint_str(
-        Rect::new(area.x, rule_y, active, 1),
-        &"━".repeat(usize::from(active)),
-        ink(ACCENT, CANVAS),
-    );
 }
 
 struct ScrollSplit {
@@ -909,13 +847,17 @@ impl Page for ChipsPage {
             height: area.height.saturating_sub(2),
             ..area
         };
-        paint_section_strip(
-            ui,
-            Rect {
-                height: 2.min(body.height),
-                ..body
-            },
-        );
+        SectionStrip::new(&SECTIONS)
+            .caption(SECTION_CAPTION)
+            .caption_min_width(SECTION_WIDE)
+            .ink(chrome_ink())
+            .draw(
+                ui,
+                Rect {
+                    height: 2.min(body.height),
+                    ..body
+                },
+            );
         let top = body.y.saturating_add(3);
         if top >= body.bottom() {
             return;

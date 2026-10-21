@@ -3,7 +3,8 @@ use termrock::{
     Rect, Response, Ui, Variant, width,
 };
 
-use super::{Page, PageUpdate, frame};
+use super::{Page, PageUpdate, chrome_ink};
+use termrock::feedback::{CardChrome, PageFrame, SectionStrip};
 
 const OPEN_CONFIRM: Id = termrock::Id::root("showcase_ui::pages::dialogs::dialogs.confirm.open");
 const OPEN_PROMPT: Id = termrock::Id::root("showcase_ui::pages::dialogs::dialogs.prompt.open");
@@ -35,7 +36,6 @@ const WHITE: u32 = 0xffffff;
 const SECONDARY: u32 = 0xb3b3b3;
 const MUTED: u32 = 0x8a8a8a;
 const FAINT: u32 = 0x737373;
-const RULE: u32 = 0x3a3a3a;
 const ACCENT: u32 = 0x48e054;
 const TAB_ACTIVE: u32 = 0x27272a;
 const ON_ACCENT: u32 = 0x19191c;
@@ -173,10 +173,6 @@ fn ink(fg: u32, bg: u32) -> PaintStyle {
     PaintStyle::new().fg(rgb(fg)).bg(rgb(bg))
 }
 
-fn tab_width(label: &str) -> u16 {
-    width(label).saturating_add(3)
-}
-
 fn paint_blurb(ui: &mut Ui<'_>, body: Rect) {
     let title_w = width("Dialogs");
     if body.width <= title_w.saturating_add(4) {
@@ -206,99 +202,6 @@ fn paint_blurb(ui: &mut Ui<'_>, body: Rect) {
         "…",
         style,
     );
-}
-
-fn paint_section_strip(ui: &mut Ui<'_>, area: Rect) {
-    if area.is_empty() {
-        return;
-    }
-    let mut x = area.x;
-    let mut tab_end = area.x;
-    for (index, label) in SECTIONS.iter().enumerate() {
-        let w = tab_width(label);
-        if x.saturating_add(w) > area.right() {
-            break;
-        }
-        let style = if index == 0 {
-            ink(WHITE, TAB_ACTIVE).add_modifier(Modifier::BOLD)
-        } else {
-            ink(SECONDARY, CANVAS)
-        };
-        ui.fill(Rect::new(x, area.y, w, 1), style);
-        ui.paint_str(
-            Rect::new(x.saturating_add(1), area.y, w.saturating_sub(1), 1),
-            label,
-            style,
-        );
-        tab_end = x.saturating_add(w);
-        x = tab_end.saturating_add(1);
-    }
-    if area.width >= SECTION_WIDE {
-        let caption_width = width(SECTION_CAPTION);
-        let caption_x = area.right().saturating_sub(caption_width.saturating_add(1));
-        if caption_x > tab_end.saturating_add(2) {
-            ui.paint_str(
-                Rect::new(caption_x, area.y, caption_width, 1),
-                SECTION_CAPTION,
-                ink(FAINT, CANVAS),
-            );
-        }
-    }
-    if area.height < 2 {
-        return;
-    }
-    let rule_y = area.y.saturating_add(1);
-    ui.paint_str(
-        Rect {
-            y: rule_y,
-            height: 1,
-            ..area
-        },
-        &"─".repeat(usize::from(area.width)),
-        ink(RULE, CANVAS),
-    );
-    let active = tab_width(SECTIONS[0]).min(area.width);
-    ui.paint_str(
-        Rect::new(area.x, rule_y, active, 1),
-        &"━".repeat(usize::from(active)),
-        ink(ACCENT, CANVAS),
-    );
-}
-
-fn paint_card_chrome(ui: &mut Ui<'_>, card: Rect, title: &str, meta: &str) {
-    ui.fill(card, ink(WHITE, SURFACE));
-    if card.height == 0 || card.width < 4 {
-        return;
-    }
-    let text_x = card.x.saturating_add(2);
-    let text_w = card.width.saturating_sub(4);
-    ui.paint_str(
-        Rect::new(text_x, card.y, text_w, 1),
-        title,
-        ink(SECONDARY, SURFACE),
-    );
-    if !meta.is_empty() {
-        let meta_w = width(meta);
-        if meta_w < text_w {
-            ui.paint_str(
-                Rect::new(
-                    text_x.saturating_add(text_w.saturating_sub(meta_w)),
-                    card.y,
-                    meta_w,
-                    1,
-                ),
-                meta,
-                ink(FAINT, SURFACE),
-            );
-        }
-    }
-    if card.height > 1 && text_w > 0 {
-        ui.paint_str(
-            Rect::new(text_x, card.y.saturating_add(1), text_w, 1),
-            &"─".repeat(usize::from(text_w)),
-            ink(RULE, SURFACE),
-        );
-    }
 }
 
 fn card_inner(card: Rect) -> Rect {
@@ -388,7 +291,10 @@ fn paint_open(ui: &mut Ui<'_>, card: Rect) {
             }
         }
     }
-    paint_card_chrome(ui, card, "Open a dialog", "Enter · click");
+    CardChrome::new("Open a dialog")
+        .meta("Enter · click")
+        .ink(chrome_ink())
+        .draw(ui, card);
     if inner.is_empty() {
         return;
     }
@@ -452,7 +358,10 @@ fn paint_props(ui: &mut Ui<'_>, inner: Rect) {
 }
 
 fn paint_applied(ui: &mut Ui<'_>, card: Rect) {
-    paint_card_chrome(ui, card, "Applied", "read back from the built dialog");
+    CardChrome::new("Applied")
+        .meta("read back from the built dialog")
+        .ink(chrome_ink())
+        .draw(ui, card);
     let inner = card_inner(card);
     if !inner.is_empty() {
         paint_props(ui, inner);
@@ -460,7 +369,10 @@ fn paint_applied(ui: &mut Ui<'_>, card: Rect) {
 }
 
 fn paint_results(ui: &mut Ui<'_>, card: Rect, result: &str) {
-    paint_card_chrome(ui, card, "Results", "DialogResult");
+    CardChrome::new("Results")
+        .meta("DialogResult")
+        .ink(chrome_ink())
+        .draw(ui, card);
     let inner = card_inner(card);
     if inner.is_empty() {
         return;
@@ -747,29 +659,35 @@ impl Page for DialogsPage {
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
-        frame(ui, area, self.title(), "", |ui, body| {
-            paint_blurb(ui, body);
-            paint_section_strip(
-                ui,
-                Rect {
-                    height: 2.min(body.height),
-                    ..body
-                },
-            );
-            let top = body.y.saturating_add(3);
-            if top >= body.bottom() {
-                return;
-            }
-            paint_playground(
-                ui,
-                Rect {
-                    y: top,
-                    height: body.bottom().saturating_sub(top),
-                    ..body
-                },
-                &self.result,
-            );
-        });
+        PageFrame::new(self.title())
+            .meta("")
+            .draw_with(ui, area, |ui, body| {
+                paint_blurb(ui, body);
+                SectionStrip::new(&SECTIONS)
+                    .caption(SECTION_CAPTION)
+                    .caption_min_width(SECTION_WIDE)
+                    .ink(chrome_ink())
+                    .draw(
+                        ui,
+                        Rect {
+                            height: 2.min(body.height),
+                            ..body
+                        },
+                    );
+                let top = body.y.saturating_add(3);
+                if top >= body.bottom() {
+                    return;
+                }
+                paint_playground(
+                    ui,
+                    Rect {
+                        y: top,
+                        height: body.bottom().saturating_sub(top),
+                        ..body
+                    },
+                    &self.result,
+                );
+            });
         ui.layer(CONFIRM, |ui, layer| {
             Self::confirm().draw(ui, layer, &self.confirm_state, |ui, body| {
                 let _ = ui.paint_str(body, "Enter confirms · Esc cancels", ui.surface_style());

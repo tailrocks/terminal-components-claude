@@ -4,7 +4,8 @@ use termrock::{
     layout, truncate,
 };
 
-use super::{Page, PageUpdate, frame};
+use super::{Page, PageUpdate};
+use termrock::feedback::PageFrame;
 
 const NAME: Id = termrock::Id::root("showcase_ui::pages::inputs::inputs.name");
 const BRANCH: Id = termrock::Id::root("showcase_ui::pages::inputs::inputs.branch");
@@ -223,75 +224,78 @@ impl Page for InputsPage {
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
         let meta = "Focus is a bar; editing is a cursor. Enter to edit, Esc to revert.";
-        frame(ui, area, self.title(), meta, |ui, body| {
-            let regions = layout::rows(body, &[Track::Fixed(17), Track::Fixed(1), Track::Flex(1)]);
-            let fields = regions.first().copied().unwrap_or(body);
-            let small = body.width < 70;
-            playground_panel().draw(ui, fields, |ui, inner| {
-                let columns = layout::columns(inner, &[Track::Flex(1), Track::Flex(1)], 3);
-                let left = columns.first().copied().unwrap_or(inner);
-                let right = columns.get(1).copied().unwrap_or(inner);
-                let (left, right) = if small {
-                    (
+        PageFrame::new(self.title())
+            .meta(meta)
+            .draw_with(ui, area, |ui, body| {
+                let regions =
+                    layout::rows(body, &[Track::Fixed(17), Track::Fixed(1), Track::Flex(1)]);
+                let fields = regions.first().copied().unwrap_or(body);
+                let small = body.width < 70;
+                playground_panel().draw(ui, fields, |ui, inner| {
+                    let columns = layout::columns(inner, &[Track::Flex(1), Track::Flex(1)], 3);
+                    let left = columns.first().copied().unwrap_or(inner);
+                    let right = columns.get(1).copied().unwrap_or(inner);
+                    let (left, right) = if small {
+                        (
+                            Rect {
+                                width: left.width.saturating_sub(1),
+                                ..left
+                            },
+                            Rect {
+                                x: right.x.saturating_sub(1),
+                                width: right.width.saturating_add(1),
+                                ..right
+                            },
+                        )
+                    } else {
+                        (left, right)
+                    };
+                    let left_rows =
+                        layout::rows(left, &[Track::Fixed(3), Track::Fixed(3), Track::Flex(1)]);
+                    let right_rows =
+                        layout::rows(right, &[Track::Fixed(3), Track::Fixed(3), Track::Flex(1)]);
+                    let project_area = left_rows.first().copied().unwrap_or(inner);
+                    project_field(&self.name).draw(ui, project_area, &self.name_state);
+                    legacy_field_gutter(
+                        ui,
                         Rect {
-                            width: left.width.saturating_sub(1),
-                            ..left
+                            y: project_area.y.saturating_add(1),
+                            ..project_area
                         },
+                        ui.state(NAME),
+                    );
+                    legacy_field_help(
+                        ui,
+                        project_area,
+                        ui.state(NAME),
+                        "Used as the working directory name",
+                        -1,
+                    );
+                    let branch_area = right_rows.first().copied().unwrap_or(inner);
+                    branch_field(&self.branch).draw(ui, branch_area, &self.branch_state);
+                    legacy_field_gutter(
+                        ui,
                         Rect {
-                            x: right.x.saturating_sub(1),
-                            width: right.width.saturating_add(1),
-                            ..right
+                            y: branch_area.y.saturating_add(1),
+                            ..branch_area
                         },
-                    )
-                } else {
-                    (left, right)
-                };
-                let left_rows =
-                    layout::rows(left, &[Track::Fixed(3), Track::Fixed(3), Track::Flex(1)]);
-                let right_rows =
-                    layout::rows(right, &[Track::Fixed(3), Track::Fixed(3), Track::Flex(1)]);
-                let project_area = left_rows.first().copied().unwrap_or(inner);
-                project_field(&self.name).draw(ui, project_area, &self.name_state);
-                legacy_field_gutter(
-                    ui,
-                    Rect {
-                        y: project_area.y.saturating_add(1),
-                        ..project_area
-                    },
-                    ui.state(NAME),
-                );
-                legacy_field_help(
-                    ui,
-                    project_area,
-                    ui.state(NAME),
-                    "Used as the working directory name",
-                    -1,
-                );
-                let branch_area = right_rows.first().copied().unwrap_or(inner);
-                branch_field(&self.branch).draw(ui, branch_area, &self.branch_state);
-                legacy_field_gutter(
-                    ui,
-                    Rect {
-                        y: branch_area.y.saturating_add(1),
-                        ..branch_area
-                    },
-                    ui.state(BRANCH),
-                );
-                legacy_field_help(
-                    ui,
-                    branch_area,
-                    ui.state(BRANCH),
-                    "Leave empty to work on a detached checkout",
-                    i16::from(body.width < 70),
-                );
-                Self::draw_reference_fields(ui, inner, &left_rows, &right_rows, body);
-            });
-            if let Some(reference_area) = regions.get(2).copied() {
-                state_reference_panel().draw(ui, reference_area, |ui, inner| {
-                    Self::draw_state_reference(ui, inner);
+                        ui.state(BRANCH),
+                    );
+                    legacy_field_help(
+                        ui,
+                        branch_area,
+                        ui.state(BRANCH),
+                        "Leave empty to work on a detached checkout",
+                        i16::from(body.width < 70),
+                    );
+                    Self::draw_reference_fields(ui, inner, &left_rows, &right_rows, body);
                 });
-            }
-        });
+                if let Some(reference_area) = regions.get(2).copied() {
+                    state_reference_panel().draw(ui, reference_area, |ui, inner| {
+                        Self::draw_state_reference(ui, inner);
+                    });
+                }
+            });
     }
 
     fn hints(&self, ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {

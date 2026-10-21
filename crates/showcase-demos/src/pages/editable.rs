@@ -8,7 +8,8 @@ use termrock::{
 
 use showcase_data::{TASKS, TaskRow, TaskStatus};
 
-use super::{Page, PageUpdate, frame};
+use super::{Page, PageUpdate};
+use termrock::feedback::PageFrame;
 
 const TABLE: Id = termrock::Id::root("showcase_ui::pages::editable::editable.table");
 const TASKS_PANEL: Id = termrock::Id::root("showcase_ui::pages::editable::editable.tasks.panel");
@@ -505,82 +506,84 @@ impl Page for EditablePage {
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
         let blurb = "Navigation is reversed cell; editing is a cursor. They never look alike.";
-        frame(ui, area, self.title(), blurb, |ui, body| {
-            let card_height = (self.model.rows.len() as u16)
-                .saturating_add(4)
-                .min(body.height.saturating_sub(4));
-            let task_meta = tasks_status(self.state.edit_error(), self.edits);
-            tasks_panel(&task_meta).draw(
-                ui,
-                Rect {
-                    height: card_height,
-                    ..body
-                },
-                |ui, inner| {
-                    table().draw(ui, inner, &self.state, &self.model);
-                    if !self.state.is_editing() && self.edits == 0 {
-                        legacy_table(ui, inner, body.width, &self.model);
-                    }
-                },
-            );
-            paint_card_meta(
-                ui,
-                Rect {
-                    height: card_height,
-                    ..body
-                },
-                &task_meta,
-            );
-            let legend_y = body.y.saturating_add(card_height).saturating_add(1);
-            let legend = [
-                ("reversed", "cell cursor (navigation)"),
-                ("▁", "editing cursor + accent underline"),
-                ("!", "validation error"),
-            ];
-            for (offset, (glyph, text)) in legend.iter().enumerate() {
-                let Ok(offset) = u16::try_from(offset) else {
-                    break;
-                };
-                let y = legend_y.saturating_add(offset);
-                if y >= body.bottom() {
-                    break;
-                }
-                let row = Rect {
-                    y,
-                    height: 1,
-                    ..body
-                };
-                let glyph_width = if *glyph == "reversed" { 10 } else { 1 };
-                let _ = ui.paint_str(
+        PageFrame::new(self.title())
+            .meta(blurb)
+            .draw_with(ui, area, |ui, body| {
+                let card_height = (self.model.rows.len() as u16)
+                    .saturating_add(4)
+                    .min(body.height.saturating_sub(4));
+                let task_meta = tasks_status(self.state.edit_error(), self.edits);
+                tasks_panel(&task_meta).draw(
+                    ui,
                     Rect {
-                        width: glyph_width,
-                        ..row
-                    },
-                    glyph,
-                    ui.surface_style(),
-                );
-                let _ = ui.paint_str(
-                    Rect {
-                        x: row.x.saturating_add(10),
-                        width: row.width.saturating_sub(10),
-                        ..row
-                    },
-                    text,
-                    ui.surface_style(),
-                );
-            }
-            if self.state.is_editing() {
-                let _ = ui.paint_str(
-                    Rect {
-                        y: body.bottom().saturating_sub(1),
-                        height: 1,
+                        height: card_height,
                         ..body
                     },
-                    "EDIT",
-                    ui.surface_style(),
+                    |ui, inner| {
+                        table().draw(ui, inner, &self.state, &self.model);
+                        if !self.state.is_editing() && self.edits == 0 {
+                            legacy_table(ui, inner, body.width, &self.model);
+                        }
+                    },
                 );
-            }
-        });
+                paint_card_meta(
+                    ui,
+                    Rect {
+                        height: card_height,
+                        ..body
+                    },
+                    &task_meta,
+                );
+                let legend_y = body.y.saturating_add(card_height).saturating_add(1);
+                let legend = [
+                    ("reversed", "cell cursor (navigation)"),
+                    ("▁", "editing cursor + accent underline"),
+                    ("!", "validation error"),
+                ];
+                for (offset, (glyph, text)) in legend.iter().enumerate() {
+                    let Ok(offset) = u16::try_from(offset) else {
+                        break;
+                    };
+                    let y = legend_y.saturating_add(offset);
+                    if y >= body.bottom() {
+                        break;
+                    }
+                    let row = Rect {
+                        y,
+                        height: 1,
+                        ..body
+                    };
+                    let glyph_width = if *glyph == "reversed" { 10 } else { 1 };
+                    let _ = ui.paint_str(
+                        Rect {
+                            width: glyph_width,
+                            ..row
+                        },
+                        glyph,
+                        ui.surface_style(),
+                    );
+                    let _ = ui.paint_str(
+                        Rect {
+                            x: row.x.saturating_add(10),
+                            width: row.width.saturating_sub(10),
+                            ..row
+                        },
+                        text,
+                        ui.surface_style(),
+                    );
+                }
+                if self.state.is_editing() {
+                    let _ = ui.paint_str(
+                        Rect {
+                            y: body.bottom().saturating_sub(1),
+                            height: 1,
+                            ..body
+                        },
+                        "EDIT",
+                        ui.surface_style(),
+                    );
+                }
+            });
     }
 
     fn hints(&self, _ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {

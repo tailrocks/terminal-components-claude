@@ -6,7 +6,8 @@ use termrock::{
 
 use showcase_data::{TASKS, TaskStatus};
 
-use super::{Page, PageStatus, PageUpdate, frame};
+use super::{Page, PageStatus, PageUpdate, chrome_ink};
+use termrock::feedback::{CardChrome, PageFrame, SectionStrip};
 
 const SECTIONS: [&str; 3] = ["Playground", "Options", "States"];
 const SECTION_CAPTION: &str = "the live widget";
@@ -30,13 +31,10 @@ const TASK_TONE_STYLES: [(Role, StylePatch); 1] = [(
 const CANVAS: u32 = 0x000000;
 const SURFACE: u32 = 0x111111;
 const WHITE: u32 = 0xffffff;
-const SECONDARY: u32 = 0xb3b3b3;
 const MUTED: u32 = 0x8a8a8a;
 const FAINT: u32 = 0x737373;
-const RULE: u32 = 0x3a3a3a;
 const ACCENT: u32 = 0x48e054;
 const ACCENT_BG: u32 = 0x173f1c;
-const TAB_ACTIVE: u32 = 0x27272a;
 const THUMB: u32 = 0x808080;
 const TRACK: u32 = 0x474747;
 
@@ -328,10 +326,6 @@ fn paint_at(ui: &mut Ui<'_>, x: u16, y: u16, columns: u16, text: &str, style: Pa
     ui.paint_str(Rect::new(x, y, columns, 1), text, style);
 }
 
-fn tab_width(label: &str) -> u16 {
-    width(label).saturating_add(3)
-}
-
 fn paint_blurb(ui: &mut Ui<'_>, body: Rect) {
     let title_w = width("Tables");
     if body.width <= title_w.saturating_add(4) {
@@ -358,99 +352,6 @@ fn paint_blurb(ui: &mut Ui<'_>, body: Rect) {
         "…",
         style,
     );
-}
-
-fn paint_section_strip(ui: &mut Ui<'_>, area: Rect) {
-    if area.is_empty() {
-        return;
-    }
-    let mut x = area.x;
-    let mut tab_end = area.x;
-    for (index, label) in SECTIONS.iter().enumerate() {
-        let w = tab_width(label);
-        if x.saturating_add(w) > area.right() {
-            break;
-        }
-        let style = if index == 0 {
-            ink(WHITE, TAB_ACTIVE).add_modifier(Modifier::BOLD)
-        } else {
-            ink(SECONDARY, CANVAS)
-        };
-        ui.fill(Rect::new(x, area.y, w, 1), style);
-        ui.paint_str(
-            Rect::new(x.saturating_add(1), area.y, w.saturating_sub(1), 1),
-            label,
-            style,
-        );
-        tab_end = x.saturating_add(w);
-        x = tab_end.saturating_add(1);
-    }
-    if area.width >= SECTION_WIDE {
-        let caption_width = width(SECTION_CAPTION);
-        let caption_x = area.right().saturating_sub(caption_width.saturating_add(1));
-        if caption_x > tab_end.saturating_add(2) {
-            ui.paint_str(
-                Rect::new(caption_x, area.y, caption_width, 1),
-                SECTION_CAPTION,
-                ink(FAINT, CANVAS),
-            );
-        }
-    }
-    if area.height < 2 {
-        return;
-    }
-    let rule_y = area.y.saturating_add(1);
-    ui.paint_str(
-        Rect {
-            y: rule_y,
-            height: 1,
-            ..area
-        },
-        &"─".repeat(usize::from(area.width)),
-        ink(RULE, CANVAS),
-    );
-    let active = tab_width(SECTIONS[0]).min(area.width);
-    ui.paint_str(
-        Rect::new(area.x, rule_y, active, 1),
-        &"━".repeat(usize::from(active)),
-        ink(ACCENT, CANVAS),
-    );
-}
-
-fn paint_card_chrome(ui: &mut Ui<'_>, card: Rect, title: &str, meta: &str) {
-    ui.fill(card, ink(WHITE, SURFACE));
-    if card.height == 0 || card.width < 4 {
-        return;
-    }
-    let text_x = card.x.saturating_add(2);
-    let text_w = card.width.saturating_sub(4);
-    ui.paint_str(
-        Rect::new(text_x, card.y, text_w, 1),
-        title,
-        ink(SECONDARY, SURFACE),
-    );
-    if !meta.is_empty() {
-        let meta_w = width(meta);
-        if meta_w < text_w {
-            ui.paint_str(
-                Rect::new(
-                    text_x.saturating_add(text_w.saturating_sub(meta_w)),
-                    card.y,
-                    meta_w,
-                    1,
-                ),
-                meta,
-                ink(FAINT, SURFACE),
-            );
-        }
-    }
-    if card.height > 1 && text_w > 0 {
-        ui.paint_str(
-            Rect::new(text_x, card.y.saturating_add(1), text_w, 1),
-            &"─".repeat(usize::from(text_w)),
-            ink(RULE, SURFACE),
-        );
-    }
 }
 
 fn card_inner(card: Rect) -> Rect {
@@ -726,7 +627,10 @@ fn draw_tasks(ui: &mut Ui<'_>, card: Rect, state: &TableState, model: &TaskTable
     let inner = card_inner(card);
     let table = task_table();
     let meta = table.position_label(state, model.row_count());
-    paint_card_chrome(ui, card, "Tasks", &meta);
+    CardChrome::new("Tasks")
+        .meta(&meta)
+        .ink(chrome_ink())
+        .draw(ui, card);
     table.draw(ui, inner, state, model);
 }
 
@@ -743,7 +647,10 @@ fn selection_meta() -> String {
 }
 
 fn paint_reviewers(ui: &mut Ui<'_>, card: Rect) {
-    paint_card_chrome(ui, card, "Reviewers", &selection_meta());
+    CardChrome::new("Reviewers")
+        .meta(&selection_meta())
+        .ink(chrome_ink())
+        .draw(ui, card);
     let inner = card_inner(card);
     let Some(geom) = table_geom(inner, &REVIEWER_SPECS, REVIEWERS.len(), 4) else {
         return;
@@ -818,7 +725,10 @@ fn paint_reviewers(ui: &mut Ui<'_>, card: Rect) {
 }
 
 fn paint_checks(ui: &mut Ui<'_>, card: Rect) {
-    paint_card_chrome(ui, card, "Checks", "");
+    CardChrome::new("Checks")
+        .meta("")
+        .ink(chrome_ink())
+        .draw(ui, card);
     let inner = card_inner(card);
     if inner.height == 0 || inner.width == 0 {
         return;
@@ -976,30 +886,36 @@ impl Page for TablesPage {
 
 impl TablesPage {
     fn draw_clipped(&self, ui: &mut Ui<'_>, area: Rect) {
-        frame(ui, area, self.title(), "", |ui, body| {
-            paint_blurb(ui, body);
-            paint_section_strip(
-                ui,
-                Rect {
-                    height: 2.min(body.height),
-                    ..body
-                },
-            );
-            let top = body.y.saturating_add(3);
-            if top >= body.bottom() {
-                return;
-            }
-            paint_playground(
-                ui,
-                Rect {
-                    y: top,
-                    height: body.bottom().saturating_sub(top),
-                    ..body
-                },
-                &self.task_state,
-                &self.task_model,
-            );
-        });
+        PageFrame::new(self.title())
+            .meta("")
+            .draw_with(ui, area, |ui, body| {
+                paint_blurb(ui, body);
+                SectionStrip::new(&SECTIONS)
+                    .caption(SECTION_CAPTION)
+                    .caption_min_width(SECTION_WIDE)
+                    .ink(chrome_ink())
+                    .draw(
+                        ui,
+                        Rect {
+                            height: 2.min(body.height),
+                            ..body
+                        },
+                    );
+                let top = body.y.saturating_add(3);
+                if top >= body.bottom() {
+                    return;
+                }
+                paint_playground(
+                    ui,
+                    Rect {
+                        y: top,
+                        height: body.bottom().saturating_sub(top),
+                        ..body
+                    },
+                    &self.task_state,
+                    &self.task_model,
+                );
+            });
     }
 }
 
