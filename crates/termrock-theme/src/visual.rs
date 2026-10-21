@@ -91,6 +91,25 @@ impl FocusBarPolicy {
     }
 }
 
+/// How a gutter cell that is not showing the focus bar paints the plane
+/// behind it.
+///
+/// The frozen widget path inherits the container cell (nothing stamped), so
+/// blank cells stay byte-identical to the container surface; the reference
+/// helper stamped an explicit blank fill in the host background instead.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
+pub enum GutterCell {
+    /// Stamp nothing: the cell reads as whatever the container painted.
+    #[default]
+    Inherit,
+    /// Stamp an explicit blank fill in the host background colour.
+    Fill,
+}
+
+impl GutterCell {
+    pub const ALL: [GutterCell; 2] = [GutterCell::Inherit, GutterCell::Fill];
+}
+
 impl Theme {
     /// The glyph painted in an item's gutter column for the given state.
     ///
@@ -110,6 +129,53 @@ impl Theme {
             self.design.glyphs.get(GlyphRole::FocusBar)
         } else {
             " "
+        }
+    }
+
+    /// Style for the gutter cell: the focus bar in legible focus ink, or a
+    /// blank cell in the host background.
+    #[must_use]
+    pub fn gutter(&self, flags: StateFlags, bg: Color, on_accent: bool) -> Style {
+        self.gutter_in(
+            FocusBarPolicy::RowBlanked,
+            flags,
+            GutterCell::Fill,
+            bg,
+            on_accent,
+        )
+    }
+
+    /// Style for the gutter cell under an explicit [`FocusBarPolicy`] and
+    /// [`GutterCell`].
+    ///
+    /// [`GutterCell::Inherit`] stamps only what the bar needs (the bar's fg
+    /// ink, never a background), so the cell stays byte-identical to the
+    /// container surface whenever no bar paints — the frozen widget path.
+    /// [`GutterCell::Fill`] reproduces the reference behaviour of an explicit
+    /// blank in `bg`.
+    #[must_use]
+    pub fn gutter_in(
+        &self,
+        policy: FocusBarPolicy,
+        flags: StateFlags,
+        cell: GutterCell,
+        bg: Color,
+        on_accent: bool,
+    ) -> Style {
+        if !policy.shows_bar(flags, self.capability.color) {
+            return match cell {
+                GutterCell::Inherit => Style::new(),
+                GutterCell::Fill => Style::new().fg(bg).bg(bg),
+            };
+        }
+        let fg = if on_accent {
+            self.color.on_accent
+        } else {
+            self.legible_mark(self.color.focus, bg)
+        };
+        match cell {
+            GutterCell::Inherit => Style::new().fg(fg),
+            GutterCell::Fill => Style::new().fg(fg).bg(bg),
         }
     }
 
@@ -146,20 +212,6 @@ impl Theme {
             InactiveSelection::Accent if under_modal => InactiveSelection::Neutral,
             look => look,
         }
-    }
-
-    /// Style for the gutter cell: the focus bar in legible focus ink, or a
-    /// blank cell in the host background.
-    #[must_use]
-    pub fn gutter(&self, flags: StateFlags, bg: Color, on_accent: bool) -> Style {
-        let fg = if !flags.contains(StateFlags::FOCUSED) || flags.contains(StateFlags::DISABLED) {
-            bg
-        } else if on_accent {
-            self.color.on_accent
-        } else {
-            self.legible_mark(self.color.focus, bg)
-        };
-        Style::new().fg(fg).bg(bg)
     }
 
     /// Keep a small mark (focus bar, checkbox tick, bullet) legible on `bg`.
@@ -232,3 +284,6 @@ pub const COLOR_LEVELS: [ColorLevel; 4] = [
 
 /// Every focus-bar policy, for exhaustive per-policy tests.
 pub const FOCUS_BAR_POLICIES: [FocusBarPolicy; 3] = FocusBarPolicy::ALL;
+
+/// Every gutter-cell fill mode, for exhaustive tests.
+pub const GUTTER_CELLS: [GutterCell; 2] = GutterCell::ALL;
