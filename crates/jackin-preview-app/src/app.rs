@@ -11,12 +11,12 @@ use termrock::{
     Action, ActionKey, ActivationKey, App as TuiApp, AsItem, Brand, Button, Chord, ContextMenu, Cx,
     Dialog, DialogAction, DialogState, FrameRead, HelpAction, HelpOverlay, HelpOverlayState,
     HelpSection, Hint, HintBar, HintLayer, Id, Intent, Item, ItemKey, KeyCode, KeyMap,
-    KeyModifiers, KeyPhase, List, ListAction, ListState, Menu, MenuAction, MenuBar, MenuItem,
-    MenuState, Modifier, Moment, Panel, Part, PartRef, Phase, Picker, PickerAction, PickerState,
-    Position, ProjectedText, PropsList, PropsRow, PropsState, Reconcile, Rect, Response,
-    SecretPolicy, StatusBar, StatusItem, Tabs, TabsAction, TabsState, TextAction, TextInput,
-    TextInputState, TextViewport, TooSmall, Ui, UpdateCause, Variant, ViewportAction, ViewportLine,
-    ViewportState,
+    KeyModifiers, KeyPhase, List, ListAction, ListState, Menu, MenuAction, MenuBar,
+    MenuBarHoverScope, MenuItem, MenuState, Modifier, Moment, Panel, Part, PartRef, Phase, Picker,
+    PickerAction, PickerState, Position, ProjectedText, PropsList, PropsRow, PropsState, Reconcile,
+    Rect, Response, SecretPolicy, StatusBar, StatusItem, Tabs, TabsAction, TabsState, TextAction,
+    TextInput, TextInputState, TextViewport, TooSmall, Ui, UpdateCause, Variant, ViewportAction,
+    ViewportLine, ViewportState,
 };
 
 use crate::domain::account::{
@@ -1453,7 +1453,7 @@ impl App {
     }
 
     fn capsule_menu_bar() -> MenuBar<'static> {
-        MenuBar::new(CAPSULE_MENU_BAR, CAPSULE_MENUS)
+        MenuBar::new(CAPSULE_MENU_BAR, CAPSULE_MENUS).hover_scope(MenuBarHoverScope::Title)
     }
 
     fn capsule_tab_menu_title(&self) -> String {
@@ -9133,6 +9133,7 @@ impl App {
             ),
         ];
         MenuBar::new(CAPSULE_MENU_BAR, CAPSULE_MENUS)
+            .hover_scope(MenuBarHoverScope::Title)
             .patch_part(&title)
             .draw(ui, menu_area, &self.capsule_menu_state);
         self.paint_capsule_identity(ui, area, menu_x, style);
@@ -11178,9 +11179,9 @@ fn retint_fg(ui: &mut Ui<'_>, from: termrock::Color, to: termrock::Color) {
 fn capsule_span_role(tone: crate::sim::pty::Tone) -> termrock::Role {
     use crate::sim::pty::Tone;
     match tone {
-        // Baseline success is not the port token.
+        // Baseline success and error are not the port tokens.
         Tone::Success => termrock::Role::Custom(termrock::Color::Rgb(0x3f, 0xb9, 0x50)),
-        Tone::Error => termrock::Role::Danger,
+        Tone::Error => termrock::Role::Custom(termrock::Color::Rgb(0xf0, 0x5d, 0x5d)),
         other => other.role(),
     }
 }
