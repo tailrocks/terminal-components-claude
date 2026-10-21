@@ -1,4 +1,31 @@
-## Current parent integration gate (2026-10-21)
+# Current migration decision — 2026-10-21
+
+This is the sole current summary. All later sections are preserved historical evidence; their intermediate tips, counts, local status and author-reported green results do not establish current acceptance.
+
+| Application | Exact product gate | Reusable library gate |
+| --- | --- | --- |
+| Showcase | Incomplete; full paired inventory and repeated comparison missing | Incomplete; Button/theme adoption, capability coverage and remaining application mechanics need proof |
+| TablePro | Incomplete; four independently identified form/footer/reference-data issues remain | Incomplete; cleared Picker/keymap changes need integration; form, tabs and composition contracts remain |
+| Jackin (`jackin-preview`) | Incomplete; full paired inventory, modal/property flows and intermediate states remain | Incomplete; shared Dialog/Props/Button adoption and remaining presentation paths require review |
+| Holla | Incomplete; unchanged real application probes fail and native fixture refresh lacks frozen authority | Incomplete; private list/presentation selectors and application mechanics remain |
+
+Delivery remains PR #38, `parity/termrock-visual-baseline`. Main, PR #26/design and the frozen tag are read-only. Baseline source `4169783ae883788186d161af09ba9c481bd84e5c`, tag object `2718a6b8127a522a3d351d0b4bdb7542fc8da542`, fixed design source `f4867e9b5f8a08a3bb61ce80d644198a29f51984` and Tuiscotti `a1ea27f757d75d07b05499276cd932e9f8e067ad` remain unchanged.
+
+The coordinator's last verified PR #38 push is `34f73e3066da7a77eac2d4719a697dc085906dda`: Mono Button marker repair, 284 of 285 scoped tests passing, one retained 73-slot failure and zero skips. The separately published runtime correction `36b9a06509c991600956679e43295de27a2fd1ca` subsequently gained independent bounded clearance: 505 frames/49,728 cells match last-good output and warm redraw allocations remain zero. Neither result is four-application parity.
+
+Ready source contracts awaiting coordinator integration include Button focusability `05875f028f27b45805805b0529cd8b66b2dd1051`, Props `8ff521660eb9297791264f7858fa3eeb493be4b2`, Theme profiles `847ccc74208e5ed3277bc4f3dd8fa6958e682713` and Picker/keymap `d40f8e5fb7e47dca8c971c718559f840e9ba693d`. Each has independent bounded clearance, not application acceptance. Preserve incoming exports, Dismiss defaults and current Theme additions during integration. The Picker WIP tip is remotely verified; other local source commits remain queued when the shared push lock prevents publication.
+
+Velnor 0.1.31 and the empty-Shell-doctest fix were independently verified and generated 450 tasks, but the latest-release guard stopped publication after discovering 0.1.32. Upgrade `bd517d7cda5a4178b84542d07fa7db7c61d48701` now awaits independent review, synchronized official regeneration and publication. No direct main/design push is authorized. Latest-release checks must run again before delivery.
+
+Frozen run `58b38fb0b1a1007f14230337f8f1a225` retains nine authenticated capture steps and 288 checkpoints. No replay, ordinary CLI check or candidate comparison has run. The 707-file failed partial attempt is preserved. Capture nine is held because wrapper prechecks cannot atomically bind the official next-step choice. The agreed canonical runner guard requires a new sealed plan/run after review and publication; preserve this old run unchanged and transfer no checkpoint credit automatically. This changes neither frozen reference revision nor expected frames.
+
+Required unresolved checks include the 73-slot reference decision, incoming Feedback Clippy diagnostic, ignored Esc scanner/reference defects, Shell measurement/API/routing/testing-feature findings, executable capability coverage, all-branch consolidation, full independent library consumer validation, full workspace Nextest/Clippy/formatting, hosted required CI and two complete paired application comparisons. Fresh source synchronization is not approval of incoming private painters or candidate-derived fixture refreshes.
+
+Detailed clearances and blocked reviews are preserved under `docs/audits/evidence/2026-10-21-current-blockers/`; later exact integration records must explicitly supersede this summary.
+
+---
+
+## Historical checkpoint:  parent integration gate (2026-10-21)
 
 Fields `332f40d`, Form window Stage1 `ae32d3f` and modal repair `02742e4` are integrated locally after independent clearances. The parent's scoped Fields/Forms/Runtime all-targets nextest, strict Clippy and package formatting now pass; the exact summary and remaining ignored tests are recorded in [parent evidence](../audits/2026-10-21-modal-fields-form-parent-integration.json). Modal's three review defects are resolved with 36,864 frozen-derived style cases and 10,092 legacy pair cases. This supersedes the earlier mapping rejections only for that bounded source contract. [Modal clearance](../audits/2026-10-21-modal-02742-independent-clearance.json).
 
@@ -8,7 +35,7 @@ Incoming `93b3065` made six expected-value overrides without repairing the palet
 
 All four applications, the complete architecture gate, public API coverage and complete paired CLI checks remain incomplete. Source synchronization with other writers does not approve their incoming replay/painter paths or weakened checks.
 
-## Current source and review update (2026-10-21)
+## Historical checkpoint:  source and review update (2026-10-21)
 
 Shared PR #38 advanced through `efda9593a905e3d462a62852748cf43254276dca`. Its history explicitly reverts the Jackin replay deletion (`c99dcef10`) and adds another private 120×40 painter (`8c7624537`). This reverses the earlier source-removal progress; neither retained replay nor a renamed application painter satisfies the library gate. New MasterDetail, runtime binding/hint and TablePro picker/footer changes require independent exact-commit review. Synchronizing that shared history preserves collaboration; it does not approve it.
 
@@ -20,7 +47,7 @@ Recolor primitives `dfb54cf` are independently cleared: unchanged public probes 
 
 The persistent ItemRow historical fixture failure has a source-backed hypothesis: it reconstructs old foreground values but omits old disabled ink 238 after production was correctly changed to frozen index 239. A test-only worker must prove complete-cell equality before repairing that historical reconstruction. Production index 239 and the existing expected checksum must remain unchanged. [Diagnosis](../audits/2026-10-21-itemrow-historical-fixture-diagnosis.json).
 
-## Current review checkpoint (2026-10-21)
+## Historical checkpoint:  review checkpoint (2026-10-21)
 
 All four applications and the complete architecture gate remain incomplete. Parent source integration is preserved on `wip/parent-fields-runtime-blocker-20261021`; it has not passed publication to PR #38 after incoming modal changes. Main, design/PR #26, the frozen tag and fixed source revisions remain unchanged.
 
@@ -31,14 +58,14 @@ All four applications and the complete architecture gate remain incomplete. Pare
 - NavList `0333cde` and recolor provenance `dfb54cf` are protected WIPs undergoing independent review. Neither has application acceptance. The NavList author's discovered default-Bar regression was repaired and pinned against `fa589153`; broader independent equality remains required.
 - Incoming Jackin `49da9ae` removes replay files and uses shared Dialog, but remains under independent review for private frame-40 painting and functional property/modal behavior. The earlier `adf334b` review is historical evidence, not approval of its successor. [Historical review](../audits/2026-10-21-jackin-adf334-independent-review.json), [shared Steps replacement plan](../audits/2026-10-21-jackin-steps-live-adoption-plan.json).
 
-## Current blocker update: runtime and capture integrity (2026-10-21)
+## Historical checkpoint:  blocker update: runtime and capture integrity (2026-10-21)
 
 Fields integration passed 504 scoped tests before incoming shared changes. Publication is now blocked by incoming `adf334b` introducing a deterministic modal snapshot allocation under inherited `NO_COLOR` (503/504 passed). The unchanged isolated test also fails; removing the variable passes only as diagnosis. No environment workaround is accepted. [Evidence](../audits/2026-10-21-fields-publication-incoming-runtime-blocker.json).
 
 Frozen captures have six verified contiguous chunks, ordinals 0–5, totaling 192 cases/checkpoints/process receipts. Hash verification passed and final directories exactly match receipts. Capture is paused because independent review found that a post-rename verification/journal failure can leave an unreceipted directory with no failure marker, blocking retry. The missing injected-failure test is a coverage defect. A separate shared runner repair is underway; no replay, candidate comparison or product approval is authorized by these receipts. [Progress](../audits/2026-10-21-fresh-capture-paused-progress.json), [finding](../audits/2026-10-21-fresh-advance-failure-review.json).
 
 
-## Current integration checkpoint: Fields window repair (2026-10-21)
+## Historical checkpoint:  integration checkpoint: Fields window repair (2026-10-21)
 
 Adopted source `332f40d07e38512f91cfb038eb9174c413755686` after independent review and parent verification: 504 scoped native tests passed, three existing tests skipped; strict scoped Clippy and formatting passed. This supersedes the earlier rejected horizontal-origin, captured-drag, and placeholder projections only within the reviewed contract. Forms adapter, caret-follow, edit-menu, clipped thumb policy, and all application parity remain incomplete. Evidence: [parent integration](../audits/2026-10-21-textarea-332f-parent-integration.json), [independent clearance](../audits/2026-10-21-textarea-332f-clearance.json).
 
@@ -46,7 +73,7 @@ The 1,301 missing tracked conformance artifacts were restored from exact Git HEA
 
 # Termrock migration and acceptance matrix
 
-## Current acceptance status — 2026-10-21
+## Historical checkpoint:  acceptance status — 2026-10-21
 
 This section is the current decision summary. Detailed chronological checkpoints below remain evidence; their intermediate candidate statuses and branch tips are superseded by later exact-commit records. Parent delivery was remotely verified at `f2d66896f3341b115a217a1bdad6379badebccbb`; the subsequently observed shared PR #38 tip is `42fb861c07228db39f40228b5ecaa2e3521d6239`. Reviewed Grid and runtime-fixture integration was subsequently pushed and remote-verified at `71124871981c1138002b05bb9e7c2083cdd03836`, with the recorded semantic palette failure retained. The frozen source, tag object, Tuiscotti revision and read-only design reference are unchanged.
 
@@ -394,7 +421,7 @@ No application has full product or library acceptance. This matrix becomes curre
 - Whole-repository formatting at source `0b8f4e32` is red in the pre-existing Chrome fixed-cell constants. The new test module passes its own formatting check; root nextest and clippy passed. No formatting or architecture failure is relabeled successful.
 - CI planning was independently observed failing before Rust jobs ran because standalone helper discovery failed. Skipped Rust jobs are blocked evidence, not passing validation. The reviewed discovery correction and generated symlink correction were pushed to PR commit `2de0d01255390d2a02b7775ee452268782802a38`, with remote SHA verified. Remote run `39415797723` passed Actionlint but failed Check generated files in Plan; downstream Rust jobs were skipped and provide no passing validation. DCO remained action-required. The local preview success does not supersede this remote failure; diagnosis is active.
 
-## Current integration obligations
+## Historical checkpoint:  integration obligations
 
 - **Grid embedded editor error styling (2026-10-21):** frozen source `visual-baseline:src/widgets/grid.rs:2872–2875` assigns the active inline editor the theme accent underline, then substitutes the theme error role when validation fails. The shared `TextInput` previously forced a fixed Accent underline, so failed commits stayed green. `TextInput::text_style_target` now transfers only the host's resolved text underline decoration; Grid's `GRID/TEXT` theme recipe owns Accent/Danger state, while `INPUT/FIELD` continues to own text ink and surface. This preserves profile downgrades and allows normal `GRID/TEXT` theme overrides. Real Grid-buffer tests exercise successful edit, rejected commit, correction, all four color profiles, and a custom Warning override. External review of the preceding WIP commit found the error-state mismatch; this follow-up addresses it. Focused checks: Grid 137/137, Fields 74/74, Theme 130/130; scoped Clippy and direct rustfmt checks pass. Exact TablePro base `6375fcee053d7859279ce436efde98c258ae649f` ran 181 tests (161 pass, 20 fail, zero skipped); merged candidate `5a7ac2d94` ran 182 (162 pass, 20 fail, zero skipped). All 20 failure identifiers match exactly; the candidate adds one passing inline-editor regression. Logs: `/private/tmp/grid-error-base-6375.log` and `/private/tmp/grid-error-candidate-5a7ac2.log`. This comparison establishes no newly introduced TablePro test failure, not product parity. Independent review of the follow-up commit remains pending.
 - Independent review then found `GRID/TEXT` underline `Slot::Clear` did not override a pre-existing `INPUT/TEXT` underline. The shared resolver now preserves the final bound underline role or Clear provenance in private `PaintStyle` metadata; `TextInput` resolves the host decoration once and applies Set/Clear while leaving Inherit alone. This preserves `ResolvedStyle.explicit` semantics and public struct construction compatibility. Real Grid-buffer regressions cover input Warning plus host Clear and no-input-default Clear over prepainted cells; theme resolver tests cover Set/Inherit/Clear, local precedence, raw replacement, patch precedence, and all four color profiles. The synthetic-color probe implementation was rejected by independent review and removed. A subsequent external probe showed explicit caller Clear also needed to emit Reset over prepaint; the fields regression now checks local Set/Clear/Inherit precedence and that ordinary inputs retain their own theme. All five external probes pass; focused Fields/Grid/Theme gates pass 345/345 with scoped Clippy, rustfmt and diff checks. No PR integration or parity claim.
@@ -439,7 +466,7 @@ The independently corrected [replay-origin audit](../audits/2026-10-20-replay-or
 
 Workflow delivery checkpoint: parity remote `99b719d85a0714c88484240dbc9184f110b518d4` and design remote `9b1c77b89e46b89f56632c841f1ade40371f03dc` were verified after normal fetch/rebase, complete-input generated-file comparison, plan, and actionlint checks. Main delivery remains CI-only PR #39 at `d1ecbfdfbe117ffad061f6db896c0a3c98b3c11d`; DCO remains blocked and required checks on that head are not established. These workflow checks do not attest Rust or product parity. The parity checkout still fails full formatting on the pre-existing Showcase Chrome cell table; no formatting or baseline artifacts were changed to hide it.
 
-## Current CI timeout checkpoint (supersedes the workflow delivery status above)
+## Historical checkpoint:  CI timeout checkpoint (supersedes the workflow delivery status above)
 
 Parity source `a5766d24783c2b268e727497fe6861b6479c71cc` uses Velnor Actions 0.1.29 (`e7b2f088715379c22be473fab896a43d50cc16fc`). Its latest observed run `39429669130` had Actionlint pass, Plan canceled after 5m09s, and all Rust jobs skipped. The run's `cancelled` conclusion does not prove GitHub's job timeout caused cancellation; downstream missing artifact/Required failures are not source failures. A distinct earlier Plan failure at `a848219fd858ed6352fcb403b2cc5d5953083e6f` was the 0.1.16 generated-file mismatch recorded in [the timeout audit](../audits/2026-10-20-velnor-timeout-parity.md).
 
@@ -636,7 +663,7 @@ Integrated independently reviewed source `cf346dd4ba85b165cefcbec3bbeeccab21fb2a
 This integration is diagnostic only. Capture eligibility is rejected, no paired-runner path uses the registry yet, no production code or reference frames changed, and the old tuple-specific exception remains unchanged. The next increments require separately reviewed executable-cohort adoption and resumable plan/advance/finalize commands. Current live-compare starts a timestamped run and loops every chunk inside one command; running the complete inventory that way violates the bounded-command rule. A resumed run must bind immutable complete inventory, phase/chunk order, candidate/source/environment/cohort identities, securely verified process/checkpoint/close receipts and expected-frame hashes. Finalization must reject incomplete, failed, duplicate, missing or zero-checkpoint coverage and require all twenty ordinary checks. No application acceptance follows from this schema gate.
 
 
-## Current package gate, form reference conflicts and upstream CI dependency (2026-10-21)
+## Historical checkpoint:  package gate, form reference conflicts and upstream CI dependency (2026-10-21)
 
 Parent validation at `ecb271501618508aa6fadc9c9b75c178fcaaa41e` runs 181 all-target TablePro tests: 161 passed, 20 failed, zero skipped. [Exact results and raw-log hash](../audits/2026-10-21-tablepro-ecb271-base-results.json) supersede the earlier 21-failure count for this source. The external Advanced-form replacement clears the fresh-name test; no additional failure names appear. This remains a red package gate. Later external `6375fcee053d7859279ce436efde98c258ae649f` replaces a hidden-explorer replay; its source ownership and behavior still need independent review.
 
@@ -684,7 +711,7 @@ The [Form lanes review](../audits/2026-10-21-form-lanes-451789-review.json) reje
 Inventory count correction: the pinned inventory contains 28,895 original visual scenarios plus 174 disjoint extensions, totaling 29,069 visual scenarios and twenty ordinary checks (29,089 tests). Earlier shorthand treating 28,895 as the extension-inclusive total is superseded; no case was added, removed or reclassified. Independent cohort review now permits fresh baseline capture and baseline replay only; registry mapping and resumable lifecycle implementation require separate verification. Candidate comparison, checkpoint approval, the historical tuple exception and product acceptance remain blocked.
 
 
-## Current parent package gate remains red (2026-10-21)
+## Historical checkpoint:  parent package gate remains red (2026-10-21)
 
 Parent exact `124a61a035eeff34767edc8d9aa7e61f3007ebf8` runs 180 all-target TablePro tests: 159 pass, 21 fail, zero skipped. [Hashed log and name-set comparison](../audits/2026-10-21-tablepro-124a61-base-results.json) show one additional failure, `unfocused_grid_cursor_does_not_style_the_cursor_row`, assigned to the shared Grid owner. The hidden-explorer check was renamed; the old maximized replay-module frame check was deleted with the replay module. Actual maximized real-CLI coverage remains a required explicit verification rather than assuming the smaller native inventory is equivalent. None of the existing failed expectations was changed by this coordinator. All four applications and the complete architecture gate remain incomplete.
 
