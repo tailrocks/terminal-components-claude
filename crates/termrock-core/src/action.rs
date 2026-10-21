@@ -89,6 +89,13 @@ impl<'a> Action<'a> {
         }
     }
 
+    /// Set the presentation variant without changing the action's semantics.
+    #[must_use]
+    pub const fn with_variant(mut self, variant: Variant) -> Self {
+        self.variant = variant;
+        self
+    }
+
     #[must_use]
     pub const fn chord(mut self, c: Chord) -> Self {
         self.chord = Some(c);
@@ -145,5 +152,47 @@ mod tests {
         let a = Action::danger(ActionKey::custom("delete"), "Delete").enabled(false);
         assert!(a.is_danger() && !a.is_enabled());
         assert_eq!(a.variant(), Variant::DANGER);
+    }
+
+    #[test]
+    fn explicit_primary_and_secondary_variants_are_const_composable() {
+        const PRIMARY: Action<'static> =
+            Action::new(ActionKey::SAVE, "Save").with_variant(Variant::PRIMARY);
+        const SECONDARY: Action<'static> =
+            Action::new(ActionKey::CANCEL, "Test").with_variant(Variant::SECONDARY);
+
+        assert_eq!(PRIMARY.variant(), Variant::PRIMARY);
+        assert_eq!(SECONDARY.variant(), Variant::SECONDARY);
+        assert!(!PRIMARY.is_danger());
+        assert!(!SECONDARY.is_danger());
+    }
+
+    #[test]
+    fn variant_override_preserves_danger_semantics() {
+        let danger = Action::danger(ActionKey::DISCARD, "Delete").with_variant(Variant::SECONDARY);
+        assert_eq!(danger.variant(), Variant::SECONDARY);
+        assert!(danger.is_danger());
+
+        let styled_danger = Action::new(ActionKey::SAVE, "Save").with_variant(Variant::DANGER);
+        assert_eq!(styled_danger.variant(), Variant::DANGER);
+        assert!(!styled_danger.is_danger());
+    }
+
+    #[test]
+    fn variant_override_preserves_other_action_fields() {
+        let action = Action::quiet(ActionKey::SAVE, "Save")
+            .chord(Chord::key(crate::event::KeyCode::Enter))
+            .enabled(false)
+            .with_variant(Variant::PRIMARY);
+
+        assert_eq!(action.key(), ActionKey::SAVE);
+        assert_eq!(action.label(), "Save");
+        assert_eq!(action.variant(), Variant::PRIMARY);
+        assert_eq!(
+            action.chord_ref(),
+            Some(Chord::key(crate::event::KeyCode::Enter))
+        );
+        assert!(!action.is_enabled());
+        assert!(!action.is_danger());
     }
 }
