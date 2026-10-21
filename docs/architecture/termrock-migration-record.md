@@ -399,6 +399,75 @@ Effect: the component render gate went from 89 passed / 231 failed to
 mono, spread over 15 component groups, so a second drift is still open and
 the bisect continues.
 
+### D-009 — The oracle is the frozen source and its approved frames
+
+`baselines/tuiscotti-v1/` is NOT the oracle. Its own `corpus-index.json`
+records `acquisition_method: legacy_replayed_conversion` and a corpus
+commit of `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b`, and it disagrees with
+both the frozen source and the approved frames. The oracle is the frozen
+source at `4169783ae` and the frames it produced, which are in the frozen
+source's own snapshot store after `prepare`.
+
+A coordinator decision (`b4b1a3346`) used the converted corpus to "restore"
+a muted and faint ramp of 0x808080 and 0x4d4d4d. The frozen source says
+`text_muted` is `MUTED` (0x8a8a8a) and `text_faint` is `WHITE_43`
+(0x737373), and the approved frames paint those values. `493cc57d6` restores
+the frozen source values and reverts that decision. The component render
+gate returns to 89 passed / 231 failed, and the reference decision request
+in `docs/audits/2026-10-22-component-digest-reference-decision.md` states
+why the gate stays red until an independent decision lands.
+
+### D-010 — The component digests stay red until a reference decision lands
+
+The expected digests in `crates/termrock-conformance/tests/baselines/components.txt`
+encode a palette the frozen source contradicts. Re-deriving them from the
+candidate output is forbidden by the task and by this repository's own
+record, so the gate is left intentionally red and the decision is escalated
+rather than taken.
+
+### Independent review: UI/UX (verdict HELD)
+
+Reviewer: an independent read-only reviewer on
+`wip/review-ui-ux-20261021`, tip `3226b9b40`, report at
+`docs/audits/evidence/2026-10-22-ui-ux-review/report.md`. Verdict **HELD**
+on `ef35a7f6b`, `493f9054f`, `849d26dad`, `150320ab3`, `fc2c3bd4e`.
+
+Blockers it raised, all open:
+
+1. The live showcase terminal page makes the stored
+   `showcase::pages::terminal` frame unreachable: the launch advances one
+   stage per update, the settled frame needs about 36 updates, and the
+   page has no `seek_paused`, so the harness times out after 60.6 s where
+   the base captured the same frame in 6.0 s.
+2. The live jackin accounts page breaks three stored frames that the base
+   matched exactly: `jackin::accounts::detail::120x40::truecolor`,
+   `jackin::accounts::drawer::120x40::truecolor` and
+   `jackin::accounts::filter::120x40::truecolor` (946, 936 and 201
+   differing cells). The same seven scenarios report 3 passed / 4 failed on
+   the base and 0 passed / 7 failed on the reviewed tip.
+3. The live showcase task runner regresses the stored frame at every size:
+   120x40 goes from 23 differing cells to 1125, 160x50 from 23 to 1605,
+   72x20 from 18 to 333. The new page drops the panel rule and paints the
+   "Targets" title bold white where the approved frame has it secondary.
+
+Its two major theme findings are the ones this record now acts on: the
+syntax tokens must stay blue, and the 256 ladder must keep the corpus
+index.
+
+Majors and minors it raised, all open: the new hint bar advertises keys
+that do not perform the advertised action on the jackin accounts route; the
+shared 256 ladder changes four jackin card inks; the chrome rule ink is
+0x262626 against 0x3a3a3a in the approved frame; the accounts hit region
+ignores the list scroll offset; the filtered pane title truncates one
+character later; the tree always appends the "Unsupported" and
+"+ Add account…" rows; the drawer blanks the header the approved frame
+keeps; a committed filter leaves the list without key handling; the inline
+filter replaced the reference dialog's dismissal contract; the showcase
+guard greps three literal strings; the showcase page paints its own
+scrollbar with hard-coded inks and no states.
+
+Measured fidelity table and the command list are in the review report.
+
 ## Coverage gaps
 
 ### False-parity inventory (read-only audit, revision `40bc297e5`)
