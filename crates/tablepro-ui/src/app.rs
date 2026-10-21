@@ -20,6 +20,7 @@ use termrock::{
     wrap,
 };
 
+use crate::footer::{self, Hint};
 use crate::quick_switcher::{self, QuickSwitcher};
 use crate::safe_mode::SafeModePicker;
 use crate::tab_list::{self, TabList};
@@ -446,6 +447,7 @@ enum ExplorerNode {
     Group {
         schema: String,
         name: String,
+        count: usize,
     },
     Object {
         item: ExplorerItem,
@@ -4565,42 +4567,16 @@ fn paint_maximized_query_card(ui: &mut Ui<'_>, area: termrock::Rect, title: &str
     paint_query_empty(ui, inner);
 }
 
-fn paint_maximized_footer(ui: &mut Ui<'_>, area: termrock::Rect) {
-    let base = ui.surface_style();
-    ui.paint_spans(
-        area,
-        &[
-            Span::new(" "),
-            Span::new("←→").bold(),
-            Span::new(" "),
-            Span::new("Switch").role(TAG_CHROME_FG),
-            Span::new("  "),
-            Span::new("Ctrl+T").bold(),
-            Span::new(" "),
-            Span::new("New query").role(TAG_CHROME_FG),
-            Span::new("  "),
-            Span::new("x").bold(),
-            Span::new(" "),
-            Span::new("Close").role(TAG_CHROME_FG),
-            Span::new("  "),
-            Span::new("Ctrl+G").bold(),
-            Span::new(" "),
-            Span::new("Tab list").role(TAG_CHROME_FG),
-            Span::new("  "),
-            Span::new("z").bold(),
-            Span::new(" "),
-            Span::new("Zoom").role(TAG_CHROME_FG),
-            Span::new("  "),
-            Span::new("Shift+F10").bold(),
-            Span::new(" "),
-            Span::new("Menu").role(TAG_CHROME_FG),
-            Span::new("  "),
-            Span::new("Tab").bold(),
-            Span::new(" "),
-            Span::new("Next").role(TAG_CHROME_FG),
-        ],
-        base,
-    );
+fn maximized_footer_hints() -> Vec<Hint> {
+    vec![
+        Hint::new("←→", "Switch"),
+        Hint::new("Ctrl+T", "New query"),
+        Hint::new("x", "Close"),
+        Hint::new("Ctrl+G", "Tab list"),
+        Hint::new("z", "Zoom"),
+        Hint::new("Shift+F10", "Menu"),
+        Hint::new("Tab", "Next"),
+    ]
 }
 
 fn paint_query_empty(ui: &mut Ui<'_>, area: termrock::Rect) {
@@ -4835,6 +4811,7 @@ fn build_explorer_nodes(catalog: &Catalog) -> Vec<ExplorerNode> {
             nodes.push(ExplorerNode::Group {
                 schema: schema.clone(),
                 name: label.to_owned(),
+                count: objects.len(),
             });
             nodes.extend(
                 objects
@@ -4857,7 +4834,7 @@ fn reset_explorer_tree_state(state: &mut TreeState, nodes: &[ExplorerNode], sche
     for node in nodes.iter().filter(|node| {
         matches!(node, ExplorerNode::Database { .. })
             || matches!(node, ExplorerNode::Schema { name } if name == schema)
-            || matches!(node, ExplorerNode::Group { schema: group_schema, name } if group_schema == schema && name == "Tables")
+            || matches!(node, ExplorerNode::Group { schema: group_schema, name, .. } if group_schema == schema && name == "Tables")
     }) {
         state.expand(explorer_node_key(node));
     }
@@ -4874,7 +4851,7 @@ fn explorer_node_key(node: &ExplorerNode) -> ItemKey {
     match node {
         ExplorerNode::Database { name } => stable_key(&["database", name]),
         ExplorerNode::Schema { name } => stable_key(&["schema", name]),
-        ExplorerNode::Group { schema, name } => stable_key(&["object-group", schema, name]),
+        ExplorerNode::Group { schema, name, .. } => stable_key(&["object-group", schema, name]),
         ExplorerNode::Object { item, prefix, .. } => {
             stable_key(&["object", &item.schema, prefix, &item.name])
         }
@@ -4917,13 +4894,19 @@ fn explorer_row(node: &ExplorerNode, row: &mut RowUi<'_>) {
             Span::new(" "),
             Span::new(name.as_str()),
         ]),
-        ExplorerNode::Group { name, .. } => row.label(name),
+        ExplorerNode::Group { name, count, .. } => {
+            row.label(name);
+            row.meta(&count.to_string());
+        }
         ExplorerNode::Object { item, prefix, .. } => {
             row.label_spans(&[
                 Span::new(prefix).role(TAG_CHROME_FG),
                 Span::new(" "),
                 Span::new(&item.name),
             ]);
+            if item.rows > 0 {
+                row.meta(&tablepro_sql::sql::fmt_rows(item.rows));
+            }
         }
     }
 }
@@ -8102,175 +8085,48 @@ fn paint_header_pending(
     );
 }
 
-fn connection_footer_spans() -> [Span<'static>; 36] {
+fn connection_footer_hints() -> [Hint; 9] {
     [
-        Span::new(" "),
-        Span::new("↑↓").bold(),
-        Span::new(" "),
-        Span::new("Move").role(TAG_CHROME_FG),
-        Span::new("  "),
-        Span::new("Enter").bold(),
-        Span::new(" "),
-        Span::new("Connect").role(TAG_CHROME_FG),
-        Span::new("  "),
-        Span::new("e").bold(),
-        Span::new(" "),
-        Span::new("Edit…").role(TAG_CHROME_FG),
-        Span::new("  "),
-        Span::new("d").bold(),
-        Span::new(" "),
-        Span::new("Delete…").role(TAG_CHROME_FG),
-        Span::new("  "),
-        Span::new("Alt+D").bold(),
-        Span::new(" "),
-        Span::new("Duplicate").role(TAG_CHROME_FG),
-        Span::new("  "),
-        Span::new("/").bold(),
-        Span::new(" "),
-        Span::new("Filter").role(TAG_CHROME_FG),
-        Span::new("  "),
-        Span::new("Ctrl+N").bold(),
-        Span::new(" "),
-        Span::new("New").role(TAG_CHROME_FG),
-        Span::new("  "),
-        Span::new("Shift+F10").bold(),
-        Span::new(" "),
-        Span::new("Menu").role(TAG_CHROME_FG),
-        Span::new("  "),
-        Span::new("Tab").bold(),
-        Span::new(" "),
-        Span::new("Next").role(TAG_CHROME_FG),
+        Hint::new("↑↓", "Move"),
+        Hint::new("Enter", "Connect"),
+        Hint::new("e", "Edit…"),
+        Hint::new("d", "Delete…"),
+        Hint::new("Alt+D", "Duplicate"),
+        Hint::new("/", "Filter"),
+        Hint::new("Ctrl+N", "New"),
+        Hint::new("Shift+F10", "Menu"),
+        Hint::new("Tab", "Next"),
     ]
 }
 
-fn explorer_footer_spans() -> [Span<'static>; 28] {
+fn explorer_footer_hints() -> [Hint; 7] {
     [
-        Span::new(" "),
-        Span::new("↑↓").bold(),
-        Span::new(" "),
-        Span::new("Move").role(TAG_CHROME_FG),
-        Span::new("  "),
-        Span::new("Enter").bold(),
-        Span::new(" "),
-        Span::new("Open").role(TAG_CHROME_FG),
-        Span::new("  "),
-        Span::new("→").bold(),
-        Span::new(" "),
-        Span::new("Expand").role(TAG_CHROME_FG),
-        Span::new("  "),
-        Span::new("/").bold(),
-        Span::new(" "),
-        Span::new("Filter").role(TAG_CHROME_FG),
-        Span::new("  "),
-        Span::new("Ctrl+O").bold(),
-        Span::new(" "),
-        Span::new("Quick open").role(TAG_CHROME_FG),
-        Span::new("  "),
-        Span::new("Shift+F10").bold(),
-        Span::new(" "),
-        Span::new("Menu").role(TAG_CHROME_FG),
-        Span::new("  "),
-        Span::new("Tab").bold(),
-        Span::new(" "),
-        Span::new("Next").role(TAG_CHROME_FG),
+        Hint::new("↑↓", "Move"),
+        Hint::new("Enter", "Open"),
+        Hint::new("→", "Expand"),
+        Hint::new("/", "Filter"),
+        Hint::new("Ctrl+O", "Quick open"),
+        Hint::new("Shift+F10", "Menu"),
+        Hint::new("Tab", "Next"),
     ]
 }
 
-fn paint_data_footer(filtered: bool, pending: bool, paint: impl FnOnce(&[Span<'static>])) {
+fn data_footer_hints(filtered: bool, pending: bool) -> Vec<Hint> {
+    let mut hints = vec![
+        Hint::new("↑↓←→", "Cell"),
+        Hint::new("Enter", "Edit"),
+        Hint::new("Alt+D", "Duplicate row"),
+        Hint::new("s", "Sort"),
+        Hint::new("f", "Filter"),
+    ];
     if pending && !filtered {
-        paint(&[
-            Span::new(" "),
-            Span::new("↑↓←→").bold(),
-            Span::new(" "),
-            Span::new("Cell").role(TAG_CHROME_FG),
-            Span::new("  "),
-            Span::new("Enter").bold(),
-            Span::new(" "),
-            Span::new("Edit").role(TAG_CHROME_FG),
-            Span::new("  "),
-            Span::new("Alt+D").bold(),
-            Span::new(" "),
-            Span::new("Duplicate row").role(TAG_CHROME_FG),
-            Span::new("  "),
-            Span::new("s").bold(),
-            Span::new(" "),
-            Span::new("Sort").role(TAG_CHROME_FG),
-            Span::new("  "),
-            Span::new("f").bold(),
-            Span::new(" "),
-            Span::new("Filter").role(TAG_CHROME_FG),
-            Span::new("  "),
-            Span::new("Ctrl+S").bold(),
-            Span::new(" "),
-            Span::new("Save").role(TAG_CHROME_FG),
-            Span::new("  "),
-            Span::new("…").role(LEGACY_FAINT),
-        ]);
-        return;
+        hints.push(Hint::new("Ctrl+S", "Save"));
+    } else {
+        hints.push(Hint::new("Space", "Select row"));
     }
-    if filtered {
-        paint(&[
-            Span::new(" "),
-            Span::new("↑↓←→").bold(),
-            Span::new(" "),
-            Span::new("Cell").role(TAG_CHROME_FG),
-            Span::new("  "),
-            Span::new("Enter").bold(),
-            Span::new(" "),
-            Span::new("Edit").role(TAG_CHROME_FG),
-            Span::new("  "),
-            Span::new("Alt+D").bold(),
-            Span::new(" "),
-            Span::new("Duplicate row").role(TAG_CHROME_FG),
-            Span::new("  "),
-            Span::new("s").bold(),
-            Span::new(" "),
-            Span::new("Sort").role(TAG_CHROME_FG),
-            Span::new("  "),
-            Span::new("f").bold(),
-            Span::new(" "),
-            Span::new("Filter").role(TAG_CHROME_FG),
-            Span::new("  "),
-            Span::new("Space").bold(),
-            Span::new(" "),
-            Span::new("Select row").role(TAG_CHROME_FG),
-            Span::new("  "),
-            Span::new("Shift+F10").bold(),
-            Span::new(" "),
-            Span::new("Menu").role(TAG_CHROME_FG),
-            Span::new("  "),
-            Span::new("…").role(LEGACY_FAINT),
-        ]);
-        return;
-    }
-    paint(&[
-        Span::new(" "),
-        Span::new("↑↓←→").bold(),
-        Span::new(" "),
-        Span::new("Cell").role(TAG_CHROME_FG),
-        Span::new("  "),
-        Span::new("Enter").bold(),
-        Span::new(" "),
-        Span::new("Edit").role(TAG_CHROME_FG),
-        Span::new("  "),
-        Span::new("Alt+D").bold(),
-        Span::new(" "),
-        Span::new("Duplicate row").role(TAG_CHROME_FG),
-        Span::new("  "),
-        Span::new("s").bold(),
-        Span::new(" "),
-        Span::new("Sort").role(TAG_CHROME_FG),
-        Span::new("  "),
-        Span::new("f").bold(),
-        Span::new(" "),
-        Span::new("Filter").role(TAG_CHROME_FG),
-        Span::new("  "),
-        Span::new("Space").bold(),
-        Span::new(" "),
-        Span::new("Select row").role(TAG_CHROME_FG),
-        Span::new("  "),
-        Span::new("…").role(LEGACY_FAINT),
-    ]);
+    hints.push(Hint::new("Shift+F10", "Menu"));
+    hints.push(Hint::new("Tab", "Next"));
+    hints
 }
 
 fn paint_history_card(ui: &mut Ui<'_>, inner: termrock::Rect, history: &crate::tabs::HistoryTab) {
@@ -8586,126 +8442,58 @@ fn paint_history_sql(ui: &mut Ui<'_>, area: termrock::Rect, sql: &str, field: Pa
     flush(ui, &mut x, &mut word);
 }
 
-fn with_footer_spans(
-    app: &TableProApp,
-    explorer_focused: bool,
-    paint: impl FnOnce(&[Span<'static>]),
-) {
+fn with_footer_hints(app: &TableProApp, explorer_focused: bool) -> Vec<Hint> {
     if app.screen == Screen::Connections {
-        paint(&connection_footer_spans());
-    } else if explorer_focused {
-        paint(&explorer_footer_spans());
-    } else {
-        match app.workbench.active() {
-            Some(Tab::Table(table)) if table.is_structure() => paint(&[
-                Span::new(" "),
-                Span::new("↑↓").bold(),
-                Span::new(" "),
-                Span::new("Move").role(TAG_CHROME_FG),
-                Span::new("  "),
-                Span::new("Ctrl+D").bold(),
-                Span::new(" "),
-                Span::new("Data / Structure").role(TAG_CHROME_FG),
-                Span::new("  "),
-                Span::new("Tab").bold(),
-                Span::new(" "),
-                Span::new("Next").role(TAG_CHROME_FG),
-            ]),
-            Some(Tab::Table(table)) => {
-                let filtered = table.filters.iter().any(|filter| filter.enabled);
-                let pending = table.result.pending_total() > 0;
-                // An active sort uses the shorter hint row so the sort label fits.
-                paint_data_footer(filtered && sort_footer(app).is_none(), pending, paint);
-            }
-            Some(Tab::Query(query))
-                if query.error.is_some() || (query.result.is_some() && query.plan.is_none()) =>
-            {
-                paint(&[
-                    Span::new(" "),
-                    Span::new("Enter").bold(),
-                    Span::new(" "),
-                    Span::new("Edit").role(Role::Fg(FgStep::Muted)),
-                    Span::new("  "),
-                    Span::new("Ctrl+R").bold(),
-                    Span::new(" "),
-                    Span::new("Run").role(Role::Fg(FgStep::Muted)),
-                    Span::new("  "),
-                    Span::new("Alt+R").bold(),
-                    Span::new(" "),
-                    Span::new("Run all").role(Role::Fg(FgStep::Muted)),
-                    Span::new("  "),
-                    Span::new("Ctrl+X").bold(),
-                    Span::new(" "),
-                    Span::new("Explain").role(Role::Fg(FgStep::Muted)),
-                    Span::new("  "),
-                    Span::new("/").bold(),
-                    Span::new(" "),
-                    Span::new("Find").role(Role::Fg(FgStep::Muted)),
-                    Span::new("  "),
-                    Span::new("Tab").bold(),
-                    Span::new(" "),
-                    Span::new("Next").role(Role::Fg(FgStep::Muted)),
-                ]);
-            }
-            Some(Tab::Query(_)) => paint(&[
-                Span::new(" "),
-                Span::new("Enter").bold(),
-                Span::new(" "),
-                Span::new("Edit").role(Role::Fg(FgStep::Muted)),
-                Span::new("  Ctrl+R").bold(),
-                Span::new(" "),
-                Span::new("Run").role(Role::Fg(FgStep::Muted)),
-                Span::new("  Alt+R").bold(),
-                Span::new(" "),
-                Span::new("Run all").role(Role::Fg(FgStep::Muted)),
-                Span::new("  Ctrl+O").bold(),
-                Span::new(" "),
-                Span::new("Quick open").role(Role::Fg(FgStep::Muted)),
-                Span::new("  Tab").bold(),
-                Span::new(" "),
-                Span::new("Next").role(Role::Fg(FgStep::Muted)),
-            ]),
-            Some(Tab::History(_)) => paint(&[
-                Span::new(" "),
-                Span::new("Enter").bold(),
-                Span::new(" "),
-                Span::new("Open in new tab").role(TAG_CHROME_FG),
-                Span::new("  "),
-                Span::new("→").bold(),
-                Span::new(" "),
-                Span::new("Full text").role(TAG_CHROME_FG),
-                Span::new("  "),
-                Span::new("r").bold(),
-                Span::new(" "),
-                Span::new("Rerun").role(TAG_CHROME_FG),
-                Span::new("  "),
-                Span::new("y").bold(),
-                Span::new(" "),
-                Span::new("Copy").role(TAG_CHROME_FG),
-                Span::new("  "),
-                Span::new("/").bold(),
-                Span::new(" "),
-                Span::new("Search").role(TAG_CHROME_FG),
-                Span::new("  "),
-                Span::new("c s").bold(),
-                Span::new(" "),
-                Span::new("Scope · Status").role(TAG_CHROME_FG),
-                Span::new("  "),
-                Span::new("…").role(LEGACY_FAINT),
-            ]),
-            None => paint(&[
-                Span::new(" "),
-                Span::new("Ctrl+N").bold(),
-                Span::new(" "),
-                Span::new("New query").role(Role::Fg(FgStep::Muted)),
-                Span::new("  Ctrl+O").bold(),
-                Span::new(" "),
-                Span::new("Quick open").role(Role::Fg(FgStep::Muted)),
-                Span::new("  Tab").bold(),
-                Span::new(" "),
-                Span::new("Next").role(Role::Fg(FgStep::Muted)),
-            ]),
+        return connection_footer_hints().to_vec();
+    }
+    if explorer_focused {
+        return explorer_footer_hints().to_vec();
+    }
+    match app.workbench.active() {
+        Some(Tab::Table(table)) if table.is_structure() => vec![
+            Hint::new("↑↓", "Move"),
+            Hint::new("Ctrl+D", "Data / Structure"),
+            Hint::new("Tab", "Next"),
+        ],
+        Some(Tab::Table(table)) => {
+            let filtered = table.filters.iter().any(|filter| filter.enabled);
+            let pending = table.result.pending_total() > 0;
+            data_footer_hints(filtered, pending)
         }
+        Some(Tab::Query(query))
+            if query.error.is_some() || (query.result.is_some() && query.plan.is_none()) =>
+        {
+            vec![
+                Hint::new("Enter", "Edit"),
+                Hint::new("Ctrl+R", "Run"),
+                Hint::new("Alt+R", "Run all"),
+                Hint::new("Ctrl+X", "Explain"),
+                Hint::new("/", "Find"),
+                Hint::new("Tab", "Next"),
+            ]
+        }
+        Some(Tab::Query(_)) => vec![
+            Hint::new("Enter", "Edit"),
+            Hint::new("Ctrl+R", "Run"),
+            Hint::new("Alt+R", "Run all"),
+            Hint::new("Ctrl+O", "Quick open"),
+            Hint::new("Tab", "Next"),
+        ],
+        Some(Tab::History(_)) => vec![
+            Hint::new("Enter", "Open in new tab"),
+            Hint::new("→", "Full text"),
+            Hint::new("r", "Rerun"),
+            Hint::new("y", "Copy"),
+            Hint::new("/", "Search"),
+            Hint::new("c s", "Scope · Status"),
+            Hint::new("Shift+F10", "Menu"),
+            Hint::new("Tab", "Next"),
+        ],
+        None => vec![
+            Hint::new("Ctrl+N", "New query"),
+            Hint::new("Ctrl+O", "Quick open"),
+            Hint::new("Tab", "Next"),
+        ],
     }
 }
 
@@ -8715,46 +8503,12 @@ fn grid_is_editing(app: &TableProApp) -> bool {
         .is_some_and(|(_, grid)| grid.state.is_editing())
 }
 
-fn paint_cell_edit_footer(ui: &mut Ui<'_>, area: termrock::Rect) {
-    let base = ui.surface_style();
-    let badge = ui.surface_style().patch(
-        ui.paint_patch(
-            &StylePatch::new()
-                .set_fg(TAG_BUTTON_FG)
-                .set_bg(TAG_BUTTON_BG)
-                .add(Modifier::BOLD),
-        ),
-    );
-    ui.paint_str(
-        termrock::Rect {
-            x: area.x.saturating_add(1),
-            width: 6.min(area.width.saturating_sub(1)),
-            ..area
-        },
-        " EDIT ",
-        badge,
-    );
-    ui.paint_spans(
-        termrock::Rect {
-            x: area.x.saturating_add(9),
-            width: area.width.saturating_sub(9),
-            ..area
-        },
-        &[
-            Span::new("Enter").bold(),
-            Span::new(" "),
-            Span::new("Apply").role(TAG_CHROME_FG),
-            Span::new("  "),
-            Span::new("Esc").bold(),
-            Span::new(" "),
-            Span::new("Cancel").role(TAG_CHROME_FG),
-            Span::new("  "),
-            Span::new("Tab").bold(),
-            Span::new(" "),
-            Span::new("Next cell").role(TAG_CHROME_FG),
-        ],
-        base,
-    );
+fn cell_edit_footer_hints() -> Vec<Hint> {
+    vec![
+        Hint::new("Enter", "Apply"),
+        Hint::new("Esc", "Cancel"),
+        Hint::new("Tab", "Next cell"),
+    ]
 }
 
 fn connection_duplicated_notice(app: &TableProApp) -> Option<&str> {
@@ -8763,81 +8517,6 @@ fn connection_duplicated_notice(app: &TableProApp) -> Option<&str> {
     } else {
         None
     }
-}
-
-fn span_paint(ui: &Ui<'_>, base: PaintStyle, span: &Span<'_>) -> PaintStyle {
-    let mut style = base.add_modifier(span.add);
-    if let Some(role) = span.role {
-        style = style.patch(ui.paint_patch(&StylePatch::new().set_fg(role)));
-    }
-    style
-}
-
-/// Eight columns stay clear of the right edge, plus the status when one is set.
-fn connection_hint_limit(area_width: u16, notice: Option<&str>) -> u16 {
-    let reserve = 8u16.saturating_add(notice.map_or(0, width));
-    area_width.saturating_sub(reserve)
-}
-
-fn footer_spans_fit(spans: &[Span<'_>], limit: u16) -> bool {
-    let mut used = 0u16;
-    for span in spans {
-        let span_width = width(span.text);
-        if used.saturating_add(span_width) > limit {
-            return false;
-        }
-        used = used.saturating_add(span_width);
-    }
-    true
-}
-
-fn paint_connection_hints(
-    ui: &mut Ui<'_>,
-    area: termrock::Rect,
-    spans: &[Span<'_>],
-    notice: Option<&str>,
-    base: PaintStyle,
-) {
-    let limit = connection_hint_limit(area.width, notice);
-    if footer_spans_fit(spans, limit) {
-        ui.paint_spans(area, spans, base);
-        return;
-    }
-    // A group separator still paints so the ellipsis sits after the last hint.
-    let mut x = area.x;
-    let mut used = 0u16;
-    for span in spans {
-        let span_width = width(span.text);
-        let overflows = used.saturating_add(span_width) > limit;
-        if overflows && span.text != "  " {
-            break;
-        }
-        ui.paint_str(
-            termrock::Rect {
-                x,
-                width: span_width,
-                height: 1,
-                ..area
-            },
-            span.text,
-            span_paint(ui, base, span),
-        );
-        x = x.saturating_add(span_width);
-        used = used.saturating_add(span_width);
-        if overflows {
-            break;
-        }
-    }
-    ui.paint_str(
-        termrock::Rect {
-            x,
-            width: 1,
-            height: 1,
-            ..area
-        },
-        "…",
-        base.patch(ui.paint_patch(&StylePatch::new().set_fg(LEGACY_FAINT))),
-    );
 }
 
 fn paint_connection_filter_row(ui: &mut Ui<'_>, area: termrock::Rect, query: &str, editing: bool) {
@@ -8890,46 +8569,13 @@ fn paint_connection_filter_row(ui: &mut Ui<'_>, area: termrock::Rect, query: &st
     ui.set_bar_cursor(CONNECTION_FILTER, Position::new(cursor_x, area.y));
 }
 
-fn paint_form_footer(ui: &mut Ui<'_>, area: termrock::Rect) {
-    let base = ui.surface_style();
-    let badge = ui.surface_style().patch(
-        ui.paint_patch(
-            &StylePatch::new()
-                .set_fg(TAG_BUTTON_FG)
-                .set_bg(TAG_BUTTON_BG)
-                .add(Modifier::BOLD),
-        ),
-    );
-    ui.paint_str(
-        termrock::Rect {
-            x: area.x.saturating_add(1),
-            width: 6.min(area.width.saturating_sub(1)),
-            ..area
-        },
-        " EDIT ",
-        badge,
-    );
-    ui.paint_spans(
-        termrock::Rect {
-            x: area.x.saturating_add(9),
-            width: area.width.saturating_sub(9),
-            ..area
-        },
-        &[
-            Span::new("Enter").bold(),
-            Span::new(" "),
-            Span::new("Apply").role(TAG_CHROME_FG),
-            Span::new("  "),
-            Span::new("Esc").bold(),
-            Span::new(" "),
-            Span::new("Cancel").role(TAG_CHROME_FG),
-            Span::new("  "),
-            Span::new("Tab").bold(),
-            Span::new(" "),
-            Span::new("Next field").role(TAG_CHROME_FG),
-        ],
-        base,
-    );
+fn form_footer_hints() -> Vec<Hint> {
+    vec![
+        Hint::new("Enter", "Edit"),
+        Hint::new("←→", "Basic / Advanced"),
+        Hint::new("Ctrl+S", "Save"),
+        Hint::new("Tab", "Next"),
+    ]
 }
 
 fn query_completion_open(app: &TableProApp) -> bool {
@@ -8939,164 +8585,39 @@ fn query_completion_open(app: &TableProApp) -> bool {
     )
 }
 
-fn paint_completion_footer(ui: &mut Ui<'_>, area: termrock::Rect) {
-    let base = ui.surface_style();
-    let badge = ui.surface_style().patch(
-        ui.paint_patch(
-            &StylePatch::new()
-                .set_fg(TAG_BUTTON_FG)
-                .set_bg(TAG_BUTTON_BG)
-                .add(Modifier::BOLD),
-        ),
-    );
-    ui.paint_str(
-        termrock::Rect {
-            x: area.x.saturating_add(1),
-            width: 6.min(area.width.saturating_sub(1)),
-            ..area
-        },
-        " EDIT ",
-        badge,
-    );
-    ui.paint_spans(
-        termrock::Rect {
-            x: area.x.saturating_add(9),
-            width: area.width.saturating_sub(9),
-            ..area
-        },
-        &[
-            Span::new("↑↓").bold(),
-            Span::new(" "),
-            Span::new("Move").role(TAG_CHROME_FG),
-            Span::new("  "),
-            Span::new("Enter").bold(),
-            Span::new(" "),
-            Span::new("Accept").role(TAG_CHROME_FG),
-            Span::new("  "),
-            Span::new("Esc").bold(),
-            Span::new(" "),
-            Span::new("Close").role(TAG_CHROME_FG),
-        ],
-        base,
-    );
+fn completion_footer_hints() -> Vec<Hint> {
+    vec![
+        Hint::new("↑↓", "Move"),
+        Hint::new("Enter", "Accept"),
+        Hint::new("Esc", "Close"),
+    ]
 }
 
-fn paint_query_editor_footer(ui: &mut Ui<'_>, area: termrock::Rect) {
-    let base = ui.surface_style();
-    let badge = ui.surface_style().patch(
-        ui.paint_patch(
-            &StylePatch::new()
-                .set_fg(TAG_BUTTON_FG)
-                .set_bg(TAG_BUTTON_BG)
-                .add(Modifier::BOLD),
-        ),
-    );
-    ui.paint_str(
-        termrock::Rect {
-            x: area.x.saturating_add(1),
-            width: 6.min(area.width.saturating_sub(1)),
-            ..area
-        },
-        " EDIT ",
-        badge,
-    );
-    ui.paint_spans(
-        termrock::Rect {
-            x: area.x.saturating_add(9),
-            width: area.width.saturating_sub(9),
-            ..area
-        },
-        &[
-            Span::new("Ctrl+R").bold(),
-            Span::new(" "),
-            Span::new("Run").role(TAG_CHROME_FG),
-            Span::new("  "),
-            Span::new("Alt+R").bold(),
-            Span::new(" "),
-            Span::new("Run all").role(TAG_CHROME_FG),
-            Span::new("  "),
-            Span::new("Ctrl+Space").bold(),
-            Span::new(" "),
-            Span::new("Complete").role(TAG_CHROME_FG),
-            Span::new("  "),
-            Span::new("Tab").bold(),
-            Span::new(" "),
-            Span::new("Indent").role(TAG_CHROME_FG),
-            Span::new("  "),
-            Span::new("F6").bold(),
-            Span::new(" "),
-            Span::new("Leave").role(TAG_CHROME_FG),
-            Span::new("  "),
-            Span::new("Esc").bold(),
-            Span::new(" "),
-            Span::new("Done").role(TAG_CHROME_FG),
-        ],
-        base,
-    );
+fn query_editor_footer_hints() -> Vec<Hint> {
+    vec![
+        Hint::new("Ctrl+R", "Run"),
+        Hint::new("Alt+R", "Run all"),
+        Hint::new("Ctrl+Space", "Complete"),
+        Hint::new("Tab", "Indent"),
+        Hint::new("F6", "Leave"),
+        Hint::new("Esc", "Done"),
+    ]
 }
 
-fn paint_connection_filter_footer(ui: &mut Ui<'_>, area: termrock::Rect) {
-    let base = ui.surface_style();
-    let badge = ui.surface_style().patch(
-        ui.paint_patch(
-            &StylePatch::new()
-                .set_fg(TAG_BUTTON_FG)
-                .set_bg(TAG_BUTTON_BG)
-                .add(Modifier::BOLD),
-        ),
-    );
-    ui.paint_str(
-        termrock::Rect {
-            x: area.x.saturating_add(1),
-            width: 6.min(area.width.saturating_sub(1)),
-            ..area
-        },
-        " EDIT ",
-        badge,
-    );
-    ui.paint_spans(
-        termrock::Rect {
-            x: area.x.saturating_add(9),
-            width: area.width.saturating_sub(9),
-            ..area
-        },
-        &[
-            Span::new("Type").bold(),
-            Span::new(" "),
-            Span::new("Filter").role(TAG_CHROME_FG),
-            Span::new("  "),
-            Span::new("↓").bold(),
-            Span::new(" "),
-            Span::new("Into list").role(TAG_CHROME_FG),
-            Span::new("  "),
-            Span::new("Esc").bold(),
-            Span::new(" "),
-            Span::new("Clear").role(TAG_CHROME_FG),
-        ],
-        base,
-    );
+fn connection_filter_footer_hints() -> Vec<Hint> {
+    vec![
+        Hint::new("Type", "Filter"),
+        Hint::new("↓", "Into list"),
+        Hint::new("Esc", "Clear"),
+    ]
 }
 
-fn paint_filter_footer(ui: &mut Ui<'_>, area: termrock::Rect) {
-    let base = ui.surface_style();
-    ui.paint_spans(
-        area,
-        &[
-            Span::new(" "),
-            Span::new("Tab").bold(),
-            Span::new(" "),
-            Span::new("Next field").role(TAG_CHROME_FG),
-            Span::new("  "),
-            Span::new("Enter").bold(),
-            Span::new(" "),
-            Span::new("Apply").role(TAG_CHROME_FG),
-            Span::new("  "),
-            Span::new("Esc").bold(),
-            Span::new(" "),
-            Span::new("Cancel").role(TAG_CHROME_FG),
-        ],
-        base,
-    );
+fn filter_footer_hints() -> Vec<Hint> {
+    vec![
+        Hint::new("Tab", "Next field"),
+        Hint::new("Enter", "Apply"),
+        Hint::new("Esc", "Cancel"),
+    ]
 }
 
 fn paint_closed_select(
@@ -9385,238 +8906,45 @@ fn paint_filter_card_body(
     ui.register_focus_only(FILTER_APPLY, Focusability::Focusable);
 }
 
-fn paint_delete_footer(ui: &mut Ui<'_>, area: termrock::Rect) {
-    let base = ui.surface_style();
-    ui.paint_spans(
-        area,
-        &[
-            Span::new(" "),
-            Span::new("←→").bold(),
-            Span::new(" "),
-            Span::new("Choose").role(TAG_CHROME_FG),
-            Span::new("  "),
-            Span::new("Enter").bold(),
-            Span::new(" "),
-            Span::new("Cancel").role(TAG_CHROME_FG),
-            Span::new("  "),
-            Span::new("Esc").bold(),
-            Span::new(" "),
-            Span::new("Cancel").role(TAG_CHROME_FG),
-        ],
-        base,
-    );
+fn delete_footer_hints() -> Vec<Hint> {
+    vec![
+        Hint::new("←→", "Choose"),
+        Hint::new("Enter", "Cancel"),
+        Hint::new("Esc", "Cancel"),
+    ]
 }
 
-fn paint_help_footer(ui: &mut Ui<'_>, area: termrock::Rect) {
-    let base = ui.surface_style();
-    ui.paint_spans(
-        area,
-        &[
-            Span::new(" "),
-            Span::new("↑↓").bold(),
-            Span::new(" "),
-            Span::new("Scroll").role(TAG_CHROME_FG),
-            Span::new("  "),
-            Span::new("Esc").bold(),
-            Span::new(" "),
-            Span::new("Close").role(TAG_CHROME_FG),
-        ],
-        base,
-    );
+fn help_footer_hints() -> Vec<Hint> {
+    vec![Hint::new("↑↓", "Scroll"), Hint::new("Esc", "Close")]
 }
 
-fn paint_picker_move_footer(ui: &mut Ui<'_>, area: termrock::Rect) {
-    let base = ui.surface_style();
-    ui.paint_spans(
-        area,
-        &[
-            Span::new(" "),
-            Span::new("↑↓").bold(),
-            Span::new(" "),
-            Span::new("Move").role(TAG_CHROME_FG),
-            Span::new("  "),
-            Span::new("Enter").bold(),
-            Span::new(" "),
-            Span::new("Choose").role(TAG_CHROME_FG),
-            Span::new("  "),
-            Span::new("Esc").bold(),
-            Span::new(" "),
-            Span::new("Cancel").role(TAG_CHROME_FG),
-        ],
-        base,
-    );
+fn picker_move_footer_hints() -> Vec<Hint> {
+    vec![
+        Hint::new("↑↓", "Move"),
+        Hint::new("Enter", "Set level"),
+        Hint::new("Esc", "Keep"),
+    ]
 }
 
-fn paint_picker_layer_footer(ui: &mut Ui<'_>, area: termrock::Rect) {
-    let base = ui.surface_style();
-    ui.paint_spans(
-        area,
-        &[
-            Span::new(" "),
-            Span::new("Type").bold(),
-            Span::new(" "),
-            Span::new("Filter").role(TAG_CHROME_FG),
-            Span::new("  "),
-            Span::new("↑↓").bold(),
-            Span::new(" "),
-            Span::new("Move").role(TAG_CHROME_FG),
-            Span::new("  "),
-            Span::new("Enter").bold(),
-            Span::new(" "),
-            Span::new("Choose").role(TAG_CHROME_FG),
-            Span::new("  "),
-            Span::new("Esc").bold(),
-            Span::new(" "),
-            Span::new("Cancel").role(TAG_CHROME_FG),
-        ],
-        base,
-    );
+fn picker_layer_footer_hints() -> Vec<Hint> {
+    vec![
+        Hint::new("Type", "Filter"),
+        Hint::new("↑↓", "Move"),
+        Hint::new("Enter", "Choose"),
+        Hint::new("Esc", "Cancel"),
+    ]
 }
 
-fn hint_group_costs(spans: &[Span<'_>]) -> Vec<u16> {
-    let mut index = usize::from(spans.first().is_some_and(|span| span.text == " "));
-    let mut costs = Vec::new();
-    while index < spans.len() {
-        let mut group = 0u16;
-        while index < spans.len() && spans[index].text != "  " {
-            group = group.saturating_add(width(spans[index].text));
-            index = index.saturating_add(1);
-        }
-        if index < spans.len() && spans[index].text == "  " {
-            index = index.saturating_add(1);
-        }
-        costs.push(group.saturating_add(2));
-    }
-    costs
-}
-
-/// Keep every hint when the status fits beside them. If the status would cover
-/// a hint other than the last one, drop the status and keep the hints.
-pub(crate) fn fit_workbench_hints(
-    group_costs: &[u16],
-    area_width: u16,
-    status_width: u16,
-) -> (usize, bool, bool) {
-    const START: u16 = 1;
-    let room_with = area_width
-        .saturating_sub(status_width.saturating_add(3))
-        .saturating_sub(START);
-    let cost = |count: usize| -> u16 {
-        group_costs
-            .iter()
-            .take(count)
-            .fold(0u16, |sum, item| sum.saturating_add(*item))
-    };
-    let all = group_costs.len();
-    if all > 0 && cost(all) <= room_with {
-        return (all, true, false);
-    }
-    let core = all.saturating_sub(1);
-    if core > 0 && cost(core) <= room_with {
-        return (core, true, true);
-    }
-    let room = area_width.saturating_sub(START);
-    let mut keep = 0;
-    while keep < all && cost(keep.saturating_add(1)) <= room {
-        keep = keep.saturating_add(1);
-    }
-    (keep, false, keep < all)
-}
-
-fn paint_fitted_workbench_hints(
-    ui: &mut Ui<'_>,
-    area: termrock::Rect,
-    spans: &[Span<'_>],
-    status_width: u16,
-    base: PaintStyle,
-) -> bool {
-    let costs = hint_group_costs(spans);
-    let (keep, status, ellipsis) = fit_workbench_hints(&costs, area.width, status_width);
-    if keep == costs.len() && !ellipsis {
-        ui.paint_spans(area, spans, base);
-        return status;
-    }
-    let mut index = 0;
-    let mut x = area.x;
-    if spans.first().is_some_and(|span| span.text == " ") {
-        let span_width = width(spans[0].text);
-        ui.paint_str(
-            termrock::Rect {
-                x,
-                width: span_width,
-                ..area
-            },
-            spans[0].text,
-            span_paint(ui, base, &spans[0]),
-        );
-        x = x.saturating_add(span_width);
-        index = 1;
-    }
-    let mut painted = 0usize;
-    while index < spans.len() && painted < keep {
-        while index < spans.len() && spans[index].text != "  " {
-            let span_width = width(spans[index].text);
-            ui.paint_str(
-                termrock::Rect {
-                    x,
-                    width: span_width,
-                    ..area
-                },
-                spans[index].text,
-                span_paint(ui, base, &spans[index]),
-            );
-            x = x.saturating_add(span_width);
-            index = index.saturating_add(1);
-        }
-        if index < spans.len() && spans[index].text == "  " {
-            x = x.saturating_add(width(spans[index].text));
-            index = index.saturating_add(1);
-        }
-        painted = painted.saturating_add(1);
-    }
-    if ellipsis {
-        ui.paint_str(
-            termrock::Rect {
-                x,
-                width: 1,
-                ..area
-            },
-            "…",
-            base.patch(ui.paint_patch(&StylePatch::new().set_fg(LEGACY_FAINT))),
-        );
-    }
-    status
-}
-
-fn connection_status_label(app: &TableProApp, explorer_focused: bool, empty_query: bool) -> String {
-    let checked = matches!(
-        app.surface,
-        Surface::TableGrid | Surface::StructureView | Surface::HistoryTab
-    ) || explorer_focused
-        || empty_query
-        || query_completion_open(app)
-        || (app.blank_sql()
-            && matches!(
-                app.surface,
-                Surface::QuickSwitcher
-                    | Surface::TabListPicker
-                    | Surface::SafeModePicker
-                    | Surface::HelpDialog
-            ))
-        || app.destructive_intent.is_some()
-        || app.surface == Surface::FilterEditor
-        || matches!(
-            app.workbench.active(),
-            Some(Tab::Query(query))
-                if query.error.is_some() || query.plan.is_some() || query.result.is_some()
-        );
-    let prefix = if checked {
+/// The connection status the workbench footer shows on its right edge.
+///
+/// The status carries its check mark: it reports a connection that is up.
+fn connection_status_label(app: &TableProApp) -> String {
+    let mut text = String::with_capacity(
         "✓ Connected to "
-    } else {
-        "Connected to "
-    };
-    let mut text = String::with_capacity(prefix.len().saturating_add(app.connection.name.len()));
-    text.push_str(prefix);
+            .len()
+            .saturating_add(app.connection.name.len()),
+    );
+    text.push_str("✓ Connected to ");
     text.push_str(&app.connection.name);
     text
 }
@@ -9625,116 +8953,90 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
     let base = ui.surface_style();
     let explorer_focused = ui.state(EXPLORER).contains(StateFlags::FOCUSED);
     let empty_query = app.blank_sql() && query_editor_focused(ui, app);
-    let mut show_connection_status = true;
     ui.fill(area, base);
+
+    // The status on the right edge, and the hint groups on the left. The
+    // module owns how the two share the row.
+    let status = footer_status(app);
+    let (hints, badge) = footer_hints(app, explorer_focused, empty_query);
+    footer::draw(ui, area, &hints, badge, status.as_ref(), base);
+}
+
+/// The status the footer shows on its right edge.
+///
+/// The connection status is the default. A sort, a filter or a notice
+/// replaces it while it lasts.
+fn footer_status(app: &TableProApp) -> Option<footer::Status> {
+    if let Some(notice) = &app.destructive_notice {
+        return Some(footer::Status::new(
+            notice.to_owned(),
+            Role::Fg(FgStep::Muted),
+        ));
+    }
+    if let Some(sorted) = sort_footer(app) {
+        return Some(footer::Status::new(sorted, TAG_PATH_FG));
+    }
+    if let Some(filtered) = filter_footer(app) {
+        return Some(footer::Status::new(filtered, TAG_PATH_FG));
+    }
+    if let Some(notice) = connection_duplicated_notice(app) {
+        return Some(footer::Status::new(notice, TAG_PATH_FG));
+    }
+    if app.screen == Screen::Workbench {
+        let label = connection_status_label(app);
+        let role = if label.starts_with('✓') {
+            TAG_OK_FG
+        } else {
+            Role::Fg(FgStep::Muted)
+        };
+        return Some(footer::Status::new(label, role));
+    }
+    None
+}
+
+/// The hint groups the surface offers, and the plate that sits before them.
+fn footer_hints(
+    app: &TableProApp,
+    explorer_focused: bool,
+    empty_query: bool,
+) -> (Vec<Hint>, Option<&'static str>) {
     if matches!(app.surface, Surface::QuickSwitcher | Surface::TabListPicker) {
-        paint_picker_layer_footer(ui, area);
-    } else if app.surface == Surface::SafeModePicker {
-        paint_picker_move_footer(ui, area);
-    } else if app.surface == Surface::HelpDialog {
-        paint_help_footer(ui, area);
-    } else if app.surface == Surface::FilterEditor {
-        paint_filter_footer(ui, area);
-    } else if matches!(app.workbench.active(), Some(Tab::Query(query)) if query.plan.is_some()) {
-        paint_query_editor_footer(ui, area);
-    } else if app.connection_delete == ConnectionDelete::Open || app.destructive_intent.is_some() {
-        paint_delete_footer(ui, area);
-    } else if app.form_open {
-        paint_form_footer(ui, area);
-    } else if app.screen == Screen::Connections && app.connection_filter_editing {
-        paint_connection_filter_footer(ui, area);
-        return;
-    } else if app.workbench.maximized {
-        paint_maximized_footer(ui, area);
-    } else if query_completion_open(app) {
-        paint_completion_footer(ui, area);
-    } else if empty_query && !explorer_focused {
-        paint_query_editor_footer(ui, area);
-    } else if !explorer_focused && grid_is_editing(app) {
-        paint_cell_edit_footer(ui, area);
-    } else {
-        let notice = connection_duplicated_notice(app);
-        let status_wins = notice.is_none()
-            && app.destructive_notice.is_none()
-            && sort_footer(app).is_none()
-            && filter_footer(app).is_none()
-            && app.screen == Screen::Workbench;
-        let status_label = connection_status_label(app, explorer_focused, empty_query);
-        with_footer_spans(app, explorer_focused, |spans| {
-            if app.screen == Screen::Connections {
-                paint_connection_hints(ui, area, spans, notice, base);
-            } else if status_wins {
-                show_connection_status =
-                    paint_fitted_workbench_hints(ui, area, spans, width(&status_label), base);
-            } else {
-                ui.paint_spans(area, spans, base);
-            }
-        });
+        return (picker_layer_footer_hints(), None);
     }
-    if let Some(notice) = app.destructive_notice {
-        let width = width(notice).min(area.width);
-        let right = termrock::Rect {
-            x: area.right().saturating_sub(width),
-            width,
-            ..area
-        };
-        ui.fill(right, base);
-        ui.paint_str(right, notice, base);
-    } else if let Some(sorted) = sort_footer(app) {
-        let text_width = width(&sorted);
-        let right = termrock::Rect {
-            x: area.right().saturating_sub(text_width).saturating_sub(1),
-            width: text_width,
-            ..area
-        };
-        ui.paint_str(
-            right,
-            &sorted,
-            base.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_PATH_FG))),
-        );
-    } else if let Some(filtered) = filter_footer(app) {
-        let text_width = width(&filtered);
-        let right = termrock::Rect {
-            x: area.right().saturating_sub(text_width).saturating_sub(1),
-            width: text_width,
-            ..area
-        };
-        ui.paint_str(
-            right,
-            &filtered,
-            base.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_PATH_FG))),
-        );
-    } else if let Some(notice) = connection_duplicated_notice(app) {
-        let text_width = width(notice);
-        let right = termrock::Rect {
-            x: area.right().saturating_sub(text_width).saturating_sub(1),
-            width: text_width,
-            ..area
-        };
-        ui.paint_str(
-            right,
-            notice,
-            base.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_PATH_FG))),
-        );
-    } else if app.screen == Screen::Workbench && show_connection_status {
-        let right_text = connection_status_label(app, explorer_focused, empty_query);
-        let checked = right_text.starts_with('✓');
-        let text_width = width(&right_text);
-        let right = termrock::Rect {
-            x: area.right().saturating_sub(text_width).saturating_sub(1),
-            width: text_width,
-            ..area
-        };
-        ui.paint_spans(
-            right,
-            &[Span::new(&right_text).role(if checked {
-                TAG_OK_FG
-            } else {
-                Role::Fg(FgStep::Muted)
-            })],
-            base,
-        );
+    if app.surface == Surface::SafeModePicker {
+        return (picker_move_footer_hints(), None);
     }
+    if app.surface == Surface::HelpDialog {
+        return (help_footer_hints(), None);
+    }
+    if app.surface == Surface::FilterEditor {
+        return (filter_footer_hints(), None);
+    }
+    if matches!(app.workbench.active(), Some(Tab::Query(query)) if query.plan.is_some()) {
+        return (query_editor_footer_hints(), Some("EDIT"));
+    }
+    if app.connection_delete == ConnectionDelete::Open || app.destructive_intent.is_some() {
+        return (delete_footer_hints(), None);
+    }
+    if app.form_open {
+        return (form_footer_hints(), None);
+    }
+    if app.screen == Screen::Connections && app.connection_filter_editing {
+        return (connection_filter_footer_hints(), Some("EDIT"));
+    }
+    if app.workbench.maximized {
+        return (maximized_footer_hints(), None);
+    }
+    if query_completion_open(app) {
+        return (completion_footer_hints(), Some("EDIT"));
+    }
+    if empty_query && !explorer_focused {
+        return (query_editor_footer_hints(), Some("EDIT"));
+    }
+    if !explorer_focused && grid_is_editing(app) {
+        return (cell_edit_footer_hints(), Some("EDIT"));
+    }
+    (with_footer_hints(app, explorer_focused), None)
 }
 
 fn query_editor_focused(ui: &Ui<'_>, app: &TableProApp) -> bool {
