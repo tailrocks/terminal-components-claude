@@ -1,7 +1,7 @@
 use showcase_demos::render_number::RenderNumber;
 use termrock::author::PaintStyle;
 use termrock::{
-    ActionKey, App as TuiApp, Brand, ByIndex, Chord, ColorLevel, Cx, Dialog, DialogAction,
+    ActionKey, App as TuiApp, ByIndex, Chord, ColorLevel, Cx, Dialog, DialogAction,
     DialogState, FrameRead, GlyphRole, Id, Intent, ItemKey, KeyCode, KeyMap, KeyPhase, Moment,
     Panel, PanelKind, Part, PartRef, Phase, Props, Rect, Response, RowFn, Size, StateFlags, Status,
     StatusBar, StatusItem, TextSection, Theme, TooSmall, Tree, TreeAction, TreeBranchActivation,
@@ -162,7 +162,7 @@ impl PageId {
     pub fn from_name(value: &str) -> Option<Self> {
         nav_index_from_name(value).and_then(|index| {
             let entry = NAV_ENTRIES.get(index)?;
-            entry_is_live(entry).then_some(entry.id)
+            entry.page()
         })
     }
 
@@ -173,12 +173,49 @@ impl PageId {
     }
 }
 
+/// The screen a navigation entry opens.
+///
+/// The route is the app's own routing decision: a demo page, the selection
+/// screen, or a placeholder for a page that is not built yet. Screens are
+/// selected by route, never by a display label.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Route {
+    /// A live demo page.
+    Page(PageId),
+    /// The selection screen: a member table with a bulk editor.
+    Selection,
+    /// A navigation entry for a screen that is not built yet.
+    Placeholder,
+}
+
+impl Route {
+    /// The demo page this route opens, when it opens one.
+    pub const fn page(self) -> Option<PageId> {
+        match self {
+            Self::Page(page) => Some(page),
+            Self::Selection | Self::Placeholder => None,
+        }
+    }
+
+    /// Whether the route opens a screen with its own content.
+    pub const fn is_screen(self) -> bool {
+        !matches!(self, Self::Placeholder)
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct NavEntry {
-    pub id: PageId,
+    pub route: Route,
     pub label: &'static str,
     pub section: &'static str,
     pub icon: &'static str,
+}
+
+impl NavEntry {
+    /// The demo page this entry opens, when it opens one.
+    pub const fn page(&self) -> Option<PageId> {
+        self.route.page()
+    }
 }
 
 impl std::fmt::Display for NavEntry {
@@ -189,325 +226,325 @@ impl std::fmt::Display for NavEntry {
 
 pub const NAV_ENTRIES: &[NavEntry] = &[
     NavEntry {
-        id: PageId::Overview,
+        route: Route::Page(PageId::Overview),
         label: "Overview",
         section: "",
         icon: "•",
     },
     NavEntry {
-        id: PageId::Chrome,
+        route: Route::Page(PageId::Chrome),
         label: "Chrome",
         section: "App shell",
         icon: "•",
     },
     NavEntry {
-        id: PageId::Overview,
+        route: Route::Placeholder,
         label: "Status & hints",
         section: "App shell",
         icon: "•",
     },
     NavEntry {
-        id: PageId::Overview,
+        route: Route::Placeholder,
         label: "Breadcrumbs & rails",
         section: "App shell",
         icon: "•",
     },
     NavEntry {
-        id: PageId::Overview,
+        route: Route::Placeholder,
         label: "Help & keys",
         section: "App shell",
         icon: "•",
     },
     NavEntry {
-        id: PageId::Overview,
+        route: Route::Placeholder,
         label: "Quit & leave",
         section: "App shell",
         icon: "•",
     },
     NavEntry {
-        id: PageId::Overview,
+        route: Route::Placeholder,
         label: "Focus & navigation",
         section: "App shell",
         icon: "•",
     },
     NavEntry {
-        id: PageId::Buttons,
+        route: Route::Page(PageId::Buttons),
         label: "Buttons",
         section: "Inputs & forms",
         icon: "•",
     },
     NavEntry {
-        id: PageId::Inputs,
+        route: Route::Page(PageId::Inputs),
         label: "Inputs",
         section: "Inputs & forms",
         icon: "•",
     },
     NavEntry {
-        id: PageId::TextAreas,
+        route: Route::Page(PageId::TextAreas),
         label: "Text areas",
         section: "Inputs & forms",
         icon: "•",
     },
     NavEntry {
-        id: PageId::Chips,
+        route: Route::Page(PageId::Chips),
         label: "Chips & selects",
         section: "Inputs & forms",
         icon: "•",
     },
     NavEntry {
-        id: PageId::Forms,
+        route: Route::Page(PageId::Forms),
         label: "Forms",
         section: "Inputs & forms",
         icon: "•",
     },
     NavEntry {
-        id: PageId::Overview,
+        route: Route::Placeholder,
         label: "Checks & radios",
         section: "Inputs & forms",
         icon: "•",
     },
     NavEntry {
-        id: PageId::Overview,
+        route: Route::Placeholder,
         label: "Toolbars",
         section: "Inputs & forms",
         icon: "•",
     },
     NavEntry {
-        id: PageId::Tables,
+        route: Route::Page(PageId::Tables),
         label: "Basic table",
         section: "Tables",
         icon: "•",
     },
     NavEntry {
-        id: PageId::Editable,
+        route: Route::Page(PageId::Editable),
         label: "Editable",
         section: "Tables",
         icon: "•",
     },
     NavEntry {
-        id: PageId::Grid,
+        route: Route::Page(PageId::Grid),
         label: "Data grid",
         section: "Tables",
         icon: "•",
     },
     NavEntry {
-        id: PageId::Overview,
+        route: Route::Selection,
         label: "Selection",
         section: "Tables",
         icon: "•",
     },
     NavEntry {
-        id: PageId::Overview,
+        route: Route::Placeholder,
         label: "Cell editors",
         section: "Tables",
         icon: "•",
     },
     NavEntry {
-        id: PageId::Overview,
+        route: Route::Placeholder,
         label: "Columns",
         section: "Tables",
         icon: "•",
     },
     NavEntry {
-        id: PageId::Lists,
+        route: Route::Page(PageId::Lists),
         label: "Lists",
         section: "Navigation",
         icon: "•",
     },
     NavEntry {
-        id: PageId::Trees,
+        route: Route::Page(PageId::Trees),
         label: "Trees",
         section: "Navigation",
         icon: "•",
     },
     NavEntry {
-        id: PageId::Sidebars,
+        route: Route::Page(PageId::Sidebars),
         label: "Sidebars",
         section: "Navigation",
         icon: "•",
     },
     NavEntry {
-        id: PageId::Overview,
+        route: Route::Placeholder,
         label: "Tabs",
         section: "Navigation",
         icon: "•",
     },
     NavEntry {
-        id: PageId::Overview,
+        route: Route::Placeholder,
         label: "Menus",
         section: "Navigation",
         icon: "•",
     },
     NavEntry {
-        id: PageId::Dialogs,
+        route: Route::Page(PageId::Dialogs),
         label: "Dialogs",
         section: "Overlays",
         icon: "•",
     },
     NavEntry {
-        id: PageId::Pickers,
+        route: Route::Page(PageId::Pickers),
         label: "Pickers",
         section: "Overlays",
         icon: "•",
     },
     NavEntry {
-        id: PageId::Overview,
+        route: Route::Placeholder,
         label: "Dialog kinds",
         section: "Overlays",
         icon: "•",
     },
     NavEntry {
-        id: PageId::Overview,
+        route: Route::Placeholder,
         label: "Popups & tooltips",
         section: "Overlays",
         icon: "•",
     },
     NavEntry {
-        id: PageId::Overview,
+        route: Route::Placeholder,
         label: "File browser",
         section: "Overlays",
         icon: "•",
     },
     NavEntry {
-        id: PageId::Progress,
+        route: Route::Page(PageId::Progress),
         label: "Progress",
         section: "Feedback",
         icon: "•",
     },
     NavEntry {
-        id: PageId::Overview,
+        route: Route::Placeholder,
         label: "Empty & error",
         section: "Feedback",
         icon: "•",
     },
     NavEntry {
-        id: PageId::Overview,
+        route: Route::Placeholder,
         label: "Meters",
         section: "Feedback",
         icon: "•",
     },
     NavEntry {
-        id: PageId::Overview,
+        route: Route::Placeholder,
         label: "Notices",
         section: "Feedback",
         icon: "•",
     },
     NavEntry {
-        id: PageId::Panels,
+        route: Route::Page(PageId::Panels),
         label: "Panels",
         section: "Layout",
         icon: "•",
     },
     NavEntry {
-        id: PageId::Scrolling,
+        route: Route::Page(PageId::Scrolling),
         label: "Scrolling",
         section: "Layout",
         icon: "•",
     },
     NavEntry {
-        id: PageId::Overview,
+        route: Route::Placeholder,
         label: "Splits & stacks",
         section: "Layout",
         icon: "•",
     },
     NavEntry {
-        id: PageId::Overview,
+        route: Route::Placeholder,
         label: "Master-detail",
         section: "Layout",
         icon: "•",
     },
     NavEntry {
-        id: PageId::Overview,
+        route: Route::Placeholder,
         label: "Pane tree",
         section: "Layout",
         icon: "•",
     },
     NavEntry {
-        id: PageId::Editor,
+        route: Route::Page(PageId::Editor),
         label: "Code editor",
         section: "Text & code",
         icon: "•",
     },
     NavEntry {
-        id: PageId::Overview,
+        route: Route::Placeholder,
         label: "Diff",
         section: "Text & code",
         icon: "•",
     },
     NavEntry {
-        id: PageId::Terminal,
+        route: Route::Page(PageId::Terminal),
         label: "Terminal",
         section: "Text & code",
         icon: "•",
     },
     NavEntry {
-        id: PageId::Overview,
+        route: Route::Placeholder,
         label: "Text utilities",
         section: "Text & code",
         icon: "•",
     },
     NavEntry {
-        id: PageId::Settings,
+        route: Route::Page(PageId::Settings),
         label: "Settings",
         section: "Screens",
         icon: "•",
     },
     NavEntry {
-        id: PageId::TaskRunner,
+        route: Route::Page(PageId::TaskRunner),
         label: "Task runner",
         section: "Screens",
         icon: "•",
     },
     NavEntry {
-        id: PageId::Overview,
+        route: Route::Placeholder,
         label: "Query workbench",
         section: "Screens",
         icon: "•",
     },
     NavEntry {
-        id: PageId::Overview,
+        route: Route::Placeholder,
         label: "Connections",
         section: "Screens",
         icon: "•",
     },
     NavEntry {
-        id: PageId::Overview,
+        route: Route::Placeholder,
         label: "Finder",
         section: "Screens",
         icon: "•",
     },
     NavEntry {
-        id: PageId::Overview,
+        route: Route::Placeholder,
         label: "Disk cleanup",
         section: "Screens",
         icon: "•",
     },
     NavEntry {
-        id: PageId::Overview,
+        route: Route::Placeholder,
         label: "Activity",
         section: "Screens",
         icon: "•",
     },
     NavEntry {
-        id: PageId::Overview,
+        route: Route::Placeholder,
         label: "Workspaces",
         section: "Screens",
         icon: "•",
     },
     NavEntry {
-        id: PageId::Overview,
+        route: Route::Placeholder,
         label: "Accounts & usage",
         section: "Screens",
         icon: "•",
     },
     NavEntry {
-        id: PageId::Overview,
+        route: Route::Placeholder,
         label: "Launch cockpit",
         section: "Screens",
         icon: "•",
     },
     NavEntry {
-        id: PageId::Overview,
+        route: Route::Placeholder,
         label: "Read-only report",
         section: "Screens",
         icon: "•",
@@ -554,10 +591,6 @@ fn normalized_name(input: &str) -> String {
         .collect()
 }
 
-fn entry_is_live(entry: &NavEntry) -> bool {
-    entry.label == "Overview" || entry.id != PageId::Overview
-}
-
 fn nav_index_from_name(value: &str) -> Option<usize> {
     let value = normalized_name(value);
     if let Some(label) = NAV_ALIASES
@@ -574,16 +607,16 @@ fn nav_index_from_name(value: &str) -> Option<usize> {
         return Some(index);
     }
     NAV_ENTRIES.iter().position(|entry| {
-        entry_is_live(entry)
-            && (normalized_name(entry.id.slug()) == value
-                || normalized_name(entry.id.title()) == value)
+        entry.page().is_some_and(|page| {
+            normalized_name(page.slug()) == value || normalized_name(page.title()) == value
+        })
     })
 }
 
 fn index_for_page(page: PageId) -> usize {
     NAV_ENTRIES
         .iter()
-        .position(|entry| entry_is_live(entry) && entry.id == page)
+        .position(|entry| entry.page() == Some(page))
         .unwrap_or(0)
 }
 
@@ -682,10 +715,6 @@ fn entry_for_key(key: ItemKey, nodes: &[NavNode]) -> Option<usize> {
         .get(source)?
         .entry
         .or_else(|| nodes[source..].iter().find_map(|node| node.entry))
-}
-
-fn shell_brand() -> Brand<'static> {
-    Brand::new(BRAND, "Junie").tagline("Design system")
 }
 
 fn shell_status() -> StatusBar<'static> {
@@ -830,8 +859,7 @@ impl App {
         let nav_index = nav_index.min(NAV_ENTRIES.len().saturating_sub(1));
         let selected = NAV_ENTRIES.get(nav_index).copied();
         let initial = selected
-            .filter(entry_is_live)
-            .map(|entry| entry.id)
+            .and_then(|entry| entry.page())
             .unwrap_or(PageId::Overview);
         let mut nav_state = TreeState::new();
         place_nav(&mut nav_state, nav_index);
@@ -870,14 +898,23 @@ impl App {
             return;
         };
         self.nav_index = index;
-        if entry_is_live(&entry) {
-            self.page = entry.id;
+        if let Some(page) = entry.page() {
+            self.page = page;
         }
         place_nav(&mut self.nav_state, index);
     }
 
-    fn show_live_page(&self) -> bool {
-        NAV_ENTRIES.get(self.nav_index).is_some_and(entry_is_live)
+    /// The route the current navigation entry opens.
+    fn route(&self) -> Route {
+        NAV_ENTRIES
+            .get(self.nav_index)
+            .map(|entry| entry.route)
+            .unwrap_or(Route::Page(PageId::Overview))
+    }
+
+    /// The demo page the current route opens, when it opens one.
+    fn route_page(&self) -> Option<PageId> {
+        self.route().page()
     }
 
     fn nav_label(&self) -> &'static str {
@@ -953,45 +990,99 @@ struct ShellLayout {
     footer: Rect,
 }
 
+/// The panes the shell body is split into.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Pane {
+    Sidebar,
+    Main,
+    Spacer,
+    Inspector,
+}
+
+/// The sidebar rail is wider on roomy terminals.
+const SIDEBAR_WIDE: u16 = 25;
+const SIDEBAR_NARROW: u16 = 20;
+const SIDEBAR_WIDE_FROM: u16 = 110;
+/// The inspector dock needs room to sit beside the main area.
+const INSPECTOR_WIDTH: u16 = 30;
+const INSPECTOR_MIN_WIDTH: u16 = 100;
+/// The clear column between the main area and the inspector dock.
+const SHELL_GAP: u16 = 1;
+
+/// A fixed-width pane policy.
+fn fixed_pane(width: u16) -> termrock::layout::ChildPolicy {
+    termrock::layout::ChildPolicy::new(termrock::layout::Size::exact(width, 1))
+        .min(width, 0)
+        .max(Some(width), None)
+}
+
+/// A pane that takes the space the fixed panes leave.
+fn flexible_pane() -> termrock::layout::ChildPolicy {
+    termrock::layout::ChildPolicy::new(termrock::layout::Size::default()).flex(1)
+}
+
+/// Resolve the shell body from the shared layout plan.
+///
+/// The app states policy only: a fixed sidebar rail, a flexible main area and
+/// an optional fixed inspector dock that keeps one clear column before it. The
+/// shared plan owns the geometry.
 fn shell_layout(area: Rect, inspector: bool) -> ShellLayout {
     let regions = termrock::AppShell::new()
         .header(1)
         .gap(1)
         .footer(1)
         .regions(area);
-    let header = regions.header;
-    let footer = regions.footer;
     let body = regions.body;
-    let sidebar_span: u16 = if area.width >= 110 { 24 } else { 19 };
-    let inspector_width = if inspector && area.width >= 100 {
-        30
+    let sidebar_width = if body.width >= SIDEBAR_WIDE_FROM {
+        SIDEBAR_WIDE
+    } else {
+        SIDEBAR_NARROW
+    };
+    let inspector_width = if inspector && body.width >= INSPECTOR_MIN_WIDTH {
+        INSPECTOR_WIDTH
     } else {
         0
     };
-    let sidebar = Rect::new(body.x, body.y, sidebar_span.saturating_add(1), body.height);
-    let main_x = body.x.saturating_add(sidebar_span).saturating_add(2);
-    let main_width = body.width.saturating_sub(
-        sidebar_span
-            .saturating_add(2)
-            .saturating_add(inspector_width)
-            .saturating_add(u16::from(inspector_width > 0).saturating_mul(2)),
-    );
-    let main = Rect::new(main_x, body.y, main_width, body.height);
-    let inspector = (inspector_width > 0).then(|| {
-        Rect::new(
-            main.right().saturating_add(2),
-            body.y,
-            inspector_width,
-            body.height,
-        )
-    });
-    ShellLayout {
-        header,
-        sidebar,
-        main,
-        inspector,
-        footer,
+    let mut panes = vec![Pane::Sidebar, Pane::Main];
+    if inspector_width > 0 {
+        panes.push(Pane::Spacer);
+        panes.push(Pane::Inspector);
     }
+    let children: Vec<termrock::layout::Child<'_, Pane>> = panes
+        .iter()
+        .map(|pane| match pane {
+            Pane::Sidebar => termrock::layout::Child::new(pane, fixed_pane(sidebar_width)),
+            Pane::Main => termrock::layout::Child::new(pane, flexible_pane()),
+            Pane::Spacer => termrock::layout::Child::new(
+                pane,
+                termrock::layout::ChildPolicy::new(termrock::layout::Size::default())
+                    .max(Some(0), None),
+            ),
+            Pane::Inspector => termrock::layout::Child::new(pane, fixed_pane(inspector_width)),
+        })
+        .collect();
+    let plan = termrock::layout::row(
+        body,
+        &children,
+        termrock::layout::Composition::new().gap(SHELL_GAP),
+        |_, _| termrock::layout::Size::default(),
+    );
+    let mut layout = ShellLayout {
+        header: regions.header,
+        sidebar: Rect::default(),
+        main: Rect::default(),
+        inspector: None,
+        footer: regions.footer,
+    };
+    for child in &plan.children {
+        match panes.get(child.index).copied() {
+            Some(Pane::Sidebar) => layout.sidebar = child.logical,
+            Some(Pane::Main) => layout.main = child.logical,
+            Some(Pane::Inspector) => layout.inspector = Some(child.logical),
+            Some(Pane::Spacer) | None => {}
+        }
+    }
+    layout
 }
 
 fn shell_part_style(
@@ -1711,12 +1802,8 @@ impl TuiApp for App {
             self.status = None;
             response = response.repaint();
         }
-        response |= shell_brand().update(cx).erase();
         response |= shell_status().update(cx).erase();
 
-        let _ = too_small_notice();
-        let _ = missing_page_panel();
-        let _ = inspector_panel();
         let command = cx.command();
         self.update_header(cx, &mut response);
         match command {
@@ -1748,7 +1835,7 @@ impl TuiApp for App {
             }
             _ => {}
         }
-        if self.show_live_page()
+        if self.route_page().is_some()
             && let Some(action) = command
             && !matches!(
                 action,
@@ -1758,7 +1845,7 @@ impl TuiApp for App {
         {
             response |= active.command(cx, action);
         }
-        if self.nav_label() == "Selection" {
+        if self.route() == Route::Selection {
             response |= self.selectable.update(cx);
         } else {
             self.selectable.blur();
@@ -1779,12 +1866,12 @@ impl TuiApp for App {
             });
         if let Some((index, activate)) = picked {
             self.goto_entry(index);
-            if activate && self.show_live_page() {
+            if activate && self.route_page().is_some() {
                 cx.focus_next();
             }
         }
 
-        if self.show_live_page()
+        if self.route_page().is_some()
             && !(cx.update_cause() == termrock::UpdateCause::Tick
                 && (cx.is_open(HELP) || self.motion_paused))
             && let Some(active) = self.pages.get_mut(self.page.index())
@@ -1818,7 +1905,6 @@ impl TuiApp for App {
         }
         let shell = shell_layout(full, self.inspector);
 
-        shell_brand().draw(ui, shell.header);
         shell_status().draw(ui, shell.footer);
         let entry = NAV_ENTRIES.get(self.nav_index).copied();
         let section = entry.map(|entry| entry.section).unwrap_or("");
@@ -1833,30 +1919,33 @@ impl TuiApp for App {
             label,
             self.inspector,
         );
-        if self.show_live_page() {
-            if let Some(active) = self.active() {
-                active.draw(ui, shell.main);
-            } else {
-                missing_page_panel().draw(ui, shell.main, |ui, area| {
-                    let _ = ui.paint_str(area, "No page selected", ui.surface_style());
-                });
+        match self.route() {
+            Route::Selection => {
+                showcase_demos::pages::selectable::paint(ui, shell.main, &self.selectable);
             }
-        } else if label == "Selection" {
-            showcase_demos::pages::selectable::paint(ui, shell.main, &self.selectable);
-        } else {
-            paint_placeholder(ui, shell.main, label);
+            Route::Page(_) => {
+                if let Some(active) = self.active() {
+                    active.draw(ui, shell.main);
+                } else {
+                    missing_page_panel().draw(ui, shell.main, |ui, area| {
+                        let _ = ui.paint_str(area, "No page selected", ui.surface_style());
+                    });
+                }
+            }
+            Route::Placeholder => {
+                paint_placeholder(ui, shell.main, label);
+            }
         }
         if let Some(inspector) = shell.inspector {
             paint_inspector(ui, inspector, self);
         }
-        let (page_hints, page_editing) = if self.show_live_page() {
-            self.active()
+        let (page_hints, page_editing) = match self.route() {
+            Route::Page(_) => self
+                .active()
                 .map(|page| (page.hints(ui), page.editing(ui)))
-                .unwrap_or_default()
-        } else if label == "Selection" {
-            (self.selectable.hints(), false)
-        } else {
-            (&[][..], false)
+                .unwrap_or_default(),
+            Route::Selection => (self.selectable.hints(), false),
+            Route::Placeholder => (&[][..], false),
         };
         paint_footer(
             ui,
@@ -1871,7 +1960,7 @@ impl TuiApp for App {
                 let _ = ui.paint_str(body, "q quit   ? help   Esc close", ui.surface_style());
             });
         });
-        if label == "Selection" {
+        if self.route() == Route::Selection {
             showcase_demos::pages::selectable::Model::draw_dialog(ui, &self.selectable);
         }
     }
@@ -2119,7 +2208,7 @@ mod app_tests {
         );
         assert!(parsed.is_ok(), "valid frame options: {parsed:?}");
         if let Ok((nav, _, paused, frame)) = parsed {
-            assert_eq!(NAV_ENTRIES[nav].id, PageId::Progress);
+            assert_eq!(NAV_ENTRIES[nav].page(), Some(PageId::Progress));
             assert_eq!(NAV_ENTRIES[nav].label, "Progress");
             assert!(paused);
             assert_eq!(frame, 80);
