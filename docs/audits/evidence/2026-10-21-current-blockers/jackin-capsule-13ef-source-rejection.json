@@ -1,0 +1,91 @@
+{
+  "schema": "independent-source-audit-v1",
+  "reviewer": "/root/tablepro_name_edit_architect",
+  "created_at": "2026-10-21T02:16:40.981953+00:00",
+  "decision": "blocked",
+  "baseline": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "design": "f4867e9b5f8a08a3bb61ce80d644198a29f51984",
+  "repository_edits": false,
+  "expected_artifact_edits": false,
+  "tests_executed": [],
+  "captures_executed": false,
+  "key_access": false,
+  "limitations": [
+    "Source audit only. No actual frame or application execution proves visual or functional parity.",
+    "All findings require recorded disposition; deleting the old replay filename is not acceptance."
+  ],
+  "source_commit": "13ef730455a96fcf0bfbf80fa7e621a3da6c2033",
+  "verified_integrated_ancestor": "ce624ed2b378ee699d79898fbc2b808147252ffc",
+  "findings": [
+    {
+      "id": "JC-1",
+      "severity": "P1",
+      "locations": [
+        "crates/jackin-preview-app/src/app.rs:7984-8011",
+        "crates/jackin-preview-app/src/app/capsule_menu_view.rs:28-272"
+      ],
+      "problem": "Exact 80x24, TrueColor, accent RGB(0x48,0xe0,0x54), CapsuleMulti, paused-motion and menu-position selectors remain. The new painter takes no live model or state and supplies 19 fixed positioned rows containing pre-clipped transcript, pane-border and scrollbar cells. This is reference-screen reproduction, partly relocated to Termrock.",
+      "required_fix": "Replace with live pane data and shared workspace/layout components; remove selector and procedural row plate in the same verified series."
+    },
+    {
+      "id": "JC-2",
+      "severity": "P1",
+      "locations": [
+        "crates/jackin-preview-app/src/app.rs:8443-8459",
+        "crates/jackin-preview-app/src/app/capsule_menu_view.rs:294-313",
+        "crates/termrock-feedback/src/capsule_menu.rs:12-62"
+      ],
+      "problem": "The real ContextMenu draws and owns input, then a second painter overwrites it. Visible Change title selection is permanently true and does not consume MenuState, hover or pressed state. The painter has no IDs, measurement, input or typed actions.",
+      "required_fix": "Use only ContextMenu with live title/items/state; fix its shared layout/theme contracts rather than overwrite its cells."
+    },
+    {
+      "id": "JC-3",
+      "severity": "P1",
+      "locations": [
+        "crates/jackin-preview-app/src/app.rs:7981",
+        "crates/jackin-preview-app/src/app.rs:8020",
+        "crates/termrock-runtime/src/ui/mod.rs:1103-1114"
+      ],
+      "problem": "New calls to set_undrawn_top_bar_cursor register an undrawn full-area focusable keyboard editor with EDITING on the top layer and force fixed cursor positions. The runtime API predates this increment, but these uses are new.",
+      "required_fix": "Remove these registrations. Preserve the reference cursor behavior through an explicit overlay cursor policy and a real rendered control owner."
+    },
+    {
+      "id": "JC-4",
+      "severity": "P2",
+      "locations": [
+        "crates/termrock-feedback/src/capsule_menu.rs:151-170"
+      ],
+      "problem": "The custom put loop splits Unicode scalar values and skips zero-width characters. A combining accent in e plus U+0301 is discarded.",
+      "required_fix": "Use the shared grapheme-aware text renderer and test wide and combining labels."
+    },
+    {
+      "id": "JC-5",
+      "severity": "P2",
+      "locations": [
+        "crates/termrock-feedback/src/capsule_menu.rs:51-77",
+        "crates/termrock-feedback/src/capsule_menu.rs:299-305",
+        "crates/termrock-feedback/src/capsule_menu.rs:525-531"
+      ],
+      "problem": "The public API bundles an entire Jackin-like screen, accepts raw positioned cell spans, uses a fixed 29-column menu and 11-column bold tail, and paints an attachment at fixed column24 with literal RGB inks. This does not implement shared menu or responsive workspace ownership.",
+      "required_fix": "Keep generic menu, tabs, workspace, status and hint contracts separate; use documented measured layout policies and semantic component theme configuration."
+    }
+  ],
+  "reference_contract": [
+    "Frozen src/bin/jackin_preview/screens/capsule.rs:360-381 derives title from the daemon tab and anchors ContextMenu to the real tab area.",
+    "Frozen capsule.rs:1466-1488 derives tab labels and status from daemon data; 1897-1911 dispatches shared menu actions.",
+    "That source file is byte-identical between the fixed baseline and fixed design revisions."
+  ],
+  "replacement_plan": [
+    "Derive menu data from the live selected tab and use the existing ContextMenu state/update/measure/draw contract.",
+    "Remove both menu repaint calls, exact viewport/theme/scenario selectors, and undrawn editor registrations.",
+    "Retain live pane rendering under the overlay; delete the specialized view and feedback painter after consumers are removed.",
+    "Prove real keyboard movement, pointer hover/press/release, dismissal, focus restoration, cursor, changed labels, Unicode and adjacent sizes; then run frozen CLI paired comparisons."
+  ],
+  "record_correction": "The migration matrix description that this screen now uses live tabs/entries is unsupported by this source. Keep the replacement unresolved.",
+  "source_sha256": {
+    "crates/jackin-preview-app/src/app.rs": "1ce875aa043c6d0aae653612cefae17045ede706e45ad43cb7b1d42bca086c63",
+    "crates/jackin-preview-app/src/app/capsule_menu_view.rs": "59d3b03f0605c1408918cc63cb5b1583397f7a1a8ffd94f6c6e4c886286bedf9",
+    "crates/termrock-feedback/src/capsule_menu.rs": "5e9796a41c4fe5a400edd385aaafdb2f4f2183c3baf36c4923ea439554dca348",
+    "crates/termrock-runtime/src/ui/mod.rs": "8800eb77a9470218047820c7f929d5bc91e78f58ee2d49791d7480232c664cfc"
+  }
+}
