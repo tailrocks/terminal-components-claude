@@ -418,15 +418,8 @@ impl HomeState {
         {
             return;
         }
-        if let Some(view) =
-            catalogue::parity_discovery_80x24_plate(world, ui.full().width, ui.full().height)
-            && paint_first_use_80x24(ui, rows_area, &view)
-        {
-            return;
-        }
-        if let Some(view) =
-            catalogue::parity_discovery_100x30_plate(world, ui.full().width, ui.full().height)
-            && paint_tag_list_plate(ui, rows_area, &view, 100, 30)
+        if let Some(view) = catalogue::parity_discovery_view(world, ui.full().width)
+            && paint_parity_discovery_view(ui, rows_area, &view)
         {
             return;
         }
@@ -1533,6 +1526,19 @@ fn paint_hard_cases_discovery(
 ) -> bool {
     let full = ui.full();
     if full.width >= 80 && full.width < 120 && paint_tag_list(ui, area, view, None) {
+        return true;
+    }
+    paint_parity_discovery(ui, area, view)
+}
+
+/// `parity-discovery` body. Below the 120-wide breakpoint the view keeps its
+/// single-column tag list; from 120 up it uses the split master/detail card.
+fn paint_parity_discovery_view(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    view: &catalogue::ParityDiscovery,
+) -> bool {
+    if (80..120).contains(&ui.full().width) && paint_tag_list(ui, area, view, None) {
         return true;
     }
     paint_parity_discovery(ui, area, view)
