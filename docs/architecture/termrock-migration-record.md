@@ -262,6 +262,70 @@ the frozen colour contract), `Chrome::fit` (it would move every dialog
 inside the frozen frames), the PR #26 `Splitter`, `Grid` and `Table`
 widgets wholesale, and the PR #26 specimen and coverage harness.
 
+### Measured parity state, candidate against the frozen approval
+
+Candidate built from `fcc748646` (before this run's stream merges),
+reference from the sealed cohort, comparison through the frozen harness.
+
+| Application | Cases | Passed | Failed | Failure classes |
+| --- | --- | --- | --- | --- |
+| tablepro | 2762 | 48 | 2714 | 1735 frame mismatch against the approved snapshot, 627 interaction timeout, 332 boot needle never appeared, 20 other |
+| showcase | 14549 | measurement in progress | | |
+| jackin | 5818 | measurement pending | | |
+| holla | 5766 | measurement pending | | |
+
+The three failure classes map to `tests/visual_baseline/support.rs:322`
+("baseline `{name}` failed", a decoded-cell difference against the approved
+snapshot), `support.rs:700` ("`wait:{needle}` timed out") and
+`support.rs:667` ("boot needle ... never appeared").
+
+### Stream results
+
+**Showcase — landed.** `crates/showcase-demos/src/pages/{chrome,taskrunner,terminal}.rs`
+and `pages/mod.rs`, plus the new guard test
+`crates/showcase-demos/tests/no_false_parity.rs`. 6914 lines deleted, 1309
+added.
+
+Removed: 11 captured cell tables (about 2400 cells) copied from the approved
+snapshot or the tuiscotti oracle; `taskrunner::paint_historical`; 11 exact
+page-rect size branches that each selected a different screen; the
+`UpdateCause::Tick` "settled" switch in the terminal page; the
+`historical_palette` style map together with the narrow-rail replay it
+served. Each page now has one responsive layout policy.
+
+The chrome page now matches the frozen approval cell for cell at every
+reference size:
+
+| size | cells differing before | after |
+| --- | --- | --- |
+| 72x20 | 56 | 0 |
+| 80x24 | 243 | 0 |
+| 100x30 | 758 | 0 |
+| 120x40 | 0 | 0 |
+| 160x50 | 2212 | 0 |
+
+The task runner and the terminal page no longer replay anything, but they
+still differ from their approved captures, because those captures show an
+older page design (the old "Targets/Pipeline/Log" sheet and the old launch
+transcript) while the pages now use the newer widget design. The two
+captures also disagree with each other. This part is NOT complete and is
+reported as a possible reference defect for an independent decision.
+
+Gate: `cargo nextest run -p showcase-demos -p showcase-ui --all-targets` gives
+135 run, 129 passed, 6 failed. The 6 failures are identical on the base
+commit: `editor_shell_completion_accepts_tab_then_next_tab_indents`,
+`editor_shell_completion_accepts_enter_then_tab_indents`,
+`editor_playground_keeps_live_find_completion_and_run_contracts`,
+`page_headings::all_page_headings_match_the_reference_capture_matrix`,
+`page_headings::all_shell_headers_match_reference_captures_and_visibility_thresholds`,
+`visual::showcase_visual_baseline`.
+
+**Theme and overlays — landed.** `849d26dad` restores the frozen SQL syntax
+ink (keywords bold white, operators mid grey, strings and numbers light grey,
+errors in the theme red) and the public MENU/DEFAULT/TITLE identity of the
+menu bar title, both of which had drifted from the frozen corpus. The theme
+and overlay suites are green: 366 tests run, 366 passed.
+
 ## Coverage gaps
 
 ### False-parity inventory (read-only audit, revision `40bc297e5`)
