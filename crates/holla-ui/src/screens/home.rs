@@ -290,68 +290,12 @@ impl HomeState {
             rows_area.y = rows_area.y.saturating_add(used);
             rows_area.height = rows_area.height.saturating_sub(used);
         }
-        if let Some(view) = catalogue::first_use_view(world, ui.full().width, self.history)
-            && paint_narrow_tag_list(ui, rows_area, &view)
-        {
-            return;
-        }
-        if let Some(view) = catalogue::monorepo_root_view(world, ui.full().width, self.history)
-            && paint_narrow_tag_list(ui, rows_area, &view)
-        {
-            return;
-        }
-        if let Some(view) = catalogue::monorepo_child_view(world, ui.full().width)
-            && paint_narrow_tag_list(ui, rows_area, &view)
-        {
-            return;
-        }
-        if let Some(view) = catalogue::docker_cleanup_view(world, ui.full().width)
-            && paint_narrow_tag_list(ui, rows_area, &view)
-        {
-            return;
-        }
-        if let Some(view) = catalogue::remote_host_view(world, ui.full().width)
-            && paint_narrow_tag_list(ui, rows_area, &view)
-        {
-            return;
-        }
-        if let Some(view) = catalogue::activities_multi_view(world, ui.full().width, self.history)
-            && paint_narrow_tag_list(ui, rows_area, &view)
-        {
-            return;
-        }
-        if let Some(view) = catalogue::parity_discovery_view(world, ui.full().width)
-            && paint_parity_discovery_view(ui, rows_area, &view)
-        {
-            return;
-        }
-        if let Some(view) = catalogue::parity_history_view(world, ui.full().width)
-            && paint_parity_history(ui, rows_area, &view)
-        {
-            return;
-        }
-        if let Some(view) = catalogue::parity_browser_view(world, ui.full().width)
-            && paint_parity_browser(ui, rows_area, &view)
-        {
-            return;
-        }
-        if let Some(view) = catalogue::parity_git_current_view(world, ui.full().width)
-            && paint_parity_git_current(ui, rows_area, &view)
-        {
-            return;
-        }
-        if let Some(view) = catalogue::parity_git_batch_view(world, ui.full().width)
-            && paint_parity_git_batch(ui, rows_area, &view)
-        {
-            return;
-        }
-        if let Some(view) = catalogue::parity_task_sources_view(world, ui.full().width)
-            && paint_parity_task_sources(ui, rows_area, &view)
-        {
-            return;
-        }
-        if let Some(view) = catalogue::parity_cargo_view(world, ui.full().width)
-            && paint_parity_cargo(ui, rows_area, &view)
+        // Single plate selection in former branch order. Each view builder
+        // gates on its own scenario frame, so at most one yields a view;
+        // painting it (or falling through when its band is off) matches the
+        // old chain branch for branch.
+        if let Some((view, paint)) = select_plate(world, ui.full().width, self.history)
+            && paint(ui, rows_area, &view)
         {
             return;
         }
@@ -448,6 +392,69 @@ impl HomeState {
             }
         }
     }
+}
+
+/// One home plate slot: the shared signature of every plate painter.
+type PlatePaint = fn(&mut Ui<'_>, Rect, &catalogue::ParityDiscovery) -> bool;
+
+/// Home plate selection in former branch order (first-use through cargo).
+/// The builders gate on distinct scenario frames, so at most one view is
+/// `Some`; the single paint-or-continue below matches the old chain.
+fn select_plate(
+    world: &World,
+    width: u16,
+    history: bool,
+) -> Option<(catalogue::ParityDiscovery, PlatePaint)> {
+    catalogue::first_use_view(world, width, history)
+        .map(|view| (view, paint_narrow_tag_list as PlatePaint))
+        .or_else(|| {
+            catalogue::monorepo_root_view(world, width, history)
+                .map(|view| (view, paint_narrow_tag_list as PlatePaint))
+        })
+        .or_else(|| {
+            catalogue::monorepo_child_view(world, width)
+                .map(|view| (view, paint_narrow_tag_list as PlatePaint))
+        })
+        .or_else(|| {
+            catalogue::docker_cleanup_view(world, width)
+                .map(|view| (view, paint_narrow_tag_list as PlatePaint))
+        })
+        .or_else(|| {
+            catalogue::remote_host_view(world, width)
+                .map(|view| (view, paint_narrow_tag_list as PlatePaint))
+        })
+        .or_else(|| {
+            catalogue::activities_multi_view(world, width, history)
+                .map(|view| (view, paint_narrow_tag_list as PlatePaint))
+        })
+        .or_else(|| {
+            catalogue::parity_discovery_view(world, width)
+                .map(|view| (view, paint_parity_discovery_view as PlatePaint))
+        })
+        .or_else(|| {
+            catalogue::parity_history_view(world, width)
+                .map(|view| (view, paint_parity_history as PlatePaint))
+        })
+        .or_else(|| {
+            catalogue::parity_browser_view(world, width)
+                .map(|view| (view, paint_parity_browser as PlatePaint))
+        })
+        .or_else(|| {
+            catalogue::parity_git_current_view(world, width)
+                .map(|view| (view, paint_parity_git_current as PlatePaint))
+        })
+        .or_else(|| {
+            catalogue::parity_git_batch_view(world, width)
+                .map(|view| (view, paint_parity_git_batch as PlatePaint))
+        })
+        .or_else(|| {
+            catalogue::parity_task_sources_view(world, width)
+                .map(|view| (view, paint_parity_task_sources as PlatePaint))
+        })
+        .or_else(|| {
+            catalogue::parity_cargo_view(world, width)
+                .map(|view| (view, paint_parity_cargo as PlatePaint))
+        })
 }
 
 /// Tag finder grey. Junie `FgStep::Muted` is `#808080`.
