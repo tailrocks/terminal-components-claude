@@ -28,6 +28,7 @@ termrock-editors.workspace = true
 termrock-forms.workspace = true
 termrock-terminal.workspace = true
 termrock-session.workspace = true
+termrock-shell.workspace = true
 ratatui.workspace = true
 ratatui-core.workspace = true
 

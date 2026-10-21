@@ -1,0 +1,36 @@
+//! The application shell: routing, navigation, chrome, quit guard, status and
+//! footer ownership, ported from the PR #26 shell layer onto the parity
+//! runtime contracts (`App`/`Cx`/`Ui`/`Response`).
+//!
+//! The parity runtime already owns focus, hit testing, pointer routing, layers
+//! and the update loop, so this crate owns only what apps still carry per app:
+//! the page router, the navigation stack, chrome geometry, the quit guard, the
+//! status line, the footer hint vocabulary and keyboard-deliverability, and the
+//! reachability harness used to prove every word stays reachable.
+//!
+//! Nothing here draws its own pixels: the shell composes through the shared
+//! composition slots ([`shell::AppShell`]) and returns vocabulary the app
+//! renders with existing components.
+
+pub mod chrome;
+pub mod footer;
+pub mod keyboard;
+pub mod nav;
+pub mod page;
+pub mod quit;
+pub mod reach;
+pub mod router;
+pub mod shell;
+pub mod status;
+
+pub use chrome::{Chrome, Regions};
+pub use footer::{Footer, FooterStatus, HINT_AUTO, HINT_NORMAL, HINT_PINNED, Hint};
+pub use nav::{Crumb, Nav, PageKey, Router};
+pub use page::{Page, PageLeaf, rebuild_on_tick, replay_key};
+pub use quit::{
+    KeyContext, Leave, LeaveDialog, LeaveDialogKind, LeaveGuard, LeaveKey, QuitKeys, Resolved,
+    Stakes,
+};
+pub use router::{KeyBinding, KeyHost, KeyRouter, ShellAction, ShellKeys, Tier, chord, lookup};
+pub use shell::AppShell;
+pub use status::{JobKey, StatusLine, TONE_ERROR, TONE_NORMAL, TONE_SECONDARY, TONE_SUCCESS};
