@@ -227,6 +227,104 @@ fn pointer_activation_after_leave_remains_available() {
 }
 
 #[test]
+fn blocked_physical_activation_remapped_to_navigation_keeps_highlight_hidden() {
+    for (physical, activate_action, alternate, next_activation) in [
+        (
+            KeyCode::Char(' '),
+            ActionKey::custom("menu.context.activate.space"),
+            KeyCode::F(8),
+            KeyCode::Enter,
+        ),
+        (
+            KeyCode::Enter,
+            ActionKey::custom("menu.context.activate.enter"),
+            KeyCode::F(9),
+            KeyCode::Char(' '),
+        ),
+    ] {
+        for navigation in [
+            ActionKey::custom("menu.context.first"),
+            ActionKey::custom("menu.context.last"),
+            ActionKey::custom("menu.context.prev.up"),
+            ActionKey::custom("menu.context.next.down"),
+        ] {
+            let mut keymap = KeyMap::default();
+            keymap.remap_component(MENU_ID, activate_action, Chord::key(alternate));
+            keymap.remap_component(MENU_ID, navigation, Chord::key(physical));
+            let mut harness = Harness::new(
+                Consumer {
+                    state: MenuState::default(),
+                    chosen: None,
+                    keymap,
+                },
+                Theme::junie(),
+                50,
+                10,
+            );
+
+            let _ = harness.mouse(MouseKind::Move, 4, 1);
+            let selected_bg = harness.cell(4, 1).bg;
+            let _ = harness.mouse(MouseKind::Move, 0, 0);
+            assert_ne!(harness.cell(4, 1).bg, selected_bg);
+            let hidden = (1..39)
+                .map(|x| harness.cell(x, 1).clone())
+                .collect::<Vec<_>>();
+            let _ = harness.key(physical);
+            assert_eq!(
+                (1..39)
+                    .map(|x| harness.cell(x, 1).clone())
+                    .collect::<Vec<_>>(),
+                hidden,
+                "blocked {physical:?} routed to {navigation:?} must not reveal the row"
+            );
+            let _ = harness.key(next_activation);
+            assert_eq!(
+                harness.app().chosen,
+                None,
+                "blocked {physical:?} must leave the stored cursor hidden"
+            );
+        }
+    }
+}
+
+#[test]
+fn blocked_space_navigation_does_not_enable_following_enter() {
+    let mut keymap = KeyMap::default();
+    keymap.remap_component(
+        MENU_ID,
+        ActionKey::custom("menu.context.activate.space"),
+        Chord::key(KeyCode::F(8)),
+    );
+    keymap.remap_component(
+        MENU_ID,
+        ActionKey::custom("menu.context.first"),
+        Chord::key(KeyCode::Char(' ')),
+    );
+    let mut harness = Harness::new(
+        Consumer {
+            state: MenuState::default(),
+            chosen: None,
+            keymap,
+        },
+        Theme::junie(),
+        50,
+        10,
+    );
+
+    let _ = harness.mouse(MouseKind::Move, 4, 1);
+    let selected_bg = harness.cell(4, 1).bg;
+    let _ = harness.mouse(MouseKind::Move, 0, 0);
+    assert_ne!(harness.cell(4, 1).bg, selected_bg);
+    let _ = harness.key(KeyCode::Char(' '));
+    let _ = harness.key(KeyCode::Enter);
+    assert_eq!(
+        harness.app().chosen,
+        None,
+        "blocked physical Space must not restore the hidden cursor"
+    );
+}
+
+#[test]
 fn disabled_reason_row_does_not_change_while_pointer_is_held_or_dragged() {
     for color in [
         ColorLevel::TrueColor,

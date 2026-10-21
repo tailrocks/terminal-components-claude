@@ -868,16 +868,16 @@ impl<'a> ContextMenu<'a> {
                     Response::action(MenuAction::Closed(DismissReason::Esc))
                 }
                 Intent::Binding(action) => {
-                    let navigation = self.is_navigation_binding(action);
-                    let response = if st.highlight_hidden && cx.activation_key().is_some() {
+                    if st.highlight_hidden && cx.activation_key().is_some() {
                         Response::consumed()
                     } else {
-                        self.binding_response(st, action)
-                    };
-                    if navigation {
-                        self.after_keyboard_navigation(st, cx);
+                        let navigation = self.is_navigation_binding(action);
+                        let response = self.binding_response(st, action);
+                        if navigation {
+                            self.after_keyboard_navigation(st, cx);
+                        }
+                        response
                     }
-                    response
                 }
                 Intent::Pointer {
                     phase,
