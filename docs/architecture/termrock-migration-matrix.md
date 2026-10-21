@@ -2351,3 +2351,55 @@ Shared `PickerLayout` at reviewed `6cd63d2270b85dac30c63018070e00ed80510925` sup
 The authored native zero-footer test uses 100 rows, where old hint painting could be overwritten by results. Independent review recommends retaining a one-item native regression as well; that follow-up is not silently treated as complete. Showcase demonstration and live Jackin picker adoption remain required. Generic layout completion does not clear the private Jackin picker painter, fake cursor, appearance-dependent routing or full product acceptance.
 
 Merged source `609a3d669c6fbb05f2ed2b7baeaa972c0f9e60ed` passes all five Picker layout tests with zero skips, strict overlay all-target Clippy, the default-feature facade consumer compilation and formatting. [Merged receipt](../audits/evidence/2026-10-21-picker-card-policy/merged-focused-and-lint.log) retains exact commands. The existing MenuBar and navigation failures remain open; no expanded or full acceptance gate is inferred from this focused pass.
+
+#### Resolution of the recorded reference defect
+
+The conflict was settled against the pinned reference, and the evidence is
+independent of the candidate output:
+
+- The tag's declared mapping (`visual-baseline:src/theme.rs`, `apply_256`
+  lines 921-962 and `apply_16` lines 983-1010) is the oracle: `text_muted =
+  i(245)`, `text_faint = i(242)`, `text_ghost = i(238)`, `text_on_accent =
+  i(232)`, `border_strong = i(242)`, `highlight = i(25)`, `highlight_danger =
+  i(88)`, `highlight_on_selection = i(55)`, `text_muted = Gray`,
+  `text_faint = Gray`, `text_ghost = DarkGray` at 16 colours.
+- The tag's own rendered snapshots agree with its declared table: in
+  `snapshots/holla/audit/rust/80x24/256.ansi` the muted ink is `38;5;245`
+  (28 cells), the faint ink is `38;5;242`, the ghost ink is `38;5;238` and the
+  on-accent ink is `38;5;232`; `38;5;244` does not occur in the Holla 256
+  tiers at all (checked over every Holla 256 snapshot).
+- Therefore the recorded slot table (muted 244, faint 238, on-accent 233,
+  border_strong 238) and the palette values derived from the older corpus
+  generation were the stale side, and the Holla restoration of the muted,
+  faint, on-accent and border slots was right.
+
+The Holla restoration had, however, moved five further slots away from the
+same declared table (`highlight_bg` 25 → 67, `highlight_danger_bg` 88 → 238,
+`danger_tint` 52 → 233, `syntax.match_current_bg` 55 → 67, the meter
+stale/unknown ink 238 → 242, and the 16-colour ghost-derived meter ink). Those
+are restored to the declared indices in `fix(theme): restore the frozen Junie
+capability slots for every level`.
+
+What changed, and what stayed recorded:
+
+- `crates/termrock-theme/src/palettes.rs`: the authored 256 and 16 slots now
+  match the tag's declared table.
+- `crates/termrock-theme/tests/capability_palettes.rs`: the expected authored
+  slots follow the tag's table (muted 245, faint 242, on-accent 232,
+  border_strong 242) instead of the older corpus values (muted 244, faint
+  238). The old values were 244/238/233/238.
+- `crates/termrock-theme/tests/empty_style_inheritance.rs`: the empty-cell
+  fingerprint follows the restored inks. Old value
+  `312_677_554_172_290_677`, new value `2_278_838_586_319_248_431`.
+- `crates/showcase-ui/tests/shell_chrome.rs`: the 16-colour Overview frame
+  digest follows the same restoration. Old value `0x297069b2_b57e2db6`, new
+  value `0xe8d99bc6_c7e1eff2`. The four truecolour frame digests are
+  unchanged.
+
+After the resolution `cargo nextest run -p termrock-theme --all-targets` is
+181 passed, 0 failed, and the Showcase, Holla and TablePro crates keep their
+state: TablePro fully green, Holla fully green, Showcase with the three
+recorded pre-existing reds (`page_headings` ×2 and `showcase_visual_baseline`).
+The Showcase reds remain a reference-owner decision about the pre-tag page
+heading fixtures and the palette quantization, not a regression from this
+work.
