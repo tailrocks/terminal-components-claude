@@ -1378,8 +1378,12 @@ fn header_action_style(ui: &mut Ui<'_>, id: Id, muted: PaintStyle) -> PaintStyle
     }
 }
 
-fn paint_sidebar(ui: &mut Ui<'_>, area: Rect, _state: &TreeState, label: &str) {
+fn paint_sidebar(ui: &mut Ui<'_>, area: Rect, _state: &TreeState, label: &str, screen_width: u16) {
     if area.is_empty() {
+        return;
+    }
+    if screen_width >= 110 {
+        paint_wide_sidebar(ui, area, label);
         return;
     }
     let canvas = shell_compat_style(ui.surface_style());
@@ -1412,6 +1416,20 @@ fn paint_sidebar(ui: &mut Ui<'_>, area: Rect, _state: &TreeState, label: &str) {
             break;
         }
         let selected = *row_label == shown;
+        let row_label = if screen_width < 100 {
+            clip_label(row_label, 14)
+        } else {
+            (*row_label).to_owned()
+        };
+        let row_label = row_label.as_str();
+        let fade = if screen_width < 100 {
+            nav_fade_steps(index, usize::from(area.height))
+        } else {
+            0
+        };
+        let secondary = fade_paint(secondary, fade);
+        let primary = fade_paint(primary, fade);
+        let chosen = fade_paint(chosen, fade);
         if selected {
             if focused {
                 ui.paint_str(Rect::new(area.x, y, 2, 1), "▎›", gutter);
@@ -1443,6 +1461,210 @@ fn paint_sidebar(ui: &mut Ui<'_>, area: Rect, _state: &TreeState, label: &str) {
                 secondary,
             );
         }
+        if screen_width < 100 && area.height < 23 {
+            let mut pad = primary;
+            if selected && focused {
+                pad = pad.add_modifier(termrock::Modifier::BOLD);
+            }
+            ui.paint_str(Rect::new(area.x.saturating_add(17), y, 1, 1), " ", pad);
+        }
+    }
+    if screen_width < 100 && area.height < 23 {
+        paint_nav_seam(ui, area);
+    }
+}
+
+fn nav_fade_steps(index: usize, visible: usize) -> u8 {
+    if visible == 0 || visible >= 23 {
+        return 0;
+    }
+    let depth = if visible >= 12 {
+        2
+    } else if visible >= 4 {
+        1
+    } else {
+        0
+    };
+    let from_end = visible.saturating_sub(1).saturating_sub(index);
+    if from_end == 0 && depth >= 1 {
+        if depth == 1 { 1 } else { 2 }
+    } else if from_end == 1 && depth >= 2 {
+        1
+    } else {
+        0
+    }
+}
+
+fn fade_paint(style: PaintStyle, steps: u8) -> PaintStyle {
+    if steps == 0 {
+        return style;
+    }
+    let Some(termrock::Color::Rgb(red, green, blue)) = style.as_style().fg else {
+        return style;
+    };
+    let keep = if steps == 1 { 0.8 } else { 0.55 };
+    let mix = |channel: u8| (f32::from(channel) * keep).round() as u8;
+    style.fg(termrock::Color::Rgb(mix(red), mix(green), mix(blue)))
+}
+
+fn paint_wide_sidebar(ui: &mut Ui<'_>, area: Rect, label: &str) {
+    let canvas = shell_compat_style(ui.surface_style());
+    ui.fill(area, canvas);
+    ui.register_control(NAV, area, termrock::Focusability::Focusable);
+    let (shown, _) = legacy_crumb(label);
+    let focused = ui.state(NAV).contains(StateFlags::FOCUSED);
+    let mut y = area.y;
+    let mut previous: Option<&str> = None;
+    for (row_label, group) in LEGACY_NAV {
+        if previous != Some(*group) {
+            if previous.is_some() {
+                if y >= area.bottom() {
+                    break;
+                }
+                y = y.saturating_add(1);
+            }
+            if y >= area.bottom() {
+                break;
+            }
+            paint_wide_group(ui, area, y, group);
+            y = y.saturating_add(1);
+            previous = Some(*group);
+        }
+        if y >= area.bottom() {
+            break;
+        }
+        paint_wide_item(ui, area, y, row_label, *row_label == shown, focused);
+        y = y.saturating_add(1);
+    }
+}
+
+fn paint_wide_group(ui: &mut Ui<'_>, area: Rect, y: u16, group: &str) {
+    let pad = shell_text_style(ui, termrock::FgStep::Primary);
+    let faint = chrome_fg(
+        ui,
+        termrock::theme::baseline_faint(ui.theme().capability.color),
+    );
+    ui.paint_str(Rect::new(area.x, y, 3, 1), "   ", pad);
+    ui.paint_str(
+        Rect::new(area.x.saturating_add(3), y, width(group), 1),
+        group,
+        faint,
+    );
+}
+
+fn paint_wide_item(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    y: u16,
+    row_label: &str,
+    selected: bool,
+    focused: bool,
+) {
+    let secondary = shell_text_style(ui, termrock::FgStep::Secondary);
+    let primary = shell_text_style(ui, termrock::FgStep::Primary);
+    let chosen = primary.add_modifier(termrock::Modifier::BOLD);
+    let gutter = shell_compat_style(ui.surface_style().fg(ui.theme().color.accent))
+        .add_modifier(termrock::Modifier::BOLD);
+    let black = if ui.theme().capability.color == termrock::ColorLevel::TrueColor
+        || ui.theme().capability.color == termrock::ColorLevel::Ansi256
+    {
+        shell_compat_style(ui.surface_style())
+            .fg(termrock::Color::from_u32(0))
+            .bg(termrock::Color::from_u32(0))
+    } else {
+        shell_compat_style(ui.surface_style())
+            .fg(termrock::Color::Indexed(0))
+            .bg(termrock::Color::Indexed(0))
+    };
+    let lane_right = area
+        .x
+        .saturating_add(if selected && focused { 24 } else { 23 });
+    if selected && focused {
+        ui.paint_str(Rect::new(area.x, y, 2, 1), "▎›", gutter);
+        ui.paint_str(
+            Rect::new(
+                area.x.saturating_add(2),
+                y,
+                width(row_label).saturating_add(1),
+                1,
+            ),
+            &format!(" {row_label}"),
+            chosen,
+        );
+        let tail = area.x.saturating_add(3).saturating_add(width(row_label));
+        if lane_right > tail {
+            ui.paint_str(
+                Rect::new(tail, y, lane_right.saturating_sub(tail), 1),
+                &" ".repeat(usize::from(lane_right.saturating_sub(tail))),
+                chosen,
+            );
+        }
+    } else if selected {
+        ui.paint_str(Rect::new(area.x, y, 1, 1), " ", black);
+        ui.paint_str(Rect::new(area.x.saturating_add(1), y, 1, 1), " ", primary);
+        ui.paint_str(
+            Rect::new(area.x.saturating_add(3), y, width(row_label), 1),
+            row_label,
+            chosen,
+        );
+    } else {
+        ui.paint_str(Rect::new(area.x, y, 1, 1), " ", black);
+        ui.paint_str(Rect::new(area.x.saturating_add(1), y, 2, 1), "  ", primary);
+        ui.paint_str(
+            Rect::new(area.x.saturating_add(3), y, width(row_label), 1),
+            row_label,
+            secondary,
+        );
+        let tail = area.x.saturating_add(3).saturating_add(width(row_label));
+        if lane_right > tail {
+            ui.paint_str(
+                Rect::new(tail, y, lane_right.saturating_sub(tail), 1),
+                &" ".repeat(usize::from(lane_right.saturating_sub(tail))),
+                secondary,
+            );
+        }
+    }
+}
+
+fn paint_nav_seam(ui: &mut Ui<'_>, area: Rect) {
+    let canvas = shell_compat_style(ui.surface_style());
+    let level = ui.theme().capability.color;
+    let (thumb_fg, track_fg) = match level {
+        termrock::ColorLevel::TrueColor => (
+            termrock::Color::from_u32(0x00ff_ffff),
+            termrock::Color::from_u32(0x0026_2626),
+        ),
+        termrock::ColorLevel::Ansi256 => {
+            (termrock::Color::Indexed(231), termrock::Color::Indexed(235))
+        }
+        termrock::ColorLevel::Ansi16 | termrock::ColorLevel::Mono => {
+            (termrock::Color::White, termrock::Color::DarkGray)
+        }
+        _ => (termrock::Color::White, termrock::Color::DarkGray),
+    };
+    let bg = if matches!(
+        level,
+        termrock::ColorLevel::TrueColor | termrock::ColorLevel::Ansi256
+    ) {
+        termrock::Color::from_u32(0)
+    } else {
+        termrock::Color::Indexed(0)
+    };
+    let thumb = canvas.fg(thumb_fg).bg(bg);
+    let track = canvas.fg(track_fg).bg(bg);
+    let track_len = usize::from(area.height);
+    let thumb_len = (track_len.saturating_mul(track_len) / 23)
+        .max(1)
+        .min(track_len);
+    let x = area.x.saturating_add(18);
+    for row in 0..area.height {
+        let y = area.y.saturating_add(row);
+        let on_thumb = usize::from(row) < thumb_len;
+        ui.paint_str(
+            Rect::new(x, y, 1, 1),
+            if on_thumb { "┃" } else { "│" },
+            if on_thumb { thumb } else { track },
+        );
     }
 }
 
@@ -1835,7 +2057,7 @@ impl TuiApp for App {
         let entry = NAV_ENTRIES.get(self.nav_index).copied();
         let section = entry.map(|entry| entry.section).unwrap_or("");
         let label = entry.map(|entry| entry.label).unwrap_or("Overview");
-        paint_sidebar(ui, shell.sidebar, &self.nav_state, label);
+        paint_sidebar(ui, shell.sidebar, &self.nav_state, label, full.width);
         paint_header(
             ui,
             shell.header,
