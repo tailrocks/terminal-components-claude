@@ -60,13 +60,13 @@ pub fn label_deliverable(key: &str) -> bool {
     !shift_pointer && (!cmd || super_delivered()) && (!alt || alt_delivered())
 }
 
-#[cfg(test)]
 /// The tests' serialization guard, shared with other modules' tests.
 #[cfg(test)]
 pub(crate) fn test_lock() -> std::sync::MutexGuard<'static, ()> {
     tests::lock()
 }
 
+#[cfg(test)]
 mod tests {
     use super::*;
     use std::sync::{Mutex, MutexGuard, OnceLock};
