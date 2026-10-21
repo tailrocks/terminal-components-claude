@@ -1,7 +1,7 @@
 {
   "schema": "termrock.canonical-owned-verify-live-source-audit",
   "version": 1,
-  "status": "implemented-pending-independent-review",
+  "status": "corrected-pending-independent-review",
   "source_base": "31fbae05c4978f8432443d93d1c6ef56b04050f0",
   "branch": "wip/canonical-verify-owned-20261021",
   "scope": [
@@ -17,27 +17,59 @@
     "capture_cohort": "frozen-20261021-serial-nonincr-r1-r2"
   },
   "evidence": {
-    "python_full_suite": {
-      "command": "python3 -m unittest tools/test_frozen_baseline.py",
-      "result": "107 tests passed",
-      "duration_seconds": 14.183
-    },
     "focused_owned_suite": {
       "command": "python3 -m unittest tools/test_frozen_baseline.py -k 'owned'",
       "result": "28 tests passed",
       "duration_seconds": 13.941
     },
     "python_compile": "python3 -m py_compile tools/frozen_baseline.py tools/test_frozen_baseline.py: passed",
-    "format": "cargo fmt --check: passed; git diff --check: passed",
+    "format": "cargo fmt --check, git diff --check, py_compile, and JSON parse: passed on corrected source",
     "sha256": {
-      "tools/frozen_baseline.py": "b209f37c49b92a5455d8b64ac7626b0e6eba557742123569759438bdbbb74d7e",
-      "tools/test_frozen_baseline.py": "7c9555c8bbbd650687c05c610dea5b981602921c5e0c76d0b4db283a75a1db9b"
+      "tools/frozen_baseline.py": "e486b17728062193fa3af243c93d7e1fd14c70fd73726c1bc4e73a317306e257",
+      "tools/test_frozen_baseline.py": "0d0d4e636f80ad5c57ec0be79a580a743bc57823e7a50e84b3f6cfd280fb1b2b",
+      "docs/architecture/termrock-migration-matrix.md": "19a97b38338b27f362ae58a2f0da4181a8e2a380f4375112af7d5049e34e5de9"
+    },
+    "targeted_regressions": {
+      "command": "python3 -m unittest tools/test_frozen_baseline.py -k 'verify_live_owned'",
+      "result": "4 tests passed, including real PrepareExecution deadline and cancellation probes",
+      "duration_seconds": 2.151
+    },
+    "python_full_suite": {
+      "command": "python3 -m unittest tools/test_frozen_baseline.py",
+      "result": "109 tests passed, 0 failures, 0 skips",
+      "duration_seconds": 17.487,
+      "note": "One earlier full-suite attempt had a transient failure in test_fresh_advance_failed_child_and_timeout_keep_attempt_and_retry_same_ordinal (timeout subtest); the test passed alone and the subsequent full suite passed."
     }
   },
   "limits": [
     "No actual verify-live or preflight command was run.",
     "No new plan, key, capture, replay, ordinary CLI run, or candidate comparison was created or run.",
     "The stage-two external supervisor still requires independent clearance before any stage-three operation.",
-    "This bounded source increment does not establish application parity or reusable-library acceptance."
-  ]
+    "This bounded source increment does not establish application parity or reusable-library acceptance.",
+    "Kernel-blocked filesystem or output syscalls can finish after the monotonic deadline; post-return checks fail closed. No universal hard completion guarantee is claimed."
+  ],
+  "previous_source_commit": "14bee2db097876479f005a82b04cafe4b09c7eeb",
+  "independent_review_hold": {
+    "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/canonical-stage3-independent-review-14bee2db-20261021.json",
+    "sha256": "2a810a71777d1b2f5ffcf986d6946d1a9daba2186dabef6ca7779abcea64d267",
+    "findings": {
+      "STAGE3-OWNED-1": "P1 held success output because the final write lacked flush and a post-write deadline/cancellation check.",
+      "STAGE3-OWNED-2": "P2 held owned path resolution because paths() ran before PrepareExecution.",
+      "STAGE3-OWNED-DOC-1": "P3 found stale stage-two wording after V12 stage-two result admission."
+    }
+  },
+  "corrections": [
+    "Owned paths() now runs inside PrepareExecution, with work checks immediately before and after path resolution; legacy path resolution stays outside the owned scope.",
+    "Owned success JSON is flushed inside PrepareExecution and followed by a deadline/cancellation check before scope exit.",
+    "Added real PrepareExecution CLI regressions for deadline expiry and SIGTERM during path resolution and final output.",
+    "Updated migration and audit status: V12 stage two and its actual prepare-live result are independently admitted; stage-three source and stage-three-only supervisor review remain required."
+  ],
+  "stage2_admission": {
+    "v12_supervisor_source_sha256": "12a3dd78de61bd38a95dfe3b44ed43804380aa8df039b89168f666c7a231e5f9",
+    "v12_independent_source_review_sha256": "6ff4c1015c4b51fa666da014eeac3c2eb85ba174268cafe684a4002c66858fb5",
+    "actual_result_review_path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-stage2-result-independent-review-20261021.json",
+    "actual_result_review_sha256": "37ec0db680822aa74cfe5c15754d868f6cc3959f8628ad049c8ebb999fd0e994",
+    "admitted_scope": "stage-two live-source preparation only; no plan, key, capture, replay, candidate comparison, or product acceptance"
+  },
+  "required_next_gate": "Independent exact-source re-review of this corrected canonical stage-three source, plus independent review of a stage-three-only external supervisor. Any actual stage-three operation needs a separate independently reviewed result. Stage-four sealing waits for the remaining owned plan/init/verify/advance lifecycle implementation."
 }
