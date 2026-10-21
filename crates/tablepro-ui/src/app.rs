@@ -5438,10 +5438,13 @@ fn install_grid_budgets(area_width: u16, columns: &[(String, ColType)], model: &
             closed = true;
             continue;
         }
+        let arrow = foreign && natural > 6;
         budgets.push(ColBudget {
             kind,
-            text: natural,
-            arrow: false,
+            // The follow arrow occupies the last two cells, so the text
+            // budget is what truncate_middle actually paints.
+            text: natural.saturating_sub(if arrow { 2 } else { 0 }),
+            arrow,
         });
         places.push(ColPlace {
             x: used.saturating_add(gap),
@@ -6170,19 +6173,21 @@ fn install_scrolled_budgets(
         let shown = index
             .checked_sub(start)
             .and_then(|offset| fit.places.get(offset));
+        let foreign = columns
+            .get(index)
+            .is_some_and(|(name, ty)| *ty == ColType::Uuid && name != "id");
+        let shown_width = shown.map_or(0, |place| place.width);
+        let arrow = foreign && shown_width > 6;
         budgets.push(ColBudget {
             kind: if columns.get(index).is_some_and(|(name, _)| name == "id") {
                 KIND_PRIMARY
-            } else if columns
-                .get(index)
-                .is_some_and(|(_, ty)| *ty == ColType::Uuid)
-            {
+            } else if foreign {
                 KIND_FOREIGN
             } else {
                 KIND_OTHER
             },
-            text: shown.map_or(0, |place| place.width),
-            arrow: false,
+            text: shown_width.saturating_sub(if arrow { 2 } else { 0 }),
+            arrow,
         });
     }
     let chrome = GridChrome {
