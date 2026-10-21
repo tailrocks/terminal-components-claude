@@ -19,10 +19,10 @@ use crate::{
     sim::{pg, world::World},
 };
 use termrock::{
-    ActionKey, Binding, Brand, Chord, Color, Constraints, Cx, Dialog, FgStep, Focusability,
-    FrameRead, Hint, HintBar, HintKey, HintLayer, Id, Intent, ItemKey, KeyCode, KeyMap, KeyPhase,
-    Menu, MenuAction, MenuBar, MenuBarHoverScope, MenuItem, MenuState, Part, PartRef, Phase, Rect,
-    Response, Role, StylePatch, Surface, TooSmall, Ui,
+    ActionKey, AppShell, Binding, Brand, Chord, Color, Constraints, Cx, Dialog, FgStep,
+    Focusability, FrameRead, Hint, HintBar, HintKey, HintLayer, Id, Intent, ItemKey, KeyCode,
+    KeyMap, KeyPhase, Menu, MenuAction, MenuBar, MenuBarHoverScope, MenuItem, MenuState, Part,
+    PartRef, Phase, Rect, Response, Role, StylePatch, Surface, TooSmall, Ui,
 };
 
 const BRAND: Id = Id::root("holla.brand");
@@ -1280,7 +1280,13 @@ impl App {
         );
     }
     fn chrome(&self, ui: &mut Ui<'_>, area: Rect) {
-        let header = Rect::new(area.x, area.y, area.width, 1);
+        let regions = AppShell::new()
+            .header(1)
+            .gap(1)
+            .footer(1)
+            .inset(1)
+            .regions(area);
+        let header = regions.header;
         // Tag lockup starts at x + chrome_edge - 1. One more column before this bar matches the tag's post-lockup gap (its title pad is the other).
         let lockup_x = header.x.saturating_add(1);
         let brand = brand();
@@ -1373,7 +1379,7 @@ impl App {
         {
             paint_disk_cleanup_status(ui, status);
         }
-        let footer = Rect::new(area.x, area.bottom().saturating_sub(1), area.width, 1);
+        let footer = regions.footer;
         self.footer_draw(ui, footer);
     }
     fn paint_parity_status(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -1857,12 +1863,13 @@ impl termrock::App for App {
                 .draw(ui, area);
             return;
         }
-        let body = Rect::new(
-            area.x.saturating_add(1),
-            area.y.saturating_add(2),
-            area.width.saturating_sub(2),
-            area.height.saturating_sub(4),
-        );
+        let regions = AppShell::new()
+            .header(1)
+            .gap(1)
+            .footer(1)
+            .inset(1)
+            .regions(area);
+        let body = regions.body;
         match self.route {
             Route::Home => self.home.draw(&self.world, ui, home_body(body)),
             Route::Plan => {

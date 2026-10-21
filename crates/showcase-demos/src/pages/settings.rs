@@ -214,6 +214,7 @@ fn paint_clip(
     }
 }
 
+#[expect(clippy::if_same_then_else)]
 fn paint_heading(ui: &mut Ui<'_>, body: Rect) {
     let y = body.y.saturating_sub(2);
     let title = "Project settings";
