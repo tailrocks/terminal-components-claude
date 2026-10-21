@@ -1,0 +1,50 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.34s
+────────────
+ Nextest run ID e774e602-68fd-4861-8028-1fdd81c2f868 with nextest profile: default
+    Starting 44 tests across 1 binary (891 tests skipped)
+        PASS [   0.017s] ( 1/44) termrock-conformance::conformance brand::keyboard_and_mouse_activation_are_equivalent
+        PASS [   0.017s] ( 2/44) termrock-conformance::conformance diff_view::keyboard_and_mouse_activation_are_equivalent
+        PASS [   0.018s] ( 3/44) termrock-conformance::conformance code_editor::keyboard_and_mouse_activation_are_equivalent
+        PASS [   0.018s] ( 4/44) termrock-conformance::conformance help_overlay::keyboard_and_mouse_activation_are_equivalent
+        PASS [   0.018s] ( 5/44) termrock-conformance::conformance key_hint::keyboard_and_mouse_activation_are_equivalent
+        PASS [   0.019s] ( 6/44) termrock-conformance::conformance empty::keyboard_and_mouse_activation_are_equivalent
+        PASS [   0.024s] ( 7/44) termrock-conformance::conformance hint_bar::keyboard_and_mouse_activation_are_equivalent
+        PASS [   0.029s] ( 8/44) termrock-conformance::conformance derived_hint_bar::keyboard_and_mouse_activation_are_equivalent
+        PASS [   0.029s] ( 9/44) termrock-conformance::conformance field::keyboard_and_mouse_activation_are_equivalent
+        PASS [   0.030s] (10/44) termrock-conformance::conformance form::keyboard_and_mouse_activation_are_equivalent
+        PASS [   0.031s] (11/44) termrock-conformance::conformance chip_bar::keyboard_and_mouse_activation_are_equivalent
+        PASS [   0.030s] (12/44) termrock-conformance::conformance grid::keyboard_and_mouse_activation_are_equivalent
+        PASS [   0.031s] (13/44) termrock-conformance::conformance checkbox::keyboard_and_mouse_activation_are_equivalent
+        PASS [   0.036s] (14/44) termrock-conformance::conformance completion::keyboard_and_mouse_activation_are_equivalent
+        PASS [   0.017s] (15/44) termrock-conformance::conformance panel::keyboard_and_mouse_activation_are_equivalent
+        PASS [   0.036s] (16/44) termrock-conformance::conformance context_menu::keyboard_and_mouse_activation_are_equivalent
+        PASS [   0.036s] (17/44) termrock-conformance::conformance button::keyboard_and_mouse_activation_are_equivalent
+        PASS [   0.020s] (18/44) termrock-conformance::conformance meter::keyboard_and_mouse_activation_are_equivalent
+        PASS [   0.042s] (19/44) termrock-conformance::conformance filter_list::keyboard_and_mouse_activation_are_equivalent
+        PASS [   0.027s] (20/44) termrock-conformance::conformance list::keyboard_and_mouse_activation_are_equivalent
+        PASS [   0.027s] (21/44) termrock-conformance::conformance menu_bar::keyboard_and_mouse_activation_are_equivalent
+        PASS [   0.032s] (22/44) termrock-conformance::conformance picker::keyboard_and_mouse_activation_are_equivalent
+        PASS [   0.032s] (23/44) termrock-conformance::conformance nav_list::keyboard_and_mouse_activation_are_equivalent
+        PASS [   0.020s] (24/44) termrock-conformance::conformance props::keyboard_and_mouse_activation_are_equivalent
+        PASS [   0.022s] (25/44) termrock-conformance::conformance progress_bar::keyboard_and_mouse_activation_are_equivalent
+        PASS [   0.031s] (26/44) termrock-conformance::conformance picker_chain::keyboard_and_mouse_activation_are_equivalent
+        PASS [   0.021s] (27/44) termrock-conformance::conformance status_bar::keyboard_and_mouse_activation_are_equivalent
+        PASS [   0.028s] (28/44) termrock-conformance::conformance split_pane::keyboard_and_mouse_activation_are_equivalent
+        PASS [   0.034s] (29/44) termrock-conformance::conformance scroll_region::keyboard_and_mouse_activation_are_equivalent
+        PASS [   0.022s] (30/44) termrock-conformance::conformance text_area::keyboard_and_mouse_activation_are_equivalent
+        PASS [   0.018s] (31/44) termrock-conformance::conformance text_viewport::keyboard_and_mouse_activation_are_equivalent
+        PASS [   0.040s] (32/44) termrock-conformance::conformance probe::keyboard_and_mouse_activation_are_equivalent
+        PASS [   0.024s] (33/44) termrock-conformance::conformance text_input::keyboard_and_mouse_activation_are_equivalent
+        PASS [   0.040s] (34/44) termrock-conformance::conformance props_list::keyboard_and_mouse_activation_are_equivalent
+        PASS [   0.019s] (35/44) termrock-conformance::conformance too_small::keyboard_and_mouse_activation_are_equivalent
+        PASS [   0.041s] (36/44) termrock-conformance::conformance radio_group::keyboard_and_mouse_activation_are_equivalent
+        PASS [   0.037s] (37/44) termrock-conformance::conformance spinner::keyboard_and_mouse_activation_are_equivalent
+        PASS [   0.031s] (38/44) termrock-conformance::conformance tabs::keyboard_and_mouse_activation_are_equivalent
+        PASS [   0.077s] (39/44) termrock-conformance::conformance dialog::keyboard_and_mouse_activation_are_equivalent
+        PASS [   0.042s] (40/44) termrock-conformance::conformance steps::keyboard_and_mouse_activation_are_equivalent
+        PASS [   0.029s] (41/44) termrock-conformance::conformance tree::keyboard_and_mouse_activation_are_equivalent
+        PASS [   0.026s] (42/44) termrock-conformance::conformance wizard::keyboard_and_mouse_activation_are_equivalent
+        PASS [   0.031s] (43/44) termrock-conformance::conformance toggle::keyboard_and_mouse_activation_are_equivalent
+        PASS [   0.047s] (44/44) termrock-conformance::conformance select::keyboard_and_mouse_activation_are_equivalent
+────────────
+     Summary [   0.084s] 44 tests run: 44 passed, 891 skipped

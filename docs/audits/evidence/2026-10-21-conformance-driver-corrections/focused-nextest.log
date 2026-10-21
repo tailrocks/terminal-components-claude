@@ -1,0 +1,12 @@
+   Compiling termrock-test-support v0.1.0 (/private/tmp/conformance-driver-corrections-20261021b/crates/termrock-test-support)
+   Compiling termrock-conformance v0.1.0 (/private/tmp/conformance-driver-corrections-20261021b/crates/termrock-conformance)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.04s
+────────────
+ Nextest run ID a94911b9-fda6-45b0-bc0c-96c8028755e3 with nextest profile: default
+    Starting 4 tests across 1 binary (931 tests skipped)
+        PASS [   0.031s] (1/4) termrock-conformance::conformance completion::local_override_does_not_mutate_the_theme
+        PASS [   0.034s] (2/4) termrock-conformance::conformance brand::local_override_does_not_mutate_the_theme
+        PASS [   0.044s] (3/4) termrock-conformance::conformance dialog::keyboard_and_mouse_activation_are_equivalent
+        PASS [   1.416s] (4/4) termrock-conformance::conformance code_editor::bindings_match_handled_keys
+────────────
+     Summary [   1.419s] 4 tests run: 4 passed, 931 skipped
