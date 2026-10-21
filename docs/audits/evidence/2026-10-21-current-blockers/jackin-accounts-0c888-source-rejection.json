@@ -1,0 +1,108 @@
+{
+  "schema": "independent-source-audit-followup-v1",
+  "created_at": "2026-10-21T02:20:14.069414+00:00",
+  "reviewer": "/root/tablepro_name_edit_architect",
+  "decision": "blocked",
+  "source_commit": "0c888dbb33cfb9499ed626cc966f285cf53d0019",
+  "observed_remote_commit": "5b9cffdb05fb257f7416dc872e24e75865ad98c2",
+  "observed_remote_source_identical": {
+    "crates/jackin-preview-app/src/app.rs": true,
+    "crates/jackin-preview-app/src/app/accounts_detail_view.rs": true,
+    "crates/termrock-feedback/src/accounts_detail.rs": true
+  },
+  "prior_review": "accounts-detail-a708390e.json",
+  "prior_review_sha256": "7cb5ad97b1cdca8346de317d10f9acfba3fc1db1a6f4d98eafd0efbdcd2729fe",
+  "baseline": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "design": "f4867e9b5f8a08a3bb61ce80d644198a29f51984",
+  "source_sha256": {
+    "crates/jackin-preview-app/src/app.rs": "672063c055cc71804a6a9b7cc1c3de93a04c2536a789b818d0ec9d67bbb45605",
+    "crates/jackin-preview-app/src/app/accounts_detail_view.rs": "b0bb539e871cf4c24cb5ee0b0e3a0534228bdb5f04770fd748e97c6b1c268156",
+    "crates/termrock-feedback/src/accounts_detail.rs": "c38c9dcaf6a1a7281c2297f1b35af0df40c5d66371d523c8d626a1447a040a4d"
+  },
+  "superseded_details": [
+    {
+      "old": "The a708 view only paints Work selection and three plain-string facts.",
+      "current": "The view now accepts an application-private overview boolean. It selects the static Overview row when true and static Work row otherwise. Facts now use styled DetailLine/DetailSpan arrays."
+    },
+    {
+      "old": "The overview route requires cfg(test) or stdout IsTerminal detection and consumes historical_audit_accounts_80 RUNS.",
+      "current": "The terminal/test detection condition and old overview RUNS module were removed. This is a real removal, but the overview now selects a second static rendering mode in the same specialized painter."
+    }
+  ],
+  "finding_dispositions": [
+    {
+      "id": "JA-1",
+      "status": "unresolved_expanded",
+      "severity": "P1",
+      "evidence": [
+        "app.rs:7583-7615 retains exact detail selectors including acct-claude-work, cursor4 and status text.",
+        "app.rs:7812-7838 retains overview exact80x24/TrueColor/#48e054/AccountsMixed/Paused, first-row cursor and specific application-state selectors.",
+        "app/accounts_detail_view.rs:7-16 takes only Ui and a boolean, not World or live component state.",
+        "accounts_detail_view.rs:16-115 still constructs eleven static rows and pre-truncated labels; 143-177 adds fixed health/registry/source totals; 207-237 preserves fixed summary, total23 and offset0."
+      ],
+      "conclusion": "Removing terminal detection does not remove viewport/theme/scenario/data-identity presentation selection. Both overview and detail remain fixed datasets."
+    },
+    {
+      "id": "JA-2",
+      "status": "unresolved",
+      "severity": "P1",
+      "evidence": [
+        "draw_historical_audit_accounts_80 and draw_historical_accounts_detail_80 still run as full-screen post-composition replacements.",
+        "The feedback API still has no IDs, update, typed actions, hit regions, focus state or active-layer input.",
+        "paint_selected still unconditionally paints the focus gutter from caller selected; overview mode adds another static caller selection."
+      ],
+      "conclusion": "The same painter now services two static application frames; this is not a second independent semantic consumer."
+    },
+    {
+      "id": "JA-3",
+      "status": "unresolved",
+      "severity": "P2",
+      "evidence": [
+        "feedback/accounts_detail.rs:105-120 still computes visible from rows.len before clipping the row loop to box_bottom.",
+        "There is still no shared ScrollState or pointer scrollbar handling."
+      ],
+      "conclusion": "Actual viewport and scrollbar math remain disconnected."
+    },
+    {
+      "id": "JA-4",
+      "status": "unresolved",
+      "severity": "P2",
+      "evidence": [
+        "The put helper still clips to the screen right edge, not the reserved name slot.",
+        "Selected and idle names remain untruncated and draw after borders; shared metadata reservations are absent."
+      ],
+      "conclusion": "Long/narrow-view name overpainting remains. Unlike the capsule painter, no new scalar-level Unicode splitting was found."
+    },
+    {
+      "id": "JA-5",
+      "status": "unresolved_with_local_improvements",
+      "severity": "P2",
+      "evidence": [
+        "Role indentation now shares a local slots helper; selected Root and Item rows no longer always use identical indentation.",
+        "Facts support borrowed styled spans instead of only strings.",
+        "The API still owns header, tree, detail and footer, fixed six-row detail geometry, literal state inks and caller-chosen fading."
+      ],
+      "conclusion": "Local reuse and styled fact data do not restore shared component measurement, state, focus, scrolling or composition ownership."
+    }
+  ],
+  "claim_checks": {
+    "AuditAccountsRow": "No AuditAccountsRow symbol exists anywhere under crates at this exact source commit. No title-parsing adapter appears in the audited view. Do not attribute another commit or uncommitted source to this revision.",
+    "removed_old_module": "historical_audit_accounts_80.rs is removed, but its selection predicate remains and now calls accounts_detail_view::paint_audit.",
+    "unchanged_reference": "The previously established frozen/design accounts.rs source equality and live model/scroll/focus/truncation contracts remain applicable."
+  },
+  "required_plan": [
+    "Keep the original a708 report as historical evidence; this follow-up controls these three files through observed remote5b9cffdb.",
+    "Replace the private overview boolean/static arrays with full live view data and stable keys derived from application domain data.",
+    "Use one shared tree/list state and resolved viewport for selection, focus, hit regions, scrolling and edge fading.",
+    "Use existing shared text and generic detail slots; remove exact selectors and post-composition replacement painters in the same verified series.",
+    "Prove changed/reordered/empty/large data, selection/focus independence, pointer press/drag, modal layering, long Unicode labels and resize. Run frozen paired CLI checks before any parity acceptance."
+  ],
+  "repository_edits": false,
+  "tests_executed": [],
+  "captures_executed": false,
+  "key_access": false,
+  "limitations": [
+    "Source audit only. No actual visual or functional execution.",
+    "No runtime cursor registration was added by this follow-up; no such new defect is attributed to it."
+  ]
+}
