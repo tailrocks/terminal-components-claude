@@ -8,7 +8,7 @@
 
 use std::collections::BTreeSet;
 
-use termrock_core::event::{KeyCode, Key};
+use termrock_core::event::{Key, KeyCode};
 use termrock_core::keys::KeyModifiers;
 use termrock_shell::quit::QuitKeys;
 use termrock_shell::{KeyContext, ShellKeys};
@@ -22,10 +22,13 @@ fn esc() -> Key {
 
 #[test]
 fn esc_never_quits_by_default() {
-    assert!(
-        !QuitKeys::DEFAULT.esc_quits,
-        "Esc is navigation, never a quit key"
-    );
+    #[allow(clippy::assertions_on_constants)]
+    {
+        assert!(
+            !QuitKeys::DEFAULT.esc_quits,
+            "Esc is navigation, never a quit key"
+        );
+    }
     assert_eq!(
         QuitKeys::DEFAULT.classify(&esc(), KeyContext::default()),
         None,
