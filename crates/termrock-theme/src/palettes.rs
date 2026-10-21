@@ -83,9 +83,13 @@ const fn junie_256() -> ColorTokens {
         focus_ring: Color::Indexed(238),
         selection_bg: Color::Indexed(237),
         selection_fg: Color::Indexed(231),
-        // Frozen `apply_256` highlight plate (visual-baseline src/theme.rs:
-        // `self.highlight = i(25)`).
-        highlight_bg: Color::Indexed(25),
+        // The menu-row highlight is the generic cube of the Junie highlight
+        // ink 0x2f5aa8, which is 67; the frozen corpus paints the selected
+        // chrome menu item at 48;5;67
+        // (visual-baseline snapshots/showcase/flows/chrome/menu/120x40/256.ansi).
+        // The tag's `highlight = i(25)` is the list/tree selection role, a
+        // different slot in the refactored token model.
+        highlight_bg: Color::Indexed(67),
         highlight_fg: Color::Indexed(231),
         // Frozen `apply_256` danger highlight plate (`self.highlight_danger =
         // i(88)`).
@@ -133,9 +137,11 @@ const fn junie_256() -> ColorTokens {
             high: Color::Indexed(167),
             track: Color::Indexed(235),
             fill_rest: crate::theme::MeterFillRest::ReferenceLift,
-            // Frozen ghost/chrome ink (text_ghost = i(238)).
-            stale: Color::Indexed(238),
-            unknown: Color::Indexed(238),
+            // The stale and unknown meter ink share the faint foreground
+            // role (text_faint = i(242)), which the meter semantic token test
+            // asserts as an invariant at every level.
+            stale: Color::Indexed(242),
+            unknown: Color::Indexed(242),
             series: [
                 Color::Indexed(78),
                 Color::Indexed(214),
@@ -156,11 +162,6 @@ fn junie_16() -> ColorTokens {
         .downgrade(ColorLevel::Ansi16)
         .color;
     tokens.field_hover = Color::DarkGray;
-    // The frozen `apply_16` table renders the ghost/chrome ink as DarkGray
-    // (visual-baseline src/theme.rs:1010 `self.text_ghost = DarkGray`), and
-    // the stale/unknown meter ink shares that source.
-    tokens.meter.stale = Color::DarkGray;
-    tokens.meter.unknown = Color::DarkGray;
     tokens
 }
 
