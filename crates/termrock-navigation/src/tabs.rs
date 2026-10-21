@@ -705,7 +705,12 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
         if area.is_empty() {
             return area;
         }
-        let len = planned.map_or_else(|| items.map_or(0, <[T]>::len), |layout| layout.content_len);
+        // The legacy paint pass and the planned layout are mutually exclusive.
+        // Absent legacy inputs describe an empty strip rather than a failure.
+        let fallback_state = TabsState::default();
+        let state = state.unwrap_or(&fallback_state);
+        let items = items.unwrap_or(&[]);
+        let len = planned.map_or_else(|| items.len(), |layout| layout.content_len);
         let row0 = planned.map_or_else(|| first_row(area), |layout| layout.row_area);
         let used = planned.map_or_else(
             || Rect {
@@ -778,10 +783,9 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
         );
         let first_index = planned.map_or_else(
             || {
-                let st = state.expect("legacy tabs draw requires component state");
-                let items = items.expect("legacy tabs draw requires item data");
-                st.first
-                    .and_then(|f| self.index_of(items, f, Some(st.first_index)))
+                state
+                    .first
+                    .and_then(|f| self.index_of(items, f, Some(state.first_index)))
                     .unwrap_or(0)
                     .min(len)
             },
@@ -814,37 +818,16 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
         );
         let mut x = first_tab_x;
         let mut fit = 0usize;
-        let cursor = planned.map_or_else(
-            || {
-                state
-                    .expect("legacy tabs draw requires component state")
-                    .core
-                    .cursor()
-            },
-            |layout| layout.cursor,
-        );
-        let active = planned.map_or_else(
-            || {
-                state
-                    .expect("legacy tabs draw requires component state")
-                    .active
-            },
-            |layout| layout.active,
-        );
+        let cursor = planned.map_or_else(|| state.core.cursor(), |layout| layout.cursor);
+        let active = planned.map_or_else(|| state.active, |layout| layout.active);
         let hovered = ui.hovered_part(self.id);
         let pressed = ui.pressed_part(self.id);
         let row_count = planned.map_or(len.saturating_sub(first_index), |layout| layout.rows.len());
         for offset in 0..row_count {
             let i = first_index.saturating_add(offset);
             let row_plan = planned.and_then(|layout| layout.rows.get(offset));
-            let item = items.and_then(|items| items.get(i));
-            let key = row_plan.map_or_else(
-                || {
-                    let item = item.expect("legacy tabs draw requires item data");
-                    self.key.key(item, i)
-                },
-                |row| row.key,
-            );
+            let item = items.get(i);
+            let key = row_plan.map_or_else(|| self.key_at(items, i), |row| row.key);
             let avail = right_limit.saturating_sub(x);
             if row_plan.is_none() && avail < 3 {
                 break;
@@ -883,9 +866,8 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                 let mut r = RowUi::new(ui, id, Family::TABS, Variant::DEFAULT, flags, key, content);
                 if let Some(row) = row_plan {
                     r.label_fmt(format_args!("{}", DisplaySegments(&row.label_segments)));
-                } else {
-                    self.row
-                        .row(item.expect("legacy tabs draw requires item data"), &mut r);
+                } else if let Some(item) = item {
+                    self.row.row(item, &mut r);
                 }
             }
             let label_w =
@@ -1718,6 +1700,24 @@ mod tests {
             runtime.cursor(),
             layout,
         )
+    }
+
+    #[test]
+    fn legacy_draw_without_state_or_items_paints_an_empty_strip_instead_of_aborting() {
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(AREA);
+        runtime
+            .draw_scene(AREA, &mut buffer, |ui, area| {
+                let tabs = Tabs::<&str>::new(TABS);
+                let used = tabs.draw_impl(ui, area, None, None, None);
+                assert_eq!(used, area);
+            })
+            .commit_presented();
+        // The strip keeps its container fill but paints no tab content.
+        assert_eq!(
+            row_text(&buffer, AREA.width),
+            " ".repeat(AREA.width as usize)
+        );
     }
 
     #[test]
