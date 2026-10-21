@@ -269,135 +269,33 @@ impl HomeState {
             rows_area.y = rows_area.y.saturating_add(used);
             rows_area.height = rows_area.height.saturating_sub(used);
         }
-        if let Some(view) =
-            catalogue::first_use_80x24_plate(world, ui.full().width, ui.full().height, self.history)
-            && paint_first_use_80x24(ui, rows_area, &view)
+        if let Some(view) = catalogue::first_use_view(world, ui.full().width, self.history)
+            && paint_narrow_tag_list(ui, rows_area, &view)
         {
             return;
         }
-        if let Some(view) = catalogue::first_use_100x30_plate(
-            world,
-            ui.full().width,
-            ui.full().height,
-            self.history,
-        ) && paint_tag_list_plate(ui, rows_area, &view, 100, 30)
+        if let Some(view) = catalogue::monorepo_root_view(world, ui.full().width, self.history)
+            && paint_narrow_tag_list(ui, rows_area, &view)
         {
             return;
         }
-        if let Some(view) = catalogue::first_use_history_80x24_plate(
-            world,
-            ui.full().width,
-            ui.full().height,
-            self.history,
-        ) && paint_first_use_80x24(ui, rows_area, &view)
+        if let Some(view) = catalogue::monorepo_child_view(world, ui.full().width)
+            && paint_narrow_tag_list(ui, rows_area, &view)
         {
             return;
         }
-        if let Some(view) = catalogue::first_use_history_100x30_plate(
-            world,
-            ui.full().width,
-            ui.full().height,
-            self.history,
-        ) && paint_tag_list_plate(ui, rows_area, &view, 100, 30)
+        if let Some(view) = catalogue::docker_cleanup_view(world, ui.full().width)
+            && paint_narrow_tag_list(ui, rows_area, &view)
         {
             return;
         }
-        if let Some(view) = catalogue::monorepo_root_80x24_plate(
-            world,
-            ui.full().width,
-            ui.full().height,
-            self.history,
-        ) && paint_first_use_80x24(ui, rows_area, &view)
+        if let Some(view) = catalogue::remote_host_view(world, ui.full().width)
+            && paint_narrow_tag_list(ui, rows_area, &view)
         {
             return;
         }
-        if let Some(view) = catalogue::monorepo_root_history_80x24_plate(
-            world,
-            ui.full().width,
-            ui.full().height,
-            self.history,
-        ) && paint_first_use_80x24(ui, rows_area, &view)
-        {
-            return;
-        }
-        if let Some(view) = catalogue::monorepo_root_100x30_plate(
-            world,
-            ui.full().width,
-            ui.full().height,
-            self.history,
-        ) && paint_tag_list_plate(ui, rows_area, &view, 100, 30)
-        {
-            return;
-        }
-        if let Some(view) = catalogue::monorepo_root_history_100x30_plate(
-            world,
-            ui.full().width,
-            ui.full().height,
-            self.history,
-        ) && paint_tag_list_plate(ui, rows_area, &view, 100, 30)
-        {
-            return;
-        }
-        if let Some(view) =
-            catalogue::monorepo_child_80x24_plate(world, ui.full().width, ui.full().height)
-            && paint_first_use_80x24(ui, rows_area, &view)
-        {
-            return;
-        }
-        if let Some(view) =
-            catalogue::monorepo_child_100x30_plate(world, ui.full().width, ui.full().height)
-            && paint_tag_list_plate(ui, rows_area, &view, 100, 30)
-        {
-            return;
-        }
-        if let Some(view) =
-            catalogue::docker_cleanup_80x24_plate(world, ui.full().width, ui.full().height)
-            && paint_first_use_80x24(ui, rows_area, &view)
-        {
-            return;
-        }
-        if let Some(view) =
-            catalogue::docker_cleanup_100x30_plate(world, ui.full().width, ui.full().height)
-            && paint_tag_list_plate(ui, rows_area, &view, 100, 30)
-        {
-            return;
-        }
-        if let Some(view) =
-            catalogue::remote_host_80x24_plate(world, ui.full().width, ui.full().height)
-            && paint_first_use_80x24(ui, rows_area, &view)
-        {
-            return;
-        }
-        if let Some(view) =
-            catalogue::remote_host_100x30_plate(world, ui.full().width, ui.full().height)
-            && paint_tag_list_plate(ui, rows_area, &view, 100, 30)
-        {
-            return;
-        }
-        if let Some(view) = catalogue::activities_multi_80x24_plate(
-            world,
-            ui.full().width,
-            ui.full().height,
-            self.history,
-        ) && paint_first_use_80x24(ui, rows_area, &view)
-        {
-            return;
-        }
-        if let Some(view) = catalogue::activities_multi_100x30_plate(
-            world,
-            ui.full().width,
-            ui.full().height,
-            self.history,
-        ) && paint_tag_list_plate(ui, rows_area, &view, 100, 30)
-        {
-            return;
-        }
-        if let Some(view) = catalogue::activities_multi_history_100x30_plate(
-            world,
-            ui.full().width,
-            ui.full().height,
-            self.history,
-        ) && paint_tag_list_plate(ui, rows_area, &view, 100, 30)
+        if let Some(view) = catalogue::activities_multi_view(world, ui.full().width, self.history)
+            && paint_narrow_tag_list(ui, rows_area, &view)
         {
             return;
         }
@@ -925,10 +823,11 @@ fn split_detail(area: Rect) -> Option<(Rect, Rect)> {
     ))
 }
 
-/// Single-column body. The 120×40 plate keeps its preview card.
-/// One blank row stays above the action line. Overflow gets a black thumb and the preview fade.
-fn paint_first_use_80x24(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
-    paint_tag_list_plate(ui, area, view, 80, 24)
+/// Single-column band body for the concept screens. The 80–119 band replaces the
+/// frozen 80×24 and 100×30 plate frames; overflow gets a black thumb and the preview fade.
+fn paint_narrow_tag_list(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
+    let full = ui.full();
+    (80..120).contains(&full.width) && paint_tag_list(ui, area, view, None)
 }
 
 /// Frozen columns. Same grid as 100×30. Only the 80×24 frame reaches this painter.

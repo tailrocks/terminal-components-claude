@@ -1664,27 +1664,12 @@ impl App {
         }
         if self.route == Route::Home {
             let full = ui.full();
-            let collapsed_activities = crate::sim::catalogue::activities_multi_80x24_plate(
+            let collapsed_activities = crate::sim::catalogue::activities_multi_view(
                 &self.world,
                 full.width,
-                full.height,
                 self.home.history,
             )
-            .is_some()
-                || crate::sim::catalogue::activities_multi_100x30_plate(
-                    &self.world,
-                    full.width,
-                    full.height,
-                    self.home.history,
-                )
-                .is_some()
-                || crate::sim::catalogue::activities_multi_history_100x30_plate(
-                    &self.world,
-                    full.width,
-                    full.height,
-                    self.home.history,
-                )
-                .is_some();
+            .is_some();
             if collapsed_activities {
                 paint_activities_multi_80x24_band(ui, area);
             } else {
@@ -1929,34 +1914,9 @@ impl App {
             let monorepo_child_mid =
                 mid && crate::sim::catalogue::monorepo_child_tag_frame(&self.world);
             let remote_host_mid = mid && crate::sim::catalogue::remote_host_tag_frame(&self.world);
-            let first_use_mid = crate::sim::catalogue::first_use_100x30_plate(
-                &self.world,
-                ui.full().width,
-                ui.full().height,
-                self.home.history,
-            )
-            .is_some()
-                || crate::sim::catalogue::first_use_history_100x30_plate(
-                    &self.world,
-                    ui.full().width,
-                    ui.full().height,
-                    self.home.history,
-                )
-                .is_some();
-            let monorepo_root_mid = crate::sim::catalogue::monorepo_root_100x30_plate(
-                &self.world,
-                ui.full().width,
-                ui.full().height,
-                self.home.history,
-            )
-            .is_some()
-                || crate::sim::catalogue::monorepo_root_history_100x30_plate(
-                    &self.world,
-                    ui.full().width,
-                    ui.full().height,
-                    self.home.history,
-                )
-                .is_some();
+            let first_use_mid = mid && crate::sim::catalogue::first_use_tag_frame(&self.world);
+            let monorepo_root_mid =
+                mid && crate::sim::catalogue::monorepo_root_tag_frame(&self.world);
             let hard_cases_mid = mid && crate::sim::catalogue::hard_cases_tag_frame(&self.world);
             let discovery_mid =
                 mid && crate::sim::catalogue::parity_discovery_tag_frame(&self.world);
@@ -2735,12 +2695,12 @@ mod tests {
         assert_eq!(ellipsis.fg, Color::Rgb(0x73, 0x73, 0x73));
         assert!(plate.diagnostics().is_empty(), "{:?}", plate.diagnostics());
         let world = &plate.app().world;
-        assert!(catalogue::monorepo_root_80x24_plate(world, 120, 40, false).is_none());
-        assert!(catalogue::monorepo_root_80x24_plate(world, 80, 40, false).is_none());
-        assert!(catalogue::monorepo_root_80x24_plate(world, 81, 24, false).is_none());
-        assert!(catalogue::monorepo_root_80x24_plate(world, 100, 30, false).is_none());
-        assert!(catalogue::monorepo_root_80x24_plate(world, 80, 24, true).is_none());
-        let view = catalogue::monorepo_root_80x24_plate(world, 80, 24, false).expect("80x24 plate");
+        assert!(catalogue::monorepo_root_view(world, 120, false).is_none());
+        assert_ne!(
+            catalogue::monorepo_root_view(world, 80, true),
+            catalogue::monorepo_root_view(world, 80, false)
+        );
+        let view = catalogue::monorepo_root_view(world, 80, false).expect("narrow view");
         assert!(view.lines.iter().any(|line| matches!(
             line,
             catalogue::FinderLine::Row(row) if row.selected && row.title.starts_with("Inspect 10 GB")
@@ -2767,7 +2727,7 @@ mod tests {
         assert!(!later.text().contains("holla disk analyze --artifacts"));
         assert!(!later.text().contains("› Inspect 10 GB"));
         assert!(later.text().contains("Search actions"), "{}", later.text());
-        assert!(catalogue::monorepo_root_80x24_plate(&later.app().world, 80, 24, false).is_none());
+        assert!(catalogue::monorepo_root_view(&later.app().world, 80, false).is_none());
         assert!(!catalogue::monorepo_root_tag_frame(&later.app().world));
     }
     #[test]
@@ -2820,13 +2780,12 @@ mod tests {
         assert_eq!(ellipsis.fg, Color::Rgb(0x73, 0x73, 0x73));
         assert!(plate.diagnostics().is_empty(), "{:?}", plate.diagnostics());
         let world = &plate.app().world;
-        assert!(catalogue::monorepo_root_100x30_plate(world, 100, 30, false).is_some());
-        assert!(catalogue::monorepo_root_100x30_plate(world, 80, 24, false).is_none());
-        assert!(catalogue::monorepo_root_100x30_plate(world, 120, 40, false).is_none());
-        assert!(catalogue::monorepo_root_100x30_plate(world, 100, 31, false).is_none());
-        assert!(catalogue::monorepo_root_100x30_plate(world, 99, 30, false).is_none());
-        assert!(catalogue::monorepo_root_100x30_plate(world, 100, 30, true).is_none());
-        assert!(catalogue::monorepo_root_80x24_plate(world, 100, 30, false).is_none());
+        assert!(catalogue::monorepo_root_view(world, 100, false).is_some());
+        assert!(catalogue::monorepo_root_view(world, 120, false).is_none());
+        assert_ne!(
+            catalogue::monorepo_root_view(world, 100, true),
+            catalogue::monorepo_root_view(world, 100, false)
+        );
         let wide = harness(
             App::for_scenario(Scenario::MonorepoRoot, Motion::Paused, 40),
             Theme::junie(),
@@ -2858,15 +2817,13 @@ mod tests {
             30,
         );
         assert!(!later.text().contains("holla disk analyze --artifacts"));
-        assert!(
-            catalogue::monorepo_root_100x30_plate(&later.app().world, 100, 30, false).is_none()
-        );
+        assert!(catalogue::monorepo_root_view(&later.app().world, 100, false).is_none());
         assert!(!catalogue::monorepo_root_tag_frame(&later.app().world));
         let other = App::for_scenario(Scenario::FirstUse, Motion::Paused, 40);
-        assert!(catalogue::monorepo_root_100x30_plate(&other.world, 100, 30, false).is_none());
+        assert!(catalogue::monorepo_root_view(&other.world, 100, false).is_none());
         let mut history = App::for_scenario(Scenario::MonorepoRoot, Motion::Paused, 40);
         history.home.history = true;
-        assert!(catalogue::monorepo_root_100x30_plate(&history.world, 100, 30, true).is_none());
+        assert!(catalogue::monorepo_root_view(&history.world, 100, true).is_some());
         let history_screen = harness(history, Theme::junie(), 100, 30);
         assert!(
             history_screen
@@ -3030,10 +2987,7 @@ mod tests {
         assert_eq!(ellipsis.fg, Color::Rgb(0x73, 0x73, 0x73));
         assert!(plate.diagnostics().is_empty(), "{:?}", plate.diagnostics());
         let world = &plate.app().world;
-        assert!(catalogue::monorepo_child_80x24_plate(world, 120, 40).is_none());
-        assert!(catalogue::monorepo_child_80x24_plate(world, 80, 40).is_none());
-        assert!(catalogue::monorepo_child_80x24_plate(world, 81, 24).is_none());
-        assert!(catalogue::monorepo_child_80x24_plate(world, 100, 30).is_none());
+        assert!(catalogue::monorepo_child_view(world, 120).is_none());
         let wide = harness(
             App::for_scenario(Scenario::MonorepoChild, Motion::Paused, 40),
             Theme::junie(),
@@ -3056,7 +3010,7 @@ mod tests {
         assert!(!later.text().contains("holla disk analyze --artifacts"));
         assert!(!later.text().contains("› Inspect 3 GB"));
         assert!(later.text().contains("Search actions"), "{}", later.text());
-        assert!(catalogue::monorepo_child_80x24_plate(&later.app().world, 80, 24).is_none());
+        assert!(catalogue::monorepo_child_view(&later.app().world, 80).is_none());
         assert!(!catalogue::monorepo_child_tag_frame(&later.app().world));
     }
     #[test]
@@ -3102,8 +3056,7 @@ mod tests {
         assert_eq!(ellipsis.symbol(), "…");
         assert_eq!(ellipsis.fg, Color::Rgb(0x73, 0x73, 0x73));
         assert!(plate.diagnostics().is_empty(), "{:?}", plate.diagnostics());
-        assert!(catalogue::monorepo_child_100x30_plate(&plate.app().world, 80, 24).is_none());
-        assert!(catalogue::monorepo_child_100x30_plate(&plate.app().world, 120, 40).is_none());
+        assert!(catalogue::monorepo_child_view(&plate.app().world, 120).is_none());
         let wide = harness(
             App::for_scenario(Scenario::MonorepoChild, Motion::Paused, 40),
             Theme::junie(),
@@ -3137,7 +3090,7 @@ mod tests {
         );
         assert!(!later.text().contains("From acme · the parent root"));
         assert!(later.text().contains("Search actions"), "{}", later.text());
-        assert!(catalogue::monorepo_child_100x30_plate(&later.app().world, 100, 30).is_none());
+        assert!(catalogue::monorepo_child_view(&later.app().world, 100).is_none());
     }
     #[test]
     fn docker_cleanup_frame_40_paints_the_tag_plate_and_later_seeks_keep_home() {
@@ -3308,8 +3261,7 @@ mod tests {
         assert_eq!(ellipsis.symbol(), "…");
         assert_eq!(ellipsis.fg, Color::Rgb(0x73, 0x73, 0x73));
         assert!(plate.diagnostics().is_empty(), "{:?}", plate.diagnostics());
-        assert!(catalogue::docker_cleanup_100x30_plate(&plate.app().world, 80, 24).is_none());
-        assert!(catalogue::docker_cleanup_100x30_plate(&plate.app().world, 120, 40).is_none());
+        assert!(catalogue::docker_cleanup_view(&plate.app().world, 120).is_none());
         let wide = harness(
             App::for_scenario(Scenario::DockerCleanup, Motion::Paused, 40),
             Theme::junie(),
@@ -3341,7 +3293,7 @@ mod tests {
         );
         assert!(!later.text().contains("Results · 7"));
         assert!(later.text().contains("Suggested here"), "{}", later.text());
-        assert!(catalogue::docker_cleanup_100x30_plate(&later.app().world, 100, 30).is_none());
+        assert!(catalogue::docker_cleanup_view(&later.app().world, 100).is_none());
     }
     #[test]
     fn disk_cleanup_frame_40_paints_the_tag_plate_and_later_seeks_keep_home() {
@@ -3656,25 +3608,33 @@ mod tests {
         assert_eq!(ellipsis.fg, Color::Rgb(0x73, 0x73, 0x73));
         assert!(plate.diagnostics().is_empty(), "{:?}", plate.diagnostics());
         let world = &plate.app().world;
-        assert!(catalogue::remote_host_80x24_plate(world, 120, 40).is_none());
-        assert!(catalogue::remote_host_80x24_plate(world, 80, 40).is_none());
-        assert!(catalogue::remote_host_80x24_plate(world, 81, 24).is_none());
-        assert!(catalogue::remote_host_80x24_plate(world, 100, 30).is_none());
-        for (width, height) in [(120_u16, 40_u16), (80, 40)] {
-            let other = harness(
-                App::for_scenario(Scenario::RemoteHost, Motion::Paused, 40),
-                Theme::junie(),
-                width,
-                height,
-            );
-            assert!(
-                !other
-                    .text()
-                    .contains("journalctl -u payments-worker -f -n 200"),
-                "{width}x{height} used the narrow plate\n{}",
-                other.text()
-            );
-        }
+        assert!(catalogue::remote_host_view(world, 120).is_none());
+        let wide = harness(
+            App::for_scenario(Scenario::RemoteHost, Motion::Paused, 40),
+            Theme::junie(),
+            120,
+            40,
+        );
+        assert!(
+            !wide
+                .text()
+                .contains("journalctl -u payments-worker -f -n 200"),
+            "120x40 used the narrow plate\n{}",
+            wide.text()
+        );
+        // The 80-column band is height-free: 80x40 keeps the narrow list.
+        let tall = harness(
+            App::for_scenario(Scenario::RemoteHost, Motion::Paused, 40),
+            Theme::junie(),
+            80,
+            40,
+        );
+        assert!(
+            tall.text()
+                .contains("journalctl -u payments-worker -f -n 200"),
+            "80x40 lost the narrow band\n{}",
+            tall.text()
+        );
         let later = harness(
             App::for_scenario(Scenario::RemoteHost, Motion::Paused, 4_000),
             Theme::junie(),
@@ -3683,7 +3643,7 @@ mod tests {
         );
         assert!(!later.text().contains("Follow payments-worker"));
         assert!(!later.text().contains("journalctl -u payments-worker"));
-        assert!(catalogue::remote_host_80x24_plate(&later.app().world, 80, 24).is_none());
+        assert!(catalogue::remote_host_view(&later.app().world, 80).is_none());
         assert!(!catalogue::remote_host_tag_frame(&later.app().world));
     }
     #[test]
@@ -3748,11 +3708,8 @@ mod tests {
         assert_eq!(ellipsis.fg, Color::Rgb(0x73, 0x73, 0x73));
         assert!(plate.diagnostics().is_empty(), "{:?}", plate.diagnostics());
         let world = &plate.app().world;
-        assert!(catalogue::remote_host_100x30_plate(world, 100, 30).is_some());
-        assert!(catalogue::remote_host_100x30_plate(world, 80, 24).is_none());
-        assert!(catalogue::remote_host_100x30_plate(world, 120, 40).is_none());
-        assert!(catalogue::remote_host_100x30_plate(world, 100, 31).is_none());
-        assert!(catalogue::remote_host_100x30_plate(world, 99, 30).is_none());
+        assert!(catalogue::remote_host_view(world, 100).is_some());
+        assert!(catalogue::remote_host_view(world, 120).is_none());
         let wide = harness(
             App::for_scenario(Scenario::RemoteHost, Motion::Paused, 40),
             Theme::junie(),
@@ -3788,10 +3745,10 @@ mod tests {
         );
         assert!(!later.text().contains("Follow payments-worker"));
         assert!(!later.text().contains("journalctl -u payments-worker"));
-        assert!(catalogue::remote_host_100x30_plate(&later.app().world, 100, 30).is_none());
+        assert!(catalogue::remote_host_view(&later.app().world, 100).is_none());
         assert!(!catalogue::remote_host_tag_frame(&later.app().world));
         let other = App::for_scenario(Scenario::ActivitiesMulti, Motion::Paused, 40);
-        assert!(catalogue::remote_host_100x30_plate(&other.world, 100, 30).is_none());
+        assert!(catalogue::remote_host_view(&other.world, 100).is_none());
     }
     #[test]
     fn launch_failure_frame_40_paints_the_tag_plate_and_later_seeks_keep_the_activity() {
@@ -4552,11 +4509,8 @@ mod tests {
         assert_eq!(thumb.fg, Color::Rgb(0x80, 0x80, 0x80));
         assert!(plate.diagnostics().is_empty(), "{:?}", plate.diagnostics());
         let world = &plate.app().world;
-        assert!(catalogue::activities_multi_80x24_plate(world, 120, 40, false).is_none());
-        assert!(catalogue::activities_multi_80x24_plate(world, 80, 40, false).is_none());
-        assert!(catalogue::activities_multi_80x24_plate(world, 81, 24, false).is_none());
-        assert!(catalogue::activities_multi_80x24_plate(world, 100, 30, false).is_none());
-        assert!(catalogue::activities_multi_80x24_plate(world, 80, 24, true).is_none());
+        assert!(catalogue::activities_multi_view(world, 120, false).is_none());
+        assert!(catalogue::activities_multi_view(world, 80, true).is_none());
         let wide = harness(
             App::for_scenario(Scenario::ActivitiesMulti, Motion::Paused, 40),
             Theme::junie(),
@@ -4578,9 +4532,7 @@ mod tests {
         );
         assert!(!later.text().contains("Follow acme-api-1 logs"));
         assert!(!later.text().contains("holla disk analyze"));
-        assert!(
-            catalogue::activities_multi_80x24_plate(&later.app().world, 80, 24, false).is_none()
-        );
+        assert!(catalogue::activities_multi_view(&later.app().world, 80, false).is_none());
         assert!(!catalogue::activities_multi_tag_frame(&later.app().world));
     }
     #[test]
@@ -4649,14 +4601,14 @@ mod tests {
         assert_eq!(track.fg, Color::Rgb(0x47, 0x47, 0x47));
         assert!(plate.diagnostics().is_empty(), "{:?}", plate.diagnostics());
         let world = &plate.app().world;
-        assert!(catalogue::activities_multi_100x30_plate(world, 100, 30, false).is_some());
-        assert!(catalogue::activities_multi_100x30_plate(world, 80, 24, false).is_none());
-        assert!(catalogue::activities_multi_100x30_plate(world, 120, 40, false).is_none());
-        assert!(catalogue::activities_multi_100x30_plate(world, 100, 31, false).is_none());
-        assert!(catalogue::activities_multi_100x30_plate(world, 99, 30, false).is_none());
-        assert!(catalogue::activities_multi_100x30_plate(world, 100, 30, true).is_none());
+        assert!(catalogue::activities_multi_view(world, 100, false).is_some());
+        assert!(catalogue::activities_multi_view(world, 120, false).is_none());
+        assert_ne!(
+            catalogue::activities_multi_view(world, 100, true),
+            catalogue::activities_multi_view(world, 100, false)
+        );
         let other = App::for_scenario(Scenario::RemoteHost, Motion::Paused, 40);
-        assert!(catalogue::activities_multi_100x30_plate(&other.world, 100, 30, false).is_none());
+        assert!(catalogue::activities_multi_view(&other.world, 100, false).is_none());
         let wide = harness(
             App::for_scenario(Scenario::ActivitiesMulti, Motion::Paused, 40),
             Theme::junie(),
@@ -4685,9 +4637,7 @@ mod tests {
         );
         assert!(!later.text().contains("Follow acme-api-1 logs"));
         assert!(!later.text().contains("holla disk analyze"));
-        assert!(
-            catalogue::activities_multi_100x30_plate(&later.app().world, 100, 30, false).is_none()
-        );
+        assert!(catalogue::activities_multi_view(&later.app().world, 100, false).is_none());
         assert!(!catalogue::activities_multi_tag_frame(&later.app().world));
     }
     #[test]
@@ -4963,12 +4913,12 @@ mod tests {
         assert_eq!(ellipsis.fg, Color::Rgb(0x73, 0x73, 0x73));
         assert!(plate.diagnostics().is_empty(), "{:?}", plate.diagnostics());
         let world = &plate.app().world;
-        assert!(catalogue::first_use_100x30_plate(world, 100, 30, false).is_some());
-        assert!(catalogue::first_use_100x30_plate(world, 80, 24, false).is_none());
-        assert!(catalogue::first_use_100x30_plate(world, 120, 40, false).is_none());
-        assert!(catalogue::first_use_100x30_plate(world, 100, 31, false).is_none());
-        assert!(catalogue::first_use_100x30_plate(world, 99, 30, false).is_none());
-        assert!(catalogue::first_use_100x30_plate(world, 100, 30, true).is_none());
+        assert!(catalogue::first_use_view(world, 100, false).is_some());
+        assert!(catalogue::first_use_view(world, 120, false).is_none());
+        assert_ne!(
+            catalogue::first_use_view(world, 100, true),
+            catalogue::first_use_view(world, 100, false)
+        );
         let wide = harness(
             App::for_scenario(Scenario::FirstUse, Motion::Paused, 40),
             Theme::junie(),
@@ -5002,13 +4952,13 @@ mod tests {
             30,
         );
         assert!(!later.text().contains("holla disk analyze"));
-        assert!(catalogue::first_use_100x30_plate(&later.app().world, 100, 30, false).is_none());
+        assert!(catalogue::first_use_view(&later.app().world, 100, false).is_none());
         assert!(!catalogue::first_use_tag_frame(&later.app().world));
         let other = App::for_scenario(Scenario::RemoteHost, Motion::Paused, 40);
-        assert!(catalogue::first_use_100x30_plate(&other.world, 100, 30, false).is_none());
+        assert!(catalogue::first_use_view(&other.world, 100, false).is_none());
         let mut history = App::for_scenario(Scenario::FirstUse, Motion::Paused, 40);
         history.home.history = true;
-        assert!(catalogue::first_use_100x30_plate(&history.world, 100, 30, true).is_none());
+        assert!(catalogue::first_use_view(&history.world, 100, true).is_some());
         let history_screen = harness(history, Theme::junie(), 100, 30);
         assert!(
             history_screen.text().contains("holla snapshot"),
