@@ -242,7 +242,9 @@ impl ThemeBuilder {
 
     #[must_use]
     pub fn mono_rules(mut self, f: Family, rules: &[MonoRule]) -> Self {
-        self.theme.recipes.set_mono_rules(f, rules.to_vec());
+        self.theme
+            .recipes
+            .set_consumer_mono_rules(f, rules.to_vec());
         self
     }
 
