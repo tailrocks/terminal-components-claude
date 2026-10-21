@@ -6433,6 +6433,29 @@ impl App {
         mode: termrock::feedback::SplitMode,
         place_cursor: bool,
     ) {
+        self.paint_pinned_split_inner(ui, area, mode, place_cursor, false);
+    }
+
+    /// The pinned detail drawer: the saved split painted through the shared
+    /// drawer presentation (title focus, rule-grey box, drawer hints).
+    fn paint_pinned_detail_drawer(&self, ui: &mut Ui<'_>, area: Rect, place_cursor: bool) {
+        self.paint_pinned_split_inner(
+            ui,
+            area,
+            termrock::feedback::SplitMode::Saved,
+            place_cursor,
+            true,
+        );
+    }
+
+    fn paint_pinned_split_inner(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        mode: termrock::feedback::SplitMode,
+        place_cursor: bool,
+        drawer: bool,
+    ) {
         let payments = self
             .world
             .workspaces
@@ -6622,29 +6645,30 @@ impl App {
         } else {
             None
         };
-        termrock::feedback::paint_manager_split(
-            ui,
-            area,
-            &termrock::feedback::ManagerSplit {
-                brand_id: APP.sub("manager-brand"),
-                mode,
-                menus: &menus,
-                workspace_name: &workspace_name,
-                workdir: &workdir,
-                cwd_display: &cwd_display,
-                mounts: &mounts,
-                role_line: &role_line,
-                env_line: &env_line,
-                account_lines: &account_refs,
-                policy_line: &policy_line,
-                workspaces: &workspaces,
-                instances: &instances,
-                running,
-                live_here,
-                daemon_ago: &daemon_ago,
-                alert,
-            },
-        );
+        let split = termrock::feedback::ManagerSplit {
+            brand_id: APP.sub("manager-brand"),
+            mode,
+            menus: &menus,
+            workspace_name: &workspace_name,
+            workdir: &workdir,
+            cwd_display: &cwd_display,
+            mounts: &mounts,
+            role_line: &role_line,
+            env_line: &env_line,
+            account_lines: &account_refs,
+            policy_line: &policy_line,
+            workspaces: &workspaces,
+            instances: &instances,
+            running,
+            live_here,
+            daemon_ago: &daemon_ago,
+            alert,
+        };
+        if drawer {
+            termrock::feedback::paint_manager_detail_drawer(ui, area, &split);
+        } else {
+            termrock::feedback::paint_manager_split(ui, area, &split);
+        }
         self.place_manager_cursor(ui, area, place_cursor);
     }
 
