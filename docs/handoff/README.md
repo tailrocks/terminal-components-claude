@@ -381,7 +381,12 @@ to the two open Holla reference conflicts:
   regeneration scope (1088 digest rows; 27 families x 25 snapshot files from
   one pinned candidate build) are in the audit.
 
-Next steps: independent review must record a verdict on the audit (including
-the `afb602936` menu-recipe change) and the owner must record the
-regeneration decision before any reference store is regenerated. Nothing is
-blessed by this lane; all observed values are preserved in the audit.
+Next steps: the independent review is complete (2026-10-22, verdict "CASE
+STANDS", 0 MAJOR, 3 MINOR; findings and dispositions appended to
+`docs/audits/2026-10-22-holla-reference-regeneration-case.md`, and the
+`afb602936` menu-recipe change is recorded as a deliberate shared decision
+in `docs/audits/2026-10-22-theme-menu-recipe-decision.md` — keep, do not
+revert). **Owner decision owed**: regeneration scope approval (store,
+families, sizes, color levels) at a pinned HEAD. Until that approval is
+recorded in docs/audits, no reference store is regenerated and nothing is
+blessed; all observed values remain preserved in the audit.
