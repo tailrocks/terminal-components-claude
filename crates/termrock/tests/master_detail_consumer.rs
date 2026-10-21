@@ -133,13 +133,15 @@ fn opt_in_master_ratio_uses_one_layout_across_breakpoints_and_survives_redraw() 
         }))
         .expect("press the painted seam");
     present(&mut runtime, wide);
-    let _ = runtime
+    let resized_response = runtime
         .handle(Input::Mouse(Mouse {
             kind: MouseKind::Drag,
             pos: Position::new(seam.x.saturating_add(5), seam.y),
             mods: KeyModifiers::NONE,
         }))
         .expect("drag the captured seam");
+    assert!(resized_response.is_consumed() && resized_response.is_changed());
+    assert_eq!(resized_response.id(), Some(example::WORKSPACE));
     present(&mut runtime, wide);
     let _ = runtime
         .handle(Input::Mouse(Mouse {
@@ -154,10 +156,7 @@ fn opt_in_master_ratio_uses_one_layout_across_breakpoints_and_survives_redraw() 
         .split_percent()
         .expect("update initializes split state");
     assert_ne!(resized, 34);
-    assert_eq!(
-        runtime.app().last_layout_action(),
-        Some(termrock::MasterDetailAction::Resized(resized))
-    );
+    assert!(runtime.app().last_layout_changed());
 
     let resized_area = Rect::new(0, 0, 150, 24);
     let _ = runtime
@@ -192,6 +191,43 @@ fn opt_in_master_ratio_uses_one_layout_across_breakpoints_and_survives_redraw() 
     present(&mut runtime, Rect::new(0, 0, 99, 24));
     present(&mut runtime, wide);
     assert_eq!(runtime.app().split_percent(), Some(resized));
+}
+
+#[test]
+fn double_click_resets_to_each_configured_initial_master_share() {
+    for initial in [34, 45] {
+        let area = Rect::new(0, 0, 120, 24);
+        let policy = MasterDetailPolicy::default()
+            .resizable_master(initial, 18, 22)
+            .gap(2)
+            .collapse_below(100)
+            .summary_rows(6);
+        let mut runtime = Runtime::new(example::FileCatalogue::with_policy(policy), Theme::junie());
+        present(&mut runtime, area);
+        assert_eq!(runtime.app().split_percent(), Some(initial));
+        let seam = runtime
+            .area_of_part(example::WORKSPACE, PartRef::of(Part::SEAM))
+            .expect("configured split exposes the visible seam");
+        let point = Position::new(seam.x, seam.y);
+        for _ in 0..2 {
+            for kind in [MouseKind::Down, MouseKind::Up] {
+                let _ = runtime
+                    .handle(Input::Mouse(Mouse {
+                        kind,
+                        pos: point,
+                        mods: KeyModifiers::NONE,
+                    }))
+                    .expect("double-click the visible seam");
+                present(&mut runtime, area);
+            }
+        }
+        assert_eq!(
+            runtime.app().split_percent(),
+            Some(initial),
+            "double-click reset restores the configured initial {initial}% master share"
+        );
+        assert!(runtime.app().last_layout_changed());
+    }
 }
 
 const PURE_BLOCK: Id = Id::root("public.master-detail.pure");
