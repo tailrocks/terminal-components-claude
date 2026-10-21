@@ -14,6 +14,24 @@ Pending tasks and exact next actions:
 
 Expanded component gate at `7f819a779`: 872 run, 869 pass, three fail, three existing skips. Two navigation failures and the incoming MenuBar precedence regression remain open. Holla all-target gate at the preceding header source: 144 run, 142 pass, hover and visual baseline failures. Focused merged Holla and Picker tests, scoped strict Clippy, public Picker consumer and formatting pass; this does not establish the full gate. Full twice-repeated pinned real-binary comparisons, all-branch consolidation, required CI and repository reviews remain missing.
 
+# 2026-10-21 second rate-limit stop (coordinator) — resumes 19:40:57 +0700
+
+All five coordinator agents died at ~16:38 +0700 on a 5-hour usage limit (reset 2026-10-21 19:40:57). Coordinator work is documented here so resume needs no transcript.
+
+Landed before the stop (all on `origin/parity/termrock-visual-baseline`):
+
+- Backdrop regeneration `2ca2c7ad3..0dfd18ec9` (33 corpus tiers + snapshots, sidecars in `baselines/regen-sidecars/2026-10-21-backdrop-frame-regeneration/`, per-tier hashes in `docs/audits/2026-10-21-backdrop-frame-regeneration-receipts.json`, modifier-aware `frozen-baseline corpus-check` tool). Honest gap: tier cases still red (~78) because app/theme parity for dimmed backdrop is incomplete; regenerated frames are correct against the frozen oracle. **Independent review of the adjudication+regeneration chain was launched and died before reporting — must be re-run before any further frame decisions.**
+- Gutter helper-adoption matrices `6fb70e629` + `423b0e5e4`: no render site converted; helpers cannot reproduce frozen output byte-identically (bar ink token-bound vs bg-adaptive `legible_mark`; blank cells with resolved styles inexpressible via `GutterCell::Inherit`). Divergent states pinned by `gutter_recipe_gate.rs` tests in termrock-controls and termrock-navigation so a helper upgrade that closes a delta turns them red. Sites stay on recipe paths; deltas listed in the agent report and encoded in tests.
+
+In-flight at death (state lost unless noted):
+
+- Jackin usage overview/detail: full frames decoded; next step was inspecting live `draw_usage` + existing sidebar/row builders in `crates/jackin-preview-app/src/app.rs`, then building the page through real composition (List/Panel/feedback painters, no fixed cell tables). No uncommitted Jackin worktree found; analysis only.
+- Holla: resumed agent reported remaining true plates `disk_cleanup_100x30_plate`, `launch_failure_80x24_plate`, `launch_failure_100x30_plate` (size-keyed) plus semantic `first_use_plate`/`monorepo_root_plate`/`activities_multi_plate`/`remote_host_list_plate`; concept families have frozen snapshots, frozen-oracle drift check queued. Earlier docs commit `f01361f26` is NOT on the parity branch (dangling); verify whether its content was superseded before recreating it.
+- Feedback alloc contract (`derived_hintbar_metadata.rs:185` no-alloc, `feedback_clock.rs` Moment sync): agent was drafting its matrix row while waiting on the push lock; no push observed. Concurrent session landed `c12feabe9 perf(feedback): zero-allocation hintbar fitting...` — reconcile against that before redoing.
+- Overlays dialog.rs clippy (7 findings) + xtask doc_inventory/ownership registration of termrock-shell: **done by coordinator while rate-limited** (commit `a7d2ef4` on the unpushed docs stack). Overlays clippy was already clean (fixed by a landed commit). doc_inventory 8/8 green (four audit-doc fences relabeled/reflowed). Ownership: the three termrock-shell OWN-14 expects are registered as reviewed allowances and the two stale editor.rs exceptions removed; the ownership test itself stays red on ~100 unrelated findings from the concurrent session's in-flight jackin/holla/tablepro/runtime churn (growth ratchets + fresh OWN-14 in tabs.rs, runtime.rs, cx.rs, session.rs, composition.rs, picker_contract.rs) — their owners must register or fix; do not bless them from this lane.
+
+Resume queue (in order): 1) independent backdrop chain review (read-only, re-launch); 2) feedback fix reconciliation vs `c12feabe9`; 3) Holla remaining plates; 4) Jackin usage composition + remaining historical batches; 5) overlays clippy + xtask registration. Max 5 concurrent, push-lock protocol.
+
 
 # 2026-10-21: theme palettes, visual baselines, and master-detail composition landed
 
