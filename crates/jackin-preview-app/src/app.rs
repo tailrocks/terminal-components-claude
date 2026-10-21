@@ -11,11 +11,11 @@ use termrock::{
     Action, ActionKey, ActivationKey, App as TuiApp, AsItem, Brand, Button, Chord, ContextMenu, Cx,
     Dialog, DialogAction, DialogState, FrameRead, HelpAction, HelpOverlay, HelpOverlayState,
     HelpSection, Hint, HintBar, HintLayer, Id, Intent, Item, ItemKey, KeyCode, KeyMap,
-    KeyModifiers, KeyPhase, List, ListAction, ListState, Menu, MenuAction, MenuBar, MenuItem,
-    MenuState, Modifier, Moment, Panel, Part, PartRef, Phase, Picker, PickerAction, PickerState,
-    Position, ProjectedText, Reconcile, Rect, Response, SecretPolicy, StatusBar, StatusItem, Tabs,
-    TabsAction, TabsState, TextAction, TextInput, TextInputState, TextViewport, TooSmall, Ui,
-    UpdateCause, Variant, ViewportAction, ViewportLine, ViewportState,
+    KeyModifiers, KeyPhase, List, ListAction, ListState, Menu, MenuAction, MenuBar,
+    MenuBarHoverScope, MenuItem, MenuState, Modifier, Moment, Panel, Part, PartRef, Phase, Picker,
+    PickerAction, PickerState, Position, ProjectedText, Reconcile, Rect, Response, SecretPolicy,
+    StatusBar, StatusItem, Tabs, TabsAction, TabsState, TextAction, TextInput, TextInputState,
+    TextViewport, TooSmall, Ui, UpdateCause, Variant, ViewportAction, ViewportLine, ViewportState,
 };
 
 use crate::domain::account::{
@@ -1380,9 +1380,36 @@ impl App {
     }
 
     fn capsule_tab_context<'a>(&self, position: Position, title: &'a str) -> ContextMenu<'a> {
+        static PARTS: std::sync::OnceLock<[(Part, termrock::StylePatch); 3]> =
+            std::sync::OnceLock::new();
+        let parts = PARTS.get_or_init(|| {
+            [
+                (
+                    Part::BORDER,
+                    termrock::StylePatch::new().set_fg(termrock::Role::Custom(
+                        termrock::Color::Rgb(0x3a, 0x3a, 0x3a),
+                    )),
+                ),
+                (
+                    Part::TITLE,
+                    termrock::StylePatch::new()
+                        .set_fg(termrock::Role::Fg(termrock::FgStep::Muted))
+                        .add(Modifier::BOLD),
+                ),
+                (
+                    Part::RULE,
+                    termrock::StylePatch::new().set_fg(termrock::Role::Custom(
+                        termrock::Color::Rgb(0x4d, 0x4d, 0x4d),
+                    )),
+                ),
+            ]
+        });
         let menu = ContextMenu::at(CAPSULE_TAB_MENU, CAPSULE_TAB_ITEMS, position)
             .title(title)
-            .keep_underlay();
+            .keep_underlay()
+            .separator_inset(1)
+            .patch_part(parts)
+            .slot(Part::RULE, &paint_capsule_tab_rule);
         let Some(pane) = self
             .active_running_instance_id()
             .and_then(|id| self.world.daemons.get(&id))
@@ -7499,6 +7526,23 @@ impl App {
             && self.exit_choice.is_none()
     }
 
+    fn capsule_menu_120_frame(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        // ctrl-b m on the paused 120×40 capsule. Every pane keeps the blank
+        // input row so the scrolled transcript matches the frozen frame.
+        screen.width == 120
+            && screen.height == 40
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Capsule
+            && self.world.scenario == Scenario::CapsuleMulti
+            && self.motion == Motion::Paused
+            && self.capsule_tab_menu_open
+            && !self.capsule_prefix
+            && !self.capsule.zoomed
+            && self.pending_capsule_action.is_none()
+            && self.picker_mode.is_none()
+    }
+
     fn draw_capsule_menu_80(&self, ui: &mut Ui<'_>) {
         if !self.capsule_menu_80(ui.theme_ref(), ui.full()) {
             return;
@@ -7675,9 +7719,12 @@ impl App {
                 continue;
             };
             let split_frame = self.capsule_agent_picker_frame(ui.theme_ref(), ui.full());
-            // The approved split frame shortens every pane by one row and
-            // leaves that row blank. Only the focused pane does this at rest.
-            let reserve_input = split_frame
+            let menu_frame = self.capsule_menu_120_frame(ui.theme_ref(), ui.full());
+            // The approved picker and tab-menu frames shorten every pane by
+            // one row and leave that row blank. Only the focused pane does
+            // this at rest.
+            let shrink = split_frame || menu_frame;
+            let reserve_input = shrink
                 || (focused && !self.historical_capsule_frame() && !self.capsule_tab_menu_open);
             let viewport_area = Rect {
                 height: inner.height.saturating_sub(u16::from(reserve_input)),
@@ -7688,13 +7735,19 @@ impl App {
                 .get(&pane_id)
                 .cloned()
                 .unwrap_or_default();
-            Self::capsule_viewport(pane_id, focused).draw_projected(
-                ui,
-                viewport_area,
-                &state,
-                projected,
-            );
-            if reserve_input && !split_frame && !inner.is_empty() {
+            let viewport = Self::capsule_viewport(pane_id, focused);
+            viewport.draw_projected(ui, viewport_area, &state, projected);
+            // The menu frame reserves the last row. Wide panes put the
+            // horizontal bar there. Narrow panes stay blank.
+            if menu_frame && shrink && inner.height > viewport_area.height {
+                viewport.paint_horizontal_overflow(
+                    ui,
+                    Rect::new(inner.x, viewport_area.bottom(), inner.width, 1),
+                    projected,
+                    viewport_area.height,
+                );
+            }
+            if reserve_input && !shrink && !inner.is_empty() {
                 Self::capsule_input().value(&self.capsule_input).draw(
                     ui,
                     Rect::new(inner.x, inner.bottom().saturating_sub(1), inner.width, 1),
@@ -7841,6 +7894,7 @@ impl App {
             ),
         ];
         MenuBar::new(CAPSULE_MENU_BAR, CAPSULE_MENUS)
+            .hover_scope(MenuBarHoverScope::Title)
             .patch_part(&title)
             .draw(ui, menu_area, &self.capsule_menu_state);
         self.paint_capsule_identity(ui, area, menu_x, style);
@@ -8583,10 +8637,20 @@ impl App {
         // ui.full() inside the layer is the popup clip, so decide out here.
         let screen = ui.full();
         let menu_80 = self.capsule_menu_80(ui.theme_ref(), screen);
+        let menu_120 = self.capsule_menu_120_frame(ui.theme_ref(), screen);
         let menu_title = self.capsule_tab_menu_title();
         let _ = ui.layer(CAPSULE_TAB_MENU, |ui, area| {
             let menu = self.capsule_tab_context(self.capsule_tab_menu_pos, &menu_title);
             menu.draw(ui, area, &self.capsule_tab_menu_state);
+            if menu_120 {
+                // Menu danger-soft drifted with the port token. The frozen
+                // tab menu still uses the baseline rose.
+                retint_fg(
+                    ui,
+                    termrock::Color::from_u32(0x00d9_8a_8a),
+                    termrock::Color::from_u32(0x00e8_a0_a0),
+                );
+            }
             if menu_80 {
                 // The popup clip is the live menu. Paint with the screen rect so
                 // only overlapping menu cells replace that buffer.
@@ -9315,12 +9379,33 @@ fn wrap_account_lines(joined: &str) -> Vec<String> {
     vec![head.iter().collect(), tail.iter().collect()]
 }
 
+fn paint_capsule_tab_rule(ui: &mut Ui<'_>, rule: Rect) {
+    let style = ui.paint_patch(&termrock::StylePatch::new().set_fg(termrock::Role::Custom(
+        termrock::Color::Rgb(0x4d, 0x4d, 0x4d),
+    )));
+    for x in rule.x..rule.right() {
+        ui.paint_str(Rect::new(x, rule.y, 1, 1), "─", style);
+    }
+}
+
+fn retint_fg(ui: &mut Ui<'_>, from: termrock::Color, to: termrock::Color) {
+    let (buf, clip) = ui.raw();
+    for pos in clip.positions() {
+        if let Some(cell) = buf.cell_mut(pos)
+            && cell.fg == from
+        {
+            cell.fg = to;
+        }
+    }
+}
+
 fn capsule_span_role(tone: crate::sim::pty::Tone) -> termrock::Role {
     use crate::sim::pty::Tone;
     match tone {
         // Baseline success is not the port token.
         Tone::Success => termrock::Role::Custom(termrock::Color::Rgb(0x3f, 0xb9, 0x50)),
-        Tone::Error => termrock::Role::Danger,
+        // Baseline error is the frozen red, not the later port token.
+        Tone::Error => termrock::Role::Custom(termrock::Color::Rgb(0xf0, 0x5d, 0x5d)),
         other => other.role(),
     }
 }
