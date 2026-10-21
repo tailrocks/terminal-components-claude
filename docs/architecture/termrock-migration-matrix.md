@@ -2525,3 +2525,38 @@ overlay case and the two visual-baseline negative controls). They are semantic
 checks, not digest pins, so they are the next work item rather than something
 to bless.
 origin/wip/session-consolidation-20261021
+
+### Holla home finder block (integrated)
+
+Branch `wip/holla-home-migration-20261021`, tip
+`51a17fa1dd92d25f092e3bcf1121457df2766a5e`, integrated into this branch.
+
+The Holla home finder body and its shell composition now render through three
+new public blocks in `crates/termrock-shell`: the finder plate (`FinderBand`,
+`FinderRow`, `FinderContent`, `FinderColumns`, `FinderLayout`, `FinderPolicy`,
+`FinderPlate::new().policy(p).draw(ui, area, &content)`), the finder screen
+(`FinderGrid`, `FinderLead`, `ScopeBand`, `BandChip`, `ActionRow`,
+`paint_action_row`) and the plate policy data. The app owns the fifteen
+per-plate policies as constants and maps catalogue rows into the shared
+content; the pre-refactor app-owned painters stay in the tree as the
+frame-equality oracle, so a drift in the shared block fails the test.
+
+Measured effect of the architecture scanner (the agent's own measurement, base
+→ now): the Holla files `screens/home.rs` went 142 / 50 / 21 to 105 / 23 / 9 for
+OWN-02 / OWN-04 / OWN-11, `screens/finder.rs` went 3 / 1 to 0 / 0, and
+`app.rs` went 51 / 70 / 26 to 36 / 66 / 23. No count grew for any file. The
+production raw-geometry count across the Holla crates went 210 → 150.
+
+The frame-equality proofs are `the_shared_plate_paints_the_cells_of_the_app_owned_painters`
+(15 scenarios × 6 widths × 3 heights × 4 colour levels),
+`the_shared_action_row_paints_the_cells_of_the_app_owned_painter` and
+`the_shared_scope_band_paints_the_cells_of_the_app_owned_painters`.
+`cargo nextest run -p holla-ui -p termrock-shell --all-targets` is 216 passed,
+0 failed on this branch.
+
+Known follow-up, recorded by that workstream: the band thresholds currently
+live in both `termrock-shell::finder` and `crates/holla-sim/src/catalogue.rs`,
+and `holla-ui/src/screens/home.rs` still asks the catalogue whether the finder
+leads with the recent list (`world.scenario.boot_title() == "Recent here"`),
+which is the last scenario-driven behaviour in the migrated family. Both need
+`crates/holla-sim/**`, which this session's streams did not own.
