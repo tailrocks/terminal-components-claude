@@ -31,6 +31,8 @@ struct Page {
     opened: bool,
     items: Vec<Item<'static>>,
     searchable: bool,
+    hints: &'static str,
+    layout: PickerLayout,
     chosen: Option<ItemKey>,
 }
 
@@ -39,10 +41,10 @@ impl Page {
         Picker::new(ID)
             .title("Choose a workspace")
             .width(72)
-            .hints("Enter choose")
+            .hints(self.hints)
             .searchable(self.searchable)
             .filter(FilterPolicy::Caller)
-            .layout(PickerLayout::card())
+            .layout(self.layout)
             .align(ScreenAlign::GeometricCenter)
     }
 }
@@ -70,12 +72,32 @@ impl App for Page {
 }
 
 fn page(items: Vec<Item<'static>>, searchable: bool, width: u16, height: u16) -> Harness<Page> {
+    page_with_layout(
+        items,
+        searchable,
+        "Enter choose",
+        PickerLayout::card(),
+        width,
+        height,
+    )
+}
+
+fn page_with_layout(
+    items: Vec<Item<'static>>,
+    searchable: bool,
+    hints: &'static str,
+    layout: PickerLayout,
+    width: u16,
+    height: u16,
+) -> Harness<Page> {
     Harness::new(
         Page {
             state: PickerState::default(),
             opened: false,
             items,
             searchable,
+            hints,
+            layout,
             chosen: None,
         },
         Theme::junie(),
@@ -136,6 +158,56 @@ fn card_draw_uses_policy_for_query_result_hit_and_cursor_bounds() {
         .hit(Position::new(26, 18))
         .expect("result viewport is interactive");
     assert_ne!(hit.part.part, Part::QUERY);
+}
+
+#[test]
+fn zero_footer_disables_hints_without_overlapping_live_results() {
+    let items = count_items(100);
+    let without_footer = page_with_layout(
+        items.clone(),
+        true,
+        "VISIBLE_FOOTER",
+        PickerLayout::card().footer_rows(0),
+        120,
+        40,
+    );
+    let without_area = without_footer
+        .layer_area(ID)
+        .expect("zero-footer picker is open");
+    assert_eq!(without_area.height, 18);
+    assert_eq!(without_footer.count("VISIBLE_FOOTER"), 0);
+    assert_eq!(
+        without_footer.app().state.list().scroll().viewport_len(),
+        13
+    );
+    assert!(
+        without_footer
+            .runtime()
+            .registry()
+            .area_of_part(ID, PartRef::item(Part::ROW, ItemKey::num(0)))
+            .is_some()
+    );
+
+    let with_footer = page_with_layout(
+        items,
+        true,
+        "VISIBLE_FOOTER",
+        PickerLayout::card().footer_rows(1),
+        120,
+        40,
+    );
+    let with_area = with_footer
+        .layer_area(ID)
+        .expect("one-row-footer picker is open");
+    assert_eq!(with_area.height, 19);
+    assert_eq!(with_footer.count("VISIBLE_FOOTER"), 1);
+    let footer_y = with_area.bottom() - 2;
+    let row_area = with_footer
+        .runtime()
+        .registry()
+        .area_of_part(ID, PartRef::item(Part::ROW, ItemKey::num(0)))
+        .expect("live results retain a registered row");
+    assert!(row_area.bottom() <= footer_y);
 }
 
 #[test]
