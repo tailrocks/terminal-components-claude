@@ -2472,3 +2472,21 @@ distinctness list, the `bindings_match_handled_keys` family, the
 `local_override_does_not_mutate_the_theme` checks and the tiny-rect help
 overlay case). Those are semantic checks, and they are recorded as the next
 work item rather than blessed away.
+
+#### Pre-existing versus introduced, measured on the conformance package
+
+`cargo nextest run -p termrock-conformance --all-targets --no-fail-fast`:
+
+| Tree | Tests run | Passed | Failed |
+| --- | --- | --- | --- |
+| parity tip `52e1572ca` | 1462 | 1155 | 307 |
+| this session's branch | 1462 | 1193 | 269 |
+
+The 38-test improvement comes from the re-bless and the theme adjudication. The
+remaining failures exist at the parity tip as well and are the same families
+(`bindings_match_handled_keys` for the picker, filter list, field, form, text
+input, text area and code editor, `registry::declared_parts_are_the_parts_actually_styled`,
+the `local_override_does_not_mutate_the_theme` checks, the tiny-rect help
+overlay case and the two visual-baseline negative controls). They are semantic
+checks, not digest pins, so they are the next work item rather than something
+to bless.
