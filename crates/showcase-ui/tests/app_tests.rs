@@ -707,9 +707,15 @@ fn dialog_kinds_add_connection_uses_live_form_and_stacked_picker() {
         .part(Part::BODY)
         .part(Part::FIELD)
         .index(6);
+    let form_id = Id::root("showcase_ui::pages::dialog_kinds::dialog_kinds.connection");
+    let name_id = form_id.part(Part::BODY).part(Part::FIELD).index(0);
     let before = h.area_of(chooser_id);
+    let form_before = h.layer_area(form_id);
+    let name_before = h.area_of(name_id);
     let down = h.mouse(MouseKind::Down, chooser.0.saturating_add(1), chooser.1);
     let after_down = h.area_of(chooser_id);
+    let form_after_down = h.layer_area(form_id);
+    let name_after_down = h.area_of(name_id);
     let pressed_focus = h.focus();
     let _ = h.tick();
     let after_tick = h.area_of(chooser_id);
@@ -717,7 +723,7 @@ fn dialog_kinds_add_connection_uses_live_form_and_stacked_picker() {
     let after_up = h.area_of(chooser_id);
     assert!(
         h.text().contains("Choose SSH key"),
-        "chooser click failed: point={chooser:?}, area={before:?}->{after_down:?}->{after_tick:?}->{after_up:?}, focus={pressed_focus:?}, down={down:?}, up={up:?}\n{}",
+        "chooser click failed: point={chooser:?}, modal={form_before:?}->{form_after_down:?}, name={name_before:?}->{name_after_down:?}, area={before:?}->{after_down:?}->{after_tick:?}->{after_up:?}, focus={pressed_focus:?}, down={down:?}, up={up:?}\n{}",
         h.text()
     );
     assert!(

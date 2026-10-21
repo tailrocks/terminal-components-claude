@@ -311,3 +311,46 @@ fixed and reviewed. Current source/test/audit SHA-256 values at checkpoint:
 `ec9f0613177e6cd08cfadf0cfbfe1e7a0e2d8d4d61d61b6ef15d99f8c5314cd0`
 (`docs/audits/2026-10-21-showcase-dialog-kinds-restoration.md`). These hashes
 exclude this handoff update and commit metadata.
+
+### DialogKinds dynamic layer diagnostic (2026-10-21, supersedes above)
+
+Keep this route WIP incomplete. The bounded diagnostic log at
+`/Users/donbeave/Projects/termrock-cli-evidence-20261021/showcase-dialog-kinds-trace-260a.log`
+(SHA-256 `fde6f703902285bedabee687d0c19abaf23fa2c584ba7d8f41db76c5bdabbd72`)
+distinguishes the actual Showcase case: inner form content grows 26→29 rows
+when the tunnel becomes visible, but scroll offset stays 0 and the chooser
+pointer hold is active. Down leaves the old modal bounds and chooser geometry
+unchanged through app update; the next published frame expands/reanchors the
+modal from `{x:29,y:2,w:62,h:33}` to `{x:29,y:1,w:62,h:36}`, shifting the
+chooser from y=27 to y=26. Up then misses the original pressed target. This
+points at outer layer resizing/reanchoring, but remains an unconfirmed
+hypothesis; no shared implementation has been changed. The independent
+FormDialog architecture review notes that b40's native test reads stale
+pre-input layout until a later publication, starts with the conditional field
+visible, and therefore does not establish correctness for this dynamic-layer
+scenario (reviewer log SHA-256
+`3a7141d0f1b5b61a241049d7380ca30be9d9cbf59e52a313b8df02ab2c34bd0b`).
+
+Next: shared architecture owner investigates modal resize ownership and adds
+a real published-frame regression before deciding on a shared fix. Preserve
+the actual Showcase Down/Tick/Up regression and these artifacts. Do not work
+around the mismatch in the application or integrate the route into PR #38.
+
+### DialogKinds trace checkpoint (2026-10-21)
+
+The actual app regression and bounded evidence are checkpointed on
+`wip/showcase-dialog-kinds-restoration-20261021`. Layer/form trace details and
+the unproven outer-resize hypothesis are in the audit above. The trace is an
+external immutable log at
+`/Users/donbeave/Projects/termrock-cli-evidence-20261021/showcase-dialog-kinds-trace-260a.log`,
+SHA-256 `fde6f703902285bedabee687d0c19abaf23fa2c584ba7d8f41db76c5bdabbd72`.
+Focused latest result: `cargo fmt --check` pass, `git diff --check` pass;
+`cargo nextest run -p showcase-ui --test app_tests -E 'test(dialog_kinds_)' --no-fail-fast`
+is 1 pass / 2 fail (Save action passes; picker open flows fail). Do not claim
+Showcase route completion or integrate it into PR #38. Temporary page-level
+logging used to gather the trace has been removed; the app test now asserts
+modal, Name field, and chooser hit rectangles around Down/Tick/Up. Latest
+tracked hashes before commit are `494ae87641e25bd774b39cc0424ceac886d3cfc600f1fe9350b17934472ff19f`
+(`dialog_kinds.rs`), `a2df4affcbbd803647721e4a64d1d37136510236e11a7ba352979ab362710526`
+(`app_tests.rs`), and `fc2c2e7ea31a0c66a7d14310c7bf77a25ea565e0509087982f1c6de539ce7fbf`
+(`2026-10-21-showcase-dialog-kinds-restoration.md`).
