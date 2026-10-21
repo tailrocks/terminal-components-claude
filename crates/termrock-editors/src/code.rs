@@ -19,7 +19,9 @@ use crate::response::{Response, StateFlags};
 use crate::scroll::ScrollState;
 use crate::text::measure::{grapheme_width, graphemes};
 use crate::text::{EditAction, EditOutcome, Extend, Motion, TextEditorCore, width};
-use crate::theme::{Family, FgStep, GlyphRole, Role, Slot, StylePatch, SyntaxRole, Variant};
+use crate::theme::{
+    Family, FgStep, GlyphRole, Role, Slot, StyleDefaults, StylePatch, SyntaxRole, Variant,
+};
 use crate::ui::{Cx, FrameRead, Ui};
 use termrock_core::edit_entry::EditEntry;
 use termrock_runtime::scroll_region::ScrollRegion;
@@ -1517,10 +1519,6 @@ impl<'a> CodeEditor<'a> {
         // Line numbers follow the baseline code gutter: the focused cursor
         // line is primary and bold, the current block is secondary, and every
         // other line is muted. Read-only editors use faint for all of them.
-        let meta = style(ui, Part::META, live).style;
-        let number_ink = |ui: &mut Ui<'_>, step: FgStep| {
-            meta.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(step))))
-        };
         let block = if st.editor.selection().is_none() {
             self.current_block(st)
         } else {
@@ -1645,15 +1643,35 @@ impl<'a> CodeEditor<'a> {
                     .as_ref()
                     .is_some_and(|range| line_span_end >= range.start && line_start <= range.end);
                 let focused_line = live.contains(StateFlags::FOCUSED) && line_index == cursor.line;
-                let number_style = if self.read_only {
-                    number_ink(ui, FgStep::Faint)
+                let defaults = if self.read_only {
+                    StylePatch::new().set_fg(Role::Fg(FgStep::Faint))
                 } else if focused_line {
-                    number_ink(ui, FgStep::Primary).add_modifier(Modifier::BOLD)
+                    StylePatch::new()
+                        .set_fg(Role::Fg(FgStep::Primary))
+                        .add(Modifier::BOLD)
                 } else if in_block {
-                    number_ink(ui, FgStep::Secondary)
+                    StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))
                 } else {
-                    number_ink(ui, FgStep::Muted)
+                    StylePatch::new().set_fg(Role::Fg(FgStep::Muted))
                 };
+                let meta_patch = self.ov.part_patch(Part::META);
+                let resolved = ui.style_defaults_with_explicit(
+                    Family::CODE,
+                    Variant::DEFAULT,
+                    Part::META,
+                    live,
+                    StyleDefaults::new(defaults),
+                    meta_patch.as_ref(),
+                );
+                self.ov.note(
+                    ui,
+                    self.id,
+                    Family::CODE,
+                    Variant::DEFAULT,
+                    Part::META,
+                    resolved.resolved,
+                );
+                let number_style = resolved.resolved.style;
                 let mut digits = [0u8; 20];
                 let number_text = usize_text(line_index.saturating_add(1), &mut digits);
                 let number_width = width(number_text).min(number.width);
@@ -2009,9 +2027,17 @@ mod tests {
     use crate::event::MouseKind;
     use crate::runtime::stub::{Stub, key, mouse};
     use crate::runtime::{App, Runtime};
-    use crate::theme::{FgStep, Surface, Theme};
+    use crate::theme::{ColorLevel, FgStep, Surface, Theme};
 
     const ID: Id = Id::root("code.tests");
+    type TestSegmenter = fn(&str) -> Vec<Range<usize>>;
+    const SAME_PRIMARY_META_PATCHES: [(Part, StylePatch); 1] = [(
+        Part::META,
+        StylePatch::new()
+            .set_fg(Role::Fg(FgStep::Primary))
+            .add(Modifier::ITALIC)
+            .remove(Modifier::BOLD),
+    )];
 
     struct EditorApp {
         state: CodeEditorState,
@@ -2020,6 +2046,8 @@ mod tests {
         commit_on_blur: bool,
         indent: u8,
         tab_behavior: TabBehavior,
+        meta_patches: &'static [(Part, StylePatch)],
+        segmenter: Option<TestSegmenter>,
         last_action: Option<CodeAction>,
         app_entry: EditEntry,
         widget_entry: Option<EditEntry>,
@@ -2035,7 +2063,12 @@ mod tests {
                 .disabled(self.disabled)
                 .commit_on_blur(self.commit_on_blur)
                 .indent(self.indent)
-                .tab_behavior(self.tab_behavior);
+                .tab_behavior(self.tab_behavior)
+                .patch_part(self.meta_patches);
+            let editor = match self.segmenter.as_ref() {
+                Some(segmenter) => editor.segmenter(segmenter),
+                None => editor,
+            };
             let editor = if let Some(entry) = self.widget_entry {
                 editor.edit_entry(entry)
             } else {
@@ -2052,7 +2085,12 @@ mod tests {
                 .disabled(self.disabled)
                 .commit_on_blur(self.commit_on_blur)
                 .indent(self.indent)
-                .tab_behavior(self.tab_behavior);
+                .tab_behavior(self.tab_behavior)
+                .patch_part(self.meta_patches);
+            let editor = match self.segmenter.as_ref() {
+                Some(segmenter) => editor.segmenter(segmenter),
+                None => editor,
+            };
             let editor = if let Some(entry) = self.widget_entry {
                 editor.edit_entry(entry)
             } else {
@@ -2095,6 +2133,8 @@ mod tests {
                 commit_on_blur: true,
                 indent,
                 tab_behavior,
+                meta_patches: &[],
+                segmenter: None,
                 last_action: None,
                 app_entry,
                 widget_entry: None,
@@ -2107,6 +2147,42 @@ mod tests {
         let _ = crate::runtime::stub::deliver(&mut runtime, crate::event::Input::Tick);
         runtime.draw_buffer(area, &mut buffer).commit_presented();
         (runtime, buffer)
+    }
+
+    fn styled_runtime(
+        theme: Theme,
+        state: CodeEditorState,
+        read_only: bool,
+        meta_patches: &'static [(Part, StylePatch)],
+        segmenter: Option<TestSegmenter>,
+    ) -> (Runtime<EditorApp>, Buffer) {
+        let area = Rect::new(0, 0, 40, 5);
+        let mut runtime = Runtime::new(
+            EditorApp {
+                state,
+                read_only,
+                disabled: false,
+                commit_on_blur: true,
+                indent: 2,
+                tab_behavior: TabBehavior::Indent,
+                meta_patches,
+                segmenter,
+                last_action: None,
+                app_entry: EditEntry::Immediate,
+                widget_entry: None,
+            },
+            theme,
+        );
+        let _ = runtime.initialize();
+        let mut buffer = Buffer::empty(area);
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        let _ = crate::runtime::stub::deliver(&mut runtime, crate::event::Input::Tick);
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        (runtime, buffer)
+    }
+
+    fn whole_document(text: &str) -> Vec<Range<usize>> {
+        core::iter::once(0..text.len()).collect()
     }
 
     fn send_key(runtime: &mut Runtime<EditorApp>, buffer: &mut Buffer, code: KeyCode) {
@@ -2405,6 +2481,8 @@ mod tests {
                 commit_on_blur: true,
                 indent: 2,
                 tab_behavior: TabBehavior::Indent,
+                meta_patches: &[],
+                segmenter: None,
                 last_action: None,
                 app_entry: EditEntry::Explicit,
                 widget_entry: Some(EditEntry::Immediate),
@@ -2430,6 +2508,8 @@ mod tests {
                 commit_on_blur: true,
                 indent: 2,
                 tab_behavior: TabBehavior::Indent,
+                meta_patches: &[],
+                segmenter: None,
                 last_action: None,
                 app_entry: EditEntry::TypeToEdit,
                 widget_entry: None,
@@ -2584,6 +2664,176 @@ mod tests {
         let idle = render(false, false);
         assert_eq!(render(true, false), idle, "stale runtime EDITING leaked");
         assert_ne!(render(false, true), idle, "real edit state was not styled");
+    }
+
+    #[test]
+    fn authored_meta_channels_survive_focus_read_only_and_color_profiles() {
+        const AUTHORED: ratatui_core::style::Color = ratatui_core::style::Color::Rgb(250, 30, 170);
+        for level in [
+            ColorLevel::TrueColor,
+            ColorLevel::Ansi256,
+            ColorLevel::Ansi16,
+            ColorLevel::Mono,
+        ] {
+            for read_only in [false, true] {
+                let theme = Theme::junie().override_family(Family::CODE, |recipe| {
+                    recipe.part(Part::META).base(
+                        StylePatch::new()
+                            .set_fg(Role::Custom(AUTHORED))
+                            .add(Modifier::ITALIC)
+                            .remove(Modifier::BOLD),
+                    );
+                    recipe.part(Part::META).when(
+                        StateFlags::FOCUSED,
+                        StylePatch::new()
+                            .add(Modifier::UNDERLINED)
+                            .remove(Modifier::BOLD),
+                    );
+                });
+                let mut theme = theme;
+                theme.capability.color = level;
+                let flags = StateFlags::FOCUSED
+                    | if read_only {
+                        StateFlags::READ_ONLY
+                    } else {
+                        StateFlags::empty()
+                    };
+                let expected = theme
+                    .resolve(
+                        Family::CODE,
+                        Variant::DEFAULT,
+                        Part::META,
+                        flags,
+                        Surface::Canvas,
+                    )
+                    .style;
+                let (runtime, buffer) = styled_runtime(
+                    theme,
+                    CodeEditorState::new("alpha\nbeta"),
+                    read_only,
+                    &[],
+                    None,
+                );
+                assert_eq!(
+                    runtime.focus(),
+                    Some(ID),
+                    "{level:?}, read_only={read_only}"
+                );
+                let cell = buffer
+                    .cell(Position::new(3, 0))
+                    .expect("first line number is inside the editor");
+                assert_eq!(
+                    cell.fg,
+                    expected.fg.unwrap_or_default(),
+                    "{level:?}, read_only={read_only}"
+                );
+                assert!(
+                    cell.modifier.contains(Modifier::ITALIC),
+                    "{level:?}, read_only={read_only}"
+                );
+                assert!(
+                    cell.modifier.contains(Modifier::UNDERLINED),
+                    "{level:?}, read_only={read_only}"
+                );
+                assert!(
+                    !cell.modifier.contains(Modifier::BOLD),
+                    "{level:?}, read_only={read_only}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn code_gutter_defaults_keep_block_semantics_and_same_value_author_patches() {
+        for level in [
+            ColorLevel::TrueColor,
+            ColorLevel::Ansi256,
+            ColorLevel::Ansi16,
+            ColorLevel::Mono,
+        ] {
+            let mut theme = Theme::junie();
+            theme.capability.color = level;
+            let mut state = CodeEditorState::new("alpha\nbeta");
+            state.jump_to(7);
+            let (runtime, buffer) = styled_runtime(
+                theme.clone(),
+                state.clone(),
+                false,
+                &[],
+                Some(whole_document),
+            );
+            assert_eq!(runtime.focus(), Some(ID));
+            let first = buffer.cell(Position::new(3, 0)).expect("first line number");
+            let second = buffer
+                .cell(Position::new(3, 1))
+                .expect("second line number");
+            assert_eq!(
+                first.fg,
+                theme.color.fg[FgStep::Secondary.index()],
+                "{level:?}"
+            );
+            assert!(!first.modifier.contains(Modifier::BOLD), "{level:?}");
+            assert_eq!(
+                second.fg,
+                theme.color.fg[FgStep::Primary.index()],
+                "{level:?}"
+            );
+            assert!(second.modifier.contains(Modifier::BOLD), "{level:?}");
+
+            let (runtime, buffer) = styled_runtime(
+                theme.clone(),
+                state,
+                false,
+                &SAME_PRIMARY_META_PATCHES,
+                Some(whole_document),
+            );
+            assert_eq!(runtime.focus(), Some(ID));
+            let second = buffer
+                .cell(Position::new(3, 1))
+                .expect("second line number");
+            assert!(second.modifier.contains(Modifier::ITALIC), "{level:?}");
+            assert!(
+                !second.modifier.contains(Modifier::BOLD),
+                "same-value explicit clear at {level:?}"
+            );
+
+            let mut selected_state = CodeEditorState::new("alpha\nbeta");
+            selected_state.editor.select_range(0, 1);
+            let (_, buffer) = styled_runtime(
+                theme.clone(),
+                selected_state,
+                false,
+                &[],
+                Some(whole_document),
+            );
+            let second = buffer
+                .cell(Position::new(3, 1))
+                .expect("second line number");
+            assert_eq!(
+                second.fg,
+                theme.color.fg[FgStep::Muted.index()],
+                "selection suppresses current-block defaults at {level:?}"
+            );
+
+            let (_, buffer) = styled_runtime(
+                theme.clone(),
+                CodeEditorState::new("alpha\nbeta"),
+                true,
+                &[],
+                None,
+            );
+            for y in [0, 1] {
+                let cell = buffer
+                    .cell(Position::new(3, y))
+                    .expect("read-only line number");
+                assert_eq!(
+                    cell.fg,
+                    theme.color.fg[FgStep::Faint.index()],
+                    "read-only number keeps faint default at {level:?}"
+                );
+                assert!(!cell.modifier.contains(Modifier::BOLD), "{level:?}");
+            }
+        }
     }
 
     #[test]
