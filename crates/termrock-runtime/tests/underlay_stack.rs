@@ -165,3 +165,168 @@ fn raw_full_cell_write_cancels_underlay_style_intent() {
     assert_eq!(cell.fg, Color::Magenta);
     assert_eq!(cell.bg, Color::Reset);
 }
+
+struct FadeModel {
+    inherit: bool,
+}
+
+impl App for FadeModel {
+    fn update(&mut self, cx: &mut termrock_runtime::Cx<'_>) -> termrock_core::Response<()> {
+        const POPUP: Id = Id::root("underlay.fade-popup");
+        if !cx.is_open(POPUP) {
+            cx.open_layer(
+                POPUP,
+                LayerSpec::popover(POPUP, Anchor::Point(Position::new(1, 1)))
+                    .size(LayerSize::Fixed(8, 6)),
+            );
+        }
+        termrock_core::Response::ignored()
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        const POPUP: Id = Id::root("underlay.fade-popup");
+        let base = Style::new().fg(Color::Rgb(200, 40, 40)).bg(Color::Black);
+        ui.fill(ui.full(), base);
+        let _ = ui.layer(POPUP, |ui, area| {
+            if self.inherit {
+                ui.fill_keep_ink(area, Color::Black);
+            } else {
+                ui.fill(area, base);
+            }
+            ui.paint_str(
+                Rect::new(area.x, area.y, 1, 1),
+                "X",
+                Style::new().fg(Color::Rgb(40, 200, 80)),
+            );
+            let mut scroll = termrock_runtime::ScrollState::new(100);
+            scroll.set_viewport(6);
+            scroll.scroll_by(1);
+            ui.scroll_edges(area, &scroll);
+        });
+    }
+}
+
+#[test]
+fn postfill_scroll_fade_is_not_overwritten_by_composition() {
+    let draw = |inherit| {
+        let area = Rect::new(0, 0, 40, 12);
+        let mut runtime = Runtime::new(FadeModel { inherit }, Theme::junie());
+        let _ = runtime.initialize();
+        let mut buffer = Buffer::empty(area);
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        buffer
+    };
+
+    assert_eq!(draw(true), draw(false));
+}
+
+struct ModifierModel {
+    inherit: bool,
+}
+
+impl App for ModifierModel {
+    fn update(&mut self, cx: &mut termrock_runtime::Cx<'_>) -> termrock_core::Response<()> {
+        const POPUP: Id = Id::root("underlay.modifier-popup");
+        if !cx.is_open(POPUP) {
+            cx.open_layer(
+                POPUP,
+                LayerSpec::popover(POPUP, Anchor::Point(Position::new(1, 1)))
+                    .size(LayerSize::Fixed(8, 3)),
+            );
+        }
+        termrock_core::Response::ignored()
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        const POPUP: Id = Id::root("underlay.modifier-popup");
+        let base = Style::new().fg(Color::Red).bg(Color::Black);
+        ui.fill(ui.full(), base);
+        let _ = ui.layer(POPUP, |ui, area| {
+            if self.inherit {
+                ui.fill_keep_ink(area, Color::Black);
+            } else {
+                ui.fill(area, base);
+            }
+            ui.paint_str(
+                Rect::new(area.x, area.y, 1, 1),
+                "X",
+                Style {
+                    add_modifier: Modifier::BOLD,
+                    sub_modifier: Modifier::BOLD,
+                    ..Style::new()
+                },
+            );
+        });
+    }
+}
+
+#[test]
+fn overlapping_modifier_fields_keep_ratatui_remove_precedence() {
+    let draw = |inherit| {
+        let area = Rect::new(0, 0, 40, 10);
+        let mut runtime = Runtime::new(ModifierModel { inherit }, Theme::junie());
+        let _ = runtime.initialize();
+        let mut buffer = Buffer::empty(area);
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        buffer
+    };
+
+    assert_eq!(draw(true), draw(false));
+}
+
+struct MoveModel {
+    inherit: bool,
+}
+
+impl App for MoveModel {
+    fn update(&mut self, cx: &mut termrock_runtime::Cx<'_>) -> termrock_core::Response<()> {
+        const POPUP: Id = Id::root("underlay.move-popup");
+        if !cx.is_open(POPUP) {
+            cx.open_layer(
+                POPUP,
+                LayerSpec::popover(POPUP, Anchor::Point(Position::new(1, 1)))
+                    .size(LayerSize::Fixed(8, 3)),
+            );
+        }
+        termrock_core::Response::ignored()
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        const POPUP: Id = Id::root("underlay.move-popup");
+        let base = Style::new()
+            .fg(Color::Red)
+            .bg(Color::Black)
+            .underline_color(Color::Green)
+            .add_modifier(Modifier::BOLD | Modifier::UNDERLINED);
+        ui.fill(ui.full(), base);
+        let _ = ui.layer(POPUP, |ui, area| {
+            if self.inherit {
+                ui.fill_keep_ink(area, Color::Black);
+            } else {
+                ui.fill(area, base);
+            }
+            let mut cell = termrock_runtime::CellUi::new(
+                ui.reborrow(),
+                Rect::new(area.x, area.y, 4, 1),
+                termrock_theme::PaintStyle::new(),
+            );
+            cell.align(termrock_theme::Align::Right)
+                .padding_style(termrock_theme::PaintStyle::new())
+                .text("X");
+        });
+    }
+}
+
+#[test]
+fn moved_label_vacated_cell_uses_explicit_reset_attributes() {
+    let draw = |inherit| {
+        let area = Rect::new(0, 0, 40, 10);
+        let mut runtime = Runtime::new(MoveModel { inherit }, Theme::junie());
+        let _ = runtime.initialize();
+        let mut buffer = Buffer::empty(area);
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        buffer
+    };
+
+    assert_eq!(draw(true), draw(false));
+}

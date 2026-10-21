@@ -1,6 +1,6 @@
 # Runtime underlay fill repair
 
-Status: runtime implementation and bounded runtime gates pass on `wip/menu-underlay-fill-20261021`. Menu integration and all application acceptance gates remain incomplete.
+Status: second runtime repair is implemented on `wip/menu-underlay-fill-20261021`; focused regressions pass locally. Final full gate and independent review are pending. Menu integration and all application acceptance gates remain incomplete.
 
 ## Superseded finding
 
@@ -16,6 +16,12 @@ Page fill is immediate: it snapshots foreground/underline/modifiers, resets symb
 
 The invalid old unit expectation that a layer closure can observe inherited page ink was updated: it now asserts placeholder state before composition and inherited state after composing against the actual page.
 
+## Follow-up independent review and repair
+
+The independent review of `bb012956690d08381b16aa28985b474ad7501d1c` accepted the nearest-layer/underline/role and ordinary-width fixes, but found three regressions in full public-runtime frames: `scroll_edges` changes ink after fill and that fade was lost at composition; `Style.add_modifier` plus `sub_modifier` overlap had the inverse precedence of Ratatui's remove-wins `Cell::set_style`; and `move_cell` left inherited underline/modifier intent on its vacated source although the source cell had been reset. The unchanged review consumer's three fixtures are preserved under `postfill_scroll_fade_is_not_overwritten_by_composition`, `overlapping_modifier_fields_keep_ratatui_remove_precedence`, and `moved_label_vacated_cell_uses_explicit_reset_attributes` in `tests/underlay_stack.rs`.
+
+The layer now defers scroll-edge fading only for underlay-intent cells and evaluates it against the final composed foreground, background and modifiers. The usual direct paint path is unchanged. Tracked Ratatui paint operations use remove-wins for overlapping modifier masks; explicit `StylePatch` continues to use its remove-then-add order. A vacated moved cell records a complete underline/modifier reset while retaining its foreground/background and role behavior. Deferred state is stored sparsely in an optional map: ordinary layers allocate no intent storage, and only underlay-filled cells receive entries. The compositor avoids cloning the destination cell when a source cell has no underlay intent.
+
 ## Evidence and checks
 
 - Corrected public Runtime regressions: `cargo nextest run -p termrock-runtime --test underlay_stack` — 3 passed. They assert a real upper layer was admitted via `stub::deliver`, then check nearest-lower Blue ink despite reverse closure order, underline/modifier retention, upper black background, explicit post-fill glyph paint, raw-write intent cancellation, and page-fill width reset.
@@ -24,5 +30,14 @@ The invalid old unit expectation that a layer closure can observe inherited page
 - `CARGO_TARGET_DIR=/private/tmp/termrock-menu-underlay-target-e4eae58e cargo nextest run -p termrock-runtime --all-targets` — 403 passed, 3 skipped (Nextest reports those existing ignored cases; no new test was skipped).
 - `CARGO_TARGET_DIR=/private/tmp/termrock-menu-underlay-target-e4eae58e cargo clippy -p termrock-runtime --all-targets -- -D warnings` — passed.
 - `cargo fmt --check` and `git diff --check` — passed on the final edited sources.
+
+Follow-up evidence for the independent review of `bb012956690d08381b16aa28985b474ad7501d1c`:
+
+- `cargo nextest run -p termrock-runtime --test underlay_stack` — 6 passed, including the exact three copied public regressions and the prior nested-stack/raw-write/width controls.
+- `cargo nextest run -p termrock-runtime --lib underlay_fill_defers_ink_inheritance_until_composition` — 1 passed.
+- `cargo nextest run -p termrock-runtime --lib move_cell_transfers_underlay_intent_with_the_moved_cell` — 1 passed.
+- Before/after public regression proof: copied the unchanged three public regression definitions to a detached worktree at `bb012956690d08381b16aa28985b474ad7501d1c`; with a fresh `CARGO_TARGET_DIR`, `cargo nextest run -p termrock-runtime --test underlay_stack postfill_scroll_fade_is_not_overwritten_by_composition overlapping_modifier_fields_keep_ratatui_remove_precedence moved_label_vacated_cell_uses_explicit_reset_attributes` produced 0 passed / 3 failed. The same three tests pass on the follow-up WIP. This establishes regressions for each implementation change; it does not constitute independent reviewer clearance.
+- Follow-up `cargo nextest run -p termrock-runtime --all-targets` — 406 passed, 3 skipped; `cargo clippy -p termrock-runtime --all-targets -- -D warnings`, `cargo fmt --check`, and `git diff --check` pass. No performance benchmark was run, so the sparse-storage/no-destination-clone change is a structural allocation reduction only; no measured performance claim is made.
+- The review's full 260-test native suite passed on `bb012956690d08381b16aa28985b474ad7501d1c`, and the three new public fixtures failed there. Full suite, scoped Clippy and strict formatting on this follow-up remain pending.
 
 Remaining runtime evidence: independent review of the final commit and deeper backdrop/profile behavior. Full paired Tuiscotti application parity, menu unification, and all four app acceptance gates are still unverified and incomplete.
