@@ -3418,3 +3418,133 @@ paths and 5 new paths, 44 paths in total, matching
 `parity-candidate-paths.txt` entry for entry. The application is recorded
 here as a verified application check against the fixed base, not as a
 published candidate.
+
+## The Showcase visual baseline re-bless and the `page_parity` re-record (2026-10-21)
+
+Branch `wip/showcase-baseline-rebless-20261021`, base `7bdf030be`
+(`wip/session-consolidation-20261021`). The recorded Showcase visual
+baseline and eleven `page_parity` expectations were stale; both are
+re-recorded here against the coordinator head, after every changed digest was
+classified against the frozen tag `visual-baseline`.
+
+The frozen-reference evidence, the per-entry classification of all 418 changed
+digests and the old-to-new digest table are in
+[the re-bless evidence](../audits/evidence/2026-10-21-showcase-baseline-rebless/README.md)
+and [its classification table](../audits/evidence/2026-10-21-showcase-baseline-rebless/classification.md).
+
+### The frozen tag settles the three disputed theme slots
+
+The coordinator head carries the revert of the parity tip's commit
+`b4b1a3346` ("fix(theme): restore the frozen muted and faint inks and the
+scrollbar track glyph"). The tag's own source and the tag's own rendered
+captures agree with the revert:
+
+| slot | tag value | tag source | tag's own rendered capture |
+|---|---|---|---|
+| muted ink | `0x8a8a8a` | `visual-baseline:src/theme.rs:528`, `:753` | `38;2;138;138;138` × 25 in `snapshots/showcase/pages/overview/100x30/truecolor.ansi`; `38;5;245` × 27 in `…/256.ansi` |
+| faint ink | `0x737373` | `visual-baseline:src/theme.rs:506`, `:754` | `38;2;115;115;115` × 22 in `…/truecolor.ansi`; `38;5;242` × 22 in `…/256.ansi` |
+| scrollbar track | `┆` (U+2506) | `visual-baseline:src/theme.rs:2429` | the `┆` track column of `…/256.ansi` |
+
+`38;5;244` — the generic nearest-match grey of the tip's `0x808080` — appears
+nowhere in the tag's own 256 capture, and the tag's `apply_16` /
+`apply_mono` tables set `text_muted = Gray` and `text_faint = Gray`, which
+the tag's `…/16.ansi` confirms with indices `15` and `7`.
+
+### Why the recorded baseline was stale
+
+The recorded file was last written by `e830877cd` ("test: restore held
+reference expectations after incoming re-blessing") and is a mixture of eras:
+680 of its 704 live keys are reproduced exactly by the tree at `43016c3cb`,
+24 `Code editor` keys by the tree at `fb6ed4f83`, and 32 `Editor …` keys are
+dead (the page title is now `Code editor`). At the recorded era the 256 tier
+was still the generic nearest-match table — `crates/termrock-theme/src/palettes.rs`
+at `e830877cd` pinned `Indexed(244)` for the muted ink and `Indexed(238)` for
+the faint ink, with the comment "The generic cube rule on the current 0x8a8a8a
+source would give 245". The coordinator branch had already moved those slots
+to the tag's explicit `Indexed(245)` / `Indexed(242)` in the palette
+adjudication recorded above.
+
+Neither ink set reproduces the recorded baseline:
+`Overview 80 24 junie 256` renders `355a2597648cc88e` on the head against a
+recorded `e9c247852562611b`, and `Overview 80 24 junie truecolor` renders
+`80780cbbac55284d` on the head (the tag's own value) against `507ef7d92e16be19`
+under the tip's reverted inks.
+
+### The classification of the 418 changed digests
+
+Every changed entry was measured against a before-frame that reproduces its
+recorded digest exactly, so the classification is a measurement. 298 of the
+418 changed entries moved **colours only** — the frame's text is identical —
+and 120 moved **content** as well:
+
+* `Code editor` (32 entries), `Task runner` (32) and `Terminal` (32) moved
+  content, from the parity tip's own independently-reviewed work: the editor
+  component work in `crates/termrock-editors/src/code.rs` and
+  `crates/termrock-text/src/editor.rs`, and `493f9054f` ("refactor(showcase):
+  paint the task runner and terminal pages live");
+* `Overview` (24 entries) moved content in the 16, 256 and mono tiers because
+  the Overview token table now prints **each tier's own** value instead of the
+  truecolour hex. The head's readout reproduces the tag's `apply_256`,
+  `apply_16` and `apply_mono` tables slot for slot across all 19 tokens — the
+  per-slot table is in the evidence record;
+* the remaining 330 entries moved colours only, because the 256 / 16 / mono
+  palette slots moved to the tag's explicit values. The `Chrome` truecolour
+  rows are in this group: the parity tip's chrome rewrite `ef35a7f6b`
+  repainted the card from white-on-black onto the paper surface `0xfbfaf8` and
+  dropped the modifier from three bold runs, without changing a symbol.
+
+The truecolour source inks never moved between the recorded era and the head,
+so the 30 changed truecolour entries are content moves, not ink moves.
+
+### The `page_parity` re-record
+
+Eleven of the 66 `page_parity` frames moved on the head; the other 55 are
+unchanged and were not touched. The old values are preserved in the test's
+header comment.
+
+| page | size | old expectation | new expectation | why the frame moved |
+|---|---|---|---|---|
+| `Terminal` | 120x40 | `16713486997613533058` | `12091092990789374470` | the parity tip's live painting, `493f9054f` |
+| `Terminal` | 94x36 | `10834531301898289047` | `8184877221315921020` | the same commit |
+| `Terminal` | 72x24 | `11799924430438265034` | `4229742379486465606` | the same commit |
+| `Editor` | 120x40 | `10239041618864639653` | `15610765835887739655` | the editor component work in `crates/termrock-editors/src/code.rs` and `crates/termrock-text/src/editor.rs` |
+| `Editor` | 94x36 | `6170852880661038913` | `4868041224282338403` | the same editor component work |
+| `Editor` | 72x24 | `12056232630236239551` | `5215519107767830525` | the same editor component work |
+| `Chrome` | 94x36 | `12973512990952065289` | `10251090740853605838` | the coordinator ported the page back onto the shared `PageFrame` / `SectionStrip` blocks after the tip reintroduced a local `frame()` painter |
+| `Chrome` | 72x24 | `5752365008248186575` | `3355673242098926672` | the same shared-block port |
+| `TaskRunner` | 120x40 | `10967000064222126980` | `16690605467633323836` | the coordinator ported the page back onto the shared `PageFrame` / `SectionStrip` blocks after the tip reintroduced a local `frame()` painter |
+| `TaskRunner` | 94x36 | `15039339211887828337` | `255653077748407026` | the same shared-block port |
+| `TaskRunner` | 72x24 | `7704215100529900226` | `16483843579805231724` | the same shared-block port |
+
+`Chrome` at 120x40 and `TaskRunner` at all three sizes kept their frames
+because the shared-block port is pixel-preserving at those sizes; only the
+other two `Chrome` sizes moved.
+
+### The gates
+
+`cargo nextest run -p showcase-ui --all-targets --no-fail-fast` before the
+change reported five failures, and after the change reports three: the
+`visual` and `page_parity` failures are gone, and the three failing
+`showcase-ui::app_tests` editor cases are unchanged by this work.
+
+| failing test | before | after |
+|---|---|---|
+| `showcase-ui::visual showcase_visual_baseline` | fail | pass |
+| `showcase-ui::page_parity every_page_renders_the_reference_frame` | fail | pass |
+| `showcase-ui::app_tests editor_shell_completion_accepts_enter_then_tab_indents` | fail | fail (not in scope) |
+| `showcase-ui::app_tests editor_playground_keeps_live_find_completion_and_run_contracts` | fail | fail (not in scope) |
+| `showcase-ui::app_tests editor_shell_completion_accepts_tab_then_next_tab_indents` | fail | fail (not in scope) |
+
+The three `app_tests` failures are pre-existing on the branch and are not
+touched by this change.
+
+### One consequence worth recording
+
+`crates/showcase-ui/tests/baselines/showcase.txt` was one of the seven *held
+expectation* blobs listed in
+`docs/audits/evidence/2026-10-21-picker-contrast-integration/held-expectations.json`,
+byte-identical to `52e1572caaf7d9effd0265bbfdf6edcd0e57533b`
+(blob `6de3fa5a291c4427a360eabab99b39f2c2b95909`). Re-recording it changes
+that blob, so the *preservation* property recorded for that one path no
+longer holds. The manifest records two historical commits and is left
+untouched; refreshing it is the coordinator's call.
