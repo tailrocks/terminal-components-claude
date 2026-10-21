@@ -423,6 +423,16 @@ fn line_cols<'a>(line: impl Into<LineRef<'a>>) -> usize {
     n
 }
 
+fn widest_line(lines: LineSet<'_>) -> usize {
+    let mut widest = 0usize;
+    for index in 0..lines.len() {
+        if let Some(line) = lines.get(index) {
+            widest = widest.max(line_cols(line));
+        }
+    }
+    widest
+}
+
 fn line_rows<'a>(line: impl Into<LineRef<'a>>, w: u16, wrap: bool) -> usize {
     let line = line.into();
     if !wrap || w == 0 {
@@ -766,7 +776,15 @@ fn shift(p: &mut CellPos, dropped: usize) {
 pub struct TextViewport<'a> {
     id: Id,
     wrap: bool,
+    /// When set, column 0 is the focus gutter and text starts one cell in.
+    /// Terminal panes that already draw their prompt turn this off.
+    reserve_gutter: bool,
+    /// Blank columns kept between the text and the vertical bar. Baseline
+    /// terminals reserve one.
+    scroll_gap: u16,
     caret_when_unfocused: bool,
+    /// Steady bar cursor. The default viewport caret is a block.
+    bar_cursor: bool,
     click_selects_word: bool,
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
@@ -780,7 +798,10 @@ impl fmt::Debug for TextViewport<'_> {
         f.debug_struct("TextViewport")
             .field("id", &self.id)
             .field("wrap", &self.wrap)
+            .field("reserve_gutter", &self.reserve_gutter)
+            .field("scroll_gap", &self.scroll_gap)
             .field("caret_when_unfocused", &self.caret_when_unfocused)
+            .field("bar_cursor", &self.bar_cursor)
             .field("click_selects_word", &self.click_selects_word)
             .field("slot", &self.slot.map(|(p, _)| p))
             .finish_non_exhaustive()
@@ -802,7 +823,10 @@ impl<'a> TextViewport<'a> {
         TextViewport {
             id,
             wrap: false,
+            reserve_gutter: true,
+            scroll_gap: 0,
             caret_when_unfocused: false,
+            bar_cursor: false,
             click_selects_word: false,
             patch: None,
             parts: &[],
@@ -848,6 +872,21 @@ impl<'a> TextViewport<'a> {
         self
     }
 
+    /// Keep a focus column at the left of the text. Capsule terminals leave
+    /// this off so the prompt sits against the pane frame.
+    #[must_use]
+    pub const fn reserve_gutter(mut self, yes: bool) -> Self {
+        self.reserve_gutter = yes;
+        self
+    }
+
+    /// Reserve blank columns between the text and the vertical bar.
+    #[must_use]
+    pub const fn scroll_gap(mut self, cols: u16) -> Self {
+        self.scroll_gap = cols;
+        self
+    }
+
     /// Allows this viewport to publish its state caret while it lacks
     /// keyboard focus. The caret remains subject to follow, selection,
     /// viewport and clipping rules; this setting does not make the viewport
@@ -855,6 +894,13 @@ impl<'a> TextViewport<'a> {
     #[must_use]
     pub const fn caret_when_unfocused(mut self, enabled: bool) -> Self {
         self.caret_when_unfocused = enabled;
+        self
+    }
+
+    /// Draw the caret as a steady bar. Terminal panes use this shape.
+    #[must_use]
+    pub const fn bar_cursor(mut self, yes: bool) -> Self {
+        self.bar_cursor = yes;
         self
     }
 
@@ -906,8 +952,8 @@ impl<'a> TextViewport<'a> {
         sr
     }
 
-    const fn text_width(width: u16) -> u16 {
-        width.saturating_sub(2)
+    fn text_width(width: u16, gutter: bool, gap: u16) -> u16 {
+        width.saturating_sub(1 + u16::from(gutter) + gap)
     }
 
     const fn layout_key(&self, st: &ViewportState, width: u16) -> LayoutKey {
@@ -973,9 +1019,10 @@ impl<'a> TextViewport<'a> {
         lines: LineSet<'_>,
     ) -> Response<ViewportAction> {
         let area = cx.area(self.id).unwrap_or(Rect::ZERO);
-        let width = cx
-            .layout(self.id)
-            .map_or_else(|| Self::text_width(area.width), |l| l.cols);
+        let width = cx.layout(self.id).map_or_else(
+            || Self::text_width(area.width, self.reserve_gutter, self.scroll_gap),
+            |l| l.cols,
+        );
         let key = self.layout_key(st, width);
         let (total, indexed) = {
             let layout = cx.cache::<ViewportLayout>(self.id);
@@ -1200,7 +1247,8 @@ impl<'a> TextViewport<'a> {
         let id = self.id;
         let runtime = ui.state(id).difference(StateFlags::SELECTED);
         let live = PartStyle::flags(runtime, StateFlags::empty());
-        let text_w = Self::text_width(area.width);
+        let widest = widest_line(lines);
+        let (text_w, show_h, rows) = self.text_rows(area, lines.len(), widest);
         let key = self.layout_key(st, text_w);
         let (total, indexed) = {
             let lay = ui.cache::<ViewportLayout>(id);
@@ -1212,7 +1260,7 @@ impl<'a> TextViewport<'a> {
         #[cfg(not(feature = "testing"))]
         Self::note_indexed(indexed);
         let mut view = st.scroll;
-        view.apply_layout(usize::from(area.height), total);
+        view.apply_layout(usize::from(rows), total);
         if st.follow == FollowCursor::Always {
             view.jump_end();
         }
@@ -1235,22 +1283,35 @@ impl<'a> TextViewport<'a> {
             live,
         );
         ui.fill(area, container.style);
-        self.gutter(ui, area, live, &ov);
+        let gutter_w = u16::from(self.reserve_gutter);
+        let text_rows = Rect {
+            height: rows,
+            ..area
+        };
+        if self.reserve_gutter {
+            self.gutter(ui, text_rows, live, &ov);
+        }
         let body = Rect {
-            x: area.x.saturating_add(1),
+            x: area.x.saturating_add(gutter_w),
             y: area.y,
-            width: area.width.saturating_sub(1),
-            height: area.height,
+            width: area.width.saturating_sub(gutter_w),
+            height: rows,
         };
         let content = self.bar().draw(ui, body, &view, total);
         let text = Rect {
             width: text_w.min(content.width),
             ..content
         };
-        ui.report_layout(
-            id,
-            LayoutFacts::new(usize::from(area.height), total, area.height, text_w),
-        );
+        ui.report_layout(id, LayoutFacts::new(usize::from(rows), total, rows, text_w));
+        if show_h {
+            let bar = Rect {
+                x: body.x,
+                y: area.y.saturating_add(rows),
+                width: content.width,
+                height: 1,
+            };
+            self.paint_h_bar(ui, bar, widest, text_w);
+        }
         if text.is_empty() {
             return text;
         }
@@ -1280,7 +1341,34 @@ impl<'a> TextViewport<'a> {
             (text_w, view.offset(), caret_line_start),
             live,
         );
+        let fade = Rect {
+            width: content.width,
+            ..text
+        };
+        ui.scroll_edges(fade, &view);
         text
+    }
+
+    /// Baseline lays text out at the full width when the pane has no vertical
+    /// bar, and narrows by the bar plus `scroll_gap` only once the lines overflow.
+    fn text_rows(&self, area: Rect, line_count: usize, widest: usize) -> (u16, bool, u16) {
+        let inner = area.width.saturating_sub(u16::from(self.reserve_gutter));
+        if self.wrap {
+            let text_w = Self::text_width(area.width, self.reserve_gutter, self.scroll_gap);
+            return (text_w, false, area.height);
+        }
+        let narrow = inner.saturating_sub(1 + self.scroll_gap);
+        let mut rows = area.height;
+        let mut v_over = line_count > usize::from(rows);
+        let mut text_w = if v_over { narrow } else { inner };
+        let mut show_h = area.height > 1 && widest > usize::from(text_w);
+        if show_h {
+            rows = area.height.saturating_sub(1);
+            v_over = line_count > usize::from(rows);
+            text_w = if v_over { narrow } else { inner };
+            show_h = area.height > 1 && widest > usize::from(text_w);
+        }
+        (text_w, show_h, rows)
     }
 
     fn rows(
@@ -1321,6 +1409,42 @@ impl<'a> TextViewport<'a> {
         }
         #[cfg(feature = "testing")]
         self.note_visible(visible);
+    }
+
+    /// Horizontal thumb `━` and track `┄`. Colors come from the scrollbar
+    /// family, which keeps the baseline handle grey and track grey.
+    fn paint_h_bar(&self, ui: &mut Ui<'_>, area: Rect, widest: usize, viewport_cols: u16) {
+        if area.is_empty() {
+            return;
+        }
+        let track = ui
+            .style(
+                Family::SCROLLBAR,
+                Variant::DEFAULT,
+                Part::TRACK,
+                StateFlags::empty(),
+            )
+            .style;
+        let thumb = ui
+            .style(
+                Family::SCROLLBAR,
+                Variant::DEFAULT,
+                Part::THUMB,
+                StateFlags::empty(),
+            )
+            .style;
+        let mut scroll = ScrollState::new(widest);
+        scroll.set_viewport(usize::from(viewport_cols).max(1));
+        let (start, len) = scroll.thumb(usize::from(area.width));
+        let thumb_end = start.saturating_add(len);
+        for (index, col) in area.columns().enumerate() {
+            let on_thumb = index >= start && index < thumb_end;
+            ui.paint_str(
+                Rect { width: 1, ..col },
+                if on_thumb { "━" } else { "┄" },
+                if on_thumb { thumb } else { track },
+            );
+        }
     }
 
     fn gutter(&self, ui: &mut Ui<'_>, area: Rect, live: StateFlags, ov: &PartStyle<'a>) {
@@ -1397,13 +1521,15 @@ impl<'a> TextViewport<'a> {
         if dy >= usize::from(text.height) || dx >= usize::from(text.width) {
             return;
         }
-        ui.set_cursor(
-            self.id,
-            Position::new(
-                text.x.saturating_add(dx as u16),
-                text.y.saturating_add(dy as u16),
-            ),
+        let pos = Position::new(
+            text.x.saturating_add(dx as u16),
+            text.y.saturating_add(dy as u16),
         );
+        if self.bar_cursor {
+            ui.set_bar_cursor(self.id, pos);
+        } else {
+            ui.set_cursor(self.id, pos);
+        }
     }
 
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
@@ -2213,7 +2339,10 @@ mod tests {
             w
         };
         assert_eq!(width_of(&short), width_of(&long));
-        assert_eq!(width_of(&short), TextViewport::text_width(area.width));
+        assert_eq!(
+            width_of(&short),
+            TextViewport::text_width(area.width, true, 0)
+        );
     }
 
     #[test]
