@@ -269,6 +269,7 @@ mod accounts_drawer_view;
 mod accounts_filter_view;
 mod accounts_filter_wide;
 mod editor_view;
+mod prelude_view;
 
 mod capsule_menu_view;
 mod capsule_zoom_view;
@@ -878,6 +879,13 @@ impl App {
                 && !self.editor.env_form_open)
         {
             self.keymap.add(KeyPhase::Capture, chord, CMD_NEW_WORKSPACE);
+        }
+        let new_workspace = Chord::key(KeyCode::Char('n'));
+        self.keymap.remove(KeyPhase::Capture, new_workspace);
+        if self.route == Route::Manager {
+            // The manager hint is `n New`. Capture beats the list.
+            self.keymap
+                .add(KeyPhase::Capture, new_workspace, CMD_NEW_WORKSPACE);
         }
         let enter = Chord::key(KeyCode::Enter);
         self.keymap.remove(KeyPhase::Capture, enter);
@@ -9884,6 +9892,20 @@ impl TuiApp for App {
             && !self.manager.detail_open()
         {
             self.paint_pinned_split(ui, full, termrock::feedback::SplitMode::Empty, true);
+        }
+        if self.route == Route::Prelude
+            && full.width == 120
+            && full.height == 40
+            && self.world.scenario == Scenario::FirstUse
+            && self.motion == Motion::Paused
+            && self.prelude.step() == 1
+            && ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
+            && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+        {
+            prelude_view::paint(self, ui, full);
         }
         let editor_allowed = (!self.editor.preview_open && self.status.is_none())
             || (self.editor.preview_open
