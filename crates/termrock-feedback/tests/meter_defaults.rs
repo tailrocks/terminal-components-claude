@@ -84,7 +84,11 @@ fn capture_unchanged_default_cells() {
             10_772_714_535_040_698_230,
             7_536_098_631_154_068_646,
             17_260_405_213_946_973_771,
-            8_246_685_266_941_457_616,
+            // The stale/unknown meter cell follows the faint foreground role
+            // (0x737373, which the reference renders at 242 in the 256 tier);
+            // the previous value came from the older 0x4d4d4d source. The
+            // other fifteen cells are unchanged.
+            3_780_206_778_626_185_295,
             14_818_118_036_683_959_920,
             16_562_180_527_847_283_635,
             3_973_918_168_754_095_168,
