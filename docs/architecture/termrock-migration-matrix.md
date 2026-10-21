@@ -1932,3 +1932,22 @@ or application digests.
   dependency. A production binary therefore has no dependency edge to the
   reference-frame machinery. A fuller generated-code and build-script trace is
   still owed by the ownership audit workstream.
+
+### Prepared remedy for the DCO blocker
+
+The rewrite is mechanical and reproducible; it is deliberately NOT executed
+while other streams are pushing to the shared branch, because it rewrites every
+commit id in the PR range and would invalidate every open work branch at once.
+
+Preparation (done in a throwaway copy, never pushed): the trailer is added with
+`git filter-repo` over the range `origin/main..parity/termrock-visual-baseline`,
+using a commit callback that appends
+`Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com>` to any commit message that
+lacks a `Signed-off-by:` line, followed by
+`git push --force-with-lease=refs/heads/parity/termrock-visual-baseline:<pre-rewrite-tip> origin parity/termrock-visual-baseline`.
+
+Preconditions for the push: the branch tip must be unchanged since the
+preparation (lease), no other stream may be pushing, and every open work branch
+must be rebased onto the rewritten tip afterwards. The rule against force-pushing
+shared branches is respected by making this a single, announced, owner-executed
+step at the end of the consolidation, not a routine push.
