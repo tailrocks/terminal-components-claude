@@ -88,6 +88,14 @@ mod tests {
     }
 
     #[test]
+    fn a_fitted_query_line_has_no_horizontal_bar() {
+        let query = "SELECT * FROM orders WHERE status = 'pending' ORDER BY created_at DESC LIMIT 25";
+        assert!(super::super::query_hbar_overflows(query, 71));
+        assert!(!super::super::query_hbar_overflows(query, 91));
+        assert!(super::super::query_hbar_overflows(query, 83));
+    }
+
+    #[test]
     fn footer_keeps_the_status_and_cuts_hints_to_fit() {
         let costs = [12u16, 12, 15, 16, 8, 10];
         let status = 25u16;
