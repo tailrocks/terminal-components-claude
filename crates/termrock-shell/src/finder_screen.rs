@@ -11,8 +11,8 @@ use ratatui_core::layout::Rect;
 use ratatui_core::style::Color;
 use termrock_fields::{TextInput, TextInputState};
 use termrock_runtime::{
-    Family, FgStep, ItemKey, Modifier, Part, Role, StateFlags, StylePatch, Ui, Variant, truncate,
-    truncate_middle, width,
+    Family, FgStep, ItemKey, Modifier, Part, Role, StateFlags, StylePatch, Surface, Ui, Variant,
+    truncate, truncate_middle, width,
 };
 
 /// The finder grey: the ink the finder chrome and the finder plates share.
@@ -25,8 +25,10 @@ pub const FINDER_GREY: StylePatch =
 /// gap row and the note row is the last row of the content region.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct FinderGrid {
+    top_margin: u16,
     query_rows: u16,
     query_gap: u16,
+    bottom_margin: u16,
 }
 
 impl Default for FinderGrid {
@@ -37,12 +39,44 @@ impl Default for FinderGrid {
 
 impl FinderGrid {
     /// The default grid: one query row, one gap row, the content below.
+    ///
+    /// The screen leaves two rows at the top of the shell body and one row at
+    /// the bottom for its own chrome.
     #[must_use]
     pub const fn new() -> Self {
         Self {
+            top_margin: 2,
             query_rows: 1,
             query_gap: 1,
+            bottom_margin: 1,
         }
+    }
+
+    /// The rows the screen leaves at the top of the shell body.
+    #[must_use]
+    pub const fn top_margin(mut self, rows: u16) -> Self {
+        self.top_margin = rows;
+        self
+    }
+
+    /// The rows the screen leaves at the bottom of the shell body.
+    #[must_use]
+    pub const fn bottom_margin(mut self, rows: u16) -> Self {
+        self.bottom_margin = rows;
+        self
+    }
+
+    /// The area the screen draws in, inside the shell body region.
+    #[must_use]
+    pub fn area(&self, body: Rect) -> Rect {
+        Rect::new(
+            body.x,
+            body.y.saturating_add(self.top_margin),
+            body.width,
+            body.height
+                .saturating_sub(self.top_margin)
+                .saturating_sub(self.bottom_margin),
+        )
     }
 
     /// The rows the query field takes.
@@ -316,5 +350,236 @@ pub fn paint_action_row<T: ActionRow>(
     if reason_x < area.right() {
         let muted = ui.paint_patch(&FINDER_GREY).with_bg_from(style);
         ui.paint_str(Rect::new(reason_x, area.y, reason_width, 1), reason, muted);
+    }
+}
+
+/// The label ink of the scope band: the secondary ink on black.
+pub const BAND_LABEL: StylePatch = StylePatch::new()
+    .set_fg(Role::Custom(Color::Rgb(0xb3, 0xb3, 0xb3)))
+    .set_bg(Role::Custom(Color::Rgb(0, 0, 0)))
+    .remove(Modifier::BOLD);
+
+/// The meta ink of the scope band.
+pub const BAND_META: StylePatch = StylePatch::new()
+    .set_fg(Role::Custom(Color::Rgb(0x73, 0x73, 0x73)))
+    .remove(Modifier::BOLD);
+
+/// The rule ink of the scope band.
+pub const BAND_RULE: StylePatch =
+    StylePatch::new().set_fg(Role::Custom(Color::Rgb(0x3a, 0x3a, 0x3a)));
+
+/// A chip of the scope band.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct BandChip<'a> {
+    /// The name of the chip.
+    pub name: &'a str,
+    /// The mark the chip carries.
+    pub mark: &'a str,
+    /// The ink of the mark.
+    pub mark_fg: Color,
+}
+
+impl<'a> BandChip<'a> {
+    /// A chip with the name and the mark.
+    #[must_use]
+    pub const fn new(name: &'a str, mark: &'a str, mark_fg: Color) -> Self {
+        Self {
+            name,
+            mark,
+            mark_fg,
+        }
+    }
+}
+
+/// The right marker of the scope band: the running count and the overflow.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct BandMarker<'a> {
+    /// The count, painted with the label ink.
+    pub count: &'a str,
+    /// The overflow, painted after the count.
+    pub more: &'a str,
+}
+
+impl<'a> BandMarker<'a> {
+    /// A marker with the count and the overflow.
+    #[must_use]
+    pub const fn new(count: &'a str, more: &'a str) -> Self {
+        Self { count, more }
+    }
+}
+
+/// The scope band of a finder screen.
+///
+/// The band carries the scope tab, the chips that sit on its row and the
+/// marker at the right. The active tab wears the accent underline; the rest of
+/// the row wears the rule.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ScopeBand<'a> {
+    /// The label of the scope tab.
+    pub tab: &'a str,
+    /// Whether the band draws the tab itself.
+    pub draw_tab: bool,
+    /// The gutter before the tab, with the text it carries.
+    pub gutter: Option<&'a str>,
+    /// Whether the band carries the rule under its row.
+    pub rule: bool,
+    /// The chips that sit on the tab row.
+    pub chips: &'a [BandChip<'a>],
+    /// The marker at the right of the row.
+    pub marker: Option<BandMarker<'a>>,
+}
+
+impl<'a> ScopeBand<'a> {
+    /// A band with the scope tab and nothing else.
+    #[must_use]
+    pub const fn new(tab: &'a str) -> Self {
+        Self {
+            tab,
+            draw_tab: true,
+            gutter: None,
+            rule: true,
+            chips: &[],
+            marker: None,
+        }
+    }
+
+    /// Set whether the band draws the tab itself.
+    #[must_use]
+    pub const fn draw_tab(mut self, draw: bool) -> Self {
+        self.draw_tab = draw;
+        self
+    }
+
+    /// Set the gutter before the tab.
+    #[must_use]
+    pub const fn gutter(mut self, gutter: &'a str) -> Self {
+        self.gutter = Some(gutter);
+        self
+    }
+
+    /// Set whether the band carries the rule under its row.
+    #[must_use]
+    pub const fn rule(mut self, rule: bool) -> Self {
+        self.rule = rule;
+        self
+    }
+
+    /// Set the chips that sit on the tab row.
+    #[must_use]
+    pub const fn chips(mut self, chips: &'a [BandChip<'a>]) -> Self {
+        self.chips = chips;
+        self
+    }
+
+    /// Set the marker at the right of the row.
+    #[must_use]
+    pub const fn marker(mut self, marker: BandMarker<'a>) -> Self {
+        self.marker = Some(marker);
+        self
+    }
+
+    /// Paint the band. `true` when the band painted.
+    pub fn draw(&self, ui: &mut Ui<'_>, area: Rect) -> bool {
+        let band_width = area.width.saturating_sub(2);
+        if band_width == 0 || area.height < 4 {
+            return false;
+        }
+        let x = area.x.saturating_add(1);
+        let y = area.y.saturating_add(2);
+        let gutter = self
+            .gutter
+            .map_or(0, |text| band_width.min(text.chars().count() as u16));
+        if let Some(text) = self.gutter {
+            let meta = ui.paint_patch(&BAND_META);
+            ui.paint_str(Rect::new(x, y, gutter, 1), text, meta);
+        }
+        let tab_w = 1u16
+            .saturating_add(width(self.tab))
+            .saturating_add(2)
+            .min(band_width.saturating_sub(gutter));
+        let tab_x = x.saturating_add(gutter);
+        if self.draw_tab {
+            let plate = ui.paint_patch(
+                &StylePatch::new()
+                    .set_fg(Role::Fg(FgStep::Primary))
+                    .set_bg(Role::Surface(Surface::Overlay))
+                    .add(Modifier::BOLD),
+            );
+            let tab = Rect::new(tab_x, y, tab_w, 1);
+            ui.fill(tab, plate);
+            ui.paint_str(tab, &format!(" {}", self.tab), plate);
+        }
+        let accent = ui.paint_patch(&StylePatch::new().set_fg(Role::Accent));
+        let rule = ui.paint_patch(&BAND_RULE);
+        let under = y.saturating_add(1);
+        if self.rule {
+            if gutter > 0 {
+                ui.paint_str(
+                    Rect::new(x, under, gutter, 1),
+                    &"─".repeat(usize::from(gutter)),
+                    rule,
+                );
+            }
+            ui.paint_str(
+                Rect::new(tab_x, under, tab_w, 1),
+                &"━".repeat(usize::from(tab_w)),
+                accent,
+            );
+            let rest = band_width.saturating_sub(gutter).saturating_sub(tab_w);
+            if rest > 0 {
+                ui.paint_str(
+                    Rect::new(tab_x.saturating_add(tab_w), under, rest, 1),
+                    &"─".repeat(usize::from(rest)),
+                    rule,
+                );
+            }
+        }
+        let marker_x = area.x.saturating_add(area.width.saturating_sub(9));
+        let clip = match self.marker {
+            Some(_) => Rect::new(area.x, area.y, marker_x.saturating_sub(area.x), area.height),
+            None => area,
+        };
+        let chips_x = tab_x.saturating_add(tab_w).saturating_add(1);
+        self.draw_chips(ui, clip, y, chips_x);
+        if let Some(marker) = self.marker {
+            let label = ui.paint_patch(&BAND_LABEL);
+            ui.paint_str(Rect::new(marker_x, y, 4, 1), marker.count, label);
+            ui.paint_str(
+                Rect::new(marker_x.saturating_add(5), y, 2, 1),
+                marker.more,
+                label,
+            );
+        }
+        true
+    }
+
+    /// The chips of the band, from `x` to the right of the clip.
+    fn draw_chips(&self, ui: &mut Ui<'_>, clip: Rect, y: u16, mut x: u16) {
+        if self.chips.is_empty() {
+            return;
+        }
+        let label = ui.paint_patch(&BAND_LABEL);
+        for chip in self.chips {
+            let text = format!(" {} ", chip.name);
+            let text_w = width(&text);
+            let mark_w = width(chip.mark);
+            let close_w = width(" ×  ");
+            let need = text_w.saturating_add(mark_w).saturating_add(close_w);
+            if x.saturating_add(need) > clip.right() {
+                break;
+            }
+            ui.paint_str(Rect::new(x, y, text_w, 1), &text, label);
+            x = x.saturating_add(text_w);
+            let mark_style = ui.paint_patch(
+                &StylePatch::new()
+                    .set_fg(Role::Custom(chip.mark_fg))
+                    .set_bg(Role::Custom(Color::Rgb(0, 0, 0)))
+                    .remove(Modifier::BOLD),
+            );
+            ui.paint_str(Rect::new(x, y, mark_w, 1), chip.mark, mark_style);
+            x = x.saturating_add(mark_w);
+            ui.paint_str(Rect::new(x, y, close_w, 1), " ×  ", label);
+            x = x.saturating_add(close_w).saturating_add(1);
+        }
     }
 }
