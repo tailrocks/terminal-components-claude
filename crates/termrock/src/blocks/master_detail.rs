@@ -246,6 +246,17 @@ impl<'a> MasterDetail<'a> {
         self
     }
 
+    pub(crate) fn validate_composition(&self) -> Result<(), MasterDetailError> {
+        let master = self.master.ok_or(MasterDetailError::MissingMaster)?;
+        let detail = self.detail.ok_or(MasterDetailError::MissingDetail)?;
+        master.validate_depth()?;
+        detail.validate_depth()?;
+        if let Some(summary) = self.summary {
+            summary.validate_depth()?;
+        }
+        Ok(())
+    }
+
     /// Open the narrow detail drawer and move focus to its configured owner.
     pub fn open_detail(
         &self,
