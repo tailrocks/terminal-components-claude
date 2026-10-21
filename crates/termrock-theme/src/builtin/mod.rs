@@ -20,7 +20,7 @@ fn part(m: &mut PartMap<PartRecipe>, part: Part, base: StylePatch) -> &mut PartR
     r
 }
 
-fn row_like(m: &mut PartMap<PartRecipe>) {
+fn row_like(m: &mut PartMap<PartRecipe>, picker_rows: bool) {
     part(
         m,
         Part::CONTAINER,
@@ -60,7 +60,9 @@ fn row_like(m: &mut PartMap<PartRecipe>) {
         )
         .when(StateFlags::DISABLED, p().set_fg(Role::DisabledFg));
     part(m, Part::LABEL, p()).when(StateFlags::DISABLED, p().set_fg(Role::DisabledFg));
-    part(m, Part::META, p().set_fg(Role::Fg(FgStep::Muted)));
+    if !picker_rows {
+        part(m, Part::META, p().set_fg(Role::Fg(FgStep::Muted)));
+    }
     part(
         m,
         Part::HEADER,
@@ -81,7 +83,9 @@ fn row_like(m: &mut PartMap<PartRecipe>) {
     .when(StateFlags::HOVERED, p().set_fg(Role::Fg(FgStep::Secondary)))
     .when(StateFlags::FOCUSED, p().set_fg(Role::Fg(FgStep::Primary)));
     part(m, Part::EMPTY, p().set_fg(Role::Fg(FgStep::Muted)));
-    part(m, Part::ICON, p().set_fg(Role::Fg(FgStep::Secondary)));
+    if !picker_rows {
+        part(m, Part::ICON, p().set_fg(Role::Fg(FgStep::Secondary)));
+    }
 }
 
 fn button_variant(m: &mut PartMap<PartRecipe>, v: Variant) {
@@ -320,7 +324,7 @@ fn container_like(m: &mut PartMap<PartRecipe>) {
 }
 
 fn tabs(m: &mut PartMap<PartRecipe>) {
-    row_like(m);
+    row_like(m, false);
     part(m, Part::TAB, p().set_fg(Role::Fg(FgStep::Secondary)))
         .when(
             StateFlags::HOVERED,
@@ -364,7 +368,7 @@ fn tabs(m: &mut PartMap<PartRecipe>) {
 
 fn menu(r: &mut Recipe) {
     let m = &mut r.parts;
-    row_like(m);
+    row_like(m, false);
     part(m, Part::ROW, p())
         .when(
             StateFlags::ACTIVE,
@@ -591,7 +595,7 @@ fn too_small(m: &mut PartMap<PartRecipe>) {
 }
 
 fn choice(m: &mut PartMap<PartRecipe>) {
-    row_like(m);
+    row_like(m, false);
     part(m, Part::MARKER, p())
         .when(
             StateFlags::CHECKED,
@@ -611,7 +615,7 @@ fn choice(m: &mut PartMap<PartRecipe>) {
 }
 
 fn chip(m: &mut PartMap<PartRecipe>) {
-    row_like(m);
+    row_like(m, false);
     part(m, Part::MARKER, p()).when(
         StateFlags::CHECKED,
         p().set_glyph(GlyphRole::Checked).set_fg(Role::Accent),
@@ -626,7 +630,7 @@ fn chip(m: &mut PartMap<PartRecipe>) {
 }
 
 fn grid(m: &mut PartMap<PartRecipe>) {
-    row_like(m);
+    row_like(m, false);
 
     m.entry(Part::ICON).base = p();
     part(m, Part::ROW, p()).when(StateFlags::FOCUSED, p().add(Modifier::BOLD));
@@ -655,7 +659,7 @@ fn grid(m: &mut PartMap<PartRecipe>) {
 }
 
 fn picker(m: &mut PartMap<PartRecipe>) {
-    row_like(m);
+    row_like(m, true);
     part(
         m,
         Part::CONTAINER,
@@ -675,24 +679,6 @@ fn picker(m: &mut PartMap<PartRecipe>) {
     part(m, Part::LABEL, p().set_fg(Role::Fg(FgStep::Primary))).when(
         StateFlags::ACTIVE | StateFlags::FOCUSED,
         p().set_fg(Role::Focus).add(Modifier::UNDERLINED),
-    );
-    part(
-        m,
-        Part::ICON,
-        p().set_fg(Role::Fg(FgStep::Muted)).remove(Modifier::BOLD),
-    )
-    .when(
-        StateFlags::FOCUSED,
-        p().set_fg(Role::Fg(FgStep::Primary)).remove(Modifier::BOLD),
-    );
-    part(
-        m,
-        Part::META,
-        p().set_fg(Role::Fg(FgStep::Muted)).remove(Modifier::BOLD),
-    )
-    .when(
-        StateFlags::FOCUSED,
-        p().set_fg(Role::Fg(FgStep::Primary)).remove(Modifier::BOLD),
     );
     part(
         m,
@@ -732,7 +718,7 @@ fn button(r: &mut Recipe) {
 
 pub(crate) fn neutral_recipe() -> Recipe {
     let mut r = Recipe::default();
-    row_like(&mut r.parts);
+    row_like(&mut r.parts, false);
     r
 }
 
@@ -783,7 +769,7 @@ pub(crate) fn default_recipes() -> Recipes {
             Family::CHIP => chip(&mut r.parts),
             Family::GRID => grid(&mut r.parts),
             Family::PICKER => picker(&mut r.parts),
-            _ => row_like(&mut r.parts),
+            _ => row_like(&mut r.parts, false),
         }
     }
     rs

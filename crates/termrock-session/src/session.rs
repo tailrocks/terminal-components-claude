@@ -16,7 +16,7 @@ use ratatui_crossterm::crossterm::terminal::{
 };
 use ratatui_crossterm::crossterm::{execute, queue};
 
-use termrock_core::event::Input;
+use termrock_core::event::{Input, KeyCode, KeyModifiers};
 use termrock_core::keys::keyboard::KeyboardProtocol;
 use termrock_runtime::{App, FeedbackClock, Moment, PreparedFrameError, Runtime};
 use termrock_terminal::KeyboardNegotiation;
@@ -462,6 +462,10 @@ fn run_with_cursor_shape_startup<A: App>(
     let _ = rt.initialize();
     let suppress_colors = Colored::ansi_color_disabled_memoized();
     let mut pending = None;
+    // Crossterm parses one byte at a time. Escape then Alt+x is ESC ESC x,
+    // and the second ESC is swallowed, so the x arrives bare. A character
+    // that follows Esc inside one frame is that lost Alt chord.
+    let mut esc_at: Option<Instant> = None;
     loop {
         rt.advance_to(Moment::from_duration(origin.elapsed()))
             .map_err(io::Error::other)?;
@@ -527,10 +531,31 @@ fn run_with_cursor_shape_startup<A: App>(
             None => true,
         };
         if ready {
-            pending = Input::from_crossterm(read()?);
+            pending = Input::from_crossterm(read()?).map(|mut input| {
+                promote_escaped_alt(&mut input, &mut esc_at);
+                input
+            });
         }
     }
     session.leave()
+}
+
+/// A bare character that follows Esc before the next frame's input wait is
+/// the tail of an Alt chord whose ESC prefix was consumed by the byte parser.
+fn promote_escaped_alt(input: &mut Input, esc_at: &mut Option<Instant>) {
+    let Input::Key(key) = input else {
+        *esc_at = None;
+        return;
+    };
+    if key.is(KeyCode::Esc) {
+        *esc_at = Some(Instant::now());
+        return;
+    }
+    let follow = esc_at.is_some_and(|at| at.elapsed() <= Duration::from_millis(100));
+    *esc_at = None;
+    if follow && matches!(key.code, KeyCode::Char(_)) && key.bare_char().is_some() {
+        key.mods |= KeyModifiers::ALT;
+    }
 }
 
 fn prepare_startup_input(
@@ -627,6 +652,29 @@ mod tests {
             },
         );
         assert_eq!(calls.get(), 0);
+    }
+
+    #[test]
+    fn a_bare_character_right_after_esc_becomes_alt() {
+        use termrock_core::event::{Input, Key, KeyCode, KeyModifiers};
+        let mut esc_at = None;
+        let mut esc = Input::Key(Key {
+            code: KeyCode::Esc,
+            mods: KeyModifiers::NONE,
+        });
+        super::promote_escaped_alt(&mut esc, &mut esc_at);
+        assert!(esc_at.is_some());
+        let mut typed = Input::Key(Key {
+            code: KeyCode::Char('x'),
+            mods: KeyModifiers::NONE,
+        });
+        super::promote_escaped_alt(&mut typed, &mut esc_at);
+        let Input::Key(key) = typed else {
+            panic!("key");
+        };
+        assert!(key.mods.contains(KeyModifiers::ALT));
+        assert_eq!(key.code, KeyCode::Char('x'));
+        assert!(esc_at.is_none());
     }
 
     #[test]
