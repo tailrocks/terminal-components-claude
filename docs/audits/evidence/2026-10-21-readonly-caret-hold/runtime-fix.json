@@ -1,0 +1,42 @@
+{
+  "decision": "focused read-only CodeEditor keeps its published ordinary caret; no caret is synthesized when no ordinary request exists",
+  "base_commit": "86f3ae3d6c9dc6662f5f14a2eb7448422be54d5b",
+  "frozen_reference": "4169783ae883788186d161af09ba9c481bd84e5c:src/widgets/code.rs:1224-1227",
+  "source_sha256": {
+    "crates/termrock-runtime/src/runtime/typing.rs": "41dca2dd88536644c09606d785303f960535bd7f421ce7d5228197d57257b6f1",
+    "crates/termrock-runtime/src/cursor.rs": "fb3e9fef16e7591a31d8394e1ca9a3464b6dc19ea4cb97819d749d07786b8c66",
+    "crates/termrock-runtime/src/runtime.rs": "f48245a61af64fb9e18538620404f52f9d6aa9941d001fa73acfd460ac4ff266",
+    "crates/termrock-runtime/tests/readonly_caret.rs": "8e1e86ce1b45c4ac4c1f537ac1125f2e85653a4636a812a07a199812e547c6bd"
+  },
+  "nextest": {
+    "command": "rustup run 1.99.1 cargo nextest run -p termrock-runtime -p termrock-editors -p termrock-fields -p termrock-terminal --no-fail-fast",
+    "result": "594 run, 594 passed, 3 skipped",
+    "target_dir": "/private/tmp/termrock-readonly-caret-target-20261021-agent894a",
+    "log": "runtime-nextest.log",
+    "log_sha256": "06a51d958b39736383636307b819315daf3994406da85d2445b2aa26ac98e7d4",
+    "test_binary_sha256": {
+      "readonly_caret-7f0b7241d4db6d75": "d9da7d231abdf9edbff5fa0b9cea18e7c27dc0b9f380194c5244f0a8b80d9f3d",
+      "termrock_editors-692575cc453b480f": "e4078fc8a1a0142dbc8fb528d5455788f2abf7eec6838585955bb5f318fa941c",
+      "termrock_fields-76654941c03b270c": "5ec5819ed9aeae46cfd708d43ef09ceb087ccf30cf6d95e74e7236e7f18560fc",
+      "termrock_runtime-0e3137376fd9514a": "1c2470baee1c957cfb6ff017f88270ceab1665c2e7c829c20b98c104c7ec57d4",
+      "termrock_terminal-2c62a58628b69935": "21fe1e855f839cc5a719726a7668738cff18ecdaf4223fdfe03ee74a582c2007",
+      "typing_owner-243d46c808493acc": "8ca395b65b8fc252e9e5467711a0289d117a07bc393fe785da52f4a335ddd2b8"
+    }
+  },
+  "checks": {
+    "targeted_rustfmt_check": "passed",
+    "cargo_clippy": "rustup run 1.99.1 cargo clippy -p termrock-runtime --all-targets --no-deps; passed",
+    "workspace_fmt_check": "incomplete in sparse worktree: rustfmt reported source files absent from the sparse checkout"
+  },
+  "coverage": [
+    "Focused read-only public CodeEditor keeps its bar caret and has no CursorRejected diagnostic.",
+    "Read-only TextInput and unfocused or disabled CodeEditor do not gain a caret.",
+    "An ordinary cursor request does not authorize a separately published typing offer when no editable typing owner was selected.",
+    "Existing runtime undeclared-offer diagnostics and editable typing-owner tests remain green."
+  ],
+  "limits": [
+    "No application parity approval.",
+    "No full workspace formatting claim from this sparse worktree.",
+    "Independent review of this runtime fix is pending."
+  ]
+}
