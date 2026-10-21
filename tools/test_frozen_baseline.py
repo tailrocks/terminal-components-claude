@@ -2635,7 +2635,7 @@ class RunnerGuards(unittest.TestCase):
 
             with patch.object(runner.os, "killpg", side_effect=killpg):
                 with self.assertRaisesRegex(runner.RunnerError, "work deadline expired"):
-                    with runner.PrepareExecution(1) as execution:
+                    with runner.PrepareExecution(3) as execution:
                         execution.run([sys.executable, "-c", "import time; time.sleep(30)"], cwd=root, quiet=True)
             self.assertIn(signal.SIGTERM, calls)
             self.assertNotIn(signal.SIGKILL, calls)
@@ -2870,6 +2870,50 @@ class RunnerGuards(unittest.TestCase):
             self.assertTrue((frozen_root / "live-source").is_dir())
             self.assertFalse((frozen_root / "live-source.json").exists())
 
+    def test_live_manifest_publication_rejects_symlinks_and_preserves_partial_files(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            manifest = root / "live-source.json"
+            dangling_target = root.parent / f"outside-{root.name}"
+            temporary = root / ".live-source.json.tmp"
+            temporary.symlink_to(dangling_target)
+            with self.assertRaisesRegex(runner.RunnerError, "temporary entry"):
+                runner._publish_live_source_manifest(root, manifest, {"safe": True})
+            self.assertTrue(temporary.is_symlink())
+            self.assertFalse(dangling_target.exists())
+            self.assertFalse(manifest.exists())
+
+            temporary.unlink()
+            manifest.symlink_to(dangling_target)
+            with self.assertRaisesRegex(runner.RunnerError, "manifest entry"):
+                runner._publish_live_source_manifest(root, manifest, {"safe": True})
+            self.assertTrue(manifest.is_symlink())
+            self.assertFalse(dangling_target.exists())
+
+            manifest.unlink()
+            manifest.write_text("user-owned\n")
+            with self.assertRaisesRegex(runner.RunnerError, "manifest entry"):
+                runner._publish_live_source_manifest(root, manifest, {"safe": True})
+            self.assertEqual(manifest.read_text(), "user-owned\n")
+
+            manifest.unlink()
+
+            def expired() -> None:
+                raise runner.RunnerError("synthetic deadline expired")
+
+            with self.assertRaisesRegex(runner.RunnerError, "synthetic deadline expired"):
+                runner._publish_live_source_manifest(root, manifest, {"safe": True}, check_work=expired)
+            self.assertTrue(temporary.is_file())
+            self.assertFalse(manifest.exists())
+            self.assertEqual(json.loads(temporary.read_text()), {"safe": True})
+
+            temporary.unlink()
+            runner._publish_live_source_manifest(root, manifest, {"safe": True})
+            self.assertTrue(stat.S_ISREG(manifest.lstat().st_mode))
+            self.assertEqual(json.loads(manifest.read_text()), {"safe": True})
+            self.assertFalse(temporary.exists())
+
+
     def test_owned_probe_nonzero_and_local_timeout_are_optional_but_scope_failures_propagate(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
@@ -2894,7 +2938,31 @@ class RunnerGuards(unittest.TestCase):
                         [sys.executable, "-c", "import signal,time; signal.signal(signal.SIGTERM, signal.SIG_IGN); time.sleep(10)"],
                         cwd=root,
                         env=dict(os.environ),
-                        timeout=0.1,
+                        timeout=0.75,
+                        execution=execution,
+                    )
+
+    def test_owned_optional_probe_timeout_does_not_hide_final_broker_error(self) -> None:
+        with tempfile.TemporaryDirectory() as temp, runner.PrepareExecution(15) as execution:
+            root = Path(temp)
+            cleanup = execution._cleanup_group
+
+            def cleanup_then_publish_error(broker: subprocess.Popen[bytes], control_write: int, status_path: Path) -> None:
+                cleanup(broker, control_write, status_path)
+                status_path.write_text(json.dumps({
+                    "schema": 1,
+                    "returncode": None,
+                    "spawn_failure": False,
+                    "error": "synthetic delayed broker RuntimeError",
+                }))
+
+            with patch.object(execution, "_cleanup_group", side_effect=cleanup_then_publish_error):
+                with self.assertRaisesRegex(runner.RunnerError, "synthetic delayed broker RuntimeError"):
+                    runner._captured_output(
+                        [sys.executable, "-c", "import time; time.sleep(4)"],
+                        cwd=root,
+                        env=dict(os.environ),
+                        timeout=0.75,
                         execution=execution,
                     )
 
