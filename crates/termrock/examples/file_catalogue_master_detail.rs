@@ -15,21 +15,21 @@ pub const PREVIEW: Id = Id::root("file-catalogue.preview");
 pub const SUMMARY: Id = Id::root("file-catalogue.summary");
 
 #[derive(Clone, Copy)]
-struct Document {
-    id: Id,
-    name: &'static str,
-    summary: &'static str,
-    contents: &'static str,
+pub struct CatalogueDocument {
+    pub id: Id,
+    pub name: &'static str,
+    pub summary: &'static str,
+    pub contents: &'static str,
 }
 
-const DOCUMENTS: [Document; 2] = [
-    Document {
+const DOCUMENTS: [CatalogueDocument; 2] = [
+    CatalogueDocument {
         id: README,
         name: "README.md",
         summary: "Project overview · 18 lines",
         contents: "# Field Notes\n\nA small file catalogue example.\n",
     },
-    Document {
+    CatalogueDocument {
         id: MANIFEST,
         name: "manifest.toml",
         summary: "Catalogue settings · 6 lines",
@@ -40,15 +40,18 @@ const DOCUMENTS: [Document; 2] = [
 /// Public consumer example using borrowed document data and Termrock blocks.
 pub struct FileCatalogue {
     selected: usize,
+    documents: &'static [CatalogueDocument],
     layout: MasterDetailState,
     editor: CodeEditorState,
     policy: MasterDetailPolicy,
+    last_layout_changed: bool,
 }
 
 impl Default for FileCatalogue {
     fn default() -> Self {
         Self {
             selected: 0,
+            documents: &DOCUMENTS,
             layout: MasterDetailState::default(),
             editor: CodeEditorState::new(DOCUMENTS[0].contents),
             policy: MasterDetailPolicy::default()
@@ -56,6 +59,7 @@ impl Default for FileCatalogue {
                 .gap(2)
                 .collapse_below(60)
                 .summary_rows(1),
+            last_layout_changed: false,
         }
     }
 }
@@ -64,16 +68,48 @@ impl FileCatalogue {
     pub fn with_policy(policy: MasterDetailPolicy) -> Self {
         Self {
             policy,
+            last_layout_changed: false,
             ..Self::default()
         }
     }
 
+    /// Build a catalogue with caller-owned borrowed documents and layout policy.
+    pub fn with_documents(
+        policy: MasterDetailPolicy,
+        documents: &'static [CatalogueDocument],
+    ) -> Self {
+        Self {
+            selected: 0,
+            documents,
+            layout: MasterDetailState::default(),
+            editor: CodeEditorState::new(
+                documents.first().map_or("", |document| document.contents),
+            ),
+            policy,
+            last_layout_changed: false,
+        }
+    }
+
     pub fn selected_document(&self) -> &'static str {
-        DOCUMENTS[self.selected].name
+        self.documents
+            .get(self.selected)
+            .map_or("", |document| document.name)
     }
 
     pub const fn drawer_open(&self) -> bool {
         self.layout.drawer_open()
+    }
+
+    pub fn split_percent(&self) -> Option<u8> {
+        self.layout.split().map(|split| split.percent())
+    }
+
+    pub fn split_basis_points(&self) -> Option<u16> {
+        self.layout.split().map(|split| split.basis_points())
+    }
+
+    pub const fn last_layout_changed(&self) -> bool {
+        self.last_layout_changed
     }
 
     pub fn preview_text(&self) -> &str {
@@ -87,18 +123,31 @@ impl FileCatalogue {
             &Group<'_>,
             &Group<'_>,
             &Group<'_>,
-            &[Button<'static>; 2],
+            &[Button<'static>],
             &CodeEditor<'static>,
             &Button<'static>,
         ) -> R,
     ) -> R {
-        let buttons = DOCUMENTS.map(|document| Button::new(document.id, document.name));
+        let buttons: Vec<_> = self
+            .documents
+            .iter()
+            .map(|document| Button::new(document.id, document.name))
+            .collect();
         let editor = CodeEditor::new(PREVIEW, 1).fill_height(true);
-        let summary = Button::new(SUMMARY, DOCUMENTS[self.selected].summary);
+        let summary = Button::new(
+            SUMMARY,
+            self.documents
+                .get(self.selected)
+                .map_or("", |document| document.summary),
+        );
         let master = Group::column(buttons.iter().map(composition::button));
         let detail = Group::column([composition::code_editor(&editor, &self.editor)]);
         let summary_group = Group::row([composition::button(&summary)]);
-        let block = MasterDetail::new(WORKSPACE, README, PREVIEW)
+        let master_owner = self
+            .documents
+            .first()
+            .map_or(README, |document| document.id);
+        let block = MasterDetail::new(WORKSPACE, master_owner, PREVIEW)
             .policy(self.policy)
             .master(&master)
             .detail(&detail)
@@ -119,20 +168,31 @@ impl App for FileCatalogue {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         // The block gets first refusal on Escape. For every other input its
         // iterator is observational, so the focused editor still receives it.
-        let block = MasterDetail::new(WORKSPACE, README, PREVIEW).policy(self.policy);
+        let master_owner = self
+            .documents
+            .first()
+            .map_or(README, |document| document.id);
+        let block = MasterDetail::new(WORKSPACE, master_owner, PREVIEW).policy(self.policy);
         let dismissed = block.update(cx, &mut self.layout);
+        if dismissed.is_changed() {
+            self.last_layout_changed = true;
+        }
         if dismissed.is_consumed() {
             return dismissed.erase();
         }
 
-        let buttons = DOCUMENTS.map(|document| Button::new(document.id, document.name));
+        let buttons: Vec<_> = self
+            .documents
+            .iter()
+            .map(|document| Button::new(document.id, document.name))
+            .collect();
         let editor = CodeEditor::new(PREVIEW, 1).fill_height(true);
         let mut response = Response::ignored();
         for (index, button) in buttons.iter().enumerate() {
             let activated = button.update(cx);
             if activated.activated() {
                 self.selected = index;
-                self.editor.set_text(DOCUMENTS[index].contents);
+                self.editor.set_text(self.documents[index].contents);
                 if self.policy.is_collapsed(cx.viewport().width) {
                     response |= block.open_detail(cx, &mut self.layout).erase();
                 } else {
@@ -160,8 +220,13 @@ impl App for FileCatalogue {
 
 /// Render one public example frame; root geometry enters only at the runtime boundary.
 pub fn render_once(width: u16, height: u16) {
+    render_with_policy_once(width, height, MasterDetailPolicy::default());
+}
+
+/// Render the same live catalogue through an explicitly resizable master pane.
+pub fn render_with_policy_once(width: u16, height: u16, policy: MasterDetailPolicy) {
     let area = Rect::new(0, 0, width, height);
-    let mut runtime = Runtime::new(FileCatalogue::default(), Theme::junie());
+    let mut runtime = Runtime::new(FileCatalogue::with_policy(policy), Theme::junie());
     let mut terminal = Terminal::new(TestBackend::new(width, height)).expect("test terminal");
     let prepared = runtime.prepare(area).expect("prepare frame");
     terminal
@@ -176,5 +241,10 @@ pub fn render_once(width: u16, height: u16) {
 
 #[cfg(not(test))]
 fn main() {
-    render_once(72, 18);
+    let policy = MasterDetailPolicy::default()
+        .resizable_master(45, 18, 22)
+        .gap(2)
+        .collapse_below(60)
+        .summary_rows(1);
+    render_with_policy_once(72, 18, policy);
 }
