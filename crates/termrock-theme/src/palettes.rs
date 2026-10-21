@@ -77,8 +77,13 @@ const fn junie_256() -> ColorTokens {
         on_accent: Color::Indexed(233),
         on_danger: Color::Indexed(231),
         on_surface_inverse: Color::Indexed(16),
-        border_subtle: Color::Indexed(235),
-        border_strong: Color::Indexed(238),
+        // The frozen source apply_256 table (visual-baseline src/theme.rs,
+        // 4169783) authors `border_subtle = i(238)` and `border_strong =
+        // i(242)`; the generic cube rule would land one step darker (235,
+        // 238) and the approved 256 frames paint the popup title and hint
+        // chrome at 242 and the page rule at 238.
+        border_subtle: Color::Indexed(238),
+        border_strong: Color::Indexed(242),
         accent: Color::Indexed(78),
         accent_hover: Color::Indexed(77),
         accent_pressed: Color::Indexed(238),
@@ -164,6 +169,9 @@ fn junie_16() -> ColorTokens {
     // DarkGray at 16 in every tier frame; the current 0x737373 source would
     // generically land on Gray.
     tokens.fg[3] = Color::DarkGray;
+    // Frozen apply_16 (`self.border_strong = Gray`): the dimmed popup border
+    // paints Gray, not the DarkGray the generic rule derives from 0x4d4d4d.
+    tokens.border_strong = Color::Gray;
     // Frozen apply_16 (`self.success = Green`): base ladder slot, not bright.
     tokens.success = Color::Green;
     tokens.meter.stale = Color::DarkGray;
