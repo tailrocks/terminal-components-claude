@@ -356,3 +356,32 @@ Current additional work: `wip/holla-home-row-composition-20261021` at `ac315e286
 ## CodeEditor merged metadata and focused caret review (2026-10-21)
 
 Preservation branch: `wip/editor-meta-merged-review-20261021`; source tip before this handoff is `e0bfbe71cc855f648590bba0c9754410ccd468ce`. The normal merge `30eb0e5c9` retains current PR #38 marker/scrolling behavior while incorporating authored META defaults. The successor fixes a focused-cursor ownership defect, with all 75 editor tests, strict Clippy and formatting passing. Independent review is running against exact `30eb0e5c9` and this successor; do not publish to PR #38 until the current-parent complete-cell comparison and real retained-editing focus tests are cleared. Then normally merge latest PR #38, preserve the seven held expectation blobs, rerun exact-head gates, publish and verify the remote SHA. The standalone `671443` source is not a replacement for current PR #38: it lacks later marker behavior. All four application acceptance requirements remain incomplete.
+
+## 2026-10-22: Holla reference-regeneration evidence package (docs-only)
+
+Evidence tip `bdf62e3be`, docs-only lane in worktree
+`/private/tmp/termrock-holla-digest-doc` (detached; no product source or
+expected-output change). Output:
+`docs/audits/2026-10-22-holla-reference-regeneration-case.md`. Facts it adds
+to the two open Holla reference conflicts:
+
+- Digest red reproduced fresh on three revisions (tip `bdf62e3be` computes
+  `83a32521d5113b5d` for `first-use 80 24 junie truecolor`, `8689fe270`
+  computes `780fcdd3d9d8d83d`, `40c2663fe` green); the recorded
+  `de673f212d89ea84` is the row's pre-`9a581e850` blessed value (stale-build
+  hypothesis, exact producing build unidentified). Bisect
+  `40c2663fe..8689fe270` (good green verified today) names first bad commit
+  `afb602936` "fix(jackin): match the 120-col capsule tab menu" — a shared
+  `termrock-theme` menu recipe change (`Part::TITLE` Muted+BOLD,
+  `Part::KEY` Secondary/ACTIVE HighlightFg) that silently moved holla
+  digests. That theme change itself needs adjudication.
+- Frozen snapshots for all 27 red families verified blob-identical to the
+  `visual-baseline` tag and decoded (docker 80x24/120x40, first-use 80x24):
+  they encode the pre-tag static home. Both closure options and exact
+  regeneration scope (1088 digest rows; 27 families x 25 snapshot files from
+  one pinned candidate build) are in the audit.
+
+Next steps: independent review must record a verdict on the audit (including
+the `afb602936` menu-recipe change) and the owner must record the
+regeneration decision before any reference store is regenerated. Nothing is
+blessed by this lane; all observed values are preserved in the audit.
