@@ -37,6 +37,10 @@ Required unresolved checks include the 73-slot reference decision, Feedback priv
 
 Detailed clearances and blocked reviews are preserved under `docs/audits/evidence/2026-10-21-current-blockers/`; later exact integration records must explicitly supersede this summary.
 
+### Session typed-input preservation
+
+Removed PR #38's `promote_escaped_alt` timing heuristic and restored direct Crossterm-to-`Input` conversion at the Session boundary. A replacement test converts real Crossterm key events and dispatches through `Runtime::handle`; its pre-removal failure showed plain `x` after Escape became `Alt+x`, while post-removal Session nextest passed 21 tests with one pre-existing ignored test. Scoped strict Clippy and formatting pass. Independent review packet and the preserved rejected author-test rationale are recorded in [the Session audit](../audits/2026-10-21-session-typed-input.md). Crossterm's legacy coalesced `ESC ESC x` byte parsing remains unresolved; no PTY trace ran, and this increment does not establish Alt+x parity or application acceptance.
+
 ### Protection gate execution and documentation cleanup
 
 All three restored native visual checks and both restored heading/header assertions execute and fail with zero skips under BLESS=0 and UPDATE_BASELINE absent. All five expected files and the restored assertion source remain byte-identical during those checks. This is an intentionally red acceptance gate: the product differences remain work to fix, not output to bless. Formatting passes.
