@@ -303,6 +303,8 @@ jobs:
       - rust-termrock-runtime-testing
       - rust-termrock-session
       - rust-termrock-session-testing
+      - rust-termrock-shell
+      - rust-termrock-shell-testing
       - rust-termrock-terminal
       - rust-termrock-terminal-testing
       - rust-termrock-test-support
@@ -344,14 +346,14 @@ jobs:
         env:
           VELNOR_INTERNAL_OP: write-request-v1
           VELNOR_NEEDS_JSON: ${{ toJSON(needs) }}
-          VELNOR_NEEDS_EXPECTED: "[\"actionlint\",\"plan\",\"rust-holla\",\"rust-holla-domain\",\"rust-holla-domain-testing\",\"rust-holla-sim\",\"rust-holla-sim-testing\",\"rust-holla-testing\",\"rust-holla-ui\",\"rust-holla-ui-testing\",\"rust-jackin-preview\",\"rust-jackin-preview-app\",\"rust-jackin-preview-app-testing\",\"rust-jackin-preview-capsule-ui\",\"rust-jackin-preview-capsule-ui-testing\",\"rust-jackin-preview-domain\",\"rust-jackin-preview-domain-testing\",\"rust-jackin-preview-host-ui\",\"rust-jackin-preview-host-ui-testing\",\"rust-jackin-preview-presentation\",\"rust-jackin-preview-presentation-testing\",\"rust-jackin-preview-sim\",\"rust-jackin-preview-sim-testing\",\"rust-jackin-preview-testing\",\"rust-refactor-proof\",\"rust-refactor-proof-testing\",\"rust-showcase\",\"rust-showcase-demos\",\"rust-showcase-demos-testing\",\"rust-showcase-testing\",\"rust-showcase-ui\",\"rust-showcase-ui-testing\",\"rust-tablepro\",\"rust-tablepro-demo\",\"rust-tablepro-demo-testing\",\"rust-tablepro-domain\",\"rust-tablepro-domain-testing\",\"rust-tablepro-sql\",\"rust-tablepro-sql-testing\",\"rust-tablepro-testing\",\"rust-tablepro-ui\",\"rust-tablepro-ui-testing\",\"rust-termrock\",\"rust-termrock-collections\",\"rust-termrock-collections-testing\",\"rust-termrock-conformance\",\"rust-termrock-conformance-testing\",\"rust-termrock-controls\",\"rust-termrock-controls-testing\",\"rust-termrock-core\",\"rust-termrock-core-testing\",\"rust-termrock-editors\",\"rust-termrock-editors-testing\",\"rust-termrock-feedback\",\"rust-termrock-feedback-testing\",\"rust-termrock-fields\",\"rust-termrock-fields-testing\",\"rust-termrock-forms\",\"rust-termrock-forms-testing\",\"rust-termrock-grid\",\"rust-termrock-grid-testing\",\"rust-termrock-layout\",\"rust-termrock-layout-testing\",\"rust-termrock-navigation\",\"rust-termrock-navigation-testing\",\"rust-termrock-overlays\",\"rust-termrock-overlays-testing\",\"rust-termrock-render\",\"rust-termrock-render-testing\",\"rust-termrock-runtime\",\"rust-termrock-runtime-testing\",\"rust-termrock-session\",\"rust-termrock-session-testing\",\"rust-termrock-terminal\",\"rust-termrock-terminal-testing\",\"rust-termrock-test-support\",\"rust-termrock-test-support-testing\",\"rust-termrock-testing\",\"rust-termrock-text\",\"rust-termrock-text-testing\",\"rust-termrock-theme\",\"rust-termrock-theme-testing\",\"rust-termrock-viewport\",\"rust-termrock-viewport-testing\",\"rust-termrock-visibility-publisher\",\"rust-termrock-visibility-publisher-testing\",\"rust-termrock-xtask\",\"rust-termrock-xtask-testing\",\"rust-visual-harness\",\"rust-visual-harness-testing\"]"
+          VELNOR_NEEDS_EXPECTED: "[\"actionlint\",\"plan\",\"rust-holla\",\"rust-holla-domain\",\"rust-holla-domain-testing\",\"rust-holla-sim\",\"rust-holla-sim-testing\",\"rust-holla-testing\",\"rust-holla-ui\",\"rust-holla-ui-testing\",\"rust-jackin-preview\",\"rust-jackin-preview-app\",\"rust-jackin-preview-app-testing\",\"rust-jackin-preview-capsule-ui\",\"rust-jackin-preview-capsule-ui-testing\",\"rust-jackin-preview-domain\",\"rust-jackin-preview-domain-testing\",\"rust-jackin-preview-host-ui\",\"rust-jackin-preview-host-ui-testing\",\"rust-jackin-preview-presentation\",\"rust-jackin-preview-presentation-testing\",\"rust-jackin-preview-sim\",\"rust-jackin-preview-sim-testing\",\"rust-jackin-preview-testing\",\"rust-refactor-proof\",\"rust-refactor-proof-testing\",\"rust-showcase\",\"rust-showcase-demos\",\"rust-showcase-demos-testing\",\"rust-showcase-testing\",\"rust-showcase-ui\",\"rust-showcase-ui-testing\",\"rust-tablepro\",\"rust-tablepro-demo\",\"rust-tablepro-demo-testing\",\"rust-tablepro-domain\",\"rust-tablepro-domain-testing\",\"rust-tablepro-sql\",\"rust-tablepro-sql-testing\",\"rust-tablepro-testing\",\"rust-tablepro-ui\",\"rust-tablepro-ui-testing\",\"rust-termrock\",\"rust-termrock-collections\",\"rust-termrock-collections-testing\",\"rust-termrock-conformance\",\"rust-termrock-conformance-testing\",\"rust-termrock-controls\",\"rust-termrock-controls-testing\",\"rust-termrock-core\",\"rust-termrock-core-testing\",\"rust-termrock-editors\",\"rust-termrock-editors-testing\",\"rust-termrock-feedback\",\"rust-termrock-feedback-testing\",\"rust-termrock-fields\",\"rust-termrock-fields-testing\",\"rust-termrock-forms\",\"rust-termrock-forms-testing\",\"rust-termrock-grid\",\"rust-termrock-grid-testing\",\"rust-termrock-layout\",\"rust-termrock-layout-testing\",\"rust-termrock-navigation\",\"rust-termrock-navigation-testing\",\"rust-termrock-overlays\",\"rust-termrock-overlays-testing\",\"rust-termrock-render\",\"rust-termrock-render-testing\",\"rust-termrock-runtime\",\"rust-termrock-runtime-testing\",\"rust-termrock-session\",\"rust-termrock-session-testing\",\"rust-termrock-shell\",\"rust-termrock-shell-testing\",\"rust-termrock-terminal\",\"rust-termrock-terminal-testing\",\"rust-termrock-test-support\",\"rust-termrock-test-support-testing\",\"rust-termrock-testing\",\"rust-termrock-text\",\"rust-termrock-text-testing\",\"rust-termrock-theme\",\"rust-termrock-theme-testing\",\"rust-termrock-viewport\",\"rust-termrock-viewport-testing\",\"rust-termrock-visibility-publisher\",\"rust-termrock-visibility-publisher-testing\",\"rust-termrock-xtask\",\"rust-termrock-xtask-testing\",\"rust-visual-harness\",\"rust-visual-harness-testing\"]"
           VELNOR_REQUEST_FILE: ${{ runner.temp }}/velnor/request/merge-v1-request.json
         run: *r7
       - name: Merge reports
         env:
           VELNOR_INTERNAL_OP: merge-v1
           VELNOR_NEEDS_JSON: ${{ toJSON(needs) }}
-          VELNOR_NEEDS_EXPECTED: "[\"actionlint\",\"plan\",\"rust-holla\",\"rust-holla-domain\",\"rust-holla-domain-testing\",\"rust-holla-sim\",\"rust-holla-sim-testing\",\"rust-holla-testing\",\"rust-holla-ui\",\"rust-holla-ui-testing\",\"rust-jackin-preview\",\"rust-jackin-preview-app\",\"rust-jackin-preview-app-testing\",\"rust-jackin-preview-capsule-ui\",\"rust-jackin-preview-capsule-ui-testing\",\"rust-jackin-preview-domain\",\"rust-jackin-preview-domain-testing\",\"rust-jackin-preview-host-ui\",\"rust-jackin-preview-host-ui-testing\",\"rust-jackin-preview-presentation\",\"rust-jackin-preview-presentation-testing\",\"rust-jackin-preview-sim\",\"rust-jackin-preview-sim-testing\",\"rust-jackin-preview-testing\",\"rust-refactor-proof\",\"rust-refactor-proof-testing\",\"rust-showcase\",\"rust-showcase-demos\",\"rust-showcase-demos-testing\",\"rust-showcase-testing\",\"rust-showcase-ui\",\"rust-showcase-ui-testing\",\"rust-tablepro\",\"rust-tablepro-demo\",\"rust-tablepro-demo-testing\",\"rust-tablepro-domain\",\"rust-tablepro-domain-testing\",\"rust-tablepro-sql\",\"rust-tablepro-sql-testing\",\"rust-tablepro-testing\",\"rust-tablepro-ui\",\"rust-tablepro-ui-testing\",\"rust-termrock\",\"rust-termrock-collections\",\"rust-termrock-collections-testing\",\"rust-termrock-conformance\",\"rust-termrock-conformance-testing\",\"rust-termrock-controls\",\"rust-termrock-controls-testing\",\"rust-termrock-core\",\"rust-termrock-core-testing\",\"rust-termrock-editors\",\"rust-termrock-editors-testing\",\"rust-termrock-feedback\",\"rust-termrock-feedback-testing\",\"rust-termrock-fields\",\"rust-termrock-fields-testing\",\"rust-termrock-forms\",\"rust-termrock-forms-testing\",\"rust-termrock-grid\",\"rust-termrock-grid-testing\",\"rust-termrock-layout\",\"rust-termrock-layout-testing\",\"rust-termrock-navigation\",\"rust-termrock-navigation-testing\",\"rust-termrock-overlays\",\"rust-termrock-overlays-testing\",\"rust-termrock-render\",\"rust-termrock-render-testing\",\"rust-termrock-runtime\",\"rust-termrock-runtime-testing\",\"rust-termrock-session\",\"rust-termrock-session-testing\",\"rust-termrock-terminal\",\"rust-termrock-terminal-testing\",\"rust-termrock-test-support\",\"rust-termrock-test-support-testing\",\"rust-termrock-testing\",\"rust-termrock-text\",\"rust-termrock-text-testing\",\"rust-termrock-theme\",\"rust-termrock-theme-testing\",\"rust-termrock-viewport\",\"rust-termrock-viewport-testing\",\"rust-termrock-visibility-publisher\",\"rust-termrock-visibility-publisher-testing\",\"rust-termrock-xtask\",\"rust-termrock-xtask-testing\",\"rust-visual-harness\",\"rust-visual-harness-testing\"]"
+          VELNOR_NEEDS_EXPECTED: "[\"actionlint\",\"plan\",\"rust-holla\",\"rust-holla-domain\",\"rust-holla-domain-testing\",\"rust-holla-sim\",\"rust-holla-sim-testing\",\"rust-holla-testing\",\"rust-holla-ui\",\"rust-holla-ui-testing\",\"rust-jackin-preview\",\"rust-jackin-preview-app\",\"rust-jackin-preview-app-testing\",\"rust-jackin-preview-capsule-ui\",\"rust-jackin-preview-capsule-ui-testing\",\"rust-jackin-preview-domain\",\"rust-jackin-preview-domain-testing\",\"rust-jackin-preview-host-ui\",\"rust-jackin-preview-host-ui-testing\",\"rust-jackin-preview-presentation\",\"rust-jackin-preview-presentation-testing\",\"rust-jackin-preview-sim\",\"rust-jackin-preview-sim-testing\",\"rust-jackin-preview-testing\",\"rust-refactor-proof\",\"rust-refactor-proof-testing\",\"rust-showcase\",\"rust-showcase-demos\",\"rust-showcase-demos-testing\",\"rust-showcase-testing\",\"rust-showcase-ui\",\"rust-showcase-ui-testing\",\"rust-tablepro\",\"rust-tablepro-demo\",\"rust-tablepro-demo-testing\",\"rust-tablepro-domain\",\"rust-tablepro-domain-testing\",\"rust-tablepro-sql\",\"rust-tablepro-sql-testing\",\"rust-tablepro-testing\",\"rust-tablepro-ui\",\"rust-tablepro-ui-testing\",\"rust-termrock\",\"rust-termrock-collections\",\"rust-termrock-collections-testing\",\"rust-termrock-conformance\",\"rust-termrock-conformance-testing\",\"rust-termrock-controls\",\"rust-termrock-controls-testing\",\"rust-termrock-core\",\"rust-termrock-core-testing\",\"rust-termrock-editors\",\"rust-termrock-editors-testing\",\"rust-termrock-feedback\",\"rust-termrock-feedback-testing\",\"rust-termrock-fields\",\"rust-termrock-fields-testing\",\"rust-termrock-forms\",\"rust-termrock-forms-testing\",\"rust-termrock-grid\",\"rust-termrock-grid-testing\",\"rust-termrock-layout\",\"rust-termrock-layout-testing\",\"rust-termrock-navigation\",\"rust-termrock-navigation-testing\",\"rust-termrock-overlays\",\"rust-termrock-overlays-testing\",\"rust-termrock-render\",\"rust-termrock-render-testing\",\"rust-termrock-runtime\",\"rust-termrock-runtime-testing\",\"rust-termrock-session\",\"rust-termrock-session-testing\",\"rust-termrock-shell\",\"rust-termrock-shell-testing\",\"rust-termrock-terminal\",\"rust-termrock-terminal-testing\",\"rust-termrock-test-support\",\"rust-termrock-test-support-testing\",\"rust-termrock-testing\",\"rust-termrock-text\",\"rust-termrock-text-testing\",\"rust-termrock-theme\",\"rust-termrock-theme-testing\",\"rust-termrock-viewport\",\"rust-termrock-viewport-testing\",\"rust-termrock-visibility-publisher\",\"rust-termrock-visibility-publisher-testing\",\"rust-termrock-xtask\",\"rust-termrock-xtask-testing\",\"rust-visual-harness\",\"rust-visual-harness-testing\"]"
           VELNOR_REQUEST_FILE: ${{ runner.temp }}/velnor/request/merge-v1-request.json
         run: *r7
       - name: Publish final report
@@ -3962,6 +3964,114 @@ jobs:
         with:
           if-no-files-found: error
           name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-termrock-session-testing
+          overwrite: "true"
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
+          retention-days: "30"
+  rust-termrock-shell:
+    name: Rust / termrock-shell
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env: *m9
+    needs:
+      - plan
+    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-termrock-shell,')"
+    steps:
+      - *s2
+      - *s3
+      - *s8
+      - *s11
+      - *s4
+      - *s10
+      - *s12
+      - *s9
+      - *s13
+      - *s14
+      - *s15
+      - name: Build test executables
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-bfccf554919ab4213590152fbbdd4f41e2c12ef68822e10c4950f095e870054e"}
+      - name: Format
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-a5323a2e92c4b122e18074889b79a93c0a3d9675909b18c0b6a4382331fe9ef2"}
+      - name: Clippy
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-81d291db896d91fd56470457aba95eba16b344a37b6dba4af04f0d466f7e2804"}
+      - name: Unit and integration tests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-1dfc212e6de07d8edff6e29a1e25ff995c6bc420b79c458c5b1e3f95069dcdd0"}
+      - name: Doctests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-a9571391a89096d9f9efa9bf9c32f9f9ef9261ba9586b5c263ec70c94364b61b"}
+      - name: Documentation
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-726a4706eeb2c4df6218446679e6c48fa66a78ca21c3086d3d5ebb2886d62e7b"}
+      - name: Wait for parallel checks
+        wait-all:
+      - name: Upload crate reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          if-no-files-found: error
+          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-termrock-shell
+          overwrite: "true"
+          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
+          retention-days: "30"
+  rust-termrock-shell-testing:
+    name: Rust / termrock-shell (testing)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env: *m9
+    needs:
+      - plan
+    if: "!contains(needs.plan.outputs.not_affected_jobs, ',rust-termrock-shell-testing,')"
+    steps:
+      - *s2
+      - *s3
+      - *s8
+      - *s11
+      - *s4
+      - *s10
+      - *s12
+      - *s9
+      - *s13
+      - *s14
+      - *s15
+      - name: Build test executables
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-2cbbff02fafa1a7dcb4c8364f39b70b7fe612541e40c1c4e72a17f4a417988ad"}
+      - name: Format
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-a137fbaa344558fa76adb4af26e78caddb4789fb73cafab0f8e7a1526c77a066"}
+      - name: Clippy
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-94e1095088a852fbac7c82d5b53974013db73bf6c71b371903ed62ed21e97f3e"}
+      - name: Unit and integration tests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-8a0bf3d86867d0207b00201c98adc53d9302369c45328cb532280589b42fd52f"}
+      - name: Doctests
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-b90301a899cf412b857a7cb78ff7bd4b9107e8539a34bf666154774904e496a6"}
+      - name: Documentation
+        background: true
+        uses: ./.github/actions/declared-task-0 # zizmor: ignore[self-repository]
+        with: {"digest": "b3-14bbb7f5cc3341900e50e86ffdfc43e2de2e2d901b15eeb41ae68fb91a6a7033"}
+      - name: Wait for parallel checks
+        wait-all:
+      - name: Upload crate reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          if-no-files-found: error
+          name: velnor-crate-r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}-rust-termrock-shell-testing
           overwrite: "true"
           path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ env.VELNOR_RUN_KEY_ATTEMPT }}
           retention-days: "30"
