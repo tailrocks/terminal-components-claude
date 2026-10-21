@@ -13,7 +13,7 @@
 //! renders with existing components.
 
 pub mod chrome;
-// pub mod footer;
+pub mod footer;
 pub mod keyboard;
 pub mod nav;
 pub mod page;
