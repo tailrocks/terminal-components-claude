@@ -155,11 +155,21 @@ pub fn solve_columns(specs: &[ColumnSpec], available: u16, gap: u16) -> Resolved
 /// four entries. Larger slices use the same general solver without truncation.
 #[must_use]
 pub fn solve_columns_first(specs: &[ColumnSpec], available: u16, gap: u16) -> Option<u16> {
+    solve_columns_head(specs, available, gap).map(|widths| widths[0])
+}
+
+/// Solves the leading columns without allocating when `specs` has at most
+/// four entries, returning the solved widths of the first two columns (0 for
+/// a column beyond the slice). Larger slices fall back to the allocating
+/// solver.
+#[must_use]
+pub fn solve_columns_head(specs: &[ColumnSpec], available: u16, gap: u16) -> Option<[u16; 2]> {
     if specs.is_empty() {
         return None;
     }
     if specs.len() > 4 {
-        return solve_columns(specs, available, gap).width(0);
+        let solved = solve_columns(specs, available, gap);
+        return Some([solved.width(0).unwrap_or(0), solved.width(1).unwrap_or(0)]);
     }
     let mut widths = [0u64; 4];
     let mut offsets = [None; 4];
@@ -178,7 +188,8 @@ pub fn solve_columns_first(specs: &[ColumnSpec], available: u16, gap: u16) -> Op
             open: &mut open[..specs.len()],
         },
     );
-    Some(u16::try_from(widths[0]).unwrap_or(u16::MAX))
+    let to_u16 = |w: u64| u16::try_from(w).unwrap_or(u16::MAX);
+    Some([to_u16(widths[0]), to_u16(widths[1])])
 }
 
 fn resolve_columns(
