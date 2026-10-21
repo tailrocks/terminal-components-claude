@@ -84,38 +84,30 @@ fn pointer_highlight_and_clear_on_leave_have_profile_specific_cues() {
             "active cursor at {level:?}"
         );
 
-        harness.blur();
-
         let _ = harness.mouse(MouseKind::Move, 4, 1);
         let hovered = cell_by_symbol(&harness, "R").modifier;
         let _ = harness.mouse(MouseKind::Move, 0, 0);
-        let hidden = render_unowned_label(level, &harness.app().state);
-        assert_eq!(hidden, Modifier::empty(), "hidden cursor at {level:?}");
+        let hidden = cell_by_symbol(&harness, "R").modifier;
+        assert_eq!(
+            hidden,
+            Modifier::empty(),
+            "owner-focused hidden cursor at {level:?}"
+        );
         assert_ne!(active, hidden, "pointer leave cue at {level:?}");
 
-        match level {
-            ColorLevel::TrueColor | ColorLevel::Ansi256 => {
-                assert!(hovered.contains(Modifier::BOLD), "hover cue at {level:?}");
-                assert!(
-                    !hovered.contains(Modifier::UNDERLINED),
-                    "hover at {level:?}"
-                );
-                assert!(!active.contains(Modifier::REVERSED), "active at {level:?}");
-            }
-            ColorLevel::Ansi16 => {
-                assert!(active.contains(Modifier::BOLD));
-                assert!(hovered.contains(Modifier::BOLD | Modifier::UNDERLINED));
-                assert!(!active.contains(Modifier::UNDERLINED));
-                assert!(!active.contains(Modifier::REVERSED));
-            }
-            ColorLevel::Mono => {
-                assert!(active.contains(Modifier::BOLD | Modifier::REVERSED));
-                assert!(
-                    hovered.contains(Modifier::BOLD | Modifier::UNDERLINED | Modifier::REVERSED)
-                );
-            }
+        let expected_active = match level {
+            ColorLevel::Mono => Modifier::BOLD | Modifier::REVERSED,
+            _ => Modifier::BOLD,
+        };
+        let expected_hover = match level {
+            ColorLevel::TrueColor | ColorLevel::Ansi256 => Modifier::BOLD,
+            ColorLevel::Ansi16 => Modifier::BOLD | Modifier::UNDERLINED,
+            ColorLevel::Mono => Modifier::BOLD | Modifier::UNDERLINED | Modifier::REVERSED,
             _ => unreachable!("all supported menu profiles are enumerated"),
-        }
+        };
+        assert_eq!(active, expected_active, "active cue at {level:?}");
+        assert_eq!(hovered, expected_hover, "hover cue at {level:?}");
+        assert_ne!(active, hidden, "pointer leave cue at {level:?}");
     }
 }
 
@@ -152,24 +144,148 @@ fn disabled_active_menu_item_suppresses_cursor_modifiers_in_every_profile() {
     }
 }
 
-fn render_unowned_label(level: ColorLevel, state: &MenuState) -> Modifier {
-    let mut runtime = Runtime::new(Stub::default(), Theme::junie().for_level(level));
-    let area = Rect::new(0, 0, 50, 10);
-    let mut buffer = Buffer::empty(area);
-    runtime
-        .draw_scene(area, &mut buffer, |ui, _| {
-            menu().draw(ui, Rect::new(0, 0, 40, 8), state);
-        })
-        .commit_presented();
-    buffer
-        .content()
-        .iter()
-        .find(|cell| cell.symbol() == "R")
-        .expect("target label cell remains rendered")
-        .modifier
+const MATRIX_MENU: Id = Id::root("consumer.menu.cursor-contract.matrix");
+
+struct MatrixPage {
+    state: MenuState,
+    item: MenuItem<'static>,
+    underlay: bool,
 }
 
-fn cell_by_symbol<'a>(harness: &'a Harness<Page>, symbol: &str) -> &'a ratatui_core::buffer::Cell {
+impl MatrixPage {
+    fn menu(&self) -> ContextMenu<'_> {
+        let item = std::slice::from_ref(&self.item);
+        let menu = ContextMenu::at(MATRIX_MENU, item, Position::new(0, 0))
+            .skip_disabled(false)
+            .clear_on_leave(true);
+        if self.underlay {
+            menu.keep_underlay()
+        } else {
+            menu
+        }
+    }
+}
+
+impl App for MatrixPage {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let items = [self.item];
+        let menu = ContextMenu::at(MATRIX_MENU, &items, Position::new(0, 0))
+            .skip_disabled(false)
+            .clear_on_leave(true);
+        let menu = if self.underlay {
+            menu.keep_underlay()
+        } else {
+            menu
+        };
+        menu.update(cx, &mut self.state).erase()
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        self.menu().draw(ui, Rect::new(0, 0, 40, 8), &self.state);
+    }
+}
+
+fn item(danger: bool, disabled: bool) -> MenuItem<'static> {
+    let item = MenuItem::new(RUN, "Run").disabled(disabled);
+    if danger { item.danger() } else { item }
+}
+
+fn frozen_modifier(level: ColorLevel, state: MenuVisualState, disabled: bool) -> Modifier {
+    if disabled {
+        return if matches!(level, ColorLevel::Ansi16 | ColorLevel::Mono) {
+            Modifier::DIM
+        } else {
+            Modifier::empty()
+        };
+    }
+    match (level, state) {
+        (ColorLevel::TrueColor | ColorLevel::Ansi256, _) => Modifier::BOLD,
+        (ColorLevel::Ansi16, MenuVisualState::Initial) => Modifier::BOLD,
+        (ColorLevel::Ansi16, MenuVisualState::Hover) => Modifier::BOLD | Modifier::UNDERLINED,
+        (ColorLevel::Ansi16, MenuVisualState::Pressed) => Modifier::BOLD | Modifier::REVERSED,
+        (ColorLevel::Mono, MenuVisualState::Initial) => Modifier::BOLD | Modifier::REVERSED,
+        (ColorLevel::Mono, MenuVisualState::Hover) => {
+            Modifier::BOLD | Modifier::UNDERLINED | Modifier::REVERSED
+        }
+        (ColorLevel::Mono, MenuVisualState::Pressed) => Modifier::BOLD | Modifier::UNDERLINED,
+        _ => unreachable!("all supported menu profiles are enumerated"),
+    }
+}
+
+#[derive(Clone, Copy)]
+enum MenuVisualState {
+    Initial,
+    Hover,
+    Pressed,
+}
+
+#[test]
+fn owner_focused_hidden_cursor_clears_for_both_variants_and_underlay_modes() {
+    for level in LEVELS {
+        for danger in [false, true] {
+            for underlay in [false, true] {
+                let page = MatrixPage {
+                    state: MenuState::default(),
+                    item: item(danger, false),
+                    underlay,
+                };
+                let mut harness = Harness::new(page, Theme::junie().for_level(level), 50, 10);
+                let _ = harness.mouse(MouseKind::Move, 4, 1);
+                let _ = harness.mouse(MouseKind::Move, 0, 0);
+                assert_eq!(
+                    cell_by_symbol(&harness, "R").modifier,
+                    Modifier::empty(),
+                    "owner-focused hidden {level:?} danger={danger} underlay={underlay}"
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn actual_menu_modifier_matrix_matches_frozen_across_variants_and_underlay_modes() {
+    for level in LEVELS {
+        for danger in [false, true] {
+            for disabled in [false, true] {
+                for underlay in [false, true] {
+                    let page = MatrixPage {
+                        state: MenuState::default(),
+                        item: item(danger, disabled),
+                        underlay,
+                    };
+                    let mut harness = Harness::new(page, Theme::junie().for_level(level), 50, 10);
+                    let expected = frozen_modifier(level, MenuVisualState::Initial, disabled);
+                    assert_eq!(
+                        cell_by_symbol(&harness, "R").modifier,
+                        expected,
+                        "initial {level:?} danger={danger} disabled={disabled} underlay={underlay}"
+                    );
+
+                    let _ = harness.mouse(MouseKind::Move, 4, 1);
+                    let expected = frozen_modifier(level, MenuVisualState::Hover, disabled);
+                    assert_eq!(
+                        cell_by_symbol(&harness, "R").modifier,
+                        expected,
+                        "hover {level:?} danger={danger} disabled={disabled} underlay={underlay}"
+                    );
+
+                    let _ = harness.mouse(MouseKind::Down, 4, 1);
+                    let expected = frozen_modifier(level, MenuVisualState::Pressed, disabled);
+                    assert_eq!(
+                        cell_by_symbol(&harness, "R").modifier,
+                        expected,
+                        "pressed {level:?} danger={danger} disabled={disabled} underlay={underlay}"
+                    );
+                }
+            }
+        }
+    }
+}
+
+fn cell_by_symbol<'a, A: App>(
+    harness: &'a Harness<A>,
+    symbol: &str,
+) -> &'a ratatui_core::buffer::Cell {
     harness
         .buffer()
         .content()
