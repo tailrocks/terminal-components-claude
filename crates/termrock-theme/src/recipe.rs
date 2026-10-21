@@ -316,6 +316,7 @@ impl fmt::Debug for Recipes {
             .field("neutral", &self.neutral)
             .field("mono", &self.mono)
             .field("level_families", &self.level_families)
+            .field("revision", &self.revision)
             .finish()
     }
 }
