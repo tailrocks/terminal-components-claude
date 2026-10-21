@@ -62,8 +62,22 @@ fn all_73_junie_slots_match_reference_capability_output() {
             // index the frozen corpus (baselines/tuiscotti-v1) renders, or —
             // where the corpus never draws the slot — the frozen baseline
             // apply_256 table (visual-baseline src/theme.rs:921-962).
-            expected.fg[2] = Color::Indexed(244);
-            expected.fg[3] = Color::Indexed(238);
+            // The frozen source at 4169783 paints text_muted in MUTED
+            // (0x8a8a8a, index 245) and text_faint in WHITE_43 (0x737373,
+            // index 242); the approved 256 frames use those indices.
+            expected.fg[2] = Color::Indexed(245);
+            expected.fg[3] = Color::Indexed(242);
+            // The frozen source apply_256 table sets the syntax keyword to
+            // i(111), the string to i(116) and the literal to i(183); the
+            // approved 256 code editor frame paints 111, 116, 183, 245 and
+            // 242 for those roles.
+            expected.syntax.keyword = Color::Indexed(111);
+            expected.syntax.string = Color::Indexed(116);
+            expected.syntax.number = Color::Indexed(183);
+            expected.syntax.operator = Color::Indexed(245);
+            expected.syntax.punct = Color::Indexed(245);
+            expected.syntax.comment = Color::Indexed(242);
+            expected.syntax.diagnostic_error = Color::Indexed(210);
             expected.field_hover = Color::Indexed(237);
             expected.accent_hover = Color::Indexed(77);
             expected.accent_pressed = Color::Indexed(238);
