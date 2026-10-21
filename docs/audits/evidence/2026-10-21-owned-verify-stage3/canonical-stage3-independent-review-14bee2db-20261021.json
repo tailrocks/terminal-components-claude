@@ -1,0 +1,88 @@
+{
+  "schema": "termrock.canonical-owned-stage3.independent-review.v1",
+  "decision": "HOLD exact stage3 source pending final-output and lifecycle-boundary fixes.",
+  "source_commit": "14bee2db097876479f005a82b04cafe4b09c7eeb",
+  "source_runner": {
+    "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/canonical-stage3-independent-review-14bee2db/frozen_baseline.py",
+    "sha256": "b209f37c49b92a5455d8b64ac7626b0e6eba557742123569759438bdbbb74d7e"
+  },
+  "source_tests": {
+    "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/canonical-stage3-independent-review-14bee2db/test_frozen_baseline.py",
+    "sha256": "7c9555c8bbbd650687c05c610dea5b981602921c5e0c76d0b4db283a75a1db9b"
+  },
+  "method": "Read-only exact-commit source/test/audit review. Three unchanged new author tests applied to before and after source in isolated copies; full 107-test suite rerun from an exact-commit fixture closure. Additional synthetic CLI probes use real PrepareExecution with a one-second budget and mocked domain/path verification/output; no real verification, tool observation, preflight, key access, or application operation was executed.",
+  "findings": [
+    {
+      "id": "STAGE3-OWNED-1",
+      "severity": "P1",
+      "location": "tools/frozen_baseline.py:4851-4852; PrepareExecution.__exit__ at779",
+      "problem": "The owned verify-live path checks cancellation/deadline only before its final success print. print is not explicitly flushed and no check follows it; __exit__ only restores signal handlers. A deadline expiry or SIGTERM recorded during final output is therefore discarded and main returns 0. Buffered stdout may also flush after leaving the owned scope.",
+      "evidence": "Synthetic CLI with real one-second PrepareExecution and a final output sink returning after 1.05 seconds returns 0 (1.062 seconds observed). A separate final output sink recording SIGTERM also returns 0. Both probes avoid real source verification and child launch.",
+      "required_fix": "Flush final success output within the owned scope, then re-check deadline/cancellation before success. Add unchanged real-scope CLI regressions for late output and cancellation during output, both requiring nonzero status. Retain the disclosed kernel-stall limitation."
+    },
+    {
+      "id": "STAGE3-OWNED-2",
+      "severity": "P2",
+      "location": "tools/frozen_baseline.py:4834,4840",
+      "problem": "paths() resolves repo/root and probes the source workspace before PrepareExecution is constructed. Path resolution therefore does not consume the requested owned work budget and executes without the owned cancellation handlers, contrary to the requested one-scope path-verification contract.",
+      "evidence": "Both independent synthetic CLI probes record order paths_resolved then execution_created. Source directly places paths() before the owned branch and with scope.",
+      "required_fix": "Move owned-path resolution under the same PrepareExecution, checking before and after it; preserve the legacy path separately. Add a lifecycle-order regression proving the owned scope is active before path resolution and that expiry/cancellation during paths fails closed."
+    },
+    {
+      "id": "STAGE3-OWNED-DOC-1",
+      "severity": "P3",
+      "location": "docs/audits/evidence/2026-10-21-owned-verify-stage3/audit.json:40",
+      "problem": "The audit says the stage-two external supervisor still requires independent clearance before stage-three operation. V12 stage2 source and actual stage2 result were already independently admitted; the pending requirement is a separately reviewed stage3-enabled supervisor and this canonical source correction.",
+      "required_fix": "Update the current audit/migration status to name the actual stage3 gate while retaining stage2 V12 admission and immutable historical evidence."
+    }
+  ],
+  "tests": {
+    "before_after": {
+      "before": {
+        "run": 3,
+        "failures": 0,
+        "errors": 3,
+        "skips": 0,
+        "log_sha256": "9208958811b55040ba22957ae4ae1cd41db31ad811597b5450b9fa3e07c28481"
+      },
+      "after": {
+        "run": 3,
+        "failures": 0,
+        "errors": 0,
+        "skips": 0,
+        "log_sha256": "28763c8971ae45a3d53232de4820740377cb9192c75251d6f4b4dfda6279be74"
+      },
+      "full_suite": {
+        "exit_status": 1,
+        "log_sha256": "8f855ec38617ca6e6f4448a359817a3aabfbdfbb03b9f44b2b3f7117735f1791"
+      }
+    },
+    "complete_fixture_suite": {
+      "tests": 107,
+      "exit_status": 0,
+      "failures": 0,
+      "skips": 0,
+      "log": {
+        "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/canonical-stage3-independent-review-14bee2db/full-suite-complete-fixture-closure.log",
+        "sha256": "f80d281c0466ddccdbec7970beea558bc045890051d8b36b8a1ec9c4da691165"
+      }
+    },
+    "negative_probes": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/canonical-stage3-independent-review-14bee2db/final-output-real-clock-probes.json",
+      "sha256": "7d8b092bb6269b5cb239da7dda8bd3d57bdfe9e02c7162fa72f1c85766659f04"
+    },
+    "initial_probe": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/canonical-stage3-independent-review-14bee2db/final-output-probes.json",
+      "sha256": "5385254db41c82119d7d910c4b77cb21826358cec668d6881c543f9c979b96e2"
+    },
+    "fixture_limit": "The first isolated suite lacked repo-relative support files and reported 14 errors; a partial fixture copy then reported four missing evidence-artifact errors. Both failed logs are preserved. Exact committed dependency closure was copied, after which 107/107 passed. Those setup failures are not product regressions or counted as green."
+  },
+  "checked_topics": {
+    "callback_threading": "verify_source provenance reads, source/live digests, snapshot digests, cohort/binary verification, current provenance comparisons and tool observation receive the same execution/check_work. General file/hash loops check between items/chunks.",
+    "optional_tool_failure": "Existing final broker status classification, internal broker error propagation, optional local probe timeout handling and bounds remain unchanged by this increment and are covered by the complete suite.",
+    "read_only_scope": "verify-live writes no source/manifests/reference output; its owned tool/version observation may create bounded temporary broker files. Final stdout must still satisfy STAGE3-OWNED-1.",
+    "legacy_api": "The default function parameter remains execution=None and legacy calls avoid callback keywords. The legacy branch retains existing verify behavior, aside from explicit owned-budget rejection.",
+    "independent_limits": "No actual stage3 source/snapshot rehash operation or tool observation was launched. No product parity, capture/replay, architecture, or future plan-seal acceptance is granted."
+  },
+  "next_gate": "Fix required findings, obtain independent exact-source re-review, and review a stage3-only external supervisor before actual stage3. Stage4 sealing must wait for the required remaining owned lifecycle implementation."
+}
