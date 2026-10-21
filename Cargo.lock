@@ -3411,6 +3411,7 @@ dependencies = [
  "termrock-render",
  "termrock-runtime",
  "termrock-session",
+ "termrock-shell",
  "termrock-terminal",
  "termrock-text",
  "termrock-theme",
@@ -3689,7 +3690,6 @@ dependencies = [
  "termrock-core",
  "termrock-layout",
  "termrock-runtime",
- "termrock-test-support",
  "termrock-theme",
 ]
 

@@ -2,8 +2,8 @@
 //! size stay reachable at every shipping size?
 //!
 //! Ported from PR #26 `src/shell/reach.rs` (commit `f4867e9b5`). The parity
-//! adaptation drives the runtime through [`termrock_test_support::Harness`]
-//! instead of the source's `Application` trait, and wheels through
+//! adaptation drives the [`termrock_runtime::Runtime`] directly over a test
+//! buffer instead of the source's `Application` trait, and wheels through
 //! [`termrock_core::event::MouseKind::Wheel`] (axis plus notch delta) instead
 //! of four wheel kinds. The source's `Words::add_overflowed` and the
 //! reveal-driven `Reveal` steps are not ported: they read the source's
@@ -20,8 +20,7 @@ use termrock_core::event::{Input, MouseKind};
 use termrock_core::platform::ClientPlatform;
 use termrock_runtime::event::Axis;
 use termrock_runtime::hit::{Bar, RegionKind, Registry};
-use termrock_runtime::{App, Id};
-use termrock_test_support::Harness;
+use termrock_runtime::{App, Id, Runtime};
 use termrock_theme::Theme as ThemeType;
 
 /// The sizes a screen must survive.
@@ -182,8 +181,8 @@ pub trait Scenario: Sized {
         ThemeType::junie()
     }
 
-    /// A fresh harness with the app installed.
-    fn fresh() -> Harness<Self::App>;
+    /// A fresh app in its initial screen state.
+    fn fresh() -> Self::App;
 
     /// Is the app showing its too-small panel at this size? Too-small
     /// scenarios are recorded, not failed.
@@ -197,42 +196,89 @@ pub trait Scenario: Sized {
 pub struct Case<S: Scenario + 'static> {
     /// The scenario's name in the allow file.
     pub name: &'static str,
-    /// The setup that shows the screen.
-    pub base: fn(&mut Harness<S::App>),
+    /// The setup that shows the screen, run before the runtime starts.
+    pub base: fn(&mut S::App),
 }
 
 impl<S: Scenario + 'static> Case<S> {
     /// A page case.
-    pub const fn page(name: &'static str, base: fn(&mut Harness<S::App>)) -> Self {
+    pub const fn page(name: &'static str, base: fn(&mut S::App)) -> Self {
         Self { name, base }
     }
 
-    fn build(&self) -> Harness<S::App> {
-        let mut h = S::fresh();
-        (self.base)(&mut h);
-        h
+    fn build(&self) -> Probe<S> {
+        let mut app = S::fresh();
+        (self.base)(&mut app);
+        Probe::new(app, S::theme())
     }
 
     /// Run the case at `size` and report what it reached.
     pub fn run(&self, size: (u16, u16)) -> Reach {
-        let mut probe = Probe::<S> { h: self.build() };
+        let mut probe = self.build();
         let want = probe.reference(REFERENCE);
-        let _ = probe.h.resize(size.0, size.1);
-        let small = S::too_small(probe.h.app());
+        probe.resize(size.0, size.1);
+        let small = S::too_small(probe.rt.app());
         let mut reached = Words::default();
         let bars = probe.explore(&want, &mut reached);
         Reach::of(size, small, &want, &reached, bars)
     }
 }
 
-/// A scenario harness driving the runtime through the test support harness.
+/// A scenario probe driving the runtime over a plain test buffer.
 pub(crate) struct Probe<S: Scenario> {
-    h: Harness<S::App>,
+    rt: Runtime<S::App>,
+    buf: Buffer,
+    area: Rect,
+}
+
+impl<S: Scenario> Probe<S> {
+    fn new(app: S::App, theme: ThemeType) -> Self {
+        let area = Rect::new(0, 0, 80, 24);
+        let mut rt = Runtime::new(app, theme);
+        let buf = Buffer::empty(area);
+        let _ = rt.initialize();
+        let mut probe = Self { rt, buf, area };
+        probe.draw();
+        probe
+    }
+
+    /// Settle pending work, then draw one committed frame.
+    fn draw(&mut self) {
+        for _ in 0..16 {
+            if self.rt.needs_settle() {
+                let _ = self.rt.settle();
+            }
+            if !self.rt.needs_present() && !self.rt.needs_settle() {
+                return;
+            }
+            self.rt
+                .draw_buffer(self.area, &mut self.buf)
+                .commit_presented();
+        }
+    }
+
+    fn handle(&mut self, input: Input) {
+        let _ = self
+            .rt
+            .handle(input)
+            .expect("a published probe must accept input");
+        self.draw();
+    }
+
+    fn resize(&mut self, w: u16, h: u16) {
+        self.area = Rect::new(0, 0, w, h);
+        self.buf = Buffer::empty(self.area);
+        self.handle(Input::Resize(w, h));
+    }
+
+    fn buffer(&self) -> &Buffer {
+        &self.buf
+    }
 }
 
 impl<S: Scenario> Probe<S> {
     fn registry(&self) -> Option<&Registry> {
-        self.h.runtime().projection_registry()
+        self.rt.projection_registry()
     }
 
     fn bars(&self) -> Vec<Bar> {
@@ -274,7 +320,7 @@ impl<S: Scenario> Probe<S> {
         let delta = (notches(bar) as i16) * if forward { 1 } else { -1 };
         let kind = MouseKind::Wheel(bar.axis, delta);
         let at = self.wheel_spot(bar);
-        let _ = self.h.handle(Input::Mouse(termrock_core::event::Mouse {
+        self.handle(Input::Mouse(termrock_core::event::Mouse {
             kind,
             pos: at,
             mods: termrock_core::keys::KeyModifiers::NONE,
@@ -286,9 +332,9 @@ impl<S: Scenario> Probe<S> {
         let Some(bar) = self.bar_of(owner, axis) else {
             return false;
         };
-        let before = self.h.buffer().clone();
+        let before = self.buffer().clone();
         self.wheel(bar, forward);
-        *self.h.buffer() != before
+        *self.buffer() != before
     }
 
     fn page_to_end(&mut self, owner: Id, axis: Axis, forward: bool, acc: &mut Acc) -> usize {
@@ -301,7 +347,7 @@ impl<S: Scenario> Probe<S> {
         while pages < MAX_PAGES && stalled < limit && !acc.done() && self.page(owner, axis, forward)
         {
             pages += 1;
-            stalled = if acc.add(self.h.buffer()) {
+            stalled = if acc.add(self.buffer()) {
                 0
             } else {
                 stalled + 1
@@ -325,8 +371,8 @@ impl<S: Scenario> Probe<S> {
     /// The reference words at [`REFERENCE`], minus the reference size's own
     /// dimensions so the size itself never counts as missing.
     fn reference(&mut self, reference: (u16, u16)) -> Words {
-        let _ = self.h.resize(reference.0, reference.1);
-        let mut want = Words::read(self.h.buffer());
+        self.resize(reference.0, reference.1);
+        let mut want = Words::read(self.buffer());
         let dims = [reference.0.to_string(), reference.1.to_string()];
         want.whole.retain(|w| !dims.contains(w));
         want.cut.clear();
@@ -343,7 +389,7 @@ impl<S: Scenario> Probe<S> {
             want: want.whole.clone(),
             last: BTreeSet::new(),
         };
-        acc.add(self.h.buffer());
+        acc.add(self.buffer());
         let mut done: Vec<Id> = Vec::new();
         self.explore_owners(&mut acc, &mut done, 0);
         *reached = acc.reached;
@@ -374,7 +420,7 @@ impl<S: Scenario> Probe<S> {
                     break;
                 }
                 v_pages += 1;
-                stalled = if acc.add(self.h.buffer()) {
+                stalled = if acc.add(self.buffer()) {
                     0
                 } else {
                     stalled + 1
@@ -540,9 +586,9 @@ pub fn dump<S: Scenario>(cases: &[Case<S>]) {
         .iter()
         .find(|c| c.name == name)
         .unwrap_or_else(|| panic!("no case {name}"));
-    let mut h = case.build();
-    let _ = h.resize(size.0, size.1);
-    let buf = h.buffer();
+    let mut probe = case.build();
+    probe.resize(size.0, size.1);
+    let buf = probe.buffer();
     let mut text = String::new();
     for y in 0..buf.area().height {
         for x in 0..buf.area().width {
@@ -550,7 +596,6 @@ pub fn dump<S: Scenario>(cases: &[Case<S>]) {
         }
         text.push('\n');
     }
-    let mut probe = Probe::<S> { h };
     let want = probe.reference(size);
     let mut reached = Words::default();
     probe.explore(&want, &mut reached);
