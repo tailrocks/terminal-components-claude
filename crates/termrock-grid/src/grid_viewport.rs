@@ -30,6 +30,9 @@ pub struct GridViewportPolicy {
     pub pending_rows: u16,
     /// Rows reserved below the pending bar for a status line.
     pub status_rows: u16,
+    /// Columns reserved on the left of the status row for the host's own
+    /// marker. The status text starts after them.
+    pub status_inset: u16,
     /// Columns reserved to the right of the grid body.
     pub right_reserve: u16,
 }
@@ -39,8 +42,10 @@ pub struct GridViewportPolicy {
 pub struct GridViewport {
     /// The band above the filter band, painted by the host.
     pub header: Rect,
-    /// The filter band. The filter bar is its first row.
+    /// The filter band.
     pub filter: Rect,
+    /// The filter bar row, the filter band's first row.
+    pub filter_bar: Rect,
     /// Where the grid body draws.
     pub grid: Rect,
     /// The horizontal bar row, directly below the grid body.
@@ -49,6 +54,9 @@ pub struct GridViewport {
     pub pending: Rect,
     /// The status line row. [`Rect::ZERO`] when no rows are reserved.
     pub status: Rect,
+    /// The status text area: the status row without the host's own marker
+    /// columns. [`Rect::ZERO`] when no rows are reserved.
+    pub status_text: Rect,
 }
 
 /// Carve a grid viewport out of `area`.
@@ -107,6 +115,29 @@ pub fn solve_grid_viewport(area: Rect, policy: &GridViewportPolicy) -> GridViewp
             height: 1,
         }
     };
+    let status_text = if policy.status_rows == 0 {
+        Rect::ZERO
+    } else {
+        Rect {
+            x: status.x.saturating_add(policy.status_inset),
+            width: status.width.saturating_sub(policy.status_inset),
+            ..status
+        }
+    };
+    let filter = Rect {
+        x: area.x,
+        y: area.y.saturating_add(header_rows),
+        width: area.width,
+        height: filter_rows,
+    };
+    let filter_bar = if policy.filter_rows == 0 {
+        Rect::ZERO
+    } else {
+        Rect {
+            height: 1,
+            ..filter
+        }
+    };
     GridViewport {
         header: Rect {
             x: area.x,
@@ -114,16 +145,13 @@ pub fn solve_grid_viewport(area: Rect, policy: &GridViewportPolicy) -> GridViewp
             width: area.width,
             height: header_rows,
         },
-        filter: Rect {
-            x: area.x,
-            y: area.y.saturating_add(header_rows),
-            width: area.width,
-            height: filter_rows,
-        },
+        filter,
+        filter_bar,
         grid,
         horizontal,
         pending,
         status,
+        status_text,
     }
 }
 
@@ -409,6 +437,7 @@ mod tests {
                 header_rows: 3,
                 filter_rows: 2,
                 status_rows: 1,
+                status_inset: 1,
                 ..GridViewportPolicy::default()
             },
         );
@@ -429,6 +458,7 @@ mod tests {
                 filter_rows: 2,
                 pending_rows: 2,
                 status_rows: 1,
+                status_inset: 1,
                 ..GridViewportPolicy::default()
             },
         );
@@ -447,6 +477,7 @@ mod tests {
                 filter_rows: 2,
                 pending_rows: 2,
                 status_rows: 1,
+                status_inset: 1,
                 right_reserve: 3,
             },
         );
