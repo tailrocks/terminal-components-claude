@@ -11,6 +11,10 @@
 //! Nothing here draws its own pixels: the shell composes through the shared
 //! composition slots ([`shell::AppShell`]) and returns vocabulary the app
 //! renders with existing components.
+//!
+//! The reachability harness ([`reach`]) is a test tool: it compiles only
+//! under the crate's default-off `testing` feature, so production builds
+//! never carry it.
 
 pub mod chrome;
 pub mod footer;
@@ -18,6 +22,7 @@ pub mod keyboard;
 pub mod nav;
 pub mod page;
 pub mod quit;
+#[cfg(feature = "testing")]
 pub mod reach;
 pub mod router;
 pub mod shell;
