@@ -184,6 +184,119 @@ fn checked_fallback_keeps_single_cell_button_marker_and_explicit_patch_wins() {
 }
 
 #[test]
+fn checked_button_marker_keeps_its_semantic_glyph_in_every_color_profile() {
+    for level in [
+        ColorLevel::TrueColor,
+        ColorLevel::Ansi256,
+        ColorLevel::Ansi16,
+        ColorLevel::Mono,
+    ] {
+        let theme = Theme::junie().for_level(level);
+        let checked = Harness::new(
+            PropsPage {
+                checked: true,
+                ..PropsPage::default()
+            },
+            theme.clone(),
+            20,
+            1,
+        );
+        assert_eq!(
+            checked.cell(1, 0).symbol(),
+            theme.design.glyphs.get(GlyphRole::DotOn),
+            "checked button glyph changed at {level:?}"
+        );
+
+        let unchecked = Harness::new(PropsPage::default(), theme.clone(), 20, 1);
+        assert_eq!(
+            unchecked.cell(1, 0).symbol(),
+            theme.design.glyphs.get(GlyphRole::DotOff),
+            "unchecked button glyph changed at {level:?}"
+        );
+    }
+
+    let custom_dots = Theme::junie()
+        .builder()
+        .glyph(GlyphRole::DotOn, "x")
+        .glyph(GlyphRole::DotOff, "o")
+        .build()
+        .for_level(ColorLevel::Mono);
+    let custom = Harness::new(
+        PropsPage {
+            checked: true,
+            ..PropsPage::default()
+        },
+        custom_dots,
+        20,
+        1,
+    );
+    assert_eq!(custom.cell(1, 0).symbol(), "x");
+
+    let authored_marker = Theme::junie()
+        .override_family(Family::BUTTON, |edit| {
+            edit.part(Part::MARKER).when(
+                StateFlags::CHECKED,
+                StylePatch::new().set_glyph(GlyphRole::WarningMark),
+            );
+        })
+        .for_level(ColorLevel::Mono);
+    let authored = Harness::new(
+        PropsPage {
+            checked: true,
+            ..PropsPage::default()
+        },
+        authored_marker.clone(),
+        20,
+        1,
+    );
+    assert_eq!(
+        authored.cell(1, 0).symbol(),
+        authored_marker.design.glyphs.get(GlyphRole::WarningMark)
+    );
+
+    struct MarkerPatchPage {
+        patch: StylePatch,
+    }
+    impl App for MarkerPatchPage {
+        fn update(&mut self, _: &mut Cx<'_>) -> Response<()> {
+            Response::ignored()
+        }
+        fn draw(&self, ui: &mut Ui<'_>) {
+            Button::new(BUTTON, "Go")
+                .checked(true)
+                .patch_part(&[(Part::MARKER, self.patch)])
+                .draw(ui, AREA);
+        }
+    }
+
+    let instance_set = Harness::new(
+        MarkerPatchPage {
+            patch: StylePatch::new().set_glyph(GlyphRole::WarningMark),
+        },
+        Theme::junie().for_level(ColorLevel::Mono),
+        20,
+        1,
+    );
+    assert_eq!(
+        instance_set.cell(1, 0).symbol(),
+        Theme::junie().design.glyphs.get(GlyphRole::WarningMark)
+    );
+
+    let instance_clear = Harness::new(
+        MarkerPatchPage {
+            patch: StylePatch {
+                glyph: Slot::Clear,
+                ..StylePatch::new()
+            },
+        },
+        Theme::junie().for_level(ColorLevel::Mono),
+        20,
+        1,
+    );
+    assert_eq!(instance_clear.cell(1, 0).symbol(), " ");
+}
+
+#[test]
 fn busy_prefix_replaces_checked_marker_and_matches_measured_width() {
     let page = PropsPage {
         checked: true,
