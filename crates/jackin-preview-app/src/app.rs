@@ -6079,11 +6079,16 @@ impl App {
                 )
             })
             .unwrap_or_default();
-        let workspace_names: Vec<String> = self
+        let workspace_rows: Vec<(String, bool)> = self
             .world
             .workspaces
             .iter()
-            .map(|workspace| workspace.name.clone())
+            .map(|workspace| {
+                let expandable = self.world.instances.iter().any(|instance| {
+                    instance.workspace == Some(workspace.id) && !instance.status.hidden()
+                });
+                (workspace.name.clone(), expandable)
+            })
             .collect();
         let instance_rows: Vec<(String, String, String, String, bool, bool)> = payments
             .map(|workspace| {
@@ -6132,9 +6137,12 @@ impl App {
                 },
             )
             .collect();
-        let workspaces: Vec<termrock::feedback::SplitWorkspace<'_>> = workspace_names
+        let workspaces: Vec<termrock::feedback::SplitWorkspace<'_>> = workspace_rows
             .iter()
-            .map(|name| termrock::feedback::SplitWorkspace { name })
+            .map(|(name, expandable)| termrock::feedback::SplitWorkspace {
+                name,
+                expandable: *expandable,
+            })
             .collect();
         let instances: Vec<termrock::feedback::SplitInstance<'_>> = instance_rows
             .iter()
@@ -6150,6 +6158,20 @@ impl App {
             )
             .collect();
         let account_refs: Vec<&str> = account_lines.iter().map(String::as_str).collect();
+        let index_error = self
+            .world
+            .arbiter
+            .discovery
+            .err()
+            .map(|error| error.label());
+        let alert = if index_error.is_some() || self.world.refresh_fails {
+            Some(termrock::feedback::SplitAlert {
+                index_error,
+                daemon_stale: self.world.refresh_fails,
+            })
+        } else {
+            None
+        };
         termrock::feedback::paint_manager_split(
             ui,
             area,
@@ -6170,6 +6192,7 @@ impl App {
                 running,
                 live_here,
                 daemon_ago: &daemon_ago,
+                alert,
             },
         );
         self.place_manager_cursor(ui, area, true);
@@ -10105,10 +10128,8 @@ impl TuiApp for App {
                 && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54);
             if detail_tab {
                 self.draw_historical_detail_drawer(ui, full);
-            } else if self.world.scenario == Scenario::Returning {
-                self.paint_pinned_split(ui, full, termrock::feedback::SplitMode::Saved);
             } else {
-                self.draw_historical_manager(ui, full, true, true);
+                self.paint_pinned_split(ui, full, termrock::feedback::SplitMode::Saved);
             }
         } else if historical_manager
             && self.world.scenario == Scenario::Returning
