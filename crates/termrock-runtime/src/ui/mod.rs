@@ -12,6 +12,7 @@ use ratatui_core::layout::{Position, Rect};
 use ratatui_core::style::Color;
 
 use core::ops::{BitOr, BitOrAssign};
+use std::collections::HashMap;
 
 pub use composition::{CompositionError, CompositionSlots, ContentSlot, MAX_COMPOSITION_DEPTH};
 use cx::LastFrame;
@@ -226,6 +227,7 @@ pub struct UiCore {
     dynamic_bindings: DynamicBindingRegistry,
     next_targetless_reference: u64,
     pub(crate) cluster_scratch: crate::text::clusters::ClusterScratch,
+    pub(crate) majority_bg_counts: HashMap<Color, (usize, usize)>,
 }
 
 impl core::fmt::Debug for UiCore {

@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use ratatui_core::buffer::{Buffer, CellWidth};
 use ratatui_core::layout::{Position, Rect};
 use ratatui_core::style::{Color, Modifier, Style};
@@ -241,20 +239,20 @@ impl Ui<'_> {
     fn majority_bg(&mut self, area: Rect) -> Color {
         let mut entries: [(Color, usize); 8] = [(Color::Reset, 0); 8];
         let mut count_entries = 0;
-        let mut overflow: Option<HashMap<Color, (usize, usize)>> = None;
+        let mut overflowed = false;
         for pos in area.positions() {
             if !self.cell_written(pos) {
                 continue;
             }
             let bg = self.buffer().cell(pos).map_or(Color::Reset, |cell| cell.bg);
 
-            if let Some(counts) = &mut overflow {
-                if let Some((count, _)) = counts.get_mut(&bg) {
-                    *count = count.saturating_add(1);
-                } else {
-                    let order = counts.len();
-                    counts.insert(bg, (1usize, order));
-                }
+            if overflowed {
+                let order = self.core.majority_bg_counts.len();
+                self.core
+                    .majority_bg_counts
+                    .entry(bg)
+                    .and_modify(|(count, _)| *count = count.saturating_add(1))
+                    .or_insert((1, order));
                 continue;
             }
 
@@ -269,21 +267,24 @@ impl Ui<'_> {
             } else {
                 // Preserve the allocation-free fast path for ordinary areas.
                 // Once more than eight distinct backgrounds appear, count all
-                // remaining colors and resolve ties by their first-seen order.
-                let mut counts = HashMap::with_capacity(count_entries + 1);
+                // remaining colors in UiCore-owned storage and resolve ties by
+                // their first-seen order.
+                let counts = &mut self.core.majority_bg_counts;
+                counts.clear();
                 for (order, (color, count)) in entries[..count_entries].iter().enumerate() {
                     counts.insert(*color, (*count, order));
                 }
                 counts.insert(bg, (1, count_entries));
-                overflow = Some(counts);
+                overflowed = true;
             }
         }
 
-        if let Some(counts) = overflow {
-            counts
-                .into_iter()
+        if overflowed {
+            self.core
+                .majority_bg_counts
+                .iter()
                 .max_by_key(|(_, (count, order))| (*count, *order))
-                .map_or(Color::Reset, |(bg, _)| bg)
+                .map_or(Color::Reset, |(bg, _)| *bg)
         } else {
             entries[..count_entries]
                 .iter()
