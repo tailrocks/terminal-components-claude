@@ -1,0 +1,112 @@
+{
+  "reviewed_source_commit": "a617b68dbba6a912a32ea1e0f58956226af41d41",
+  "documentation_only_successor": "d04f54eae389b1602660c854b5a61b7e0538979e",
+  "previous_cleared_source": "8e2761d096e3f92a7b9003d7918a5ce3236cf4f5",
+  "decision": "Cleared for this bounded Shell landing after the missing test import was corrected. No unresolved required finding in the reviewed integration delta.",
+  "method": "Read-only parent-source review plus an independent source copy and separate default-feature external consumer. All Rust tests used cargo nextest with bounded process-group deadlines. No parent or author product file was edited.",
+  "integration_assessment": [
+    "The incoming public AppShellExt trait and its four method signatures are retained. Each implementation delegates directly to the canonical inherent AppShell method. UFCS and generic trait-bound callers compile; no geometry or component state lives in the trait adapter.",
+    "Canonical shell geometry and runtime owned composition code retain the reviewed implementation. PageLeaf differs from source8e only in a preserved explanatory comment, not executable behavior. Facade types remain reexports of termrock-shell, including AppShellSlots.",
+    "Both old slots APIs retain CompositionSlots<'a> return types and the component-data lifetime. The independently retained legacy type annotation and temporary-builder probes pass. Owned views retain one state owner and use the same measure, remeasure, resolved clip and draw paths.",
+    "The later Shell Cargo hygiene is retained byte-for-byte against2e900c317: ordinary dependencies do not enable runtime/testing, testing helpers use dev dependencies, and reach is behind the default-off testing gate. Canonical new exports were merged without removing that gate.",
+    "The final source documents that ShellSlots::spec configures an outer one-child composition; internal strip spacing is configured by Chrome::gap. This closes the requested semantic clarification without reintroducing a second resolver.",
+    "The intermediate bcc8f3872 UFCS regression omitted its CompositionSlots import. That compile blocker was reported and corrected in a617b68db; independent exact-source facade tests now compile and pass. No push of the broken intermediate was approved.",
+    "The d04f54eae successor changes only the migration matrix and two recorded audit JSON files; no executable source differs from the independently tested a617 source."
+  ],
+  "tests": [
+    {
+      "command": "cargo nextest run -p termrock-shell --all-targets --no-fail-fast",
+      "exit_code": 0,
+      "run": 62,
+      "passed": 62,
+      "skipped": 0,
+      "inventory": "57 committed tests, including two incoming tests added after the earlier55-test source, plus five retained independent probes (two immutable legacy, two measurement/registration, one owned-leaf).",
+      "log": "shell-nextest.log"
+    },
+    {
+      "command": "cargo nextest run -p termrock --features testing --lib -E test(blocks::shell::tests) --no-fail-fast",
+      "exit_code": 0,
+      "run": 9,
+      "passed": 9,
+      "excluded_by_explicit_filter": 2,
+      "log": "facade-shell-nextest.log",
+      "note": "Nextest reports two skipped tests because this command explicitly selects the shell unit module. This is a focused result, not a full facade-library pass."
+    },
+    {
+      "command": "cargo nextest run -p termrock --features testing --test slots --no-fail-fast",
+      "exit_code": 0,
+      "run": 10,
+      "passed": 10,
+      "skipped": 0,
+      "log": "facade-slots-nextest.log"
+    },
+    {
+      "command": "cargo nextest run --all-targets --no-fail-fast",
+      "cwd": "/private/tmp/termrock-shell-landing-default-consumer-94b-20261021",
+      "exit_code": 0,
+      "run": 1,
+      "passed": 1,
+      "skipped": 0,
+      "log": "external-nextest.log",
+      "scope": "Separate default-feature consumer with only a public termrock path dependency, unrelated borrowed String data, UFCS all four extension methods, canonical shell builder aliases and released temporary builders."
+    }
+  ],
+  "default_feature_dependency_evidence": {
+    "command": "cargo metadata --offline --format-version 1",
+    "consumer_package": "shell-landing-default-consumer",
+    "features": {
+      "termrock": [],
+      "termrock-shell": [
+        "crossterm",
+        "default"
+      ],
+      "termrock-runtime": [
+        "crossterm",
+        "default"
+      ]
+    },
+    "testing_features_enabled": false,
+    "application_dependencies": [],
+    "resolved_node_count": 207,
+    "qualification": "Metadata was acquired at94b536b91, whose Cargo manifests and production dependency declarations are unchanged through a617. The same consumer was subsequently recompiled and tested against exact a617 source. Neither the Shell nor Runtime testing feature is enabled in that external graph. Unit/dev-feature-unified tests are not used as this isolation proof."
+  },
+  "source_identity": {
+    "crates/termrock/src/blocks/shell.rs": {
+      "sha256": "61e06bdf51e56561b6fb78989eb40c9bf81942d6983bfdfe66d783a92236b927",
+      "review_copy_matches": true
+    },
+    "crates/termrock-shell/Cargo.toml": {
+      "sha256": "1217419d8d5bfc89c150e611340fa3199f426e6043cd392c47b3a73e8ae36068",
+      "review_copy_matches": true
+    },
+    "crates/termrock-shell/src/lib.rs": {
+      "sha256": "015b892cca8e4974c487bdafba4329d4bfa0d75ed2d770368021edfbc5a69029",
+      "review_copy_matches": true
+    },
+    "crates/termrock-shell/src/shell.rs": {
+      "sha256": "875e0a9d2a93d579ebc763ad4299271570560632f92029a3adbd4c6983124d6b",
+      "review_copy_matches": true
+    },
+    "crates/termrock-runtime/src/ui/composition.rs": {
+      "sha256": "2f42391ed375f465bfc92d4ccaceb9cd25260bce43b506399d9ce56a20e2405b",
+      "review_copy_matches": true
+    }
+  },
+  "scope_limits": [
+    "No full application frozen comparison or product acceptance is claimed.",
+    "The parent reports104 native tests, strict scoped Clippy and full formatting green; those are coordinator results, separate from this independent focused evidence. This review did not rerun lint or the complete workspace.",
+    "Raw KeyHost integration, live thin application adoption, ContentSlot::owned/resolved_slots capability catalog and Showcase demonstrations remain outside this bounded landing and must stay open in the migration matrix.",
+    "The reviewed successor documentation files were classified by paths only; this Shell clearance is not an approval of their capture-readiness or supervisor decisions."
+  ],
+  "next_step": "The coordinator may complete the normal fetch/synchronize/exact-head gate/push/remote-SHA-verification cycle for this bounded landing. Re-review any new executable merge conflict or implementation change; do not promote this clearance to product parity.",
+  "files": {
+    "default-consumer-metadata.log": "965d0b7259539033713edadcc970c483236ef66dd50030c62426d02ba777b40e",
+    "consumer-Cargo.toml": "f815bdc63ccfd673d74a08ac9256db043fdd18e6d495f18b3f3db655b2c2e185",
+    "facade-shell-nextest.log": "fb5575bb8f98714d82c438504347ae1a0fcc5c60ffe730bceebc9c293d2f8ef6",
+    "facade-slots-nextest.log": "bac4de89ae7c2867dea14fc81f8e8df7317bf2e1390c066216592599a830dbab",
+    "external-nextest.log": "007f1ea6311a8a846f4a0a793ba56626aff3f445aa0c0bf61b955910721184c2",
+    "consumer.rs": "1c8fcc05c06c04643402baa3402cd489233b6b45a596fdc309f5274f2addfdf5",
+    "shell-nextest.log": "93367f524d713f3e66cd05cd6d0ef7de7c1ec91ef11031a3c5ffcbb36afae7a2"
+  },
+  "product_parity_claim": false
+}
