@@ -16,10 +16,22 @@ use crate::scroll::ScrollState;
 use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, LayoutFacts, Ui};
 
+/// Controls whether a visible scrollbar reserves its column only while it is
+/// needed or for the entire lifetime of the scroll region.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum ScrollbarGutter {
+    /// Reserve the scrollbar column only while content overflows.
+    #[default]
+    Auto,
+    /// Keep one column reserved even when all content fits.
+    Stable,
+}
+
 pub struct ScrollRegion<'a> {
     id: Id,
     family: Family,
     scrollbar_visible: bool,
+    scrollbar_gutter: ScrollbarGutter,
     preserve_underlay: bool,
     ov: PartStyle<'a>,
     window_slot: Option<(Part, WindowSlotFn<'a>)>,
@@ -71,6 +83,7 @@ impl fmt::Debug for ScrollRegion<'_> {
             .field("id", &self.id)
             .field("family", &self.family)
             .field("scrollbar_visible", &self.scrollbar_visible)
+            .field("scrollbar_gutter", &self.scrollbar_gutter)
             .field("window_slot", &self.window_slot.map(|(part, _)| part))
             .field("overrides", &self.ov)
             .finish()
@@ -85,6 +98,7 @@ impl<'a> ScrollRegion<'a> {
             id,
             family: Family::SCROLLBAR,
             scrollbar_visible: true,
+            scrollbar_gutter: ScrollbarGutter::Auto,
             preserve_underlay: false,
             ov: PartStyle::new(),
             window_slot: None,
@@ -94,6 +108,12 @@ impl<'a> ScrollRegion<'a> {
     #[must_use]
     pub const fn scrollbar_visible(mut self, visible: bool) -> Self {
         self.scrollbar_visible = visible;
+        self
+    }
+
+    #[must_use]
+    pub const fn scrollbar_gutter(mut self, gutter: ScrollbarGutter) -> Self {
+        self.scrollbar_gutter = gutter;
         self
     }
 
@@ -357,7 +377,11 @@ impl<'a> ScrollRegion<'a> {
         );
         ui.register_decor(self.id, PartRef::of(Part::CONTAINER), area);
         ui.register_scroll(self.id, area, Axes::V, view.headroom_v());
-        if !self.scrollbar_visible || !view.overflows() {
+        if !self.scrollbar_visible {
+            return area;
+        }
+        let overflows = view.overflows();
+        if !overflows && self.scrollbar_gutter == ScrollbarGutter::Auto {
             return area;
         }
         let bar = Rect {
@@ -370,7 +394,9 @@ impl<'a> ScrollRegion<'a> {
             width: area.width.saturating_sub(1),
             ..area
         };
-        self.paint_bar(ui, bar, &view, window);
+        if overflows {
+            self.paint_bar(ui, bar, &view, window);
+        }
         content
     }
 
@@ -642,6 +668,42 @@ mod tests {
     use crate::{ReferenceState, ReferenceTarget};
 
     const ID: Id = Id::root("scroll-region.tests");
+
+    #[test]
+    fn stable_gutter_reserves_one_column_without_overflow_and_once_with_it() {
+        let area = Rect::new(0, 0, 10, 3);
+        for (gutter, content_len, expected_width, expected_bar) in [
+            (ScrollbarGutter::Auto, 2, 10, false),
+            (ScrollbarGutter::Stable, 2, 9, false),
+            (ScrollbarGutter::Auto, 4, 9, true),
+            (ScrollbarGutter::Stable, 4, 9, true),
+        ] {
+            let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+            let mut buffer = Buffer::empty(SCREEN);
+            let state = ScrollState::new(content_len);
+            let mut content = None;
+            runtime
+                .draw_scene(SCREEN, &mut buffer, |ui, _| {
+                    content = Some(ScrollRegion::new(ID).scrollbar_gutter(gutter).draw(
+                        ui,
+                        area,
+                        &state,
+                        content_len,
+                    ));
+                })
+                .commit_presented();
+            assert_eq!(
+                content.unwrap().width,
+                expected_width,
+                "{gutter:?}, {content_len}"
+            );
+            assert_eq!(
+                runtime.area_of_part(ID, PartRef::of(Part::TRACK)),
+                expected_bar.then_some(Rect::new(9, 0, 1, 3)),
+                "{gutter:?}, {content_len}"
+            );
+        }
+    }
 
     fn clipped_window() -> VerticalWindow {
         VerticalWindow::new(Rect::new(0, 4, 10, 5), 12, 3).unwrap()
