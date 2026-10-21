@@ -36,6 +36,9 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
             3 => paint_agents_page(app, ui, full),
             _ => paint_trust_page(app, ui, full),
         }
+        if app.settings_save_preview {
+            paint_save_preview(app, ui, full);
+        }
         return;
     }
 
