@@ -83,6 +83,50 @@ fn new_query_focus_belongs_to_the_visible_editor_at_adjacent_viewports() -> Resu
 }
 
 #[test]
+fn retired_query_editor_receives_focus_out_after_resize_before_next_query() {
+    for (connection, width, resized_width) in
+        [(0, 119, 121), (0, 121, 119), (4, 119, 121), (4, 121, 119)]
+    {
+        let mut app = TableProApp::new();
+        assert!(app.connect(connection));
+        let mut harness = Harness::new(app, Theme::junie(), width, 40);
+
+        let _ = harness.ctrl('t');
+        let Some(first) = harness.app().workbench.active_key() else {
+            unreachable!("Ctrl+T creates an active query tab")
+        };
+        let first_editor = first.control("query");
+        assert_eq!(harness.focus(), Some(first_editor));
+        assert_eq!(harness.diagnostics(), []);
+        assert!(matches!(
+            harness.app().workbench.active(),
+            Some(tablepro_ui::Tab::Query(query)) if query.editor_state.editor().is_editing()
+        ));
+
+        let _ = harness.resize(resized_width, 40);
+        assert_eq!(harness.focus(), Some(first_editor));
+        assert!(harness.cursor().is_some());
+        assert_eq!(harness.diagnostics(), []);
+
+        let _ = harness.ctrl('t');
+        let Some(second) = harness.app().workbench.active_key() else {
+            unreachable!("second Ctrl+T creates an active query tab")
+        };
+        let second_editor = second.control("query");
+        assert_ne!(first, second);
+        assert_eq!(harness.focus(), Some(second_editor));
+        assert!(harness.cursor().is_some());
+        assert_eq!(harness.diagnostics(), []);
+        assert!(matches!(
+            harness.app().workbench.tabs().iter().find(|tab| tab.key() == first),
+            Some(record)
+                if matches!(record.payload(), tablepro_ui::Tab::Query(query)
+                    if !query.editor_state.editor().is_editing())
+        ));
+    }
+}
+
+#[test]
 fn new_query_focus_follows_the_real_editor_after_resize_and_typing() -> Result<(), &'static str> {
     let mut app = TableProApp::new();
     assert!(app.connect(4));
