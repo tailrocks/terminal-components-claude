@@ -757,6 +757,12 @@ struct HighlightCache {
     valid: bool,
     spans: Vec<(Range<usize>, SyntaxRole)>,
     line_starts: Vec<usize>,
+    /// Segmenter blocks for the current text generation. Segmenting the whole
+    /// document every draw allocates, so the draw path reuses this list and
+    /// only rebuilds it when the text generation moves.
+    blocks: Vec<Range<usize>>,
+    blocks_generation: u64,
+    blocks_valid: bool,
 }
 
 impl HighlightCache {
@@ -783,6 +789,16 @@ impl HighlightCache {
         self.generation = generation;
         self.valid = true;
     }
+}
+
+/// Block holding `cursor`: the first range that spans it, else the last
+/// range that ends at or before it.
+fn current_block_in(blocks: &[Range<usize>], cursor: usize) -> Option<Range<usize>> {
+    blocks
+        .iter()
+        .find(|range| range.start <= cursor && cursor <= range.end)
+        .or_else(|| blocks.iter().rev().find(|range| range.end <= cursor))
+        .cloned()
 }
 
 pub struct CodeEditor<'a> {
@@ -1000,13 +1016,7 @@ impl<'a> CodeEditor<'a> {
     }
 
     pub fn current_block(&self, st: &CodeEditorState) -> Option<Range<usize>> {
-        let cursor = st.cursor_offset();
-        let blocks = self.blocks(st);
-        blocks
-            .iter()
-            .find(|range| range.start <= cursor && cursor <= range.end)
-            .or_else(|| blocks.iter().rev().find(|range| range.end <= cursor))
-            .cloned()
+        current_block_in(&self.blocks(st), st.cursor_offset())
     }
 
     pub fn cursor_cell(&self, cx: &Cx<'_>, st: &CodeEditorState) -> Option<Rect> {
@@ -1473,6 +1483,13 @@ impl<'a> CodeEditor<'a> {
         }
         let mut cache = core::mem::take(ui.cache::<HighlightCache>(self.id));
         cache.ensure(st.edit_generation, st.text(), self.highlighter);
+        if st.edit_generation != u64::MAX
+            && (!cache.blocks_valid || cache.blocks_generation != st.edit_generation)
+        {
+            cache.blocks = self.blocks(st);
+            cache.blocks_generation = st.edit_generation;
+            cache.blocks_valid = true;
+        }
         let body_h = used.height.saturating_sub(1);
         let body = Rect {
             height: body_h,
@@ -1545,7 +1562,11 @@ impl<'a> CodeEditor<'a> {
         // line is primary and bold, the current block is secondary, and every
         // other line is muted. Read-only editors use faint for all of them.
         let block = if st.editor.selection().is_none() {
-            self.current_block(st)
+            if cache.blocks_valid {
+                current_block_in(&cache.blocks, st.cursor_offset())
+            } else {
+                self.current_block(st)
+            }
         } else {
             None
         };
