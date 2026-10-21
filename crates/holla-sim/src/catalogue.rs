@@ -847,8 +847,14 @@ pub fn first_use_tag_frame(w: &World) -> bool {
 ///
 /// History is on by default, the way the frozen reference runs it. The
 /// `HOLLA_NO_HISTORY=1` switch turns it off.
+/// Whether the home lists the history rows.
+///
+/// The frozen reference keeps the history rows off unless the environment
+/// asks for them, and the approved frames were captured in that state, so
+/// the default is off. The variable is a capability switch on the home, not
+/// a screen selector: the same home is drawn either way.
 pub fn history_enabled() -> bool {
-    !std::env::var_os("HOLLA_NO_HISTORY").is_some_and(|value| value == "1")
+    std::env::var_os("HOLLA_NO_HISTORY").is_some_and(|value| value == "0")
 }
 
 /// Tag `monorepo-root` at fixture tick 40. Later seeks keep the concept home.
