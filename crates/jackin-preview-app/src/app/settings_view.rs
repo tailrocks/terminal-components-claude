@@ -30,7 +30,7 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
     if full.width == 0 || full.height == 0 {
         return;
     }
-    if full.width == 120 && full.height == 40 && matches!(app.settings.tab, 2 | 3 | 4) {
+    if full.width == 120 && full.height == 40 && matches!(app.settings.tab, 2..=4) {
         match app.settings.tab {
             2 => paint_env_page(app, ui, full),
             3 => paint_agents_page(app, ui, full),
@@ -237,11 +237,14 @@ fn paint_settings_chrome(
     crumb_note: Option<&str>,
 ) {
     ui.fill(full, env_canvas());
+    let Some(tab) = TABS.get(active) else {
+        return;
+    };
     env_paint(ui, 1, 0, " jackin❯ ", BRAND_FG, ACCENT, true);
     env_paint(ui, 12, 0, " File ", SECONDARY, BLACK, false);
     env_paint(ui, 19, 0, " Go ", SECONDARY, BLACK, false);
     env_paint(ui, 24, 0, " Help ", SECONDARY, BLACK, false);
-    let crumb = format!("Settings › global › {}", TABS[active].0);
+    let crumb = format!("Settings › global › {}", tab.0);
     if let Some(note) = crumb_note {
         let crumb_x = 85u16.saturating_sub((crumb.chars().count() + note.chars().count()) as u16);
         env_paint(ui, crumb_x, 0, &crumb, SECONDARY, BLACK, false);
@@ -262,7 +265,7 @@ fn paint_settings_chrome(
         BLACK,
         false,
     );
-    let mut active_w = TABS[active].2;
+    let mut active_w = tab.2;
     for (index, &(name, x, _)) in TABS.iter().enumerate() {
         let label = if index == active {
             if let Some(note) = tab_note {
@@ -280,7 +283,7 @@ fn paint_settings_chrome(
             env_paint(ui, x, 3, &label, SECONDARY, BLACK, false);
         }
     }
-    let active_x = TABS[active].1;
+    let active_x = tab.1;
     let accent_end = active_x.saturating_add(active_w);
     let heavy = if tab_note.is_some() { SEAM } else { ACCENT };
     for col in 2..full.width.saturating_sub(2) {
