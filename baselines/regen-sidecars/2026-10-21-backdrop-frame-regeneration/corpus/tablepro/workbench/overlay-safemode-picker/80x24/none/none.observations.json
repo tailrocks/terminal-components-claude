@@ -1,0 +1,22 @@
+{
+  "cell_count": 1920,
+  "cols": 80,
+  "cursor": {
+    "visible": false,
+    "x": 0,
+    "y": 0
+  },
+  "frame_digest": 12007276366744535773,
+  "legacy_name": "tablepro/overlays/safemode_picker/80x24/none",
+  "name": "tablepro/workbench/overlay-safemode-picker/80x24/none",
+  "non_empty_cells": 880,
+  "provenance": {
+    "argv": [],
+    "created_unix": 0,
+    "profile": "default",
+    "source": "screen",
+    "tool": "tuiscotti",
+    "tool_version": "0.2.0"
+  },
+  "rows": 24
+}

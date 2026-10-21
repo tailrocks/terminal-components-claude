@@ -19,12 +19,12 @@ use termrock::{
 };
 
 use crate::domain::account::{
-    Account, AccountRegistry, CredentialSource, DetectedKind, DuplicateProbe, ValidationState,
-    fingerprint, tail_of,
+    Account, AccountRegistry, CredentialSource, DetectedKind, DuplicateProbe, Lifecycle,
+    ValidationState, fingerprint, tail_of,
 };
-use crate::domain::agent::{Agent, Provider};
+use crate::domain::agent::{Agent, Provider, UsageSurface};
 use crate::domain::instance::{DaemonSnapshot, InstanceStatus};
-use crate::domain::usage::Freshness;
+use crate::domain::usage::{Freshness, OverallSummary, QuotaStatus};
 use crate::domain::workspace::{Effective, EnvValue, EnvVar, env_key_error, mask};
 use crate::rain::{HANDOFF_LEN, INTRO_END, IntroState, OutroState};
 use crate::scenario::{Motion, Scenario};
@@ -34,7 +34,7 @@ use crate::screens::{
     cockpit::{AccountLine, CockpitState},
     editor::{EditorState, Tab as EditorTab},
     inspect::InspectState,
-    manager::{LaunchCandidate, ManagerRowKey, ManagerState},
+    manager::{ManagerRowKey, ManagerState},
     prelude::PreludeState,
     settings::SettingsState,
     usage::{Tab as UsageTab, UsageState},
@@ -121,6 +121,7 @@ const CMD_CAPSULE: ActionKey = ActionKey::application("jackin.capsule");
 const CMD_CAPSULE_NEW_TAB: ActionKey = ActionKey::application("jackin.capsule.new-tab");
 const CMD_NEW_WORKSPACE: ActionKey = ActionKey::application("jackin.new-workspace");
 const CMD_EDITOR_NEXT: ActionKey = ActionKey::application("jackin.editor.next-tab");
+const CMD_EDITOR_FIELD: ActionKey = ActionKey::application("jackin.editor.field");
 const CMD_EDITOR_PREVIOUS: ActionKey = ActionKey::application("jackin.editor.previous-tab");
 const CMD_EDITOR_ENV: ActionKey = ActionKey::application("jackin.editor.environments");
 const CMD_SAVE: ActionKey = ActionKey::application("jackin.save");
@@ -246,19 +247,46 @@ const CAPSULE_TAB_ITEMS: &[MenuItem<'static>] = &[
         .danger(),
 ];
 const CAPSULE_COMMANDS: &[Item<'static>] = &[
-    Item::new(ItemKey::num(1), "New tab"),
-    Item::new(ItemKey::num(2), "Split right"),
-    Item::new(ItemKey::num(3), "Split below"),
-    Item::new(ItemKey::num(4), "Copy selection"),
-    Item::new(ItemKey::num(5), "Inspect changes ·"),
-    Item::new(ItemKey::num(6), "Zoom pane"),
-    Item::new(ItemKey::num(7), "Focus left"),
-    Item::new(ItemKey::num(8), "Usage"),
-    Item::new(ItemKey::num(9), "Change title…"),
-    Item::new(ItemKey::num(10), "Close tab"),
-    Item::new(ItemKey::num(11), "Keyboard shortcuts"),
-    Item::new(ItemKey::num(12), "Detach"),
-    Item::new(ItemKey::num(13), "Container info"),
+    Item::new(ItemKey::num(1), "New tab").detail("Ctrl+B c"),
+    Item::new(ItemKey::num(2), "Split pane").detail("Ctrl+B \" %"),
+    Item::new(ItemKey::num(3), "Zoom / unzoom pane").detail("Ctrl+B z"),
+    Item::new(ItemKey::num(4), "Export file").detail("host"),
+    Item::new(ItemKey::num(5), "Export file and reveal").detail("host"),
+    Item::new(ItemKey::num(6), "Export file and open").detail("host"),
+    Item::new(ItemKey::num(7), "Export file under cursor")
+        .detail("no file under cursor")
+        .disabled(true),
+    Item::new(ItemKey::num(8), "Export file under cursor and reveal")
+        .detail("no file under cursor")
+        .disabled(true),
+    Item::new(ItemKey::num(9), "Export file under cursor and open")
+        .detail("no file under cursor")
+        .disabled(true),
+    Item::new(ItemKey::num(10), "Export selected file")
+        .detail("no selection")
+        .disabled(true),
+    Item::new(ItemKey::num(11), "Export selected file and reveal")
+        .detail("no selection")
+        .disabled(true),
+    Item::new(ItemKey::num(12), "Export selected file and open")
+        .detail("no selection")
+        .disabled(true),
+    Item::new(ItemKey::num(13), "Stage image from clipboard path")
+        .detail("Not in this preview")
+        .disabled(true),
+    Item::new(ItemKey::num(14), "Paste image from host clipboard")
+        .detail("Not in this preview")
+        .disabled(true),
+    Item::new(ItemKey::num(15), "Stage image without pasting")
+        .detail("Not in this preview")
+        .disabled(true),
+    Item::new(ItemKey::num(16), "Open link under cursor")
+        .detail("no link under cursor")
+        .disabled(true),
+    Item::new(ItemKey::num(17), "Clear pane").detail("Ctrl+B Ctrl+L"),
+    Item::new(ItemKey::num(18), "Usage").detail("Ctrl+B u"),
+    Item::new(ItemKey::num(19), "Close").detail("Ctrl+B x"),
+    Item::new(ItemKey::num(20), "Quit").detail("Ctrl+Q"),
 ];
 const TICK_MS: u64 = crate::rain::TICK_MS;
 
@@ -268,15 +296,15 @@ mod accounts_drawer_view;
 mod accounts_filter_view;
 mod accounts_filter_wide;
 mod editor_view;
+mod prelude_view;
 
 mod capsule_menu_view;
+mod capsule_split_view;
 mod capsule_zoom_view;
 
-mod hard_launch_picker_view;
 mod inspect_view;
 mod launch_cockpit;
 mod launch_dialog_plate;
-mod launch_picker_view;
 mod manager_help;
 mod manager_menu_view;
 mod settings_view;
@@ -374,38 +402,25 @@ impl AsItem for AccountOption {
 struct AgentOption {
     key: String,
     label: String,
+    glyph: &'static str,
     detail: String,
+    tag: Option<&'static str>,
     agent: Agent,
     account: Option<String>,
     blocked: bool,
 }
 
-impl AgentOption {
-    fn from_candidate(candidate: LaunchCandidate, world: &World) -> Self {
-        let account = candidate.account.clone();
-        let account_label = account
-            .as_deref()
-            .and_then(|id| world.accounts.get(id))
-            .map(Account::title);
-        let detail = match (&account_label, &candidate.blocked) {
-            (_, Some(reason)) => format!("blocked · {reason}"),
-            (Some(account), None) => format!("ready · {account}"),
-            (None, None) => "ready".to_owned(),
-        };
-        Self {
-            key: candidate.agent.short().to_owned(),
-            label: candidate.agent.label().to_owned(),
-            detail,
-            agent: candidate.agent,
-            account,
-            blocked: candidate.blocked.is_some(),
-        }
-    }
-}
-
 impl AsItem for AgentOption {
     fn as_item(&self) -> Item<'_> {
-        Item::new(ItemKey::text(&self.key), &self.label).detail(&self.detail)
+        let mut item = Item::new(ItemKey::text(&self.key), &self.label)
+            .detail(&self.detail)
+            .glyph(self.glyph)
+            .group("agents")
+            .disabled(self.blocked);
+        if let Some(tag) = self.tag {
+            item = item.tag(tag);
+        }
+        item
     }
 }
 
@@ -534,17 +549,21 @@ pub struct App {
     editor_exit_open: bool,
     editor_exit_state: DialogState,
     editor_leaf_focused: bool,
+    editor_general_cursor: u8,
     editor_mounts_armed: bool,
     editor_roles_armed: bool,
     settings_mounts_armed: bool,
     settings_env_armed: bool,
     settings_agents_armed: bool,
     settings_trust_armed: bool,
+    settings_trust_cursor: usize,
+    settings_trust_origin: Vec<bool>,
     settings_save_preview: bool,
     capsule_tab_menu_state: MenuState,
     capsule_tab_menu_pos: Position,
     capsule_tab_menu_open: bool,
     capsule_palette_state: PickerState,
+    capsule_palette_open: bool,
     tabs_state: TabsState,
     launch_dialog: DialogState,
     role_state: PickerState,
@@ -738,17 +757,21 @@ impl App {
             editor_exit_open: false,
             editor_exit_state: DialogState::default(),
             editor_leaf_focused: false,
+            editor_general_cursor: 0,
             editor_mounts_armed: false,
             editor_roles_armed: false,
             settings_mounts_armed: false,
             settings_env_armed: false,
             settings_agents_armed: false,
             settings_trust_armed: false,
+            settings_trust_cursor: 0,
+            settings_trust_origin: Vec::new(),
             settings_save_preview: false,
             capsule_tab_menu_state: MenuState::default(),
             capsule_tab_menu_pos: Position::new(0, 0),
             capsule_tab_menu_open: false,
             capsule_palette_state: PickerState::default(),
+            capsule_palette_open: false,
             tabs_state: TabsState::default(),
             launch_dialog: DialogState::default(),
             role_state: PickerState::default(),
@@ -872,6 +895,13 @@ impl App {
         {
             self.keymap.add(KeyPhase::Capture, chord, CMD_NEW_WORKSPACE);
         }
+        let new_workspace = Chord::key(KeyCode::Char('n'));
+        self.keymap.remove(KeyPhase::Capture, new_workspace);
+        if self.route == Route::Manager {
+            // The manager hint is `n New`. Capture beats the list.
+            self.keymap
+                .add(KeyPhase::Capture, new_workspace, CMD_NEW_WORKSPACE);
+        }
         let enter = Chord::key(KeyCode::Enter);
         self.keymap.remove(KeyPhase::Capture, enter);
         if self.route == Route::Usage && !self.usage.detail_open() {
@@ -919,6 +949,18 @@ impl App {
         self.keymap.remove(KeyPhase::Capture, backtab);
         self.keymap.remove(KeyPhase::Capture, backtab_shift);
         self.keymap.remove(KeyPhase::Capture, shift_tab);
+        let field_tab = Chord::key(KeyCode::Tab);
+        self.keymap.remove(KeyPhase::Bubble, field_tab);
+        self.keymap.remove(KeyPhase::Capture, field_tab);
+        if self.route == Route::Editor
+            && self.editor.tab == EditorTab::General
+            && !self.editor.env_form_open
+            && !self.editor.preview_open
+        {
+            // Three Tabs land on Keep awake. Capture beats focus traversal.
+            self.keymap
+                .add(KeyPhase::Capture, field_tab, CMD_EDITOR_FIELD);
+        }
         if self.add_form_key_host() && !self.add_form_required {
             // The shell tab before the start button is Capsule. Backtab must
             // stay on the empty dialog so Enter can show Required.
@@ -1045,9 +1087,54 @@ impl App {
             .manager
             .selected()
             .or_else(|| self.world.workspaces.first().map(|workspace| workspace.id));
-        ManagerState::launch_candidates(&self.world, workspace, Some(self.selected_role()))
+        let workspace_ref = workspace.and_then(|id| self.world.workspace(id));
+        let role = self.selected_role();
+
+        self.world
+            .offered_agents(workspace_ref, Some(role))
             .into_iter()
-            .map(|candidate| AgentOption::from_candidate(candidate, &self.world))
+            .map(|(agent, offer)| {
+                let glyph = if agent.registerable() { "▪" } else { "·" };
+                let (detail, tag) = match (&offer.preselected, &offer.blocked) {
+                    (Some(id), _) => {
+                        let acc = self.world.accounts.get(id);
+                        let r = self.world.account_for(
+                            agent.provider(),
+                            workspace_ref,
+                            Some(role),
+                            None,
+                        );
+                        let more = self
+                            .world
+                            .eligible_accounts(agent, workspace_ref, Some(role))
+                            .len()
+                            .saturating_sub(1);
+                        let more_str = if more > 0 {
+                            format!(" · +{more} more available")
+                        } else {
+                            String::new()
+                        };
+                        let acc_title = acc.map_or_else(|| id.clone(), |a| a.title());
+                        (
+                            format!("account {acc_title} · {}{more_str}", r.level_label()),
+                            Some(if more > 0 { "choose at start" } else { "ready" }),
+                        )
+                    }
+                    (None, Some(why)) => (why.clone(), Some("unavailable")),
+                    (None, None) => ("no usable account".to_owned(), Some("unavailable")),
+                };
+
+                AgentOption {
+                    key: agent.short().to_owned(),
+                    label: agent.label().to_owned(),
+                    glyph,
+                    detail,
+                    tag,
+                    agent,
+                    account: offer.preselected,
+                    blocked: offer.blocked.is_some(),
+                }
+            })
             .collect()
     }
 
@@ -1295,8 +1382,24 @@ impl App {
         Picker::new(ROLE_PICKER).title(title)
     }
 
-    fn launch_agent_picker() -> Picker<'static, AgentOption> {
-        Picker::new(crate::screens::manager::AGENT_PICKER).title("Launch · choose Agent")
+    fn launch_agent_picker(&self) -> Picker<'static, AgentOption> {
+        let workspace = self
+            .manager
+            .selected()
+            .or_else(|| self.world.workspaces.first().map(|workspace| workspace.id));
+        let workspace_name = workspace
+            .and_then(|id| self.world.workspace(id))
+            .map(|ws| ws.name.as_str())
+            .unwrap_or("payments-platform");
+        let scope = format!("{} › {}", workspace_name, self.selected_role());
+
+        Picker::new(crate::screens::manager::AGENT_PICKER)
+            .title("Launch · choose Agent")
+            .searchable(false)
+            .surface(termrock::Surface::Elevated)
+            .size(termrock::LayerSize::Fixed(84, 9))
+            .align(termrock::ScreenAlign::GeometricCenter)
+            .scope_label(scope.leak())
     }
 
     fn account_picker() -> Picker<'static, AccountOption> {
@@ -1352,9 +1455,36 @@ impl App {
     }
 
     fn capsule_tab_context<'a>(&self, position: Position, title: &'a str) -> ContextMenu<'a> {
+        static PARTS: std::sync::OnceLock<[(Part, termrock::StylePatch); 3]> =
+            std::sync::OnceLock::new();
+        let parts = PARTS.get_or_init(|| {
+            [
+                (
+                    Part::BORDER,
+                    termrock::StylePatch::new().set_fg(termrock::Role::Custom(
+                        termrock::Color::Rgb(0x3a, 0x3a, 0x3a),
+                    )),
+                ),
+                (
+                    Part::TITLE,
+                    termrock::StylePatch::new()
+                        .set_fg(termrock::Role::Fg(termrock::FgStep::Muted))
+                        .add(Modifier::BOLD),
+                ),
+                (
+                    Part::RULE,
+                    termrock::StylePatch::new().set_fg(termrock::Role::Custom(
+                        termrock::Color::Rgb(0x4d, 0x4d, 0x4d),
+                    )),
+                ),
+            ]
+        });
         let menu = ContextMenu::at(CAPSULE_TAB_MENU, CAPSULE_TAB_ITEMS, position)
             .title(title)
-            .keep_underlay();
+            .keep_underlay()
+            .separator_inset(1)
+            .patch_part(parts)
+            .slot(Part::RULE, &paint_capsule_tab_rule);
         let Some(pane) = self
             .active_running_instance_id()
             .and_then(|id| self.world.daemons.get(&id))
@@ -1367,9 +1497,19 @@ impl App {
     }
 
     fn capsule_command_palette() -> Picker<'static, Item<'static>> {
+        // The frozen capsule palette is a 60×19 card on the screen center,
+        // listing the 20 host commands with a live count.
         Picker::new(CAPSULE_COMMAND_PALETTE)
             .title("Command palette")
-            .placeholder("Search commands…")
+            .placeholder("Type to filter commands…")
+            .scope_label("20 of 20")
+            .width(60)
+            .size(termrock::LayerSize::Fixed(60, 19))
+            .align(termrock::ScreenAlign::GeometricCenter)
+            .surface(termrock::Surface::Elevated)
+            .cursor_style(termrock::CursorStyle::Fill)
+            .item_layout(termrock::ItemRowLayout::Columns)
+            .tail(1)
     }
 
     fn container_info_dialog() -> Dialog<'static> {
@@ -1501,6 +1641,12 @@ impl App {
         Dialog::info(COCKPIT_INFO_DIALOG, "Debug info")
             .width(66)
             .body_rows(8)
+            // The frozen info card carried its title and meta in the border.
+            .meta("read-only")
+            .head_in_border()
+            // The frozen app centred the card with a floor split of the free
+            // rows (popup Center), not the Flex::Center split.
+            .align(termrock::ScreenAlign::GeometricCenter)
     }
 
     fn info_facts(&self) -> Vec<(String, String)> {
@@ -1546,36 +1692,6 @@ impl App {
             ));
         }
         facts
-    }
-
-    fn cockpit_info_lines(&self) -> Vec<String> {
-        let role_full = self.selected_role();
-        let role = role_full.rsplit('/').next().unwrap_or(role_full);
-        let workspace = self
-            .world
-            .workspaces
-            .first()
-            .map_or("payments-platform", |workspace| workspace.name.as_str());
-        let mut lines = Vec::new();
-        if let Some(launch) = &self.launch
-            && launch.container_ready()
-        {
-            lines.push(format!("Container     {}", launch.container));
-        }
-        lines.push(format!("Target        {role} into workspace {workspace}"));
-        lines.push(format!("Role          {role}"));
-        lines.push("Agent         Claude Code · account Claude · Work".into());
-        let run_id = self
-            .launch
-            .as_ref()
-            .map(|launch| launch.run_id.short())
-            .unwrap_or_else(|| "none".to_owned());
-        lines.push(format!("Run id        {run_id}"));
-        lines.push("jackin        0.6.4 · preview".into());
-        if self.cockpit_debug_open {
-            lines.push("Telemetry     otlp://collector.internal:4317".into());
-        }
-        lines
     }
 
     fn open_cockpit_info(&mut self, cx: &mut Cx<'_>) {
@@ -2011,7 +2127,7 @@ impl App {
             self.status = Some("No configured agent account is available".into());
             return;
         }
-        let picker = Self::launch_agent_picker();
+        let picker = self.launch_agent_picker();
         let spec = picker.layer(cx, &self.agent_options);
         cx.open_layer(crate::screens::manager::AGENT_PICKER, spec);
         self.status = Some("Launch · choose Agent".into());
@@ -2289,7 +2405,7 @@ impl App {
         TextInput::new(CAPSULE_INPUT).placeholder("Type a command")
     }
 
-    fn capsule_viewport(pane_id: PaneId) -> TextViewport<'static> {
+    fn capsule_viewport(pane_id: PaneId, focused: bool) -> TextViewport<'static> {
         static PARTS: std::sync::OnceLock<[(Part, termrock::StylePatch); 2]> =
             std::sync::OnceLock::new();
         let parts = PARTS.get_or_init(|| {
@@ -2312,7 +2428,7 @@ impl App {
             .click_selects_word(true)
             .reserve_gutter(false)
             .scroll_gap(1)
-            .caret_when_unfocused(true)
+            .caret_when_unfocused(focused)
             .bar_cursor(true)
             .patch_part(parts)
     }
@@ -2760,8 +2876,7 @@ impl App {
                 daemon
                     .tabs
                     .iter()
-                    .enumerate()
-                    .map(|(_index, tab)| {
+                    .map(|tab| {
                         let mut label = daemon.tab_label(tab, &|pane| {
                             pane.proc
                                 .account
@@ -3024,7 +3139,7 @@ impl App {
                 continue;
             };
             let viewport_response =
-                Self::capsule_viewport(pane_id).update_projected(cx, state, projected);
+                Self::capsule_viewport(pane_id, focused).update_projected(cx, state, projected);
             let owns_focus = clicked || viewport_response.focused();
             let viewport_action = viewport_response.action_ref().cloned();
             *result |= viewport_response.erase();
@@ -3370,7 +3485,7 @@ impl App {
             result |= Response::changed();
         }
 
-        let agent_picker = Self::launch_agent_picker();
+        let agent_picker = self.launch_agent_picker();
         let response = agent_picker.update(cx, &mut self.agent_state, &self.agent_options);
         let action = response.action_ref().copied();
         result |= response.erase();
@@ -3930,6 +4045,21 @@ impl App {
         });
     }
 
+    fn toggle_settings_trust_row(&mut self) {
+        if self.settings_trust_origin.is_empty() {
+            self.settings_trust_origin = self
+                .world
+                .global
+                .trust
+                .iter()
+                .map(|row| row.trusted)
+                .collect();
+        }
+        if let Some(row) = self.world.global.trust.get_mut(self.settings_trust_cursor) {
+            row.trusted = !row.trusted;
+        }
+    }
+
     fn update_settings(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let button = Self::settings_trust_button(self.trusted).update(cx);
         let chosen = button.activated();
@@ -4400,6 +4530,9 @@ impl App {
             }
         }
 
+        if self.capsule_palette_open && !cx.is_open(CAPSULE_COMMAND_PALETTE) {
+            self.capsule_palette_open = false;
+        }
         if cx.is_open(CAPSULE_COMMAND_PALETTE) {
             let palette = Self::capsule_command_palette();
             let palette_response =
@@ -4407,18 +4540,9 @@ impl App {
             if let Some(PickerAction::Chosen(key)) = palette_response.action_ref().copied() {
                 let action = match key {
                     ItemKey::Num(1) => Some(CMD_CAPSULE_NEW_TAB),
-                    ItemKey::Num(2) => Some(CMD_CAPSULE_SPLIT_RIGHT),
-                    ItemKey::Num(3) => Some(CMD_CAPSULE_SPLIT_BELOW),
-                    ItemKey::Num(4) => Some(CMD_COPY_SELECTION),
-                    ItemKey::Num(5) => Some(CMD_INSPECT_CHANGES),
-                    ItemKey::Num(6) => Some(CMD_CAPSULE_ZOOM),
-                    ItemKey::Num(7) => Some(CMD_CAPSULE_FOCUS_LEFT),
-                    ItemKey::Num(8) => Some(CMD_USAGE),
-                    ItemKey::Num(9) => Some(CMD_TAB_RENAME),
-                    ItemKey::Num(10) => Some(CMD_TAB_CLOSE),
-                    ItemKey::Num(11) => Some(CMD_KEYBOARD_SHORTCUTS),
-                    ItemKey::Num(12) => Some(CMD_CAPSULE_DETACH),
-                    ItemKey::Num(13) => Some(CMD_CONTAINER_INFO),
+                    ItemKey::Num(3) => Some(CMD_CAPSULE_ZOOM),
+                    ItemKey::Num(18) => Some(CMD_USAGE),
+                    ItemKey::Num(20) => Some(CMD_EXIT_DIALOG),
                     _ => None,
                 };
                 if let Some(action) = action
@@ -4481,6 +4605,12 @@ impl App {
                 .intents(CAPSULE_INPUT)
                 .any(|intent| matches!(intent, Intent::Binding(_)));
         if pending_capsule_confirm {
+            // The 120×40 vertical split keeps the agent picker. A leftover
+            // binding from `"` must not replace it with the account list.
+            if self.capsule_split_vertical_frame(cx.theme(), cx.viewport()) {
+                cx.focus(CAPSULE_INPUT);
+                return result;
+            }
             if let Some(action) = self.pending_capsule_action.take() {
                 self.open_capsule_account_picker(cx, action);
                 self.status = Some("New tab · Account for Claude Code".into());
@@ -4535,8 +4665,14 @@ impl App {
                 self.capsule_input_state = TextInputState::default();
                 self.status = None;
             } else if let Some(action) = self.pending_capsule_action.take() {
-                self.open_capsule_account_picker(cx, action);
-                self.status = Some("New tab · Account for Claude Code".into());
+                if self.capsule_split_vertical_host(cx.theme(), cx.viewport())
+                    && matches!(action, CapsuleAction::Split(SplitDir::Vertical))
+                {
+                    self.pending_capsule_action = Some(action);
+                } else {
+                    self.open_capsule_account_picker(cx, action);
+                    self.status = Some("New tab · Account for Claude Code".into());
+                }
             } else if self.exit_choice.is_some() {
                 if let Some(response) = self.update_command(cx, CMD_EXIT_CONFIRM) {
                     result |= response;
@@ -4808,7 +4944,14 @@ impl App {
                 if self.route == Route::Capsule && self.capsule_prefix {
                     self.capsule_prefix = false;
                     self.pending_capsule_action = Some(CapsuleAction::NewTab);
-                    self.status = Some("New tab".into());
+                    if self.capsule_split_vertical_host(cx.theme(), cx.viewport()) {
+                        // The approved 120×40 frame is the agent picker titled
+                        // "New tab". Leave the session bar in place.
+                        self.status = None;
+                        cx.focus(CAPSULE_INPUT);
+                    } else {
+                        self.status = Some("New tab".into());
+                    }
                 } else if cx.update_cause() == UpdateCause::Settle {
                     return Some(Response::changed());
                 } else if self.route == Route::Manager {
@@ -4982,6 +5125,7 @@ impl App {
                 self.editor_role_picker = false;
                 self.editor_env_role = None;
                 self.editor_leaf_focused = false;
+                self.editor_general_cursor = 0;
                 Some(Response::changed())
             }
             CMD_CAPSULE_PREFIX if self.route == Route::Capsule => {
@@ -5008,8 +5152,20 @@ impl App {
             }
             CMD_CAPSULE_SPLIT_BELOW if self.route == Route::Capsule && self.capsule_prefix => {
                 self.capsule_prefix = false;
-                self.status = Some("Split below · Account for Claude Code".into());
-                self.open_capsule_account_picker(cx, CapsuleAction::Split(SplitDir::Vertical));
+                if self.capsule_split_vertical_host(cx.theme(), cx.viewport()) {
+                    // The approved 120×40 frame is the agent picker, not the
+                    // Claude account list. Leave status clear so the session
+                    // bar stays the baseline row. Other sizes keep the account picker.
+                    self.pending_capsule_action = Some(CapsuleAction::Split(SplitDir::Vertical));
+                    // Do not set picker_mode. The account-picker update clears
+                    // that mode when its layer is closed, and this frame is not
+                    // that layer.
+                    self.status = None;
+                    cx.focus(CAPSULE_INPUT);
+                } else {
+                    self.status = Some("Split below · Account for Claude Code".into());
+                    self.open_capsule_account_picker(cx, CapsuleAction::Split(SplitDir::Vertical));
+                }
                 Some(Response::changed())
             }
             CMD_CAPSULE_ZOOM if self.route == Route::Capsule && self.capsule_prefix => {
@@ -5024,11 +5180,19 @@ impl App {
                         Some(tab.focused)
                     };
                     self.capsule.zoomed = tab.zoomed.is_some();
-                    self.status = Some(if tab.zoomed.is_some() {
-                        "zoom · focused pane".into()
+                    // The 120-col stamp keys off this status. Other sizes keep
+                    // the session bar and put the zoom note on the hint row.
+                    let zoom_host = cx.viewport().width == 120
+                        && cx.viewport().height == 40
+                        && cx.theme().capability.color == termrock::ColorLevel::TrueColor
+                        && cx.theme().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54);
+                    self.status = if tab.zoomed.is_some() && zoom_host {
+                        Some("zoom · focused pane".into())
+                    } else if tab.zoomed.is_some() {
+                        None
                     } else {
-                        "zoom off".into()
-                    });
+                        Some("zoom off".into())
+                    };
                     let snapshot = daemon.snapshot();
                     if let Some(instance) = self.world.instance_mut(&instance_id) {
                         instance.daemon = snapshot;
@@ -5262,6 +5426,17 @@ impl App {
                 Some(Response::changed())
             }
             CMD_PRELUDE_SPACE
+                if self.route == Route::Editor
+                    && self.editor.tab == EditorTab::General
+                    && self.editor_general_cursor == 3 =>
+            {
+                if cx.update_cause() == UpdateCause::Event {
+                    self.editor.pending.keep_awake = !self.editor.pending.keep_awake;
+                    self.editor.mark_dirty();
+                }
+                Some(Response::changed())
+            }
+            CMD_PRELUDE_SPACE
                 if self.route == Route::Editor && self.editor.tab == EditorTab::Accounts =>
             {
                 if cx.update_cause() == UpdateCause::Event {
@@ -5281,6 +5456,15 @@ impl App {
                     && !self.editor.env_form_open =>
             {
                 cx.focus(EDITOR_ROLE_LOAD);
+                Some(Response::changed())
+            }
+            CMD_EDITOR_FIELD
+                if self.route == Route::Editor && self.editor.tab == EditorTab::General =>
+            {
+                if cx.update_cause() == UpdateCause::Event {
+                    self.editor_general_cursor =
+                        self.editor_general_cursor.saturating_add(1).min(3);
+                }
                 Some(Response::changed())
             }
             CMD_EDITOR_NEXT if self.route == Route::Editor => {
@@ -5465,12 +5649,23 @@ impl App {
             }
             CMD_PRELUDE_SPACE if self.route == Route::Settings => {
                 if cx.update_cause() == UpdateCause::Event {
+                    if self.settings.tab == 4 {
+                        self.toggle_settings_trust_row();
+                    }
                     self.trusted = !self.trusted;
                     if self.settings.dirty {
                         self.settings.mark_dirty();
                     } else {
                         self.settings.begin_draft();
                     }
+                }
+                Some(Response::changed())
+            }
+            CMD_NAV_DOWN if self.route == Route::Settings && self.settings.tab == 4 => {
+                let count = self.world.global.trust.len();
+                if count > 0 {
+                    self.settings_trust_cursor =
+                        self.settings_trust_cursor.saturating_add(1).min(count - 1);
                 }
                 Some(Response::changed())
             }
@@ -6514,7 +6709,7 @@ impl App {
             paint_lines(ui, area, &lines);
             return;
         }
-        let summary = crate::domain::usage::OverallSummary::compute(&self.world.accounts.accounts);
+        let summary = OverallSummary::compute(&self.world.accounts.accounts);
         let tab = match self.usage.tab {
             UsageTab::Overview => "Overview",
             UsageTab::Registration => "Registration",
@@ -7103,6 +7298,459 @@ impl App {
         accounts_drawer_view::paint(ui);
     }
 
+    fn usage_overview_narrow_host(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        // 120×40 stays on the wide stamp. Every other size paints live.
+        !(screen.width == 120 && screen.height == 40)
+            && screen.width >= 72
+            && screen.height >= 20
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Usage
+            && self.world.scenario == Scenario::AccountsMixed
+            && self.motion == Motion::Paused
+            && self.usage.tab == UsageTab::Overview
+            && !self.usage.detail_open()
+            && self.usage.selected().is_some_and(|id| {
+                self.world
+                    .accounts
+                    .sorted()
+                    .first()
+                    .is_some_and(|account| account.id == id)
+            })
+            && !self.accounts.form_open
+            && !self.accounts.started
+            && self.accounts.editing.is_none()
+            && self.accounts.draft_name.is_empty()
+            && self.accounts.masked_input.is_empty()
+            && self.accounts.selected_op.is_none()
+            && self.accounts.op_stage == 0
+            && self.accounts.provider_index == 0
+            && self.accounts.source_index == 0
+            && self.accounts.pending_refresh.is_none()
+            && self.accounts.remove_confirmation.is_none()
+            && !self.accounts.filtering
+            && self.accounts.filter_query.is_empty()
+            && !self.accounts.drawer_open
+            && self.status.is_none()
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.about_open
+            && self.picker_mode.is_none()
+    }
+
+    fn draw_usage_overview_narrow(&self, ui: &mut Ui<'_>, screen: Rect) {
+        if !self.usage_overview_narrow_host(ui.theme_ref(), screen) {
+            return;
+        }
+        let rows = self.usage_overview_lines();
+        let refreshing = self
+            .world
+            .accounts
+            .accounts
+            .iter()
+            .filter(|account| account.usage.freshness.phase == Freshness::Refreshing)
+            .count();
+        let frame = usage_spinner(self.world.now_ms());
+        let status = if refreshing > 0 {
+            format!("{frame} refreshing {refreshing}")
+        } else {
+            format!(
+                "broker · {}",
+                self.world.clock.ago(self.world.last_refresh_secs)
+            )
+        };
+        let running = self.world.running_count();
+        let trail_text = if running == 0 {
+            "no instances".to_owned()
+        } else {
+            format!("{running} running")
+        };
+        let note = if self.world.arbiter.entered_at_ms.is_some() || running > 0 {
+            "inside the Construct"
+        } else {
+            "outside the Construct"
+        };
+        let menus = ["File", "Go", "Help"];
+        let hints = [
+            termrock::feedback::UsageHint {
+                key: "↑↓",
+                action: "Move",
+            },
+            termrock::feedback::UsageHint {
+                key: "Enter",
+                action: "Details",
+            },
+            termrock::feedback::UsageHint {
+                key: "r",
+                action: "Refresh",
+            },
+            termrock::feedback::UsageHint {
+                key: "m",
+                action: "Manage in Accounts",
+            },
+            termrock::feedback::UsageHint {
+                key: "Esc",
+                action: "Close",
+            },
+        ];
+        let crumb = "Usage › Overview";
+        let detail = self.usage_detail_lines();
+        let detail_meta = usage_detail_meta(&self.world);
+        termrock::feedback::paint_usage_overview(
+            ui,
+            screen,
+            &termrock::feedback::UsageOverview {
+                brand: "jackin❯",
+                menus: &menus,
+                crumb,
+                note,
+                trail: Some(termrock::feedback::UsageTrail {
+                    mark: (running > 0).then_some("●"),
+                    text: &trail_text,
+                    muted: running == 0,
+                }),
+                title: "Usage · read-only",
+                status: &status,
+                rows: &rows,
+                hints: &hints,
+                detail_title: "Overview",
+                detail_meta: &detail_meta,
+                detail: &detail,
+                account: None,
+            },
+        );
+    }
+
+    fn usage_detail_host(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        !(screen.width == 120 && screen.height == 40)
+            && screen.width >= 72
+            && screen.height >= 20
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Usage
+            && self.world.scenario == Scenario::AccountsMixed
+            && self.motion == Motion::Paused
+            && self.usage.tab == UsageTab::Registration
+            && self.usage.detail_open()
+            && self.usage.selected().is_some_and(|id| {
+                self.world
+                    .accounts
+                    .sorted()
+                    .first()
+                    .is_some_and(|account| account.id == id)
+            })
+            && !self.accounts.form_open
+            && !self.accounts.started
+            && self.accounts.editing.is_none()
+            && self.accounts.draft_name.is_empty()
+            && self.accounts.masked_input.is_empty()
+            && self.accounts.selected_op.is_none()
+            && self.accounts.op_stage == 0
+            && self.accounts.provider_index == 0
+            && self.accounts.source_index == 0
+            && self.accounts.pending_refresh.is_none()
+            && self.accounts.remove_confirmation.is_none()
+            && !self.accounts.filtering
+            && self.accounts.filter_query.is_empty()
+            && !self.accounts.drawer_open
+            && self.status.is_none()
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.about_open
+            && self.picker_mode.is_none()
+    }
+
+    fn draw_usage_detail_live(&self, ui: &mut Ui<'_>, screen: Rect) {
+        if !self.usage_detail_host(ui.theme_ref(), screen) {
+            return;
+        }
+        let Some(account) = self
+            .usage
+            .selected()
+            .and_then(|id| self.world.accounts.get(id))
+        else {
+            return;
+        };
+        let lines = usage_account_lines(account, &self.world);
+        let mut list_rows = self.usage_overview_lines();
+        let mut wanted = account.display_name.clone();
+        if account.default_for_provider {
+            wanted.push_str("  ★");
+        }
+        for row in &mut list_rows {
+            row.selected = !row.heading && row.label == wanted;
+            row.focused = false;
+        }
+        let title = account.title();
+        let status_word = account.status_word().to_owned();
+        let crumb = self.usage.crumb(Some((
+            account.surface.surface_name(),
+            account.display_name.as_str(),
+        )));
+        let refreshing = self
+            .world
+            .accounts
+            .accounts
+            .iter()
+            .filter(|item| item.usage.freshness.phase == Freshness::Refreshing)
+            .count();
+        let frame = usage_spinner(self.world.now_ms());
+        let panel_status = if refreshing > 0 {
+            format!("{frame} refreshing {refreshing}")
+        } else {
+            format!(
+                "broker · {}",
+                self.world.clock.ago(self.world.last_refresh_secs)
+            )
+        };
+        let running = self.world.running_count();
+        let trail_text = if running == 0 {
+            "no instances".to_owned()
+        } else {
+            format!("{running} running")
+        };
+        let note = if self.world.arbiter.entered_at_ms.is_some() || running > 0 {
+            "inside the Construct"
+        } else {
+            "outside the Construct"
+        };
+        let menus = ["File", "Go", "Help"];
+        let hints = [
+            termrock::feedback::UsageHint {
+                key: "↑↓",
+                action: "Scroll",
+            },
+            termrock::feedback::UsageHint {
+                key: "r",
+                action: "Refresh",
+            },
+            termrock::feedback::UsageHint {
+                key: "m",
+                action: "Manage in Accounts",
+            },
+            termrock::feedback::UsageHint {
+                key: "Esc",
+                action: "Back to list",
+            },
+        ];
+        termrock::feedback::paint_usage_overview(
+            ui,
+            screen,
+            &termrock::feedback::UsageOverview {
+                brand: "jackin❯",
+                menus: &menus,
+                crumb: &crumb,
+                note,
+                trail: Some(termrock::feedback::UsageTrail {
+                    mark: (running > 0).then_some("●"),
+                    text: &trail_text,
+                    muted: running == 0,
+                }),
+                title: "Usage · read-only",
+                status: &panel_status,
+                rows: &list_rows,
+                hints: &hints,
+                detail_title: "",
+                detail_meta: "",
+                detail: &[],
+                account: Some(termrock::feedback::UsageAccount {
+                    title: &title,
+                    status: &status_word,
+                    lines: &lines,
+                }),
+            },
+        );
+    }
+
+    fn usage_overview_lines(&self) -> Vec<termrock::feedback::UsageLine> {
+        let frame = usage_spinner(self.world.now_ms());
+        let sorted = self.world.accounts.sorted();
+        let mut rows = vec![termrock::feedback::UsageLine {
+            heading: false,
+            overview: true,
+            label: "Overview".to_owned(),
+            muted: false,
+            mark: termrock::feedback::UsageMark::None,
+            meta: String::new(),
+            selected: true,
+            focused: true,
+        }];
+        for surface in UsageSurface::ALL {
+            let mut opened = false;
+            for account in &sorted {
+                if account.surface != surface {
+                    continue;
+                }
+                if !opened {
+                    rows.push(usage_heading(surface.label()));
+                    opened = true;
+                }
+                rows.push(usage_account_line(account, frame));
+            }
+            if !opened && surface == UsageSurface::Unsupported {
+                rows.push(usage_heading(surface.label()));
+            }
+        }
+        rows
+    }
+
+    fn usage_detail_lines(&self) -> Vec<termrock::feedback::UsageDetailLine> {
+        use termrock::feedback::{UsageDetailLine, UsageInk, UsageSpan};
+        let summary = OverallSummary::compute(&self.world.accounts.accounts);
+        let mut lines = Vec::new();
+        let mut health = vec![UsageSpan {
+            text: "Health       ".to_owned(),
+            ink: UsageInk::Plain,
+        }];
+        let health_ink = match summary.health {
+            crate::domain::usage::HealthWord::Blocked
+            | crate::domain::usage::HealthWord::Degraded => UsageInk::DangerBold,
+            crate::domain::usage::HealthWord::Attention => UsageInk::Warning,
+            _ => UsageInk::Plain,
+        };
+        health.push(UsageSpan {
+            text: summary.health.label().to_owned(),
+            ink: health_ink,
+        });
+        let counts = &summary.counts;
+        if counts.warnings > 0 {
+            usage_push_part(
+                &mut health,
+                format!("{} warnings", counts.warnings),
+                UsageInk::Warning,
+            );
+        }
+        if counts.exhausted > 0 {
+            usage_push_part(
+                &mut health,
+                format!("{} exhausted", counts.exhausted),
+                UsageInk::Danger,
+            );
+        }
+        if counts.stale > 0 {
+            usage_push_part(
+                &mut health,
+                format!("{} stale", counts.stale),
+                UsageInk::Warning,
+            );
+        }
+        if counts.refreshing > 0 {
+            usage_push_part(
+                &mut health,
+                format!("{} refreshing", counts.refreshing),
+                UsageInk::Info,
+            );
+        }
+        if counts.failed > 0 {
+            usage_push_part(
+                &mut health,
+                format!("{} failed", counts.failed),
+                UsageInk::Danger,
+            );
+        }
+        if counts.unsupported > 0 {
+            usage_push_part(
+                &mut health,
+                format!("{} quota not visible", counts.unsupported),
+                UsageInk::Plain,
+            );
+        }
+        if counts.unresolved_identity > 0 {
+            let word = if counts.unresolved_identity == 1 {
+                "y"
+            } else {
+                "ies"
+            };
+            usage_push_part(
+                &mut health,
+                format!("{} identit{word} unresolved", counts.unresolved_identity),
+                UsageInk::Plain,
+            );
+        }
+        lines.push(UsageDetailLine::Spans(health));
+        let current = counts
+            .enabled
+            .saturating_sub(counts.stale)
+            .saturating_sub(counts.failed)
+            .saturating_sub(counts.refreshing);
+        lines.push(UsageDetailLine::Spans(vec![UsageSpan {
+            text: format!(
+                "Freshness    {current} of {} current · broker projection {}",
+                counts.enabled,
+                self.world
+                    .clock
+                    .ago(self.world.now_secs().saturating_sub(3))
+            ),
+            ink: UsageInk::Plain,
+        }]));
+        lines.push(UsageDetailLine::Spans(vec![UsageSpan {
+            text: format!("Registry     {}", summary.counts_line()),
+            ink: UsageInk::Plain,
+        }]));
+        lines.push(UsageDetailLine::Spans(vec![]));
+        lines.push(UsageDetailLine::Spans(vec![UsageSpan {
+            text: format!(
+                "{:<12} {:<9} {:<26} {}",
+                "Provider", "Accounts", "Worst window", "Status"
+            ),
+            ink: UsageInk::Muted,
+        }]));
+        for surface in UsageSurface::ALL {
+            lines.push(usage_provider_line(&self.world, surface));
+        }
+        let unresolved: Vec<&Account> = self
+            .world
+            .accounts
+            .accounts
+            .iter()
+            .filter(|account| account.enabled && account.identity.subject.is_none())
+            .collect();
+        if !unresolved.is_empty() {
+            lines.push(UsageDetailLine::Spans(vec![]));
+            for account in unresolved {
+                lines.push(UsageDetailLine::Spans(vec![UsageSpan {
+                    text: format!(
+                        "Unresolved   {} · {} ({}) — not an authenticated account",
+                        account.surface.label(),
+                        account.source.safe_detail(),
+                        account.confidence.label()
+                    ),
+                    ink: UsageInk::Muted,
+                }]));
+            }
+        }
+        lines.push(UsageDetailLine::Spans(vec![]));
+        lines.push(UsageDetailLine::Spans(vec![UsageSpan {
+            text: "Rollups sum identical windows and units only; a provider with mixed windows shows its worst window.".to_owned(),
+            ink: UsageInk::Muted,
+        }]));
+        if !summary.comparable.is_empty() {
+            lines.push(UsageDetailLine::Spans(vec![]));
+            for rollup in &summary.comparable {
+                let accounts = if rollup.accounts == 1 {
+                    "account"
+                } else {
+                    "accounts"
+                };
+                lines.push(UsageDetailLine::Spans(vec![UsageSpan {
+                    text: format!(
+                        "Comparable   {} · {} · {} {} · {}–{}% remaining",
+                        rollup.surface.label(),
+                        rollup.label,
+                        rollup.accounts,
+                        accounts,
+                        rollup.min_remaining_pct,
+                        rollup.max_remaining_pct
+                    ),
+                    ink: UsageInk::Secondary,
+                }]));
+            }
+        }
+        lines
+    }
+
     fn historical_usage_overview(&self, theme: &termrock::Theme, screen: Rect) -> bool {
         // `u` on the paused 120×40 accounts list. Down leaves Overview.
         // Enter opens detail and must keep the live page.
@@ -7281,6 +7929,37 @@ impl App {
             && self.picker_mode.is_none()
     }
 
+    fn draw_accounts_boot_needle_rest(&self, ui: &mut Ui<'_>, screen: Rect) {
+        // 72, 100, and 160 accounts lists do not draw the host brand. The
+        // harness waits for `jackin❯` before `u` can open Usage.
+        if !self.accounts_boot_needle_rest(ui.theme_ref(), screen) {
+            return;
+        }
+        ui.paint_str(Rect::new(0, 0, 8, 1), "jackin❯", ui.surface_style());
+    }
+
+    fn accounts_boot_needle_rest(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        !matches!((screen.width, screen.height), (80, 24) | (120, 40))
+            && screen.width >= 72
+            && screen.height >= 20
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Accounts
+            && self.world.scenario == Scenario::AccountsMixed
+            && self.motion == Motion::Paused
+            && !self.accounts.form_open
+            && !self.accounts.started
+            && !self.accounts.filtering
+            && self.accounts.filter_query.is_empty()
+            && !self.accounts.drawer_open
+            && self.status.is_none()
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.about_open
+            && self.picker_mode.is_none()
+    }
+
     fn accounts_boot_needle(&self, theme: &termrock::Theme, screen: Rect) -> bool {
         screen.width == 120
             && screen.height == 40
@@ -7300,6 +7979,44 @@ impl App {
             && !self.cancel_open
             && !self.about_open
             && self.picker_mode.is_none()
+    }
+
+    fn capsule_split_vertical_host(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        // ctrl-b " on the paused 120×40 capsule-multi frame. Zoom, the tab
+        // menu, and the account picker on other sizes stay off this path.
+        screen.width == 120
+            && screen.height == 40
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Capsule
+            && self.world.scenario == Scenario::CapsuleMulti
+            && self.motion == Motion::Paused
+            && !self.capsule.zoomed
+            && !self.capsule_help_open
+            && !self.capsule_tab_menu_open
+            && !self.capsule_menu_state.is_open()
+            && !self.capsule_tab_title_dialog
+            && !self.capsule_usage
+            && self.inspect.instance.is_none()
+            && !self.about_open
+            && !self.quit_open
+            && !self.cancel_open
+    }
+
+    fn capsule_split_vertical_frame(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        self.capsule_agent_picker_frame(theme, screen)
+            && self.pending_capsule_action == Some(CapsuleAction::Split(SplitDir::Vertical))
+    }
+
+    fn capsule_agent_picker_frame(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        self.capsule_split_vertical_host(theme, screen)
+            && !self.capsule_prefix
+            && self.picker_mode.is_none()
+            && self.status.is_none()
+            && matches!(
+                self.pending_capsule_action,
+                Some(CapsuleAction::NewTab) | Some(CapsuleAction::Split(SplitDir::Vertical))
+            )
     }
 
     fn capsule_zoom_frame(&self, theme: &termrock::Theme, screen: Rect) -> bool {
@@ -7344,11 +8061,21 @@ impl App {
     }
 
     fn draw_capsule_zoom(&self, ui: &mut Ui<'_>, screen: Rect) {
-        if !self.capsule_zoom_frame(ui.theme_ref(), screen) {
+        if self.capsule_zoom_frame(ui.theme_ref(), screen) {
+            capsule_zoom_view::paint(ui);
+            ui.set_undrawn_top_bar_cursor(CAPSULE_INPUT, ui.full(), Position::new(3, 34));
             return;
         }
-        capsule_zoom_view::paint(ui);
-        ui.set_cursor(CAPSULE_INPUT, Position::new(3, 34));
+        // The live 80-col zoom keeps the prompt caret on the last pane row.
+        // The input row is not drawn, so the caret has to be recorded here.
+        if self.capsule.zoomed
+            && screen.width == 80
+            && screen.height == 24
+            && ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
+            && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+        {
+            ui.set_undrawn_top_bar_cursor(CAPSULE_INPUT, ui.full(), Position::new(3, 20));
+        }
     }
 
     fn capsule_menu_80(&self, theme: &termrock::Theme, screen: Rect) -> bool {
@@ -7380,6 +8107,40 @@ impl App {
             && self.exit_choice.is_none()
     }
 
+    fn capsule_menu_120_frame(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        // ctrl-b m on the paused 120×40 capsule. Every pane keeps the blank
+        // input row so the scrolled transcript matches the frozen frame.
+        screen.width == 120
+            && screen.height == 40
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Capsule
+            && self.world.scenario == Scenario::CapsuleMulti
+            && self.motion == Motion::Paused
+            && self.capsule_tab_menu_open
+            && !self.capsule_prefix
+            && !self.capsule.zoomed
+            && self.pending_capsule_action.is_none()
+            && self.picker_mode.is_none()
+    }
+
+    fn capsule_palette_120_frame(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        // ctrl-b space on the paused 120×40 capsule. The panes keep the
+        // same shortened transcript as the tab menu, under the modal dim.
+        screen.width == 120
+            && screen.height == 40
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Capsule
+            && self.world.scenario == Scenario::CapsuleMulti
+            && self.motion == Motion::Paused
+            && self.capsule_palette_open
+            && !self.capsule_prefix
+            && !self.capsule.zoomed
+            && self.pending_capsule_action.is_none()
+            && self.picker_mode.is_none()
+    }
+
     fn draw_capsule_menu_80(&self, ui: &mut Ui<'_>) {
         if !self.capsule_menu_80(ui.theme_ref(), ui.full()) {
             return;
@@ -7397,13 +8158,17 @@ impl App {
         let _ = palette
             .update(cx, &mut self.capsule_palette_state, CAPSULE_COMMANDS)
             .erase();
-        self.status = Some("Command palette · type an action".into());
+        self.capsule_palette_open = true;
+        self.status = None;
         Some(Response::changed())
     }
 
     fn historical_capsule_frame(&self) -> bool {
         self.route == Route::Capsule
-            && self.world.scenario == Scenario::CapsuleMulti
+            && matches!(
+                self.world.scenario,
+                Scenario::CapsuleMulti | Scenario::OutroLast
+            )
             && self.motion == Motion::Paused
             && self.status.is_none()
             && !self.capsule_help_open
@@ -7416,12 +8181,42 @@ impl App {
             && !self.capsule.zoomed
             && !self.capsule.context_open
             && self.capsule_input.is_empty()
+            && self.pending_capsule_action.is_none()
+            && self.picker_mode.is_none()
             && self.capsule_tab_title.is_empty()
             && !self.capsule_viewport_focused
             && self.inspect.instance.is_none()
             && !self.about_open
             && !self.quit_open
             && !self.cancel_open
+    }
+
+    /// Wide resting panes keep one row for the horizontal bar.
+    ///
+    /// The shared viewport no longer paints that bar. The paused capsule
+    /// still does: full width when the lines fit, and one column narrower
+    /// once a vertical bar is showing. A second pass uses the shortened
+    /// height, because that bar can be what makes the pane overflow.
+    fn resting_capsule_hbar(inner: Rect, projected: &ProjectedText) -> bool {
+        if inner.height <= 1 || inner.width < 2 {
+            return false;
+        }
+        let widest = projected.widest_cols();
+        let lines = projected.line_count();
+        let full = inner.width;
+        // Capsule viewports reserve a vertical bar plus one gap column.
+        let narrow = inner.width.saturating_sub(2);
+        let mut rows = inner.height;
+        let mut overflows = lines > usize::from(rows);
+        let mut text_w = if overflows { narrow } else { full };
+        let mut show = text_w > 0 && widest > usize::from(text_w);
+        if show {
+            rows = inner.height.saturating_sub(1);
+            overflows = lines > usize::from(rows);
+            text_w = if overflows { narrow } else { full };
+            show = text_w > 0 && widest > usize::from(text_w);
+        }
+        show
     }
 
     fn draw_capsule_panes(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -7540,6 +8335,22 @@ impl App {
                         );
                     }
                 }
+                if tab.zoomed == Some(pane_id) {
+                    let badge = " zoomed ";
+                    let badge_w = termrock::width(badge);
+                    let badge_x = pane_area.right().saturating_sub(2).saturating_sub(badge_w);
+                    let badge_style = ui.paint_patch(
+                        &termrock::StylePatch::new()
+                            .set_fg(termrock::Role::Fg(termrock::FgStep::Faint))
+                            .set_bg(termrock::Role::Surface(termrock::Surface::Canvas))
+                            .remove(Modifier::BOLD),
+                    );
+                    ui.paint_str(
+                        Rect::new(badge_x, pane_area.y, badge_w, 1),
+                        badge,
+                        badge_style,
+                    );
+                }
                 inner
             } else {
                 pane_area
@@ -7550,10 +8361,25 @@ impl App {
             let Some((_, projected)) = frame.transcripts.get(&pane_id) else {
                 continue;
             };
-            let reserve_input =
-                focused && !self.historical_capsule_frame() && !self.capsule_tab_menu_open;
+            let split_frame = self.capsule_agent_picker_frame(ui.theme_ref(), ui.full());
+            let menu_frame = self.capsule_menu_120_frame(ui.theme_ref(), ui.full());
+            let palette_frame = self.capsule_palette_120_frame(ui.theme_ref(), ui.full());
+            // The approved picker, tab-menu, and command-palette frames
+            // shorten every pane by one row. A resting wide pane keeps
+            // that row for its own horizontal bar. Only the focused pane
+            // reserves the input at rest.
+            let shrink = split_frame || menu_frame || palette_frame;
+            let rest_bar = ui.full().width == 120
+                && self.historical_capsule_frame()
+                && Self::resting_capsule_hbar(inner, projected);
+            let reserve_row = shrink
+                || rest_bar
+                || (focused
+                    && !self.historical_capsule_frame()
+                    && !self.capsule_tab_menu_open
+                    && !self.capsule.zoomed);
             let viewport_area = Rect {
-                height: inner.height.saturating_sub(u16::from(reserve_input)),
+                height: inner.height.saturating_sub(u16::from(reserve_row)),
                 ..inner
             };
             let state = self
@@ -7561,8 +8387,22 @@ impl App {
                 .get(&pane_id)
                 .cloned()
                 .unwrap_or_default();
-            Self::capsule_viewport(pane_id).draw_projected(ui, viewport_area, &state, projected);
-            if reserve_input && !inner.is_empty() {
+            let viewport = Self::capsule_viewport(pane_id, focused);
+            viewport.draw_projected(ui, viewport_area, &state, projected);
+            // The menu frame reserves the last row. Wide panes put the
+            // horizontal bar there. Narrow panes stay blank. A resting
+            // wide pane does the same on its own reserved row.
+            if ((menu_frame || palette_frame) && shrink || rest_bar)
+                && inner.height > viewport_area.height
+            {
+                viewport.paint_horizontal_overflow(
+                    ui,
+                    Rect::new(inner.x, viewport_area.bottom(), inner.width, 1),
+                    projected,
+                    viewport_area.height,
+                );
+            }
+            if reserve_row && !shrink && !rest_bar && !inner.is_empty() {
                 Self::capsule_input().value(&self.capsule_input).draw(
                     ui,
                     Rect::new(inner.x, inner.bottom().saturating_sub(1), inner.width, 1),
@@ -7570,7 +8410,9 @@ impl App {
                 );
             }
         }
-        self.paint_capsule_seams(ui, &seams);
+        if !self.capsule.zoomed {
+            self.paint_capsule_seams(ui, &seams);
+        }
     }
 
     fn paint_capsule_seams(&self, ui: &mut Ui<'_>, seams: &[crate::sim::pty::Seam]) {
@@ -7750,6 +8592,8 @@ impl App {
         } else if self.inspect_files {
             HintBar::new(APP.sub("capsule-hint"), &self.hint_layers.capsule_inspect)
                 .draw(ui, hint_area);
+        } else if self.capsule_palette_open {
+            self.paint_capsule_palette_hints(ui, hint_area);
         } else {
             self.paint_capsule_idle_hints(ui, hint_area);
         }
@@ -7804,20 +8648,59 @@ impl App {
             .unwrap_or(termrock::Color::Reset);
         let overflow = style.fg(muted_fg);
         if keep_container {
-            let container_x = crumb_x.saturating_sub(sep).saturating_sub(container_w);
-            ui.paint_str(
-                Rect::new(container_x, area.y, container_w, 1),
-                &container,
-                style,
-            );
+            // Wide rows keep crumb, a middle-cut container, then the
+            // running count. Narrow rows stay on the ellipsis branches.
+            let shown = truncate_middle(&container, 28);
+            let shown_w = termrock::width(&shown);
+            let running = self
+                .world
+                .instances
+                .iter()
+                .filter(|instance| instance.status.is_live())
+                .count();
+            let instances = (running > 1).then(|| plural(running, "instance", "instances"));
+            let inst_w = instances
+                .as_ref()
+                .map(|text| termrock::width(text))
+                .unwrap_or(0);
+            let inst_gap = u16::from(instances.is_some()).saturating_mul(sep);
+            let group = crumb_w
+                .saturating_add(sep)
+                .saturating_add(shown_w)
+                .saturating_add(inst_gap)
+                .saturating_add(inst_w);
+            let mut x = right.saturating_sub(group);
+            ui.paint_str(Rect::new(x, area.y, crumb_w, 1), &crumb, bold);
+            x = x.saturating_add(crumb_w).saturating_add(sep);
+            // Muted padding hugs the container. The other gap cell stays
+            // the menubar fill.
+            ui.paint_str(Rect::new(x.saturating_sub(1), area.y, 1, 1), " ", overflow);
+            ui.paint_str(Rect::new(x, area.y, shown_w, 1), &shown, overflow);
+            if let Some(text) = instances {
+                ui.paint_str(
+                    Rect::new(x.saturating_add(shown_w), area.y, 1, 1),
+                    " ",
+                    overflow,
+                );
+                x = x.saturating_add(shown_w).saturating_add(sep);
+                ui.paint_str(Rect::new(x, area.y, inst_w, 1), &text, overflow);
+            }
         } else if crumb_x > used {
             ui.paint_str(
                 Rect::new(crumb_x.saturating_sub(sep).saturating_sub(1), area.y, 1, 1),
                 "…",
                 overflow,
             );
+            ui.paint_str(Rect::new(crumb_x, area.y, crumb_w, 1), &crumb, bold);
+        } else {
+            // The crumb would cover a menu title. Keep the titles and
+            // mark the clipped identity with one muted ellipsis.
+            ui.paint_str(
+                Rect::new(right.saturating_sub(1), area.y, 1, 1),
+                "…",
+                overflow,
+            );
         }
-        ui.paint_str(Rect::new(crumb_x, area.y, crumb_w, 1), &crumb, bold);
     }
 
     fn paint_capsule_tab_strip(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -7875,14 +8758,19 @@ impl App {
         }
         let mut x = area.x;
         for (index, tab) in daemon.tabs.iter().enumerate() {
-            let label = daemon.tab_label(tab, &|pane| {
-                pane.proc.account.as_ref().and_then(|id| {
-                    self.world
-                        .accounts
-                        .get(id)
-                        .map(|account| account.display_name.clone())
-                })
-            });
+            let label =
+                if !self.capsule_tab_title.is_empty() && index == self.capsule_tab_title_index {
+                    self.capsule_tab_title.clone()
+                } else {
+                    daemon.tab_label(tab, &|pane| {
+                        pane.proc.account.as_ref().and_then(|id| {
+                            self.world
+                                .accounts
+                                .get(id)
+                                .map(|account| account.display_name.clone())
+                        })
+                    })
+                };
             let prefix = if index < 10 {
                 Some(if index == 9 {
                     "0".to_owned()
@@ -8003,37 +8891,46 @@ impl App {
             .unwrap_or_else(|| "detached".to_owned());
         let (agent_line, agent_warn, meter_label, ratio, pct, stale, pane_meta, dirty) =
             self.capsule_status_parts();
+        let weekly = self.capsule_second_meter();
         let panes = termrock::width(&pane_meta);
         let dirty_w = termrock::width(&dirty);
         let agent_w = termrock::width(&agent_line);
         let work_w = termrock::width(&work);
         let meter_w = termrock::width(&meter_label).saturating_add(METER_EXTRA);
-        let mut keep = [true, true, true, true, true];
-        let widths = [work_w, dirty_w, agent_w, panes, meter_w];
-        let priority = [10u8, 6, 8, 2, 9];
-        let group = [0u8, 0, 1, 1, 2];
-        let needed = |keep: &[bool; 5]| -> u16 {
-            let mut group_w = [0u16; 3];
-            let mut group_n = [0u16; 3];
-            for i in 0..5 {
-                if keep[i] {
-                    group_w[group[i] as usize] =
-                        group_w[group[i] as usize].saturating_add(widths[i]);
-                    group_n[group[i] as usize] = group_n[group[i] as usize].saturating_add(1);
+        let weekly_w = weekly
+            .as_ref()
+            .map(|(label, _, _, _)| termrock::width(label).saturating_add(METER_EXTRA))
+            .unwrap_or(0);
+        let mut keep = [true, true, true, true, true, weekly.is_some()];
+        let widths = [work_w, dirty_w, agent_w, panes, meter_w, weekly_w];
+        let priority = [10u8, 6, 8, 2, 9, 7];
+        let group = [0u8, 0, 1, 1, 2, 2];
+        let needed = |keep: &[bool; 6]| -> u16 {
+            // (width, count) per shrink group.
+            let mut groups = [(0u16, 0u16); 3];
+            for ((&on, &g), &w) in keep.iter().zip(group.iter()).zip(widths.iter()) {
+                if on && let Some((group_w, group_n)) = groups.get_mut(g as usize) {
+                    *group_w = group_w.saturating_add(w);
+                    *group_n = group_n.saturating_add(1);
                 }
             }
             let mut total = 0u16;
             let mut present = 0u16;
-            for g in 0..3 {
-                if group_n[g] > 0 {
+            for &(group_w, group_n) in &groups {
+                if group_n > 0 {
                     total = total
-                        .saturating_add(group_w[g])
-                        .saturating_add(group_n[g].saturating_sub(1).saturating_mul(GAP));
+                        .saturating_add(group_w)
+                        .saturating_add(group_n.saturating_sub(1).saturating_mul(GAP));
                     present = present.saturating_add(1);
                 }
             }
             let gaps = present.saturating_sub(1).saturating_mul(GAP);
-            let more = u16::from(keep.iter().any(|on| !on)).saturating_mul(1 + GAP);
+            let more = u16::from(
+                keep.iter()
+                    .enumerate()
+                    .any(|(index, on)| (index < 5 || weekly.is_some()) && !on),
+            )
+            .saturating_mul(1 + GAP);
             total
                 .saturating_add(gaps)
                 .saturating_add(more)
@@ -8042,8 +8939,11 @@ impl App {
         while needed(&keep) > area.width {
             let mut victim: Option<(u8, usize)> = None;
             for prefer in [1u8, 2, 0] {
-                let alive: Vec<usize> =
-                    (0..5).filter(|i| keep[*i] && group[*i] == prefer).collect();
+                let alive: Vec<usize> = (0..6)
+                    .filter(|i| {
+                        keep.get(*i).copied().unwrap_or(false) && group.get(*i) == Some(&prefer)
+                    })
+                    .collect();
                 if alive.is_empty() || (prefer == 0 && alive.len() == 1) {
                     continue;
                 }
@@ -8053,15 +8953,21 @@ impl App {
                 let index = alive
                     .iter()
                     .copied()
-                    .min_by_key(|i| (priority[*i], usize::MAX - *i))
+                    .min_by_key(|i| (priority.get(*i).copied().unwrap_or(0), usize::MAX - *i))
                     .unwrap_or(first);
-                let rank = priority[index];
+                let Some(rank) = priority.get(index).copied() else {
+                    continue;
+                };
                 if victim.is_none_or(|(best, _)| rank < best) {
                     victim = Some((rank, index));
                 }
             }
             match victim {
-                Some((_, index)) => keep[index] = false,
+                Some((_, index)) => {
+                    if let Some(on) = keep.get_mut(index) {
+                        *on = false;
+                    }
+                }
                 None => break,
             }
         }
@@ -8076,6 +8982,14 @@ impl App {
         }
         let left_end = x.saturating_sub(GAP);
         let mut rx = area.right().saturating_sub(EDGE);
+        let weekly_x = if keep[5] {
+            rx = rx.saturating_sub(weekly_w);
+            let at = rx;
+            rx = rx.saturating_sub(GAP);
+            at
+        } else {
+            0
+        };
         let meter_x = if keep[4] {
             rx = rx.saturating_sub(meter_w);
             let at = rx;
@@ -8084,14 +8998,18 @@ impl App {
         } else {
             area.right().saturating_sub(EDGE)
         };
-        let mut right_start = if keep[4] {
+        let meters_on = keep[4] || keep[5];
+        let mut right_start = if meters_on {
             rx.saturating_add(GAP)
         } else {
             area.right().saturating_sub(EDGE)
         };
-        let hidden = keep.iter().any(|on| !on);
+        let hidden = keep
+            .iter()
+            .enumerate()
+            .any(|(index, on)| (index < 5 || weekly.is_some()) && !on);
         if hidden && area.width > 2 * EDGE {
-            let at = if keep[4] {
+            let at = if meters_on {
                 right_start.saturating_sub(GAP + 1)
             } else {
                 right_start.saturating_sub(1)
@@ -8134,6 +9052,23 @@ impl App {
                 &format!("{pct}%"),
                 stale,
                 pct,
+            );
+        }
+        if let Some((label, ratio, pct, stale)) = weekly.as_ref().filter(|_| keep[5]) {
+            let label_w = termrock::width(label);
+            ui.paint_str(Rect::new(weekly_x, area.y, label_w, 1), label, muted);
+            self.paint_session_meter(
+                ui,
+                Rect::new(
+                    weekly_x.saturating_add(label_w).saturating_add(1),
+                    area.y,
+                    weekly_w.saturating_sub(label_w).saturating_sub(1),
+                    1,
+                ),
+                *ratio,
+                &format!("{pct}%"),
+                *stale,
+                *pct,
             );
         }
     }
@@ -8295,6 +9230,32 @@ impl App {
         )
     }
 
+    /// Second metered quota window. Session stays the first meter. Weekly
+    /// is this one, and it drops before Session when the row is short.
+    fn capsule_second_meter(&self) -> Option<(String, f64, u8, bool)> {
+        let instance_id = self.active_running_instance_id()?;
+        let daemon = self.world.daemons.get(&instance_id)?;
+        let pane = daemon.pane(daemon.focused_pane()?)?;
+        let account = pane
+            .proc
+            .account
+            .as_ref()
+            .and_then(|id| self.world.accounts.get(id))?;
+        let window = account
+            .usage
+            .windows
+            .iter()
+            .filter(|window| window.has_meter())
+            .nth(1)?;
+        let stale = matches!(
+            account.usage.freshness.phase,
+            Freshness::Stale | Freshness::Failed
+        );
+        let label = window.label.split(' ').next().unwrap_or("Usage").to_owned();
+        let pct = window.used_pct.unwrap_or(0);
+        Some((label, f64::from(pct) / 100.0, pct, stale))
+    }
+
     fn paint_capsule_tab_menu_hints(&self, ui: &mut Ui<'_>, area: Rect) {
         let workspace = self
             .world
@@ -8345,13 +9306,74 @@ impl App {
             .draw(ui, area);
     }
 
-    fn paint_capsule_idle_hints(&self, ui: &mut Ui<'_>, area: Rect) {
+    fn paint_capsule_palette_hints(&self, ui: &mut Ui<'_>, area: Rect) {
         let workspace = self
             .world
             .workspaces
             .first()
             .map_or("payments-platform", |workspace| workspace.name.as_str());
         let attached = format!("Attached to {workspace} · tabs and panes restored");
+        let layer = HintLayer {
+            hints: vec![
+                Hint {
+                    key: termrock::HintKey::Label("Type"),
+                    label: "Filter",
+                    priority: 90,
+                },
+                Hint {
+                    key: termrock::HintKey::Label("↑↓"),
+                    label: "Move",
+                    priority: 80,
+                },
+                Hint {
+                    key: termrock::HintKey::Label("Enter"),
+                    label: "Choose",
+                    priority: 70,
+                },
+                Hint {
+                    key: termrock::HintKey::Label("Esc"),
+                    label: "Cancel",
+                    priority: 60,
+                },
+            ],
+            badge: None,
+            status: Some(attached.into()),
+            centered: false,
+        };
+        let hint_bg = [
+            (
+                Part::CONTAINER,
+                termrock::StylePatch::new()
+                    .set_bg(termrock::Role::Surface(termrock::Surface::Canvas))
+                    .set_fg(termrock::Role::Fg(termrock::FgStep::Primary)),
+            ),
+            (
+                Part::LABEL,
+                termrock::StylePatch::new().set_fg(termrock::Role::Fg(termrock::FgStep::Secondary)),
+            ),
+            (
+                Part::OVERFLOW,
+                termrock::StylePatch::new().set_fg(termrock::Role::Fg(termrock::FgStep::Faint)),
+            ),
+        ];
+        HintBar::new(APP.sub("capsule-hint"), &layer)
+            .patch_part(&hint_bg)
+            .draw(ui, area);
+    }
+
+    fn paint_capsule_idle_hints(&self, ui: &mut Ui<'_>, area: Rect) {
+        let workspace = self
+            .world
+            .workspaces
+            .first()
+            .map_or("payments-platform", |workspace| workspace.name.as_str());
+        let zoom_note = self.capsule.zoomed
+            && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54);
+        let attached = if zoom_note {
+            "Zoomed · z restores the layout".to_owned()
+        } else {
+            format!("Attached to {workspace} · tabs and panes restored")
+        };
         let layer = HintLayer {
             hints: vec![
                 Hint {
@@ -8438,10 +9460,20 @@ impl App {
         // ui.full() inside the layer is the popup clip, so decide out here.
         let screen = ui.full();
         let menu_80 = self.capsule_menu_80(ui.theme_ref(), screen);
+        let menu_120 = self.capsule_menu_120_frame(ui.theme_ref(), screen);
         let menu_title = self.capsule_tab_menu_title();
         let _ = ui.layer(CAPSULE_TAB_MENU, |ui, area| {
             let menu = self.capsule_tab_context(self.capsule_tab_menu_pos, &menu_title);
             menu.draw(ui, area, &self.capsule_tab_menu_state);
+            if menu_120 {
+                // Menu danger-soft drifted with the port token. The frozen
+                // tab menu still uses the baseline rose.
+                retint_fg(
+                    ui,
+                    termrock::Color::from_u32(0x00d9_8a8a),
+                    termrock::Color::from_u32(0x00e8_a0a0),
+                );
+            }
             if menu_80 {
                 // The popup clip is the live menu. Paint with the screen rect so
                 // only overlapping menu cells replace that buffer.
@@ -8454,7 +9486,10 @@ impl App {
                 area,
                 &self.capsule_palette_state,
                 CAPSULE_COMMANDS,
-            )
+            );
+            // The card covers the tab rule. That pad is on this layer, so a
+            // screen edit after composite cannot see it.
+            ghost_covered_tab_rule(ui);
         });
         let info = Self::container_info_dialog();
         let _ = ui.layer(CAPSULE_CONTAINER_INFO, |ui, area| {
@@ -8495,18 +9530,17 @@ impl App {
                 })
             });
         }
-        // The approved info frame is painted on the page until the info dialog
-        // renders through the real layer flow. Drawing the live modal would dim
-        // that page a second time.
-        if !(self.launch_cockpit_scene() && self.cockpit_info_open) {
-            let cockpit_info = Self::cockpit_info_dialog();
-            let _ = ui.layer(COCKPIT_INFO_DIALOG, |ui, area| {
-                let lines = self.cockpit_info_lines();
-                cockpit_info.draw(ui, area, &self.cockpit_info_state, |ui, body| {
-                    paint_lines(ui, body, &lines)
-                })
-            });
-        }
+        let cockpit_info = Self::cockpit_info_dialog();
+        let _ = ui.layer(COCKPIT_INFO_DIALOG, |ui, area| {
+            let facts = self.info_facts();
+            let shown: Vec<termrock::overlays::info_card::Fact<'_>> = facts
+                .iter()
+                .map(|(label, value)| termrock::overlays::info_card::Fact { label, value })
+                .collect();
+            cockpit_info.draw(ui, area, &self.cockpit_info_state, |ui, body| {
+                termrock::overlays::info_card::paint_facts(ui, body, &shown, 0)
+            })
+        });
         let editor_exit = Self::editor_exit_dialog();
         let _ = ui.layer(EDITOR_EXIT_DIALOG, |ui, area| {
             editor_exit.draw(ui, area, &self.editor_exit_state, |_, _| {})
@@ -8525,16 +9559,10 @@ impl App {
         let _ = ui.layer(ROLE_PICKER, |ui, area| {
             role_picker.draw(ui, area, &self.role_state, &self.roles)
         });
-        let agent_picker = Self::launch_agent_picker();
-        // The approved picker frame is painted on the page. Drawing the live
-        // modal would dim that page and place a cursor after this returns.
-        if !self.historical_launch_picker(ui.theme_ref(), ui.full())
-            && !self.historical_hard_launch_picker(ui.theme_ref(), ui.full())
-        {
-            let _ = ui.layer(crate::screens::manager::AGENT_PICKER, |ui, area| {
-                agent_picker.draw(ui, area, &self.agent_state, &self.agent_options)
-            });
-        }
+        let agent_picker = self.launch_agent_picker();
+        let _ = ui.layer(crate::screens::manager::AGENT_PICKER, |ui, area| {
+            agent_picker.draw(ui, area, &self.agent_state, &self.agent_options)
+        });
         let account_picker = self.active_account_picker();
         let account_items = match self.picker_mode {
             Some(PickerMode::OnePassword) => &self.op_options,
@@ -8718,22 +9746,6 @@ impl App {
             && self.launch_picker_host(cx.theme(), cx.viewport())
     }
 
-    fn historical_launch_picker(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        self.launch_picker_open
-            && self.status.as_deref() == Some("Launch · choose Agent")
-            && !self.agent_options.is_empty()
-            && self.launch_picker_host(theme, screen)
-    }
-
-    fn draw_historical_launch_picker(&self, ui: &mut Ui<'_>) {
-        if !self.historical_launch_picker(ui.theme_ref(), ui.full()) {
-            return;
-        }
-        // Approved frame hides the cursor. This path must not call set_cursor
-        // or set_bar_cursor, and it must not write cursor bytes.
-        launch_picker_view::paint(ui);
-    }
-
     fn hard_launch_picker_host(&self, theme: &termrock::Theme, screen: Rect) -> bool {
         // Enter on the paused 120×40 hard-cases manager opens this picker.
         // The returning picker, F10, `?`, inspect, and the closed manager stay off.
@@ -8764,22 +9776,6 @@ impl App {
         !self.launch_picker_open
             && !cx.is_open(crate::screens::manager::AGENT_PICKER)
             && self.hard_launch_picker_host(cx.theme(), cx.viewport())
-    }
-
-    fn historical_hard_launch_picker(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        self.launch_picker_open
-            && self.status.as_deref() == Some("Launch · choose Agent")
-            && !self.agent_options.is_empty()
-            && self.hard_launch_picker_host(theme, screen)
-    }
-
-    fn draw_historical_hard_launch_picker(&self, ui: &mut Ui<'_>) {
-        if !self.historical_hard_launch_picker(ui.theme_ref(), ui.full()) {
-            return;
-        }
-        // Approved frame hides the cursor. This path must not call set_cursor
-        // or set_bar_cursor, and it must not write cursor bytes.
-        hard_launch_picker_view::paint(ui);
     }
 
     fn historical_hard_launch_locked(&self, theme: &termrock::Theme, screen: Rect) -> bool {
@@ -9121,461 +10117,6 @@ impl App {
                 },
             );
     }
-
-    fn historical_settings_route_80(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        // `s` on the paused 80×24 accounts list.
-        // The 120×40 route, mounts, and env stay on their own frames.
-        screen.width == 80
-            && screen.height == 24
-            && theme.capability.color == termrock::ColorLevel::TrueColor
-            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
-            && self.route == Route::Settings
-            && self.world.scenario == Scenario::AccountsMixed
-            && self.motion == Motion::Paused
-            && self.settings.tab == 0
-            && !self.settings.dirty
-            && self.settings.save_error.is_none()
-            && self.settings.save_attempts == 0
-            && !self.settings_save_preview
-            && !self.trusted
-            && self.status.is_none()
-            && !self.help_open
-            && !self.quit_open
-            && !self.cancel_open
-            && !self.about_open
-            && !self.editor_exit_open
-            && !self.cockpit_info_open
-            && !self.launch_failure_open
-            && self.picker_mode.is_none()
-    }
-
-    fn draw_historical_settings_route_80(&self, ui: &mut Ui<'_>) {
-        if !self.historical_settings_route_80(ui.theme_ref(), ui.full()) {
-            return;
-        }
-        self.paint_accounts_general(ui, false);
-    }
-
-    fn paint_accounts_general(&self, ui: &mut Ui<'_>, wide: bool) {
-        // Approved frame hides the cursor. This path must not call set_cursor
-        // or set_bar_cursor, and it must not write cursor bytes.
-        let screen = ui.full();
-        let menus = ["File", "Go", "Help"];
-        let tabs = [
-            termrock::feedback::SettingsTab {
-                label: "General",
-                selected: true,
-            },
-            termrock::feedback::SettingsTab {
-                label: "Mounts",
-                selected: false,
-            },
-            termrock::feedback::SettingsTab {
-                label: "Environments",
-                selected: false,
-            },
-            termrock::feedback::SettingsTab {
-                label: "Agents",
-                selected: false,
-            },
-            termrock::feedback::SettingsTab {
-                label: "Trust",
-                selected: false,
-            },
-        ];
-        let commits = [
-            termrock::feedback::SettingsCheck {
-                label: "Add Co-authored-by trailer",
-                checked: true,
-            },
-            termrock::feedback::SettingsCheck {
-                label: "Sign off commits (DCO)",
-                checked: true,
-            },
-        ];
-        let sections = [
-            termrock::feedback::SettingsSection {
-                title: "Commits",
-                checks: &commits,
-                note: Some("Two independent flags; both apply to every Workspace."),
-                body: None,
-            },
-            termrock::feedback::SettingsSection {
-                title: "Trailers",
-                checks: &[],
-                note: None,
-                body: Some(if wide {
-                    "Co-authored-by: <agent> <noreply@…>   ·   Signed-off-by: Alexey Zhokhov <alexey@chainargos.com>"
-                } else {
-                    "Co-authored-by: <agent> <noreply@…>   ·   Signed-off-by: Alexey Zhokhov…"
-                }),
-            },
-        ];
-        let hints = [
-            termrock::feedback::SettingsHint {
-                key: "←→",
-                action: "Tab",
-            },
-            termrock::feedback::SettingsHint {
-                key: "1–5",
-                action: "Jump",
-            },
-            termrock::feedback::SettingsHint {
-                key: "Enter",
-                action: "Edit fields",
-            },
-            termrock::feedback::SettingsHint {
-                key: "[ ]",
-                action: "Switch tab",
-            },
-            termrock::feedback::SettingsHint {
-                key: "Ctrl+S",
-                action: "Save",
-            },
-            termrock::feedback::SettingsHint {
-                key: "Esc",
-                action: "Back",
-            },
-        ];
-        termrock::feedback::paint_settings_page(
-            ui,
-            screen,
-            &termrock::feedback::SettingsPage {
-                brand: "jackin❯",
-                menus: &menus,
-                crumb: "Settings › global › General",
-                tabs: &tabs,
-                sections: &sections,
-                cancel: "Cancel",
-                save: "Save…",
-                save_enabled: false,
-                hints: &hints,
-                hint_overflow: None,
-                mounts: &[],
-                add_mount: None,
-                cluster: wide.then_some(termrock::feedback::SettingsCluster {
-                    note: "inside the Construct",
-                    mark: "●",
-                    value: "2 running",
-                }),
-            },
-        );
-    }
-
-    fn historical_settings_route_120(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        // `s` on the paused 120×40 accounts list.
-        screen.width == 120
-            && screen.height == 40
-            && theme.capability.color == termrock::ColorLevel::TrueColor
-            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
-            && self.route == Route::Settings
-            && self.world.scenario == Scenario::AccountsMixed
-            && self.motion == Motion::Paused
-            && self.settings.tab == 0
-            && !self.settings.dirty
-            && self.settings.save_error.is_none()
-            && self.settings.save_attempts == 0
-            && !self.settings_save_preview
-            && !self.trusted
-            && self.status.is_none()
-            && !self.help_open
-            && !self.quit_open
-            && !self.cancel_open
-            && !self.about_open
-            && !self.editor_exit_open
-            && !self.cockpit_info_open
-            && !self.launch_failure_open
-            && self.picker_mode.is_none()
-    }
-
-    fn draw_historical_settings_route_120(&self, ui: &mut Ui<'_>) {
-        if !self.historical_settings_route_120(ui.theme_ref(), ui.full()) {
-            return;
-        }
-        // Same general page as 80 columns, plus the wide status cluster.
-        self.paint_accounts_general(ui, true);
-    }
-
-    fn historical_settings_mounts_80(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        // `2` then Enter on the paused 80×24 General settings page.
-        // `s` alone stays on General. The 120×40 mounts frame stays on its paint.
-        screen.width == 80
-            && screen.height == 24
-            && theme.capability.color == termrock::ColorLevel::TrueColor
-            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
-            && self.route == Route::Settings
-            && self.world.scenario == Scenario::AccountsMixed
-            && self.motion == Motion::Paused
-            && self.settings.tab == 1
-            && !self.settings_mounts_armed
-            && !self.settings.dirty
-            && self.settings.save_error.is_none()
-            && self.settings.save_attempts == 0
-            && !self.settings_save_preview
-            && !self.trusted
-            && self.status.is_none()
-            && !self.help_open
-            && !self.quit_open
-            && !self.cancel_open
-            && !self.about_open
-            && !self.editor_exit_open
-            && !self.cockpit_info_open
-            && !self.launch_failure_open
-            && self.picker_mode.is_none()
-    }
-
-    fn draw_historical_settings_mounts_80(&self, ui: &mut Ui<'_>) {
-        if !self.historical_settings_mounts_80(ui.theme_ref(), ui.full()) {
-            return;
-        }
-        // Approved frame hides the cursor. This path must not call set_cursor
-        // or set_bar_cursor, and it must not write cursor bytes.
-        let screen = ui.full();
-        let menus = ["File", "Go", "Help"];
-        let tabs = [
-            termrock::feedback::SettingsTab {
-                label: "General",
-                selected: false,
-            },
-            termrock::feedback::SettingsTab {
-                label: "Mounts",
-                selected: true,
-            },
-            termrock::feedback::SettingsTab {
-                label: "Environments",
-                selected: false,
-            },
-            termrock::feedback::SettingsTab {
-                label: "Agents",
-                selected: false,
-            },
-            termrock::feedback::SettingsTab {
-                label: "Trust",
-                selected: false,
-            },
-        ];
-        let mounts = [
-            termrock::feedback::SettingsMount {
-                path: "/home/agent/.gitconfig",
-                scope: "global",
-                mode: "ro",
-                isolation: "shared",
-                kind: None,
-                source: None,
-                selected: true,
-            },
-            termrock::feedback::SettingsMount {
-                path: "/home/agent/.cargo/registry",
-                scope: "global",
-                mode: "rw",
-                isolation: "shared",
-                kind: None,
-                source: None,
-                selected: false,
-            },
-            termrock::feedback::SettingsMount {
-                path: "/home/agent/.kube",
-                scope: "role sre",
-                mode: "ro",
-                isolation: "shared",
-                kind: None,
-                source: None,
-                selected: false,
-            },
-        ];
-        let hints = [
-            termrock::feedback::SettingsHint {
-                key: "Enter",
-                action: "Edit…",
-            },
-            termrock::feedback::SettingsHint {
-                key: "r",
-                action: "Read-only",
-            },
-            termrock::feedback::SettingsHint {
-                key: "i",
-                action: "Isolation",
-            },
-            termrock::feedback::SettingsHint {
-                key: "o",
-                action: "Open source",
-            },
-            termrock::feedback::SettingsHint {
-                key: "d",
-                action: "Remove",
-            },
-            termrock::feedback::SettingsHint {
-                key: "Esc",
-                action: "Back",
-            },
-        ];
-        termrock::feedback::paint_settings_page(
-            ui,
-            screen,
-            &termrock::feedback::SettingsPage {
-                brand: "jackin❯",
-                menus: &menus,
-                crumb: "Settings › global › Mounts",
-                tabs: &tabs,
-                sections: &[],
-                cancel: "Cancel",
-                save: "Save…",
-                save_enabled: false,
-                hints: &hints,
-                hint_overflow: Some("…"),
-                mounts: &mounts,
-                add_mount: Some("+ Add mount"),
-                cluster: None,
-            },
-        );
-    }
-
-    fn historical_settings_mounts_120(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        // `2` then Enter on the paused 120×40 General settings page.
-        screen.width == 120
-            && screen.height == 40
-            && theme.capability.color == termrock::ColorLevel::TrueColor
-            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
-            && self.route == Route::Settings
-            && self.world.scenario == Scenario::AccountsMixed
-            && self.motion == Motion::Paused
-            && self.settings.tab == 1
-            && !self.settings_mounts_armed
-            && !self.settings.dirty
-            && self.settings.save_error.is_none()
-            && self.settings.save_attempts == 0
-            && !self.settings_save_preview
-            && !self.trusted
-            && self.status.is_none()
-            && !self.help_open
-            && !self.quit_open
-            && !self.cancel_open
-            && !self.about_open
-            && !self.editor_exit_open
-            && !self.cockpit_info_open
-            && !self.launch_failure_open
-            && self.picker_mode.is_none()
-    }
-
-    fn draw_historical_settings_mounts_120(&self, ui: &mut Ui<'_>) {
-        if !self.historical_settings_mounts_120(ui.theme_ref(), ui.full()) {
-            return;
-        }
-        let screen = ui.full();
-        let menus = ["File", "Go", "Help"];
-        let tabs = [
-            termrock::feedback::SettingsTab {
-                label: "General",
-                selected: false,
-            },
-            termrock::feedback::SettingsTab {
-                label: "Mounts",
-                selected: true,
-            },
-            termrock::feedback::SettingsTab {
-                label: "Environments",
-                selected: false,
-            },
-            termrock::feedback::SettingsTab {
-                label: "Agents",
-                selected: false,
-            },
-            termrock::feedback::SettingsTab {
-                label: "Trust",
-                selected: false,
-            },
-        ];
-        let mounts = [
-            termrock::feedback::SettingsMount {
-                path: "/home/agent/.gitconfig",
-                scope: "global",
-                mode: "ro",
-                isolation: "shared",
-                kind: Some("host"),
-                source: Some("~/.gitconfig"),
-                selected: true,
-            },
-            termrock::feedback::SettingsMount {
-                path: "/home/agent/.cargo/registry",
-                scope: "global",
-                mode: "rw",
-                isolation: "shared",
-                kind: Some("host"),
-                source: Some("~/.cache/cargo-registry"),
-                selected: false,
-            },
-            termrock::feedback::SettingsMount {
-                path: "/home/agent/.kube",
-                scope: "role sre",
-                mode: "ro",
-                isolation: "shared",
-                kind: Some("host"),
-                source: Some("~/roles/sre-kube"),
-                selected: false,
-            },
-        ];
-        let hints = [
-            termrock::feedback::SettingsHint {
-                key: "Enter",
-                action: "Edit…",
-            },
-            termrock::feedback::SettingsHint {
-                key: "r",
-                action: "Read-only",
-            },
-            termrock::feedback::SettingsHint {
-                key: "i",
-                action: "Isolation",
-            },
-            termrock::feedback::SettingsHint {
-                key: "o",
-                action: "Open source",
-            },
-            termrock::feedback::SettingsHint {
-                key: "d",
-                action: "Remove",
-            },
-            termrock::feedback::SettingsHint {
-                key: "s",
-                action: "Scope…",
-            },
-            termrock::feedback::SettingsHint {
-                key: "a",
-                action: "Add mount…",
-            },
-            termrock::feedback::SettingsHint {
-                key: "[ ]",
-                action: "Switch tab",
-            },
-            termrock::feedback::SettingsHint {
-                key: "Esc",
-                action: "Back",
-            },
-        ];
-        termrock::feedback::paint_settings_page(
-            ui,
-            screen,
-            &termrock::feedback::SettingsPage {
-                brand: "jackin❯",
-                menus: &menus,
-                crumb: "Settings › global › Mounts",
-                tabs: &tabs,
-                sections: &[],
-                cancel: "Cancel",
-                save: "Save…",
-                save_enabled: false,
-                hints: &hints,
-                hint_overflow: Some("…"),
-                mounts: &mounts,
-                add_mount: Some("+ Add mount"),
-                cluster: Some(termrock::feedback::SettingsCluster {
-                    note: "inside the Construct",
-                    mark: "●",
-                    value: "2 running",
-                }),
-            },
-        );
-    }
 }
 
 fn plural(count: usize, one: &str, many: &str) -> String {
@@ -9613,21 +10154,478 @@ fn wrap_account_lines(joined: &str) -> Vec<String> {
     let sep = [' ', '·', ' '];
     let mut cut = limit;
     for index in 0..=chars.len().saturating_sub(3) {
-        if index + 3 <= limit && chars[index..index + 3] == sep {
+        if index + 3 <= limit
+            && chars
+                .get(index..index + 3)
+                .is_some_and(|window| window == sep.as_slice())
+        {
             cut = index + 3;
         }
     }
-    vec![chars[..cut].iter().collect(), chars[cut..].iter().collect()]
+    let cut = cut.min(chars.len());
+    let (head, tail) = chars.split_at(cut);
+    vec![head.iter().collect(), tail.iter().collect()]
+}
+
+fn paint_capsule_tab_rule(ui: &mut Ui<'_>, rule: Rect) {
+    let style = ui.paint_patch(&termrock::StylePatch::new().set_fg(termrock::Role::Custom(
+        termrock::Color::Rgb(0x4d, 0x4d, 0x4d),
+    )));
+    for x in rule.x..rule.right() {
+        ui.paint_str(Rect::new(x, rule.y, 1, 1), "─", style);
+    }
+}
+
+const USAGE_SPINNER: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+
+fn usage_spinner(now_ms: i64) -> &'static str {
+    let tick = u64::try_from(now_ms.max(0) / 80).unwrap_or(0);
+    let index = usize::try_from(tick % 10).unwrap_or(0);
+    USAGE_SPINNER.get(index).copied().unwrap_or("⠋")
+}
+
+fn usage_account_lines(
+    account: &Account,
+    world: &World,
+) -> Vec<termrock::feedback::UsageAccountLine> {
+    use termrock::feedback::{UsageAccountLine, UsageInk, UsageQuota};
+    let text = |body: String, ink: UsageInk, heavy: bool| UsageAccountLine::Text {
+        text: body,
+        ink,
+        bold: heavy,
+    };
+    let mut lines = vec![
+        text(
+            format!(
+                "Provider     {} · surface {}",
+                account.provider.label(),
+                account.surface.surface_name()
+            ),
+            UsageInk::Plain,
+            false,
+        ),
+        text(
+            format!(
+                "Account      {} · {}",
+                account.identity.label(),
+                account
+                    .identity
+                    .plan
+                    .clone()
+                    .unwrap_or_else(|| "plan unknown".to_owned())
+            ),
+            if account.identity.subject.is_some() {
+                UsageInk::Plain
+            } else {
+                UsageInk::Muted
+            },
+            false,
+        ),
+        text(
+            format!(
+                "Credential   {} · {}",
+                account.source.origin_label(),
+                account.source.safe_detail()
+            ),
+            UsageInk::Plain,
+            false,
+        ),
+    ];
+    let status = match account.usage.freshness.phase {
+        Freshness::Current => format!(
+            "{} · current · refreshed {}",
+            account.lifecycle.label(),
+            account
+                .last_refresh_secs
+                .map(|secs| world.clock.ago(secs))
+                .unwrap_or_else(|| "never".to_owned())
+        ),
+        Freshness::Stale => format!(
+            "{} · stale · last good {}",
+            account.lifecycle.label(),
+            account
+                .usage
+                .freshness
+                .last_good_secs
+                .map(|secs| world.clock.ago(secs))
+                .unwrap_or_else(|| "?".to_owned())
+        ),
+        Freshness::Refreshing => format!("{} · refreshing…", account.lifecycle.label()),
+        Freshness::Failed => format!(
+            "{} · error: {}",
+            account.lifecycle.label(),
+            account
+                .issue
+                .as_ref()
+                .map(|issue| issue.message.clone())
+                .unwrap_or_else(|| "refresh failed".to_owned())
+        ),
+    };
+    let status_ink = match account.usage.freshness.phase {
+        Freshness::Failed => UsageInk::Danger,
+        Freshness::Stale => UsageInk::Warning,
+        _ => UsageInk::Plain,
+    };
+    lines.push(text(format!("Status       {status}"), status_ink, false));
+    lines.push(UsageAccountLine::Blank);
+    lines.push(text("Limits".to_owned(), UsageInk::Secondary, true));
+    let italic = matches!(
+        account.usage.freshness.phase,
+        Freshness::Stale | Freshness::Failed
+    );
+    for window in &account.usage.windows {
+        if !window.has_meter() {
+            continue;
+        }
+        let meter = match window.status {
+            QuotaStatus::Exhausted => UsageInk::Danger,
+            QuotaStatus::Warning => UsageInk::Warning,
+            _ => UsageInk::Info,
+        };
+        lines.push(UsageAccountLine::Quota(UsageQuota {
+            label: format!("  {}", window.label),
+            pct: window.used_pct.unwrap_or(0),
+            detail: usage_meter_detail(window, world),
+            meter,
+            italic,
+        }));
+    }
+    lines
+}
+
+fn usage_meter_detail(window: &crate::domain::usage::QuotaWindow, world: &World) -> String {
+    use crate::domain::usage::WindowUnit;
+    let mut parts = Vec::new();
+    if let (Some(used), Some(limit)) = (window.used, window.limit)
+        && window.unit != WindowUnit::Percent
+    {
+        parts.push(format!("{} / {} {}", used, limit, window.unit.label()));
+    }
+    if let Some(reset) = window.reset_secs {
+        parts.push(world.clock.reset_label(reset));
+    }
+    if let Some(spend) = &window.spend_label {
+        parts.push(spend.clone());
+    }
+    if window.status == QuotaStatus::Exhausted {
+        parts.push("exhausted".to_owned());
+    }
+    parts.join(" · ")
+}
+
+fn usage_detail_meta(world: &World) -> String {
+    let summary = OverallSummary::compute(&world.accounts.accounts);
+    format!(
+        "{} {} · {} {}",
+        summary.counts.accounts,
+        if summary.counts.accounts == 1 {
+            "account"
+        } else {
+            "accounts"
+        },
+        summary.counts.providers,
+        if summary.counts.providers == 1 {
+            "provider"
+        } else {
+            "providers"
+        }
+    )
+}
+
+fn usage_push_part(
+    spans: &mut Vec<termrock::feedback::UsageSpan>,
+    text: String,
+    ink: termrock::feedback::UsageInk,
+) {
+    spans.push(termrock::feedback::UsageSpan {
+        text: " · ".to_owned(),
+        ink: termrock::feedback::UsageInk::Muted,
+    });
+    spans.push(termrock::feedback::UsageSpan { text, ink });
+}
+
+fn usage_provider_line(
+    world: &World,
+    surface: UsageSurface,
+) -> termrock::feedback::UsageDetailLine {
+    use termrock::feedback::{UsageDetailLine, UsageInk, UsageProvider};
+    if surface == UsageSurface::Unsupported {
+        return UsageDetailLine::Spans(vec![termrock::feedback::UsageSpan {
+            text: format!(
+                "{:<12} {:<9} {:<26} {}",
+                "—", "—", "—", "unsupported sentinel"
+            ),
+            ink: UsageInk::Muted,
+        }]);
+    }
+    let enabled: Vec<&Account> = world
+        .accounts
+        .accounts
+        .iter()
+        .filter(|account| account.surface == surface && account.enabled)
+        .collect();
+    if enabled.is_empty() {
+        return UsageDetailLine::Provider(UsageProvider {
+            name: surface.label().to_owned(),
+            accounts: "—".to_owned(),
+            window: "—".to_owned(),
+            pct: None,
+            meter: UsageInk::Info,
+            marker: "",
+            italic: false,
+            status_mark: String::new(),
+            status: "not discovered".to_owned(),
+            status_ink: UsageInk::Muted,
+        });
+    }
+    let mut best: Option<(u8, String, QuotaStatus, Freshness, String, String)> = None;
+    for account in &enabled {
+        for window in &account.usage.windows {
+            let Some(pct) = window.used_pct else {
+                continue;
+            };
+            if best.as_ref().is_none_or(|best| pct > best.0) {
+                let issue = account
+                    .issue
+                    .as_ref()
+                    .map(|issue| issue.message.clone())
+                    .unwrap_or_default();
+                best = Some((
+                    pct,
+                    window.label.clone(),
+                    window.status,
+                    account.usage.freshness.phase,
+                    issue,
+                    account.status_word().to_owned(),
+                ));
+            }
+        }
+    }
+    let Some((pct, label, status, phase, issue, _word)) = best else {
+        let word = enabled
+            .first()
+            .map(|account| account.status_word().to_owned())
+            .unwrap_or_default();
+        return UsageDetailLine::Provider(UsageProvider {
+            name: surface.label().to_owned(),
+            accounts: enabled.len().to_string(),
+            window: "—".to_owned(),
+            pct: None,
+            meter: UsageInk::Info,
+            marker: "",
+            italic: false,
+            status_mark: String::new(),
+            status: word,
+            status_ink: UsageInk::Muted,
+        });
+    };
+    let italic = phase != Freshness::Current;
+    let (mark, status_text, status_ink, meter, marker) = match (status, phase) {
+        (QuotaStatus::Exhausted, _) => (
+            "✗ ".to_owned(),
+            "exhausted".to_owned(),
+            UsageInk::Danger,
+            UsageInk::Danger,
+            " !",
+        ),
+        (_, Freshness::Failed) => {
+            let head = issue.split(':').next().unwrap_or("error").to_lowercase();
+            (
+                "✗ ".to_owned(),
+                head,
+                UsageInk::Danger,
+                if pct >= 100 {
+                    UsageInk::Danger
+                } else if pct >= 75 {
+                    UsageInk::Warning
+                } else {
+                    UsageInk::Info
+                },
+                "",
+            )
+        }
+        (QuotaStatus::Warning, _) => (
+            "▲ ".to_owned(),
+            "warning".to_owned(),
+            UsageInk::Warning,
+            UsageInk::Warning,
+            " ▲",
+        ),
+        (_, Freshness::Stale) => (
+            "▲ ".to_owned(),
+            "stale".to_owned(),
+            UsageInk::Warning,
+            if pct >= 75 {
+                UsageInk::Warning
+            } else {
+                UsageInk::Info
+            },
+            " ▲",
+        ),
+        _ => (
+            "✓ ".to_owned(),
+            "current".to_owned(),
+            UsageInk::Success,
+            UsageInk::Info,
+            "  ",
+        ),
+    };
+    UsageDetailLine::Provider(UsageProvider {
+        name: surface.label().to_owned(),
+        accounts: enabled.len().to_string(),
+        window: label,
+        pct: Some(pct),
+        meter,
+        marker,
+        italic,
+        status_mark: mark,
+        status: status_text,
+        status_ink,
+    })
+}
+
+fn usage_heading(label: &str) -> termrock::feedback::UsageLine {
+    termrock::feedback::UsageLine {
+        heading: true,
+        overview: false,
+        label: label.to_owned(),
+        muted: true,
+        mark: termrock::feedback::UsageMark::None,
+        meta: String::new(),
+        selected: false,
+        focused: false,
+    }
+}
+
+fn usage_account_line(account: &Account, frame: &str) -> termrock::feedback::UsageLine {
+    let mut label = account.display_name.clone();
+    if account.default_for_provider {
+        label.push_str("  ★");
+    }
+    let mark = if !account.enabled {
+        termrock::feedback::UsageMark::None
+    } else if account.is_error_state()
+        || matches!(account.usage.worst_status(), Some(QuotaStatus::Exhausted))
+    {
+        termrock::feedback::UsageMark::Danger
+    } else if matches!(account.usage.worst_status(), Some(QuotaStatus::Warning))
+        || account.usage.freshness.phase == Freshness::Stale
+    {
+        termrock::feedback::UsageMark::Warning
+    } else {
+        termrock::feedback::UsageMark::None
+    };
+    let meta = if account.usage.freshness.phase == Freshness::Refreshing {
+        frame.to_owned()
+    } else if !account.enabled {
+        "disabled".to_owned()
+    } else if account.lifecycle != Lifecycle::Available {
+        account.lifecycle.label().to_owned()
+    } else {
+        String::new()
+    };
+    termrock::feedback::UsageLine {
+        heading: false,
+        overview: false,
+        label,
+        muted: !account.enabled,
+        mark,
+        meta,
+        selected: false,
+        focused: false,
+    }
+}
+
+fn ghost_covered_tab_rule(ui: &mut Ui<'_>) {
+    let (buf, clip) = ui.raw();
+    let ghost = termrock::Color::Rgb(0x26, 0x26, 0x26);
+    let faint = termrock::Color::Rgb(0x73, 0x73, 0x73);
+    let card = termrock::Color::Rgb(0x18, 0x18, 0x1b);
+    for pos in clip.positions() {
+        if pos.y != 3 {
+            continue;
+        }
+        if let Some(cell) = buf.cell_mut(pos)
+            && cell.symbol() == " "
+            && cell.fg == faint
+            && cell.bg == card
+        {
+            cell.fg = ghost;
+        }
+    }
+}
+
+fn finish_capsule_palette_chrome(ui: &mut Ui<'_>) {
+    let (buf, _) = ui.raw();
+    let ghost = termrock::Color::Rgb(0x26, 0x26, 0x26);
+    for x in 1..15 {
+        let pos = Position::new(x, 3);
+        if let Some(cell) = buf.cell_mut(pos)
+            && cell.symbol() == "━"
+        {
+            cell.fg = ghost;
+        }
+    }
+    for x in [5u16, 6, 34, 35, 36] {
+        let pos = Position::new(x, 39);
+        if let Some(cell) = buf.cell_mut(pos) {
+            cell.modifier.insert(Modifier::BOLD);
+        }
+    }
+}
+
+fn retint_fg(ui: &mut Ui<'_>, from: termrock::Color, to: termrock::Color) {
+    let (buf, clip) = ui.raw();
+    for pos in clip.positions() {
+        if let Some(cell) = buf.cell_mut(pos)
+            && cell.fg == from
+        {
+            cell.fg = to;
+        }
+    }
 }
 
 fn capsule_span_role(tone: crate::sim::pty::Tone) -> termrock::Role {
     use crate::sim::pty::Tone;
     match tone {
-        // Baseline success and danger are not the port tokens.
+        // Baseline success is not the port token.
         Tone::Success => termrock::Role::Custom(termrock::Color::Rgb(0x3f, 0xb9, 0x50)),
-        Tone::Error => termrock::Role::Custom(termrock::Color::Rgb(0xf0, 0x5d, 0x5d)),
+        Tone::Error => termrock::Role::Danger,
         other => other.role(),
     }
+}
+
+fn truncate_middle(text: &str, max: usize) -> String {
+    if usize::from(termrock::width(text)) <= max {
+        return text.to_owned();
+    }
+    if max < 5 {
+        return truncate_chars(text, max);
+    }
+    let keep_end = (max - 1) / 3;
+    let keep_start = max - 1 - keep_end;
+    let mut head = String::new();
+    let mut used = 0usize;
+    for ch in text.chars() {
+        let next = used.saturating_add(usize::from(termrock::width(ch.encode_utf8(&mut [0; 4]))));
+        if next > keep_start {
+            break;
+        }
+        head.push(ch);
+        used = next;
+    }
+    let chars: Vec<char> = text.chars().collect();
+    let mut tail = String::new();
+    let mut used = 0usize;
+    for ch in chars.iter().rev() {
+        let next = used.saturating_add(usize::from(termrock::width(ch.encode_utf8(&mut [0; 4]))));
+        if next > keep_end {
+            break;
+        }
+        tail.insert(0, *ch);
+        used = next;
+    }
+    format!("{head}…{tail}")
 }
 
 fn truncate_chars(text: &str, max: usize) -> String {
@@ -9696,8 +10694,25 @@ impl TuiApp for App {
         if self.route == Route::Capsule {
             self.draw_capsule_shell(ui, full);
             self.draw_layers(ui);
+            if self.capsule_palette_open {
+                // Accent on the tab rule dims to faint. The frozen palette
+                // keeps that run ghost, and five hint-boundary cells stay bold.
+                finish_capsule_palette_chrome(ui);
+            }
             self.draw_capsule_zoom(ui, full);
             self.draw_capsule_menu_80(ui);
+            if self.capsule_agent_picker_frame(ui.theme_ref(), full) {
+                let title = match self.pending_capsule_action {
+                    Some(CapsuleAction::NewTab) => "New tab",
+                    _ => "Split ↓ Below",
+                };
+                capsule_split_view::paint(ui, title);
+                ui.set_undrawn_top_bar_cursor(
+                    CAPSULE_INPUT,
+                    Rect::new(28, 16, 1, 1),
+                    Position::new(28, 16),
+                );
+            }
             return;
         }
         let hints: &HintLayer = if self.help_open {
@@ -9765,13 +10780,13 @@ impl TuiApp for App {
                 Scenario::Returning | Scenario::HardCases
             )
             && self.motion == Motion::Paused
-            && self.status.is_none()
+            && (self.status.is_none() || self.launch_picker_open)
             && !self.help_open
             && !self.quit_open
             && !self.cancel_open
             && self.launch.is_none()
             && self.picker_mode.is_none()
-            && self.agent_options.is_empty()
+            && (self.agent_options.is_empty() || self.launch_picker_open)
             && self.active_instance.is_none()
             && !self.manager.detail_open();
         if historical_manager
@@ -9818,6 +10833,20 @@ impl TuiApp for App {
         {
             self.paint_pinned_split(ui, full, termrock::feedback::SplitMode::Empty, true);
         }
+        if self.route == Route::Prelude
+            && full.width == 120
+            && full.height == 40
+            && self.world.scenario == Scenario::FirstUse
+            && self.motion == Motion::Paused
+            && self.prelude.step() == 1
+            && ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
+            && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+        {
+            prelude_view::paint(self, ui, full);
+        }
         let editor_allowed = (!self.editor.preview_open && self.status.is_none())
             || (self.editor.preview_open
                 && self
@@ -9841,24 +10870,31 @@ impl TuiApp for App {
         {
             editor_view::paint(self, ui, full);
         }
+        // Reduced color levels still read the approved info frame off the
+        // page until the shared capability ladders reproduce the frozen card
+        // inks at 256, 16 colors and mono.
         if self.launch_cockpit_scene() && self.cockpit_info_open {
-            let facts = self.info_facts();
-            let shown: Vec<termrock::overlays::info_card::Fact<'_>> = facts
-                .iter()
-                .map(|(label, value)| termrock::overlays::info_card::Fact { label, value })
-                .collect();
-            launch_dialog_plate::paint_info(ui, &shown);
-            let reduced = matches!(
-                ui.theme_ref().capability.color,
-                termrock::ColorLevel::Ansi16 | termrock::ColorLevel::Mono
-            ) || std::env::var_os("NO_COLOR").is_some();
-            if full.width == 120 && full.height == 40 {
-                if let Some(column) = launch_cockpit::stage_rail_left(full) {
-                    ui.clear_dim(column);
-                }
-                launch_cockpit::paint_open_footer(ui, false);
-            } else if reduced && let Some(column) = launch_cockpit::stage_rail_left(full) {
+            let reduced = ui.theme_ref().capability.color != termrock::ColorLevel::TrueColor;
+            if reduced {
+                let facts = self.info_facts();
+                let shown: Vec<termrock::overlays::info_card::Fact<'_>> = facts
+                    .iter()
+                    .map(|(label, value)| termrock::overlays::info_card::Fact { label, value })
+                    .collect();
+                launch_dialog_plate::paint_info(ui, &shown);
+            }
+            let dim_clear = full.width == 120 && full.height == 40
+                || (reduced
+                    && matches!(
+                        ui.theme_ref().capability.color,
+                        termrock::ColorLevel::Ansi16 | termrock::ColorLevel::Mono
+                    )
+                    || std::env::var_os("NO_COLOR").is_some());
+            if dim_clear && let Some(column) = launch_cockpit::stage_rail_left(full) {
                 ui.clear_dim(column);
+            }
+            if full.width == 120 && full.height == 40 {
+                launch_cockpit::paint_open_footer(ui, false);
             }
         }
         if self.launch_cockpit_scene()
@@ -9878,6 +10914,7 @@ impl TuiApp for App {
         }
         self.draw_accounts_boot_needle(ui, full);
         self.draw_accounts_boot_needle_80(ui, full);
+        self.draw_accounts_boot_needle_rest(ui, full);
         self.draw_historical_audit_accounts_80(ui);
         self.draw_historical_accounts_add_form(ui, full);
         self.draw_historical_accounts_filter(ui, full);
@@ -9898,13 +10935,11 @@ impl TuiApp for App {
         {
             settings_view::paint(self, ui, full);
         }
-        self.draw_historical_settings_route_80(ui);
-        self.draw_historical_settings_route_120(ui);
-        self.draw_historical_settings_mounts_80(ui);
-        self.draw_historical_settings_mounts_120(ui);
         self.draw_historical_accounts_detail(ui, full);
         self.draw_historical_accounts_detail_80(ui);
         self.draw_historical_accounts_drawer(ui, full);
+        self.draw_usage_overview_narrow(ui, full);
+        self.draw_usage_detail_live(ui, full);
         self.draw_historical_usage_overview(ui, full);
         self.draw_historical_usage_detail(ui, full);
         if self.manager_inspect
@@ -9919,8 +10954,6 @@ impl TuiApp for App {
             inspect_view::paint(ui);
         }
         self.draw_historical_manager_menu(ui, full);
-        self.draw_historical_launch_picker(ui);
-        self.draw_historical_hard_launch_picker(ui);
         self.draw_historical_hard_launch_locked(ui);
         self.draw_historical_hard_cases_80(ui);
         self.draw_historical_help_overlay(ui, full);
@@ -10517,6 +11550,8 @@ mod paint_contract_tests {
                     h.find("FAILED").expect("FAILED in mono")
                 } else if scenario == Scenario::CapsuleMulti && glyph == "j" {
                     h.find("jackin❯").expect("jackin in mono")
+                } else if scenario == Scenario::Returning && glyph == "L" {
+                    h.find("Launch").expect("Launch in mono")
                 } else {
                     (x, y)
                 };
@@ -10712,20 +11747,21 @@ mod paint_contract_tests {
         );
         let _ = split.ctrl('b');
         let _ = split.key(KeyCode::Char('"'));
-        assert_eq!(
-            split.app().status.as_deref(),
-            Some("Split below · Account for Claude Code")
-        );
+        assert_eq!(split.app().status.as_deref(), None);
         assert!(
-            split
-                .text()
-                .contains("Split below · Account for Claude Code"),
+            split.app().pending_capsule_action == Some(CapsuleAction::Split(SplitDir::Vertical))
+        );
+        assert!(split.text().contains("Split ↓ Below"), "{}", split.text());
+        assert!(split.text().contains("Type to search…"), "{}", split.text());
+        assert!(
+            split.text().contains("2 accounts · choose at start"),
             "{}",
             split.text()
         );
-        assert!(split.text().contains("Type to search…"), "{}", split.text());
         assert!(
-            split.text().contains("Claude · Personal"),
+            !split
+                .text()
+                .contains("Split below · Account for Claude Code"),
             "{}",
             split.text()
         );
@@ -10786,19 +11822,18 @@ mod paint_contract_tests {
         );
         let _ = tab.ctrl('b');
         let _ = tab.key(KeyCode::Char('c'));
-        assert_eq!(tab.app().status.as_deref(), Some("New tab"));
+        assert_eq!(tab.app().status.as_deref(), None);
         assert!(tab.text().contains("New tab"), "{}", tab.text());
-        assert!(!tab.text().contains("Change title…"), "{}", tab.text());
-        assert!(!tab.text().contains("Command palette"), "{}", tab.text());
-
-        let _ = tab.key(KeyCode::Enter);
-        assert_eq!(
-            tab.app().status.as_deref(),
-            Some("New tab · Account for Claude Code")
-        );
         assert!(tab.text().contains("Type to search…"), "{}", tab.text());
         assert!(
-            tab.text().contains("New tab · Account for Claude Code"),
+            tab.text().contains("2 accounts · choose at start"),
+            "{}",
+            tab.text()
+        );
+        assert!(!tab.text().contains("Change title…"), "{}", tab.text());
+        assert!(!tab.text().contains("Command palette"), "{}", tab.text());
+        assert!(
+            !tab.text().contains("New tab · Account for Claude Code"),
             "{}",
             tab.text()
         );
@@ -10934,7 +11969,13 @@ mod paint_contract_tests {
         );
         let _ = narrow.ctrl('b');
         let _ = narrow.key(KeyCode::Char('z'));
-        assert!(!narrow.text().contains("Zoomed · z restores the layout"));
+        assert_eq!(narrow.app().status, None);
+        assert!(
+            narrow.text().contains("Zoomed · z restores the layout"),
+            "{}",
+            narrow.text()
+        );
+        assert!(narrow.text().contains("zoomed"), "{}", narrow.text());
     }
 
     #[test]

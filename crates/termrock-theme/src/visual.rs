@@ -45,6 +45,90 @@ impl InactiveSelection {
     ];
 }
 
+/// When a widget family paints the keyboard-focus bar in its gutter.
+///
+/// One shared policy for every gutter paint site. The frozen families pin
+/// three distinct rules (see `frozen_ink_pins.rs` in `termrock-controls` and
+/// `termrock-navigation`), so the rule is a parameter here and never a
+/// per-widget fork. Tier-sensitive rules read the theme's own capability
+/// level (set by [`Theme::for_level`](crate::Theme::for_level)), matching the
+/// resolver.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
+pub enum FocusBarPolicy {
+    /// Row families that blank the bar while disabled (`LIST`): the bar needs
+    /// focus and an enabled widget, at every tier. This is also the rule the
+    /// pre-policy helpers baked in, so it is the default.
+    #[default]
+    RowBlanked,
+    /// Row families that keep the bar while disabled (`CHOICE`, `TREE`,
+    /// `STEPS`): focus alone draws the bar at every tier; only the mono tier
+    /// blanks a disabled row's bar.
+    RowKept,
+    /// macOS-style controls (`BUTTON`): the bar needs focus AND focus
+    /// visibility, so mouse-initiated focus shows no bar. A disabled control
+    /// keeps a focus-visible bar.
+    FocusVisible,
+}
+
+impl FocusBarPolicy {
+    pub const ALL: [FocusBarPolicy; 3] = [
+        FocusBarPolicy::RowBlanked,
+        FocusBarPolicy::RowKept,
+        FocusBarPolicy::FocusVisible,
+    ];
+
+    /// Whether the focus bar paints for `flags` at colour capability `level`.
+    #[must_use]
+    pub fn shows_bar(self, flags: StateFlags, level: ColorLevel) -> bool {
+        if !flags.contains(StateFlags::FOCUSED) {
+            return false;
+        }
+        match self {
+            Self::RowBlanked => !flags.contains(StateFlags::DISABLED),
+            Self::RowKept => !(flags.contains(StateFlags::DISABLED) && level == ColorLevel::Mono),
+            Self::FocusVisible => flags.contains(StateFlags::FOCUS_VISIBLE),
+        }
+    }
+}
+
+/// How a gutter cell that is not showing the focus bar paints the plane
+/// behind it.
+///
+/// The frozen widget path inherits the container cell (nothing stamped), so
+/// blank cells stay byte-identical to the container surface; the reference
+/// helper stamped an explicit blank fill in the host background instead.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
+pub enum GutterCell {
+    /// Stamp nothing: the cell reads as whatever the container painted.
+    #[default]
+    Inherit,
+    /// Stamp an explicit blank fill in the host background colour.
+    Fill,
+}
+
+impl GutterCell {
+    pub const ALL: [GutterCell; 2] = [GutterCell::Inherit, GutterCell::Fill];
+}
+
+/// How chosen-item ink reacts to a modal or popup backdrop.
+///
+/// The reference default sends inactive selections neutral under a backdrop.
+/// The frozen checked markers (checkbox on, radio on, toggle on) keep their
+/// accent ink under a backdrop, so that behaviour stays selectable; the
+/// default is not flipped.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
+pub enum BackdropSelection {
+    /// A modal or popup backdrop neutralizes an accent selection.
+    #[default]
+    Neutral,
+    /// Checked and chosen marks keep their accent ink under a backdrop.
+    Accent,
+}
+
+impl BackdropSelection {
+    pub const ALL: [BackdropSelection; 2] = [BackdropSelection::Neutral, BackdropSelection::Accent];
+}
+
 impl Theme {
     /// The glyph painted in an item's gutter column for the given state.
     ///
@@ -52,7 +136,15 @@ impl Theme {
     /// is focused and enabled, a blank reserved cell otherwise.
     #[must_use]
     pub fn gutter_symbol(&self, flags: StateFlags) -> &'static str {
-        if flags.contains(StateFlags::FOCUSED) && !flags.contains(StateFlags::DISABLED) {
+        self.focus_bar_symbol(FocusBarPolicy::RowBlanked, flags)
+    }
+
+    /// The gutter glyph under an explicit [`FocusBarPolicy`].
+    ///
+    /// Tier-sensitive policies read the theme's own capability level.
+    #[must_use]
+    pub fn focus_bar_symbol(&self, policy: FocusBarPolicy, flags: StateFlags) -> &'static str {
+        if policy.shows_bar(flags, self.capability.color) {
             self.design.glyphs.get(GlyphRole::FocusBar)
         } else {
             " "
@@ -63,14 +155,47 @@ impl Theme {
     /// blank cell in the host background.
     #[must_use]
     pub fn gutter(&self, flags: StateFlags, bg: Color, on_accent: bool) -> Style {
-        let fg = if !flags.contains(StateFlags::FOCUSED) || flags.contains(StateFlags::DISABLED) {
-            bg
-        } else if on_accent {
+        self.gutter_in(
+            FocusBarPolicy::RowBlanked,
+            flags,
+            GutterCell::Fill,
+            bg,
+            on_accent,
+        )
+    }
+
+    /// Style for the gutter cell under an explicit [`FocusBarPolicy`] and
+    /// [`GutterCell`].
+    ///
+    /// [`GutterCell::Inherit`] stamps only what the bar needs (the bar's fg
+    /// ink, never a background), so the cell stays byte-identical to the
+    /// container surface whenever no bar paints — the frozen widget path.
+    /// [`GutterCell::Fill`] reproduces the reference behaviour of an explicit
+    /// blank in `bg`.
+    #[must_use]
+    pub fn gutter_in(
+        &self,
+        policy: FocusBarPolicy,
+        flags: StateFlags,
+        cell: GutterCell,
+        bg: Color,
+        on_accent: bool,
+    ) -> Style {
+        if !policy.shows_bar(flags, self.capability.color) {
+            return match cell {
+                GutterCell::Inherit => Style::new(),
+                GutterCell::Fill => Style::new().fg(bg).bg(bg),
+            };
+        }
+        let fg = if on_accent {
             self.color.on_accent
         } else {
             self.legible_mark(self.color.focus, bg)
         };
-        Style::new().fg(fg).bg(bg)
+        match cell {
+            GutterCell::Inherit => Style::new().fg(fg),
+            GutterCell::Fill => Style::new().fg(fg).bg(bg),
+        }
     }
 
     /// Ink for a chosen item (current page, chosen option, selected row).
@@ -85,8 +210,23 @@ impl Theme {
         under_modal: bool,
         flags: StateFlags,
     ) -> Color {
+        self.chosen_in_with(policy, under_modal, BackdropSelection::Neutral, flags)
+    }
+
+    /// Ink for a chosen item with an explicit [`BackdropSelection`].
+    ///
+    /// [`BackdropSelection::Accent`] reproduces the frozen checked markers,
+    /// which keep the accent under a modal or popup backdrop.
+    #[must_use]
+    pub fn chosen_in_with(
+        &self,
+        policy: InactiveSelection,
+        under_modal: bool,
+        backdrop: BackdropSelection,
+        flags: StateFlags,
+    ) -> Color {
         if flags.contains(StateFlags::FOCUSED)
-            || self.inactive_look(policy, under_modal) == InactiveSelection::Accent
+            || self.inactive_look_with(policy, under_modal, backdrop) == InactiveSelection::Accent
         {
             self.color.accent
         } else {
@@ -101,9 +241,27 @@ impl Theme {
     /// every other policy passes through.
     #[must_use]
     pub fn inactive_look(&self, policy: InactiveSelection, under_modal: bool) -> InactiveSelection {
+        self.inactive_look_with(policy, under_modal, BackdropSelection::Neutral)
+    }
+
+    /// Resolve the effective inactive-selection look under an explicit
+    /// [`BackdropSelection`].
+    ///
+    /// Only the [`InactiveSelection::Accent`] policy reacts to a backdrop, and
+    /// only with [`BackdropSelection::Neutral`]; every other combination
+    /// passes through.
+    #[must_use]
+    pub fn inactive_look_with(
+        &self,
+        policy: InactiveSelection,
+        under_modal: bool,
+        backdrop: BackdropSelection,
+    ) -> InactiveSelection {
         let _ = self;
         match policy {
-            InactiveSelection::Accent if under_modal => InactiveSelection::Neutral,
+            InactiveSelection::Accent if under_modal && backdrop == BackdropSelection::Neutral => {
+                InactiveSelection::Neutral
+            }
             look => look,
         }
     }
@@ -175,3 +333,12 @@ pub const COLOR_LEVELS: [ColorLevel; 4] = [
     ColorLevel::Ansi16,
     ColorLevel::Mono,
 ];
+
+/// Every focus-bar policy, for exhaustive per-policy tests.
+pub const FOCUS_BAR_POLICIES: [FocusBarPolicy; 3] = FocusBarPolicy::ALL;
+
+/// Every gutter-cell fill mode, for exhaustive tests.
+pub const GUTTER_CELLS: [GutterCell; 2] = GutterCell::ALL;
+
+/// Every backdrop-selection policy, for exhaustive tests.
+pub const BACKDROP_SELECTIONS: [BackdropSelection; 2] = BackdropSelection::ALL;

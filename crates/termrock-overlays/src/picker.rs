@@ -103,6 +103,8 @@ pub struct Picker<'a, T, R = ItemRow> {
     cursor_style: CursorStyle,
     delete_is_secondary: bool,
     metadata_gap: u16,
+    /// Blank rows kept under the list, inside the card.
+    tail: u16,
     selection_policy: SelectionPolicy,
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
@@ -144,6 +146,7 @@ impl<T> Picker<'_, T, ItemRow> {
             cursor_style: CursorStyle::Bar,
             delete_is_secondary: true,
             metadata_gap: 1,
+            tail: 0,
             selection_policy: SelectionPolicy::Preserve,
             patch: None,
             parts: &[],
@@ -197,6 +200,12 @@ impl<'a, T, R> Picker<'a, T, R> {
     #[must_use]
     pub const fn metadata_gap(mut self, gap: u16) -> Self {
         self.metadata_gap = gap;
+        self
+    }
+    /// Keep this many card rows blank under the results.
+    #[must_use]
+    pub const fn tail(mut self, rows: u16) -> Self {
+        self.tail = rows;
         self
     }
     #[must_use]
@@ -281,6 +290,7 @@ impl<'a, T, R> Picker<'a, T, R> {
             cursor_style: self.cursor_style,
             delete_is_secondary: self.delete_is_secondary,
             metadata_gap: self.metadata_gap,
+            tail: self.tail,
             selection_policy: self.selection_policy,
             patch: self.patch,
             parts: self.parts,
@@ -572,13 +582,14 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
                     y: content
                         .y
                         .saturating_add(if self.searchable { 3 } else { 1 }),
-                    height: content
-                        .height
-                        .saturating_sub(match (self.searchable, show_hint) {
-                            (true, true) => 4,
+                    height: content.height.saturating_sub(
+                        match (self.searchable, show_hint) {
+                            (true, true) => 4u16,
                             (true, false) => 3,
                             (false, _) => 2,
-                        }),
+                        }
+                        .saturating_add(self.tail),
+                    ),
                     ..content
                 };
                 self.list().draw_results(ui, list, &st.list, items);
