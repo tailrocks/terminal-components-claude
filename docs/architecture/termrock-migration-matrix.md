@@ -1839,3 +1839,75 @@ the candidate missing or differently-mapping the dimmed backdrop. That is
 the app/theme streams' still-open parity gap to close in source; the
 regenerated frames are correct against the frozen oracle and need no
 further edits when it lands.
+
+## Coordinator session 2026-10-21 — parity tip red gates, DCO blocker, workstreams
+
+Recorded from the coordinator session that ran the parallel refactoring and audit
+workstreams below. Every number in this section is an observation on an exact
+commit; nothing here is a product or library acceptance claim.
+
+### Observed sources
+
+| Source | Identity |
+| --- | --- |
+| Integration branch base for this session | `300a97bf8ef78b079cc79acc948894029dbefc3b` (`parity/termrock-visual-baseline`) |
+| PR #38 head observed during the session | `7649ee7ed8e8645e49f859a171ea0193fccc1e82` (advanced by the Jackin parity stream while this session ran) |
+| Reference branch (read-only) | `design/interaction-polish` |
+| Frozen oracle | `visual-baseline` tag, unchanged by this session |
+
+### Workspace gate at `300a97bf8`
+
+`cargo nextest run --workspace --all-targets --no-fail-fast` is RED at the base.
+
+- `termrock-conformance::render_components`: the recorded component digests in
+  `crates/termrock-conformance/tests/baselines/components.txt` were captured at
+  the crate split (`032e9faa3`) and were never re-blessed, while the shared
+  theme and palette changed afterwards (`2ca2c7ad3 fix(parity): align theme
+  palettes and control drawing to baseline`, `4d6ad4012`, `afb602936`,
+  `30ac300e3`). The recorded digest for
+  `render::components::toggle::default 120 40 junie truecolor` is
+  `683fea9b430fd313` and the candidate renders `4a896e5e98a33ac0`. The failure
+  class is systemic, not one component.
+- Application crates: `cargo nextest run -p tablepro-ui -p holla-ui -p showcase-ui
+  --all-targets --no-fail-fast` → 425 tests run, 419 passed, 6 failed:
+  `holla-ui app::tests::menu_bar_pointer_hover_changes_only_the_file_title_and_clears_on_exit`,
+  `holla-ui::visual holla_visual_baseline`,
+  `showcase-ui::page_headings all_shell_headers_match_reference_captures_and_visibility_thresholds`,
+  `showcase-ui::page_headings all_page_headings_match_the_reference_capture_matrix`,
+  `showcase-ui::visual showcase_visual_baseline`,
+  `tablepro-ui::visual tablepro_visual_baseline`.
+- Also red at the base: `termrock-xtask::doc_inventory
+  tracked_workspace_documentation_has_no_unregistered_examples`,
+  `termrock-xtask::ownership ownership_check_passes_on_workspace`,
+  `visual-harness::visual_baseline determinism::sources_are_deterministic`,
+  `visual-harness::visual_baseline overlay_sites`, and the
+  `termrock-feedback`, `termrock-navigation`, `termrock-test-support` cases
+  listed in the run log.
+
+No expected digest was updated to make any of these green in this session.
+Whether the changed rendering is a regression or a documented correction
+towards the frozen oracle is an open question that needs paired-runner
+evidence, not a re-bless.
+
+### DCO blocker on PR #38
+
+The PR #38 `DCO` check fails. `origin/main..origin/parity/termrock-visual-baseline`
+contains 1268 commits, of which 1228 have no `Signed-off-by` trailer, while the
+merged `main` history carries the trailer. Closing this requires a coordinated
+history rewrite of the PR branch (a force-push), which the shared-branch rules
+forbid during concurrent work; it must be executed once, by the branch owner,
+when no other stream is pushing. Every commit created by this session and its
+subagents carries `Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com>`.
+
+### Workstreams launched by this session
+
+| Workstream | Branch | Scope |
+| --- | --- | --- |
+| TablePro application geometry → shared blocks | `wip/tablepro-geometry-blocks-20261021` | remove raw geometry from `crates/tablepro-ui/src/app.rs` into shared Termrock blocks, byte-identical output |
+| Holla application geometry → shared blocks | `wip/holla-geometry-blocks-20261021` | same for `crates/holla-ui` (home screen and siblings) |
+| Showcase application layer cleanup | `wip/showcase-app-layer-cleanup-20261021` | raw geometry, repaint-after-draw, phantom controls, fixture-selected paths in `crates/showcase-ui` / `crates/showcase` |
+| External public consumer proof | `wip/external-public-consumer-20261021` | a separate crate that consumes only public Termrock APIs with unrelated domain data (closes the missing "external public consumer" gate) |
+
+The Jackin stream, the frozen paired runner and the theme/palette decisions
+stay with the stream that owns them; this session does not re-bless component
+or application digests.
