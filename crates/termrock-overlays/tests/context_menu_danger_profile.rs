@@ -415,6 +415,63 @@ fn disabled_danger_row_matches_frozen_cells_at_rest_hover_and_press() {
 }
 
 #[test]
+fn disabled_danger_collision_fallback_tracks_the_current_popover_token() {
+    for (level, modifier) in [
+        (ColorLevel::Ansi16, Modifier::empty()),
+        (ColorLevel::Mono, Modifier::DIM),
+    ] {
+        let mut theme = Theme::junie().downgrade(level);
+        theme.color.surfaces[4] = Color::Black;
+        let disabled_ink = theme.color.disabled_fg;
+        for pointer in [None, Some(MouseKind::Move), Some(MouseKind::Down)] {
+            let mut harness = focused_danger_with(theme.clone(), MenuPage::default(), level);
+            let (x, y) = harness
+                .find("Disabled remove")
+                .expect("disabled danger label drawn");
+            if let Some(pointer) = pointer {
+                let _ = harness.mouse(pointer, x, y);
+            }
+            assert_eq!(harness.app().state.cursor(), 1, "disabled row is skipped");
+            for column in x - 2..x + "Disabled remove".len() as u16 {
+                let cell = harness.cell(column, y);
+                assert_eq!(cell.fg, disabled_ink, "disabled ink {level:?} {pointer:?}");
+                assert_eq!(cell.bg, Color::Black, "host surface {level:?} {pointer:?}");
+                assert_eq!(
+                    cell.modifier, modifier,
+                    "disabled modifiers {level:?} {pointer:?}"
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn explicit_disabled_danger_ink_override_wins_over_collision_fallback() {
+    let theme = Theme::junie()
+        .downgrade(ColorLevel::Ansi16)
+        .override_variant(Family::MENU, Variant::DANGER, |recipe| {
+            recipe.part(Part::ROW).when(
+                StateFlags::DISABLED,
+                StylePatch::new().set_fg(Role::Custom(Color::Red)),
+            );
+        });
+    let resolved = theme.resolve(
+        Family::MENU,
+        Variant::DANGER,
+        Part::ROW,
+        StateFlags::DISABLED,
+        Surface::Popover,
+    );
+    assert_eq!(resolved.style.as_style().fg, Some(Color::Red));
+    assert_eq!(resolved.style.as_style().bg, Some(Color::DarkGray));
+    assert_eq!(
+        resolved.style.as_style().add_modifier,
+        Modifier::empty(),
+        "explicit ink override does not retain fallback dim"
+    );
+}
+
+#[test]
 fn normal_and_disabled_danger_rows_keep_their_own_rendered_state() {
     let harness = focused_danger(ColorLevel::Ansi256);
     let (normal_x, normal_y) = harness.find("Normal row").expect("normal row drawn");
