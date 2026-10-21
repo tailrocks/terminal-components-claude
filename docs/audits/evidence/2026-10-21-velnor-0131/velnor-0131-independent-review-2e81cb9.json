@@ -1,0 +1,304 @@
+{
+  "schema": 1,
+  "reviewer": "/root/recolor_provenance_independent_review",
+  "reviewed_commit": "2e81cb9ee64f0073e849d862bbc0c85f6647fe15",
+  "reviewed_parent": "371b76ed3706dba2ac1cd8440fa9fd0de13e0179",
+  "review_copy": "/private/tmp/termrock-button-before-review",
+  "author_worktree_untouched": "/private/tmp/termrock-velnor-0131-pr38-20261021",
+  "status": "Bounded independent clearance: no new findings in the Velnor 0.1.31 upgrade and narrow documentation fix. Integration regeneration and hosted CI remain required.",
+  "findings": [],
+  "official_release": {
+    "latest_published_stable_semver": "v0.1.31",
+    "published_at": "2026-10-20T22:37:05Z",
+    "source_commit": "9102646d80d0aadd05cac536b94ae830c4855e05",
+    "selection": "Published stable semantic version Actions releases; runner releases excluded. Fresh GitHub API response preserved.",
+    "release_manifest_sha256": "45c8e842730690e6baadd9d9b91a6457b969ca29030242cc7af87653a0bdba4f",
+    "macos_arm64_binary_sha256": "bb968f6ce3cb67f2e33152410b8f74bc00d01643a9dcf6fa6ad46a533e563a3c",
+    "provenance": "Official release provenance asset independently agrees with source commit, target, version, and binary digest; no independent rebuild or attestation signature verification claimed."
+  },
+  "pins": {
+    "mise_toml_and_lock": "0.1.31; platform asset URL and checksums agree with official manifest and release metadata",
+    "rust_toolchain_unchanged": "1.99.1",
+    "fixed_tuiscotti_unchanged": "a1ea27f757d75d07b05499276cd932e9f8e067ad",
+    "cargo_manifests_and_lock_unchanged": true
+  },
+  "generation": {
+    "official_fresh_generation_exit": 0,
+    "entry_count": 21,
+    "differences": {},
+    "comparison": "All descendant paths, bytes, entry types, executable Git modes, directory modes, and symlink targets compared to exact commit. Symlink filesystem permission bits excluded because Git stores symlink mode120000 only. Both CLAUDE symlinks target AGENTS.md.",
+    "input_correction": "Prior task omitted .config initially; current review includes exact .config/nextest.toml from the start. Current initial comparison was premature before generator exited, preserved explicitly; final comparison after exit0 has21 entries and zero differences.",
+    "nextest_config_sha256": "dab0b42f1b9b2b7bc0a2bc6d17491f65e2b2b05bb8f2acea47ec80765e451c02",
+    "reproducibility": "Committed generated output exactly reproduced; this does not establish historical editing provenance."
+  },
+  "retained_work": {
+    "task_count": 440,
+    "counts": {
+      "build": 88,
+      "clippy": 88,
+      "doc": 88,
+      "fmt": 88,
+      "nextest": 88
+    },
+    "task_ids_added": [],
+    "task_ids_removed": [],
+    "semantic_task_definition_differences": {},
+    "excluded_metadata_only": [
+      "report_helper_version",
+      "execution_digest",
+      "task_digest"
+    ],
+    "workflow_jobs_before": 92,
+    "workflow_jobs_after": 92,
+    "job_ids_removed": [],
+    "nextest_list_build_preflights": 88,
+    "nextest_runs": 88,
+    "cargo_test_commands": 0,
+    "doctest_tasks": 0,
+    "disabled_doctest_library_targets": 39,
+    "explicitly_excluded_enabled_doctest_targets": [
+      "showcase-data",
+      "holla-catalog",
+      "holla-plan"
+    ],
+    "doc_inventory": "All7 guards pass against this source including live tracked workspace scan; zero unregistered executable examples, one explicitly registered ignored pseudo-example. No claim that skipped doctests ran.",
+    "public_consumers": "32 facade tests across public component and composition consumers passed, zero skipped."
+  },
+  "checks": [
+    {
+      "name": "python-runner",
+      "command": [
+        "python3",
+        "tools/test_frozen_baseline.py"
+      ],
+      "exit": 0,
+      "elapsed": 8.02
+    },
+    {
+      "name": "full-fmt",
+      "command": [
+        "cargo",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit": 0,
+      "elapsed": 20.6
+    },
+    {
+      "name": "strict-rustdoc",
+      "command": [
+        "cargo",
+        "doc",
+        "--locked",
+        "--offline",
+        "--no-deps",
+        "-p",
+        "termrock-forms",
+        "-p",
+        "termrock",
+        "--features",
+        "termrock/testing"
+      ],
+      "exit": 0,
+      "elapsed": 21.9
+    },
+    {
+      "name": "official-plan",
+      "command": [
+        "/Users/donbeave/.local/share/mise/installs/github-tailrocks-velnor-new/0.1.31/velnor-actions",
+        "plan"
+      ],
+      "exit": 0,
+      "elapsed": 28.19
+    },
+    {
+      "name": "doc-inventory-nextest",
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "--locked",
+        "--offline",
+        "-p",
+        "termrock-xtask",
+        "--test",
+        "doc_inventory",
+        "--no-fail-fast"
+      ],
+      "exit": 0,
+      "elapsed": 31.17
+    },
+    {
+      "name": "pinned-official-generation",
+      "command": [
+        "/Users/donbeave/.local/share/mise/installs/github-tailrocks-velnor-new/0.1.31/velnor-actions",
+        "generate",
+        "--output-dir",
+        "/private/tmp/ci-2e81-independent-review/generated-031"
+      ],
+      "exit": 0,
+      "elapsed": 90.77
+    },
+    {
+      "name": "pinned-actionlint",
+      "command": [
+        "/Users/donbeave/.local/share/mise/installs/actionlint/1.7.12/actionlint",
+        "-ignore",
+        "^unexpected key \"background\" for step to (run shell command|execute action)\\. ",
+        "-ignore",
+        "^step must run script with \"run\" section or run action with \"uses\" section$",
+        ".github/workflows/ci.yml"
+      ],
+      "exit": 0,
+      "elapsed": 5.08
+    },
+    {
+      "name": "strict-scoped-clippy",
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "--offline",
+        "-p",
+        "termrock-xtask",
+        "-p",
+        "termrock-forms",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit": 0,
+      "elapsed": 17.03
+    },
+    {
+      "name": "public-facade-nextest",
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "--locked",
+        "--offline",
+        "-p",
+        "termrock",
+        "--features",
+        "testing",
+        "--all-targets",
+        "--no-fail-fast"
+      ],
+      "exit": 0,
+      "elapsed": 20.47
+    },
+    {
+      "name": "strict-rustdoc-parent-red",
+      "command": [
+        "cargo",
+        "doc",
+        "--locked",
+        "--offline",
+        "--no-deps",
+        "-p",
+        "termrock-forms"
+      ],
+      "exit": 101,
+      "elapsed": 3.93
+    },
+    {
+      "name": "strict-rustdoc-target-green",
+      "command": [
+        "cargo",
+        "doc",
+        "--locked",
+        "--offline",
+        "--no-deps",
+        "-p",
+        "termrock-forms"
+      ],
+      "exit": 0,
+      "elapsed": 0.81
+    }
+  ],
+  "strict_documentation_regression": {
+    "same_command": "RUSTDOCFLAGS=-D warnings cargo doc --locked --offline --no-deps -p termrock-forms",
+    "parent": {
+      "exit": 101,
+      "failure": "rustdoc::redundant_explicit_links at crates/termrock-forms/src/form_layout.rs:3"
+    },
+    "candidate": {
+      "exit": 0
+    },
+    "scope": "Only Rust source diff is redundant Id explicit target removal. The correct explicit Form link remains. Strict Forms+facade build also passed."
+  },
+  "branch_protection": {
+    "observation": "Read-only GitHub API, preserved raw responses. No rules/ref changes.",
+    "main_ruleset_id": 24883153,
+    "active_main_required_context": "Required",
+    "classic_main_protection": "404 Branch not protected; active ruleset supplies protection",
+    "classic_parity_protection": "404 Branch not protected",
+    "effective_parity_rules": [],
+    "migration_warning": "Plan still advertises migration from Velnor / Required to Required, but live main rules already require Required. This warning is obsolete for observed context naming; do not ask admin to migrate based solely on warning. Actual hosted Required result has not been verified."
+  },
+  "limits": [
+    "Sparse review copy includes .cargo,.config,.github,.velnor,crates,docs,tools and root files; no huge new checkout. No author or production source edits.",
+    "Every spawned check has own process-group timeout205seconds; longest observed generation90.77seconds.",
+    "Official plan still warns Rust1.99.1 lacks lock checksums; not fixed or silently treated as verified.",
+    "Pinned actionlint1.7.12 ran with generated documented two syntax ignores for Velnor parallel steps; not proof GitHub hosted execution succeeded.",
+    "Known Theme73 failures and broader application failures remain separate unresolved acceptance work. No full workspace or product baseline comparison run.",
+    "No main/design/tag publication, hosted CI, required review approval, branch cleanup, or product parity acceptance claimed. Parent must merge current remote and regenerate/check exact integrated commit."
+  ],
+  "evidence_directory": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/velnor-0131-independent-review-2e81cb9",
+  "evidence_sha256": {
+    "parity-rules.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "strict-rustdoc.log": "9bb79f55767063f94fd39d3fb1dacaac801ad699f32bcd2462e9bf0af44146dc",
+    "main-rules.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "parity-rules.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "strict-scoped-clippy.log": "616f88363d6375708a70c04b4ebd0cfbd89fe23df983f407dc142fdd7adfcb32",
+    "tag031.json": "aca74c44795fdc408127a2dd95072bba9b0457393aac3a3b2f6e9dc730e28f29",
+    "official-plan.log": "1ddf98e5399aa0f7a978f36269e13453220272d42b29780dec102faa9d18d933",
+    "followup-results.json": "36c5130ae69c0671ff819106e46fc82993857526eeffdc8bf9e8146b45ad3f60",
+    "cargo-metadata.json": "c1220bc87dc853118aee46cea36e02fdb5cb12b83e6fd692bd342ba80b1acf78",
+    "rulesets.json": "70010ef9a3f967f12b2e82c91f85c709fc077f8c21b0ada3c839c20a8f6826b7",
+    "static-proof.json": "dc0596af40a0c28899d7d5329753a0331f6529fd655b9f2df40be9953a3f59d2",
+    "releases.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "parity-protection.json": "d6020ee3b0852c3deb66c66d159cc80caabeaa66ee301778307a2a18d486450d",
+    "pinned-official-generation.log": "99a17f2c6d806b9d905c13db3bc0aa444fad36182430ea25569d80909ed94393",
+    "main-rules.json": "ecef389ac02efedd950ab9a947dba3d0328d5d74af9a204efd78c74958d26536",
+    "results.json": "eed360c21ae4879c9d73a477e5b59a2f919f7d00cf498518b99f017cbcda57ff",
+    "strict-rustdoc-target-green.log": "ca7278fc9851476b7c4e854b3b1d7adcbe0d5264797cd578d9793b8b5d409fbe",
+    "strict-rustdoc-parent-red.log": "82761da3a5f27149d90ac11d0b7b329dddec71145a6b5d4430dd7db5c41ab781",
+    "official-release-manifest.json": "45c8e842730690e6baadd9d9b91a6457b969ca29030242cc7af87653a0bdba4f",
+    "main-protection.json": "d6020ee3b0852c3deb66c66d159cc80caabeaa66ee301778307a2a18d486450d",
+    "main-protection.stderr": "256bf323d488b96ed59be6a50a192e2badd6b722792fcc4b8856f97aa3a3d23a",
+    "static-proof-premature-preview-not-ready.json": "0bfa55e7100a08a7ac4feb7a6c5115b14dc944fa37603f3e25872e349daf26e7",
+    "red-green-results.json": "fbb3d5baa74b37a406d98183158422b80360b8989a3ae9730498f055fd24b682",
+    "binary-provenance.json": "7596cf8955fece30fe1db5e8cc00f2e79c806a0adff29f555411c02d879725ad",
+    "release031.json": "e53cee48583ef5f9998b52522924322181177f97f35f09776ad566e6e870699e",
+    "releases.json": "3d559f0b10eba87359685c919b399b9d670a459c1cdfda1fe91b3850ce44e251",
+    "full-fmt.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "tag031.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "python-runner.log": "93843f854e78e119f1a52f4431fc5d0583b0f2a326c62553513313828d20f4d5",
+    "pinned-actionlint.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "parity-protection.stderr": "256bf323d488b96ed59be6a50a192e2badd6b722792fcc4b8856f97aa3a3d23a",
+    "doc-inventory-nextest.log": "9489be1f506d3e12f43987cbd0b9e36fb63516da05287385b3d1bca98d635c94",
+    "main-ruleset.json": "018a9d35c0357c6380ad498d0254118d586694722415131481b2dfe6ea8bd61c",
+    "public-facade-nextest.log": "92dab8967148b07462d277c829023bb9afcef3138fda892ec7b318c44e0a7d5c",
+    "rulesets.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "release031.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "generated-031/.github/PULL_REQUEST_TEMPLATE.md": "776076cc8ce2747ed4707a374c9dabeedfb42e14426a0b822f72d55cb2289c6d",
+    "generated-031/.github/actionlint.yaml": "fc5569d9ac8c5fd6e39ba2782bd7ff54bcd7516abfc47cc5934c8ca97b45652d",
+    "generated-031/.github/AGENTS.md": "e9170aef4e5d021a8e664b9522f22a811501ae343ad8347fc6f8ee654629b156",
+    "generated-031/.github/CLAUDE.md": "e9170aef4e5d021a8e664b9522f22a811501ae343ad8347fc6f8ee654629b156",
+    "generated-031/.github/velnor/task-execution-manifest-v1.json": "e0dd513d839e35f9928a67435ee2f1ad1ca1fe045fd9f60f40d15f8c612fa6b0",
+    "generated-031/.github/workflows/ci.yml": "77c3bc0b21cc9142aa62f08e7b8e9938368a290659059498f02a50db0e3fb36e",
+    "generated-031/.github/scripts/velnor-tools-cache-identity.sh": "9c26043a6e4f8a242c76be820d26fb57c56fbb9eb7c18c45b713bc06424af204",
+    "generated-031/.github/actions/declared-task-0/action.yml": "9eca16120a903adf44c30a922c507a591571f79360d518d347c7e79c7d1472ac",
+    "generated-031/.github/actions/velnor-tool-seed/action.yml": "e37b46e91780de86178c84a1b9d4c0b4bb507c80e4364af414da415956acdf49",
+    "generated-031/.github/actions/velnor-tools-cache-restore/action.yml": "216a5788d00f012a5a2095fb9393a9fb0b0c5f401d85fbf174d52d9296df732f",
+    "generated-031/.github/actions/velnor-tools-prelude-u26/action.yml": "bd876e7b9c1fd867730b0b2a064c69787eeb5001bf01d0e6caa49a26e496aab8",
+    "generated-031/.github/actions/u26/action.yml": "74c563edd3a9e1f2f9c679f844d0fbb949a1aa79624586d2f06c428eea210b64"
+  },
+  "final_source_clean": true,
+  "created_at": "2026-10-21T00:21:35.871737+00:00"
+}
