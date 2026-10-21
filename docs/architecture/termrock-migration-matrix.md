@@ -1105,3 +1105,8 @@ quick_switcher_contract --test tab_list_contract` 19/19, full
 `cargo nextest run -p tablepro-ui` 194/194 (visual baseline included),
 `cargo clippy --all-targets -p tablepro-ui` exit 0, `cargo fmt --check`
 exit 0.
+## 2026-10-21: expected fresh-run step guard (WIP)
+
+The runner API increment in WIP branch `wip/runner-atomic-step-20261021` adds optional, paired `expected_ordinal` and `expected_phase` arguments to `advance_fresh_run` and matching CLI flags. When supplied, both values must be exact: ordinal is a nonnegative integer (booleans rejected), phase is `baseline-capture` or `baseline-replay`, and the authenticated journal-selected next step must match both. The check occurs while the existing advisory lock is held and before phase-root or attempt creation. Omitted arguments retain legacy behavior. Synthetic-key tests cover stale/future ordinals, wrong phases, refusal to fall from a completed capture into replay, argument pairing/types, and two-process lock exclusion without timing sleeps. The full Python runner suite passed 79 tests on the WIP source.
+
+This changes `tools/frozen_baseline.py` from the pinned 482-era source blob `d057a8a6c8bffc4d3763368fcc66720b2bfd8c89`. Any sealed fresh-run plan bound to the previous runner source is invalid after this change. After independent test-integrity review and integration, create a new plan, run, and custody key, and repeat capture from ordinal zero. Do not reuse receipts from the prior plan or count old partial captures toward the new run. No real capture was launched by this increment. This record is WIP evidence, not runner-integrity clearance or product acceptance.
