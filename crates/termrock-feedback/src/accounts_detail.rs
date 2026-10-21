@@ -6,7 +6,7 @@
 use ratatui_core::layout::Rect;
 use ratatui_core::style::{Color, Modifier};
 
-use crate::accounts_filter::FilterHint;
+use crate::accounts_filter::{DetailInk, DetailLine, FilterHint};
 use crate::text::width;
 use crate::theme::{FgStep, PaintStyle, Surface};
 use crate::ui::Ui;
@@ -58,7 +58,7 @@ pub struct AccountsDetail<'a> {
     pub offset: u16,
     pub heading: &'a str,
     pub heading_meta: &'a str,
-    pub facts: &'a [&'a str],
+    pub facts: &'a [DetailLine<'a>],
     pub hints: &'a [FilterHint<'a>],
     pub hint_overflow: &'a str,
 }
@@ -355,37 +355,55 @@ fn paint_selected(
         bold(ink.primary, SELECT_BG),
     );
     put(ui, area, gutter, y, "▎", bold(ink.accent, SELECT_BG));
+    let (mark_x, name_x) = slots(row.role, gutter);
     put(
         ui,
         area,
-        gutter.saturating_add(4),
+        mark_x,
         y,
-        " ",
+        row.mark.unwrap_or(" "),
         plain(ink.secondary, SELECT_BG),
     );
-    let name_x = gutter.saturating_add(6);
     put(ui, area, name_x, y, row.name, bold(ink.accent, SELECT_BG));
-    let Some(tail) = row.tail else {
-        return;
-    };
-    let tail_x = scroll_x.saturating_sub(1).saturating_sub(width(tail));
     let name_end = name_x.saturating_add(width(row.name));
-    let alert_x = tail_x.saturating_sub(4);
-    if alert_x > name_end {
+    let tail_x = row
+        .tail
+        .map(|tail| scroll_x.saturating_sub(1).saturating_sub(width(tail)));
+    let pad_end = match (tail_x, row.alert) {
+        (Some(tail_x), Some(_)) => tail_x.saturating_sub(4),
+        (Some(tail_x), None) => tail_x,
+        (None, _) => scroll_x.saturating_sub(1),
+    };
+    if pad_end > name_end {
         put(
             ui,
             area,
             name_end,
             y,
-            &" ".repeat(usize::from(alert_x.saturating_sub(name_end))),
+            &" ".repeat(usize::from(pad_end.saturating_sub(name_end))),
             bold(ink.accent, SELECT_BG),
         );
     }
-    if let Some(alert) = row.alert {
-        put(ui, area, alert_x, y, alert, bold(ERROR_STRONG, SELECT_BG));
+    if let Some(tail_x) = tail_x {
+        if let Some(alert) = row.alert {
+            put(
+                ui,
+                area,
+                tail_x.saturating_sub(4),
+                y,
+                alert,
+                bold(ERROR_STRONG, SELECT_BG),
+            );
+        }
+        put(
+            ui,
+            area,
+            tail_x,
+            y,
+            row.tail.unwrap_or(""),
+            plain(tail_color(row.tail_tone, ink), SELECT_BG),
+        );
     }
-    let tone = tail_color(row.tail_tone, ink);
-    put(ui, area, tail_x, y, tail, plain(tone, SELECT_BG));
 }
 
 fn paint_idle(
@@ -398,14 +416,7 @@ fn paint_idle(
     ink: &Ink,
 ) {
     put(ui, area, gutter, y, " ", plain(ink.canvas, ink.canvas));
-    let (mark_x, name_x) = match row.role {
-        AccountRole::Root | AccountRole::Group => {
-            (gutter.saturating_add(2), gutter.saturating_add(4))
-        }
-        AccountRole::Item | AccountRole::Note => {
-            (gutter.saturating_add(4), gutter.saturating_add(6))
-        }
-    };
+    let (mark_x, name_x) = slots(row.role, gutter);
     let mark = row.mark.unwrap_or(" ");
     put(ui, area, mark_x, y, mark, plain(ink.secondary, ink.canvas));
     let name_ink = if row.role == AccountRole::Note {
@@ -440,6 +451,17 @@ fn paint_idle(
         tail,
         plain(tail_color(row.tail_tone, ink), ink.canvas),
     );
+}
+
+fn slots(role: AccountRole, gutter: u16) -> (u16, u16) {
+    match role {
+        AccountRole::Root | AccountRole::Group => {
+            (gutter.saturating_add(2), gutter.saturating_add(4))
+        }
+        AccountRole::Item | AccountRole::Note => {
+            (gutter.saturating_add(4), gutter.saturating_add(6))
+        }
+    }
 }
 
 fn tail_color(tone: DetailTail, ink: &Ink) -> Color {
@@ -503,14 +525,20 @@ fn paint_detail(
         plain(RULE, ink.chrome),
     );
     for (index, fact) in page.facts.iter().enumerate() {
-        put(
-            ui,
-            area,
-            area.x.saturating_add(1),
-            y.saturating_add(2).saturating_add(index as u16),
-            fact,
-            band,
-        );
+        let mut x = area.x.saturating_add(1);
+        let row = y.saturating_add(2).saturating_add(index as u16);
+        for span in fact.spans {
+            let style = match span.ink {
+                DetailInk::Plain => band,
+                DetailInk::Muted => plain(ink.muted, ink.chrome),
+                DetailInk::Danger => plain(DANGER, ink.chrome),
+                DetailInk::DangerBold => bold(DANGER, ink.chrome),
+                DetailInk::Warning => plain(WARNING, ink.chrome),
+                DetailInk::Info => plain(Color::Rgb(0x79, 0xb8, 0xff), ink.chrome),
+            };
+            put(ui, area, x, row, span.text, style);
+            x = x.saturating_add(width(span.text));
+        }
     }
 }
 
