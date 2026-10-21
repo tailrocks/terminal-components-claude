@@ -236,8 +236,13 @@ const CAPSULE_MENUS: &[Menu<'static>] = &[
     Menu::new("Help", CAPSULE_HELP_ITEMS),
 ];
 const CAPSULE_TAB_ITEMS: &[MenuItem<'static>] = &[
-    MenuItem::new(CMD_TAB_RENAME, "Change title…"),
-    MenuItem::new(CMD_TAB_CLOSE, "Close tab"),
+    MenuItem::new(CMD_TAB_RENAME, "Change title…").hint("2×click"),
+    MenuItem::new(CMD_CAPSULE_SPLIT_RIGHT, "Split right")
+        .hint("Ctrl+B %")
+        .separator(),
+    MenuItem::new(CMD_TAB_CLOSE, "Close tab")
+        .hint("Ctrl+B &")
+        .danger(),
 ];
 const CAPSULE_COMMANDS: &[Item<'static>] = &[
     Item::new(ItemKey::num(1), "New tab"),
@@ -1328,8 +1333,31 @@ impl App {
         MenuBar::new(CAPSULE_MENU_BAR, CAPSULE_MENUS)
     }
 
-    fn capsule_tab_context(position: Position) -> ContextMenu<'static> {
-        ContextMenu::at(CAPSULE_TAB_MENU, CAPSULE_TAB_ITEMS, position).title("Tab")
+    fn capsule_tab_menu_title(&self) -> String {
+        self.active_running_instance_id()
+            .and_then(|id| self.world.daemons.get(&id))
+            .and_then(|daemon| {
+                daemon
+                    .tabs
+                    .get(self.capsule_tab_title_index)
+                    .map(|tab| daemon.tab_label(tab, &|_| None))
+            })
+            .unwrap_or_default()
+    }
+
+    fn capsule_tab_context<'a>(&self, position: Position, title: &'a str) -> ContextMenu<'a> {
+        let menu = ContextMenu::at(CAPSULE_TAB_MENU, CAPSULE_TAB_ITEMS, position)
+            .title(title)
+            .keep_underlay();
+        let Some(pane) = self
+            .active_running_instance_id()
+            .and_then(|id| self.world.daemons.get(&id))
+            .and_then(|daemon| daemon.focused_pane())
+        else {
+            return menu;
+        };
+        // The tab menu takes the keys. The pane caret stays the steady bar.
+        menu.retain_cursor(Self::capsule_viewport_id(pane))
     }
 
     fn capsule_command_palette() -> Picker<'static, Item<'static>> {
@@ -2462,13 +2490,18 @@ impl App {
     fn capsule_prefix_key(&mut self, cx: &mut Cx<'_>, key: char) -> Response<()> {
         if key == 'm' {
             self.capsule_prefix = false;
+            // The prefix line is transient. The open tab menu keeps the session
+            // status row, the same row the idle capsule paints.
+            self.status = None;
             self.capsule_tab_title_index = self.active_capsule_tab_index();
             self.capsule_tab_menu_open = true;
             self.capsule_tab_menu_state = MenuState::default();
             self.capsule_tab_menu_pos = Position::new(1, 2);
+            let title = self.capsule_tab_menu_title();
             cx.open_layer(
                 CAPSULE_TAB_MENU,
-                Self::capsule_tab_context(self.capsule_tab_menu_pos).layer(cx),
+                self.capsule_tab_context(self.capsule_tab_menu_pos, &title)
+                    .layer(cx),
             );
             return Response::changed();
         }
@@ -4245,9 +4278,11 @@ impl App {
             }
         }
         if self.capsule_tab_menu_open && !cx.is_open(CAPSULE_TAB_MENU) {
+            let title = self.capsule_tab_menu_title();
             cx.open_layer(
                 CAPSULE_TAB_MENU,
-                Self::capsule_tab_context(self.capsule_tab_menu_pos).layer(cx),
+                self.capsule_tab_context(self.capsule_tab_menu_pos, &title)
+                    .layer(cx),
             );
         }
         let menu = Self::capsule_menu_bar();
@@ -4286,7 +4321,8 @@ impl App {
         }
         result |= menu_response.erase();
 
-        let context = Self::capsule_tab_context(self.capsule_tab_menu_pos);
+        let title = self.capsule_tab_menu_title();
+        let context = self.capsule_tab_context(self.capsule_tab_menu_pos, &title);
         let context_response = context.update(cx, &mut self.capsule_tab_menu_state);
         match context_response.action_ref().copied() {
             Some(MenuAction::Chosen(action)) => {
@@ -4338,14 +4374,22 @@ impl App {
                 self.capsule_tab_menu_pos = pos;
                 self.capsule_tab_menu_open = true;
                 self.capsule_tab_menu_state = MenuState::default();
-                cx.open_layer(CAPSULE_TAB_MENU, Self::capsule_tab_context(pos).layer(cx));
+                let title = self.capsule_tab_menu_title();
+                cx.open_layer(
+                    CAPSULE_TAB_MENU,
+                    self.capsule_tab_context(pos, &title).layer(cx),
+                );
                 result |= Response::changed();
             } else if let Some((pos, index)) = tab_context {
                 self.capsule_tab_title_index = index;
                 self.capsule_tab_menu_pos = pos;
                 self.capsule_tab_menu_open = true;
                 self.capsule_tab_menu_state = MenuState::default();
-                cx.open_layer(CAPSULE_TAB_MENU, Self::capsule_tab_context(pos).layer(cx));
+                let title = self.capsule_tab_menu_title();
+                cx.open_layer(
+                    CAPSULE_TAB_MENU,
+                    self.capsule_tab_context(pos, &title).layer(cx),
+                );
                 result |= Response::changed();
             }
         }
@@ -7905,7 +7949,8 @@ impl App {
             let Some((_, projected)) = frame.transcripts.get(&pane_id) else {
                 continue;
             };
-            let reserve_input = focused && !self.historical_capsule_frame();
+            let reserve_input =
+                focused && !self.historical_capsule_frame() && !self.capsule_tab_menu_open;
             let viewport_area = Rect {
                 height: inner.height.saturating_sub(u16::from(reserve_input)),
                 ..inner
@@ -8093,7 +8138,9 @@ impl App {
         if self.capsule_help_open {
             HintBar::new(APP.sub("capsule-hint"), &self.hint_layers.capsule_help)
                 .draw(ui, hint_area);
-        } else if self.capsule_menu_state.is_open() || self.capsule_tab_menu_open {
+        } else if self.capsule_tab_menu_open {
+            self.paint_capsule_tab_menu_hints(ui, hint_area);
+        } else if self.capsule_menu_state.is_open() {
             HintBar::new(APP.sub("capsule-hint"), &self.hint_layers.capsule_menu)
                 .draw(ui, hint_area);
         } else if self.capsule_prefix {
@@ -8647,6 +8694,56 @@ impl App {
         )
     }
 
+    fn paint_capsule_tab_menu_hints(&self, ui: &mut Ui<'_>, area: Rect) {
+        let workspace = self
+            .world
+            .workspaces
+            .first()
+            .map_or("payments-platform", |workspace| workspace.name.as_str());
+        let attached = format!("Attached to {workspace} · tabs and panes restored");
+        let layer = HintLayer {
+            hints: vec![
+                Hint {
+                    key: termrock::HintKey::Label("↑↓"),
+                    label: "Move",
+                    priority: 90,
+                },
+                Hint {
+                    key: termrock::HintKey::Label("Enter"),
+                    label: "Choose",
+                    priority: 80,
+                },
+                Hint {
+                    key: termrock::HintKey::Label("Esc"),
+                    label: "Close",
+                    priority: 70,
+                },
+            ],
+            badge: None,
+            status: Some(attached.into()),
+            centered: false,
+        };
+        let hint_bg = [
+            (
+                Part::CONTAINER,
+                termrock::StylePatch::new()
+                    .set_bg(termrock::Role::Surface(termrock::Surface::Canvas))
+                    .set_fg(termrock::Role::Fg(termrock::FgStep::Primary)),
+            ),
+            (
+                Part::LABEL,
+                termrock::StylePatch::new().set_fg(termrock::Role::Fg(termrock::FgStep::Secondary)),
+            ),
+            (
+                Part::OVERFLOW,
+                termrock::StylePatch::new().set_fg(termrock::Role::Fg(termrock::FgStep::Faint)),
+            ),
+        ];
+        HintBar::new(APP.sub("capsule-hint"), &layer)
+            .patch_part(&hint_bg)
+            .draw(ui, area);
+    }
+
     fn paint_capsule_idle_hints(&self, ui: &mut Ui<'_>, area: Rect) {
         let workspace = self
             .world
@@ -8740,8 +8837,9 @@ impl App {
         // ui.full() inside the layer is the popup clip, so decide out here.
         let screen = ui.full();
         let menu_80 = self.capsule_menu_80(ui.theme_ref(), screen);
+        let menu_title = self.capsule_tab_menu_title();
         let _ = ui.layer(CAPSULE_TAB_MENU, |ui, area| {
-            let menu = Self::capsule_tab_context(self.capsule_tab_menu_pos);
+            let menu = self.capsule_tab_context(self.capsule_tab_menu_pos, &menu_title);
             menu.draw(ui, area, &self.capsule_tab_menu_state);
             if menu_80 {
                 // The popup clip is the live menu. Paint with the screen rect so
