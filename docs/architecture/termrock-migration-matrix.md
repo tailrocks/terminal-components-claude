@@ -25,6 +25,10 @@ Required unresolved checks include the 73-slot reference decision, Feedback priv
 
 Detailed clearances and blocked reviews are preserved under `docs/audits/evidence/2026-10-21-current-blockers/`; later exact integration records must explicitly supersede this summary.
 
+### Live Editor publication held by broader native checks
+
+Reviewed Editor source is merged locally at `9c99356ab`; publication to PR38 stopped after the broader exact-head Showcase/Editors all-target scope ran 203 cases: 200 passed, three failed, zero skipped. Failures are `all_page_headings_match_the_reference_capture_matrix`, `all_shell_headers_match_reference_captures_and_visibility_thresholds`, and `showcase_visual_baseline`. The heading failures first report Buttons at100x30/16 (Components54 versus Overview, and breadcrumb text); these paths are outside the Editor delta, but attribution is not yet independently established. Evidence log: `/private/tmp/termrock-parent-showcase-editor-integration-67a440c0-9c94-41bd-bedf-1ab1ab429372.log`. No expected data is changed or failure hidden. Preserve this integration on `wip/parent-showcase-editor-validation-20261021` while independent prior-revision diagnosis runs. The narrow application probes are not the full gate; PR38 remains at the last verified Button increment until reviewed publication.
+
 ### Live Showcase Editor Playground increment
 
 Integrate `de754a4a16997eb18d96a6bea5cf672d41a4b830` after independent review of the actual application route. The live shared editor now uses the exact frozen sample, four-space editing indentation, actual completion rendering and additive Ctrl+R bindings. Find/Run controls, readouts, tick-only run timing, submitted-block diagnostic ownership, score/label completion ordering, accumulated diagnostics and exact between-block readout replace the earlier incomplete live reconstruction. No shared runtime priority workaround or inline Button hint was added. Shared BackTab dedent is already independently integrated.
