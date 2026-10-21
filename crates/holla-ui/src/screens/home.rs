@@ -318,81 +318,29 @@ impl HomeState {
             ui.set_bar_cursor(QUERY, termrock::Position::new(3, 4));
             return;
         }
-        if let Some(view) =
-            catalogue::parity_git_current_80x24_plate(world, ui.full().width, ui.full().height)
-            && paint_parity_git_current_80x24(ui, rows_area, &view)
+        if let Some(view) = catalogue::parity_git_current_view(world, ui.full().width)
+            && paint_parity_git_current(ui, rows_area, &view)
         {
             // Steady bar on the placeholder. CUP 5;4. Do not write cursor bytes.
             ui.set_bar_cursor(QUERY, termrock::Position::new(3, 4));
             return;
         }
-        if let Some(view) =
-            catalogue::parity_git_batch_80x24_plate(world, ui.full().width, ui.full().height)
-            && paint_parity_git_batch_80x24(ui, rows_area, &view)
+        if let Some(view) = catalogue::parity_git_batch_view(world, ui.full().width)
+            && paint_parity_git_batch(ui, rows_area, &view)
         {
             // Steady bar on the placeholder. CUP 5;4. Do not write cursor bytes.
             ui.set_bar_cursor(QUERY, termrock::Position::new(3, 4));
             return;
         }
-        if let Some(view) =
-            catalogue::parity_git_batch_100x30_plate(world, ui.full().width, ui.full().height)
-            && paint_parity_git_batch_100x30(ui, rows_area, &view)
+        if let Some(view) = catalogue::parity_task_sources_view(world, ui.full().width)
+            && paint_parity_task_sources(ui, rows_area, &view)
         {
             // Steady bar on the placeholder. CUP 5;4. Do not write cursor bytes.
             ui.set_bar_cursor(QUERY, termrock::Position::new(3, 4));
             return;
         }
-        if let Some(view) =
-            catalogue::parity_git_batch_120x40_plate(world, ui.full().width, ui.full().height)
-            && paint_parity_git_batch_120x40(ui, rows_area, &view)
-        {
-            // Steady bar on the placeholder. CUP 5;4. Do not write cursor bytes.
-            ui.set_bar_cursor(QUERY, termrock::Position::new(3, 4));
-            return;
-        }
-        if let Some(view) =
-            catalogue::parity_task_sources_80x24_plate(world, ui.full().width, ui.full().height)
-            && paint_parity_task_sources_80x24(ui, rows_area, &view)
-        {
-            // Steady bar on the placeholder. CUP 5;4. Do not write cursor bytes.
-            ui.set_bar_cursor(QUERY, termrock::Position::new(3, 4));
-            return;
-        }
-        if let Some(view) =
-            catalogue::parity_cargo_80x24_plate(world, ui.full().width, ui.full().height)
-            && paint_parity_cargo_80x24(ui, rows_area, &view)
-        {
-            // Steady bar on the placeholder. CUP 5;4. Do not write cursor bytes.
-            ui.set_bar_cursor(QUERY, termrock::Position::new(3, 4));
-            return;
-        }
-        if let Some(view) =
-            catalogue::parity_cargo_100x30_plate(world, ui.full().width, ui.full().height)
-            && paint_parity_cargo_100x30(ui, rows_area, &view)
-        {
-            // Steady bar on the placeholder. CUP 5;4. Do not write cursor bytes.
-            ui.set_bar_cursor(QUERY, termrock::Position::new(3, 4));
-            return;
-        }
-        if let Some(view) =
-            catalogue::parity_cargo_120x40_plate(world, ui.full().width, ui.full().height)
-            && paint_parity_cargo_120x40(ui, rows_area, &view)
-        {
-            // Steady bar on the placeholder. CUP 5;4. Do not write cursor bytes.
-            ui.set_bar_cursor(QUERY, termrock::Position::new(3, 4));
-            return;
-        }
-        if let Some(view) =
-            catalogue::parity_git_current_100x30_plate(world, ui.full().width, ui.full().height)
-            && paint_parity_git_current_100x30(ui, rows_area, &view)
-        {
-            // Steady bar on the placeholder. CUP 5;4. Do not write cursor bytes.
-            ui.set_bar_cursor(QUERY, termrock::Position::new(3, 4));
-            return;
-        }
-        if let Some(view) =
-            catalogue::parity_git_current_120x40_plate(world, ui.full().width, ui.full().height)
-            && paint_parity_git_current_120x40(ui, rows_area, &view)
+        if let Some(view) = catalogue::parity_cargo_view(world, ui.full().width)
+            && paint_parity_cargo(ui, rows_area, &view)
         {
             // Steady bar on the placeholder. CUP 5;4. Do not write cursor bytes.
             ui.set_bar_cursor(QUERY, termrock::Position::new(3, 4));
@@ -995,40 +943,11 @@ fn paint_parity_browser(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDis
     false
 }
 
-/// Default tag columns. Only the 80×24 git-batch frame reaches this painter.
-/// Cargo, git-current, browser, files, and every other size stay on their own painters.
-/// The action row middle-truncates `Runs` so the line fits. Do not write cursor bytes.
-fn paint_parity_git_batch_80x24(
-    ui: &mut Ui<'_>,
-    area: Rect,
-    view: &catalogue::ParityDiscovery,
-) -> bool {
-    let mut fitted = view.clone();
-    fit_narrow_runs(&mut fitted, area.width.saturating_sub(3));
-    paint_tag_list_plate(ui, area, &fitted, 80, 24)
-}
-
-/// Default tag columns. Only the 100×30 git-batch frame reaches this painter.
-/// Cargo, git-current, browser, files, and the 80×24 plate stay on their own painters.
-/// The action row fits the full `Runs` line. Do not write cursor bytes.
-fn paint_parity_git_batch_100x30(
-    ui: &mut Ui<'_>,
-    area: Rect,
-    view: &catalogue::ParityDiscovery,
-) -> bool {
-    paint_tag_list_plate(ui, area, view, 100, 30)
-}
-
-/// Wide card. Only the 120×40 git-batch frame reaches this painter.
-/// Cargo, git-current, browser, files, and the 80 and 100 plates stay on their own painters.
-/// Do not write cursor bytes.
-fn paint_parity_git_batch_120x40(
-    ui: &mut Ui<'_>,
-    area: Rect,
-    view: &catalogue::ParityDiscovery,
-) -> bool {
+/// Wide card band for the replay families. From 120 up the split card keeps
+/// the auto-sized tag columns.
+fn paint_parity_wide_card(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
     let full = ui.full();
-    if full.width != 120 || full.height != 40 || area.is_empty() {
+    if !(120..160).contains(&full.width) || area.is_empty() {
         return false;
     }
     let Some((master, _)) = split_detail(area) else {
@@ -1048,6 +967,21 @@ fn paint_parity_git_batch_120x40(
         view,
         tag_columns(&rows, master.width.saturating_sub(4)),
     )
+}
+
+/// Default tag columns in the 80–119 band.
+/// The action row middle-truncates `Runs` below 100 so the line fits. Do not write cursor bytes.
+fn paint_parity_git_batch(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
+    let full = ui.full();
+    if (80..120).contains(&full.width) {
+        if area.is_empty() {
+            return false;
+        }
+        let mut fitted = view.clone();
+        fit_narrow_runs(&mut fitted, area.width.saturating_sub(3));
+        return paint_tag_list(ui, area, &fitted, None);
+    }
+    paint_parity_wide_card(ui, area, view)
 }
 
 /// Shrink `Runs` so `→ {runs} · {scope} · {risk}` fits the action row.
@@ -1076,156 +1010,54 @@ fn fit_narrow_runs(view: &mut catalogue::ParityDiscovery, room: u16) {
     }
 }
 
-/// Frozen columns. Only the 80×24 task-sources frame reaches this painter.
+/// Frozen columns in the 80–119 band.
 /// Git-batch, cargo, git-current, browser, files, history, discovery, and every other size stay off.
 /// Do not write cursor bytes.
-fn paint_parity_task_sources_80x24(
-    ui: &mut Ui<'_>,
-    area: Rect,
-    view: &catalogue::ParityDiscovery,
-) -> bool {
-    paint_tag_list_plate_at(
-        ui,
-        area,
-        view,
-        80,
-        24,
-        Some(TagCols {
-            label: 12,
-            kind: 7,
-            scope: 4,
-            reason: 65,
-        }),
-    )
-}
-
-/// Default tag columns. Only the 80×24 cargo frame reaches this painter.
-/// Git-current, browser, files, and every other size stay on their own painters.
-fn paint_parity_cargo_80x24(
-    ui: &mut Ui<'_>,
-    area: Rect,
-    view: &catalogue::ParityDiscovery,
-) -> bool {
-    paint_tag_list_plate(ui, area, view, 80, 24)
-}
-
-/// Default tag columns. Only the 100×30 cargo frame reaches this painter.
-/// Git-current, browser, files, and the 80×24 plate stay on their own painters.
-fn paint_parity_cargo_100x30(
-    ui: &mut Ui<'_>,
-    area: Rect,
-    view: &catalogue::ParityDiscovery,
-) -> bool {
-    paint_tag_list_plate(ui, area, view, 100, 30)
-}
-
-/// Wide card. Only the 120×40 cargo frame reaches this painter.
-/// Git-current, browser, files, and the 80 and 100 plates stay on their own painters.
-fn paint_parity_cargo_120x40(
+fn paint_parity_task_sources(
     ui: &mut Ui<'_>,
     area: Rect,
     view: &catalogue::ParityDiscovery,
 ) -> bool {
     let full = ui.full();
-    if full.width != 120 || full.height != 40 || area.is_empty() {
-        return false;
+    if (80..120).contains(&full.width) {
+        return paint_tag_list(
+            ui,
+            area,
+            view,
+            Some(TagCols {
+                label: 12,
+                kind: 7,
+                scope: 4,
+                reason: 65,
+            }),
+        );
     }
-    let Some((master, _)) = split_detail(area) else {
-        return false;
-    };
-    let rows: Vec<&catalogue::TagRow> = view
-        .lines
-        .iter()
-        .filter_map(|line| match line {
-            catalogue::FinderLine::Row(row) => Some(row),
-            _ => None,
-        })
-        .collect();
-    paint_parity_card(
-        ui,
-        area,
-        view,
-        tag_columns(&rows, master.width.saturating_sub(4)),
-    )
+    false
 }
 
-/// Default tag columns. Only the 80×24 git-current frame reaches this painter.
-/// The size check refuses 100×30, so that plate stays on its own painter.
-fn paint_parity_git_current_80x24(
-    ui: &mut Ui<'_>,
-    area: Rect,
-    view: &catalogue::ParityDiscovery,
-) -> bool {
-    paint_tag_list_plate(ui, area, view, 80, 24)
+/// Default tag columns in the 80–119 band, wide card from 120.
+fn paint_parity_cargo(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
+    let full = ui.full();
+    if (80..120).contains(&full.width) {
+        return paint_tag_list(ui, area, view, None);
+    }
+    paint_parity_wide_card(ui, area, view)
 }
 
-/// Default tag columns. Only the 100×30 git-current frame reaches this painter.
-/// Browser, files, and the 80×24 plate stay on their own painters.
-fn paint_parity_git_current_100x30(
-    ui: &mut Ui<'_>,
-    area: Rect,
-    view: &catalogue::ParityDiscovery,
-) -> bool {
-    paint_tag_list_plate(ui, area, view, 100, 30)
-}
-
-/// Wide card. Only the 120×40 git-current frame reaches this painter.
-/// Browser, files, and the 80 and 100 plates stay on their own painters.
-fn paint_parity_git_current_120x40(
+/// Default tag columns in the 80–119 band, wide card from 120.
+fn paint_parity_git_current(
     ui: &mut Ui<'_>,
     area: Rect,
     view: &catalogue::ParityDiscovery,
 ) -> bool {
     let full = ui.full();
-    if full.width != 120 || full.height != 40 || area.is_empty() {
-        return false;
+    if (80..120).contains(&full.width) {
+        return paint_tag_list(ui, area, view, None);
     }
-    let Some((master, _)) = split_detail(area) else {
-        return false;
-    };
-    let rows: Vec<&catalogue::TagRow> = view
-        .lines
-        .iter()
-        .filter_map(|line| match line {
-            catalogue::FinderLine::Row(row) => Some(row),
-            _ => None,
-        })
-        .collect();
-    paint_parity_card(
-        ui,
-        area,
-        view,
-        tag_columns(&rows, master.width.saturating_sub(4)),
-    )
+    paint_parity_wide_card(ui, area, view)
 }
 
-fn paint_tag_list_plate(
-    ui: &mut Ui<'_>,
-    area: Rect,
-    view: &catalogue::ParityDiscovery,
-    width: u16,
-    height: u16,
-) -> bool {
-    paint_tag_list_plate_at(ui, area, view, width, height, None)
-}
-
-fn paint_tag_list_plate_at(
-    ui: &mut Ui<'_>,
-    area: Rect,
-    view: &catalogue::ParityDiscovery,
-    width: u16,
-    height: u16,
-    columns: Option<TagCols>,
-) -> bool {
-    let full = ui.full();
-    if full.width != width || full.height != height {
-        return false;
-    }
-    paint_tag_list(ui, area, view, columns)
-}
-
-/// Size-free single-column body. `paint_tag_list_plate_at` keeps the exact-frame
-/// gate; callers below the plates use this directly with their own layout policy.
+/// Size-free single-column body. Callers keep their own layout policy.
 fn paint_tag_list(
     ui: &mut Ui<'_>,
     area: Rect,
