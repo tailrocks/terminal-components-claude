@@ -446,6 +446,7 @@ enum ExplorerNode {
     Group {
         schema: String,
         name: String,
+        count: usize,
     },
     Object {
         item: ExplorerItem,
@@ -3055,12 +3056,20 @@ impl TableProApp {
                 height: 1.min(inner.height),
             };
             paint_legacy_filter(ui, filter, "Filter objects", TAG_CHROME_FG);
+            let show_meta = explorer_counts_fit(
+                tree_area,
+                &self.explorer_tree_state,
+                &self.explorer_nodes,
+                ui.design().space.tree_indent,
+            );
+            EXPLORER_META.with(|slot| *slot.borrow_mut() = show_meta);
             explorer_tree().draw(
                 ui,
                 tree_area,
                 &self.explorer_tree_state,
                 &self.explorer_nodes,
             );
+            EXPLORER_META.with(|slot| *slot.borrow_mut() = false);
             paint_explorer_indent(
                 ui,
                 tree_area,
@@ -4163,7 +4172,10 @@ fn paint_query_error_results(ui: &mut Ui<'_>, area: termrock::Rect, message: &st
 }
 
 fn idle_query_top(height: u16) -> u16 {
-    let ratio = u16::try_from(u32::from(height).saturating_mul(38) / 100).unwrap_or(height);
+    // Half-up so a 42-row query pane lands on 16, matching the frozen 160×50
+    // editor. Truncation keeps 32 rows at 12, so the 120×40 seam stays put.
+    let ratio = u16::try_from(u32::from(height).saturating_mul(38).saturating_add(50) / 100)
+        .unwrap_or(height);
     ratio.max(4).min(height.saturating_sub(6).max(4))
 }
 
@@ -4389,7 +4401,12 @@ pub(crate) fn query_hbar_overflows(query: &str, editor_width: u16) -> bool {
     widest.saturating_add(1) > text_w
 }
 
-fn extend_query_results_edge(ui: &mut Ui<'_>, area: termrock::Rect, inner: termrock::Rect, query: &str) {
+fn extend_query_results_edge(
+    ui: &mut Ui<'_>,
+    area: termrock::Rect,
+    inner: termrock::Rect,
+    query: &str,
+) {
     if inner.height < 8 || inner.width == 0 {
         return;
     }
@@ -4893,6 +4910,7 @@ fn build_explorer_nodes(catalog: &Catalog) -> Vec<ExplorerNode> {
             nodes.push(ExplorerNode::Group {
                 schema: schema.clone(),
                 name: label.to_owned(),
+                count: objects.len(),
             });
             nodes.extend(
                 objects
@@ -4915,7 +4933,7 @@ fn reset_explorer_tree_state(state: &mut TreeState, nodes: &[ExplorerNode], sche
     for node in nodes.iter().filter(|node| {
         matches!(node, ExplorerNode::Database { .. })
             || matches!(node, ExplorerNode::Schema { name } if name == schema)
-            || matches!(node, ExplorerNode::Group { schema: group_schema, name } if group_schema == schema && name == "Tables")
+            || matches!(node, ExplorerNode::Group { schema: group_schema, name, .. } if group_schema == schema && name == "Tables")
     }) {
         state.expand(explorer_node_key(node));
     }
@@ -4932,7 +4950,7 @@ fn explorer_node_key(node: &ExplorerNode) -> ItemKey {
     match node {
         ExplorerNode::Database { name } => stable_key(&["database", name]),
         ExplorerNode::Schema { name } => stable_key(&["schema", name]),
-        ExplorerNode::Group { schema, name } => stable_key(&["object-group", schema, name]),
+        ExplorerNode::Group { schema, name, .. } => stable_key(&["object-group", schema, name]),
         ExplorerNode::Object { item, prefix, .. } => {
             stable_key(&["object", &item.schema, prefix, &item.name])
         }
@@ -4963,6 +4981,85 @@ fn qualified_label(prefix: &str, left: &str, right: &str) -> String {
     text
 }
 
+fn paint_explorer_count(row: &mut RowUi<'_>, text: &str) {
+    let enabled = EXPLORER_META.with(|slot| *slot.borrow());
+    if enabled {
+        row.meta(text);
+    }
+}
+
+fn explorer_counts_fit(
+    area: termrock::Rect,
+    state: &TreeState,
+    nodes: &[ExplorerNode],
+    indent: u16,
+) -> bool {
+    let visible = visible_explorer_count(nodes, state);
+    let height = usize::from(area.height);
+    if height == 0 {
+        return false;
+    }
+    let row_w = area.width.saturating_sub(u16::from(visible > height));
+    let offset = state.scroll().offset();
+    let mut show = [false; 8];
+    show[0] = true;
+    let mut index = 0usize;
+    for node in nodes {
+        let depth = explorer_depth(node);
+        if !show.get(depth).copied().unwrap_or(false) {
+            continue;
+        }
+        let in_view = index >= offset && index.saturating_sub(offset) < height;
+        if in_view && let Some(meta) = explorer_count_text(node) {
+            let need = explorer_count_need(node, indent, width(&meta));
+            if need > row_w {
+                return false;
+            }
+        }
+        index = index.saturating_add(1);
+        let expanded = state.is_expanded(explorer_node_key(node));
+        if let Some(child) = show.get_mut(depth.saturating_add(1)) {
+            *child = expanded;
+        }
+        for deeper in show.iter_mut().skip(depth.saturating_add(2)) {
+            *deeper = false;
+        }
+    }
+    true
+}
+
+fn explorer_count_text(node: &ExplorerNode) -> Option<String> {
+    match node {
+        ExplorerNode::Group { count, .. } => Some(count.to_string()),
+        ExplorerNode::Object { item, .. }
+            if matches!(item.kind, ObjectKind::Table | ObjectKind::View) && item.rows > 0 =>
+        {
+            Some(tablepro_sql::sql::fmt_rows(item.rows))
+        }
+        _ => None,
+    }
+}
+
+fn explorer_count_need(node: &ExplorerNode, indent: u16, meta_w: u16) -> u16 {
+    let depth = u16::try_from(explorer_depth(node)).unwrap_or(u16::MAX);
+    let glyph = match node {
+        ExplorerNode::Group { .. } => 0,
+        _ => 2,
+    };
+    let label = match node {
+        ExplorerNode::Database { name } | ExplorerNode::Schema { name } => width(name),
+        ExplorerNode::Group { name, .. } => width(name),
+        ExplorerNode::Object { item, .. } => width(&item.name),
+    };
+    1u16.saturating_add(depth.saturating_mul(indent))
+        .saturating_add(2)
+        .saturating_add(glyph)
+        .saturating_add(label)
+        .saturating_add(2)
+        .saturating_add(meta_w)
+        .saturating_add(1)
+}
+
 fn explorer_row(node: &ExplorerNode, row: &mut RowUi<'_>) {
     match node {
         ExplorerNode::Database { name } => row.label_spans(&[
@@ -4975,8 +5072,14 @@ fn explorer_row(node: &ExplorerNode, row: &mut RowUi<'_>) {
             Span::new(" "),
             Span::new(name.as_str()),
         ]),
-        ExplorerNode::Group { name, .. } => row.label(name),
+        ExplorerNode::Group { name, count, .. } => {
+            paint_explorer_count(row, &count.to_string());
+            row.label(name);
+        }
         ExplorerNode::Object { item, prefix, .. } => {
+            if matches!(item.kind, ObjectKind::Table | ObjectKind::View) && item.rows > 0 {
+                paint_explorer_count(row, &tablepro_sql::sql::fmt_rows(item.rows));
+            }
             row.label_spans(&[
                 Span::new(prefix).role(TAG_CHROME_FG),
                 Span::new(" "),
@@ -5254,6 +5357,7 @@ thread_local! {
     static GRID_SORT: RefCell<Option<(usize, SortDir)>> = const { RefCell::new(None) };
     static GRID_FILTER: RefCell<Vec<String>> = const { RefCell::new(Vec::new()) };
     static GRID_EDIT: RefCell<Option<usize>> = const { RefCell::new(None) };
+    static EXPLORER_META: RefCell<bool> = const { RefCell::new(false) };
 }
 
 fn install_grid_budgets(area_width: u16, columns: &[(String, ColType)], model: &ResultGrid) {
