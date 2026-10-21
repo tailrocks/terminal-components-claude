@@ -1,3 +1,17 @@
+=======
+# 2026-10-23: owner decision owed — danger-token reference package
+
+`docs/audits/2026-10-23-danger-token-reference-decision.md` consolidates
+the scattered danger-ink record (the 2026-10-22 jackin digest-drift
+adjudication, restore `740374edb2`, the 2026-10-21 junie palette ladder,
+D-010) into one owner decision: approve the tag-source values
+(`#f05d5d`, danger_soft ruling, 256 tier 203/210) as oracle and
+authorize regeneration of the corpus and expected stores, or reject and
+pin the corpus values by reverting `740374edb2`. Full store inventory and
+both options' consequences are in that document. Until the owner rules, the
+held `jackin_visual_baseline` digest, the corpus store and the
+empty-cells fingerprint stay as they are and no expected output is
+re-pinned.
 # 2026-10-22: consolidation wave, bypass retirement, and suite clearance
 
 Current PR #38 tip on `parity/termrock-visual-baseline`: `70729efb1b`.
