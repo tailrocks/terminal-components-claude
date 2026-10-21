@@ -101,9 +101,12 @@ pub struct PageLeaf<'a, P: Page>(&'a P);
 
 impl<P: Page> Measure for PageLeaf<'_, P> {
     fn measure(&self, _ui: &Ui<'_>, constraints: Constraints) -> Size {
-        // A page fills whatever body region the shell hands it.
+        // A page fills whatever body region the shell hands it, but claims
+        // no hard minimum: it follows the sibling leaves' `min: 0`
+        // convention, so a starved body still resolves instead of failing
+        // the layout.
         Size {
-            min: constraints.max,
+            min: (0, 0),
             preferred: constraints.max,
         }
     }
