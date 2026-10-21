@@ -5127,10 +5127,12 @@ const KIND_OTHER: u8 = 0;
 const KIND_PRIMARY: u8 = 1;
 const KIND_FOREIGN: u8 = 2;
 
+type GridScrollSnapshot = (termrock::Rect, usize, usize, Option<usize>);
+
 thread_local! {
     static COL_BUDGETS: RefCell<Vec<ColBudget>> = const { RefCell::new(Vec::new()) };
     static GRID_CHROME: RefCell<Option<GridChrome>> = const { RefCell::new(None) };
-    static GRID_SCROLL: RefCell<Option<(termrock::Rect, usize, usize, Option<usize>)>> =
+    static GRID_SCROLL: RefCell<Option<GridScrollSnapshot>> =
         const { RefCell::new(None) };
     static GRID_SEEN_ROW: RefCell<Option<usize>> = const { RefCell::new(None) };
     static GRID_SORT: RefCell<Option<(usize, SortDir)>> = const { RefCell::new(None) };
