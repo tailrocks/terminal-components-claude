@@ -310,7 +310,6 @@ fn accumulate_defaults(
         let targeted = authored_mono_override(theme, f, p, live, None);
         profiled.restore_profiled_channels(before_mono, &mut acc, targeted);
         profiled.retain_unchanged(before_mono, acc);
-        profiled.preserve_custom_channels(targeted);
     }
     (acc, variant, profiled)
 }
@@ -385,12 +384,6 @@ impl ProfiledStyle {
         if before.underline != after.underline {
             self.underline = false;
         }
-    }
-
-    fn preserve_custom_channels(&mut self, patch: StylePatch) {
-        self.fg |= matches!(patch.fg, Slot::Set(Role::Custom(_)));
-        self.bg |= matches!(patch.bg, Slot::Set(Role::Custom(_)));
-        self.underline |= matches!(patch.underline, Slot::Set(Role::Custom(_)));
     }
 
     fn suppress(&mut self, patch: StylePatch) {
@@ -852,7 +845,6 @@ pub fn bind_defaults(
         let targeted = authored_mono_override(theme, family, part, flags, Some(defaults.mono));
         exact_profile.restore_profiled_channels(before_mono, &mut acc, targeted);
         exact_profile.retain_unchanged(before_mono, acc);
-        exact_profile.preserve_custom_channels(targeted);
     }
     let explicit = apply_explicit(
         theme,
@@ -907,7 +899,6 @@ pub fn bind_defaults_with_explicit(
         let targeted = authored_mono_override(theme, family, part, flags, Some(defaults.mono));
         exact_profile.restore_profiled_channels(before_mono, &mut acc, targeted);
         exact_profile.retain_unchanged(before_mono, acc);
-        exact_profile.preserve_custom_channels(targeted);
     }
     let explicit = apply_explicit(
         theme,

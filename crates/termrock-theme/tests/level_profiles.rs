@@ -273,7 +273,61 @@ fn mono_profile_channels_survive_generic_fallback_but_authored_rules_win() {
         None,
     );
 
-    assert_eq!(profile.style.bg, Some(Color::Indexed(37)));
+    assert_eq!(
+        profile.style.bg,
+        termrock_theme::resolve::bind_role(
+            &theme,
+            Role::Custom(Color::Indexed(37)),
+            Surface::Canvas,
+        )
+    );
+}
+
+#[test]
+fn mono_authored_custom_defaults_keep_canonical_binding_without_profiles() {
+    const MONO_RULES: [MonoRule; 1] = [(
+        Part::CONTAINER,
+        StateFlags::PRESSED,
+        StylePatch::new().set_bg(Role::Custom(Color::Indexed(37))),
+    )];
+    let theme = Theme::junie()
+        .define_family(FAMILY, |recipe| {
+            recipe.default_variant(Variant::PRIMARY);
+        })
+        .define_variant(FAMILY, Variant::PRIMARY, |recipe| {
+            recipe
+                .part(Part::CONTAINER)
+                .base(StylePatch::new().set_bg(Role::AccentPressed));
+        })
+        .for_level(ColorLevel::Mono);
+    let expected = termrock_theme::resolve::bind_role(
+        &theme,
+        Role::Custom(Color::Indexed(37)),
+        Surface::Canvas,
+    );
+
+    let defaults = StyleDefaults::default().mono(&MONO_RULES);
+    let bound = termrock_theme::resolve::bind_defaults(
+        &theme,
+        (FAMILY, Variant::PRIMARY, Part::CONTAINER),
+        StateFlags::PRESSED,
+        &[],
+        Surface::Canvas,
+        defaults,
+        None,
+    );
+    let with_explicit = termrock_theme::resolve::bind_defaults_with_explicit(
+        &theme,
+        (FAMILY, Variant::PRIMARY, Part::CONTAINER),
+        StateFlags::PRESSED,
+        &[],
+        Surface::Canvas,
+        defaults,
+        None,
+    );
+
+    assert_eq!(bound.style.bg, expected);
+    assert_eq!(with_explicit.resolved.style.bg, expected);
 }
 
 #[test]
