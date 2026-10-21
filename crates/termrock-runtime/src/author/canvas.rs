@@ -11,10 +11,27 @@
 //! derived from the content that is painted into it.
 
 use ratatui_core::layout::{Position, Rect};
+use ratatui_core::style::{Color, Modifier, Style};
 
 use crate::scroll::ScrollState;
 use crate::theme::PaintStyle;
 use crate::ui::Ui;
+
+/// The painted content of one cell, as the canvas sees it.
+///
+/// A restyle reads the cell through this view and never touches the
+/// underlying buffer.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CellView {
+    /// The glyph the cell holds.
+    pub symbol: String,
+    /// The foreground ink of the cell.
+    pub fg: Color,
+    /// The background ink of the cell.
+    pub bg: Color,
+    /// The modifiers the cell carries.
+    pub modifier: Modifier,
+}
 
 /// The number of cells `text` occupies on one line.
 ///
@@ -96,4 +113,42 @@ pub fn put_frame_in(ui: &mut Ui<'_>, area: Rect, style: impl Into<PaintStyle>) -
 /// Paint the scroll edges of a region.
 pub fn put_scroll_edges(ui: &mut Ui<'_>, area: Rect, state: &ScrollState) {
     ui.scroll_edges(area, state);
+}
+
+/// Paint one glyph at a cell.
+pub fn put_cell_at(ui: &mut Ui<'_>, pos: Position, symbol: &str, style: impl Into<PaintStyle>) {
+    ui.paint_cell(pos, symbol, style);
+}
+
+/// Restyle the cells of a region.
+///
+/// `restyle` reads each cell and returns the style to apply, or `None` to
+/// leave the cell as it is. The style only changes what it names: a style
+/// with a foreground keeps the cell's background and modifiers, and a style
+/// with only modifiers keeps the cell's inks.
+pub fn restyle_cells(ui: &mut Ui<'_>, area: Rect, restyle: impl Fn(CellView) -> Option<Style>) {
+    let (buf, _) = ui.raw();
+    for pos in area.positions() {
+        let Some(cell) = buf.cell_mut(pos) else {
+            continue;
+        };
+        let view = CellView {
+            symbol: cell.symbol().to_owned(),
+            fg: cell.fg,
+            bg: cell.bg,
+            modifier: cell.modifier,
+        };
+        if let Some(style) = restyle(view) {
+            cell.set_style(style);
+        }
+    }
+}
+
+/// Restyle the cells of the current clip region.
+///
+/// This is the canvas counterpart of reading the whole clip: the component
+/// never sees the buffer.
+pub fn restyle_clip(ui: &mut Ui<'_>, restyle: impl Fn(CellView) -> Option<Style>) {
+    let clip = ui.raw().1;
+    restyle_cells(ui, clip, restyle);
 }
