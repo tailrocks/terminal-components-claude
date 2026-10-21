@@ -69,3 +69,13 @@ Resume points:
 - Pre-fix independent red evidence: `/private/tmp/termrock-props-386b8955-independent-review/tests/qualified_props_regressions.rs` and `/private/tmp/props-sheet-386b-qualified.log`; immutable compact comparison `/Users/donbeave/Projects/termrock-cli-evidence-20261021/branch-consolidation/props-386b-default480-compact-comparison.json`. Reviewer-prepared corrected probe is `/private/tmp/termrock-props-386b8955-independent-review/tests/qualified_props_regressions_v2.rs`; request independent rerun against `c1ed94e0e445908c27965ec581d2459c491ddc15` before integration. Preserve all reviewer artifacts read-only.
 - Focused nextest `7d30204a-3ec4-4627-82df-7bff4ef18fa1`: 7 passed. Full controls nextest `8f74d936-4fe4-44da-9af4-716811fcc3cc`: 153 passed, zero skipped. Strict scoped Clippy, rustfmt check, and diff check passed before source commit.
 - The author does not own the shared push lock and will not alter it. Parent owns publication; no application parity or Dialog/App completion is claimed.
+
+## PropsList theme/overlay precedence correction (2026-10-21)
+
+- Branch: `wip/props-dialog-contract-stage1-20261021`
+- Exact source tip: `8ff521660eb9297791264f7858fa3eeb493be4b2`
+- Worktree: `/private/tmp/termrock-props-dialog-stage1-20261021`; source, tests, and audit committed; clean after this handoff.
+- `PropsList` now checks resolved explicit patch channels through the shared `style_defaults_with_explicit` API. The underlay-preserving `Part::CONTAINER` foreground Clear is a default and no longer erases explicit Theme or overlay Set/Clear. Regression probes cover Theme, overlay, and instance container Set inherited through `Part::LABEL.clear_fg()`.
+- Prior exact red source: `c1ed94e0e445908c27965ec581d2459c491ddc15`; independent failure log `/private/tmp/termrock-props-c1ed94e-container-theme.log`. Reviewer packet `/Users/donbeave/Projects/termrock-cli-evidence-20261021/branch-consolidation/props-c1ed94e-independent-review/review.json`, SHA-256 `1add5b4acc05cd678f7ab0eb6776a0fed625a7c8d57037630f61877f4ee0bf91`; probe `/private/tmp/termrock-props-386b8955-independent-review/tests/container_theme_precedence.rs`. Keep reviewer files read-only.
+- Focused nextest `bace27ec-195a-4a1f-a48e-f2fe45c7976a`: 7 passed. Full controls nextest `089a562b-988d-48b7-85e2-03c1393a36ec`: 153 passed, zero skipped. Strict scoped Clippy, rustfmt, and diff checks passed before source commit. Independent review against `8ff521660eb9297791264f7858fa3eeb493be4b2` remains pending.
+- Parent owns publication. No source parity, Dialog, or full application Tuiscotti claim is made.
