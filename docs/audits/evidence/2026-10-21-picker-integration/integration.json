@@ -71,7 +71,17 @@
     "picker_row_defaults_example_check": "passed",
     "picker_row_defaults_example_run": "passed",
     "strict_scoped_clippy": "passed",
-    "cargo_fmt_all_check": "passed"
+    "cargo_fmt_all_check": "passed",
+    "forms_overlays_all_targets": {
+      "tests": 252,
+      "passed": 251,
+      "failed": 1,
+      "skipped": 0,
+      "known_failure": "menu_bar_keeps_public_default_variant_overlay_and_local_patch_precedence",
+      "independently_reviewed_source_sync": "9c07189c8f38a4e29bda4060f2dfd5efc8ceda73"
+    },
+    "final_gate_log": "docs/audits/evidence/2026-10-21-picker-integration/final-gates.log",
+    "final_gate_log_sha256": "cab053fa8d53c91d92190bb5fa8eff4340316938d6d00a8246951343f043a9d0"
   },
   "scope_limit": "This integration and its library gates do not establish full application parity, full branch review, workspace acceptance or PR acceptance.",
   "test_partitions": {
@@ -101,5 +111,28 @@
     "termrock-8e279da0d02e80be": "7391619f0231dc1988ddd3c35a5a362ed2672d2448c6700ce18eb9cb2b76c745",
     "termrock_navigation-cc25ce838a83c9be": "ac5efb9ebbc3817535d385d1c83f7669a68d04309b9fa39830d62f94c8682dd8",
     "termrock_runtime-cd173764ebead258": "8731d196a4a71f9645709d7126ee35f41a9db34b7d38c20fb5851b86cedc5440"
-  }
+  },
+  "source_syncs": [
+    {
+      "remote_tip": "a71388ec365b5f6613550594c1acc6a4081f9b14",
+      "method": "normal merge",
+      "source_change": "crates/termrock-xtask/exceptions/v1.json",
+      "review_status": "pending independent review; preserved unchanged"
+    },
+    {
+      "remote_tip": "40bc297e5f1b18f58f1466d5aaa8d80f19c051a2",
+      "method": "normal merge",
+      "source_commit": "9c07189c8f38a4e29bda4060f2dfd5efc8ceda73",
+      "source_paths": [
+        "crates/termrock-forms/src/form.rs",
+        "crates/termrock-forms/src/form_dialog.rs"
+      ],
+      "review_status": "bounded independent review CLEAR; Form/FormDialog chooser activation only",
+      "review_packet": "docs/audits/evidence/form-chooser-20261021/review.json",
+      "review_packet_sha256": "8ea0eaf7f6d736c95fc3821033377968a995ff299f0e6c79d03b6347a828c906",
+      "focused_gate_result": "forms/overlays all-targets 251/252; one known MenuBar failure; zero skipped; preserved as failure"
+    }
+  ],
+  "latest_remote_tip_before_final_test": "40bc297e5f1b18f58f1466d5aaa8d80f19c051a2",
+  "final_gate_status": "completed; no unexpected failures; two recorded known failures remain and neither is acceptance evidence"
 }
