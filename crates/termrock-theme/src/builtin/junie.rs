@@ -28,7 +28,10 @@ const GREEN_80: Color = Color::from_u32(0x3a_b3_43);
 const GREEN_60: Color = Color::from_u32(0x002b_8632);
 const GREEN_20: Color = Color::from_u32(0x0f_2e_13);
 const ON_GREEN: Color = Color::from_u32(0x19_19_1c);
-const RED: Color = Color::from_u32(0xe4_45_45);
+// The frozen source at 4169783 retunes RED to 0xf05d5d ("the old #e44545
+// was 4.4:1 on a card", sub-WCAG-AA) and adds RED_STRONG; the approved
+// frames paint the danger ink with the retuned value.
+const RED: Color = Color::from_u32(0xf0_5d_5d);
 const RED_20: Color = Color::from_u32(0x2e_0f_0f);
 const RED_SOFT: Color = Color::from_u32(0xd9_8a_8a);
 const RED_45: Color = Color::from_u32(0x7a_2a_2a);
