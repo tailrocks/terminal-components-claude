@@ -4521,6 +4521,39 @@ class RunnerGuards(unittest.TestCase):
                         runner._owned_publish_immutable(execution, binding, "report.json", payload)
             self.assertEqual((root / "report.json").read_bytes(), payload)
 
+    def test_owned_rooted_filesystem_parent_rejects_file_changed_after_worker(self) -> None:
+        payload = b"good"
+        for replacement in ("same-inode-bytes", "new-inode-same-bytes"):
+            with self.subTest(replacement=replacement), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp) / "root"
+                root.mkdir(mode=0o700)
+                root.chmod(0o700)
+                destination = root / "report.bin"
+                displaced = root / "worker-report.bin"
+                with runner.PrepareExecution(30) as execution:
+                    binding = runner._owned_root_binding(root, check_work=execution.check_work)
+                    original_run = execution.run
+
+                    def replace_after_worker(*args: object, **kwargs: object) -> object:
+                        result = original_run(*args, **kwargs)  # type: ignore[arg-type]
+                        if replacement == "same-inode-bytes":
+                            destination.write_bytes(b"evil")
+                        else:
+                            destination.rename(displaced)
+                            destination.write_bytes(payload)
+                            destination.chmod(0o600)
+                        return result
+
+                    with patch.object(execution, "run", side_effect=replace_after_worker):
+                        with self.assertRaisesRegex(runner.RunnerError, "destination file identity|destination bytes or identity"):
+                            runner._owned_publish_immutable(execution, binding, "report.bin", payload)
+                self.assertTrue(destination.is_file())
+                if replacement == "same-inode-bytes":
+                    self.assertEqual(destination.read_bytes(), b"evil")
+                else:
+                    self.assertEqual(destination.read_bytes(), payload)
+                    self.assertEqual(displaced.read_bytes(), payload)
+
     def test_owned_artifact_copy_compression_and_report_cancel_between_bounded_blocks(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
