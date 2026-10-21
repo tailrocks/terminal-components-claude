@@ -1,0 +1,1017 @@
+{
+  "observed_utc": "2026-10-21T14:52:07.676117+00:00",
+  "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+  "total_heads": 143,
+  "counts": {
+    "integrated ancestry; ownership/protection/review checks required before retirement": 26,
+    "preserve designated branch": 3,
+    "unique history; source and artifact review required": 114
+  },
+  "branches": [
+    {
+      "branch": "audit/replay-origin-current-source-20261020",
+      "tip": "55824ec3ba5d62aa2a743be3d83f9ef5d98e61ee",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "chore/rust-comment-cleanup",
+      "tip": "0b1142a2fb2462e597588b34b4845c812c9c12c2",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "ci/design-rust-timeout-20261020",
+      "tip": "f2f6eb716c4a512be3dc9423742fa06e86879b32",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "ci/zizmor-design-20261020",
+      "tip": "4860d0350d5faebd9298cb92c0154ecf585b3d83",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "codex/rescue-capture-command-prod-gate-20261017",
+      "tip": "77fc91a82aeb145be4efc4403b18380ff40d21fb",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "codex/rescue-pr17-e44-20261017",
+      "tip": "e44d5504e91d90f8404a5488d8539ed71001e31f",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "codex/rescue-status-proposal-check-20261018",
+      "tip": "2a5b0b5f40c5fce4af56bfcb4f94093e2d6c1211",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "codex/termrock-local-proposals-20261018",
+      "tip": "824876cb044cb16b5e1cc0dcb61acd793351f565",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "codex/termrock-q48-source-only-20261019",
+      "tip": "086443450833ea72158284e033b4b6d2ca06cc12",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "design/interaction-polish",
+      "tip": "f2f6eb716c4a512be3dc9423742fa06e86879b32",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "preserve designated branch"
+    },
+    {
+      "branch": "docs/branch-authority-cleanup",
+      "tip": "c4b62deccf0ff32383253f597d020084dc180c03",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "docs/interaction-reference-cleanup",
+      "tip": "1d35481674bdd79f5508def12233d0c9b72285b6",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "fix/picker-focus-and-rows-20261020",
+      "tip": "56a8547a48647d7158f6a288df6db4708f7b0f0c",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "main",
+      "tip": "a97e351df736b576904bc450619ca347ea64d65b",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "preserve designated branch"
+    },
+    {
+      "branch": "parity/acceptance-architecture-20261020",
+      "tip": "c6f1ee62465845459e815a228ee541571ae548c9",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "parity/acceptance-architecture-module-path-20261020",
+      "tip": "461c7d1e1a33ecbc6fad2ec143353bbd578e4aa0",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "parity/acceptance-architecture-p1-20261020",
+      "tip": "73e8dea2267ee6350518be87d3b999d76703834b",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "parity/acceptance-architecture-symlink-20261020",
+      "tip": "a48e94fae4fe1b774bd5fd4864fc933979f7b9a5",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "parity/binding-runtime-20261020",
+      "tip": "98900f3e11e4cd34835dec5902694ed260125aee",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "parity/button-contract-20261020",
+      "tip": "7dab012ee6c0094f7a2a0264a41d6530984c6820",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "parity/button-contract-review-20261020",
+      "tip": "2d65740b717a86fbc5701c0286f7b35454ea5332",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "parity/buttons-reference-decision-20261020",
+      "tip": "2289a4f4768a787af767da5fcf0819fe01cade66",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "parity/ci-planning-fix-20261020",
+      "tip": "8beaf2865b922fbea0ae082f914367d1fed64609",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "parity/code-completion-composite-20261020",
+      "tip": "12e760e81ddf31d2956a2a05af567abfc64d7769",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "parity/completion-manual-fixes-20261020",
+      "tip": "1a150420b0faa8784f56ccdca3cda01d16d8778e",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "parity/completion-primitives-20261020",
+      "tip": "cf1ff91536fdb402325eb6716856eec4688c106c",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "parity/composition-leaves-20261020",
+      "tip": "69605184c97d34e10e937189743f5d2454be6d28",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "parity/composition-slots-20261020",
+      "tip": "be674ef8799c55bc3700cdd36f519cafebc95bed",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "parity/edit-menu-overlay-20261020",
+      "tip": "12a24761ff9da2019f2c04ad63b21db9e92da5c7",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "parity/empty-style-reference-fix-20261020",
+      "tip": "45b4ca679272b4b3c8948139cd87c1473d652bbf",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "parity/field-continuation-20261020",
+      "tip": "de7cc53dbe8483f7e44837e469efbc9577f1455b",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "parity/frame-semantics-20261020",
+      "tip": "12ab1458facd213bae7a8a1b1f2c1125e65b4261",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "parity/frozen-table-workflows-20261020",
+      "tip": "b6d75a22d79dd20cdd12fb53f2e03a7c7bad02b6",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "parity/item-row-palette-reference-20261020",
+      "tip": "23a3fac940f24a499b532b0ef580f19355715043",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "parity/layout-plan-20261020",
+      "tip": "eba2423164e679a2b5cdfd842aad060bea0dff6d",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "parity/master-detail-20261020",
+      "tip": "1ca91e1421e812e582a9681e8ba2a56e66127e97",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "parity/menubar-hover-20261020",
+      "tip": "c02ea120935a9f5fba7bcc713b08136fc199b11e",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "parity/migration-matrix-20261020",
+      "tip": "ea9f6f4400af7ad57a9af9a7c1387eb00c6133ff",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "parity/nested-composition-consumer-20261020",
+      "tip": "ed1998f5ababa5e3156192f43a2f007d438c5a32",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "integrated ancestry; ownership/protection/review checks required before retirement"
+    },
+    {
+      "branch": "parity/nested-modal-reference-20261020",
+      "tip": "d3e5647c87aeb33cab03b378fe0f7111718ff3a0",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "parity/note-reference-color-20261020",
+      "tip": "c0c0f148b54c3459ee157de19dd49ca84bb3b447",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "parity/picker-family-contracts-20261020",
+      "tip": "0416a30146fc39b73ec320935620a692c4d88814",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "parity/picker-geometry-20261020",
+      "tip": "6b72d77a6e3914557e862d0f8490f9cfcc01c5b8",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "parity/picker-query-component-20261020",
+      "tip": "fe158fb56be6bffb30309521b5b71f778f26f39f",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "parity/picker-stack-integration-20261020",
+      "tip": "801e6c94892703bde5309e3daa31f37c3a727910",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "integrated ancestry; ownership/protection/review checks required before retirement"
+    },
+    {
+      "branch": "parity/runtime-fields-binding-query-current-20261020",
+      "tip": "8635f4bf600d931e0b5c96b22e9150a5b58375de",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "parity/runtime-fields-integration-20261020",
+      "tip": "ffc3b25efb4879a598e180d924daa5d37d721aab",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "parity/runtime-layer-contracts-20261020",
+      "tip": "0cf26d54ecf53adec8a925050882d6a65d736f02",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "parity/session-cursor-parity-20261020",
+      "tip": "94f937deb192d1678476b5b1d4c2e4511b75627e",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "parity/session-cursor-policy-20261020",
+      "tip": "5b6a2312199c4b59c6d21a190d83f4e2069529cf",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "parity/session-cursor-prepared-port-20261020",
+      "tip": "5ca3c4f205aed4719d6558f2bbe9829a6321bdae",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "parity/session-startup-20261020",
+      "tip": "db31adf1e7329c63c8e81e6e9fc981803781ed3c",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "parity/shared-style-integration-20261020",
+      "tip": "e72dbb15369d541ee86095f6caaee3f7e4680828",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "parity/shared-style-regressions-20261020",
+      "tip": "94a1215e27e67bfad76f9edb8ca5b00fa9810c80",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "parity/showcase-button-consumer-20261020",
+      "tip": "60138e17c6a16814039fd3cd84074b5ab0f4b895",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "parity/strict-accounting-fix-20261020",
+      "tip": "70b7f9e6c196b57d1b13aee56ac6d6a17e6db388",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "parity/table-component-20261020",
+      "tip": "f0899c71b1e06ebdd5181c85488c8f0fd916adea",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "parity/table-consumer-20261020",
+      "tip": "e3cccd8a277adac55efc0e75ae0291a0a358d624",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "parity/tablepro-footer-focus-20261020",
+      "tip": "1ac6dfced934a3015a7c90bc3006ccf2de0287a2",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "parity/tablepro-live-contracts-20261020",
+      "tip": "4ab81ae474b86ca3f3c74fe6e79328c20f7c6826",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "parity/tablepro-picker-live-20261020",
+      "tip": "366dc67c9546abb59176df9398ee0b772d87d99d",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "parity/termrock-visual-baseline",
+      "tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "preserve designated branch"
+    },
+    {
+      "branch": "parity/text-runtime-editing-20261020",
+      "tip": "a099f3e242d262ea9f67f993450cde497746fbb3",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "parity/theme-palette-baseline-20261020",
+      "tip": "95cdc7bdb111dc1b683a638b421dae718bb29643",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "parity/velnor-design-upgrade-20261020",
+      "tip": "8533344520cfdf12734c1c149fc89ec946b3ea46",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "parity/velnor-parity-20261020",
+      "tip": "e7961cee0f377530e0aa5f35fcca63b5cfc76de5",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "preservation/local-work-2026-10-17",
+      "tip": "7982d64c6c0dc8518683a5ba4f7755ca16dafeff",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "preservation/terminal-components-rescue-20261019",
+      "tip": "c8c114cf223c7b91fb6b0f06575f8241130b8346",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "preservation/termrock-20261016",
+      "tip": "023fdeb41fd7c789a66003825fdc19c3c73fce4a",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "preservation/termrock-combined-20261019",
+      "tip": "f34cb4cf1fbeacdca0cec80ee06a7b7489ffb397",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "preservation/termrock-design-interaction-polish-20261016",
+      "tip": "e172d3b2f9467b3a14febd94c787768d74a9c1c1",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "preservation/termrock-sanitized-visibility-queue-20261019",
+      "tip": "17c543693bf292c35ed93a7c88e873fdd986b636",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "wip/baseline-cohort-admission-20261021",
+      "tip": "310a56de62e0d2e87a647ffd58b9b5cec9c0a744",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "integrated ancestry; ownership/protection/review checks required before retirement"
+    },
+    {
+      "branch": "wip/branch-consolidation-20261021",
+      "tip": "37f704c9dfb6e485d5e75c9073deb41fb60fe016",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "wip/ci-doc-inventory-20261021",
+      "tip": "482cdaf48c42d8355a173e1faeee74e159c46d0b",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "integrated ancestry; ownership/protection/review checks required before retirement"
+    },
+    {
+      "branch": "wip/ci-upgrade-handoff-20261020",
+      "tip": "706c138339c22bbd113ea449cf28d1c23c119764",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "wip/code-editor-meta-precedence-20261021",
+      "tip": "671443b89133dda618fb661cdf65e2d8edbd0664",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "wip/conformance-driver-corrections-20261021",
+      "tip": "9ba5e96d8223f53b55c669279603c976acbfbdbd",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "wip/context-menu-live-contract-20261021",
+      "tip": "1dee009130ca11876a8d5e53e04fe1046edb9888",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "integrated ancestry; ownership/protection/review checks required before retirement"
+    },
+    {
+      "branch": "wip/controls-adopt-rate-limit-20261021",
+      "tip": "d90357899a5e53fdbe75f1de13c88fca4bcf7249",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "wip/domain-seeded-lint-20261021",
+      "tip": "c9357a9efbaaf995eee00390183d3c82631caa03",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "integrated ancestry; ownership/protection/review checks required before retirement"
+    },
+    {
+      "branch": "wip/editor-meta-merged-review-20261021",
+      "tip": "9943be9dbfab0840d191527037cf6343b580779a",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "wip/external-public-consumer-20261021",
+      "tip": "fd1e65243d1f64ea2a6f54ffb09e072c8c369899",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "wip/form-dialog-20261021",
+      "tip": "7c46c63f0c6e99d26c872758fc941a3ffa270f23",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "integrated ancestry; ownership/protection/review checks required before retirement"
+    },
+    {
+      "branch": "wip/form-field-layout-20261021",
+      "tip": "2f6193e6e2f396100a2a11cbdc83899a3acfd0ee",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "integrated ancestry; ownership/protection/review checks required before retirement"
+    },
+    {
+      "branch": "wip/grid-style-inheritance-c29",
+      "tip": "4f9cbb0df7f1b9bafff76801b25150e86c7216e9",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "integrated ancestry; ownership/protection/review checks required before retirement"
+    },
+    {
+      "branch": "wip/holla-geometry-blocks-20261021",
+      "tip": "63a0f9ccc69f4d3fda80dd46be8748677f886bc9",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "wip/holla-home-migration-20261021",
+      "tip": "51a17fa1dd92d25f092e3bcf1121457df2766a5e",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "wip/holla-home-row-composition-20261021",
+      "tip": "06b9fe0b88722303ea6a4d00cf6adbe66a568cb8",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "wip/holla-menu-patch-precedence-20261021",
+      "tip": "378b7987798d82a708abc2619f899e620cc9b215",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "wip/holla-rate-limit-20261021",
+      "tip": "098fcfcdab8e0ac33a45819b131bc1dd58098bf8",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "wip/itemrow-metadata-contract-20261021",
+      "tip": "32628b360f6015fe4ef49c805c0e45e8264a874d",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "integrated ancestry; ownership/protection/review checks required before retirement"
+    },
+    {
+      "branch": "wip/jackin-live-capsule-menu-20261021",
+      "tip": "de819fb1ca4e30790e869b1b9eed004109cab3aa",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "wip/jackin-rate-limit-20261021",
+      "tip": "01dcfddde88fac6cb854fcc1dc0f2c9b6d7fdf8d",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "wip/list-multiline-viewport-20261021-v2",
+      "tip": "7126662c97dc2a49a41e3ab35a6bd23976e2e6de",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "wip/manager-composition-interop-20261021",
+      "tip": "621997e7dd4885613d528a339b945a04c197e0a8",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "wip/master-detail-block-stage1-20261021",
+      "tip": "e0026278649d215d88ca3231ba4720f7c8ae16e7",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "integrated ancestry; ownership/protection/review checks required before retirement"
+    },
+    {
+      "branch": "wip/master-detail-pure-layout-20261021",
+      "tip": "912681032b137dc6aa91757fada4abe60c572840",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "integrated ancestry; ownership/protection/review checks required before retirement"
+    },
+    {
+      "branch": "wip/menu-disabled-reason-20261021-a7f2",
+      "tip": "38148abafc448e9f75f72f79339f86d650832895",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "integrated ancestry; ownership/protection/review checks required before retirement"
+    },
+    {
+      "branch": "wip/nextest-doc-inventory-guard-20261021",
+      "tip": "fcb0d8d2fb32859c2aea03c3135fbe42955e9a7b",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "integrated ancestry; ownership/protection/review checks required before retirement"
+    },
+    {
+      "branch": "wip/owned-fresh-plan-lifecycle-20261021",
+      "tip": "1f0d0ce4f7294ce39173d1cc74f832ebfe60834e",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "wip/palette-grid-repair-20261021",
+      "tip": "b26f548722fbb1d5f036d978a1519cfb0fa833ad",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "wip/palette-rate-limit-20261021",
+      "tip": "73fc468fc76043d27103dbe96d4375c9c09c76a6",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "wip/palette-test-integrity-20261021",
+      "tip": "c60830f8a3b7279aa2046be7d3e7b6ca9984896a",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "integrated ancestry; ownership/protection/review checks required before retirement"
+    },
+    {
+      "branch": "wip/parent-fields-runtime-blocker-20261021",
+      "tip": "379465e9e22a8f8cd7a5bcffefdda3328e8f6487",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "integrated ancestry; ownership/protection/review checks required before retirement"
+    },
+    {
+      "branch": "wip/picker-row-contrast-20261021",
+      "tip": "c932adb5ee29ef8ed9f90cc022c39cb9c0472e5d",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "wip/picker-row-default-precedence-20261021",
+      "tip": "f46caa2ce68966d319ffbb4cf03428e8234368f3",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "wip/picker-short-footer-regression-20261021",
+      "tip": "cf854b9e5a3f73096e07f473cced123f59a3542e",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "integrated ancestry; ownership/protection/review checks required before retirement"
+    },
+    {
+      "branch": "wip/plan-s16",
+      "tip": "70e04be37adebd43a26af1e4ae14b73ee7298ca4",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "wip/pr38-completion-verify-20261021",
+      "tip": "8e976098d1dda36acf446334c05e88a9d0e40c39",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "wip/pr38-palette-style-integration-20261020",
+      "tip": "b0a3bea5a486c4b67a83a10ec5463c690c590208",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "wip/public-consumer-contracts-20261021",
+      "tip": "fc861e15af48089fc606e83d3b7bf4bf28b0aacf",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "wip/radio-navigation-contract-20261021",
+      "tip": "1b677b30c7a21a3415a1752ae8208abe2a445dd7",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "wip/rapps-3-7-14",
+      "tip": "b76517cec3a25d91d465329b5e99d6217beef93f",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "wip/reach-pages-a",
+      "tip": "3cb2198dd6ad26921dd519f4c420c7060d144f92",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "wip/reach-pages-a-2",
+      "tip": "37e21b8a4796b61208ec36ae563af7ac71e2a2d7",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "wip/recolor-provenance-20261021",
+      "tip": "dfb54cfc5dd9511b214a68677eb213492df897fd",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "integrated ancestry; ownership/protection/review checks required before retirement"
+    },
+    {
+      "branch": "wip/rowui-container-width-20261021",
+      "tip": "e1d81b106cf69a947c19870bdc1e72c53eadf417",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "integrated ancestry; ownership/protection/review checks required before retirement"
+    },
+    {
+      "branch": "wip/s14-followups",
+      "tip": "19fcb24b68137cf009ef16aa329da3250d73f1c6",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "wip/session-consolidation-20261021",
+      "tip": "3315102643548f247272e149199b8a575068882b",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "wip/shared-design-working-tree-20261020",
+      "tip": "1d7fdb224a7c68e5946e8747fb9f92365ebcbef1",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "wip/shell-reach-rustdoc-20261021",
+      "tip": "92bd50821017f01d89612d0f3a78dd6dfa5af59b",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "integrated ancestry; ownership/protection/review checks required before retirement"
+    },
+    {
+      "branch": "wip/showcase-app-layer-cleanup-20261021",
+      "tip": "d9968601420e3f8d7d2612a2f3ac7b01cda62431",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "wip/showcase-dialog-kinds-restoration-20261021",
+      "tip": "9c07189c8f38a4e29bda4060f2dfd5efc8ceda73",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "wip/showcase-pages-migration-20261021",
+      "tip": "8997fd295fac600597dea013a73a7d9e49548182",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "wip/split-block-contract-20261021",
+      "tip": "759d0d411ed9148e3d04f700bcc81d7b90b97a4a",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "integrated ancestry; ownership/protection/review checks required before retirement"
+    },
+    {
+      "branch": "wip/style-conformance-20261020",
+      "tip": "c2396b45622d0ae2a3cb836756612d8354abb2db",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "wip/table-consumer-baseline",
+      "tip": "fa02fa54a6151c43cccd56d61e096f4a87808f13",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "wip/tablepro-blank-database-validation-20261021",
+      "tip": "8992262f4c75c7eadf6730f7fa270385ad6003aa",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "wip/tablepro-blank-domain-20261021",
+      "tip": "f0760cc204afc533e202604d0437f913b72bfd10",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "integrated ancestry; ownership/protection/review checks required before retirement"
+    },
+    {
+      "branch": "wip/tablepro-geometry-blocks-20261021",
+      "tip": "3cdbc322f4f643731ffc78bcc797567101cb0139",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "wip/tablepro-name-prefix-20261021",
+      "tip": "c8f92ea0c0df2bc13a507e97b14ef6f65a90ea48",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "wip/tablepro-picker-scope-20261021",
+      "tip": "d40f8e5fb7e47dca8c971c718559f840e9ba693d",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "wip/tablepro-query-focus-contract-20261021",
+      "tip": "3bab23ecfcc9cedbdea22700328737282dfa06ae",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "wip/tablepro-strict-clippy-20261021",
+      "tip": "8ec5d042eb2a16e5d66ec49fd1291154e1cdd5e8",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "wip/termrock-extract-shell-20261021",
+      "tip": "9892d22a061e7f1037c6f75bb93980a5b58a7e6c",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "integrated ancestry; ownership/protection/review checks required before retirement"
+    },
+    {
+      "branch": "wip/termrock-reviewed-contract-integration-20261020",
+      "tip": "8462bf28aadabd76833e11395e6237e66468efe0",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "wip/termrock-theme-typed-slots-20261021",
+      "tip": "8e7480415a065eac03c0fdfbdd0810edeb85b186",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "integrated ancestry; ownership/protection/review checks required before retirement"
+    },
+    {
+      "branch": "wip/theme-field-hover-20261021",
+      "tip": "4507e7de2b730985bc3e8f5478f6cd68be9b51a3",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "integrated ancestry; ownership/protection/review checks required before retirement"
+    },
+    {
+      "branch": "wip/typed-dialog-props-slots-20261021",
+      "tip": "6cc98ab0fbd2f5dc404115d8470a868a8d981665",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "integrated ancestry; ownership/protection/review checks required before retirement"
+    },
+    {
+      "branch": "wip/v1-showcase",
+      "tip": "68651fba7168f5789ec72224ec76c312ed9f8fc9",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "wip/velnor-actions-0135-20261021",
+      "tip": "dc5ade35e5ffafc1b8df73eccbf7872144b6d1fc",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    },
+    {
+      "branch": "wip/velnor-actions-0136-20261021",
+      "tip": "507c232073b6877c6563b7d24e11450fbc2d56c4",
+      "integration_tip": "3196f4ef6a85aaf18b41c429153905deb1a46929",
+      "review": "not established by ancestry",
+      "disposition": "unique history; source and artifact review required"
+    }
+  ],
+  "limits": [
+    "Ancestry is not source, artifact, acceptance, ownership or protection approval.",
+    "No branch, PR, tag or release was changed."
+  ]
+}
