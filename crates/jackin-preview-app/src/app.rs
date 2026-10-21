@@ -267,12 +267,12 @@ mod capsule_zoom_view;
 
 mod historical_hard_launch_picker;
 mod historical_launch_picker;
-mod historical_manager_menu;
 mod historical_paint;
 mod inspect_view;
 mod launch_cockpit;
 mod launch_dialog_plate;
 mod manager_help;
+mod manager_menu_view;
 mod settings_view;
 mod usage_detail_view;
 mod usage_overview_view;
@@ -8355,7 +8355,7 @@ impl App {
         }
         // The menu layer composites after the page so the page cursor stays off this frame.
         let _ = ui.layer(MANAGER_FILE_MENU, |ui, _area| {
-            historical_manager_menu::paint(ui);
+            manager_menu_view::paint(ui);
         });
     }
 
