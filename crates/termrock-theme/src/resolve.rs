@@ -876,6 +876,130 @@ pub fn bind_defaults(
     bind_with_profile(theme, acc, local, surface, exact_profile)
 }
 
+/// Resolve a component fallback variant before the authored family/default variant.
+///
+/// The fallback recipe is the built-in component contract. Authored fallback variant
+/// declarations, selectors and overlays then precede authored family/default-variant
+/// declarations and their selectors. Local patches remain the final layer.
+pub fn bind_fallback_variant(
+    theme: &Theme,
+    (family, fallback, requested, part): (Family, Variant, Variant, Part),
+    flags: StateFlags,
+    overlays: &[Overlay],
+    surface: Surface,
+    defaults: StyleDefaults<'_>,
+    local: Option<&StylePatch>,
+) -> Resolved {
+    let builtin = theme
+        .recipes
+        .builtin(family)
+        .unwrap_or_else(|| theme.recipes.get_or_neutral(family));
+    let authored = theme.recipes.authored(family);
+    let effective = if requested == Variant::DEFAULT {
+        theme
+            .recipes
+            .authored_default_variant(family)
+            .unwrap_or(builtin.default_variant)
+    } else {
+        requested
+    };
+    let (mut acc, _) = apply_recipe(builtin, effective, part, flags, defaults.base);
+    if let Some(delta) = builtin.variant(fallback).and_then(|parts| parts.get(part)) {
+        acc = delta.apply(acc, flags);
+    }
+
+    let (profiled_fallback, fallback_profile) = apply_level_profiles(
+        theme,
+        ProfileContext {
+            family,
+            requested_variant: fallback,
+            variant: fallback,
+            part,
+            live: flags,
+            surface,
+        },
+        acc,
+    );
+    acc = profiled_fallback;
+
+    let mut later_authored = StylePatch::new();
+    if let Some(authored) = theme.recipes.authored(family)
+        && let Some(delta) = authored.variant(fallback).and_then(|parts| parts.get(part))
+    {
+        acc = delta.apply(acc, flags);
+        later_authored = delta.apply(later_authored, flags);
+    }
+    let fallback_explicit = apply_authored_explicit(
+        theme,
+        (family, fallback, part),
+        flags,
+        overlays,
+        false,
+        StylePatch::new(),
+    );
+    acc = acc.merge(fallback_explicit);
+    later_authored = later_authored.merge(fallback_explicit);
+
+    if let Some(authored) = authored {
+        let authored_delta = apply_recipe(authored, effective, part, flags, StylePatch::new()).0;
+        later_authored = later_authored.merge(authored_delta);
+        let (next, _) = apply_recipe(authored, effective, part, flags, acc);
+        acc = next;
+    }
+
+    // Capability profiles use the normal resolver's eligibility rules.
+    let (profiled_ordinary, ordinary_profile) = apply_level_profiles(
+        theme,
+        ProfileContext {
+            family,
+            requested_variant: requested,
+            variant: effective,
+            part,
+            live: flags,
+            surface,
+        },
+        acc,
+    );
+    acc = profiled_ordinary;
+
+    let ordinary_explicit = apply_authored_explicit(
+        theme,
+        (family, effective, part),
+        flags,
+        overlays,
+        true,
+        StylePatch::new(),
+    );
+    acc = acc.merge(ordinary_explicit);
+    later_authored = later_authored.merge(ordinary_explicit);
+    let mut profile = ProfiledStyle::from_patch(fallback_profile.merge(ordinary_profile));
+    profile.suppress(later_authored);
+    bind_with_profile(theme, acc, local, surface, profile)
+}
+
+fn apply_authored_explicit(
+    theme: &Theme,
+    (family, variant, part): (Family, Variant, Part),
+    live: StateFlags,
+    overlays: &[Overlay],
+    include_family_overrides: bool,
+    mut acc: StylePatch,
+) -> StylePatch {
+    for override_ in theme.recipes.authored_overrides() {
+        if override_.family == family
+            && (override_.variant == Some(variant)
+                || (include_family_overrides && override_.variant.is_none()))
+            && let Some(recipe) = override_.parts.get(part)
+        {
+            acc = recipe.apply(acc, live);
+        }
+    }
+    for overlay in overlays {
+        acc = overlay.apply(acc, family, variant, part, live);
+    }
+    acc
+}
+
 pub fn bind_defaults_with_explicit(
     theme: &Theme,
     (family, variant, part): (Family, Variant, Part),
@@ -1591,6 +1715,69 @@ mod tests {
         assert!(channels.explicit.add.contains(Modifier::BOLD));
         assert!(!channels.explicit.add.contains(Modifier::UNDERLINED));
         assert!(channels.explicit.remove.contains(Modifier::UNDERLINED));
+    }
+
+    #[test]
+    fn fallback_variant_override_preserves_explicit_clear_and_modifier_removal() {
+        let fallback = Variant::custom("termrock.test.fallback-clear");
+        let theme = Theme::junie().override_variant(Family::MENU, fallback, |recipe| {
+            recipe.part(Part::TITLE).when(
+                StateFlags::HOVERED,
+                StylePatch::new().clear_fg().remove(Modifier::BOLD),
+            );
+        });
+        let defaults =
+            StyleDefaults::new(StylePatch::new().set_fg(Role::Accent).add(Modifier::BOLD));
+        let resolved = bind_fallback_variant(
+            &theme,
+            (Family::MENU, fallback, Variant::DEFAULT, Part::TITLE),
+            StateFlags::HOVERED,
+            &[],
+            Surface::Canvas,
+            defaults,
+            None,
+        );
+
+        assert_eq!(resolved.style.as_style().fg, None);
+        assert!(
+            !resolved
+                .style
+                .as_style()
+                .add_modifier
+                .contains(Modifier::BOLD)
+        );
+    }
+
+    #[test]
+    fn fallback_authorship_is_recorded_even_when_a_channel_matches_builtin() {
+        let fallback = Variant::custom("termrock.menu-bar-title");
+        let theme = Theme::junie()
+            .define_variant(Family::MENU, fallback, |recipe| {
+                recipe.part(Part::TITLE).base(
+                    StylePatch::new()
+                        .set_fg(Role::Fg(FgStep::Primary))
+                        .add(Modifier::UNDERLINED),
+                );
+            })
+            .define_variant(Family::MENU, Variant::DEFAULT, |recipe| {
+                recipe
+                    .part(Part::TITLE)
+                    .base(StylePatch::new().add(Modifier::ITALIC));
+            });
+        let resolved = bind_fallback_variant(
+            &theme,
+            (Family::MENU, fallback, Variant::DEFAULT, Part::TITLE),
+            StateFlags::HOVERED,
+            &[],
+            Surface::Canvas,
+            StyleDefaults::default(),
+            None,
+        );
+
+        let style = resolved.style.as_style();
+        assert_eq!(style.fg, Some(theme.color.fg[0]));
+        assert!(style.add_modifier.contains(Modifier::UNDERLINED));
+        assert!(style.add_modifier.contains(Modifier::ITALIC));
     }
 
     #[test]

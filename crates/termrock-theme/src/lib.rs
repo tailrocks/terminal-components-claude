@@ -259,7 +259,7 @@ impl Theme {
             })
         });
 
-        [
+        let mut theme = [
             (TrueColor, Color::Rgb(46, 154, 56)),
             (Ansi256, Color::Indexed(65)),
             (Ansi16, Color::LightGreen),
@@ -279,7 +279,9 @@ impl Theme {
                         StylePatch::new().set_bg(Role::Custom(pressed)),
                     );
             })
-        })
+        });
+        theme.recipes.mark_builtin();
+        theme
     }
 
     pub fn paper() -> Theme {
@@ -289,7 +291,7 @@ impl Theme {
     pub fn from_tokens(c: ColorTokens) -> Theme {
         let mut color = c;
         builder::derive_unset(&mut color);
-        Theme {
+        let mut theme = Theme {
             color,
             design: builtin::junie::design(),
             recipes: builtin::default_recipes(),
@@ -297,7 +299,9 @@ impl Theme {
                 color: ColorLevel::TrueColor,
             },
             capability_palettes: None,
-        }
+        };
+        theme.recipes.mark_builtin();
+        theme
     }
 
     pub fn builder(self) -> ThemeBuilder {
@@ -308,14 +312,18 @@ impl Theme {
     pub fn override_family(mut self, f: Family, edit: impl FnOnce(&mut RecipeEdit)) -> Theme {
         let mut e = RecipeEdit::default();
         edit(&mut e);
-        if let Some(v) = e.default_variant_set() {
+        let default_variant = e.default_variant_set();
+        if let Some(v) = default_variant {
             self.recipes.get_mut(f).default_variant = v;
+            self.recipes.record_authored_default_variant(f, v);
         }
-        self.recipes.push_override(GlobalOverride {
+        let override_ = GlobalOverride {
             family: f,
             variant: None,
             parts: e.into_parts(),
-        });
+        };
+        self.recipes.push_override(override_.clone());
+        self.recipes.record_authored_override(override_);
         self
     }
 
@@ -328,14 +336,18 @@ impl Theme {
     ) -> Theme {
         let mut e = RecipeEdit::default();
         edit(&mut e);
-        if let Some(dv) = e.default_variant_set() {
+        let default_variant = e.default_variant_set();
+        if let Some(dv) = default_variant {
             self.recipes.get_mut(f).default_variant = dv;
+            self.recipes.record_authored_default_variant(f, dv);
         }
-        self.recipes.push_override(GlobalOverride {
+        let override_ = GlobalOverride {
             family: f,
             variant: Some(v),
             parts: e.into_parts(),
-        });
+        };
+        self.recipes.push_override(override_.clone());
+        self.recipes.record_authored_override(override_);
         self
     }
 
@@ -348,14 +360,18 @@ impl Theme {
     ) -> Theme {
         let mut e = RecipeEdit::default();
         edit(&mut e);
+        let default_variant = e.default_variant_set();
+        let parts = e.into_parts();
         let recipe = self.recipes.get_mut(f);
-        if let Some(dv) = e.default_variant_set() {
+        if let Some(dv) = default_variant {
             recipe.default_variant = dv;
         }
         let target = recipe.variant_mut(v);
-        for (p, part) in e.into_parts().iter() {
+        for (p, part) in parts.iter() {
             target.entry(p).merge_from(part);
         }
+        self.recipes
+            .record_authored_variant(f, v, default_variant, &parts);
         self
     }
 
@@ -363,13 +379,17 @@ impl Theme {
     pub fn define_family(mut self, f: Family, edit: impl FnOnce(&mut RecipeEdit)) -> Theme {
         let mut e = RecipeEdit::default();
         edit(&mut e);
+        let default_variant = e.default_variant_set();
+        let parts = e.into_parts();
         let recipe = self.recipes.get_mut(f);
-        if let Some(dv) = e.default_variant_set() {
+        if let Some(dv) = default_variant {
             recipe.default_variant = dv;
         }
-        for (p, part) in e.into_parts().iter() {
+        for (p, part) in parts.iter() {
             recipe.parts.entry(p).merge_from(part);
         }
+        self.recipes
+            .record_authored_family(f, default_variant, &parts);
         self
     }
 

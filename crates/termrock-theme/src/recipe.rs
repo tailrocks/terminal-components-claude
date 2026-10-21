@@ -292,6 +292,10 @@ pub struct GlobalOverride {
 #[derive(Clone, Debug)]
 pub struct Recipes {
     by_family: Vec<(Family, Recipe)>,
+    builtin_by_family: Vec<(Family, Recipe)>,
+    authored_by_family: Vec<(Family, Recipe)>,
+    authored_default_variants: Vec<(Family, Variant)>,
+    authored_overrides: Vec<GlobalOverride>,
     overrides: Vec<GlobalOverride>,
     neutral: Recipe,
     mono: Vec<(Family, Vec<MonoRule>)>,
@@ -308,6 +312,10 @@ fn next_recipe_revision() -> u64 {
 impl PartialEq for Recipes {
     fn eq(&self, other: &Self) -> bool {
         self.by_family == other.by_family
+            && self.builtin_by_family == other.builtin_by_family
+            && self.authored_by_family == other.authored_by_family
+            && self.authored_default_variants == other.authored_default_variants
+            && self.authored_overrides == other.authored_overrides
             && self.overrides == other.overrides
             && self.neutral == other.neutral
             && self.mono == other.mono
@@ -341,6 +349,10 @@ impl Default for Recipes {
     fn default() -> Self {
         Recipes {
             by_family: Vec::new(),
+            builtin_by_family: Vec::new(),
+            authored_by_family: Vec::new(),
+            authored_default_variants: Vec::new(),
+            authored_overrides: Vec::new(),
             overrides: Vec::new(),
             neutral: super::builtin::neutral_recipe(),
             mono: Vec::new(),
@@ -357,6 +369,113 @@ impl Recipes {
             .ok()
             .and_then(|i| self.by_family.get(i))
             .map(|(_, r)| r)
+    }
+
+    pub(crate) fn mark_builtin(&mut self) {
+        self.builtin_by_family = self.by_family.clone();
+        self.authored_by_family.clear();
+        self.authored_default_variants.clear();
+        self.authored_overrides.clear();
+    }
+
+    pub(crate) fn builtin(&self, f: Family) -> Option<&Recipe> {
+        self.builtin_by_family
+            .binary_search_by_key(&f, |(key, _)| *key)
+            .ok()
+            .and_then(|index| self.builtin_by_family.get(index))
+            .map(|(_, recipe)| recipe)
+    }
+
+    pub(crate) fn authored(&self, f: Family) -> Option<&Recipe> {
+        self.authored_by_family
+            .binary_search_by_key(&f, |(key, _)| *key)
+            .ok()
+            .and_then(|index| self.authored_by_family.get(index))
+            .map(|(_, recipe)| recipe)
+    }
+
+    pub(crate) fn authored_default_variant(&self, f: Family) -> Option<Variant> {
+        self.authored_default_variants
+            .iter()
+            .find(|(family, _)| *family == f)
+            .map(|(_, variant)| *variant)
+    }
+
+    pub(crate) fn authored_overrides(&self) -> &[GlobalOverride] {
+        &self.authored_overrides
+    }
+
+    pub(crate) fn record_authored_variant(
+        &mut self,
+        family: Family,
+        variant: Variant,
+        default_variant: Option<Variant>,
+        parts: &PartMap<PartRecipe>,
+    ) {
+        if let Some(default) = default_variant {
+            self.set_authored_default_variant(family, default);
+        }
+        let recipe = self.authored_recipe_mut(family);
+        if let Some(default) = default_variant {
+            recipe.default_variant = default;
+        }
+        let target = recipe.variant_mut(variant);
+        for (part, value) in parts.iter() {
+            target.entry(part).merge_from(value);
+        }
+    }
+
+    pub(crate) fn record_authored_family(
+        &mut self,
+        family: Family,
+        default_variant: Option<Variant>,
+        parts: &PartMap<PartRecipe>,
+    ) {
+        if let Some(default) = default_variant {
+            self.set_authored_default_variant(family, default);
+        }
+        let recipe = self.authored_recipe_mut(family);
+        if let Some(default) = default_variant {
+            recipe.default_variant = default;
+        }
+        for (part, value) in parts.iter() {
+            recipe.parts.entry(part).merge_from(value);
+        }
+    }
+
+    pub(crate) fn record_authored_override(&mut self, override_: GlobalOverride) {
+        self.authored_overrides.push(override_);
+    }
+
+    pub(crate) fn record_authored_default_variant(&mut self, family: Family, variant: Variant) {
+        self.set_authored_default_variant(family, variant);
+    }
+
+    fn authored_recipe_mut(&mut self, family: Family) -> &mut Recipe {
+        let index = match self
+            .authored_by_family
+            .binary_search_by_key(&family, |(key, _)| *key)
+        {
+            Ok(index) => index,
+            Err(index) => {
+                self.authored_by_family
+                    .insert(index, (family, Recipe::default()));
+                index
+            }
+        };
+        &mut self.authored_by_family[index].1
+    }
+
+    fn set_authored_default_variant(&mut self, family: Family, variant: Variant) {
+        if let Some((_, current)) = self
+            .authored_default_variants
+            .iter_mut()
+            .find(|(key, _)| *key == family)
+        {
+            *current = variant;
+        } else {
+            self.authored_default_variants.push((family, variant));
+        }
     }
 
     pub fn neutral(&self) -> &Recipe {

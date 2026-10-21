@@ -1478,26 +1478,16 @@ impl<'a> MenuBar<'a> {
                     flags,
                 ),
                 MenuBarHoverScope::Title => {
-                    let mut defaults = StylePatch::default();
-                    if let Some(recipe) = ui
-                        .theme_ref()
-                        .recipes
-                        .get(Family::MENU)
-                        .and_then(|recipe| recipe.variant(MENU_BAR_TITLE_VARIANT))
-                        .and_then(|parts| parts.get(Part::TITLE))
-                    {
-                        defaults = recipe.apply(defaults, flags);
-                    }
                     let local = self.ov.part_patch(Part::TITLE);
-                    // The menu-bar variant is a component fallback. Resolve the
-                    // family default variant here so authored variants and their
-                    // overlays keep the shared precedence before this local patch.
-                    let style = ui.style_defaults(
-                        Family::MENU,
-                        Variant::DEFAULT,
-                        Part::TITLE,
+                    let style = ui.style_with_fallback_variant(
+                        (
+                            Family::MENU,
+                            MENU_BAR_TITLE_VARIANT,
+                            Variant::DEFAULT,
+                            Part::TITLE,
+                        ),
                         flags,
-                        crate::theme::StyleDefaults::new(defaults),
+                        crate::theme::StyleDefaults::default(),
                         local.as_ref(),
                     );
                     self.ov.note(
