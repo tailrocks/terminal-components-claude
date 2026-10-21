@@ -7,6 +7,7 @@ use termrock_test_support::Harness;
 
 const NAME: Id = Id::root("tablepro.connections.form.name");
 const DATABASE: Id = Id::root("tablepro.connections.form.database");
+const FORM: Id = Id::root("tablepro.connections.form");
 const ENVIRONMENT: Id = Id::root("tablepro.connections.form.environment");
 const GROUP: Id = Id::root("tablepro.connections.form.group");
 const SAFE_MODE: Id = Id::root("tablepro.connections.form.safe-mode");
@@ -46,8 +47,9 @@ fn form_radio_commit_changes_draft() -> Result<(), &'static str> {
         "ENVIRONMENT must be Tab-reachable"
     );
     let _ = t.key(KeyCode::Down);
+    assert_eq!(drafts(&t)?.0, 1, "Down immediately chooses Development");
     let _ = t.key(KeyCode::Down);
-    assert_eq!(drafts(&t)?.0, 0, "arrows must not write the draft");
+    assert_eq!(drafts(&t)?.0, 2, "Down immediately chooses Staging");
     let _ = t.key(KeyCode::Char(' '));
     assert_eq!(drafts(&t)?.0, 2, "Space must commit the cursor");
 
@@ -56,7 +58,7 @@ fn form_radio_commit_changes_draft() -> Result<(), &'static str> {
         "SAFE_MODE must be Tab-reachable"
     );
     let _ = t.key(KeyCode::Down);
-    assert_eq!(drafts(&t)?.1, 0, "arrows must not write the draft");
+    assert_eq!(drafts(&t)?.1, 1, "Down immediately chooses Safe Mode");
     let _ = t.key(KeyCode::Char(' '));
     assert_eq!(drafts(&t)?.1, 1, "Space must commit the cursor");
     Ok(())
@@ -76,7 +78,7 @@ fn form_radio_no_legacy_painter() {
 }
 
 #[test]
-fn form_radio_enter_submits() -> Result<(), &'static str> {
+fn form_radio_enter_chooses_without_submitting_and_ctrl_s_saves() -> Result<(), &'static str> {
     let mut app = TableProApp::default();
     let index = production_index(&app).ok_or("Production connection missing from the demo list")?;
     assert!(app.connect(index), "Production must connect");
@@ -91,7 +93,19 @@ fn form_radio_enter_submits() -> Result<(), &'static str> {
         tab_navigation::tab_to(&mut t, NAME),
         "NAME must be Tab-reachable"
     );
-
+    let _ = t.type_str("Termrock radio behavior");
+    assert!(
+        tab_navigation::tab_to(&mut t, DATABASE),
+        "DATABASE must be Tab-reachable"
+    );
+    let _ = t.key(KeyCode::End);
+    let _ = t.type_str("_radio");
+    assert!(
+        t.app()
+            .connection_draft()
+            .is_some_and(|draft| draft.validate_all().is_ok()),
+        "Name and Database must be valid before the radio Enter check"
+    );
     let entries = t.ring().entries();
     let env = entries.iter().position(|entry| entry.id == ENVIRONMENT);
     let group = entries.iter().position(|entry| entry.id == GROUP);
@@ -130,23 +144,36 @@ fn form_radio_enter_submits() -> Result<(), &'static str> {
     );
 
     let _ = t.key(KeyCode::Up);
-    assert_eq!(drafts(&t)?.0, 3, "Up must not write the draft");
-    let _ = t.key(KeyCode::Up);
-    assert_eq!(drafts(&t)?.0, 3, "Up must not write the draft");
-    let _ = t.key(KeyCode::Char(' '));
-    assert_eq!(drafts(&t)?.0, 1, "Space must commit development");
+    assert_eq!(drafts(&t)?.0, 2, "Up immediately chooses Staging");
     let _ = t.key(KeyCode::Down);
-    assert_eq!(drafts(&t)?.0, 1, "Down must not write the draft");
+    assert_eq!(drafts(&t)?.0, 3, "Down immediately chooses Production");
 
     let before = t.app().connections_screen.connections.len();
     let _ = t.key(KeyCode::Enter);
     assert!(
-        !t.app().connection_form_open(),
-        "Enter must submit and close the form"
+        t.app().connection_form_open(),
+        "radio Enter chooses without submitting or closing the form"
     );
+    assert_eq!(
+        t.app().connections_screen.connections.len(),
+        before,
+        "radio Enter does not append a connection"
+    );
+    let save = FORM.part(termrock::Part::ACTIONS).index(2);
     assert!(
-        t.app().connections_screen.connections.len() > before,
-        "submit must push a connection"
+        tab_navigation::tab_to(&mut t, save),
+        "Save action must remain keyboard reachable"
+    );
+    let _ = t.key(KeyCode::Enter);
+    assert_eq!(
+        t.app().connections_screen.connections.len(),
+        before + 1,
+        "Enter on the Save action reaches the typed Save action"
+    );
+    let _ = t.ctrl('s');
+    assert!(
+        t.app().connections_screen.connections.len() > before + 1,
+        "Ctrl+S reaches the configured Save action"
     );
     let pushed = t
         .app()
@@ -156,12 +183,16 @@ fn form_radio_enter_submits() -> Result<(), &'static str> {
         .ok_or("submit must push a connection")?;
     let pushed = format!("{pushed:?}");
     assert!(
-        pushed.contains("name: \"Production\""),
-        "pushed connection keeps the corpus name, got {pushed}"
+        pushed.contains("name: \"Termrock radio behavior\""),
+        "Save keeps the edited name, got {pushed}"
     );
     assert!(
-        pushed.contains("environment: Development"),
-        "the pushed connection keeps the last Space-committed value, got {pushed}"
+        pushed.contains("database: \"acme_prod_radio\""),
+        "Save keeps the edited Database, got {pushed}"
+    );
+    assert!(
+        pushed.contains("environment: Production"),
+        "the chosen radio value is saved, got {pushed}"
     );
     Ok(())
 }
