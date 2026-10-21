@@ -1,3 +1,19 @@
+# Current coordinator checkpoint: PR #38 remains incomplete (2026-10-21)
+
+This checkpoint supersedes earlier green/acceptance claims below where they conflict with the current migration matrix. Published PR #38 tip `b7daf8f529c504487c119020aafe444c1de5bd46` integrates corrected Holla header tests and independently reviewed generic Picker card layout. All four applications—Showcase, Jackin Preview, TablePro and Holla—remain incomplete for exact product parity and thin-consumer architecture. Main, design and frozen references are unchanged. The original design checkout is clean and the six user-requested folders are absent; no backup was created.
+
+Resume from [the migration matrix](../architecture/termrock-migration-matrix.md), not earlier claims that re-blessed frames or narrow architecture checks prove acceptance. Parent source and evidence are on the PR branch; no parent-only source work requires a new preservation branch.
+
+Pending tasks and exact next actions:
+
+- Holla MenuBar precedence repair: WIP `wip/holla-menu-patch-precedence-20261021` is remotely verified at `b9207254a133693687c7d4e97eea3d9d70fca9ea`. The existing regression fails before and 84 overlay library tests, strict Clippy and formatting pass afterward. Independent exact-commit review is assigned; wait for that evidence before integrating. The repair keeps special title defaults below authored family/default-variant, overlay and local patches.
+- Dialog primary correction: remote `wip/dialog-primary-action-20261021` now points to `8a9af56bcb39d3fe810191fc8da85d149996eccf`. Earlier `e2b1727f` remains held in preserved evidence. The correction removes BlurPolicy::Keep and distinguishes explicit TextCmd::Commit from blur-generated Committed events; author focused nine and overlay 165 tests, Clippy, formatting and example pass. Independent unchanged counterexamples and binding semantics are under re-review. Do not integrate before clearance. Preserve the unrelated baseline artifact in that writer's checkout.
+- Forms field presentation: remote `wip/form-field-layout-20261021` at `2f6193e6e2f396100a2a11cbdc83899a3acfd0ee` adds opt-in intrinsic note rows/roles and trailing chooser layout, preserving Fixed default. Author 71 nextest tests, Clippy, formatting and example pass, but no valid before-fix red run was recorded. Independent default preservation and before/after probes are assigned. Subsequent reusable FormDialog and atomic real Accounts adoption remain required.
+- Picker semantic-default contrast writer: base `f46caa2c` remains held. Actual white-background metadata cells fail contrast across profiles. Preserve authored foreground precedence while resolving readable fallback defaults; test before/after and independently review.
+- Picker short-footer regression writer: add native empty/one-item coverage, because 100 rows can overwrite an incorrectly painted hint. Keep the independently reviewed zero-disables-hints policy and footer-one positive controls. Publish WIP and integrate after review.
+
+Expanded component gate at `7f819a779`: 872 run, 869 pass, three fail, three existing skips. Two navigation failures and the incoming MenuBar precedence regression remain open. Holla all-target gate at the preceding header source: 144 run, 142 pass, hover and visual baseline failures. Focused merged Holla and Picker tests, scoped strict Clippy, public Picker consumer and formatting pass; this does not establish the full gate. Full twice-repeated pinned real-binary comparisons, all-branch consolidation, required CI and repository reviews remain missing.
+
 
 # 2026-10-21: theme palettes, visual baselines, and master-detail composition landed
 
