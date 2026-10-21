@@ -1,0 +1,151 @@
+{
+  "schema": "termrock.independent-canonical-atomic-step-runner-review.v1",
+  "reviewer": "/root/button_theme_contract_review",
+  "commit": "243af5b6e1f54993db4b84aa484c994b61c62623",
+  "source_commit": "a818aa649b466c055bf82ea9cf43a216bfc77bba",
+  "final_parent": "76e4775505a60203f53db908bdc07584461f4cbe",
+  "series_base": "eedfcf01d",
+  "runner_source_sha256": "8c87e4adc6591d693b2ef2819971895d89548876b527410efd6fb8a2957db23b",
+  "decision": "Bounded test-integrity correction CLEARED. Requested step is now checked under canonical authenticated run lock before artifact/attempt creation or live launch. No new required finding. Operational continuation requires a new reviewed source/plan/run/key/anchor; old288 checkpoints do not transfer.",
+  "source_review": {
+    "api": "Optional paired keyword-only expected_ordinal/expected_phase preserve existing positional signature and omitted legacy behavior. Type is exact nonnegative int, rejectingbool; phase exactstr capture/replayonly. CLI flags are paired and main rejects incompletepair before advance.",
+    "atomic_authority": "Canonical advance obtains existing nonblocking run lock, verifies immutable plan, official manifest/HMAC journal and full existing artifacts, determines actual next ordinal/phase, then compares supplied expectation while retaining lock. Mismatch precedes phase_root.mkdir, random attempt creation and run_live_chunk.",
+    "semantics": "expected_ordinal is global ordered journal-step index. Replay chunk0 follows capture ordinal0 at journal ordinal1 in singlecapture synthetic fixture; matching replay therefore uses expected_ordinal1, not chunk0.",
+    "authentication": "No receipt-count oracle replaces HMAC authority. External wrapper must pass expectedflags; actual run-key access remains inside officialrunner. Tests use fresh synthetic custody keys underTemporaryDirectory only.",
+    "compatibility": "Existing hashing/HMAC/expected immutability/source pins/failure evidence/rollback/journal append logic unchanged. No frozen output, reference fixture, application renderer or palette updated.",
+    "test_changes": "Four new methods plus existing CLI test expanded;75\u219279 count. Fixture chunk_size default remains1, with explicit2 only where finalcapture/replay boundary is exercised. Pipe cleanup amendment adds stdin synchronization and closesowned descriptors; no assertion weakening or case omission."
+  },
+  "independent_tests": {
+    "full_exacttip": "79tests PASS in2.017sec, zero failures/errors/skips. Includes existing HMAC/source/expected tamper, publication/rollback/permission/alias guards and four new expectedstep/lock tests.",
+    "real_two_process_expectedstep_probe": {
+      "mutant": false,
+      "synthetic_keys_only": true,
+      "capture_cli_launched": false,
+      "owned_child_pid": 69176,
+      "first_locked_attempt": "RunnerError:another fresh run chunk advance is active",
+      "other_writer_committed_capture_ordinal": 0,
+      "stale_requested_capture_attempt": "RunnerError:fresh run next step differs from the expected ordinal and phase (0, baseline-capture); actual (1, baseline-replay)",
+      "unexpected_launch_marker": false,
+      "replay_root_exists": false,
+      "passed": true,
+      "child_exit": 0
+    },
+    "deliberate_guard_removal_negative_control": {
+      "exit": 1,
+      "result": {
+        "mutant": true,
+        "synthetic_keys_only": true,
+        "capture_cli_launched": false,
+        "owned_child_pid": 69270,
+        "first_locked_attempt": "RunnerError:another fresh run chunk advance is active",
+        "other_writer_committed_capture_ordinal": 0,
+        "stale_requested_capture_attempt": "RuntimeError:synthetic child launch marker reached",
+        "unexpected_launch_marker": true,
+        "replay_root_exists": true,
+        "passed": false,
+        "child_exit": 0
+      },
+      "mutation": "Only the under-lock expectedordinal/phase comparison removed by AST transformation in child module memory. No file/source edit. Same synchronized test then reaches synthetic replay launch marker and creates replayroot, causing failure.",
+      "causal_strength": "With exact guard child first blocks at actual heldlock; anotherprocess commits finalcapture0; stalechild expects0capture but authenticates next1replay and rejects before marker/root. Guardremoval alone allows nextphase and fails probe."
+    },
+    "matching_capture_replay_and_legacy": {
+      "matching_cases": [
+        {
+          "legacy_omitted_arguments": false,
+          "capture_ordinal": 0,
+          "matching_replay_ordinal": 1,
+          "replay_chunk": 0,
+          "immutable_capture_expected_hash_unchanged": true,
+          "passed": true
+        },
+        {
+          "legacy_omitted_arguments": true,
+          "capture_ordinal": 0,
+          "matching_replay_ordinal": 1,
+          "replay_chunk": 0,
+          "immutable_capture_expected_hash_unchanged": true,
+          "passed": true
+        }
+      ],
+      "synthetic_keys_only": true,
+      "actual_capture_or_pty_launch": false
+    },
+    "argument_edges": "Native tests cover True,-1,float and unpaired/invalidphase; supplemental direct API rejects False, nonstrFalse phase and ordinalNone+phase without touching /unused resources.",
+    "diff_check": "git diff --check eed..243 scoped files passed.",
+    "resourcewarnings": "None in final exact79 run.",
+    "real_capture_or_pty_launch": false
+  },
+  "setup_attempts_preserved": [
+    {
+      "log": "/private/tmp/runner-243-independent-full.log",
+      "note": "Initial command accidentally ran older058-copy75-test suite; nongating and not attributed to243."
+    },
+    {
+      "log": "/private/tmp/runner-243-independent-exact-full.log",
+      "note": "Initial exact tools-only archive ran79 with4 missing-doc fixture errors. Added exact samecommit docs resources without test edits; final complete archive rerun79pass. These setup errors are not source regressions and logs remain preserved."
+    }
+  ],
+  "operational_migration_requirement": [
+    "This sourceSHA differs from operational482/f2a7583e anchor. Do not overwrite operational copy or mutate old plan to match new runner.",
+    "After independent integration, record new runnercommit+sourcehash and create a separately reviewed newly anchored plan, newrun and new custodykey.",
+    "Repeat capture from ordinal0. Preserve old plan/run/journal0..8/288checkpoints and707untrustedpartial as historical evidence only; no automatic credit/re-sign/move/replay transfer.",
+    "Next external supervisor must use canonical official verify/advance authority, paired expectedordinal+phaseflags, and synthetic-only tests; no direct actualkey reader outside canonical runner.",
+    "Publication to PR38 remains coordinator-owned; this review does not push/unlock foreignlock or prepare operational plan."
+  ],
+  "limits": [
+    "All advance/provenance transitions use synthetic fixture apps and mocked livechunk callback. Real process lock exclusion and race are exercised; real applications/tuiscotti/PT Ycapture not run.",
+    "No full application parity, ordinarychecks/replay/candidate completion, fullRust workspace or hostedCI acceptance.",
+    "No proposed V4 supervisor reviewed by this packet; priorv3 keycustody finding remains until separately fixed."
+  ],
+  "evidence": [
+    {
+      "path": "/private/tmp/runner-243-independent-review/tools/frozen_baseline.py",
+      "sha256": "8c87e4adc6591d693b2ef2819971895d89548876b527410efd6fb8a2957db23b"
+    },
+    {
+      "path": "/private/tmp/runner-243-independent-review/tools/test_frozen_baseline.py",
+      "sha256": "3627bdd9709882ea9724a25ebeb0e1b67385eeb65984bf0794ee8604b8e65561"
+    },
+    {
+      "path": "/private/tmp/runner-243-independent-complete-full.log",
+      "sha256": "48d0216af8f211e260970095e06d28bfad903905c3df6556e207ecbfdfa40a29"
+    },
+    {
+      "path": "/private/tmp/runner-243-independent-exact-full.log",
+      "sha256": "12edaef1bf1592c91d3c11dc8368e31270aab2dc7bbd2fcf31421db42b420d77"
+    },
+    {
+      "path": "/private/tmp/runner-243-independent-full.log",
+      "sha256": "abd9ac53d9c4cbd772910ef2fe837e612cd6d5d55df3f61f6b1e0c1173a392c1"
+    },
+    {
+      "path": "/private/tmp/runner-243-independent-race.py",
+      "sha256": "cd833d33ea092cd1c75d50360453a4b1a9d937d57bfaef4b6368f91ad315a23c"
+    },
+    {
+      "path": "/private/tmp/runner-243-independent-race.log",
+      "sha256": "f4834455078b0e77e5d936ef20af17ce5b19812b8400c7f8340d78e5a9a65a2c"
+    },
+    {
+      "path": "/private/tmp/runner-243-independent-guard-removal.log",
+      "sha256": "ac5a98685e24d64cb6302680169468dcd7cfcd702e768e69d3bc8bf1b52ee44d"
+    },
+    {
+      "path": "/private/tmp/runner-243-independent-matching.py",
+      "sha256": "3dc24b0ff7577df2c42b134b45fd8d5d0de8e0eed0d2e8eb1add66bedc4f3875"
+    },
+    {
+      "path": "/private/tmp/runner-243-independent-matching.log",
+      "sha256": "7014a6e4833f0fd62c31d4206e1e82ac838f5a6f9e619a5a2a2769e25cc46cf5"
+    }
+  ],
+  "custody": {
+    "read_only_exactcopy": "/private/tmp/runner-243-independent-review",
+    "copy_creation": "gitarchive exact243 tools+docs, originalsource files retainedbyteidentical; no authorcopy or sharedworkingtree edits.",
+    "synthetic_processes": "OwnedchildPopen processes allreaped and pipesclosed; no bynameorforeignsignal.",
+    "actual_operational_key_contents_read": false,
+    "operational482_plan_journal_artifact_changes": false,
+    "helpers_spawned": false,
+    "source_mutant": "Memoryonly intentional negativecontrol; originalcopiedrunner SHA unchanged after tests."
+  }
+}
