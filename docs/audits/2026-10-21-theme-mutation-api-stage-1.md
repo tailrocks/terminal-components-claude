@@ -53,3 +53,12 @@ in `docs/audits/evidence/2026-10-21-form-dialog-integration/held-expectations.js
 were checked at the merge tree and matched their pinned object IDs exactly;
 no candidate expectation was refreshed. The source synchronization itself
 does not imply independent review of the incoming PR #38 changes.
+
+After synchronization, `cargo nextest run -p termrock-theme --no-fail-fast`
+ran 182 tests: 181 passed, one failed, zero skipped. The failure is
+`capability_palettes::all_73_junie_slots_match_reference_capability_output`,
+already recorded as red in the PR #38 migration matrix before this merge. It
+is an inherited reference-output conflict, not waived or changed here. The
+assigned Runtime glyph contract still passes 2/2; strict scoped Clippy,
+formatting, and diff checks pass on the synchronized WIP. The review's
+182/182 theme result applies to pre-merge 312b only.
