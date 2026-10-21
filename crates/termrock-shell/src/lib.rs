@@ -20,7 +20,7 @@ pub mod page;
 pub mod quit;
 // pub mod reach;
 pub mod router;
-// pub mod shell;
+pub mod shell;
 pub mod status;
 
 pub use chrome::{Chrome, Regions};
