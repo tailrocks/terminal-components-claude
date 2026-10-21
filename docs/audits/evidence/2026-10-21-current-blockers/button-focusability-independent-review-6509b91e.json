@@ -1,0 +1,114 @@
+{
+  "commit": "6509b91e721057b9d5ec4f5c998ded752f29066c",
+  "parent": "5f82c4d35d12e0fb77b0f580a8ef200240661602",
+  "status": "Changes required; do not integrate the complete new Focusability API as cleared. ClickOnly behavior independently verified, but accepted Disabled policy can activate stale keyboard and pointer intents.",
+  "required_findings": [
+    {
+      "priority": "P2",
+      "path": "crates/termrock-controls/src/button.rs",
+      "line": 218,
+      "title": "Treat Focusability::Disabled as disabled in current activation eligibility",
+      "evidence": "The new builder accepts the shared Disabled variant, but can_activate only checks self.disabled and Busy. The binding guard excludes ClickOnly only, and pointer Click dispatch also uses that incomplete predicate. A real rendered Focusable button receives Enter or pointer release; App::update changes its current policy to Disabled before Button::update consumes the existing intent. Both events still produce Activated and increment the domain counter to1 (expected0). Equivalent ClickOnly transition suppresses keyboard activation and preserves pointer activation correctly.",
+      "required_change": "Make the accepted Disabled policy consistently affect current activation eligibility, autofocus and derived disabled presentation/registration, or explicitly constrain unsupported policy variants. Prefer one effective-disabled predicate shared across update and draw. Add unchanged real-widget regressions for already-routed keyboard and pointer intents, and preserve ClickOnly pointer activation/default Focusable behavior.",
+      "tests": [
+        "policy_edges::disabled_policy_blocks_already_routed_keyboard_binding",
+        "policy_edges::disabled_policy_blocks_already_routed_pointer_release"
+      ]
+    }
+  ],
+  "source_review": {
+    "api": "Additive builder and private field; default remains Focusable and inherited-form cloning carries policy. Existing Focusability/routing/registry mechanisms reused; no new input system, geometry or renderer.",
+    "click_only": "Registration uses ClickOnly, activation bindings are not published, stale keyboard Binding intents are ignored, autofocus skipped, and focus-only style flags removed. Pointer hit region and activation retained.",
+    "default_compatibility": "No change to default policy or existing can_activate behavior for prior configurations; existing default Button tests across variants/profiles, reference states, markers, slots and label clipping pass.",
+    "other_variants": "The entire Focusability enum is accepted. Disabled therefore needs consistent semantics; FocusableReadOnly-specific Button behavior is not separately demonstrated by this increment.",
+    "known_separate_sources": "The independently cleared Mono marker repair2ba is a separate Theme source not adopted by this focusability commit; do not infer its acceptance or test coverage from these gates."
+  },
+  "verification": {
+    "external_final": {
+      "command": "cargo nextest run --offline --test policy_edges --test native_contract --no-fail-fast",
+      "exit": 100,
+      "tests_run": 19,
+      "passed": 17,
+      "failed": 2,
+      "skipped": 0,
+      "passed_coverage": [
+        "Exact copied12 authored Button contract tests all pass.",
+        "Four-profile Focusable-to-ClickOnly transition preserves visible pointer activation, excludes keyboard activation/focus and removes focus marker.",
+        "Actual already-routed ClickOnly Binding is suppressed, while actual already-routed Click remains activatable.",
+        "Explicit disabled/busy ClickOnly controls do not activate."
+      ],
+      "failed_coverage": "Two actual update-time Disabled transitions activate incorrectly, separately exercising keyboard and pointer paths.",
+      "fixture_note": "Initial Harness app_mut configuration cases passed because app_mut invalidates presentation and Harness redraws before input. They verify ordinary republished transitions, not stale intent handling. DuringUpdate regressions change policy inside the actual event update before the component consumes its already-routed intent, so they expose the missing eligibility check."
+    },
+    "native_controls": {
+      "command": "cargo nextest run -p termrock-controls --all-targets --offline --no-fail-fast",
+      "exit": 0,
+      "passed": 145,
+      "failed": 0,
+      "skipped": 0
+    },
+    "strict_checks": [
+      {
+        "command": "cargo clippy -p termrock-controls --all-targets --offline -- -D warnings",
+        "exit": 0
+      },
+      {
+        "command": "cargo fmt --all -- --check",
+        "exit": 0
+      },
+      {
+        "command": "rustfmt --edition2024 --check changed Button source/test; git diff --check exact commit",
+        "exit": 0
+      }
+    ],
+    "negative_control": "Author reports restoring hard-coded Focusable registration makes the committed ring-removal regression fail. This reviewer did not edit production source to repeat that mutation; instead independently ran unchanged current-source actual-widget counter probes, including the two meaningful failing Disabled cases for subsequent RED/GREEN repair."
+  },
+  "coverage_gaps_and_limits": [
+    "No showcase Buttons-page use or catalog demonstration of the new focusability option found in the reviewed Showcase source paths; new capability coverage remains required before overall library acceptance.",
+    "Public component API compiles through external consumer and native integration tests, but Dialog header-close adoption and whole application parity are not verified.",
+    "No full Theme suite run in this bounded focusability review; known all73,16-color ladder/focus, and SwitchOff ASCII findings remain separate, unresolved work.",
+    "No hosted CI, full-workspace nextest, terminal cleanup or paired frozen application comparison accepted.",
+    "No legacy test expectation or frozen reference modified."
+  ],
+  "preservation": {
+    "review_head": "6509b91e721057b9d5ec4f5c998ded752f29066c",
+    "author_worktree": "Untouched, including pre-existing tracked artifact deletions.",
+    "review_artifact_deletions_preserved": 1301,
+    "non_artifact_changes": [],
+    "remote_operations": "No push, lock acquisition/removal, deletion, PR closure or reference mutation performed."
+  },
+  "artifacts": [
+    {
+      "path": "/private/tmp/termrock-button-focusability-6509-policy.log",
+      "sha256": "f146e72a0645af29e549e87b07062e35ae93aae7a46dbac5c70a63d4138e23da"
+    },
+    {
+      "path": "/private/tmp/termrock-button-focusability-6509-policy2.log",
+      "sha256": "74fe19dee012f23fd9bb2cd0956e2cf6ec2caa79bbe581dcf6cc98b23a347cf7"
+    },
+    {
+      "path": "/private/tmp/termrock-button-focusability-6509-policy-final.log",
+      "sha256": "5a3036953a6e6ad8ecc8bc5ef12989feb984c0c99c5349225302efaecbcc41c3"
+    },
+    {
+      "path": "/private/tmp/termrock-button-focusability-6509-controls.log",
+      "sha256": "810edf2223d772007424bbd70b1896663cf6e79b1ca7bf0a33d17eb21ab7c67c"
+    },
+    {
+      "path": "/private/tmp/termrock-button-focusability-6509-clippy.log",
+      "sha256": "88e9bc35b1c7ff1a1608444adf04ad1eabda1a14290eac41c771df527d3411a1"
+    },
+    {
+      "path": "/private/tmp/termrock-button-focusability-6509-fmt.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/private/tmp/termrock-button-focusability-review-6509b91e/tests/native_contract.rs",
+      "sha256": "afe1233253910676265bf730589018fe7d41d09fe6f352074d2f6ee6dc75114d"
+    },
+    {
+      "path": "/private/tmp/termrock-button-focusability-review-6509b91e/tests/policy_edges.rs",
+      "sha256": "c043f8764f53715e31840cf1b37c91d54eb5771f577955f9e03df68463d4b69f"
+    }
+  ]
+}
