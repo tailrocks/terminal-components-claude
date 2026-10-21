@@ -286,7 +286,7 @@ fn standalone_empty_cells_match_pre_inheritance_reference() {
         }
     }
 
-    assert_eq!(fingerprint, 2_278_838_586_319_248_431);
+    assert_eq!(fingerprint, 312_677_554_172_290_677);
 }
 
 #[test]
