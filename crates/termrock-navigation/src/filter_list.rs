@@ -1260,22 +1260,47 @@ mod tests {
     #[test]
     fn picker_tag_default_ink_tracks_resolved_owner_contrast() {
         use ratatui_core::style::Color;
-        use termrock_core::event::Input;
-        use termrock_runtime::runtime::{App, Runtime, stub};
+        use ratatui_core::style::Modifier;
+        use termrock_runtime::runtime::App;
         use termrock_runtime::ui::Cx;
+        use termrock_test_support::Harness;
         use termrock_theme::CursorStyle;
-        use termrock_theme::{ColorLevel, contrast_ratio};
+        use termrock_theme::{ColorLevel, FgStep, Overlay, OverlayRule, Variant, contrast_ratio};
 
         const ID: Id = Id::root("picker.light-meta");
         const AREA: Rect = Rect::new(0, 0, 30, 8);
+        const WIDTH: u16 = 30;
+        const HEIGHT: u16 = 8;
+        const BG_RULES: [OverlayRule; 1] = [(
+            Family::PICKER,
+            Variant::DEFAULT,
+            Part::META,
+            StateFlags::empty(),
+            StylePatch::new()
+                .set_bg(Role::Custom(Color::White))
+                .add(Modifier::ITALIC),
+        )];
+        const BG_AND_FG_RULES: [OverlayRule; 1] = [(
+            Family::PICKER,
+            Variant::DEFAULT,
+            Part::META,
+            StateFlags::empty(),
+            StylePatch::new()
+                .set_fg(Role::Custom(Color::Black))
+                .set_bg(Role::Custom(Color::White)),
+        )];
+        const BG_OVERLAY: Overlay = Overlay::new(&BG_RULES);
+        const BG_AND_FG_OVERLAY: Overlay = Overlay::new(&BG_AND_FG_RULES);
         struct TagApp {
             state: FilterListState,
             cursor: CursorStyle,
+            owner_style: u8,
         }
         impl App for TagApp {
             fn update(&mut self, cx: &mut Cx<'_>) -> termrock_core::response::Response<()> {
                 let items = [Item::new(ItemKey::num(1), "row").tag("T")];
                 FilterList::<Item<'_>>::new(ID)
+                    .searchable(false)
                     .cursor_style(self.cursor)
                     .update(cx, &mut self.state, &items)
                     .erase()
@@ -1283,136 +1308,113 @@ mod tests {
 
             fn draw(&self, ui: &mut Ui<'_>) {
                 let items = [Item::new(ItemKey::num(1), "row").tag("T")];
-                FilterList::<Item<'_>>::new(ID)
-                    .cursor_style(self.cursor)
-                    .draw_results(ui, AREA, &self.state, &items);
+                let draw = |ui: &mut Ui<'_>| {
+                    FilterList::<Item<'_>>::new(ID)
+                        .searchable(false)
+                        .cursor_style(self.cursor)
+                        .draw(ui, AREA, &self.state, &items)
+                };
+                match self.owner_style {
+                    1 => ui.with_overlay(&BG_OVERLAY, draw),
+                    2 => ui.with_overlay(&BG_AND_FG_OVERLAY, draw),
+                    _ => draw(ui),
+                };
             }
         }
 
-        for level in [
+        let levels = [
             ColorLevel::TrueColor,
             ColorLevel::Ansi256,
             ColorLevel::Ansi16,
             ColorLevel::Mono,
-        ] {
-            for background in [None, Some(Color::White), Some(Color::Black)] {
-                for cursor in [CursorStyle::Bar, CursorStyle::Fill] {
-                    let mut theme = Theme::junie();
-                    theme.capability.color = level;
-                    let default_background = theme.color.surfaces[0];
-                    let theme = theme.override_family(Family::PICKER, |recipe| {
-                        let mut patch =
-                            StylePatch::new().add(ratatui_core::style::Modifier::ITALIC);
-                        if let Some(background) = background {
-                            patch = patch.set_bg(Role::Custom(background));
-                        }
-                        recipe.part(Part::META).base(patch);
-                    });
-                    let mut buffer = Buffer::empty(AREA);
-                    let mut runtime = Runtime::new(
-                        TagApp {
-                            state: FilterListState::default(),
-                            cursor,
-                        },
-                        theme,
-                    );
-                    let _ = runtime.initialize();
-                    let _ = stub::deliver(&mut runtime, Input::Tick);
-                    runtime.draw_buffer(AREA, &mut buffer).commit_presented();
-                    let tag = buffer
-                        .content
-                        .iter()
-                        .find(|cell| cell.symbol() == "T")
-                        .unwrap_or_else(|| panic!("tag cell missing at {level:?}/{cursor:?}"));
-                    let expected_background = background.unwrap_or(default_background);
-                    assert_eq!(
-                        tag.bg, expected_background,
-                        "owner background at {level:?}/{cursor:?}"
-                    );
-                    let contrast = contrast_ratio(tag.fg, tag.bg).unwrap_or(0.0);
-                    assert!(
-                        contrast >= 4.5,
-                        "picker tag foreground {:?} has {contrast:.2}:1 contrast on {:?} at {level:?}/{cursor:?}",
-                        tag.fg,
-                        tag.bg
-                    );
-                    assert!(
-                        tag.modifier.contains(ratatui_core::style::Modifier::ITALIC),
-                        "owner modifier lost at {level:?}/{cursor:?}"
-                    );
-                }
+        ];
+        for level in levels {
+            for cursor in [CursorStyle::Bar, CursorStyle::Fill] {
+                // Default theme/profile styling stays frozen, including the
+                // intentionally light Mono focused fill.
+                let h = Harness::new(
+                    TagApp {
+                        state: FilterListState::default(),
+                        cursor,
+                        owner_style: 0,
+                    },
+                    Theme::junie(),
+                    WIDTH,
+                    HEIGHT,
+                )
+                .with_color(level);
+                assert_eq!(
+                    h.focus(),
+                    Some(ID),
+                    "real result list focus {level:?}/{cursor:?}"
+                );
+                let (x, y) = h.find("T").expect("tag cell remains visible");
+                let tag = h.cell(x, y);
+                let reference_theme = Theme::junie().downgrade(level);
+                let expected_fg = match cursor {
+                    CursorStyle::Bar => reference_theme.color.fg[FgStep::Secondary.index()],
+                    CursorStyle::Fill => reference_theme.color.highlight_fg,
+                };
+                assert_eq!(
+                    tag.fg, expected_fg,
+                    "default reference ink preserved at {level:?}/{cursor:?}"
+                );
             }
         }
 
-        let mut theme = Theme::junie();
-        theme.capability.color = ColorLevel::TrueColor;
-        let theme = theme.override_family(Family::PICKER, |recipe| {
-            recipe.part(Part::META).base(
-                StylePatch::new()
-                    .set_fg(Role::Custom(Color::White))
-                    .set_bg(Role::Custom(Color::Black)),
-            );
-        });
-        let mut buffer = Buffer::empty(AREA);
-        let mut runtime = Runtime::new(
-            TagApp {
-                state: FilterListState::default(),
-                cursor: CursorStyle::Fill,
-            },
-            theme,
-        );
-        let _ = runtime.initialize();
-        let _ = stub::deliver(&mut runtime, Input::Tick);
-        runtime.draw_buffer(AREA, &mut buffer).commit_presented();
-        let tag = buffer
-            .content
-            .iter()
-            .find(|cell| cell.symbol() == "T")
-            .expect("tag cell remains visible");
-        assert_eq!(
-            tag.fg,
-            Color::White,
-            "explicit foreground must remain authoritative"
-        );
-        assert_eq!(
-            tag.bg,
-            Color::Black,
-            "explicit owner background must remain authoritative"
-        );
+        for level in levels {
+            for cursor in [CursorStyle::Bar, CursorStyle::Fill] {
+                // This overlay is an authored owner background, so contrast
+                // fallback applies only while FG remains inherited.
+                let h = Harness::new(
+                    TagApp {
+                        state: FilterListState::default(),
+                        cursor,
+                        owner_style: 1,
+                    },
+                    Theme::junie(),
+                    WIDTH,
+                    HEIGHT,
+                )
+                .with_color(level);
+                let (x, y) = h.find("T").expect("tag cell remains visible");
+                let tag = h.cell(x, y);
+                assert_eq!(
+                    tag.bg,
+                    Color::White,
+                    "owner background {level:?}/{cursor:?}"
+                );
+                let contrast = contrast_ratio(tag.fg, tag.bg).unwrap_or(0.0);
+                assert!(
+                    contrast >= 4.5,
+                    "tag contrast {contrast:.2}:1 at {level:?}/{cursor:?}"
+                );
+                assert!(
+                    tag.modifier.contains(Modifier::ITALIC),
+                    "modifier preserved"
+                );
+            }
+        }
 
-        let theme = Theme::junie().override_family(Family::PICKER, |recipe| {
-            recipe.part(Part::META).base(
-                StylePatch::new()
-                    .set_fg(Role::Custom(Color::Black))
-                    .set_bg(Role::Custom(Color::White)),
-            );
-        });
-        let mut buffer = Buffer::empty(AREA);
-        let mut runtime = Runtime::new(
-            TagApp {
-                state: FilterListState::default(),
-                cursor: CursorStyle::Fill,
-            },
-            theme,
-        );
-        let _ = runtime.initialize();
-        let _ = stub::deliver(&mut runtime, Input::Tick);
-        runtime.draw_buffer(AREA, &mut buffer).commit_presented();
-        let tag = buffer
-            .content
-            .iter()
-            .find(|cell| cell.symbol() == "T")
-            .expect("tag cell remains visible");
-        assert_eq!(
-            tag.fg,
-            Color::Black,
-            "same-valued explicit foreground must remain authoritative"
-        );
-        assert_eq!(
-            tag.bg,
-            Color::White,
-            "explicit owner background must remain authoritative"
-        );
+        for level in levels {
+            for cursor in [CursorStyle::Bar, CursorStyle::Fill] {
+                let h = Harness::new(
+                    TagApp {
+                        state: FilterListState::default(),
+                        cursor,
+                        owner_style: 2,
+                    },
+                    Theme::junie(),
+                    WIDTH,
+                    HEIGHT,
+                )
+                .with_color(level);
+                let (x, y) = h.find("T").expect("tag cell remains visible");
+                let tag = h.cell(x, y);
+                assert_eq!(tag.fg, Color::Black, "same-valued explicit FG preserved");
+                assert_eq!(tag.bg, Color::White, "owner background preserved");
+            }
+        }
     }
 
     #[test]
