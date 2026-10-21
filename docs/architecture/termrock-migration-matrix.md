@@ -2703,3 +2703,40 @@ editor `app_tests`, the two `page_headings` cases owned by the heading
 fixtures workstream, the `showcase_visual_baseline` case owned by the visual
 workstream, and the `shell_chrome` 16-colour Overview pin, which is under
 root-cause analysis and is NOT re-blessed here.
+
+### Showcase shell header fixtures (integrated)
+
+Branch `wip/showcase-heading-fixtures-20261021b`, tip
+`30001296a007e445dd65351549db070f45d9af35`, integrated into this branch.
+
+The adjudication found a reference defect inside the frozen tag: it holds two
+eras of Showcase captures that disagree. The `audit/**` captures (2026-09-13)
+show a `Foundations / Buttons` style crumb, while the `pages/**` captures
+(2026-10-16) show the grouped `App shell › Chrome` crumb. The tag's own
+source agrees with the newer era: `visual-baseline:src/bin/showcase/app.rs:1821`
+builds the crumb from `[entry.group, entry.label]`, `app.rs:194-197` puts
+Buttons in the `Inputs & forms` group, `src/widgets/breadcrumb.rs:79` uses the
+`›` separator and `src/bin/showcase/app_tests_shell_pages.rs:251` asserts
+`App shell › Breadcrumbs & rails`. The `audit/**` captures are therefore stale
+inside the tag.
+
+The live rendering was measured against the tag captures byte for byte on the
+header row and the page-heading row for all 288 comparable rows (18 pages × 4
+sizes × 4 colour tiers). The fixtures were refreshed from the tag, not from
+the candidate: 288 header rows and 288 page-heading rows are verbatim tag
+captures, 64 header rows and 48 page-heading rows keep the older capture's own
+text with the crumb the tag source prescribes, and three threshold rows follow
+the tag source guard (the capability hint now clears at 76 columns instead of
+91). No application file was changed.
+
+`cargo nextest run -p showcase-ui --all-targets` is 92 tests with 87 passing
+and 5 failing. Both `page_headings` checks now pass. The remaining failures
+are the three pre-existing editor `app_tests`, the `showcase_visual_baseline`
+case owned by the visual workstream, and the `shell_chrome` 16-colour Overview
+pin under root-cause analysis.
+
+The reference defect is recorded at
+[the audit document](../audits/2026-10-21-showcase-shell-header-fixture-reference.md)
+with the replaced fixtures preserved verbatim under
+[the evidence directory](../audits/evidence/2026-10-21-showcase-shell-header-fixture/).
+It still needs independent review before it counts as closed.
