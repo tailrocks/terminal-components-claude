@@ -260,6 +260,7 @@ mod accounts_add_form_view;
 mod accounts_detail_view;
 mod accounts_drawer_view;
 mod accounts_filter_view;
+mod accounts_filter_wide;
 mod editor_view;
 
 mod capsule_menu_view;
@@ -7298,7 +7299,7 @@ impl App {
         if !self.historical_accounts_filter(ui.theme_ref(), screen) {
             return;
         }
-        accounts_filter_view::paint(ui);
+        accounts_filter_wide::paint(ui, &self.world);
     }
 
     fn historical_accounts_filter_80(&self, theme: &termrock::Theme, screen: Rect) -> bool {
