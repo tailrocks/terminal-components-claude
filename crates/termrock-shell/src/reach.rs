@@ -325,7 +325,7 @@ impl<S: Scenario> Probe<S> {
     /// The reference words at [`REFERENCE`], minus the reference size's own
     /// dimensions so the size itself never counts as missing.
     fn reference(&mut self, reference: (u16, u16)) -> Words {
-        self.h.resize(reference.0, reference.1);
+        let _ = self.h.resize(reference.0, reference.1);
         let mut want = Words::read(self.h.buffer());
         let dims = [reference.0.to_string(), reference.1.to_string()];
         want.whole.retain(|w| !dims.contains(w));
@@ -541,7 +541,7 @@ pub fn dump<S: Scenario>(cases: &[Case<S>]) {
         .find(|c| c.name == name)
         .unwrap_or_else(|| panic!("no case {name}"));
     let mut h = case.build();
-    h.resize(size.0, size.1);
+    let _ = h.resize(size.0, size.1);
     let buf = h.buffer();
     let mut text = String::new();
     for y in 0..buf.area().height {
