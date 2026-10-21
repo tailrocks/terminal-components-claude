@@ -122,13 +122,19 @@ impl CompletionProvider for SqlCompletionProvider<'_> {
     }
 }
 
-fn query_editor(id: Id, rows: u16, provider: &dyn CompletionProvider) -> CompletingCodeEditor<'_> {
+fn query_editor(
+    id: Id,
+    rows: u16,
+    provider: &dyn CompletionProvider,
+    commit_on_blur: bool,
+) -> CompletingCodeEditor<'_> {
     CodeEditor::new(id, rows)
         .fill_height(true)
         .highlighter(&highlight_sql)
         .segmenter(&segment_sql)
         .placeholder(QUERY_EDITOR_PLACEHOLDER)
         .with_completion(id.sub("completion"), provider)
+        .commit_on_blur(commit_on_blur)
 }
 
 #[derive(Debug)]
@@ -2345,7 +2351,8 @@ impl TableProApp {
         for (key, tab) in self.workbench.payloads_mut() {
             if let Tab::Query(query) = tab {
                 let id = key.control("query");
-                let editor = query_editor(id, QUERY_EDITOR_ROWS, &provider);
+                let active_editor = query_visible && active_key == Some(key);
+                let editor = query_editor(id, QUERY_EDITOR_ROWS, &provider, active_editor);
                 let editor_response = editor.update(cx, &mut query.editor_state);
                 if matches!(
                     editor_response.action_ref(),
@@ -2355,12 +2362,11 @@ impl TableProApp {
                 }
                 response |= editor_response.erase();
 
-                // A tab can lose focus in the same update that the application selects its
-                // replacement. Keep delivering addressed editor lifecycle intents to the old
-                // component so it can commit editing before it becomes inactive. The editor
-                // itself owns intent filtering; inactive tabs still do not receive ordinary
-                // input because the runtime addresses intents by stable component ID.
-                if !query_visible || active_key != Some(key) {
+                // Inactive query tabs still receive their addressed focus-out so the shared
+                // component can settle its lifecycle. Their edit session is retained because
+                // the tab is removed from the visible composition; active editors commit on
+                // ordinary blur as before.
+                if !active_editor {
                     continue;
                 }
             }
@@ -3337,7 +3343,7 @@ impl TableProApp {
         let provider = SqlCompletionProvider {
             catalog: &self.catalog,
         };
-        query_editor(id, QUERY_EDITOR_ROWS, &provider).draw(ui, area, state);
+        query_editor(id, QUERY_EDITOR_ROWS, &provider, true).draw(ui, area, state);
     }
 }
 
