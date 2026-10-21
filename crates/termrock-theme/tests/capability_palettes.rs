@@ -59,11 +59,20 @@ fn all_73_junie_slots_match_reference_capability_output() {
         if level == ColorLevel::Ansi256 {
             // Frozen authored slots. Slots whose corpus rendering equals the
             // generic cube/gray rule stay on the formula; the rest carry the
-            // index the frozen corpus (baselines/tuiscotti-v1) renders, or —
-            // where the corpus never draws the slot — the frozen baseline
-            // apply_256 table (visual-baseline src/theme.rs:921-962).
-            expected.fg[2] = Color::Indexed(244);
-            expected.fg[3] = Color::Indexed(238);
+            // index the frozen baseline apply_256 table declares
+            // (visual-baseline src/theme.rs:921-962):
+            //   text_muted = i(245), text_faint = i(242), text_ghost = i(238),
+            //   text_on_accent = i(232), border_strong = i(242),
+            //   highlight = i(25), highlight_danger = i(88),
+            //   highlight_on_selection = i(55).
+            // The frozen snapshots of the same tag render the muted role at
+            // `38;5;245` and never at 244 (for example
+            // snapshots/holla/audit/rust/80x24/256.ansi), so the tag's own
+            // rendered corpus and its declared table agree.
+            expected.fg[2] = Color::Indexed(245);
+            expected.fg[3] = Color::Indexed(242);
+            expected.on_accent = Color::Indexed(232);
+            expected.border_strong = Color::Indexed(242);
             expected.field_hover = Color::Indexed(237);
             expected.accent_hover = Color::Indexed(77);
             expected.accent_pressed = Color::Indexed(238);
@@ -79,9 +88,11 @@ fn all_73_junie_slots_match_reference_capability_output() {
             expected.disabled_fg = Color::Indexed(239);
         }
         if level == ColorLevel::Ansi16 {
-            // Corpus faint ink renders DarkGray at 16; the current 0x737373
-            // source would generically land on Gray.
-            expected.fg[3] = Color::DarkGray;
+            // The frozen `apply_16` table renders the faint ink as Gray and the
+            // ghost ink as DarkGray (visual-baseline src/theme.rs:1009-1010).
+            // The faint slot therefore stays on the generic rule for the
+            // 0x737373 source, and only the ghost-derived meter ink is
+            // authored.
             expected.meter.stale = Color::DarkGray;
             expected.meter.unknown = Color::DarkGray;
         }
