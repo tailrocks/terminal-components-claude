@@ -2,8 +2,8 @@ use core::cmp::Reverse;
 
 /// Measurement and growth constraints for one column in a shared row.
 ///
-/// `min`, `ideal`, and `max` are normalized by [`ColumnSpec::new`] and again
-/// when solving, so even values built with a struct update remain safe.
+/// Public constructors establish `min <= ideal <= max`, including normalization
+/// in [`ColumnSpec::new`]. Private fields preserve those bounds for the solver.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct ColumnSpec {
     min: u16,
