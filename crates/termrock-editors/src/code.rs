@@ -1759,6 +1759,17 @@ impl<'a> CodeEditor<'a> {
                         painted = painted
                             .patch(ui.paint_patch(&StylePatch::new().set_bg(Role::Syntax(role))));
                     }
+                    if st.editing
+                        && line_index == cursor.line
+                        && !painted
+                            .as_style()
+                            .add_modifier
+                            .contains(Modifier::UNDERLINED)
+                    {
+                        painted = painted.add_modifier(Modifier::UNDERLINED).patch(
+                            ui.paint_patch(&StylePatch::new().set_underline(Role::BorderStrong)),
+                        );
+                    }
                     ui.paint_str(
                         Rect {
                             x,
@@ -1772,11 +1783,25 @@ impl<'a> CodeEditor<'a> {
                     x = x.saturating_add(cells.min(usize::from(u16::MAX)) as u16);
                     column = column.saturating_add(cells);
                 }
+                if st.editing && line_index == cursor.line && x < text_area.right() {
+                    ui.paint_style(
+                        Rect {
+                            x,
+                            y,
+                            width: text_area.right().saturating_sub(x),
+                            height: 1,
+                        },
+                        ui.paint_patch(
+                            &StylePatch::new()
+                                .add(Modifier::UNDERLINED)
+                                .set_underline(Role::BorderStrong),
+                        ),
+                    );
+                }
             }
         }
         *ui.cache::<HighlightCache>(self.id) = cache;
         if st.text().is_empty()
-            && !st.editing
             && let Some(placeholder) = self.placeholder
         {
             let row = first_row(text_area);
@@ -1811,9 +1836,51 @@ impl<'a> CodeEditor<'a> {
                     ui.set_bar_cursor(self.id, Position::new(x, footer.y));
                 }
             }
-        } else if let Some(diagnostic) = nearest_diagnostic(&st.diagnostics, st.cursor_offset()) {
-            let detail_style = style(ui, Part::DETAIL, live).style;
-            ui.paint_str(footer, &diagnostic.message, detail_style);
+        } else {
+            let show_pos = st.editing || live.contains(StateFlags::FOCUSED);
+            let pos = if show_pos {
+                format!(
+                    "ln {}/{} · col {}",
+                    cursor.line.saturating_add(1),
+                    lines.max(1),
+                    cursor.col.saturating_add(1)
+                )
+            } else {
+                String::new()
+            };
+            let right_pad = u16::from(footer.width > 1);
+            let room = footer.width.saturating_sub(right_pad);
+            let pos_width = width(&pos).min(room);
+            let pos_x = footer
+                .right()
+                .saturating_sub(pos_width.saturating_add(right_pad))
+                .max(footer.x);
+            if let Some(diagnostic) = nearest_diagnostic(&st.diagnostics, st.cursor_offset()) {
+                let detail_style = style(ui, Part::DETAIL, live).style;
+                let message_width = pos_x.saturating_sub(footer.x);
+                ui.paint_str(
+                    Rect {
+                        width: message_width,
+                        ..footer
+                    },
+                    &diagnostic.message,
+                    detail_style,
+                );
+            }
+            if pos_width > 0 {
+                let pos_style = style(ui, Part::META, live)
+                    .style
+                    .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint))));
+                ui.paint_str(
+                    Rect {
+                        x: pos_x,
+                        width: pos_width,
+                        ..footer
+                    },
+                    &pos,
+                    pos_style,
+                );
+            }
         }
         if live.contains(StateFlags::FOCUSED)
             && !self.read_only
@@ -2781,6 +2848,56 @@ mod tests {
         assert_eq!(
             visible_cursor(Rect::new(2, 3, 4, 1), 3, 0, 0),
             Some(Position::new(5, 3))
+        );
+    }
+
+    #[test]
+    fn editing_empty_line_keeps_placeholder_underline_and_position() {
+        let theme = Theme::junie();
+        let area = Rect::new(0, 0, 40, 5);
+        let mut runtime = Runtime::new(Stub::default(), theme.clone());
+        let mut buffer = Buffer::empty(area);
+        let mut state = CodeEditorState::new("");
+        state.begin_edit();
+        runtime
+            .draw_scene(area, &mut buffer, |ui, rect| {
+                CodeEditor::new(ID, 5)
+                    .placeholder("Type")
+                    .draw(ui, rect, &state);
+            })
+            .commit_presented();
+        let text = runtime
+            .area_of_part(ID, PartRef::of(Part::TEXT))
+            .expect("text part");
+        let head = buffer
+            .cell(ratatui_core::layout::Position::new(text.x, text.y))
+            .expect("placeholder head");
+        assert_eq!(head.symbol(), "T", "editing still shows the placeholder");
+        assert_eq!(head.fg, theme.color.fg[2]);
+        assert!(head.modifier.contains(Modifier::UNDERLINED));
+        assert_eq!(head.underline_color, theme.color.border_strong);
+        let tail = buffer
+            .cell(ratatui_core::layout::Position::new(
+                text.right().saturating_sub(1),
+                text.y,
+            ))
+            .expect("editing tail");
+        assert_eq!(tail.symbol(), " ");
+        assert!(tail.modifier.contains(Modifier::UNDERLINED));
+        assert_eq!(tail.underline_color, theme.color.border_strong);
+        let mut label = String::new();
+        let footer_y = area.bottom().saturating_sub(1);
+        for x in 0..area.width {
+            label.push_str(
+                buffer
+                    .cell(ratatui_core::layout::Position::new(x, footer_y))
+                    .expect("footer")
+                    .symbol(),
+            );
+        }
+        assert!(
+            label.contains("ln 1/1 · col 1"),
+            "position label missing: {label}"
         );
     }
 }
