@@ -25,7 +25,9 @@ use termrock::controls::{Button, PropsList, PropsRow, PropsState};
 use termrock::feedback::{StatusAction, StatusBar, StatusItem};
 use termrock::navigation::{NavList, NavListAction, NavListState};
 use termrock::overlays::{Menu, MenuAction, MenuBar, MenuItem, MenuState};
-use termrock::{ActionKey, App, Cx, FrameRead, Id, ItemKey, Rect, Response, RowUi, Ui, UpdateCause};
+use termrock::{
+    ActionKey, App, Cx, FrameRead, Id, ItemKey, Rect, Response, RowUi, Ui, UpdateCause,
+};
 
 use crate::recipes::{RECIPES, Recipe};
 
@@ -321,11 +323,13 @@ impl App for RecipeBox {
             if let Some(action) = mapped {
                 self.dispatch(action);
             }
-            if matches!(action, NavListAction::Chose(_) | NavListAction::EnterContent(_))
-                && cx
-                    .layout(WORKSPACE)
-                    .and_then(|facts| facts.logical_area)
-                    .is_some_and(|area| self.policy().is_collapsed(area.width))
+            if matches!(
+                action,
+                NavListAction::Chose(_) | NavListAction::EnterContent(_)
+            ) && cx
+                .layout(WORKSPACE)
+                .and_then(|facts| facts.logical_area)
+                .is_some_and(|area| self.policy().is_collapsed(area.width))
             {
                 let block = self.block();
                 let opened = block.open_detail(cx, &mut self.layout);
@@ -416,10 +420,8 @@ impl App for RecipeBox {
             bar: &menu,
             state: &self.menu_state,
         };
-        let body = Group::column([
-            composition::master_detail(&block, &self.layout)
-                .expect("recipe master and detail groups are configured"),
-        ]);
+        let body = Group::column([composition::master_detail(&block, &self.layout)
+            .expect("recipe master and detail groups are configured")]);
         let footer = StatusLeaf { bar: &status };
 
         termrock::AppShell::new()

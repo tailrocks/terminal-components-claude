@@ -3345,8 +3345,7 @@ impl Grid<'_> {
             let actions = model.actions(row, i);
             cflags |= cdecor.flags();
             let cs = self.cell_style(ui, cflags, cell_defaults);
-            if cflags.contains(StateFlags::ACTIVE)
-                && (!actions.is_empty() || cell.text.is_empty())
+            if cflags.contains(StateFlags::ACTIVE) && (!actions.is_empty() || cell.text.is_empty())
             {
                 // Actions and empty values need a full-cell cursor surface.
                 // Nonempty ordinary values keep the focused row surface in
