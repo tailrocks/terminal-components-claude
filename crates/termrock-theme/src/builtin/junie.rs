@@ -19,9 +19,12 @@ const HIGHLIGHT: Color = Color::from_u32(0x2f_5a_a8);
 const WHITE: Color = Color::from_u32(0xff_ff_ff);
 const WHITE_70: Color = Color::from_u32(0xb3_b3_b3);
 const WHITE_50: Color = Color::from_u32(0x80_80_80);
-const WHITE_30: Color = Color::from_u32(0x4d_4d_4d);
 const TEXT_MUTED: Color = Color::from_u32(0x8a_8a_8a);
 const TEXT_FAINT: Color = Color::from_u32(0x73_73_73);
+const WHITE_30: Color = Color::from_u32(0x4d_4d_4d);
+const BLUE_INFO: Color = Color::from_u32(0x79_b8_ff);
+const SYNTAX_STRING: Color = Color::from_u32(0x8b_d5_ca);
+const SYNTAX_NUMBER: Color = Color::from_u32(0xc6_a0_f6);
 const WHITE_15: Color = Color::from_u32(0x26_26_26);
 const GREEN: Color = Color::from_u32(0x48_e0_54);
 /// Frozen `SUCCESS` (tag `src/theme.rs:513`): the status slot's truecolor
@@ -83,9 +86,8 @@ pub(crate) const fn tokens() -> ColorTokens {
         read_only_fg: WHITE_70,
 
         syntax: SyntaxTokens {
-            // The frozen source at 4169783 paints the keyword in
-            // BLUE_INFO (0x79b8ff), the string in SYNTAX_STRING and the
-            // literal in SYNTAX_LITERAL; the approved frames agree.
+            // The frozen source paints keywords #79b8ff, strings #8bd5ca,
+            // and numbers #c6a0f6. Operators use muted #8a8a8a.
             keyword: BLUE_INFO,
             ident: WHITE,
             string: SYNTAX_STRING,
