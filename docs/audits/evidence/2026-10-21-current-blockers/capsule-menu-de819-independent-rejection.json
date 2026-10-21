@@ -1,0 +1,230 @@
+{
+  "reviewer": "/root/capsule_live_menu_independent_review",
+  "decision": "HOLD: the bounded live-menu replacement is not safe to integrate as-is. Product parity and library completion remain incomplete for all four applications.",
+  "candidate": "de819fb1ca4e30790e869b1b9eed004109cab3aa",
+  "before": "1dee009130ca11876a8d5e53e04fe1046edb9888",
+  "frozen": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "review_method": "Independent detached sparse source copies; separate Cargo target directories for each revision; no product source edits, expected updates, BLESS, reference operations, helpers, or application CLI capture. Every command group had a 200-second work deadline plus bounded cleanup.",
+  "commands": [
+    {
+      "command": "cargo nextest run -p jackin-preview-app --no-fail-fast --status-level fail --final-status-level fail",
+      "before": {
+        "exit": 0,
+        "run": 184,
+        "passed": 184,
+        "failed": 0,
+        "skipped": 0
+      },
+      "after": {
+        "exit": 100,
+        "run": 185,
+        "passed": 170,
+        "failed": 15,
+        "skipped": 0
+      }
+    },
+    {
+      "command": "cargo clippy -p jackin-preview-app --all-targets -- -D warnings",
+      "before_exit": 101,
+      "after_exit": 101,
+      "cause": "Both revisions fail at crates/jackin-preview-app/src/app/launch_cockpit.rs:256:9: &failure.stage.label(), clippy::needless_borrow. This lint is pre-existing. No allowance was used."
+    },
+    {
+      "command": "cargo nextest run --no-fail-fast (separate public consumer, corrected probes)",
+      "before": {
+        "exit": 0,
+        "run": 2,
+        "passed": 2,
+        "failed": 0
+      },
+      "after": {
+        "exit": 100,
+        "run": 2,
+        "passed": 0,
+        "failed": 2
+      }
+    }
+  ],
+  "findings": [
+    {
+      "priority": "P1",
+      "path": "crates/jackin-preview-app/src/app.rs:8132",
+      "title": "Removing the only rendered input breaks ordinary Capsule typing and multiple existing flows",
+      "evidence": "draw_capsule_panes now draws only TextViewport. update_capsule:4714-4809 still routes prefix keys, ordinary editing, commits and focus through CAPSULE_INPUT. That ID is no longer rendered anywhere; the viewport update handles selection/copy, not terminal input. Independent public consumer at Paper 121x41 has a rendered CAPSULE_INPUT and visible typed hello before, neither after. Three unchanged full-flow tests fail at visible hello after launch, and exit/palette/menu flows also regress. All 15 full-crate failures were absent at exact parent revision.",
+      "required_fix": "Provide a real shared terminal/input-owner contract driven by current domain frame, caret, visibility and typed input actions. Route keyboard/paste/edit actions through the actually rendered owner and update application simulation via typed actions. Preserve frozen input and caret behavior without restoring the private frame painter, fake cursor, hidden registration or an extra input row without frozen authority."
+    },
+    {
+      "priority": "P2",
+      "path": "crates/jackin-preview-app/src/app.rs:1423",
+      "title": "Disabled reasons are rendered as shortcut hints, changing frozen layout and behavior",
+      "evidence": "The pane context encodes Select text first, The clipboard is empty, Nothing is selected and One pane as MenuItem::hint. Frozen capsule.rs:330-348 uses reason() independently of shortcut(); frozen menu.rs:422-438 excludes reasons from width, :771-784 draws contextual reason in the bottom status row, and test:2323 explicitly requires that reason never widens the menu. Candidate reasons widen the menu and replace y / Ctrl+B z hints. Enabled Clear selection also receives an Esc hint absent from frozen pane context.",
+      "required_fix": "Add a reusable independent disabled-reason/status contract to the shared menu, retaining original shortcut hints and frozen reason placement/measurement. Remove the extra enabled Clear selection Esc hint. Do not paint reason rows in Jackin."
+    },
+    {
+      "priority": "P2",
+      "path": "crates/jackin-preview-app/src/app.rs:1395",
+      "title": "Automatic tab menu title includes account suffixes which frozen title omits",
+      "evidence": "Frozen open_tab_menu at capsule.rs:360-370 calls daemon.tab_label(tab, &|_| None). New helper passes account.display_name as suffix. pty.rs:1768-1778 appends the returned suffix to agent labels, so a single-agent tab acquires e.g. Claude Code (account label). The new test sets custom_label and never exercises automatic titles.",
+      "required_fix": "Derive menu title according to the frozen automatic-label rule; retain live custom labels. Add changed-account and automatic-label coverage, independent of custom_label."
+    },
+    {
+      "priority": "P2",
+      "path": "docs/audits/2026-10-21-jackin-live-capsule-menu.md:23",
+      "title": "The audit misclassifies introduced failures as existing",
+      "evidence": "The author reports 170 passed / 15 failed but calls captured-frame/cursor failures existing without a before comparison. Independent exact-base run passes 184/184. Every unchanged failing candidate case passed at base. Both revisions share the strict-Clippy warning; only that warning is established as pre-existing.",
+      "required_fix": "Record all 15 introduced failures, exact before/after revisions, independent logs and separate strict-lint failure. Do not waive these failures or describe the two added tests as sufficient for integration."
+    }
+  ],
+  "failed_cases": [
+    "jackin-preview-app app::paint_contract_tests::capsule_zoom_paints_the_approved_120x40_frame",
+    "jackin-preview-app app::paint_contract_tests::capsule_new_tab_paints_the_approved_120x40_frame",
+    "jackin-preview-app::app_tests detach_reconnect_and_final_exit_plays_one_outro",
+    "jackin-preview-app::app_tests still_inside_feedback_when_other_instances_remain",
+    "jackin-preview-app::app_tests_chrome command_palette_scrolls_with_the_wheel_and_keeps_the_selection",
+    "jackin-preview-app::app_tests_chrome capsule_prefix_m_paints_the_change_title_cell",
+    "jackin-preview-app::app_tests_chrome capsule_export_closes_the_file_menu_and_writes_nothing",
+    "jackin-preview-app::app_tests_chrome menu_bar_opens_switches_and_runs_an_action",
+    "jackin-preview-app::app_tests_chrome tab_context_menu_renames_and_closes_by_mouse_and_keyboard",
+    "jackin-preview-app::app_tests_chrome inspect_changes_opens_from_the_view_menu_in_both_modes",
+    "jackin-preview-app::app_tests_chrome about_dialog_opens_from_help_and_paints_nothing_when_closed",
+    "jackin-preview-app::visual jackin_visual_baseline",
+    "jackin-preview-app::app_tests launch_runs_all_stages_and_hands_off_to_the_capsule",
+    "jackin-preview-app::app_tests complete_flow_keyboard_first",
+    "jackin-preview-app::app_tests complete_jackin_flow_keyboard_first"
+  ],
+  "first_failure_evidence": [
+    {
+      "test": "app::paint_contract_tests::capsule_zoom_paints_the_approved_120x40_frame",
+      "location": "crates/jackin-preview-app/src/app.rs:10762:9",
+      "failure": "    assertion `left == right` failed\n      left: None\n     right: Some(Position { x: 3, y: 34 })\n    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace"
+    },
+    {
+      "test": "app::paint_contract_tests::capsule_new_tab_paints_the_approved_120x40_frame",
+      "location": "crates/jackin-preview-app/src/app.rs:10656:9",
+      "failure": "    assertion `left == right` failed\n      left: Some(\"New tab\")\n     right: Some(\"New tab \u00b7 Account for Claude Code\")\n    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace"
+    },
+    {
+      "test": "detach_reconnect_and_final_exit_plays_one_outro",
+      "location": "crates/jackin-preview-app/tests/app_tests.rs:176:5",
+      "failure": "    assertion failed: h.text().contains(\"Unsaved work\")\n    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n\n        FAIL [   0.084s] ( 62/185) jackin-preview-app::app_tests still_inside_feedback_when_other_instances_remain"
+    },
+    {
+      "test": "still_inside_feedback_when_other_instances_remain",
+      "location": "crates/jackin-preview-app/tests/app_tests.rs:201:5",
+      "failure": "    assertion `left == right` failed\n      left: Capsule\n     right: Manager\n    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace"
+    },
+    {
+      "test": "command_palette_scrolls_with_the_wheel_and_keeps_the_selection",
+      "location": "crates/jackin-preview-app/tests/app_tests_chrome.rs:278:5",
+      "failure": "    assertion failed: h.text().contains(\"Command palette\")\n    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n\n        FAIL [   0.085s] ( 68/185) jackin-preview-app::app_tests_chrome capsule_prefix_m_paints_the_change_title_cell"
+    },
+    {
+      "test": "capsule_prefix_m_paints_the_change_title_cell",
+      "location": "crates/jackin-preview-app/tests/app_tests_chrome.rs:178:5",
+      "failure": "    assertion `left == right` failed\n      left: \"h\"\n     right: \"C\"\n    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace"
+    },
+    {
+      "test": "capsule_export_closes_the_file_menu_and_writes_nothing",
+      "location": "crates/jackin-preview-app/tests/app_tests_chrome.rs:70:5",
+      "failure": "    Down did not leave the New tab row: jackin\u276f    File   Edit   View   Session   Help         payments-platform \u203a the-architect   jackin-payments-platform-7f3a\n                                                                                                                            \n     1 Mix (3) \u25cb   2 Shell   3 docs                                                                                         \n    \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500"
+    },
+    {
+      "test": "menu_bar_opens_switches_and_runs_an_action",
+      "location": "crates/jackin-preview-app/tests/app_tests_chrome.rs:100:5",
+      "failure": "    jackin\u276f    File   Edit   View   Session   Help         payments-platform \u203a the-architect   jackin-payments-platform-7f3a\n                                                                                                                            \n     1 Mix (3) \u25cb   2 Shell   3 docs                                                                                         \n    \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500"
+    },
+    {
+      "test": "tab_context_menu_renames_and_closes_by_mouse_and_keyboard",
+      "location": "crates/jackin-preview-app/tests/app_tests_chrome.rs:197:5",
+      "failure": "    jackin\u276f    File   Edit   View   Session   Help         payments-platform \u203a the-architect   jackin-payments-platform-7f3a\n                                                                                                                            \n     1 Mix (3) \u25cb   2 Shell   3 docs                                                                                         \n    \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500"
+    },
+    {
+      "test": "inspect_changes_opens_from_the_view_menu_in_both_modes",
+      "location": "crates/jackin-preview-app/tests/app_tests_chrome.rs:262:5",
+      "failure": "    jackin\u276f    File   Edit   View   Session   Help         payments-platform \u203a the-architect   jackin-payments-platform-7f3a\n                                                                                                                            \n     1 Mix (3) \u25cb   2 Shell   3 docs                                                                                         \n    \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500"
+    },
+    {
+      "test": "about_dialog_opens_from_help_and_paints_nothing_when_closed",
+      "location": "crates/jackin-preview-app/tests/app_tests_chrome.rs:319:5",
+      "failure": "    jackin\u276f    File   Edit   View   Session   Help         payments-platform \u203a the-architect   jackin-payments-platform-7f3a\n                                                                                                                            \n     1 Mix (3) \u25cb   2 Shell   3 docs                                                                                         \n    \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500"
+    },
+    {
+      "test": "jackin_visual_baseline",
+      "location": "crates/termrock-test-support/src/digest.rs:284:9",
+      "failure": "    digest of `capsule-multi 100 30 junie truecolor` changed: baseline 74506c127684005e, got 2c09d29c6b0f4dcf; classify the change against \u00a720.10, capture it, then BLESS=1\n    jackin\u276f    File   Edit   View   Sespayments-platform \u203a the-architect   jackin-payments-platform-7f3a\n                                                                                                        \n     1 Mix (3) \u25cb   2 Shell   3 docs                                                                     "
+    },
+    {
+      "test": "launch_runs_all_stages_and_hands_off_to_the_capsule",
+      "location": "crates/jackin-preview-app/tests/app_tests.rs:142:5",
+      "failure": "    assertion failed: h.text().contains(\"hello\")\n    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n\n        FAIL [   5.356s] (183/185) jackin-preview-app::app_tests complete_flow_keyboard_first"
+    },
+    {
+      "test": "complete_flow_keyboard_first",
+      "location": "crates/jackin-preview-app/tests/app_tests.rs:953:5",
+      "failure": "    assertion failed: h.text().contains(\"hello\")\n    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n\n        FAIL [   5.398s] (184/185) jackin-preview-app::app_tests complete_jackin_flow_keyboard_first"
+    },
+    {
+      "test": "complete_jackin_flow_keyboard_first",
+      "location": "crates/jackin-preview-app/tests/app_tests.rs:953:5",
+      "failure": "    assertion failed: h.text().contains(\"hello\")\n    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500"
+    }
+  ],
+  "positive_scope": [
+    "The exact 80x24/theme/scenario capsule_menu_80 selector, post-paint calls, static application capsule_menu_view and remaining menu invisible-cursor call are removed rather than renamed.",
+    "Tab context now exposes three typed actions and uses actual tab-part anchoring. Pane context uses seven domain actions and shared destructive confirmation.",
+    "The new caret test supplies an actual terminal caret and requires Some before comparing retained state; it no longer accepts None == None."
+  ],
+  "coverage_gaps": [
+    "No real-CLI frozen capture/replay/candidate comparison, four-profile adjacent-size or pointer/resize/Unicode inventory was performed by this review.",
+    "No combined build on current PR38; candidate is based on older 1dee009.",
+    "Only split-right and close-pane are exercised by the two new author tests; dynamic automatic labels, rename, close-tab, paste/copy/clear, zoom, cancel/restoration and repeated resize/open-close need regression coverage.",
+    "Default terminal caret/input ownership remains unresolved; view-only retained caret after an injected click is not full live-terminal proof.",
+    "Other capsule zoom painter and application-owned geometry remain; exported obsolete termrock-feedback/src/capsule_menu.rs still exists with no production call sites found by source search. Removal requires public API/use audit, not a claim that all replay code is gone."
+  ],
+  "invalid_attempts": [
+    "Initial sparse worktrees had no populated index; first Nextest invocations exited102 by discovering unrelated /private/tmp/Cargo.toml. read-tree populated only task-owned copies, after which exact commands above ran.",
+    "Initial external typing probe pressed Enter and navigated to Accounts even on the parent; rejected as an invalid before/after behavior probe. Corrected identical probes use tab_to(CAPSULE_INPUT), then type hello. Initial rejected logs are preserved, not counted as regression proof."
+  ],
+  "artifacts": {
+    "before-nextest.log": {
+      "path": "/private/tmp/capsule-review-de819-20261021/before-nextest.log",
+      "sha256": "6d76bb917bb08210a229d856e7e231e6ffeb2223abbad24c3afe137ef8086b86"
+    },
+    "after-nextest.log": {
+      "path": "/private/tmp/capsule-review-de819-20261021/after-nextest.log",
+      "sha256": "4b1ba7f1623e4ba1889e7cd1c4086511b14a7ced3d97b333c66b820c89869376"
+    },
+    "before-strict-clippy.log": {
+      "path": "/private/tmp/capsule-review-de819-20261021/before-strict-clippy.log",
+      "sha256": "860a2a4b85da265e616ff7dcec6a39bc2e96f0e43ffb6d5042e8d2dcbdd5d415"
+    },
+    "after-strict-clippy.log": {
+      "path": "/private/tmp/capsule-review-de819-20261021/after-strict-clippy.log",
+      "sha256": "535820dde2f8913e1ee233ca6d2ba81bb0e59439d4ec151905a7cba3ab687eaf"
+    },
+    "before-consumer.log": {
+      "path": "/private/tmp/capsule-review-de819-20261021/before-consumer.log",
+      "sha256": "7a50d6d2cb1290545434f276e3d858868a25e99726a2c2b5aad23d2b64348f0e"
+    },
+    "after-consumer.log": {
+      "path": "/private/tmp/capsule-review-de819-20261021/after-consumer.log",
+      "sha256": "8381b20a7425d514c419d9604099031fa1d257d8cd8d9103da03c532730fe810"
+    },
+    "before-consumer-corrected.log": {
+      "path": "/private/tmp/capsule-review-de819-20261021/before-consumer-corrected.log",
+      "sha256": "00375694a36a76e37c410bce8414d272ccc53cb3809bdabb30ac2067cc3044d6"
+    },
+    "after-consumer-corrected.log": {
+      "path": "/private/tmp/capsule-review-de819-20261021/after-consumer-corrected.log",
+      "sha256": "38957e2bb0a31dc79bfed6e884682e0855166e552a90f753774a8da4d6e6d3eb"
+    },
+    "before-consumer/src/lib.rs": {
+      "path": "/private/tmp/capsule-review-de819-20261021/before-consumer/src/lib.rs",
+      "sha256": "3b52beb2ae10ba781b23b62ae444409b4feb2117ac6506eb23ab1acba9a7fa44"
+    },
+    "after-consumer/src/lib.rs": {
+      "path": "/private/tmp/capsule-review-de819-20261021/after-consumer/src/lib.rs",
+      "sha256": "3b52beb2ae10ba781b23b62ae444409b4feb2117ac6506eb23ab1acba9a7fa44"
+    }
+  }
+}
