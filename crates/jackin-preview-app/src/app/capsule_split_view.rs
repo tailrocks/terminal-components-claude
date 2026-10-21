@@ -3,7 +3,7 @@
 //! `ctrl-b` then `"` opens this picker. The card keeps dimmed underlay ink
 //! on empty cells and paints the frozen rows on top.
 
-use termrock::author::PaintStyle;
+use termrock::author::{PaintStyle, put_cell_at, put_fill_in, put_text_w};
 use termrock::{Color, Modifier, Position, Rect, Ui};
 
 const ACCENT: Color = Color::Rgb(0x48, 0xe0, 0x54);
@@ -53,7 +53,7 @@ fn paint_120(ui: &mut Ui<'_>, title: &str) {
     ui.modal_backdrop(full);
     repair_underlay(ui);
     let interior = Rect::new(CARD_X + 1, CARD_Y + 1, CARD_W - 2, CARD_H - 2);
-    ui.fill(interior, PaintStyle::new().bg(CARD));
+    put_fill_in(ui, interior, PaintStyle::new().bg(CARD));
     repair_card_pad(ui);
     paint_border(ui);
     paint_title(ui, title);
@@ -648,7 +648,7 @@ pub(super) fn finish_reduced(ui: &mut Ui<'_>) {
             .fg(Color::Indexed(7))
             .bg(Color::Indexed(0));
         for (pos, symbol) in rules {
-            ui.paint_cell(pos, &symbol, style);
+            put_cell_at(ui, pos, &symbol, style);
         }
     }
     ui.add_dim(underlay);
@@ -770,13 +770,16 @@ fn ink(ui: &Ui<'_>, fg: Color, bg: Color, bold: bool) -> PaintStyle {
 }
 
 fn paint_str(ui: &mut Ui<'_>, x: u16, y: u16, text: &str, fg: Color, bg: Color, bold: bool) {
-    ui.paint_str(
-        Rect::new(x, y, text.chars().count() as u16, 1),
+    put_text_w(
+        ui,
+        x,
+        y,
+        text.chars().count() as u16,
         text,
         ink(ui, fg, bg, bold),
     );
 }
 
 fn paint_cell(ui: &mut Ui<'_>, x: u16, y: u16, symbol: &str, fg: Color, bg: Color, bold: bool) {
-    ui.paint_cell(Position::new(x, y), symbol, ink(ui, fg, bg, bold));
+    put_cell_at(ui, Position::new(x, y), symbol, ink(ui, fg, bg, bold));
 }
