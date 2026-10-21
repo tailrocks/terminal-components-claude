@@ -3,6 +3,9 @@ use termrock::shell::{ReportContent, TextReport};
 use termrock::{Rect, Ui};
 
 pub(crate) fn draw(world: &World, ui: &mut Ui<'_>, area: Rect) {
+    if area.is_empty() {
+        return;
+    }
     let Some(disk) = &world.disk else {
         TextReport::new().draw(
             ui,
@@ -11,11 +14,15 @@ pub(crate) fn draw(world: &World, ui: &mut Ui<'_>, area: Rect) {
         );
         return;
     };
-    let subtitle = format!(
-        "{} selected · nothing is deleted from this review",
-        disk.candidates.len()
-    );
-    let body: Vec<String> = disk
+    let subtitle = if area.height > 1 {
+        format!(
+            "{} selected · nothing is deleted from this review",
+            disk.candidates.len()
+        )
+    } else {
+        String::new()
+    };
+    let body = disk
         .candidates
         .iter()
         .map(|candidate| {
@@ -24,13 +31,11 @@ pub(crate) fn draw(world: &World, ui: &mut Ui<'_>, area: Rect) {
                 candidate.family.label(),
                 candidate.freshness.label()
             )
-        })
-        .collect();
-    TextReport::new().draw(
+        });
+    TextReport::new().draw_rows(
         ui,
         area,
-        &ReportContent::heading("Cleanup review")
-            .with_subheading(&subtitle)
-            .with_body(&body),
+        &ReportContent::heading("Cleanup review").with_subheading(&subtitle),
+        body,
     );
 }

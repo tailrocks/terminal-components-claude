@@ -18,6 +18,9 @@ mod context;
 /// painters they replaced. The legacy painters below are the frozen oracle:
 /// they are the pre-refactor code, kept verbatim so the shared report block
 /// cannot drift from the frames the frozen reference pinned.
+///
+/// Keep the old report cells inside each allocation. The new shared block
+/// must also leave every cell outside that allocation unchanged.
 #[cfg(test)]
 mod report_parity {
     use crate::domain::fixtures;
@@ -147,6 +150,22 @@ mod report_parity {
         ]
     }
 
+    fn assert_report_cells(legacy: &Scene, current: &Scene, area: Rect, level: ColorLevel, label: &str) {
+        let mut untouched = Scene::new("report-control", Theme::junie(), level, 80, 24);
+        untouched.draw(|_, _| {});
+        for y in 0..24 {
+            for x in 0..80 {
+                let expected = if x >= area.x && x < area.right() && y >= area.y && y < area.bottom() {
+                    legacy.buffer().cell((x, y))
+                } else {
+                    untouched.buffer().cell((x, y))
+                };
+                assert_eq!(current.buffer().cell((x, y)), expected,
+                    "{label} {area:?} {level:?}, at {x},{y}");
+            }
+        }
+    }
+
     #[test]
     fn the_reports_render_the_same_cells_as_the_app_owned_painters() {
         for world in worlds() {
@@ -162,11 +181,7 @@ mod report_parity {
                     legacy.draw(|ui, _| legacy_disk(&world, ui, area));
                     let mut current = Scene::new("report-disk", theme.clone(), level, 80, 24);
                     current.draw(|ui, _| super::disk::draw(&world, ui, area));
-                    assert_eq!(
-                        legacy.buffer().content,
-                        current.buffer().content,
-                        "disk {area:?} {level:?}"
-                    );
+                    assert_report_cells(&legacy, &current, area, level, "disk");
                     assert_eq!(
                         legacy.cursor_position(),
                         current.cursor_position(),
@@ -177,11 +192,7 @@ mod report_parity {
                     legacy.draw(|ui, _| legacy_cleanup(&world, ui, area));
                     let mut current = Scene::new("report-cleanup", theme.clone(), level, 80, 24);
                     current.draw(|ui, _| super::cleanup::draw(&world, ui, area));
-                    assert_eq!(
-                        legacy.buffer().content,
-                        current.buffer().content,
-                        "cleanup {area:?} {level:?}"
-                    );
+                    assert_report_cells(&legacy, &current, area, level, "cleanup");
                     assert_eq!(
                         legacy.cursor_position(),
                         current.cursor_position(),

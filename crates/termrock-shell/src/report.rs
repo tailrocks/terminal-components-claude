@@ -179,14 +179,25 @@ impl TextReport {
                 .saturating_sub(self.left_inset.saturating_add(self.right_inset)),
             1,
         )
+        .intersection(area)
     }
 
     /// Paint the report into `area`.
     ///
-    /// The heading always paints. The subheading and the empty-state line
-    /// paint when the area is tall enough for them. A body line paints only
-    /// while its row is still inside the area.
+    /// Every line is clipped to `area`. The subheading and the empty-state
+    /// line also follow the minimum details height. Body rows stop at the
+    /// allocated area's bottom edge.
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, content: &ReportContent<'_>) {
+        self.draw_rows(ui, area, content, content.body.iter().map(String::as_str));
+    }
+
+    /// Paint lazy body rows without collecting a new vector for each frame.
+    /// Only rows that fit in the allocation are requested from the iterator.
+    pub fn draw_rows<I, S>(&self, ui: &mut Ui<'_>, area: Rect, content: &ReportContent<'_>, rows: I)
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>,
+    {
         if area.is_empty() {
             return;
         }
@@ -202,11 +213,8 @@ impl TextReport {
             }
         }
         let mut row = self.rows.body;
-        for line in content.body {
-            if row >= area.height {
-                break;
-            }
-            ui.paint_str(self.band(area, row), line, text);
+        for line in rows.into_iter().take(usize::from(area.height.saturating_sub(self.rows.body))) {
+            ui.paint_str(self.band(area, row), line.as_ref(), text);
             row = row.saturating_add(1);
         }
     }
@@ -299,4 +307,58 @@ mod tests {
         assert_eq!(symbol(&scene, 0, 0), Some("H"));
         assert_eq!(symbol(&scene, 0, 1), Some("n"));
     }
+
+    #[test]
+    fn custom_rows_and_short_areas_never_paint_outside_the_allocation() {
+        for height in 0..=3 {
+            for heading in [0, 7] {
+                let area = Rect::new(3, 2, 8, height);
+                let mut untouched = Scene::new("report-control", Theme::junie(), ColorLevel::TrueColor, 20, 10);
+                untouched.draw(|_, _| {});
+                let mut scene = Scene::new("report-bounds", Theme::junie(), ColorLevel::TrueColor, 20, 10);
+                let body = vec!["body".to_owned(); 8];
+                scene.draw(|ui, _| {
+                    TextReport::new()
+                        .rows(ReportRows { heading, subheading: 1, empty: 2, body: 3 })
+                        .min_details_height(0)
+                        .draw(ui, area, &ReportContent::heading("Heading")
+                            .with_subheading("detail")
+                            .with_empty("empty")
+                            .with_body(&body));
+                });
+                for y in 0..10 {
+                    for x in 0..20 {
+                        if x < area.x || x >= area.right() || y < area.y || y >= area.bottom() {
+                            assert_eq!(scene.buffer().cell((x, y)), untouched.buffer().cell((x, y)),
+                                "outside {area:?}, heading={heading}, at {x},{y}");
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
+    #[test]
+    fn lazy_rows_do_not_format_hidden_content() {
+        for (height, expected) in [(1, 0), (5, 2)] {
+            let formatted = std::cell::Cell::new(0_usize);
+            let rows = (0..1_000).map(|index| {
+                formatted.set(formatted.get() + 1);
+                format!("row {index}")
+            });
+            let mut scene =
+                Scene::new("report-lazy", Theme::junie(), ColorLevel::TrueColor, 20, 10);
+            scene.draw(|ui, _| {
+                TextReport::new().draw_rows(
+                    ui,
+                    Rect::new(2, 1, 16, height),
+                    &ReportContent::heading("Heading"),
+                    rows,
+                );
+            });
+            assert_eq!(formatted.get(), expected, "height={height}");
+        }
+    }
+
 }

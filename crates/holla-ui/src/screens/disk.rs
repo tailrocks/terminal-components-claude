@@ -3,6 +3,9 @@ use termrock::shell::{ReportContent, TextReport};
 use termrock::{Rect, Ui};
 
 pub(crate) fn draw(world: &World, ui: &mut Ui<'_>, area: Rect) {
+    if area.is_empty() {
+        return;
+    }
     let title = format!("Disk usage · {}", world.cwd);
     let Some(disk) = &world.disk else {
         TextReport::new().min_details_height(0).draw(
@@ -17,7 +20,7 @@ pub(crate) fn draw(world: &World, ui: &mut Ui<'_>, area: Rect) {
         disk.used_percent(),
         disk.candidates.len()
     );
-    let body: Vec<String> = disk
+    let body = disk
         .candidates
         .iter()
         .map(|candidate| {
@@ -27,13 +30,11 @@ pub(crate) fn draw(world: &World, ui: &mut Ui<'_>, area: Rect) {
                 candidate.family.label(),
                 candidate.freshness.label()
             )
-        })
-        .collect();
-    TextReport::new().min_details_height(0).draw(
+        });
+    TextReport::new().min_details_height(0).draw_rows(
         ui,
         area,
-        &ReportContent::heading(&title)
-            .with_subheading(&subtitle)
-            .with_body(&body),
+        &ReportContent::heading(&title).with_subheading(&subtitle),
+        body,
     );
 }
