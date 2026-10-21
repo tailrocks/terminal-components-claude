@@ -44,11 +44,13 @@ PREPARE_OWNED_HARD_MAX = 220
 FRESH_ORDINARY_MAX_TIMEOUT = 200
 PREPARE_OWNED_TERM_GRACE = 2.0
 OWNED_NEXTTEST_READ_BYTES = 64 * 1024
-OWNED_NEXTTEST_MAX_LINE_BYTES = 1 * 1024 * 1024
-OWNED_NEXTTEST_MAX_FILE_BYTES = 64 * 1024 * 1024
+OWNED_FS_PAYLOAD_MAX_BYTES = 64 * 1024
+OWNED_NEXTTEST_MAX_LINE_BYTES = OWNED_FS_PAYLOAD_MAX_BYTES
+OWNED_NEXTTEST_MAX_FILE_BYTES = OWNED_FS_PAYLOAD_MAX_BYTES
+OWNED_ORDINARY_STREAM_MAX_BYTES = OWNED_FS_PAYLOAD_MAX_BYTES
+OWNED_ORDINARY_TOTAL_MAX_BYTES = 2 * OWNED_FS_PAYLOAD_MAX_BYTES
 OWNED_RECEIPT_MAX_BYTES = 1024 * 1024
 OWNED_FRAME_MAX_BYTES = 64 * 1024 * 1024
-OWNED_FS_PAYLOAD_MAX_BYTES = 64 * 1024
 OWNED_FS_REQUEST_MAX_BYTES = 192 * 1024
 OWNED_FS_RESULT_MAX_BYTES = 8 * 1024
 PREPARE_LIVE_OWNED_COHORT = "frozen-20261021-serial-nonincr-r1-r2"
@@ -648,14 +650,16 @@ def _owned_broker_main(spec_path: Path, control_fd: int) -> int:
     result_path: Path | None = None
     process: subprocess.Popen[bytes] | None = None
     command_spawn_pending = False
+    spec: object = None
     status: dict[str, object]
     try:
         spec = json.loads(spec_path.read_text())
-        if not isinstance(spec, dict) or set(spec) != {"argv", "cwd", "stdout_fd", "stderr_fd", "owned_root_fd", "status_path", "ready_path"}:
+        if not isinstance(spec, dict) or set(spec) != {"argv", "cwd", "stdout_fd", "stderr_fd", "owned_root_fd", "close_output_fds", "status_path", "ready_path"}:
             raise RunnerError("owned subprocess specification fields were invalid")
         argv, cwd = spec["argv"], spec["cwd"]
         stdout_fd, stderr_fd = spec["stdout_fd"], spec["stderr_fd"]
         owned_root_fd = spec["owned_root_fd"]
+        close_output_fds = spec["close_output_fds"]
         result_path = Path(spec["status_path"])
         ready_path = Path(spec["ready_path"])
         if (
@@ -667,6 +671,7 @@ def _owned_broker_main(spec_path: Path, control_fd: int) -> int:
             or type(stderr_fd) is not int
             or stdout_fd < 0
             or stderr_fd < 0
+            or type(close_output_fds) is not bool
             or (owned_root_fd is not None and (type(owned_root_fd) is not int or owned_root_fd < 3))
             or (owned_root_fd is not None and owned_root_fd in {stdout_fd, stderr_fd, control_fd})
         ):
@@ -690,6 +695,9 @@ def _owned_broker_main(spec_path: Path, control_fd: int) -> int:
             pass_fds=() if owned_root_fd is None else (owned_root_fd,),
         )
         command_spawn_pending = False
+        if close_output_fds:
+            os.close(stdout_fd)
+            os.close(stderr_fd)
         # Caught handlers reset to SIG_DFL on exec. Thus the broker can remain
         # an anchor while the owned command still receives ordinary SIGTERM.
         if term_requested:
@@ -702,14 +710,22 @@ def _owned_broker_main(spec_path: Path, control_fd: int) -> int:
                 _owned_broker_orphan_cleanup(process)
                 return 2
         try:
-            for descriptor in (stdout_fd, stderr_fd):
-                if stat.S_ISREG(os.fstat(descriptor).st_mode):
-                    os.fsync(descriptor)
+            if not close_output_fds:
+                for descriptor in (stdout_fd, stderr_fd):
+                    if stat.S_ISREG(os.fstat(descriptor).st_mode):
+                        os.fsync(descriptor)
         except OSError as error:
             status = {"schema": 1, "returncode": process.returncode, "elapsed_seconds": time.monotonic() - started, "logs_fsynced": False, "log_flush_error": f"{type(error).__name__}: {str(error)[:512]}"}
         else:
             status = {"schema": 1, "returncode": process.returncode, "elapsed_seconds": time.monotonic() - started, "logs_fsynced": True}
     except BaseException as error:
+        if isinstance(spec, dict) and spec.get("close_output_fds") is True:
+            for descriptor in (spec.get("stdout_fd"), spec.get("stderr_fd")):
+                if type(descriptor) is int:
+                    try:
+                        os.close(descriptor)
+                    except OSError:
+                        pass
         status = {
             "schema": 1,
             "returncode": None,
@@ -859,7 +875,7 @@ class PrepareExecution:
         self.check_work()
         return self.work_deadline - time.monotonic()
 
-    def run(self, command: list[str], *, cwd: Path, stdout_file: object | None = None, stderr_file: object | None = None, capture_stdout: bool = True, capture_stderr: bool = True, env: dict[str, str] | None = None, quiet: bool = False, show_command: bool = True, command_timeout: float | None = None, optional_failure: bool = False, owned_root_fd: int | None = None) -> tuple[str, str] | None:
+    def run(self, command: list[str], *, cwd: Path, stdout_file: object | None = None, stderr_file: object | None = None, capture_stdout: bool = True, capture_stderr: bool = True, env: dict[str, str] | None = None, quiet: bool = False, show_command: bool = True, command_timeout: float | None = None, optional_failure: bool = False, owned_root_fd: int | None = None, stdout_limit: int | None = None, stderr_limit: int | None = None, aggregate_output_limit: int | None = None) -> tuple[str, str] | None:
         self.check_work()
         if command_timeout is not None and (not isinstance(command_timeout, (int, float)) or command_timeout <= 0):
             raise RunnerError("owned command timeout must be positive")
@@ -867,6 +883,17 @@ class PrepareExecution:
             raise RunnerError("owned optional probe timeout exceeds 12 seconds")
         if not command or any(not isinstance(part, str) or "\0" in part for part in command):
             raise RunnerError("owned prepare command argv was invalid")
+        limits = (stdout_limit, stderr_limit, aggregate_output_limit)
+        bounded_output = any(limit is not None for limit in limits)
+        if bounded_output and (
+            any(type(limit) is not int or not 1 <= limit <= OWNED_ORDINARY_STREAM_MAX_BYTES for limit in limits[:2])
+            or type(aggregate_output_limit) is not int
+            or not 1 <= aggregate_output_limit <= OWNED_ORDINARY_TOTAL_MAX_BYTES
+            or aggregate_output_limit > stdout_limit + stderr_limit
+        ):
+            raise RunnerError("owned command output quota must set stdout, stderr, and aggregate limits within fixed bounds")
+        if not bounded_output and limits != (None, None, None):
+            raise RunnerError("owned command output quota must be fully specified")
         if owned_root_fd is not None:
             if type(owned_root_fd) is not int or owned_root_fd < 3:
                 raise RunnerError("owned filesystem root descriptor is invalid")
@@ -887,6 +914,61 @@ class PrepareExecution:
         stderr_tmp = tempfile.NamedTemporaryFile(mode="w+b", prefix="stderr-", dir=status_dir, delete=False) if stderr_file is None else stderr_file
         owns_stdout = stdout_file is None
         owns_stderr = stderr_file is None
+        output_counts = {"stdout": 0, "stderr": 0, "total": 0}
+        output_counts_lock = threading.Lock()
+        output_limit_exceeded = threading.Event()
+        drain_errors: list[str] = []
+        drain_threads: list[threading.Thread] = []
+        read_fds: list[int] = []
+        write_fds: list[int] = []
+        broker_stdout_fd = stdout_tmp.fileno()
+        broker_stderr_fd = stderr_tmp.fileno()
+        if bounded_output:
+            stdout_read, stdout_write = os.pipe()
+            stderr_read, stderr_write = os.pipe()
+            read_fds.extend((stdout_read, stderr_read))
+            write_fds.extend((stdout_write, stderr_write))
+            os.set_inheritable(stdout_write, True)
+            os.set_inheritable(stderr_write, True)
+            broker_stdout_fd, broker_stderr_fd = stdout_write, stderr_write
+
+            def drain_output(stream_name: str, read_fd: int, destination: object, stream_limit: int) -> None:
+                try:
+                    while True:
+                        chunk = os.read(read_fd, 16 * 1024)
+                        if not chunk:
+                            return
+                        with output_counts_lock:
+                            stream_remaining = stream_limit - output_counts[stream_name]
+                            total_remaining = aggregate_output_limit - output_counts["total"]  # type: ignore[operator]
+                            allowed = max(0, min(len(chunk), stream_remaining, total_remaining))
+                            if allowed:
+                                view = memoryview(chunk[:allowed])
+                                fd = destination.fileno()  # type: ignore[attr-defined]
+                                while view:
+                                    written = os.write(fd, view)
+                                    if written <= 0:
+                                        raise OSError("bounded output artifact write made no progress")
+                                    view = view[written:]
+                                output_counts[stream_name] += allowed
+                                output_counts["total"] += allowed
+                            if allowed < len(chunk):
+                                output_limit_exceeded.set()
+                except BaseException as error:
+                    drain_errors.append(f"{type(error).__name__}: {str(error)[:256]}")
+                    output_limit_exceeded.set()
+                finally:
+                    try:
+                        os.close(read_fd)
+                    except OSError:
+                        pass
+
+            drain_threads = [
+                threading.Thread(target=drain_output, args=("stdout", stdout_read, stdout_tmp, stdout_limit), daemon=True),
+                threading.Thread(target=drain_output, args=("stderr", stderr_read, stderr_tmp, stderr_limit), daemon=True),
+            ]
+            for thread in drain_threads:
+                thread.start()
         control_read, control_write = os.pipe()
         os.set_inheritable(control_read, True)
         status_path = status_dir / "status.json"
@@ -895,9 +977,10 @@ class PrepareExecution:
         spec = {
             "argv": command,
             "cwd": str(cwd),
-            "stdout_fd": stdout_tmp.fileno(),
-            "stderr_fd": stderr_tmp.fileno(),
+            "stdout_fd": broker_stdout_fd,
+            "stderr_fd": broker_stderr_fd,
             "owned_root_fd": owned_root_fd,
+            "close_output_fds": bounded_output,
             "status_path": str(status_path),
             "ready_path": str(ready_path),
         }
@@ -910,6 +993,7 @@ class PrepareExecution:
         cleanup_error: RunnerError | None = None
         result: dict[str, object] | None = None
         local_timeout_hit = False
+        local_output_limit_hit = False
         command_deadline = min(self.work_deadline, time.monotonic() + command_timeout) if command_timeout is not None else self.work_deadline
         try:
             broker = subprocess.Popen(
@@ -918,7 +1002,7 @@ class PrepareExecution:
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 close_fds=True,
-                pass_fds=(control_read, stdout_tmp.fileno(), stderr_tmp.fileno()) + (() if owned_root_fd is None else (owned_root_fd,)),
+                pass_fds=(control_read, broker_stdout_fd, broker_stderr_fd) + (() if owned_root_fd is None else (owned_root_fd,)),
                 start_new_session=True,
                 env=env,
             )
@@ -928,6 +1012,9 @@ class PrepareExecution:
             registered = True
             os.close(control_read)
             control_read = -1
+            for descriptor in write_fds:
+                os.close(descriptor)
+            write_fds.clear()
             if show_command:
                 print("+", " ".join(command), flush=True)
             while not ready_path.exists():
@@ -972,6 +1059,9 @@ class PrepareExecution:
                     raise RunnerError("owned prepare broker exited before its anchor-ready receipt")
                 time.sleep(min(0.01, max(0.0, self.work_deadline - time.monotonic())))
             while not status_path.exists():
+                if output_limit_exceeded.is_set():
+                    local_output_limit_hit = True
+                    break
                 if self.cancel_signal is not None or time.monotonic() >= self.work_deadline:
                     break
                 if time.monotonic() >= command_deadline:
@@ -990,6 +1080,19 @@ class PrepareExecution:
                 cleanup_error = error
             if cleanup_error is not None:
                 raise cleanup_error
+            if bounded_output:
+                for thread in drain_threads:
+                    thread.join(timeout=self._remaining_hard())
+                    if thread.is_alive():
+                        raise RunnerError("owned bounded output drain did not finish after process-group cleanup")
+                for destination in (stdout_tmp, stderr_tmp):
+                    destination.flush()
+                    os.fsync(destination.fileno())
+                if drain_errors:
+                    raise RunnerError(f"owned bounded output drain failed: {drain_errors[0]}")
+                local_output_limit_hit = local_output_limit_hit or output_limit_exceeded.is_set()
+                if local_output_limit_hit:
+                    raise RunnerError("owned command exceeded its bounded stdout, stderr, or aggregate output quota")
             # Cleanup may be the point where a delayed broker failure becomes
             # observable. Classify its final receipt before treating a local
             # optional-probe timeout as an ordinary missing result.
@@ -1053,6 +1156,14 @@ class PrepareExecution:
             if control_write >= 0:
                 os.close(control_write)
                 control_write = -1
+            for descriptor in write_fds:
+                try:
+                    os.close(descriptor)
+                except OSError:
+                    pass
+            for thread in drain_threads:
+                if thread.is_alive():
+                    thread.join(timeout=max(0.0, self.hard_deadline - time.monotonic()))
             if broker is not None and registered:
                 try:
                     remaining = max(0.0, self.hard_deadline - time.monotonic())
@@ -5932,47 +6043,36 @@ def _run_ordinary_nextest(command: list[str], *, live: Path, env: dict[str, str]
         raise RunnerError("pair runtime flags leaked into ordinary checks")
     stdout_path = stage / "nextest.stdout.jsonl"
     stderr_path = stage / "nextest.stderr.log"
-    temporary_dir = Path(tempfile.mkdtemp(prefix="termrock-ordinary-nextest-"))
-    temporary_stdout = temporary_dir / "stdout.jsonl"
-    temporary_stderr = temporary_dir / "stderr.log"
-    try:
-        with temporary_stdout.open("x+b") as stdout_file, temporary_stderr.open("x+b") as stderr_file:
-            with PrepareExecution(timeout) as execution:
-                try:
-                    execution.run(
-                        command, cwd=live, stdout_file=stdout_file, stderr_file=stderr_file,
-                        capture_stdout=False, capture_stderr=False, env=env, quiet=True,
-                    )
-                except RunnerError:
-                    # Preserve bounded output when the child failed inside the
-                    # work window. Expired attempts remain untrusted and are
-                    # not given extra time to publish artifacts.
-                    execution.check_work()
-                    failed_stdout = _read_bounded_file(temporary_stdout, OWNED_FS_PAYLOAD_MAX_BYTES, "failed ordinary Nextest stdout", check_work=execution.check_work)
-                    failed_stderr = _read_bounded_file(temporary_stderr, OWNED_FS_PAYLOAD_MAX_BYTES, "failed ordinary Nextest stderr", check_work=execution.check_work)
-                    root_binding = _owned_root_binding(stage, check_work=execution.check_work)
-                    _owned_publish_immutable(execution, root_binding, stdout_path.name, failed_stdout)
-                    _owned_publish_immutable(execution, root_binding, stderr_path.name, failed_stderr)
-                    raise
+    with stdout_path.open("x+b") as stdout_file, stderr_path.open("x+b") as stderr_file:
+        with PrepareExecution(timeout) as execution:
+            try:
+                execution.run(
+                    command, cwd=live, stdout_file=stdout_file, stderr_file=stderr_file,
+                    capture_stdout=False, capture_stderr=False, env=env, quiet=True,
+                    stdout_limit=OWNED_ORDINARY_STREAM_MAX_BYTES,
+                    stderr_limit=OWNED_ORDINARY_STREAM_MAX_BYTES,
+                    aggregate_output_limit=OWNED_ORDINARY_TOTAL_MAX_BYTES,
+                )
+            except RunnerError:
+                # The owned reader has already bounded both streams and
+                # written their evidence directly into this untrusted
+                # stage. Do not publish or journal a failed attempt.
                 execution.check_work()
-                stdout = _read_bounded_file(temporary_stdout, OWNED_FS_PAYLOAD_MAX_BYTES, "ordinary Nextest stdout", check_work=execution.check_work)
-                stderr = _read_bounded_file(temporary_stderr, OWNED_FS_PAYLOAD_MAX_BYTES, "ordinary Nextest stderr", check_work=execution.check_work)
-                root_binding = _owned_root_binding(stage, check_work=execution.check_work)
-                _owned_publish_immutable(execution, root_binding, stdout_path.name, stdout)
-                _owned_publish_immutable(execution, root_binding, stderr_path.name, stderr)
-                events = nextest_events_stream(io.BytesIO(stdout), selected, check_work=execution.check_work)
-                event_digest = _ordinary_event_inventory_sha256(selected, events)
-                return {
-                    "selected_cases": selected,
-                    "event_count": len(events),
-                    "event_inventory_sha256": event_digest,
-                    "stdout_sha256": hashlib.sha256(stdout).hexdigest(),
-                    "stderr_sha256": hashlib.sha256(stderr).hexdigest(),
-                    "exit_status": 0,
-                    "artifacts_sha256": hashlib.sha256(canonical_receipt_json({"stdout": hashlib.sha256(stdout).hexdigest(), "stderr": hashlib.sha256(stderr).hexdigest(), "events": event_digest})).hexdigest(),
-                }
-    finally:
-        shutil.rmtree(temporary_dir, ignore_errors=True)
+                raise
+            execution.check_work()
+            stdout = _read_bounded_file(stdout_path, OWNED_ORDINARY_STREAM_MAX_BYTES, "ordinary Nextest stdout", check_work=execution.check_work)
+            stderr = _read_bounded_file(stderr_path, OWNED_ORDINARY_STREAM_MAX_BYTES, "ordinary Nextest stderr", check_work=execution.check_work)
+            events = nextest_events_stream(io.BytesIO(stdout), selected, check_work=execution.check_work)
+            event_digest = _ordinary_event_inventory_sha256(selected, events)
+            return {
+                "selected_cases": selected,
+                "event_count": len(events),
+                "event_inventory_sha256": event_digest,
+                "stdout_sha256": hashlib.sha256(stdout).hexdigest(),
+                "stderr_sha256": hashlib.sha256(stderr).hexdigest(),
+                "exit_status": 0,
+                "artifacts_sha256": hashlib.sha256(canonical_receipt_json({"stdout": hashlib.sha256(stdout).hexdigest(), "stderr": hashlib.sha256(stderr).hexdigest(), "events": event_digest})).hexdigest(),
+            }
 
 
 def validate_fresh_run_journal(envelopes: list[object], key: bytes, manifest_envelope: object, plan_path: Path, expected_plan_sha256: str, *, check_work: Callable[[], None] | None = None) -> dict[str, object]:
