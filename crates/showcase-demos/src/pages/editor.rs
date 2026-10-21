@@ -250,6 +250,7 @@ impl CompletionProvider for ShowcaseCompletion {
                 let (penalty, matched) = termrock::fuzzy(label, word)?;
                 Some((
                     penalty,
+                    *label,
                     CompletionValue::new(
                         ItemKey::num(u64::try_from(index).ok()?.saturating_add(1)),
                         *label,
@@ -261,28 +262,8 @@ impl CompletionProvider for ShowcaseCompletion {
                 ))
             })
             .collect();
-        if word.is_empty() && trigger == CompletionTrigger::Manual {
-            ranked = CANDIDATES
-                .iter()
-                .enumerate()
-                .map(|(index, (label, detail, glyph, insertion))| {
-                    (
-                        u32::try_from(index).unwrap_or(u32::MAX),
-                        CompletionValue::new(
-                            ItemKey::num(
-                                u64::try_from(index).unwrap_or(u64::MAX).saturating_add(1),
-                            ),
-                            *label,
-                            *insertion,
-                        )
-                        .glyph(*glyph)
-                        .detail(*detail),
-                    )
-                })
-                .collect();
-        }
-        ranked.sort_by_key(|(penalty, _)| *penalty);
-        let items = ranked.into_iter().map(|(_, item)| item).collect();
+        ranked.sort_by(|left, right| left.0.cmp(&right.0).then_with(|| left.1.cmp(right.1)));
+        let items = ranked.into_iter().map(|(_, _, item)| item).collect();
         Some(CompletionBatch {
             items,
             replace_len: word.len(),
@@ -327,6 +308,7 @@ pub struct EditorPage {
     properties: PropsState,
     diagnostics: PropsState,
     run_ticks: u8,
+    running_block: Option<Range<usize>>,
     runs: u32,
     last_ms: Option<u32>,
 }
@@ -338,6 +320,7 @@ impl EditorPage {
             properties: PropsState::default(),
             diagnostics: PropsState::default(),
             run_ticks: 0,
+            running_block: None,
             runs: 0,
             last_ms: None,
         }
@@ -452,15 +435,15 @@ impl EditorPage {
     fn start_run(&mut self, cx: &mut Cx<'_>) -> Option<PageStatus> {
         let component = code_editor();
         let block = component.current_block(self.state.editor())?;
-        self.state.editor_mut().set_running(Some(block));
+        self.state.editor_mut().set_running(Some(block.clone()));
+        self.running_block = Some(block);
         self.run_ticks = 10;
         cx.request_repaint_after(Duration::from_millis(40));
         Some(PageStatus(String::from("Running block…")))
     }
 
     fn finish_run(&mut self) -> PageStatus {
-        let component = code_editor();
-        let block_range = component.current_block(self.state.editor());
+        let block_range = self.running_block.take();
         if let Some(block_range) = block_range {
             let text = self.state.editor().text();
             let block = text.get(block_range.clone()).unwrap_or_default();
@@ -563,7 +546,7 @@ impl Page for EditorPage {
             .update(cx, &mut self.diagnostics, &diagnostic_rows)
             .erase();
 
-        if self.run_ticks > 0 {
+        if cx.update_cause() == termrock::UpdateCause::Tick && self.run_ticks > 0 {
             self.run_ticks = self.run_ticks.saturating_sub(1);
             if self.run_ticks == 0 {
                 status = Some(self.finish_run());
@@ -706,5 +689,79 @@ mod lexer_tests {
         assert!(tokens.contains(&(Some("let"), SyntaxRole::Keyword)));
         assert!(tokens.contains(&(Some("retry"), SyntaxRole::Function)));
         assert!(highlight("").is_empty());
+    }
+}
+
+#[cfg(test)]
+mod completion_order_tests {
+    use super::*;
+    use termrock::AsItem;
+
+    #[test]
+    fn manual_empty_completion_is_alphabetical_with_stable_keys() {
+        let batch = COMPLETION_PROVIDER
+            .complete("", 0, CompletionTrigger::Manual)
+            .expect("manual completion list");
+        let labels: Vec<_> = batch
+            .items
+            .iter()
+            .map(|item| item.as_item().label)
+            .collect();
+        let mut alphabetical = labels.clone();
+        alphabetical.sort_unstable();
+        assert_eq!(labels, alphabetical);
+
+        for item in &batch.items {
+            let label = item.as_item().label;
+            let index = CANDIDATES
+                .iter()
+                .position(|candidate| candidate.0 == label)
+                .expect("candidate label");
+            assert_eq!(
+                item.as_item().key,
+                ItemKey::num(u64::try_from(index).unwrap_or(u64::MAX).saturating_add(1))
+            );
+        }
+    }
+
+    #[test]
+    fn nonempty_fuzzy_ties_are_sorted_by_label_after_score() {
+        let mut found_tie = false;
+        for first in b'a'..=b'z' {
+            for second in b'a'..=b'z' {
+                let query = [char::from(first), char::from(second)]
+                    .iter()
+                    .collect::<String>();
+                let Some(batch) = COMPLETION_PROVIDER.complete(
+                    &query,
+                    query.len(),
+                    CompletionTrigger::TextChanged,
+                ) else {
+                    continue;
+                };
+                let ranked: Vec<_> = batch
+                    .items
+                    .iter()
+                    .map(|item| {
+                        let label = item.as_item().label;
+                        let (score, _) = termrock::fuzzy(label, &query).expect("matching label");
+                        (score, label)
+                    })
+                    .collect();
+                for pair in ranked.windows(2) {
+                    let left = pair[0];
+                    let right = pair[1];
+                    assert!(
+                        left.0 < right.0 || (left.0 == right.0 && left.1 <= right.1),
+                        "query {query:?}: {left:?} precedes {right:?}"
+                    );
+                    found_tie |= left.0 == right.0;
+                }
+            }
+        }
+        assert!(
+            found_tie,
+            "the candidate vocabulary should exercise fuzzy ties"
+        );
     }
 }
