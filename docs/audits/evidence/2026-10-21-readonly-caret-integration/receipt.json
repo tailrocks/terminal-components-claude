@@ -1,0 +1,37 @@
+{
+  "scope": "bounded readonly CodeEditor caret correction and normal merge integration",
+  "source_reviewed_commit": "cb2e2a41bb1f4b7f5c1092cfaaa34041cb98e1f6",
+  "tested_index_tree": "63e2f0bb321d119988751c75af46c22adc9fa70c",
+  "independent_review": {
+    "verdict": "CLEAR for bounded read-only caret runtime correction; no actionable findings",
+    "sha256": "c8aac49a3768cb38d2ce53699e7c0915806319b91444b13aa2a58d761fffd93a"
+  },
+  "gates": {
+    "nextest": {
+      "command": "cargo nextest run --locked --all-targets -p termrock-runtime -p termrock-editors -p termrock-fields -p termrock-terminal -p termrock-session",
+      "result": "616 passed, 4 skipped",
+      "exit_code": 0,
+      "sha256": "30d17142a10cd1ee379fd259d5254e4995aff0bdbe5c799dfcfa0b71d2159750"
+    },
+    "clippy": {
+      "command": "cargo clippy --locked --all-targets -p termrock-runtime -p termrock-editors -p termrock-fields -p termrock-terminal -p termrock-session -- -D warnings",
+      "result": "passed",
+      "exit_code": 0,
+      "sha256": "07f1b72d51874fc6aa2da939c2ca9741a355337e1839da8dabd0cde3637c929a"
+    },
+    "fmt": {
+      "command": "cargo fmt --all --check",
+      "result": "passed",
+      "exit_code": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "protected_expectations": "All seven blobs match docs/audits/evidence/2026-10-21-form-dialog-integration/held-expectations.json at the tested index tree.",
+  "matrix_merge": "Preserved the full cb2e and 0abfee stage records while resolving the normal merge conflict. The remote 9399ef27d matrix is a 283-line truncated derivative and is not used as a replacement. A separate docs-only matrix repair is being prepared by the coordinator; merge it later without discarding either full record.",
+  "limitations": [
+    "Four required nextest cases were skipped; this bounded gate is not full acceptance.",
+    "git diff --cached --check reports pre-existing whitespace in the staged Session audit patch and a blank final line in the Session audit; these unrelated evidence files were not modified here.",
+    "No full frozen paired application comparison was run.",
+    "Application parity and full workspace acceptance remain incomplete."
+  ]
+}
