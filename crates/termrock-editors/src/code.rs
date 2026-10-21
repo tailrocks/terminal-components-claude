@@ -1209,6 +1209,7 @@ impl<'a> CodeEditor<'a> {
                     | CodeCmd::DeleteToLineEnd
                     | CodeCmd::DeleteToLineStart
                     | CodeCmd::Newline
+                    | CodeCmd::Tab(true)
                     | CodeCmd::Tab(false)
             )
         {
@@ -1270,10 +1271,87 @@ impl<'a> CodeEditor<'a> {
                 st.commit();
                 acc.action(CodeAction::Leave { backward });
             }
-            CodeCmd::Tab(true)
-            | CodeCmd::FindAccept
-            | CodeCmd::FindBackspace
-            | CodeCmd::FindCancel => acc.consumed(),
+            CodeCmd::Tab(true) => {
+                let text = st.editor.text();
+                let selection = st.editor.selection();
+                let cursor = st.editor.cursor_offset();
+                let anchor = selection.as_ref().map(|range| {
+                    if cursor == range.start {
+                        range.end
+                    } else {
+                        range.start
+                    }
+                });
+                let (first_line, last_line) = if let Some(range) = selection.as_ref() {
+                    let first = text[..range.start]
+                        .bytes()
+                        .filter(|byte| *byte == b'\n')
+                        .count();
+                    let before_end = &text[..range.end];
+                    let newlines = before_end.bytes().filter(|byte| *byte == b'\n').count();
+                    let last = newlines.saturating_sub(usize::from(before_end.ends_with('\n')));
+                    (first, last)
+                } else {
+                    let line = st.editor.cursor_pos().line;
+                    (line, line)
+                };
+                let mut line_starts = vec![0usize];
+                line_starts.extend(
+                    text.match_indices('\n')
+                        .map(|(offset, _)| offset.saturating_add(1)),
+                );
+                let mut removals = Vec::new();
+                for line in first_line..=last_line {
+                    let Some(&start) = line_starts.get(line) else {
+                        continue;
+                    };
+                    let end = text[start..]
+                        .find('\n')
+                        .map_or(text.len(), |relative| start.saturating_add(relative));
+                    let count = text.as_bytes()[start..end]
+                        .iter()
+                        .take(usize::from(self.indent))
+                        .take_while(|byte| **byte == b' ')
+                        .count();
+                    if count > 0 {
+                        let removal_start = grapheme_floor_boundary(text, start);
+                        let removal_end = grapheme_ceil_boundary(text, start.saturating_add(count));
+                        if removal_start < removal_end {
+                            removals.push(removal_start..removal_end);
+                        }
+                    }
+                }
+                if removals.is_empty() {
+                    st.after_edit(EditOutcome::Ignored);
+                    acc.action(CodeAction::Changed);
+                    return;
+                }
+                let map_offset = |offset: usize| {
+                    let mut removed = 0usize;
+                    for range in &removals {
+                        if offset >= range.end {
+                            removed = removed.saturating_add(range.len());
+                        } else if offset > range.start {
+                            return range.start.saturating_sub(removed);
+                        }
+                    }
+                    offset.saturating_sub(removed)
+                };
+                let cursor = map_offset(cursor);
+                let anchor = anchor.map(map_offset);
+                for range in removals.iter().rev() {
+                    st.editor.select_range(range.start, range.end);
+                    let _ = st.editor.apply(EditAction::Paste(""));
+                }
+                if let Some(anchor) = anchor {
+                    st.editor.select_range(anchor, cursor);
+                } else {
+                    st.jump_to(cursor);
+                }
+                st.after_edit(EditOutcome::Changed);
+                acc.action(CodeAction::Changed);
+            }
+            CodeCmd::FindAccept | CodeCmd::FindBackspace | CodeCmd::FindCancel => acc.consumed(),
             CodeCmd::Tab(false) => {
                 let spaces = "                ";
                 let take = usize::from(self.indent).min(spaces.len());
@@ -1739,6 +1817,26 @@ fn floor_boundary(text: &str, mut offset: usize) -> usize {
     offset
 }
 
+fn grapheme_floor_boundary(text: &str, offset: usize) -> usize {
+    let offset = offset.min(text.len());
+    graphemes(text)
+        .map(|(at, _)| at)
+        .take_while(|at| *at <= offset)
+        .last()
+        .unwrap_or(0)
+}
+
+fn grapheme_ceil_boundary(text: &str, offset: usize) -> usize {
+    let offset = offset.min(text.len());
+    if offset == text.len() {
+        return text.len();
+    }
+    graphemes(text)
+        .map(|(at, _)| at)
+        .find(|at| *at >= offset)
+        .unwrap_or(text.len())
+}
+
 fn line_col(text: &str, offset: usize) -> (usize, usize) {
     let prefix = text.get(..offset).unwrap_or("");
     let line = prefix.bytes().filter(|b| *b == b'\n').count();
@@ -1778,6 +1876,10 @@ mod tests {
     struct EditorApp {
         state: CodeEditorState,
         read_only: bool,
+        disabled: bool,
+        indent: u8,
+        tab_behavior: TabBehavior,
+        last_action: Option<CodeAction>,
         app_entry: EditEntry,
         widget_entry: Option<EditEntry>,
     }
@@ -1787,17 +1889,27 @@ mod tests {
             if cx.update_cause() == crate::runtime::UpdateCause::Bootstrap {
                 cx.focus(ID);
             }
-            let editor = CodeEditor::new(ID, 5).read_only(self.read_only);
+            let editor = CodeEditor::new(ID, 5)
+                .read_only(self.read_only)
+                .disabled(self.disabled)
+                .indent(self.indent)
+                .tab_behavior(self.tab_behavior);
             let editor = if let Some(entry) = self.widget_entry {
                 editor.edit_entry(entry)
             } else {
                 editor
             };
-            editor.update(cx, &mut self.state).erase()
+            let response = editor.update(cx, &mut self.state);
+            self.last_action = response.action_ref().cloned();
+            response.erase()
         }
 
         fn draw(&self, ui: &mut Ui<'_>) {
-            let editor = CodeEditor::new(ID, 5).read_only(self.read_only);
+            let editor = CodeEditor::new(ID, 5)
+                .read_only(self.read_only)
+                .disabled(self.disabled)
+                .indent(self.indent)
+                .tab_behavior(self.tab_behavior);
             let editor = if let Some(entry) = self.widget_entry {
                 editor.edit_entry(entry)
             } else {
@@ -1820,11 +1932,26 @@ mod tests {
         read_only: bool,
         app_entry: EditEntry,
     ) -> (Runtime<EditorApp>, Buffer) {
+        focused_runtime_with_config(text, read_only, false, 2, TabBehavior::Indent, app_entry)
+    }
+
+    fn focused_runtime_with_config(
+        text: &str,
+        read_only: bool,
+        disabled: bool,
+        indent: u8,
+        tab_behavior: TabBehavior,
+        app_entry: EditEntry,
+    ) -> (Runtime<EditorApp>, Buffer) {
         let area = Rect::new(0, 0, 40, 5);
         let mut runtime = Runtime::new(
             EditorApp {
                 state: CodeEditorState::new(text),
                 read_only,
+                disabled,
+                indent,
+                tab_behavior,
+                last_action: None,
                 app_entry,
                 widget_entry: None,
             },
@@ -1841,6 +1968,202 @@ mod tests {
     fn send_key(runtime: &mut Runtime<EditorApp>, buffer: &mut Buffer, code: KeyCode) {
         let _ = crate::runtime::stub::deliver(runtime, key(code));
         runtime.draw_buffer(buffer.area, buffer).commit_presented();
+    }
+
+    fn send_backtab(runtime: &mut Runtime<EditorApp>, buffer: &mut Buffer) -> Response<()> {
+        let response = crate::runtime::stub::deliver(
+            runtime,
+            crate::event::Input::Key(crate::event::Key {
+                code: KeyCode::BackTab,
+                mods: SHIFT,
+            }),
+        );
+        runtime.draw_buffer(buffer.area, buffer).commit_presented();
+        response
+    }
+
+    #[test]
+    fn backtab_dedents_selected_lines_and_preserves_reversed_selection() {
+        let (mut runtime, mut buffer) = focused_runtime_with_config(
+            " a\n\n\tb\n  界e\u{301}\n   ",
+            false,
+            false,
+            2,
+            TabBehavior::Indent,
+            EditEntry::Explicit,
+        );
+        let state = &mut runtime.app_mut().state;
+        state.begin_edit();
+        let original_len = state.text().len();
+        state.editor.select_range(original_len, 0);
+
+        let response = send_backtab(&mut runtime, &mut buffer);
+
+        assert!(response.is_changed());
+        assert_eq!(runtime.app().last_action, Some(CodeAction::Changed));
+        assert_eq!(runtime.app().state.text(), "a\n\n\tb\n界e\u{301}\n ");
+        assert_eq!(runtime.app().state.cursor_offset(), 0);
+        assert_eq!(
+            runtime.app().state.selected_text(),
+            Some("a\n\n\tb\n界e\u{301}\n ")
+        );
+    }
+
+    #[test]
+    fn backtab_selection_ending_at_next_line_start_excludes_that_line() {
+        let (mut runtime, mut buffer) =
+            focused_runtime_with_entry("  first\n  second", false, EditEntry::Explicit);
+        runtime.app_mut().state.begin_edit();
+        runtime.app_mut().state.editor.select_range(0, 8);
+
+        let response = send_backtab(&mut runtime, &mut buffer);
+
+        assert!(response.is_changed());
+        assert_eq!(runtime.app().state.text(), "first\n  second");
+        assert_eq!(runtime.app().state.cursor_offset(), 6);
+        assert_eq!(runtime.app().state.selected_text(), Some("first\n"));
+    }
+
+    #[test]
+    fn backtab_without_selection_dedents_cursor_line_and_keeps_unicode_cursor() {
+        let (mut runtime, mut buffer) =
+            focused_runtime_with_entry("  λ界suffix", false, EditEntry::Explicit);
+        runtime.app_mut().state.begin_edit();
+        runtime.app_mut().state.jump_to("  λ界".len());
+
+        let response = send_backtab(&mut runtime, &mut buffer);
+
+        assert!(response.is_changed());
+        assert_eq!(runtime.app().state.text(), "λ界suffix");
+        assert_eq!(runtime.app().state.cursor_offset(), "λ界".len());
+        assert_eq!(runtime.app().state.selected_text(), None);
+    }
+
+    #[test]
+    fn backtab_dedents_attached_combining_graphemes_on_cursor_line() {
+        for (text, indent) in [(" \u{301}value", 1), ("  \u{301}value", 2)] {
+            let (mut runtime, mut buffer) = focused_runtime_with_config(
+                text,
+                false,
+                false,
+                indent,
+                TabBehavior::Indent,
+                EditEntry::Explicit,
+            );
+            runtime.app_mut().state.begin_edit();
+            runtime.app_mut().state.jump_to(text.len());
+            let generation = runtime.app().state.edit_generation;
+
+            let response = send_backtab(&mut runtime, &mut buffer);
+
+            assert!(response.is_changed(), "{text:?}");
+            assert_eq!(runtime.app().state.text(), "value", "{text:?}");
+            assert_eq!(runtime.app().state.cursor_offset(), "value".len());
+            assert_eq!(runtime.app().state.edit_generation, generation + 1);
+        }
+    }
+
+    #[test]
+    fn backtab_dedents_attached_combining_graphemes_in_reversed_selection() {
+        let text = " \u{301}one\n  \u{301}two";
+        let (mut runtime, mut buffer) =
+            focused_runtime_with_entry(text, false, EditEntry::Explicit);
+        runtime.app_mut().state.begin_edit();
+        runtime.app_mut().state.editor.select_range(text.len(), 0);
+        let generation = runtime.app().state.edit_generation;
+
+        let response = send_backtab(&mut runtime, &mut buffer);
+
+        assert!(response.is_changed());
+        assert_eq!(runtime.app().state.text(), "one\ntwo");
+        assert_eq!(runtime.app().state.cursor_offset(), 0);
+        assert_eq!(runtime.app().state.selected_text(), Some("one\ntwo"));
+        assert_eq!(runtime.app().state.edit_generation, generation + 1);
+    }
+
+    #[test]
+    fn backtab_noop_indent_zero_and_tab_prefix_are_consumed_without_edits() {
+        for (text, indent) in [("\t  value", 2), ("value", 2), ("  value", 0)] {
+            let (mut runtime, mut buffer) = focused_runtime_with_config(
+                text,
+                false,
+                false,
+                indent,
+                TabBehavior::Indent,
+                EditEntry::Explicit,
+            );
+            runtime.app_mut().state.begin_edit();
+            let before = runtime.app().state.clone();
+
+            let response = send_backtab(&mut runtime, &mut buffer);
+
+            assert!(response.is_consumed(), "{text:?}, indent {indent}");
+            assert!(response.is_changed(), "{text:?}, indent {indent}");
+            assert_eq!(
+                runtime.app().last_action,
+                Some(CodeAction::Changed),
+                "{text:?}, indent {indent}"
+            );
+            assert_eq!(runtime.app().state.text(), before.text());
+            assert_eq!(runtime.app().state.cursor_offset(), before.cursor_offset());
+            assert_eq!(runtime.app().state.selected_text(), before.selected_text());
+            assert_eq!(runtime.app().state.edit_generation, before.edit_generation);
+        }
+    }
+
+    #[test]
+    fn backtab_respects_read_only_disabled_and_leave_configuration() {
+        for disabled in [false, true] {
+            let (mut runtime, mut buffer) = focused_runtime_with_config(
+                "  value",
+                true,
+                disabled,
+                2,
+                TabBehavior::Indent,
+                EditEntry::Explicit,
+            );
+            runtime.app_mut().state.begin_edit();
+            runtime.app_mut().state.editor.select_range(0, 7);
+            let before_text = runtime.app().state.text().to_owned();
+            let before_cursor = runtime.app().state.cursor_offset();
+            let before_selection = runtime.app().state.selected_text().map(str::to_owned);
+            let before_generation = runtime.app().state.edit_generation;
+
+            let _ = send_backtab(&mut runtime, &mut buffer);
+
+            assert_eq!(
+                runtime.app().state.text(),
+                before_text,
+                "disabled={disabled}"
+            );
+            assert_eq!(runtime.app().state.cursor_offset(), before_cursor);
+            assert_eq!(
+                runtime.app().state.selected_text().map(str::to_owned),
+                before_selection
+            );
+            assert_eq!(runtime.app().state.edit_generation, before_generation);
+        }
+
+        let (mut runtime, mut buffer) = focused_runtime_with_config(
+            "  value",
+            false,
+            false,
+            2,
+            TabBehavior::Leave,
+            EditEntry::Explicit,
+        );
+        runtime.app_mut().state.begin_edit();
+        let before = runtime.app().state.clone();
+
+        let response = send_backtab(&mut runtime, &mut buffer);
+
+        assert!(response.is_changed());
+        assert_eq!(
+            runtime.app().last_action,
+            Some(CodeAction::Leave { backward: true })
+        );
+        assert_eq!(runtime.app().state.text(), before.text());
+        assert!(!runtime.app().state.is_editing());
     }
 
     #[test]
@@ -1869,6 +2192,10 @@ mod tests {
             EditorApp {
                 state: CodeEditorState::new("query"),
                 read_only: false,
+                disabled: false,
+                indent: 2,
+                tab_behavior: TabBehavior::Indent,
+                last_action: None,
                 app_entry: EditEntry::Explicit,
                 widget_entry: Some(EditEntry::Immediate),
             },
@@ -1889,6 +2216,10 @@ mod tests {
             EditorApp {
                 state: CodeEditorState::new(""),
                 read_only: false,
+                disabled: false,
+                indent: 2,
+                tab_behavior: TabBehavior::Indent,
+                last_action: None,
                 app_entry: EditEntry::TypeToEdit,
                 widget_entry: None,
             },
