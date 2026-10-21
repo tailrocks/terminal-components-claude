@@ -3360,7 +3360,10 @@ def build_fresh_plan_payload(
     }
     if check_work is not None:
         check_work()
-    plan = {**payload, "plan_sha256": canonical_json_digest(payload)}
+    plan_digest = canonical_json_digest(payload)
+    if check_work is not None:
+        check_work()
+    plan = {**payload, "plan_sha256": plan_digest}
     validate_fresh_plan_document(plan, check_work=check_work)
     if check_work is not None:
         check_work()
@@ -3529,6 +3532,8 @@ def _read_self_sealed_plan(path: Path, expected_sha256: str | None = None, *, ch
         parsed = json.loads(raw, object_pairs_hook=strict_object)
     except json.JSONDecodeError as error:
         raise RunnerError("fresh plan is not valid JSON") from error
+    if check_work is not None:
+        check_work()
     result = validate_fresh_plan_document(parsed, check_work=check_work)
     if check_work is not None:
         check_work()
@@ -3539,7 +3544,11 @@ def _atomic_create_plan(path: Path, document: dict[str, object], *, check_work: 
     if check_work is not None:
         check_work()
     path.parent.mkdir(parents=True, exist_ok=True)
+    if check_work is not None:
+        check_work()
     payload = (json.dumps(document, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n").encode()
+    if check_work is not None:
+        check_work()
     fd, temporary_name = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
     temporary = Path(temporary_name)
     try:
@@ -3547,7 +3556,10 @@ def _atomic_create_plan(path: Path, document: dict[str, object], *, check_work: 
             check_work()
         os.fchmod(fd, 0o400)
         with os.fdopen(fd, "wb") as stream:
-            stream.write(payload)
+            for offset in range(0, len(payload), 1024 * 1024):
+                if check_work is not None:
+                    check_work()
+                stream.write(payload[offset:offset + 1024 * 1024])
             stream.flush()
             if check_work is not None:
                 check_work()
