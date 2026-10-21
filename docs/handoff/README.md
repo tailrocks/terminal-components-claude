@@ -209,13 +209,21 @@ history, 29 hard-cases, 29 hard-cases concept). Holla gate on the pushed HEAD:
 unchanged), clippy clean, fmt clean. Details and preserved reference quirks:
 `docs/audits/2026-10-21-holla-plate-removal.md`.
 
-Resume points: (1) 15 parity families (brew-services, cleanup-results,
-custom-actions, delete-safety, disk-navigation, disk-scan, docker, executor,
-gradle, idea, insights, platforms, platforms-linux, task-input,
-upgrade-managers) have no tip reference captures — capture them, then extend
-the same paired proof; (2) full frozen-corpus Holla live-compare acceptance
-still open; (3) the pre-existing `holla_visual_baseline` digest red
-(de673f212d89ea84 vs e30768d9339a0fb9) still needs its recorded decision.
+Resume points: (1) the 15 no-reference parity families (brew-services,
+cleanup-results, custom-actions, delete-safety, disk-navigation, disk-scan,
+docker, executor, gradle, idea, insights, platforms, platforms-linux,
+task-input, upgrade-managers) were captured and checked on 2026-10-21: BOTH
+the tip-reference build and the candidate build fail all 435 frozen-snapshot
+cases (0 passed each, logs `/tmp/holla-pair/frozen15-tipref.log` and
+`/tmp/holla-pair/frozen15-cand.log`) — the frozen snapshots show the pre-tag
+static home layout, both builds render the new adaptive home. Pre-existing
+branch drift, recorded in the audit; the Holla-internal candidate-vs-tipref
+delta is 16/256-color quantization only (285/435 byte-identical, zero symbol
+diffs). Closing these families means replaying the pre-tag home screens —
+forbidden, needs an explicit reference-regeneration decision; (2) full
+frozen-corpus Holla live-compare acceptance still open; (3) the pre-existing
+`holla_visual_baseline` digest red (de673f212d89ea84 vs e30768d9339a0fb9)
+still needs its recorded decision.
 Worktree `/private/tmp/termrock-holla-20261021` stays on branch
-`holla-plates-view` (= pushed tip); the protected wip line remains on
-`wip/holla-rate-limit-20261021` @ `098fcfcda` for history.
+`holla-plates-view` (= pushed tip + this docs commit); the protected wip line
+remains on `wip/holla-rate-limit-20261021` @ `098fcfcda` for history.
