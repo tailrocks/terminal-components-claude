@@ -445,6 +445,366 @@ struct DeviceProperties {
     copied: Option<ItemKey>,
 }
 
+const COMMAND_DIALOG: Id = Id::root("external-consumer.command-dialog");
+const COMMAND_PROPS: Id = Id::root("external-consumer.command-properties");
+const COMMAND_BUTTON: Id = Id::root("external-consumer.command-background-button");
+const COMMAND_SCOPE: Id = Id::root("external-consumer.command-scope");
+const COMMAND_I: termrock::ActionKey = termrock::ActionKey::custom("external.command.inspect");
+const COMMAND_X: termrock::ActionKey = termrock::ActionKey::custom("external.command.export");
+
+#[derive(Clone, Copy)]
+enum Command {
+    Inspect,
+    Export,
+}
+
+const COMMAND_BINDINGS: &[termrock::Binding<Command>] = &[
+    termrock::Binding {
+        action: COMMAND_I,
+        chord: Some(termrock::Chord::key(termrock::KeyCode::Char('i'))),
+        cmd: Command::Inspect,
+        label: "Inspect",
+        priority: 1,
+        visible: false,
+    },
+    termrock::Binding {
+        action: COMMAND_X,
+        chord: Some(termrock::Chord::key(termrock::KeyCode::Char('x'))),
+        cmd: Command::Export,
+        label: "Export",
+        priority: 1,
+        visible: false,
+    },
+];
+
+fn remapped_command_keymap() -> &'static termrock::KeyMap {
+    static KEYMAP: std::sync::OnceLock<termrock::KeyMap> = std::sync::OnceLock::new();
+    KEYMAP.get_or_init(|| {
+        let mut keymap = termrock::KeyMap::new();
+        keymap.remap_component(
+            COMMAND_SCOPE,
+            COMMAND_I,
+            termrock::Chord::key(termrock::KeyCode::Char('r')),
+        );
+        keymap.remove_component(COMMAND_SCOPE, COMMAND_X);
+        keymap
+    })
+}
+
+struct CommandScopeDialog {
+    dialog: termrock::Dialog<'static>,
+    dialog_state: termrock::DialogState,
+    props: termrock::PropsList<'static>,
+    props_state: termrock::PropsState,
+    remapped: bool,
+    commands_enabled: bool,
+    author_scope: bool,
+    inspected: usize,
+    exported: usize,
+}
+
+impl App for CommandScopeDialog {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        if cx.update_cause() == termrock::UpdateCause::Bootstrap {
+            cx.focus(COMMAND_BUTTON);
+            cx.open_layer(
+                COMMAND_DIALOG,
+                self.dialog.layer(cx).initial_focus(COMMAND_PROPS),
+            );
+        }
+
+        let button = termrock::Button::new(COMMAND_BUTTON, "Open device details").update(cx);
+        if button.action_ref().is_some() && !cx.is_open(COMMAND_DIALOG) {
+            cx.open_layer(
+                COMMAND_DIALOG,
+                self.dialog.layer(cx).initial_focus(COMMAND_PROPS),
+            );
+        }
+
+        let mut handled_scope_command = false;
+        for intent in cx.intents(COMMAND_SCOPE) {
+            if let termrock::Intent::Binding(action) = intent {
+                match termrock::Binding::command(COMMAND_BINDINGS, action) {
+                    Some(Command::Inspect) => self.inspected += 1,
+                    Some(Command::Export) => self.exported += 1,
+                    None => continue,
+                }
+                handled_scope_command = true;
+            }
+        }
+
+        let rows = device_property_rows();
+        let props = self.props.update(cx, &mut self.props_state, &rows);
+        let dialog = self.dialog.update(cx, &mut self.dialog_state);
+        button.erase()
+            | props.erase()
+            | dialog.erase()
+            | if handled_scope_command {
+                Response::consumed()
+            } else {
+                Response::ignored()
+            }
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        let button = termrock::Button::new(COMMAND_BUTTON, "Open device details");
+        static NO_COMMANDS: &[termrock::Binding<Command>] = &[];
+        let bindings = if self.commands_enabled {
+            COMMAND_BINDINGS
+        } else {
+            NO_COMMANDS
+        };
+        if self.author_scope {
+            ui.focus_scope(COMMAND_SCOPE, termrock::ScopeMode::Normal, |ui| {
+                termrock::composition::Group::row([termrock::composition::button(&button)])
+                    .show(ui)
+                    .expect("the single button fits the root composition");
+                termrock::author::publish_scope_bindings(
+                    ui,
+                    termrock::ScopeId::new(COMMAND_SCOPE),
+                    COMMAND_SCOPE,
+                    termrock::StateFlags::empty(),
+                    bindings,
+                );
+            });
+        } else {
+            ui.command_scope(COMMAND_SCOPE, bindings, |ui| {
+                termrock::composition::Group::row([termrock::composition::button(&button)])
+                    .show(ui)
+                    .expect("the single button fits the root composition");
+            });
+        }
+        let _ = ui.layer(COMMAND_DIALOG, |ui, area| {
+            self.dialog
+                .draw_body_slot(ui, area, &self.dialog_state, |body| {
+                    body.props_list(&self.props, &self.props_state, &device_property_rows());
+                });
+        });
+    }
+
+    fn keymap(&self) -> &termrock::KeyMap {
+        if self.remapped {
+            remapped_command_keymap()
+        } else {
+            termrock::KeyMap::EMPTY_REF
+        }
+    }
+}
+
+fn command_scope_dialog(remapped: bool) -> CommandScopeDialog {
+    CommandScopeDialog {
+        dialog: termrock::Dialog::new(COMMAND_DIALOG)
+            .title("Device details")
+            .body_rows(4),
+        dialog_state: termrock::DialogState::default(),
+        props: termrock::PropsList::new(COMMAND_PROPS),
+        props_state: termrock::PropsState::default(),
+        remapped,
+        commands_enabled: true,
+        author_scope: false,
+        inspected: 0,
+        exported: 0,
+    }
+}
+
+#[test]
+fn public_command_scope_matches_existing_author_primitives() {
+    let screen = Rect::new(0, 0, 60, 20);
+    for level in [
+        ColorLevel::TrueColor,
+        ColorLevel::Ansi256,
+        ColorLevel::Ansi16,
+        ColorLevel::Mono,
+    ] {
+        for screen in [screen, Rect::new(0, 0, 24, 8)] {
+            let scoped_app = command_scope_dialog(false);
+            let mut author_app = command_scope_dialog(false);
+            author_app.author_scope = true;
+            let theme = Theme::junie().for_level(level);
+            let mut scoped = Runtime::new(scoped_app, theme.clone());
+            let mut author = Runtime::new(author_app, theme);
+            let _ = scoped.initialize();
+            let _ = author.initialize();
+            let mut scoped_buffer = Buffer::empty(screen);
+            let mut author_buffer = Buffer::empty(screen);
+            publish(&mut scoped, screen, &mut scoped_buffer);
+            publish(&mut author, screen, &mut author_buffer);
+
+            assert_eq!(
+                frame_cells(&scoped_buffer, screen),
+                frame_cells(&author_buffer, screen),
+                "the API wrapper must not change cells in {level:?}"
+            );
+            assert_eq!(scoped.registry().regions(), author.registry().regions());
+            assert_eq!(scoped.focus(), author.focus());
+            assert_eq!(scoped.cursor(), author.cursor());
+        }
+    }
+}
+
+fn key(code: termrock::KeyCode) -> Input {
+    Input::Key(termrock::Key {
+        code,
+        mods: KeyModifiers::NONE,
+    })
+}
+
+#[test]
+fn public_command_scope_routes_only_within_focused_layer_and_restores_focus() {
+    let screen = Rect::new(0, 0, 60, 20);
+    let mut runtime = Runtime::new(command_scope_dialog(false), Theme::junie());
+    let _ = runtime.initialize();
+    let mut buffer = Buffer::empty(screen);
+    publish(&mut runtime, screen, &mut buffer);
+    assert_eq!(runtime.focus(), Some(COMMAND_PROPS));
+
+    let narrow = Rect::new(0, 0, 24, 8);
+    let _ = runtime
+        .handle(Input::Resize(narrow.width, narrow.height))
+        .unwrap();
+    let mut narrow_buffer = Buffer::empty(narrow);
+    publish(&mut runtime, narrow, &mut narrow_buffer);
+    assert_eq!(
+        runtime.focus(),
+        None,
+        "a narrow modal may have no focus target"
+    );
+    let _ = runtime
+        .handle(Input::Resize(screen.width, screen.height))
+        .unwrap();
+    publish(&mut runtime, screen, &mut buffer);
+    assert_eq!(runtime.focus(), Some(COMMAND_PROPS));
+
+    for code in [termrock::KeyCode::Char('i'), termrock::KeyCode::Char('x')] {
+        let _ = runtime.handle(key(code)).unwrap();
+        publish(&mut runtime, screen, &mut buffer);
+    }
+    assert_eq!(
+        runtime.app().inspected,
+        0,
+        "background scope is inert under modal"
+    );
+    assert_eq!(
+        runtime.app().exported,
+        0,
+        "background scope is inert under modal"
+    );
+
+    for cycle in 0..3 {
+        let _ = runtime.handle(key(termrock::KeyCode::Esc)).unwrap();
+        publish(&mut runtime, screen, &mut buffer);
+        assert_eq!(runtime.focus(), Some(COMMAND_BUTTON));
+        let _ = runtime.handle(key(termrock::KeyCode::Char('i'))).unwrap();
+        publish(&mut runtime, screen, &mut buffer);
+        let _ = runtime.handle(key(termrock::KeyCode::Char('x'))).unwrap();
+        publish(&mut runtime, screen, &mut buffer);
+        assert_eq!(runtime.app().inspected, runtime.app().exported);
+        if cycle == 0 {
+            let button = runtime
+                .registry()
+                .regions()
+                .iter()
+                .find(|region| region.owner == COMMAND_BUTTON)
+                .expect("the background button is the actual pointer target");
+            let point = Position::new(
+                button.area.x + button.area.width.saturating_sub(1) / 2,
+                button.area.y,
+            );
+            let _ = runtime
+                .handle(Input::Mouse(Mouse {
+                    kind: MouseKind::Down,
+                    pos: point,
+                    mods: KeyModifiers::NONE,
+                }))
+                .unwrap();
+            publish(&mut runtime, screen, &mut buffer);
+            let _ = runtime
+                .handle(Input::Mouse(Mouse {
+                    kind: MouseKind::Up,
+                    pos: point,
+                    mods: KeyModifiers::NONE,
+                }))
+                .unwrap();
+        } else {
+            let _ = runtime.handle(key(termrock::KeyCode::Enter)).unwrap();
+        }
+        publish(&mut runtime, screen, &mut buffer);
+        assert_eq!(runtime.focus(), Some(COMMAND_PROPS));
+        for code in [termrock::KeyCode::Char('i'), termrock::KeyCode::Char('x')] {
+            let _ = runtime.handle(key(code)).unwrap();
+            publish(&mut runtime, screen, &mut buffer);
+        }
+        assert_eq!(runtime.app().inspected, cycle + 1);
+        assert_eq!(runtime.app().exported, cycle + 1);
+    }
+}
+
+#[test]
+fn public_command_scope_keeps_component_remap_and_remove_overrides() {
+    let screen = Rect::new(0, 0, 60, 20);
+    let mut runtime = Runtime::new(command_scope_dialog(true), Theme::junie());
+    let _ = runtime.initialize();
+    let mut buffer = Buffer::empty(screen);
+    publish(&mut runtime, screen, &mut buffer);
+
+    let _ = runtime.handle(key(termrock::KeyCode::Esc)).unwrap();
+    publish(&mut runtime, screen, &mut buffer);
+    let _ = runtime.handle(key(termrock::KeyCode::Char('i'))).unwrap();
+    publish(&mut runtime, screen, &mut buffer);
+    let _ = runtime.handle(key(termrock::KeyCode::Char('r'))).unwrap();
+    publish(&mut runtime, screen, &mut buffer);
+    let _ = runtime.handle(key(termrock::KeyCode::Char('x'))).unwrap();
+    publish(&mut runtime, screen, &mut buffer);
+
+    assert_eq!(
+        runtime.app().inspected,
+        1,
+        "remapped chord activates the binding"
+    );
+    assert_eq!(
+        runtime.app().exported,
+        0,
+        "removed component binding stays absent"
+    );
+}
+
+#[test]
+fn public_command_scope_does_not_forge_focus_without_rendered_controls() {
+    let screen = Rect::ZERO;
+    let mut runtime = Runtime::new(command_scope_dialog(false), Theme::junie());
+    let _ = runtime.initialize();
+    let mut buffer = Buffer::empty(screen);
+    publish(&mut runtime, screen, &mut buffer);
+    assert_eq!(runtime.focus(), None);
+    let _ = runtime.handle(key(termrock::KeyCode::Char('i'))).unwrap();
+    publish(&mut runtime, screen, &mut buffer);
+    assert_eq!(runtime.focus(), None);
+    assert_eq!(runtime.app().inspected, 0);
+    assert_eq!(runtime.app().exported, 0);
+}
+
+#[test]
+fn public_command_scope_empty_table_disables_domain_actions() {
+    let screen = Rect::new(0, 0, 60, 20);
+    let mut app = command_scope_dialog(false);
+    app.commands_enabled = false;
+    let mut runtime = Runtime::new(app, Theme::junie());
+    let _ = runtime.initialize();
+    let mut buffer = Buffer::empty(screen);
+    publish(&mut runtime, screen, &mut buffer);
+    let _ = runtime.handle(key(termrock::KeyCode::Esc)).unwrap();
+    publish(&mut runtime, screen, &mut buffer);
+
+    for code in [termrock::KeyCode::Char('i'), termrock::KeyCode::Char('x')] {
+        let _ = runtime.handle(key(code)).unwrap();
+        publish(&mut runtime, screen, &mut buffer);
+    }
+
+    assert_eq!(runtime.focus(), Some(COMMAND_BUTTON));
+    assert_eq!(runtime.app().inspected, 0);
+    assert_eq!(runtime.app().exported, 0);
+}
+
 impl App for DeviceProperties {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let rows = device_property_rows();
