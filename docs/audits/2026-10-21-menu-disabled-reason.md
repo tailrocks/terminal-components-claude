@@ -176,7 +176,7 @@ underlay correctness is claimed here.
 
 The immutable review
 `menu-underlay-4a39a666-independent-review-20261021/review.json` (SHA-256
-`3a96dfca5624d864c42099672d64949a55f18796e6e99d8838c818e2cf7ea`)
+`3a96dfca5624d864c42099672d64949a55f18796e6e99d8838c818138e2cf7ea`)
 corrects the previous paragraph's source-order statement: frozen source lines
 463-465 consume Enter/Space before lines 468-472 inspect ordinary character
 accelerators. Ordinary letters are permitted because they do not match the
@@ -214,3 +214,17 @@ The current hidden row is mechanically nonactivatable, but its Mono DEFAULT
 cells do not visibly differ from the active row. No global palette or widget
 default was changed; the 4-profile visual-state acceptance gate remains
 incomplete until an independently reviewed shared-theme/component fix lands.
+
+The next independent review
+`menu-underlay-35cfdd8a-independent-review-20261021/review.json` (SHA-256
+`4038a01428ea800f0ea56a8b37bbcef1f5baf3c95d8e52b7e9fa999ff8342c81`)
+identified one remaining side effect: a physical activation key remapped to a
+navigation action was consumed, but still ran `after_keyboard_navigation` and
+revealed the hidden row. The menu now performs the physical-key guard before
+both binding dispatch and its navigation-restoration side effect. Two public
+`Harness` regressions cover Space/Enter remapped to First, Last, Up, and Down,
+including the follow-up physical activation check; both were red before this
+change and pass after it. Alternate activation commands, ordinary letter
+shortcuts, pointer activation, and normal Home restoration remain covered and
+green. The same audit corrects the prior review checksum to the immutable
+64-character SHA-256 `3a96dfca5624d864c42099672d64949a55f18796e6e99d8838c818138e2cf7ea`.
