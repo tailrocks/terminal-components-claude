@@ -1,0 +1,88 @@
+{
+  "reviewed_commit": "847ccc74208e5ed3277bc4f3dd8fa6958e682713",
+  "status": "focused_contract_cleared",
+  "findings": [],
+  "superseded_findings": {
+    "d5c8_P1_profile_free_Mono_quantization": "Fixed. Exact unchanged regression passes. FG/BG/underline canonical Custom binding through both adapters passes.",
+    "734c_P2_inherited_same_value_provenance": "Fixed. Exact unchanged same-valued authored-rule probe passes. Targeted Slot::speaks ownership suppresses profile-exact channel provenance independently of value equality in all three resolver paths."
+  },
+  "checks": {
+    "nextest": {
+      "command": "cargo nextest run -p termrock-theme",
+      "total": 159,
+      "passed": 158,
+      "failed": 1,
+      "skipped": 0,
+      "exit": 100,
+      "only_failure": "all_73_junie_slots_match_reference_capability_output",
+      "native_count": 150,
+      "native_passed": 149,
+      "native_failed": 1,
+      "independent_probes": 9,
+      "independent_passed": 9,
+      "author_level_profile_tests": 10,
+      "author_level_profile_passed": 10,
+      "warning": "The package gate is not green. The unchanged all-73 oracle remains a separate unresolved product/reference obligation."
+    },
+    "regression_negative_controls": "Existing preserved d5/734 review packets retain their failing unchanged probes. No reference or test expected data was weakened.",
+    "default_corpus": {
+      "rows": 11520,
+      "identical_to_parent34f": true,
+      "sha256": "ef41b890706668aa16b28bce9229e0dfc58d64f02a4d4b1f31e281a0c556cdce",
+      "coverage": "4 capabilities, 6 families, 5 variants, 4 parts, 8 flag combinations, 3 surfaces; complete Resolved Debug metadata"
+    },
+    "provenance": "All four capabilities and both source-token direct capability selection/converted paths pass dependent AccentPressed and unrelated Warning mutation checks. Repeated Ansi256-to-Ansi16 conversion preserves the level profile.",
+    "mono_profiles": "Qualified FG DarkGray, BG Gray, underline White remain exact through empty/pressed/hovered states and repeated StyleCache hits. One authored BG override canonicalizes only BG, retaining exact FG/underline. Authored Clear removes all three channels and clears underline provenance in both adapters.",
+    "real_consumers": "Public Runtime/Button rendering and non-Button custom-family data pass in authored public tests.",
+    "clippy": {
+      "command": "cargo clippy -p termrock-theme --lib --test level_profiles -- -D warnings",
+      "exit": 0
+    },
+    "format": {
+      "command": "rustfmt --edition 2024 --check on the four authored Rust files",
+      "exit": 0
+    },
+    "timeouts": "Each supervised command used a 215-second process-group timeout. No timeout occurred."
+  },
+  "source_integrity": {
+    "owned_files_match_exact_commit": true,
+    "files": {
+      "src/lib.rs": "770cf68b4ae72ed3d74f6a7266681d507c203e98a567c6903b83058c018bdf75",
+      "src/recipe.rs": "03f00cc2c30bd25456d976a75aaea8034b8673493c1e284aa7d43040042708fe",
+      "src/resolve.rs": "ababe64e4ba4c6a17358c4239a10dcf66902e0f97dcd275e2df35b7511b84b6c",
+      "tests/level_profiles.rs": "1f9d2f46895f339c841ce920fa922e1135672757879888e87aded9c8dfa68746"
+    },
+    "author_copy_unchanged_by_reviewer": true,
+    "production_edits": false,
+    "remote_publication": false,
+    "dedicated_copy": "/private/tmp/termrock-theme-847c-independent-review-20261021",
+    "dedicated_target": "/private/tmp/termrock-theme-847c-independent-target-20261021"
+  },
+  "api_and_runtime_review": "The correction only changes exact-profile color provenance when an active authored targeted Mono rule supplies that channel. Set and Clear both count; unrelated channels retain profile binding. The three resolver paths use the same helper. No additional actionable ownership, API compatibility, error handling, unsafe, or concurrency finding was found in this bounded diff. Existing generic quantizers are unchanged. No performance acceptance claim is made.",
+  "landing_limit": {
+    "remote_tracking_tip_observed": "654eac8bec46765c47d4cb174e98cd79236253e3",
+    "not_reviewed": [
+      "Incoming Theme focus/selection ink API and visual.rs from a329d6394",
+      "Incoming Esc vocabulary scan 7f8adf0ec",
+      "Incoming backdrop audit 7c94b0033",
+      "Any later remote changes"
+    ],
+    "requirement": "Integrate normally, independently inspect conflicts with incoming Theme work, and rerun exact-head gates. This packet covers only exact 847ccc74."
+  },
+  "remaining_acceptance_gaps": [
+    "Two new public APIs still need catalog/Showcase declarations, previously acknowledged by author.",
+    "Junie Button ladders and the all-73 reference decision remain unresolved.",
+    "No full workspace checks, standalone external consumer package, paired CLI run, or four-application parity acceptance is claimed."
+  ],
+  "preserved_prior_packets": [
+    "theme-profile-independent-review-d5c8e655/review.json",
+    "theme-profile-independent-review-734c8662/review.json"
+  ],
+  "artifacts": {
+    "candidate-nextest.log": "a26b3ca939fc407233c7974ab8cd5877da987756bab60a58ca54dda8b5fbb7e3",
+    "clippy.log": "54a13543184a65a92c812e753eabc43aa35b5e2539a73fc2b9d23942ee115e40",
+    "independent-probes.rs": "d8f405f0faa55a879817743b24ee57c47987d852ec6b77e12c3be8d08a2e5abe",
+    "parent-corpus.txt": "ef41b890706668aa16b28bce9229e0dfc58d64f02a4d4b1f31e281a0c556cdce",
+    "candidate-corpus.txt": "ef41b890706668aa16b28bce9229e0dfc58d64f02a4d4b1f31e281a0c556cdce"
+  }
+}
