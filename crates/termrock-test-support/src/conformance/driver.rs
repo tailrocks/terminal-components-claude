@@ -4,8 +4,8 @@ use ratatui_core::buffer::Buffer;
 use ratatui_core::layout::{Position, Rect};
 use ratatui_core::style::Style;
 use termrock::{
-    Anchor, App, Axis, BindingState, Chord, CollectionCore, ColorLevel, CrossAlign, Cx, Diagnostic,
-    Flow, Focusability, Id, Invalidate, ItemKey, KeyCode, KeyMap, KeyModifiers, LayerId, LayerKind,
+    Anchor, App, Axis, Chord, CollectionCore, ColorLevel, CrossAlign, Cx, Diagnostic, Flow,
+    Focusability, Id, Invalidate, ItemKey, KeyCode, KeyMap, KeyModifiers, LayerId, LayerKind,
     LayerSize, LayerSpec, MouseKind, ReferenceState, ReferenceTarget, Region, RegionKind, Response,
     Side, StateFlags, Theme, Ui,
 };
@@ -222,6 +222,31 @@ fn open_component_layer<C: Conformance>(h: &mut Harness<CaseApp<C>>) -> Option<C
     chord
 }
 
+fn prepare_activation<C: Conformance>(h: &mut Harness<CaseApp<C>>) {
+    let requires_overlay = C::activation_requires_overlay();
+    let initial_focus = if requires_overlay {
+        C::opener_id()
+    } else {
+        C::control_id()
+    };
+    assert!(
+        h.tab_to(initial_focus),
+        "{}: cannot focus activation setup control {initial_focus:?}",
+        C::NAME
+    );
+    if requires_overlay || (has::<C>(Caps::OVERLAY) && C::activation_id() != C::control_id()) {
+        let _ = open_component_layer::<C>(h);
+    }
+    if requires_overlay && C::control_id() != initial_focus {
+        assert!(
+            h.tab_to(C::control_id()),
+            "{}: cannot focus activation control {:?} after opening its layer",
+            C::NAME,
+            C::control_id()
+        );
+    }
+}
+
 pub fn disabled_cannot_activate<C: Conformance>() {
     if !has::<C>(Caps::DISABLEABLE) {
         return;
@@ -280,10 +305,7 @@ pub fn keyboard_and_mouse_activation_are_equivalent<C: Conformance>() {
         C::NAME
     );
     let mut mouse = harness::<C>(Fixture::default());
-    assert!(mouse.tab_to(C::control_id()), "{}: cannot focus", C::NAME);
-    if has::<C>(Caps::OVERLAY) && C::activation_id() != C::control_id() {
-        let _ = open_component_layer::<C>(&mut mouse);
-    }
+    prepare_activation::<C>(&mut mouse);
     let area = part_area::<C>(&mouse);
     let (x, y) = centre(area);
     let _ = activate_at::<C>(&mut mouse, x, y);
@@ -297,10 +319,7 @@ pub fn keyboard_and_mouse_activation_are_equivalent<C: Conformance>() {
     );
     for chord in chords {
         let mut kb = harness::<C>(Fixture::default());
-        assert!(kb.tab_to(C::control_id()));
-        if has::<C>(Caps::OVERLAY) && C::activation_id() != C::control_id() {
-            let _ = open_component_layer::<C>(&mut kb);
-        }
+        prepare_activation::<C>(&mut kb);
         let _ = kb.key_mod(chord.code, chord.mods);
         let by_key = kb.app_mut().last.take();
         assert_eq!(
@@ -612,7 +631,7 @@ pub fn mono_states_are_distinguishable<C: Conformance>() {
 
 pub fn local_override_does_not_mutate_the_theme<C: Conformance>() {
     let plain = harness::<C>(Fixture::default());
-    let before = plain.runtime().theme().fingerprint();
+    let before = plain.runtime().theme().clone();
     let plain_digest = plain.snapshot().digest();
     let patch_part = C::PARTS
         .first()
@@ -625,12 +644,12 @@ pub fn local_override_does_not_mutate_the_theme<C: Conformance>() {
     ));
     let patched = harness::<C>(f);
     assert_eq!(
-        patched.runtime().theme().fingerprint(),
-        before,
+        patched.runtime().theme(),
+        &before,
         "{}: the theme changed",
         C::NAME
     );
-    assert_eq!(plain.runtime().theme().fingerprint(), before);
+    assert_eq!(plain.runtime().theme(), &before);
     if patched.app().fixture.patch.is_some() && C::caps().bits() != 0 && !C::PARTS.is_empty() {
         if patched.snapshot().digest() == plain_digest {
             assert_ne!(
@@ -1342,12 +1361,7 @@ fn dynamic_bindings_follow_keymap<C: Conformance>(
 }
 
 pub fn bindings_match_handled_keys<C: Conformance>() {
-    let states = [
-        BindingState::default(),
-        BindingState {
-            flags: StateFlags::FOCUSED,
-        },
-    ];
+    let states = C::binding_states();
     let fixture = Fixture::default();
     let dynamic = C::dynamic_bindings(&fixture);
     if states.iter().all(|state| C::bindings(*state).is_empty())
@@ -1357,7 +1371,7 @@ pub fn bindings_match_handled_keys<C: Conformance>() {
         return;
     }
     dynamic_bindings_follow_keymap::<C>(&fixture, &dynamic);
-    for st in states {
+    for &st in states {
         let table = C::bindings(st);
 
         for b in table {
