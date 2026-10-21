@@ -615,9 +615,12 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
     }
 
     fn current<'i>(st: &FilterListState, items: &'i [T]) -> Option<&'i T> {
-        st.matches
-            .get(st.core.cursor_index())
-            .and_then(|&i| items.get(i))
+        let index = if !st.initialized && st.query().is_empty() {
+            Some(st.core.cursor_index())
+        } else {
+            st.matches.get(st.core.cursor_index()).copied()
+        };
+        index.and_then(|i| items.get(i))
     }
 
     fn move_to(
@@ -762,7 +765,14 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
             acc.action(FilterListAction::QueryChanged);
         }
 
+        if !st.initialized {
+            self.reconcile(st, items);
+        }
+
         if self.searchable {
+            if !st.query_input.is_editing() {
+                st.query_input.begin(&st.query);
+            }
             let previous = st.query().to_owned();
             let committed = st.query.clone();
             let input = self
