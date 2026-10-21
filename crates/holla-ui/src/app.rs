@@ -25,12 +25,12 @@ use termrock::{
     PartRef, Phase, Rect, Response, Role, StylePatch, Surface, TooSmall, Ui,
 };
 
+use crate::layout::{self, MIN_HEIGHT, MIN_WIDTH};
+
 const BRAND: Id = Id::root("holla.brand");
 const MENU: Id = Id::root("holla.menu");
 const STRIP: Id = Id::root("holla.activities");
 const FOOTER: Id = Id::root("holla.footer");
-const MIN_WIDTH: u16 = 72;
-const MIN_HEIGHT: u16 = 20;
 const HELP: ActionKey = ActionKey::application("holla.help");
 const ABOUT: ActionKey = ActionKey::application("holla.about");
 const QUIT: ActionKey = ActionKey::application("holla.quit");
@@ -430,9 +430,10 @@ fn parity_git_batch_tag_plate(world: &World, width: u16, _height: u16) -> bool {
 }
 
 fn parity_task_sources_tag_plate(world: &World, width: u16, _height: u16) -> bool {
-    // The reference carried task-sources chrome only on the frozen 80-column frame;
-    // the 100-column band kept the generic adaptive status and hints.
-    crate::sim::catalogue::parity_task_sources_tag_frame(world) && width == 80
+    // The task-sources chrome lives in the narrow band; the mid band keeps the
+    // generic adaptive status and hints.
+    crate::sim::catalogue::parity_task_sources_tag_frame(world)
+        && layout::Band::of(width).is_narrow()
 }
 
 /// Tag parity-browser status at 80×24, 100×30, and 120×40: cwd, then the size label. No branch.
@@ -631,13 +632,13 @@ fn paint_hard_cases_status(ui: &mut Ui<'_>, area: Rect) {
         44,
     );
     let mut x = area.x.saturating_add(STATUS_EDGE);
-    if ui.full().width == 80 && ui.full().height == 24 {
+    if layout::Band::of(ui.full().width).is_narrow() {
         paint_status_text(ui, area, x, &path, STATUS_FG, true);
         let mark_x = area.right().saturating_sub(STATUS_EDGE).saturating_sub(1);
         paint_status_text(ui, area, mark_x, "…", STATUS_GREY, false);
         return;
     }
-    let mid = ui.full().width == 100 && ui.full().height == 30;
+    let mid = layout::Band::of(ui.full().width).is_mid();
     for (text, fg, bold) in [
         (path.as_str(), STATUS_FG, true),
         ("↓14 ↑3", STATUS_LINK, false),
@@ -770,8 +771,8 @@ fn paint_disk_cleanup_footer(ui: &mut Ui<'_>, area: Rect) {
         ("Esc", "Back"),
         ("x", "Cancel scan"),
     ];
-    let narrow = ui.full().width == 80 && ui.full().height == 24;
-    let mid = ui.full().width == 100 && ui.full().height == 30;
+    let narrow = layout::Band::of(ui.full().width).is_narrow();
+    let mid = layout::Band::of(ui.full().width).is_mid();
     let hints: &[(&str, &str)] = if narrow {
         &narrow_hints
     } else if mid {
@@ -878,7 +879,7 @@ fn activity_chip_style(ui: &Ui<'_>, fg: Color) -> termrock::PaintStyle {
 
 fn launch_failure_activity_open(world: &World, ui: &Ui<'_>) -> bool {
     let full = ui.full();
-    crate::sim::catalogue::launch_failure_activity_frame(world, full.width, full.height)
+    crate::sim::catalogue::launch_failure_activity_frame(world, full.width)
 }
 
 /// Tag launch-failure status: child cwd, branch, ahead, dirty mark, failure, then the size label.
@@ -897,7 +898,7 @@ fn paint_launch_failure_status(ui: &mut Ui<'_>, area: Rect) {
         x = paint_status_text(ui, area, x, text, fg, bold).saturating_add(STATUS_GAP);
     }
     let left_end = x.saturating_sub(STATUS_GAP);
-    let narrow = ui.full().width == 80 && ui.full().height == 24;
+    let narrow = layout::Band::of(ui.full().width).is_narrow();
     let size_x = if narrow {
         let mark_x = area.right().saturating_sub(STATUS_EDGE).saturating_sub(1);
         paint_status_text(ui, area, mark_x, "…", STATUS_GREY, false);
@@ -942,7 +943,7 @@ fn paint_launch_failure_footer(ui: &mut Ui<'_>, area: Rect) {
     ];
     let mut x = area.x.saturating_add(1);
     let mut truncated = false;
-    let narrow = ui.full().width == 80 && ui.full().height == 24;
+    let narrow = layout::Band::of(ui.full().width).is_narrow();
     for (index, (key, label)) in hints.iter().enumerate() {
         let key_w = termrock::width(key);
         let label_w = termrock::width(label);
@@ -1169,6 +1170,16 @@ impl App {
 
     pub fn fixture_time_ms(&self) -> i64 {
         self.world.now_ms()
+    }
+
+    /// The app without the usage history.
+    ///
+    /// The usage history is on by default, the way the frozen reference runs
+    /// it. The no-history projection is a setting, not the default.
+    pub fn for_scenario_without_history(scenario: Scenario, motion: Motion, frame: u64) -> Self {
+        let mut app = Self::for_scenario(scenario, motion, frame);
+        app.home.history = false;
+        app
     }
 
     pub fn for_scenario(scenario: Scenario, motion: Motion, frame: u64) -> Self {
@@ -1715,7 +1726,7 @@ impl App {
         }
         ui.fill(area, status_ink(ui, STATUS_FG, false));
         // 80×24 has no room for the branch or the size label. The warning sits on the right, with `…` before it.
-        let narrow = ui.full().width == 80 && ui.full().height == 24;
+        let narrow = layout::Band::of(ui.full().width).is_narrow();
         let mut x = area.x.saturating_add(STATUS_EDGE);
         x = paint_status_text(ui, area, x, &self.world.cwd, STATUS_FG, true)
             .saturating_add(STATUS_GAP);
@@ -1769,8 +1780,8 @@ impl App {
         } else if crate::sim::catalogue::first_use_tag_frame(&self.world) {
             Some(("Open", None))
         } else if crate::sim::catalogue::monorepo_root_tag_frame(&self.world) {
-            let narrow = ui.full().width == 80 && ui.full().height == 24;
-            let mid = ui.full().width == 100 && ui.full().height == 30;
+            let narrow = layout::Band::of(ui.full().width).is_narrow();
+            let mid = layout::Band::of(ui.full().width).is_mid();
             if self.home.history {
                 // Wide history keeps the deploy status. 80×24 and 100×30 have no room for it.
                 Some((
@@ -1788,8 +1799,8 @@ impl App {
                 Some(("Open", Some("Inspect 1…")))
             }
         } else if crate::sim::catalogue::monorepo_child_tag_frame(&self.world) {
-            let narrow = ui.full().width == 80 && ui.full().height == 24;
-            let mid = ui.full().width == 100 && ui.full().height == 30;
+            let narrow = layout::Band::of(ui.full().width).is_narrow();
+            let mid = layout::Band::of(ui.full().width).is_mid();
             // 100×30 fits `Ctrl+↑↓ Scope` and clips `Ctrl+G` to the meta `…`. No status.
             if narrow || mid {
                 Some(("Open", None))
@@ -1797,8 +1808,8 @@ impl App {
                 Some(("Open", Some("Inspect 3…")))
             }
         } else if crate::sim::catalogue::remote_host_tag_frame(&self.world) {
-            let narrow = ui.full().width == 80 && ui.full().height == 24;
-            let mid = ui.full().width == 100 && ui.full().height == 30;
+            let narrow = layout::Band::of(ui.full().width).is_narrow();
+            let mid = layout::Band::of(ui.full().width).is_mid();
             // 100×30 fits `Ctrl+↑↓ Scope` and clips `Ctrl+G` to the meta `…`. No status.
             Some((
                 "Run",
@@ -1859,8 +1870,8 @@ impl App {
             && self.overlay.is_none()
             && !self.menu.is_open()
         {
-            let narrow = ui.full().width == 80 && ui.full().height == 24;
-            let mid = ui.full().width == 100 && ui.full().height == 30;
+            let narrow = layout::Band::of(ui.full().width).is_narrow();
+            let mid = layout::Band::of(ui.full().width).is_mid();
             let layer = if narrow {
                 docker_cleanup_80x24_hints()
             } else if mid {
@@ -1893,8 +1904,8 @@ impl App {
         {
             let layer = tag_hints(confirm, status);
             // 80×24 first-use, monorepo-root, monorepo-child, remote-host, hard-cases, and parity-discovery clip the last hint to a meta `…`. The 100×30 first-use, monorepo-root, monorepo-child, remote-host, hard-cases, and parity-discovery plates do the same. Wider plates keep the theme overflow.
-            let narrow = ui.full().width == 80 && ui.full().height == 24;
-            let mid = ui.full().width == 100 && ui.full().height == 30;
+            let narrow = layout::Band::of(ui.full().width).is_narrow();
+            let mid = layout::Band::of(ui.full().width).is_mid();
             let monorepo_child_mid =
                 mid && crate::sim::catalogue::monorepo_child_tag_frame(&self.world);
             let remote_host_mid = mid && crate::sim::catalogue::remote_host_tag_frame(&self.world);
@@ -2541,7 +2552,7 @@ mod tests {
     }
     fn app(scenario: Scenario) -> Harness<App> {
         harness(
-            App::for_scenario(scenario, Motion::Paused, 4_000),
+            App::for_scenario_without_history(scenario, Motion::Paused, 4_000),
             Theme::junie(),
             120,
             40,
@@ -2577,7 +2588,7 @@ mod tests {
     #[test]
     fn discovery_boot_paints_the_here_band_above_the_filter() {
         let harness = harness(
-            App::for_scenario(Scenario::ParityDiscovery, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::ParityDiscovery, Motion::Paused, 40),
             Theme::junie(),
             120,
             40,
@@ -2597,7 +2608,7 @@ mod tests {
     #[test]
     fn monorepo_root_frame_40_paints_the_tag_plate() {
         let harness = harness(
-            App::for_scenario(Scenario::MonorepoRoot, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::MonorepoRoot, Motion::Paused, 40),
             Theme::junie(),
             120,
             40,
@@ -2619,7 +2630,7 @@ mod tests {
     #[test]
     fn monorepo_root_80x24_frame_40_paints_the_selected_narrow_row_and_later_seeks_keep_home() {
         let plate = harness(
-            App::for_scenario(Scenario::MonorepoRoot, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::MonorepoRoot, Motion::Paused, 40),
             Theme::junie(),
             80,
             24,
@@ -2683,7 +2694,7 @@ mod tests {
             catalogue::FinderLine::Row(row) if row.selected && row.title.starts_with("Inspect 10 GB")
         )));
         let wide = harness(
-            App::for_scenario(Scenario::MonorepoRoot, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::MonorepoRoot, Motion::Paused, 40),
             Theme::junie(),
             120,
             40,
@@ -2696,7 +2707,7 @@ mod tests {
         assert!(!wide.text().contains("holla disk analyze --artifacts"));
         assert!(wide.text().contains("Inspect 1…"), "{}", wide.text());
         let later = harness(
-            App::for_scenario(Scenario::MonorepoRoot, Motion::Paused, 4_000),
+            App::for_scenario_without_history(Scenario::MonorepoRoot, Motion::Paused, 4_000),
             Theme::junie(),
             80,
             24,
@@ -2710,7 +2721,7 @@ mod tests {
     #[test]
     fn monorepo_root_100x30_frame_40_paints_the_mid_plate_and_later_seeks_keep_home() {
         let plate = harness(
-            App::for_scenario(Scenario::MonorepoRoot, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::MonorepoRoot, Motion::Paused, 40),
             Theme::junie(),
             100,
             30,
@@ -2764,7 +2775,7 @@ mod tests {
             catalogue::monorepo_root_view(world, 100, false)
         );
         let wide = harness(
-            App::for_scenario(Scenario::MonorepoRoot, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::MonorepoRoot, Motion::Paused, 40),
             Theme::junie(),
             120,
             40,
@@ -2776,7 +2787,7 @@ mod tests {
             wide.text()
         );
         let narrow = harness(
-            App::for_scenario(Scenario::MonorepoRoot, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::MonorepoRoot, Motion::Paused, 40),
             Theme::junie(),
             80,
             24,
@@ -2788,7 +2799,7 @@ mod tests {
         );
         assert!(!narrow.text().contains("System · mbp"), "{}", narrow.text());
         let later = harness(
-            App::for_scenario(Scenario::MonorepoRoot, Motion::Paused, 4_000),
+            App::for_scenario_without_history(Scenario::MonorepoRoot, Motion::Paused, 4_000),
             Theme::junie(),
             100,
             30,
@@ -2796,9 +2807,10 @@ mod tests {
         assert!(!later.text().contains("holla disk analyze --artifacts"));
         assert!(catalogue::monorepo_root_view(&later.app().world, 100, false).is_none());
         assert!(!catalogue::monorepo_root_tag_frame(&later.app().world));
-        let other = App::for_scenario(Scenario::FirstUse, Motion::Paused, 40);
+        let other = App::for_scenario_without_history(Scenario::FirstUse, Motion::Paused, 40);
         assert!(catalogue::monorepo_root_view(&other.world, 100, false).is_none());
-        let mut history = App::for_scenario(Scenario::MonorepoRoot, Motion::Paused, 40);
+        let mut history =
+            App::for_scenario_without_history(Scenario::MonorepoRoot, Motion::Paused, 40);
         history.home.history = true;
         assert!(catalogue::monorepo_root_view(&history.world, 100, true).is_some());
         let history_screen = harness(history, Theme::junie(), 100, 30);
@@ -2824,7 +2836,7 @@ mod tests {
     }
     #[test]
     fn monorepo_root_history_frame_40_paints_the_deploy_tag_and_later_seeks_keep_home() {
-        let mut app = App::for_scenario(Scenario::MonorepoRoot, Motion::Paused, 40);
+        let mut app = App::for_scenario_without_history(Scenario::MonorepoRoot, Motion::Paused, 40);
         app.home.history = true;
         let screen = harness(app, Theme::junie(), 120, 40);
         let text = screen.text();
@@ -2861,13 +2873,15 @@ mod tests {
             "{:?}",
             screen.diagnostics()
         );
-        let mut later_app = App::for_scenario(Scenario::MonorepoRoot, Motion::Paused, 4_000);
+        let mut later_app =
+            App::for_scenario_without_history(Scenario::MonorepoRoot, Motion::Paused, 4_000);
         later_app.home.history = true;
         let later = harness(later_app, Theme::junie(), 120, 40);
         assert!(!later.text().contains("tools/deploy-pre"));
         assert!(!later.text().contains("used 20 times on mbp"));
         assert!(later.text().contains("Search actions"), "{}", later.text());
-        let mut stepped = App::for_scenario(Scenario::MonorepoRoot, Motion::Paused, 40);
+        let mut stepped =
+            App::for_scenario_without_history(Scenario::MonorepoRoot, Motion::Paused, 40);
         stepped.home.history = true;
         assert!(catalogue::monorepo_root_history_tag(&stepped.world).is_some());
         assert!(termrock::App::accept_paused_clock_step(&mut stepped, 1_100));
@@ -2877,7 +2891,7 @@ mod tests {
     #[test]
     fn monorepo_child_frame_40_paints_the_tag_plate_and_later_seeks_keep_home() {
         let plate = harness(
-            App::for_scenario(Scenario::MonorepoChild, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::MonorepoChild, Motion::Paused, 40),
             Theme::junie(),
             120,
             40,
@@ -2895,7 +2909,7 @@ mod tests {
         assert!(text.contains("1 rebuildable candidate"), "{text}");
         assert!(plate.diagnostics().is_empty(), "{:?}", plate.diagnostics());
         let later = harness(
-            App::for_scenario(Scenario::MonorepoChild, Motion::Paused, 4_000),
+            App::for_scenario_without_history(Scenario::MonorepoChild, Motion::Paused, 4_000),
             Theme::junie(),
             120,
             40,
@@ -2906,7 +2920,7 @@ mod tests {
     #[test]
     fn monorepo_child_80x24_frame_40_paints_the_narrow_plate_and_later_seeks_keep_home() {
         let plate = harness(
-            App::for_scenario(Scenario::MonorepoChild, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::MonorepoChild, Motion::Paused, 40),
             Theme::junie(),
             80,
             24,
@@ -2966,7 +2980,7 @@ mod tests {
         let world = &plate.app().world;
         assert!(catalogue::monorepo_child_view(world, 120).is_none());
         let wide = harness(
-            App::for_scenario(Scenario::MonorepoChild, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::MonorepoChild, Motion::Paused, 40),
             Theme::junie(),
             120,
             40,
@@ -2979,7 +2993,7 @@ mod tests {
         assert!(!wide.text().contains("holla disk analyze --artifacts"));
         assert!(wide.text().contains("Inspect 3…"), "{}", wide.text());
         let later = harness(
-            App::for_scenario(Scenario::MonorepoChild, Motion::Paused, 4_000),
+            App::for_scenario_without_history(Scenario::MonorepoChild, Motion::Paused, 4_000),
             Theme::junie(),
             80,
             24,
@@ -2993,7 +3007,7 @@ mod tests {
     #[test]
     fn monorepo_child_100x30_frame_40_paints_the_mid_plate_and_later_seeks_keep_home() {
         let plate = harness(
-            App::for_scenario(Scenario::MonorepoChild, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::MonorepoChild, Motion::Paused, 40),
             Theme::junie(),
             100,
             30,
@@ -3035,7 +3049,7 @@ mod tests {
         assert!(plate.diagnostics().is_empty(), "{:?}", plate.diagnostics());
         assert!(catalogue::monorepo_child_view(&plate.app().world, 120).is_none());
         let wide = harness(
-            App::for_scenario(Scenario::MonorepoChild, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::MonorepoChild, Motion::Paused, 40),
             Theme::junie(),
             120,
             40,
@@ -3048,7 +3062,7 @@ mod tests {
         assert!(wide.text().contains("Inspect 3…"), "{}", wide.text());
         assert!(!wide.text().contains("'holla disk analyze --artifacts'"));
         let narrow = harness(
-            App::for_scenario(Scenario::MonorepoChild, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::MonorepoChild, Motion::Paused, 40),
             Theme::junie(),
             80,
             24,
@@ -3060,7 +3074,7 @@ mod tests {
         );
         assert!(!narrow.text().contains("generated artifa…"));
         let later = harness(
-            App::for_scenario(Scenario::MonorepoChild, Motion::Paused, 4_000),
+            App::for_scenario_without_history(Scenario::MonorepoChild, Motion::Paused, 4_000),
             Theme::junie(),
             100,
             30,
@@ -3072,7 +3086,7 @@ mod tests {
     #[test]
     fn docker_cleanup_frame_40_paints_the_tag_plate_and_later_seeks_keep_home() {
         let plate = harness(
-            App::for_scenario(Scenario::DockerCleanup, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::DockerCleanup, Motion::Paused, 40),
             Theme::junie(),
             120,
             40,
@@ -3111,7 +3125,7 @@ mod tests {
         assert_eq!(gate.fg, Color::Rgb(207, 207, 207));
         assert!(plate.diagnostics().is_empty(), "{:?}", plate.diagnostics());
         let later = harness(
-            App::for_scenario(Scenario::DockerCleanup, Motion::Paused, 4_000),
+            App::for_scenario_without_history(Scenario::DockerCleanup, Motion::Paused, 4_000),
             Theme::junie(),
             120,
             40,
@@ -3119,7 +3133,8 @@ mod tests {
         assert!(!later.text().contains("Results · 7"));
         assert!(later.text().contains("Suggested here"), "{}", later.text());
         assert!(later.app().home.query().is_empty());
-        let mut stepped = App::for_scenario(Scenario::DockerCleanup, Motion::Paused, 40);
+        let mut stepped =
+            App::for_scenario_without_history(Scenario::DockerCleanup, Motion::Paused, 40);
         assert!(termrock::App::accept_paused_clock_step(&mut stepped, 1_100));
         assert!(stepped.home.query().is_empty());
         assert!(!crate::sim::catalogue::docker_cleanup_tag_frame(
@@ -3129,7 +3144,7 @@ mod tests {
     #[test]
     fn docker_cleanup_80x24_frame_40_paints_the_narrow_plate_and_later_seeks_keep_home() {
         let plate = harness(
-            App::for_scenario(Scenario::DockerCleanup, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::DockerCleanup, Motion::Paused, 40),
             Theme::junie(),
             80,
             24,
@@ -3174,7 +3189,7 @@ mod tests {
         assert_eq!(ellipsis.fg, Color::Rgb(0x73, 0x73, 0x73));
         assert!(plate.diagnostics().is_empty(), "{:?}", plate.diagnostics());
         let wide = harness(
-            App::for_scenario(Scenario::DockerCleanup, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::DockerCleanup, Motion::Paused, 40),
             Theme::junie(),
             120,
             40,
@@ -3189,7 +3204,7 @@ mod tests {
             wide.text()
         );
         let later = harness(
-            App::for_scenario(Scenario::DockerCleanup, Motion::Paused, 4_000),
+            App::for_scenario_without_history(Scenario::DockerCleanup, Motion::Paused, 4_000),
             Theme::junie(),
             80,
             24,
@@ -3203,7 +3218,7 @@ mod tests {
     #[test]
     fn docker_cleanup_100x30_frame_40_paints_the_mid_plate_and_later_seeks_keep_home() {
         let plate = harness(
-            App::for_scenario(Scenario::DockerCleanup, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::DockerCleanup, Motion::Paused, 40),
             Theme::junie(),
             100,
             30,
@@ -3240,7 +3255,7 @@ mod tests {
         assert!(plate.diagnostics().is_empty(), "{:?}", plate.diagnostics());
         assert!(catalogue::docker_cleanup_view(&plate.app().world, 120).is_none());
         let wide = harness(
-            App::for_scenario(Scenario::DockerCleanup, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::DockerCleanup, Motion::Paused, 40),
             Theme::junie(),
             120,
             40,
@@ -3256,14 +3271,14 @@ mod tests {
         );
         assert!(!wide.text().contains("acme-worker-1 acme-sc…acme-db-1"));
         let narrow = harness(
-            App::for_scenario(Scenario::DockerCleanup, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::DockerCleanup, Motion::Paused, 40),
             Theme::junie(),
             80,
             24,
         );
         assert!(!narrow.text().contains("acme-worker-1 acme-sc…acme-db-1"));
         let later = harness(
-            App::for_scenario(Scenario::DockerCleanup, Motion::Paused, 4_000),
+            App::for_scenario_without_history(Scenario::DockerCleanup, Motion::Paused, 4_000),
             Theme::junie(),
             100,
             30,
@@ -3275,7 +3290,7 @@ mod tests {
     #[test]
     fn disk_cleanup_frame_40_paints_the_tag_plate_and_later_seeks_keep_home() {
         let plate = harness(
-            App::for_scenario(Scenario::DiskCleanup, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::DiskCleanup, Motion::Paused, 40),
             Theme::junie(),
             120,
             40,
@@ -3321,7 +3336,7 @@ mod tests {
         assert_eq!(ellipsis.fg, Color::Rgb(0x73, 0x73, 0x73));
         assert!(plate.diagnostics().is_empty(), "{:?}", plate.diagnostics());
         let later = harness(
-            App::for_scenario(Scenario::DiskCleanup, Motion::Paused, 4_000),
+            App::for_scenario_without_history(Scenario::DiskCleanup, Motion::Paused, 4_000),
             Theme::junie(),
             120,
             40,
@@ -3334,7 +3349,8 @@ mod tests {
             later.text()
         );
         assert!(later.app().route == Route::Disk);
-        let mut stepped = App::for_scenario(Scenario::DiskCleanup, Motion::Paused, 40);
+        let mut stepped =
+            App::for_scenario_without_history(Scenario::DiskCleanup, Motion::Paused, 40);
         assert!(termrock::App::accept_paused_clock_step(&mut stepped, 1_100));
         assert!(!crate::sim::catalogue::disk_cleanup_tag_frame(
             &stepped.world
@@ -3343,7 +3359,7 @@ mod tests {
     #[test]
     fn disk_cleanup_80x24_frame_40_paints_the_narrow_plate_and_later_seeks_keep_home() {
         let plate = harness(
-            App::for_scenario(Scenario::DiskCleanup, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::DiskCleanup, Motion::Paused, 40),
             Theme::junie(),
             80,
             24,
@@ -3375,7 +3391,7 @@ mod tests {
         assert!(plate.diagnostics().is_empty(), "{:?}", plate.diagnostics());
         for (width, height) in [(120_u16, 40_u16), (80, 40), (81, 24), (100, 30)] {
             let other = harness(
-                App::for_scenario(Scenario::DiskCleanup, Motion::Paused, 40),
+                App::for_scenario_without_history(Scenario::DiskCleanup, Motion::Paused, 40),
                 Theme::junie(),
                 width,
                 height,
@@ -3395,7 +3411,7 @@ mod tests {
             }
         }
         let later = harness(
-            App::for_scenario(Scenario::DiskCleanup, Motion::Paused, 4_000),
+            App::for_scenario_without_history(Scenario::DiskCleanup, Motion::Paused, 4_000),
             Theme::junie(),
             80,
             24,
@@ -3408,7 +3424,7 @@ mod tests {
     #[test]
     fn disk_cleanup_100x30_frame_40_paints_the_mid_plate_and_later_seeks_keep_home() {
         let plate = harness(
-            App::for_scenario(Scenario::DiskCleanup, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::DiskCleanup, Motion::Paused, 40),
             Theme::junie(),
             100,
             30,
@@ -3439,7 +3455,7 @@ mod tests {
         let world = &plate.app().world;
         assert!(catalogue::disk_cleanup_tag_frame(world));
         let wide = harness(
-            App::for_scenario(Scenario::DiskCleanup, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::DiskCleanup, Motion::Paused, 40),
             Theme::junie(),
             120,
             40,
@@ -3447,7 +3463,7 @@ mod tests {
         assert!(wide.text().contains("directory"), "{}", wide.text());
         assert_eq!(wide.cell(110, 39).symbol(), "…");
         let narrow = harness(
-            App::for_scenario(Scenario::DiskCleanup, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::DiskCleanup, Motion::Paused, 40),
             Theme::junie(),
             80,
             24,
@@ -3455,7 +3471,7 @@ mod tests {
         assert!(!narrow.text().contains("Delete"), "{}", narrow.text());
         assert_eq!(narrow.cell(72, 23).symbol(), "…");
         let later = harness(
-            App::for_scenario(Scenario::DiskCleanup, Motion::Paused, 4_000),
+            App::for_scenario_without_history(Scenario::DiskCleanup, Motion::Paused, 4_000),
             Theme::junie(),
             100,
             30,
@@ -3463,7 +3479,7 @@ mod tests {
         assert!(!later.text().contains("scan complete"));
         assert!(!catalogue::disk_cleanup_tag_frame(&later.app().world));
         let other = harness(
-            App::for_scenario(Scenario::DockerCleanup, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::DockerCleanup, Motion::Paused, 40),
             Theme::junie(),
             100,
             30,
@@ -3474,7 +3490,7 @@ mod tests {
     #[test]
     fn remote_host_frame_40_paints_the_tag_plate_and_later_seeks_keep_home() {
         let plate = harness(
-            App::for_scenario(Scenario::RemoteHost, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::RemoteHost, Motion::Paused, 40),
             Theme::junie(),
             120,
             40,
@@ -3524,7 +3540,7 @@ mod tests {
         assert_eq!(risk.bg, Color::Rgb(0x11, 0x11, 0x11));
         assert!(plate.diagnostics().is_empty(), "{:?}", plate.diagnostics());
         let later = harness(
-            App::for_scenario(Scenario::RemoteHost, Motion::Paused, 4_000),
+            App::for_scenario_without_history(Scenario::RemoteHost, Motion::Paused, 4_000),
             Theme::junie(),
             120,
             40,
@@ -3532,7 +3548,8 @@ mod tests {
         assert!(!later.text().contains("Follow payments-worker"));
         assert!(!later.text().contains("detached @ v2.14.3"));
         assert!(later.app().route == Route::Home);
-        let mut stepped = App::for_scenario(Scenario::RemoteHost, Motion::Paused, 40);
+        let mut stepped =
+            App::for_scenario_without_history(Scenario::RemoteHost, Motion::Paused, 40);
         assert!(termrock::App::accept_paused_clock_step(&mut stepped, 1_100));
         assert!(!crate::sim::catalogue::remote_host_tag_frame(
             &stepped.world
@@ -3541,7 +3558,7 @@ mod tests {
     #[test]
     fn remote_host_80x24_frame_40_paints_the_narrow_plate_and_later_seeks_keep_home() {
         let plate = harness(
-            App::for_scenario(Scenario::RemoteHost, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::RemoteHost, Motion::Paused, 40),
             Theme::junie(),
             80,
             24,
@@ -3582,7 +3599,7 @@ mod tests {
         let world = &plate.app().world;
         assert!(catalogue::remote_host_view(world, 120).is_none());
         let wide = harness(
-            App::for_scenario(Scenario::RemoteHost, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::RemoteHost, Motion::Paused, 40),
             Theme::junie(),
             120,
             40,
@@ -3596,7 +3613,7 @@ mod tests {
         );
         // The 80-column band is height-free: 80x40 keeps the narrow list.
         let tall = harness(
-            App::for_scenario(Scenario::RemoteHost, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::RemoteHost, Motion::Paused, 40),
             Theme::junie(),
             80,
             40,
@@ -3608,7 +3625,7 @@ mod tests {
             tall.text()
         );
         let later = harness(
-            App::for_scenario(Scenario::RemoteHost, Motion::Paused, 4_000),
+            App::for_scenario_without_history(Scenario::RemoteHost, Motion::Paused, 4_000),
             Theme::junie(),
             80,
             24,
@@ -3621,7 +3638,7 @@ mod tests {
     #[test]
     fn remote_host_100x30_frame_40_paints_the_mid_plate_and_later_seeks_keep_home() {
         let plate = harness(
-            App::for_scenario(Scenario::RemoteHost, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::RemoteHost, Motion::Paused, 40),
             Theme::junie(),
             100,
             30,
@@ -3683,7 +3700,7 @@ mod tests {
         assert!(catalogue::remote_host_view(world, 100).is_some());
         assert!(catalogue::remote_host_view(world, 120).is_none());
         let wide = harness(
-            App::for_scenario(Scenario::RemoteHost, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::RemoteHost, Motion::Paused, 40),
             Theme::junie(),
             120,
             40,
@@ -3697,7 +3714,7 @@ mod tests {
             wide.text()
         );
         let narrow = harness(
-            App::for_scenario(Scenario::RemoteHost, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::RemoteHost, Motion::Paused, 40),
             Theme::junie(),
             80,
             24,
@@ -3710,7 +3727,7 @@ mod tests {
         assert!(!narrow.text().contains("for 4 min"), "{}", narrow.text());
         assert!(!narrow.text().contains("Follow pay…"), "{}", narrow.text());
         let later = harness(
-            App::for_scenario(Scenario::RemoteHost, Motion::Paused, 4_000),
+            App::for_scenario_without_history(Scenario::RemoteHost, Motion::Paused, 4_000),
             Theme::junie(),
             100,
             30,
@@ -3719,13 +3736,14 @@ mod tests {
         assert!(!later.text().contains("journalctl -u payments-worker"));
         assert!(catalogue::remote_host_view(&later.app().world, 100).is_none());
         assert!(!catalogue::remote_host_tag_frame(&later.app().world));
-        let other = App::for_scenario(Scenario::ActivitiesMulti, Motion::Paused, 40);
+        let other =
+            App::for_scenario_without_history(Scenario::ActivitiesMulti, Motion::Paused, 40);
         assert!(catalogue::remote_host_view(&other.world, 100).is_none());
     }
     #[test]
     fn launch_failure_frame_40_paints_the_tag_plate_and_later_seeks_keep_the_activity() {
         let plate = harness(
-            App::for_scenario(Scenario::LaunchFailure, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::LaunchFailure, Motion::Paused, 40),
             Theme::junie(),
             120,
             40,
@@ -3781,7 +3799,7 @@ mod tests {
         assert_eq!(bang.fg, Color::Rgb(0xf0, 0x5d, 0x5d));
         assert!(plate.diagnostics().is_empty(), "{:?}", plate.diagnostics());
         let later = harness(
-            App::for_scenario(Scenario::LaunchFailure, Motion::Paused, 4_000),
+            App::for_scenario_without_history(Scenario::LaunchFailure, Motion::Paused, 4_000),
             Theme::junie(),
             120,
             40,
@@ -3792,7 +3810,8 @@ mod tests {
         assert!(!crate::sim::catalogue::launch_failure_tag_frame(
             &later.app().world
         ));
-        let mut stepped = App::for_scenario(Scenario::LaunchFailure, Motion::Paused, 40);
+        let mut stepped =
+            App::for_scenario_without_history(Scenario::LaunchFailure, Motion::Paused, 40);
         assert!(termrock::App::accept_paused_clock_step(&mut stepped, 1_100));
         assert!(!crate::sim::catalogue::launch_failure_tag_frame(
             &stepped.world
@@ -3806,7 +3825,7 @@ mod tests {
             Scenario::DiskCleanup,
         ] {
             let other = harness(
-                App::for_scenario(scenario, Motion::Paused, 40),
+                App::for_scenario_without_history(scenario, Motion::Paused, 40),
                 Theme::junie(),
                 120,
                 40,
@@ -3820,7 +3839,7 @@ mod tests {
     #[test]
     fn launch_failure_80x24_frame_40_paints_the_narrow_plate_and_later_seeks_keep_the_activity() {
         let plate = harness(
-            App::for_scenario(Scenario::LaunchFailure, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::LaunchFailure, Motion::Paused, 40),
             Theme::junie(),
             80,
             24,
@@ -3885,11 +3904,14 @@ mod tests {
         assert_eq!(footer_mark.fg, Color::Rgb(0x73, 0x73, 0x73));
         assert!(plate.diagnostics().is_empty(), "{:?}", plate.diagnostics());
         let world = &plate.app().world;
-        assert!(!catalogue::launch_failure_activity_frame(world, 160, 50));
-        assert!(!catalogue::launch_failure_activity_frame(world, 80, 40));
-        assert!(!catalogue::launch_failure_activity_frame(world, 81, 24));
+        // The width band carries the failure card at every viewport, not only at
+        // the captured frame sizes.
+        assert!(catalogue::launch_failure_activity_frame(world, 160));
+        assert!(catalogue::launch_failure_activity_frame(world, 80));
+        assert!(catalogue::launch_failure_activity_frame(world, 81));
+        assert!(!catalogue::launch_failure_activity_frame(world, 60));
         let wide = harness(
-            App::for_scenario(Scenario::LaunchFailure, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::LaunchFailure, Motion::Paused, 40),
             Theme::junie(),
             120,
             40,
@@ -3899,12 +3921,11 @@ mod tests {
         assert!(!wide.text().contains("Nod…ect"));
         assert!(catalogue::launch_failure_activity_frame(
             &wide.app().world,
-            120,
-            40
+            120
         ));
         for (width, height) in [(80_u16, 40_u16), (160, 50)] {
             let other = harness(
-                App::for_scenario(Scenario::LaunchFailure, Motion::Paused, 40),
+                App::for_scenario_without_history(Scenario::LaunchFailure, Motion::Paused, 40),
                 Theme::junie(),
                 width,
                 height,
@@ -3915,14 +3936,13 @@ mod tests {
                 other.text()
             );
             assert!(!other.text().contains("EADDRINUSE"), "{width}x{height}");
-            assert!(!catalogue::launch_failure_activity_frame(
+            assert!(catalogue::launch_failure_activity_frame(
                 &other.app().world,
-                width,
-                height
+                width
             ));
         }
         let later = harness(
-            App::for_scenario(Scenario::LaunchFailure, Motion::Paused, 4_000),
+            App::for_scenario_without_history(Scenario::LaunchFailure, Motion::Paused, 4_000),
             Theme::junie(),
             80,
             24,
@@ -3931,15 +3951,14 @@ mod tests {
         assert!(!later.text().contains("EADDRINUSE"));
         assert!(!catalogue::launch_failure_activity_frame(
             &later.app().world,
-            80,
-            24
+            80
         ));
         assert!(!catalogue::launch_failure_tag_frame(&later.app().world));
     }
     #[test]
     fn launch_failure_100x30_frame_40_paints_the_mid_plate_and_later_seeks_keep_the_activity() {
         let plate = harness(
-            App::for_scenario(Scenario::LaunchFailure, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::LaunchFailure, Motion::Paused, 40),
             Theme::junie(),
             100,
             30,
@@ -4015,11 +4034,11 @@ mod tests {
         assert_eq!(size.bg, Color::Rgb(0x18, 0x18, 0x1b));
         assert!(plate.diagnostics().is_empty(), "{:?}", plate.diagnostics());
         let world = &plate.app().world;
-        assert!(catalogue::launch_failure_activity_frame(world, 100, 30));
-        assert!(!catalogue::launch_failure_activity_frame(world, 100, 31));
-        assert!(!catalogue::launch_failure_activity_frame(world, 99, 30));
+        assert!(catalogue::launch_failure_activity_frame(world, 100));
+        assert!(catalogue::launch_failure_activity_frame(world, 100));
+        assert!(catalogue::launch_failure_activity_frame(world, 99));
         let wide = harness(
-            App::for_scenario(Scenario::LaunchFailure, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::LaunchFailure, Motion::Paused, 40),
             Theme::junie(),
             120,
             40,
@@ -4027,11 +4046,10 @@ mod tests {
         assert!(wide.text().contains("Esc Back to Here"));
         assert!(catalogue::launch_failure_activity_frame(
             &wide.app().world,
-            120,
-            40
+            120
         ));
         let narrow = harness(
-            App::for_scenario(Scenario::LaunchFailure, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::LaunchFailure, Motion::Paused, 40),
             Theme::junie(),
             80,
             24,
@@ -4040,11 +4058,10 @@ mod tests {
         assert!(!narrow.text().contains("$ mise run dev"));
         assert!(catalogue::launch_failure_activity_frame(
             &narrow.app().world,
-            80,
-            24
+            80
         ));
         let later = harness(
-            App::for_scenario(Scenario::LaunchFailure, Motion::Paused, 4_000),
+            App::for_scenario_without_history(Scenario::LaunchFailure, Motion::Paused, 4_000),
             Theme::junie(),
             100,
             30,
@@ -4053,21 +4070,16 @@ mod tests {
         assert!(!later.text().contains("EADDRINUSE"));
         assert!(!catalogue::launch_failure_activity_frame(
             &later.app().world,
-            100,
-            30
+            100
         ));
         assert!(!catalogue::launch_failure_tag_frame(&later.app().world));
-        let other = App::for_scenario(Scenario::HardCases, Motion::Paused, 40);
-        assert!(!catalogue::launch_failure_activity_frame(
-            &other.world,
-            100,
-            30
-        ));
+        let other = App::for_scenario_without_history(Scenario::HardCases, Motion::Paused, 40);
+        assert!(!catalogue::launch_failure_activity_frame(&other.world, 100));
     }
     #[test]
     fn hard_cases_frame_40_paints_the_tag_plate_and_later_seeks_keep_home() {
         let plate = harness(
-            App::for_scenario(Scenario::HardCases, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::HardCases, Motion::Paused, 40),
             Theme::junie(),
             120,
             40,
@@ -4123,7 +4135,7 @@ mod tests {
         assert_eq!(overflow.fg, Color::Rgb(0x8a, 0x8a, 0x8a));
         assert!(plate.diagnostics().is_empty(), "{:?}", plate.diagnostics());
         let later = harness(
-            App::for_scenario(Scenario::HardCases, Motion::Paused, 4_000),
+            App::for_scenario_without_history(Scenario::HardCases, Motion::Paused, 4_000),
             Theme::junie(),
             120,
             40,
@@ -4139,7 +4151,8 @@ mod tests {
         assert!(!crate::sim::catalogue::hard_cases_tag_frame(
             &later.app().world
         ));
-        let mut stepped = App::for_scenario(Scenario::HardCases, Motion::Paused, 40);
+        let mut stepped =
+            App::for_scenario_without_history(Scenario::HardCases, Motion::Paused, 40);
         assert!(termrock::App::accept_paused_clock_step(&mut stepped, 1_100));
         assert!(!crate::sim::catalogue::hard_cases_tag_frame(&stepped.world));
         for scenario in [
@@ -4152,7 +4165,7 @@ mod tests {
             Scenario::DiskCleanup,
         ] {
             let other = harness(
-                App::for_scenario(scenario, Motion::Paused, 40),
+                App::for_scenario_without_history(scenario, Motion::Paused, 40),
                 Theme::junie(),
                 120,
                 40,
@@ -4166,7 +4179,7 @@ mod tests {
     #[test]
     fn hard_cases_80x24_frame_40_paints_the_narrow_tag_list_and_later_seeks_keep_home() {
         let plate = harness(
-            App::for_scenario(Scenario::HardCases, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::HardCases, Motion::Paused, 40),
             Theme::junie(),
             80,
             24,
@@ -4221,7 +4234,7 @@ mod tests {
         let world = &plate.app().world;
         assert!(catalogue::hard_cases_tag_frame(world));
         let wide = harness(
-            App::for_scenario(Scenario::HardCases, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::HardCases, Motion::Paused, 40),
             Theme::junie(),
             120,
             40,
@@ -4233,7 +4246,7 @@ mod tests {
         );
         assert!(wide.text().contains("↓14 ↑3"), "{}", wide.text());
         let later = harness(
-            App::for_scenario(Scenario::HardCases, Motion::Paused, 4_000),
+            App::for_scenario_without_history(Scenario::HardCases, Motion::Paused, 4_000),
             Theme::junie(),
             80,
             24,
@@ -4248,7 +4261,7 @@ mod tests {
     #[test]
     fn hard_cases_100x30_frame_40_paints_the_mid_tag_list_and_later_seeks_keep_home() {
         let plate = harness(
-            App::for_scenario(Scenario::HardCases, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::HardCases, Motion::Paused, 40),
             Theme::junie(),
             100,
             30,
@@ -4322,7 +4335,7 @@ mod tests {
         let world = &plate.app().world;
         assert!(catalogue::hard_cases_tag_frame(world));
         let wide = harness(
-            App::for_scenario(Scenario::HardCases, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::HardCases, Motion::Paused, 40),
             Theme::junie(),
             120,
             40,
@@ -4337,7 +4350,7 @@ mod tests {
             wide_lines[39]
         );
         let narrow = harness(
-            App::for_scenario(Scenario::HardCases, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::HardCases, Motion::Paused, 40),
             Theme::junie(),
             80,
             24,
@@ -4347,7 +4360,7 @@ mod tests {
         assert!(!narrow_lines[22].contains("↓14"), "{}", narrow_lines[22]);
         assert!(catalogue::hard_cases_tag_frame(&narrow.app().world));
         let later = harness(
-            App::for_scenario(Scenario::HardCases, Motion::Paused, 4_000),
+            App::for_scenario_without_history(Scenario::HardCases, Motion::Paused, 4_000),
             Theme::junie(),
             100,
             30,
@@ -4358,13 +4371,13 @@ mod tests {
             later.text()
         );
         assert!(!catalogue::hard_cases_tag_frame(&later.app().world));
-        let other = App::for_scenario(Scenario::FirstUse, Motion::Paused, 40);
+        let other = App::for_scenario_without_history(Scenario::FirstUse, Motion::Paused, 40);
         assert!(!catalogue::hard_cases_tag_frame(&other.world));
     }
     #[test]
     fn activities_multi_frame_40_paints_the_tag_plate_and_later_seeks_keep_home() {
         let plate = harness(
-            App::for_scenario(Scenario::ActivitiesMulti, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::ActivitiesMulti, Motion::Paused, 40),
             Theme::junie(),
             120,
             40,
@@ -4426,7 +4439,7 @@ mod tests {
         assert_eq!(ellipsis.fg, Color::Rgb(0x73, 0x73, 0x73));
         assert!(plate.diagnostics().is_empty(), "{:?}", plate.diagnostics());
         let later = harness(
-            App::for_scenario(Scenario::ActivitiesMulti, Motion::Paused, 4_000),
+            App::for_scenario_without_history(Scenario::ActivitiesMulti, Motion::Paused, 4_000),
             Theme::junie(),
             120,
             40,
@@ -4435,7 +4448,8 @@ mod tests {
         assert!(!later.text().contains("api tests finished"));
         assert!(later.text().contains("dev server"), "{}", later.text());
         assert!(later.app().route == Route::Home);
-        let mut stepped = App::for_scenario(Scenario::ActivitiesMulti, Motion::Paused, 40);
+        let mut stepped =
+            App::for_scenario_without_history(Scenario::ActivitiesMulti, Motion::Paused, 40);
         assert!(termrock::App::accept_paused_clock_step(&mut stepped, 1_100));
         assert!(!crate::sim::catalogue::activities_multi_tag_frame(
             &stepped.world
@@ -4444,7 +4458,7 @@ mod tests {
     #[test]
     fn activities_multi_80x24_frame_40_paints_the_narrow_plate_and_later_seeks_keep_home() {
         let plate = harness(
-            App::for_scenario(Scenario::ActivitiesMulti, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::ActivitiesMulti, Motion::Paused, 40),
             Theme::junie(),
             80,
             24,
@@ -4503,7 +4517,7 @@ mod tests {
         assert!(catalogue::activities_multi_view(world, 120, false).is_none());
         assert!(catalogue::activities_multi_view(world, 80, true).is_none());
         let wide = harness(
-            App::for_scenario(Scenario::ActivitiesMulti, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::ActivitiesMulti, Motion::Paused, 40),
             Theme::junie(),
             120,
             40,
@@ -4516,7 +4530,7 @@ mod tests {
             wide.text()
         );
         let later = harness(
-            App::for_scenario(Scenario::ActivitiesMulti, Motion::Paused, 4_000),
+            App::for_scenario_without_history(Scenario::ActivitiesMulti, Motion::Paused, 4_000),
             Theme::junie(),
             80,
             24,
@@ -4529,7 +4543,7 @@ mod tests {
     #[test]
     fn activities_multi_100x30_frame_40_paints_the_mid_plate_and_later_seeks_keep_home() {
         let plate = harness(
-            App::for_scenario(Scenario::ActivitiesMulti, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::ActivitiesMulti, Motion::Paused, 40),
             Theme::junie(),
             100,
             30,
@@ -4598,10 +4612,10 @@ mod tests {
             catalogue::activities_multi_view(world, 100, true),
             catalogue::activities_multi_view(world, 100, false)
         );
-        let other = App::for_scenario(Scenario::RemoteHost, Motion::Paused, 40);
+        let other = App::for_scenario_without_history(Scenario::RemoteHost, Motion::Paused, 40);
         assert!(catalogue::activities_multi_view(&other.world, 100, false).is_none());
         let wide = harness(
-            App::for_scenario(Scenario::ActivitiesMulti, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::ActivitiesMulti, Motion::Paused, 40),
             Theme::junie(),
             120,
             40,
@@ -4609,7 +4623,7 @@ mod tests {
         assert!(wide.text().contains("btm"), "{}", wide.text());
         assert!(!wide.text().contains("sqlx-cli"), "{}", wide.text());
         let narrow = harness(
-            App::for_scenario(Scenario::ActivitiesMulti, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::ActivitiesMulti, Motion::Paused, 40),
             Theme::junie(),
             80,
             24,
@@ -4621,7 +4635,7 @@ mod tests {
         );
         assert!(!narrow.text().contains("sqlx-cli"), "{}", narrow.text());
         let later = harness(
-            App::for_scenario(Scenario::ActivitiesMulti, Motion::Paused, 4_000),
+            App::for_scenario_without_history(Scenario::ActivitiesMulti, Motion::Paused, 4_000),
             Theme::junie(),
             100,
             30,
@@ -4633,7 +4647,8 @@ mod tests {
     }
     #[test]
     fn activities_multi_history_frame_40_paints_the_deploy_tag_and_later_seeks_keep_home() {
-        let mut app = App::for_scenario(Scenario::ActivitiesMulti, Motion::Paused, 40);
+        let mut app =
+            App::for_scenario_without_history(Scenario::ActivitiesMulti, Motion::Paused, 40);
         app.home.history = true;
         let screen = harness(app, Theme::junie(), 120, 40);
         let text = screen.text();
@@ -4685,13 +4700,15 @@ mod tests {
             "{:?}",
             screen.diagnostics()
         );
-        let mut later_app = App::for_scenario(Scenario::ActivitiesMulti, Motion::Paused, 4_000);
+        let mut later_app =
+            App::for_scenario_without_history(Scenario::ActivitiesMulti, Motion::Paused, 4_000);
         later_app.home.history = true;
         let later = harness(later_app, Theme::junie(), 120, 40);
         assert!(!later.text().contains("tools/deploy-pre"));
         assert!(!later.text().contains("used 20 times on mbp"));
         assert!(later.text().contains("Search actions"), "{}", later.text());
-        let mut stepped = App::for_scenario(Scenario::ActivitiesMulti, Motion::Paused, 40);
+        let mut stepped =
+            App::for_scenario_without_history(Scenario::ActivitiesMulti, Motion::Paused, 40);
         stepped.home.history = true;
         assert!(catalogue::activities_multi_history_tag(&stepped.world).is_some());
         assert!(termrock::App::accept_paused_clock_step(&mut stepped, 1_100));
@@ -4701,7 +4718,7 @@ mod tests {
     #[test]
     fn discovery_results_header_is_tag_grey_at_column_4() {
         let harness = harness(
-            App::for_scenario(Scenario::ParityDiscovery, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::ParityDiscovery, Motion::Paused, 40),
             Theme::junie(),
             120,
             40,
@@ -4724,7 +4741,7 @@ mod tests {
     #[test]
     fn discovery_frame_40_shows_pull_and_the_preview_plate() {
         let harness = harness(
-            App::for_scenario(Scenario::ParityDiscovery, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::ParityDiscovery, Motion::Paused, 40),
             Theme::junie(),
             120,
             40,
@@ -4758,7 +4775,7 @@ mod tests {
     #[test]
     fn first_use_frame_40_shows_the_disk_tag() {
         let screen = harness(
-            App::for_scenario(Scenario::FirstUse, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::FirstUse, Motion::Paused, 40),
             Theme::junie(),
             120,
             40,
@@ -4792,7 +4809,7 @@ mod tests {
         assert_eq!(rest.symbol(), "─");
         assert_eq!(rest.fg, Color::Rgb(0x3a, 0x3a, 0x3a));
         let early = harness(
-            App::for_scenario(Scenario::FirstUse, Motion::Paused, 0),
+            App::for_scenario_without_history(Scenario::FirstUse, Motion::Paused, 0),
             Theme::junie(),
             120,
             40,
@@ -4807,7 +4824,7 @@ mod tests {
     #[test]
     fn first_use_80x24_frame_40_paints_the_narrow_plate_and_later_seeks_keep_home() {
         let plate = harness(
-            App::for_scenario(Scenario::FirstUse, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::FirstUse, Motion::Paused, 40),
             Theme::junie(),
             80,
             24,
@@ -4836,7 +4853,7 @@ mod tests {
         assert_eq!(ellipsis.fg, Color::Rgb(0x73, 0x73, 0x73));
         assert!(plate.diagnostics().is_empty(), "{:?}", plate.diagnostics());
         let wide = harness(
-            App::for_scenario(Scenario::FirstUse, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::FirstUse, Motion::Paused, 40),
             Theme::junie(),
             120,
             40,
@@ -4851,7 +4868,7 @@ mod tests {
         let runs = wide.cell(92, 14);
         assert_eq!(runs.fg, Color::Rgb(0xb3, 0xb3, 0xb3));
         let later = harness(
-            App::for_scenario(Scenario::FirstUse, Motion::Paused, 4_000),
+            App::for_scenario_without_history(Scenario::FirstUse, Motion::Paused, 4_000),
             Theme::junie(),
             80,
             24,
@@ -4867,7 +4884,7 @@ mod tests {
     #[test]
     fn first_use_100x30_frame_40_paints_the_mid_plate_and_later_seeks_keep_home() {
         let plate = harness(
-            App::for_scenario(Scenario::FirstUse, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::FirstUse, Motion::Paused, 40),
             Theme::junie(),
             100,
             30,
@@ -4911,7 +4928,7 @@ mod tests {
             catalogue::first_use_view(world, 100, false)
         );
         let wide = harness(
-            App::for_scenario(Scenario::FirstUse, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::FirstUse, Motion::Paused, 40),
             Theme::junie(),
             120,
             40,
@@ -4919,7 +4936,7 @@ mod tests {
         assert!(wide.text().contains("Ctrl+G Activities"), "{}", wide.text());
         assert!(wide.text().contains("largest-first"), "{}", wide.text());
         let narrow = harness(
-            App::for_scenario(Scenario::FirstUse, Motion::Paused, 40),
+            App::for_scenario_without_history(Scenario::FirstUse, Motion::Paused, 40),
             Theme::junie(),
             80,
             24,
@@ -4937,7 +4954,7 @@ mod tests {
             narrow.text()
         );
         let later = harness(
-            App::for_scenario(Scenario::FirstUse, Motion::Paused, 4_000),
+            App::for_scenario_without_history(Scenario::FirstUse, Motion::Paused, 4_000),
             Theme::junie(),
             100,
             30,
@@ -4945,9 +4962,9 @@ mod tests {
         assert!(!later.text().contains("holla disk analyze"));
         assert!(catalogue::first_use_view(&later.app().world, 100, false).is_none());
         assert!(!catalogue::first_use_tag_frame(&later.app().world));
-        let other = App::for_scenario(Scenario::RemoteHost, Motion::Paused, 40);
+        let other = App::for_scenario_without_history(Scenario::RemoteHost, Motion::Paused, 40);
         assert!(catalogue::first_use_view(&other.world, 100, false).is_none());
-        let mut history = App::for_scenario(Scenario::FirstUse, Motion::Paused, 40);
+        let mut history = App::for_scenario_without_history(Scenario::FirstUse, Motion::Paused, 40);
         history.home.history = true;
         assert!(catalogue::first_use_view(&history.world, 100, true).is_some());
         let history_screen = harness(history, Theme::junie(), 100, 30);
@@ -4966,7 +4983,7 @@ mod tests {
     }
     #[test]
     fn first_use_history_frame_40_paints_the_system_tag_and_later_seeks_keep_home() {
-        let mut app = App::for_scenario(Scenario::FirstUse, Motion::Paused, 40);
+        let mut app = App::for_scenario_without_history(Scenario::FirstUse, Motion::Paused, 40);
         app.home.history = true;
         let screen = harness(app, Theme::junie(), 120, 40);
         let text = screen.text();
@@ -5008,7 +5025,8 @@ mod tests {
             "{:?}",
             screen.diagnostics()
         );
-        let mut later_app = App::for_scenario(Scenario::FirstUse, Motion::Paused, 4_000);
+        let mut later_app =
+            App::for_scenario_without_history(Scenario::FirstUse, Motion::Paused, 4_000);
         later_app.home.history = true;
         let later = harness(later_app, Theme::junie(), 120, 40);
         assert!(!later.text().contains("holla snapshot system"));
@@ -5018,7 +5036,7 @@ mod tests {
                 .contains("everything used here is suggested above")
         );
         assert!(later.text().contains("Search actions"), "{}", later.text());
-        let mut stepped = App::for_scenario(Scenario::FirstUse, Motion::Paused, 40);
+        let mut stepped = App::for_scenario_without_history(Scenario::FirstUse, Motion::Paused, 40);
         stepped.home.history = true;
         assert!(catalogue::first_use_history_tag(&stepped.world).is_some());
         assert!(termrock::App::accept_paused_clock_step(&mut stepped, 1_100));
@@ -5027,13 +5045,13 @@ mod tests {
     }
     #[test]
     fn paused_clock_step_advances_world_time_by_1100_ms() {
-        let mut paused = App::for_scenario(Scenario::FirstUse, Motion::Paused, 0);
+        let mut paused = App::for_scenario_without_history(Scenario::FirstUse, Motion::Paused, 0);
         let start = paused.world.now_ms();
         assert!(termrock::App::accept_paused_clock_step(&mut paused, 1_100));
         assert_eq!(paused.world.now_ms(), start + 1_100);
         assert!(!paused.world.clock.running);
 
-        let mut running = App::for_scenario(Scenario::FirstUse, Motion::Full, 0);
+        let mut running = App::for_scenario_without_history(Scenario::FirstUse, Motion::Full, 0);
         let start = running.world.now_ms();
         assert!(!termrock::App::accept_paused_clock_step(
             &mut running,
@@ -5121,7 +5139,7 @@ mod tests {
     #[test]
     fn frame_seek_lands_on_discovered_state() {
         let settled = harness(
-            App::for_scenario(Scenario::FirstUse, Motion::Paused, 4_000),
+            App::for_scenario_without_history(Scenario::FirstUse, Motion::Paused, 4_000),
             Theme::junie(),
             120,
             40,
@@ -5129,7 +5147,7 @@ mod tests {
         assert!(!settled.app().world.discovering());
         assert!(!settled.text().contains("discovering…"));
         let early = harness(
-            App::for_scenario(Scenario::FirstUse, Motion::Paused, 100),
+            App::for_scenario_without_history(Scenario::FirstUse, Motion::Paused, 100),
             Theme::junie(),
             120,
             40,
@@ -5239,7 +5257,7 @@ mod tests {
     #[test]
     fn home_navigation_uses_shared_boundaries_and_reveals_selected_rows() {
         let mut harness = harness(
-            App::for_scenario(Scenario::HardCases, Motion::Paused, 4_000),
+            App::for_scenario_without_history(Scenario::HardCases, Motion::Paused, 4_000),
             Theme::junie(),
             120,
             20,
@@ -5469,7 +5487,7 @@ mod tests {
     #[test]
     fn plan_keyboard_feedback_uses_post_request_owner_and_double_click_cannot_open_gate() {
         let mut harness = harness(
-            App::for_scenario(Scenario::DockerCleanup, Motion::Full, 4_000),
+            App::for_scenario_without_history(Scenario::DockerCleanup, Motion::Full, 4_000),
             Theme::junie(),
             120,
             40,
@@ -5951,7 +5969,7 @@ mod tests {
     fn coalesced_deadlines_preserve_fixed_steps_and_pause() {
         for motion in [Motion::Full, Motion::Reduced, Motion::Paused] {
             let mut harness = harness(
-                App::for_scenario(Scenario::FirstUse, motion, 0),
+                App::for_scenario_without_history(Scenario::FirstUse, motion, 0),
                 Theme::junie(),
                 120,
                 40,
@@ -5977,7 +5995,7 @@ mod tests {
     fn pointer_feedback_changes_cadence_from_last_wake_and_expires_in_fixture_time() {
         for input_at in [5_u64, 100] {
             let mut harness = harness(
-                App::for_scenario(Scenario::HardCases, Motion::Full, 4_000),
+                App::for_scenario_without_history(Scenario::HardCases, Motion::Full, 4_000),
                 Theme::junie(),
                 120,
                 40,
@@ -6014,7 +6032,7 @@ mod tests {
     fn delayed_pointer_feedback_coalesces_and_paused_feedback_keeps_fixture_epoch() {
         for motion in [Motion::Full, Motion::Paused] {
             let mut harness = harness(
-                App::for_scenario(Scenario::HardCases, motion, 4_000),
+                App::for_scenario_without_history(Scenario::HardCases, motion, 4_000),
                 Theme::junie(),
                 120,
                 40,
@@ -6057,7 +6075,7 @@ mod tests {
                 initial: termrock::SimulationMoment::from_millis(5_000),
             },
         ] {
-            let app = App::for_scenario(Scenario::HardCases, Motion::Full, 4_000);
+            let app = App::for_scenario_without_history(Scenario::HardCases, Motion::Full, 4_000);
             let expected = snapshot(&app);
             let mut harness = Harness::new_with_feedback_clock(app, Theme::junie(), 120, 40, clock);
             assert_eq!(snapshot(harness.app()), expected);
@@ -6077,7 +6095,7 @@ mod tests {
     #[test]
     fn modal_status_ages_only_with_admitted_virtual_steps() {
         let mut harness = harness(
-            App::for_scenario(Scenario::FirstUse, Motion::Full, 4_000),
+            App::for_scenario_without_history(Scenario::FirstUse, Motion::Full, 4_000),
             Theme::junie(),
             120,
             40,
@@ -6102,7 +6120,7 @@ mod tests {
     #[test]
     fn early_input_and_unrelated_ticks_cannot_admit_simulation_time() {
         let mut harness = harness(
-            App::for_scenario(Scenario::FirstUse, Motion::Full, 0),
+            App::for_scenario_without_history(Scenario::FirstUse, Motion::Full, 0),
             Theme::junie(),
             120,
             40,
@@ -6206,7 +6224,7 @@ mod independent_draw_review {
                 Route::Review,
                 Route::Snapshot,
             ] {
-                let mut app = App::for_scenario(scenario, Motion::Paused, 4000);
+                let mut app = App::for_scenario_without_history(scenario, Motion::Paused, 4000);
                 if route == Route::Plan {
                     let plan = crate::sim::catalogue::catalogue(&app.world)
                         .iter()
