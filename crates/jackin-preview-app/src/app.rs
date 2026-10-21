@@ -6,7 +6,8 @@ use std::{
     time::Duration,
 };
 use termrock::author::{
-    PaintStyle, put_cell_at, put_fill_in, put_frame_in, put_text_in, put_text_w,
+    PaintStyle, put_cell_at, put_fill_in, put_frame_in, put_text_in, put_text_w, restyle_cells,
+    restyle_clip,
 };
 
 use termrock::{
@@ -6056,22 +6057,22 @@ impl App {
         }
     }
 
-    fn blit_buffer(ui: &mut Ui<'_>, area: Rect, buf: &termrock::Buffer) {
+    fn blit_buffer(ui: &mut Ui<'_>, area: Rect, surface: &termrock::author::PaintSurface) {
         for y in area.y..area.bottom() {
             for x in area.x..area.right() {
-                let Some(cell) = buf.cell(Position::new(x, y)) else {
+                let Some(cell) = surface.cell(Position::new(x, y)) else {
                     continue;
                 };
-                put_cell_at(ui, Position::new(x, y), cell.symbol(), cell.style());
+                put_cell_at(ui, Position::new(x, y), &cell.symbol, cell.style);
             }
         }
     }
 
     fn draw_intro(&self, ui: &mut Ui<'_>, area: Rect) {
         let theme = ui.theme_ref().clone();
-        let mut buf = termrock::Buffer::empty(area);
-        crate::rain::paint_intro(&mut buf, area, &self.intro, &theme);
-        Self::blit_buffer(ui, area, &buf);
+        let mut surface = termrock::author::PaintSurface::new(area);
+        crate::rain::paint_intro(&mut surface, area, &self.intro, &theme);
+        Self::blit_buffer(ui, area, &surface);
     }
 
     fn draw_prelude(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -6375,9 +6376,9 @@ impl App {
             return;
         };
         let theme = ui.theme_ref().clone();
-        let mut buf = termrock::Buffer::empty(area);
-        crate::rain::paint_outro(&mut buf, area, outro, &theme);
-        Self::blit_buffer(ui, area, &buf);
+        let mut surface = termrock::author::PaintSurface::new(area);
+        crate::rain::paint_outro(&mut surface, area, outro, &theme);
+        Self::blit_buffer(ui, area, &surface);
     }
 
     fn draw_manager(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -7035,7 +7036,7 @@ impl App {
             return;
         };
         let theme = ui.theme_ref().clone();
-        let mut rain = termrock::Buffer::empty(area);
+        let mut rain = termrock::author::PaintSurface::new(area);
         crate::rain::paint_atmosphere(
             &mut rain,
             area,
@@ -7250,25 +7251,23 @@ impl App {
                 }
                 _ => None,
             });
-            let (buf, _) = ui.raw();
-            for pos in screen.positions() {
-                let Some(cell) = buf.cell_mut(pos) else {
-                    continue;
-                };
-                if cell.symbol() == "✓"
-                    && cell.fg == termrock::Color::Indexed(78)
-                    && cell.bg == termrock::Color::Indexed(16)
+            restyle_cells(ui, screen, |_, cell| {
+                if cell.symbol == "✓"
+                    && cell.fg() == termrock::Color::Indexed(78)
+                    && cell.bg() == termrock::Color::Indexed(16)
                 {
-                    cell.set_fg(termrock::Color::Indexed(71));
-                } else if cell.symbol() == "┆" && cell.bg == termrock::Color::Indexed(16) {
-                    cell.set_fg(termrock::Color::Indexed(239));
-                } else if cell.symbol() == "┃"
-                    && cell.fg == termrock::Color::Indexed(244)
-                    && cell.bg == termrock::Color::Indexed(16)
+                    Some(termrock::Style::new().fg(termrock::Color::Indexed(71)))
+                } else if cell.symbol == "┆" && cell.bg() == termrock::Color::Indexed(16) {
+                    Some(termrock::Style::new().fg(termrock::Color::Indexed(239)))
+                } else if cell.symbol == "┃"
+                    && cell.fg() == termrock::Color::Indexed(244)
+                    && cell.bg() == termrock::Color::Indexed(16)
                 {
-                    cell.set_fg(termrock::Color::Indexed(245));
+                    Some(termrock::Style::new().fg(termrock::Color::Indexed(245)))
+                } else {
+                    None
                 }
-            }
+            });
         }
     }
 
@@ -11091,52 +11090,45 @@ fn usage_account_line(account: &Account, frame: &str) -> termrock::feedback::Usa
 }
 
 fn ghost_covered_tab_rule(ui: &mut Ui<'_>) {
-    let (buf, clip) = ui.raw();
     let ghost = termrock::Color::Rgb(0x26, 0x26, 0x26);
     let faint = termrock::Color::Rgb(0x73, 0x73, 0x73);
     let card = termrock::Color::Rgb(0x18, 0x18, 0x1b);
-    for pos in clip.positions() {
+    restyle_clip(ui, |pos, cell| {
         if pos.y != 3 {
-            continue;
+            return None;
         }
-        if let Some(cell) = buf.cell_mut(pos)
-            && cell.symbol() == " "
-            && cell.fg == faint
-            && cell.bg == card
-        {
-            cell.fg = ghost;
+        if cell.symbol == " " && cell.fg() == faint && cell.bg() == card {
+            Some(termrock::Style::new().fg(ghost))
+        } else {
+            None
         }
-    }
+    });
 }
 
 fn finish_capsule_palette_chrome(ui: &mut Ui<'_>) {
-    let (buf, _) = ui.raw();
     let ghost = termrock::Color::Rgb(0x26, 0x26, 0x26);
-    for x in 1..15 {
-        let pos = Position::new(x, 3);
-        if let Some(cell) = buf.cell_mut(pos)
-            && cell.symbol() == "━"
-        {
-            cell.fg = ghost;
+    restyle_cells(ui, Rect::new(1, 3, 14, 1), |_, cell| {
+        if cell.symbol == "━" {
+            Some(termrock::Style::new().fg(ghost))
+        } else {
+            None
         }
-    }
-    for x in [5u16, 6, 34, 35, 36] {
-        let pos = Position::new(x, 39);
-        if let Some(cell) = buf.cell_mut(pos) {
-            cell.modifier.insert(Modifier::BOLD);
-        }
+    });
+    for area in [Rect::new(5, 39, 2, 1), Rect::new(34, 39, 3, 1)] {
+        restyle_cells(ui, area, |_, _| {
+            Some(termrock::Style::new().add_modifier(Modifier::BOLD))
+        });
     }
 }
 
 fn retint_fg(ui: &mut Ui<'_>, from: termrock::Color, to: termrock::Color) {
-    let (buf, clip) = ui.raw();
-    for pos in clip.positions() {
-        if let Some(cell) = buf.cell_mut(pos)
-            && cell.fg == from
-        {
-            cell.fg = to;
+    restyle_clip(ui, |_, cell| {
+        if cell.fg() == from {
+            Some(termrock::Style::new().fg(to))
+        } else {
+            None
         }
-    }
+    });
 }
 
 fn capsule_span_role(tone: crate::sim::pty::Tone) -> termrock::Role {

@@ -3,7 +3,9 @@
 //! `ctrl-b` then `"` opens this picker. The card keeps dimmed underlay ink
 //! on empty cells and paints the frozen rows on top.
 
-use termrock::author::{PaintStyle, put_cell_at, put_fill_in, put_text_w};
+use termrock::author::{
+    PaintStyle, put_cell_at, put_fill_in, put_text_w, repaint_cells, restyle_cells,
+};
 use termrock::{Color, Modifier, Position, Rect, Ui};
 
 const ACCENT: Color = Color::Rgb(0x48, 0xe0, 0x54);
@@ -603,21 +605,22 @@ pub(super) fn finish_reduced(ui: &mut Ui<'_>) {
     let selected_y = card.y.saturating_add(4);
     let selected = Color::Rgb(0x2f, 0x5a, 0xa8);
     if !ansi16 {
-        let (buf, _) = ui.raw();
         let left = card.x.saturating_add(1);
         let right = card.x.saturating_add(card.width).saturating_sub(1);
-        for x in left..right {
-            let Some(cell) = buf.cell_mut(Position::new(x, selected_y)) else {
-                continue;
-            };
-            if cell.bg != selected {
-                continue;
-            }
-            cell.modifier.insert(Modifier::REVERSED);
-            if cell.modifier.contains(Modifier::BOLD) && cell.fg == WHITE {
-                cell.set_fg(Color::Indexed(0));
-            }
-        }
+        restyle_cells(
+            ui,
+            Rect::new(left, selected_y, right.saturating_sub(left), 1),
+            |_, cell| {
+                if cell.bg() != selected {
+                    return None;
+                }
+                let mut style = termrock::Style::new().add_modifier(Modifier::REVERSED);
+                if cell.modifier().contains(Modifier::BOLD) && cell.fg() == WHITE {
+                    style = style.fg(Color::Indexed(0));
+                }
+                Some(style)
+            },
+        );
     }
     ui.recolor_pair(underlay, move |fg, bg| {
         (reduced_ink(fg, ansi16), reduced_ink(bg, ansi16))
@@ -626,30 +629,23 @@ pub(super) fn finish_reduced(ui: &mut Ui<'_>) {
         // Mono turns the seam gray into black. The frozen rules stay gray.
         // A direct fg write is overwritten by the cell's paint role, so
         // paint the same glyph again.
-        let mut rules = Vec::new();
-        {
-            let gutter_x = card.x.saturating_add(2);
-            let option_top = card.y.saturating_add(4);
-            let option_bottom = card.y.saturating_add(8);
-            let (buf, _) = ui.raw();
-            for pos in underlay.positions() {
-                let Some(cell) = buf.cell(pos) else {
-                    continue;
-                };
-                let option_gutter = cell.symbol() == " "
-                    && pos.x == gutter_x
-                    && (option_top..=option_bottom).contains(&pos.y);
-                if is_black(cell.fg) && is_black(cell.bg) && !option_gutter {
-                    rules.push((pos, cell.symbol().to_owned()));
-                }
-            }
-        }
+        let gutter_x = card.x.saturating_add(2);
+        let option_top = card.y.saturating_add(4);
+        let option_bottom = card.y.saturating_add(8);
         let style = PaintStyle::new()
             .fg(Color::Indexed(7))
             .bg(Color::Indexed(0));
-        for (pos, symbol) in rules {
-            put_cell_at(ui, pos, &symbol, style);
-        }
+        repaint_cells(
+            ui,
+            underlay,
+            |pos, cell| {
+                let option_gutter = cell.symbol == " "
+                    && pos.x == gutter_x
+                    && (option_top..=option_bottom).contains(&pos.y);
+                is_black(cell.fg()) && is_black(cell.bg()) && !option_gutter
+            },
+            style,
+        );
     }
     ui.add_dim(underlay);
     // Footer repairs paint truecolor RGB on the undimmed hint row.
