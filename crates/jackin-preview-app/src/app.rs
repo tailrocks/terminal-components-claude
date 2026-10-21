@@ -286,7 +286,6 @@ mod historical_paint;
 mod historical_settings_agents;
 mod historical_settings_env;
 mod historical_settings_mounts;
-mod historical_settings_mounts_80;
 mod historical_settings_route;
 mod historical_settings_save;
 mod historical_settings_trust;
@@ -7688,6 +7687,9 @@ impl App {
                 save: "Save…",
                 save_enabled: false,
                 hints: &hints,
+                hint_overflow: None,
+                mounts: &[],
+                add_mount: None,
             },
         );
     }
@@ -7762,7 +7764,97 @@ impl App {
         }
         // Approved frame hides the cursor. This path must not call set_cursor
         // or set_bar_cursor, and it must not write cursor bytes.
-        historical_settings_mounts_80::paint(ui);
+        let screen = ui.full();
+        let menus = ["File", "Go", "Help"];
+        let tabs = [
+            termrock::feedback::SettingsTab {
+                label: "General",
+                selected: false,
+            },
+            termrock::feedback::SettingsTab {
+                label: "Mounts",
+                selected: true,
+            },
+            termrock::feedback::SettingsTab {
+                label: "Environments",
+                selected: false,
+            },
+            termrock::feedback::SettingsTab {
+                label: "Agents",
+                selected: false,
+            },
+            termrock::feedback::SettingsTab {
+                label: "Trust",
+                selected: false,
+            },
+        ];
+        let mounts = [
+            termrock::feedback::SettingsMount {
+                path: "/home/agent/.gitconfig",
+                scope: "global",
+                mode: "ro",
+                isolation: "shared",
+                selected: true,
+            },
+            termrock::feedback::SettingsMount {
+                path: "/home/agent/.cargo/registry",
+                scope: "global",
+                mode: "rw",
+                isolation: "shared",
+                selected: false,
+            },
+            termrock::feedback::SettingsMount {
+                path: "/home/agent/.kube",
+                scope: "role sre",
+                mode: "ro",
+                isolation: "shared",
+                selected: false,
+            },
+        ];
+        let hints = [
+            termrock::feedback::SettingsHint {
+                key: "Enter",
+                action: "Edit…",
+            },
+            termrock::feedback::SettingsHint {
+                key: "r",
+                action: "Read-only",
+            },
+            termrock::feedback::SettingsHint {
+                key: "i",
+                action: "Isolation",
+            },
+            termrock::feedback::SettingsHint {
+                key: "o",
+                action: "Open source",
+            },
+            termrock::feedback::SettingsHint {
+                key: "d",
+                action: "Remove",
+            },
+            termrock::feedback::SettingsHint {
+                key: "Esc",
+                action: "Back",
+            },
+        ];
+        termrock::feedback::paint_settings_page(
+            ui,
+            screen,
+            &termrock::feedback::SettingsPage {
+                brand: "jackin❯",
+                menus: &menus,
+                crumb: "Settings › global › Mounts",
+                tabs: &tabs,
+                sections: &[],
+                cancel: "Cancel",
+                save: "Save…",
+                save_enabled: false,
+                hints: &hints,
+                hint_overflow: Some("…"),
+                mounts: &mounts,
+                add_mount: Some("+ Add mount"),
+            },
+        );
     }
 
     fn historical_settings_env(&self, theme: &termrock::Theme, screen: Rect) -> bool {
