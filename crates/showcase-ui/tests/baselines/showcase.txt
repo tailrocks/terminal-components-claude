@@ -1,6 +1,6 @@
 # digest baseline: name w h theme color hash — regenerate with BLESS=1, review like source
 Buttons 100 30 junie 16 fa9f015de05071c4
-Buttons 100 30 junie 256 3b68d18dc5646f20
+Buttons 100 30 junie 256 f238523f884dbf2c
 Buttons 100 30 junie mono 7d1054a21a1c1ab5
 Buttons 100 30 junie truecolor 61c1d10aebef3738
 Buttons 100 30 paper 16 94c62a58a7490d26
@@ -8,7 +8,7 @@ Buttons 100 30 paper 256 489a15b4b5913805
 Buttons 100 30 paper mono deec6dcc87c6454f
 Buttons 100 30 paper truecolor 827b037cb9d863f9
 Buttons 120 40 junie 16 4e73ff2eea46aef4
-Buttons 120 40 junie 256 66ea494796bddcdb
+Buttons 120 40 junie 256 914a5b20dbe7c63a
 Buttons 120 40 junie mono 2af3add8d8d789a3
 Buttons 120 40 junie truecolor dcd0198f4e49fff0
 Buttons 120 40 paper 16 77c52052897ab891
@@ -16,7 +16,7 @@ Buttons 120 40 paper 256 54c9d75eac43408d
 Buttons 120 40 paper mono 068479fef89e82b5
 Buttons 120 40 paper truecolor 4ccc19e1dca134af
 Buttons 160 50 junie 16 1b516a6e129da3d5
-Buttons 160 50 junie 256 659f29f9bbedb3d6
+Buttons 160 50 junie 256 d8659c2574fffdbf
 Buttons 160 50 junie mono 8f5583306fee596e
 Buttons 160 50 junie truecolor 92e884e968c4841d
 Buttons 160 50 paper 16 6bc02bdc0bc3c58c
@@ -24,7 +24,7 @@ Buttons 160 50 paper 256 deca94aa7e7378da
 Buttons 160 50 paper mono cdfbbcb2b6b2a26e
 Buttons 160 50 paper truecolor 2fc5666813623a02
 Buttons 80 24 junie 16 c08a36ba3e3c510a
-Buttons 80 24 junie 256 c1783b57bbb1c68b
+Buttons 80 24 junie 256 30916b9b1320cd6f
 Buttons 80 24 junie mono 7b9e4965a0db70f6
 Buttons 80 24 junie truecolor 5906380eb22ac720
 Buttons 80 24 paper 16 4209f29fb94c59c6
@@ -256,7 +256,7 @@ Editor 80 24 paper 256 f5fc5986fd62f0db
 Editor 80 24 paper mono cf51167cf09d0bc1
 Editor 80 24 paper truecolor 7c26ccb1042e1148
 Forms 100 30 junie 16 8211250fa0f275de
-Forms 100 30 junie 256 169e55b1e652f996
+Forms 100 30 junie 256 2cc80c46203be066
 Forms 100 30 junie mono 3c4be5d3491f64fe
 Forms 100 30 junie truecolor e4043db3c9025b7e
 Forms 100 30 paper 16 c0a63eb2c19f206c
@@ -264,7 +264,7 @@ Forms 100 30 paper 256 97c18443ee495a99
 Forms 100 30 paper mono 8ad0bc717551f2ac
 Forms 100 30 paper truecolor 8de459c4aae2e2d1
 Forms 120 40 junie 16 c8980d14c385bfe2
-Forms 120 40 junie 256 889f0e0e85dd1ffa
+Forms 120 40 junie 256 6ffeb53b82608469
 Forms 120 40 junie mono 48bb5fc3504bb2a6
 Forms 120 40 junie truecolor b0b224adfe4997bf
 Forms 120 40 paper 16 1441058cb6c2e2ff
@@ -272,7 +272,7 @@ Forms 120 40 paper 256 82c113ec42503ebc
 Forms 120 40 paper mono b3787589e57473e0
 Forms 120 40 paper truecolor cd8bbd3266348a65
 Forms 160 50 junie 16 aec0045da452a3ab
-Forms 160 50 junie 256 37928f1268484376
+Forms 160 50 junie 256 b5025b8a68d29fbf
 Forms 160 50 junie mono ea6207750921e25b
 Forms 160 50 junie truecolor b8b543150d9aee4e
 Forms 160 50 paper 16 f0d28f953348afe5
@@ -280,7 +280,7 @@ Forms 160 50 paper 256 a9c432ff82258da9
 Forms 160 50 paper mono 27d87c2c0b8f9ba1
 Forms 160 50 paper truecolor c67c941e11aaa67b
 Forms 80 24 junie 16 37edbad4d427b6dc
-Forms 80 24 junie 256 03e0e3473d59ff32
+Forms 80 24 junie 256 db2c11a3d9aadabd
 Forms 80 24 junie mono a32d7345cde318cb
 Forms 80 24 junie truecolor b5ca54cf0b9344ea
 Forms 80 24 paper 16 140b2a75f99c2792
@@ -288,7 +288,7 @@ Forms 80 24 paper 256 0b199c2d5360bdd6
 Forms 80 24 paper mono 9724a3471e77e233
 Forms 80 24 paper truecolor 9328f0ac2d2a8a59
 Inputs 100 30 junie 16 2e280122caecbe31
-Inputs 100 30 junie 256 cb7f6a42f3533233
+Inputs 100 30 junie 256 64eaa2ccac79f02a
 Inputs 100 30 junie mono 6df4e7309c7d4152
 Inputs 100 30 junie truecolor 45574fa9094435d2
 Inputs 100 30 paper 16 50b4e53bfd296e88
@@ -296,7 +296,7 @@ Inputs 100 30 paper 256 828586d6eee4729a
 Inputs 100 30 paper mono a5dbb7abb3356500
 Inputs 100 30 paper truecolor e81fec65df1b2174
 Inputs 120 40 junie 16 463350a46ee39c8b
-Inputs 120 40 junie 256 dab829c79cdc49c7
+Inputs 120 40 junie 256 2132daaeeecc4ff3
 Inputs 120 40 junie mono 43088099f11d5190
 Inputs 120 40 junie truecolor 1ab6b3223373b82d
 Inputs 120 40 paper 16 8e611ab812ab0c44
@@ -304,7 +304,7 @@ Inputs 120 40 paper 256 46c5b109ca3e1ffa
 Inputs 120 40 paper mono a068c6940985192a
 Inputs 120 40 paper truecolor 70c98afb993c2f30
 Inputs 160 50 junie 16 1f1b5c8308520e9f
-Inputs 160 50 junie 256 cb3610907f5b286b
+Inputs 160 50 junie 256 cae2232b28d6bac7
 Inputs 160 50 junie mono 4f4000f026ae3bf2
 Inputs 160 50 junie truecolor 5de530cb83af8b3f
 Inputs 160 50 paper 16 73a3df120aa513d6
@@ -312,7 +312,7 @@ Inputs 160 50 paper 256 5138449b5ac7db80
 Inputs 160 50 paper mono b3fc23d90fcacc1c
 Inputs 160 50 paper truecolor 81ef1347d147c5f0
 Inputs 80 24 junie 16 1368c1571fe8121c
-Inputs 80 24 junie 256 2e8aa19b42c544c8
+Inputs 80 24 junie 256 1170c77abb6a7c1c
 Inputs 80 24 junie mono 7cac70ff3624ca50
 Inputs 80 24 junie truecolor 8ac834534bff0562
 Inputs 80 24 paper 16 d4c7ab073c135221
@@ -672,7 +672,7 @@ Terminal 80 24 paper 256 9f9d667e2b9c9fc6
 Terminal 80 24 paper mono 718c1b45598b24e2
 Terminal 80 24 paper truecolor f1c8e6559001b0c0
 Text areas 100 30 junie 16 17ff4c7ec447f13a
-Text areas 100 30 junie 256 07263944daf145de
+Text areas 100 30 junie 256 e8297f0c2e2e0be6
 Text areas 100 30 junie mono 0de873daa676b617
 Text areas 100 30 junie truecolor 686948680141f49b
 Text areas 100 30 paper 16 8e5bb856c3be6b49
@@ -680,7 +680,7 @@ Text areas 100 30 paper 256 87e1edf6f2eefd0f
 Text areas 100 30 paper mono 35f6bed6e7675103
 Text areas 100 30 paper truecolor 40e9d60fa0f35585
 Text areas 120 40 junie 16 a58667d756f72b1d
-Text areas 120 40 junie 256 3b0185eb0d1fda3f
+Text areas 120 40 junie 256 ae2f0899a9cebf9f
 Text areas 120 40 junie mono 1383fb7b13a15cf0
 Text areas 120 40 junie truecolor 31a7e800e944e042
 Text areas 120 40 paper 16 102dde8ad473666b
@@ -688,7 +688,7 @@ Text areas 120 40 paper 256 3287c95da60c0a86
 Text areas 120 40 paper mono f90fdc71efcba2ce
 Text areas 120 40 paper truecolor 45110f519662aaf7
 Text areas 160 50 junie 16 9fce6779b40d43f8
-Text areas 160 50 junie 256 d3c9fcc6d5fbf388
+Text areas 160 50 junie 256 39da5cf32890cfc0
 Text areas 160 50 junie mono 5c0b29ddf423993b
 Text areas 160 50 junie truecolor 3dccf9b74cde841d
 Text areas 160 50 paper 16 b52f4c762f711a6a
