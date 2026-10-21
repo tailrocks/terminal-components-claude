@@ -431,6 +431,7 @@ fn the_shared_vertical_bar_paints_the_legacy_cells() {
                             &chrome.shared(),
                             rows,
                             origin,
+                            None,
                             &vertical_policy(),
                         );
                     });
