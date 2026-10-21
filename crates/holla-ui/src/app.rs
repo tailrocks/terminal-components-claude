@@ -219,8 +219,9 @@ fn brand() -> Brand<'static> {
     Brand::new(BRAND, "holla❯").clickable(true)
 }
 
-/// Rest titles for the disk plate. Focus would bold them; the tag bar is not bold.
-fn paint_disk_menu_titles(ui: &mut Ui<'_>, menu_x: u16, y: u16) {
+/// Rest menu titles. A focused bar bolds them in muted ink. The tag bar is
+/// secondary `#b3b3b3` and not bold.
+fn paint_rest_menu_titles(ui: &mut Ui<'_>, menu_x: u16, y: u16) {
     let plain = ui.paint_patch(
         &StylePatch::new()
             .set_fg(Role::Fg(FgStep::Secondary))
@@ -1617,8 +1618,9 @@ impl App {
         // A disk plate has no query, so the bar would keep focus and bold its titles.
         if (self.route == Route::Disk && crate::sim::catalogue::disk_cleanup_tag_frame(&self.world))
             || launch_failure_activity_open(&self.world, ui)
+            || crate::sim::catalogue::parity_git_current_tag_frame(&self.world)
         {
-            paint_disk_menu_titles(ui, menu_x, header.y);
+            paint_rest_menu_titles(ui, menu_x, header.y);
         }
         let menu_right = menu_x.saturating_add(menu_width).saturating_sub(1);
         let brand_right = lockup_x.saturating_add(brand_width);
