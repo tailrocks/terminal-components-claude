@@ -1,5 +1,3 @@
-use std::io::Write;
-
 use crate::{
     dispatch::{self, Destination},
     domain::{action::Scope, fixtures, ranking::Pin},
@@ -20,9 +18,9 @@ use crate::{
 };
 use termrock::{
     ActionKey, AppShell, Binding, Brand, Chord, Color, Constraints, Cx, Dialog, FgStep,
-    Focusability, FrameRead, Hint, HintBar, HintKey, HintLayer, Id, Intent, ItemKey, KeyCode,
-    KeyMap, KeyPhase, Menu, MenuAction, MenuBar, MenuBarHoverScope, MenuItem, MenuState, Part,
-    PartRef, Phase, Rect, Response, Role, StylePatch, Surface, TooSmall, Ui,
+    Focusability, FrameRead, HintBar, HintLayer, Id, Intent, ItemKey, KeyCode, KeyMap, KeyPhase,
+    Menu, MenuAction, MenuBar, MenuBarHoverScope, MenuItem, MenuState, Part, PartRef, Phase, Rect,
+    Response, Role, StylePatch, Surface, TooSmall, Ui,
 };
 
 use crate::layout::{self, MIN_HEIGHT, MIN_WIDTH};
@@ -219,31 +217,6 @@ fn brand() -> Brand<'static> {
     Brand::new(BRAND, "holla❯").clickable(true)
 }
 
-/// Rest titles for the disk plate. Focus would bold them; the tag bar is not bold.
-fn paint_disk_menu_titles(ui: &mut Ui<'_>, menu_x: u16, y: u16) {
-    let plain = ui.paint_patch(
-        &StylePatch::new()
-            .set_fg(Role::Fg(FgStep::Secondary))
-            .remove(termrock::Modifier::BOLD),
-    );
-    let gap = ui.paint_patch(
-        &StylePatch::new()
-            .set_fg(Role::Fg(FgStep::Primary))
-            .remove(termrock::Modifier::BOLD),
-    );
-    let mut x = menu_x;
-    ui.paint_str(Rect::new(x, y, 1, 1), " ", gap);
-    x = x.saturating_add(1);
-    for label in BAR_LABELS {
-        let text = format!(" {label} ");
-        let width = termrock::width(&text);
-        ui.paint_str(Rect::new(x, y, width, 1), &text, plain);
-        x = x.saturating_add(width);
-        ui.paint_str(Rect::new(x, y, 1, 1), " ", gap);
-        x = x.saturating_add(1);
-    }
-}
-
 /// Tag `segments::render` inset. Not the status-bar gutter: that bar fills `#111111`.
 const MENU_CHROME_EDGE: u16 = 2;
 const MENU_SEGMENT_GAP: u16 = 2;
@@ -255,73 +228,7 @@ const STATUS_BG: Color = Color::Rgb(0x18, 0x18, 0x1b);
 const STATUS_FG: Color = Color::Rgb(0xff, 0xff, 0xff);
 const STATUS_GREY: Color = Color::Rgb(0x8a, 0x8a, 0x8a);
 const STATUS_LINK: Color = Color::Rgb(0x79, 0xb8, 0xff);
-const STATUS_DANGER: Color = Color::Rgb(0xf0, 0x5d, 0x5d);
 const STATUS_AMBER: Color = Color::Rgb(0xf5, 0x9e, 0x09);
-const STATUS_CENTER: &str = "! docker, github unavailable";
-const STATUS_WARN: &str = "▲ 4 config warnings";
-const PARITY_HINT_BG: Color = Color::Rgb(0, 0, 0);
-const PARITY_HINT_PARTS: &[(Part, StylePatch)] = &[
-    (
-        Part::CONTAINER,
-        StylePatch::new()
-            .set_fg(Role::Custom(STATUS_FG))
-            .set_bg(Role::Custom(PARITY_HINT_BG)),
-    ),
-    (
-        Part::KEY,
-        StylePatch::new()
-            .set_fg(Role::Custom(STATUS_FG))
-            .set_bg(Role::Custom(PARITY_HINT_BG))
-            .add(termrock::Modifier::BOLD),
-    ),
-    (
-        Part::ACTION,
-        StylePatch::new()
-            .set_fg(Role::Custom(STATUS_GREY))
-            .set_bg(Role::Custom(PARITY_HINT_BG)),
-    ),
-    (
-        Part::LABEL,
-        StylePatch::new()
-            .set_fg(Role::Custom(Color::Rgb(0xb3, 0xb3, 0xb3)))
-            .set_bg(Role::Custom(PARITY_HINT_BG)),
-    ),
-];
-
-/// Activities footer clips `Ctrl+G` to `…` in meta ink. Other plates keep the theme overflow.
-const ACTIVITIES_HINT_PARTS: &[(Part, StylePatch)] = &[
-    (
-        Part::CONTAINER,
-        StylePatch::new()
-            .set_fg(Role::Custom(STATUS_FG))
-            .set_bg(Role::Custom(PARITY_HINT_BG)),
-    ),
-    (
-        Part::KEY,
-        StylePatch::new()
-            .set_fg(Role::Custom(STATUS_FG))
-            .set_bg(Role::Custom(PARITY_HINT_BG))
-            .add(termrock::Modifier::BOLD),
-    ),
-    (
-        Part::ACTION,
-        StylePatch::new()
-            .set_fg(Role::Custom(STATUS_GREY))
-            .set_bg(Role::Custom(PARITY_HINT_BG)),
-    ),
-    (
-        Part::LABEL,
-        StylePatch::new()
-            .set_fg(Role::Custom(Color::Rgb(0xb3, 0xb3, 0xb3)))
-            .set_bg(Role::Custom(PARITY_HINT_BG)),
-    ),
-    (
-        Part::OVERFLOW,
-        StylePatch::new()
-            .set_fg(Role::Custom(Color::Rgb(0x73, 0x73, 0x73)))
-            .set_bg(Role::Custom(PARITY_HINT_BG)),
-    ),
-];
 
 fn status_ink(ui: &Ui<'_>, fg: Color, bold: bool) -> termrock::PaintStyle {
     let patch = StylePatch::new()
@@ -373,707 +280,50 @@ fn paint_size_label(ui: &mut Ui<'_>, area: Rect) -> u16 {
     size_x
 }
 
-/// The `parity-history` bands with their own body: single-column below 160.
-fn parity_history_tag_plate(world: &World, width: u16, _height: u16) -> bool {
-    crate::sim::catalogue::parity_history_tag_frame(world) && (80..160).contains(&width)
-}
-
-/// Below 120 the single-column history clips the last hint. 120 and up keep the wide parts.
-fn parity_history_clipped_plate(world: &World, width: u16, _height: u16) -> bool {
-    crate::sim::catalogue::parity_history_tag_frame(world) && (80..120).contains(&width)
-}
-
-/// 80–119 clip the last hint. 120 and up fits every hint, so it keeps the wide parts.
-fn parity_files_clipped_plate(world: &World, width: u16, _height: u16) -> bool {
-    crate::sim::catalogue::parity_files_tag_frame(world) && (80..120).contains(&width)
-}
-
-/// 80–159 `parity-files` tag frames. Other sizes stay off.
-fn parity_files_tag_plate(world: &World, width: u16, _height: u16) -> bool {
-    crate::sim::catalogue::parity_files_tag_frame(world) && (80..160).contains(&width)
-}
-
-/// Below 120 the single-column browser clips the last hint. 120 and up keep the wide parts.
-fn parity_browser_clipped_plate(world: &World, width: u16, _height: u16) -> bool {
-    crate::sim::catalogue::parity_browser_tag_frame(world) && (80..120).contains(&width)
-}
-
-/// The `parity-browser` bands with their own body: single-column below 120, the
-/// wide card from 120 up to 160. Files plates and every other size stay off.
-fn parity_browser_tag_plate(world: &World, width: u16, _height: u16) -> bool {
-    crate::sim::catalogue::parity_browser_tag_frame(world) && (80..160).contains(&width)
-}
-
-/// 80×24 and 100×30 clip the last hint. 120×40 fits every hint, so it keeps the wide parts.
-fn parity_git_current_clipped_plate(world: &World, width: u16, _height: u16) -> bool {
-    crate::sim::catalogue::parity_git_current_tag_frame(world) && (80..120).contains(&width)
-}
-
-fn parity_git_current_tag_plate(world: &World, width: u16, _height: u16) -> bool {
-    crate::sim::catalogue::parity_git_current_tag_frame(world) && (80..160).contains(&width)
-}
-
-fn parity_cargo_clipped_plate(world: &World, width: u16, _height: u16) -> bool {
-    crate::sim::catalogue::parity_cargo_tag_frame(world) && (80..120).contains(&width)
-}
-
-fn parity_cargo_tag_plate(world: &World, width: u16, _height: u16) -> bool {
-    crate::sim::catalogue::parity_cargo_tag_frame(world) && (80..160).contains(&width)
-}
-
-fn parity_git_batch_clipped_plate(world: &World, width: u16, _height: u16) -> bool {
-    crate::sim::catalogue::parity_git_batch_tag_frame(world) && (80..120).contains(&width)
-}
-
-fn parity_git_batch_tag_plate(world: &World, width: u16, _height: u16) -> bool {
-    crate::sim::catalogue::parity_git_batch_tag_frame(world) && (80..160).contains(&width)
-}
-
-fn parity_task_sources_tag_plate(world: &World, width: u16, _height: u16) -> bool {
-    // The task-sources chrome lives in the narrow band; the mid band keeps the
-    // generic adaptive status and hints.
-    crate::sim::catalogue::parity_task_sources_tag_frame(world)
-        && layout::Band::of(width).is_narrow()
-}
-
-/// Tag parity-browser status at 80×24, 100×30, and 120×40: cwd, then the size label. No branch.
-fn paint_parity_browser_status(ui: &mut Ui<'_>, area: Rect) {
+fn paint_status_bar(world: &World, ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
         return;
     }
     ui.fill(area, status_ink(ui, STATUS_FG, false));
-    let _ = paint_status_text(
-        ui,
-        area,
-        area.x.saturating_add(STATUS_EDGE),
-        "~/work/site",
-        STATUS_FG,
-        true,
-    );
-    let _ = paint_size_label(ui, area);
-}
-
-/// Tag parity-git-current status at 80×24, 100×30, and 120×40: cwd, branch, behind/ahead, dirty mark, then the size label.
-fn paint_parity_git_current_status(ui: &mut Ui<'_>, area: Rect) {
-    if area.is_empty() {
-        return;
-    }
-    ui.fill(area, status_ink(ui, STATUS_FG, false));
+    let narrow = layout::Band::of(ui.full().width).is_narrow();
     let mut x = area.x.saturating_add(STATUS_EDGE);
-    for (text, fg, bold) in [
-        ("~/work/svc/src/api", STATUS_FG, true),
-        ("feature/x", STATUS_GREY, false),
-        ("↓2 ↑1", STATUS_LINK, false),
-        ("• 1", STATUS_AMBER, false),
-    ] {
-        x = paint_status_text(ui, area, x, text, fg, bold).saturating_add(STATUS_GAP);
+    x = paint_status_text(ui, area, x, &world.cwd, STATUS_FG, true).saturating_add(STATUS_GAP);
+    if let Some(git) = &world.git {
+        if let Some(branch) = &git.branch {
+            if !narrow || (git.behind == 0 && git.ahead == 0 && git.modified == 0) {
+                x = paint_status_text(ui, area, x, branch, STATUS_GREY, false)
+                    .saturating_add(STATUS_GAP);
+            }
+        } else if let Some(sha) = &git.detached_sha {
+            let text = format!("detached @ {sha}");
+            x = paint_status_text(ui, area, x, &text, STATUS_GREY, false)
+                .saturating_add(STATUS_GAP);
+        }
+        if git.behind > 0 && git.ahead > 0 {
+            let text = format!("↓{} ↑{}", git.behind, git.ahead);
+            x = paint_status_text(ui, area, x, &text, STATUS_LINK, false)
+                .saturating_add(STATUS_GAP);
+        } else if git.behind > 0 {
+            let text = format!("↓{}", git.behind);
+            x = paint_status_text(ui, area, x, &text, STATUS_LINK, false)
+                .saturating_add(STATUS_GAP);
+        } else if git.ahead > 0 {
+            let text = format!("↑{}", git.ahead);
+            x = paint_status_text(ui, area, x, &text, STATUS_LINK, false)
+                .saturating_add(STATUS_GAP);
+        }
+        let dirty = git
+            .modified
+            .saturating_add(git.staged)
+            .saturating_add(git.untracked);
+        if dirty > 0 {
+            let text = format!("• {dirty}");
+            x = paint_status_text(ui, area, x, &text, STATUS_AMBER, false)
+                .saturating_add(STATUS_GAP);
+        }
     }
     let _ = x;
     let _ = paint_size_label(ui, area);
-}
-
-/// Tag parity-cargo status at 80×24, 100×30, and 120×40: cwd, branch, then the size label. No ahead count.
-fn paint_parity_cargo_status(ui: &mut Ui<'_>, area: Rect) {
-    if area.is_empty() {
-        return;
-    }
-    ui.fill(area, status_ink(ui, STATUS_FG, false));
-    let cwd_end = paint_status_text(
-        ui,
-        area,
-        area.x.saturating_add(STATUS_EDGE),
-        "~/work/engine",
-        STATUS_FG,
-        true,
-    );
-    let _ = paint_status_text(
-        ui,
-        area,
-        cwd_end.saturating_add(STATUS_GAP),
-        "main",
-        STATUS_GREY,
-        false,
-    );
-    let _ = paint_size_label(ui, area);
-}
-
-/// Tag parity-task-sources status at 80×24: cwd, then the size label. No branch.
-fn paint_parity_task_sources_status(ui: &mut Ui<'_>, area: Rect) {
-    if area.is_empty() {
-        return;
-    }
-    ui.fill(area, status_ink(ui, STATUS_FG, false));
-    let _ = paint_status_text(
-        ui,
-        area,
-        area.x.saturating_add(STATUS_EDGE),
-        "~/work/poly",
-        STATUS_FG,
-        true,
-    );
-    let _ = paint_size_label(ui, area);
-}
-
-/// Tag parity-git-batch status at 80×24, 100×30, and 120×40: cwd, then the size label. No branch.
-fn paint_parity_git_batch_status(ui: &mut Ui<'_>, area: Rect) {
-    if area.is_empty() {
-        return;
-    }
-    ui.fill(area, status_ink(ui, STATUS_FG, false));
-    let _ = paint_status_text(
-        ui,
-        area,
-        area.x.saturating_add(STATUS_EDGE),
-        "~/work/repos",
-        STATUS_FG,
-        true,
-    );
-    let _ = paint_size_label(ui, area);
-}
-
-/// Tag parity-files status at 80×24, 100×30, and 120×40: cwd, then the size label. No branch.
-fn paint_parity_files_status(ui: &mut Ui<'_>, area: Rect) {
-    if area.is_empty() {
-        return;
-    }
-    ui.fill(area, status_ink(ui, STATUS_FG, false));
-    let _ = paint_status_text(
-        ui,
-        area,
-        area.x.saturating_add(STATUS_EDGE),
-        "~/work/notes",
-        STATUS_FG,
-        true,
-    );
-    let _ = paint_size_label(ui, area);
-}
-
-/// Tag parity-history status at 80×24, 100×30, and 120×40: cwd, branch, then the size label. No ahead count.
-fn paint_parity_history_status(ui: &mut Ui<'_>, area: Rect) {
-    if area.is_empty() {
-        return;
-    }
-    ui.fill(area, status_ink(ui, STATUS_FG, false));
-    let cwd_end = paint_status_text(
-        ui,
-        area,
-        area.x.saturating_add(STATUS_EDGE),
-        "~/work/holla",
-        STATUS_FG,
-        true,
-    );
-    let _ = paint_status_text(
-        ui,
-        area,
-        cwd_end.saturating_add(STATUS_GAP),
-        "main",
-        STATUS_GREY,
-        false,
-    );
-    let _ = paint_size_label(ui, area);
-}
-
-/// Tag first-use status: cwd, an 11-cell `/` meter at 91%, then the size label.
-fn paint_first_use_status(ui: &mut Ui<'_>, area: Rect) {
-    if area.is_empty() {
-        return;
-    }
-    ui.fill(area, status_ink(ui, STATUS_FG, false));
-    let _ = paint_status_text(
-        ui,
-        area,
-        area.x.saturating_add(STATUS_EDGE),
-        "~/scratch",
-        STATUS_FG,
-        true,
-    );
-    let size_x = paint_size_label(ui, area);
-    let mark = "91% ▲";
-    let mark_w = termrock::width(mark);
-    let bar_w = 11u16;
-    let meter_w = 1u16
-        .saturating_add(1)
-        .saturating_add(bar_w)
-        .saturating_add(1)
-        .saturating_add(mark_w);
-    let mut x = size_x.saturating_sub(STATUS_GAP).saturating_sub(meter_w);
-    x = paint_status_text(ui, area, x, "/", STATUS_GREY, false).saturating_add(1);
-    x = paint_status_text(ui, area, x, &"━".repeat(10), STATUS_AMBER, false);
-    x = paint_status_text(ui, area, x, "─", Color::Rgb(0x3a, 0x3a, 0x3a), false).saturating_add(1);
-    let _ = paint_status_text(ui, area, x, mark, STATUS_AMBER, false);
-}
-
-/// Tag remote-host status: service cwd, detached tag, then the size label.
-fn paint_remote_host_status(ui: &mut Ui<'_>, area: Rect) {
-    if area.is_empty() {
-        return;
-    }
-    ui.fill(area, status_ink(ui, STATUS_FG, false));
-    let mut x = area.x.saturating_add(STATUS_EDGE);
-    for (text, fg, bold) in [
-        ("/srv/payments", STATUS_FG, true),
-        ("detached @ v2.14.3", STATUS_GREY, false),
-    ] {
-        x = paint_status_text(ui, area, x, text, fg, bold).saturating_add(STATUS_GAP);
-    }
-    let _ = paint_size_label(ui, area);
-}
-
-/// Tag hard-cases status. The size label does not fit, so the row ends in `…`.
-/// 80×24 keeps only the path. 100×30 keeps the git marks and centers the docker warning.
-/// Wider frames also show the conflict count and the rebase mark.
-fn paint_hard_cases_status(ui: &mut Ui<'_>, area: Rect) {
-    if area.is_empty() {
-        return;
-    }
-    ui.fill(area, status_ink(ui, STATUS_FG, false));
-    let path = termrock::truncate_middle(
-        "~/work/clients/northwind-traders-platform-migration/services/inventory-reconciliation-service",
-        44,
-    );
-    let mut x = area.x.saturating_add(STATUS_EDGE);
-    if layout::Band::of(ui.full().width).is_narrow() {
-        paint_status_text(ui, area, x, &path, STATUS_FG, true);
-        let mark_x = area.right().saturating_sub(STATUS_EDGE).saturating_sub(1);
-        paint_status_text(ui, area, mark_x, "…", STATUS_GREY, false);
-        return;
-    }
-    let mid = layout::Band::of(ui.full().width).is_mid();
-    for (text, fg, bold) in [
-        (path.as_str(), STATUS_FG, true),
-        ("↓14 ↑3", STATUS_LINK, false),
-        ("• 7", STATUS_AMBER, false),
-    ] {
-        x = paint_status_text(ui, area, x, text, fg, bold).saturating_add(STATUS_GAP);
-    }
-    if !mid {
-        for (text, fg, bold) in [
-            ("2 conflicts", STATUS_DANGER, false),
-            ("rebase", STATUS_AMBER, false),
-        ] {
-            x = paint_status_text(ui, area, x, text, fg, bold).saturating_add(STATUS_GAP);
-        }
-    }
-    let warn = "! docker, github unavailable";
-    let mark_x = area.right().saturating_sub(STATUS_EDGE).saturating_sub(1);
-    let warn_x = if mid {
-        let warn_w = termrock::width(warn);
-        let hi = mark_x.saturating_sub(STATUS_GAP);
-        let free = hi.saturating_sub(x);
-        if free >= warn_w {
-            x.saturating_add(free.saturating_sub(warn_w) / 2)
-        } else {
-            x
-        }
-    } else {
-        x
-    };
-    paint_status_text(ui, area, warn_x, warn, STATUS_DANGER, false);
-    paint_status_text(ui, area, mark_x, "…", STATUS_GREY, false);
-}
-
-/// Tag docker-cleanup status: cwd without the tilde, then the size label.
-fn paint_docker_cleanup_status(ui: &mut Ui<'_>, area: Rect) {
-    if area.is_empty() {
-        return;
-    }
-    ui.fill(area, status_ink(ui, STATUS_FG, false));
-    let _ = paint_status_text(
-        ui,
-        area,
-        area.x.saturating_add(STATUS_EDGE),
-        "/work/scratch",
-        STATUS_FG,
-        true,
-    );
-    let _ = paint_size_label(ui, area);
-}
-
-/// Tag disk-cleanup status: cwd, centered selection, then the 91% meter.
-fn paint_disk_cleanup_status(ui: &mut Ui<'_>, area: Rect) {
-    if area.is_empty() {
-        return;
-    }
-    ui.fill(area, status_ink(ui, STATUS_FG, false));
-    let cwd_end = paint_status_text(
-        ui,
-        area,
-        area.x.saturating_add(STATUS_EDGE),
-        "~/work",
-        STATUS_FG,
-        true,
-    );
-    let size_x = paint_size_label(ui, area);
-    let mark = "91% ▲";
-    let mark_w = termrock::width(mark);
-    let bar_w = 11u16;
-    let meter_w = 1u16
-        .saturating_add(1)
-        .saturating_add(bar_w)
-        .saturating_add(1)
-        .saturating_add(mark_w);
-    let meter_x = size_x.saturating_sub(STATUS_GAP).saturating_sub(meter_w);
-    let center = "3 selected · 24.2 GiB";
-    let center_w = termrock::width(center);
-    let lo = cwd_end.saturating_add(STATUS_GAP);
-    let hi = meter_x.saturating_sub(STATUS_GAP);
-    let free = hi.saturating_sub(lo);
-    if free >= center_w {
-        let cx = lo.saturating_add(free.saturating_sub(center_w) / 2);
-        paint_status_text(ui, area, cx, center, Color::Rgb(0xb3, 0xb3, 0xb3), false);
-    }
-    let mut x = paint_status_text(ui, area, meter_x, "/", STATUS_GREY, false).saturating_add(1);
-    x = paint_status_text(ui, area, x, &"━".repeat(10), STATUS_AMBER, false);
-    x = paint_status_text(ui, area, x, "─", Color::Rgb(0x3a, 0x3a, 0x3a), false).saturating_add(1);
-    let _ = paint_status_text(ui, area, x, mark, STATUS_AMBER, false);
-}
-
-/// Tag disk-cleanup footer. The last hint does not fit, so the row ends in `…`.
-/// 80×24 drops Delete, the artifact plan, and Rescan.
-/// 100×30 keeps Delete and drops the artifact plan and Rescan. Cancel scan misses the tag fit budget.
-/// Wider frames keep the artifact plan and Rescan.
-fn paint_disk_cleanup_footer(ui: &mut Ui<'_>, area: Rect) {
-    if area.is_empty() {
-        return;
-    }
-    let canvas = Color::Rgb(0, 0, 0);
-    let key_style = status_ink(ui, STATUS_FG, true).bg(canvas);
-    let label_style = status_ink(ui, STATUS_GREY, false).bg(canvas);
-    let overflow = status_ink(ui, Color::Rgb(0x73, 0x73, 0x73), false).bg(canvas);
-    let wide_hints = [
-        ("↑↓", "Move"),
-        ("←→", "Fold / open"),
-        ("Space", "Select"),
-        ("s", "Sort"),
-        ("f", "Fold noise"),
-        ("d", "Delete…"),
-        ("c", "Artifact plan"),
-        ("r", "Rescan"),
-        ("Esc", "Back"),
-        ("x", "Cancel scan"),
-    ];
-    let mid_hints = [
-        ("↑↓", "Move"),
-        ("←→", "Fold / open"),
-        ("Space", "Select"),
-        ("s", "Sort"),
-        ("f", "Fold noise"),
-        ("d", "Delete…"),
-        ("Esc", "Back"),
-        ("x", "Cancel scan"),
-    ];
-    let narrow_hints = [
-        ("↑↓", "Move"),
-        ("←→", "Fold / open"),
-        ("Space", "Select"),
-        ("s", "Sort"),
-        ("f", "Fold noise"),
-        ("Esc", "Back"),
-        ("x", "Cancel scan"),
-    ];
-    let narrow = layout::Band::of(ui.full().width).is_narrow();
-    let mid = layout::Band::of(ui.full().width).is_mid();
-    let hints: &[(&str, &str)] = if narrow {
-        &narrow_hints
-    } else if mid {
-        &mid_hints
-    } else {
-        &wide_hints
-    };
-    // Tag hint `fit` room is the width minus the left inset, the right inset, and the overflow gap.
-    let room = u32::from(area.width.saturating_sub(4));
-    let mut x = area.x.saturating_add(1);
-    let mut truncated = false;
-    for (index, (key, label)) in hints.iter().enumerate() {
-        let key_w = termrock::width(key);
-        let label_w = termrock::width(label);
-        let need = key_w.saturating_add(1).saturating_add(label_w);
-        let cut = if mid {
-            disk_hint_cost(hints, index.saturating_add(1)) > room
-        } else {
-            x.saturating_add(need) > area.right()
-        };
-        if cut {
-            truncated = true;
-            break;
-        }
-        ui.paint_str(Rect::new(x, area.y, key_w, 1), key, key_style);
-        x = x.saturating_add(key_w).saturating_add(1);
-        ui.paint_str(Rect::new(x, area.y, label_w, 1), label, label_style);
-        x = x.saturating_add(label_w);
-        if index.saturating_add(1) != hints.len() {
-            x = x.saturating_add(2);
-        }
-    }
-    if truncated && x < area.right() {
-        ui.paint_str(Rect::new(x, area.y, 1, 1), "…", overflow);
-    }
-}
-
-/// Tag hint `fit` cost. Each kept hint pays its width plus the gap. A cut reserves one more gap.
-fn disk_hint_cost(hints: &[(&str, &str)], keep: usize) -> u32 {
-    let mut cost = 0u32;
-    for (key, label) in hints.iter().take(keep) {
-        let hint_w = u32::from(
-            termrock::width(key)
-                .saturating_add(1)
-                .saturating_add(termrock::width(label)),
-        );
-        cost = cost.saturating_add(hint_w).saturating_add(2);
-    }
-    if keep < hints.len() {
-        cost = cost.saturating_add(2);
-    }
-    cost
-}
-
-/// Tag monorepo-root status: cwd, branch, ahead count, then the size label.
-fn paint_monorepo_status(ui: &mut Ui<'_>, area: Rect) {
-    if area.is_empty() {
-        return;
-    }
-    ui.fill(area, status_ink(ui, STATUS_FG, false));
-    let mut x = area.x.saturating_add(STATUS_EDGE);
-    for (text, fg, bold) in [
-        ("~/work/acme", STATUS_FG, true),
-        ("main", STATUS_GREY, false),
-        ("↑1", STATUS_LINK, false),
-    ] {
-        x = paint_status_text(ui, area, x, text, fg, bold).saturating_add(STATUS_GAP);
-    }
-    let _ = paint_size_label(ui, area);
-}
-
-/// Tag activities-multi status: the monorepo cluster, then `⠋` and `4 running` chips.
-fn paint_activities_multi_status(ui: &mut Ui<'_>, area: Rect) {
-    if area.is_empty() {
-        return;
-    }
-    paint_monorepo_status(ui, area);
-    let size_x = paint_size_label(ui, area);
-    let spin = " ⠋";
-    let running = "4 running ";
-    let group = termrock::width(spin)
-        .saturating_add(1)
-        .saturating_add(termrock::width(running));
-    let x = size_x.saturating_sub(STATUS_GAP).saturating_sub(group);
-    let label = activity_chip_style(ui, Color::Rgb(0xb3, 0xb3, 0xb3));
-    let mark = activity_chip_style(ui, Color::Rgb(0x48, 0xe0, 0x54));
-    ui.paint_str(Rect::new(x, area.y, 1, 1), " ", label);
-    ui.paint_str(Rect::new(x.saturating_add(1), area.y, 1, 1), "⠋", mark);
-    ui.paint_str(
-        Rect::new(x.saturating_add(3), area.y, termrock::width(running), 1),
-        running,
-        label,
-    );
-}
-
-fn activity_chip_style(ui: &Ui<'_>, fg: Color) -> termrock::PaintStyle {
-    ui.paint_patch(
-        &StylePatch::new()
-            .set_fg(Role::Custom(fg))
-            .set_bg(Role::Custom(Color::Rgb(0x27, 0x27, 0x2a)))
-            .remove(termrock::Modifier::BOLD),
-    )
-}
-
-fn launch_failure_activity_open(world: &World, ui: &Ui<'_>) -> bool {
-    let full = ui.full();
-    crate::sim::catalogue::launch_failure_activity_frame(world, full.width)
-}
-
-/// Tag launch-failure status: child cwd, branch, ahead, dirty mark, failure, then the size label.
-fn paint_launch_failure_status(ui: &mut Ui<'_>, area: Rect) {
-    if area.is_empty() {
-        return;
-    }
-    ui.fill(area, status_ink(ui, STATUS_FG, false));
-    let mut x = area.x.saturating_add(STATUS_EDGE);
-    for (text, fg, bold) in [
-        ("~/work/acme/apps/frontend", STATUS_FG, true),
-        ("main", STATUS_GREY, false),
-        ("↑1", STATUS_LINK, false),
-        ("• 2", STATUS_AMBER, false),
-    ] {
-        x = paint_status_text(ui, area, x, text, fg, bold).saturating_add(STATUS_GAP);
-    }
-    let left_end = x.saturating_sub(STATUS_GAP);
-    let narrow = layout::Band::of(ui.full().width).is_narrow();
-    let size_x = if narrow {
-        let mark_x = area.right().saturating_sub(STATUS_EDGE).saturating_sub(1);
-        paint_status_text(ui, area, mark_x, "…", STATUS_GREY, false);
-        mark_x
-    } else {
-        paint_size_label(ui, area)
-    };
-    let center = "! exit 1 · 1 s";
-    let center_w = termrock::width(center);
-    let lo = left_end.saturating_add(STATUS_GAP);
-    let hi = size_x.saturating_sub(STATUS_GAP);
-    let free = hi.saturating_sub(lo);
-    if free >= center_w {
-        let cx = lo.saturating_add(free.saturating_sub(center_w) / 2);
-        paint_status_text(ui, area, cx, center, STATUS_DANGER, false);
-    }
-}
-
-/// Tag launch-failure footer. `Shift+F10 Menu` misses the status, so the row shows `…`.
-fn paint_launch_failure_footer(ui: &mut Ui<'_>, area: Rect) {
-    if area.is_empty() {
-        return;
-    }
-    let canvas = Color::Rgb(0, 0, 0);
-    let key_style = status_ink(ui, STATUS_FG, true).bg(canvas);
-    let label_style = status_ink(ui, STATUS_GREY, false).bg(canvas);
-    let overflow = status_ink(ui, Color::Rgb(0x73, 0x73, 0x73), false).bg(canvas);
-    let danger = status_ink(ui, STATUS_DANGER, false).bg(canvas);
-    let danger_bold = status_ink(ui, STATUS_DANGER, true).bg(canvas);
-    let rest = " frontend dev failed · exit 1";
-    let total = 1u16.saturating_add(termrock::width(rest));
-    let status_x = area.right().saturating_sub(1).saturating_sub(total);
-    let hints = [
-        ("↑↓", "Scroll"),
-        ("f", "Follow"),
-        ("/", "Find"),
-        ("y", "Copy"),
-        ("r", "Restart"),
-        ("x", "Close"),
-        ("Esc", "Back to Here"),
-        ("Shift+F10", "Menu"),
-    ];
-    let mut x = area.x.saturating_add(1);
-    let mut truncated = false;
-    let narrow = layout::Band::of(ui.full().width).is_narrow();
-    for (index, (key, label)) in hints.iter().enumerate() {
-        let key_w = termrock::width(key);
-        let label_w = termrock::width(label);
-        let need = key_w.saturating_add(1).saturating_add(label_w);
-        // 80×24 keeps the ellipsis in the budget, so `Restart` drops. 120×40 does not.
-        let reserve = if narrow && index.saturating_add(1) != hints.len() {
-            3
-        } else {
-            0
-        };
-        if x.saturating_add(need).saturating_add(reserve) > status_x {
-            truncated = true;
-            break;
-        }
-        ui.paint_str(Rect::new(x, area.y, key_w, 1), key, key_style);
-        x = x.saturating_add(key_w).saturating_add(1);
-        ui.paint_str(Rect::new(x, area.y, label_w, 1), label, label_style);
-        x = x.saturating_add(label_w);
-        if index.saturating_add(1) != hints.len() {
-            x = x.saturating_add(2);
-        }
-    }
-    if truncated && x < status_x {
-        ui.paint_str(Rect::new(x, area.y, 1, 1), "…", overflow);
-    }
-    ui.paint_str(Rect::new(status_x, area.y, 1, 1), "!", danger_bold);
-    ui.paint_str(
-        Rect::new(status_x.saturating_add(1), area.y, termrock::width(rest), 1),
-        rest,
-        danger,
-    );
-}
-
-/// Tag monorepo-child status: child cwd, branch, ahead count, dirty mark, then the size label.
-fn paint_monorepo_child_status(ui: &mut Ui<'_>, area: Rect) {
-    if area.is_empty() {
-        return;
-    }
-    ui.fill(area, status_ink(ui, STATUS_FG, false));
-    let mut x = area.x.saturating_add(STATUS_EDGE);
-    for (text, fg, bold) in [
-        ("~/work/acme/apps/frontend", STATUS_FG, true),
-        ("main", STATUS_GREY, false),
-        ("↑1", STATUS_LINK, false),
-        ("• 2", STATUS_AMBER, false),
-    ] {
-        x = paint_status_text(ui, area, x, text, fg, bold).saturating_add(STATUS_GAP);
-    }
-    let _ = paint_size_label(ui, area);
-}
-
-fn docker_hint(key: &'static str, label: &'static str) -> Hint {
-    Hint {
-        key: HintKey::Label(key),
-        label,
-        priority: 50,
-    }
-}
-
-fn docker_cleanup_hints() -> HintLayer {
-    HintLayer {
-        hints: vec![
-            docker_hint("Type", "Search"),
-            docker_hint("↑↓", "Move"),
-            docker_hint("Enter", "Review…"),
-            docker_hint("Alt+Enter", "Alternatives…"),
-            docker_hint("Tab", "Preview"),
-            docker_hint("Ctrl+↑↓", "Scope"),
-            docker_hint("Esc", "Clear"),
-        ],
-        status: Some(std::borrow::Cow::Borrowed("Clean Docker c…")),
-        ..HintLayer::empty()
-    }
-}
-
-/// 100×30 docker footer. `Esc Clear` stays. `Ctrl+↑↓ Scope` misses by one column, so the meta `…` paints.
-/// No status. The wide plate keeps `Clean Docker c…`.
-fn docker_cleanup_100x30_hints() -> HintLayer {
-    HintLayer {
-        hints: vec![
-            docker_hint("Type", "Search"),
-            docker_hint("↑↓", "Move"),
-            docker_hint("Enter", "Review…"),
-            docker_hint("Alt+Enter", "Alternatives…"),
-            docker_hint("Tab", "Preview"),
-            docker_hint("Esc", "Clear"),
-            docker_hint("Ctrl+↑↓", "Scope "),
-        ],
-        ..HintLayer::empty()
-    }
-}
-
-/// 80×24 docker footer. `Esc Clear` stays and `Tab Preview` becomes the meta `…`.
-/// The wide plate keeps list order and the `Clean Docker c…` status.
-fn docker_cleanup_80x24_hints() -> HintLayer {
-    HintLayer {
-        hints: vec![
-            docker_hint("Type", "Search"),
-            docker_hint("↑↓", "Move"),
-            docker_hint("Enter", "Review…"),
-            docker_hint("Alt+Enter", "Alternatives…"),
-            docker_hint("Esc", "Clear"),
-            docker_hint("Tab", "Preview"),
-            docker_hint("Ctrl+↑↓", "Scope"),
-        ],
-        ..HintLayer::empty()
-    }
-}
-
-fn tag_hints(confirm: &'static str, status: Option<&'static str>) -> HintLayer {
-    fn hint(key: &'static str, label: &'static str) -> Hint {
-        Hint {
-            key: HintKey::Label(key),
-            label,
-            priority: 50,
-        }
-    }
-    HintLayer {
-        hints: vec![
-            hint("Type", "Search"),
-            hint("↑↓", "Move"),
-            hint("Enter", confirm),
-            hint("Alt+Enter", "Alternatives…"),
-            hint("Tab", "Preview"),
-            hint("Ctrl+↑↓", "Scope"),
-            hint("Ctrl+G", "Activities"),
-        ],
-        status: status.map(std::borrow::Cow::Borrowed),
-        ..HintLayer::empty()
-    }
 }
 
 fn menu_project(world: &World) -> String {
@@ -1104,30 +354,14 @@ fn menu_project(world: &World) -> String {
         | Scenario::ParityDiskScan
         | Scenario::ParityPlatforms
         | Scenario::ParityPlatformsLinux => "no project".to_owned(),
-        Scenario::FirstUse if crate::sim::catalogue::first_use_tag_frame(world) => {
-            "no project".to_owned()
-        }
-        Scenario::MonorepoRoot if crate::sim::catalogue::monorepo_root_tag_frame(world) => {
-            "acme · mise monorepo".to_owned()
-        }
-        Scenario::ActivitiesMulti if crate::sim::catalogue::activities_multi_tag_frame(world) => {
-            "acme · mise monorepo".to_owned()
-        }
-        Scenario::MonorepoChild if crate::sim::catalogue::monorepo_child_tag_frame(world) => {
-            "acme › frontend · Node project · pnpm".to_owned()
-        }
-        Scenario::DockerCleanup if crate::sim::catalogue::docker_cleanup_tag_frame(world) => {
-            "no project".to_owned()
-        }
-        Scenario::RemoteHost if crate::sim::catalogue::remote_host_tag_frame(world) => {
-            "payments · service checkout".to_owned()
-        }
-        Scenario::HardCases if crate::sim::catalogue::hard_cases_tag_frame(world) => {
-            "northwind-traders-platform-migration › inventory-reconciliation-service · Rust workspace · member inventory-reconciliation-core".to_owned()
-        }
-        Scenario::DiskCleanup if crate::sim::catalogue::disk_cleanup_tag_frame(world) => {
-            "work · project collection".to_owned()
-        }
+        Scenario::FirstUse => "no project".to_owned(),
+        Scenario::MonorepoRoot => "acme · mise monorepo".to_owned(),
+        Scenario::ActivitiesMulti => "acme · mise monorepo".to_owned(),
+        Scenario::MonorepoChild => "acme › frontend · Node project · pnpm".to_owned(),
+        Scenario::DockerCleanup => "no project".to_owned(),
+        Scenario::RemoteHost => "payments · service checkout".to_owned(),
+        Scenario::HardCases => "northwind-traders-platform-migration › inventory-reconciliation-service · Rust workspace · member inventory-reconciliation-core".to_owned(),
+        Scenario::DiskCleanup => "work · project collection".to_owned(),
         _ => world.cwd.clone(),
     }
 }
@@ -1614,351 +848,31 @@ impl App {
             .0
             .min(menu_room);
         menu.draw(ui, Rect::new(menu_x, header.y, menu_width, 1), &self.menu);
-        // A disk plate has no query, so the bar would keep focus and bold its titles.
-        if (self.route == Route::Disk && crate::sim::catalogue::disk_cleanup_tag_frame(&self.world))
-            || launch_failure_activity_open(&self.world, ui)
-        {
-            paint_disk_menu_titles(ui, menu_x, header.y);
-        }
         let menu_right = menu_x.saturating_add(menu_width).saturating_sub(1);
         let brand_right = lockup_x.saturating_add(brand_width);
         let used = menu_right.max(brand_right);
         let tail_x = used.saturating_add(2);
-        let project = if launch_failure_activity_open(&self.world, ui) {
-            "acme › frontend · Node project · pnpm".to_owned()
-        } else {
-            menu_project(&self.world)
-        };
-        let host = if launch_failure_activity_open(&self.world, ui)
-            || crate::sim::catalogue::first_use_tag_frame(&self.world)
-            || crate::sim::catalogue::monorepo_root_tag_frame(&self.world)
-            || crate::sim::catalogue::monorepo_child_tag_frame(&self.world)
-            || crate::sim::catalogue::activities_multi_tag_frame(&self.world)
-            || crate::sim::catalogue::hard_cases_tag_frame(&self.world)
-        {
-            "mbp · local".to_owned()
-        } else if crate::sim::catalogue::docker_cleanup_tag_frame(&self.world) {
-            "devbox · development".to_owned()
-        } else if crate::sim::catalogue::remote_host_tag_frame(&self.world) {
-            "◆ prod-eu-1 · production".to_owned()
-        } else if self.route == Route::Disk
-            && crate::sim::catalogue::disk_cleanup_tag_frame(&self.world)
-        {
-            "mbp · local".to_owned()
-        } else {
-            self.world.host.identity()
-        };
+        let project = menu_project(&self.world);
+        let host = self.world.host.identity();
         paint_menu_tail(
             ui,
             Rect::new(tail_x, header.y, header.right().saturating_sub(tail_x), 1),
             &project,
             &host,
         );
-        if !crate::sim::catalogue::activities_multi_tag_frame(&self.world)
-            && !launch_failure_activity_open(&self.world, ui)
-        {
-            self.strip_draw(
-                ui,
-                Rect::new(area.x, area.y.saturating_add(1), area.width, 1),
-            );
-        }
+        self.strip_draw(
+            ui,
+            Rect::new(area.x, area.y.saturating_add(1), area.width, 1),
+        );
         if self.route == Route::Home {
-            let full = ui.full();
-            let collapsed_activities = crate::sim::catalogue::activities_multi_view(
-                &self.world,
-                full.width,
-                self.home.history,
-            )
-            .is_some();
-            if collapsed_activities {
-                paint_activities_multi_80x24_band(ui, area);
-            } else {
-                paint_here_band(ui, area);
-                if crate::sim::catalogue::activities_multi_tag_frame(&self.world) {
-                    paint_activities_multi_chips(ui, area);
-                }
-            }
+            paint_here_band(ui, area);
         }
         let status = Rect::new(area.x, area.bottom().saturating_sub(2), area.width, 1);
-        if self.world.scenario == Scenario::ParityDiscovery {
-            self.paint_parity_status(ui, status);
-        } else if crate::sim::catalogue::first_use_tag_frame(&self.world) {
-            paint_first_use_status(ui, status);
-        } else if crate::sim::catalogue::monorepo_root_tag_frame(&self.world) {
-            paint_monorepo_status(ui, status);
-        } else if crate::sim::catalogue::activities_multi_tag_frame(&self.world) {
-            paint_activities_multi_status(ui, status);
-        } else if crate::sim::catalogue::monorepo_child_tag_frame(&self.world) {
-            paint_monorepo_child_status(ui, status);
-        } else if crate::sim::catalogue::docker_cleanup_tag_frame(&self.world) {
-            paint_docker_cleanup_status(ui, status);
-        } else if crate::sim::catalogue::remote_host_tag_frame(&self.world) {
-            paint_remote_host_status(ui, status);
-        } else if crate::sim::catalogue::hard_cases_tag_frame(&self.world) {
-            paint_hard_cases_status(ui, status);
-        } else if parity_history_tag_plate(&self.world, ui.full().width, ui.full().height) {
-            paint_parity_history_status(ui, status);
-        } else if parity_files_tag_plate(&self.world, ui.full().width, ui.full().height) {
-            paint_parity_files_status(ui, status);
-        } else if parity_browser_tag_plate(&self.world, ui.full().width, ui.full().height) {
-            paint_parity_browser_status(ui, status);
-        } else if parity_git_current_tag_plate(&self.world, ui.full().width, ui.full().height) {
-            paint_parity_git_current_status(ui, status);
-        } else if parity_cargo_tag_plate(&self.world, ui.full().width, ui.full().height) {
-            paint_parity_cargo_status(ui, status);
-        } else if parity_git_batch_tag_plate(&self.world, ui.full().width, ui.full().height) {
-            paint_parity_git_batch_status(ui, status);
-        } else if parity_task_sources_tag_plate(&self.world, ui.full().width, ui.full().height) {
-            paint_parity_task_sources_status(ui, status);
-        } else if launch_failure_activity_open(&self.world, ui) {
-            paint_launch_failure_status(ui, status);
-        } else if self.route == Route::Disk
-            && crate::sim::catalogue::disk_cleanup_tag_frame(&self.world)
-        {
-            paint_disk_cleanup_status(ui, status);
-        }
+        paint_status_bar(&self.world, ui, status);
         let footer = regions.footer;
         self.footer_draw(ui, footer);
     }
-    fn paint_parity_status(&self, ui: &mut Ui<'_>, area: Rect) {
-        if area.is_empty() {
-            return;
-        }
-        ui.fill(area, status_ink(ui, STATUS_FG, false));
-        // 80×24 has no room for the branch or the size label. The warning sits on the right, with `…` before it.
-        let narrow = layout::Band::of(ui.full().width).is_narrow();
-        let mut x = area.x.saturating_add(STATUS_EDGE);
-        x = paint_status_text(ui, area, x, &self.world.cwd, STATUS_FG, true)
-            .saturating_add(STATUS_GAP);
-        if !narrow {
-            x = paint_status_text(ui, area, x, "main", STATUS_GREY, false)
-                .saturating_add(STATUS_GAP);
-        }
-        x = paint_status_text(ui, area, x, "↓1", STATUS_LINK, false).saturating_add(STATUS_GAP);
-        let left_end = x.saturating_sub(STATUS_GAP);
-        let warn_w = termrock::width(STATUS_WARN);
-        let warn_x = if narrow {
-            area.right()
-                .saturating_sub(STATUS_EDGE)
-                .saturating_sub(warn_w)
-        } else {
-            let size_x = paint_size_label(ui, area);
-            size_x.saturating_sub(STATUS_GAP).saturating_sub(warn_w)
-        };
-        if narrow {
-            let mark_x = warn_x.saturating_sub(STATUS_GAP).saturating_sub(1);
-            paint_status_text(ui, area, mark_x, "…", STATUS_GREY, false);
-        }
-        paint_status_text(ui, area, warn_x, STATUS_WARN, STATUS_AMBER, false);
-        let center_w = termrock::width(STATUS_CENTER);
-        let lo = left_end.saturating_add(STATUS_GAP);
-        let hi = if narrow {
-            warn_x
-                .saturating_sub(STATUS_GAP)
-                .saturating_sub(1)
-                .saturating_sub(STATUS_GAP)
-        } else {
-            warn_x.saturating_sub(STATUS_GAP)
-        };
-        let free = hi.saturating_sub(lo);
-        if free >= center_w {
-            let cx = lo.saturating_add(free.saturating_sub(center_w) / 2);
-            paint_status_text(ui, area, cx, STATUS_CENTER, STATUS_DANGER, false);
-        }
-    }
     fn footer_draw(&self, ui: &mut Ui<'_>, footer: Rect) {
-        if launch_failure_activity_open(&self.world, ui)
-            && self.route == Route::Activity
-            && self.overlay.is_none()
-            && !self.menu.is_open()
-        {
-            paint_launch_failure_footer(ui, footer);
-            return;
-        }
-        let tag_confirm = if self.world.scenario == Scenario::ParityDiscovery {
-            Some(("Confirm…", None))
-        } else if crate::sim::catalogue::first_use_tag_frame(&self.world) {
-            Some(("Open", None))
-        } else if crate::sim::catalogue::monorepo_root_tag_frame(&self.world) {
-            let narrow = layout::Band::of(ui.full().width).is_narrow();
-            let mid = layout::Band::of(ui.full().width).is_mid();
-            if self.home.history {
-                // Wide history keeps the deploy status. 80×24 and 100×30 have no room for it.
-                Some((
-                    "Trust…",
-                    if narrow || mid {
-                        None
-                    } else {
-                        Some("Deploy …")
-                    },
-                ))
-            } else if narrow || mid {
-                // 100×30 fits `Ctrl+↑↓ Scope` and clips `Ctrl+G` to the meta `…`. No status.
-                Some(("Open", None))
-            } else {
-                Some(("Open", Some("Inspect 1…")))
-            }
-        } else if crate::sim::catalogue::monorepo_child_tag_frame(&self.world) {
-            let narrow = layout::Band::of(ui.full().width).is_narrow();
-            let mid = layout::Band::of(ui.full().width).is_mid();
-            // 100×30 fits `Ctrl+↑↓ Scope` and clips `Ctrl+G` to the meta `…`. No status.
-            if narrow || mid {
-                Some(("Open", None))
-            } else {
-                Some(("Open", Some("Inspect 3…")))
-            }
-        } else if crate::sim::catalogue::remote_host_tag_frame(&self.world) {
-            let narrow = layout::Band::of(ui.full().width).is_narrow();
-            let mid = layout::Band::of(ui.full().width).is_mid();
-            // 100×30 fits `Ctrl+↑↓ Scope` and clips `Ctrl+G` to the meta `…`. No status.
-            Some((
-                "Run",
-                if narrow || mid {
-                    None
-                } else {
-                    Some("Follow pay…")
-                },
-            ))
-        } else if crate::sim::catalogue::hard_cases_tag_frame(&self.world) {
-            Some(("Open", None))
-        } else if parity_history_tag_plate(&self.world, ui.full().width, ui.full().height) {
-            Some(("Run", None))
-        } else if parity_files_tag_plate(&self.world, ui.full().width, ui.full().height) {
-            Some(("Open", None))
-        } else if parity_browser_tag_plate(&self.world, ui.full().width, ui.full().height) {
-            Some(("Run", None))
-        } else if parity_git_current_tag_plate(&self.world, ui.full().width, ui.full().height) {
-            Some(("Open", None))
-        } else if parity_cargo_tag_plate(&self.world, ui.full().width, ui.full().height) {
-            Some(("Run", None))
-        } else if parity_git_batch_tag_plate(&self.world, ui.full().width, ui.full().height) {
-            // The wide card keeps every hint. The title is cut to the ten cells left of the edge.
-            let wide = (120..160).contains(&ui.full().width);
-            Some(("Open", wide.then_some("Status ac…")))
-        } else if parity_task_sources_tag_plate(&self.world, ui.full().width, ui.full().height) {
-            Some(("Run", None))
-        } else {
-            None
-        };
-        if crate::sim::catalogue::activities_multi_tag_frame(&self.world)
-            && self.route == Route::Home
-            && self.overlay.is_none()
-            && !self.menu.is_open()
-        {
-            let confirm = if self.home.history {
-                "Trust…"
-            } else {
-                "Open"
-            };
-            let mut layer = tag_hints(confirm, Some("api tests finished · exit 0"));
-            // `Trust…` is two columns wider than `Open`. HintBar keeps the gap
-            // before a later hint but not the overflow glyph, so `Ctrl+↑↓ Scope`
-            // still fits and the `…` never paints. One undisplayed column makes
-            // that hint miss the budget. The no-history plate stays on `Open`.
-            if self.home.history
-                && let Some(scope) = layer.hints.iter_mut().find(|hint| hint.label == "Scope")
-            {
-                scope.label = "Scope ";
-            }
-            HintBar::new(FOOTER, &layer)
-                .patch_part(ACTIVITIES_HINT_PARTS)
-                .draw(ui, footer);
-            return;
-        }
-        if crate::sim::catalogue::docker_cleanup_tag_frame(&self.world)
-            && self.route == Route::Home
-            && self.overlay.is_none()
-            && !self.menu.is_open()
-        {
-            let narrow = layout::Band::of(ui.full().width).is_narrow();
-            let mid = layout::Band::of(ui.full().width).is_mid();
-            let layer = if narrow {
-                docker_cleanup_80x24_hints()
-            } else if mid {
-                docker_cleanup_100x30_hints()
-            } else {
-                docker_cleanup_hints()
-            };
-            let parts = if narrow || mid {
-                ACTIVITIES_HINT_PARTS
-            } else {
-                PARITY_HINT_PARTS
-            };
-            HintBar::new(FOOTER, &layer)
-                .patch_part(parts)
-                .draw(ui, footer);
-            return;
-        }
-        if crate::sim::catalogue::disk_cleanup_tag_frame(&self.world)
-            && self.route == Route::Disk
-            && self.overlay.is_none()
-            && !self.menu.is_open()
-        {
-            paint_disk_cleanup_footer(ui, footer);
-            return;
-        }
-        if let Some((confirm, status)) = tag_confirm
-            && self.route == Route::Home
-            && self.overlay.is_none()
-            && !self.menu.is_open()
-        {
-            let layer = tag_hints(confirm, status);
-            // 80×24 first-use, monorepo-root, monorepo-child, remote-host, hard-cases, and parity-discovery clip the last hint to a meta `…`. The 100×30 first-use, monorepo-root, monorepo-child, remote-host, hard-cases, and parity-discovery plates do the same. Wider plates keep the theme overflow.
-            let narrow = layout::Band::of(ui.full().width).is_narrow();
-            let mid = layout::Band::of(ui.full().width).is_mid();
-            let monorepo_child_mid =
-                mid && crate::sim::catalogue::monorepo_child_tag_frame(&self.world);
-            let remote_host_mid = mid && crate::sim::catalogue::remote_host_tag_frame(&self.world);
-            let first_use_mid = mid && crate::sim::catalogue::first_use_tag_frame(&self.world);
-            let monorepo_root_mid =
-                mid && crate::sim::catalogue::monorepo_root_tag_frame(&self.world);
-            let hard_cases_mid = mid && crate::sim::catalogue::hard_cases_tag_frame(&self.world);
-            let discovery_mid =
-                mid && crate::sim::catalogue::parity_discovery_tag_frame(&self.world);
-            let history_plate =
-                parity_history_clipped_plate(&self.world, ui.full().width, ui.full().height);
-            let files_plate =
-                parity_files_clipped_plate(&self.world, ui.full().width, ui.full().height);
-            let browser_plate =
-                parity_browser_clipped_plate(&self.world, ui.full().width, ui.full().height);
-            let git_current_plate =
-                parity_git_current_clipped_plate(&self.world, ui.full().width, ui.full().height);
-            let cargo_plate =
-                parity_cargo_clipped_plate(&self.world, ui.full().width, ui.full().height);
-            let git_batch_plate =
-                parity_git_batch_clipped_plate(&self.world, ui.full().width, ui.full().height);
-            let task_sources_plate =
-                parity_task_sources_tag_plate(&self.world, ui.full().width, ui.full().height);
-            let parts = if monorepo_child_mid
-                || remote_host_mid
-                || first_use_mid
-                || monorepo_root_mid
-                || hard_cases_mid
-                || discovery_mid
-                || history_plate
-                || files_plate
-                || browser_plate
-                || git_current_plate
-                || cargo_plate
-                || git_batch_plate
-                || task_sources_plate
-                || (narrow
-                    && (crate::sim::catalogue::first_use_tag_frame(&self.world)
-                        || crate::sim::catalogue::monorepo_root_tag_frame(&self.world)
-                        || crate::sim::catalogue::monorepo_child_tag_frame(&self.world)
-                        || crate::sim::catalogue::remote_host_tag_frame(&self.world)
-                        || crate::sim::catalogue::hard_cases_tag_frame(&self.world)
-                        || self.world.scenario == Scenario::ParityDiscovery))
-            {
-                ACTIVITIES_HINT_PARTS
-            } else {
-                PARITY_HINT_PARTS
-            };
-            HintBar::new(FOOTER, &layer)
-                .patch_part(parts)
-                .draw(ui, footer);
-            return;
-        }
         let hints = HintLayer::from_bindings(GLOBAL);
         let editing = match &self.overlay {
             Some(Overlay::Dialog(dialog)) => dialog.is_editing(),
@@ -2244,14 +1158,6 @@ impl termrock::App for App {
         clock_response | response
     }
     fn draw(&self, ui: &mut Ui<'_>) {
-        if self.route == Route::Home
-            && self.overlay.is_none()
-            && std::io::IsTerminal::is_terminal(&std::io::stdout())
-        {
-            let mut out = std::io::stdout().lock();
-            let _ = out.write_all(b"\x1b[6 q");
-            let _ = out.flush();
-        }
         let area = ui.full();
         let base = ui.surface_style();
         ui.fill(area, base);
@@ -2275,23 +1181,8 @@ impl termrock::App for App {
                     plan.draw(ui, body);
                 }
             }
-            Route::Activity => {
-                let plate = launch_failure_activity_open(&self.world, ui)
-                    && home::paint_launch_failure_plate(ui);
-                if !plate {
-                    self.activities.draw(&self.world, ui, body);
-                }
-            }
-            Route::Disk => {
-                // The 100×30 fixture composes the mid preview; every other size only
-                // needs the tag frame gate (the old 100×30 plate wrapper was a no-op
-                // over it, so the size check is gone).
-                let allow = crate::sim::catalogue::disk_cleanup_tag_frame(&self.world);
-                let plate = allow && home::paint_disk_cleanup_plate(ui);
-                if !plate {
-                    disk::draw(&self.world, ui, body);
-                }
-            }
+            Route::Activity => self.activities.draw(&self.world, ui, body),
+            Route::Disk => disk::draw(&self.world, ui, body),
             Route::Files => files::draw(&self.world, ui, body),
             Route::Cleanup => cleanup::draw(&self.world, ui, body),
             Route::Review => review::draw(&self.world, ui, body),
@@ -2395,136 +1286,6 @@ fn paint_here_band(ui: &mut Ui<'_>, area: Rect) {
             &"─".repeat(usize::from(rest)),
             rule,
         );
-    }
-}
-
-/// Collapsed activities band. Here sits four columns in. Two chips stay off-screen as `2›` and `+2`.
-/// 80×24 and 100×30 share the three visible chips. The markers sit nine columns from the right.
-fn paint_activities_multi_80x24_band(ui: &mut Ui<'_>, area: Rect) {
-    let width = area.width.saturating_sub(2);
-    if width == 0 || area.height < 4 {
-        return;
-    }
-    let x = area.x.saturating_add(1);
-    let y = area.y.saturating_add(2);
-    let gutter = 4u16.min(width);
-    let meta = ui.paint_patch(
-        &StylePatch::new()
-            .set_fg(Role::Custom(Color::Rgb(0x73, 0x73, 0x73)))
-            .remove(termrock::Modifier::BOLD),
-    );
-    ui.paint_str(Rect::new(x, y, gutter, 1), "    ", meta);
-    let tab_w = 1u16
-        .saturating_add(termrock::width("Here"))
-        .saturating_add(2)
-        .min(width.saturating_sub(gutter));
-    let plate = ui.paint_patch(
-        &StylePatch::new()
-            .set_fg(Role::Fg(FgStep::Primary))
-            .set_bg(Role::Surface(Surface::Overlay))
-            .add(termrock::Modifier::BOLD),
-    );
-    let tab_x = x.saturating_add(gutter);
-    let tab = Rect::new(tab_x, y, tab_w, 1);
-    ui.fill(tab, plate);
-    ui.paint_str(tab, " Here", plate);
-    let accent = ui.paint_patch(&StylePatch::new().set_fg(Role::Accent));
-    let rule =
-        ui.paint_patch(&StylePatch::new().set_fg(Role::Custom(Color::Rgb(0x3a, 0x3a, 0x3a))));
-    let under = y.saturating_add(1);
-    ui.paint_str(
-        Rect::new(x, under, gutter, 1),
-        &"─".repeat(usize::from(gutter)),
-        rule,
-    );
-    ui.paint_str(
-        Rect::new(tab_x, under, tab_w, 1),
-        &"━".repeat(usize::from(tab_w)),
-        accent,
-    );
-    let rest = width.saturating_sub(gutter).saturating_sub(tab_w);
-    if rest > 0 {
-        ui.paint_str(
-            Rect::new(tab_x.saturating_add(tab_w), under, rest, 1),
-            &"─".repeat(usize::from(rest)),
-            rule,
-        );
-    }
-    let marker = area.x.saturating_add(area.width.saturating_sub(9));
-    let clip = Rect {
-        x: area.x,
-        y: area.y,
-        width: marker.saturating_sub(area.x),
-        height: area.height,
-    };
-    paint_activities_multi_chips_from(ui, clip, y, tab.right().saturating_add(1));
-    let label = activity_tab_label(ui);
-    ui.paint_str(Rect::new(marker, y, 4, 1), "  2›", label);
-    ui.paint_str(Rect::new(marker.saturating_add(5), y, 2, 1), "+2", label);
-}
-
-/// Tag activity chips sit on the Here row. The live strip stays on the row above for later seeks.
-fn paint_activities_multi_chips(ui: &mut Ui<'_>, area: Rect) {
-    let width = area.width.saturating_sub(2);
-    if width == 0 || area.height < 4 {
-        return;
-    }
-    let y = area.y.saturating_add(2);
-    let tab_w = 1u16
-        .saturating_add(termrock::width("Here"))
-        .saturating_add(2)
-        .min(width);
-    let x = area
-        .x
-        .saturating_add(1)
-        .saturating_add(tab_w)
-        .saturating_add(1);
-    paint_activities_multi_chips_from(ui, area, y, x);
-}
-
-fn activity_tab_label(ui: &Ui<'_>) -> termrock::PaintStyle {
-    ui.paint_patch(
-        &StylePatch::new()
-            .set_fg(Role::Custom(Color::Rgb(0xb3, 0xb3, 0xb3)))
-            .set_bg(Role::Custom(Color::Rgb(0, 0, 0)))
-            .remove(termrock::Modifier::BOLD),
-    )
-}
-
-fn paint_activities_multi_chips_from(ui: &mut Ui<'_>, area: Rect, y: u16, mut x: u16) {
-    let label = activity_tab_label(ui);
-    let chips = [
-        ("frontend dev", "⠋", Color::Rgb(0x48, 0xe0, 0x54)),
-        ("api dev", "⠋", Color::Rgb(0x48, 0xe0, 0x54)),
-        ("api tests", "✓", Color::Rgb(0x3f, 0xb9, 0x50)),
-        (
-            "logs · api worker sched…",
-            "⠋",
-            Color::Rgb(0x48, 0xe0, 0x54),
-        ),
-        ("btm", "○", Color::Rgb(0x8a, 0x8a, 0x8a)),
-    ];
-    for (name, mark, mark_fg) in chips {
-        let text = format!(" {name} ");
-        let text_w = termrock::width(&text);
-        let mark_w = termrock::width(mark);
-        let close_w = termrock::width(" ×  ");
-        let need = text_w.saturating_add(mark_w).saturating_add(close_w);
-        if x.saturating_add(need) > area.right() {
-            break;
-        }
-        ui.paint_str(Rect::new(x, y, text_w, 1), &text, label);
-        x = x.saturating_add(text_w);
-        let mark_style = ui.paint_patch(
-            &StylePatch::new()
-                .set_fg(Role::Custom(mark_fg))
-                .set_bg(Role::Custom(Color::Rgb(0, 0, 0)))
-                .remove(termrock::Modifier::BOLD),
-        );
-        ui.paint_str(Rect::new(x, y, mark_w, 1), mark, mark_style);
-        x = x.saturating_add(mark_w);
-        ui.paint_str(Rect::new(x, y, close_w, 1), " ×  ", label);
-        x = x.saturating_add(close_w).saturating_add(1);
     }
 }
 
