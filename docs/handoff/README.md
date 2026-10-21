@@ -14,20 +14,25 @@ Pending tasks and exact next actions:
 
 Expanded component gate at `7f819a779`: 872 run, 869 pass, three fail, three existing skips. Two navigation failures and the incoming MenuBar precedence regression remain open. Holla all-target gate at the preceding header source: 144 run, 142 pass, hover and visual baseline failures. Focused merged Holla and Picker tests, scoped strict Clippy, public Picker consumer and formatting pass; this does not establish the full gate. Full twice-repeated pinned real-binary comparisons, all-branch consolidation, required CI and repository reviews remain missing.
 
+# 2026-10-21: external public consumer demonstrated
+
+- `9203efba5` lands `external-consumer-demo/` as a standalone (non-member) crate: facade-only imports enforced by a contract test, unrelated domain data, real widget update/draw/measure through the runtime; 9/9 nextest green, clippy/fmt clean, workspace untouched. Matrix "External public consumer" row updated RED→GREEN (API demonstration; not application parity). Evidence: `docs/audits/2026-10-21-external-public-consumer-standalone.md`.
+- Note: matrix was restructured to a lean current-decision summary by the concurrent session (bulk history moved to `docs/architecture/termrock-migration-record.md`); the full pre-restructure matrix is preserved at tag `9203efba5` in history.
+
 # 2026-10-21 second rate-limit stop (coordinator) — resumes 19:40:57 +0700
 
 All five coordinator agents died at ~16:38 +0700 on a 5-hour usage limit (reset 2026-10-21 19:40:57). Coordinator work is documented here so resume needs no transcript.
 
 Landed before the stop (all on `origin/parity/termrock-visual-baseline`):
 
-- Backdrop regeneration `2ca2c7ad3..0dfd18ec9` (33 corpus tiers + snapshots, sidecars in `baselines/regen-sidecars/2026-10-21-backdrop-frame-regeneration/`, per-tier hashes in `docs/audits/2026-10-21-backdrop-frame-regeneration-receipts.json`, modifier-aware `frozen-baseline corpus-check` tool). Honest gap: tier cases still red (~78) because app/theme parity for dimmed backdrop is incomplete; regenerated frames are correct against the frozen oracle. **Independent review of the adjudication+regeneration chain was launched and died before reporting — must be re-run before any further frame decisions.**
+- Backdrop regeneration — **INDEPENDENT REVIEW COMPLETE, chain STANDS** (0 MAJOR, 5 MINOR; verdict + dispositions in `../audits/2026-10-21-backdrop-independent-review.md`; MINOR 3 fail-open fixed with a vacuous-pass floor gate, MINOR 4 test-count corrected; runner suite 119/119).
 - Gutter helper-adoption matrices `6fb70e629` + `423b0e5e4`: no render site converted; helpers cannot reproduce frozen output byte-identically (bar ink token-bound vs bg-adaptive `legible_mark`; blank cells with resolved styles inexpressible via `GutterCell::Inherit`). Divergent states pinned by `gutter_recipe_gate.rs` tests in termrock-controls and termrock-navigation so a helper upgrade that closes a delta turns them red. Sites stay on recipe paths; deltas listed in the agent report and encoded in tests.
 
 In-flight at death (state lost unless noted):
 
 - Jackin usage overview/detail: full frames decoded; next step was inspecting live `draw_usage` + existing sidebar/row builders in `crates/jackin-preview-app/src/app.rs`, then building the page through real composition (List/Panel/feedback painters, no fixed cell tables). No uncommitted Jackin worktree found; analysis only.
 - Holla: resumed agent reported remaining true plates `disk_cleanup_100x30_plate`, `launch_failure_80x24_plate`, `launch_failure_100x30_plate` (size-keyed) plus semantic `first_use_plate`/`monorepo_root_plate`/`activities_multi_plate`/`remote_host_list_plate`; concept families have frozen snapshots, frozen-oracle drift check queued. Earlier docs commit `f01361f26` is NOT on the parity branch (dangling); verify whether its content was superseded before recreating it.
-- Feedback alloc contract (`derived_hintbar_metadata.rs:185` no-alloc, `feedback_clock.rs` Moment sync): agent was drafting its matrix row while waiting on the push lock; no push observed. Concurrent session landed `c12feabe9 perf(feedback): zero-allocation hintbar fitting...` — reconcile against that before redoing.
+- Feedback alloc contract (`derived_hintbar_metadata.rs:185` no-alloc, `feedback_clock.rs` Moment sync): **CLOSED** — termrock-feedback 136/136 green at tip (fixed by landed `c12feabe9` and neighbors); no agent needed.
 - Overlays dialog.rs clippy (7 findings) + xtask doc_inventory/ownership registration of termrock-shell: **done by coordinator while rate-limited** (commit `a7d2ef4` on the unpushed docs stack). Overlays clippy was already clean (fixed by a landed commit). doc_inventory 8/8 green (four audit-doc fences relabeled/reflowed). Ownership: the three termrock-shell OWN-14 expects are registered as reviewed allowances and the two stale editor.rs exceptions removed; the ownership test itself stays red on ~100 unrelated findings from the concurrent session's in-flight jackin/holla/tablepro/runtime churn (growth ratchets + fresh OWN-14 in tabs.rs, runtime.rs, cx.rs, session.rs, composition.rs, picker_contract.rs) — their owners must register or fix; do not bless them from this lane.
 
 Resume queue (in order): 1) independent backdrop chain review (read-only, re-launch); 2) feedback fix reconciliation vs `c12feabe9`; 3) Holla remaining plates; 4) Jackin usage composition + remaining historical batches; 5) overlays clippy + xtask registration. Max 5 concurrent, push-lock protocol.
@@ -87,7 +92,6 @@ in `docs/audits/2026-10-21-selectable-bypass-removal.md`. Next steps:
 have the shell owners reconcile nav/sidebar/footer painting with the
 frozen captures (then re-approve on purpose), and hand the tier-dependent
 modal-backdrop mapping to the runtime owners.
-||||||| parent of 7201b3497 (docs: record PR #38 landing-queue integration state)
 
 ## Landing-queue integration state (2026-10-21)
 
@@ -106,9 +110,7 @@ LANDED 2026-10-21: merged as `70229e698` onto then-origin tip `01ed92ca9` and pu
 - Tip: see `git log origin/wip/termrock-extract-shell-20261021 -1` (13 commits on top of `origin/parity/termrock-visual-baseline`).
 - Item: PR #26 shell layer (commit `f4867e9b5`) ported into the new `crates/termrock-shell` — nav/Router, chrome, status, quit guard, keyboard deliverability, key router, page contract, AppShell slots, footer compose rules, reach harness, esc vocabulary, `shell_consumer` example, additive `termrock::shell` facade re-export, matrix rows.
 - State: complete and gated (nextest 48/48, clippy clean, fmt clean, workspace `cargo check` exit 0, rebased onto `origin/parity/termrock-visual-baseline` at rebase time); no app crate or shared-crate source touched.
-||||||| parent of aa2b1b34b (docs(audit): modal backdrop DIM conflicts inside the frozen baseline)
 
-||||||| parent of e5c615d2a (docs: record theme extraction handoff and adoption list)
 
 ## Theme/visual-state extraction handoff (2026-10-21)
 
@@ -174,12 +176,6 @@ Publication blocker: the repository push lock was owned by `termrock-fix-finding
 Preservation branch `wip/parent-picker-gate-20261021` was pushed and remotely verified at `9f6659a51b793fe60f9ffee86e986afc1d4824ba`. The integration worktree is `/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020`; its 1301 pre-existing tracked target-artifact deletions remain unstaged and outside this work. Picker/keymap source has independent bounded clearance, but the parent combined gate has three mouse/scroll failures in `termrock-navigation::list_row_extent`, with 900 passes and three skips. Do not treat the WIP as accepted or merge it without diagnosis.
 
 Next: finish the independent unchanged-test comparison against PR38 `5f656a1833e543fb39723498513533e5753b257e`; classify and repair any introduced failures, preserve pre-existing failures explicitly, then run focused exact-head tests, strict scoped checks, synchronize under the shared push lock, push through PR38 and verify the remote SHA. Do not skip the three cases or update their expected values. Detailed failure names and the evidence log are in the current migration matrix. Main, design/PR26 and frozen references remain read-only.
-
-## Showcase DialogKinds restoration WIP (2026-10-21)
-
-Preservation branch `wip/showcase-dialog-kinds-restoration-20261021` records the incomplete frozen DialogKinds route restoration. The page is a live public `FormDialog`/Picker consumer with the nine frozen fields, Test and Save actions, chooser, preview, and app-owned data/actions. The existing `Dialog kinds` navigation row previously resolved to Overview; this WIP routes it to a dedicated page. It does not establish app parity.
-
-At initial WIP source `40bc297e5f1b18f58f1466d5aaa8d80f19c051a2`, Save action regression passes; format and diff checks pass. The end-to-end frozen flow remains red in two shared contracts: (1) Form focus auto-reveal changes the chooser hit region from y=27 on pointer Down to y=26 before Up, so the release target differs and no click is emitted; (2) frozen direct typing of `billing` into the initially focused Name field must replace `orders-prod`, but current TextInput inserts and yields `orders-prodbilling`. The pointer geometry trace and reference source/test evidence are in the task report. The pointer fix belongs in shared Form reveal scheduling; do not patch Button/runtime or add synthetic Enter, coordinate, or invisible-control workarounds. Initial-edit selection needs a shared Form/TextInput contract. Continue from this branch only after the shared fixes are independently integrated/reviewed, then rerun the actual app flow and picker Escape/cancel tests. This branch is preservation WIP, not PR38 acceptance.
 
 ## Shell geometry contract (2026-10-21)
 
@@ -282,3 +278,9 @@ Worktree `/private/tmp/termrock-holla-20261021` stays on branch
 remains on `wip/holla-rate-limit-20261021` @ `098fcfcda` for history.
 
 Current additional work: `wip/holla-home-row-composition-20261021` at `ac315e2867136641e2b4cd71a00b8ca27c9153d3` is published but held pending actual reference layout/content comparison. FormDialog/chrome composition and close-button semantics are being implemented in a separate forms WIP; Showcase adoption remains required. Full workspace verification is running against `52e1572ca`; incoming CodeEditor styling `09aa3a18a` still needs an independent authored-channel review. Read the matrix for exact holds and receipts.
+
+## Showcase DialogKinds restoration WIP: resumed after shared fixes (2026-10-21)
+
+Preservation branch `wip/showcase-dialog-kinds-restoration-20261021` currently contains the incomplete route restoration at `76d5d53f16f3d36b54c2abed4dd04cecf989e381`. The shared Form pointer-reveal prerequisite is integrated on PR #38 at `1b9bd580e5f46dff23630a8c15c85e7f14cf7c4e`; independent CLEAR packets also cover TextInput initial `SelectAll` (`27f65eaef5be18313c6527c5ba5f9e32062d70d4`) and explicit Action variants (`160b1c328fef990cda622d5c7fb9bb370ce50009`). This WIP must normally merge both prerequisite branches plus the current PR #38 tip before app edits.
+
+Next: use `TextInput::focus_select(FocusSelect::SelectAll)` on the populated Name field; preserve frozen Test as Secondary and Save as Primary through the shared `Action::with_variant` API; drive the chooser with a real completed pointer click, direct typed `billing`, Save/close/status, nested Picker cancel/focus restoration, and navigation flow. Keep geometry, input routing and painting in shared components. Run real app tests plus showcase coverage for new public capability, record evidence and unresolved cases, commit/push the WIP under the lock, then obtain independent actual-flow review before PR #38 integration. Current DialogKinds app tests remain incomplete and no application parity claim is made.

@@ -9,7 +9,7 @@ use crate::event::{Chord, KeyCode};
 use crate::focus::Focusability;
 use crate::form_layout::{FormLayout, FormLayoutError, FormRow};
 use crate::id::{Id, Part, PartRef, fnv1a};
-use crate::intent::Intent;
+use crate::intent::{Intent, Phase};
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
 use crate::scroll::ScrollState;
@@ -410,6 +410,7 @@ pub struct FormState {
     dirty: bool,
     reveal: Option<Id>,
     lane_scrolls: Vec<(Id, ScrollState)>,
+    pointer_hold: Option<Id>,
 }
 
 impl Clone for FormState {
@@ -431,6 +432,7 @@ impl Clone for FormState {
             dirty: self.dirty,
             reveal: self.reveal,
             lane_scrolls: self.lane_scrolls.clone(),
+            pointer_hold: self.pointer_hold,
         }
     }
 }
@@ -449,6 +451,7 @@ impl PartialEq for FormState {
             && self.dirty == other.dirty
             && self.reveal == other.reveal
             && self.lane_scrolls == other.lane_scrolls
+            && self.pointer_hold == other.pointer_hold
     }
 }
 
@@ -462,6 +465,7 @@ impl fmt::Debug for FormState {
             .field("errors", &(!self.errors.is_empty()).then_some("[redacted]"))
             .field("dirty", &self.dirty)
             .field("reveal", &self.reveal)
+            .field("pointer_hold", &self.pointer_hold)
             .finish()
     }
 }
@@ -1060,6 +1064,51 @@ impl<'a> Form<'a> {
         ui.register_focus_only(field.id, focus);
     }
 
+    /// Keeps automatic reveal from moving a child hit target between pointer
+    /// press and release. The pointer-down intent starts the hold; release,
+    /// drag-end and cancellation end it. The snapshot's pressed flag is only
+    /// used to detect a gesture that became inactive without a terminal intent.
+    fn sync_pointer_hold<D: FormData + ?Sized>(
+        &self,
+        cx: &Cx<'_>,
+        state: &mut FormState,
+        data: &D,
+    ) -> bool {
+        let mut started = false;
+        for field in self.fields {
+            for intent in cx.intents(field.id) {
+                match intent {
+                    Intent::Pointer {
+                        phase: Phase::Press,
+                        ..
+                    } => {
+                        state.pointer_hold = Some(field.id);
+                        started = true;
+                    }
+                    Intent::Pointer {
+                        phase: Phase::Release | Phase::DragEnd,
+                        ..
+                    }
+                    | Intent::Cancel => state.pointer_hold = None,
+                    _ => {}
+                }
+            }
+        }
+
+        let Some(held) = state.pointer_hold else {
+            return false;
+        };
+        let live = self
+            .fields
+            .iter()
+            .find(|field| field.id == held)
+            .is_some_and(|field| self.shown(data, field) && !data.disabled(held));
+        if !live || (!started && !cx.state(held).contains(StateFlags::PRESSED)) {
+            state.pointer_hold = None;
+        }
+        state.pointer_hold.is_some()
+    }
+
     fn field_height(field: &FieldSpec<'_>, design: &DesignTokens) -> u16 {
         match &field.kind {
             FieldKind::Area(area) => design
@@ -1451,11 +1500,13 @@ impl<'a> Form<'a> {
             return self.update_lanes(cx, st, data);
         }
         st.reconcile_fields_with_data(self.fields, data);
+        let pointer_held = self.sync_pointer_hold(cx, st, data);
         let width = cx.area(self.id).map_or(0, |area| area.width);
         let content_rows = Self::content_rows(self.placements(cx.design(), width), data);
         let scroll = ScrollRegion::new(self.id).patch_part(self.parts);
         let scroll_response = scroll.update(cx, &mut st.scroll, content_rows);
-        if let Some(id) = st.reveal.take()
+        if !pointer_held
+            && let Some(id) = st.reveal.take()
             && let Some(placement) = {
                 let mut placements = self.placements(cx.design(), width);
                 let mut found = None;
@@ -1497,7 +1548,7 @@ impl<'a> Form<'a> {
             let Some(field) = self.fields.get(placement.index) else {
                 continue;
             };
-            if cx.state(field.id).contains(StateFlags::FOCUSED) {
+            if !pointer_held && cx.state(field.id).contains(StateFlags::FOCUSED) {
                 let viewport = st.scroll.viewport_len();
                 st.scroll
                     .ensure_visible_on_next_layout(Self::reveal_index(placement, viewport));
@@ -1508,7 +1559,8 @@ impl<'a> Form<'a> {
                 continue;
             };
             let response = Self::update_field(field, cx, slot, value, options, disabled);
-            if cx.state(field.id).contains(StateFlags::FOCUSED)
+            if !pointer_held
+                && cx.state(field.id).contains(StateFlags::FOCUSED)
                 && matches!(field.kind, FieldKind::Radio(_))
             {
                 let cursor_row = placement
@@ -1568,6 +1620,7 @@ impl<'a> Form<'a> {
         data: &mut D,
     ) -> Response<FormAction> {
         st.reconcile_fields_with_data(self.fields, data);
+        let pointer_held = self.sync_pointer_hold(cx, st, data);
         // A Form is a logical owner, not a covering hit region. Its composed
         // bounds are published with the preceding draw and remain available
         // here even when every hit-test region belongs to a child control.
@@ -1591,7 +1644,8 @@ impl<'a> Form<'a> {
                 .update(cx, st.lane_scroll_mut(plan.id), plan.content_rows);
             acc.fold(&response.erase());
         }
-        if let Some(id) = st.reveal.take()
+        if !pointer_held
+            && let Some(id) = st.reveal.take()
             && let Some((plan, placement)) = plans.iter().find_map(|plan| {
                 plan.placements
                     .iter()
@@ -1626,7 +1680,7 @@ impl<'a> Form<'a> {
                 let Some(field) = self.fields.get(placement.index) else {
                     continue;
                 };
-                if cx.state(field.id).contains(StateFlags::FOCUSED) {
+                if !pointer_held && cx.state(field.id).contains(StateFlags::FOCUSED) {
                     let viewport = st.lane_scroll(plan.id).viewport_len();
                     st.lane_scroll_mut(plan.id)
                         .ensure_visible_on_next_layout(Self::reveal_index(*placement, viewport));
@@ -1637,7 +1691,8 @@ impl<'a> Form<'a> {
                     continue;
                 };
                 let response = Self::update_field(field, cx, slot, value, options, disabled);
-                if cx.state(field.id).contains(StateFlags::FOCUSED)
+                if !pointer_held
+                    && cx.state(field.id).contains(StateFlags::FOCUSED)
                     && matches!(field.kind, FieldKind::Radio(_))
                 {
                     let cursor_row = placement
@@ -2373,6 +2428,9 @@ mod tests {
 
     use super::*;
     use crate::event::{Input, Key, KeyModifiers};
+    use crate::form_dialog::{
+        FormDialog, FormDialogAction, FormDialogLayoutPolicy, FormDialogState,
+    };
     use crate::form_layout::FormLane;
     use crate::id::ItemKey;
     use crate::keymap::KeyMap;
@@ -2398,6 +2456,230 @@ mod tests {
     const CLIP_RADIO: Id = Id::root("form.tests.clip.radio");
     const CLIP_AFTER: Id = Id::root("form.tests.clip.after");
     const CLIP_LANE: Id = Id::root("form.tests.clip.lane");
+    const POINTER_DIALOG: Id = Id::root("form.tests.pointer.dialog");
+    const POINTER_NAME: Id = Id::root("form.tests.pointer.name");
+    const POINTER_DRIVER: Id = Id::root("form.tests.pointer.driver");
+    const POINTER_HOST: Id = Id::root("form.tests.pointer.host");
+    const POINTER_SECRET: Id = Id::root("form.tests.pointer.secret");
+    const POINTER_SSL: Id = Id::root("form.tests.pointer.ssl");
+    const POINTER_TUNNEL: Id = Id::root("form.tests.pointer.tunnel");
+    const POINTER_CHOOSER: Id = Id::root("form.tests.pointer.chooser");
+    const POINTER_PREVIEW: Id = Id::root("form.tests.pointer.preview");
+    const POINTER_RESULT: Id = Id::root("form.tests.pointer.result");
+    const POINTER_SCREEN: Rect = Rect::new(0, 0, 120, 40);
+    const POINTER_DRIVERS: &[&str] = &["PostgreSQL", "SQLite"];
+    const POINTER_SSL_OPTIONS: &[&str] = &["Disable", "Require", "Verify full"];
+    const POINTER_FIELDS: &[FieldSpec<'static>] = &[
+        FieldSpec::new(
+            POINTER_NAME,
+            "Name",
+            FieldKind::Text(TextInput::new(POINTER_NAME)),
+        ),
+        FieldSpec::new(
+            POINTER_DRIVER,
+            "Driver",
+            FieldKind::Select(LabelSelect::new(POINTER_DRIVER)),
+        ),
+        FieldSpec::new(
+            POINTER_HOST,
+            "Host",
+            FieldKind::Text(TextInput::new(POINTER_HOST)),
+        ),
+        FieldSpec::new(
+            POINTER_SECRET,
+            "Password",
+            FieldKind::Text(TextInput::new(POINTER_SECRET).secret(SecretPolicy {
+                mask: crate::theme::GlyphRole::SecretMask,
+                synthetic_tail: 2,
+            })),
+        ),
+        FieldSpec::new(
+            POINTER_SSL,
+            "SSL mode",
+            FieldKind::Radio(LabelRadio::new(POINTER_SSL)),
+        ),
+        FieldSpec::new(
+            POINTER_TUNNEL,
+            "",
+            FieldKind::Check(Checkbox::new(
+                POINTER_TUNNEL,
+                "Connect through an SSH tunnel",
+            )),
+        ),
+        FieldSpec::new(
+            POINTER_CHOOSER,
+            "SSH key",
+            FieldKind::Chooser(Button::new(POINTER_CHOOSER, "Choose…")),
+        ),
+        FieldSpec::new(POINTER_PREVIEW, "Preview", FieldKind::Note),
+        FieldSpec::new(POINTER_RESULT, "Result", FieldKind::Note),
+    ];
+    const POINTER_LANE_ROWS: &[FormRow] = &[
+        FormRow::Field(POINTER_NAME),
+        FormRow::Field(POINTER_DRIVER),
+        FormRow::Field(POINTER_HOST),
+        FormRow::Field(POINTER_SECRET),
+        FormRow::Field(POINTER_SSL),
+        FormRow::Field(POINTER_TUNNEL),
+        FormRow::Field(POINTER_CHOOSER),
+        FormRow::Field(POINTER_PREVIEW),
+        FormRow::Field(POINTER_RESULT),
+    ];
+    const POINTER_LANES: &[FormLane<'static>] = &[FormLane::new(
+        Id::root("form.tests.pointer.lane"),
+        POINTER_LANE_ROWS,
+    )];
+    const POINTER_FORM_LAYOUT: FormLayout<'static> = FormLayout::new(POINTER_LANES);
+
+    struct PointerData {
+        name: String,
+        host: String,
+        password: Secret,
+        driver: usize,
+        ssl: usize,
+        tunnel: bool,
+    }
+
+    impl Default for PointerData {
+        fn default() -> Self {
+            Self {
+                name: String::from("orders-prod"),
+                host: String::from("db.internal"),
+                password: Secret::new(String::from("secret")),
+                driver: 0,
+                ssl: 2,
+                tunnel: true,
+            }
+        }
+    }
+
+    impl FormData for PointerData {
+        fn value(&self, id: Id) -> FieldRef<'_> {
+            match id {
+                POINTER_NAME => FieldRef::Text(&self.name),
+                POINTER_DRIVER => FieldRef::Choice(self.driver),
+                POINTER_HOST => FieldRef::Text(&self.host),
+                POINTER_SECRET => FieldRef::Secret(&self.password),
+                POINTER_SSL => FieldRef::Choice(self.ssl),
+                POINTER_TUNNEL => FieldRef::Flag(self.tunnel),
+                POINTER_CHOOSER => FieldRef::Display {
+                    value: "~/.ssh/id_ed25519",
+                    detail: None,
+                },
+                POINTER_PREVIEW | POINTER_RESULT => FieldRef::Note(&[]),
+                _ => FieldRef::Text(""),
+            }
+        }
+
+        fn value_mut(&mut self, id: Id) -> FieldMut<'_> {
+            match id {
+                POINTER_NAME => FieldMut::Text(&mut self.name),
+                POINTER_DRIVER => FieldMut::Choice(&mut self.driver),
+                POINTER_HOST => FieldMut::Text(&mut self.host),
+                POINTER_SECRET => FieldMut::Secret(&mut self.password),
+                POINTER_SSL => FieldMut::Choice(&mut self.ssl),
+                POINTER_TUNNEL => FieldMut::Flag(&mut self.tunnel),
+                _ => FieldMut::ReadOnly,
+            }
+        }
+
+        fn options(&self, id: Id) -> &[&str] {
+            match id {
+                POINTER_DRIVER => POINTER_DRIVERS,
+                POINTER_SSL => POINTER_SSL_OPTIONS,
+                _ => &[],
+            }
+        }
+
+        fn value_and_options(&mut self, id: Id) -> (FieldMut<'_>, &[&str]) {
+            let options = match id {
+                POINTER_DRIVER => POINTER_DRIVERS,
+                POINTER_SSL => POINTER_SSL_OPTIONS,
+                _ => &[],
+            };
+            (self.value_mut(id), options)
+        }
+
+        fn visible(&self, id: Id) -> bool {
+            id != POINTER_CHOOSER || self.tunnel
+        }
+
+        fn validate(&self, _id: Id, _value: FieldRef<'_>) -> Result<(), FieldError> {
+            Ok(())
+        }
+    }
+
+    #[derive(Default)]
+    struct PointerRevealApp {
+        state: FormDialogState,
+        data: PointerData,
+        opened: bool,
+        actions: Vec<FormDialogAction>,
+    }
+
+    impl PointerRevealApp {
+        fn dialog(&self) -> FormDialog<'static> {
+            FormDialog::new(POINTER_DIALOG, "Add connection", POINTER_FIELDS)
+                .layout_policy(FormDialogLayoutPolicy::FixedBodyRows(22))
+                .width(62)
+        }
+    }
+
+    impl App for PointerRevealApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            if !self.opened {
+                self.opened = true;
+                let layer = self.dialog().layer(cx, &self.data);
+                cx.open_layer(POINTER_DIALOG, layer);
+            }
+            let response = self.dialog().update(cx, &mut self.state, &mut self.data);
+            if let Some(action) = response.action_ref() {
+                self.actions.push(*action);
+            }
+            response.erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let dialog = self.dialog();
+            ui.layer(POINTER_DIALOG, |ui, area| {
+                dialog.draw(ui, area, &self.state, &self.data);
+            });
+        }
+    }
+
+    struct PointerRevealLaneApp {
+        form: Form<'static>,
+        state: FormState,
+        data: PointerData,
+        actions: Vec<FormAction>,
+    }
+
+    impl Default for PointerRevealLaneApp {
+        fn default() -> Self {
+            Self {
+                form: Form::new(POINTER_DIALOG, POINTER_FIELDS)
+                    .try_layout(&POINTER_FORM_LAYOUT)
+                    .expect("valid pointer lane layout"),
+                state: FormState::default(),
+                data: PointerData::default(),
+                actions: Vec::new(),
+            }
+        }
+    }
+
+    impl App for PointerRevealLaneApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            let response = self.form.update(cx, &mut self.state, &mut self.data);
+            if let Some(action) = response.action_ref().copied() {
+                self.actions.push(action);
+            }
+            response.erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            self.form.draw(ui, ui.full(), &self.state, &self.data);
+        }
+    }
     const CLIP_OPTIONS: &[&str] = &[
         "alpha", "beta", "gamma", "delta", "epsilon", "zeta", "eta", "theta", "iota", "kappa",
     ];
@@ -3219,6 +3501,149 @@ mod tests {
         let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
         runtime.draw_buffer(tiny, &mut buffer).commit_presented();
         assert!(runtime.app().state.scroll.offset() > 0);
+    }
+
+    #[test]
+    fn form_dialog_keeps_clipped_chooser_hit_area_stable_through_pointer_release() {
+        let mut runtime = Runtime::new(PointerRevealApp::default(), Theme::junie());
+        let _ = runtime.initialize();
+        let mut buffer = Buffer::empty(POINTER_SCREEN);
+        runtime
+            .draw_buffer(POINTER_SCREEN, &mut buffer)
+            .commit_presented();
+        runtime.set_focus(Some(POINTER_TUNNEL));
+        let _ = runtime.settle();
+        runtime
+            .draw_buffer(POINTER_SCREEN, &mut buffer)
+            .commit_presented();
+
+        let before = runtime
+            .area_of(POINTER_CHOOSER)
+            .expect("conditional chooser is visible with tunnel enabled");
+        assert!(before.y.saturating_add(before.height) <= POINTER_SCREEN.bottom());
+        assert_eq!(runtime.focus(), Some(POINTER_TUNNEL));
+        let x = before.x.saturating_add(before.width / 2);
+        let y = before.y.saturating_add(before.height / 2);
+
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            crate::runtime::stub::mouse(crate::event::MouseKind::Down, x, y),
+        );
+        let after_down = runtime
+            .area_of(POINTER_CHOOSER)
+            .expect("chooser remains registered during press");
+        assert_eq!(after_down, before, "focus reveal cannot move a held target");
+        assert_eq!(runtime.focus(), Some(POINTER_CHOOSER));
+
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
+        assert_eq!(
+            runtime.area_of(POINTER_CHOOSER),
+            Some(before),
+            "an intervening update cannot move the held target"
+        );
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            crate::runtime::stub::mouse(crate::event::MouseKind::Up, x, y),
+        );
+        runtime
+            .draw_buffer(POINTER_SCREEN, &mut buffer)
+            .commit_presented();
+        assert_eq!(
+            runtime.app().actions.last(),
+            Some(&FormDialogAction::Chose(POINTER_CHOOSER)),
+            "release at the original target activates the chooser exactly once"
+        );
+        assert_eq!(
+            runtime
+                .app()
+                .actions
+                .iter()
+                .filter(|action| **action == FormDialogAction::Chose(POINTER_CHOOSER))
+                .count(),
+            1
+        );
+    }
+
+    #[test]
+    fn form_dialog_pointer_release_outside_cancels_without_activation() {
+        let mut runtime = Runtime::new(PointerRevealApp::default(), Theme::junie());
+        let _ = runtime.initialize();
+        let mut buffer = Buffer::empty(POINTER_SCREEN);
+        runtime
+            .draw_buffer(POINTER_SCREEN, &mut buffer)
+            .commit_presented();
+        runtime.set_focus(Some(POINTER_TUNNEL));
+        let _ = runtime.settle();
+        runtime
+            .draw_buffer(POINTER_SCREEN, &mut buffer)
+            .commit_presented();
+        let area = runtime
+            .area_of(POINTER_CHOOSER)
+            .expect("conditional chooser is visible with tunnel enabled");
+        let x = area.x.saturating_add(area.width / 2);
+        let y = area.y.saturating_add(area.height / 2);
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            crate::runtime::stub::mouse(crate::event::MouseKind::Down, x, y),
+        );
+        assert_eq!(
+            runtime.app().state.form().pointer_hold,
+            Some(POINTER_CHOOSER)
+        );
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            crate::runtime::stub::mouse(crate::event::MouseKind::Up, 0, 0),
+        );
+        assert_eq!(runtime.app().state.form().pointer_hold, None);
+        assert!(
+            !runtime
+                .app()
+                .actions
+                .contains(&FormDialogAction::Chose(POINTER_CHOOSER))
+        );
+    }
+
+    #[test]
+    fn lane_form_keeps_chooser_hit_area_stable_through_pointer_release() {
+        let area = Rect::new(0, 0, 62, 22);
+        let mut runtime = Runtime::new(PointerRevealLaneApp::default(), Theme::junie());
+        let _ = runtime.initialize();
+        let mut buffer = Buffer::empty(area);
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        runtime.set_focus(Some(POINTER_TUNNEL));
+        let _ = runtime.settle();
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+
+        let before = runtime
+            .area_of(POINTER_CHOOSER)
+            .expect("conditional chooser is visible with tunnel enabled");
+        assert!(before.y.saturating_add(before.height) <= area.bottom());
+        let x = before.x.saturating_add(before.width / 2);
+        let y = before.y.saturating_add(before.height / 2);
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            crate::runtime::stub::mouse(crate::event::MouseKind::Down, x, y),
+        );
+        assert_eq!(runtime.area_of(POINTER_CHOOSER), Some(before));
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
+        assert_eq!(runtime.area_of(POINTER_CHOOSER), Some(before));
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            crate::runtime::stub::mouse(crate::event::MouseKind::Up, x, y),
+        );
+        assert_eq!(
+            runtime.app().actions.last(),
+            Some(&FormAction::Chose(POINTER_CHOOSER))
+        );
+        assert_eq!(
+            runtime
+                .app()
+                .actions
+                .iter()
+                .filter(|action| **action == FormAction::Chose(POINTER_CHOOSER))
+                .count(),
+            1
+        );
     }
 
     #[test]
