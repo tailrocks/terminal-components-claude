@@ -14,7 +14,7 @@ use crate::response::{Response, StateFlags};
 use crate::scroll::ScrollState;
 use crate::text::width;
 use crate::theme::{Family, GlyphRole, Modifier, Role, StylePatch, Surface};
-use crate::ui::{Cx, FrameRead, Ui};
+use crate::ui::{Cx, FrameRead, LayoutFacts, Ui};
 use termrock_feedback::keyhint::HintText;
 use termrock_runtime::scroll_region::ScrollRegion;
 
@@ -348,16 +348,24 @@ impl<'a> HelpOverlay<'a> {
     }
 
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &HelpOverlayState) -> Rect {
-        if area.is_empty() || area.width < 16 || area.height < 8 {
+        if area.is_empty() {
             return area;
         }
         ui.with_surface(Surface::Elevated, |ui| {
-            self.paint_card(ui, area);
-            let live = PartStyle::flags(StateFlags::empty(), StateFlags::empty());
-            let border = ink(ui, 0x004d_4d4d, 0x0018_181b, false);
-            let _frame_inner = ui.frame(area, border);
+            let live = PartStyle::flags(ui.state(self.id), StateFlags::empty());
+            // The overlay owns its focus and its key bindings for as long as
+            // it is on screen. A viewport that is too small to paint the card
+            // is still an open overlay, so the control is registered and the
+            // bindings are published before the paint guard: otherwise the
+            // overlay is invisible to focus, hover and the key map.
             ui.register_control(self.id, area, Focusability::Focusable);
             ui.publish_bindings(self.id, live, BINDINGS);
+            if area.width < 16 || area.height < 8 {
+                return;
+            }
+            self.paint_card(ui, area);
+            let border = ink(ui, 0x004d_4d4d, 0x0018_181b, false);
+            let _frame_inner = ui.frame(area, border);
             ui.register_decor(self.id, PartRef::of(Part::BORDER), area);
             self.paint_title(ui, area);
             let inner = Rect {
@@ -373,6 +381,19 @@ impl<'a> HelpOverlay<'a> {
             let columns = self.columns(inner.width);
             let total = columns.iter().map(Vec::len).max().unwrap_or(0);
             let offset = st.scroll.offset();
+            // The overlay owns its scrollbar presentation, but the runtime
+            // still needs the body's layout and a scroll hit area, so wheel
+            // events reach the overlay's scroll state.
+            ui.report_layout(
+                self.id,
+                LayoutFacts::new(
+                    usize::from(body_h),
+                    total,
+                    body_h,
+                    inner.width,
+                ),
+            );
+            self.scrollbar().register(ui, inner, &st.scroll, total);
             self.paint_columns(ui, inner, &columns, offset, usize::from(body_h));
             self.paint_scroll_label(ui, area, offset, usize::from(body_h), total);
             self.paint_close(ui, area);
