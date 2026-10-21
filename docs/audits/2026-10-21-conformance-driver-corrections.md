@@ -50,3 +50,29 @@ or lifecycle acceptance. The independently confirmed Grid and ScrollRegion
 rendering failures from the earlier packet remain real and untouched. No
 Grid/Scroll source, production application behavior, snapshots, or expected
 outputs were changed.
+
+Independent review of exact WIP commit `22366ab816b95ed71be970b4ea541fc332cb8e86`
+is CLEAR for this bounded increment, with no new findings. It closed the stale
+`K_OPEN` acceptance and semantic-only Theme comparison findings. The reviewer
+reran 47 focused native cases (47 pass, 888 unrelated skipped), all six
+unchanged external negative controls, strict scoped Clippy and formatting. Its
+review packet is retained at
+[`independent-review.json`](evidence/2026-10-21-conformance-driver-corrections/independent-review.json),
+SHA-256 `3078d53970161597ffdd02bc9012cc77f0c137fb6eba3966795e228d14df429f`.
+This clearance is limited to those probes and source; full conformance remains
+incomplete.
+
+Integration verification on merge candidate `b64420ffaa39d30a1cc2ee7a4afbf23e9f244617`
+reran the unchanged 47-case focused selection (Nextest run
+`12b0520f-d1f3-4b45-8fb7-78b02e10d844`: 47 passed, 888 unrelated skipped) and
+the six external negative controls (run `0888a2bc-f5d4-4fd9-a22b-864ff98f8e47`:
+6 passed). The focused test binary SHA-256 is
+`2c4d1c474f9e4e7c79b6dfc7fcc4360025f2b2546325e78e6edbd52b982e7674`; the
+negative-control binary SHA-256 is
+`59e700e416a95188baa0a757cf5fa4c8112156d25493c3e8bfeacb2db4854103`.
+`cargo clippy -p termrock-test-support --lib -- -D warnings`,
+`cargo fmt --all --check`, and `git diff --check` passed. Seven protected
+expectation/assertion files match the bytes at `52e1572caaf7d9effd0265bbfdf6edcd0e57533b`;
+their paths and SHA-256 values are retained in the integration work evidence.
+These checks apply only to this merged source and do not clear the broader
+conformance failures, terminal/PTY coverage gaps, or application acceptance.
