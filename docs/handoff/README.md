@@ -14,7 +14,7 @@ empty-cells fingerprint stay as they are and no expected output is
 re-pinned.
 # 2026-10-22: consolidation wave, bypass retirement, and suite clearance
 
-Current PR #38 tip on `parity/termrock-visual-baseline`: `70729efb1b`.
+Current PR #38 tip on `parity/termrock-visual-baseline`: `8a01e304be`.
 
 ### Landed batches & architecture fixes:
 - **TablePro plates and filter branches removed** (`3baa961531`):
