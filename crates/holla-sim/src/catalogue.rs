@@ -876,16 +876,6 @@ pub fn disk_cleanup_tag_frame(w: &World) -> bool {
     w.scenario == Scenario::DiskCleanup && w.now_ms() == 80
 }
 
-/// 100×30 `disk-cleanup` plate. Not the 80×24 plate and not the 120×40 card.
-/// Later seeks and other sizes stay off it.
-pub fn disk_cleanup_100x30_plate(w: &World, width: u16, height: u16) -> Option<()> {
-    if width == 100 && height == 30 && disk_cleanup_tag_frame(w) {
-        Some(())
-    } else {
-        None
-    }
-}
-
 /// Tag `remote-host` at fixture tick 40. Later seeks keep the concept home.
 pub fn remote_host_tag_frame(w: &World) -> bool {
     w.scenario == Scenario::RemoteHost && w.now_ms() == 80
@@ -896,22 +886,15 @@ pub fn launch_failure_tag_frame(w: &World) -> bool {
     w.scenario == Scenario::LaunchFailure && w.now_ms() == 80
 }
 
-/// 80×24 `launch-failure` plate. Not the 100×30 plate and not the 120×40 plate.
-/// Later seeks and other sizes stay off it.
-pub fn launch_failure_80x24_plate(w: &World, width: u16, height: u16) -> Option<()> {
-    if width != 80 || height != 24 || !launch_failure_tag_frame(w) {
-        return None;
-    }
-    Some(())
-}
-
-/// 100×30 `launch-failure` plate. Not the 80×24 plate and not the 120×40 card.
-/// Later seeks and other sizes stay off it.
-pub fn launch_failure_100x30_plate(w: &World, width: u16, height: u16) -> Option<()> {
-    if width != 100 || height != 30 || !launch_failure_tag_frame(w) {
-        return None;
-    }
-    Some(())
+/// Launch-failure activity layout. The frozen reference composes it only at the
+/// three fixture sizes (80×24, 100×30, 120×40); every other viewport keeps the
+/// generic activity page, and later seeks stay off it (frozen-reference quirk,
+/// audit 2026-10-21).
+pub fn launch_failure_activity_frame(w: &World, width: u16, height: u16) -> bool {
+    launch_failure_tag_frame(w)
+        && ((width == 80 && height == 24)
+            || (width == 100 && height == 30)
+            || (width == 120 && height == 40))
 }
 
 /// Tag `hard-cases` at fixture tick 40. Later seeks keep the concept home.
@@ -6180,20 +6163,21 @@ mod tests {
     }
 
     #[test]
-    fn launch_failure_80x24_plate_is_only_the_narrow_tick_40_frame() {
+    fn launch_failure_activity_frame_is_only_the_tick_40_fixture_sizes() {
         let mut world = fixtures::world_for(Scenario::LaunchFailure);
-        assert!(launch_failure_80x24_plate(&world, 80, 24).is_none());
+        assert!(!launch_failure_activity_frame(&world, 80, 24));
         world.seek(40);
-        assert!(launch_failure_80x24_plate(&world, 120, 40).is_none());
-        assert!(launch_failure_80x24_plate(&world, 80, 40).is_none());
-        assert!(launch_failure_80x24_plate(&world, 81, 24).is_none());
-        assert!(launch_failure_80x24_plate(&world, 100, 30).is_none());
-        assert!(launch_failure_80x24_plate(&world, 80, 24).is_some());
+        assert!(!launch_failure_activity_frame(&world, 160, 50));
+        assert!(!launch_failure_activity_frame(&world, 80, 40));
+        assert!(!launch_failure_activity_frame(&world, 81, 24));
+        assert!(launch_failure_activity_frame(&world, 80, 24));
+        assert!(launch_failure_activity_frame(&world, 100, 30));
+        assert!(launch_failure_activity_frame(&world, 120, 40));
         world.seek(4_000);
-        assert!(launch_failure_80x24_plate(&world, 80, 24).is_none());
+        assert!(!launch_failure_activity_frame(&world, 80, 24));
         let mut other = fixtures::world_for(Scenario::HardCases);
         other.seek(40);
-        assert!(launch_failure_80x24_plate(&other, 80, 24).is_none());
+        assert!(!launch_failure_activity_frame(&other, 80, 24));
     }
 
     #[test]
