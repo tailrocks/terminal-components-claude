@@ -100,6 +100,8 @@ fn baseline_ansi256(rgb: (u8, u8, u8)) -> Option<u8> {
         // Scrollbar thumb #808080 renders as gray 245 in the query frames.
         // Showcase chrome keeps index 244 through `baseline_muted`.
         (0x80, 0x80, 0x80) => Some(245),
+        // highlight #2f5aa8 → index 25 (#005faf). The cube step lands on 67.
+        (0x2f, 0x5a, 0xa8) => Some(25),
         _ => None,
     }
 }
@@ -815,6 +817,10 @@ mod tests {
         assert_eq!(
             downgrade_color(Color::Rgb(0x73, 0x73, 0x73), ColorLevel::Ansi256),
             Color::Indexed(242)
+        );
+        assert_eq!(
+            downgrade_color(Color::Rgb(0x2f, 0x5a, 0xa8), ColorLevel::Ansi256),
+            Color::Indexed(25)
         );
         assert_eq!(
             downgrade_color(Color::Rgb(0x47, 0x47, 0x47), ColorLevel::Ansi256),
