@@ -1459,6 +1459,9 @@ impl App {
             "The pipeline stops at its current stage and the partially prepared instance is marked failed setup. Nothing is attached.",
         )
         .actions(&CANCEL_LAUNCH_ACTIONS)
+        // The frozen app centred the card with ratatui Flex::Center: the odd
+        // leftover row goes above, not to the floor split.
+        .align(termrock::ScreenAlign::Balanced)
     }
 
     fn cockpit_info_dialog() -> Dialog<'static> {
