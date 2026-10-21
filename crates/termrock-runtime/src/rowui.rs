@@ -752,7 +752,14 @@ impl<'u> RowUi<'u> {
     pub fn meta_with_gap(&mut self, s: &str, gap: u16) {
         let need = width(s);
         let area = self.remaining();
-        if need == 0 || need.saturating_add(gap).saturating_add(1) > area.width {
+        let Some(metadata_budget) = area
+            .width
+            .checked_sub(gap)
+            .and_then(|width| width.checked_sub(1))
+        else {
+            return;
+        };
+        if need == 0 || need > metadata_budget {
             return;
         }
         let st = self.style_of(Part::META);
