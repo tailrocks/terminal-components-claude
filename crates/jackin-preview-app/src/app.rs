@@ -9616,14 +9616,22 @@ impl TuiApp for App {
         self.draw_historical_accounts_add_form(ui, full);
         self.draw_historical_accounts_filter(ui, full);
         self.draw_historical_accounts_filter_80(ui);
-        self.draw_historical_settings_route(ui, full);
-        self.draw_historical_settings_route_80(ui);
-        self.draw_historical_settings_mounts_80(ui);
-        self.draw_historical_settings_mounts(ui, full);
-        self.draw_historical_settings_env(ui, full);
-        self.draw_historical_settings_agents(ui, full);
-        self.draw_historical_settings_trust(ui, full);
-        self.draw_historical_settings_save(ui, full);
+        if self.route == Route::Settings
+            && self.world.scenario == Scenario::AccountsMixed
+            && self.motion == Motion::Paused
+            && ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
+            && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.about_open
+            && !self.editor_exit_open
+            && !self.cockpit_info_open
+            && !self.launch_failure_open
+            && self.picker_mode.is_none()
+        {
+            settings_view::paint(self, ui, full);
+        }
         self.draw_historical_accounts_detail(ui, full);
         self.draw_historical_accounts_detail_80(ui);
         self.draw_historical_accounts_drawer(ui, full);

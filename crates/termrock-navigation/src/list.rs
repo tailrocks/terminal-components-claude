@@ -584,7 +584,7 @@ impl<'a, T, K, R> List<'a, T, K, R> {
         sr
     }
 
-    fn table(&self) -> &'static [Binding<ListCmd>] {
+    pub const fn table(&self) -> &'static [Binding<ListCmd>] {
         match self.select_mode {
             SelectMode::Single => &SINGLE,
             SelectMode::Multi | SelectMode::Range => &MULTI,
@@ -935,6 +935,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
         if released {
             st.click_cursor = None;
         }
+        *st.core.scroll_mut() = self.scroll_view(st, len, viewport);
         acc.finish(self.id)
     }
 

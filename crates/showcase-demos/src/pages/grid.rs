@@ -605,7 +605,7 @@ fn renewed_at(index: usize) -> String {
 }
 
 fn notes_of(index: usize, seats: u32) -> String {
-    if index % 4 == 0 {
+    if index.is_multiple_of(4) {
         format!("{{\"owner\":\"mira\",\"seats\":{seats}}}")
     } else {
         "NULL".to_owned()
@@ -701,6 +701,10 @@ fn paint_clipped(
     ui.paint_str(Rect::new(x, y, columns, 1), text, style);
 }
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "column renderer accepts resolved positioning and styling parameters"
+)]
 fn paint_column(
     ui: &mut Ui<'_>,
     x: u16,

@@ -221,20 +221,7 @@ fn paint_heading(ui: &mut Ui<'_>, body: Rect) {
     let meta = "Composed: tabs, form, editable table, list, dialogs";
     let meta_x = width(title).saturating_add(2);
     let row = Rect { y, ..body };
-    if narrow_frame(body) {
-        let room = body.width.saturating_sub(meta_x).saturating_sub(1);
-        if room > 0 {
-            paint_clip(ui, row, meta_x, y, meta, plain(MUTED, CANVAS), room);
-        }
-        paint_at(
-            ui,
-            row,
-            body.width.saturating_sub(1),
-            y,
-            " ",
-            plain(WHITE, CANVAS),
-        );
-    } else if compact_frame(body) {
+    if narrow_frame(body) || compact_frame(body) {
         let room = body.width.saturating_sub(meta_x).saturating_sub(1);
         if room > 0 {
             paint_clip(ui, row, meta_x, y, meta, plain(MUTED, CANVAS), room);

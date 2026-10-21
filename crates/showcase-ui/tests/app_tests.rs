@@ -509,9 +509,13 @@ fn hit_testing_prefers_rows_over_their_container() {
 fn list_scrolling_and_selection() {
     let mut h = harness(PageId::Lists);
     press(&mut h, KeyCode::Tab);
-    for _ in 0..19 {
+    eprintln!("FOCUS AFTER TAB: {:?}", h.focus());
+    for i in 0..19 {
         press(&mut h, KeyCode::Down);
+        let header = h.text().lines().find(|l| l.contains("Language")).unwrap_or("").to_string();
+        eprintln!("AFTER DOWN {i}: {header} (page={:?})", h.app().page());
     }
+    eprintln!("SCREEN AFTER 19 DOWNS:\n{}", h.text());
     assert!(h.text().contains("Erlang"));
     press(&mut h, KeyCode::Enter);
     assert!(h.text().contains("Chosen: Erlang"));
@@ -816,14 +820,18 @@ fn scrollbar_click_and_drag_move_the_view() {
 fn keyboard_navigation_between_pages() {
     let mut h = harness(PageId::Overview);
     press(&mut h, KeyCode::Char(']'));
-    assert_eq!(h.app().page(), PageId::Buttons);
+    assert_eq!(h.app().page(), PageId::Chrome);
     press(&mut h, KeyCode::Char('['));
     assert_eq!(h.app().page(), PageId::Overview);
     press(&mut h, KeyCode::Down);
+    press(&mut h, KeyCode::Right);
+    press(&mut h, KeyCode::Down);
     press(&mut h, KeyCode::Enter);
-    assert_eq!(h.app().page(), PageId::Buttons);
+    assert_eq!(h.app().page(), PageId::Chrome);
     let (x, y) = require(h.find("Tables"), "navigation item");
     click(&mut h, x, y);
+    let (bx, by) = require(h.find("Basic table"), "basic table item");
+    click(&mut h, bx, by);
     assert_eq!(h.app().page(), PageId::Tables);
 }
 
@@ -970,7 +978,7 @@ fn local_override_page_shows_three_distinct_buttons() {
 fn application_navigation_help_and_inspector_commands_keep_their_routes() {
     let mut h = harness(PageId::Overview);
     press(&mut h, KeyCode::Char(']'));
-    assert_eq!(h.app().page(), PageId::Buttons);
+    assert_eq!(h.app().page(), PageId::Chrome);
     press(&mut h, KeyCode::Char('['));
     assert_eq!(h.app().page(), PageId::Overview);
     press(&mut h, KeyCode::Char('?'));
