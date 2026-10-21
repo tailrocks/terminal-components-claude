@@ -10,8 +10,8 @@
 //! navigation slice is ported alongside this one.
 
 use ratatui_core::layout::Rect;
+use termrock_controls::Button;
 use termrock_controls::choice::{Checkbox, RadioGroup, RadioGroupState, Toggle};
-use termrock_controls::{Button, ReferenceState};
 use termrock_core::id::{Id, ItemKey};
 use termrock_core::response::Response;
 use termrock_runtime::hit::Region;
@@ -37,15 +37,20 @@ struct ControlsPage {
 impl App for ControlsPage {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut acc = Response::ignored();
-        if Button::new(BUTTON, "Run").update(cx).activated()
-        {
+        if Button::new(BUTTON, "Run").update(cx).activated() {
             self.activations += 1;
             acc |= Response::changed();
         }
-        if Checkbox::new(CHECK, "Check").update(cx, &mut self.checked).activated() {
+        if Checkbox::new(CHECK, "Check")
+            .update(cx, &mut self.checked)
+            .activated()
+        {
             acc |= Response::changed();
         }
-        if Toggle::new(TOGGLE, "Toggle").update(cx, &mut self.on).activated() {
+        if Toggle::new(TOGGLE, "Toggle")
+            .update(cx, &mut self.on)
+            .activated()
+        {
             acc |= Response::changed();
         }
         let radio = RadioGroup::new(RADIO).update(cx, &mut self.state, &RADIO_ITEMS);
@@ -112,7 +117,8 @@ fn every_control_region_routes_to_its_owner() {
         let before = h.app().checked;
         let _ = h.click(region.area.x, region.area.y);
         assert_ne!(
-            h.app().checked, before,
+            h.app().checked,
+            before,
             "checkbox region {:?} toggles the value",
             region.part
         );
@@ -123,19 +129,24 @@ fn every_control_region_routes_to_its_owner() {
         let before = h.app().on;
         let _ = h.click(region.area.x, region.area.y);
         assert_ne!(
-            h.app().on, before,
+            h.app().on,
+            before,
             "toggle region {:?} flips the value",
             region.part
         );
     }
 
     let radio_regions = owned_regions(&h, RADIO);
-    assert!(radio_regions.len() >= RADIO_ITEMS.len(), "each option is hit tested");
+    assert!(
+        radio_regions.len() >= RADIO_ITEMS.len(),
+        "each option is hit tested"
+    );
     for region in &radio_regions {
         let _ = h.click(region.area.x, region.area.y);
         let chosen = h.app().selected;
         assert_ne!(
-            chosen, usize::MAX,
+            chosen,
+            usize::MAX,
             "radio region {:?} selects an option",
             region.part
         );
