@@ -1,11 +1,12 @@
 #![allow(clippy::unwrap_used, reason = "test lifecycle assertions")]
 use ratatui_core::buffer::Buffer;
-use termrock_fields::{BlurPolicy, TextInput, TextInputState};
+use termrock_fields::{BlurPolicy, FocusSelect, TextInput, TextInputState};
 use termrock_runtime::*;
 use termrock_test_support::{
     Scene,
     perf::{Counting, bench, lock},
 };
+use termrock_theme::{Family, Role, StylePatch};
 #[global_allocator]
 static ALLOCATOR: Counting = Counting;
 const EDITOR: Id = Id::root("keyboard.editor");
@@ -13,6 +14,13 @@ const OTHER: Id = Id::root("keyboard.other");
 const MODAL: Id = Id::root("keyboard.modal");
 const AREA: Rect = Rect::new(0, 0, 40, 8);
 const FIELD: Rect = Rect::new(2, 2, 12, 1);
+const FOCUS_SOURCE: Id = Id::root("keyboard.focus-source");
+const FOCUS_TARGET: Id = Id::root("keyboard.focus-target");
+const FOCUS_AFTER: Id = Id::root("keyboard.focus-after");
+const FOCUS_MODAL: Id = Id::root("keyboard.focus-modal");
+const FOCUS_SOURCE_AREA: Rect = Rect::new(0, 0, 12, 1);
+const FOCUS_TARGET_AREA: Rect = Rect::new(16, 0, 18, 1);
+const FOCUS_AFTER_AREA: Rect = Rect::new(35, 0, 5, 1);
 
 struct Model {
     state: TextInputState,
@@ -113,6 +121,255 @@ fn mouse(kind: MouseKind) -> Input {
 fn send<A: App>(rt: &mut Runtime<A>, input: Input) {
     let _ = rt.handle(input).unwrap();
     present(rt);
+}
+
+struct FocusSelectModel {
+    source: TextInputState,
+    target: TextInputState,
+    after: TextInputState,
+    source_value: String,
+    target_value: String,
+    after_value: String,
+    initial_target_focus: bool,
+    focus_policy: FocusSelect,
+    target_availability: Focusability,
+    open_focus_modal: bool,
+}
+
+impl FocusSelectModel {
+    fn target_input(policy: FocusSelect, availability: Focusability) -> TextInput<'static> {
+        TextInput::new(FOCUS_TARGET)
+            .focus_select(policy)
+            .disabled(availability == Focusability::Disabled)
+            .read_only(availability == Focusability::FocusableReadOnly)
+            .blur(BlurPolicy::Keep)
+    }
+}
+
+impl App for FocusSelectModel {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        if cx.update_cause() == UpdateCause::Bootstrap {
+            cx.focus(if self.initial_target_focus {
+                FOCUS_TARGET
+            } else {
+                FOCUS_SOURCE
+            });
+        }
+        if self.open_focus_modal {
+            self.open_focus_modal = false;
+            cx.open_layer(
+                FOCUS_MODAL,
+                LayerSpec::modal(FOCUS_MODAL).initial_focus(FOCUS_MODAL),
+            );
+        }
+        for _ in cx.intents(FOCUS_MODAL) {}
+        let source = TextInput::new(FOCUS_SOURCE).blur(BlurPolicy::Keep).update(
+            cx,
+            &mut self.source,
+            &mut self.source_value,
+        );
+        let target = Self::target_input(self.focus_policy, self.target_availability).update(
+            cx,
+            &mut self.target,
+            &mut self.target_value,
+        );
+        let after = TextInput::new(FOCUS_AFTER).blur(BlurPolicy::Keep).update(
+            cx,
+            &mut self.after,
+            &mut self.after_value,
+        );
+        source.erase() | target.erase() | after.erase()
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        TextInput::new(FOCUS_SOURCE).value(&self.source_value).draw(
+            ui,
+            FOCUS_SOURCE_AREA,
+            &self.source,
+        );
+        Self::target_input(self.focus_policy, self.target_availability)
+            .value(&self.target_value)
+            .draw(ui, FOCUS_TARGET_AREA, &self.target);
+        TextInput::new(FOCUS_AFTER).value(&self.after_value).draw(
+            ui,
+            FOCUS_AFTER_AREA,
+            &self.after,
+        );
+        ui.layer(FOCUS_MODAL, |ui, area| {
+            ui.register_control(FOCUS_MODAL, area, Focusability::Focusable);
+        });
+    }
+}
+
+fn focus_select_runtime_for(
+    initial_target_focus: bool,
+    target_value: &str,
+    focus_policy: FocusSelect,
+) -> Runtime<FocusSelectModel> {
+    focus_select_runtime_for_availability(
+        initial_target_focus,
+        target_value,
+        focus_policy,
+        Focusability::Focusable,
+    )
+}
+
+fn focus_select_runtime_for_availability(
+    initial_target_focus: bool,
+    target_value: &str,
+    focus_policy: FocusSelect,
+    target_availability: Focusability,
+) -> Runtime<FocusSelectModel> {
+    let mut runtime = Runtime::new(
+        FocusSelectModel {
+            source: TextInputState::default(),
+            target: TextInputState::default(),
+            after: TextInputState::default(),
+            source_value: "source".into(),
+            target_value: target_value.into(),
+            after_value: "after".into(),
+            initial_target_focus,
+            focus_policy,
+            target_availability,
+            open_focus_modal: false,
+        },
+        Theme::junie().override_family(Family::INPUT, |recipe| {
+            recipe
+                .part(Part::ROW)
+                .when(StateFlags::SELECTED, StylePatch::new().set_fg(Role::Danger));
+        }),
+    );
+    let _ = runtime.initialize();
+    present(&mut runtime);
+    runtime
+}
+
+fn focus_select_runtime(initial_target_focus: bool) -> Runtime<FocusSelectModel> {
+    focus_select_runtime_for(initial_target_focus, "orders-prod", FocusSelect::SelectAll)
+}
+
+#[test]
+fn focus_select_all_is_opt_in_and_replaces_first_key() {
+    let mut runtime = focus_select_runtime(false);
+    assert_eq!(runtime.focus(), Some(FOCUS_SOURCE));
+    send(&mut runtime, key(KeyCode::Tab));
+    assert_eq!(runtime.focus(), Some(FOCUS_TARGET));
+    assert_eq!(
+        runtime.app().target.selection(),
+        Some(0..runtime.app().target_value.len())
+    );
+    let mut frame = Buffer::empty(AREA);
+    runtime.draw_buffer(AREA, &mut frame).commit_presented();
+    assert_ne!(frame[(18, 0)].fg, frame[(31, 0)].fg);
+    send(&mut runtime, key(KeyCode::Char('x')));
+    assert_eq!(runtime.app().target.draft_text(), Some("x"));
+
+    let mut default = Runtime::new(
+        Model {
+            state: TextInputState::default(),
+            value: "unchanged".into(),
+            pointer: false,
+            fallback: false,
+            availability: Focusability::Focusable,
+            open: false,
+        },
+        Theme::junie(),
+    );
+    let _ = default.initialize();
+    present(&mut default);
+    assert_eq!(default.app().state.draft_text(), Some("unchanged"));
+    assert_eq!(default.app().state.selection(), None);
+    assert_eq!(default.app().state.cursor_offset(), Some(9));
+}
+
+#[test]
+fn focus_select_all_preserves_programmatic_and_pointer_ownership() {
+    let programmatic = focus_select_runtime(true);
+    assert_eq!(programmatic.focus(), Some(FOCUS_TARGET));
+    assert_eq!(
+        programmatic.app().target.selection(),
+        Some(0..programmatic.app().target_value.len())
+    );
+
+    let mut pointer = focus_select_runtime(false);
+    let _ = pointer
+        .handle(Input::Mouse(Mouse {
+            kind: MouseKind::Down,
+            pos: Position::new(22, 0),
+            mods: KeyModifiers::NONE,
+        }))
+        .unwrap();
+    present(&mut pointer);
+    assert_eq!(pointer.focus(), Some(FOCUS_TARGET));
+    assert_eq!(pointer.app().target.selection(), None);
+    assert_eq!(pointer.app().target.cursor_offset(), Some(4));
+}
+
+#[test]
+fn focus_select_all_keeps_selection_when_keep_policy_restores_focus() {
+    let mut runtime = focus_select_runtime(false);
+    send(&mut runtime, key(KeyCode::Tab));
+    let selection = Some(0..runtime.app().target_value.len());
+    assert_eq!(runtime.app().target.selection(), selection);
+    send(&mut runtime, key(KeyCode::Tab));
+    assert_eq!(runtime.focus(), Some(FOCUS_AFTER));
+    assert_eq!(runtime.app().target.selection(), selection);
+    send(&mut runtime, key(KeyCode::BackTab));
+    assert_eq!(runtime.focus(), Some(FOCUS_TARGET));
+    assert_eq!(runtime.app().target.selection(), selection);
+}
+
+#[test]
+fn focus_select_policy_applies_when_layer_restores_focus_to_idle_input() {
+    let mut runtime = focus_select_runtime(false);
+    send(&mut runtime, key(KeyCode::Tab));
+    runtime.app_mut().target.cancel();
+    runtime.app_mut().open_focus_modal = true;
+    present(&mut runtime);
+    send(&mut runtime, Input::Tick);
+    assert_eq!(runtime.focus(), Some(FOCUS_MODAL));
+
+    send(&mut runtime, key(KeyCode::Esc));
+    assert_eq!(runtime.focus(), Some(FOCUS_TARGET));
+    assert_eq!(
+        runtime.app().target.selection(),
+        Some(0..runtime.app().target_value.len())
+    );
+}
+
+#[test]
+fn focus_select_all_uses_grapheme_safe_byte_range_for_unicode_values() {
+    let value = "e\u{301}🙂界";
+    let mut runtime = focus_select_runtime_for(false, value, FocusSelect::SelectAll);
+    send(&mut runtime, key(KeyCode::Tab));
+    assert_eq!(runtime.app().target.selection(), Some(0..value.len()));
+    send(&mut runtime, key(KeyCode::Char('x')));
+    assert_eq!(runtime.app().target.draft_text(), Some("x"));
+}
+
+#[test]
+fn caret_start_focus_policy_is_opt_in() {
+    let mut runtime = focus_select_runtime_for(false, "orders-prod", FocusSelect::CaretStart);
+    send(&mut runtime, key(KeyCode::Tab));
+    assert_eq!(runtime.app().target.cursor_offset(), Some(0));
+    assert_eq!(runtime.app().target.selection(), None);
+    let runtime = focus_select_runtime_for(true, "orders-prod", FocusSelect::CaretStart);
+    assert_eq!(runtime.app().target.cursor_offset(), Some(0));
+    assert_eq!(runtime.app().target.selection(), None);
+}
+
+#[test]
+fn focus_selection_never_starts_read_only_or_disabled_editing() {
+    for availability in [Focusability::FocusableReadOnly, Focusability::Disabled] {
+        let runtime = focus_select_runtime_for_availability(
+            true,
+            "orders-prod",
+            FocusSelect::SelectAll,
+            availability,
+        );
+        assert!(!runtime.app().target.is_editing(), "{availability:?}");
+        assert_eq!(runtime.app().target.selection(), None, "{availability:?}");
+    }
 }
 
 #[test]
