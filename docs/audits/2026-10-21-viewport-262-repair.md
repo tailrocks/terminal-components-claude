@@ -30,3 +30,13 @@ The width regression test uses long, unwrapped lines and checks equal returned t
 ## Remaining verification
 
 These checks cover the viewport crate only. No Jackin paired CLI/Tuiscotti comparison, complete application inventory, full workspace Nextest/Clippy run, or hosted CI result is claimed. Those application and acceptance checks remain pending, and the viewport change is not approval of the incoming 262 application/menu changes.
+
+## Follow-up: clipped wrapped pointer layout (795 review)
+
+The independent review of `795badb0adb2a9d118bb2cce6eb467b13e35be36` found that update rebuilt its wrapping key from the clipped `Part::TEXT` hit width. The pinned review packet is `/Users/donbeave/Projects/termrock-cli-evidence-20261021/branch-consolidation/viewport-795badb0-independent-review-20261021/review.json`, SHA-256 `49df6d35a24ed29cbbe4c77672be35024b0e453e7166b07febc963fead6f292f`.
+
+The real-Runtime regression uses logical area `24x4`, clip `10x4`, wrapping enabled, and `"abcdefghijklmnopqrstuv WORD"`. The independent packet's consumer passed on source `4cc10c3a7158123500fbe38435f2b68874b50561`; at reviewed `795` it rendered `W` at `(2,1)` but selected `0..22` instead of `23..27`. This new in-crate regression failed on reviewed `795` with the same wrong selection before the fix. The fix records the un-clipped area and resolved text width in the viewport's existing `LayoutFacts`, then maps pointer coordinates using the visible horizontal hit origin, logical row origin, and committed logical wrap width. No extra layout owner or application workaround was added.
+
+The regression now passes with both top clipping and the original `10x4` clip. A horizontal clip test checks the visible hit origin against the actually rendered cell. Both tests exercise real mouse down/up, selection cells, and TrueColor, ANSI 256, ANSI 16, and Mono themes. The existing `resize_updates_current_viewport_before_replacing_published_geometry` test continues to cover the runtime resize publication guard.
+
+Follow-up verification at the repaired source: `cargo nextest run -p termrock-viewport --all-targets --no-fail-fast` and the same command with `--features testing` each passed 58/58, 0 skipped. `cargo clippy -p termrock-viewport --all-targets --features testing -- -D warnings`, `cargo fmt --check --package termrock-viewport`, and `git diff --check` passed. The new wrapped regression failed on reviewed source `795` with the independently reported wrong selection and passes after this fix. This remains a crate-level result; the application-level coverage gaps above are unchanged.
