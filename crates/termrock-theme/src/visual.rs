@@ -45,6 +45,52 @@ impl InactiveSelection {
     ];
 }
 
+/// When a widget family paints the keyboard-focus bar in its gutter.
+///
+/// One shared policy for every gutter paint site. The frozen families pin
+/// three distinct rules (see `frozen_ink_pins.rs` in `termrock-controls` and
+/// `termrock-navigation`), so the rule is a parameter here and never a
+/// per-widget fork. Tier-sensitive rules read the theme's own capability
+/// level (set by [`Theme::for_level`](crate::Theme::for_level)), matching the
+/// resolver.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
+pub enum FocusBarPolicy {
+    /// Row families that blank the bar while disabled (`LIST`): the bar needs
+    /// focus and an enabled widget, at every tier. This is also the rule the
+    /// pre-policy helpers baked in, so it is the default.
+    #[default]
+    RowBlanked,
+    /// Row families that keep the bar while disabled (`CHOICE`, `TREE`,
+    /// `STEPS`): focus alone draws the bar at every tier; only the mono tier
+    /// blanks a disabled row's bar.
+    RowKept,
+    /// macOS-style controls (`BUTTON`): the bar needs focus AND focus
+    /// visibility, so mouse-initiated focus shows no bar. A disabled control
+    /// keeps a focus-visible bar.
+    FocusVisible,
+}
+
+impl FocusBarPolicy {
+    pub const ALL: [FocusBarPolicy; 3] = [
+        FocusBarPolicy::RowBlanked,
+        FocusBarPolicy::RowKept,
+        FocusBarPolicy::FocusVisible,
+    ];
+
+    /// Whether the focus bar paints for `flags` at colour capability `level`.
+    #[must_use]
+    pub fn shows_bar(self, flags: StateFlags, level: ColorLevel) -> bool {
+        if !flags.contains(StateFlags::FOCUSED) {
+            return false;
+        }
+        match self {
+            Self::RowBlanked => !flags.contains(StateFlags::DISABLED),
+            Self::RowKept => !(flags.contains(StateFlags::DISABLED) && level == ColorLevel::Mono),
+            Self::FocusVisible => flags.contains(StateFlags::FOCUS_VISIBLE),
+        }
+    }
+}
+
 impl Theme {
     /// The glyph painted in an item's gutter column for the given state.
     ///
@@ -52,25 +98,19 @@ impl Theme {
     /// is focused and enabled, a blank reserved cell otherwise.
     #[must_use]
     pub fn gutter_symbol(&self, flags: StateFlags) -> &'static str {
-        if flags.contains(StateFlags::FOCUSED) && !flags.contains(StateFlags::DISABLED) {
+        self.focus_bar_symbol(FocusBarPolicy::RowBlanked, flags)
+    }
+
+    /// The gutter glyph under an explicit [`FocusBarPolicy`].
+    ///
+    /// Tier-sensitive policies read the theme's own capability level.
+    #[must_use]
+    pub fn focus_bar_symbol(&self, policy: FocusBarPolicy, flags: StateFlags) -> &'static str {
+        if policy.shows_bar(flags, self.capability.color) {
             self.design.glyphs.get(GlyphRole::FocusBar)
         } else {
             " "
         }
-    }
-
-    /// Style for the gutter cell: the focus bar in legible focus ink, or a
-    /// blank cell in the host background.
-    #[must_use]
-    pub fn gutter(&self, flags: StateFlags, bg: Color, on_accent: bool) -> Style {
-        let fg = if !flags.contains(StateFlags::FOCUSED) || flags.contains(StateFlags::DISABLED) {
-            bg
-        } else if on_accent {
-            self.color.on_accent
-        } else {
-            self.legible_mark(self.color.focus, bg)
-        };
-        Style::new().fg(fg).bg(bg)
     }
 
     /// Ink for a chosen item (current page, chosen option, selected row).
@@ -106,6 +146,20 @@ impl Theme {
             InactiveSelection::Accent if under_modal => InactiveSelection::Neutral,
             look => look,
         }
+    }
+
+    /// Style for the gutter cell: the focus bar in legible focus ink, or a
+    /// blank cell in the host background.
+    #[must_use]
+    pub fn gutter(&self, flags: StateFlags, bg: Color, on_accent: bool) -> Style {
+        let fg = if !flags.contains(StateFlags::FOCUSED) || flags.contains(StateFlags::DISABLED) {
+            bg
+        } else if on_accent {
+            self.color.on_accent
+        } else {
+            self.legible_mark(self.color.focus, bg)
+        };
+        Style::new().fg(fg).bg(bg)
     }
 
     /// Keep a small mark (focus bar, checkbox tick, bullet) legible on `bg`.
@@ -175,3 +229,6 @@ pub const COLOR_LEVELS: [ColorLevel; 4] = [
     ColorLevel::Ansi16,
     ColorLevel::Mono,
 ];
+
+/// Every focus-bar policy, for exhaustive per-policy tests.
+pub const FOCUS_BAR_POLICIES: [FocusBarPolicy; 3] = FocusBarPolicy::ALL;
