@@ -35,7 +35,8 @@ pub fn overlay_chrome<R>(
             .then(|| ov.style(ui, id, family, Variant::DEFAULT, Part::CONTAINER, live));
         if backdrop_chrome {
             // Picker and dialog chrome fill the same buffer the backdrop dimmed.
-            // Copy each page cell through that mapping, then paint the card bg.
+            // The page here is still undimmed (dimming happens at composite), so
+            // each covered cell is copied through the backdrop mapping.
             let container_patch = ov.part_patch(Part::CONTAINER);
             let detailed = ui.style_defaults_with_explicit(
                 family,
@@ -400,6 +401,43 @@ mod tests {
             resolved.underline_color.expect("theme underline color")
         );
         assert!(cell.modifier.contains(Modifier::UNDERLINED));
+    }
+
+    #[test]
+    fn dialog_chrome_maps_the_covered_ink_through_the_backdrop() {
+        // The page under the chrome is still undimmed at draw time (dimming
+        // happens at composite), so blanks carry the backdrop-mapped ink.
+        let theme = Theme::junie();
+        let area = Rect::new(0, 0, 5, 4);
+        let mut frame = FrameState::default();
+        frame.reset(1, area);
+        let mut page = Buffer::empty(area);
+        for pos in area.positions() {
+            let cell = page.cell_mut(pos).expect("seed cell");
+            cell.set_symbol("x");
+            cell.fg = Color::White;
+            cell.bg = Color::Black;
+        }
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        {
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+            overlay_chrome(
+                &mut ui,
+                Id::root("dialog.chrome-maps-ink"),
+                area,
+                Family::DIALOG,
+                Surface::Overlay,
+                PartStyle::new(),
+                StateFlags::empty(),
+                StateFlags::empty(),
+                |_, _| (),
+            );
+        }
+        let cell = page.cell((2, 2)).expect("dialog chrome cell");
+        let (mapped, _) = theme.backdrop_colors(Color::White, Color::Black);
+        assert_eq!(cell.symbol(), " ");
+        assert_eq!(cell.fg, mapped, "blanks take the backdrop-mapped ink");
     }
 
     #[test]
