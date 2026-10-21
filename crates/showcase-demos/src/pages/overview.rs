@@ -1,9 +1,9 @@
 use termrock::author::PaintStyle;
 use termrock::{
-    Brand, Chord, Color, DerivedHintBar, Empty, EmptyState, FgStep, FieldSpec, Form, HelpOverlay,
-    HelpOverlayState, HelpSection, Hint, HintBar, HintLayer, Id, ItemKey, KeyCode, KeyHint, Meter,
-    Modifier, Panel, PanelKind, Part, Props, PropsList, PropsRow, PropsState, Rect, Role,
-    ScrollRegion, SplitAxis, SplitPane, StylePatch, TooSmall, Ui, Wizard, width, wrap,
+    Brand, Chord, Color, ColorLevel, DerivedHintBar, Empty, EmptyState, FgStep, FieldSpec, Form,
+    HelpOverlay, HelpOverlayState, HelpSection, Hint, HintBar, HintLayer, Id, ItemKey, KeyCode,
+    KeyHint, Meter, Modifier, Panel, PanelKind, Part, Props, PropsList, PropsRow, PropsState, Rect,
+    Role, ScrollRegion, SplitAxis, SplitPane, StylePatch, TooSmall, Ui, Wizard, width, wrap,
 };
 
 use super::{Page, PageUpdate, author::AuthorBadge, frame};
@@ -202,51 +202,191 @@ const TAB_ACTIVE: u32 = 0x27272a;
 const THUMB: u32 = 0x808080;
 const TRACK: u32 = 0x474747;
 
-const PLANES: &[(&str, u32)] = &[
-    ("canvas", 0x000000),
-    ("surface", 0x111111),
-    ("surface.elevated", 0x18181b),
-    ("surface.overlay", 0x27272a),
-    ("field", 0x1e1e22),
-    ("field.hover", 0x2f2f34),
-    ("popover", 0x3f3f46),
-    ("highlight", 0x2f5aa8),
-    ("highlight.danger", 0x7a2a2a),
-    ("selection", 0x1f3460),
-    ("border.subtle", 0x3a3a3a),
-    ("border.strong", 0x4d4d4d),
-    ("scroll.track", 0x474747),
-    ("text.primary", 0xffffff),
-    ("text.secondary", 0xb3b3b3),
-    ("text.muted", 0x8a8a8a),
-    ("text.faint", 0x737373),
-    ("text.ghost", 0x262626),
-    ("text.on_accent", 0x19191c),
-    ("disabled", 0x4d4d4d),
-];
+fn planes_and_text(t: &termrock::Theme) -> [(&'static str, Color); 20] {
+    match t.capability.color {
+        ColorLevel::Ansi256 => [
+            ("canvas", Color::Indexed(16)),
+            ("surface", Color::Indexed(232)),
+            ("surface.elevated", Color::Indexed(233)),
+            ("surface.overlay", Color::Indexed(235)),
+            ("field", Color::Indexed(234)),
+            ("field.hover", Color::Indexed(237)),
+            ("popover", Color::Indexed(237)),
+            ("highlight", Color::Indexed(25)),
+            ("highlight.danger", Color::Indexed(88)),
+            ("selection", Color::Indexed(17)),
+            ("border.subtle", Color::Indexed(238)),
+            ("border.strong", Color::Indexed(242)),
+            ("scroll.track", Color::Indexed(239)),
+            ("text.primary", Color::Indexed(231)),
+            ("text.secondary", Color::Indexed(249)),
+            ("text.muted", Color::Indexed(245)),
+            ("text.faint", Color::Indexed(242)),
+            ("text.ghost", Color::Indexed(238)),
+            ("text.on_accent", Color::Indexed(232)),
+            ("disabled", Color::Indexed(239)),
+        ],
+        ColorLevel::Ansi16 => [
+            ("canvas", Color::Black),
+            ("surface", Color::Black),
+            ("surface.elevated", Color::Black),
+            ("surface.overlay", Color::DarkGray),
+            ("field", Color::Black),
+            ("field.hover", Color::DarkGray),
+            ("popover", Color::DarkGray),
+            ("highlight", Color::Blue),
+            ("highlight.danger", Color::Red),
+            ("selection", Color::Black),
+            ("border.subtle", Color::DarkGray),
+            ("border.strong", Color::Gray),
+            ("scroll.track", Color::DarkGray),
+            ("text.primary", Color::White),
+            ("text.secondary", Color::Gray),
+            ("text.muted", Color::Gray),
+            ("text.faint", Color::Gray),
+            ("text.ghost", Color::DarkGray),
+            ("text.on_accent", Color::Black),
+            ("disabled", Color::DarkGray),
+        ],
+        ColorLevel::Mono => [
+            ("canvas", Color::Black),
+            ("surface", Color::Black),
+            ("surface.elevated", Color::Black),
+            ("surface.overlay", Color::DarkGray),
+            ("field", Color::Black),
+            ("field.hover", Color::Black),
+            ("popover", Color::DarkGray),
+            ("highlight", Color::DarkGray),
+            ("highlight.danger", Color::DarkGray),
+            ("selection", Color::DarkGray),
+            ("border.subtle", Color::DarkGray),
+            ("border.strong", Color::Gray),
+            ("scroll.track", Color::DarkGray),
+            ("text.primary", Color::White),
+            ("text.secondary", Color::Gray),
+            ("text.muted", Color::Gray),
+            ("text.faint", Color::Gray),
+            ("text.ghost", Color::DarkGray),
+            ("text.on_accent", Color::Black),
+            ("disabled", Color::DarkGray),
+        ],
+        ColorLevel::TrueColor | _ => [
+            ("canvas", rgb(0x000000)),
+            ("surface", rgb(0x111111)),
+            ("surface.elevated", rgb(0x18181b)),
+            ("surface.overlay", rgb(0x27272a)),
+            ("field", rgb(0x1e1e22)),
+            ("field.hover", rgb(0x2f2f34)),
+            ("popover", rgb(0x3f3f46)),
+            ("highlight", rgb(0x2f5aa8)),
+            ("highlight.danger", rgb(0x7a2a2a)),
+            ("selection", rgb(0x1f3460)),
+            ("border.subtle", rgb(0x3a3a3a)),
+            ("border.strong", rgb(0x4d4d4d)),
+            ("scroll.track", rgb(0x474747)),
+            ("text.primary", rgb(0xffffff)),
+            ("text.secondary", rgb(0xb3b3b3)),
+            ("text.muted", rgb(0x8a8a8a)),
+            ("text.faint", rgb(0x737373)),
+            ("text.ghost", rgb(0x262626)),
+            ("text.on_accent", rgb(0x19191c)),
+            ("disabled", rgb(0x4d4d4d)),
+        ],
+    }
+}
 
-const ACCENTS: &[(&str, u32)] = &[
-    ("accent", 0x48e054),
-    ("accent.hover", 0x3ab343),
-    ("accent.pressed", 0x2e9a38),
-    ("accent.bg", 0x173f1c),
-    ("accent.bg.subtle", 0x0a1c0c),
-    ("accent.bg.hover", 0x1e5024),
-    ("focus", 0x48e054),
-    ("link", 0x79b8ff),
-    ("success", 0x3fb950),
-    ("success.strong", 0x56d364),
-    ("info", 0x79b8ff),
-    ("warning", 0xf59e09),
-    ("error", 0xf05d5d),
-    ("error.bg", 0x2e0f0f),
-    ("error.soft", 0xe8a0a0),
-    ("error.strong", 0xff8a8a),
-    ("danger", 0xff6b6b),
-    ("syntax.keyword", 0x79b8ff),
-    ("syntax.string", 0x8bd5ca),
-    ("syntax.literal", 0xc6a0f6),
-];
+fn accent_and_status(t: &termrock::Theme) -> [(&'static str, Color); 20] {
+    match t.capability.color {
+        ColorLevel::Ansi256 => [
+            ("accent", Color::Indexed(78)),
+            ("accent.hover", Color::Indexed(71)),
+            ("accent.pressed", Color::Indexed(65)),
+            ("accent.bg", Color::Indexed(22)),
+            ("accent.bg.subtle", Color::Indexed(22)),
+            ("accent.bg.hover", Color::Indexed(28)),
+            ("focus", Color::Indexed(78)),
+            ("link", Color::Indexed(111)),
+            ("success", Color::Indexed(71)),
+            ("success.strong", Color::Indexed(77)),
+            ("info", Color::Indexed(111)),
+            ("warning", Color::Indexed(214)),
+            ("error", Color::Indexed(203)),
+            ("error.bg", Color::Indexed(52)),
+            ("error.soft", Color::Indexed(174)),
+            ("error.strong", Color::Indexed(210)),
+            ("danger", Color::Indexed(203)),
+            ("syntax.keyword", Color::Indexed(111)),
+            ("syntax.string", Color::Indexed(116)),
+            ("syntax.literal", Color::Indexed(183)),
+        ],
+        ColorLevel::Ansi16 => [
+            ("accent", Color::LightGreen),
+            ("accent.hover", Color::Green),
+            ("accent.pressed", Color::Green),
+            ("accent.bg", Color::Black),
+            ("accent.bg.subtle", Color::Black),
+            ("accent.bg.hover", Color::DarkGray),
+            ("focus", Color::LightGreen),
+            ("link", Color::LightBlue),
+            ("success", Color::Green),
+            ("success.strong", Color::Green),
+            ("info", Color::LightBlue),
+            ("warning", Color::Yellow),
+            ("error", Color::LightRed),
+            ("error.bg", Color::Black),
+            ("error.soft", Color::LightRed),
+            ("error.strong", Color::LightRed),
+            ("danger", Color::LightRed),
+            ("syntax.keyword", Color::LightBlue),
+            ("syntax.string", Color::Cyan),
+            ("syntax.literal", Color::LightMagenta),
+        ],
+        ColorLevel::Mono => [
+            ("accent", Color::White),
+            ("accent.hover", Color::White),
+            ("accent.pressed", Color::White),
+            ("accent.bg", Color::Black),
+            ("accent.bg.subtle", Color::Black),
+            ("accent.bg.hover", Color::Black),
+            ("focus", Color::White),
+            ("link", Color::Gray),
+            ("success", Color::White),
+            ("success.strong", Color::White),
+            ("info", Color::Gray),
+            ("warning", Color::Gray),
+            ("error", Color::White),
+            ("error.bg", Color::Black),
+            ("error.soft", Color::White),
+            ("error.strong", Color::White),
+            ("danger", Color::White),
+            ("syntax.keyword", Color::Gray),
+            ("syntax.string", Color::Gray),
+            ("syntax.literal", Color::White),
+        ],
+        ColorLevel::TrueColor | _ => [
+            ("accent", rgb(0x48e054)),
+            ("accent.hover", rgb(0x3ab343)),
+            ("accent.pressed", rgb(0x2e9a38)),
+            ("accent.bg", rgb(0x173f1c)),
+            ("accent.bg.subtle", rgb(0x0a1c0c)),
+            ("accent.bg.hover", rgb(0x1e5024)),
+            ("focus", rgb(0x48e054)),
+            ("link", rgb(0x79b8ff)),
+            ("success", rgb(0x3fb950)),
+            ("success.strong", rgb(0x56d364)),
+            ("info", rgb(0x79b8ff)),
+            ("warning", rgb(0xf59e09)),
+            ("error", rgb(0xf05d5d)),
+            ("error.bg", rgb(0x2e0f0f)),
+            ("error.soft", rgb(0xe8a0a0)),
+            ("error.strong", rgb(0xff8a8a)),
+            ("danger", rgb(0xff6b6b)),
+            ("syntax.keyword", rgb(0x79b8ff)),
+            ("syntax.string", rgb(0x8bd5ca)),
+            ("syntax.literal", rgb(0xc6a0f6)),
+        ],
+    }
+}
 
 const GLYPH_SAMPLES: &[(&str, &str, &str)] = &[
     ("checks", "[✓] [ ] [–]", "[x] [ ] [-]"),
@@ -353,8 +493,46 @@ fn rgb(hex: u32) -> Color {
     )
 }
 
-fn ink(fg: u32, bg: u32) -> PaintStyle {
-    PaintStyle::new().fg(rgb(fg)).bg(rgb(bg))
+fn token_color(t: &termrock::Theme, hex: u32) -> Color {
+    match t.capability.color {
+        ColorLevel::Ansi256 => match hex {
+            CANVAS => Color::Indexed(16),
+            SURFACE => Color::Indexed(232),
+            WHITE => Color::Indexed(231),
+            SECONDARY => Color::Indexed(249),
+            MUTED => Color::Indexed(245),
+            FAINT => Color::Indexed(242),
+            RULE => Color::Indexed(238),
+            ACCENT => Color::Indexed(78),
+            TAB_ACTIVE => Color::Indexed(235),
+            THUMB => Color::Indexed(245),
+            TRACK => Color::Indexed(239),
+            _ => rgb(hex),
+        },
+        ColorLevel::Ansi16 => match hex {
+            CANVAS | SURFACE => Color::Black,
+            WHITE => Color::White,
+            SECONDARY | MUTED | FAINT | THUMB => Color::Gray,
+            RULE | TAB_ACTIVE | TRACK => Color::DarkGray,
+            ACCENT => Color::LightGreen,
+            _ => rgb(hex),
+        },
+        ColorLevel::Mono => match hex {
+            CANVAS | SURFACE => Color::Black,
+            WHITE | ACCENT => Color::White,
+            SECONDARY | MUTED | FAINT | THUMB => Color::Gray,
+            RULE | TAB_ACTIVE | TRACK => Color::DarkGray,
+            _ => rgb(hex),
+        },
+        ColorLevel::TrueColor | _ => rgb(hex),
+    }
+}
+
+fn ink(ui: &Ui<'_>, fg: u32, bg: u32) -> PaintStyle {
+    let t = ui.theme_ref();
+    PaintStyle::new()
+        .fg(token_color(t, fg))
+        .bg(token_color(t, bg))
 }
 
 fn paint_blurb(ui: &mut Ui<'_>, area: Rect) {
@@ -368,7 +546,7 @@ fn paint_blurb(ui: &mut Ui<'_>, area: Rect) {
         height: 1,
         ..area
     };
-    let style = ink(MUTED, CANVAS);
+    let style = ink(ui, MUTED, CANVAS);
     if width(BLURB) <= meta.width {
         ui.paint_str(meta, BLURB, style);
         return;
@@ -401,9 +579,9 @@ fn paint_section_strip(ui: &mut Ui<'_>, area: Rect) {
             break;
         }
         let style = if index == 0 {
-            ink(WHITE, TAB_ACTIVE).add_modifier(Modifier::BOLD)
+            ink(ui, WHITE, TAB_ACTIVE).add_modifier(Modifier::BOLD)
         } else {
-            ink(SECONDARY, CANVAS)
+            ink(ui, SECONDARY, CANVAS)
         };
         ui.fill(Rect::new(x, area.y, w, 1), style);
         ui.paint_str(
@@ -421,7 +599,7 @@ fn paint_section_strip(ui: &mut Ui<'_>, area: Rect) {
             ui.paint_str(
                 Rect::new(caption_x, area.y, caption_width, 1),
                 SECTION_CAPTION,
-                ink(FAINT, CANVAS),
+                ink(ui, FAINT, CANVAS),
             );
         }
     }
@@ -436,13 +614,13 @@ fn paint_section_strip(ui: &mut Ui<'_>, area: Rect) {
             ..area
         },
         &"─".repeat(usize::from(area.width)),
-        ink(RULE, CANVAS),
+        ink(ui, RULE, CANVAS),
     );
     let active = tab_width(SECTIONS[0]).min(area.width);
     ui.paint_str(
         Rect::new(area.x, rule_y, active, 1),
         &"━".repeat(usize::from(active)),
-        ink(ACCENT, CANVAS),
+        ink(ui, ACCENT, CANVAS),
     );
 }
 
@@ -633,12 +811,51 @@ fn paint_visible_cards(ui: &mut Ui<'_>, clip: Rect, content_w: u16) {
     }
 }
 
+fn card_theme_colors(t: &termrock::Theme) -> (Color, Color, Color, Color, Color, Color) {
+    match t.capability.color {
+        ColorLevel::Ansi256 => (
+            Color::Indexed(232),
+            Color::Indexed(231),
+            Color::Indexed(249),
+            Color::Indexed(245),
+            Color::Indexed(242),
+            Color::Indexed(238),
+        ),
+        ColorLevel::Ansi16 => (
+            Color::Black,
+            Color::White,
+            Color::Gray,
+            Color::Gray,
+            Color::DarkGray,
+            Color::DarkGray,
+        ),
+        ColorLevel::Mono => (
+            Color::Black,
+            Color::White,
+            Color::Gray,
+            Color::Gray,
+            Color::DarkGray,
+            Color::DarkGray,
+        ),
+        ColorLevel::TrueColor | _ => (
+            rgb(SURFACE),
+            rgb(WHITE),
+            rgb(SECONDARY),
+            rgb(MUTED),
+            rgb(FAINT),
+            rgb(RULE),
+        ),
+    }
+}
+
 fn paint_card(ui: &mut Ui<'_>, card: Rect, view: Rect, kind: OverviewCard) {
     let visible = card.intersection(view);
     if visible.is_empty() {
         return;
     }
-    ui.fill(visible, ink(WHITE, SURFACE));
+    let t = ui.theme_ref();
+    let (surface, primary, secondary, _muted, _faint, rule) = card_theme_colors(t);
+    ui.fill(visible, PaintStyle::new().fg(primary).bg(surface));
     if card.y >= view.y && card.y < view.bottom() {
         paint_in(
             ui,
@@ -650,7 +867,7 @@ fn paint_card(ui: &mut Ui<'_>, card: Rect, view: Rect, kind: OverviewCard) {
                 1,
             ),
             card_title(kind),
-            ink(SECONDARY, SURFACE),
+            PaintStyle::new().fg(secondary).bg(surface),
         );
     }
     let rule_y = card.y.saturating_add(1);
@@ -661,19 +878,28 @@ fn paint_card(ui: &mut Ui<'_>, card: Rect, view: Rect, kind: OverviewCard) {
             view,
             Rect::new(card.x.saturating_add(CARD_PAD), rule_y, rule_w, 1),
             &"─".repeat(usize::from(rule_w)),
-            ink(RULE, SURFACE),
+            PaintStyle::new().fg(rule).bg(surface),
         );
     }
     match kind {
-        OverviewCard::Planes => paint_swatches(ui, view, card, PLANES),
-        OverviewCard::Accents => paint_swatches(ui, view, card, ACCENTS),
+        OverviewCard::Planes => paint_swatches(ui, view, card, &planes_and_text(t)),
+        OverviewCard::Accents => paint_swatches(ui, view, card, &accent_and_status(t)),
         OverviewCard::Glyphs => paint_glyphs(ui, view, card),
         OverviewCard::Ladders => paint_ladders(ui, view, card),
         _ => {}
     }
 }
 
-fn paint_swatches(ui: &mut Ui<'_>, view: Rect, card: Rect, rows: &[(&str, u32)]) {
+fn swatch_note(c: Color) -> String {
+    match c {
+        Color::Rgb(r, g, b) => format!("#{r:02x}{g:02x}{b:02x}"),
+        Color::Indexed(i) => format!("256: {i}"),
+        other => format!("{other:?}"),
+    }
+}
+
+fn paint_swatches(ui: &mut Ui<'_>, view: Rect, card: Rect, rows: &[(&str, Color)]) {
+    let (surface, primary, _secondary, muted, faint, _rule) = card_theme_colors(ui.theme_ref());
     let inner_x = card.x.saturating_add(CARD_PAD);
     let inner_w = card.width.saturating_sub(CARD_PAD.saturating_mul(2));
     for (index, (name, color)) in rows.iter().enumerate() {
@@ -690,7 +916,7 @@ fn paint_swatches(ui: &mut Ui<'_>, view: Rect, card: Rect, rows: &[(&str, u32)])
         let swatch = 4.min(inner_w);
         let swatch_rect = Rect::new(inner_x, y, swatch, 1).intersection(view);
         if !swatch_rect.is_empty() {
-            ui.fill(swatch_rect, ink(WHITE, *color));
+            ui.fill(swatch_rect, PaintStyle::new().fg(primary).bg(*color));
         }
         if inner_w > 4 {
             paint_in(
@@ -698,7 +924,7 @@ fn paint_swatches(ui: &mut Ui<'_>, view: Rect, card: Rect, rows: &[(&str, u32)])
                 view,
                 Rect::new(inner_x.saturating_add(4), y, 1, 1),
                 "▏",
-                ink(FAINT, SURFACE),
+                PaintStyle::new().fg(faint).bg(surface),
             );
         }
         if inner_w > 6 {
@@ -707,10 +933,10 @@ fn paint_swatches(ui: &mut Ui<'_>, view: Rect, card: Rect, rows: &[(&str, u32)])
                 view,
                 Rect::new(inner_x.saturating_add(6), y, inner_w.saturating_sub(6), 1),
                 name,
-                ink(WHITE, SURFACE),
+                PaintStyle::new().fg(primary).bg(surface),
             );
         }
-        let note = format!("#{color:06x}");
+        let note = swatch_note(*color);
         let note_w = width(&note);
         let note_at = inner_w.saturating_sub(note_w);
         if note_at > width(name).saturating_add(6) {
@@ -719,7 +945,7 @@ fn paint_swatches(ui: &mut Ui<'_>, view: Rect, card: Rect, rows: &[(&str, u32)])
                 view,
                 Rect::new(inner_x.saturating_add(note_at), y, note_w, 1),
                 &note,
-                ink(MUTED, SURFACE),
+                PaintStyle::new().fg(muted).bg(surface),
             );
         }
     }
@@ -765,9 +991,9 @@ fn paint_glyphs(ui: &mut Ui<'_>, view: Rect, card: Rect) {
     if body.is_empty() {
         return;
     }
-    let muted = ink(MUTED, SURFACE);
-    let name = ink(WHITE, SURFACE);
-    let value = ink(SECONDARY, SURFACE);
+    let muted = ink(ui, MUTED, SURFACE);
+    let name = ink(ui, WHITE, SURFACE);
+    let value = ink(ui, SECONDARY, SURFACE);
     paint_body(ui, view, body, 0, 0, "Glyphs", muted);
     paint_body(ui, view, body, 0, 15, "UNICODE", muted);
     paint_body(ui, view, body, 0, 33, "ASCII", muted);
@@ -799,8 +1025,8 @@ fn paint_ladders(ui: &mut Ui<'_>, view: Rect, card: Rect) {
     if body.is_empty() {
         return;
     }
-    let muted = ink(MUTED, SURFACE);
-    let name = ink(WHITE, SURFACE);
+    let muted = ink(ui, MUTED, SURFACE);
+    let name = ink(ui, WHITE, SURFACE);
     paint_body(
         ui,
         view,
@@ -827,7 +1053,7 @@ fn paint_ladders(ui: &mut Ui<'_>, view: Rect, card: Rect) {
             let swatch = Rect::new(body.x.saturating_add(x), body.y.saturating_add(row), 4, 1)
                 .intersection(view);
             if !swatch.is_empty() {
-                ui.fill(swatch, ink(WHITE, *color));
+                ui.fill(swatch, ink(ui, WHITE, *color));
             }
         }
         paint_body(ui, view, body, row, 32, &format!("→ {up}"), muted);
@@ -849,7 +1075,7 @@ fn paint_ladders(ui: &mut Ui<'_>, view: Rect, card: Rect) {
                 row,
                 17u16.saturating_add(step.saturating_mul(5)),
                 glyph,
-                ink(*color, SURFACE),
+                ink(ui, *color, SURFACE),
             );
         }
     }
@@ -883,9 +1109,9 @@ fn paint_hscrollbar(ui: &mut Ui<'_>, bar: Rect, viewport: u16, content_w: u16) {
             Rect::new(bar.x.saturating_add(col), bar.y, 1, 1),
             if on_thumb { "━" } else { "┄" },
             if on_thumb {
-                ink(THUMB, CANVAS)
+                ink(ui, THUMB, CANVAS)
             } else {
-                ink(TRACK, CANVAS)
+                ink(ui, TRACK, CANVAS)
             },
         );
     }
@@ -911,9 +1137,9 @@ fn paint_scrollbar(ui: &mut Ui<'_>, bar: Rect, content_h: u16) {
             Rect::new(bar.x, bar.y.saturating_add(row), 1, 1),
             if on_thumb { "┃" } else { "┆" },
             if on_thumb {
-                ink(THUMB, CANVAS)
+                ink(ui, THUMB, CANVAS)
             } else {
-                ink(TRACK, CANVAS)
+                ink(ui, TRACK, CANVAS)
             },
         );
     }
