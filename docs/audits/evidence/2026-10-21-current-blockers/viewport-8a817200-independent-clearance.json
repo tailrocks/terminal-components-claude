@@ -1,0 +1,286 @@
+{
+  "schema": "termrock.independent-review.v1",
+  "decision": "CLEAR_BOUNDED_VIEWPORT_REPAIR",
+  "reviewed_commit": "8a817200815d73fbc7ecc440c7e27011c5d52b10",
+  "source_fix_commit": "648a06878bf92d50a7b4012a352fe9edd3477279",
+  "pre262_reference": "4cc10c3a7158123500fbe38435f2b68874b50561",
+  "prior_hold_packet_sha256": "83b8e06705a7e62066af40b79edf8b9f9c1210ef376bbd253b1e3969c598f70d",
+  "findings": [],
+  "prior_findings_closed": [
+    {
+      "id": "VP72-R1",
+      "status": "closed",
+      "evidence": "The extra unconditional scroll_edges call is removed. The unchanged independent lossless default matrix now produces identical complete outputs at pre262 4cc and reviewed 8a. Both files are 56,114,040 bytes with SHA256 7272621df736dee66932e7f8cec325f0b80fb3640e467c8de44b87681fd26b50."
+    },
+    {
+      "id": "VP72-R2",
+      "status": "closed",
+      "evidence": "The original horizontally clipped caret regression fails on pre262 4cc and passes on 8a. Caret horizontal placement now uses the same visible text origin as the current row painter while preserving logical wrapping width and vertical origin. Additional clipping/caret cases pass across all four profiles."
+    },
+    {
+      "id": "VP795-R1",
+      "status": "still fixed",
+      "evidence": "The original unchanged clipped wrapped-word pointer probe passes. The unchanged 32-case pointer clipping matrix passes on 8a, including inherited top-clip cases that fail on pre262 4cc."
+    }
+  ],
+  "default_preservation": {
+    "before": {
+      "bytes": 56114040,
+      "sha256": "7272621df736dee66932e7f8cec325f0b80fb3640e467c8de44b87681fd26b50",
+      "configurations": 288,
+      "checkpoints": 2592
+    },
+    "after": {
+      "bytes": 56114040,
+      "sha256": "7272621df736dee66932e7f8cec325f0b80fb3640e467c8de44b87681fd26b50",
+      "configurations": 288,
+      "checkpoints": 2592
+    },
+    "identical": true,
+    "fixtures": {
+      "default.rs": {
+        "sha256": "d2dcd385fea579f03e463064b2095b8a40c32ea90dc8deb7039bd3f17e0243e0",
+        "same_before_after": true,
+        "same_prior_evidence": true
+      },
+      "clipping.rs": {
+        "sha256": "1e0226956b84ee68594c9a3b64fe6ef3a9e032a3f3b13cbaeb518811552db8a8",
+        "same_before_after": true,
+        "same_prior_evidence": true
+      },
+      "warm.rs": {
+        "sha256": "bf5bfa50525dc1d2ca4f24f36bb1db3f50bc7b69fc6582c44fa27119c465ba33",
+        "same_before_after": true,
+        "same_prior_evidence": true
+      },
+      "original-consumer.rs": {
+        "sha256": "67c7ebce2f0d4c0453cb349e0b83cf3eef82db11c27e906eccfbf65b58585109",
+        "same_before_after": true,
+        "same_prior_evidence": true
+      }
+    }
+  },
+  "cell_evidence_coverage": {
+    "configurations": "Four color profiles; wrap on/off; widths 0,1,2,3,8,9,23,24,25; heights 0,1,2,4; 288 configurations total.",
+    "checkpoints": "Initial frame, Down, PageDown, Home, End, pointer Move, Down, Drag, Up: nine ordered checkpoints per configuration, 2592 per revision.",
+    "complete_cells": "Each checkpoint includes the ordered 30x6 Cell array. ratatui-core 0.1.2 derives Debug over every Cell field: symbol storage, foreground, background, enabled underline color, modifiers, diff_option including forced-width metadata, and deprecated skip flag. Actual output confirms underline_color, diff_option and skip are present. Positions are preserved by array order and fixed 30x6 frame dimensions.",
+    "metadata": "Each checkpoint also includes registry regions, focus ring, focus owner, cursor position and bar-shape flag, selection, scroll state, ordered actions, and text-part geometry.",
+    "cells_per_revision": 466560,
+    "qualification": "This proves default library preservation against pre262 candidate 4cc, not frozen 416 application parity. It does not compare raw ANSI or terminal modes."
+  },
+  "checks": [
+    {
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "--no-fail-fast"
+      ],
+      "scope": "Unchanged original, default-matrix, clipping and 100000-line warm consumer fixtures. Separate exact-revision manifests and targets.",
+      "before": "5 run: 3 passed, 2 inherited clipping failures, 0 skipped",
+      "after": "5 run: 5 passed, 0 failed, 0 skipped"
+    },
+    {
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "--test",
+        "additional",
+        "--no-fail-fast"
+      ],
+      "scope": "Additional 32 caret profile/clip combinations plus real focus/modal ownership and resize-before-input publication guard.",
+      "after": "3 run: 3 passed, 0 failed, 0 skipped"
+    },
+    {
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "-p",
+        "termrock-viewport",
+        "--all-targets",
+        "--features",
+        "testing",
+        "--no-fail-fast"
+      ],
+      "before": "54 passed, 0 failed, 0 skipped",
+      "after": "59 passed, 0 failed, 0 skipped"
+    },
+    {
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "-p",
+        "termrock-viewport",
+        "--all-targets",
+        "--no-fail-fast"
+      ],
+      "after": "59 passed, 0 failed, 0 skipped"
+    },
+    {
+      "command": [
+        "cargo",
+        "clippy",
+        "-p",
+        "termrock-viewport",
+        "--all-targets",
+        "--features",
+        "testing",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit": 0
+    },
+    {
+      "command": [
+        "cargo",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit": 0
+    },
+    {
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exit": 0
+    }
+  ],
+  "source_and_contract_review": {
+    "defaults": "The incoming automatic horizontal scrollbar, variable default text width, last-row reservation and extra edge fading are absent. The pre262 default geometry and cell output are restored by the sampled complete-event matrix.",
+    "clipping": "Committed LayoutFacts retain the logical area and column count for layout/indexing. Pointer mapping uses the visible horizontal origin and logical vertical origin. The corrected caret uses that same visible horizontal origin, then checks visibility before requesting a runtime cursor.",
+    "arithmetic": "Reserved width and preferred measurement use saturating arithmetic. Native zero/narrow/u16::MAX tests pass; gutterless pointer mapping and resize tests pass across the native suite.",
+    "API_ownership": "The additive reserve_gutter, scroll_gap and bar_cursor builders remain. No public ViewportState field or existing public method was removed. No second input system, persistent selection owner, hidden control, source fixture asset or app-domain callback was added by this repair.",
+    "performance": "The unconditional full-content widest_line scan is gone. Existing generation/width-aware indexing remains. The unchanged 100000-line wrapped warm test reports zero indexed lines after reset through redraw and pointer down/up, with bounded visible row work. This is work-counter evidence, not a latency benchmark or instrumentation of every grapheme read.",
+    "focus_layers_resize": "Additional real Runtime cases verify that moving focus away hides this viewport caret, a modal owns the visible cursor, and resize invalidation rejects subsequent physical input until a new frame is presented. Native reference-inert and cursor tests remain green.",
+    "safety_concurrency": "No new unsafe code, thread primitive, global state or actionable concurrency/error-handling issue was identified in this bounded repair."
+  },
+  "coverage_limits": [
+    "All four application acceptance gates remain incomplete. No frozen/candidate real CLI or Tuiscotti paired capture was performed in this review.",
+    "The exact default matrix compares 4cc and 8a, not the frozen visual-baseline application source. No expected data was changed.",
+    "This clears only the Viewport repair. Normal merges in 8a include unrelated Jackin, Feedback, Menu and theme changes; those are not approved by this result.",
+    "No new horizontal scrollbar feature or Jackin renderer adoption is accepted. The misleading decorative horizontal bar was removed rather than blessed.",
+    "No whole-workspace Nextest/Clippy or required hosted CI was run. Native formatting is workspace-wide; test and lint scopes are explicitly limited.",
+    "The current clipped row painter shifts text to the visible horizontal origin. This repair aligns pointer/caret with that existing drawing behavior; it does not redesign the broader clipping policy.",
+    "No exhaustive Unicode selection, every custom slot/style override, large projected-data mutation, or resize-under-pointer-capture acceptance is claimed."
+  ],
+  "workspace_integrity": "Exact detached sparse copies at 4cc and 8a; per-revision targets; no author/parent source edits, commits, pushes, baseline mutation or modifications to original independent fixtures. Original fixture bytes match the prior immutable evidence. Owned commands completed within explicit process-group deadlines of at most 220 seconds including cleanup.",
+  "source_sha256": "f601ae26ae99e75e92b9f15840ce4418803069143d3f6e6651d36c03ce6fac5d",
+  "evidence_files": {
+    "additional-run.py": {
+      "sha256": "244461721b7429be80c0bcebabf0d1132ed89690bdc84e2dd27e818c3b2fd15f",
+      "bytes": 1064
+    },
+    "additional-status.json": {
+      "sha256": "f8cece279174e74f8726c7c1a6892f44dd10936f83fbd24861ea845ef6ab5d68",
+      "bytes": 213
+    },
+    "after-additional.log": {
+      "sha256": "8cc3f331081f8d66e92b391ab51f05f1b16068b198ad7094ad88d2da423159de",
+      "bytes": 2828
+    },
+    "after-checkpoints.txt": {
+      "sha256": "7272621df736dee66932e7f8cec325f0b80fb3640e467c8de44b87681fd26b50",
+      "bytes": 56114040
+    },
+    "after-consumer-Cargo.toml": {
+      "sha256": "1769a51d7e030bb2d9315aff4f96e5dbd5095be57b2aa588a5f853ed15c5d2be",
+      "bytes": 541
+    },
+    "after-consumer-additional.rs": {
+      "sha256": "fcedbe50de3f0e62a5996a767e90c55b6e8751df0bfdd138397b6fb2f7480788",
+      "bytes": 3638
+    },
+    "after-consumer-clipping.rs": {
+      "sha256": "1e0226956b84ee68594c9a3b64fe6ef3a9e032a3f3b13cbaeb518811552db8a8",
+      "bytes": 2673
+    },
+    "after-consumer-default.rs": {
+      "sha256": "d2dcd385fea579f03e463064b2095b8a40c32ea90dc8deb7039bd3f17e0243e0",
+      "bytes": 2810
+    },
+    "after-consumer-lib.rs": {
+      "sha256": "67c7ebce2f0d4c0453cb349e0b83cf3eef82db11c27e906eccfbf65b58585109",
+      "bytes": 1341
+    },
+    "after-consumer-warm.rs": {
+      "sha256": "bf5bfa50525dc1d2ca4f24f36bb1db3f50bc7b69fc6582c44fa27119c465ba33",
+      "bytes": 1604
+    },
+    "after-consumer.log": {
+      "sha256": "eabdd9d87f37351d557e2b23ed321948155099651d86a5a4c5f34723a5fd469e",
+      "bytes": 7559
+    },
+    "after-default-clippy-fmt.log": {
+      "sha256": "3f4dbb87a7d64f30cadb21bbee9a9f7a3901fdbc81c045523d8e48f46bcf870d",
+      "bytes": 12083
+    },
+    "after-nextest.log": {
+      "sha256": "11c2c79ea64d6c8fae7f9a38f942cd31deeaf45870f1feffc98e4d1796de329b",
+      "bytes": 12514
+    },
+    "before-checkpoints.txt": {
+      "sha256": "7272621df736dee66932e7f8cec325f0b80fb3640e467c8de44b87681fd26b50",
+      "bytes": 56114040
+    },
+    "before-consumer-Cargo.toml": {
+      "sha256": "bd901f15f6564d2e0fb452feffc14600b00d5401f0277fec7f5b28d2bcffd507",
+      "bytes": 545
+    },
+    "before-consumer-clipping.rs": {
+      "sha256": "1e0226956b84ee68594c9a3b64fe6ef3a9e032a3f3b13cbaeb518811552db8a8",
+      "bytes": 2673
+    },
+    "before-consumer-default.rs": {
+      "sha256": "d2dcd385fea579f03e463064b2095b8a40c32ea90dc8deb7039bd3f17e0243e0",
+      "bytes": 2810
+    },
+    "before-consumer-lib.rs": {
+      "sha256": "67c7ebce2f0d4c0453cb349e0b83cf3eef82db11c27e906eccfbf65b58585109",
+      "bytes": 1341
+    },
+    "before-consumer-warm.rs": {
+      "sha256": "bf5bfa50525dc1d2ca4f24f36bb1db3f50bc7b69fc6582c44fa27119c465ba33",
+      "bytes": 1604
+    },
+    "before-consumer.log": {
+      "sha256": "2e5ff6b7b2e77aa66b72d8a97950d4dc8788f68309137db10412dcd794d12cbd",
+      "bytes": 9370
+    },
+    "before-nextest.log": {
+      "sha256": "7289a1fda0f8a36d6bc4a8a74a206131bd586923fc6b0e78fe6e363e6adcd6b9",
+      "bytes": 12343
+    },
+    "comparison.json": {
+      "sha256": "d90a58c47cc55f3386a6ec6b4635f944a2e687311309b62faad4cf1adbbc1f4c",
+      "bytes": 1112
+    },
+    "consumer-run.py": {
+      "sha256": "409a42c8e6c6670ef7f7778a35137df5c9d214bbd0f0ff574349836d640b4341",
+      "bytes": 1047
+    },
+    "consumer-status.json": {
+      "sha256": "0e04eeed180a40a6ddfa964694b24e48a255e537a226c7467e48e72a4367097f",
+      "bytes": 353
+    },
+    "default-clippy-fmt-status.json": {
+      "sha256": "ed4400f2ebf4c0e4a5002151f920a209f0b7da42f3855890f6ef3b7ee7582ed3",
+      "bytes": 605
+    },
+    "native-run.py": {
+      "sha256": "49a3cb68fa827cb32a4d6b56877e57b53268c989d4abf06013374ed31d2a6582",
+      "bytes": 1030
+    },
+    "native-status.json": {
+      "sha256": "e4bbef91982fd14eebc4b5d6076750583f3f10980a565535857c61b059540e75",
+      "bytes": 549
+    }
+  }
+}

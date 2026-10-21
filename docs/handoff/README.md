@@ -1,3 +1,8 @@
+
+# 2026-10-21: integrated WIP retirement
+
+The nine refs in `../audits/evidence/2026-10-21-current-blockers/nine-integrated-wip-parent-retirement-preconditions.json` are retired atomically with this record after independent review and fresh exact-tip checks. Historical entries below remain provenance, not instructions to recreate those remote refs. Resume active unfinished work only; local refs, worktrees and evidence are preserved.
+
 # Migration handoff
 
 Start with the current [Termrock migration and acceptance matrix](../architecture/termrock-migration-matrix.md). It records fixed source identities, application status, paired CLI coverage, architecture findings, unresolved differences, and next evidence. Treat every partial or missing result as incomplete work.

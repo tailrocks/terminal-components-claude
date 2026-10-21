@@ -423,16 +423,6 @@ fn line_cols<'a>(line: impl Into<LineRef<'a>>) -> usize {
     n
 }
 
-fn widest_line(lines: LineSet<'_>) -> usize {
-    let mut widest = 0usize;
-    for index in 0..lines.len() {
-        if let Some(line) = lines.get(index) {
-            widest = widest.max(line_cols(line));
-        }
-    }
-    widest
-}
-
 fn line_rows<'a>(line: impl Into<LineRef<'a>>, w: u16, wrap: bool) -> usize {
     let line = line.into();
     if !wrap || w == 0 {
@@ -953,7 +943,17 @@ impl<'a> TextViewport<'a> {
     }
 
     fn text_width(width: u16, gutter: bool, gap: u16) -> u16 {
-        width.saturating_sub(1 + u16::from(gutter) + gap)
+        let reserved = 1u16.saturating_add(u16::from(gutter)).saturating_add(gap);
+        width.saturating_sub(reserved)
+    }
+
+    fn text_area(&self, area: Rect, width: u16) -> Rect {
+        let gutter = u16::from(self.reserve_gutter);
+        Rect {
+            x: area.x.saturating_add(gutter),
+            width: width.min(area.width.saturating_sub(gutter)),
+            ..area
+        }
     }
 
     const fn layout_key(&self, st: &ViewportState, width: u16) -> LayoutKey {
@@ -986,7 +986,7 @@ impl<'a> TextViewport<'a> {
         let (li, row) = layout.row_start(lines, visual);
         let line = lines.get(li)?;
         let (start, end) = row_cols(line, key.width, self.wrap, row);
-        let dx = usize::from(pos.x.saturating_sub(area.x.saturating_add(1)));
+        let dx = usize::from(pos.x.saturating_sub(area.x));
         let last = end.min(line_cols(line));
         Some(CellPos {
             line: li,
@@ -1018,11 +1018,26 @@ impl<'a> TextViewport<'a> {
         st: &mut ViewportState,
         lines: LineSet<'_>,
     ) -> Response<ViewportAction> {
-        let area = cx.area(self.id).unwrap_or(Rect::ZERO);
-        let width = cx.layout(self.id).map_or_else(
+        let layout = cx.layout(self.id);
+        let area = layout
+            .and_then(|layout| layout.logical_area)
+            .or_else(|| cx.area(self.id))
+            .unwrap_or(Rect::ZERO);
+        let width = layout.map_or_else(
             || Self::text_width(area.width, self.reserve_gutter, self.scroll_gap),
-            |l| l.cols,
+            |layout| layout.cols,
         );
+        let logical_text = self.text_area(area, width);
+        let hit_text = cx
+            .area_of_part(self.id, PartRef::of(Part::TEXT))
+            .unwrap_or(logical_text);
+        // The registry clips the hit area. Keep its horizontal visible origin for pointer
+        // mapping, while retaining the logical row origin and wrapping width from draw.
+        let pointer_text = Rect {
+            x: hit_text.x,
+            y: logical_text.y,
+            ..logical_text
+        };
         let key = self.layout_key(st, width);
         let (total, indexed) = {
             let layout = cx.cache::<ViewportLayout>(self.id);
@@ -1059,7 +1074,14 @@ impl<'a> TextViewport<'a> {
                         },
                     pos,
                     ..
-                } => self.handle_text_pointer(cx, st, lines, (area, key), (phase, pos), &mut acc),
+                } => self.handle_text_pointer(
+                    cx,
+                    st,
+                    lines,
+                    (area, pointer_text, hit_text, key),
+                    (phase, pos),
+                    &mut acc,
+                ),
                 _ => {}
             }
         }
@@ -1074,18 +1096,18 @@ impl<'a> TextViewport<'a> {
         cx: &mut Cx<'_>,
         st: &mut ViewportState,
         lines: LineSet<'_>,
-        geometry: (Rect, LayoutKey),
+        geometry: (Rect, Rect, Rect, LayoutKey),
         pointer: (Phase, Position),
         acc: &mut Acc<ViewportAction>,
     ) {
-        let (area, key) = geometry;
+        let (area, logical_text, hit_text, key) = geometry;
         let (phase, pos) = pointer;
         match phase {
             Phase::Press | Phase::DragStart => {
                 cx.focus(self.id);
                 let _ = cx.capture(self.id, PartRef::of(Part::TEXT));
                 let had = st.selection.take().is_some();
-                st.anchor = self.pos_at(cx, lines, (area, key, st.scroll.offset()), pos);
+                st.anchor = self.pos_at(cx, lines, (logical_text, key, st.scroll.offset()), pos);
                 if had {
                     acc.action(ViewportAction::SelectionChanged);
                 } else {
@@ -1104,13 +1126,21 @@ impl<'a> TextViewport<'a> {
                         FollowCursor::OnMove
                     };
                 }
-                let clamped = Position::new(
-                    pos.x
-                        .clamp(area.x, area.right().saturating_sub(1).max(area.x)),
-                    pos.y
-                        .clamp(area.y, area.bottom().saturating_sub(1).max(area.y)),
-                );
-                let at = self.pos_at(cx, lines, (area, key, st.scroll.offset()), clamped);
+                let clamped = if hit_text.is_empty() {
+                    pos
+                } else {
+                    Position::new(
+                        pos.x.clamp(
+                            hit_text.x,
+                            hit_text.right().saturating_sub(1).max(hit_text.x),
+                        ),
+                        pos.y.clamp(
+                            hit_text.y,
+                            hit_text.bottom().saturating_sub(1).max(hit_text.y),
+                        ),
+                    )
+                };
+                let at = self.pos_at(cx, lines, (logical_text, key, st.scroll.offset()), clamped);
                 match (st.anchor, at) {
                     (Some(anchor), Some(head)) => {
                         st.selection = Some((anchor, head));
@@ -1125,7 +1155,7 @@ impl<'a> TextViewport<'a> {
             }
             Phase::Click | Phase::DoubleClick => {
                 cx.focus(self.id);
-                let at = self.pos_at(cx, lines, (area, key, st.scroll.offset()), pos);
+                let at = self.pos_at(cx, lines, (logical_text, key, st.scroll.offset()), pos);
                 match at.and_then(|p| {
                     lines
                         .get(p.line)
@@ -1247,8 +1277,8 @@ impl<'a> TextViewport<'a> {
         let id = self.id;
         let runtime = ui.state(id).difference(StateFlags::SELECTED);
         let live = PartStyle::flags(runtime, StateFlags::empty());
-        let widest = widest_line(lines);
-        let (text_w, show_h, rows) = self.text_rows(area, lines.len(), widest);
+        let text_w = Self::text_width(area.width, self.reserve_gutter, self.scroll_gap);
+        let rows = area.height;
         let key = self.layout_key(st, text_w);
         let (total, indexed) = {
             let lay = ui.cache::<ViewportLayout>(id);
@@ -1284,12 +1314,8 @@ impl<'a> TextViewport<'a> {
         );
         ui.fill(area, container.style);
         let gutter_w = u16::from(self.reserve_gutter);
-        let text_rows = Rect {
-            height: rows,
-            ..area
-        };
         if self.reserve_gutter {
-            self.gutter(ui, text_rows, live, &ov);
+            self.gutter(ui, area, live, &ov);
         }
         let body = Rect {
             x: area.x.saturating_add(gutter_w),
@@ -1298,20 +1324,15 @@ impl<'a> TextViewport<'a> {
             height: rows,
         };
         let content = self.bar().draw(ui, body, &view, total);
+        let desired_text = self.text_area(area, text_w);
         let text = Rect {
-            width: text_w.min(content.width),
-            ..content
+            width: desired_text.width.min(content.width),
+            ..desired_text
         };
-        ui.report_layout(id, LayoutFacts::new(usize::from(rows), total, rows, text_w));
-        if show_h {
-            let bar = Rect {
-                x: body.x,
-                y: area.y.saturating_add(rows),
-                width: content.width,
-                height: 1,
-            };
-            self.paint_h_bar(ui, bar, widest, text_w);
-        }
+        ui.report_layout(
+            id,
+            LayoutFacts::new(usize::from(rows), total, rows, text_w).with_logical_area(area),
+        );
         if text.is_empty() {
             return text;
         }
@@ -1341,34 +1362,7 @@ impl<'a> TextViewport<'a> {
             (text_w, view.offset(), caret_line_start),
             live,
         );
-        let fade = Rect {
-            width: content.width,
-            ..text
-        };
-        ui.scroll_edges(fade, &view);
         text
-    }
-
-    /// Baseline lays text out at the full width when the pane has no vertical
-    /// bar, and narrows by the bar plus `scroll_gap` only once the lines overflow.
-    fn text_rows(&self, area: Rect, line_count: usize, widest: usize) -> (u16, bool, u16) {
-        let inner = area.width.saturating_sub(u16::from(self.reserve_gutter));
-        if self.wrap {
-            let text_w = Self::text_width(area.width, self.reserve_gutter, self.scroll_gap);
-            return (text_w, false, area.height);
-        }
-        let narrow = inner.saturating_sub(1 + self.scroll_gap);
-        let mut rows = area.height;
-        let mut v_over = line_count > usize::from(rows);
-        let mut text_w = if v_over { narrow } else { inner };
-        let mut show_h = area.height > 1 && widest > usize::from(text_w);
-        if show_h {
-            rows = area.height.saturating_sub(1);
-            v_over = line_count > usize::from(rows);
-            text_w = if v_over { narrow } else { inner };
-            show_h = area.height > 1 && widest > usize::from(text_w);
-        }
-        (text_w, show_h, rows)
     }
 
     fn rows(
@@ -1409,42 +1403,6 @@ impl<'a> TextViewport<'a> {
         }
         #[cfg(feature = "testing")]
         self.note_visible(visible);
-    }
-
-    /// Horizontal thumb `━` and track `┄`. Colors come from the scrollbar
-    /// family, which keeps the baseline handle grey and track grey.
-    fn paint_h_bar(&self, ui: &mut Ui<'_>, area: Rect, widest: usize, viewport_cols: u16) {
-        if area.is_empty() {
-            return;
-        }
-        let track = ui
-            .style(
-                Family::SCROLLBAR,
-                Variant::DEFAULT,
-                Part::TRACK,
-                StateFlags::empty(),
-            )
-            .style;
-        let thumb = ui
-            .style(
-                Family::SCROLLBAR,
-                Variant::DEFAULT,
-                Part::THUMB,
-                StateFlags::empty(),
-            )
-            .style;
-        let mut scroll = ScrollState::new(widest);
-        scroll.set_viewport(usize::from(viewport_cols).max(1));
-        let (start, len) = scroll.thumb(usize::from(area.width));
-        let thumb_end = start.saturating_add(len);
-        for (index, col) in area.columns().enumerate() {
-            let on_thumb = index >= start && index < thumb_end;
-            ui.paint_str(
-                Rect { width: 1, ..col },
-                if on_thumb { "━" } else { "┄" },
-                if on_thumb { thumb } else { track },
-            );
-        }
     }
 
     fn gutter(&self, ui: &mut Ui<'_>, area: Rect, live: StateFlags, ov: &PartStyle<'a>) {
@@ -1521,10 +1479,21 @@ impl<'a> TextViewport<'a> {
         if dy >= usize::from(text.height) || dx >= usize::from(text.width) {
             return;
         }
+        let visible = text.intersection(ui.full());
+        if visible.is_empty() {
+            return;
+        }
         let pos = Position::new(
-            text.x.saturating_add(dx as u16),
+            visible.x.saturating_add(dx as u16),
             text.y.saturating_add(dy as u16),
         );
+        if pos.x < visible.x
+            || pos.x >= visible.right()
+            || pos.y < visible.y
+            || pos.y >= visible.bottom()
+        {
+            return;
+        }
         if self.bar_cursor {
             ui.set_bar_cursor(self.id, pos);
         } else {
@@ -1533,9 +1502,12 @@ impl<'a> TextViewport<'a> {
     }
 
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
+        let reserved = 1u16
+            .saturating_add(u16::from(self.reserve_gutter))
+            .saturating_add(self.scroll_gap);
         Size {
             min: (3, 1),
-            preferred: (Self::PREFERRED_TEXT_WIDTH.saturating_add(2), c.max.1),
+            preferred: (Self::PREFERRED_TEXT_WIDTH.saturating_add(reserved), c.max.1),
         }
         .fit(c)
     }
@@ -1713,6 +1685,117 @@ mod tests {
         }
     }
 
+    struct GutterlessViewportApp {
+        state: ViewportState,
+    }
+
+    const GUTTERLESS_LINES: [ViewportLine<'static>; 5] = [
+        ViewportLine::Plain("aa bb"),
+        ViewportLine::Plain("row 1"),
+        ViewportLine::Plain("row 2"),
+        ViewportLine::Plain("row 3"),
+        ViewportLine::Plain("row 4"),
+    ];
+
+    impl App for GutterlessViewportApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            TextViewport::new(ID)
+                .reserve_gutter(false)
+                .click_selects_word(true)
+                .update(cx, &mut self.state, &GUTTERLESS_LINES)
+                .erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            TextViewport::new(ID)
+                .reserve_gutter(false)
+                .click_selects_word(true)
+                .draw(ui, Rect::new(0, 0, 12, 4), &self.state, &GUTTERLESS_LINES);
+        }
+    }
+
+    struct ExtremeGapViewportApp {
+        state: ViewportState,
+    }
+
+    struct ClippedWrappedViewportApp {
+        state: ViewportState,
+        clip: Rect,
+    }
+
+    struct ClippedWordViewportApp {
+        state: ViewportState,
+        clip: Rect,
+    }
+
+    const CLIPPED_WRAPPED_AREA: Rect = Rect::new(0, 0, 24, 4);
+    const CLIPPED_WRAPPED_LINES: [ViewportLine<'static>; 1] =
+        [ViewportLine::Plain("abcdefghijklmnopqrstuv WORD")];
+    const CLIPPED_WORD_AREA: Rect = Rect::new(0, 0, 12, 4);
+    const CLIPPED_WORD_LINES: [ViewportLine<'static>; 1] = [ViewportLine::Plain("aa bb")];
+
+    impl App for ClippedWrappedViewportApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            TextViewport::new(ID)
+                .wrap(true)
+                .click_selects_word(true)
+                .update(cx, &mut self.state, &CLIPPED_WRAPPED_LINES)
+                .erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            ui.with_area(self.clip, |ui| {
+                TextViewport::new(ID)
+                    .wrap(true)
+                    .click_selects_word(true)
+                    .draw(
+                        ui,
+                        CLIPPED_WRAPPED_AREA,
+                        &self.state,
+                        &CLIPPED_WRAPPED_LINES,
+                    );
+            });
+        }
+    }
+
+    impl App for ClippedWordViewportApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            TextViewport::new(ID)
+                .click_selects_word(true)
+                .update(cx, &mut self.state, &CLIPPED_WORD_LINES)
+                .erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            ui.with_area(self.clip, |ui| {
+                TextViewport::new(ID).click_selects_word(true).draw(
+                    ui,
+                    CLIPPED_WORD_AREA,
+                    &self.state,
+                    &CLIPPED_WORD_LINES,
+                );
+            });
+        }
+    }
+
+    impl App for ExtremeGapViewportApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            TextViewport::new(ID)
+                .scroll_gap(u16::MAX)
+                .update(cx, &mut self.state, &GUTTERLESS_LINES)
+                .erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            TextViewport::new(ID).scroll_gap(u16::MAX).draw(
+                ui,
+                Rect::new(0, 0, 1, 1),
+                &self.state,
+                &GUTTERLESS_LINES,
+            );
+        }
+    }
+
     #[test]
     fn track_registration_uses_the_full_bar_geometry() {
         let mut runtime = Runtime::new(ViewportApp::default(), Theme::junie());
@@ -1829,8 +1912,8 @@ mod tests {
     fn offscreen_caret_emits_no_cursor_while_visible_caret_does() {
         let lines: Vec<ViewportLine<'_>> = (0..30).map(|_| ViewportLine::Plain("row")).collect();
         let area = Rect::new(0, 0, 12, 4);
-        let render = |caret: CellPos| {
-            let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let render = |caret: CellPos, level: ColorLevel| {
+            let mut runtime = Runtime::new(Stub::default(), Theme::junie().downgrade(level));
             let mut buffer = Buffer::empty(SCREEN);
             let mut state = ViewportState::default();
             state.set_follow(false);
@@ -1848,9 +1931,28 @@ mod tests {
             }
             runtime.cursor()
         };
-        assert_eq!(render(CellPos::new(0, 0)), None, "caret above viewport");
-        assert_eq!(render(CellPos::new(20, 0)), None, "caret below viewport");
-        assert_eq!(render(CellPos::new(6, 1)), Some(Position::new(2, 1)));
+        for level in [
+            ColorLevel::TrueColor,
+            ColorLevel::Ansi256,
+            ColorLevel::Ansi16,
+            ColorLevel::Mono,
+        ] {
+            assert_eq!(
+                render(CellPos::new(0, 0), level),
+                None,
+                "caret above viewport"
+            );
+            assert_eq!(
+                render(CellPos::new(20, 0), level),
+                None,
+                "caret below viewport"
+            );
+            assert_eq!(
+                render(CellPos::new(6, 1), level),
+                Some(Position::new(2, 1)),
+                "caret position changed at {level:?}"
+            );
+        }
     }
 
     #[test]
@@ -2319,30 +2421,254 @@ mod tests {
 
     #[test]
     fn the_text_width_does_not_depend_on_whether_the_bar_is_painted() {
-        let area = Rect {
-            x: 0,
-            y: 0,
-            width: 24,
-            height: 4,
-        };
         let short = [ViewportLine::Plain("one"), ViewportLine::Plain("two")];
-        let long: Vec<ViewportLine<'_>> = (0..50).map(|_| ViewportLine::Plain("row")).collect();
-        let width_of = |lines: &[ViewportLine<'_>]| {
-            let mut rt = Runtime::new(Stub::default(), Theme::junie());
-            let mut buf = Buffer::empty(SCREEN);
-            let st = ViewportState::default();
-            let mut w = 0;
-            rt.draw_scene(SCREEN, &mut buf, |ui, _| {
-                w = TextViewport::new(ID).draw(ui, area, &st, lines).width;
+        let long: Vec<ViewportLine<'_>> = (0..50)
+            .map(|_| ViewportLine::Plain("this line is wider than the viewport"))
+            .collect();
+        let themes = [
+            ColorLevel::TrueColor,
+            ColorLevel::Ansi256,
+            ColorLevel::Ansi16,
+            ColorLevel::Mono,
+        ]
+        .map(|level| Theme::junie().downgrade(level));
+        let areas = [
+            Rect::ZERO,
+            Rect::new(0, 0, 1, 1),
+            Rect::new(0, 0, 24, 1),
+            Rect::new(0, 0, 24, 4),
+        ];
+
+        for theme in themes {
+            for area in areas {
+                let dimensions_and_last_row = |lines: &[ViewportLine<'_>]| {
+                    let mut rt = Runtime::new(Stub::default(), theme.clone());
+                    let mut buf = Buffer::empty(SCREEN);
+                    let st = ViewportState::default();
+                    let mut dimensions = (0, 0);
+                    rt.draw_scene(SCREEN, &mut buf, |ui, _| {
+                        let text = TextViewport::new(ID).draw(ui, area, &st, lines);
+                        dimensions = (text.width, text.height);
+                    })
+                    .commit_presented();
+                    let last_cell = buf
+                        .cell(Position::new(1, area.bottom().saturating_sub(1)))
+                        .map_or_else(String::new, |cell| cell.symbol().to_owned());
+                    (dimensions, last_cell)
+                };
+                let (short_dimensions, _) = dimensions_and_last_row(&short);
+                let (long_dimensions, last_cell) = dimensions_and_last_row(&long);
+                assert_eq!(short_dimensions, long_dimensions, "area={area:?}");
+                assert_eq!(short_dimensions.1, area.height, "area={area:?}");
+                if area == Rect::new(0, 0, 24, 1) || area == Rect::new(0, 0, 24, 4) {
+                    assert_eq!(last_cell, "t", "area={area:?}: last row remains text");
+                }
+                assert_eq!(
+                    short_dimensions.0,
+                    TextViewport::text_width(area.width, true, 0),
+                    "area={area:?}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn gutterless_pointer_selection_uses_the_drawn_text_origin() {
+        for level in [
+            ColorLevel::TrueColor,
+            ColorLevel::Ansi256,
+            ColorLevel::Ansi16,
+            ColorLevel::Mono,
+        ] {
+            let mut state = ViewportState::default();
+            state.set_follow(false);
+            let theme = Theme::junie().downgrade(level);
+            let mut runtime = Runtime::new(GutterlessViewportApp { state }, theme);
+            let _ = runtime.initialize();
+            let mut buffer = Buffer::empty(SCREEN);
+            runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+
+            assert_eq!(
+                buffer.cell(Position::new(3, 0)).map(Cell::symbol),
+                Some("b"),
+                "the visible b must occupy column 3 without a gutter ({level:?})"
+            );
+            let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, 3, 0));
+            let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, 3, 0));
+
+            assert_eq!(
+                runtime.app().state.selection(),
+                Some((CellPos::new(0, 3), CellPos::new(0, 5))),
+                "hit mapping changed at {level:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn clipped_wrapped_pointer_uses_the_logical_draw_layout() {
+        for level in [
+            ColorLevel::TrueColor,
+            ColorLevel::Ansi256,
+            ColorLevel::Ansi16,
+            ColorLevel::Mono,
+        ] {
+            for clip in [Rect::new(0, 0, 10, 4), Rect::new(0, 1, 10, 3)] {
+                let mut state = ViewportState::default();
+                state.set_follow(false);
+                let mut runtime = Runtime::new(
+                    ClippedWrappedViewportApp { state, clip },
+                    Theme::junie().downgrade(level),
+                );
+                let _ = runtime.initialize();
+                let mut buffer = Buffer::empty(SCREEN);
+                runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+
+                assert_eq!(
+                    buffer.cell(Position::new(2, 1)).map(Cell::symbol),
+                    Some("W"),
+                    "the visible W must be in the second visual row ({level:?}, {clip:?})"
+                );
+                let visible_text = runtime
+                    .area_of_part(ID, PartRef::of(Part::TEXT))
+                    .expect("the visible text hit area must be registered");
+                assert_eq!(visible_text, clip.intersection(Rect::new(1, 0, 22, 4)));
+
+                let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, 2, 1));
+                let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, 2, 1));
+
+                assert_eq!(
+                    runtime.app().state.selection(),
+                    Some((CellPos::new(0, 23), CellPos::new(0, 27))),
+                    "the clipped hit must map through the logical wrapped layout ({level:?}, {clip:?})"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn horizontally_clipped_pointer_uses_the_logical_text_origin() {
+        for level in [
+            ColorLevel::TrueColor,
+            ColorLevel::Ansi256,
+            ColorLevel::Ansi16,
+            ColorLevel::Mono,
+        ] {
+            let mut state = ViewportState::default();
+            state.set_follow(false);
+            let mut runtime = Runtime::new(
+                ClippedWordViewportApp {
+                    state,
+                    clip: Rect::new(4, 0, 4, 4),
+                },
+                Theme::junie().downgrade(level),
+            );
+            let _ = runtime.initialize();
+            let mut buffer = Buffer::empty(SCREEN);
+            runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+
+            assert_eq!(
+                buffer.cell(Position::new(4, 0)).map(Cell::symbol),
+                Some("a"),
+                "the clipped draw origin must remain visible ({level:?})"
+            );
+            let visible_text = runtime
+                .area_of_part(ID, PartRef::of(Part::TEXT))
+                .expect("the clipped text hit area must be registered");
+            assert_eq!(visible_text, Rect::new(4, 0, 4, 4));
+
+            let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, 4, 0));
+            let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, 4, 0));
+
+            assert_eq!(
+                runtime.app().state.selection(),
+                Some((CellPos::new(0, 0), CellPos::new(0, 2))),
+                "the visible hit must retain the logical column offset ({level:?})"
+            );
+        }
+    }
+
+    #[test]
+    fn visible_caret_matches_wrapped_text_under_horizontal_clipping() {
+        for level in [
+            ColorLevel::TrueColor,
+            ColorLevel::Ansi256,
+            ColorLevel::Ansi16,
+            ColorLevel::Mono,
+        ] {
+            let mut state = ViewportState::default();
+            state.set_follow(false);
+            state.set_caret(Some(CellPos::new(0, 23)));
+            let mut runtime = Runtime::new(
+                ClippedWrappedViewportApp {
+                    state,
+                    clip: Rect::new(4, 1, 8, 3),
+                },
+                Theme::junie().downgrade(level),
+            );
+            let _ = runtime.initialize();
+            let area = Rect::new(0, 0, 30, 6);
+            let mut buffer = Buffer::empty(area);
+            for _ in 0..2 {
+                runtime.draw_buffer(area, &mut buffer).commit_presented();
+            }
+
+            assert_eq!(
+                buffer.cell(Position::new(5, 1)).map(Cell::symbol),
+                Some("W"),
+                "the caret target must remain rendered at {level:?}"
+            );
+            assert_eq!(runtime.focus(), Some(ID));
+            assert_eq!(
+                runtime.cursor_position(),
+                Some(Position::new(5, 1)),
+                "the cursor must follow the rendered wrapped character ({level:?})"
+            );
+        }
+    }
+
+    #[test]
+    fn maximum_scroll_gap_saturates_for_measurement_update_and_draw() {
+        let viewport = TextViewport::new(ID).scroll_gap(u16::MAX);
+        assert_eq!(TextViewport::text_width(0, true, u16::MAX), 0);
+        assert_eq!(TextViewport::text_width(u16::MAX, false, u16::MAX), 0);
+
+        let lines = [ViewportLine::Plain("long content"); 32];
+        let mut state = ViewportState::default();
+        state.set_follow(false);
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime
+            .draw_scene(SCREEN, &mut buffer, |ui, _| {
+                assert_eq!(
+                    viewport.measure(ui, Constraints::loose(0, 0)).preferred,
+                    (0, 0)
+                );
+                assert_eq!(
+                    viewport
+                        .measure(ui, Constraints::loose(u16::MAX, u16::MAX))
+                        .preferred
+                        .0,
+                    u16::MAX
+                );
+                for area in [Rect::ZERO, Rect::new(0, 0, 1, 1), Rect::new(0, 0, 12, 4)] {
+                    viewport.draw(ui, area, &state, &lines);
+                }
             })
             .commit_presented();
-            w
-        };
-        assert_eq!(width_of(&short), width_of(&long));
-        assert_eq!(
-            width_of(&short),
-            TextViewport::text_width(area.width, true, 0)
+
+        let mut app_runtime = Runtime::new(
+            ExtremeGapViewportApp {
+                state: state.clone(),
+            },
+            Theme::junie(),
         );
+        let _ = app_runtime.initialize();
+        app_runtime
+            .draw_scene(SCREEN, &mut buffer, |ui, _| {
+                viewport.draw(ui, Rect::new(0, 0, 1, 1), &state, &lines);
+            })
+            .commit_presented();
+        let _ = crate::runtime::stub::deliver(&mut app_runtime, key(KeyCode::End));
     }
 
     #[test]
