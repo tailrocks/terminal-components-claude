@@ -108,3 +108,19 @@ This record establishes the cited Junie menu-row contract for frozen defaults,
 customized semantic popover surfaces, and tested overrides. It does not clear
 the global 73-role inventory, prove application adoption, or establish any
 application's complete visual or functional parity.
+
+## Independent review of MENU-DANGER-03
+
+Reviewer packet: `menu-danger-dynamic-review-1011159/review.json`, SHA-256
+`4a49b5e50a932a4a348e035f99471fc348861263493ffb93fbe2029d198d8ed8`.
+The independent reviewer cleared commit
+`1011159a72fc652ac1d849683ac03f9305502b8c` with no new actionable findings
+and closed MENU-DANGER-03. The review confirms that the generic resolver
+contract applies to any theme/component using exactly `DisabledFg` and
+`CurrentSurface`, not only ContextMenu. Its independent LIST coverage checked
+96 disabled-state combinations across four capabilities, six surfaces, and
+four disabled multistates. The unchanged normal-menu corpus remained 28
+frames / 21,504 cells, SHA-256
+`e545c01e5151ca35b0ebb773c77e20f34d25cd0a0db81a8626029a8c3d028fdd`.
+This is bounded resolver coverage; it does not establish every theme/component
+combination or application adoption.
