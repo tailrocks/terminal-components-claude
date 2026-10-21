@@ -3385,14 +3385,24 @@ class CorpusModifierParity(unittest.TestCase):
             with self.assertRaisesRegex(runner.RunnerError, "snapshot.*dim=True"):
                 runner.corpus_modifier_parity(store, [name], snapshots)
 
-    def test_cross_store_pass_skips_names_without_snapshot(self) -> None:
+    def test_cross_store_pass_refuses_vacuous_coverage(self) -> None:
+        # Fail-closed floor: with a snapshots root supplied, zero matched
+        # dumps (deleted coverage) must not report a vacuous pass.
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             store = root / "tuiscotti-v1"
             name = "app/scenario/80x24/none"
             self.write_case(store, name, "ab", [self.mods(), self.mods()])
-            report = runner.corpus_modifier_parity(store, [name], root / "snapshots")
-            self.assertEqual(report["snapshot_cross_checks"], 0)
+            with self.assertRaisesRegex(runner.RunnerError, "matched no snapshot dumps"):
+                runner.corpus_modifier_parity(store, [name], root / "snapshots")
+            # Partial coverage is still legitimate: one of two names matched.
+            other = "app/scenario/80x24/16"
+            self.write_case(store, other, "ab", [self.mods(), self.mods()])
+            snap_dir = root / "snapshots" / "app/scenario/80x24"
+            snap_dir.mkdir(parents=True)
+            (root / "snapshots" / f"{name}.ansi").write_text("ab")
+            report = runner.corpus_modifier_parity(store, [name, other], root / "snapshots")
+            self.assertEqual(report["snapshot_cross_checks"], 1)
 
     def test_parity_fails_closed_on_missing_artifacts(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
