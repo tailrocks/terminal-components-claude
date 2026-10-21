@@ -222,6 +222,13 @@ pub enum FilterPolicy {
     #[default]
     Label,
     Caller,
+    /// Case-insensitive contiguous substring matching.
+    ///
+    /// `Label` matches the query as a subsequence (fuzzy), which is right for
+    /// command palettes. Pickers that filter names or paths from a fixed list
+    /// opt into contiguous matching so a query like `ab` does not match
+    /// `a…b`.
+    Substring,
 }
 
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
@@ -597,6 +604,15 @@ fn contains_folded(label: &str, query: &str) -> bool {
     false
 }
 
+/// Case-insensitive contiguous match: every query character must appear in
+/// the label in order and without gaps.
+fn contains_substring_folded(label: &str, query: &str) -> bool {
+    if query.is_empty() {
+        return true;
+    }
+    label.to_lowercase().contains(&query.to_lowercase())
+}
+
 impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
     pub fn semantic_width(items: &[T]) -> u16 {
         items
@@ -637,8 +653,12 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
         st.reset_selection = false;
         st.matches
             .extend(items.iter().enumerate().filter_map(|(i, item)| {
-                (self.filter == FilterPolicy::Caller
-                    || contains_folded(item.as_item().label, &query))
+                let label = item.as_item().label;
+                (match self.filter {
+                    FilterPolicy::Label => contains_folded(label, &query),
+                    FilterPolicy::Caller => true,
+                    FilterPolicy::Substring => contains_substring_folded(label, &query),
+                })
                 .then_some(i)
             }));
         st.initialized = true;
@@ -1201,7 +1221,9 @@ impl<T, R> Bindings for FilterList<'_, T, R> {
 
 #[cfg(test)]
 mod tests {
-    use super::{BINDINGS, FilterList, FilterListAction, FilterListState, contains_folded};
+    use super::{
+        BINDINGS, FilterList, FilterListAction, FilterListState, FilterPolicy, contains_folded,
+    };
     use crate::Acc;
     use termrock_core::action::ActionKey;
     use termrock_core::id::{Id, ItemKey, Part};
@@ -1331,6 +1353,34 @@ mod tests {
         );
         runtime.draw_buffer(area, &mut buffer).commit_presented();
         assert_eq!(runtime.app().state.query(), "b");
+    }
+
+    #[test]
+    fn substring_policy_requires_a_contiguous_match() {
+        let items = [
+            Item::new(ItemKey::num(1), "alphabet"),
+            Item::new(ItemKey::num(2), "a-b"),
+        ];
+        let mut fuzzy = FilterListState::default();
+        fuzzy.set_query("ab");
+        FilterList::<Item<'_>, ItemRow>::new(Id::root("picker.fuzzy"))
+            .reconcile(&mut fuzzy, &items);
+        assert_eq!(fuzzy.matched_len(), 2, "Label keeps subsequence matching");
+
+        let mut contiguous = FilterListState::default();
+        contiguous.set_query("ab");
+        FilterList::<Item<'_>, ItemRow>::new(Id::root("picker.substring"))
+            .filter(FilterPolicy::Substring)
+            .reconcile(&mut contiguous, &items);
+        assert_eq!(contiguous.matched_len(), 1);
+        assert_eq!(contiguous.cursor(), Some(ItemKey::num(1)));
+
+        contiguous.set_query("A-B");
+        FilterList::<Item<'_>, ItemRow>::new(Id::root("picker.substring"))
+            .filter(FilterPolicy::Substring)
+            .reconcile(&mut contiguous, &items);
+        assert_eq!(contiguous.matched_len(), 1, "matching folds case");
+        assert_eq!(contiguous.cursor(), Some(ItemKey::num(2)));
     }
 
     #[test]

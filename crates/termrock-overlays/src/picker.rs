@@ -89,6 +89,7 @@ pub struct Picker<'a, T, R = ItemRow> {
     title: &'a str,
     scope_label: Option<&'a str>,
     width: Option<u16>,
+    max_rows: Option<u16>,
     searchable: bool,
     filter: FilterPolicy,
     placeholder: &'a str,
@@ -132,6 +133,7 @@ impl<T> Picker<'_, T, ItemRow> {
             title: "Choose",
             scope_label: None,
             width: None,
+            max_rows: None,
             searchable: true,
             filter: FilterPolicy::Label,
             placeholder: "Type to search…",
@@ -223,6 +225,15 @@ impl<'a, T, R> Picker<'a, T, R> {
         self.width = Some(width);
         self
     }
+    /// Caps the number of item rows requested from the layer.
+    ///
+    /// The default is `Theme::design.size.popup_max_rows`. Zero is treated as
+    /// one so a picker always shows at least one row.
+    #[must_use]
+    pub const fn max_rows(mut self, rows: u16) -> Self {
+        self.max_rows = Some(if rows == 0 { 1 } else { rows });
+        self
+    }
     #[must_use]
     pub const fn filter(mut self, policy: FilterPolicy) -> Self {
         self.filter = policy;
@@ -276,6 +287,7 @@ impl<'a, T, R> Picker<'a, T, R> {
             title: self.title,
             scope_label: self.scope_label,
             width: self.width,
+            max_rows: self.max_rows,
             searchable: self.searchable,
             filter: self.filter,
             placeholder: self.placeholder,
@@ -360,10 +372,12 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
         });
         let rows = items
             .len()
-            .min(usize::from(d.size.popup_max_rows))
+            .min(usize::from(self.max_rows.unwrap_or(d.size.popup_max_rows)))
             .max(1)
             .min(usize::from(u16::MAX)) as u16;
 
+        // The card is a rule, a query row and its gap, the item rows, and two
+        // trailing content rows. Non-searchable pickers omit the query and gap.
         LayerSize::Fixed(width, rows.saturating_add(5))
     }
 
