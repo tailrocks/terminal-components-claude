@@ -1,24 +1,15 @@
-//! Shared info and cancel cards, plus the reduced-color recolor.
+//! Shared debug-info card, plus the reduced-color recolor.
 //!
-//! Info and cancel paint through `termrock` overlays. Empty padding keeps the
-//! dimmed cockpit ink. This module only remaps those inks for 256, 16, and mono.
+//! The info card paints through the shared `termrock` overlays info card.
+//! Empty padding keeps the dimmed cockpit ink. This module only remaps those
+//! inks for 256, 16, and mono until the info dialog renders through the real
+//! layer flow.
 
 use termrock::{Color, ColorLevel, Rect, Ui};
 
 pub(super) fn paint_info(ui: &mut Ui<'_>, facts: &[termrock::overlays::info_card::Fact<'_>]) {
     termrock::overlays::info_card::paint(ui, facts);
     recolor(ui, 66, 11, 0);
-}
-
-pub(super) fn paint_cancel(ui: &mut Ui<'_>) {
-    termrock::overlays::cancel_card::paint(
-        ui,
-        "Cancel the launch?",
-        "The pipeline stops at its current stage and the partially prepared instance is marked failed setup. Nothing is attached.",
-        "Keep launching",
-        "Cancel launch",
-    );
-    recolor(ui, 54, 11, 1);
 }
 
 fn recolor(ui: &mut Ui<'_>, width: u16, height: u16, y_bias: u16) {
