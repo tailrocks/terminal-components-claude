@@ -62,3 +62,11 @@ The reviewer found two defects in `d911e577a1342729719a746a1b314bea7880be46`: ac
 After the fix, the four focused tests passed. `cargo nextest run -p termrock-core -p termrock-runtime -p termrock-controls -p termrock-navigation -p termrock-overlays --no-fail-fast` passed 923/923 with 3 skipped. Strict all-target Clippy for those packages, full workspace formatting, and `git diff --check` passed. This is focused shared-contract evidence, not real-CLI parity. The final WIP tip after this handoff update is recorded by the following docs commit.
 
 Publication still requires independent review of the fixes and synchronization with the current PR #38 head. Do not remove the push lock owned by another workstream, force-push, or merge current TablePro `app.rs`/`tab_ownership`/native-baseline changes without separate assessment. Parent coordination owns publication if the lock remains held.
+
+### PK3 global KeyMap mutation consistency (2026-10-21)
+
+The follow-up independent review of `1e30bd458dafc3f493cba207acb135ac964f85ce` found raw `Chord` comparisons in global `KeyMap::remove`, `KeyMap::remap`, and before-typing removal. The behavior and RED/GREEN proof are in the audit section above. Shared mutation and regression changes are committed as `0d821bda6345e29d4f481745d2cf815f8274c54`.
+
+The pre-fix `global_keymap_mutations_use_effective_chord_identity` test failed because removal by BackTab+SHIFT left its logical binding active. The post-fix focused contract set passed 5/5. All affected packages passed 924/924 tests with 3 skipped: `termrock-core`, `termrock-runtime`, `termrock-controls`, `termrock-navigation`, and `termrock-overlays`. Strict all-target Clippy for these packages, `cargo fmt --all --check`, and `git diff --check` passed. The exact WIP tip after this handoff update is recorded by the following documentation commit.
+
+This remains shared-contract verification only. There is no pinned real-CLI baseline comparison in this workstream. The PR #38 push lock must be respected; parent coordination owns integration and publication if it is held.
