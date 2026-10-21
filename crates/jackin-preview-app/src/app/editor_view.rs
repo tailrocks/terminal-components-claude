@@ -48,7 +48,7 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
     paint_str(ui, 19, 0, " Go ", SECONDARY, BLACK, false);
     paint_str(ui, 24, 0, " Help ", SECONDARY, BLACK, false);
 
-    if chrome {
+    if !app.editor.dirty {
         let name = app
             .world
             .workspaces
