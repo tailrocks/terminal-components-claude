@@ -271,7 +271,6 @@ mod historical_capsule_new_tab;
 mod historical_capsule_palette;
 mod historical_capsule_split_vertical;
 mod historical_capsule_zoom;
-mod historical_hard_cases_80;
 mod historical_hard_launch_picker;
 mod historical_inspect;
 mod historical_intro_f300;
@@ -8813,7 +8812,117 @@ impl App {
         }
         // Approved frame hides the cursor. This path must not call set_cursor
         // or set_bar_cursor, and it must not write cursor bytes.
-        historical_hard_cases_80::paint(ui);
+        let screen = ui.full();
+        let menus = ["File", "Go", "Help"];
+        let rows = [
+            termrock::feedback::ManagerLeaf {
+                name: "payments-platform",
+                expanded: true,
+                status: "1 running",
+                danger: false,
+                muted: false,
+                faint: false,
+            },
+            termrock::feedback::ManagerLeaf {
+                name: "infra-control-plane",
+                expanded: true,
+                status: "1 running",
+                danger: false,
+                muted: false,
+                faint: false,
+            },
+            termrock::feedback::ManagerLeaf {
+                name: "release-automation",
+                expanded: true,
+                status: "! failed",
+                danger: true,
+                muted: false,
+                faint: false,
+            },
+            termrock::feedback::ManagerLeaf {
+                name: "customer-portal",
+                expanded: true,
+                status: "! failed",
+                danger: true,
+                muted: false,
+                faint: false,
+            },
+            termrock::feedback::ManagerLeaf {
+                name: "data-pipeline",
+                expanded: true,
+                status: "1 running",
+                danger: false,
+                muted: false,
+                faint: false,
+            },
+            termrock::feedback::ManagerLeaf {
+                name: "docs-site",
+                expanded: true,
+                status: "1 record",
+                danger: false,
+                muted: true,
+                faint: false,
+            },
+            termrock::feedback::ManagerLeaf {
+                name: "auth-service",
+                expanded: false,
+                status: "idle",
+                danger: false,
+                muted: false,
+                faint: true,
+            },
+            termrock::feedback::ManagerLeaf {
+                name: "gateway",
+                expanded: false,
+                status: "idle",
+                danger: false,
+                muted: false,
+                faint: true,
+            },
+            termrock::feedback::ManagerLeaf {
+                name: "mobile-app",
+                expanded: false,
+                status: "idle",
+                danger: false,
+                muted: false,
+                faint: true,
+            },
+            termrock::feedback::ManagerLeaf {
+                name: "ml-notebooks",
+                expanded: false,
+                status: "idle",
+                danger: false,
+                muted: false,
+                faint: true,
+            },
+        ];
+        termrock::feedback::paint_manager_frame(
+            ui,
+            screen,
+            &termrock::feedback::ManagerFrame {
+                brand: "jackin❯",
+                menus: &menus,
+                alert: "! instance index unreadable",
+                title: "Workspaces",
+                summary: "3 running · 1–11 of 16",
+                selected: "Current directory",
+                saved: "saved",
+                saved_as: "as",
+                saved_target: "payments-platform",
+                rows: &rows,
+                detail_heading: "Current directory",
+                detail_side: "Tab details",
+                detail_path: "/workspace/payments-platform · 2 mounts · 5 vars",
+                detail_roles: "Roles the-architect ★ · 3 allowed · Auth Claude · Personal",
+                instance_mark: "◉ ",
+                instance_text: "7f3a  the-architect · Claude Code · ",
+                instance_state: "running",
+                hint_key: "?",
+                hint_label: "Help",
+                warning_mark: "▲",
+                warning: " Could not confirm running instances: instance index unreadable …",
+            },
+        );
     }
 
     fn historical_help_overlay(&self, theme: &termrock::Theme, screen: Rect) -> bool {
