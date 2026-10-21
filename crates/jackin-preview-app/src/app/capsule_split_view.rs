@@ -23,7 +23,7 @@ const CARD_Y: u16 = 14;
 const CARD_W: u16 = 72;
 const CARD_H: u16 = 12;
 
-pub(crate) fn paint(ui: &mut Ui<'_>) {
+pub(crate) fn paint(ui: &mut Ui<'_>, title: &str) {
     let full = ui.full();
     ui.modal_backdrop(full);
     repair_underlay(ui);
@@ -31,7 +31,7 @@ pub(crate) fn paint(ui: &mut Ui<'_>) {
     ui.fill(interior, PaintStyle::new().bg(CARD));
     repair_card_pad(ui);
     paint_border(ui);
-    paint_title(ui);
+    paint_title(ui, title);
     paint_search(ui);
     paint_selected(
         ui,
@@ -109,8 +109,8 @@ fn paint_border(ui: &mut Ui<'_>) {
     }
 }
 
-fn paint_title(ui: &mut Ui<'_>) {
-    paint_str(ui, 26, 15, "Split ↓ Below", WHITE, CARD, true);
+fn paint_title(ui: &mut Ui<'_>, title: &str) {
+    paint_str(ui, 26, 15, title, WHITE, CARD, true);
 }
 
 fn paint_search(ui: &mut Ui<'_>) {

@@ -4838,7 +4838,14 @@ impl App {
                 if self.route == Route::Capsule && self.capsule_prefix {
                     self.capsule_prefix = false;
                     self.pending_capsule_action = Some(CapsuleAction::NewTab);
-                    self.status = Some("New tab".into());
+                    if self.capsule_split_vertical_host(cx.theme(), cx.viewport()) {
+                        // The approved 120×40 frame is the agent picker titled
+                        // "New tab". Leave the session bar in place.
+                        self.status = None;
+                        cx.focus(CAPSULE_INPUT);
+                    } else {
+                        self.status = Some("New tab".into());
+                    }
                 } else if cx.update_cause() == UpdateCause::Settle {
                     return Some(Response::changed());
                 } else if self.route == Route::Manager {
@@ -7399,11 +7406,19 @@ impl App {
     }
 
     fn capsule_split_vertical_frame(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        self.capsule_agent_picker_frame(theme, screen)
+            && self.pending_capsule_action == Some(CapsuleAction::Split(SplitDir::Vertical))
+    }
+
+    fn capsule_agent_picker_frame(&self, theme: &termrock::Theme, screen: Rect) -> bool {
         self.capsule_split_vertical_host(theme, screen)
             && !self.capsule_prefix
-            && self.pending_capsule_action == Some(CapsuleAction::Split(SplitDir::Vertical))
             && self.picker_mode.is_none()
             && self.status.is_none()
+            && matches!(
+                self.pending_capsule_action,
+                Some(CapsuleAction::NewTab) | Some(CapsuleAction::Split(SplitDir::Vertical))
+            )
     }
 
     fn capsule_zoom_frame(&self, theme: &termrock::Theme, screen: Rect) -> bool {
@@ -7659,7 +7674,7 @@ impl App {
             let Some((_, projected)) = frame.transcripts.get(&pane_id) else {
                 continue;
             };
-            let split_frame = self.capsule_split_vertical_frame(ui.theme_ref(), ui.full());
+            let split_frame = self.capsule_agent_picker_frame(ui.theme_ref(), ui.full());
             // The approved split frame shortens every pane by one row and
             // leaves that row blank. Only the focused pane does this at rest.
             let reserve_input = split_frame
@@ -9378,8 +9393,12 @@ impl TuiApp for App {
             self.draw_layers(ui);
             self.draw_capsule_zoom(ui, full);
             self.draw_capsule_menu_80(ui);
-            if self.capsule_split_vertical_frame(ui.theme_ref(), full) {
-                capsule_split_view::paint(ui);
+            if self.capsule_agent_picker_frame(ui.theme_ref(), full) {
+                let title = match self.pending_capsule_action {
+                    Some(CapsuleAction::NewTab) => "New tab",
+                    _ => "Split ↓ Below",
+                };
+                capsule_split_view::paint(ui, title);
                 ui.set_undrawn_top_bar_cursor(
                     CAPSULE_INPUT,
                     Rect::new(28, 16, 1, 1),
@@ -10494,19 +10513,18 @@ mod paint_contract_tests {
         );
         let _ = tab.ctrl('b');
         let _ = tab.key(KeyCode::Char('c'));
-        assert_eq!(tab.app().status.as_deref(), Some("New tab"));
+        assert_eq!(tab.app().status.as_deref(), None);
         assert!(tab.text().contains("New tab"), "{}", tab.text());
-        assert!(!tab.text().contains("Change title…"), "{}", tab.text());
-        assert!(!tab.text().contains("Command palette"), "{}", tab.text());
-
-        let _ = tab.key(KeyCode::Enter);
-        assert_eq!(
-            tab.app().status.as_deref(),
-            Some("New tab · Account for Claude Code")
-        );
         assert!(tab.text().contains("Type to search…"), "{}", tab.text());
         assert!(
-            tab.text().contains("New tab · Account for Claude Code"),
+            tab.text().contains("2 accounts · choose at start"),
+            "{}",
+            tab.text()
+        );
+        assert!(!tab.text().contains("Change title…"), "{}", tab.text());
+        assert!(!tab.text().contains("Command palette"), "{}", tab.text());
+        assert!(
+            !tab.text().contains("New tab · Account for Claude Code"),
             "{}",
             tab.text()
         );
