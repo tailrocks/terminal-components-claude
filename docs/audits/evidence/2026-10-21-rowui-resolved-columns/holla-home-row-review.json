@@ -1,0 +1,278 @@
+{
+  "artifact_findings": [
+    {
+      "acceptance_complete": false,
+      "actual_cell_differences": 16,
+      "baseline_artifact_tree_sha256": "9765b8a07b49696ba043a4fe18e0af5ad6847a6c7053f946bd8dafc32390d102",
+      "baseline_frame_sha256": "113e65b1a007d76f7790b99f53eb30b72215440066c531793599056ca0414ffc",
+      "baseline_status": "passed",
+      "candidate_artifact_tree_sha256": "742951e7b5cbb90334a931dfdc002c0fec36d86030f008e6aba018513788569b",
+      "candidate_frame_sha256": "016956d08cdcb5641213a152c3d96683d328b3d361ed7ba6b12135fd25beeb22",
+      "candidate_status": "failed",
+      "case": "holla::concept::first-use::80x24::truecolor",
+      "cursor_equal": true,
+      "difference_rows": [
+        0
+      ],
+      "differences_only_bold_addition": true,
+      "expected_snapshot_sha256": "63b02d5471e933990db96567915007c2154cd85b19c9813e309bf3aae3235fa9",
+      "report": "/private/tmp/holla-home-paired/paired/1792589953857904000-d8ad76dce331/report.json",
+      "report_sha256": "fbe82a61a5c64f191b08c6846d97d950f71141602b218048a80440129ffb325d",
+      "selected_test_count": 1,
+      "selection_completeness": "partial",
+      "terminal_size": [
+        80,
+        24
+      ]
+    },
+    {
+      "acceptance_complete": false,
+      "actual_cell_differences": 16,
+      "baseline_artifact_tree_sha256": "a3fae743f9004bed30fc797d6167975007fcea79e346c84c69bb8f83b9f760f6",
+      "baseline_frame_sha256": "8e8a1f66455508568f96f32a9c9c814e134865f9893e09dbe3d6190dc8b3d34f",
+      "baseline_status": "passed",
+      "candidate_artifact_tree_sha256": "43de97cf5f31a7698729053e11aff1afa3bf61e0987ebd1a834a290813185812",
+      "candidate_frame_sha256": "9ca170aab3d164c5a1b1550d28c8f491c5ed5948c2ed735827fa4abe8f00471f",
+      "candidate_status": "failed",
+      "case": "holla::concept::first-use::100x30::truecolor",
+      "cursor_equal": true,
+      "difference_rows": [
+        0
+      ],
+      "differences_only_bold_addition": true,
+      "expected_snapshot_sha256": "060edbaa6bddaee170899f81ddefde5dfd0bbcae527995a6320d2d985afea98d",
+      "report": "/private/tmp/holla-home-paired/paired/1792590004190753000-52a4c0e53fbf/report.json",
+      "report_sha256": "af0e1004d1ff2f7674397bf3cd7ff1f46471ce3f81887fae16a6e096aa00e002",
+      "selected_test_count": 1,
+      "selection_completeness": "partial",
+      "terminal_size": [
+        100,
+        30
+      ]
+    },
+    {
+      "acceptance_complete": false,
+      "actual_cell_differences": 16,
+      "baseline_artifact_tree_sha256": "8ad7408e7b30e691644cdbb69d08362b9f310fa08527f5abb78078051c128b8e",
+      "baseline_frame_sha256": "60dcf1d497b277e31bce3207bbfd015ebf4acba9fd025cc2758354d39b687256",
+      "baseline_status": "passed",
+      "candidate_artifact_tree_sha256": "cdc019f252037b95f7fdbdf46779cb196349e1660e0d8e0757a246448debdcaf",
+      "candidate_frame_sha256": "aa9014f2e71aa55333ecdf52c7c3cee72a76147599b4e78338a2043013748a5d",
+      "candidate_status": "failed",
+      "case": "holla::concept::first-use::120x40::truecolor",
+      "cursor_equal": true,
+      "difference_rows": [
+        0
+      ],
+      "differences_only_bold_addition": true,
+      "expected_snapshot_sha256": "dd022a47f61de442003849ae5a6970eea362f6e436b57eea3e415046707dfe04",
+      "report": "/private/tmp/holla-home-paired/paired/1792590113845935000-786a626b57d2/report.json",
+      "report_sha256": "d484fdbbff1fae0c5f88b604a667979a336c934f1e2b09b24cbacf59e59f40d2",
+      "selected_test_count": 1,
+      "selection_completeness": "partial",
+      "terminal_size": [
+        120,
+        40
+      ]
+    },
+    {
+      "acceptance_complete": false,
+      "actual_cell_differences": 16,
+      "baseline_artifact_tree_sha256": "b7f6ee565cea79228200538815d112091aea410a93f8ac6b0a845d93bf8b92c8",
+      "baseline_frame_sha256": "232e6d8a5f535a7070db5fe772c9a856668920600b7e9f77471866ebc372c27f",
+      "baseline_status": "passed",
+      "candidate_artifact_tree_sha256": "414f38285499600a40598be9505c21ae3e9e6ba0da7ccc7fbc3b0df708ec8204",
+      "candidate_frame_sha256": "2f98867365f1eae313839ad585bd8e06e5397f78436c7d2520fef40425312bbd",
+      "candidate_status": "failed",
+      "case": "holla::concept::first-use::160x50::truecolor",
+      "cursor_equal": true,
+      "difference_rows": [
+        0
+      ],
+      "differences_only_bold_addition": true,
+      "expected_snapshot_sha256": "6e84b2f7c39e1b7df22d2801c6425cc65d3731a07f86e1221f7b44df87fa1f2f",
+      "report": "/private/tmp/holla-home-paired/paired/1792590167722856000-57455314010a/report.json",
+      "report_sha256": "aadcf56894079373baf0bb02336ec806d2e13c33929a2673769bb0721d4978ce",
+      "selected_test_count": 1,
+      "selection_completeness": "partial",
+      "terminal_size": [
+        160,
+        50
+      ]
+    },
+    {
+      "acceptance_complete": false,
+      "actual_cell_differences": 16,
+      "baseline_artifact_tree_sha256": "9b4c21f11cd13e55aee5c7c0ec4d0abc3596f0ba9656751aa16f58727bcf86ec",
+      "baseline_frame_sha256": "58436c76f6825f78461c29d7fcf0eca2d5fc762cec3fecd0b7445b5d35d675b1",
+      "baseline_status": "passed",
+      "candidate_artifact_tree_sha256": "657461a969edee592edbc22d23acf6eb122f2e0182c79282463ef0db6b5aca90",
+      "candidate_frame_sha256": "01f7dd5607cf52daa203db14d5e693bb278355e4cc6201a70a13fee3a78f4cc5",
+      "candidate_status": "failed",
+      "case": "holla::concept::docker-cleanup::120x40::truecolor",
+      "cursor_equal": true,
+      "difference_rows": [
+        0
+      ],
+      "differences_only_bold_addition": true,
+      "expected_snapshot_sha256": "b59e5d9102d3f4bbade7422a57d2a71ca9e7e0181c2aad3b41ae9d3d4dbe96dc",
+      "report": "/private/tmp/holla-home-paired/paired/1792590265594885000-e47adb72d76b/report.json",
+      "report_sha256": "72489a959d1c4a4a78f5943126cbf71fe4ab771f126bc7836ffa8f134a9b63f6",
+      "selected_test_count": 1,
+      "selection_completeness": "partial",
+      "terminal_size": [
+        120,
+        40
+      ]
+    },
+    {
+      "acceptance_complete": false,
+      "actual_cell_differences": 1322,
+      "baseline_artifact_tree_sha256": "00ff202c3191a9bd206a37f22553dcf3c374f39046c58e403266c622a0ed0e9d",
+      "baseline_frame_sha256": "e454bf9ff921b573571095f5787af434650b53da65ec40d86e9cf1dc2152dce9",
+      "baseline_status": "passed",
+      "candidate_artifact_tree_sha256": "19d88b3abfc2a7ad0281e5ae7208721f585dc658c72fee6c5c4c397f63bd8a64",
+      "candidate_frame_sha256": "423f8784d383c4fe1d51bb50bbbf5dc52fee218f2d782dbd94bb91662229a606",
+      "candidate_status": "failed",
+      "case": "holla::parity::delete-safety::120x40::truecolor",
+      "cursor_equal": true,
+      "difference_rows": [
+        0,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        36,
+        38,
+        39
+      ],
+      "differences_only_bold_addition": false,
+      "expected_snapshot_sha256": "3e1daa5b96d3a6120ed6634fe52027f6aa461da5f9a8ca36cb19535f915d5a15",
+      "report": "/private/tmp/holla-home-paired/paired/1792590323244629000-a5a9b4da3e72/report.json",
+      "report_sha256": "670bb1307f86cb9aefcacd5612415ed26784bdec5c072d4a69b990d0a6233fa1",
+      "selected_test_count": 1,
+      "selection_completeness": "partial",
+      "terminal_size": [
+        120,
+        40
+      ]
+    }
+  ],
+  "decision": {
+    "frozen_row_visual_parity": "HOLD",
+    "full_holla_product_acceptance": "HOLD",
+    "shared_component_ownership_and_interaction": "CLEAR (bounded)"
+  },
+  "final_interpretation": "CLEAR only for shared component ownership/input mechanics in current Holla generic Home action rows, supported by source review and independent 142-test package suite. HOLD cell-by-cell parity of the migrated generic renderer because sampled paired screens return before that renderer; HOLD frozen product parity because all five equivalent screen comparisons have an unapproved 16-cell menu bold difference, delete-safety is non-equivalent data, and the selected suite is partial. Do not approve or rewrite any expected frame.",
+  "hypothesis_corrections": {
+    "menu": "Across the 5 equivalent Home/Docker samples, 16 changed cells are exclusively bold added to File/Go/Help labels in row 0; characters, fg/bg, other attributes, row cells, and cursor position/state match the frozen snapshot. This remains a real snapshot difference. The component row commit itself only changes holla-ui home.rs, so no attribution of this menu difference to this exact commit is proven.",
+    "risk": "Do not extrapolate row parity from delete-safety: frozen has Cargo action rows and candidate has only Monitor this host; 1322 cell differences reflect non-equivalent fixture data. Risk-column policy remains untested, not a demonstrated component-layout defect.",
+    "row_origin": "Prior x+3-relative/x+4-absolute offset concern is disproved for tested Home/Finder snapshots: in first-use 80x24, selected marker is x=2 and row title starts x=4 in both baseline and candidate. The 16 diffs are all row-zero menu-label bold bits, not content-origin offsets."
+  },
+  "independent_component_test": {
+    "command": "CARGO_TARGET_DIR=/private/tmp/holla-home-review-06b9-target rustup run 1.99.1 cargo nextest run --locked --manifest-path /private/tmp/holla-home-review-06b9/Cargo.toml -p holla-ui --lib --no-fail-fast",
+    "coverage_relevant_tests": [
+      "screens::home::tests::shared_action_row_keeps_live_semantic_fields_and_owner_focus",
+      "screens::home::tests::mouse_and_keyboard_row_activation_share_identity",
+      "screens::home::tests::query_submission_uses_top_match_after_row_navigation",
+      "screens::home::tests::shared_query_filters_and_enter_reports_real_catalogue_identity",
+      "screens::home::tests::home_header_text_policy_survives_menu_open_close_and_focus_restoration",
+      "screens::home::tests::all_scenarios_render_without_mutating_domain_or_query",
+      "screens::home::tests::section_headers_use_nav_list_text_policy_across_widths_and_color_levels"
+    ],
+    "limits": "Independent nextest only; author also reports clippy/fmt pass but they were not rerun independently.",
+    "nextest_run_id": "2d40d542-def9-42dd-bc55-21cc63b38854",
+    "result": "142 passed, 0 failed, 0 skipped",
+    "unique_target_dir": "/private/tmp/holla-home-review-06b9-target"
+  },
+  "nonapproval": {
+    "full_inventory_pass": false,
+    "full_product_parity": false,
+    "main_or_reference_branch_mutated": false,
+    "paired_selection_completeness": "partial; each report selects exactly one screen; acceptance_complete=false",
+    "snapshots_modified_or_approved": false,
+    "source_edits": false
+  },
+  "packet_evidence": {
+    "baseline_build_manifest_sha256": "e42e5bd388fbce99e7fc4071df1e32f3011d011ed27b2138b84ad9dc66484b65",
+    "candidate_build_manifest_sha256": "cd4dd1618fea1bfbb49eba93928b17fa69358f1e4f63939b7aadef5ac5909b08",
+    "frozen_provenance_sha256": "4eb758b86e148fc0688704ffbd66b3d6589300dd59ffc3ee67b78a26806ad098",
+    "paired_report_count": 6,
+    "paired_reports": [
+      {
+        "case": "holla::concept::first-use::80x24::truecolor",
+        "report_sha256": "fbe82a61a5c64f191b08c6846d97d950f71141602b218048a80440129ffb325d"
+      },
+      {
+        "case": "holla::concept::first-use::100x30::truecolor",
+        "report_sha256": "af0e1004d1ff2f7674397bf3cd7ff1f46471ce3f81887fae16a6e096aa00e002"
+      },
+      {
+        "case": "holla::concept::first-use::120x40::truecolor",
+        "report_sha256": "d484fdbbff1fae0c5f88b604a667979a336c934f1e2b09b24cbacf59e59f40d2"
+      },
+      {
+        "case": "holla::concept::first-use::160x50::truecolor",
+        "report_sha256": "aadcf56894079373baf0bb02336ec806d2e13c33929a2673769bb0721d4978ce"
+      },
+      {
+        "case": "holla::concept::docker-cleanup::120x40::truecolor",
+        "report_sha256": "72489a959d1c4a4a78f5943126cbf71fe4ab771f126bc7836ffa8f134a9b63f6"
+      },
+      {
+        "case": "holla::parity::delete-safety::120x40::truecolor",
+        "report_sha256": "670bb1307f86cb9aefcacd5612415ed26784bdec5c072d4a69b990d0a6233fa1"
+      }
+    ]
+  },
+  "review_id": "holla-home-row-contract-06b9-20261021",
+  "source": {
+    "baseline_binary_retained_for_rehash": false,
+    "candidate_binary_rehashed": true,
+    "candidate_binary_sha256": "82ae4460f2042ab84b1946b0032426f05d9100ad41ba101b360a2c4a0de43cff",
+    "candidate_worktree": "/private/tmp/holla-home-full-20261021; detached clean at ac315e2867136641e2b4cd71a00b8ca27c9153d3",
+    "code_parent": "2c21e2c3883a89a624bad596b963c3e8e40d2d1f",
+    "fresh_capture_authority": "prepare-live refused separate local candidate/reference hash against the fixed reference decision; the guard was respected and not bypassed. These partial compare reports replay frozen-approved artifacts and are not a fresh accepted reference-capture cohort.",
+    "frozen_snapshots_tree_sha256": "6b547179584d2fb708993fb5ccd415a89423547263836271105b52be0294e1a8",
+    "frozen_source_commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+    "frozen_source_sha256": "f74646a92505bd9baff29c89398af4d31a4812dd7d51acc84d755be61a383850",
+    "frozen_source_tree": "ad0f7cf8899df8c5fea3ced3f60adf0ac9a2d297",
+    "frozen_tag_object": "2718a6b8127a522a3d351d0b4bdb7542fc8da542",
+    "home_source_blob": "d04206aa0aa88fca27560a3c7e838d080db6b3ab",
+    "home_source_equal_ac315_and_06b9": true,
+    "inputs": "frozen scenarios call --motion paused --frame 40; tests pin HOME/cwd, SHELL, client platform, TERM=xterm-256color, COLORTERM=truecolor, LANG/LC_ALL=C.UTF-8, TZ=UTC, PATH, HOLLA_NO_HISTORY=1; same frozen test harness and env across baseline/candidate phases except VISUAL_BIN_DIR.",
+    "pair_tool": "tools/frozen_baseline.py compare; separate baseline/candidate bin dirs; runner verifies binary manifests and snapshot/harness immutability; VISUAL_BIN_DIR is the only phase switch",
+    "paired_candidate_source": "ac315e2867136641e2b4cd71a00b8ca27c9153d3",
+    "recorded_baseline_holla_binary_sha256": "4302f161a220b5d1e2a4a8308df0e3e616ccade20752812f7abddac651189145",
+    "review_worktree": "/private/tmp/holla-home-review-06b9",
+    "reviewed_commit": "06b9fe0b88722303ea6a4d00cf6adbe66a568cb8",
+    "runner_script_sha256": "b2086ad9403c320c715a69e89f3acee4ea56853c7640374736a2c83f19875970",
+    "terminal_clock": "scenario virtual state fixed at --frame 40 with paused motion; no controlled real-time clock change was part of these single-screen comparisons.",
+    "tuiscotti_lock_source": "git+https://github.com/tailrocks/tuiscotti?rev=a1ea27f757d75d07b05499276cd932e9f8e067ad#a1ea27f757d75d07b05499276cd932e9f8e067ad",
+    "tuiscotti_rev": "a1ea27f757d75d07b05499276cd932e9f8e067ad",
+    "worktree_state": "detached clean; sparse crates/docs/tools/xtask; no production changes"
+  },
+  "source_review": {
+    "changed_commit_files": [
+      "crates/holla-ui/src/screens/home.rs",
+      "docs/audits/2026-10-21-holla-home-action-row-composition.md"
+    ],
+    "component_visual_limit": "The paired first-use/Docker rows do NOT execute the newly composed generic NavList row callback: HomeState::draw returns through first_use_view/paint_narrow_tag_list and docker_cleanup_view/paint_narrow_tag_list before later nav_list.draw. Thus these paired frames establish those Holla presentation screenshots, not the new NavList renderer cell-for-cell.",
+    "ownership": "Generic Home action rows now supply live HomeRow data to NavList::row(RowUi); NavList owns selection/focus/hit region/scroll interaction; CursorStyle::Fill keeps the query-owned focus indicator singular. Stable ItemKey remains action.id and HomeState.update/action dispatch is unchanged. Actual Harness tests exercise activation, filtering, focus, and no second focus gutter.",
+    "remaining_app_geometry": "ActionColumns and RowUi content still use the shared ColumnSpec/solve_columns layout engine; app callback supplies semantic cells and width policy. This pass does not clear the broader application-layout ownership/API gate.",
+    "row_semantics": "The generic callback adds kind/scope/reason/risk semantic cells compared with its prior simplified painter. Baseline Finder uses type/scope/reason and risk only for destructive/privileged entries, but current matched first-use/Docker artifact branches bypass the callback. No safe risk-policy disposition from these samples.",
+    "special_views": "Other catalog *_view/*_plate branches remain before the generic NavList path in this source and are not audited/removed by this commit."
+  }
+}
