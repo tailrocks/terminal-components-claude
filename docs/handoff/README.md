@@ -1,3 +1,32 @@
+# 2026-10-22: consolidation wave, bypass retirement, and suite clearance
+
+Current PR #38 tip on `parity/termrock-visual-baseline`: `70729efb1b`.
+
+### Landed batches & architecture fixes:
+- **TablePro plates and filter branches removed** (`3baa961531`):
+  Eliminated the size-specific filter branch in `tablepro-ui/src/app.rs` (`draw_connections_filter_80` vs `120`), driving unified layout and syncing the visual baseline in `crates/tablepro-ui/tests/baselines/tablepro.txt`.
+- **Jackin historical_* modules and RUNS tables removed** (`67b9b5898a`, `c8bce47d1f`, `6de5aa5b4e`, `fcef936dbf`, `f285caf77`):
+  Size plates eliminated across manager, editor, and launch frames (`paint_manager_frame`, `hard_launch_locked`, `hard-cases 80x24`, `help_overlay`, accounts family). Dropped redundant size switches in settings frames. RUNS patch tables and size-specific branches replaced with real view composition over live split and shared feedback painters. Accounts drawer entry named for its function; accounts header carries live message.
+- **Showcase selectable false parity guarded and completion detail fit** (`5d8819fe5d`, `1c1f1caf3b`, `7ac865d581`, `b27e8754b2`):
+  Fit fetch completion detail within popup width limit (`5d8819fe5d`). Guarded selectable page against captured frame replay (`1c1f1caf3b`), asserting live widget painting across multiple sizes (`b27e8754b2`).
+- **Holla Home action row composition** (`70729efb1b`):
+  Migrated live Home action rows in `crates/holla-ui/src/screens/home.rs` to `NavList::row` and `RowUi` (`docs/audits/2026-10-21-holla-home-action-row-composition.md`). Supplies live semantic cells (title, kind, scope, reason, risk); eliminated application-owned focus gutter (`▎`) and background fills.
+- **Consolidated branches**:
+  - `action-variant-builder` (`0edeec2250`): additive `Action::with_variant(Variant)` builder (`docs/audits/2026-10-21-action-variant-builder.md`).
+  - `review-ui-ux` (`0480276e9f`): UI/UX and interaction review of showcase and jackin live-page work (`docs/audits/evidence/2026-10-22-ui-ux-review/report.md`).
+  - `public-consumer-contracts` (`3afa8c8df2`): facade-only downstream consumer tests (`crates/termrock/tests/public_component_contracts.rs`) for Button click-only focusability, PropsList sheet composition, and Picker selection policy (`docs/audits/2026-10-21-public-consumer-contracts.md`).
+  - `text-input-focus-select` (`3b45684763`): `FocusSelect::{CaretStart, CaretEnd, SelectAll}` initial selection policy on `TextInput` (`docs/audits/2026-10-21-text-input-focus-select.md`).
+- **Suite Gate Status**:
+  - Conformance suite: 940/940 green.
+  - Control states: 107/107 green (`bb4bbb6eb9`, `4aba6b3f66`, `46121e6043` aligned W02-01, W08-02, W13-02).
+  - Visual baseline: 66/66 green (`tablepro_visual_baseline`, `jackin_visual_baseline`, `showcase_visual_baseline`, `holla_visual_baseline` passing).
+
+### Application statuses:
+- **Showcase**: Selectable page guarded against frame replay; live widget painting verified at multiple sizes; completion detail width-capped; Action variants & FocusSelect integrated.
+- **TablePro**: Connection filter size branches and plates removed; visual baselines synchronized.
+- **Jackin**: `historical_*` dispatch, size plates, and RUNS patch tables removed across manager, editor, launch, and settings frames; live view composition active.
+- **Holla**: Home action rows composed with `NavList::row` and `RowUi`; private gutters removed; width-band layout in place. Reference-regeneration case documented.
+
 # 2026-10-22: branch-consolidation source-refresh lane remains in progress
 
 This lane tracks the branch-consolidation prompt dated 2026-10-21 15:36. Its evidence does not approve the application migrations or supersede implementation evidence below. Publish repository increments to `parity/termrock-visual-baseline` only after fetching, reconciling concurrent changes, and checking the resulting commit. The original design checkout, PR #26, and frozen tag remain reference-only.
@@ -164,7 +193,6 @@ in `docs/audits/2026-10-21-selectable-bypass-removal.md`. Next steps:
 have the shell owners reconcile nav/sidebar/footer painting with the
 frozen captures (then re-approve on purpose), and hand the tier-dependent
 modal-backdrop mapping to the runtime owners.
-||||||| parent of 7201b3497 (docs: record PR #38 landing-queue integration state)
 
 ## Landing-queue integration state (2026-10-21)
 
@@ -183,9 +211,6 @@ LANDED 2026-10-21: merged as `70229e698` onto then-origin tip `01ed92ca9` and pu
 - Tip: see `git log origin/wip/termrock-extract-shell-20261021 -1` (13 commits on top of `origin/parity/termrock-visual-baseline`).
 - Item: PR #26 shell layer (commit `f4867e9b5`) ported into the new `crates/termrock-shell` — nav/Router, chrome, status, quit guard, keyboard deliverability, key router, page contract, AppShell slots, footer compose rules, reach harness, esc vocabulary, `shell_consumer` example, additive `termrock::shell` facade re-export, matrix rows.
 - State: complete and gated (nextest 48/48, clippy clean, fmt clean, workspace `cargo check` exit 0, rebased onto `origin/parity/termrock-visual-baseline` at rebase time); no app crate or shared-crate source touched.
-||||||| parent of aa2b1b34b (docs(audit): modal backdrop DIM conflicts inside the frozen baseline)
-
-||||||| parent of e5c615d2a (docs: record theme extraction handoff and adoption list)
 
 ## Theme/visual-state extraction handoff (2026-10-21)
 
