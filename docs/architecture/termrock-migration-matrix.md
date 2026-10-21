@@ -2436,5 +2436,5 @@ Landed wave on `parity/termrock-visual-baseline`:
   - Control states: 107/107 green (`bb4bbb6eb9`, `4aba6b3f66`, `46121e6043` aligned W02-01, W08-02, W13-02).
   - Visual baseline: 66/66 green (`tablepro_visual_baseline`, `jackin_visual_baseline`, `showcase_visual_baseline`, `holla_visual_baseline`).
 
-`holla::parity::git-current` truecolor is 0 cells at 80×24, 100×30, and 120×40. Rest menu titles (`File`, `Go`, `Help`) use secondary `#b3b3b3` without bold. `holla::concept::disk-cleanup` 80×24 truecolor stayed 0. `jackin::manager::hard_launch_locked` 120×40 truecolor is 0 cells through `termrock::feedback::paint_session_chrome`. The full four-app suite is not green.
+`holla::parity::git-current` truecolor is 0 cells at 80×24, 100×30, and 120×40. Rest menu titles (`File`, `Go`, `Help`) use secondary `#b3b3b3` without bold. The same rest titles make `holla::parity::cargo` 0 cells at 80×24 and 100×30, and `git-batch`, `files`, `browser`, and `history` 0 cells at 100×30 truecolor. `holla::concept::disk-cleanup` 80×24 truecolor stayed 0. `holla::parity::task-sources` 100×30 truecolor still differs in the list body. `jackin::manager::hard_launch_locked` 120×40 truecolor is 0 cells through `termrock::feedback::paint_session_chrome`. The full four-app suite is not green.
 

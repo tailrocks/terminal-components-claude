@@ -219,6 +219,21 @@ fn brand() -> Brand<'static> {
     Brand::new(BRAND, "holla❯").clickable(true)
 }
 
+/// Paused tag frames whose menu bar is not the focused control. The shared
+/// bar would paint those titles bold and muted.
+fn rest_tag_menu(world: &crate::sim::World) -> bool {
+    use crate::sim::catalogue::{
+        parity_browser_tag_frame, parity_cargo_tag_frame, parity_files_tag_frame,
+        parity_git_batch_tag_frame, parity_git_current_tag_frame, parity_history_tag_frame,
+    };
+    parity_git_current_tag_frame(world)
+        || parity_cargo_tag_frame(world)
+        || parity_git_batch_tag_frame(world)
+        || parity_files_tag_frame(world)
+        || parity_browser_tag_frame(world)
+        || parity_history_tag_frame(world)
+}
+
 /// Rest menu titles. A focused bar bolds them in muted ink. The tag bar is
 /// secondary `#b3b3b3` and not bold.
 fn paint_rest_menu_titles(ui: &mut Ui<'_>, menu_x: u16, y: u16) {
@@ -1618,7 +1633,7 @@ impl App {
         // A disk plate has no query, so the bar would keep focus and bold its titles.
         if (self.route == Route::Disk && crate::sim::catalogue::disk_cleanup_tag_frame(&self.world))
             || launch_failure_activity_open(&self.world, ui)
-            || crate::sim::catalogue::parity_git_current_tag_frame(&self.world)
+            || rest_tag_menu(&self.world)
         {
             paint_rest_menu_titles(ui, menu_x, header.y);
         }
