@@ -25,12 +25,25 @@ use crate::ui::Ui;
 pub struct CellView {
     /// The glyph the cell holds.
     pub symbol: String,
+    /// The style the cell carries.
+    pub style: Style,
+}
+
+impl CellView {
     /// The foreground ink of the cell.
-    pub fg: Color,
+    pub fn fg(&self) -> Color {
+        self.style.fg.unwrap_or(Color::Reset)
+    }
+
     /// The background ink of the cell.
-    pub bg: Color,
+    pub fn bg(&self) -> Color {
+        self.style.bg.unwrap_or(Color::Reset)
+    }
+
     /// The modifiers the cell carries.
-    pub modifier: Modifier,
+    pub fn modifier(&self) -> Modifier {
+        self.style.add_modifier
+    }
 }
 
 /// The number of cells `text` occupies on one line.
@@ -126,7 +139,11 @@ pub fn put_cell_at(ui: &mut Ui<'_>, pos: Position, symbol: &str, style: impl Int
 /// leave the cell as it is. The style only changes what it names: a style
 /// with a foreground keeps the cell's background and modifiers, and a style
 /// with only modifiers keeps the cell's inks.
-pub fn restyle_cells(ui: &mut Ui<'_>, area: Rect, restyle: impl Fn(CellView) -> Option<Style>) {
+pub fn restyle_cells(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    restyle: impl Fn(Position, CellView) -> Option<Style>,
+) {
     let (buf, _) = ui.raw();
     for pos in area.positions() {
         let Some(cell) = buf.cell_mut(pos) else {
@@ -134,11 +151,9 @@ pub fn restyle_cells(ui: &mut Ui<'_>, area: Rect, restyle: impl Fn(CellView) -> 
         };
         let view = CellView {
             symbol: cell.symbol().to_owned(),
-            fg: cell.fg,
-            bg: cell.bg,
-            modifier: cell.modifier,
+            style: cell.style(),
         };
-        if let Some(style) = restyle(view) {
+        if let Some(style) = restyle(pos, view) {
             cell.set_style(style);
         }
     }
@@ -148,7 +163,38 @@ pub fn restyle_cells(ui: &mut Ui<'_>, area: Rect, restyle: impl Fn(CellView) -> 
 ///
 /// This is the canvas counterpart of reading the whole clip: the component
 /// never sees the buffer.
-pub fn restyle_clip(ui: &mut Ui<'_>, restyle: impl Fn(CellView) -> Option<Style>) {
+pub fn restyle_clip(ui: &mut Ui<'_>, restyle: impl Fn(Position, CellView) -> Option<Style>) {
     let clip = ui.raw().1;
     restyle_cells(ui, clip, restyle);
+}
+
+/// Repaint the glyphs of the cells a component selects.
+///
+/// Each selected cell keeps its glyph and is painted again with `style`. The
+/// glyph is painted through the `Ui` surface, so the cell's paint role stays
+/// in step with the ink it shows.
+pub fn repaint_cells(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    select: impl Fn(Position, &CellView) -> bool,
+    style: impl Into<PaintStyle>,
+) {
+    let style = style.into();
+    let (buf, _) = ui.raw();
+    let mut targets = Vec::new();
+    for pos in area.positions() {
+        let Some(cell) = buf.cell(pos) else {
+            continue;
+        };
+        let view = CellView {
+            symbol: cell.symbol().to_owned(),
+            style: cell.style(),
+        };
+        if select(pos, &view) {
+            targets.push((pos, view.symbol));
+        }
+    }
+    for (pos, symbol) in targets {
+        ui.paint_cell(pos, &symbol, style);
+    }
 }
