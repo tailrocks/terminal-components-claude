@@ -60,6 +60,360 @@ pub(super) fn paint_open_footer(ui: &mut Ui<'_>, cancel: bool) {
     blit(ui, &buf, Rect::new(screen.x, y, screen.width, 1));
 }
 
+pub(super) fn paint_failure(app: &App, ui: &mut Ui<'_>) {
+    let screen = ui.full();
+    let Some(launch) = app.launch() else {
+        return;
+    };
+    let mut buf = Buffer::empty(screen);
+    fill(&mut buf, screen, ink(0x00ff_ffff, 0, false));
+    let body = body_rect(screen);
+    paint_rain_at(&mut buf, body, 231, false, true);
+    mute_white(&mut buf, screen);
+    paint_strip(app, &mut buf, screen, true);
+    paint_failure_hero(&mut buf, body, launch);
+    paint_failure_dialog(&mut buf, launch);
+    paint_failure_status(&mut buf, screen, launch);
+    let footer_y = screen.bottom().saturating_sub(1);
+    for x in 0..screen.width {
+        put(&mut buf, x, footer_y, ' ', ink(0x00ff_ffff, 0, false));
+    }
+    let hints: &[(&str, &str)] = &[("↑↓", "Move"), ("y", "Copy"), ("Esc", "Close")];
+    paint_footer(&mut buf, screen, hints);
+    emphasize_failure_footer(&mut buf, screen);
+    blit(ui, &buf, screen);
+}
+
+fn paint_rain_at(buf: &mut Buffer, body: Rect, tick: u64, running: bool, failed: bool) {
+    if body.is_empty() {
+        return;
+    }
+    let rail_h = 11u16.min(body.height.saturating_sub(9));
+    let rail_w = 44u16.min(body.width.saturating_sub(4));
+    let rail_x = body.x.saturating_add(body.width.saturating_sub(rail_w) / 2);
+    let ident_y = body.y.saturating_add(1);
+    let exclude = [
+        Rect::new(
+            rail_x.saturating_sub(2),
+            ident_y,
+            rail_w.saturating_add(4),
+            rail_h.saturating_add(6),
+        ),
+        Rect::new(body.x, body.bottom().saturating_sub(3), body.width, 3),
+    ];
+    let theme = termrock::Theme::junie();
+    crate::rain::paint_atmosphere(buf, body, &exclude, tick, running, failed, &theme);
+}
+
+fn mute_white(buf: &mut Buffer, screen: Rect) {
+    let white = Color::Rgb(0xff, 0xff, 0xff);
+    let black = Color::Rgb(0, 0, 0);
+    let muted = ink(0x008a_8a8a, 0, false);
+    for y in screen.y..screen.bottom() {
+        for x in screen.x..screen.right() {
+            let Some(cell) = buf.cell_mut(Position::new(x, y)) else {
+                continue;
+            };
+            if cell.fg == white && cell.bg == black {
+                cell.set_style(muted);
+            }
+        }
+    }
+}
+
+fn paint_failure_hero(buf: &mut Buffer, body: Rect, launch: &LaunchRun) {
+    if body.height < 6 {
+        return;
+    }
+    let rail_h = 11u16.min(body.height.saturating_sub(9));
+    let rail_w = 44u16.min(body.width.saturating_sub(4));
+    let rail_x = body.x.saturating_add(body.width.saturating_sub(rail_w) / 2);
+    let ident_y = body.y.saturating_add(1);
+    let faint = ink(0x0073_7373, 0, false);
+    let brand = ink(0x0073_7373, 0x0027_272a, false);
+    center(buf, body, ident_y, BRAND, brand);
+    center(
+        buf,
+        body,
+        ident_y.saturating_add(1),
+        &format!("Loading {ROLE} into workspace {WORKSPACE}"),
+        ink(0x008a_8a8a, 0, false),
+    );
+    center(buf, body, ident_y.saturating_add(2), AGENT_LINE, faint);
+    let (done, skipped) = launch.counts();
+    let frontier = launch.states.iter().position(|state| !state.terminal());
+    let stage_line = match frontier {
+        Some(index) => format!(
+            "stage {} of {} · {} · {done} done · {skipped} skipped",
+            index.saturating_add(1),
+            Stage::ALL.len(),
+            Stage::ALL[index].label()
+        ),
+        None if launch.done => "all stages complete".to_owned(),
+        None => "stopped".to_owned(),
+    };
+    center(buf, body, ident_y.saturating_add(3), &stage_line, faint);
+    let rail = Rect::new(rail_x, ident_y.saturating_add(5), rail_w, rail_h);
+    paint_rail(buf, rail, launch, true);
+    let cred_y = rail.bottom().saturating_add(1);
+    let x = rail.x.saturating_sub(4);
+    let width = body.right().saturating_sub(x.saturating_add(2));
+    // Resolved line: cockpit rewrites the value once Credentials finishes.
+    let resolved = format!("resolved in memory · discarded after injection · {CREDENTIAL_VALUE}");
+    put_str(
+        buf,
+        x,
+        cred_y,
+        &truncate(CREDENTIALS, usize::from(width)),
+        faint,
+    );
+    put_str(
+        buf,
+        x.saturating_add(13),
+        cred_y.saturating_add(1),
+        &truncate(&resolved, usize::from(width.saturating_sub(13))),
+        faint,
+    );
+}
+
+fn paint_failure_dialog(buf: &mut Buffer, launch: &LaunchRun) {
+    let card = Color::Rgb(0x18, 0x18, 0x1b);
+    let left = 25u16;
+    let right = 95u16;
+    let top = 9u16;
+    let bottom = 31u16;
+    for y in top.saturating_add(1)..bottom.saturating_sub(1) {
+        for x in left.saturating_add(1)..right.saturating_sub(1) {
+            let Some(cell) = buf.cell_mut(Position::new(x, y)) else {
+                continue;
+            };
+            let fg = cell.fg;
+            cell.set_symbol(" ");
+            cell.set_style(Style::new().fg(fg).bg(card));
+        }
+    }
+    let border = ink(0x004d_4d4d, 0x0018_181b, false);
+    let muted = ink(0x008a_8a8a, 0x0018_181b, false);
+    let white = ink(0x00ff_ffff, 0x0018_181b, false);
+    let bold_white = ink(0x00ff_ffff, 0x0018_181b, true);
+    let faint = ink(0x0073_7373, 0x0018_181b, false);
+    let secondary = ink(0x00b3_b3b3, 0x0018_181b, false);
+    let danger = ink(0x00f0_5d5d, 0x0018_181b, true);
+    let rule = "─".repeat(10);
+    put_str(buf, left, top, "╭─", border);
+    put_str(buf, left.saturating_add(2), top, " ", bold_white);
+    put_str(buf, left.saturating_add(3), top, "!", danger);
+    put_str(
+        buf,
+        left.saturating_add(4),
+        top,
+        " Launch failed ",
+        bold_white,
+    );
+    put_str(buf, left.saturating_add(19), top, &rule, border);
+    put_str(
+        buf,
+        left.saturating_add(29),
+        top,
+        " run id is the only copyable value ",
+        faint,
+    );
+    put_str(buf, left.saturating_add(64), top, "─ ", border);
+    put_str(buf, left.saturating_add(66), top, "×", secondary);
+    put_str(buf, left.saturating_add(67), top, " ─╮", border);
+    for y in top.saturating_add(1)..bottom.saturating_sub(1) {
+        put_str(buf, left, y, "│", border);
+        put_str(buf, right.saturating_sub(1), y, "│", border);
+    }
+    put_str(
+        buf,
+        left,
+        bottom.saturating_sub(1),
+        &format!("╰{}╯", "─".repeat(68)),
+        border,
+    );
+    let Some(failure) = launch.failure.as_ref() else {
+        return;
+    };
+    put_str(
+        buf,
+        left.saturating_add(3),
+        top.saturating_add(1),
+        &failure.summary,
+        white,
+    );
+    put_str(
+        buf,
+        left.saturating_add(3),
+        top.saturating_add(2),
+        &format!("Loading {ROLE} into workspace {WORKSPACE}"),
+        muted,
+    );
+    paint_failure_field(
+        buf,
+        top.saturating_add(4),
+        "Stage",
+        &failure.stage.label(),
+        true,
+    );
+    let run = launch.trace_label.clone();
+    paint_failure_field(buf, top.saturating_add(5), "Run id", &run, false);
+    let step = truncate(&failure.next_step, 51);
+    paint_failure_field(buf, top.saturating_add(6), "Next step", &step, false);
+    let suffix = launch.trace_label.rsplit('-').next().unwrap_or("b5df");
+    let container = format!("{}-{suffix}", launch.container);
+    paint_failure_field(buf, top.saturating_add(7), "Container", &container, false);
+    let mut lines = Vec::new();
+    for line in &failure.detail {
+        lines.extend(wrap_words(line, 59));
+    }
+    let view = 10usize;
+    let thumb = if lines.len() > view {
+        (view.saturating_mul(view) / lines.len()).max(1)
+    } else {
+        view
+    };
+    for (index, line) in lines.iter().take(view).enumerate() {
+        let y = top.saturating_add(9).saturating_add(index as u16);
+        put_str(buf, left.saturating_add(3), y, line, secondary);
+        let mark = if index < thumb { '┃' } else { '┆' };
+        let mark_ink = if index < thumb {
+            ink(0x0080_8080, 0x0018_181b, false)
+        } else {
+            ink(0x0047_4747, 0x0018_181b, false)
+        };
+        put(buf, left.saturating_add(68), y, mark, mark_ink);
+        if index + 1 == view {
+            fade_log_row(buf, left, y);
+        }
+    }
+    put(
+        buf,
+        left.saturating_add(60),
+        top.saturating_add(20),
+        ' ',
+        ink(0x0027_272a, 0x0027_272a, false),
+    );
+    put_str(
+        buf,
+        left.saturating_add(61),
+        top.saturating_add(20),
+        "Close ",
+        ink(0x00ff_ffff, 0x0027_272a, false),
+    );
+}
+
+fn paint_failure_field(buf: &mut Buffer, y: u16, label: &str, value: &str, selected: bool) {
+    let muted = ink(0x008a_8a8a, 0x0018_181b, false);
+    let white = ink(0x00ff_ffff, 0x0018_181b, false);
+    let bold_white = ink(0x00ff_ffff, 0x0018_181b, true);
+    let accent = ink(0x0048_e054, 0x0018_181b, true);
+    if selected {
+        put_str(buf, 28, y, &" ".repeat(64), bold_white);
+        put_str(buf, 27, y, "▎", accent);
+        put_str(buf, 29, y, label, muted);
+        put_str(buf, 40, y, value, ink(0x00f0_5d5d, 0x0018_181b, true));
+        return;
+    }
+    put_str(buf, 27, y, " ", ink(0x0018_181b, 0x0018_181b, false));
+    put_str(buf, 28, y, " ", white);
+    put_str(buf, 29, y, label, muted);
+    let label_end = 29u16.saturating_add(u16::try_from(label.chars().count()).unwrap_or(0));
+    let pad = usize::from(92u16.saturating_sub(label_end));
+    put_str(buf, label_end, y, &" ".repeat(pad), white);
+    put_str(buf, 40, y, value, white);
+}
+
+fn fade_log_row(buf: &mut Buffer, left: u16, y: u16) {
+    let card = Color::Rgb(0x18, 0x18, 0x1b);
+    for x in left..left.saturating_add(68) {
+        let Some(cell) = buf.cell_mut(Position::new(x, y)) else {
+            continue;
+        };
+        let Color::Rgb(red, green, blue) = cell.fg else {
+            continue;
+        };
+        let mixed = Color::Rgb(
+            mix_toward(red, 0x18, 0.55),
+            mix_toward(green, 0x18, 0.55),
+            mix_toward(blue, 0x1b, 0.55),
+        );
+        cell.set_style(Style::new().fg(mixed).bg(card));
+    }
+}
+
+fn mix_toward(channel: u8, bg: u8, keep: f32) -> u8 {
+    (f32::from(bg) + (f32::from(channel) - f32::from(bg)) * keep)
+        .round()
+        .clamp(0.0, 255.0) as u8
+}
+
+fn wrap_words(text: &str, limit: usize) -> Vec<String> {
+    let mut lines = Vec::new();
+    let mut line = String::new();
+    for word in text.split(' ') {
+        let next = if line.is_empty() {
+            word.chars().count()
+        } else {
+            line.chars().count() + 1 + word.chars().count()
+        };
+        if !line.is_empty() && next > limit {
+            lines.push(std::mem::take(&mut line));
+        }
+        if !line.is_empty() {
+            line.push(' ');
+        }
+        line.push_str(word);
+    }
+    if !line.is_empty() {
+        lines.push(line);
+    }
+    lines
+}
+
+fn paint_failure_status(buf: &mut Buffer, screen: Rect, launch: &LaunchRun) {
+    let muted = ink(0x008a_8a8a, 0, false);
+    let faint = ink(0x0073_7373, 0, false);
+    let stage = launch
+        .failure
+        .as_ref()
+        .map(|failure| failure.stage.label())
+        .unwrap_or("Network");
+    put_str(buf, 0, 36, &format!(" ! {stage} failed"), muted);
+    let suffix = launch.trace_label.rsplit('-').next().unwrap_or("b5df");
+    let chip = format!(" {}-{suffix} ", launch.container);
+    let chip_x = screen.width.saturating_sub(
+        u16::try_from(chip.chars().count())
+            .unwrap_or(0)
+            .saturating_add(1),
+    );
+    put_str(buf, chip_x, 36, &chip, faint);
+    put_str(
+        buf,
+        1,
+        37,
+        &format!(
+            "{} lines · b build log",
+            crate::sim::launch::BUILD_LOG.len()
+        ),
+        faint,
+    );
+}
+
+fn emphasize_failure_footer(buf: &mut Buffer, screen: Rect) {
+    let y = screen.bottom().saturating_sub(1);
+    let Some(cell) = buf.cell_mut(Position::new(14, y)) else {
+        return;
+    };
+    cell.set_style(cell.style().add_modifier(Modifier::BOLD));
+    for x in [32u16, 33, 34, 35, 36, 37, 45, 46, 47, 48, 49, 50] {
+        let Some(cell) = buf.cell_mut(Position::new(x, y)) else {
+            continue;
+        };
+        cell.set_style(cell.style().add_modifier(Modifier::BOLD));
+    }
+}
+
 pub(super) fn paint(app: &App, ui: &mut Ui<'_>) {
     let screen = ui.full();
     let Some(launch) = app.launch() else {
@@ -70,7 +424,7 @@ pub(super) fn paint(app: &App, ui: &mut Ui<'_>) {
 
     let body = body_rect(screen);
     paint_rain(&mut buf, body);
-    paint_strip(app, &mut buf, screen);
+    paint_strip(app, &mut buf, screen, false);
     paint_body(&mut buf, body, launch);
     let hints: &[(&str, &str)] = if app.cockpit_info_open {
         &[("↑↓", "Move"), ("y", "Copy"), ("Esc", "Close")]
@@ -148,11 +502,16 @@ fn paint_rain(buf: &mut Buffer, body: Rect) {
     crate::rain::paint_atmosphere(buf, body, &exclude, 40, true, false, &theme);
 }
 
-fn paint_strip(app: &App, buf: &mut Buffer, screen: Rect) {
+fn paint_strip(app: &App, buf: &mut Buffer, screen: Rect, failed: bool) {
     if screen.width < 12 || screen.height == 0 {
         return;
     }
-    put_str(buf, 1, 0, BRAND, ink(0x0019_191c, 0x0048_e054, true));
+    let brand = if failed {
+        ink(0x0073_7373, 0x0027_272a, false)
+    } else {
+        ink(0x0019_191c, 0x0048_e054, true)
+    };
+    put_str(buf, 1, 0, BRAND, brand);
     let area = Rect::new(10, 0, screen.width.saturating_sub(10), 1);
     let running = app.world.running_count();
     let left = [
@@ -161,21 +520,21 @@ fn paint_strip(app: &App, buf: &mut Buffer, screen: Rect) {
             lead: None,
             priority: 9,
             clickable: false,
-            tone: Tone::Normal,
+            tone: if failed { Tone::Muted } else { Tone::Normal },
         },
         Seg {
             text: format!("{running} running"),
             lead: Some("●"),
             priority: 8,
             clickable: false,
-            tone: Tone::Secondary,
+            tone: if failed { Tone::Faint } else { Tone::Secondary },
         },
         Seg {
             text: format!("Launch › {WORKSPACE} › {ROLE}"),
             lead: None,
             priority: 7,
             clickable: false,
-            tone: Tone::Secondary,
+            tone: if failed { Tone::Faint } else { Tone::Secondary },
         },
     ];
     let (done, _) = app.launch().map(LaunchRun::counts).unwrap_or((0, 0));
@@ -185,14 +544,14 @@ fn paint_strip(app: &App, buf: &mut Buffer, screen: Rect) {
             lead: None,
             priority: 5,
             clickable: false,
-            tone: Tone::Muted,
+            tone: if failed { Tone::Faint } else { Tone::Muted },
         },
         Seg {
             text: "? help".to_owned(),
             lead: None,
             priority: 4,
             clickable: true,
-            tone: Tone::Muted,
+            tone: if failed { Tone::Faint } else { Tone::Muted },
         },
     ];
     paint_segments(buf, area, &left, &right);
@@ -248,7 +607,7 @@ fn paint_body(buf: &mut Buffer, body: Rect, launch: &LaunchRun) {
     center(buf, body, ident_y.saturating_add(3), &stage_line, muted);
 
     let rail = Rect::new(rail_x, ident_y.saturating_add(5), rail_w, rail_h);
-    paint_rail(buf, rail, launch);
+    paint_rail(buf, rail, launch, false);
 
     let mut cred_y = rail.bottom().saturating_add(1);
     if cred_y.saturating_add(1) < body.bottom().saturating_sub(3) {
@@ -285,7 +644,7 @@ fn paint_body(buf: &mut Buffer, body: Rect, launch: &LaunchRun) {
     paint_cancel(buf, body, ay.saturating_add(1));
 }
 
-fn paint_rail(buf: &mut Buffer, rail: Rect, launch: &LaunchRun) {
+fn paint_rail(buf: &mut Buffer, rail: Rect, launch: &LaunchRun, failed: bool) {
     if rail.is_empty() {
         return;
     }
@@ -299,8 +658,10 @@ fn paint_rail(buf: &mut Buffer, rail: Rect, launch: &LaunchRun) {
         let stage = Stage::ALL[k];
         put(buf, rail.x, y, ' ', ink(0, 0, false));
         let glyph_style = match state {
+            termrock::StepState::Done if failed => ink(0x0073_7373, 0, false),
             termrock::StepState::Done => ink(0x003f_b950, 0, false),
             termrock::StepState::Running => ink(0x0048_e054, 0, false),
+            _ if failed => ink(0x008a_8a8a, 0, false),
             _ => ink(0x00ff_ffff, 0, false),
         };
         let glyph = match state {
@@ -322,8 +683,10 @@ fn paint_rail(buf: &mut Buffer, rail: Rect, launch: &LaunchRun) {
             number_style,
         );
         let label_style = match state {
+            termrock::StepState::Queued if failed => ink(0x0073_7373, 0, false),
             termrock::StepState::Queued => ink(0x008a_8a8a, 0, false),
             termrock::StepState::Running => ink(0x00ff_ffff, 0, true),
+            termrock::StepState::Done if failed => ink(0x0073_7373, 0, false),
             termrock::StepState::Done => ink(0x00b3_b3b3, 0, false),
             termrock::StepState::Skipped | termrock::StepState::Blocked => {
                 ink(0x0073_7373, 0, false)
@@ -435,11 +798,12 @@ fn paint_footer(buf: &mut Buffer, screen: Rect, hints: &[(&str, &str)]) {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 enum Tone {
     Normal,
     Secondary,
     Muted,
+    Faint,
 }
 
 struct Seg {
@@ -550,6 +914,7 @@ fn draw_seg(buf: &mut Buffer, x: u16, y: u16, seg: &Seg) {
         Tone::Normal => ink(0x00ff_ffff, 0, false),
         Tone::Secondary => ink(0x00b3_b3b3, 0, false),
         Tone::Muted => ink(0x008a_8a8a, 0, false),
+        Tone::Faint => ink(0x0073_7373, 0, false),
     };
     let text = if seg.clickable {
         format!(" {} ", seg.shown())
@@ -558,7 +923,12 @@ fn draw_seg(buf: &mut Buffer, x: u16, y: u16, seg: &Seg) {
     };
     put_str(buf, x, y, &text, style);
     if let Some(glyph) = seg.lead {
-        put_str(buf, x, y, glyph, ink(0x0048_e054, 0, false));
+        let lead = if seg.tone == Tone::Faint {
+            ink(0x0073_7373, 0, false)
+        } else {
+            ink(0x0048_e054, 0, false)
+        };
+        put_str(buf, x, y, glyph, lead);
     }
 }
 
