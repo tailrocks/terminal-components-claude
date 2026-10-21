@@ -295,6 +295,10 @@ pub struct Recipes {
     builtin_by_family: Vec<(Family, Recipe)>,
     authored_by_family: Vec<(Family, Recipe)>,
     authored_default_variants: Vec<(Family, Variant)>,
+    /// Families exposed through the public mutable recipe API. A raw edit can
+    /// touch any public field, so fallback resolution treats the live recipe
+    /// for the whole family as authored rather than trying to diff values.
+    raw_authored_families: Vec<Family>,
     authored_overrides: Vec<GlobalOverride>,
     overrides: Vec<GlobalOverride>,
     neutral: Recipe,
@@ -352,6 +356,7 @@ impl Default for Recipes {
             builtin_by_family: Vec::new(),
             authored_by_family: Vec::new(),
             authored_default_variants: Vec::new(),
+            raw_authored_families: Vec::new(),
             authored_overrides: Vec::new(),
             overrides: Vec::new(),
             neutral: super::builtin::neutral_recipe(),
@@ -375,6 +380,7 @@ impl Recipes {
         self.builtin_by_family = self.by_family.clone();
         self.authored_by_family.clear();
         self.authored_default_variants.clear();
+        self.raw_authored_families.clear();
         self.authored_overrides.clear();
     }
 
@@ -399,6 +405,20 @@ impl Recipes {
             .iter()
             .find(|(family, _)| *family == f)
             .map(|(_, variant)| *variant)
+    }
+
+    pub(crate) fn is_raw_authored(&self, f: Family) -> bool {
+        self.raw_authored_families.binary_search(&f).is_ok()
+    }
+
+    fn mark_raw_authored(&mut self, f: Family) {
+        match self.raw_authored_families.binary_search(&f) {
+            Ok(_) => {}
+            Err(index) => self.raw_authored_families.insert(index, f),
+        }
+        self.authored_by_family.retain(|(family, _)| *family != f);
+        self.authored_default_variants
+            .retain(|(family, _)| *family != f);
     }
 
     pub(crate) fn authored_overrides(&self) -> &[GlobalOverride] {
@@ -486,13 +506,24 @@ impl Recipes {
         self.get(f).unwrap_or(&self.neutral)
     }
 
+    pub fn get_mut(&mut self, f: Family) -> &mut Recipe {
+        self.mark_raw_authored(f);
+        self.revision = next_recipe_revision();
+        self.get_mut_inner(f)
+    }
+
+    /// Mutable access used by typed theme declarations. This preserves their
+    /// declaration provenance instead of classifying them as raw family edits.
+    pub(crate) fn get_mut_tracked(&mut self, f: Family) -> &mut Recipe {
+        self.revision = next_recipe_revision();
+        self.get_mut_inner(f)
+    }
+
     #[expect(
         clippy::indexing_slicing,
-        reason = "`i` is either the index binary_search found or the index Vec::insert(i, _) just \
-                  filled, so it is in range by construction"
+        reason = "the binary-search insertion index is valid after insertion"
     )]
-    pub fn get_mut(&mut self, f: Family) -> &mut Recipe {
-        self.revision = next_recipe_revision();
+    fn get_mut_inner(&mut self, f: Family) -> &mut Recipe {
         let i = match self.by_family.binary_search_by_key(&f, |(k, _)| *k) {
             Ok(i) => i,
             Err(i) => {
@@ -509,6 +540,10 @@ impl Recipes {
 
     pub fn iter_mut(&mut self) -> impl Iterator<Item = (Family, &mut Recipe)> + '_ {
         self.revision = next_recipe_revision();
+        let families: Vec<_> = self.by_family.iter().map(|(family, _)| *family).collect();
+        for family in families {
+            self.mark_raw_authored(family);
+        }
         self.by_family.iter_mut().map(|(k, r)| (*k, r))
     }
 
