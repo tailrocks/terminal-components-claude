@@ -2,6 +2,13 @@
   "decision": "focused read-only CodeEditor keeps its published ordinary caret; no caret is synthesized when no ordinary request exists",
   "base_commit": "86f3ae3d6c9dc6662f5f14a2eb7448422be54d5b",
   "frozen_reference": "4169783ae883788186d161af09ba9c481bd84e5c:src/widgets/code.rs:1224-1227",
+  "red_before": {
+    "source_commit": "e0bfbe71cc855f648590bba0c9754410ccd468ce",
+    "public_component": "focused read-only CodeEditor",
+    "observed": "cursor=None with CursorRejected for the focused editor",
+    "artifact": "focused-diagnostic.log",
+    "artifact_sha256": "ee533180654d1922895da76a384b3bbdcfa0bac1137356bf64d6000c19fe6b3b"
+  },
   "source_sha256": {
     "crates/termrock-runtime/src/runtime/typing.rs": "41dca2dd88536644c09606d785303f960535bd7f421ce7d5228197d57257b6f1",
     "crates/termrock-runtime/src/cursor.rs": "fb3e9fef16e7591a31d8394e1ca9a3464b6dc19ea4cb97819d749d07786b8c66",
