@@ -6,8 +6,12 @@
 //! routing so a screen is opened by its route instead of a display label.
 
 use showcase_ui::{App, NAV_ENTRIES, PageId, Route};
-use termrock::{Color, ColorLevel, KeyCode, Theme};
+use termrock::{Color, ColorLevel, Id, KeyCode, Part, PartRef, Theme};
 use termrock_test_support::Harness;
+
+const NAV: Id = Id::root("showcase_ui::app::navigation");
+const HEADER_HELP: Id = Id::root("showcase_ui::app::header.help");
+const HEADER_INSPECT: Id = Id::root("showcase_ui::app::header.inspect");
 
 /// Frame digests captured from the app-owned shell chrome before the body
 /// split moved to the shared layout plan.
@@ -136,4 +140,21 @@ fn every_navigation_entry_draws_the_screen_its_route_names() {
             }
         }
     }
+}
+
+#[test]
+fn shell_chrome_hit_regions_are_unchanged() {
+    let harness = Harness::new(App::with_page(PageId::Buttons), Theme::junie(), 120, 40);
+    // The header actions keep their parts at the right edge of the header.
+    let help = harness
+        .area_of_part(HEADER_HELP, PartRef::of(Part::LABEL))
+        .expect("help part");
+    assert_eq!(help, ratatui::layout::Rect::new(111, 0, 8, 1));
+    let inspect = harness
+        .area_of_part(HEADER_INSPECT, PartRef::of(Part::LABEL))
+        .expect("inspector part");
+    assert_eq!(inspect, ratatui::layout::Rect::new(97, 0, 13, 1));
+    // The navigation tree keeps the sidebar rail inside its one-column inset.
+    let nav = harness.area_of(NAV).expect("navigation tree");
+    assert_eq!(nav, ratatui::layout::Rect::new(1, 4, 23, 33));
 }
