@@ -3681,6 +3681,7 @@ dependencies = [
 name = "termrock-session"
 version = "0.1.0"
 dependencies = [
+ "libc",
  "ratatui",
  "ratatui-core",
  "ratatui-crossterm",
