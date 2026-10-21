@@ -631,7 +631,6 @@ pub fn mono_states_are_distinguishable<C: Conformance>() {
 
 pub fn local_override_does_not_mutate_the_theme<C: Conformance>() {
     let plain = harness::<C>(Fixture::default());
-    let before = plain.runtime().theme().clone();
     let plain_digest = plain.snapshot().digest();
     let patch_part = C::PARTS
         .first()
@@ -642,14 +641,19 @@ pub fn local_override_does_not_mutate_the_theme<C: Conformance>() {
         patch_part,
         termrock::StylePatch::new().set_fg(termrock::Role::Warning),
     ));
-    let patched = harness::<C>(f);
+    // Capture the exact runtime's semantic theme before the widget receives
+    // its local patch. This detects mutation of the runtime being rendered;
+    // Theme equality deliberately ignores only generated recipe revisions.
+    let mut patched = harness::<C>(Fixture::default()).with_auto_draw(false);
+    let before = patched.runtime().theme().clone();
+    patched.app_mut().fixture.patch = f.patch;
+    patched.draw();
     assert_eq!(
         patched.runtime().theme(),
         &before,
         "{}: the theme changed",
         C::NAME
     );
-    assert_eq!(plain.runtime().theme(), &before);
     if patched.app().fixture.patch.is_some() && C::caps().bits() != 0 && !C::PARTS.is_empty() {
         if patched.snapshot().digest() == plain_digest {
             assert_ne!(
