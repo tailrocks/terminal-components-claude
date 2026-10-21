@@ -1886,9 +1886,25 @@ impl<'a> CodeEditor<'a> {
                 );
             }
             if pos_width > 0 {
-                let pos_style = style(ui, Part::META, live)
-                    .style
-                    .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint))));
+                let defaults = StylePatch::new().set_fg(Role::Fg(FgStep::Faint));
+                let meta_patch = self.ov.part_patch(Part::META);
+                let resolved = ui.style_defaults_with_explicit(
+                    Family::CODE,
+                    Variant::DEFAULT,
+                    Part::META,
+                    live,
+                    StyleDefaults::new(defaults),
+                    meta_patch.as_ref(),
+                );
+                self.ov.note(
+                    ui,
+                    self.id,
+                    Family::CODE,
+                    Variant::DEFAULT,
+                    Part::META,
+                    resolved.resolved,
+                );
+                let pos_style = resolved.resolved.style;
                 ui.paint_str(
                     Rect {
                         x: pos_x,
@@ -2179,6 +2195,17 @@ mod tests {
         let _ = crate::runtime::stub::deliver(&mut runtime, crate::event::Input::Tick);
         runtime.draw_buffer(area, &mut buffer).commit_presented();
         (runtime, buffer)
+    }
+
+    fn footer_position_start(buffer: &Buffer, row: u16) -> Option<u16> {
+        (0..buffer.area.width.saturating_sub(1)).find(|x| {
+            buffer
+                .cell(Position::new(*x, row))
+                .is_some_and(|cell| cell.symbol() == "l")
+                && buffer
+                    .cell(Position::new(x.saturating_add(1), row))
+                    .is_some_and(|cell| cell.symbol() == "n")
+        })
     }
 
     fn whole_document(text: &str) -> Vec<Range<usize>> {
@@ -2676,22 +2703,23 @@ mod tests {
             ColorLevel::Mono,
         ] {
             for read_only in [false, true] {
-                let theme = Theme::junie().override_family(Family::CODE, |recipe| {
-                    recipe.part(Part::META).base(
-                        StylePatch::new()
-                            .set_fg(Role::Custom(AUTHORED))
-                            .add(Modifier::ITALIC)
-                            .remove(Modifier::BOLD),
-                    );
-                    recipe.part(Part::META).when(
-                        StateFlags::FOCUSED,
-                        StylePatch::new()
-                            .add(Modifier::UNDERLINED)
-                            .remove(Modifier::BOLD),
-                    );
-                });
-                let mut theme = theme;
-                theme.capability.color = level;
+                let theme =
+                    Theme::junie()
+                        .downgrade(level)
+                        .override_family(Family::CODE, |recipe| {
+                            recipe.part(Part::META).base(
+                                StylePatch::new()
+                                    .set_fg(Role::Custom(AUTHORED))
+                                    .add(Modifier::ITALIC)
+                                    .remove(Modifier::BOLD),
+                            );
+                            recipe.part(Part::META).when(
+                                StateFlags::FOCUSED,
+                                StylePatch::new()
+                                    .add(Modifier::UNDERLINED)
+                                    .remove(Modifier::BOLD),
+                            );
+                        });
                 let flags = StateFlags::FOCUSED
                     | if read_only {
                         StateFlags::READ_ONLY
@@ -2739,6 +2767,20 @@ mod tests {
                     !cell.modifier.contains(Modifier::BOLD),
                     "{level:?}, read_only={read_only}"
                 );
+                let footer_x = footer_position_start(&buffer, 4)
+                    .expect("focused editor position footer is rendered");
+                let footer = buffer
+                    .cell(Position::new(footer_x, 4))
+                    .expect("position footer start");
+                assert_eq!(
+                    footer.fg,
+                    expected.fg.unwrap_or_default(),
+                    "footer foreground: {level:?}, read_only={read_only}"
+                );
+                assert!(
+                    footer.modifier.contains(Modifier::ITALIC),
+                    "footer author modifier: {level:?}, read_only={read_only}"
+                );
             }
         }
     }
@@ -2751,8 +2793,7 @@ mod tests {
             ColorLevel::Ansi16,
             ColorLevel::Mono,
         ] {
-            let mut theme = Theme::junie();
-            theme.capability.color = level;
+            let theme = Theme::junie().downgrade(level);
             let mut state = CodeEditorState::new("alpha\nbeta");
             state.jump_to(7);
             let (runtime, buffer) = styled_runtime(
@@ -2796,6 +2837,21 @@ mod tests {
                 !second.modifier.contains(Modifier::BOLD),
                 "same-value explicit clear at {level:?}"
             );
+            let footer_x = footer_position_start(&buffer, 4)
+                .expect("focused editor position footer is rendered");
+            let footer = buffer
+                .cell(Position::new(footer_x, 4))
+                .expect("position footer start");
+            assert_eq!(
+                footer.fg,
+                theme.color.fg[FgStep::Primary.index()],
+                "same-value explicit foreground survives footer default at {level:?}"
+            );
+            assert!(footer.modifier.contains(Modifier::ITALIC), "{level:?}");
+            assert!(
+                !footer.modifier.contains(Modifier::BOLD),
+                "same-value explicit clear at footer at {level:?}"
+            );
 
             let mut selected_state = CodeEditorState::new("alpha\nbeta");
             selected_state.editor.select_range(0, 1);
@@ -2833,6 +2889,16 @@ mod tests {
                 );
                 assert!(!cell.modifier.contains(Modifier::BOLD), "{level:?}");
             }
+            let footer_x = footer_position_start(&buffer, 4)
+                .expect("focused read-only editor position footer is rendered");
+            let footer = buffer
+                .cell(Position::new(footer_x, 4))
+                .expect("position footer start");
+            assert_eq!(
+                footer.fg,
+                theme.color.fg[FgStep::Faint.index()],
+                "faint remains the default footer foreground at {level:?}"
+            );
         }
     }
 
