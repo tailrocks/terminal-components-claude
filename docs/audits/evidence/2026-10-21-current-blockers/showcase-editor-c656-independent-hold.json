@@ -1,0 +1,112 @@
+{
+  "status": "HOLD: additive binding correction is sound, but the live Playground has three independently reproduced functional parity failures. No whole-page acceptance.",
+  "commit": "c65631b49da5b60e7022292506a723e8319c99d7",
+  "previous": "3807e493c63416e87f1ac5e38d7325e2a638d733",
+  "baseline": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "copy": "/private/tmp/showcase-binding-review-c656-20261021",
+  "target": "/private/tmp/showcase-binding-independent-c656-20261021/target-c656",
+  "source_status": "Clean separate sparse detached worktree; no product source edits.",
+  "source_sha256": {
+    "crates/showcase-demos/src/pages/editor.rs": "caac1d0f41ede5f57e54d290013b4dfdcb963be6fe7523ee000543ad42fe5d08",
+    "crates/showcase-ui/tests/app_tests.rs": "e5d79a5ea6db1e9dd0f7f995cb797ceab05c3ddadf57cd9593774c74cb782cff",
+    "docs/audits/2026-10-21-showcase-editor-playground-restoration.md": "580995d2a21207cdd29071347e40ff7189529395246fdbb005a12f74e74114c4"
+  },
+  "artifacts": {
+    "routing.log": "8982d68aca2890e419f1005d853f12ee7d7c6058d793799bd36a2c9f11bfc862",
+    "semantic.log": "74cf2f9db3993c17989c7578eadb05890449df7f3bf131af69415a8a6b872657",
+    "verification.log": "718479ec361f54d9cf6a763a88a1dd8b9127342ef2c5dd5423071ae05251d20f",
+    "behavior-initial.log": "aa1c6a0c334f96b1bd317cf55cb87b4c0248dc4b20a64a6cf61cd34f5291c1e5",
+    "behavior-final.log": "8c49c3d5cceb11895258b0f54d7d3b054db3abb20dab62485958067ad6ed62f2",
+    "ordering.log": "36c1984495154e85d32c5bd615f07f3bb18837a04786067aa423936b3fbd5394",
+    "Cargo.toml": "99da7c33e05bbbb9522b109de04cf8d688f86072382f8fc57fe064f85cc0d6d6",
+    "Cargo.lock": "5ce30bfdb9a1c4f8be96b8a7344e2efab2132ec0202e2fe5594fb1a3a0daf102",
+    "tests/routing.rs": "b65b21d1b800bc8645086453cf973bf74b089e0e14739633bf95ac975730080a",
+    "tests/semantic.rs": "404a24b48cb13c576459846976410bffaddecd99e67a83c334aedab030dc0b00",
+    "tests/behavior.rs": "671872fabec2f088673258e16ff1b7378d41436d97d11bd88c9532d8714cd21c",
+    "tests/ordering.rs": "e3564482d078ab824c77888daf7782dbdce0506ba9155cf9dea214d7b5cb1f8f",
+    "tests/native.rs": "e5d79a5ea6db1e9dd0f7f995cb797ceab05c3ddadf57cd9593774c74cb782cff"
+  },
+  "checks": {
+    "original_unchanged_routing": {
+      "passed": 1,
+      "failed": 1,
+      "skipped": 0,
+      "exit": 100,
+      "note": "Completion Enter passes. Tab retains EDITOR focus, but original literal col5 is incorrect: before col2, after col6, exactly four spaces. The original failure at3807 occurred earlier at focus assertion. Do not claim unchanged two-probe GREEN."
+    },
+    "explicitly_corrected_semantic": {
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0,
+      "exit": 0,
+      "note": "Only col5 changed to col6 in a separate preserved probe. Completion Enter and focused Find Ctrl+R scope also pass."
+    },
+    "copied_native_app_suite": {
+      "passed": 41,
+      "failed": 0,
+      "skipped": 0,
+      "note": "Byte-identical copy of reviewed app_tests.rs compiled against reviewed public dependencies. Includes Tab/Enter completion, following Tab indentation, navigation traversal, Help modal blocking Ctrl+R, Find and Run behavior."
+    },
+    "behavior_final": {
+      "passed": 1,
+      "failed": 2,
+      "skipped": 0,
+      "exit": 100,
+      "note": "Completion-close hypothesis passes and is rejected. Both run timing and stored-running-block tests fail at the final intended assertions."
+    },
+    "manual_ordering": {
+      "passed": 0,
+      "failed": 1,
+      "skipped": 0,
+      "exit": 100
+    }
+  },
+  "findings": [
+    {
+      "id": "P1-run-input-clock",
+      "path": "crates/showcase-demos/src/pages/editor.rs:566",
+      "problem": "Every page update decrements run_ticks, including pointer movement with no Tick and no clock advance. Twenty pointer moves complete a run instantly. Frozen handle decrements exclusively for PageEvent::Tick.",
+      "evidence": "behavior-final.log, pointer_events_must_not_advance_run_clock; clock equality passes and final no-finish assertion fails. Frozen src/bin/showcase/pages/editor.rs:660-669.",
+      "fix": "Advance countdown only on the shared tick/deadline event according to frozen cadence; do not count input events or settle cycles. Add this zero-time real-App regression."
+    },
+    {
+      "id": "P1-running-block-identity",
+      "path": "crates/showcase-demos/src/pages/editor.rs:463",
+      "problem": "finish_run reads current_block at completion rather than the block stored by start_run. Running second block then navigating Home to first block drops the expected unwrap warning.",
+      "evidence": "behavior-final.log, finish_diagnoses_running_block_not_new_cursor_block; starting Block2 and navigation Block1 assertions pass, final warning assertion fails. Frozen finish_run uses self.editor.running.clone().",
+      "fix": "Retain the submitted running block range (or use public read-only running range) until completion and diagnose that range. Cover cursor movement during run."
+    },
+    {
+      "id": "P1-completion-order",
+      "path": "crates/showcase-demos/src/pages/editor.rs:264",
+      "problem": "Manual empty completion gives each candidate its enumeration index and sorts only penalty, selecting fetch() first. Frozen fuzzy(empty) assigns all zero and sorts ties by label, selecting Body. Same Ctrl+Space then Enter inserts different text. Nonempty ties also lack frozen label tie-break.",
+      "evidence": "ordering.log; empty_manual_completion_retains_frozen_alphabetic_ties FAIL. Frozen editor.rs:350-355 and src/ui/text.rs:588-591; candidate text begins fetch()// Retry.",
+      "fix": "Preserve actual fuzzy scores for empty queries and sort by penalty then label, retaining stable item keys independently of presentation order."
+    },
+    {
+      "id": "P2-evidence-wording",
+      "path": "docs/audits/2026-10-21-showcase-editor-playground-restoration.md:37",
+      "problem": "Audit claims both unchanged original probes pass, but the unchanged Tab probe still fails its stale col5 assertion. Correct four-space behavior is col2 to col6.",
+      "fix": "Record the original assertion defect explicitly and distinguish unchanged original result from separately corrected semantic probe."
+    }
+  ],
+  "rejected_hypotheses": [
+    "No shared shell priority change required; additive publication preserves actual component bindings.",
+    "start_run completion-close concern did not reproduce; real-App completion-close probe passes.",
+    "Initial stored-block test used invalid Ctrl+Home setup and failed its navigation precondition; verification.log retains it but only behavior-final.log supplies valid stored-block failure evidence."
+  ],
+  "limits": [
+    "No actual frozen or candidate CLI/tuiscotti capture, baseline operation, BLESS, expected hash update, or acceptance claim.",
+    "Options and States remain absent and required.",
+    "No full workspace Nextest/Clippy/format or hosted CI gate run by reviewer.",
+    "No API/ownership/concurrency/unsafe issue found in the one-line additive publication change.",
+    "Frozen shortcut-only Tip metadata with empty text does not render inline hints or tooltip; plain Find and Run labels are correct.",
+    "External probe crate resolves dependencies through its own recorded Cargo.lock; this is public-runtime functional review, not pinned product comparison."
+  ],
+  "execution": "Each cargo nextest command had subprocess timeout210 seconds and finished normally. No timed-out process or background child remains.",
+  "supersedes": {
+    "path": "/private/tmp/showcase-binding-independent-c656-20261021/review.json",
+    "sha256": "1ac3f9d7d3f848ce8f05f8280de4d93344b1eef93d06962c2c992accd7717e12",
+    "reason": "Correct the audit finding line citation from48 to37; evidence and conclusions unchanged."
+  }
+}
