@@ -594,6 +594,7 @@ fn paint_str(ui: &mut Ui<'_>, x: u16, y: u16, text: &str, fg: Color, bg: Color, 
     ui.paint_str(Rect::new(x, y, text.chars().count() as u16, 1), text, style);
 }
 
+#[allow(clippy::too_many_arguments)]
 fn paint_styled(
     ui: &mut Ui<'_>,
     x: u16,
