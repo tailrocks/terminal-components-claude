@@ -38,4 +38,12 @@ After the package run, a small storage optimization was made in `FilterList::rec
 
 The paired baseline/candidate check remains unrun for this increment. No visual-parity acceptance is claimed. The published reference artifacts and test expectations were not changed.
 
+## Independent review corrections (2026-10-21)
+
+An independent review of implementation `d911e577a1342729719a746a1b314bea7880be46` found two API defects: BackTab carrying the terminal's redundant SHIFT modifier did not match the BackTab binding, and an explicit `reset_selection_on_next_reconcile` request was ignored under the default `Preserve` policy. Both probes failed before the fixes: the shifted real Picker event remained in scope 0 rather than wrapping to scope 3; explicit reset retained key 3 rather than selecting enabled key 2.
+
+The fix is shared. `Chord::effective_eq` now treats SHIFT as intrinsic only for printable characters and BackTab, while preserving other modifiers and the distinction for Tab and arrows. This equality is already used by runtime dispatch, remapping, removal, and conflict checks. `FilterList::reconcile` now honors an explicit reset independently of automatic query-change reset policy; automatic query changes still reset only under `FirstEnabledOnFilterChange`, and stable-key reorder reconciliation remains unchanged.
+
+Regression proof is committed in `termrock-core` chord tests, a default-policy `FilterList` test (including a disabled first item and empty projection), and an actual `Picker` Harness test sending `BackTab + SHIFT` after query input. The exact tests failed before implementation and passed after. Focused nextest passed 4/4; the affected core/runtime/controls/navigation/overlays packages passed 923/923 with 3 skipped. Strict all-target Clippy for those five packages, `cargo fmt --all --check`, and `git diff --check` passed. These checks cover the shared routing contracts but are not the pinned real-CLI baseline comparison; application parity remains incomplete.
+
 The pinned real-CLI paired baseline/candidate comparison has not been run for this increment. This is not visual-parity clearance. Picker geometry, the TablePro tab-strip repaint, other fixture selectors, and the complete application acceptance inventory remain separate work.
