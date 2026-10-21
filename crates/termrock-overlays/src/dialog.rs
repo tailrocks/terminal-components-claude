@@ -284,6 +284,7 @@ pub struct Dialog<'a> {
     title: Option<&'a str>,
     meta: Option<&'a str>,
     head_in_border: bool,
+    chrome_only: bool,
     description: Option<&'a str>,
     actions: &'a [Action<'a>],
     cancel: Option<ActionKey>,
@@ -331,6 +332,7 @@ impl<'a> Dialog<'a> {
             title: None,
             meta: None,
             head_in_border: false,
+            chrome_only: false,
             description: None,
             actions: &[],
             cancel: None,
@@ -344,6 +346,14 @@ impl<'a> Dialog<'a> {
             error: None,
             ov: PartStyle::new(),
         }
+    }
+
+    /// Creates chrome for composed content. Empty actions reserve no footer
+    /// row, and focus remains owned by the child components.
+    pub const fn chrome(id: Id) -> Self {
+        let mut dialog = Self::new(id);
+        dialog.chrome_only = true;
+        dialog
     }
 
     pub const fn confirm(id: Id, title: &'a str, question: &'a str) -> Self {
@@ -829,7 +839,11 @@ impl<'a> Dialog<'a> {
             },
         );
         let lines = action_lines(action_widths, content.width, 2);
-        let requested_action_height = u16::try_from(lines.len().max(1)).unwrap_or(u16::MAX);
+        let requested_action_height = if self.chrome_only && self.actions.is_empty() {
+            0
+        } else {
+            u16::try_from(lines.len().max(1)).unwrap_or(u16::MAX)
+        };
         let title_rows = u16::from(self.title.is_some() && !border_head);
         let title_gap = title_rows.min(vertical_pad);
         let action_height = requested_action_height.min(
@@ -1080,7 +1094,7 @@ impl<'a> Dialog<'a> {
                     );
                 }
                 ui.register_decor(id, PartRef::of(Part::BODY), layout.body);
-                if self.head_in_border && !layout.body.is_empty() {
+                if self.head_in_border && !self.chrome_only && !layout.body.is_empty() {
                     ui.register_control(id.part(Part::BODY), layout.body, Focusability::Focusable);
                 }
                 let out = ui.with_area(layout.body, |ui| body(ui, layout.body));
@@ -1350,6 +1364,50 @@ mod tests {
         )
     }
 
+    struct ChromeApp {
+        opened: bool,
+        ordinary_height: u16,
+        chrome_height: u16,
+    }
+
+    impl App for ChromeApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            if !self.opened {
+                self.opened = true;
+                let ordinary = Dialog::new(DLG)
+                    .title("Composed")
+                    .body_rows(3)
+                    .head_in_border();
+                let dialog = Dialog::chrome(DLG)
+                    .title("Composed")
+                    .body_rows(3)
+                    .head_in_border();
+                self.ordinary_height = ordinary.measured_height_for_width(
+                    cx.design(),
+                    40,
+                    &ordinary.action_widths_with(|_, _, width| width),
+                );
+                self.chrome_height = dialog.measured_height_for_width(
+                    cx.design(),
+                    40,
+                    &dialog.action_widths_with(|_, _, width| width),
+                );
+                cx.open_layer(DLG, dialog.layer(cx));
+            }
+            Response::ignored()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let dialog = Dialog::chrome(DLG)
+                .title("Composed")
+                .body_rows(3)
+                .head_in_border();
+            ui.layer(DLG, |ui, area| {
+                dialog.draw_body_slot(ui, area, &DialogState::default(), |_| {});
+            });
+        }
+    }
+
     #[test]
     fn border_head_paints_the_padded_title_in_the_top_border_row() {
         let (mut rt, mut buf) = scene();
@@ -1372,6 +1430,34 @@ mod tests {
         // The body starts directly under the border: row 1 holds the first
         // body row, not an inner title row.
         assert_eq!(buf[(4, 1)].symbol(), " ");
+    }
+
+    #[test]
+    fn chrome_mode_omits_empty_action_row_and_does_not_focus_the_body() {
+        let mut rt = Runtime::new(
+            ChromeApp {
+                opened: false,
+                ordinary_height: 0,
+                chrome_height: 0,
+            },
+            Theme::junie(),
+        );
+        let mut buf = Buffer::empty(SCREEN);
+        let _ = rt.initialize();
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        assert_eq!(rt.app().ordinary_height, rt.app().chrome_height + 1);
+        assert!(!rt.registry().regions().iter().any(|region| {
+            region.owner == DLG.part(Part::BODY) && region.kind == crate::hit::RegionKind::Control
+        }));
+        assert!(
+            rt.registry().regions().iter().any(|region| {
+                region.owner == DLG
+                    && region.part == PartRef::of(Part::BODY)
+                    && region.kind == crate::hit::RegionKind::Decorative
+            }),
+            "regions: {:?}",
+            rt.registry().regions()
+        );
     }
 
     #[test]
