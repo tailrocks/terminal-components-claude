@@ -424,10 +424,21 @@ impl<'a> TerminalView<'a> {
                     }
 
                     if self.interaction.allows_selection() {
-                        if phase == Phase::Press {
+                        if phase == Phase::Click {
+                            state.selecting = false;
+                            let dragged = state.selection.is_some_and(|selection| {
+                                let (start_line, start_col, end_line, end_col) =
+                                    selection.normalized();
+                                (start_line, start_col) != (end_line, end_col)
+                            });
+                            if dragged {
+                                continue;
+                            }
+                        } else {
                             let _ = cx.capture(self.id, PartRef::of(Part::CONTAINER));
+                            state.selecting = true;
                         }
-                        state.selecting = true;
+
                         state.selection_anchor = Some((rel_y, rel_x));
                         state.selection = Some(
                             TerminalSelection::new(rel_y, rel_x, rel_y, rel_x)
@@ -733,9 +744,13 @@ mod runtime_tests {
     }
 
     fn mouse(kind: MouseKind) -> Input {
+        mouse_at(kind, 2, 1)
+    }
+
+    fn mouse_at(kind: MouseKind, x: u16, y: u16) -> Input {
         Input::Mouse(Mouse {
             kind,
-            pos: Position::new(2, 1),
+            pos: Position::new(x, y),
             mods: KeyModifiers::NONE,
         })
     }
@@ -748,6 +763,21 @@ mod runtime_tests {
         assert_eq!(runtime.capture_owner(), Some(VIEW));
         send(&mut runtime, mouse(MouseKind::Up));
         assert_eq!(runtime.capture_owner(), None);
+        assert!(!runtime.app().state.selecting);
+    }
+
+    #[test]
+    fn pointer_drag_keeps_full_selection_after_captured_release() {
+        let mut runtime = runtime(TerminalInteraction::Interactive);
+        send(&mut runtime, mouse_at(MouseKind::Down, 1, 1));
+        send(&mut runtime, mouse_at(MouseKind::Drag, 5, 1));
+        send(&mut runtime, mouse_at(MouseKind::Up, 5, 1));
+
+        assert_eq!(
+            runtime.app().state.selection.unwrap().normalized(),
+            (1, 1, 1, 5)
+        );
+        assert!(!runtime.app().state.selecting);
     }
 
     #[test]
