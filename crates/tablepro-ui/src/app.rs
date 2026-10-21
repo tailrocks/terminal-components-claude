@@ -345,6 +345,7 @@ const GRID_RESULT_VIEWPORT: termrock::grid::GridViewportPolicy =
         filter_rows: 0,
         pending_rows: 0,
         status_rows: 0,
+        status_inset: 0,
         right_reserve: 3,
     };
 const FOLLOW_REF: CellAction = CellAction::new(ActionKey::application("tablepro.follow-ref"));
@@ -2679,18 +2680,12 @@ impl TableProApp {
                 filter_rows,
                 pending_rows: pending_gap,
                 status_rows: 1,
+                status_inset: 1,
                 right_reserve: 0,
             },
         );
         if !filters.is_empty() {
-            paint_filter_bar(
-                ui,
-                termrock::Rect {
-                    height: 1,
-                    ..viewport.filter
-                },
-                &filters,
-            );
+            paint_filter_bar(ui, viewport.filter_bar, &filters);
         }
         let Some((id, grid_view)) = self.workbench.active_grid() else {
             return;
@@ -2762,15 +2757,7 @@ impl TableProApp {
         let style = ui
             .surface_style()
             .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_CHROME_FG)));
-        ui.paint_str(
-            termrock::Rect {
-                x: status_area.x.saturating_add(1),
-                width: status_area.width.saturating_sub(1),
-                ..status_area
-            },
-            &status,
-            style,
-        );
+        ui.paint_str(viewport.status_text, &status, style);
     }
 
     fn draw_result_grid(&self, ui: &mut Ui<'_>, area: termrock::Rect) {
