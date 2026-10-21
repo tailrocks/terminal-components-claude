@@ -37,6 +37,8 @@ pub struct SettingsMount<'a> {
     pub scope: &'a str,
     pub mode: &'a str,
     pub isolation: &'a str,
+    pub kind: Option<&'a str>,
+    pub source: Option<&'a str>,
     pub selected: bool,
 }
 
@@ -323,14 +325,68 @@ fn paint_sections(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>, ink: &In
 }
 
 const SELECT_BG: Color = Color::Rgb(0x17, 0x3f, 0x1c);
-const PATH_AT: u16 = 4;
-const PATH_W: u16 = 42;
-const SCOPE_AT: u16 = 46;
-const SCOPE_W: u16 = 14;
-const MODE_AT: u16 = 62;
-const MODE_W: u16 = 4;
-const ISO_AT: u16 = 68;
-const ISO_W: u16 = 9;
+
+struct MountCols {
+    path_at: u16,
+    path_w: u16,
+    scope_at: u16,
+    scope_w: u16,
+    mode_at: u16,
+    mode_w: u16,
+    iso_at: u16,
+    iso_w: u16,
+    kind_at: Option<u16>,
+    kind_w: u16,
+    source_at: Option<u16>,
+    source_w: u16,
+    fill_w: u16,
+    clip_iso: bool,
+    scroll_at: Option<u16>,
+}
+
+fn narrow_cols() -> MountCols {
+    MountCols {
+        path_at: 4,
+        path_w: 42,
+        scope_at: 46,
+        scope_w: 14,
+        mode_at: 62,
+        mode_w: 4,
+        iso_at: 68,
+        iso_w: 9,
+        kind_at: None,
+        kind_w: 0,
+        source_at: None,
+        source_w: 0,
+        fill_w: 68 + 9 - 1,
+        clip_iso: true,
+        scroll_at: Some(76),
+    }
+}
+
+fn wide_cols(area_width: u16) -> MountCols {
+    let source_at = 80;
+    // Pad ends on the cell before the last selected cell. The last two
+    // columns stay canvas.
+    let source_w = area_width.saturating_sub(3).saturating_sub(source_at);
+    MountCols {
+        path_at: 4,
+        path_w: 35,
+        scope_at: 39,
+        scope_w: 14,
+        mode_at: 55,
+        mode_w: 4,
+        iso_at: 61,
+        iso_w: 9,
+        kind_at: Some(72),
+        kind_w: 6,
+        source_at: Some(source_at),
+        source_w,
+        fill_w: area_width.saturating_sub(4),
+        clip_iso: false,
+        scroll_at: None,
+    }
+}
 
 fn fit(text: &str, cols: u16) -> String {
     let have = width(text);
@@ -342,51 +398,82 @@ fn fit(text: &str, cols: u16) -> String {
     out
 }
 
-fn path_cell(path: &str) -> String {
-    fit(&format!("    {path}"), PATH_W)
+fn path_cell(path: &str, cols: u16) -> String {
+    fit(&format!("    {path}"), cols)
 }
 
 fn paint_mounts(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>, ink: &Ink) {
     if page.mounts.is_empty() {
         return;
     }
+    let cols = if page.mounts.iter().any(|row| row.kind.is_some()) {
+        wide_cols(area.width)
+    } else {
+        narrow_cols()
+    };
     let y0 = area.y.saturating_add(6);
     let head = plain(ink.muted, ink.canvas);
     put(
         ui,
         area,
-        area.x.saturating_add(PATH_AT + 4),
+        area.x.saturating_add(cols.path_at + 4),
         y0,
         "Destination",
-        head,
-    );
-    put(ui, area, area.x.saturating_add(SCOPE_AT), y0, "Scope", head);
-    put(ui, area, area.x.saturating_add(MODE_AT), y0, "Mode", head);
-    // The header cell is only 8 columns. The scroll mark owns the rest.
-    put(
-        ui,
-        Rect {
-            x: area.x.saturating_add(ISO_AT),
-            y: y0,
-            width: 8,
-            height: 1,
-        },
-        area.x.saturating_add(ISO_AT),
-        y0,
-        "Isolation",
         head,
     );
     put(
         ui,
         area,
-        area.x.saturating_add(76),
+        area.x.saturating_add(cols.scope_at),
         y0,
-        "2›",
-        plain(ink.faint, ink.canvas),
+        "Scope",
+        head,
     );
+    put(
+        ui,
+        area,
+        area.x.saturating_add(cols.mode_at),
+        y0,
+        "Mode",
+        head,
+    );
+    let iso_rect = if cols.clip_iso {
+        Rect {
+            x: area.x.saturating_add(cols.iso_at),
+            y: y0,
+            width: 8,
+            height: 1,
+        }
+    } else {
+        area
+    };
+    put(
+        ui,
+        iso_rect,
+        area.x.saturating_add(cols.iso_at),
+        y0,
+        "Isolation",
+        head,
+    );
+    if let Some(at) = cols.kind_at {
+        put(ui, area, area.x.saturating_add(at), y0, "Kind", head);
+    }
+    if let Some(at) = cols.source_at {
+        put(ui, area, area.x.saturating_add(at), y0, "Source", head);
+    }
+    if let Some(at) = cols.scroll_at {
+        put(
+            ui,
+            area,
+            area.x.saturating_add(at),
+            y0,
+            "2›",
+            plain(ink.faint, ink.canvas),
+        );
+    }
     for (i, row) in page.mounts.iter().enumerate() {
         let y = y0.saturating_add(1).saturating_add(i as u16);
-        paint_mount_row(ui, area, y, row, ink);
+        paint_mount_row(ui, area, y, row, ink, &cols);
     }
     if let Some(add) = page.add_mount {
         let y = y0
@@ -419,17 +506,48 @@ fn paint_mounts(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>, ink: &Ink)
     }
 }
 
-fn paint_mount_row(ui: &mut Ui<'_>, area: Rect, y: u16, row: &SettingsMount<'_>, ink: &Ink) {
-    let path = path_cell(row.path);
-    let scope = fit(row.scope, SCOPE_W);
-    let mode = fit(row.mode, MODE_W);
-    let isolation = fit(row.isolation, ISO_W);
+fn paint_field_parts(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    x: u16,
+    y: u16,
+    text: &str,
+    cols: u16,
+    word: PaintStyle,
+    pad: PaintStyle,
+) {
+    put(ui, area, x, y, text, word);
+    let gap = cols.saturating_sub(width(text));
+    if gap > 0 {
+        put(
+            ui,
+            area,
+            x.saturating_add(width(text)),
+            y,
+            &" ".repeat(usize::from(gap)),
+            pad,
+        );
+    }
+}
+
+fn paint_mount_row(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    y: u16,
+    row: &SettingsMount<'_>,
+    ink: &Ink,
+    cols: &MountCols,
+) {
+    let path = path_cell(row.path, cols.path_w);
+    let scope = fit(row.scope, cols.scope_w);
+    let mode = fit(row.mode, cols.mode_w);
+    let isolation = fit(row.isolation, cols.iso_w);
     if row.selected {
         ui.fill(
             Rect {
                 x: area.x.saturating_add(2),
                 y,
-                width: ISO_AT + ISO_W - 1,
+                width: cols.fill_w,
                 height: 1,
             },
             bold(ink.primary, SELECT_BG),
@@ -445,36 +563,25 @@ fn paint_mount_row(ui: &mut Ui<'_>, area: Rect, y: u16, row: &SettingsMount<'_>,
         put(
             ui,
             area,
-            area.x.saturating_add(PATH_AT),
+            area.x.saturating_add(cols.path_at),
             y,
             &path,
             bold(ink.primary, SELECT_BG),
         );
-        put(
+        paint_field_parts(
             ui,
             area,
-            area.x.saturating_add(SCOPE_AT),
+            area.x.saturating_add(cols.scope_at),
             y,
             row.scope,
+            cols.scope_w,
             bold(ink.secondary, SELECT_BG),
+            bold(ink.muted, SELECT_BG),
         );
-        let pad = SCOPE_W.saturating_sub(width(row.scope));
-        if pad > 0 {
-            put(
-                ui,
-                area,
-                area.x
-                    .saturating_add(SCOPE_AT)
-                    .saturating_add(width(row.scope)),
-                y,
-                &" ".repeat(usize::from(pad)),
-                bold(ink.muted, SELECT_BG),
-            );
-        }
         put(
             ui,
             area,
-            area.x.saturating_add(MODE_AT),
+            area.x.saturating_add(cols.mode_at),
             y,
             &mode,
             bold(ink.secondary, SELECT_BG),
@@ -482,11 +589,35 @@ fn paint_mount_row(ui: &mut Ui<'_>, area: Rect, y: u16, row: &SettingsMount<'_>,
         put(
             ui,
             area,
-            area.x.saturating_add(ISO_AT),
+            area.x.saturating_add(cols.iso_at),
             y,
             &isolation,
             bold(ink.secondary, SELECT_BG),
         );
+        if let (Some(at), Some(kind)) = (cols.kind_at, row.kind) {
+            paint_field_parts(
+                ui,
+                area,
+                area.x.saturating_add(at),
+                y,
+                kind,
+                cols.kind_w,
+                bold(ink.secondary, SELECT_BG),
+                bold(ink.muted, SELECT_BG),
+            );
+        }
+        if let (Some(at), Some(source)) = (cols.source_at, row.source) {
+            paint_field_parts(
+                ui,
+                area,
+                area.x.saturating_add(at),
+                y,
+                source,
+                cols.source_w,
+                bold(ink.secondary, SELECT_BG),
+                bold(ink.muted, SELECT_BG),
+            );
+        }
     } else {
         put(
             ui,
@@ -507,7 +638,7 @@ fn paint_mount_row(ui: &mut Ui<'_>, area: Rect, y: u16, row: &SettingsMount<'_>,
         put(
             ui,
             area,
-            area.x.saturating_add(PATH_AT),
+            area.x.saturating_add(cols.path_at),
             y,
             &path,
             plain(ink.primary, ink.canvas),
@@ -515,7 +646,7 @@ fn paint_mount_row(ui: &mut Ui<'_>, area: Rect, y: u16, row: &SettingsMount<'_>,
         put(
             ui,
             area,
-            area.x.saturating_add(SCOPE_AT),
+            area.x.saturating_add(cols.scope_at),
             y,
             &scope,
             plain(ink.muted, ink.canvas),
@@ -523,7 +654,7 @@ fn paint_mount_row(ui: &mut Ui<'_>, area: Rect, y: u16, row: &SettingsMount<'_>,
         put(
             ui,
             area,
-            area.x.saturating_add(MODE_AT),
+            area.x.saturating_add(cols.mode_at),
             y,
             &mode,
             plain(ink.secondary, ink.canvas),
@@ -531,11 +662,31 @@ fn paint_mount_row(ui: &mut Ui<'_>, area: Rect, y: u16, row: &SettingsMount<'_>,
         put(
             ui,
             area,
-            area.x.saturating_add(ISO_AT),
+            area.x.saturating_add(cols.iso_at),
             y,
             &isolation,
             plain(ink.secondary, ink.canvas),
         );
+        if let (Some(at), Some(kind)) = (cols.kind_at, row.kind) {
+            put(
+                ui,
+                area,
+                area.x.saturating_add(at),
+                y,
+                &fit(kind, cols.kind_w),
+                plain(ink.muted, ink.canvas),
+            );
+        }
+        if let (Some(at), Some(source)) = (cols.source_at, row.source) {
+            put(
+                ui,
+                area,
+                area.x.saturating_add(at),
+                y,
+                &fit(source, cols.source_w),
+                plain(ink.muted, ink.canvas),
+            );
+        }
     }
 }
 
