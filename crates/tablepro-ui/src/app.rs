@@ -4706,11 +4706,9 @@ fn paint_query_seam(ui: &mut Ui<'_>, area: termrock::Rect) {
         return;
     }
     // Truecolor stays the strong border #4d4d4d. The 256 frame uses index 239.
-    let style = ui.surface_style().patch(
-        ui.paint_patch(
-            &StylePatch::new().set_fg(QUERY_SEAM_FG),
-        ),
-    );
+    let style = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(QUERY_SEAM_FG)));
     ui.paint_str(area, &"─".repeat(usize::from(area.width)), style);
 }
 
