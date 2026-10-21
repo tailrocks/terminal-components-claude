@@ -617,17 +617,19 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
     pub fn reconcile(&self, st: &mut FilterListState, items: &[T]) {
         st.matches.clear();
         let query = st.query().to_owned();
-        let query_changed = st
-            .last_query
-            .as_deref()
-            .is_some_and(|previous| previous != query);
-        if self.selection_policy == SelectionPolicy::FirstEnabledOnFilterChange
-            && (st.reset_selection || query_changed)
-        {
-            st.core.clear_cursor();
+        if self.selection_policy == SelectionPolicy::FirstEnabledOnFilterChange {
+            let query_changed = st
+                .last_query
+                .as_deref()
+                .is_some_and(|previous| previous != query);
+            if st.reset_selection || query_changed {
+                st.core.clear_cursor();
+            }
+            st.last_query = Some(query.clone());
+        } else {
+            st.last_query = None;
         }
         st.reset_selection = false;
-        st.last_query = Some(query.clone());
         st.matches
             .extend(items.iter().enumerate().filter_map(|(i, item)| {
                 (self.filter == FilterPolicy::Caller
