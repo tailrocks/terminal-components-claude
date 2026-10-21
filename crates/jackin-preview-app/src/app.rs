@@ -9034,6 +9034,10 @@ impl App {
         if !self.historical_settings_route_80(ui.theme_ref(), ui.full()) {
             return;
         }
+        self.paint_accounts_general(ui, false);
+    }
+
+    fn paint_accounts_general(&self, ui: &mut Ui<'_>, wide: bool) {
         // Approved frame hides the cursor. This path must not call set_cursor
         // or set_bar_cursor, and it must not write cursor bytes.
         let screen = ui.full();
@@ -9081,9 +9085,11 @@ impl App {
                 title: "Trailers",
                 checks: &[],
                 note: None,
-                body: Some(
-                    "Co-authored-by: <agent> <noreply@…>   ·   Signed-off-by: Alexey Zhokhov…",
-                ),
+                body: Some(if wide {
+                    "Co-authored-by: <agent> <noreply@…>   ·   Signed-off-by: Alexey Zhokhov <alexey@chainargos.com>"
+                } else {
+                    "Co-authored-by: <agent> <noreply@…>   ·   Signed-off-by: Alexey Zhokhov…"
+                }),
             },
         ];
         let hints = [
@@ -9128,8 +9134,47 @@ impl App {
                 hint_overflow: None,
                 mounts: &[],
                 add_mount: None,
+                cluster: wide.then_some(termrock::feedback::SettingsCluster {
+                    note: "inside the Construct",
+                    mark: "●",
+                    value: "2 running",
+                }),
             },
         );
+    }
+
+    fn historical_settings_route_120(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        // `s` on the paused 120×40 accounts list.
+        screen.width == 120
+            && screen.height == 40
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Settings
+            && self.world.scenario == Scenario::AccountsMixed
+            && self.motion == Motion::Paused
+            && self.settings.tab == 0
+            && !self.settings.dirty
+            && self.settings.save_error.is_none()
+            && self.settings.save_attempts == 0
+            && !self.settings_save_preview
+            && !self.trusted
+            && self.status.is_none()
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.about_open
+            && !self.editor_exit_open
+            && !self.cockpit_info_open
+            && !self.launch_failure_open
+            && self.picker_mode.is_none()
+    }
+
+    fn draw_historical_settings_route_120(&self, ui: &mut Ui<'_>) {
+        if !self.historical_settings_route_120(ui.theme_ref(), ui.full()) {
+            return;
+        }
+        // Same general page as 80 columns, plus the wide status cluster.
+        self.paint_accounts_general(ui, true);
     }
 
     fn historical_settings_mounts_80(&self, theme: &termrock::Theme, screen: Rect) -> bool {
@@ -9255,6 +9300,7 @@ impl App {
                 hint_overflow: Some("…"),
                 mounts: &mounts,
                 add_mount: Some("+ Add mount"),
+                cluster: None,
             },
         );
     }
@@ -9548,6 +9594,7 @@ impl TuiApp for App {
             settings_view::paint(self, ui, full);
         }
         self.draw_historical_settings_route_80(ui);
+        self.draw_historical_settings_route_120(ui);
         self.draw_historical_settings_mounts_80(ui);
         self.draw_historical_accounts_detail(ui, full);
         self.draw_historical_accounts_detail_80(ui);
