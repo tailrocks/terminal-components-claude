@@ -1299,7 +1299,13 @@ impl App {
     fn active_account_picker(&self) -> Picker<'static, AccountOption> {
         match self.picker_mode {
             Some(PickerMode::OnePassword) => {
-                Self::account_picker().title("Choose 1Password account")
+                let (title, placeholder) = match self.accounts.op_stage {
+                    1 => ("Choose vault", "Search vaults…"),
+                    2 => ("Choose item", "Search items…"),
+                    3 => ("Choose field", "Search fields…"),
+                    _ => ("Choose 1Password account", "Search accounts…"),
+                };
+                Self::account_picker().title(title).placeholder(placeholder)
             }
             _ => Self::account_picker(),
         }
