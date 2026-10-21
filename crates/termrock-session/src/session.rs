@@ -7,8 +7,8 @@ use ratatui_core::terminal::Terminal;
 use ratatui_crossterm::CrosstermBackend;
 use ratatui_crossterm::crossterm::cursor::{Hide, SetCursorStyle, Show};
 use ratatui_crossterm::crossterm::event::{
-    DisableBracketedPaste, DisableMouseCapture, EnableBracketedPaste, EnableMouseCapture, poll,
-    read,
+    DisableBracketedPaste, DisableMouseCapture, EnableBracketedPaste, EnableMouseCapture, Event,
+    poll, read,
 };
 use ratatui_crossterm::crossterm::style::Colored;
 use ratatui_crossterm::crossterm::terminal::{
@@ -519,10 +519,14 @@ fn run_with_cursor_shape_startup<A: App>(
             None => true,
         };
         if ready {
-            pending = Input::from_crossterm(read()?);
+            pending = decode_session_input(read()?);
         }
     }
     session.leave()
+}
+
+fn decode_session_input(event: Event) -> Option<Input> {
+    Input::from_crossterm(event)
 }
 
 fn prepare_startup_input(
@@ -612,6 +616,133 @@ mod tests {
             },
         );
         assert_eq!(calls.get(), 0);
+    }
+
+    #[test]
+    fn converted_crossterm_keys_dispatch_with_only_reported_modifiers() {
+        use ratatui::Terminal;
+        use ratatui::backend::TestBackend;
+        use ratatui::layout::Rect;
+        use ratatui_crossterm::crossterm::event::{
+            Event as CrosstermEvent, KeyCode as CrosstermKeyCode, KeyEvent,
+            KeyModifiers as CrosstermModifiers,
+        };
+        use std::sync::OnceLock;
+        use termrock_core::action::ActionKey;
+        use termrock_core::event::{Chord, KeyCode, KeyModifiers};
+        use termrock_runtime::keymap::{KeyMap, KeyPhase};
+
+        const X: ActionKey = ActionKey::custom("session.input.x");
+        const UNICODE: ActionKey = ActionKey::custom("session.input.unicode");
+        const UPPER: ActionKey = ActionKey::custom("session.input.upper");
+        const ALT_X: ActionKey = ActionKey::custom("session.input.alt_x");
+
+        struct DispatchProbe(Arc<Mutex<Vec<ActionKey>>>);
+
+        impl App for DispatchProbe {
+            fn update(
+                &mut self,
+                cx: &mut termrock_runtime::Cx<'_>,
+            ) -> termrock_runtime::Response<()> {
+                if let Some(command) = cx.command() {
+                    self.0.lock().expect("command log").push(command);
+                }
+                termrock_runtime::Response::ignored()
+            }
+
+            fn draw(&self, _ui: &mut termrock_runtime::Ui<'_>) {}
+
+            fn keymap(&self) -> &KeyMap {
+                static KEYMAP: OnceLock<KeyMap> = OnceLock::new();
+                KEYMAP.get_or_init(|| {
+                    KeyMap::new()
+                        .bind(KeyPhase::Capture, Chord::key(KeyCode::Char('x')), X)
+                        .bind(KeyPhase::Capture, Chord::key(KeyCode::Char('é')), UNICODE)
+                        .bind(KeyPhase::Capture, Chord::key(KeyCode::Char('X')), UPPER)
+                        .bind(
+                            KeyPhase::Capture,
+                            Chord::with(KeyCode::Char('x'), KeyModifiers::ALT),
+                            ALT_X,
+                        )
+                })
+            }
+        }
+
+        fn present<A: App>(
+            runtime: &mut Runtime<A>,
+            terminal: &mut Terminal<TestBackend>,
+            area: Rect,
+        ) {
+            for _ in 0..16 {
+                if runtime.needs_settle() {
+                    let _ = runtime.settle();
+                }
+                let token = runtime.prepare(area).expect("runtime prepares a frame");
+                terminal
+                    .draw(|frame| {
+                        runtime
+                            .draw_prepared(token, frame)
+                            .expect("runtime draws prepared frame");
+                    })
+                    .expect("test backend presents frame");
+                runtime
+                    .acknowledge_presented(token)
+                    .expect("test backend presentation is acknowledged");
+                if !runtime.needs_settle() && !runtime.needs_present() {
+                    return;
+                }
+            }
+            panic!("runtime did not settle and present");
+        }
+
+        let commands = Arc::new(Mutex::new(Vec::new()));
+        let mut runtime = Runtime::new(DispatchProbe(Arc::clone(&commands)), Theme::junie());
+        let _ = runtime.initialize();
+        let area = Rect::new(0, 0, 40, 12);
+        let mut terminal = Terminal::new(TestBackend::new(area.width, area.height))
+            .expect("test terminal initializes");
+        present(&mut runtime, &mut terminal, area);
+
+        let event = |code, modifiers| CrosstermEvent::Key(KeyEvent::new(code, modifiers));
+        for key_event in [
+            event(CrosstermKeyCode::Esc, CrosstermModifiers::NONE),
+            event(CrosstermKeyCode::Char('x'), CrosstermModifiers::NONE),
+            event(CrosstermKeyCode::Esc, CrosstermModifiers::NONE),
+            event(CrosstermKeyCode::Char('é'), CrosstermModifiers::NONE),
+            event(CrosstermKeyCode::Esc, CrosstermModifiers::NONE),
+            event(CrosstermKeyCode::Char('X'), CrosstermModifiers::SHIFT),
+            event(CrosstermKeyCode::Char('x'), CrosstermModifiers::ALT),
+        ] {
+            let input = super::decode_session_input(key_event).expect("key event converts");
+            let _ = runtime
+                .handle(input)
+                .expect("runtime dispatches converted input");
+            present(&mut runtime, &mut terminal, area);
+        }
+
+        assert_eq!(
+            *commands.lock().expect("command log"),
+            vec![X, UNICODE, UPPER, ALT_X]
+        );
+
+        for event in [
+            CrosstermEvent::Key(KeyEvent::new(
+                CrosstermKeyCode::Esc,
+                CrosstermModifiers::NONE,
+            )),
+            CrosstermEvent::Resize(40, 12),
+            CrosstermEvent::Paste("typed paste".to_owned()),
+        ] {
+            let input = super::decode_session_input(event).expect("non-key event converts");
+            let _ = runtime
+                .handle(input)
+                .expect("runtime dispatches converted non-key input");
+            present(&mut runtime, &mut terminal, area);
+        }
+        assert_eq!(
+            *commands.lock().expect("command log"),
+            vec![X, UNICODE, UPPER, ALT_X]
+        );
     }
 
     #[test]
