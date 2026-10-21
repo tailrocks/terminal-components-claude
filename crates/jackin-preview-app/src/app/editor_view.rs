@@ -58,27 +58,44 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
             .map(|workspace| workspace.name.as_str())
             .unwrap_or("payments-platform");
         let crumb = format!("Workspaces › {name} › edit");
-        if preview && !changes.is_empty() {
+        let mounts_dirty = mounts && app.editor.dirty && !preview;
+        if mounts_dirty {
+            paint_str(ui, 44, 0, "…", MUTED, BLACK, false);
+            paint_str(ui, 47, 0, &crumb, SECONDARY, BLACK, false);
+            paint_str(ui, 86, 0, "• 1 change", AMBER, BLACK, false);
+            paint_str(ui, 98, 0, "inside the Construct", SECONDARY, BLACK, false);
+        } else if preview && !changes.is_empty() {
             let note = format!("  • {}  ", change_label(changes.len()));
             let crumb_x =
                 85u16.saturating_sub((crumb.chars().count() + note.chars().count()) as u16);
             paint_str(ui, crumb_x, 0, &crumb, SECONDARY, BLACK, false);
             let note_x = crumb_x.saturating_add(crumb.chars().count() as u16);
             paint_str(ui, note_x, 0, &note, WHITE, BLACK, false);
+            paint_str(ui, 85, 0, "inside the Construct", SECONDARY, BLACK, false);
+            paint_str(ui, 107, 0, "●", ACCENT, BLACK, false);
+            paint_str(
+                ui,
+                108,
+                0,
+                &format!(" {} running", app.world.running_count()),
+                SECONDARY,
+                BLACK,
+                false,
+            );
         } else {
             paint_str(ui, 46, 0, &crumb, SECONDARY, BLACK, false);
+            paint_str(ui, 85, 0, "inside the Construct", SECONDARY, BLACK, false);
+            paint_str(ui, 107, 0, "●", ACCENT, BLACK, false);
+            paint_str(
+                ui,
+                108,
+                0,
+                &format!(" {} running", app.world.running_count()),
+                SECONDARY,
+                BLACK,
+                false,
+            );
         }
-        paint_str(ui, 85, 0, "inside the Construct", SECONDARY, BLACK, false);
-        paint_str(ui, 107, 0, "●", ACCENT, BLACK, false);
-        paint_str(
-            ui,
-            108,
-            0,
-            &format!(" {} running", app.world.running_count()),
-            SECONDARY,
-            BLACK,
-            false,
-        );
     } else {
         paint_str(ui, 44, 0, "…", MUTED, BLACK, false);
         paint_str(
@@ -117,15 +134,49 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
         EditorTab::Accounts => 4,
     };
 
-    let tab_shift = if preview && !changes.is_empty() { 2 } else { 0 };
+    let mounts_dirty = mounts && app.editor.dirty && !preview;
+    let tab_shift = if (preview && !changes.is_empty()) || mounts_dirty {
+        2
+    } else {
+        0
+    };
     let mut active_w = TABS.get(active_index).map(|&(_, _, w)| w).unwrap_or(11);
     for (i, &(name, raw_x, _)) in TABS.iter().enumerate() {
-        let x = if i == 0 {
+        let x = if mounts_dirty {
+            if i > 1 {
+                raw_x.saturating_add(tab_shift)
+            } else {
+                raw_x
+            }
+        } else if i == 0 {
             raw_x
         } else {
             raw_x.saturating_add(tab_shift)
         };
-        if preview && !changes.is_empty() && i == active_index {
+        if mounts_dirty && i == active_index {
+            paint_styled(ui, x, 3, " Mounts ", WHITE, ACTIVE_BG, true, false);
+            paint_styled(
+                ui,
+                x.saturating_add(8),
+                3,
+                "•",
+                AMBER,
+                ACTIVE_BG,
+                true,
+                false,
+            );
+            paint_styled(
+                ui,
+                x.saturating_add(9),
+                3,
+                "  ",
+                WHITE,
+                ACTIVE_BG,
+                true,
+                false,
+            );
+            active_w = 11;
+        } else if preview && !changes.is_empty() && i == active_index {
             let label = format!(" {name} •  ");
             active_w = label.chars().count() as u16;
             paint_styled(ui, x, 3, &label, WHITE, ACTIVE_BG, true, false);
@@ -159,7 +210,8 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
     } else {
         full.width
     };
-    let accent_end = if preview && !changes.is_empty() {
+    let accent_end = if (preview && !changes.is_empty()) || (mounts && app.editor.dirty && !preview)
+    {
         active_x.saturating_add(active_w)
     } else {
         active_x.saturating_add(active_w.saturating_sub(1))
@@ -345,6 +397,7 @@ fn paint_mounts_body(app: &App, ui: &mut Ui<'_>) {
             paint_str(ui, 71, 7, mount.source_label(), SECONDARY, BADGE_BG, true);
             paint_str(ui, 94, 7, &" ".repeat(23), MUTED, BADGE_BG, true);
         } else {
+            paint_str(ui, 2, 7, &" ".repeat(116), WHITE, BADGE_BG, true);
             paint_str(ui, 2, 7, "▎›", ACCENT, BADGE_BG, true);
             paint_str(ui, 5, 7, "•", AMBER, BADGE_BG, true);
             paint_str(
@@ -359,15 +412,17 @@ fn paint_mounts_body(app: &App, ui: &mut Ui<'_>) {
             paint_str(ui, 46, 7, "ro  ", SECONDARY, BADGE_BG, true);
             paint_str(ui, 52, 7, "clone    ", SECONDARY, BADGE_BG, true);
             paint_str(ui, 63, 7, "host", SECONDARY, BADGE_BG, true);
+            paint_str(ui, 67, 7, "  ", MUTED, BADGE_BG, true);
             paint_str(
                 ui,
                 71,
                 7,
-                "~/src/payments-platform                       ",
+                "~/src/payments-platform",
                 SECONDARY,
                 BADGE_BG,
                 true,
             );
+            paint_str(ui, 94, 7, &" ".repeat(23), MUTED, BADGE_BG, true);
         }
     }
     if let Some(mount) = rows.get(1) {
@@ -416,16 +471,21 @@ fn paint_mounts_body(app: &App, ui: &mut Ui<'_>) {
     paint_str(ui, 8, 9, "+ Add mount", SECONDARY, BLACK, false);
     paint_str(ui, 97, 37, " ", BLACK, BLACK, false);
     paint_str(ui, 98, 37, "Cancel ", SECONDARY, BLACK, false);
-    paint_str(ui, 108, 37, " ", ACTIVE_BG, ACTIVE_BG, false);
-    paint_str(
-        ui,
-        109,
-        37,
-        "Save… ",
-        Color::Rgb(0x4d, 0x4d, 0x4d),
-        ACTIVE_BG,
-        false,
-    );
+    if app.editor.dirty {
+        paint_str(ui, 108, 37, " ", ACCENT, ACCENT, false);
+        paint_str(ui, 109, 37, "Save… ", BRAND_FG, ACCENT, true);
+    } else {
+        paint_str(ui, 108, 37, " ", ACTIVE_BG, ACTIVE_BG, false);
+        paint_str(
+            ui,
+            109,
+            37,
+            "Save… ",
+            Color::Rgb(0x4d, 0x4d, 0x4d),
+            ACTIVE_BG,
+            false,
+        );
+    }
 }
 
 fn isolation_word(isolation: crate::domain::workspace::Isolation) -> &'static str {
