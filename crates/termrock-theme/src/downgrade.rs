@@ -668,6 +668,16 @@ pub(crate) fn apply_mono_with_defaults(
         if family == Family::BUTTON && *rule_part == Part::GUTTER && *when == StateFlags::FOCUSED {
             continue;
         }
+        // Buttons use the semantic DotOn/DotOff roles for their checked
+        // marker. The generic mono marker glyphs are intended for checkbox
+        // and selection controls; applying them here replaces an authored
+        // button glyph (and turns the frozen dot into a checkmark).
+        if family == Family::BUTTON
+            && *rule_part == Part::MARKER
+            && matches!(*when, StateFlags::SELECTED | StateFlags::CHECKED)
+        {
+            continue;
+        }
         let applies = family != Family::SCROLLBAR
             || *rule_part != Part::CONTAINER
             || *when != StateFlags::PRESSED;
