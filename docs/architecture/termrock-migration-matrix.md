@@ -27,6 +27,14 @@ Required unresolved checks include the 73-slot reference decision, Feedback priv
 
 Detailed clearances and blocked reviews are preserved under `docs/audits/evidence/2026-10-21-current-blockers/`; later exact integration records must explicitly supersede this summary.
 
+### Shared NavList header and scrollbar-gutter contracts
+
+Integrate source `f9f07b7988e22a26254bd4b84d13b10ca2f11c57`, retained at WIP tip `ee669114e8ade4ba1ad7f882085741eeaa259f5f`. Shared NavList now supports a header-text-only patch, marker gap and explicit scrollbar gutter policy, forwarded to the existing Runtime ScrollRegion. Defaults remain unchanged; stable gutter reserves exactly one column. Whole-part slot overrides keep their precedence. This is library behavior and layout, not a Holla-specific presentation selector.
+
+The [independent review](../audits/evidence/2026-10-21-current-blockers/nav-header-gutter-ee669-independent-clearance.json) finds no defect: 5,760 complete frame/region/focus/cursor checkpoints match the exact parent byte for byte across four profiles, zero/narrow views, empty and changed data, scrolling and disabled/compact combinations. Four external consumer cases cover 2,160 gutter geometry/hit configurations and 832 marker/icon clipping configurations. Independent native scope has 610 passes and three existing ignored PTY fixtures; strict scoped Clippy, full formatting and diff checks pass. Forcing ignored fixtures earlier exposed two terminal-driver failures (Device not configured); they remain recorded, not green. No actual Holla/Showcase adoption or full frozen CLI acceptance is claimed.
+
+Semantic Tabs was pushed and remotely verified at `7716ad775c57b3c3ff2cbdcf1aaa393f44330ee3`: all 270 selected Navigation/facade tests passed with zero skips; strict scoped Clippy and full formatting/diff checks passed. Incoming e4 source remains independently under review. Stage-three verify-live run `parent-v13-stage3-20261021-051425` returned wrapper and worker exit zero in 12.681 seconds with exact controlled environment hashes and a reaped direct child. Independent operational admission is pending. The previous environment-refusal record is preserved; no reference hashes were altered, no new plan/key/capture/replay/candidate result exists.
+
 ### Semantic Tabs extraction and current source-review boundaries
 
 Integrate `c4b5e3fc1ef162a11bcc0cfb5746e0cddf8a60b8`: opt-in DefaultRow semantic layout stores formatted write segments and part bounds, consumed by the existing shared draw loop. Measurement does not run handlers, domain effects or scratch drawing; arbitrary row callbacks retain their existing path. The explicit warm-window receipt preserves the committed overflow window rather than guessing previous painted width. Public types remain reachable through the existing tabs module; facade, runtime pure-layout epochs and application adoption are not implemented by this increment.
