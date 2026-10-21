@@ -264,13 +264,13 @@ mod historical_accounts_detail_80;
 mod historical_accounts_drawer;
 mod historical_accounts_filter;
 
+mod capsule_zoom_view;
 mod historical_audit_accounts_80;
 mod historical_capsule_menu;
 mod historical_capsule_menu_80;
 mod historical_capsule_new_tab;
 mod historical_capsule_palette;
 mod historical_capsule_split_vertical;
-mod historical_capsule_zoom;
 mod historical_hard_launch_picker;
 mod historical_inspect;
 mod historical_launch_picker;
@@ -1299,7 +1299,13 @@ impl App {
     fn active_account_picker(&self) -> Picker<'static, AccountOption> {
         match self.picker_mode {
             Some(PickerMode::OnePassword) => {
-                Self::account_picker().title("Choose 1Password account")
+                let (title, placeholder) = match self.accounts.op_stage {
+                    1 => ("Choose vault", "Search vaults…"),
+                    2 => ("Choose item", "Search items…"),
+                    3 => ("Choose field", "Search fields…"),
+                    _ => ("Choose 1Password account", "Search accounts…"),
+                };
+                Self::account_picker().title(title).placeholder(placeholder)
             }
             _ => Self::account_picker(),
         }
@@ -7933,7 +7939,7 @@ impl App {
         if !self.historical_capsule_zoom(ui.theme_ref(), screen) {
             return;
         }
-        historical_capsule_zoom::paint(ui);
+        capsule_zoom_view::paint(ui);
         ui.set_cursor(CAPSULE_INPUT, Position::new(3, 34));
     }
 
