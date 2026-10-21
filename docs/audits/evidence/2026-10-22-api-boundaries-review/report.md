@@ -210,6 +210,14 @@ Two concerns, neither a boundary violation but both a documentation defect:
 
 ---
 
+## Post-review upstream state (context, not part of the verdict)
+
+The report branch was rebased onto `origin/parity/termrock-visual-baseline` at `d1e3d012612ba452ac9ab7c81fb9e84e6ec3f838` before pushing, as the push protocol requires. That tip is *ahead* of the reviewed sha and already contains `e1722293c6` ("fix(holla): remove frame-marker triggering comments in width-band …"), which rewords the two comments named in the two blocker findings — the gate passes at `d1e3d012` (exit 0). The blockers are therefore stated as measured against the reviewed sha `bea5350ec9`, which is what this review was asked to assess; they no longer reproduce at the current parity tip.
+
+The other findings were re-checked at `d1e3d012` and still stand there: `crates/jackin-preview-app/src/app/accounts_page.rs` still carries its own `truncate` (line 1466), `visible_rows` (1589), `list_offset` (1595), `name_column` (1581) and `LIST_PANE_W = 39` (line 32). Upstream also changed `holla-sim::catalogue::history_enabled` to `is_some_and(|value| value == "0")`, which inverts the flag's sense relative to the reviewed sha; that change is outside this review's scope and is not assessed here.
+
+---
+
 ## Verdict
 
 **HELD**, bounded scope: the reviewed sha `bea5350ec9` fails the repository's own architecture gate (exit 1, 2 `frame-marker` findings, both introduced by the reviewed commit `bea5350ec9` itself). The parent `a972caaf1d` passes with 0 findings. That is a hard blocker for the stream as it stands.
