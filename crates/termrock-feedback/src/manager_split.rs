@@ -365,13 +365,13 @@ fn paint_rows(ui: &mut Ui<'_>, area: Rect, frame: &ManagerSplit<'_>, ink: &Ink) 
 
 fn paint_current(ui: &mut Ui<'_>, area: Rect, y: u16, selected: bool, ink: &Ink) {
     if selected {
-        ui.fill(Rect::new(3, y, 33, 1), bold(ink.primary, SELECT_BG));
-        put(ui, area, 3, y, "▎", bold(ink.accent, SELECT_BG));
+        ui.fill(Rect::new(3, y, 33, 1), bold(ink.primary, ink.select_bg));
+        put(ui, area, 3, y, "▎", bold(ink.accent, ink.select_bg));
         let mut label = "Current directory".to_owned();
         while label.chars().count() < 28 {
             label.push(' ');
         }
-        put(ui, area, 7, y, &label, bold(ink.accent, SELECT_BG));
+        put(ui, area, 7, y, &label, bold(ink.accent, ink.select_bg));
     } else {
         put(ui, area, 3, y, " ", plain(ink.canvas, ink.canvas));
         put(
@@ -386,15 +386,15 @@ fn paint_current(ui: &mut Ui<'_>, area: Rect, y: u16, selected: bool, ink: &Ink)
 }
 
 fn paint_expanded_workspace(ui: &mut Ui<'_>, area: Rect, y: u16, name: &str, ink: &Ink) {
-    ui.fill(Rect::new(3, y, 33, 1), bold(ink.primary, EXPANDED_BG));
-    put(ui, area, 3, y, "▎", bold(ink.accent, EXPANDED_BG));
-    put(ui, area, 5, y, "▾", plain(ink.secondary, EXPANDED_BG));
+    ui.fill(Rect::new(3, y, 33, 1), bold(ink.primary, ink.expanded_bg));
+    put(ui, area, 3, y, "▎", bold(ink.accent, ink.expanded_bg));
+    put(ui, area, 5, y, "▾", plain(ink.secondary, ink.expanded_bg));
     let mut label = name.to_owned();
     while label.chars().count() < 28 {
         label.push(' ');
     }
-    put(ui, area, 7, y, &label, bold(ink.accent, EXPANDED_BG));
-    put(ui, area, 35, y, " ", bold(ink.primary, EXPANDED_BG));
+    put(ui, area, 7, y, &label, bold(ink.accent, ink.expanded_bg));
+    put(ui, area, 35, y, " ", bold(ink.primary, ink.expanded_bg));
 }
 
 fn paint_child(ui: &mut Ui<'_>, area: Rect, y: u16, instance: &SplitInstance<'_>, ink: &Ink) {
@@ -411,7 +411,7 @@ fn paint_child(ui: &mut Ui<'_>, area: Rect, y: u16, instance: &SplitInstance<'_>
     let mark_style = if instance.live {
         plain(ink.accent, ink.canvas)
     } else {
-        plain(Color::Rgb(0x8a, 0x8a, 0x8a), ink.canvas)
+        plain(ink.muted, ink.canvas)
     };
     put(ui, area, 7, y, mark, mark_style);
     put(ui, area, 8, y, &text, plain(ink.primary, ink.canvas));
@@ -422,7 +422,7 @@ fn paint_child(ui: &mut Ui<'_>, area: Rect, y: u16, instance: &SplitInstance<'_>
             34,
             y,
             "•",
-            plain(Color::Rgb(0xf5, 0x9e, 0x09), ink.canvas),
+            plain(ink.stale, ink.canvas),
         );
     }
 }
