@@ -1,4 +1,17 @@
 
+# 2026-10-21: theme palettes, visual baselines, and master-detail composition landed
+
+- Branch: `parity/termrock-visual-baseline`, tip `d4b6021f2`.
+- Landed:
+  - Corrected Junie ANSI-256 `disabled_fg: Color::Indexed(239)` and ANSI-16 meter tokens (`stale`, `unknown`), aligning with the frozen baseline specification and all capability tests.
+  - Eliminated unconditional `String` allocation in `Button::draw` when text fits; fixed `Button::update` repaint request deadline to avoid false tick timeouts.
+  - Re-approved visual baseline digests across `showcase-ui` and `holla-ui` for Junie ANSI-256 disabled foreground restoration and discovery band rendering. All 4 visual baseline tests (`tablepro_visual_baseline`, `jackin_visual_baseline`, `showcase_visual_baseline`, `holla_visual_baseline`) pass 100%.
+  - Integrated master-detail composition interop (`origin/wip/manager-composition-interop-20261021`), enabling `manager_composition_consumer` tests.
+  - Architecture acceptance (`python3 tools/acceptance_architecture.py`) passes cleanly with 0 findings, 0 errors, and 0 unaccounted inputs.
+- Next steps:
+  - Purge false parity in `jackin-preview-app` (`const ENTRIES` in remaining `*_view.rs` modules) by routing them to real `termrock::overlays::Dialog` and `termrock::overlays::Menu` components.
+  - Remove remaining size-gated `draw_historical_*` branches in `jackin-preview-app`.
+
 # 2026-10-21: integrated WIP retirement
 
 The nine refs in `../audits/evidence/2026-10-21-current-blockers/nine-integrated-wip-parent-retirement-preconditions.json` are retired atomically with this record after independent review and fresh exact-tip checks. Historical entries below remain provenance, not instructions to recreate those remote refs. Resume active unfinished work only; local refs, worktrees and evidence are preserved.
