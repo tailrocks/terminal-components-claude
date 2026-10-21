@@ -311,6 +311,43 @@ const LEGACY_SELECT_BG: Role = Role::Custom(termrock::Color::from_u32(0x0017_3f1
 const LEGACY_SCROLL_TRACK: Role = Role::Custom(termrock::Color::from_u32(0x0047_4747));
 const LEGACY_SCROLL_THUMB: Role = Role::Custom(termrock::Color::from_u32(0x0080_8080));
 const LEGACY_CELL_BG: Role = Role::Custom(termrock::Color::from_u32(0x002f_5aa8));
+/// The vertical scroll bar of a grid body.
+const GRID_VERTICAL_BAR: termrock::grid::GridBarPolicy = termrock::grid::GridBarPolicy {
+    track: LEGACY_SCROLL_TRACK,
+    thumb: LEGACY_SCROLL_THUMB,
+    track_glyph: "┆",
+    thumb_glyph: "┃",
+    cover_far: Role::Custom(termrock::Color::from_u32(0x008c_8c8c)),
+    cover_near: Role::Custom(termrock::Color::from_u32(0x00cc_cccc)),
+    cover_far_dim: true,
+};
+/// The horizontal scroll bar of a grid body.
+const GRID_HORIZONTAL_BAR: termrock::grid::GridBarPolicy = termrock::grid::GridBarPolicy {
+    track: LEGACY_SCROLL_TRACK,
+    thumb: LEGACY_SCROLL_THUMB,
+    track_glyph: "┄",
+    thumb_glyph: "━",
+    cover_far: Role::Custom(termrock::Color::from_u32(0x008c_8c8c)),
+    cover_near: Role::Custom(termrock::Color::from_u32(0x00cc_cccc)),
+    cover_far_dim: true,
+};
+/// The keyboard-focus bar of a grid body.
+const GRID_FOCUS_BAR: termrock::grid::GridFocusPolicy = termrock::grid::GridFocusPolicy {
+    role: Role::Accent,
+    bold: true,
+    glyph: "▎",
+};
+/// The viewport of a query result grid: the scroll bar lane sits right of
+/// the grid body and the horizontal bar takes the grid body's last row.
+const GRID_RESULT_VIEWPORT: termrock::grid::GridViewportPolicy =
+    termrock::grid::GridViewportPolicy {
+        header_rows: 0,
+        filter_rows: 0,
+        pending_rows: 0,
+        status_rows: 0,
+        status_inset: 0,
+        right_reserve: 3,
+    };
 const FOLLOW_REF: CellAction = CellAction::new(ActionKey::application("tablepro.follow-ref"));
 const FOLLOW_REFS: [CellAction; 1] = [FOLLOW_REF];
 const CONNECTIONS_PANEL_PATCH: [(Part, StylePatch); 1] =
@@ -2636,26 +2673,20 @@ impl TableProApp {
         // The pending bar keeps one blank row above it, so the grid loses two.
         let pending_gap = if pending_total > 0 { 2 } else { 0 };
         let filter_rows = if filters.is_empty() { 0 } else { 2 };
+        let viewport = termrock::grid::solve_grid_viewport(
+            inner,
+            &termrock::grid::GridViewportPolicy {
+                header_rows: 3,
+                filter_rows,
+                pending_rows: pending_gap,
+                status_rows: 1,
+                status_inset: 1,
+                right_reserve: 0,
+            },
+        );
         if !filters.is_empty() {
-            paint_filter_bar(
-                ui,
-                termrock::Rect {
-                    y: inner.y.saturating_add(3),
-                    height: 1,
-                    ..inner
-                },
-                &filters,
-            );
+            paint_filter_bar(ui, viewport.filter_bar, &filters);
         }
-        let grid_area = termrock::Rect {
-            y: inner.y.saturating_add(3).saturating_add(filter_rows),
-            height: inner
-                .height
-                .saturating_sub(5)
-                .saturating_sub(filter_rows)
-                .saturating_sub(pending_gap),
-            ..inner
-        };
         let Some((id, grid_view)) = self.workbench.active_grid() else {
             return;
         };
@@ -2663,7 +2694,7 @@ impl TableProApp {
             Self::column_specs(&grid_view.columns, grid_view.model.is_editable());
         draw_painted_grid(
             ui,
-            grid_area,
+            viewport.grid,
             id,
             &grid_view.columns,
             columns.get(..count).unwrap_or(&[]),
@@ -2672,19 +2703,18 @@ impl TableProApp {
             self.surface == Surface::FilterEditor,
             false,
         );
-        let shown = usize::from(grid_area.height.saturating_sub(1));
+        let shown = usize::from(viewport.grid.height.saturating_sub(1));
         let enabled = filters.iter().filter(|filter| filter.enabled).count();
-        self.paint_table_status(ui, inner, grid_view, enabled, shown, pending_gap);
+        self.paint_table_status(ui, &viewport, grid_view, enabled, shown);
     }
 
     fn paint_table_status(
         &self,
         ui: &mut Ui<'_>,
-        inner: termrock::Rect,
+        viewport: &termrock::grid::GridViewport,
         grid_view: &GridView,
         enabled: usize,
         shown: usize,
-        pending_gap: u16,
     ) {
         let loaded = grid_view.model.row_count();
         let origin = GRID_SCROLL.with(|slot| slot.borrow().map_or(0, |(_, _, origin)| origin));
@@ -2712,65 +2742,32 @@ impl TableProApp {
         if let Some(prefix) = self.sort_status_prefix() {
             status = format!("{prefix} · {status}");
         }
-        let status_area = termrock::Rect {
-            y: inner.bottom().saturating_sub(1),
-            height: 1,
-            ..inner
-        };
-        let paint_width = status_area.width.saturating_sub(1);
-        if width(&status) > paint_width
+        if !viewport.status_text_fits(width(&status))
             && let Some((head, _)) = status.rsplit_once(" · ")
         {
             // The column window is the clause that drops once a sort prefix lands.
             status = head.to_owned();
         }
-        paint_horizontal_bar(
-            ui,
-            termrock::Rect {
-                y: status_area.y.saturating_sub(1).saturating_sub(pending_gap),
-                height: 1,
-                ..status_area
-            },
-        );
-        if pending_gap > 0 {
-            paint_pending_bar(
-                ui,
-                termrock::Rect {
-                    y: status_area.y.saturating_sub(1),
-                    height: 1,
-                    ..status_area
-                },
-                &grid_view.model,
-            );
+        paint_horizontal_bar(ui, viewport.horizontal);
+        if viewport.pending != termrock::Rect::ZERO {
+            paint_pending_bar(ui, viewport.pending, &grid_view.model);
         }
         let style = ui
             .surface_style()
             .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_CHROME_FG)));
-        ui.paint_str(
-            termrock::Rect {
-                x: status_area.x.saturating_add(1),
-                width: status_area.width.saturating_sub(1),
-                ..status_area
-            },
-            &status,
-            style,
-        );
+        ui.paint_str(viewport.status_text, &status, style);
     }
 
     fn draw_result_grid(&self, ui: &mut Ui<'_>, area: termrock::Rect) {
-        if area.height < 2 {
+        let viewport = termrock::grid::solve_grid_viewport(area, &GRID_RESULT_VIEWPORT);
+        if !viewport.has_grid_body() {
             return;
         }
-        let grid_area = termrock::Rect {
-            width: area.width.saturating_sub(3),
-            height: area.height.saturating_sub(1),
-            ..area
-        };
         if let Some((id, grid)) = self.workbench.active_grid() {
             let (columns, count) = Self::column_specs(&grid.columns, grid.model.is_editable());
             draw_painted_grid(
                 ui,
-                grid_area,
+                viewport.grid,
                 id,
                 &grid.columns,
                 columns.get(..count).unwrap_or(&[]),
@@ -2780,15 +2777,7 @@ impl TableProApp {
                 true,
             );
         }
-        paint_horizontal_bar(
-            ui,
-            termrock::Rect {
-                y: area.bottom().saturating_sub(1),
-                width: area.width.saturating_sub(3),
-                height: 1,
-                ..area
-            },
-        );
+        paint_horizontal_bar(ui, viewport.horizontal);
     }
 
     fn draw_connection_details(&self, ui: &mut Ui<'_>, area: termrock::Rect) {
@@ -5096,6 +5085,19 @@ struct GridChrome {
     places: Vec<ColPlace>,
 }
 
+impl GridChrome {
+    /// The chrome the shared grid bars align to.
+    fn content_chrome(&self) -> termrock::grid::GridContentChrome {
+        termrock::grid::GridContentChrome {
+            gutter: self.gutter,
+            content_width: self.content_width,
+            columns: self.columns,
+            complete: self.complete,
+            hidden_left: self.hidden_left,
+        }
+    }
+}
+
 const KIND_OTHER: u8 = 0;
 const KIND_PRIMARY: u8 = 1;
 const KIND_FOREIGN: u8 = 2;
@@ -5628,112 +5630,22 @@ fn paint_grid_focus_bar(
     else {
         return;
     };
-    let y = area.y.saturating_add(1).saturating_add(row as u16);
-    if y >= area.bottom() {
-        return;
-    }
-    let style = ui
-        .surface_style()
-        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent).add(Modifier::BOLD)));
-    ui.paint_str(
-        termrock::Rect {
-            x: area.x,
-            y,
-            width: 1,
-            height: 1,
-        },
-        "▎",
-        style,
-    );
+    termrock::grid::paint_grid_focus_bar(ui, area, Some(row as u16), &GRID_FOCUS_BAR);
 }
 
 fn paint_grid_scrollbar(ui: &mut Ui<'_>, area: termrock::Rect, rows: usize, origin: usize) {
-    if area.height < 2 || area.width == 0 {
-        return;
-    }
-    let track_len = usize::from(area.height.saturating_sub(1));
-    let thumb_len = track_len
-        .saturating_mul(track_len)
-        .checked_div(rows.max(1))
-        .unwrap_or(1)
-        .max(1)
-        .min(track_len);
-    let max_off = rows.saturating_sub(track_len);
-    let usable = track_len.saturating_sub(thumb_len);
-    let thumb_at = if max_off == 0 {
-        0
-    } else {
-        origin
-            .saturating_mul(usable)
-            .saturating_add(max_off / 2)
-            .checked_div(max_off)
-            .unwrap_or(0)
-            .min(usable)
-    };
     let Some(chrome) = GRID_CHROME.with(|chrome| chrome.borrow().clone()) else {
         return;
     };
-    if chrome.places.is_empty() {
-        return;
-    }
-    // Stay on the content edge. A dropped preview must not pull the thumb left.
-    let x = area
-        .x
-        .saturating_add(chrome.gutter)
-        .saturating_add(chrome.content_width)
-        .saturating_add(4);
-    let covered = x.saturating_sub(1);
-    let plain = ui.surface_style();
-    let track = plain.patch(ui.paint_patch(&StylePatch::new().set_fg(LEGACY_SCROLL_TRACK)));
-    let thumb = plain.patch(ui.paint_patch(&StylePatch::new().set_fg(LEGACY_SCROLL_THUMB)));
-    for offset in 0..track_len {
-        let y = area.y.saturating_add(1).saturating_add(offset as u16);
-        let from_end = track_len.saturating_sub(offset).saturating_sub(1);
-        let from_start = origin > 0 && (offset == 0 || offset == 1);
-        let truecolor = ui.theme().capability.color == termrock::ColorLevel::TrueColor;
-        let cover = if !truecolor {
-            if from_end == 0 || (from_start && offset == 0) {
-                plain.add_modifier(Modifier::DIM)
-            } else {
-                plain
-            }
-        } else if from_end == 0 || (from_start && offset == 0) {
-            plain.patch(ui.paint_patch(
-                &StylePatch::new().set_fg(Role::Custom(termrock::Color::from_u32(0x008c_8c8c))),
-            ))
-        } else if from_end == 1 || (from_start && offset == 1) {
-            plain.patch(ui.paint_patch(
-                &StylePatch::new().set_fg(Role::Custom(termrock::Color::from_u32(0x00cc_cccc))),
-            ))
-        } else {
-            plain
-        };
-        ui.paint_str(
-            termrock::Rect {
-                x: covered,
-                y,
-                width: 1,
-                height: 1,
-            },
-            " ",
-            cover,
-        );
-        let on_thumb = offset >= thumb_at && offset < thumb_at.saturating_add(thumb_len);
-        let glyph = if on_thumb { "┃" } else { "┆" };
-        let style = if on_thumb { thumb } else { track };
-        ui.paint_str(
-            termrock::Rect {
-                x,
-                y,
-                width: 1,
-                height: 1,
-            },
-            glyph,
-            style,
-        );
-    }
+    termrock::grid::paint_grid_vertical_bar(
+        ui,
+        area,
+        &chrome.content_chrome(),
+        rows,
+        origin,
+        &GRID_VERTICAL_BAR,
+    );
 }
-
 #[allow(
     clippy::too_many_lines,
     reason = "header gutter, primary key, and muted titles share one pass"
@@ -6608,60 +6520,11 @@ fn paint_horizontal_bar(ui: &mut Ui<'_>, row: termrock::Rect) {
     let Some(chrome) = GRID_CHROME.with(|chrome| chrome.borrow().clone()) else {
         return;
     };
-    if chrome.content_width == 0 || chrome.columns == 0 {
-        return;
-    }
-    let x = row.x.saturating_add(chrome.gutter);
-    let track_w = chrome
-        .content_width
-        .saturating_add(4)
-        .min(row.right().saturating_sub(x));
-    if track_w == 0 {
-        return;
-    }
-    let columns = chrome.columns.max(1);
-    #[allow(
-        clippy::arithmetic_side_effects,
-        reason = "columns is at least 1 and the product fits a terminal width"
-    )]
-    let thumb = (usize::from(track_w) * chrome.complete.max(1) / columns)
-        .max(1)
-        .min(usize::from(track_w));
-    #[allow(
-        clippy::arithmetic_side_effects,
-        reason = "columns is at least 1 and the product fits a terminal width"
-    )]
-    let thumb_at = if chrome.hidden_left == 0 {
-        0
-    } else {
-        (usize::from(track_w) * chrome.hidden_left + columns / 2) / columns
-    }
-    .min(usize::from(track_w).saturating_sub(thumb));
-    let track = ui
-        .surface_style()
-        .patch(ui.paint_patch(&StylePatch::new().set_fg(LEGACY_SCROLL_TRACK)));
-    let thumb_style = ui
-        .surface_style()
-        .patch(ui.paint_patch(&StylePatch::new().set_fg(LEGACY_SCROLL_THUMB)));
-    ui.paint_str(
-        termrock::Rect {
-            x,
-            y: row.y,
-            width: track_w,
-            height: 1,
-        },
-        &"┄".repeat(usize::from(track_w)),
-        track,
-    );
-    ui.paint_str(
-        termrock::Rect {
-            x: x.saturating_add(thumb_at as u16),
-            y: row.y,
-            width: thumb as u16,
-            height: 1,
-        },
-        &"━".repeat(thumb),
-        thumb_style,
+    termrock::grid::paint_grid_horizontal_bar(
+        ui,
+        row,
+        &chrome.content_chrome(),
+        &GRID_HORIZONTAL_BAR,
     );
 }
 
