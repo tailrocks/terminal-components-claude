@@ -1,0 +1,43 @@
+{
+  "schema": "termrock.canonical-owned-verify-live-source-audit",
+  "version": 1,
+  "status": "implemented-pending-independent-review",
+  "source_base": "31fbae05c4978f8432443d93d1c6ef56b04050f0",
+  "branch": "wip/canonical-verify-owned-20261021",
+  "scope": [
+    "Add opt-in verify-live --owned-lifecycle and bounded --owned-budget flags.",
+    "Pass one PrepareExecution through verify_source, live/source/snapshot/cohort digests, tool observation, provenance comparisons, and final success output.",
+    "Preserve legacy verify-live behavior and reject --owned-budget without --owned-lifecycle.",
+    "Require the pinned reviewed capture cohort in the owned CLI path."
+  ],
+  "fixed_references": {
+    "baseline_commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+    "baseline_tag_object": "2718a6b8127a522a3d351d0b4bdb7542fc8da542",
+    "tuiscotti_commit": "a1ea27f757d75d07b05499276cd932e9f8e067ad",
+    "capture_cohort": "frozen-20261021-serial-nonincr-r1-r2"
+  },
+  "evidence": {
+    "python_full_suite": {
+      "command": "python3 -m unittest tools/test_frozen_baseline.py",
+      "result": "107 tests passed",
+      "duration_seconds": 14.183
+    },
+    "focused_owned_suite": {
+      "command": "python3 -m unittest tools/test_frozen_baseline.py -k 'owned'",
+      "result": "28 tests passed",
+      "duration_seconds": 13.941
+    },
+    "python_compile": "python3 -m py_compile tools/frozen_baseline.py tools/test_frozen_baseline.py: passed",
+    "format": "cargo fmt --check: passed; git diff --check: passed",
+    "sha256": {
+      "tools/frozen_baseline.py": "b209f37c49b92a5455d8b64ac7626b0e6eba557742123569759438bdbbb74d7e",
+      "tools/test_frozen_baseline.py": "7c9555c8bbbd650687c05c610dea5b981602921c5e0c76d0b4db283a75a1db9b"
+    }
+  },
+  "limits": [
+    "No actual verify-live or preflight command was run.",
+    "No new plan, key, capture, replay, ordinary CLI run, or candidate comparison was created or run.",
+    "The stage-two external supervisor still requires independent clearance before any stage-three operation.",
+    "This bounded source increment does not establish application parity or reusable-library acceptance."
+  ]
+}
