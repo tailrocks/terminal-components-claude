@@ -1,0 +1,88 @@
+{
+  "schema": "termrock.stage3d.external-supervisor-v12-stage2.independent-review.v1",
+  "decision": "CLEAR exact V12 stage2-only supervisor source and corrected immutable stage1 evidence admission, under the retained kernel-stall limitation. Actual stage2 operation and its result are not verified by this review.",
+  "findings": [],
+  "reviewed_inputs": {
+    "source": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-supervisor-v12-stage2-20261021.py",
+      "sha256": "12a3dd78de61bd38a95dfe3b44ed43804380aa8df039b89168f666c7a231e5f9"
+    },
+    "tests": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/test_fresh_plan_stage3d_atomic_supervisor_v12-stage2-20261021.py",
+      "sha256": "36e5b2f9b09ea8072dcb1ce53e1c86e50f19088a4084962f7947fdae9b1ed458"
+    },
+    "handoff": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-supervisor-v12-stage2-author-handoff-20261021.json",
+      "sha256": "d312879e62198f37702afade1222fc37088673c629dcf969c76e905ca56e9378"
+    },
+    "v11_diagnosis": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-supervisor-v11-stage2-admission-mismatch-independent-diagnosis-20261021.json",
+      "sha256": "d11094914e68c89f80013b077bc11582c458c743d6fc4ca93b9ec00663d7c003"
+    },
+    "test_results": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-supervisor-v12-stage2-independent-test-results-20261021.json",
+      "sha256": "17098c15483fbed00d1c7794a2d440fd8002090b9b1505765b912d2ef50a934b"
+    },
+    "full_log": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-supervisor-v12-stage2-independent-full-tests-20261021.log",
+      "sha256": "df563738c13616d3678fec7eb223b34616094a8140e2d739a5a3f8596bd49ae0"
+    }
+  },
+  "method": "Read-only exact source/test diff and hash review; unchanged actual immutable stage1 admission regression executed against V11 then V12; full 30-case suite rerun under a 180-second timeout. The function-level validate_admitted_stage1 read-only metadata validation was explicitly authorized. No full preflight or operational command was invoked.",
+  "resolved_finding": {
+    "id": "V11-ADMISSION-1",
+    "status": "fixed",
+    "before": "The unchanged actual-evidence regression errors against exact V11 with RuntimeError: stage-one independent evidence does not match admission.",
+    "after": "The same regression passes against exact V12 using unmodified immutable admission/evidence/provenance/event/log files and unchanged digest pins. Root remains exactly provenance.json plus source; future outputs remain absent.",
+    "schema": "termrock.stage3d.stage1-result.independent-evidence.v1",
+    "source_delta": "Only the corrected evidence-schema literal and V12 artifact/schema version strings; all pin constants unchanged. The synthetic fixture now uses the actual schema, and a new exact immutable-evidence regression prevents the previous fabricated-fixture false assurance."
+  },
+  "tests": {
+    "before_v11": {
+      "run": 1,
+      "failures": 0,
+      "errors": 1,
+      "skipped": 0,
+      "log": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-supervisor-v12-stage2-independent-before_v11-focused-20261021.log",
+      "sha256": "02c41b23f97f6cdd04acca4d0636158c7494837b0cd53d534540ea477c1e09fd"
+    },
+    "after_v12": {
+      "run": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "log": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-supervisor-v12-stage2-independent-after_v12-focused-20261021.log",
+      "sha256": "739af01fbdd81691ca41f9221b43d93e54bc4ac7deffd545ae884ef27907c900"
+    },
+    "full_suite": {
+      "exit_status": 0,
+      "log": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-supervisor-v12-stage2-independent-full-tests-20261021.log",
+      "sha256": "df563738c13616d3678fec7eb223b34616094a8140e2d739a5a3f8596bd49ae0"
+    }
+  },
+  "retained_contracts": [
+    "V10 late-final-write and late-flag-restoration fixes remain byte-identical and covered in the passing complete suite.",
+    "V8 exact-owned-direct-child exceptional cleanup and V9 explicitly narrowed filesystem/output kernel-stall guarantee remain unchanged.",
+    "Canonical runner e97361a954743231716a228646dd96f8fcf5b951780459a36e1842b08e0cfd80, canonical review 15feeaf89d5b07cbf6b9204299b6f9170a2552fd8070e33ad901a20367da5090, and actual stage1 admission ae23cdeb2a7cf4b1e7db63b975d919a5fa6668700e9245362f4053c00d623ce0 remain pinned.",
+    "All supplied handoff evidence hashes matched; no reference revision or reference artifact was changed.",
+    "Only stage 2 prepare-live is enabled; stages 1 and 3 through 8 remain disabled.",
+    "Persisted success-shaped event alone is insufficient; require complete publication and wrapper exit status 0."
+  ],
+  "limits": [
+    "Kernel-blocked filesystem/output syscalls can outlast the monotonic deadline while blocked; late completion fails closed on return. No universal hard wall-clock guarantee is claimed.",
+    "External supervisor owns only its exact direct child; canonical runner owns its broker and scoped children.",
+    "The actual metadata validation is not a fresh content rehash of the full frozen tree and grants no stage2, capture, replay, product parity, or reusable-library acceptance credit."
+  ],
+  "operations": {
+    "actual_function_level_read_only_stage1_metadata_validation": true,
+    "synthetic_suite": true,
+    "full_preflight": false,
+    "prepare_live": false,
+    "key_bytes_read": false,
+    "plan_created": false,
+    "application_launch": false,
+    "capture": false,
+    "replay": false,
+    "source_edits": false
+  }
+}
