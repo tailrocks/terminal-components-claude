@@ -7,6 +7,15 @@
 //!
 //! Set `SHOWCASE_PAGE_DIGEST_DUMP=1` to print the current digests instead of
 //! comparing them.
+//!
+//! The Editor page digests track the editor component, which the parity branch
+//! evolves independently of the page chrome. On the migration branch itself
+//! (`wip/showcase-pages-migration-20261021`, tip `8997fd295f`) all 66 frames
+//! matched the pre-migration digests, so the page chrome migration is
+//! pixel-preserving; the three Editor digests were re-recorded after the
+//! parity branch's editor component work
+//! (`crates/termrock-editors/src/code.rs`, `crates/termrock-text/src/editor.rs`)
+//! changed that page's content.
 
 use showcase_ui::{App, PageId};
 use termrock::Theme;
@@ -90,9 +99,9 @@ const EXPECTED: &[(PageId, u16, u16, u64)] = &[
     (PageId::Terminal, 120, 40, 16713486997613533058),
     (PageId::Terminal, 94, 36, 10834531301898289047),
     (PageId::Terminal, 72, 24, 11799924430438265034),
-    (PageId::Editor, 120, 40, 1337637796329482202),
-    (PageId::Editor, 94, 36, 7146274324227091806),
-    (PageId::Editor, 72, 24, 5214310364118716316),
+    (PageId::Editor, 120, 40, 10239041618864639653),
+    (PageId::Editor, 94, 36, 6170852880661038913),
+    (PageId::Editor, 72, 24, 12056232630236239551),
     (PageId::Grid, 120, 40, 3666620698203807582),
     (PageId::Grid, 94, 36, 12334150473228131772),
     (PageId::Grid, 72, 24, 11661855356404301741),
