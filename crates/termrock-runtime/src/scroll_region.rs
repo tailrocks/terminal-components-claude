@@ -438,7 +438,12 @@ impl<'a> ScrollRegion<'a> {
             track_resolved.resolved,
         );
         let track = track_resolved.resolved;
-        let thumb_live = if ui.pressed_part(self.id) == Some(PartRef::of(Part::THUMB)) {
+        // The thumb carries the region's own pressed state: a held thumb is
+        // the accent, and in the mono tier the accent collapses onto the
+        // rest ink, so the state needs the modifier rule as well.
+        let thumb_live = if ui.state(self.id).contains(StateFlags::PRESSED)
+            || ui.pressed_part(self.id) == Some(PartRef::of(Part::THUMB))
+        {
             part_live | StateFlags::PRESSED
         } else {
             part_live
@@ -649,7 +654,9 @@ fn without_inherited_bold(
 ) -> crate::theme::PaintStyle {
     // Ratatui's set_style unions modifiers with the underlay. Clear underlay
     // bold unless a theme, overlay, or instance style explicitly supplies it.
-    if explicit.add.contains(Modifier::BOLD) {
+    if explicit.add.contains(Modifier::BOLD)
+        || style.as_style().add_modifier.contains(Modifier::BOLD)
+    {
         style
     } else {
         style.remove_modifier(Modifier::BOLD)

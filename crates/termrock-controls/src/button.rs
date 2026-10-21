@@ -392,8 +392,10 @@ impl<'a> Button<'a> {
             ui.publish_bindings(self.id, live, BINDINGS);
         }
         let mut style_flags = live;
+        // The focus treatment is a style decision. An inert ui suppresses
+        // registrations and published bindings, but the reference render of a
+        // focused control still has to show the focus indicator.
         if self.focus_visibility == ButtonFocusVisibility::Always
-            && !ui.is_inert()
             && !disabled
             && !self.busy()
             && style_flags.contains(StateFlags::FOCUSED)

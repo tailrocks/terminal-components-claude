@@ -560,6 +560,7 @@ fn authored_mono_override(
         .recipes
         .mono_rules(family)
         .or(authored)
+        .or_else(|| Some(super::downgrade::builtin_family_mono_rules(family)))
         .unwrap_or_default()
         .iter()
         .filter(|(rule_part, when, _)| *rule_part == part && live.contains(*when))
