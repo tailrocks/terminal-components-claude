@@ -1804,6 +1804,20 @@ fn accounts_drawer_enter_paints_the_approved_work_drawer() {
 }
 
 #[test]
+fn usage_detail_80_paints_back_to_list() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 80, 24);
+    h.key(KeyCode::Char('u'));
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Enter);
+    assert!(h.app().usage.detail_open());
+    assert!(h.text().contains("Back to list"), "{}", h.text());
+    assert!(h.text().contains("Session · 5-hour"), "{}", h.text());
+    let back = h.buffer().cell((49, 23)).expect("back to list");
+    assert_eq!(back.symbol(), "B");
+    assert_eq!(back.fg, termrock::Color::Rgb(0x8a, 0x8a, 0x8a));
+}
+
+#[test]
 fn usage_overview_80_paints_the_narrow_account_tree() {
     let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 80, 24);
     h.key(KeyCode::Char('u'));
