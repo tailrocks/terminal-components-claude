@@ -643,16 +643,21 @@ impl<'a> ContextMenu<'a> {
         st.highlight_hidden = false;
     }
 
-    fn status_reason(&self, st: &MenuState) -> Option<&'a str> {
-        let pointed = st.pointed.and_then(|index| self.items.get(index));
-        let item = pointed.or_else(|| {
-            (!st.highlight_hidden)
-                .then(|| self.items.get(st.cursor))
-                .flatten()
-        })?;
-        (item.disabled)
+    fn item_reason(&self, index: usize) -> Option<&'a str> {
+        let item = self.items.get(index)?;
+        item.disabled
             .then_some(item.reason?)
             .filter(|reason| !reason.is_empty())
+    }
+
+    fn status_reason(&self, st: &MenuState) -> Option<&'a str> {
+        st.pointed
+            .and_then(|index| self.item_reason(index))
+            .or_else(|| {
+                (!st.highlight_hidden)
+                    .then_some(st.cursor)
+                    .and_then(|index| self.item_reason(index))
+            })
     }
 
     fn first_enabled(&self) -> Option<usize> {
@@ -983,7 +988,8 @@ impl<'a> ContextMenu<'a> {
                 | StateFlags::HOVERED
                 | StateFlags::PRESSED,
         );
-        if !st.hover_suppressed
+        if !item.disabled
+            && !st.hover_suppressed
             && FrameRead::hovered_part(ui, self.id)
                 == Some(PartRef::item(Part::ROW, ItemKey::index(index)))
         {
@@ -998,7 +1004,7 @@ impl<'a> ContextMenu<'a> {
         }
         let mut flags = PartStyle::flags(StateFlags::empty(), derived);
         let pressed_row = pressed_target(ui, self.id, Part::ROW, index);
-        if pressed_row {
+        if pressed_row && !item.disabled {
             flags.insert(StateFlags::PRESSED);
         } else {
             flags.remove(StateFlags::PRESSED);
