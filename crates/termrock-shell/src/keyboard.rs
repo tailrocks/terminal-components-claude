@@ -61,6 +61,12 @@ pub fn label_deliverable(key: &str) -> bool {
 }
 
 #[cfg(test)]
+/// The tests' serialization guard, shared with other modules' tests.
+#[cfg(test)]
+pub(crate) fn test_lock() -> std::sync::MutexGuard<'static, ()> {
+    tests::lock()
+}
+
 mod tests {
     use super::*;
     use std::sync::{Mutex, MutexGuard, OnceLock};
@@ -68,7 +74,7 @@ mod tests {
     use termrock_core::keys::{KeyCode, KeyModifiers};
 
     /// The delivery answers are process-global; the tests serialize on this.
-    fn lock() -> MutexGuard<'static, ()> {
+    pub(crate) fn lock() -> MutexGuard<'static, ()> {
         static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
         LOCK.get_or_init(|| Mutex::new(()))
             .lock()
