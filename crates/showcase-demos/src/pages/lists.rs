@@ -631,6 +631,23 @@ fn paint_language(ui: &mut Ui<'_>, card: Rect, chosen: &str, single: &ListState)
     };
     ui.register_control(SINGLE, list, Focusability::Focusable);
     let viewport = usize::from(list.height);
+    ui.register_scroll(
+        SINGLE,
+        list,
+        termrock::Axes::V,
+        termrock::Headroom {
+            up: u16::try_from(scroll_offset).unwrap_or(u16::MAX),
+            down: u16::try_from(
+                LANGUAGES
+                    .len()
+                    .saturating_sub(viewport)
+                    .saturating_sub(scroll_offset),
+            )
+            .unwrap_or(u16::MAX),
+            left: 0,
+            right: 0,
+        },
+    );
     ui.report_layout(
         SINGLE,
         termrock::LayoutFacts::new(viewport, LANGUAGES.len(), list.height, list.width),
@@ -695,6 +712,23 @@ fn paint_files(ui: &mut Ui<'_>, card: Rect, multi: &ListState) {
     };
     ui.register_control(MULTI, list, Focusability::Focusable);
     let viewport = usize::from(list.height);
+    ui.register_scroll(
+        MULTI,
+        list,
+        termrock::Axes::V,
+        termrock::Headroom {
+            up: u16::try_from(scroll_offset).unwrap_or(u16::MAX),
+            down: u16::try_from(
+                FILES
+                    .len()
+                    .saturating_sub(viewport)
+                    .saturating_sub(scroll_offset),
+            )
+            .unwrap_or(u16::MAX),
+            left: 0,
+            right: 0,
+        },
+    );
     ui.report_layout(
         MULTI,
         termrock::LayoutFacts::new(viewport, FILES.len(), list.height, list.width),
