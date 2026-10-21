@@ -1570,7 +1570,21 @@ impl<'f> Ui<'f> {
 
     pub(crate) fn composite(&mut self, i: usize) {
         if let Some(d) = self.frame.layers.active().get(i) {
-            d.composite_onto(self.page, &mut self.frame.roles);
+            // The frozen renderer dims the modal layer's own written cells as
+            // well as the underlay at low color levels (16-color and mono):
+            // SGR 2 is added to every composed cell while fg/bg/bold are
+            // preserved, and on the 16-color ladder bright black is lifted to
+            // indexed 7. High color levels dim only the underlay.
+            let content_dim = if matches!(d.spec.backdrop, crate::layer::Backdrop::Dim { .. }) {
+                match self.theme_ref().capability.color {
+                    crate::theme::ColorLevel::Ansi16 => Some(true),
+                    crate::theme::ColorLevel::Mono => Some(false),
+                    _ => None,
+                }
+            } else {
+                None
+            };
+            d.composite_onto(self.page, &mut self.frame.roles, content_dim);
         }
     }
 }
