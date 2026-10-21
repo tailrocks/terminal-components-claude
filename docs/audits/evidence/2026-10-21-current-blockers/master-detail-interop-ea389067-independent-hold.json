@@ -1,0 +1,102 @@
+{
+  "schema": "termrock.independent-review.v1",
+  "reviewer": "/root/tree_adapter_independent_review",
+  "review_effort": "medium",
+  "reviewed_commit": "ea38906769eaa4c10026f1119b7f320c0f8a4e29",
+  "created_utc": "2026-10-21T06:39:15.031294+00:00",
+  "decision": "HOLD",
+  "findings": [
+    {
+      "priority": "P2",
+      "path": "crates/termrock/src/composition.rs:124",
+      "related_paths": [
+        "crates/termrock/src/composition.rs:617",
+        "crates/termrock/src/blocks/master_detail.rs:249"
+      ],
+      "title": "Nested MasterDetail leaves bypass the existing composition depth limit",
+      "evidence": "composition::master_detail wraps a block with nested Group children as ChildContent::Leaf; Child::nested_depth returns0 for every leaf. validate_composition only checks each immediate child Group depth, whose cached depth has already forgotten any nested MasterDetail. Independent public facade test builds MAX_COMPOSITION_DEPTH+2 (130) nested Group/MasterDetail blocks; every adapter constructor accepts them, contrary to the128 bounded composition contract. The deterministic assertion fails without executing an intentionally crashing render. Subsequent recursive measurement/drawing can therefore run beyond the guarded limit.",
+      "reproduction": "cargo nextest run --manifest-path /private/tmp/master-detail-interop-review-ea389067-20261021/external/Cargo.toml --features testing --offline --no-fail-fast",
+      "test": "independent_tests::nested_master_detail_cannot_bypass_composition_depth_limit",
+      "actual": "No constructor rejects130 nested public blocks.",
+      "expected": "Combined composition depth remains accounted through block boundaries; an over-limit structure is rejected before recursive measure/draw.",
+      "required_fix": "Carry the maximum nested master/detail/summary group depth through the existing Child/Group depth accounting (a dedicated structural child variant or equivalent metadata), validate the combined tree, and preserve fallible rejection. Do not raise the limit, flatten to a guessed depth or silently render empty output. Add a failing-before regression through the public adapter."
+    }
+  ],
+  "prior_review_correction": {
+    "packet": "../manager-adoption-plan-independent-1e6957cc5-20261021/review.json",
+    "sha256": "bfa64eaccccdf3ce83ac4cf9e1efa73532f81591ac3c620ec830da3b8a3c4d19",
+    "superseded_claim": "The Group-to-AppShell CompositionLeaf bridge was absent.",
+    "correct_source": "crates/termrock/src/blocks/master_detail.rs:552,561 already implement Measure and CompositionLeaf for Group, including at source1e6957cc5. This implementation lives outside composition.rs and was missed in the earlier read-only inventory.",
+    "retained_requirement": "The stateful MasterDetail-to-Child adapter was actually missing. This change supplies it. The explicit nested example compiles and uses public AppShell.body_slot(&Group) without application geometry."
+  },
+  "checks": [
+    {
+      "command": "cargo nextest run -p termrock --all-targets --features testing",
+      "exit": 0,
+      "passed": 60,
+      "skipped": 0,
+      "log": "/private/tmp/master-detail-interop-review-ea389067-20261021/native.log",
+      "sha256": "ae60eac0a33f265368caf8b96e7240ff22821cecc1e6fe30f60b404ecf57f9f3"
+    },
+    {
+      "command": "cargo check --manifest-path /private/tmp/master-detail-interop-review-ea389067-20261021/external/Cargo.toml --no-default-features --offline",
+      "exit": 0,
+      "log": "/private/tmp/master-detail-interop-review-ea389067-20261021/external-default.log",
+      "sha256": "5ff3957023b3dececc951e9769d8149deee4404aa1325997b991a5598c238d87"
+    },
+    {
+      "command": "cargo nextest run --manifest-path /private/tmp/master-detail-interop-review-ea389067-20261021/external/Cargo.toml --features testing --offline --no-fail-fast",
+      "exit": 100,
+      "passed": 3,
+      "failed": 1,
+      "skipped": 0,
+      "log": "/private/tmp/master-detail-interop-review-ea389067-20261021/external-final.log",
+      "sha256": "db0888f0f676393f754a9682add914d60b573dbffdc2bf32b1ffdc73e33e1736"
+    },
+    {
+      "command": "cargo clippy -p termrock --all-targets --features testing -- -D warnings",
+      "exit": 0,
+      "log": "/private/tmp/master-detail-interop-review-ea389067-20261021/clippy.log",
+      "sha256": "f0825f7044b3b4d8d068b426476135f41e7a643eae145e128c395b2d105e7e18"
+    },
+    {
+      "command": "cargo check -p termrock --example master_detail_composition_consumer --no-default-features",
+      "exit": 0,
+      "log": "/private/tmp/master-detail-interop-review-ea389067-20261021/default-example.log",
+      "sha256": "17be9daf6f083b8a0dc810ab0fc47b8513c180be60a313839b3061585c71ac91"
+    },
+    {
+      "command": "cargo fmt --all --check",
+      "exit": 0,
+      "log": "/private/tmp/master-detail-interop-review-ea389067-20261021/fmt.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "external_consumer": {
+    "manifest": "/private/tmp/master-detail-interop-review-ea389067-20261021/external/Cargo.toml",
+    "source": "/private/tmp/master-detail-interop-review-ea389067-20261021/external/src/lib.rs",
+    "source_sha256": "6c4aca1bb1dec89739a6e2722b6e7891ee4fbc9103546bfb29496d97a54cd102",
+    "dependency": "Standalone workspace depending only on default-feature public termrock; runtime testing feature enabled separately for independent probes.",
+    "domain": "Inventory warehouse/stock/supplier labels, separate consumer package.",
+    "scope": "Compiled default-only nested AppShell/Group/MasterDetail public consumer; direct versus composed complete Buffer/regions/state/actions across four profiles, offset roots, widths120/108/107/100/80/1/0 plus resize. Additional192 pointer/resize comparison checkpoints: four profiles \u00d7 eight sizes \u00d7 six checkpoints, move/down/drag/up/wheel; focus, cursor position/bar, NavListState, MasterDetailState and typed action equality.",
+    "not_claimed": "These tests compare the existing block with its adapter. They are not frozen application CLI or full cursor shape/terminal-mode comparisons."
+  },
+  "source_review": {
+    "borrowing": "Exact configured MasterDetail and caller-owned immutable MasterDetailState are borrowed; existing child groups carry borrowed node/row closures and item slices. No whole application import, cloned persistent state, update call or new renderer introduced.",
+    "measurement": "Delegates existing MasterDetail::measure, which resolves shared layout and uses cloned measurement split state; no component update/domain action. Constructor rejects missing required slots and immediate group depth errors. New finding concerns cumulative nested depth only.",
+    "rendering": "with_area(logical) delegates existing MasterDetail::show; runtime resolver retains allocated child area and clips leaf output. Existing block owns focus scopes, split/drawer state, hit regions and cursor. Existing Group trait bridge is real and compiled.",
+    "errors": "Size-returning Measure and void CompositionLeaf intentionally cannot propagate errors. Adapter catches errors after creation using zero-size/ignored draw, matching existing Group trait conventions; correctness depends on complete structural validation, currently undermined by the depth finding.",
+    "compatibility": "Additive function and private helper only; existing state and action enums unchanged. No unsafe/concurrency changes."
+  },
+  "ci_registration": {
+    "Cargo": "Explicit [[example]] master_detail_composition_consumer without required-features; explicit manager_composition_consumer test requires testing.",
+    "generated_manifest": ".github/velnor/task-execution-manifest-v1.json source inspected (generated header stripped for JSON parsing). Existing stack/rust/crates/termrock/clippy/default and /testing tasks both pass --all-targets, so the registered example is compiled by the generated Clippy plan. Nextest testing task includes default,testing and discovers the registered integration target.",
+    "limitations": "Example main is empty; draw_workspace is typechecked, not launched as a terminal UI. No completed hosted CI run or all-workspace success claimed. No generated files edited."
+  },
+  "remaining_holds": [
+    "Shared Manager semantic row metadata threshold44, middle truncation, trailing reservation, correct gutter ownership and second-consumer proof remain missing.",
+    "Actual Jackin Manager needs one atomic state/update/draw migration and removal of the entire720-line Manager painter plus all selectors/drawer/help underlay callers. The adapter alone removes none of them.",
+    "Current source includes unrelated incoming Jackin/editor and Menu changes; their approval is outside this scope.",
+    "All four applications remain incomplete; no frozen capture/replay/candidate parity, twice-complete gate or final architecture acceptance."
+  ]
+}
