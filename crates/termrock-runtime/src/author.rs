@@ -1,5 +1,11 @@
 use core::fmt;
 
+mod canvas;
+pub use canvas::{
+    put_cell, put_fill, put_fill_in, put_frame, put_frame_in, put_scroll_edges, put_text,
+    put_text_in, put_text_w, text_width,
+};
+
 mod window;
 pub use window::{VerticalWindow, VerticalWindowError};
 
