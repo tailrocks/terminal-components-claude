@@ -1362,11 +1362,6 @@ impl<'a> TextViewport<'a> {
             (text_w, view.offset(), caret_line_start),
             live,
         );
-        let fade = Rect {
-            width: content.width,
-            ..text
-        };
-        ui.scroll_edges(fade, &view);
         text
     }
 
@@ -1484,10 +1479,21 @@ impl<'a> TextViewport<'a> {
         if dy >= usize::from(text.height) || dx >= usize::from(text.width) {
             return;
         }
+        let visible = text.intersection(ui.full());
+        if visible.is_empty() {
+            return;
+        }
         let pos = Position::new(
-            text.x.saturating_add(dx as u16),
+            visible.x.saturating_add(dx as u16),
             text.y.saturating_add(dy as u16),
         );
+        if pos.x < visible.x
+            || pos.x >= visible.right()
+            || pos.y < visible.y
+            || pos.y >= visible.bottom()
+        {
+            return;
+        }
         if self.bar_cursor {
             ui.set_bar_cursor(self.id, pos);
         } else {
@@ -2577,6 +2583,45 @@ mod tests {
                 runtime.app().state.selection(),
                 Some((CellPos::new(0, 0), CellPos::new(0, 2))),
                 "the visible hit must retain the logical column offset ({level:?})"
+            );
+        }
+    }
+
+    #[test]
+    fn visible_caret_matches_wrapped_text_under_horizontal_clipping() {
+        for level in [
+            ColorLevel::TrueColor,
+            ColorLevel::Ansi256,
+            ColorLevel::Ansi16,
+            ColorLevel::Mono,
+        ] {
+            let mut state = ViewportState::default();
+            state.set_follow(false);
+            state.set_caret(Some(CellPos::new(0, 23)));
+            let mut runtime = Runtime::new(
+                ClippedWrappedViewportApp {
+                    state,
+                    clip: Rect::new(4, 1, 8, 3),
+                },
+                Theme::junie().downgrade(level),
+            );
+            let _ = runtime.initialize();
+            let area = Rect::new(0, 0, 30, 6);
+            let mut buffer = Buffer::empty(area);
+            for _ in 0..2 {
+                runtime.draw_buffer(area, &mut buffer).commit_presented();
+            }
+
+            assert_eq!(
+                buffer.cell(Position::new(5, 1)).map(Cell::symbol),
+                Some("W"),
+                "the caret target must remain rendered at {level:?}"
+            );
+            assert_eq!(runtime.focus(), Some(ID));
+            assert_eq!(
+                runtime.cursor_position(),
+                Some(Position::new(5, 1)),
+                "the cursor must follow the rendered wrapped character ({level:?})"
             );
         }
     }
