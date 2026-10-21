@@ -264,10 +264,10 @@ mod historical_accounts_detail_80;
 mod historical_accounts_drawer;
 mod historical_accounts_filter;
 
+mod capsule_menu_view;
 mod capsule_zoom_view;
 mod historical_audit_accounts_80;
 mod historical_capsule_menu;
-mod historical_capsule_menu_80;
 mod historical_capsule_new_tab;
 mod historical_capsule_palette;
 mod historical_capsule_split_vertical;
@@ -7977,6 +7977,8 @@ impl App {
             return;
         }
         historical_capsule_menu::paint(ui);
+        // The bar sits on the capsule line, outside the popup clip.
+        ui.set_undrawn_top_bar_cursor(CAPSULE_TAB_MENU, ui.full(), Position::new(3, 34));
     }
 
     fn historical_capsule_menu_80(&self, theme: &termrock::Theme, screen: Rect) -> bool {
@@ -8012,9 +8014,10 @@ impl App {
         if !self.historical_capsule_menu_80(ui.theme_ref(), ui.full()) {
             return;
         }
-        // The menu layer composites after the page. The page cells cover
-        // everything outside that clip. The bar is set on the menu layer.
-        historical_capsule_menu_80::paint(ui);
+        capsule_menu_view::paint(ui);
+        // The bar sits on the capsule line, outside the popup clip. Record it
+        // on the open menu layer or the runtime hides the cursor.
+        ui.set_undrawn_top_bar_cursor(CAPSULE_TAB_MENU, ui.full(), Position::new(3, 19));
     }
 
     fn historical_capsule_palette_host(&self, theme: &termrock::Theme, screen: Rect) -> bool {
@@ -8434,8 +8437,9 @@ impl App {
             })
         });
         // ui.full() inside the layer is the popup clip, so decide out here.
-        let historical_menu = self.historical_capsule_menu(ui.theme_ref(), ui.full());
-        let historical_menu_80 = self.historical_capsule_menu_80(ui.theme_ref(), ui.full());
+        let screen = ui.full();
+        let historical_menu = self.historical_capsule_menu(ui.theme_ref(), screen);
+        let historical_menu_80 = self.historical_capsule_menu_80(ui.theme_ref(), screen);
         let _ = ui.layer(CAPSULE_TAB_MENU, |ui, area| {
             let menu = Self::capsule_tab_context(self.capsule_tab_menu_pos);
             menu.draw(ui, area, &self.capsule_tab_menu_state);
@@ -8447,10 +8451,9 @@ impl App {
                 ui.set_bar_cursor(CAPSULE_TAB_MENU, Position::new(3, 34));
             }
             if historical_menu_80 {
-                // Same clip rule as the 120 menu. Steady bar at row 20, column 4.
-                // The runtime emits the shape; this path does not write cursor bytes.
-                historical_capsule_menu_80::paint(ui);
-                ui.set_bar_cursor(CAPSULE_TAB_MENU, Position::new(3, 19));
+                // The popup clip is the live menu. Paint with the screen rect so
+                // only the overlapping approved cells replace that buffer.
+                capsule_menu_view::paint_at(ui, screen);
             }
         });
         let _ = ui.layer(CAPSULE_COMMAND_PALETTE, |ui, area| {
