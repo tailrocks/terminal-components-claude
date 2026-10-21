@@ -19,7 +19,7 @@
 //! typed actions that the consumer maps onto its own domain actions.
 
 use termrock::author::{CompositionLeaf, Constraints, Measure, Size};
-use termrock::blocks::{MasterDetail, MasterDetailPolicy, MasterDetailState};
+use termrock::blocks::{MasterDetail, MasterDetailAction, MasterDetailPolicy, MasterDetailState};
 use termrock::composition::{self, Group};
 use termrock::controls::{Button, PropsList, PropsRow, PropsState};
 use termrock::feedback::{StatusAction, StatusBar, StatusItem};
@@ -300,8 +300,8 @@ impl App for RecipeBox {
         let block_response = block.update(cx, &mut self.layout);
         if let Some(action) = block_response.action_ref().copied() {
             self.dispatch(match action {
-                termrock::blocks::MasterDetailAction::DrawerOpened => Action::DetailOpened,
-                termrock::blocks::MasterDetailAction::DrawerClosed => Action::DetailClosed,
+                MasterDetailAction::DrawerOpened => Action::DetailOpened,
+                MasterDetailAction::DrawerClosed => Action::DetailClosed,
             });
         }
         if block_response.is_consumed() {
@@ -311,15 +311,16 @@ impl App for RecipeBox {
 
         let nav_response = self.nav().update(cx, &mut self.list_state, &self.recipes);
         if let Some(action) = nav_response.action_ref().copied() {
-            self.dispatch(match action {
+            let mapped = match action {
                 NavListAction::Moved(key) | NavListAction::EnterContent(key) => {
-                    Action::Focused(key)
+                    Some(Action::Focused(key))
                 }
-                NavListAction::Chose(key) => Action::Chose(key),
-                NavListAction::LeaveBackward | NavListAction::LeaveForward => {
-                    return nav_response.erase();
-                }
-            });
+                NavListAction::Chose(key) => Some(Action::Chose(key)),
+                NavListAction::LeaveBackward | NavListAction::LeaveForward => None,
+            };
+            if let Some(action) = mapped {
+                self.dispatch(action);
+            }
         }
         response |= nav_response.erase();
 
