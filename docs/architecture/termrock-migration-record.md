@@ -681,6 +681,34 @@ proposed public API and the call site. The library stream implements it
 once. No application may fork a widget or hand-paint cells to work around a
 missing component.
 
+### D-011 — Restore the pre-37f55475 component expectations pending adjudication
+
+The 1,060 expectation replacements introduced by `37f55475f` are
+superseded pending an independent reference review that adjudicates those
+exact keys. Restore `crates/termrock-conformance/tests/baselines/components.txt`
+to pre-37f55475 blob `3343d127cfe998069e28037b9abaa95a77f466a4`
+(SHA256 `942219d9ad335ac892ad9658a85a57972fa6cf18afa33220af3b0705cdee474f`)
+without reverting the product or test changes from that commit.
+
+The restored values are preserved expectations, not a semantic approval of
+each old digest. The candidate values remain preserved as unapproved
+observations. The independent test-integrity review retains both blobs and
+the exact changed-key census at
+`/Users/donbeave/Projects/termrock-review-20261021-1536-9plajc9k/source-refresh-census-postfsck-20261022/source-quality-reviews-v10/reviewer-4/A021/test-integrity-e5077810/`;
+A021 evidence preserves both blobs; a separate provenance review independently
+confirmed the pre-change blob identity. Neither review approves candidate
+values or adjudicates the reference for the changed keys.
+Neither blob is authorized for further change until the separate review
+adjudicates the exact affected keys. Red comparisons against the restored
+expectations remain open product/reference conflicts; they are not grounds
+to regenerate, bless, skip or weaken expectations.
+
+The independent integrity review also records the finding that
+`23790b23f` removes CodeEditor `EDITING` binding-state coverage and adds broad
+legacy chord exemptions. That finding remains open for a separate focused
+component-contract review; this expectation repair does not change its
+conformance implementation or authorize those exceptions.
+
 ## Evidence index
 
 Populated as increments land.
