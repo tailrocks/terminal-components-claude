@@ -15,6 +15,7 @@ pub use termrock_core::action::ActionKey;
 pub(crate) use termrock_runtime::{PartStyle, SlotFn, first_row, shift};
 
 pub mod accounts_detail;
+pub mod accounts_drawer;
 pub mod accounts_filter;
 pub mod capsule_menu;
 pub mod hintbar;
@@ -31,6 +32,10 @@ pub mod zoom_pane;
 pub use accounts_detail::{
     AccountRole, AccountRow, AccountsDetail, DetailAlert, DetailHint, DetailTail,
     paint_accounts_detail,
+};
+pub use accounts_drawer::{
+    AccountsDrawer, DrawerButton, DrawerInk, DrawerLine, DrawerMeter, DrawerTone, PaneChrome,
+    PaneRow, paint_accounts_drawer,
 };
 pub use accounts_filter::{
     AccountsFilter, DetailInk, DetailLine, DetailSpan, FilterHint, FilterRow, TailTone,
