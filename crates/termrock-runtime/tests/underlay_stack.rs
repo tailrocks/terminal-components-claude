@@ -172,11 +172,19 @@ struct FadeModel {
 
 impl App for FadeModel {
     fn update(&mut self, cx: &mut termrock_runtime::Cx<'_>) -> termrock_core::Response<()> {
+        const LOWER: Id = Id::root("underlay.fade-lower");
         const POPUP: Id = Id::root("underlay.fade-popup");
+        if !cx.is_open(LOWER) {
+            cx.open_layer(
+                LOWER,
+                LayerSpec::popover(LOWER, Anchor::Point(Position::new(1, 1)))
+                    .size(LayerSize::Fixed(8, 6)),
+            );
+        }
         if !cx.is_open(POPUP) {
             cx.open_layer(
                 POPUP,
-                LayerSpec::popover(POPUP, Anchor::Point(Position::new(1, 1)))
+                LayerSpec::popover(LOWER, Anchor::Point(Position::new(1, 1)))
                     .size(LayerSize::Fixed(8, 6)),
             );
         }
@@ -184,14 +192,24 @@ impl App for FadeModel {
     }
 
     fn draw(&self, ui: &mut Ui<'_>) {
+        const LOWER: Id = Id::root("underlay.fade-lower");
         const POPUP: Id = Id::root("underlay.fade-popup");
         let base = Style::new().fg(Color::Rgb(200, 40, 40)).bg(Color::Black);
         ui.fill(ui.full(), base);
+        let _ = ui.layer(LOWER, |ui, area| {
+            ui.fill(
+                area,
+                Style::new().fg(Color::Rgb(40, 80, 220)).bg(Color::Black),
+            );
+        });
         let _ = ui.layer(POPUP, |ui, area| {
             if self.inherit {
                 ui.fill_keep_ink(area, Color::Black);
             } else {
-                ui.fill(area, base);
+                ui.fill(
+                    area,
+                    Style::new().fg(Color::Rgb(40, 80, 220)).bg(Color::Black),
+                );
             }
             ui.paint_str(
                 Rect::new(area.x, area.y, 1, 1),
