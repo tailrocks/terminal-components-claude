@@ -143,6 +143,13 @@ impl TextEditorCore {
         self.hscroll
     }
 
+    /// Keep the cursor column from scrolling past the last visible glyph.
+    pub fn clamp_hscroll(&mut self, max: u16) {
+        if self.hscroll > max {
+            self.hscroll = max;
+        }
+    }
+
     pub fn line_count(&self) -> usize {
         self.buf.line_count()
     }
