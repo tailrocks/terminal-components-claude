@@ -1,0 +1,24 @@
+{
+  "decision": "HOLD for execution until merge-state cleanup is safe, or coordinator verifies no conflict can arise in the owned checkout and immediately aborts on guard failure. CAS itself is independently clear for the exact ad20 input and probes.",
+  "helper_path": "/private/tmp/termrock-parent-native-expectation-protection-20261021.py",
+  "helper_sha256": "2d243df0e3175603302b730afa5b9e8239dd4a87dc109355e3b7d55ce616b6a3",
+  "input_blob": "1d69703e64c35448e957ed46a6e7b6e160d9ada8",
+  "input_commit": "ad20c7aadaa8c531ea639395a648ec6f624a2a8d",
+  "input_packet_sha256": "b5ffc1beef5221af37ecdf3b9b0ccc01c8ecfe0a4f48c9a95111fda014a44c8e",
+  "positive_findings": [
+    "Corrected helper rereads actual worktree bytes after merge, retaining non-target merged comments/new keys.",
+    "Jackin conflicts are excluded from the allowed conflict set.",
+    "Each audited value must match its recorded ad20 preimage; altered values fail closed.",
+    "Theme73 remains a separate unapproved finding."
+  ],
+  "remaining_finding": {
+    "detail": "If merge has a Jackin or other unexpected conflict, the guard exits after git merge entered conflict state. finally removes the owned lock but does not run git merge --abort, leaving MERGE_HEAD/unmerged paths. Add a narrowly owned abort for unexpected-conflict exits, gated on no pre-existing merge state.",
+    "severity": "bounded operational cleanup issue"
+  },
+  "review_kind": "read-only static helper review plus pure in-memory transform of immutable git blob; no helper execution, repository/source/lock mutation, tests or push",
+  "simulation": {
+    "altered_target_key_fails_closed": true,
+    "audited_preimages_replaced": 22,
+    "unrelated_comment_and_new_key_fixture_preserved": true
+  }
+}
