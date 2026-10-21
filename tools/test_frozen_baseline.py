@@ -2150,5 +2150,150 @@ class RunnerGuards(unittest.TestCase):
             self.assertEqual(path.read_bytes(), original)
 
 
+class CorpusModifierParity(unittest.TestCase):
+    """Modifier-aware corpus admission checks (2026-10-21 backdrop hardening).
+
+    The picker corpus conversion dropped the SGR-2 backdrop DIM consistently
+    from both `<tier>.ansi` and `<tier>.frame.json`, so glyph- or intra-store
+    comparison could not see it. These tests pin: intra-corpus ansi-vs-frame
+    parity, decoder SGR handling, and the cross-store pass against the
+    conversion-independent snapshot dump that makes the defect detectable.
+    """
+
+    FLAGS = runner.CORPUS_MODIFIER_FLAGS
+
+    @staticmethod
+    def mods(**overrides: bool) -> dict[str, bool]:
+        mods = {flag: False for flag in runner.CORPUS_MODIFIER_FLAGS}
+        mods.update(overrides)
+        return mods
+
+    def frame_json(self, cols: int, mods: list[dict[str, bool]]) -> str:
+        return json.dumps({
+            "cols": cols,
+            "rows": 1,
+            "cells": [
+                {"x": i % cols, "y": 0, "symbol": "x", "width": 1, "continuation": False,
+                 "fg": {"Indexed": 7}, "bg": "Default", "mods": mods[i], "underline_color": "Default"}
+                for i in range(len(mods))
+            ],
+            "cursor": {"x": 0, "y": 0, "visible": False, "style": "Block", "blinking": False},
+            "provenance": {"tool": "tuiscotti", "tool_version": "0.2.0", "profile": "default", "argv": [], "created_unix": 0, "source": "screen"},
+        })
+
+    def write_case(self, store: Path, name: str, ansi: str, mods: list[dict[str, bool]]) -> Path:
+        tier_dir = store / name.rsplit("/", 1)[0]
+        tier_dir.mkdir(parents=True, exist_ok=True)
+        cols = len(mods)
+        (store / f"{name}.ansi").write_text(ansi)
+        (store / f"{name}.frame.json").write_text(self.frame_json(cols, mods))
+        (store / f"{name}.manifest.json").write_text(json.dumps({"legacy_name": name, "name": name}))
+        return store / f"{name}.ansi"
+
+    def test_decoder_tracks_sgr_modifier_state(self) -> None:
+        text = "\x1b[2;38;5;0;48;5;0mab\x1b[22mc\x1b[0md\x1b[1mq\x1b[?25h\x1b[13;21H\x1b[6 q"
+        cells = runner.decode_ansi_cell_mods(text)
+        self.assertEqual(len(cells), 5)
+        self.assertEqual(cells[0], self.mods(dim=True))
+        self.assertEqual(cells[2], self.mods())  # SGR 22 clears bold and dim
+        self.assertEqual(cells[3], self.mods())  # SGR 0 resets
+        self.assertEqual(cells[4], self.mods(bold=True))
+
+    def test_decoder_skips_cursor_trailer_and_combining_marks(self) -> None:
+        text = "é\x1b[2mx\x1b[?25h\x1b[13;21H\x1b[6 q"
+        cells = runner.decode_ansi_cell_mods(text)
+        # e + combining acute fold into one cell; only the dimmed x remains.
+        self.assertEqual(len(cells), 2)
+        self.assertEqual(cells[1], self.mods(dim=True))
+
+    def test_decoder_rejects_malformed_escape(self) -> None:
+        with self.assertRaises(runner.RunnerError):
+            runner.decode_ansi_cell_mods("\x1b[2")
+
+    def test_parity_passes_on_matching_artifacts(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            store = Path(tmp) / "tuiscotti-v1"
+            name = "app/scenario/80x24/16"
+            self.write_case(store, name, "\x1b[2ma\x1b[0mb", [self.mods(dim=True), self.mods()])
+            report = runner.corpus_modifier_parity(store, [name])
+            self.assertEqual(report["scenarios_checked"], 1)
+            self.assertEqual(report["failures"], 0)
+
+    def test_parity_fails_when_frame_drops_dim(self) -> None:
+        # Direct picker-defect shape: ansi carries SGR-2, frame.json dim=false.
+        with tempfile.TemporaryDirectory() as tmp:
+            store = Path(tmp) / "tuiscotti-v1"
+            name = "tablepro/workbench/overlay-picker-open/80x24/16"
+            self.write_case(store, name, "\x1b[2ma\x1b[0mb", [self.mods(), self.mods()])
+            with self.assertRaisesRegex(runner.RunnerError, "parity mismatch.*dim"):
+                runner.corpus_modifier_parity(store, [name])
+
+    def test_parity_fails_on_cell_count_mismatch(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            store = Path(tmp) / "tuiscotti-v1"
+            name = "app/scenario/80x24/16"
+            self.write_case(store, name, "\x1b[2mab", [self.mods(dim=True), self.mods()])
+            (store / f"{name}.ansi").write_text("\x1b[2mab")  # second cell missing reset
+            # Replace ansi with one extra cell vs the 2-column frame.
+            (store / f"{name}.ansi").write_text("abc")
+            with self.assertRaisesRegex(runner.RunnerError, "cell count"):
+                runner.corpus_modifier_parity(store, [name])
+
+    def test_cross_store_pass_detects_self_consistent_drop(self) -> None:
+        # The real 2026-10-21 defect class: conversion rewrote ansi and
+        # frame.json consistently (both without the backdrop DIM); only the
+        # snapshot dump still carries the dim runs. Intra-store parity alone
+        # passes; the cross-store pass must fail closed.
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            store = root / "tuiscotti-v1"
+            snapshots = root / "snapshots"
+            name = "tablepro/workbench/overlay-picker-open/80x24/16"
+            self.write_case(store, name, "ab", [self.mods(), self.mods()])
+            snap_dir = snapshots / name.rsplit("/", 1)[0]
+            snap_dir.mkdir(parents=True)
+            (snapshots / f"{name}.ansi").write_text("\x1b[2ma\x1b[0mb")
+            # No cross-store pass: self-consistent corpus passes.
+            runner.corpus_modifier_parity(store, [name])
+            with self.assertRaisesRegex(runner.RunnerError, "snapshot.*dim=True"):
+                runner.corpus_modifier_parity(store, [name], snapshots)
+
+    def test_cross_store_pass_skips_names_without_snapshot(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            store = root / "tuiscotti-v1"
+            name = "app/scenario/80x24/none"
+            self.write_case(store, name, "ab", [self.mods(), self.mods()])
+            report = runner.corpus_modifier_parity(store, [name], root / "snapshots")
+            self.assertEqual(report["snapshot_cross_checks"], 0)
+
+    def test_parity_fails_closed_on_missing_artifacts(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            store = Path(tmp) / "tuiscotti-v1"
+            store.mkdir()
+            with self.assertRaisesRegex(runner.RunnerError, "missing ANSI artifact"):
+                runner.corpus_modifier_parity(store, ["app/scenario/80x24/16"])
+            self.write_case(store, "app/scenario/80x24/16", "ab", [self.mods(), self.mods()])
+            (store / "app/scenario/80x24/16.frame.json").unlink()
+            with self.assertRaisesRegex(runner.RunnerError, "missing artifact"):
+                runner.corpus_modifier_parity(store, ["app/scenario/80x24/16"])
+            name = "app/scenario/80x24/none"
+            self.write_case(store, name, "ab", [self.mods(), self.mods()])
+            (store / f"{name}.manifest.json").unlink()
+            with self.assertRaisesRegex(runner.RunnerError, "missing manifest"):
+                runner.corpus_modifier_parity(store, [name], store.parent / "snapshots")
+            empty = store / "empty-store"
+            empty.mkdir()
+            with self.assertRaisesRegex(runner.RunnerError, "no tier artifacts"):
+                runner.corpus_modifier_parity(empty)
+
+    def test_corpus_check_command_is_wired(self) -> None:
+        args = runner.parser().parse_args(["corpus-check", "--repo", "/tmp", "--case", "a/b/80x24/16"])
+        self.assertEqual(args.command, "corpus-check")
+        self.assertEqual(args.cases, ["a/b/80x24/16"])
+        self.assertEqual(args.store, Path("baselines/tuiscotti-v1"))
+        self.assertEqual(args.snapshots, Path("snapshots"))
+
+
 if __name__ == "__main__":
     unittest.main()
