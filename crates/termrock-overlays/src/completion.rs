@@ -51,7 +51,13 @@ fn popup_anchor(anchor: Rect, replace_len: usize) -> Rect {
     }
 }
 
-fn paint_completion_row(ui: &mut Ui<'_>, row: Rect, item: crate::picker::Item<'_>, chosen: bool) {
+fn paint_completion_row(
+    ui: &mut Ui<'_>,
+    row: Rect,
+    item: crate::picker::Item<'_>,
+    chosen: bool,
+    pressed: bool,
+) {
     use crate::theme::{FgStep, Role};
     use ratatui_core::style::Modifier;
     let card = Role::Surface(crate::theme::Surface::Elevated);
@@ -63,11 +69,17 @@ fn paint_completion_row(ui: &mut Ui<'_>, row: Rect, item: crate::picker::Item<'_
     if chosen {
         fill = fill.add(Modifier::BOLD);
     }
+    if pressed {
+        fill = fill.add(Modifier::REVERSED);
+    }
     ui.fill(row, ui.paint_patch(&fill));
     if row.width > 0 {
         let mut pad = StylePatch::new().set_fg(row_bg).set_bg(row_bg);
         if chosen {
             pad = pad.add(Modifier::BOLD);
+        }
+        if pressed {
+            pad = pad.add(Modifier::REVERSED);
         }
         ui.paint_str(Rect { width: 1, ..row }, " ", ui.paint_patch(&pad));
     }
@@ -77,6 +89,13 @@ fn paint_completion_row(ui: &mut Ui<'_>, row: Rect, item: crate::picker::Item<'_
         Role::Fg(FgStep::Muted)
     };
     if row.width > 1 {
+        let mut glyph_patch = StylePatch::new()
+            .set_fg(glyph_fg)
+            .set_bg(row_bg)
+            .remove(Modifier::BOLD);
+        if pressed {
+            glyph_patch = glyph_patch.add(Modifier::REVERSED);
+        }
         ui.paint_str(
             Rect {
                 x: row.x.saturating_add(1),
@@ -88,12 +107,7 @@ fn paint_completion_row(ui: &mut Ui<'_>, row: Rect, item: crate::picker::Item<'_
             } else {
                 item.glyph
             },
-            ui.paint_patch(
-                &StylePatch::new()
-                    .set_fg(glyph_fg)
-                    .set_bg(row_bg)
-                    .remove(Modifier::BOLD),
-            ),
+            ui.paint_patch(&glyph_patch),
         );
     }
     let detail_w = crate::text::width(item.detail);
@@ -114,6 +128,9 @@ fn paint_completion_row(ui: &mut Ui<'_>, row: Rect, item: crate::picker::Item<'_
         } else {
             patch.remove(Modifier::BOLD)
         };
+        if pressed {
+            patch = patch.add(Modifier::REVERSED);
+        }
         let mut bytes = [0; 4];
         let text = ch.encode_utf8(&mut bytes);
         ui.paint_str(Rect { x, width: 1, ..row }, text, ui.paint_patch(&patch));
@@ -126,6 +143,13 @@ fn paint_completion_row(ui: &mut Ui<'_>, row: Rect, item: crate::picker::Item<'_
         } else {
             Role::Fg(FgStep::Muted)
         };
+        let mut detail_patch = StylePatch::new()
+            .set_fg(detail_fg)
+            .set_bg(row_bg)
+            .remove(Modifier::BOLD);
+        if pressed {
+            detail_patch = detail_patch.add(Modifier::REVERSED);
+        }
         ui.paint_str(
             Rect {
                 x: dx,
@@ -133,12 +157,7 @@ fn paint_completion_row(ui: &mut Ui<'_>, row: Rect, item: crate::picker::Item<'_
                 ..row
             },
             item.detail,
-            ui.paint_patch(
-                &StylePatch::new()
-                    .set_fg(detail_fg)
-                    .set_bg(row_bg)
-                    .remove(Modifier::BOLD),
-            ),
+            ui.paint_patch(&detail_patch),
         );
     }
 }
@@ -741,9 +760,11 @@ impl<T: AsItem, R: RowFn<T>> Completion<'_, T, R> {
                     width: content.width,
                     height: 1,
                 };
+                let row_part = PartRef::item(Part::ROW, semantic.key);
                 let chosen = state.core.cursor() == Some(semantic.key);
-                paint_completion_row(ui, row, semantic, chosen);
-                ui.register_part(self.id, PartRef::item(Part::ROW, semantic.key), row);
+                let pressed = FrameRead::pressed_part(ui, self.id) == Some(row_part);
+                paint_completion_row(ui, row, semantic, chosen, pressed);
+                ui.register_part(self.id, row_part, row);
             }
             area
         })

@@ -289,7 +289,7 @@ pub struct GlobalOverride {
     pub parts: PartMap<PartRecipe>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Recipes {
     by_family: Vec<(Family, Recipe)>,
     overrides: Vec<GlobalOverride>,
@@ -297,6 +297,18 @@ pub struct Recipes {
     mono: Vec<(Family, Vec<MonoRule>)>,
     level_families: Vec<LevelFamilyRecipe>,
     revision: u64,
+}
+
+impl fmt::Debug for Recipes {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Recipes")
+            .field("by_family", &self.by_family)
+            .field("overrides", &self.overrides)
+            .field("neutral", &self.neutral)
+            .field("mono", &self.mono)
+            .field("level_families", &self.level_families)
+            .finish()
+    }
 }
 
 static NEXT_RECIPE_REVISION: AtomicU64 = AtomicU64::new(1);
