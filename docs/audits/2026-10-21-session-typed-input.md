@@ -41,7 +41,7 @@ The replacement test `converted_crossterm_keys_dispatch_with_only_reported_modif
 
 The pinned Crossterm byte parser can consume the second Escape in the legacy coalesced byte stream `ESC ESC x`; after decoding, the resulting bare `x` is indistinguishable from ordinary input. This change does not claim legacy Alt+x parity for that stream. Do not add a time-based inference, a second stdin parser, vendor or patch Crossterm, or enable CSI-u by default. Keep the optional keyboard negotiation off by default and preserve its existing terminal cleanup. Record this case as unresolved pending a supported decoder/reference decision.
 
-The automated test proves conversion and runtime dispatch, not the PTY parser's byte-level behavior. No pinned Tuiscotti PTY trace was run for this bounded increment; E2E evidence remains missing and is not green.
+The automated test proves conversion and runtime dispatch, not the PTY parser's byte-level behavior. No Tuiscotti PTY trace was run for this bounded increment: the available canonical visual runner in `crates/termrock-conformance/tests/visual_baseline/main.rs` internally requires Tuiscotti `a47c9aaefb34e4c00026f99d8a8dd7ee5916b274` and historical oracle `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b`, while this task fixes Tuiscotti `a1ea27f757d75d07b05499276cd932e9f8e067ad` and baseline `4169783ae883788186d161af09ba9c481bd84e5c`. Its cases are also ignored capture jobs, not an already admitted paired byte-to-action trace. E2E evidence remains missing and is not green.
 
 ## Scope and verification
 
