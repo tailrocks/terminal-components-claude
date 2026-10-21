@@ -719,6 +719,8 @@ pub struct TableProApp {
     explorer_pin: u8,
     grid_sort: Option<(TabKey, u16, SortDir)>,
     filter_editor: Option<FilterDraft>,
+    /// Whether the filter card's value field holds the focus.
+    filter_value_focused: bool,
 }
 
 struct FilterDraft {
@@ -844,6 +846,7 @@ impl TableProApp {
             explorer_pin: 0,
             grid_sort: None,
             filter_editor: None,
+            filter_value_focused: false,
         };
         app.keymap.add(
             KeyPhase::Capture,
@@ -897,6 +900,11 @@ impl TableProApp {
 
     pub fn status(&self) -> &str {
         &self.status
+    }
+
+    /// Whether the filter card's value field holds the focus.
+    pub const fn filter_value_focused(&self) -> bool {
+        self.filter_value_focused
     }
 
     pub const fn screen(&self) -> Screen {
@@ -9828,18 +9836,8 @@ impl App for TableProApp {
         {
             cx.focus(id);
         }
-        if self.surface == Surface::FilterEditor
-            && self
-                .filter_editor
-                .as_ref()
-                .is_some_and(|draft| draft.column == "id" && draft.value.is_empty())
-        {
-            let view = cx.viewport();
-            // The approved bar sits on the 120×40 value placeholder.
-            if view.width == 120 && view.height == 40 {
-                cx.focus(FILTER_VALUE);
-            }
-        }
+        self.filter_value_focused =
+            self.filter_editor.is_some() && cx.state(FILTER_VALUE).contains(StateFlags::FOCUSED);
 
         response
     }
