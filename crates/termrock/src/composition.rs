@@ -34,6 +34,7 @@ pub struct Child<'a> {
 
 enum ChildContent<'a> {
     Leaf(Box<dyn CompositionLeaf + 'a>),
+    MasterDetail(Box<MasterDetailLeaf<'a, 'a>>),
     Group(Box<Group<'a>>),
     Panel(Box<PanelLeaf<'a>>),
 }
@@ -46,6 +47,7 @@ impl fmt::Debug for Child<'_> {
                 "content",
                 &match &self.content {
                     ChildContent::Leaf(_) => "leaf",
+                    ChildContent::MasterDetail(_) => "master_detail",
                     ChildContent::Group(_) => "group",
                     ChildContent::Panel(_) => "panel",
                 },
@@ -121,7 +123,7 @@ where
 {
     component.validate_composition()?;
     Ok(Child {
-        content: ChildContent::Leaf(Box::new(MasterDetailLeaf { component, state })),
+        content: ChildContent::MasterDetail(Box::new(MasterDetailLeaf { component, state })),
         policy: ChildPolicy::default(),
     })
 }
@@ -135,14 +137,16 @@ impl Measure for MasterDetailLeaf<'_, '_> {
     fn measure(&self, ui: &Ui<'_>, constraints: Constraints) -> Size {
         self.component
             .measure(ui, self.state, constraints)
-            .unwrap_or_default()
+            .expect("MasterDetail leaf is validated before composition measurement")
     }
 }
 
 impl CompositionLeaf for MasterDetailLeaf<'_, '_> {
     fn draw(&self, ui: &mut Ui<'_>, logical: ratatui_core::layout::Rect) {
         ui.with_area(logical, |ui| {
-            let _ = self.component.show(ui, self.state);
+            self.component
+                .show(ui, self.state)
+                .expect("MasterDetail leaf is validated before composition drawing");
         });
     }
 }
@@ -517,7 +521,7 @@ impl Drop for Group<'_> {
             match child.content {
                 ChildContent::Group(mut group) => pending.append(&mut group.children),
                 ChildContent::Panel(panel) => pending.push(panel.body),
-                ChildContent::Leaf(_) => {}
+                ChildContent::Leaf(_) | ChildContent::MasterDetail(_) => {}
             }
         }
     }
@@ -591,6 +595,10 @@ impl<'a> Group<'a> {
         }
     }
 
+    pub(crate) const fn composition_depth(&self) -> usize {
+        self.depth
+    }
+
     fn slots(&self) -> CompositionSlots<'_> {
         let children: Vec<_> = self.children.iter().map(Child::slot).collect();
         match self.direction {
@@ -617,6 +625,7 @@ impl Child<'_> {
     fn nested_depth(&self) -> usize {
         match &self.content {
             ChildContent::Leaf(_) => 0,
+            ChildContent::MasterDetail(block) => block.component.composition_depth(),
             ChildContent::Group(group) => group.depth,
             ChildContent::Panel(panel) => panel.nested_depth(),
         }
@@ -625,6 +634,7 @@ impl Child<'_> {
     fn measure_validated(&self, ui: &Ui<'_>, constraints: Constraints) -> Size {
         match &self.content {
             ChildContent::Leaf(leaf) => leaf.measure(ui, constraints),
+            ChildContent::MasterDetail(block) => block.measure(ui, constraints),
             ChildContent::Group(group) => group.measure_validated(ui, constraints),
             ChildContent::Panel(panel) => panel.measure(ui, constraints),
         }
@@ -633,6 +643,7 @@ impl Child<'_> {
     fn draw_validated(&self, ui: &mut Ui<'_>, logical: ratatui_core::layout::Rect) {
         match &self.content {
             ChildContent::Leaf(leaf) => leaf.draw(ui, logical),
+            ChildContent::MasterDetail(block) => block.draw(ui, logical),
             ChildContent::Group(group) => group.draw_at_validated(ui, logical),
             ChildContent::Panel(panel) => panel.draw(ui, logical),
         }
@@ -641,6 +652,7 @@ impl Child<'_> {
     fn slot(&self) -> ContentSlot<'_> {
         match &self.content {
             ChildContent::Leaf(leaf) => ContentSlot::new(leaf.as_ref(), self.policy),
+            ChildContent::MasterDetail(block) => ContentSlot::new(block.as_ref(), self.policy),
             ChildContent::Group(group) => ContentSlot::nested(group.slots(), self.policy),
             ChildContent::Panel(panel) => ContentSlot::new(panel.as_ref(), self.policy),
         }
