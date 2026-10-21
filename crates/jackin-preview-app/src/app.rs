@@ -8079,13 +8079,43 @@ impl App {
             .unwrap_or(termrock::Color::Reset);
         let overflow = style.fg(muted_fg);
         if keep_container {
-            let container_x = crumb_x.saturating_sub(sep).saturating_sub(container_w);
-            ui.paint_str(
-                Rect::new(container_x, area.y, container_w, 1),
-                &container,
-                style,
-            );
-            ui.paint_str(Rect::new(crumb_x, area.y, crumb_w, 1), &crumb, bold);
+            // Wide rows keep crumb, a middle-cut container, then the
+            // running count. Narrow rows stay on the ellipsis branches.
+            let shown = truncate_middle(&container, 28);
+            let shown_w = termrock::width(&shown);
+            let running = self
+                .world
+                .instances
+                .iter()
+                .filter(|instance| instance.status.is_live())
+                .count();
+            let instances = (running > 1).then(|| plural(running, "instance", "instances"));
+            let inst_w = instances
+                .as_ref()
+                .map(|text| termrock::width(text))
+                .unwrap_or(0);
+            let inst_gap = u16::from(instances.is_some()).saturating_mul(sep);
+            let group = crumb_w
+                .saturating_add(sep)
+                .saturating_add(shown_w)
+                .saturating_add(inst_gap)
+                .saturating_add(inst_w);
+            let mut x = right.saturating_sub(group);
+            ui.paint_str(Rect::new(x, area.y, crumb_w, 1), &crumb, bold);
+            x = x.saturating_add(crumb_w).saturating_add(sep);
+            // Muted padding hugs the container. The other gap cell stays
+            // the menubar fill.
+            ui.paint_str(Rect::new(x.saturating_sub(1), area.y, 1, 1), " ", overflow);
+            ui.paint_str(Rect::new(x, area.y, shown_w, 1), &shown, overflow);
+            if let Some(text) = instances {
+                ui.paint_str(
+                    Rect::new(x.saturating_add(shown_w), area.y, 1, 1),
+                    " ",
+                    overflow,
+                );
+                x = x.saturating_add(shown_w).saturating_add(sep);
+                ui.paint_str(Rect::new(x, area.y, inst_w, 1), &text, overflow);
+            }
         } else if crumb_x > used {
             ui.paint_str(
                 Rect::new(crumb_x.saturating_sub(sep).saturating_sub(1), area.y, 1, 1),
@@ -8292,16 +8322,21 @@ impl App {
             .unwrap_or_else(|| "detached".to_owned());
         let (agent_line, agent_warn, meter_label, ratio, pct, stale, pane_meta, dirty) =
             self.capsule_status_parts();
+        let weekly = self.capsule_second_meter();
         let panes = termrock::width(&pane_meta);
         let dirty_w = termrock::width(&dirty);
         let agent_w = termrock::width(&agent_line);
         let work_w = termrock::width(&work);
         let meter_w = termrock::width(&meter_label).saturating_add(METER_EXTRA);
-        let mut keep = [true, true, true, true, true];
-        let widths = [work_w, dirty_w, agent_w, panes, meter_w];
-        let priority = [10u8, 6, 8, 2, 9];
-        let group = [0u8, 0, 1, 1, 2];
-        let needed = |keep: &[bool; 5]| -> u16 {
+        let weekly_w = weekly
+            .as_ref()
+            .map(|(label, _, _, _)| termrock::width(label).saturating_add(METER_EXTRA))
+            .unwrap_or(0);
+        let mut keep = [true, true, true, true, true, weekly.is_some()];
+        let widths = [work_w, dirty_w, agent_w, panes, meter_w, weekly_w];
+        let priority = [10u8, 6, 8, 2, 9, 7];
+        let group = [0u8, 0, 1, 1, 2, 2];
+        let needed = |keep: &[bool; 6]| -> u16 {
             // (width, count) per shrink group.
             let mut groups = [(0u16, 0u16); 3];
             for ((&on, &g), &w) in keep.iter().zip(group.iter()).zip(widths.iter()) {
@@ -8321,7 +8356,12 @@ impl App {
                 }
             }
             let gaps = present.saturating_sub(1).saturating_mul(GAP);
-            let more = u16::from(keep.iter().any(|on| !on)).saturating_mul(1 + GAP);
+            let more = u16::from(
+                keep.iter()
+                    .enumerate()
+                    .any(|(index, on)| (index < 5 || weekly.is_some()) && !on),
+            )
+            .saturating_mul(1 + GAP);
             total
                 .saturating_add(gaps)
                 .saturating_add(more)
@@ -8330,7 +8370,7 @@ impl App {
         while needed(&keep) > area.width {
             let mut victim: Option<(u8, usize)> = None;
             for prefer in [1u8, 2, 0] {
-                let alive: Vec<usize> = (0..5)
+                let alive: Vec<usize> = (0..6)
                     .filter(|i| {
                         keep.get(*i).copied().unwrap_or(false) && group.get(*i) == Some(&prefer)
                     })
@@ -8373,6 +8413,14 @@ impl App {
         }
         let left_end = x.saturating_sub(GAP);
         let mut rx = area.right().saturating_sub(EDGE);
+        let weekly_x = if keep[5] {
+            rx = rx.saturating_sub(weekly_w);
+            let at = rx;
+            rx = rx.saturating_sub(GAP);
+            at
+        } else {
+            0
+        };
         let meter_x = if keep[4] {
             rx = rx.saturating_sub(meter_w);
             let at = rx;
@@ -8381,14 +8429,18 @@ impl App {
         } else {
             area.right().saturating_sub(EDGE)
         };
-        let mut right_start = if keep[4] {
+        let meters_on = keep[4] || keep[5];
+        let mut right_start = if meters_on {
             rx.saturating_add(GAP)
         } else {
             area.right().saturating_sub(EDGE)
         };
-        let hidden = keep.iter().any(|on| !on);
+        let hidden = keep
+            .iter()
+            .enumerate()
+            .any(|(index, on)| (index < 5 || weekly.is_some()) && !on);
         if hidden && area.width > 2 * EDGE {
-            let at = if keep[4] {
+            let at = if meters_on {
                 right_start.saturating_sub(GAP + 1)
             } else {
                 right_start.saturating_sub(1)
@@ -8431,6 +8483,23 @@ impl App {
                 &format!("{pct}%"),
                 stale,
                 pct,
+            );
+        }
+        if let Some((label, ratio, pct, stale)) = weekly.as_ref().filter(|_| keep[5]) {
+            let label_w = termrock::width(label);
+            ui.paint_str(Rect::new(weekly_x, area.y, label_w, 1), label, muted);
+            self.paint_session_meter(
+                ui,
+                Rect::new(
+                    weekly_x.saturating_add(label_w).saturating_add(1),
+                    area.y,
+                    weekly_w.saturating_sub(label_w).saturating_sub(1),
+                    1,
+                ),
+                *ratio,
+                &format!("{pct}%"),
+                *stale,
+                *pct,
             );
         }
     }
@@ -8590,6 +8659,32 @@ impl App {
             pane_meta,
             dirty,
         )
+    }
+
+    /// Second metered quota window. Session stays the first meter. Weekly
+    /// is this one, and it drops before Session when the row is short.
+    fn capsule_second_meter(&self) -> Option<(String, f64, u8, bool)> {
+        let instance_id = self.active_running_instance_id()?;
+        let daemon = self.world.daemons.get(&instance_id)?;
+        let pane = daemon.pane(daemon.focused_pane()?)?;
+        let account = pane
+            .proc
+            .account
+            .as_ref()
+            .and_then(|id| self.world.accounts.get(id))?;
+        let window = account
+            .usage
+            .windows
+            .iter()
+            .filter(|window| window.has_meter())
+            .nth(1)?;
+        let stale = matches!(
+            account.usage.freshness.phase,
+            Freshness::Stale | Freshness::Failed
+        );
+        let label = window.label.split(' ').next().unwrap_or("Usage").to_owned();
+        let pct = window.used_pct.unwrap_or(0);
+        Some((label, f64::from(pct) / 100.0, pct, stale))
     }
 
     fn paint_capsule_tab_menu_hints(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -9602,6 +9697,39 @@ fn capsule_span_role(tone: crate::sim::pty::Tone) -> termrock::Role {
         Tone::Error => termrock::Role::Custom(termrock::Color::Rgb(0xf0, 0x5d, 0x5d)),
         other => other.role(),
     }
+}
+
+fn truncate_middle(text: &str, max: usize) -> String {
+    if usize::from(termrock::width(text)) <= max {
+        return text.to_owned();
+    }
+    if max < 5 {
+        return truncate_chars(text, max);
+    }
+    let keep_end = (max - 1) / 3;
+    let keep_start = max - 1 - keep_end;
+    let mut head = String::new();
+    let mut used = 0usize;
+    for ch in text.chars() {
+        let next = used.saturating_add(usize::from(termrock::width(ch.encode_utf8(&mut [0; 4]))));
+        if next > keep_start {
+            break;
+        }
+        head.push(ch);
+        used = next;
+    }
+    let chars: Vec<char> = text.chars().collect();
+    let mut tail = String::new();
+    let mut used = 0usize;
+    for ch in chars.iter().rev() {
+        let next = used.saturating_add(usize::from(termrock::width(ch.encode_utf8(&mut [0; 4]))));
+        if next > keep_end {
+            break;
+        }
+        tail.insert(0, *ch);
+        used = next;
+    }
+    format!("{head}…{tail}")
 }
 
 fn truncate_chars(text: &str, max: usize) -> String {
