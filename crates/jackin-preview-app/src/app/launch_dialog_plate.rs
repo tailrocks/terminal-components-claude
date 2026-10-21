@@ -5,6 +5,12 @@
 //! inks for 256, 16, and mono until the shared capability ladders reproduce
 //! the frozen dialog inks and the info and cancel dialogs render through the
 //! real layer flow at every level.
+//!
+//! The 256-color remap uses the shared theme ladder
+//! (`termrock::theme::downgrade_color`). The 16-color and mono remap below is
+//! still an app-local shim: the theme crate has no per-ink ladder that follows
+//! the token ramp, so the accent would land on gray instead of the bright
+//! green the frozen frames carry.
 
 use termrock::{Color, ColorLevel, Rect, Ui};
 
@@ -119,26 +125,9 @@ fn on_black(color: Color) -> bool {
     )
 }
 
-/// Junie truecolor token → baseline `apply_256` index.
+/// One truecolor ink → the 256-color ink of the shared ladder.
+///
+/// The downgrade comes from the theme crate, not from an app-local table.
 fn ansi256_ink(color: Color) -> Color {
-    let Color::Rgb(red, green, blue) = color else {
-        return color;
-    };
-    let index = match (red, green, blue) {
-        (0x18, 0x18, 0x1b) => 233,
-        (0x4d, 0x4d, 0x4d) | (0x73, 0x73, 0x73) => 242,
-        (0x8a, 0x8a, 0x8a) => 245,
-        (0xb3, 0xb3, 0xb3) => 249,
-        (0xff, 0xff, 0xff) => 231,
-        (0x48, 0xe0, 0x54) => 78,
-        (0x26, 0x26, 0x26) => 238,
-        (0x27, 0x27, 0x2a) => 235,
-        (0x19, 0x19, 0x1c) => 232,
-        (0x00, 0x00, 0x00) => 16,
-        (0xff, 0x6b, 0x6b) => 203,
-        _ => {
-            return termrock::theme::downgrade_color(color, ColorLevel::Ansi256);
-        }
-    };
-    Color::Indexed(index)
+    termrock::theme::downgrade_color(color, ColorLevel::Ansi256)
 }
