@@ -1732,3 +1732,45 @@ list/tree rows. Gaps left open: `Theme::gutter`/`gutter_symbol` need a
 focus-visibility gate and per-family focused-disabled policy before any paint
 site can adopt them; the text-selection reverse-video and menu sweep assertions
 of the reference belong to the editors/overlays owners.
+
+## 2026-10-21: termrock-theme visual-helper upgrade (adoption-ready)
+
+The four audit gaps in the shared ink helpers are closed in
+`crates/termrock-theme/src/visual.rs`; every frozen paint site measured by the
+controls/navigation adoption audit can now adopt the helpers byte-identically:
+
+- Focus-visibility gate and per-family focused-disabled policy are one shared
+  mechanism: `FocusBarPolicy` (`RowBlanked` default = the old baked-in rule,
+  `RowKept` for `CHOICE`/`TREE`/`STEPS` off-mono disabled rows, `FocusVisible`
+  for `BUTTON`, whose focus-visible bar survives disabled). Tier-sensitive
+  rules read the theme capability level; `Theme::focus_bar_symbol(policy,
+  flags)` is the shared glyph entry point, `gutter_symbol` delegates with
+  `RowBlanked` so its reference behavior is unchanged.
+- Unfocused gutter fills: `GutterCell` (`Inherit` default, `Fill` reference)
+  with `Theme::gutter_in(policy, flags, cell, bg, on_accent)`; `Inherit`
+  stamps only the bar's fg ink, never a background, so a no-bar cell is
+  byte-identical to the container surface. The legacy `gutter` delegates with
+  `Fill`.
+- Under-backdrop chosen ink: `BackdropSelection` (`Neutral` default,
+  `Accent` = the frozen checked markers) with `Theme::chosen_in_with` and
+  `Theme::inactive_look_with`; `chosen_in`/`inactive_look` delegate with
+  `Neutral`, so the reference default is unchanged and not flipped.
+- Adoption proof: `crates/termrock-theme/tests/frozen_helper_adoption.rs`
+  renders each frozen gutter cell twice (recipe `Theme::resolve` vs the
+  upgraded helpers into a one-cell buffer) and asserts equal cells for
+  `BUTTON`/`CHOICE`/`TREE`/`STEPS`/`LIST` at all four tiers, plus marker ink
+  via `chosen_in_with(Accent, .., BackdropSelection::Accent)`. All pass.
+- Frozen pins: `crates/termrock-theme/tests/frozen_focus_bar_policy.rs`,
+  `gutter_cell_inherit.rs` and `backdrop_chosen_ink.rs` pin the frozen truth
+  tables per tier; `termrock-controls`/`termrock-navigation`
+  `frozen_ink_pins` stay green.
+- Known pre-existing failure, unrelated to this series:
+  `termrock-theme::empty_style_inheritance
+  standalone_empty_cells_match_pre_inheritance_reference` fails identically
+  on the unmodified branch head.
+
+Controls/navigation can now adopt: `BUTTON` -> `FocusVisible`,
+`CHOICE`/`TREE`/`STEPS` -> `RowKept`, `LIST` -> `RowBlanked`, all with
+`GutterCell::Inherit`; checked markers -> `chosen_in_with(..,
+BackdropSelection::Accent)`. The `InactiveSelection::Accent` under-backdrop
+default flip for chosen-row fills stays unmade (deliberate visual change).
