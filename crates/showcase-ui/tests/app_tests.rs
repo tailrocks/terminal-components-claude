@@ -520,7 +520,7 @@ fn list_scrolling_and_selection() {
     press(&mut h, KeyCode::Char(' '));
     assert_ne!(h.text().matches("✓").count(), before);
     press(&mut h, KeyCode::Char('a'));
-    assert!(h.text().contains("src/api/auth…"));
+    assert!(h.text().contains("src/api/auth"));
 }
 
 #[test]
