@@ -46,8 +46,9 @@ values are equal and fingerprint equally.
 
 Evidence: `cargo nextest run -p termrock-conformance` fell from 602 failures to
 19 failures on the same source, with no expectation updated and no test
-weakened. The remaining 19 are separate component-contract failures listed in
-"Open verification".
+weakened. A later conformance-driver pass took the focused suite from 23 to 10
+failing cases (see "Open verification"). The 225 `render_components` digest
+mismatches are a separate, branch-wide red confirmed on the origin tip.
 
 ## Picker contract gaps closed
 
@@ -140,14 +141,76 @@ superseded owner decisions): modal backdrop DIM, neutral inactive selection,
 
 ## Open verification
 
-Known failures on the pinned tip after the fingerprint fix that are **not**
-caused by this increment and are not accepted as green:
+### Conformance driver repairs (this increment)
 
-- `termrock-conformance`: 19 cases — `context_menu`/`grid` mono distinction,
-  `dialog`/`filter_list`/`code_editor`/`help_overlay`/`picker` binding
-  agreement, `filter_list`/`picker` hover restoration, and the `help_overlay`
-  focus/traversal/tiny-rect/wheel group. Investigation started; root causes
-  are not yet recorded.
+`termrock-conformance --test conformance` moved from 23 failing cases on the
+pinned tip to 10. No expectation was loosened; each change makes the shared
+harness or the component's advertised contract match what the widget really
+does.
+
+- The driver opened an overlay only when `activation_id != control_id`. A
+  widget whose control lives inside the layer and that declares an explicit
+  `opener_id` (Dialog) was never opened, so activation, dynamic-binding and
+  remap checks ran against a closed layer. `needs_layer_opened` now also
+  consults `opener_id`, and `dynamic_bindings_follow_keymap` opens the layer
+  before pressing the chord. `DialogCase` gained the existing
+  `open_overlay` hook. Fixes `dialog::bindings_match_handled_keys` and
+  `dialog::keyboard_and_mouse_activation_are_equivalent`.
+- `bindings_match_handled_keys` now seeds each case from `C::fixture()`
+  (default `Fixture::default()`), so a case whose widget cannot paint or
+  register inside 30x6 can widen its base rect without special-casing a
+  check. `HelpOverlayCase` uses a 30x10 rect.
+- The chord-universe half of that check runs after focusing the control, but
+  compared against the empty-state table only. It now also accepts the
+  focused table, because an editor with `EditEntry::Immediate` really handles
+  its edit table as soon as it is focused.
+- `CodeEditor::bindings` advertises the edit table for `FOCUSED` when the
+  entry mode is immediate and the editor is editable (mirrors its update).
+- Composite cases declare the inner text editor's chords through
+  `legacy_key_chords` (`INNER_EDITOR_CHORDS`): `field`, `form`,
+  `text_input`, `text_area`, `filter_list`, `picker`. The outer typed table
+  cannot name a command owned by the inner editor.
+- `Picker::PARTS` now lists `Part::PLACEHOLDER`, which the picker styles
+  through its query field.
+
+### Remaining conformance failures (10)
+
+Recorded with root cause; not fixed in this increment because each needs a
+reference decision or a visual change beyond the harness:
+
+- `filter_list::hover_does_not_steal_focus`, `picker::hover_does_not_steal_focus`:
+  the key that starts query editing changes the hovered part, so the
+  subsequent pointer move no longer marks the outer control `HOVERED`.
+  Needs a rule for hover while an owned editor is editing.
+- `picker::wheel_at_boundary_is_consumed_without_repaint`,
+  `help_overlay::wheel_at_boundary_is_consumed_without_repaint`: the open
+  layer's scroll target does not receive the wheel at the boundary, so the
+  event is ignored instead of consumed. Needs the overlay scroll owner wired
+  to the layer hit region.
+- `grid::mono_states_are_distinguishable`,
+  `grid_error_is_real_cell_decor_and_mono_distinct`: cell ERROR decor is
+  colour-only; `NO_COLOR`/mono needs a glyph or modifier distinction.
+- `scroll_region::mono_states_are_distinguishable`: the thumb paints
+  `PRESSED` only from `ui.pressed_part(THUMB)`, so a reference-injected
+  `PRESSED` state paints identically to rest in mono.
+- `help_overlay::mono_states_are_distinguishable`: the card paints no focus
+  affordance for `FOCUSED` at mono, so focused and plain frames are equal.
+- `help_overlay::local_override_does_not_mutate_the_theme`: the card paints
+  hardcoded ink (`ink(...)` with custom roles), so an instance part patch on
+  `Part::CONTAINER` cannot reach resolution.
+- `help_overlay::bindings_match_handled_keys`: the card declares `↑` on its
+  own table, but after the layer opens focus belongs to the scroll/done
+  child, so the root owner never receives the chord.
+
+### Other gate red (pre-existing on the pinned tip)
+
+- `termrock-conformance` digest suites: 225 `render_components` digest
+  mismatches (`tree::default` is `94e7ce70bb65b804` in the blessed table and
+  renders `68aca379bb96d54f`). Confirmed identical on
+  `origin/parity/termrock-visual-baseline` tip `a55276b64`, so it is
+  branch-wide and not caused by this increment. It is not accepted as green;
+  it needs one classified visual decision for the whole component set, not a
+  bless.
 - `termrock-navigation::item_row_columns`: two pre-existing failures
   (`constructor_defaults_match_the_pre_policy_full_cell_fixture`,
   `owner_part_styles_win_over_painter_defaults_in_columns_mode`).
