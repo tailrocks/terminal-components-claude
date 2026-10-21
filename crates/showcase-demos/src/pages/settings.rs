@@ -105,11 +105,9 @@ const LEFT_NEED: u16 = 24;
 const CARD_H: u16 = 16;
 const COLUMN_GAP: u16 = 4;
 const NARROW_W: u16 = 59;
-const NARROW_H: u16 = 18;
 const NARROW_GUTTER: u16 = 2;
 const NARROW_SCROLL_CONTENT: u16 = 25;
 const COMPACT_W: u16 = 51;
-const COMPACT_H: u16 = 14;
 // 11×11/24 = 5 thumb rows on the 72×20 bar.
 const COMPACT_SCROLL_CONTENT: u16 = 24;
 const SCROLL_THUMB: u32 = 0x0080_8080;
@@ -184,11 +182,11 @@ fn paint_at(ui: &mut Ui<'_>, area: Rect, x: u16, y: u16, text: &str, style: Pain
 }
 
 fn narrow_frame(body: Rect) -> bool {
-    body.width == NARROW_W && body.height == NARROW_H
+    body.width <= NARROW_W && body.width > COMPACT_W
 }
 
 fn compact_frame(body: Rect) -> bool {
-    body.width == COMPACT_W && body.height == COMPACT_H
+    body.width <= COMPACT_W
 }
 
 fn paint_clip(

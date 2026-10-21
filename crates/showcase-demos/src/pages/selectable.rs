@@ -253,9 +253,6 @@ const BLURB: &str = "Select rows, edit one or many together, delete with a confi
 const SECTIONS: [&str; 3] = ["Playground", "Options", "States"];
 const SECTION_CAPTION: &str = "the live widget";
 const SECTION_WIDE: u16 = 76;
-// Page rect inside the 160×50 shell. Narrower shells stay stacked.
-const WIDE_PAGE_W: u16 = 134;
-const WIDE_PAGE_H: u16 = 46;
 
 const MEMBERS_H: u16 = 15;
 const EDITOR_H: u16 = 17;
@@ -1444,7 +1441,7 @@ fn paint_editor_hint(ui: &mut Ui<'_>, card: Rect) {
 }
 
 fn wide_page(area: Rect) -> bool {
-    area.width == WIDE_PAGE_W && area.height == WIDE_PAGE_H
+    area.width >= 120 && area.height >= 40
 }
 
 fn content_height() -> u16 {
