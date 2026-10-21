@@ -14,7 +14,7 @@ use ratatui_core::style::Color;
 use termrock_controls::{Button, ButtonFocusVisibility, ReferenceState, ReferenceTarget};
 use termrock_core::id::{Id, Part};
 use termrock_core::response::Response;
-use termrock_runtime::{App, Cx, Status, Ui};
+use termrock_runtime::{App, Cx, Focusability, Status, Ui};
 use termrock_test_support::Harness;
 use termrock_theme::{
     ColorLevel, Family, GlyphRole, Role, Slot, StateFlags, StylePatch, Theme, Variant,
@@ -851,4 +851,77 @@ fn wide_and_combining_labels_clip_at_narrow_widths() {
             let _ = h.cell(x, 0).symbol();
         }
     }
+}
+
+#[derive(Default)]
+struct ClickOnlyPage {
+    click_only: bool,
+    activations: usize,
+}
+
+impl ClickOnlyPage {
+    fn button(&self) -> Button<'static> {
+        Button::new(CLICK_ONLY_BUTTON, "Close").focusability(if self.click_only {
+            Focusability::ClickOnly
+        } else {
+            Focusability::Focusable
+        })
+    }
+}
+
+impl App for ClickOnlyPage {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        if self.button().update(cx).activated() {
+            self.activations += 1;
+            Response::changed()
+        } else {
+            Response::ignored()
+        }
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        self.button().draw(ui, AREA);
+    }
+}
+
+const CLICK_ONLY_BUTTON: Id = Id::root("button.contract.click-only");
+
+#[test]
+fn click_only_button_loses_keyboard_focus_but_keeps_pointer_activation() {
+    let mut h = Harness::new(ClickOnlyPage::default(), focus_theme(), 20, 1);
+    assert!(h.ring().is_registered(CLICK_ONLY_BUTTON));
+    let _ = h.key(termrock_core::keys::KeyCode::Tab);
+    assert_eq!(h.focus(), Some(CLICK_ONLY_BUTTON));
+
+    h.app_mut().click_only = true;
+    let _ = h.tick();
+    assert!(!h.ring().is_registered(CLICK_ONLY_BUTTON));
+    assert_ne!(h.focus(), Some(CLICK_ONLY_BUTTON));
+    assert_ne!(
+        h.resolved(CLICK_ONLY_BUTTON, Part::GUTTER).glyph,
+        termrock_theme::Slot::Set(GlyphRole::FocusBar),
+        "a ClickOnly button never paints the keyboard focus marker"
+    );
+
+    let _ = h.key(termrock_core::keys::KeyCode::Enter);
+    let _ = h.key(termrock_core::keys::KeyCode::Char(' '));
+    assert_eq!(
+        h.app().activations,
+        0,
+        "ClickOnly disables keyboard activation"
+    );
+
+    let _ = h.mouse(termrock_core::event::MouseKind::Down, 2, 0);
+    assert_ne!(h.focus(), Some(CLICK_ONLY_BUTTON));
+    assert_eq!(
+        h.app().activations,
+        0,
+        "press does not activate the control"
+    );
+    let _ = h.mouse(termrock_core::event::MouseKind::Up, 2, 0);
+    assert_eq!(
+        h.app().activations,
+        1,
+        "the rendered control remains clickable"
+    );
 }
