@@ -12,7 +12,9 @@ use termrock_editors::{
     CodeEditor, CodeEditorState, CompletingCodeEditor, CompletingCodeEditorState,
 };
 use termrock_layout::{ChildPolicy, Composition as LayoutComposition, Constraints, Size};
-use termrock_navigation::{NavList, NavListState, Steps, StepsState, Tabs, TabsState};
+use termrock_navigation::{
+    NavList, NavListState, Steps, StepsState, Tabs, TabsState, Tree, TreeState,
+};
 use termrock_overlays::{Select, SelectState};
 pub use termrock_runtime::CompositionError;
 use termrock_runtime::author::CompositionLeaf;
@@ -388,6 +390,48 @@ where
             items,
         })),
         policy: ChildPolicy::default(),
+    }
+}
+
+/// Adapt a hierarchical tree while retaining its caller-owned expansion and
+/// selection state and borrowed node data. Measurement and drawing delegate
+/// to the configured tree, including its row clipping and hit regions.
+pub fn tree<'a, 'config, T, K, R>(
+    component: &'a Tree<'config, T, K, R>,
+    state: &'a TreeState,
+    items: &'a [T],
+) -> Child<'a>
+where
+    'config: 'a,
+    T: 'a,
+    K: KeyFn<T> + 'a,
+    R: RowFn<T> + 'a,
+{
+    Child {
+        content: ChildContent::Leaf(Box::new(TreeLeaf {
+            component,
+            state,
+            items,
+        })),
+        policy: ChildPolicy::default(),
+    }
+}
+
+struct TreeLeaf<'a, 'config, T, K, R> {
+    component: &'a Tree<'config, T, K, R>,
+    state: &'a TreeState,
+    items: &'a [T],
+}
+
+impl<T, K: KeyFn<T>, R: RowFn<T>> Measure for TreeLeaf<'_, '_, T, K, R> {
+    fn measure(&self, ui: &Ui<'_>, constraints: Constraints) -> Size {
+        self.component.measure(ui, constraints)
+    }
+}
+
+impl<T, K: KeyFn<T>, R: RowFn<T>> CompositionLeaf for TreeLeaf<'_, '_, T, K, R> {
+    fn draw(&self, ui: &mut Ui<'_>, logical: ratatui_core::layout::Rect) {
+        self.component.draw(ui, logical, self.state, self.items);
     }
 }
 
