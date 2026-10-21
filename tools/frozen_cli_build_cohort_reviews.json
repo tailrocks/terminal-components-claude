@@ -1,0 +1,41 @@
+{
+  "schema": "termrock.frozen-cli-build-cohort-reviews",
+  "schema_version": 2,
+  "reviews": [
+    {
+      "cohort_id": "frozen-20261021-serial-nonincr-r1-r2",
+      "status": "reviewed-capture-eligible",
+      "cohort_registry_sha256": "96a83bee520e148bbecf7115644d88f8057a74438029c12c4a3a83253fa0b0b4",
+      "binary_sha256": {
+        "showcase": "d54a104c1c3b20eab2aa48cf981c0f163586663a39ab90e54bcd7b8c3527db55",
+        "tablepro": "212cc16c3a50ea7aca6b474964ad492c4cc3c731812491bb06284abe1b9cc5d0",
+        "jackin-preview": "60b2c311a3d6e75b58e93a6f4c6d507d43a0e331d84ea966938a8eec52fb9cf2",
+        "holla": "62d5f4c71a1927a5f9e20d60b9f79ff4a392eb1c7390076dc1eaddee06dfe9bf"
+      },
+      "source": {
+        "tag": "visual-baseline",
+        "tag_object": "2718a6b8127a522a3d351d0b4bdb7542fc8da542",
+        "commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+        "tree": "ad0f7cf8899df8c5fea3ced3f60adf0ac9a2d297",
+        "tuiscotti_rev": "a1ea27f757d75d07b05499276cd932e9f8e067ad",
+        "cargo_lock_sha256": "46c1c71d85de829b277feffc959e6e8feab99deb171b1e48521c12d5cf14c2ed",
+        "rust_toolchain_sha256": "007a7e2abbd4afe192a3ef190dfa54914800621e221196747cff9e172735dc00"
+      },
+      "evidence": [
+        {
+          "reviewer": "/root/launch_receipts_independent_review",
+          "scope": "executable-cohort-capture-eligibility",
+          "report_sha256": "446273ce18d3caaea939263b37687be5aec770cf1ab54c62110f6c945ec9c2f6"
+        }
+      ],
+      "decision_sha256": "446273ce18d3caaea939263b37687be5aec770cf1ab54c62110f6c945ec9c2f6",
+      "evidence_index_sha256": "7333d762ddbbc25f7fafbc78fd49fe016358b787123dbfdabce422172121ba2c",
+      "integration_commit_reviewed": "be9fca4baf1477f57ab1a252117c368fb2bfe657",
+      "fresh_baseline_capture_eligible": true,
+      "baseline_replay_eligible": true,
+      "candidate_comparison_eligible": false,
+      "checkpoint_reference_approval": "none",
+      "product_acceptance_eligible": false
+    }
+  ]
+}

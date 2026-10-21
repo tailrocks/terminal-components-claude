@@ -29,3 +29,7 @@ termrock-test-support.workspace = true
 termrock-viewport.workspace = true
 termrock-controls.workspace = true
 termrock-session.workspace = true
+
+# Rust documentation examples are guarded by the workspace doc inventory test.
+[lib]
+doctest = false

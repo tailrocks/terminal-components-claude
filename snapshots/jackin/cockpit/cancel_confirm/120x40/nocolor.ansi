@@ -1,0 +1,41 @@
+[0m[2m  jackin❯   entering the Construct  ● 2 running  Launch › payments-platform › the-architect        2/11 stages  ? help  [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m                                                                                                  \                     [0m
+[0m[2m                                                        jackin❯                              k    Z                     [0m
+[0m[2m                                 Loading the-architect into workspace payments-platform      J                          [0m
+[0m[2m                       Claude Code · Anthropic / Claude · account Claude · Work (session choice)                        [0m
+[0m[2m                                    stage 3 of 11 · Credentials · 2 done · 0 skipped         4                          [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m                                      [0m [0m[2m✓ 01 Identity                        1.4 s                                       [0m
+[0m[2m                                      [0m [0m[2m✓ 02 Role                            1.8 s                                       [0m
+[0m[2m                                      [0m [0m[2m⠋ 03 Credentials                                                                 [0m
+[0m[2m                                      [0m [0m[2m  04 Construct                      queued                                       [0m
+[0m[2m                                      [0m [0m[2m  05 Agent Binaries                 queued                                       [0m
+[0m[2m                                      [0m [0m[2m  06 Derived Image                  queued                                       [0m
+[0m[2m                                      [0m [0m[2m  07 Workspace                      queued                                       [0m
+[0m[2m                                 ╭────[0m─[0m[2m─────────────────────────────────────────── × ─╮                                 [0m
+[0m[2m                                 │    [0m [0m[2m                                               │                                 [0m
+[0m[2m                                 │  [0m[1;2mCa[0m[1mn[0m[1;2mcel the launch?[0m[2m                                │                                 [0m
+[0m[2m                                 │    [0m [0m[2m                                               │                                 [0m
+[0m[2m                                 │  The pipeline stops at its current stage and the   │                                 [0m
+[0m[2m                                 │  partially prepared instance is marked failed      │ Claude · Personal · Codex · P…  [0m
+[0m[2m                                 │  setup. Nothing is attached.                       │                                 [0m
+[0m[2m                                 │                                                    │                     U           [0m
+[0m[2m                                 │                 ▎[0m[1;2;4mK[0m[1;2meep launching [0m[2m   [0m[2;4mC[0m[2mancel launch   │                     i           [0m
+[0m[2m                                 │                                                    │                     A           [0m
+[0m[2m                                 ╰────────────────────────────────────────────────────╯                     C           [0m
+[0m[2m                                                                                      4                                 [0m
+[0m[2m                                                                                      t                                 [0m
+[0m[2m                                                                                      n                                 [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m ⠋ Resolving credentials…                                                                                               [0m
+[0m[2m                                                                                                       [0m [0m[2mCancel launch…  [0m
+[0m[2m                                                                                                                        [0m
+ [0m[1m←→[0m Choose  [0m[1mEnter[0m K[0m[1me[0mep launching  [0m[1mEsc Keep [0mlaunchi[0m[1mng    [0m                                                                [0m
+[?25l

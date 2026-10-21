@@ -105,6 +105,33 @@ fn three_lines_share_key_and_gap_has_no_item_hit() {
     assert_eq!(h.app().state.chosen(), Some(ItemKey::num(20)));
     assert_eq!(h.buffer()[(0, 3)].symbol(), " ");
 }
+
+#[test]
+fn multiline_scroll_view_keeps_cell_extent_after_pointer_and_tick() {
+    let mut h = make(3, 1, false, 8);
+    let _ = h.mouse(termrock_core::MouseKind::Down, 2, 4);
+    assert_eq!(h.app().state.scroll().viewport_len(), 8);
+    assert_eq!(h.app().state.scroll().offset(), 0);
+    assert_eq!(row(&h, 20).map(|r| r.y), Some(4));
+    let _ = h.mouse(termrock_core::MouseKind::Up, 2, 4);
+
+    let mut h = make(3, 1, false, 7);
+    let _ = h.wheel(Axis::V, 1, 2, 1);
+    assert_eq!(h.app().state.scroll().offset(), 12);
+    let _ = h.tick();
+    h.draw();
+    assert_eq!(h.app().state.scroll().offset(), 12);
+    assert_eq!(row(&h, 40).map(|r| r.y), Some(0));
+
+    let mut h = make(1, 0, false, 4);
+    let _ = h.wheel(Axis::V, 1, 2, 1);
+    assert_eq!(h.app().state.scroll().offset(), 1);
+    let _ = h.tick();
+    h.draw();
+    assert_eq!(h.app().state.scroll().offset(), 1);
+    assert_eq!(row(&h, 20).map(|r| r.y), Some(0));
+}
+
 #[test]
 fn reveal_wheel_and_resize_preserve_stride_and_reach_last_key() {
     let mut h = make(3, 1, true, 7);

@@ -1,0 +1,48 @@
+{
+  "date": "2026-10-21",
+  "scope": "shared runtime modal backdrop policy",
+  "baseline_commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "tag_object": "2718a6b8127a522a3d351d0b4bdb7542fc8da542",
+  "test_tool_commit": "a1ea27f757d75d07b05499276cd932e9f8e067ad",
+  "integration": {
+    "branch": "wip/runtime-modal-backdrop-20261021",
+    "base_pr38": "49da9ae391582b783cd7aeeec745294c1c2f2f64",
+    "merged_pr38_tip_observed": "93b306503581d0c90665ca884af78000e3a29258",
+    "parent_wip": "91f280307e8f84caa79d30ce3f126e2fd4a8340d",
+    "parent_wip_parent": "c84a883826ed54418664eb680255492ab8424cab",
+    "forms_stage1": "ae32d3ff812aa436eb5d6c15eb155d9b8d59502a",
+    "local_verified_tip": "524aba2cc45ee8c04cd78278a280741da27424bc"
+  },
+  "decision": "Move modal backdrop color mapping into pure Theme::backdrop_style(Style). Remove per-cell NO_COLOR environment access and application-like color heuristics. Existing capability detection remains the owner of NO_COLOR precedence. Keep backdrop_colors(Color, Color) as the pair API.",
+  "baseline_contract": "Frozen baseline src/theme.rs backdrop mapping (1243-1312) and src/ui/ctx.rs modal backdrop (658-688): replace existing modifiers; add DIM only for nonblank cells when mapped foreground equals mapped background or color level is Ansi16/Mono; clear the non-ASCII focus glyph independently of its foreground color.",
+  "regression_proof": {
+    "red": "Before the fix, NO_COLOR=1 cargo nextest run -p termrock-runtime --lib modal_backdrop_uses_theme_mapping_and_clears_only_focus_glyph failed at TrueColor because modal underlay retained raw White instead of theme-muted Gray.",
+    "green": [
+      "NO_COLOR= cargo nextest run -p termrock-runtime --test modal_backdrop: 1 passed",
+      "env -u NO_COLOR cargo nextest run -p termrock-runtime --test modal_backdrop: 1 passed",
+      "cargo nextest run -p termrock-runtime --lib modal_backdrop_uses_theme_mapping_and_clears_only_focus_glyph: 1 passed (four color levels, custom muted/background collision, blank, modifiers and focus glyph)",
+      "cargo nextest run -p termrock-runtime --test modal_backdrop: warmed allocation check 1 passed"
+    ]
+  },
+  "checks": {
+    "runtime_all_targets": "364 tests run, 364 passed, 3 skipped after latest PR38 merge and reviewer fixes",
+    "theme_all_targets": "140 tests run, 140 passed, 0 skipped after merging PR38 tip 93b3065; the earlier all_73_junie_slots_match_reference_capability_output mismatch observed on efda959 was resolved by PR38 commit 93b3065, not changed in this task.",
+    "theme_and_runtime_scoped_clippy": "passed after R3 fix on latest merged PR38 source",
+    "changed_file_rustfmt": "passed on crates/termrock-theme/src/lib.rs, crates/termrock-runtime/src/ui/paint.rs, and crates/termrock-runtime/tests/modal_backdrop.rs after R3.",
+    "reviewer_regression_suite": "11 tests passed, including 10092 legacy concrete-pair comparisons and actual Harness explicit-Reset case; four isolated NO_COLOR configurations each passed all 3 native tests."
+  },
+  "working_tree_note": "Nextest exposed approximately 1303 deleted tracked files under crates/termrock-conformance/target/tuiscotti-actuals. They were left untouched and unstaged as unrelated existing/worktree artifacts.",
+  "coverage_gap": "This shared runtime change has no claim of full application visual/functional acceptance. Theme::backdrop_style is public and requires catalog/showcase coverage review; catalog and showcase files were outside this bounded ownership assignment, so the required catalogue/demo follow-up remains open.",
+  "independent_review_followup": {
+    "reviewed_commit": "65092d97e6443019aa9ade83d064c134985bd4a0",
+    "decision": "R1/R2 remain fixed; R3 explicit Some(Color::Reset) versus None is fixed in author commit d0b40c173a2e9f662a2aca62b904625a8f5583d0; independent re-review pending.",
+    "packet_sha256": "7e9b1757b57ac13ef507f59e083f0c84e959bb43de09c7fb7ec7b0e10379c410",
+    "findings": [
+      "Frozen Style mapping uses surface_overlay for Some(Color::Reset), canvas only for None; dark/contrast planes preserve the Option distinction."
+    ],
+    "red": "Unchanged reviewer consumer before R3: 8 tests, 6 passed, 2 failed (pure and actual Harness explicit Reset background). Pair API matrix passed.",
+    "green": "Unchanged reviewer consumer after R3: 11 tests run, 11 passed, including exact 10092 concrete-pair output comparison and actual Reset Harness cell. Native 3-test Harness suite passed under four separate processes: NO_COLOR absent, empty, present, and present with CLICOLOR_FORCE override; original zero-allocation test included unchanged.",
+    "author_fix_commit": "d0b40c173a2e9f662a2aca62b904625a8f5583d0"
+  },
+  "publication_note": "The common push lock is held by another writer (core-extract); this WIP remains unpushed pending parent publication after serialized fetch/merge and exact-head gate."
+}

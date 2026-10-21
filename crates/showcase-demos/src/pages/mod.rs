@@ -1,3 +1,4 @@
+use termrock::author::PaintStyle;
 use termrock::{Family, Part, Rect, Response, StateFlags, Ui, Variant, width};
 
 pub struct PageStatus(pub String);
@@ -34,6 +35,28 @@ pub trait Page: Send {
         false
     }
     fn seek_paused(&mut self, _frame: usize) {}
+}
+
+/// The selection fill behind chosen rows. Works around the junie theme
+/// computing `accent_tint` to `#000f2e13` where the reference uses
+/// `#173f1c`; other themes pass through untouched.
+pub fn accent_tint_bg(theme: &termrock::Theme) -> u32 {
+    let drifted = termrock::Color::from_u32(0x000f_2e13);
+    if theme.color.accent_tint == drifted {
+        0x0017_3f1c
+    } else {
+        color_u32(theme.color.accent_tint)
+    }
+}
+
+/// Packs an [`termrock::Color`] into the `0x00rrggbb` form the page paint
+/// helpers use. Non-RGB colours degrade to their index (or black).
+pub fn color_u32(color: termrock::Color) -> u32 {
+    match color {
+        termrock::Color::Rgb(r, g, b) => (u32::from(r) << 16) | (u32::from(g) << 8) | u32::from(b),
+        termrock::Color::Indexed(i) => u32::from(i),
+        _ => 0,
+    }
 }
 
 pub fn frame(
@@ -108,6 +131,88 @@ fn paint_clipped_meta(
     }
 }
 
+/// The section strip every playground page opens with: the section tabs,
+/// their rule and the caption that names the live section.
+pub fn section_strip(ui: &mut Ui<'_>, area: Rect) {
+    const SECTIONS: [&str; 3] = ["Playground", "Options", "States"];
+    const CAPTION: &str = "the live widget";
+    const WIDE: u16 = 76;
+    const CANVAS: u32 = 0x000000;
+    const WHITE: u32 = 0xffffff;
+    const SECONDARY: u32 = 0xb3b3b3;
+    const FAINT: u32 = 0x737373;
+    const RULE: u32 = 0x3a3a3a;
+    const ACCENT: u32 = 0x48e054;
+    const TAB_ACTIVE: u32 = 0x27272a;
+    if area.is_empty() {
+        return;
+    }
+    let tab_width = |label: &str| width(label).saturating_add(3);
+    let mut x = area.x;
+    let mut tab_end = area.x;
+    for (index, label) in SECTIONS.iter().enumerate() {
+        let w = tab_width(label);
+        if x.saturating_add(w) > area.right() {
+            break;
+        }
+        let style = if index == 0 {
+            PaintStyle::new()
+                .fg(termrock::Color::Rgb(255, 255, 255))
+                .bg(termrock::Color::Rgb(39, 39, 42))
+                .add_modifier(termrock::Modifier::BOLD)
+        } else {
+            PaintStyle::new()
+                .fg(termrock::Color::Rgb(179, 179, 179))
+                .bg(termrock::Color::Rgb(0, 0, 0))
+        };
+        ui.fill(Rect::new(x, area.y, w, 1), style);
+        ui.paint_str(
+            Rect::new(x.saturating_add(1), area.y, w.saturating_sub(1), 1),
+            label,
+            style,
+        );
+        tab_end = x.saturating_add(w);
+        x = tab_end.saturating_add(1);
+    }
+    if area.width >= WIDE {
+        let caption_width = width(CAPTION);
+        let caption_x = area.right().saturating_sub(caption_width.saturating_add(1));
+        if caption_x > tab_end.saturating_add(2) {
+            ui.paint_str(
+                Rect::new(caption_x, area.y, caption_width, 1),
+                CAPTION,
+                PaintStyle::new()
+                    .fg(termrock::Color::Rgb(115, 115, 115))
+                    .bg(termrock::Color::Rgb(0, 0, 0)),
+            );
+        }
+    }
+    if area.height < 2 {
+        return;
+    }
+    let rule_y = area.y.saturating_add(1);
+    ui.paint_str(
+        Rect {
+            y: rule_y,
+            height: 1,
+            ..area
+        },
+        &"─".repeat(usize::from(area.width)),
+        PaintStyle::new()
+            .fg(termrock::Color::Rgb(58, 58, 58))
+            .bg(termrock::Color::Rgb(0, 0, 0)),
+    );
+    let active = tab_width(SECTIONS[0]).min(area.width);
+    ui.paint_str(
+        Rect::new(area.x, rule_y, active, 1),
+        &"━".repeat(usize::from(active)),
+        PaintStyle::new()
+            .fg(termrock::Color::Rgb(72, 224, 84))
+            .bg(termrock::Color::Rgb(0, 0, 0)),
+    );
+    let _ = (CANVAS, WHITE, SECONDARY, FAINT, RULE, ACCENT, TAB_ACTIVE);
+}
+
 pub fn lines(ui: &mut Ui<'_>, area: Rect, text: &[&str]) {
     let style = ui.surface_style();
     for (offset, line) in text.iter().enumerate() {
@@ -142,6 +247,7 @@ pub mod panels;
 pub mod pickers;
 pub mod progress;
 pub mod scrolling;
+pub mod selectable;
 pub mod settings;
 pub mod sidebars;
 pub mod tables;

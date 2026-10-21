@@ -1,0 +1,117 @@
+{
+  "reviewer": "Independent Rust reviewer /root/button_theme_contract_review",
+  "reviewed_commit": "4507e7de2b730985bc3e8f5478f6cd68be9b51a3",
+  "implementation_commit": "b1c1eb3e8883c55f3052fc139d922bef4dd30618",
+  "comparison_commit": "781962a0de20e15432a867037f4cc0ccabcce80a",
+  "status": "Bounded FieldHover semantic-profile repair cleared. No new correctness findings. Required all-73 gate remains red and unresolved; no application or complete palette acceptance.",
+  "findings": [],
+  "reference_evidence": {
+    "frozen_source_commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+    "source_locations": [
+      "src/theme.rs:492 INPUT_HOVER#2f2f34",
+      "src/theme.rs:928 apply_256 field_hover237",
+      "src/theme.rs:991 apply_16 field_hoverDarkGray",
+      "src/theme.rs:1063 apply_mono field_hoverBlack"
+    ],
+    "reviewed_test_edits": "builtin token assertion and theme_holla_states Field hover-plane expectations changed only to the independently inspected frozen TrueColor/ANSI256 values. The all_73 fixture and expected snapshot artifacts are unchanged. No candidate-derived approval.",
+    "clarification": "Independent292-value capture before/after shows ANSI16 alreadyDarkGray before this change. New ANSI16 palette makes that slot explicitly authored; it is not evidence of a previously failing ANSI16 rendered value. Only TrueColor and ANSI256 FieldHover output changed."
+  },
+  "checks": [
+    {
+      "command": "cargo nextest run --manifest-path /private/tmp/field-hover-7819-probes/Cargo.toml --no-fail-fast --status-level fail",
+      "source": "781962a0de20e15432a867037f4cc0ccabcce80a",
+      "exit": 100,
+      "run_id": "63470073-3738-401c-93aa-32b972e903a9",
+      "result": "Same5 real TextInput consumer tests:2passed3failed0skipped; actualTrueColor35,35,40 versus frozen47,47,52."
+    },
+    {
+      "command": "cargo nextest run --manifest-path /private/tmp/field-hover-4507-probes/Cargo.toml --no-fail-fast --status-level fail",
+      "stage": "Original5 tests before adding extra targets",
+      "exit": 0,
+      "run_id": "0f7efe7e-e0e1-4033-9d0c-5103c22b5753",
+      "result": "5passed0skipped. Probe source byte-identical to author and baseline copy; all four profiles, editing/disabled/read-only/focused/narrow/empty, custom token and custom capability palette."
+    },
+    {
+      "command": "cargo nextest run --manifest-path /private/tmp/field-hover-4507-probes/Cargo.toml --test overrides --no-fail-fast --status-level fail",
+      "exit": 0,
+      "run_id": "0a0f4e7f-db40-4497-a05b-9294aa4a1bb2",
+      "result": "4passed0skipped. Same-value Custom family/local overrides use generic raw conversion, explicit Clear preserves existing underlay, direct token mutation, all repeated/chained profiles, actual resolvedFieldHover role under hover and normalField role under covered modal."
+    },
+    {
+      "command": "cargo nextest run -p termrock-theme -p termrock-fields --all-targets --no-fail-fast --status-level fail",
+      "exit": 100,
+      "run_id": "72559e54-3082-48cb-9eb3-15529cfa299a",
+      "result": "220run219passed1failed0skipped; onlyall_73_junie_slots_match_reference_capability_output fails. ActualauthoredFieldHover237 versus fixture raw-projected236; unrelated semantic mismatches in full assertion preserved, not approved."
+    },
+    {
+      "command": "cargo clippy -p termrock-fields -p termrock-theme --all-targets -- -D warnings",
+      "exit": 0
+    },
+    {
+      "command": "cargo fmt -p termrock-fields -p termrock-theme --check",
+      "exit": 0
+    }
+  ],
+  "untouched_contracts": [
+    "Before/after public token dumps contain73slots x4profiles=292values; only FieldHoverTrueColor andANSI256 entries differ. All unrelated token output remains unchanged, including ANSI16 andMono.",
+    "nearest_256 anddowngrade_color source slices hash-identical across approved5cd181530 exhaustive16,777,216-RGB cohort, old781962a0 andnew4507e7de. Existing exhaustive proof retained; no new exhaustive run claimed.",
+    "No production Button recipe, LegacyMono table, raw color-pair exception, application-named variant, app dependency or captured frame added/changed.",
+    "Authored ANSI16 palette derives untouched entries through existing generic policy; public custom token/palette and explicit part override precedence independently exercised."
+  ],
+  "limits": [
+    "All-73 fixture defect and other known real semantic palette issues remain required unresolved work. This focused correction does not waive, edit or skip the red test.",
+    "No full four-application paired captures, architecture gate or hosted CI approval.",
+    "Owned review copy reused after source check;1301 pre-existing tracked target-artifact deletions recorded by earlier review remain. No tracked source path differs from exactHEAD; nothing staged or pushed by reviewer.",
+    "Additional external helper fixture emits unused-import/dead-code warnings; product strict Clippy is clean."
+  ],
+  "artifacts": [
+    {
+      "path": "/private/tmp/field-hover-4507-public.log",
+      "sha256": "7d7956c547a6a2eb6754ae18f04aab312bb99dffdf757c18aead27a850819ba3"
+    },
+    {
+      "path": "/private/tmp/field-hover-7819-public.log",
+      "sha256": "819be0a9217d4674bd7caa32c1ebe63a27a77b9c951edc4322c8d10c400c8312"
+    },
+    {
+      "path": "/private/tmp/field-hover-4507-overrides-final.log",
+      "sha256": "21c1ff3c9516bdd62731eda11733e6164a5eb783d4a6e2b4172e7727e85b98fc"
+    },
+    {
+      "path": "/private/tmp/field-hover-4507-native.log",
+      "sha256": "494ac2ce52477af782ca8810e4b28c50fe277e423c98479270ed98d32f571685"
+    },
+    {
+      "path": "/private/tmp/field-hover-4507-clippy.log",
+      "sha256": "01bef0e2706fe766d200cf330cbf1a47f534d81cfb0acf0f5607ff2f64c9f77b"
+    },
+    {
+      "path": "/private/tmp/field-hover-4507-fmt.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/private/tmp/field-hover-4507-quantizer-source.json",
+      "sha256": "76e881988f55b7fb8f874d518fe78efe39a03d47872549a0e936f703d5c7b041"
+    },
+    {
+      "path": "/private/tmp/field-hover-7819-token-values.txt",
+      "sha256": "b502055dc6e9df63bb1d40c846063afc30fb0b18c66d32fd5599e58a74daaa05"
+    },
+    {
+      "path": "/private/tmp/field-hover-4507-token-values.txt",
+      "sha256": "737812008912d1b73a19949b68efd073900043b8526bd5ea0c0c2b567fb8a859"
+    },
+    {
+      "path": "/private/tmp/field-hover-4507-probes/tests/public.rs",
+      "sha256": "36ef741c48f418819ca9916636ee38a85e7bea48f9aff6e347c7fc271272ce69"
+    },
+    {
+      "path": "/private/tmp/field-hover-4507-probes/tests/overrides.rs",
+      "sha256": "32015a62cbdf06e628e24bcbd25fc8d68b35fc61afd0f736ea58b8fe0b56c011"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/field-hover-review-4507/token-profile-comparison.json",
+      "sha256": "0acfec09d200697be6648bbdbb6820c569d25068cb048066c531843e8100c254"
+    }
+  ]
+}

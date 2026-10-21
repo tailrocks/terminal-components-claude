@@ -1,20 +1,108 @@
-schema = 1
+schema = 2
 
 [workflow]
+name = "CI"
 policy = "consumer-v1"
 default_branch = "main"
+generator_validation = "bootstrap"
+max_parallel_jobs = 2
+crate_timeout_minutes = 15
+pull_request_cache_policy = "read-only"
 runner_label = "ubuntu-26.04"
+
+[resources]
+compiler_process_budget = 2
+test_process_budget = 2
+
+[test_sharding]
+default_shards = 1
+
+[test_sharding.by_manifest]
+
+[stacks]
+ignore = []
 
 [stacks.rust]
 compile_driver = "cargo"
 test_runner = "cargo_nextest"
-# Ignored tests stay ignored in CI: the PARITY known-diff and frozen-fixture
-# suites are run explicitly against their references (ledger §7 V-07/V-18);
-# several are platform-dependent and would fail per-runner.
 run_ignored = "default"
 
+[[stacks.rust.configurations]]
+name = "default"
+features = ["default"]
+target = "host"
+
+[[stacks.rust.configurations]]
+name = "testing"
+features = ["default", "testing"]
+target = "host"
+
+[stacks.rust.release]
+enabled = false
+manifest_path = "Cargo.toml"
+packages = []
+publishable_workspace = false
+environment = "release"
+release_pr = true
+tag_name = "{{ package }}-v{{ version }}"
+
+[stacks.rust.binary_release]
+manifest_path = "Cargo.toml"
+version_package = ""
+version_env = ""
+products = []
+companions = []
+
+[stacks.rust.binary_release.producer]
+task = ""
+output_directory = "dist/preview"
+manifest = "dist/preview/package-output.json"
+tools = []
+inputs = []
+runner = "linux-x64"
+timeout_minutes = 5
+build_jobs = 2
+
+[stacks.rust.binary_release.producer.source]
+mise_config = "mise.toml"
+working_directory = "."
+
+[stacks.rust.binary_release.evidence]
+profile = "signed-sbom-v1"
+
+[stacks.rust.binary_release.preview]
+enabled = false
+versioning = "package-preview-commit-count-sha7"
+environment = "preview-publish"
+release_id = 0
+
+[stacks.rust.binary_release.stable]
+enabled = false
+environment = "release"
+
 [discovery]
-exclude = ["xtask/fixtures/**", "tools/termrock-visibility-publisher/**", "crates/termrock-e2e/**", "crates/termrock-visibility-tests/**", "crates/showcase-data/**", "crates/holla-catalog/**", "crates/holla-plan/**"]
+exclude = ["xtask/fixtures/**", "tools/termrock-visibility-publisher/**", "tools/frozen-cli-frame-support/**", "crates/termrock-e2e/**", "crates/termrock-visibility-tests/**", "crates/showcase-data/**", "crates/holla-catalog/**", "crates/holla-plan/**", "docs/audits/evidence/**"]
+
+[actions.overrides]
 
 [tools]
 mr-boxington = "1.24.1"
+
+[agents]
+claude_md = "symlink"
+
+[execution]
+default_profile = "hosted"
+hosted_profile = "hosted"
+scale_set_profile = "local"
+
+[execution.profiles.hosted]
+kind = "github-hosted"
+label = "ubuntu-26.04"
+platform = "linux/amd64"
+
+[execution.profiles.local]
+kind = "github-scale-set"
+name = "ubuntu-26.04-scale-set"
+labels = ["velnor", "ubuntu-26.04-scale-set"]
+platform = "linux/amd64"

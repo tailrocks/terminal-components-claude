@@ -137,20 +137,21 @@ impl<'a> Panel<'a> {
         }
     }
 
-    pub fn inner(&self, ui: &Ui<'_>, area: Rect) -> Rect {
+    fn insets(&self, ui: &Ui<'_>) -> Insets {
         let side = match self.kind {
             PanelKind::Card => ui.design().space.card_inset,
             PanelKind::Framed => ui.design().space.frame_inset,
         };
-        let r = inset(
-            area,
-            Insets {
-                l: side,
-                t: self.top_inset(),
-                r: side,
-                b: 1,
-            },
-        );
+        Insets {
+            l: side,
+            t: self.top_inset(),
+            r: side,
+            b: 1,
+        }
+    }
+
+    pub fn inner(&self, ui: &Ui<'_>, area: Rect) -> Rect {
+        let r = inset(area, self.insets(ui));
         if r.is_empty() {
             return Rect {
                 x: area.x,
@@ -181,12 +182,9 @@ impl<'a> Panel<'a> {
     }
 
     pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
-        let side = match self.kind {
-            PanelKind::Card => ui.design().space.card_inset,
-            PanelKind::Framed => ui.design().space.frame_inset,
-        };
-        let chrome_w = side.saturating_mul(2);
-        let chrome_h = self.top_inset().saturating_add(1);
+        let insets = self.insets(ui);
+        let chrome_w = insets.l.saturating_add(insets.r);
+        let chrome_h = insets.t.saturating_add(insets.b);
         let title_w = self.title.map_or(0, crate::text::width);
         let meta_w = self.meta.map_or(0, crate::text::width);
         let head = title_w
@@ -202,6 +200,61 @@ impl<'a> Panel<'a> {
             ),
         }
         .fit(c)
+    }
+
+    /// Measure this panel around its actual body content.
+    ///
+    /// The body receives constraints reduced by the same insets used by
+    /// [`Self::inner`]. Its measured size is then combined with panel chrome,
+    /// title, metadata, and badge requirements before fitting the outer
+    /// constraints. The callback must measure only; it must not draw, update
+    /// input state, or perform application effects.
+    pub fn measure_with_body(
+        &self,
+        ui: &Ui<'_>,
+        constraints: Constraints,
+        measure_body: impl FnOnce(Constraints) -> Size,
+    ) -> Size {
+        let insets = self.insets(ui);
+        let chrome_w = insets.l.saturating_add(insets.r);
+        let chrome_h = insets.t.saturating_add(insets.b);
+        let body_constraints = Constraints {
+            max: (
+                constraints.max.0.saturating_sub(chrome_w),
+                constraints.max.1.saturating_sub(chrome_h),
+            ),
+            tight_w: constraints.tight_w,
+            tight_h: constraints.tight_h,
+        };
+        let body = measure_body(body_constraints);
+        let title_w = self.title.map_or(0, crate::text::width);
+        let meta_w = self.meta.map_or(0, crate::text::width);
+        let head = title_w
+            .saturating_add(meta_w)
+            .saturating_add(u16::from(meta_w != 0))
+            .saturating_add(2);
+        let head = self.badge_lane_width().map_or(head, |lane| lane.max(head));
+        let one_body_cell = 1;
+        Size {
+            min: (
+                chrome_w
+                    .saturating_add(body.min.0)
+                    .max(chrome_w.saturating_add(one_body_cell)),
+                chrome_h
+                    .saturating_add(body.min.1)
+                    .max(chrome_h.saturating_add(one_body_cell)),
+            ),
+            preferred: (
+                chrome_w
+                    .saturating_add(body.preferred.0)
+                    .max(chrome_w.saturating_add(one_body_cell))
+                    .max(head),
+                chrome_h
+                    .saturating_add(body.preferred.1)
+                    .max(chrome_h.saturating_add(one_body_cell)),
+            ),
+        }
+        .fit(constraints)
     }
 
     pub fn draw<R>(

@@ -15,3 +15,7 @@ ratatui-core.workspace = true
 ratatui-crossterm = { workspace = true, optional = true }
 bitflags.workspace = true
 unicode-width.workspace = true
+
+# Rust documentation examples are guarded by the workspace doc inventory test.
+[lib]
+doctest = false

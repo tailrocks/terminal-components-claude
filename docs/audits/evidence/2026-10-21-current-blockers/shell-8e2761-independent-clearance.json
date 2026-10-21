@@ -1,0 +1,130 @@
+{
+  "reviewed_commit": "8e2761d096e3f92a7b9003d7918a5ce3236cf4f5",
+  "previous_blocked_commit": "e6a4829a5dcd0f0a1bad03467713c3f5a4858aca",
+  "status": "Cleared for the bounded canonical shell geometry, owned-leaf integration, and restored public type/lifetime contracts; landing documentation clarification and independent integrated-head checks remain required.",
+  "scope": "Independent API/runtime source review and focused nextest verification. No author product source edits, no nested agents, no application or product-parity approval.",
+  "resolved_findings": [
+    {
+      "id": "SHELL-GEOMETRY-1",
+      "decision": "Resolved. Reserved strip budgets, conditional gaps, body minimum and inset are accounted for, with constraints clamping. The gap-minimum and feasible nested BODY registration assertions remain green.",
+      "evidence": [
+        "crates/termrock-shell/src/shell.rs:224",
+        "crates/termrock-shell/tests/api_review_measure.rs"
+      ]
+    },
+    {
+      "id": "SHELL-GEOMETRY-2A",
+      "decision": "Resolved. AppShell::slots again returns CompositionSlots<'a>, retaining explicit type annotation, .spec and direct ContentSlot::nested call shapes. The exact previously failing legacy test bytes now pass.",
+      "evidence": [
+        "crates/termrock-shell/src/shell.rs:96",
+        "crates/termrock-shell/tests/api_legacy_compat.rs"
+      ]
+    },
+    {
+      "id": "SHELL-GEOMETRY-2B",
+      "decision": "Resolved. AppShellSlots::slots returns the component-data lifetime 'a and owns a copyable canonical shell view, so the temporary builder may be dropped before the group. The exact previous E0716 probe now compiles and passes.",
+      "evidence": [
+        "crates/termrock-shell/src/shell.rs:315",
+        "crates/termrock-shell/tests/api_legacy_compat.rs"
+      ]
+    }
+  ],
+  "architecture_decisions": [
+    "ContentSlot::owned is a justified additive component-author API with a concrete shell consumer. It boxes a CompositionLeaf with the caller data lifetime and does not require static data. No unsafe code, application dependency, new renderer, input dispatcher, or second layout engine was introduced.",
+    "Content is private, so adding the Owned variant does not break external exhaustive matching. Existing borrowed and nested constructors retain their signatures. Owned and borrowed variants share the same measurement, width remeasurement, resolved plans, clipping and draw flow; only trait-object access differs.",
+    "CompositionSlots iterative nested-group teardown remains intact. Non-group owned variants are dropped when the drained Content value is destroyed, exactly once. The independent non-static Unicode-label probe covers owned and borrowed leaves, zero regions, matching geometry/measurement counts and exact drop count.",
+    "ShellSlots is a Copy view configuration containing Chrome, Composition, and shared leaf references, not a second component-state owner. Owning this view in an outer composition preserves the old API without copying widget state.",
+    "The owned form adds one box per owned leaf and retains existing Vec allocation. Borrowed leaf storage remains allocation-free apart from its containing composition. AppShell::show still uses the borrowed canonical leaf path; no performance claim beyond source inspection is made.",
+    "PageLeaf uses a zero minimum and an additive draw_in default hook. Chrome remains the single resolver for shell strips, conditional gaps and body-only inset. Real registration/focus/cursor/hover probes exercise the shared resolved bounds."
+  ],
+  "landing_documentation_clarification": {
+    "classification": "Nonblocking architectural decision to record in the migration record before describing all compatibility as restored.",
+    "detail": "CompositionSlots::spec now configures the OUTER group containing the canonical shell leaf. Internal shell spacing remains Chrome::gap; an outer one-child spec.gap does not override the internal strip gaps. The old three-child representation leaked that internal override. Keep Chrome authoritative instead of restoring a duplicate engine, and document that consumers configure internal spacing with AppShell::gap/Chrome::gap. Existing docs example using outer .spec(gap1) should not imply an internal gap override. Type/lifetime compatibility is verified; every historical internal-layout side effect of generic spec is not claimed."
+  },
+  "tests": [
+    {
+      "command": "cargo nextest run -p termrock-shell --all-targets --no-fail-fast",
+      "exit_code": 0,
+      "run": 59,
+      "passed": 59,
+      "skipped": 0,
+      "inventory": "55 committed shell tests plus 2 immutable legacy compatibility probes and 2 independent measurement/registration probes. The nested registration probe changes only slots() to resolved_slots() because the latter is now the explicit leaf API; all assertions are unchanged.",
+      "log": "shell-nextest.log"
+    },
+    {
+      "command": "cargo nextest run -p termrock-shell --test owned_leaf_independent",
+      "exit_code": 0,
+      "run": 1,
+      "passed": 1,
+      "skipped": 0,
+      "inventory": "Independent owned leaf borrows non-static String data containing wide and combining text. Compares owned/borrowed remeasurement counts and registered bounds, verifies measure does not draw or run App update, empty roots do not draw, and one leaf drops exactly once.",
+      "log": "owned-leaf-nextest.log"
+    },
+    {
+      "command": "cargo nextest run -p termrock-runtime --test composition_consumer --no-fail-fast",
+      "exit_code": 0,
+      "run": 7,
+      "passed": 7,
+      "skipped": 0,
+      "inventory": "Includes borrowed-domain consumers, nested width reflow, shared clipping, zero size, excessive depth and safe tree drop.",
+      "log": "runtime-composition-nextest.log"
+    },
+    {
+      "command": "cargo nextest run -p termrock --features testing --test slots --no-fail-fast",
+      "exit_code": 0,
+      "run": 10,
+      "passed": 10,
+      "skipped": 0,
+      "log": "facade-slots-nextest.log"
+    }
+  ],
+  "legacy_probe_sha256": "c11cc49761931e781396ba1e92e7493beb1e12b011aa66dbcb614e9fec179dc0",
+  "source_identity": {
+    "crates/termrock-runtime/src/ui/composition.rs": {
+      "sha256": "2f42391ed375f465bfc92d4ccaceb9cd25260bce43b506399d9ce56a20e2405b",
+      "review_copy_matches": true
+    },
+    "crates/termrock-shell/src/shell.rs": {
+      "sha256": "f07eed4f39c4889728fc13bba07221435b2d06382dddefbac951eb9c926d0fc9",
+      "review_copy_matches": true
+    },
+    "crates/termrock-shell/src/chrome.rs": {
+      "sha256": "c40357c5fde61ef90a65431200d9b83de7322988faba11cf0e7ab1872fa43f3f",
+      "review_copy_matches": true
+    },
+    "crates/termrock-shell/src/page.rs": {
+      "sha256": "66d938d3f1bf05bb0eb78dabeb5181ce66af75921e47e8ce3134d7c163172b9a",
+      "review_copy_matches": true
+    },
+    "crates/termrock-shell/src/lib.rs": {
+      "sha256": "fb0f9265d9efc2f0911b5ff37c4e100081c45fed1e2fb655f922d2aa310ea2d5",
+      "review_copy_matches": true
+    },
+    "crates/termrock/src/blocks/shell.rs": {
+      "sha256": "70d7d9a73d553dcc6e7b85ab7319751897ad6a43f90e96d620913ac3088cc9c2",
+      "review_copy_matches": true
+    }
+  },
+  "integration_requirements": [
+    "Land the reviewed geometry/owned-leaf series through PR38 only, with normal synchronization and no force push.",
+    "Retain current PR38 hygiene changes at e0fdb7b1d2f0d8683e9a61b74a48e07b175eef5b: shell Cargo doctest policy and dev-only runtime/testing dependency; shell lib reach feature gate. The reviewed WIP base predates those changes. Merge the canonical exports without removing the feature gate; do not replace whole files from the old WIP snapshot.",
+    "Run focused runtime/shell/facade checks on the final merged head and have the coordinator verify the pushed remote SHA. This packet is for the exact reviewed source only, not an unseen integrated commit.",
+    "Keep ContentSlot::owned and resolved_slots public capability catalog/Showcase coverage as a separately recorded required gap. This narrow approval does not close that acceptance requirement."
+  ],
+  "remaining_scope_limits": [
+    "No complete application comparison, terminal cell snapshots, timing, cleanup, or twice-repeated all-app gate was run. All application parity claims remain incomplete.",
+    "Raw KeyHost/runtime command-scope integration and live thin application shell adoption remain open.",
+    "No clean production-default external build was executed here. The current PR38 shell hygiene feature fix is preserved as an integration requirement, not claimed as independently revalidated by these dev-feature-unified tests.",
+    "No full workspace lint or nextest gate was rerun; focused tests are not full acceptance. The author's reported runtime382 with3skips remains separate and is not promoted to an independently green full-runtime result."
+  ],
+  "evidence_sha256": {
+    "owned-leaf-nextest.log": "b376985bec984603a6cb5cbee39203b626b4125fd5540d26c1a1ea1bc6b30d79",
+    "api_legacy_compat_independent.rs": "c11cc49761931e781396ba1e92e7493beb1e12b011aa66dbcb614e9fec179dc0",
+    "facade-slots-nextest.log": "65287e1c97561907ffe8e7f37f165c653f3c814ed82fd26b4e563b7483565957",
+    "runtime-composition-nextest.log": "37cbd468ee6f55102a81f91b0a147ac0729720ca64dddcb42d4f3d2d33704421",
+    "api_review_unchanged_adapter.rs": "0db4ceba14195f2edbd7be54cc8efa99afcabdb0d0e1378be295dae4f3cbf29b",
+    "owned_leaf_independent.rs": "2f11dd2744f01de3abc5159a17966412e299da20f6dcfdf7f916300c45da5fbb",
+    "shell-nextest.log": "89e32f0d2dc0ec8ad9fbd9b43038a13ba78c20b0198eedb6bef2aa2e498a3874"
+  },
+  "product_parity_claim": false
+}

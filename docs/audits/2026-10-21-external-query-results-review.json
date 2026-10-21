@@ -1,0 +1,68 @@
+{
+  "commit": "9b4aae59b5c006e64b3791fa15804f6411633e4d",
+  "base": "29d50be85004200494b7cacd9dc9f563285cf1b6",
+  "status": "changes_required",
+  "positive": "Deletes historical_query_results captured replay selector and derives result row count/duration/source from executor. Preserve external work for staged shared-component replacement.",
+  "findings": [
+    {
+      "severity": "P1",
+      "path": "crates/tablepro-ui/src/app.rs",
+      "symbols": [
+        "draw_content query.result branch",
+        "paint_query_results_chrome"
+      ],
+      "issue": "Registers keyboard editor over inner without rendering CodeEditor; manual app editor/status/scrollbar/tab/seam painters replace real shared components. Violates thin application and visible control ownership gates.",
+      "line": 3169,
+      "regression_proposal": "Real result\u2192Enter edit\u2192type\u2192Esc\u2192rerun at multiple sizes: visible editor hit region/cursor/focus, no duplicate focus under Picker.",
+      "source_proof": "app.rs3169 registers keyboard editor;3177 calls application painter rather than CodeEditor;3835 painter owns toolbar/editor/seam/result-tab/status geometry."
+    },
+    {
+      "severity": "P1",
+      "path": "crates/tablepro-ui/src/app.rs",
+      "symbol": "paint_clipped_sql",
+      "issue": "Measures clipping by char count, paints each scalar into one terminal cell, and increments one cell; wide/combining and multiline SQL cannot render correctly. Status hardcodes ln1/1. Must delegate actual shared editor/text machinery.",
+      "line": 3779,
+      "regression_proposal": "Real CLI multiline SELECT with wide/combining identifiers/literals: frozen text/wrapping/cursor/status comparison."
+    },
+    {
+      "severity": "P2",
+      "path": "crates/tablepro-ui/src/app.rs",
+      "symbol": "extend_query_results_edge",
+      "issue": "Repairs component boundary with direct painting at inner.right; fix shared panel/layout ownership instead.",
+      "line": 4761,
+      "regression_proposal": "Resize/drag shared SplitBlock: neighboring panel borders unchanged, hitbounds follow drawn geometry."
+    },
+    {
+      "severity": "P2",
+      "path": "crates/tablepro-ui/src/app.rs",
+      "symbol": "keymap Alt+Ctrl+R RUN binding",
+      "issue": "New input action introduced to mask Esc/control-key coalescing. Frozen behavior and actual parser evidence needed; matching one checkpoint cannot justify shortcut change.",
+      "line": 455,
+      "regression_proposal": "Drive Esc then Ctrl+R separately and same PTY write against frozen; separately compare actual Alt+Ctrl+R action."
+    }
+  ],
+  "evidence_scope": "Source review only; no application test rerun or complete parity claim.",
+  "retain_view_data": [
+    "tablepro-domain/src/domain.rs339,385,410 ResultGrid.duration_ms copied from QueryResult and public accessor: correct domain ownership.",
+    "Result row count/source/duration from live executor; typed query result state and historical replay deletion.",
+    "Current public CodeEditor composition leaves and SplitBlock provide replacement mechanisms; preserve data while replacing manual UI."
+  ],
+  "follow_up_review": {
+    "commit": "9f19616d417c1323f1fa7a3413612116f0f41de0",
+    "path": "crates/tablepro-ui/src/app.rs",
+    "line": 4468,
+    "status": "rest-frame modifier correction source-plausible, component acceptance incomplete",
+    "frozen_source_proof": [
+      "src/bin/tablepro/tabs.rs1589 renders actual Button::primary(TOOLBAR_RUN,Run), disabled while running",
+      "src/theme.rs271 MONO.fill REVERSED,1492 filledcontrols applyfillmodifier",
+      "src/widgets/button.rs180\u2013190 resolves interactive states and suppresses hover/press for disabled/busy"
+    ],
+    "finding": "Adds application-level Mono BOLD|REVERSED directly to manually painted Run label; retains private toolbar painter instead of shared Button/theme state rules. Matching one rest frame does not prove hover, press, keyboard focus, busy/disabled, hit regions or activation.",
+    "retain": "The required Mono rest modifier appearance as a shared Button/theme contract; no wholesale dynamic data rollback.",
+    "regression_proposals": [
+      "Real rendered primaryButton and TablePro resulttoolbar atMono: compare baseline rest/hover/press/focus and busy/disabled cells and pointer hit actions.",
+      "Execute a long-running query then pointer/keyboard Run: frozen disabled Run/Cancel state must match and not activate twice."
+    ],
+    "verification_scope": "Frozen source comparison only; no claimed new runtime regression or complete CLI acceptance."
+  }
+}

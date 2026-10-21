@@ -29,9 +29,11 @@ pub(crate) use termrock_runtime::{
     Acc, PartStyle, SlotFn, cell_at, first_row, overlay_chrome, paint_pressed_bracket, shift,
 };
 
+pub mod cancel_card;
 pub mod completion;
 pub mod dialog;
 pub mod help;
+pub mod info_card;
 pub mod menu;
 pub mod picker;
 pub mod picker_chain;
@@ -43,10 +45,12 @@ pub use completion::{
 };
 pub use dialog::{Dialog, DialogAction, DialogCmd, DialogState};
 pub use help::{HelpAction, HelpCmd, HelpOverlay, HelpOverlayState, HelpSection};
-pub use menu::{ContextMenu, Menu, MenuAction, MenuBar, MenuCmd, MenuItem, MenuState};
+pub use menu::{
+    ContextMenu, Menu, MenuAction, MenuBar, MenuBarHoverScope, MenuCmd, MenuItem, MenuState,
+};
 pub use picker::{
-    AsItem, CommandPalette, Item, ItemRow, ItemRowLayout, Picker, PickerAction, PickerState,
-    ScopeKey,
+    AsItem, CommandPalette, Item, ItemRow, ItemRowLayout, Picker, PickerAction, PickerLayout,
+    PickerState, ScopeKey,
 };
 pub use picker_chain::{
     PickerChain, PickerChainAction, PickerChainCmd, PickerChainState, PickerStage,

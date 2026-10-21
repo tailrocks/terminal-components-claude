@@ -1,0 +1,129 @@
+{
+  "reviewer": "branches_components_review",
+  "reviewed_commit": "cf9133c21a73b4bfe73a02e713a243614126a62a",
+  "comparison_base": "5902a59053e4af4601d880c8419cb180adc5f661",
+  "references": {
+    "baseline": "4169783ae883788186d161af09ba9c481bd84e5c",
+    "design_read_only": "f4867e9b5f8a08a3bb61ce80d644198a29f51984"
+  },
+  "disposition": "Preserve the useful domain/default corrections and captured-frame deletion. The replacement painter is not a reusable form implementation and is not cleared for product or library acceptance. Do not restore the replay or silently change expected data.",
+  "retained_work": [
+    {
+      "path": "crates/tablepro-ui/src/app/historical_form_new.rs",
+      "finding": "The captured-frame module and its terminal/accent/exact-size admission selector are deleted. Keep that deletion."
+    },
+    {
+      "path": "crates/tablepro-ui/src/app.rs:1200",
+      "finding": "A new connection draft now has an empty name, database and user with localhost:5432 and initial environment/safe indices. Frozen connections.rs:138-216 constructs the same defaults for ConnForm::new(None). Do not restore cloning the currently selected Production connection merely to satisfy old tests."
+    },
+    {
+      "path": "crates/tablepro-ui/src/app.rs:9896",
+      "finding": "The painter reads current ConnectionDraft values for name, engine, host, port, database, user, group and selected choices. Preserve these application-owned data sources and semantic labels in the real shared form consumer."
+    }
+  ],
+  "blocking_source_findings": [
+    {
+      "path": "crates/tablepro-ui/src/app.rs:2948",
+      "category": "Component ownership and interaction geometry",
+      "finding": "The code explicitly draws Form to register its focus order, then covers the draw with paint_new_connection_card. The private painter does not register matching controls. Visible radio rows, fields, tabs and buttons therefore use different geometry from their input/focus owners. This is exactly the prohibited repaint mechanism, not completion of the shared Form migration."
+    },
+    {
+      "path": "crates/tablepro-ui/src/app.rs:9896",
+      "category": "Fixed layout, clipping and responsive behavior",
+      "finding": "paint_live_connection_card hardcodes field widths40/26/12/29, column offset46 and action row y+34. Unlike the frozen focus-aware stacks, it does not allocate content from the available height, reveal focused fields, or keep the action row visible. paint_at bounds text by its own full width rather than the field region, so long names/values may overlap adjacent fields; the caret is similarly positioned without a field-width or horizontal-scroll bound."
+    },
+    {
+      "path": "crates/tablepro-ui/src/app.rs:9968",
+      "category": "Focus, editing and cursor ownership",
+      "finding": "Only the Name field receives an explicit focus gutter and caret from the private painter. Its caret is always derived from width(draft.name), ignoring the real input selection/cursor offset. Other text fields are painted from committed draft values and do not render their actual in-progress TextInput editing state. Radio rows only show committed selection; cursor movement, focused/pressed/disabled/invalid states and real buttons are not rendered by their shared owners."
+    },
+    {
+      "path": "crates/tablepro-ui/src/app.rs:10210",
+      "category": "Password and dynamic supporting content",
+      "finding": "The password branch paints a placeholder only when empty and paints no masked content when nonempty. Safe Mode help text is fixed to the silent-mode wording instead of the selected option description used by frozen connections.rs:1474+. Existing shared secret input, RadioGroup and help wrapping should own these states."
+    },
+    {
+      "path": "crates/tablepro-ui/src/app.rs:1061",
+      "category": "Background list behavior",
+      "finding": "When a form is open, ui.reference(None, ...) suppresses real connection-tree registrations. Frozen connections.rs:1188-1215 still renders the live list alongside a wide form, render_list1219+ registers the filter/tree, and click handling1000+ routes clicks to that tree. A form card is not automatically a modal that disables every other wide-screen pane."
+    },
+    {
+      "path": "crates/tablepro-ui/src/app.rs:2789",
+      "category": "Theme and shared Panel ownership",
+      "finding": "paint_idle_connection_frame repaints a real Panel after drawing, while the card uses raw RGB colors and raw border/radio glyph strings. This bypasses shared theme, component states and supported capability profiles. Fix the corresponding public Panel/Form/RadioGroup/TextInput/Button rules instead."
+    },
+    {
+      "path": "crates/tablepro-ui/src/app.rs:11613",
+      "category": "Remaining replay path",
+      "finding": "Advanced still uses historical_form_advanced. Its selector is broadened to accept empty_new_connection_draft, and the replay is painted at the end of draw after other layers. Remove it only when real Tabs and form sections render that screen; do not relocate or rename it."
+    }
+  ],
+  "test_evidence": {
+    "committed_inventory": "docs/audits/2026-10-21-external-form-test-regressions.json at8b626cb42",
+    "observed_change": "Exact existing inventory remains181 tests: the5902 base has170 passed/11 failed, while2a741 aftercf has160 passed/21 failed. These are observed failures, not all independently proven product regressions.",
+    "new_failure_names": [
+      "fresh_name_gate::typing_replaces_the_stock_name_and_closes_the_empty_card_gate",
+      "footer_unicode::connection_form_names_preserve_footer_grapheme_boundaries",
+      "form_radio::form_radio_commit_changes_draft",
+      "form_radio::form_radio_enter_submits",
+      "form_radio::form_radio_focus_bolds_the_painted_row",
+      "form_radio::form_radio_narrow_frames_clip_the_environment_field",
+      "form_radio::form_radio_off_marker_uses_the_hollow_circle",
+      "form_radio::form_radio_right_card_pins_miss_the_stock_form",
+      "perf::frame_tablepro_connection_form_120x40",
+      "replacement_contract::save_connect_from_workbench_form_requires_guard_and_cancel_keeps_work"
+    ],
+    "reference_conflicts": [
+      {
+        "test": "form_radio_enter_submits and fresh_name_gate",
+        "finding": "Some assertions expect a cloned Production draft or replacement of the stock name. Frozen new-form construction is blank. Preserve both observed test results and frozen source evidence; obtain a documented reference decision before adapting tests."
+      },
+      {
+        "test": "form_radio_right_card_pins_miss_the_stock_form",
+        "finding": "The test explicitly rejects pinned card positions, lowercase environment labels and Safe Mode description content. Frozen ConnForm construction uses lowercase local/development/staging/production labels and renders the selected Safe Mode description. This test is not itself the visual authority."
+      },
+      {
+        "test": "form_radio_off_marker_uses_the_hollow_circle",
+        "finding": "The test expects (\u25cb). Frozen theme.rs:2419-2420 defines radio_on=(\u25cf), radio_off=( ). Keep the conflict explicit; do not force the baseline to reproduce a newer glyph or silently bless the candidate."
+      }
+    ],
+    "required_decision": "Do not weaken or drop failing cases. Separate stale expectations from genuine visible-control, focus, clipping and data problems using repeated frozen CLI output, source proof and independent review."
+  },
+  "bounded_replacement_plan": [
+    {
+      "family": "Shared form layout and sections",
+      "owner": "termrock-forms existing Form/FormState/FieldSpec plus public composition or a facade block, not a new private TablePro UI helper",
+      "work": "Add only the missing named left/right field groups, Basic/Advanced sections and bottom action slot as shared data-driven layout contracts. Reuse Tabs and focus-aware scroll areas. One resolved layout must draw the actual field, provide its hit/focus region, and place its cursor. Application data remains ConnectionDraft/FormData, validators and typed domain actions."
+    },
+    {
+      "family": "Shared input and choice rendering",
+      "owner": "termrock-fields TextInput and termrock-controls RadioGroup/Checkbox/Toggle/Select, coordinated with current owners",
+      "work": "Use live editor state, grapheme-safe scrolling and masked password rendering. Preserve radio cursor versus committed selection, theme glyphs, focus and press state. Add a component-author part/slot only when an existing API cannot express the frozen contract; no app repaint or invisible registration."
+    },
+    {
+      "family": "Responsive pane and panel composition",
+      "owner": "Generic MasterDetail block and shared Panel/theme contracts",
+      "work": "Compose the live connection list and form card through the public block. Wide mode preserves the real list; narrow form uses the documented drawer/cover behavior. Keep Panel rendering and inactive appearance inside shared component parts."
+    },
+    {
+      "family": "Application consumer and domain actions",
+      "owner": "tablepro-ui connection-form composition and tablepro-domain connections",
+      "work": "Keep the corrected blank defaults and current data; map Form actions to save/test/connect/cancel and existing unsaved-work guards. Remove the registration-only Form draw, all private card/footer/frame/radio/choice painters and Advanced replay in the same verified consumer series."
+    }
+  ],
+  "required_real_app_regressions": [
+    "New versus edit connection defaults and dirty/cancel behavior; do not conflate the two routes.",
+    "Type and edit Name/Host/Port/Database/User/Password at a middle cursor position with wide and combining text; check current rendered content, selection, masking, caret shape/position and clipboard secrecy.",
+    "Navigate both RadioGroups with arrows, commit with Space, activate with Enter where frozen permits, hover/press/click actual visible rows and compare selected action keys.",
+    "Open Basic/Advanced, change fields, return, resize across the frozen pane breakpoint and adjacent heights; reveal focused fields and retain visible action buttons.",
+    "With the wide form open, interact with the real list/filter and verify focus behavior; under a genuine modal, reject background interaction.",
+    "Test connection, save, save-and-connect, validation errors and unsaved-work guard using correctly populated live data.",
+    "Compare all supported color profiles and repeated open/close cycles through pinned tuiscotti with ordered intermediate checkpoints."
+  ],
+  "verification_limits": [
+    "Read-only source and committed-log review; this reviewer did not run a new paired frozen CLI capture for cf.",
+    "No expected artifacts, sources, tags, branches or application files were modified.",
+    "No new build script or generated production resource mechanism appears in this commit; the problem is application-owned rendering and retained Advanced replay.",
+    "All four product gates and the complete reusable-library gate remain incomplete."
+  ]
+}

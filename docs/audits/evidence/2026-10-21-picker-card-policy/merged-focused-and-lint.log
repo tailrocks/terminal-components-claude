@@ -1,0 +1,43 @@
+['cargo', 'nextest', 'run', '--locked', '-p', 'termrock-overlays', '--test', 'picker_layout']
+   Compiling termrock-overlays v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-overlays)
+   Compiling termrock-forms v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-forms)
+   Compiling termrock-grid v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-grid)
+   Compiling termrock-editors v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-editors)
+   Compiling termrock v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock)
+   Compiling termrock-test-support v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-test-support)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.84s
+────────────
+ Nextest run ID 34c36029-400d-403b-bfee-b7d3ea11c984 with nextest profile: default
+    Starting 5 tests across 1 binary
+        PASS [   0.014s] (1/5) termrock-overlays::picker_layout page_down_uses_the_card_result_viewport_including_its_spare_row
+        PASS [   0.018s] (2/5) termrock-overlays::picker_layout card_draw_uses_policy_for_query_result_hit_and_cursor_bounds
+        PASS [   0.018s] (3/5) termrock-overlays::picker_layout zero_footer_disables_hints_without_overlapping_live_results
+        PASS [   0.039s] (4/5) termrock-overlays::picker_layout card_size_uses_live_rows_and_viewport_margins
+        PASS [   0.075s] (5/5) termrock-overlays::picker_layout card_geometry_stays_inside_adjacent_and_degenerate_viewports
+────────────
+     Summary [   0.075s] 5 tests run: 5 passed, 0 skipped
+['cargo', 'clippy', '--locked', '-p', 'termrock-overlays', '--all-targets', '--no-deps', '--', '-D', 'warnings']
+    Checking termrock-overlays v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-overlays)
+    Checking termrock-forms v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-forms)
+    Checking termrock-grid v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-grid)
+    Checking termrock-editors v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-editors)
+    Checking termrock v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock)
+    Checking termrock-test-support v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-test-support)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.68s
+['cargo', 'check', '--locked', '-p', 'termrock', '--example', 'picker_card_layout_consumer']
+    Checking termrock-runtime v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-runtime)
+    Checking termrock-controls v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-controls)
+    Checking termrock-shell v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-shell)
+    Checking termrock-viewport v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-viewport)
+    Checking termrock-fields v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-fields)
+    Checking termrock-feedback v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-feedback)
+    Checking termrock-terminal v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-terminal)
+    Checking termrock-navigation v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-navigation)
+    Checking termrock-session v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-session)
+    Checking termrock-overlays v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-overlays)
+    Checking termrock-grid v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-grid)
+    Checking termrock-forms v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-forms)
+    Checking termrock-editors v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock-editors)
+    Checking termrock v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.92s
+['cargo', 'fmt', '--check']

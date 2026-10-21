@@ -1,3 +1,6 @@
+#[path = "common/tab_navigation.rs"]
+mod tab_navigation;
+
 use tablepro_ui::{QueryOutcome, Tab, TableProApp};
 use termrock::{App, GridEditor, KeyCode, Theme};
 use termrock_test_support::Harness;
@@ -59,7 +62,7 @@ fn result_confirmation_cancel_preserves_inline_draft_and_confirm_targets_capture
     let Some(grid) = h.app().result_id() else {
         unreachable!("grid")
     };
-    assert!(h.tab_to(grid));
+    assert!(tab_navigation::tab_to(&mut h, grid));
     let _ = h.key(KeyCode::Right);
     let _ = h.key(KeyCode::F(2));
     let _ = h.key(KeyCode::End);
@@ -112,7 +115,7 @@ fn result_confirmation_rejects_changed_sql_and_vanished_target_is_noop() {
     let Some(Tab::Query(tab)) = h.app_mut().workbench.tab_mut(key) else {
         unreachable!("query")
     };
-    tab.query = "SELECT * FROM customers LIMIT 2".to_owned();
+    tab.replace_query("SELECT * FROM customers LIMIT 2");
     let _ = h.key(KeyCode::Tab);
     let _ = h.key(KeyCode::Enter);
     assert_eq!(h.app().result().row_count(), 1);
@@ -178,10 +181,20 @@ fn save_connect_from_workbench_form_requires_guard_and_cancel_keeps_work() {
     let key = h.app().workbench.active_key();
     let _ = h.ctrl('n');
     assert!(h.app().connection_form_open());
+    let name = termrock::Id::root("tablepro.connections.form.name");
+    assert!(tab_navigation::tab_to(&mut h, name));
+    for ch in "Unsaved guard draft".chars() {
+        let _ = h.key(KeyCode::Char(ch));
+    }
+    assert_eq!(
+        h.app().connection_draft().map(|draft| draft.name.as_str()),
+        Some("Unsaved guard draft"),
+        "the reconnect fixture must supply its required Name through the visible field"
+    );
     let save = termrock::Id::root("tablepro.connections.form")
         .part(termrock::Part::ACTIONS)
         .index(3);
-    assert!(h.tab_to(save));
+    assert!(tab_navigation::tab_to(&mut h, save));
     let _ = h.key(KeyCode::Enter);
     assert!(h.find("Reconnect with unsaved work?").is_some());
     assert!(!h.app().connection_form_open());

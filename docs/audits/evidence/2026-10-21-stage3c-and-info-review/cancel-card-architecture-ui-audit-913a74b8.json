@@ -1,0 +1,209 @@
+{
+  "status": "Independent cancel-card architecture/UI audit: changes required. No library or product acceptance.",
+  "reviewed_commit": "913a74b879039fcf115318edee303c02d395869f",
+  "component_introduced_at": "c851d8b3a847464347d16bd4df61408c9a0e49b8",
+  "fixed_baseline_source": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "scope": "New cancel_card.rs and launch_dialog_plate cancel wiring, with adjacent application layer/update selectors needed to assess behavior. No approval of other incoming Button/theme/Showcase code or later remote commits.",
+  "findings": [
+    {
+      "id": "CC1",
+      "priority": "P1",
+      "path": "crates/termrock-overlays/src/cancel_card.rs",
+      "line": 28,
+      "title": "Replace the procedural CANCEL transcription with the real shared dialog and buttons",
+      "evidence": "The only public operation is paint(Ui,title,body,keep,cancel): no Id, state, update, measure or typed action. It paints Keep focus at a fixed coordinate regardless of Runtime focus and draws both action labels/mnemonics without registering a control. Public consumer probes show visible labels/gutter, no registered regions, focusNone and no focus/visual change after Tab/Right. Empty action labels still leave the focus glyph. Old plate geometry, palette and character positions are directly transcribed; the issue is the mechanism, not its module name or a legitimate default width54.",
+      "owner": "Existing termrock-overlays Dialog/Action/DialogState with shared termrock-controls Button and layout/state/theme contracts. Consume the separately owned generic Dialog adapter; no new independent input or rendering system."
+    },
+    {
+      "id": "CC2",
+      "priority": "P1",
+      "path": "crates/jackin-preview-app/src/app.rs",
+      "line": 8775,
+      "title": "Keep the real cancel layer rendered so Cancel launch dispatches the confirm action",
+      "qualification": "The frame40 layer suppression is inherited and retained by the new cancel-card call; it was not first introduced by c851.",
+      "evidence": "Across24 real App cases (frames40/41 \u00d7120x40/119x40/80x24 \u00d74profiles), all12 frame40 cases expose no action bounds/hit/focus. Clicking the painted Cancel launch dismisses the modal but keeps routeCockpit and launchSome: it behaves as cancellation/dismissal of the dialog rather than ActionKey::CONFIRM. Tab then Enter leaves the confirmation open. At frame41 actual shared controls dispatch to Manager/launchNone for both pointer Cancel and Tab/Enter. Frozen Cockpit uses shared Dialog::destructive(...).cancel_label(Keep launching), with safe-action initial focus and a real destructive action.",
+      "owner": "App screen composition must always draw the same Dialog in ui.layer using the same IDs/configuration as update. App keeps the ActionKey::CONFIRM domain handler; component owns hit/focus/activation/dismissal. Remove launch_dialog_on_page/frame40/exact-viewport implementation selection with the validated replacement."
+    },
+    {
+      "id": "CC3",
+      "priority": "P2",
+      "path": "crates/termrock-overlays/src/cancel_card.rs",
+      "line": 117,
+      "related_lines": [
+        68,
+        128,
+        161
+      ],
+      "title": "Use shared grapheme/cell-width wrapping and clip all content to the dialog body",
+      "evidence": "paint_mnemonic splits the first Unicode scalar and allocates1 cell; label\u754cKeep loses the leading wide glyph. paint_at measures scalar counts and clips only to the page, so100-character title/body words overwrite the card border atx86 and backgroundx87. The private split_whitespace wrapper collapses explicit first\\nsecond into first second, unlike frozen shared wrap(s) which preserves paragraphs. Only3 body lines are drawn, with no scrolling state or route to the tail.",
+      "owner": "Existing Dialog measured body/action layout plus termrock-text grapheme/cell-width/wrap/truncate and shared scroll/clip contracts. Use a resolved body area and real Buttons, not another custom mnemonic/text painter."
+    },
+    {
+      "id": "CC4",
+      "priority": "P1",
+      "path": "crates/jackin-preview-app/src/app/launch_dialog_plate.rs",
+      "line": 13,
+      "title": "Remove application repainting and RGB-role inference after the shared cancel painter",
+      "evidence": "paint_cancel invokes shared cancel_card::paint then immediately recolor(ui,54,11,1). The helper maps raw card RGB, infers screen rain by foreground/background pairs, branches on16/mono/NO_COLOR and dims afterward. The component itself emits fixed RGB focus/danger/card values despite custom accent/danger/surface tokens under all4 profiles. These observations are at public Runtime buffer/API level, not a claim that final encoded CLI frames were compared.",
+      "owner": "Shared Dialog/Button/theme state and capability profiles. Remove app-owned corrective painting and raw-pair inference; do not rename or move the inference into another library helper."
+    }
+  ],
+  "old_mechanism_provenance": {
+    "source": "b330bb2fdd745029c8fde7a582b316cc3b575641:crates/jackin-preview-app/src/app/launch_dialog_plate.rs CANCEL",
+    "matching_details": [
+      "54x11 card, centred with y_bias1; header close atx50, titlex3/y2, bodyx3/y4..6.",
+      "Focus markerx18/y8; Keep mnemonicx19 and tailx20; Cancel paddingx36, mnemonicx37 and tailx38.",
+      "Exact raw card18181b/border4d4d4d/whiteffffff/body+closeb3b3b3/focus48e054/button27272a/dangerff6b6b.",
+      "Removed fixed runs are replaced by a procedural painter of the same initial state; title/body/label strings are now supplied as data, but button interaction and component layout are not recovered."
+    ]
+  },
+  "frozen_contract": {
+    "cockpit": "src/bin/jackin_preview/screens/cockpit.rs:451 builds a shared destructive Dialog with the exact launch title/body/Cancel launch and Keep launching label.",
+    "dialog": "src/widgets/dialog.rs:403 supplies real secondary/danger Buttons, initial focus on cancel/safe action, Dismiss::LIGHT, measured body rows, shared scroll and ButtonRow wrapping. Button keyboard/pointer activation returns typed action results; text/theme/layout come from shared rules.",
+    "text": "src/ui/text.rs:406 wraps per newline paragraph using shared terminal-cell tools rather than collapsing all whitespace."
+  },
+  "retain_separately": [
+    "Pass application title/body/action copy as borrowed data; keep launch models and business actions outside Termrock.",
+    "The exact default title/body/Keep launching/Cancel launch match frozen domain copy and should remain app-owned configuration.",
+    "Removing the literal CANCEL cell array is useful cleanup, but not evidence that the mechanism or library gate is complete. Use one cockpit_cancel_dialog configuration for both update and draw rather than duplicate literal argument sets."
+  ],
+  "replacement_owner_plan": [
+    {
+      "owner": "Existing Dialog/Action/DialogState and shared Button/theme/layout contracts",
+      "work": "Complete the separately owned generic baseline Dialog adapter, including body-title placement and measured width/height/action rows where required. Safe Keep action initially focuses a real control; hover, press, mnemonics, keyboard navigation, dismissal and destructive confirm use the same action path. Do not create an application/test-named frame variant."
+    },
+    {
+      "owner": "Jackin application composition/domain actions",
+      "work": "Always render cockpit_cancel_dialog through the real modal layer and same config used for update. Keep CONFIRM cancellation and CANCEL keep-launching outcomes in App. Remove cancel_card painter, page-layer suppression and cancel afterpaint recolor once affected exact paired flows pass."
+    },
+    {
+      "owner": "Independent product and API verification",
+      "work": "Run frozen/candidate real CLI pairs for actual Cancel vs Keep/Close/Escape/outside clicks, Tab/ShiftTab/arrows/mnemonics/Enter, hover/press/capture, focus restoration, resize and repeated cycles. Cover frames39/40/41, adjacent sizes, all4 profiles, different/Unicode labels, long/multiline body and empty/tiny regions. Demonstrate the same shared Dialog with unrelated data."
+    }
+  ],
+  "additional_observation": {
+    "diagnostic": "UndeliveredIntent { owner: jackin.preview \u25b8 cancel-dialog }",
+    "cases": 12,
+    "where": "All observed frame41 successful destructive-pointer confirmations.",
+    "qualification": "Observed and preserved; not diagnosed as a new cancel_card regression. The App closes the layer and disables its dialog-update branch in the CONFIRM handler, but this audit does not claim a proven receipt-lifecycle cause or prescribe a source fix. Record a separate App/Dialog/runtime owner diagnosis before calling that control path fully green."
+  },
+  "checks": {
+    "initial_commands": [
+      {
+        "name": "public-cancel-defect-probes",
+        "command": [
+          "cargo",
+          "nextest",
+          "run",
+          "--manifest-path",
+          "/private/tmp/cancel-card-913-independent-review/consumer/Cargo.toml",
+          "--all-targets",
+          "--no-fail-fast"
+        ],
+        "exit": 100
+      },
+      {
+        "name": "real-app-cancel-probes",
+        "command": [
+          "cargo",
+          "nextest",
+          "run",
+          "--manifest-path",
+          "/private/tmp/cancel-card-913-independent-review/consumer/Cargo.toml",
+          "--all-targets",
+          "--features",
+          "app-probes",
+          "-E",
+          "test(real_app_cancel_action_receipts)"
+        ],
+        "exit": 0
+      }
+    ],
+    "corrected_public_diagnostic_probes": {
+      "run": 5,
+      "passed": 5,
+      "skipped": 0,
+      "interpretation": "These diagnostic tests confirm reported flaws; PASS is not product success."
+    },
+    "real_app_matrix": {
+      "cases": 24,
+      "frames": [
+        40,
+        41
+      ],
+      "sizes": [
+        [
+          120,
+          40
+        ],
+        [
+          119,
+          40
+        ],
+        [
+          80,
+          24
+        ]
+      ],
+      "profiles": [
+        "TrueColor",
+        "Ansi256",
+        "Ansi16",
+        "Mono"
+      ],
+      "frame40_missing_action_hits_bounds_focus": 12,
+      "frame40_click_danger_keeps_launch": 12,
+      "frame40_tab_enter_leaves_modal_open": 12,
+      "frame41_click_and_keyboard_cancel_to_manager": 12
+    },
+    "main_bounded_script_seconds": 49.965511707996484,
+    "corrected_probe_seconds": 2.607684332993813
+  },
+  "corrected_probe_assumption": {
+    "initial_result": "The initial public suite had4pass/1fail because the reviewer expected a missing bottom border at54x11.",
+    "actual": "Ui.frame clips/reconstructs the border correctly; bottom-left is\u2570. The failed assumption and original source/log are preserved. The corrected probe checks this positive behavior, below-minimum width blankness and empty-label unowned focus.",
+    "excluded_finding": "No missing-border or panic claim is made. Returning blank below the documented fixed width is recorded as an API/measurement limitation, not asserted as a standalone parity defect."
+  },
+  "limits": [
+    "This audit covers exact913 only; later remote fixes may supersede it. Prior InfoCard report is untouched.",
+    "No product source edits, commits/push, full workspace checks or CI results.",
+    "No frozen/candidate tuiscotti PTY capture or complete terminal-state comparison was run; evidence is actual public Runtime/App input/rendering and frozen-source contracts.",
+    "Frame41 successful cancellation is not a full pass because the preserved diagnostic remains unresolved."
+  ],
+  "review_copy": {
+    "path": "/private/tmp/termrock-button-before-review",
+    "head": "913a74b879039fcf115318edee303c02d395869f",
+    "tracked_changes": 0
+  },
+  "product_acceptance": false,
+  "library_gate": false,
+  "source_sha256": {
+    "913a74b879039fcf115318edee303c02d395869f:crates/termrock-overlays/src/cancel_card.rs": "fe36a26282f96ba19f2cefa79197606d8894fc9c96101b0bed597779d0c152e0",
+    "913a74b879039fcf115318edee303c02d395869f:crates/jackin-preview-app/src/app/launch_dialog_plate.rs": "199f03e899c7637bc913bc60e17d3c3a9b9b67588cf19ea106b46990382aff71",
+    "b330bb2fdd745029c8fde7a582b316cc3b575641:crates/jackin-preview-app/src/app/launch_dialog_plate.rs": "4d5c2b17f2dabbd57466bd18656bba09ea02dc9f2e9706ca16d4dc6c3d932aec",
+    "4169783ae883788186d161af09ba9c481bd84e5c:src/widgets/dialog.rs": "beac6a5ba16fd2b9bf17ebbbec32e7d5a3540fe6978264833f7b9bc665e469df",
+    "4169783ae883788186d161af09ba9c481bd84e5c:src/ui/text.rs": "d316300311189919f6d3288d69489210e469201c4156cff25373dc39c08d32af",
+    "4169783ae883788186d161af09ba9c481bd84e5c:src/bin/jackin_preview/screens/cockpit.rs": "f390c4ef1606dbe9e12afd26ba95779e8a67b789c0d12ab1c62a7dd32fd8f8ce"
+  },
+  "evidence_root": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/cancel-card-913-independent-audit",
+  "evidence_sha256": {
+    "4169783a-src_bin_jackin_preview_screens_cockpit.rs": "f390c4ef1606dbe9e12afd26ba95779e8a67b789c0d12ab1c62a7dd32fd8f8ce",
+    "4169783a-src_ui_text.rs": "d316300311189919f6d3288d69489210e469201c4156cff25373dc39c08d32af",
+    "4169783a-src_widgets_dialog.rs": "beac6a5ba16fd2b9bf17ebbbec32e7d5a3540fe6978264833f7b9bc665e469df",
+    "913a74b8-crates_jackin-preview-app_src_app_launch_dialog_plate.rs": "199f03e899c7637bc913bc60e17d3c3a9b9b67588cf19ea106b46990382aff71",
+    "913a74b8-crates_termrock-overlays_src_cancel_card.rs": "fe36a26282f96ba19f2cefa79197606d8894fc9c96101b0bed597779d0c152e0",
+    "app-wiring-source.txt": "70ef5084ab88f61dab2e0ced94c7cc8ae2eb7619abb331346dc36d43d377affc",
+    "b330bb2f-crates_jackin-preview-app_src_app_launch_dialog_plate.rs": "4d5c2b17f2dabbd57466bd18656bba09ea02dc9f2e9706ca16d4dc6c3d932aec",
+    "cancel-card-introduction.patch": "449f57975fa9c8b92836d4939e621ecd6ed715e2cf147a489b9529db2774cbe8",
+    "consumer/Cargo.lock": "1d41066700396cbd9b56725cdce1940f5fbd8623bb83b657f5cd78fc3eceb388",
+    "consumer/Cargo.toml": "99bccdeb389a6cf33a597fdd5d39d2b6572c68e860e4730a794223e3bef83fa3",
+    "consumer/src/lib-initial-probe-assumption.rs.txt": "b0c7ea75694752cccdd83255cacfde27c26a80bf899614516004db5fd4ba9047",
+    "consumer/src/lib.rs": "06ca4314dcbec1200db5e066fc9d9b3bef8c48c50f7ca17563b39f3a260f56c9",
+    "public-cancel-defect-probes.log": "963e670d9fde3d2f15e5776728810faa3a1040aa059774f1462f4c2c271a50d4",
+    "public-cancel-diagnostic-probes-corrected.log": "c2da03f97b3a8107ecd4367e325725ccc288124a23f205a46cad52bade5b60d8",
+    "real-app-cancel-probes.log": "2b6f8ca5f7c8bcdb7e2942b54b8fe65f30dd1784196aa6d6c02244b41330814b",
+    "real-app-report.json": "9495491de6e22d71e05344f9aef6992d2d9b5b3dd1ca5bcd3f61a7ee4f11c3e1",
+    "results.json": "9c6edf35bc65a50b5a3a2f22d8d494860653fb877fd07b2065b47551fbfb75a2",
+    "run.py": "dfbe89c757be55ae128fa444983bba808651b785f65b14a06df458a9d6eb465d"
+  }
+}

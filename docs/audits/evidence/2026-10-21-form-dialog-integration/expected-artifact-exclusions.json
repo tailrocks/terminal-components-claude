@@ -1,0 +1,44 @@
+[
+  {
+    "path": "crates/showcase-ui/tests/baselines/showcase.txt",
+    "preserved_coordinator_expected_blob": "6de3fa5a291c4427a360eabab99b39f2c2b95909",
+    "observed_wip_blob": "7bf0fe2d09c483fb523953d911e3f3722e62b52e",
+    "matches_preserved_pin": false,
+    "authority": "No approval or update from this structural review; retain coordinator fixed52 acceptance custody."
+  },
+  {
+    "path": "crates/holla-ui/tests/baselines/app.txt",
+    "preserved_coordinator_expected_blob": "863944e34816bbe3cb5f2482f413ab48ae10ebc1",
+    "observed_wip_blob": "863944e34816bbe3cb5f2482f413ab48ae10ebc1",
+    "matches_preserved_pin": true,
+    "authority": "No approval or update from this structural review; retain coordinator fixed52 acceptance custody."
+  },
+  {
+    "path": "crates/showcase-ui/tests/fixtures/holla-page-headings.tsv",
+    "preserved_coordinator_expected_blob": "937469be55bff7007cfac8c036dc0909f0ad8647",
+    "observed_wip_blob": "157e25c61bc0a0750c7cacb9eb466597d74d775a",
+    "matches_preserved_pin": false,
+    "authority": "No approval or update from this structural review; retain coordinator fixed52 acceptance custody."
+  },
+  {
+    "path": "crates/showcase-ui/tests/fixtures/holla-shell-headers.tsv",
+    "preserved_coordinator_expected_blob": "6e6cebb12984f023ccdeab6d80f59dbb19267a9f",
+    "observed_wip_blob": "a3263eaeeb00648a9ce3b5548ec184f6a69083ee",
+    "matches_preserved_pin": false,
+    "authority": "No approval or update from this structural review; retain coordinator fixed52 acceptance custody."
+  },
+  {
+    "path": "crates/jackin-preview-app/tests/baselines/jackin.txt",
+    "preserved_coordinator_expected_blob": "0e45e5d0caaef4af0706b1dd5db92fd3b2ca40cf",
+    "observed_wip_blob": "89b4bbb2f279f22aca3dade8c71cb20b0c823bbc",
+    "matches_preserved_pin": false,
+    "authority": "No approval or update from this structural review; retain coordinator fixed52 acceptance custody."
+  },
+  {
+    "path": "crates/showcase-ui/tests/page_headings.rs",
+    "preserved_coordinator_expected_blob": "48729f448c73823cc58ee5eb1a06640b348355a3",
+    "observed_wip_blob": "48729f448c73823cc58ee5eb1a06640b348355a3",
+    "matches_preserved_pin": true,
+    "authority": "No approval or update from this structural review; retain coordinator fixed52 acceptance custody."
+  }
+]

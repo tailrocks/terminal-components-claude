@@ -6,6 +6,6 @@ actionlint = "1.7.12"
 shellcheck = "0.11.0"
 zizmor = "1.31.1"
 gh = "2.102.0"
-"github:tailrocks/velnor-new" = { version = "0.1.16", bin = "velnor-actions" }
+"github:tailrocks/velnor-new" = { version = "0.1.32", bin = "velnor-actions" }
 mr-boxington = "1.24.1"
 rust = { version = "1.99.1", components = "clippy,rustfmt", mr_boxington = false }

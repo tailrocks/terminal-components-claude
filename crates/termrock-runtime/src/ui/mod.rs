@@ -1,8 +1,11 @@
+mod command_scope;
+pub mod composition;
 pub mod cx;
 pub mod derived;
 pub mod layer_buf;
 pub mod measure;
 pub mod paint;
+mod slot;
 
 use ratatui_core::buffer::Buffer;
 use ratatui_core::layout::{Position, Rect};
@@ -11,20 +14,22 @@ use ratatui_core::style::Color;
 use core::ops::{BitOr, BitOrAssign};
 use std::collections::HashMap;
 
+pub use composition::{CompositionError, CompositionSlots, ContentSlot, MAX_COMPOSITION_DEPTH};
 use cx::LastFrame;
 pub use cx::{Cx, FrameRead, LayoutFacts};
 use derived::{DerivedCache, ReferenceCacheKey};
 use layer_buf::LayerPool;
+pub use slot::LayerSlot;
 
 use crate::action::ActionKey;
 use crate::cursor::CursorRequest;
-use crate::diagnostics::Diagnostic;
+use crate::diagnostics::{Diagnostic, Diagnostics};
 use crate::focus::{FocusEntry, FocusRing, Focusability, ScopeId, ScopeMode};
 use crate::hit::{Axes, Headroom, Registry};
 use crate::id::{Id, Part, PartRef};
 use crate::keymap::{
-    Binding, BindingRegistry, DynamicBindingRegistry, FocusedHintKey, FocusedHints, HintLayer,
-    KeyMap,
+    Binding, BindingDescriptor, BindingExtensionError, BindingRegistry, DynamicBindingRegistry,
+    FocusedHintKey, FocusedHints, HintLayer, KeyMap, ScopedBubbleBinding,
 };
 use crate::layer::{LayerId, LayerKind};
 use crate::response::StateFlags;
@@ -63,13 +68,15 @@ pub struct FrameState {
     pub(crate) ring: FocusRing,
     pub(crate) layers: LayerPool,
     pub(crate) cursors: Vec<CursorRequest>,
+    pub(crate) retained_cursor_request: Option<RetainedCursorRequest>,
     pub(crate) typing: Vec<crate::runtime::typing::TypingDeclaration>,
     pub(crate) typing_bindings: BindingRegistry,
     pub(crate) typing_resolved: crate::runtime::typing::TypingResolved,
     pub(crate) layout: Vec<(Id, LayoutFacts)>,
     pub(crate) declared: Vec<(Id, StateFlags)>,
     pub(crate) bindings: BindingRegistry,
-    pub(crate) diagnostics: Vec<Diagnostic>,
+    pub(crate) scoped_bubble_bindings: Vec<ScopedBubbleBinding>,
+    pub(crate) diagnostics: Diagnostics,
     pub(crate) roles: Vec<CellRoles>,
     pub(crate) screen: Rect,
     pub(crate) inert_floor: LayerId,
@@ -78,6 +85,22 @@ pub struct FrameState {
     pub(crate) styled_parts: Vec<(Id, Part)>,
     #[cfg(feature = "testing")]
     pub(crate) styled_queries: Vec<StyledQuery>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct RetainedCursorRequest {
+    pub(crate) owner: Id,
+    pub(crate) parent_layer: LayerId,
+    pub(crate) overlay_layer: LayerId,
+    pub(crate) cursor_index: usize,
+    pub(crate) mode: CursorRetentionMode,
+    pub(crate) ambiguous: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum CursorRetentionMode {
+    FocusedOwner,
+    VisibleOwner,
 }
 
 #[cfg(feature = "testing")]
@@ -165,12 +188,14 @@ impl FrameState {
         self.ring.reset();
         self.layers.begin();
         self.cursors.clear();
+        self.retained_cursor_request = None;
         self.typing.clear();
         self.typing_bindings.reset();
         self.typing_resolved = crate::runtime::typing::TypingResolved::default();
         self.layout.clear();
         self.declared.clear();
         self.bindings.reset();
+        self.scoped_bubble_bindings.clear();
         self.diagnostics.clear();
         self.roles.clear();
         self.roles
@@ -209,9 +234,8 @@ pub struct UiCore {
     pub(crate) keymap_revision: u64,
     dynamic_bindings: DynamicBindingRegistry,
     next_targetless_reference: u64,
-    pub(crate) scroll_bg_counts: HashMap<Color, usize>,
-    pub(crate) scroll_bg_order: Vec<Color>,
     pub(crate) cluster_scratch: crate::text::clusters::ClusterScratch,
+    pub(crate) majority_bg_counts: HashMap<Color, (usize, usize)>,
 }
 
 impl core::fmt::Debug for UiCore {
@@ -341,6 +365,28 @@ impl<'f> Ui<'f> {
         }
     }
 
+    /// Draw one subtree with a different theme.
+    ///
+    /// The frame, buffer, and hit state stay. Only the theme reference
+    /// changes for the closure. Callers use this when one screen must follow
+    /// a baseline color ladder the shared capability palette does not.
+    pub fn with_theme<R>(&mut self, theme: &Theme, f: impl FnOnce(&mut Ui<'_>) -> R) -> R {
+        let mut nested = Ui {
+            frame: &mut *self.frame,
+            page: &mut *self.page,
+            core: &mut *self.core,
+            theme,
+            last: self.last,
+            clip: self.clip,
+            surface: self.surface,
+            target: self.target,
+            layer: self.layer,
+            inert: self.inert,
+            reference: self.reference,
+        };
+        f(&mut nested)
+    }
+
     pub const fn full(&self) -> Rect {
         self.clip
     }
@@ -359,6 +405,13 @@ impl<'f> Ui<'f> {
 
     pub const fn is_inert(&self) -> bool {
         self.inert || self.reference.is_some()
+    }
+
+    /// Append a component-author diagnostic to this frame's bounded runtime
+    /// diagnostic stream. Diagnostics are committed with the frame and cannot
+    /// be cleared by an individual component.
+    pub fn diagnostic(&mut self, diagnostic: Diagnostic) {
+        self.frame.diagnostics.push(diagnostic);
     }
 
     pub fn reference<R>(
@@ -405,7 +458,7 @@ impl<'f> Ui<'f> {
         part: Part,
         flags: StateFlags,
     ) -> Resolved {
-        let acc = self.core.style_cache.accumulate(
+        self.core.style_cache.resolve(
             self.theme,
             family,
             variant,
@@ -413,8 +466,8 @@ impl<'f> Ui<'f> {
             flags,
             &self.core.overlays,
             self.core.stack_hash,
-        );
-        crate::theme::resolve::bind(self.theme, acc, None, self.surface)
+            self.surface,
+        )
     }
 
     pub(crate) fn style_inherited(
@@ -455,6 +508,26 @@ impl<'f> Ui<'f> {
         )
     }
 
+    pub fn style_defaults_with_explicit(
+        &self,
+        family: Family,
+        variant: Variant,
+        part: Part,
+        flags: StateFlags,
+        defaults: crate::theme::StyleDefaults<'_>,
+        local: Option<&crate::theme::StylePatch>,
+    ) -> crate::theme::ResolvedStyle {
+        crate::theme::resolve::bind_defaults_with_explicit(
+            self.theme,
+            (family, variant, part),
+            flags,
+            &self.core.overlays,
+            self.surface,
+            defaults,
+            local,
+        )
+    }
+
     pub fn paint_patch(&self, patch: &crate::theme::StylePatch) -> crate::theme::PaintStyle {
         crate::theme::resolve::bind(self.theme, *patch, None, self.surface).style
     }
@@ -467,7 +540,7 @@ impl<'f> Ui<'f> {
         flags: StateFlags,
         patch: &crate::theme::StylePatch,
     ) -> Resolved {
-        let acc = self.core.style_cache.accumulate(
+        self.core.style_cache.resolve_patched(
             self.theme,
             family,
             variant,
@@ -475,8 +548,9 @@ impl<'f> Ui<'f> {
             flags,
             &self.core.overlays,
             self.core.stack_hash,
-        );
-        crate::theme::resolve::bind(self.theme, acc, Some(patch), self.surface)
+            self.surface,
+            patch,
+        )
     }
 
     #[cfg(feature = "testing")]
@@ -694,6 +768,44 @@ impl<'f> Ui<'f> {
         flags: StateFlags,
         table: &'static [Binding<C>],
     ) {
+        self.publish_bindings_filtered(owner, flags, table, |_| true);
+    }
+
+    pub(crate) fn publish_scope_bindings<C: Copy + 'static>(
+        &mut self,
+        scope: ScopeId,
+        owner: Id,
+        flags: StateFlags,
+        table: &'static [Binding<C>],
+    ) {
+        if self.registrations_suppressed() || self.frame.ring.scope_layer(scope) != Some(self.layer)
+        {
+            return;
+        }
+        if let Some(action) =
+            self.frame
+                .bindings
+                .publish_filtered(owner, flags, self.layer, table, |_| true)
+        {
+            self.frame
+                .diagnostics
+                .push(Diagnostic::DuplicateBindingAction { owner, action });
+            return;
+        }
+        self.frame.scoped_bubble_bindings.push(ScopedBubbleBinding {
+            scope,
+            owner,
+            layer: self.layer,
+        });
+    }
+
+    pub(crate) fn publish_bindings_filtered<C: Copy + 'static>(
+        &mut self,
+        owner: Id,
+        flags: StateFlags,
+        table: &'static [Binding<C>],
+        include: impl Fn(C) -> bool,
+    ) {
         let initial_focus = self.last.snapshot.focus.is_none()
             && self.last.ring.entries().is_empty()
             && self.frame.ring.reachable().next().map(|entry| entry.id) == Some(owner);
@@ -709,10 +821,61 @@ impl<'f> Ui<'f> {
         } else {
             flags
         };
-        if let Some(action) = self.frame.bindings.publish(owner, flags, self.layer, table) {
+        if let Some(action) = self
+            .frame
+            .bindings
+            .publish_filtered(owner, flags, self.layer, table, include)
+        {
             self.frame
                 .diagnostics
                 .push(Diagnostic::DuplicateBindingAction { owner, action });
+        }
+    }
+
+    pub(crate) fn extend_bindings<C: Copy + 'static>(
+        &mut self,
+        owner: Id,
+        flags: StateFlags,
+        table: &'static [Binding<C>],
+        include: impl Fn(C) -> bool,
+    ) -> Result<(), BindingExtensionError> {
+        let initial_focus = self.last.snapshot.focus.is_none()
+            && self.last.ring.entries().is_empty()
+            && self.frame.ring.reachable().next().map(|entry| entry.id) == Some(owner);
+        if self.registrations_suppressed()
+            || (self.last.snapshot.focus != Some(owner) && !initial_focus)
+            || (!flags.contains(StateFlags::FOCUSED) && !initial_focus)
+            || !self.frame.ring.contains(owner)
+        {
+            return Ok(());
+        }
+        let flags = if initial_focus {
+            flags | StateFlags::FOCUSED
+        } else {
+            flags
+        };
+        match self
+            .frame
+            .bindings
+            .extend(owner, flags, self.layer, table, include)
+        {
+            Ok(()) => Ok(()),
+            Err(error @ BindingExtensionError::MissingBase { .. }) => Err(error),
+            Err(error @ BindingExtensionError::DuplicateAction { action, .. }) => {
+                self.frame
+                    .diagnostics
+                    .push(Diagnostic::DuplicateBindingAction { owner, action });
+                Err(error)
+            }
+            Err(error @ BindingExtensionError::ConflictingChord { chord, .. }) => {
+                self.frame.diagnostics.push(Diagnostic::BindingConflict {
+                    chord,
+                    phase: crate::keymap::KeyPhase::Bubble,
+                    a: owner,
+                    b: owner,
+                });
+                Err(error)
+            }
         }
     }
 
@@ -750,6 +913,47 @@ impl<'f> Ui<'f> {
     where
         I: Iterator<Item = (ActionKey, Option<crate::event::Chord>)> + Clone,
     {
+        self.publish_additional_binding_descriptors(
+            owner,
+            flags,
+            bindings.map(|(action, chord)| BindingDescriptor {
+                action,
+                chord,
+                label: "",
+                priority: 0,
+                visible: false,
+            }),
+        );
+    }
+
+    /// Add bindings to the focused owner's current table while preserving hint metadata.
+    pub fn publish_additional_bindings<C: Copy + 'static>(
+        &mut self,
+        owner: Id,
+        flags: StateFlags,
+        table: &'static [Binding<C>],
+    ) {
+        self.publish_additional_binding_descriptors(
+            owner,
+            flags,
+            table.iter().map(|binding| BindingDescriptor {
+                action: binding.action,
+                chord: binding.chord,
+                label: binding.label,
+                priority: binding.priority,
+                visible: binding.visible,
+            }),
+        );
+    }
+
+    fn publish_additional_binding_descriptors<I>(
+        &mut self,
+        owner: Id,
+        flags: StateFlags,
+        bindings: I,
+    ) where
+        I: Iterator<Item = BindingDescriptor> + Clone,
+    {
         let initial_focus = self.last.snapshot.focus.is_none()
             && self.last.ring.entries().is_empty()
             && self.frame.ring.reachable().next().map(|entry| entry.id) == Some(owner);
@@ -765,12 +969,17 @@ impl<'f> Ui<'f> {
         } else {
             flags
         };
-        let base = self
+        let (base, base_descriptors) = self
             .frame
             .bindings
             .get(owner)
-            .map(|(published, _)| published.table);
-        let (descriptors, revision) = self.core.dynamic_bindings.update(owner, base, bindings);
+            .map_or((None, &[][..]), |(published, descriptors)| {
+                (Some(published.table), descriptors)
+            });
+        let (descriptors, revision) =
+            self.core
+                .dynamic_bindings
+                .update_descriptors(owner, base, base_descriptors, bindings);
         if let Some(action) =
             self.frame
                 .bindings
@@ -853,15 +1062,138 @@ impl<'f> Ui<'f> {
     }
 
     pub fn set_cursor(&mut self, owner: Id, pos: Position) {
-        self.record_cursor(owner, pos, false);
+        self.record_cursor(owner, pos, false, crate::cursor::CursorShape::Block);
+    }
+
+    /// Same as [`Self::set_cursor`] with a steady bar. Presentation emits the
+    /// shape. Callers do not write cursor bytes.
+    pub fn set_bar_cursor(&mut self, owner: Id, pos: Position) {
+        self.record_cursor(owner, pos, false, crate::cursor::CursorShape::Bar);
+    }
+
+    /// Retains an already-rendered focused owner's cursor through a nonmodal
+    /// popover that explicitly calls this method. The cursor request is moved to the current
+    /// overlay layer without registering a second control or cursor. Ordinary
+    /// popovers, modal layers, inert layers, and missing or stale owner requests
+    /// do not retain a cursor.
+    pub fn retain_owner_cursor(&mut self, owner: Id) -> bool {
+        self.retain_cursor_request(owner, CursorRetentionMode::FocusedOwner)
+    }
+
+    /// Retains a real rendered owner's cursor through the current nonmodal
+    /// popover, even when that popover owns keyboard focus. This is intended
+    /// for visible terminal or editor carets that remain meaningful while a
+    /// menu takes input. It never registers a control or invents a cursor.
+    pub fn retain_visible_owner_cursor(&mut self, owner: Id) -> bool {
+        self.retain_cursor_request(owner, CursorRetentionMode::VisibleOwner)
+    }
+
+    fn retain_cursor_request(&mut self, owner: Id, mode: CursorRetentionMode) -> bool {
+        if self.reference.is_some() || self.inert || self.layer != self.frame.top {
+            return false;
+        }
+        if mode == CursorRetentionMode::FocusedOwner && self.last.snapshot.focus != Some(owner) {
+            return false;
+        }
+        let Some((top_index, top)) = self.frame.layers.active().iter().enumerate().next_back()
+        else {
+            return false;
+        };
+        if top.layer != self.layer
+            || !top.drawn
+            || top.spec.kind != LayerKind::Popover
+            || top.spec.inert_below
+        {
+            return false;
+        }
+        if let Some(existing) = self.frame.retained_cursor_request.as_mut() {
+            if existing.owner == owner && existing.mode == mode && !existing.ambiguous {
+                return true;
+            }
+            if !existing.ambiguous {
+                self.frame
+                    .diagnostics
+                    .push(crate::diagnostics::Diagnostic::CursorRejected {
+                        owner,
+                        layer: self.layer,
+                    });
+                existing.ambiguous = true;
+            }
+            return false;
+        }
+        let parent_layer = top_index
+            .checked_sub(1)
+            .and_then(|parent_index| self.frame.layers.active().get(parent_index))
+            .map_or(LayerId::PAGE, |parent| parent.layer);
+        if parent_layer < self.frame.inert_floor
+            || self.frame.registry.layer_of(owner) != Some(parent_layer)
+        {
+            return false;
+        }
+        let Some(area) = self.frame.registry.area_of(owner) else {
+            return false;
+        };
+        let Some((cursor_index, cursor)) =
+            self.frame
+                .cursors
+                .iter_mut()
+                .enumerate()
+                .rev()
+                .find(|(_, cursor)| {
+                    cursor.owner == owner
+                        && cursor.layer == parent_layer
+                        && !cursor.inert
+                        && !cursor.typing_offer
+                        && self.frame.screen.contains(cursor.pos)
+                        && area.contains(cursor.pos)
+                })
+        else {
+            return false;
+        };
+        cursor.layer = self.layer;
+        self.frame.retained_cursor_request = Some(RetainedCursorRequest {
+            owner,
+            parent_layer,
+            overlay_layer: self.layer,
+            cursor_index,
+            mode,
+            ambiguous: false,
+        });
+        true
+    }
+
+    /// Steady bar for `owner` on the open top layer. Does not draw that layer,
+    /// so a page stamp is not dimmed or covered.
+    pub fn set_undrawn_top_bar_cursor(&mut self, owner: Id, area: Rect, pos: Position) {
+        if self.reference.is_some() || area.is_empty() {
+            return;
+        }
+        let saved_layer = self.layer;
+        let saved_inert = self.inert;
+        self.layer = self.frame.top;
+        self.inert = false;
+        self.register_keyboard_editor(owner, area, Focusability::Focusable, StateFlags::EDITING);
+        self.set_bar_cursor(owner, pos);
+        self.layer = saved_layer;
+        self.inert = saved_inert;
     }
 
     pub fn offer_typing_cursor(&mut self, owner: Id, pos: Position) {
-        self.record_cursor(owner, pos, true);
+        self.record_cursor(owner, pos, true, crate::cursor::CursorShape::Block);
     }
 
-    fn record_cursor(&mut self, owner: Id, pos: Position, typing_offer: bool) {
-        if self.reference.is_some() {
+    fn record_cursor(
+        &mut self,
+        owner: Id,
+        pos: Position,
+        typing_offer: bool,
+        shape: crate::cursor::CursorShape,
+    ) {
+        let in_clip = self.clip.contains(pos)
+            || (self.layer > LayerId::PAGE
+                && self.layer == self.frame.top
+                && self.frame.screen.contains(pos));
+        if self.reference.is_some() || !in_clip {
             return;
         }
         self.frame.cursors.push(CursorRequest {
@@ -870,6 +1202,7 @@ impl<'f> Ui<'f> {
             pos,
             inert: self.inert,
             typing_offer,
+            shape,
         });
     }
 
@@ -953,14 +1286,12 @@ impl<'f> Ui<'f> {
         if !self.clip.contains(src) || !self.clip.contains(dst) {
             return;
         }
-        let roles = match self.target {
-            Target::Page => self.roles_at(src),
-            Target::Layer(i) => self
-                .frame
-                .layers
-                .active()
-                .get(i)
-                .map_or_else(CellRoles::default, |d| d.roles_at(src)),
+        let (roles, underlay) = match self.target {
+            Target::Page => (self.roles_at(src), None),
+            Target::Layer(i) => self.frame.layers.active().get(i).map_or_else(
+                || (CellRoles::default(), None),
+                |d| (d.roles_at(src), d.underlay_at(src).cloned()),
+            ),
         };
         if let Some(cell) = self.buffer().cell(src).cloned() {
             if let Some(target) = self.buffer().cell_mut(dst) {
@@ -978,15 +1309,36 @@ impl<'f> Ui<'f> {
                 Target::Layer(i) => {
                     if let Some(d) = self.frame.layers.active_mut().get_mut(i) {
                         d.set_roles(dst, roles);
+                        d.set_underlay(dst, underlay);
                     }
                 }
             }
             if let Some(cell) = self.buffer().cell_mut(src) {
+                // `reset` drops every channel. A partial style then leaves
+                // fg/bg at Default, which punches a hole through the row fill
+                // when a right-aligned value shifts off those cells.
+                let kept_fg = cell.fg;
+                let kept_bg = cell.bg;
                 cell.reset();
-                cell.set_style(reset.into_style());
+                let style = reset.into_style();
+                cell.set_style(style);
+                if style.fg.is_none() {
+                    cell.fg = kept_fg;
+                }
+                if style.bg.is_none() {
+                    cell.bg = kept_bg;
+                }
             }
-            self.mark(src, None);
+            // Preserve the source cell's semantic role metadata for the
+            // vacated padding cell, then apply any reset-channel overrides.
+            // Clearing roles here makes later visual passes (such as dimming)
+            // treat padding differently from the row it belongs to.
             self.mark(src, Some(reset));
+            if let Target::Layer(i) = self.target
+                && let Some(d) = self.frame.layers.active_mut().get_mut(i)
+            {
+                d.reset_source_underlay(src, reset);
+            }
         }
     }
 
@@ -1000,6 +1352,18 @@ impl<'f> Ui<'f> {
                 }
             }
             Target::Layer(i) => {
+                if style.is_none() {
+                    let page_cell = self.page.cell(pos).cloned();
+                    let page_roles = self.roles_at(pos);
+                    if let Some(page_cell) = page_cell
+                        && let Some(d) = self.frame.layers.active_mut().get_mut(i)
+                    {
+                        // raw() clears the replay so a direct edit sticks.
+                        // Bake the inherited ink first, or the cleared cell
+                        // keeps the terminal default foreground.
+                        d.materialize_underlay(pos, &page_cell, page_roles);
+                    }
+                }
                 if let Some(d) = self.frame.layers.active_mut().get_mut(i) {
                     d.mark(pos, style);
                 }
@@ -1049,6 +1413,147 @@ impl<'f> Ui<'f> {
 
     pub(crate) fn page_mut(&mut self) -> &mut Buffer {
         self.page
+    }
+
+    /// Card fill that keeps the dimmed page glyph color and sets the card background.
+    pub fn fill_card_from_page(&mut self, area: Rect, card: ratatui_core::style::Color) {
+        let theme = self.theme.clone();
+        let samples: Vec<_> = area
+            .positions()
+            .map(|pos| {
+                let (fg, bg) = self
+                    .page
+                    .cell(pos)
+                    .map(|cell| (cell.fg, cell.bg))
+                    .unwrap_or((
+                        ratatui_core::style::Color::Reset,
+                        ratatui_core::style::Color::Reset,
+                    ));
+                let (fg, _) = theme.backdrop_colors(fg, bg);
+                (pos, fg)
+            })
+            .collect();
+        {
+            let buf = self.buffer();
+            for (pos, fg) in samples {
+                if let Some(cell) = buf.cell_mut(pos) {
+                    cell.set_symbol(" ");
+                    let mut style = ratatui_core::style::Style::new();
+                    style.fg = Some(fg);
+                    style.bg = Some(card);
+                    cell.set_style(style);
+                    cell.modifier = ratatui_core::style::Modifier::empty();
+                }
+            }
+        }
+        self.mark_area(area, None);
+    }
+
+    /// Space fill that keeps the ink already on the page.
+    ///
+    /// Baseline `fill` sets the glyph to a space and the background, and leaves
+    /// the foreground. Call it after `modal_backdrop` so an empty dialog cell
+    /// keeps the dimmed color under it.
+    pub fn fill_keep_fg(&mut self, area: Rect, bg: ratatui_core::style::Color) {
+        self.fill(area, crate::theme::PaintStyle::new().bg(bg));
+    }
+
+    /// Map truecolor inks. Indexed and named colors stay.
+    ///
+    /// A channel that maps to its existing color keeps its semantic paint
+    /// role. Changed channels lose only their own role; the other channel and
+    /// all non-color cell attributes remain intact.
+    pub fn recolor_rgb(
+        &mut self,
+        area: Rect,
+        mut map: impl FnMut(ratatui_core::style::Color) -> ratatui_core::style::Color,
+    ) {
+        self.recolor_cells(area, |fg, bg| {
+            let fg = if matches!(fg, ratatui_core::style::Color::Rgb(..)) {
+                map(fg)
+            } else {
+                fg
+            };
+            let bg = if matches!(bg, ratatui_core::style::Color::Rgb(..)) {
+                map(bg)
+            } else {
+                bg
+            };
+            (fg, bg)
+        });
+    }
+
+    /// Map a cell's foreground and background together.
+    ///
+    /// Unchanged output channels keep their semantic paint roles.
+    pub fn recolor_pair(
+        &mut self,
+        area: Rect,
+        map: impl FnMut(
+            ratatui_core::style::Color,
+            ratatui_core::style::Color,
+        ) -> (ratatui_core::style::Color, ratatui_core::style::Color),
+    ) {
+        self.recolor_cells(area, map);
+    }
+
+    /// Replace a cell's foreground. `map` returns the new ink, or `None` to keep it.
+    ///
+    /// Returning the existing foreground also keeps its semantic paint role;
+    /// background provenance is preserved in either case.
+    pub fn recolor_fg(
+        &mut self,
+        area: Rect,
+        mut map: impl FnMut(
+            ratatui_core::style::Color,
+            ratatui_core::style::Color,
+        ) -> Option<ratatui_core::style::Color>,
+    ) {
+        self.recolor_cells(area, |fg, bg| (map(fg, bg).unwrap_or(fg), bg));
+    }
+
+    fn recolor_cells(
+        &mut self,
+        area: Rect,
+        mut map: impl FnMut(
+            ratatui_core::style::Color,
+            ratatui_core::style::Color,
+        ) -> (ratatui_core::style::Color, ratatui_core::style::Color),
+    ) {
+        let area = area.intersection(self.clip);
+        for pos in area.positions() {
+            let Some((old_fg, old_bg)) = self.buffer().cell(pos).map(|cell| (cell.fg, cell.bg))
+            else {
+                continue;
+            };
+            let (fg, bg) = map(old_fg, old_bg);
+            let fg_changed = fg != old_fg;
+            let bg_changed = bg != old_bg;
+            if !fg_changed && !bg_changed {
+                continue;
+            }
+
+            {
+                let Some(cell) = self.buffer().cell_mut(pos) else {
+                    continue;
+                };
+                if fg_changed {
+                    cell.set_fg(fg);
+                }
+                if bg_changed {
+                    cell.set_bg(bg);
+                }
+            }
+
+            let mut patch = crate::theme::PaintStyle::new();
+            if fg_changed {
+                patch = patch.fg(fg);
+            }
+            if bg_changed {
+                patch = patch.bg(bg);
+            }
+            self.mark(pos, Some(patch));
+        }
     }
 
     pub(crate) fn layer_count(&self) -> usize {
@@ -1135,7 +1640,8 @@ mod tests {
 
     use super::cx::LastFrame;
     use super::{
-        CellRoles, FrameRead, FrameState, LayoutFacts, ReferenceState, ReferenceTarget, Ui, UiCore,
+        CellRoles, CursorRetentionMode, FrameRead, FrameState, LayoutFacts, ReferenceState,
+        ReferenceTarget, RetainedCursorRequest, Ui, UiCore,
     };
     use crate::action::ActionKey;
     use crate::event::{Chord, KeyCode};
@@ -1173,6 +1679,20 @@ mod tests {
         visible: true,
     }];
 
+    #[derive(Clone, Copy)]
+    enum TestNavCmd {
+        Up,
+    }
+
+    const TEST_NAV_BINDINGS: &[Binding<TestNavCmd>] = &[Binding {
+        action: ActionKey::custom("ui.nav.up"),
+        chord: Some(Chord::key(KeyCode::Up)),
+        cmd: TestNavCmd::Up,
+        label: "Up",
+        priority: 2,
+        visible: true,
+    }];
+
     fn with_ui<R>(theme: &Theme, f: impl FnOnce(&mut Ui<'_>) -> R) -> (R, Buffer) {
         let mut frame = FrameState::default();
         frame.reset(1, SCREEN);
@@ -1184,6 +1704,36 @@ mod tests {
             f(&mut ui)
         };
         (out, page)
+    }
+
+    #[test]
+    fn author_binding_extension_is_explicit_and_additive_for_same_owner() {
+        let theme = Theme::junie();
+        with_ui(&theme, |ui| {
+            ui.register_focus_only(OWNER, Focusability::Focusable);
+            ui.publish_bindings(OWNER, StateFlags::FOCUSED, TEST_BINDINGS);
+            crate::author::extend_bindings(
+                ui,
+                OWNER,
+                StateFlags::FOCUSED,
+                TEST_NAV_BINDINGS,
+                |command| matches!(command, TestNavCmd::Up),
+            )
+            .expect("disjoint nav action extends the owner table");
+
+            let (_, descriptors) = ui.frame.bindings.get(OWNER).expect("published owner");
+            assert_eq!(descriptors.len(), 2);
+            assert!(
+                descriptors
+                    .iter()
+                    .any(|binding| binding.action == ActionKey::CONFIRM)
+            );
+            assert!(
+                descriptors
+                    .iter()
+                    .any(|binding| binding.action == ActionKey::custom("ui.nav.up"))
+            );
+        });
     }
 
     #[test]
@@ -1365,7 +1915,7 @@ mod tests {
         assert!(frame.layout.is_empty());
         assert!(frame.cursors.is_empty());
         assert!(frame.bindings.get(OWNER).is_none());
-        assert!(frame.diagnostics.is_empty());
+        assert!(frame.diagnostics.items().is_empty());
         assert!(
             frame
                 .layers
@@ -1373,6 +1923,263 @@ mod tests {
                 .first()
                 .is_some_and(|layer| !layer.drawn)
         );
+    }
+
+    fn with_cursor_popover(
+        kind: crate::layer::LayerKind,
+        inert_below: bool,
+        owner_focused: bool,
+        owner_area: Rect,
+        cursor_pos: Option<Position>,
+        run: impl FnOnce(&mut Ui<'_>) -> bool,
+    ) -> (bool, FrameState) {
+        const POPUP: Id = Id::root("ui.cursor-popup");
+        let theme = Theme::junie();
+        let mut frame = FrameState::default();
+        frame.reset(1, SCREEN);
+        frame.top = LayerId(1);
+        frame.inert_floor = if inert_below {
+            LayerId(1)
+        } else {
+            LayerId::PAGE
+        };
+        let mut spec = if kind == crate::layer::LayerKind::Modal {
+            LayerSpec::modal(POPUP)
+        } else {
+            LayerSpec::popover(
+                POPUP,
+                crate::layer::Anchor::Screen(crate::layer::ScreenAlign::Center),
+            )
+        };
+        spec.inert_below = inert_below;
+        frame.layers.push(POPUP, LayerId(1), spec, SCREEN, SCREEN);
+        let mut page = Buffer::empty(SCREEN);
+        let mut core = UiCore::default();
+        let mut last = LastFrame::default();
+        if owner_focused {
+            last.snapshot.focus = Some(OWNER);
+        }
+        let moved = {
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+            ui.register_editor(
+                OWNER,
+                owner_area,
+                Focusability::Focusable,
+                StateFlags::EDITING,
+            );
+            if let Some(pos) = cursor_pos {
+                ui.set_bar_cursor(OWNER, pos);
+            }
+            let mut moved = false;
+            let _ = ui.layer(POPUP, |ui, _| moved = run(ui));
+            moved
+        };
+        (moved, frame)
+    }
+
+    #[test]
+    fn focused_owner_cursor_can_be_retained_only_by_an_opted_in_nonmodal_popover() {
+        use crate::layer::LayerKind;
+
+        let (retained, frame) = with_cursor_popover(
+            LayerKind::Popover,
+            false,
+            true,
+            SCREEN,
+            Some(Position::new(4, 1)),
+            |ui| ui.retain_owner_cursor(OWNER),
+        );
+        assert!(retained);
+        assert_eq!(
+            frame.retained_cursor_request,
+            Some(RetainedCursorRequest {
+                owner: OWNER,
+                parent_layer: LayerId::PAGE,
+                overlay_layer: LayerId(1),
+                cursor_index: 0,
+                mode: CursorRetentionMode::FocusedOwner,
+                ambiguous: false,
+            })
+        );
+        assert_eq!(frame.cursors.len(), 1, "the real cursor request is reused");
+        assert_eq!(frame.cursors[0].layer, LayerId(1));
+        assert_eq!(frame.cursors[0].pos, Position::new(4, 1));
+        assert_eq!(frame.cursors[0].shape, crate::cursor::CursorShape::Bar);
+
+        let (ordinary, frame) = with_cursor_popover(
+            LayerKind::Popover,
+            false,
+            true,
+            SCREEN,
+            Some(Position::new(4, 1)),
+            |_| false,
+        );
+        assert!(!ordinary, "ordinary popovers do not retain owner cursors");
+        assert_eq!(frame.retained_cursor_request, None);
+        assert_eq!(frame.cursors[0].layer, LayerId::PAGE);
+
+        for (kind, inert, focused, area, cursor) in [
+            (
+                LayerKind::Modal,
+                false,
+                true,
+                SCREEN,
+                Some(Position::new(4, 1)),
+            ),
+            (
+                LayerKind::Popover,
+                true,
+                true,
+                SCREEN,
+                Some(Position::new(4, 1)),
+            ),
+            (
+                LayerKind::Popover,
+                false,
+                false,
+                SCREEN,
+                Some(Position::new(4, 1)),
+            ),
+            (LayerKind::Popover, false, true, SCREEN, None),
+            (
+                LayerKind::Popover,
+                false,
+                true,
+                Rect::new(0, 0, 2, 2),
+                Some(Position::new(4, 1)),
+            ),
+        ] {
+            let (retained, frame) = with_cursor_popover(kind, inert, focused, area, cursor, |ui| {
+                ui.retain_owner_cursor(OWNER)
+            });
+            assert!(!retained, "invalid cursor retention must be rejected");
+            assert_eq!(frame.retained_cursor_request, None);
+            assert!(
+                frame
+                    .cursors
+                    .iter()
+                    .all(|cursor| cursor.layer == LayerId::PAGE),
+                "rejected retention leaves the original cursor scope intact"
+            );
+        }
+
+        let (retained, frame) = with_cursor_popover(
+            LayerKind::Popover,
+            false,
+            true,
+            SCREEN,
+            Some(Position::new(4, 1)),
+            |ui| {
+                ui.register_control(OWNER, SCREEN, Focusability::Focusable);
+                ui.retain_owner_cursor(OWNER)
+            },
+        );
+        assert!(
+            !retained,
+            "an owner registered in the popup is not the parent control"
+        );
+        assert_eq!(frame.retained_cursor_request, None);
+    }
+
+    #[test]
+    fn visible_owner_cursor_can_be_retained_without_keyboard_focus() {
+        use crate::layer::LayerKind;
+
+        let (retained, frame) = with_cursor_popover(
+            LayerKind::Popover,
+            false,
+            false,
+            SCREEN,
+            Some(Position::new(4, 1)),
+            |ui| ui.retain_visible_owner_cursor(OWNER),
+        );
+        assert!(retained);
+        assert_eq!(
+            frame.retained_cursor_request,
+            Some(RetainedCursorRequest {
+                owner: OWNER,
+                parent_layer: LayerId::PAGE,
+                overlay_layer: LayerId(1),
+                cursor_index: 0,
+                mode: CursorRetentionMode::VisibleOwner,
+                ambiguous: false,
+            })
+        );
+        assert_eq!(
+            frame.cursors.len(),
+            1,
+            "the existing cursor request is reused"
+        );
+        assert_eq!(frame.cursors[0].layer, LayerId(1));
+        assert_eq!(frame.cursors[0].pos, Position::new(4, 1));
+
+        for (kind, inert, area, cursor) in [
+            (LayerKind::Modal, false, SCREEN, Some(Position::new(4, 1))),
+            (LayerKind::Popover, true, SCREEN, Some(Position::new(4, 1))),
+            (
+                LayerKind::Popover,
+                false,
+                Rect::ZERO,
+                Some(Position::new(4, 1)),
+            ),
+            (LayerKind::Popover, false, SCREEN, None),
+        ] {
+            let (retained, frame) = with_cursor_popover(kind, inert, false, area, cursor, |ui| {
+                ui.retain_visible_owner_cursor(OWNER)
+            });
+            assert!(!retained);
+            assert_eq!(frame.retained_cursor_request, None);
+            assert!(
+                frame
+                    .cursors
+                    .iter()
+                    .all(|request| request.layer == LayerId::PAGE),
+                "a rejected request must not move the underlying cursor"
+            );
+        }
+    }
+
+    #[test]
+    fn conflicting_visible_cursor_owners_reject_the_retention() {
+        const POPUP: Id = Id::root("ui.cursor-conflict-popup");
+        const OTHER: Id = Id::root("ui.cursor-conflict-other");
+        let theme = Theme::junie();
+        let mut frame = FrameState::default();
+        frame.reset(1, SCREEN);
+        frame.top = LayerId(1);
+        frame.layers.push(
+            POPUP,
+            LayerId(1),
+            LayerSpec::popover(
+                POPUP,
+                crate::layer::Anchor::Screen(crate::layer::ScreenAlign::Center),
+            ),
+            SCREEN,
+            SCREEN,
+        );
+        let mut page = Buffer::empty(SCREEN);
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        {
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+            ui.register_control(OWNER, SCREEN, Focusability::Focusable);
+            ui.set_bar_cursor(OWNER, Position::new(4, 1));
+            ui.register_control(OTHER, SCREEN, Focusability::Focusable);
+            ui.set_bar_cursor(OTHER, Position::new(8, 1));
+            let _ = ui.layer(POPUP, |ui, _| {
+                assert!(ui.retain_visible_owner_cursor(OWNER));
+                assert!(!ui.retain_visible_owner_cursor(OTHER));
+                assert!(!ui.retain_visible_owner_cursor(OWNER));
+            });
+        }
+        let retained = frame
+            .retained_cursor_request
+            .expect("ambiguous attempt recorded");
+        assert!(retained.ambiguous);
+        assert!(frame.diagnostics.items().iter().any(|diagnostic| matches!(
+            diagnostic,
+            crate::diagnostics::Diagnostic::CursorRejected { owner: OTHER, .. }
+        )));
     }
 
     #[test]
@@ -1614,6 +2421,67 @@ mod tests {
                 });
             }
         }
+    }
+
+    #[test]
+    fn right_align_keeps_the_row_fill_in_the_vacated_prefix() {
+        use ratatui_core::style::Color;
+
+        use crate::rowui::CellUi;
+        use crate::theme::{Align, PaintStyle};
+
+        let theme = Theme::junie();
+        let (_, page) = with_ui(&theme, |ui| {
+            let area = Rect::new(0, 0, 12, 1);
+            let row = PaintStyle::new()
+                .fg(Color::Rgb(255, 255, 255))
+                .bg(Color::Rgb(0, 0, 0));
+            ui.fill(area, row);
+            let mut cell = CellUi::new(ui.reborrow(), area, PaintStyle::new());
+            cell.align(Align::Right);
+            cell.text("10000");
+        });
+        for x in 0..7 {
+            let cell = page.cell(Position::new(x, 0)).expect("prefix cell");
+            assert_eq!(cell.symbol(), " ", "prefix symbol {x}");
+            assert_eq!(cell.fg, Color::Rgb(255, 255, 255), "prefix fg {x}");
+            assert_eq!(cell.bg, Color::Rgb(0, 0, 0), "prefix bg {x}");
+        }
+        let text: String = (7..12)
+            .map(|x| {
+                page.cell(Position::new(x, 0))
+                    .expect("digit cell")
+                    .symbol()
+                    .to_owned()
+            })
+            .collect();
+        assert_eq!(text, "10000");
+    }
+
+    #[test]
+    fn right_aligned_padding_keeps_semantic_roles_through_dimming() {
+        use crate::rowui::CellUi;
+        use crate::theme::{Align, PaintStyle};
+
+        let theme = Theme::junie();
+        let (_, page) = with_ui(&theme, |ui| {
+            let area = Rect::new(0, 0, 12, 1);
+            let fill = ui.paint_patch(
+                &StylePatch::new()
+                    .set_fg(Role::Accent)
+                    .set_bg(Role::Surface(Surface::Overlay)),
+            );
+            ui.fill(area, fill);
+            let mut cell = CellUi::new(ui.reborrow(), Rect::new(0, 0, 6, 1), PaintStyle::new());
+            cell.align(Align::Right);
+            cell.text("1");
+            drop(cell);
+            ui.dim_layer(area, 1);
+        });
+
+        let padding = page.cell(Position::new(0, 0)).expect("padding cell");
+        let row_fill = page.cell(Position::new(8, 0)).expect("row fill cell");
+        assert_eq!((padding.fg, padding.bg), (row_fill.fg, row_fill.bg));
     }
 
     #[test]

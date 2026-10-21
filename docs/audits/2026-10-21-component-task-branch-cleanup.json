@@ -1,0 +1,46 @@
+{
+  "reference_refs_before": "f2f6eb716c4a512be3dc9423742fa06e86879b32\trefs/heads/design/interaction-polish\na97e351df736b576904bc450619ca347ea64d65b\trefs/heads/main\n2718a6b8127a522a3d351d0b4bdb7542fc8da542\trefs/tags/visual-baseline\n4169783ae883788186d161af09ba9c481bd84e5c\trefs/tags/visual-baseline^{}\n",
+  "reference_refs_after": "f2f6eb716c4a512be3dc9423742fa06e86879b32\trefs/heads/design/interaction-polish\na97e351df736b576904bc450619ca347ea64d65b\trefs/heads/main\n2718a6b8127a522a3d351d0b4bdb7542fc8da542\trefs/tags/visual-baseline\n4169783ae883788186d161af09ba9c481bd84e5c\trefs/tags/visual-baseline^{}\n",
+  "date_utc": "2026-10-20T22:13:18.755230+00:00",
+  "integration_target": "4ae4cb9dd7feb17f8835f9588d80bcedac0497fd",
+  "deleted": [
+    {
+      "branch": "wip/pr38-grid-integration-20261021",
+      "tip": "03c3da6a07b7c482f915c0af46a2e78dc27c6b14",
+      "literal_ancestor": true,
+      "protected": false,
+      "open_dependent_prs": []
+    },
+    {
+      "branch": "wip/runtime-focus-measure-20261021",
+      "tip": "067a253d19714f23559f0907e9b3f48a9bbcd72f",
+      "literal_ancestor": true,
+      "protected": false,
+      "open_dependent_prs": []
+    },
+    {
+      "branch": "wip/fill-keep-fg-20261021",
+      "tip": "79667c8355884ac8761579f00d08d5adfd263cdb",
+      "literal_ancestor": true,
+      "protected": false,
+      "open_dependent_prs": []
+    },
+    {
+      "branch": "wip/button-shared-contract-20261021",
+      "tip": "57ca512b3796b04e518a73b5fdfe7391f312c6f3",
+      "literal_ancestor": true,
+      "protected": false,
+      "open_dependent_prs": []
+    },
+    {
+      "branch": "wip/button-narrow-unicode-20261021",
+      "tip": "be1ef0e320332b6ce32b8b0f8e3e401389451bb6",
+      "literal_ancestor": true,
+      "protected": false,
+      "open_dependent_prs": []
+    }
+  ],
+  "owner_release": "Coordinator releases these task-owned completed protection refs. Exact sources are literal ancestors of PR38 and independently reviewed; parent Core/Runtime/Controls and bounded integration checks are committed. Remaining WIPs with unintegrated or unreviewed changes are retained. Full application acceptance remains incomplete.",
+  "remaining_refs_verified_absent": true,
+  "main_design_baseline_changed": false
+}

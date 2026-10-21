@@ -1,3 +1,5 @@
+//! Editable task rows: keyed selection, commit/cancel and field validation.
+
 use termrock::{
     Align, CellDecor, CellRef, Column, ColumnKey, Cx, EditIntent, FgStep, FieldError, Grid,
     GridEditor, GridModel, GridState, Id, ItemKey, NavUnit, Panel, Part, Rect, Role, RowDecor,
@@ -18,6 +20,8 @@ const PANEL_PARTS: &[(Part, StylePatch)] = &[(
 )];
 
 const COLUMNS: [Column<'static>; 6] = [
+    // GridState starts at column zero. Keep the historical ID-first paint
+    // through the sticky column while making Task the first edit target.
     Column {
         key: ColumnKey::num(1),
         title: "Task",
@@ -446,10 +450,12 @@ fn table() -> Grid<'static> {
     Grid::new(TABLE, &COLUMNS).nav(NavUnit::Cell)
 }
 
+/// Both phases derive the same task-card meta line, so neither can drift.
 fn tasks_status<E: core::fmt::Display>(error: Option<E>, edits: u32) -> String {
     error.map_or_else(|| format!("{edits} edits"), |error| error.to_string())
 }
 
+/// The one task-card constructor (§13), reached from update and from draw.
 fn tasks_panel(meta: &str) -> Panel<'_> {
     Panel::new(TASKS_PANEL)
         .title("Tasks")
@@ -457,6 +463,8 @@ fn tasks_panel(meta: &str) -> Panel<'_> {
         .patch_part(PANEL_PARTS)
 }
 
+/// The grid owns cursor and editor state; the model owns the editable task
+/// records and their validation rules.
 #[derive(Debug)]
 pub struct EditablePage {
     model: EditableModel,

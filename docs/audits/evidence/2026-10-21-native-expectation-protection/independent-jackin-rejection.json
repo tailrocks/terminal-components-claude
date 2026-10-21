@@ -1,0 +1,123 @@
+{
+  "decision": "P1 HOLD all22existing Jackin expectation replacements; no authorized frozen-reference correction found",
+  "source": "30ac300e3f28aff2bd3f0632359dbd5d1c288273",
+  "actual_parent": "8cc2f39d32a0a06b4208211ee54215653fc97680",
+  "authoritative_snapshot": "089fa082c4941cf8c33ebc98199c1c7de0880c78",
+  "path": "crates/jackin-preview-app/tests/baselines/jackin.txt",
+  "fixed_reference": {
+    "source": "4169783ae883788186d161af09ba9c481bd84e5c",
+    "tag_object": "2718a6b8127a522a3d351d0b4bdb7542fc8da542",
+    "tuiscotti": "a1ea27f757d75d07b05499276cd932e9f8e067ad"
+  },
+  "inventory": {
+    "before_count": 64,
+    "after_count": 64,
+    "snapshot_count": 64,
+    "changed": 22,
+    "added": [],
+    "removed": [],
+    "groups": {
+      "capsule-multi": 8,
+      "hard-cases": 3,
+      "outro-last": 8,
+      "returning": 3
+    },
+    "after_matches_snapshot_byte_for_byte": true
+  },
+  "authority_decision_registry": [
+    {
+      "decision_id": "visual-baseline-overview-grown-120x40-2026-10-20",
+      "tuple": {
+        "test_id": "showcase::resize::overview_grown::120x40::truecolor",
+        "case_id": "showcase/resize/overview_grown/120x40/truecolor",
+        "ordinal": 0,
+        "logical_name": "showcase/resize/overview_grown/120x40/truecolor",
+        "application": "showcase",
+        "cols": 120,
+        "rows": 40,
+        "color_mode": "truecolor"
+      }
+    }
+  ],
+  "authorized_entries": [],
+  "per_entry_dispositions": "per-key-dispositions.json includes each key, exactold/newdigest and HOLDreason. No key has supplied exact frozen repeated-capture and independent-reference-decision authority.",
+  "findings": [
+    {
+      "id": "J1",
+      "priority": "P1",
+      "path": "crates/jackin-preview-app/tests/baselines/jackin.txt:10-17,30-33,50-57,62-65",
+      "evidence": "Native digest replacements affect8CapsuleMulti,8OutroLast,3HardCases,3Returning tuples. Neither the commit nor inspected authoritative089reference records add a scoped frozen Jackin correction decision. The decision registry contains Showcase-only capture references, which do not authorize Jackin native hashes. Native visual constructs candidate App::for_scenario(Motion::Paused) through TestBackend Harness; matching its replacement digest is not frozen baseline authority.",
+      "repair": "Integration owner should restore only these22existing-key values from exactparent8cc2f39d32a0a06b4208211ee54215653fc97680 while retaining production changes/newentries for independent review. Preserve all replaced values and failures. Frozen reference repair requires a separate per-case reviewed decision."
+    },
+    {
+      "id": "J2",
+      "priority": "P1",
+      "path": "crates/jackin-preview-app/tests/baselines/jackin.txt:62; docs/audits/evidence/2026-10-21-current-blockers/incoming-671923ea2-independent-rejection.json",
+      "evidence": "Returning120x40JunieMono is refreshed from78a2b61980bc2587 to61e65d72e68acdd7, exactly the regression introduced by ManagerSplit671 and independently rejected. The preserved671review proves exactparent native probePASS then671FAIL, and describes literalRGB selection underMono. Updating its expected hash now erases the known regression without evidence of a frozen-data defect.",
+      "prior_packet_sha256": "2098fdabf71a5c6257dd4847c6c909d8d2a0353f6ea3cb4832aabde9c3b932de",
+      "repair": "Retain the original expected value as a regression gate and fix actual shared theme/component behavior. Do not make the new Manager painter an oracle or restore older private renderers."
+    },
+    {
+      "id": "J3",
+      "priority": "P2",
+      "path": "crates/jackin-preview-app/tests/app_tests_chrome.rs:49; crates/jackin-preview-app/src/app.rs:10594",
+      "evidence": "The chrome test expands accepted status glyph from\u2501to(\u2501or\u254d), while the internal Mono contrast probe searches visible Launch rather than its previous fixedcell. Neither modification is backed by new frozen evidence in this commit. The new glyph alternative broadens an assertion; it may represent legitimate profile behavior, but that requires exactprofile/frozen evidence rather than reapproval by candidate. Contrast search may be legitimate test maintenance and is not independently classified as a bug by name alone.",
+      "repair": "Review glyph/profile contract and contrast probe separately; preserve unrelated test checks. Do not infer that broader tests authorize22digestchanges. Restore only the broadened glyph alternative if its responsible owner cannot supply required frozen behavior evidence."
+    }
+  ],
+  "mixed_production_changes": {
+    "files": [
+      "crates/jackin-preview-app/src/app.rs",
+      "crates/jackin-preview-app/src/app/settings_view.rs",
+      "crates/jackin-preview-app/src/lib.rs",
+      "crates/termrock-theme/src/builtin/mod.rs"
+    ],
+    "summary": "Caret focus parameter, tab rename label, OutroLast historical frame selector expansion, danger role selection, settings preview painter, global indexing lint allowance and sharedMenuBOLD rules are production changes separate from expected values. Their correctness is not decided by this expectation-authority audit.",
+    "risk_note": "Eight replacementOutroLast hashes exactly equal correspondingCapsuleMulti replacements; App expands historical_capsule_frame toOutroLast. This is a source/behavior review lead, not proof by name/hash alone.",
+    "restoration": "Do not revert these files or legitimate new functionality as part of narrow expectation restoration. Assign source and frozen flow review independently."
+  },
+  "test_logic": {
+    "new_skip_or_filter_change": false,
+    "new_bless_path_in_30ac": false,
+    "existing_bless": "Native digest helper retains existing BLESS/UPDATE_BASELINE mechanism; reviewer did not enable it.",
+    "visual_test_source_unchanged": true,
+    "coverage": "Same scenario/size/theme/profile iteration in visual.rs; native digest excludes full CLI process/cursor/mode guarantees. Broader native tests cannot authorize frozen output updates."
+  },
+  "safe_restoration": {
+    "preimage_blob": "0e45e5d0caaef4af0706b1dd5db92fd3b2ca40cf",
+    "after_blob": "e7f08e64cd484afaab883b4fdffb7cd746b83b10",
+    "snapshot_blob": "e7f08e64cd484afaab883b4fdffb7cd746b83b10",
+    "algorithm": "For each exactchangedkey inper-key-dispositions, require synchronizedcurrentvalue to equal the recorded replacement before replacing with previousvalue; if different, stop thatkey for concurrentchange review. Preserve all other keys/comments and newly added entries. No sourcefile rollback.",
+    "added_removed": "No added/removed keys at exactsource or authoritative089snapshot.",
+    "operations": "Read-only Git objects and external immutable evidence writes only; no product edit, expectation restoration, key access, capture/replay, branch/PR mutation, lock operation or push."
+  },
+  "tests_and_limits": [
+    "No new native Rust/CLI/frozen binary capture executed in this bounded authority audit. Existing671before/after evidence is cited, not rerun or attributed to30ac source.",
+    "Lack of authority does not prove every old native digest equals a frozen frame. Both old/new artifacts remain preserved for exact frozen diagnosis.",
+    "No final application/library acceptance, no approval of mixed production changes."
+  ],
+  "artifact_sha256": {
+    "authority-evidence/docs/architecture/termrock-migration-matrix.md": "ae5c6b43ca7cdaa4c631ca09c4785002b0b670cecb7f9b8bdf8604e445c1b0a2",
+    "authority-evidence/docs/audits/evidence/2026-10-21-current-blockers/incoming-671923ea2-independent-rejection.json": "2098fdabf71a5c6257dd4847c6c909d8d2a0353f6ea3cb4832aabde9c3b932de",
+    "authority-evidence/tools/frozen_cli_references.json": "2a43fb118c268300c8bbd6439ea11bb9a24ffff03dc3c9f4601893eee26a096b",
+    "commit.diff": "3c2d105e0bf59ac6f74474a8bbd3a7bc238f00eaaca198293e39e8562dd32e4d",
+    "jackin-089-snapshot.txt": "737572f042f15a3180fce5967c48da6af297a790bcf8da6b3e2c2295eedc7bfc",
+    "jackin-after-30ac.txt": "737572f042f15a3180fce5967c48da6af297a790bcf8da6b3e2c2295eedc7bfc",
+    "jackin-before.txt": "326308bbca17a9ed77df2f6b9e3faa9036bead2fdc58c30b2ed624f81be3cedc",
+    "per-key-dispositions.json": "eda69b8f4557973d3676b6323d7d07242c75adf5dc2ae385dd82799f01f7e290",
+    "source-evidence/30ac300e3f28aff2bd3f0632359dbd5d1c288273/crates/jackin-preview-app/src/app/settings_view.rs": "1ffb02f89724b6e1a451a0afd71bbb034cf18a0e71920546687869381f80a072",
+    "source-evidence/30ac300e3f28aff2bd3f0632359dbd5d1c288273/crates/jackin-preview-app/src/app.rs": "2c463d77ec28d0a125418fb8ac17db114bd01fad3d07038f0aadd3b04942385e",
+    "source-evidence/30ac300e3f28aff2bd3f0632359dbd5d1c288273/crates/jackin-preview-app/src/lib.rs": "be3f1f386e2999bce1251c995dcbfdefab34876bd289349931ec65d196a07a99",
+    "source-evidence/30ac300e3f28aff2bd3f0632359dbd5d1c288273/crates/jackin-preview-app/tests/app_tests_chrome.rs": "941493180fb31761a5eed1520396e25e943e727d52de79825ee8ade8d1e11f4d",
+    "source-evidence/30ac300e3f28aff2bd3f0632359dbd5d1c288273/crates/jackin-preview-app/tests/visual.rs": "40a5ebb807dcb164168a014e4fc00c2da57bad3ff63fdfce712fd310fae82313",
+    "source-evidence/30ac300e3f28aff2bd3f0632359dbd5d1c288273/crates/termrock-test-support/src/digest.rs": "e47eb876f62bd82f3f3825434fdcd318bdf28bd8f8be28ea07a42e466854ce46",
+    "source-evidence/30ac300e3f28aff2bd3f0632359dbd5d1c288273/crates/termrock-theme/src/builtin/mod.rs": "001192401f31d3b93b627d4fdae086d88499e8215911d50690d8d6423fc6e15a",
+    "source-evidence/8cc2f39d32a0a06b4208211ee54215653fc97680/crates/jackin-preview-app/src/app/settings_view.rs": "1a6a57b9a123d755d55f75b6fe016041fee618bb9f12ee5c44aa44a6a0861950",
+    "source-evidence/8cc2f39d32a0a06b4208211ee54215653fc97680/crates/jackin-preview-app/src/app.rs": "d5586eca096f642542d7a490e5dc0b2cd7e705da993b48db3cff44be5d72e40b",
+    "source-evidence/8cc2f39d32a0a06b4208211ee54215653fc97680/crates/jackin-preview-app/src/lib.rs": "451d07f45f3f62c259ccbe5a0b0e95d0fa944c22031440a02e7e596b4961d78b",
+    "source-evidence/8cc2f39d32a0a06b4208211ee54215653fc97680/crates/jackin-preview-app/tests/app_tests_chrome.rs": "d07cdea2b5d5284c11ded6acb4f5636208df720c281153da541f2044c7dd3757",
+    "source-evidence/8cc2f39d32a0a06b4208211ee54215653fc97680/crates/jackin-preview-app/tests/visual.rs": "40a5ebb807dcb164168a014e4fc00c2da57bad3ff63fdfce712fd310fae82313",
+    "source-evidence/8cc2f39d32a0a06b4208211ee54215653fc97680/crates/termrock-test-support/src/digest.rs": "e47eb876f62bd82f3f3825434fdcd318bdf28bd8f8be28ea07a42e466854ce46",
+    "source-evidence/8cc2f39d32a0a06b4208211ee54215653fc97680/crates/termrock-theme/src/builtin/mod.rs": "f332de27d13683c7020a6c883c3fe2a4b1422d1d23b28709de686169fc6cc815"
+  }
+}

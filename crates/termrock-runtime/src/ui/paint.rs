@@ -1,16 +1,56 @@
-use ratatui_core::buffer::{Buffer, CellWidth};
+use ratatui_core::buffer::{Buffer, CellDiffOption, CellWidth};
 use ratatui_core::layout::{Position, Rect};
 use ratatui_core::style::{Color, Modifier, Style};
 
-use super::Ui;
+use super::{Target, Ui};
 use crate::scroll::ScrollState;
 use crate::text::Span;
 use crate::text::clusters::ClusterFeed;
 use crate::text::measure::graphemes;
 use crate::theme::builder::{FadeOutcome, fade_mix};
-use crate::theme::{FgStep, GlyphRole, PaintStyle, Role, Surface, Theme};
+use crate::theme::{FgStep, GlyphRole, PaintStyle, Role, Slot, StylePatch, Surface, Theme};
 
 impl Ui<'_> {
+    pub(crate) fn patch_style(&mut self, area: Rect, style: PaintStyle, explicit: StylePatch) {
+        let area = area.intersection(self.clip);
+        if area.is_empty() {
+            return;
+        }
+        let paint = style;
+        let style = paint.into_style();
+        for pos in area.positions() {
+            let Some(cell) = self.buffer().cell_mut(pos) else {
+                continue;
+            };
+            match explicit.fg {
+                Slot::Inherit => {}
+                Slot::Set(_) => cell.fg = style.fg.unwrap_or(Color::Reset),
+                Slot::Clear => cell.fg = Color::Reset,
+            }
+            match explicit.bg {
+                Slot::Inherit => {}
+                Slot::Set(_) => cell.bg = style.bg.unwrap_or(Color::Reset),
+                Slot::Clear => cell.bg = Color::Reset,
+            }
+            match explicit.underline {
+                Slot::Inherit => {}
+                Slot::Set(_) => {
+                    cell.underline_color = style.underline_color.unwrap_or(Color::Reset)
+                }
+                Slot::Clear => cell.underline_color = Color::Reset,
+            }
+            cell.modifier = cell
+                .modifier
+                .difference(explicit.remove)
+                .union(explicit.add);
+            if let Target::Layer(index) = self.target
+                && let Some(layer) = self.frame.layers.active_mut().get_mut(index)
+            {
+                layer.patch_underlay(pos, paint, explicit);
+            }
+        }
+    }
+
     pub fn paint_cell(&mut self, pos: Position, symbol: &str, s: impl Into<PaintStyle>) {
         if self.clip.contains(pos) {
             self.paint_str(
@@ -156,6 +196,33 @@ impl Ui<'_> {
         }
     }
 
+    /// Fade an overflowing picker list toward the card, the way option-list
+    /// `fade_edges` does.
+    ///
+    /// A viewport of 12 rows or more fades two rows (keep 0.8, then 0.55).
+    /// A shorter viewport fades only the outer row. The blend target is the
+    /// majority background of `area` (the card fill). A cursor row is left whole.
+    ///
+    /// Call this after the rows are painted. `ScrollRegion::draw` paints the
+    /// bar first, so a fade there is covered by the rows. The call that belongs
+    /// in `crates/termrock-navigation/src/filter_list.rs` `FilterList::draw`,
+    /// immediately after `self.draw_rows(ui, content, st, items, live);`:
+    ///
+    /// ```ignore
+    /// let view = ScrollRegion::view(st.core.scroll(), content, visible_len);
+    /// ui.fade_picker_overflow(content, &view);
+    /// ```
+    ///
+    /// `content` is the rect `scrollbar().draw` returned (the bar column is
+    /// already excluded). `visible_len` is the match count already in scope.
+    pub fn fade_picker_overflow(&mut self, area: Rect, state: &ScrollState) {
+        let mut laid_out = *state;
+        if laid_out.viewport_len() == 0 {
+            laid_out.set_viewport(usize::from(area.height));
+        }
+        self.scroll_edges(area, &laid_out);
+    }
+
     fn fade_unless_protected(
         &mut self,
         area: Rect,
@@ -176,35 +243,60 @@ impl Ui<'_> {
     }
 
     fn majority_bg(&mut self, area: Rect) -> Color {
-        let mut counts = core::mem::take(&mut self.core.scroll_bg_counts);
-        let mut order = core::mem::take(&mut self.core.scroll_bg_order);
-        counts.clear();
-        order.clear();
+        let mut entries: [(Color, usize); 8] = [(Color::Reset, 0); 8];
+        let mut count_entries = 0;
+        let mut overflowed = false;
         for pos in area.positions() {
             if !self.cell_written(pos) {
                 continue;
             }
             let bg = self.buffer().cell(pos).map_or(Color::Reset, |cell| cell.bg);
-            match counts.entry(bg) {
-                std::collections::hash_map::Entry::Occupied(mut entry) => {
-                    let count = entry.get().saturating_add(1);
-                    *entry.get_mut() = count;
+
+            if overflowed {
+                let order = self.core.majority_bg_counts.len();
+                self.core
+                    .majority_bg_counts
+                    .entry(bg)
+                    .and_modify(|(count, _)| *count = count.saturating_add(1))
+                    .or_insert((1, order));
+                continue;
+            }
+
+            if let Some(entry) = entries[..count_entries]
+                .iter_mut()
+                .find(|entry| entry.0 == bg)
+            {
+                entry.1 = entry.1.saturating_add(1);
+            } else if count_entries < entries.len() {
+                entries[count_entries] = (bg, 1);
+                count_entries += 1;
+            } else {
+                // Preserve the allocation-free fast path for ordinary areas.
+                // Once more than eight distinct backgrounds appear, count all
+                // remaining colors in UiCore-owned storage and resolve ties by
+                // their first-seen order.
+                let counts = &mut self.core.majority_bg_counts;
+                counts.clear();
+                for (order, (color, count)) in entries[..count_entries].iter().enumerate() {
+                    counts.insert(*color, (*count, order));
                 }
-                std::collections::hash_map::Entry::Vacant(entry) => {
-                    order.push(bg);
-                    entry.insert(1);
-                }
+                counts.insert(bg, (1, count_entries));
+                overflowed = true;
             }
         }
 
-        let color = order
-            .iter()
-            .filter_map(|bg| counts.get(bg).map(|count| (*bg, *count)))
-            .max_by_key(|(_, count)| *count)
-            .map_or(Color::Reset, |(bg, _)| bg);
-        self.core.scroll_bg_counts = counts;
-        self.core.scroll_bg_order = order;
-        color
+        if overflowed {
+            self.core
+                .majority_bg_counts
+                .iter()
+                .max_by_key(|(_, (count, order))| (*count, *order))
+                .map_or(Color::Reset, |(bg, _)| *bg)
+        } else {
+            entries[..count_entries]
+                .iter()
+                .max_by_key(|(_, count)| *count)
+                .map_or(Color::Reset, |(bg, _)| *bg)
+        }
     }
 
     fn fade_edge_row(&mut self, area: Rect, y: u16, keep: f32, container: Color) {
@@ -213,6 +305,15 @@ impl Ui<'_> {
         for x in area.x..area.right() {
             let pos = Position::new(x, y);
             if !self.cell_written(pos) {
+                continue;
+            }
+            if let Target::Layer(index) = self.target
+                && let Some(layer) = self.frame.layers.active_mut().get_mut(index)
+                && layer.has_underlay(pos)
+            {
+                // The actual foreground and backdrop may come from lower
+                // layers. Defer the transform until this layer is composed.
+                layer.defer_fade(pos, container, keep, outer);
                 continue;
             }
             if let Some(cell) = self.buffer().cell_mut(pos)
@@ -340,6 +441,64 @@ impl Ui<'_> {
         self.mark_area(area, Some(s));
     }
 
+    /// Space-fill `bg`, preserving the current foreground, underline, and
+    /// modifiers. For a layer, those channels are inherited from the live
+    /// destination when the layer is composited, so stacked overlays inherit
+    /// from the nearest visible lower layer. The supplied raw background has
+    /// no semantic role and replaces any existing background role.
+    pub fn fill_keep_ink(&mut self, area: Rect, bg: Color) {
+        let area = area.intersection(self.clip);
+        if area.is_empty() {
+            return;
+        }
+        for pos in area.positions() {
+            match self.target {
+                Target::Page => {
+                    let Some((fg, underline_color, modifier)) = self
+                        .page
+                        .cell(pos)
+                        .map(|cell| (cell.fg, cell.underline_color, cell.modifier))
+                    else {
+                        continue;
+                    };
+                    if let Some(cell) = self.page.cell_mut(pos) {
+                        cell.reset();
+                        cell.set_symbol(" ");
+                        cell.fg = fg;
+                        cell.bg = bg;
+                        cell.underline_color = underline_color;
+                        cell.modifier = modifier;
+                        cell.set_diff_option(CellDiffOption::None);
+                    }
+                    self.mark(pos, Some(PaintStyle::new().bg(bg)));
+                }
+                Target::Layer(index) => {
+                    // Copy the page ink now. A later raw() edit drops the
+                    // replay, and the cleared cell would keep the terminal
+                    // default foreground.
+                    let ink = self
+                        .page
+                        .cell(pos)
+                        .map(|cell| (cell.fg, cell.underline_color, cell.modifier));
+                    if let Some(cell) = self.buffer().cell_mut(pos) {
+                        cell.reset();
+                        cell.set_symbol(" ");
+                        if let Some((fg, underline_color, modifier)) = ink {
+                            cell.fg = fg;
+                            cell.underline_color = underline_color;
+                            cell.modifier = modifier;
+                        }
+                        cell.bg = bg;
+                        cell.set_diff_option(CellDiffOption::None);
+                    }
+                    if let Some(layer) = self.frame.layers.active_mut().get_mut(index) {
+                        layer.begin_underlay(pos, bg);
+                    }
+                }
+            }
+        }
+    }
+
     pub fn rule(&mut self, area: Rect) {
         let g = self.theme_ref().design.glyphs.get(GlyphRole::RuleQuiet);
         let s = self.paint_patch(&crate::theme::StylePatch::new().set_fg(Role::BorderSubtle));
@@ -396,6 +555,51 @@ impl Ui<'_> {
         let clip = self.clip;
         self.mark_area(clip, None);
         (self.buffer(), clip)
+    }
+
+    /// Dim a modal underlay with the active theme's shared backdrop mapping.
+    pub fn modal_backdrop(&mut self, area: Rect) {
+        let area = area.intersection(self.frame.screen);
+        let theme = self.theme;
+        let focus_bar = theme.design.glyphs.get(crate::theme::GlyphRole::FocusBar);
+        let page = &mut *self.page;
+        for pos in area.positions() {
+            let Some(cell) = page.cell_mut(pos) else {
+                continue;
+            };
+            let clear_bar = cell.symbol() == focus_bar
+                && (!focus_bar.is_ascii()
+                    || cell.fg == theme.color.focus
+                    || cell.fg == theme.color.on_accent);
+            let backdrop = theme.backdrop_style(cell.style());
+            cell.set_style(backdrop);
+            cell.modifier = backdrop.add_modifier;
+            if clear_bar {
+                cell.set_symbol(" ");
+            }
+        }
+    }
+
+    /// Clear `dim` without changing other modifiers.
+    pub fn clear_dim(&mut self, area: Rect) {
+        let area = area.intersection(self.frame.screen);
+        let page = &mut *self.page;
+        for pos in area.positions() {
+            if let Some(cell) = page.cell_mut(pos) {
+                cell.modifier.remove(Modifier::DIM);
+            }
+        }
+    }
+
+    /// Set `dim` without clearing bold or other modifiers.
+    pub fn add_dim(&mut self, area: Rect) {
+        let area = area.intersection(self.frame.screen);
+        let page = &mut *self.page;
+        for pos in area.positions() {
+            if let Some(cell) = page.cell_mut(pos) {
+                cell.modifier.insert(Modifier::DIM);
+            }
+        }
     }
 
     pub fn dim_layer(&mut self, area: Rect, steps: u8) {
@@ -494,14 +698,16 @@ const fn index_to_step(i: usize) -> FgStep {
 
 #[cfg(test)]
 mod tests {
-    use ratatui_core::buffer::Buffer;
+    use ratatui_core::buffer::{Buffer, CellDiffOption};
     use ratatui_core::layout::{Position, Rect};
     use ratatui_core::style::{Color, Modifier, Style};
 
     use super::super::cx::LastFrame;
-    use super::super::{FrameState, Ui, UiCore};
+    use super::super::{CellRoles, FrameState, Ui, UiCore};
+    use crate::id::Id;
+    use crate::layer::{Anchor, LayerId, LayerSpec};
     use crate::scroll::ScrollState;
-    use crate::theme::{FgStep, Role, Surface, Theme};
+    use crate::theme::{FgStep, PaintStyle, Role, StylePatch, Surface, Theme};
 
     const SCREEN: Rect = Rect {
         x: 0,
@@ -521,6 +727,225 @@ mod tests {
             f(&mut ui)
         };
         (out, page)
+    }
+
+    #[test]
+    fn underlay_fill_defers_ink_inheritance_until_composition() {
+        const POPUP: Id = Id::root("paint.underlay-fill");
+        let theme = Theme::junie();
+        let mut frame = FrameState::default();
+        frame.reset(1, SCREEN);
+        frame.layers.begin();
+        frame.layers.push(
+            POPUP,
+            LayerId(1),
+            LayerSpec::popover(POPUP, Anchor::Point(Position::new(2, 0))),
+            Rect::new(2, 0, 3, 1),
+            SCREEN,
+        );
+        frame.top = LayerId(1);
+        let mut page = Buffer::empty(SCREEN);
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        let target = Position::new(4, 0);
+        let before_roles;
+        {
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+            let underlay = ui
+                .paint_patch(
+                    &StylePatch::new()
+                        .set_fg(Role::Fg(FgStep::Primary))
+                        .set_bg(Role::CurrentSurface),
+                )
+                .underline_color(Color::Green)
+                .add_modifier(Modifier::UNDERLINED | Modifier::BOLD | Modifier::ITALIC);
+            ui.fill(SCREEN, underlay);
+            ui.paint_str(Rect::new(1, 0, 2, 1), "界", underlay);
+            if let Some(cell) = ui.page_mut().cell_mut(target) {
+                cell.set_diff_option(CellDiffOption::Skip);
+            }
+            let reset_target = Position::new(4, 0);
+            if let Some(cell) = ui.page_mut().cell_mut(reset_target) {
+                cell.fg = Color::Reset;
+                cell.underline_color = Color::Reset;
+                cell.modifier = Modifier::empty();
+            }
+            before_roles = ui.roles_at(target);
+            let _ = ui.layer(POPUP, |ui, area| {
+                ui.fill_keep_ink(area, Color::Black);
+                ui.patch_style(
+                    Rect::new(3, 0, 1, 1),
+                    PaintStyle::new(),
+                    StylePatch {
+                        underline: crate::theme::Slot::Clear,
+                        remove: Modifier::BOLD,
+                        ..StylePatch::new()
+                    },
+                );
+            });
+        }
+
+        let Some(layer) = frame.layers.active().first() else {
+            panic!("underlay layer was registered");
+        };
+        let Some(cell) = layer.buf.cell(target) else {
+            panic!("filled cell exists");
+        };
+        assert_eq!(cell.symbol(), " ");
+        assert_eq!(
+            cell.fg,
+            Color::Reset,
+            "layer closure must not sample the page"
+        );
+        assert_eq!(cell.bg, Color::Black);
+        assert_eq!(cell.underline_color, Color::Reset);
+        assert_eq!(cell.modifier, Modifier::empty());
+        assert_eq!(layer.roles_at(target), CellRoles::default());
+        assert_eq!(cell.diff_option, CellDiffOption::None);
+        let Some(reset_cell) = layer.buf.cell(Position::new(4, 0)) else {
+            panic!("last filled cell exists");
+        };
+        assert_eq!(reset_cell.symbol(), " ");
+        assert_eq!(reset_cell.fg, Color::Reset);
+        assert_eq!(reset_cell.bg, Color::Black);
+        assert_eq!(reset_cell.underline_color, Color::Reset);
+        assert_eq!(reset_cell.modifier, Modifier::empty());
+        assert_eq!(
+            page.cell(Position::new(1, 0)).map(|cell| cell.symbol()),
+            Some("界"),
+            "a partial wide grapheme stays outside the clipped layer buffer"
+        );
+        assert!(layer.is_written(Position::new(4, 0)));
+        assert!(
+            !layer.is_written(Position::new(5, 0)),
+            "filling must not expand beyond the layer's clipped area"
+        );
+
+        let expected_ink = page
+            .cell(target)
+            .map(|cell| (cell.fg, cell.underline_color, cell.modifier));
+        layer.composite_onto(&mut page, &mut frame.roles);
+        let composed = page.cell(target).expect("composited cell is present");
+        assert_eq!(
+            Some((composed.fg, composed.underline_color, composed.modifier)),
+            expected_ink
+        );
+        assert_eq!(composed.bg, Color::Black);
+        assert_eq!(
+            frame.roles.get(frame.role_index(target).unwrap()),
+            Some(&CellRoles {
+                fg: before_roles.fg,
+                bg: None,
+            })
+        );
+        let patched = page.cell(Position::new(3, 0)).expect("patched cell exists");
+        assert_eq!(patched.underline_color, Color::Reset);
+        assert!(!patched.modifier.contains(Modifier::BOLD));
+        assert!(patched.modifier.contains(Modifier::UNDERLINED));
+    }
+
+    #[test]
+    fn move_cell_transfers_underlay_intent_with_the_moved_cell() {
+        const POPUP: Id = Id::root("paint.underlay-move");
+        let theme = Theme::junie();
+        let mut frame = FrameState::default();
+        frame.reset(1, SCREEN);
+        frame.layers.begin();
+        frame.layers.push(
+            POPUP,
+            LayerId(1),
+            LayerSpec::popover(POPUP, Anchor::Point(Position::new(0, 0))),
+            SCREEN,
+            SCREEN,
+        );
+        frame.top = LayerId(1);
+        let mut page = Buffer::empty(SCREEN);
+        page.set_style(SCREEN, Style::new().fg(Color::Blue));
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        let source = Position::new(1, 0);
+        let destination = Position::new(3, 0);
+        {
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+            let _ = ui.layer(POPUP, |ui, area| {
+                ui.fill_keep_ink(area, Color::Black);
+                ui.paint_str(
+                    Rect::new(source.x, source.y, 1, 1),
+                    "X",
+                    Style::new().fg(Color::Yellow),
+                );
+                ui.move_cell(source, destination, PaintStyle::new());
+            });
+        }
+        let layer = frame.layers.active().first().expect("popup exists");
+        layer.composite_onto(&mut page, &mut frame.roles);
+        let moved = page.cell(destination).expect("destination exists");
+        assert_eq!(moved.symbol(), "X");
+        assert_eq!(moved.fg, Color::Yellow);
+        assert_eq!(moved.bg, Color::Black);
+        let reset = page.cell(source).expect("source exists");
+        assert_eq!(reset.symbol(), " ");
+        assert_eq!(reset.fg, Color::Yellow);
+        assert_eq!(reset.bg, Color::Black);
+    }
+
+    #[test]
+    fn modal_backdrop_uses_theme_mapping_and_clears_only_focus_glyph() {
+        use crate::theme::{ColorLevel, GlyphRole};
+
+        for level in [
+            ColorLevel::TrueColor,
+            ColorLevel::Ansi256,
+            ColorLevel::Ansi16,
+            ColorLevel::Mono,
+        ] {
+            let mut theme = Theme::junie();
+            theme.capability.color = level;
+            theme.color.fg[2] = theme.color.surfaces[3];
+            let source = Style::new()
+                .fg(theme.color.fg[0])
+                .bg(Color::Rgb(250, 250, 250))
+                .add_modifier(Modifier::BOLD | Modifier::ITALIC | Modifier::UNDERLINED);
+            let blank = Style::new()
+                .fg(Color::Black)
+                .bg(Color::Black)
+                .add_modifier(Modifier::BOLD);
+            let focus_bar = theme.design.glyphs.get(GlyphRole::FocusBar);
+            let unusual_bar = Style::new()
+                .fg(Color::Rgb(9, 10, 11))
+                .bg(theme.color.surfaces[1]);
+            let (_, page) = with_ui(&theme, |ui| {
+                ui.paint_cell(Position::new(0, 0), "x", source);
+                ui.paint_cell(Position::new(1, 0), " ", blank);
+                ui.paint_cell(Position::new(2, 0), focus_bar, unusual_bar);
+                ui.modal_backdrop(SCREEN);
+            });
+
+            let original = page.cell(Position::new(0, 0)).expect("painted text");
+            let (expected_fg, expected_bg) = theme.backdrop_colors(
+                source.fg.unwrap_or(Color::Reset),
+                source.bg.unwrap_or(Color::Reset),
+            );
+            assert_eq!(original.symbol(), "x", "{level:?}");
+            assert_eq!(original.fg, expected_fg, "{level:?}");
+            assert_eq!(original.bg, expected_bg, "{level:?}");
+            assert_eq!(original.modifier, Modifier::DIM, "{level:?}");
+            assert_eq!(
+                original.fg, theme.color.fg[0],
+                "muted==background falls back to primary"
+            );
+
+            let blank = page.cell(Position::new(1, 0)).expect("painted blank");
+            assert_eq!(blank.symbol(), " ");
+            assert_eq!(blank.modifier, Modifier::empty(), "blank cells do not dim");
+
+            let bar = page.cell(Position::new(2, 0)).expect("painted focus glyph");
+            assert_eq!(
+                bar.symbol(),
+                " ",
+                "a non-ASCII focus glyph clears independent of fg"
+            );
+        }
     }
 
     #[test]
@@ -554,6 +979,82 @@ mod tests {
         let edge = page.cell(Position::new(0, 0)).expect("edge cell");
         let middle = page.cell(Position::new(0, 1)).expect("middle cell");
         assert_ne!(edge.fg, middle.fg, "the edge foreground was faded");
+    }
+
+    #[test]
+    fn picker_overflow_fade_blends_the_last_two_rows_toward_the_card() {
+        let theme = Theme::junie();
+        let card = Color::Rgb(0x18, 0x18, 0x1b);
+        let label = Color::Rgb(0xff, 0xff, 0xff);
+        let meta = Color::Rgb(0x8a, 0x8a, 0x8a);
+        let height = 13u16;
+        let area = Rect::new(0, 0, 4, height);
+        let mut frame = FrameState::default();
+        frame.reset(1, area);
+        let mut page = Buffer::empty(area);
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        {
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+            let fill = Style::new().bg(card);
+            ui.fill(area, fill);
+            for y in area.y..area.bottom() {
+                ui.paint_str(
+                    Rect::new(area.x, y, 1, 1),
+                    "a",
+                    Style::new().fg(label).bg(card),
+                );
+                ui.paint_str(
+                    Rect::new(area.x + 1, y, 1, 1),
+                    "V",
+                    Style::new().fg(meta).bg(card),
+                );
+            }
+            let mut state = ScrollState::new(40);
+            state.set_viewport(usize::from(height));
+            ui.fade_picker_overflow(area, &state);
+        }
+        let fg = |x, y| page.cell(Position::new(x, y)).expect("cell").fg;
+        assert_eq!(
+            fg(0, 0),
+            label,
+            "the top stays whole when nothing is hidden above"
+        );
+        assert_eq!(fg(0, height - 3), label, "only the last two rows fade");
+        assert_eq!(fg(0, height - 2), Color::Rgb(0xd1, 0xd1, 0xd1));
+        assert_eq!(fg(1, height - 2), Color::Rgb(0x73, 0x73, 0x74));
+        assert_eq!(fg(0, height - 1), Color::Rgb(0x97, 0x97, 0x98));
+        assert_eq!(fg(1, height - 1), Color::Rgb(0x57, 0x57, 0x58));
+    }
+
+    #[test]
+    fn picker_overflow_fade_uses_area_height_when_the_viewport_is_unlaid() {
+        let theme = Theme::junie();
+        let card = Color::Rgb(0x18, 0x18, 0x1b);
+        let label = Color::Rgb(0xff, 0xff, 0xff);
+        let area = Rect::new(0, 0, 2, 13);
+        let mut frame = FrameState::default();
+        frame.reset(1, area);
+        let mut page = Buffer::empty(area);
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        {
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+            ui.fill(area, Style::new().fg(label).bg(card));
+            for y in area.y..area.bottom() {
+                ui.paint_str(
+                    Rect::new(area.x, y, area.width, 1),
+                    "ab",
+                    Style::new().fg(label).bg(card),
+                );
+            }
+            ui.fade_picker_overflow(area, &ScrollState::new(40));
+        }
+        let bottom = page
+            .cell(Position::new(0, area.bottom() - 1))
+            .expect("outer")
+            .fg;
+        assert_eq!(bottom, Color::Rgb(0x97, 0x97, 0x98));
     }
 
     fn dimmed_cell(

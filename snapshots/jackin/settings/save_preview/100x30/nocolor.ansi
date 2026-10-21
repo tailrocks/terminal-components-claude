@@ -1,0 +1,31 @@
+[0m[2m  jackin❯    File   Go   Help      …  Settings › global › Trust  • 2 changes  inside the Construct  [0m
+[0m[2m                                                                                                    [0m
+[0m[2m                                                                                                    [0m
+[0m[2m   General    Mounts    Environments    Agents    Trust •                                           [0m
+[0m[2m  ───────────────────────────────────────────────━━━━━━━━━━───────────────────────────────────────  [0m
+[0m[2m                                                                                                    [0m
+[0m[2m    Role sources                                                         3 trusted · 1 untrusted    [0m
+[0m[2m  [0m [0m[2m  • github.com/chainargos/roles               git   [ ] untrusted  4 roles                       [0m
+[0m[2m  [0m [0m[2m› • github.com╭──────────────────────────────────────────────────────────── × ─╮                 [0m
+[0m[2m  [0m [0m[2m    ~/roles   │                                                                │                 [0m
+[0m[2m  [0m [0m[2m    git@corp:i│  [0m[1;2mSave settings[0m[2m                                                 │                 [0m
+[0m[2m                 │                                                                │                 [0m
+[0m[2m    An untrusted │  [0mScope    global config · ~/.jackin/config.toml              [0m[2m  │                 [0m
+[0m[2m    in the trust │  [0mChanges  2 changes                                          [0m[2m  │                 [0m
+[0m[2m                 │  [0mTrust    github.com/chainargos/roles → untrusted · github.c…[0m[2m  │                 [0m
+[0m[2m                 │  [0m                                                            [0m[2m  │                 [0m
+[0m[2m                 │  [0m~ trust github.com/chainargos/roles true → false            [0m[2m  │                 [0m
+[0m[2m                 │  [0m~ trust github.com/acme-labs/roles-experimental false → true[0m[2m  │                 [0m
+[0m[2m                 │                                                                │                 [0m
+[0m[2m                 │                                              ▎[0m[1;2;4mC[0m[1;2mancel [0m[2m   [0m[1;2;4;7mS[0m[1;2;7mave [0m[2m  │                 [0m
+[0m[2m                 │                                                                │                 [0m
+[0m[2m                 ╰────────────────────────────────────────────────────────────────╯                 [0m
+[0m[2m                                                                                                    [0m
+[0m[2m                                                                                                    [0m
+[0m[2m                                                                                                    [0m
+[0m[2m                                                                                                    [0m
+[0m[2m                                                                                                    [0m
+[0m[2m                                                                             [0m [0m[2mCancel    [0m [0m[2mSave…      [0m
+[0m[2m                                                                                                    [0m
+ [0m[1m←→ [0mChoose  [0m[1mEsc[0m Cancel  …         github.com/acme-labs/roles-experimental · trusted · save to apply [0m
+[?25l

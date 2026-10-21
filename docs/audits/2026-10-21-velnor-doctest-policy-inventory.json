@@ -1,0 +1,137 @@
+{
+  "source_commit": "7483ce5208e054291e9aebdfc12cf15a42bbb41d",
+  "scope": "read-only CI policy inventory; no repository edits; no cargo test/doctest executed",
+  "manifest": {
+    "path": ".github/velnor/task-execution-manifest-v1.json",
+    "generator_version": "0.1.30",
+    "total_task_variants": 518,
+    "doctest_task_variants": 78,
+    "doctest_package_targets": 39,
+    "variants_per_target": [
+      "default",
+      "testing"
+    ],
+    "doctest_tasks_required_workflow_step": "Doctests",
+    "required_aggregation": "each Rust crate job is a dependency of Required verdict; Required gate fails unless the verdict succeeds",
+    "doc_build_task_variants": 88,
+    "doc_build_command": "cargo doc --locked --offline --manifest-path ... --package ... --no-deps"
+  },
+  "doctest_packages": [
+    "holla-domain",
+    "holla-sim",
+    "holla-ui",
+    "jackin-preview-app",
+    "jackin-preview-capsule-ui",
+    "jackin-preview-domain",
+    "jackin-preview-host-ui",
+    "jackin-preview-presentation",
+    "jackin-preview-sim",
+    "refactor-proof",
+    "showcase-demos",
+    "showcase-ui",
+    "tablepro-demo",
+    "tablepro-domain",
+    "tablepro-sql",
+    "tablepro-ui",
+    "termrock",
+    "termrock-collections",
+    "termrock-conformance",
+    "termrock-controls",
+    "termrock-core",
+    "termrock-editors",
+    "termrock-feedback",
+    "termrock-fields",
+    "termrock-forms",
+    "termrock-grid",
+    "termrock-layout",
+    "termrock-navigation",
+    "termrock-overlays",
+    "termrock-render",
+    "termrock-runtime",
+    "termrock-session",
+    "termrock-terminal",
+    "termrock-test-support",
+    "termrock-text",
+    "termrock-theme",
+    "termrock-viewport",
+    "termrock-visibility-publisher",
+    "termrock-xtask"
+  ],
+  "rustdoc_content_inventory": {
+    "scanned": "all Rust source files under the 39 package src trees referenced by doctest targets; crate root doc attributes and include_str references; package README candidates; repository Markdown and Rust fence scan",
+    "include_str_doc_attributes": 0,
+    "package_readmes": 0,
+    "runnable_rustdoc_examples": 0,
+    "no_run_examples": 0,
+    "compile_fail_examples": 0,
+    "should_panic_examples": 0,
+    "ignored_rustdoc_examples": 1,
+    "ignored_example_location": "crates/termrock-runtime/src/ui/paint.rs:205-208",
+    "ignored_example_purpose": "illustrative pseudo-use of a picker overflow fade and unresolved local variables; explicitly fenced ignore; not executable documentation",
+    "ordinary_unit_test_should_panic_attributes": "present in termrock-grid and termrock-test-support tests, unrelated to doctests and covered by nextest test targets"
+  },
+  "public_example_targets": [
+    {
+      "target": "termrock::composition_consumer",
+      "source": "crates/termrock/examples/composition_consumer.rs",
+      "generated_ci_compile": "termrock default/testing Clippy tasks use --all-targets",
+      "related_executable_nextest_contract": "crates/termrock/tests/composition_consumer.rs; separately tests borrowed public facade and live input"
+    },
+    {
+      "target": "termrock::file_catalogue_master_detail",
+      "source": "crates/termrock/examples/file_catalogue_master_detail.rs",
+      "generated_ci_compile": "termrock default/testing Clippy tasks use --all-targets",
+      "related_executable_nextest_contract": "crates/termrock/tests/master_detail_consumer.rs includes exact example source with #[path = \"../examples/file_catalogue_master_detail.rs\"] and drives rendering, layout, focus, repeated open/close"
+    },
+    {
+      "target": "termrock-forms::form_lanes",
+      "source": "crates/termrock-forms/examples/form_lanes.rs",
+      "generated_ci_compile": "termrock-forms default/testing Clippy tasks use --all-targets",
+      "related_executable_nextest_contract": "crates/termrock-forms/tests/form_lanes_consumer.rs exercises public FormLane API using different application data"
+    }
+  ],
+  "generated_ci_compile_evidence": {
+    "clippy_tasks": {
+      "termrock": [
+        "stack/rust/crates/termrock/clippy/default",
+        "stack/rust/crates/termrock/clippy/testing"
+      ],
+      "termrock-forms": [
+        "stack/rust/crates/termrock-forms/clippy/default",
+        "stack/rust/crates/termrock-forms/clippy/testing"
+      ]
+    },
+    "clippy_command": "cargo clippy --locked --offline --manifest-path ... --package ... --all-targets -- -D warnings (testing variant adds testing feature flags)",
+    "workflow_steps": "each generated Rust crate job has Build test executables, Clippy, Unit and integration tests, Doctests, Documentation, then Wait for parallel checks",
+    "conclusion": "the three example targets are compiled by generated Clippy --all-targets tasks; associated public-consumer integration tests run through generated cargo nextest tasks; no claim that interactive examples execute in CI"
+  },
+  "staged_nextest_policy_plan": [
+    "1. Keep current generated configuration and required doctest jobs until the review-approved transition; do not edit generated files by hand.",
+    "2. Preserve the inventory as an explicit audit: 39 package targets have zero runnable rustdoc examples, zero no_run/compile_fail/should_panic doctest blocks, and exactly one explicitly ignored illustrative snippet. No compile-failure or assertion semantics need porting.",
+    "3. Keep API documentation rendering in the 88 generated cargo doc --no-deps tasks. Keep all substantive consumer examples as source targets. Generated Clippy --all-targets compiles all three public example targets in both default/testing configurations, while nextest runs corresponding integration consumers; the master-detail consumer compiles the exact public example source.",
+    "4. Before disabling doctests, revise the one ignored pseudo-code block into plain text or leave it explicitly ignored; verify via the same static inventory that no runnable or compile_fail examples have appeared. If future examples are added, port runnable/asserting examples into nextest integration tests; port compile_fail cases to trybuild invoked by a nextest test; compile-only no_run snippets into named examples or integration fixtures compiled by clippy/all-targets; map should_panic snippets to #[should_panic] nextest tests.",
+    "5. Only after those per-package inventory checks, add [lib] doctest = false to each of the 39 library targets that currently emits a required empty doctest task, with manifest-specific comments/audit rationale; regenerate using pinned velnor-actions. This is removal of empty test invocations, not a CI job skip: retain required nextest, Clippy all-target, and cargo doc tasks; inspect plan and generated workflow to prove task identities and required aggregation remain intact.",
+    "6. Run generated plan and compare task inventory: no cargo test argv remains, all nextest variants remain, all example targets are present under all-target Clippy, all required crate jobs remain; run cargo nextest for focused package gates and generated lint/build gates. Never use cargo test."
+  ],
+  "risks_and_limits": [
+    "The 78 doctest task variants are actual workflow steps and belong to required Rust jobs, although static inventory shows they currently execute zero examples; remove them only through supported manifest metadata and regenerated output, never by dropping workflow steps manually.",
+    "Static source scanning is evidence against current rustdoc examples, not a durable guarantee. Add an inventory guard or repeat the audit whenever new docs examples are authored.",
+    "Clippy --all-targets compilation is a compile check, not execution of example binaries; interaction tests come from the nextest consumer tests.",
+    "No CI run was performed in this read-only task."
+  ],
+  "upstream_timeout_pr": {
+    "url": "https://github.com/tailrocks/velnor-new/pull/249",
+    "observed_at": "2026-10-21",
+    "state": "Draft",
+    "title": "feat(config): allow a bounded plan job timeout",
+    "proposed_contract": "optional [workflow] plan_timeout_minutes, default 5, validated 1..=360; affects only Plan job",
+    "release_status": "not merged/released as observed; do not adopt draft-only config or source",
+    "reported_checks": "focused cargo nextest 5/5 at e5c69f476a768da5cce4904d8dc58c008e90c476; clippy all-targets passed; PR page says CI pending and no reviews"
+  },
+  "evidence_paths": {
+    "worktree": "/private/tmp/ci-policy-audit-7483",
+    "metadata": "/private/tmp/ci-policy-metadata-7483.json",
+    "source_scan_report": "/private/tmp/ci-policy-doctest-inventory-7483.txt",
+    "generator_manifest_commit": "7483ce5208e054291e9aebdfc12cf15a42bbb41d"
+  }
+}

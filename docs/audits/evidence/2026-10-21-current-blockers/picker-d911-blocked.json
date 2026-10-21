@@ -1,0 +1,55 @@
+{
+  "commit": "d911e577a1342729719a746a1b314bea7880be46",
+  "decision": "BLOCKED",
+  "findings": [
+    {
+      "id": "PK1",
+      "priority": "P1",
+      "file": "crates/termrock-navigation/src/filter_list.rs",
+      "line": 175,
+      "problem": "New previous-scope binding requires BackTab with NONE modifiers, so real Shift+Tab BackTab+SHIFT does not match. Runtime falls back to focus traversal and Picker never emits previous Scope.",
+      "evidence": "Public real Picker Harness key_mod(BackTab,SHIFT) leaves ScopeKey0 instead of3. Same authored BackTab/NONE test passes. Chord::effective_eq compares exact modifier bits for noncharacters; backend conversions preserve SHIFT. Frozen Picker matches BackTab code without dropping action on SHIFT.",
+      "required_fix": "Handle actual terminal BackTab+SHIFT through shared binding/remapping system; committed real-widget regression must send actual modifier-bearing event."
+    },
+    {
+      "id": "PK2",
+      "priority": "P2",
+      "file": "crates/termrock-navigation/src/filter_list.rs",
+      "line": 282,
+      "problem": "Public reset_selection_on_next_reconcile promises first-enabled reset, but reconcile ignores explicit reset under default SelectionPolicy::Preserve. Explicit reset API silently does nothing.",
+      "evidence": "Public FilterList default Preserve, selectedkey20, callreset_selection_on_next_reconcile,reconcile sameitems =>20 instead offirst10. Real public regression FAIL.",
+      "required_fix": "Make explicit reset independent of automatic filter-change policy, or narrow/name/document its conditional contract consistently; generic reset should honor explicit request."
+    }
+  ],
+  "checks": {
+    "public": "19run17PASS2FAIL0SKIP. Six candidate Picker projection tests copied unchanged PASS; eleven current PR38 quick_switcher_contract public tests copied unchanged PASS; two independent actualevent/API-edge probes FAIL.",
+    "native": "30PASS172explicitlyfilteredSKIP across navigation/overlays/tablepro libs, scopedfilterlist/picker names; no fullsuite claim",
+    "strict_clippy": "PASS navigation/overlays/facade libs -Dwarnings",
+    "full_workspace_fmt": "PASS",
+    "diff_check": "PASS"
+  },
+  "landing_compatibility": {
+    "candidate_parent": "5f82c4d35d12e0fb77b0f580a8ef200240661602",
+    "initial_PR38": "b521748360a2a056d95c79090707ded595f53a6a",
+    "remote_verified_by_ls_remote": "9fc3fd501f48b5d7e526cc92461a75c084fdfcef",
+    "changed_implementation_files_same_as_candidate_parent": [
+      "navigation/filter_list.rs",
+      "navigation/lib.rs",
+      "overlays/picker.rs",
+      "overlays/tests/picker_projection.rs",
+      "showcase-demos/pages/pickers.rs",
+      "tablepro-ui/app/picker_contract.rs",
+      "tablepro-ui/quick_switcher.rs",
+      "tablepro-ui/tab_list.rs"
+    ],
+    "facade": "Current facade lib.rs has independent AppShell/shell exports since candidateparent. Retain these while selectively adding SelectionPolicy re-export; diff hunks disjoint, no wholesale oldbranch replacement.",
+    "incoming_test": "Current quick_switcher_contract.rs absent oldsource? Copied from currentbranch unchanged into external consumer and11tests PASS against exactcandidate. Covers appflows beyond newinternal queryreset test. No duplicate-name conflict: separate integration test binary.",
+    "application": "Current app.rs contains separate connection-form changes; candidate doesnot edit app.rs, so retain currentcode. Minimal policyconfigquick_switcher/tab_list additions align sharedowner boundary."
+  },
+  "scope_and_gaps": {
+    "passed_contracts": "SyntheticBackTabNONE, queryreset, scopeprojectionreset, ordinary stable-keyreorder/removal, disabled/empty selection, realTablePro activation/Delete/focus restoration exercised by preserved tests.",
+    "mutation_proof": "Author documents binding-removal and reset-rearm negatives. This reviewer did not edit source or independently execute author mutation scripts; oldsource would lack SelectionPolicy so compilefailure would not prove behavioral sensitivity. New actualmodifier regression already RED candidate.",
+    "remaining": "No pinned realCLI captures, exact allframes parity, everycolor/resize/remap edge, APIcatalog gate, fullpackagesuite or broadClippy with appwarnings claimed. Geometry and tabrepaint bypasses remain separate. Noexpectedfixtureschanged."
+  },
+  "ownership": "Separate read-only reviewer checkout exactd911; author copy untouched; no productsource edits, no helper agents, no publication. Processgroup210deadline; no commands active."
+}

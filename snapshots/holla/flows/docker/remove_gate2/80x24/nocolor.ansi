@@ -1,0 +1,25 @@
+[0m[2m  holla❯    File   Go   Help                           no project  mbp · local  [0m
+[0m[2m  Here › Review                                                                 [0m
+[0m[2m  H╭──────────────────────────────────────────────────────────────────── × ─╮   [0m
+[0m[2m ━━│                                                                        │── [0m
+[0m[2m  R│  [0m[1;2mStop and remove all containers · gate 2 of 2[0m[2m                          │…  [0m
+[0m[2m   │                                                                        │   [0m
+[0m[2m  A│  [0mAction   stop the running containers, then remove every captured    [0m[2m ┃│┃  [0m
+[0m[2m   │  [0m         container on mbp (running and stopped) · images and volumes[0m[2m ┃│┃  [0m
+[0m[2m   │  [0m         stay · rm runs only after stop succeeds                    [0m[2m ┃│┃  [0m
+[0m[2m  H│  [0mHost     mbp · local                                                [0m[2m ┃│┆  [0m
+[0m[2m  I│  [0mIn       mbp · host-wide                                            [0m[2m ┆│┆  [0m
+[0m[2m  S│  [0mScope    host                                                       [0m[2m ┆│┆  [0m
+[0m[2m  C│  [0mChanges  6 containers removed · writable layers lost                [0m[2m ┆│┆  [0m
+[0m[2m   │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄  │   [0m
+[0m[2m ╭─│                                                                        │─╮ [0m
+[0m[2m │ │  [0m[1;2mType REMOVE ALL CONTAINERS ON mbp to confirm                        [0m[2m  │ │ [0m
+[0m[2m │ │[0m[1;2;7m▎                                                                     [0m[2m  │ │ [0m
+[0m[2m │ │                                                                        │ │ [0m
+[0m[2m ╰─│                                                    Cancel    Execute   │─╯ [0m
+[0m[2m   │                                                                        │   [0m
+[0m[2m   ╰─────────────────────────────────────────────────────[0m─[0m[2m─────────[0m─[0m[2m────────╯   [0m
+[0m[2m                                                                                [0m
+[0m[2m ~/work/stack               review · gate 1 of 2               no color · 80×24 [0m
+ [0m[1m EDIT [0m  [0m[1mType[0m "REMOV[0m[1mE ALL[0m CONTAINERS[0m[1m ON[0m mbp" t[0m[1mo[0m confirm  [0m[1mEsc[0m Ca[0m[1mnce[0ml             [0m
+[?25h[17;7H[6 q

@@ -1,0 +1,20 @@
+ ▪ Junie Design system / Components / Dialogs     i Inspector   ? Help
+
+   Overview       ┃  Dialogs  Focus is trapped, the page dims, Esc alw…
+   Buttons        ┃
+   Inputs         ┃    Open a dialog
+   Text a╭────────────────────────────────────────────────────╮
+   Forms │                                                    │oices…
+   Lists │  Rename task                                       │
+   Trees │                                                    │y / n …
+   Tables│   Task name *                                      │bmits,…
+   Editab│ ▎ Migrate sessions table                           │n in d…
+   Panels│   Shown in the task list and PR title              │
+   Sideba│                                                    │
+ › Dialog│                                  Cancel   Rename   │
+   Progre│                                                    │
+   Scroll╰────────────────────────────────────────────────────╯
+   Terminal       │    Nothing yet
+   Code editor    │
+
+ ← → Choose  Enter Confirm  Esc Cancel

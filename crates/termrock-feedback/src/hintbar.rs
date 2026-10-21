@@ -5,7 +5,7 @@ use ratatui_core::layout::Rect;
 use super::{PartStyle, SlotFn, first_row, shift};
 use crate::id::{Id, Part};
 use crate::keyhint::KeyHint;
-use crate::keymap::HintLayer;
+use crate::keymap::{HintKey, HintLayer};
 use crate::measure::{Constraints, Size};
 use crate::response::StateFlags;
 use crate::text::width;
@@ -44,6 +44,24 @@ pub struct HintBar<'a> {
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
     ov: PartStyle<'a>,
+}
+
+fn pinned_way_out(key: HintKey) -> bool {
+    matches!(key, HintKey::Label("Esc" | "?" | "F1"))
+}
+
+fn hint_cost(widths: &[u16], keep: &[usize], cut: bool) -> u16 {
+    if keep.is_empty() {
+        return 0;
+    }
+    let mut cost = 0u16;
+    for (n, &index) in keep.iter().enumerate() {
+        cost = cost.saturating_add(widths.get(index).copied().unwrap_or(0));
+        if n.saturating_add(1) < keep.len() || cut {
+            cost = cost.saturating_add(HintBar::HINT_GAP);
+        }
+    }
+    cost
 }
 
 fn marker_states(part: Option<&crate::theme::PartRecipe>) -> &[StateRule] {
@@ -310,27 +328,101 @@ impl<'a> HintBar<'a> {
         acc.glyph
     }
 
-    fn fitting(&self, budget: u16) -> (usize, u16) {
+    /// Baseline pins Esc, `?`, and F1. Other hints drop from the right
+    /// first. A full row keeps every hint. A cut row pays one gap for `…`.
+    fn fitting_stack(&self, budget: u16, keep_buf: &mut [usize; 32]) -> (usize, u16) {
         let n = self.layer.hints.len();
-        let mut used = 0u16;
-        let mut drawn = 0usize;
-        for i in 0..n {
-            let Some(w) = self.hint(i).map(|h| h.width()) else {
-                break;
-            };
-            let reserve = if i.saturating_add(1) < n {
-                Self::HINT_GAP
-            } else {
-                0
-            };
-            let need = used.saturating_add(w).saturating_add(reserve);
-            if need > budget {
-                break;
-            }
-            used = used.saturating_add(w).saturating_add(Self::HINT_GAP);
-            drawn = drawn.saturating_add(1);
+        if n == 0 {
+            return (0, 0);
         }
-        (drawn, used.saturating_sub(Self::HINT_GAP))
+        let mut widths = [0u16; 32];
+        let mut pinned = [false; 32];
+        for i in 0..n {
+            widths[i] = self.hint(i).map(|h| h.width()).unwrap_or(0);
+            pinned[i] = self
+                .layer
+                .hints
+                .get(i)
+                .is_some_and(|hint| pinned_way_out(hint.key));
+            keep_buf[i] = i;
+        }
+        let mut keep_len = n;
+        if hint_cost(&widths[..n], &keep_buf[..keep_len], false) > budget {
+            let mut order = [0usize; 32];
+            let mut order_len = 0;
+            for i in (0..n).rev() {
+                if !pinned[i] {
+                    order[order_len] = i;
+                    order_len += 1;
+                }
+            }
+            for i in (0..n).rev() {
+                if pinned[i] {
+                    order[order_len] = i;
+                    order_len += 1;
+                }
+            }
+            for &gone in &order[..order_len] {
+                if hint_cost(&widths[..n], &keep_buf[..keep_len], true) <= budget {
+                    break;
+                }
+                let mut w = 0;
+                for r in 0..keep_len {
+                    if keep_buf[r] != gone {
+                        keep_buf[w] = keep_buf[r];
+                        w += 1;
+                    }
+                }
+                keep_len = w;
+            }
+        }
+        let cut = keep_len < n;
+        let full = hint_cost(&widths[..n], &keep_buf[..keep_len], cut);
+        let used = if cut {
+            full.saturating_sub(Self::HINT_GAP)
+        } else {
+            full
+        };
+        (keep_len, used)
+    }
+
+    #[cfg(test)]
+    fn fitting(&self, budget: u16) -> (Vec<usize>, u16) {
+        self.fitting_heap(budget)
+    }
+
+    fn fitting_heap(&self, budget: u16) -> (Vec<usize>, u16) {
+        let n = self.layer.hints.len();
+        let widths: Vec<u16> = (0..n)
+            .map(|i| self.hint(i).map(|h| h.width()).unwrap_or(0))
+            .collect();
+        let pinned: Vec<bool> = (0..n)
+            .map(|i| {
+                self.layer
+                    .hints
+                    .get(i)
+                    .is_some_and(|hint| pinned_way_out(hint.key))
+            })
+            .collect();
+        let mut keep: Vec<usize> = (0..n).collect();
+        if hint_cost(&widths, &keep, false) > budget {
+            let mut order: Vec<usize> = (0..n).rev().filter(|&i| !pinned[i]).collect();
+            order.extend((0..n).rev().filter(|&i| pinned[i]));
+            for gone in order {
+                if hint_cost(&widths, &keep, true) <= budget {
+                    break;
+                }
+                keep.retain(|&i| i != gone);
+            }
+        }
+        let cut = keep.len() < n;
+        let full = hint_cost(&widths, &keep, cut);
+        let used = if cut {
+            full.saturating_sub(Self::HINT_GAP)
+        } else {
+            full
+        };
+        (keep, used)
     }
 
     #[expect(
@@ -414,13 +506,22 @@ impl<'a> HintBar<'a> {
         }
 
         let budget = right_limit.saturating_sub(x);
-        let (drawn, used) = self.fitting(budget);
+        let mut keep_buf = [0usize; 32];
+        let heap_keep: Vec<usize>;
+        let (keep, used): (&[usize], u16) = if self.layer.hints.len() <= 32 {
+            let (len, used) = self.fitting_stack(budget, &mut keep_buf);
+            (&keep_buf[..len], used)
+        } else {
+            let (vec, used) = self.fitting_heap(budget);
+            heap_keep = vec;
+            (&heap_keep[..], used)
+        };
         if self.centered_override.unwrap_or(self.layer.centered) {
             let free = area.width.saturating_sub(used);
             let mid = area.x.saturating_add(free / 2);
             x = mid.max(x).min(right_limit.saturating_sub(used).max(x));
         }
-        for i in 0..drawn {
+        for &i in keep {
             let Some(h) = self.hint(i) else { break };
             let w = h.width();
             let cell = Rect {
@@ -434,7 +535,7 @@ impl<'a> HintBar<'a> {
             h.draw(ui, cell);
             x = x.saturating_add(w).saturating_add(Self::HINT_GAP);
         }
-        if drawn < self.layer.hints.len() && x < right_limit {
+        if keep.len() < self.layer.hints.len() && x < right_limit {
             let cell = Rect {
                 x,
                 width: right_limit.saturating_sub(x),
@@ -710,11 +811,37 @@ mod tests {
         ]);
         let bar = HintBar::new(Id::root("t"), &l);
         let (all, _) = bar.fitting(200);
-        assert_eq!(all, 4);
+        assert_eq!(all.len(), 4);
         let (few, used) = bar.fitting(24);
-        assert!((1..4).contains(&few), "{few}");
+        assert!((1..4).contains(&few.len()), "{few:?}");
         assert!(used <= 24, "{used}");
-        assert_eq!(bar.fitting(0).0, 0);
+        assert!(bar.fitting(0).0.is_empty());
+    }
+
+    #[test]
+    fn pinned_escape_label_outlives_earlier_hints() {
+        let l = HintLayer {
+            hints: vec![
+                Hint {
+                    key: crate::keymap::HintKey::Label("Type"),
+                    label: "Filter",
+                    priority: 90,
+                },
+                Hint {
+                    key: crate::keymap::HintKey::Label("Enter"),
+                    label: "Choose",
+                    priority: 70,
+                },
+                Hint {
+                    key: crate::keymap::HintKey::Label("Esc"),
+                    label: "Cancel",
+                    priority: 60,
+                },
+            ],
+            ..HintLayer::empty()
+        };
+        let bar = HintBar::new(Id::root("t"), &l);
+        assert_eq!(bar.fitting(14).0, vec![2]);
     }
 
     #[test]

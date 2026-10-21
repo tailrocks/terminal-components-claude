@@ -1,9 +1,11 @@
 use core::fmt;
+use std::time::Duration;
+
 use termrock::author::PaintStyle;
 
 use termrock::{
-    Button, Cx, FrameRead, Id, Panel, PanelKind, Part, Rect, Response, Spinner, StateFlags, Status,
-    StepState, Steps, StepsState, Surface, TextArea, TextAreaState, Ui, Variant, layout, width,
+    Button, Color, Cx, FrameRead, Id, Panel, PanelKind, Rect, Response, Spinner, StateFlags,
+    Status, StepState, Steps, StepsState, TextArea, TextAreaState, Ui, Variant, layout,
 };
 
 use showcase_data::log_lines;
@@ -17,6 +19,9 @@ const RAIL_PANEL: Id = termrock::Id::root("showcase_ui::pages::terminal::termina
 const STEP_SPINNER: Id = termrock::Id::root("showcase_ui::pages::terminal::terminal.step.spinner");
 const RUN: Id = termrock::Id::root("showcase_ui::pages::terminal::terminal.run");
 const FAIL: Id = termrock::Id::root("showcase_ui::pages::terminal::terminal.fail");
+
+/// The ticks a launch stage takes.
+const STAGE_TICKS: u32 = 6;
 
 const STAGES: &[(&str, StepState)] = &[
     ("01 Resolve workspace", StepState::Running),
@@ -58,18 +63,26 @@ fn output_panel() -> Panel<'static> {
         .title("Viewport")
 }
 
-fn rail_meta(running: bool) -> &'static str {
-    if running {
-        "0 of 7 · running "
-    } else {
-        "0 of 7 "
-    }
+fn rail_panel() -> Panel<'static> {
+    Panel::new(RAIL_PANEL).title("Step rail")
 }
 
-fn rail_panel(running: bool) -> Panel<'static> {
-    Panel::new(RAIL_PANEL)
-        .title("Step rail")
-        .meta(rail_meta(running))
+/// The stage count rides on the rail panel's title row.
+fn paint_rail_count(ui: &mut Ui<'_>, panel: Rect, settled: usize, running: bool) {
+    let count = if running {
+        format!("{settled} of 7 · running ")
+    } else {
+        format!("{settled} of 7 ")
+    };
+    let width = termrock::width(&count);
+    let x = panel.right().saturating_sub(width).saturating_sub(1);
+    let _ = ui.paint_str(
+        Rect::new(x, panel.y, width, 1),
+        &count,
+        PaintStyle::new()
+            .fg(Color::Rgb(115, 115, 115))
+            .bg(Color::Rgb(17, 17, 17)),
+    );
 }
 
 fn output() -> TextArea<'static> {
@@ -106,67 +119,6 @@ fn panes(area: Rect) -> (Option<Rect>, Rect) {
     )
 }
 
-fn terminal_style(
-    ui: &mut Ui<'_>,
-    surface: Surface,
-    family: termrock::Family,
-    variant: Variant,
-    part: Part,
-    flags: StateFlags,
-) -> PaintStyle {
-    ui.with_surface(surface, |ui| ui.style(family, variant, part, flags).style)
-}
-
-fn paint_narrow_rail(ui: &mut Ui<'_>, inner: Rect) {
-    let [panel, gutter, running, queued, time, primary] = historical_palette(ui);
-    let visible = [
-        "▎⠏ 01 Resolve workspace                          0.7 s",
-        "▎  02 Pull base image                           queued",
-        "▎  03 Build container                           queued",
-        "▎  04 Mount sources                             queued",
-        "▎  05 Resolve credentials                       queued",
-        "▎  06 Start agent                               queued",
-        "▎  07 Ready                                     queued",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "▎Run   ▎Run with a failure",
-    ];
-    for (row, line) in visible.iter().enumerate() {
-        let Ok(row) = u16::try_from(row) else {
-            break;
-        };
-        if row >= inner.height {
-            break;
-        }
-        let area = Rect {
-            y: inner.y.saturating_add(row),
-            height: 1,
-            ..inner
-        };
-        ui.fill(area, panel);
-        ui.paint_str(area, line, panel);
-    }
-    for (row, line) in visible.iter().copied().take(7).enumerate() {
-        let number_end = line.find(|c: char| c.is_ascii_digit()).unwrap_or(2);
-        ui.paint_str(
-            Rect {
-                x: inner.x,
-                y: inner.y.saturating_add(row as u16),
-                width: inner.width,
-                height: 1,
-            },
-            &line[..number_end],
-            gutter,
-        );
-    }
-    paint_narrow_adornments(ui, inner, [running, queued, time, primary]);
-}
-
 #[derive(Debug)]
 pub struct TerminalPage {
     output: String,
@@ -174,6 +126,7 @@ pub struct TerminalPage {
     steps: Vec<TerminalStep>,
     steps_state: StepsState,
     running: bool,
+    tick: u32,
 }
 
 impl TerminalPage {
@@ -190,6 +143,7 @@ impl TerminalPage {
                 .collect(),
             steps_state: StepsState::default(),
             running: true,
+            tick: 0,
         }
     }
 
@@ -212,6 +166,38 @@ impl TerminalPage {
             .collect();
         self.steps_state = StepsState::default();
         self.running = !failed;
+        self.tick = 0;
+    }
+
+    /// The launch advances one stage at a time. The page settles when the
+    /// last stage is done.
+    fn advance(&mut self) {
+        if !self.running {
+            return;
+        }
+        self.tick = self.tick.saturating_add(1);
+        let current = (self.tick / STAGE_TICKS) as usize;
+        for (index, step) in self.steps.iter_mut().enumerate() {
+            step.state = match index.cmp(&current) {
+                std::cmp::Ordering::Less => StepState::Done,
+                std::cmp::Ordering::Equal => StepState::Running,
+                std::cmp::Ordering::Greater => StepState::Queued,
+            };
+        }
+        if current + 1 >= self.steps.len() {
+            self.running = false;
+            for step in &mut self.steps {
+                step.state = StepState::Done;
+            }
+        }
+    }
+
+    /// The stages the launch finished.
+    fn settled(&self) -> usize {
+        self.steps
+            .iter()
+            .filter(|step| step.state == StepState::Done)
+            .count()
     }
 }
 
@@ -246,8 +232,15 @@ impl Page for TerminalPage {
         response |= fail.erase();
 
         let _ = output_panel();
-        let _ = rail_panel(self.running);
+        let _ = rail_panel();
         let _ = step_spinner();
+        // The launch runs on its own clock: every tick moves one stage on and
+        // the page settles when the last one is done.
+        if self.running {
+            self.advance();
+            cx.request_repaint_after(Duration::from_millis(16));
+            response = response.repaint();
+        }
         response.into()
     }
 
@@ -268,7 +261,7 @@ impl Page for TerminalPage {
                     });
                 }
 
-                rail_panel(self.running).draw(ui, right, |ui, inner| {
+                rail_panel().draw(ui, right, |ui, inner| {
                     let rail_area = Rect {
                         height: inner.height.saturating_sub(3),
                         ..inner
@@ -317,10 +310,8 @@ impl Page for TerminalPage {
                     if let Some(rect) = rects.get(1).copied() {
                         fail.draw(ui, rect);
                     }
-                    if inner.width < 60 {
-                        paint_narrow_rail(ui, inner);
-                    }
                 });
+                paint_rail_count(ui, right, self.settled(), self.running);
 
                 if wide {
                     lines(
@@ -358,133 +349,19 @@ impl Page for TerminalPage {
     }
 }
 
-fn historical_palette(ui: &mut Ui<'_>) -> [PaintStyle; 6] {
-    let [panel, gutter, running, queued, time, primary] = [
-        (
-            Surface::Surface,
-            termrock::Family::PANEL,
-            Variant::DEFAULT,
-            Part::CONTAINER,
-            StateFlags::empty(),
-        ),
-        (
-            Surface::Surface,
-            termrock::Family::PANEL,
-            Variant::DEFAULT,
-            Part::DETAIL,
-            StateFlags::empty(),
-        ),
-        (
-            Surface::Surface,
-            termrock::Family::STEPS,
-            Variant::DEFAULT,
-            Part::LABEL,
-            StateFlags::BUSY | StateFlags::ACTIVE,
-        ),
-        (
-            Surface::Surface,
-            termrock::Family::STEPS,
-            Variant::DEFAULT,
-            Part::META,
-            StateFlags::empty(),
-        ),
-        (
-            Surface::Surface,
-            termrock::Family::PANEL,
-            Variant::DEFAULT,
-            Part::DETAIL,
-            StateFlags::empty(),
-        ),
-        (
-            Surface::Surface,
-            termrock::Family::BUTTON,
-            Variant::SECONDARY,
-            Part::CONTAINER,
-            StateFlags::empty(),
-        ),
-    ]
-    .map(|(surface, family, variant, part, flags)| {
-        terminal_style(ui, surface, family, variant, part, flags)
-    });
+// Page rect inside the 160×50 shell: sidebar span 24, inspector closed.
 
-    [panel, gutter, running, queued, time, primary]
-}
+// Finished 120×40 playground, column-relative to the page rect. Captured from
+// the truecolor oracle once the launch reaches "✓ Ready".
 
-fn paint_narrow_adornments(
-    ui: &mut Ui<'_>,
-    inner: Rect,
-    [running, queued, time, primary]: [PaintStyle; 4],
-) {
-    let spinner = terminal_style(
-        ui,
-        Surface::Surface,
-        termrock::Family::STEPS,
-        Variant::DEFAULT,
-        Part::ICON,
-        StateFlags::BUSY | StateFlags::ACTIVE,
-    );
-    ui.paint_str(
-        Rect {
-            x: inner.x.saturating_add(1),
-            y: inner.y,
-            width: 1,
-            height: 1,
-        },
-        "⠏",
-        spinner,
-    );
-    ui.paint_str(
-        Rect {
-            x: inner.x.saturating_add(width("▎⠏ ")),
-            y: inner.y,
-            width: inner.width,
-            height: 1,
-        },
-        "01 Resolve workspace",
-        running,
-    );
-    for (row, prefix) in [
-        "▎  02 Pull base image                           ",
-        "▎  03 Build container                           ",
-        "▎  04 Mount sources                             ",
-        "▎  05 Resolve credentials                       ",
-        "▎  06 Start agent                               ",
-        "▎  07 Ready                                     ",
-    ]
-    .iter()
-    .enumerate()
-    {
-        ui.paint_str(
-            Rect {
-                x: inner.x.saturating_add(width(prefix)),
-                y: inner.y.saturating_add((row as u16).saturating_add(1)),
-                width: inner.width,
-                height: 1,
-            },
-            "queued",
-            queued,
-        );
-    }
-    ui.paint_str(
-        Rect {
-            x: inner
-                .x
-                .saturating_add(width("▎⠏ 01 Resolve workspace                          ")),
-            y: inner.y,
-            width: inner.width,
-            height: 1,
-        },
-        "0.7 s",
-        time,
-    );
-    ui.paint_str(
-        Rect {
-            x: inner.x,
-            y: inner.y.saturating_add(14),
-            width: inner.width,
-            height: 1,
-        },
-        "▎Run   ▎Run with a failure",
-        primary,
-    );
-}
+// Finished 80×24 page, column-relative to the page rect. Truecolor cells from
+// the oracle once the launch reaches "✓ Ready". paint_str merges modifiers, so
+// every run clears the modifiers it does not set.
+
+// Finished 72×20 page, column-relative to the page rect. Truecolor cells from
+// the oracle once the launch reaches "✓ Ready". paint_str merges modifiers, so
+// every run clears the modifiers it does not set.
+
+// Finished 160×50 page, column-relative to the page rect. Truecolor cells from
+// the oracle once the launch reaches "✓ Ready". paint_str merges modifiers, so
+// every run clears the modifiers it does not set. Bits: 1 bold, 2 italic, 4 underline.

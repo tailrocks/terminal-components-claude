@@ -1,0 +1,50 @@
+ ▪ Junie Design system / Components / Pickers                                                                         no color · 160×50   i Inspector   ? Help
+
+   Foundations            Pickers  One modal list for files, tabs and levels: search, scope, tag, alternate action
+   Overview
+                            Open a picker
+   Components
+   Buttons                   Open quickly    Switch tab    Choose a level
+   Inputs
+   Text areas               Quick: fuzzy over files and tasks, Tab cycles the scope, Alt+Enter is the alternate action · Tabs: Delete closes a row · Level: n…
+   Forms
+   Lists
+   Trees
+   Tables                   Result
+   Editable tables                                      ╭──────────────────────────────────────────────╮
+   Panels                   Chosen          nothing yet │ Open tabs                                    │
+   Sidebars                 Detail          —           │ ▎ Filter tabs…                               │
+   Dialogs                  Level           Safe Mode   │                                              │
+   Progress                 Open tabs       Query 1 · or│ ▎≡ Query 1      query             Open tabs  │
+   Scrolling                Pickers opened  1           │  T orders       public ·… active             │
+   Terminal                                             │  T order_items  public ·…                    │
+   Code editor                                          │  T History      public ·…                    │
+   Diff                                                 │                                              │
+   Data grid                                            │ ↑↓ Move · Enter Switch · Delete Close tab ·… │
+   Chips & selects                                      ╰──────────────────────────────────────────────╯
+ › Pickers
+   Chrome
+
+   Screens
+   Settings
+   Task runner
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ Esc Close  Tab Next

@@ -1,0 +1,70 @@
+{
+  "schema": "termrock.independent-stage3c-v3-parameterized-supervisor-review.v1",
+  "reviewer": "/root/button_theme_contract_review",
+  "source": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3c-parameterized-capture-supervisor-v3-20261021.py",
+  "source_sha256": "349074f8fff0138efb05a3b488b0deadd6d9fc1c25728969bb8f6a22a58c717a",
+  "author_packet_sha256": "5190ca6ca4b4da8104ee401a513eedd35c7786c5aced26c6952b734d25bd4d51",
+  "decision": "HOLD exactv3; do not launch capture9. Resolve official-runner-only key custody and requested-step binding before approval. No real retry or key read occurred.",
+  "required_findings": [
+    {
+      "priority": "P1",
+      "lines": [
+        247,
+        376
+      ],
+      "title": "External worker and synthetic mode directly read actual run key",
+      "evidence": "worker calls m._stable_secret_key(KEY_PATH), then directly authenticates real manifest/journal. synthetic_tests repeats actual key reader and HMAC validation. New coordinator instruction requires operational authentication delegated to canonical official verify-run/run-step and synthetic/read-only review never reading actual key contents.",
+      "required_change": "External supervisor must not read actual key bytes through private helper. Use canonical official verifier as custody/authentication authority with explicit verified result binding; do not replace HMAC authority with raw journal receipt count. Synthetic tests use exclusively synthetic keys/fixtures and trap actual KEY_PATH access. Official runner alone retains actual-key access.",
+      "attribution": "Live-worker pattern is inherited fromv2; actual-key selftest is newv3. This review applies the now-explicit official-runner-only custody boundary; previousv2 clearance is not proof that external-key handling meets it.",
+      "claim_precision": "Author packet explicitly admits in-memory key reader use and says bytes are not printed/stored. No exposure or exfiltration evidence found; do not misstate as a proven leaked secret."
+    },
+    {
+      "priority": "P1",
+      "lines": [
+        258,
+        269,
+        281
+      ],
+      "title": "Requested ordinal/phase precheck is not atomically bound to the executed official step",
+      "evidence": "Wrapper validates expected_capture_ordinal before official CLI obtains its own _fresh_run_lock. It then passes no expected ordinal/phase to fresh-run-advance. Canonical runner chooses ordinal from freshly authenticated current prefix under lock. A concurrent legitimate advance can move prefix after wrapper validation.",
+      "synthetic_source_model": "With synthetic verified summary9, wrapper accepts request9. If another writer finishes9 before official runner lock, official selection is10. At finalcapture909, same transition selects replaychunk0. Pure resolver/source model only; no real journal mutation or concurrent capture performed.",
+      "required_change": "Bind expected capture ordinal/phase at execution under a single enforced authority: canonical expected-step assertion inside lock, or an independently reviewed and enforced exclusive operational single-writer serialization protocol covering every advance entrypoint with authoritative pre/post verification. Do not claim that receipt-count precheck alone prevents skipping, replay or request drift. Any canonical runner source modification requires proper new source/plan-anchor review; do not edit sealed plan in place."
+    }
+  ],
+  "bounded_checks": {
+    "actual_sealed_plan_schema": "Accepted through existing canonical read-only reader with exact external anchor; wrong anchor rejected.",
+    "ordinal_helper": "Synthetic verified-summary9 accepts integer9 only; rejectsnegative/stale8/future10/bool/string/float/None/910-and-beyond/hugeinteger. Invalid completed_steps types/ranges rejected. No authenticated-current-prefix claim made from synthetic summary.",
+    "shared_supervision_source": "remaining, require_preflight_budget, identity, kill_group_owned and run_supervised byte-identical tov2 cleared exact2765. Prior independent10.1sec and actual20sec preflight, foreignPGID no-signal and same-groupchild/grandchild cleanup evidence remains applicable to these unchanged functions, not new auth/ordinal flow.",
+    "unchanged_v3_selftest": "Not executed because it directly reads actual key. No mock receipt-count result presented as real authentication.",
+    "key_reader_in_pure_probe": "Trapped; zero calls/actual key reads.",
+    "read_only_state": "Journal files0..8 and288checkpoints observed, not newly HMAC-authenticated by reviewer. All707prior partial files match original manifest; source/author/plan/journal/partial unchanged."
+  },
+  "unchanged_limits": [
+    "220 inclusive timer,200 official CLI argument,15 cleanup reserve remain source-equivalent.",
+    "Nested separate-session descendants remain outside owned-group cleanup proof; no complete descendant-cleanup claim.",
+    "Post-run official receipt authentication/fullverification required before subsequent ordinals; no partialcredit."
+  ],
+  "prior_partial_validation": {
+    "files": 707,
+    "original707_mismatches": []
+  },
+  "evidence": [
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3c-parameterized-capture-supervisor-v3-20261021.py",
+      "sha256": "349074f8fff0138efb05a3b488b0deadd6d9fc1c25728969bb8f6a22a58c717a"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3c-parameterized-supervisor-v3-author-packet-20261021.json",
+      "sha256": "5190ca6ca4b4da8104ee401a513eedd35c7786c5aced26c6952b734d25bd4d51"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3c-supervisor-review-v3-3490/ordinal-and-race-probes.json",
+      "sha256": "74e7ae55846789220b64949eb399bd31238b4ac8fa695e25613a7be6b78ff736"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3c-supervisor-review-v3-3490/shared-equivalence-and-integrity.json",
+      "sha256": "816e2ad548e9cf078717ba82017d51659ad86a193fa394bc1bf05d8e99bcec60"
+    }
+  ],
+  "custody": "No source/plan/key/journal/receipt/attempt edits, no capture/retry/official advance, no processkill/helper activation. No actual key bytes read in this review. Old reports preserved."
+}

@@ -43,7 +43,7 @@ fn ctrl_c_requests_quit_even_when_the_result_grid_owns_focus() {
 fn empty_query_is_clean_and_execution_does_not_save_edits() {
     let mut query = QueryTab::new(1, "");
     assert!(!query.dirty());
-    query.query = "SELECT * FROM orders LIMIT 1".to_owned();
+    query.replace_query("SELECT * FROM orders LIMIT 1");
     assert!(query.execute(&Catalog::acme_prod()).is_ok());
     assert!(query.dirty());
 }
@@ -160,7 +160,7 @@ fn untouched_query_with_initial_text_is_clean() {
 #[test]
 fn query_debug_does_not_expose_saved_or_current_sql() {
     let mut query = QueryTab::new(1, "synthetic-saved-secret");
-    query.query = "synthetic-current-secret".to_owned();
+    query.replace_query("synthetic-current-secret");
     query.error = Some("synthetic-error-secret".to_owned());
     query.result = Some(tablepro_ui::GridView::from_result(&ResultSet {
         columns: vec![("value".to_owned(), ColType::Text)],

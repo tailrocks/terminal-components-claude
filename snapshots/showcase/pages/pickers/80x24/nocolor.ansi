@@ -1,0 +1,25 @@
+ ▪ [0m[1mJunie[0m Design system  Overlays › [0m[1mPickers[0m                i Inspector   ? Help  [0m
+                                                                                [0m
+ [0m[1mComponents[0m      54  [0m[1mPickers[0m  One modal list for files, tabs, levels, commands… [0m
+ ──────────────────                                                             [0m
+    Overview         [0m[1m Playground  [0m  Options    States                           [0m
+  ▸ App shell        ━━━━━━━━━━━━━──────────────────────────────────────────────[0m
+  ▸ Inputs & forms                                                              [0m
+  ▸ Tables             Open a picker                           Enter · click   ┃[0m
+  ▸ Navigation         ─────────────────────────────────────────────────────   ┃[0m
+  ▾ Overlays            [0m[1;7mOpen quickly [0m   Switch tab    Choose a level           ┃[0m
+      Dialogs           Run command    Remote branch                           ┃[0m
+ [0m[1m▎  › Pickers      [0m                                                            ┃[0m
+      Dialog kinds     Quick: fuzzy as you type, Tab scope, Alt+Enter          ┆[0m
+      Popups & to…     alternate · Tabs: live, Delete closes · Level: no       ┆[0m
+      File browser     search box · Commands: disabled rows say why ·          ┆[0m
+  ▸ Feedback           Remote: loads, r retries                                ┆[0m
+  ▸ Layout                                                                     ┆[0m
+  ▸ Text & code                                                                ┆[0m
+  ▸ Screens            Applied                 read back from a built picker   ┆[0m
+                       ─────────────────────────────────────────────────────   ┆[0m
+                       Size      width 64 · max rows 12 · Center               ┆[0m
+                       Fit       margin 1 · Center · backdrop keeps 1 bottom   ┆[0m
+                                                                                [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                           [0m
+[?25l

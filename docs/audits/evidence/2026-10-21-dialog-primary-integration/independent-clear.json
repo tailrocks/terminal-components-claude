@@ -1,0 +1,273 @@
+{
+  "schema": 1,
+  "reviewer": "/root/tree_adapter_independent_review",
+  "commit": "8a9af56bcb39d3fe810191fc8da85d149996eccf",
+  "decision": "CLEAR bounded Dialog primary/blur correction",
+  "findings": [],
+  "prior_hold_resolution": {
+    "prior": "e2b1727fcb04f4b8579ce771f8a5c99b1e910d4a; BlurPolicy::Keep left committed DialogState draft empty after Tab or pointer Save",
+    "unchanged_probe_source_sha256": "b84b2459c55ab1feadafd3eedb3a3d278513ef759c5fbbe18b43a06d8073d6d1",
+    "before_evidence": "Preserved prior independent packet: 7 positive tests passed, two Unicode draft-preservation tests failed. No new before execution claim.",
+    "after": "All same9 external tests pass, including two formerly failing value-preservation probes."
+  },
+  "source_review": [
+    "Default TextInput blur policy restored; Tab commits typed value and ends editing without submitting. Pointer Save exposes committed typed value and preserves clicked action identity.",
+    "Submission checks addressed Intent::Binding resolved through the actual input Bindings table to TextCmd::Commit, not raw Enter. It excludes simultaneous FocusOut, so blur commits do not become primary submission.",
+    "TextInput bindings currently ignore BindingState and return the same BINDINGS used by update_target, so helper resolution matches actual input command handling.",
+    "Configured primary remains limited to enabled effective actions; missing/disabled/truncated/empty cases fail closed. Focused alternatives Enter/Space and custom action chords retain own keys.",
+    "Acknowledgement branch and secret input configuration are unchanged by this correction; existing acknowledgement tests included in165 native pass.",
+    "Additive private helper; no public signature/layout removal, second runtime, application imports, reference assets or painter bypasses.",
+    "Public standalone Dialog consumer compiles through Nextest list; zero tests in example are compilation evidence only."
+  ],
+  "checks": {
+    "native_overlays_all_targets": {
+      "pass": 165,
+      "fail": 0,
+      "skip": 0,
+      "includes_author_dialog_primary_cases": 9
+    },
+    "external_unchanged": {
+      "pass": 9,
+      "fail": 0,
+      "skip": 0,
+      "coverage": [
+        "configured/reordered primary Unicode Enter",
+        "disabled/missing/truncated/empty fail closed",
+        "explicit cancel primary",
+        "focused alternate Space/Enter and pointer identity",
+        "custom alternate CtrlK chord",
+        "primary pointer action",
+        "dismissal and reopen",
+        "Unicode pointer committed value",
+        "Tab committed value + !is_editing, no submission"
+      ]
+    },
+    "additional_independent_remap": {
+      "pass": 2,
+      "fail": 0,
+      "filtered_existing_duplicate_tests": 9,
+      "coverage": [
+        "Commit action remapped to F8 submits configured primary and committed Unicode value",
+        "Commit action removed: raw Enter neither submits nor closes prompt or ends editing"
+      ]
+    },
+    "strict_clippy": "PASS overlays --all-targets --no-deps -- -D warnings",
+    "format": "PASS cargo fmt --all --check",
+    "public_example": "COMPILE PASS via cargo nextest list -p termrock-overlays --example dialog_primary_consumer; no zero-test pass credit"
+  },
+  "source": "/private/tmp/dialog-8a9af56-independent-source-20261021",
+  "tracked_scoped_diff_exit": 0,
+  "target": "/private/tmp/dialog-8a9af56-independent-owned-target-20261021",
+  "toolchain": "Rust1.99.1; Nextest0.9.148",
+  "source_identities": "source-identities.json",
+  "binary_receipts": [
+    {
+      "path": "/private/tmp/dialog-8a9af56-independent-owned-target-20261021/debug/deps/dialog_primary-e5c4a9584153bf48",
+      "sha256": "a6efc476ef67e2eab21a5dbd0342394f2fca59bed720b3c86b9b818fd772dfe4"
+    },
+    {
+      "path": "/private/tmp/dialog-8a9af56-independent-owned-target-20261021/debug/deps/primary-a61cbaf96d236a4a",
+      "sha256": "aba05cdffa7d395e597476a17416f49ae076391253405ed907b8797ca0079893"
+    },
+    {
+      "path": "/private/tmp/dialog-8a9af56-independent-owned-target-20261021/debug/deps/remap-3333c5074ba0cbf3",
+      "sha256": "68c8e4e1c1be9fbb212b88448b6e714880ed6240e5f477fa4cdbd03ec37e4fec"
+    }
+  ],
+  "receipts": {
+    "external-unchanged-receipt": {
+      "argv": [
+        "/Users/donbeave/.cargo/bin/cargo",
+        "nextest",
+        "run",
+        "--locked",
+        "--offline",
+        "--test",
+        "primary",
+        "--no-fail-fast"
+      ],
+      "cwd": "/private/tmp/dialog-8a9af56-independent-consumer-20261021",
+      "target": "/private/tmp/dialog-8a9af56-independent-owned-target-20261021",
+      "exit": 0,
+      "timeout": false,
+      "seconds": 17.260726333013736
+    },
+    "fmt-receipt": {
+      "argv": [
+        "/Users/donbeave/.cargo/bin/cargo",
+        "fmt",
+        "--all",
+        "--check"
+      ],
+      "cwd": "/private/tmp/dialog-8a9af56-independent-source-20261021",
+      "target": "/private/tmp/dialog-8a9af56-independent-owned-target-20261021",
+      "exit": 0,
+      "timeout": false,
+      "seconds": 2.7547132080071606
+    },
+    "native-receipt": {
+      "argv": [
+        "/Users/donbeave/.cargo/bin/cargo",
+        "nextest",
+        "run",
+        "--locked",
+        "--offline",
+        "-p",
+        "termrock-overlays",
+        "--all-targets",
+        "--no-fail-fast"
+      ],
+      "cwd": "/private/tmp/dialog-8a9af56-independent-source-20261021",
+      "target": "/private/tmp/dialog-8a9af56-independent-owned-target-20261021",
+      "exit": 0,
+      "timeout": false,
+      "seconds": 62.481008292001206
+    },
+    "external-remap-receipt": {
+      "argv": [
+        "/Users/donbeave/.cargo/bin/cargo",
+        "nextest",
+        "run",
+        "--locked",
+        "--offline",
+        "--test",
+        "remap",
+        "-E",
+        "test(independent_remapped_commit) | test(independent_removed_commit)",
+        "--no-fail-fast"
+      ],
+      "cwd": "/private/tmp/dialog-8a9af56-independent-consumer-20261021",
+      "target": "/private/tmp/dialog-8a9af56-independent-owned-target-20261021",
+      "exit": 0,
+      "timeout": false,
+      "seconds": 1.9471372499829158
+    },
+    "clippy-receipt": {
+      "argv": [
+        "/Users/donbeave/.cargo/bin/cargo",
+        "clippy",
+        "--locked",
+        "--offline",
+        "-p",
+        "termrock-overlays",
+        "--all-targets",
+        "--no-deps",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "cwd": "/private/tmp/dialog-8a9af56-independent-source-20261021",
+      "target": "/private/tmp/dialog-8a9af56-independent-owned-target-20261021",
+      "exit": 0,
+      "timeout": false,
+      "seconds": 9.223770625016186
+    },
+    "public-example-receipt": {
+      "argv": [
+        "/Users/donbeave/.cargo/bin/cargo",
+        "nextest",
+        "list",
+        "--locked",
+        "--offline",
+        "-p",
+        "termrock-overlays",
+        "--example",
+        "dialog_primary_consumer"
+      ],
+      "cwd": "/private/tmp/dialog-8a9af56-independent-source-20261021",
+      "target": "/private/tmp/dialog-8a9af56-independent-owned-target-20261021",
+      "exit": 0,
+      "timeout": false,
+      "seconds": 0.6538354170043021
+    }
+  },
+  "scope_limits": [
+    "No full four-app frozen CLI/Tuiscotti paired frame acceptance",
+    "No production Jackin form adoption/painter-removal clearance; prior57be app HOLD still stands",
+    "No expectation updates or reference decisions",
+    "No source edits, original checkout/ref mutations, merges, helpers, push locks, commits or pushes",
+    "No shared author/parent target or cached-author gate accepted as independent proof"
+  ],
+  "artifacts": [
+    {
+      "path": "clippy-receipt.json",
+      "sha256": "9a78c7c1d1d8ce10a579922d983ab136b337bd6bd102587c2b11046d9548f165"
+    },
+    {
+      "path": "clippy.log",
+      "sha256": "2f3148145cc0a09c0efdd737f50928f31f0b0ccd6a025e55ebd589597c83df52"
+    },
+    {
+      "path": "consumer/Cargo.lock",
+      "sha256": "c53c46d1b9a145ebe99429eacf43deb0257c37cdbb4e9549812f9b2410ffea48"
+    },
+    {
+      "path": "consumer/Cargo.toml",
+      "sha256": "c09bb68d1b820636f655d28a39394264d2ca6d531e5c9ce35ccffa3b618478e7"
+    },
+    {
+      "path": "consumer/tests/primary.rs",
+      "sha256": "b84b2459c55ab1feadafd3eedb3a3d278513ef759c5fbbe18b43a06d8073d6d1"
+    },
+    {
+      "path": "consumer/tests/remap.rs",
+      "sha256": "29e5c741165792dbd5fb36236011b92d3ca1414f5226d6309356e5b8dd984ee5"
+    },
+    {
+      "path": "external-remap-receipt.json",
+      "sha256": "0aa52d5e74366e3f97f3a07c64d3d3376a07bef7120efa2db53d60a057033ec1"
+    },
+    {
+      "path": "external-remap.log",
+      "sha256": "8b5bf7918b91d03e988e672f0cae24938f81536947e8988450a409cd55efa212"
+    },
+    {
+      "path": "external-unchanged-receipt.json",
+      "sha256": "c05aedbb15d61d01a6f303b23488ad2149860a87eee6c3ece67147facad022e4"
+    },
+    {
+      "path": "external-unchanged.log",
+      "sha256": "79258229e6a511f1ba47cff2d0b1ef28d71fcc7db7fb71d7158d3ca990715c18"
+    },
+    {
+      "path": "fmt-receipt.json",
+      "sha256": "9f2e06bbaea55c465dbd6689a6467f7148e6d91001e112be877dadb98748a954"
+    },
+    {
+      "path": "fmt.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "native-receipt.json",
+      "sha256": "f3b0148637a21db2204b1e962edf638f2bd8c7b45009e495ee6e4cb23b3f50e4"
+    },
+    {
+      "path": "native.log",
+      "sha256": "0b1ad32d8eb2489debcaa6d1c667673283585d178bc485649f3aa799ec701975"
+    },
+    {
+      "path": "prior-e2b-review.json",
+      "sha256": "96917757d32fb3be2fc02a2b0ec47fe57554df2a1312a05282351f4269403c94"
+    },
+    {
+      "path": "prior-frozen-source-contract.json",
+      "sha256": "5ebe2732665d79588f063ce8f677c663e7881c74cd9e9bbc7ef54c443470c915"
+    },
+    {
+      "path": "public-example-receipt.json",
+      "sha256": "18d0bb4a8368a1214d2769a885623b8d6fa299f2ae3f8b0d4ee6588ed62ae7b5"
+    },
+    {
+      "path": "public-example.log",
+      "sha256": "c48907d198c06b105b220bb34e52e4793323ec8303ad3957642d1b82be59e4b8"
+    },
+    {
+      "path": "source-identities.json",
+      "sha256": "cc7a980a3c109fb95f89942803c1b030d349536b1b363522cfde64f4f62e5e01"
+    },
+    {
+      "path": "source.diff",
+      "sha256": "c49b4061e824f41333eb837caf00e34cecd1198869723e19d0e2d319d20bbc94"
+    }
+  ]
+}

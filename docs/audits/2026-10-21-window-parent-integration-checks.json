@@ -1,0 +1,30 @@
+{
+  "merge_commit": "1e32da0681347224e94a7295fd87999821086e0b",
+  "reviewed_source": "e2cdce0affc4370dea73b9f67d187e8deb193c3a",
+  "runtime_tests": {
+    "run": 348,
+    "passed": 348,
+    "skipped": 3
+  },
+  "strict_runtime_all_target_testing_clippy": true,
+  "runtime_formatting": true,
+  "logs": {
+    "termrock-parent-window-e2cd-3.log": {
+      "path": "/private/tmp/termrock-parent-window-e2cd-3.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "termrock-parent-window-e2cd-2.log": {
+      "path": "/private/tmp/termrock-parent-window-e2cd-2.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "termrock-parent-window-e2cd-0.log": {
+      "path": "/private/tmp/termrock-parent-window-e2cd-0.log",
+      "sha256": "f182ed4fc6ff0e623facc1d891ae18e1ac01ab29328ad59da050c8042e5e0e21"
+    },
+    "termrock-parent-window-e2cd-1.log": {
+      "path": "/private/tmp/termrock-parent-window-e2cd-1.log",
+      "sha256": "e6ef8f12867085b05c1dbc89a8a20f7402ba7ddeef2098deef8e7c80fb1a6faa"
+    }
+  },
+  "scope": "Prepared layout metadata only. No scrolling, TextArea, Form or product acceptance."
+}

@@ -1,0 +1,51 @@
+[0m[2m  ▪  TablePro  Production  ◆ production  acme_prod › public  ✓ safe                                                                  no color · 160×50  ? help  [0m
+[0m[2m                                                                                                                                                                [0m
+[0m[2m  ≡ Query 1 ×                                                                                                                                               +   [0m
+[0m[2m ━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+[0m[2m ╭─ Explorer ───────────── public   ‹ ─╮│╭─ Query 1 ──────────────────────────────────────────────────────────────────────────────────────────────────────────╮ [0m
+[0m[2m │              ╭─[0m[1;2m Keyboard shortcuts [0m[2m──────[0m─[0m[2m─────[0m─[0m[2m─────────[0m─[0m[2m─────────────────────────────────────────────────────────────────── TablePro ─ × ─╮              │ [0m
+[0m[2m │ [0m [0m[2m Filter obje│  [0m[1;2mShell and workbench[0m[2m      [0m [0m[2m              [0m[1;2mGrid and editor[0m[2m                                                                     │              │ [0m
+[0m[2m │ [0m [0m[2m▾ D acme_pro│  [0m[1;2m] Ctrl+PgDn[0m[2m    Next page                [0m[1;2mEnter F2[0m[2m       Edit a cell · Esc                                                    │              │ [0m
+[0m[2m │ [0m [0m[2m  ▾ S public│  [0m[1;2m[ Ctrl+PgUp[0m[2m    Previous page                           cancels                                                              │              │ [0m
+[0m[2m │ [0m [0m[2m    ▾ Tables│  [0m[1;2mEsc[0m[2m            Cancel the running       [0m[1;2mCtrl+F[0m[2m         Filter (grid) or find                                                │              │ [0m
+[0m[2m │ [0m [0m[2m      ▸ T or│                 query                                   (editor)                                                             │              │ [0m
+[0m[2m │ [0m [0m[2m      ▸ T cu│  [0m[1;2mCtrl+R[0m[2m         Run the statement at     [0m[1;2mp[0m[2m              Preview the SQL of                                                   │              │ [0m
+[0m[2m │ [0m [0m[2m      ▸ T pr│                 the cursor                              pending changes                                                      │              │ [0m
+[0m[2m │ [0m [0m[2m      ▸ T or│  [0m[1;2mF5[0m[2m             Run, or refresh the      [0m[1;2mz[0m[2m              Zoom the focused pane                                                │              │ [0m
+[0m[2m │ [0m [0m[2m      ▸ T or│                 table                    [0m[1;2mShift+F10[0m[2m      Menu of the focused                                                  │              │ [0m
+[0m[2m │ [0m [0m[2m      ▸ T pa│  [0m[1;2mAlt+R Shift+F5[0m[2m Run all statements                      row, cell or tab                                                     │              │ [0m
+[0m[2m │ [0m [0m[2m      ▸ T su│  [0m[1;2mCtrl+X[0m[2m         EXPLAIN                  [0m[1;2mRight-click[0m[2m    The same menu at the                                                 │              │ [0m
+[0m[2m │ [0m [0m[2m    ▸ Views │  [0m[1;2mAlt+X Shift+F7[0m[2m EXPLAIN ANALYZE                         pointer                                                              │              │ [0m
+[0m[2m │ [0m [0m[2m    ▸ Functi│  [0m[1;2mCtrl+T[0m[2m         New query tab                                                                                                │              │ [0m
+[0m[2m │ [0m [0m[2m    ▸ Sequen│  [0m[1;2mCtrl+W[0m[2m         Close tab                                                                                                    │              │ [0m
+[0m[2m │ [0m [0m[2m  ▸ S analyt│  [0m[1;2mCtrl+O Ctrl+P[0m[2m  Open Quickly                                                                                                 │───────────── │ [0m
+[0m[2m │ [0m [0m[2m  ▸ S audit │  [0m[1;2mCtrl+G[0m[2m         Tab list                                                                                                     │              │ [0m
+[0m[2m │              │  [0m[1;2mCtrl+Y[0m[2m         Query history                                                                                                │              │ [0m
+[0m[2m │              │  [0m[1;2mCtrl+B[0m[2m         Show or hide the                                                                                             │              │ [0m
+[0m[2m │              │                 explorer                                                                                                     │              │ [0m
+[0m[2m │              │  [0m[1;2mCtrl+L[0m[2m         Safe Mode                                                                                                    │              │ [0m
+[0m[2m │              │  [0m[1;2mCtrl+D[0m[2m         Data / Structure                                                                                             │              │ [0m
+[0m[2m │              │  [0m[1;2mCtrl+S[0m[2m         Save pending changes                                                                                         │              │ [0m
+[0m[2m │              │  [0m[1;2mCtrl+F[0m[2m         Filter or find                                                                                               │              │ [0m
+[0m[2m │              │  [0m[1;2mz[0m[2m              Maximize the pane                                                                                            │              │ [0m
+[0m[2m │              │  [0m[1;2mCtrl+↑[0m[2m         Grow the results                                                                                             │              │ [0m
+[0m[2m │              │  [0m[1;2mCtrl+↓[0m[2m         Grow the editor                                                                                              │              │ [0m
+[0m[2m │              │  [0m[1;2mCtrl+N[0m[2m         New connection                                                                                               │              │ [0m
+[0m[2m │              │  [0m[1;2mF1 ?[0m[2m           This reference                                                                                               │              │ [0m
+[0m[2m │              │  [0m[1;2mF10 Ctrl+F2[0m[2m    Menu bar                                                                                                     │              │ [0m
+[0m[2m │              │  [0m[1;2m0[0m[2m              Focus the explorer                                                                                           │              │ [0m
+[0m[2m │              │  [0m[1;2mTab[0m[2m            Next control                                                                                                 │              │ [0m
+[0m[2m │              │  [0m[1;2mShift+Tab[0m[2m      Previous control                                                                                             │              │ [0m
+[0m[2m │              │  [0m[1;2mEsc[0m[2m            Back                                                                                                         │              │ [0m
+[0m[2m │              │  [0m[1;2mCtrl+Q q[0m[2m       Quit                                                                                                         │              │ [0m
+[0m[2m │              │  [0m[1;2mCtrl+C[0m[2m         Copy, else quit                                                                                              │              │ [0m
+[0m[2m │              │                                                                                                                              │              │ [0m
+[0m[2m │              │                                                                                                                              │              │ [0m
+[0m[2m │              │                                                                                                                      ▎[0m[1;2mDone [0m[2m  │              │ [0m
+[0m[2m │              ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯              │ [0m
+[0m[2m │                                     │││                                                                                                                    │ [0m
+[0m[2m │                                     │││                                                                                                                    │ [0m
+[0m[2m ╰─────────────────────────────────────╯│╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ [0m
+[0m[2m                                                                                                                                                                [0m
+ [0m[1m↑↓[0m Scroll  [0m[1mEsc[0m Close                                                                                                                 ✓ Connected to Production [0m
+[?25l

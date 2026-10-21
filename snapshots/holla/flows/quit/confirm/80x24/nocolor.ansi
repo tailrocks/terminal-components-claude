@@ -1,0 +1,25 @@
+[0m[2m  holla❯    File   Go   Help                 acme · mise monorepo  mbp · local  [0m
+[0m[2m                                                                                [0m
+[0m[2m      Here    frontend dev ⠋ ×    api dev ⠋ ×    api tests ✓ ×           2› +2  [0m
+[0m[2m ────━━━━━━━─────────────────────────────────────────────────────────────────── [0m
+[0m[2m [0m [0m[2m Search actions and resources…                                scope ‹ here ›  [0m
+[0m[2m                                                                                [0m
+[0m[2m    Suggested╭──────────────────────────────────────────────── × ─╮           ┃ [0m
+[0m[2m    Follow ac│                                                    │hy         ┃ [0m
+[0m[2m  › Inspect 1│  [0m[1;2mQuit holla❯?[0m[2m                                      │tifacts    ┃ [0m
+[0m[2m    Install m│                                                    │           ┃ [0m
+[0m[2m    Review cl│  4 activities are still running. Quitting stops    │categories ┃ [0m
+[0m[2m    Deploy pr│  what holla started; detached monitors keep        │           ┃ [0m
+[0m[2m             │  running.                                          │           ┃ [0m
+[0m[2m    Recent he│                                                    │           ┃ [0m
+[0m[2m    nothing u│                           ▎[0m[1;2;4mS[0m[1;2mtay [0m[2m   S[0m[2;4mt[0m[2mop and quit   │           ┆ [0m
+[0m[2m             │                                                    │           ┆ [0m
+[0m[2m    Running  ╰────────────────────────────────────────────────────╯           ┆ [0m
+[0m[2m    logs · api worker schedul…  activity  here   ⠋ running · 3 s              ┆ [0m
+[0m[2m    api dev                     activity  child  ⠋ running · 3 s              ┆ [0m
+[0m[2m                                                                                [0m
+[0m[2m    → 'holla disk analyze --artifacts' · here · read-only                       [0m
+[0m[2m                                                                                [0m
+[0m[2m ~/work/acme   main   ↑1                        ⠋ 4 running    no color · 80×24 [0m
+ [0m[1m←→ C[0mhoose  [0m[1mEnter[0m Stay [0m[1m Esc [0mStay                    api tests finished · exit 0 [0m
+[?25l

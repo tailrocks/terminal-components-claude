@@ -44,10 +44,13 @@ pub enum GlyphRole {
     SelectClosed,
     SelectOpen,
     PrimaryKey,
+    DotOn,
+    DotOff,
+    SwitchOff,
 }
 
 impl GlyphRole {
-    pub const ALL: [GlyphRole; 42] = [
+    pub const ALL: [GlyphRole; 45] = [
         GlyphRole::FocusBar,
         GlyphRole::Chosen,
         GlyphRole::Checked,
@@ -90,6 +93,9 @@ impl GlyphRole {
         GlyphRole::SelectClosed,
         GlyphRole::SelectOpen,
         GlyphRole::PrimaryKey,
+        GlyphRole::DotOn,
+        GlyphRole::DotOff,
+        GlyphRole::SwitchOff,
     ];
 
     const fn index(self) -> usize {
@@ -101,6 +107,9 @@ impl GlyphRole {
 pub struct GlyphSet {
     glyphs: [&'static str; 41],
     primary_key: &'static str,
+    dot_on: &'static str,
+    dot_off: &'static str,
+    switch_off: &'static str,
     scroll: scrollbar::Set<'static>,
     rule_quiet: line::Set<'static>,
     rule_active: line::Set<'static>,
@@ -116,6 +125,9 @@ impl GlyphSet {
         GlyphSet {
             glyphs,
             primary_key: "⚷",
+            dot_on: "●",
+            dot_off: "○",
+            switch_off: "○",
             scroll,
             rule_quiet,
             rule_active,
@@ -129,6 +141,9 @@ impl GlyphSet {
     pub const fn get(&self, r: GlyphRole) -> &'static str {
         match r {
             GlyphRole::PrimaryKey => self.primary_key,
+            GlyphRole::DotOn => self.dot_on,
+            GlyphRole::DotOff => self.dot_off,
+            GlyphRole::SwitchOff => self.switch_off,
             GlyphRole::ScrollTrack => self.scroll.track,
             GlyphRole::ScrollThumb => self.scroll.thumb,
             GlyphRole::RuleQuiet => self.rule_quiet.horizontal,
@@ -144,6 +159,9 @@ impl GlyphSet {
     pub const fn set(&mut self, r: GlyphRole, s: &'static str) {
         match r {
             GlyphRole::PrimaryKey => self.primary_key = s,
+            GlyphRole::DotOn => self.dot_on = s,
+            GlyphRole::DotOff => self.dot_off = s,
+            GlyphRole::SwitchOff => self.switch_off = s,
             GlyphRole::ScrollTrack => self.scroll.track = s,
             GlyphRole::ScrollThumb => self.scroll.thumb = s,
             GlyphRole::RuleQuiet => self.rule_quiet.horizontal = s,
@@ -228,11 +246,37 @@ mod tests {
 
     #[test]
     fn select_roles_are_appended_without_shifting_existing_discriminants() {
-        assert_eq!(GlyphRole::ALL.len(), 42);
+        assert_eq!(GlyphRole::ALL.len(), 45);
         assert_eq!(GlyphRole::PrimaryKey as usize, 41);
         assert_eq!(GlyphRole::SecretMask as usize, 38);
         assert_eq!(GlyphRole::SelectClosed as usize, 39);
         assert_eq!(GlyphRole::SelectOpen as usize, 40);
+        assert_eq!(GlyphRole::DotOn as usize, 42);
+        assert_eq!(GlyphRole::DotOff as usize, 43);
+        assert_eq!(GlyphRole::SwitchOff as usize, 44);
+    }
+
+    #[test]
+    fn dot_roles_are_one_cell_and_distinct_from_radio_pair_glyphs() {
+        let glyphs = crate::theme::Theme::junie().design.glyphs;
+        assert_eq!(glyphs.get(GlyphRole::DotOn), "●");
+        assert_eq!(glyphs.get(GlyphRole::DotOff), "○");
+        assert_eq!(glyphs.get(GlyphRole::RadioOn), "(●)");
+        assert_eq!(glyphs.get(GlyphRole::RadioOff), "(○)");
+    }
+
+    #[test]
+    fn ascii_builder_defines_dot_roles_without_changing_radio_roles() {
+        let glyphs = crate::theme::Theme::junie()
+            .builder()
+            .ascii_glyphs()
+            .build()
+            .design
+            .glyphs;
+        assert_eq!(glyphs.get(GlyphRole::DotOn), "*");
+        assert_eq!(glyphs.get(GlyphRole::DotOff), "o");
+        assert_eq!(glyphs.get(GlyphRole::RadioOn), "(●)");
+        assert_eq!(glyphs.get(GlyphRole::RadioOff), "(○)");
     }
 
     #[test]
@@ -285,6 +329,9 @@ mod tests {
         }
 
         let j = crate::theme::Theme::junie();
+        // The frozen rendered reference paints the scrollbar track with the
+        // light vertical rule: 12600 occurrences of U+2502 in the approved
+        // corpus at 120x40 across every colour mode, and no U+2506 track.
         assert_eq!(j.design.glyphs.scrollbar().begin, "│");
         assert_eq!(j.design.glyphs.rule_quiet().cross, "┼");
     }

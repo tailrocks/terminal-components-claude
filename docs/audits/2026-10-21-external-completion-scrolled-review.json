@@ -1,0 +1,83 @@
+{
+  "reviewer": "branches_components_review",
+  "mode": "independent read-only source review; no product acceptance",
+  "fixed_baseline": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "commits": [
+    {
+      "sha": "1dbf3b2caa429a49ec1a38fba641735a3890b918",
+      "disposition": "retain domain/data improvements and captured-frame deletion; application rendering replacement required",
+      "retain": [
+        "Deleted app/historical_query_completion.rs captured frame",
+        "Live completion_batch using domain catalog and CompletionKind glyph data"
+      ],
+      "findings": [
+        {
+          "severity": "blocking architecture",
+          "path": "crates/tablepro-ui/src/app.rs:10605",
+          "proof": "open_completion_prefix requires sql == COMPLETION_SQL, whose literal at line200 is SELECT * FROM ord; paint_completion_order_by_cell also requires exactly120x40 at10617. This remains fixture/exact-viewport rendering selection."
+        },
+        {
+          "severity": "blocking architecture and interaction",
+          "path": "crates/tablepro-ui/src/app.rs:9390",
+          "proof": "Private paint_completion_menu hardcodes x50/y7/inner44/four rows/rawRGB and selected=row==0; it does not use shared Completion list state/scrolling/hit registration. labels/details use scalar chars rather than terminal-cell/grapheme tools."
+        },
+        {
+          "severity": "blocking architecture and cursor",
+          "path": "crates/tablepro-ui/src/app.rs:10634",
+          "proof": "Afterdraw editor row repaint uses fixedRect(34,6,83,1); completion_batch uses sql.len() rather than editor cursor. Tail invocation11455 occurs after overlay/dialog draws. Existing open_completion_prefix does not guard modal layer state."
+        }
+      ],
+      "replacement_owner": "Existing CompletingCodeEditor/Completion public provider and layer lifecycle, pure SQL catalog adapter remains application/domain-owned.",
+      "overlap": "No shared runtime/core/overlays source changed. Editor consumer migration overlaps app imports, open_completion_prefix, private completion painters, footer and finaldraw call.",
+      "required_regressions": [
+        "Real CLI move completion selection beyond row0 and accept actual selected key",
+        "Different SQL prefix and cursor mid-document",
+        "Resize119/120/121 widths and39/40/41 heights",
+        "Unicode wide/combining text",
+        "Open modal over completion: no background caret/focus/menu repaint",
+        "Dismiss/reopen completion through current opening generation"
+      ]
+    },
+    {
+      "sha": "d371d8f4460d940c2fc460bc3b0a1e79924e9265",
+      "disposition": "retain deletion-only cleanup; shared Grid migration remains incomplete",
+      "retain": [
+        "Deletes historical_table_scrolled_right.rs262line captured table",
+        "Deletes exact120x40/terminal-or-test/accent and orders/updated_at production selector61lines"
+      ],
+      "findings": [
+        {
+          "severity": "remaining inherited architecture debt",
+          "path": "crates/tablepro-ui/src/app.rs:7558",
+          "proof": "draw_painted_grid calls shared Grid.draw then private paint_grid_focus_bar/header/cell postpainters; scrolled branch invokes paint_scrolled_cells at7599. Commit removes replay but does not move mechanics into shared Grid."
+        },
+        {
+          "severity": "source-identified inherited functional risk; regression not yet executed",
+          "path": "crates/tablepro-ui/src/app.rs:6672",
+          "proof": "paint_scrolled_cells loops row0..visible and GridModel.cell(model,row,col), without applying vertical GridState row offset. Horizontal selection window installs privategeometry via install_scrolled_budgets6367. Exercise combined vertical+horizontal scroll; do not report introduced by deletion-only commit."
+        }
+      ],
+      "replacement_owner": "Shared Grid resolved geometry, stable row/column keys, cell/row state style/fade and content parts.",
+      "required_regressions": [
+        "Real CLI scroll down beyond viewport then End/rightmost column; visible row keys/text/cursor match baseline",
+        "Reorder columns/changed labels/large or empty lists",
+        "Inline edit, dirty/deleted cells and covered focus at adjacent sizes/all supported profiles"
+      ]
+    }
+  ],
+  "grid_merge_source_check": {
+    "head": "9e013c038fb45ed040ec3ef0a9bcf34ff4dec3e4",
+    "cleared_source": "4f9cbb0df7f1b9bafff76801b25150e86c7216e9",
+    "byte_identical_paths": [
+      "crates/termrock-grid/src/grid.rs",
+      "crates/termrock-theme/src/resolve.rs",
+      "crates/tablepro-ui/src/app_tests.rs"
+    ],
+    "app_relative_1db": "107deletions = external d37161line replay cleanup + approved Grid46line style correction removals; no conflicting new Grid mechanics"
+  },
+  "verification_limits": [
+    "Source review only for external1db/d371; no paired CLI run performed by reviewer",
+    "All four product parity statuses remain incomplete",
+    "External writer local working copy preserved; no edits or pushes by reviewer"
+  ]
+}

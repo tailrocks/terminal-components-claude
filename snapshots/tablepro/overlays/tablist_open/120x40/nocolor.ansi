@@ -1,0 +1,41 @@
+[0m[2m  ▪  TablePro  Production  ◆ production  acme_prod › public  ✓ safe                          no color · 120×40  ? help  [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m  ≡ Query 1 ×                                                                                                       +   [0m
+[0m[2m ━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+[0m[2m ╭─ Explorer ─── public   ‹ ─╮│╭─ Query 1 ────────────────────────────────────────────────────────────────────────────╮ [0m
+[0m[2m │                           │││  [0m [0m[2mRun  [0m [0m[2mRun all  [0m [0m[2mExplain                                                            │ [0m
+[0m[2m │ [0m [0m[2m Filter objects          │││  [0m [0m[2m   1 Type SQL. Ctrl+R runs the statement under the cursor.                         │ [0m
+[0m[2m │ [0m [0m[2m▾ D acme_prod            │││                                                                                      │ [0m
+[0m[2m │ [0m [0m[2m  ▾ S public             │││                                                                                      │ [0m
+[0m[2m │ [0m [0m[2m    ▾ Tables             │││                                                                                      │ [0m
+[0m[2m │ [0m [0m[2m      ▸ T organizations  │││                                                                                      │ [0m
+[0m[2m │ [0m [0m[2m      ▸ T customers      │││                                                                                      │ [0m
+[0m[2m │ [0m [0m[2m      ▸ T products       │││                                                                                      │ [0m
+[0m[2m │ [0m [0m[2m      ▸ T orders         │││                                                                                      │ [0m
+[0m[2m │ [0m [0m[2m      ▸ T order_items    │││                                                                                      │ [0m
+[0m[2m │ [0m [0m[2m      ▸ T payments       │││                                                                                      │ [0m
+[0m[2m │ [0m [0m[2m      ▸ T subscriptions ╭──────────────────────────────────────────────────────────────╮───────────────────────── │ [0m
+[0m[2m │ [0m [0m[2m    ▸ Views             │ [0m[1;2mOpen tabs[0m[2m                                                    │                          │ [0m
+[0m[2m │ [0m [0m[2m    ▸ Functions         │ ▎ Filter tabs…                                               │                          │ [0m
+[0m[2m │ [0m [0m[2m    ▸ Sequences         │                                                              │                          │ [0m
+[0m[2m │ [0m [0m[2m  ▸ S analytics         │ [0m[1;2;7m [0m[2;7m≡[0m[1;2;7m Query 1  [0m[2;7mquery[0m[1;2;7m                                   [0m[2;7mactive[0m[1;2;7m  [0m[2m │                          │ [0m
+[0m[2m │ [0m [0m[2m  ▸ S audit             │                                                              │                          │ [0m
+[0m[2m │                          │ ↑↓ Move · Enter Switch · Delete Close tab · Esc Close        │                          │ [0m
+[0m[2m │                          ╰──────────────────────────────────────────────────────────────╯                          │ [0m
+[0m[2m │                           │││                                                                                      │ [0m
+[0m[2m │                           │││                                    No results yet                                    │ [0m
+[0m[2m │                           │││                                                                                      │ [0m
+[0m[2m │                           │││              Ctrl+R runs the statement under the cursor · Alt+R runs all             │ [0m
+[0m[2m │                           │││                                                                                      │ [0m
+[0m[2m │                           │││                                                                                      │ [0m
+[0m[2m │                           │││                                                                                      │ [0m
+[0m[2m │                           │││                                                                                      │ [0m
+[0m[2m │                           │││                                                                                      │ [0m
+[0m[2m │                           │││                                                                                      │ [0m
+[0m[2m │                           │││                                                                                      │ [0m
+[0m[2m │                           │││                                                                                      │ [0m
+[0m[2m │                           │││                                                                                      │ [0m
+[0m[2m ╰───────────────────────────╯│╰──────────────────────────────────────────────────────────────────────────────────────╯ [0m
+[0m[2m                                                                                                                        [0m
+ [0m[1mType[0m Filter  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Choose  [0m[1mEsc[0m Cancel                                               ✓ Connected to Production [0m
+[?25h[19;33H[6 q

@@ -1,0 +1,105 @@
+{
+  "reviewed_commit": "04a37e1bb63583a34948620897655dd057d7dd86",
+  "component_fix_commit": "ddecfb5afc1d874bd048a4845bae22e981a074ba",
+  "worktree": "/private/tmp/termrock-steps-8ac-review",
+  "disposition": "Cleared for the bounded Steps intrinsic-measurement and generic custom-row API repair. No new actionable findings within this scope.",
+  "resolved_findings": [
+    {
+      "prior_commit": "17841c8228c81250d8e457422b12f7c1233283ec",
+      "issue": "Mandatory Display bound broke generic non-Display custom rows.",
+      "evidence": "The original separate non-Display custom-row consumer remains unchanged and compiles/renders successfully."
+    },
+    {
+      "prior_commit": "8ac27e4307cf545efdb24ea5db05b831a7b44669",
+      "issue": "Built-in DefaultRow labels fell back to12 cells and clipped long labels despite available width.",
+      "evidence": "The exact previously failing long DefaultRow public test passes unchanged at04a37e1bb. All original six public probes pass without edits to their bodies."
+    }
+  ],
+  "checks": [
+    {
+      "command": "cargo nextest run --manifest-path /private/tmp/steps-8ac-independent/Cargo.toml --status-level all --final-status-level all",
+      "result": "Original six unchanged public probes:6 passed,0 skipped.",
+      "run_id": "a8565944-5fc7-4f0f-b402-6ab16649e401",
+      "log": "/Users/donbeave/Projects/termrock-cli-evidence-20261020/branch-consolidation/steps-intrinsic-04a37e1bb/steps-04a-public.log"
+    },
+    {
+      "command": "cargo nextest run --manifest-path /private/tmp/steps-8ac-independent/Cargo.toml --status-level all --final-status-level all",
+      "result": "Expanded independent consumer:8 passed,0 skipped. Two additional probes verify that measurement does not invoke the row painter or StepState projection and that an explicit width projection bypasses the DefaultRow Display intrinsic hook.",
+      "run_id": "20747c71-6267-464b-9dd5-953043670d7f",
+      "log": "/Users/donbeave/Projects/termrock-cli-evidence-20261020/branch-consolidation/steps-intrinsic-04a37e1bb/steps-04a-public-expanded.log"
+    },
+    {
+      "command": "cargo nextest run -p termrock-navigation -E test(steps::tests::) --status-level fail --final-status-level fail",
+      "result": "Exit0;19 passed,177 filtered/skipped. This is not a complete navigation gate.",
+      "run_id": "0ecddebd-f9ff-463d-a34c-1ffd8ae86d19",
+      "log": "/Users/donbeave/Projects/termrock-cli-evidence-20261020/branch-consolidation/steps-intrinsic-04a37e1bb/steps-04a-native-0.log"
+    },
+    {
+      "command": "cargo nextest run -p termrock --test composition_consumer --status-level fail --final-status-level fail",
+      "result": "Exit0;10 passed,0 skipped. Includes long default/custom labels,43/44-cell metadata/ordinal cases, live keyed data changes and existing public composition behavior.",
+      "run_id": "44d6369b-1e43-4eec-a474-9e3f7536867b",
+      "log": "/Users/donbeave/Projects/termrock-cli-evidence-20261020/branch-consolidation/steps-intrinsic-04a37e1bb/steps-04a-native-1.log"
+    },
+    {
+      "command": "cargo clippy -p termrock-runtime -p termrock-navigation -p termrock --all-targets -- -D warnings",
+      "result": "Exit0.",
+      "log": "/Users/donbeave/Projects/termrock-cli-evidence-20261020/branch-consolidation/steps-intrinsic-04a37e1bb/steps-04a-native-2.log"
+    },
+    {
+      "command": "cargo fmt -p termrock-runtime -p termrock-navigation -p termrock --check",
+      "result": "Exit0.",
+      "log": "/Users/donbeave/Projects/termrock-cli-evidence-20261020/branch-consolidation/steps-intrinsic-04a37e1bb/steps-04a-native-3.log"
+    },
+    {
+      "command": "git diff --check 8ac27e4307cf545efdb24ea5db05b831a7b44669 ddecfb5afc1d874bd048a4845bae22e981a074ba",
+      "result": "Exit0; reviewer worktree remains clean."
+    }
+  ],
+  "source_review": [
+    "RowFn::intrinsic_label_width has a default None implementation, preserving existing custom implementations and the blanket closure implementation. DefaultRow alone retains its pre-existing Display requirement and uses the shared Unicode terminal-cell-width function on its actual Display label.",
+    "Steps resolves explicit pure projection first, then row intrinsic width, then the documented12-cell fallback for unknown custom rows. map_or_else keeps the unused intrinsic hook lazy; the independent formatting-counter probe verifies this.",
+    "Legacy Steps::measure and update/draw identity rules remain unchanged. Intrinsic measurement borrows live items/metadata, does not run the row painter, StepState projection, input dispatch or domain actions. Empty/narrow/Unicode/multi-profile ordinal cases remain bounded.",
+    "No unsafe code, concurrency mechanism, second renderer or application-specific replay logic is added by the focused fix.",
+    "The runtime source change only adds the RowFn default method and DefaultRow implementation. It does not replace RowUi storage, padding or styling code. Later Grid integration must retain its separately reviewed padding changes.",
+    "Steps::row already accepts Fn rather than arbitrary RowFn structs. An initial reviewer probe attempting a custom RowFn struct therefore did not compile; this pre-existing setter restriction was not treated as a regression. The corrected public probes exercise supported closure/custom-projection and DefaultRow APIs."
+  ],
+  "limits": "The known ItemRow fingerprint failure remains unresolved and was excluded by the focused Steps filter, not waived. Other merge-parent changes, full navigation/workspace gates, application adoption, Steps focus/spinner parity, Showcase reference approval and full CLI parity are outside this clearance.",
+  "artifacts": [
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261020/branch-consolidation/steps-intrinsic-04a37e1bb/contract.rs",
+      "sha256": "dea2eb33a975012efdd9cdabcc99b8f6cda0971b3b5a051f2218a94379ec3e1e"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261020/branch-consolidation/steps-intrinsic-04a37e1bb/custom.rs",
+      "sha256": "3915a622758f18b8a7ba6a5675c7de11ae5f5bbe1fc410eb51882f94aff26467"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261020/branch-consolidation/steps-intrinsic-04a37e1bb/intrinsic_hook.rs",
+      "sha256": "cd43004bfd96da777fea9d4ade2a8d6799d76b057b0ab9c5e83d94fc4a7c9c8e"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261020/branch-consolidation/steps-intrinsic-04a37e1bb/steps-04a-native-0.log",
+      "sha256": "bb9f1aef8ff6f8f20631df0acdb95c72e4d92a55d2c0eaa0cb026081646b3a10"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261020/branch-consolidation/steps-intrinsic-04a37e1bb/steps-04a-native-1.log",
+      "sha256": "ca639fdaf4ef72f85bd673d074ca7d32e8391950392a660fcc0ea04d944c0657"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261020/branch-consolidation/steps-intrinsic-04a37e1bb/steps-04a-native-2.log",
+      "sha256": "aecdb81c188b3b76885116d894157cf0f18aaf38628310507b2f37eaccb73e3a"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261020/branch-consolidation/steps-intrinsic-04a37e1bb/steps-04a-native-3.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261020/branch-consolidation/steps-intrinsic-04a37e1bb/steps-04a-public-expanded.log",
+      "sha256": "c97636bf9333eabc5cda15b34650e5018b9f64a569664b68a664db5867f1a816"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261020/branch-consolidation/steps-intrinsic-04a37e1bb/steps-04a-public.log",
+      "sha256": "046a9d0178b1f6de32f5d365ca0f78666cb1625736f4066dc8db1428fe1b1d38"
+    }
+  ]
+}

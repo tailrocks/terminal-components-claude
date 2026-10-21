@@ -1,0 +1,63 @@
+{
+  "source_commit": "e250d6e2d214a03d4d833ada2034504aabaca6d0",
+  "status": "implementation complete; independent review pending",
+  "scope": [
+    "Replace TablePro's after-paint cursor-row and scrolled-cell corrections with the shared Grid row/cell style contract.",
+    "Remove the TablePro editor-width and inline-editor repaint helpers; use the shared Grid embedded editor and frozen-source column sizing inputs."
+  ],
+  "frozen_contract": [
+    "The focused Grid row owns the baseline bold row treatment, including its detailed gutter tail and ordinary cell padding.",
+    "The active ordinary cell retains its independent cursor text style; only cells with an action affordance fill their whole area.",
+    "Frozen Grid width sampling uses 200 rows and percentile 95, with Grid header sizing Minimum padding 2 and cap 24; the frozen TablePro source has no per-column sizing overrides."
+  ],
+  "implementation_evidence": {
+    "app_afterpaint_paths_removed": [
+      "paint_scrolled_cells",
+      "paint_unscrolled_cursor_row",
+      "editor_column_specs",
+      "editing_window",
+      "paint_inline_editor"
+    ],
+    "regressions": [
+      "unfocused_grid_cursor_does_not_style_the_cursor_row now passes",
+      "vertically_scrolled_grid_does_not_repaint_top_rows_after_horizontal_scroll now passes"
+    ],
+    "limits": [
+      "The existing TablePro all-target suite remains red; no new failure names were introduced against the exact 124a61 source-base inventory.",
+      "This is not a complete frozen CLI or application parity result.",
+      "The removed maximized replay test is not replaced by admitted real-CLI maximized coverage in this increment."
+    ]
+  },
+  "verification": {
+    "rerun_commit": "a6377acd5ff850f051aeee42be0a0c77e9705c58",
+    "tablepro": {
+      "command": "cargo nextest run --locked -p tablepro-ui --all-targets --no-fail-fast",
+      "run": 181,
+      "passed": 161,
+      "failed": 20,
+      "skipped": 0,
+      "log": "/tmp/termrock-tablepro-grid-e250-all-targets.log",
+      "sha256": "386cadc93cb5b06aeee3a81020b06a108c8cc6a8bce62314e2ea36299a7936a0",
+      "comparison_base": "124a61a035eeff34767edc8d9aa7e61f3007ebf8",
+      "base_inventory": {"run": 180, "passed": 159, "failed": 21, "skipped": 0},
+      "candidate_only_failures": [],
+      "base_only_failures": ["app_tests unfocused_grid_cursor_does_not_style_the_cursor_row"],
+      "exact_tip_rerun_log": "/tmp/termrock-tablepro-grid-a637-all-targets.log",
+      "exact_tip_rerun_sha256": "727a38510864f560250389c86b881e637bfe25197cfec06a14ccddab079e4a17"
+    },
+    "grid_theme_fields": {
+      "command": "cargo nextest run --locked -p termrock-grid -p termrock-theme -p termrock-fields --all-targets --no-fail-fast",
+      "run": 346,
+      "passed": 346,
+      "failed": 0,
+      "skipped": 0,
+      "log": "/tmp/termrock-grid-review-e250-nextest.log",
+      "sha256": "e3a7108977a0457a24be9369003c95e6cce6c383b2e36afb99e2b12de2f7ebb7",
+      "exact_tip_rerun_log": "/tmp/termrock-grid-review-a637-nextest.log",
+      "exact_tip_rerun_sha256": "b44e33466221355434da7a21750796d78478c10a541170c56957862dc34fd196"
+    },
+    "clippy": "cargo clippy --locked -p termrock-grid -p termrock-theme -p termrock-fields --all-targets -- -D warnings (passed)",
+    "format": "rustfmt --check --edition 2024 on app.rs, grid.rs, and builtin/mod.rs plus git diff --check (passed)"
+  },
+  "independent_review": "pending"
+}

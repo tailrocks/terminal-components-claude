@@ -1,0 +1,67 @@
+{
+  "reviewed_commits": [
+    "396d738787fc6dd9272a66559a2f8fd8302396ff",
+    "1a34e019c0666780cec58ab8c187477569e68242",
+    "1ceed23e0a597fa6ec6e74ff09a211de6a5567fc"
+  ],
+  "frozen_source": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "design_source": "f4867e9b5f8a08a3bb61ce80d644198a29f51984",
+  "disposition": "Not cleared for either acceptance gate. Production dialog replay and exact reference correction paths are expanded; the new generic fill helper also has a reproduced semantic provenance defect.",
+  "findings": [
+    {
+      "severity": "P1",
+      "path": "crates/jackin-preview-app/src/app/launch_dialog_plate.rs:1-1657",
+      "problem": "INFO and CANCEL are fixed positioned text/color/style tables, not live dialog view data. INFO embeds the-architect, workspace payments-platform, Claude Work account, a captured run-202609030914-b5df and an explicit focus glyph. The full static frame includes border, title, action/button faces and content. This is production reference-screen replay regardless of its plate naming.",
+      "reference": "Frozen/design cockpit.rs:392-423 builds InfoDialog from actual role/target/agent/account/run/container and optional telemetry. Run/container properties are copyable and the shared PropsList owns selection, reveal, scrolling and copy. cockpit.rs:451-464 builds a real destructive Dialog with Keep launching cancel action.",
+      "replacement_owner": "Use existing public Dialog, PropsList/PropsState/PropsRow and real overlay/layer slots. Add a narrowly composed reusable property dialog adapter if needed; take borrowed property rows and typed actions, never whole App or fixed run data."
+    },
+    {
+      "severity": "P1",
+      "path": "crates/jackin-preview-app/src/app.rs:7135-7161,8789-8817,9568-9576",
+      "problem": "The route still selects a separate screen by Scenario::LaunchRunning, paused motion and frame40. Exact120x40 keeps historical stamps; other dimensions render the app cockpit buffer and new dialog plate. The real shared cancel/info ui.layer draw is deliberately skipped under these conditions, then the modal is painted manually onto the page.",
+      "impact": "The displayed focus/button/property cells no longer come from the same resolved shared Dialog/Props implementation that owns update and action state. The plate function registers no actual controls. Functional hit, focus, layer and cancellation correspondence is unproved; source violates the shared-rendering gate even if a screenshot matches.",
+      "replacement_owner": "One real Dialog/Props composition at all supported sizes/states. Existing runtime layer lifecycle owns input scope, backdrop, receipts, cursor and focus restoration; the same resolved geometry owns rendering and controls. Remove both alternate/stamp branches only when the real replacement passes affected real-CLI checks."
+    },
+    {
+      "severity": "P1",
+      "path": "crates/jackin-preview-app/src/app/launch_cockpit.rs:49-72",
+      "problem": "emphasize_footer repaints BOLD at literal terminal columns37-42 and50-55, with an additional19 for cancel, regardless of which hint glyph occupies each column. Its comment explicitly preserves baseline attributes at fixed columns. This is a captured-cell visual correction, not semantic hint rendering.",
+      "replacement_owner": "HintBar/DerivedHintBar and shared KeyHint styling own actual chord/action spans and clipping. Use the real top layer binding/hint configuration so the displayed action follows current focused action, not fixed Enter Keep launching text."
+    },
+    {
+      "severity": "P1",
+      "path": "crates/jackin-preview-app/src/app/launch_dialog_plate.rs:1667-1725",
+      "problem": "underlay_space classifies padding by exact captured foreground RGB values. The painter hardcodes dialog dimensions/origin bias, calls modal_backdrop outside the real modal draw, copies raw RGB with modifier resets, and sizes text by chars().count(). This is another captured-output correction and lacks grapheme/cell-width correctness.",
+      "replacement_owner": "Shared Dialog chrome/layout/theme/text primitives own padding, background inheritance, dimensions, clipping, Unicode widths and profile style. A real supported background-only fill is legitimate; RGB-based identification of reference padding is not."
+    },
+    {
+      "severity": "P2",
+      "path": "crates/termrock-runtime/src/ui/mod.rs:1327-1346",
+      "problem": "fill_keep_fg preserves actual foreground/attributes but then mark_area(area,None) clears both semantic CellRoles. Subsequent dimming treats retained foreground as unknown. This regresses the same preserved-channel metadata invariant independently repaired for Ui.move_cell at d8dba901.",
+      "public_evidence": "Separate public consumer /private/tmp/fill-keep-fg-1ceed-independent: two tests run, one passed/one failed/zero skipped. Before dim, fill_keep_fg equals existing Ui.fill(area,PaintStyle::new().bg(bg)), including italic/underline state. After dim_layer(1), helper foreground is RGB38 while the existing fill retains the correct semantic ladder foreground RGB179. Log /tmp/fill-keep-fg-1ceed-independent.log.",
+      "minimal_repair": "Delegate to existing Ui.fill(area,PaintStyle::new().bg(bg)), or mark with Some(background-only PaintStyle). This preserves inherited foreground role while clearing only newly authored raw background provenance. Do not add another rendering path or touch active owners without serialization. Test page and layer targets, clipping, explicit Reset/custom background, modifiers and subsequent dimming."
+    },
+    {
+      "severity": "P2",
+      "path": "docs/architecture/termrock-migration-matrix.md, incoming dialog rows",
+      "problem": "The incoming matrix reports multi-size truecolor matches without establishing component/library or functional acceptance and while admitting historical stamps remain. These claims must stay attributed screenshot observations; they do not clear the recorded replay or new fill provenance defects. The commits add no behavior regression tests.",
+      "replacement_owner": "Migration record must link exact independently reviewed source findings and real-CLI receipts. Preserve incoming observations and failing capability cases; mark architecture/product gates incomplete, never transform those observations into acceptance."
+    }
+  ],
+  "retained_good_changes": [
+    "Cancel launch action label Keep launching matches frozen Dialog.cancel_label and can be retained independently of the plate renderer.",
+    "A live info view should expose dynamic domain properties and copyable real identities. Existing cockpit_info_lines is a useful domain-to-view starting point, but still hardcodes agent/account and first-workspace defaults; do not treat it as completed baseline parity.",
+    "Background-only space fill is a legitimate generic author operation and already exists through Ui.fill plus a partial PaintStyle. Preserve actual foreground, underline/modifier state and its semantic provenance consistently.",
+    "Existing Dialog width/body configuration can remain a normal layout-policy input if measured against live property rows and reference constraints; exact value66 is not approved solely by the copied plate."
+  ],
+  "provenance_contract": "CellRoles.patch(Some(style)) retains a channel role when that PaintStyle channel is None; it replaces/clears only authored channels. patch(None) clears everything. D8 move_cell preserves vacated-prefix roles by marking Some(reset), and this implementation should follow that established contract. The new helper matches raw pre-dim cells but not subsequent semantic operations. Underline and modifiers are cell style data here; they remain unchanged by either background-only fill, and existing dim_layer later applies its established modifier policy.",
+  "adjacent_followup": "The pre-existing fill_card_from_page also calls mark_area(None), but it explicitly rewrites raw foreground and resets modifiers, so its semantics differ. Audit its canonical metadata provenance separately if retained; this report does not claim a separately reproduced defect in that older path.",
+  "bounded_next_steps": [
+    "Fix or remove the redundant fill_keep_fg helper in the responsible shared runtime layer with meaningful failing-before/passing-after tests, serialized against the active Ui writer. That fix alone does not approve the Jackin tables.",
+    "Replace the cancel plate with one real Dialog using existing destructive actions, update token/dismissal receipts and shared rendering; test real keyboard/pointer choice, dismissal, focus restoration, narrow clipping and all color profiles.",
+    "Compose Debug info from public PropsRow data, copyable stable keys and real PropsList state inside Dialog/LayerSlot; test changed role/account/container/run values, selected row copy, scroll, open-close and resize. No whole-app library input.",
+    "Replace manual footer styling with real shared HintBar spans from current layer bindings. Remove fixed columns and exact captured padding color logic.",
+    "Only after affected real application checkpoints pass, remove both historical and alternate page painters/selectors. Preserve fixed references and expected artifacts; full paired runner/cohort admission remains unavailable and must not be claimed."
+  ],
+  "verification_scope": "Read-only exact commit/source comparison plus a separate public runtime probe using cargo nextest. No product edits, no helpers, no new expected data, no full CLI or application acceptance."
+}

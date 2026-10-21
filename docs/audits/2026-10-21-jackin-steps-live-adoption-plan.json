@@ -1,0 +1,123 @@
+{
+  "scope": "Read-only next-contract plan for replacing Jackin launch rail painters with the existing shared Steps component. No implementation or parity clearance.",
+  "references": {
+    "baseline": "4169783ae883788186d161af09ba9c481bd84e5c",
+    "design": "f4867e9b5f8a08a3bb61ce80d644198a29f51984",
+    "current_pr38_inspected": "499cec504c4f3e9005a339d3300ff6b881ca294a",
+    "additional_incoming": "adf334b21745b9f713c26275987d09bf22eeda16",
+    "reviewed_steps_intrinsic": "04a37e1bb63583a34948620897655dd057d7dd86"
+  },
+  "reference_agreement": {
+    "steps_source_sha256": "680e65bd088cfde36123f3733debca014357f9093b701dbfadcade1417d34ff6",
+    "cockpit_source_sha256": "f390c4ef1606dbe9e12afd26ba95779e8a67b789c0d12ab1c62a7dd32fd8f8ce",
+    "result": "src/widgets/steps.rs and src/bin/jackin_preview/screens/cockpit.rs are byte-identical between the frozen baseline and fixed design reference. No reference revision change is needed."
+  },
+  "frozen_contracts": [
+    {
+      "source": "4169783ae:src/widgets/steps.rs:61-68,188-218,234-237,325-327",
+      "contract": "Shown metadata is explicit metadata first, otherwise queued/skipped/blocked only; Running/Done/Failed without explicit metadata show none. A nonselectable rail ignores keyboard navigation, consumes clicks without selecting, registers no row hit parts, but remains a scrollable rendered component."
+    },
+    {
+      "source": "4169783ae:src/widgets/steps.rs:263-295,301-324",
+      "contract": "Queued/Skipped/Blocked icons are blank. Running icon comes from theme glyph spinner at global interaction.tick; Done uses theme done; Failed uses bold error !. Number starts at row x+3, label at x+6, ordinal minimum two digits. Number is secondary while running, faint otherwise. Metadata is secondary for Running, error for Failed, warning for Blocked, faint otherwise; metadata has no bold. Label state styles differ independently."
+    },
+    {
+      "source": "4169783ae:src/widgets/steps.rs:309-324",
+      "contract": "One trailing cell is reserved. For numbered rows of width W, metadata width M is shown when W>=M+19. When shown, label capacity is W-M-9, metadata starts at right-M-1. When hidden, label capacity is W-7. Shared terminal-cell width and ellipsis truncation apply."
+    },
+    {
+      "source": "4169783ae:src/widgets/steps.rs:330-350",
+      "contract": "Overflow uses existing shared scrollbar, offset and edge fade. The cursor row is excluded from fade according to the original ListCore cursor even for the display rail. Do not replace this with a painted track or a viewport-height-specific dim row."
+    },
+    {
+      "source": "4169783ae:src/bin/jackin_preview/screens/cockpit.rs:96,125,218-236,555-561,611,677,1002; src/ui/ctx.rs:335-342",
+      "contract": "Cockpit owns Stage data, state transitions and completed duration text. It creates selectable(false), requests RAIL focus on entry and after log dismissal, and registers a real one-cell first-gutter focus/control anchor after rendering the rail. That late registration makes RAIL a keyboard ring stop even though StepRail itself is not selectable. control() registers hits/ring only and does not draw a focus glyph."
+    },
+    {
+      "source": "4169783ae:src/bin/jackin_preview/app.rs:130-132,218-222,288-292,321-323,1908-1909; src/clock.rs:129-132; src/widgets/steps.rs:266; src/bin/jackin_preview/screens/cockpit.rs:923-930",
+      "contract": "Rail spinner phase is floor(world.now_ms()/80), not launch.tick or scenario frame. Paused world clock does not advance; scenario seek advances launch state without advancing world clock, so a paused frame40 rail spinner remains frame0. The activity-line spinner separately uses cockpit launch tick. Normal cockpit scheduling uses33ms domain advances; reduced motion advances three launch steps per domain tick without tripling global spinner phase. Preserve these two distinct existing time sources."
+    },
+    {
+      "source": "4169783ae:src/bin/jackin_preview/screens/cockpit.rs:782-787",
+      "contract": "Rail width is min(44, available body width-4), height min(stage count, body height-9), centered horizontally at body y+6. These are general constraints, not an approved-terminal-size table. App composition should express them through shared layout policies."
+    }
+  ],
+  "remaining_shared_gaps": [
+    {
+      "owner": "termrock-navigation Steps",
+      "gap": "Running currently falls back to GlyphRole::Bullet; Blocked currently supplies WarningMark, unlike the frozen blank marker. No shared time sample is consumed for Steps animation. Add an opt-in source-backed indicator presentation rather than changing every existing Steps consumer silently."
+    },
+    {
+      "owner": "termrock-navigation Steps and runtime focus owner",
+      "gap": "Steps::new uses ClickOnly, which is absent from the keyboard ring. It nevertheless changes cursor on row Press/Click and emits Activated on DoubleClick. navigable(true) adds arrow/Enter behavior and focus styling, so it is not a substitute for the frozen display rail. Selection, activation and focusability must be independent policies."
+    },
+    {
+      "owner": "termrock-navigation Steps layout and shared text",
+      "gap": "For numbered/custom-metadata rows current metadata_fits requires W>=M+21, two cells stricter than frozen W>=M+19. If metadata is hidden, current label body keeps one additional cell rather than reserving the frozen trailing cell. Current RowUi label painting also needs an explicit shared ellipsis-fit policy to reproduce frozen truncation without an app painter."
+    },
+    {
+      "owner": "termrock-navigation Steps parts and shared theme",
+      "gap": "Ordinal and metadata both resolve Part::META, although their state colors differ in the reference. Resolve ordinal through existing Part::PREFIX, or another agreed semantic part, so metadata warning/error state does not incorrectly color the ordinal. Supply source-backed shared state recipes rather than app color patches."
+    },
+    {
+      "owner": "shared ScrollRegion/text rendering",
+      "gap": "Compare reference overflow/fade/cursor-exclusion behavior with actual Steps ScrollRegion before replacing the private rail scrollbar/fade. No fixed bottom-row dim correction may remain."
+    }
+  ],
+  "minimal_api_proposal_not_yet_approved": [
+    "Keep the reviewed Steps configuration, keyed items, state, metadata, numbering, composition adapter and intrinsic measurement. The app supplies one borrowed stage view containing stable Stage key, label, lifecycle and already formatted domain metadata; it does not paint or handle component mechanics.",
+    "Add an orthogonal selectable(false) or equivalent row-interaction policy, defaulting to current behavior for compatibility. In display mode do not seed or mutate row cursor from pointer/key events, register row activation regions or emit row actions. Preserve genuine scrolling.",
+    "Add a focusability override independent of is_navigable. A display rail can own focus without row navigation or selected-row gutter. The component must own the real rendered first-gutter anchor and full logical layout/scroll bounds; the application must not register a dummy control. Confirm actual Tab and pointer semantics before choosing whether focus bounds can cover the full component, because the frozen control hit anchor is only one cell.",
+    "For animation, prefer a pure opt-in Steps time-sample builder such as spinner_at(core::time::Duration), backed by a shared theme/motion frame resolver using existing spinner_frames and80ms cadence. The app passes its existing authoritative simulation clock value without calculating glyphs or frame indices; it must not pass launch.tick as the rail clock. There is no component-local timer, epoch, counter or draw-time mutation. Coordinate this API with the runtime/theme owner first; if a runtime-provided shared animation snapshot is used instead, it must explicitly carry the paused/seek domain time rather than elapsed Cx::now.",
+    "Reuse the shared spinner resolver for the existing Spinner consumer as well; preserve its existing frame override. Keep the separate activity-line launch-tick frame override where the reference uses it. Do not misuse FeedbackClock::Simulation as a general animation clock or reset elapsed input/feedback deadlines to pause animation.",
+    "Document Unicode and ASCII spinner palettes. Frozen theme uses10 braille frames and4 ASCII frames. Current MotionTokens exposes a Unicode frame sequence; a theme-owned capability/profile adapter must resolve the appropriate sequence without application terminal detection or an application-specific variant.",
+    "Use existing Part::PREFIX for ordinal styling where possible, keep Part::ICON/LABEL/META and their slots, and introduce only a semantic opt-in numbered lifecycle presentation when compatibility requires it. No Jackin/scenario/frame-named variant. Metadata fallback policy and label ellipsis must be shared and configurable.",
+    "Keep measure pure: do not invoke state projection to discover metadata; borrow explicit metadata or use bounded state-label maxima. Draw/update consume the same one configuration, item keys and resolved geometry."
+  ],
+  "staged_ownership": [
+    {
+      "stage": 1,
+      "writer": "Navigation contract author; exclusive steps.rs and Steps tests",
+      "change": "Implement display row-interaction/focusability policy and numbered metadata/trailing-cell/ordinal-part behavior, preserving existing default/navigation consumers. Coordinate semantic theme recipe ownership before editing theme files. Add failing-then-passing widget/public-consumer tests first."
+    },
+    {
+      "stage": 2,
+      "writer": "Runtime/theme animation author; exclusive shared motion helper and agreed snapshot adapter",
+      "change": "Implement the smallest pure time-sample/frame resolver with existing clock ownership. Cover paused seek,80ms boundaries, Unicode/ASCII palettes, empty frames and existing Spinner compatibility. Navigation author consumes the agreed API in a separate serialized increment."
+    },
+    {
+      "stage": 3,
+      "writer": "Jackin composition author; exclusive app launch composition/domain view projection",
+      "change": "Use real Steps with borrowed Stage views, domain-derived duration metadata and the authoritative simulation time. Use existing composition/layout blocks for the measured44-wide rail constraints. Delete paint_rail and its selector-specific callers in the same series. Do not modify shared Steps files concurrently."
+    },
+    {
+      "stage": 4,
+      "writer": "Independent reviewer/verifier",
+      "change": "Compare complete frozen-vs-candidate rail and application frames after inputs, resize and time changes. Audit production dependency paths and confirm no after-paint corrections, fixed cell tables, fake focus registration or scenario/viewport selectors survive. Approve only exact tested behavior."
+    }
+  ],
+  "required_tests_and_consumers": [
+    "A different-domain public Steps consumer with non-Display rows, stable keys, all six lifecycle states, absent/explicit metadata, reordered/empty/large data and Unicode labels. Reuse existing composition consumer and add the new policies without changing baseline Showcase flows.",
+    "Width boundaries immediately below/at/above M+19; hidden-metadata trailing cell; ordinals99/100/105; zero width/height; clipping/resize; independent ordinal/meta colors across all four profiles. Compare complete cells, not substring presence.",
+    "Clock samples0,79,80,159,160,799,800ms; paused frame40 seek with global0; normal33ms domain advances; reduced three-launch-step advances; unchanged clocks across repeated draw/measure. Test Unicode and ASCII palettes and empty-frame fallback.",
+    "Real frozen cockpit initial focus, Tab/Shift-Tab order, arrows,Enter/build-log opening, pointer press/drag/release/double-click on rail and gutter, wheel/track scroll, modal open/close, log close and focus restoration. Source alone does not prove all pointer routing or focus reconciliation outcomes.",
+    "Both paused launch scenario startup and launches reached interactively with different workspaces/accounts/roles, different launch failure/blocked/ready states, multiple times and adjacent terminal sizes. The rail must always use shared Steps, not only scenario LaunchRunning/frame40.",
+    "Second real consumer: existing Showcase activity/launch-cockpit Steps demonstrations should use the same indicator/parts and pure resolver while preserving their own frozen controls. New capability demonstrations may require a separate public example if changing a baseline screen would violate parity.",
+    "Pinned Tuiscotti real binaries, ordered nonzero checkpoints and separate frozen/candidate identity checks remain required. No full capture or application acceptance was run by this source-planning task."
+  ],
+  "production_replay_status": [
+    {
+      "source": "499cec504c:crates/jackin-preview-app/src/app.rs:7135-7169",
+      "status": "Not approved. launch_cockpit_scene selects Paused+LaunchRunning+frame40; historical_launch_running_frame selects exact120x40, responsive_launch_cockpit selects other sizes. Both routes bypass a live shared Steps screen."
+    },
+    {
+      "source": "499cec504c:crates/jackin-preview-app/src/app/launch_cockpit.rs:1-21,272-352",
+      "status": "Not approved. Private Buffer/Rect rail painter, constant spinner, fixed role/workspace/account/credential text, local color logic and painted scrollbar must be replaced by shared components and live application data."
+    },
+    {
+      "source": "adf334b21745b9f713c26275987d09bf22eeda16:crates/jackin-preview-app/src/app/launch_cockpit.rs:22-34; app/launch_dialog_plate.rs; app.rs",
+      "status": "Not approved. New stage_rail_left raw geometry and exact120x40 reduced-color dialog/page repaint and dim corrections remain the same prohibited presentation mechanism. Normal integration preserves history, not approval. This task does not perform a separate audit of the new120 runtime painting lines."
+    }
+  ],
+  "limits": "This is a source-backed plan, not API approval, implementation, focus-flow proof or product acceptance. Existing shared intrinsic review remains valid within its scope. All four application acceptance gates remain incomplete."
+}

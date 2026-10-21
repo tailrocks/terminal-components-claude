@@ -1,0 +1,99 @@
+{
+  "reviewed_commit": "2b3ef2987690cf9cf1f5ff55cd550c828c42125b",
+  "source_commit": "d6cb7c37fb855d9874a1d511bd70f51e47fce6e9",
+  "before_source_commit": "6f68e22a6666c44c9f9cf726b4ddb895e6daf68a",
+  "reviewer": "editor_contract_independent_review",
+  "source_copy": "/private/tmp/termrock-button-2b3e-review",
+  "verdict": "changes_requested",
+  "acceptance_complete": false,
+  "findings": [
+    {
+      "id": "BUTTON-KEYBOARD-ONLY-FIRST-KEY-LOST",
+      "priority": "P2",
+      "path": "crates/termrock-controls/src/button.rs",
+      "line": 317,
+      "problem": "KeyboardOnly removes FOCUSED from live flags when focus came from a pointer, then publishes bindings with those style-adjusted flags. Ui::publish_bindings_filtered requires FOCUSED, so the pointer-focused control has no Enter/Space action binding until focus visibility changes and a frame is republished.",
+      "reproduction": "Real Harness with OTHER and BUTTON, KeyboardOnly. Mouse Down(10,0), Up(10,0): BUTTON is focused, runtime focus_visible=false, activations=1. First Enter leaves activations=1 instead of2. The original seven tests pass but never test this no-Tab sequence.",
+      "probe": "/private/tmp/termrock-button-2b3e-probes/tests/contract.rs:408",
+      "log": "/private/tmp/termrock-button-2b3e-public.log",
+      "repair": "Publish keyboard bindings using actual interaction focus flags. Derive a separate flag set for visual focus policy; do not erase interaction focus to hide focus styling. Add real pointer-focus immediately followed by Enter and Space regressions."
+    }
+  ],
+  "verified": {
+    "native_controls": {
+      "passed": 120,
+      "failed": 0,
+      "skipped": 0
+    },
+    "external": {
+      "authored_tests_copied_byte_preserving_before_append": 7,
+      "authored_passed": 7,
+      "additional_failed": 1,
+      "first_enter_failure": true,
+      "first_space": "same filtered binding mechanism; loop stops at first Enter assertion so not independently observed"
+    },
+    "red_before_green_after": {
+      "busy_checked_width": {
+        "before": "8 actual vs6 expected",
+        "after": "passed unchanged assertion",
+        "baseline": "Frozen Button width reserves only one shared busy-or-on prefix; source inspected."
+      },
+      "default_pointer_focus": {
+        "before": "RuleQuiet actual vsFocusBar expected",
+        "after": "same source-independent public probe passed",
+        "baseline": "Frozen Button constructor defaults FocusVisible::Always; source inspected."
+      }
+    },
+    "strict_controls_clippy": "passed --all-targets -- -D warnings",
+    "scoped_format": "passed",
+    "git_diff_check": "passed; candidate source checkout clean"
+  },
+  "source_contract_review": {
+    "focus_policy_additive_private_field_and_public_builder": true,
+    "inherited_disabled_forwards_policy": true,
+    "busy_supersedes_checked_prefix_in_measure_and_draw": true,
+    "no_new_input_engine": true,
+    "no_captured_pixel_painters_or_artifact_imports": true,
+    "inert_reference_uses_real_shared_parts_and_suppresses_registration": true,
+    "marker_set_clear_slot_cases_authored_and_passed": true
+  },
+  "limits": [
+    "Full Button/Showcase product parity is not approved. Off marker fallback and one-cell semantic glyph role remain unresolved; RadioOn/Off three-cell strings would alter frozen one-cell geometry.",
+    "Narrow Unicode authored test establishes no panic/in-bounds area, not exact reference grapheme rendering.",
+    "Covered-layer focus behavior was not independently exercised by a new dedicated Button probe in this increment.",
+    "No application launches, PTY comparisons, snapshots, expected artifact edits or promotion.",
+    "No conclusion about unrelated merged changes or final PR38 integration."
+  ],
+  "logs": {
+    "public_authored7_plus_independent1": {
+      "path": "/private/tmp/termrock-button-2b3e-public.log",
+      "sha256": "81ca33dcb0d706a01b79105cc040e97893d25c558a0cb76780ffcf5b42e8d871"
+    },
+    "native120": {
+      "path": "/private/tmp/termrock-button-2b3e-native.log",
+      "sha256": "cf7f5efe874559d0a2c02bdb3f21b6535975cd3188888bb924e28d90cbcf233f"
+    },
+    "clippy": {
+      "path": "/private/tmp/termrock-button-2b3e-clippy.log",
+      "sha256": "785b93819c8e31c821c3b5b0aa863591ea00a014f4401118957298e43a1c4db1"
+    },
+    "format": {
+      "path": "/private/tmp/termrock-button-2b3e-format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "busy_before": {
+      "path": "/private/tmp/termrock-button-busy-before.log",
+      "sha256": "601d8cb64b38dc64cc122abc1ffc7dff17c9d2fff465437638bb53a25b4a9775"
+    },
+    "pointer_before": {
+      "path": "/private/tmp/termrock-button-pointer-before.log",
+      "sha256": "f2b905bf054c937f024db0cc42a6700945424bc550114d8bec997cd0b0556a71"
+    },
+    "pointer_after": {
+      "path": "/private/tmp/termrock-button-pointer-after.log",
+      "sha256": "83cb1d62396ea89c5d85a951d0d7017320598daf45f7f0181fa48799e4813043"
+    }
+  },
+  "source_edits": false,
+  "helpers_spawned": false
+}

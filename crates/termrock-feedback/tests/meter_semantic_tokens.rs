@@ -17,10 +17,10 @@ fn junie_block_rest_matches_pinned_lift_on_every_surface_and_capability() {
         Color::Rgb(39, 39, 42),
         Color::Rgb(63, 63, 70),
         Color::Rgb(63, 63, 70),
-        Color::Rgb(35, 35, 40),
+        Color::Rgb(47, 47, 52),
         Color::Rgb(63, 63, 70),
     ];
-    let indexed = [233, 235, 235, 237, 237, 234, 234];
+    let indexed = [233, 235, 235, 237, 237, 237, 237];
     let ansi16 = [
         Color::Black,
         Color::Black,
@@ -191,9 +191,11 @@ fn low_and_stale_tokens_match_reference_roles_but_custom_colors_remain_authorita
         let reference = Theme::junie().for_level(level);
         assert_eq!(reference.color.meter.low, reference.color.fg[1]);
         assert_eq!(reference.color.meter.stale, reference.color.fg[3]);
+        assert_eq!(reference.color.meter.unknown, reference.color.fg[3]);
         let mut custom = Theme::junie();
         custom.color.meter.low = Color::Rgb(12, 123, 210);
         custom.color.meter.stale = Color::Rgb(210, 100, 13);
+        custom.color.meter.unknown = Color::Rgb(86, 123, 210);
         let narrowed = custom.for_level(level);
         assert_eq!(
             narrowed.color.meter.low,
@@ -202,6 +204,10 @@ fn low_and_stale_tokens_match_reference_roles_but_custom_colors_remain_authorita
         assert_eq!(
             narrowed.color.meter.stale,
             downgrade_color(Color::Rgb(210, 100, 13), level)
+        );
+        assert_eq!(
+            narrowed.color.meter.unknown,
+            downgrade_color(Color::Rgb(86, 123, 210), level)
         );
     }
 }
@@ -239,7 +245,7 @@ fn quantized_aliases_follow_pinned_ordered_lift() {
         (
             ColorLevel::Ansi256,
             Surface::FieldHover,
-            Color::Indexed(234),
+            Color::Indexed(237),
         ),
         (ColorLevel::Mono, Surface::Overlay, Color::Black),
         (ColorLevel::Mono, Surface::FieldHover, Color::Black),

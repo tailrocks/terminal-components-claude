@@ -1,0 +1,56 @@
+{
+  "audit": "Velnor Actions 0.1.30 generated step-level parallelism compatibility",
+  "date": "2026-10-21",
+  "mode": "read-only independent audit",
+  "repository": "tailrocks/terminal-components-claude",
+  "generated_worktree": "/private/tmp/termrock-velnor-0130-20261021",
+  "generated_head": "3cdd4b1bbc178e3223c9c548b5dd8a0950136315",
+  "generator": {
+    "repository": "tailrocks/velnor-new",
+    "revision": "a6b1d7873151dc62711844158490e8687d191943",
+    "version": "0.1.30",
+    "source_file": "crates/velnor-actions-workflow-renderer/src/parallel_steps.rs",
+    "source_file_sha256": "361319119240c8544b702348105dc95e37a0f7a8eac14a8fba326dc943e235eb",
+    "behavior": "Renders parallel members as background: true and adds wait-all joins at group boundaries."
+  },
+  "generated_workflow": {
+    "path": ".github/workflows/ci.yml",
+    "git_blob": "30f0d051dcdab46358bf4b05004a17aa744cf3f8",
+    "evidence": "Contains repeated run/uses steps with background: true followed by named wait-all: steps; first observed group at lines 433-449 in the generated worktree."
+  },
+  "actionlint": {
+    "version": "1.7.12",
+    "generated_command_ignores": [
+      "^unexpected key \"background\" for step to (run shell command|execute action)\\. ",
+      "^step must run script with \"run\" section or run action with \"uses\" section$"
+    ],
+    "assessment": "The background ignore is scoped to the known stale-schema diagnostic. The generic missing-run-or-uses ignore is a lint coverage risk because it can hide malformed no-run/no-uses steps; it does not establish that GitHub rejects the generated wait-all form."
+  },
+  "github_authority": [
+    {
+      "url": "https://github.blog/changelog/2026-06-25-actions-steps-can-now-be-run-in-parallel/",
+      "claim": "GitHub announced native step parallelism and the background, wait/wait-all, cancel, and parallel keywords on June 25, 2026."
+    },
+    {
+      "url": "https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax",
+      "claim": "Current official workflow syntax documents jobs.<job_id>.steps[*].background, wait, wait-all, cancel, and parallel, including examples using background: true and a named wait-all step."
+    }
+  ],
+  "upstream_design_note": {
+    "url": "https://github.com/tailrocks/velnor-new/blob/a6b1d7873151dc62711844158490e8687d191943/docs/proposed/parallelism-and-selection-contract.md",
+    "status": "Proposed in Velnor; not used as proof of GitHub support."
+  },
+  "conclusion": {
+    "github_actions_schema_blocker": false,
+    "reason": "The current official GitHub Actions documentation and GitHub changelog explicitly support the generated step keywords and shape.",
+    "remaining_ci_risk": "The generic actionlint ignore reduces static validation coverage for steps lacking both run and uses. Consider narrowing/updating the generated lint integration or adding a structural validation that accepts only documented wait/wait-all control steps. Do not classify this as a GitHub runtime syntax failure.",
+    "runtime_execution": "Not independently exercised in a GitHub-hosted run as part of this read-only audit."
+  },
+  "master_detail_source_identity": {
+    "remote_pr38_tip_observed": "c5a4a3210230c887a3e4d4512741e33a1c9486d2",
+    "master_detail_file_git_blob": "d14a64027e6df63b5da94551baa2b3355bad1651",
+    "termrock_lib_file_git_blob": "1a82b72c274861d2d7cb1c4be16a7a30266307ec",
+    "contains_master_detail_source": true,
+    "prior_snapshot_explanation": "A separate local parity checkout was stale at 5d06c610e and lacked the file. The Velnor worktree's updated origin/parity ref is c5a4a321 and contains MasterDetail; the former absent-symbol observation came from a stale snapshot, not source deletion at the currently observed remote tip."
+  }
+}

@@ -47,6 +47,35 @@ fn first_use_plays_intro_then_manager_and_no_replay_when_returning() {
 }
 
 #[test]
+fn paused_intro_outro_and_failed_launch_match_the_baseline_first_frame() {
+    let intro = H::new(Scenario::FirstUse, Motion::Paused, 300, 120, 40);
+    let intro_text = intro.text();
+    assert!(
+        intro_text.contains("Enter Skip"),
+        "intro warp hint missing: {intro_text}"
+    );
+    assert!(
+        intro_text.contains('─') || intro_text.contains('+'),
+        "intro warp rain missing: {intro_text}"
+    );
+    let outro = H::new(Scenario::OutroLast, Motion::Paused, 40, 120, 40);
+    let outro_text = outro.text();
+    assert!(
+        outro_text.contains("Enter Skip"),
+        "outro warp hint missing: {outro_text}"
+    );
+    assert!(
+        outro_text.contains('─') || outro_text.contains('+'),
+        "outro warp rain missing: {outro_text}"
+    );
+    let phrases = H::new(Scenario::FirstUse, Motion::Paused, 40, 120, 40);
+    assert!(phrases.text().contains("Enter Skip"), "{}", phrases.text());
+    assert!(phrases.text().contains("jackin❯"), "{}", phrases.text());
+    let failed = H::new(Scenario::LaunchFailure, Motion::Paused, 240, 120, 40);
+    assert!(failed.text().contains("Launch failed"), "{}", failed.text());
+}
+
+#[test]
 fn reduced_motion_and_paused_frames_are_deterministic() {
     let mut h = H::new(Scenario::FirstUse, Motion::Reduced, 0, 80, 24);
     assert_eq!(h.app().route(), Route::Intro);
@@ -649,6 +678,9 @@ fn settings_trust_toggle_and_failed_save_keep_edits() {
     h.key(KeyCode::Enter);
     h.key(KeyCode::Char(' '));
     assert!(h.text().contains("• 1 change"), "{}", h.text());
+    // `5` then Enter only selects Trust. Space toggles. Toggle back off
+    // so the saved draft stays untrusted.
+    h.key(KeyCode::Char(' '));
     h.ctrl('s');
     assert!(h.text().contains("Save settings"));
     h.key(KeyCode::Right);
@@ -1375,6 +1407,542 @@ fn usage_enter_opens_the_read_only_detail_and_escape_closes_it() {
 }
 
 #[test]
+fn settings_route_s_paints_the_approved_settings_frame() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    assert!(
+        !h.text().contains("Settings › global"),
+        "accounts list must stay off the settings frame: {}",
+        h.text()
+    );
+    h.key(KeyCode::Char('s'));
+    assert_eq!(h.app().route(), Route::Settings);
+    assert_eq!(h.app().settings.tab, 0);
+    assert!(!h.app().settings.dirty);
+    assert!(h.text().contains("Settings › global"), "{}", h.text());
+    let crumb = h.buffer().cell((56, 0)).expect("settings breadcrumb");
+    assert_eq!(crumb.symbol(), "S");
+    assert_eq!(crumb.fg, termrock::Color::from_u32(0xb3_b3_b3));
+    assert_eq!(crumb.bg, termrock::Color::from_u32(0x00_00_00));
+    assert!(!crumb.modifier.contains(termrock::Modifier::BOLD));
+    let mark = h.buffer().cell((2, 0)).expect("jackin prompt");
+    assert_eq!(mark.symbol(), "j");
+    assert_eq!(mark.fg, termrock::Color::from_u32(0x19_19_1c));
+    assert_eq!(mark.bg, termrock::Color::from_u32(0x48_e0_54));
+    assert!(mark.modifier.contains(termrock::Modifier::BOLD));
+    let tab = h.buffer().cell((2, 3)).expect("general tab mark");
+    assert_eq!(tab.symbol(), "▎");
+    assert_eq!(tab.fg, termrock::Color::from_u32(0x48_e0_54));
+    assert_eq!(tab.bg, termrock::Color::from_u32(0x27_27_2a));
+    assert!(tab.modifier.contains(termrock::Modifier::BOLD));
+    assert_eq!(h.harness.cursor(), None);
+    h.key(KeyCode::Char('5'));
+    assert_eq!(h.app().settings.tab, 0);
+    h.key(KeyCode::Enter);
+    assert_eq!(h.app().settings.tab, 4);
+    let general = h.buffer().cell((2, 3)).expect("left of general");
+    assert_ne!(
+        general.symbol(),
+        "▎",
+        "Trust must not keep the General gutter: {}",
+        h.text()
+    );
+}
+
+#[test]
+fn settings_route_80_paints_the_approved_breadcrumb_cell() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 80, 24);
+    h.key(KeyCode::Char('s'));
+    assert_eq!(h.app().route(), Route::Settings);
+    assert_eq!(h.app().settings.tab, 0);
+    let crumb = h.buffer().cell((51, 0)).expect("settings breadcrumb");
+    assert_eq!(crumb.symbol(), "S");
+    assert_eq!(crumb.fg, termrock::Color::from_u32(0xb3_b3_b3));
+    assert_eq!(crumb.bg, termrock::Color::from_u32(0x00_00_00));
+    assert!(!crumb.modifier.contains(termrock::Modifier::BOLD));
+    assert!(!crumb.modifier.contains(termrock::Modifier::ITALIC));
+    assert_eq!(h.harness.cursor(), None);
+}
+
+#[test]
+fn settings_mounts_80_paints_the_approved_destination_cell() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 80, 24);
+    h.key(KeyCode::Char('s'));
+    assert_eq!(h.app().settings.tab, 0);
+    let general = h.buffer().cell((8, 6)).expect("general body");
+    assert_ne!(general.symbol(), "D", "General must not show Destination");
+    h.key(KeyCode::Char('2'));
+    assert_eq!(h.app().settings.tab, 0);
+    h.key(KeyCode::Enter);
+    assert_eq!(h.app().settings.tab, 1);
+    let dest = h.buffer().cell((8, 6)).expect("destination heading");
+    assert_eq!(dest.symbol(), "D");
+    assert_eq!(dest.fg, termrock::Color::from_u32(0x8a_8a_8a));
+    assert_eq!(dest.bg, termrock::Color::from_u32(0x00_00_00));
+    assert!(!dest.modifier.contains(termrock::Modifier::BOLD));
+    assert!(!dest.modifier.contains(termrock::Modifier::ITALIC));
+    assert_eq!(h.harness.cursor(), None);
+}
+
+#[test]
+fn settings_env_three_enter_paints_the_approved_env_frame() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    h.key(KeyCode::Char('s'));
+    assert_eq!(h.app().settings.tab, 0);
+    let general = h.buffer().cell((8, 7)).expect("general body");
+    assert_ne!(general.symbol(), "G", "General must not show GH_TOKEN");
+    h.key(KeyCode::Char('3'));
+    assert_eq!(h.app().settings.tab, 0);
+    let armed = h.buffer().cell((8, 7)).expect("armed general body");
+    assert_ne!(armed.symbol(), "G", "`3` alone must stay on General");
+    h.key(KeyCode::Enter);
+    assert_eq!(h.app().settings.tab, 2);
+    let token = h.buffer().cell((8, 7)).expect("GH_TOKEN");
+    assert_eq!(token.symbol(), "G");
+    assert_eq!(token.fg, termrock::Color::from_u32(0xff_ff_ff));
+    assert_eq!(token.bg, termrock::Color::from_u32(0x17_3f_1c));
+    assert!(token.modifier.contains(termrock::Modifier::BOLD));
+    assert!(h.text().contains("GH_TOKEN"), "{}", h.text());
+    assert_eq!(h.harness.cursor(), None);
+
+    let mut mounts = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    mounts.key(KeyCode::Char('s'));
+    mounts.key(KeyCode::Char('2'));
+    mounts.key(KeyCode::Enter);
+    assert_eq!(mounts.app().settings.tab, 1);
+    let mount_cell = mounts.buffer().cell((8, 7)).expect("mounts body");
+    assert_ne!(mount_cell.symbol(), "G", "Mounts must not show GH_TOKEN");
+    assert!(
+        !mounts.text().contains("GH_TOKEN"),
+        "Mounts must stay off the environment table: {}",
+        mounts.text()
+    );
+}
+
+#[test]
+fn settings_trust_five_enter_paints_the_approved_trust_frame() {
+    let closed = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    assert!(
+        !closed.text().contains("github.com/chainargos/roles"),
+        "closed settings must stay off the trust frame: {}",
+        closed.text()
+    );
+
+    let mut agents = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    agents.key(KeyCode::Char('s'));
+    agents.key(KeyCode::Char('4'));
+    agents.key(KeyCode::Enter);
+    assert_eq!(agents.app().settings.tab, 3);
+    assert!(
+        !agents.text().contains("github.com/chainargos/roles"),
+        "Agents must stay off the trust frame: {}",
+        agents.text()
+    );
+
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    h.key(KeyCode::Char('s'));
+    assert_eq!(h.app().settings.tab, 0);
+    h.key(KeyCode::Char('5'));
+    assert_eq!(h.app().settings.tab, 0);
+    assert!(
+        !h.text().contains("github.com/chainargos/roles"),
+        "`5` alone must stay on General: {}",
+        h.text()
+    );
+    h.key(KeyCode::Enter);
+    assert_eq!(h.app().settings.tab, 4);
+    let role = h.buffer().cell((7, 7)).expect("chainargos role");
+    assert_eq!(role.symbol(), "g");
+    assert_eq!(role.fg, termrock::Color::from_u32(0xff_ff_ff));
+    assert_eq!(role.bg, termrock::Color::from_u32(0x17_3f_1c));
+    assert!(role.modifier.contains(termrock::Modifier::BOLD));
+    assert!(
+        h.text().contains("github.com/chainargos/roles"),
+        "{}",
+        h.text()
+    );
+    assert_eq!(h.harness.cursor(), None);
+}
+
+#[test]
+fn settings_save_preview_keys_paint_the_approved_dialog() {
+    let apply_save = |h: &H| {
+        let cell = h.buffer().cell((85, 24)).expect("apply save");
+        cell.symbol() == "S"
+            && cell.fg == termrock::Color::from_u32(0x19_19_1c)
+            && cell.bg == termrock::Color::from_u32(0x48_e0_54)
+            && cell.modifier.contains(termrock::Modifier::BOLD)
+            && cell.modifier.contains(termrock::Modifier::UNDERLINED)
+    };
+
+    let closed = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    assert!(
+        !apply_save(&closed),
+        "closed settings must stay off the save preview: {}",
+        closed.text()
+    );
+
+    let mut trust = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    trust.key(KeyCode::Char('s'));
+    trust.key(KeyCode::Char('5'));
+    trust.key(KeyCode::Enter);
+    assert_eq!(trust.app().settings.tab, 4);
+    assert!(
+        !apply_save(&trust),
+        "clean Trust must stay off the save preview: {}",
+        trust.text()
+    );
+
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    h.key(KeyCode::Char('s'));
+    h.key(KeyCode::Char('5'));
+    assert_eq!(h.app().settings.tab, 0);
+    h.key(KeyCode::Enter);
+    h.key(KeyCode::Char(' '));
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Char(' '));
+    h.ctrl('s');
+    assert_eq!(h.app().settings.tab, 4);
+    let cell = h.buffer().cell((85, 24)).expect("apply save");
+    assert_eq!(cell.symbol(), "S");
+    assert_eq!(cell.fg, termrock::Color::from_u32(0x19_19_1c));
+    assert_eq!(cell.bg, termrock::Color::from_u32(0x48_e0_54));
+    assert!(cell.modifier.contains(termrock::Modifier::BOLD));
+    assert!(cell.modifier.contains(termrock::Modifier::UNDERLINED));
+    assert!(apply_save(&h));
+    assert!(h.text().contains("Save settings"), "{}", h.text());
+    assert_eq!(h.harness.cursor(), None);
+}
+
+#[test]
+fn settings_agents_four_enter_paints_the_approved_agents_frame() {
+    let closed = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    assert!(
+        !closed.text().contains("Agent runtime mode"),
+        "closed settings must stay off the agents frame: {}",
+        closed.text()
+    );
+
+    let mut env = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    env.key(KeyCode::Char('s'));
+    env.key(KeyCode::Char('3'));
+    env.key(KeyCode::Enter);
+    assert_eq!(env.app().settings.tab, 2);
+    assert!(
+        !env.text().contains("Agent runtime mode"),
+        "Environments must stay off the agents frame: {}",
+        env.text()
+    );
+
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    h.key(KeyCode::Char('s'));
+    assert_eq!(h.app().settings.tab, 0);
+    let general = h.buffer().cell((4, 6)).expect("general body");
+    assert_ne!(
+        general.symbol(),
+        "A",
+        "General must not show Agent runtime mode"
+    );
+    h.key(KeyCode::Char('4'));
+    assert_eq!(h.app().settings.tab, 0);
+    let armed = h.buffer().cell((4, 6)).expect("armed general body");
+    assert_ne!(armed.symbol(), "A", "`4` alone must stay on General");
+    h.key(KeyCode::Enter);
+    assert_eq!(h.app().settings.tab, 3);
+    let mode = h.buffer().cell((4, 6)).expect("agent runtime mode");
+    assert_eq!(mode.symbol(), "A");
+    assert_eq!(mode.fg, termrock::Color::from_u32(0xb3_b3_b3));
+    assert_eq!(mode.bg, termrock::Color::from_u32(0x00_00_00));
+    assert!(mode.modifier.contains(termrock::Modifier::BOLD));
+    assert!(h.text().contains("Agent runtime mode"), "{}", h.text());
+    assert_eq!(h.harness.cursor(), None);
+}
+
+#[test]
+fn settings_mounts_two_enter_paints_the_approved_mounts_frame() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    h.key(KeyCode::Char('s'));
+    assert_eq!(h.app().settings.tab, 0);
+    let general = h.buffer().cell((8, 6)).expect("general body");
+    assert_ne!(general.symbol(), "D", "General must not show Destination");
+    h.key(KeyCode::Char('2'));
+    assert_eq!(h.app().settings.tab, 0);
+    let armed = h.buffer().cell((8, 6)).expect("armed general body");
+    assert_ne!(armed.symbol(), "D", "`2` alone must stay on General");
+    h.key(KeyCode::Enter);
+    assert_eq!(h.app().settings.tab, 1);
+    let dest = h.buffer().cell((8, 6)).expect("destination heading");
+    assert_eq!(dest.symbol(), "D");
+    assert_eq!(dest.fg, termrock::Color::from_u32(0x8a_8a_8a));
+    assert_eq!(dest.bg, termrock::Color::from_u32(0x00_00_00));
+    assert!(!dest.modifier.contains(termrock::Modifier::BOLD));
+    assert!(h.text().contains("/home/agent/.gitconfig"), "{}", h.text());
+    assert_eq!(h.harness.cursor(), None);
+}
+
+#[test]
+fn accounts_detail_downs_paint_the_approved_work_frame() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    assert!(
+        !h.text().contains("Accounts › Claude › Work"),
+        "closed list must stay off the detail frame: {}",
+        h.text()
+    );
+    for _ in 0..4 {
+        h.key(KeyCode::Down);
+    }
+    assert_eq!(
+        h.app().accounts.selected_id.as_deref(),
+        Some("acct-claude-work")
+    );
+    assert_eq!(
+        h.app().accounts.list.cursor(),
+        Some(termrock::ItemKey::index(4))
+    );
+    assert!(
+        h.text().contains("Accounts › Claude › Work"),
+        "{}",
+        h.text()
+    );
+    let (crumb_x, crumb_y) = h.find("Accounts › Claude › Work").expect("work breadcrumb");
+    let crumb = h
+        .buffer()
+        .cell((crumb_x, crumb_y))
+        .expect("work breadcrumb");
+    assert_eq!(crumb.symbol(), "A");
+    assert_eq!(crumb.fg, termrock::Color::from_u32(0xb3_b3_b3));
+    assert_eq!(crumb.bg, termrock::Color::from_u32(0x00_00_00));
+    assert!(!crumb.modifier.contains(termrock::Modifier::BOLD));
+    let mark = h.buffer().cell((2, 0)).expect("jackin prompt");
+    assert_eq!(mark.symbol(), "j");
+    assert_eq!(mark.fg, termrock::Color::from_u32(0x19_19_1c));
+    assert_eq!(mark.bg, termrock::Color::from_u32(0x48_e0_54));
+    assert!(mark.modifier.contains(termrock::Modifier::BOLD));
+    let title = h.buffer().cell((44, 2)).expect("work title");
+    assert_eq!(title.symbol(), "C");
+    assert_eq!(title.fg, termrock::Color::from_u32(0xb3_b3_b3));
+    assert_eq!(title.bg, termrock::Color::from_u32(0x11_11_11));
+    assert_eq!(h.harness.cursor(), None);
+    h.key(KeyCode::Down);
+    assert_ne!(
+        h.app().accounts.selected_id.as_deref(),
+        Some("acct-claude-work")
+    );
+    assert!(
+        !h.text().contains("Accounts › Claude › Work"),
+        "the next row must keep the live list: {}",
+        h.text()
+    );
+}
+
+#[test]
+fn accounts_detail_downs_paint_the_approved_80_work_cell() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 80, 24);
+    let closed = h.buffer().cell((38, 0)).expect("overview crumb");
+    assert_ne!(
+        closed.symbol(),
+        "A",
+        "overview must stay off the detail crumb"
+    );
+    for _ in 0..4 {
+        h.key(KeyCode::Down);
+    }
+    assert_eq!(
+        h.app().accounts.selected_id.as_deref(),
+        Some("acct-claude-work")
+    );
+    let crumb = h.buffer().cell((38, 0)).expect("work breadcrumb");
+    assert_eq!(crumb.symbol(), "A");
+    assert_eq!(crumb.fg, termrock::Color::from_u32(0xb3_b3_b3));
+    assert_eq!(crumb.bg, termrock::Color::from_u32(0x00_00_00));
+    assert!(!crumb.modifier.contains(termrock::Modifier::BOLD));
+    assert_eq!(h.harness.cursor(), None);
+}
+
+#[test]
+fn accounts_drawer_enter_paints_the_approved_work_drawer() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    for _ in 0..4 {
+        h.key(KeyCode::Down);
+    }
+    assert!(!h.app().accounts.drawer_open);
+    assert!(
+        !h.text().contains("Tab Actions"),
+        "detail must stay off the drawer footer: {}",
+        h.text()
+    );
+    h.key(KeyCode::Enter);
+    assert!(h.app().accounts.drawer_open);
+    assert_eq!(
+        h.app().accounts.selected_id.as_deref(),
+        Some("acct-claude-work")
+    );
+    assert!(h.text().contains("Tab Actions"), "{}", h.text());
+    // The open drawer keeps the header bare: the panel owns the row.
+    assert!(
+        !h.text().contains("Accounts › Claude › Work"),
+        "{}",
+        h.text()
+    );
+    let mark = h.buffer().cell((2, 0)).expect("jackin prompt");
+    assert_eq!(mark.symbol(), "j");
+    assert_eq!(mark.fg, termrock::Color::from_u32(0x19_19_1c));
+    assert_eq!(mark.bg, termrock::Color::from_u32(0x48_e0_54));
+    assert!(mark.modifier.contains(termrock::Modifier::BOLD));
+    let title = h.buffer().cell((44, 2)).expect("drawer title");
+    assert_eq!(title.symbol(), "C");
+    assert_eq!(title.fg, termrock::Color::from_u32(0xff_ff_ff));
+    assert_eq!(title.bg, termrock::Color::from_u32(0x11_11_11));
+    assert!(title.modifier.contains(termrock::Modifier::BOLD));
+    let tab = h.buffer().cell((12, 39)).expect("drawer tab hint");
+    assert_eq!(tab.symbol(), "T");
+    assert_eq!(tab.fg, termrock::Color::from_u32(0xff_ff_ff));
+    assert_eq!(tab.bg, termrock::Color::from_u32(0x00_00_00));
+    assert!(tab.modifier.contains(termrock::Modifier::BOLD));
+    assert_eq!(h.harness.cursor(), None);
+    h.key(KeyCode::Esc);
+    assert!(!h.app().accounts.drawer_open);
+    assert!(
+        !h.text().contains("Tab Actions"),
+        "escape must leave the drawer frame: {}",
+        h.text()
+    );
+}
+
+#[test]
+fn usage_detail_80_paints_back_to_list() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 80, 24);
+    h.key(KeyCode::Char('u'));
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Enter);
+    assert!(h.app().usage.detail_open());
+    assert!(h.text().contains("Back to list"), "{}", h.text());
+    assert!(h.text().contains("Session · 5-hour"), "{}", h.text());
+    let back = h.buffer().cell((49, 23)).expect("back to list");
+    assert_eq!(back.symbol(), "B");
+    assert_eq!(back.fg, termrock::Color::Rgb(0x8a, 0x8a, 0x8a));
+}
+
+#[test]
+fn usage_overview_80_paints_the_narrow_account_tree() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 80, 24);
+    h.key(KeyCode::Char('u'));
+    assert_eq!(h.app().route(), Route::Usage);
+    let ellipsis = h.buffer().cell((37, 0)).expect("crumb ellipsis");
+    assert_eq!(ellipsis.symbol(), "…");
+    assert_eq!(ellipsis.fg, termrock::Color::Rgb(0x8a, 0x8a, 0x8a));
+    let gutter = h.buffer().cell((4, 3)).expect("overview gutter");
+    assert_eq!(gutter.symbol(), "▎");
+    assert_eq!(gutter.fg, termrock::Color::Rgb(0x48, 0xe0, 0x54));
+    assert_eq!(gutter.bg, termrock::Color::Rgb(0x17, 0x3f, 0x1c));
+    let title = h.buffer().cell((7, 3)).expect("overview label");
+    assert_eq!(title.symbol(), "O");
+    assert!(h.text().contains("disabled"), "{}", h.text());
+    assert!(h.text().contains("Esc Close"), "{}", h.text());
+    assert!(
+        !h.text().contains("Jackin Preview"),
+        "the narrow usage page keeps the jackin menu: {}",
+        h.text()
+    );
+}
+
+#[test]
+fn usage_overview_u_paints_the_approved_overview_frame() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    assert!(
+        !h.text().contains("Usage › Overview"),
+        "accounts list must stay off the usage frame: {}",
+        h.text()
+    );
+    h.key(KeyCode::Char('u'));
+    assert_eq!(h.app().route(), Route::Usage);
+    assert_eq!(
+        h.app().usage.tab,
+        jackin_preview_app::screens::usage::Tab::Overview
+    );
+    assert!(!h.app().usage.detail_open());
+    assert!(h.text().contains("Usage › Overview"), "{}", h.text());
+    let crumb = h.buffer().cell((67, 0)).expect("usage breadcrumb");
+    assert_eq!(crumb.symbol(), "U");
+    assert_eq!(crumb.fg, termrock::Color::from_u32(0xb3_b3_b3));
+    assert_eq!(crumb.bg, termrock::Color::from_u32(0x00_00_00));
+    assert!(!crumb.modifier.contains(termrock::Modifier::BOLD));
+    let mark = h.buffer().cell((2, 0)).expect("jackin prompt");
+    assert_eq!(mark.symbol(), "j");
+    assert_eq!(mark.fg, termrock::Color::from_u32(0x19_19_1c));
+    assert_eq!(mark.bg, termrock::Color::from_u32(0x48_e0_54));
+    assert!(mark.modifier.contains(termrock::Modifier::BOLD));
+    let tab = h.buffer().cell((4, 3)).expect("overview tab mark");
+    assert_eq!(tab.symbol(), "▎");
+    assert_eq!(tab.fg, termrock::Color::from_u32(0x48_e0_54));
+    assert_eq!(tab.bg, termrock::Color::from_u32(0x17_3f_1c));
+    assert!(tab.modifier.contains(termrock::Modifier::BOLD));
+    assert_eq!(h.harness.cursor(), None);
+    h.key(KeyCode::Down);
+    assert_ne!(
+        h.app().usage.tab,
+        jackin_preview_app::screens::usage::Tab::Overview
+    );
+    assert!(
+        !h.text().contains("Usage › Overview"),
+        "the next tab must keep the live usage page: {}",
+        h.text()
+    );
+}
+
+#[test]
+fn usage_detail_down_enter_paints_the_approved_detail_frame() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    let back_before = h.buffer().cell((49, 39)).expect("accounts footer");
+    assert_ne!(
+        back_before.symbol(),
+        "B",
+        "accounts list must stay off the detail footer"
+    );
+    h.key(KeyCode::Char('u'));
+    assert_eq!(h.app().route(), Route::Usage);
+    assert_eq!(
+        h.app().usage.tab,
+        jackin_preview_app::screens::usage::Tab::Overview
+    );
+    assert!(!h.app().usage.detail_open());
+    let back_overview = h.buffer().cell((49, 39)).expect("overview footer");
+    assert_ne!(
+        back_overview.symbol(),
+        "B",
+        "overview host must stay off the detail footer: {}",
+        h.text()
+    );
+    assert!(h.text().contains("Usage › Overview"), "{}", h.text());
+    h.key(KeyCode::Down);
+    assert_eq!(
+        h.app().usage.tab,
+        jackin_preview_app::screens::usage::Tab::Registration
+    );
+    assert!(!h.app().usage.detail_open());
+    let back_tab = h.buffer().cell((49, 39)).expect("registration footer");
+    assert_ne!(back_tab.symbol(), "B", "{}", h.text());
+    h.key(KeyCode::Enter);
+    assert!(h.app().usage.detail_open());
+    assert!(h.text().contains("Back to list"), "{}", h.text());
+    assert!(
+        h.text().contains("Usage › Claude › Personal"),
+        "{}",
+        h.text()
+    );
+    let back = h.buffer().cell((49, 39)).expect("detail back hint");
+    assert_eq!(back.symbol(), "B");
+    assert_eq!(back.fg, termrock::Color::from_u32(0x8a_8a_8a));
+    assert_eq!(back.bg, termrock::Color::from_u32(0x00_00_00));
+    assert!(!back.modifier.contains(termrock::Modifier::BOLD));
+    let mark = h.buffer().cell((2, 0)).expect("jackin prompt");
+    assert_eq!(mark.symbol(), "j");
+    assert_eq!(mark.fg, termrock::Color::from_u32(0x19_19_1c));
+    assert_eq!(mark.bg, termrock::Color::from_u32(0x48_e0_54));
+    assert!(mark.modifier.contains(termrock::Modifier::BOLD));
+    assert_eq!(h.harness.cursor(), None);
+}
+
+#[test]
 fn settings_tabs_and_save_preview_stay_on_the_settings_route() {
     let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
     h.key(KeyCode::Char('s'));
@@ -1382,10 +1950,10 @@ fn settings_tabs_and_save_preview_stay_on_the_settings_route() {
     assert_eq!(h.app().settings.tab, 0);
     assert!(h.text().contains("▸ General"), "{}", h.text());
     h.key(KeyCode::Char('5'));
+    h.key(KeyCode::Enter);
     assert_eq!(h.app().settings.tab, 4);
     assert!(h.text().contains("▸ Trust"), "{}", h.text());
     assert!(!h.text().contains("▸ General"), "{}", h.text());
-    h.key(KeyCode::Enter);
     h.key(KeyCode::Char(' '));
     h.ctrl('s');
     let preview = h.text();
@@ -1393,6 +1961,55 @@ fn settings_tabs_and_save_preview_stay_on_the_settings_route() {
     assert!(preview.contains("Scope · global config"), "{preview}");
     assert!(preview.contains("Changes · trust draft"), "{preview}");
     assert_eq!(h.app().route(), Route::Settings);
+}
+
+#[test]
+fn accounts_filter_enter_paints_the_approved_filter_frame() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    assert!(
+        !h.text().contains("Accounts · filt"),
+        "closed list must stay off the filter frame: {}",
+        h.text()
+    );
+    h.key(KeyCode::Char('/'));
+    h.type_str("work");
+    h.key(KeyCode::Enter);
+    assert!(h.app().accounts.filtering);
+    assert!(!h.app().accounts.filter_input.is_editing());
+    assert_eq!(h.app().accounts.filter_query, "work");
+    assert!(h.text().contains("Accounts · filt"), "{}", h.text());
+    let title = h.buffer().cell((4, 2)).expect("filter title");
+    assert_eq!(title.symbol(), "A");
+    assert_eq!(title.fg, termrock::Color::from_u32(0xff_ff_ff));
+    assert_eq!(title.bg, termrock::Color::from_u32(0x00_00_00));
+    assert!(title.modifier.contains(termrock::Modifier::BOLD));
+    let mark = h.buffer().cell((2, 0)).expect("jackin prompt");
+    assert_eq!(mark.symbol(), "j");
+    assert_eq!(mark.fg, termrock::Color::from_u32(0x19_19_1c));
+    assert_eq!(mark.bg, termrock::Color::from_u32(0x48_e0_54));
+    assert_eq!(h.harness.cursor(), None);
+}
+
+#[test]
+fn accounts_filter_enter_paints_the_approved_80_filter_cell() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 80, 24);
+    assert!(
+        !h.text().contains("Accounts · filt"),
+        "closed list must stay off the filter frame: {}",
+        h.text()
+    );
+    h.key(KeyCode::Char('/'));
+    h.type_str("work");
+    h.key(KeyCode::Enter);
+    assert!(h.app().accounts.filtering);
+    assert!(!h.app().accounts.filter_input.is_editing());
+    assert_eq!(h.app().accounts.filter_query, "work");
+    let title = h.buffer().cell((4, 2)).expect("filter title");
+    assert_eq!(title.symbol(), "A");
+    assert_eq!(title.fg, termrock::Color::from_u32(0xff_ff_ff));
+    assert_eq!(title.bg, termrock::Color::from_u32(0x00_00_00));
+    assert!(title.modifier.contains(termrock::Modifier::BOLD));
+    assert_eq!(h.harness.cursor(), None);
 }
 
 #[test]
@@ -1429,10 +2046,89 @@ fn accounts_filter_and_inspector_open_without_writing_a_credential() {
     assert!(!h.text().contains("Filter accounts"), "{}", h.text());
     h.key(KeyCode::Char('i'));
     assert!(h.app().accounts.drawer_open);
-    assert!(h.text().contains("Inspector ·"), "{}", h.text());
+    assert!(h.text().contains("Tab Actions"), "{}", h.text());
     h.key(KeyCode::Esc);
     assert!(!h.app().accounts.drawer_open);
     assert_eq!(h.app().route(), Route::Accounts);
     assert_eq!(h.app().world.accounts.accounts.len(), before);
     assert!(h.app().world.clipboard.is_none());
+}
+
+#[test]
+fn manager_help_overlay_paints_the_approved_shortcuts_cell() {
+    let mut h = H::new(Scenario::Returning, Motion::Paused, 40, 120, 40);
+    let closed = h.buffer().cell((15, 4)).expect("manager cell");
+    assert_ne!(closed.symbol(), "K");
+    assert!(
+        !h.text().contains("Keyboard shortcuts"),
+        "manager without ? must stay off the help frame: {}",
+        h.text()
+    );
+    h.key(KeyCode::Char('?'));
+    let title = h.buffer().cell((15, 4)).expect("keyboard shortcuts");
+    assert_eq!(title.symbol(), "K");
+    assert_eq!(title.fg, termrock::Color::from_u32(0x00_ff_ff_ff));
+    assert_eq!(title.bg, termrock::Color::from_u32(0x00_18_18_1b));
+    assert!(title.modifier.contains(termrock::Modifier::BOLD));
+    assert!(h.text().contains("Keyboard shortcuts"), "{}", h.text());
+    assert_eq!(h.harness.cursor(), None);
+}
+
+#[test]
+fn manager_launch_picker_paints_the_approved_agent_cell() {
+    let mut h = H::new(Scenario::Returning, Motion::Paused, 40, 120, 40);
+    let closed = h.buffer().cell((20, 16)).expect("manager cell");
+    assert_ne!(
+        (closed.symbol(), closed.bg),
+        ("L", termrock::Color::from_u32(0x00_18_18_1b)),
+        "closed manager must stay off the launch picker frame: {}",
+        h.text()
+    );
+    h.key(KeyCode::Enter);
+    let title = h.buffer().cell((20, 16)).expect("launch picker title");
+    assert_eq!(title.symbol(), "L");
+    assert_eq!(title.fg, termrock::Color::from_u32(0x00_ff_ff_ff));
+    assert_eq!(title.bg, termrock::Color::from_u32(0x00_18_18_1b));
+    assert!(title.modifier.contains(termrock::Modifier::BOLD));
+    assert!(!title.modifier.contains(termrock::Modifier::ITALIC));
+    assert!(h.text().contains("Launch · choose Agent"), "{}", h.text());
+    assert_eq!(h.harness.cursor(), None);
+}
+
+#[test]
+fn manager_file_menu_paints_the_approved_menu_frame() {
+    let mut h = H::new(Scenario::Returning, Motion::Paused, 40, 120, 40);
+    assert!(
+        !h.text().contains("New workspace…"),
+        "closed manager must stay off the menu frame: {}",
+        h.text()
+    );
+    h.key(KeyCode::F(10));
+    assert!(h.text().contains("New workspace…"), "{}", h.text());
+    let item = h.buffer().cell((15, 2)).expect("new workspace");
+    assert_eq!(item.symbol(), "N");
+    assert_eq!(item.fg, termrock::Color::from_u32(0x00_ff_ff_ff));
+    assert_eq!(item.bg, termrock::Color::from_u32(0x00_2f_5a_a8));
+    assert!(item.modifier.contains(termrock::Modifier::BOLD));
+    let mark = h.buffer().cell((2, 0)).expect("jackin prompt");
+    assert_eq!(mark.symbol(), "j");
+    assert_eq!(mark.fg, termrock::Color::from_u32(0x00_19_19_1c));
+    assert_eq!(mark.bg, termrock::Color::from_u32(0x00_48_e0_54));
+    assert_eq!(h.harness.cursor(), None);
+}
+
+#[test]
+fn paused_returning_down_paints_the_expanded_payments_tree() {
+    let mut h = H::new(Scenario::Returning, Motion::Paused, 40, 120, 40);
+    assert!(h.text().contains("▸ payments-platform"), "{}", h.text());
+    assert!(!h.text().contains("Prewarm"), "{}", h.text());
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Char(' '));
+    let text = h.text();
+    assert!(text.contains("▾"), "{text}");
+    assert!(text.contains("the-archite…ude Code"), "{text}");
+    assert!(text.contains("saved workspace · 1 running"), "{text}");
+    assert!(text.contains("Prewarm"), "{text}");
+    assert!(text.contains("→"), "{text}");
+    assert!(text.contains("Workspaces › payments-platform"), "{text}");
 }

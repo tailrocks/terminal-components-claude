@@ -1,0 +1,25 @@
+[0m[2m  jackin❯    File   Edit   View   Session   Help                             …  [0m
+[0m[2m                                                                                [0m
+[0m[2m  1 Mix (3) ●    2 Shell    3 docs ●                                            [0m
+[0m[2m ━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────── [0m
+[0m[2m╭─ Claude Code (Work) ●───────────────╮│╭─ Codex (Primary) ○───────────────────╮[0m
+[0m[2m│  +  let delay = BASE * 2u32.pow(at ┆│││  rounding precedes FX conversion in ┆│[0m
+[0m[2m│  -╭──────────────────────────────────────────────────────────────────────╮  ┆│[0m
+[0m[2m│  +│ [0m[1;2mNew tab[0m[2m                                                              │  ┆│[0m
+[0m[2m│   │ ▎ Type to search…                                                    │  ┆│[0m
+[0m[2m│● B│                                                                      │  ┃│[0m
+[0m[2m│  r│ [0m[1;2;7m [0m[2;7m▪[0m[1;2;7m Claude Code  [0m[2;7m2 accounts · choose at start[0m[1;2;7m                 [0m[2;7magents[0m[1;2;7m [0m[2m │┄┄ │[0m
+[0m[2m│   │  ▪ Codex        Primary                                              │───╯[0m
+[0m[2m│● E│  ▪ OpenCode     Go subscription                                      │────[0m
+[0m[2m│  +│  ▪ Grok Build   Team                                                 │───╮[0m
+[0m[2m│   │  $ Shell        zsh                                          shells  │e ┆│[0m
+[0m[2m│● R│                                                                      │  ┆│[0m
+[0m[2m│  O│                                                                      │e ┆│[0m
+[0m[2m│   ╰──────────────────────────────────────────────────────────────────────╯x ┆│[0m
+[0m[2m│▶ Allow edit to src/settlement/conf ┃│││0003-retry-policy.md         0007-re ┆│[0m
+[0m[2m│❯                                   ┃│││payments-platform ❯                  ┃│[0m
+[0m[2m│━━━━━━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄ │││━━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄ │[0m
+[0m[2m╰─────────────────────────────────────╯│╰──────────────────────────────────────╯[0m
+[0m[2m PR #482 · Settlement retry backoff               …   Session ╍╍╍╍╍╍╍╍─── 76% ▲ [0m
+ [0m[1mEsc[0m Cancel  …          Attached to payments-platform · tabs and panes restored [0m
+[?25h[9;9H[6 q

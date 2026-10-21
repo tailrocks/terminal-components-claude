@@ -1,0 +1,28 @@
+{
+  "integration_commit": "57e803cf7",
+  "run": 195,
+  "passed": 183,
+  "failed": 12,
+  "skipped": 0,
+  "failure_names": [
+    "tablepro-ui app::query_result_keys::explain_orders_shows_a_plan_cell_the_error_frame_hides",
+    "tablepro-ui::footer_unicode connection_form_names_preserve_footer_grapheme_boundaries",
+    "tablepro-ui::form_radio form_radio_enter_submits",
+    "tablepro-ui::form_radio form_radio_focus_bolds_the_painted_row",
+    "tablepro-ui::form_radio form_radio_narrow_frames_clip_the_environment_field",
+    "tablepro-ui::form_radio form_radio_off_marker_uses_the_hollow_circle",
+    "tablepro-ui::form_radio form_radio_right_card_pins_miss_the_stock_form",
+    "tablepro-ui::perf frame_tablepro_connection_form_120x40",
+    "tablepro-ui::perf frame_tablepro_grid_500x14_120x40",
+    "tablepro-ui::replacement_contract save_connect_from_workbench_form_requires_guard_and_cancel_keeps_work",
+    "tablepro-ui::row_actions_contract inserting_after_five_hundred_rows_reveals_the_new_owned_record",
+    "tablepro-ui::visual tablepro_visual_baseline"
+  ],
+  "candidate_only_failure_names": [],
+  "prior_failure_names_not_observed": [
+    "tablepro-ui::app_tests unfocused_grid_cursor_does_not_style_the_cursor_row"
+  ],
+  "log": "/private/tmp/termrock-parent-grid-5cd-tablepro.log",
+  "sha256": "faae491a4ae649ddd3792794f4f41caad47bf8f1858dcedd800abc72b43d2fe4",
+  "acceptance": false
+}

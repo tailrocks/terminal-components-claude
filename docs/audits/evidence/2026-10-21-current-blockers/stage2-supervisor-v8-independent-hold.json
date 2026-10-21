@@ -1,0 +1,78 @@
+{
+  "schema": "termrock.stage3d.external-supervisor-v8-stage2.independent-review.v1",
+  "decision": "HOLD stage2 operation pending correction and independent review of exceptional direct-child cleanup.",
+  "source": {
+    "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-supervisor-v8-stage2-20261021.py",
+    "sha256": "2d2ad887510a40abf18a81768bdbf96f1bc59bf9bc4f839c5eadda2eb2195a70"
+  },
+  "tests": {
+    "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/test_fresh_plan_stage3d_atomic_supervisor_v8-stage2-20261021.py",
+    "sha256": "0ef0f8e6ecbb3706743faaa3bf2ef3f4e0b7eee6b23c2361116da84a782bcd5e"
+  },
+  "author_handoff": {
+    "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-supervisor-v8-stage2-author-handoff-20261021.json",
+    "sha256": "291e6ce2e7c41b127af295d3a52a0c6a35fe8e76c85cbbbc3d048d37bf59c6d3"
+  },
+  "unchanged_suite": {
+    "tests": 19,
+    "exit_code": 0,
+    "seconds": 0.221,
+    "retained_repeat": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-supervisor-v8-stage2-independent-synthetic-tests-20261021.log",
+      "sha256": "f59899d8cacec67eb5eb28a9675bc35d4f08f1f692350858c5de65cd2b7890da"
+    }
+  },
+  "source_bindings": {
+    "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-supervisor-v8-stage2-independent-source-bindings-20261021.json",
+    "sha256": "e88b7f4efa02f09c7e5f627009a553ffadd38f1d039b4393d81f59c98f8aeb6e"
+  },
+  "independent_probes": {
+    "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-supervisor-v8-stage2-independent-probe-result-20261021.json",
+    "sha256": "60a3c3791c031c57c3d87c7e4455eb5322ddbd854109824eeddfd32dd80ed3bb"
+  },
+  "probe_source": {
+    "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-supervisor-v8-stage2-independent-probes-v2-20261021.py",
+    "sha256": "4af659a9790ea4c88230d4954d0c4ecb26877cdc8222e8c45085890d264808da"
+  },
+  "findings": [
+    {
+      "id": "V8-STAGE2-1",
+      "severity": "P1",
+      "source": "run_supervised except BaseException",
+      "problem": "Exceptional polling/wait failures or KeyboardInterrupt send TERM but allow only two seconds to reap the direct canonical child, then re-raise even when it remains alive. This is shorter than the admitted canonical cleanup reserve and releases wrapper ownership before canonical cleanup completes. The normal timeout path has the intended 15-second allowance.",
+      "reproduction": "A synthetic wait observer raises once while a reviewer-owned real child is ready. The child cooperatively handles TERM with three seconds of cleanup. The wrapper raises after 2.018 seconds with its direct child still alive. Reviewer subsequently waited and reaped that exact child with exit zero. A second purely synthetic process model corroborates no reaping occurs.",
+      "required_fix": "Use one bounded exact-direct-child cleanup path for exceptions as well as normal expiry, allowing the remaining canonical cleanup reserve inside the inclusive deadline. Preserve failure evidence, never claim success after an exception, and explicitly record failure if reaping cannot be established. Keep any fallback signal confined to the owned live Popen object; do not scan ancestry, signal unowned groups, or import private canonical APIs. Add real synthetic regression that needs more than two seconds of cooperative cleanup and verifies wrapper does not return while its owned child remains live.",
+      "status": "required-before-operation"
+    },
+    {
+      "id": "V8-STAGE2-2",
+      "severity": "P3",
+      "source": "module docstring second paragraph",
+      "problem": "Copied paragraph says stages 2\u20138 are disabled and only stage-one arguments are received, contradicting the stage2-only implementation.",
+      "resolution": "Recorded documentation defect; update the new corrected supervisor version while preserving immutable v7/v8 artifacts. This paragraph does not change execution behavior.",
+      "status": "recorded-for-next-version"
+    }
+  ],
+  "positive_review": [
+    "Only stage2 is reachable from both CLI choices and run_stage/official_argv; stage1 and stages3\u20138 are rejected before preflight.",
+    "Exact official argv invokes reviewed canonical e97361a9 runner through public prepare-live --owned-lifecycle --owned-budget, fixed 482 repository, admitted root, fixed cohort and sealed-bin path; no key argument or private function import.",
+    "Canonical source/review, readiness, nine committed/materialized driver files, stage1 admission/evidence/event/log/provenance and old environment/tool packets are hashed and content-bound. The canonical owned preparation rechecks frozen source, fixed cohort binary hashes, source snapshots, full inventory and changed-path set inside its shared owner.",
+    "Stage1 source/root and exact two root entries are required; existing or dangling live-source, live-source.json, live-target, new plan and new key entries are rejected without reading key contents. No partial deletion or automatic resume is introduced.",
+    "Controlled environment uses the old admitted allowlist and hashes, with only the new target directory plus documented VISUAL inputs. VISUAL_TOOL remains absent in canonical fresh_clean_env inventory discovery.",
+    "Independent real PATH probes accept a distinct symlink to the same reviewed executable and reject wrong target, dangling lookup and changed reviewed bytes.",
+    "Deadline starts at module initialization and includes pins/hashes/probes. Work budget is min(200, floor(remaining-15-5)); ordinary timeout signals only the exact canonical PID and never yields success. Canonical owns its anchored same-group children.",
+    "Events bind exact supervisor source SHA, canonical review/source pins, argv digest, budget and exclusive log. Exclusive event/log creation avoids overwriting prior evidence.",
+    "V7 script and tests remain byte-identical to their independent reviewed hashes."
+  ],
+  "scope_limits": [
+    "No actual validate_pin/preflight, prepare-live, key read, plan creation, capture, replay, candidate launch or product comparison was performed. Tests used temporary files and reviewer-owned synthetic processes only.",
+    "Direct canonical ownership and canonical broker same-group cleanup do not claim universal containment of intentionally detached descendants or uninterruptible kernel operations.",
+    "Actual source publication/PR38 remote confirmation remains a coordinator prerequisite. This review neither validates a moving remote commit nor transfers acceptance to changed source.",
+    "No stage2 operation is approved, and stages3+ remain unreviewed/disabled. Existing stage1 admission and old stage3c receipts/key/partial evidence are unaffected."
+  ],
+  "next_steps": [
+    "Correct V8-STAGE2-1 in a new immutable external version, update stale docstring and preserve all v7/v8 evidence.",
+    "Run unchanged 19 synthetic tests and retained negative probes plus a greater-than-two-second cooperative exceptional cleanup regression.",
+    "Obtain independent exact-hash clearance and confirmed integrated remote canonical source before one bounded stage2 preparation."
+  ]
+}

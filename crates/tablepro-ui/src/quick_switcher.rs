@@ -1,6 +1,9 @@
 use crate::workbench::Workbench;
 use tablepro_domain::model::{SwitchItem, SwitchTarget, SwitcherIndex};
-use termrock::{FilterPolicy, Id, ItemRowLayout, Picker, PickerState, ScopeKey};
+use termrock::{
+    CursorStyle, FilterPolicy, Id, ItemRowLayout, LayerSize, Picker, PickerState, ScopeKey,
+    ScreenAlign, SelectionPolicy, Surface,
+};
 
 pub(crate) const ID: Id = Id::root("tablepro.quick-switcher");
 const SCOPES: &[ScopeKey] = &[
@@ -29,19 +32,27 @@ impl QuickSwitcher {
         self.refresh();
     }
     pub(crate) fn component(&self) -> Picker<'static, SwitchItem> {
-        let title = match self.state.scope(SCOPES).map(ScopeKey::get) {
-            Some(1) => "Open Quickly · Tables · Tab scope",
-            Some(2) => "Open Quickly · Schemas · Tab scope",
-            Some(3) => "Open Quickly · Queries · Tab scope",
-            _ => "Open Quickly · All · Tab scope",
+        let scope_label = match self.state.scope(SCOPES).map(ScopeKey::get) {
+            Some(1) => "Tables · Tab scope",
+            Some(2) => "Schemas · Tab scope",
+            Some(3) => "Queries · Tab scope",
+            _ => "All · Tab scope",
         };
+        // Baseline card: borders + title + query + gap + up to 12 rows + hint row.
+        let rows = u16::try_from(self.items.len().clamp(1, 12)).unwrap_or(12);
         Picker::new(ID)
-            .title(title)
+            .title("Open Quickly")
+            .scope_label(scope_label)
             .placeholder("Search tables, views, schemas, tabs, queries…")
-            .width(88)
+            .hints("↑↓ Move · Enter Open · Alt+Enter New tab · Tab Scope · Esc Clear / Close")
             .scopes(SCOPES)
+            .selection_policy(SelectionPolicy::FirstEnabledOnFilterChange)
             .filter(FilterPolicy::Caller)
             .item_layout(ItemRowLayout::Columns)
+            .cursor_style(CursorStyle::Fill)
+            .align(ScreenAlign::GeometricCenter)
+            .surface(Surface::Elevated)
+            .size(LayerSize::Fixed(88, rows.saturating_add(7)))
     }
     pub(crate) fn refresh(&mut self) {
         let scope = self.state.scope(SCOPES).map_or(0, ScopeKey::get);

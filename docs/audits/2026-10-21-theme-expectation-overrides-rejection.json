@@ -1,0 +1,179 @@
+{
+  "review_type": "Independent read-only test/reference integrity audit; Theme six expected-value insertions only",
+  "candidate": "93b306503581d0c90665ca884af78000e3a29258",
+  "predecessor": "efda9593a905e3d462a62852748cf43254276dca",
+  "frozen_source": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "reference_tag_object": "2718a6b8127a522a3d351d0b4bdb7542fc8da542",
+  "fixed_tool_revision": "a1ea27f757d75d07b05499276cd932e9f8e067ad",
+  "decision": "Do not accept the six overrides as frozen baseline verification. They exactly match unchanged candidate-authored palettes; one directly contradicts an already qualified frozen contract and the others are contextual/unconsumed/extension roles without the required decision. Preserve original failure and new result. Exclude or hold this test hunk pending a documented independently reviewed oracle repair; other incoming changes require separate review.",
+  "findings": [
+    {
+      "severity": "P1",
+      "path": "crates/termrock-theme/tests/capability_palettes.rs",
+      "line": 66,
+      "issue": "Six unsupported expected overrides convert the universal claimed reference test from RED to GREEN without any product theme change or documented reference decision. In particular highlight_danger_bg238 contradicts frozen88. The unchanged comment claims frozen apply_256 authors these roles, but those lines do not author the six inserted values.",
+      "fix": "Replace the invalid universal reference claim with source-qualified context tests and separately named candidate-policy consistency coverage, preserving all73 inventory entries and all required failing semantic checks. No baseline revision or snapshot changes are justified."
+    }
+  ],
+  "per_value": [
+    {
+      "token": "accent_pressed",
+      "new_expected": 238,
+      "old_raw_expected": 71,
+      "map_status": "Ambiguous across consumers/profiles; no universal token oracle",
+      "frozen_source": [
+        "src/theme.rs:516 GREEN_60=#2e9a38",
+        "src/theme.rs:945 scalar accent_pressed=Indexed(65)",
+        "src/theme.rs:976 accent ladder=(78,71,65)",
+        "src/theme.rs:1413 Primary Button uses Plane::Accent"
+      ],
+      "context_result": "For actual Primary Button press in ANSI256,65 is source-backed;238 is not. Scalar and rendered pressed contracts diverge in ANSI16, so the full token cannot be globally approved just by a similar name. Candidate TrueColor pressed constant also differs from frozen; this test derives its input from candidate source and cannot detect that.",
+      "decision": "Reject238 as frozen expectation. Add the real Primary Button rest/hover/press cohort with frozen per-profile styling, modifiers and foreground."
+    },
+    {
+      "token": "accent_tint",
+      "new_expected": 233,
+      "old_raw_expected": 22,
+      "map_status": "Contextual; no universal token oracle",
+      "frozen_source": [
+        "src/theme.rs:946-947 accent_bg22 and accent_bg_hover28",
+        "src/theme.rs:950 accent_bg_subtle22",
+        "src/theme.rs:1501-1503 selected row uses accent_bg/hover",
+        "src/theme.rs:933 highlight_on_selection55, used by contextual grid cursor path"
+      ],
+      "context_result": "Selected-row tint22/28 and active-grid highlight55 are different contracts. No source-backed claim that all AccentTint contexts use233.",
+      "decision": "Reject233 as universal frozen output. Identify actual row/grid consumers and test each state/surface with fixed frozen values; decide token semantics at shared recipe owner."
+    },
+    {
+      "token": "focus_ring",
+      "new_expected": 238,
+      "old_raw_expected": 71,
+      "map_status": "Ambiguous/unconsumed; no global palette oracle",
+      "frozen_source": [
+        "src/theme.rs:951 focus=Indexed(78)",
+        "src/theme.rs:1605 legible_mark(self.focus,bg)",
+        "src/theme.rs:1811-1822 gutter symbol/style"
+      ],
+      "context_result": "Frozen focus indication is the focus gutter/legibility contract; no direct FocusRing token equivalent was established in the73 map. Scalar ring238 has no documented frozen context.",
+      "decision": "Do not assign238 a baseline meaning. Audit real uses (including aliased/direct token access), retain inventory status and specify any extension default independently. Keep actual gutter parity tests."
+    },
+    {
+      "token": "highlight_danger_bg",
+      "new_expected": 238,
+      "old_raw_expected": 95,
+      "map_status": "Qualified for stated Error CursorRow Fill body",
+      "frozen_source": [
+        "src/theme.rs:533 RED_45=#7a2a2a",
+        "src/theme.rs:932 highlight_danger=Indexed(88)",
+        "src/theme.rs:975 highlight_danger ladder=(88,124,52)",
+        "src/theme.rs:1416-1419 focused nondisabled Error CursorRow Fill selects Plane::HighlightDanger"
+      ],
+      "context_result": "New238 directly contradicts the qualified rest/error-fill contract88. The old generic raw95 is also not the authored semantic88. An independent public fixed-source token probe remains RED actual238 expected88 while the amended all73 test is GREEN.",
+      "decision": "Reject238. Keep frozen88 semantic assertion and real error-cursor-row render tests; repair palette/recipe in its owner, not the expected baseline."
+    },
+    {
+      "token": "danger_tint",
+      "new_expected": 233,
+      "old_raw_expected": 52,
+      "map_status": "Ambiguous/unconsumed; no global palette oracle",
+      "frozen_source": [
+        "src/theme.rs:529 RED_20=#2e0f0f",
+        "src/theme.rs:966 error_bg=Indexed(52)",
+        "src/theme.rs:1391 maps error_bg into contextual Card plane inference"
+      ],
+      "context_result": "error_bg52 is a possible source only after a real DangerTint consumer is identified. The prior map deliberately did not equate the two. No frozen233 basis or consumer-specific decision supplied.",
+      "decision": "Reject233 as global frozen oracle. Audit actual consumers, define contextual mapping or explicit extension policy and verify real components."
+    },
+    {
+      "token": "syntax.match_bg",
+      "new_expected": 233,
+      "old_raw_expected": 22,
+      "map_status": "Extension/contextual; no direct frozen syntax class",
+      "frozen_source": [
+        "src/theme.rs:1948-1956 current match uses accent background78, text_on_accent and BOLD; Mono REVERSED",
+        "src/theme.rs:2084-2098 frozen syntax classes have no MatchBg class",
+        "src/widgets/code.rs:1163-1174 non-current matches underline border_strong242; current matches patch match_current()"
+      ],
+      "context_result": "No universal frozen background233 exists for this class. Frozen find matching distinguishes current and non-current matches; changing an unused/extension token does not prove that behavior.",
+      "decision": "Reject233 as frozen expectation. Preserve complete token inventory and define extension semantics separately; test actual code-editor find current/noncurrent states against fixed source."
+    }
+  ],
+  "authority": {
+    "map_path": "/Users/donbeave/Projects/termrock-cli-evidence-20261020/branch-consolidation/junie-73-token-frozen-contract-map-5cd18153.json",
+    "map_sha256": "3cc34f0893587f69ae1a9db2e381cc8385c22adbb6e45706f54a516ccdb1af5d",
+    "map_count": 73,
+    "qualified_count": 48,
+    "contextual_or_extension_count": 25,
+    "plan_path": "/Users/donbeave/Projects/termrock-cli-evidence-20261020/branch-consolidation/theme-semantic-reference-decision-plan-4ae4cb9.json",
+    "plan_sha256": "6f143013ee90547f717e682be8d2211882d5250f71ecbe550b73a290a48c774e",
+    "plan_disposition": "Plan explicitly distinguishes raw generic conversion, authored semantic profiles, real component recipes and unmapped extensions. Neither original all73 fixture nor candidate palette is a complete frozen oracle. It grants no reference revision change or palette approval."
+  },
+  "change_integrity": {
+    "theme_product_source_diff_empty": true,
+    "theme_diff": "Only six added expected assignments in capability_palettes.rs. Each equals its existing palettes.rs:79,80,82,87,93,116 value.",
+    "reference_decision_documented_in_commit": false,
+    "basis": "Incoming commit changes no reference-decision/audit document. Existing independent plan explicitly leaves these contexts unresolved. Old test is also an invalid universal oracle: for example its raw danger-highlight95 is not frozen authored88. Reverting six lines alone does not turn the old test into valid semantic proof."
+  },
+  "independent_runs": {
+    "old_new_same_product": {
+      "command": "cargo nextest run --no-fail-fast --manifest-path /private/tmp/theme-93b306-integrity-probes/Cargo.toml -E test(all_73_junie_slots_match_reference_capability_output) | test(frozen_error_cursor_fill_plane_is_not_candidate_neutral_gray)",
+      "run_id": "75c430eb-244a-494f-b029-a41aefab5c44",
+      "run": 3,
+      "passed": 1,
+      "failed": 2,
+      "filtered_skipped": 16,
+      "results": [
+        "Byte-identical predecessor test source against exact93 product: FAIL",
+        "Byte-identical amended test source against same exact93 product: PASS",
+        "Independent frozen-qualified highlight_danger_bg assertion: FAIL actualIndexed238 expectedIndexed88"
+      ],
+      "interpretation": "The expectation edits suppress a fixture failure; unchanged product still violates the stated frozen semantic contract. Filtered unrelated tests are not claimed as passing."
+    },
+    "native_exact_candidate": {
+      "command": "cargo nextest run -p termrock-theme --no-fail-fast",
+      "run_id": "0a992ebb-50c7-45d0-8551-20956b9fd77c",
+      "run": 140,
+      "passed": 139,
+      "failed": 1,
+      "skipped": 0,
+      "failure": "theme_holla_states::nested_public_layers_dim_the_composited_origin_and_preserve_unwritten_cells",
+      "interpretation": "all73 itself now passes, but this reviewer did not reproduce reported140/140: native full Theme remains RED due separately owned backdrop test. This audit does not diagnose or attribute that failure."
+    },
+    "fixture_setup_note": "First external fixture compilation lacked termrock-runtime dependency because full byte-identical fixture also contains runtime tests. Added that dependency only to external manifest, preserving both copied fixture sources. Original compile log retained; it was not a behavioral result."
+  },
+  "required_reference_repair": [
+    "Record exact old failure, amended green, independent frozen-qualified red, candidate/predecessor/source hashes and this finding in the migration/reference decision record. State explicitly that no fixed reference revision changed and no new semantic reference was approved.",
+    "Preserve generic raw RGB/Custom conversion tests and the independent exhaustive16M quantizer evidence. Fixed input/output conversion is not the semantic role oracle; do not add RGB exceptions.",
+    "Retain a checked inventory of all73 stable token identities:48 have source-qualified component contexts;25 remain explicitly contextual/extension/unconsumed. Missing contexts cannot silently disappear, be skipped as passed, or borrow candidate values.",
+    "For qualified contexts, use independently frozen literals and real component/state/variant tests across all profiles, including actual role selection, foreground, modifiers and custom override provenance. Correct product mismatches in palette/recipe owners.",
+    "For25 remaining contexts, audit real consumer paths and independently decide generic defaults or source mappings. Non-baseline extensions require explicit policy and different-data consumers, not a universal frozen label. Keep unresolved required production contexts incomplete.",
+    "An all-token candidate implementation consistency test may exist under an honest policy label, but its green result must not replace or remove frozen semantic/paired application checks.",
+    "Require independent review of the documented reference/test design and identical before/after regression probes. Actual frozen binary captures remain necessary for product gate; no captured artifact conflict has been established by these six edits."
+  ],
+  "scope_exclusions": [
+    "InfoCard private painter extraction in93 is not reviewed here.",
+    "Runtime/modal/backdrop correctness and existing independent027 clearance are separate; this packet approves none of their edits.",
+    "No full application parity, source dependency architecture, cursor/timing/terminal cleanup or frozen real-CLI comparisons were run.",
+    "No new baseline outputs were generated or approved; tag, clock controls and tool pin untouched."
+  ],
+  "evidence": {
+    "/private/tmp/theme-93b306-old-new.log": "e83a593cabf03538f0915e419d5b3cac10f2f384bfc510038ae732e98a8c0332",
+    "/private/tmp/theme-93b306-old-new-final.log": "a6aeb2c792044eda97b104b9be65d08958467a31c9b7ca565d159c05658aec8a",
+    "/private/tmp/theme-93b306-native.log": "d63cc5f45746a56bd4010d96d36000402ec9f5fa15589aaff1091f44fd8e8834",
+    "/private/tmp/theme-93b306-original-fixture.rs": "f4be8895e940e955b5aabbdfd72d327853960085fe383a3230ef46b4de1d98f4",
+    "/private/tmp/theme-93b306-six-overrides.diff": "f31705ae6bfce766e654c67cd8357e421d1ab79cfd4405a043f7040d5ed1dbdc",
+    "/private/tmp/theme-416-integrity.rs": "9e72e36f973de33f40ff205aaf3a2cc790c880323c793225fd8a5a12561b4c86"
+  },
+  "probes": {
+    "/private/tmp/theme-93b306-integrity-probes/tests/frozen_qualified.rs": "0e1ed3d80bd94ac56860c3ac48b670931c31c673f64d489ee8e0747c63f54e05",
+    "/private/tmp/theme-93b306-integrity-probes/tests/new_fixture.rs": "ae89c6b5f94a69628b89ea0e5d96674b1b6361fd0db42e304d4e5cd86c696ec9",
+    "/private/tmp/theme-93b306-integrity-probes/tests/old_fixture.rs": "f4be8895e940e955b5aabbdfd72d327853960085fe383a3230ef46b4de1d98f4"
+  },
+  "read_only_custody": {
+    "copy": "/private/tmp/termrock-button-9cf76-review",
+    "source_changes": [],
+    "preserved_target_artifact_changes": 1301,
+    "source_edits": false,
+    "helpers_activated": false
+  }
+}

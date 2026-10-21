@@ -1,0 +1,40 @@
+{
+  "reviewed_source": "5cd181530ba61781cf6a2c69d97895a9b0741275",
+  "status": "Architecture agreement before implementation. This supersedes the earlier Button-only FOCUSED-mask workaround and the earlier RadioOn/Off marker recommendation. Earlier binding-only clearance is not full state/style acceptance.",
+  "frozen_evidence": [
+    "src/widgets/button.rs:175-185 resolves actual focus through FocusVisible and suppresses disabled/busy press, then passes that visual state into the shared theme.",
+    "src/widgets/button.rs:197-233 draws a one-cell dot marker or spinner plus one space. A busy Button uses the spinner in preference to the toggle dot.",
+    "src/theme.rs:2421-2422 defines Unicode dot_on/off as ● and ○; lines2486-2487 define ASCII * and o.",
+    "Current builtin/junie.rs:113 maps RadioOn/Off to three-cell (●)/(○); GlyphRole::SwitchKnob has an on-only one-cell glyph. These cannot safely supply the two Button dot semantics."
+  ],
+  "glyph_contract": {
+    "files": [
+      "crates/termrock-theme/src/glyph.rs",
+      "crates/termrock-theme/src/builder.rs",
+      "Focused theme glyph API/ASCII compatibility tests"
+    ],
+    "public_shape": "Append GlyphRole::DotOn and DotOff after PrimaryKey; existing discriminants0..41 remain unchanged, DotOn42/DotOff43. Extend GlyphRole::ALL to44. Preserve GlyphSet::new signature and its 41-entry array exactly.",
+    "private_storage": "Add private dot_on and dot_off string fields, initialized to ●/○ by the existing constructor. Extend get/set with explicit match arms, following PrimaryKey storage precedent; never index42/43 into the 41-entry array.",
+    "ascii": "Extend the existing ascii_glyphs builder to set DotOn=* and DotOff=o. Preserve explicit later builder.glyph overrides and all existing Radio, Checkbox, PrimaryKey, scrollbar and rule behavior. No per-application glyph flag, no cropping Radio glyphs, no capability selected alternate painter.",
+    "controls_consumer": "Button marker fallback uses DotOn/Off only when MARKER glyph inherits; explicit glyph Set/Clear and slot remain authoritative. Busy precedence and prefix measurement are owned once by Button."
+  },
+  "focus_contract": {
+    "flags": "FOCUSED always represents actual current-layer focus and remains available to bindings, parent scopes, body emphasis and component responses. FOCUS_VISIBLE controls only the visible keyboard indicator policy. Never erase FOCUSED to implement KeyboardOnly.",
+    "button_option": "Button Always promotes existing eligible FOCUSED to FOCUS_VISIBLE. KeyboardOnly retains runtime FOCUS_VISIBLE. Neither option manufactures focus or restores covered focus. Frozen default Always is an intentional narrowly scoped correction; existing constructor and IDs remain source compatible.",
+    "color_recipe_file": "crates/termrock-theme/src/builtin/mod.rs, private button_variant function around lines177-186. Change its BUTTON GUTTER predicate from FOCUSED to FOCUS_VISIBLE. Keep BUTTON CONTAINER focus emphasis keyed by FOCUSED. Do not change row_like, field_like, Select, List or other families. button() at654-666 invokes button_variant for default and every Button variant.",
+    "mono_recipe_file": "crates/termrock-theme/src/downgrade.rs mono_rules():393-402 currently provides a shared GUTTER/FOCUSED fallback. Introduce a BUTTON-only built-in variant of that default rule selection in the existing family dispatcher around642-654, with only GUTTER focus glyph predicate changed to FOCUS_VISIBLE. Preserve all other generic rules/families, and preserve explicitly authored recipes.mono_rules precedence. Do not globally change the shared rule.",
+    "inert_reference": "Use existing owner-wide Ui::reference with ReferenceTarget::new(id,state), not a CONTAINER-only target. Preserve actual FOCUSED and separately set FOCUS_VISIBLE for illustrative focus. Inert registration/input/cursor suppression already exists and must remain; no new reference engine or hidden control."
+  },
+  "ownership_and_staging": [
+    "Coordinate the exclusive Theme writer for the glyph and BUTTON-only color/Mono recipe increment. The Button writer currently owns button.rs only and must not edit Theme files concurrently.",
+    "Theme increment publishes the additive glyph/recipe contract and focused compatibility tests first. Button writer then consumes DotOn/Off and correct focus-state derivation, with inherited-disabled forwarding and one prefix geometry.",
+    "Independent exact-commit review is required before either is adopted. Showcase migration remains a later real shared-consumer increment with the stored reference conflict explicitly unresolved."
+  ],
+  "required_tests": [
+    "Compile an external consumer using the old GlyphSet::new([..;41],...) constructor and old role discriminants. get/set every role, verify no out-of-bounds, Radio remains three cells, Dot remains one cell for builtin Unicode/ASCII.",
+    "For every Button variant and all four profiles, actual pointer focus retains FOCUSED/bindings/body emphasis but KeyboardOnly has no gutter; keyboard focus shows it; Always pointer focus shows it; covered layers show none.",
+    "Compare non-BUTTON families before/after recipe resolution for all existing focus combinations; they must be unchanged. Explicit custom GUTTER patches/glyph Clear and custom Mono family rules must keep their documented precedence.",
+    "Real pressed/disabled/busy/checked combinations and inert specimens style all parts and produce zero controls, bindings, cursor or actions. Prove meaningful red-before-green."
+  ],
+  "limits": "No product edits performed. No palette approval, hosted CI success, stored expected update or full Showcase parity is implied."
+}

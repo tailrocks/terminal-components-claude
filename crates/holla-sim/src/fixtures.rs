@@ -27,8 +27,29 @@ pub fn cwd_for(scenario: Scenario) -> &'static str {
         Scenario::DockerCleanup => "~/work/scratch",
         Scenario::DiskCleanup => "~/work",
         Scenario::UpgradePlan => "~",
-        Scenario::RemoteHost => "/srv/payments",
+        Scenario::RemoteHost | Scenario::ParityTaskInput => "/srv/payments",
         Scenario::HardCases => "~/work/supercalifragilistic-expiadocious-monorepository-of-doom",
+        Scenario::ParityDiscovery => "~/work/probe",
+        Scenario::ParityHistory => "~/work/holla",
+        Scenario::ParityFiles => "~/work/notes",
+        Scenario::ParityBrowser => "~/work/site",
+        Scenario::ParityGitCurrent => "~/work/svc",
+        Scenario::ParityGitBatch => "~/work/repos",
+        Scenario::ParityTaskSources => "~/work/poly",
+        Scenario::ParityCargo => "~/work/engine",
+        Scenario::ParityDocker => "~/work/docker",
+        Scenario::ParityBrewServices => "~/work/brew",
+        Scenario::ParityGradle => "~/work/android",
+        Scenario::ParityIdea => "~/work/idea",
+        Scenario::ParityUpgradeManagers => "~/work/upgrades",
+        Scenario::ParityExecutor => "~/work/batch",
+        Scenario::ParityCustomActions => "~/work/team",
+        Scenario::ParityDiskScan => "~/work/data",
+        Scenario::ParityDiskNavigation => "~/work/big",
+        Scenario::ParityInsights => "~/work/web",
+        Scenario::ParityDeleteSafety | Scenario::ParityCleanupResults => "~/Projects/safe",
+        Scenario::ParityPlatforms => "~/work/mac",
+        Scenario::ParityPlatformsLinux => "/home/alex",
     }
 }
 
@@ -36,7 +57,18 @@ pub fn host_for(scenario: Scenario) -> Host {
     match scenario {
         Scenario::RemoteHost => Host::remote("prod-eu-1", Environment::Production),
         Scenario::UpgradePlan => Host::remote("devbox-deb", Environment::Dev),
-        _ => Host::local("devbox"),
+        Scenario::ParityTaskInput => Host::remote("devbox", Environment::Production),
+        Scenario::ParityPlatformsLinux => Host::local("devbox"),
+        Scenario::FirstUse
+        | Scenario::RustDirty
+        | Scenario::MonorepoRoot
+        | Scenario::MonorepoChild
+        | Scenario::DockerCleanup
+        | Scenario::DiskCleanup
+        | Scenario::ActivitiesMulti
+        | Scenario::LaunchFailure
+        | Scenario::HardCases => Host::local("devbox"),
+        _ => Host::local("mbp"),
     }
 }
 
@@ -82,6 +114,29 @@ pub fn world_for(scenario: Scenario) -> World {
         Scenario::ActivitiesMulti => seed_activities_multi(&mut w),
         Scenario::RemoteHost => seed_remote_host(&mut w),
         Scenario::HardCases => seed_hard_cases(&mut w),
+        Scenario::ParityDiscovery
+        | Scenario::ParityHistory
+        | Scenario::ParityFiles
+        | Scenario::ParityBrowser
+        | Scenario::ParityGitCurrent
+        | Scenario::ParityGitBatch
+        | Scenario::ParityTaskSources
+        | Scenario::ParityCargo
+        | Scenario::ParityDocker
+        | Scenario::ParityBrewServices
+        | Scenario::ParityGradle
+        | Scenario::ParityIdea
+        | Scenario::ParityUpgradeManagers
+        | Scenario::ParityExecutor
+        | Scenario::ParityTaskInput
+        | Scenario::ParityCustomActions
+        | Scenario::ParityDiskScan
+        | Scenario::ParityDiskNavigation
+        | Scenario::ParityInsights
+        | Scenario::ParityDeleteSafety
+        | Scenario::ParityCleanupResults
+        | Scenario::ParityPlatforms
+        | Scenario::ParityPlatformsLinux => {}
     }
     w
 }

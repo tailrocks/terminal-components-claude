@@ -1,0 +1,51 @@
+[0m[2m  holla❯    File   Go   Help                                                                             payments · service checkout  ◆ prod-eu-1 · production  [0m
+[0m[2m  Here › Review                                                                                                                                                 [0m
+[0m[2m  Here › Review                                                                                                                                                 [0m
+[0m[2m ━━━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+[0m[2m  Review · Restart payments · gate 1 of 2 · review the resolved facts, then continue deliberately                                                               [0m
+[0m[2m                                                                                                                                                                [0m
+[0m[2m  Action       systemctl restart payments on prod-eu-1 · production · in-flight requests are dropped                                                            [0m
+[0m[2m  Host         prod-eu-1 · production                                                                                                                           [0m
+[0m[2m  In           prod-eu-1 · host-wide                                                                                                                            [0m
+[0m[2m  Scope        on prod-eu-1                                                                                                                                     [0m
+[0m[2m  Changes      payments restarts · brief outage on prod-eu-1                                                                                                    [0m
+[0m[2m  Risk         privileged                                                                                                                                       [0m
+[0m[2m  Data         live · 0 s ago                                                                                                                                   [0m
+[0m[2m  Recoverable  service restarts · brief outage                                                                                                                  [0m
+[0m[2m  Provenance   built-in action · resolved╭──────────────────────────────────────────────────────────────────────── × ─╮                                         [0m
+[0m[2m  Gate         second gate types the targ│                                                                            │                                         [0m
+[0m[2m                                         │  [0m[1;2mRestart payments · gate 2 of 2[0m[2m                                            │                                         [0m
+[0m[2m ╭─ Sequence · 2 commands ───────────────│                                                                            │──────────────────────────── y copies ─╮ [0m
+[0m[2m │  01  sudo systemctl restart payments  │  [0mAction   systemctl restart payments on prod-eu-1 · production ·         [0m[2m  │                                       │ [0m
+[0m[2m │  02  systemctl status payments        │  [0m         in-flight requests are dropped                                 [0m[2m  │                                       │ [0m
+[0m[2m │                                       │  [0mHost     prod-eu-1 · production                                         [0m[2m  │                                       │ [0m
+[0m[2m │                                       │  [0mIn       prod-eu-1 · host-wide                                          [0m[2m  │                                       │ [0m
+[0m[2m │                                       │  [0mScope    on prod-eu-1                                                   [0m[2m  │                                       │ [0m
+[0m[2m │                                       │  [0mChanges  payments restarts · brief outage on prod-eu-1                  [0m[2m  │                                       │ [0m
+[0m[2m │                                       │  [0mRisk     privileged                                                     [0m[2m  │                                       │ [0m
+[0m[2m │                                       │  [0mData     live · 0 s ago                                                 [0m[2m  │                                       │ [0m
+[0m[2m │                                       │  [0m                                                                        [0m[2m  │                                       │ [0m
+[0m[2m │                                       │  [0msudo systemctl restart payments                                         [0m[2m  │                                       │ [0m
+[0m[2m │                                       │  [0msystemctl status payments                                               [0m[2m  │                                       │ [0m
+[0m[2m │                                       │                                                                            │                                       │ [0m
+[0m[2m │                                       │  [0m[1;2mType RESTART PAYMENTS ON prod-eu-1 to confirm                           [0m[2m  │                                       │ [0m
+[0m[2m │                                       │[0m[1;2;7m▎ [0m[1;2;4;7mRESTART PAYMENTS ON prod-eu-1[0m[1;2;7m                                           [0m[2m  │                                       │ [0m
+[0m[2m │                                       │                                                                            │                                       │ [0m
+[0m[2m │                                       │                                                        Cancel    Execute   │                                       │ [0m
+[0m[2m │                                       │                                                                            │                                       │ [0m
+[0m[2m │                                       ╰────────────────────────────────────────────────────────────────────────────╯                                       │ [0m
+[0m[2m │                                                                                                                                                            │ [0m
+[0m[2m │                                                                                                                                                            │ [0m
+[0m[2m │                                                                                                                                                            │ [0m
+[0m[2m │                                                                                                                                                            │ [0m
+[0m[2m │                                                                                                                                                            │ [0m
+[0m[2m │                                                                                                                                                            │ [0m
+[0m[2m │                                                                                                                                                            │ [0m
+[0m[2m │                                                                                                                                                            │ [0m
+[0m[2m ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ [0m
+[0m[2m                                                                                                                                                                [0m
+[0m[2m                                                                                                                                         [0m [0m[2mCancel   [0m [0m[2mContinue…   [0m
+[0m[2m                                                                                                                                                                [0m
+[0m[2m /srv/payments   detached @ v2.14.3                                           review · gate 1 of 2                                            no color · 160×50 [0m
+ [0m[1m EDIT [0m  [0m[1mEnter[0m Execu[0m[1mte  Esc[0m Cancel  [0m[1m   [0m       [0m[1m [0m                [0m[1m   [0m                                                                                              [0m
+[?25h[32;74H[6 q

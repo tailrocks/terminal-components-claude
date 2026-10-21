@@ -99,10 +99,15 @@ impl Chord {
         if self.code != other.code {
             return false;
         }
-        if matches!(self.code, KeyCode::Char(_)) {
-            self.mods.difference(KeyModifiers::SHIFT) == other.mods.difference(KeyModifiers::SHIFT)
-        } else {
-            self.mods == other.mods
+        match self.code {
+            // Shift is encoded in the character itself for printable keys.
+            // BackTab likewise denotes Shift+Tab, so backends that also
+            // report the redundant SHIFT bit must match the same binding.
+            KeyCode::Char(_) | KeyCode::BackTab => {
+                self.mods.difference(KeyModifiers::SHIFT)
+                    == other.mods.difference(KeyModifiers::SHIFT)
+            }
+            _ => self.mods == other.mods,
         }
     }
 
@@ -351,6 +356,28 @@ mod tests {
             "Ctrl+s"
         );
         assert_eq!(Chord::key(KeyCode::Esc).to_string(), "Esc");
+    }
+
+    #[test]
+    fn back_tab_treats_shift_as_intrinsic_but_preserves_other_modifiers() {
+        let bare = Chord::key(KeyCode::BackTab);
+        let shifted = Chord::with(KeyCode::BackTab, KeyModifiers::SHIFT);
+        assert!(bare.effective_eq(&shifted));
+        assert!(shifted.effective_eq(&bare));
+
+        let alt = Chord::with(KeyCode::BackTab, KeyModifiers::ALT);
+        let alt_shift = Chord::with(KeyCode::BackTab, KeyModifiers::ALT | KeyModifiers::SHIFT);
+        assert!(alt.effective_eq(&alt_shift));
+        assert!(!bare.effective_eq(&alt));
+        assert!(!bare.effective_eq(&Chord::with(KeyCode::BackTab, KeyModifiers::CONTROL,)));
+
+        assert!(
+            !Chord::key(KeyCode::Tab).effective_eq(&Chord::with(KeyCode::Tab, KeyModifiers::SHIFT))
+        );
+        assert!(
+            !Chord::key(KeyCode::Left)
+                .effective_eq(&Chord::with(KeyCode::Left, KeyModifiers::SHIFT))
+        );
     }
 }
 

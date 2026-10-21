@@ -1,0 +1,25 @@
+ [0m[1;7m jackin❯ [0m   File   Edit   View   Session   Help                             …  [0m
+                                                                                [0m
+ [0m[1m [0m1[0m[1m Mix (3) [0m●[0m[1m  [0m  2 Shell    3 docs ●                                            [0m
+ ╭───────────────────────────╮───────────────────────────────────────────────── [0m
+╭│[0m[1m  Mix (3)           [0m       │────────╮│╭─ Codex (Primary) ○───────────────────╮[0m
+│[0m[2m│[0m[1;2;7m  Change title…    [0m[2;7m2×click[0m[1;2;7m [0m[2m│pow(at [0m┆│││[0m[2m  rounding precedes FX conversion in [0m┆│[0m
+││  Split right     Ctrl+B % │       ┆│││                                     ┆│[0m
+││ ───────────────────────── │TEMPTS ┆│││○ Done · 38 s · 12.4k tokens         ┆│[0m
+││  Close tab       Ctrl+B & │       ┆│││                                     ┆│[0m
+│╰───────────────────────────╯nt ret ┆│││❯                                    ┃│[0m
+│  running 6 tests … 6 passed (1.42  ┆│││━━━━━━━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄ │[0m
+│                                    ┆││╰──────────────────────────────────────╯[0m
+│● Edit src/settlement/mod.rs        ┆││────────────────────────────────────────[0m
+│  +  pub use retry::{MAX_ATTEMPTS,  ┃││╭─ Shell ──────────────────────────────╮[0m
+│                                    ┃│││[0m[2m    Finished dev [unoptimized] targe [0m┆│[0m
+│● Retries now back off 250 ms → 4 s ┃│││payments-platform ❯ ls docs/adr      ┆│[0m
+│  One more edit: expose the policy  ┃│││0001-record-architecture.md  0004-le ┆│[0m
+│                                    ┃│││0002-settlement-batches.md   0005-fx ┆│[0m
+│▶ Allow edit to src/settlement/conf ┃│││0003-retry-policy.md         0007-re ┆│[0m
+│❯                                   ┃│││payments-platform ❯                  ┃│[0m
+│━━━━━━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄ │││━━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄ │[0m
+╰─────────────────────────────────────╯│╰──────────────────────────────────────╯[0m
+ [0m[1mPR #482 · Settlement retry backoff[0m               …   Session ╍╍╍╍╍╍╍╍─── [0m[3m76%[0m ▲ [0m
+ [0m[1mEsc[0m Close  …           Attached to payments-platform · tabs and panes restored [0m
+[?25h[20;4H[6 q

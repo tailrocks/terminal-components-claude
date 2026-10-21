@@ -23,3 +23,8 @@ ratatui-core.workspace = true
 
 [dev-dependencies]
 termrock-runtime = { workspace = true, features = ["testing"] }
+termrock-controls.workspace = true
+
+# Rust documentation examples are guarded by the workspace doc inventory test.
+[lib]
+doctest = false

@@ -1,8 +1,9 @@
 use std::time::Duration;
 
 use termrock::{
-    Button, Constraints, Cx, Family, FrameRead, Id, Moment, Panel, PanelKind, Part, PartRef, Rect,
-    ReferenceState, ReferenceTarget, Response, RowAlign, StateFlags, Status, Ui, Variant, layout,
+    BusyMarkerPolicy, Button, Constraints, Cx, FrameRead, Id, Moment, Panel, PanelKind, Part,
+    PartRef, Rect, ReferenceState, ReferenceTarget, Response, RowAlign, StateFlags, Status, Ui,
+    Variant, layout,
 };
 
 use super::{Page, PageStatus, PageUpdate, frame};
@@ -71,20 +72,6 @@ const MATRIX_VARIANTS: [(Variant, &str); 4] = [
     (Variant::DANGER, "Danger"),
 ];
 
-fn legacy_gutter(ui: &mut Ui<'_>, area: Rect, variant: Variant, flags: StateFlags) {
-    if area.is_empty() {
-        return;
-    }
-    let container = ui.style(Family::BUTTON, variant, Part::CONTAINER, flags);
-    let mut gutter = ui.style(Family::BUTTON, variant, Part::GUTTER, flags).style;
-
-    gutter = gutter.with_bg_from(container.style);
-    if !flags.contains(StateFlags::FOCUSED) {
-        gutter = gutter.with_fg_from_bg(container.style);
-    }
-    let _ = ui.paint_str(Rect { width: 1, ..area }, "▎", gutter);
-}
-
 fn matrix_reference(flags: StateFlags) -> Option<ReferenceState> {
     let mut state = ReferenceState::default();
     let mut present = false;
@@ -132,7 +119,8 @@ impl ButtonsPage {
         let (label, variant, disabled, _) = SPECS.get(index).copied()?;
         let mut button = Button::new(Self::button_id(index), label)
             .variant(variant)
-            .disabled(disabled);
+            .disabled(disabled)
+            .busy_marker_policy(BusyMarkerPolicy::Replace);
         if let Some(checked) = self.checked.get(index).copied().flatten() {
             button = button.checked(checked);
         }
@@ -288,34 +276,8 @@ impl ButtonsPage {
                     .iter()
                     .zip(layout::action_row(line, &widths, gap, RowAlign::Start))
             {
-                if let Some(button) = self.button(index)
-                    && let Some(&(_, variant, disabled, _)) = SPECS.get(index)
-                {
-                    let mut flags = ui.state(button.id());
-                    if disabled {
-                        flags |= StateFlags::DISABLED;
-                    }
-                    if self.checked.get(index).copied().flatten() == Some(true) {
-                        flags |= StateFlags::CHECKED | StateFlags::SELECTED;
-                    }
-                    if self.busy_until.is_some() && index == LONG_JOB {
-                        flags |= StateFlags::BUSY;
-                    }
+                if let Some(button) = self.button(index) {
                     button.draw(ui, button_area);
-                    legacy_gutter(ui, button_area, variant, flags);
-                    if let Some(checked) = self.checked.get(index).copied().flatten() {
-                        let marker = ui.style(Family::BUTTON, variant, Part::MARKER, flags).style;
-                        let _ = ui.paint_str(
-                            Rect {
-                                x: button_area.x.saturating_add(1),
-                                y: button_area.y,
-                                width: 1,
-                                height: 1,
-                            },
-                            if checked { "●" } else { "○" },
-                            marker,
-                        );
-                    }
                 }
             }
             y = y.saturating_add(3);
@@ -374,6 +336,7 @@ impl ButtonsPage {
                     Button::new(id, " Label")
                         .variant(*variant)
                         .disabled(flags.contains(StateFlags::DISABLED))
+                        .busy_marker_policy(BusyMarkerPolicy::Replace)
                         .draw(
                             ui,
                             Rect {
@@ -383,34 +346,55 @@ impl ButtonsPage {
                                 height: 1,
                             },
                         );
-                    legacy_gutter(
-                        ui,
-                        Rect {
-                            x,
-                            y,
-                            width: column_width,
-                            height: 1,
-                        },
-                        *variant,
-                        *flags,
-                    );
-                    if flags.contains(StateFlags::PRESSED) {
-                        let container = ui
-                            .style(Family::BUTTON, *variant, Part::CONTAINER, *flags)
-                            .style;
-                        let _ = ui.paint_str(
-                            Rect {
-                                x: x.saturating_add(7),
-                                y,
-                                width: 1,
-                                height: 1,
-                            },
-                            " ",
-                            container,
-                        );
-                    }
                 });
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{BUTTONS, ButtonsPage, MATRIX, Page};
+    use termrock::{App, Cx, GlyphRole, Response, Theme, Ui};
+    use termrock_test_support::Harness;
+
+    struct ShowcaseButtons(ButtonsPage);
+
+    impl App for ShowcaseButtons {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            self.0.update(cx).response
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let area = ui.full();
+            self.0.draw(ui, area);
+        }
+    }
+
+    #[test]
+    fn toggle_activation_uses_button_owned_marker_and_reference_rows_are_inert() {
+        let page = ShowcaseButtons(ButtonsPage::new());
+        let theme = Theme::junie()
+            .builder()
+            .glyph(GlyphRole::DotOff, "o")
+            .glyph(GlyphRole::DotOn, "x")
+            .glyph(GlyphRole::FocusBar, "f")
+            .build();
+        let mut harness = Harness::new(page, theme, 120, 40);
+        let toggle = BUTTONS.index(4);
+        let area = harness.area_of(toggle).expect("toggle is registered");
+
+        assert_eq!(harness.app().0.checked[4], Some(false));
+        assert_eq!(harness.cell(area.x.saturating_add(1), area.y).symbol(), "o");
+        assert!(harness.tab_to(toggle));
+        assert_eq!(harness.cell(area.x, area.y).symbol(), "f");
+        assert!(harness.click_id(toggle).is_changed());
+        assert_eq!(harness.app().0.checked[4], Some(true));
+        assert_eq!(harness.cell(area.x.saturating_add(1), area.y).symbol(), "x");
+
+        let reference_button = MATRIX.index(0).index(0);
+        assert!(harness.area_of(reference_button).is_none());
+        assert!(harness.text().contains("focus + hover"));
+        assert!(area.width > 0);
     }
 }

@@ -1,0 +1,41 @@
+[0m[2m  holla❯    File   Go   Help                                                        engine · Rust project  mbp · local  [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m  Here                                                                                                                  [0m
+[0m[2m ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+[0m[2m [0m [0m[2m cargo clean                                                                                          scope ‹ here ›  [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m    Results · 3                                                                  cargo clean · 900.0 … cleanup · here   [0m
+[0m[2m  › cargo clean · 900.0 MiB    cleanup  here  900.0 MiB of gen…  destructive     ────────────────────────────────────   [0m
+[0m[2m    cargo clean dry run        cargo    here  read-only                          Does       remove the resolved         [0m
+[0m[2m    Clean Cargo registr╭──────────────────────────────────────────────────────────────────── × ─╮t directory            [0m
+[0m[2m                       │                                                                        │k/engine/target · 2    [0m
+[0m[2m                       │  [0m[1;2mcargo clean · 900.0 MiB[0m[2m                                               │ · tool-native         [0m
+[0m[2m                       │                                                                        │nent removal, not      [0m
+[0m[2m                       │  [0mAction        remove the resolved target directory                  [0m[2m  │ · rebuilt by the      [0m
+[0m[2m                       │  [0m              ~/work/engine/target · 2 files · tool-native permanent[0m[2m  │build                  [0m
+[0m[2m                       │  [0m              removal, not Trash · rebuilt by the next build        [0m[2m  │ clean                 [0m
+[0m[2m                       │  [0mHost          mbp · local                                           [0m[2m  │k/engine               [0m
+[0m[2m                       │  [0mIn            ~/work/engine                                         [0m[2m  │ local                 [0m
+[0m[2m                       │  [0mScope         here                                                  [0m[2m  │                       [0m
+[0m[2m                       │  [0mChanges       900.0 MiB freed by cargo itself · permanent · next    [0m[2m  │ MiB of generated      [0m
+[0m[2m                       │  [0m              build recompiles everything · shared target:          [0m[2m  │acts                   [0m
+[0m[2m                       │  [0m              /Users/alex/work/engine-wt loses its artifacts too    [0m[2m  │ MiB freed by cargo    [0m
+[0m[2m                       │  [0mRisk          destructive                                           [0m[2m  │f · permanent ·        [0m
+[0m[2m                       │  [0mData          live · 2 s ago                                        [0m[2m  │build recompiles       [0m
+[0m[2m                       │  [0mConfirmation  one explicit confirmation · not remembered            [0m[2m  │thing · shared         [0m
+[0m[2m                       │  [0m                                                                    [0m[2m  │t:                     [0m
+[0m[2m                       │  [0mcargo clean                                                         [0m[2m  │s/alex/work/engine-    [0m
+[0m[2m                       │                                                                        │ses its artifacts      [0m
+[0m[2m                       │                                                       ▎[0m[1;2;4mC[0m[1;2mancel [0m[2m   [0m[2;4mR[0m[2mun   │                       [0m
+[0m[2m                       │                                                                        │uctive                 [0m
+[0m[2m                       ╰────────────────────────────────────────────────────────────────────────╯· 2 s ago              [0m
+[0m[2m                                                                                 Gate       one confirmation            [0m
+[0m[2m                                                                                 Alt+Enter  Show what clean would       [0m
+[0m[2m                                                                                            remove (dry run) · Pin ·    [0m
+[0m[2m                                                                                            Alias · Why here?           [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m ~/work/engine   main                                                                                 no color · 120×40 [0m
+ [0m[1m←→ C[0mhoose  [0m[1mEnter[0m Cance[0m[1ml  Esc[0m Cancel   [0m[1m         [0m                [0m[1m   [0m          [0m[1m       [0m        [0m[1m   [0m                         [0m
+[?25l

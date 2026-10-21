@@ -1,0 +1,139 @@
+{
+  "reviewed_commit": "b521748360a2a056d95c79090707ded595f53a6a",
+  "comparison_parent": "5f82c4d35d12e0fb77b0f580a8ef200240661602",
+  "fixed_design": "f4867e9b5f8a08a3bb61ce80d644198a29f51984",
+  "frozen_baseline": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "method": "Independent read-only exact-commit source review. A small source archive was extracted; no production file was edited. No Rust build, nextest execution, or real CLI comparison was performed. Numeric layout examples below are derived from the exact resolver source, not claimed as executable probe results.",
+  "status": "requires_changes; no architecture acceptance or product-parity approval",
+  "findings": [
+    {
+      "id": "SHELL-API-1",
+      "severity": "high",
+      "title": "The facade duplicates the shell implementation instead of delegating to it.",
+      "evidence": [
+        "crates/termrock-shell/src/chrome.rs:19",
+        "crates/termrock-shell/src/shell.rs:24",
+        "crates/termrock/src/blocks/shell.rs:29",
+        "crates/termrock/src/blocks/shell.rs:154",
+        "crates/termrock/src/lib.rs:56",
+        "crates/termrock/src/lib.rs:90"
+      ],
+      "detail": "Both crates define and implement independent Chrome, Regions, and AppShell types. The facade reexports its private implementation as termrock::AppShell and the other implementation as termrock::shell::AppShell. Neither delegates to the other. termrock::Chrome is consequently not the same type as termrock::shell::Chrome. Fixing one layout implementation will not fix the other.",
+      "decision": "Keep one owner in the shell block layer. Make facade exports and optional builder adapters delegate to that exact owner; preserve public names with reexports where possible."
+    },
+    {
+      "id": "SHELL-API-2",
+      "severity": "high",
+      "title": "regions() and the rendered slot layout do not use one resolved geometry.",
+      "evidence": [
+        "crates/termrock-shell/src/chrome.rs:92",
+        "crates/termrock-shell/src/shell.rs:69",
+        "crates/termrock/src/blocks/shell.rs:224",
+        "crates/termrock-runtime/src/ui/composition.rs:153",
+        "crates/termrock-runtime/src/ui/composition.rs:292",
+        "crates/termrock-layout/src/composition_plan.rs:349"
+      ],
+      "detail": "regions() insets only the body and adds a gap only beside a nonempty strip. slots() gives global horizontal padding to the whole column and always creates three child slots and two gaps. For area (0,0,40,24), header=2, footer=3, gap=1, inset=2, regions returns full-width header (0,0,40,2) and footer (0,21,40,3), while slots restricts every child to x=2,width=36. Omitting a header or footer still reserves its zero-size child gap in slots, unlike regions. Existing shell tests create slots and discard them; they never draw or inspect the resolved child areas.",
+      "decision": "Resolve shell layout once, retaining baseline body-only insets and conditional gaps. Use that result for leaves, hit testing, focus, and any geometry compatibility accessor. Add real runtime leaf-registration probes across nonzero origins, zero strips, tiny sizes, and insets."
+    },
+    {
+      "id": "SHELL-API-3",
+      "severity": "high",
+      "title": "PageLeaf measurement can consume the footer despite the shell strip budget.",
+      "evidence": [
+        "crates/termrock-shell/src/page.rs:102",
+        "crates/termrock-shell/src/shell.rs:52",
+        "crates/termrock-layout/src/composition_plan.rs:590",
+        "crates/termrock-layout/src/composition_plan.rs:646"
+      ],
+      "detail": "PageLeaf measures its minimum as the entire supplied maximum. Initial shell measurement supplies the root content height, including reserved strips. With a 10-row root, a PageLeaf body reports minimum height 10; default strips report minimum 1 each and two gaps leave 8 assignable rows. Clip overflow allocates minimums in source order, so the header receives 1, body 7, footer 0. regions() instead promises header 1, body 6, footer 1. The strip policy also sets only a minimum, so a taller measured header/footer may exceed its declared reservation. These are source-derived examples and still need an exact runtime probe.",
+      "decision": "A fill page must have a flexible or constrained body minimum, not the entire unreserved root. Give reserved strips explicit maximum height or resolve their budgets before measuring children. Prove footer persistence through the public page_leaf and shell show APIs."
+    },
+    {
+      "id": "SHELL-API-4",
+      "severity": "high",
+      "title": "KeyRouter remains a separate raw-key routing contract requiring application-owned component mechanics.",
+      "evidence": [
+        "crates/termrock-shell/src/router.rs:274",
+        "crates/termrock-shell/src/router.rs:357",
+        "crates/termrock-shell/src/router.rs:380",
+        "crates/termrock-shell/examples/shell_consumer.rs:141",
+        "crates/termrock-runtime/src/runtime.rs:1690",
+        "crates/termrock-runtime/src/runtime.rs:1714"
+      ],
+      "detail": "KeyHost asks consumers to implement layer_key, menu_key, capturing, text_focus, chrome_key, page_key, and paste routing. KeyRouter dispatches those callbacks from a raw Key without Cx, active runtime layer identity, registered command scope, or typing-owner identity. The example drains only BODY intents into this router. The runtime already performs capture, focus/typing routing, scoped bubble dispatch, and modal dismissal. Thus this shell contract does not demonstrate a single shared input route and cannot by itself enforce modal scope or focus restoration. No second terminal renderer was found, and no active application modal escape defect is claimed from source alone.",
+      "decision": "Adapt shell actions into existing runtime binding and command_scope APIs. Derive typing and active-layer eligibility from runtime ownership rather than app booleans. Keep route/domain actions in the app. Require real runtime tests for zero-focus layers, editing, modal open/close, focus restoration, consumed keys, and Tab/BackTab before adopting KeyRouter in applications."
+    },
+    {
+      "id": "SHELL-API-5",
+      "severity": "medium",
+      "title": "The public production shell dependency unconditionally enables the testing runtime.",
+      "evidence": [
+        "crates/termrock-shell/Cargo.toml:11",
+        "crates/termrock-shell/Cargo.toml:17",
+        "crates/termrock-shell/src/lib.rs:22",
+        "crates/termrock-shell/src/reach.rs:246",
+        "crates/termrock/Cargo.toml:31"
+      ],
+      "detail": "The testing feature is empty while the ordinary runtime dependency explicitly enables testing. The reach harness is always public and calls draw_buffer/commit_presented testing surfaces. Because the facade normally depends on shell, ordinary facade consumers also activate runtime/testing. This is separate from the CI writer's assigned doctest and inventory fix; it remains unassigned and unfixed in the reviewed commit.",
+      "decision": "Move the runtime testing activation behind shell/testing or a dev-dependency, gate the reach harness appropriately, propagate optional facade/testing as required, and compile a fresh external default-feature consumer to prove testing is absent."
+    },
+    {
+      "id": "SHELL-API-6",
+      "severity": "medium",
+      "title": "The new shell API is not demonstrated by thin application composition or meaningful CI interaction examples.",
+      "evidence": [
+        "crates/termrock-shell/examples/shell_consumer.rs:21",
+        "crates/termrock-shell/examples/shell_consumer.rs:172",
+        "crates/termrock-shell/examples/shell_consumer.rs:208",
+        "crates/termrock-shell/examples/shell_consumer.rs:257",
+        "crates/showcase-ui/src/app.rs:953",
+        "crates/tablepro-ui/src/app.rs:6852"
+      ],
+      "detail": "The example uses public APIs but implements its own header/body/footer leaves, raw registration, RowUi painting, and hint joining. It renders one TestBackend frame and exits; it does not drive routing, quit confirmation, overlays, keyboard focus, or status expiry. Showcase and TablePro only replace their old three-region split with AppShell::regions and continue manual composition. Bounded application source scans found no adoption of shell::KeyRouter, LeaveGuard, or StatusLine in the four app helper areas. Velnor config has generic all-target discovery rather than a specific exercised shell consumer or showcase capability declaration. A compiling example is useful API smoke evidence, but not proof of the requested consumer API or full shared-shell adoption.",
+      "decision": "First expose shared widget-backed named slots and a runtime-adapted shell controller. Demonstrate them in a real Showcase screen and an unrelated external consumer. Add executable interaction tests and explicit capability coverage before migrating the remaining apps."
+    }
+  ],
+  "retained_contracts": [
+    "Generic Router<P>/Nav<R> and PageKey keep domain routes and page data outside the library. Router stack operations are domain-independent and preserve entry keys across navigation.",
+    "LeaveGuard<T>, Stakes, LeaveDialog and typed DialogAnswer separate domain decisions from concrete overlay rendering. They do not yet own runtime layer focus or cursor behavior.",
+    "StatusLine<P> uses the existing runtime Moment and semantic theme Role; Footer returns data rather than painting private app pixels.",
+    "AppShell::show delegates actual painting and clipping to existing CompositionSlots/Ui. No second terminal backend, snapshot import, fixed captured frame, SQL, Git command, or application source dependency was found in the shell production sources.",
+    "The port references fixed PR26 source contracts; generic shell state belongs in shared code, so retain useful contracts while replacing duplicate and raw routing integration mechanisms."
+  ],
+  "additional_limits": [
+    "Reach::Words::add_area accepts a cell as an alphanumeric character only when its symbol has exactly one Unicode scalar (reach.rs122-135); combining graphemes are split/discarded. This harness is not Unicode-completeness evidence. It deliberately ignores footer rows and treats too-small scenarios as non-failures.",
+    "Router::with_tabs explicitly asserts nonempty roots. This is a documented route-construction precondition, not counted here as a demonstrated widget empty-data defect.",
+    "The shell default tests and example do not establish frozen behavior, application parity, cursor shape, terminal cleanup, pointer interaction, or immutable reference provenance.",
+    "No acceptance conclusion can be transferred from the facade rendering one frame or from generic all-target CI planning."
+  ],
+  "staged_plan": [
+    "1. Keep shell and facade API source ownership with one writer. Independently fix the already assigned doctest inventory issue; do not treat it as fixing testing-feature leakage.",
+    "2. Consolidate Chrome/Regions/AppShell to one implementation and retain facade-compatible reexports. Add public runtime draw/registration regression probes for inset, omitted strips, tiny regions, nonzero origins, and PageLeaf footer persistence.",
+    "3. Implement a shell command adapter over existing runtime scopes and focus/layer contracts. Keep optional legacy raw-key helpers clearly separate until consumers migrate; do not add another event loop or rendering system.",
+    "4. Gate reach/testing dependencies and prove default-feature independence through cargo metadata and a clean external consumer. Add combining/wide-text checks if reach is presented as coverage evidence.",
+    "5. Build shared widget-backed header/footer/navigation/quit slots with actual application consumers and executable Showcase coverage. Migrate one real screen flow at a time, with paired frozen CLI capture and candidate comparison after each change.",
+    "6. Review exact integrated commits independently and run full required CI and twice-repeated product comparisons before any acceptance claim."
+  ],
+  "source_sha256": {
+    "crates/termrock-shell/Cargo.toml": "52d51aa2e788c987e9ea5cc275a998c5640918a27a302ac8460be5de9118ee45",
+    "crates/termrock-shell/examples/shell_consumer.rs": "91428d43e309d5840fb8dfb5b7490156d44f760f9c61875d2abd09e35f4846a3",
+    "crates/termrock-shell/src/chrome.rs": "cbae0a2ba204e110aa213ff7aeb94de9f1c3d1766c9654abf7825851cafd7195",
+    "crates/termrock-shell/src/footer.rs": "ddcd71310f5353bbb60ac3d56a6153b6040a97cdad86c3aa2bc3334b17395bf0",
+    "crates/termrock-shell/src/keyboard.rs": "c530e6d379df5a9125bfcb9b247aaa3b83c019be74021576f14cbb7eb8b4f7f0",
+    "crates/termrock-shell/src/lib.rs": "220dd16f3ee19ad79e4a533c0b95694faa7c1b9758375d0cd5e9815199a5e4f7",
+    "crates/termrock-shell/src/nav.rs": "ea4855f01bd9173d1229e61b485daf47a6b0a8a301fa77a7d3f853ed5118b566",
+    "crates/termrock-shell/src/nav/tests.rs": "b051f69237afe312cd2dd369e08cf64e3e1bb478e32db26d08dcd71c45cb8222",
+    "crates/termrock-shell/src/page.rs": "31ffa0aacf2e28a6a3bf5c9b7d5c9630ba1ff0dbc3bc147582fbc54983158fc9",
+    "crates/termrock-shell/src/quit.rs": "7c35b306cabab77b9f1bfe05eac22b48b3af2f1de5a22ea1f0fe18868ecd5def",
+    "crates/termrock-shell/src/reach.rs": "d72636d3451d6f74f52b4e9750c087aff6ec93c6f8e27cd8463d04cc294a0a94",
+    "crates/termrock-shell/src/router.rs": "8abafaf57336dc1516ed54749cfcdbf65137c86afd1d0c87023e024b9d69dac8",
+    "crates/termrock-shell/src/router/tests.rs": "f4c2ecfeb660374184df5f3ca1c03a4fd75e0170ae5780629eb8d5911ff7e935",
+    "crates/termrock-shell/src/shell.rs": "294b40b297ff312fa9544de4fc51b88af0dc8e7eadf10ea95bdc60f4c59e41f9",
+    "crates/termrock-shell/src/status.rs": "11da6702ec39e5f722b93876cd509a8630f3a181bcd721e8c1eea43d60a385c4",
+    "crates/termrock-shell/tests/esc_vocabulary.rs": "13018cb958cb9fe0c27eeadfd194d5255227ab73fddd04b4f42b55fbca4bb527",
+    "crates/termrock/src/blocks/shell.rs": "7266d6f1cbc2f020462348c32ea2011560599a0d1f90a97e14a72a8fa97a953e"
+  },
+  "tests_run": [],
+  "product_parity_claim": false
+}

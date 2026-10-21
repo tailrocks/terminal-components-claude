@@ -6,9 +6,10 @@
 use crate::domain::ResultGrid;
 use crate::filter_editor::Filter;
 use crate::model::{History, HistoryEntry};
+use std::time::{Duration, Instant};
 use tablepro_demo::db::{Catalog, ColType, Table, Value};
 use tablepro_sql::sql::{self, PlanNode};
-use termrock::{GridModel, GridState, Id, ItemKey, TextInputState};
+use termrock::{CompletingCodeEditorState, GridModel, GridState, Id, ItemKey, SyntaxRole};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct TabKey(u64);
@@ -205,17 +206,27 @@ impl TableTab {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct QueryStatus {
+    pub summary: String,
+    pub is_error: bool,
+    pub duration_ms: u32,
+}
+
 #[derive(Clone)]
 pub struct QueryTab {
     pub id: usize,
     pub name: String,
     pub query: String,
-    pub editor_state: TextInputState,
+    /// Shared multiline editor and completion state for this query tab.
+    pub editor_state: Box<CompletingCodeEditorState>,
     pub saved_text: String,
     pub result: Option<GridView>,
     pub error: Option<String>,
     pub plan: Option<PlanNode>,
     pub running: bool,
+    /// Most recent execution summary and whether it represents an error.
+    pub last_status: Option<Box<QueryStatus>>,
 }
 
 impl core::fmt::Debug for QueryTab {
@@ -230,6 +241,7 @@ impl core::fmt::Debug for QueryTab {
             .field("has_error", &self.error.is_some())
             .field("has_plan", &self.plan.is_some())
             .field("running", &self.running)
+            .field("last_status", &self.last_status)
             .finish()
     }
 }
@@ -237,33 +249,61 @@ impl core::fmt::Debug for QueryTab {
 impl QueryTab {
     pub fn new(id: usize, query: impl Into<String>) -> Self {
         let query = query.into();
+        let editor_state = CompletingCodeEditorState::new(&query);
         Self {
             id,
             name: format!("Query {id}"),
             saved_text: query.clone(),
+            editor_state: Box::new(editor_state),
             query,
-            editor_state: TextInputState::default(),
             result: None,
             error: None,
             plan: None,
             running: false,
+            last_status: None,
         }
     }
+
+    pub fn record_status(&mut self, summary: impl Into<String>, is_error: bool, duration_ms: u32) {
+        self.last_status = Some(Box::new(QueryStatus {
+            summary: summary.into(),
+            is_error,
+            duration_ms,
+        }));
+    }
+
+    pub fn record_execution_status(&mut self, succeeded: bool, elapsed: Duration) {
+        let duration_ms = u32::try_from(elapsed.as_millis()).unwrap_or(u32::MAX);
+        let summary = if succeeded {
+            format!("ok · {}", compact_duration(duration_ms))
+        } else {
+            "error".to_owned()
+        };
+        self.record_status(summary, !succeeded, duration_ms);
+    }
+
     pub fn execute(&mut self, catalog: &Catalog) -> Result<usize, String> {
+        self.sync_query_text();
         if self.has_pending_result() {
             return Err("Pending result edits require confirmation".to_owned());
         }
-        let statement = sql::parse(self.query.trim()).map_err(|error| error.message)?;
-        let sql::Statement::Select(select) = statement else {
-            return Err("The demo executor only runs SELECT statements".to_owned());
-        };
-        let result = sql::run_select(catalog, &select).map_err(|error| error.message)?;
-        let rows = result.rows.len();
-        self.result = Some(GridView::from_result(&result));
-        self.error = None;
-        Ok(rows)
+        let started = Instant::now();
+        let outcome = (|| {
+            let statement = sql::parse(self.query.trim()).map_err(|error| error.message)?;
+            let sql::Statement::Select(select) = statement else {
+                return Err("The demo executor only runs SELECT statements".to_owned());
+            };
+            let result = sql::run_select(catalog, &select).map_err(|error| error.message)?;
+            let rows = result.rows.len();
+            self.result = Some(GridView::from_result(&result));
+            self.error = None;
+            Ok(rows)
+        })();
+        self.record_execution_status(outcome.is_ok(), started.elapsed());
+        outcome
     }
     pub fn explain(&mut self, catalog: &Catalog) -> Result<(), String> {
+        self.sync_query_text();
         let statement = sql::parse(self.query.trim()).map_err(|error| error.message)?;
         let sql::Statement::Select(select) = statement else {
             return Err("Explain accepts SELECT statements".to_owned());
@@ -277,7 +317,71 @@ impl QueryTab {
             .is_some_and(|grid| grid.pending_total() > 0)
     }
     pub fn dirty(&self) -> bool {
-        self.editor_state.draft_text().unwrap_or(&self.query) != self.saved_text
+        self.editor_state.editor().text() != self.saved_text
+    }
+
+    /// Copies the editor's authoritative buffer into the SQL execution snapshot.
+    pub fn sync_query_text(&mut self) {
+        self.editor_state
+            .editor()
+            .text()
+            .clone_into(&mut self.query);
+    }
+
+    /// Replaces the query and resets editor mechanics for a newly loaded statement.
+    pub fn replace_query(&mut self, query: impl Into<String>) {
+        let query = query.into();
+        *self.editor_state = CompletingCodeEditorState::new(&query);
+        self.query = query;
+    }
+
+    /// Commits active editing without changing the editor's text.
+    pub fn commit_query_edit(&mut self) {
+        self.editor_state.editor_mut().commit();
+        self.sync_query_text();
+    }
+}
+
+/// SQL syntax ranges used by the shared code editor.
+pub fn highlight_sql(src: &str) -> Vec<(core::ops::Range<usize>, SyntaxRole)> {
+    sql::tokenize(src)
+        .into_iter()
+        .filter_map(|token| {
+            let role = match token.kind {
+                sql::TokKind::Keyword => SyntaxRole::Keyword,
+                sql::TokKind::Ident => SyntaxRole::Ident,
+                sql::TokKind::Number => SyntaxRole::Number,
+                sql::TokKind::String => SyntaxRole::Str,
+                sql::TokKind::Operator => SyntaxRole::Operator,
+                sql::TokKind::Punct => SyntaxRole::Punct,
+                sql::TokKind::Comment => SyntaxRole::Comment,
+                sql::TokKind::Whitespace => return None,
+            };
+            Some((token.start..token.end, role))
+        })
+        .collect()
+}
+
+/// Statement boundaries used for running the SQL statement at the cursor.
+pub fn segment_sql(src: &str) -> Vec<core::ops::Range<usize>> {
+    sql::split_statements(src)
+        .into_iter()
+        .map(|(start, end)| start..end)
+        .collect()
+}
+
+fn compact_duration(duration_ms: u32) -> String {
+    match duration_ms {
+        0 => "<1 ms".to_owned(),
+        milliseconds if milliseconds < 1_000 => format!("{milliseconds} ms"),
+        milliseconds if milliseconds < 60_000 => {
+            format!("{:.2} s", f64::from(milliseconds) / 1_000.0)
+        }
+        milliseconds => format!(
+            "{}m {}s",
+            milliseconds / 60_000,
+            (milliseconds % 60_000) / 1_000
+        ),
     }
 }
 

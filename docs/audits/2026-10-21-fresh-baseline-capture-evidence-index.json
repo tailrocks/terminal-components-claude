@@ -1,0 +1,159 @@
+{
+  "schema": "termrock.frozen-cli-capture-eligibility-evidence-index",
+  "schema_version": 1,
+  "record_kind": "integration evidence index; the separately authored decision is copied byte-for-byte and hash-pinned",
+  "cohort_id": "frozen-20261021-serial-nonincr-r1-r2",
+  "decision_sha256": "446273ce18d3caaea939263b37687be5aec770cf1ab54c62110f6c945ec9c2f6",
+  "reviewed_integration_commit": "be9fca4baf1477f57ab1a252117c368fb2bfe657",
+  "source": {
+    "tag": "visual-baseline",
+    "tag_object": "2718a6b8127a522a3d351d0b4bdb7542fc8da542",
+    "commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+    "tree": "ad0f7cf8899df8c5fea3ced3f60adf0ac9a2d297",
+    "tuiscotti_rev": "a1ea27f757d75d07b05499276cd932e9f8e067ad",
+    "cargo_lock_sha256": "46c1c71d85de829b277feffc959e6e8feab99deb171b1e48521c12d5cf14c2ed",
+    "rust_toolchain_sha256": "007a7e2abbd4afe192a3ef190dfa54914800621e221196747cff9e172735dc00"
+  },
+  "artifacts": {
+    "capture_eligibility_decision": {
+      "repository_path": "docs/audits/2026-10-21-fresh-baseline-capture-eligibility.json",
+      "source_path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/cohort-fresh-capture-eligibility-review/capture-eligibility-decision.json",
+      "sha256": "446273ce18d3caaea939263b37687be5aec770cf1ab54c62110f6c945ec9c2f6",
+      "bytes": 9966,
+      "copied_byte_for_byte": true
+    },
+    "evidence_recheck": {
+      "repository_path": "docs/audits/2026-10-21-fresh-baseline-capture-evidence-recheck.json",
+      "source_path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/cohort-fresh-capture-eligibility-review/evidence-recheck.json",
+      "sha256": "2384180eea4d9e9454a20f028098b31a3ac7524ee3d0213012c9bb66fe10687e",
+      "bytes": 14527,
+      "copied_byte_for_byte": true
+    },
+    "serial_reproduction_report": {
+      "repository_path": "docs/audits/2026-10-21-serial-baseline-reproduction.json",
+      "source_path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/cohort-fresh-capture-eligibility-review/2026-10-21-serial-baseline-reproduction.json",
+      "sha256": "2faab3f822add89fac7545bb3442f08b44d00a3a8e202d5b4ccc86b6f48dadd6",
+      "bytes": 4019,
+      "copied_byte_for_byte": true
+    },
+    "adapter_review": {
+      "repository_path": "docs/audits/2026-10-21-baseline-cohort-adapter-review.json",
+      "source_path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/cohort-fresh-capture-eligibility-review/2026-10-21-baseline-cohort-adapter-review.json",
+      "sha256": "06fa2a80e09b15e66c00c60792cf5331ba61438184418e0d724ceae1cd8fb25e",
+      "bytes": 2142,
+      "copied_byte_for_byte": true
+    },
+    "adapter_source_equivalence": {
+      "repository_path": "docs/audits/2026-10-21-baseline-adapter-source-equivalence.json",
+      "source_path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/cohort-fresh-capture-eligibility-review/integrated-adapter-source-equivalence.json",
+      "sha256": "d75cf46e829a7950cac903987d56ee7a255176f259295ffac6096a66baec193b",
+      "bytes": 987,
+      "copied_byte_for_byte": true
+    },
+    "resumable_runner_contract": {
+      "repository_path": "docs/audits/2026-10-21-fresh-capture-resumable-runner-contract.json",
+      "source_path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/cohort-fresh-capture-eligibility-review/resumable-runner-contract.json",
+      "sha256": "81df800e4b16a8240acf7c569a9c5c9472fa1678c96aa78947928ca7a082ebfb",
+      "bytes": 8252,
+      "copied_byte_for_byte": true
+    }
+  },
+  "external_build_evidence": {
+    "recipe_sha256": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/serial-nonincr-fixed-path-proposal.json",
+      "sha256": "849900e9c848d892824bd2b6636a17ba35d57c9be57859abf136c42f7f314bac",
+      "rechecked": true
+    },
+    "run1_archive_sha256": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/controlled-baseline-serial-incremental-off-archive/run-1/archive-manifest.json",
+      "sha256": "ef4b805a35667e0f1c41018dac78564ba6332489024b19638f4c8d114eaaf5a9",
+      "rechecked": true
+    },
+    "run2_archive_sha256": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/controlled-baseline-serial-incremental-off-archive/run-2/archive-manifest.json",
+      "sha256": "89d6d0c03eaa0911b51af32b1cced55b93d405ec43876b55bae1d19055b540e2",
+      "rechecked": true
+    },
+    "run2_comparison_sha256": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/controlled-baseline-serial-incremental-off-archive/run-2/independent-comparison.json",
+      "sha256": "f2bc6d30b2a528432781e12c318d6e0a6684c38caa5e392dca2c251a59c1ecbc",
+      "rechecked": true
+    },
+    "run1_provenance_sha256": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/controlled-baseline-serial-incremental-off-archive/run-1/provenance.json",
+      "sha256": "4eb758b86e148fc0688704ffbd66b3d6589300dd59ffc3ee67b78a26806ad098",
+      "rechecked": true
+    },
+    "run2_provenance_sha256": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/controlled-baseline-serial-incremental-off-archive/run-2/provenance.json",
+      "sha256": "4eb758b86e148fc0688704ffbd66b3d6589300dd59ffc3ee67b78a26806ad098",
+      "rechecked": true
+    },
+    "run1_live_source_sha256": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/controlled-baseline-serial-incremental-off-archive/run-1/live-source.json",
+      "sha256": "ea29844bfb384c3bb995c1d9594ffd9b58a1e7bfdf19b001eb0b45d9d6eec94c",
+      "rechecked": true
+    },
+    "run2_live_source_sha256": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/controlled-baseline-serial-incremental-off-archive/run-2/live-source.json",
+      "sha256": "ea29844bfb384c3bb995c1d9594ffd9b58a1e7bfdf19b001eb0b45d9d6eec94c",
+      "rechecked": true
+    },
+    "run1_stage1_receipt_sha256": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/controlled-baseline-serial-incremental-off-archive/run-1/runner-evidence/stage-1-build-receipt.json",
+      "sha256": "e62c9f13660211dde530a81d5d840ee97dc32f31d5d3fc31d1303a7f27547ae3",
+      "rechecked": true
+    },
+    "run1_stage2_receipt_sha256": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/controlled-baseline-serial-incremental-off-archive/run-1/runner-evidence/stage-2-nextest-receipt.json",
+      "sha256": "0f3bf5677d69e578ec9a93e5eeecb74bc9a7570deb73070a98cec61a61efaaaf",
+      "rechecked": true
+    },
+    "run2_stage1_receipt_sha256": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/controlled-baseline-serial-incremental-off-archive/run-2/build_stage_1.receipt.json",
+      "sha256": "684d9bc6c181d087ad023d37b95187d01b1a1897e36a0674f18d0ccc5322b4a5",
+      "rechecked": true
+    },
+    "run2_stage2_receipt_sha256": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/controlled-baseline-serial-incremental-off-archive/run-2/build_stage_2.receipt.json",
+      "sha256": "08b573ed200e1c32ff3627cc5845c744fa12d27d5fc00e87fc02e53240a46f16",
+      "rechecked": true
+    },
+    "run2_sealed_manifest_sha256": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/controlled-baseline-serial-incremental-off-archive/run-2/sealed-manifest.json",
+      "sha256": "2ca05dc3d79dabbc49e28f97a9cad0b4241925d482eec2e9257024418743e8b2",
+      "rechecked": true
+    },
+    "run2_complete_target_archive": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/controlled-baseline-serial-incremental-off-archive/run-2/complete-canonical-root.tar",
+      "sha256": "e02632913a788377c80b5843f7ad992313c80c18baab8cdf7d9910401c60f9f6",
+      "rechecked": true
+    },
+    "run2_sealed_manifest": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/controlled-baseline-serial-incremental-off-archive/run-2/sealed-manifest.json",
+      "sha256": "2ca05dc3d79dabbc49e28f97a9cad0b4241925d482eec2e9257024418743e8b2",
+      "rechecked": true
+    }
+  },
+  "capture_scope": {
+    "fresh_baseline_capture": true,
+    "baseline_replay": true,
+    "collect_reference_conflicts_without_prior_tuple_approval": true,
+    "candidate_comparison_eligible": false,
+    "checkpoint_reference_approval": "none",
+    "product_acceptance": false
+  },
+  "historical_state_note": "The copied independent decision records that the production review registry was empty when it reviewed integration commit be9fca4. This migration adds exactly the reviewed capture-only row. No baseline capture/replay has been run under this cohort by this change.",
+  "evidence_limitations": [
+    "Run 1 is missing complete target-tree archive and includes a failed prepare-live attempt before successful retry; both histories are preserved.",
+    "Run 2 complete archive was validated with its archive-only AppleDouble metadata inventory; the initial verifier failure remains recorded.",
+    "Build reproducibility is limited to this host and fixed physical source/target path, not hermetic or path-independent.",
+    "The resumable-runner contract is proposed and not yet implemented or executed."
+  ],
+  "binary_sha256": {
+    "showcase": "d54a104c1c3b20eab2aa48cf981c0f163586663a39ab90e54bcd7b8c3527db55",
+    "tablepro": "212cc16c3a50ea7aca6b474964ad492c4cc3c731812491bb06284abe1b9cc5d0",
+    "jackin-preview": "60b2c311a3d6e75b58e93a6f4c6d507d43a0e331d84ea966938a8eec52fb9cf2",
+    "holla": "62d5f4c71a1927a5f9e20d60b9f79ff4a392eb1c7390076dc1eaddee06dfe9bf"
+  }
+}

@@ -1,0 +1,31 @@
+ ▪ [0m[1mJunie[0m Design system  Layout › [0m[1mPanels[0m                   no color · 100×30   i Inspector   ? Help  [0m
+                                                                                                    [0m
+ [0m[1mComponents[0m      54  [0m[1mPanels[0m  Cards group; a frame only where a pane needs an edge; nothing boxed t… [0m
+ ──────────────────                                                                                 [0m
+    Overview         [0m[1m Playground  [0m  Options    States                               the live widget [0m
+  ▸ App shell        ━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────[0m
+  ▸ Inputs & forms                                                                                  [0m
+  ▸ Tables             Titled card               surface    ╭─ Framed · split pane   1–11 of 30 ─╮ ┃[0m
+  ▸ Navigation         ─────────────────────────────────    │  Junie works through a task the  ┃ │ ┃[0m
+  ▸ Overlays           A card is a filled surface. Its      │  way a careful engineer would:   ┃ │ ┃[0m
+  ▸ Feedback           title sits in the top-left and       │  it reads the relevant code,     ┃ │ ┃[0m
+  ▾ Layout             metadata on the right. It never      │  forms a plan, makes focused     ┃ │ ┃[0m
+ [0m[1m▎  › Panels       [0m    has a border.                        │  changes, runs the tests, and    ┆ │ ┃[0m
+      Scrolling                                             │  reports back with a summary you ┆ │ ┃[0m
+      Splits & st…                                          │  can review before anything is   ┆ │ ┃[0m
+      Master-deta…                                          │  merged.                         ┆ │ ┃[0m
+      Pane tree        Untitled card. Same surface,         │                                  ┆ │ ┃[0m
+  ▸ Text & code        content starts at the padding        │  Each step is visible. You can   ┆ │ ┃[0m
+  ▸ Screens            edge.                                │  [0m[2mpause, redirect, or take over   [0m┆ │ ┃[0m
+                                                            ╰────────────────────────────────────╯ ┃[0m
+                                                                                                   ┃[0m
+                                                              Card · scrollable        1–8 of 60   ┃[0m
+                       Nested                                 ──────────────────────────────────   ┃[0m
+                       ─────────────────────────────────         0.00s  info   Resolving work… ┃   ┆[0m
+                       Target                                    0.37s  info   Fetching crate… ┆   ┆[0m
+                          Local                                  0.74s  info   Compiling proc… ┆   ┆[0m
+                          CLI                                    1.11s  info   Compiling serd… ┆   ┆[0m
+                       [0m[2m   Cloud                      [0m            1.48s  warn   unused import:… ┆   ┆[0m
+                                                                                                    [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                               [0m
+[?25l

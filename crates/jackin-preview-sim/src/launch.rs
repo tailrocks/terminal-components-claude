@@ -154,6 +154,9 @@ pub struct LaunchRun {
     pub build_lines_emitted: usize,
 
     pub cancelled: bool,
+
+    /// Baseline trace line. The paused launch scenario keeps the captured id.
+    pub trace_label: String,
 }
 
 pub const BUILD_LOG: [&str; 44] = [
@@ -235,6 +238,7 @@ impl LaunchRun {
             credential_retried: false,
             build_lines_emitted: 0,
             cancelled: false,
+            trace_label: format!("run-{}", run_id.short()),
         }
     }
 

@@ -1,0 +1,26 @@
+{
+  "head": "8f2b9ae1dcac3a18a37c6726e909fc1a2d0028b5",
+  "incoming": "adf334b21745b9f713c26275987d09bf22eeda16",
+  "before_incoming": {
+    "native_run": 504,
+    "passed": 504,
+    "skipped": 3,
+    "strict_clippy": true,
+    "scoped_fmt": true
+  },
+  "after_incoming": {
+    "native_run": 504,
+    "passed": 503,
+    "failed": 1,
+    "skipped": 3,
+    "failure": "termrock-runtime::scene_snapshot warmed_modal_snapshot_projection_performs_zero_allocations",
+    "error": "snapshot copies or projection metadata allocated per capture: left 1, right 0"
+  },
+  "diagnostic": {
+    "same_isolated_test_inherited_NO_COLOR": "failed same1vs0",
+    "same_isolated_test_NO_COLOR_removed": "passed",
+    "source_change": "modal_backdrop now calls std::env::var_os(\"NO_COLOR\") for each paint",
+    "attribution": "Evidence strongly localizes per-paint allocation to incoming environment read; independent source review and regression repair still required."
+  },
+  "delivery": "PR38 push stopped; no test bypass or weakening."
+}

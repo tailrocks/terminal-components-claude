@@ -97,7 +97,7 @@ fn chrome_has_brand_menu_crumb_host_and_hint_bar() {
     assert_eq!(t.matches("Run top match").count(), 1, "{t}");
 
     assert!(last.contains("EDIT"), "{last:?}");
-    assert!(t.contains("Type to filter"), "{t}");
+    assert!(t.contains("Search actions"), "{t}");
 }
 
 #[test]
@@ -162,15 +162,15 @@ fn scope_cycle_narrows_and_esc_widens() {
     let mut h = fixture(Scenario::RustDirty, Motion::Paused, 4_000, 120, 40);
     let _ = h.ctrl('s');
     let t = h.text();
-    assert!(t.contains("scope: here"), "{t}");
+    assert!(t.contains("scope ‹ here ›"), "{t}");
     assert!(!t.contains("Connect to prod-eu-1"), "{t}");
     let _ = h.ctrl('s');
     let _ = h.ctrl('s');
     let _ = h.ctrl('s');
-    assert!(h.text().contains("scope: host"), "{}", h.text());
+    assert!(h.text().contains("scope ‹ host ›"), "{}", h.text());
     assert!(h.text().contains("Connect to prod-eu-1"), "{}", h.text());
     let _ = h.key(KeyCode::Esc);
-    assert!(!h.text().contains("scope: host"), "{}", h.text());
+    assert!(!h.text().contains("scope ‹ host ›"), "{}", h.text());
 }
 
 #[test]
@@ -318,7 +318,10 @@ fn follow_logs_merges_services_with_identity() {
     let _ = h.key(KeyCode::Enter);
     assert!(h.app().route == Route::Activity, "{}", h.text());
     let t = h.text();
-    assert!(t.contains("Activity · container logs"), "{t}");
+    assert!(
+        t.lines().nth(2).unwrap_or("").contains("container logs"),
+        "{t}"
+    );
 
     assert!(t.contains("api"), "{t}");
     assert!(t.contains("redis"), "{t}");
@@ -345,15 +348,27 @@ fn ctrl_a_cycles_activities_from_any_route() {
 
     let _ = h.ctrl('a');
     assert!(h.app().route == Route::Activity, "{}", h.text());
-    assert!(h.text().contains("Activity · dev server"), "{}", h.text());
+    assert!(
+        h.text().lines().nth(2).unwrap_or("").contains("dev server"),
+        "{}",
+        h.text()
+    );
 
     let _ = h.ctrl('a');
-    assert!(h.text().contains("Activity · test watch"), "{}", h.text());
+    assert!(
+        h.text().lines().nth(2).unwrap_or("").contains("test watch"),
+        "{}",
+        h.text()
+    );
 
     let _ = h.ctrl('a');
     let _ = h.ctrl('a');
     let _ = h.ctrl('a');
-    assert!(h.text().contains("Activity · dev server"), "{}", h.text());
+    assert!(
+        h.text().lines().nth(2).unwrap_or("").contains("dev server"),
+        "{}",
+        h.text()
+    );
 }
 
 #[test]
@@ -369,12 +384,16 @@ fn digit_switches_to_activity_page() {
     let _ = h.click(x.saturating_add(1), 1);
     assert!(h.app().route == Route::Activity, "{}", h.text());
     let t = h.text();
-    assert!(t.contains("Activity · seed db"), "{t}");
+    assert!(t.lines().nth(2).unwrap_or("").contains("seed db"), "{t}");
     assert!(t.contains("failed"), "{t}");
     assert!(t.contains("psql: connection to server"), "{t}");
 
     let _ = h.key(KeyCode::Char('1'));
-    assert!(h.text().contains("Activity · dev server"), "{}", h.text());
+    assert!(
+        h.text().lines().nth(2).unwrap_or("").contains("dev server"),
+        "{}",
+        h.text()
+    );
     assert!(h.text().contains("http://localhost:5199/"), "{}", h.text());
 
     let _ = h.key(KeyCode::Char('0'));
@@ -607,6 +626,7 @@ fn production_restart_goes_through_two_gates() {
 #[test]
 fn disk_plan_policy_skips_active_today() {
     let mut h = fixture(Scenario::DiskCleanup, Motion::Paused, 4_000, 120, 40);
+    let _ = h.key(KeyCode::Esc);
     let _ = h.type_str("reclaim disk");
     let _ = h.key(KeyCode::Enter);
     assert!(h.app().route == Route::Plan, "{}", h.text());
@@ -694,6 +714,7 @@ fn long_running_task_starts_named_activity() {
 #[test]
 fn launch_failure_is_honest() {
     let mut h = fixture(Scenario::LaunchFailure, Motion::Paused, 4_000, 120, 40);
+    let _ = h.key(KeyCode::Esc);
     let _ = h.type_str("mise run test");
     let _ = h.key(KeyCode::Enter);
     let t = h.text();
@@ -869,6 +890,7 @@ fn git_sync_plan_resolves_per_child_primary_branches() {
 #[test]
 fn disk_reclaim_plan_matches_apply_effect() {
     let mut h = fixture(Scenario::DiskCleanup, Motion::Paused, 4_000, 120, 40);
+    let _ = h.key(KeyCode::Esc);
     let _ = h.type_str("reclaim disk");
     let _ = h.key(KeyCode::Enter);
     assert!(h.app().route == Route::Plan, "{}", h.text());

@@ -1,0 +1,31 @@
+[0m[2m  jackin❯    File   Edit   View   Session   Help              …  payments-platform › the-architect  [0m
+[0m[2m                                                                                                    [0m
+[0m[2m  1 Mix (3) ●    2 Shell    3 docs ●                                                                [0m
+[0m[2m ━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────── [0m
+[0m[2m╭─ Claude Code (Work) ●─────────────────────────╮│╭─ Codex (Primary) ○─────────────────────────────╮[0m
+[0m[2m│                                              ┆│││                                               ┆│[0m
+[0m[2m│● The loop retries with a fixed 3 attempts. I ┆│││• 1 failure: reconcile::multi_currency         ┆│[0m
+[0m[2m│  exponential backoff with jitter and cap it  ┆│││  expected 1,204.50 EUR, got 1,204.49 EUR      ┆│[0m
+[0m[2m│                                              ┆│││  rounding precedes FX conversion in ledger/fx ┆│[0m
+[0m[2m│● Edit src/se╭──────────────────────────────────────────────────────────────────────╮            ┆│[0m
+[0m[2m│  +  const MA│ [0m[1;2mNew tab[0m[2m                                                              │            ┃│[0m
+[0m[2m│  +  let dela│ ▎ Type to search…                                                    │            ┃│[0m
+[0m[2m│  -  for atte│                                                                      │            ┃│[0m
+[0m[2m│  +  for atte│ [0m[1;2;7m [0m[2;7m▪[0m[1;2;7m Claude Code  [0m[2;7m2 accounts · choose at start[0m[1;2;7m                 [0m[2;7magents[0m[1;2;7m [0m[2m │━━┄┄┄┄┄┄┄┄┄┄ │[0m
+[0m[2m│             │  ▪ Codex        Primary                                              │─────────────╯[0m
+[0m[2m│● Bash cargo │  ▪ OpenCode     Go subscription                                      │──────────────[0m
+[0m[2m│  running 6 t│  ▪ Grok Build   Team                                                 │─────────────╮[0m
+[0m[2m│             │  $ Shell        zsh                                          shells  │            ┆│[0m
+[0m[2m│● Edit src/se│                                                                      │ settlement ┆│[0m
+[0m[2m│  +  pub use │                                                                      │tes/settlem ┆│[0m
+[0m[2m│             ╰──────────────────────────────────────────────────────────────────────╯et(s) in 3. ┆│[0m
+[0m[2m│● Retries now back off 250 ms → 4 s, capped a ┃│││payments-platform ❯ ls docs/adr                ┆│[0m
+[0m[2m│  One more edit: expose the policy in settlem ┃│││0001-record-architecture.md  0004-ledger-preci ┆│[0m
+[0m[2m│                                              ┃│││0002-settlement-batches.md   0005-fx-rounding. ┆│[0m
+[0m[2m│▶ Allow edit to src/settlement/config.rs? (y/ ┃│││0003-retry-policy.md         0007-retry-backof ┆│[0m
+[0m[2m│❯                                             ┃│││payments-platform ❯                            ┃│[0m
+[0m[2m│━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄ │││━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄ │[0m
+[0m[2m╰───────────────────────────────────────────────╯│╰────────────────────────────────────────────────╯[0m
+[0m[2m PR #482 · Settlement retry backoff                                   …   Session ╍╍╍╍╍╍╍╍─── 76% ▲ [0m
+ [0m[1mType F[0milter  [0m[1m↑↓[0m Move  [0m[1mEsc [0mCancel  …        Attached to payments-platform · tabs and panes restored [0m
+[?25h[12;19H[6 q

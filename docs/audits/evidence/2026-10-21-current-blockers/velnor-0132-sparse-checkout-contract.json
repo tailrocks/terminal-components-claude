@@ -1,0 +1,77 @@
+{
+  "schema": 1,
+  "review": "Velnor Actions 0.1.32 sparse-checkout contract",
+  "reviewed_at": "2026-10-21",
+  "scope": "Read-only source/config contract review. No repository source edits, workflow generation, CI reruns, test changes, or external messages.",
+  "conclusion": {
+    "supported_config_only_sparse_checkout": false,
+    "supported_bootstrap_or_plan_only_sparse_checkout": false,
+    "safe_config_only_way_to_avoid_fixture_checkout_while_preserving_all_rust_and_visual_inputs": false,
+    "reason": "Pinned Velnor Actions 0.1.32 exposes no sparse-checkout or checkout-filter field in WorkflowConfig. checkout_step emits only persist-credentials. generator_validation=bootstrap selects generator validation mode; the public plan command prints a deterministic plan report. discovery.exclude affects detector/task discovery, not checkout contents. Current PR #38 generated Plan checkout has fetch-depth 0 and no sparse inputs.",
+    "recommended_disposition": "Keep generated full checkout until Velnor provides an upstream schema-validated sparse/filter-checkout capability, with tests proving closure over all Rust packages, build scripts, test fixtures, visual resources, and workflow generation inputs. Do not use discovery.exclude to remove checkout paths or hand-edit generated workflow files."
+  },
+  "official_source": {
+    "repository": "https://github.com/tailrocks/velnor-new",
+    "version": "0.1.32",
+    "commit": "f4db80ddd75173269a7b9e4bab47c1121ec682b7",
+    "commit_url": "https://github.com/tailrocks/velnor-new/commit/f4db80ddd75173269a7b9e4bab47c1121ec682b7",
+    "evidence": [
+      {
+        "claim": "WorkflowConfig denies unknown fields; generator_validation and checkout_lfs are the declared validation/checkout-related fields. No sparse-checkout or filter field exists in this struct.",
+        "source": "https://github.com/tailrocks/velnor-new/blob/f4db80ddd75173269a7b9e4bab47c1121ec682b7/crates/velnor-actions-contract/src/config/workflow.rs#L27-L61"
+      },
+      {
+        "claim": "checkout_step constructs the checkout input map with persist-credentials=false only.",
+        "source": "https://github.com/tailrocks/velnor-new/blob/f4db80ddd75173269a7b9e4bab47c1121ec682b7/crates/velnor-actions-workflow-renderer/src/steps.rs#L132-L142"
+      },
+      {
+        "claim": "discovery.exclude globs are applied before detectors; this is task discovery filtering, not checkout scoping.",
+        "source": "https://github.com/tailrocks/velnor-new/blob/f4db80ddd75173269a7b9e4bab47c1121ec682b7/crates/velnor-actions-contract/src/config/discovery.rs#L1-L12"
+      },
+      {
+        "claim": "CLI plan prints a deterministic plan report; generator validation bootstrap is a distinct setting, not a sparse-checkout mode.",
+        "source": "https://github.com/tailrocks/velnor-new/blob/f4db80ddd75173269a7b9e4bab47c1121ec682b7/crates/velnor-actions-cli/src/args.rs#L16-L26"
+      },
+      {
+        "claim": "Generator init template describes generator_validation=bootstrap as generator validation mode.",
+        "source": "https://github.com/tailrocks/velnor-new/blob/f4db80ddd75173269a7b9e4bab47c1121ec682b7/crates/velnor-actions-orchestrator/src/init.rs#L94-L103"
+      }
+    ]
+  },
+  "project_observation": {
+    "branch_at_local_inspection": "design/interaction-polish",
+    "local_path": "/Users/donbeave/Projects/terminal-components-claude",
+    "local_docs_ci": "docs/ci.md was absent from the inspected local design branch (rg reported no such file; docs file inventory also had no ci.md). This does not establish whether docs/ci.md exists at PR #38 or another ref.",
+    "pr38_observed_head": "0b524f16dd74d3de9875babe139b8b0a9a3cf673",
+    "pr38_sources": [
+      {
+        "claim": "Generated CI checkout uses the pinned actions/checkout revision and only persist-credentials=false; no sparse-checkout input is present.",
+        "source": "https://github.com/tailrocks/terminal-components-claude/blob/0b524f16dd74d3de9875babe139b8b0a9a3cf673/.github/workflows/ci.yml#L53-L57"
+      },
+      {
+        "claim": "Generated Plan job checks out with fetch-depth=0 and persist-credentials=false; no sparse-checkout input is present.",
+        "source": "https://github.com/tailrocks/terminal-components-claude/blob/0b524f16dd74d3de9875babe139b8b0a9a3cf673/.github/workflows/ci.yml#L132-L139"
+      },
+      {
+        "claim": "Plan job regenerates to a temporary directory and recursively diffs generated .github output against the checked-out .github tree.",
+        "source": "https://github.com/tailrocks/terminal-components-claude/blob/0b524f16dd74d3de9875babe139b8b0a9a3cf673/.github/workflows/ci.yml#L182-L188"
+      },
+      {
+        "claim": "PR #38 config sets generator_validation=bootstrap and consumer-v1; discovery.exclude is not a checkout list.",
+        "source": "https://github.com/tailrocks/terminal-components-claude/blob/0b524f16dd74d3de9875babe139b8b0a9a3cf673/.velnor/config.toml#L1-L12"
+      }
+    ]
+  },
+  "failure_classification": {
+    "hosted_run_context": "Parent-provided audit reports checkout of 95,193 files and frequent workflow cancellation before Plan/Actionlint/Rust jobs completed.",
+    "classification": "Cancellation remains distinct from a skipped job, test failure, or pass. This source/config review does not establish the cause of cancellation or any Rust/test outcome.",
+    "audit_reference": "/private/tmp/termrock-hosted-ci-audit-20261021.json"
+  },
+  "safe_next_step": "If checkout reduction remains required, request Velnor upstream support and validate the complete required-path closure and regenerated preview before changing .velnor/config.toml. Preserve current generated files and do not infer that exclusions are safe from file counts alone.",
+  "integrity": {
+    "no_repository_files_changed": true,
+    "no_ci_rerun": true,
+    "no_tests_run": true,
+    "no_generated_files_changed": true
+  }
+}

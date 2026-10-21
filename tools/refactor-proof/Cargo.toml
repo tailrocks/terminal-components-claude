@@ -30,3 +30,7 @@ tempfile = "3"
 
 [lints]
 workspace = true
+
+# Rust documentation examples are guarded by the workspace doc inventory test.
+[lib]
+doctest = false

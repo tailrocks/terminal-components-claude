@@ -1,0 +1,57 @@
+{
+  "merge_commit": "1e978a2d0faec34f7c84312ed8144cad47656225",
+  "source": "e0026278649d215d88ca3231ba4720f7c8ae16e7",
+  "shared_native": {
+    "run": 913,
+    "passed": 912,
+    "failed": 1,
+    "skipped": 3,
+    "failure": "unchanged pre-policy ItemRow fingerprint"
+  },
+  "tablepro_and_domain": {
+    "run": 194,
+    "passed": 180,
+    "failed": 14,
+    "skipped": 0,
+    "failure_names_unchanged": true
+  },
+  "default_facade": {
+    "run": 6,
+    "passed": 6,
+    "skipped": 0
+  },
+  "testing_facade_independent": {
+    "run": 20,
+    "passed": 20,
+    "skipped": 0
+  },
+  "strict_shared_and_default_facade_clippy_passed": true,
+  "affected_formatting_passed": true,
+  "logs": {
+    "native": {
+      "path": "/private/tmp/termrock-parent-master-merge-native-20261021.log",
+      "sha256": "f0b7631864dbed9fdbc955e76a75c299c634a96aba8d6612364118e8d5047580"
+    },
+    "clippy": {
+      "path": "/private/tmp/termrock-parent-master-merge-clippy-20261021.log",
+      "sha256": "3420f60ce227e89bcc75692ded962a8e53ae5f3cd846a9b6b4bbbff6bee6f840"
+    },
+    "default-facade": {
+      "path": "/private/tmp/termrock-parent-master-merge-default-facade-20261021.log",
+      "sha256": "89d68da50e24a4662736a95c476d8f75e7f03735b683c939928bd9d0be1e2bf6"
+    },
+    "app": {
+      "path": "/private/tmp/termrock-parent-master-merge-app-20261021.log",
+      "sha256": "c9e1a3a67cf580b76d80a4cae1c82e66e8b7ef58c50acbbc99de62071fc35381"
+    },
+    "default-clippy": {
+      "path": "/private/tmp/termrock-parent-master-merge-default-clippy-20261021.log",
+      "sha256": "b23f6f701c292735d44b943237994d310b8e6d01e3ec98ae1a65b7ca060777b2"
+    },
+    "fmt": {
+      "path": "/private/tmp/termrock-parent-master-merge-fmt-20261021.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "full_product_parity": false
+}

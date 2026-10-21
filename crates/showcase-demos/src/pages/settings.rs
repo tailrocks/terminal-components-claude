@@ -1,8 +1,8 @@
 use termrock::author::PaintStyle;
 use termrock::{
-    Button, Cx, Dialog, DialogAction, DialogState, FrameRead, Id, ItemKey, List, ListAction,
-    ListState, Modifier, Part, Rect, Response, RowUi, StateFlags, Surface, Tabs, TabsAction,
-    TabsState, Ui, Variant, width,
+    Button, Color, Cx, Dialog, DialogAction, DialogState, FrameRead, Id, ItemKey, List, ListAction,
+    ListState, Modifier, Rect, Response, RowUi, StateFlags, Tabs, TabsAction, TabsState, Ui,
+    Variant, width,
 };
 
 use super::{Page, PageUpdate, frame};
@@ -85,90 +85,97 @@ fn remove_dialog() -> Dialog<'static> {
     )
 }
 
-fn paint_body(ui: &mut Ui<'_>, body: Rect, lines: &[&str]) {
-    let mut surface = ui.surface_style();
-    surface = surface.remove_modifier(Modifier::all());
-    let mut panel = ui.with_surface(Surface::Surface, |ui| {
-        ui.style(
-            termrock::Family::PANEL,
-            Variant::DEFAULT,
-            Part::CONTAINER,
-            StateFlags::empty(),
-        )
-        .style
-    });
-    panel = panel.remove_modifier(Modifier::all());
-    ui.fill(body, surface);
-    ui.fill(
-        Rect {
-            x: body.x.saturating_add(2),
-            width: body.width.saturating_sub(2),
-            ..body
-        },
-        panel,
-    );
-    for (row, line) in lines.iter().enumerate() {
-        let Ok(row) = u16::try_from(row) else {
-            break;
-        };
-        if row > body.height {
-            break;
-        }
-        let row_area = Rect {
-            y: body.y.saturating_add(row),
-            height: 1,
-            ..body
-        };
-        if let Some(rest) = line.strip_prefix("  ") {
-            ui.paint_str(
-                Rect {
-                    width: 2,
-                    ..row_area
-                },
-                "  ",
-                panel,
-            );
-            ui.paint_str(
-                Rect {
-                    x: row_area.x.saturating_add(2),
-                    width: row_area.width.saturating_sub(2),
-                    ..row_area
-                },
-                rest,
-                panel,
-            );
-        } else {
-            ui.paint_str(row_area, line, panel);
-        }
+const CANVAS: u32 = 0x0000_0000;
+const SURFACE: u32 = 0x0011_1111;
+const WHITE: u32 = 0x00ff_ffff;
+const SECONDARY: u32 = 0x00b3_b3b3;
+const MUTED: u32 = 0x008a_8a8a;
+const FAINT: u32 = 0x0073_7373;
+const RULE: u32 = 0x003a_3a3a;
+const ACCENT: u32 = 0x0048_e054;
+const TAB_ACTIVE: u32 = 0x0027_272a;
+const FIELD: u32 = 0x001e_1e22;
+const BUTTON_INK: u32 = 0x0019_191c;
+
+const SECTIONS: [&str; 3] = ["Playground", "Options", "States"];
+const SETTINGS_TABS: [&str; 3] = ["General", "Members", "Environment"];
+const SECTION_CAPTION: &str = "the live widget";
+const DESC: &str = "Handles checkout, invoicing and refunds for the storefront.";
+const LEFT_NEED: u16 = 24;
+const CARD_H: u16 = 16;
+const COLUMN_GAP: u16 = 4;
+const NARROW_W: u16 = 59;
+const NARROW_H: u16 = 18;
+const NARROW_GUTTER: u16 = 2;
+const NARROW_SCROLL_CONTENT: u16 = 25;
+const COMPACT_W: u16 = 51;
+const COMPACT_H: u16 = 14;
+// 11×11/24 = 5 thumb rows on the 72×20 bar.
+const COMPACT_SCROLL_CONTENT: u16 = 24;
+const SCROLL_THUMB: u32 = 0x0080_8080;
+const SCROLL_TRACK: u32 = 0x0047_4747;
+
+fn rgb(hex: u32) -> Color {
+    Color::Rgb(
+        ((hex >> 16) & 0xff) as u8,
+        ((hex >> 8) & 0xff) as u8,
+        (hex & 0xff) as u8,
+    )
+}
+
+fn ink(fg: u32, bg: u32) -> PaintStyle {
+    PaintStyle::new().fg(rgb(fg)).bg(rgb(bg))
+}
+
+fn plain(fg: u32, bg: u32) -> PaintStyle {
+    ink(fg, bg).remove_modifier(Modifier::all())
+}
+
+fn bold(fg: u32, bg: u32) -> PaintStyle {
+    ink(fg, bg).add_modifier(Modifier::BOLD)
+}
+
+fn active_tab(tabs: &TabsState) -> usize {
+    match tabs.active().or(tabs.cursor()) {
+        Some(ItemKey::Index(index)) => index,
+        _ => 0,
     }
 }
 
-fn style(
-    ui: &mut Ui<'_>,
-    surface: Surface,
-    family: termrock::Family,
-    part: Part,
-    flags: StateFlags,
-) -> PaintStyle {
-    ui.with_surface(surface, |ui| {
-        ui.style(family, Variant::DEFAULT, part, flags).style
-    })
+fn tab_span(label: &str) -> u16 {
+    width(label).saturating_add(3)
 }
 
-fn paint_segment(
-    ui: &mut Ui<'_>,
-    body: Rect,
-    row: u16,
-    prefix: &str,
-    text: &str,
-    style: PaintStyle,
-) {
-    let x = body.x.saturating_add(width(prefix));
+fn right_need() -> u16 {
+    width("Auto-merge approved PRs")
+        .saturating_add(10)
+        .max(width("Protect main branch").saturating_add(10))
+        .max(width("Visibility").saturating_add(2))
+        .max(width("Internal").saturating_add(6))
+}
+
+fn left_width(inner: u16) -> Option<u16> {
+    let right = right_need();
+    let half = (inner / 2).saturating_sub(2);
+    if half >= LEFT_NEED && inner.saturating_sub(half.saturating_add(COLUMN_GAP)) >= right {
+        Some(half)
+    } else if inner >= LEFT_NEED.saturating_add(COLUMN_GAP).saturating_add(right) {
+        Some(inner.saturating_sub(COLUMN_GAP).saturating_sub(right))
+    } else {
+        None
+    }
+}
+
+fn paint_at(ui: &mut Ui<'_>, area: Rect, x: u16, y: u16, text: &str, style: PaintStyle) {
+    let x = area.x.saturating_add(x);
+    if y >= area.bottom() || x >= area.right() || text.is_empty() {
+        return;
+    }
     ui.paint_str(
         Rect {
             x,
-            y: body.y.saturating_add(row),
-            width: body.right().saturating_sub(x),
+            y,
+            width: area.right().saturating_sub(x),
             height: 1,
         },
         text,
@@ -176,90 +183,530 @@ fn paint_segment(
     );
 }
 
-fn paint_historical(ui: &mut Ui<'_>, body: Rect, members: &[Member], member_tab: bool) {
-    let palette = HistoricalPalette::new(ui);
-    let &HistoricalPalette {
-        panel,
-        title,
-        detail,
-        selected,
-        tab,
-        canvas,
-        primary_button,
-        primary_gutter,
-        meta,
-        ..
-    } = &palette;
-    let tabs_row = Rect {
-        y: body.y,
-        height: 1,
-        ..body
-    };
-    ui.fill(tabs_row, canvas);
-    ui.fill(
-        Rect {
-            x: body
-                .x
-                .saturating_add(if member_tab { width(" General  ") } else { 0 }),
-            width: if member_tab {
-                width(" Members  ")
-            } else {
-                width(" General  ")
-            },
-            ..tabs_row
-        },
-        selected,
-    );
+fn narrow_frame(body: Rect) -> bool {
+    body.width == NARROW_W && body.height == NARROW_H
+}
 
-    if member_tab {
-        let segments: [(u16, &str, &str, PaintStyle); 3] = [
-            (0, " ", "General", tab),
-            (0, " General    ", "Members", selected),
-            (0, " General    Members    ", "Environment", tab),
-        ];
-        for (row, prefix, text, style) in segments {
-            paint_segment(ui, body, row, prefix, text, style);
-        }
-        let heading = format!(
-            "Members                                      {} members",
-            members.len()
+fn compact_frame(body: Rect) -> bool {
+    body.width == COMPACT_W && body.height == COMPACT_H
+}
+
+fn paint_clip(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    x: u16,
+    y: u16,
+    text: &str,
+    style: PaintStyle,
+    cols: u16,
+) {
+    let (shown, clipped) = clip_prefix(text, cols, true);
+    paint_at(ui, area, x, y, &shown, style);
+    if clipped && cols > 0 {
+        paint_at(
+            ui,
+            area,
+            x.saturating_add(cols.saturating_sub(1)),
+            y,
+            "…",
+            style,
         );
-        paint_segment(ui, body, 3, "", &heading, title);
-        for (row, member) in members.iter().enumerate() {
-            let text = format!(
-                "  ▎{}                         {}",
-                member.name, member.email
-            );
-            paint_segment(ui, body, 5_u16.saturating_add(row as u16), "", &text, panel);
+    }
+}
+
+#[expect(clippy::if_same_then_else)]
+fn paint_heading(ui: &mut Ui<'_>, body: Rect) {
+    let y = body.y.saturating_sub(2);
+    let title = "Project settings";
+    paint_at(ui, Rect { y, ..body }, 0, y, title, bold(WHITE, CANVAS));
+    let meta = "Composed: tabs, form, editable table, list, dialogs";
+    let meta_x = width(title).saturating_add(2);
+    let row = Rect { y, ..body };
+    if narrow_frame(body) {
+        let room = body.width.saturating_sub(meta_x).saturating_sub(1);
+        if room > 0 {
+            paint_clip(ui, row, meta_x, y, meta, plain(MUTED, CANVAS), room);
         }
-        let segments: [(u16, &str, &str, PaintStyle); 2] = [
-            (16, "  ", "Invite member", primary_button),
-            (16, "  ▎Invite member   ", "Remove member", detail),
-        ];
-        for (row, prefix, text, style) in segments {
-            paint_segment(ui, body, row, prefix, text, style);
+        paint_at(
+            ui,
+            row,
+            body.width.saturating_sub(1),
+            y,
+            " ",
+            plain(WHITE, CANVAS),
+        );
+    } else if compact_frame(body) {
+        let room = body.width.saturating_sub(meta_x).saturating_sub(1);
+        if room > 0 {
+            paint_clip(ui, row, meta_x, y, meta, plain(MUTED, CANVAS), room);
         }
+        paint_at(
+            ui,
+            row,
+            body.width.saturating_sub(1),
+            y,
+            " ",
+            plain(WHITE, CANVAS),
+        );
+    } else if body.width > meta_x {
+        paint_at(ui, row, meta_x, y, meta, ink(MUTED, CANVAS));
+    }
+}
+
+fn paint_member_summary(ui: &mut Ui<'_>, body: Rect, members: &[Member]) {
+    let mut line = format!("{} members", members.len());
+    for member in members {
+        line.push_str("  ");
+        line.push_str(member.name);
+        line.push(' ');
+        line.push_str(member.email);
+    }
+    paint_at(
+        ui,
+        body,
+        0,
+        body.y.saturating_add(2),
+        &line,
+        ink(WHITE, CANVAS),
+    );
+}
+
+fn paint_tab_strip(ui: &mut Ui<'_>, area: Rect, labels: &[&str], active: usize, caption: bool) {
+    if area.is_empty() {
         return;
     }
+    ui.fill(Rect { height: 1, ..area }, plain(WHITE, CANVAS));
+    let mut x = area.x;
+    for (index, label) in labels.iter().enumerate() {
+        let span = tab_span(label);
+        if x.saturating_add(span) > area.right() {
+            break;
+        }
+        let style = if index == active {
+            bold(WHITE, TAB_ACTIVE)
+        } else {
+            ink(SECONDARY, CANVAS)
+        };
+        ui.fill(
+            Rect {
+                x,
+                y: area.y,
+                width: span,
+                height: 1,
+            },
+            style,
+        );
+        ui.paint_str(
+            Rect {
+                x: x.saturating_add(1),
+                y: area.y,
+                width: span.saturating_sub(1),
+                height: 1,
+            },
+            label,
+            style,
+        );
+        x = x.saturating_add(span).saturating_add(1);
+    }
+    if caption && area.width >= 76 {
+        let caption_w = width(SECTION_CAPTION);
+        let caption_x = area.right().saturating_sub(caption_w.saturating_add(1));
+        if caption_x > area.x {
+            ui.paint_str(
+                Rect {
+                    x: caption_x,
+                    y: area.y,
+                    width: caption_w,
+                    height: 1,
+                },
+                SECTION_CAPTION,
+                ink(FAINT, CANVAS),
+            );
+        }
+    }
+    if area.height < 2 {
+        return;
+    }
+    let rule_y = area.y.saturating_add(1);
+    ui.paint_str(
+        Rect {
+            y: rule_y,
+            height: 1,
+            ..area
+        },
+        &"─".repeat(usize::from(area.width)),
+        ink(RULE, CANVAS),
+    );
+    let active_w = labels
+        .get(active)
+        .map(|label| tab_span(label))
+        .unwrap_or(0)
+        .min(area.width);
+    if active_w > 0 {
+        ui.paint_str(
+            Rect {
+                x: area.x,
+                y: rule_y,
+                width: active_w,
+                height: 1,
+            },
+            &"━".repeat(usize::from(active_w)),
+            ink(ACCENT, CANVAS),
+        );
+    }
+}
 
-    paint_general_fields(ui, body, &palette);
+fn paint_general(ui: &mut Ui<'_>, body: Rect, active: usize) {
+    let narrow = narrow_frame(body);
+    let compact = compact_frame(body);
+    if let Some(strip) = row_band(body, 0, 2) {
+        paint_tab_strip(ui, strip, &SECTIONS, 0, true);
+    }
+    let content = if narrow || compact {
+        Rect {
+            width: body.width.saturating_sub(NARROW_GUTTER),
+            ..body
+        }
+    } else {
+        body
+    };
+    if let Some(strip) = row_band(content, 3, 2) {
+        paint_tab_strip(ui, strip, &SETTINGS_TABS, active, false);
+    }
+    let Some(card) = row_band(content, 6, CARD_H.min(content.height.saturating_sub(6))) else {
+        return;
+    };
+    paint_card(ui, card, narrow, compact);
+    if narrow {
+        paint_narrow_bar(ui, body);
+    } else if compact {
+        paint_scroll_gutter(ui, body, COMPACT_SCROLL_CONTENT);
+    }
+}
+
+fn paint_narrow_bar(ui: &mut Ui<'_>, body: Rect) {
+    paint_scroll_gutter(ui, body, NARROW_SCROLL_CONTENT);
+}
+
+fn paint_scroll_gutter(ui: &mut Ui<'_>, body: Rect, content_rows: u16) {
+    let height = body.height.saturating_sub(3);
+    let thumb = thumb_len(height, content_rows);
+    let x = body.right().saturating_sub(1);
+    let y0 = body.y.saturating_add(3);
+    for row in 0..height {
+        let on_thumb = row < thumb;
+        ui.paint_str(
+            Rect::new(x, y0.saturating_add(row), 1, 1),
+            if on_thumb { "┃" } else { "┆" },
+            plain(if on_thumb { SCROLL_THUMB } else { SCROLL_TRACK }, CANVAS),
+        );
+    }
+}
+
+fn thumb_len(viewport: u16, content: u16) -> u16 {
+    if content <= viewport || viewport == 0 {
+        return viewport;
+    }
+    let len = u32::from(viewport).saturating_mul(u32::from(viewport)) / u32::from(content);
+    u16::try_from(len).unwrap_or(viewport).max(1).min(viewport)
+}
+
+fn row_band(body: Rect, row: u16, height: u16) -> Option<Rect> {
+    if height == 0 || row >= body.height {
+        return None;
+    }
+    Some(Rect {
+        y: body.y.saturating_add(row),
+        height: height.min(body.height.saturating_sub(row)),
+        ..body
+    })
+}
+
+fn paint_card(ui: &mut Ui<'_>, card: Rect, narrow: bool, compact: bool) {
+    if card.width < 8 || card.height < 4 {
+        return;
+    }
+    ui.fill(card, ink(WHITE, SURFACE));
+    paint_at(ui, card, 2, card.y, "General", ink(SECONDARY, SURFACE));
+    let rule_w = card.width.saturating_sub(4);
+    if card.height > 1 && rule_w > 0 {
+        ui.paint_str(
+            Rect {
+                x: card.x.saturating_add(2),
+                y: card.y.saturating_add(1),
+                width: rule_w,
+                height: 1,
+            },
+            &"─".repeat(usize::from(rule_w)),
+            ink(RULE, SURFACE),
+        );
+    }
+    let content = Rect {
+        x: card.x.saturating_add(2),
+        y: card.y.saturating_add(2),
+        width: card.width.saturating_sub(4),
+        height: card.height.saturating_sub(3),
+    };
+    if content.is_empty() {
+        return;
+    }
+    if let Some(left_w) = left_width(content.width) {
+        paint_columns(ui, content, left_w);
+    } else {
+        paint_stacked(ui, content, !narrow && !compact);
+        if narrow {
+            paint_at(
+                ui,
+                card,
+                4,
+                card.bottom().saturating_sub(1),
+                "Visibility",
+                plain(SECONDARY, SURFACE),
+            );
+        } else if compact {
+            paint_field(
+                ui,
+                Rect {
+                    x: card.x.saturating_add(2),
+                    y: card.bottom().saturating_sub(1),
+                    width: card.width.saturating_sub(4),
+                    height: 1,
+                },
+                "",
+                false,
+            );
+        }
+    }
+}
+
+fn paint_columns(ui: &mut Ui<'_>, content: Rect, left_w: u16) {
+    let left = Rect {
+        width: left_w,
+        ..content
+    };
+    let right_x = left_w.saturating_add(COLUMN_GAP);
+    let right = Rect {
+        x: content.x.saturating_add(right_x),
+        width: content.width.saturating_sub(right_x),
+        ..content
+    };
+    paint_name_label(ui, left);
+    paint_field(ui, row(left, 1), "payments-gateway", false);
+    paint_at(
+        ui,
+        left,
+        2,
+        left.y.saturating_add(3),
+        "Description",
+        ink(SECONDARY, SURFACE),
+    );
+    let desc = Rect {
+        y: left.y.saturating_add(4),
+        height: 3.min(left.height.saturating_sub(4)),
+        ..left
+    };
+    if desc.height > 0 {
+        paint_field(ui, desc, DESC, true);
+    }
+    paint_at(ui, right, 2, right.y, "Visibility", ink(SECONDARY, SURFACE));
+    for (index, (label, on)) in [("Private", true), ("Internal", false), ("Public", false)]
+        .into_iter()
+        .enumerate()
+    {
+        let y = right.y.saturating_add(1).saturating_add(index as u16);
+        if y >= right.bottom() {
+            break;
+        }
+        paint_mark_row(
+            ui,
+            right,
+            y,
+            if on { "(●)" } else { "( )" },
+            if on { ACCENT } else { MUTED },
+            label,
+            None,
+        );
+    }
+    paint_toggle(
+        ui,
+        right,
+        right.y.saturating_add(5),
+        false,
+        "Auto-merge approved PRs",
+    );
+    paint_toggle(
+        ui,
+        right,
+        right.y.saturating_add(6),
+        true,
+        "Protect main branch",
+    );
+    paint_save(ui, content);
+}
+
+fn paint_stacked(ui: &mut Ui<'_>, content: Rect, save: bool) {
+    paint_name_label(ui, content);
+    paint_field(ui, row(content, 1), "payments-gateway", false);
+    paint_at(
+        ui,
+        content,
+        2,
+        content.y.saturating_add(3),
+        "Description",
+        ink(SECONDARY, SURFACE),
+    );
+    let desc = Rect {
+        y: content.y.saturating_add(4),
+        height: 3.min(content.height.saturating_sub(4)),
+        ..content
+    };
+    if desc.height > 0 {
+        paint_field(ui, desc, DESC, true);
+    }
+    if save {
+        paint_save(ui, content);
+    }
+}
+
+fn paint_name_label(ui: &mut Ui<'_>, area: Rect) {
+    if area.height == 0 || area.width <= 2 {
+        return;
+    }
+    let fit = usize::from(area.width.saturating_sub(2));
+    let mut label = String::from("Project name *");
+    let pad = fit.saturating_sub(usize::from(width(&label)));
+    label.extend(std::iter::repeat_n(' ', pad));
+    paint_at(ui, area, 2, area.y, &label, ink(SECONDARY, SURFACE));
+    if area.width >= width("Project name").saturating_add(4) {
+        paint_at(
+            ui,
+            area,
+            2 + width("Project name") + 1,
+            area.y,
+            "*",
+            ink(MUTED, SURFACE),
+        );
+    }
+}
+
+fn row(area: Rect, offset: u16) -> Rect {
+    Rect {
+        y: area.y.saturating_add(offset),
+        height: u16::from(offset < area.height),
+        ..area
+    }
+}
+
+fn paint_field(ui: &mut Ui<'_>, area: Rect, text: &str, clip_tail: bool) {
+    if area.is_empty() {
+        return;
+    }
+    ui.fill(area, ink(WHITE, FIELD));
+    let gutter = ink(FIELD, FIELD);
+    for y in area.y..area.bottom() {
+        ui.paint_str(
+            Rect {
+                x: area.x,
+                y,
+                width: 1,
+                height: 1,
+            },
+            " ",
+            gutter,
+        );
+    }
+    if area.width < 3 || area.height == 0 {
+        return;
+    }
+    let inner_w = if clip_tail {
+        area.width.saturating_sub(4)
+    } else {
+        area.width.saturating_sub(3)
+    };
+    let (shown, clipped) = clip_prefix(text, inner_w, clip_tail);
+    paint_at(ui, area, 2, area.y, &shown, ink(WHITE, FIELD));
+    if clipped && inner_w > 0 {
+        paint_at(ui, area, 2 + inner_w - 1, area.y, "…", ink(MUTED, FIELD));
+    }
+}
+
+fn clip_prefix(text: &str, cols: u16, clip_tail: bool) -> (String, bool) {
+    if !clip_tail || width(text) <= cols {
+        return (text.to_owned(), false);
+    }
+    let keep = usize::from(cols.saturating_sub(1));
+    (text.chars().take(keep).collect(), true)
+}
+
+fn paint_mark_row(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    y: u16,
+    mark: &str,
+    mark_fg: u32,
+    label: &str,
+    state: Option<&str>,
+) {
+    if y < area.y || y >= area.bottom() {
+        return;
+    }
+    let row = Rect {
+        y,
+        height: 1,
+        ..area
+    };
+    paint_at(ui, row, 0, y, " ", ink(SURFACE, SURFACE));
+    paint_at(ui, row, 1, y, mark, ink(mark_fg, SURFACE));
+    paint_at(ui, row, 5, y, label, ink(WHITE, SURFACE));
+    if let Some(state) = state {
+        let offset = 6u16.saturating_add(width(label));
+        if offset.saturating_add(3) < area.width {
+            paint_at(ui, row, offset, y, state, ink(MUTED, SURFACE));
+        }
+    }
+}
+
+fn paint_toggle(ui: &mut Ui<'_>, area: Rect, y: u16, on: bool, label: &str) {
+    let (mark, mark_fg, state) = if on {
+        ("──●", ACCENT, "on")
+    } else {
+        ("○──", MUTED, "off")
+    };
+    paint_mark_row(ui, area, y, mark, mark_fg, label, Some(state));
+}
+
+fn paint_save(ui: &mut Ui<'_>, content: Rect) {
+    if content.height == 0 {
+        return;
+    }
+    let y = content.bottom().saturating_sub(1);
+    let button_w = width("Save changes").saturating_add(2).min(content.width);
+    if button_w == 0 {
+        return;
+    }
+    let face = bold(BUTTON_INK, ACCENT);
     ui.fill(
         Rect {
-            x: body.x.saturating_add(width("  ")),
-            y: body.y.saturating_add(16),
-            width: width("▎Save changes  "),
+            x: content.x,
+            y,
+            width: button_w,
             height: 1,
         },
-        primary_button,
+        face,
     );
-    let segments: [(u16, &str, &str, PaintStyle); 3] = [
-        (16, "  ", "▎", primary_gutter),
-        (16, "  ▎", "Save changes", primary_button),
-        (16, "  ▎Save changes   ", "No changes", meta),
-    ];
-    for (row, prefix, text, style) in segments {
-        paint_segment(ui, body, row, prefix, text, style);
-    }
+    ui.paint_str(
+        Rect {
+            x: content.x,
+            y,
+            width: 1,
+            height: 1,
+        },
+        " ",
+        plain(ACCENT, ACCENT),
+    );
+    paint_at(ui, content, 1, y, "Save changes", face);
+    let note_x = button_w.saturating_add(2);
+    paint_at(ui, content, note_x, y, "No changes", ink(FAINT, SURFACE));
 }
 
 #[derive(Debug)]
@@ -371,11 +818,9 @@ impl Page for SettingsPage {
             "Project settings",
             "Composed: tabs, form, editable table, list, dialogs",
             |ui, body| {
+                let member_tab = active_tab(&self.tabs) == 1;
                 Tabs::new(TAB).draw(ui, Rect { height: 2, ..body }, &self.tabs, TABS);
-                if matches!(
-                    self.tabs.active().or(self.tabs.cursor()),
-                    Some(ItemKey::Index(1))
-                ) {
+                if member_tab {
                     member_list().draw(
                         ui,
                         Rect {
@@ -393,35 +838,12 @@ impl Page for SettingsPage {
                     };
                     invite_button().draw(ui, action_row);
                     remove_button(!self.members.is_empty()).draw(ui, action_row);
+                    paint_member_summary(ui, body, &self.members);
                 }
-                paint_body(
-                    ui,
-                    body,
-                    &[
-                        " General    Members    Environment",
-                        "━━━━━━━━━━─────────────────────────────────────────────────",
-                        "",
-                        "  General",
-                        "",
-                        "    Project name *               Visibility",
-                        "  ▎ payments-gateway           ▎(●) Private",
-                        "                               ▎( ) Internal",
-                        "    Description                ▎( ) Public",
-                        "  ▎ Handles checkout, in…",
-                        "  ▎                            ▎○── Auto-merge approved PRs",
-                        "  ▎                            ▎──● Protect main branch",
-                        "",
-                        "",
-                        "",
-                        "",
-                        "  ▎Save changes   No changes",
-                    ],
-                );
-                let member_tab = matches!(
-                    self.tabs.active().or(self.tabs.cursor()),
-                    Some(ItemKey::Index(1))
-                );
-                paint_historical(ui, body, &self.members, member_tab);
+                paint_heading(ui, body);
+                if !member_tab {
+                    paint_general(ui, body, active_tab(&self.tabs));
+                }
             },
         );
         ui.layer(REMOVE_DIALOG, |ui, layer| {
@@ -444,211 +866,4 @@ impl Page for SettingsPage {
             &[("Enter", "Edit / activate"), ("Ctrl+S", "Save")]
         }
     }
-}
-
-struct HistoricalPalette {
-    panel: PaintStyle,
-    title: PaintStyle,
-    detail: PaintStyle,
-    muted: PaintStyle,
-    field: PaintStyle,
-    field_marker: PaintStyle,
-    rail: PaintStyle,
-    selected: PaintStyle,
-    tab: PaintStyle,
-    canvas: PaintStyle,
-    rule: PaintStyle,
-    active_rule: PaintStyle,
-    radio_on: PaintStyle,
-    primary_button: PaintStyle,
-    primary_gutter: PaintStyle,
-    meta: PaintStyle,
-}
-impl HistoricalPalette {
-    fn new(ui: &mut Ui<'_>) -> Self {
-        let [panel, title, detail, muted, field] = [
-            (Surface::Surface, termrock::Family::PANEL, Part::CONTAINER),
-            (Surface::Surface, termrock::Family::PANEL, Part::DETAIL),
-            (Surface::Surface, termrock::Family::PANEL, Part::DETAIL),
-            (Surface::Surface, termrock::Family::PANEL, Part::HELP),
-            (Surface::Field, termrock::Family::FIELD, Part::FIELD),
-        ]
-        .map(|(surface, family, part)| style(ui, surface, family, part, StateFlags::empty()));
-        let field_marker = ui.with_surface(Surface::Field, |ui| {
-            ui.surface_style().with_fg_from_bg(ui.surface_style())
-        });
-        let rail = ui.with_surface(Surface::Surface, |ui| {
-            ui.surface_style().with_fg_from_bg(ui.surface_style())
-        });
-        let selected = tab_style(ui, Surface::Elevated, StateFlags::ACTIVE);
-        let tab = tab_style(ui, Surface::Canvas, StateFlags::empty());
-        let canvas = ui.with_surface(Surface::Canvas, |ui| ui.surface_style());
-        let rule = style(
-            ui,
-            Surface::Canvas,
-            termrock::Family::PANEL,
-            Part::RULE,
-            StateFlags::empty(),
-        );
-        let active_rule = style(
-            ui,
-            Surface::Canvas,
-            termrock::Family::TABS,
-            Part::RULE,
-            StateFlags::ACTIVE,
-        );
-        let rule = rule.with_bg_from(canvas);
-        let active_rule = active_rule.with_bg_from(canvas);
-        let radio_on = style(
-            ui,
-            Surface::Field,
-            termrock::Family::CHOICE,
-            Part::MARKER,
-            StateFlags::CHECKED | StateFlags::SELECTED,
-        );
-        let primary_button = ui.with_surface(Surface::Surface, |ui| {
-            ui.style(
-                termrock::Family::BUTTON,
-                Variant::PRIMARY,
-                Part::CONTAINER,
-                StateFlags::empty(),
-            )
-            .style
-        });
-        let primary_gutter = style(
-            ui,
-            Surface::Surface,
-            termrock::Family::BUTTON,
-            Part::GUTTER,
-            StateFlags::empty(),
-        );
-        let meta = style(
-            ui,
-            Surface::Surface,
-            termrock::Family::EMPTY,
-            Part::HELP,
-            StateFlags::empty(),
-        );
-
-        Self {
-            panel,
-            title,
-            detail,
-            muted,
-            field,
-            field_marker,
-            rail,
-            selected,
-            tab,
-            canvas,
-            rule,
-            active_rule,
-            radio_on,
-            primary_button,
-            primary_gutter,
-            meta,
-        }
-    }
-}
-
-fn paint_general_fields(ui: &mut Ui<'_>, body: Rect, palette: &HistoricalPalette) {
-    let &HistoricalPalette {
-        selected,
-        tab,
-        active_rule,
-        rule,
-        detail,
-        radio_on,
-        field,
-        field_marker,
-        rail,
-        panel,
-        muted,
-        ..
-    } = palette;
-    let segments: [(u16, &str, &str, PaintStyle); 8] = [
-        (0, " ", "General", selected),
-        (0, " General    ", "Members    Environment", tab),
-        (1, "", "━━━━━━━━━━", active_rule),
-        (
-            1,
-            "━━━━━━━━━━",
-            "─────────────────────────────────────────────────",
-            rule,
-        ),
-        (3, "  ", "General", detail),
-        (5, "    ", "Project name *", detail),
-        (5, "    Project name ", "*", radio_on),
-        (5, "    Project name *               ", "Visibility", detail),
-    ];
-    for (row, prefix, text, style) in segments {
-        paint_segment(ui, body, row, prefix, text, style);
-    }
-    ui.fill(
-        Rect {
-            x: body.x.saturating_add(width("  ")),
-            y: body.y.saturating_add(6),
-            width: width("▎ payments-gateway       "),
-            height: 1,
-        },
-        field,
-    );
-    let segments: [(u16, &str, &str, PaintStyle); 12] = [
-        (6, "  ", "▎", field_marker),
-        (6, "  ▎", " payments-gateway", field),
-        (6, "  ▎ payments-gateway           ▎", "(●)", radio_on),
-        (6, "                               ", "▎", rail),
-        (6, "  ▎ payments-gateway           ▎(●) ", "Private", panel),
-        (7, "                               ▎( ) ", "Internal", panel),
-        (7, "                               ", "▎", rail),
-        (7, "                               ▎", "( )", muted),
-        (8, "    ", "Description", detail),
-        (8, "    Description                ▎( ) ", "Public", panel),
-        (8, "                               ", "▎", rail),
-        (8, "                               ▎", "( )", muted),
-    ];
-    for (row, prefix, text, style) in segments {
-        paint_segment(ui, body, row, prefix, text, style);
-    }
-    ui.fill(
-        Rect {
-            x: body.x.saturating_add(width("  ")),
-            y: body.y.saturating_add(9),
-            width: width("▎ Handles checkout, in…"),
-            height: 1,
-        },
-        field,
-    );
-    let segments: [(u16, &str, &str, PaintStyle); 9] = [
-        (9, "  ", "▎", field_marker),
-        (9, "  ▎", " Handles checkout, in…", field),
-        (10, "  ▎                            ▎", "○──", muted),
-        (10, "  ", "▎", field_marker),
-        (10, "                               ", "▎", rail),
-        (
-            10,
-            "  ▎                            ▎○── ",
-            "Auto-merge approved PRs",
-            panel,
-        ),
-        (
-            11,
-            "  ▎                            ▎──● ",
-            "Protect main branch",
-            panel,
-        ),
-        (11, "                               ", "▎", rail),
-        (11, "                               ▎", "──●", radio_on),
-    ];
-    for (row, prefix, text, style) in segments {
-        paint_segment(ui, body, row, prefix, text, style);
-    }
-}
-
-fn tab_style(ui: &mut Ui<'_>, surface: Surface, flags: StateFlags) -> PaintStyle {
-    ui.with_surface(surface, |ui| {
-        ui.style(termrock::Family::TABS, Variant::DEFAULT, Part::TAB, flags)
-            .style
-            .with_bg_from(ui.surface_style())
-    })
 }

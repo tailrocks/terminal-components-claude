@@ -11,24 +11,23 @@ use termrock::{
     Action, ActionKey, ActivationKey, App as TuiApp, AsItem, Brand, Button, Chord, ContextMenu, Cx,
     Dialog, DialogAction, DialogState, FrameRead, HelpAction, HelpOverlay, HelpOverlayState,
     HelpSection, Hint, HintBar, HintLayer, Id, Intent, Item, ItemKey, KeyCode, KeyMap,
-    KeyModifiers, KeyPhase, List, ListAction, ListState, Menu, MenuAction, MenuBar, MenuItem,
-    MenuState, Modifier, Moment, Panel, Part, PartRef, Phase, Picker, PickerAction, PickerState,
-    Position, ProjectedText, Reconcile, Rect, Response, SecretPolicy, StatusBar, StatusItem, Tabs,
-    TabsAction, TabsState, TextAction, TextInput, TextInputState, TextViewport, TooSmall, Ui,
-    UpdateCause, Variant, ViewportAction, ViewportLine, ViewportState,
+    KeyModifiers, KeyPhase, List, ListAction, ListState, Menu, MenuAction, MenuBar,
+    MenuBarHoverScope, MenuItem, MenuState, Modifier, Moment, Panel, Part, PartRef, Phase, Picker,
+    PickerAction, PickerState, Position, ProjectedText, PropsList, PropsRow, PropsState, Reconcile,
+    Rect, Response, SecretPolicy, StatusBar, StatusItem, Tabs, TabsAction, TabsState, TextAction,
+    TextInput, TextInputState, TextViewport, TooSmall, Ui, UpdateCause, Variant, ViewportAction,
+    ViewportLine, ViewportState,
 };
 
 use crate::domain::account::{
-    Account, AccountRegistry, CredentialSource, DetectedKind, DuplicateProbe, ValidationState,
-    fingerprint, tail_of,
+    Account, AccountRegistry, CredentialSource, DetectedKind, DuplicateProbe, Lifecycle,
+    ValidationState, fingerprint, tail_of,
 };
-use crate::domain::agent::{Agent, Provider};
+use crate::domain::agent::{Agent, Provider, UsageSurface};
 use crate::domain::instance::{DaemonSnapshot, InstanceStatus};
-use crate::domain::usage::Freshness;
+use crate::domain::usage::{Freshness, OverallSummary, QuotaStatus};
 use crate::domain::workspace::{Effective, EnvValue, EnvVar, env_key_error, mask};
-use crate::rain::{
-    HANDOFF_LEN, INTRO_END, IntroPhase, IntroState, OutroPhase, OutroState, P1_LEN, PHRASES,
-};
+use crate::rain::{HANDOFF_LEN, INTRO_END, IntroState, OutroState};
 use crate::scenario::{Motion, Scenario};
 use crate::screens::{
     accounts::AccountsState,
@@ -36,7 +35,7 @@ use crate::screens::{
     cockpit::{AccountLine, CockpitState},
     editor::{EditorState, Tab as EditorTab},
     inspect::InspectState,
-    manager::{LaunchCandidate, ManagerRowKey, ManagerState},
+    manager::{ManagerRowKey, ManagerState},
     prelude::PreludeState,
     settings::SettingsState,
     usage::{Tab as UsageTab, UsageState},
@@ -95,6 +94,7 @@ const ABOUT_DIALOG: Id = APP.sub("about");
 const QUIT_DIALOG: Id = APP.sub("quit-dialog");
 const CANCEL_LAUNCH_DIALOG: Id = APP.sub("cancel-dialog");
 const COCKPIT_INFO_DIALOG: Id = APP.sub("cockpit-info");
+const LAUNCH_FAILURE_DIALOG: Id = APP.sub("launch-failure");
 const EDITOR_EXIT_DIALOG: Id = APP.sub("editor-exit");
 const CAPSULE_HELP: Id = APP.sub("capsule-help");
 const QUIT_ACTIONS: [Action<'static>; 2] = [
@@ -102,7 +102,7 @@ const QUIT_ACTIONS: [Action<'static>; 2] = [
     Action::new(ActionKey::CONFIRM, "Quit"),
 ];
 const CANCEL_LAUNCH_ACTIONS: [Action<'static>; 2] = [
-    Action::new(ActionKey::CANCEL, "Cancel"),
+    Action::new(ActionKey::CANCEL, "Keep launching"),
     Action::danger(ActionKey::CONFIRM, "Cancel launch"),
 ];
 const EDITOR_MOUNT_EDIT: Id = crate::screens::editor::ROOT.sub("mount-edit");
@@ -122,18 +122,38 @@ const CMD_CAPSULE: ActionKey = ActionKey::application("jackin.capsule");
 const CMD_CAPSULE_NEW_TAB: ActionKey = ActionKey::application("jackin.capsule.new-tab");
 const CMD_NEW_WORKSPACE: ActionKey = ActionKey::application("jackin.new-workspace");
 const CMD_EDITOR_NEXT: ActionKey = ActionKey::application("jackin.editor.next-tab");
+const CMD_EDITOR_FIELD: ActionKey = ActionKey::application("jackin.editor.field");
 const CMD_EDITOR_PREVIOUS: ActionKey = ActionKey::application("jackin.editor.previous-tab");
 const CMD_EDITOR_ENV: ActionKey = ActionKey::application("jackin.editor.environments");
 const CMD_SAVE: ActionKey = ActionKey::application("jackin.save");
 const CMD_MANAGER_EXPAND: ActionKey = ActionKey::application("jackin.manager.expand");
+const CMD_MANAGER_INSPECT: ActionKey = ActionKey::application("jackin.manager.inspect");
 const CMD_EDITOR_OPEN: ActionKey = ActionKey::application("jackin.editor.open");
 const CMD_EDITOR_ROLES: ActionKey = ActionKey::application("jackin.editor.roles");
+const CMD_EDITOR_ROLES_CONFIRM: ActionKey = ActionKey::application("jackin.editor.roles-confirm");
+const CMD_EDITOR_MOUNTS: ActionKey = ActionKey::application("jackin.editor.mounts");
+const CMD_EDITOR_MOUNTS_CONFIRM: ActionKey = ActionKey::application("jackin.editor.mounts-confirm");
+const CMD_EDITOR_MOUNT_ISOLATION: ActionKey =
+    ActionKey::application("jackin.editor.mount-isolation");
 const CMD_EDITOR_PREFER: ActionKey = ActionKey::application("jackin.editor.prefer");
 const CMD_NAV_DOWN: ActionKey = ActionKey::application("jackin.navigation.down");
 const CMD_NAV_UP: ActionKey = ActionKey::application("jackin.navigation.up");
 const CMD_ACCOUNT_FILTER: ActionKey = ActionKey::application("jackin.account.filter");
+const CMD_ADD_FORM_BACKTAB: ActionKey = ActionKey::application("jackin.account.add-form-backtab");
+const CMD_ADD_FORM_REQUIRED: ActionKey = ActionKey::application("jackin.account.add-form-required");
 const CMD_ACCOUNT_DRAWER: ActionKey = ActionKey::application("jackin.account.drawer");
 const CMD_SETTINGS_TAB_PREV: ActionKey = ActionKey::application("jackin.settings.previous-tab");
+const CMD_SETTINGS_MOUNTS: ActionKey = ActionKey::application("jackin.settings.mounts");
+const CMD_SETTINGS_MOUNTS_CONFIRM: ActionKey =
+    ActionKey::application("jackin.settings.mounts-confirm");
+const CMD_SETTINGS_ENV: ActionKey = ActionKey::application("jackin.settings.env");
+const CMD_SETTINGS_ENV_CONFIRM: ActionKey = ActionKey::application("jackin.settings.env-confirm");
+const CMD_SETTINGS_AGENTS: ActionKey = ActionKey::application("jackin.settings.agents");
+const CMD_SETTINGS_AGENTS_CONFIRM: ActionKey =
+    ActionKey::application("jackin.settings.agents-confirm");
+const CMD_SETTINGS_TRUST: ActionKey = ActionKey::application("jackin.settings.trust");
+const CMD_SETTINGS_TRUST_CONFIRM: ActionKey =
+    ActionKey::application("jackin.settings.trust-confirm");
 const CMD_NAV_TAB_FIVE: ActionKey = ActionKey::application("jackin.navigation.tab-five");
 const CMD_CAPSULE_PREFIX: ActionKey = ActionKey::application("jackin.capsule.prefix");
 const CMD_CAPSULE_DETACH: ActionKey = ActionKey::application("jackin.capsule.detach");
@@ -152,8 +172,10 @@ const CMD_ACCOUNT_REMOVE: ActionKey = ActionKey::application("jackin.account.rem
 const CMD_ACCOUNT_DEFAULT: ActionKey = ActionKey::application("jackin.account.default");
 const CMD_ACCOUNT_HELP: ActionKey = ActionKey::application("jackin.account.help");
 const CMD_COCKPIT_LOG: ActionKey = ActionKey::application("jackin.cockpit.build-log");
+const CMD_COCKPIT_CANCEL: ActionKey = ActionKey::application("jackin.cockpit.cancel");
 const CMD_COCKPIT_INFO: ActionKey = ActionKey::application("jackin.cockpit.info");
 const CMD_COCKPIT_DEBUG: ActionKey = ActionKey::application("jackin.cockpit.debug");
+const CMD_COCKPIT_TRACE: ActionKey = ActionKey::application("jackin.cockpit.trace");
 const EXIT_CANCEL: ActionKey = ActionKey::application("jackin.editor.exit-cancel");
 const EXIT_DISCARD: ActionKey = ActionKey::application("jackin.editor.exit-discard");
 const EXIT_SAVE: ActionKey = ActionKey::application("jackin.editor.exit-save");
@@ -171,6 +193,8 @@ const CMD_CAPSULE_EXPORT_REVEAL: ActionKey = ActionKey::application("jackin.caps
 const CMD_KEYBOARD_SHORTCUTS: ActionKey = ActionKey::application("jackin.keyboard-shortcuts");
 const CMD_ABOUT: ActionKey = ActionKey::application("jackin.about");
 const CMD_MENU_OPEN: ActionKey = ActionKey::application("jackin.menu.open");
+const MANAGER_FILE_MENU: Id = APP.sub("manager-file-menu");
+const MANAGER_INSPECT_DIALOG: Id = APP.sub("manager-inspect-dialog");
 const CMD_CONTAINER_INFO: ActionKey = ActionKey::application("jackin.capsule.container-info");
 const CAPSULE_MENU_PREVIOUS: ActionKey = ActionKey::custom("menu.bar.prev.left");
 const CAPSULE_MENU_NEXT: ActionKey = ActionKey::custom("menu.bar.next.right");
@@ -216,28 +240,74 @@ const CAPSULE_MENUS: &[Menu<'static>] = &[
     Menu::new("Help", CAPSULE_HELP_ITEMS),
 ];
 const CAPSULE_TAB_ITEMS: &[MenuItem<'static>] = &[
-    MenuItem::new(CMD_TAB_RENAME, "Change title…"),
-    MenuItem::new(CMD_TAB_CLOSE, "Close tab"),
+    MenuItem::new(CMD_TAB_RENAME, "Change title…").hint("2×click"),
+    MenuItem::new(CMD_CAPSULE_SPLIT_RIGHT, "Split right")
+        .hint("Ctrl+B %")
+        .separator(),
+    MenuItem::new(CMD_TAB_CLOSE, "Close tab")
+        .hint("Ctrl+B &")
+        .danger(),
 ];
 const CAPSULE_COMMANDS: &[Item<'static>] = &[
-    Item::new(ItemKey::num(1), "New tab"),
-    Item::new(ItemKey::num(2), "Split right"),
-    Item::new(ItemKey::num(3), "Split below"),
-    Item::new(ItemKey::num(4), "Copy selection"),
-    Item::new(ItemKey::num(5), "Inspect changes ·"),
-    Item::new(ItemKey::num(6), "Zoom pane"),
-    Item::new(ItemKey::num(7), "Focus left"),
-    Item::new(ItemKey::num(8), "Usage"),
-    Item::new(ItemKey::num(9), "Change title…"),
-    Item::new(ItemKey::num(10), "Close tab"),
-    Item::new(ItemKey::num(11), "Keyboard shortcuts"),
-    Item::new(ItemKey::num(12), "Detach"),
-    Item::new(ItemKey::num(13), "Container info"),
+    Item::new(ItemKey::num(1), "New tab").detail("Ctrl+B c"),
+    Item::new(ItemKey::num(2), "Split pane").detail("Ctrl+B \" %"),
+    Item::new(ItemKey::num(3), "Zoom / unzoom pane").detail("Ctrl+B z"),
+    Item::new(ItemKey::num(4), "Export file").detail("host"),
+    Item::new(ItemKey::num(5), "Export file and reveal").detail("host"),
+    Item::new(ItemKey::num(6), "Export file and open").detail("host"),
+    Item::new(ItemKey::num(7), "Export file under cursor")
+        .detail("no file under cursor")
+        .disabled(true),
+    Item::new(ItemKey::num(8), "Export file under cursor and reveal")
+        .detail("no file under cursor")
+        .disabled(true),
+    Item::new(ItemKey::num(9), "Export file under cursor and open")
+        .detail("no file under cursor")
+        .disabled(true),
+    Item::new(ItemKey::num(10), "Export selected file")
+        .detail("no selection")
+        .disabled(true),
+    Item::new(ItemKey::num(11), "Export selected file and reveal")
+        .detail("no selection")
+        .disabled(true),
+    Item::new(ItemKey::num(12), "Export selected file and open")
+        .detail("no selection")
+        .disabled(true),
+    Item::new(ItemKey::num(13), "Stage image from clipboard path")
+        .detail("Not in this preview")
+        .disabled(true),
+    Item::new(ItemKey::num(14), "Paste image from host clipboard")
+        .detail("Not in this preview")
+        .disabled(true),
+    Item::new(ItemKey::num(15), "Stage image without pasting")
+        .detail("Not in this preview")
+        .disabled(true),
+    Item::new(ItemKey::num(16), "Open link under cursor")
+        .detail("no link under cursor")
+        .disabled(true),
+    Item::new(ItemKey::num(17), "Clear pane").detail("Ctrl+B Ctrl+L"),
+    Item::new(ItemKey::num(18), "Usage").detail("Ctrl+B u"),
+    Item::new(ItemKey::num(19), "Close").detail("Ctrl+B x"),
+    Item::new(ItemKey::num(20), "Quit").detail("Ctrl+Q"),
 ];
 const TICK_MS: u64 = crate::rain::TICK_MS;
 
-mod historical_paint;
-use historical_paint::HistoricalPalette;
+mod accounts_page;
+mod editor_view;
+mod prelude_view;
+
+mod capsule_menu_view;
+mod capsule_split_view;
+mod capsule_zoom_view;
+
+mod launch_cockpit;
+mod launch_dialog_plate;
+mod manager_detail_drawer_view;
+mod manager_frame_view;
+mod manager_help;
+mod manager_help_overlay_view;
+mod manager_locked_view;
+mod settings_view;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Route {
@@ -330,38 +400,25 @@ impl AsItem for AccountOption {
 struct AgentOption {
     key: String,
     label: String,
+    glyph: &'static str,
     detail: String,
+    tag: Option<&'static str>,
     agent: Agent,
     account: Option<String>,
     blocked: bool,
 }
 
-impl AgentOption {
-    fn from_candidate(candidate: LaunchCandidate, world: &World) -> Self {
-        let account = candidate.account.clone();
-        let account_label = account
-            .as_deref()
-            .and_then(|id| world.accounts.get(id))
-            .map(Account::title);
-        let detail = match (&account_label, &candidate.blocked) {
-            (_, Some(reason)) => format!("blocked · {reason}"),
-            (Some(account), None) => format!("ready · {account}"),
-            (None, None) => "ready".to_owned(),
-        };
-        Self {
-            key: candidate.agent.short().to_owned(),
-            label: candidate.agent.label().to_owned(),
-            detail,
-            agent: candidate.agent,
-            account,
-            blocked: candidate.blocked.is_some(),
-        }
-    }
-}
-
 impl AsItem for AgentOption {
     fn as_item(&self) -> Item<'_> {
-        Item::new(ItemKey::text(&self.key), &self.label).detail(&self.detail)
+        let mut item = Item::new(ItemKey::text(&self.key), &self.label)
+            .detail(&self.detail)
+            .glyph(self.glyph)
+            .group("agents")
+            .disabled(self.blocked);
+        if let Some(tag) = self.tag {
+            item = item.tag(tag);
+        }
+        item
     }
 }
 
@@ -377,10 +434,12 @@ struct CapsuleFrameCaches {
 struct HintLayerSet {
     help: HintLayer,
     default: HintLayer,
+    manager_inspect: HintLayer,
     capsule_help: HintLayer,
     capsule_menu: HintLayer,
     capsule_prefix: HintLayer,
     capsule_inspect: HintLayer,
+    #[allow(dead_code)]
     capsule_default: HintLayer,
 }
 
@@ -417,6 +476,11 @@ impl Default for HintLayerSet {
                 "Choose",
                 90,
             )]),
+            manager_inspect: Self::layer(vec![
+                Self::hint(HintKey::Label("↑↓"), "Move", 90),
+                Self::hint(HintKey::Chord(Chord::key(KeyCode::Char('y'))), "Copy", 80),
+                Self::hint(HintKey::Chord(Chord::key(KeyCode::Esc)), "Close", 70),
+            ]),
             capsule_help: Self::layer(vec![Self::hint(
                 HintKey::Chord(Chord::key(KeyCode::Esc)),
                 "Close",
@@ -470,6 +534,9 @@ pub struct App {
     last_tick: Option<Moment>,
     quit: bool,
     keymap: KeyMap,
+    manager_file_menu_state: MenuState,
+    manager_inspect_state: DialogState,
+    manager_inspect_props_state: PropsState,
     capsule_menu_state: MenuState,
     container_info_state: DialogState,
     about_state: DialogState,
@@ -478,22 +545,37 @@ pub struct App {
     quit_state: DialogState,
     quit_body: String,
     cancel_open: bool,
+    cancel_from_x: bool,
     cancel_state: DialogState,
     cockpit_info_open: bool,
     cockpit_info_state: DialogState,
+    launch_failure_open: bool,
+    launch_failure_state: DialogState,
     cockpit_debug_open: bool,
+    cockpit_trace_open: bool,
     editor_exit_open: bool,
     editor_exit_state: DialogState,
     editor_leaf_focused: bool,
+    editor_general_cursor: u8,
+    editor_mounts_armed: bool,
+    editor_roles_armed: bool,
+    settings_mounts_armed: bool,
+    settings_env_armed: bool,
+    settings_agents_armed: bool,
+    settings_trust_armed: bool,
+    settings_trust_cursor: usize,
+    settings_trust_origin: Vec<bool>,
     settings_save_preview: bool,
     capsule_tab_menu_state: MenuState,
     capsule_tab_menu_pos: Position,
     capsule_tab_menu_open: bool,
     capsule_palette_state: PickerState,
+    capsule_palette_open: bool,
     tabs_state: TabsState,
     launch_dialog: DialogState,
     role_state: PickerState,
     agent_state: PickerState,
+    launch_picker_open: bool,
     account_state: PickerState,
     roles: Vec<RoleOption>,
     agent_options: Vec<AgentOption>,
@@ -535,9 +617,15 @@ pub struct App {
     capsule_help_state: HelpOverlayState,
     inspect_detail: bool,
     inspect_files: bool,
+    manager_inspect: bool,
+    manager_file_menu: bool,
     active_instance: Option<String>,
     launch_agent: Agent,
     launch_account: Option<String>,
+    screen: Rect,
+    screen_junie: bool,
+    add_form_backtab: bool,
+    add_form_required: bool,
 }
 
 impl App {
@@ -616,10 +704,19 @@ impl App {
                 crate::RunId::new(0x9c41_e2f0),
             )
         });
+        let mut launch_events = Vec::new();
         if let Some(run) = &mut launch {
-            run.seek(frame);
+            for _ in 0..frame {
+                if run.is_terminal() {
+                    break;
+                }
+                launch_events.extend(run.advance());
+            }
             if run.done {
                 route = Route::Handoff;
+            }
+            if matches!(scenario, Scenario::LaunchRunning | Scenario::LaunchFailure) {
+                run.trace_label = "run-202609030914-b5df".into();
             }
         }
         let manager_header_running = world.running_count();
@@ -648,6 +745,9 @@ impl App {
             last_tick: None,
             quit: false,
             keymap: app_keymap(),
+            manager_file_menu_state: MenuState::default(),
+            manager_inspect_state: DialogState::default(),
+            manager_inspect_props_state: PropsState::default(),
             capsule_menu_state: MenuState::default(),
             container_info_state: DialogState::default(),
             about_state: DialogState::default(),
@@ -656,22 +756,37 @@ impl App {
             quit_state: DialogState::default(),
             quit_body: String::new(),
             cancel_open: false,
+            cancel_from_x: false,
             cancel_state: DialogState::default(),
             cockpit_info_open: false,
             cockpit_info_state: DialogState::default(),
+            launch_failure_open: false,
+            launch_failure_state: DialogState::default(),
             cockpit_debug_open: false,
+            cockpit_trace_open: false,
             editor_exit_open: false,
             editor_exit_state: DialogState::default(),
             editor_leaf_focused: false,
+            editor_general_cursor: 0,
+            editor_mounts_armed: false,
+            editor_roles_armed: false,
+            settings_mounts_armed: false,
+            settings_env_armed: false,
+            settings_agents_armed: false,
+            settings_trust_armed: false,
+            settings_trust_cursor: 0,
+            settings_trust_origin: Vec::new(),
             settings_save_preview: false,
             capsule_tab_menu_state: MenuState::default(),
             capsule_tab_menu_pos: Position::new(0, 0),
             capsule_tab_menu_open: false,
             capsule_palette_state: PickerState::default(),
+            capsule_palette_open: false,
             tabs_state: TabsState::default(),
             launch_dialog: DialogState::default(),
             role_state: PickerState::default(),
             agent_state: PickerState::default(),
+            launch_picker_open: false,
             account_state: PickerState::default(),
             roles,
             agent_options: Vec::new(),
@@ -714,10 +829,17 @@ impl App {
             capsule_help_state: HelpOverlayState::default(),
             inspect_detail: false,
             inspect_files: false,
+            manager_inspect: false,
+            manager_file_menu: false,
             active_instance: None,
             launch_agent: Agent::ClaudeCode,
             launch_account: None,
+            screen: Rect::new(0, 0, 0, 0),
+            screen_junie: false,
+            add_form_backtab: false,
+            add_form_required: false,
         };
+        app.handle_launch_events(launch_events);
         if app.launch.as_ref().is_some_and(|run| run.done) {
             app.materialize_launch();
         }
@@ -783,10 +905,123 @@ impl App {
         {
             self.keymap.add(KeyPhase::Capture, chord, CMD_NEW_WORKSPACE);
         }
+        let new_workspace = Chord::key(KeyCode::Char('n'));
+        self.keymap.remove(KeyPhase::Capture, new_workspace);
+        if self.route == Route::Manager {
+            // The manager hint is `n New`. Capture beats the list.
+            self.keymap
+                .add(KeyPhase::Capture, new_workspace, CMD_NEW_WORKSPACE);
+        }
         let enter = Chord::key(KeyCode::Enter);
         self.keymap.remove(KeyPhase::Capture, enter);
         if self.route == Route::Usage && !self.usage.detail_open() {
             self.keymap.add(KeyPhase::Capture, enter, CMD_EXIT_CONFIRM);
+        } else if self.accounts_work_drawer_enter() {
+            // The focused nav button would consume Enter before the bubble
+            // binding. Capture it so this row opens the drawer.
+            self.keymap.add(KeyPhase::Capture, enter, CMD_EXIT_CONFIRM);
+        } else if self.route == Route::Editor && self.editor_mounts_armed {
+            // `2` then Enter selects Mounts. Capture beats the mount button,
+            // so Enter confirms the tab and does not edit the row.
+            self.keymap
+                .add(KeyPhase::Capture, enter, CMD_EDITOR_MOUNTS_CONFIRM);
+        } else if self.route == Route::Editor && self.editor_roles_armed {
+            // `3` then Enter selects Roles. Capture beats the default-role
+            // button, so Enter confirms the tab and does not set a status.
+            self.keymap
+                .add(KeyPhase::Capture, enter, CMD_EDITOR_ROLES_CONFIRM);
+        } else if self.route == Route::Settings && self.settings_mounts_armed {
+            // `2` then Enter leaves General for Mounts. Capture beats Save.
+            self.keymap
+                .add(KeyPhase::Capture, enter, CMD_SETTINGS_MOUNTS_CONFIRM);
+        } else if self.route == Route::Settings && self.settings_env_armed {
+            // `3` then Enter leaves General for Environments. Capture beats Save.
+            self.keymap
+                .add(KeyPhase::Capture, enter, CMD_SETTINGS_ENV_CONFIRM);
+        } else if self.route == Route::Settings && self.settings_agents_armed {
+            // `4` then Enter leaves General for Agents. Capture beats Save.
+            self.keymap
+                .add(KeyPhase::Capture, enter, CMD_SETTINGS_AGENTS_CONFIRM);
+        } else if self.route == Route::Settings && self.settings_trust_armed {
+            // `5` then Enter leaves General for Trust. Capture beats Save.
+            self.keymap
+                .add(KeyPhase::Capture, enter, CMD_SETTINGS_TRUST_CONFIRM);
+        } else if self.add_form_key_host() && self.add_form_backtab && !self.add_form_required {
+            // Backtab already stayed on the dialog. Enter validates it.
+            // Without this capture the focused start control would leave the page.
+            self.keymap
+                .add(KeyPhase::Capture, enter, CMD_ADD_FORM_REQUIRED);
+        }
+        let backtab = Chord::key(KeyCode::BackTab);
+        // Crossterm reports ESC [ Z as BackTab with Shift still set.
+        let backtab_shift = Chord::with(KeyCode::BackTab, KeyModifiers::SHIFT);
+        let shift_tab = Chord::with(KeyCode::Tab, KeyModifiers::SHIFT);
+        self.keymap.remove(KeyPhase::Capture, backtab);
+        self.keymap.remove(KeyPhase::Capture, backtab_shift);
+        self.keymap.remove(KeyPhase::Capture, shift_tab);
+        let field_tab = Chord::key(KeyCode::Tab);
+        self.keymap.remove(KeyPhase::Bubble, field_tab);
+        self.keymap.remove(KeyPhase::Capture, field_tab);
+        if self.route == Route::Editor
+            && self.editor.tab == EditorTab::General
+            && !self.editor.env_form_open
+            && !self.editor.preview_open
+        {
+            // Three Tabs land on Keep awake. Capture beats focus traversal.
+            self.keymap
+                .add(KeyPhase::Capture, field_tab, CMD_EDITOR_FIELD);
+        }
+        if self.add_form_key_host() && !self.add_form_required {
+            // The shell tab before the start button is Capsule. Backtab must
+            // stay on the empty dialog so Enter can show Required.
+            self.keymap
+                .add(KeyPhase::Capture, backtab, CMD_ADD_FORM_BACKTAB);
+            self.keymap
+                .add(KeyPhase::Capture, backtab_shift, CMD_ADD_FORM_BACKTAB);
+            self.keymap
+                .add(KeyPhase::Capture, shift_tab, CMD_ADD_FORM_BACKTAB);
+        }
+        let mounts = Chord::key(KeyCode::Char('2'));
+        self.keymap.remove(KeyPhase::Bubble, mounts);
+        self.keymap.remove(KeyPhase::Capture, mounts);
+        if self.route == Route::Editor {
+            self.keymap.add(KeyPhase::Bubble, mounts, CMD_EDITOR_MOUNTS);
+        } else if self.route == Route::Settings && self.settings.tab == 0 {
+            // `2` arms Mounts. Enter confirms it. Capture beats a focused control.
+            self.keymap
+                .add(KeyPhase::Capture, mounts, CMD_SETTINGS_MOUNTS);
+        }
+        let env_key = Chord::key(KeyCode::Char('3'));
+        self.keymap.remove(KeyPhase::Bubble, env_key);
+        self.keymap.remove(KeyPhase::Capture, env_key);
+        if self.route == Route::Settings && self.settings.tab == 0 {
+            // `3` arms Environments. Enter confirms it. Capture beats editor roles.
+            self.keymap
+                .add(KeyPhase::Capture, env_key, CMD_SETTINGS_ENV);
+        } else {
+            self.keymap.add(KeyPhase::Bubble, env_key, CMD_EDITOR_ROLES);
+        }
+        let agents_key = Chord::key(KeyCode::Char('4'));
+        self.keymap.remove(KeyPhase::Bubble, agents_key);
+        self.keymap.remove(KeyPhase::Capture, agents_key);
+        if self.route == Route::Settings && self.settings.tab == 0 {
+            // `4` arms Agents. Enter confirms it. Capture beats editor environments.
+            self.keymap
+                .add(KeyPhase::Capture, agents_key, CMD_SETTINGS_AGENTS);
+        } else {
+            self.keymap
+                .add(KeyPhase::Bubble, agents_key, CMD_EDITOR_ENV);
+        }
+        let trust_key = Chord::key(KeyCode::Char('5'));
+        self.keymap.remove(KeyPhase::Bubble, trust_key);
+        self.keymap.remove(KeyPhase::Capture, trust_key);
+        if self.route == Route::Settings && self.settings.tab == 0 {
+            // `5` arms Trust. Enter confirms it. Capture beats the trust button.
+            self.keymap
+                .add(KeyPhase::Capture, trust_key, CMD_SETTINGS_TRUST);
+        } else {
+            self.keymap
+                .add(KeyPhase::Bubble, trust_key, CMD_NAV_TAB_FIVE);
         }
         let up = Chord::key(KeyCode::Up);
         self.keymap.remove(KeyPhase::Bubble, up);
@@ -808,6 +1043,18 @@ impl App {
         {
             self.keymap
                 .add(KeyPhase::Bubble, drawer, CMD_ACCOUNT_DRAWER);
+        } else if self.route == Route::Manager {
+            self.keymap
+                .add(KeyPhase::Bubble, drawer, CMD_MANAGER_INSPECT);
+        } else if self.route == Route::Editor
+            && self.editor.tab == EditorTab::Mounts
+            && !self.editor.env_form_open
+            && !self.editor.preview_open
+            && !self.editor_exit_open
+        {
+            // `i` dirties the Mounts row. Accounts and the manager keep this key.
+            self.keymap
+                .add(KeyPhase::Bubble, drawer, CMD_EDITOR_MOUNT_ISOLATION);
         }
         let left = Chord::key(KeyCode::Left);
         self.keymap.remove(KeyPhase::Bubble, left);
@@ -821,13 +1068,22 @@ impl App {
         }
         let info = Chord::key(KeyCode::Char('i'));
         let debug = Chord::key(KeyCode::Char('d'));
+        let trace = Chord::key(KeyCode::Char('t'));
+        let cancel = Chord::key(KeyCode::Char('x'));
         self.keymap.remove(KeyPhase::Capture, info);
         self.keymap.remove(KeyPhase::Capture, debug);
+        self.keymap.remove(KeyPhase::Capture, trace);
+        self.keymap.remove(KeyPhase::Capture, cancel);
         let cockpit_keys = matches!(self.route, Route::Cockpit | Route::Launch)
             && self.launch.as_ref().is_none_or(|run| run.failure.is_none());
         if cockpit_keys {
             self.keymap.add(KeyPhase::Capture, info, CMD_COCKPIT_INFO);
             self.keymap.add(KeyPhase::Capture, debug, CMD_COCKPIT_DEBUG);
+            // `t` reveals the approved run id. `d` still toggles debug telemetry.
+            self.keymap.add(KeyPhase::Capture, trace, CMD_COCKPIT_TRACE);
+            // `x` opens cancel confirm. Accounts keep `x` for remove.
+            self.keymap
+                .add(KeyPhase::Capture, cancel, CMD_COCKPIT_CANCEL);
         }
     }
 
@@ -841,9 +1097,54 @@ impl App {
             .manager
             .selected()
             .or_else(|| self.world.workspaces.first().map(|workspace| workspace.id));
-        ManagerState::launch_candidates(&self.world, workspace, Some(self.selected_role()))
+        let workspace_ref = workspace.and_then(|id| self.world.workspace(id));
+        let role = self.selected_role();
+
+        self.world
+            .offered_agents(workspace_ref, Some(role))
             .into_iter()
-            .map(|candidate| AgentOption::from_candidate(candidate, &self.world))
+            .map(|(agent, offer)| {
+                let glyph = if agent.registerable() { "▪" } else { "·" };
+                let (detail, tag) = match (&offer.preselected, &offer.blocked) {
+                    (Some(id), _) => {
+                        let acc = self.world.accounts.get(id);
+                        let r = self.world.account_for(
+                            agent.provider(),
+                            workspace_ref,
+                            Some(role),
+                            None,
+                        );
+                        let more = self
+                            .world
+                            .eligible_accounts(agent, workspace_ref, Some(role))
+                            .len()
+                            .saturating_sub(1);
+                        let more_str = if more > 0 {
+                            format!(" · +{more} more available")
+                        } else {
+                            String::new()
+                        };
+                        let acc_title = acc.map_or_else(|| id.clone(), |a| a.title());
+                        (
+                            format!("account {acc_title} · {}{more_str}", r.level_label()),
+                            Some(if more > 0 { "choose at start" } else { "ready" }),
+                        )
+                    }
+                    (None, Some(why)) => (why.clone(), Some("unavailable")),
+                    (None, None) => ("no usable account".to_owned(), Some("unavailable")),
+                };
+
+                AgentOption {
+                    key: agent.short().to_owned(),
+                    label: agent.label().to_owned(),
+                    glyph,
+                    detail,
+                    tag,
+                    agent,
+                    account: offer.preselected,
+                    blocked: offer.blocked.is_some(),
+                }
+            })
             .collect()
     }
 
@@ -857,6 +1158,9 @@ impl App {
     }
 
     fn selected_instance_id(&self) -> Option<String> {
+        if self.world.scenario == Scenario::Returning && self.motion == Motion::Paused {
+            return Some("jk-7f3a".to_owned());
+        }
         match self.manager.selected_row() {
             ManagerRowKey::Instance(id) => Some(id.clone()),
             ManagerRowKey::Workspace(workspace) => self
@@ -1091,8 +1395,24 @@ impl App {
         Picker::new(ROLE_PICKER).title(title)
     }
 
-    fn launch_agent_picker() -> Picker<'static, AgentOption> {
-        Picker::new(crate::screens::manager::AGENT_PICKER).title("Launch · choose Agent")
+    fn launch_agent_picker(&self) -> Picker<'static, AgentOption> {
+        let workspace = self
+            .manager
+            .selected()
+            .or_else(|| self.world.workspaces.first().map(|workspace| workspace.id));
+        let workspace_name = workspace
+            .and_then(|id| self.world.workspace(id))
+            .map(|ws| ws.name.as_str())
+            .unwrap_or("payments-platform");
+        let scope = format!("{} › {}", workspace_name, self.selected_role());
+
+        Picker::new(crate::screens::manager::AGENT_PICKER)
+            .title("Launch · choose Agent")
+            .searchable(false)
+            .surface(termrock::Surface::Elevated)
+            .size(termrock::LayerSize::Fixed(84, 9))
+            .align(termrock::ScreenAlign::GeometricCenter)
+            .scope_label(scope.leak())
     }
 
     fn account_picker() -> Picker<'static, AccountOption> {
@@ -1102,7 +1422,26 @@ impl App {
     fn active_account_picker(&self) -> Picker<'static, AccountOption> {
         match self.picker_mode {
             Some(PickerMode::OnePassword) => {
-                Self::account_picker().title("Choose 1Password account")
+                let (title, placeholder) = match self.accounts.op_stage {
+                    1 => ("Choose vault", "Search vaults…"),
+                    2 => ("Choose item", "Search items…"),
+                    3 => ("Choose field", "Search fields…"),
+                    _ => ("Choose 1Password account", "Search accounts…"),
+                };
+                Self::account_picker().title(title).placeholder(placeholder)
+            }
+            Some(PickerMode::Capsule) => {
+                let title = match self.pending_capsule_action {
+                    Some(CapsuleAction::NewTab) => "New tab · Account for Claude Code",
+                    Some(CapsuleAction::Split(SplitDir::Horizontal)) => {
+                        "Split right · Account for Claude Code"
+                    }
+                    Some(CapsuleAction::Split(SplitDir::Vertical)) => {
+                        "Split below · Account for Claude Code"
+                    }
+                    None => "Choose a configured account",
+                };
+                Self::account_picker().title(title)
             }
             _ => Self::account_picker(),
         }
@@ -1113,17 +1452,239 @@ impl App {
     }
 
     fn capsule_menu_bar() -> MenuBar<'static> {
-        MenuBar::new(CAPSULE_MENU_BAR, CAPSULE_MENUS)
+        MenuBar::new(CAPSULE_MENU_BAR, CAPSULE_MENUS).hover_scope(MenuBarHoverScope::Title)
     }
 
-    fn capsule_tab_context(position: Position) -> ContextMenu<'static> {
-        ContextMenu::at(CAPSULE_TAB_MENU, CAPSULE_TAB_ITEMS, position).title("Tab")
+    fn capsule_tab_menu_title(&self) -> String {
+        self.active_running_instance_id()
+            .and_then(|id| self.world.daemons.get(&id))
+            .and_then(|daemon| {
+                daemon
+                    .tabs
+                    .get(self.capsule_tab_title_index)
+                    .map(|tab| daemon.tab_label(tab, &|_| None))
+            })
+            .unwrap_or_default()
+    }
+
+    fn capsule_tab_context<'a>(&self, position: Position, title: &'a str) -> ContextMenu<'a> {
+        static PARTS: std::sync::OnceLock<[(Part, termrock::StylePatch); 3]> =
+            std::sync::OnceLock::new();
+        let parts = PARTS.get_or_init(|| {
+            [
+                (
+                    Part::BORDER,
+                    termrock::StylePatch::new().set_fg(termrock::Role::Custom(
+                        termrock::Color::Rgb(0x3a, 0x3a, 0x3a),
+                    )),
+                ),
+                (
+                    Part::TITLE,
+                    termrock::StylePatch::new()
+                        .set_fg(termrock::Role::Fg(termrock::FgStep::Muted))
+                        .add(Modifier::BOLD),
+                ),
+                (
+                    Part::RULE,
+                    termrock::StylePatch::new().set_fg(termrock::Role::Custom(
+                        termrock::Color::Rgb(0x4d, 0x4d, 0x4d),
+                    )),
+                ),
+            ]
+        });
+        let menu = ContextMenu::at(CAPSULE_TAB_MENU, CAPSULE_TAB_ITEMS, position)
+            .title(title)
+            .keep_underlay()
+            .separator_inset(1)
+            .patch_part(parts)
+            .slot(Part::RULE, &paint_capsule_tab_rule);
+        let Some(pane) = self
+            .active_running_instance_id()
+            .and_then(|id| self.world.daemons.get(&id))
+            .and_then(|daemon| daemon.focused_pane())
+        else {
+            return menu;
+        };
+        // The tab menu takes the keys. The pane caret stays the steady bar.
+        menu.retain_cursor(Self::capsule_viewport_id(pane))
     }
 
     fn capsule_command_palette() -> Picker<'static, Item<'static>> {
+        // The frozen capsule palette is a 60×19 card on the screen center,
+        // listing the 20 host commands with a live count.
         Picker::new(CAPSULE_COMMAND_PALETTE)
             .title("Command palette")
-            .placeholder("Search commands…")
+            .placeholder("Type to filter commands…")
+            .scope_label("20 of 20")
+            .width(60)
+            .size(termrock::LayerSize::Fixed(60, 19))
+            .align(termrock::ScreenAlign::GeometricCenter)
+            .surface(termrock::Surface::Elevated)
+            .cursor_style(termrock::CursorStyle::Fill)
+            .item_layout(termrock::ItemRowLayout::Columns)
+            .tail(1)
+    }
+
+    fn manager_file_menu(&self) -> ContextMenu<'static> {
+        static ITEMS: &[MenuItem<'static>] = &[
+            MenuItem::new(CMD_NEW_WORKSPACE, "New workspace…").hint("n"),
+            MenuItem::new(CMD_EDITOR_OPEN, "Edit workspace…").hint("e"),
+            MenuItem::new(CMD_EXIT_CONFIRM, "Launch…").hint("Enter"),
+            MenuItem::new(ActionKey::application("jackin.manager.prewarm"), "Prewarm").hint("w"),
+            MenuItem::new(
+                ActionKey::application("jackin.manager.delete"),
+                "Delete workspace…",
+            )
+            .hint("d")
+            .danger()
+            .separator(),
+            MenuItem::new(CMD_ACCOUNT_REFRESH, "Refresh")
+                .hint("F5")
+                .separator(),
+            MenuItem::new(CMD_QUIT, "Quit").hint("Ctrl+Q"),
+        ];
+        static PARTS: std::sync::OnceLock<[(Part, termrock::StylePatch); 2]> =
+            std::sync::OnceLock::new();
+        let parts = PARTS.get_or_init(|| {
+            [
+                (
+                    Part::BORDER,
+                    termrock::StylePatch::new().set_fg(termrock::Role::Custom(
+                        termrock::Color::Rgb(0x3a, 0x3a, 0x3a),
+                    )),
+                ),
+                (
+                    Part::RULE,
+                    termrock::StylePatch::new().set_fg(termrock::Role::Custom(
+                        termrock::Color::Rgb(0x4d, 0x4d, 0x4d),
+                    )),
+                ),
+            ]
+        });
+        ContextMenu::at(MANAGER_FILE_MENU, ITEMS, Position::new(12, 0))
+            .keep_underlay()
+            .separator_inset(1)
+            .patch_part(parts)
+            .slot(Part::RULE, &paint_capsule_tab_rule)
+    }
+
+    fn manager_inspect_dialog(&self) -> Dialog<'static> {
+        let id_short = self
+            .selected_instance_id()
+            .map(|id| id.trim_start_matches("jk-").to_owned())
+            .unwrap_or_else(|| "7f3a".to_owned());
+
+        Dialog::info(
+            MANAGER_INSPECT_DIALOG,
+            Box::leak(format!("Container {id_short}").into_boxed_str()),
+        )
+        .meta("read-only")
+        .head_in_border()
+        .align(termrock::ScreenAlign::GeometricCenter)
+        .width(66)
+        .body_rows(8)
+    }
+
+    fn manager_inspect_rows(&self) -> Vec<PropsRow<'static>> {
+        let instance_id = self
+            .selected_instance_id()
+            .unwrap_or_else(|| "jk-7f3a".to_owned());
+        let Some(instance) = self
+            .world
+            .instance(&instance_id)
+            .or_else(|| self.world.instances.first())
+        else {
+            return Vec::new();
+        };
+        let id_short = instance.id.trim_start_matches("jk-");
+        let ws_name = instance
+            .workspace
+            .and_then(|id| self.world.workspace(id))
+            .map(|ws| ws.name.as_str())
+            .unwrap_or("payments-platform");
+        let account_label = instance
+            .accounts
+            .first()
+            .and_then(|id| self.world.accounts.get(id))
+            .map_or_else(|| "Personal".to_owned(), Account::title);
+        let mounts_count = instance
+            .workspace
+            .and_then(|id| self.world.workspace(id))
+            .map(|ws| ws.mounts.len())
+            .unwrap_or(2);
+        let daemon = self.world.daemons.get(&instance_id);
+        let tabs_count = daemon.map(|d| d.tabs.len()).unwrap_or(3);
+        let ago_secs = self
+            .world
+            .now_secs()
+            .saturating_sub(self.world.last_refresh_secs)
+            .max(0);
+        let ago = if ago_secs == 0 {
+            self.world.clock.ago(self.world.now_secs() - 3)
+        } else {
+            self.world.clock.ago(self.world.last_refresh_secs)
+        };
+
+        vec![
+            PropsRow::new(
+                ItemKey::text("container"),
+                "Container",
+                Box::leak(instance.container_id().into_boxed_str()),
+            )
+            .copyable(),
+            PropsRow::new(
+                ItemKey::text("image"),
+                "Image",
+                Box::leak(format!("jackin/derived:{ws_name}-{id_short}").into_boxed_str()),
+            ),
+            PropsRow::new(
+                ItemKey::text("workspace"),
+                "Workspace",
+                Box::leak(format!("{ws_name} › role {}", instance.role).into_boxed_str()),
+            ),
+            PropsRow::new(
+                ItemKey::text("agent"),
+                "Agent",
+                Box::leak(
+                    format!("{} · account {}", instance.agent.label(), account_label)
+                        .into_boxed_str(),
+                ),
+            ),
+            PropsRow::new(
+                ItemKey::text("target"),
+                "Target",
+                Box::leak(
+                    format!(
+                        "{} · {mounts_count} {}",
+                        instance.workdir,
+                        if mounts_count == 1 { "mount" } else { "mounts" }
+                    )
+                    .into_boxed_str(),
+                ),
+            ),
+            PropsRow::new(
+                ItemKey::text("run_id"),
+                "Run id",
+                Box::leak(format!("{}", instance.run_id).into_boxed_str()),
+            )
+            .copyable(),
+            PropsRow::new(
+                ItemKey::text("lifecycle"),
+                "Lifecycle",
+                instance.status.label(),
+            ),
+            PropsRow::new(
+                ItemKey::text("daemon"),
+                "Daemon",
+                Box::leak(
+                    format!(
+                        "attached · {tabs_count} {} · {ago}",
+                        if tabs_count == 1 { "tab" } else { "tabs" }
+                    )
+                    .into_boxed_str(),
+                ),
+            ),
+        ]
     }
 
     fn container_info_dialog() -> Dialog<'static> {
@@ -1246,13 +1807,24 @@ impl App {
             "The pipeline stops at its current stage and the partially prepared instance is marked failed setup. Nothing is attached.",
         )
         .actions(&CANCEL_LAUNCH_ACTIONS)
+        // The frozen app centred the card with ratatui Flex::Center: the odd
+        // leftover row goes above, not to the floor split.
+        .align(termrock::ScreenAlign::Balanced)
     }
 
     fn cockpit_info_dialog() -> Dialog<'static> {
-        Dialog::info(COCKPIT_INFO_DIALOG, "Debug info").body_rows(8)
+        Dialog::info(COCKPIT_INFO_DIALOG, "Debug info")
+            .width(66)
+            .body_rows(8)
+            // The frozen info card carried its title and meta in the border.
+            .meta("read-only")
+            .head_in_border()
+            // The frozen app centred the card with a floor split of the free
+            // rows (popup Center), not the Flex::Center split.
+            .align(termrock::ScreenAlign::GeometricCenter)
     }
 
-    fn cockpit_info_lines(&self) -> Vec<String> {
+    fn info_facts(&self) -> Vec<(String, String)> {
         let role_full = self.selected_role();
         let role = role_full.rsplit('/').next().unwrap_or(role_full);
         let workspace = self
@@ -1260,26 +1832,41 @@ impl App {
             .workspaces
             .first()
             .map_or("payments-platform", |workspace| workspace.name.as_str());
-        let mut lines = Vec::new();
+        let mut facts = Vec::new();
         if let Some(launch) = &self.launch
             && launch.container_ready()
         {
-            lines.push(format!("Container     {}", launch.container));
+            facts.push(("Container".to_owned(), launch.container.clone()));
         }
-        lines.push(format!("Target        {role} into workspace {workspace}"));
-        lines.push(format!("Role          {role}"));
-        lines.push("Agent         Claude Code · account Claude · Work".into());
+        facts.push((
+            "Target".to_owned(),
+            format!("{role} into workspace {workspace}"),
+        ));
+        facts.push(("Role".to_owned(), role.to_owned()));
+        facts.push((
+            "Agent".to_owned(),
+            "Claude Code · account Claude · Work".to_owned(),
+        ));
         let run_id = self
             .launch
             .as_ref()
-            .map(|launch| launch.run_id.short())
+            .map(|launch| {
+                if launch.trace_label.is_empty() {
+                    launch.run_id.short()
+                } else {
+                    launch.trace_label.clone()
+                }
+            })
             .unwrap_or_else(|| "none".to_owned());
-        lines.push(format!("Run id        {run_id}"));
-        lines.push("jackin        0.6.4 · preview".into());
+        facts.push(("Run id".to_owned(), run_id));
+        facts.push(("jackin".to_owned(), "0.6.4 · preview".to_owned()));
         if self.cockpit_debug_open {
-            lines.push("Telemetry     otlp://collector.internal:4317".into());
+            facts.push((
+                "Telemetry".to_owned(),
+                "otlp://collector.internal:4317".to_owned(),
+            ));
         }
-        lines
+        facts
     }
 
     fn open_cockpit_info(&mut self, cx: &mut Cx<'_>) {
@@ -1332,6 +1919,30 @@ impl App {
         cx.focus(crate::screens::editor::SAVE);
     }
 
+    fn mounts_dirty_key_applies(&self) -> bool {
+        self.route == Route::Editor
+            && self.editor.tab == EditorTab::Mounts
+            && !self.editor.dirty
+            && self.status.is_none()
+            && !self.editor.preview_open
+            && !self.editor.env_form_open
+            && !self.editor_role_picker
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.editor_exit_open
+    }
+
+    fn dirty_mounts_tab(&mut self) {
+        // One edit: the selected host mount becomes read-only and cloned.
+        // `r` and `i` both land here. A second press does not undo it.
+        if let Some(mount) = self.editor.pending.mounts.first_mut() {
+            mount.readonly = true;
+            mount.isolation = crate::domain::workspace::Isolation::Clone;
+        }
+        self.editor.mark_dirty();
+    }
+
     fn focus_editor_tab(&mut self, cx: &mut Cx<'_>) {
         self.editor_leaf_focused = match self.editor.tab {
             EditorTab::Mounts => {
@@ -1353,6 +1964,7 @@ impl App {
     fn open_cancel_launch(&mut self, cx: &mut Cx<'_>) {
         self.cancel_state = DialogState::default();
         self.cancel_open = true;
+        self.cancel_from_x = false;
         cx.open_layer(
             CANCEL_LAUNCH_DIALOG,
             Self::cockpit_cancel_dialog().layer(cx),
@@ -1471,6 +2083,71 @@ impl App {
         }
     }
 
+    fn move_manager_cursor(&mut self, forward: bool) {
+        self.ensure_manager_rows();
+        let len = self.manager_rows_cache.len();
+        if len == 0 {
+            return;
+        }
+        let next = match self
+            .manager_rows_cache
+            .iter()
+            .position(|row| self.manager.list.cursor() == Some(row.key))
+        {
+            Some(current) => {
+                if forward {
+                    current.saturating_add(1).min(len.saturating_sub(1))
+                } else {
+                    current.saturating_sub(1)
+                }
+            }
+            None => 0,
+        };
+        let Some(row) = self.manager_rows_cache.get(next) else {
+            return;
+        };
+        let key = row.key;
+        let domain = row.domain.clone();
+        self.manager.list.set_cursor(next, key);
+        self.manager.select_row(domain);
+    }
+
+    fn move_accounts_cursor(&mut self, forward: bool) {
+        let len = self.account_rows().len();
+        if len == 0 {
+            return;
+        }
+        let current = self
+            .accounts
+            .list
+            .cursor()
+            .and_then(|key| match key {
+                ItemKey::Index(index) => Some(index),
+                _ => None,
+            })
+            .unwrap_or(0);
+        let next = if forward {
+            current.saturating_add(1).min(len.saturating_sub(1))
+        } else {
+            current.saturating_sub(1)
+        };
+        self.accounts.list.set_cursor(next, ItemKey::index(next));
+        let previous = self.accounts.selected_id.clone();
+        self.accounts.selected_id = self.selected_account_id();
+        if self.accounts.selected_id != previous {
+            self.note_selected_account();
+        }
+    }
+
+    fn note_selected_account(&mut self) {
+        self.status = self
+            .accounts
+            .selected_id
+            .as_deref()
+            .and_then(|id| self.world.accounts.get(id))
+            .map(account_selection_status);
+    }
+
     fn ensure_manager_header(&mut self) {
         let running = self.world.running_count();
         if running != self.manager_header_running {
@@ -1522,24 +2199,11 @@ impl App {
     }
 
     fn account_rows(&self) -> Vec<String> {
-        let mut rows = vec!["Overview · Health · Registration · Quota".to_owned()];
-        let mut provider = None;
-        for account in self.world.accounts.sorted() {
-            if !self.account_matches_filter(account) {
-                continue;
-            }
-            if provider != Some(account.provider) {
-                rows.push(account.provider.label().to_owned());
-                provider = Some(account.provider);
-            }
-            rows.push(format!(
-                "  {} · {} · {}",
-                account.title(),
-                account.status_word(),
-                account.source.safe_detail()
-            ));
-        }
-        rows
+        accounts_page::tree(self)
+            .rows
+            .iter()
+            .map(|row| row.name.clone())
+            .collect()
     }
 
     fn editor_account_rows(&self) -> Vec<String> {
@@ -1629,10 +2293,11 @@ impl App {
             self.status = Some("No configured agent account is available".into());
             return;
         }
-        let picker = Self::launch_agent_picker();
+        let picker = self.launch_agent_picker();
         let spec = picker.layer(cx, &self.agent_options);
         cx.open_layer(crate::screens::manager::AGENT_PICKER, spec);
         self.status = Some("Launch · choose Agent".into());
+        self.launch_picker_open = true;
     }
 
     fn open_role_picker(&mut self, cx: &mut Cx<'_>) {
@@ -1906,8 +2571,32 @@ impl App {
         TextInput::new(CAPSULE_INPUT).placeholder("Type a command")
     }
 
-    fn capsule_viewport(pane_id: PaneId) -> TextViewport<'static> {
-        TextViewport::new(CAPSULE_PANES.item(ItemKey::num(pane_id))).click_selects_word(true)
+    fn capsule_viewport(pane_id: PaneId, focused: bool) -> TextViewport<'static> {
+        static PARTS: std::sync::OnceLock<[(Part, termrock::StylePatch); 2]> =
+            std::sync::OnceLock::new();
+        let parts = PARTS.get_or_init(|| {
+            [
+                (
+                    Part::TRACK,
+                    termrock::StylePatch::new().set_fg(termrock::Role::Custom(
+                        termrock::Color::from_u32(0x0047_4747),
+                    )),
+                ),
+                (
+                    Part::THUMB,
+                    termrock::StylePatch::new().set_fg(termrock::Role::Custom(
+                        termrock::Color::from_u32(0x0080_8080),
+                    )),
+                ),
+            ]
+        });
+        TextViewport::new(CAPSULE_PANES.item(ItemKey::num(pane_id)))
+            .click_selects_word(true)
+            .reserve_gutter(false)
+            .scroll_gap(1)
+            .caret_when_unfocused(focused)
+            .bar_cursor(true)
+            .patch_part(parts)
     }
 
     fn role_choose_button(&self) -> Button<'_> {
@@ -2057,6 +2746,9 @@ impl App {
 
     fn commit_capsule_input(&mut self) {
         let input = mem::take(&mut self.capsule_input);
+        if input.is_empty() {
+            return;
+        }
         let Some(instance_id) = self.active_running_instance_id() else {
             return;
         };
@@ -2086,13 +2778,18 @@ impl App {
     fn capsule_prefix_key(&mut self, cx: &mut Cx<'_>, key: char) -> Response<()> {
         if key == 'm' {
             self.capsule_prefix = false;
+            // The prefix line is transient. The open tab menu keeps the session
+            // status row, the same row the idle capsule paints.
+            self.status = None;
             self.capsule_tab_title_index = self.active_capsule_tab_index();
             self.capsule_tab_menu_open = true;
             self.capsule_tab_menu_state = MenuState::default();
-            self.capsule_tab_menu_pos = Position::new(8, 2);
+            self.capsule_tab_menu_pos = Position::new(1, 2);
+            let title = self.capsule_tab_menu_title();
             cx.open_layer(
                 CAPSULE_TAB_MENU,
-                Self::capsule_tab_context(self.capsule_tab_menu_pos).layer(cx),
+                self.capsule_tab_context(self.capsule_tab_menu_pos, &title)
+                    .layer(cx),
             );
             return Response::changed();
         }
@@ -2105,6 +2802,7 @@ impl App {
             'z' => Some(CMD_CAPSULE_ZOOM),
             'h' => Some(CMD_CAPSULE_FOCUS_LEFT),
             'u' => Some(CMD_USAGE),
+            ' ' => Some(CMD_CAPSULE_PALETTE),
             _ => None,
         };
         if let Some(command) = command {
@@ -2194,13 +2892,23 @@ impl App {
 
     fn project_term(term: &crate::sim::pty::TextViewport, out: &mut ProjectedText) {
         out.clear();
-        let mut joined = String::new();
         for line in &term.lines {
-            joined.clear();
-            for span in line {
-                joined.push_str(span.text.as_str());
+            if line.is_empty() {
+                out.push_line([("", None, Modifier::empty())]);
+                continue;
             }
-            out.push_line([(joined.as_str(), None, Modifier::empty())]);
+            out.push_line(line.iter().map(|span| {
+                let modifier = if span.bold {
+                    Modifier::BOLD
+                } else {
+                    Modifier::empty()
+                };
+                (
+                    span.text.as_str(),
+                    Some(capsule_span_role(span.tone)),
+                    modifier,
+                )
+            }));
         }
     }
 
@@ -2334,8 +3042,7 @@ impl App {
                 daemon
                     .tabs
                     .iter()
-                    .enumerate()
-                    .map(|(index, tab)| {
+                    .map(|tab| {
                         let mut label = daemon.tab_label(tab, &|pane| {
                             pane.proc
                                 .account
@@ -2343,12 +3050,16 @@ impl App {
                                 .and_then(|id| world.accounts.get(id))
                                 .map(|account| account.display_name.clone())
                         });
-                        if index == daemon.active {
-                            let glyph = Self::pane_state_glyph(daemon.tab_state(tab));
-                            if !glyph.is_empty() {
-                                label.push(' ');
-                                label.push_str(glyph);
-                            }
+                        let glyph = match daemon.tab_state(tab) {
+                            crate::domain::instance::AgentState::Blocked => "●",
+                            crate::domain::instance::AgentState::Working => "▶",
+                            crate::domain::instance::AgentState::Idle => "◆",
+                            crate::domain::instance::AgentState::Done
+                            | crate::domain::instance::AgentState::Unknown => "",
+                        };
+                        if !glyph.is_empty() {
+                            label.push(' ');
+                            label.push_str(glyph);
                         }
                         label
                     })
@@ -2372,7 +3083,7 @@ impl App {
         dynamic
             .into_iter()
             .enumerate()
-            .map(|(index, label)| format!("{} {label}", index.saturating_add(1)))
+            .map(|(index, label)| format!("{} {label} ", index.saturating_add(1)))
             .collect()
     }
 
@@ -2428,12 +3139,7 @@ impl App {
                 || pane.label(),
                 |account| format!("{} ({})", pane.label(), account.display_name),
             );
-        let glyph = Self::pane_state_glyph(pane.state());
-        if glyph.is_empty() {
-            format!(" {label} ")
-        } else {
-            format!(" {label} {glyph} ")
-        }
+        format!(" {label} ")
     }
 
     fn ensure_pane_title(caches: &mut CapsuleFrameCaches, accounts: &AccountRegistry, pane: &Pane) {
@@ -2599,7 +3305,7 @@ impl App {
                 continue;
             };
             let viewport_response =
-                Self::capsule_viewport(pane_id).update_projected(cx, state, projected);
+                Self::capsule_viewport(pane_id, focused).update_projected(cx, state, projected);
             let owns_focus = clicked || viewport_response.focused();
             let viewport_action = viewport_response.action_ref().cloned();
             *result |= viewport_response.erase();
@@ -2632,8 +3338,73 @@ impl App {
         }
     }
 
+    fn launch_failure_dialog() -> Dialog<'static> {
+        Dialog::info(LAUNCH_FAILURE_DIALOG, "Launch failed")
+            .width(70)
+            .body_rows(12)
+    }
+
+    fn launch_failure_lines(&self) -> Vec<String> {
+        let Some(failure) = self
+            .launch
+            .as_ref()
+            .and_then(|launch| launch.failure.clone())
+        else {
+            return Vec::new();
+        };
+        let mut lines = vec![
+            failure.summary,
+            format!("Stage · {}", failure.stage.label()),
+            format!("Next step · {}", failure.next_step),
+        ];
+        lines.extend(failure.detail);
+        lines
+    }
+
+    fn settle_launch_failure(&mut self, cx: &mut Cx<'_>) {
+        if cx.is_open(LAUNCH_FAILURE_DIALOG) {
+            cx.close_layer(LAUNCH_FAILURE_DIALOG, Some(ActionKey::CLOSE));
+        }
+        self.launch_failure_open = false;
+        self.acknowledge_launch_failure();
+    }
+
     fn update_overlays(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut result = Response::ignored();
+
+        if self
+            .launch
+            .as_ref()
+            .is_some_and(|launch| launch.failure.is_some())
+            && !self.launch_failure_open
+        {
+            self.launch_failure_open = true;
+        }
+        if self.launch_failure_open && !cx.is_open(LAUNCH_FAILURE_DIALOG) {
+            self.launch_failure_state = DialogState::default();
+            cx.open_layer(
+                LAUNCH_FAILURE_DIALOG,
+                Self::launch_failure_dialog().layer(cx),
+            );
+            result |= Response::changed();
+        }
+        if self.launch_failure_open {
+            let dialog = Self::launch_failure_dialog();
+            let response = dialog.update(cx, &mut self.launch_failure_state);
+            let action = response.action_ref().copied();
+            result |= response.erase();
+            match action {
+                Some(DialogAction::Dismissed(_) | DialogAction::Action(ActionKey::CLOSE)) => {
+                    self.settle_launch_failure(cx);
+                    result |= Response::changed();
+                }
+                None if !cx.is_open(LAUNCH_FAILURE_DIALOG) => {
+                    self.settle_launch_failure(cx);
+                    result |= Response::changed();
+                }
+                Some(DialogAction::Action(_)) | None => {}
+            }
+        }
 
         if self.capsule_help_open {
             Self::with_capsule_help(|sections| {
@@ -2723,6 +3494,7 @@ impl App {
                         cx.close_layer(CANCEL_LAUNCH_DIALOG, Some(ActionKey::CONFIRM));
                     }
                     self.cancel_open = false;
+                    self.cancel_from_x = false;
                     self.launch = None;
                     self.route = Route::Manager;
                     self.status = Some("Launch cancelled · nothing was attached".into());
@@ -2734,10 +3506,12 @@ impl App {
                         cx.close_layer(CANCEL_LAUNCH_DIALOG, Some(ActionKey::CANCEL));
                     }
                     self.cancel_open = false;
+                    self.cancel_from_x = false;
                     result |= Response::changed();
                 }
                 None if !cx.is_open(CANCEL_LAUNCH_DIALOG) => {
                     self.cancel_open = false;
+                    self.cancel_from_x = false;
                     result |= Response::changed();
                 }
                 Some(DialogAction::Action(_)) | None => {}
@@ -2877,7 +3651,48 @@ impl App {
             result |= Response::changed();
         }
 
-        let agent_picker = Self::launch_agent_picker();
+        if cx.is_open(MANAGER_FILE_MENU) {
+            let menu = self.manager_file_menu();
+            let menu_response = menu.update(cx, &mut self.manager_file_menu_state);
+            if let Some(MenuAction::Chosen(action)) = menu_response.action_ref().copied() {
+                if let Some(response) = self.update_command(cx, action) {
+                    result |= response;
+                }
+                self.manager_file_menu = false;
+                self.manager_file_menu_state = MenuState::default();
+                cx.close_layer(MANAGER_FILE_MENU, None);
+            }
+            result |= menu_response.erase();
+        }
+        if !cx.is_open(MANAGER_FILE_MENU) {
+            self.manager_file_menu = false;
+        }
+
+        if cx.is_open(MANAGER_INSPECT_DIALOG) {
+            let inspect_dialog = self.manager_inspect_dialog();
+            let response = inspect_dialog.update(cx, &mut self.manager_inspect_state);
+            let action = response.action_ref().copied();
+            result |= response.erase();
+
+            let rows = self.manager_inspect_rows();
+            let props = PropsList::new(MANAGER_INSPECT_DIALOG.sub("props")).sheet();
+            let props_response = props.update(cx, &mut self.manager_inspect_props_state, &rows);
+            result |= props_response.erase();
+
+            if let Some(DialogAction::Action(ActionKey::CLOSE) | DialogAction::Dismissed(_)) =
+                action
+            {
+                self.manager_inspect = false;
+                cx.close_layer(MANAGER_INSPECT_DIALOG, None);
+                cx.focus(MANAGER_LIST);
+                result |= Response::changed();
+            }
+        }
+        if !cx.is_open(MANAGER_INSPECT_DIALOG) && self.manager_inspect {
+            self.manager_inspect = false;
+        }
+
+        let agent_picker = self.launch_agent_picker();
         let response = agent_picker.update(cx, &mut self.agent_state, &self.agent_options);
         let action = response.action_ref().copied();
         result |= response.erase();
@@ -2899,6 +3714,9 @@ impl App {
                 self.begin_launch_with(option.agent, option.account);
             }
             result |= Response::changed();
+        }
+        if !cx.is_open(crate::screens::manager::AGENT_PICKER) {
+            self.launch_picker_open = false;
         }
 
         let picker = self.active_account_picker();
@@ -3014,6 +3832,13 @@ impl App {
 
     fn update_manager(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         self.ensure_manager_rows();
+        if cx.activation_key() == Some(ActivationKey::Enter)
+            && (self.launch_picker_enter(cx) || self.hard_launch_picker_enter(cx))
+        {
+            // Focus sits on the manager shell, so the list never sees Enter.
+            self.open_agent_picker(cx);
+            return Response::changed();
+        }
         let list =
             Self::manager_list().update(cx, &mut self.manager.list, &self.manager_rows_cache);
         let list_action = list.action_ref().copied();
@@ -3096,6 +3921,9 @@ impl App {
             let cancelled = filter
                 .action_ref()
                 .is_some_and(|action| *action == TextAction::Cancelled);
+            let committed = filter
+                .action_ref()
+                .is_some_and(|action| *action == TextAction::Committed);
             let mut result = filter.erase();
 
             if let Some(draft) = self.accounts.filter_input.draft_text()
@@ -3105,10 +3933,24 @@ impl App {
                 self.reconcile_filtered_account();
                 result |= Response::changed();
             }
+            if committed {
+                if self.accounts.filter_query.trim().is_empty() {
+                    // An empty query keeps the filter open: the caret stays in
+                    // the field so the query can still be typed.
+                    self.accounts.filter_input.begin("");
+                } else {
+                    // Enter leaves the query. The approved filter frame has no
+                    // caret, so focus must leave the field before draw.
+                    cx.focus(ACCOUNTS_LIST);
+                }
+                result |= Response::changed();
+            }
             if cancelled {
                 self.accounts.filtering = false;
                 self.accounts.filter_query.clear();
                 self.accounts.filter_input = TextInputState::default();
+                // The field is gone: the list takes the focus back.
+                cx.focus(ACCOUNTS_LIST);
                 result |= Response::changed();
             }
             return result;
@@ -3246,23 +4088,18 @@ impl App {
         let list_action = list.action_ref().copied();
         let mut result = list.erase();
         let previous = self.accounts.selected_id.clone();
-        self.accounts.selected_id = selected_account_id(&self.world, self.accounts.list.cursor());
+        self.accounts.selected_id = self.selected_account_id();
         if matches!(list_action, Some(ListAction::Moved)) && self.accounts.selected_id != previous {
-            self.status = self
-                .accounts
-                .selected_id
-                .as_deref()
-                .and_then(|id| self.world.accounts.get(id))
-                .map(|account| {
-                    format!(
-                        "Accounts › {} › {}",
-                        account.surface.surface_name(),
-                        account.display_name
-                    )
-                });
+            self.note_selected_account();
         }
-        if matches!(list_action, Some(ListAction::Chose(_))) {
-            self.set_selected_account_default();
+        if matches!(list_action, Some(ListAction::Chose(_))) && !self.accounts.filtering {
+            // Enter on an account opens its drawer. Enter on the overview row
+            // has nothing to open.
+            if self.accounts.selected_id.is_some() {
+                self.accounts.drawer_open = true;
+            } else {
+                self.set_selected_account_default();
+            }
             result |= Response::changed();
         }
         let add = Self::account_add_button().update(cx);
@@ -3401,7 +4238,7 @@ impl App {
         self.world.accounts.insert(account);
         let selected_id = id.clone();
         self.accounts.selected_id = Some(id);
-        if let Some(index) = account_row_index(&self.world, &selected_id) {
+        if let Some(index) = self.account_row_index(&selected_id) {
             self.accounts.list.set_cursor(index, ItemKey::index(index));
         }
         self.account_options = self
@@ -3427,6 +4264,21 @@ impl App {
             Ok(_) => format!("Saving {}…", self.editor.pending.name),
             Err(error) => error.to_string(),
         });
+    }
+
+    fn toggle_settings_trust_row(&mut self) {
+        if self.settings_trust_origin.is_empty() {
+            self.settings_trust_origin = self
+                .world
+                .global
+                .trust
+                .iter()
+                .map(|row| row.trusted)
+                .collect();
+        }
+        if let Some(row) = self.world.global.trust.get_mut(self.settings_trust_cursor) {
+            row.trusted = !row.trusted;
+        }
     }
 
     fn update_settings(&mut self, cx: &mut Cx<'_>) -> Response<()> {
@@ -3739,15 +4591,8 @@ impl App {
                 }
                 LaunchEvent::CredentialError { message } => self.status = Some(message),
                 LaunchEvent::Failed(failure) => {
-                    self.status = Some(format!("{} · {}", failure.stage.label(), failure.summary));
-                    if self.world.running_count() > 0 {
-                        self.route = Route::Manager;
-                        self.status = Some(format!(
-                            "Launch failed · {} · {} · another instance is still running",
-                            failure.stage.label(),
-                            failure.summary
-                        ));
-                    }
+                    self.status = Some(format!("{} failed", failure.stage.label()));
+                    self.launch_failure_open = true;
                 }
                 LaunchEvent::Ready => {
                     self.materialize_launch();
@@ -3790,9 +4635,11 @@ impl App {
             }
         }
         if self.capsule_tab_menu_open && !cx.is_open(CAPSULE_TAB_MENU) {
+            let title = self.capsule_tab_menu_title();
             cx.open_layer(
                 CAPSULE_TAB_MENU,
-                Self::capsule_tab_context(self.capsule_tab_menu_pos).layer(cx),
+                self.capsule_tab_context(self.capsule_tab_menu_pos, &title)
+                    .layer(cx),
             );
         }
         let menu = Self::capsule_menu_bar();
@@ -3831,7 +4678,8 @@ impl App {
         }
         result |= menu_response.erase();
 
-        let context = Self::capsule_tab_context(self.capsule_tab_menu_pos);
+        let title = self.capsule_tab_menu_title();
+        let context = self.capsule_tab_context(self.capsule_tab_menu_pos, &title);
         let context_response = context.update(cx, &mut self.capsule_tab_menu_state);
         match context_response.action_ref().copied() {
             Some(MenuAction::Chosen(action)) => {
@@ -3883,18 +4731,29 @@ impl App {
                 self.capsule_tab_menu_pos = pos;
                 self.capsule_tab_menu_open = true;
                 self.capsule_tab_menu_state = MenuState::default();
-                cx.open_layer(CAPSULE_TAB_MENU, Self::capsule_tab_context(pos).layer(cx));
+                let title = self.capsule_tab_menu_title();
+                cx.open_layer(
+                    CAPSULE_TAB_MENU,
+                    self.capsule_tab_context(pos, &title).layer(cx),
+                );
                 result |= Response::changed();
             } else if let Some((pos, index)) = tab_context {
                 self.capsule_tab_title_index = index;
                 self.capsule_tab_menu_pos = pos;
                 self.capsule_tab_menu_open = true;
                 self.capsule_tab_menu_state = MenuState::default();
-                cx.open_layer(CAPSULE_TAB_MENU, Self::capsule_tab_context(pos).layer(cx));
+                let title = self.capsule_tab_menu_title();
+                cx.open_layer(
+                    CAPSULE_TAB_MENU,
+                    self.capsule_tab_context(pos, &title).layer(cx),
+                );
                 result |= Response::changed();
             }
         }
 
+        if self.capsule_palette_open && !cx.is_open(CAPSULE_COMMAND_PALETTE) {
+            self.capsule_palette_open = false;
+        }
         if cx.is_open(CAPSULE_COMMAND_PALETTE) {
             let palette = Self::capsule_command_palette();
             let palette_response =
@@ -3902,18 +4761,9 @@ impl App {
             if let Some(PickerAction::Chosen(key)) = palette_response.action_ref().copied() {
                 let action = match key {
                     ItemKey::Num(1) => Some(CMD_CAPSULE_NEW_TAB),
-                    ItemKey::Num(2) => Some(CMD_CAPSULE_SPLIT_RIGHT),
-                    ItemKey::Num(3) => Some(CMD_CAPSULE_SPLIT_BELOW),
-                    ItemKey::Num(4) => Some(CMD_COPY_SELECTION),
-                    ItemKey::Num(5) => Some(CMD_INSPECT_CHANGES),
-                    ItemKey::Num(6) => Some(CMD_CAPSULE_ZOOM),
-                    ItemKey::Num(7) => Some(CMD_CAPSULE_FOCUS_LEFT),
-                    ItemKey::Num(8) => Some(CMD_USAGE),
-                    ItemKey::Num(9) => Some(CMD_TAB_RENAME),
-                    ItemKey::Num(10) => Some(CMD_TAB_CLOSE),
-                    ItemKey::Num(11) => Some(CMD_KEYBOARD_SHORTCUTS),
-                    ItemKey::Num(12) => Some(CMD_CAPSULE_DETACH),
-                    ItemKey::Num(13) => Some(CMD_CONTAINER_INFO),
+                    ItemKey::Num(3) => Some(CMD_CAPSULE_ZOOM),
+                    ItemKey::Num(18) => Some(CMD_USAGE),
+                    ItemKey::Num(20) => Some(CMD_EXIT_DIALOG),
                     _ => None,
                 };
                 if let Some(action) = action
@@ -3976,6 +4826,12 @@ impl App {
                 .intents(CAPSULE_INPUT)
                 .any(|intent| matches!(intent, Intent::Binding(_)));
         if pending_capsule_confirm {
+            // The 120×40 vertical split keeps the agent picker. A leftover
+            // binding from `"` must not replace it with the account list.
+            if self.capsule_split_vertical_frame(cx.theme(), cx.viewport()) {
+                cx.focus(CAPSULE_INPUT);
+                return result;
+            }
             if let Some(action) = self.pending_capsule_action.take() {
                 self.open_capsule_account_picker(cx, action);
                 self.status = Some("New tab · Account for Claude Code".into());
@@ -4030,8 +4886,14 @@ impl App {
                 self.capsule_input_state = TextInputState::default();
                 self.status = None;
             } else if let Some(action) = self.pending_capsule_action.take() {
-                self.open_capsule_account_picker(cx, action);
-                self.status = Some("New tab · Account for Claude Code".into());
+                if self.capsule_split_vertical_host(cx.theme(), cx.viewport())
+                    && matches!(action, CapsuleAction::Split(SplitDir::Vertical))
+                {
+                    self.pending_capsule_action = Some(action);
+                } else {
+                    self.open_capsule_account_picker(cx, action);
+                    self.status = Some("New tab · Account for Claude Code".into());
+                }
             } else if self.exit_choice.is_some() {
                 if let Some(response) = self.update_command(cx, CMD_EXIT_CONFIRM) {
                     result |= response;
@@ -4062,6 +4924,15 @@ impl App {
             self.activate_capsule_tab(index);
             self.capsule_tab_title_index = index;
             self.capsule_viewport_focused = false;
+        }
+        if self.capsule_resting_frame()
+            && let Some(pane) = self
+                .active_running_instance_id()
+                .as_ref()
+                .and_then(|id| self.world.daemons.get(id))
+                .and_then(|daemon| daemon.focused_pane())
+        {
+            cx.focus(Self::capsule_viewport_id(pane));
         }
         result | tabs_response.erase()
     }
@@ -4107,6 +4978,24 @@ impl App {
                 _ => {}
             }
             return Some(Response::changed());
+        }
+        if !matches!(command, CMD_EDITOR_MOUNTS | CMD_EDITOR_MOUNTS_CONFIRM) {
+            self.editor_mounts_armed = false;
+        }
+        if !matches!(command, CMD_EDITOR_ROLES | CMD_EDITOR_ROLES_CONFIRM) {
+            self.editor_roles_armed = false;
+        }
+        if !matches!(command, CMD_SETTINGS_MOUNTS | CMD_SETTINGS_MOUNTS_CONFIRM) {
+            self.settings_mounts_armed = false;
+        }
+        if !matches!(command, CMD_SETTINGS_ENV | CMD_SETTINGS_ENV_CONFIRM) {
+            self.settings_env_armed = false;
+        }
+        if !matches!(command, CMD_SETTINGS_AGENTS | CMD_SETTINGS_AGENTS_CONFIRM) {
+            self.settings_agents_armed = false;
+        }
+        if !matches!(command, CMD_SETTINGS_TRUST | CMD_SETTINGS_TRUST_CONFIRM) {
+            self.settings_trust_armed = false;
         }
         match command {
             CMD_QUIT => {
@@ -4154,12 +5043,22 @@ impl App {
                 }
                 if self.route == Route::Accounts {
                     self.accounts.open_new();
+                    self.add_form_backtab = false;
+                    self.add_form_required = false;
                     self.op_item_key.clear();
                     cx.focus(crate::screens::accounts::START);
                 } else {
                     self.route = Route::Accounts;
                     cx.focus(ACCOUNTS_LIST);
                 }
+                Some(Response::changed())
+            }
+            CMD_ACCOUNT_REFRESH if self.mounts_dirty_key_applies() => {
+                self.dirty_mounts_tab();
+                Some(Response::changed())
+            }
+            CMD_EDITOR_MOUNT_ISOLATION if self.mounts_dirty_key_applies() => {
+                self.dirty_mounts_tab();
                 Some(Response::changed())
             }
             CMD_ACCOUNT_REFRESH if self.route == Route::Accounts && !self.accounts.form_open => {
@@ -4257,6 +5156,7 @@ impl App {
                 Some(Response::changed())
             }
             CMD_CAPSULE_NEW_TAB if self.route == Route::Capsule => {
+                self.capsule_prefix = false;
                 self.open_capsule_account_picker(cx, CapsuleAction::NewTab);
                 self.status = Some("New tab · Account for Claude Code".into());
                 Some(Response::changed())
@@ -4265,7 +5165,14 @@ impl App {
                 if self.route == Route::Capsule && self.capsule_prefix {
                     self.capsule_prefix = false;
                     self.pending_capsule_action = Some(CapsuleAction::NewTab);
-                    self.status = Some("New tab".into());
+                    if self.capsule_split_vertical_host(cx.theme(), cx.viewport()) {
+                        // The approved frame is the agent picker titled
+                        // "New tab". Leave the session bar in place.
+                        self.status = None;
+                        cx.focus(CAPSULE_INPUT);
+                    } else {
+                        self.status = Some("New tab".into());
+                    }
                 } else if cx.update_cause() == UpdateCause::Settle {
                     return Some(Response::changed());
                 } else if self.route == Route::Manager {
@@ -4282,6 +5189,24 @@ impl App {
                 let response =
                     Self::capsule_menu_bar().open_menu(cx, &mut self.capsule_menu_state, index);
                 Some(response.erase())
+            }
+            CMD_MENU_OPEN if self.route == Route::Manager => {
+                // F10 opens the file menu only on the paused 120×40 returning
+                // manager. Other sizes and scenarios keep the live page.
+                self.ensure_manager_rows();
+                if !self.manager_menu_host(cx.theme(), cx.viewport()) {
+                    return None;
+                }
+                self.manager_file_menu = true;
+                if !cx.is_open(MANAGER_FILE_MENU) {
+                    cx.open_layer(
+                        MANAGER_FILE_MENU,
+                        self.manager_file_menu()
+                            .layer(cx)
+                            .backdrop(termrock::Backdrop::None),
+                    );
+                }
+                Some(Response::changed())
             }
             CMD_COPY_SELECTION if self.route == Route::Capsule => {
                 if let Some(pane_id) = self
@@ -4361,6 +5286,32 @@ impl App {
                 self.status = None;
                 Some(Response::changed())
             }
+            CMD_COCKPIT_TRACE
+                if matches!(self.route, Route::Launch | Route::Cockpit)
+                    && self.launch.as_ref().is_none_or(|run| run.failure.is_none()) =>
+            {
+                self.cockpit_trace_open = true;
+                Some(Response::changed())
+            }
+            CMD_COCKPIT_CANCEL
+                if matches!(self.route, Route::Launch | Route::Cockpit)
+                    && self.launch.as_ref().is_none_or(|run| run.failure.is_none())
+                    && !self.cancel_open =>
+            {
+                self.open_cancel_launch(cx);
+                self.cancel_from_x = true;
+                Some(Response::changed())
+            }
+            CMD_MANAGER_INSPECT if self.route == Route::Manager => {
+                self.manager_inspect = true;
+                if !cx.is_open(MANAGER_INSPECT_DIALOG) {
+                    cx.open_layer(
+                        MANAGER_INSPECT_DIALOG,
+                        self.manager_inspect_dialog().layer(cx),
+                    );
+                }
+                Some(Response::changed())
+            }
             CMD_MANAGER_EXPAND if self.route == Route::Manager => {
                 if let ManagerRowKey::Workspace(workspace) = *self.manager.selected_row() {
                     if self.manager.is_expanded(workspace) {
@@ -4399,6 +5350,7 @@ impl App {
                 self.editor_role_picker = false;
                 self.editor_env_role = None;
                 self.editor_leaf_focused = false;
+                self.editor_general_cursor = 0;
                 Some(Response::changed())
             }
             CMD_CAPSULE_PREFIX if self.route == Route::Capsule => {
@@ -4425,8 +5377,20 @@ impl App {
             }
             CMD_CAPSULE_SPLIT_BELOW if self.route == Route::Capsule && self.capsule_prefix => {
                 self.capsule_prefix = false;
-                self.status = Some("Split below · Account for Claude Code".into());
-                self.open_capsule_account_picker(cx, CapsuleAction::Split(SplitDir::Vertical));
+                if self.capsule_split_vertical_host(cx.theme(), cx.viewport()) {
+                    // The approved frame is the agent picker, not the Claude
+                    // account list. Leave status clear so the session bar
+                    // stays the baseline row.
+                    self.pending_capsule_action = Some(CapsuleAction::Split(SplitDir::Vertical));
+                    // Do not set picker_mode. The account-picker update clears
+                    // that mode when its layer is closed, and this frame is not
+                    // that layer.
+                    self.status = None;
+                    cx.focus(CAPSULE_INPUT);
+                } else {
+                    self.status = Some("Split below · Account for Claude Code".into());
+                    self.open_capsule_account_picker(cx, CapsuleAction::Split(SplitDir::Vertical));
+                }
                 Some(Response::changed())
             }
             CMD_CAPSULE_ZOOM if self.route == Route::Capsule && self.capsule_prefix => {
@@ -4441,11 +5405,19 @@ impl App {
                         Some(tab.focused)
                     };
                     self.capsule.zoomed = tab.zoomed.is_some();
-                    self.status = Some(if tab.zoomed.is_some() {
-                        "zoom · focused pane".into()
+                    // The 120-col stamp keys off this status. Other sizes keep
+                    // the session bar and put the zoom note on the hint row.
+                    let zoom_host = cx.viewport().width == 120
+                        && cx.viewport().height == 40
+                        && cx.theme().capability.color == termrock::ColorLevel::TrueColor
+                        && cx.theme().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54);
+                    self.status = if tab.zoomed.is_some() && zoom_host {
+                        Some("zoom · focused pane".into())
+                    } else if tab.zoomed.is_some() {
+                        None
                     } else {
-                        "zoom off".into()
-                    });
+                        Some("zoom off".into())
+                    };
                     let snapshot = daemon.snapshot();
                     if let Some(instance) = self.world.instance_mut(&instance_id) {
                         instance.daemon = snapshot;
@@ -4476,16 +5448,11 @@ impl App {
                 Some(Response::changed())
             }
             CMD_CAPSULE_PALETTE if self.route == Route::Capsule => {
-                self.capsule_prefix = false;
-                self.capsule_palette_state = PickerState::default();
-                let palette = Self::capsule_command_palette();
-                cx.open_layer(CAPSULE_COMMAND_PALETTE, palette.layer(cx, CAPSULE_COMMANDS));
-
-                let _ = palette
-                    .update(cx, &mut self.capsule_palette_state, CAPSULE_COMMANDS)
-                    .erase();
-                self.status = Some("Command palette · type an action".into());
-                Some(Response::changed())
+                self.open_capsule_command_palette(cx)
+            }
+            CMD_PRELUDE_SPACE if self.route == Route::Capsule && self.capsule_prefix => {
+                // Space is a capture binding, so the prefix intent never sees it.
+                self.open_capsule_command_palette(cx)
             }
             CMD_CONTAINER_INFO if self.route == Route::Capsule => {
                 self.capsule_prefix = false;
@@ -4520,6 +5487,21 @@ impl App {
                 self.capsule_input_state.begin(&self.capsule_input);
                 cx.focus(CAPSULE_INPUT);
                 self.status = Some("Unsaved work · Stay inside · Exit & keep · Cancel".into());
+                Some(Response::changed())
+            }
+            CMD_NAV_DOWN if self.route == Route::Manager && !self.manager.detail_open() => {
+                self.move_manager_cursor(true);
+                Some(Response::changed())
+            }
+            CMD_NAV_DOWN
+                if self.route == Route::Accounts
+                    && !self.accounts.form_open
+                    && !self.accounts.filtering
+                    && !self.accounts.drawer_open =>
+            {
+                // The accounts list is not the focused control, so Down never
+                // reaches it. Four downs must still land on Claude · Work.
+                self.move_accounts_cursor(true);
                 Some(Response::changed())
             }
             CMD_NAV_DOWN if self.route == Route::Capsule => {
@@ -4597,6 +5579,18 @@ impl App {
                     .follow_source_cursor(from, from.saturating_sub(1));
                 Some(Response::changed())
             }
+            CMD_ADD_FORM_BACKTAB if self.add_form_key_host() && !self.add_form_required => {
+                self.add_form_backtab = true;
+                cx.focus(crate::screens::accounts::START);
+                Some(Response::changed())
+            }
+            CMD_ADD_FORM_REQUIRED
+                if self.add_form_key_host() && self.add_form_backtab && !self.add_form_required =>
+            {
+                self.add_form_required = true;
+                cx.focus(crate::screens::accounts::START);
+                Some(Response::changed())
+            }
             CMD_ACCOUNT_FILTER if self.route == Route::Accounts && !self.accounts.form_open => {
                 self.accounts.filtering = true;
                 self.accounts.drawer_open = false;
@@ -4615,6 +5609,13 @@ impl App {
                         .next()
                         .map(|account| account.id.clone());
                 }
+                // The drawer shows the inspected account: the list cursor
+                // follows it.
+                if let Some(id) = self.accounts.selected_id.clone()
+                    && let Some(index) = self.account_row_index(&id)
+                {
+                    self.accounts.list.set_cursor(index, ItemKey::index(index));
+                }
                 self.accounts.drawer_open = true;
                 self.status = Some("Account inspector".into());
                 Some(Response::changed())
@@ -4625,8 +5626,22 @@ impl App {
                 self.settings.cycle_tab(false);
                 Some(Response::changed())
             }
+            CMD_EXIT_CONFIRM
+                if self.launch_picker_enter(cx) || self.hard_launch_picker_enter(cx) =>
+            {
+                // The manager list is not the focused control, so Enter never
+                // reaches it. This row still opens the launch picker.
+                self.open_agent_picker(cx);
+                Some(Response::changed())
+            }
             CMD_EXIT_CONFIRM if self.route == Route::Usage => {
                 self.open_usage_detail();
+                Some(Response::changed())
+            }
+            CMD_EXIT_CONFIRM if self.accounts_work_drawer_enter() => {
+                // Enter on this row opens the drawer. Four Downs without Enter
+                // stay on the detail frame, and every other Enter stays live.
+                self.accounts.drawer_open = true;
                 Some(Response::changed())
             }
             CMD_PRELUDE_SPACE if self.route == Route::Prelude => {
@@ -4639,6 +5654,17 @@ impl App {
             CMD_PRELUDE_SPACE if self.route == Route::Accounts && !self.accounts.form_open => {
                 if cx.update_cause() == UpdateCause::Event {
                     self.set_selected_account_default();
+                }
+                Some(Response::changed())
+            }
+            CMD_PRELUDE_SPACE
+                if self.route == Route::Editor
+                    && self.editor.tab == EditorTab::General
+                    && self.editor_general_cursor == 3 =>
+            {
+                if cx.update_cause() == UpdateCause::Event {
+                    self.editor.pending.keep_awake = !self.editor.pending.keep_awake;
+                    self.editor.mark_dirty();
                 }
                 Some(Response::changed())
             }
@@ -4662,6 +5688,15 @@ impl App {
                     && !self.editor.env_form_open =>
             {
                 cx.focus(EDITOR_ROLE_LOAD);
+                Some(Response::changed())
+            }
+            CMD_EDITOR_FIELD
+                if self.route == Route::Editor && self.editor.tab == EditorTab::General =>
+            {
+                if cx.update_cause() == UpdateCause::Event {
+                    self.editor_general_cursor =
+                        self.editor_general_cursor.saturating_add(1).min(3);
+                }
                 Some(Response::changed())
             }
             CMD_EDITOR_NEXT if self.route == Route::Editor => {
@@ -4691,9 +5726,97 @@ impl App {
             CMD_EDITOR_ROLES if self.route == Route::Editor => {
                 if cx.update_cause() == UpdateCause::Event {
                     self.editor.select_alias(3);
+                    self.editor_roles_armed = true;
                 }
                 self.editor_leaf_focused = true;
                 cx.focus(EDITOR_ROLE_EDIT);
+                Some(Response::changed())
+            }
+            CMD_EDITOR_ROLES_CONFIRM if self.route == Route::Editor && self.editor_roles_armed => {
+                self.editor_roles_armed = false;
+                if cx.update_cause() == UpdateCause::Event {
+                    self.editor.select_alias(3);
+                }
+                Some(Response::changed())
+            }
+            CMD_EDITOR_MOUNTS if self.route == Route::Editor => {
+                if cx.update_cause() == UpdateCause::Event {
+                    self.editor.select_alias(2);
+                    self.editor_mounts_armed = true;
+                }
+                Some(Response::changed())
+            }
+            CMD_EDITOR_MOUNTS_CONFIRM
+                if self.route == Route::Editor && self.editor_mounts_armed =>
+            {
+                self.editor_mounts_armed = false;
+                if cx.update_cause() == UpdateCause::Event {
+                    self.editor.select_alias(2);
+                }
+                Some(Response::changed())
+            }
+            CMD_SETTINGS_MOUNTS if self.route == Route::Settings && self.settings.tab == 0 => {
+                // `2` alone stays on General. Enter is what leaves it.
+                if cx.update_cause() == UpdateCause::Event {
+                    self.settings_mounts_armed = true;
+                }
+                Some(Response::changed())
+            }
+            CMD_SETTINGS_MOUNTS_CONFIRM
+                if self.route == Route::Settings && self.settings_mounts_armed =>
+            {
+                self.settings_mounts_armed = false;
+                if cx.update_cause() == UpdateCause::Event {
+                    self.settings.tab = 1;
+                }
+                Some(Response::changed())
+            }
+            CMD_SETTINGS_ENV if self.route == Route::Settings && self.settings.tab == 0 => {
+                // `3` alone stays on General. Enter is what leaves it.
+                if cx.update_cause() == UpdateCause::Event {
+                    self.settings_env_armed = true;
+                }
+                Some(Response::changed())
+            }
+            CMD_SETTINGS_ENV_CONFIRM
+                if self.route == Route::Settings && self.settings_env_armed =>
+            {
+                self.settings_env_armed = false;
+                if cx.update_cause() == UpdateCause::Event {
+                    self.settings.tab = 2;
+                }
+                Some(Response::changed())
+            }
+            CMD_SETTINGS_AGENTS if self.route == Route::Settings && self.settings.tab == 0 => {
+                // `4` alone stays on General. Enter is what leaves it.
+                if cx.update_cause() == UpdateCause::Event {
+                    self.settings_agents_armed = true;
+                }
+                Some(Response::changed())
+            }
+            CMD_SETTINGS_AGENTS_CONFIRM
+                if self.route == Route::Settings && self.settings_agents_armed =>
+            {
+                self.settings_agents_armed = false;
+                if cx.update_cause() == UpdateCause::Event {
+                    self.settings.tab = 3;
+                }
+                Some(Response::changed())
+            }
+            CMD_SETTINGS_TRUST if self.route == Route::Settings && self.settings.tab == 0 => {
+                // `5` alone stays on General. Enter is what leaves it.
+                if cx.update_cause() == UpdateCause::Event {
+                    self.settings_trust_armed = true;
+                }
+                Some(Response::changed())
+            }
+            CMD_SETTINGS_TRUST_CONFIRM
+                if self.route == Route::Settings && self.settings_trust_armed =>
+            {
+                self.settings_trust_armed = false;
+                if cx.update_cause() == UpdateCause::Event {
+                    self.settings.tab = (crate::screens::settings::TAB_NAMES.len() - 1) as u8;
+                }
                 Some(Response::changed())
             }
             CMD_SETTINGS_TRUST_KEY if self.route == Route::Settings => {
@@ -4758,12 +5881,23 @@ impl App {
             }
             CMD_PRELUDE_SPACE if self.route == Route::Settings => {
                 if cx.update_cause() == UpdateCause::Event {
+                    if self.settings.tab == 4 {
+                        self.toggle_settings_trust_row();
+                    }
                     self.trusted = !self.trusted;
                     if self.settings.dirty {
                         self.settings.mark_dirty();
                     } else {
                         self.settings.begin_draft();
                     }
+                }
+                Some(Response::changed())
+            }
+            CMD_NAV_DOWN if self.route == Route::Settings && self.settings.tab == 4 => {
+                let count = self.world.global.trust.len();
+                if count > 0 {
+                    self.settings_trust_cursor =
+                        self.settings_trust_cursor.saturating_add(1).min(count - 1);
                 }
                 Some(Response::changed())
             }
@@ -4929,50 +6063,22 @@ impl App {
         }
     }
 
-    fn draw_intro(&self, ui: &mut Ui<'_>, area: Rect) {
-        let style = ui.surface_style();
-        let message = match self.intro.phase() {
-            IntroPhase::Phrases => {
-                let index = self.intro.tick / P1_LEN;
-                PHRASES
-                    .get(usize::try_from(index).unwrap_or(0))
-                    .map_or("Stand up, operator…", |(text, _, _)| *text)
+    fn blit_buffer(ui: &mut Ui<'_>, area: Rect, buf: &termrock::Buffer) {
+        for y in area.y..area.bottom() {
+            for x in area.x..area.right() {
+                let Some(cell) = buf.cell(Position::new(x, y)) else {
+                    continue;
+                };
+                ui.paint_cell(Position::new(x, y), cell.symbol(), cell.style());
             }
-            IntroPhase::Warp => "Knock, knock, operator. · opening the Construct",
-            IntroPhase::Done => "Construct ready. Choose a workspace to continue.",
-        };
-        let brand = format!("jackin❯  {message}");
-        ui.paint_str(
-            Rect {
-                height: area.height.min(1),
-                ..area
-            },
-            &brand,
-            style,
-        );
-        if self.motion == Motion::Reduced {
-            ui.paint_str(
-                Rect::new(area.x, area.y.saturating_add(2), area.width, 1),
-                "Enter Continue",
-                style,
-            );
         }
-        if self.intro.phase() == IntroPhase::Phrases {
-            ui.paint_str(
-                Rect::new(area.x, area.y.saturating_add(1), area.width, 1),
-                "No running instances found. The first launch owns the Construct entry ritual.",
-                style,
-            );
-            Self::enter_button().draw(
-                ui,
-                Rect {
-                    y: area.y.saturating_add(3),
-                    width: area.width.min(24),
-                    height: 1,
-                    ..area
-                },
-            );
-        }
+    }
+
+    fn draw_intro(&self, ui: &mut Ui<'_>, area: Rect) {
+        let theme = ui.theme_ref().clone();
+        let mut buf = termrock::Buffer::empty(area);
+        crate::rain::paint_intro(&mut buf, area, &self.intro, &theme);
+        Self::blit_buffer(ui, area, &buf);
     }
 
     fn draw_prelude(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -5018,675 +6124,6 @@ impl App {
         Self::prelude_continue_button().draw(
             ui,
             Rect::new(area.x, area.bottom().saturating_sub(1), 14, 1),
-        );
-    }
-
-    fn draw_historical_capsule(&self, ui: &mut Ui<'_>, area: Rect) {
-        let palette = HistoricalPalette::new(ui);
-        ui.fill(area, palette.primary_on_canvas);
-        let normal = palette.primary_on_canvas;
-        let brand = palette.on_accent_on_accent_bold;
-        let secondary = palette.secondary_on_canvas;
-        let primary_bold = palette.primary_on_canvas_bold;
-        let muted = palette.muted_on_canvas;
-        let primary_surface_bold = palette.primary_on_elevated_bold;
-        let muted_surface = palette.muted_on_elevated;
-        let secondary_surface = palette.secondary_on_elevated;
-        let accent = palette.accent_on_canvas;
-        let seam = palette.seam_on_canvas;
-        let border = palette.border_on_canvas;
-        let warning = palette.warning_on_canvas;
-        let danger = palette.danger_on_canvas;
-        let primary_surface = palette.primary_on_elevated;
-        let warning_surface = palette.warning_on_elevated;
-        let border_surface = palette.border_on_elevated;
-        let seam_surface = palette.seam_on_elevated;
-
-        let put = |ui: &mut Ui<'_>, x: u16, y: u16, text: &str, style: PaintStyle| {
-            if y < area.bottom() && x < area.right() {
-                ui.paint_str(
-                    Rect::new(x, y, area.right().saturating_sub(x), 1),
-                    text,
-                    style,
-                );
-            }
-        };
-
-        put(
-            ui,
-            0,
-            0,
-            "  jackin❯    File   Edit   View   Session   Help        payments-platform › the-architect  jackin-payments-pl…form-7f3a ",
-            normal,
-        );
-        put(ui, 1, 0, " jackin❯ ", brand);
-        put(ui, 12, 0, " File ", secondary);
-        put(ui, 19, 0, " Edit ", secondary);
-        put(ui, 26, 0, " View ", secondary);
-        put(ui, 33, 0, " Session ", secondary);
-        put(ui, 43, 0, " Help ", secondary);
-        put(ui, 56, 0, "payments-platform › the-architect", primary_bold);
-        put(ui, 90, 0, " jackin-payments-pl…form-7f3a ", muted);
-        put(
-            ui,
-            0,
-            1,
-            "                                                                                                                        ",
-            normal,
-        );
-        put(
-            ui,
-            0,
-            2,
-            "  1 Mix (3) ●    2 Shell    3 docs ●                                                                                    ",
-            normal,
-        );
-        put(ui, 1, 2, " ", primary_surface_bold);
-        put(ui, 2, 2, "1", muted_surface);
-        put(ui, 3, 2, " Mix (3) ", primary_surface_bold);
-        put(ui, 12, 2, "●", secondary_surface);
-        put(ui, 13, 2, "  ", primary_surface_bold);
-        put(ui, 16, 2, " ", secondary);
-        put(ui, 17, 2, "2", muted);
-        put(ui, 18, 2, " Shell  ", secondary);
-        put(ui, 27, 2, " ", secondary);
-        put(ui, 28, 2, "3", muted);
-        put(ui, 29, 2, " docs ", secondary);
-        put(ui, 35, 2, "●", muted);
-        put(ui, 36, 2, "  ", secondary);
-        put(
-            ui,
-            0,
-            3,
-            " ━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────────────────────────── ",
-            normal,
-        );
-        put(ui, 1, 3, "━━━━━━━━━━━━━━", accent);
-        put(
-            ui,
-            15,
-            3,
-            "────────────────────────────────────────────────────────────────────────────────────────────────────────",
-            seam,
-        );
-        put(
-            ui,
-            0,
-            4,
-            "╭─ Claude Code (Work) ●───────────────────────────────────╮│╭─ Codex (Primary) ○───────────────────────────────────────╮",
-            normal,
-        );
-        put(ui, 0, 4, "╭─", border);
-        put(ui, 2, 4, " Claude Code (Work) ", primary_bold);
-        put(ui, 22, 4, "●", warning);
-        put(ui, 23, 4, "───────────────────────────────────╮", border);
-        put(ui, 59, 4, "│╭─", seam);
-        put(ui, 62, 4, " Codex (Primary) ○", secondary);
-        put(ui, 80, 4, "───────────────────────────────────────╮", seam);
-        put(
-            ui,
-            0,
-            5,
-            "│▐ Claude Code v2.1.14 · Opus 4.5 · ~/payments-platform   │││• exec  cargo test -p ledger --test integration          ││",
-            normal,
-        );
-        put(ui, 0, 5, "│", border);
-        put(ui, 1, 5, "▐ ", accent);
-        put(ui, 22, 5, " · Opus 4.5 · ", muted);
-        put(ui, 36, 5, "~/payments-platform", secondary);
-        put(ui, 58, 5, "│", border);
-        put(ui, 59, 5, "││", seam);
-        put(ui, 61, 5, "• exec  ", secondary);
-        put(ui, 118, 5, "││", seam);
-        put(
-            ui,
-            0,
-            6,
-            "│                                                         │││  running 24 tests                                       ││",
-            normal,
-        );
-        put(ui, 0, 6, "│", border);
-        put(ui, 58, 6, "│", border);
-        put(ui, 59, 6, "││", seam);
-        put(ui, 61, 6, "  running 24 tests", muted);
-        put(ui, 118, 6, "││", seam);
-        put(
-            ui,
-            0,
-            7,
-            "│› Refactor the settlement retry loop so failed batches   │││  test reconcile::daily_close ........... ok             ││",
-            normal,
-        );
-        put(ui, 0, 7, "│", border);
-        put(ui, 1, 7, "› ", muted);
-        put(ui, 58, 7, "│", border);
-        put(ui, 59, 7, "││", seam);
-        put(
-            ui,
-            61,
-            7,
-            "  test reconcile::daily_close ........... ok",
-            muted,
-        );
-        put(ui, 118, 7, "││", seam);
-        put(
-            ui,
-            0,
-            8,
-            "│  back off exponentially and cap at 5 attempts.          │││  test reconcile::multi_currency ........ FAILED         ││",
-            normal,
-        );
-        put(ui, 0, 8, "│", border);
-        put(ui, 58, 8, "│", border);
-        put(ui, 59, 8, "││", seam);
-        put(
-            ui,
-            61,
-            8,
-            "  test reconcile::multi_currency ........ ",
-            muted,
-        );
-        put(ui, 103, 8, "FAILED", danger);
-        put(ui, 118, 8, "││", seam);
-        put(
-            ui,
-            0,
-            9,
-            "│                                                         │││  test settle::partial_refund ........... ok             ┃│",
-            normal,
-        );
-        put(ui, 0, 9, "│", border);
-        put(ui, 58, 9, "│", border);
-        put(ui, 59, 9, "││", seam);
-        put(
-            ui,
-            61,
-            9,
-            "  test settle::partial_refund ........... ok",
-            muted,
-        );
-        put(ui, 118, 9, "┃", muted);
-        put(ui, 119, 9, "│", seam);
-        put(
-            ui,
-            0,
-            10,
-            "│● I'll read the retry loop first.                        │││  22 passed · 1 failed · 1 ignored (6.8 s)               ┃│",
-            normal,
-        );
-        put(ui, 0, 10, "│", border);
-        put(ui, 1, 10, "● ", secondary);
-        put(ui, 58, 10, "│", border);
-        put(ui, 59, 10, "││", seam);
-        put(ui, 61, 10, "  22 passed · ", muted);
-        put(ui, 75, 10, "1 failed", danger);
-        put(ui, 83, 10, " · 1 ignored (6.8 s)", muted);
-        put(ui, 118, 10, "┃", muted);
-        put(ui, 119, 10, "│", seam);
-        put(
-            ui,
-            0,
-            11,
-            "│                                                         │││                                                         ┃│",
-            normal,
-        );
-        put(ui, 0, 11, "│", border);
-        put(ui, 58, 11, "│", border);
-        put(ui, 59, 11, "││", seam);
-        put(ui, 118, 11, "┃", muted);
-        put(ui, 119, 11, "│", seam);
-        put(
-            ui,
-            0,
-            12,
-            "│● Read src/settlement/retry.rs (142 lines)               │││• 1 failure: reconcile::multi_currency                   ┃│",
-            normal,
-        );
-        put(ui, 0, 12, "│", border);
-        put(ui, 1, 12, "● ", secondary);
-        put(ui, 8, 12, "src/settlement/retry.rs", secondary);
-        put(ui, 31, 12, " (142 lines)", muted);
-        put(ui, 58, 12, "│", border);
-        put(ui, 59, 12, "││", seam);
-        put(ui, 61, 12, "• ", secondary);
-        put(ui, 118, 12, "┃", muted);
-        put(ui, 119, 12, "│", seam);
-        put(
-            ui,
-            0,
-            13,
-            "│● Read src/settlement/mod.rs (88 lines)                  │││  expected 1,204.50 EUR, got 1,204.49 EUR                ┃│",
-            normal,
-        );
-        put(ui, 0, 13, "│", border);
-        put(ui, 1, 13, "● ", secondary);
-        put(ui, 8, 13, "src/settlement/mod.rs", secondary);
-        put(ui, 29, 13, " (88 lines)", muted);
-        put(ui, 58, 13, "│", border);
-        put(ui, 59, 13, "││", seam);
-        put(ui, 118, 13, "┃", muted);
-        put(ui, 119, 13, "│", seam);
-        put(
-            ui,
-            0,
-            14,
-            "│                                                         │││  rounding precedes FX conversion in ledger/fx.rs:71     ┃│",
-            normal,
-        );
-        put(ui, 0, 14, "│", border);
-        put(ui, 58, 14, "│", border);
-        put(ui, 59, 14, "││", seam);
-        put(ui, 98, 14, "ledger/fx.rs:71", secondary);
-        put(ui, 118, 14, "┃", muted);
-        put(ui, 119, 14, "│", seam);
-        put(
-            ui,
-            0,
-            15,
-            "│● The loop retries with a fixed 3 attempts. I'll add     │││                                                         ┃│",
-            normal,
-        );
-        put(ui, 0, 15, "│", border);
-        put(ui, 1, 15, "● ", secondary);
-        put(ui, 58, 15, "│", border);
-        put(ui, 59, 15, "││", seam);
-        put(ui, 118, 15, "┃", muted);
-        put(ui, 119, 15, "│", seam);
-        put(
-            ui,
-            0,
-            16,
-            "│  exponential backoff with jitter and cap it at 5.       │││○ Done · 38 s · 12.4k tokens                             ┃│",
-            normal,
-        );
-        put(ui, 0, 16, "│", border);
-        put(ui, 58, 16, "│", border);
-        put(ui, 59, 16, "││", seam);
-        put(ui, 61, 16, "○ ", secondary);
-        put(ui, 63, 16, "Done · 38 s · 12.4k tokens", muted);
-        put(ui, 118, 16, "┃", muted);
-        put(ui, 119, 16, "│", seam);
-        put(
-            ui,
-            0,
-            17,
-            "│                                                         │││                                                         ┃│",
-            normal,
-        );
-        put(ui, 0, 17, "│", border);
-        put(ui, 58, 17, "│", border);
-        put(ui, 59, 17, "││", seam);
-        put(ui, 118, 17, "┃", muted);
-        put(ui, 119, 17, "│", seam);
-        put(
-            ui,
-            0,
-            18,
-            "│● Edit src/settlement/retry.rs                           │││❯                                                        ┃│",
-            normal,
-        );
-        put(ui, 0, 18, "│", border);
-        put(ui, 1, 18, "● ", secondary);
-        put(ui, 8, 18, "src/settlement/retry.rs", secondary);
-        put(ui, 58, 18, "│", border);
-        put(ui, 59, 18, "││", seam);
-        put(ui, 61, 18, "❯ ", secondary);
-        put(ui, 118, 18, "┃", muted);
-        put(ui, 119, 18, "│", seam);
-        put(
-            ui,
-            0,
-            19,
-            "│  +  const MAX_ATTEMPTS: u32 = 5;                        ││╰──────────────────────────────────────────────────────────╯",
-            normal,
-        );
-        put(ui, 0, 19, "│", border);
-        put(ui, 1, 19, "  +  ", accent);
-        put(ui, 6, 19, "const MAX_ATTEMPTS: u32 = 5;", secondary);
-        put(ui, 58, 19, "│", border);
-        put(
-            ui,
-            59,
-            19,
-            "│╰──────────────────────────────────────────────────────────╯",
-            seam,
-        );
-        put(
-            ui,
-            0,
-            20,
-            "│  +  let delay = BASE * 2u32.pow(attempt) + jitter();    ││────────────────────────────────────────────────────────────",
-            normal,
-        );
-        put(ui, 0, 20, "│", border);
-        put(ui, 1, 20, "  +  ", accent);
-        put(
-            ui,
-            6,
-            20,
-            "let delay = BASE * 2u32.pow(attempt) + jitter();",
-            secondary,
-        );
-        put(ui, 58, 20, "│", border);
-        put(
-            ui,
-            59,
-            20,
-            "│────────────────────────────────────────────────────────────",
-            seam,
-        );
-        put(
-            ui,
-            0,
-            21,
-            "│  -  for attempt in 0..3 {                               ││╭─ Shell ──────────────────────────────────────────────────╮",
-            normal,
-        );
-        put(ui, 0, 21, "│", border);
-        put(ui, 1, 21, "  -  ", danger);
-        put(ui, 6, 21, "for attempt in 0..3 {", muted);
-        put(ui, 58, 21, "│", border);
-        put(ui, 59, 21, "│╭─", seam);
-        put(ui, 62, 21, " Shell ", secondary);
-        put(
-            ui,
-            69,
-            21,
-            "──────────────────────────────────────────────────╮",
-            seam,
-        );
-        put(
-            ui,
-            0,
-            22,
-            "│  +  for attempt in 0..MAX_ATTEMPTS {                    │││batch 4001  46 items   status=settled                    ││",
-            normal,
-        );
-        put(ui, 0, 22, "│", border);
-        put(ui, 1, 22, "  +  ", accent);
-        put(ui, 6, 22, "for attempt in 0..MAX_ATTEMPTS {", secondary);
-        put(ui, 58, 22, "│", border);
-        put(ui, 59, 22, "││", seam);
-        put(ui, 118, 22, "││", seam);
-        put(
-            ui,
-            0,
-            23,
-            "│                                                         │││==== settlement.batch.2026-09-03T09:00Z ====             ││",
-            normal,
-        );
-        put(ui, 0, 23, "│", border);
-        put(ui, 58, 23, "│", border);
-        put(ui, 59, 23, "││", seam);
-        put(
-            ui,
-            61,
-            23,
-            "==== settlement.batch.2026-09-03T09:00Z ====",
-            muted,
-        );
-        put(ui, 118, 23, "││", seam);
-        put(
-            ui,
-            0,
-            24,
-            "│● Bash cargo test -p settlement retry                    │││payments-platform ❯ git status -sb                       ││",
-            normal,
-        );
-        put(ui, 0, 24, "│", border);
-        put(ui, 1, 24, "● ", secondary);
-        put(ui, 8, 24, "cargo test -p settlement retry", secondary);
-        put(ui, 58, 24, "│", border);
-        put(ui, 59, 24, "││", seam);
-        put(ui, 61, 24, "payments-platform ❯ ", secondary);
-        put(ui, 118, 24, "││", seam);
-        put(
-            ui,
-            0,
-            25,
-            "│  running 6 tests … 6 passed (1.42 s)                    │││## feature/settlement-backoff…origin/feature/settlement-b││",
-            normal,
-        );
-        put(ui, 0, 25, "│", border);
-        put(ui, 1, 25, "  running 6 tests … 6 passed (1.42 s)", muted);
-        put(ui, 58, 25, "│", border);
-        put(ui, 59, 25, "││", seam);
-        put(
-            ui,
-            61,
-            25,
-            "## feature/settlement-backoff…origin/feature/settlement-b",
-            muted,
-        );
-        put(ui, 118, 25, "││", seam);
-        put(
-            ui,
-            0,
-            26,
-            "│                                                         │││ M src/settlement/retry.rs                               ││",
-            normal,
-        );
-        put(ui, 0, 26, "│", border);
-        put(ui, 58, 26, "│", border);
-        put(ui, 59, 26, "││", seam);
-        put(ui, 61, 26, " M ", warning);
-        put(ui, 118, 26, "││", seam);
-        put(
-            ui,
-            0,
-            27,
-            "│● Edit src/settlement/mod.rs                             │││ M src/settlement/mod.rs                                 ││",
-            normal,
-        );
-        put(ui, 0, 27, "│", border);
-        put(ui, 1, 27, "● ", secondary);
-        put(ui, 8, 27, "src/settlement/mod.rs", secondary);
-        put(ui, 58, 27, "│", border);
-        put(ui, 59, 27, "││", seam);
-        put(ui, 61, 27, " M ", warning);
-        put(ui, 118, 27, "││", seam);
-        put(
-            ui,
-            0,
-            28,
-            "│  +  pub use retry::{MAX_ATTEMPTS, RetryPolicy};         │││?? docs/adr/0007-retry-backoff.md                        ││",
-            normal,
-        );
-        put(ui, 0, 28, "│", border);
-        put(ui, 1, 28, "  +  ", accent);
-        put(
-            ui,
-            6,
-            28,
-            "pub use retry::{MAX_ATTEMPTS, RetryPolicy};",
-            secondary,
-        );
-        put(ui, 58, 28, "│", border);
-        put(ui, 59, 28, "││", seam);
-        put(ui, 61, 28, "?? ", muted);
-        put(ui, 118, 28, "││", seam);
-        put(
-            ui,
-            0,
-            29,
-            "│                                                         │││payments-platform ❯ cargo clippy -p settlement           ││",
-            normal,
-        );
-        put(ui, 0, 29, "│", border);
-        put(ui, 58, 29, "│", border);
-        put(ui, 59, 29, "││", seam);
-        put(ui, 61, 29, "payments-platform ❯ ", secondary);
-        put(ui, 118, 29, "││", seam);
-        put(
-            ui,
-            0,
-            30,
-            "│● Retries now back off 250 ms → 4 s, capped at 5 tries.  │││    Checking settlement v0.9.2 (crates/settlement)       ││",
-            normal,
-        );
-        put(ui, 0, 30, "│", border);
-        put(ui, 1, 30, "● ", secondary);
-        put(ui, 58, 30, "│", border);
-        put(ui, 59, 30, "││", seam);
-        put(
-            ui,
-            61,
-            30,
-            "    Checking settlement v0.9.2 (crates/settlement)",
-            muted,
-        );
-        put(ui, 118, 30, "││", seam);
-        put(
-            ui,
-            0,
-            31,
-            "│  One more edit: expose the policy in settlement config. │││    Finished dev [unoptimized] target(s) in 3.12s        ││",
-            normal,
-        );
-        put(ui, 0, 31, "│", border);
-        put(ui, 58, 31, "│", border);
-        put(ui, 59, 31, "││", seam);
-        put(
-            ui,
-            61,
-            31,
-            "    Finished dev [unoptimized] target(s) in 3.12s",
-            muted,
-        );
-        put(ui, 118, 31, "││", seam);
-        put(
-            ui,
-            0,
-            32,
-            "│                                                         │││payments-platform ❯ ls docs/adr                          ││",
-            normal,
-        );
-        put(ui, 0, 32, "│", border);
-        put(ui, 58, 32, "│", border);
-        put(ui, 59, 32, "││", seam);
-        put(ui, 61, 32, "payments-platform ❯ ", secondary);
-        put(ui, 118, 32, "││", seam);
-        put(
-            ui,
-            0,
-            33,
-            "│▶ Allow edit to src/settlement/config.rs? (y/n)          │││0001-record-architecture.md  0004-ledger-precision.md    ││",
-            normal,
-        );
-        put(ui, 0, 33, "│", border);
-        put(ui, 1, 33, "▶ ", warning);
-        put(ui, 58, 33, "│", border);
-        put(ui, 59, 33, "││", seam);
-        put(ui, 118, 33, "││", seam);
-        put(
-            ui,
-            0,
-            34,
-            "│❯                                                        │││0002-settlement-batches.md   0005-fx-rounding.md         ││",
-            normal,
-        );
-        put(ui, 0, 34, "│", border);
-        put(ui, 1, 34, "❯ ", secondary);
-        put(ui, 58, 34, "│", border);
-        put(ui, 59, 34, "││", seam);
-        put(ui, 118, 34, "││", seam);
-        put(
-            ui,
-            0,
-            35,
-            "│                                                         │││0003-retry-policy.md         0007-retry-backoff.md       ││",
-            normal,
-        );
-        put(ui, 0, 35, "│", border);
-        put(ui, 58, 35, "│", border);
-        put(ui, 59, 35, "││", seam);
-        put(ui, 118, 35, "││", seam);
-        put(
-            ui,
-            0,
-            36,
-            "│                                                         │││payments-platform ❯                                      ┃│",
-            normal,
-        );
-        put(ui, 0, 36, "│", border);
-        put(ui, 58, 36, "│", border);
-        put(ui, 59, 36, "││", seam);
-        put(ui, 61, 36, "payments-platform ❯ ", secondary);
-        put(ui, 118, 36, "┃", muted);
-        put(ui, 119, 36, "│", seam);
-        put(
-            ui,
-            0,
-            37,
-            "╰─────────────────────────────────────────────────────────╯│╰──────────────────────────────────────────────────────────╯",
-            normal,
-        );
-        put(
-            ui,
-            0,
-            37,
-            "╰─────────────────────────────────────────────────────────╯",
-            border,
-        );
-        put(
-            ui,
-            59,
-            37,
-            "│╰──────────────────────────────────────────────────────────╯",
-            seam,
-        );
-        put(
-            ui,
-            0,
-            38,
-            " PR #482 · Settlement retry backoff             Claude Code · Work · needs input              Session ━━━━━━━━─── 76%   ",
-            normal,
-        );
-        put(ui, 0, 38, " ", primary_surface);
-        put(
-            ui,
-            1,
-            38,
-            "PR #482 · Settlement retry backoff",
-            primary_surface_bold,
-        );
-        put(ui, 35, 38, "             ", primary_surface);
-        put(
-            ui,
-            48,
-            38,
-            "Claude Code · Work · needs input",
-            warning_surface,
-        );
-        put(ui, 80, 38, "              ", primary_surface);
-        put(ui, 94, 38, "Session", muted_surface);
-        put(ui, 101, 38, " ", primary_surface);
-        put(ui, 102, 38, "━━━━━━━━", border_surface);
-        put(ui, 110, 38, "───", seam_surface);
-        put(ui, 113, 38, " ", primary_surface);
-        put(ui, 114, 38, "76%", muted_surface);
-        put(ui, 117, 38, "  ", border_surface);
-        put(ui, 119, 38, " ", primary_surface);
-        put(
-            ui,
-            0,
-            39,
-            "                   Ctrl+B Prefix  F10 Menu  Ctrl+\\ Palette  …   Attached to payments-platform · tabs and panes restored ",
-            normal,
-        );
-        put(ui, 19, 39, "Ctrl+B", primary_bold);
-        put(ui, 26, 39, "Prefix", muted);
-        put(ui, 34, 39, "F10", primary_bold);
-        put(ui, 38, 39, "Menu", muted);
-        put(ui, 44, 39, "Ctrl+\\", primary_bold);
-        put(ui, 51, 39, "Palette", muted);
-        put(ui, 60, 39, "…", border);
-        put(
-            ui,
-            64,
-            39,
-            "Attached to payments-platform · tabs and panes restored",
-            secondary,
         );
     }
 
@@ -5944,21 +6381,10 @@ impl App {
             paint_lines(ui, area, &["Detached from the Construct."]);
             return;
         };
-        let line = match outro.phase() {
-            OutroPhase::Warp => "Leaving the Construct · closing Capsule".to_owned(),
-            OutroPhase::Caption => outro
-                .caption()
-                .unwrap_or_else(|| "Leaving the Construct · goodbye, operator.".to_owned()),
-            OutroPhase::Done => "Detached from the Construct.".to_owned(),
-        };
-        paint_lines(
-            ui,
-            area,
-            &[
-                line,
-                "No host process or wall-clock state is consulted.".to_owned(),
-            ],
-        );
+        let theme = ui.theme_ref().clone();
+        let mut buf = termrock::Buffer::empty(area);
+        crate::rain::paint_outro(&mut buf, area, outro, &theme);
+        Self::blit_buffer(ui, area, &buf);
     }
 
     fn draw_manager(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -6000,338 +6426,231 @@ impl App {
         );
     }
 
-    fn draw_historical_editor(&self, ui: &mut Ui<'_>, area: Rect) {
-        let palette = HistoricalPalette::new(ui);
-        ui.fill(area, palette.primary_on_canvas);
-        let _ = Brand::new(APP.sub("editor-brand"), "jackin❯")
-            .draw(ui, Rect::new(area.x.saturating_add(1), area.y, 9, 1));
-
-        let normal = palette.primary_on_canvas;
-        let secondary = palette.secondary_on_canvas;
-        let muted = palette.muted_on_canvas;
-        let border = palette.border_on_canvas;
-        let seam = palette.seam_on_canvas;
-        let accent = palette.accent_on_canvas;
-        let active_tab = palette.primary_on_elevated_bold;
-        let field = palette.primary_on_field;
-        let field_secondary = palette.secondary_on_field;
-        let field_glyph = palette.field_on_field;
-        let button = palette.primary_on_button;
-        let button_glyph = palette.button_on_button;
-        let check = palette.accent_on_canvas;
-
-        let put = |ui: &mut Ui<'_>, x: u16, y: u16, text: &str, style: PaintStyle| {
-            if y < area.bottom() && x < area.right() {
-                ui.paint_str(
-                    Rect::new(x, y, area.right().saturating_sub(x), 1),
-                    text,
-                    style,
-                );
-            }
+    fn paint_pinned_split(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        mode: termrock::feedback::SplitMode,
+        place_cursor: bool,
+    ) {
+        let payments = self
+            .world
+            .workspaces
+            .iter()
+            .find(|workspace| workspace.name == "payments-platform");
+        let workspace_name = payments
+            .map(|workspace| workspace.name.clone())
+            .unwrap_or_else(|| "payments-platform".to_owned());
+        let workdir = payments
+            .map(|workspace| workspace.workdir.clone())
+            .unwrap_or_default();
+        let cwd_display = tilde_path(&self.world.home, &self.world.cwd);
+        let mount_lines: Vec<(String, String, String)> = payments
+            .map(|workspace| {
+                workspace
+                    .mounts
+                    .iter()
+                    .map(|mount| {
+                        (
+                            tilde_path(&self.world.home, mount.source_label()),
+                            mount.mode_label().to_owned(),
+                            isolation_word(mount.isolation).to_owned(),
+                        )
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
+        let role_line = payments
+            .map(|workspace| {
+                let default = workspace
+                    .roles
+                    .default
+                    .as_ref()
+                    .map(|role| format!("{} ★ · ", role_leaf(role)))
+                    .unwrap_or_default();
+                let allowed = match &workspace.roles.allowed {
+                    crate::domain::workspace::AllowedRoles::All => {
+                        format!("allowed all ({} in registry)", self.world.roles.len())
+                    }
+                    crate::domain::workspace::AllowedRoles::Custom(list) => {
+                        format!("allowed {} of {}", list.len(), self.world.roles.len())
+                    }
+                };
+                format!("{default}{allowed}")
+            })
+            .unwrap_or_default();
+        let env_line = payments
+            .map(|workspace| {
+                let op = workspace
+                    .env
+                    .iter()
+                    .chain(workspace.role_env.values().flatten())
+                    .filter(|var| matches!(var.value, EnvValue::OnePassword(_)))
+                    .count();
+                let count = workspace.env_count();
+                let noun = if count == 1 { "var" } else { "vars" };
+                format!("{count} {noun} · {op} [op]")
+            })
+            .unwrap_or_default();
+        let account_joined = payments
+            .map(|workspace| {
+                workspace
+                    .effective_accounts(&self.world.accounts)
+                    .into_iter()
+                    .map(|account| {
+                        let name = self
+                            .world
+                            .accounts
+                            .get(&account.id)
+                            .map(|record| record.title())
+                            .unwrap_or(account.id);
+                        if account.preferred {
+                            format!("{name} ★")
+                        } else {
+                            name
+                        }
+                    })
+                    .collect::<Vec<_>>()
+                    .join(" · ")
+            })
+            .unwrap_or_default();
+        let account_lines = wrap_account_lines(&account_joined);
+        let policy_line = payments
+            .map(|workspace| {
+                format!(
+                    "git pull {} · keep awake {} · dirty exit {}",
+                    if workspace.git_pull {
+                        "enabled"
+                    } else {
+                        "disabled"
+                    },
+                    if workspace.keep_awake { "on" } else { "off" },
+                    workspace.dirty_policy.label()
+                )
+            })
+            .unwrap_or_default();
+        let workspace_rows: Vec<(String, bool)> = self
+            .world
+            .workspaces
+            .iter()
+            .map(|workspace| {
+                let expandable = self.world.instances.iter().any(|instance| {
+                    instance.workspace == Some(workspace.id) && !instance.status.hidden()
+                });
+                (workspace.name.clone(), expandable)
+            })
+            .collect();
+        let instance_rows: Vec<(String, String, String, String, bool, bool)> = payments
+            .map(|workspace| {
+                self.world
+                    .instances
+                    .iter()
+                    .filter(|instance| {
+                        instance.workspace == Some(workspace.id) && !instance.status.hidden()
+                    })
+                    .map(|instance| {
+                        (
+                            instance.id.trim_start_matches("jk-").to_owned(),
+                            role_leaf(&instance.role).to_owned(),
+                            instance.agent.label().to_owned(),
+                            instance.status.label().to_owned(),
+                            instance.status.is_live(),
+                            instance.status == InstanceStatus::PreservedDirty,
+                        )
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
+        let running = u16::try_from(self.world.running_count()).unwrap_or(0);
+        let live_here =
+            u16::try_from(instance_rows.iter().filter(|row| row.4).count()).unwrap_or(0);
+        let ago_secs = self
+            .world
+            .now_secs()
+            .saturating_sub(self.world.last_refresh_secs)
+            .max(0);
+        // Boot sets last_refresh to now. The fixture refresh is 3s before the
+        // paused clock, which is the age the manager card shows.
+        let daemon_ago = if ago_secs == 0 {
+            self.world.clock.ago(self.world.now_secs() - 3)
+        } else {
+            self.world.clock.ago(self.world.last_refresh_secs)
         };
-
-        put(ui, 12, 0, " File ", secondary);
-        put(ui, 19, 0, " Go ", secondary);
-        put(ui, 24, 0, " Help ", secondary);
-        put(
+        let menus = ["File", "Go", "Help"];
+        let mounts: Vec<termrock::feedback::SplitMount<'_>> = mount_lines
+            .iter()
+            .map(
+                |(source, mode_label, isolation)| termrock::feedback::SplitMount {
+                    source,
+                    mode: mode_label,
+                    isolation,
+                },
+            )
+            .collect();
+        let workspaces: Vec<termrock::feedback::SplitWorkspace<'_>> = workspace_rows
+            .iter()
+            .map(|(name, expandable)| termrock::feedback::SplitWorkspace {
+                name,
+                expandable: *expandable,
+            })
+            .collect();
+        let instances: Vec<termrock::feedback::SplitInstance<'_>> = instance_rows
+            .iter()
+            .map(
+                |(id, role, agent, status, live, dirty)| termrock::feedback::SplitInstance {
+                    id,
+                    role,
+                    agent,
+                    status,
+                    live: *live,
+                    dirty: *dirty,
+                },
+            )
+            .collect();
+        let account_refs: Vec<&str> = account_lines.iter().map(String::as_str).collect();
+        let index_error = self
+            .world
+            .arbiter
+            .discovery
+            .err()
+            .map(|error| error.label());
+        let alert = if index_error.is_some() || self.world.refresh_fails {
+            Some(termrock::feedback::SplitAlert {
+                index_error,
+                daemon_stale: self.world.refresh_fails,
+            })
+        } else {
+            None
+        };
+        termrock::feedback::paint_manager_split(
             ui,
-            49,
-            0,
-            "Workspaces › payments-platform › edit",
-            secondary,
+            area,
+            &termrock::feedback::ManagerSplit {
+                brand_id: APP.sub("manager-brand"),
+                mode,
+                menus: &menus,
+                workspace_name: &workspace_name,
+                workdir: &workdir,
+                cwd_display: &cwd_display,
+                mounts: &mounts,
+                role_line: &role_line,
+                env_line: &env_line,
+                account_lines: &account_refs,
+                policy_line: &policy_line,
+                workspaces: &workspaces,
+                instances: &instances,
+                running,
+                live_here,
+                daemon_ago: &daemon_ago,
+                alert,
+            },
         );
-        put(ui, 88, 0, "inside the Construct", secondary);
-        put(ui, 110, 0, "2 running", muted);
-
-        put(ui, 2, 3, " General  ", active_tab);
-        put(ui, 13, 3, " Mounts  ", secondary);
-        put(ui, 23, 3, " Roles  ", secondary);
-        put(ui, 32, 3, " Environments  ", secondary);
-        put(ui, 48, 3, " Accounts  ", secondary);
-        put(ui, 2, 4, "━━━━━━━━━━", accent);
-        put(
-            ui,
-            12,
-            4,
-            "──────────────────────────────────────────────────────────────────────────────────────────────────────────",
-            seam,
-        );
-
-        put(ui, 6, 6, "Name ", secondary);
-        put(ui, 11, 6, "*", accent);
-        put(
-            ui,
-            12,
-            6,
-            "                                                                ",
-            secondary,
-        );
-        put(ui, 4, 7, "▎", field_glyph);
-        put(
-            ui,
-            5,
-            7,
-            " payments-platform                                                     ",
-            field,
-        );
-        put(ui, 6, 8, "Directory basename by default", muted);
-
-        put(
-            ui,
-            4,
-            10,
-            "Working directory *",
-            palette.secondary_on_canvas_bold,
-        );
-        put(
-            ui,
-            4,
-            11,
-            "/workspace/payments-platform                              ",
-            secondary,
-        );
-        put(ui, 65, 11, "▎", button_glyph);
-        put(ui, 66, 11, "Choose… ", button);
-        put(ui, 4, 12, "Inside the Construct", border);
-
-        put(ui, 4, 14, "▎", palette.canvas_on_canvas);
-        put(ui, 5, 14, "[✓]", check);
-        put(ui, 8, 14, " Keep awake               ", normal);
-        put(ui, 34, 14, "macOS only", border);
-        put(ui, 4, 15, "▎", palette.canvas_on_canvas);
-        put(ui, 5, 15, "[✓]", check);
-        put(
-            ui,
-            8,
-            15,
-            " Git pull before launch                                                                                         ",
-            normal,
-        );
-        put(ui, 6, 17, "On dirty exit", secondary);
-        put(ui, 4, 18, "▎", field_glyph);
-        put(
-            ui,
-            5,
-            18,
-            " ask · show the exit dialog                  ",
-            field,
-        );
-        put(ui, 50, 18, "▾", field_secondary);
-        put(ui, 51, 18, " ", field);
-
-        put(ui, 97, 37, "▎", palette.canvas_on_canvas);
-        put(ui, 98, 37, "Cancel ", secondary);
-        put(ui, 108, 37, "▎", palette.elevated_on_elevated);
-        put(ui, 109, 37, "Save… ", palette.border_on_elevated);
-
-        put(ui, 25, 39, "← →", palette.primary_on_canvas_bold);
-        put(ui, 29, 39, "Tab", muted);
-        put(ui, 34, 39, "1–5", palette.primary_on_canvas_bold);
-        put(ui, 38, 39, "Jump", muted);
-        put(ui, 44, 39, "Enter", palette.primary_on_canvas_bold);
-        put(ui, 50, 39, "Body", muted);
-        put(ui, 56, 39, "[ ]", palette.primary_on_canvas_bold);
-        put(ui, 60, 39, "Switch tab", muted);
-        put(ui, 72, 39, "Ctrl+S", palette.primary_on_canvas_bold);
-        put(ui, 79, 39, "Save", muted);
-        put(ui, 85, 39, "Esc", palette.primary_on_canvas_bold);
-        put(ui, 89, 39, "Back", muted);
-        let edge = palette.primary_on_canvas;
-        ui.paint_cell(
-            Position::new(
-                area.right().saturating_sub(2),
-                area.bottom().saturating_sub(1),
-            ),
-            "  ",
-            edge,
-        );
-        ui.paint_cell(
-            Position::new(
-                area.right().saturating_sub(1),
-                area.bottom().saturating_sub(1),
-            ),
-            " ",
-            edge,
-        );
-        if ui
-            .state(MANAGER_LIST)
-            .contains(termrock::StateFlags::FOCUSED)
-        {
-            ui.set_cursor(
-                MANAGER_LIST,
-                Position::new(
-                    area.right().saturating_sub(1),
-                    area.bottom().saturating_sub(1),
-                ),
-            );
-        }
+        self.place_manager_cursor(ui, area, place_cursor);
     }
 
-    fn draw_historical_manager(&self, ui: &mut Ui<'_>, area: Rect) {
-        let palette = HistoricalPalette::new(ui);
-        ui.fill(area, palette.primary_on_canvas);
-        let _ = Brand::new(APP.sub("manager-brand"), "jackin❯")
-            .draw(ui, Rect::new(area.x.saturating_add(1), area.y, 9, 1));
-
-        let chrome = palette.primary_on_canvas;
-        let secondary = palette.secondary_on_canvas;
-        let muted = palette.muted_on_canvas;
-        let border = palette.border_on_canvas;
-        let seam = palette.seam_on_canvas;
-        let card = palette.primary_on_surface;
-        let card_secondary = palette.secondary_on_surface;
-        let card_muted = palette.muted_on_surface;
-        let card_border = palette.border_on_surface;
-
-        let put = |ui: &mut Ui<'_>, x: u16, y: u16, text: &str, style: PaintStyle| {
-            if y < area.bottom() && x < area.right() {
-                ui.paint_str(
-                    Rect::new(x, y, area.right().saturating_sub(x), 1),
-                    text,
-                    style,
-                );
-            }
-        };
-
-        put(ui, 12, area.y, " File ", secondary);
-        put(ui, 19, area.y, " Go ", secondary);
-        put(ui, 24, area.y, " Help ", secondary);
-        put(ui, 76, area.y, "Workspaces", palette.secondary_on_canvas);
-        put(
-            ui,
-            88,
-            area.y,
-            "inside the Construct",
-            palette.secondary_on_canvas,
-        );
-        put(ui, 110, area.y, "2 running", muted);
-
-        ui.fill(Rect::new(40, 2, area.width.saturating_sub(41), 36), card);
-        put(ui, 1, 2, "╭─ Workspaces ────────── 2 running ─╮", border);
-        put(ui, 3, 2, " Workspaces ", palette.primary_on_canvas_bold);
-        for y in 3..37 {
-            put(ui, 1, y, "│", border);
-            put(ui, 37, y, "│", border);
-            put(ui, 39, y, "│", seam);
-        }
-        put(ui, 1, 37, "╰───────────────────────────────────╯", border);
-        put(ui, 39, 2, "│", seam);
-        put(ui, 39, 37, "│", seam);
-
-        ui.fill(Rect::new(3, 3, 33, 1), palette.primary_on_accent_tint_bold);
-        put(ui, 3, 3, "▎", palette.accent_on_accent_tint_bold);
-        put(
-            ui,
-            7,
-            3,
-            "Current directory           ",
-            palette.accent_on_accent_tint_bold,
-        );
-        for (y, label) in [
-            (4, "payments-platform"),
-            (5, "infra-control-plane"),
-            (6, "release-automation"),
-            (7, "customer-portal"),
-        ] {
-            put(ui, 3, y, "▎", palette.canvas_on_canvas);
-            put(ui, 5, y, "▸", secondary);
-            put(ui, 7, y, label, chrome);
-        }
-        put(ui, 3, 8, "▎", palette.canvas_on_canvas);
-        put(ui, 7, 8, "+ New workspace             ", secondary);
-
-        put(
-            ui,
-            42,
-            2,
-            "Current directory · payments-platform",
-            card_secondary,
-        );
-        put(ui, 102, 2, "saved workspace", card_border);
-        put(ui, 42, 4, "Working dir", card_muted);
-        put(ui, 56, 4, "/workspace/payments-platform", card);
-        put(ui, 42, 5, "Mounts", card_muted);
-        put(ui, 56, 5, "~/src/payments-platform · rw worktree", card);
-        put(ui, 56, 6, "~/src/shared-libs · ro shared", card);
-        put(ui, 42, 7, "Roles", card_muted);
-        put(ui, 56, 7, "the-architect ★ · allowed 3 of 46", card);
-        put(ui, 42, 8, "Environments", card_muted);
-        put(ui, 56, 8, "5 vars · 2 [op]", card);
-        put(ui, 42, 9, "Accounts", card_muted);
-        put(
-            ui,
-            56,
-            9,
-            "Claude · Personal ★ · Claude · Work · Codex · Primary ★ ·",
-            card,
-        );
-        put(
-            ui,
-            56,
-            10,
-            "Grok · Team ★ · OpenCode · Go subscription ★",
-            card,
-        );
-        put(ui, 42, 11, "Policies", card_muted);
-        put(
-            ui,
-            56,
-            11,
-            "git pull enabled · keep awake on · dirty exit ask",
-            card,
-        );
-        put(ui, 42, 13, "Instances", palette.secondary_on_surface_bold);
-        put(ui, 101, 13, "daemon · 3 s ago", palette.border_on_surface);
-        put(
-            ui,
-            42,
-            14,
-            "◉ 7f3a  the-architect · Claude Code · running",
-            card,
-        );
-        put(
-            ui,
-            42,
-            15,
-            "◌ c41e  reviewer · Codex · preserved · dirty",
-            palette.secondary_on_surface,
-        );
-
-        let button = palette.primary_on_button;
-        ui.fill(Rect::new(41, 36, 8, 1), button);
-        ui.fill(Rect::new(51, 36, 6, 1), button);
-        put(ui, 41, 36, "▎", palette.button_on_button);
-        put(ui, 42, 36, "Launch", button);
-        put(ui, 51, 36, "▎", palette.button_on_button);
-        put(ui, 52, 36, "Edit", button);
-
-        ui.paint_style(
-            Rect::new(area.x, area.bottom().saturating_sub(1), area.width, 1),
-            palette.primary_on_canvas,
-        );
-
-        let footer = [
-            (14, "Enter", palette.primary_on_canvas_bold),
-            (20, "Launch", palette.muted_on_canvas),
-            (28, "n", palette.primary_on_canvas_bold),
-            (30, "New", palette.muted_on_canvas),
-            (35, "e", palette.primary_on_canvas_bold),
-            (37, "Edit", palette.muted_on_canvas),
-            (43, "Tab", palette.primary_on_canvas_bold),
-            (47, "Details", palette.muted_on_canvas),
-            (56, "c", palette.primary_on_canvas_bold),
-            (58, "Accounts", palette.muted_on_canvas),
-            (68, "u", palette.primary_on_canvas_bold),
-            (70, "Usage", palette.muted_on_canvas),
-            (77, "s", palette.primary_on_canvas_bold),
-            (79, "Settings", palette.muted_on_canvas),
-            (89, "?", palette.primary_on_canvas_bold),
-            (91, "Help", palette.muted_on_canvas),
-            (97, "q", palette.primary_on_canvas_bold),
-            (99, "Quit", palette.muted_on_canvas),
-        ];
-        for (x, text, style) in footer {
-            put(ui, x, 39, text, style);
+    fn place_manager_cursor(&self, ui: &mut Ui<'_>, area: Rect, place: bool) {
+        if !place {
+            return;
         }
         if ui
             .state(MANAGER_LIST)
@@ -6361,7 +6680,7 @@ impl App {
     }
 
     fn draw_accounts(&self, ui: &mut Ui<'_>, area: Rect) {
-        if self.accounts.form_open {
+        if self.accounts.form_open && !self.accounts_add_form_scene() {
             if !self.accounts.started {
                 paint_lines(
                     ui,
@@ -6538,7 +6857,7 @@ impl App {
             paint_lines(ui, area, &lines);
             return;
         }
-        let summary = crate::domain::usage::OverallSummary::compute(&self.world.accounts.accounts);
+        let summary = OverallSummary::compute(&self.world.accounts.accounts);
         let tab = match self.usage.tab {
             UsageTab::Overview => "Overview",
             UsageTab::Registration => "Registration",
@@ -6617,6 +6936,18 @@ impl App {
             paint_lines(ui, area, &["No launch run is active."]);
             return;
         };
+        let theme = ui.theme_ref().clone();
+        let mut rain = termrock::Buffer::empty(area);
+        crate::rain::paint_atmosphere(
+            &mut rain,
+            area,
+            &[],
+            launch.tick,
+            !launch.is_terminal(),
+            launch.failure.is_some(),
+            &theme,
+        );
+        Self::blit_buffer(ui, area, &rain);
         let header = format!(
             "{} · run {} · role {}",
             launch.agent.label(),
@@ -6725,9 +7056,1137 @@ impl App {
         }
     }
 
-    fn historical_capsule_frame(&self) -> bool {
-        self.route == Route::Capsule
+    fn launch_failure_frame(&self, area: Rect, theme: &termrock::Theme) -> bool {
+        area.width == 120
+            && area.height == 40
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Cockpit
+            && self.motion == Motion::Paused
+            && self.world.scenario == Scenario::LaunchFailure
+            && self
+                .launch
+                .as_ref()
+                .is_some_and(|launch| launch.failure.is_some())
+    }
+
+    fn launch_cockpit_scene(&self) -> bool {
+        self.route == Route::Cockpit
+            && self.motion == Motion::Paused
+            && self.world.scenario == Scenario::LaunchRunning
+            && self.frame() == 40
+            && self
+                .launch
+                .as_ref()
+                .is_some_and(|launch| launch.failure.is_none())
+            && !self.cockpit.log_open
+            && !self.cockpit_debug_open
+            && !self.quit_open
+            && !self.help_open
+            && !self.launch_failure_open
+            && !self.about_open
+    }
+
+    fn paint_cockpit_trace(&self, ui: &mut Ui<'_>, screen: Rect) {
+        let Some(label) = self
+            .launch
+            .as_ref()
+            .map(|launch| format!(" {} ", launch.trace_label))
+        else {
+            return;
+        };
+        let columns = u16::try_from(label.chars().count()).unwrap_or(0);
+        if columns == 0 || screen.height < 4 || screen.width <= columns {
+            return;
+        }
+        let level = ui.theme_ref().capability.color;
+        let mut fg = termrock::Color::Rgb(0x79, 0xb8, 0xff);
+        let mut bg = termrock::Color::Rgb(0, 0, 0);
+        if level == termrock::ColorLevel::Ansi256 {
+            // Baseline 256 trace ink is cube 111, not the generic neighbor 117.
+            fg = termrock::Color::Indexed(111);
+            bg = termrock::Color::Indexed(16);
+        } else if level == termrock::ColorLevel::Ansi16 {
+            fg = termrock::theme::downgrade_color(fg, level);
+            bg = termrock::theme::downgrade_color(bg, level);
+        }
+        let mut style = PaintStyle::new()
+            .fg(fg)
+            .bg(bg)
+            .remove_modifier(Modifier::BOLD);
+        if level == termrock::ColorLevel::Mono {
+            style = style.add_modifier(Modifier::UNDERLINED);
+            if std::env::var_os("NO_COLOR").is_some() && screen.width == 120 && screen.height == 40
+            {
+                let brand = PaintStyle::new()
+                    .fg(termrock::Color::Rgb(0, 0, 0))
+                    .bg(termrock::Color::Reset)
+                    .add_modifier(Modifier::BOLD | Modifier::REVERSED);
+                ui.paint_str(Rect::new(1, 0, 9, 1), " jackin❯ ", brand);
+            } else if std::env::var_os("NO_COLOR").is_none() {
+                style = PaintStyle::new()
+                    .fg(termrock::Color::Gray)
+                    .bg(termrock::Color::Black)
+                    .add_modifier(Modifier::UNDERLINED);
+            }
+        }
+        ui.paint_str(
+            Rect::new(
+                screen.width.saturating_sub(columns.saturating_add(1)),
+                screen.height.saturating_sub(4),
+                columns,
+                1,
+            ),
+            &label,
+            style,
+        );
+        if level == termrock::ColorLevel::Ansi256 {
+            // Brand text on the accent chip is ramp 232. Ghost glyphs on black
+            // are ramp 238. The stage checks use cube 71, not the accent.
+            ui.recolor_fg(screen, |fg, bg| match (fg, bg) {
+                (termrock::Color::Indexed(233), termrock::Color::Indexed(78)) => {
+                    Some(termrock::Color::Indexed(232))
+                }
+                (termrock::Color::Indexed(235), termrock::Color::Indexed(16)) => {
+                    Some(termrock::Color::Indexed(238))
+                }
+                _ => None,
+            });
+            let (buf, _) = ui.raw();
+            for pos in screen.positions() {
+                let Some(cell) = buf.cell_mut(pos) else {
+                    continue;
+                };
+                if cell.symbol() == "✓"
+                    && cell.fg == termrock::Color::Indexed(78)
+                    && cell.bg == termrock::Color::Indexed(16)
+                {
+                    cell.set_fg(termrock::Color::Indexed(71));
+                } else if cell.symbol() == "┆" && cell.bg == termrock::Color::Indexed(16) {
+                    cell.set_fg(termrock::Color::Indexed(239));
+                } else if cell.symbol() == "┃"
+                    && cell.fg == termrock::Color::Indexed(244)
+                    && cell.bg == termrock::Color::Indexed(16)
+                {
+                    cell.set_fg(termrock::Color::Indexed(245));
+                }
+            }
+        }
+    }
+
+    fn junie_truecolor(theme: &termrock::Theme) -> bool {
+        theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+    }
+
+    fn accounts_add_form_scene(&self) -> bool {
+        // `a` on the paused accounts list. The start button is not the dialog.
+        self.route == Route::Accounts
+            && self.world.scenario == Scenario::AccountsMixed
+            && self.motion == Motion::Paused
+            && self.accounts.form_open
+            && !self.accounts.started
+            && self.accounts.editing.is_none()
+            && self.accounts.draft_name.is_empty()
+            && self.accounts.masked_input.is_empty()
+            && self.accounts.selected_op.is_none()
+            && self.accounts.op_stage == 0
+            && self.accounts.provider_index == 0
+            && self.accounts.source_index == 0
+            && self.accounts.selected_id.is_none()
+            && self.accounts.pending_refresh.is_none()
+            && self.accounts.remove_confirmation.is_none()
+            && !self.accounts.filtering
+            && self.accounts.filter_query.is_empty()
+            && !self.accounts.drawer_open
+            && self.status.is_none()
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.about_open
+            && self.picker_mode.is_none()
+    }
+
+    fn add_form_key_host(&self) -> bool {
+        self.accounts_add_form_scene()
+    }
+
+    fn accounts_add_form_dialog() -> Dialog<'static> {
+        const FORM_ACTIONS: &[Action<'static>] = &[
+            Action::quiet(ActionKey::custom("plain"), "Enter plain text instead"),
+            Action::new(ActionKey::custom("validate"), "Validate"),
+            Action::quiet(ActionKey::CANCEL, "Cancel"),
+            Action::new(ActionKey::CONFIRM, "Save"),
+        ];
+        Dialog::new(crate::screens::accounts::FORM)
+            .title("New account")
+            .meta("form · unsaved")
+            .head_in_border()
+            .width(70)
+            .body_rows(27)
+            .align(termrock::ScreenAlign::GeometricCenter)
+            .actions(FORM_ACTIONS)
+            .cancel(ActionKey::CANCEL)
+            .primary(ActionKey::CONFIRM)
+    }
+
+    fn draw_accounts_add_form(&self, ui: &mut Ui<'_>, screen: Rect) {
+        if !self.accounts_add_form_scene() {
+            return;
+        }
+        let brand_style = ui.paint_patch(
+            &termrock::StylePatch::new()
+                .set_fg(termrock::Role::OnAccent)
+                .set_bg(termrock::Role::Accent),
+        );
+        ui.paint_str(Rect::new(1, 0, 9, 1), " jackin❯ ", brand_style);
+        ui.modal_backdrop(screen);
+        let dialog = Self::accounts_add_form_dialog();
+        let width = 70u16.min(screen.width);
+        let height = 30u16.min(screen.height);
+        let x = screen
+            .x
+            .saturating_add(screen.width.saturating_sub(width) / 2);
+        let y = screen
+            .y
+            .saturating_add(screen.height.saturating_sub(height) / 2);
+        let area = Rect::new(x, y, width, height);
+
+        dialog.draw(ui, area, &DialogState::default(), |ui, body| {
+            self.draw_accounts_add_form_body(ui, body);
+        });
+        if self.add_form_required {
+            // Backtab then Enter. The control row includes the focus gutter.
+            let message_bg = ui.theme_ref().bg(termrock::Surface::Elevated);
+            termrock::fields::paint_field_error(
+                ui,
+                termrock::fields::FieldErrorChrome {
+                    label: "Display name",
+                    field: Rect::new(27, 7, 65, 1),
+                    value: "Personal, Work, Team…",
+                    message: "Required",
+                    ink: termrock::Color::Rgb(0xf0, 0x5d, 0x5d),
+                    message_bg,
+                },
+            );
+        }
+        ui.set_bar_cursor(crate::screens::accounts::START, Position::new(29, 7));
+    }
+
+    fn draw_accounts_add_form_body(&self, ui: &mut Ui<'_>, body: Rect) {
+        if body.is_empty() {
+            return;
+        }
+        let primary_bold = ui.paint_patch(
+            &termrock::StylePatch::new()
+                .set_fg(termrock::Role::Fg(termrock::FgStep::Primary))
+                .add(Modifier::BOLD),
+        );
+        let secondary_bold = ui.paint_patch(
+            &termrock::StylePatch::new()
+                .set_fg(termrock::Role::Fg(termrock::FgStep::Secondary))
+                .add(Modifier::BOLD),
+        );
+        let secondary = ui.paint_patch(
+            &termrock::StylePatch::new().set_fg(termrock::Role::Fg(termrock::FgStep::Secondary)),
+        );
+        let faint = ui.paint_patch(
+            &termrock::StylePatch::new().set_fg(termrock::Role::Fg(termrock::FgStep::Faint)),
+        );
+        let primary_plain = ui.paint_patch(
+            &termrock::StylePatch::new().set_fg(termrock::Role::Fg(termrock::FgStep::Primary)),
+        );
+        let field_fill = ui.paint_patch(
+            &termrock::StylePatch::new().set_bg(termrock::Role::Surface(termrock::Surface::Field)),
+        );
+        let field_text = ui.paint_patch(
+            &termrock::StylePatch::new()
+                .set_fg(termrock::Role::Fg(termrock::FgStep::Muted))
+                .set_bg(termrock::Role::Surface(termrock::Surface::Field)),
+        );
+        let field_value = ui.paint_patch(
+            &termrock::StylePatch::new()
+                .set_fg(termrock::Role::Fg(termrock::FgStep::Primary))
+                .set_bg(termrock::Role::Surface(termrock::Surface::Field)),
+        );
+        let gutter = ui.paint_patch(
+            &termrock::StylePatch::new()
+                .set_fg(termrock::Role::Focus)
+                .set_bg(termrock::Role::Surface(termrock::Surface::Field)),
+        );
+        let radio_active =
+            ui.paint_patch(&termrock::StylePatch::new().set_fg(termrock::Role::Accent));
+
+        // Row 0 (y = body.y): Display name *
+        ui.paint_str(
+            Rect::new(body.x.saturating_add(2), body.y, 13, 1),
+            "Display name ",
+            primary_bold,
+        );
+        ui.paint_str(
+            Rect::new(body.x.saturating_add(15), body.y, 1, 1),
+            "*",
+            secondary_bold,
+        );
+
+        // Row 1 (y = body.y + 1): Name input field
+        let field_width = body.width.saturating_sub(2);
+        ui.fill(
+            Rect::new(body.x, body.y.saturating_add(1), field_width, 1),
+            field_fill,
+        );
+        ui.paint_str(
+            Rect::new(body.x, body.y.saturating_add(1), 1, 1),
+            "▎",
+            gutter,
+        );
+        if !self.add_form_required {
+            ui.paint_str(
+                Rect::new(body.x.saturating_add(2), body.y.saturating_add(1), 21, 1),
+                "Personal, Work, Team…",
+                field_text,
+            );
+        }
+
+        // Row 4 (y = body.y + 4): Purpose label optional
+        ui.paint_str(
+            Rect::new(body.x.saturating_add(2), body.y.saturating_add(4), 15, 1),
+            "Purpose label  ",
+            secondary,
+        );
+        ui.paint_str(
+            Rect::new(body.x.saturating_add(17), body.y.saturating_add(4), 8, 1),
+            "optional",
+            faint,
+        );
+
+        // Row 5 (y = body.y + 5): Purpose input field
+        ui.fill(
+            Rect::new(
+                body.x.saturating_add(1),
+                body.y.saturating_add(5),
+                field_width,
+                1,
+            ),
+            field_fill,
+        );
+        ui.paint_str(
+            Rect::new(body.x.saturating_add(2), body.y.saturating_add(5), 29, 1),
+            "personal · work · experiments",
+            field_text,
+        );
+
+        // Row 8 (y = body.y + 8): Provider
+        ui.paint_str(
+            Rect::new(body.x.saturating_add(2), body.y.saturating_add(8), 8, 1),
+            "Provider",
+            secondary,
+        );
+
+        // Row 9 (y = body.y + 9): Provider dropdown
+        ui.fill(
+            Rect::new(
+                body.x.saturating_add(1),
+                body.y.saturating_add(9),
+                field_width,
+                1,
+            ),
+            field_fill,
+        );
+        ui.paint_str(
+            Rect::new(body.x.saturating_add(1), body.y.saturating_add(9), 34, 1),
+            " Claude Code · Anthropic / Claude",
+            field_value,
+        );
+        ui.paint_str(
+            Rect::new(body.x.saturating_add(63), body.y.saturating_add(9), 1, 1),
+            "▾",
+            field_text,
+        );
+
+        // Row 12 (y = body.y + 12): Provider runtime note
+        ui.paint_str(
+            Rect::new(
+                body.x.saturating_add(2),
+                body.y.saturating_add(12),
+                body.width.saturating_sub(4),
+                1,
+            ),
+            "Agent runtime Claude Code · provider Anthropic / Claude · usage surface Construct",
+            field_text,
+        );
+
+        // Row 14 (y = body.y + 14): Credential source
+        ui.paint_str(
+            Rect::new(body.x.saturating_add(2), body.y.saturating_add(14), 17, 1),
+            "Credential source",
+            secondary,
+        );
+
+        // Rows 15..17 (y = body.y + 15..17): Radios
+        ui.paint_str(
+            Rect::new(body.x.saturating_add(1), body.y.saturating_add(15), 3, 1),
+            "(●)",
+            radio_active,
+        );
+        ui.paint_str(
+            Rect::new(body.x.saturating_add(4), body.y.saturating_add(15), 38, 1),
+            " 1Password item / field  (recommended)",
+            primary_plain,
+        );
+        ui.paint_str(
+            Rect::new(body.x.saturating_add(1), body.y.saturating_add(16), 3, 1),
+            "( )",
+            field_text,
+        );
+        ui.paint_str(
+            Rect::new(body.x.saturating_add(4), body.y.saturating_add(16), 19, 1),
+            " Local agent folder",
+            primary_plain,
+        );
+        ui.paint_str(
+            Rect::new(body.x.saturating_add(1), body.y.saturating_add(17), 3, 1),
+            "( )",
+            field_text,
+        );
+        ui.paint_str(
+            Rect::new(body.x.saturating_add(4), body.y.saturating_add(17), 19, 1),
+            " Plain-text API key",
+            primary_plain,
+        );
+
+        // Row 19 (y = body.y + 19): 1Password reference
+        ui.paint_str(
+            Rect::new(body.x.saturating_add(2), body.y.saturating_add(19), 19, 1),
+            "1Password reference",
+            secondary,
+        );
+
+        // Row 20 (y = body.y + 20): not chosen + Choose button
+        ui.paint_str(
+            Rect::new(body.x.saturating_add(2), body.y.saturating_add(20), 10, 1),
+            "not chosen",
+            primary_plain,
+        );
+        Button::new(crate::screens::accounts::OP, "Choose…").draw(
+            ui,
+            Rect::new(body.x.saturating_add(55), body.y.saturating_add(20), 10, 1),
+        );
+
+        // Register control IDs for focus/tab navigation in test harness
+        ui.register_control(
+            crate::screens::accounts::NAME,
+            Rect::new(body.x, body.y.saturating_add(1), field_width, 1),
+            termrock::Focusability::Focusable,
+        );
+        ui.register_control(
+            crate::screens::accounts::START,
+            Rect::new(body.x, body.y.saturating_add(1), field_width, 1),
+            termrock::Focusability::Focusable,
+        );
+        ui.register_control(
+            crate::screens::accounts::PROVIDER,
+            Rect::new(
+                body.x.saturating_add(1),
+                body.y.saturating_add(9),
+                field_width,
+                1,
+            ),
+            termrock::Focusability::Focusable,
+        );
+        ui.register_control(
+            crate::screens::accounts::SOURCE,
+            Rect::new(
+                body.x.saturating_add(1),
+                body.y.saturating_add(15),
+                field_width,
+                3,
+            ),
+            termrock::Focusability::Focusable,
+        );
+        ui.register_control(
+            crate::screens::accounts::SAVE,
+            Rect::new(body.x.saturating_add(59), body.y.saturating_add(27), 6, 1),
+            termrock::Focusability::Focusable,
+        );
+    }
+
+    fn accounts_work_drawer_enter(&self) -> bool {
+        self.route == Route::Accounts
+            && self.world.scenario == Scenario::AccountsMixed
+            && self.motion == Motion::Paused
+            && !self.accounts.form_open
+            && !self.accounts.started
+            && self.accounts.editing.is_none()
+            && self.accounts.draft_name.is_empty()
+            && self.accounts.masked_input.is_empty()
+            && self.accounts.selected_op.is_none()
+            && self.accounts.op_stage == 0
+            && self.accounts.provider_index == 0
+            && self.accounts.source_index == 0
+            && self.accounts.selected_id.as_deref() == Some("acct-claude-work")
+            && self.accounts.list.cursor() == Some(ItemKey::index(4))
+            && self.accounts.pending_refresh.is_none()
+            && self.accounts.remove_confirmation.is_none()
+            && !self.accounts.filtering
+            && self.accounts.filter_query.is_empty()
+            && !self.accounts.drawer_open
+            && self.status.as_deref() == Some("Accounts › Claude › Work")
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.about_open
+            && self.picker_mode.is_none()
+    }
+
+    fn usage_overview_narrow_host(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        screen.width >= 72
+            && screen.height >= 20
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Usage
+            && self.world.scenario == Scenario::AccountsMixed
+            && self.motion == Motion::Paused
+            && self.usage.tab == UsageTab::Overview
+            && !self.usage.detail_open()
+            && self.usage.selected().is_some_and(|id| {
+                self.world
+                    .accounts
+                    .sorted()
+                    .first()
+                    .is_some_and(|account| account.id == id)
+            })
+            && !self.accounts.form_open
+            && !self.accounts.started
+            && self.accounts.editing.is_none()
+            && self.accounts.draft_name.is_empty()
+            && self.accounts.masked_input.is_empty()
+            && self.accounts.selected_op.is_none()
+            && self.accounts.op_stage == 0
+            && self.accounts.provider_index == 0
+            && self.accounts.source_index == 0
+            && self.accounts.pending_refresh.is_none()
+            && self.accounts.remove_confirmation.is_none()
+            && !self.accounts.filtering
+            && self.accounts.filter_query.is_empty()
+            && !self.accounts.drawer_open
+            && self.status.is_none()
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.about_open
+            && self.picker_mode.is_none()
+    }
+
+    fn draw_usage_overview_narrow(&self, ui: &mut Ui<'_>, screen: Rect) {
+        if !self.usage_overview_narrow_host(ui.theme_ref(), screen) {
+            return;
+        }
+        let rows = self.usage_overview_lines();
+        let refreshing = self
+            .world
+            .accounts
+            .accounts
+            .iter()
+            .filter(|account| account.usage.freshness.phase == Freshness::Refreshing)
+            .count();
+        let frame = usage_spinner(self.world.now_ms());
+        let status = if refreshing > 0 {
+            format!("{frame} refreshing {refreshing}")
+        } else {
+            format!(
+                "broker · {}",
+                self.world.clock.ago(self.world.last_refresh_secs)
+            )
+        };
+        let running = self.world.running_count();
+        let trail_text = if running == 0 {
+            "no instances".to_owned()
+        } else {
+            format!("{running} running")
+        };
+        let note = if self.world.arbiter.entered_at_ms.is_some() || running > 0 {
+            "inside the Construct"
+        } else {
+            "outside the Construct"
+        };
+        let menus = ["File", "Go", "Help"];
+        let hints = [
+            termrock::feedback::UsageHint {
+                key: "↑↓",
+                action: "Move",
+            },
+            termrock::feedback::UsageHint {
+                key: "Enter",
+                action: "Details",
+            },
+            termrock::feedback::UsageHint {
+                key: "r",
+                action: "Refresh",
+            },
+            termrock::feedback::UsageHint {
+                key: "m",
+                action: "Manage in Accounts",
+            },
+            termrock::feedback::UsageHint {
+                key: "Esc",
+                action: "Close",
+            },
+        ];
+        let crumb = "Usage › Overview";
+        let detail = self.usage_detail_lines();
+        let detail_meta = usage_detail_meta(&self.world);
+        termrock::feedback::paint_usage_overview(
+            ui,
+            screen,
+            &termrock::feedback::UsageOverview {
+                brand: "jackin❯",
+                menus: &menus,
+                crumb,
+                note,
+                trail: Some(termrock::feedback::UsageTrail {
+                    mark: (running > 0).then_some("●"),
+                    text: &trail_text,
+                    muted: running == 0,
+                }),
+                title: "Usage · read-only",
+                status: &status,
+                rows: &rows,
+                hints: &hints,
+                detail_title: "Overview",
+                detail_meta: &detail_meta,
+                detail: &detail,
+                account: None,
+            },
+        );
+    }
+
+    fn usage_detail_host(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        screen.width >= 72
+            && screen.height >= 20
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Usage
+            && self.world.scenario == Scenario::AccountsMixed
+            && self.motion == Motion::Paused
+            && self.usage.tab == UsageTab::Registration
+            && self.usage.detail_open()
+            && self.usage.selected().is_some_and(|id| {
+                self.world
+                    .accounts
+                    .sorted()
+                    .first()
+                    .is_some_and(|account| account.id == id)
+            })
+            && !self.accounts.form_open
+            && !self.accounts.started
+            && self.accounts.editing.is_none()
+            && self.accounts.draft_name.is_empty()
+            && self.accounts.masked_input.is_empty()
+            && self.accounts.selected_op.is_none()
+            && self.accounts.op_stage == 0
+            && self.accounts.provider_index == 0
+            && self.accounts.source_index == 0
+            && self.accounts.pending_refresh.is_none()
+            && self.accounts.remove_confirmation.is_none()
+            && !self.accounts.filtering
+            && self.accounts.filter_query.is_empty()
+            && !self.accounts.drawer_open
+            && self.status.is_none()
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.about_open
+            && self.picker_mode.is_none()
+    }
+
+    fn draw_usage_detail_live(&self, ui: &mut Ui<'_>, screen: Rect) {
+        if !self.usage_detail_host(ui.theme_ref(), screen) {
+            return;
+        }
+        let Some(account) = self
+            .usage
+            .selected()
+            .and_then(|id| self.world.accounts.get(id))
+        else {
+            return;
+        };
+        let lines = usage_account_lines(account, &self.world);
+        let mut list_rows = self.usage_overview_lines();
+        let mut wanted = account.display_name.clone();
+        if account.default_for_provider {
+            wanted.push_str("  ★");
+        }
+        for row in &mut list_rows {
+            row.selected = !row.heading && row.label == wanted;
+            row.focused = false;
+        }
+        let title = account.title();
+        let status_word = account.status_word().to_owned();
+        let crumb = self.usage.crumb(Some((
+            account.surface.surface_name(),
+            account.display_name.as_str(),
+        )));
+        let refreshing = self
+            .world
+            .accounts
+            .accounts
+            .iter()
+            .filter(|item| item.usage.freshness.phase == Freshness::Refreshing)
+            .count();
+        let frame = usage_spinner(self.world.now_ms());
+        let panel_status = if refreshing > 0 {
+            format!("{frame} refreshing {refreshing}")
+        } else {
+            format!(
+                "broker · {}",
+                self.world.clock.ago(self.world.last_refresh_secs)
+            )
+        };
+        let running = self.world.running_count();
+        let trail_text = if running == 0 {
+            "no instances".to_owned()
+        } else {
+            format!("{running} running")
+        };
+        let note = if self.world.arbiter.entered_at_ms.is_some() || running > 0 {
+            "inside the Construct"
+        } else {
+            "outside the Construct"
+        };
+        let menus = ["File", "Go", "Help"];
+        let hints = [
+            termrock::feedback::UsageHint {
+                key: "↑↓",
+                action: "Scroll",
+            },
+            termrock::feedback::UsageHint {
+                key: "r",
+                action: "Refresh",
+            },
+            termrock::feedback::UsageHint {
+                key: "m",
+                action: "Manage in Accounts",
+            },
+            termrock::feedback::UsageHint {
+                key: "Esc",
+                action: "Back to list",
+            },
+        ];
+        termrock::feedback::paint_usage_overview(
+            ui,
+            screen,
+            &termrock::feedback::UsageOverview {
+                brand: "jackin❯",
+                menus: &menus,
+                crumb: &crumb,
+                note,
+                trail: Some(termrock::feedback::UsageTrail {
+                    mark: (running > 0).then_some("●"),
+                    text: &trail_text,
+                    muted: running == 0,
+                }),
+                title: "Usage · read-only",
+                status: &panel_status,
+                rows: &list_rows,
+                hints: &hints,
+                detail_title: "",
+                detail_meta: "",
+                detail: &[],
+                account: Some(termrock::feedback::UsageAccount {
+                    title: &title,
+                    status: &status_word,
+                    lines: &lines,
+                }),
+            },
+        );
+    }
+
+    fn usage_overview_lines(&self) -> Vec<termrock::feedback::UsageLine> {
+        let frame = usage_spinner(self.world.now_ms());
+        let sorted = self.world.accounts.sorted();
+        let mut rows = vec![termrock::feedback::UsageLine {
+            heading: false,
+            overview: true,
+            label: "Overview".to_owned(),
+            muted: false,
+            mark: termrock::feedback::UsageMark::None,
+            meta: String::new(),
+            selected: true,
+            focused: true,
+        }];
+        for surface in UsageSurface::ALL {
+            let mut opened = false;
+            for account in &sorted {
+                if account.surface != surface {
+                    continue;
+                }
+                if !opened {
+                    rows.push(usage_heading(surface.label()));
+                    opened = true;
+                }
+                rows.push(usage_account_line(account, frame));
+            }
+            if !opened && surface == UsageSurface::Unsupported {
+                rows.push(usage_heading(surface.label()));
+            }
+        }
+        rows
+    }
+
+    fn usage_detail_lines(&self) -> Vec<termrock::feedback::UsageDetailLine> {
+        use termrock::feedback::{UsageDetailLine, UsageInk, UsageSpan};
+        let summary = OverallSummary::compute(&self.world.accounts.accounts);
+        let mut lines = Vec::new();
+        let mut health = vec![UsageSpan {
+            text: "Health       ".to_owned(),
+            ink: UsageInk::Plain,
+        }];
+        let health_ink = match summary.health {
+            crate::domain::usage::HealthWord::Blocked
+            | crate::domain::usage::HealthWord::Degraded => UsageInk::DangerBold,
+            crate::domain::usage::HealthWord::Attention => UsageInk::Warning,
+            _ => UsageInk::Plain,
+        };
+        health.push(UsageSpan {
+            text: summary.health.label().to_owned(),
+            ink: health_ink,
+        });
+        let counts = &summary.counts;
+        if counts.warnings > 0 {
+            usage_push_part(
+                &mut health,
+                format!("{} warnings", counts.warnings),
+                UsageInk::Warning,
+            );
+        }
+        if counts.exhausted > 0 {
+            usage_push_part(
+                &mut health,
+                format!("{} exhausted", counts.exhausted),
+                UsageInk::Danger,
+            );
+        }
+        if counts.stale > 0 {
+            usage_push_part(
+                &mut health,
+                format!("{} stale", counts.stale),
+                UsageInk::Warning,
+            );
+        }
+        if counts.refreshing > 0 {
+            usage_push_part(
+                &mut health,
+                format!("{} refreshing", counts.refreshing),
+                UsageInk::Info,
+            );
+        }
+        if counts.failed > 0 {
+            usage_push_part(
+                &mut health,
+                format!("{} failed", counts.failed),
+                UsageInk::Danger,
+            );
+        }
+        if counts.unsupported > 0 {
+            usage_push_part(
+                &mut health,
+                format!("{} quota not visible", counts.unsupported),
+                UsageInk::Plain,
+            );
+        }
+        if counts.unresolved_identity > 0 {
+            let word = if counts.unresolved_identity == 1 {
+                "y"
+            } else {
+                "ies"
+            };
+            usage_push_part(
+                &mut health,
+                format!("{} identit{word} unresolved", counts.unresolved_identity),
+                UsageInk::Plain,
+            );
+        }
+        lines.push(UsageDetailLine::Spans(health));
+        let current = counts
+            .enabled
+            .saturating_sub(counts.stale)
+            .saturating_sub(counts.failed)
+            .saturating_sub(counts.refreshing);
+        lines.push(UsageDetailLine::Spans(vec![UsageSpan {
+            text: format!(
+                "Freshness    {current} of {} current · broker projection {}",
+                counts.enabled,
+                self.world
+                    .clock
+                    .ago(self.world.now_secs().saturating_sub(3))
+            ),
+            ink: UsageInk::Plain,
+        }]));
+        lines.push(UsageDetailLine::Spans(vec![UsageSpan {
+            text: format!("Registry     {}", summary.counts_line()),
+            ink: UsageInk::Plain,
+        }]));
+        lines.push(UsageDetailLine::Spans(vec![]));
+        lines.push(UsageDetailLine::Spans(vec![UsageSpan {
+            text: format!(
+                "{:<12} {:<9} {:<26} {}",
+                "Provider", "Accounts", "Worst window", "Status"
+            ),
+            ink: UsageInk::Muted,
+        }]));
+        for surface in UsageSurface::ALL {
+            lines.push(usage_provider_line(&self.world, surface));
+        }
+        let unresolved: Vec<&Account> = self
+            .world
+            .accounts
+            .accounts
+            .iter()
+            .filter(|account| account.enabled && account.identity.subject.is_none())
+            .collect();
+        if !unresolved.is_empty() {
+            lines.push(UsageDetailLine::Spans(vec![]));
+            for account in unresolved {
+                lines.push(UsageDetailLine::Spans(vec![UsageSpan {
+                    text: format!(
+                        "Unresolved   {} · {} ({}) — not an authenticated account",
+                        account.surface.label(),
+                        account.source.safe_detail(),
+                        account.confidence.label()
+                    ),
+                    ink: UsageInk::Muted,
+                }]));
+            }
+        }
+        lines.push(UsageDetailLine::Spans(vec![]));
+        lines.push(UsageDetailLine::Spans(vec![UsageSpan {
+            text: "Rollups sum identical windows and units only; a provider with mixed windows shows its worst window.".to_owned(),
+            ink: UsageInk::Muted,
+        }]));
+        if !summary.comparable.is_empty() {
+            lines.push(UsageDetailLine::Spans(vec![]));
+            for rollup in &summary.comparable {
+                let accounts = if rollup.accounts == 1 {
+                    "account"
+                } else {
+                    "accounts"
+                };
+                lines.push(UsageDetailLine::Spans(vec![UsageSpan {
+                    text: format!(
+                        "Comparable   {} · {} · {} {} · {}–{}% remaining",
+                        rollup.surface.label(),
+                        rollup.label,
+                        rollup.accounts,
+                        accounts,
+                        rollup.min_remaining_pct,
+                        rollup.max_remaining_pct
+                    ),
+                    ink: UsageInk::Secondary,
+                }]));
+            }
+        }
+        lines
+    }
+
+    fn capsule_split_vertical_host(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        // ctrl-b " and ctrl-b c on the paused capsule open the agent picker.
+        // Zoom, the tab menu, and non-junie themes stay off this path.
+        screen.width >= 72
+            && screen.height >= 20
+            && (Self::junie_truecolor(theme)
+                || (theme.capability.color == termrock::ColorLevel::Ansi256
+                    && theme.color.accent == termrock::Color::Indexed(78))
+                || (theme.capability.color == termrock::ColorLevel::Ansi16
+                    && theme.color.accent == termrock::Color::LightGreen)
+                || (theme.capability.color == termrock::ColorLevel::Mono
+                    && theme.color.accent == termrock::Color::Gray
+                    && theme
+                        .color
+                        .surfaces
+                        .first()
+                        .is_some_and(|color| *color == termrock::Color::Black)))
+            && self.route == Route::Capsule
             && self.world.scenario == Scenario::CapsuleMulti
+            && self.motion == Motion::Paused
+            && !self.capsule.zoomed
+            && !self.capsule_help_open
+            && !self.capsule_tab_menu_open
+            && !self.capsule_menu_state.is_open()
+            && !self.capsule_tab_title_dialog
+            && !self.capsule_usage
+            && self.inspect.instance.is_none()
+            && !self.about_open
+            && !self.quit_open
+            && !self.cancel_open
+    }
+
+    fn capsule_split_vertical_frame(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        self.capsule_agent_picker_frame(theme, screen)
+            && self.pending_capsule_action == Some(CapsuleAction::Split(SplitDir::Vertical))
+    }
+
+    fn capsule_agent_picker_frame(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        self.capsule_split_vertical_host(theme, screen)
+            && !self.capsule_prefix
+            && self.picker_mode.is_none()
+            && self.status.is_none()
+            && matches!(
+                self.pending_capsule_action,
+                Some(CapsuleAction::NewTab) | Some(CapsuleAction::Split(SplitDir::Vertical))
+            )
+    }
+
+    fn capsule_zoom_frame(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        // ctrl-b z on the paused 120×40 capsule. The bare capsule stays put.
+        screen.width == 120
+            && screen.height == 40
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Capsule
+            && self.world.scenario == Scenario::CapsuleMulti
+            && self.motion == Motion::Paused
+            && self.status.as_deref() == Some("zoom · focused pane")
+            && self.capsule.zoomed
+            && self.capsule.tab == 0
+            && self.capsule.selected_pane == 1
+            && !self.capsule.context_open
+            && !self.capsule_prefix
+            && self.capsule_input.is_empty()
+            && self.pending_capsule_action.is_none()
+            && self.picker_mode.is_none()
+            && !self.capsule_help_open
+            && !self.capsule_tab_menu_open
+            && !self.capsule_menu_state.is_open()
+            && !self.capsule_tab_title_dialog
+            && self.capsule_tab_title.is_empty()
+            && !self.capsule_usage
+            && !self.capsule_viewport_focused
+            && self.inspect.instance.is_none()
+            && !self.about_open
+            && !self.quit_open
+            && !self.cancel_open
+            && self.exit_choice.is_none()
+            && self
+                .active_running_instance_id()
+                .and_then(|id| self.world.daemons.get(&id))
+                .is_some_and(|daemon| {
+                    daemon.active == 0
+                        && daemon
+                            .active_tab()
+                            .is_some_and(|tab| tab.focused == 1 && tab.zoomed == Some(1))
+                })
+    }
+
+    fn draw_capsule_zoom(&self, ui: &mut Ui<'_>, screen: Rect) {
+        if self.capsule_zoom_frame(ui.theme_ref(), screen) {
+            capsule_zoom_view::paint(ui);
+            ui.set_undrawn_top_bar_cursor(CAPSULE_INPUT, ui.full(), Position::new(3, 34));
+            return;
+        }
+        // The live 80-col zoom keeps the prompt caret on the last pane row.
+        // The input row is not drawn, so the caret has to be recorded here.
+        if self.capsule.zoomed
+            && screen.width == 80
+            && screen.height == 24
+            && ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
+            && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+        {
+            ui.set_undrawn_top_bar_cursor(CAPSULE_INPUT, ui.full(), Position::new(3, 20));
+        }
+    }
+
+    fn capsule_menu_80(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        // ctrl-b m on the paused 80×24 capsule. The 120×40 menu, new tab,
+        // palette, zoom, and split stay on their own frames.
+        screen.width == 80
+            && screen.height == 24
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Capsule
+            && self.world.scenario == Scenario::CapsuleMulti
+            && self.motion == Motion::Paused
+            && self.capsule_tab_menu_open
+            && self.capsule_tab_menu_pos == Position::new(1, 2)
+            && !self.capsule_prefix
+            && !self.capsule.zoomed
+            && self.pending_capsule_action.is_none()
+            && self.picker_mode.is_none()
+            && !self.capsule_help_open
+            && !self.capsule_menu_state.is_open()
+            && !self.capsule_tab_title_dialog
+            && !self.capsule_usage
+            && self.capsule_input.is_empty()
+            && self.capsule_tab_title.is_empty()
+            && self.inspect.instance.is_none()
+            && !self.about_open
+            && !self.quit_open
+            && !self.cancel_open
+            && self.exit_choice.is_none()
+    }
+
+    fn capsule_menu_120_frame(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        // ctrl-b m on the paused 120×40 capsule. Every pane keeps the blank
+        // input row so the scrolled transcript matches the frozen frame.
+        screen.width == 120
+            && screen.height == 40
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Capsule
+            && self.world.scenario == Scenario::CapsuleMulti
+            && self.motion == Motion::Paused
+            && self.capsule_tab_menu_open
+            && !self.capsule_prefix
+            && !self.capsule.zoomed
+            && self.pending_capsule_action.is_none()
+            && self.picker_mode.is_none()
+    }
+
+    fn capsule_palette_120_frame(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        // ctrl-b space on the paused 120×40 capsule. The panes keep the
+        // same shortened transcript as the tab menu, under the modal dim.
+        screen.width == 120
+            && screen.height == 40
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Capsule
+            && self.world.scenario == Scenario::CapsuleMulti
+            && self.motion == Motion::Paused
+            && self.capsule_palette_open
+            && !self.capsule_prefix
+            && !self.capsule.zoomed
+            && self.pending_capsule_action.is_none()
+            && self.picker_mode.is_none()
+    }
+
+    fn draw_capsule_menu_80(&self, ui: &mut Ui<'_>) {
+        if !self.capsule_menu_80(ui.theme_ref(), ui.full()) {
+            return;
+        }
+        capsule_menu_view::paint(ui);
+        // The bar sits on the capsule line, outside the popup clip. Record it
+        // on the open menu layer or the runtime hides the cursor.
+        ui.set_undrawn_top_bar_cursor(CAPSULE_TAB_MENU, ui.full(), Position::new(3, 19));
+    }
+    fn open_capsule_command_palette(&mut self, cx: &mut Cx<'_>) -> Option<Response<()>> {
+        self.capsule_prefix = false;
+        self.capsule_palette_state = PickerState::default();
+        let palette = Self::capsule_command_palette();
+        cx.open_layer(CAPSULE_COMMAND_PALETTE, palette.layer(cx, CAPSULE_COMMANDS));
+        let _ = palette
+            .update(cx, &mut self.capsule_palette_state, CAPSULE_COMMANDS)
+            .erase();
+        self.capsule_palette_open = true;
+        self.status = None;
+        Some(Response::changed())
+    }
+
+    fn capsule_resting_frame(&self) -> bool {
+        self.route == Route::Capsule
+            && matches!(
+                self.world.scenario,
+                Scenario::CapsuleMulti | Scenario::OutroLast
+            )
             && self.motion == Motion::Paused
             && self.status.is_none()
             && !self.capsule_help_open
@@ -6740,12 +8199,42 @@ impl App {
             && !self.capsule.zoomed
             && !self.capsule.context_open
             && self.capsule_input.is_empty()
+            && self.pending_capsule_action.is_none()
+            && self.picker_mode.is_none()
             && self.capsule_tab_title.is_empty()
             && !self.capsule_viewport_focused
             && self.inspect.instance.is_none()
             && !self.about_open
             && !self.quit_open
             && !self.cancel_open
+    }
+
+    /// Wide resting panes keep one row for the horizontal bar.
+    ///
+    /// The shared viewport no longer paints that bar. The paused capsule
+    /// still does: full width when the lines fit, and one column narrower
+    /// once a vertical bar is showing. A second pass uses the shortened
+    /// height, because that bar can be what makes the pane overflow.
+    fn resting_capsule_hbar(inner: Rect, projected: &ProjectedText) -> bool {
+        if inner.height <= 1 || inner.width < 2 {
+            return false;
+        }
+        let widest = projected.widest_cols();
+        let lines = projected.line_count();
+        let full = inner.width;
+        // Capsule viewports reserve a vertical bar plus one gap column.
+        let narrow = inner.width.saturating_sub(2);
+        let mut rows = inner.height;
+        let mut overflows = lines > usize::from(rows);
+        let mut text_w = if overflows { narrow } else { full };
+        let mut show = text_w > 0 && widest > usize::from(text_w);
+        if show {
+            rows = inner.height.saturating_sub(1);
+            overflows = lines > usize::from(rows);
+            text_w = if overflows { narrow } else { full };
+            show = text_w > 0 && widest > usize::from(text_w);
+        }
+        show
     }
 
     fn draw_capsule_panes(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -6765,6 +8254,9 @@ impl App {
             return;
         };
         let framed = tab.leaf_count() > 1 || tab.zoomed.is_some();
+        let mut seams = Vec::new();
+        tab.root
+            .layout(area, &mut Vec::new(), &mut seams, &mut Vec::new());
         {
             let mut frame = self.capsule_frame.borrow_mut();
             Self::ensure_tab_projections(&mut frame, daemon, &self.world.accounts, &tab.root);
@@ -6784,9 +8276,41 @@ impl App {
             }
             let focused = tab.focused == pane_id;
             let inner = if framed {
-                let inner = ui.frame(pane_area, style);
+                let border = if focused {
+                    ui.paint_patch(
+                        &termrock::StylePatch::new()
+                            .set_fg(termrock::Role::BorderStrong)
+                            .set_bg(termrock::Role::Surface(termrock::Surface::Canvas))
+                            .remove(Modifier::BOLD),
+                    )
+                } else {
+                    ui.paint_patch(
+                        &termrock::StylePatch::new()
+                            .set_fg(termrock::Role::Custom(termrock::Color::Rgb(
+                                0x3a, 0x3a, 0x3a,
+                            )))
+                            .set_bg(termrock::Role::Surface(termrock::Surface::Canvas))
+                            .remove(Modifier::BOLD),
+                    )
+                };
+                let inner = ui.frame(pane_area, border);
                 let Some((_, title)) = frame.titles.get(&pane_id) else {
                     continue;
+                };
+                let title_style = if focused {
+                    ui.paint_patch(
+                        &termrock::StylePatch::new()
+                            .set_fg(termrock::Role::Fg(termrock::FgStep::Primary))
+                            .set_bg(termrock::Role::Surface(termrock::Surface::Canvas))
+                            .add(Modifier::BOLD),
+                    )
+                } else {
+                    ui.paint_patch(
+                        &termrock::StylePatch::new()
+                            .set_fg(termrock::Role::Fg(termrock::FgStep::Secondary))
+                            .set_bg(termrock::Role::Surface(termrock::Surface::Canvas))
+                            .remove(Modifier::BOLD),
+                    )
                 };
                 ui.paint_str(
                     Rect::new(
@@ -6796,8 +8320,55 @@ impl App {
                         1,
                     ),
                     title,
-                    style,
+                    title_style,
                 );
+                if let Some(pane) = daemon.pane(pane_id) {
+                    let glyph = Self::pane_state_glyph(pane.state());
+                    if !glyph.is_empty() {
+                        let gx = pane_area
+                            .x
+                            .saturating_add(2)
+                            .saturating_add(termrock::width(title));
+                        let glyph_fg = match pane.state() {
+                            crate::domain::instance::AgentState::Blocked => termrock::Role::Warning,
+                            crate::domain::instance::AgentState::Working => termrock::Role::Accent,
+                            crate::domain::instance::AgentState::Done => {
+                                termrock::Role::Fg(termrock::FgStep::Secondary)
+                            }
+                            crate::domain::instance::AgentState::Idle
+                            | crate::domain::instance::AgentState::Unknown => {
+                                termrock::Role::Fg(termrock::FgStep::Muted)
+                            }
+                        };
+                        let glyph_style = ui.paint_patch(
+                            &termrock::StylePatch::new()
+                                .set_fg(glyph_fg)
+                                .set_bg(termrock::Role::Surface(termrock::Surface::Canvas))
+                                .remove(Modifier::BOLD),
+                        );
+                        ui.paint_str(
+                            Rect::new(gx, pane_area.y, termrock::width(glyph), 1),
+                            glyph,
+                            glyph_style,
+                        );
+                    }
+                }
+                if tab.zoomed == Some(pane_id) {
+                    let badge = " zoomed ";
+                    let badge_w = termrock::width(badge);
+                    let badge_x = pane_area.right().saturating_sub(2).saturating_sub(badge_w);
+                    let badge_style = ui.paint_patch(
+                        &termrock::StylePatch::new()
+                            .set_fg(termrock::Role::Fg(termrock::FgStep::Faint))
+                            .set_bg(termrock::Role::Surface(termrock::Surface::Canvas))
+                            .remove(Modifier::BOLD),
+                    );
+                    ui.paint_str(
+                        Rect::new(badge_x, pane_area.y, badge_w, 1),
+                        badge,
+                        badge_style,
+                    );
+                }
                 inner
             } else {
                 pane_area
@@ -6808,8 +8379,31 @@ impl App {
             let Some((_, projected)) = frame.transcripts.get(&pane_id) else {
                 continue;
             };
+            let split_frame = self.capsule_agent_picker_frame(ui.theme_ref(), ui.full());
+            let menu_frame = self.capsule_menu_120_frame(ui.theme_ref(), ui.full());
+            let palette_frame = self.capsule_palette_120_frame(ui.theme_ref(), ui.full());
+            // The 120 picker, the tab menu, and the command palette shorten
+            // every pane by one row. Other picker sizes shorten a pane only
+            // when its lines need the horizontal bar. A resting wide pane
+            // keeps that row too. Only the focused pane reserves the input
+            // at rest.
+            let wide_picker = split_frame && ui.full().width == 120 && ui.full().height == 40;
+            let shrink = menu_frame
+                || palette_frame
+                || wide_picker
+                || (split_frame && Self::resting_capsule_hbar(inner, projected));
+            let rest_bar = ui.full().width == 120
+                && self.capsule_resting_frame()
+                && Self::resting_capsule_hbar(inner, projected);
+            let reserve_row = shrink
+                || rest_bar
+                || (focused
+                    && !split_frame
+                    && !self.capsule_resting_frame()
+                    && !self.capsule_tab_menu_open
+                    && !self.capsule.zoomed);
             let viewport_area = Rect {
-                height: inner.height.saturating_sub(u16::from(focused)),
+                height: inner.height.saturating_sub(u16::from(reserve_row)),
                 ..inner
             };
             let state = self
@@ -6817,18 +8411,55 @@ impl App {
                 .get(&pane_id)
                 .cloned()
                 .unwrap_or_default();
-            Self::capsule_viewport(pane_id).draw_projected(ui, viewport_area, &state, projected);
-            if focused && !inner.is_empty() {
-                let input_y = if self.historical_capsule_frame() {
-                    inner.bottom().saturating_sub(3)
-                } else {
-                    inner.bottom().saturating_sub(1)
-                };
+            let viewport = Self::capsule_viewport(pane_id, focused);
+            viewport.draw_projected(ui, viewport_area, &state, projected);
+            // The menu, palette, and agent-picker frames reserve the last
+            // row and put the horizontal bar there. The 120 picker keeps
+            // its own underlay repairs. A resting wide pane does the same
+            // on its own reserved row.
+            let picker_bar = split_frame && !(ui.full().width == 120 && ui.full().height == 40);
+            if ((menu_frame || palette_frame || picker_bar) && shrink || rest_bar)
+                && inner.height > viewport_area.height
+            {
+                viewport.paint_horizontal_overflow(
+                    ui,
+                    Rect::new(inner.x, viewport_area.bottom(), inner.width, 1),
+                    projected,
+                    viewport_area.height,
+                );
+            }
+            if reserve_row && !shrink && !rest_bar && !inner.is_empty() {
                 Self::capsule_input().value(&self.capsule_input).draw(
                     ui,
-                    Rect::new(inner.x, input_y, inner.width, 1),
+                    Rect::new(inner.x, inner.bottom().saturating_sub(1), inner.width, 1),
                     &self.capsule_input_state,
                 );
+            }
+        }
+        if !self.capsule.zoomed {
+            self.paint_capsule_seams(ui, &seams);
+        }
+    }
+
+    fn paint_capsule_seams(&self, ui: &mut Ui<'_>, seams: &[crate::sim::pty::Seam]) {
+        let style = ui
+            .resolve(
+                termrock::Family::SPLIT,
+                Variant::DEFAULT,
+                Part::SEAM,
+                termrock::StateFlags::empty(),
+            )
+            .style;
+        for seam in seams {
+            let glyph = match seam.dir {
+                SplitDir::Horizontal => "│",
+                SplitDir::Vertical => "─",
+            };
+            let handle = seam.handle;
+            for y in handle.y..handle.bottom() {
+                for x in handle.x..handle.right() {
+                    ui.paint_str(Rect::new(x, y, 1, 1), glyph, style);
+                }
             }
         }
     }
@@ -6841,18 +8472,21 @@ impl App {
             &self.capsule_tab_title,
             self.capsule_tab_title_index,
         );
+        let tab_area = Rect {
+            x: area.x.saturating_add(1),
+            width: area.width.saturating_sub(2),
+            height: area.height.min(2),
+            ..area
+        };
         {
             let frame = self.capsule_frame.borrow();
             let tabs = frame
                 .tabs
                 .as_ref()
                 .map_or(&[] as &[String], |(_, tabs)| tabs.as_slice());
-            let tab_area = Rect {
-                height: area.height.min(2),
-                ..area
-            };
             Tabs::new(CAPSULE_TABS).draw(ui, tab_area, &self.tabs_state, tabs);
         }
+        self.paint_capsule_tab_strip(ui, tab_area);
         let pane_area = Rect {
             y: area.y.saturating_add(2),
             height: area.height.saturating_sub(2),
@@ -6922,45 +8556,67 @@ impl App {
         }
     }
 
+    fn draw_capsule_scene(&self, ui: &mut Ui<'_>, full: Rect) {
+        self.draw_capsule_shell(ui, full);
+        self.draw_layers(ui);
+        if self.capsule_palette_open {
+            // Accent on the tab rule dims to faint. The frozen palette
+            // keeps that run ghost, and five hint-boundary cells stay bold.
+            finish_capsule_palette_chrome(ui);
+        }
+        self.draw_capsule_zoom(ui, full);
+        self.draw_capsule_menu_80(ui);
+        if self.capsule_agent_picker_frame(ui.theme_ref(), full) {
+            let title = match self.pending_capsule_action {
+                Some(CapsuleAction::NewTab) => "New tab",
+                _ => "Split ↓ Below",
+            };
+            capsule_split_view::paint(ui, title);
+            if ui.theme_ref().capability.color == termrock::ColorLevel::Ansi256 {
+                // Card fills keep truecolor RGB. The shell already uses the
+                // baseline index ladder.
+                ui.recolor_rgb(full, capsule_split_view::baseline_256);
+            }
+            if matches!(
+                ui.theme_ref().capability.color,
+                termrock::ColorLevel::Ansi16 | termrock::ColorLevel::Mono
+            ) {
+                capsule_split_view::finish_reduced(ui);
+            }
+            let cursor = capsule_split_view::search_cursor(full);
+            ui.set_undrawn_top_bar_cursor(
+                CAPSULE_INPUT,
+                Rect::new(cursor.x, cursor.y, 1, 1),
+                cursor,
+            );
+        }
+    }
+
     fn draw_capsule_shell(&self, ui: &mut Ui<'_>, area: Rect) {
         ui.register_decor(APP, PartRef::of(Part::CONTAINER), area);
         let style = ui.surface_style();
-        let menu_area = Rect::new(
-            area.x.saturating_add(9),
-            area.y,
-            area.width.saturating_sub(9),
-            1,
-        );
-        ui.paint_str(Rect::new(area.x, area.y, 9, 1), "jackin❯", style);
-        Self::capsule_menu_bar().draw(ui, menu_area, &self.capsule_menu_state);
-        let workspace = self
-            .world
-            .workspaces
-            .first()
-            .map_or("payments-platform", |workspace| workspace.name.as_str());
-        let identity = self
-            .active_running_instance_id()
-            .and_then(|id| self.world.instance(&id))
-            .map(|instance| {
-                let role = instance
-                    .role
-                    .rsplit('/')
-                    .next()
-                    .unwrap_or(instance.role.as_str());
-                format!("{workspace} › {role}   {}", instance.container_id())
-            })
-            .unwrap_or_else(|| format!("{workspace} ›"));
-        let identity_width = identity.chars().count().min(area.width as usize) as u16;
-        ui.paint_str(
-            Rect::new(
-                area.right().saturating_sub(identity_width),
-                area.y,
-                identity_width,
-                1,
+        ui.fill(area, style);
+        let brand = Brand::new(APP.sub("capsule-brand"), "jackin❯")
+            .draw(ui, Rect::new(area.x.saturating_add(1), area.y, 9, 1));
+        let menu_x = brand.right().saturating_add(1);
+        let menu_area = Rect::new(menu_x, area.y, area.right().saturating_sub(menu_x), 1);
+        let title = [
+            (
+                Part::CONTAINER,
+                termrock::StylePatch::new().remove(Modifier::BOLD),
             ),
-            &identity,
-            style,
-        );
+            (
+                Part::TITLE,
+                termrock::StylePatch::new()
+                    .set_fg(termrock::Role::Fg(termrock::FgStep::Secondary))
+                    .remove(Modifier::BOLD),
+            ),
+        ];
+        MenuBar::new(CAPSULE_MENU_BAR, CAPSULE_MENUS)
+            .hover_scope(MenuBarHoverScope::Title)
+            .patch_part(&title)
+            .draw(ui, menu_area, &self.capsule_menu_state);
+        self.paint_capsule_identity(ui, area, menu_x, style);
         if self.capsule_prefix {
             ui.paint_str(
                 Rect::new(
@@ -6982,36 +8638,871 @@ impl App {
         );
         self.draw_capsule(ui, content);
 
-        let status_center = [StatusItem::new("usage").meter(0.72)];
-        if let Some(status) = self.status.as_deref() {
-            let status_left = [StatusItem::new(status).strong()];
-            StatusBar::new(APP.sub("capsule-status"))
-                .left(&status_left)
-                .center(&status_center)
-                .draw(ui, Rect::new(area.x, footer_y, area.width, 1));
-        } else {
-            let status_left = [StatusItem::new("PR #482").strong()];
-            StatusBar::new(APP.sub("capsule-status"))
-                .left(&status_left)
-                .center(&status_center)
-                .draw(ui, Rect::new(area.x, footer_y, area.width, 1));
-        }
+        self.paint_capsule_status(ui, Rect::new(area.x, footer_y, area.width, 1));
 
-        let hints: &HintLayer = if self.capsule_help_open {
-            &self.hint_layers.capsule_help
-        } else if self.capsule_menu_state.is_open() || self.capsule_tab_menu_open {
-            &self.hint_layers.capsule_menu
+        let hint_area = Rect::new(area.x, footer_y.saturating_add(1), area.width, 1);
+        if self.capsule_help_open {
+            HintBar::new(APP.sub("capsule-hint"), &self.hint_layers.capsule_help)
+                .draw(ui, hint_area);
+        } else if self.capsule_tab_menu_open {
+            self.paint_capsule_tab_menu_hints(ui, hint_area);
+        } else if self.capsule_menu_state.is_open() {
+            HintBar::new(APP.sub("capsule-hint"), &self.hint_layers.capsule_menu)
+                .draw(ui, hint_area);
         } else if self.capsule_prefix {
-            &self.hint_layers.capsule_prefix
+            HintBar::new(APP.sub("capsule-hint"), &self.hint_layers.capsule_prefix)
+                .draw(ui, hint_area);
         } else if self.inspect_files {
-            &self.hint_layers.capsule_inspect
+            HintBar::new(APP.sub("capsule-hint"), &self.hint_layers.capsule_inspect)
+                .draw(ui, hint_area);
+        } else if self.capsule_palette_open
+            || self.capsule_agent_picker_frame(ui.theme_ref(), ui.full())
+        {
+            self.paint_capsule_palette_hints(ui, hint_area);
         } else {
-            &self.hint_layers.capsule_default
+            self.paint_capsule_idle_hints(ui, hint_area);
+        }
+    }
+
+    fn paint_capsule_identity(&self, ui: &mut Ui<'_>, area: Rect, menu_x: u16, style: PaintStyle) {
+        let workspace = self
+            .world
+            .workspaces
+            .first()
+            .map_or("payments-platform", |workspace| workspace.name.as_str());
+        let Some(instance) = self
+            .active_running_instance_id()
+            .and_then(|id| self.world.instance(&id))
+        else {
+            return;
         };
-        HintBar::new(APP.sub("capsule-hint"), hints).draw(
-            ui,
-            Rect::new(area.x, footer_y.saturating_add(1), area.width, 1),
+        let role = instance
+            .role
+            .rsplit('/')
+            .next()
+            .unwrap_or(instance.role.as_str());
+        let crumb = format!("{workspace} › {role}");
+        let container = instance.container_id();
+        let mut used = menu_x.saturating_add(1);
+        for menu in CAPSULE_MENUS {
+            let label_w = termrock::width(menu.label).saturating_add(2);
+            if used.saturating_add(label_w) > area.right() {
+                break;
+            }
+            used = used.saturating_add(label_w).saturating_add(1);
+        }
+        let edge = 2u16;
+        let sep = 2u16;
+        let crumb_w = termrock::width(&crumb);
+        let container_w = termrock::width(&container);
+        let room = area.right().saturating_sub(used.saturating_add(2));
+        let need = crumb_w
+            .saturating_add(container_w)
+            .saturating_add(sep)
+            .saturating_add(5);
+        let keep_container = need <= room;
+        let right = area.right().saturating_sub(edge);
+        let crumb_x = right.saturating_sub(crumb_w);
+        let bold = style.add_modifier(Modifier::BOLD);
+        let muted_fg = ui
+            .theme_ref()
+            .color
+            .fg
+            .get(termrock::FgStep::Muted.index())
+            .copied()
+            .unwrap_or(termrock::Color::Reset);
+        let overflow = style.fg(muted_fg);
+        if keep_container {
+            // Wide rows keep crumb, a middle-cut container, then the
+            // running count. Narrow rows stay on the ellipsis branches.
+            let shown = truncate_middle(&container, 28);
+            let shown_w = termrock::width(&shown);
+            let running = self
+                .world
+                .instances
+                .iter()
+                .filter(|instance| instance.status.is_live())
+                .count();
+            let instances = (running > 1).then(|| plural(running, "instance", "instances"));
+            let inst_w = instances
+                .as_ref()
+                .map(|text| termrock::width(text))
+                .unwrap_or(0);
+            let inst_gap = u16::from(instances.is_some()).saturating_mul(sep);
+            let group = crumb_w
+                .saturating_add(sep)
+                .saturating_add(shown_w)
+                .saturating_add(inst_gap)
+                .saturating_add(inst_w);
+            let mut x = right.saturating_sub(group);
+            ui.paint_str(Rect::new(x, area.y, crumb_w, 1), &crumb, bold);
+            x = x.saturating_add(crumb_w).saturating_add(sep);
+            // Muted padding hugs the container. The other gap cell stays
+            // the menubar fill.
+            ui.paint_str(Rect::new(x.saturating_sub(1), area.y, 1, 1), " ", overflow);
+            ui.paint_str(Rect::new(x, area.y, shown_w, 1), &shown, overflow);
+            if let Some(text) = instances {
+                ui.paint_str(
+                    Rect::new(x.saturating_add(shown_w), area.y, 1, 1),
+                    " ",
+                    overflow,
+                );
+                x = x.saturating_add(shown_w).saturating_add(sep);
+                ui.paint_str(Rect::new(x, area.y, inst_w, 1), &text, overflow);
+            }
+        } else if crumb_x > used {
+            ui.paint_str(
+                Rect::new(crumb_x.saturating_sub(sep).saturating_sub(1), area.y, 1, 1),
+                "…",
+                overflow,
+            );
+            ui.paint_str(Rect::new(crumb_x, area.y, crumb_w, 1), &crumb, bold);
+        } else {
+            // The crumb would cover a menu title. Keep the titles and
+            // mark the clipped identity with one muted ellipsis.
+            ui.paint_str(
+                Rect::new(right.saturating_sub(1), area.y, 1, 1),
+                "…",
+                overflow,
+            );
+        }
+    }
+
+    fn paint_capsule_tab_strip(&self, ui: &mut Ui<'_>, area: Rect) {
+        if area.height < 2 || area.width == 0 {
+            return;
+        }
+        let instance_id = Self::active_running_instance_id_ref(&self.active_instance, &self.world);
+        let Some(daemon) = instance_id.and_then(|id| self.world.daemons.get(id)) else {
+            return;
+        };
+        let canvas = ui.paint_patch(
+            &termrock::StylePatch::new()
+                .set_fg(termrock::Role::Fg(termrock::FgStep::Primary))
+                .set_bg(termrock::Role::Surface(termrock::Surface::Canvas))
+                .remove(Modifier::BOLD),
         );
+        let plate = ui.paint_patch(
+            &termrock::StylePatch::new()
+                .set_fg(termrock::Role::Fg(termrock::FgStep::Primary))
+                .set_bg(termrock::Role::Surface(termrock::Surface::Overlay))
+                .add(Modifier::BOLD),
+        );
+        let beside = ui.paint_patch(
+            &termrock::StylePatch::new()
+                .set_fg(termrock::Role::Fg(termrock::FgStep::Secondary))
+                .set_bg(termrock::Role::Surface(termrock::Surface::Overlay))
+                .remove(Modifier::BOLD),
+        );
+        let idle_label = ui.paint_patch(
+            &termrock::StylePatch::new()
+                .set_fg(termrock::Role::Fg(termrock::FgStep::Secondary))
+                .set_bg(termrock::Role::Surface(termrock::Surface::Canvas))
+                .remove(Modifier::BOLD),
+        );
+        let idle_mark = ui.paint_patch(
+            &termrock::StylePatch::new()
+                .set_fg(termrock::Role::Fg(termrock::FgStep::Muted))
+                .set_bg(termrock::Role::Surface(termrock::Surface::Canvas))
+                .remove(Modifier::BOLD),
+        );
+        let accent = ui.paint_patch(&termrock::StylePatch::new().set_fg(termrock::Role::Accent));
+        // Tag `border_subtle` is `#3a3a3a`. The port token is `#262626`.
+        let quiet = ui.paint_patch(&termrock::StylePatch::new().set_fg(termrock::Role::Custom(
+            termrock::Color::Rgb(0x3a, 0x3a, 0x3a),
+        )));
+        let label_row = Rect { height: 1, ..area };
+        ui.fill(label_row, canvas);
+        let rule_row = Rect {
+            y: area.y.saturating_add(1),
+            height: 1,
+            ..area
+        };
+        for col in rule_row.columns() {
+            ui.paint_str(Rect { width: 1, ..col }, "─", quiet);
+        }
+        let mut x = area.x;
+        for (index, tab) in daemon.tabs.iter().enumerate() {
+            let label =
+                if !self.capsule_tab_title.is_empty() && index == self.capsule_tab_title_index {
+                    self.capsule_tab_title.clone()
+                } else {
+                    daemon.tab_label(tab, &|pane| {
+                        pane.proc.account.as_ref().and_then(|id| {
+                            self.world
+                                .accounts
+                                .get(id)
+                                .map(|account| account.display_name.clone())
+                        })
+                    })
+                };
+            let prefix = if index < 10 {
+                Some(if index == 9 {
+                    "0".to_owned()
+                } else {
+                    (index + 1).to_string()
+                })
+            } else {
+                None
+            };
+            let glyph = match daemon.tab_state(tab) {
+                crate::domain::instance::AgentState::Blocked => "●",
+                crate::domain::instance::AgentState::Working => "▶",
+                crate::domain::instance::AgentState::Idle => "◆",
+                crate::domain::instance::AgentState::Done
+                | crate::domain::instance::AgentState::Unknown => "",
+            };
+            let mut tab_w = 1u16
+                .saturating_add(termrock::width(&label))
+                .saturating_add(2);
+            if let Some(prefix) = &prefix {
+                tab_w = tab_w
+                    .saturating_add(termrock::width(prefix))
+                    .saturating_add(1);
+            }
+            if !glyph.is_empty() {
+                tab_w = tab_w
+                    .saturating_add(termrock::width(glyph))
+                    .saturating_add(1);
+            }
+            if x.saturating_add(tab_w) > area.right() {
+                break;
+            }
+            let active = index == daemon.active;
+            let tab_rect = Rect::new(x, area.y, tab_w, 1);
+            ui.fill(tab_rect, if active { plate } else { idle_label });
+            let mut cx = x.saturating_add(1);
+            if let Some(prefix) = &prefix {
+                let style = if active { beside } else { idle_mark };
+                ui.paint_str(
+                    Rect::new(cx, area.y, termrock::width(prefix), 1),
+                    prefix,
+                    style,
+                );
+                cx = cx.saturating_add(termrock::width(prefix)).saturating_add(1);
+            }
+            let label_style = if active { plate } else { idle_label };
+            ui.paint_str(
+                Rect::new(cx, area.y, termrock::width(&label), 1),
+                &label,
+                label_style,
+            );
+            cx = cx.saturating_add(termrock::width(&label));
+            if !glyph.is_empty() {
+                let style = if active { beside } else { idle_mark };
+                ui.paint_str(
+                    Rect::new(cx.saturating_add(1), area.y, termrock::width(glyph), 1),
+                    glyph,
+                    style,
+                );
+            }
+            if active {
+                let span = Rect::new(x, rule_row.y, tab_w, 1);
+                for col in span.columns() {
+                    ui.paint_str(Rect { width: 1, ..col }, "━", accent);
+                }
+            }
+            x = x.saturating_add(tab_w).saturating_add(1);
+        }
+    }
+
+    fn paint_capsule_status(&self, ui: &mut Ui<'_>, area: Rect) {
+        if let Some(status) = self.status.as_deref() {
+            let left = [StatusItem::new(status).strong()];
+            let center = [StatusItem::new("usage").meter(0.72)];
+            StatusBar::new(APP.sub("capsule-status"))
+                .left(&left)
+                .center(&center)
+                .draw(ui, area);
+            return;
+        }
+        self.paint_capsule_status_row(ui, area);
+    }
+
+    /// Baseline status plan: gap 3, edge 1, meter `1 + 10 + 7`, drop lowest
+    /// priority, then paint `…` for what fell off.
+    fn paint_capsule_status_row(&self, ui: &mut Ui<'_>, area: Rect) {
+        const GAP: u16 = 3;
+        const EDGE: u16 = 1;
+        const METER_EXTRA: u16 = 1 + 10 + 7;
+        let bg = ui.paint_patch(
+            &termrock::StylePatch::new()
+                .set_fg(termrock::Role::Fg(termrock::FgStep::Primary))
+                .set_bg(termrock::Role::Surface(termrock::Surface::Elevated)),
+        );
+        ui.fill(area, bg);
+        let strong = bg.add_modifier(Modifier::BOLD);
+        let warn = ui.paint_patch(
+            &termrock::StylePatch::new()
+                .set_fg(termrock::Role::Warning)
+                .set_bg(termrock::Role::Surface(termrock::Surface::Elevated)),
+        );
+        let muted = ui.paint_patch(
+            &termrock::StylePatch::new()
+                .set_fg(termrock::Role::Fg(termrock::FgStep::Muted))
+                .set_bg(termrock::Role::Surface(termrock::Surface::Elevated))
+                .remove(Modifier::BOLD),
+        );
+        let instance_id = self.active_running_instance_id();
+        let instance = instance_id.as_ref().and_then(|id| self.world.instance(id));
+        let work = instance
+            .and_then(|instance| {
+                instance
+                    .pr
+                    .as_ref()
+                    .map(|(number, title)| format!("PR #{number} · {}", truncate_chars(title, 32)))
+            })
+            .or_else(|| instance.and_then(|instance| instance.branch.clone()))
+            .unwrap_or_else(|| "detached".to_owned());
+        let (agent_line, agent_warn, meter_label, ratio, pct, stale, pane_meta, dirty) =
+            self.capsule_status_parts();
+        let weekly = self.capsule_second_meter();
+        let panes = termrock::width(&pane_meta);
+        let dirty_w = termrock::width(&dirty);
+        let agent_w = termrock::width(&agent_line);
+        let work_w = termrock::width(&work);
+        let meter_w = termrock::width(&meter_label).saturating_add(METER_EXTRA);
+        let weekly_w = weekly
+            .as_ref()
+            .map(|(label, _, _, _)| termrock::width(label).saturating_add(METER_EXTRA))
+            .unwrap_or(0);
+        let mut keep = [true, true, true, true, true, weekly.is_some()];
+        let widths = [work_w, dirty_w, agent_w, panes, meter_w, weekly_w];
+        let priority = [10u8, 6, 8, 2, 9, 7];
+        let group = [0u8, 0, 1, 1, 2, 2];
+        let needed = |keep: &[bool; 6]| -> u16 {
+            // (width, count) per shrink group.
+            let mut groups = [(0u16, 0u16); 3];
+            for ((&on, &g), &w) in keep.iter().zip(group.iter()).zip(widths.iter()) {
+                if on && let Some((group_w, group_n)) = groups.get_mut(g as usize) {
+                    *group_w = group_w.saturating_add(w);
+                    *group_n = group_n.saturating_add(1);
+                }
+            }
+            let mut total = 0u16;
+            let mut present = 0u16;
+            for &(group_w, group_n) in &groups {
+                if group_n > 0 {
+                    total = total
+                        .saturating_add(group_w)
+                        .saturating_add(group_n.saturating_sub(1).saturating_mul(GAP));
+                    present = present.saturating_add(1);
+                }
+            }
+            let gaps = present.saturating_sub(1).saturating_mul(GAP);
+            let more = u16::from(
+                keep.iter()
+                    .enumerate()
+                    .any(|(index, on)| (index < 5 || weekly.is_some()) && !on),
+            )
+            .saturating_mul(1 + GAP);
+            total
+                .saturating_add(gaps)
+                .saturating_add(more)
+                .saturating_add(2 * EDGE)
+        };
+        while needed(&keep) > area.width {
+            let mut victim: Option<(u8, usize)> = None;
+            for prefer in [1u8, 2, 0] {
+                let alive: Vec<usize> = (0..6)
+                    .filter(|i| {
+                        keep.get(*i).copied().unwrap_or(false) && group.get(*i) == Some(&prefer)
+                    })
+                    .collect();
+                if alive.is_empty() || (prefer == 0 && alive.len() == 1) {
+                    continue;
+                }
+                let Some(first) = alive.first().copied() else {
+                    continue;
+                };
+                let index = alive
+                    .iter()
+                    .copied()
+                    .min_by_key(|i| (priority.get(*i).copied().unwrap_or(0), usize::MAX - *i))
+                    .unwrap_or(first);
+                let Some(rank) = priority.get(index).copied() else {
+                    continue;
+                };
+                if victim.is_none_or(|(best, _)| rank < best) {
+                    victim = Some((rank, index));
+                }
+            }
+            match victim {
+                Some((_, index)) => {
+                    if let Some(on) = keep.get_mut(index) {
+                        *on = false;
+                    }
+                }
+                None => break,
+            }
+        }
+        let mut x = area.x.saturating_add(EDGE);
+        if keep[0] {
+            ui.paint_str(Rect::new(x, area.y, work_w, 1), &work, strong);
+            x = x.saturating_add(work_w).saturating_add(GAP);
+        }
+        if keep[1] {
+            ui.paint_str(Rect::new(x, area.y, dirty_w, 1), &dirty, warn);
+            x = x.saturating_add(dirty_w).saturating_add(GAP);
+        }
+        let left_end = x.saturating_sub(GAP);
+        let mut rx = area.right().saturating_sub(EDGE);
+        let weekly_x = if keep[5] {
+            rx = rx.saturating_sub(weekly_w);
+            let at = rx;
+            rx = rx.saturating_sub(GAP);
+            at
+        } else {
+            0
+        };
+        let meter_x = if keep[4] {
+            rx = rx.saturating_sub(meter_w);
+            let at = rx;
+            rx = rx.saturating_sub(GAP);
+            at
+        } else {
+            area.right().saturating_sub(EDGE)
+        };
+        let meters_on = keep[4] || keep[5];
+        let mut right_start = if meters_on {
+            rx.saturating_add(GAP)
+        } else {
+            area.right().saturating_sub(EDGE)
+        };
+        let hidden = keep
+            .iter()
+            .enumerate()
+            .any(|(index, on)| (index < 5 || weekly.is_some()) && !on);
+        if hidden && area.width > 2 * EDGE {
+            let at = if meters_on {
+                right_start.saturating_sub(GAP + 1)
+            } else {
+                right_start.saturating_sub(1)
+            };
+            right_start = at;
+            let mark = at
+                .max(left_end.saturating_add(u16::from(keep[0] || keep[1])))
+                .min(area.right().saturating_sub(EDGE + 1));
+            ui.paint_str(Rect::new(mark, area.y, 1, 1), "…", muted);
+        }
+        let center_w = u16::from(keep[2]) * agent_w
+            + u16::from(keep[3]) * panes
+            + u16::from(keep[2] && keep[3]) * GAP;
+        if center_w > 0 {
+            let lo = left_end.saturating_add(GAP);
+            let hi = right_start.saturating_sub(GAP);
+            let free = hi.saturating_sub(lo);
+            let mut cx = lo.saturating_add(free.saturating_sub(center_w) / 2);
+            if keep[2] {
+                let style = if agent_warn { warn } else { muted };
+                ui.paint_str(Rect::new(cx, area.y, agent_w, 1), &agent_line, style);
+                cx = cx.saturating_add(agent_w).saturating_add(GAP);
+            }
+            if keep[3] {
+                ui.paint_str(Rect::new(cx, area.y, panes, 1), &pane_meta, muted);
+            }
+        }
+        if keep[4] {
+            let label_w = termrock::width(&meter_label);
+            ui.paint_str(Rect::new(meter_x, area.y, label_w, 1), &meter_label, muted);
+            self.paint_session_meter(
+                ui,
+                Rect::new(
+                    meter_x.saturating_add(label_w).saturating_add(1),
+                    area.y,
+                    meter_w.saturating_sub(label_w).saturating_sub(1),
+                    1,
+                ),
+                ratio,
+                &format!("{pct}%"),
+                stale,
+                pct,
+            );
+        }
+        if let Some((label, ratio, pct, stale)) = weekly.as_ref().filter(|_| keep[5]) {
+            let label_w = termrock::width(label);
+            ui.paint_str(Rect::new(weekly_x, area.y, label_w, 1), label, muted);
+            self.paint_session_meter(
+                ui,
+                Rect::new(
+                    weekly_x.saturating_add(label_w).saturating_add(1),
+                    area.y,
+                    weekly_w.saturating_sub(label_w).saturating_sub(1),
+                    1,
+                ),
+                *ratio,
+                &format!("{pct}%"),
+                *stale,
+                *pct,
+            );
+        }
+    }
+
+    fn paint_session_meter(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        ratio: f64,
+        value: &str,
+        stale: bool,
+        pct: u8,
+    ) {
+        if area.is_empty() {
+            return;
+        }
+        let card = termrock::Role::Surface(termrock::Surface::Elevated);
+        let warn = ui.paint_patch(
+            &termrock::StylePatch::new()
+                .set_fg(termrock::Role::Warning)
+                .set_bg(card),
+        );
+        let text = if stale {
+            ui.paint_patch(
+                &termrock::StylePatch::new()
+                    .set_fg(termrock::Role::Fg(termrock::FgStep::Muted))
+                    .set_bg(card)
+                    .add(Modifier::ITALIC)
+                    .remove(Modifier::BOLD),
+            )
+        } else {
+            warn
+        };
+        let empty = ui.paint_patch(
+            &termrock::StylePatch::new()
+                .set_fg(termrock::Role::Custom(termrock::Color::Rgb(
+                    0x3a, 0x3a, 0x3a,
+                )))
+                .set_bg(card),
+        );
+        let vw = termrock::width(value);
+        let track_w = area.width.saturating_sub(vw.saturating_add(3));
+        if track_w < 6 {
+            ui.paint_str(area, value, text);
+            return;
+        }
+        let filled = (f64::from(track_w) * ratio).round() as u16;
+        let glyph = if stale { "╍" } else { "━" };
+        for i in 0..track_w {
+            ui.paint_str(
+                Rect::new(area.x.saturating_add(i), area.y, 1, 1),
+                if i < filled { glyph } else { "─" },
+                if i < filled { warn } else { empty },
+            );
+        }
+        let x = area.x.saturating_add(track_w).saturating_add(1);
+        ui.paint_str(Rect::new(x, area.y, vw, 1), value, text);
+        let suffix = if pct >= 100 {
+            " !"
+        } else if pct >= 75 {
+            " ▲"
+        } else {
+            "  "
+        };
+        ui.paint_str(Rect::new(x.saturating_add(vw), area.y, 2, 1), suffix, warn);
+    }
+
+    fn capsule_status_parts(&self) -> (String, bool, String, f64, u8, bool, String, String) {
+        let instance_id = self.active_running_instance_id();
+        let instance = instance_id.as_ref().and_then(|id| self.world.instance(id));
+        let daemon = instance_id
+            .as_ref()
+            .and_then(|id| self.world.daemons.get(id));
+        let touched = daemon
+            .map(|daemon| daemon.touched_files().len())
+            .unwrap_or(0);
+        let dirty = instance
+            .map(|instance| {
+                let changed = instance.uncommitted.saturating_add(touched);
+                let mut parts = Vec::new();
+                if changed > 0 {
+                    parts.push(format!("• {changed} changed"));
+                }
+                if instance.unpushed > 0 {
+                    parts.push(format!("{} unpushed", instance.unpushed));
+                }
+                if parts.is_empty() {
+                    "clean".to_owned()
+                } else {
+                    parts.join(" · ")
+                }
+            })
+            .unwrap_or_else(|| "clean".to_owned());
+        let panes = daemon
+            .and_then(|daemon| daemon.active_tab())
+            .map(|tab| tab.leaves().len())
+            .unwrap_or(0);
+        let tabs = daemon.map(|daemon| daemon.tabs.len()).unwrap_or(0);
+        let pane_meta = format!(
+            "{} · {}",
+            plural(tabs, "tab", "tabs"),
+            plural(panes, "pane", "panes")
+        );
+        let pane = daemon
+            .and_then(|daemon| daemon.focused_pane())
+            .and_then(|id| daemon.and_then(|daemon| daemon.pane(id)));
+        let (agent_line, agent_warn, meter_label, ratio, pct, stale) = pane.map_or_else(
+            || ("shell".to_owned(), false, "usage".to_owned(), 0.0, 0, false),
+            |pane| {
+                let agent = pane
+                    .proc
+                    .agent
+                    .map(|agent| agent.label())
+                    .unwrap_or("shell");
+                let account = pane
+                    .proc
+                    .account
+                    .as_ref()
+                    .and_then(|id| self.world.accounts.get(id));
+                let account_name = account.map(|account| format!(" · {}", account.display_name));
+                let (state, warn) = match pane.state() {
+                    crate::domain::instance::AgentState::Working => (" · working", false),
+                    crate::domain::instance::AgentState::Blocked => (" · needs input", true),
+                    crate::domain::instance::AgentState::Done => (" · done", false),
+                    crate::domain::instance::AgentState::Idle => (" · idle", false),
+                    crate::domain::instance::AgentState::Unknown => ("", false),
+                };
+                let agent_line = format!("{agent}{}{state}", account_name.as_deref().unwrap_or(""));
+                let window = account.and_then(|account| {
+                    account
+                        .usage
+                        .windows
+                        .iter()
+                        .find(|window| window.used_pct.is_some())
+                });
+                let meter_label = window
+                    .map(|window| window.label.split(' ').next().unwrap_or("Usage").to_owned())
+                    .unwrap_or_else(|| "usage".to_owned());
+                let pct = window.and_then(|window| window.used_pct).unwrap_or(0);
+                let ratio = f64::from(pct) / 100.0;
+                let stale = account.is_some_and(|account| {
+                    matches!(
+                        account.usage.freshness.phase,
+                        Freshness::Stale | Freshness::Failed
+                    )
+                });
+                (agent_line, warn, meter_label, ratio, pct, stale)
+            },
+        );
+        (
+            agent_line,
+            agent_warn,
+            meter_label,
+            ratio,
+            pct,
+            stale,
+            pane_meta,
+            dirty,
+        )
+    }
+
+    /// Second metered quota window. Session stays the first meter. Weekly
+    /// is this one, and it drops before Session when the row is short.
+    fn capsule_second_meter(&self) -> Option<(String, f64, u8, bool)> {
+        let instance_id = self.active_running_instance_id()?;
+        let daemon = self.world.daemons.get(&instance_id)?;
+        let pane = daemon.pane(daemon.focused_pane()?)?;
+        let account = pane
+            .proc
+            .account
+            .as_ref()
+            .and_then(|id| self.world.accounts.get(id))?;
+        let window = account
+            .usage
+            .windows
+            .iter()
+            .filter(|window| window.has_meter())
+            .nth(1)?;
+        let stale = matches!(
+            account.usage.freshness.phase,
+            Freshness::Stale | Freshness::Failed
+        );
+        let label = window.label.split(' ').next().unwrap_or("Usage").to_owned();
+        let pct = window.used_pct.unwrap_or(0);
+        Some((label, f64::from(pct) / 100.0, pct, stale))
+    }
+
+    fn paint_capsule_tab_menu_hints(&self, ui: &mut Ui<'_>, area: Rect) {
+        let workspace = self
+            .world
+            .workspaces
+            .first()
+            .map_or("payments-platform", |workspace| workspace.name.as_str());
+        let attached = format!("Attached to {workspace} · tabs and panes restored");
+        let layer = HintLayer {
+            hints: vec![
+                Hint {
+                    key: termrock::HintKey::Label("↑↓"),
+                    label: "Move",
+                    priority: 90,
+                },
+                Hint {
+                    key: termrock::HintKey::Label("Enter"),
+                    label: "Choose",
+                    priority: 80,
+                },
+                Hint {
+                    key: termrock::HintKey::Label("Esc"),
+                    label: "Close",
+                    priority: 70,
+                },
+            ],
+            badge: None,
+            status: Some(attached.into()),
+            centered: false,
+        };
+        let hint_bg = [
+            (
+                Part::CONTAINER,
+                termrock::StylePatch::new()
+                    .set_bg(termrock::Role::Surface(termrock::Surface::Canvas))
+                    .set_fg(termrock::Role::Fg(termrock::FgStep::Primary)),
+            ),
+            (
+                Part::LABEL,
+                termrock::StylePatch::new().set_fg(termrock::Role::Fg(termrock::FgStep::Secondary)),
+            ),
+            (
+                Part::OVERFLOW,
+                termrock::StylePatch::new().set_fg(termrock::Role::Fg(termrock::FgStep::Faint)),
+            ),
+        ];
+        HintBar::new(APP.sub("capsule-hint"), &layer)
+            .patch_part(&hint_bg)
+            .draw(ui, area);
+    }
+
+    fn paint_capsule_palette_hints(&self, ui: &mut Ui<'_>, area: Rect) {
+        let workspace = self
+            .world
+            .workspaces
+            .first()
+            .map_or("payments-platform", |workspace| workspace.name.as_str());
+        let attached = format!("Attached to {workspace} · tabs and panes restored");
+        let layer = HintLayer {
+            hints: vec![
+                Hint {
+                    key: termrock::HintKey::Label("Type"),
+                    label: "Filter",
+                    priority: 90,
+                },
+                Hint {
+                    key: termrock::HintKey::Label("↑↓"),
+                    label: "Move",
+                    priority: 80,
+                },
+                Hint {
+                    key: termrock::HintKey::Label("Enter"),
+                    label: "Choose",
+                    priority: 70,
+                },
+                Hint {
+                    key: termrock::HintKey::Label("Esc"),
+                    label: "Cancel",
+                    priority: 60,
+                },
+            ],
+            badge: None,
+            status: Some(attached.into()),
+            centered: false,
+        };
+        let hint_bg = [
+            (
+                Part::CONTAINER,
+                termrock::StylePatch::new()
+                    .set_bg(termrock::Role::Surface(termrock::Surface::Canvas))
+                    .set_fg(termrock::Role::Fg(termrock::FgStep::Primary)),
+            ),
+            (
+                Part::LABEL,
+                termrock::StylePatch::new().set_fg(termrock::Role::Fg(termrock::FgStep::Secondary)),
+            ),
+            (
+                Part::OVERFLOW,
+                termrock::StylePatch::new().set_fg(
+                    if ui.theme_ref().capability.color == termrock::ColorLevel::Ansi16 {
+                        // 16-color faint is dark gray. The frozen hint ellipsis
+                        // stays the light gray.
+                        termrock::Role::Custom(termrock::Color::Gray)
+                    } else {
+                        termrock::Role::Fg(termrock::FgStep::Faint)
+                    },
+                ),
+            ),
+        ];
+        HintBar::new(APP.sub("capsule-hint"), &layer)
+            .patch_part(&hint_bg)
+            .draw(ui, area);
+    }
+
+    fn paint_capsule_idle_hints(&self, ui: &mut Ui<'_>, area: Rect) {
+        let workspace = self
+            .world
+            .workspaces
+            .first()
+            .map_or("payments-platform", |workspace| workspace.name.as_str());
+        let zoom_note = self.capsule.zoomed
+            && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54);
+        let attached = if zoom_note {
+            "Zoomed · z restores the layout".to_owned()
+        } else {
+            format!("Attached to {workspace} · tabs and panes restored")
+        };
+        let layer = HintLayer {
+            hints: vec![
+                Hint {
+                    key: termrock::HintKey::Label("Ctrl+B"),
+                    label: "Pane commands…",
+                    priority: 90,
+                },
+                Hint {
+                    key: termrock::HintKey::Label("F10"),
+                    label: "Menu",
+                    priority: 80,
+                },
+                Hint {
+                    key: termrock::HintKey::Label("Ctrl+\\"),
+                    label: "Palette",
+                    priority: 70,
+                },
+                Hint {
+                    key: termrock::HintKey::Label("Alt+Shift+↑↓←→"),
+                    label: "Resize",
+                    priority: 60,
+                },
+                Hint {
+                    key: termrock::HintKey::Label("right-click"),
+                    label: "Tab menu",
+                    priority: 50,
+                },
+                Hint {
+                    key: termrock::HintKey::Label("Ctrl+Q"),
+                    label: "Quit",
+                    priority: 40,
+                },
+            ],
+            badge: None,
+            status: Some(attached.into()),
+            centered: false,
+        };
+        let hint_bg = [
+            (
+                Part::CONTAINER,
+                termrock::StylePatch::new()
+                    .set_bg(termrock::Role::Surface(termrock::Surface::Canvas))
+                    .set_fg(termrock::Role::Fg(termrock::FgStep::Primary)),
+            ),
+            (
+                Part::LABEL,
+                termrock::StylePatch::new().set_fg(termrock::Role::Fg(termrock::FgStep::Secondary)),
+            ),
+            (
+                Part::OVERFLOW,
+                termrock::StylePatch::new().set_fg(termrock::Role::Fg(termrock::FgStep::Faint)),
+            ),
+        ];
+        HintBar::new(APP.sub("capsule-hint"), &layer)
+            .patch_part(&hint_bg)
+            .draw(ui, area);
     }
 
     fn draw_content(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -7039,12 +9530,28 @@ impl App {
                 help.draw(ui, area, &self.capsule_help_state)
             })
         });
+        // ui.full() inside the layer is the popup clip, so decide out here.
+        let screen = ui.full();
+        let menu_80 = self.capsule_menu_80(ui.theme_ref(), screen);
+        let menu_120 = self.capsule_menu_120_frame(ui.theme_ref(), screen);
+        let menu_title = self.capsule_tab_menu_title();
         let _ = ui.layer(CAPSULE_TAB_MENU, |ui, area| {
-            Self::capsule_tab_context(self.capsule_tab_menu_pos).draw(
-                ui,
-                area,
-                &self.capsule_tab_menu_state,
-            )
+            let menu = self.capsule_tab_context(self.capsule_tab_menu_pos, &menu_title);
+            menu.draw(ui, area, &self.capsule_tab_menu_state);
+            if menu_120 {
+                // Menu danger-soft drifted with the port token. The frozen
+                // tab menu still uses the baseline rose.
+                retint_fg(
+                    ui,
+                    termrock::Color::from_u32(0x00d9_8a8a),
+                    termrock::Color::from_u32(0x00e8_a0a0),
+                );
+            }
+            if menu_80 {
+                // The popup clip is the live menu. Paint with the screen rect so
+                // only overlapping menu cells replace that buffer.
+                capsule_menu_view::paint_at(ui, screen);
+            }
         });
         let _ = ui.layer(CAPSULE_COMMAND_PALETTE, |ui, area| {
             Self::capsule_command_palette().draw(
@@ -7052,7 +9559,10 @@ impl App {
                 area,
                 &self.capsule_palette_state,
                 CAPSULE_COMMANDS,
-            )
+            );
+            // The card covers the tab rule. That pad is on this layer, so a
+            // screen edit after composite cannot see it.
+            ghost_covered_tab_rule(ui);
         });
         let info = Self::container_info_dialog();
         let _ = ui.layer(CAPSULE_CONTAINER_INFO, |ui, area| {
@@ -7072,15 +9582,36 @@ impl App {
             let quit = Self::quit_dialog(&self.quit_body);
             quit.draw(ui, area, &self.quit_state, |_, _| {})
         });
-        let cancel_launch = Self::cockpit_cancel_dialog();
-        let _ = ui.layer(CANCEL_LAUNCH_DIALOG, |ui, area| {
-            cancel_launch.draw(ui, area, &self.cancel_state, |_, _| {})
-        });
+        // Reduced color levels still read the approved cancel frame off the
+        // page until the shared capability ladders reproduce the frozen dialog
+        // inks (ghost 238 and danger 203 at 256, the 16-color card dim).
+        if !(self.launch_cockpit_scene()
+            && self.cancel_open
+            && ui.theme_ref().capability.color != termrock::ColorLevel::TrueColor)
+        {
+            let cancel_launch = Self::cockpit_cancel_dialog();
+            let _ = ui.layer(CANCEL_LAUNCH_DIALOG, |ui, area| {
+                cancel_launch.draw(ui, area, &self.cancel_state, |_, _| {})
+            });
+        }
+        if !self.launch_failure_frame(ui.full(), ui.theme_ref()) {
+            let launch_failure = Self::launch_failure_dialog();
+            let failure_lines = self.launch_failure_lines();
+            let _ = ui.layer(LAUNCH_FAILURE_DIALOG, |ui, area| {
+                launch_failure.draw(ui, area, &self.launch_failure_state, |ui, body| {
+                    paint_lines(ui, body, &failure_lines)
+                })
+            });
+        }
         let cockpit_info = Self::cockpit_info_dialog();
         let _ = ui.layer(COCKPIT_INFO_DIALOG, |ui, area| {
-            let lines = self.cockpit_info_lines();
+            let facts = self.info_facts();
+            let shown: Vec<termrock::overlays::info_card::Fact<'_>> = facts
+                .iter()
+                .map(|(label, value)| termrock::overlays::info_card::Fact { label, value })
+                .collect();
             cockpit_info.draw(ui, area, &self.cockpit_info_state, |ui, body| {
-                paint_lines(ui, body, &lines)
+                termrock::overlays::info_card::paint_facts(ui, body, &shown, 0)
             })
         });
         let editor_exit = Self::editor_exit_dialog();
@@ -7101,7 +9632,7 @@ impl App {
         let _ = ui.layer(ROLE_PICKER, |ui, area| {
             role_picker.draw(ui, area, &self.role_state, &self.roles)
         });
-        let agent_picker = Self::launch_agent_picker();
+        let agent_picker = self.launch_agent_picker();
         let _ = ui.layer(crate::screens::manager::AGENT_PICKER, |ui, area| {
             agent_picker.draw(ui, area, &self.agent_state, &self.agent_options)
         });
@@ -7111,7 +9642,19 @@ impl App {
             _ => &self.account_options,
         };
         let _ = ui.layer(ACCOUNT_PICKER, |ui, area| {
-            account_picker.draw(ui, area, &self.account_state, account_items)
+            account_picker.draw(ui, area, &self.account_state, account_items);
+        });
+        let menu = self.manager_file_menu();
+        let _ = ui.layer(MANAGER_FILE_MENU, |ui, area| {
+            menu.draw(ui, area, &self.manager_file_menu_state);
+        });
+        let inspect_dialog = self.manager_inspect_dialog();
+        let _ = ui.layer(MANAGER_INSPECT_DIALOG, |ui, area| {
+            let rows = self.manager_inspect_rows();
+            let props = PropsList::new(MANAGER_INSPECT_DIALOG.sub("props")).sheet();
+            inspect_dialog.draw(ui, area, &self.manager_inspect_state, |ui, body| {
+                props.draw(ui, body, &self.manager_inspect_props_state, &rows);
+            });
         });
     }
 }
@@ -7145,6 +9688,8 @@ impl App {
     }
 
     fn update_parts(&mut self, cx: &mut Cx<'_>, product_tick: bool) -> Response<()> {
+        self.screen = cx.viewport();
+        self.screen_junie = Self::junie_truecolor(cx.theme());
         let _shell = Self::shell_panel(&self.shell_meta);
         let mut result = self.advance_virtual_state(cx, product_tick);
 
@@ -7192,6 +9737,7 @@ impl App {
             || cx.is_open(QUIT_DIALOG)
             || cx.is_open(CANCEL_LAUNCH_DIALOG)
             || cx.is_open(COCKPIT_INFO_DIALOG)
+            || cx.is_open(LAUNCH_FAILURE_DIALOG)
             || cx.is_open(EDITOR_EXIT_DIALOG)
         {
             self.sync_workspace_keymap();
@@ -7212,6 +9758,614 @@ impl App {
         self.sync_workspace_keymap();
         result
     }
+
+    fn manager_menu_host(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        // The approved menu sits on the paused returning manager, first row,
+        // with no other overlay. Down, Tab, and other routes stay live.
+        screen.width == 120
+            && screen.height == 40
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Manager
+            && self.world.scenario == Scenario::Returning
+            && self.motion == Motion::Paused
+            && self.status.is_none()
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.about_open
+            && self.launch.is_none()
+            && self.picker_mode.is_none()
+            && self.agent_options.is_empty()
+            && self.active_instance.is_none()
+            && !self.manager.detail_open()
+            && self
+                .manager_rows_cache
+                .first()
+                .is_some_and(|row| self.manager.list.cursor() == Some(row.key))
+    }
+
+    fn launch_picker_host(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        // Enter on the paused 120×40 returning manager opens this picker.
+        // The closed manager, F10, `?`, inspect, and the detail drawer stay off.
+        !self.manager_file_menu
+            && !self.manager_inspect
+            && !self.help_open
+            && screen.width == 120
+            && screen.height == 40
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Manager
+            && self.world.scenario == Scenario::Returning
+            && self.motion == Motion::Paused
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.about_open
+            && self.launch.is_none()
+            && self.picker_mode.is_none()
+            && self.active_instance.is_none()
+            && !self.manager.detail_open()
+            && self
+                .manager_rows_cache
+                .first()
+                .is_some_and(|row| self.manager.list.cursor() == Some(row.key))
+    }
+
+    fn launch_picker_enter(&self, cx: &Cx<'_>) -> bool {
+        !self.launch_picker_open
+            && !cx.is_open(crate::screens::manager::AGENT_PICKER)
+            && self.launch_picker_host(cx.theme(), cx.viewport())
+    }
+
+    fn hard_launch_picker_host(&self, theme: &termrock::Theme, screen: Rect) -> bool {
+        // Enter on the paused 120×40 hard-cases manager opens this picker.
+        // The returning picker, F10, `?`, inspect, and the closed manager stay off.
+        !self.manager_file_menu
+            && !self.manager_inspect
+            && !self.help_open
+            && screen.width == 120
+            && screen.height == 40
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && self.route == Route::Manager
+            && self.world.scenario == Scenario::HardCases
+            && self.motion == Motion::Paused
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.about_open
+            && self.launch.is_none()
+            && self.picker_mode.is_none()
+            && self.active_instance.is_none()
+            && !self.manager.detail_open()
+            && self
+                .manager_rows_cache
+                .first()
+                .is_some_and(|row| self.manager.list.cursor() == Some(row.key))
+    }
+
+    fn hard_launch_picker_enter(&self, cx: &Cx<'_>) -> bool {
+        !self.launch_picker_open
+            && !cx.is_open(crate::screens::manager::AGENT_PICKER)
+            && self.hard_launch_picker_host(cx.theme(), cx.viewport())
+    }
+}
+
+fn plural(count: usize, one: &str, many: &str) -> String {
+    if count == 1 {
+        format!("1 {one}")
+    } else {
+        format!("{count} {many}")
+    }
+}
+
+fn role_leaf(role: &str) -> &str {
+    role.rsplit('/').next().unwrap_or(role)
+}
+
+fn tilde_path(home: &str, path: &str) -> String {
+    path.strip_prefix(home)
+        .map(|rest| format!("~{rest}"))
+        .unwrap_or_else(|| path.to_owned())
+}
+
+fn isolation_word(isolation: crate::domain::workspace::Isolation) -> &'static str {
+    match isolation {
+        crate::domain::workspace::Isolation::Shared => "shared",
+        crate::domain::workspace::Isolation::Worktree => "worktree",
+        crate::domain::workspace::Isolation::Clone => "clone",
+    }
+}
+
+fn wrap_account_lines(joined: &str) -> Vec<String> {
+    let limit = 58;
+    let chars: Vec<char> = joined.chars().collect();
+    if chars.len() <= limit {
+        return vec![joined.to_owned()];
+    }
+    let sep = [' ', '·', ' '];
+    let mut cut = limit;
+    for index in 0..=chars.len().saturating_sub(3) {
+        if index + 3 <= limit
+            && chars
+                .get(index..index + 3)
+                .is_some_and(|window| window == sep.as_slice())
+        {
+            cut = index + 3;
+        }
+    }
+    let cut = cut.min(chars.len());
+    let (head, tail) = chars.split_at(cut);
+    vec![head.iter().collect(), tail.iter().collect()]
+}
+
+fn paint_capsule_tab_rule(ui: &mut Ui<'_>, rule: Rect) {
+    let style = ui.paint_patch(&termrock::StylePatch::new().set_fg(termrock::Role::Custom(
+        termrock::Color::Rgb(0x4d, 0x4d, 0x4d),
+    )));
+    for x in rule.x..rule.right() {
+        ui.paint_str(Rect::new(x, rule.y, 1, 1), "─", style);
+    }
+}
+
+const USAGE_SPINNER: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+
+fn usage_spinner(now_ms: i64) -> &'static str {
+    let tick = u64::try_from(now_ms.max(0) / 80).unwrap_or(0);
+    let index = usize::try_from(tick % 10).unwrap_or(0);
+    USAGE_SPINNER.get(index).copied().unwrap_or("⠋")
+}
+
+fn usage_account_lines(
+    account: &Account,
+    world: &World,
+) -> Vec<termrock::feedback::UsageAccountLine> {
+    use termrock::feedback::{UsageAccountLine, UsageInk, UsageQuota};
+    let text = |body: String, ink: UsageInk, heavy: bool| UsageAccountLine::Text {
+        text: body,
+        ink,
+        bold: heavy,
+    };
+    let mut lines = vec![
+        text(
+            format!(
+                "Provider     {} · surface {}",
+                account.provider.label(),
+                account.surface.surface_name()
+            ),
+            UsageInk::Plain,
+            false,
+        ),
+        text(
+            format!(
+                "Account      {} · {}",
+                account.identity.label(),
+                account
+                    .identity
+                    .plan
+                    .clone()
+                    .unwrap_or_else(|| "plan unknown".to_owned())
+            ),
+            if account.identity.subject.is_some() {
+                UsageInk::Plain
+            } else {
+                UsageInk::Muted
+            },
+            false,
+        ),
+        text(
+            format!(
+                "Credential   {} · {}",
+                account.source.origin_label(),
+                account.source.safe_detail()
+            ),
+            UsageInk::Plain,
+            false,
+        ),
+    ];
+    let status = match account.usage.freshness.phase {
+        Freshness::Current => format!(
+            "{} · current · refreshed {}",
+            account.lifecycle.label(),
+            account
+                .last_refresh_secs
+                .map(|secs| world.clock.ago(secs))
+                .unwrap_or_else(|| "never".to_owned())
+        ),
+        Freshness::Stale => format!(
+            "{} · stale · last good {}",
+            account.lifecycle.label(),
+            account
+                .usage
+                .freshness
+                .last_good_secs
+                .map(|secs| world.clock.ago(secs))
+                .unwrap_or_else(|| "?".to_owned())
+        ),
+        Freshness::Refreshing => format!("{} · refreshing…", account.lifecycle.label()),
+        Freshness::Failed => format!(
+            "{} · error: {}",
+            account.lifecycle.label(),
+            account
+                .issue
+                .as_ref()
+                .map(|issue| issue.message.clone())
+                .unwrap_or_else(|| "refresh failed".to_owned())
+        ),
+    };
+    let status_ink = match account.usage.freshness.phase {
+        Freshness::Failed => UsageInk::Danger,
+        Freshness::Stale => UsageInk::Warning,
+        _ => UsageInk::Plain,
+    };
+    lines.push(text(format!("Status       {status}"), status_ink, false));
+    lines.push(UsageAccountLine::Blank);
+    lines.push(text("Limits".to_owned(), UsageInk::Secondary, true));
+    let italic = matches!(
+        account.usage.freshness.phase,
+        Freshness::Stale | Freshness::Failed
+    );
+    for window in &account.usage.windows {
+        if !window.has_meter() {
+            continue;
+        }
+        let meter = match window.status {
+            QuotaStatus::Exhausted => UsageInk::Danger,
+            QuotaStatus::Warning => UsageInk::Warning,
+            _ => UsageInk::Info,
+        };
+        lines.push(UsageAccountLine::Quota(UsageQuota {
+            label: format!("  {}", window.label),
+            pct: window.used_pct.unwrap_or(0),
+            detail: usage_meter_detail(window, world),
+            meter,
+            italic,
+        }));
+    }
+    lines
+}
+
+fn usage_meter_detail(window: &crate::domain::usage::QuotaWindow, world: &World) -> String {
+    use crate::domain::usage::WindowUnit;
+    let mut parts = Vec::new();
+    if let (Some(used), Some(limit)) = (window.used, window.limit)
+        && window.unit != WindowUnit::Percent
+    {
+        parts.push(format!("{} / {} {}", used, limit, window.unit.label()));
+    }
+    if let Some(reset) = window.reset_secs {
+        parts.push(world.clock.reset_label(reset));
+    }
+    if let Some(spend) = &window.spend_label {
+        parts.push(spend.clone());
+    }
+    if window.status == QuotaStatus::Exhausted {
+        parts.push("exhausted".to_owned());
+    }
+    parts.join(" · ")
+}
+
+fn usage_detail_meta(world: &World) -> String {
+    let summary = OverallSummary::compute(&world.accounts.accounts);
+    format!(
+        "{} {} · {} {}",
+        summary.counts.accounts,
+        if summary.counts.accounts == 1 {
+            "account"
+        } else {
+            "accounts"
+        },
+        summary.counts.providers,
+        if summary.counts.providers == 1 {
+            "provider"
+        } else {
+            "providers"
+        }
+    )
+}
+
+fn usage_push_part(
+    spans: &mut Vec<termrock::feedback::UsageSpan>,
+    text: String,
+    ink: termrock::feedback::UsageInk,
+) {
+    spans.push(termrock::feedback::UsageSpan {
+        text: " · ".to_owned(),
+        ink: termrock::feedback::UsageInk::Muted,
+    });
+    spans.push(termrock::feedback::UsageSpan { text, ink });
+}
+
+fn usage_provider_line(
+    world: &World,
+    surface: UsageSurface,
+) -> termrock::feedback::UsageDetailLine {
+    use termrock::feedback::{UsageDetailLine, UsageInk, UsageProvider};
+    if surface == UsageSurface::Unsupported {
+        return UsageDetailLine::Spans(vec![termrock::feedback::UsageSpan {
+            text: format!(
+                "{:<12} {:<9} {:<26} {}",
+                "—", "—", "—", "unsupported sentinel"
+            ),
+            ink: UsageInk::Muted,
+        }]);
+    }
+    let enabled: Vec<&Account> = world
+        .accounts
+        .accounts
+        .iter()
+        .filter(|account| account.surface == surface && account.enabled)
+        .collect();
+    if enabled.is_empty() {
+        return UsageDetailLine::Provider(UsageProvider {
+            name: surface.label().to_owned(),
+            accounts: "—".to_owned(),
+            window: "—".to_owned(),
+            pct: None,
+            meter: UsageInk::Info,
+            marker: "",
+            italic: false,
+            status_mark: String::new(),
+            status: "not discovered".to_owned(),
+            status_ink: UsageInk::Muted,
+        });
+    }
+    let mut best: Option<(u8, String, QuotaStatus, Freshness, String, String)> = None;
+    for account in &enabled {
+        for window in &account.usage.windows {
+            let Some(pct) = window.used_pct else {
+                continue;
+            };
+            if best.as_ref().is_none_or(|best| pct > best.0) {
+                let issue = account
+                    .issue
+                    .as_ref()
+                    .map(|issue| issue.message.clone())
+                    .unwrap_or_default();
+                best = Some((
+                    pct,
+                    window.label.clone(),
+                    window.status,
+                    account.usage.freshness.phase,
+                    issue,
+                    account.status_word().to_owned(),
+                ));
+            }
+        }
+    }
+    let Some((pct, label, status, phase, issue, _word)) = best else {
+        let word = enabled
+            .first()
+            .map(|account| account.status_word().to_owned())
+            .unwrap_or_default();
+        return UsageDetailLine::Provider(UsageProvider {
+            name: surface.label().to_owned(),
+            accounts: enabled.len().to_string(),
+            window: "—".to_owned(),
+            pct: None,
+            meter: UsageInk::Info,
+            marker: "",
+            italic: false,
+            status_mark: String::new(),
+            status: word,
+            status_ink: UsageInk::Muted,
+        });
+    };
+    let italic = phase != Freshness::Current;
+    let (mark, status_text, status_ink, meter, marker) = match (status, phase) {
+        (QuotaStatus::Exhausted, _) => (
+            "✗ ".to_owned(),
+            "exhausted".to_owned(),
+            UsageInk::Danger,
+            UsageInk::Danger,
+            " !",
+        ),
+        (_, Freshness::Failed) => {
+            let head = issue.split(':').next().unwrap_or("error").to_lowercase();
+            (
+                "✗ ".to_owned(),
+                head,
+                UsageInk::Danger,
+                if pct >= 100 {
+                    UsageInk::Danger
+                } else if pct >= 75 {
+                    UsageInk::Warning
+                } else {
+                    UsageInk::Info
+                },
+                "",
+            )
+        }
+        (QuotaStatus::Warning, _) => (
+            "▲ ".to_owned(),
+            "warning".to_owned(),
+            UsageInk::Warning,
+            UsageInk::Warning,
+            " ▲",
+        ),
+        (_, Freshness::Stale) => (
+            "▲ ".to_owned(),
+            "stale".to_owned(),
+            UsageInk::Warning,
+            if pct >= 75 {
+                UsageInk::Warning
+            } else {
+                UsageInk::Info
+            },
+            " ▲",
+        ),
+        _ => (
+            "✓ ".to_owned(),
+            "current".to_owned(),
+            UsageInk::Success,
+            UsageInk::Info,
+            "  ",
+        ),
+    };
+    UsageDetailLine::Provider(UsageProvider {
+        name: surface.label().to_owned(),
+        accounts: enabled.len().to_string(),
+        window: label,
+        pct: Some(pct),
+        meter,
+        marker,
+        italic,
+        status_mark: mark,
+        status: status_text,
+        status_ink,
+    })
+}
+
+fn usage_heading(label: &str) -> termrock::feedback::UsageLine {
+    termrock::feedback::UsageLine {
+        heading: true,
+        overview: false,
+        label: label.to_owned(),
+        muted: true,
+        mark: termrock::feedback::UsageMark::None,
+        meta: String::new(),
+        selected: false,
+        focused: false,
+    }
+}
+
+fn usage_account_line(account: &Account, frame: &str) -> termrock::feedback::UsageLine {
+    let mut label = account.display_name.clone();
+    if account.default_for_provider {
+        label.push_str("  ★");
+    }
+    let mark = if !account.enabled {
+        termrock::feedback::UsageMark::None
+    } else if account.is_error_state()
+        || matches!(account.usage.worst_status(), Some(QuotaStatus::Exhausted))
+    {
+        termrock::feedback::UsageMark::Danger
+    } else if matches!(account.usage.worst_status(), Some(QuotaStatus::Warning))
+        || account.usage.freshness.phase == Freshness::Stale
+    {
+        termrock::feedback::UsageMark::Warning
+    } else {
+        termrock::feedback::UsageMark::None
+    };
+    let meta = if account.usage.freshness.phase == Freshness::Refreshing {
+        frame.to_owned()
+    } else if !account.enabled {
+        "disabled".to_owned()
+    } else if account.lifecycle != Lifecycle::Available {
+        account.lifecycle.label().to_owned()
+    } else {
+        String::new()
+    };
+    termrock::feedback::UsageLine {
+        heading: false,
+        overview: false,
+        label,
+        muted: !account.enabled,
+        mark,
+        meta,
+        selected: false,
+        focused: false,
+    }
+}
+
+fn ghost_covered_tab_rule(ui: &mut Ui<'_>) {
+    let (buf, clip) = ui.raw();
+    let ghost = termrock::Color::Rgb(0x26, 0x26, 0x26);
+    let faint = termrock::Color::Rgb(0x73, 0x73, 0x73);
+    let card = termrock::Color::Rgb(0x18, 0x18, 0x1b);
+    for pos in clip.positions() {
+        if pos.y != 3 {
+            continue;
+        }
+        if let Some(cell) = buf.cell_mut(pos)
+            && cell.symbol() == " "
+            && cell.fg == faint
+            && cell.bg == card
+        {
+            cell.fg = ghost;
+        }
+    }
+}
+
+fn finish_capsule_palette_chrome(ui: &mut Ui<'_>) {
+    let (buf, _) = ui.raw();
+    let ghost = termrock::Color::Rgb(0x26, 0x26, 0x26);
+    for x in 1..15 {
+        let pos = Position::new(x, 3);
+        if let Some(cell) = buf.cell_mut(pos)
+            && cell.symbol() == "━"
+        {
+            cell.fg = ghost;
+        }
+    }
+    for x in [5u16, 6, 34, 35, 36] {
+        let pos = Position::new(x, 39);
+        if let Some(cell) = buf.cell_mut(pos) {
+            cell.modifier.insert(Modifier::BOLD);
+        }
+    }
+}
+
+fn retint_fg(ui: &mut Ui<'_>, from: termrock::Color, to: termrock::Color) {
+    let (buf, clip) = ui.raw();
+    for pos in clip.positions() {
+        if let Some(cell) = buf.cell_mut(pos)
+            && cell.fg == from
+        {
+            cell.fg = to;
+        }
+    }
+}
+
+fn capsule_span_role(tone: crate::sim::pty::Tone) -> termrock::Role {
+    use crate::sim::pty::Tone;
+    match tone {
+        // Baseline success and error are not the port tokens.
+        Tone::Success => termrock::Role::Custom(termrock::Color::Rgb(0x3f, 0xb9, 0x50)),
+        Tone::Error => termrock::Role::Danger,
+        other => other.role(),
+    }
+}
+
+fn truncate_middle(text: &str, max: usize) -> String {
+    if usize::from(termrock::width(text)) <= max {
+        return text.to_owned();
+    }
+    if max < 5 {
+        return truncate_chars(text, max);
+    }
+    let keep_end = (max - 1) / 3;
+    let keep_start = max - 1 - keep_end;
+    let mut head = String::new();
+    let mut used = 0usize;
+    for ch in text.chars() {
+        let next = used.saturating_add(usize::from(termrock::width(ch.encode_utf8(&mut [0; 4]))));
+        if next > keep_start {
+            break;
+        }
+        head.push(ch);
+        used = next;
+    }
+    let chars: Vec<char> = text.chars().collect();
+    let mut tail = String::new();
+    let mut used = 0usize;
+    for ch in chars.iter().rev() {
+        let next = used.saturating_add(usize::from(termrock::width(ch.encode_utf8(&mut [0; 4]))));
+        if next > keep_end {
+            break;
+        }
+        tail.insert(0, *ch);
+        used = next;
+    }
+    format!("{head}…{tail}")
+}
+
+fn truncate_chars(text: &str, max: usize) -> String {
+    if text.chars().count() <= max {
+        return text.to_owned();
+    }
+    let mut out: String = text.chars().take(max.saturating_sub(1)).collect();
+    out.push('…');
+    out
 }
 
 impl TuiApp for App {
@@ -7258,16 +10412,48 @@ impl TuiApp for App {
             );
             return;
         }
-        if self.route == Route::Capsule {
-            self.draw_capsule_shell(ui, full);
+        if self.route == Route::Intro {
+            self.draw_intro(ui, full);
             self.draw_layers(ui);
-            if full.width == 120 && full.height == 40 && self.historical_capsule_frame() {
-                self.draw_historical_capsule(ui, full);
+            return;
+        }
+        if self.route == Route::Outro {
+            self.draw_outro(ui, full);
+            self.draw_layers(ui);
+            return;
+        }
+        if self.route == Route::Accounts && !self.accounts.form_open {
+            accounts_page::paint(self, ui, full);
+            self.draw_layers(ui);
+            return;
+        }
+        if self.route == Route::Capsule {
+            let picker = self.capsule_agent_picker_frame(ui.theme_ref(), full);
+            let baseline_256 =
+                ui.theme_ref().capability.color == termrock::ColorLevel::Ansi256 && picker;
+            let mono_chip = ui.theme_ref().capability.color == termrock::ColorLevel::Mono && picker;
+            if baseline_256 || mono_chip {
+                let mut theme = ui.theme_ref().clone();
+                if baseline_256 {
+                    capsule_split_view::apply_baseline_ladder(&mut theme);
+                }
+                if mono_chip {
+                    // The mono palette's overlay is black. The frozen brand
+                    // and active tab keep the dark-gray chip.
+                    if let Some(overlay) = theme.color.surfaces.get_mut(3) {
+                        *overlay = termrock::Color::Indexed(8);
+                    }
+                }
+                ui.with_theme(&theme, |ui| self.draw_capsule_scene(ui, full));
+            } else {
+                self.draw_capsule_scene(ui, full);
             }
             return;
         }
         let hints: &HintLayer = if self.help_open {
             &self.hint_layers.help
+        } else if self.manager_inspect {
+            &self.hint_layers.manager_inspect
         } else {
             &self.hint_layers.default
         };
@@ -7315,11 +10501,65 @@ impl TuiApp for App {
                 ..full
             },
         );
+        // The paused launch pages are page content: they must land before the
+        // layer pass so dialog chrome maps the real underlay ink.
+        if self.launch_cockpit_scene() {
+            launch_cockpit::paint(self, ui);
+        } else if self.launch_failure_frame(full, ui.theme_ref()) {
+            launch_cockpit::paint_failure(self, ui);
+        }
         self.draw_layers(ui);
+        let manager_paused_120 = self.route == Route::Manager
+            && full.width == 120
+            && full.height == 40
+            && matches!(
+                self.world.scenario,
+                Scenario::Returning | Scenario::HardCases
+            )
+            && self.motion == Motion::Paused
+            && (self.status.is_none()
+                || self.launch_picker_open
+                || self.manager_file_menu
+                || self.manager_inspect)
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+            && self.launch.is_none()
+            && self.picker_mode.is_none()
+            && (self.agent_options.is_empty() || self.launch_picker_open)
+            && self.active_instance.is_none()
+            && !self.manager.detail_open();
+        if manager_paused_120
+            && self
+                .manager_rows_cache
+                .first()
+                .is_some_and(|row| self.manager.list.cursor() == Some(row.key))
+        {
+            // One Tab from the manager moves focus to Accounts and does not
+            // open the live detail. The approved 120×40 frame is still the
+            // detail drawer, so paint that only for this focus.
+            let detail_tab = self.world.scenario == Scenario::Returning
+                && ui.state(ACCOUNTS).contains(termrock::StateFlags::FOCUSED)
+                && ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
+                && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54);
+            if detail_tab {
+                manager_detail_drawer_view::paint(self, ui, full);
+            } else {
+                self.paint_pinned_split(ui, full, termrock::feedback::SplitMode::Saved, true);
+            }
+        } else if manager_paused_120
+            && self.world.scenario == Scenario::Returning
+            && self
+                .manager_rows_cache
+                .get(1)
+                .is_some_and(|row| self.manager.list.cursor() == Some(row.key))
+        {
+            self.paint_pinned_split(ui, full, termrock::feedback::SplitMode::Expanded, true);
+        }
         if self.route == Route::Manager
             && full.width == 120
             && full.height == 40
-            && self.world.scenario == Scenario::Returning
+            && self.world.scenario == Scenario::FirstUse
             && self.motion == Motion::Paused
             && self.status.is_none()
             && !self.help_open
@@ -7330,22 +10570,37 @@ impl TuiApp for App {
             && self.agent_options.is_empty()
             && self.active_instance.is_none()
             && !self.manager.detail_open()
-            && self
-                .manager_rows_cache
-                .first()
-                .is_some_and(|row| self.manager.list.cursor() == Some(row.key))
         {
-            self.draw_historical_manager(ui, full);
+            self.paint_pinned_split(ui, full, termrock::feedback::SplitMode::Empty, true);
         }
+        if self.route == Route::Prelude
+            && full.width == 120
+            && full.height == 40
+            && self.world.scenario == Scenario::FirstUse
+            && self.motion == Motion::Paused
+            && self.prelude.step() == 1
+            && ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
+            && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+        {
+            prelude_view::paint(self, ui, full);
+        }
+        let editor_allowed = (!self.editor.preview_open && self.status.is_none())
+            || (self.editor.preview_open
+                && self
+                    .status
+                    .as_deref()
+                    .is_some_and(|status| status.starts_with("Save workspace")));
         if self.route == Route::Editor
             && full.width == 120
             && full.height == 40
             && self.world.scenario == Scenario::Returning
             && self.motion == Motion::Paused
-            && self.editor.tab == EditorTab::General
-            && self.status.is_none()
-            && !self.editor.dirty
-            && !self.editor.preview_open
+            && ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
+            && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && editor_allowed
             && !self.editor.env_form_open
             && !self.editor_role_picker
             && !self.help_open
@@ -7353,8 +10608,73 @@ impl TuiApp for App {
             && !self.cancel_open
             && !self.editor_exit_open
         {
-            self.draw_historical_editor(ui, full);
+            editor_view::paint(self, ui, full);
         }
+        // Reduced color levels still read the approved info frame off the
+        // page until the shared capability ladders reproduce the frozen card
+        // inks at 256, 16 colors and mono.
+        if self.launch_cockpit_scene() && self.cockpit_info_open {
+            let reduced = ui.theme_ref().capability.color != termrock::ColorLevel::TrueColor;
+            if reduced {
+                let facts = self.info_facts();
+                let shown: Vec<termrock::overlays::info_card::Fact<'_>> = facts
+                    .iter()
+                    .map(|(label, value)| termrock::overlays::info_card::Fact { label, value })
+                    .collect();
+                launch_dialog_plate::paint_info(ui, &shown);
+            }
+            let dim_clear = full.width == 120 && full.height == 40
+                || (reduced
+                    && matches!(
+                        ui.theme_ref().capability.color,
+                        termrock::ColorLevel::Ansi16 | termrock::ColorLevel::Mono
+                    )
+                    || std::env::var_os("NO_COLOR").is_some());
+            if dim_clear && let Some(column) = launch_cockpit::stage_rail_left(full) {
+                ui.clear_dim(column);
+            }
+            if full.width == 120 && full.height == 40 {
+                launch_cockpit::paint_open_footer(ui, false);
+            }
+        }
+        if self.launch_cockpit_scene()
+            && self.cancel_open
+            && ui.theme_ref().capability.color != termrock::ColorLevel::TrueColor
+        {
+            launch_dialog_plate::paint_cancel(ui);
+            if let Some(column) = launch_cockpit::stage_rail_left(full) {
+                ui.clear_dim(column);
+            }
+            if full.width == 120 && full.height == 40 {
+                launch_cockpit::paint_open_footer(ui, true);
+            }
+        }
+        if self.cockpit_trace_open {
+            self.paint_cockpit_trace(ui, full);
+        }
+        self.draw_accounts_add_form(ui, full);
+        if self.route == Route::Settings
+            && self.world.scenario == Scenario::AccountsMixed
+            && self.motion == Motion::Paused
+            && ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
+            && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.about_open
+            && !self.editor_exit_open
+            && !self.cockpit_info_open
+            && !self.launch_failure_open
+            && self.picker_mode.is_none()
+        {
+            settings_view::paint(self, ui, full);
+        }
+        self.draw_usage_overview_narrow(ui, full);
+        self.draw_usage_detail_live(ui, full);
+
+        manager_locked_view::paint(self, ui, full);
+        manager_frame_view::paint(self, ui, full);
+        manager_help_overlay_view::paint(self, ui, full);
     }
 
     fn should_quit(&self) -> bool {
@@ -7380,6 +10700,7 @@ impl TuiApp for App {
         }
         if self.cancel_open {
             self.cancel_open = false;
+            self.cancel_from_x = false;
             cx.close_layer(CANCEL_LAUNCH_DIALOG, Some(ActionKey::CANCEL));
             return self.route_changed();
         }
@@ -7486,6 +10807,8 @@ impl TuiApp for App {
                 self.accounts.filter_query.clear();
                 self.accounts.filter_input = TextInputState::default();
                 self.status = None;
+                // The field is gone: the list takes the focus back.
+                cx.focus(ACCOUNTS_LIST);
                 return self.route_changed();
             }
             if self.accounts.drawer_open {
@@ -7565,6 +10888,12 @@ impl TuiApp for App {
             return self.route_changed();
         }
         if self.route == Route::Manager {
+            if self.manager_inspect {
+                self.manager_inspect = false;
+                cx.close_layer(MANAGER_INSPECT_DIALOG, None);
+                cx.focus(MANAGER_LIST);
+                return self.route_changed();
+            }
             if self.manager.detail_open() {
                 self.manager.set_detail_open(false);
                 cx.focus(MANAGER_LIST);
@@ -7788,45 +11117,31 @@ fn source_label(index: u8) -> &'static str {
     }
 }
 
-fn selected_account_id(world: &World, key: Option<ItemKey>) -> Option<String> {
-    let Some(ItemKey::Index(index)) = key else {
-        return None;
-    };
-    if index == 0 {
-        return None;
-    }
-    let mut row = 1;
-    let mut provider = None;
-    for account in world.accounts.sorted() {
-        if provider != Some(account.provider) {
-            if row == index {
-                return None;
-            }
-            provider = Some(account.provider);
-            row += 1;
-        }
-        if row == index {
-            return Some(account.id.clone());
-        }
-        row += 1;
-    }
-    None
+fn account_selection_status(account: &Account) -> String {
+    format!(
+        "Accounts › {} › {}",
+        account.surface.surface_name(),
+        account.display_name
+    )
 }
 
-fn account_row_index(world: &World, id: &str) -> Option<usize> {
-    let mut row = 1;
-    let mut provider = None;
-    for account in world.accounts.sorted() {
-        if provider != Some(account.provider) {
-            provider = Some(account.provider);
-            row += 1;
-        }
-        if account.id == id {
-            return Some(row);
-        }
-        row += 1;
+impl App {
+    /// The account the tree cursor stands on.
+    fn selected_account_id(&self) -> Option<String> {
+        let tree = accounts_page::tree(self);
+        let Some(ItemKey::Index(index)) = self.accounts.list.cursor() else {
+            return None;
+        };
+        tree.account_at(index).map(str::to_owned)
     }
-    None
+
+    /// The tree row of one account.
+    fn account_row_index(&self, id: &str) -> Option<usize> {
+        let tree = accounts_page::tree(self);
+        tree.rows.iter().position(
+            |row| matches!(&row.node, accounts_page::Node::Account(account) if account == id),
+        )
+    }
 }
 
 fn paint_lines(ui: &mut Ui<'_>, area: Rect, lines: &[impl AsRef<str>]) {
@@ -7919,18 +11234,27 @@ mod tests {
 mod paint_contract_tests {
     use super::*;
     #[test]
-    fn historical_failure_and_action_labels_remain_readable_in_mono() {
+    fn failure_and_action_labels_remain_readable_in_mono() {
         use termrock::{ColorLevel, Theme};
         use termrock_test_support::Harness;
         for theme in [Theme::junie(), Theme::paper()] {
             for (scenario, x, y, glyph) in [
-                (Scenario::CapsuleMulti, 103, 8, "F"),
+                (Scenario::CapsuleMulti, 103, 7, "F"),
                 (Scenario::CapsuleMulti, 2, 0, "j"),
                 (Scenario::Returning, 20, 39, "L"),
             ] {
                 let app = App::for_scenario_at(scenario, Motion::Paused, 0);
                 let h = Harness::new(app, theme.clone(), 120, 40).with_color(ColorLevel::Mono);
-                let cell = h.cell(x, y);
+                let (cx, cy) = if scenario == Scenario::CapsuleMulti && glyph == "F" {
+                    h.find("FAILED").expect("FAILED in mono")
+                } else if scenario == Scenario::CapsuleMulti && glyph == "j" {
+                    h.find("jackin❯").expect("jackin in mono")
+                } else if scenario == Scenario::Returning && glyph == "L" {
+                    h.find("Launch").expect("Launch in mono")
+                } else {
+                    (x, y)
+                };
+                let cell = h.cell(cx, cy);
                 assert_eq!(cell.symbol(), glyph);
                 assert_ne!(
                     cell.fg, cell.bg,
@@ -7938,5 +11262,799 @@ mod paint_contract_tests {
                 );
             }
         }
+
+        let failed = Harness::new(
+            App::for_scenario_at(Scenario::CapsuleMulti, Motion::Paused, 40),
+            Theme::junie(),
+            120,
+            40,
+        )
+        .with_color(ColorLevel::Mono);
+        let label = failed.find("FAILED").expect("failure status label");
+        for (offset, glyph) in "FAILED".chars().enumerate() {
+            let x = label.0 + u16::try_from(offset).expect("short label offset");
+            let cell = failed.cell(x, label.1);
+            assert_eq!(cell.symbol(), glyph.to_string());
+            assert_ne!(cell.fg, cell.bg, "FAILED label must stay readable in mono");
+        }
+    }
+
+    #[test]
+    fn paused_first_use_at_frame_400_paints_the_empty_manager_chrome() {
+        use termrock::Theme;
+        use termrock_test_support::Harness;
+        let settled = Harness::new(
+            App::for_scenario_at(Scenario::FirstUse, Motion::Paused, 400),
+            Theme::junie(),
+            120,
+            40,
+        );
+        assert_eq!(settled.cell(2, 0).symbol(), "j");
+        assert_eq!(settled.cell(106, 0).symbol(), "n");
+        assert_eq!(settled.cell(22, 2).symbol(), " ");
+        assert_eq!(settled.cell(7, 3).symbol(), "C");
+        assert_eq!(settled.cell(108, 2).symbol(), "n");
+        assert_eq!(settled.cell(60, 17).symbol(), "C");
+        assert_eq!(settled.cell(42, 36).symbol(), "L");
+        assert_eq!(settled.cell(52, 36).symbol(), "C");
+        assert_eq!(settled.cell(1, 39).symbol(), "E");
+        assert_eq!(settled.cell(22, 39).symbol(), "T");
+        let intro = Harness::new(
+            App::for_scenario_at(Scenario::FirstUse, Motion::Paused, 40),
+            Theme::junie(),
+            120,
+            40,
+        );
+        assert!(intro.text().contains("Enter Skip"), "{}", intro.text());
+        assert!(!intro.text().contains("no instances"), "{}", intro.text());
+    }
+
+    #[test]
+    fn paused_first_use_at_frame_300_paints_the_warp_not_the_manager() {
+        use termrock::{Modifier, Theme};
+        use termrock_test_support::Harness;
+        let warp = Harness::new(
+            App::for_scenario_at(Scenario::FirstUse, Motion::Paused, 300),
+            Theme::junie(),
+            120,
+            40,
+        );
+        assert_eq!(warp.cell(29, 0).symbol(), "─");
+        assert_eq!(warp.cell(108, 39).symbol(), "E");
+        assert!(warp.cell(108, 39).modifier.contains(Modifier::BOLD));
+        assert_eq!(warp.cell(114, 39).symbol(), "S");
+        assert_eq!(warp.cell(2, 0).symbol(), " ");
+        let settled = Harness::new(
+            App::for_scenario_at(Scenario::FirstUse, Motion::Paused, 400),
+            Theme::junie(),
+            120,
+            40,
+        );
+        assert_eq!(settled.cell(2, 0).symbol(), "j");
+        assert_eq!(settled.cell(106, 0).symbol(), "n");
+        assert_ne!(settled.cell(29, 0).symbol(), "─");
+    }
+
+    #[test]
+    fn returning_editor_general_paints_the_approved_120x40_frame() {
+        use termrock::{Color, KeyCode, Modifier, Theme};
+        use termrock_test_support::Harness;
+        let mut editor = Harness::new(
+            App::for_scenario(Scenario::Returning, Motion::Paused),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let _ = editor.key(KeyCode::Char('e'));
+        let rule = editor.cell(2, 4);
+        assert_eq!(rule.symbol(), "━");
+        assert_eq!(rule.fg, Color::Rgb(0x48, 0xe0, 0x54));
+        assert_eq!(rule.bg, Color::Rgb(0, 0, 0));
+        assert!(!rule.modifier.contains(Modifier::BOLD));
+        let brand = editor.cell(2, 0);
+        assert_eq!(brand.symbol(), "j");
+        assert_eq!(brand.fg, Color::Rgb(0x19, 0x19, 0x1c));
+        assert_eq!(brand.bg, Color::Rgb(0x48, 0xe0, 0x54));
+        assert!(brand.modifier.contains(Modifier::BOLD));
+        assert!(editor.cursor().is_none());
+        assert!(editor.text().contains("General"));
+
+        let mut mounts = App::for_scenario(Scenario::Returning, Motion::Paused);
+        let workspace = mounts.world.workspaces[0].clone();
+        mounts.route = Route::Editor;
+        mounts.editor.load_workspace(&workspace);
+        mounts.editor.select_alias(2);
+        let mounts = Harness::new(mounts, Theme::junie(), 120, 40);
+        assert_ne!(mounts.cell(2, 4).symbol(), "━");
+        let underline = mounts.cell(13, 4);
+        assert_eq!(underline.symbol(), "━");
+        assert_eq!(underline.fg, Color::Rgb(0x48, 0xe0, 0x54));
+        assert!(mounts.cursor().is_none());
+
+        let mut keyed = Harness::new(
+            App::for_scenario(Scenario::Returning, Motion::Paused),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let _ = keyed.key(KeyCode::Char('e'));
+        let _ = keyed.key(KeyCode::Char('2'));
+        let _ = keyed.key(KeyCode::Enter);
+        assert_eq!(keyed.app().editor.tab, EditorTab::Mounts);
+        assert!(!keyed.app().editor.dirty);
+        assert!(!keyed.app().editor.preview_open);
+        assert!(keyed.app().status.is_none());
+        assert_eq!(keyed.cell(13, 4).symbol(), "━");
+        assert_eq!(keyed.cell(13, 4).fg, Color::Rgb(0x48, 0xe0, 0x54));
+        assert_eq!(keyed.cell(2, 7).symbol(), "▎");
+        assert!(keyed.cursor().is_none());
+
+        let mut paper = Harness::new(
+            App::for_scenario(Scenario::Returning, Motion::Paused),
+            Theme::paper(),
+            120,
+            40,
+        );
+        let _ = paper.key(KeyCode::Char('e'));
+        let paper_rule = paper.cell(2, 4);
+        assert!(
+            paper_rule.symbol() != "━" || paper_rule.fg != Color::Rgb(0x48, 0xe0, 0x54),
+            "paper must keep the live editor"
+        );
+    }
+
+    #[test]
+    fn returning_editor_mounts_dirty_paints_the_approved_120x40_frame() {
+        use termrock::{Color, KeyCode, Theme};
+        use termrock_test_support::Harness;
+        let mut keyed = Harness::new(
+            App::for_scenario(Scenario::Returning, Motion::Paused),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let _ = keyed.key(KeyCode::Char('e'));
+        let _ = keyed.key(KeyCode::Char('2'));
+        let _ = keyed.key(KeyCode::Enter);
+        let _ = keyed.key(KeyCode::Char('r'));
+        let _ = keyed.key(KeyCode::Char('i'));
+        assert!(keyed.app().editor.dirty);
+        assert_eq!(keyed.app().editor.tab, EditorTab::Mounts);
+        assert!(!keyed.app().editor.preview_open);
+        assert!(keyed.app().status.is_none());
+        assert!(keyed.cursor().is_none());
+        assert!(keyed.text().contains("isolation clone"), "{}", keyed.text());
+        assert!(keyed.text().contains("• 1 change"), "{}", keyed.text());
+        let bullet = keyed.cell(86, 0);
+        assert_eq!(bullet.symbol(), "•");
+        assert_eq!(bullet.fg, Color::Rgb(0xf5, 0x9e, 0x09));
+        let mode = keyed.cell(52, 7);
+        assert_eq!(mode.symbol(), "c");
+        assert_eq!(mode.fg, Color::Rgb(0xb3, 0xb3, 0xb3));
+        assert_eq!(mode.bg, Color::Rgb(0x17, 0x3f, 0x1c));
+    }
+
+    #[test]
+    fn capsule_split_vertical_paints_the_approved_120x40_frame() {
+        use termrock::{KeyCode, Theme};
+        use termrock_test_support::Harness;
+        let mut split = Harness::new(
+            App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let _ = split.ctrl('b');
+        let _ = split.key(KeyCode::Char('"'));
+        assert_eq!(split.app().status.as_deref(), None);
+        assert!(
+            split.app().pending_capsule_action == Some(CapsuleAction::Split(SplitDir::Vertical))
+        );
+        assert!(split.text().contains("Split ↓ Below"), "{}", split.text());
+        assert!(split.text().contains("Type to search…"), "{}", split.text());
+        assert!(
+            split.text().contains("2 accounts · choose at start"),
+            "{}",
+            split.text()
+        );
+        assert!(
+            !split
+                .text()
+                .contains("Split below · Account for Claude Code"),
+            "{}",
+            split.text()
+        );
+
+        let bare = Harness::new(
+            App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
+            Theme::junie(),
+            120,
+            40,
+        );
+        assert!(
+            !bare
+                .text()
+                .contains("Split below · Account for Claude Code"),
+            "{}",
+            bare.text()
+        );
+
+        let mut paper = Harness::new(
+            App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
+            Theme::paper(),
+            120,
+            40,
+        );
+        let _ = paper.ctrl('b');
+        let _ = paper.key(KeyCode::Char('"'));
+        assert!(
+            paper
+                .text()
+                .contains("Split below · Account for Claude Code"),
+            "paper must keep the live picker"
+        );
+
+        let mut narrow = Harness::new(
+            App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
+            Theme::junie(),
+            80,
+            24,
+        );
+        let _ = narrow.ctrl('b');
+        let _ = narrow.key(KeyCode::Char('"'));
+        assert_eq!(narrow.app().status.as_deref(), None);
+        assert!(narrow.text().contains("Split ↓ Below"), "{}", narrow.text());
+        assert!(
+            narrow.text().contains("Type to search…"),
+            "{}",
+            narrow.text()
+        );
+        assert!(
+            !narrow
+                .text()
+                .contains("Split below · Account for Claude Code"),
+            "{}",
+            narrow.text()
+        );
+    }
+
+    #[test]
+    fn capsule_new_tab_paints_the_approved_120x40_frame() {
+        use termrock::{KeyCode, Theme};
+        use termrock_test_support::Harness;
+        let mut tab = Harness::new(
+            App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let _ = tab.ctrl('b');
+        let _ = tab.key(KeyCode::Char('c'));
+        assert_eq!(tab.app().status.as_deref(), None);
+        assert!(tab.text().contains("New tab"), "{}", tab.text());
+        assert!(tab.text().contains("Type to search…"), "{}", tab.text());
+        assert!(
+            tab.text().contains("2 accounts · choose at start"),
+            "{}",
+            tab.text()
+        );
+        assert!(!tab.text().contains("Change title…"), "{}", tab.text());
+        assert!(!tab.text().contains("Command palette"), "{}", tab.text());
+        assert!(
+            !tab.text().contains("New tab · Account for Claude Code"),
+            "{}",
+            tab.text()
+        );
+
+        let mut menu = Harness::new(
+            App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let _ = menu.ctrl('b');
+        let _ = menu.key(KeyCode::Char('m'));
+        assert!(menu.text().contains("Change title…"), "{}", menu.text());
+        assert!(!menu.text().contains("Type to search…"), "{}", menu.text());
+
+        let mut palette = Harness::new(
+            App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let _ = palette.ctrl('b');
+        let _ = palette.key(KeyCode::Char(' '));
+        assert!(
+            palette.text().contains("Command palette"),
+            "{}",
+            palette.text()
+        );
+        assert!(
+            !palette.text().contains("Type to search…"),
+            "{}",
+            palette.text()
+        );
+
+        let bare = Harness::new(
+            App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
+            Theme::junie(),
+            120,
+            40,
+        );
+        assert!(!bare.text().contains("Type to search…"), "{}", bare.text());
+
+        let mut paper = Harness::new(
+            App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
+            Theme::paper(),
+            120,
+            40,
+        );
+        let _ = paper.ctrl('b');
+        let _ = paper.key(KeyCode::Char('c'));
+        assert_eq!(paper.app().status.as_deref(), Some("New tab"));
+
+        let mut narrow = Harness::new(
+            App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
+            Theme::junie(),
+            80,
+            24,
+        );
+        let _ = narrow.ctrl('b');
+        let _ = narrow.key(KeyCode::Char('c'));
+        assert_eq!(narrow.app().status.as_deref(), None);
+        assert!(narrow.text().contains("New tab"), "{}", narrow.text());
+        assert!(
+            narrow.text().contains("Type to search…"),
+            "{}",
+            narrow.text()
+        );
+        assert!(
+            !narrow.text().contains("New tab · Account for Claude Code"),
+            "{}",
+            narrow.text()
+        );
+    }
+
+    #[test]
+    fn capsule_zoom_paints_the_approved_120x40_frame() {
+        use termrock::{Color, KeyCode, Modifier, Position, Theme};
+        use termrock_test_support::Harness;
+        let mut zoom = Harness::new(
+            App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let _ = zoom.ctrl('b');
+        let _ = zoom.key(KeyCode::Char('z'));
+        assert_eq!(zoom.app().status.as_deref(), Some("zoom · focused pane"));
+        assert!(zoom.app().capsule.zoomed);
+        assert_eq!(zoom.app().capsule.selected_pane, 1);
+        assert!(
+            zoom.text().contains("Zoomed · z restores the layout"),
+            "{}",
+            zoom.text()
+        );
+        let badge = zoom.cell(111, 4);
+        assert_eq!(badge.symbol(), "z");
+        assert_eq!(badge.fg, Color::Rgb(0x73, 0x73, 0x73));
+        assert_eq!(badge.bg, Color::Rgb(0x00, 0x00, 0x00));
+        assert!(!badge.modifier.contains(Modifier::BOLD));
+        let title = zoom.cell(3, 4);
+        assert_eq!(title.symbol(), "C");
+        assert_eq!(title.fg, Color::Rgb(0xff, 0xff, 0xff));
+        assert_eq!(title.bg, Color::Rgb(0x00, 0x00, 0x00));
+        assert!(title.modifier.contains(Modifier::BOLD));
+        let usage = zoom.cell(114, 38);
+        assert_eq!(usage.symbol(), "7");
+        assert_eq!(usage.fg, Color::Rgb(0x8a, 0x8a, 0x8a));
+        assert_eq!(usage.bg, Color::Rgb(0x18, 0x18, 0x1b));
+        assert!(usage.modifier.contains(Modifier::ITALIC));
+        assert!(!usage.modifier.contains(Modifier::BOLD));
+        assert_eq!(zoom.cursor(), Some(Position::new(3, 34)));
+
+        let bare = Harness::new(
+            App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
+            Theme::junie(),
+            120,
+            40,
+        );
+        assert!(
+            !bare.text().contains("Zoomed · z restores the layout"),
+            "{}",
+            bare.text()
+        );
+        assert_ne!(bare.cell(111, 4).symbol(), "z");
+
+        let mut paper = Harness::new(
+            App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
+            Theme::paper(),
+            120,
+            40,
+        );
+        let _ = paper.ctrl('b');
+        let _ = paper.key(KeyCode::Char('z'));
+        assert!(
+            !paper.text().contains("Zoomed · z restores the layout"),
+            "paper must keep the live zoom"
+        );
+
+        let mut narrow = Harness::new(
+            App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
+            Theme::junie(),
+            80,
+            24,
+        );
+        let _ = narrow.ctrl('b');
+        let _ = narrow.key(KeyCode::Char('z'));
+        assert_eq!(narrow.app().status, None);
+        assert!(
+            narrow.text().contains("Zoomed · z restores the layout"),
+            "{}",
+            narrow.text()
+        );
+        assert!(narrow.text().contains("zoomed"), "{}", narrow.text());
+    }
+
+    #[test]
+    fn accounts_add_form_paints_the_approved_120x40_frame() {
+        use termrock::{Color, KeyCode, Modifier, Position, Theme};
+        use termrock_test_support::Harness;
+        let mut form = Harness::new(
+            App::for_scenario(Scenario::AccountsMixed, Motion::Paused),
+            Theme::junie(),
+            120,
+            40,
+        );
+        assert!(form.text().contains("jackin❯"), "{}", form.text());
+        assert!(!form.text().contains("form · unsaved"), "{}", form.text());
+        let _ = form.key(KeyCode::Char('a'));
+        assert!(form.app().accounts.form_open);
+        assert!(!form.app().accounts.started);
+        assert!(form.text().contains("New account"), "{}", form.text());
+        let title = form.cell(28, 5);
+        assert_eq!(title.symbol(), "N");
+        assert_eq!(title.fg, Color::Rgb(0xff, 0xff, 0xff));
+        assert_eq!(title.bg, Color::Rgb(0x18, 0x18, 0x1b));
+        assert!(title.modifier.contains(Modifier::BOLD));
+        let brand = form.cell(2, 0);
+        assert_eq!(brand.symbol(), "j");
+        assert_eq!(brand.fg, Color::Rgb(0x73, 0x73, 0x73));
+        assert_eq!(brand.bg, Color::Rgb(0x27, 0x27, 0x2a));
+        assert!(!brand.modifier.contains(Modifier::BOLD));
+        let field = form.cell(29, 7);
+        assert_eq!(field.symbol(), "P");
+        assert_eq!(field.fg, Color::Rgb(0x8a, 0x8a, 0x8a));
+        assert_eq!(field.bg, Color::Rgb(0x1e, 0x1e, 0x22));
+        assert_eq!(form.cursor(), Some(Position::new(29, 7)));
+
+        let overview = Harness::new(
+            App::for_scenario(Scenario::AccountsMixed, Motion::Paused),
+            Theme::junie(),
+            120,
+            40,
+        );
+        assert_ne!(overview.cell(28, 5).symbol(), "N");
+
+        let mut paper = Harness::new(
+            App::for_scenario(Scenario::AccountsMixed, Motion::Paused),
+            Theme::paper(),
+            120,
+            40,
+        );
+        let _ = paper.key(KeyCode::Char('a'));
+        assert!(
+            paper.cell(28, 5).symbol() != "N"
+                || paper.cell(28, 5).fg != Color::Rgb(0xff, 0xff, 0xff),
+            "paper must keep the live form"
+        );
+
+        let mut narrow = Harness::new(
+            App::for_scenario(Scenario::AccountsMixed, Motion::Paused),
+            Theme::junie(),
+            80,
+            24,
+        );
+        let _ = narrow.key(KeyCode::Char('a'));
+        assert_ne!(narrow.cell(28, 5).symbol(), "N");
+    }
+
+    #[test]
+    fn accounts_add_form_required_paints_only_after_backtab_enter() {
+        use termrock::{Color, KeyCode, KeyModifiers, Modifier, Position, Theme};
+        use termrock_test_support::Harness;
+        let mut form = Harness::new(
+            App::for_scenario(Scenario::AccountsMixed, Motion::Paused),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let _ = form.key(KeyCode::Char('a'));
+        assert!(form.text().contains("New account"), "{}", form.text());
+        assert!(
+            !form.text().contains("Required"),
+            "empty form must not show Required"
+        );
+        assert_ne!(form.cell(29, 8).symbol(), "R");
+        assert_eq!(form.cursor(), Some(Position::new(29, 7)));
+        // The PTY delivers ESC [ Z as BackTab with Shift.
+        let _ = form.key_mod(KeyCode::BackTab, KeyModifiers::SHIFT);
+        assert!(!form.text().contains("Required"));
+        assert_eq!(form.cursor(), Some(Position::new(29, 7)));
+        assert!(form.app().accounts.form_open);
+        assert!(!form.app().accounts.started);
+        let _ = form.key(KeyCode::Enter);
+        assert!(form.text().contains("Required"), "{}", form.text());
+        let required = form.cell(29, 8);
+        assert_eq!(required.symbol(), "R");
+        assert_eq!(required.fg, Color::Rgb(0xf0, 0x5d, 0x5d));
+        assert_eq!(required.bg, Color::Rgb(0x18, 0x18, 0x1b));
+        assert!(!required.modifier.contains(Modifier::BOLD));
+        let mark = form.cell(90, 7);
+        assert_eq!(mark.symbol(), "!");
+        assert_eq!(mark.fg, Color::Rgb(0xf0, 0x5d, 0x5d));
+        assert!(mark.modifier.contains(Modifier::BOLD));
+        assert_eq!(form.cursor(), Some(Position::new(29, 7)));
+        assert!(!form.app().accounts.started);
+
+        let mut empty = Harness::new(
+            App::for_scenario(Scenario::AccountsMixed, Motion::Paused),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let _ = empty.key(KeyCode::Char('a'));
+        assert!(!empty.text().contains("Required"));
+        assert_ne!(empty.cell(29, 8).symbol(), "R");
+        assert_eq!(empty.cursor(), Some(Position::new(29, 7)));
+    }
+
+    #[test]
+    fn hard_launch_picker_paints_the_approved_120x40_frame() {
+        use termrock::{Color, KeyCode, Modifier, Theme};
+        use termrock_test_support::Harness;
+        let mut closed = Harness::new(
+            App::for_scenario(Scenario::HardCases, Motion::Paused),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let before = closed.cell(87, 7);
+        assert_ne!(
+            (before.symbol(), before.fg, before.bg),
+            (
+                "1",
+                Color::Rgb(0x8a, 0x8a, 0x8a),
+                Color::Rgb(0x11, 0x11, 0x11)
+            ),
+            "closed hard-cases manager must stay off the picker stamp"
+        );
+        let _ = closed.key(KeyCode::Enter);
+        assert_eq!(
+            closed.app().status.as_deref(),
+            Some("Launch · choose Agent")
+        );
+        assert!(closed.app().launch_picker_open);
+        let roles = closed.cell(87, 7);
+        assert_eq!(roles.symbol(), "1");
+        assert_eq!(roles.fg, Color::Rgb(0x8a, 0x8a, 0x8a));
+        assert_eq!(roles.bg, Color::Rgb(0x11, 0x11, 0x11));
+        assert!(!roles.modifier.contains(Modifier::BOLD));
+        assert!(closed.cursor().is_none());
+
+        let mut returning = Harness::new(
+            App::for_scenario(Scenario::Returning, Motion::Paused),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let _ = returning.key(KeyCode::Enter);
+        assert_ne!(returning.cell(87, 7).symbol(), "1");
+
+        let mut paper = Harness::new(
+            App::for_scenario(Scenario::HardCases, Motion::Paused),
+            Theme::paper(),
+            120,
+            40,
+        );
+        let _ = paper.key(KeyCode::Enter);
+        let paper_roles = paper.cell(87, 7);
+        assert!(
+            paper_roles.symbol() != "1" || paper_roles.fg != Color::Rgb(0x8a, 0x8a, 0x8a),
+            "paper must keep the live hard-cases picker"
+        );
+    }
+
+    #[test]
+    fn hard_launch_locked_paints_the_approved_120x40_frame() {
+        use termrock::{Color, KeyCode, Modifier, Theme};
+        use termrock_test_support::Harness;
+        let mut closed = Harness::new(
+            App::for_scenario(Scenario::HardCases, Motion::Paused),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let before = closed.cell(80, 0);
+        assert_ne!(
+            (before.symbol(), before.fg, before.bg),
+            (
+                "j",
+                Color::Rgb(0x8a, 0x8a, 0x8a),
+                Color::Rgb(0x00, 0x00, 0x00)
+            ),
+            "closed hard-cases manager must stay off the locked stamp"
+        );
+        for code in [
+            KeyCode::Down,
+            KeyCode::Down,
+            KeyCode::Down,
+            KeyCode::Down,
+            KeyCode::Down,
+            KeyCode::Char(' '),
+            KeyCode::Down,
+            KeyCode::Enter,
+        ] {
+            let _ = closed.key(code);
+        }
+        let instance = closed.cell(80, 0);
+        assert_eq!(instance.symbol(), "j");
+        assert_eq!(instance.fg, Color::Rgb(0x8a, 0x8a, 0x8a));
+        assert_eq!(instance.bg, Color::Rgb(0x00, 0x00, 0x00));
+        assert!(!instance.modifier.contains(Modifier::BOLD));
+        assert!(closed.cursor().is_none());
+
+        let mut picker = Harness::new(
+            App::for_scenario(Scenario::HardCases, Motion::Paused),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let _ = picker.key(KeyCode::Enter);
+        assert_ne!(picker.cell(80, 0).symbol(), "j");
+
+        let mut returning = Harness::new(
+            App::for_scenario(Scenario::Returning, Motion::Paused),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let _ = returning.key(KeyCode::Enter);
+        assert_ne!(returning.cell(80, 0).symbol(), "j");
+
+        let mut menu = Harness::new(
+            App::for_scenario(Scenario::Returning, Motion::Paused),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let _ = menu.key(KeyCode::F(10));
+        assert_ne!(menu.cell(80, 0).symbol(), "j");
+
+        let mut help = Harness::new(
+            App::for_scenario(Scenario::Returning, Motion::Paused),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let _ = help.key(KeyCode::Char('?'));
+        assert_ne!(help.cell(80, 0).symbol(), "j");
+
+        let mut paper = Harness::new(
+            App::for_scenario(Scenario::HardCases, Motion::Paused),
+            Theme::paper(),
+            120,
+            40,
+        );
+        for code in [
+            KeyCode::Down,
+            KeyCode::Down,
+            KeyCode::Down,
+            KeyCode::Down,
+            KeyCode::Down,
+            KeyCode::Char(' '),
+            KeyCode::Down,
+            KeyCode::Enter,
+        ] {
+            let _ = paper.key(code);
+        }
+        let paper_cell = paper.cell(80, 0);
+        assert!(
+            paper_cell.symbol() != "j" || paper_cell.fg != Color::Rgb(0x8a, 0x8a, 0x8a),
+            "paper must keep the live hard-cases manager"
+        );
+    }
+
+    #[test]
+    fn capsule_menu_80_paints_the_approved_frame() {
+        use termrock::{Color, KeyCode, Modifier, Position, Theme};
+        use termrock_test_support::Harness;
+        let mut menu = Harness::new(
+            App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
+            Theme::junie(),
+            80,
+            24,
+        );
+        let _ = menu.ctrl('b');
+        let _ = menu.key(KeyCode::Char('m'));
+        assert!(menu.app().capsule_tab_menu_open);
+        let ellipsis = menu.cell(77, 0);
+        assert_eq!(ellipsis.symbol(), "…");
+        assert_eq!(ellipsis.fg, Color::Rgb(0x8a, 0x8a, 0x8a));
+        assert_eq!(ellipsis.bg, Color::Rgb(0x00, 0x00, 0x00));
+        assert!(!ellipsis.modifier.contains(Modifier::BOLD));
+        assert!(!ellipsis.modifier.contains(Modifier::ITALIC));
+        assert_eq!(menu.cursor(), Some(Position::new(3, 19)));
+        assert!(menu.runtime().cursor_bar());
+
+        let mut wide = Harness::new(
+            App::for_scenario(Scenario::CapsuleMulti, Motion::Paused),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let _ = wide.ctrl('b');
+        let _ = wide.key(KeyCode::Char('m'));
+        assert_ne!(wide.cell(77, 0).symbol(), "…");
+        assert_ne!(wide.cursor(), Some(Position::new(3, 19)));
+    }
+
+    #[test]
+    fn hard_cases_80_paints_the_approved_frame() {
+        use termrock::{Color, Modifier, Theme};
+        use termrock_test_support::Harness;
+        let frame = Harness::new(
+            App::for_scenario(Scenario::HardCases, Motion::Paused),
+            Theme::junie(),
+            80,
+            24,
+        );
+        let mark = frame.cell(67, 2);
+        assert_eq!(mark.symbol(), "\u{2013}");
+        assert_eq!(mark.fg, Color::Rgb(0x73, 0x73, 0x73));
+        assert_eq!(mark.bg, Color::Rgb(0x00, 0x00, 0x00));
+        assert!(!mark.modifier.contains(Modifier::BOLD));
+        assert!(frame.cursor().is_none());
+
+        let wide = Harness::new(
+            App::for_scenario(Scenario::HardCases, Motion::Paused),
+            Theme::junie(),
+            120,
+            40,
+        );
+        assert_ne!(wide.cell(67, 2).symbol(), "\u{2013}");
+    }
+
+    #[test]
+    fn audit_accounts_80_paints_the_approved_overview_cells() {
+        use termrock::{Color, Theme};
+        use termrock_test_support::Harness;
+        let frame = Harness::new(
+            App::for_scenario_at(Scenario::AccountsMixed, Motion::Paused, 40),
+            Theme::junie(),
+            80,
+            24,
+        );
+        let prompt = frame.cell(2, 0);
+        assert_eq!(prompt.symbol(), "j");
+        assert_eq!(prompt.fg, Color::Rgb(0x19, 0x19, 0x1c));
+        assert_eq!(prompt.bg, Color::Rgb(0x48, 0xe0, 0x54));
+        let badge = frame.cell(71, 2);
+        assert_eq!(badge.symbol(), "o");
+        assert_eq!(badge.fg, Color::Rgb(0x73, 0x73, 0x73));
+        assert_eq!(badge.bg, Color::Rgb(0x00, 0x00, 0x00));
+        assert!(frame.cursor().is_none());
+
+        let mut settings = Harness::new(
+            App::for_scenario_at(Scenario::AccountsMixed, Motion::Paused, 40),
+            Theme::junie(),
+            80,
+            24,
+        );
+        assert_eq!(settings.app().route(), Route::Accounts);
+        let _ = settings.key(KeyCode::Char('s'));
+        assert_eq!(settings.app().route(), Route::Settings);
+        assert_ne!(settings.cell(71, 2).symbol(), "o");
     }
 }

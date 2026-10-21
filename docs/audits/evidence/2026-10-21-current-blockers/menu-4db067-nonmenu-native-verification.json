@@ -1,0 +1,31 @@
+{
+  "review_scope": "Native Controls, Forms, Fields tests for Theme shared resolver fallback risk",
+  "candidate_commit": "4db067a8a183bc7d7ee7027432d7afe82a613352",
+  "comparison_commit": "f8f3a576f2149b58d6e05ecfa42acb1f7605c307",
+  "target_dirs": [
+    "/private/tmp/menu-resolver-f8f3a-controls-forms-fields-target-20261021",
+    "/private/tmp/menu-resolver-4db067a-controls-forms-fields-target-20261021"
+  ],
+  "runs": [
+    {
+      "commit": "f8f3a576f2149b58d6e05ecfa42acb1f7605c307",
+      "command": "cargo nextest run --all-targets -p termrock-controls -p termrock-forms -p termrock-fields",
+      "exit_status": 0,
+      "summary": "Summary [   0.402s] 319 tests run: 319 passed, 0 skipped",
+      "skipped": 0,
+      "log": "/private/tmp/menu-resolver-f8f3a-controls-forms-fields-20261021.log",
+      "log_sha256": "7bec8c126e97e760ccbfc93a197af39da9e0b08eae43ba426bf7aeabbef2b670"
+    },
+    {
+      "commit": "4db067a8a183bc7d7ee7027432d7afe82a613352",
+      "command": "cargo nextest run --all-targets -p termrock-controls -p termrock-forms -p termrock-fields",
+      "exit_status": 0,
+      "summary": "Summary [   0.775s] 319 tests run: 319 passed, 0 skipped",
+      "skipped": 0,
+      "log": "/private/tmp/menu-resolver-4db067a-controls-forms-fields-20261021.log",
+      "log_sha256": "6426757b4a1044eedfbef86ab6bf36ce8c2e8267728ebc9e140578da29765dcb"
+    }
+  ],
+  "diff_observation": "Between the two commits, scoped source diff contains only crates/termrock-theme/src/lib.rs, crates/termrock-theme/src/resolve.rs, and crates/termrock-theme/tests/context_menu_danger_profile.rs; no termrock-controls/forms/fields files changed.",
+  "result": "No new failure observed in scoped native suites: both runs exit 0, 319 passed, 0 skipped. This does not cover application CLI behavior or full parity. Theme and Overlay suites were outside this task scope."
+}

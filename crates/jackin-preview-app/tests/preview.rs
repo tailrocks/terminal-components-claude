@@ -1,5 +1,5 @@
 use jackin_preview_app::{
-    ACCOUNT_ADD, ACCOUNT_PICKER, APP, App, ENTER, LAUNCH, Motion, Route, RunId, Scenario,
+    ACCOUNT_ADD, ACCOUNT_PICKER, APP, App, LAUNCH, Motion, Route, RunId, Scenario,
 };
 use termrock::{KeyCode, Theme};
 use termrock_test_support::Harness;
@@ -13,8 +13,8 @@ fn first_use_flow_enters_the_manager() {
         30,
     );
     assert_eq!(harness.app().route(), Route::Intro);
-    assert!(harness.text().contains("No running instances found"));
-    assert!(harness.area_of(ENTER).is_some());
+    assert!(harness.text().contains("Enter Skip"), "{}", harness.text());
+    assert!(harness.text().contains("jackin❯"), "{}", harness.text());
 
     let _ = harness.key(KeyCode::Enter);
     assert_eq!(harness.app().route(), Route::Manager);
@@ -64,7 +64,7 @@ fn product_routes_and_account_picker_render_through_the_facade() {
 
     let _ = harness.key(KeyCode::Char('a'));
     assert_eq!(harness.app().route(), Route::Accounts);
-    assert!(harness.text().contains("Account & Usage Center"));
+    assert!(harness.text().contains("Overview"));
     let _ = harness.click_id(ACCOUNT_ADD);
     assert!(harness.is_open(ACCOUNT_PICKER));
     let _ = harness.key(KeyCode::Esc);
@@ -182,7 +182,7 @@ fn scenarios_and_references_are_stable_without_secret_material() {
         30,
     );
     let rendered = harness.text();
-    assert!(rendered.contains("Engineering"));
+    assert!(rendered.contains("1Password available"), "{}", rendered);
     assert!(!rendered.contains("openai:valid-cdx01"));
     assert!(!rendered.contains("anthropic:valid-ant01"));
 }

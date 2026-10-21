@@ -1,0 +1,19 @@
+{
+  "utc": "2026-10-21T11:26:13.954599+00:00",
+  "head": "f2f6eb716c4a512be3dc9423742fa06e86879b32",
+  "removed_roots": [
+    ".github-gen",
+    ".github/actions/u26",
+    ".github/actions/velnor-tools-prelude-u26",
+    "baseline",
+    "baselines/regen-sidecars",
+    "baselines/tuiscotti-v1"
+  ],
+  "removed_files": 67315,
+  "tracked_clean": true,
+  "index_entries_unchanged": true,
+  "remaining_status_entries": 0,
+  "manifest_sha256": "7af25e104d7e206ae063395bd59626bb015a4d6c9b51a754b776a92088b89dd3",
+  "sole_empty_placeholder_exception": "baselines/tuiscotti-v1/showcase/trees/expanded/80x24/nocolor.html",
+  "backup_created": false
+}

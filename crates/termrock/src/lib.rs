@@ -19,6 +19,7 @@ pub mod collections {
 pub mod runtime {
     pub use termrock_runtime::*;
 }
+pub mod slots;
 pub mod controls {
     pub use termrock_controls::*;
 }
@@ -52,6 +53,11 @@ pub mod terminal {
 pub mod session {
     pub use termrock_session::*;
 }
+pub mod shell {
+    pub use termrock_shell::*;
+}
+pub mod blocks;
+pub mod composition;
 pub mod author {
     pub use ratatui_core::buffer::{Buffer, Cell};
     pub use ratatui_core::layout::{Position, Rect};
@@ -80,10 +86,17 @@ pub use termrock_core::custom_hash16;
 pub use termrock_core::id;
 pub use termrock_core::id::{Id, ItemKey, Part, PartRef, Revision};
 
+pub use blocks::{
+    AppShell, AppShellExt, AppShellSlots, Chrome, EmptyLeaf, MasterDetail, MasterDetailAction,
+    MasterDetailError, MasterDetailPolicy, MasterDetailState, Regions, ShellSlots, SplitBlock,
+    SplitBlockError,
+};
+pub use slots::{DialogSlotExt, FormDialogSlotExt, PickerSlotExt, PropsSlotExt};
+pub use termrock_runtime::ui::LayerSlot;
 pub use termrock_runtime::{
     Acc, ActivationFeedback, ActivationKey, App, ClockError, FeedbackClock, FeedbackClockError,
-    Moment, PaintedFrame, PendingInput, RenderSnapshot, RenderSnapshotError, Runtime,
-    SimulationMoment, TypingPolicy, UpdateCause,
+    Moment, PaintedFrame, PendingInput, PreparedFrame, PreparedFrameError, RenderSnapshot,
+    RenderSnapshotError, Runtime, SimulationMoment, TypingPolicy, UpdateCause,
 };
 pub use termrock_runtime::{Cx, FrameRead, LayoutFacts, ReferenceState, ReferenceTarget, Ui};
 #[cfg(feature = "testing")]
@@ -94,6 +107,7 @@ pub use termrock_session::{
 
 pub use termrock_core::action::{Action, ActionKey};
 pub use termrock_core::diagnostics::Diagnostic;
+pub use termrock_core::edit_entry::EditEntry;
 pub use termrock_core::event::{Axis, Chord, Input, Key, KeyCode, KeyModifiers, Mouse, MouseKind};
 pub use termrock_core::intent::{FocusVia, Intent, IntentIter, Phase};
 pub use termrock_core::keys::{MediaKeyCode, ModifierKeyCode};
@@ -111,16 +125,17 @@ pub use termrock_runtime::{
 };
 
 pub use termrock_runtime::layer::{
-    Anchor, Backdrop, CrossAlign, Dismiss, DismissReason, LayerEvent, LayerId, LayerKind,
-    LayerSize, LayerSpec, ScreenAlign, Side, backdrop_area, resolve_anchor,
+    Anchor, Backdrop, CrossAlign, Dismiss, DismissReason, FocusContinuationOutcome,
+    LayerCompletion, LayerEvent, LayerId, LayerKind, LayerOpening, LayerSize, LayerSpec,
+    ScreenAlign, Side, backdrop_area, resolve_anchor,
 };
 
 pub use termrock_theme::{
-    Align, BorderSet, CapabilityPalettes, ColorLevel, ColorTokens, Density, DesignTokens, FG_STEPS,
-    Family, FgStep, GlyphRole, MONO_RULES_PER_FAMILY, MeterFillRest, MeterRole, MeterThresholds,
-    Modifier, MonoRule, Overlay, OverlayRule, PaintStyle, PartMetrics, Resolved, Role,
-    SURFACE_LEVELS, Slot, StyleDefaults, StylePatch, Surface, SyntaxRole, Theme, ThemeBuilder,
-    Variant,
+    Align, BorderSet, CapabilityPalettes, ColorLevel, ColorTokens, CursorStyle, Density,
+    DesignTokens, FG_STEPS, Family, FgStep, GlyphRole, MONO_RULES_PER_FAMILY, MeterFillRest,
+    MeterRole, MeterThresholds, Modifier, MonoRule, Overlay, OverlayRule, PaintStyle, PartMetrics,
+    Resolved, Role, SURFACE_LEVELS, Slot, StyleDefaults, StylePatch, Surface, SyntaxRole, Theme,
+    ThemeBuilder, Variant,
 };
 
 pub use termrock_layout::{Constraints, Size};
@@ -138,34 +153,36 @@ pub use termrock_collections::{
     ByIndex, CollectionCore, DefaultRow, KeyFn, KeySet, Reconcile, Reconciliation, SelectMode,
 };
 pub use termrock_runtime::{
-    CellDecor, CellUi, ColumnsUi, EmptyState, MAX_COLUMNS, RowDecor, RowFn, RowTotal, RowUi, Status,
+    CellDecor, CellUi, ColumnsUi, EmptyState, MAX_COLUMNS, RowDecor, RowFn, RowTotal, RowUi,
+    ScrollbarGutter, Status,
 };
 
 pub use termrock_controls::{
-    Brand, Button, ButtonCmd, Checkbox, ChoiceCmd, Empty, LabelRadio, Panel, PanelKind, Props,
-    PropsAction, PropsCmd, PropsList, PropsRow, PropsState, PropsValue, RadioField, RadioGroup,
-    RadioGroupAction, RadioGroupState, SplitAction, SplitCmd, SplitPane, SplitPaneState, Toggle,
-    TooSmall,
+    Brand, BusyMarkerPolicy, Button, ButtonCmd, Checkbox, ChoiceCmd, Empty, LabelRadio,
+    MasterDetailCmd, MasterDetailLayout, MasterDetailMode, Panel, PanelKind, Props, PropsAction,
+    PropsCmd, PropsList, PropsRow, PropsState, PropsValue, RadioField, RadioGroup,
+    RadioGroupAction, RadioGroupState, RadioNavigation, ResetPolicy, SplitAction, SplitCmd,
+    SplitPane, SplitPaneState, Toggle, TooSmall,
 };
 
 pub use termrock_fields::{
-    BlurPolicy, EditPhase, ErrorState, Field, NoValidate, Note, TextAction, TextArea,
+    BlurPolicy, EditPhase, ErrorState, Field, FocusSelect, NoValidate, Note, TextAction, TextArea,
     TextAreaState, TextCmd, TextInput, TextInputState, Validate, discard_error, redacted_text,
 };
 pub use termrock_runtime::field_control::FieldControl;
 
 pub use termrock_feedback::{
     DerivedHintBar, Emphasis, Group, HintBar, KeyHint, MAX_ITEMS, Meter, MeterTone, MeterVisual,
-    ProgressBar, Spinner, StatusAction, StatusBar, StatusItem,
+    ProgressBar, Spinner, StatusAction, StatusBar, StatusItem, TextSection,
 };
 
 pub use termrock_navigation::{
     AsItem, BadgeFn, ChipBar, ChipBarAction, ChipBarCmd, ChipBarState, FilterList,
-    FilterListAction, FilterListCmd, FilterListState, FilterPolicy, Item, ItemRow, ItemRowLayout,
-    List, ListAction, ListCmd, ListState, NavList, NavListAction, NavListCmd, NavListState,
-    NavMode, NodeKind, StepState, Steps, StepsAction, StepsCmd, StepsState, Tabs, TabsAction,
-    TabsCmd, TabsState, Tree, TreeAction, TreeBranchActivation, TreeBranchClick, TreeCmd, TreeNode,
-    TreeState,
+    FilterListAction, FilterListCmd, FilterListState, FilterPolicy, Item, ItemLabelOverflow,
+    ItemRow, ItemRowLayout, List, ListAction, ListCmd, ListState, NavList, NavListAction,
+    NavListCmd, NavListState, NavMode, NodeKind, SelectionPolicy, SemanticItemRow, StepState,
+    Steps, StepsAction, StepsCmd, StepsState, Tabs, TabsAction, TabsCmd, TabsState, Tree,
+    TreeAction, TreeBranchActivation, TreeBranchClick, TreeCmd, TreeNode, TreeState,
 };
 
 pub use termrock_viewport::{
@@ -179,9 +196,9 @@ pub use termrock_overlays::{
     CommandPalette, Completion, CompletionAction, CompletionCmd, CompletionController,
     CompletionState, ContextMenu, Dialog, DialogAction, DialogCmd, DialogState, HelpAction,
     HelpCmd, HelpOverlay, HelpOverlayState, HelpSection, LabelSelect, Menu, MenuAction, MenuBar,
-    MenuCmd, MenuItem, MenuState, Picker, PickerAction, PickerChain, PickerChainAction,
-    PickerChainCmd, PickerChainState, PickerStage, PickerState, ScopeKey, Select, SelectAction,
-    SelectCmd, SelectField, SelectState,
+    MenuBarHoverScope, MenuCmd, MenuItem, MenuState, Picker, PickerAction, PickerChain,
+    PickerChainAction, PickerChainCmd, PickerChainState, PickerLayout, PickerStage, PickerState,
+    ScopeKey, Select, SelectAction, SelectCmd, SelectField, SelectState,
 };
 
 pub use termrock_grid::{
@@ -192,13 +209,16 @@ pub use termrock_grid::{
 };
 
 pub use termrock_editors::{
-    CodeAction, CodeCmd, CodeDiagnostic, CodeEditor, CodeEditorState, CodeSeverity, DiffLineKind,
-    DiffMode, DiffRow, DiffSource, DiffView, DiffViewState, Highlighter, Segmenter, TabBehavior,
+    CodeAction, CodeCmd, CodeDiagnostic, CodeEditor, CodeEditorState, CodeSeverity,
+    CompletingCodeEditor, CompletingCodeEditorState, DiffLineKind, DiffMode, DiffRow, DiffSource,
+    DiffView, DiffViewState, Highlighter, Segmenter, TabBehavior,
 };
 
 pub use termrock_forms::{
-    FieldKind, FieldMut, FieldRef, FieldSpan, FieldSpec, Form, FormAction, FormData, FormState,
-    GroupKey, Wizard, WizardAction, WizardCmd, WizardState, WizardStep,
+    EnterPolicy, FieldKind, FieldMut, FieldRef, FieldSizingPolicy, FieldSpan, FieldSpec, Form,
+    FormAction, FormData, FormDialog, FormDialogAction, FormDialogLayoutPolicy, FormDialogState,
+    FormDialogSubmitPolicy, FormState, GroupKey, Wizard, WizardAction, WizardCmd, WizardState,
+    WizardStep,
 };
 
 pub use termrock_render::{TerminalCell, TerminalCursor, TerminalSource};
@@ -223,5 +243,6 @@ mod tests {
         assert_ne!(id.hash(), 0);
         let rev = Revision::zero();
         assert_eq!(rev.0, 0);
+        assert_eq!(CursorStyle::default(), CursorStyle::Bar);
     }
 }

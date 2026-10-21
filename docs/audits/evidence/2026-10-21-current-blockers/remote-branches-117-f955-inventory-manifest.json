@@ -1,0 +1,10 @@
+{
+  "snapshot": "f95593776c9b2d2c3368140af0b578cf82131a85",
+  "format": "gzip; original JSON bytes preserved exactly",
+  "raw_bytes": 154249527,
+  "raw_sha256": "bcda04f0bbae22e80db5157d6e3e74227796e4f568a5a1eb021b68d1e8e8b111",
+  "gzip_bytes": 4885782,
+  "gzip_sha256": "091b5f51e301c3b42b70b99ab6b7a0871acf511fa8ffe7822410bd81e0be2378",
+  "source": "external immutable remote-branches-inventory-after-336-20261021/inventory.json",
+  "reason": "Lossless archive avoids publishing a 154 MB metadata blob; no inventory entry or source conclusion changes."
+}

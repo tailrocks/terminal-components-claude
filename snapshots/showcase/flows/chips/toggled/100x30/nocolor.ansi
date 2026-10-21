@@ -1,0 +1,30 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Chips & selects     no color · 100×30   i Inspector   ? Help  [0m
+                                                                                                    [0m
+   Overview          [0m[1mChips & selects[0m  Removable chips, a popup select, and strips that drop what d… [0m
+   Buttons                                                                                          [0m
+   Inputs              Filters                                                            2 active  [0m
+   Text areas                                                                                       [0m
+   Forms                match all ▾   status = 'pending' ×    total > 100 ×   …                     [0m
+   Lists                                                                                            [0m
+   Trees               last action: nothing yet                                                     [0m
+   Tables                                                                                           [0m
+   Editable tables                                                                                  [0m
+   Panels              Selects                                                                      [0m
+   Sidebars                                                                                         [0m
+   Dialogs               [0m[1mSort by[0m                  Page size                Engine                   [0m
+   Progress            ▎ created_at         ▴     50                 ▾   [0m[2m  PostgreSQL           ▾ [0m  [0m
+   Scrolling           ╭─────────────────────╮                             Fixed by the connection  [0m
+   Terminal            │[0m[1m▎› created_at        [0m│                                                      [0m
+   Code editor         │   total             │                                                      [0m
+   Diff                │   status            │                                                      [0m
+   Data grid           │   customer          │                                                      [0m
+ › Chips & selects     Segment strip                                                                [0m
+   Pickers                                                                                          [0m
+   Chrome               ▪  [0m[1mAcme[0m  [0m[1m◆ production[0m  acme_prod › public  [0m[1msafe[0m         3 pending  ? help   [0m
+   Settings                                                                                         [0m
+   Task runner          ▪  [0m[1mAcme[0m  [0m[1m◆ production[0m  [0m[1msafe[0m                                                 [0m
+                       the same strip at 44 columns: low-priority segments leave first, from the …  [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+ [0m[1mEnter[0m Open  [0m[1m↑ ↓[0m Choose  [0m[1mEsc[0m Close  [0m[1mTab[0m Next                                                        [0m
