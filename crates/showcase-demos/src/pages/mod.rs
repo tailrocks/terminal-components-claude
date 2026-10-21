@@ -1,3 +1,4 @@
+use termrock::author::PaintStyle;
 use termrock::{Family, Part, Rect, Response, StateFlags, Ui, Variant, width};
 
 pub struct PageStatus(pub String);
@@ -128,6 +129,88 @@ fn paint_clipped_meta(
             meta_style,
         );
     }
+}
+
+/// The section strip every playground page opens with: the section tabs,
+/// their rule and the caption that names the live section.
+pub fn section_strip(ui: &mut Ui<'_>, area: Rect) {
+    const SECTIONS: [&str; 3] = ["Playground", "Options", "States"];
+    const CAPTION: &str = "the live widget";
+    const WIDE: u16 = 76;
+    const CANVAS: u32 = 0x000000;
+    const WHITE: u32 = 0xffffff;
+    const SECONDARY: u32 = 0xb3b3b3;
+    const FAINT: u32 = 0x737373;
+    const RULE: u32 = 0x3a3a3a;
+    const ACCENT: u32 = 0x48e054;
+    const TAB_ACTIVE: u32 = 0x27272a;
+    if area.is_empty() {
+        return;
+    }
+    let tab_width = |label: &str| width(label).saturating_add(3);
+    let mut x = area.x;
+    let mut tab_end = area.x;
+    for (index, label) in SECTIONS.iter().enumerate() {
+        let w = tab_width(label);
+        if x.saturating_add(w) > area.right() {
+            break;
+        }
+        let style = if index == 0 {
+            PaintStyle::new()
+                .fg(termrock::Color::Rgb(255, 255, 255))
+                .bg(termrock::Color::Rgb(39, 39, 42))
+                .add_modifier(termrock::Modifier::BOLD)
+        } else {
+            PaintStyle::new()
+                .fg(termrock::Color::Rgb(179, 179, 179))
+                .bg(termrock::Color::Rgb(0, 0, 0))
+        };
+        ui.fill(Rect::new(x, area.y, w, 1), style);
+        ui.paint_str(
+            Rect::new(x.saturating_add(1), area.y, w.saturating_sub(1), 1),
+            label,
+            style,
+        );
+        tab_end = x.saturating_add(w);
+        x = tab_end.saturating_add(1);
+    }
+    if area.width >= WIDE {
+        let caption_width = width(CAPTION);
+        let caption_x = area.right().saturating_sub(caption_width.saturating_add(1));
+        if caption_x > tab_end.saturating_add(2) {
+            ui.paint_str(
+                Rect::new(caption_x, area.y, caption_width, 1),
+                CAPTION,
+                PaintStyle::new()
+                    .fg(termrock::Color::Rgb(115, 115, 115))
+                    .bg(termrock::Color::Rgb(0, 0, 0)),
+            );
+        }
+    }
+    if area.height < 2 {
+        return;
+    }
+    let rule_y = area.y.saturating_add(1);
+    ui.paint_str(
+        Rect {
+            y: rule_y,
+            height: 1,
+            ..area
+        },
+        &"─".repeat(usize::from(area.width)),
+        PaintStyle::new()
+            .fg(termrock::Color::Rgb(58, 58, 58))
+            .bg(termrock::Color::Rgb(0, 0, 0)),
+    );
+    let active = tab_width(SECTIONS[0]).min(area.width);
+    ui.paint_str(
+        Rect::new(area.x, rule_y, active, 1),
+        &"━".repeat(usize::from(active)),
+        PaintStyle::new()
+            .fg(termrock::Color::Rgb(72, 224, 84))
+            .bg(termrock::Color::Rgb(0, 0, 0)),
+    );
+    let _ = (CANVAS, WHITE, SECONDARY, FAINT, RULE, ACCENT, TAB_ACTIVE);
 }
 
 pub fn lines(ui: &mut Ui<'_>, area: Rect, text: &[&str]) {
