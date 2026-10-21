@@ -819,6 +819,40 @@ mod tests {
     }
 
     #[test]
+    fn declaration_preserves_alignment_and_state_patch_channels() {
+        let mut edit = RecipeEdit::default();
+        edit.part(Part::LABEL)
+            .base(StylePatch::new().set_align(crate::Align::Right))
+            .when(
+                StateFlags::HOVERED | StateFlags::PRESSED,
+                StylePatch::new()
+                    .set_align(crate::Align::Center)
+                    .set_fg(Role::Accent)
+                    .add(Modifier::BOLD),
+            );
+
+        let declaration = AuthoredDeclaration::from_edit(
+            Family::BUTTON,
+            None,
+            DeclarationKind::Family,
+            None,
+            None,
+            &edit,
+        )
+        .expect("alignment and state patches are authored channels");
+        let part = declaration.parts.get(Part::LABEL).unwrap();
+        assert_eq!(part.base.align, Slot::Set(crate::Align::Right));
+        assert_eq!(part.states.len(), 1);
+        assert_eq!(
+            part.states[0].when,
+            StateFlags::HOVERED | StateFlags::PRESSED
+        );
+        assert_eq!(part.states[0].patch.align, Slot::Set(crate::Align::Center));
+        assert_eq!(part.states[0].patch.fg, Slot::Set(Role::Accent));
+        assert!(part.states[0].patch.add.contains(Modifier::BOLD));
+    }
+
+    #[test]
     fn declaration_clone_and_recipe_equality_include_authorship() {
         let mut edit = RecipeEdit::default();
         edit.part(Part::LABEL)
