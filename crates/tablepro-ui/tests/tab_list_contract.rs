@@ -1,3 +1,6 @@
+#[path = "common/tab_navigation.rs"]
+mod tab_navigation;
+
 use tablepro_ui::{Surface, TableProApp};
 use termrock::{Id, KeyCode, Theme};
 use termrock_test_support::Harness;
@@ -83,7 +86,7 @@ fn new_query_focus_belongs_to_the_visible_editor_at_adjacent_viewports() -> Resu
 }
 
 #[test]
-fn retired_query_editor_receives_focus_out_after_resize_before_next_query() {
+fn inactive_query_editor_receives_focus_out_without_ending_its_edit_session() {
     for (connection, width, resized_width) in
         [(0, 119, 121), (0, 121, 119), (4, 119, 121), (4, 121, 119)]
     {
@@ -102,6 +105,13 @@ fn retired_query_editor_receives_focus_out_after_resize_before_next_query() {
             harness.app().workbench.active(),
             Some(tablepro_ui::Tab::Query(query)) if query.editor_state.editor().is_editing()
         ));
+        let sql = "SELECT '東京 e\u{301}' AS saved_draft";
+        let _ = harness.type_str(sql);
+        let Some(tablepro_ui::Tab::Query(query)) = harness.app().workbench.active() else {
+            unreachable!("first Ctrl+T creates a query tab")
+        };
+        assert_eq!(query.query, sql);
+        assert_eq!(harness.diagnostics(), []);
 
         let _ = harness.resize(resized_width, 40);
         assert_eq!(harness.focus(), Some(first_editor));
@@ -121,9 +131,51 @@ fn retired_query_editor_receives_focus_out_after_resize_before_next_query() {
             harness.app().workbench.tabs().iter().find(|tab| tab.key() == first),
             Some(record)
                 if matches!(record.payload(), tablepro_ui::Tab::Query(query)
-                    if !query.editor_state.editor().is_editing())
+                    if query.editor_state.editor().is_editing()
+                        && query.editor_state.editor().text() == sql
+                        && query.query == sql)
         ));
     }
+}
+
+#[test]
+fn active_query_editor_commits_when_focus_moves_to_its_results() {
+    let mut app = TableProApp::new();
+    assert!(app.connect(0));
+    let outcome = app.run_query("SELECT id, email FROM customers LIMIT 3");
+    assert!(matches!(
+        outcome,
+        tablepro_ui::QueryOutcome::Executed { .. }
+    ));
+    let Some(query_id) = app.query_id() else {
+        unreachable!("running a query creates its editor")
+    };
+    let Some(results_id) = app.result_id() else {
+        unreachable!("running a query creates its result grid")
+    };
+    let mut harness = Harness::new(app, Theme::junie(), 120, 40);
+
+    assert!(tab_navigation::tab_to(&mut harness, query_id));
+    let _ = harness.key(KeyCode::End);
+    let _ = harness.type_str(" -- draft");
+    let Some(tablepro_ui::Tab::Query(query)) = harness.app().workbench.active() else {
+        unreachable!("active tab remains a query")
+    };
+    assert!(query.editor_state.editor().is_editing());
+    assert!(query.query.ends_with(" -- draft"));
+
+    assert!(tab_navigation::tab_to(&mut harness, results_id));
+
+    let Some(tablepro_ui::Tab::Query(query)) = harness.app().workbench.active() else {
+        unreachable!("active tab remains a query")
+    };
+    assert!(!query.editor_state.editor().is_editing());
+    assert!(query.query.ends_with(" -- draft"));
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
 }
 
 #[test]
