@@ -100,7 +100,9 @@ const fn junie_256() -> ColorTokens {
         danger_tint: Color::Indexed(52),
         warning: Color::Indexed(214),
         warning_tint: Color::Indexed(234),
-        success: Color::Indexed(78),
+        // Frozen apply_256 (`self.success = i(71)`): the status green renders
+        // cube cell 71, distinct from the accent cell 78.
+        success: Color::Indexed(71),
         info: Color::Indexed(147),
         disabled_fg: Color::Indexed(239),
         disabled_bg: Color::Indexed(235),
@@ -162,6 +164,8 @@ fn junie_16() -> ColorTokens {
     // DarkGray at 16 in every tier frame; the current 0x737373 source would
     // generically land on Gray.
     tokens.fg[3] = Color::DarkGray;
+    // Frozen apply_16 (`self.success = Green`): base ladder slot, not bright.
+    tokens.success = Color::Green;
     tokens.meter.stale = Color::DarkGray;
     tokens.meter.unknown = Color::DarkGray;
     tokens
@@ -209,7 +213,8 @@ const fn junie_mono() -> ColorTokens {
         danger_tint: Color::Black,
         warning: Color::Gray,
         warning_tint: Color::Black,
-        success: Color::Gray,
+        // Frozen apply_mono (`self.success = White`, tag `src/theme.rs:1088`).
+        success: Color::White,
         info: Color::Gray,
         disabled_fg: Color::DarkGray,
         disabled_bg: Color::Black,
