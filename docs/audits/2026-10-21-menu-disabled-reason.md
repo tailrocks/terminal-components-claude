@@ -148,12 +148,19 @@ found that `clear_on_leave(true)` hid the row highlight but Enter/Space still
 activated the stored cursor. The menu now consumes these keyboard activation
 bindings while the highlight is hidden; pointer activation remains unchanged,
 and keyboard navigation restores the highlight before activation. The frozen
-source at `4169783ae883788186d161af09ba9c481bd84e5c:src/widgets/menu.rs:463`
-guards Enter/Space when `highlighted()` is absent, while checking explicit item
-accelerators before that guard. The real `Harness` regression failed before the
-fix with `Chosen(RUN)` after pointer leave and passes after it, including both
-Enter and Space and subsequent Home/Enter activation. This is a shared widget
-contract fix, not baseline artifact approval.
+source at `4169783ae883788186d161af09ba9c481bd84e5c:src/widgets/menu.rs:463-472`
+guards unmodified Enter/Space before the ordinary character accelerator
+dispatch. The guard blocks only those physical keys; ordinary letters remain
+eligible because they do not match Enter/Space. The real `Harness` regression
+failed before the initial fix with `Chosen(RUN)` after pointer leave. A follow-up
+regression also reproduced physical Enter/Space remapped to item bindings
+bypassing the command guard. ContextMenu now checks the runtime's
+`Cx::activation_key()` before dispatching any binding while its highlight is
+hidden, preventing those physical-key bypasses. Alternate typed activation
+commands, ordinary letter item shortcuts, and pointer activation remain
+available. Both remapped physical-key cases were red before this follow-up and
+are green with the normal Enter/Space, Home-restoration, and ordinary shortcut
+cases. This is a shared widget contract fix, not baseline artifact approval.
 
 The same review rejects the earlier nested lower-layer pass because the old
 fixture swallowed a rejected `Tick` and never opened `UPPER`. The independent
@@ -164,3 +171,46 @@ the strengthened admitted upper-layer fixture is red and separately records
 the in-place `ForcedWidth(4)` space metadata defect as red. Neither Runtime
 finding is in this menu-only scope; both remain unresolved and no nested
 underlay correctness is claimed here.
+
+## Independent review correction (2026-10-21, follow-up)
+
+The immutable review
+`menu-underlay-4a39a666-independent-review-20261021/review.json` (SHA-256
+`3a96dfca5624d864c42099672d64949a55f18796e6e99d8838c818e2cf7ea`)
+corrects the previous paragraph's source-order statement: frozen source lines
+463-465 consume Enter/Space before lines 468-472 inspect ordinary character
+accelerators. Ordinary letters are permitted because they do not match the
+physical activation-key guard, not because the accelerator lookup occurs first.
+The runtime's `Cx::activation_key()` identifies the unmodified physical key so
+the guard remains effective when Enter or Space is remapped to an item's action.
+An alternate remapped activation command uses another physical key and remains
+available; pointer activation is unaffected.
+
+The same review records an inherited Mono visual-state gap: with the current
+MENU DEFAULT recipe, the enabled row's active and clear-on-leave hidden cells
+are identical in Mono despite the hidden state blocking activation. This was
+reproduced on both `7ab3d12e` and `4a39a666`; no theme or palette change is made
+here. All-profile visual parity is therefore incomplete pending an independently
+reviewed shared-theme/component resolution. Existing 4-profile frame checks and
+the unchanged default-frame digest do not close this state-specific gap.
+
+The prior push-lock owner line contained a quoted, unevaluated `$(uuidgen)`
+placeholder; that lock was safely released after publication. Subsequent lock
+owners must use actual UTC, PID, and a generated UUID, and verify the exact owner
+token before removing the lock.
+
+The follow-up implementation applies `Cx::activation_key()` at the shared
+binding-dispatch boundary before either command or dynamic item-action routing.
+This blocks unmodified physical Enter/Space while a highlight is hidden even
+when those keys have been remapped to an item action. A regression reproducing
+both Enter→RUN/activation→F9 and Space→RUN/activation→F8 was red before the
+change and passes after it. Separate real-runtime checks confirm the alternate
+typed activation commands, ordinary `x` item shortcut, and pointer click still
+activate the row. Exact source-order correction is as stated above: frozen
+416 checks Enter/Space before ordinary character dispatch.
+
+The all-profile Mono visual-admission case remains deliberately unresolved.
+The current hidden row is mechanically nonactivatable, but its Mono DEFAULT
+cells do not visibly differ from the active row. No global palette or widget
+default was changed; the 4-profile visual-state acceptance gate remains
+incomplete until an independently reviewed shared-theme/component fix lands.
