@@ -275,7 +275,9 @@ const CONNECTION_DETAILS_TITLE_PATCH: [(Part, StylePatch); 1] = [(
 // Info #8787ff, and Danger #e44545. None of those roles match the frame.
 const TAG_CHROME_FG: Role = Role::Custom(termrock::Color::from_u32(0x008a_8a8a));
 const TAG_PATH_FG: Role = Role::Custom(termrock::Color::from_u32(0x00b3_b3b3));
-const TAG_OK_FG: Role = Role::Custom(termrock::Color::from_u32(0x003f_b950));
+// The frozen app paints the status green through the theme success slot
+// (apply_256 = i(71), apply_16 = Green), not a custom hex downgrade.
+const TAG_OK_FG: Role = Role::Success;
 const TAG_RULE_FG: Role = Role::Custom(termrock::Color::from_u32(0x003a_3a3a));
 const LEGACY_FAINT: Role = Role::Custom(termrock::Color::from_u32(0x0073_7373));
 const LEGACY_INFO: Role = Role::Custom(termrock::Color::from_u32(0x0079_b8ff));
