@@ -1,3 +1,15 @@
+# 2026-10-23: owner decision owed — danger-token reference package
+
+`docs/audits/2026-10-23-danger-token-reference-decision.md` consolidates
+the scattered danger-ink record (the 2026-10-22 jackin digest-drift
+adjudication, restore `740374edb2`, the 2026-10-21 junie palette ladder,
+D-010) into one owner decision: approve the tag-source values
+(`#f05d5d`, danger_soft ruling, 256 tier 167/210/203) as oracle and
+authorize regeneration of the corpus and expected stores, or reject and
+pin the corpus values by reverting `740374edb2`. Full store inventory and
+both options' consequences are in that document. Until the owner rules,
+the three recorded reds stay red and no expected output is re-pinned.
+
 # 2026-10-22: branch-consolidation source-refresh lane remains in progress
 
 This lane tracks the branch-consolidation prompt dated 2026-10-21 15:36. Its evidence does not approve the application migrations or supersede implementation evidence below. Publish repository increments to `parity/termrock-visual-baseline` only after fetching, reconciling concurrent changes, and checking the resulting commit. The original design checkout, PR #26, and frozen tag remain reference-only.
