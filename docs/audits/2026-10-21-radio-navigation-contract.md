@@ -28,3 +28,9 @@ No baseline snapshots or hashes were changed. Full workspace and paired visual g
 ## Independent review correction
 
 The independent review at `branch-consolidation/radio-navigation-review-e8b6526-20261021/review.json` found that Immediate navigation compared the destination with the prior cursor. After a pointer press moved the cursor and an outside release cancelled activation, End (or Down at the last row) could leave the chosen value unchanged. A real-runtime regression for both sequences failed on the reviewed source before correction. Immediate navigation now emits `Chose(destination)` whenever the controlled value differs, even when the cursor is already there. Deferred navigation and cancelled pointer activation retain their separate behavior. Showcase coverage for the public `RadioNavigation` capability remains unresolved; this change adds no Showcase screen.
+
+## Test lint cleanup
+
+The independent strict-Clippy review also found `similar_names` between `save` and `safe`, and `too_many_lines` in the 113-line form radio test. Split its setup, radio-stop checks, and Save/Ctrl+S assertions into test helpers; renamed the saved control binding `save_action`. Preserved each input event, assertion, and connection-count expectation. Saturating addition keeps the same saved-count checks while satisfying the configured arithmetic lint. No production source changed.
+
+`cargo nextest run -p tablepro-ui --test form_radio --no-fail-fast` passes all 11 tests. `cargo clippy -p tablepro-ui --test form_radio --no-deps -- -Dwarnings` passes; the broader all-targets UI Clippy run also requires the separately reviewed blank-draft `connection_form_focus` test correction, which remains a separate prerequisite commit.
