@@ -20,6 +20,8 @@ const WHITE: Color = Color::from_u32(0xff_ff_ff);
 const WHITE_70: Color = Color::from_u32(0xb3_b3_b3);
 const WHITE_50: Color = Color::from_u32(0x80_80_80);
 const WHITE_30: Color = Color::from_u32(0x4d_4d_4d);
+const TEXT_MUTED: Color = Color::from_u32(0x8a_8a_8a);
+const TEXT_FAINT: Color = Color::from_u32(0x73_73_73);
 const WHITE_15: Color = Color::from_u32(0x26_26_26);
 const GREEN: Color = Color::from_u32(0x48_e0_54);
 const GREEN_80: Color = Color::from_u32(0x3a_b3_43);
@@ -33,13 +35,17 @@ const RED_45: Color = Color::from_u32(0x7a_2a_2a);
 const AMBER: Color = Color::from_u32(0xf5_9e_09);
 const AMBER_TINT: Color = Color::from_u32(0x2c_22_10);
 const PURPLE: Color = Color::from_u32(0x87_87_ff);
+const BLUE_INFO: Color = Color::from_u32(0x79_b8_ff);
+const SYNTAX_STRING: Color = Color::from_u32(0x8b_d5_ca);
+const SYNTAX_NUMBER: Color = Color::from_u32(0xc6_a0_f6);
+const DIAGNOSTIC_ERROR: Color = Color::from_u32(0xf0_5d_5d);
 
 pub(crate) const fn tokens() -> ColorTokens {
     ColorTokens {
         surfaces: [BLACK, CHROME, CARD, OVERLAY, POPOVER],
         field: INPUT,
         field_hover: INPUT_HOVER,
-        fg: [WHITE, WHITE_70, WHITE_50, WHITE_30, WHITE_15],
+        fg: [WHITE, WHITE_70, TEXT_MUTED, TEXT_FAINT, WHITE_15],
         on_accent: ON_GREEN,
         on_danger: WHITE,
         on_surface_inverse: BLACK,
@@ -71,14 +77,15 @@ pub(crate) const fn tokens() -> ColorTokens {
         read_only_fg: WHITE_70,
 
         syntax: SyntaxTokens {
-            // The frozen corpus paints SQL keywords bold white and the
-            // operator glyph in the mid grey; a blue keyword is not in it.
-            keyword: WHITE,
+            // The frozen source at 4169783 paints the keyword in
+            // BLUE_INFO (0x79b8ff), the string in SYNTAX_STRING and the
+            // literal in SYNTAX_LITERAL; the approved frames agree.
+            keyword: BLUE_INFO,
             ident: WHITE,
-            string: WHITE_70,
-            number: WHITE_70,
-            operator: WHITE_50,
-            punct: WHITE_50,
+            string: SYNTAX_STRING,
+            number: SYNTAX_NUMBER,
+            operator: TEXT_MUTED,
+            punct: TEXT_MUTED,
             comment: WHITE_30,
             plain: WHITE,
             type_name: WHITE,
@@ -89,7 +96,7 @@ pub(crate) const fn tokens() -> ColorTokens {
             match_bg: GREEN_20,
             match_current_bg: HIGHLIGHT,
             bracket_match: GREEN,
-            diagnostic_error: RED,
+            diagnostic_error: DIAGNOSTIC_ERROR,
             diagnostic_warning: AMBER,
             diagnostic_info: PURPLE,
         },
@@ -99,8 +106,8 @@ pub(crate) const fn tokens() -> ColorTokens {
             high: RED,
             track: WHITE_15,
             fill_rest: crate::theme::MeterFillRest::ReferenceLift,
-            stale: WHITE_30,
-            unknown: WHITE_30,
+            stale: TEXT_FAINT,
+            unknown: TEXT_FAINT,
             series: [GREEN, AMBER, RED, PURPLE, WHITE_70, WHITE_50],
         },
     }
@@ -115,10 +122,10 @@ pub(crate) const GLYPHS: GlyphSet = GlyphSet::new(
         "+", "[", "]", "•", "▾", "▴",
     ],
     scrollbar::Set {
-        track: "│",
+        track: "┆",
         thumb: "┃",
-        begin: "│",
-        end: "│",
+        begin: "┆",
+        end: "┆",
     },
     line::NORMAL,
     line::THICK,
