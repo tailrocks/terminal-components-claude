@@ -1,0 +1,135 @@
+{
+  "schema": 1,
+  "reviewed_at": "2026-10-21T03:15:16.818440+00:00",
+  "reviewer": "/root/list_multiline_independent_reviewer",
+  "kind": "Read-only branch cleanup review; no deletion, checkout, source edit, or test execution",
+  "pr38_target": "f8f3a576f2149b58d6e05ecfa42acb1f7605c307",
+  "pr38_identity": {
+    "base": "main",
+    "head": {
+      "ref": "parity/termrock-visual-baseline",
+      "repo": "tailrocks/terminal-components-claude",
+      "sha": "f8f3a576f2149b58d6e05ecfa42acb1f7605c307"
+    },
+    "number": 38,
+    "state": "open"
+  },
+  "decision": "Two explicitly parent-owned preservation refs are eligible for exact-tip CAS deletion after coordinator rechecks under its own push lock. Optional integration ref is content-integrated but ownership remains unproven; retain it.",
+  "branches": {
+    "wip/parent-picker-gate-20261021": {
+      "exact_tip": "9f6659a51b793fe60f9ffee86e986afc1d4824ba",
+      "ancestor_of_pr38": true,
+      "unique_commit_count": 0,
+      "unique_unreviewed_git_commits": false,
+      "record_preserved": true,
+      "attached_registered_worktrees": [],
+      "open_pull_requests": [],
+      "protected": false,
+      "effective_rules": [],
+      "ownership_confirmed_by_parent_assignment": true,
+      "ownership_qualification": "Explicitly identified as parent-owned in the assignment.",
+      "disposition": "eligible exact-tip CAS deletion",
+      "recommended_command_not_executed": [
+        "git",
+        "push",
+        "--force-with-lease=refs/heads/wip/parent-picker-gate-20261021:9f6659a51b793fe60f9ffee86e986afc1d4824ba",
+        "origin",
+        ":refs/heads/wip/parent-picker-gate-20261021"
+      ]
+    },
+    "wip/parent-tablepro-blank-validation-20261021": {
+      "exact_tip": "2ff8d9348962b8334da39c1552f6b9087e1a4ffb",
+      "ancestor_of_pr38": true,
+      "unique_commit_count": 0,
+      "unique_unreviewed_git_commits": false,
+      "record_preserved": true,
+      "attached_registered_worktrees": [],
+      "open_pull_requests": [],
+      "protected": false,
+      "effective_rules": [],
+      "ownership_confirmed_by_parent_assignment": true,
+      "ownership_qualification": "Explicitly identified as parent-owned in the assignment.",
+      "disposition": "eligible exact-tip CAS deletion",
+      "recommended_command_not_executed": [
+        "git",
+        "push",
+        "--force-with-lease=refs/heads/wip/parent-tablepro-blank-validation-20261021:2ff8d9348962b8334da39c1552f6b9087e1a4ffb",
+        "origin",
+        ":refs/heads/wip/parent-tablepro-blank-validation-20261021"
+      ]
+    },
+    "parity/picker-stack-integration-20261020": {
+      "exact_tip": "801e6c94892703bde5309e3daa31f37c3a727910",
+      "ancestor_of_pr38": true,
+      "unique_commit_count": 0,
+      "unique_unreviewed_git_commits": false,
+      "record_preserved": true,
+      "attached_registered_worktrees": [],
+      "open_pull_requests": [],
+      "protected": false,
+      "effective_rules": [],
+      "ownership_confirmed_by_parent_assignment": false,
+      "ownership_qualification": "No ownership inference from branch name, commit author, or ancestry.",
+      "disposition": "retain pending owner attribution and coordinator decision",
+      "evidence_qualification": "Entire old integration audit bytes remain as an exact prefix of the current audit; later verification records were appended. No source/evidence commit remains unique, but that does not establish task ownership."
+    }
+  },
+  "findings": [],
+  "preconditions": [
+    "Acquire the common push.lock and write the coordinator owner token; never remove a foreign lock under50minutes.",
+    "Re-read each exact remote tip and the current PR38 head. Abort if a cleanup tip has advanced; never discard unreviewed work.",
+    "Recheck is-ancestor against the latest PR38 head and ensure no new attached branch writer/openPR/protection rule appeared.",
+    "Delete only the exact parent-owned task refs with their exact lease SHA. Do not rewrite any branch history or touch main,design,visual-baseline,PR26 orPR38.",
+    "Verify remote absence and record the deletion plus retained optional ref in the current migration matrix. Update the stale current-summary claim that local work is protected by the now-obsolete TablePro WIP ref."
+  ],
+  "verification_limits": [
+    "No product or library acceptance is inferred from ancestry or cleanup eligibility.",
+    "Parent-reported444/444, strict scoped lint and full formatting afterRadio integration were not independently rerun for this read-only cleanup task.",
+    "Existing incoming source/audit gaps remain onPR38; removing an ancestor-only ref does not approve those changes.",
+    "Local registered worktrees were inspected. Unregistered clones and external operator activity cannot be proved absent; exact leases plus parent ownership are required at deletion."
+  ],
+  "evidence": {
+    "final-ancestry-and-preservation-corrected.json": {
+      "sha256": "9abd77d1624a4b771587ddc510d1866d8f917937dc8085187ffe05380faf4e55",
+      "bytes": 32591
+    },
+    "fresh-remote-and-ownership.json": {
+      "sha256": "93e02dcd322ad2c8db105547ea80c713e36ed3834be436caa796270059bc25dd",
+      "bytes": 24708
+    },
+    "integration-analysis.json": {
+      "sha256": "aca2015b574d8b25b73223a13cb31a1751bda593ad4d0b70a4161a05e265802b",
+      "bytes": 29936
+    },
+    "parity-picker-stack-integration-20261020-tip-record.md": {
+      "sha256": "9e28501276bb87df1cce2171fe483b96cf69f35532654133e682d62f024d7b25",
+      "bytes": 6804
+    },
+    "record-preservation-and-final-identity.json": {
+      "sha256": "595071d1116363dfa630644a25dccae61300a60c8d3d8e9d60c22cc139cbd119",
+      "bytes": 2890
+    },
+    "tablepro-parent-preservation-addendum.json": {
+      "sha256": "434d0265dccd8e4bc601b474c9a09d8930e9165843dee055e30ea563249956db",
+      "bytes": 3527
+    },
+    "tablepro-parent-record-preservation.json": {
+      "sha256": "ed6cb3c6c1f4ffd555f4cf85e0a37e1d9e7ca33a60d6da10ada177959ea658cb",
+      "bytes": 336
+    },
+    "tablepro-parent-tip-hold-record.md": {
+      "sha256": "ca8372b74255312f26d8d37eaab6d86ff081157c664300e3a744a8e5de95191b",
+      "bytes": 2527
+    },
+    "wip-parent-picker-gate-20261021-tip-record.md": {
+      "sha256": "b7c5c9998eafbf8288d692efef675de989b284307999c5e36121a02877c9575f",
+      "bytes": 906
+    }
+  },
+  "retained_integration_commits": {
+    "454e3b34d10a9b095d1240e5e78820b72d53d21f": true,
+    "e95670db67c224607ce9b7ebee83d392f20bf0de": true,
+    "6b639c4dd8f83dc3b31449df0f5a49393900ccc0": true
+  },
+  "historical_artifact_correction": "The first preservation artifact used whole-file byte equality for the optional audit and recordedfalse. The corrected analysis proves all original audit bytes are retained as a prefix with only later evidence appended. The original artifact is preserved; final conclusions use the corrected analysis."
+}
