@@ -2475,14 +2475,14 @@ class RunnerGuards(unittest.TestCase):
             pending_path = Path(f"{commitment_path}.pending")
             key_path = base / "private-custody" / "run.key"
             output = io.StringIO()
-            original_atomic_create = runner._atomic_create_bytes
+            original_atomic_create = runner._atomic_create_bytes_at
 
-            def fail_manifest(path, payload, mode=0o400, *, check_work=None):
-                if path.name == runner.FRESH_RUN_MANIFEST_FILE:
+            def fail_manifest(directory_fd, name, payload, mode=0o400, *, expected_identity, check_work):
+                if name == runner.FRESH_RUN_MANIFEST_FILE:
                     raise OSError("injected manifest publication failure")
-                return original_atomic_create(path, payload, mode, check_work=check_work)
+                return original_atomic_create(directory_fd, name, payload, mode, expected_identity=expected_identity, check_work=check_work)
 
-            with patch.object(runner, "verify_fresh_plan", return_value=plan), patch.object(runner, "_git_metadata_paths", return_value=set()), patch.object(runner, "_atomic_create_bytes", side_effect=fail_manifest), patch.object(runner.sys, "stdout", output):
+            with patch.object(runner, "verify_fresh_plan", return_value=plan), patch.object(runner, "_git_metadata_paths", return_value=set()), patch.object(runner, "_atomic_create_bytes_at", side_effect=fail_manifest), patch.object(runner.sys, "stdout", output):
                 with runner.PrepareExecution(20) as execution, self.assertRaisesRegex(OSError, "injected manifest publication failure"):
                     runner.create_fresh_run(
                         root / "repo", root, "fixture-cohort", root / "bins", 30,
@@ -2511,14 +2511,14 @@ class RunnerGuards(unittest.TestCase):
             plan_digest = runner.sha256(_plan_path)
             pending_path = Path(f"{commitment_path}.pending")
             key_path = base / "private-custody" / "run.key"
-            original_atomic_create = runner._atomic_create_bytes
+            original_atomic_create = runner._atomic_create_bytes_at
             moved = base / "moved-root"
             replacement_run = root / "fresh-runs" / str(plan["plan_id"])
             replacement_before: dict[str, tuple[int, bytes | None]] = {}
 
-            def publish_manifest_then_replace_root(path, payload, mode=0o400, *, check_work=None):
-                result = original_atomic_create(path, payload, mode, check_work=check_work)
-                if path.name == runner.FRESH_RUN_MANIFEST_FILE:
+            def publish_manifest_then_replace_root(directory_fd, name, payload, mode=0o400, *, expected_identity, check_work):
+                result = original_atomic_create(directory_fd, name, payload, mode, expected_identity=expected_identity, check_work=check_work)
+                if name == runner.FRESH_RUN_MANIFEST_FILE:
                     root.rename(moved)
                     replacement_run.mkdir(parents=True, mode=0o700)
                     (replacement_run / "preserve.txt").write_text("replacement-owned-by-test\n")
@@ -2529,7 +2529,7 @@ class RunnerGuards(unittest.TestCase):
             with (
                 patch.object(runner, "verify_fresh_plan", return_value=plan),
                 patch.object(runner, "_git_metadata_paths", return_value=set()),
-                patch.object(runner, "_atomic_create_bytes", side_effect=publish_manifest_then_replace_root),
+                patch.object(runner, "_atomic_create_bytes_at", side_effect=publish_manifest_then_replace_root),
                 patch.object(runner.sys, "stdout", output),
                 runner.PrepareExecution(20) as execution,
                 self.assertRaisesRegex(runner.RunnerError, "root pathname|symlink"),
@@ -2548,6 +2548,87 @@ class RunnerGuards(unittest.TestCase):
             self.assertFalse((replacement_run / "init-failure.json").exists())
             self.assertFalse((moved / "fresh-runs" / str(plan["plan_id"]) / "init-failure.json").exists())
             self.assertTrue((moved / "fresh-runs" / str(plan["plan_id"]) / runner.FRESH_RUN_MANIFEST_FILE).is_file())
+            self.assertEqual(output.getvalue(), "")
+
+    def test_owned_fresh_run_init_creates_run_directory_only_under_pinned_root_fd(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp).resolve()
+            root = base / "runner-root"
+            root.mkdir()
+            plan_path, commitment_path, commitment_sha256, plan = self._publish_recovery_fixture(root)
+            plan_digest = runner.sha256(plan_path)
+            pending_path = Path(f"{commitment_path}.pending")
+            key_path = base / "private-custody" / "run.key"
+            moved = base / "moved-root"
+            replacement_before: dict[str, bytes | None] = {}
+            original_mkdir = runner.os.mkdir
+            replaced = False
+
+            def swap_before_relative_run_mkdir(path, mode=0o777, *, dir_fd=None):
+                nonlocal replaced
+                if path == str(plan["plan_id"]) and dir_fd is not None and not replaced:
+                    replaced = True
+                    root.rename(moved)
+                    root.mkdir()
+                    (root / "sentinel.txt").write_text("keep replacement unchanged\n")
+                    replacement_before.update({item.relative_to(root).as_posix(): (item.read_bytes() if item.is_file() else None) for item in root.rglob("*")})
+                return original_mkdir(path, mode=mode, dir_fd=dir_fd)
+
+            output = io.StringIO()
+            with (
+                patch.object(runner, "verify_fresh_plan", return_value=plan),
+                patch.object(runner, "_git_metadata_paths", return_value=set()),
+                patch.object(runner.os, "mkdir", side_effect=swap_before_relative_run_mkdir),
+                patch.object(runner.sys, "stdout", output),
+                runner.PrepareExecution(20) as execution,
+                self.assertRaisesRegex(runner.RunnerError, "root pathname|symlink"),
+            ):
+                runner.create_fresh_run(
+                    root / "repo", root, "fixture-cohort", root / "bins", 30,
+                    plan_digest, key_path, execution=execution,
+                    commitment_path=commitment_path, expected_commitment_sha256=commitment_sha256,
+                    pending_receipt_path=pending_path,
+                )
+
+            replacement_after = {item.relative_to(root).as_posix(): (item.read_bytes() if item.is_file() else None) for item in root.rglob("*")}
+            self.assertTrue(replaced)
+            self.assertEqual(replacement_after, replacement_before)
+            self.assertFalse((root / "fresh-runs").exists())
+            self.assertFalse(key_path.exists())
+            self.assertFalse((moved / "fresh-runs" / str(plan["plan_id"]) / runner.FRESH_RUN_MANIFEST_FILE).exists())
+            self.assertEqual(output.getvalue(), "")
+
+    def test_owned_fresh_run_init_rejects_symlinked_fresh_runs_without_touching_target(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp).resolve()
+            root = base / "runner-root"
+            root.mkdir()
+            plan_path, commitment_path, commitment_sha256, plan = self._publish_recovery_fixture(root)
+            plan_digest = runner.sha256(plan_path)
+            pending_path = Path(f"{commitment_path}.pending")
+            key_path = base / "private-custody" / "run.key"
+            outside = base / "outside-fresh-runs"
+            outside.mkdir(mode=0o700)
+            (outside / "sentinel.txt").write_text("never touch\n")
+            before = {item.name: item.read_bytes() if item.is_file() else None for item in outside.iterdir()}
+            (root / "fresh-runs").symlink_to(outside, target_is_directory=True)
+            output = io.StringIO()
+            with (
+                patch.object(runner, "verify_fresh_plan", return_value=plan),
+                patch.object(runner, "_git_metadata_paths", return_value=set()),
+                patch.object(runner.sys, "stdout", output),
+                runner.PrepareExecution(20) as execution,
+                self.assertRaisesRegex(runner.RunnerError, "cannot be safely created or opened"),
+            ):
+                runner.create_fresh_run(
+                    root / "repo", root, "fixture-cohort", root / "bins", 30,
+                    plan_digest, key_path, execution=execution,
+                    commitment_path=commitment_path, expected_commitment_sha256=commitment_sha256,
+                    pending_receipt_path=pending_path,
+                )
+            after = {item.name: item.read_bytes() if item.is_file() else None for item in outside.iterdir()}
+            self.assertEqual(after, before)
+            self.assertFalse(key_path.exists())
             self.assertEqual(output.getvalue(), "")
 
     def test_owned_fresh_run_init_cancellation_deadline_and_root_swap_fail_before_key(self) -> None:

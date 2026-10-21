@@ -3665,6 +3665,65 @@ def _check_owned_directory_binding(binding: tuple[Path, str, str], *, check_work
         raise RunnerError("owned run directory path or identity no longer matches its pinned identity")
 
 
+def _create_owned_run_directory(root_binding: dict[str, str], plan_id: str, *, check_work: Callable[[], None]) -> tuple[Path, tuple[Path, str, str], int, tuple[int, int]]:
+    """Create fresh-runs/<plan_id> through the pinned plan-root descriptor only."""
+    if not plan_id or Path(plan_id).name != plan_id or plan_id in {".", ".."}:
+        raise RunnerError("fresh run plan ID must be a single path component")
+    canonical = Path(root_binding["plan_root_canonical_path"])
+    check_work()
+    _check_owned_root_binding(root_binding, check_work=check_work)
+    root_fd, root_info = _open_directory_chain(canonical)
+    runs_fd = -1
+    run_fd = -1
+    try:
+        if (str(root_info.st_dev), str(root_info.st_ino)) != (root_binding["plan_root_device"], root_binding["plan_root_inode"]):
+            raise RunnerError("owned plan-root descriptor differs from its pinned identity")
+        _check_owned_root_binding(root_binding, check_work=check_work)
+        try:
+            os.mkdir("fresh-runs", mode=0o700, dir_fd=root_fd)
+        except FileExistsError:
+            pass
+        else:
+            os.fsync(root_fd)
+        check_work()
+        _check_owned_root_binding(root_binding, check_work=check_work)
+        runs_fd = os.open("fresh-runs", os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0), dir_fd=root_fd)
+        runs_info = os.fstat(runs_fd)
+        runs_named = os.stat("fresh-runs", dir_fd=root_fd, follow_symlinks=False)
+        if (runs_info.st_dev, runs_info.st_ino) != (runs_named.st_dev, runs_named.st_ino) or not stat.S_ISDIR(runs_info.st_mode) or runs_info.st_uid != os.geteuid() or stat.S_IMODE(runs_info.st_mode) != 0o700:
+            raise RunnerError("fresh-runs directory is unsafe or changed while opening")
+        check_work()
+        _check_owned_root_binding(root_binding, check_work=check_work)
+        try:
+            os.mkdir(plan_id, mode=0o700, dir_fd=runs_fd)
+        except FileExistsError as error:
+            raise RunnerError("fresh run directory already exists; refusing to reuse or clean evidence") from error
+        os.fsync(runs_fd)
+        check_work()
+        _check_owned_root_binding(root_binding, check_work=check_work)
+        run_fd = os.open(plan_id, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0), dir_fd=runs_fd)
+        run_info = os.fstat(run_fd)
+        run_named = os.stat(plan_id, dir_fd=runs_fd, follow_symlinks=False)
+        if (run_info.st_dev, run_info.st_ino) != (run_named.st_dev, run_named.st_ino) or not stat.S_ISDIR(run_info.st_mode) or run_info.st_uid != os.geteuid() or stat.S_IMODE(run_info.st_mode) != 0o700:
+            raise RunnerError("fresh run directory is unsafe or changed while opening")
+        run_root = canonical / "fresh-runs" / plan_id
+        binding = (run_root, str(run_info.st_dev), str(run_info.st_ino))
+        check_work()
+        _check_owned_root_binding(root_binding, check_work=check_work)
+        _check_owned_directory_binding(binding, check_work=check_work)
+        result = run_root, binding, run_fd, (run_info.st_dev, run_info.st_ino)
+        run_fd = -1
+        return result
+    except OSError as error:
+        raise RunnerError(f"fresh run directory cannot be safely created or opened: {error}") from error
+    finally:
+        os.close(root_fd)
+        if runs_fd >= 0:
+            os.close(runs_fd)
+        if run_fd >= 0:
+            os.close(run_fd)
+
+
 def _atomic_create_creation_commitment(path: Path, document: dict[str, object], *, check_work: Callable[[], None]) -> str:
     """Publish an immutable external creation anchor before the plan."""
     check_work()
@@ -4556,28 +4615,9 @@ def _create_fresh_run_owned(
     key_path = key_path_parent / key_path.name
     if any(key_path == item or item in key_path.parents for item in protected):
         raise RunnerError("fresh run key custody must be outside Git, source, binaries, and artifact roots")
-    run_root = root / "fresh-runs" / str(plan["plan_id"])
-    execution.check_work()
-    _check_owned_root_binding(root_binding, check_work=execution.check_work)
-    try:
-        run_root.mkdir(parents=True, exist_ok=False, mode=0o700)
-    except FileExistsError as error:
-        raise RunnerError("fresh run directory already exists; refusing to reuse or clean evidence") from error
-
-    run_binding: tuple[Path, str, str] | None = None
-    run_fd = -1
-    run_identity: tuple[int, int] | None = None
-    execution.check_work()
-    _check_owned_root_binding(root_binding, check_work=execution.check_work)
-    run_binding = _owned_directory_binding(run_root, check_work=execution.check_work)
-    run_fd, run_info = _open_directory_chain(run_root)
-    run_identity = (run_info.st_dev, run_info.st_ino)
-    if run_identity != (int(run_binding[1]), int(run_binding[2])):
-        os.close(run_fd)
-        raise RunnerError("fresh run directory changed while opening its failure-evidence anchor")
-    execution.check_work()
-    _check_owned_root_binding(root_binding, check_work=execution.check_work)
-    _check_owned_directory_binding(run_binding, check_work=execution.check_work)
+    run_root, run_binding, run_fd, run_identity = _create_owned_run_directory(
+        root_binding, str(plan["plan_id"]), check_work=execution.check_work,
+    )
 
     stage = "key-create"
     key_may_exist = False
@@ -4617,7 +4657,10 @@ def _create_fresh_run_owned(
         stage = "manifest-publication"
         execution.check_work()
         _check_owned_root_binding(root_binding, check_work=execution.check_work)
-        _atomic_create_bytes(run_root / FRESH_RUN_MANIFEST_FILE, canonical_receipt_json(envelope), check_work=execution.check_work)
+        _atomic_create_bytes_at(
+            run_fd, FRESH_RUN_MANIFEST_FILE, canonical_receipt_json(envelope),
+            expected_identity=run_identity, check_work=execution.check_work,
+        )
         execution.check_work()
         _check_owned_root_binding(root_binding, check_work=execution.check_work)
         stage = "success-output"
