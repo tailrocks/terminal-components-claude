@@ -33,9 +33,26 @@ after the editor and completion overlay published their active bindings, the
 page called `Ui::publish_bindings` for Ctrl+R and replaced those tables. This
 increment uses `Ui::publish_additional_bindings`, preserving the component's
 Tab, Enter, completion, and focus bindings while adding Ctrl+R. No runtime or
-shared keymap semantics changed. Before the fix, the two real-app Tab and
-completion Enter probes both failed; after the fix both pass. The editor still
-has a separate BackTab dedent gap, tracked by its shared editor owner.
+shared keymap semantics changed. The earlier audit overstated the original Tab
+probe: its focus assertion passed, but its literal `col 5` assertion was stale.
+From cursor column 2, four-space indentation correctly reaches column 6. The
+independent corrected semantic probe expects column 6 and passes; the unchanged
+original probe does not pass as written. Completion Enter did fail before the
+binding fix and passes after it. The editor still has a separate BackTab
+dedent gap, tracked by its shared editor owner.
+
+Independent review of the running route found three more application-owned
+state defects, fixed here without changing the shared editor: pointer and
+other non-tick updates consumed run countdown steps; finishing a run diagnosed
+the block under the cursor at finish time instead of the block submitted at
+start; and an empty manual completion list used source order rather than the
+frozen fuzzy-score/label ordering. Countdown advances only on `UpdateCause::Tick`,
+the submitted range is retained until the run completes, and all completion
+results sort by fuzzy penalty then label while retaining stable `ItemKey`s.
+The actual-route tests cover pointer movement during a run, moving from the
+submitted second block to the first before completion, and accepting the first
+alphabetical empty-query result. Provider unit tests also cover stable keys and
+label ordering for tied non-empty fuzzy scores.
 
 The existing syntax highlighter and block segmenter stay demo data supplied to
 the shared editor's callback contracts. The editor itself owns text editing,
@@ -45,13 +62,13 @@ cursor movement, block selection, completion UI, focus, and rendering.
 
 The audit packet `/private/tmp/editor-shell-routing-review-3807-20261021/review.json`
 (SHA-256 `4863bf49cf97da624bc9f98eb660f829eba14fccf2d4bd313f4dbd10000c08f6`)
-contains the unchanged real-app probes failing before this fix. After the fix,
-all 41 `showcase-ui` app tests passed, including the real-route checks for
-configured four-space Tab retaining editor focus, completion accepting both
-Enter and Tab, the following Tab indenting, navigation-mode Tab traversal to
-Find, and a Help overlay blocking page Ctrl+R. The Playground route still
-verifies live find/Escape, second-block Ctrl+R diagnostics, and Run button/
-countdown. All 17 `termrock-editors` completing-editor tests passed. `cargo fmt
---check` and scoped Clippy passed. This increment changed no shared editor or
-runtime code. Options/States and BackTab dedent remain incomplete. Candidate
-digest files were not edited or blessed.
+contains the real-app probes and recorded pre-fix failures. Validation for this
+increment: `cargo nextest run -p showcase-ui --test app_tests --no-capture`
+passed 44/44; `cargo nextest run -p showcase-demos --lib --no-capture` passed
+50/50; `cargo nextest run -p termrock-editors --test completing_code_editor
+--no-capture` passed 17/17; `cargo fmt --check` passed; and scoped `cargo clippy
+-p showcase-demos -p showcase-ui --all-targets -- -D warnings` passed. The
+Playground route covers live find/Escape, second-block Ctrl+R diagnostics, and
+Run button/countdown. This increment changed no shared editor or runtime code.
+Options/States and BackTab dedent remain incomplete. Candidate digest files
+were not edited or blessed.
