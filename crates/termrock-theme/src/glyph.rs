@@ -329,7 +329,10 @@ mod tests {
         }
 
         let j = crate::theme::Theme::junie();
-        assert_eq!(j.design.glyphs.scrollbar().begin, "┆");
+        // The frozen rendered reference paints the scrollbar track with the
+        // light vertical rule: 12600 occurrences of U+2502 in the approved
+        // corpus at 120x40 across every colour mode, and no U+2506 track.
+        assert_eq!(j.design.glyphs.scrollbar().begin, "│");
         assert_eq!(j.design.glyphs.rule_quiet().cross, "┼");
     }
 }
