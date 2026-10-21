@@ -354,3 +354,7 @@ tracked hashes before commit are `494ae87641e25bd774b39cc0424ceac886d3cfc600f1fe
 (`dialog_kinds.rs`), `a2df4affcbbd803647721e4a64d1d37136510236e11a7ba352979ab362710526`
 (`app_tests.rs`), and `fc2c2e7ea31a0c66a7d14310c7bf77a25ea565e0509087982f1c6de539ce7fbf`
 (`2026-10-21-showcase-dialog-kinds-restoration.md`).
+
+## CodeEditor merged metadata and focused caret review (2026-10-21)
+
+Preservation branch: `wip/editor-meta-merged-review-20261021`; source tip before this handoff is `e0bfbe71cc855f648590bba0c9754410ccd468ce`. The normal merge `30eb0e5c9` retains current PR #38 marker/scrolling behavior while incorporating authored META defaults. The successor fixes a focused-cursor ownership defect, with all 75 editor tests, strict Clippy and formatting passing. Independent review is running against exact `30eb0e5c9` and this successor; do not publish to PR #38 until the current-parent complete-cell comparison and real retained-editing focus tests are cleared. Then normally merge latest PR #38, preserve the seven held expectation blobs, rerun exact-head gates, publish and verify the remote SHA. The standalone `671443` source is not a replacement for current PR #38: it lacks later marker behavior. All four application acceptance requirements remain incomplete.
