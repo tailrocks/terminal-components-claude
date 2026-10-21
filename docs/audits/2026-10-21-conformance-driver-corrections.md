@@ -99,3 +99,9 @@ identity, and all seven held-file digests passed. The matrix retains its
 complete 2,357-line record; the seven expected/assertion paths remain exactly
 equal to their immutable `52e1572ca` source. This remains a bounded conformance
 driver correction only, not completion of conformance or application parity.
+
+The exact documentation-complete candidate `74f9fef2b4449d1f4d728dbf690c0c0291723d32`
+was gated again before publication: 47 focused tests passed (run
+`2fa261f9-c07c-4389-924e-8a3bd5da92e7`, 888 skipped), all six negative controls
+passed (run `bf3ad54a-204a-4f23-a0da-63da43e30e26`), strict scoped Clippy,
+formatting, whitespace, and seven protected-file digest comparisons passed.
