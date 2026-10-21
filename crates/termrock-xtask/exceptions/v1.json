@@ -50,13 +50,6 @@
       "rule": "OWN-11"
     },
     {
-      "max": 127,
-      "path": "crates/jackin-preview-app/src/app.rs",
-      "reason": "Historical screen painters and route switches pending FIX-002/FIX-003/FIX-004 component replacement; ratcheted G1 corpus.",
-      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
-      "rule": "OWN-02"
-    },
-    {
       "max": 13,
       "path": "crates/jackin-preview-app/src/app.rs",
       "reason": "Historical screen painters and route switches pending FIX-002/FIX-003/FIX-004 component replacement; ratcheted G1 corpus.",
@@ -69,20 +62,6 @@
       "reason": "Historical screen painters and route switches pending FIX-002/FIX-003/FIX-004 component replacement; ratcheted G1 corpus.",
       "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
       "rule": "OWN-11"
-    },
-    {
-      "max": 1,
-      "path": "crates/jackin-preview-presentation/src/rain.rs",
-      "reason": "Raw-buffer rain effect pending component replacement (FIX-005 scope); ratcheted G1 corpus.",
-      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
-      "rule": "OWN-01"
-    },
-    {
-      "max": 10,
-      "path": "crates/jackin-preview-presentation/src/rain.rs",
-      "reason": "Raw-buffer rain effect pending component replacement (FIX-005 scope); ratcheted G1 corpus.",
-      "review": "Q16 G1 baseline ratchet (FIX-008); admitted pending FIX-002..FIX-005",
-      "rule": "OWN-02"
     },
     {
       "max": 4,
@@ -461,13 +440,6 @@
       "reason": "Integration re-baseline: the adopted target content is the governance baseline at the split merge; growth beyond this stays gated (recovery ledger R-42).",
       "review": "Split-merge integration baseline",
       "rule": "OWN-11"
-    },
-    {
-      "max": 26,
-      "path": "crates/jackin-preview-app/src/app.rs",
-      "reason": "Integration re-baseline: the adopted target content is the governance baseline at the split merge; growth beyond this stays gated (recovery ledger R-42).",
-      "review": "Split-merge integration baseline",
-      "rule": "OWN-04"
     },
     {
       "max": 12,

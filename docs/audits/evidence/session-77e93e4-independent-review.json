@@ -1,0 +1,59 @@
+{
+  "commit": "77e93e43c318c11c95479ecbe0ed7cf09da0099a",
+  "implementation": "9da4c39e06ab0d8ef4c70930f09b61aa4eafb165",
+  "decision": "CLEAR bounded Session decoded-input preservation; previous P2 reachability finding closed",
+  "findings": [],
+  "verified": [
+    "Production Session read invokes decode_session_input at session.rs522; conversion regression invokes same function at716 and736; sole Input::from_crossterm call is inside boundary529.",
+    "Private boundary is stateless direct existing conversion: no parser, new reader, time/case inference, unsafe code, public API change, input system, negotiation or cleanup change.",
+    "Actual Crossterm Events pass boundary then Runtime dispatch: repeated Escape followed by lowercase x, Unicode \u00e9 and shifted uppercase X; explicit Alt+x remains distinct. Esc/resize/paste also dispatched.",
+    "No new terminal mode or CSI-u default enabled.",
+    "Prior misleading65fa885d RED claim explicitly withdrawn; old synthetic promotion test retained as rejected evidence."
+  ],
+  "negative_control": {
+    "author_patch_sha256": "7503872344170d7407434b86b083f44f153115b9b56e112780c1c81f76556f18",
+    "author_patch_limit": "Events and assertions unchanged, but signature/state plumbing differs; do not call its complete test byte-identical. No mutation-specific assertion or behavior branch hides a failure.",
+    "independent_control": "Copied candidate Session source into external build artifact; replaced ONLY decode_session_input with old100ms promotion using thread-local previous-Escape state to retain exact signature. Entire committed regression remains byte-identical (mutation-source-identities.json). Actual Runtime dispatch fails: two ALT_X actions instead of expected four distinct bindings. This independently closes semantic reachability question without product edits.",
+    "nextest_exit": 100,
+    "failed": 1,
+    "filtered": 20,
+    "fixture_path": "mutation-fixture",
+    "not_claimed": "This is controlled mutation evidence, not an unmodified historical checkout RED run."
+  },
+  "checks": {
+    "nextest": "21 passed, 1 pre-existing ignored integration test; exit0",
+    "clippy": "strict scoped all-targets exit0",
+    "fmt": "workspace fmt --all --check exit0",
+    "metadata": "before/after exact77e HEAD, sourceSHA25d64b039c1d799f7df7a74221c31e7776232e874dcd70697b66cfa95251c5a1, clean detached checkout; candidate and mutant binary hashes retained"
+  },
+  "remote": {
+    "status": "publication verification pending",
+    "observed_wip_tip": "51fe8afbd347a4ac543e4c12320507cfe6c9799d",
+    "reviewed_hash_local_only_at_observation": true
+  },
+  "limits": [
+    "No pinned byte-level PTY trace, no coalesced ESC ESC x resolution, no full application Alt+x parity.",
+    "Legacy runner wrong a47c9aa/4a79c0a pins not run; user fixed a1ea27f/4169783 remain authoritative.",
+    "Ignored terminal integration test unverified.",
+    "No complete PR38 approval or product parity acceptance."
+  ],
+  "artifacts": {
+    "after.json": "d55e77348f619eb8a8d033d78a244f06844e727421b11fd382185b94144d1aa7",
+    "before.json": "d55e77348f619eb8a8d033d78a244f06844e727421b11fd382185b94144d1aa7",
+    "candidate-binaries.json": "3b5915b78ca070ca9200f5fff29eb85feba52c43be4f1a0adcd365e70b9cc28d",
+    "clippy-receipt.json": "1de67ace6c4462f67bd0e10bdfaac6fb81457b22af6ba04d959d7625af36cbab",
+    "clippy.log": "72ce54b96ed776c715a7496eebe84186a4f94b0801ab0a4587231c8ceb90b797",
+    "fmt-receipt.json": "10d20c2f5d8e198de905e8ab3b38b294e8ed543bd32168df1a849273eb9090bf",
+    "fmt.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "mutation-binaries.json": "aed03a4abc2ca24c7eb5f7c4035ba2c72448955319de163a321abd86e9e4f7ee",
+    "mutation-fixture/Cargo.lock": "c1581ff36b3957ddf9d2da12bfed11124f259fd77e19a7e8f2615ccf5ce2d05f",
+    "mutation-fixture/Cargo.toml": "421dfa64a5a6e5def8c0c809c3dd69419847b4bcf9bdd470f1597b8f1f875e83",
+    "mutation-fixture/lib.rs": "d3ec675252018f40d06aad576025f909c59a7633292023338387f3f9809ea1d8",
+    "mutation-fixture/session.rs": "4e7d6eee62058163a9d5a9c9c32525e88587ec88352dbcc838d3e52e9094b8ee",
+    "mutation-nextest.log": "84b07e039776c77cdb0c1eb9320fc5bafbe23e6754132a240642c2850267c3eb",
+    "mutation-receipt.json": "24ebe7c707e99e7574a3b33bc9e3532ce2b2616349c7834c7a83783d1f032552",
+    "mutation-source-identities.json": "14fe656cfb7873b734014503f5127b97cc73220cf7c4af5eae0958aeddba7731",
+    "nextest-receipt.json": "6aaf8f417e3a721d6c1a7961ba966d2577b7c94745b45962d7f1b1ff75914b14",
+    "nextest.log": "82fa05778cc171a00fa2e4bf3d7ae36698e48c53d919ff9f4a35465eb9178757"
+  }
+}

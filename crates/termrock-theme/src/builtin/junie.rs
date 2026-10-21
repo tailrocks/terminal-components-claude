@@ -234,7 +234,7 @@ pub(crate) fn recipes() -> crate::theme::Recipes {
         },
     );
 
-    recipes.set_mono_rules(
+    recipes.set_builtin_mono_rules(
         Family::LIST,
         vec![(Part::CONTAINER, StateFlags::DISABLED, disabled)],
     );

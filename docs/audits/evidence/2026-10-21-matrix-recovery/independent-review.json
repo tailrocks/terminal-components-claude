@@ -1,0 +1,26 @@
+{
+  "scope": "staged matrix recovery at HEAD9399ef27d05a46d06b5e978b5d145219a2765e03",
+  "verdict": "CLEAR docs-only recovery; no actionable findings",
+  "matrix_sha256": "35f2ef7f8428a4b5cd59cdff3f737ee6d89070f02acb35b0a4a9678537a31fc7",
+  "bytes": 434934,
+  "prefix_source": "0abfee9e6882bfad5ee2549e761f89ebb2e5225c",
+  "prefix_bytes": 397428,
+  "prefix_exact": true,
+  "suffix_source": "9399ef27d05a46d06b5e978b5d145219a2765e03",
+  "suffix_bytes": 36520,
+  "suffix_exact": true,
+  "status": [
+    "M  docs/architecture/termrock-migration-matrix.md"
+  ],
+  "diff_check_exit": 0,
+  "checks": [
+    "Exact last-complete prefix retained once; exact truncated incoming appendix retained once.",
+    "Incident verified against096decc614d76d0e5af60d7b3719008f1c5c23df197insertions/1968deletions and9399one-line delta. Cause correctly left unestablished.",
+    "Incoming force-push/signoff proposals explicitly unauthorized, superseded reporting; external consumer scoped below product parity.",
+    "Only matrix changed; no source, expected artifact or reference revision modifications in staged/unstaged state."
+  ],
+  "limits": [
+    "Review binds staged file SHA, not yet a committed or pushed recovery SHA.",
+    "Preserved historical reporting is not validation or endorsement of its claims."
+  ]
+}

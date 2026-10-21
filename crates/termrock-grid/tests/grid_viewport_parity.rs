@@ -122,16 +122,17 @@ fn legacy_vertical_bar(
         let y = area.y.saturating_add(1).saturating_add(offset as u16);
         let from_end = track_len.saturating_sub(offset).saturating_sub(1);
         let from_start = origin > 0 && (offset == 0 || offset == 1);
+        let edge = track_len > 2;
         let truecolor = ui.theme_ref().capability.color == ColorLevel::TrueColor;
         let cover = if !truecolor {
-            if from_end == 0 || (from_start && offset == 0) {
+            if edge && (from_end == 0 || (from_start && offset == 0)) {
                 plain.add_modifier(Modifier::DIM)
             } else {
                 plain
             }
-        } else if from_end == 0 || (from_start && offset == 0) {
+        } else if edge && (from_end == 0 || (from_start && offset == 0)) {
             plain.patch(ui.paint_patch(&StylePatch::new().set_fg(COVER_FAR)))
-        } else if from_end == 1 || (from_start && offset == 1) {
+        } else if edge && (from_end == 1 || (from_start && offset == 1)) {
             plain.patch(ui.paint_patch(&StylePatch::new().set_fg(COVER_NEAR)))
         } else {
             plain
