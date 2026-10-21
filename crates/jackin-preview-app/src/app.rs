@@ -305,6 +305,7 @@ mod capsule_zoom_view;
 
 mod launch_cockpit;
 mod launch_dialog_plate;
+mod manager_frame_view;
 mod manager_help;
 mod manager_locked_view;
 mod settings_view;
@@ -10266,163 +10267,6 @@ impl App {
             && self.hard_launch_picker_host(cx.theme(), cx.viewport())
     }
 
-    fn historical_hard_cases_80(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        // Paused 80×24 hard-cases manager. The 120×40 manager, picker, locked
-        // launch, menu, and help stay on their own frames.
-        let on_first = match self.manager_rows_cache.first() {
-            None => {
-                self.manager.list.cursor().is_none()
-                    && self.manager.selected_row() == &ManagerRowKey::CurrentDirectory
-            }
-            Some(row) => {
-                let cursor = self.manager.list.cursor();
-                (cursor.is_none() || cursor == Some(row.key))
-                    && (self.manager.selected_row() == &row.domain
-                        || self.manager.selected_row() == &ManagerRowKey::CurrentDirectory)
-            }
-        };
-        on_first
-            && screen.width == 80
-            && screen.height == 24
-            && theme.capability.color == termrock::ColorLevel::TrueColor
-            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
-            && self.route == Route::Manager
-            && self.world.scenario == Scenario::HardCases
-            && self.motion == Motion::Paused
-            && self.status.is_none()
-            && !self.help_open
-            && !self.quit_open
-            && !self.cancel_open
-            && !self.about_open
-            && !self.manager_file_menu
-            && !self.manager_inspect
-            && self.launch.is_none()
-            && self.picker_mode.is_none()
-            && !self.launch_picker_open
-            && self.agent_options.is_empty()
-            && self.active_instance.is_none()
-            && !self.manager.detail_open()
-    }
-
-    fn draw_historical_hard_cases_80(&self, ui: &mut Ui<'_>) {
-        if !self.historical_hard_cases_80(ui.theme_ref(), ui.full()) {
-            return;
-        }
-        // Approved frame hides the cursor. This path must not call set_cursor
-        // or set_bar_cursor, and it must not write cursor bytes.
-        let screen = ui.full();
-        let menus = ["File", "Go", "Help"];
-        let rows = [
-            termrock::feedback::ManagerLeaf {
-                name: "payments-platform",
-                expanded: true,
-                status: "1 running",
-                danger: false,
-                muted: false,
-                faint: false,
-            },
-            termrock::feedback::ManagerLeaf {
-                name: "infra-control-plane",
-                expanded: true,
-                status: "1 running",
-                danger: false,
-                muted: false,
-                faint: false,
-            },
-            termrock::feedback::ManagerLeaf {
-                name: "release-automation",
-                expanded: true,
-                status: "! failed",
-                danger: true,
-                muted: false,
-                faint: false,
-            },
-            termrock::feedback::ManagerLeaf {
-                name: "customer-portal",
-                expanded: true,
-                status: "! failed",
-                danger: true,
-                muted: false,
-                faint: false,
-            },
-            termrock::feedback::ManagerLeaf {
-                name: "data-pipeline",
-                expanded: true,
-                status: "1 running",
-                danger: false,
-                muted: false,
-                faint: false,
-            },
-            termrock::feedback::ManagerLeaf {
-                name: "docs-site",
-                expanded: true,
-                status: "1 record",
-                danger: false,
-                muted: true,
-                faint: false,
-            },
-            termrock::feedback::ManagerLeaf {
-                name: "auth-service",
-                expanded: false,
-                status: "idle",
-                danger: false,
-                muted: false,
-                faint: true,
-            },
-            termrock::feedback::ManagerLeaf {
-                name: "gateway",
-                expanded: false,
-                status: "idle",
-                danger: false,
-                muted: false,
-                faint: true,
-            },
-            termrock::feedback::ManagerLeaf {
-                name: "mobile-app",
-                expanded: false,
-                status: "idle",
-                danger: false,
-                muted: false,
-                faint: true,
-            },
-            termrock::feedback::ManagerLeaf {
-                name: "ml-notebooks",
-                expanded: false,
-                status: "idle",
-                danger: false,
-                muted: false,
-                faint: true,
-            },
-        ];
-        termrock::feedback::paint_manager_frame(
-            ui,
-            screen,
-            &termrock::feedback::ManagerFrame {
-                brand: "jackin❯",
-                menus: &menus,
-                alert: "! instance index unreadable",
-                title: "Workspaces",
-                summary: "3 running · 1–11 of 16",
-                selected: "Current directory",
-                saved: "saved",
-                saved_as: "as",
-                saved_target: "payments-platform",
-                rows: &rows,
-                detail_heading: "Current directory",
-                detail_side: "Tab details",
-                detail_path: "/workspace/payments-platform · 2 mounts · 5 vars",
-                detail_roles: "Roles the-architect ★ · 3 allowed · Auth Claude · Personal",
-                instance_mark: "◉ ",
-                instance_text: "7f3a  the-architect · Claude Code · ",
-                instance_state: "running",
-                hint_key: "?",
-                hint_label: "Help",
-                warning_mark: "▲",
-                warning: " Could not confirm running instances: instance index unreadable …",
-            },
-        );
-    }
-
     fn historical_help_overlay(&self, theme: &termrock::Theme, screen: Rect) -> bool {
         // `?` on the paused 120×40 returning manager. False for F10, Tab,
         // the expanded tree, inspect, and every other host.
@@ -10450,7 +10294,6 @@ impl App {
                 .first()
                 .is_some_and(|row| self.manager.list.cursor() == Some(row.key))
     }
-
     fn draw_historical_help_overlay(&self, ui: &mut Ui<'_>, screen: Rect) {
         if !self.historical_help_overlay(ui.theme_ref(), screen) {
             return;
@@ -11341,7 +11184,7 @@ impl TuiApp for App {
         self.draw_usage_detail_live(ui, full);
 
         manager_locked_view::paint(self, ui, full);
-        self.draw_historical_hard_cases_80(ui);
+        manager_frame_view::paint(self, ui, full);
         self.draw_historical_help_overlay(ui, full);
     }
 
