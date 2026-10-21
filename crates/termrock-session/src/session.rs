@@ -321,7 +321,12 @@ impl TerminalSession {
                 enable_raw_mode()?;
                 let mut out = stdout();
                 let push = keyboard.enter(&mut out, keyboard_protocol, || {
-                    keyboard_probe.take().expect("detect runs once")()
+                    // The probe runs once. A repeated call reports no
+                    // keyboard support instead of aborting the session.
+                    keyboard_probe
+                        .take()
+                        .map(|detect| detect())
+                        .unwrap_or(false)
                 });
                 if let Ok(true) = push {
                     enter_keyboard_pushed.store(true, Ordering::Relaxed);
