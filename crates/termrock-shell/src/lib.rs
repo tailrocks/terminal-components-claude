@@ -10,7 +10,9 @@
 //!
 //! Nothing here draws its own pixels: the shell composes through the shared
 //! composition slots ([`shell::AppShell`]) and returns vocabulary the app
-//! renders with existing components.
+//! renders with existing components. The one exception is
+//! [`report::TextReport`], a content block that paints through the runtime
+//! [`termrock_runtime::Ui`] like the other Termrock blocks do.
 //!
 //! The `reach` module is a test tool compiled only with the crate's
 //! default-off `testing` feature, so production builds never carry it.
@@ -23,6 +25,7 @@ pub mod page;
 pub mod quit;
 #[cfg(feature = "testing")]
 pub mod reach;
+pub mod report;
 pub mod router;
 pub mod shell;
 pub mod status;
@@ -35,6 +38,7 @@ pub use quit::{
     KeyContext, Leave, LeaveDialog, LeaveDialogKind, LeaveGuard, LeaveKey, QuitKeys, Resolved,
     Stakes,
 };
+pub use report::{ReportContent, ReportRows, TextReport};
 pub use router::{KeyBinding, KeyHost, KeyRouter, ShellAction, ShellKeys, Tier, chord, lookup};
 pub use shell::{AppShell, AppShellSlots, EmptyLeaf, ShellSlots};
 pub use status::{JobKey, StatusLine, TONE_ERROR, TONE_NORMAL, TONE_SECONDARY, TONE_SUCCESS};

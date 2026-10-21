@@ -388,12 +388,12 @@ fn menu(r: &mut Recipe) {
             .set_fg(Role::HighlightFg)
             .add(Modifier::BOLD),
     );
-    part(
-        m,
-        Part::TITLE,
-        p().set_fg(Role::Fg(FgStep::Muted)).add(Modifier::BOLD),
-    )
-    .when(
+    // The frozen menu bar title is the secondary ink without bold
+    // (visual-baseline snapshots paint the titles 38;2;179;179;179). The
+    // patch names only the foreground so the background still inherits from
+    // the overlay and the local patch, which the precedence contract
+    // requires.
+    part(m, Part::TITLE, p().set_fg(Role::Fg(FgStep::Secondary))).when(
         StateFlags::PRESSED,
         p().set_glyph(GlyphRole::PressLeft).add(Modifier::BOLD),
     );
