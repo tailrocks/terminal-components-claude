@@ -1,0 +1,127 @@
+{
+  "commands": [
+    {
+      "command": "mise exec -- velnor-actions generate --output-dir /private/tmp/ci-doc-review-gen-69c1",
+      "exit_status": 0
+    },
+    {
+      "command": "mise exec -- actionlint -ignore '^unexpected key \"background\" for step to (run shell command|execute action)\\. ' -ignore '^step must run script with \"run\" section or run action with \"uses\" section$' .github/workflows/ci.yml",
+      "exit_status": 0
+    },
+    {
+      "command": "mise exec -- cargo nextest run --locked --offline -p termrock-xtask --test doc_inventory --no-fail-fast --status-level fail --final-status-level fail",
+      "exit_status": 0,
+      "result": "7 passed, 0 skipped"
+    },
+    {
+      "command": "mise exec -- cargo clippy --locked --offline -p termrock -p termrock-forms --all-targets -F termrock/testing -- -D warnings",
+      "exit_status": 0
+    },
+    {
+      "command": "mise exec -- cargo nextest run --locked --offline -p termrock --test composition_consumer --test master_detail_consumer -p termrock-forms --test form_lanes_consumer -F termrock/testing --no-fail-fast --status-level fail --final-status-level fail",
+      "exit_status": 0,
+      "result": "21 passed, 0 skipped"
+    },
+    {
+      "command": "mise exec -- velnor-actions plan",
+      "exit_status": 0,
+      "result": "843 lines; 88 discovery notices say doctest tasks have no test targets and emit no command; generated manifest/workflow contains no doctest tasks"
+    },
+    {
+      "command": "git diff-tree --check 69c1ed6aa2f18255dd92167d30f8534ad316bcd3^ 69c1ed6aa2f18255dd92167d30f8534ad316bcd3",
+      "exit_status": 0
+    }
+  ],
+  "corrected_invocations": [
+    {
+      "command": "mise exec -- cargo nextest run --locked --offline -p termrock --test composition_consumer --test master_detail_consumer -p termrock-forms --test form_lanes_consumer --no-fail-fast --status-level fail --final-status-level fail",
+      "exit_status": 101,
+      "reason": "master_detail_consumer requires feature termrock/testing"
+    },
+    {
+      "command": "mise exec -- cargo nextest run --locked --offline -p termrock --test composition_consumer --test master_detail_consumer -p termrock-forms --test form_lanes_consumer -F termrock/testing -F termrock-forms/testing --no-fail-fast --status-level fail --final-status-level fail",
+      "exit_status": 101,
+      "reason": "termrock-forms has no testing feature"
+    },
+    {
+      "command": "mise exec -- velnor-actions plan > /private/tmp/ci-doc-review-plan-69c1.log 2>&1; status=$?; ...",
+      "exit_status": "shell wrapper failed: zsh reports read-only variable status; rerun with task_rc passed"
+    }
+  ],
+  "doc_guard": {
+    "ancestor": "fcb0d8d2fb32859c2aea03c3135fbe42955e9a7b",
+    "guard_test": "7 passed; 0 skipped",
+    "inspection": "Scans tracked Rust/Markdown, Cargo target source roots, direct include! inputs, Rustdoc block/line comments and doc attributes; unresolved source/include inputs fail closed. Guard test cases cover rust/no_run/compile_fail/should_panic tags, unlabeled and indented code, include_str/doc attributes, macro-emitted doc attributes, nested doc comments, raw/cooked strings.",
+    "inventory_counts": {
+      "markdown": 77,
+      "package_readmes": 0,
+      "packages": 47,
+      "rust": 632,
+      "targets": 226,
+      "tracked": 94967
+    },
+    "source_blob": "3560bcf78692cd404a71b9720b4a2acd2844d370",
+    "test_blob": "f233e4ff98527983e56b775db4206cfc6c2e8705"
+  },
+  "evidence_files": {
+    "generator_output": "/private/tmp/ci-doc-review-gen-69c1/.github",
+    "plan_log": "/private/tmp/ci-doc-review-plan-69c1.log"
+  },
+  "generated_output": {
+    "all_paths_types_modes_symlink_targets_and_file_sha256_match_committed_github_tree": true,
+    "command": "mise exec -- velnor-actions generate --output-dir /private/tmp/ci-doc-review-gen-69c1",
+    "entry_count": 21,
+    "exit_status": 0,
+    "file_or_symlink_count": 12,
+    "task_manifest_sha256": "dfe7da55092413677828fa8e99a05674084f7366aa328cfcf7e0dfae51fdf741",
+    "workflow_sha256": "b20bf2a3d75b5f4b6606c2cbed5a94966ae42d69eac57e6488b72738e5fc1b23"
+  },
+  "manifest": {
+    "added_tasks": 0,
+    "after_tasks": 440,
+    "before_tasks": 518,
+    "disabled_library_manifest_count": 39,
+    "excluded_library_targets_left_enabled": [
+      "showcase-data",
+      "holla-catalog",
+      "holla-plan"
+    ],
+    "nextest_list_preflight_in_build_tasks": 88,
+    "nextest_run_tasks": 88,
+    "per_operation_after": {
+      "build": 88,
+      "clippy": 88,
+      "doc": 88,
+      "fmt": 88,
+      "nextest": 88
+    },
+    "removed_only_doctest": true,
+    "removed_tasks": 78,
+    "retained_task_definitions_changed": 0
+  },
+  "observed_plan_items_not_cleared_by_this_review": [
+    "Velnor plan shows required-check migration from Velnor / Required to Required as an external branch-protection step.",
+    "Rust 1.99.1 reports no_checksums; Velnor warns CI must install and commit a lock to verify.",
+    "Plan emits 88 ineligible doctest discovery notices even though generated tasks are absent."
+  ],
+  "review_result": "PASS for this bounded CI change. No findings requiring rejection.",
+  "review_worktree": "/Users/donbeave/Projects/termrock-worktrees/holla-readonly-42fb861",
+  "review_worktree_final_status": "clean; detached at reviewed commit; 94967 tracked files",
+  "review_worktree_initial_commit": "42fb861c07228db39f40228b5ecaa2e3521d6239",
+  "reviewed_branch": "wip/ci-doc-inventory-20261021",
+  "reviewed_commit": "69c1ed6aa2f18255dd92167d30f8534ad316bcd3",
+  "reviewer": "/root/ci_empty_doc_independent_review",
+  "scope": "Independent read-only CI manifest, generated workflow, doc-inventory guard, and public example integration review. No product source edits.",
+  "tracked_input_recovery": "After checkout, 1301 tracked conformance target artifacts were absent from disk; restored exact paths from reviewed Git HEAD with git restore --worktree; final status clean. Cause not established.",
+  "unverified": [
+    "No hosted GitHub Actions run.",
+    "No full-workspace nextest, clippy, or format run in this review.",
+    "No application visual or functional parity review."
+  ],
+  "workflow": {
+    "job_id_count_before_after": 92,
+    "job_id_sets_identical": true,
+    "remaining_bytes_identical_to_parent_after_exact_block_removal": true,
+    "removed_doctest_blocks": 78
+  }
+}
