@@ -150,7 +150,8 @@ impl<'a> Button<'a> {
     /// Set whether the button participates in keyboard focus.
     ///
     /// `ClickOnly` keeps the button hit-testable and pointer-activatable while
-    /// excluding it from keyboard traversal and keyboard activation.
+    /// excluding it from keyboard traversal and keyboard activation. `Disabled`
+    /// suppresses keyboard and pointer activation and renders the disabled state.
     #[must_use]
     pub const fn focusability(mut self, focusability: Focusability) -> Self {
         self.focusability = focusability;
@@ -215,8 +216,12 @@ impl<'a> Button<'a> {
         matches!(self.status, Status::Busy | Status::Loading)
     }
 
-    const fn can_activate(&self) -> bool {
-        !self.disabled && !self.busy()
+    fn effectively_disabled(&self) -> bool {
+        self.disabled || self.focusability == Focusability::Disabled
+    }
+
+    fn can_activate(&self) -> bool {
+        !self.effectively_disabled() && !self.busy()
     }
 
     const fn with_inherited_disabled(&self, inherited: bool) -> Self {
@@ -288,7 +293,12 @@ impl<'a> Button<'a> {
     }
 
     fn autofocus_once(&self, cx: &mut Cx<'_>) {
-        if !self.autofocus || self.focusability == Focusability::ClickOnly {
+        if !self.autofocus
+            || matches!(
+                self.focusability,
+                Focusability::ClickOnly | Focusability::Disabled
+            )
+        {
             return;
         }
         let latch = cx.cache::<Autofocus>(self.id);
@@ -296,7 +306,7 @@ impl<'a> Button<'a> {
             return;
         }
         latch.spent = true;
-        if !self.disabled {
+        if !self.effectively_disabled() {
             cx.focus(self.id);
         }
     }
@@ -342,8 +352,9 @@ impl<'a> Button<'a> {
         if area.is_empty() {
             return area;
         }
+        let disabled = self.effectively_disabled();
         if !ui.is_inert() {
-            let f = if self.disabled {
+            let f = if disabled {
                 Focusability::Disabled
             } else {
                 self.focusability
@@ -355,7 +366,7 @@ impl<'a> Button<'a> {
         if self.busy() {
             derived |= StateFlags::BUSY;
         }
-        if self.disabled {
+        if disabled {
             derived |= StateFlags::DISABLED;
         }
         if self.checked == Some(true) {
@@ -368,21 +379,26 @@ impl<'a> Button<'a> {
         if self.checked != Some(true) {
             live = live.difference(StateFlags::SELECTED);
         }
-        if self.disabled {
-            live = live.difference(StateFlags::HOVERED | StateFlags::PRESSED);
+        if disabled {
+            live = live.difference(
+                StateFlags::HOVERED
+                    | StateFlags::PRESSED
+                    | StateFlags::FOCUSED
+                    | StateFlags::FOCUS_VISIBLE,
+            );
         }
         if self.busy() {
             live = live.difference(StateFlags::PRESSED);
         }
         // Bindings consume the actual runtime focus state. The focus-visibility
         // policy below only adapts state for style resolution.
-        if !ui.is_inert() && self.focusability != Focusability::ClickOnly {
+        if !ui.is_inert() && !disabled && self.focusability != Focusability::ClickOnly {
             ui.publish_bindings(self.id, live, BINDINGS);
         }
         let mut style_flags = live;
         if self.focus_visibility == ButtonFocusVisibility::Always
             && !ui.is_inert()
-            && !self.disabled
+            && !disabled
             && !self.busy()
             && style_flags.contains(StateFlags::FOCUSED)
         {
