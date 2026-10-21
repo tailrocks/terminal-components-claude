@@ -183,6 +183,12 @@ pub trait Conformance: 'static {
     fn opener_id() -> Id {
         Self::control_id()
     }
+    /// The action emitted while opening an owning layer, when it is distinct
+    /// from activating the control inside that layer. Conformance probes use
+    /// this to ensure setup responses cannot satisfy activation assertions.
+    fn opener_action() -> Option<Self::Action> {
+        None
+    }
     fn update(cx: &mut Cx<'_>, st: &mut Self::State, f: &Fixture) -> Response<Self::Action>;
     fn draw(ui: &mut Ui<'_>, area: Rect, st: &Self::State, f: &Fixture);
 
