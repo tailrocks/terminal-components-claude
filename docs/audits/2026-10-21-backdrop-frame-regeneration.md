@@ -76,7 +76,7 @@ see the class; an optional cross-store pass
 against the conversion-independent snapshot dump selected via the
 manifest's `legacy_name`. Ten unit tests pin the behaviour
 (`tools/test_frozen_baseline.py::CorpusModifierParity`); the full runner
-suite (85 tests) passes.
+suite (119 tests) passes.
 
 Ran store-wide, the cross-store pass reports the picker defect class is
 **not unique to the picker families**: ~1170 of 1510 corpus scenarios show
