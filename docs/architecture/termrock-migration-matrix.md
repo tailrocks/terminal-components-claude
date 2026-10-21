@@ -1105,3 +1105,36 @@ quick_switcher_contract --test tab_list_contract` 19/19, full
 `cargo nextest run -p tablepro-ui` 194/194 (visual baseline included),
 `cargo clippy --all-targets -p tablepro-ui` exit 0, `cargo fmt --check`
 exit 0.
+
+## 2026-10-21: reviewer-2 shell hygiene pass
+
+PR #38 review findings fixed on `crates/termrock-shell` and the facade's
+`blocks::shell`, behaviour-preserving, one commit per finding
+(`72d38dbc7`..`a7ebefdcf`):
+
+- Facade `blocks::shell` re-exports `termrock_shell::{Chrome, Regions,
+  AppShell}` instead of carrying a verbatim copy (two same-named
+  `AppShell` types existed); the header/gap/footer/inset chrome builders
+  moved into `termrock-shell`'s `AppShell`, and the facade keeps only
+  `EmptyLeaf`, `AppShellSlots` and the `AppShellExt` slot-builder trait.
+- `termrock-shell` no longer force-enables `termrock-runtime`'s
+  `testing` feature in `[dependencies]`; it is dev-only, so
+  `runtime::stub` stays out of production builds (`cargo tree -p
+  termrock -e features`: one `testing` edge before, none after).
+- `reach.rs` (the 723-line reachability harness) compiles only under the
+  crate's default-off `testing` feature; a self dev-dependency keeps the
+  crate's own 49 tests green under `cargo nextest run -p termrock-shell`.
+- `keyboard::observe` now ports PR26's Alt arm as well as Super, so
+  `alt_delivered()` can be proven by observed Alt chords (regression
+  test fails against the old observe: 4/5).
+- `KeyRouter::once` folds a passing layer's response with
+  `out | Response::consumed()` instead of returning a fresh consumed, so
+  the layer's invalidate/state payload survives; `route`'s doc no longer
+  claims hover suppression (the runtime owns hover on parity).
+- `PageLeaf::measure` follows the sibling `min: 0` convention instead of
+  `min: constraints.max`; no consumer relied on the outlier.
+
+Gate on the exact pushed HEAD (`a7ebefdcf`): `cargo nextest run -p
+termrock-shell -p termrock` 71/71, `cargo clippy --all-targets -p
+termrock -p termrock-shell` clean, `cargo fmt --check` exit 0,
+`cargo check --workspace` exit 0.
