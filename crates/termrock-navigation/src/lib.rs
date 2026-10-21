@@ -35,7 +35,9 @@ pub use chip::{ChipBar, ChipBarAction, ChipBarCmd, ChipBarState, LabelChips};
 pub use filter_list::{
     FilterList, FilterListAction, FilterListCmd, FilterListState, FilterPolicy, SelectionPolicy,
 };
-pub use item::{AsItem, Item, ItemColumns, ItemRow, ItemRowLayout};
+pub use item::{
+    AsItem, Item, ItemColumns, ItemLabelOverflow, ItemRow, ItemRowLayout, SemanticItemRow,
+};
 pub use list::{List, ListAction, ListCmd, ListState};
 pub use nav_list::{BadgeFn, NavList, NavListAction, NavListCmd, NavListState, NavMode};
 pub use steps::{StepState, Steps, StepsAction, StepsCmd, StepsState};

@@ -666,7 +666,7 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
         tree
     }
 
-    pub fn row<R2: Fn(&T, &mut RowUi<'_>)>(self, r: R2) -> Tree<'a, T, K, R2> {
+    pub fn row<R2: RowFn<T>>(self, r: R2) -> Tree<'a, T, K, R2> {
         Tree {
             id: self.id,
             key: self.key,
