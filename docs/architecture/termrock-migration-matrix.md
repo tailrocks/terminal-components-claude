@@ -31,6 +31,12 @@ Required unresolved checks include the 73-slot reference decision, Feedback priv
 
 Detailed clearances and blocked reviews are preserved under `docs/audits/evidence/2026-10-21-current-blockers/`; later exact integration records must explicitly supersede this summary.
 
+### Reject candidate-only expectation approval
+
+Restore the 38 native Showcase expectation entries changed by `c487a61ac05a674b4e9f54358da98d6ce7a2db1f`: six Buttons and 32 CodeEditor digests. The [independent rejection and both byte files](../audits/evidence/2026-10-21-c487-expectation-protection/README.md) prove identical product/harness source changed from red to green solely through replacement expectations, with BLESS and UPDATE_BASELINE absent. No pinned frozen capture/replay or documented independent reference decision authorizes that change; the existing Buttons decision explicitly denies candidate privilege and blanket size/color exceptions. Only prior expectation bytes are restored, with no old application implementation or capture restored. The earlier source remains history; this corrective commit reverses its unauthorized test effect.
+
+This is test-integrity protection, not approval of the older native digest file as frozen truth. Existing baseline/stored-output conflicts remain unresolved and both sets are preserved. The real pinned paired runner and complete frozen inventory remain required. Native Showcase must stay red where differences or reference-data decisions are missing; no failing case is omitted or re-approved. Incoming later settings/editor painters remain unadmitted.
+
 ### Canonical Menu renderer and hidden-selection dispatch
 
 Integrate independently cleared `38148abafc448e9f75f72f79339f86d650832895`. `keep_underlay` selects only fill behavior; all rows now use the canonical Menu renderer for state/theme/parts, shortcut hints, submenu markers, separators and disabled state. The duplicated fixed-RGB row renderer is removed. Generic separator inset and borrowed reason support remain explicit component configuration. Hidden physical Enter/Space is consumed before item binding dispatch and navigation restoration, including remapped First/Last/Up/Down; ordinary item letters, Home, pointer activation and alternate activation commands retain their behavior.
