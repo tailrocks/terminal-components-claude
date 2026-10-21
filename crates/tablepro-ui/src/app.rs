@@ -7125,17 +7125,20 @@ fn grouped(n: usize) -> String {
 /// `None` means every piece fits and the existing cluster paint stays.
 /// The column is relative to `area.x`. Priorities match the baseline strip:
 /// the size badge is 1 and `? help` is 4, so the badge drops first.
-pub(crate) fn header_overflow(
+///
+/// The keep sets are fixed-size arrays so the frame hot path stays free of
+/// heap allocations.
+pub(crate) fn header_overflow<const L: usize, const R: usize>(
     area_width: u16,
-    left: &[u16],
-    left_priority: &[u8],
-    right: &[u16],
-    right_priority: &[u8],
-) -> Option<(Vec<bool>, u16)> {
+    left: &[u16; L],
+    left_priority: &[u8; L],
+    right: &[u16; R],
+    right_priority: &[u8; R],
+) -> Option<([bool; R], u16)> {
     const EDGE: u16 = 2;
     const SEP: u16 = 2;
-    let mut keep_left = vec![true; left.len()];
-    let mut keep_right = vec![true; right.len()];
+    let mut keep_left = [true; L];
+    let mut keep_right = [true; R];
     let total = |keep_left: &[bool], keep_right: &[bool]| -> u16 {
         let left_width: u16 = left
             .iter()
@@ -7202,39 +7205,61 @@ pub(crate) fn header_overflow(
     Some((keep_right, ellipsis))
 }
 
+/// Header pieces on the left of the workbench header, in paint order.
+const HEADER_LEFT_PIECES: usize = 6;
+/// Header pieces on the right of the workbench header, in paint order.
+const HEADER_RIGHT_PIECES: usize = 2;
+
+/// Width of a `u16` written in decimal, matching `format!("{value}")`.
+fn decimal_width(value: u16) -> u16 {
+    let mut digits = 1u16;
+    let mut rest = value / 10;
+    while rest > 0 {
+        digits = digits.saturating_add(1);
+        rest /= 10;
+    }
+    digits
+}
+
+/// Widths of the workbench header pieces, in paint order.
+///
+/// The widths are measured without building the painted strings, so the frame
+/// hot path does not allocate. Every piece is a plain concatenation, so the
+/// width of the whole equals the sum of the widths of its parts.
 fn workbench_header_pieces(
     app: &TableProApp,
     capability: &str,
     term_width: u16,
     term_height: u16,
-) -> (Vec<u16>, Vec<u16>) {
+) -> ([u16; HEADER_LEFT_PIECES], [u16; HEADER_RIGHT_PIECES]) {
     let name_width = width(&app.connection.name).min(18);
     let glyph = match app.connection.environment {
         Environment::Production => "◆",
         Environment::Staging => "◇",
         Environment::Local | Environment::Development => "·",
     };
-    let environment = format!("{glyph} {}", app.connection.environment.label());
-    let scope = format!(
-        "{} › {}",
-        app.connection.database,
-        app.workbench.current_schema()
-    );
+    let environment = width(glyph)
+        .saturating_add(width(" "))
+        .saturating_add(width(app.connection.environment.label()));
+    let scope = width(&app.connection.database)
+        .saturating_add(width(" "))
+        .saturating_add(width("›"))
+        .saturating_add(width(" "))
+        .saturating_add(width(app.workbench.current_schema()));
     let safe = match app.safe_mode {
-        SafeMode::Safe | SafeMode::SafeFull => "✓ safe".to_owned(),
-        _ => app.safe_mode.token().to_owned(),
+        SafeMode::Safe | SafeMode::SafeFull => width("✓ safe"),
+        _ => width(app.safe_mode.token()),
     };
-    let badge = format!("{capability} · {term_width}×{term_height}");
+    let badge = width(capability)
+        .saturating_add(width(" "))
+        .saturating_add(width("·"))
+        .saturating_add(width(" "))
+        .saturating_add(decimal_width(term_width))
+        .saturating_add(width("×"))
+        .saturating_add(decimal_width(term_height));
     (
-        vec![
-            1,
-            width("TablePro"),
-            name_width,
-            width(&environment),
-            width(&scope),
-            width(&safe),
-        ],
-        vec![width(&badge), width("? help")],
+        [1, width("TablePro"), name_width, environment, scope, safe],
+        [badge, width("? help")],
     )
 }
 
@@ -8776,21 +8801,49 @@ fn paint_picker_layer_footer(ui: &mut Ui<'_>, area: termrock::Rect) {
     );
 }
 
-fn hint_group_costs(spans: &[Span<'_>]) -> Vec<u16> {
+/// The longest footer row the app paints.
+const MAX_FOOTER_SPANS: usize = 36;
+/// Hint groups in one footer row.
+///
+/// A group needs at least one span and the two-space separator that follows
+/// it, so a row of `MAX_FOOTER_SPANS` spans never has more groups than this.
+const MAX_HINT_GROUPS: usize = MAX_FOOTER_SPANS / 2 + 1;
+
+/// Cost of each hint group, in paint order.
+///
+/// The costs are written into `costs` so the frame hot path does not
+/// allocate. The returned count is the number of groups.
+fn hint_group_costs(spans: &[Span<'_>], costs: &mut [u16; MAX_HINT_GROUPS]) -> usize {
     let mut index = usize::from(spans.first().is_some_and(|span| span.text == " "));
-    let mut costs = Vec::new();
+    let mut count = 0usize;
     while index < spans.len() {
         let mut group = 0u16;
-        while let Some(span) = spans.get(index).filter(|span| span.text != "  ") {
+        while index < spans.len() {
+            let Some(span) = spans.get(index) else {
+                break;
+            };
+            if span.text == "  " {
+                break;
+            }
             group = group.saturating_add(width(span.text));
             index = index.saturating_add(1);
         }
-        if spans.get(index).is_some_and(|span| span.text == "  ") {
+        if let Some(span) = spans.get(index)
+            && span.text == "  "
+        {
             index = index.saturating_add(1);
         }
-        costs.push(group.saturating_add(2));
+        debug_assert!(
+            count < MAX_HINT_GROUPS,
+            "footer row has more hint groups than the budget"
+        );
+        let Some(slot) = costs.get_mut(count) else {
+            break;
+        };
+        *slot = group.saturating_add(2);
+        count = count.saturating_add(1);
     }
-    costs
+    count
 }
 
 /// Keep every hint when the status fits beside them. If the status would cover
@@ -8833,31 +8886,41 @@ fn paint_fitted_workbench_hints(
     status_width: u16,
     base: PaintStyle,
 ) -> bool {
-    let costs = hint_group_costs(spans);
-    let (keep, status, ellipsis) = fit_workbench_hints(&costs, area.width, status_width);
-    if keep == costs.len() && !ellipsis {
+    let mut costs = [0u16; MAX_HINT_GROUPS];
+    let count = hint_group_costs(spans, &mut costs);
+    let Some(costs) = costs.get(..count) else {
+        return false;
+    };
+    let (keep, status, ellipsis) = fit_workbench_hints(costs, area.width, status_width);
+    if keep == count && !ellipsis {
         ui.paint_spans(area, spans, base);
         return status;
     }
     let mut index = 0;
     let mut x = area.x;
-    if let Some(span) = spans.first().filter(|span| span.text == " ") {
-        let span_width = width(span.text);
+    if let Some(first) = spans.first().filter(|span| span.text == " ") {
+        let span_width = width(first.text);
         ui.paint_str(
             termrock::Rect {
                 x,
                 width: span_width,
                 ..area
             },
-            span.text,
-            span_paint(ui, base, span),
+            first.text,
+            span_paint(ui, base, first),
         );
         x = x.saturating_add(span_width);
         index = 1;
     }
     let mut painted = 0usize;
     while index < spans.len() && painted < keep {
-        while let Some(span) = spans.get(index).filter(|span| span.text != "  ") {
+        while index < spans.len() {
+            let Some(span) = spans.get(index) else {
+                break;
+            };
+            if span.text == "  " {
+                break;
+            }
             let span_width = width(span.text);
             ui.paint_str(
                 termrock::Rect {
@@ -8871,7 +8934,9 @@ fn paint_fitted_workbench_hints(
             x = x.saturating_add(span_width);
             index = index.saturating_add(1);
         }
-        if let Some(span) = spans.get(index).filter(|span| span.text == "  ") {
+        if let Some(span) = spans.get(index)
+            && span.text == "  "
+        {
             x = x.saturating_add(width(span.text));
             index = index.saturating_add(1);
         }
@@ -8929,6 +8994,9 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
     let explorer_focused = ui.state(EXPLORER).contains(StateFlags::FOCUSED);
     let empty_query = app.blank_sql() && query_editor_focused(ui, app);
     let mut show_connection_status = true;
+    // The status label is needed by the hint row and by the status cluster, so
+    // it is built once and shared instead of once per use.
+    let mut status_label: Option<String> = None;
     ui.fill(area, base);
     if matches!(app.surface, Surface::QuickSwitcher | Surface::TabListPicker) {
         paint_picker_layer_footer(ui, area);
@@ -8962,13 +9030,14 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
             && sort_footer(app).is_none()
             && filter_footer(app).is_none()
             && app.screen == Screen::Workbench;
-        let status_label = connection_status_label(app, explorer_focused, empty_query);
+        let status_label = status_label
+            .get_or_insert_with(|| connection_status_label(app, explorer_focused, empty_query));
         with_footer_spans(app, explorer_focused, |spans| {
             if app.screen == Screen::Connections {
                 paint_connection_hints(ui, area, spans, notice, base);
             } else if status_wins {
                 show_connection_status =
-                    paint_fitted_workbench_hints(ui, area, spans, width(&status_label), base);
+                    paint_fitted_workbench_hints(ui, area, spans, width(status_label), base);
             } else {
                 ui.paint_spans(area, spans, base);
             }
@@ -9020,9 +9089,10 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
             base.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_PATH_FG))),
         );
     } else if app.screen == Screen::Workbench && show_connection_status {
-        let right_text = connection_status_label(app, explorer_focused, empty_query);
+        let right_text = status_label
+            .get_or_insert_with(|| connection_status_label(app, explorer_focused, empty_query));
         let checked = right_text.starts_with('✓');
-        let text_width = width(&right_text);
+        let text_width = width(right_text);
         let right = termrock::Rect {
             x: area.right().saturating_sub(text_width).saturating_sub(1),
             width: text_width,
@@ -9030,7 +9100,7 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
         };
         ui.paint_spans(
             right,
-            &[Span::new(&right_text).role(if checked {
+            &[Span::new(right_text.as_str()).role(if checked {
                 TAG_OK_FG
             } else {
                 Role::Fg(FgStep::Muted)
@@ -10378,6 +10448,108 @@ mod action_namespace_tests {
                 !keys.iter().take(index).any(|previous| previous == key),
                 "duplicate application action: {key:?}"
             );
+        }
+    }
+}
+
+#[cfg(test)]
+mod header_budget {
+    use super::*;
+
+    /// The reference walk the buffer-based cost collector replaces.
+    fn reference_hint_costs(spans: &[Span<'_>]) -> Vec<u16> {
+        let mut index = usize::from(spans.first().is_some_and(|span| span.text == " "));
+        let mut costs = Vec::new();
+        while index < spans.len() {
+            let mut group = 0u16;
+            while let Some(span) = spans.get(index) {
+                if span.text == "  " {
+                    break;
+                }
+                group = group.saturating_add(width(span.text));
+                index = index.saturating_add(1);
+            }
+            if let Some(span) = spans.get(index)
+                && span.text == "  "
+            {
+                index = index.saturating_add(1);
+            }
+            costs.push(group.saturating_add(2));
+        }
+        costs
+    }
+
+    fn collected(spans: &[Span<'_>]) -> Vec<u16> {
+        let mut costs = [0u16; MAX_HINT_GROUPS];
+        let count = hint_group_costs(spans, &mut costs);
+        costs.get(..count).unwrap_or_default().to_vec()
+    }
+
+    #[test]
+    fn hint_costs_match_the_reference_walk() {
+        for spans in [
+            connection_footer_spans().as_slice(),
+            explorer_footer_spans().as_slice(),
+        ] {
+            assert_eq!(collected(spans), reference_hint_costs(spans));
+        }
+    }
+
+    #[test]
+    fn every_footer_row_fits_the_hint_group_budget() {
+        for spans in [
+            connection_footer_spans().as_slice(),
+            explorer_footer_spans().as_slice(),
+        ] {
+            let mut costs = [0u16; MAX_HINT_GROUPS];
+            let count = hint_group_costs(spans, &mut costs);
+            assert!(count <= MAX_HINT_GROUPS, "hint groups: {count}");
+        }
+    }
+
+    #[test]
+    fn header_piece_widths_match_the_painted_text() {
+        let mut app = TableProApp::default();
+        assert!(app.connect(0));
+        let capability = "truecolor";
+        let (term_width, term_height) = (120u16, 40u16);
+        let (left, right) = workbench_header_pieces(&app, capability, term_width, term_height);
+
+        let glyph = match app.connection.environment {
+            Environment::Production => "◆",
+            Environment::Staging => "◇",
+            Environment::Local | Environment::Development => "·",
+        };
+        let environment = format!("{glyph} {}", app.connection.environment.label());
+        let scope = format!(
+            "{} › {}",
+            app.connection.database,
+            app.workbench.current_schema()
+        );
+        let badge = format!("{capability} · {term_width}×{term_height}");
+        assert_eq!(left[3], width(&environment));
+        assert_eq!(left[4], width(&scope));
+        assert_eq!(right[0], width(&badge));
+        assert_eq!(left[2], width(&app.connection.name).min(18));
+        assert_eq!(right[1], width("? help"));
+    }
+
+    #[test]
+    fn safe_mode_piece_widths_match_the_painted_text() {
+        let mut app = TableProApp::default();
+        assert!(app.connect(0));
+        app.safe_mode = SafeMode::Safe;
+        let (left, _) = workbench_header_pieces(&app, "truecolor", 120, 40);
+        assert_eq!(left[5], width("✓ safe"));
+        app.safe_mode = SafeMode::Alert;
+        let (left, _) = workbench_header_pieces(&app, "truecolor", 120, 40);
+        assert_eq!(left[5], width(app.safe_mode.token()));
+    }
+
+    #[test]
+    fn decimal_width_matches_the_formatted_number() {
+        for value in [0u16, 1, 9, 10, 99, 100, 999, 1000, 65_535] {
+            assert_eq!(decimal_width(value), width(&value.to_string()));
         }
     }
 }
