@@ -19,7 +19,7 @@ use crate::response::{Response, StateFlags};
 use crate::scroll::ScrollState;
 use crate::text::measure::{grapheme_width, graphemes};
 use crate::text::{EditAction, EditOutcome, Extend, Motion, TextEditorCore, width};
-use crate::theme::{Family, GlyphRole, Role, Slot, StylePatch, SyntaxRole, Variant};
+use crate::theme::{Family, FgStep, GlyphRole, Role, Slot, StylePatch, SyntaxRole, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 use termrock_core::edit_entry::EditEntry;
 use termrock_runtime::scroll_region::ScrollRegion;
@@ -1512,9 +1512,20 @@ impl<'a> CodeEditor<'a> {
         let view = ScrollRegion::view(&st.scroll, content, lines);
         let text_style = style(ui, Part::TEXT, live).style;
         let selected_style = style(ui, Part::ROW, live | StateFlags::SELECTED).style;
-        let number_style = style(ui, Part::META, live).style;
         let marker_style = style(ui, Part::MARKER, live).style;
         let gutter_style = style(ui, Part::GUTTER, live).style;
+        // Line numbers follow the baseline code gutter: the focused cursor
+        // line is primary and bold, the current block is secondary, and every
+        // other line is muted. Read-only editors use faint for all of them.
+        let meta = style(ui, Part::META, live).style;
+        let number_ink = |ui: &mut Ui<'_>, step: FgStep| {
+            meta.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(step))))
+        };
+        let block = if st.editor.selection().is_none() {
+            self.current_block(st)
+        } else {
+            None
+        };
         let visible = view.visible_range();
         let first_offset = cache
             .line_starts
@@ -1547,29 +1558,43 @@ impl<'a> CodeEditor<'a> {
                     height: 1,
                     ..content
                 };
-                if live.contains(StateFlags::FOCUSED) && line_index == cursor.line {
-                    match self.ov.slot_for(Part::GUTTER) {
-                        Some(slot) => slot(ui, cell_at(row, row.x)),
-                        None => match self
-                            .ov
-                            .style(
-                                ui,
-                                self.id,
-                                Family::CODE,
-                                Variant::DEFAULT,
-                                Part::GUTTER,
-                                live,
-                            )
-                            .glyph
-                        {
-                            Slot::Set(glyph) => {
-                                ui.glyph(cell_at(row, row.x), glyph, gutter_style);
-                            }
-                            Slot::Inherit => {
-                                ui.glyph(cell_at(row, row.x), GlyphRole::FocusBar, gutter_style);
-                            }
-                            Slot::Clear => {}
-                        },
+                if line_index == cursor.line {
+                    if live.contains(StateFlags::FOCUSED) {
+                        match self.ov.slot_for(Part::GUTTER) {
+                            Some(slot) => slot(ui, cell_at(row, row.x)),
+                            None => match self
+                                .ov
+                                .style(
+                                    ui,
+                                    self.id,
+                                    Family::CODE,
+                                    Variant::DEFAULT,
+                                    Part::GUTTER,
+                                    live,
+                                )
+                                .glyph
+                            {
+                                Slot::Set(glyph) => {
+                                    ui.glyph(cell_at(row, row.x), glyph, gutter_style);
+                                }
+                                Slot::Inherit => {
+                                    ui.glyph(
+                                        cell_at(row, row.x),
+                                        GlyphRole::FocusBar,
+                                        gutter_style,
+                                    );
+                                }
+                                Slot::Clear => {}
+                            },
+                        }
+                    } else {
+                        // An unfocused cursor line keeps a blank gutter cell.
+                        // A modal backdrop then lifts field-on-field to the card.
+                        ui.paint_str(
+                            cell_at(row, row.x),
+                            " ",
+                            container.style.with_fg_from_bg(container.style),
+                        );
                     }
                 }
                 let marker = cell_at(row, row.x.saturating_add(1));
@@ -1614,12 +1639,41 @@ impl<'a> CodeEditor<'a> {
                     ..row
                 }
                 .intersection(row);
+                let line_start = global;
+                let line_span_end = global.saturating_add(code_line.len());
+                let in_block = block
+                    .as_ref()
+                    .is_some_and(|range| line_span_end >= range.start && line_start <= range.end);
+                let focused_line = live.contains(StateFlags::FOCUSED) && line_index == cursor.line;
+                let number_style = if self.read_only {
+                    number_ink(ui, FgStep::Faint)
+                } else if focused_line {
+                    number_ink(ui, FgStep::Primary).add_modifier(Modifier::BOLD)
+                } else if in_block {
+                    number_ink(ui, FgStep::Secondary)
+                } else {
+                    number_ink(ui, FgStep::Muted)
+                };
                 let mut digits = [0u8; 20];
                 let number_text = usize_text(line_index.saturating_add(1), &mut digits);
                 let number_width = width(number_text).min(number.width);
+                let pad = number.width.saturating_sub(number_width);
+                let mut digit_x = number.x;
+                for _ in 0..pad {
+                    ui.paint_str(
+                        Rect {
+                            x: digit_x,
+                            width: 1,
+                            ..number
+                        },
+                        " ",
+                        number_style,
+                    );
+                    digit_x = digit_x.saturating_add(1);
+                }
                 ui.paint_str(
                     Rect {
-                        x: number.right().saturating_sub(number_width),
+                        x: digit_x,
                         width: number_width,
                         ..number
                     },
