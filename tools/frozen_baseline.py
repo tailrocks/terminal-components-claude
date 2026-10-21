@@ -4311,8 +4311,11 @@ def validate_reference_receipts(receipts: dict[tuple[str, int, str], tuple[str, 
         expected_decision_hash = decision_sha256 if phase == "baseline-capture" else None
         if matched[2] != expected_decision_hash:
             raise RunnerError(f"reference decision receipt binding mismatch at {key}: {matched[2]}")
-    elif any(value[2] is not None for value in receipts.values()):
-        raise RunnerError("unselected or unrelated checkpoint claims a reference decision")
+    for receipt_key, receipt in receipts.items():
+        if receipt[2] is None:
+            continue
+        if phase != "baseline-capture" or not reference_case_selected(decision, selected) or receipt_key != key or receipt[2] != decision_sha256:
+            raise RunnerError(f"unselected or unrelated checkpoint claims a reference decision: {receipt_key}")
 
 
 def paired_reference_report(decisions: list[dict[str, object]], selected: list[str], decision_sha256: str) -> list[dict[str, object]]:
@@ -5035,23 +5038,32 @@ def main() -> int:
                     raise RunnerError("--owned-budget requires --owned-lifecycle")
                 prepare(args.repo, args.root, args.timeout)
         elif args.command == "prepare-live":
-            repo, root, source = paths(args.repo, args.root)
-            if args.fresh_cohort is None and args.baseline_bin_dir is not None:
-                raise RunnerError("--baseline-bin-dir requires --fresh-cohort")
-            if args.fresh_cohort is not None and args.baseline_bin_dir is None:
-                raise RunnerError("--fresh-cohort requires --baseline-bin-dir")
             if args.owned_lifecycle:
-                if args.fresh_cohort is None or args.baseline_bin_dir is None:
-                    raise RunnerError("--owned-lifecycle requires explicit --fresh-cohort and --baseline-bin-dir")
                 with PrepareExecution(args.owned_budget) as execution:
+                    execution.check_work()
+                    repo, root, source = paths(args.repo, args.root)
+                    execution.check_work()
+                    if args.fresh_cohort is None or args.baseline_bin_dir is None:
+                        raise RunnerError("--owned-lifecycle requires explicit --fresh-cohort and --baseline-bin-dir")
                     verify_source(root, source, check_work=execution.check_work)
+                    execution.check_work()
                     record = prepare_live_source(repo, root, source, args.timeout, fresh_cohort_id=args.fresh_cohort, baseline_bin_dir=args.baseline_bin_dir, execution=execution)
+                    execution.check_work()
+                    success = json.dumps(record, indent=2)
+                    execution.check_work()
+                    print(success, flush=True)
+                    execution.check_work()
             else:
                 if args.owned_budget != PREPARE_OWNED_MAX_BUDGET:
                     raise RunnerError("--owned-budget requires --owned-lifecycle")
+                repo, root, source = paths(args.repo, args.root)
+                if args.fresh_cohort is None and args.baseline_bin_dir is not None:
+                    raise RunnerError("--baseline-bin-dir requires --fresh-cohort")
+                if args.fresh_cohort is not None and args.baseline_bin_dir is None:
+                    raise RunnerError("--fresh-cohort requires --baseline-bin-dir")
                 verify_source(root, source)
                 record = prepare_live_source(repo, root, source, args.timeout, fresh_cohort_id=args.fresh_cohort, baseline_bin_dir=args.baseline_bin_dir)
-            print(json.dumps(record, indent=2))
+                print(json.dumps(record, indent=2))
         elif args.command == "verify-live":
             if args.owned_lifecycle:
                 if args.fresh_cohort != PREPARE_LIVE_OWNED_COHORT:

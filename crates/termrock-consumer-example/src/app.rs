@@ -25,7 +25,7 @@ use termrock::controls::{Button, PropsList, PropsRow, PropsState};
 use termrock::feedback::{StatusAction, StatusBar, StatusItem};
 use termrock::navigation::{NavList, NavListAction, NavListState};
 use termrock::overlays::{Menu, MenuAction, MenuBar, MenuItem, MenuState};
-use termrock::{ActionKey, App, Cx, Id, ItemKey, Rect, Response, RowUi, Ui, UpdateCause};
+use termrock::{ActionKey, App, Cx, FrameRead, Id, ItemKey, Rect, Response, RowUi, Ui, UpdateCause};
 
 use crate::recipes::{RECIPES, Recipe};
 
@@ -321,6 +321,19 @@ impl App for RecipeBox {
             if let Some(action) = mapped {
                 self.dispatch(action);
             }
+            if matches!(action, NavListAction::Chose(_) | NavListAction::EnterContent(_))
+                && cx
+                    .layout(WORKSPACE)
+                    .and_then(|facts| facts.logical_area)
+                    .is_some_and(|area| self.policy().is_collapsed(area.width))
+            {
+                let block = self.block();
+                let opened = block.open_detail(cx, &mut self.layout);
+                if opened.action_ref().is_some() {
+                    self.dispatch(Action::DetailOpened);
+                }
+                response |= opened.erase();
+            }
         }
         response |= nav_response.erase();
 
@@ -354,17 +367,21 @@ impl App for RecipeBox {
         response |= status_response.erase();
 
         let scale = Button::new(SCALE_BUTTON, "Scale servings");
-        if scale.update(cx).activated()
+        let scale_response = scale.update(cx);
+        if scale_response.activated()
             && let Some(key) = self.selected
         {
             self.dispatch(Action::Scaled(key));
         }
+        response |= scale_response.erase();
         let cook = Button::new(COOK_BUTTON, "Mark cooked");
-        if cook.update(cx).activated()
+        let cook_response = cook.update(cx);
+        if cook_response.activated()
             && let Some(key) = self.selected
         {
             self.dispatch(Action::Cooked(key));
         }
+        response |= cook_response.erase();
 
         response
     }
@@ -399,15 +416,16 @@ impl App for RecipeBox {
             bar: &menu,
             state: &self.menu_state,
         };
-        let body = BodyLeaf {
-            block: &block,
-            state: &self.layout,
-        };
+        let body = Group::column([
+            composition::master_detail(&block, &self.layout)
+                .expect("recipe master and detail groups are configured"),
+        ]);
         let footer = StatusLeaf { bar: &status };
 
-        let _ = termrock::AppShell::new()
+        termrock::AppShell::new()
             .chrome(termrock::Chrome::new().gap(1))
-            .show(ui, &header, &body, &footer);
+            .show(ui, &header, &body, &footer)
+            .expect("recipe shell has a valid fixed composition");
     }
 }
 
@@ -432,34 +450,6 @@ impl Measure for MenuLeaf<'_> {
 impl CompositionLeaf for MenuLeaf<'_> {
     fn draw(&self, ui: &mut Ui<'_>, logical: Rect) {
         self.bar.draw(ui, logical, self.state);
-    }
-}
-
-/// The shell body leaf: the shared master-detail block.
-struct BodyLeaf<'a> {
-    block: &'a MasterDetail<'a>,
-    state: &'a MasterDetailState,
-}
-
-impl Measure for BodyLeaf<'_> {
-    fn measure(&self, ui: &Ui<'_>, constraints: Constraints) -> Size {
-        self.block
-            .measure(ui, self.state, constraints)
-            .unwrap_or(Size {
-                min: (0, 0),
-                preferred: constraints.max,
-            })
-    }
-}
-
-impl CompositionLeaf for BodyLeaf<'_> {
-    fn draw(&self, ui: &mut Ui<'_>, logical: Rect) {
-        let _ = self.block.measure(
-            ui,
-            self.state,
-            Constraints::loose(logical.width, logical.height),
-        );
-        let _ = self.block.show(ui, self.state);
     }
 }
 

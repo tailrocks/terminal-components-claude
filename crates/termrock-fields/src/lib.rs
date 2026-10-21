@@ -35,7 +35,7 @@ pub use edit::{EditCapabilities, EditMenuRequest, TextEditCommand};
 pub use field::Field;
 pub use field_error::{FieldErrorChrome, paint_field_error};
 pub use input::{
-    BlurPolicy, EditPhase, ErrorState, TextAction, TextCmd, TextInput, TextInputState,
+    BlurPolicy, EditPhase, ErrorState, FocusSelect, TextAction, TextCmd, TextInput, TextInputState,
     discard_error, redacted_text,
 };
 pub use note::Note;

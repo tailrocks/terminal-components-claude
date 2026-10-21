@@ -806,6 +806,9 @@ pub struct App {
     selectable: showcase_demos::pages::selectable::Model,
     keymap: KeyMap,
     inspector: bool,
+    /// The shell layout resolved for the last frame, reused while the frame
+    /// area and the inspector state stay the same.
+    shell_layout_cache: std::cell::Cell<Option<CachedShellLayout>>,
     quit: bool,
     status: Option<(PageStatus, Moment)>,
     motion_paused: bool,
@@ -873,6 +876,7 @@ impl App {
             selectable: showcase_demos::pages::selectable::Model::default(),
             keymap: keymap(),
             inspector: false,
+            shell_layout_cache: std::cell::Cell::new(None),
             quit: false,
             status: None,
             motion_paused: paused,
@@ -910,6 +914,27 @@ impl App {
     /// The demo page the current route opens, when it opens one.
     fn route_page(&self) -> Option<PageId> {
         self.route().page()
+    }
+
+    /// The shell layout for the current frame.
+    ///
+    /// The layout is a pure function of the frame area and the inspector
+    /// state, so it is resolved once per frame and reused while both stay
+    /// the same.
+    fn resolved_shell_layout(&self, area: Rect) -> ShellLayout {
+        if let Some(cached) = self.shell_layout_cache.get()
+            && cached.area == area
+            && cached.inspector == self.inspector
+        {
+            return cached.layout;
+        }
+        let layout = shell_layout(area, self.inspector);
+        self.shell_layout_cache.set(Some(CachedShellLayout {
+            area,
+            inspector: self.inspector,
+            layout,
+        }));
+        layout
     }
 
     fn nav_label(&self) -> &'static str {
@@ -985,6 +1010,14 @@ struct ShellLayout {
     footer: Rect,
 }
 
+/// A shell layout resolved for one frame area and inspector state.
+#[derive(Clone, Copy, Debug)]
+struct CachedShellLayout {
+    area: Rect,
+    inspector: bool,
+    layout: ShellLayout,
+}
+
 /// The panes the shell body is split into.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Pane {
@@ -1038,27 +1071,28 @@ fn shell_layout(area: Rect, inspector: bool) -> ShellLayout {
     } else {
         0
     };
-    let mut panes = vec![Pane::Sidebar, Pane::Main];
-    if inspector_width > 0 {
-        panes.push(Pane::Spacer);
-        panes.push(Pane::Inspector);
-    }
-    let children: Vec<termrock::layout::Child<'_, Pane>> = panes
-        .iter()
-        .map(|pane| match pane {
-            Pane::Sidebar => termrock::layout::Child::new(pane, fixed_pane(sidebar_width)),
-            Pane::Main => termrock::layout::Child::new(pane, flexible_pane()),
-            Pane::Spacer => termrock::layout::Child::new(
-                pane,
-                termrock::layout::ChildPolicy::new(termrock::layout::Size::default())
-                    .max(Some(0), None),
-            ),
-            Pane::Inspector => termrock::layout::Child::new(pane, fixed_pane(inspector_width)),
-        })
-        .collect();
+    let panes = [
+        Pane::Sidebar,
+        Pane::Main,
+        Pane::Spacer,
+        Pane::Inspector,
+    ];
+    let children = [
+        termrock::layout::Child::new(&panes[0], fixed_pane(sidebar_width)),
+        termrock::layout::Child::new(&panes[1], flexible_pane()),
+        termrock::layout::Child::new(
+            &panes[2],
+            termrock::layout::ChildPolicy::new(termrock::layout::Size::default())
+                .max(Some(0), None),
+        ),
+        termrock::layout::Child::new(&panes[3], fixed_pane(inspector_width)),
+    ];
+    // Without the inspector dock the shell splits into the sidebar rail and
+    // the flexible main area only.
+    let count = if inspector_width > 0 { 4 } else { 2 };
     let plan = termrock::layout::row(
         body,
-        &children,
+        children.get(..count).unwrap_or(&[]),
         termrock::layout::Composition::new().gap(SHELL_GAP),
         |_, _| termrock::layout::Size::default(),
     );
@@ -1898,7 +1932,7 @@ impl TuiApp for App {
             too_small_notice().draw(ui, full);
             return;
         }
-        let shell = shell_layout(full, self.inspector);
+        let shell = self.resolved_shell_layout(full);
 
         shell_status().draw(ui, shell.footer);
         let entry = NAV_ENTRIES.get(self.nav_index).copied();
@@ -2259,5 +2293,103 @@ mod app_tests {
             .as_ref()
             .map(|(_, since)| since.as_duration().as_millis());
         assert_eq!(since, Some(5_000));
+    }
+}
+
+#[cfg(test)]
+mod shell_layout_contract {
+    use super::*;
+
+    fn legacy_shell_layout(area: Rect, inspector: bool) -> ShellLayout {
+        let regions = termrock::AppShell::new()
+            .header(1)
+            .gap(1)
+            .footer(1)
+            .regions(area);
+        let header = regions.header;
+        let footer = regions.footer;
+        let body = regions.body;
+        let sidebar_span: u16 = if area.width >= 110 { 24 } else { 19 };
+        let inspector_width = if inspector && area.width >= 100 {
+            30
+        } else {
+            0
+        };
+        let sidebar = Rect::new(body.x, body.y, sidebar_span.saturating_add(1), body.height);
+        let main_x = body.x.saturating_add(sidebar_span).saturating_add(2);
+        let main_width = body.width.saturating_sub(
+            sidebar_span
+                .saturating_add(2)
+                .saturating_add(inspector_width)
+                .saturating_add(u16::from(inspector_width > 0).saturating_mul(2)),
+        );
+        let main = Rect::new(main_x, body.y, main_width, body.height);
+        let inspector = (inspector_width > 0).then(|| {
+            Rect::new(
+                main.right().saturating_add(2),
+                body.y,
+                inspector_width,
+                body.height,
+            )
+        });
+        ShellLayout {
+            header,
+            sidebar,
+            main,
+            inspector,
+            footer,
+        }
+    }
+
+    #[test]
+    fn shared_layout_keeps_all_visible_regions_at_width_boundaries() {
+        for (x, y) in [(0, 0), (5, 3)] {
+            for width in [72, 73, 79, 80, 99, 100, 101, 109, 110, 111, 119, 120, 121, 160] {
+                for height in [20, 24, 40] {
+                    for inspector in [false, true] {
+                        let area = Rect::new(x, y, width, height);
+                        let old = legacy_shell_layout(area, inspector);
+                        let new = shell_layout(area, inspector);
+                        assert_eq!(new.header, old.header, "header {area:?} {inspector}");
+                        assert_eq!(new.sidebar, old.sidebar, "sidebar {area:?} {inspector}");
+                        assert_eq!(new.main, old.main, "main {area:?} {inspector}");
+                        assert_eq!(new.inspector, old.inspector, "inspector {area:?} {inspector}");
+                        assert_eq!(new.footer, old.footer, "footer {area:?} {inspector}");
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod shell_cache_contract {
+    use super::*;
+
+    #[test]
+    fn layout_cache_tracks_area_and_inspector_changes() {
+        let mut app = App::new();
+        let compact = Rect::new(0, 0, 80, 24);
+        let wide = Rect::new(5, 3, 120, 40);
+        assert!(app.resolved_shell_layout(compact).inspector.is_none());
+        assert_eq!(
+            app.resolved_shell_layout(compact).main,
+            shell_layout(compact, false).main
+        );
+        app.inspector = true;
+        assert_eq!(
+            app.resolved_shell_layout(wide).inspector,
+            shell_layout(wide, true).inspector
+        );
+        assert_eq!(
+            app.resolved_shell_layout(wide).main,
+            shell_layout(wide, true).main
+        );
+        assert!(app.resolved_shell_layout(compact).inspector.is_none());
+        app.inspector = false;
+        assert_eq!(
+            app.resolved_shell_layout(wide).main,
+            shell_layout(wide, false).main
+        );
     }
 }
