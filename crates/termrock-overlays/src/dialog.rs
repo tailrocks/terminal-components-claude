@@ -284,6 +284,8 @@ pub struct Dialog<'a> {
     title: Option<&'a str>,
     meta: Option<&'a str>,
     head_in_border: bool,
+    chrome_only: bool,
+    close_action: Option<ActionKey>,
     description: Option<&'a str>,
     actions: &'a [Action<'a>],
     cancel: Option<ActionKey>,
@@ -322,6 +324,7 @@ impl<'a> Dialog<'a> {
         Part::DETAIL,
         Part::BODY,
         Part::ACTIONS,
+        Part::CLOSE,
         Part::BACKDROP,
     ];
 
@@ -331,6 +334,8 @@ impl<'a> Dialog<'a> {
             title: None,
             meta: None,
             head_in_border: false,
+            chrome_only: false,
+            close_action: None,
             description: None,
             actions: &[],
             cancel: None,
@@ -344,6 +349,23 @@ impl<'a> Dialog<'a> {
             error: None,
             ov: PartStyle::new(),
         }
+    }
+
+    /// Creates chrome for composed content. Empty actions reserve no footer
+    /// row, and focus remains owned by the child components.
+    pub const fn chrome(id: Id) -> Self {
+        let mut dialog = Self::new(id);
+        dialog.chrome_only = true;
+        dialog
+    }
+
+    /// Adds a pointer-only close control in the title frame. Its activation
+    /// returns `DialogAction::Action(action)` just like the configured cancel
+    /// action, leaving lifecycle handling with the dialog's owner.
+    #[must_use]
+    pub const fn close_button(mut self, action: ActionKey) -> Self {
+        self.close_action = Some(action);
+        self
     }
 
     pub const fn confirm(id: Id, title: &'a str, question: &'a str) -> Self {
@@ -418,6 +440,10 @@ impl<'a> Dialog<'a> {
 
     pub const fn action_id(&self, i: usize) -> Id {
         self.id.part(Part::ACTIONS).index(i)
+    }
+
+    pub const fn close_id(&self) -> Id {
+        self.id.part(Part::CLOSE)
     }
 
     #[must_use]
@@ -630,6 +656,24 @@ impl<'a> Dialog<'a> {
         let suppress_activation = dismissal.is_some() || dismissed_after_action || !layer_open;
         let is_ack = self.ack.is_some();
         st.set_secret_mode(is_ack);
+        if let Some(action) = self.close_action
+            && let Some(area) = cx.area(self.id)
+            && area.width >= 16
+            && area.height >= 4
+        {
+            let response = Button::new(self.close_id(), "×")
+                .variant(Variant::QUIET)
+                .focusability(Focusability::ClickOnly)
+                .update(cx);
+            if !suppress_activation {
+                if response.activated() {
+                    acc.action(DialogAction::Action(action));
+                    action_fired = true;
+                } else {
+                    acc.fold(&response.erase());
+                }
+            }
+        }
         if self.has_input() {
             let prompt_commit_requested = self.prompt.is_some() && self.prompt_commit_requested(cx);
             let r = if is_ack {
@@ -733,6 +777,24 @@ impl<'a> Dialog<'a> {
     }
 
     fn paint_close(&self, ui: &mut Ui<'_>, outer: Rect) {
+        if self.close_action.is_some() {
+            if outer.width >= 16 && outer.height >= 4 {
+                let x = outer.right().saturating_sub(5);
+                Button::new(self.close_id(), "×")
+                    .variant(Variant::QUIET)
+                    .focusability(Focusability::ClickOnly)
+                    .draw(
+                        ui,
+                        Rect {
+                            x,
+                            y: outer.y,
+                            width: 3,
+                            height: 1,
+                        },
+                    );
+            }
+            return;
+        }
         if outer.width < 8 || outer.height < 3 {
             return;
         }
@@ -844,9 +906,18 @@ impl<'a> Dialog<'a> {
             },
         );
         let lines = action_lines(action_widths, content.width, 2);
-        let requested_action_height = u16::try_from(lines.len().max(1)).unwrap_or(u16::MAX);
+        let requested_action_height = if self.chrome_only && self.actions.is_empty() {
+            0
+        } else {
+            u16::try_from(lines.len().max(1)).unwrap_or(u16::MAX)
+        };
         let title_rows = u16::from(self.title.is_some() && !border_head);
         let title_gap = title_rows.min(vertical_pad);
+        // The chrome-only composition mode has no Dialog action footer when
+        // its action list is empty, so it must not retain the legacy footer
+        // row in its intrinsic height. Standalone Dialog geometry and a
+        // composed Dialog with real actions keep the original reservation.
+        let natural_footer_gap = !border_head && (!self.chrome_only || !self.actions.is_empty());
         let action_height = requested_action_height.min(
             content
                 .height
@@ -867,7 +938,7 @@ impl<'a> Dialog<'a> {
             .saturating_add(self.input_rows(d))
             .saturating_add(body_block)
             .saturating_add(requested_action_height)
-            .saturating_add(u16::from(!border_head));
+            .saturating_add(u16::from(natural_footer_gap));
         let mut y = content.y;
         let mut remaining = content.height;
         let title = if border_head {
@@ -1095,7 +1166,7 @@ impl<'a> Dialog<'a> {
                     );
                 }
                 ui.register_decor(id, PartRef::of(Part::BODY), layout.body);
-                if self.head_in_border && !layout.body.is_empty() {
+                if self.head_in_border && !self.chrome_only && !layout.body.is_empty() {
                     ui.register_control(id.part(Part::BODY), layout.body, Focusability::Focusable);
                 }
                 let out = ui.with_area(layout.body, |ui| body(ui, layout.body));
@@ -1365,6 +1436,50 @@ mod tests {
         )
     }
 
+    struct ChromeApp {
+        opened: bool,
+        ordinary_height: u16,
+        chrome_height: u16,
+    }
+
+    impl App for ChromeApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            if !self.opened {
+                self.opened = true;
+                let ordinary = Dialog::new(DLG)
+                    .title("Composed")
+                    .body_rows(3)
+                    .head_in_border();
+                let dialog = Dialog::chrome(DLG)
+                    .title("Composed")
+                    .body_rows(3)
+                    .head_in_border();
+                self.ordinary_height = ordinary.measured_height_for_width(
+                    cx.design(),
+                    40,
+                    &ordinary.action_widths_with(|_, _, width| width),
+                );
+                self.chrome_height = dialog.measured_height_for_width(
+                    cx.design(),
+                    40,
+                    &dialog.action_widths_with(|_, _, width| width),
+                );
+                cx.open_layer(DLG, dialog.layer(cx));
+            }
+            Response::ignored()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let dialog = Dialog::chrome(DLG)
+                .title("Composed")
+                .body_rows(3)
+                .head_in_border();
+            ui.layer(DLG, |ui, area| {
+                dialog.draw_body_slot(ui, area, &DialogState::default(), |_| {});
+            });
+        }
+    }
+
     #[test]
     fn border_head_paints_the_padded_title_in_the_top_border_row() {
         let (mut rt, mut buf) = scene();
@@ -1387,6 +1502,84 @@ mod tests {
         // The body starts directly under the border: row 1 holds the first
         // body row, not an inner title row.
         assert_eq!(buf[(4, 1)].symbol(), " ");
+    }
+
+    #[test]
+    fn chrome_mode_omits_empty_action_row_and_does_not_focus_the_body() {
+        let mut rt = Runtime::new(
+            ChromeApp {
+                opened: false,
+                ordinary_height: 0,
+                chrome_height: 0,
+            },
+            Theme::junie(),
+        );
+        let mut buf = Buffer::empty(SCREEN);
+        let _ = rt.initialize();
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        assert_eq!(rt.app().ordinary_height, rt.app().chrome_height + 1);
+        assert!(
+            rt.registry().area_of(DLG.part(Part::CLOSE)).is_none(),
+            "chrome-only Dialog remains visually and interactively unchanged by default"
+        );
+        assert!(!rt.registry().regions().iter().any(|region| {
+            region.owner == DLG.part(Part::BODY) && region.kind == crate::hit::RegionKind::Control
+        }));
+        assert!(
+            rt.registry().regions().iter().any(|region| {
+                region.owner == DLG
+                    && region.part == PartRef::of(Part::BODY)
+                    && region.kind == crate::hit::RegionKind::Decorative
+            }),
+            "regions: {:?}",
+            rt.registry().regions()
+        );
+    }
+
+    #[test]
+    fn chrome_empty_footer_removes_natural_action_gap_without_changing_legacy_dialogs() {
+        const ONE_ACTION: [Action<'static>; 1] = [Action::new(ActionKey::CANCEL, "Cancel")];
+        let (mut rt, mut buf) = scene();
+        let empty_chrome = Cell::new(0u16);
+        let legacy_empty = Cell::new(0u16);
+        let chrome_with_action = Cell::new(0u16);
+        let legacy_with_action = Cell::new(0u16);
+        drop(rt.draw_scene(SCREEN, &mut buf, |ui, _| {
+            empty_chrome.set(
+                Dialog::chrome(DLG)
+                    .title("Heading")
+                    .body_rows(3)
+                    .measured_height_for_width(ui.design(), 40, &[]),
+            );
+            legacy_empty.set(
+                Dialog::new(DLG)
+                    .title("Heading")
+                    .body_rows(3)
+                    .measured_height_for_width(ui.design(), 40, &[]),
+            );
+            chrome_with_action.set(
+                Dialog::chrome(DLG)
+                    .title("Heading")
+                    .body_rows(3)
+                    .actions(&ONE_ACTION)
+                    .measured_height_for_width(ui.design(), 40, &[8]),
+            );
+            legacy_with_action.set(
+                Dialog::new(DLG)
+                    .title("Heading")
+                    .body_rows(3)
+                    .actions(&ONE_ACTION)
+                    .measured_height_for_width(ui.design(), 40, &[8]),
+            );
+        }));
+
+        assert_eq!(empty_chrome.get(), 9, "frame + padding + heading + body");
+        assert_eq!(
+            legacy_empty.get(),
+            11,
+            "legacy Dialog preserves its footer gap"
+        );
+        assert_eq!(chrome_with_action.get(), legacy_with_action.get());
     }
 
     #[test]
