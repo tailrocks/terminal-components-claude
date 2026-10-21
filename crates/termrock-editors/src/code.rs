@@ -1614,6 +1614,20 @@ impl<'a> CodeEditor<'a> {
                     } else {
                         ui.paint_str(marker, "!", marker_style);
                     }
+                } else if block
+                    .as_ref()
+                    .is_some_and(|range| range.start >= global && range.start <= line_end)
+                {
+                    let ink = if live.contains(StateFlags::FOCUSED) {
+                        Role::Fg(FgStep::Primary)
+                    } else {
+                        Role::Fg(FgStep::Secondary)
+                    };
+                    ui.paint_str(
+                        marker,
+                        "›",
+                        marker_style.patch(ui.paint_patch(&StylePatch::new().set_fg(ink))),
+                    );
                 } else if st
                     .running
                     .as_ref()
@@ -1712,6 +1726,9 @@ impl<'a> CodeEditor<'a> {
                     {
                         painted = painted
                             .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Syntax(role))));
+                        if role == SyntaxRole::Keyword {
+                            painted = painted.add_modifier(Modifier::BOLD);
+                        }
                     }
                     if selection
                         .as_ref()
