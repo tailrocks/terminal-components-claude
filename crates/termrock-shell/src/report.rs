@@ -213,7 +213,10 @@ impl TextReport {
             }
         }
         let mut row = self.rows.body;
-        for line in rows.into_iter().take(usize::from(area.height.saturating_sub(self.rows.body))) {
+        for line in rows
+            .into_iter()
+            .take(usize::from(area.height.saturating_sub(self.rows.body)))
+        {
             ui.paint_str(self.band(area, row), line.as_ref(), text);
             row = row.saturating_add(1);
         }
@@ -313,31 +316,54 @@ mod tests {
         for height in 0..=3 {
             for heading in [0, 7] {
                 let area = Rect::new(3, 2, 8, height);
-                let mut untouched = Scene::new("report-control", Theme::junie(), ColorLevel::TrueColor, 20, 10);
+                let mut untouched = Scene::new(
+                    "report-control",
+                    Theme::junie(),
+                    ColorLevel::TrueColor,
+                    20,
+                    10,
+                );
                 untouched.draw(|_, _| {});
-                let mut scene = Scene::new("report-bounds", Theme::junie(), ColorLevel::TrueColor, 20, 10);
+                let mut scene = Scene::new(
+                    "report-bounds",
+                    Theme::junie(),
+                    ColorLevel::TrueColor,
+                    20,
+                    10,
+                );
                 let body = vec!["body".to_owned(); 8];
                 scene.draw(|ui, _| {
                     TextReport::new()
-                        .rows(ReportRows { heading, subheading: 1, empty: 2, body: 3 })
+                        .rows(ReportRows {
+                            heading,
+                            subheading: 1,
+                            empty: 2,
+                            body: 3,
+                        })
                         .min_details_height(0)
-                        .draw(ui, area, &ReportContent::heading("Heading")
-                            .with_subheading("detail")
-                            .with_empty("empty")
-                            .with_body(&body));
+                        .draw(
+                            ui,
+                            area,
+                            &ReportContent::heading("Heading")
+                                .with_subheading("detail")
+                                .with_empty("empty")
+                                .with_body(&body),
+                        );
                 });
                 for y in 0..10 {
                     for x in 0..20 {
                         if x < area.x || x >= area.right() || y < area.y || y >= area.bottom() {
-                            assert_eq!(scene.buffer().cell((x, y)), untouched.buffer().cell((x, y)),
-                                "outside {area:?}, heading={heading}, at {x},{y}");
+                            assert_eq!(
+                                scene.buffer().cell((x, y)),
+                                untouched.buffer().cell((x, y)),
+                                "outside {area:?}, heading={heading}, at {x},{y}"
+                            );
                         }
                     }
                 }
             }
         }
     }
-
 
     #[test]
     fn lazy_rows_do_not_format_hidden_content() {
@@ -360,5 +386,4 @@ mod tests {
             assert_eq!(formatted.get(), expected, "height={height}");
         }
     }
-
 }
