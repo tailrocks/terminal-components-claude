@@ -381,7 +381,17 @@ impl LayerDraw {
         let _roles = intent.composite(page_cell, page_roles, dst);
     }
 
-    pub(crate) fn composite_onto(&self, page: &mut Buffer, roles: &mut [CellRoles]) {
+    /// `content_dim` carries the frozen low-color-level content dim: every
+    /// cell this layer wrote is composed with `dim` added while fg/bg/bold
+    /// are preserved, and — on the 16-color ladder — bright black is lifted
+    /// to indexed 7 so a dimmed grey stays readable. High color levels pass
+    /// `None` (no content dim).
+    pub(crate) fn composite_onto(
+        &self,
+        page: &mut Buffer,
+        roles: &mut [CellRoles],
+        content_dim: Option<bool>,
+    ) {
         let screen = *page.area();
         let area = self.buf.area().intersection(*page.area());
         for pos in area.positions() {
@@ -402,6 +412,21 @@ impl LayerDraw {
                     }
                 } else {
                     *dst = src.clone();
+                    // The frozen content dim lands on the layer's own content
+                    // cells only; underlay-intent cells (the dimmed backdrop
+                    // region) keep the underlay treatment without the lift.
+                    if let Some(lift_bright_black) = content_dim {
+                        dst.modifier.insert(ratatui_core::style::Modifier::DIM);
+                        if lift_bright_black
+                            && matches!(
+                                dst.fg,
+                                ratatui_core::style::Color::Indexed(8)
+                                    | ratatui_core::style::Color::DarkGray
+                            )
+                        {
+                            dst.fg = ratatui_core::style::Color::Indexed(7);
+                        }
+                    }
                     if let Some(target) = roles.get_mut(index) {
                         *target = self.roles_at(pos);
                     }
@@ -484,6 +509,7 @@ mod tests {
             d.composite_onto(
                 &mut page,
                 &mut vec![CellRoles::default(); screen.area() as usize],
+                None,
             );
             assert!(d.is_written(Position::new(1, 0)));
             assert!(!d.is_written(Position::new(2, 0)));
@@ -548,7 +574,7 @@ mod tests {
             );
             let mut page = Buffer::empty(next);
             let mut roles = vec![original; next.area() as usize];
-            d.composite_onto(&mut page, &mut roles);
+            d.composite_onto(&mut page, &mut roles, None);
             let index = usize::from(pos.y.saturating_sub(next.y))
                 .saturating_mul(usize::from(next.width))
                 .saturating_add(usize::from(pos.x.saturating_sub(next.x)));
