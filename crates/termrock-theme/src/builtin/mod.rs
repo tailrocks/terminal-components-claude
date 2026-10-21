@@ -1204,10 +1204,8 @@ mod tests {
             [
                 Color::from_u32(0xffffff),
                 Color::from_u32(0xb3b3b3),
-                // The frozen source at 4169783 sets text_muted to MUTED
-                // (0x8a8a8a) and text_faint to WHITE_43 (0x737373); the
-                // approved frames paint the operator ink and the faint ink
-                // with those values.
+                // TablePro results use muted #8a8a8a and faint #737373.
+                // Showcase chrome keeps #808080 and #4d4d4d on baseline_muted.
                 Color::from_u32(0x8a8a8a),
                 Color::from_u32(0x737373),
                 Color::from_u32(0x262626)
