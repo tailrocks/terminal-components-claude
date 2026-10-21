@@ -1,7 +1,7 @@
 {
   "schema": "termrock.canonical-owned-verify-live-source-audit",
   "version": 1,
-  "status": "corrected-pending-independent-review",
+  "status": "stage3-source-cleared-documentation-finding-open",
   "source_base": "31fbae05c4978f8432443d93d1c6ef56b04050f0",
   "branch": "wip/canonical-verify-owned-20261021",
   "scope": [
@@ -42,9 +42,9 @@
     }
   },
   "limits": [
+    "The stage-three-only external supervisor remains pending independent review before any actual stage-three operation.",
     "No actual verify-live or preflight command was run.",
     "No new plan, key, capture, replay, ordinary CLI run, or candidate comparison was created or run.",
-    "The stage-two external supervisor still requires independent clearance before any stage-three operation.",
     "This bounded source increment does not establish application parity or reusable-library acceptance.",
     "Kernel-blocked filesystem or output syscalls can finish after the monotonic deadline; post-return checks fail closed. No universal hard completion guarantee is claimed."
   ],
@@ -71,6 +71,16 @@
     "actual_result_review_sha256": "37ec0db680822aa74cfe5c15754d868f6cc3959f8628ad049c8ebb999fd0e994",
     "admitted_scope": "stage-two live-source preparation only; no plan, key, capture, replay, candidate comparison, or product acceptance"
   },
-  "required_next_gate": "Independent exact-source re-review of this corrected canonical stage-three source, plus independent review of a stage-three-only external supervisor. Any actual stage-three operation needs a separate independently reviewed result. Stage-four sealing waits for the remaining owned plan/init/verify/advance lifecycle implementation.",
-  "corrected_source_commit": "c9adf3c2607efbbd8b36f5a4acdd7ea6d520863b"
+  "required_next_gate": "After the documentation correction closes STAGE3-OWNED-DOC-1, independently review the stage-three-only external supervisor. Any actual stage-three operation needs a separate independently reviewed result. Stage-four sealing waits for remaining owned plan/init/verify/advance lifecycle implementation.",
+  "corrected_source_commit": "c9adf3c2607efbbd8b36f5a4acdd7ea6d520863b",
+  "independent_review_clearance": {
+    "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/canonical-stage3-independent-review-5891c872-20261021.json",
+    "sha256": "21c3aadd4088bcef9696ab6621873bd2f32f6243b5a3fb89f067a0403d6f2f20",
+    "decision": "Executable source SHA e486b17728062193fa3af243c93d7e1fd14c70fd73726c1bc4e73a317306e257 is CLEAR. Documentation finding STAGE3-OWNED-DOC-1 remains open until this correction lands.",
+    "resolved_findings": [
+      "STAGE3-OWNED-1",
+      "STAGE3-OWNED-2"
+    ],
+    "open_finding": "STAGE3-OWNED-DOC-1"
+  }
 }
