@@ -261,3 +261,61 @@ reference-data conflict. It reports Ansi256 token differences in `field_hover`,
 73-slot expectations. That conflict remains held for separate diagnosis and a
 documented reference decision. The shared Menu cursor fix is not full theme or
 product acceptance; independent review and PR #38 integration remain required.
+
+## Independent cursor-theme review correction (2026-10-21)
+
+Review of `4d84ff9a2082075510708aedec1be76758001465` is recorded in
+`menu-theme-4d84ff9a-independent-review-20261021/review.json` (SHA-256
+`389356f5018a4e26071e1989bfbe5e3f3a9f50ec2686f871a52ce9e885aeca8f`). It
+found three remaining shared Menu state mismatches against actual frozen
+labels: press inherited hover/reverse modifiers, the disabled Mono label lost
+its required DIM modifier, and a still-focused Menu kept BOLD after its
+highlight was hidden. These were real widget/runtime observations, not
+snapshot comparisons.
+
+The correction keeps the active cursor separate from global keyboard focus.
+The Menu row projection now strips owner-level ACTIVE before deriving item
+state, and emits ACTIVE only for the visible cursor row. Theme profiles first
+clear cursor modifiers on both ROW and LABEL, then apply frozen active, hover,
+pressed, or disabled modifiers. Press therefore replaces hover/active cues;
+disabled Ansi16 and Mono keep DIM while clearing cursor cues. Both DEFAULT and
+DANGER use the same shared modifier recipe. Scoped/theme overrides still apply
+after these defaults.
+
+The public Menu matrix test exercises all 96 candidate combinations across
+TrueColor, Ansi256, Ansi16 and Mono; DEFAULT and DANGER; enabled and disabled;
+underlay retained or replaced; and initial, hover and held press. It asserts
+modifier behavior against the fixed 48-cell baseline matrix expanded over the
+two candidate underlay policies. A separate owner-focused pointer-leave test
+checks the presented Harness buffer after the row loses hover and requires
+NONE, rather than sampling a second, unowned Runtime. The three unchanged
+frozen-derived assertions from the independent review are covered: pressed
+modifier precedence, disabled Mono DIM, and actual owner-focused hidden NONE.
+No baseline artifacts, expected 73-slot data, app renderer, global focus, or
+palette token changed.
+
+At the previous `4d84ff9a` source, the 3 unchanged assertions were red: press
+leaked UNDERLINED at Ansi16 and REVERSED at Mono; disabled Mono lost DIM; and
+the actual owner-focused hidden label remained BOLD. The corrected public
+matrix and owner-focused test pass locally. The prior real Jackin Capsule
+“Change title” BOLD test remains part of the focused verification. Independent
+review of this corrective commit and repeatable full application parity are
+still required.
+
+The correction also updates one prior candidate-only collision assertion in
+`context_menu_danger_profile.rs`: its Ansi16 empty-modifier expectation
+conflicted with the independently captured fixed416 disabled DIM cell. It now
+requires the frozen DIM cue while retaining the explicit disabled ink override.
+The existing disabled Danger frozen-cell test already expected DIM in Ansi16
+and Mono; the focused suite confirms these agree. This updates a stale local
+assertion from reference evidence, not a stored baseline or visual approval.
+
+On the corrective WIP tree, the complete scoped run
+`cargo nextest run -p termrock-theme -p termrock-overlays --all-targets
+--no-fail-fast` reports 316/317 passed, 0 skipped. The only failure remains the
+separate `all_73_junie_slots_match_reference_capability_output` reference-data
+hold. The corrected Menu profile matrix, owner-focused hidden tests, disabled
+Danger profile tests, and the real Jackin Capsule BOLD check all pass. Scoped
+Clippy with `-D warnings`, formatting, and `git diff --check` pass. These are
+WIP checks only; the author's branch has not been independently reviewed or
+integrated into PR #38.
