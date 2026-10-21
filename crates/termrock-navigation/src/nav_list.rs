@@ -16,7 +16,7 @@ use termrock_runtime::focus::Focusability;
 use termrock_runtime::intent::{Intent, Phase};
 use termrock_runtime::keymap::{Binding, BindingState, Bindings};
 use termrock_runtime::rowui::{RowFn, RowUi};
-use termrock_runtime::scroll_region::ScrollRegion;
+use termrock_runtime::scroll_region::{ScrollRegion, ScrollbarGutter};
 use termrock_runtime::ui::{Cx, FrameRead, Ui};
 use termrock_text::width;
 use termrock_theme::{CursorStyle, Family, StylePatch, Variant};
@@ -236,7 +236,9 @@ pub struct NavList<'a, T, K = ByIndex, R = DefaultRow> {
     mode: NavMode,
     compact: Option<bool>,
     header_indent: u16,
+    marker_gap: u16,
     content_gap: u16,
+    header_text_patch: Option<&'a StylePatch>,
     cursor_style: CursorStyle,
     render_row: Option<NavRowRenderer<'a, T>>,
     section: Option<&'a dyn Fn(&T) -> &str>,
@@ -246,6 +248,7 @@ pub struct NavList<'a, T, K = ByIndex, R = DefaultRow> {
     disabled: bool,
     scrollable: bool,
     scrollbar_visible: bool,
+    scrollbar_gutter: ScrollbarGutter,
     leave_at_boundary: bool,
     ov: PartStyle<'a>,
     _t: PhantomData<fn(&T)>,
@@ -272,7 +275,9 @@ impl<T> NavList<'_, T, ByIndex, DefaultRow> {
             mode: NavMode::Full,
             compact: Some(false),
             header_indent: 1,
+            marker_gap: 0,
             content_gap: 1,
+            header_text_patch: None,
             cursor_style: CursorStyle::Bar,
             render_row: None,
             section: None,
@@ -282,6 +287,7 @@ impl<T> NavList<'_, T, ByIndex, DefaultRow> {
             disabled: false,
             scrollable: false,
             scrollbar_visible: true,
+            scrollbar_gutter: ScrollbarGutter::Auto,
             leave_at_boundary: false,
             ov: PartStyle::new(),
             _t: PhantomData,
@@ -337,6 +343,14 @@ impl<'a, T, K, R> NavList<'a, T, K, R> {
         self
     }
 
+    /// Choose whether the visible scrollbar keeps its one-cell gutter when
+    /// content fits. The default `Auto` preserves the prior compact layout.
+    #[must_use]
+    pub const fn scrollbar_gutter(mut self, gutter: ScrollbarGutter) -> Self {
+        self.scrollbar_gutter = gutter;
+        self
+    }
+
     #[must_use]
     pub const fn mode(mut self, m: NavMode) -> Self {
         self.mode = m;
@@ -361,6 +375,16 @@ impl<'a, T, K, R> NavList<'a, T, K, R> {
         self
     }
 
+    /// Reserve blank cells between the fixed marker and icon slots.
+    ///
+    /// The default of zero preserves existing origins. Reserved cells are
+    /// clipped with the row and are included in intrinsic minimum width.
+    #[must_use]
+    pub const fn marker_gap(mut self, cells: u16) -> Self {
+        self.marker_gap = cells;
+        self
+    }
+
     /// Set the number of cells between the fixed leading slots and row content.
     ///
     /// The default of one preserves the existing content origin at `x + 4`.
@@ -369,6 +393,14 @@ impl<'a, T, K, R> NavList<'a, T, K, R> {
     #[must_use]
     pub const fn content_gap(mut self, cells: u16) -> Self {
         self.content_gap = cells;
+        self
+    }
+
+    /// Patch only rendered header text, leaving header padding at its normal
+    /// resolved style. A whole-header slot still takes precedence.
+    #[must_use]
+    pub const fn header_text_patch(mut self, patch: &'a StylePatch) -> Self {
+        self.header_text_patch = Some(patch);
         self
     }
 
@@ -424,7 +456,9 @@ impl<'a, T, K, R> NavList<'a, T, K, R> {
             mode: self.mode,
             compact: self.compact,
             header_indent: self.header_indent,
+            marker_gap: self.marker_gap,
             content_gap: self.content_gap,
+            header_text_patch: self.header_text_patch,
             cursor_style: self.cursor_style,
             render_row: self.render_row,
             section: self.section,
@@ -434,6 +468,7 @@ impl<'a, T, K, R> NavList<'a, T, K, R> {
             disabled: self.disabled,
             scrollable: self.scrollable,
             scrollbar_visible: self.scrollbar_visible,
+            scrollbar_gutter: self.scrollbar_gutter,
             leave_at_boundary: self.leave_at_boundary,
             ov: self.ov,
             _t: PhantomData,
@@ -448,7 +483,9 @@ impl<'a, T, K, R> NavList<'a, T, K, R> {
             mode: self.mode,
             compact: self.compact,
             header_indent: self.header_indent,
+            marker_gap: self.marker_gap,
             content_gap: self.content_gap,
+            header_text_patch: self.header_text_patch,
             cursor_style: self.cursor_style,
             render_row: self.render_row,
             section: self.section,
@@ -458,6 +495,7 @@ impl<'a, T, K, R> NavList<'a, T, K, R> {
             disabled: self.disabled,
             scrollable: self.scrollable,
             scrollbar_visible: self.scrollbar_visible,
+            scrollbar_gutter: self.scrollbar_gutter,
             leave_at_boundary: self.leave_at_boundary,
             ov: self.ov,
             _t: PhantomData,
@@ -797,6 +835,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
     fn scrollbar(&self) -> ScrollRegion<'_> {
         ScrollRegion::new(self.id)
             .scrollbar_visible(self.scrollbar_visible)
+            .scrollbar_gutter(self.scrollbar_gutter)
             .inherit_family(Family::LIST)
             .with_overrides(self.ov)
     }
@@ -944,7 +983,30 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
             width: rect.width.saturating_sub(self.header_indent),
             ..rect
         };
-        ui.paint_str(inner, text, h.style);
+        if let Some(text_patch) = self.header_text_patch {
+            let patch = self
+                .ov
+                .part_patch(Part::HEADER)
+                .unwrap_or_default()
+                .merge(*text_patch);
+            // Keep the base header part's existing resolved channels, while
+            // applying this separate patch to the text cells only.
+            let text_style = ui.style_patched(
+                Family::LIST,
+                Variant::DEFAULT,
+                Part::HEADER,
+                live.difference(
+                    StateFlags::FOCUSED
+                        | StateFlags::PRESSED
+                        | StateFlags::SELECTED
+                        | StateFlags::HOVERED,
+                ),
+                &patch,
+            );
+            ui.paint_str(inner, text, text_style.style);
+        } else {
+            ui.paint_str(inner, text, h.style);
+        }
     }
 
     fn paint_row(&self, ui: &mut Ui<'_>, rect: Rect, flags: StateFlags, key: ItemKey, item: &T) {
@@ -961,7 +1023,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
         .with_author_parts(Self::PARTS)
         .with_cursor_style(self.cursor_style);
         row.leading_part(Part::GUTTER, 1, 0, |_| {});
-        row.leading_part(Part::MARKER, 1, 0, |_| {});
+        row.leading_part(Part::MARKER, 1, self.marker_gap, |_| {});
         let icon = self.icon.map(|f| f(item));
         row.leading_part(Part::ICON, 1, self.content_gap, |cell| {
             if let Some(icon) = icon {
@@ -990,8 +1052,10 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
         Size {
             min: (
                 match self.mode {
-                    NavMode::Full => 11_u16.saturating_add(self.content_gap),
-                    NavMode::Collapsed => 4,
+                    NavMode::Full => 11_u16
+                        .saturating_add(self.marker_gap)
+                        .saturating_add(self.content_gap),
+                    NavMode::Collapsed => 4_u16.saturating_add(self.marker_gap),
                 },
                 1,
             ),
@@ -1030,12 +1094,12 @@ mod tests {
     use ratatui_core::layout::{Position, Rect};
     use ratatui_core::style::Modifier;
 
-    use super::{Acc, NavList, NavListAction, NavListState, NavMode, TABLE};
+    use super::{Acc, NavList, NavListAction, NavListState, NavMode, ScrollbarGutter, TABLE};
     use crate::action::ActionKey;
     use termrock_core::id::{Id, ItemKey, Part, PartRef};
     use termrock_core::response::{Response, StateFlags};
     use termrock_runtime::keymap::Binding;
-    use termrock_theme::{StylePatch, Theme};
+    use termrock_theme::{FgStep, Role, StylePatch, Theme};
 
     use termrock_collections::collection::Reconcile;
     use termrock_runtime::rowui::RowUi;
@@ -1132,6 +1196,146 @@ mod tests {
             .icon(&icon)
             .disabled_item(&off)
             .key(keyed as fn(&E) -> ItemKey)
+    }
+
+    #[test]
+    fn marker_gap_moves_icon_and_label_as_one_leading_group() {
+        let state = NavListState::new();
+        let ordinary = rows(&list().content_gap(0), &state, 18, &ITEMS);
+        let spaced = rows(&list().marker_gap(2).content_gap(0), &state, 18, &ITEMS);
+
+        assert_eq!(ordinary[1].chars().nth(2), Some('T'));
+        assert_eq!(ordinary[1].chars().nth(3), Some('T'));
+        assert_eq!(spaced[1].chars().nth(4), Some('T'));
+        assert_eq!(spaced[1].chars().nth(5), Some('T'));
+    }
+
+    #[test]
+    fn header_text_patch_changes_text_ink_without_restyling_padding() {
+        let area = Rect::new(0, 0, 24, 12);
+        let theme = Theme::junie();
+        let state = NavListState::new();
+        let text_patch = StylePatch::new().set_fg(Role::Fg(FgStep::Faint));
+        let part_patch = [(Part::HEADER, StylePatch::new().set_fg(Role::Accent))];
+        let mut base_frame = FrameState::default();
+        base_frame.reset(1, area);
+        let mut base = Buffer::empty(area);
+        let mut base_core = UiCore::default();
+        let previous = LastFrame::default();
+        {
+            let mut ui = Ui::new(
+                &mut base_frame,
+                &mut base,
+                &mut base_core,
+                &theme,
+                &previous,
+            );
+            list()
+                .header_indent(2)
+                .patch_part(&part_patch)
+                .draw(&mut ui, area, &state, &ITEMS);
+        }
+
+        let mut patched_frame = FrameState::default();
+        patched_frame.reset(1, area);
+        let mut patched = Buffer::empty(area);
+        let mut patched_core = UiCore::default();
+        {
+            let mut ui = Ui::new(
+                &mut patched_frame,
+                &mut patched,
+                &mut patched_core,
+                &theme,
+                &previous,
+            );
+            list()
+                .header_indent(2)
+                .patch_part(&part_patch)
+                .header_text_patch(&text_patch)
+                .draw(&mut ui, area, &state, &ITEMS);
+        }
+
+        for x in 0..2 {
+            assert_eq!(
+                base.cell((x, 0)).unwrap().fg,
+                patched.cell((x, 0)).unwrap().fg
+            );
+        }
+        assert_ne!(
+            base.cell((2, 0)).unwrap().fg,
+            patched.cell((2, 0)).unwrap().fg
+        );
+        assert_eq!(patched.cell((2, 0)).unwrap().symbol(), "W");
+    }
+
+    #[test]
+    fn whole_header_slot_precedes_header_text_patch() {
+        let area = Rect::new(0, 0, 24, 12);
+        let theme = Theme::junie();
+        let state = NavListState::new();
+        let patch = StylePatch::new().set_fg(Role::Fg(FgStep::Ghost));
+        let painter = |ui: &mut Ui<'_>, area| {
+            let style = ui.surface_style();
+            ui.fill(area, style);
+        };
+        let mut frame = FrameState::default();
+        frame.reset(1, area);
+        let mut page = Buffer::empty(area);
+        let mut core = UiCore::default();
+        let previous = LastFrame::default();
+        {
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &previous);
+            list()
+                .header_text_patch(&patch)
+                .slot(Part::HEADER, &painter)
+                .draw(&mut ui, area, &state, &ITEMS);
+        }
+        assert!((0..area.width).all(|x| page.cell((x, 0)).unwrap().symbol() == " "));
+    }
+
+    #[test]
+    fn stable_scrollbar_gutter_preserves_layout_and_keyboard_pointer_actions() {
+        let mut state = NavListState::new();
+        state.reconcile(ITEMS.len(), |index| keyed(&ITEMS[index]));
+        let auto = rows(&list().scrollable(true), &state, 5, &ITEMS);
+        let stable = rows(
+            &list()
+                .scrollable(true)
+                .scrollbar_gutter(ScrollbarGutter::Stable)
+                .key(keyed as fn(&E) -> ItemKey),
+            &state,
+            5,
+            &ITEMS,
+        );
+        assert_eq!(auto[1].chars().nth(4), Some('T'));
+        assert_eq!(stable[1].chars().nth(4), None);
+
+        let mut initial = NavListState::new();
+        initial.set_cursor(2, ItemKey::text("Branches"));
+        let (keyboard, _, _, _) = update_action(
+            list()
+                .scrollable(true)
+                .scrollbar_gutter(ScrollbarGutter::Stable),
+            initial,
+            ActionKey::custom("nav-list.choose"),
+        );
+        assert_eq!(
+            keyboard.as_ref(),
+            Some(&NavListAction::Chose(ItemKey::text("Branches")))
+        );
+
+        let (pointer, state) = update_click(
+            list()
+                .scrollable(true)
+                .scrollbar_gutter(ScrollbarGutter::Stable),
+            NavListState::new(),
+            ItemKey::text("Members"),
+        );
+        assert_eq!(
+            pointer.as_ref(),
+            Some(&NavListAction::Chose(ItemKey::text("Members")))
+        );
+        assert_eq!(state.cursor(), Some(ItemKey::text("Members")));
     }
 
     struct NavApp {
