@@ -2,7 +2,7 @@ use ratatui_core::buffer::{Buffer, CellWidth};
 use ratatui_core::layout::{Position, Rect};
 use ratatui_core::style::{Color, Modifier, Style};
 
-use super::Ui;
+use super::{CellRoles, Target, Ui};
 use crate::scroll::ScrollState;
 use crate::text::Span;
 use crate::text::clusters::ClusterFeed;
@@ -427,6 +427,9 @@ impl Ui<'_> {
     }
 
     /// Space-fill `bg` while keeping the page cell's foreground and modifiers.
+    /// Underline color and foreground role provenance are preserved as well;
+    /// the raw background color has no semantic role, so the prior background
+    /// role is cleared.
     ///
     /// Baseline popup fill calls `set_style` with a background only, so the
     /// glyph becomes a space and the ink underneath stays. Layer buffers start
@@ -437,16 +440,48 @@ impl Ui<'_> {
             return;
         }
         for pos in area.positions() {
-            let ink = self.page.cell(pos).map(|cell| (cell.fg, cell.modifier));
+            let ink = self.page.cell(pos).map(|cell| {
+                (
+                    cell.fg,
+                    cell.underline_color,
+                    cell.modifier,
+                    self.roles_at(pos),
+                )
+            });
             if let Some(cell) = self.buffer().cell_mut(pos) {
                 cell.set_symbol(" ");
-                if let Some((fg, modifier)) = ink {
+                if let Some((fg, underline_color, modifier, _)) = ink {
                     cell.fg = fg;
+                    cell.underline_color = underline_color;
                     cell.modifier = modifier;
                 }
                 cell.bg = bg;
             }
-            self.mark(pos, None);
+            self.mark(pos, Some(PaintStyle::new().bg(bg)));
+            self.set_target_roles(
+                pos,
+                CellRoles {
+                    fg: ink.and_then(|(_, _, _, roles)| roles.fg),
+                    bg: None,
+                },
+            );
+        }
+    }
+
+    fn set_target_roles(&mut self, pos: Position, roles: CellRoles) {
+        match self.target {
+            Target::Page => {
+                if let Some(index) = self.frame.role_index(pos)
+                    && let Some(target) = self.frame.roles.get_mut(index)
+                {
+                    *target = roles;
+                }
+            }
+            Target::Layer(index) => {
+                if let Some(layer) = self.frame.layers.active_mut().get_mut(index) {
+                    layer.set_roles(pos, roles);
+                }
+            }
         }
     }
 
@@ -649,14 +684,16 @@ const fn index_to_step(i: usize) -> FgStep {
 
 #[cfg(test)]
 mod tests {
-    use ratatui_core::buffer::Buffer;
+    use ratatui_core::buffer::{Buffer, CellDiffOption};
     use ratatui_core::layout::{Position, Rect};
     use ratatui_core::style::{Color, Modifier, Style};
 
     use super::super::cx::LastFrame;
-    use super::super::{FrameState, Ui, UiCore};
+    use super::super::{CellRoles, FrameState, Ui, UiCore};
+    use crate::id::Id;
+    use crate::layer::{Anchor, LayerId, LayerSpec};
     use crate::scroll::ScrollState;
-    use crate::theme::{FgStep, Role, Surface, Theme};
+    use crate::theme::{FgStep, Role, StylePatch, Surface, Theme};
 
     const SCREEN: Rect = Rect {
         x: 0,
@@ -676,6 +713,96 @@ mod tests {
             f(&mut ui)
         };
         (out, page)
+    }
+
+    #[test]
+    fn underlay_fill_preserves_all_ink_channels_and_foreground_role() {
+        const POPUP: Id = Id::root("paint.underlay-fill");
+        let theme = Theme::junie();
+        let mut frame = FrameState::default();
+        frame.reset(1, SCREEN);
+        frame.layers.begin();
+        frame.layers.push(
+            POPUP,
+            LayerId(1),
+            LayerSpec::popover(POPUP, Anchor::Point(Position::new(2, 0))),
+            Rect::new(2, 0, 3, 1),
+            SCREEN,
+        );
+        frame.top = LayerId(1);
+        let mut page = Buffer::empty(SCREEN);
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        let target = Position::new(3, 0);
+        let before_roles;
+        {
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+            let underlay = ui
+                .paint_patch(
+                    &StylePatch::new()
+                        .set_fg(Role::Fg(FgStep::Primary))
+                        .set_bg(Role::CurrentSurface),
+                )
+                .underline_color(Color::Green)
+                .add_modifier(Modifier::UNDERLINED | Modifier::BOLD | Modifier::ITALIC);
+            ui.fill(SCREEN, underlay);
+            ui.paint_str(Rect::new(1, 0, 2, 1), "界", underlay);
+            if let Some(cell) = ui.page_mut().cell_mut(target) {
+                cell.set_diff_option(CellDiffOption::Skip);
+            }
+            let reset_target = Position::new(4, 0);
+            if let Some(cell) = ui.page_mut().cell_mut(reset_target) {
+                cell.fg = Color::Reset;
+                cell.underline_color = Color::Reset;
+                cell.modifier = Modifier::empty();
+            }
+            before_roles = ui.roles_at(target);
+            let _ = ui.layer(POPUP, |ui, area| ui.fill_keep_ink(area, Color::Black));
+        }
+
+        let Some(layer) = frame.layers.active().first() else {
+            panic!("underlay layer was registered");
+        };
+        let Some(cell) = layer.buf.cell(target) else {
+            panic!("filled cell exists");
+        };
+        assert_eq!(cell.symbol(), " ");
+        assert_eq!(
+            cell.fg,
+            page.cell(target).map_or(Color::Reset, |cell| cell.fg)
+        );
+        assert_eq!(cell.bg, Color::Black);
+        assert_eq!(cell.underline_color, Color::Green);
+        assert_eq!(
+            cell.modifier,
+            Modifier::UNDERLINED | Modifier::BOLD | Modifier::ITALIC
+        );
+        assert_eq!(
+            layer.roles_at(target),
+            CellRoles {
+                fg: before_roles.fg,
+                bg: None,
+            }
+        );
+        assert_eq!(cell.diff_option, CellDiffOption::None);
+        let Some(reset_cell) = layer.buf.cell(Position::new(4, 0)) else {
+            panic!("last filled cell exists");
+        };
+        assert_eq!(reset_cell.symbol(), " ");
+        assert_eq!(reset_cell.fg, Color::Reset);
+        assert_eq!(reset_cell.bg, Color::Black);
+        assert_eq!(reset_cell.underline_color, Color::Reset);
+        assert_eq!(reset_cell.modifier, Modifier::empty());
+        assert_eq!(
+            page.cell(Position::new(1, 0)).map(|cell| cell.symbol()),
+            Some("界"),
+            "a partial wide grapheme stays outside the clipped layer buffer"
+        );
+        assert!(layer.is_written(Position::new(4, 0)));
+        assert!(
+            !layer.is_written(Position::new(5, 0)),
+            "filling must not expand beyond the layer's clipped area"
+        );
     }
 
     #[test]
