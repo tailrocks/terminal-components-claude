@@ -288,7 +288,6 @@ mod historical_settings_env;
 mod historical_settings_mounts;
 mod historical_settings_mounts_80;
 mod historical_settings_route;
-mod historical_settings_route_80;
 mod historical_settings_save;
 mod historical_settings_trust;
 mod historical_usage_detail;
@@ -7600,7 +7599,97 @@ impl App {
         }
         // Approved frame hides the cursor. This path must not call set_cursor
         // or set_bar_cursor, and it must not write cursor bytes.
-        historical_settings_route_80::paint(ui);
+        let screen = ui.full();
+        let menus = ["File", "Go", "Help"];
+        let tabs = [
+            termrock::feedback::SettingsTab {
+                label: "General",
+                selected: true,
+            },
+            termrock::feedback::SettingsTab {
+                label: "Mounts",
+                selected: false,
+            },
+            termrock::feedback::SettingsTab {
+                label: "Environments",
+                selected: false,
+            },
+            termrock::feedback::SettingsTab {
+                label: "Agents",
+                selected: false,
+            },
+            termrock::feedback::SettingsTab {
+                label: "Trust",
+                selected: false,
+            },
+        ];
+        let commits = [
+            termrock::feedback::SettingsCheck {
+                label: "Add Co-authored-by trailer",
+                checked: true,
+            },
+            termrock::feedback::SettingsCheck {
+                label: "Sign off commits (DCO)",
+                checked: true,
+            },
+        ];
+        let sections = [
+            termrock::feedback::SettingsSection {
+                title: "Commits",
+                checks: &commits,
+                note: Some("Two independent flags; both apply to every Workspace."),
+                body: None,
+            },
+            termrock::feedback::SettingsSection {
+                title: "Trailers",
+                checks: &[],
+                note: None,
+                body: Some(
+                    "Co-authored-by: <agent> <noreply@…>   ·   Signed-off-by: Alexey Zhokhov…",
+                ),
+            },
+        ];
+        let hints = [
+            termrock::feedback::SettingsHint {
+                key: "←→",
+                action: "Tab",
+            },
+            termrock::feedback::SettingsHint {
+                key: "1–5",
+                action: "Jump",
+            },
+            termrock::feedback::SettingsHint {
+                key: "Enter",
+                action: "Edit fields",
+            },
+            termrock::feedback::SettingsHint {
+                key: "[ ]",
+                action: "Switch tab",
+            },
+            termrock::feedback::SettingsHint {
+                key: "Ctrl+S",
+                action: "Save",
+            },
+            termrock::feedback::SettingsHint {
+                key: "Esc",
+                action: "Back",
+            },
+        ];
+        termrock::feedback::paint_settings_page(
+            ui,
+            screen,
+            &termrock::feedback::SettingsPage {
+                brand: "jackin❯",
+                menus: &menus,
+                crumb: "Settings › global › General",
+                tabs: &tabs,
+                sections: &sections,
+                cancel: "Cancel",
+                save: "Save…",
+                save_enabled: false,
+                hints: &hints,
+            },
+        );
     }
 
     fn historical_settings_mounts(&self, theme: &termrock::Theme, screen: Rect) -> bool {
