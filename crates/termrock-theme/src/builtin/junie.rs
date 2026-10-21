@@ -34,20 +34,17 @@ const GREEN_80: Color = Color::from_u32(0x3a_b3_43);
 const GREEN_60: Color = Color::from_u32(0x002b_8632);
 const GREEN_20: Color = Color::from_u32(0x0f_2e_13);
 const ON_GREEN: Color = Color::from_u32(0x19_19_1c);
-// The frozen source at 4169783 retunes RED to 0xf05d5d ("the old #e44545
-// was 4.4:1 on a card", sub-WCAG-AA) and adds RED_STRONG; the approved
-// frames paint the danger ink with the retuned value.
+// Frozen source 4169783 sets RED to 0xf05d5d. The old #e44545 was 4.4:1
+// on a card. SQL diagnostics use the same rose through DIAGNOSTIC_ERROR.
 const RED: Color = Color::from_u32(0xf0_5d_5d);
+/// TablePro SQL diagnostics. Frozen source paints this rose.
+const DIAGNOSTIC_ERROR: Color = Color::from_u32(0xf0_5d_5d);
 const RED_20: Color = Color::from_u32(0x2e_0f_0f);
 const RED_SOFT: Color = Color::from_u32(0xd9_8a_8a);
 const RED_45: Color = Color::from_u32(0x7a_2a_2a);
 const AMBER: Color = Color::from_u32(0xf5_9e_09);
 const AMBER_TINT: Color = Color::from_u32(0x2c_22_10);
 const PURPLE: Color = Color::from_u32(0x87_87_ff);
-const BLUE_INFO: Color = Color::from_u32(0x79_b8_ff);
-const SYNTAX_STRING: Color = Color::from_u32(0x8b_d5_ca);
-const SYNTAX_NUMBER: Color = Color::from_u32(0xc6_a0_f6);
-const DIAGNOSTIC_ERROR: Color = Color::from_u32(0xf0_5d_5d);
 
 pub(crate) const fn tokens() -> ColorTokens {
     ColorTokens {
