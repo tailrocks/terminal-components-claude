@@ -1100,3 +1100,38 @@ quick_switcher_contract --test tab_list_contract` 19/19, full
 `cargo nextest run -p tablepro-ui` 194/194 (visual baseline included),
 `cargo clippy --all-targets -p tablepro-ui` exit 0, `cargo fmt --check`
 exit 0.
+
+## Modal backdrop DIM adjudication — 2026-10-21
+
+Decision record: `docs/audits/2026-10-21-modal-backdrop-adjudication.md`
+(independent adjudication of
+`docs/audits/2026-10-21-modal-backdrop-dim-vs-frozen-baseline.md`).
+Classification: **NO-DEFECT** for parity's `Theme::backdrop_style`
+(`crates/termrock-theme/src/lib.rs:237`) and `Paint::modal_backdrop`
+(`crates/termrock-runtime/src/ui/paint.rs:459`); **REFERENCE-DEFECT** for
+the frozen expected frames. The tag source (4169783ae) contains exactly one
+backdrop mechanism — `Theme::backdrop` sets `Modifier::DIM` on nonblank
+cells iff `fg == bg` or the level is Ansi16/Mono (`src/theme.rs:1243`,
+introduced by `d720a1c2e` on 2026-10-17), and both the showcase Dialog
+(`src/widgets/dialog.rs:1264`) and the tablepro Picker path
+(`src/ui/modal.rs:425`) route through it. Fresh runs of the freshly built
+frozen binaries (showcase ca3a3114…, tablepro 9c82d9af…, provenance
+matching `controlled-baseline-a`) confirm it live: dialog-open 920 dim
+cells at 16/none and 0 at 256/truecolor; picker-open full-underlay DIM at
+16/none, collision-only cells at 256, none at truecolor. The conflicting
+frozen artifacts are defective data, not divergent mechanisms: the
+snapshots bundled in the tag were recorded at `4a79c0a2d`, before
+`d720a1c2e` existed (dialogs show the pre-fix no-DIM look at 16/none), and
+the admitted corpus replay additionally dropped the picker underlay DIM at
+16/none/nocolor (4656 dim cells in the raw stream vs 83 in the corpus
+frame). Consequently `backdrop_style` stays unchanged, the reverted
+no-DIM experiment stays reverted, and the green mono digest
+`quick-switcher 120 40 junie mono af463bd8d299cf6b` encodes the correct
+mechanism — it must not be re-blessed to a no-DIM value. Owner-gated
+follow-up: regenerate the affected expected frames (showcase
+`dialogs/open` and tablepro `overlay-picker-open` /
+`overlay-safemode-picker`, tiers 16/none/nocolor) from the tag-source
+build through the pinned runner and add a modifier-aware
+(`mods.dim`) parity check to the corpus admission; parity dialog-open
+captures that fail on 16/mono backdrop DIM are correct failures against
+defective data.
