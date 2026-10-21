@@ -13,7 +13,7 @@
     "total_files": 75500
   },
   "admission_timestamp": "2026-10-03T22:09:44Z",
-  "corpus_index_sha256": "a97b5a06fa5bac107d3603f8765181403d59fed5cdd4580290e13f43cf6c50ee",
+  "corpus_index_sha256": "52eed73edd4b6cf105f8dd27a74b8fbbbb30f217e0186beede4c41caf1a9dde8",
   "historical_oracle_commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b",
   "reference_app_sha": "7bd6a331721737514a2477c894d922cb262ef07b",
   "schema": "termrock-spec/tuiscotti-admission-record-v1",
