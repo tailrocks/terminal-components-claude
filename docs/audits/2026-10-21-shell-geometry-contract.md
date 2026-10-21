@@ -28,7 +28,7 @@ Compatibility is restored with one narrow extension to the existing runtime comp
 
 The exact unchanged two-case compatibility consumer from the independent review is retained in `crates/termrock-shell/tests/api_legacy_compat.rs`; it checks explicit return type, `.spec(...)`, and temporary builder lifetime. `crates/termrock-shell/tests/composition_interop.rs` exercises live drawing and measurement, padding `.spec(...)`, direct `ContentSlot::nested(AppShell::slots(...), ...)`, borrowed domain data, owned/borrowed leaf bounds, cursor, focus, hit/hover, and exact drop count. It drives a runtime buffer; it is not a no-op type-only assertion.
 
-```rust,ignore
+```text
 let group: CompositionSlots<'_> = AppShell::new().slots(&header, &body, &footer);
 let nested = ContentSlot::nested(group.spec(Composition::new().gap(1)), policy);
 ```
