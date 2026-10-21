@@ -79,12 +79,7 @@ const KEYWORDS: &[&str] = &[
 ];
 
 const CANDIDATES: &[(&str, &str, &str, &str)] = &[
-    (
-        "fetch(",
-        "async fn (url: &str)",
-        "ƒ",
-        "fetch()",
-    ),
+    ("fetch(", "async fn (url: &str)", "ƒ", "fetch()"),
     ("client(", "fn () -> Client", "ƒ", "client()"),
     ("sleep(", "async fn (ms: u64)", "ƒ", "sleep()"),
     (
