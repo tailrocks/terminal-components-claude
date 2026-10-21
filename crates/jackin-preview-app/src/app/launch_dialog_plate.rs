@@ -1,7 +1,10 @@
-//! Shared info and cancel cards, plus the reduced-color recolor.
+//! Shared debug-info card, plus the reduced-color recolor.
 //!
-//! Info and cancel paint through `termrock` overlays. Empty padding keeps the
-//! dimmed cockpit ink. This module only remaps those inks for 256, 16, and mono.
+//! The info card paints through the shared `termrock` overlays info card.
+//! Empty padding keeps the dimmed cockpit ink. This module only remaps those
+//! inks for 256, 16, and mono until the shared capability ladders reproduce
+//! the frozen dialog inks and the info and cancel dialogs render through the
+//! real layer flow at every level.
 
 use termrock::{Color, ColorLevel, Rect, Ui};
 
