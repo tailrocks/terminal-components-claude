@@ -16,7 +16,7 @@ pub mod chrome;
 // pub mod footer;
 pub mod keyboard;
 pub mod nav;
-// pub mod page;
+pub mod page;
 pub mod quit;
 // pub mod reach;
 pub mod router;
