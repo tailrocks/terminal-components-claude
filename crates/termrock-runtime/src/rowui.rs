@@ -1497,9 +1497,9 @@ mod tests {
     }
 
     fn theme_with_part_glyph(part: Part, glyph: Slot<GlyphRole>) -> Theme {
-        let mut theme = Theme::junie();
-        theme.recipes.get_mut(Family::LIST).parts.entry(part).glyph = glyph;
-        theme
+        Theme::junie().define_family(Family::LIST, |edit| {
+            edit.part(part).glyph_slot(glyph);
+        })
     }
 
     fn row_text(buf: &Buffer, y: u16, from: u16, to: u16) -> String {
