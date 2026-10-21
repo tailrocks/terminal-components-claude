@@ -11,9 +11,9 @@ use termrock::{
 use showcase_demos::pages::forms::SUBMIT as FORM_SUBMIT;
 use showcase_demos::pages::taskrunner::RUN_COMMAND;
 use showcase_demos::pages::{
-    Page, PageStatus, buttons::ButtonsPage, chips::ChipsPage, chrome::ChromePage,
-    dialogs::DialogsPage, editable::EditablePage, editor::EditorPage, forms::FormsPage,
-    grid::GridPage, inputs::InputsPage, lists::ListsPage, overview::OverviewPage,
+    Page, PageStatus, buttons::ButtonsPage, celleditors::CellEditorsPage, chips::ChipsPage,
+    chrome::ChromePage, dialogs::DialogsPage, editable::EditablePage, editor::EditorPage,
+    forms::FormsPage, grid::GridPage, inputs::InputsPage, lists::ListsPage, overview::OverviewPage,
     panels::PanelsPage, pickers::PickersPage, progress::ProgressPage, scrolling::ScrollingPage,
     settings::SettingsPage, sidebars::SidebarsPage, tables::TablesPage, taskrunner::TaskRunnerPage,
     terminal::TerminalPage, textareas::TextAreasPage, trees::TreesPage,
@@ -73,10 +73,11 @@ pub enum PageId {
     Chrome,
     Settings,
     TaskRunner,
+    CellEditors,
 }
 
 impl PageId {
-    pub const ALL: [Self; 22] = [
+    pub const ALL: [Self; 23] = [
         Self::Overview,
         Self::Buttons,
         Self::Inputs,
@@ -99,6 +100,7 @@ impl PageId {
         Self::Chrome,
         Self::Settings,
         Self::TaskRunner,
+        Self::CellEditors,
     ];
 
     pub const fn title(self) -> &'static str {
@@ -125,6 +127,7 @@ impl PageId {
             Self::Chrome => "Chrome",
             Self::Settings => "Settings",
             Self::TaskRunner => "Task runner",
+            Self::CellEditors => "Cell editors",
         }
     }
 
@@ -152,6 +155,7 @@ impl PageId {
             Self::Chrome => "chrome",
             Self::Settings => "settings",
             Self::TaskRunner => "taskrunner",
+            Self::CellEditors => "celleditors",
         }
     }
 
@@ -297,7 +301,7 @@ pub const NAV_ENTRIES: &[NavEntry] = &[
         icon: "•",
     },
     NavEntry {
-        id: PageId::Overview,
+        id: PageId::CellEditors,
         label: "Cell editors",
         section: "Tables",
         icon: "•",
@@ -733,6 +737,7 @@ fn page(kind: PageId) -> Box<dyn Page> {
         PageId::Chrome => Box::new(ChromePage::new()),
         PageId::Settings => Box::new(SettingsPage::new()),
         PageId::TaskRunner => Box::new(TaskRunnerPage::new()),
+        PageId::CellEditors => Box::new(CellEditorsPage::new()),
     }
 }
 
