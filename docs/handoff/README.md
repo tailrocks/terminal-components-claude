@@ -179,3 +179,7 @@ Five workstreams stopped on an API rate limit at ~10:03 +0700. In-flight work pr
 - `wip/palette-rate-limit-20261021` @ `73fc468fc` — junie_256 mid-edit toward measured frozen ladder. Resume: finish ladder, conformance palette tests.
 - `wip/controls-adopt-rate-limit-20261021` @ `d90357899` — theme visual-API adoption mid-fix (two pins to measured frozen values). Resume: equality proofs, InactiveSelection decisions, test ports.
 - Backdrop regeneration agent stopped clean (no edits yet); prepared frozen-baseline root intact at /private/tmp/termrock-backdrop-adj-20261021/target/frozen-baseline.
+
+## DCO sign-off debt (coordinator decision 2026-10-21)
+
+`DCO` is the failing required check on PR #38: 195 commits lack `Signed-off-by`. Writers are active concurrently, so a branch-wide rewrite now would be undone by the next unsigned push and would force-push a shared branch (prohibited while shared). Decision: every commit from now on must carry `git commit -s` sign-off (Alexey Zhokhov <alexey@zhokhov.com>) plus the Co-Authored-By line; at the final integration checkpoint — when all workstreams stop pushing — run one sign-off rebase (`git rebase -i --exec "git commit --amend --no-edit -s"`) with a coordinated force-push under the push lock, then re-run CI. Recorded as OPEN until then.
