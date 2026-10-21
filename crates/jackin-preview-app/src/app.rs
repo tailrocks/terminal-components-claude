@@ -421,6 +421,7 @@ struct HintLayerSet {
     capsule_menu: HintLayer,
     capsule_prefix: HintLayer,
     capsule_inspect: HintLayer,
+    #[allow(dead_code)]
     capsule_default: HintLayer,
 }
 
@@ -2255,7 +2256,31 @@ impl App {
     }
 
     fn capsule_viewport(pane_id: PaneId) -> TextViewport<'static> {
-        TextViewport::new(CAPSULE_PANES.item(ItemKey::num(pane_id))).click_selects_word(true)
+        static PARTS: std::sync::OnceLock<[(Part, termrock::StylePatch); 2]> =
+            std::sync::OnceLock::new();
+        let parts = PARTS.get_or_init(|| {
+            [
+                (
+                    Part::TRACK,
+                    termrock::StylePatch::new().set_fg(termrock::Role::Custom(
+                        termrock::Color::from_u32(0x0047_4747),
+                    )),
+                ),
+                (
+                    Part::THUMB,
+                    termrock::StylePatch::new().set_fg(termrock::Role::Custom(
+                        termrock::Color::from_u32(0x0080_8080),
+                    )),
+                ),
+            ]
+        });
+        TextViewport::new(CAPSULE_PANES.item(ItemKey::num(pane_id)))
+            .click_selects_word(true)
+            .reserve_gutter(false)
+            .scroll_gap(1)
+            .caret_when_unfocused(true)
+            .bar_cursor(true)
+            .patch_part(parts)
     }
 
     fn role_choose_button(&self) -> Button<'_> {
@@ -2405,6 +2430,9 @@ impl App {
 
     fn commit_capsule_input(&mut self) {
         let input = mem::take(&mut self.capsule_input);
+        if input.is_empty() {
+            return;
+        }
         let Some(instance_id) = self.active_running_instance_id() else {
             return;
         };
@@ -2543,13 +2571,23 @@ impl App {
 
     fn project_term(term: &crate::sim::pty::TextViewport, out: &mut ProjectedText) {
         out.clear();
-        let mut joined = String::new();
         for line in &term.lines {
-            joined.clear();
-            for span in line {
-                joined.push_str(span.text.as_str());
+            if line.is_empty() {
+                out.push_line([("", None, Modifier::empty())]);
+                continue;
             }
-            out.push_line([(joined.as_str(), None, Modifier::empty())]);
+            out.push_line(line.iter().map(|span| {
+                let modifier = if span.bold {
+                    Modifier::BOLD
+                } else {
+                    Modifier::empty()
+                };
+                (
+                    span.text.as_str(),
+                    Some(capsule_span_role(span.tone)),
+                    modifier,
+                )
+            }));
         }
     }
 
@@ -2684,7 +2722,7 @@ impl App {
                     .tabs
                     .iter()
                     .enumerate()
-                    .map(|(index, tab)| {
+                    .map(|(_index, tab)| {
                         let mut label = daemon.tab_label(tab, &|pane| {
                             pane.proc
                                 .account
@@ -2692,12 +2730,16 @@ impl App {
                                 .and_then(|id| world.accounts.get(id))
                                 .map(|account| account.display_name.clone())
                         });
-                        if index == daemon.active {
-                            let glyph = Self::pane_state_glyph(daemon.tab_state(tab));
-                            if !glyph.is_empty() {
-                                label.push(' ');
-                                label.push_str(glyph);
-                            }
+                        let glyph = match daemon.tab_state(tab) {
+                            crate::domain::instance::AgentState::Blocked => "●",
+                            crate::domain::instance::AgentState::Working => "▶",
+                            crate::domain::instance::AgentState::Idle => "◆",
+                            crate::domain::instance::AgentState::Done
+                            | crate::domain::instance::AgentState::Unknown => "",
+                        };
+                        if !glyph.is_empty() {
+                            label.push(' ');
+                            label.push_str(glyph);
                         }
                         label
                     })
@@ -2721,7 +2763,7 @@ impl App {
         dynamic
             .into_iter()
             .enumerate()
-            .map(|(index, label)| format!("{} {label}", index.saturating_add(1)))
+            .map(|(index, label)| format!("{} {label} ", index.saturating_add(1)))
             .collect()
     }
 
@@ -2777,12 +2819,7 @@ impl App {
                 || pane.label(),
                 |account| format!("{} ({})", pane.label(), account.display_name),
             );
-        let glyph = Self::pane_state_glyph(pane.state());
-        if glyph.is_empty() {
-            format!(" {label} ")
-        } else {
-            format!(" {label} {glyph} ")
-        }
+        format!(" {label} ")
     }
 
     fn ensure_pane_title(caches: &mut CapsuleFrameCaches, accounts: &AccountRegistry, pane: &Pane) {
@@ -4480,6 +4517,15 @@ impl App {
             self.activate_capsule_tab(index);
             self.capsule_tab_title_index = index;
             self.capsule_viewport_focused = false;
+        }
+        if self.historical_capsule_frame()
+            && let Some(pane) = self
+                .active_running_instance_id()
+                .as_ref()
+                .and_then(|id| self.world.daemons.get(id))
+                .and_then(|daemon| daemon.focused_pane())
+        {
+            cx.focus(Self::capsule_viewport_id(pane));
         }
         result | tabs_response.erase()
     }
@@ -7750,6 +7796,9 @@ impl App {
             return;
         };
         let framed = tab.leaf_count() > 1 || tab.zoomed.is_some();
+        let mut seams = Vec::new();
+        tab.root
+            .layout(area, &mut Vec::new(), &mut seams, &mut Vec::new());
         {
             let mut frame = self.capsule_frame.borrow_mut();
             Self::ensure_tab_projections(&mut frame, daemon, &self.world.accounts, &tab.root);
@@ -7769,9 +7818,41 @@ impl App {
             }
             let focused = tab.focused == pane_id;
             let inner = if framed {
-                let inner = ui.frame(pane_area, style);
+                let border = if focused {
+                    ui.paint_patch(
+                        &termrock::StylePatch::new()
+                            .set_fg(termrock::Role::BorderStrong)
+                            .set_bg(termrock::Role::Surface(termrock::Surface::Canvas))
+                            .remove(Modifier::BOLD),
+                    )
+                } else {
+                    ui.paint_patch(
+                        &termrock::StylePatch::new()
+                            .set_fg(termrock::Role::Custom(termrock::Color::Rgb(
+                                0x3a, 0x3a, 0x3a,
+                            )))
+                            .set_bg(termrock::Role::Surface(termrock::Surface::Canvas))
+                            .remove(Modifier::BOLD),
+                    )
+                };
+                let inner = ui.frame(pane_area, border);
                 let Some((_, title)) = frame.titles.get(&pane_id) else {
                     continue;
+                };
+                let title_style = if focused {
+                    ui.paint_patch(
+                        &termrock::StylePatch::new()
+                            .set_fg(termrock::Role::Fg(termrock::FgStep::Primary))
+                            .set_bg(termrock::Role::Surface(termrock::Surface::Canvas))
+                            .add(Modifier::BOLD),
+                    )
+                } else {
+                    ui.paint_patch(
+                        &termrock::StylePatch::new()
+                            .set_fg(termrock::Role::Fg(termrock::FgStep::Secondary))
+                            .set_bg(termrock::Role::Surface(termrock::Surface::Canvas))
+                            .remove(Modifier::BOLD),
+                    )
                 };
                 ui.paint_str(
                     Rect::new(
@@ -7781,8 +7862,39 @@ impl App {
                         1,
                     ),
                     title,
-                    style,
+                    title_style,
                 );
+                if let Some(pane) = daemon.pane(pane_id) {
+                    let glyph = Self::pane_state_glyph(pane.state());
+                    if !glyph.is_empty() {
+                        let gx = pane_area
+                            .x
+                            .saturating_add(2)
+                            .saturating_add(termrock::width(title));
+                        let glyph_fg = match pane.state() {
+                            crate::domain::instance::AgentState::Blocked => termrock::Role::Warning,
+                            crate::domain::instance::AgentState::Working => termrock::Role::Accent,
+                            crate::domain::instance::AgentState::Done => {
+                                termrock::Role::Fg(termrock::FgStep::Secondary)
+                            }
+                            crate::domain::instance::AgentState::Idle
+                            | crate::domain::instance::AgentState::Unknown => {
+                                termrock::Role::Fg(termrock::FgStep::Muted)
+                            }
+                        };
+                        let glyph_style = ui.paint_patch(
+                            &termrock::StylePatch::new()
+                                .set_fg(glyph_fg)
+                                .set_bg(termrock::Role::Surface(termrock::Surface::Canvas))
+                                .remove(Modifier::BOLD),
+                        );
+                        ui.paint_str(
+                            Rect::new(gx, pane_area.y, termrock::width(glyph), 1),
+                            glyph,
+                            glyph_style,
+                        );
+                    }
+                }
                 inner
             } else {
                 pane_area
@@ -7793,8 +7905,9 @@ impl App {
             let Some((_, projected)) = frame.transcripts.get(&pane_id) else {
                 continue;
             };
+            let reserve_input = focused && !self.historical_capsule_frame();
             let viewport_area = Rect {
-                height: inner.height.saturating_sub(u16::from(focused)),
+                height: inner.height.saturating_sub(u16::from(reserve_input)),
                 ..inner
             };
             let state = self
@@ -7803,17 +7916,36 @@ impl App {
                 .cloned()
                 .unwrap_or_default();
             Self::capsule_viewport(pane_id).draw_projected(ui, viewport_area, &state, projected);
-            if focused && !inner.is_empty() {
-                let input_y = if self.historical_capsule_frame() {
-                    inner.bottom().saturating_sub(3)
-                } else {
-                    inner.bottom().saturating_sub(1)
-                };
+            if reserve_input && !inner.is_empty() {
                 Self::capsule_input().value(&self.capsule_input).draw(
                     ui,
-                    Rect::new(inner.x, input_y, inner.width, 1),
+                    Rect::new(inner.x, inner.bottom().saturating_sub(1), inner.width, 1),
                     &self.capsule_input_state,
                 );
+            }
+        }
+        self.paint_capsule_seams(ui, &seams);
+    }
+
+    fn paint_capsule_seams(&self, ui: &mut Ui<'_>, seams: &[crate::sim::pty::Seam]) {
+        let style = ui
+            .resolve(
+                termrock::Family::SPLIT,
+                Variant::DEFAULT,
+                Part::SEAM,
+                termrock::StateFlags::empty(),
+            )
+            .style;
+        for seam in seams {
+            let glyph = match seam.dir {
+                SplitDir::Horizontal => "│",
+                SplitDir::Vertical => "─",
+            };
+            let handle = seam.handle;
+            for y in handle.y..handle.bottom() {
+                for x in handle.x..handle.right() {
+                    ui.paint_str(Rect::new(x, y, 1, 1), glyph, style);
+                }
             }
         }
     }
@@ -7826,18 +7958,21 @@ impl App {
             &self.capsule_tab_title,
             self.capsule_tab_title_index,
         );
+        let tab_area = Rect {
+            x: area.x.saturating_add(1),
+            width: area.width.saturating_sub(2),
+            height: area.height.min(2),
+            ..area
+        };
         {
             let frame = self.capsule_frame.borrow();
             let tabs = frame
                 .tabs
                 .as_ref()
                 .map_or(&[] as &[String], |(_, tabs)| tabs.as_slice());
-            let tab_area = Rect {
-                height: area.height.min(2),
-                ..area
-            };
             Tabs::new(CAPSULE_TABS).draw(ui, tab_area, &self.tabs_state, tabs);
         }
+        self.paint_capsule_tab_strip(ui, tab_area);
         let pane_area = Rect {
             y: area.y.saturating_add(2),
             height: area.height.saturating_sub(2),
@@ -7910,42 +8045,27 @@ impl App {
     fn draw_capsule_shell(&self, ui: &mut Ui<'_>, area: Rect) {
         ui.register_decor(APP, PartRef::of(Part::CONTAINER), area);
         let style = ui.surface_style();
-        let menu_area = Rect::new(
-            area.x.saturating_add(9),
-            area.y,
-            area.width.saturating_sub(9),
-            1,
-        );
-        ui.paint_str(Rect::new(area.x, area.y, 9, 1), "jackin❯", style);
-        Self::capsule_menu_bar().draw(ui, menu_area, &self.capsule_menu_state);
-        let workspace = self
-            .world
-            .workspaces
-            .first()
-            .map_or("payments-platform", |workspace| workspace.name.as_str());
-        let identity = self
-            .active_running_instance_id()
-            .and_then(|id| self.world.instance(&id))
-            .map(|instance| {
-                let role = instance
-                    .role
-                    .rsplit('/')
-                    .next()
-                    .unwrap_or(instance.role.as_str());
-                format!("{workspace} › {role}   {}", instance.container_id())
-            })
-            .unwrap_or_else(|| format!("{workspace} ›"));
-        let identity_width = identity.chars().count().min(area.width as usize) as u16;
-        ui.paint_str(
-            Rect::new(
-                area.right().saturating_sub(identity_width),
-                area.y,
-                identity_width,
-                1,
+        ui.fill(area, style);
+        let brand = Brand::new(APP.sub("capsule-brand"), "jackin❯")
+            .draw(ui, Rect::new(area.x.saturating_add(1), area.y, 9, 1));
+        let menu_x = brand.right().saturating_add(1);
+        let menu_area = Rect::new(menu_x, area.y, area.right().saturating_sub(menu_x), 1);
+        let title = [
+            (
+                Part::CONTAINER,
+                termrock::StylePatch::new().remove(Modifier::BOLD),
             ),
-            &identity,
-            style,
-        );
+            (
+                Part::TITLE,
+                termrock::StylePatch::new()
+                    .set_fg(termrock::Role::Fg(termrock::FgStep::Secondary))
+                    .remove(Modifier::BOLD),
+            ),
+        ];
+        MenuBar::new(CAPSULE_MENU_BAR, CAPSULE_MENUS)
+            .patch_part(&title)
+            .draw(ui, menu_area, &self.capsule_menu_state);
+        self.paint_capsule_identity(ui, area, menu_x, style);
         if self.capsule_prefix {
             ui.paint_str(
                 Rect::new(
@@ -7967,36 +8087,629 @@ impl App {
         );
         self.draw_capsule(ui, content);
 
-        let status_center = [StatusItem::new("usage").meter(0.72)];
-        if let Some(status) = self.status.as_deref() {
-            let status_left = [StatusItem::new(status).strong()];
-            StatusBar::new(APP.sub("capsule-status"))
-                .left(&status_left)
-                .center(&status_center)
-                .draw(ui, Rect::new(area.x, footer_y, area.width, 1));
-        } else {
-            let status_left = [StatusItem::new("PR #482").strong()];
-            StatusBar::new(APP.sub("capsule-status"))
-                .left(&status_left)
-                .center(&status_center)
-                .draw(ui, Rect::new(area.x, footer_y, area.width, 1));
-        }
+        self.paint_capsule_status(ui, Rect::new(area.x, footer_y, area.width, 1));
 
-        let hints: &HintLayer = if self.capsule_help_open {
-            &self.hint_layers.capsule_help
+        let hint_area = Rect::new(area.x, footer_y.saturating_add(1), area.width, 1);
+        if self.capsule_help_open {
+            HintBar::new(APP.sub("capsule-hint"), &self.hint_layers.capsule_help)
+                .draw(ui, hint_area);
         } else if self.capsule_menu_state.is_open() || self.capsule_tab_menu_open {
-            &self.hint_layers.capsule_menu
+            HintBar::new(APP.sub("capsule-hint"), &self.hint_layers.capsule_menu)
+                .draw(ui, hint_area);
         } else if self.capsule_prefix {
-            &self.hint_layers.capsule_prefix
+            HintBar::new(APP.sub("capsule-hint"), &self.hint_layers.capsule_prefix)
+                .draw(ui, hint_area);
         } else if self.inspect_files {
-            &self.hint_layers.capsule_inspect
+            HintBar::new(APP.sub("capsule-hint"), &self.hint_layers.capsule_inspect)
+                .draw(ui, hint_area);
         } else {
-            &self.hint_layers.capsule_default
+            self.paint_capsule_idle_hints(ui, hint_area);
+        }
+    }
+
+    fn paint_capsule_identity(&self, ui: &mut Ui<'_>, area: Rect, menu_x: u16, style: PaintStyle) {
+        let workspace = self
+            .world
+            .workspaces
+            .first()
+            .map_or("payments-platform", |workspace| workspace.name.as_str());
+        let Some(instance) = self
+            .active_running_instance_id()
+            .and_then(|id| self.world.instance(&id))
+        else {
+            return;
         };
-        HintBar::new(APP.sub("capsule-hint"), hints).draw(
-            ui,
-            Rect::new(area.x, footer_y.saturating_add(1), area.width, 1),
+        let role = instance
+            .role
+            .rsplit('/')
+            .next()
+            .unwrap_or(instance.role.as_str());
+        let crumb = format!("{workspace} › {role}");
+        let container = instance.container_id();
+        let mut used = menu_x.saturating_add(1);
+        for menu in CAPSULE_MENUS {
+            let label_w = termrock::width(menu.label).saturating_add(2);
+            if used.saturating_add(label_w) > area.right() {
+                break;
+            }
+            used = used.saturating_add(label_w).saturating_add(1);
+        }
+        let edge = 2u16;
+        let sep = 2u16;
+        let crumb_w = termrock::width(&crumb);
+        let container_w = termrock::width(&container);
+        let room = area.right().saturating_sub(used.saturating_add(2));
+        let need = crumb_w
+            .saturating_add(container_w)
+            .saturating_add(sep)
+            .saturating_add(5);
+        let keep_container = need <= room;
+        let right = area.right().saturating_sub(edge);
+        let crumb_x = right.saturating_sub(crumb_w);
+        let bold = style.add_modifier(Modifier::BOLD);
+        let muted_fg = ui
+            .theme_ref()
+            .color
+            .fg
+            .get(termrock::FgStep::Muted.index())
+            .copied()
+            .unwrap_or(termrock::Color::Reset);
+        let overflow = style.fg(muted_fg);
+        if keep_container {
+            let container_x = crumb_x.saturating_sub(sep).saturating_sub(container_w);
+            ui.paint_str(
+                Rect::new(container_x, area.y, container_w, 1),
+                &container,
+                style,
+            );
+        } else if crumb_x > used {
+            ui.paint_str(
+                Rect::new(crumb_x.saturating_sub(sep).saturating_sub(1), area.y, 1, 1),
+                "…",
+                overflow,
+            );
+        }
+        ui.paint_str(Rect::new(crumb_x, area.y, crumb_w, 1), &crumb, bold);
+    }
+
+    fn paint_capsule_tab_strip(&self, ui: &mut Ui<'_>, area: Rect) {
+        if area.height < 2 || area.width == 0 {
+            return;
+        }
+        let instance_id = Self::active_running_instance_id_ref(&self.active_instance, &self.world);
+        let Some(daemon) = instance_id.and_then(|id| self.world.daemons.get(id)) else {
+            return;
+        };
+        let canvas = ui.paint_patch(
+            &termrock::StylePatch::new()
+                .set_fg(termrock::Role::Fg(termrock::FgStep::Primary))
+                .set_bg(termrock::Role::Surface(termrock::Surface::Canvas))
+                .remove(Modifier::BOLD),
         );
+        let plate = ui.paint_patch(
+            &termrock::StylePatch::new()
+                .set_fg(termrock::Role::Fg(termrock::FgStep::Primary))
+                .set_bg(termrock::Role::Surface(termrock::Surface::Overlay))
+                .add(Modifier::BOLD),
+        );
+        let beside = ui.paint_patch(
+            &termrock::StylePatch::new()
+                .set_fg(termrock::Role::Fg(termrock::FgStep::Secondary))
+                .set_bg(termrock::Role::Surface(termrock::Surface::Overlay))
+                .remove(Modifier::BOLD),
+        );
+        let idle_label = ui.paint_patch(
+            &termrock::StylePatch::new()
+                .set_fg(termrock::Role::Fg(termrock::FgStep::Secondary))
+                .set_bg(termrock::Role::Surface(termrock::Surface::Canvas))
+                .remove(Modifier::BOLD),
+        );
+        let idle_mark = ui.paint_patch(
+            &termrock::StylePatch::new()
+                .set_fg(termrock::Role::Fg(termrock::FgStep::Muted))
+                .set_bg(termrock::Role::Surface(termrock::Surface::Canvas))
+                .remove(Modifier::BOLD),
+        );
+        let accent = ui.paint_patch(&termrock::StylePatch::new().set_fg(termrock::Role::Accent));
+        // Tag `border_subtle` is `#3a3a3a`. The port token is `#262626`.
+        let quiet = ui.paint_patch(&termrock::StylePatch::new().set_fg(termrock::Role::Custom(
+            termrock::Color::Rgb(0x3a, 0x3a, 0x3a),
+        )));
+        let label_row = Rect { height: 1, ..area };
+        ui.fill(label_row, canvas);
+        let rule_row = Rect {
+            y: area.y.saturating_add(1),
+            height: 1,
+            ..area
+        };
+        for col in rule_row.columns() {
+            ui.paint_str(Rect { width: 1, ..col }, "─", quiet);
+        }
+        let mut x = area.x;
+        for (index, tab) in daemon.tabs.iter().enumerate() {
+            let label = daemon.tab_label(tab, &|pane| {
+                pane.proc.account.as_ref().and_then(|id| {
+                    self.world
+                        .accounts
+                        .get(id)
+                        .map(|account| account.display_name.clone())
+                })
+            });
+            let prefix = if index < 10 {
+                Some(if index == 9 {
+                    "0".to_owned()
+                } else {
+                    (index + 1).to_string()
+                })
+            } else {
+                None
+            };
+            let glyph = match daemon.tab_state(tab) {
+                crate::domain::instance::AgentState::Blocked => "●",
+                crate::domain::instance::AgentState::Working => "▶",
+                crate::domain::instance::AgentState::Idle => "◆",
+                crate::domain::instance::AgentState::Done
+                | crate::domain::instance::AgentState::Unknown => "",
+            };
+            let mut tab_w = 1u16
+                .saturating_add(termrock::width(&label))
+                .saturating_add(2);
+            if let Some(prefix) = &prefix {
+                tab_w = tab_w
+                    .saturating_add(termrock::width(prefix))
+                    .saturating_add(1);
+            }
+            if !glyph.is_empty() {
+                tab_w = tab_w
+                    .saturating_add(termrock::width(glyph))
+                    .saturating_add(1);
+            }
+            if x.saturating_add(tab_w) > area.right() {
+                break;
+            }
+            let active = index == daemon.active;
+            let tab_rect = Rect::new(x, area.y, tab_w, 1);
+            ui.fill(tab_rect, if active { plate } else { idle_label });
+            let mut cx = x.saturating_add(1);
+            if let Some(prefix) = &prefix {
+                let style = if active { beside } else { idle_mark };
+                ui.paint_str(
+                    Rect::new(cx, area.y, termrock::width(prefix), 1),
+                    prefix,
+                    style,
+                );
+                cx = cx.saturating_add(termrock::width(prefix)).saturating_add(1);
+            }
+            let label_style = if active { plate } else { idle_label };
+            ui.paint_str(
+                Rect::new(cx, area.y, termrock::width(&label), 1),
+                &label,
+                label_style,
+            );
+            cx = cx.saturating_add(termrock::width(&label));
+            if !glyph.is_empty() {
+                let style = if active { beside } else { idle_mark };
+                ui.paint_str(
+                    Rect::new(cx.saturating_add(1), area.y, termrock::width(glyph), 1),
+                    glyph,
+                    style,
+                );
+            }
+            if active {
+                let span = Rect::new(x, rule_row.y, tab_w, 1);
+                for col in span.columns() {
+                    ui.paint_str(Rect { width: 1, ..col }, "━", accent);
+                }
+            }
+            x = x.saturating_add(tab_w).saturating_add(1);
+        }
+    }
+
+    fn paint_capsule_status(&self, ui: &mut Ui<'_>, area: Rect) {
+        if let Some(status) = self.status.as_deref() {
+            let left = [StatusItem::new(status).strong()];
+            let center = [StatusItem::new("usage").meter(0.72)];
+            StatusBar::new(APP.sub("capsule-status"))
+                .left(&left)
+                .center(&center)
+                .draw(ui, area);
+            return;
+        }
+        self.paint_capsule_status_row(ui, area);
+    }
+
+    /// Baseline status plan: gap 3, edge 1, meter `1 + 10 + 7`, drop lowest
+    /// priority, then paint `…` for what fell off.
+    fn paint_capsule_status_row(&self, ui: &mut Ui<'_>, area: Rect) {
+        const GAP: u16 = 3;
+        const EDGE: u16 = 1;
+        const METER_EXTRA: u16 = 1 + 10 + 7;
+        let bg = ui.paint_patch(
+            &termrock::StylePatch::new()
+                .set_fg(termrock::Role::Fg(termrock::FgStep::Primary))
+                .set_bg(termrock::Role::Surface(termrock::Surface::Elevated)),
+        );
+        ui.fill(area, bg);
+        let strong = bg.add_modifier(Modifier::BOLD);
+        let warn = ui.paint_patch(
+            &termrock::StylePatch::new()
+                .set_fg(termrock::Role::Warning)
+                .set_bg(termrock::Role::Surface(termrock::Surface::Elevated)),
+        );
+        let muted = ui.paint_patch(
+            &termrock::StylePatch::new()
+                .set_fg(termrock::Role::Fg(termrock::FgStep::Muted))
+                .set_bg(termrock::Role::Surface(termrock::Surface::Elevated))
+                .remove(Modifier::BOLD),
+        );
+        let instance_id = self.active_running_instance_id();
+        let instance = instance_id.as_ref().and_then(|id| self.world.instance(id));
+        let work = instance
+            .and_then(|instance| {
+                instance
+                    .pr
+                    .as_ref()
+                    .map(|(number, title)| format!("PR #{number} · {}", truncate_chars(title, 32)))
+            })
+            .or_else(|| instance.and_then(|instance| instance.branch.clone()))
+            .unwrap_or_else(|| "detached".to_owned());
+        let (agent_line, agent_warn, meter_label, ratio, pct, stale, pane_meta, dirty) =
+            self.capsule_status_parts();
+        let panes = termrock::width(&pane_meta);
+        let dirty_w = termrock::width(&dirty);
+        let agent_w = termrock::width(&agent_line);
+        let work_w = termrock::width(&work);
+        let meter_w = termrock::width(&meter_label).saturating_add(METER_EXTRA);
+        let mut keep = [true, true, true, true, true];
+        let widths = [work_w, dirty_w, agent_w, panes, meter_w];
+        let priority = [10u8, 6, 8, 2, 9];
+        let group = [0u8, 0, 1, 1, 2];
+        let needed = |keep: &[bool; 5]| -> u16 {
+            let mut group_w = [0u16; 3];
+            let mut group_n = [0u16; 3];
+            for i in 0..5 {
+                if keep[i] {
+                    group_w[group[i] as usize] =
+                        group_w[group[i] as usize].saturating_add(widths[i]);
+                    group_n[group[i] as usize] = group_n[group[i] as usize].saturating_add(1);
+                }
+            }
+            let mut total = 0u16;
+            let mut present = 0u16;
+            for g in 0..3 {
+                if group_n[g] > 0 {
+                    total = total
+                        .saturating_add(group_w[g])
+                        .saturating_add(group_n[g].saturating_sub(1).saturating_mul(GAP));
+                    present = present.saturating_add(1);
+                }
+            }
+            let gaps = present.saturating_sub(1).saturating_mul(GAP);
+            let more = u16::from(keep.iter().any(|on| !on)).saturating_mul(1 + GAP);
+            total
+                .saturating_add(gaps)
+                .saturating_add(more)
+                .saturating_add(2 * EDGE)
+        };
+        while needed(&keep) > area.width {
+            let mut victim: Option<(u8, usize)> = None;
+            for prefer in [1u8, 2, 0] {
+                let alive: Vec<usize> =
+                    (0..5).filter(|i| keep[*i] && group[*i] == prefer).collect();
+                if alive.is_empty() || (prefer == 0 && alive.len() == 1) {
+                    continue;
+                }
+                let Some(first) = alive.first().copied() else {
+                    continue;
+                };
+                let index = alive
+                    .iter()
+                    .copied()
+                    .min_by_key(|i| (priority[*i], usize::MAX - *i))
+                    .unwrap_or(first);
+                let rank = priority[index];
+                if victim.is_none_or(|(best, _)| rank < best) {
+                    victim = Some((rank, index));
+                }
+            }
+            match victim {
+                Some((_, index)) => keep[index] = false,
+                None => break,
+            }
+        }
+        let mut x = area.x.saturating_add(EDGE);
+        if keep[0] {
+            ui.paint_str(Rect::new(x, area.y, work_w, 1), &work, strong);
+            x = x.saturating_add(work_w).saturating_add(GAP);
+        }
+        if keep[1] {
+            ui.paint_str(Rect::new(x, area.y, dirty_w, 1), &dirty, warn);
+            x = x.saturating_add(dirty_w).saturating_add(GAP);
+        }
+        let left_end = x.saturating_sub(GAP);
+        let mut rx = area.right().saturating_sub(EDGE);
+        let meter_x = if keep[4] {
+            rx = rx.saturating_sub(meter_w);
+            let at = rx;
+            rx = rx.saturating_sub(GAP);
+            at
+        } else {
+            area.right().saturating_sub(EDGE)
+        };
+        let mut right_start = if keep[4] {
+            rx.saturating_add(GAP)
+        } else {
+            area.right().saturating_sub(EDGE)
+        };
+        let hidden = keep.iter().any(|on| !on);
+        if hidden && area.width > 2 * EDGE {
+            let at = if keep[4] {
+                right_start.saturating_sub(GAP + 1)
+            } else {
+                right_start.saturating_sub(1)
+            };
+            right_start = at;
+            let mark = at
+                .max(left_end.saturating_add(u16::from(keep[0] || keep[1])))
+                .min(area.right().saturating_sub(EDGE + 1));
+            ui.paint_str(Rect::new(mark, area.y, 1, 1), "…", muted);
+        }
+        let center_w = u16::from(keep[2]) * agent_w
+            + u16::from(keep[3]) * panes
+            + u16::from(keep[2] && keep[3]) * GAP;
+        if center_w > 0 {
+            let lo = left_end.saturating_add(GAP);
+            let hi = right_start.saturating_sub(GAP);
+            let free = hi.saturating_sub(lo);
+            let mut cx = lo.saturating_add(free.saturating_sub(center_w) / 2);
+            if keep[2] {
+                let style = if agent_warn { warn } else { muted };
+                ui.paint_str(Rect::new(cx, area.y, agent_w, 1), &agent_line, style);
+                cx = cx.saturating_add(agent_w).saturating_add(GAP);
+            }
+            if keep[3] {
+                ui.paint_str(Rect::new(cx, area.y, panes, 1), &pane_meta, muted);
+            }
+        }
+        if keep[4] {
+            let label_w = termrock::width(&meter_label);
+            ui.paint_str(Rect::new(meter_x, area.y, label_w, 1), &meter_label, muted);
+            self.paint_session_meter(
+                ui,
+                Rect::new(
+                    meter_x.saturating_add(label_w).saturating_add(1),
+                    area.y,
+                    meter_w.saturating_sub(label_w).saturating_sub(1),
+                    1,
+                ),
+                ratio,
+                &format!("{pct}%"),
+                stale,
+                pct,
+            );
+        }
+    }
+
+    fn paint_session_meter(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        ratio: f64,
+        value: &str,
+        stale: bool,
+        pct: u8,
+    ) {
+        if area.is_empty() {
+            return;
+        }
+        let card = termrock::Role::Surface(termrock::Surface::Elevated);
+        let warn = ui.paint_patch(
+            &termrock::StylePatch::new()
+                .set_fg(termrock::Role::Warning)
+                .set_bg(card),
+        );
+        let text = if stale {
+            ui.paint_patch(
+                &termrock::StylePatch::new()
+                    .set_fg(termrock::Role::Fg(termrock::FgStep::Muted))
+                    .set_bg(card)
+                    .add(Modifier::ITALIC)
+                    .remove(Modifier::BOLD),
+            )
+        } else {
+            warn
+        };
+        let empty = ui.paint_patch(
+            &termrock::StylePatch::new()
+                .set_fg(termrock::Role::Custom(termrock::Color::Rgb(
+                    0x3a, 0x3a, 0x3a,
+                )))
+                .set_bg(card),
+        );
+        let vw = termrock::width(value);
+        let track_w = area.width.saturating_sub(vw.saturating_add(3));
+        if track_w < 6 {
+            ui.paint_str(area, value, text);
+            return;
+        }
+        let filled = (f64::from(track_w) * ratio).round() as u16;
+        let glyph = if stale { "╍" } else { "━" };
+        for i in 0..track_w {
+            ui.paint_str(
+                Rect::new(area.x.saturating_add(i), area.y, 1, 1),
+                if i < filled { glyph } else { "─" },
+                if i < filled { warn } else { empty },
+            );
+        }
+        let x = area.x.saturating_add(track_w).saturating_add(1);
+        ui.paint_str(Rect::new(x, area.y, vw, 1), value, text);
+        let suffix = if pct >= 100 {
+            " !"
+        } else if pct >= 75 {
+            " ▲"
+        } else {
+            "  "
+        };
+        ui.paint_str(Rect::new(x.saturating_add(vw), area.y, 2, 1), suffix, warn);
+    }
+
+    fn capsule_status_parts(&self) -> (String, bool, String, f64, u8, bool, String, String) {
+        let instance_id = self.active_running_instance_id();
+        let instance = instance_id.as_ref().and_then(|id| self.world.instance(id));
+        let daemon = instance_id
+            .as_ref()
+            .and_then(|id| self.world.daemons.get(id));
+        let touched = daemon
+            .map(|daemon| daemon.touched_files().len())
+            .unwrap_or(0);
+        let dirty = instance
+            .map(|instance| {
+                let changed = instance.uncommitted.saturating_add(touched);
+                let mut parts = Vec::new();
+                if changed > 0 {
+                    parts.push(format!("• {changed} changed"));
+                }
+                if instance.unpushed > 0 {
+                    parts.push(format!("{} unpushed", instance.unpushed));
+                }
+                if parts.is_empty() {
+                    "clean".to_owned()
+                } else {
+                    parts.join(" · ")
+                }
+            })
+            .unwrap_or_else(|| "clean".to_owned());
+        let panes = daemon
+            .and_then(|daemon| daemon.active_tab())
+            .map(|tab| tab.leaves().len())
+            .unwrap_or(0);
+        let tabs = daemon.map(|daemon| daemon.tabs.len()).unwrap_or(0);
+        let pane_meta = format!(
+            "{} · {}",
+            plural(tabs, "tab", "tabs"),
+            plural(panes, "pane", "panes")
+        );
+        let pane = daemon
+            .and_then(|daemon| daemon.focused_pane())
+            .and_then(|id| daemon.and_then(|daemon| daemon.pane(id)));
+        let (agent_line, agent_warn, meter_label, ratio, pct, stale) = pane.map_or_else(
+            || ("shell".to_owned(), false, "usage".to_owned(), 0.0, 0, false),
+            |pane| {
+                let agent = pane
+                    .proc
+                    .agent
+                    .map(|agent| agent.label())
+                    .unwrap_or("shell");
+                let account = pane
+                    .proc
+                    .account
+                    .as_ref()
+                    .and_then(|id| self.world.accounts.get(id));
+                let account_name = account.map(|account| format!(" · {}", account.display_name));
+                let (state, warn) = match pane.state() {
+                    crate::domain::instance::AgentState::Working => (" · working", false),
+                    crate::domain::instance::AgentState::Blocked => (" · needs input", true),
+                    crate::domain::instance::AgentState::Done => (" · done", false),
+                    crate::domain::instance::AgentState::Idle => (" · idle", false),
+                    crate::domain::instance::AgentState::Unknown => ("", false),
+                };
+                let agent_line = format!("{agent}{}{state}", account_name.as_deref().unwrap_or(""));
+                let window = account.and_then(|account| {
+                    account
+                        .usage
+                        .windows
+                        .iter()
+                        .find(|window| window.used_pct.is_some())
+                });
+                let meter_label = window
+                    .map(|window| window.label.split(' ').next().unwrap_or("Usage").to_owned())
+                    .unwrap_or_else(|| "usage".to_owned());
+                let pct = window.and_then(|window| window.used_pct).unwrap_or(0);
+                let ratio = f64::from(pct) / 100.0;
+                let stale = account.is_some_and(|account| {
+                    matches!(
+                        account.usage.freshness.phase,
+                        Freshness::Stale | Freshness::Failed
+                    )
+                });
+                (agent_line, warn, meter_label, ratio, pct, stale)
+            },
+        );
+        (
+            agent_line,
+            agent_warn,
+            meter_label,
+            ratio,
+            pct,
+            stale,
+            pane_meta,
+            dirty,
+        )
+    }
+
+    fn paint_capsule_idle_hints(&self, ui: &mut Ui<'_>, area: Rect) {
+        let workspace = self
+            .world
+            .workspaces
+            .first()
+            .map_or("payments-platform", |workspace| workspace.name.as_str());
+        let attached = format!("Attached to {workspace} · tabs and panes restored");
+        let layer = HintLayer {
+            hints: vec![
+                Hint {
+                    key: termrock::HintKey::Label("Ctrl+B"),
+                    label: "Pane commands…",
+                    priority: 90,
+                },
+                Hint {
+                    key: termrock::HintKey::Label("F10"),
+                    label: "Menu",
+                    priority: 80,
+                },
+                Hint {
+                    key: termrock::HintKey::Label("Ctrl+\\"),
+                    label: "Palette",
+                    priority: 70,
+                },
+                Hint {
+                    key: termrock::HintKey::Label("Alt+Shift+↑↓←→"),
+                    label: "Resize",
+                    priority: 60,
+                },
+                Hint {
+                    key: termrock::HintKey::Label("right-click"),
+                    label: "Tab menu",
+                    priority: 50,
+                },
+                Hint {
+                    key: termrock::HintKey::Label("Ctrl+Q"),
+                    label: "Quit",
+                    priority: 40,
+                },
+            ],
+            badge: None,
+            status: Some(attached.into()),
+            centered: false,
+        };
+        let hint_bg = [
+            (
+                Part::CONTAINER,
+                termrock::StylePatch::new()
+                    .set_bg(termrock::Role::Surface(termrock::Surface::Canvas))
+                    .set_fg(termrock::Role::Fg(termrock::FgStep::Primary)),
+            ),
+            (
+                Part::LABEL,
+                termrock::StylePatch::new().set_fg(termrock::Role::Fg(termrock::FgStep::Secondary)),
+            ),
+            (
+                Part::OVERFLOW,
+                termrock::StylePatch::new().set_fg(termrock::Role::Fg(termrock::FgStep::Faint)),
+            ),
+        ];
+        HintBar::new(APP.sub("capsule-hint"), &layer)
+            .patch_part(&hint_bg)
+            .draw(ui, area);
     }
 
     fn draw_content(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -9156,6 +9869,33 @@ impl App {
             },
         );
     }
+}
+
+fn plural(count: usize, one: &str, many: &str) -> String {
+    if count == 1 {
+        format!("1 {one}")
+    } else {
+        format!("{count} {many}")
+    }
+}
+
+fn capsule_span_role(tone: crate::sim::pty::Tone) -> termrock::Role {
+    use crate::sim::pty::Tone;
+    match tone {
+        // Baseline success and danger are not the port tokens.
+        Tone::Success => termrock::Role::Custom(termrock::Color::Rgb(0x3f, 0xb9, 0x50)),
+        Tone::Error => termrock::Role::Custom(termrock::Color::Rgb(0xf0, 0x5d, 0x5d)),
+        other => other.role(),
+    }
+}
+
+fn truncate_chars(text: &str, max: usize) -> String {
+    if text.chars().count() <= max {
+        return text.to_owned();
+    }
+    let mut out: String = text.chars().take(max.saturating_sub(1)).collect();
+    out.push('…');
+    out
 }
 
 impl TuiApp for App {
