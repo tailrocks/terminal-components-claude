@@ -696,6 +696,36 @@ pub(crate) fn apply_mono_with_defaults(
 mod tests {
     use super::*;
 
+    /// The reserved per-family mono rule sets, read back from the built-in
+    /// tables so the coverage check below stays bound to the real rules.
+    fn viewport_mono_rules() -> Vec<MonoRule> {
+        VIEWPORT_MONO_RULES.to_vec()
+    }
+
+    fn grid_mono_rules() -> Vec<MonoRule> {
+        GRID_MONO_RULES.to_vec()
+    }
+
+    fn menu_mono_rules() -> Vec<MonoRule> {
+        MENU_MONO_RULES.to_vec()
+    }
+
+    fn help_mono_rules() -> Vec<MonoRule> {
+        HELP_MONO_RULES.to_vec()
+    }
+
+    fn picker_mono_rules() -> Vec<MonoRule> {
+        PICKER_MONO_RULES.to_vec()
+    }
+
+    fn select_mono_rules() -> Vec<MonoRule> {
+        SELECT_MONO_RULES.to_vec()
+    }
+
+    fn button_mono_rules() -> Vec<MonoRule> {
+        BUTTON_MONO_RULES.to_vec()
+    }
+
     const LEVELS: [ColorLevel; 4] = [
         ColorLevel::TrueColor,
         ColorLevel::Ansi256,
