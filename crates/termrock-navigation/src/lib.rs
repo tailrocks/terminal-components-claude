@@ -32,7 +32,9 @@ pub mod tabs;
 pub mod tree;
 
 pub use chip::{ChipBar, ChipBarAction, ChipBarCmd, ChipBarState, LabelChips};
-pub use filter_list::{FilterList, FilterListAction, FilterListCmd, FilterListState, FilterPolicy};
+pub use filter_list::{
+    FilterList, FilterListAction, FilterListCmd, FilterListState, FilterPolicy, SelectionPolicy,
+};
 pub use item::{AsItem, Item, ItemColumns, ItemRow, ItemRowLayout};
 pub use list::{List, ListAction, ListCmd, ListState};
 pub use nav_list::{BadgeFn, NavList, NavListAction, NavListCmd, NavListState, NavMode};

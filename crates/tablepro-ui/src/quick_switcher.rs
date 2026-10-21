@@ -2,7 +2,7 @@ use crate::workbench::Workbench;
 use tablepro_domain::model::{SwitchItem, SwitchTarget, SwitcherIndex};
 use termrock::{
     CursorStyle, FilterPolicy, Id, ItemRowLayout, LayerSize, Picker, PickerState, ScopeKey,
-    ScreenAlign, Surface,
+    ScreenAlign, SelectionPolicy, Surface,
 };
 
 pub(crate) const ID: Id = Id::root("tablepro.quick-switcher");
@@ -46,6 +46,7 @@ impl QuickSwitcher {
             .placeholder("Search tables, views, schemas, tabs, queries…")
             .hints("↑↓ Move · Enter Open · Alt+Enter New tab · Tab Scope · Esc Clear / Close")
             .scopes(SCOPES)
+            .selection_policy(SelectionPolicy::FirstEnabledOnFilterChange)
             .filter(FilterPolicy::Caller)
             .item_layout(ItemRowLayout::Columns)
             .cursor_style(CursorStyle::Fill)
