@@ -834,7 +834,7 @@ impl App {
             active_instance: None,
             launch_agent: Agent::ClaudeCode,
             launch_account: None,
-            screen: Rect::new(0, 0, 0, 0),
+            screen: Rect::default(),
             screen_junie: false,
             add_form_backtab: false,
             add_form_required: false,
