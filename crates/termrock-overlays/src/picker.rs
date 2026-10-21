@@ -284,6 +284,9 @@ impl<'a, T, R> Picker<'a, T, R> {
         Part::TRACK,
         Part::THUMB,
         Part::EMPTY,
+        // The picker draws a query row whose placeholder text is styled
+        // under the picker's own id.
+        Part::PLACEHOLDER,
     ];
     pub const fn id(&self) -> Id {
         self.id

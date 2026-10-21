@@ -400,6 +400,9 @@ impl<'a, T, R> FilterList<'a, T, R> {
         Part::TRACK,
         Part::THUMB,
         Part::EMPTY,
+        // The searchable list owns a query row whose placeholder text is
+        // styled under the list's own id.
+        Part::PLACEHOLDER,
     ];
     pub const fn id(&self) -> Id {
         self.id
@@ -1067,10 +1070,14 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
                 self.row.row(item, &mut row_ui);
             }
             let part = PartRef::item(Part::ROW, semantic.key);
-            ui.register_part(self.id, part, row);
             if self.searchable {
+                // The results owner is a scroll region, not a focus target.
+                // Register it first so the row stays owned by the list: a
+                // pointer over a row belongs to the list, not to the scroll
+                // region that scrolls it.
                 ui.register_part(self.results_id, part, row);
             }
+            ui.register_part(self.id, part, row);
         }
     }
 

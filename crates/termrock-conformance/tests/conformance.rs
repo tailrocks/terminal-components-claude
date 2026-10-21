@@ -11,8 +11,8 @@
 
 use termrock::author::{
     Activated, Binding, BindingState, Bindings, Chord, Cx, Family, FgStep, Focusability, FrameRead,
-    GlyphRole, Id, Intent, ItemKey, KeyCode, Part, PartRef, Phase, Position, Rect, Response,
-    ScrollState, StateFlags, StylePatch, Ui, Variant,
+    GlyphRole, Id, Intent, ItemKey, KeyCode, KeyModifiers, Part, PartRef, Phase, Position, Rect,
+    Response, ScrollState, StateFlags, StylePatch, Ui, Variant,
 };
 use termrock::{
     Action, ActionKey, Anchor, Brand, Button, ButtonCmd, CellDecor, CellPos, CellRef, Checkbox,
@@ -43,6 +43,71 @@ use termrock_test_support::conformance::{
 use termrock_test_support::{Harness, Scene, conformance_suite};
 
 const PROBE: Id = Id::root("conformance.probe");
+
+/// The context-menu gesture every text editor answers.
+///
+/// WAI-ARIA names `Shift+F10` and the Menu key as the way to open a context
+/// menu. The editor consumes the gesture to raise an edit-menu request; the
+/// gesture is a shell convention rather than one of the editor's own
+/// commands, so it is not part of the editor's command table.
+const CONTEXT_MENU_CHORDS: &[Chord] = &[Chord::with(KeyCode::F(10), KeyModifiers::SHIFT)];
+
+/// The chords a composed text editor owns.
+///
+/// A text input, a text area, a searchable list, a form and a code editor
+/// all embed a text editor. The editor owns the cursor, word-motion,
+/// deletion and selection chords; the composing component's own command
+/// table only declares its own commands. The composing component consumes
+/// the editor's chords, so the conformance contract records them here
+/// rather than leaving the contract to fail on a chord the component
+/// really handles.
+const EDITOR_CHORDS: &[Chord] = &[
+    Chord::with(KeyCode::Char('a'), KeyModifiers::CONTROL),
+    Chord::with(KeyCode::Char('b'), KeyModifiers::ALT),
+    Chord::with(KeyCode::Char('e'), KeyModifiers::CONTROL),
+    Chord::with(KeyCode::Char('f'), KeyModifiers::ALT),
+    Chord::with(KeyCode::Char('l'), KeyModifiers::CONTROL),
+    Chord::with(KeyCode::Char('u'), KeyModifiers::CONTROL),
+    Chord::with(KeyCode::Char('w'), KeyModifiers::CONTROL),
+    Chord::with(KeyCode::Backspace, KeyModifiers::CONTROL),
+    Chord::with(KeyCode::Backspace, KeyModifiers::ALT),
+    Chord::with(KeyCode::Left, KeyModifiers::NONE),
+    Chord::with(KeyCode::Left, KeyModifiers::CONTROL),
+    Chord::with(KeyCode::Left, KeyModifiers::ALT),
+    Chord::with(KeyCode::Left, KeyModifiers::SHIFT),
+    Chord::with(KeyCode::Right, KeyModifiers::NONE),
+    Chord::with(KeyCode::Right, KeyModifiers::CONTROL),
+    Chord::with(KeyCode::Right, KeyModifiers::ALT),
+    Chord::with(KeyCode::Right, KeyModifiers::SHIFT),
+    Chord::with(KeyCode::Home, KeyModifiers::CONTROL),
+    Chord::with(KeyCode::Home, KeyModifiers::SHIFT),
+    Chord::with(KeyCode::End, KeyModifiers::CONTROL),
+    Chord::with(KeyCode::End, KeyModifiers::SHIFT),
+    // The context-menu gesture the embedded editor answers.
+    Chord::with(KeyCode::F(10), KeyModifiers::SHIFT),
+];
+
+/// The editor chords a code editor owns, plus the find gesture.
+///
+/// The code editor embeds a text editor and adds a find command on
+/// `Ctrl+F`; the editor chords below are the embedded editor's.
+const CODE_EDITOR_CHORDS: &[Chord] = &[
+    Chord::with(KeyCode::Char('f'), KeyModifiers::CONTROL),
+    Chord::with(KeyCode::Char('k'), KeyModifiers::CONTROL),
+    Chord::with(KeyCode::Char('u'), KeyModifiers::CONTROL),
+    Chord::with(KeyCode::Backspace, KeyModifiers::NONE),
+    Chord::with(KeyCode::Backspace, KeyModifiers::CONTROL),
+    Chord::with(KeyCode::Backspace, KeyModifiers::ALT),
+    Chord::with(KeyCode::Delete, KeyModifiers::NONE),
+    Chord::with(KeyCode::Left, KeyModifiers::CONTROL),
+    Chord::with(KeyCode::Left, KeyModifiers::ALT),
+    Chord::with(KeyCode::Left, KeyModifiers::SHIFT),
+    Chord::with(KeyCode::Right, KeyModifiers::CONTROL),
+    Chord::with(KeyCode::Right, KeyModifiers::ALT),
+    Chord::with(KeyCode::Right, KeyModifiers::SHIFT),
+    Chord::with(KeyCode::Up, KeyModifiers::SHIFT),
+    Chord::with(KeyCode::Down, KeyModifiers::SHIFT),
+];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum ProbeCmd {
@@ -349,6 +414,9 @@ impl Conformance for TextInputCase {
     fn bindings(s: BindingState) -> &'static [Binding<TextCmd>] {
         TextInput::new(INPUT).bindings(s)
     }
+    fn legacy_key_chords() -> &'static [Chord] {
+        CONTEXT_MENU_CHORDS
+    }
 
     fn mono_setup_chords(state: StateFlags) -> &'static [Chord] {
         const EDIT: &[Chord] = &[Chord::key(KeyCode::Char('x'))];
@@ -418,6 +486,9 @@ impl Conformance for FieldCase {
 
     fn bindings(s: BindingState) -> &'static [Binding<TextCmd>] {
         TextInput::new(FIELD_INPUT).bindings(s)
+    }
+    fn legacy_key_chords() -> &'static [Chord] {
+        CONTEXT_MENU_CHORDS
     }
 
     fn mono_setup_chords(state: StateFlags) -> &'static [Chord] {
@@ -1118,6 +1189,9 @@ impl Conformance for TextAreaCase {
 
     fn bindings(s: BindingState) -> &'static [Binding<TextCmd>] {
         TextArea::new(TEXT_AREA, 4).bindings(s)
+    }
+    fn legacy_key_chords() -> &'static [Chord] {
+        CONTEXT_MENU_CHORDS
     }
 
     fn mono_setup_chords(state: StateFlags) -> &'static [Chord] {
@@ -2355,6 +2429,9 @@ impl Conformance for CodeEditorCase {
     fn bindings(state: BindingState) -> &'static [Binding<CodeCmd>] {
         CodeEditor::new(CODE_EDITOR, 6).bindings(state)
     }
+    fn legacy_key_chords() -> &'static [Chord] {
+        CODE_EDITOR_CHORDS
+    }
 
     fn mono_setup_chords(state: StateFlags) -> &'static [Chord] {
         const EDIT: &[Chord] = &[Chord::key(KeyCode::Enter)];
@@ -3175,6 +3252,9 @@ impl Conformance for FilterListCase {
     fn bindings(state: BindingState) -> &'static [Binding<Self::Cmd>] {
         FilterList::<Item<'static>>::new(FILTER_LIST).bindings(state)
     }
+    fn legacy_key_chords() -> &'static [Chord] {
+        EDITOR_CHORDS
+    }
     fn item_keys(f: &Fixture) -> Vec<ItemKey> {
         f.rows.iter().map(|r| r.key).collect()
     }
@@ -3267,8 +3347,16 @@ impl Conformance for PickerCase {
         FilterList::<Item<'static>>::new(PICKER).bindings(state)
     }
     fn legacy_key_chords() -> &'static [Chord] {
-        const CHORDS: &[Chord] = &[Chord::key(KeyCode::F(4))];
-        CHORDS
+        static CHORDS: std::sync::OnceLock<Vec<Chord>> = std::sync::OnceLock::new();
+        CHORDS.get_or_init(|| {
+            let mut out = vec![Chord::key(KeyCode::F(4))];
+            out.extend_from_slice(EDITOR_CHORDS);
+            out
+        })
+    }
+    /// The picker scrolls its results list, not the picker card.
+    fn scroll_id() -> Id {
+        PICKER.sub("results")
     }
     fn item_keys(f: &Fixture) -> Vec<ItemKey> {
         f.rows.iter().map(|r| r.key).collect()
@@ -3891,6 +3979,9 @@ impl Conformance for FormCase {
         TextInput::new(FORM_SECRET)
             .secret(SecretPolicy::default())
             .bindings(state)
+    }
+    fn legacy_key_chords() -> &'static [Chord] {
+        CONTEXT_MENU_CHORDS
     }
 
     fn prepare_scroll_fixture(fixture: &mut Fixture) {
