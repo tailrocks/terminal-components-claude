@@ -307,6 +307,15 @@ impl Ui<'_> {
             if !self.cell_written(pos) {
                 continue;
             }
+            if let Target::Layer(index) = self.target
+                && let Some(layer) = self.frame.layers.active_mut().get_mut(index)
+                && layer.has_underlay(pos)
+            {
+                // The actual foreground and backdrop may come from lower
+                // layers. Defer the transform until this layer is composed.
+                layer.defer_fade(pos, container, keep, outer);
+                continue;
+            }
             if let Some(cell) = self.buffer().cell_mut(pos)
                 && cell.bg == container
                 && !cell.modifier.contains(Modifier::REVERSED)

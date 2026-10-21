@@ -1312,6 +1312,11 @@ impl<'f> Ui<'f> {
             // Clearing roles here makes later visual passes (such as dimming)
             // treat padding differently from the row it belongs to.
             self.mark(src, Some(reset));
+            if let Target::Layer(i) = self.target
+                && let Some(d) = self.frame.layers.active_mut().get_mut(i)
+            {
+                d.reset_source_underlay(src, reset);
+            }
         }
     }
 
