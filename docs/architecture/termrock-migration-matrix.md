@@ -2368,6 +2368,12 @@ independent of the candidate output:
   (28 cells), the faint ink is `38;5;242`, the ghost ink is `38;5;238` and the
   on-accent ink is `38;5;232`; `38;5;244` does not occur in the Holla 256
   tiers at all (checked over every Holla 256 snapshot).
+- Scope note, stated precisely because the earlier wording in this record
+  overstated it: this snapshot evidence covers the muted, faint, ghost and
+  on-accent inks. It does not by itself cover the highlight, danger-highlight,
+  danger-tint and current-match slots; those were adjudicated against the
+  tag's declared table and against the Showcase chrome corpus, which paints
+  the selected chrome menu item at `48;5;67`.
 - Therefore the recorded slot table (muted 244, faint 238, on-accent 233,
   border_strong 238) and the palette values derived from the older corpus
   generation were the stale side, and the Holla restoration of the muted,
