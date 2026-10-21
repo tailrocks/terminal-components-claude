@@ -19,6 +19,7 @@ pub mod accounts_drawer;
 pub mod accounts_filter;
 pub mod capsule_menu;
 pub mod hintbar;
+pub mod inspector_body;
 pub mod keyhint;
 pub mod manager_frame;
 pub mod meter;
@@ -45,6 +46,7 @@ pub use capsule_menu::{
     CapsuleMenu, CapsuleMenuFrame, ClipSpan, ClipTone, MenuEntry, paint_capsule_menu,
 };
 pub use hintbar::{DerivedHintBar, HintBar};
+pub use inspector_body::{InspectLine, InspectSpan, InspectTone, paint_inspector_body};
 pub use keyhint::{ChordText, HintText, KeyHint};
 pub use manager_frame::{ManagerFrame, ManagerLeaf, paint_manager_frame};
 pub use meter::{Meter, MeterTone, MeterVisual};
