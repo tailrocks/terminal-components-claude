@@ -4547,6 +4547,59 @@ def _owned_publish_immutable(
                 or (str(current_parent.st_dev), str(current_parent.st_ino)) != (str(current_chain[-1][1]), str(current_chain[-1][2]))
             ):
                 raise RunnerError("owned filesystem destination parent detached before receipt acceptance")
+            file_fd = os.open(
+                _filename,
+                os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0),
+                dir_fd=current_parent_fd,
+            )
+            try:
+                file_before = os.fstat(file_fd)
+                path_before = os.stat(_filename, dir_fd=current_parent_fd, follow_symlinks=False)
+                if (
+                    not stat.S_ISREG(file_before.st_mode)
+                    or file_before.st_uid != os.geteuid()
+                    or stat.S_IMODE(file_before.st_mode) != 0o600
+                    or file_before.st_nlink != 1
+                    or file_before.st_size != len(payload)
+                    or (file_before.st_dev, file_before.st_ino) != (path_before.st_dev, path_before.st_ino)
+                    or (file_before.st_dev, file_before.st_ino) != (result["file_device"], result["file_inode"])
+                    or file_before.st_size != result["file_size"]
+                ):
+                    raise RunnerError("owned filesystem destination file identity differs from worker receipt")
+                digest = hashlib.sha256()
+                total = 0
+                while True:
+                    execution.check_work()
+                    block = os.read(file_fd, OWNED_NEXTTEST_READ_BYTES)
+                    execution.check_work()
+                    if not block:
+                        break
+                    digest.update(block)
+                    total += len(block)
+                    if total > len(payload):
+                        raise RunnerError("owned filesystem destination grew during receipt verification")
+                file_after = os.fstat(file_fd)
+                path_after = os.stat(_filename, dir_fd=current_parent_fd, follow_symlinks=False)
+                file_identity = lambda value: (
+                    value.st_dev, value.st_ino, value.st_size, value.st_mtime_ns, value.st_ctime_ns, value.st_nlink,
+                )
+                if (
+                    total != len(payload)
+                    or digest.hexdigest() != result["sha256"]
+                    or digest.hexdigest() != hashlib.sha256(payload).hexdigest()
+                    or file_identity(file_before) != file_identity(file_after)
+                    or file_identity(file_after) != file_identity(path_after)
+                ):
+                    raise RunnerError("owned filesystem destination bytes or identity changed before receipt acceptance")
+            finally:
+                os.close(file_fd)
+            _owned_worker_check_parent_chain(
+                root_fd,
+                relative_path,
+                current_chain,
+                current_parent_fd,
+                deadline=execution.work_deadline,
+            )
         finally:
             os.close(current_parent_fd)
         _check_owned_root_binding(root_binding, check_work=execution.check_work)
