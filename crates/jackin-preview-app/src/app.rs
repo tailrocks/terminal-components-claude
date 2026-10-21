@@ -1505,6 +1505,12 @@ impl App {
         Dialog::info(COCKPIT_INFO_DIALOG, "Debug info")
             .width(66)
             .body_rows(8)
+            // The frozen info card carried its title and meta in the border.
+            .meta("read-only")
+            .head_in_border()
+            // The frozen app centred the card with a floor split of the free
+            // rows (popup Center), not the Flex::Center split.
+            .align(termrock::ScreenAlign::GeometricCenter)
     }
 
     fn info_facts(&self) -> Vec<(String, String)> {
@@ -1550,36 +1556,6 @@ impl App {
             ));
         }
         facts
-    }
-
-    fn cockpit_info_lines(&self) -> Vec<String> {
-        let role_full = self.selected_role();
-        let role = role_full.rsplit('/').next().unwrap_or(role_full);
-        let workspace = self
-            .world
-            .workspaces
-            .first()
-            .map_or("payments-platform", |workspace| workspace.name.as_str());
-        let mut lines = Vec::new();
-        if let Some(launch) = &self.launch
-            && launch.container_ready()
-        {
-            lines.push(format!("Container     {}", launch.container));
-        }
-        lines.push(format!("Target        {role} into workspace {workspace}"));
-        lines.push(format!("Role          {role}"));
-        lines.push("Agent         Claude Code · account Claude · Work".into());
-        let run_id = self
-            .launch
-            .as_ref()
-            .map(|launch| launch.run_id.short())
-            .unwrap_or_else(|| "none".to_owned());
-        lines.push(format!("Run id        {run_id}"));
-        lines.push("jackin        0.6.4 · preview".into());
-        if self.cockpit_debug_open {
-            lines.push("Telemetry     otlp://collector.internal:4317".into());
-        }
-        lines
     }
 
     fn open_cockpit_info(&mut self, cx: &mut Cx<'_>) {
@@ -8525,18 +8501,17 @@ impl App {
                 })
             });
         }
-        // The approved info frame is painted on the page until the info dialog
-        // renders through the real layer flow. Drawing the live modal would dim
-        // that page a second time.
-        if !(self.launch_cockpit_scene() && self.cockpit_info_open) {
-            let cockpit_info = Self::cockpit_info_dialog();
-            let _ = ui.layer(COCKPIT_INFO_DIALOG, |ui, area| {
-                let lines = self.cockpit_info_lines();
-                cockpit_info.draw(ui, area, &self.cockpit_info_state, |ui, body| {
-                    paint_lines(ui, body, &lines)
-                })
-            });
-        }
+        let cockpit_info = Self::cockpit_info_dialog();
+        let _ = ui.layer(COCKPIT_INFO_DIALOG, |ui, area| {
+            let facts = self.info_facts();
+            let shown: Vec<termrock::overlays::info_card::Fact<'_>> = facts
+                .iter()
+                .map(|(label, value)| termrock::overlays::info_card::Fact { label, value })
+                .collect();
+            cockpit_info.draw(ui, area, &self.cockpit_info_state, |ui, body| {
+                termrock::overlays::info_card::paint_facts(ui, body, &shown, 0)
+            })
+        });
         let editor_exit = Self::editor_exit_dialog();
         let _ = ui.layer(EDITOR_EXIT_DIALOG, |ui, area| {
             editor_exit.draw(ui, area, &self.editor_exit_state, |_, _| {})
@@ -9871,24 +9846,31 @@ impl TuiApp for App {
         {
             editor_view::paint(self, ui, full);
         }
+        // Reduced color levels still read the approved info frame off the
+        // page until the shared capability ladders reproduce the frozen card
+        // inks at 256, 16 colors and mono.
         if self.launch_cockpit_scene() && self.cockpit_info_open {
-            let facts = self.info_facts();
-            let shown: Vec<termrock::overlays::info_card::Fact<'_>> = facts
-                .iter()
-                .map(|(label, value)| termrock::overlays::info_card::Fact { label, value })
-                .collect();
-            launch_dialog_plate::paint_info(ui, &shown);
-            let reduced = matches!(
-                ui.theme_ref().capability.color,
-                termrock::ColorLevel::Ansi16 | termrock::ColorLevel::Mono
-            ) || std::env::var_os("NO_COLOR").is_some();
-            if full.width == 120 && full.height == 40 {
-                if let Some(column) = launch_cockpit::stage_rail_left(full) {
-                    ui.clear_dim(column);
-                }
-                launch_cockpit::paint_open_footer(ui, false);
-            } else if reduced && let Some(column) = launch_cockpit::stage_rail_left(full) {
+            let reduced = ui.theme_ref().capability.color != termrock::ColorLevel::TrueColor;
+            if reduced {
+                let facts = self.info_facts();
+                let shown: Vec<termrock::overlays::info_card::Fact<'_>> = facts
+                    .iter()
+                    .map(|(label, value)| termrock::overlays::info_card::Fact { label, value })
+                    .collect();
+                launch_dialog_plate::paint_info(ui, &shown);
+            }
+            let dim_clear = full.width == 120 && full.height == 40
+                || (reduced
+                    && matches!(
+                        ui.theme_ref().capability.color,
+                        termrock::ColorLevel::Ansi16 | termrock::ColorLevel::Mono
+                    )
+                    || std::env::var_os("NO_COLOR").is_some());
+            if dim_clear && let Some(column) = launch_cockpit::stage_rail_left(full) {
                 ui.clear_dim(column);
+            }
+            if full.width == 120 && full.height == 40 {
+                launch_cockpit::paint_open_footer(ui, false);
             }
         }
         if self.launch_cockpit_scene()
