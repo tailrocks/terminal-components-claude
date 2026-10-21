@@ -1062,7 +1062,16 @@ impl<'a> ContextMenu<'a> {
         let style = self
             .ov
             .style(ui, self.id, Family::MENU, variant, Part::ROW, flags);
-        ui.fill(row, style.style);
+        // A resting row patch sets no foreground. The container ink is primary.
+        // keep_underlay clears the cell, so the row has to put that ink back
+        // or the label stays the terminal default.
+        let mut row_paint = style.style;
+        if row_paint.as_style().fg.is_none()
+            && let Some(fg) = ui.theme_ref().color.fg.first().copied()
+        {
+            row_paint = row_paint.fg(fg);
+        }
+        ui.fill(row, row_paint);
         let marker = Rect { width: 1, ..row };
         if item.submenu.is_some() {
             let marker_style =
@@ -1098,9 +1107,9 @@ impl<'a> ContextMenu<'a> {
         let label_style = self
             .ov
             .style(ui, self.id, Family::MENU, variant, Part::LABEL, flags);
-        let mut effective_label_style = label_style.over(style.style);
+        let mut effective_label_style = label_style.over(row_paint);
         let label_has_patch = self.ov.parts.iter().any(|(p, _)| *p == Part::LABEL);
-        if !label_has_patch && let Some(fg) = style.style.as_style().fg {
+        if !label_has_patch && let Some(fg) = row_paint.as_style().fg {
             effective_label_style = effective_label_style.fg(fg);
         }
         paint_or_slot(
@@ -1126,7 +1135,7 @@ impl<'a> ContextMenu<'a> {
                 Part::KEY,
                 key,
                 text,
-                key_style.over(style.style),
+                key_style.over(row_paint),
             );
         }
         ui.register_part(
@@ -1500,6 +1509,8 @@ impl<'a> MenuBar<'a> {
                 }
             };
             if self.hover_scope == MenuBarHoverScope::Title {
+                // The title rect is " {label} ". Pads use the title ink.
+                // The column between titles stays the bar fill.
                 ui.fill(rect, style.style);
             }
             let label = shift(rect, 1);
