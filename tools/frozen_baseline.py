@@ -3984,17 +3984,84 @@ def create_fresh_plan(
     return plan
 
 
-def verify_fresh_plan(repo: Path, root: Path, cohort_id: str, baseline_bin_dir: Path, timeout: int, expected_plan_sha256: str, *, execution: PrepareExecution | None = None) -> dict[str, object]:
+def verify_fresh_plan(
+    repo: Path,
+    root: Path,
+    cohort_id: str,
+    baseline_bin_dir: Path,
+    timeout: int,
+    expected_plan_sha256: str,
+    *,
+    execution: PrepareExecution | None = None,
+    commitment_path: Path | None = None,
+    expected_commitment_sha256: str | None = None,
+    pending_receipt_path: Path | None = None,
+) -> dict[str, object]:
     check_work = execution.check_work if execution is not None else None
     if check_work is not None:
         check_work()
     if timeout > FRESH_PLAN_MAX_TIMEOUT:
         raise RunnerError(f"fresh plan verification timeout must be <= {FRESH_PLAN_MAX_TIMEOUT} seconds")
+    root_binding: dict[str, str] | None = None
+    commitment: dict[str, object] | None = None
+    if execution is not None:
+        if commitment_path is None or expected_commitment_sha256 is None or pending_receipt_path is None:
+            raise RunnerError("owned fresh-plan verification requires the externally pinned creation commitment and durable pending receipt")
+        root_binding = _owned_root_binding(root, check_work=check_work)
+        root = Path(root_binding["plan_root_canonical_path"])
+        commitment_path = _external_commitment_destination(commitment_path, root)
+        pending_receipt_path = _external_commitment_destination(pending_receipt_path, root)
+        if pending_receipt_path == commitment_path:
+            raise RunnerError("fresh plan pending receipt and creation commitment must use distinct files")
+        commitment = _read_creation_commitment(commitment_path, expected_commitment_sha256, check_work=check_work)
+        if any(commitment.get(key) != value for key, value in root_binding.items()):
+            raise RunnerError("fresh plan creation commitment binds a different root pathname or directory identity")
+        if commitment.get("plan_creation_sha256") != expected_plan_sha256:
+            raise RunnerError("fresh plan digest differs from the externally pinned creation commitment")
+        pending = _read_pending_receipt(pending_receipt_path, check_work=check_work)
+        expected_pending = {
+            "schema_version": "termrock-fresh-plan-pending-receipt.v1",
+            "status": "pending-plan-publication",
+            "creation_commitment_sha256": expected_commitment_sha256,
+            "plan_id": commitment["plan_id"],
+            "plan_basename": commitment["plan_basename"],
+            "plan_creation_sha256": commitment["plan_creation_sha256"],
+            "cohort_id": commitment["cohort_id"],
+            **root_binding,
+        }
+        if pending != expected_pending:
+            raise RunnerError("durable fresh plan pending receipt does not match the pinned creation commitment")
+        _check_owned_root_binding(root_binding, check_work=check_work)
     repo, root, source = paths(repo, root)
+    if root_binding is not None:
+        if root != Path(root_binding["plan_root_canonical_path"]):
+            raise RunnerError("owned fresh plan verification resolved a different root path")
+        _check_owned_root_binding(root_binding, check_work=check_work)
     plan_path = root / FRESH_PLAN_FILE
-    plan = _read_self_sealed_plan(plan_path, expected_plan_sha256, check_work=check_work) if check_work is not None else _read_self_sealed_plan(plan_path, expected_plan_sha256)
+    if root_binding is not None:
+        root_fd, root_info = _open_directory_chain(root)
+        try:
+            if (str(root_info.st_dev), str(root_info.st_ino)) != (root_binding["plan_root_device"], root_binding["plan_root_inode"]):
+                raise RunnerError("fresh plan root directory identity changed before full verification read")
+            plan = _read_self_sealed_plan(plan_path, expected_plan_sha256, check_work=check_work, directory_fd=root_fd)
+        finally:
+            os.close(root_fd)
+        _check_owned_root_binding(root_binding, check_work=check_work)
+    else:
+        plan = _read_self_sealed_plan(plan_path, expected_plan_sha256, check_work=check_work) if check_work is not None else _read_self_sealed_plan(plan_path, expected_plan_sha256)
     if plan["cohort"].get("cohort_id") != cohort_id:
         raise RunnerError("fresh plan belongs to another reviewed executable cohort")
+    if commitment is not None:
+        committed_plan_fields = {
+            "plan_id": plan["plan_id"],
+            "plan_basename": FRESH_PLAN_FILE,
+            "plan_self_sha256": plan["plan_sha256"],
+            "cohort_id": cohort_id,
+            "frozen_source_sha256": plan["source"]["source_sha256"],
+            "inventory_sha256": plan["inventory"]["sha256"],
+        }
+        if any(commitment.get(key) != value for key, value in committed_plan_fields.items()):
+            raise RunnerError("fresh plan does not match the externally pinned creation commitment")
     if execution is not None and plan["execution"]["timeout_seconds_per_advance"] != execution.work_budget:
         raise RunnerError("fresh plan advance budget differs from --owned-budget")
     if check_work is not None:
@@ -4022,13 +4089,19 @@ def verify_fresh_plan(repo: Path, root: Path, cohort_id: str, baseline_bin_dir: 
         check_work()
     if check_work is not None:
         check_work()
+    if root_binding is not None:
+        _check_owned_root_binding(root_binding, check_work=check_work)
     if regenerated != plan:
         raise RunnerError("fresh plan no longer matches source, tool, cohort, environment, or complete test inventory pins")
     success = json.dumps({"plan_sha256": plan["plan_sha256"], "creation_file_sha256": expected_plan_sha256, "status": plan["status"], "verified": True}, indent=2)
     if check_work is not None:
         check_work()
+        if root_binding is not None:
+            _check_owned_root_binding(root_binding, check_work=check_work)
         print(success, flush=True)
         check_work()
+        if root_binding is not None:
+            _check_owned_root_binding(root_binding, check_work=check_work)
     else:
         print(success)
     return plan
@@ -5284,6 +5357,9 @@ def parser() -> argparse.ArgumentParser:
     verify_plan.add_argument("--expected-plan-sha256", required=True, help="digest retained from fresh-plan creation; self-digest alone is not an approval anchor")
     verify_plan.add_argument("--owned-lifecycle", action="store_true", help="use one cancellation-safe deadline and anchored child cleanup for plan verification")
     verify_plan.add_argument("--owned-budget", type=int, help="work seconds for --owned-lifecycle; cleanup reserve is additional and fixed")
+    verify_plan.add_argument("--creation-commitment-path", type=Path, help="external immutable creation anchor; required with --owned-lifecycle")
+    verify_plan.add_argument("--expected-commitment-sha256", help="creation commitment digest independently pinned by the caller")
+    verify_plan.add_argument("--pending-receipt-path", type=Path, help="durable external prepublication receipt; required with --owned-lifecycle")
     recover_plan = sub.add_parser("recover-fresh-plan", help="recover only a pinned plan-creation digest; full verify-fresh-plan remains mandatory")
     recover_plan.set_defaults(timeout=min(MAX_TIMEOUT, FRESH_PLAN_MAX_TIMEOUT))
     recover_plan.add_argument("--cohort", required=True)
@@ -5440,10 +5516,23 @@ def main() -> int:
                     raise RunnerError("--owned-lifecycle requires the pinned fresh-capture cohort")
                 owned_budget = PREPARE_OWNED_MAX_BUDGET if args.owned_budget is None else args.owned_budget
                 with PrepareExecution(owned_budget) as execution:
-                    verify_fresh_plan(args.repo, args.root, args.cohort, args.baseline_bin_dir, args.timeout, args.expected_plan_sha256, execution=execution)
+                    if args.creation_commitment_path is None or args.expected_commitment_sha256 is None:
+                        raise RunnerError("--owned-lifecycle requires --creation-commitment-path and --expected-commitment-sha256")
+                    if args.pending_receipt_path is None:
+                        raise RunnerError("--owned-lifecycle requires --pending-receipt-path")
+                    verify_fresh_plan(
+                        args.repo, args.root, args.cohort, args.baseline_bin_dir, args.timeout, args.expected_plan_sha256,
+                        execution=execution, commitment_path=args.creation_commitment_path,
+                        expected_commitment_sha256=args.expected_commitment_sha256,
+                        pending_receipt_path=args.pending_receipt_path,
+                    )
             else:
                 if args.owned_budget is not None:
                     raise RunnerError("--owned-budget requires --owned-lifecycle")
+                if args.creation_commitment_path is not None or args.expected_commitment_sha256 is not None:
+                    raise RunnerError("--creation-commitment-path and --expected-commitment-sha256 require --owned-lifecycle")
+                if args.pending_receipt_path is not None:
+                    raise RunnerError("--pending-receipt-path requires --owned-lifecycle")
                 verify_fresh_plan(args.repo, args.root, args.cohort, args.baseline_bin_dir, args.timeout, args.expected_plan_sha256)
         elif args.command == "recover-fresh-plan":
             if args.cohort != PREPARE_LIVE_OWNED_COHORT:
