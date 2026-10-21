@@ -1,9 +1,18 @@
 use termrock::Ui;
 use termrock::feedback::{
-    AccountRole, AccountRow, AccountsDetail, DetailAlert, DetailHint, DetailTail,
+    AccountRole, AccountRow, AccountsDetail, DetailAlert, DetailHint, DetailInk, DetailLine,
+    DetailSpan, DetailTail,
 };
 
 pub(super) fn paint(ui: &mut Ui<'_>) {
+    paint_page(ui, false);
+}
+
+pub(super) fn paint_audit(ui: &mut Ui<'_>) {
+    paint_page(ui, true);
+}
+
+fn paint_page(ui: &mut Ui<'_>, overview: bool) {
     let rows = [
         row(
             AccountRole::Root,
@@ -11,7 +20,7 @@ pub(super) fn paint(ui: &mut Ui<'_>) {
             "Overview",
             None,
             None,
-            false,
+            overview,
             false,
         ),
         row(
@@ -47,7 +56,7 @@ pub(super) fn paint(ui: &mut Ui<'_>) {
             "Work",
             Some(("!", DetailAlert::Danger)),
             Some(("stale 47 min", DetailTail::Warning)),
-            true,
+            !overview,
             false,
         ),
         row(
@@ -131,10 +140,66 @@ pub(super) fn paint(ui: &mut Ui<'_>) {
             action: "Back",
         },
     ];
-    let facts = [
-        "  Provider  Anthropic / Claude",
-        "  Agent runtime  Claude Code",
-        "  Usage surface  Claude",
+    let provider = [span("  Provider  Anthropic / Claude", DetailInk::Plain)];
+    let runtime = [span("  Agent runtime  Claude Code", DetailInk::Plain)];
+    let surface = [span("  Usage surface  Claude", DetailInk::Plain)];
+    let health = [
+        span("  Health  ", DetailInk::Plain),
+        span("degraded", DetailInk::DangerBold),
+        span(" · ", DetailInk::Muted),
+        span("4 warnings", DetailInk::Warning),
+        span(" · ", DetailInk::Muted),
+        span("1 exhausted", DetailInk::Danger),
+        span(" · ", DetailInk::Muted),
+        span("2 stale", DetailInk::Warning),
+        span(" · ", DetailInk::Muted),
+        span("1 refreshing", DetailInk::Info),
+        span(" · ", DetailInk::Muted),
+        span("3 …", DetailInk::Danger),
+    ];
+    let registry = [span(
+        "  Registry  12 accounts · 11 enabled · 1 disabled · 8 providers",
+        DetailInk::Plain,
+    )];
+    let sources = [span(
+        "  Sources  7 registered · 5 discovered · 1Password available",
+        DetailInk::Plain,
+    )];
+    let work_facts = [
+        DetailLine { spans: &provider },
+        DetailLine { spans: &runtime },
+        DetailLine { spans: &surface },
+    ];
+    let overview_facts = [
+        DetailLine { spans: &health },
+        DetailLine { spans: &registry },
+        DetailLine { spans: &sources },
+    ];
+    let overview_hints = [
+        DetailHint {
+            key: "Enter",
+            action: "Details",
+        },
+        DetailHint {
+            key: "r",
+            action: "Refresh all",
+        },
+        DetailHint {
+            key: "a",
+            action: "Add…",
+        },
+        DetailHint {
+            key: "/",
+            action: "Filter",
+        },
+        DetailHint {
+            key: "m",
+            action: "Usage",
+        },
+        DetailHint {
+            key: "Esc",
+            action: "Back",
+        },
     ];
     termrock::feedback::paint_accounts_detail(
         ui,
@@ -142,20 +207,40 @@ pub(super) fn paint(ui: &mut Ui<'_>) {
         &AccountsDetail {
             brand: "jackin❯",
             menus: &["File", "Go", "Help"],
-            crumb: "Accounts › Claude › Work",
+            crumb: if overview {
+                "Accounts › Overview"
+            } else {
+                "Accounts › Claude › Work"
+            },
             status: "⠋ refreshing 1",
             title: " Accounts ",
             summary: " 12 · 4 ▲ · 4 ! · 1–11 of 23 ",
             rows: &rows,
             total: 23,
             offset: 0,
-            heading: "Claude · Work",
-            heading_meta: "account · exhausted · Tab details",
-            facts: &facts,
-            hints: &hints,
-            hint_overflow: "…",
+            heading: if overview {
+                "Overview"
+            } else {
+                "Claude · Work"
+            },
+            heading_meta: if overview {
+                "12 accounts · 8 providers · Tab details"
+            } else {
+                "account · exhausted · Tab details"
+            },
+            facts: if overview {
+                &overview_facts
+            } else {
+                &work_facts
+            },
+            hints: if overview { &overview_hints } else { &hints },
+            hint_overflow: if overview { "" } else { "…" },
         },
     );
+}
+
+fn span(text: &str, ink: DetailInk) -> DetailSpan<'_> {
+    DetailSpan { text, ink }
 }
 
 fn row<'a>(
