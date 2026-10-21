@@ -891,7 +891,7 @@ pub fn launch_failure_tag_frame(w: &World) -> bool {
 
 /// Launch-failure activity layout.
 ///
-/// The policy is a width band, not a captured frame size: the frozen reference
+/// The policy is a width band, not a fixed snapshot size: the frozen reference
 /// composes the failure card at every viewport it renders, so every width in
 /// the band gets the card.
 pub fn launch_failure_activity_frame(w: &World, width: u16) -> bool {
