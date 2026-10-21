@@ -277,6 +277,8 @@ const TAG_CHROME_FG: Role = Role::Custom(termrock::Color::from_u32(0x008a_8a8a))
 const TAG_PATH_FG: Role = Role::Custom(termrock::Color::from_u32(0x00b3_b3b3));
 const TAG_OK_FG: Role = Role::Custom(termrock::Color::from_u32(0x003f_b950));
 const TAG_RULE_FG: Role = Role::Custom(termrock::Color::from_u32(0x003a_3a3a));
+/// Query seam. Truecolor matches border-strong `#4d4d4d`. 256-color is index 239.
+const QUERY_SEAM_FG: Role = Role::Custom(termrock::Color::from_u32(0x004d_4d4d));
 const LEGACY_FAINT: Role = Role::Custom(termrock::Color::from_u32(0x0073_7373));
 const LEGACY_INFO: Role = Role::Custom(termrock::Color::from_u32(0x0079_b8ff));
 const LEGACY_DANGER_LABEL: Role = Role::Custom(termrock::Color::from_u32(0x00ff_6b6b));
@@ -4473,7 +4475,7 @@ fn extend_query_plan_edge(
     let seam_y = editor_y.saturating_add(editor_rows);
     let seam = ui
         .surface_style()
-        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::BorderStrong)));
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(QUERY_SEAM_FG)));
     ui.paint_str(termrock::Rect::new(x, seam_y, 1, 1), "─", seam);
     let quiet = ui
         .surface_style()
@@ -4578,7 +4580,7 @@ fn extend_query_results_edge(
     let seam_y = editor_y.saturating_add(editor_rows);
     let seam = ui
         .surface_style()
-        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::BorderStrong)));
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(QUERY_SEAM_FG)));
     ui.paint_str(termrock::Rect::new(x, seam_y, 1, 1), "─", seam);
     let quiet = ui
         .surface_style()
@@ -4610,7 +4612,7 @@ fn extend_query_error_edge(ui: &mut Ui<'_>, area: termrock::Rect, inner: termroc
     let seam_y = editor_y.saturating_add(editor_rows);
     let seam = ui
         .surface_style()
-        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::BorderStrong)));
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(QUERY_SEAM_FG)));
     ui.paint_str(termrock::Rect::new(x, seam_y, 1, 1), "─", seam);
     let quiet = ui
         .surface_style()
@@ -4684,7 +4686,7 @@ fn extend_idle_query_edge(
     }
     let seam = ui
         .surface_style()
-        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::BorderStrong)));
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(QUERY_SEAM_FG)));
     ui.paint_str(
         termrock::Rect {
             x: inner.right(),
@@ -4701,9 +4703,12 @@ fn paint_query_seam(ui: &mut Ui<'_>, area: termrock::Rect) {
     if area.width == 0 {
         return;
     }
-    let style = ui
-        .surface_style()
-        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::BorderStrong)));
+    // Truecolor stays the strong border #4d4d4d. The 256 frame uses index 239.
+    let style = ui.surface_style().patch(
+        ui.paint_patch(
+            &StylePatch::new().set_fg(QUERY_SEAM_FG),
+        ),
+    );
     ui.paint_str(area, &"─".repeat(usize::from(area.width)), style);
 }
 
@@ -7401,7 +7406,7 @@ fn paint_idle_query_tail(ui: &mut Ui<'_>, area: termrock::Rect, underline_first:
     }
     let rule = ui
         .surface_style()
-        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::BorderStrong)));
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(QUERY_SEAM_FG)));
     ui.paint_str(
         termrock::Rect {
             x,

@@ -62,8 +62,17 @@ fn all_73_junie_slots_match_reference_capability_output() {
             // index the frozen corpus (baselines/tuiscotti-v1) renders, or —
             // where the corpus never draws the slot — the frozen baseline
             // apply_256 table (visual-baseline src/theme.rs:921-962).
-            expected.fg[2] = Color::Indexed(244);
-            expected.fg[3] = Color::Indexed(238);
+            expected.fg[2] = Color::Indexed(245);
+            expected.fg[3] = Color::Indexed(242);
+            expected.on_accent = Color::Indexed(232);
+            expected.border_strong = Color::Indexed(242);
+            expected.success = Color::Indexed(71);
+            expected.syntax.keyword = Color::Indexed(111);
+            expected.syntax.string = Color::Indexed(116);
+            expected.syntax.number = Color::Indexed(183);
+            expected.syntax.operator = Color::Indexed(245);
+            expected.syntax.punct = Color::Indexed(245);
+            expected.syntax.diagnostic_error = Color::Indexed(203);
             expected.field_hover = Color::Indexed(237);
             expected.accent_hover = Color::Indexed(77);
             expected.accent_pressed = Color::Indexed(238);
