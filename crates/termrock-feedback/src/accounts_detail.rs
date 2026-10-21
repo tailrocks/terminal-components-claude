@@ -301,6 +301,7 @@ fn paint_box_top(
     );
 }
 
+#[allow(clippy::too_many_arguments)]
 fn paint_row(
     ui: &mut Ui<'_>,
     area: Rect,
