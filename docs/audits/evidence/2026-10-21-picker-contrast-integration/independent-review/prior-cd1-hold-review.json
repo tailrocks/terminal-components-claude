@@ -1,0 +1,726 @@
+{
+  "schema": 1,
+  "reviewer": "/root/tree_adapter_independent_review",
+  "commit": "cd1af58378631bebadc64de7459b01060babb52c",
+  "base": "f46caa2ce68966d319ffbb4cf03428e8234368f3",
+  "decision": "HOLD default Mono/Fill rendering regression + required existing integration failure",
+  "findings": [
+    {
+      "priority": "P1",
+      "path": "crates/termrock-runtime/src/rowui.rs:207",
+      "problem": "Readability guard runs for ordinary untouched defaults because it only checks explicit.fg inheritance. In actual downgraded Mono/Fill, normal selected ICON/META ink changes White on DarkGray to Black on DarkGray without any owner patch.",
+      "evidence": "default-comparison.json:9 changed cells across initial,Down and resize checkpoints. Other7 profile/cursor cases unchanged. Default no-custom dump hashes c91f80953226446a1748ce7a2790b6b6ac3d03f0cbfb24c9af8f8c30c953c6e3 →089d737fcb413eef0580ccbe7602563e102b75827d7d31516069770c82fb5462.",
+      "required": "Scope this bounded custom-surface correction through explicit BG ownership metadata rather than BG color equality, or obtain a separate documented fixed-reference decision for altering default Mono behavior. Do not silently accept default diffs."
+    },
+    {
+      "priority": "P1",
+      "path": "crates/termrock-navigation/tests/item_row_columns.rs:1117",
+      "problem": "Existing per-channel defaults test passes at base and fails after this change. TrueColor detail on its authored purple BG now White instead of expected Muted Rgb138. This is changed low-contrast custom-surface behavior, distinct from the default Mono defect.",
+      "evidence": "Fresh scoped all-target run647:645PASS/2FAIL/3skipped; exact base focused run confirms this test PASS. Other fail is inherited historical fixture.",
+      "required": "Resolve the documented custom-background/readability contract and adjust the component regression to assert that contract meaningfully, retaining BG/modifier/authored-FG checks. Do not claim complete scoped gates pass or bless historical frames."
+    },
+    {
+      "priority": "P2",
+      "path": "crates/termrock-navigation/src/filter_list.rs:1301",
+      "problem": "New purported4-profile test mutates theme.capability.color directly instead of downgrading its authored token palette. Theme::downgrade returns early if capability already matches, so this is not equivalent to normal Junie capability profiles and hid the default Mono delta.",
+      "required": "Construct real Theme::junie().downgrade(level), inspect known decoded palette values and include default full-cell comparison; keep modifier and explicit-FG ownership checks."
+    }
+  ],
+  "positive": [
+    "Custom light/default-generated ink now meets >=4.5 in recreated actual4-profile matrix: base27/72 generated-ink cells below4.5, candidate0/72; lowest candidate5.24461515.",
+    "Explicit authored foregrounds, including black/white and same-valued muted choices, survive canonical capability binding; intentionally low-contrast authored FG is not overwritten.",
+    "Owner BG and independent ITALIC/add + BOLD/remove channels survive all96 configurations/288 rendered ICON/detail/tag cells.",
+    "Provenance is explicit Slot ownership, not equality guessing; helper does not compare output to previous fallback to infer authorship.",
+    "Second resolution is pure Ui::style_defaults_with_explicit(&self)→bind_defaults_with_explicit with unchanged IDs/layout/flags/patch/surface, only default FG replaced; no effects/cache poisoning or second input/render runtime found.",
+    "No public API, application imports, geometry, expectations or fixture selectors changed."
+  ],
+  "tests": {
+    "recreated_public_probe_source": "tests/contrast.rs preserved, exact same corrected source at base and candidate; semantic recreation of prior transient probe, NOT byte-identical to unavailable original",
+    "matrix": "4 actual downgraded profiles ×2 cursor styles ×3 backgrounds(default/white/black) ×4 FG policies(inherit/black/white/same-valued muted); real focused FilterList owner + live ItemRow ICON/detail/tag",
+    "base_external": {
+      "pass": 1,
+      "fail": 1,
+      "skip": 0,
+      "note": "default probe generates evidence; its function name does not establish parity. Contrast assertions fail as expected."
+    },
+    "candidate_external": {
+      "pass": 2,
+      "fail": 0,
+      "skip": 0,
+      "note": "Default capture writer succeeds, but cross-revision decoded-cell comparison FAILS; not default-parity pass."
+    },
+    "default_comparison": {
+      "equal": false,
+      "cases": 8,
+      "checkpoints": 24,
+      "before_sha256": "c91f80953226446a1748ce7a2790b6b6ac3d03f0cbfb24c9af8f8c30c953c6e3",
+      "candidate_sha256": "089d737fcb413eef0580ccbe7602563e102b75827d7d31516069770c82fb5462",
+      "differences": [
+        {
+          "case": "CASE Mono/Fill/initial",
+          "cells": [
+            {
+              "index": 55,
+              "before": "Cell { symbol: Some(\"I\"), fg: White, bg: DarkGray, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }",
+              "candidate": "Cell { symbol: Some(\"I\"), fg: Black, bg: DarkGray, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }"
+            },
+            {
+              "index": 57,
+              "before": "Cell { symbol: Some(\"D\"), fg: White, bg: DarkGray, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }",
+              "candidate": "Cell { symbol: Some(\"D\"), fg: Black, bg: DarkGray, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }"
+            },
+            {
+              "index": 59,
+              "before": "Cell { symbol: Some(\"T\"), fg: White, bg: DarkGray, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }",
+              "candidate": "Cell { symbol: Some(\"T\"), fg: Black, bg: DarkGray, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }"
+            }
+          ]
+        },
+        {
+          "case": "CASE Mono/Fill/down",
+          "cells": [
+            {
+              "index": 115,
+              "before": "Cell { symbol: Some(\"J\"), fg: White, bg: DarkGray, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }",
+              "candidate": "Cell { symbol: Some(\"J\"), fg: Black, bg: DarkGray, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }"
+            },
+            {
+              "index": 117,
+              "before": "Cell { symbol: Some(\"E\"), fg: White, bg: DarkGray, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }",
+              "candidate": "Cell { symbol: Some(\"E\"), fg: Black, bg: DarkGray, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }"
+            },
+            {
+              "index": 119,
+              "before": "Cell { symbol: Some(\"U\"), fg: White, bg: DarkGray, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }",
+              "candidate": "Cell { symbol: Some(\"U\"), fg: Black, bg: DarkGray, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }"
+            }
+          ]
+        },
+        {
+          "case": "CASE Mono/Fill/resized",
+          "cells": [
+            {
+              "index": 53,
+              "before": "Cell { symbol: Some(\"J\"), fg: White, bg: DarkGray, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }",
+              "candidate": "Cell { symbol: Some(\"J\"), fg: Black, bg: DarkGray, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }"
+            },
+            {
+              "index": 55,
+              "before": "Cell { symbol: Some(\"E\"), fg: White, bg: DarkGray, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }",
+              "candidate": "Cell { symbol: Some(\"E\"), fg: Black, bg: DarkGray, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }"
+            },
+            {
+              "index": 57,
+              "before": "Cell { symbol: Some(\"U\"), fg: White, bg: DarkGray, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }",
+              "candidate": "Cell { symbol: Some(\"U\"), fg: Black, bg: DarkGray, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }"
+            }
+          ]
+        }
+      ]
+    },
+    "matrix_summary": {
+      "before": {
+        "rendered_cells": 288,
+        "default_ink_cells": 72,
+        "below_4_5": 27,
+        "minimum_contrast": 1.0,
+        "default_ink_on_white": [
+          "TrueColor/Bar/bg=Some(White)/fg=None/I: Cell { symbol: Some(\"I\"), fg: Rgb(255, 255, 255), bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000",
+          "TrueColor/Bar/bg=Some(White)/fg=None/D: Cell { symbol: Some(\"D\"), fg: Rgb(138, 138, 138), bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=3.45222019",
+          "TrueColor/Bar/bg=Some(White)/fg=None/T: Cell { symbol: Some(\"T\"), fg: Rgb(179, 179, 179), bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=2.09670489",
+          "TrueColor/Fill/bg=Some(White)/fg=None/I: Cell { symbol: Some(\"I\"), fg: Rgb(255, 255, 255), bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000",
+          "TrueColor/Fill/bg=Some(White)/fg=None/D: Cell { symbol: Some(\"D\"), fg: Rgb(255, 255, 255), bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000",
+          "TrueColor/Fill/bg=Some(White)/fg=None/T: Cell { symbol: Some(\"T\"), fg: Rgb(255, 255, 255), bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000",
+          "Ansi256/Bar/bg=Some(White)/fg=None/I: Cell { symbol: Some(\"I\"), fg: Indexed(231), bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000",
+          "Ansi256/Bar/bg=Some(White)/fg=None/D: Cell { symbol: Some(\"D\"), fg: Indexed(244), bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=3.94943965",
+          "Ansi256/Bar/bg=Some(White)/fg=None/T: Cell { symbol: Some(\"T\"), fg: Indexed(249), bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=2.12035030",
+          "Ansi256/Fill/bg=Some(White)/fg=None/I: Cell { symbol: Some(\"I\"), fg: Indexed(231), bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000",
+          "Ansi256/Fill/bg=Some(White)/fg=None/D: Cell { symbol: Some(\"D\"), fg: Indexed(231), bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000",
+          "Ansi256/Fill/bg=Some(White)/fg=None/T: Cell { symbol: Some(\"T\"), fg: Indexed(231), bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000",
+          "Ansi16/Bar/bg=Some(White)/fg=None/I: Cell { symbol: Some(\"I\"), fg: White, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000",
+          "Ansi16/Bar/bg=Some(White)/fg=None/D: Cell { symbol: Some(\"D\"), fg: Gray, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.25969094",
+          "Ansi16/Bar/bg=Some(White)/fg=None/T: Cell { symbol: Some(\"T\"), fg: Gray, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.25969094",
+          "Ansi16/Fill/bg=Some(White)/fg=None/I: Cell { symbol: Some(\"I\"), fg: White, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000",
+          "Ansi16/Fill/bg=Some(White)/fg=None/D: Cell { symbol: Some(\"D\"), fg: White, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000",
+          "Ansi16/Fill/bg=Some(White)/fg=None/T: Cell { symbol: Some(\"T\"), fg: White, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000",
+          "Mono/Bar/bg=Some(White)/fg=None/I: Cell { symbol: Some(\"I\"), fg: White, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000",
+          "Mono/Bar/bg=Some(White)/fg=None/D: Cell { symbol: Some(\"D\"), fg: Gray, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.25969094",
+          "Mono/Bar/bg=Some(White)/fg=None/T: Cell { symbol: Some(\"T\"), fg: Gray, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.25969094",
+          "Mono/Fill/bg=Some(White)/fg=None/I: Cell { symbol: Some(\"I\"), fg: White, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000",
+          "Mono/Fill/bg=Some(White)/fg=None/D: Cell { symbol: Some(\"D\"), fg: White, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000",
+          "Mono/Fill/bg=Some(White)/fg=None/T: Cell { symbol: Some(\"T\"), fg: White, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000"
+        ]
+      },
+      "candidate": {
+        "rendered_cells": 288,
+        "default_ink_cells": 72,
+        "below_4_5": 0,
+        "minimum_contrast": 5.24461515,
+        "default_ink_on_white": [
+          "TrueColor/Bar/bg=Some(White)/fg=None/I: Cell { symbol: Some(\"I\"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000",
+          "TrueColor/Bar/bg=Some(White)/fg=None/D: Cell { symbol: Some(\"D\"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000",
+          "TrueColor/Bar/bg=Some(White)/fg=None/T: Cell { symbol: Some(\"T\"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000",
+          "TrueColor/Fill/bg=Some(White)/fg=None/I: Cell { symbol: Some(\"I\"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000",
+          "TrueColor/Fill/bg=Some(White)/fg=None/D: Cell { symbol: Some(\"D\"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000",
+          "TrueColor/Fill/bg=Some(White)/fg=None/T: Cell { symbol: Some(\"T\"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000",
+          "Ansi256/Bar/bg=Some(White)/fg=None/I: Cell { symbol: Some(\"I\"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000",
+          "Ansi256/Bar/bg=Some(White)/fg=None/D: Cell { symbol: Some(\"D\"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000",
+          "Ansi256/Bar/bg=Some(White)/fg=None/T: Cell { symbol: Some(\"T\"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000",
+          "Ansi256/Fill/bg=Some(White)/fg=None/I: Cell { symbol: Some(\"I\"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000",
+          "Ansi256/Fill/bg=Some(White)/fg=None/D: Cell { symbol: Some(\"D\"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000",
+          "Ansi256/Fill/bg=Some(White)/fg=None/T: Cell { symbol: Some(\"T\"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000",
+          "Ansi16/Bar/bg=Some(White)/fg=None/I: Cell { symbol: Some(\"I\"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000",
+          "Ansi16/Bar/bg=Some(White)/fg=None/D: Cell { symbol: Some(\"D\"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000",
+          "Ansi16/Bar/bg=Some(White)/fg=None/T: Cell { symbol: Some(\"T\"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000",
+          "Ansi16/Fill/bg=Some(White)/fg=None/I: Cell { symbol: Some(\"I\"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000",
+          "Ansi16/Fill/bg=Some(White)/fg=None/D: Cell { symbol: Some(\"D\"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000",
+          "Ansi16/Fill/bg=Some(White)/fg=None/T: Cell { symbol: Some(\"T\"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000",
+          "Mono/Bar/bg=Some(White)/fg=None/I: Cell { symbol: Some(\"I\"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000",
+          "Mono/Bar/bg=Some(White)/fg=None/D: Cell { symbol: Some(\"D\"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000",
+          "Mono/Bar/bg=Some(White)/fg=None/T: Cell { symbol: Some(\"T\"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000",
+          "Mono/Fill/bg=Some(White)/fg=None/I: Cell { symbol: Some(\"I\"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000",
+          "Mono/Fill/bg=Some(White)/fg=None/D: Cell { symbol: Some(\"D\"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000",
+          "Mono/Fill/bg=Some(White)/fg=None/T: Cell { symbol: Some(\"T\"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000"
+        ]
+      }
+    },
+    "candidate_native_all_targets": {
+      "pass": 645,
+      "fail": 2,
+      "skip": 3,
+      "scope": "termrock-navigation + termrock-runtime"
+    },
+    "base_native_focused": {
+      "pass": 1,
+      "fail": 1,
+      "filtered": 13,
+      "passing": "picker_component_ink_defaults_are_per_channel_and_below_authored_styles",
+      "failing": "constructor_defaults_match_the_pre_policy_full_cell_fixture"
+    },
+    "strict_scoped_clippy": "PASS",
+    "format": "PASS"
+  },
+  "historical_fixture_hold": {
+    "disposition": "UNCHANGED, UNWAIVED",
+    "test": "constructor_defaults_match_the_pre_policy_full_cell_fixture",
+    "base_and_candidate": "Both RED; no expected edits",
+    "base_receipt": "native-before-focused.log",
+    "candidate_receipt": "native.log"
+  },
+  "probe_corrections_preserved": [
+    "Initial recreated probe lacked wildcard for non-exhaustive ColorLevel; compile failure retained, not product defect.",
+    "Initial raw Gray foreground expectation ignored canonical Mono binding; corrected to public canonical resolve::bind; original failed source/logs retained.",
+    "Initial recreation omitted focusable standalone owner and real palette downgrade. Final probe uses searchable(false), asserts actual owner focus and calls with_color(level) from original TrueColor theme; earlier nominal-profile outputs superseded, not counted as4-profile proof."
+  ],
+  "source": "/private/tmp/picker-contrast-cd1af58-independent-source-20261021",
+  "tracked_scope_diff_exit": 0,
+  "toolchain": "Rust1.99.1; Nextest0.9.148",
+  "unique_targets": [
+    "/private/tmp/picker-contrast-cd1af58-independent-owned-target-20261021",
+    "/private/tmp/picker-contrast-f46-independent-owned-target-20261021"
+  ],
+  "binary_receipts": [
+    {
+      "path": "/private/tmp/picker-contrast-cd1af58-independent-owned-target-20261021/debug/deps/contrast-88c6bb15e55c1d7e",
+      "sha256": "91d09a02ad963801a050c61c98a885981b0a817dc8598e05ae92de7a510c4071"
+    },
+    {
+      "path": "/private/tmp/picker-contrast-cd1af58-independent-owned-target-20261021/debug/deps/item_row_columns-3704c591dfc8adf3",
+      "sha256": "5b002b682fe96a9b33c47ea0517110ce386e4facebe3d6496b00c3bca090cba7"
+    },
+    {
+      "path": "/private/tmp/picker-contrast-f46-independent-owned-target-20261021/debug/deps/contrast-e9f2d32d2bc59634",
+      "sha256": "d943332cf19d4d37eaced5328a72ea5a6de96e8b9c5ed90c535688fd90c746bd"
+    },
+    {
+      "path": "/private/tmp/picker-contrast-f46-independent-owned-target-20261021/debug/deps/item_row_columns-3704c591dfc8adf3",
+      "sha256": "2df2d0e75aa9060712dfa1863aa4ad73b94ed7d48d0af8964318db223916d599"
+    }
+  ],
+  "receipts": {
+    "candidate-raw-gray-probe-failure-receipt": {
+      "argv": [
+        "/Users/donbeave/.cargo/bin/cargo",
+        "nextest",
+        "run",
+        "--locked",
+        "--offline",
+        "--test",
+        "contrast",
+        "--no-fail-fast"
+      ],
+      "cwd": "/private/tmp/picker-contrast-cd1af58-independent-consumer-20261021",
+      "target": "/private/tmp/picker-contrast-cd1af58-independent-owned-target-20261021",
+      "exit": 100,
+      "timeout": false,
+      "seconds": 2.4664305829792283
+    },
+    "before-unfocused-undowngraded-receipt": {
+      "argv": [
+        "/Users/donbeave/.cargo/bin/cargo",
+        "nextest",
+        "run",
+        "--locked",
+        "--offline",
+        "--test",
+        "contrast",
+        "--no-fail-fast"
+      ],
+      "cwd": "/private/tmp/picker-contrast-f46-independent-consumer-20261021",
+      "target": "/private/tmp/picker-contrast-f46-independent-owned-target-20261021",
+      "exit": 100,
+      "timeout": false,
+      "seconds": 9.636406666017137
+    },
+    "fmt-receipt": {
+      "argv": [
+        "/Users/donbeave/.cargo/bin/cargo",
+        "fmt",
+        "--all",
+        "--check"
+      ],
+      "cwd": "/private/tmp/picker-contrast-cd1af58-independent-source-20261021",
+      "target": "/private/tmp/picker-contrast-cd1af58-independent-owned-target-20261021",
+      "exit": 0,
+      "timeout": false,
+      "seconds": 6.352598000026774
+    },
+    "native-receipt": {
+      "argv": [
+        "/Users/donbeave/.cargo/bin/cargo",
+        "nextest",
+        "run",
+        "--locked",
+        "--offline",
+        "-p",
+        "termrock-navigation",
+        "-p",
+        "termrock-runtime",
+        "--all-targets",
+        "--no-fail-fast"
+      ],
+      "cwd": "/private/tmp/picker-contrast-cd1af58-independent-source-20261021",
+      "target": "/private/tmp/picker-contrast-cd1af58-independent-owned-target-20261021",
+      "exit": 100,
+      "timeout": false,
+      "seconds": 65.12225829198724
+    },
+    "before-raw-gray-probe-failure-receipt": {
+      "argv": [
+        "/Users/donbeave/.cargo/bin/cargo",
+        "nextest",
+        "run",
+        "--locked",
+        "--offline",
+        "--test",
+        "contrast",
+        "--no-fail-fast"
+      ],
+      "cwd": "/private/tmp/picker-contrast-f46-independent-consumer-20261021",
+      "target": "/private/tmp/picker-contrast-f46-independent-owned-target-20261021",
+      "exit": 100,
+      "timeout": false,
+      "seconds": 2.4651681249961257
+    },
+    "candidate-unfocused-undowngraded-receipt": {
+      "argv": [
+        "/Users/donbeave/.cargo/bin/cargo",
+        "nextest",
+        "run",
+        "--locked",
+        "--offline",
+        "--test",
+        "contrast",
+        "--no-fail-fast"
+      ],
+      "cwd": "/private/tmp/picker-contrast-cd1af58-independent-consumer-20261021",
+      "target": "/private/tmp/picker-contrast-cd1af58-independent-owned-target-20261021",
+      "exit": 0,
+      "timeout": false,
+      "seconds": 9.899414915998932
+    },
+    "candidate-initial-compile-failure-receipt": {
+      "argv": [
+        "/Users/donbeave/.cargo/bin/cargo",
+        "nextest",
+        "run",
+        "--offline",
+        "--test",
+        "contrast",
+        "--no-fail-fast"
+      ],
+      "cwd": "/private/tmp/picker-contrast-cd1af58-independent-consumer-20261021",
+      "target": "/private/tmp/picker-contrast-cd1af58-independent-owned-target-20261021",
+      "exit": 101,
+      "timeout": false,
+      "seconds": 25.461417042009998
+    },
+    "before-receipt": {
+      "argv": [
+        "/Users/donbeave/.cargo/bin/cargo",
+        "nextest",
+        "run",
+        "--locked",
+        "--offline",
+        "--test",
+        "contrast",
+        "--no-fail-fast"
+      ],
+      "cwd": "/private/tmp/picker-contrast-f46-independent-consumer-20261021",
+      "target": "/private/tmp/picker-contrast-f46-independent-owned-target-20261021",
+      "exit": 100,
+      "timeout": false,
+      "seconds": 3.361220459046308
+    },
+    "clippy-receipt": {
+      "argv": [
+        "/Users/donbeave/.cargo/bin/cargo",
+        "clippy",
+        "--locked",
+        "--offline",
+        "-p",
+        "termrock-navigation",
+        "-p",
+        "termrock-runtime",
+        "--all-targets",
+        "--no-deps",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "cwd": "/private/tmp/picker-contrast-cd1af58-independent-source-20261021",
+      "target": "/private/tmp/picker-contrast-cd1af58-independent-owned-target-20261021",
+      "exit": 0,
+      "timeout": false,
+      "seconds": 21.27161724999314
+    },
+    "candidate-capability-marker-only-receipt": {
+      "argv": [
+        "/Users/donbeave/.cargo/bin/cargo",
+        "nextest",
+        "run",
+        "--locked",
+        "--offline",
+        "--test",
+        "contrast",
+        "--no-fail-fast"
+      ],
+      "cwd": "/private/tmp/picker-contrast-cd1af58-independent-consumer-20261021",
+      "target": "/private/tmp/picker-contrast-cd1af58-independent-owned-target-20261021",
+      "exit": 0,
+      "timeout": false,
+      "seconds": 15.752779166970868
+    },
+    "native-before-focused-receipt": {
+      "argv": [
+        "/Users/donbeave/.cargo/bin/cargo",
+        "nextest",
+        "run",
+        "--locked",
+        "--offline",
+        "-p",
+        "termrock-navigation",
+        "--test",
+        "item_row_columns",
+        "-E",
+        "test(constructor_defaults_match_the_pre_policy_full_cell_fixture) | test(picker_component_ink_defaults_are_per_channel_and_below_authored_styles)",
+        "--no-fail-fast"
+      ],
+      "cwd": "/private/tmp/picker-row-review-f46c-20261021",
+      "target": "/private/tmp/picker-contrast-f46-independent-owned-target-20261021",
+      "exit": 100,
+      "timeout": false,
+      "seconds": 28.785912583000027
+    },
+    "before-initial-compile-failure-receipt": {
+      "argv": [
+        "/Users/donbeave/.cargo/bin/cargo",
+        "nextest",
+        "run",
+        "--offline",
+        "--test",
+        "contrast",
+        "--no-fail-fast"
+      ],
+      "cwd": "/private/tmp/picker-contrast-f46-independent-consumer-20261021",
+      "target": "/private/tmp/picker-contrast-f46-independent-owned-target-20261021",
+      "exit": 101,
+      "timeout": false,
+      "seconds": 25.69662416697247
+    },
+    "candidate-receipt": {
+      "argv": [
+        "/Users/donbeave/.cargo/bin/cargo",
+        "nextest",
+        "run",
+        "--locked",
+        "--offline",
+        "--test",
+        "contrast",
+        "--no-fail-fast"
+      ],
+      "cwd": "/private/tmp/picker-contrast-cd1af58-independent-consumer-20261021",
+      "target": "/private/tmp/picker-contrast-cd1af58-independent-owned-target-20261021",
+      "exit": 0,
+      "timeout": false,
+      "seconds": 3.285871500032954
+    },
+    "before-capability-marker-only-receipt": {
+      "argv": [
+        "/Users/donbeave/.cargo/bin/cargo",
+        "nextest",
+        "run",
+        "--locked",
+        "--offline",
+        "--test",
+        "contrast",
+        "--no-fail-fast"
+      ],
+      "cwd": "/private/tmp/picker-contrast-f46-independent-consumer-20261021",
+      "target": "/private/tmp/picker-contrast-f46-independent-owned-target-20261021",
+      "exit": 100,
+      "timeout": false,
+      "seconds": 15.714136417023838
+    }
+  },
+  "scope_limits": [
+    "No frozen416 full-frame capture or new reference approval",
+    "No full four-app CLI/Tuiscotti product acceptance",
+    "No claim resolving active/inactive-layer expected appearance; prior coverage gap remains",
+    "No source edits, expected updates, helpers, original checkout mutation, merge, push lock, commit or push"
+  ],
+  "artifacts": [
+    {
+      "path": "before-capability-marker-only-cells.txt",
+      "sha256": "6405bc3ef0b55a478136d0e2d2cff45e6368574d3c7c041c774dac76857f4380"
+    },
+    {
+      "path": "before-capability-marker-only-default.rle",
+      "sha256": "40a67e06a0e3bab8274ae223560bcd28d981179c069f10fc93a757c7c5da77b2"
+    },
+    {
+      "path": "before-capability-marker-only-probe.rs",
+      "sha256": "5c737583538e47be60af996ef53b02270baa1ae458532a665b531af06c528e78"
+    },
+    {
+      "path": "before-capability-marker-only-receipt.json",
+      "sha256": "5b3564ffefd14b227b42fd0bdf4cffe284adb0956d6b7d34bd41df64ec38b583"
+    },
+    {
+      "path": "before-capability-marker-only.log",
+      "sha256": "7ef39cf8af059ba7ec805cdaea9860aef8ccfbbe809285571513604f2edea9ad"
+    },
+    {
+      "path": "before-cells.txt",
+      "sha256": "2133224992d1f15dfef8d6fbcd1b482af329e5f1f9c37c32680e941259adba2f"
+    },
+    {
+      "path": "before-default.rle",
+      "sha256": "c91f80953226446a1748ce7a2790b6b6ac3d03f0cbfb24c9af8f8c30c953c6e3"
+    },
+    {
+      "path": "before-initial-compile-failure-receipt.json",
+      "sha256": "33442eadc9dff628eba514772c66bdf64b95dc3fd8f603332e3710db07d9f93c"
+    },
+    {
+      "path": "before-initial-compile-failure.log",
+      "sha256": "17f457b0d960a5653e6d4342179c3cb8d63f48bd1cc5ce6f29c2287347a28bfc"
+    },
+    {
+      "path": "before-initial-nonexhaustive.rs",
+      "sha256": "231d47a2b20415379d61d64a13e43187358010a02d70adc1578588f09108b25f"
+    },
+    {
+      "path": "before-initial-raw-gray-expectation.rs",
+      "sha256": "7db45e64e20e27b629bbf85cab31c11c44eb055faf6999df3aea12c02d63439e"
+    },
+    {
+      "path": "before-raw-gray-probe-failure-receipt.json",
+      "sha256": "0f1be33b13c7e037663e6cd1ad149ff2f37813ea992e84193aefbfe64e82a197"
+    },
+    {
+      "path": "before-raw-gray-probe-failure.log",
+      "sha256": "979042efc9f65de64dbc12a78238bd42f823e5a0a510b3c275bcf9001b104386"
+    },
+    {
+      "path": "before-receipt.json",
+      "sha256": "6edff2629fc94d3a0db6bd24ef24cd7eb95d1c6b60b3058cf31098baa4950b79"
+    },
+    {
+      "path": "before-unfocused-undowngraded-cells.txt",
+      "sha256": "c442c191c22d2403ff783b774ddb85898935ea130e2a02f6e0a2610415997dd9"
+    },
+    {
+      "path": "before-unfocused-undowngraded-default.rle",
+      "sha256": "e518015daff01b89a2efc482de325b16b6fc52136043b3aa6d32c9b445998016"
+    },
+    {
+      "path": "before-unfocused-undowngraded-probe.rs",
+      "sha256": "e3aff7b488f10408328286dfe7a8b4acca5fc2e64431bf3a4c212eb4992563c0"
+    },
+    {
+      "path": "before-unfocused-undowngraded-receipt.json",
+      "sha256": "bf140a3c81f7741f9a1309849a142a23710d8d84b7e632b3ccccd4a3e6ad8cca"
+    },
+    {
+      "path": "before-unfocused-undowngraded.log",
+      "sha256": "34f6caf410ab5aeb2d7bac8da1a478a4b02fee97f1c7e0d1cd00a59147c441f9"
+    },
+    {
+      "path": "before.log",
+      "sha256": "b27ed7874782d5c26bfdbe09d13df7efd2c7de4a6f74a717c69021e39f7d4382"
+    },
+    {
+      "path": "candidate-capability-marker-only-cells.txt",
+      "sha256": "12da13ef142d32ace3bcd237a171623b6f5481165eb9f5de9e705df5fe80b494"
+    },
+    {
+      "path": "candidate-capability-marker-only-default.rle",
+      "sha256": "40a67e06a0e3bab8274ae223560bcd28d981179c069f10fc93a757c7c5da77b2"
+    },
+    {
+      "path": "candidate-capability-marker-only-probe.rs",
+      "sha256": "5c737583538e47be60af996ef53b02270baa1ae458532a665b531af06c528e78"
+    },
+    {
+      "path": "candidate-capability-marker-only-receipt.json",
+      "sha256": "e5d89574878a3a64ca69f5ec13e8cc6dfdee9ca206b488705f4f487112423f9b"
+    },
+    {
+      "path": "candidate-capability-marker-only.log",
+      "sha256": "4f287160958503353f119fea9131a620f244a33b7fdfd978c8ceef4ce0503f46"
+    },
+    {
+      "path": "candidate-cells.txt",
+      "sha256": "adbb3fb177af288fdda8778dd6a0860a07d3a0e570ada08ab3090771f8180534"
+    },
+    {
+      "path": "candidate-default.rle",
+      "sha256": "089d737fcb413eef0580ccbe7602563e102b75827d7d31516069770c82fb5462"
+    },
+    {
+      "path": "candidate-initial-compile-failure-receipt.json",
+      "sha256": "81725a719d64c90b5264b67522ce90be7873dc796ef0e2c45b2926c31abee829"
+    },
+    {
+      "path": "candidate-initial-compile-failure.log",
+      "sha256": "962c77688d131a2c13f43a3d27557d5ec1cd4f42303d223cdb96f05eeadd6380"
+    },
+    {
+      "path": "candidate-initial-nonexhaustive.rs",
+      "sha256": "231d47a2b20415379d61d64a13e43187358010a02d70adc1578588f09108b25f"
+    },
+    {
+      "path": "candidate-initial-raw-gray-expectation.rs",
+      "sha256": "7db45e64e20e27b629bbf85cab31c11c44eb055faf6999df3aea12c02d63439e"
+    },
+    {
+      "path": "candidate-raw-gray-probe-failure-receipt.json",
+      "sha256": "7316f00d53f5ef6f0ab257358f4b03e373bdf82e1acc6cd0549da5c7e19e8ce8"
+    },
+    {
+      "path": "candidate-raw-gray-probe-failure.log",
+      "sha256": "4852009c49388fce7b1ea3ced4cd699f599da156b2b23aab512c7dd1f8f77b45"
+    },
+    {
+      "path": "candidate-receipt.json",
+      "sha256": "a97dcdfa9637ffbabd9380c7e3ddf53ff8579c4f283deb50bf553a073bcd510d"
+    },
+    {
+      "path": "candidate-unfocused-undowngraded-cells.txt",
+      "sha256": "969ec7b449fee0c4611a507b96294ccd7b0b3b0179207de8d88cf726a84cabc8"
+    },
+    {
+      "path": "candidate-unfocused-undowngraded-default.rle",
+      "sha256": "e518015daff01b89a2efc482de325b16b6fc52136043b3aa6d32c9b445998016"
+    },
+    {
+      "path": "candidate-unfocused-undowngraded-probe.rs",
+      "sha256": "e3aff7b488f10408328286dfe7a8b4acca5fc2e64431bf3a4c212eb4992563c0"
+    },
+    {
+      "path": "candidate-unfocused-undowngraded-receipt.json",
+      "sha256": "f7d88aacf810ee1272ccbdeed2968026ab63f7a5df34647fad967ce62d1ad542"
+    },
+    {
+      "path": "candidate-unfocused-undowngraded.log",
+      "sha256": "14e2844c7e0e198cfa2ca59e8757273bf19d93fd4714c085ac590c4f7af91120"
+    },
+    {
+      "path": "candidate.log",
+      "sha256": "135813e69adbcefae15d82dc02cd9daa63e534cb5dfd16dbcb0b2869a1b300d2"
+    },
+    {
+      "path": "clippy-receipt.json",
+      "sha256": "9f898e84d781f8fbf42fe3da3fd9803638df4cbb6b3426f3179e4b332dc4e694"
+    },
+    {
+      "path": "clippy.log",
+      "sha256": "4e76f25c038888e829c1fa0c64a2b0bd572904095c3d86cdaa49298f4dbf8d75"
+    },
+    {
+      "path": "consumer/Cargo.lock",
+      "sha256": "9f77d68d4bc8e8eb00eff604513794f762f33f057da20c32c4a61b9e39a76de7"
+    },
+    {
+      "path": "consumer/Cargo.toml",
+      "sha256": "2fdc1ae633c5c1352d61f04cc9f7424fbc0978f67140206bc00e74030ffd6914"
+    },
+    {
+      "path": "consumer/tests/contrast.rs",
+      "sha256": "940da3fa57e92eaf6220f0e3a0ff3da587abfaae0ab4a802507cc846487b8407"
+    },
+    {
+      "path": "default-comparison.json",
+      "sha256": "bbece1369bafcf6f6f469c5cab4e64a83675d3e7120a783fa508031739376642"
+    },
+    {
+      "path": "fmt-receipt.json",
+      "sha256": "b33e100318e9a81c72c1df6a97e71007445041e10f2c95c0229e4070aa6e1ddf"
+    },
+    {
+      "path": "fmt.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "matrix-summary.json",
+      "sha256": "25daf3971aed385bbc1d301c76ddaac95ed25791ca7a48fdd60997257b013754"
+    },
+    {
+      "path": "native-before-focused-receipt.json",
+      "sha256": "c70bf44473b784fcfddade2dac980b741a1d4e7205afaa2e6857229adf59218f"
+    },
+    {
+      "path": "native-before-focused.log",
+      "sha256": "d4d1d44571ecf9ab670a47ce0b6412c850c1f4cbab8e20ce58061540e4edcf6c"
+    },
+    {
+      "path": "native-receipt.json",
+      "sha256": "c2b17d6ab92d1cb57e3c11204d2ee7e0bde7efc35de40bb5dbe91bbfb4c1f2cb"
+    },
+    {
+      "path": "native.log",
+      "sha256": "1620ba0c7a482862850dd1585df42d9bb5a7279019f52577682ca80b0df46a68"
+    },
+    {
+      "path": "picker-row-review-f46c-20261021-cells.json",
+      "sha256": "fcf8058c044ac77f9ecbee5e7d3ae34030059e12b6f83f20884ec26809c9fa46"
+    },
+    {
+      "path": "picker-row-review-f46c-20261021-followup.json",
+      "sha256": "601139db431c0d10651b413ecf42a45cfb89477ca2015f708fdeb5c9252bb2ff"
+    },
+    {
+      "path": "picker-row-review-f46c-20261021.json",
+      "sha256": "76cefa76665f51cd6fdc87f4e86875fe6f1411bf54ffb41e3f724433f67172a3"
+    },
+    {
+      "path": "reviewed.patch",
+      "sha256": "a26ad35636e28983fd3fc08c0876c69d97020cf9a674b63e93a122012fc58cf2"
+    },
+    {
+      "path": "source-identities.json",
+      "sha256": "b8ff7b67472b1722963e7d0d269b5ae18a7e3bc5b50bc4c2756ffa33ef9357da"
+    }
+  ]
+}

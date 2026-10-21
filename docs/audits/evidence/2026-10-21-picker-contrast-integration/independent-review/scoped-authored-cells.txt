@@ -1,0 +1,288 @@
+TrueColor/Bar/bg=None/fg=None/I: Cell { symbol: Some("I"), fg: Rgb(255, 255, 255), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+TrueColor/Bar/bg=None/fg=None/D: Cell { symbol: Some("D"), fg: Rgb(138, 138, 138), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=6.08304189
+TrueColor/Bar/bg=None/fg=None/T: Cell { symbol: Some("T"), fg: Rgb(179, 179, 179), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=10.01571566
+TrueColor/Bar/bg=None/fg=Some(Black)/I: Cell { symbol: Some("I"), fg: Black, bg: Rgb(0, 0, 0), underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+TrueColor/Bar/bg=None/fg=Some(Black)/D: Cell { symbol: Some("D"), fg: Black, bg: Rgb(0, 0, 0), underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+TrueColor/Bar/bg=None/fg=Some(Black)/T: Cell { symbol: Some("T"), fg: Black, bg: Rgb(0, 0, 0), underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+TrueColor/Bar/bg=None/fg=Some(White)/I: Cell { symbol: Some("I"), fg: White, bg: Rgb(0, 0, 0), underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+TrueColor/Bar/bg=None/fg=Some(White)/D: Cell { symbol: Some("D"), fg: White, bg: Rgb(0, 0, 0), underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+TrueColor/Bar/bg=None/fg=Some(White)/T: Cell { symbol: Some("T"), fg: White, bg: Rgb(0, 0, 0), underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+TrueColor/Bar/bg=None/fg=Some(Rgb(138, 138, 138))/I: Cell { symbol: Some("I"), fg: Rgb(138, 138, 138), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=6.08304189
+TrueColor/Bar/bg=None/fg=Some(Rgb(138, 138, 138))/D: Cell { symbol: Some("D"), fg: Rgb(138, 138, 138), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=6.08304189
+TrueColor/Bar/bg=None/fg=Some(Rgb(138, 138, 138))/T: Cell { symbol: Some("T"), fg: Rgb(138, 138, 138), bg: Rgb(0, 0, 0), underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=6.08304189
+TrueColor/Bar/bg=Some(White)/fg=None/I: Cell { symbol: Some("I"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+TrueColor/Bar/bg=Some(White)/fg=None/D: Cell { symbol: Some("D"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+TrueColor/Bar/bg=Some(White)/fg=None/T: Cell { symbol: Some("T"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+TrueColor/Bar/bg=Some(White)/fg=Some(Black)/I: Cell { symbol: Some("I"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+TrueColor/Bar/bg=Some(White)/fg=Some(Black)/D: Cell { symbol: Some("D"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+TrueColor/Bar/bg=Some(White)/fg=Some(Black)/T: Cell { symbol: Some("T"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+TrueColor/Bar/bg=Some(White)/fg=Some(White)/I: Cell { symbol: Some("I"), fg: White, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+TrueColor/Bar/bg=Some(White)/fg=Some(White)/D: Cell { symbol: Some("D"), fg: White, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+TrueColor/Bar/bg=Some(White)/fg=Some(White)/T: Cell { symbol: Some("T"), fg: White, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+TrueColor/Bar/bg=Some(White)/fg=Some(Rgb(138, 138, 138))/I: Cell { symbol: Some("I"), fg: Rgb(138, 138, 138), bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=3.45222019
+TrueColor/Bar/bg=Some(White)/fg=Some(Rgb(138, 138, 138))/D: Cell { symbol: Some("D"), fg: Rgb(138, 138, 138), bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=3.45222019
+TrueColor/Bar/bg=Some(White)/fg=Some(Rgb(138, 138, 138))/T: Cell { symbol: Some("T"), fg: Rgb(138, 138, 138), bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=3.45222019
+TrueColor/Bar/bg=Some(Black)/fg=None/I: Cell { symbol: Some("I"), fg: Rgb(255, 255, 255), bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+TrueColor/Bar/bg=Some(Black)/fg=None/D: Cell { symbol: Some("D"), fg: Rgb(138, 138, 138), bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=6.08304189
+TrueColor/Bar/bg=Some(Black)/fg=None/T: Cell { symbol: Some("T"), fg: Rgb(179, 179, 179), bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=10.01571566
+TrueColor/Bar/bg=Some(Black)/fg=Some(Black)/I: Cell { symbol: Some("I"), fg: Black, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+TrueColor/Bar/bg=Some(Black)/fg=Some(Black)/D: Cell { symbol: Some("D"), fg: Black, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+TrueColor/Bar/bg=Some(Black)/fg=Some(Black)/T: Cell { symbol: Some("T"), fg: Black, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+TrueColor/Bar/bg=Some(Black)/fg=Some(White)/I: Cell { symbol: Some("I"), fg: White, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+TrueColor/Bar/bg=Some(Black)/fg=Some(White)/D: Cell { symbol: Some("D"), fg: White, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+TrueColor/Bar/bg=Some(Black)/fg=Some(White)/T: Cell { symbol: Some("T"), fg: White, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+TrueColor/Bar/bg=Some(Black)/fg=Some(Rgb(138, 138, 138))/I: Cell { symbol: Some("I"), fg: Rgb(138, 138, 138), bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=6.08304189
+TrueColor/Bar/bg=Some(Black)/fg=Some(Rgb(138, 138, 138))/D: Cell { symbol: Some("D"), fg: Rgb(138, 138, 138), bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=6.08304189
+TrueColor/Bar/bg=Some(Black)/fg=Some(Rgb(138, 138, 138))/T: Cell { symbol: Some("T"), fg: Rgb(138, 138, 138), bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=6.08304189
+TrueColor/Fill/bg=None/fg=None/I: Cell { symbol: Some("I"), fg: Rgb(255, 255, 255), bg: Rgb(47, 90, 168), underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=6.66928372
+TrueColor/Fill/bg=None/fg=None/D: Cell { symbol: Some("D"), fg: Rgb(255, 255, 255), bg: Rgb(47, 90, 168), underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=6.66928372
+TrueColor/Fill/bg=None/fg=None/T: Cell { symbol: Some("T"), fg: Rgb(255, 255, 255), bg: Rgb(47, 90, 168), underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=6.66928372
+TrueColor/Fill/bg=None/fg=Some(Black)/I: Cell { symbol: Some("I"), fg: Black, bg: Rgb(47, 90, 168), underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=3.14876393
+TrueColor/Fill/bg=None/fg=Some(Black)/D: Cell { symbol: Some("D"), fg: Black, bg: Rgb(47, 90, 168), underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=3.14876393
+TrueColor/Fill/bg=None/fg=Some(Black)/T: Cell { symbol: Some("T"), fg: Black, bg: Rgb(47, 90, 168), underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=3.14876393
+TrueColor/Fill/bg=None/fg=Some(White)/I: Cell { symbol: Some("I"), fg: White, bg: Rgb(47, 90, 168), underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=6.66928372
+TrueColor/Fill/bg=None/fg=Some(White)/D: Cell { symbol: Some("D"), fg: White, bg: Rgb(47, 90, 168), underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=6.66928372
+TrueColor/Fill/bg=None/fg=Some(White)/T: Cell { symbol: Some("T"), fg: White, bg: Rgb(47, 90, 168), underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=6.66928372
+TrueColor/Fill/bg=None/fg=Some(Rgb(138, 138, 138))/I: Cell { symbol: Some("I"), fg: Rgb(138, 138, 138), bg: Rgb(47, 90, 168), underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.93188249
+TrueColor/Fill/bg=None/fg=Some(Rgb(138, 138, 138))/D: Cell { symbol: Some("D"), fg: Rgb(138, 138, 138), bg: Rgb(47, 90, 168), underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.93188249
+TrueColor/Fill/bg=None/fg=Some(Rgb(138, 138, 138))/T: Cell { symbol: Some("T"), fg: Rgb(138, 138, 138), bg: Rgb(47, 90, 168), underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.93188249
+TrueColor/Fill/bg=Some(White)/fg=None/I: Cell { symbol: Some("I"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+TrueColor/Fill/bg=Some(White)/fg=None/D: Cell { symbol: Some("D"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+TrueColor/Fill/bg=Some(White)/fg=None/T: Cell { symbol: Some("T"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+TrueColor/Fill/bg=Some(White)/fg=Some(Black)/I: Cell { symbol: Some("I"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+TrueColor/Fill/bg=Some(White)/fg=Some(Black)/D: Cell { symbol: Some("D"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+TrueColor/Fill/bg=Some(White)/fg=Some(Black)/T: Cell { symbol: Some("T"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+TrueColor/Fill/bg=Some(White)/fg=Some(White)/I: Cell { symbol: Some("I"), fg: White, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+TrueColor/Fill/bg=Some(White)/fg=Some(White)/D: Cell { symbol: Some("D"), fg: White, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+TrueColor/Fill/bg=Some(White)/fg=Some(White)/T: Cell { symbol: Some("T"), fg: White, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+TrueColor/Fill/bg=Some(White)/fg=Some(Rgb(138, 138, 138))/I: Cell { symbol: Some("I"), fg: Rgb(138, 138, 138), bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=3.45222019
+TrueColor/Fill/bg=Some(White)/fg=Some(Rgb(138, 138, 138))/D: Cell { symbol: Some("D"), fg: Rgb(138, 138, 138), bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=3.45222019
+TrueColor/Fill/bg=Some(White)/fg=Some(Rgb(138, 138, 138))/T: Cell { symbol: Some("T"), fg: Rgb(138, 138, 138), bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=3.45222019
+TrueColor/Fill/bg=Some(Black)/fg=None/I: Cell { symbol: Some("I"), fg: Rgb(255, 255, 255), bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+TrueColor/Fill/bg=Some(Black)/fg=None/D: Cell { symbol: Some("D"), fg: Rgb(255, 255, 255), bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+TrueColor/Fill/bg=Some(Black)/fg=None/T: Cell { symbol: Some("T"), fg: Rgb(255, 255, 255), bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+TrueColor/Fill/bg=Some(Black)/fg=Some(Black)/I: Cell { symbol: Some("I"), fg: Black, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+TrueColor/Fill/bg=Some(Black)/fg=Some(Black)/D: Cell { symbol: Some("D"), fg: Black, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+TrueColor/Fill/bg=Some(Black)/fg=Some(Black)/T: Cell { symbol: Some("T"), fg: Black, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+TrueColor/Fill/bg=Some(Black)/fg=Some(White)/I: Cell { symbol: Some("I"), fg: White, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+TrueColor/Fill/bg=Some(Black)/fg=Some(White)/D: Cell { symbol: Some("D"), fg: White, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+TrueColor/Fill/bg=Some(Black)/fg=Some(White)/T: Cell { symbol: Some("T"), fg: White, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+TrueColor/Fill/bg=Some(Black)/fg=Some(Rgb(138, 138, 138))/I: Cell { symbol: Some("I"), fg: Rgb(138, 138, 138), bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=6.08304189
+TrueColor/Fill/bg=Some(Black)/fg=Some(Rgb(138, 138, 138))/D: Cell { symbol: Some("D"), fg: Rgb(138, 138, 138), bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=6.08304189
+TrueColor/Fill/bg=Some(Black)/fg=Some(Rgb(138, 138, 138))/T: Cell { symbol: Some("T"), fg: Rgb(138, 138, 138), bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=6.08304189
+Ansi256/Bar/bg=None/fg=None/I: Cell { symbol: Some("I"), fg: Indexed(231), bg: Indexed(16), underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Ansi256/Bar/bg=None/fg=None/D: Cell { symbol: Some("D"), fg: Indexed(244), bg: Indexed(16), underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=5.31721000
+Ansi256/Bar/bg=None/fg=None/T: Cell { symbol: Some("T"), fg: Indexed(249), bg: Indexed(16), underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=9.90402389
+Ansi256/Bar/bg=None/fg=Some(Black)/I: Cell { symbol: Some("I"), fg: Black, bg: Indexed(16), underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+Ansi256/Bar/bg=None/fg=Some(Black)/D: Cell { symbol: Some("D"), fg: Black, bg: Indexed(16), underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+Ansi256/Bar/bg=None/fg=Some(Black)/T: Cell { symbol: Some("T"), fg: Black, bg: Indexed(16), underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+Ansi256/Bar/bg=None/fg=Some(White)/I: Cell { symbol: Some("I"), fg: White, bg: Indexed(16), underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Ansi256/Bar/bg=None/fg=Some(White)/D: Cell { symbol: Some("D"), fg: White, bg: Indexed(16), underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Ansi256/Bar/bg=None/fg=Some(White)/T: Cell { symbol: Some("T"), fg: White, bg: Indexed(16), underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Ansi256/Bar/bg=None/fg=Some(Indexed(244))/I: Cell { symbol: Some("I"), fg: Indexed(244), bg: Indexed(16), underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=5.31721000
+Ansi256/Bar/bg=None/fg=Some(Indexed(244))/D: Cell { symbol: Some("D"), fg: Indexed(244), bg: Indexed(16), underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=5.31721000
+Ansi256/Bar/bg=None/fg=Some(Indexed(244))/T: Cell { symbol: Some("T"), fg: Indexed(244), bg: Indexed(16), underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=5.31721000
+Ansi256/Bar/bg=Some(White)/fg=None/I: Cell { symbol: Some("I"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Ansi256/Bar/bg=Some(White)/fg=None/D: Cell { symbol: Some("D"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Ansi256/Bar/bg=Some(White)/fg=None/T: Cell { symbol: Some("T"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Ansi256/Bar/bg=Some(White)/fg=Some(Black)/I: Cell { symbol: Some("I"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Ansi256/Bar/bg=Some(White)/fg=Some(Black)/D: Cell { symbol: Some("D"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Ansi256/Bar/bg=Some(White)/fg=Some(Black)/T: Cell { symbol: Some("T"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Ansi256/Bar/bg=Some(White)/fg=Some(White)/I: Cell { symbol: Some("I"), fg: White, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+Ansi256/Bar/bg=Some(White)/fg=Some(White)/D: Cell { symbol: Some("D"), fg: White, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+Ansi256/Bar/bg=Some(White)/fg=Some(White)/T: Cell { symbol: Some("T"), fg: White, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+Ansi256/Bar/bg=Some(White)/fg=Some(Indexed(244))/I: Cell { symbol: Some("I"), fg: Indexed(244), bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=3.94943965
+Ansi256/Bar/bg=Some(White)/fg=Some(Indexed(244))/D: Cell { symbol: Some("D"), fg: Indexed(244), bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=3.94943965
+Ansi256/Bar/bg=Some(White)/fg=Some(Indexed(244))/T: Cell { symbol: Some("T"), fg: Indexed(244), bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=3.94943965
+Ansi256/Bar/bg=Some(Black)/fg=None/I: Cell { symbol: Some("I"), fg: Indexed(231), bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Ansi256/Bar/bg=Some(Black)/fg=None/D: Cell { symbol: Some("D"), fg: Indexed(244), bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=5.31721000
+Ansi256/Bar/bg=Some(Black)/fg=None/T: Cell { symbol: Some("T"), fg: Indexed(249), bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=9.90402389
+Ansi256/Bar/bg=Some(Black)/fg=Some(Black)/I: Cell { symbol: Some("I"), fg: Black, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+Ansi256/Bar/bg=Some(Black)/fg=Some(Black)/D: Cell { symbol: Some("D"), fg: Black, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+Ansi256/Bar/bg=Some(Black)/fg=Some(Black)/T: Cell { symbol: Some("T"), fg: Black, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+Ansi256/Bar/bg=Some(Black)/fg=Some(White)/I: Cell { symbol: Some("I"), fg: White, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Ansi256/Bar/bg=Some(Black)/fg=Some(White)/D: Cell { symbol: Some("D"), fg: White, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Ansi256/Bar/bg=Some(Black)/fg=Some(White)/T: Cell { symbol: Some("T"), fg: White, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Ansi256/Bar/bg=Some(Black)/fg=Some(Indexed(244))/I: Cell { symbol: Some("I"), fg: Indexed(244), bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=5.31721000
+Ansi256/Bar/bg=Some(Black)/fg=Some(Indexed(244))/D: Cell { symbol: Some("D"), fg: Indexed(244), bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=5.31721000
+Ansi256/Bar/bg=Some(Black)/fg=Some(Indexed(244))/T: Cell { symbol: Some("T"), fg: Indexed(244), bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=5.31721000
+Ansi256/Fill/bg=None/fg=None/I: Cell { symbol: Some("I"), fg: Indexed(231), bg: Indexed(25), underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=6.44980445
+Ansi256/Fill/bg=None/fg=None/D: Cell { symbol: Some("D"), fg: Indexed(231), bg: Indexed(25), underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=6.44980445
+Ansi256/Fill/bg=None/fg=None/T: Cell { symbol: Some("T"), fg: Indexed(231), bg: Indexed(25), underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=6.44980445
+Ansi256/Fill/bg=None/fg=Some(Black)/I: Cell { symbol: Some("I"), fg: Black, bg: Indexed(25), underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=3.25591266
+Ansi256/Fill/bg=None/fg=Some(Black)/D: Cell { symbol: Some("D"), fg: Black, bg: Indexed(25), underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=3.25591266
+Ansi256/Fill/bg=None/fg=Some(Black)/T: Cell { symbol: Some("T"), fg: Black, bg: Indexed(25), underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=3.25591266
+Ansi256/Fill/bg=None/fg=Some(White)/I: Cell { symbol: Some("I"), fg: White, bg: Indexed(25), underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=6.44980445
+Ansi256/Fill/bg=None/fg=Some(White)/D: Cell { symbol: Some("D"), fg: White, bg: Indexed(25), underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=6.44980445
+Ansi256/Fill/bg=None/fg=Some(White)/T: Cell { symbol: Some("T"), fg: White, bg: Indexed(25), underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=6.44980445
+Ansi256/Fill/bg=None/fg=Some(Indexed(244))/I: Cell { symbol: Some("I"), fg: Indexed(244), bg: Indexed(25), underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.63309356
+Ansi256/Fill/bg=None/fg=Some(Indexed(244))/D: Cell { symbol: Some("D"), fg: Indexed(244), bg: Indexed(25), underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.63309356
+Ansi256/Fill/bg=None/fg=Some(Indexed(244))/T: Cell { symbol: Some("T"), fg: Indexed(244), bg: Indexed(25), underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.63309356
+Ansi256/Fill/bg=Some(White)/fg=None/I: Cell { symbol: Some("I"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Ansi256/Fill/bg=Some(White)/fg=None/D: Cell { symbol: Some("D"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Ansi256/Fill/bg=Some(White)/fg=None/T: Cell { symbol: Some("T"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Ansi256/Fill/bg=Some(White)/fg=Some(Black)/I: Cell { symbol: Some("I"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Ansi256/Fill/bg=Some(White)/fg=Some(Black)/D: Cell { symbol: Some("D"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Ansi256/Fill/bg=Some(White)/fg=Some(Black)/T: Cell { symbol: Some("T"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Ansi256/Fill/bg=Some(White)/fg=Some(White)/I: Cell { symbol: Some("I"), fg: White, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+Ansi256/Fill/bg=Some(White)/fg=Some(White)/D: Cell { symbol: Some("D"), fg: White, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+Ansi256/Fill/bg=Some(White)/fg=Some(White)/T: Cell { symbol: Some("T"), fg: White, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+Ansi256/Fill/bg=Some(White)/fg=Some(Indexed(244))/I: Cell { symbol: Some("I"), fg: Indexed(244), bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=3.94943965
+Ansi256/Fill/bg=Some(White)/fg=Some(Indexed(244))/D: Cell { symbol: Some("D"), fg: Indexed(244), bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=3.94943965
+Ansi256/Fill/bg=Some(White)/fg=Some(Indexed(244))/T: Cell { symbol: Some("T"), fg: Indexed(244), bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=3.94943965
+Ansi256/Fill/bg=Some(Black)/fg=None/I: Cell { symbol: Some("I"), fg: Indexed(231), bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Ansi256/Fill/bg=Some(Black)/fg=None/D: Cell { symbol: Some("D"), fg: Indexed(231), bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Ansi256/Fill/bg=Some(Black)/fg=None/T: Cell { symbol: Some("T"), fg: Indexed(231), bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Ansi256/Fill/bg=Some(Black)/fg=Some(Black)/I: Cell { symbol: Some("I"), fg: Black, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+Ansi256/Fill/bg=Some(Black)/fg=Some(Black)/D: Cell { symbol: Some("D"), fg: Black, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+Ansi256/Fill/bg=Some(Black)/fg=Some(Black)/T: Cell { symbol: Some("T"), fg: Black, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+Ansi256/Fill/bg=Some(Black)/fg=Some(White)/I: Cell { symbol: Some("I"), fg: White, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Ansi256/Fill/bg=Some(Black)/fg=Some(White)/D: Cell { symbol: Some("D"), fg: White, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Ansi256/Fill/bg=Some(Black)/fg=Some(White)/T: Cell { symbol: Some("T"), fg: White, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Ansi256/Fill/bg=Some(Black)/fg=Some(Indexed(244))/I: Cell { symbol: Some("I"), fg: Indexed(244), bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=5.31721000
+Ansi256/Fill/bg=Some(Black)/fg=Some(Indexed(244))/D: Cell { symbol: Some("D"), fg: Indexed(244), bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=5.31721000
+Ansi256/Fill/bg=Some(Black)/fg=Some(Indexed(244))/T: Cell { symbol: Some("T"), fg: Indexed(244), bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=5.31721000
+Ansi16/Bar/bg=None/fg=None/I: Cell { symbol: Some("I"), fg: White, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Ansi16/Bar/bg=None/fg=None/D: Cell { symbol: Some("D"), fg: Gray, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=16.67075583
+Ansi16/Bar/bg=None/fg=None/T: Cell { symbol: Some("T"), fg: Gray, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=16.67075583
+Ansi16/Bar/bg=None/fg=Some(Black)/I: Cell { symbol: Some("I"), fg: Black, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+Ansi16/Bar/bg=None/fg=Some(Black)/D: Cell { symbol: Some("D"), fg: Black, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+Ansi16/Bar/bg=None/fg=Some(Black)/T: Cell { symbol: Some("T"), fg: Black, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+Ansi16/Bar/bg=None/fg=Some(White)/I: Cell { symbol: Some("I"), fg: White, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Ansi16/Bar/bg=None/fg=Some(White)/D: Cell { symbol: Some("D"), fg: White, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Ansi16/Bar/bg=None/fg=Some(White)/T: Cell { symbol: Some("T"), fg: White, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Ansi16/Bar/bg=None/fg=Some(Gray)/I: Cell { symbol: Some("I"), fg: Gray, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=16.67075583
+Ansi16/Bar/bg=None/fg=Some(Gray)/D: Cell { symbol: Some("D"), fg: Gray, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=16.67075583
+Ansi16/Bar/bg=None/fg=Some(Gray)/T: Cell { symbol: Some("T"), fg: Gray, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=16.67075583
+Ansi16/Bar/bg=Some(White)/fg=None/I: Cell { symbol: Some("I"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Ansi16/Bar/bg=Some(White)/fg=None/D: Cell { symbol: Some("D"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Ansi16/Bar/bg=Some(White)/fg=None/T: Cell { symbol: Some("T"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Ansi16/Bar/bg=Some(White)/fg=Some(Black)/I: Cell { symbol: Some("I"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Ansi16/Bar/bg=Some(White)/fg=Some(Black)/D: Cell { symbol: Some("D"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Ansi16/Bar/bg=Some(White)/fg=Some(Black)/T: Cell { symbol: Some("T"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Ansi16/Bar/bg=Some(White)/fg=Some(White)/I: Cell { symbol: Some("I"), fg: White, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+Ansi16/Bar/bg=Some(White)/fg=Some(White)/D: Cell { symbol: Some("D"), fg: White, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+Ansi16/Bar/bg=Some(White)/fg=Some(White)/T: Cell { symbol: Some("T"), fg: White, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+Ansi16/Bar/bg=Some(White)/fg=Some(Gray)/I: Cell { symbol: Some("I"), fg: Gray, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.25969094
+Ansi16/Bar/bg=Some(White)/fg=Some(Gray)/D: Cell { symbol: Some("D"), fg: Gray, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.25969094
+Ansi16/Bar/bg=Some(White)/fg=Some(Gray)/T: Cell { symbol: Some("T"), fg: Gray, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.25969094
+Ansi16/Bar/bg=Some(Black)/fg=None/I: Cell { symbol: Some("I"), fg: White, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Ansi16/Bar/bg=Some(Black)/fg=None/D: Cell { symbol: Some("D"), fg: Gray, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=16.67075583
+Ansi16/Bar/bg=Some(Black)/fg=None/T: Cell { symbol: Some("T"), fg: Gray, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=16.67075583
+Ansi16/Bar/bg=Some(Black)/fg=Some(Black)/I: Cell { symbol: Some("I"), fg: Black, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+Ansi16/Bar/bg=Some(Black)/fg=Some(Black)/D: Cell { symbol: Some("D"), fg: Black, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+Ansi16/Bar/bg=Some(Black)/fg=Some(Black)/T: Cell { symbol: Some("T"), fg: Black, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+Ansi16/Bar/bg=Some(Black)/fg=Some(White)/I: Cell { symbol: Some("I"), fg: White, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Ansi16/Bar/bg=Some(Black)/fg=Some(White)/D: Cell { symbol: Some("D"), fg: White, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Ansi16/Bar/bg=Some(Black)/fg=Some(White)/T: Cell { symbol: Some("T"), fg: White, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Ansi16/Bar/bg=Some(Black)/fg=Some(Gray)/I: Cell { symbol: Some("I"), fg: Gray, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=16.67075583
+Ansi16/Bar/bg=Some(Black)/fg=Some(Gray)/D: Cell { symbol: Some("D"), fg: Gray, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=16.67075583
+Ansi16/Bar/bg=Some(Black)/fg=Some(Gray)/T: Cell { symbol: Some("T"), fg: Gray, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=16.67075583
+Ansi16/Fill/bg=None/fg=None/I: Cell { symbol: Some("I"), fg: White, bg: Blue, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=9.39761584
+Ansi16/Fill/bg=None/fg=None/D: Cell { symbol: Some("D"), fg: White, bg: Blue, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=9.39761584
+Ansi16/Fill/bg=None/fg=None/T: Cell { symbol: Some("T"), fg: White, bg: Blue, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=9.39761584
+Ansi16/Fill/bg=None/fg=Some(Black)/I: Cell { symbol: Some("I"), fg: Black, bg: Blue, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=2.23460933
+Ansi16/Fill/bg=None/fg=Some(Black)/D: Cell { symbol: Some("D"), fg: Black, bg: Blue, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=2.23460933
+Ansi16/Fill/bg=None/fg=Some(Black)/T: Cell { symbol: Some("T"), fg: Black, bg: Blue, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=2.23460933
+Ansi16/Fill/bg=None/fg=Some(White)/I: Cell { symbol: Some("I"), fg: White, bg: Blue, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=9.39761584
+Ansi16/Fill/bg=None/fg=Some(White)/D: Cell { symbol: Some("D"), fg: White, bg: Blue, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=9.39761584
+Ansi16/Fill/bg=None/fg=Some(White)/T: Cell { symbol: Some("T"), fg: White, bg: Blue, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=9.39761584
+Ansi16/Fill/bg=None/fg=Some(Gray)/I: Cell { symbol: Some("I"), fg: Gray, bg: Blue, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=7.46025519
+Ansi16/Fill/bg=None/fg=Some(Gray)/D: Cell { symbol: Some("D"), fg: Gray, bg: Blue, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=7.46025519
+Ansi16/Fill/bg=None/fg=Some(Gray)/T: Cell { symbol: Some("T"), fg: Gray, bg: Blue, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=7.46025519
+Ansi16/Fill/bg=Some(White)/fg=None/I: Cell { symbol: Some("I"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Ansi16/Fill/bg=Some(White)/fg=None/D: Cell { symbol: Some("D"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Ansi16/Fill/bg=Some(White)/fg=None/T: Cell { symbol: Some("T"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Ansi16/Fill/bg=Some(White)/fg=Some(Black)/I: Cell { symbol: Some("I"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Ansi16/Fill/bg=Some(White)/fg=Some(Black)/D: Cell { symbol: Some("D"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Ansi16/Fill/bg=Some(White)/fg=Some(Black)/T: Cell { symbol: Some("T"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Ansi16/Fill/bg=Some(White)/fg=Some(White)/I: Cell { symbol: Some("I"), fg: White, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+Ansi16/Fill/bg=Some(White)/fg=Some(White)/D: Cell { symbol: Some("D"), fg: White, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+Ansi16/Fill/bg=Some(White)/fg=Some(White)/T: Cell { symbol: Some("T"), fg: White, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+Ansi16/Fill/bg=Some(White)/fg=Some(Gray)/I: Cell { symbol: Some("I"), fg: Gray, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.25969094
+Ansi16/Fill/bg=Some(White)/fg=Some(Gray)/D: Cell { symbol: Some("D"), fg: Gray, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.25969094
+Ansi16/Fill/bg=Some(White)/fg=Some(Gray)/T: Cell { symbol: Some("T"), fg: Gray, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.25969094
+Ansi16/Fill/bg=Some(Black)/fg=None/I: Cell { symbol: Some("I"), fg: White, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Ansi16/Fill/bg=Some(Black)/fg=None/D: Cell { symbol: Some("D"), fg: White, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Ansi16/Fill/bg=Some(Black)/fg=None/T: Cell { symbol: Some("T"), fg: White, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Ansi16/Fill/bg=Some(Black)/fg=Some(Black)/I: Cell { symbol: Some("I"), fg: Black, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+Ansi16/Fill/bg=Some(Black)/fg=Some(Black)/D: Cell { symbol: Some("D"), fg: Black, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+Ansi16/Fill/bg=Some(Black)/fg=Some(Black)/T: Cell { symbol: Some("T"), fg: Black, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+Ansi16/Fill/bg=Some(Black)/fg=Some(White)/I: Cell { symbol: Some("I"), fg: White, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Ansi16/Fill/bg=Some(Black)/fg=Some(White)/D: Cell { symbol: Some("D"), fg: White, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Ansi16/Fill/bg=Some(Black)/fg=Some(White)/T: Cell { symbol: Some("T"), fg: White, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Ansi16/Fill/bg=Some(Black)/fg=Some(Gray)/I: Cell { symbol: Some("I"), fg: Gray, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=16.67075583
+Ansi16/Fill/bg=Some(Black)/fg=Some(Gray)/D: Cell { symbol: Some("D"), fg: Gray, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=16.67075583
+Ansi16/Fill/bg=Some(Black)/fg=Some(Gray)/T: Cell { symbol: Some("T"), fg: Gray, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=16.67075583
+Mono/Bar/bg=None/fg=None/I: Cell { symbol: Some("I"), fg: White, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Mono/Bar/bg=None/fg=None/D: Cell { symbol: Some("D"), fg: Gray, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=16.67075583
+Mono/Bar/bg=None/fg=None/T: Cell { symbol: Some("T"), fg: Gray, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=16.67075583
+Mono/Bar/bg=None/fg=Some(Black)/I: Cell { symbol: Some("I"), fg: Black, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+Mono/Bar/bg=None/fg=Some(Black)/D: Cell { symbol: Some("D"), fg: Black, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+Mono/Bar/bg=None/fg=Some(Black)/T: Cell { symbol: Some("T"), fg: Black, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+Mono/Bar/bg=None/fg=Some(White)/I: Cell { symbol: Some("I"), fg: White, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Mono/Bar/bg=None/fg=Some(White)/D: Cell { symbol: Some("D"), fg: White, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Mono/Bar/bg=None/fg=Some(White)/T: Cell { symbol: Some("T"), fg: White, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Mono/Bar/bg=None/fg=Some(Gray)/I: Cell { symbol: Some("I"), fg: White, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Mono/Bar/bg=None/fg=Some(Gray)/D: Cell { symbol: Some("D"), fg: White, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Mono/Bar/bg=None/fg=Some(Gray)/T: Cell { symbol: Some("T"), fg: White, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Mono/Bar/bg=Some(White)/fg=None/I: Cell { symbol: Some("I"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Mono/Bar/bg=Some(White)/fg=None/D: Cell { symbol: Some("D"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Mono/Bar/bg=Some(White)/fg=None/T: Cell { symbol: Some("T"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Mono/Bar/bg=Some(White)/fg=Some(Black)/I: Cell { symbol: Some("I"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Mono/Bar/bg=Some(White)/fg=Some(Black)/D: Cell { symbol: Some("D"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Mono/Bar/bg=Some(White)/fg=Some(Black)/T: Cell { symbol: Some("T"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Mono/Bar/bg=Some(White)/fg=Some(White)/I: Cell { symbol: Some("I"), fg: White, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+Mono/Bar/bg=Some(White)/fg=Some(White)/D: Cell { symbol: Some("D"), fg: White, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+Mono/Bar/bg=Some(White)/fg=Some(White)/T: Cell { symbol: Some("T"), fg: White, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+Mono/Bar/bg=Some(White)/fg=Some(Gray)/I: Cell { symbol: Some("I"), fg: White, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+Mono/Bar/bg=Some(White)/fg=Some(Gray)/D: Cell { symbol: Some("D"), fg: White, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+Mono/Bar/bg=Some(White)/fg=Some(Gray)/T: Cell { symbol: Some("T"), fg: White, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+Mono/Bar/bg=Some(Black)/fg=None/I: Cell { symbol: Some("I"), fg: White, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Mono/Bar/bg=Some(Black)/fg=None/D: Cell { symbol: Some("D"), fg: Gray, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=16.67075583
+Mono/Bar/bg=Some(Black)/fg=None/T: Cell { symbol: Some("T"), fg: Gray, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=16.67075583
+Mono/Bar/bg=Some(Black)/fg=Some(Black)/I: Cell { symbol: Some("I"), fg: Black, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+Mono/Bar/bg=Some(Black)/fg=Some(Black)/D: Cell { symbol: Some("D"), fg: Black, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+Mono/Bar/bg=Some(Black)/fg=Some(Black)/T: Cell { symbol: Some("T"), fg: Black, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+Mono/Bar/bg=Some(Black)/fg=Some(White)/I: Cell { symbol: Some("I"), fg: White, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Mono/Bar/bg=Some(Black)/fg=Some(White)/D: Cell { symbol: Some("D"), fg: White, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Mono/Bar/bg=Some(Black)/fg=Some(White)/T: Cell { symbol: Some("T"), fg: White, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Mono/Bar/bg=Some(Black)/fg=Some(Gray)/I: Cell { symbol: Some("I"), fg: White, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Mono/Bar/bg=Some(Black)/fg=Some(Gray)/D: Cell { symbol: Some("D"), fg: White, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Mono/Bar/bg=Some(Black)/fg=Some(Gray)/T: Cell { symbol: Some("T"), fg: White, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Mono/Fill/bg=None/fg=None/I: Cell { symbol: Some("I"), fg: White, bg: DarkGray, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=4.00410696
+Mono/Fill/bg=None/fg=None/D: Cell { symbol: Some("D"), fg: White, bg: DarkGray, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=4.00410696
+Mono/Fill/bg=None/fg=None/T: Cell { symbol: Some("T"), fg: White, bg: DarkGray, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=4.00410696
+Mono/Fill/bg=None/fg=Some(Black)/I: Cell { symbol: Some("I"), fg: Black, bg: DarkGray, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=5.24461515
+Mono/Fill/bg=None/fg=Some(Black)/D: Cell { symbol: Some("D"), fg: Black, bg: DarkGray, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=5.24461515
+Mono/Fill/bg=None/fg=Some(Black)/T: Cell { symbol: Some("T"), fg: Black, bg: DarkGray, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=5.24461515
+Mono/Fill/bg=None/fg=Some(White)/I: Cell { symbol: Some("I"), fg: White, bg: DarkGray, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=4.00410696
+Mono/Fill/bg=None/fg=Some(White)/D: Cell { symbol: Some("D"), fg: White, bg: DarkGray, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=4.00410696
+Mono/Fill/bg=None/fg=Some(White)/T: Cell { symbol: Some("T"), fg: White, bg: DarkGray, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=4.00410696
+Mono/Fill/bg=None/fg=Some(Gray)/I: Cell { symbol: Some("I"), fg: White, bg: DarkGray, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=4.00410696
+Mono/Fill/bg=None/fg=Some(Gray)/D: Cell { symbol: Some("D"), fg: White, bg: DarkGray, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=4.00410696
+Mono/Fill/bg=None/fg=Some(Gray)/T: Cell { symbol: Some("T"), fg: White, bg: DarkGray, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=4.00410696
+Mono/Fill/bg=Some(White)/fg=None/I: Cell { symbol: Some("I"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Mono/Fill/bg=Some(White)/fg=None/D: Cell { symbol: Some("D"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Mono/Fill/bg=Some(White)/fg=None/T: Cell { symbol: Some("T"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Mono/Fill/bg=Some(White)/fg=Some(Black)/I: Cell { symbol: Some("I"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Mono/Fill/bg=Some(White)/fg=Some(Black)/D: Cell { symbol: Some("D"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Mono/Fill/bg=Some(White)/fg=Some(Black)/T: Cell { symbol: Some("T"), fg: Black, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Mono/Fill/bg=Some(White)/fg=Some(White)/I: Cell { symbol: Some("I"), fg: White, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+Mono/Fill/bg=Some(White)/fg=Some(White)/D: Cell { symbol: Some("D"), fg: White, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+Mono/Fill/bg=Some(White)/fg=Some(White)/T: Cell { symbol: Some("T"), fg: White, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+Mono/Fill/bg=Some(White)/fg=Some(Gray)/I: Cell { symbol: Some("I"), fg: White, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+Mono/Fill/bg=Some(White)/fg=Some(Gray)/D: Cell { symbol: Some("D"), fg: White, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+Mono/Fill/bg=Some(White)/fg=Some(Gray)/T: Cell { symbol: Some("T"), fg: White, bg: White, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+Mono/Fill/bg=Some(Black)/fg=None/I: Cell { symbol: Some("I"), fg: White, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Mono/Fill/bg=Some(Black)/fg=None/D: Cell { symbol: Some("D"), fg: White, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Mono/Fill/bg=Some(Black)/fg=None/T: Cell { symbol: Some("T"), fg: White, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Mono/Fill/bg=Some(Black)/fg=Some(Black)/I: Cell { symbol: Some("I"), fg: Black, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+Mono/Fill/bg=Some(Black)/fg=Some(Black)/D: Cell { symbol: Some("D"), fg: Black, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+Mono/Fill/bg=Some(Black)/fg=Some(Black)/T: Cell { symbol: Some("T"), fg: Black, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=1.00000000
+Mono/Fill/bg=Some(Black)/fg=Some(White)/I: Cell { symbol: Some("I"), fg: White, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Mono/Fill/bg=Some(Black)/fg=Some(White)/D: Cell { symbol: Some("D"), fg: White, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Mono/Fill/bg=Some(Black)/fg=Some(White)/T: Cell { symbol: Some("T"), fg: White, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Mono/Fill/bg=Some(Black)/fg=Some(Gray)/I: Cell { symbol: Some("I"), fg: White, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Mono/Fill/bg=Some(Black)/fg=Some(Gray)/D: Cell { symbol: Some("D"), fg: White, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000
+Mono/Fill/bg=Some(Black)/fg=Some(Gray)/T: Cell { symbol: Some("T"), fg: White, bg: Black, underline_color: Reset, modifier: ITALIC, diff_option: None, skip: false } ratio=21.00000000

@@ -96,6 +96,75 @@ fn resolve_row_part(
     patch: Option<StylePatch>,
     cursor_style: CursorStyle,
 ) -> crate::theme::Resolved {
+    resolve_row_part_with_defaults(
+        ui,
+        family,
+        variant,
+        flags,
+        part,
+        patch,
+        cursor_style,
+        crate::theme::StyleDefaults::default(),
+    )
+}
+
+fn picker_row_defaults(family: Family, part: Part, flags: StateFlags) -> StylePatch {
+    if family != Family::PICKER {
+        return StylePatch::new();
+    }
+    match part {
+        Part::ICON => {
+            let ink = if flags.contains(StateFlags::FOCUSED) {
+                FgStep::Primary
+            } else {
+                FgStep::Muted
+            };
+            StylePatch::new()
+                .set_fg(Role::Fg(ink))
+                .remove(Modifier::BOLD)
+        }
+        Part::META => StylePatch::new()
+            .set_fg(Role::Fg(FgStep::Muted))
+            .remove(Modifier::BOLD),
+        _ => StylePatch::new(),
+    }
+}
+
+fn readable_picker_ink(
+    preferred: ratatui_core::style::Color,
+    bg: Option<ratatui_core::style::Color>,
+) -> Option<ratatui_core::style::Color> {
+    use crate::theme::contrast_ratio;
+    use ratatui_core::style::Color;
+
+    let bg = bg?;
+    let ratio = |fg| contrast_ratio(fg, bg).unwrap_or(0.0);
+    if ratio(preferred) >= 4.5 {
+        return None;
+    }
+    let (black, white) = (ratio(Color::Black), ratio(Color::White));
+    let (ink, contrast) = if black >= white {
+        (Color::Black, black)
+    } else {
+        (Color::White, white)
+    };
+    (contrast >= 4.5).then_some(ink)
+}
+
+#[expect(
+    clippy::too_many_arguments,
+    reason = "keeps the existing resolver inputs and adds only component defaults"
+)]
+fn resolve_row_part_with_defaults(
+    ui: &mut Ui<'_>,
+    family: Family,
+    variant: Variant,
+    flags: StateFlags,
+    part: Part,
+    patch: Option<StylePatch>,
+    cursor_style: CursorStyle,
+    component_defaults: crate::theme::StyleDefaults<'_>,
+) -> crate::theme::Resolved {
     if cursor_style == CursorStyle::Fill && part == Part::GUTTER {
         // Preserve the established blank-cell ink in both active and inactive
         // filled rows. The gutter's default is lower precedence than authored
@@ -126,31 +195,36 @@ fn resolve_row_part(
         }
         return resolved;
     }
+    let mut fallback = picker_row_defaults(family, part, flags).merge(component_defaults.base);
     if cursor_style == CursorStyle::Fill && flags.contains(StateFlags::FOCUSED) {
-        let natural = match patch {
-            Some(patch) => ui.style_patched(family, variant, part, flags, &patch),
-            None => ui.style(family, variant, part, flags),
-        };
-        let owner_ink = |role: Option<(Role, crate::theme::Surface)>| {
-            role.is_some_and(|(role, _)| matches!(role, Role::Custom(_)))
-        };
-        // Built-in fill ink is highlight. An explicit owner role still wins.
-        let resolved = if !owner_ink(natural.style.fg_role) && !owner_ink(natural.style.bg_role) {
-            // Cursor-fill styling is a default. Theme overrides and overlays
-            // must still resolve above it; only the row's explicit instance
-            // patch belongs at the top of the precedence stack.
-            let resolved = ui.style_defaults_with_explicit(
+        fallback = fallback.merge(selected_part_patch(part));
+    }
+    let mut defaults = crate::theme::StyleDefaults::new(fallback).mono(component_defaults.mono);
+    if fallback != StylePatch::new() || !component_defaults.mono.is_empty() {
+        let mut resolved =
+            ui.style_defaults_with_explicit(family, variant, part, flags, defaults, patch.as_ref());
+        if family == Family::PICKER
+            && matches!(part, Part::ICON | Part::META)
+            // Contrast repair is only needed when the owner supplied a
+            // concrete background. Theme/profile defaults are intentional
+            // product styling and must remain unchanged (notably in mono).
+            && resolved.explicit.bg != Slot::Inherit
+            && resolved.explicit.fg == Slot::Inherit
+            && let Some(preferred) = resolved.resolved.style.fg
+            && let Some(ink) = readable_picker_ink(preferred, resolved.resolved.style.bg)
+        {
+            fallback = fallback.set_fg(Role::Custom(ink));
+            defaults = crate::theme::StyleDefaults::new(fallback).mono(component_defaults.mono);
+            resolved = ui.style_defaults_with_explicit(
                 family,
                 variant,
                 part,
                 flags,
-                crate::theme::StyleDefaults::new(selected_part_patch(part)),
+                defaults,
                 patch.as_ref(),
             );
-            resolved.resolved
-        } else {
-            natural
-        };
+        }
+        let resolved = resolved.resolved;
         if part == Part::GUTTER {
             let explicit = ui.style_defaults_with_explicit(
                 family,
@@ -553,8 +627,16 @@ impl<'u> RowUi<'u> {
     }
 
     fn style_of(&mut self, part: Part) -> PaintStyle {
+        self.style_of_with_defaults(part, crate::theme::StyleDefaults::default())
+    }
+
+    fn style_of_with_defaults(
+        &mut self,
+        part: Part,
+        defaults: crate::theme::StyleDefaults<'_>,
+    ) -> PaintStyle {
         let patch = self.patch_for(part);
-        let r = resolve_row_part(
+        let r = resolve_row_part_with_defaults(
             &mut self.ui,
             self.family,
             self.variant,
@@ -562,6 +644,7 @@ impl<'u> RowUi<'u> {
             part,
             patch,
             self.cursor_style,
+            defaults,
         );
         #[cfg(feature = "testing")]
         self.ui
@@ -859,6 +942,29 @@ impl<'u> RowUi<'u> {
         };
         self.ui.paint_str(cell, s, st);
         self.right = self.right.saturating_add(need).saturating_add(gap);
+    }
+
+    /// Paint right-aligned metadata with a lower-precedence component default.
+    ///
+    /// The default is applied before the authored family and variant recipes,
+    /// state rules, theme overrides, overlays, and instance patches. Those
+    /// channels therefore remain authoritative independently for each style
+    /// channel, including when they explicitly repeat a default value.
+    pub fn meta_with_defaults(&mut self, s: &str, defaults: termrock_theme::StyleDefaults<'_>) {
+        let need = width(s);
+        let area = self.remaining();
+        if need == 0 || need.saturating_add(2) > area.width {
+            return;
+        }
+        let st = self.style_of_with_defaults(Part::META, defaults);
+        let cell = Rect {
+            x: area.right().saturating_sub(need),
+            y: area.y,
+            width: need,
+            height: 1,
+        };
+        self.ui.paint_str(cell, s, st);
+        self.right = self.right.saturating_add(need).saturating_add(1);
     }
 
     pub fn trailing(&mut self, s: &str, p: &StylePatch) {
@@ -1275,9 +1381,22 @@ impl ColumnsUi<'_> {
     }
 
     pub fn cell_part(&mut self, i: usize, part: Part) -> CellUi<'_> {
+        self.cell_part_with_defaults(i, part, termrock_theme::StyleDefaults::default())
+    }
+
+    /// Resolve a column part with a component default below authored styles.
+    ///
+    /// Authored recipes and state rules, global and scoped overrides, overlays,
+    /// and the local instance patch retain precedence over this fallback.
+    pub fn cell_part_with_defaults(
+        &mut self,
+        i: usize,
+        part: Part,
+        defaults: termrock_theme::StyleDefaults<'_>,
+    ) -> CellUi<'_> {
         let rect = self.rect(i);
         let patch = (part == Part::LABEL).then_some(self.label_patch).flatten();
-        let resolved = resolve_row_part(
+        let resolved = resolve_row_part_with_defaults(
             &mut self.ui,
             self.family,
             self.variant,
@@ -1285,6 +1404,7 @@ impl ColumnsUi<'_> {
             part,
             patch,
             self.cursor_style,
+            defaults,
         );
         #[cfg(feature = "testing")]
         self.ui
