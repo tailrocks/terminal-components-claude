@@ -83,11 +83,11 @@ pub struct MasterDetailLayout {
 }
 
 /// Persistent split and narrow-drawer state for [`MasterDetail`].
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct MasterDetailState {
     split: Option<SplitPaneState>,
-    drawer_open: core::cell::Cell<bool>,
-    return_focus: core::cell::Cell<Option<Id>>,
+    drawer_open: bool,
+    return_focus: Option<Id>,
 }
 
 impl MasterDetailState {
@@ -96,28 +96,28 @@ impl MasterDetailState {
     }
 
     pub const fn drawer_open(&self) -> bool {
-        self.drawer_open.get()
+        self.drawer_open
     }
 
     /// Open the narrow detail view and remember the control to restore on close.
     fn open_drawer(&mut self, cx: &mut Cx<'_>, detail: Id, return_focus: Id) {
-        self.drawer_open.set(true);
-        self.return_focus.set(Some(return_focus));
+        self.drawer_open = true;
+        self.return_focus = Some(return_focus);
         cx.focus(detail);
     }
 
     /// Close the detail view and return focus to its remembered owner.
     fn close_drawer(&mut self, cx: &mut Cx<'_>, master: Id) {
-        self.drawer_open.set(false);
+        self.drawer_open = false;
         cx.focus(self.return_focus.take().unwrap_or(master));
     }
 
-    fn reconcile_drawer(&self, master_focused: bool, detail_focused: bool) {
+    fn reconcile_drawer(&mut self, master_focused: bool, detail_focused: bool) {
         if detail_focused {
-            self.drawer_open.set(true);
+            self.drawer_open = true;
         } else if master_focused {
-            self.drawer_open.set(false);
-            self.return_focus.set(None);
+            self.drawer_open = false;
+            self.return_focus = None;
         }
     }
 }
@@ -189,7 +189,7 @@ impl MasterDetail {
     }
 
     pub fn toggle_drawer(&self, state: &mut MasterDetailState, cx: &mut Cx<'_>) {
-        if state.drawer_open.get() {
+        if state.drawer_open {
             self.close_drawer(state, cx);
         } else {
             self.open_drawer(state, cx);
@@ -250,18 +250,22 @@ impl MasterDetail {
 
     /// Route split resizing and master/detail focus transitions at every width.
     pub fn update(&self, cx: &mut Cx<'_>, state: &mut MasterDetailState) -> Response<SplitAction> {
-        for intent in cx.intents(self.master) {
-            if matches!(intent, Intent::Binding(action) if is_open_detail(action)) {
-                self.open_drawer(state, cx);
-                return Response::changed().for_id(self.id);
-            }
-        }
+        let master_focused = cx
+            .state(self.master)
+            .contains(crate::response::StateFlags::FOCUSED);
         let detail_focused = self
             .detail_owners
             .iter()
             .copied()
             .chain([self.detail])
             .any(|id| cx.state(id).contains(crate::response::StateFlags::FOCUSED));
+        state.reconcile_drawer(master_focused, detail_focused);
+        for intent in cx.intents(self.master) {
+            if matches!(intent, Intent::Binding(action) if is_open_detail(action)) {
+                self.open_drawer(state, cx);
+                return Response::changed().for_id(self.id);
+            }
+        }
         if detail_focused && self.esc_returns {
             for owner in self.detail_owners.iter().copied().chain([self.detail]) {
                 for intent in cx.intents(owner) {
@@ -280,31 +284,34 @@ impl MasterDetail {
 
     /// Compute stable pane regions for a terminal area.
     pub fn layout(&self, area: Rect, state: &MasterDetailState) -> MasterDetailLayout {
-        self.layout_for(area, state, false)
-    }
-
-    fn layout_for(
-        &self,
-        area: Rect,
-        state: &MasterDetailState,
-        detail_focused: bool,
-    ) -> MasterDetailLayout {
-        if area.width >= self.collapse_below {
+        let mut layout = self.resolve_responsive_layout(area, state.drawer_open);
+        if layout.mode == MasterDetailMode::Split {
             let split = self.split_pane();
             let split_state = state
                 .split
                 .unwrap_or_else(|| SplitPaneState::new(self.master_share));
             let (master, detail) = split.panes(split_state, area);
+            layout.master = master;
+            layout.detail = detail;
+            layout.seam = split.seam(split_state, area);
+        }
+        layout
+    }
+
+    /// Resolve shared responsive mode and narrow summary geometry.
+    ///
+    /// Split pane geometry remains owned by the configured [`SplitPane`]. In
+    /// split mode, the pane rectangles in the returned value are empty; use
+    /// [`Self::layout`] when this control's split regions are needed.
+    pub fn resolve_responsive_layout(&self, area: Rect, drawer_open: bool) -> MasterDetailLayout {
+        if area.width >= self.collapse_below {
             return MasterDetailLayout {
                 mode: MasterDetailMode::Split,
-                master,
-                detail,
-                summary: Rect::ZERO,
-                seam: split.seam(split_state, area),
+                ..MasterDetailLayout::default()
             };
         }
 
-        if state.drawer_open.get() || detail_focused {
+        if drawer_open {
             return MasterDetailLayout {
                 mode: MasterDetailMode::Drawer,
                 detail: area,
@@ -338,17 +345,7 @@ impl MasterDetail {
         state: &MasterDetailState,
         body: impl FnOnce(&mut Ui<'_>, MasterDetailLayout) -> R,
     ) -> R {
-        let detail_focused = self
-            .detail_owners
-            .iter()
-            .copied()
-            .chain([self.detail])
-            .any(|id| ui.state(id).contains(crate::response::StateFlags::FOCUSED));
-        let master_focused = ui
-            .state(self.master)
-            .contains(crate::response::StateFlags::FOCUSED);
-        state.reconcile_drawer(master_focused, detail_focused);
-        let layout = self.layout_for(area, state, detail_focused);
+        let layout = self.layout(area, state);
         if layout.mode == MasterDetailMode::Split {
             let split = self.split_pane();
             let split_state = state
@@ -435,7 +432,7 @@ mod tests {
         assert_eq!(below.summary, Rect::new(0, 34, 99, 6));
 
         let state = MasterDetailState {
-            drawer_open: core::cell::Cell::new(true),
+            drawer_open: true,
             ..state
         };
         let drawer = MD.layout(Rect::new(4, 2, 80, 20), &state);
@@ -498,6 +495,67 @@ mod tests {
         md: MasterDetail,
         state: MasterDetailState,
         keymap: KeyMap,
+    }
+
+    const REAL_MASTER: Id = Id::root("master-detail.real.master");
+    const REAL_DETAIL: Id = Id::root("master-detail.real.detail");
+    fn real_md() -> MasterDetail {
+        MD.detail_owns(&[REAL_DETAIL])
+    }
+
+    struct RealChildrenApp {
+        state: MasterDetailState,
+        area: Rect,
+        keymap: KeyMap,
+    }
+
+    impl RealChildrenApp {
+        fn master_button() -> crate::Button<'static> {
+            crate::Button::new(REAL_MASTER, "Device catalog")
+        }
+
+        fn detail_button() -> crate::Button<'static> {
+            crate::Button::new(REAL_DETAIL, "Device telemetry")
+        }
+    }
+
+    impl App for RealChildrenApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            let md = real_md();
+            let response = md.update(cx, &mut self.state);
+            match md.layout(self.area, &self.state).mode {
+                MasterDetailMode::Split => {
+                    let _ = Self::master_button().update(cx);
+                    let _ = Self::detail_button().update(cx);
+                }
+                MasterDetailMode::Master => {
+                    let _ = Self::master_button().update(cx);
+                }
+                MasterDetailMode::Drawer => {
+                    let _ = Self::detail_button().update(cx);
+                }
+            }
+            response.erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            real_md().draw(ui, self.area, &self.state, |ui, layout| match layout.mode {
+                MasterDetailMode::Split => {
+                    let _ = Self::master_button().draw(ui, layout.master);
+                    let _ = Self::detail_button().draw(ui, layout.detail);
+                }
+                MasterDetailMode::Master => {
+                    let _ = Self::master_button().draw(ui, layout.master);
+                }
+                MasterDetailMode::Drawer => {
+                    let _ = Self::detail_button().draw(ui, layout.detail);
+                }
+            });
+        }
+
+        fn keymap(&self) -> &KeyMap {
+            &self.keymap
+        }
     }
 
     impl Default for DrawerApp {
@@ -920,6 +978,8 @@ mod tests {
         runtime
             .draw_buffer(Rect::new(0, 0, 120, 40), &mut buffer)
             .commit_presented();
+        assert!(runtime.app().state.drawer_open());
+        let _ = deliver(&mut runtime, key(KeyCode::Char('q')));
         assert!(!runtime.app().state.drawer_open());
 
         let _ = deliver(&mut runtime, crate::event::Input::Resize(80, 24));
@@ -931,6 +991,45 @@ mod tests {
         assert_eq!(runtime.focus(), Some(MD.master));
         assert_eq!(runtime.app().mode.get(), MasterDetailMode::Master);
         assert!(!runtime.app().state.drawer_open());
+    }
+
+    #[test]
+    fn drawing_real_children_does_not_reconcile_or_mutate_caller_state() {
+        let area = Rect::new(0, 0, 120, 30);
+        let mut runtime = Runtime::new(
+            RealChildrenApp {
+                state: MasterDetailState::default(),
+                area,
+                keymap: KeyMap::new(),
+            },
+            Theme::junie(),
+        );
+        let _ = runtime.initialize();
+        let mut buffer = ratatui_core::buffer::Buffer::empty(area);
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        runtime.set_focus(Some(REAL_DETAIL));
+
+        let before = runtime.app().state;
+        let md = real_md();
+        let expected = md.layout(area, &before);
+        assert_eq!(expected.mode, MasterDetailMode::Split);
+        for _ in 0..2 {
+            buffer = ratatui_core::buffer::Buffer::empty(area);
+            runtime.draw_buffer(area, &mut buffer).commit_presented();
+            assert_eq!(runtime.app().state, before);
+            assert_eq!(md.layout(area, &runtime.app().state), expected);
+            assert_eq!(runtime.focus(), Some(REAL_DETAIL));
+        }
+
+        let _ = deliver(&mut runtime, key(KeyCode::Char('q')));
+        assert!(runtime.app().state.drawer_open());
+        let narrow = Rect::new(0, 0, 80, 24);
+        runtime.app_mut().area = narrow;
+        buffer = ratatui_core::buffer::Buffer::empty(narrow);
+        runtime.draw_buffer(narrow, &mut buffer).commit_presented();
+        let resolved = md.layout(narrow, &runtime.app().state);
+        assert_eq!(resolved.mode, MasterDetailMode::Drawer);
+        assert_eq!(resolved.detail, narrow);
     }
 
     #[test]
