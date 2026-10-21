@@ -261,8 +261,11 @@ pub fn paint_grid_vertical_bar(
         let y = area.y.saturating_add(1).saturating_add(offset as u16);
         let from_end = track_len.saturating_sub(offset).saturating_sub(1);
         let from_start = origin > 0 && (offset == 0 || offset == 1);
+        // Two body rows are the whole viewport. Fading both fights the
+        // baseline, which keeps that short grid solid.
+        let edge = track_len > 2;
         let cover = if !truecolor {
-            if from_end == 0 || (from_start && offset == 0) {
+            if edge && (from_end == 0 || (from_start && offset == 0)) {
                 if policy.cover_far_dim {
                     plain.add_modifier(Modifier::DIM)
                 } else {
@@ -271,9 +274,9 @@ pub fn paint_grid_vertical_bar(
             } else {
                 plain
             }
-        } else if from_end == 0 || (from_start && offset == 0) {
+        } else if edge && (from_end == 0 || (from_start && offset == 0)) {
             plain.patch(ui.paint_patch(&StylePatch::new().set_fg(policy.cover_far)))
-        } else if from_end == 1 || (from_start && offset == 1) {
+        } else if edge && (from_end == 1 || (from_start && offset == 1)) {
             plain.patch(ui.paint_patch(&StylePatch::new().set_fg(policy.cover_near)))
         } else {
             // The focused row stays bold through the cover cell. Edge rows
