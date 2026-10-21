@@ -1077,10 +1077,10 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
                 self.row.row(item, &mut row_ui);
             }
             let part = PartRef::item(Part::ROW, semantic.key);
-            ui.register_part(self.id, part, row);
             if self.searchable {
                 ui.register_part(self.results_id, part, row);
             }
+            ui.register_part(self.id, part, row);
         }
     }
 
