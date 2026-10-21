@@ -659,8 +659,10 @@ impl RecipeEdit {
     pub(crate) fn normalized_parts(&self) -> PartMap<PartRecipe> {
         let mut out = PartMap::new();
         for (part, edit) in self.parts.iter() {
-            if !edit.recipe.is_empty() {
-                out.insert(part, edit.recipe.clone());
+            let mut recipe = edit.recipe.clone();
+            recipe.states.retain(|rule| !rule.patch.is_empty());
+            if !recipe.is_empty() {
+                out.insert(part, recipe);
             }
         }
         out
@@ -792,6 +794,89 @@ mod tests {
                 &edit,
             )
             .is_none()
+        );
+    }
+
+    #[test]
+    fn empty_state_patches_are_removed_around_populated_rules() {
+        let mut edit = RecipeEdit::default();
+        let part = edit.part(Part::LABEL);
+        part.base(StylePatch::new().set_fg(Role::Info))
+            .when(StateFlags::empty(), StylePatch::new())
+            .when(StateFlags::HOVERED, StylePatch::new().set_fg(Role::Accent))
+            .when(StateFlags::SELECTED, StylePatch::new())
+            .when(
+                StateFlags::HOVERED | StateFlags::PRESSED,
+                StylePatch::new().set_align(crate::Align::Center),
+            )
+            .when(
+                StateFlags::HOVERED | StateFlags::SELECTED,
+                StylePatch::new(),
+            );
+
+        let normalized = edit.normalized_parts();
+        let normalized = normalized.get(Part::LABEL).unwrap();
+        assert_eq!(normalized.base.fg, Slot::Set(Role::Info));
+        assert_eq!(normalized.states.len(), 2);
+        assert_eq!(normalized.states[0].when, StateFlags::HOVERED);
+        assert_eq!(normalized.states[0].patch.fg, Slot::Set(Role::Accent));
+        assert_eq!(
+            normalized.states[1].when,
+            StateFlags::HOVERED | StateFlags::PRESSED
+        );
+        assert_eq!(
+            normalized.states[1].patch.align,
+            Slot::Set(crate::Align::Center)
+        );
+    }
+
+    #[test]
+    fn empty_state_inside_a_populated_theme_edit_is_a_noop() {
+        let base = crate::Theme::junie();
+        let without_empty_rule = base.clone().define_family(Family::LIST, |edit| {
+            edit.part(Part::LABEL)
+                .base(StylePatch::new().set_fg(Role::Info));
+        });
+        let with_empty_rule = base.clone().define_family(Family::LIST, |edit| {
+            edit.part(Part::LABEL)
+                .base(StylePatch::new().set_fg(Role::Info))
+                .when(StateFlags::HOVERED, StylePatch::new());
+        });
+
+        assert_eq!(without_empty_rule, with_empty_rule);
+        let without_empty_variant =
+            base.clone()
+                .define_variant(Family::LIST, Variant::PRIMARY, |edit| {
+                    edit.part(Part::LABEL)
+                        .base(StylePatch::new().set_fg(Role::Info))
+                        .when(
+                            StateFlags::FOCUSED,
+                            StylePatch::new().set_align(crate::Align::Right),
+                        );
+                });
+        let with_empty_variant = base.define_variant(Family::LIST, Variant::PRIMARY, |edit| {
+            edit.part(Part::LABEL)
+                .base(StylePatch::new().set_fg(Role::Info))
+                .when(StateFlags::empty(), StylePatch::new())
+                .when(
+                    StateFlags::FOCUSED,
+                    StylePatch::new().set_align(crate::Align::Right),
+                )
+                .when(StateFlags::SELECTED, StylePatch::new());
+        });
+        assert_eq!(without_empty_variant, with_empty_variant);
+
+        let empty_only = without_empty_rule
+            .clone()
+            .define_family(Family::LIST, |edit| {
+                edit.part(Part::LABEL)
+                    .when(StateFlags::HOVERED, StylePatch::new());
+            });
+        assert_eq!(without_empty_rule, empty_only);
+        assert_eq!(
+            without_empty_rule.fingerprint(),
+            empty_only.fingerprint(),
+            "an empty state patch must not advance the recipe revision"
         );
     }
 
