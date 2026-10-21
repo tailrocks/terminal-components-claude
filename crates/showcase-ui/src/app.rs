@@ -1159,7 +1159,7 @@ fn legacy_crumb(label: &str) -> (&str, &str) {
         .iter()
         .find(|(row, _)| *row == shown)
         .copied()
-        .unwrap_or(("Components", shown))
+        .unwrap_or((shown, "Components"))
 }
 
 fn paint_header(
