@@ -285,6 +285,7 @@ pub struct Dialog<'a> {
     meta: Option<&'a str>,
     head_in_border: bool,
     chrome_only: bool,
+    close_action: Option<ActionKey>,
     description: Option<&'a str>,
     actions: &'a [Action<'a>],
     cancel: Option<ActionKey>,
@@ -323,6 +324,7 @@ impl<'a> Dialog<'a> {
         Part::DETAIL,
         Part::BODY,
         Part::ACTIONS,
+        Part::CLOSE,
         Part::BACKDROP,
     ];
 
@@ -333,6 +335,7 @@ impl<'a> Dialog<'a> {
             meta: None,
             head_in_border: false,
             chrome_only: false,
+            close_action: None,
             description: None,
             actions: &[],
             cancel: None,
@@ -354,6 +357,15 @@ impl<'a> Dialog<'a> {
         let mut dialog = Self::new(id);
         dialog.chrome_only = true;
         dialog
+    }
+
+    /// Adds a pointer-only close control in the title frame. Its activation
+    /// returns `DialogAction::Action(action)` just like the configured cancel
+    /// action, leaving lifecycle handling with the dialog's owner.
+    #[must_use]
+    pub const fn close_button(mut self, action: ActionKey) -> Self {
+        self.close_action = Some(action);
+        self
     }
 
     pub const fn confirm(id: Id, title: &'a str, question: &'a str) -> Self {
@@ -428,6 +440,10 @@ impl<'a> Dialog<'a> {
 
     pub const fn action_id(&self, i: usize) -> Id {
         self.id.part(Part::ACTIONS).index(i)
+    }
+
+    pub const fn close_id(&self) -> Id {
+        self.id.part(Part::CLOSE)
     }
 
     #[must_use]
@@ -640,6 +656,24 @@ impl<'a> Dialog<'a> {
         let suppress_activation = dismissal.is_some() || dismissed_after_action || !layer_open;
         let is_ack = self.ack.is_some();
         st.set_secret_mode(is_ack);
+        if let Some(action) = self.close_action
+            && let Some(area) = cx.area(self.id)
+            && area.width >= 16
+            && area.height >= 4
+        {
+            let response = Button::new(self.close_id(), "×")
+                .variant(Variant::QUIET)
+                .focusability(Focusability::ClickOnly)
+                .update(cx);
+            if !suppress_activation {
+                if response.activated() {
+                    acc.action(DialogAction::Action(action));
+                    action_fired = true;
+                } else {
+                    acc.fold(&response.erase());
+                }
+            }
+        }
         if self.has_input() {
             let prompt_commit_requested = self.prompt.is_some() && self.prompt_commit_requested(cx);
             let r = if is_ack {
@@ -743,6 +777,24 @@ impl<'a> Dialog<'a> {
     }
 
     fn paint_close(&self, ui: &mut Ui<'_>, outer: Rect) {
+        if self.close_action.is_some() {
+            if outer.width >= 16 && outer.height >= 4 {
+                let x = outer.right().saturating_sub(5);
+                Button::new(self.close_id(), "×")
+                    .variant(Variant::QUIET)
+                    .focusability(Focusability::ClickOnly)
+                    .draw(
+                        ui,
+                        Rect {
+                            x,
+                            y: outer.y,
+                            width: 3,
+                            height: 1,
+                        },
+                    );
+            }
+            return;
+        }
         if outer.width < 8 || outer.height < 3 {
             return;
         }
@@ -1461,6 +1513,10 @@ mod tests {
         let _ = rt.initialize();
         rt.draw_buffer(SCREEN, &mut buf).commit_presented();
         assert_eq!(rt.app().ordinary_height, rt.app().chrome_height + 1);
+        assert!(
+            rt.registry().area_of(DLG.part(Part::CLOSE)).is_none(),
+            "chrome-only Dialog remains visually and interactively unchanged by default"
+        );
         assert!(!rt.registry().regions().iter().any(|region| {
             region.owner == DLG.part(Part::BODY) && region.kind == crate::hit::RegionKind::Control
         }));
