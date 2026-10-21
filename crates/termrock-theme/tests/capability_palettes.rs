@@ -78,6 +78,10 @@ fn all_73_junie_slots_match_reference_capability_output() {
             expected.accent_pressed = Color::Indexed(238);
             expected.accent_tint = Color::Indexed(233);
             expected.focus_ring = Color::Indexed(238);
+            // The frozen `apply_256` table declares the keyword ink as 111
+            // (visual-baseline src/theme.rs:961), and the frozen TablePro
+            // capture paints the SQL keyword at 38;5;111.
+            expected.syntax.keyword = Color::Indexed(111);
             expected.syntax.match_bg = Color::Indexed(233);
             // The menu-row highlight is the generic cube of the Junie
             // highlight ink; the frozen corpus paints the selected chrome
