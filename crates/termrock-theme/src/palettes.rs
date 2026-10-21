@@ -133,9 +133,11 @@ const fn junie_256() -> ColorTokens {
             high: Color::Indexed(167),
             track: Color::Indexed(235),
             fill_rest: crate::theme::MeterFillRest::ReferenceLift,
-            // Frozen ghost/chrome ink (text_ghost = i(238)).
-            stale: Color::Indexed(238),
-            unknown: Color::Indexed(238),
+            // The stale and unknown meter ink share the faint foreground
+            // role (text_faint = i(242)), which the meter semantic token test
+            // asserts as an invariant at every level.
+            stale: Color::Indexed(242),
+            unknown: Color::Indexed(242),
             series: [
                 Color::Indexed(78),
                 Color::Indexed(214),
@@ -156,11 +158,6 @@ fn junie_16() -> ColorTokens {
         .downgrade(ColorLevel::Ansi16)
         .color;
     tokens.field_hover = Color::DarkGray;
-    // The frozen `apply_16` table renders the ghost/chrome ink as DarkGray
-    // (visual-baseline src/theme.rs:1010 `self.text_ghost = DarkGray`), and
-    // the stale/unknown meter ink shares that source.
-    tokens.meter.stale = Color::DarkGray;
-    tokens.meter.unknown = Color::DarkGray;
     tokens
 }
 

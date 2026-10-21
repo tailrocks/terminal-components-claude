@@ -82,19 +82,18 @@ fn all_73_junie_slots_match_reference_capability_output() {
             expected.highlight_bg = Color::Indexed(25);
             expected.syntax.match_current_bg = Color::Indexed(55);
             expected.highlight_danger_bg = Color::Indexed(88);
-            // Corpus stale/unknown meter ink shares the faint/chrome source.
-            expected.meter.stale = Color::Indexed(238);
-            expected.meter.unknown = Color::Indexed(238);
+            // The stale and unknown meter ink share the faint foreground role.
+            expected.meter.stale = expected.fg[3];
+            expected.meter.unknown = expected.fg[3];
             expected.disabled_fg = Color::Indexed(239);
         }
         if level == ColorLevel::Ansi16 {
             // The frozen `apply_16` table renders the faint ink as Gray and the
             // ghost ink as DarkGray (visual-baseline src/theme.rs:1009-1010).
             // The faint slot therefore stays on the generic rule for the
-            // 0x737373 source, and only the ghost-derived meter ink is
-            // authored.
-            expected.meter.stale = Color::DarkGray;
-            expected.meter.unknown = Color::DarkGray;
+            // 0x737373 source, and the meter ink follows the same role.
+            expected.meter.stale = expected.fg[3];
+            expected.meter.unknown = expected.fg[3];
         }
         if level == ColorLevel::Mono {
             // Frozen baseline apply_mono keeps the hovered field black.
