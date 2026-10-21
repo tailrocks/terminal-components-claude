@@ -8085,14 +8085,23 @@ impl App {
                 &container,
                 style,
             );
+            ui.paint_str(Rect::new(crumb_x, area.y, crumb_w, 1), &crumb, bold);
         } else if crumb_x > used {
             ui.paint_str(
                 Rect::new(crumb_x.saturating_sub(sep).saturating_sub(1), area.y, 1, 1),
                 "…",
                 overflow,
             );
+            ui.paint_str(Rect::new(crumb_x, area.y, crumb_w, 1), &crumb, bold);
+        } else {
+            // The crumb would cover a menu title. Keep the titles and
+            // mark the clipped identity with one muted ellipsis.
+            ui.paint_str(
+                Rect::new(right.saturating_sub(1), area.y, 1, 1),
+                "…",
+                overflow,
+            );
         }
-        ui.paint_str(Rect::new(crumb_x, area.y, crumb_w, 1), &crumb, bold);
     }
 
     fn paint_capsule_tab_strip(&self, ui: &mut Ui<'_>, area: Rect) {
