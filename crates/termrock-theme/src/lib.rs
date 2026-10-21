@@ -39,8 +39,8 @@ pub use tokens::{
     MeterTokens, MotionTokens, SizeTokens, SpaceTokens, SyntaxTokens,
 };
 pub use visual::{
-    COLOR_LEVELS, FOCUS_BAR_POLICIES, FocusBarPolicy, GUTTER_CELLS, GutterCell, InactiveSelection,
-    contrast_ratio,
+    BACKDROP_SELECTIONS, BackdropSelection, COLOR_LEVELS, FOCUS_BAR_POLICIES, FocusBarPolicy,
+    GUTTER_CELLS, GutterCell, InactiveSelection, contrast_ratio,
 };
 
 /// Rendering policy for the active row in a cursor-based list.
