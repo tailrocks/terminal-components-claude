@@ -130,10 +130,9 @@ impl App for NestedProbe {
             |_: &mut Ui<'_>, _: Rect| {},
         );
         let shell = AppShell::new();
-        let slots = shell.slots(&one, &body, &one);
         let outer = termrock_runtime::composition::CompositionSlots::column([
-            termrock_runtime::composition::ContentSlot::new(
-                &slots,
+            termrock_runtime::composition::ContentSlot::nested(
+                shell.slots(&one, &body, &one),
                 termrock_layout::ChildPolicy::default(),
             ),
             termrock_runtime::composition::ContentSlot::new(
