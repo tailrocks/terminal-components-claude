@@ -289,7 +289,7 @@ pub struct GlobalOverride {
     pub parts: PartMap<PartRecipe>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Recipes {
     by_family: Vec<(Family, Recipe)>,
     overrides: Vec<GlobalOverride>,
@@ -297,6 +297,23 @@ pub struct Recipes {
     mono: Vec<(Family, Vec<MonoRule>)>,
     level_families: Vec<LevelFamilyRecipe>,
     revision: u64,
+}
+
+/// The revision is a style-cache invalidation token, not theme content: it
+/// comes from a process-global counter, so two themes built from the same
+/// recipes carry different numbers. `PartialEq` already compares the recipes
+/// without it, and the debug output must agree with that, or a theme
+/// fingerprint says "the theme changed" when only the cache token moved.
+impl core::fmt::Debug for Recipes {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("Recipes")
+            .field("by_family", &self.by_family)
+            .field("overrides", &self.overrides)
+            .field("neutral", &self.neutral)
+            .field("mono", &self.mono)
+            .field("level_families", &self.level_families)
+            .finish()
+    }
 }
 
 static NEXT_RECIPE_REVISION: AtomicU64 = AtomicU64::new(1);
