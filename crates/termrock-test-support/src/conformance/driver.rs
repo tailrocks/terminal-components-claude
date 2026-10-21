@@ -394,37 +394,6 @@ fn assert_not_opener_action<C: Conformance>(action: &Option<C::Action>, gesture:
     }
 }
 
-fn clear_activation_setup<C: Conformance>(h: &mut Harness<CaseApp<C>>) {
-    if let Some(opener_action) = C::opener_action() {
-        assert_eq!(
-            h.app_mut().last.take(),
-            Some(opener_action),
-            "{}: expected the owning-layer opener response before activation",
-            C::NAME
-        );
-    } else {
-        // Other setup paths may produce a harmless response. It must never be
-        // mistaken for the result of the gesture under test.
-        let _ = h.app_mut().last.take();
-    }
-    assert!(
-        h.app().last.is_none(),
-        "{}: stale setup response remained before activation",
-        C::NAME
-    );
-}
-
-fn assert_not_opener_action<C: Conformance>(action: &Option<C::Action>, gesture: &str) {
-    if let Some(opener_action) = C::opener_action() {
-        assert_ne!(
-            *action,
-            Some(opener_action),
-            "{}: {gesture} activation reused the opener response",
-            C::NAME
-        );
-    }
-}
-
 pub fn traversal_order_is_registration_order<C: Conformance>() {
     if !has::<C>(Caps::FOCUSABLE) {
         return;
