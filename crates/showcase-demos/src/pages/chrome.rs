@@ -417,14 +417,7 @@ fn paint_card(ui: &mut Ui<'_>, view: Rect, card: &Card, scrolls: bool) {
     if card.inner > width(meta).saturating_add(8) {
         paint_at(ui, view, meta_col, 2, meta, faint);
     }
-    paint_at(
-        ui,
-        view,
-        2,
-        3,
-        &"─".repeat(usize::from(card.inner)),
-        rule,
-    );
+    paint_at(ui, view, 2, 3, &"─".repeat(usize::from(card.inner)), rule);
     for (row, (label, meta)) in SESSIONS.iter().enumerate() {
         let row = row as u16 + 4;
         paint_at(ui, view, 2, row, " ", gutter);
@@ -444,18 +437,18 @@ fn paint_card(ui: &mut Ui<'_>, view: Rect, card: &Card, scrolls: bool) {
         4
     };
     for (index, line) in card.lines.iter().enumerate() {
-        paint_at(
-            ui,
-            view,
-            notes_x,
-            notes_y + index as u16,
-            line,
-            muted,
-        );
+        paint_at(ui, view, notes_x, notes_y + index as u16, line, muted);
     }
     let checks_y = notes_y + card.lines.len() as u16 + 1;
     paint_at(ui, view, notes_x, checks_y, "checks ", muted);
-    paint_at(ui, view, notes_x + 7, checks_y, "2 ok", ink(SUCCESS, SURFACE));
+    paint_at(
+        ui,
+        view,
+        notes_x + 7,
+        checks_y,
+        "2 ok",
+        ink(SUCCESS, SURFACE),
+    );
     paint_at(ui, view, notes_x + 11, checks_y, " · ", muted);
     paint_at(
         ui,
@@ -466,16 +459,16 @@ fn paint_card(ui: &mut Ui<'_>, view: Rect, card: &Card, scrolls: bool) {
         bold(ERROR, SURFACE),
     );
     paint_at(ui, view, notes_x + 22, checks_y, " · ", muted);
+    paint_at(ui, view, notes_x + 25, checks_y, "1 cancelled", muted);
+    let save_y = checks_y + 1;
     paint_at(
         ui,
         view,
-        notes_x + 25,
-        checks_y,
-        "1 cancelled",
-        muted,
+        notes_x + 1,
+        save_y,
+        "Ctrl+S",
+        bold(WHITE, SURFACE),
     );
-    let save_y = checks_y + 1;
-    paint_at(ui, view, notes_x + 1, save_y, "Ctrl+S", bold(WHITE, SURFACE));
     paint_at(ui, view, notes_x + 8, save_y, "Save", muted);
     paint_at(
         ui,
@@ -497,10 +490,38 @@ fn paint_strip(ui: &mut Ui<'_>, view: Rect, row: u16, spinner: &str, content: u1
     paint_at(ui, view, 47, row, " deploying", ink(SECONDARY, SURFACE));
     // The right group keeps the playground's edge.
     let right = content.saturating_sub(2);
-    paint_at(ui, view, right.saturating_sub(21), row, " ", ink(SECONDARY, SURFACE));
-    paint_at(ui, view, right.saturating_sub(20), row, "·", ink(WARNING, SURFACE));
-    paint_at(ui, view, right.saturating_sub(19), row, " 3 pending ", ink(SECONDARY, SURFACE));
-    paint_at(ui, view, right.saturating_sub(7), row, "main ↑2", ink(MUTED, SURFACE));
+    paint_at(
+        ui,
+        view,
+        right.saturating_sub(21),
+        row,
+        " ",
+        ink(SECONDARY, SURFACE),
+    );
+    paint_at(
+        ui,
+        view,
+        right.saturating_sub(20),
+        row,
+        "·",
+        ink(WARNING, SURFACE),
+    );
+    paint_at(
+        ui,
+        view,
+        right.saturating_sub(19),
+        row,
+        " 3 pending ",
+        ink(SECONDARY, SURFACE),
+    );
+    paint_at(
+        ui,
+        view,
+        right.saturating_sub(7),
+        row,
+        "main ↑2",
+        ink(MUTED, SURFACE),
+    );
 }
 
 /// One status bar item. The meters carry their own glyphs.
@@ -548,7 +569,9 @@ impl StatusItem {
             _ => text,
         };
         if self.meter.is_some() {
-            text.saturating_add(1).saturating_add(METER_TRACK).saturating_add(7)
+            text.saturating_add(1)
+                .saturating_add(METER_TRACK)
+                .saturating_add(7)
         } else {
             text
         }
@@ -655,8 +678,8 @@ fn status_plan(width: u16) -> (Vec<(usize, u16)>, Option<u16>, usize) {
             counts[group] = counts[group].saturating_add(1);
         }
         for group in 0..3 {
-            widths[group] = widths[group]
-                .saturating_add(counts[group].saturating_sub(1) * STATUS_GAP);
+            widths[group] =
+                widths[group].saturating_add(counts[group].saturating_sub(1) * STATUS_GAP);
         }
         widths
     };
@@ -666,7 +689,9 @@ fn status_plan(width: u16) -> (Vec<(usize, u16)>, Option<u16>, usize) {
         let gaps = present.saturating_sub(1) * STATUS_GAP;
         let gone = keep.iter().any(|k| !*k);
         let more = if gone { 1 + STATUS_GAP } else { 0 };
-        widths.iter().sum::<u16>()
+        widths
+            .iter()
+            .sum::<u16>()
             .saturating_add(gaps)
             .saturating_add(more)
             .saturating_add(2 * STATUS_EDGE)
@@ -733,7 +758,7 @@ fn status_plan(width: u16) -> (Vec<(usize, u16)>, Option<u16>, usize) {
         rx = rx.saturating_sub(STATUS_GAP);
     }
     right.reverse();
-    let mut right_start = if right.is_empty() {
+    let right_start = if right.is_empty() {
         width.saturating_sub(STATUS_EDGE)
     } else {
         rx.saturating_add(STATUS_GAP)
@@ -782,7 +807,14 @@ fn paint_meter(ui: &mut Ui<'_>, view: Rect, row: u16, x: u16, meter: Meter) {
         MeterTone::Level => ("━", BLUE, WHITE),
         MeterTone::Stale => ("╍", ERROR, MUTED),
     };
-    paint_at(ui, view, x, row, &glyph.repeat(usize::from(filled)), ink(tone, ELEVATED));
+    paint_at(
+        ui,
+        view,
+        x,
+        row,
+        &glyph.repeat(usize::from(filled)),
+        ink(tone, ELEVATED),
+    );
     paint_at(
         ui,
         view,
@@ -876,13 +908,7 @@ fn paint_hints(ui: &mut Ui<'_>, view: Rect, row: u16) {
     );
 }
 
-fn paint_playground(
-    ui: &mut Ui<'_>,
-    view: Rect,
-    page: &Playground,
-    spinner: &str,
-    scrolls: bool,
-) {
+fn paint_playground(ui: &mut Ui<'_>, view: Rect, page: &Playground, spinner: &str, scrolls: bool) {
     paint_menu(ui, view);
     paint_card(ui, view, &page.card, scrolls);
     for (index, line) in page.readout.iter().enumerate() {
@@ -909,7 +935,10 @@ fn paint_playground(
         view,
         1,
         page.status_row - 1,
-        &format!("status bar · StatusBar::layout {}", status_caption(page.width)),
+        &format!(
+            "status bar · StatusBar::layout {}",
+            status_caption(page.width)
+        ),
         ink(FAINT, CANVAS),
     );
     paint_status(ui, view, page.status_row, page.width);
@@ -1040,7 +1069,13 @@ impl Page for ChromePage {
             let scroll = Scroll::layout(playground);
             let page = Playground::layout(scroll.content.width);
             let spinner = SPINNER[self.frame % SPINNER.len()];
-            paint_playground(ui, scroll.view, &page, spinner, scroll.content.width > scroll.view.width);
+            paint_playground(
+                ui,
+                scroll.view,
+                &page,
+                spinner,
+                scroll.content.width > scroll.view.width,
+            );
             paint_scrollbars(ui, &scroll, &page);
         });
     }
