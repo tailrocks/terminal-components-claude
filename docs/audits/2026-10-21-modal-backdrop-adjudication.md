@@ -1,3 +1,5 @@
+> Independent review status: this adjudication does not establish a settled reference decision or accepted fresh capture. The alternate binary cohort is unadmitted; all eight loose streams fail pinned Tuiscotti decoding, and capture metadata records failure/missing artifacts. Chronology, DIM counts and cursor conclusions need correction. Preserve this report and both artifact sets as disputed evidence. See [the independent provenance review](evidence/2026-10-21-current-blockers/modal-adjudication-9b0277-independent-rejection.json). No expected update, cohort substitution or product acceptance is authorized.
+
 # Modal backdrop DIM adjudication: the frozen baseline data is defective, the parity port is correct
 
 - Date: 2026-10-21
