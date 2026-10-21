@@ -51,7 +51,12 @@ const CHROME_FRAMES: &[(PageId, u16, u16, bool, &str, u64)] = &[
         "truecolor",
         0xc4df8e1e_f62cea73,
     ),
-    (PageId::Overview, 100, 30, false, "16", 0x297069b2_b57e2db6),
+    // The 16-colour frame follows the frozen `apply_16` table, which renders
+    // the faint ink as Gray and the ghost ink as DarkGray (visual-baseline
+    // src/theme.rs:1009-1010). The previous digest (0x297069b2_b57e2db6) came
+    // from the older faint/ghost indices; it is preserved in the migration
+    // record.
+    (PageId::Overview, 100, 30, false, "16", 0xe8d99bc6_c7e1eff2),
 ];
 
 fn frame_digest(page: PageId, width: u16, height: u16, inspector: bool, level: ColorLevel) -> u64 {

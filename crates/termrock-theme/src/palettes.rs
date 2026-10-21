@@ -83,15 +83,19 @@ const fn junie_256() -> ColorTokens {
         focus_ring: Color::Indexed(238),
         selection_bg: Color::Indexed(237),
         selection_fg: Color::Indexed(231),
-        highlight_bg: Color::Indexed(67),
+        // Frozen `apply_256` highlight plate (visual-baseline src/theme.rs:
+        // `self.highlight = i(25)`).
+        highlight_bg: Color::Indexed(25),
         highlight_fg: Color::Indexed(231),
-        highlight_danger_bg: Color::Indexed(238),
+        // Frozen `apply_256` danger highlight plate (`self.highlight_danger =
+        // i(88)`).
+        highlight_danger_bg: Color::Indexed(88),
         highlight_danger_fg: Color::Indexed(231),
         backdrop_fg: Color::Indexed(235),
         backdrop_bg: Color::Indexed(16),
         danger: Color::Indexed(167),
         danger_soft: Color::Indexed(181),
-        danger_tint: Color::Indexed(233),
+        danger_tint: Color::Indexed(52),
         warning: Color::Indexed(214),
         warning_tint: Color::Indexed(234),
         success: Color::Indexed(78),
@@ -115,7 +119,9 @@ const fn junie_256() -> ColorTokens {
             invalid: Color::Indexed(167),
             deprecated: Color::Indexed(244),
             match_bg: Color::Indexed(233),
-            match_current_bg: Color::Indexed(67),
+            // Frozen `apply_256` current-match plate
+            // (`self.highlight_on_selection = i(55)`).
+            match_current_bg: Color::Indexed(55),
             bracket_match: Color::Indexed(78),
             diagnostic_error: Color::Indexed(167),
             diagnostic_warning: Color::Indexed(214),
@@ -127,8 +133,9 @@ const fn junie_256() -> ColorTokens {
             high: Color::Indexed(167),
             track: Color::Indexed(235),
             fill_rest: crate::theme::MeterFillRest::ReferenceLift,
-            stale: Color::Indexed(242),
-            unknown: Color::Indexed(242),
+            // Frozen ghost/chrome ink (text_ghost = i(238)).
+            stale: Color::Indexed(238),
+            unknown: Color::Indexed(238),
             series: [
                 Color::Indexed(78),
                 Color::Indexed(214),
@@ -149,6 +156,11 @@ fn junie_16() -> ColorTokens {
         .downgrade(ColorLevel::Ansi16)
         .color;
     tokens.field_hover = Color::DarkGray;
+    // The frozen `apply_16` table renders the ghost/chrome ink as DarkGray
+    // (visual-baseline src/theme.rs:1010 `self.text_ghost = DarkGray`), and
+    // the stale/unknown meter ink shares that source.
+    tokens.meter.stale = Color::DarkGray;
+    tokens.meter.unknown = Color::DarkGray;
     tokens
 }
 

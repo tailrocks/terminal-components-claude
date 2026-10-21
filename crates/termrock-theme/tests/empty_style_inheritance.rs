@@ -286,7 +286,12 @@ fn standalone_empty_cells_match_pre_inheritance_reference() {
         }
     }
 
-    assert_eq!(fingerprint, 312_677_554_172_290_677);
+    // The pinned fingerprint follows the frozen Junie inks: the muted and
+    // faint roles render at the indices the reference `apply_256`/`apply_16`
+    // tables declare (visual-baseline src/theme.rs:930-1010), so the empty
+    // state's own ink changed with the restored palette. The previous value
+    // (312_677_554_172_290_677) is preserved in the migration record.
+    assert_eq!(fingerprint, 2_278_838_586_319_248_431);
 }
 
 #[test]
