@@ -24,3 +24,7 @@ The first external c8 probe run passed both immediate-choice tests. Its valid-fo
 - `cargo nextest run -p termrock-conformance --test control_states`: radio cases passed; three unrelated existing failures remain: `w02_button_variants_all_states_and_focus_gutter`, `w08_input_masked_clicks_follow_display`, and `w13_filter_backspace_removes_grapheme` (one additional case skipped by that target).
 
 No baseline snapshots or hashes were changed. Full workspace and paired visual gates remain pending; this bounded change is not evidence of complete application parity.
+
+## Independent review correction
+
+The independent review at `branch-consolidation/radio-navigation-review-e8b6526-20261021/review.json` found that Immediate navigation compared the destination with the prior cursor. After a pointer press moved the cursor and an outside release cancelled activation, End (or Down at the last row) could leave the chosen value unchanged. A real-runtime regression for both sequences failed on the reviewed source before correction. Immediate navigation now emits `Chose(destination)` whenever the controlled value differs, even when the cursor is already there. Deferred navigation and cancelled pointer activation retain their separate behavior. Showcase coverage for the public `RadioNavigation` capability remains unresolved; this change adds no Showcase screen.
