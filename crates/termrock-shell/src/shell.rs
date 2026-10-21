@@ -104,6 +104,7 @@ impl AppShell {
             header,
             body,
             footer,
+            spec: termrock_layout::Composition::new(),
         }
     }
 
@@ -122,11 +123,15 @@ impl AppShell {
     /// Begin configuring slot leaves for this shell.
     #[must_use]
     pub const fn with_slots<'a>(self) -> AppShellSlots<'a> {
+        static EMPTY: EmptyLeaf = EmptyLeaf;
         AppShellSlots {
-            shell: self,
-            header: None,
-            body: None,
-            footer: None,
+            slots: ShellSlots {
+                chrome: self.chrome,
+                header: &EMPTY,
+                body: &EMPTY,
+                footer: &EMPTY,
+                spec: termrock_layout::Composition::new(),
+            },
         }
     }
 
@@ -155,11 +160,23 @@ pub struct ShellSlots<'a> {
     header: &'a dyn CompositionLeaf,
     body: &'a dyn CompositionLeaf,
     footer: &'a dyn CompositionLeaf,
+    spec: termrock_layout::Composition,
 }
 
 impl ShellSlots<'_> {
-    fn composition(&self) -> CompositionSlots<'_> {
+    /// Configure the outer composition adapter while keeping shell geometry
+    /// inside this block's single chrome resolver.
+    #[must_use]
+    pub const fn spec(mut self, spec: termrock_layout::Composition) -> Self {
+        self.spec = spec;
+        self
+    }
+
+    /// Adapt this shell leaf to the existing composition API for nesting.
+    /// Keep the `ShellSlots` value alive while the returned group is used.
+    pub fn composition(&self) -> CompositionSlots<'_> {
         CompositionSlots::column([ContentSlot::new(self, ChildPolicy::default().flex(1))])
+            .spec(self.spec)
     }
 
     /// Resolve and draw the shell through the runtime's composition contract.
@@ -189,16 +206,33 @@ impl Measure for ShellSlots<'_> {
             ui,
             Constraints::loose(regions.footer.width, regions.footer.height),
         );
-        let min_height = header
-            .min
-            .1
+        // Chrome's strips are reserved even when their leaves report a
+        // smaller intrinsic minimum. Count only gaps that the same resolver
+        // will retain beside a nonempty strip, then clamp for narrow roots.
+        let header_rows = self.chrome.header.min(constraints.max.1);
+        let footer_rows = self
+            .chrome
+            .footer
+            .min(constraints.max.1.saturating_sub(header_rows));
+        let header_min = if header_rows > 0 {
+            header.min.1.max(header_rows)
+        } else {
+            0
+        };
+        let footer_min = if footer_rows > 0 {
+            footer.min.1.max(footer_rows)
+        } else {
+            0
+        };
+        let strip_and_gap_min = header_min
+            .saturating_add(footer_min)
+            .saturating_add(if header_rows > 0 { self.chrome.gap } else { 0 })
+            .saturating_add(if footer_rows > 0 { self.chrome.gap } else { 0 });
+        let min_height = strip_and_gap_min
             .saturating_add(body.min.1)
-            .saturating_add(footer.min.1)
             .min(constraints.max.1);
-        let body_min_width = body
-            .min
-            .0
-            .saturating_add(self.chrome.inset.saturating_mul(2));
+        let inset = constraints.max.0.saturating_sub(regions.body.width);
+        let body_min_width = body.min.0.saturating_add(inset);
         Size {
             min: (
                 header
@@ -232,52 +266,38 @@ impl CompositionLeaf for ShellSlots<'_> {
 
 /// An app shell builder holding slot leaves.
 pub struct AppShellSlots<'a> {
-    shell: AppShell,
-    header: Option<&'a dyn CompositionLeaf>,
-    body: Option<&'a dyn CompositionLeaf>,
-    footer: Option<&'a dyn CompositionLeaf>,
+    slots: ShellSlots<'a>,
 }
 
 impl<'a> AppShellSlots<'a> {
     /// Attach the header leaf.
     #[must_use]
     pub const fn header(mut self, leaf: &'a dyn CompositionLeaf) -> Self {
-        self.header = Some(leaf);
+        self.slots.header = leaf;
         self
     }
 
     /// Attach the body leaf.
     #[must_use]
     pub const fn body(mut self, leaf: &'a dyn CompositionLeaf) -> Self {
-        self.body = Some(leaf);
+        self.slots.body = leaf;
         self
     }
 
     /// Attach the footer leaf.
     #[must_use]
     pub const fn footer(mut self, leaf: &'a dyn CompositionLeaf) -> Self {
-        self.footer = Some(leaf);
+        self.slots.footer = leaf;
         self
     }
 
     /// Resolve the slots and draw the frame.
     pub fn show(self, ui: &mut Ui<'_>) -> Result<(), CompositionError> {
-        static EMPTY: EmptyLeaf = EmptyLeaf;
-        let slots = self.shell.slots(
-            self.header.unwrap_or(&EMPTY),
-            self.body.unwrap_or(&EMPTY),
-            self.footer.unwrap_or(&EMPTY),
-        );
-        slots.draw(ui)
+        self.slots.draw(ui)
     }
 
     /// Obtain the shell's shared resolved-layout leaf.
-    pub fn slots(&self) -> ShellSlots<'a> {
-        static EMPTY: EmptyLeaf = EmptyLeaf;
-        self.shell.slots(
-            self.header.unwrap_or(&EMPTY),
-            self.body.unwrap_or(&EMPTY),
-            self.footer.unwrap_or(&EMPTY),
-        )
+    pub fn slots(&self) -> CompositionSlots<'_> {
+        self.slots.composition()
     }
 }
