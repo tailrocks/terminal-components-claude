@@ -7,7 +7,7 @@ use termrock::{
 };
 
 use super::{Page, PageUpdate, chrome_ink};
-use termrock::feedback::{PageFrame, SectionStrip};
+use termrock::feedback::{CardChrome, PageFrame, SectionStrip};
 
 const OPEN_QUICK: Id = termrock::Id::root("showcase_ui::pages::pickers::pickers.open.quick");
 const OPEN_TABS: Id = termrock::Id::root("showcase_ui::pages::pickers::pickers.open.tabs");
@@ -275,10 +275,7 @@ const SCROLL_ROOM: u16 = 2;
 const CANVAS: u32 = 0x00_00_00;
 const SURFACE: u32 = 0x11_11_11;
 const WHITE: u32 = 0xff_ff_ff;
-const SECONDARY: u32 = 0xb3_b3_b3;
 const MUTED: u32 = 0x8a_8a_8a;
-const FAINT: u32 = 0x73_73_73;
-const RULE: u32 = 0x3a_3a_3a;
 const ACCENT: u32 = 0x48_e0_54;
 const TAB_ACTIVE: u32 = 0x27_27_2a;
 const ON_ACCENT: u32 = 0x19_19_1c;
@@ -411,42 +408,6 @@ fn paint_blurb(ui: &mut Ui<'_>, body: Rect) {
         "…",
         style,
     );
-}
-
-fn paint_card_chrome(ui: &mut Ui<'_>, card: Rect, title: &str, meta: &str) {
-    ui.fill(card, ink(WHITE, SURFACE).remove_modifier(Modifier::all()));
-    if card.height == 0 || card.width < 4 {
-        return;
-    }
-    let text_x = card.x.saturating_add(2);
-    let text_w = card.width.saturating_sub(4);
-    ui.paint_str(
-        Rect::new(text_x, card.y, text_w, 1),
-        title,
-        ink(SECONDARY, SURFACE),
-    );
-    if !meta.is_empty() {
-        let meta_w = width(meta);
-        if meta_w < text_w {
-            ui.paint_str(
-                Rect::new(
-                    text_x.saturating_add(text_w.saturating_sub(meta_w)),
-                    card.y,
-                    meta_w,
-                    1,
-                ),
-                meta,
-                ink(FAINT, SURFACE),
-            );
-        }
-    }
-    if card.height > 1 && text_w > 0 {
-        ui.paint_str(
-            Rect::new(text_x, card.y.saturating_add(1), text_w, 1),
-            &"─".repeat(usize::from(text_w)),
-            ink(RULE, SURFACE),
-        );
-    }
 }
 
 fn card_inner(card: Rect) -> Rect {
@@ -1116,7 +1077,11 @@ fn paint_open(ui: &mut Ui<'_>, card: Rect) {
             ),
         );
     }
-    paint_card_chrome(ui, card, "Open a picker", "Enter · click");
+    CardChrome::new("Open a picker")
+        .meta("Enter · click")
+        .ink(chrome_ink())
+        .surface_style(ink(WHITE, SURFACE).remove_modifier(Modifier::all()))
+        .draw(ui, card);
     let inner = card_inner(card);
     if inner.is_empty() {
         return;
@@ -1141,7 +1106,11 @@ fn paint_open(ui: &mut Ui<'_>, card: Rect) {
 }
 
 fn paint_applied(ui: &mut Ui<'_>, card: Rect) {
-    paint_card_chrome(ui, card, "Applied", APPLIED_META);
+    CardChrome::new("Applied")
+        .meta(APPLIED_META)
+        .ink(chrome_ink())
+        .surface_style(ink(WHITE, SURFACE).remove_modifier(Modifier::all()))
+        .draw(ui, card);
     paint_props(ui, card_inner(card), APPLIED);
 }
 
@@ -1153,7 +1122,11 @@ fn paint_results(
     level: &str,
     opened: &str,
 ) {
-    paint_card_chrome(ui, card, "Result", "PickerAction");
+    CardChrome::new("Result")
+        .meta("PickerAction")
+        .ink(chrome_ink())
+        .surface_style(ink(WHITE, SURFACE).remove_modifier(Modifier::all()))
+        .draw(ui, card);
     let rows = result_lines(result, detail, level, opened);
     paint_props(ui, card_inner(card), &rows);
 }

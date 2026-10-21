@@ -330,7 +330,10 @@ impl<'a> SectionStrip<'a> {
             tab_end = x.saturating_add(tab_width);
             x = tab_end.saturating_add(1);
         }
-        if let Some(caption) = self.caption.filter(|_| area.width >= self.caption_min_width) {
+        if let Some(caption) = self
+            .caption
+            .filter(|_| area.width >= self.caption_min_width)
+        {
             let caption_width = width(caption);
             let caption_x = area.right().saturating_sub(caption_width.saturating_add(1));
             if caption_x > tab_end.saturating_add(2) {
@@ -830,6 +833,86 @@ mod tests {
         }
     }
 
+    fn legacy_paint_card_chrome_flow(
+        ui: &mut Ui<'_>,
+        card: Rect,
+        title: &str,
+        meta: &str,
+        right_inset: u16,
+    ) {
+        ui.fill(card, ink(WHITE, SURFACE));
+        if card.height == 0 || card.width < 4 {
+            return;
+        }
+        let text_x = card.x.saturating_add(2);
+        let text_w = card.width.saturating_sub(2).saturating_sub(right_inset);
+        ui.paint_str(
+            Rect::new(text_x, card.y, text_w, 1),
+            title,
+            ink(SECONDARY, SURFACE),
+        );
+        if !meta.is_empty() && text_w > 0 {
+            let meta_w = width(meta);
+            let title_w = width(title);
+            let min_x = text_x.saturating_add(title_w.saturating_mul(2));
+            let fitted = text_w >= meta_w;
+            let right_x = text_x.saturating_add(text_w.saturating_sub(meta_w));
+            if fitted && right_x >= min_x {
+                ui.paint_str(
+                    Rect::new(right_x, card.y, meta_w, 1),
+                    meta,
+                    ink(FAINT, SURFACE),
+                );
+            } else if min_x < text_x.saturating_add(text_w) {
+                let room = text_x.saturating_add(text_w).saturating_sub(min_x);
+                ui.paint_str(Rect::new(min_x, card.y, room, 1), meta, ink(FAINT, SURFACE));
+            }
+        }
+        if card.height > 1 && text_w > 0 {
+            ui.paint_str(
+                Rect::new(text_x, card.y.saturating_add(1), text_w, 1),
+                &"─".repeat(usize::from(text_w)),
+                ink(RULE, SURFACE),
+            );
+        }
+    }
+
+    fn legacy_paint_card_chrome_clearing(ui: &mut Ui<'_>, card: Rect, title: &str, meta: &str) {
+        ui.fill(card, ink(WHITE, SURFACE).remove_modifier(Modifier::all()));
+        if card.height == 0 || card.width < 4 {
+            return;
+        }
+        let text_x = card.x.saturating_add(2);
+        let text_w = card.width.saturating_sub(4);
+        ui.paint_str(
+            Rect::new(text_x, card.y, text_w, 1),
+            title,
+            ink(SECONDARY, SURFACE),
+        );
+        if !meta.is_empty() {
+            let meta_w = width(meta);
+            if meta_w < text_w {
+                ui.paint_str(
+                    Rect::new(
+                        text_x.saturating_add(text_w.saturating_sub(meta_w)),
+                        card.y,
+                        meta_w,
+                        1,
+                    ),
+                    meta,
+                    ink(FAINT, SURFACE),
+                );
+            }
+        }
+        if card.height > 1 && text_w > 0 {
+            ui.paint_str(
+                Rect::new(text_x, card.y.saturating_add(1), text_w, 1),
+                &"─".repeat(usize::from(text_w)),
+                ink(RULE, SURFACE),
+            );
+        }
+    }
+
     // ---------------------------------------------------------------------
 
     fn render(area: Rect, draw: impl FnOnce(&mut Ui<'_>, Rect)) -> Buffer {
@@ -940,6 +1023,46 @@ mod tests {
                     .draw(ui, scene);
             });
             assert_same(&legacy, &block, "card chrome");
+        }
+    }
+    #[test]
+    fn card_chrome_flow_matches_the_page_owned_grid_card() {
+        for (columns, rows, inset) in [(120u16, 40u16, 0u16), (120, 40, 2), (40, 8, 2)] {
+            let area = Rect::new(0, 0, columns, rows);
+            let legacy = render(area, |ui, scene| {
+                legacy_paint_card_chrome_flow(ui, scene, "customers", "12 rows", inset);
+            });
+            let block = render(area, |ui, scene| {
+                let _ = CardChrome::new("customers")
+                    .meta("12 rows")
+                    .ink(palette())
+                    .right_inset(inset)
+                    .meta_layout(CardMeta::Flow)
+                    .draw(ui, scene);
+            });
+            assert_same(&legacy, &block, "card chrome flow");
+        }
+    }
+
+    #[test]
+    fn card_chrome_clearing_surface_matches_the_page_owned_picker_card() {
+        for (columns, rows) in [(120u16, 40u16), (40, 8)] {
+            let area = Rect::new(0, 0, columns, rows);
+            let legacy = render(area, |ui, scene| {
+                legacy_paint_card_chrome_clearing(ui, scene, "Open a picker", "Enter · click");
+            });
+            let block = render(area, |ui, scene| {
+                let _ = CardChrome::new("Open a picker")
+                    .meta("Enter · click")
+                    .ink(palette())
+                    .surface_style(
+                        palette()
+                            .pair(palette().ink, palette().surface)
+                            .remove_modifier(Modifier::all()),
+                    )
+                    .draw(ui, scene);
+            });
+            assert_same(&legacy, &block, "card chrome clearing surface");
         }
     }
 }

@@ -7,7 +7,7 @@ use termrock::{
 use showcase_data::{TREE, TREE_LABELS};
 
 use super::{Page, PageUpdate, chrome_ink};
-use termrock::feedback::{PageFrame, SectionStrip};
+use termrock::feedback::{CardChrome, PageFrame, SectionStrip};
 
 const PROJECT: Id = termrock::Id::root("showcase_ui::pages::trees::trees.project");
 const TREE_GUTTER: &[(Part, StylePatch)] = &[(
@@ -38,7 +38,6 @@ const WHITE: u32 = 0xffffff;
 const SECONDARY: u32 = 0xb3b3b3;
 const MUTED: u32 = 0x8a8a8a;
 const FAINT: u32 = 0x737373;
-const RULE: u32 = 0x3a3a3a;
 const ACCENT: u32 = 0x48e054;
 const THUMB: u32 = 0x808080;
 const TRACK: u32 = 0x474747;
@@ -334,42 +333,6 @@ fn card_inner(card: Rect) -> Rect {
     }
 }
 
-fn paint_card_chrome(ui: &mut Ui<'_>, card: Rect, title: &str, meta: &str) {
-    ui.fill(card, ink(WHITE, SURFACE));
-    if card.height == 0 || card.width < 3 {
-        return;
-    }
-    let text_x = card.x.saturating_add(2);
-    let text_w = card.width.saturating_sub(4);
-    ui.paint_str(
-        Rect::new(text_x, card.y, text_w, 1),
-        title,
-        ink(SECONDARY, SURFACE),
-    );
-    if !meta.is_empty() {
-        let meta_w = width(meta);
-        if meta_w < text_w {
-            ui.paint_str(
-                Rect::new(
-                    text_x.saturating_add(text_w.saturating_sub(meta_w)),
-                    card.y,
-                    meta_w,
-                    1,
-                ),
-                meta,
-                ink(FAINT, SURFACE),
-            );
-        }
-    }
-    if card.height > 1 && text_w > 0 {
-        ui.paint_str(
-            Rect::new(text_x, card.y.saturating_add(1), text_w, 1),
-            &"─".repeat(usize::from(text_w)),
-            ink(RULE, SURFACE),
-        );
-    }
-}
-
 fn position_label(offset: usize, viewport: usize, total: usize) -> String {
     if viewport == 0 || total <= viewport {
         return String::new();
@@ -587,7 +550,10 @@ fn paint_rows(ui: &mut Ui<'_>, inner: Rect, rows: &[PaintedRow<'_>], offset: usi
 }
 
 fn paint_selection(ui: &mut Ui<'_>, card: Rect, state: &TreeState, rows: usize, open: usize) {
-    paint_card_chrome(ui, card, "Selection", "");
+    CardChrome::new("Selection")
+        .meta("")
+        .ink(chrome_ink())
+        .draw(ui, card);
     let inner = card_inner(card);
     if inner.is_empty() {
         return;
@@ -902,7 +868,10 @@ fn paint_playground_body(ui: &mut Ui<'_>, area: Rect, page: &TreesPage) {
     }
     let offset = page.state.scroll().offset();
     let label = position_label(offset, usize::from(inner.height), rows.len());
-    paint_card_chrome(ui, project, "Project", &label);
+    CardChrome::new("Project")
+        .meta(&label)
+        .ink(chrome_ink())
+        .draw(ui, project);
     let focused = ui.state(PROJECT).contains(StateFlags::FOCUSED);
     let cursor = page.state.cursor();
     let painted: Vec<PaintedRow<'_>> = rows
@@ -938,7 +907,10 @@ fn paint_playground_body(ui: &mut Ui<'_>, area: Rect, page: &TreesPage) {
     if top.saturating_add(4) < right.bottom() {
         let height = project.bottom().saturating_sub(top).max(conns_h);
         let card = clip_bottom(Rect::new(right.x, top, right.width, height), area.bottom());
-        paint_card_chrome(ui, card, "Connections", "→ loads a database");
+        CardChrome::new("Connections")
+            .meta("→ loads a database")
+            .ink(chrome_ink())
+            .draw(ui, card);
         let painted: Vec<PaintedRow<'_>> = conns
             .iter()
             .map(|row| PaintedRow {

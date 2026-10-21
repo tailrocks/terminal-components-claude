@@ -4,7 +4,7 @@ use termrock::{
 };
 
 use super::{Page, PageUpdate, chrome_ink};
-use termrock::feedback::{PageFrame, SectionStrip};
+use termrock::feedback::{CardChrome, PageFrame, SectionStrip};
 
 const OPEN_CONFIRM: Id = termrock::Id::root("showcase_ui::pages::dialogs::dialogs.confirm.open");
 const OPEN_PROMPT: Id = termrock::Id::root("showcase_ui::pages::dialogs::dialogs.prompt.open");
@@ -36,7 +36,6 @@ const WHITE: u32 = 0xffffff;
 const SECONDARY: u32 = 0xb3b3b3;
 const MUTED: u32 = 0x8a8a8a;
 const FAINT: u32 = 0x737373;
-const RULE: u32 = 0x3a3a3a;
 const ACCENT: u32 = 0x48e054;
 const TAB_ACTIVE: u32 = 0x27272a;
 const ON_ACCENT: u32 = 0x19191c;
@@ -205,42 +204,6 @@ fn paint_blurb(ui: &mut Ui<'_>, body: Rect) {
     );
 }
 
-fn paint_card_chrome(ui: &mut Ui<'_>, card: Rect, title: &str, meta: &str) {
-    ui.fill(card, ink(WHITE, SURFACE));
-    if card.height == 0 || card.width < 4 {
-        return;
-    }
-    let text_x = card.x.saturating_add(2);
-    let text_w = card.width.saturating_sub(4);
-    ui.paint_str(
-        Rect::new(text_x, card.y, text_w, 1),
-        title,
-        ink(SECONDARY, SURFACE),
-    );
-    if !meta.is_empty() {
-        let meta_w = width(meta);
-        if meta_w < text_w {
-            ui.paint_str(
-                Rect::new(
-                    text_x.saturating_add(text_w.saturating_sub(meta_w)),
-                    card.y,
-                    meta_w,
-                    1,
-                ),
-                meta,
-                ink(FAINT, SURFACE),
-            );
-        }
-    }
-    if card.height > 1 && text_w > 0 {
-        ui.paint_str(
-            Rect::new(text_x, card.y.saturating_add(1), text_w, 1),
-            &"─".repeat(usize::from(text_w)),
-            ink(RULE, SURFACE),
-        );
-    }
-}
-
 fn card_inner(card: Rect) -> Rect {
     Rect {
         x: card.x.saturating_add(2),
@@ -328,7 +291,10 @@ fn paint_open(ui: &mut Ui<'_>, card: Rect) {
             }
         }
     }
-    paint_card_chrome(ui, card, "Open a dialog", "Enter · click");
+    CardChrome::new("Open a dialog")
+        .meta("Enter · click")
+        .ink(chrome_ink())
+        .draw(ui, card);
     if inner.is_empty() {
         return;
     }
@@ -392,7 +358,10 @@ fn paint_props(ui: &mut Ui<'_>, inner: Rect) {
 }
 
 fn paint_applied(ui: &mut Ui<'_>, card: Rect) {
-    paint_card_chrome(ui, card, "Applied", "read back from the built dialog");
+    CardChrome::new("Applied")
+        .meta("read back from the built dialog")
+        .ink(chrome_ink())
+        .draw(ui, card);
     let inner = card_inner(card);
     if !inner.is_empty() {
         paint_props(ui, inner);
@@ -400,7 +369,10 @@ fn paint_applied(ui: &mut Ui<'_>, card: Rect) {
 }
 
 fn paint_results(ui: &mut Ui<'_>, card: Rect, result: &str) {
-    paint_card_chrome(ui, card, "Results", "DialogResult");
+    CardChrome::new("Results")
+        .meta("DialogResult")
+        .ink(chrome_ink())
+        .draw(ui, card);
     let inner = card_inner(card);
     if inner.is_empty() {
         return;
