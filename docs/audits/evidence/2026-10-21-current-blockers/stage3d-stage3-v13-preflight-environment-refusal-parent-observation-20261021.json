@@ -1,0 +1,12 @@
+{
+  "schema": "termrock.parent-observed-preflight-refusal.v1",
+  "observed_at_utc": "2026-10-21T05:09:03.614588+00:00",
+  "run_id": "parent-v13-stage3-20261021-050706",
+  "supervisor_sha256": "49a10dcc5cf82775287459ababbd22012d61c92f802c504dcf1264b92b834808",
+  "reported_exit_status": 2,
+  "stderr": {
+    "error": "RuntimeError",
+    "message": "controlled environment differs for keys: COLORTERM,LANG,PATH,TERM"
+  },
+  "scope": "Parent tool observation only, not independent operational admission. Preflight rejected before verify-live. No environment hashes, reference data or expected artifacts changed. No new plan, key, capture, replay or candidate result. Recover exact controlled environment before any retry."
+}
