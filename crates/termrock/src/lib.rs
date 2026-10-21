@@ -153,7 +153,8 @@ pub use termrock_collections::{
     ByIndex, CollectionCore, DefaultRow, KeyFn, KeySet, Reconcile, Reconciliation, SelectMode,
 };
 pub use termrock_runtime::{
-    CellDecor, CellUi, ColumnsUi, EmptyState, MAX_COLUMNS, RowDecor, RowFn, RowTotal, RowUi, Status,
+    CellDecor, CellUi, ColumnsUi, EmptyState, MAX_COLUMNS, RowDecor, RowFn, RowTotal, RowUi,
+    ScrollbarGutter, Status,
 };
 
 pub use termrock_controls::{
