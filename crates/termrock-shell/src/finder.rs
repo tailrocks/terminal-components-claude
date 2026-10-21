@@ -1263,3 +1263,81 @@ fn wrap_words(text: &str, cells: u16) -> Vec<String> {
     lines.push(line);
     lines
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_bands_follow_the_reference_widths() {
+        assert_eq!(finder_band(79), FinderBand::Narrow);
+        assert_eq!(finder_band(80), FinderBand::Compact);
+        assert_eq!(finder_band(119), FinderBand::Compact);
+        assert_eq!(finder_band(120), FinderBand::Medium);
+        assert_eq!(finder_band(159), FinderBand::Medium);
+        assert_eq!(finder_band(160), FinderBand::Wide);
+    }
+
+    #[test]
+    fn a_policy_names_the_layout_of_each_band() {
+        let policy = FinderPolicy::new()
+            .compact(FinderLayout::List {
+                columns: FinderColumns::Auto,
+            })
+            .medium(FinderLayout::Card {
+                columns: FinderColumns::Frozen,
+                title: FinderPreviewTitle::SelectedRow,
+            });
+        assert_eq!(
+            policy.layouts(FinderBand::Compact),
+            [
+                Some(FinderLayout::List {
+                    columns: FinderColumns::Auto
+                }),
+                None
+            ]
+        );
+        assert_eq!(
+            policy.layouts(FinderBand::Medium),
+            [
+                Some(FinderLayout::Card {
+                    columns: FinderColumns::Frozen,
+                    title: FinderPreviewTitle::SelectedRow
+                }),
+                None
+            ]
+        );
+        assert_eq!(policy.layouts(FinderBand::Wide), [None, None]);
+        assert_eq!(policy.layouts(FinderBand::Narrow), [None, None]);
+    }
+
+    #[test]
+    fn a_fallback_layout_sits_behind_the_first_one() {
+        let policy = FinderPolicy::new()
+            .compact(FinderLayout::List {
+                columns: FinderColumns::Auto,
+            })
+            .compact_fallback(FinderLayout::Card {
+                columns: FinderColumns::Auto,
+                title: FinderPreviewTitle::SelectedRow,
+            });
+        let layouts = policy.layouts(FinderBand::Compact);
+        assert!(layouts[0].is_some());
+        assert!(layouts[1].is_some());
+    }
+
+    #[test]
+    fn the_columns_of_a_plate_shrink_to_the_room_it_has() {
+        let rows = [
+            FinderRow::new("a very long task title").kind("task"),
+            FinderRow::new("short").kind("task"),
+        ];
+        let refs: Vec<&FinderRow> = rows.iter().collect();
+        let wide = tag_columns(&refs, 120);
+        let narrow = tag_columns(&refs, 40);
+        assert!(narrow.label < wide.label);
+        assert_eq!(wide.label, 22);
+        assert_eq!(narrow.label, 14);
+        assert!(narrow.reason < wide.reason);
+    }
+}

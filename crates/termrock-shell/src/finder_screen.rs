@@ -182,6 +182,15 @@ impl FinderGrid {
         );
     }
 
+    /// Whether the note fits under the content.
+    ///
+    /// The note only shows when the content leaves room for it: `occupied` is
+    /// the number of rows the content takes.
+    #[must_use]
+    pub fn note_fits(&self, content: Rect, occupied: usize) -> bool {
+        occupied.saturating_add(1) < usize::from(content.height)
+    }
+
     /// Paint the note on the last row of the content region.
     ///
     /// The note only shows when the content leaves room for it: `occupied` is
@@ -194,7 +203,7 @@ impl FinderGrid {
         text: &str,
         role: Role,
     ) -> bool {
-        if occupied.saturating_add(1) >= usize::from(content.height) {
+        if !self.note_fits(content, occupied) {
             return false;
         }
         let style = ui.paint_patch(&StylePatch::new().set_fg(role));
@@ -581,5 +590,35 @@ impl<'a> ScopeBand<'a> {
             ui.paint_str(Rect::new(x, y, close_w, 1), " ×  ", label);
             x = x.saturating_add(close_w).saturating_add(1);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_screen_area_leaves_the_margins_of_the_shell_body() {
+        let grid = FinderGrid::new();
+        let body = Rect::new(2, 2, 100, 40);
+        let area = grid.area(body);
+        assert_eq!(area, Rect::new(2, 4, 100, 37));
+    }
+
+    #[test]
+    fn the_content_region_sits_under_the_query_row() {
+        let grid = FinderGrid::new();
+        let area = Rect::new(0, 0, 80, 24);
+        assert_eq!(grid.query_area(area), Rect::new(0, 0, 80, 1));
+        assert_eq!(grid.content_area(area), Rect::new(0, 2, 80, 22));
+        assert_eq!(grid.content_below(area, 3), Rect::new(0, 5, 80, 19));
+    }
+
+    #[test]
+    fn the_note_only_shows_when_the_content_leaves_room_for_it() {
+        let grid = FinderGrid::new();
+        let content = Rect::new(0, 2, 80, 10);
+        assert!(!grid.note_fits(content, 9));
+        assert!(grid.note_fits(content, 8));
     }
 }
