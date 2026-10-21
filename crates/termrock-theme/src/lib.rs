@@ -492,7 +492,7 @@ impl Theme {
         };
         // The frozen capsule tab rule is seam `#3a3a3a`. It dims to ghost
         // and stays there; the contrast lift would turn it faint.
-        let seam = Color::from_u32(0x003a_3a_3a);
+        let seam = Color::from_u32(0x003a_3a3a);
         if let Some(color) = fg
             && !blank
             && color != seam
