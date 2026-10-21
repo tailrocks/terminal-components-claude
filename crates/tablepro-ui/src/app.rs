@@ -3055,7 +3055,13 @@ impl TableProApp {
                 height: 1.min(inner.height),
             };
             paint_legacy_filter(ui, filter, "Filter objects", TAG_CHROME_FG);
-            explorer_tree().draw(
+            let show_meta = explorer_meta_visible(
+                &self.explorer_nodes,
+                &self.explorer_tree_state,
+                tree_area.width,
+                ui.design().space.tree_indent,
+            );
+            explorer_tree(show_meta).draw(
                 ui,
                 tree_area,
                 &self.explorer_tree_state,
@@ -4882,7 +4888,7 @@ fn qualified_label(prefix: &str, left: &str, right: &str) -> String {
     text
 }
 
-fn explorer_row(node: &ExplorerNode, row: &mut RowUi<'_>) {
+fn explorer_row(node: &ExplorerNode, row: &mut RowUi<'_>, show_meta: bool) {
     match node {
         ExplorerNode::Database { name } => row.label_spans(&[
             Span::new("D").role(TAG_CHROME_FG),
@@ -4896,7 +4902,9 @@ fn explorer_row(node: &ExplorerNode, row: &mut RowUi<'_>) {
         ]),
         ExplorerNode::Group { name, count, .. } => {
             row.label(name);
-            row.meta(&count.to_string());
+            if show_meta {
+                row.meta(&count.to_string());
+            }
         }
         ExplorerNode::Object { item, prefix, .. } => {
             row.label_spans(&[
@@ -4904,11 +4912,77 @@ fn explorer_row(node: &ExplorerNode, row: &mut RowUi<'_>) {
                 Span::new(" "),
                 Span::new(&item.name),
             ]);
-            if item.rows > 0 {
+            if show_meta && item.rows > 0 {
                 row.meta(&tablepro_sql::sql::fmt_rows(item.rows));
             }
         }
     }
+}
+
+/// The metadata a node paints on its right hand side, if any.
+fn explorer_node_meta(node: &ExplorerNode) -> Option<String> {
+    match node {
+        ExplorerNode::Group { count, .. } => Some(count.to_string()),
+        ExplorerNode::Object { item, .. } if item.rows > 0 => {
+            Some(tablepro_sql::sql::fmt_rows(item.rows))
+        }
+        _ => None,
+    }
+}
+
+/// The width of the label a node paints, including its kind prefix.
+fn explorer_label_width(node: &ExplorerNode) -> u16 {
+    let name = match node {
+        ExplorerNode::Database { name } => name.len(),
+        ExplorerNode::Schema { name } => name.len(),
+        ExplorerNode::Group { name, .. } => name.len(),
+        ExplorerNode::Object { item, .. } => item.name.len(),
+    };
+    let prefix = match node {
+        ExplorerNode::Database { .. } | ExplorerNode::Schema { .. } => 2,
+        ExplorerNode::Group { .. } => 0,
+        ExplorerNode::Object { prefix, .. } => prefix.len() + 1,
+    };
+    u16::try_from(name + prefix).unwrap_or(u16::MAX)
+}
+
+/// The reference tree hides metadata on every row as soon as one visible row
+/// cannot fit its label and its metadata side by side.
+fn explorer_meta_visible(
+    nodes: &[ExplorerNode],
+    state: &TreeState,
+    row_w: u16,
+    indent: u16,
+) -> bool {
+    let mut show = [false; 8];
+    show[0] = true;
+    for node in nodes {
+        let depth = explorer_depth(node);
+        if !show.get(depth).copied().unwrap_or(false) {
+            continue;
+        }
+        let expanded = state.is_expanded(explorer_node_key(node));
+        if let Some(child) = show.get_mut(depth.saturating_add(1)) {
+            *child = expanded;
+        }
+        for deeper in show.iter_mut().skip(depth.saturating_add(2)) {
+            *deeper = false;
+        }
+        let Some(meta) = explorer_node_meta(node) else {
+            continue;
+        };
+        let need = 1
+            + (depth as u16).saturating_mul(indent)
+            + 2
+            + explorer_label_width(node)
+            + 2
+            + width(&meta)
+            + 1;
+        if need > row_w {
+            return false;
+        }
+    }
+    true
 }
 
 fn tab_key(tab: &TabRecord) -> ItemKey {
@@ -5085,7 +5159,9 @@ fn connection_tree() -> Tree<
         .patch_part(&CONNECTION_TREE_PATCH)
 }
 
-fn explorer_tree() -> Tree<
+fn explorer_tree(
+    show_meta: bool,
+) -> Tree<
     'static,
     ExplorerNode,
     impl Fn(&ExplorerNode) -> ItemKey,
@@ -5094,7 +5170,7 @@ fn explorer_tree() -> Tree<
     Tree::new(EXPLORER)
         .key(explorer_node_key)
         .node(&explorer_node)
-        .row(explorer_row)
+        .row(move |node: &ExplorerNode, row: &mut RowUi<'_>| explorer_row(node, row, show_meta))
         .branch_activation(TreeBranchActivation::Activate)
         .slot(Part::MARKER, &paint_quiet_gutter)
 }
@@ -9381,7 +9457,7 @@ impl App for TableProApp {
         }
         if self.form_open || self.screen != Screen::Workbench {
             response |= workbench_split().update(cx, &mut self.split_state).erase();
-            response |= explorer_tree()
+            response |= explorer_tree(true)
                 .update(cx, &mut self.explorer_tree_state, &self.explorer_nodes)
                 .erase();
             response |= tab_strip()
@@ -9684,7 +9760,7 @@ impl App for TableProApp {
         let split = workbench_split();
         response |= split.update(cx, &mut self.split_state).erase();
         let tree_response =
-            explorer_tree().update(cx, &mut self.explorer_tree_state, &self.explorer_nodes);
+            explorer_tree(true).update(cx, &mut self.explorer_tree_state, &self.explorer_nodes);
         if let Some(TreeAction::Activated(key) | TreeAction::Chose(key)) =
             tree_response.action_ref()
             && let Some(ExplorerNode::Object { item, .. }) = self
