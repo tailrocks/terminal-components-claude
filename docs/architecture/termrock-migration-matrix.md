@@ -2843,6 +2843,16 @@ mono distinctness check, the picker checks, the tiny-rect help overlay and
 the two visual-baseline negative controls). They are semantic checks, not
 digest pins, and they stay the next work item.
 
+The whole workspace, `cargo nextest run --workspace --all-targets
+--no-fail-fast`: 4741 tests run, 4639 passed, 102 failed, 29516 skipped on
+this branch, against 4741 tests run, 4435 passed, 306 failed at the base
+`ed458571f`. The failing test names are compared set by set: 204 failures are
+gone and **no new failure appears**. The failures that remain are the
+pre-existing ones, including the `holla::holla_pty` input-flood case, which
+fails identically at the base commit, and the `termrock-navigation` full-cell
+fixture, whose recorded fingerprint is stale for the TrueColor tier already at
+the base commit.
+
 What this re-bless is: the recorded expectation caught up with the tree it
 lives on, after the palette conflict was settled against the frozen tag.
 What it is not: it is not a paired-runner proof that the component suite now
