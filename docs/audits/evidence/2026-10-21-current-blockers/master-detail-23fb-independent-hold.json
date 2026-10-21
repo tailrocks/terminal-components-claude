@@ -1,0 +1,127 @@
+{
+  "schema": "independent-rust-review-v1",
+  "reviewer": "/root/master_detail_policy_review",
+  "source": "23fb59a40da6724a9bb478c5deb79a88bfb7f065",
+  "parent": "491f9cfc8193718b284797d251db585cef81c022",
+  "decision": "hold_required_api_and_reset_fixes",
+  "source_edits": false,
+  "independent_build_targets": [
+    "/private/tmp/master-detail-independent-target-before-20261021",
+    "/private/tmp/master-detail-independent-target-after-20261021"
+  ],
+  "findings": [
+    {
+      "id": "MASTER-DETAIL-API-1",
+      "priority": "P1",
+      "path": "crates/termrock/src/blocks/master_detail.rs:148",
+      "problem": "Adding Resized(u8) to the existing exhaustive public MasterDetailAction enum breaks unchanged consumers even when they never opt into resizable sizing. No authorized breaking API migration exists.",
+      "evidence": "Identical standalone public consumer exhaustive match: parent nextest 1/1 PASS; exact candidate compilation fails E0004 non-exhaustive patterns MasterDetailAction::Resized(_) not covered.",
+      "required_fix": "Keep the original enum and update signature source compatible. Preserve resize flow/invalidation through action erasure/Response metadata, or introduce a separately named opt-in action API without modifying the existing exhaustive enum."
+    },
+    {
+      "id": "MASTER-DETAIL-RESET-2",
+      "priority": "P2",
+      "path": "crates/termrock/src/blocks/master_detail.rs:453",
+      "related_path": "crates/termrock-controls/src/master_detail.rs:386",
+      "problem": "The new resizable policy inherits SplitPane ResetPolicy::Balanced. A double-click on an initially 34% master seam changes it to 50%, rather than restoring configured initial share; facade provides no reset override.",
+      "evidence": "Real Runtime/Ui public consumer: two Down/Up cycles on painted seam produce Some(50), assertion expected Some(34) fails. Native author 11/11 omits reset.",
+      "frozen_contract": [
+        "4169783:src/bin/jackin_preview/screens/accounts.rs:139-143 selects Split::new(34,30,40)",
+        "4169783:src/widgets/splitter.rs:205-208 default SeamDoubleClick::Reset invokes split.reset()",
+        "4169783:src/ui/layout.rs:54-56 restores self.default_percent"
+      ],
+      "required_fix": "Select initial-share reset in the new opt-in facade/engine configuration without silently changing pre-existing controls defaults. If exposing a general reset policy, retain a documented override and test configured34 and second consumer45."
+    }
+  ],
+  "verification": {
+    "native_nextest": "cargo nextest run --locked -p termrock --features testing --test master_detail_consumer: 11 passed, 0 skipped",
+    "unchanged_default_consumer": {
+      "checkpoints": 165,
+      "matrix": "11 widths [0,1,59,60,99,100,104,107,108,109,120] x5 heights [0,2,4,10,12] x initial/Tab/Escape",
+      "comparison": "Complete Ratatui Buffer debug includes characters, positions, foreground/background/underline colors and modifiers; Runtime focus ID, focus-visible, cursor visibility/position/bar shape, selected control geometry. Equal before/after.",
+      "receipt_sha256": "8db0c2b022f950c5bb0fa9d5eef91cd3d2b30a612bed8378adeff11c508dd965",
+      "profile": "Theme::junie default only; no all-profile or CLI claim"
+    },
+    "external_behavior": "Double-click reset RED; pointer-click then editor-edit equivalence PASS; drag out of bounds then resize/collapse/expand/fresh capture/release PASS (1 selected test,3 excluded cases explicitly reported).",
+    "rejected_harness_assumption": "An additional Escape-release probe fails because capture remains owned. Frozen Splitter has no direct Escape handler and the expected routing has not been established. Preserve the probe, do not report this as a proven regression or require an unverified behavior change.",
+    "harness_compile_corrections": "Initial frame and reset probes omitted a semicolon in Terminal.draw closures returning bool. Both revision frame probes corrected identically before accepted receipts; no production changes. Initial cargo shim failure caused by unrelated /private/tmp workspace; standalone [workspace] and direct rustup Cargo resolved it."
+  },
+  "architecture": "Opt-in facade delegates geometry, draw and input to existing controls MasterDetail/SplitPane; fixed path remains source-equivalent. No second layout solver, application imports or expected-frame assets were added in inspected delta. measure/draw purity and independent data fixture author tests pass.",
+  "gaps": [
+    "No pinned tuiscotti or real application paired captures. No Showcase or Accounts adoption.",
+    "No independent all-profile frame matrix, remapped navigation, modal excursion, nonzero/clipped-root measurement receipt or exhaustive min-size conflict probe.",
+    "No independent Clippy or full workspace gate in this blocked review. Existing native nested/modal tests predominantly cover fixed policy, not new opt-in."
+  ],
+  "artifacts": [
+    {
+      "file": "independent-behavior-probes.rs",
+      "sha256": "2c764dfc82f8f2c51cbc0ebf2a65f0c449f3b077ce28152dbd94844c8ed75b97",
+      "bytes": 5511
+    },
+    {
+      "file": "master-detail-after-exhaustive-20261021.log",
+      "sha256": "a9f746a3747385e27775cab06d477911614ac745d935d256cde8a75e77494382",
+      "bytes": 6798
+    },
+    {
+      "file": "master-detail-after-frames-fullcursor-20261021.log",
+      "sha256": "0c3730a7a0404ecb749eee4e3473d0bd626a66518d5af59d02b3576cc5a5a31a",
+      "bytes": 1521
+    },
+    {
+      "file": "master-detail-after-frames-fullcursor-20261021.txt",
+      "sha256": "8db0c2b022f950c5bb0fa9d5eef91cd3d2b30a612bed8378adeff11c508dd965",
+      "bytes": 222860
+    },
+    {
+      "file": "master-detail-before-exhaustive-20261021.log",
+      "sha256": "80ae42e71ec19c2a6d2a9bdcf2f69c52b6c40ee309e4f4f535c85f5e976dc97e",
+      "bytes": 5533
+    },
+    {
+      "file": "master-detail-before-frames-fullcursor-20261021.log",
+      "sha256": "1de1726e9db034cdb1fac405c58d252e567262cca17b531bc8fda42385ec4208",
+      "bytes": 1574
+    },
+    {
+      "file": "master-detail-before-frames-fullcursor-20261021.txt",
+      "sha256": "8db0c2b022f950c5bb0fa9d5eef91cd3d2b30a612bed8378adeff11c508dd965",
+      "bytes": 222860
+    },
+    {
+      "file": "master-detail-behavior-final-after-20261021.log",
+      "sha256": "d8e47f8031149deb35c5bc53e374be91aecfc59210a71ed5dcf41e1487cd7dbb",
+      "bytes": 4444
+    },
+    {
+      "file": "master-detail-lifecycle-corrected-after-20261021.log",
+      "sha256": "b8bb4b39bb572a6f5c6d85c8faa5686878c1022577b110c7344b286d1d8e06f2",
+      "bytes": 2560
+    },
+    {
+      "file": "master-detail-native-after-20261021.log",
+      "sha256": "1b610c97b0bbb91ba15c12e236faa9bbfa3ce8c8d986f6e609ace41030c42692",
+      "bytes": 6231
+    },
+    {
+      "file": "master-detail-reset-after-corrected-20261021.log",
+      "sha256": "9205b049b764d127ab3868d3ba31fa4e62b22ea7cf51b0d3e60837965a6815fe",
+      "bytes": 3638
+    },
+    {
+      "file": "unchanged-before-public-example.rs",
+      "sha256": "04f9c3462c279d395fd15564f75f561e2c4b74e8306a21953b4832c02a7db726",
+      "bytes": 6019
+    },
+    {
+      "file": "unchanged-default-consumer.rs",
+      "sha256": "767d9915e1c8f5a6eaee651dc92e7c9d433e2ff963564b866b5ca254c45b8d66",
+      "bytes": 1327
+    },
+    {
+      "file": "unchanged-exhaustive-consumer.rs",
+      "sha256": "b5a599daa1eac52bf047c194d1f16ff3cab1fec6f6458fade28e5568540e62ce",
+      "bytes": 353
+    }
+  ]
+}
