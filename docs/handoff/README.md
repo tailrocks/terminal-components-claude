@@ -240,3 +240,29 @@ still needs its recorded decision.
 Worktree `/private/tmp/termrock-holla-20261021` stays on branch
 `holla-plates-view` (= pushed tip + this docs commit); the protected wip line
 remains on `wip/holla-rate-limit-20261021` @ `098fcfcda` for history.
+
+## 2026-10-21 conformance driver repair (completion verify workstream)
+
+Branch `wip/pr38-completion-verify-20261021` @ `786bee3dc`, based on
+`origin/parity/termrock-visual-baseline`. It also carries the earlier
+`Theme::fingerprint` fix plus the picker `Substring`/`max_rows` contracts.
+
+Landed in this tip: `fix(conformance): open overlays before input checks`.
+`termrock-conformance --test conformance` is 925 passed / 10 failed on the
+rebased tree (was 23 failed). `cargo fmt --all --check` clean; clippy clean on
+`termrock-test-support`, `termrock-conformance`, `termrock-editors`,
+`termrock-overlays`; `nextest` on editors/overlays/fields/navigation is
+292/294 with only the two known `item_row_columns` failures.
+
+Remaining 10 conformance failures and the 225 `render_components` digest
+mismatches are root-caused and recorded in
+`docs/audits/2026-10-21-pr38-completion-record.md` ("Open verification").
+The digest red reproduces identically on origin tip `a55276b64`; it needs one
+classified visual decision, not a bless.
+
+Next steps: (1) land this wip tip onto PR #38 with the coordinator's merge
+and sign-off rebase; (2) decide the hover-while-editing and overlay-wheel
+rules; (3) give grid cell ERROR, scroll thumb PRESSED and HelpOverlay focus a
+mono affordance; (4) route HelpOverlay's card ink through part resolution so
+instance patches apply; (5) classify the 225 component digests as one visual
+decision.
