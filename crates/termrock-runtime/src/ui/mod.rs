@@ -1268,7 +1268,7 @@ impl<'f> Ui<'f> {
             Target::Page => (self.roles_at(src), None),
             Target::Layer(i) => self.frame.layers.active().get(i).map_or_else(
                 || (CellRoles::default(), None),
-                |d| (d.roles_at(src), d.underlay_at(src)),
+                |d| (d.roles_at(src), d.underlay_at(src).cloned()),
             ),
         };
         if let Some(cell) = self.buffer().cell(src).cloned() {
