@@ -730,6 +730,7 @@ impl<'a> ContextMenu<'a> {
             MenuCmd::Next => moved(self.step(st, 1)),
             MenuCmd::First => set_cursor(st, self.navigation_cursor(true)),
             MenuCmd::Last => set_cursor(st, self.navigation_cursor(false)),
+            MenuCmd::Activate if st.highlight_hidden => Response::consumed(),
             MenuCmd::Activate => self
                 .activate(st)
                 .map_or_else(Response::consumed, Response::action),
