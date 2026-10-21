@@ -303,11 +303,14 @@ impl<'a> FormDialog<'a> {
         state: &mut FormDialogState,
         data: &mut D,
     ) -> Response<FormDialogAction> {
-        let rows = self.body_rows(cx.design(), cx.viewport(), data);
-        let dialog = self.dialog(rows);
         // The form gets first refusal on field-scoped Escape (for example an
         // editor or an open select). The layer then handles remaining dismissals.
         let form_response = self.form().update(cx, &mut state.form, data);
+        // Form updates can change which fields are visible. Measure the dialog
+        // after that update so its layer bounds and the rendered body share the
+        // same live composition during this input frame.
+        let rows = self.body_rows(cx.design(), cx.viewport(), data);
+        let dialog = self.dialog(rows);
         // A chooser is a child control, so its Enter/Space activation must reach
         // the caller before the surrounding dialog can interpret Enter as Save.
         let dialog_response = if matches!(form_response.action_ref(), Some(FormAction::Chose(_))) {
@@ -408,6 +411,7 @@ mod tests {
     use ratatui_core::buffer::Buffer;
     use ratatui_core::layout::Rect;
     use termrock_controls::button::Button;
+    use termrock_controls::choice::Checkbox;
     use termrock_core::action::{Action, ActionKey};
     use termrock_core::event::{Input, Key, KeyCode, KeyModifiers, MouseKind};
     use termrock_core::id::Id;
@@ -740,6 +744,179 @@ mod tests {
         assert!(clipped.height <= narrow.height);
         assert!(clipped.right() <= narrow.right());
         assert!(clipped.bottom() <= narrow.bottom());
+    }
+
+    const CONDITIONAL_DIALOG: Id = Id::root("form-dialog.tests.conditional");
+    const CONDITIONAL_TUNNEL: Id = Id::root("form-dialog.tests.conditional.tunnel");
+    const CONDITIONAL_CHOOSER: Id = Id::root("form-dialog.tests.conditional.chooser");
+    const CONDITIONAL_FIELDS: &[FieldSpec<'static>] = &[
+        FieldSpec::new(
+            CONDITIONAL_TUNNEL,
+            "",
+            FieldKind::Check(Checkbox::new(CONDITIONAL_TUNNEL, "Use tunnel")),
+        ),
+        FieldSpec::new(
+            CONDITIONAL_CHOOSER,
+            "Key",
+            FieldKind::Chooser(Button::new(CONDITIONAL_CHOOSER, "Choose…")),
+        ),
+    ];
+
+    #[derive(Default)]
+    struct ConditionalData {
+        tunnel: bool,
+    }
+
+    impl FormData for ConditionalData {
+        fn value(&self, id: Id) -> FieldRef<'_> {
+            if id == CONDITIONAL_TUNNEL {
+                FieldRef::Flag(self.tunnel)
+            } else {
+                FieldRef::Display {
+                    value: "~/.ssh/id_ed25519",
+                    detail: None,
+                }
+            }
+        }
+
+        fn value_mut(&mut self, id: Id) -> FieldMut<'_> {
+            if id == CONDITIONAL_TUNNEL {
+                FieldMut::Flag(&mut self.tunnel)
+            } else {
+                FieldMut::ReadOnly
+            }
+        }
+
+        fn visible(&self, id: Id) -> bool {
+            id != CONDITIONAL_CHOOSER || self.tunnel
+        }
+    }
+
+    #[derive(Default)]
+    struct ConditionalApp {
+        state: FormDialogState,
+        data: ConditionalData,
+        opened: bool,
+        actions: Vec<FormDialogAction>,
+    }
+
+    impl ConditionalApp {
+        fn dialog(&self) -> FormDialog<'static> {
+            FormDialog::new(CONDITIONAL_DIALOG, "Add connection", CONDITIONAL_FIELDS)
+                .field_sizing(FieldSizingPolicy::Intrinsic)
+                .width(42)
+        }
+    }
+
+    impl App for ConditionalApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            if !self.opened {
+                self.opened = true;
+                let layer = self.dialog().layer(cx, &self.data);
+                cx.open_layer(CONDITIONAL_DIALOG, layer);
+            }
+            if let Some(action) = self
+                .dialog()
+                .update(cx, &mut self.state, &mut self.data)
+                .action_ref()
+            {
+                self.actions.push(*action);
+            }
+            Response::ignored()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let dialog = self.dialog();
+            ui.layer(CONDITIONAL_DIALOG, |ui, area| {
+                dialog.draw(ui, area, &self.state, &self.data);
+            });
+        }
+    }
+
+    #[test]
+    fn intrinsic_visibility_changes_resize_before_next_pointer_input() {
+        let screen = Rect::new(0, 0, 64, 24);
+        let mut runtime = Runtime::new(ConditionalApp::default(), Theme::junie());
+        let _ = runtime.initialize();
+        let mut buffer = Buffer::empty(screen);
+        runtime.draw_buffer(screen, &mut buffer).commit_presented();
+        let collapsed = runtime
+            .layer_area(CONDITIONAL_DIALOG)
+            .expect("dialog layer");
+        assert!(runtime.area_of(CONDITIONAL_CHOOSER).is_none());
+
+        let toggle = runtime
+            .area_of(CONDITIONAL_TUNNEL)
+            .expect("tunnel checkbox hit area");
+        let x = toggle.x.saturating_add(toggle.width / 2);
+        let y = toggle.y.saturating_add(toggle.height / 2);
+        let _ = termrock_runtime::stub::deliver(
+            &mut runtime,
+            termrock_runtime::stub::mouse(MouseKind::Down, x, y),
+        );
+        runtime.draw_buffer(screen, &mut buffer).commit_presented();
+        let _ = termrock_runtime::stub::deliver(
+            &mut runtime,
+            termrock_runtime::stub::mouse(MouseKind::Up, x, y),
+        );
+        runtime.draw_buffer(screen, &mut buffer).commit_presented();
+
+        assert!(runtime.app().data.tunnel);
+        let expanded = runtime
+            .layer_area(CONDITIONAL_DIALOG)
+            .expect("expanded layer");
+        assert!(
+            expanded.height > collapsed.height,
+            "same input expands intrinsic layer"
+        );
+        let chooser = runtime
+            .area_of(CONDITIONAL_CHOOSER)
+            .expect("chooser is registered after expansion");
+        let chooser_x = chooser.x.saturating_add(chooser.width / 2);
+        let chooser_y = chooser.y.saturating_add(chooser.height / 2);
+        let _ = termrock_runtime::stub::deliver(
+            &mut runtime,
+            termrock_runtime::stub::mouse(MouseKind::Down, chooser_x, chooser_y),
+        );
+        runtime.draw_buffer(screen, &mut buffer).commit_presented();
+        let after_down = runtime.area_of(CONDITIONAL_CHOOSER);
+        let _ = termrock_runtime::stub::deliver(&mut runtime, Input::Tick);
+        runtime.draw_buffer(screen, &mut buffer).commit_presented();
+        assert_eq!(runtime.area_of(CONDITIONAL_CHOOSER), after_down);
+        let _ = termrock_runtime::stub::deliver(
+            &mut runtime,
+            termrock_runtime::stub::mouse(MouseKind::Up, chooser_x, chooser_y),
+        );
+        runtime.draw_buffer(screen, &mut buffer).commit_presented();
+        assert_eq!(
+            runtime.app().actions,
+            [
+                FormDialogAction::Committed(CONDITIONAL_TUNNEL),
+                FormDialogAction::Chose(CONDITIONAL_CHOOSER)
+            ]
+        );
+
+        runtime.set_focus(Some(CONDITIONAL_TUNNEL));
+        let _ = termrock_runtime::stub::deliver(&mut runtime, press(KeyCode::Char(' ')));
+        runtime.draw_buffer(screen, &mut buffer).commit_presented();
+        assert!(
+            !runtime.app().data.tunnel,
+            "keyboard can hide conditional fields"
+        );
+        let shrunk = runtime
+            .layer_area(CONDITIONAL_DIALOG)
+            .expect("shrunk layer");
+        assert!(shrunk.height < expanded.height);
+        assert!(runtime.area_of(CONDITIONAL_CHOOSER).is_none());
+
+        let _ = termrock_runtime::stub::deliver(&mut runtime, press(KeyCode::Char(' ')));
+        runtime.draw_buffer(screen, &mut buffer).commit_presented();
+        assert!(
+            runtime.app().data.tunnel,
+            "keyboard can reopen conditional fields"
+        );
+        assert!(runtime.area_of(CONDITIONAL_CHOOSER).is_some());
+        assert!(runtime.layer_area(CONDITIONAL_DIALOG).unwrap().height > shrunk.height);
     }
 
     #[test]
