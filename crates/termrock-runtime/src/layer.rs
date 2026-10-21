@@ -259,6 +259,10 @@ pub enum ScreenAlign {
 
     GeometricCenter,
 
+    /// Vertically centred with any odd leftover row placed above the layer,
+    /// matching ratatui's `Flex::Center` splitting.
+    Balanced,
+
     UpperThird,
 
     Bottom,
@@ -584,6 +588,7 @@ pub fn resolve_anchor(screen: Rect, anchor: Anchor, size: LayerSize) -> Rect {
             let y = match align {
                 ScreenAlign::Center => screen.y.saturating_add(free / 3),
                 ScreenAlign::GeometricCenter => screen.y.saturating_add(free / 2),
+                ScreenAlign::Balanced => screen.y.saturating_add(free.div_ceil(2)),
                 ScreenAlign::UpperThird => screen.y.saturating_add(free / 6),
                 ScreenAlign::Bottom => screen.y.saturating_add(free),
             };
@@ -1077,6 +1082,28 @@ mod tests {
             LayerSize::Fixed(60, 12),
         );
         assert_eq!(r, Rect::new(37, 25, 60, 12));
+    }
+
+    #[test]
+    fn anchor_screen_balanced_centers_with_the_odd_row_above() {
+        // Ratatui `Flex::Center` splitting: free 29 around an 11-row layer
+        // puts 15 rows above and 14 below.
+        for (height, expected_y) in [(20u16, 5u16), (24, 7), (30, 10), (40, 15), (50, 20)] {
+            let screen = Rect::new(0, 0, 120, height);
+            let r = resolve_anchor(
+                screen,
+                Anchor::Screen(ScreenAlign::Balanced),
+                LayerSize::Fixed(54, 11),
+            );
+            assert_eq!(r, Rect::new(33, expected_y, 54, 11), "height {height}");
+        }
+        // An even leftover leaves no rounding bias.
+        let even = resolve_anchor(
+            Rect::new(0, 0, 120, 41),
+            Anchor::Screen(ScreenAlign::Balanced),
+            LayerSize::Fixed(54, 11),
+        );
+        assert_eq!(even.y, 15);
     }
 
     #[test]
