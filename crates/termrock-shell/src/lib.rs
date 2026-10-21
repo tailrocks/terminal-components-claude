@@ -24,9 +24,13 @@ pub mod shell;
 pub mod status;
 
 pub use chrome::{Chrome, Regions};
+pub use footer::{Footer, FooterStatus, HINT_AUTO, HINT_NORMAL, HINT_PINNED, Hint};
 pub use nav::{Crumb, Nav, PageKey, Router};
+pub use page::{Page, PageLeaf, rebuild_on_tick, replay_key};
 pub use quit::{
-    KeyContext, Leave, LeaveDialog, LeaveDialogKind, LeaveGuard, LeaveKey, Resolved, Stakes,
+    KeyContext, Leave, LeaveDialog, LeaveDialogKind, LeaveGuard, LeaveKey, QuitKeys, Resolved,
+    Stakes,
 };
 pub use router::{KeyBinding, KeyHost, KeyRouter, ShellAction, ShellKeys, Tier, chord, lookup};
-pub use status::{JobKey, StatusLine};
+pub use shell::AppShell;
+pub use status::{JobKey, StatusLine, TONE_ERROR, TONE_NORMAL, TONE_SECONDARY, TONE_SUCCESS};
