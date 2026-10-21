@@ -261,7 +261,7 @@ mod accounts_detail_view;
 mod accounts_drawer_view;
 mod editor_view;
 mod historical_accounts_add_form;
-mod historical_accounts_detail;
+
 
 mod historical_accounts_filter;
 
@@ -7578,7 +7578,7 @@ impl App {
             return;
         }
         // Approved frame hides the cursor. No owner writes one.
-        historical_accounts_detail::paint(ui);
+        accounts_drawer_view::paint_detail(ui);
     }
 
     fn historical_accounts_detail_80(&self, theme: &termrock::Theme, screen: Rect) -> bool {
