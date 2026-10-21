@@ -8,15 +8,15 @@ use termrock::editors::{
 };
 use termrock::{
     Action, ActionKey, Align, Anchor, App, CellAction, CellUi, Chord, CodeAction, CodeEditor,
-    ColumnKey, CompletingCodeEditor, Cx, Dialog, DialogAction, DialogState, FgStep, Focusability,
-    Form, FormAction, FormState, FrameRead, GlyphRole, Grid, GridAction, GridCell, GridColumnFit,
-    GridEditor, GridGutter, GridModel, GridSortIndicator, Id, Intent, ItemKey, KeyCode, KeyMap,
-    KeyModifiers, KeyPhase, LayerId, LayerSize, LayerSpec, Maximized, Modifier, Panel, PanelKind,
-    Part, Phase, PickerAction, PickerSlotExt, Position, Response, Role, RowDecor, RowTotal, RowUi,
-    ScreenAlign, Size, SortDir, Span, SplitAxis, SplitPane, SplitPaneState, StateFlags, StylePatch,
-    Tabs, TabsAction, TabsState, TextAction, TextInput, TextInputState, Theme, Tree, TreeAction,
-    TreeBranchActivation, TreeNode, TreeState, Ui, UpdateCause, truncate, truncate_middle, width,
-    wrap,
+    ColumnKey, CompletingCodeEditor, Cx, Dialog, DialogAction, DialogState, EnterPolicy, FgStep,
+    Focusability, Form, FormAction, FormState, FrameRead, GlyphRole, Grid, GridAction, GridCell,
+    GridColumnFit, GridEditor, GridGutter, GridModel, GridSortIndicator, Id, Intent, ItemKey,
+    KeyCode, KeyMap, KeyModifiers, KeyPhase, LayerId, LayerSize, LayerSpec, Maximized, Modifier,
+    Panel, PanelKind, Part, Phase, PickerAction, PickerSlotExt, Position, Response, Role, RowDecor,
+    RowTotal, RowUi, ScreenAlign, Size, SortDir, Span, SplitAxis, SplitPane, SplitPaneState,
+    StateFlags, StylePatch, Tabs, TabsAction, TabsState, TextAction, TextInput, TextInputState,
+    Theme, Tree, TreeAction, TreeBranchActivation, TreeNode, TreeState, Ui, UpdateCause, truncate,
+    truncate_middle, width, wrap,
 };
 
 use crate::quick_switcher::{self, QuickSwitcher};
@@ -1248,7 +1248,7 @@ impl TableProApp {
     pub fn begin_connection_form(&mut self) {
         self.connection_filter_editing = false;
         self.sync_connection_filter_chords();
-        self.draft = Some(ConnectionDraft::from_connection(&self.connection));
+        self.draft = Some(ConnectionDraft::new());
         self.form_state = FormState::default();
         self.form_open = true;
         self.surface = Surface::Connections;
@@ -1566,6 +1566,7 @@ impl TableProApp {
         Form::new(connections::FORM, fields)
             .actions(actions)
             .submit(connections::SAVE_CONNECT)
+            .enter(EnterPolicy::Never)
     }
     fn handle_grid(status: &mut String, action: &GridAction) {
         match action {
@@ -9723,24 +9724,6 @@ impl TableProApp {
         }
     }
 
-    fn arm_fresh_name_replacement(&mut self, cx: &Cx<'_>) {
-        let Some(draft) = &self.draft else {
-            return;
-        };
-        if draft.name != self.connection.name {
-            return;
-        }
-        let name = connections::field::NAME;
-        let typing = cx.intents(name).any(|intent| match intent {
-            Intent::Key(key) => key.bare_char().is_some(),
-            Intent::Paste(_) => true,
-            _ => false,
-        });
-        if typing && self.form_state.editing_text(name) == Some(self.connection.name.as_str()) {
-            self.form_state.select_editing_text(name);
-        }
-    }
-
     fn mirror_name_edit(&mut self) {
         let Some(text) = self.form_state.editing_text(connections::field::NAME) else {
             return;
@@ -9754,16 +9737,16 @@ impl TableProApp {
     }
 
     #[cfg(test)]
-    fn empty_new_connection_draft(&self) -> bool {
+    fn blank_new_connection_draft(&self) -> bool {
         let Some(draft) = &self.draft else {
             return false;
         };
-        draft.name == self.connection.name
+        draft.name.is_empty()
             && draft.engine == 0
             && draft.host == "localhost"
             && draft.port == "5432"
-            && draft.database == self.connection.database
-            && draft.user == self.connection.user
+            && draft.database.is_empty()
+            && draft.user.is_empty()
             && !draft.has_password()
             && !draft.ask_password
             && draft.environment == 0
@@ -10017,7 +10000,6 @@ impl App for TableProApp {
                 _ => {}
             }
         }
-        self.arm_fresh_name_replacement(cx);
         let form_was_open = self.form_open;
         if self.draft.is_some() {
             let fields = &self.form_fields;
@@ -10614,7 +10596,7 @@ mod fresh_name_gate {
     fn typing_replaces_the_stock_name_and_closes_the_empty_card_gate() {
         let mut harness = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
         let _ = harness.ctrl('n');
-        assert!(harness.app().empty_new_connection_draft());
+        assert!(harness.app().blank_new_connection_draft());
         let _ = harness.type_str("Staging replica");
         assert_eq!(
             harness
@@ -10623,7 +10605,7 @@ mod fresh_name_gate {
                 .map(|draft| draft.name.as_str()),
             Some("Staging replica")
         );
-        assert!(!harness.app().empty_new_connection_draft());
+        assert!(!harness.app().blank_new_connection_draft());
     }
 }
 

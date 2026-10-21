@@ -256,28 +256,27 @@ const CAPSULE_COMMANDS: &[Item<'static>] = &[
 ];
 const TICK_MS: u64 = crate::rain::TICK_MS;
 
+mod accounts_add_form_view;
 mod accounts_detail_view;
 mod accounts_drawer_view;
+mod accounts_filter_view;
+mod accounts_filter_wide;
 mod editor_view;
-mod historical_accounts_add_form;
-
-
-mod historical_accounts_filter;
 
 mod capsule_menu_view;
 mod capsule_zoom_view;
 
-mod historical_hard_launch_picker;
-mod historical_inspect;
-mod historical_launch_picker;
-mod historical_manager_menu;
+mod hard_launch_picker_view;
 mod historical_paint;
-mod historical_usage_detail;
-mod historical_usage_overview;
+mod inspect_view;
 mod launch_cockpit;
 mod launch_dialog_plate;
+mod launch_picker_view;
 mod manager_help;
+mod manager_menu_view;
 mod settings_view;
+mod usage_detail_view;
+mod usage_overview_view;
 use historical_paint::HistoricalPalette;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -3016,14 +3015,7 @@ impl App {
     fn update_overlays(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut result = Response::ignored();
 
-        let historical_failure = self.historical_launch_failure_frame(cx.viewport());
-        if historical_failure {
-            if cx.is_open(LAUNCH_FAILURE_DIALOG) {
-                cx.close_layer(LAUNCH_FAILURE_DIALOG, Some(ActionKey::CLOSE));
-                result |= Response::changed();
-            }
-            self.launch_failure_open = false;
-        } else if self
+        if self
             .launch
             .as_ref()
             .is_some_and(|launch| launch.failure.is_some())
@@ -7047,14 +7039,6 @@ impl App {
             && !self.about_open
     }
 
-    fn paused_launch_scene(&self) -> bool {
-        self.launch_cockpit_scene() && !self.cockpit_info_open && !self.cancel_open
-    }
-
-    fn historical_launch_running_frame(&self, area: Rect) -> bool {
-        area.width == 120 && area.height == 40 && self.paused_launch_scene()
-    }
-
     fn paint_cockpit_trace(&self, ui: &mut Ui<'_>, screen: Rect) {
         let Some(label) = self
             .launch
@@ -7109,93 +7093,6 @@ impl App {
         );
     }
 
-    fn draw_historical_launch_running(&self, ui: &mut Ui<'_>) {
-        let area = Rect::new(0, 0, 120, 40);
-        let mut buf = termrock::Buffer::empty(area);
-        jackin_preview_presentation::launch_running::paint_paused_launch_running(&mut buf);
-        let level = ui.theme_ref().capability.color;
-        let indexed = matches!(
-            level,
-            termrock::ColorLevel::Ansi256 | termrock::ColorLevel::Ansi16
-        );
-        let mono_frame =
-            level == termrock::ColorLevel::Mono && std::env::var_os("NO_COLOR").is_none();
-        for y in area.y..area.bottom() {
-            for x in area.x..area.right() {
-                let Some(cell) = buf.cell(Position::new(x, y)) else {
-                    continue;
-                };
-                let mut style = cell.style();
-                if mono_frame {
-                    if let (Some(fg), Some(bg)) = (style.fg, style.bg)
-                        && let Some(ink) = termrock::theme::legacy_mono(fg, bg, y == 0)
-                    {
-                        style.fg = Some(ink.fg);
-                        style.bg = Some(ink.bg);
-                        if ink.underline {
-                            style = style.add_modifier(Modifier::UNDERLINED);
-                        }
-                        if ink.reverse {
-                            style = style.add_modifier(Modifier::REVERSED);
-                        }
-                    }
-                } else if indexed {
-                    if let (Some(fg), Some(bg)) = (style.fg, style.bg) {
-                        let (fg, bg) = termrock::theme::downgrade_pair(fg, bg, level);
-                        style.fg = Some(fg);
-                        style.bg = Some(bg);
-                    } else if let Some(fg) = style.fg {
-                        style.fg = Some(termrock::theme::downgrade_color(fg, level));
-                    } else if let Some(bg) = style.bg {
-                        style.bg = Some(termrock::theme::downgrade_color(bg, level));
-                    }
-                }
-                if !style.add_modifier.contains(Modifier::BOLD) {
-                    style = style.remove_modifier(Modifier::BOLD);
-                }
-                ui.paint_cell(Position::new(x, y), cell.symbol(), style);
-            }
-        }
-        if std::env::var_os("NO_COLOR").is_some() {
-            let brand = PaintStyle::new()
-                .fg(termrock::Color::Rgb(0, 0, 0))
-                .bg(termrock::Color::Reset)
-                .add_modifier(Modifier::BOLD | Modifier::REVERSED);
-            ui.paint_str(Rect::new(1, 0, 9, 1), " jackin❯ ", brand);
-        }
-    }
-
-    fn historical_launch_failure_frame(&self, area: Rect) -> bool {
-        area.width == 120
-            && area.height == 40
-            && self.route == Route::Cockpit
-            && self.motion == Motion::Paused
-            && self.world.scenario == Scenario::LaunchFailure
-            && self
-                .launch
-                .as_ref()
-                .is_some_and(|launch| launch.failure.is_some())
-    }
-
-    fn draw_historical_launch_failure(&self, ui: &mut Ui<'_>) {
-        let theme = ui.theme_ref().clone();
-        let area = Rect::new(0, 0, 120, 40);
-        let mut buf = termrock::Buffer::empty(area);
-        jackin_preview_presentation::launch_failure::paint_paused_launch_failure(&mut buf, &theme);
-        for y in area.y..area.bottom() {
-            for x in area.x..area.right() {
-                let Some(cell) = buf.cell(Position::new(x, y)) else {
-                    continue;
-                };
-                let mut style = cell.style();
-                if !style.add_modifier.contains(Modifier::BOLD) {
-                    style = style.remove_modifier(Modifier::BOLD);
-                }
-                ui.paint_cell(Position::new(x, y), cell.symbol(), style);
-            }
-        }
-    }
-
     fn junie_truecolor(theme: &termrock::Theme) -> bool {
         theme.capability.color == termrock::ColorLevel::TrueColor
             && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
@@ -7244,7 +7141,7 @@ impl App {
         if !self.historical_accounts_add_form(ui.theme_ref(), screen) {
             return;
         }
-        historical_accounts_add_form::paint(ui);
+        accounts_add_form_view::paint(ui);
         if self.add_form_required {
             // Backtab then Enter. The control row includes the focus gutter.
             let message_bg = ui.theme_ref().bg(termrock::Surface::Elevated);
@@ -7300,7 +7197,7 @@ impl App {
         if !self.historical_accounts_filter(ui.theme_ref(), screen) {
             return;
         }
-        historical_accounts_filter::paint(ui);
+        accounts_filter_wide::paint(ui, &self.world);
     }
 
     fn historical_accounts_filter_80(&self, theme: &termrock::Theme, screen: Rect) -> bool {
@@ -7343,143 +7240,7 @@ impl App {
         }
         // Approved frame hides the cursor. This path must not call set_cursor
         // or set_bar_cursor, and it must not write cursor bytes.
-        let screen = ui.full();
-        let menus = ["File", "Go", "Help"];
-        let rows = [
-            termrock::feedback::FilterRow {
-                depth: 0,
-                twist: None,
-                name: "Overview",
-                alert: false,
-                tail: None,
-                tail_tone: termrock::feedback::TailTone::Muted,
-                selected: true,
-            },
-            termrock::feedback::FilterRow {
-                depth: 1,
-                twist: Some("▾"),
-                name: "Claude",
-                alert: true,
-                tail: Some("1"),
-                tail_tone: termrock::feedback::TailTone::Muted,
-                selected: false,
-            },
-            termrock::feedback::FilterRow {
-                depth: 2,
-                twist: None,
-                name: "Work",
-                alert: true,
-                tail: Some("stale 47 min"),
-                tail_tone: termrock::feedback::TailTone::Warning,
-                selected: false,
-            },
-        ];
-        let health = [
-            termrock::feedback::DetailSpan {
-                text: "  Health  ",
-                ink: termrock::feedback::DetailInk::Plain,
-            },
-            termrock::feedback::DetailSpan {
-                text: "degraded",
-                ink: termrock::feedback::DetailInk::DangerBold,
-            },
-            termrock::feedback::DetailSpan {
-                text: " · ",
-                ink: termrock::feedback::DetailInk::Muted,
-            },
-            termrock::feedback::DetailSpan {
-                text: "4 warnings",
-                ink: termrock::feedback::DetailInk::Warning,
-            },
-            termrock::feedback::DetailSpan {
-                text: " · ",
-                ink: termrock::feedback::DetailInk::Muted,
-            },
-            termrock::feedback::DetailSpan {
-                text: "1 exhausted",
-                ink: termrock::feedback::DetailInk::Danger,
-            },
-            termrock::feedback::DetailSpan {
-                text: " · ",
-                ink: termrock::feedback::DetailInk::Muted,
-            },
-            termrock::feedback::DetailSpan {
-                text: "2 stale",
-                ink: termrock::feedback::DetailInk::Warning,
-            },
-            termrock::feedback::DetailSpan {
-                text: " · ",
-                ink: termrock::feedback::DetailInk::Muted,
-            },
-            termrock::feedback::DetailSpan {
-                text: "1 refreshing",
-                ink: termrock::feedback::DetailInk::Info,
-            },
-            termrock::feedback::DetailSpan {
-                text: " · ",
-                ink: termrock::feedback::DetailInk::Muted,
-            },
-            termrock::feedback::DetailSpan {
-                text: "3 …",
-                ink: termrock::feedback::DetailInk::Danger,
-            },
-        ];
-        let registry = [termrock::feedback::DetailSpan {
-            text: "  Registry  12 accounts · 11 enabled · 1 disabled · 8 providers",
-            ink: termrock::feedback::DetailInk::Plain,
-        }];
-        let sources = [termrock::feedback::DetailSpan {
-            text: "  Sources  7 registered · 5 discovered · 1Password available",
-            ink: termrock::feedback::DetailInk::Plain,
-        }];
-        let facts = [
-            termrock::feedback::DetailLine { spans: &health },
-            termrock::feedback::DetailLine { spans: &registry },
-            termrock::feedback::DetailLine { spans: &sources },
-        ];
-        let hints = [
-            termrock::feedback::FilterHint {
-                key: "Enter",
-                action: "Details",
-            },
-            termrock::feedback::FilterHint {
-                key: "r",
-                action: "Refresh all",
-            },
-            termrock::feedback::FilterHint {
-                key: "a",
-                action: "Add…",
-            },
-            termrock::feedback::FilterHint {
-                key: "/",
-                action: "Filter",
-            },
-            termrock::feedback::FilterHint {
-                key: "m",
-                action: "Usage",
-            },
-            termrock::feedback::FilterHint {
-                key: "Esc",
-                action: "Back",
-            },
-        ];
-        termrock::feedback::paint_accounts_filter(
-            ui,
-            screen,
-            &termrock::feedback::AccountsFilter {
-                brand: "jackin❯",
-                menus: &menus,
-                crumb: "Accounts › Overview",
-                status: "⠋ refreshing 1",
-                title: " Accounts · filter work ",
-                summary: " 12 · 4 ▲ · 4 ! ",
-                rows: &rows,
-                heading: "Overview",
-                heading_meta: "12 accounts · 8 providers · Tab details",
-                facts: &facts,
-                hints: &hints,
-            },
-        );
+        accounts_filter_view::paint(ui);
     }
 
     fn historical_accounts_detail(&self, theme: &termrock::Theme, screen: Rect) -> bool {
@@ -7683,7 +7444,7 @@ impl App {
             return;
         }
         // Approved frame hides the cursor. No owner writes one.
-        historical_usage_overview::paint(ui);
+        usage_overview_view::paint(ui);
     }
 
     fn historical_usage_detail(&self, theme: &termrock::Theme, screen: Rect) -> bool {
@@ -7733,7 +7494,7 @@ impl App {
             return;
         }
         // Approved frame hides the cursor. No owner writes one.
-        historical_usage_detail::paint(ui);
+        usage_detail_view::paint(ui);
     }
 
     fn draw_accounts_boot_needle(&self, ui: &mut Ui<'_>, screen: Rect) {
@@ -8493,7 +8254,7 @@ impl App {
         }
         // The menu layer composites after the page so the page cursor stays off this frame.
         let _ = ui.layer(MANAGER_FILE_MENU, |ui, _area| {
-            historical_manager_menu::paint(ui);
+            manager_menu_view::paint(ui);
         });
     }
 
@@ -8542,7 +8303,7 @@ impl App {
         }
         // Approved frame hides the cursor. This path must not call set_cursor
         // or set_bar_cursor, and it must not write cursor bytes.
-        historical_launch_picker::paint(ui);
+        launch_picker_view::paint(ui);
     }
 
     fn hard_launch_picker_host(&self, theme: &termrock::Theme, screen: Rect) -> bool {
@@ -8590,7 +8351,7 @@ impl App {
         }
         // Approved frame hides the cursor. This path must not call set_cursor
         // or set_bar_cursor, and it must not write cursor bytes.
-        historical_hard_launch_picker::paint(ui);
+        hard_launch_picker_view::paint(ui);
     }
 
     fn historical_hard_launch_locked(&self, theme: &termrock::Theme, screen: Rect) -> bool {
@@ -9493,16 +9254,7 @@ impl TuiApp for App {
         );
         // The paused launch pages are page content: they must land before the
         // layer pass so dialog chrome maps the real underlay ink.
-        let truecolor = ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor;
-        let presentation_page = full.width == 120
-            && full.height == 40
-            && self.launch_cockpit_scene()
-            && (self.historical_launch_running_frame(full)
-                || self.cockpit_info_open
-                || (self.cancel_open && !truecolor));
-        if presentation_page {
-            self.draw_historical_launch_running(ui);
-        } else if self.launch_cockpit_scene() {
+        if self.launch_cockpit_scene() {
             launch_cockpit::paint(self, ui);
         }
         self.draw_layers(ui);
@@ -9595,9 +9347,6 @@ impl TuiApp for App {
         {
             editor_view::paint(self, ui, full);
         }
-        if self.historical_launch_failure_frame(full) {
-            self.draw_historical_launch_failure(ui);
-        }
         if self.launch_cockpit_scene() && self.cockpit_info_open {
             let facts = self.info_facts();
             let shown: Vec<termrock::overlays::info_card::Fact<'_>> = facts
@@ -9673,7 +9422,7 @@ impl TuiApp for App {
             && ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
             && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
         {
-            historical_inspect::paint(ui);
+            inspect_view::paint(ui);
         }
         self.draw_historical_manager_menu(ui, full);
         self.draw_historical_launch_picker(ui);
