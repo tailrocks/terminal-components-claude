@@ -152,6 +152,116 @@ Other named failures at the same baseline:
 `termrock-theme::capability_palettes all_73_junie_slots_match_reference_capability_output`,
 `visual-harness::visual_baseline determinism::sources_are_deterministic`.
 
+## Library gaps (read-only audit, revision `40bc297e5`)
+
+### The composition API exists and is unused
+
+`Group`, `AppShellSlots` and `ui.compose` appear in application code exactly
+once, in `crates/showcase-demos/src/pages/editor.rs:574-635`. `termrock-shell`
+(`Footer`, `StatusLine`, `Nav`, `Router`, `Page`, `QuitGuard`) has ZERO
+callers in application code: only `crates/termrock-shell/examples/shell_consumer.rs`
+and its own tests. Every application re-implements shell chrome, routing and
+quit handling.
+
+Raw geometry counts in application crates (`Rect::new` / `Rect {`):
+showcase-demos 675, tablepro-ui 291, holla-ui 214, jackin-preview-app 189,
+showcase-ui 36. Direct painting counts (`ui.paint_str` / `ui.fill` / cell
+writes): showcase-demos 414, tablepro-ui 265, holla-ui 216,
+jackin-preview-app 107, showcase-ui 32.
+
+### Highest-impact library gaps
+
+| # | Gap | Unblocks | Crate |
+| --- | --- | --- | --- |
+| G1 | Composition adapters for the remaining ~50 components (only 11 of ~60 can enter a `Group`) | every screen of every app | `termrock` |
+| G2 | Closure-based named slot builder for the shell and blocks | every `AppShell::regions` call site | `termrock-shell` |
+| G3 | Library-owned scroll area / scrollbar block | 12 hand-painted scrollbars | `termrock-runtime` |
+| G4 | `Panel` owns its body/title rect and title painting | 5 app re-implementations of panel chrome | `termrock-controls` |
+| G5 | Content-rect queries on `Tree`, `List`, `NavList`, `Table` | every app that subtracts a chrome band by hand | `termrock-navigation`, `termrock-grid` |
+| G6 | Adopt `Footer`, `StatusLine`, `Nav`, `Router`, `Page`, `QuitGuard` | 4 apps' hand-rolled shell | `termrock-shell` |
+| G7 | Library returns resolved grid column placement | tablepro `ColBudget`/`ColPlace`/`GridChrome` | `termrock-grid` |
+| G8 | Semantic theme tokens for app chrome | 531 hardcoded `Color::Rgb` in app crates | `termrock-theme` |
+| G9 | Runtime-owned predicate recolor; fix the ANSI-256 ladder | 6 app `ui.raw()` correction painters | `termrock-runtime`, `termrock-theme` |
+| G10 | Bind the declared deny lints to every `termrock-*` crate | the no-panic contract; 941 `expect`, 201 `unwrap`, 64 `panic!` in library `src/` | workspace root + all libraries |
+| G11 | `termrock-session` owns the cursor-shape escape | 2 apps writing `\x1b[6 q` to stdout | `termrock-session` |
+| G12 | `inactive-layer` and `invalid` as first-class flags, plus a full combination matrix | consistent chosen ink under modals | `termrock-core`, `termrock-theme` |
+
+### API-contract scorecard
+
+| Contract element | Status |
+| --- | --- |
+| `Picker::new(id).title().placeholder().filter(FilterPolicy::Label)`, `update`, `PickerAction::Chosen` | PRESENT |
+| Composition API above the runtime reusing `update`/`measure`/`draw`; no input during measure or draw | PRESENT but narrow: 11 of ~60 components are adaptable; `Measure` takes `&Ui` and `draw` takes `&mut Ui`, so no `Cx` is reachable during either, and dispatch is structurally impossible |
+| One resolved layout for render, clip, hit regions, focus bounds, cursor | PARTIAL: composition resolves once, but app-composed regions have no resolved layout, so hit regions come from hand-computed rects |
+| Named slots, style variants, semantic tokens, one owner per state | PARTIAL: violated by apps (correction painters, parallel grid state) |
+| Full state set hover/pressed/focus-visible/selected/checked/editing/disabled/read-only/busy/invalid/inactive-layer | PARTIAL: `invalid` exists only as `ERROR`; `inactive-layer` is not a flag, it is `Ui::is_inert` plus `Theme::inactive_look`; no combination matrix for `READ_ONLY`, `BUSY`, `EDITING`, `ERROR` |
+| Overlays own input scope, cursor, focus restoration; grapheme-safe text; no panics | PARTIAL: overlay scope and focus restore are implemented and tested; grapheme safety is implemented and tested; panic-freedom is declared but NOT enforced, because no `termrock-*` crate opts into the workspace deny lints |
+| Raw geometry stays inside components | FAIL in applications |
+
+### Dependency direction
+
+No production `termrock-*` crate depends on an application crate. The only
+inverted edges are application DATA crates depending on widget types:
+`showcase-data` -> `termrock` (a UI tree type in a data crate),
+`tablepro-domain` -> `termrock` (`GridState`, `GridModel`, `ItemKey`,
+`CompletingCodeEditorState`, `FieldError`), `jackin-preview-domain` ->
+`termrock` (`Secret`), `jackin-preview-sim` -> `termrock` (`Rect`, `Role`,
+`SplitModel`). `crates/holla-domain` declares `termrock-core` and `ratatui`
+but uses neither; that edge is stale.
+
+`tools/acceptance_policy.json` lists 19 production libraries and omits
+`termrock-shell`, so the lexical architecture gate does not see it.
+
+### Migration-matrix overstatements
+
+- The matrix claims the existing `MasterDetail` policy expresses the frozen
+  34% / 34-48-cell / gap-two / 108-column constraints. It does not:
+  `crates/termrock-controls/src/master_detail.rs:149-153` ships
+  `master_share: 32`, `min_master: 28`, `min_detail: 40`, `gap: 2`,
+  `collapse_below: 100`, with no max clamp, so a 34-48 band is inexpressible.
+  No application crate references `MasterDetail` at all.
+- The matrix lists the breadcrumb trail as ported. Only the MODEL is in
+  `crates/termrock-shell/src/nav.rs`; that file states the widget "is owned
+  by another crate wave". The responsive, clickable trail does not exist.
+- The matrix lists the footer extraction as complete. The same crate states
+  that the status variant and the reveal/peek integration are not ported.
+- The matrix claims the showcase has catalog pages for tabs, menus,
+  popups/tooltips, meters, notices, status hints, master-detail, pane tree,
+  splits/stacks, toolbars, breadcrumbs/rails and help keys.
+  `crates/showcase-ui/src/app.rs:53-76` exposes 22 `PageId` variants and has
+  none of them. They cannot exist until the corresponding widgets land.
+- The matrix claims the menu command map and `Chrome::fit` dialog inset stay
+  with their owners. `crates/termrock-overlays/src/menu.rs` exposes no menu
+  command map and `crates/termrock-shell/src/chrome.rs:5-8` says the same.
+  The chrome-owned dialog inset has no owner anywhere in PR #38.
+
+## PR #26 extraction priorities (read-only audit)
+
+PR #26 (`f4867e9b5`) capabilities still missing from PR #38, ranked by how
+many application bypasses each unblocks, with the parity risk of landing it:
+
+1. Button/action row overflow folding — LOW risk, purely additive.
+2. Toolbar with overflow — LOW risk.
+3. Master/detail width policy (proportional share, min and max clamp, natural
+   width query) — LOW to MED; keep the shipped defaults.
+4. Collapsible sidebar rail — LOW to MED.
+5. Breadcrumb trail widget — LOW; the shell already owns the model.
+6. Pane tree — LOW; nothing renders it today.
+7. Segmented control and icon button — LOW.
+8. Hint bar compact mode and reserved status share — MED risk, affects every
+   app footer row; must land opt-in with the current behaviour as default.
+
+Then: reveal (MED to HIGH parity risk), file browser widget, edit-menu
+owner, diff narrow fallback, context-menu typeahead and overflow, key
+reference sheet, horizontal scrollbar thumb states, column sizing with a
+draggable seam.
+
+Not to be ported: the PR #26 application implementations, `src/core/**` and
+`src/shell/**` (already extracted), `src/theme.rs` (the PR #38 palette owns
+the frozen colour contract), `Chrome::fit` (it would move every dialog
+inside the frozen frames), the PR #26 `Splitter`, `Grid` and `Table`
+widgets wholesale, and the PR #26 specimen and coverage harness.
+
 ## Coverage gaps
 
 ### False-parity inventory (read-only audit, revision `40bc297e5`)
