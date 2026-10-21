@@ -292,10 +292,7 @@ const CAPSULE_COMMANDS: &[Item<'static>] = &[
 ];
 const TICK_MS: u64 = crate::rain::TICK_MS;
 
-mod accounts_detail_view;
-mod accounts_drawer_view;
-mod accounts_filter_view;
-mod accounts_filter_wide;
+mod accounts_page;
 mod editor_view;
 mod prelude_view;
 
@@ -2136,7 +2133,7 @@ impl App {
         };
         self.accounts.list.set_cursor(next, ItemKey::index(next));
         let previous = self.accounts.selected_id.clone();
-        self.accounts.selected_id = selected_account_id(&self.world, self.accounts.list.cursor());
+        self.accounts.selected_id = self.selected_account_id();
         if self.accounts.selected_id != previous {
             self.note_selected_account();
         }
@@ -2202,24 +2199,11 @@ impl App {
     }
 
     fn account_rows(&self) -> Vec<String> {
-        let mut rows = vec!["Overview · Health · Registration · Quota".to_owned()];
-        let mut provider = None;
-        for account in self.world.accounts.sorted() {
-            if !self.account_matches_filter(account) {
-                continue;
-            }
-            if provider != Some(account.provider) {
-                rows.push(account.provider.label().to_owned());
-                provider = Some(account.provider);
-            }
-            rows.push(format!(
-                "  {} · {} · {}",
-                account.title(),
-                account.status_word(),
-                account.source.safe_detail()
-            ));
-        }
-        rows
+        accounts_page::tree(self)
+            .rows
+            .iter()
+            .map(|row| row.name.clone())
+            .collect()
     }
 
     fn editor_account_rows(&self) -> Vec<String> {
@@ -3950,15 +3934,23 @@ impl App {
                 result |= Response::changed();
             }
             if committed {
-                // Enter leaves the query. The approved filter frame has no caret,
-                // so focus must leave the field before draw.
-                cx.focus(ACCOUNTS_LIST);
+                if self.accounts.filter_query.trim().is_empty() {
+                    // An empty query keeps the filter open: the caret stays in
+                    // the field so the query can still be typed.
+                    self.accounts.filter_input.begin("");
+                } else {
+                    // Enter leaves the query. The approved filter frame has no
+                    // caret, so focus must leave the field before draw.
+                    cx.focus(ACCOUNTS_LIST);
+                }
                 result |= Response::changed();
             }
             if cancelled {
                 self.accounts.filtering = false;
                 self.accounts.filter_query.clear();
                 self.accounts.filter_input = TextInputState::default();
+                // The field is gone: the list takes the focus back.
+                cx.focus(ACCOUNTS_LIST);
                 result |= Response::changed();
             }
             return result;
@@ -4096,12 +4088,18 @@ impl App {
         let list_action = list.action_ref().copied();
         let mut result = list.erase();
         let previous = self.accounts.selected_id.clone();
-        self.accounts.selected_id = selected_account_id(&self.world, self.accounts.list.cursor());
+        self.accounts.selected_id = self.selected_account_id();
         if matches!(list_action, Some(ListAction::Moved)) && self.accounts.selected_id != previous {
             self.note_selected_account();
         }
-        if matches!(list_action, Some(ListAction::Chose(_))) {
-            self.set_selected_account_default();
+        if matches!(list_action, Some(ListAction::Chose(_))) && !self.accounts.filtering {
+            // Enter on an account opens its drawer. Enter on the overview row
+            // has nothing to open.
+            if self.accounts.selected_id.is_some() {
+                self.accounts.drawer_open = true;
+            } else {
+                self.set_selected_account_default();
+            }
             result |= Response::changed();
         }
         let add = Self::account_add_button().update(cx);
@@ -4240,7 +4238,7 @@ impl App {
         self.world.accounts.insert(account);
         let selected_id = id.clone();
         self.accounts.selected_id = Some(id);
-        if let Some(index) = account_row_index(&self.world, &selected_id) {
+        if let Some(index) = self.account_row_index(&selected_id) {
             self.accounts.list.set_cursor(index, ItemKey::index(index));
         }
         self.account_options = self
@@ -5610,6 +5608,13 @@ impl App {
                         .into_iter()
                         .next()
                         .map(|account| account.id.clone());
+                }
+                // The drawer shows the inspected account: the list cursor
+                // follows it.
+                if let Some(id) = self.accounts.selected_id.clone()
+                    && let Some(index) = self.account_row_index(&id)
+                {
+                    self.accounts.list.set_cursor(index, ItemKey::index(index));
                 }
                 self.accounts.drawer_open = true;
                 self.status = Some("Account inspector".into());
@@ -7982,100 +7987,6 @@ impl App {
             }
         }
         lines
-    }
-
-    fn draw_accounts_boot_needle(&self, ui: &mut Ui<'_>, screen: Rect) {
-        // Boot looks for `jackin❯` before `a`. The live title is not that word.
-        // The add-form paint replaces this once the dialog is open.
-        if !self.accounts_boot_needle(ui.theme_ref(), screen) {
-            return;
-        }
-        ui.paint_str(Rect::new(0, 0, 8, 1), "jackin❯", ui.surface_style());
-    }
-
-    fn draw_accounts_boot_needle_80(&self, ui: &mut Ui<'_>, screen: Rect) {
-        // Boot looks for `jackin❯` before `s`. The live 80×24 title is not
-        // that word. The settings stamp replaces this once Settings opens.
-        // Detail, the drawer, and the 120×40 list stay on their own frames.
-        if !self.accounts_boot_needle_80(ui.theme_ref(), screen) {
-            return;
-        }
-        ui.paint_str(Rect::new(0, 0, 8, 1), "jackin❯", ui.surface_style());
-    }
-
-    fn accounts_boot_needle_80(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        let on_first = matches!(self.accounts.list.cursor(), None | Some(ItemKey::Index(0)));
-        on_first
-            && screen.width == 80
-            && screen.height == 24
-            && theme.capability.color == termrock::ColorLevel::TrueColor
-            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
-            && self.route == Route::Accounts
-            && self.world.scenario == Scenario::AccountsMixed
-            && self.motion == Motion::Paused
-            && !self.accounts.form_open
-            && !self.accounts.started
-            && !self.accounts.filtering
-            && self.accounts.filter_query.is_empty()
-            && !self.accounts.drawer_open
-            && self.status.is_none()
-            && !self.help_open
-            && !self.quit_open
-            && !self.cancel_open
-            && !self.about_open
-            && self.picker_mode.is_none()
-    }
-
-    fn draw_accounts_boot_needle_rest(&self, ui: &mut Ui<'_>, screen: Rect) {
-        // 72, 100, and 160 accounts lists do not draw the host brand. The
-        // harness waits for `jackin❯` before `u` can open Usage.
-        if !self.accounts_boot_needle_rest(ui.theme_ref(), screen) {
-            return;
-        }
-        ui.paint_str(Rect::new(0, 0, 8, 1), "jackin❯", ui.surface_style());
-    }
-
-    fn accounts_boot_needle_rest(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        !matches!((screen.width, screen.height), (80, 24) | (120, 40))
-            && screen.width >= 72
-            && screen.height >= 20
-            && theme.capability.color == termrock::ColorLevel::TrueColor
-            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
-            && self.route == Route::Accounts
-            && self.world.scenario == Scenario::AccountsMixed
-            && self.motion == Motion::Paused
-            && !self.accounts.form_open
-            && !self.accounts.started
-            && !self.accounts.filtering
-            && self.accounts.filter_query.is_empty()
-            && !self.accounts.drawer_open
-            && self.status.is_none()
-            && !self.help_open
-            && !self.quit_open
-            && !self.cancel_open
-            && !self.about_open
-            && self.picker_mode.is_none()
-    }
-
-    fn accounts_boot_needle(&self, theme: &termrock::Theme, screen: Rect) -> bool {
-        screen.width == 120
-            && screen.height == 40
-            && theme.capability.color == termrock::ColorLevel::TrueColor
-            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
-            && self.route == Route::Accounts
-            && self.world.scenario == Scenario::AccountsMixed
-            && self.motion == Motion::Paused
-            && !self.accounts.form_open
-            && !self.accounts.started
-            && !self.accounts.filtering
-            && self.accounts.filter_query.is_empty()
-            && !self.accounts.drawer_open
-            && self.status.is_none()
-            && !self.help_open
-            && !self.quit_open
-            && !self.cancel_open
-            && !self.about_open
-            && self.picker_mode.is_none()
     }
 
     fn capsule_split_vertical_host(&self, theme: &termrock::Theme, screen: Rect) -> bool {
@@ -10511,6 +10422,11 @@ impl TuiApp for App {
             self.draw_layers(ui);
             return;
         }
+        if self.route == Route::Accounts && !self.accounts.form_open {
+            accounts_page::paint(self, ui, full);
+            self.draw_layers(ui);
+            return;
+        }
         if self.route == Route::Capsule {
             let picker = self.capsule_agent_picker_frame(ui.theme_ref(), full);
             let baseline_256 =
@@ -10736,13 +10652,7 @@ impl TuiApp for App {
         if self.cockpit_trace_open {
             self.paint_cockpit_trace(ui, full);
         }
-        self.draw_accounts_boot_needle(ui, full);
-        self.draw_accounts_boot_needle_80(ui, full);
-        self.draw_accounts_boot_needle_rest(ui, full);
-        accounts_detail_view::paint_audit(self, ui);
         self.draw_accounts_add_form(ui, full);
-        accounts_filter_wide::paint(self, ui);
-        accounts_filter_view::paint(self, ui);
         if self.route == Route::Settings
             && self.world.scenario == Scenario::AccountsMixed
             && self.motion == Motion::Paused
@@ -10759,9 +10669,6 @@ impl TuiApp for App {
         {
             settings_view::paint(self, ui, full);
         }
-        accounts_drawer_view::paint_detail(self, ui);
-        accounts_detail_view::paint(self, ui);
-        accounts_drawer_view::paint(self, ui);
         self.draw_usage_overview_narrow(ui, full);
         self.draw_usage_detail_live(ui, full);
 
@@ -10900,6 +10807,8 @@ impl TuiApp for App {
                 self.accounts.filter_query.clear();
                 self.accounts.filter_input = TextInputState::default();
                 self.status = None;
+                // The field is gone: the list takes the focus back.
+                cx.focus(ACCOUNTS_LIST);
                 return self.route_changed();
             }
             if self.accounts.drawer_open {
@@ -11216,45 +11125,23 @@ fn account_selection_status(account: &Account) -> String {
     )
 }
 
-fn selected_account_id(world: &World, key: Option<ItemKey>) -> Option<String> {
-    let Some(ItemKey::Index(index)) = key else {
-        return None;
-    };
-    if index == 0 {
-        return None;
+impl App {
+    /// The account the tree cursor stands on.
+    fn selected_account_id(&self) -> Option<String> {
+        let tree = accounts_page::tree(self);
+        let Some(ItemKey::Index(index)) = self.accounts.list.cursor() else {
+            return None;
+        };
+        tree.account_at(index).map(str::to_owned)
     }
-    let mut row = 1;
-    let mut provider = None;
-    for account in world.accounts.sorted() {
-        if provider != Some(account.provider) {
-            if row == index {
-                return None;
-            }
-            provider = Some(account.provider);
-            row += 1;
-        }
-        if row == index {
-            return Some(account.id.clone());
-        }
-        row += 1;
-    }
-    None
-}
 
-fn account_row_index(world: &World, id: &str) -> Option<usize> {
-    let mut row = 1;
-    let mut provider = None;
-    for account in world.accounts.sorted() {
-        if provider != Some(account.provider) {
-            provider = Some(account.provider);
-            row += 1;
-        }
-        if account.id == id {
-            return Some(row);
-        }
-        row += 1;
+    /// The tree row of one account.
+    fn account_row_index(&self, id: &str) -> Option<usize> {
+        let tree = accounts_page::tree(self);
+        tree.rows.iter().position(
+            |row| matches!(&row.node, accounts_page::Node::Account(account) if account == id),
+        )
     }
-    None
 }
 
 fn paint_lines(ui: &mut Ui<'_>, area: Rect, lines: &[impl AsRef<str>]) {
