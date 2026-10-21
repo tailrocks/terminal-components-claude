@@ -2040,3 +2040,7 @@ failure remains red; Runtime glyph-contract nextest passes 2/2. Strict scoped
 Clippy, formatting and diff checks pass. This library API increment does not
 establish the four application parity requirements or full workspace
 acceptance.
+
+## Conformance probe isolation (2026-10-21)
+
+The second correction to the conformance test driver clears setup responses before each compared modal gesture, verifies the modal layer is open, and distinguishes the real activation action from the dialog opener. Local style overrides now preserve the runtime theme's installed recipe fingerprint as well as semantic theme equality. See the [bounded audit and evidence](../audits/2026-10-21-conformance-probe-isolation.md). This scoped probe result does not waive the broader conformance failures or product parity gates.
