@@ -7,8 +7,8 @@ use ratatui_core::terminal::Terminal;
 use ratatui_crossterm::CrosstermBackend;
 use ratatui_crossterm::crossterm::cursor::{Hide, SetCursorStyle, Show};
 use ratatui_crossterm::crossterm::event::{
-    DisableBracketedPaste, DisableMouseCapture, EnableBracketedPaste, EnableMouseCapture, poll,
-    read,
+    DisableBracketedPaste, DisableMouseCapture, EnableBracketedPaste, EnableMouseCapture, Event,
+    poll, read,
 };
 use ratatui_crossterm::crossterm::style::Colored;
 use ratatui_crossterm::crossterm::terminal::{
@@ -519,10 +519,14 @@ fn run_with_cursor_shape_startup<A: App>(
             None => true,
         };
         if ready {
-            pending = Input::from_crossterm(read()?);
+            pending = decode_session_input(read()?);
         }
     }
     session.leave()
+}
+
+fn decode_session_input(event: Event) -> Option<Input> {
+    Input::from_crossterm(event)
 }
 
 fn prepare_startup_input(
@@ -625,7 +629,7 @@ mod tests {
         };
         use std::sync::OnceLock;
         use termrock_core::action::ActionKey;
-        use termrock_core::event::{Chord, Input, KeyCode, KeyModifiers};
+        use termrock_core::event::{Chord, KeyCode, KeyModifiers};
         use termrock_runtime::keymap::{KeyMap, KeyPhase};
 
         const X: ActionKey = ActionKey::custom("session.input.x");
@@ -703,11 +707,13 @@ mod tests {
         for key_event in [
             event(CrosstermKeyCode::Esc, CrosstermModifiers::NONE),
             event(CrosstermKeyCode::Char('x'), CrosstermModifiers::NONE),
+            event(CrosstermKeyCode::Esc, CrosstermModifiers::NONE),
             event(CrosstermKeyCode::Char('é'), CrosstermModifiers::NONE),
+            event(CrosstermKeyCode::Esc, CrosstermModifiers::NONE),
             event(CrosstermKeyCode::Char('X'), CrosstermModifiers::SHIFT),
             event(CrosstermKeyCode::Char('x'), CrosstermModifiers::ALT),
         ] {
-            let input = Input::from_crossterm(key_event).expect("key event converts");
+            let input = super::decode_session_input(key_event).expect("key event converts");
             let _ = runtime
                 .handle(input)
                 .expect("runtime dispatches converted input");
@@ -719,14 +725,24 @@ mod tests {
             vec![X, UNICODE, UPPER, ALT_X]
         );
 
-        assert!(matches!(
-            Input::from_crossterm(CrosstermEvent::Resize(73, 19)),
-            Some(Input::Resize(73, 19))
-        ));
-        assert!(matches!(
-            Input::from_crossterm(CrosstermEvent::Paste("typed paste".to_owned())),
-            Some(Input::Paste(ref text)) if text == "typed paste"
-        ));
+        for event in [
+            CrosstermEvent::Key(KeyEvent::new(
+                CrosstermKeyCode::Esc,
+                CrosstermModifiers::NONE,
+            )),
+            CrosstermEvent::Resize(40, 12),
+            CrosstermEvent::Paste("typed paste".to_owned()),
+        ] {
+            let input = super::decode_session_input(event).expect("non-key event converts");
+            let _ = runtime
+                .handle(input)
+                .expect("runtime dispatches converted non-key input");
+            present(&mut runtime, &mut terminal, area);
+        }
+        assert_eq!(
+            *commands.lock().expect("command log"),
+            vec![X, UNICODE, UPPER, ALT_X]
+        );
     }
 
     #[test]
