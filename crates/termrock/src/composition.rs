@@ -6,6 +6,7 @@
 
 use core::fmt;
 
+use crate::blocks::{MasterDetail, MasterDetailError, MasterDetailState};
 use termrock_collections::KeyFn;
 use termrock_controls::{Button, Panel, PropsList, PropsRow, PropsState};
 use termrock_editors::{
@@ -104,6 +105,44 @@ where
 struct PanelLeaf<'a> {
     component: &'a Panel<'a>,
     body: Child<'a>,
+}
+
+/// Adapt a responsive master/detail block with caller-owned split and drawer
+/// state. The block keeps its normal resolver, focus scopes, and child groups;
+/// this leaf only lets it participate in a parent composition.
+pub fn master_detail<'a, 'config>(
+    component: &'a MasterDetail<'config>,
+    state: &'a MasterDetailState,
+) -> Result<Child<'a>, MasterDetailError>
+where
+    'config: 'a,
+{
+    component.validate_composition()?;
+    Ok(Child {
+        content: ChildContent::Leaf(Box::new(MasterDetailLeaf { component, state })),
+        policy: ChildPolicy::default(),
+    })
+}
+
+struct MasterDetailLeaf<'a, 'config> {
+    component: &'a MasterDetail<'config>,
+    state: &'a MasterDetailState,
+}
+
+impl Measure for MasterDetailLeaf<'_, '_> {
+    fn measure(&self, ui: &Ui<'_>, constraints: Constraints) -> Size {
+        self.component
+            .measure(ui, self.state, constraints)
+            .unwrap_or_default()
+    }
+}
+
+impl CompositionLeaf for MasterDetailLeaf<'_, '_> {
+    fn draw(&self, ui: &mut Ui<'_>, logical: ratatui_core::layout::Rect) {
+        ui.with_area(logical, |ui| {
+            let _ = self.component.show(ui, self.state);
+        });
+    }
 }
 
 impl Measure for PanelLeaf<'_> {
