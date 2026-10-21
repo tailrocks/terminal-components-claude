@@ -81,7 +81,7 @@ enabled = false
 environment = "release"
 
 [discovery]
-exclude = ["xtask/fixtures/**", "tools/termrock-visibility-publisher/**", "tools/frozen-cli-frame-support/**", "crates/termrock-e2e/**", "crates/termrock-visibility-tests/**", "crates/showcase-data/**", "crates/holla-catalog/**", "crates/holla-plan/**"]
+exclude = ["xtask/fixtures/**", "tools/termrock-visibility-publisher/**", "tools/frozen-cli-frame-support/**", "crates/termrock-e2e/**", "crates/termrock-visibility-tests/**", "crates/showcase-data/**", "crates/holla-catalog/**", "crates/holla-plan/**", "docs/audits/evidence/**"]
 
 [actions.overrides]
 
