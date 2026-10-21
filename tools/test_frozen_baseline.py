@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import io
 import json
 import os
@@ -4277,6 +4278,131 @@ class RunnerGuards(unittest.TestCase):
             with self.assertRaisesRegex(runner.RunnerError, "missing checkpoint receipts"):
                 runner.read_receipts(receipt_root, [runner.scenario_receipt_id(name) for name in selected], expected_root)
 
+    def test_owned_rooted_filesystem_worker_publishes_one_immutable_file(self) -> None:
+        payload = b'{"fixture":"synthetic"}\n'
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "plan-root"
+            root.mkdir(mode=0o700)
+            root.chmod(0o700)
+            nested = root / "attempt"
+            nested.mkdir(mode=0o700)
+            nested.chmod(0o700)
+            with runner.PrepareExecution(30) as execution:
+                binding = runner._owned_root_binding(root, check_work=execution.check_work)
+                result = runner._owned_publish_immutable(execution, binding, "attempt/report.json", payload)
+            destination = nested / "report.json"
+            self.assertEqual(destination.read_bytes(), payload)
+            self.assertEqual(destination.stat().st_nlink, 1)
+            self.assertEqual(stat.S_IMODE(destination.stat().st_mode), 0o600)
+            self.assertEqual(result["schema"], "termrock.frozen-baseline-owned-fs-result")
+            self.assertEqual(result["operation"], "publish-immutable")
+            self.assertEqual(result["relative_path"], "attempt/report.json")
+            self.assertEqual(result["sha256"], hashlib.sha256(payload).hexdigest())
+            self.assertEqual((result["file_device"], result["file_inode"]), (destination.stat().st_dev, destination.stat().st_ino))
+            self.assertEqual([path.name for path in nested.iterdir()], ["report.json"])
+
+            with runner.PrepareExecution(30) as execution, self.assertRaisesRegex(runner.RunnerError, "command exited 2|immutable destination already exists"):
+                binding = runner._owned_root_binding(root, check_work=execution.check_work)
+                runner._owned_publish_immutable(execution, binding, "attempt/report.json", b"replacement")
+            self.assertEqual(destination.read_bytes(), payload)
+
+            large_payload = bytes(range(256)) * 256
+            with runner.PrepareExecution(30) as execution:
+                binding = runner._owned_root_binding(root, check_work=execution.check_work)
+                runner._owned_publish_immutable(execution, binding, "attempt/large.bin", large_payload)
+            self.assertEqual((nested / "large.bin").read_bytes(), large_payload)
+
+            with runner.PrepareExecution(30) as execution:
+                binding = runner._owned_root_binding(root, check_work=execution.check_work)
+                with patch.object(execution, "run", side_effect=AssertionError("oversized payload must fail before worker launch")):
+                    with self.assertRaisesRegex(runner.RunnerError, "fixed size limit"):
+                        runner._owned_publish_immutable(
+                            execution, binding, "attempt/oversized.bin", b"x" * (runner.OWNED_FS_PAYLOAD_MAX_BYTES + 1),
+                        )
+            self.assertFalse((nested / "oversized.bin").exists())
+
+    def test_owned_rooted_filesystem_worker_rejects_symlink_and_path_escape(self) -> None:
+        payload = b"synthetic bytes"
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp)
+            root = base / "root"
+            decoy = base / "decoy"
+            root.mkdir(mode=0o700)
+            decoy.mkdir(mode=0o700)
+            root.chmod(0o700)
+            decoy.chmod(0o700)
+            (root / "escape").symlink_to(decoy, target_is_directory=True)
+            with runner.PrepareExecution(30) as execution:
+                binding = runner._owned_root_binding(root, check_work=execution.check_work)
+                with self.assertRaisesRegex(runner.RunnerError, "command exited 2|unsafe"):
+                    runner._owned_publish_immutable(execution, binding, "escape/created.json", payload)
+            with runner.PrepareExecution(30) as execution:
+                binding = runner._owned_root_binding(root, check_work=execution.check_work)
+                with self.assertRaisesRegex(runner.RunnerError, "command exited 2|normalized root-relative"):
+                    runner._owned_publish_immutable(execution, binding, "../escape.json", payload)
+            self.assertEqual(list(decoy.iterdir()), [])
+            self.assertEqual(list(root.iterdir()), [root / "escape"])
+
+    def test_owned_rooted_filesystem_worker_fails_closed_on_root_replacement(self) -> None:
+        payload = b"root identity fixture"
+        for replace_after_worker in (False, True):
+            with self.subTest(replace_after_worker=replace_after_worker), tempfile.TemporaryDirectory() as temp:
+                base = Path(temp)
+                root = base / "root"
+                moved = base / "moved-original"
+                decoy = base / "replacement"
+                root.mkdir(mode=0o700)
+                root.chmod(0o700)
+                decoy.mkdir(mode=0o700)
+                decoy.chmod(0o700)
+                with runner.PrepareExecution(30) as execution:
+                    binding = runner._owned_root_binding(root, check_work=execution.check_work)
+                    original_run = execution.run
+
+                    def replace_root(*args: object, **kwargs: object) -> object:
+                        if not replace_after_worker:
+                            root.rename(moved)
+                            root.symlink_to(decoy, target_is_directory=True)
+                        result = original_run(*args, **kwargs)  # type: ignore[arg-type]
+                        if replace_after_worker:
+                            root.rename(moved)
+                            root.symlink_to(decoy, target_is_directory=True)
+                        return result
+
+                    with patch.object(execution, "run", side_effect=replace_root):
+                        with self.assertRaisesRegex(runner.RunnerError, "root pathname|real directory|command exited 2"):
+                            runner._owned_publish_immutable(execution, binding, "report.json", payload)
+                self.assertEqual(list(decoy.iterdir()), [])
+                self.assertTrue(moved.is_dir())
+                if replace_after_worker:
+                    self.assertEqual((moved / "report.json").read_bytes(), payload)
+                else:
+                    self.assertFalse((moved / "report.json").exists())
+
+    def test_owned_rooted_filesystem_worker_rejects_changed_result_attestation(self) -> None:
+        payload = b"synthetic immutable report"
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "root"
+            root.mkdir(mode=0o700)
+            root.chmod(0o700)
+            with runner.PrepareExecution(30) as execution:
+                binding = runner._owned_root_binding(root, check_work=execution.check_work)
+                original_run = execution.run
+
+                def corrupt_worker_result(*args: object, **kwargs: object) -> object:
+                    result = original_run(*args, **kwargs)  # type: ignore[arg-type]
+                    output = kwargs["stdout_file"]
+                    output.seek(0)
+                    output.truncate()
+                    output.write(b"{}\n")
+                    output.flush()
+                    return result
+
+                with patch.object(execution, "run", side_effect=corrupt_worker_result):
+                    with self.assertRaisesRegex(runner.RunnerError, "result fields are invalid"):
+                        runner._owned_publish_immutable(execution, binding, "report.json", payload)
+            self.assertEqual((root / "report.json").read_bytes(), payload)
+
     def test_owned_artifact_copy_compression_and_report_cancel_between_bounded_blocks(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
@@ -4459,6 +4585,7 @@ class RunnerGuards(unittest.TestCase):
                 "cwd": str(root),
                 "stdout_fd": 1,
                 "stderr_fd": 2,
+                "owned_root_fd": None,
                 "status_path": str(status_path),
                 "ready_path": str(ready_path),
             }))
@@ -4677,6 +4804,7 @@ class RunnerGuards(unittest.TestCase):
                     "cwd": str(root),
                     "stdout_fd": stdout.fileno(),
                     "stderr_fd": stderr.fileno(),
+                    "owned_root_fd": None,
                     "status_path": str(status_path),
                     "ready_path": str(ready_path),
                 }))
