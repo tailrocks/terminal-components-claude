@@ -45,8 +45,9 @@ const SOURCES: [(&str, &str); 23] = [
 ];
 
 /// Pages whose exact-size switches are owned by later waves, not this one.
-/// Every other page must already be free of them.
-const SIZE_GATE_PAGES: [&str; 4] = ["lists", "progress", "selectable", "scrolling"];
+/// Every other page must already be free of them. All four converted pages
+/// now pick their layout by width breakpoints, so the allowlist is empty.
+const SIZE_GATE_PAGES: [&str; 0] = [];
 
 /// Pages whose `ui.reference(None, ..)` blocks mount visible widgets. The
 /// invisible mounts are gone from pickers and overview; a new reference
