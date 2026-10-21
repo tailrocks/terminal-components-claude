@@ -7159,29 +7159,30 @@ pub(crate) fn header_overflow(
     };
     while total(&keep_left, &keep_right) > area_width {
         let mut best: Option<(u8, bool, usize)> = None;
-        for (index, priority) in left_priority.iter().copied().enumerate() {
-            if keep_left.get(index) == Some(&true)
-                && best.is_none_or(|(rank, _, _)| priority < rank)
-            {
+        // Priorities run parallel to their piece slice; zip keeps the index in
+        // bounds even if a caller passes mismatched lengths.
+        for ((index, priority), keep) in left_priority.iter().copied().enumerate().zip(&keep_left) {
+            if *keep && best.is_none_or(|(rank, _, _)| priority < rank) {
                 best = Some((priority, true, index));
             }
         }
-        for (index, priority) in right_priority.iter().copied().enumerate() {
-            if keep_right.get(index) == Some(&true)
-                && best.is_none_or(|(rank, _, _)| priority <= rank)
-            {
+        for ((index, priority), keep) in right_priority.iter().copied().enumerate().zip(&keep_right)
+        {
+            if *keep && best.is_none_or(|(rank, _, _)| priority <= rank) {
                 best = Some((priority, false, index));
             }
         }
         match best {
+            // The index came from zipping the same vec, so it is in bounds and
+            // the get_mut always hits.
             Some((_, true, index)) => {
-                if let Some(slot) = keep_left.get_mut(index) {
-                    *slot = false;
+                if let Some(keep) = keep_left.get_mut(index) {
+                    *keep = false;
                 }
             }
             Some((_, false, index)) => {
-                if let Some(slot) = keep_right.get_mut(index) {
-                    *slot = false;
+                if let Some(keep) = keep_right.get_mut(index) {
+                    *keep = false;
                 }
             }
             None => break,
@@ -8780,11 +8781,11 @@ fn hint_group_costs(spans: &[Span<'_>]) -> Vec<u16> {
     let mut costs = Vec::new();
     while index < spans.len() {
         let mut group = 0u16;
-        while index < spans.len() && spans[index].text != "  " {
-            group = group.saturating_add(width(spans[index].text));
+        while let Some(span) = spans.get(index).filter(|span| span.text != "  ") {
+            group = group.saturating_add(width(span.text));
             index = index.saturating_add(1);
         }
-        if index < spans.len() && spans[index].text == "  " {
+        if spans.get(index).is_some_and(|span| span.text == "  ") {
             index = index.saturating_add(1);
         }
         costs.push(group.saturating_add(2));
@@ -8840,38 +8841,38 @@ fn paint_fitted_workbench_hints(
     }
     let mut index = 0;
     let mut x = area.x;
-    if spans.first().is_some_and(|span| span.text == " ") {
-        let span_width = width(spans[0].text);
+    if let Some(span) = spans.first().filter(|span| span.text == " ") {
+        let span_width = width(span.text);
         ui.paint_str(
             termrock::Rect {
                 x,
                 width: span_width,
                 ..area
             },
-            spans[0].text,
-            span_paint(ui, base, &spans[0]),
+            span.text,
+            span_paint(ui, base, span),
         );
         x = x.saturating_add(span_width);
         index = 1;
     }
     let mut painted = 0usize;
     while index < spans.len() && painted < keep {
-        while index < spans.len() && spans[index].text != "  " {
-            let span_width = width(spans[index].text);
+        while let Some(span) = spans.get(index).filter(|span| span.text != "  ") {
+            let span_width = width(span.text);
             ui.paint_str(
                 termrock::Rect {
                     x,
                     width: span_width,
                     ..area
                 },
-                spans[index].text,
-                span_paint(ui, base, &spans[index]),
+                span.text,
+                span_paint(ui, base, span),
             );
             x = x.saturating_add(span_width);
             index = index.saturating_add(1);
         }
-        if index < spans.len() && spans[index].text == "  " {
-            x = x.saturating_add(width(spans[index].text));
+        if let Some(span) = spans.get(index).filter(|span| span.text == "  ") {
+            x = x.saturating_add(width(span.text));
             index = index.saturating_add(1);
         }
         painted = painted.saturating_add(1);

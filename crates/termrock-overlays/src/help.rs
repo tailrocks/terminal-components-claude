@@ -386,12 +386,7 @@ impl<'a> HelpOverlay<'a> {
             // events reach the overlay's scroll state.
             ui.report_layout(
                 self.id,
-                LayoutFacts::new(
-                    usize::from(body_h),
-                    total,
-                    body_h,
-                    inner.width,
-                ),
+                LayoutFacts::new(usize::from(body_h), total, body_h, inner.width),
             );
             self.scrollbar().register(ui, inner, &st.scroll, total);
             self.paint_columns(ui, inner, &columns, offset, usize::from(body_h));

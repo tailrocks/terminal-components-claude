@@ -19,6 +19,66 @@ Expanded component gate at `7f819a779`: 872 run, 869 pass, three fail, three exi
 - `9203efba5` lands `external-consumer-demo/` as a standalone (non-member) crate: facade-only imports enforced by a contract test, unrelated domain data, real widget update/draw/measure through the runtime; 9/9 nextest green, clippy/fmt clean, workspace untouched. Matrix "External public consumer" row updated RED→GREEN (API demonstration; not application parity). Evidence: `docs/audits/2026-10-21-external-public-consumer-standalone.md`.
 - Note: matrix was restructured to a lean current-decision summary by the concurrent session (bulk history moved to `docs/architecture/termrock-migration-record.md`); the full pre-restructure matrix is preserved at tag `9203efba5` in history.
 
+# 2026-10-22: Jackin historical_* dispatch retired (jackin-usage lane)
+
+Branch `wip/jackin-usage-20261021`, all pushed to `parity/termrock-visual-baseline`
+(tip after this lane: `f285caf77`). Worktree `~/Projects/termrock-jackin-usage-20261021`.
+Every batch followed the frozen-baseline loop (`tools/frozen_baseline.py
+build-candidate` + `compare` against commit `4169783ae`'s snapshots; case =
+exact ignored test name in the frozen `visual_baseline` target; candidate
+never changes expected snapshots).
+
+Landed batches, each live-compared cell for cell before its commit:
+
+- `manager_locked_view` (hard_launch_locked 120x40) — session chrome via
+  `termrock::feedback::paint_session_chrome`.
+- `manager_frame_view` (hard-cases 80x24) — narrow manager frame composed
+  from the live world through `paint_manager_frame`.
+- `manager_help_overlay_view` (help_overlay 120x40) — live pinned split +
+  shared help card + dim underlay.
+- Accounts family (audit 80x24, filter 120x40/80x24, detail 120x40/80x24,
+  drawer 120x40) — approval gates moved into `accounts_detail_view`,
+  `accounts_filter_view`, `accounts_filter_wide`, `accounts_drawer_view`;
+  the `draw_historical_accounts_*` wrappers are deleted.
+- `manager_detail_drawer_view` (detail_drawer 120x40) — dispatch conditions
+  now in the view; the manager dispatch local renamed from
+  `historical_manager` to `manager_paused_120`.
+- `historical_capsule_frame` renamed to `capsule_resting_frame` (live pane
+  layout state, not a capture flag); verified via split_vertical + zoom
+  compares.
+- Mono readability test renamed off `historical_`. No `historical_`
+  identifiers remain in `crates/jackin-preview-app`.
+
+Deliberately kept (recorded, not silently dropped):
+
+- Accounts boot needles (`draw_accounts_boot_needle{,_80,_rest}`): they paint
+  `jackin❯` so the frozen harness readiness needle fires on the Accounts
+  route. Deleting them strands every frozen Accounts scenario at boot; they
+  stay until the frozen reference is regenerated.
+- `manager_detail_drawer_view::paint` still overlays a fixed RUNS patch table
+  on `paint_pinned_split` (box seams, title ink, hint segments). Pixel-exact;
+  replacing patches with shared painters is follow-up work.
+
+Pre-existing reds on the pushed tip, reproduced at bare origin tip
+`384b818b2` with zero jackin commits — not this lane's:
+
+- `jackin_visual_baseline` digest `returning 120 40 junie mono` changed
+  (baseline `78a2b61980bc2587`, got `a8e727d2cc920213`); theme provenance
+  merge area. Reproduced at 384b818b2 (~/Projects/tc-tipcheck-20261021 run).
+- Frozen baseline case `jackin::audit::capsule::120x40::truecolor` fails its
+  OWN baseline phase: frozen source vs stored snapshot, 19 danger-ink cells
+  (#f05d5d expected vs #e44545 actual) — infra drift, candidate unverifiable
+  there. Same class as the recorded concept-family frozen drift.
+- Workspace `cargo clippy --all-targets` red in `crates/tablepro-ui/src/app.rs`
+  (`clippy::indexing_slicing`, 16 errors); tablepro stream.
+- Full-workspace nextest red in `termrock-conformance` (conformance suite,
+  `local_override_does_not_mutate_the_theme` and render_components tree/
+  too_small families, ~1200 FAIL lines at the earlier tip). Conformance stream.
+
+Gate on the pushed HEAD: `cargo fmt --check` clean; `cargo clippy -p
+jackin-preview-app --all-targets` clean; jackin package nextest green except
+the pre-existing digest red above.
+
 # 2026-10-21 second rate-limit stop (coordinator) — resumes 19:40:57 +0700
 
 All five coordinator agents died at ~16:38 +0700 on a 5-hour usage limit (reset 2026-10-21 19:40:57). Coordinator work is documented here so resume needs no transcript.
@@ -296,3 +356,32 @@ Current additional work: `wip/holla-home-row-composition-20261021` at `ac315e286
 ## CodeEditor merged metadata and focused caret review (2026-10-21)
 
 Preservation branch: `wip/editor-meta-merged-review-20261021`; source tip before this handoff is `e0bfbe71cc855f648590bba0c9754410ccd468ce`. The normal merge `30eb0e5c9` retains current PR #38 marker/scrolling behavior while incorporating authored META defaults. The successor fixes a focused-cursor ownership defect, with all 75 editor tests, strict Clippy and formatting passing. Independent review is running against exact `30eb0e5c9` and this successor; do not publish to PR #38 until the current-parent complete-cell comparison and real retained-editing focus tests are cleared. Then normally merge latest PR #38, preserve the seven held expectation blobs, rerun exact-head gates, publish and verify the remote SHA. The standalone `671443` source is not a replacement for current PR #38: it lacks later marker behavior. All four application acceptance requirements remain incomplete.
+
+## 2026-10-22: Holla reference-regeneration evidence package (docs-only)
+
+Evidence tip `bdf62e3be`, docs-only lane in worktree
+`/private/tmp/termrock-holla-digest-doc` (detached; no product source or
+expected-output change). Output:
+`docs/audits/2026-10-22-holla-reference-regeneration-case.md`. Facts it adds
+to the two open Holla reference conflicts:
+
+- Digest red reproduced fresh on three revisions (tip `bdf62e3be` computes
+  `83a32521d5113b5d` for `first-use 80 24 junie truecolor`, `8689fe270`
+  computes `780fcdd3d9d8d83d`, `40c2663fe` green); the recorded
+  `de673f212d89ea84` is the row's pre-`9a581e850` blessed value (stale-build
+  hypothesis, exact producing build unidentified). Bisect
+  `40c2663fe..8689fe270` (good green verified today) names first bad commit
+  `afb602936` "fix(jackin): match the 120-col capsule tab menu" — a shared
+  `termrock-theme` menu recipe change (`Part::TITLE` Muted+BOLD,
+  `Part::KEY` Secondary/ACTIVE HighlightFg) that silently moved holla
+  digests. That theme change itself needs adjudication.
+- Frozen snapshots for all 27 red families verified blob-identical to the
+  `visual-baseline` tag and decoded (docker 80x24/120x40, first-use 80x24):
+  they encode the pre-tag static home. Both closure options and exact
+  regeneration scope (1088 digest rows; 27 families x 25 snapshot files from
+  one pinned candidate build) are in the audit.
+
+Next steps: independent review must record a verdict on the audit (including
+the `afb602936` menu-recipe change) and the owner must record the
+regeneration decision before any reference store is regenerated. Nothing is
+blessed by this lane; all observed values are preserved in the audit.

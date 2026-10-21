@@ -1,5 +1,12 @@
 use termrock::{Rect, Response, Ui};
 
+/// The section tabs every playground page opens with.
+pub const SECTIONS: [&str; 3] = ["Playground", "Options", "States"];
+/// The caption that names the live section next to the tabs.
+pub const SECTION_CAPTION: &str = "the live widget";
+/// The width from which the caption has room beside the tabs.
+pub const SECTION_WIDE: u16 = 76;
+
 pub struct PageStatus(pub String);
 
 pub struct PageUpdate {
@@ -75,6 +82,25 @@ pub fn color_u32(color: termrock::Color) -> u32 {
         termrock::Color::Rgb(r, g, b) => (u32::from(r) << 16) | (u32::from(g) << 8) | u32::from(b),
         termrock::Color::Indexed(i) => u32::from(i),
         _ => 0,
+    }
+}
+
+/// Paint one text line per row of the area.
+pub fn lines(ui: &mut Ui<'_>, area: Rect, text: &[&str]) {
+    let style = ui.surface_style();
+    for (offset, line) in text.iter().enumerate() {
+        let Ok(offset) = u16::try_from(offset) else {
+            break;
+        };
+        if offset >= area.height {
+            break;
+        }
+        let row = Rect {
+            y: area.y.saturating_add(offset),
+            height: 1,
+            ..area
+        };
+        let _ = ui.paint_str(row, line, style);
     }
 }
 
