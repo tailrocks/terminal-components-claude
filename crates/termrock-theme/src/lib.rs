@@ -517,11 +517,27 @@ impl Theme {
     /// Baseline modal dim. Glyphs stay. Accent and secondary ink become faint.
     /// A rule that already fails contrast stays the ghost gray.
     pub fn backdrop_colors(&self, fg: Color, bg: Color) -> (Color, Color) {
+        let (fg, bg, _) = self.backdrop_cell(fg, bg);
+        (fg, bg)
+    }
+
+    /// Whether the baseline dim rewrites covered ink to the muted grey at the
+    /// active color level (the Ansi16 and Mono planes cannot carry the
+    /// per-source ghost ladder).
+    pub fn backdrop_dim_level(&self) -> bool {
+        matches!(self.capability.color, ColorLevel::Ansi16 | ColorLevel::Mono)
+    }
+
+    /// Concrete-color variant of the backdrop mapping used by the chrome
+    /// fill: returns the mapped ink, the mapped background, and whether the
+    /// source cell was blank. Nonblank cells at the Ansi16 and Mono levels
+    /// carry the muted dim ink, matching `backdrop_style`.
+    pub fn backdrop_cell(&self, fg: Color, bg: Color) -> (Color, Color, bool) {
         let (mut mapped_fg, mapped_bg, blank) = self.map_backdrop(Some(fg), Some(bg), true);
-        if !blank && mapped_fg == mapped_bg {
+        if !blank && (mapped_fg == mapped_bg || self.backdrop_dim_level()) {
             mapped_fg = self.backdrop_collision_ink(mapped_bg);
         }
-        (mapped_fg, mapped_bg)
+        (mapped_fg, mapped_bg, blank)
     }
 
     /// Map a painted cell to the modal backdrop while replacing its modifiers.
@@ -686,6 +702,51 @@ mod tests {
     use super::*;
     use crate::id::Part;
     use crate::response::StateFlags;
+
+    #[test]
+    fn junie_256_authors_the_frozen_ghost_and_border_subtle_cells() {
+        // The approved 256 frames carry the dim ghost and the quiet borders
+        // in cube cell 238 (apply_256 text_ghost / border_subtle), not the
+        // source #262626 cell 235.
+        let theme = Theme::junie().for_level(ColorLevel::Ansi256);
+        assert_eq!(theme.color.fg[4], Color::Indexed(238));
+        assert_eq!(theme.color.border_subtle, Color::Indexed(238));
+        assert_eq!(theme.color.backdrop_fg, Color::Indexed(238));
+    }
+
+    #[test]
+    fn backdrop_cell_rewrites_the_dim_ink_only_at_reduced_levels() {
+        let cases = [
+            (
+                ColorLevel::TrueColor,
+                Color::Rgb(0, 0, 0),
+                Color::from_u32(0x0026_2626),
+                false,
+            ),
+            (
+                ColorLevel::Ansi256,
+                Color::Indexed(16),
+                Color::Indexed(238),
+                false,
+            ),
+            (ColorLevel::Ansi16, Color::Black, Color::Gray, true),
+            (ColorLevel::Mono, Color::Black, Color::Gray, true),
+        ];
+        for (level, canvas, expected_ink, rewrite) in cases {
+            let theme = Theme::junie().for_level(level);
+            assert_eq!(theme.backdrop_dim_level(), rewrite, "{level:?} dim level");
+            // A quiet border ink under the popup keeps the ghost slot and
+            // stays nonblank; the dim levels rewrite it to the muted ink.
+            let (fg, bg, blank) = theme.backdrop_cell(Color::Indexed(235), canvas);
+            assert_eq!(fg, expected_ink, "{level:?} dim ink");
+            assert_eq!(bg, canvas, "{level:?} keeps the canvas bg");
+            assert!(!blank, "{level:?} nonblank source");
+            // A blank source cell (fg == bg) never rewrites and never dims.
+            let (fg, bg, blank) = theme.backdrop_cell(canvas, canvas);
+            assert!(blank, "{level:?} blank source");
+            assert_eq!(fg, bg, "{level:?} blank keeps the fill ink");
+        }
+    }
 
     #[test]
     fn empty_typed_recipe_edits_preserve_theme_equality_and_menu_resolution() {
