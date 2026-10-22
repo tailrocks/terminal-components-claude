@@ -14,6 +14,7 @@ pub use tuiscotti::MouseButton;
 pub const SETTLE: Duration = Duration::from_millis(400);
 
 pub const TIMEOUT_MS: u64 = 8_000;
+pub const TABLEPRO_QUERY_DURATION_MS: u64 = 42;
 
 pub const CANONICAL_SIZES: [(u16, u16); 5] = [(72, 20), (80, 24), (100, 30), (120, 40), (160, 50)];
 pub const CANONICAL_COLORS: [Color; 5] = [
@@ -64,6 +65,7 @@ pub struct Case {
     pub timeout_ms: u64,
 
     pub env: &'static [(&'static str, &'static str)],
+    pub query_duration_ms: Option<u64>,
 }
 
 impl Case {
@@ -87,7 +89,13 @@ impl Case {
             sends: &[],
             timeout_ms: TIMEOUT_MS,
             env: &[],
+            query_duration_ms: None,
         }
+    }
+
+    pub fn with_query_duration_ms(mut self, duration_ms: u64) -> Self {
+        self.query_duration_ms = Some(duration_ms);
+        self
     }
 }
 
@@ -107,7 +115,13 @@ fn query_duration_supported(has_binary_override: bool, opted_in: bool) -> bool {
 }
 
 fn argv_for_with_query_duration_support(case: &Case, supported: bool) -> Vec<String> {
-    let mut argv = Vec::with_capacity(case.args.len() + 3);
+    let explicit_duration = case.args.contains(&"--query-duration-ms");
+    let default_duration = if supported && !explicit_duration {
+        case.query_duration_ms
+    } else {
+        None
+    };
+    let mut argv = Vec::with_capacity(case.args.len() + 5);
     argv.push(case.bin.to_string());
     let mut args = case.args.iter().copied();
     while let Some(arg) = args.next() {
@@ -116,6 +130,10 @@ fn argv_for_with_query_duration_support(case: &Case, supported: bool) -> Vec<Str
         } else {
             argv.push(arg.to_string());
         }
+    }
+    if let Some(duration_ms) = default_duration {
+        argv.push("--query-duration-ms".to_string());
+        argv.push(duration_ms.to_string());
     }
     let flag = match case.color {
         Color::Truecolor => Some("truecolor"),
@@ -134,17 +152,15 @@ fn argv_for_with_query_duration_support(case: &Case, supported: bool) -> Vec<Str
 /// Custom `VISUAL_BIN_DIR` binaries keep old arguments unless callers set
 /// `VISUAL_BIN_SUPPORTS_QUERY_DURATION=1` for binaries that accept the flag.
 pub fn query_duration_argv_contract() {
-    let case = Case::new(
+    let case = crate::scenarios::Root::new(
         "tablepro/ack/executed",
-        "tablepro",
-        &["--connect", "Production", "--query-duration-ms", "42"],
-        120,
-        40,
-        Color::Truecolor,
+        crate::scenarios::Bin::Tablepro,
+        &["--connect", "Production"],
         "Query 1",
-    );
+    )
+    .case(120, 40, Color::Truecolor);
     let current = [
-        "tablepro",
+        crate::scenarios::Bin::Tablepro.path(),
         "--connect",
         "Production",
         "--query-duration-ms",
@@ -158,7 +174,7 @@ pub fn query_duration_argv_contract() {
     );
 
     let legacy_override = [
-        "tablepro",
+        crate::scenarios::Bin::Tablepro.path(),
         "--connect",
         "Production",
         "--color",
@@ -171,9 +187,130 @@ pub fn query_duration_argv_contract() {
             .map(ToString::to_string)
             .collect::<Vec<_>>()
     );
+
+    let explicit = crate::scenarios::Root::new(
+        "tablepro/explicit-duration",
+        crate::scenarios::Bin::Tablepro,
+        &["--connect", "Production", "--query-duration-ms", "123"],
+        "Query 1",
+    )
+    .case(120, 40, Color::Truecolor);
+    let explicit_current = [
+        crate::scenarios::Bin::Tablepro.path(),
+        "--connect",
+        "Production",
+        "--query-duration-ms",
+        "123",
+        "--color",
+        "truecolor",
+    ];
+    assert_eq!(
+        argv_for_with_query_duration_support(&explicit, true),
+        explicit_current
+            .iter()
+            .map(ToString::to_string)
+            .collect::<Vec<_>>()
+    );
+    assert_eq!(
+        argv_for_with_query_duration_support(&explicit, false),
+        legacy_override
+            .iter()
+            .map(ToString::to_string)
+            .collect::<Vec<_>>()
+    );
+
     assert!(query_duration_supported(false, false));
     assert!(!query_duration_supported(true, false));
     assert!(query_duration_supported(true, true));
+    assert_eq!(
+        argv_for_with_query_duration_support(&case, query_duration_supported(true, true)),
+        current.iter().map(ToString::to_string).collect::<Vec<_>>()
+    );
+
+    let custom_binary = Case::new(
+        "probe/custom-tablepro",
+        "/reference/bin/tablepro",
+        &["--connect", "Production"],
+        120,
+        40,
+        Color::Truecolor,
+        "Query 1",
+    )
+    .with_query_duration_ms(TABLEPRO_QUERY_DURATION_MS);
+    let custom_legacy = [
+        "/reference/bin/tablepro",
+        "--connect",
+        "Production",
+        "--color",
+        "truecolor",
+    ];
+    assert_eq!(
+        argv_for_with_query_duration_support(&custom_binary, query_duration_supported(true, false)),
+        custom_legacy
+            .iter()
+            .map(ToString::to_string)
+            .collect::<Vec<_>>()
+    );
+    let custom_opted_in = [
+        "/reference/bin/tablepro",
+        "--connect",
+        "Production",
+        "--query-duration-ms",
+        "42",
+        "--color",
+        "truecolor",
+    ];
+    assert_eq!(
+        argv_for_with_query_duration_support(&custom_binary, query_duration_supported(true, true)),
+        custom_opted_in
+            .iter()
+            .map(ToString::to_string)
+            .collect::<Vec<_>>()
+    );
+
+    let showcase = crate::scenarios::Root::new(
+        "showcase/boot",
+        crate::scenarios::Bin::Showcase,
+        &[],
+        "Junie Design system",
+    )
+    .case(120, 40, Color::Truecolor);
+    assert_eq!(showcase.query_duration_ms, None);
+    assert!(
+        !argv_for_with_query_duration_support(&showcase, true)
+            .iter()
+            .any(|arg| arg == "--query-duration-ms")
+    );
+
+    for (_, _, roots) in crate::scenarios::tables() {
+        for root in roots
+            .iter()
+            .filter(|root| root.bin == crate::scenarios::Bin::Tablepro)
+        {
+            let mut cases = vec![root.case(120, 40, Color::Truecolor)];
+            cases.extend(
+                root.variants
+                    .iter()
+                    .map(|variant| root.case(variant.cols, variant.rows, variant.color)),
+            );
+            for case in cases {
+                let argv = argv_for_with_query_duration_support(&case, true);
+                let positions = argv
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, arg)| arg.as_str() == "--query-duration-ms")
+                    .map(|(index, _)| index)
+                    .collect::<Vec<_>>();
+                assert_eq!(positions.len(), 1, "{}: {argv:?}", case.name);
+                assert_eq!(
+                    argv.get(positions[0] + 1).map(String::as_str),
+                    Some("42"),
+                    "{}: {argv:?}",
+                    case.name
+                );
+            }
+        }
+    }
 }
 
 pub const ARTIFACTS: ArtifactSet = ArtifactSet::AnsiCursor;

@@ -13,8 +13,12 @@ fn assert_boot_modes(
     bin: &'static str,
     args: &'static [&'static str],
     needle: &'static str,
+    query_duration_ms: Option<u64>,
 ) {
-    let case = Case::new(name, bin, args, 80, 24, Color::Truecolor, needle);
+    let mut case = Case::new(name, bin, args, 80, 24, Color::Truecolor, needle);
+    if let Some(duration_ms) = query_duration_ms {
+        case = case.with_query_duration_ms(duration_ms);
+    }
     let session = support::spawn_boot(&case);
     let modes = session.modes();
     let missing: Vec<String> = REQUIRED
@@ -35,6 +39,7 @@ pub fn showcase_boot_sets_terminal_modes() {
         Bin::Showcase.path(),
         &[],
         "Junie Design system",
+        None,
     );
 }
 
@@ -44,6 +49,7 @@ pub fn tablepro_boot_sets_terminal_modes() {
         Bin::Tablepro.path(),
         &[],
         "Production",
+        Some(crate::scenarios::TABLEPRO_QUERY_DURATION_MS),
     );
 }
 
@@ -53,6 +59,7 @@ pub fn holla_boot_sets_terminal_modes() {
         Bin::Holla.path(),
         &[],
         "holla❯",
+        None,
     );
 }
 
@@ -62,5 +69,6 @@ pub fn jackin_boot_sets_terminal_modes() {
         Bin::Jackin.path(),
         &[],
         "jackin❯",
+        None,
     );
 }
