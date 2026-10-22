@@ -1,0 +1,4 @@
+# Keep the standalone consumer's CI run policy aligned with the workspace.
+[profile.ci]
+fail-fast = false
+slow-timeout = { period = "60s", terminate-after = 10 }
