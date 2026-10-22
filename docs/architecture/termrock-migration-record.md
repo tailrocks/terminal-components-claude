@@ -1147,19 +1147,37 @@ final acceptance claim follows from this focused result.
 ### Standalone external-consumer Nextest CI profile (2026-10-22)
 
 The standalone `external-consumer-demo` workspace had no local Nextest configuration,
-so the pinned CI command's `ci` profile lookup failed with exit 96 (`profile ci not
-found; known profiles: default, default-miri`; workflow run 119561823590). Added
-`external-consumer-demo/.config/nextest.toml` with the same CI policy as the repository
-root: `fail-fast = false` and `slow-timeout = { period = "60s", terminate-after = 10 }`.
-No test selection, expected value, generated workflow, or product code changed.
+so CI run 119561823590 failed with exit 96: `profile ci not found (known profiles:
+default, default-miri)`. Added `external-consumer-demo/.config/nextest.toml` with
+the same CI policy as the repository root: `fail-fast = false` and
+`slow-timeout = { period = "60s", terminate-after = 10 }`. No test selection,
+expected value, generated workflow, or product code changed. Python TOML parsing,
+exact semantic comparison with the tracked root `profile.ci`, `cargo nextest
+show-config version` parsing, and `git diff --check` passed. Independent read-only review
+against base `e2ba67866eed212a72bd6ea82adcd5151eb321c1` found no issue; config SHA-256 is
+`609ed6f5dc4a62cb9c3b70250412037eda3f8ff66af29d5eeb2a1f79ef8fd9a1`.
 
-Installed Nextest 0.9.149 accepted the TOML. A `show-config version` command alone
-did not validate profile selection. A negative `show-config test-groups --profile
-not-a-profile` probe reported known profiles `ci`, `default`, and `default-miri`,
-confirming the new profile was parsed; that command also began `cargo test --no-run`
-compilation, so its owned process group was stopped immediately after discovery. No test
-ran. The detached-manifest `show-config version` probe was blocked by the local MBX
-Cargo-storage metadata check. The probe briefly rewrote root `Cargo.lock` while resolving. Its exact diff remains in
-operator-local evidence, and the committed lockfile content was restored; no lockfile
-change remains in this worktree. Focused CI execution remains required to verify the fix against the detached
-manifest.
+Exact workspace discovery was checked without running tests or building test binaries.
+The pre-fix detached worktree at `e2ba67866eed212a72bd6ea82adcd5151eb321c1`, from
+`external-consumer-demo/`, ran `cargo nextest show-config test-groups --offline --locked
+--user-config-file none --profile ci --no-pager` and exited 96 with known profiles
+`default, default-miri`. The post-fix detached consumer ran the same command with
+`--profile external-consumer-profile-does-not-exist`; it exited 96 with known profiles
+`ci, default, default-miri`. This confirms the detached consumer discovers the new `ci`
+profile. The valid `--profile ci` test-group command was not run because it starts Cargo
+test-binary compilation; no consumer test pass is claimed. Focused CI execution remains
+required. Raw command receipts and hashes are preserved in the operator-local artifact
+`external-consumer-ci-profile-probes-20261022/RESULTS.md` (SHA-256
+`2c48e5e662e16cbee79241323e343740b1fb976c0ce25af28bba08049073ba2c`); its
+adjacent `SHA256SUMS` covers the before/after stderr, metadata result, and
+diagnostic logs. The evidence directory is outside production dependencies.
+
+Initial manifest-scoped probes hit MBX's generic metadata guard because this task
+worktree's inherited sparse checkout omitted the tracked `external-consumer-demo/src`
+files. Direct `cargo metadata --no-deps --format-version 1 --locked --offline` exposed
+`can't find library external_consumer_demo`. After materializing the tracked consumer
+path with `git sparse-checkout add external-consumer-demo`, the same metadata command
+exited 0 and detached-workspace profile discovery succeeded. A separate root-cwd
+`show-config test-groups` probe with an explicit config path began `cargo test --no-run`;
+its owned process group was stopped before tests, the transient root `Cargo.lock` diff was
+preserved in operator-local evidence, and the committed lockfile content was restored.
