@@ -459,6 +459,16 @@ pub fn site_scanner_detects_unlisted_overlay_and_ignores_prefix_matches() {
             "mod hidden { fn test_only() { Dialog::confirm(ID, \"title\", \"body\"); } }\n",
             "#[cfg(test)]\n",
             "mod historical_tests;\n",
+            "#[cfg(test)] mod shared;\n",
+            "#[cfg_attr(all(), path = \"shared.rs\")] mod production_shared;\n",
+            "#[cfg(test)] mod conditional;\n",
+            "#[cfg_attr(feature = \"production\", path = \"conditional.rs\")] mod production_conditional;\n",
+            "#[cfg(test)] mod included;\n",
+            "include!(\"included.rs\");\n",
+            "#[cfg(test)] mod unresolved;\n",
+            "macro_rules! bind_production { () => { mod unresolved; } }\n",
+            "bind_production!();\n",
+            "mod nested;\n",
             "fn newly_added_owner() { Dialog::confirm(ID, \"title\", \"body\"); ProductDialog::new(intent); }\n",
         ),
     )
@@ -482,15 +492,73 @@ pub fn site_scanner_detects_unlisted_overlay_and_ignores_prefix_matches() {
         "fn helper_owner() { Dialog::new(ID); }\n",
     )
     .expect("write production helper source fixture");
+    let app_source = source.parent().expect("source parent");
+    std::fs::create_dir_all(app_source.join("nested")).expect("create nested module directory");
+    for (name, body) in [
+        (
+            "shared.rs",
+            "fn shared_open() { Dialog::facts(ID, \"title\", \"body\"); }\n",
+        ),
+        (
+            "conditional.rs",
+            "fn conditional_open() { Dialog::prompt(ID, \"title\", \"body\"); }\n",
+        ),
+        ("included.rs", "fn included_open() { Picker::new(ID); }\n"),
+        (
+            "unresolved.rs",
+            "fn unresolved_open() { ModalTag::new(ID); }\n",
+        ),
+        (
+            "nested/mod.rs",
+            "mod child; fn nested_open() { HelpOverlay::new(ID); }\n",
+        ),
+        (
+            "nested/child.rs",
+            "fn nested_child_open() { Dialog::destructive(ID, \"title\", \"body\"); }\n",
+        ),
+    ] {
+        std::fs::write(app_source.join(name), body)
+            .unwrap_or_else(|error| panic!("write {name}: {error}"));
+    }
+    let direct_source = workspace.join("crates/tablepro-ui/src");
+    std::fs::create_dir_all(&direct_source).expect("create explicit-path source root");
+    std::fs::write(
+        workspace.join("crates/tablepro-ui/Cargo.toml"),
+        "[package]\nname = \"tablepro-ui\"\nversion = \"0.1.0\"\n",
+    )
+    .expect("write explicit-path package manifest");
+    std::fs::write(
+        direct_source.join("lib.rs"),
+        "#[path = \"direct.rs\"] mod direct;\n",
+    )
+    .expect("write direct path binding");
+    std::fs::write(
+        direct_source.join("direct.rs"),
+        "fn direct_open() { LayerTag::new(ID); }\n",
+    )
+    .expect("write direct path source fixture");
     let scanned = scan(&workspace);
     let listed: BTreeMap<&str, &Site> = SITES.iter().map(|site| (site.key, site)).collect();
     std::fs::remove_dir_all(&workspace).expect("remove source fixture");
     let keys = [
         "crates/holla-ui/src/app.rs::newly_added_owner",
+        "crates/holla-ui/src/app/historical_tests.rs::test_only",
+        "crates/holla-ui/src/conditional.rs::conditional_open",
+        "crates/holla-ui/src/included.rs::included_open",
+        "crates/holla-ui/src/nested/child.rs::nested_child_open",
+        "crates/holla-ui/src/nested/mod.rs::nested_open",
         "crates/holla-ui/src/production_tests_helper.rs::helper_owner",
+        "crates/holla-ui/src/shared.rs::shared_open",
+        "crates/holla-ui/src/unresolved.rs::unresolved_open",
+        "crates/tablepro-ui/src/direct.rs::direct_open",
     ];
-    assert_eq!(scanned.get(keys[0]), Some(&1));
-    assert_eq!(scanned.get(keys[1]), Some(&1));
+    for key in keys {
+        assert_eq!(
+            scanned.get(key),
+            Some(&1),
+            "missing external overlay binding {key}: {scanned:?}"
+        );
+    }
     assert_eq!(
         unlisted_sites(&scanned, &listed),
         keys.map(str::to_string).to_vec()

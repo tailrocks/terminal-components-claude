@@ -70,6 +70,14 @@ fn main() {
             determinism::scanner_detects_forbidden_source_injected_under_root,
         ),
         check(
+            "determinism::scanner_matches_qualified_paths_across_comments_and_whitespace",
+            determinism::scanner_matches_qualified_paths_across_comments_and_whitespace,
+        ),
+        check(
+            "determinism::scanner_retains_uncertain_external_bindings_in_real_roots",
+            determinism::scanner_retains_uncertain_external_bindings_in_real_roots,
+        ),
+        check(
             "modes::showcase_boot_sets_terminal_modes",
             modes::showcase_boot_sets_terminal_modes,
         ),
