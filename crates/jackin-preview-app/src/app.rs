@@ -9,14 +9,14 @@ use termrock::author::PaintStyle;
 
 use termrock::{
     Action, ActionKey, ActivationKey, App as TuiApp, AsItem, Brand, Button, Chord, ContextMenu, Cx,
-    Dialog, DialogAction, DialogState, FrameRead, HelpAction, HelpOverlay, HelpOverlayState,
-    HelpSection, Hint, HintBar, HintLayer, Id, Intent, Item, ItemKey, KeyCode, KeyMap,
-    KeyModifiers, KeyPhase, List, ListAction, ListState, Menu, MenuAction, MenuBar,
-    MenuBarHoverScope, MenuItem, MenuState, Modifier, Moment, Panel, Part, PartRef, Phase, Picker,
-    PickerAction, PickerState, Position, ProjectedText, PropsList, PropsRow, PropsState, Reconcile,
-    Rect, Response, SecretPolicy, StatusBar, StatusItem, Tabs, TabsAction, TabsState, TextAction,
-    TextInput, TextInputState, TextViewport, TooSmall, Ui, UpdateCause, Variant, ViewportAction,
-    ViewportLine, ViewportState,
+    Dialog, DialogAction, DialogState, FrameRead, GlyphRole, HelpAction, HelpOverlay,
+    HelpOverlayState, HelpSection, Hint, HintBar, HintLayer, Id, Intent, Item, ItemKey, KeyCode,
+    KeyMap, KeyModifiers, KeyPhase, List, ListAction, ListState, Menu, MenuAction, MenuBar,
+    MenuBarHoverScope, MenuItem, MenuState, Modifier, Moment, NavList, NavListAction, NavListState,
+    Panel, Part, PartRef, Phase, Picker, PickerAction, PickerState, Position, ProjectedText,
+    PropsList, PropsRow, PropsState, Reconcile, Rect, Response, RowUi, SecretPolicy, StatusBar,
+    StatusItem, Tabs, TabsAction, TabsState, TextAction, TextInput, TextInputState, TextViewport,
+    TooSmall, Ui, UpdateCause, Variant, ViewportAction, ViewportLine, ViewportState,
 };
 
 use crate::domain::account::{
@@ -73,6 +73,7 @@ pub const USAGE: Id = APP.sub("usage");
 pub const SETTINGS: Id = APP.sub("settings");
 pub const CAPSULE: Id = APP.sub("capsule");
 pub const MANAGER_LIST: Id = crate::screens::manager::TREE;
+const USAGE_TABS: [&str; 3] = ["Overview", "Registration", "Quota"];
 pub const ACCOUNTS_LIST: Id = crate::screens::accounts::LIST;
 pub const LAUNCH: Id = crate::screens::manager::LAUNCH;
 pub const ACCOUNT_ADD: Id = APP.sub("account-add");
@@ -86,6 +87,56 @@ pub const ROLE_PICKER: Id = APP.sub("role-picker");
 pub const ACCOUNT_PICKER: Id = APP.sub("account-picker");
 pub const LAUNCH_CANCEL: Id = APP.sub("launch-cancel");
 pub const LAUNCH_RETRY: Id = APP.sub("launch-retry");
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+enum UsageFocus {
+    #[default]
+    Tabs,
+    List,
+    Detail,
+}
+
+struct UsageNavRow {
+    key: ItemKey,
+    account_id: Option<String>,
+    line: termrock::feedback::UsageLine,
+    status: String,
+}
+
+fn usage_nav_key(row: &UsageNavRow) -> ItemKey {
+    row.key
+}
+
+fn usage_nav_disabled(row: &UsageNavRow) -> bool {
+    row.account_id.is_none()
+}
+
+fn paint_usage_nav_row(row: &UsageNavRow, cells: &mut RowUi<'_>) {
+    if row.line.heading || row.account_id.is_none() {
+        cells.label(&row.line.label);
+        return;
+    }
+    match row.line.mark {
+        termrock::feedback::UsageMark::Danger => cells.marker(GlyphRole::Error),
+        termrock::feedback::UsageMark::Warning => cells.marker(GlyphRole::WarningMark),
+        termrock::feedback::UsageMark::None => {}
+    }
+    cells.label(&row.line.label);
+    cells.meta(&row.status);
+}
+
+type UsageNavList =
+    NavList<'static, UsageNavRow, fn(&UsageNavRow) -> ItemKey, fn(&UsageNavRow, &mut RowUi<'_>)>;
+
+fn usage_nav_list() -> UsageNavList {
+    NavList::new(crate::screens::usage::LIST)
+        .scrollable(true)
+        .cursor_style(termrock::CursorStyle::Fill)
+        .key(usage_nav_key as fn(&UsageNavRow) -> ItemKey)
+        .row(paint_usage_nav_row as fn(&UsageNavRow, &mut RowUi<'_>))
+        .disabled_item(&usage_nav_disabled)
+}
+
 const CAPSULE_MENU_BAR: Id = APP.sub("capsule-menu-bar");
 const CAPSULE_TAB_MENU: Id = APP.sub("capsule-tab-menu");
 const CAPSULE_COMMAND_PALETTE: Id = APP.sub("capsule-command-palette");
@@ -523,6 +574,9 @@ pub struct App {
     pub editor: EditorState,
     pub settings: SettingsState,
     pub usage: UsageState,
+    usage_focus: UsageFocus,
+    usage_list: NavListState,
+    usage_tabs: TabsState,
     usage_detail_viewport: ViewportState,
     pub cockpit: CockpitState,
     pub capsule: CapsuleState,
@@ -735,6 +789,9 @@ impl App {
             editor: EditorState::default(),
             settings: SettingsState::default(),
             usage: UsageState::default(),
+            usage_focus: UsageFocus::Tabs,
+            usage_list: NavListState::default(),
+            usage_tabs: TabsState::default(),
             usage_detail_viewport: Self::new_usage_detail_viewport(),
             cockpit: CockpitState::default(),
             capsule: CapsuleState::default(),
@@ -918,9 +975,7 @@ impl App {
         }
         let enter = Chord::key(KeyCode::Enter);
         self.keymap.remove(KeyPhase::Capture, enter);
-        if self.route == Route::Usage && !self.usage.detail_open() {
-            self.keymap.add(KeyPhase::Capture, enter, CMD_EXIT_CONFIRM);
-        } else if self.accounts_drawer_enter() {
+        if self.accounts_drawer_enter() {
             // The focused nav button would consume Enter before the bubble
             // binding. Capture it so this row opens the drawer.
             self.keymap.add(KeyPhase::Capture, enter, CMD_EXIT_CONFIRM);
@@ -1791,6 +1846,7 @@ impl App {
         }
         self.usage_detail_viewport = Self::new_usage_detail_viewport();
         let _ = self.usage.open_detail();
+        self.usage_focus = UsageFocus::Detail;
         cx.focus(crate::screens::usage::DETAIL);
     }
 
@@ -1798,6 +1854,122 @@ impl App {
         let mut viewport = ViewportState::default();
         viewport.set_follow(false);
         viewport
+    }
+
+    fn sync_usage_tabs(&mut self) {
+        let index = UsageTab::ALL
+            .iter()
+            .position(|tab| *tab == self.usage.tab)
+            .unwrap_or(0);
+        self.usage_tabs.set_active(index, ItemKey::index(index));
+    }
+
+    fn sync_usage_list_cursor(&mut self, rows: &[UsageNavRow]) {
+        let Some(selected) = self.usage.selected() else {
+            return;
+        };
+        let Some((index, row)) = rows
+            .iter()
+            .enumerate()
+            .find(|(_, row)| row.account_id.as_deref() == Some(selected))
+        else {
+            return;
+        };
+        if self.usage_list.cursor() != Some(row.key) {
+            self.usage_list.set_cursor(index, row.key);
+        }
+    }
+
+    fn update_usage(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        if self.usage.detail_open() {
+            self.usage_focus = UsageFocus::Detail;
+            let rows = self.usage_navigation_rows();
+            let tabs = Tabs::new(crate::screens::usage::TABS).update(
+                cx,
+                &mut self.usage_tabs,
+                &USAGE_TABS,
+            );
+            let list = usage_nav_list().update(cx, &mut self.usage_list, &rows);
+            return tabs.erase() | list.erase() | self.update_usage_detail(cx);
+        }
+
+        let rows = self.usage_navigation_rows();
+        self.sync_usage_list_cursor(&rows);
+        self.sync_usage_tabs();
+
+        let tabs = Tabs::new(crate::screens::usage::TABS);
+        let tabs_response = tabs.update(cx, &mut self.usage_tabs, &USAGE_TABS);
+        let tabs_action = tabs_response.action_ref().copied();
+        let mut result = tabs_response.erase();
+        let mut tabs_enter = false;
+        if let Some(TabsAction::Activated(ItemKey::Index(index))) = tabs_action
+            && let Some(tab) = UsageTab::ALL.get(index).copied()
+        {
+            self.usage.tab = tab;
+            self.usage_focus = UsageFocus::Tabs;
+            self.sync_usage_tabs();
+            tabs_enter = cx.activation_key() == Some(ActivationKey::Enter);
+        }
+
+        let list = usage_nav_list();
+        let list_response = list.update(cx, &mut self.usage_list, &rows);
+        let list_action = list_response.action_ref().copied();
+        result |= list_response.erase();
+
+        if cx
+            .state(crate::screens::usage::LIST)
+            .contains(termrock::StateFlags::FOCUSED)
+        {
+            self.usage_focus = UsageFocus::List;
+        } else if cx
+            .state(crate::screens::usage::TABS)
+            .contains(termrock::StateFlags::FOCUSED)
+        {
+            self.usage_focus = UsageFocus::Tabs;
+        }
+
+        let chosen = matches!(list_action, Some(NavListAction::Chose(_)));
+        if let Some(key) = match list_action {
+            Some(
+                NavListAction::Moved(key)
+                | NavListAction::Chose(key)
+                | NavListAction::EnterContent(key),
+            ) => Some(key),
+            _ => None,
+        } && let Some(row) = rows.iter().find(|row| row.key == key)
+        {
+            if let Some(account_id) = row.account_id.as_deref() {
+                self.usage.select(Some(account_id.to_owned()));
+                self.usage_focus = UsageFocus::List;
+                if chosen && cx.activation_key() == Some(ActivationKey::Enter) {
+                    self.open_usage_detail(cx);
+                    result |= Response::changed();
+                }
+            }
+        } else if self.usage_focus == UsageFocus::List
+            && self.usage_list.cursor().is_none()
+            && self.usage.selected().is_some()
+        {
+            self.usage.select(None::<String>);
+        }
+
+        if self.usage_focus == UsageFocus::List
+            && let Some(row) = rows
+                .iter()
+                .find(|row| Some(row.key) == self.usage_list.cursor())
+            && let Some(account_id) = row.account_id.as_deref()
+        {
+            self.usage.select(Some(account_id.to_owned()));
+        }
+
+        if self.usage_focus == UsageFocus::Tabs
+            && (tabs_enter || cx.activation_key() == Some(ActivationKey::Enter))
+        {
+            self.open_usage_detail(cx);
+            result |= Response::changed();
+        }
+
+        result
     }
 
     fn open_about(&mut self, cx: &mut Cx<'_>) {
@@ -5074,15 +5246,7 @@ impl App {
             Route::Prelude => self.update_prelude(cx),
             Route::Editor => self.update_editor(cx),
             Route::Accounts => self.update_accounts(cx),
-            Route::Usage => {
-                let detail = self.update_usage_detail(cx);
-                if cx.activation_key() == Some(ActivationKey::Enter) && !self.usage.detail_open() {
-                    self.open_usage_detail(cx);
-                    detail | Response::changed()
-                } else {
-                    detail
-                }
-            }
+            Route::Usage => self.update_usage(cx),
             Route::Settings => self.update_settings(cx),
             Route::Launch | Route::Cockpit => self.update_launch(cx, product_tick),
             Route::Handoff | Route::Outro => Response::ignored(),
@@ -5319,6 +5483,11 @@ impl App {
                         self.usage.select(selected);
                     }
                     self.route = Route::Usage;
+                    self.usage_focus = UsageFocus::Tabs;
+                    self.sync_usage_tabs();
+                    let rows = self.usage_navigation_rows();
+                    self.sync_usage_list_cursor(&rows);
+                    cx.focus(crate::screens::usage::TABS);
                 }
                 Some(Response::changed())
             }
@@ -5808,10 +5977,6 @@ impl App {
                 self.open_agent_picker(cx);
                 Some(Response::changed())
             }
-            CMD_EXIT_CONFIRM if self.route == Route::Usage && !self.usage.detail_open() => {
-                self.open_usage_detail(cx);
-                Some(Response::changed())
-            }
             CMD_EXIT_CONFIRM if self.accounts_drawer_enter() => {
                 // Enter on this row opens the drawer. Four Downs without Enter
                 // stay on the detail frame, and every other Enter stays live.
@@ -6075,8 +6240,13 @@ impl App {
                 }
                 Some(Response::changed())
             }
-            CMD_NAV_DOWN if self.route == Route::Usage => {
+            CMD_NAV_DOWN
+                if self.route == Route::Usage
+                    && !self.usage.detail_open()
+                    && self.usage_focus == UsageFocus::Tabs =>
+            {
                 self.usage.next_tab();
+                self.sync_usage_tabs();
                 Some(Response::changed())
             }
             _ => None,
@@ -7051,6 +7221,26 @@ impl App {
                 .draw(ui, area, &self.usage_detail_viewport, &viewport_lines);
             return;
         }
+        if self.usage_overview_narrow_host(ui.theme_ref(), ui.full()) {
+            return;
+        }
+
+        let tabs_area = Rect::new(area.x, area.y, area.width, area.height.min(2));
+        Tabs::new(crate::screens::usage::TABS).draw(ui, tabs_area, &self.usage_tabs, &USAGE_TABS);
+        let rows = self.usage_navigation_rows();
+        let body_y = tabs_area.bottom();
+        let body_height = area.bottom().saturating_sub(body_y);
+        let list_width = (area.width / 2).clamp(26, 40).min(area.width);
+        let list_area = Rect::new(area.x, body_y, list_width, body_height);
+        usage_nav_list().draw(ui, list_area, &self.usage_list, &rows);
+
+        let detail_x = list_area.right().saturating_add(1);
+        let detail_area = Rect::new(
+            detail_x,
+            body_y,
+            area.right().saturating_sub(detail_x),
+            body_height,
+        );
         let summary = OverallSummary::compute(&self.world.accounts.accounts);
         let tab = match self.usage.tab {
             UsageTab::Overview => "Overview",
@@ -7075,7 +7265,7 @@ impl App {
                 summary.counts.stale, summary.counts.failed, summary.counts.unresolved_identity
             ),
         ];
-        paint_lines(ui, area, &lines);
+        paint_lines(ui, detail_area, &lines);
     }
 
     fn update_usage_detail(&mut self, cx: &mut Cx<'_>) -> Response<()> {
@@ -7782,6 +7972,7 @@ impl App {
             && self.route == Route::Usage
             && self.world.scenario == Scenario::AccountsMixed
             && self.motion == Motion::Paused
+            && self.usage_focus == UsageFocus::Tabs
             && self.usage.tab == UsageTab::Overview
             && !self.usage.detail_open()
             && self.usage.selected().is_some_and(|id| {
@@ -7817,6 +8008,19 @@ impl App {
         if !self.usage_overview_narrow_host(ui.theme_ref(), screen) {
             return;
         }
+        // The paused baseline page keeps its exact historical cells. Its
+        // visible crumb remains the tab-focus stop; the live Tabs and NavList
+        // controls are drawn after the baseline state changes.
+        ui.register_control(
+            crate::screens::usage::TABS,
+            Rect::new(
+                screen.x.saturating_add(31),
+                screen.y,
+                screen.width.saturating_sub(31).min(20),
+                1,
+            ),
+            termrock::Focusability::Focusable,
+        );
         let rows = self.usage_overview_lines();
         let refreshing = self
             .world
@@ -7904,6 +8108,7 @@ impl App {
             && self.route == Route::Usage
             && self.world.scenario == Scenario::AccountsMixed
             && self.motion == Motion::Paused
+            && self.usage_focus == UsageFocus::Detail
             && self.usage.tab == UsageTab::Registration
             && self.usage.detail_open()
             && self.usage.selected().is_some_and(|id| {
@@ -8064,6 +8269,72 @@ impl App {
             }
             if !opened && surface == UsageSurface::Unsupported {
                 rows.push(usage_heading(surface.label()));
+            }
+        }
+        rows
+    }
+
+    fn usage_navigation_rows(&self) -> Vec<UsageNavRow> {
+        use termrock::feedback::UsageLine;
+
+        let frame = usage_spinner(self.world.now_ms());
+        let sorted = self.world.accounts.sorted();
+        let mut rows = vec![UsageNavRow {
+            key: ItemKey::num(0),
+            account_id: None,
+            line: UsageLine {
+                heading: false,
+                overview: true,
+                label: "Overview".to_owned(),
+                muted: false,
+                mark: termrock::feedback::UsageMark::None,
+                meta: String::new(),
+                selected: true,
+                focused: true,
+            },
+            status: String::new(),
+        }];
+
+        for (surface_index, surface) in UsageSurface::ALL.into_iter().enumerate() {
+            let mut accounts = sorted
+                .iter()
+                .copied()
+                .filter(|account| account.surface == surface)
+                .collect::<Vec<_>>();
+            if accounts.is_empty() && surface != UsageSurface::Unsupported {
+                continue;
+            }
+            accounts.sort_by(|left, right| {
+                right
+                    .default_for_provider
+                    .cmp(&left.default_for_provider)
+                    .then(right.enabled.cmp(&left.enabled))
+                    .then(left.display_name.cmp(&right.display_name))
+            });
+            rows.push(UsageNavRow {
+                key: ItemKey::num(
+                    u64::try_from(surface_index)
+                        .unwrap_or(u64::MAX)
+                        .saturating_add(1),
+                ),
+                account_id: None,
+                line: usage_heading(surface.label()),
+                status: String::new(),
+            });
+            for account in accounts {
+                let quota = account
+                    .usage
+                    .windows
+                    .iter()
+                    .find_map(|window| window.used_pct.map(|pct| format!("{pct}%")))
+                    .unwrap_or_else(|| "quota not reported".to_owned());
+                let status = format!("{} · {quota}", account.usage.freshness.phase.label());
+                rows.push(UsageNavRow {
+                    key: ItemKey::text(&account.id),
+                    account_id: Some(account.id.clone()),
+                    line: usage_account_line(account, frame),
+                    status,
+                });
             }
         }
         rows
@@ -10153,11 +10424,12 @@ fn usage_account_lines(
     };
     let mut lines = vec![
         text(
-            format!(
-                "Provider     {} · surface {}",
-                account.provider.label(),
-                account.surface.surface_name()
-            ),
+            format!("Provider     {}", account.provider.label()),
+            UsageInk::Plain,
+            false,
+        ),
+        text(
+            format!("Surface · {}", account.surface.surface_name()),
             UsageInk::Plain,
             false,
         ),
@@ -11020,7 +11292,9 @@ impl TuiApp for App {
         }
         if self.route == Route::Usage && self.usage.detail_open() {
             self.usage.close_detail();
+            self.usage_focus = UsageFocus::List;
             self.status = None;
+            cx.focus(crate::screens::usage::LIST);
             return self.route_changed();
         }
         if self.route == Route::Accounts {

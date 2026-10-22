@@ -35,6 +35,11 @@ fn usage_initial_down_advances_tab_without_changing_selected_account() {
     h.key(KeyCode::Char('u'));
     assert_eq!(h.app().route(), Route::Usage);
     assert_eq!(h.app().usage.selected(), Some("acct-claude-personal"));
+    assert_eq!(
+        h.focus(),
+        Some(jackin_preview_app::screens::usage::TABS),
+        "Usage opens with tab focus"
+    );
     let selected = h.app().usage.selected().map(str::to_owned);
 
     h.key(KeyCode::Down);
@@ -43,6 +48,270 @@ fn usage_initial_down_advances_tab_without_changing_selected_account() {
         jackin_preview_app::screens::usage::Tab::Registration
     );
     assert_eq!(h.app().usage.selected(), selected.as_deref());
+}
+
+#[test]
+fn normal_usage_journey_tabs_into_accounts_and_opens_selected_work_detail() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    let personal = h
+        .app()
+        .world
+        .accounts
+        .get("acct-claude-personal")
+        .expect("normal fixture personal account");
+    let work = h
+        .app()
+        .world
+        .accounts
+        .get("acct-claude-work")
+        .expect("normal fixture work account");
+    assert!(personal.default_for_provider);
+    assert!(!work.default_for_provider);
+
+    h.key(KeyCode::Char('u'));
+    assert_eq!(h.app().route(), Route::Usage);
+    assert_eq!(h.app().usage.selected(), Some("acct-claude-personal"));
+    h.key(KeyCode::Down);
+    assert_eq!(
+        h.app().usage.tab,
+        jackin_preview_app::screens::usage::Tab::Registration
+    );
+    assert_eq!(h.app().usage.selected(), Some("acct-claude-personal"));
+
+    h.key(KeyCode::Tab);
+    assert_eq!(
+        h.focus(),
+        Some(jackin_preview_app::screens::usage::LIST),
+        "Tab should transfer focus to the registered account list"
+    );
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "after entering account list: {:?}",
+        h.harness.diagnostics()
+    );
+    h.key(KeyCode::Down);
+    assert_eq!(
+        h.app().usage.tab,
+        jackin_preview_app::screens::usage::Tab::Registration,
+        "moving in the account list must not change the Usage tab"
+    );
+    assert_eq!(h.app().usage.selected(), Some("acct-claude-work"));
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "after moving account cursor: {:?}",
+        h.harness.diagnostics()
+    );
+
+    h.key(KeyCode::Enter);
+    assert!(h.app().usage.detail_open());
+    assert_eq!(
+        h.focus(),
+        Some(jackin_preview_app::screens::usage::DETAIL),
+        "Enter transfers focus to account detail"
+    );
+    assert_eq!(h.app().usage.selected(), Some("acct-claude-work"));
+    let detail = h.text();
+    assert!(detail.contains("Claude · Work"), "{detail}");
+    assert!(detail.contains("Session · 5-hour"), "{detail}");
+    assert!(detail.contains("76%"), "{detail}");
+    assert!(detail.contains("stale · last good 47 min ago"), "{detail}");
+    assert!(detail.contains("Retry        resets in 13 min"), "{detail}");
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "{:?}",
+        h.harness.diagnostics()
+    );
+
+    h.key(KeyCode::Esc);
+    assert_eq!(h.app().route(), Route::Usage);
+    assert!(!h.app().usage.detail_open());
+    assert_eq!(h.app().usage.selected(), Some("acct-claude-work"));
+    assert_eq!(h.focus(), Some(jackin_preview_app::screens::usage::LIST));
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "after returning to list: {:?}",
+        h.harness.diagnostics()
+    );
+
+    h.key(KeyCode::Esc);
+    assert_eq!(h.app().route(), Route::Manager);
+}
+
+#[test]
+fn usage_account_click_selects_the_keyed_row_without_opening_detail() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    h.key(KeyCode::Char('u'));
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Tab);
+    assert_eq!(h.focus(), Some(jackin_preview_app::screens::usage::LIST));
+
+    let (x, y) = h.find("Work").expect("visible Work account row");
+    let list_area = h
+        .harness
+        .area_of(jackin_preview_app::screens::usage::LIST)
+        .expect("registered Usage account list");
+    assert!(list_area.contains(termrock::Position::new(x, y)));
+
+    let (outside_x, outside_y) = h.find("Limits").expect("visible summary outside the list");
+    let outside = termrock::Position::new(outside_x, outside_y);
+    assert!(!list_area.contains(outside));
+    h.click(outside_x, outside_y);
+    assert_eq!(h.app().usage.selected(), Some("acct-claude-personal"));
+
+    h.click(x, y);
+
+    assert_eq!(
+        h.app().usage.tab,
+        jackin_preview_app::screens::usage::Tab::Registration
+    );
+    assert_eq!(h.app().usage.selected(), Some("acct-claude-work"));
+    assert!(
+        !h.app().usage.detail_open(),
+        "a row click selects without opening"
+    );
+    assert_eq!(h.focus(), Some(jackin_preview_app::screens::usage::LIST));
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "{:?}",
+        h.harness.diagnostics()
+    );
+}
+
+#[test]
+fn usage_list_selection_uses_account_ids_for_duplicate_names_and_reordering() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    {
+        let accounts = &mut h.app_mut().world.accounts;
+        accounts
+            .get_mut("acct-claude-personal")
+            .expect("personal account")
+            .display_name = "Shared".into();
+        accounts
+            .get_mut("acct-claude-work")
+            .expect("work account")
+            .display_name = "Shared".into();
+    }
+
+    h.key(KeyCode::Char('u'));
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Tab);
+    h.key(KeyCode::Down);
+    assert_eq!(h.app().usage.selected(), Some("acct-claude-work"));
+    assert_eq!(
+        h.app().usage.tab,
+        jackin_preview_app::screens::usage::Tab::Registration
+    );
+
+    {
+        let accounts = &mut h.app_mut().world.accounts;
+        accounts
+            .get_mut("acct-claude-personal")
+            .expect("personal account")
+            .default_for_provider = false;
+        accounts
+            .get_mut("acct-claude-work")
+            .expect("work account")
+            .default_for_provider = true;
+        let last = accounts.accounts.len().saturating_sub(1);
+        accounts.accounts.swap(0, last);
+    }
+    h.key(KeyCode::Up);
+    assert_eq!(
+        h.app().usage.selected(),
+        Some("acct-claude-work"),
+        "keyed selection survives a row reorder despite duplicate names"
+    );
+    assert_eq!(
+        h.app().usage.tab,
+        jackin_preview_app::screens::usage::Tab::Registration
+    );
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "{:?}",
+        h.harness.diagnostics()
+    );
+}
+
+#[test]
+fn usage_list_reconciles_a_removed_selection_to_a_surviving_account() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    h.key(KeyCode::Char('u'));
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Tab);
+    h.key(KeyCode::Down);
+    assert_eq!(h.app().usage.selected(), Some("acct-claude-work"));
+
+    h.app_mut()
+        .world
+        .accounts
+        .accounts
+        .retain(|account| account.id != "acct-claude-work");
+    h.key(KeyCode::Down);
+
+    let selected = h.app().usage.selected();
+    assert_ne!(selected, Some("acct-claude-work"));
+    assert!(selected.is_some_and(|id| h.app().world.accounts.get(id).is_some()));
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "{:?}",
+        h.harness.diagnostics()
+    );
+}
+
+#[test]
+fn usage_dialog_input_does_not_change_the_underlying_tab_or_account() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    h.key(KeyCode::Char('u'));
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Tab);
+    h.key(KeyCode::Down);
+    assert_eq!(h.app().usage.selected(), Some("acct-claude-work"));
+    assert_eq!(
+        h.app().usage.tab,
+        jackin_preview_app::screens::usage::Tab::Registration
+    );
+
+    h.key(KeyCode::Char('q'));
+    assert!(h.text().contains("Exit jackin?"), "{}", h.text());
+    h.key(KeyCode::Down);
+    assert_eq!(h.app().usage.selected(), Some("acct-claude-work"));
+    assert_eq!(
+        h.app().usage.tab,
+        jackin_preview_app::screens::usage::Tab::Registration
+    );
+    h.key(KeyCode::Esc);
+
+    assert!(!h.text().contains("Exit jackin?"));
+    assert_eq!(h.app().usage.selected(), Some("acct-claude-work"));
+    assert_eq!(
+        h.app().usage.tab,
+        jackin_preview_app::screens::usage::Tab::Registration
+    );
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "{:?}",
+        h.harness.diagnostics()
+    );
+}
+
+#[test]
+fn empty_usage_list_has_no_stale_selection_or_keyboard_target() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    h.key(KeyCode::Char('u'));
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Tab);
+    assert_eq!(h.app().usage.selected(), Some("acct-claude-personal"));
+
+    h.app_mut().world.accounts.accounts.clear();
+    h.key(KeyCode::Down);
+
+    assert_eq!(h.app().usage.selected(), None);
+    assert!(!h.app().usage.detail_open());
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "{:?}",
+        h.harness.diagnostics()
+    );
 }
 
 #[test]
