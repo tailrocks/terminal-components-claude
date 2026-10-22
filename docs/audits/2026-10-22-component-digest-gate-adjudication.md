@@ -155,6 +155,13 @@ Five tests stay red on this branch, four of them red at the tip as well:
 | `termrock-overlays::context_menu_danger_profile keyboard_active_danger_row_uses_frozen_background_ladder` | red | the same projection conflict on the Mono tier |
 | `termrock-overlays::context_menu_danger_profile disabled_danger_row_matches_frozen_cells_at_rest_hover_and_press` | green at the tip | the same projection conflict: the tip mixed 239 and 238 for the disabled ink, the restored palette projects it uniformly to 238 |
 
+One further finding, recorded and not silently shipped: the corpus-era
+danger ink `0xe44545` is 4.4:1 on the card surface `0x18181b`, just under
+the 4.5:1 rule in AGENTS.md, and the tag raised the ink to `0xf05d5d` for
+exactly that reason. This branch restores the corpus value because the
+corpus renders it and the frozen digests encode it, and it flags the slot
+for the coordinator: the danger slots need one ruling, not two.
+
 That last row is the only library red this branch adds. It is the
 tag-versus-corpus conflict in one slot: the corpus renders the disabled ink
 `0x4d4d4d` as 238 and never paints 239, the tag's `apply_256` pins it to 239,

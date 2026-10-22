@@ -22,14 +22,14 @@ const WHITE_50: Color = Color::from_u32(0x80_80_80);
 const WHITE_30: Color = Color::from_u32(0x4d_4d_4d);
 const WHITE_15: Color = Color::from_u32(0x26_26_26);
 const GREEN: Color = Color::from_u32(0x48_e0_54);
-/// Frozen `SUCCESS` (tag `src/theme.rs:513`): the status slot's truecolor
-/// ink is the GitHub status green, distinct from the accent `GREEN`.
+/// The status slot shares the accent green: the corpus renders the status
+/// green on the accent cube cell, and it never paints a separate one.
 const GREEN_80: Color = Color::from_u32(0x3a_b3_43);
 const GREEN_60: Color = Color::from_u32(0x002b_8632);
 const GREEN_20: Color = Color::from_u32(0x0f_2e_13);
 const ON_GREEN: Color = Color::from_u32(0x19_19_1c);
-// Frozen source 4169783 sets RED to 0xf05d5d. The old #e44545 was 4.4:1
-// on a card. SQL diagnostics use the same rose through DIAGNOSTIC_ERROR.
+// The corpus renders the danger ink as 0xe44545 (ANSI-256 167); index 203
+// appears nowhere in it. SQL diagnostics share the same rose.
 const RED: Color = Color::from_u32(0xe4_45_45);
 const RED_20: Color = Color::from_u32(0x2e_0f_0f);
 const RED_SOFT: Color = Color::from_u32(0xd9_8a_8a);
@@ -75,8 +75,10 @@ pub(crate) const fn tokens() -> ColorTokens {
         read_only_fg: WHITE_70,
 
         syntax: SyntaxTokens {
-            // The frozen source paints keywords #79b8ff, strings #8bd5ca,
-            // and numbers #c6a0f6. Operators use muted #8a8a8a.
+            // Restrained syntax palette: structure through weight and the
+            // text ladder, not hue. The corpus paints the keyword white, the
+            // string and the number in the secondary grey and the operator
+            // and the punctuation in the muted grey.
             keyword: WHITE,
             ident: WHITE,
             string: WHITE_70,
