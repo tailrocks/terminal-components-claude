@@ -490,9 +490,12 @@ impl TextBuffer {
             self.normalize_positions();
             return true;
         }
-        self.delete_selection();
-        self.text.insert(self.cursor, c);
-        self.cursor = self.cursor.saturating_add(c.len_utf8());
+        let range = self.selection().unwrap_or(self.cursor..self.cursor);
+        let mut encoded = [0; 4];
+        let inserted = c.encode_utf8(&mut encoded);
+        self.text.replace_range(range.clone(), inserted);
+        self.cursor = range.start.saturating_add(inserted.len());
+        self.anchor = None;
         self.normalize_positions();
         true
     }
@@ -693,6 +696,95 @@ mod tests {
     }
 
     #[test]
+    fn selection_lifecycle_normalizes_reduces_collapses_and_clears() {
+        let mut b = TextBuffer::single("hello world");
+        assert_eq!(b.selection(), None);
+
+        b.move_home(false);
+        for _ in 0..5 {
+            b.move_right(true);
+        }
+        assert_eq!(b.selection(), Some(0..5));
+        b.move_right(true);
+        assert_eq!(b.selection(), Some(0..6));
+        b.move_left(true);
+        b.move_left(true);
+        assert_eq!(b.selection(), Some(0..4));
+
+        b.select_range(5, 1);
+        assert_eq!(b.cursor_offset(), 1);
+        assert_eq!(b.selection(), Some(1..5));
+        b.move_left(false);
+        assert_eq!(b.selection(), None);
+        assert_eq!(b.cursor_offset(), 1);
+
+        b.select_range(1, 5);
+        b.move_right(false);
+        assert_eq!(b.selection(), None);
+        assert_eq!(b.cursor_offset(), 5);
+
+        b.select_all();
+        assert_eq!(b.selection(), Some(0..11));
+        b.clear_selection();
+        assert_eq!(b.selection(), None);
+        assert_eq!(b.cursor_offset(), 11);
+    }
+
+    #[test]
+    fn selection_lines_handles_unicode_and_exclusive_newline() {
+        let mut b = TextBuffer::multi("é\n日本\n👩‍💻");
+        b.select_all();
+        assert_eq!(b.selection_lines(), (0, 2));
+
+        let first_line_end = "é\n".len();
+        b.select_range(0, first_line_end);
+        assert_eq!(b.selection_lines(), (0, 0));
+
+        b.select_range(first_line_end, "é\n日本".len());
+        assert_eq!(b.selection_lines(), (1, 1));
+    }
+
+    #[test]
+    fn public_offsets_clamp_to_graphemes_for_every_byte_position() {
+        let text = "e\u{301}日👩‍💻";
+        let mut b = TextBuffer::single(text);
+        let combining_end = "e\u{301}".len();
+        let cjk_end = "e\u{301}日".len();
+
+        // Check every byte offset, including one past the end. The expected
+        // values mark the known grapheme starts rather than using the same
+        // segmentation routine as the code under test.
+        for offset in 0..=text.len() + 1 {
+            let expected = if offset < combining_end {
+                0
+            } else if offset < cjk_end {
+                combining_end
+            } else if offset < text.len() {
+                cjk_end
+            } else {
+                text.len()
+            };
+            b.select_range(0, offset);
+            assert_eq!(b.cursor_offset(), expected, "offset {offset}");
+            let _ = b.cursor_pos();
+            let _ = b.selection_lines();
+        }
+
+        // Every pair of byte offsets must still produce a valid UTF-8 slice.
+        for start in 0..=text.len() + 1 {
+            for end in 0..=text.len() + 1 {
+                b.select_range(start, end);
+                if let Some(range) = b.selection() {
+                    assert!(text.get(range).is_some(), "range from {start} to {end}");
+                }
+            }
+        }
+
+        b.select_range(usize::MAX, usize::MAX);
+        assert_eq!(b.cursor_offset(), text.len());
+    }
+
+    #[test]
     fn word_motion_and_deletion() {
         let mut b = TextBuffer::single("alpha beta  gamma");
         b.move_word_left(false);
@@ -705,6 +797,23 @@ mod tests {
         b.move_end(false);
         b.delete_word_left();
         assert_eq!(b.text(), "alpha beta  ");
+    }
+
+    #[test]
+    fn delete_word_left_keeps_combining_graphemes_whole() {
+        let mut b = TextBuffer::single("cafe\u{301} 日本");
+        b.move_home(false);
+        b.move_word_right(true);
+        assert_eq!(b.selected_text(), Some("cafe\u{301}"));
+        b.clear_selection();
+        b.move_word_left(false);
+        assert_eq!(b.cursor_offset(), 0);
+
+        b.move_end(false);
+        assert!(b.delete_word_left());
+        assert_eq!(b.text(), "cafe\u{301} ");
+        assert!(b.delete_word_left());
+        assert_eq!(b.text(), "");
     }
 
     #[test]
@@ -805,6 +914,94 @@ mod tests {
         assert!(selected.backspace());
         assert_eq!(selected.text(), "e\u{301}");
         assert_eq!(selected.cursor_offset(), "e\u{301}".len());
+    }
+
+    #[test]
+    fn inserted_zwj_joins_emoji_and_backspace_removes_the_cluster() {
+        let mut buffer = TextBuffer::single("👩💻");
+        buffer.set_cursor_line_col(0, 2);
+        assert!(buffer.insert_char('\u{200d}'));
+        assert_eq!(buffer.text(), "👩‍💻");
+        assert_eq!(buffer.cursor_pos(), CursorPos { line: 0, col: 2 });
+        assert!(buffer.backspace());
+        assert_eq!(buffer.text(), "");
+    }
+
+    #[test]
+    fn removing_separator_joins_regional_indicators_and_repairs_caret() {
+        let mut buffer = TextBuffer::single("🇺 🇸");
+        buffer.select_range(4, 5);
+        assert!(buffer.backspace());
+        assert_eq!(buffer.text(), "🇺🇸");
+        assert_eq!(buffer.cursor_pos(), CursorPos { line: 0, col: 2 });
+        buffer.move_left(false);
+        assert_eq!(buffer.cursor_pos(), CursorPos { line: 0, col: 0 });
+    }
+
+    #[test]
+    fn inserting_char_replaces_separator_between_regional_indicators() {
+        for (anchor, cursor) in [(4, 5), (5, 4)] {
+            let mut buffer = TextBuffer::single("🇺 🇸");
+            buffer.select_range(anchor, cursor);
+            assert_eq!(buffer.selection(), Some(4..5));
+            assert!(buffer.insert_char('X'));
+            assert_eq!(buffer.text(), "🇺X🇸");
+            assert_eq!(buffer.cursor_offset(), 5);
+            // The standalone left regional indicator and X each occupy one cell.
+            assert_eq!(buffer.cursor_pos(), CursorPos { line: 0, col: 2 });
+            assert!(buffer.selection().is_none());
+        }
+    }
+
+    #[test]
+    fn paste_replaces_separator_between_regional_indicators() {
+        let mut buffer = TextBuffer::single("🇺 🇸");
+        buffer.select_range(4, 5);
+        assert!(buffer.insert_str("X"));
+        assert_eq!(buffer.text(), "🇺X🇸");
+        assert_eq!(buffer.cursor_offset(), 5);
+        // The standalone left regional indicator and X each occupy one cell.
+        assert_eq!(buffer.cursor_pos(), CursorPos { line: 0, col: 2 });
+        assert!(buffer.selection().is_none());
+    }
+
+    #[test]
+    fn sensitive_char_replacement_matches_selection_and_cursor_behavior() {
+        for (anchor, cursor) in [(4, 5), (5, 4)] {
+            let mut buffer = TextBuffer::sensitive_single("🇺 🇸");
+            buffer.select_range(anchor, cursor);
+            assert_eq!(buffer.selection(), Some(4..5));
+            assert!(buffer.insert_char('X'));
+            assert_eq!(buffer.text(), "🇺X🇸");
+            assert_eq!(buffer.cursor_offset(), 5);
+            // The standalone left regional indicator and X each occupy one cell.
+            assert_eq!(buffer.cursor_pos(), CursorPos { line: 0, col: 2 });
+            assert!(buffer.selection().is_none());
+            assert!(buffer.sensitive);
+        }
+    }
+
+    #[test]
+    fn replacing_a_selection_can_be_undone_and_redone() {
+        let mut buffer = TextBuffer::single("🇺 🇸");
+        buffer.select_range(4, 5);
+        let mut undo = crate::UndoStack::new();
+        undo.record(&buffer, crate::EditKind::Other);
+
+        assert!(buffer.insert_char('X'));
+        assert_eq!(buffer.text(), "🇺X🇸");
+        assert_eq!(buffer.cursor_offset(), 5);
+        assert!(buffer.selection().is_none());
+
+        assert!(undo.undo(&mut buffer));
+        assert_eq!(buffer.text(), "🇺 🇸");
+        assert_eq!(buffer.cursor_offset(), 5);
+        assert!(buffer.selection().is_none());
+
+        assert!(undo.redo(&mut buffer));
+        assert_eq!(buffer.text(), "🇺X🇸");
+        assert_eq!(buffer.cursor_offset(), 5);
+        assert!(buffer.selection().is_none());
     }
 
     #[test]
