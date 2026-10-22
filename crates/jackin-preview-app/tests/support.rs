@@ -21,6 +21,25 @@ impl H {
         }
     }
 
+    /// A harness whose theme is narrowed to a colour level.
+    pub fn new_with_color(
+        scenario: Scenario,
+        motion: Motion,
+        frame: u64,
+        w: u16,
+        h: u16,
+        level: termrock::ColorLevel,
+    ) -> Self {
+        Self {
+            harness: Harness::new(
+                App::for_scenario_at(scenario, motion, frame),
+                Theme::junie().downgrade(level),
+                w,
+                h,
+            ),
+        }
+    }
+
     pub fn app(&self) -> &App {
         self.harness.app()
     }
