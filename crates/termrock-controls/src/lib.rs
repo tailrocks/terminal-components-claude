@@ -42,7 +42,7 @@ pub mod too_small;
 pub use brand::Brand;
 pub use button::{BusyMarkerPolicy, Button, ButtonCmd, ButtonFocusVisibility};
 pub use choice::{
-    Checkbox, ChoiceCmd, LabelRadio, RadioGroup, RadioGroupAction, RadioGroupState,
+    Checkbox, CheckboxState, ChoiceCmd, LabelRadio, RadioGroup, RadioGroupAction, RadioGroupState,
     RadioNavigation, Toggle,
 };
 pub use empty::Empty;
