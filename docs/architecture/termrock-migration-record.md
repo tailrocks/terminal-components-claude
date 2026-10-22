@@ -636,6 +636,32 @@ differ in cells and 977 time out because the application never reaches the
 oracle screen, spread over the table (247), connections (160), query (142),
 overlays (127), workbench (50), fade (25), audit (16) and resize (15).
 
+## Branch consolidation
+
+The census covers 153 remote refs. After this round's integrations and
+reviews, the task-owned branches that are fully integrated are retired:
+
+| Retired branch | Content |
+| --- | --- |
+| `wip/jackin-accounts-fixes-20261022` | the accounts page corrections |
+| `wip/showcase-false-parity-20261021` | the showcase false-parity removal |
+| `wip/showcase-page-fixes-20261022` | the showcase page corrections |
+| `wip/test-integrity-repair-20261022` | the conformance chord allowlist repair |
+| `wip/holla-clock-gates-20261021` | the holla width-band policy and history setting |
+| `wip/tablepro-integration-20261022` | the TablePro footer component and explorer gate |
+
+Branches deliberately kept, with the reason:
+
+| Branch | Why it stays |
+| --- | --- |
+| `wip/jackin-false-parity-20261021` | holds 2 commits that are not upstream: the re-bless of the 8 `accounts-mixed` digests, which have no frozen-oracle counterpart and need the same reference decision |
+| `wip/tablepro-false-parity-20261021` | the pre-integration form of the TablePro stream; the integration branch supersedes it, and it is kept until the TablePro digest re-bless lands |
+| `wip/diagnose-component-digest-drift-20261021` | the corpus-era palette landing, which the independent adjudication REFUTED; it is kept as the record of the rejected direction |
+| `wip/review-*` | the four review reports and the adjudication verdict; the report bodies are in `docs/audits/evidence/2026-10-22-*` and the branches are retired with the last consolidation pass |
+| `design/interaction-polish` | PR #26, the read-only reference. Never merged, never deleted |
+| `main` | the base branch |
+| `wip/holla-menu-patch-precedence-20261021`, `wip/owned-fresh-plan-lifecycle-20261021`, `wip/owned-runner-ordinary-phase-20261021`, `wip/holla-rate-limit-20261021`, `wip/jackin-rate-limit-20261021` | held by an open review or an unfinished verification, per the census |
+
 ## Coverage gaps
 
 ### False-parity inventory (read-only audit, revision `40bc297e5`)
