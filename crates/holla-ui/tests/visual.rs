@@ -5,7 +5,7 @@ use ratatui::{
     style::{Color, Modifier},
 };
 use termrock::{
-    ColorLevel, Family, FeedbackClock, Part, Role, SimulationMoment, StylePatch, Theme,
+    ColorLevel, Family, FeedbackClock, FgStep, Part, Role, SimulationMoment, StylePatch, Theme,
 };
 use termrock_test_support::{Baseline, Harness};
 
@@ -628,6 +628,20 @@ fn paper_theme_with_faint(faint: Color) -> Theme {
     Theme::from_tokens(tokens)
 }
 
+fn paper_theme_with_faint_base_and_mono_foreground(foreground: Color) -> Theme {
+    Theme::paper()
+        .define_family(Family::HINTBAR, |recipe| {
+            recipe
+                .part(Part::OVERFLOW)
+                .base(StylePatch::new().set_fg(Role::Fg(FgStep::Faint)));
+        })
+        .define_family_for_level(ColorLevel::Mono, Family::HINTBAR, |recipe| {
+            recipe
+                .part(Part::OVERFLOW)
+                .base(StylePatch::new().set_fg(Role::Custom(foreground)));
+        })
+}
+
 fn unconfigured_parity_harness(theme: Theme, width: u16, height: u16) -> Harness<App> {
     let app = App::for_scenario_without_history(Scenario::ParityDiscovery, Motion::Paused, 4_000);
     let initial = SimulationMoment::from_millis(app.fixture_time_ms() as u64);
@@ -819,6 +833,105 @@ fn holla_overflow_preserves_authored_part_and_level_foregrounds() {
             .expect("clipped marker in frame"),
         &expected_cell("…", Color::Reset, Color::Black, Modifier::empty()),
         "an opaque level recipe keeps its authored Reset when no resolved ink is available"
+    );
+}
+
+#[test]
+fn holla_unknown_faint_base_preserves_mono_level_white_foreground() {
+    let source = paper_theme_with_faint_base_and_mono_foreground(Color::White);
+    let source_foreground = source
+        .resolve(
+            Family::HINTBAR,
+            termrock::Variant::DEFAULT,
+            Part::OVERFLOW,
+            termrock::StateFlags::empty(),
+            termrock::Surface::Canvas,
+        )
+        .style
+        .fg_role;
+    assert!(matches!(
+        source_foreground,
+        Some((Role::Fg(FgStep::Faint), _))
+    ));
+
+    let mono = source.for_level(ColorLevel::Mono);
+    assert!(matches!(
+        mono.resolve(
+            Family::HINTBAR,
+            termrock::Variant::DEFAULT,
+            Part::OVERFLOW,
+            termrock::StateFlags::empty(),
+            termrock::Surface::Canvas,
+        )
+        .style
+        .fg_role,
+        Some((Role::Custom(Color::White), _))
+    ));
+
+    let unconfigured = unconfigured_parity_harness(mono, 100, 30);
+    let scene = harness(Scenario::ParityDiscovery, source, 100, 30, ColorLevel::Mono);
+    assert_eq!(scene.cursor(), Some(Position { x: 3, y: 4 }));
+    assert_eq!(unconfigured.cursor(), scene.cursor());
+    assert_only_overflow_diff(scene.buffer(), unconfigured.buffer(), OVERFLOW_POSITION);
+    assert_eq!(
+        scene
+            .buffer()
+            .cell(OVERFLOW_POSITION)
+            .expect("clipped marker in frame"),
+        &expected_cell("…", Color::White, Color::Black, Modifier::empty()),
+        "an unknown source recipe must preserve its explicit Mono foreground"
+    );
+    assert_eq!(
+        unconfigured
+            .buffer()
+            .cell(OVERFLOW_POSITION)
+            .expect("clipped marker in unconfigured frame")
+            .fg,
+        Color::Black,
+        "the unconfigured control confirms the local Faint patch would mask White"
+    );
+}
+
+#[test]
+fn holla_unknown_faint_base_preserves_mono_level_reset_foreground() {
+    let source = paper_theme_with_faint_base_and_mono_foreground(Color::Reset);
+    let source_foreground = source
+        .resolve(
+            Family::HINTBAR,
+            termrock::Variant::DEFAULT,
+            Part::OVERFLOW,
+            termrock::StateFlags::empty(),
+            termrock::Surface::Canvas,
+        )
+        .style
+        .fg_role;
+    assert!(matches!(
+        source_foreground,
+        Some((Role::Fg(FgStep::Faint), _))
+    ));
+
+    let mono = source.for_level(ColorLevel::Mono);
+    let unconfigured = unconfigured_parity_harness(mono, 100, 30);
+    let scene = harness(Scenario::ParityDiscovery, source, 100, 30, ColorLevel::Mono);
+    assert_eq!(scene.cursor(), Some(Position { x: 3, y: 4 }));
+    assert_eq!(unconfigured.cursor(), scene.cursor());
+    assert_only_overflow_diff(scene.buffer(), unconfigured.buffer(), OVERFLOW_POSITION);
+    assert_eq!(
+        scene
+            .buffer()
+            .cell(OVERFLOW_POSITION)
+            .expect("clipped marker in frame"),
+        &expected_cell("…", Color::Reset, Color::Black, Modifier::empty()),
+        "an unknown source recipe must preserve its explicit Mono Reset"
+    );
+    assert_eq!(
+        unconfigured
+            .buffer()
+            .cell(OVERFLOW_POSITION)
+            .expect("clipped marker in unconfigured frame")
+            .fg,
+        Color::Black,
+        "the unconfigured control confirms the local Faint patch would mask Reset"
     );
 }
 
