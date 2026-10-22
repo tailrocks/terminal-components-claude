@@ -283,24 +283,45 @@ impl QueryTab {
     }
 
     pub fn execute(&mut self, catalog: &Catalog) -> Result<usize, String> {
+        self.prepare_execution()?;
+        let started = Instant::now();
+        let outcome = self.execute_untimed(catalog);
+        self.record_execution_status(outcome.is_ok(), started.elapsed());
+        outcome
+    }
+
+    /// Executes the query while recording the supplied elapsed duration.
+    ///
+    /// This deterministic path does not sample a host clock.
+    pub fn execute_with_duration(
+        &mut self,
+        catalog: &Catalog,
+        elapsed: Duration,
+    ) -> Result<usize, String> {
+        self.prepare_execution()?;
+        let outcome = self.execute_untimed(catalog);
+        self.record_execution_status(outcome.is_ok(), elapsed);
+        outcome
+    }
+
+    fn prepare_execution(&mut self) -> Result<(), String> {
         self.sync_query_text();
         if self.has_pending_result() {
             return Err("Pending result edits require confirmation".to_owned());
         }
-        let started = Instant::now();
-        let outcome = (|| {
-            let statement = sql::parse(self.query.trim()).map_err(|error| error.message)?;
-            let sql::Statement::Select(select) = statement else {
-                return Err("The demo executor only runs SELECT statements".to_owned());
-            };
-            let result = sql::run_select(catalog, &select).map_err(|error| error.message)?;
-            let rows = result.rows.len();
-            self.result = Some(GridView::from_result(&result));
-            self.error = None;
-            Ok(rows)
-        })();
-        self.record_execution_status(outcome.is_ok(), started.elapsed());
-        outcome
+        Ok(())
+    }
+
+    fn execute_untimed(&mut self, catalog: &Catalog) -> Result<usize, String> {
+        let statement = sql::parse(self.query.trim()).map_err(|error| error.message)?;
+        let sql::Statement::Select(select) = statement else {
+            return Err("The demo executor only runs SELECT statements".to_owned());
+        };
+        let result = sql::run_select(catalog, &select).map_err(|error| error.message)?;
+        let rows = result.rows.len();
+        self.result = Some(GridView::from_result(&result));
+        self.error = None;
+        Ok(rows)
     }
     pub fn explain(&mut self, catalog: &Catalog) -> Result<(), String> {
         self.sync_query_text();
@@ -561,5 +582,124 @@ mod generation_tests {
         assert_eq!(record.generation(), None);
         let _ = record.lifecycle_payload_mut();
         assert_eq!(record.generation(), None);
+    }
+}
+
+#[cfg(test)]
+mod query_execution_timing_tests {
+    use super::*;
+
+    fn result_values(tab: &QueryTab) -> (Vec<(String, ColType)>, Vec<Vec<Value>>) {
+        let Some(grid) = tab.result.as_ref() else {
+            unreachable!("query result")
+        };
+        let rows = (0..grid.model.row_count())
+            .map(|row| {
+                (0..grid.columns.len())
+                    .map(|column| {
+                        let Some(value) = grid.model.pending().value(row, column) else {
+                            unreachable!("result cell")
+                        };
+                        value.clone()
+                    })
+                    .collect()
+            })
+            .collect();
+        (grid.columns.clone(), rows)
+    }
+
+    fn status(tab: &QueryTab) -> (String, bool, u32) {
+        let Some(status) = tab.last_status.as_deref() else {
+            unreachable!("execution status")
+        };
+        (status.summary.clone(), status.is_error, status.duration_ms)
+    }
+
+    #[test]
+    fn explicit_duration_changes_only_the_reported_query_timing() {
+        let catalog = Catalog::acme_prod();
+        let query = "SELECT id, currency FROM orders LIMIT 2";
+        let mut live = QueryTab::new(1, query);
+        let mut fixed = live.clone();
+
+        assert_eq!(
+            live.execute(&catalog),
+            fixed.execute_with_duration(&catalog, Duration::from_millis(1234))
+        );
+        assert!(!status(&live).1);
+        assert_eq!(status(&fixed), ("ok · 1.23 s".to_owned(), false, 1234));
+        assert_eq!(result_values(&live), result_values(&fixed));
+    }
+
+    #[test]
+    fn explicit_duration_clamps_milliseconds_and_formats_submillisecond_time() {
+        let catalog = Catalog::acme_prod();
+        let mut tab = QueryTab::new(1, "SELECT id FROM orders LIMIT 1");
+
+        assert_eq!(
+            tab.execute_with_duration(&catalog, Duration::from_nanos(999_999)),
+            Ok(1)
+        );
+        assert_eq!(status(&tab), ("ok · <1 ms".to_owned(), false, 0));
+
+        let beyond_u32 = Duration::from_millis(u64::from(u32::MAX) + 1);
+        assert_eq!(tab.execute_with_duration(&catalog, beyond_u32), Ok(1));
+        assert_eq!(
+            status(&tab),
+            ("ok · 71582m 47s".to_owned(), false, u32::MAX)
+        );
+    }
+
+    #[test]
+    fn explicit_duration_records_errors_without_replacing_the_last_result() {
+        let catalog = Catalog::acme_prod();
+        let mut tab = QueryTab::new(1, "SELECT id, currency FROM orders LIMIT 2");
+        assert_eq!(
+            tab.execute_with_duration(&catalog, Duration::from_millis(10)),
+            Ok(2)
+        );
+        let result = result_values(&tab);
+
+        tab.replace_query("SELECT FROM");
+        assert!(
+            tab.execute_with_duration(&catalog, Duration::from_millis(1234))
+                .is_err()
+        );
+        assert_eq!(status(&tab), ("error".to_owned(), true, 1234));
+        assert_eq!(result_values(&tab), result);
+
+        tab.replace_query("SELECT missing_column FROM orders LIMIT 1");
+        assert!(
+            tab.execute_with_duration(&catalog, Duration::from_millis(2345))
+                .is_err()
+        );
+        assert_eq!(status(&tab), ("error".to_owned(), true, 2345));
+        assert_eq!(result_values(&tab), result);
+    }
+
+    #[test]
+    fn pending_result_rejection_preserves_status_and_pending_rows() {
+        let catalog = Catalog::acme_prod();
+        let mut tab = QueryTab::new(1, "SELECT id, currency FROM orders LIMIT 1");
+        assert_eq!(
+            tab.execute_with_duration(&catalog, Duration::from_millis(1234)),
+            Ok(1)
+        );
+        let previous_status = status(&tab);
+        let Some(grid) = tab.result.as_mut() else {
+            unreachable!("result")
+        };
+        assert!(grid.model.delete_row(0));
+        let pending = grid.model.pending().clone();
+
+        assert_eq!(
+            tab.execute_with_duration(&catalog, Duration::from_millis(9000)),
+            Err("Pending result edits require confirmation".to_owned())
+        );
+        assert_eq!(status(&tab), previous_status);
+        let Some(grid) = tab.result.as_ref() else {
+            unreachable!("result")
+        };
+        assert_eq!(grid.model.pending(), &pending);
     }
 }
