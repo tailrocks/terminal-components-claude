@@ -181,9 +181,12 @@ fn is_historical_overflow_faint_case(
     color: ColorLevel,
 ) -> bool {
     scenario == Scenario::ParityDiscovery
-        && (width, height) == (100, 30)
-        && (*theme == Theme::junie() || *theme == Theme::paper())
-        && COLORS.contains(&color)
+        && (((width, height) == (100, 30)
+            && (*theme == Theme::junie() || *theme == Theme::paper())
+            && COLORS.contains(&color))
+            || ((width, height) == (80, 24)
+                && *theme == Theme::paper()
+                && color == ColorLevel::Mono))
 }
 
 fn historical_ansi16_faint_positions(scenario: Scenario, height: u16) -> Vec<(u16, u16)> {
@@ -447,7 +450,11 @@ fn holla_visual_baseline() {
                         continue;
                     }
                     if is_historical_overflow_faint_case(scenario, width, height, &theme, color) {
-                        assert_historical_overflow_faint_replay(theme.clone(), color);
+                        if (width, height) == (80, 24) {
+                            assert_original_paper_mono_80_historical_replay();
+                        } else {
+                            assert_historical_overflow_faint_replay(theme.clone(), color);
+                        }
                         continue;
                     }
                     harness(scenario, theme.clone(), width, height, color)
@@ -468,7 +475,7 @@ fn holla_historical_border_subtle_replay_matches_four_held_frames() {
 }
 
 #[test]
-fn holla_historical_faint_replays_match_the_sixteen_reviewed_frames() {
+fn holla_historical_faint_replays_match_the_seventeen_reviewed_frames() {
     for scenario in [Scenario::ActivitiesMulti, Scenario::LaunchFailure] {
         for (width, height) in SIZES {
             assert_historical_ansi16_faint_replay(scenario, width, height);
@@ -479,6 +486,7 @@ fn holla_historical_faint_replays_match_the_sixteen_reviewed_frames() {
             assert_historical_overflow_faint_replay(theme.clone(), color);
         }
     }
+    assert_original_paper_mono_80_historical_replay();
 }
 
 #[test]
@@ -543,6 +551,13 @@ fn holla_historical_faint_replay_selectors_are_exact() {
             ));
         }
     }
+    assert!(is_historical_overflow_faint_case(
+        Scenario::ParityDiscovery,
+        80,
+        24,
+        &paper,
+        ColorLevel::Mono
+    ));
     assert!(!is_historical_overflow_faint_case(
         Scenario::ParityDiscovery,
         101,
@@ -557,6 +572,26 @@ fn holla_historical_faint_replay_selectors_are_exact() {
         &junie,
         ColorLevel::Mono
     ));
+    for color in [
+        ColorLevel::TrueColor,
+        ColorLevel::Ansi256,
+        ColorLevel::Ansi16,
+    ] {
+        assert!(!is_historical_overflow_faint_case(
+            Scenario::ParityDiscovery,
+            80,
+            24,
+            &paper,
+            color
+        ));
+    }
+    assert!(!is_historical_overflow_faint_case(
+        Scenario::ParityDiscovery,
+        81,
+        24,
+        &paper,
+        ColorLevel::Mono
+    ));
     assert!(!is_historical_overflow_faint_case(
         Scenario::ParityHistory,
         100,
@@ -565,11 +600,25 @@ fn holla_historical_faint_replay_selectors_are_exact() {
         ColorLevel::TrueColor
     ));
     assert!(!is_historical_overflow_faint_case(
+        Scenario::ParityHistory,
+        80,
+        24,
+        &paper,
+        ColorLevel::Mono
+    ));
+    assert!(!is_historical_overflow_faint_case(
         Scenario::ParityDiscovery,
         100,
         30,
         &Theme::from_tokens(junie.color),
         ColorLevel::TrueColor
+    ));
+    assert!(!is_historical_overflow_faint_case(
+        Scenario::ParityDiscovery,
+        80,
+        24,
+        &Theme::from_tokens(paper.color),
+        ColorLevel::Mono
     ));
 }
 
@@ -654,6 +703,24 @@ fn unconfigured_parity_harness(theme: Theme, width: u16, height: u16) -> Harness
     )
 }
 
+fn original_unconfigured_parity_harness(
+    theme: Theme,
+    width: u16,
+    height: u16,
+    color: ColorLevel,
+) -> Harness<App> {
+    let app = App::for_scenario_without_history(Scenario::ParityDiscovery, Motion::Paused, 4_000);
+    let initial = SimulationMoment::from_millis(app.fixture_time_ms() as u64);
+    Harness::new_with_feedback_clock(
+        app,
+        theme,
+        width,
+        height,
+        FeedbackClock::Simulation { initial },
+    )
+    .with_color(color)
+}
+
 fn assert_only_overflow_diff(current: &Buffer, projected: &Buffer, position: (u16, u16)) {
     assert_eq!(current.area, projected.area);
     for y in 0..current.area.height {
@@ -667,6 +734,54 @@ fn assert_only_overflow_diff(current: &Buffer, projected: &Buffer, position: (u1
             }
         }
     }
+}
+
+fn assert_original_paper_mono_80_historical_replay() {
+    const POSITION: (u16, u16) = (77, 23);
+    let current = harness(
+        Scenario::ParityDiscovery,
+        Theme::paper(),
+        80,
+        24,
+        ColorLevel::Mono,
+    );
+    let historical = original_unconfigured_parity_harness(Theme::paper(), 80, 24, ColorLevel::Mono);
+
+    assert_eq!(current.buffer().area, Rect::new(0, 0, 80, 24));
+    assert_eq!(historical.buffer().area, current.buffer().area);
+    assert_eq!(current.cursor(), Some(Position { x: 3, y: 4 }));
+    assert_eq!(historical.cursor(), current.cursor());
+    assert_only_overflow_diff(current.buffer(), historical.buffer(), POSITION);
+
+    let visible = current
+        .buffer()
+        .cell(POSITION)
+        .expect("current clipped marker inside frame");
+    assert_eq!(
+        visible,
+        &expected_cell("…", Color::White, Color::Black, Modifier::empty())
+    );
+    assert!(
+        termrock::theme::contrast_ratio(visible.fg, visible.bg).is_some_and(|ratio| ratio >= 3.0),
+        "the configured current marker remains readable"
+    );
+
+    let old = historical
+        .buffer()
+        .cell(POSITION)
+        .expect("historical clipped marker inside frame");
+    assert_eq!(
+        old,
+        &expected_cell("…", Color::Black, Color::Black, Modifier::empty()),
+        "the original unconfigured Paper Mono renderer leaves the marker invisible"
+    );
+    assert!(current.row(23).trim_end().ends_with('…'));
+    assert!(historical.row(23).trim_end().ends_with('…'));
+
+    historical
+        .snapshot()
+        .named(Scenario::ParityDiscovery.name())
+        .assert_against(&BASELINE);
 }
 
 #[test]
