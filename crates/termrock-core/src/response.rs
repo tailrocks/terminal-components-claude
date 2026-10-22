@@ -21,7 +21,7 @@ pub enum Invalidate {
 
 bitflags! {
     #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
-    pub struct StateFlags: u16 {
+    pub struct StateFlags: u32 {
         const FOCUSED       = 1 << 0;
         const FOCUS_VISIBLE = 1 << 1;
         const HOVERED       = 1 << 2;
@@ -38,13 +38,38 @@ bitflags! {
         const DIRTY         = 1 << 13;
         const EXPANDED      = 1 << 14;
         const LOADING       = 1 << 15;
+        /// The owning layer is not the active layer.
+        ///
+        /// The flag is the state-vocabulary form of the runtime's inert
+        /// context: a component drawn under a modal, a popup, or a reference
+        /// frame reports it so a consumer can tell "not interactive right now"
+        /// apart from "disabled by configuration".
+        const INACTIVE_LAYER = 1 << 16;
+        /// The current value does not satisfy its own contract.
+        ///
+        /// `ERROR` carries the severity of a failed operation; `INVALID`
+        /// carries the fact that the value in hand cannot be used. A field
+        /// that failed validation is both; a grid cell holding a malformed
+        /// value is invalid without being an error.
+        const INVALID       = 1 << 17;
+    }
+}
+
+impl StateFlags {
+    /// Whether the owning layer is not the active layer.
+    pub const fn is_inactive_layer(self) -> bool {
+        self.contains(Self::INACTIVE_LAYER)
+    }
+
+    /// Whether the value in hand cannot be used.
+    pub const fn is_invalid(self) -> bool {
+        self.contains(Self::INVALID)
     }
 }
 
 #[must_use = "a Response carries the consumed/repaint answer; fold it with `|` or read it"]
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Response<A = ()> {
-    id: Option<Id>,
+pub struct Response<A = ()> {    id: Option<Id>,
     flow: Flow,
     invalidate: Invalidate,
     state: StateFlags,
@@ -464,9 +489,20 @@ mod tests {
         let s = StateFlags::FOCUSED | StateFlags::HOVERED | StateFlags::EDITING;
         assert_eq!(StateFlags::from_bits_truncate(s.bits()), s);
         assert_eq!(s.iter().count(), 3);
-        assert_eq!(StateFlags::all().bits(), u16::MAX);
+        assert_eq!(StateFlags::all().bits(), 0x0003_ffff);
         assert_eq!(format!("{s:?}"), "StateFlags(FOCUSED | HOVERED | EDITING)");
         let r: Response<()> = Response::consumed().with_state(s);
         assert!(r.focused() && r.hovered() && !r.pressed());
+    }
+
+    #[test]
+    fn inactive_layer_and_invalid_are_distinct_first_class_states() {
+        assert!(StateFlags::INACTIVE_LAYER.contains(StateFlags::INACTIVE_LAYER));
+        assert!(StateFlags::INVALID.contains(StateFlags::INVALID));
+        assert!(!StateFlags::INACTIVE_LAYER.contains(StateFlags::INVALID));
+        assert!(!StateFlags::INVALID.contains(StateFlags::INACTIVE_LAYER));
+        assert!(!StateFlags::ERROR.contains(StateFlags::INVALID));
+        assert!(!StateFlags::INVALID.contains(StateFlags::ERROR));
+        assert!(!StateFlags::FOCUSED.contains(StateFlags::INACTIVE_LAYER));
     }
 }
