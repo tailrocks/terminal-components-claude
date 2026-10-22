@@ -970,9 +970,8 @@ fn parse_scope(
     let mut imported_derive_names = BTreeSet::new();
     let mut imported_derive_glob = false;
     let mut test_attributes = BTreeSet::new();
-    let mut imported_test_attributes = BTreeSet::new();
-    let mut imported_test_glob = false;
-    let mut uncertain_test_import = false;
+    let mut imported_test_attributes = TestAttributeImports::default();
+    let mut skipped_items = Vec::new();
     let mut index = start;
     let mut saw_item = false;
     while index < end {
@@ -1106,14 +1105,7 @@ fn parse_scope(
                 &mut imported_derive_names,
                 &mut imported_derive_glob,
             );
-            record_test_attribute_imports(
-                tokens,
-                index,
-                item_end,
-                &mut imported_test_attributes,
-                &mut imported_test_glob,
-                &mut uncertain_test_import,
-            );
+            record_test_attribute_imports(tokens, index, item_end, &mut imported_test_attributes);
             push_range(tokens, item_start, item_end, &mut parsed.test_ranges);
             if let Some(path) = include {
                 let source_dir = source_context
@@ -1140,11 +1132,8 @@ fn parse_scope(
             parsed.complete = false;
             return Some(parsed);
         }
-        if !effective.test_only()
-            && include.is_none()
-            && skipped_item_has_unmodeled_routes(tokens, index, item_end)
-        {
-            parsed.complete = false;
+        if !effective.test_only() && include.is_none() {
+            skipped_items.push((index, item_end));
         }
         collect_use_derive_imports(
             tokens,
@@ -1153,14 +1142,7 @@ fn parse_scope(
             &mut imported_derive_names,
             &mut imported_derive_glob,
         );
-        record_test_attribute_imports(
-            tokens,
-            index,
-            item_end,
-            &mut imported_test_attributes,
-            &mut imported_test_glob,
-            &mut uncertain_test_import,
-        );
+        record_test_attribute_imports(tokens, index, item_end, &mut imported_test_attributes);
         if let Some(path) = include {
             let source_dir = source_context
                 .file
@@ -1178,19 +1160,27 @@ fn parse_scope(
         saw_item = true;
     }
     if (imported_derive_glob && !derived_names.is_empty())
-        || (imported_test_glob && !test_attributes.is_empty())
-        || (uncertain_test_import && !test_attributes.is_empty())
         || derived_names
             .iter()
             .any(|name| imported_derive_names.contains(name))
         || test_attributes
             .iter()
-            .any(|name| imported_test_attributes.contains(name))
+            .any(|name| imported_test_attributes.may_shadow(name))
     {
         // Without resolving macro namespaces, a matching `use` alias or glob
         // could shadow a built-in derive or test attribute and generate
         // arbitrary module items.
         parsed.complete = false;
+    }
+    for (item_start, item_end) in skipped_items {
+        if skipped_item_has_unmodeled_routes(
+            tokens,
+            item_start,
+            item_end,
+            &imported_test_attributes,
+        ) {
+            parsed.complete = false;
+        }
     }
     Some(parsed)
 }
@@ -1471,25 +1461,31 @@ fn collect_use_derive_imports(
 struct TestAttributeImports {
     names: BTreeSet<String>,
     wildcard: bool,
+    uncertain: bool,
+}
+
+impl TestAttributeImports {
+    fn may_shadow(&self, name: &str) -> bool {
+        self.wildcard || self.uncertain || self.names.contains(name)
+    }
 }
 
 fn record_test_attribute_imports(
     tokens: &Tokens,
     start: usize,
     end: usize,
-    imported: &mut BTreeSet<String>,
-    imported_glob: &mut bool,
-    uncertain: &mut bool,
+    imports: &mut TestAttributeImports,
 ) {
     if item_head(tokens, start, end) != Some("use") {
         return;
     }
     match parse_test_attribute_imports(tokens, start, end) {
-        Some(imports) => {
-            imported.extend(imports.names);
-            *imported_glob |= imports.wildcard;
+        Some(parsed) => {
+            imports.names.extend(parsed.names);
+            imports.wildcard |= parsed.wildcard;
+            imports.uncertain |= parsed.uncertain;
         }
-        None => *uncertain = true,
+        None => imports.uncertain = true,
     }
 }
 
@@ -1753,12 +1749,15 @@ fn parse_static_include(tokens: &Tokens, at: usize, end: usize) -> Option<String
     }
 }
 
-fn skipped_item_has_unmodeled_routes(tokens: &Tokens, start: usize, end: usize) -> bool {
+fn skipped_item_has_unmodeled_routes(
+    tokens: &Tokens,
+    start: usize,
+    end: usize,
+    enclosing_imports: &TestAttributeImports,
+) -> bool {
     let mut index = start;
     let mut test_attributes = BTreeSet::new();
-    let mut imported_test_attributes = BTreeSet::new();
-    let mut imported_test_glob = false;
-    let mut uncertain_test_import = false;
+    let mut local_imports = TestAttributeImports::default();
     while index < end {
         if is_punct(tokens, index, '#') {
             let Some((next, inner, attribute)) = parse_attribute(tokens, index, end) else {
@@ -1785,14 +1784,7 @@ fn skipped_item_has_unmodeled_routes(tokens: &Tokens, start: usize, end: usize) 
             if item_end <= index {
                 return true;
             }
-            record_test_attribute_imports(
-                tokens,
-                index,
-                item_end,
-                &mut imported_test_attributes,
-                &mut imported_test_glob,
-                &mut uncertain_test_import,
-            );
+            record_test_attribute_imports(tokens, index, item_end, &mut local_imports);
             index = item_end;
             continue;
         }
@@ -1810,10 +1802,9 @@ fn skipped_item_has_unmodeled_routes(tokens: &Tokens, start: usize, end: usize) 
         }
         index += 1;
     }
-    (!test_attributes.is_empty() && (imported_test_glob || uncertain_test_import))
-        || test_attributes
-            .iter()
-            .any(|name| imported_test_attributes.contains(name))
+    test_attributes
+        .iter()
+        .any(|name| enclosing_imports.may_shadow(name) || local_imports.may_shadow(name))
 }
 
 fn macro_starts_block_item(tokens: &Tokens, item_start: usize, macro_start: usize) -> bool {
