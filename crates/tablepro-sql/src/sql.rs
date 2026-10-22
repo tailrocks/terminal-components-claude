@@ -796,14 +796,22 @@ pub struct Risk {
     pub reversible: &'static str,
 }
 
-pub fn fmt_rows(n: usize) -> String {
+/// Writes the same text as [`fmt_rows`] into `out` so frame-path callers can
+/// format into a stack buffer without a heap allocation.
+pub fn fmt_rows_to(n: usize, out: &mut impl core::fmt::Write) -> core::fmt::Result {
     if n >= 1_000_000 {
-        format!("{:.1} M", n as f64 / 1e6)
+        write!(out, "{:.1} M", n as f64 / 1e6)
     } else if n >= 1000 {
-        format!("{:.1} k", n as f64 / 1e3)
+        write!(out, "{:.1} k", n as f64 / 1e3)
     } else {
-        n.to_string()
+        write!(out, "{n}")
     }
+}
+
+pub fn fmt_rows(n: usize) -> String {
+    let mut text = String::new();
+    let _ = fmt_rows_to(n, &mut text);
+    text
 }
 
 pub fn assess(stmt: &Statement, table: Option<&Table>) -> Risk {
