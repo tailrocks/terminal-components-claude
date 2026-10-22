@@ -20,7 +20,6 @@ const DIALOG_NAME: Id = DIALOG_FORM.part(Part::BODY).part(Part::FIELD).index(0);
 const DIALOG_KEY: Id = DIALOG_FORM.part(Part::BODY).part(Part::FIELD).index(6);
 const DIALOG_SAVE: Id = DIALOG_FORM.part(Part::BODY).part(Part::ACTIONS).index(2);
 const DIALOG_PICKER: Id = Id::root("showcase_ui::pages::dialog_kinds::dialog_kinds.ssh_keys");
-
 fn harness(page: PageId) -> Harness<App> {
     Harness::new(App::with_page(page), Theme::junie(), 120, 40)
 }
@@ -1319,6 +1318,73 @@ fn settings_screen_remove_member_flow() {
     assert!(!h.text().contains("jonas@acme.dev"));
     assert!(h.text().contains("5 members"));
     assert_eq!(h.focus(), Some(remove), "focus returns to remove launcher");
+}
+
+#[test]
+fn settings_member_rows_render_account_kind_and_lifecycle() {
+    let theme = Theme::junie();
+    let person_ink = theme.color.info;
+    let service_ink = theme.color.accent;
+    let mut h = Harness::new(App::with_page(PageId::Settings), theme, 120, 40);
+    press(&mut h, KeyCode::Tab);
+    press(&mut h, KeyCode::Right);
+
+    let (person_x, person_y) = require(h.find("Person · Mira Okafor"), "person row label");
+    let person_marker = h.cell(person_x - 2, person_y);
+    assert_eq!(person_marker.symbol(), "▪");
+    assert_eq!(person_marker.fg, person_ink);
+
+    let (service_x, service_y) = require(
+        h.find("Service account · deploy-bot"),
+        "service account row label",
+    );
+    let service_marker = h.cell(service_x - 2, service_y);
+    assert_eq!(service_marker.symbol(), "→");
+    assert_eq!(service_marker.fg, service_ink);
+    assert_ne!(person_marker.fg, service_marker.fg);
+
+    let (active_x, active_y) = require(h.find("active"), "active lifecycle label");
+    let active_suffix = h.cell(active_x + "active".len() as u16, active_y);
+    assert_eq!(active_suffix.symbol(), "●");
+    assert_eq!(active_suffix.fg, Color::Green);
+
+    let pending_label = "invitation pending";
+    let (pending_x, pending_y) = require(h.find(pending_label), "pending invite label");
+    let pending_suffix = h.cell(pending_x + pending_label.len() as u16, pending_y);
+    assert_eq!(pending_suffix.symbol(), "○");
+    assert_eq!(pending_suffix.fg, Color::Yellow);
+
+    let mut compact = Harness::new(App::with_page(PageId::Settings), Theme::junie(), 72, 24);
+    press(&mut compact, KeyCode::Tab);
+    press(&mut compact, KeyCode::Right);
+    let compact_text = compact.text();
+    assert!(
+        compact_text.contains("Service"),
+        "compact Members tab does not show service account: {compact_text:?}"
+    );
+    let (service_x, service_y) = require(
+        compact.find("Service account"),
+        "compact service account label",
+    );
+    let service_row = compact.row(service_y);
+    assert!(
+        service_row.contains('…'),
+        "compact member label or lifecycle status uses its ellipsis budget: {service_row:?}"
+    );
+    assert!(
+        service_x.saturating_add("Service account".len() as u16) <= 72,
+        "service account label stays inside the viewport"
+    );
+    let pending_y = (0..24u16)
+        .find(|y| compact.row(*y).contains("invitation"))
+        .expect("compact frame retains pending lifecycle text");
+    let pending_row = compact.row(pending_y);
+    assert!(
+        pending_row.contains('…')
+            && pending_row.contains("○")
+            && !pending_row.contains(pending_label),
+        "compact status text is shortened and retains its lifecycle suffix: {pending_row:?}"
+    );
 }
 
 #[test]
