@@ -54,6 +54,15 @@ fn notice(mark_cut: bool) -> Notice<'static> {
     )
 }
 
+fn notice_with_visible_hint(mark_cut: bool) -> Notice<'static> {
+    Notice::warning("message-0\nmessage-1\nmessage-2\nmessage-3\nmessage-4\nmessage-5")
+        .detail("detail-0\ndetail-1\ndetail-2")
+        .hint("HINT TAIL")
+        .message_lines(6)
+        .max_lines(3)
+        .mark_cut(mark_cut)
+}
+
 fn render_reference(
     theme: Theme,
     level: ColorLevel,
@@ -166,6 +175,40 @@ fn partial_windows_equal_full_logical_rows_without_new_edge_cuts() {
                         window,
                     );
                 }
+            }
+        }
+    }
+}
+
+#[test]
+fn a_tail_window_crops_a_present_hint_at_the_original_height_cap() {
+    let logical_area = Rect::new(4, 2, 25, 10);
+    let window = VerticalWindow::new(Rect::new(4, 13, 25, 3), 10, 7)
+        .expect("visible detail and hint tail ending at the logical cap");
+
+    for theme in [Theme::junie(), Theme::paper()] {
+        for level in LEVELS {
+            for mark_cut in [true, false] {
+                let notice = notice_with_visible_hint(mark_cut);
+                let reference = render_reference(theme.clone(), level, notice, logical_area);
+                let reference_rows = reference.text();
+                assert!(
+                    reference_rows
+                        .lines()
+                        .nth(usize::from(logical_area.y + 9))
+                        .is_some_and(|row| row.contains("HINT TAIL")),
+                    "fixture must paint the complete literal hint before cropping"
+                );
+                let actual = render_window(theme.clone(), level, notice, window);
+                let sentinel = render_sentinel(theme.clone(), level);
+                assert_window_is_source_crop(&reference, &actual, &sentinel, logical_area, window);
+                let actual_rows = actual.text();
+                assert!(
+                    actual_rows
+                        .lines()
+                        .nth(usize::from(window.visible_body().y + 2))
+                        .is_some_and(|row| row.contains("HINT TAIL"))
+                );
             }
         }
     }

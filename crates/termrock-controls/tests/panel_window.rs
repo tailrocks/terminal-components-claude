@@ -327,34 +327,44 @@ fn partial_legacy_slots_and_invalid_windows_fail_before_effects() {
 
     render_rejected(Panel::new(ID).slot(Part::BADGE, &slot), window);
 
-    let mut invalid = Scene::new(
-        "panel-invalid-window",
-        Theme::junie(),
-        ColorLevel::TrueColor,
-        SCREEN.width,
-        SCREEN.height,
-    );
-    let sentinel = sentinel_patch();
-    let invalid_window = VerticalWindow::new(Rect::new(5, 10, 29, 2), 9, 0)
-        .expect("structurally valid but mismatched panel window");
-    let body_calls = Cell::new(0);
-    invalid.draw(|ui, screen| {
-        ui.fill(screen, ui.paint_patch(&sentinel));
-        let error = Panel::new(ID).draw_window(ui, area, invalid_window, |_, _| {
-            body_calls.set(body_calls.get() + 1);
+    let invalid_windows = [
+        VerticalWindow::new(Rect::new(5, 10, 29, 2), 9, 0)
+            .expect("structurally valid window with mismatched x"),
+        VerticalWindow::new(Rect::new(4, 10, 28, 2), 9, 0)
+            .expect("structurally valid window with mismatched width"),
+        VerticalWindow::new(Rect::new(4, 10, 29, 2), 8, 0)
+            .expect("structurally valid window with mismatched logical row count"),
+        VerticalWindow::full(Rect::new(4, 10, 29, 2)),
+    ];
+    for (index, invalid_window) in invalid_windows.into_iter().enumerate() {
+        let mut invalid = Scene::new(
+            "panel-invalid-window",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            SCREEN.width,
+            SCREEN.height,
+        );
+        let sentinel = sentinel_patch();
+        let body_calls = Cell::new(0);
+        invalid.draw(|ui, screen| {
+            ui.fill(screen, ui.paint_patch(&sentinel));
+            let error = Panel::new(ID).draw_window(ui, area, invalid_window, |_, _| {
+                body_calls.set(body_calls.get() + 1);
+            });
+            assert_eq!(error, Err(PanelWindowError::InvalidWindow));
         });
-        assert_eq!(error, Err(PanelWindowError::InvalidWindow));
-    });
-    assert_eq!(body_calls.get(), 0);
-    assert_eq!(
-        invalid
-            .registry()
-            .expect("draw has a registry")
-            .area_of_part(ID, PartRef::of(Part::CONTAINER)),
-        None
-    );
-    let sentinel_scene = render_sentinel(Theme::junie(), ColorLevel::TrueColor);
-    assert_eq!(invalid.buffer(), sentinel_scene.buffer());
+        assert_eq!(body_calls.get(), 0, "invalid case {index} called the body");
+        assert_eq!(
+            invalid
+                .registry()
+                .expect("draw has a registry")
+                .area_of_part(ID, PartRef::of(Part::CONTAINER)),
+            None,
+            "invalid case {index} registered panel decoration"
+        );
+        let sentinel_scene = render_sentinel(Theme::junie(), ColorLevel::TrueColor);
+        assert_eq!(invalid.buffer(), sentinel_scene.buffer());
+    }
 }
 
 #[test]
@@ -397,4 +407,84 @@ fn full_window_keeps_legacy_slots_and_calls_body_once() {
         "full draw must preserve the badge slot"
     );
     assert_eq!(body_calls.get(), 1, "legacy body must run exactly once");
+}
+
+#[test]
+fn overflowing_nonempty_full_window_fails_before_effects() {
+    let area = Rect {
+        x: 4,
+        y: u16::MAX,
+        width: 8,
+        height: 2,
+    };
+    let window = VerticalWindow::full(area);
+    let slot_calls = Cell::new(0);
+    let body_calls = Cell::new(0);
+    let slot = |_: &mut termrock_runtime::Ui<'_>, _: Rect| {
+        slot_calls.set(slot_calls.get() + 1);
+    };
+    let mut scene = Scene::new(
+        "panel-window-overflow",
+        Theme::junie(),
+        ColorLevel::TrueColor,
+        SCREEN.width,
+        SCREEN.height,
+    );
+    let sentinel = sentinel_patch();
+    scene.draw(|ui, screen| {
+        ui.fill(screen, ui.paint_patch(&sentinel));
+        let result = Panel::new(ID)
+            .title("Overflow")
+            .slot(Part::GUTTER, &slot)
+            .draw_window(ui, area, window, |_, _| {
+                body_calls.set(body_calls.get() + 1);
+            });
+        assert_eq!(result, Err(PanelWindowError::InvalidWindow));
+    });
+
+    assert_eq!(body_calls.get(), 0, "overflow preflight must skip the body");
+    assert_eq!(
+        slot_calls.get(),
+        0,
+        "overflow preflight must skip legacy slots"
+    );
+    assert_eq!(
+        scene
+            .registry()
+            .expect("draw has a registry")
+            .area_of_part(ID, PartRef::of(Part::CONTAINER)),
+        None,
+        "overflow preflight must not register panel decoration"
+    );
+    let sentinel_scene = render_sentinel(Theme::junie(), ColorLevel::TrueColor);
+    assert_eq!(scene.buffer(), sentinel_scene.buffer());
+}
+
+#[test]
+fn zero_sized_full_window_keeps_legacy_body_behavior() {
+    let area = Rect::new(4, 3, 0, 2);
+    let slot_calls = Cell::new(0);
+    let body_calls = Cell::new(0);
+    let slot = |_: &mut termrock_runtime::Ui<'_>, _: Rect| {
+        slot_calls.set(slot_calls.get() + 1);
+    };
+    let mut scene = Scene::new(
+        "panel-window-zero-width",
+        Theme::junie(),
+        ColorLevel::TrueColor,
+        SCREEN.width,
+        SCREEN.height,
+    );
+    scene.draw(|ui, _| {
+        let result = Panel::new(ID)
+            .title("Zero")
+            .slot(Part::GUTTER, &slot)
+            .draw_window(ui, area, VerticalWindow::full(area), |_, window| {
+                body_calls.set(body_calls.get() + 1);
+                assert_eq!(window, None, "an empty body has no visible row window");
+            });
+        assert_eq!(result, Ok(()));
+    });
+    assert_eq!(body_calls.get(), 1, "legacy draw invokes its body once");
+    assert_eq!(slot_calls.get(), 0, "empty geometry paints no gutter slot");
 }
