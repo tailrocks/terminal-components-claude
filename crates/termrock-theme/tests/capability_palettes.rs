@@ -107,8 +107,8 @@ fn all_73_junie_slots_match_reference_capability_output() {
             // Corpus faint ink renders DarkGray at 16; the current 0x737373
             // source would generically land on Gray.
             expected.fg[3] = Color::DarkGray;
-            // The status green lands on the base green cell, not the bright one.
-            expected.success = Color::Green;
+            // The status green keeps the generic projection of the accent green.
+            expected.success = Color::LightGreen;
             expected.meter.stale = Color::DarkGray;
             expected.meter.unknown = Color::DarkGray;
         }

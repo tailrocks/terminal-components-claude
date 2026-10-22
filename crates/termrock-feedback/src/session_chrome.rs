@@ -317,7 +317,7 @@ mod tests {
 
         let instance = buffer.cell((80, 0)).expect("instance");
         assert_eq!(instance.symbol(), "j");
-        assert_eq!(instance.fg, Color::Rgb(0x8a, 0x8a, 0x8a));
+        assert_eq!(instance.fg, Color::Rgb(0x80, 0x80, 0x80));
         assert_eq!(instance.bg, Color::Rgb(0x00, 0x00, 0x00));
 
         let body = buffer.cell((0, 1)).expect("body");
@@ -332,7 +332,7 @@ mod tests {
 
         let state = buffer.cell((8, 38)).expect("state");
         assert_eq!(state.symbol(), "c");
-        assert_eq!(state.fg, Color::Rgb(0x8a, 0x8a, 0x8a));
+        assert_eq!(state.fg, Color::Rgb(0x80, 0x80, 0x80));
         assert_eq!(state.bg, Color::Rgb(0x18, 0x18, 0x1b));
 
         let key = buffer.cell((1, 39)).expect("key");
