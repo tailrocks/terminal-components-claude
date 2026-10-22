@@ -280,95 +280,7 @@ impl HomeState {
             area.width,
             area.height.saturating_sub(2),
         );
-        if let Some(view) = catalogue::parity_files_view(world, ui.full().width)
-            && paint_parity_files(ui, rows_area, &view)
-        {
-            return;
-        }
-        if self.query().trim().is_empty() && world.scenario.boot_title() == super::finder::RECENT {
-            let used = super::finder::paint_recent_lead(ui, rows_area);
-            rows_area.y = rows_area.y.saturating_add(used);
-            rows_area.height = rows_area.height.saturating_sub(used);
-        }
-        if let Some(view) = catalogue::first_use_view(world, ui.full().width, self.history)
-            && paint_narrow_tag_list(ui, rows_area, &view)
-        {
-            return;
-        }
-        if let Some(view) = catalogue::monorepo_root_view(world, ui.full().width, self.history)
-            && paint_narrow_tag_list(ui, rows_area, &view)
-        {
-            return;
-        }
-        if let Some(view) = catalogue::monorepo_child_view(world, ui.full().width)
-            && paint_narrow_tag_list(ui, rows_area, &view)
-        {
-            return;
-        }
-        if let Some(view) = catalogue::docker_cleanup_view(world, ui.full().width)
-            && paint_narrow_tag_list(ui, rows_area, &view)
-        {
-            return;
-        }
-        if let Some(view) = catalogue::remote_host_view(world, ui.full().width)
-            && paint_narrow_tag_list(ui, rows_area, &view)
-        {
-            return;
-        }
-        if let Some(view) = catalogue::activities_multi_view(world, ui.full().width, self.history)
-            && paint_narrow_tag_list(ui, rows_area, &view)
-        {
-            return;
-        }
-        if let Some(view) = catalogue::parity_discovery_view(world, ui.full().width)
-            && paint_parity_discovery_view(ui, rows_area, &view)
-        {
-            return;
-        }
-        if let Some(view) = catalogue::parity_history_view(world, ui.full().width)
-            && paint_parity_history(ui, rows_area, &view)
-        {
-            return;
-        }
-        if let Some(view) = catalogue::parity_browser_view(world, ui.full().width)
-            && paint_parity_browser(ui, rows_area, &view)
-        {
-            return;
-        }
-        if let Some(view) = catalogue::parity_git_current_view(world, ui.full().width)
-            && paint_parity_git_current(ui, rows_area, &view)
-        {
-            return;
-        }
-        if let Some(view) = catalogue::parity_git_batch_view(world, ui.full().width)
-            && paint_parity_git_batch(ui, rows_area, &view)
-        {
-            return;
-        }
-        if let Some(view) = catalogue::parity_task_sources_view(world, ui.full().width)
-            && paint_parity_task_sources(ui, rows_area, &view)
-        {
-            return;
-        }
-        if let Some(view) = catalogue::parity_cargo_view(world, ui.full().width)
-            && paint_parity_cargo(ui, rows_area, &view)
-        {
-            return;
-        }
-        if let Some(view) = catalogue::parity_discovery(world)
-            .or_else(|| catalogue::first_use_plate(world, self.history))
-            .or_else(|| catalogue::monorepo_root_plate(world, self.history))
-            .or_else(|| catalogue::monorepo_child_tag(world))
-            .or_else(|| catalogue::activities_multi_plate(world, self.history))
-            .or_else(|| catalogue::remote_host_tag(world))
-            .or_else(|| catalogue::docker_cleanup_tag(world))
-            && paint_parity_discovery(ui, rows_area, &view)
-        {
-            return;
-        }
-        if let Some(view) = catalogue::hard_cases_tag(world)
-            && paint_hard_cases_discovery(ui, rows_area, &view)
-        {
+        if self.paint_selector(world, &mut *ui, &mut rows_area) {
             return;
         }
         if rows.is_empty() {
@@ -448,6 +360,104 @@ impl HomeState {
             }
         }
     }
+
+    /// Concept-screen selector. Same views, same painters, same order as the
+    /// early-return chain it replaces; the first painted view wins. Views run
+    /// lazily in table order, so frames are identical. The recent-lead step
+    /// (index 1) only shrinks `area` and never selects; it is kept, not dropped.
+    fn paint_selector(&self, world: &World, ui: &mut Ui<'_>, area: &mut Rect) -> bool {
+        let ctx = HomeCtx {
+            world,
+            width: ui.full().width,
+            history: self.history,
+            query_empty: self.query().trim().is_empty(),
+        };
+        let views: [Box<HomeView>; 16] = [
+            Box::new(|c| catalogue::parity_files_view(c.world, c.width)),
+            Box::new(|c| catalogue::first_use_view(c.world, c.width, c.history)),
+            Box::new(|c| catalogue::monorepo_root_view(c.world, c.width, c.history)),
+            Box::new(|c| catalogue::monorepo_child_view(c.world, c.width)),
+            Box::new(|c| catalogue::docker_cleanup_view(c.world, c.width)),
+            Box::new(|c| catalogue::remote_host_view(c.world, c.width)),
+            Box::new(|c| catalogue::activities_multi_view(c.world, c.width, c.history)),
+            Box::new(|c| catalogue::parity_discovery_view(c.world, c.width)),
+            Box::new(|c| catalogue::parity_history_view(c.world, c.width)),
+            Box::new(|c| catalogue::parity_browser_view(c.world, c.width)),
+            Box::new(|c| catalogue::parity_git_current_view(c.world, c.width)),
+            Box::new(|c| catalogue::parity_git_batch_view(c.world, c.width)),
+            Box::new(|c| catalogue::parity_task_sources_view(c.world, c.width)),
+            Box::new(|c| catalogue::parity_cargo_view(c.world, c.width)),
+            Box::new(|c| home_plates(c.world, c.history)),
+            Box::new(|c| catalogue::hard_cases_tag(c.world)),
+        ];
+        let paints: [HomePainter; 16] = [
+            paint_parity_files,
+            paint_narrow_tag_list,
+            paint_narrow_tag_list,
+            paint_narrow_tag_list,
+            paint_narrow_tag_list,
+            paint_narrow_tag_list,
+            paint_narrow_tag_list,
+            paint_parity_discovery_view,
+            paint_parity_history,
+            paint_parity_browser,
+            paint_parity_git_current,
+            paint_parity_git_batch,
+            paint_parity_task_sources,
+            paint_parity_cargo,
+            paint_parity_discovery,
+            paint_hard_cases_discovery,
+        ];
+        for (index, (view, paint)) in views.into_iter().zip(paints).enumerate() {
+            if index == 1
+                && ctx.query_empty
+                && ctx.world.scenario.boot_title() == super::finder::RECENT
+            {
+                let used = super::finder::paint_recent_lead(ui, *area);
+                area.y = area.y.saturating_add(used);
+                area.height = area.height.saturating_sub(used);
+            }
+            if show(&mut *ui, *area, view(&ctx), paint) {
+                return true;
+            }
+        }
+        false
+    }
+}
+
+/// Shared input for one [`HomeState::paint_selector`] step.
+struct HomeCtx<'a> {
+    world: &'a World,
+    width: u16,
+    history: bool,
+    query_empty: bool,
+}
+
+/// One concept-screen view step: resolve the view for the shared context.
+type HomeView = dyn Fn(&HomeCtx<'_>) -> Option<catalogue::ParityDiscovery>;
+
+/// Paint `view` when present and report whether it selected.
+fn show(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    view: Option<catalogue::ParityDiscovery>,
+    paint: HomePainter,
+) -> bool {
+    view.is_some_and(|view| paint(ui, area, &view))
+}
+
+/// Concept-screen painter: every view takes the same discovery body.
+type HomePainter = fn(&mut Ui<'_>, Rect, &catalogue::ParityDiscovery) -> bool;
+
+/// Width-independent plate fallback, in the old chain order.
+fn home_plates(world: &World, history: bool) -> Option<catalogue::ParityDiscovery> {
+    catalogue::parity_discovery(world)
+        .or_else(|| catalogue::first_use_plate(world, history))
+        .or_else(|| catalogue::monorepo_root_plate(world, history))
+        .or_else(|| catalogue::monorepo_child_tag(world))
+        .or_else(|| catalogue::activities_multi_plate(world, history))
+        .or_else(|| catalogue::remote_host_tag(world))
+        .or_else(|| catalogue::docker_cleanup_tag(world))
 }
 
 /// Tag finder grey. Junie `FgStep::Muted` is `#808080`.
