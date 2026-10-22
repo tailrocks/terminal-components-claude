@@ -1327,6 +1327,34 @@ impl ViewportState {
         had
     }
 
+    fn reconcile_text_positions(&mut self, lines: LineSet<'_>) {
+        if lines.is_empty() {
+            return;
+        }
+
+        self.selection = self.selection.and_then(|(anchor, head)| {
+            Some((clamp_position(lines, anchor)?, clamp_position(lines, head)?))
+        });
+        self.anchor = self.anchor.and_then(|anchor| clamp_position(lines, anchor));
+        self.browse = if let Some((_, head)) = self.selection {
+            Some(head)
+        } else {
+            self.browse.and_then(|pos| clamp_position(lines, pos))
+        };
+        if let PointerGesture::Word { range, dragged } = self.pointer_gesture {
+            self.pointer_gesture = match (
+                clamp_position(lines, range.0),
+                clamp_position(lines, range.1),
+            ) {
+                (Some(start), Some(end)) => PointerGesture::Word {
+                    range: (start, end),
+                    dragged,
+                },
+                _ => PointerGesture::Idle,
+            };
+        }
+    }
+
     pub const fn caret(&self) -> Option<CellPos> {
         self.caret
     }
@@ -2015,16 +2043,7 @@ impl<'a> TextViewport<'a> {
             return previous_head.is_some();
         }
 
-        let selection = previous_selection.and_then(|(anchor, head)| {
-            Some((clamp_position(lines, anchor)?, clamp_position(lines, head)?))
-        });
-        let browse = if let Some((_, head)) = selection {
-            Some(head)
-        } else {
-            previous_browse.and_then(|pos| clamp_position(lines, pos))
-        };
-        st.selection = selection;
-        st.browse = browse;
+        st.reconcile_text_positions(lines);
         let selection_changed = previous_selection != st.selection;
         let browse_changed = previous_browse != st.browse;
         let reconciled_head = st.selection.map(|(_, head)| head).or(st.browse);
@@ -2103,6 +2122,9 @@ impl<'a> TextViewport<'a> {
 
         st.selection = Some((anchor, to));
         st.anchor = None;
+        if matches!(st.pointer_gesture, PointerGesture::Word { .. }) {
+            st.pointer_gesture = PointerGesture::SuppressClick;
+        }
         st.browse = Some(to);
         if let Some(row) = row {
             st.scroll.ensure_visible(row);
@@ -2209,6 +2231,9 @@ impl<'a> TextViewport<'a> {
     ) {
         let (area, logical_text, hit_text, key, mut horizontal_offset) = geometry;
         let (phase, part, pos, mods) = pointer;
+        let selection_before = st.selection;
+        st.reconcile_text_positions(lines);
+        let selection_reconciled = selection_before != st.selection;
         match phase {
             Phase::Press | Phase::DragStart => {
                 cx.focus(self.id);
@@ -2323,11 +2348,7 @@ impl<'a> TextViewport<'a> {
                 );
                 let selected = match (st.pointer_gesture, st.anchor, at) {
                     (PointerGesture::Word { range, .. }, _, Some(head)) => {
-                        clamp_position(lines, range.0)
-                            .zip(clamp_position(lines, range.1))
-                            .map(|original| {
-                                extend_word_range(original, head, word_range_at(lines, head))
-                            })
+                        Some(extend_word_range(range, head, word_range_at(lines, head)))
                     }
                     (
                         PointerGesture::Plain { .. } | PointerGesture::Shift { .. },
@@ -2339,6 +2360,8 @@ impl<'a> TextViewport<'a> {
                 if let Some((anchor, head)) = selected {
                     st.selection = Some((anchor, head));
                     st.browse = Some(head);
+                    acc.action(ViewportAction::SelectionChanged);
+                } else if selection_reconciled {
                     acc.action(ViewportAction::SelectionChanged);
                 } else {
                     acc.consumed();
@@ -2378,6 +2401,8 @@ impl<'a> TextViewport<'a> {
                 if let Some((start, end)) = selected {
                     st.select(start, end);
                     acc.action(ViewportAction::SelectionChanged);
+                } else if selection_reconciled {
+                    acc.action(ViewportAction::SelectionChanged);
                 } else {
                     acc.consumed();
                 }
@@ -2389,7 +2414,11 @@ impl<'a> TextViewport<'a> {
                     cx.release_capture();
                 }
                 st.anchor = None;
-                acc.consumed();
+                if selection_reconciled {
+                    acc.action(ViewportAction::SelectionChanged);
+                } else {
+                    acc.consumed();
+                }
             }
             Phase::Secondary => acc.consumed(),
             Phase::Move => {}
@@ -3550,6 +3579,243 @@ mod tests {
             );
             assert_eq!(runtime.app().state.selection, Some(after_keyboard));
         }
+    }
+
+    #[test]
+    fn shift_pointer_reconciles_and_persists_oriented_selection_after_width_shrink() {
+        let cases = [
+            (
+                (CellPos::new(0, 5), CellPos::new(0, 8)),
+                (CellPos::new(0, 5), CellPos::new(0, 1)),
+                (CellPos::new(0, 5), CellPos::new(0, 9)),
+                "fghi",
+            ),
+            (
+                (CellPos::new(0, 8), CellPos::new(0, 5)),
+                (CellPos::new(0, 6), CellPos::new(0, 1)),
+                (CellPos::new(0, 6), CellPos::new(0, 9)),
+                "ghi",
+            ),
+        ];
+
+        for (initial, after_shrink, after_restore, copied) in cases {
+            let mut app = SelectionViewportApp::new(vec![ViewportLine::Plain("abcdefghij")]);
+            app.area = Rect::new(0, 0, 20, 3);
+            app.state.select(initial.0, initial.1);
+            let mut runtime = selection_runtime(app);
+
+            runtime.app_mut().lines[0] = ViewportLine::Plain("abcdef");
+            runtime.app_mut().state.invalidate();
+            let _ = crate::runtime::stub::deliver(
+                &mut runtime,
+                selection_mouse(MouseKind::Down, 2, 0, KeyModifiers::SHIFT),
+            );
+            let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, 2, 0));
+            assert_eq!(
+                runtime.app().state.selection,
+                Some(after_shrink),
+                "the surviving oriented anchor must clamp before Shift press"
+            );
+
+            runtime.app_mut().lines[0] = ViewportLine::Plain("abcdefghij");
+            runtime.app_mut().state.invalidate();
+            let _ = crate::runtime::stub::deliver(
+                &mut runtime,
+                selection_mouse(MouseKind::Down, 10, 0, KeyModifiers::SHIFT),
+            );
+            let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, 10, 0));
+            assert_eq!(runtime.app().state.selection, Some(after_restore));
+            assert_eq!(copy_from_viewport(&mut runtime), copied);
+        }
+    }
+
+    #[test]
+    fn shift_pointer_reconciles_and_persists_anchor_after_line_count_shrink() {
+        let cases = [
+            (CellPos::new(1, 2), CellPos::new(3, 4)),
+            (CellPos::new(3, 2), CellPos::new(1, 3)),
+        ];
+        for (anchor, head) in cases {
+            let mut app = SelectionViewportApp::new(vec![
+                ViewportLine::Plain("zero"),
+                ViewportLine::Plain("one"),
+                ViewportLine::Plain("two"),
+                ViewportLine::Plain("three"),
+            ]);
+            app.area = Rect::new(0, 0, 16, 4);
+            app.state.select(anchor, head);
+            let mut runtime = selection_runtime(app);
+
+            runtime.app_mut().lines.truncate(2);
+            runtime.app_mut().state.invalidate();
+            let _ = crate::runtime::stub::deliver(
+                &mut runtime,
+                selection_mouse(MouseKind::Down, 2, 0, KeyModifiers::SHIFT),
+            );
+            let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, 2, 0));
+            assert_eq!(
+                runtime.app().state.selection,
+                Some((CellPos::new(1, 2), CellPos::new(0, 1))),
+                "the forward and reverse anchors must clamp to the surviving final line"
+            );
+            assert_eq!(copy_from_viewport(&mut runtime), "ero\non");
+
+            runtime.app_mut().lines = vec![
+                ViewportLine::Plain("zero"),
+                ViewportLine::Plain("one"),
+                ViewportLine::Plain("two"),
+                ViewportLine::Plain("three"),
+            ];
+            runtime.app_mut().state.invalidate();
+            let _ = crate::runtime::stub::deliver(
+                &mut runtime,
+                selection_mouse(MouseKind::Down, 3, 2, KeyModifiers::SHIFT),
+            );
+            let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, 3, 2));
+            assert_eq!(
+                runtime.app().state.selection,
+                Some((CellPos::new(1, 2), CellPos::new(2, 2)))
+            );
+            assert_eq!(copy_from_viewport(&mut runtime), "e\ntw");
+        }
+    }
+
+    #[test]
+    fn plain_pointer_drag_reconciles_active_anchor_after_source_shrink() {
+        let mut app = SelectionViewportApp::new(vec![ViewportLine::Plain("abcdefghij")]);
+        app.area = Rect::new(0, 0, 16, 3);
+        let mut runtime = selection_runtime(app);
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, 7, 0));
+        assert_eq!(runtime.app().state.anchor, Some(CellPos::new(0, 6)));
+
+        runtime.app_mut().lines[0] = ViewportLine::Plain("abc");
+        runtime.app_mut().state.invalidate();
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Drag, 2, 0));
+        assert_eq!(
+            runtime.app().state.anchor,
+            Some(CellPos::new(0, 3)),
+            "the active ordinary anchor must persist its clamped endpoint"
+        );
+        assert_eq!(
+            runtime.app().state.selection,
+            Some((CellPos::new(0, 3), CellPos::new(0, 1)))
+        );
+        assert_eq!(copy_from_viewport(&mut runtime), "bc");
+
+        runtime.app_mut().lines[0] = ViewportLine::Plain("abcdefghij");
+        runtime.app_mut().state.invalidate();
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, 2, 0));
+        assert_eq!(
+            runtime.app().state.selection,
+            Some((CellPos::new(0, 3), CellPos::new(0, 1))),
+            "restoring source must not revive the pre-shrink anchor"
+        );
+        assert_eq!(copy_from_viewport(&mut runtime), "bc");
+    }
+
+    #[test]
+    fn pointer_anchor_inside_wide_grapheme_snaps_and_stays_snapped_after_restore() {
+        let mut app = SelectionViewportApp::new(vec![ViewportLine::Plain("a界b")]);
+        app.area = Rect::new(0, 0, 12, 3);
+        let mut runtime = selection_runtime(app);
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, 3, 0));
+        assert_eq!(runtime.app().state.anchor, Some(CellPos::new(0, 2)));
+
+        runtime.app_mut().lines[0] = ViewportLine::Plain("a界");
+        runtime.app_mut().state.invalidate();
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Drag, 2, 0));
+        assert_eq!(runtime.app().state.anchor, Some(CellPos::new(0, 1)));
+        assert_eq!(
+            runtime.app().state.selection,
+            Some((CellPos::new(0, 1), CellPos::new(0, 1)))
+        );
+
+        runtime.app_mut().lines[0] = ViewportLine::Plain("a界bb");
+        runtime.app_mut().state.invalidate();
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Drag, 4, 0));
+        assert_eq!(
+            runtime.app().state.selection,
+            Some((CellPos::new(0, 1), CellPos::new(0, 3)))
+        );
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, 4, 0));
+        assert_eq!(copy_from_viewport(&mut runtime), "界");
+    }
+
+    #[test]
+    fn no_op_keyboard_boundary_clamps_plain_anchor_before_source_restore() {
+        let mut app = SelectionViewportApp::new(vec![ViewportLine::Plain("abcdefghij")]);
+        app.area = Rect::new(0, 0, 16, 3);
+        app.state.set_caret(Some(CellPos::new(0, 2)));
+        let mut runtime = selection_runtime(app);
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, 9, 0));
+        assert_eq!(runtime.app().state.anchor, Some(CellPos::new(0, 8)));
+
+        runtime.app_mut().lines[0] = ViewportLine::Plain("abc");
+        runtime.app_mut().state.invalidate();
+        let boundary = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_key(KeyCode::Right, KeyModifiers::SHIFT),
+        );
+        assert!(boundary.is_consumed());
+        assert!(!boundary.is_changed(), "boundary selection remains a no-op");
+        assert_eq!(runtime.app().state.anchor, Some(CellPos::new(0, 3)));
+        assert_eq!(runtime.app().state.caret(), Some(CellPos::new(0, 2)));
+
+        runtime.app_mut().lines[0] = ViewportLine::Plain("abcdefghijklm");
+        runtime.app_mut().state.invalidate();
+        let moved = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Drag, 11, 0));
+        assert!(moved.is_changed());
+        assert_eq!(
+            runtime.app().state.selection,
+            Some((CellPos::new(0, 3), CellPos::new(0, 10)))
+        );
+        assert_eq!(copy_from_viewport(&mut runtime), "defghij");
+    }
+
+    #[test]
+    fn keyboard_takeover_ends_held_word_gesture_without_changing_producer_caret() {
+        let mut app =
+            SelectionViewportApp::new(vec![ViewportLine::Plain("alpha beta gamma delta")]);
+        app.area = Rect::new(0, 0, 24, 3);
+        app.state.set_caret(Some(CellPos::new(0, 2)));
+        let mut runtime = selection_runtime(app);
+        deliver_click_count(&mut runtime, 1, 7, 0);
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, 7, 0));
+        assert_eq!(runtime.capture_owner(), Some(SELECTION_ID));
+        assert_eq!(
+            runtime.app().state.selection,
+            Some((CellPos::new(0, 6), CellPos::new(0, 10)))
+        );
+
+        let extended = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_key(KeyCode::Left, KeyModifiers::SHIFT),
+        );
+        assert!(extended.is_changed());
+        assert_eq!(
+            runtime.app().state.selection,
+            Some((CellPos::new(0, 6), CellPos::new(0, 9)))
+        );
+        assert_eq!(runtime.app().state.browse, Some(CellPos::new(0, 9)));
+        assert_eq!(runtime.app().state.caret(), Some(CellPos::new(0, 2)));
+
+        let moved = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Drag, 14, 0));
+        assert!(moved.is_consumed());
+        assert_eq!(
+            runtime.app().state.selection,
+            Some((CellPos::new(0, 6), CellPos::new(0, 9))),
+            "captured pointer movement must not resume the ended word gesture"
+        );
+        assert_eq!(runtime.app().state.browse, Some(CellPos::new(0, 9)));
+        assert_eq!(copy_from_viewport(&mut runtime), "bet");
+
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, 14, 0));
+        deliver_click_count(&mut runtime, 2, 12, 0);
+        assert_eq!(
+            runtime.app().state.selection,
+            Some((CellPos::new(0, 11), CellPos::new(0, 16))),
+            "a fresh double press must start a new word gesture"
+        );
     }
 
     #[test]
