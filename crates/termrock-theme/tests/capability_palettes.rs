@@ -96,6 +96,10 @@ fn all_73_junie_slots_match_reference_capability_output() {
             // Danger, invalid, and the meter high slot follow apply_256
             // error 203. The cube rule on #f05d5d would pick 210.
             expected.danger = Color::Indexed(203);
+            // Frozen apply_256 (`self.error_soft = i(174)`, tag
+            // `src/theme.rs:964`): the soft danger ink keeps the frozen
+            // ladder slot, not the cube cell 217 the tag's #e8a0a0 derives.
+            expected.danger_soft = Color::Indexed(174);
             expected.syntax.invalid = Color::Indexed(203);
             expected.meter.high = Color::Indexed(203);
             expected.meter.series[2] = Color::Indexed(203);
@@ -145,6 +149,9 @@ fn all_73_junie_slots_match_reference_capability_output() {
             // Frozen apply_mono (`self.success = White`): the status slot
             // lifts to White on the mono ladder.
             expected.success = Color::White;
+            // Frozen apply_mono (`self.error_soft = White`, tag
+            // `src/theme.rs:1096`): the soft danger ink lifts to White.
+            expected.danger_soft = Color::White;
         }
         assert_eq!(original.downgrade(level).color, expected, "{level:?}");
     }
@@ -155,6 +162,36 @@ fn all_73_junie_slots_match_reference_capability_output() {
     assert_eq!(
         original.downgrade(ColorLevel::Ansi256).color.accent,
         Color::Indexed(78)
+    );
+}
+
+#[test]
+fn danger_family_matches_frozen_tag_reference() {
+    // D-009/D-010 tag-wins: the frozen source 4169783 owns the danger
+    // family at every tier
+    // (docs/audits/2026-10-22-danger-token-tag-wins-execution.md).
+    let t = Theme::junie();
+    // Truecolor: tag `src/theme.rs:521` (RED) and `:531` (RED_SOFT).
+    assert_eq!(t.color.danger, Color::Rgb(0xf0, 0x5d, 0x5d));
+    assert_eq!(t.color.danger_soft, Color::Rgb(0xe8, 0xa0, 0xa0));
+    // 256 tier: frozen apply_256 `error = i(203)` / `error_soft = i(174)`
+    // (tag `src/theme.rs:956`, `:964`).
+    let d256 = t.downgrade(ColorLevel::Ansi256).color;
+    assert_eq!(d256.danger, Color::Indexed(203));
+    assert_eq!(d256.danger_soft, Color::Indexed(174));
+    // 16 tier: frozen apply_16 paints the danger family LightRed
+    // (tag `src/theme.rs:1026`, `:1034`).
+    let d16 = t.downgrade(ColorLevel::Ansi16).color;
+    assert_eq!(d16.danger_soft, Color::LightRed);
+    // Mono tier: frozen apply_mono `error_soft = White`
+    // (tag `src/theme.rs:1096`).
+    let mono = t.downgrade(ColorLevel::Mono).color;
+    assert_eq!(mono.danger_soft, Color::White);
+    // The downgrade ladder recipe keeps the frozen apply_256 error slot:
+    // #f05d5d resolves to cell 203 (#ff5f5f), not the cube-nearest 210.
+    assert_eq!(
+        downgrade_color(Color::Rgb(0xf0, 0x5d, 0x5d), ColorLevel::Ansi256),
+        Color::Indexed(203)
     );
 }
 
