@@ -700,6 +700,11 @@ fn query_keymap(map: KeyMap) -> KeyMap {
     )
     .bind(
         KeyPhase::Bubble,
+        Chord::with(KeyCode::F(1), KeyModifiers::NONE),
+        HELP,
+    )
+    .bind(
+        KeyPhase::Bubble,
         Chord::with(KeyCode::Char('f'), KeyModifiers::NONE),
         FILTER,
     )
