@@ -3,13 +3,56 @@
     reason = "items promoted from pub(crate) during the crate split keep their original undocumented fixtures"
 )]
 
+use std::collections::{HashMap, HashSet};
 use termrock::{
     CellDecor, CellRef, ColumnKey, EditIntent, FgStep, FieldError, GlyphRole, GridEditor,
     GridModel, ItemKey, Role, RowDecor, RowTotal, SortDir, StateFlags,
 };
 
-use tablepro_demo::db::{ColType, Table, Value};
+use tablepro_demo::db::{ColType, Column, Table, Value};
 use tablepro_sql::sql;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+enum IdentityType {
+    Uuid,
+    Text,
+    Int,
+    Numeric,
+    Bool,
+    Timestamp,
+    Date,
+    Json,
+    Enum,
+}
+
+impl From<ColType> for IdentityType {
+    fn from(value: ColType) -> Self {
+        match value {
+            ColType::Uuid => Self::Uuid,
+            ColType::Text => Self::Text,
+            ColType::Int => Self::Int,
+            ColType::Numeric => Self::Numeric,
+            ColType::Bool => Self::Bool,
+            ColType::Timestamp => Self::Timestamp,
+            ColType::Date => Self::Date,
+            ColType::Json => Self::Json,
+            ColType::Enum => Self::Enum,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+enum IdentityValue {
+    Null,
+    Text(String),
+    Int(i64),
+    Numeric(u64),
+    Bool(bool),
+    Json(String),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+struct RowIdentity(Vec<(String, IdentityType, IdentityValue)>);
 
 #[derive(Clone, PartialEq)]
 struct PendingRow {
@@ -58,6 +101,34 @@ impl PendingEdits {
                 .collect(),
             next_key,
         }
+    }
+
+    fn from_rows_with_keys(
+        rows: Vec<Vec<Value>>,
+        keys: Vec<ItemKey>,
+        next_key: Option<u64>,
+    ) -> Option<Self> {
+        if rows.len() != keys.len() {
+            return None;
+        }
+        let mut seen = HashSet::with_capacity(keys.len());
+        if keys.iter().any(|key| !seen.insert(*key)) {
+            return None;
+        }
+        Some(Self {
+            rows: rows
+                .into_iter()
+                .zip(keys)
+                .map(|(current, key)| PendingRow {
+                    key,
+                    current,
+                    original: None,
+                    inserted: false,
+                    deleted: false,
+                })
+                .collect(),
+            next_key,
+        })
     }
 
     pub fn row_count(&self) -> usize {
@@ -363,6 +434,168 @@ pub struct ResultGrid {
     undo: Vec<PendingEdits>,
 }
 
+fn unique_column_index(columns: &[(String, ColType)], name: &str) -> Option<usize> {
+    let mut matches = columns
+        .iter()
+        .enumerate()
+        .filter(|(_, (candidate, _))| candidate.eq_ignore_ascii_case(name));
+    let index = matches.next()?.0;
+    matches.next().is_none().then_some(index)
+}
+
+fn identity_layout<'a>(
+    projected: &[(String, ColType)],
+    target: &[&'a Column],
+) -> Option<Vec<(usize, &'a Column)>> {
+    let mut seen = HashSet::with_capacity(target.len());
+    target
+        .iter()
+        .map(|column| {
+            let index = unique_column_index(projected, &column.name)?;
+            let (_, ty) = projected.get(index)?;
+            (*ty == column.ty && seen.insert(index)).then_some((index, *column))
+        })
+        .collect()
+}
+
+fn is_complete_source_record(projected: &[(String, ColType)], table_columns: &[&Column]) -> bool {
+    projected.len() == table_columns.len()
+        && identity_layout(projected, table_columns)
+            .is_some_and(|layout| layout.len() == table_columns.len())
+}
+
+fn identity_value(value: &Value, ty: ColType, null_allowed: bool) -> Option<IdentityValue> {
+    match (value, ty) {
+        (Value::Null, _) if null_allowed => Some(IdentityValue::Null),
+        (
+            Value::Text(value),
+            ColType::Uuid | ColType::Text | ColType::Timestamp | ColType::Date | ColType::Enum,
+        ) => Some(IdentityValue::Text(value.clone())),
+        (Value::Int(value), ColType::Int) => Some(IdentityValue::Int(*value)),
+        (Value::Num(value), ColType::Numeric) => Some(IdentityValue::Numeric(value.to_bits())),
+        (Value::Bool(value), ColType::Bool) => Some(IdentityValue::Bool(*value)),
+        (Value::Json(value), ColType::Json) => Some(IdentityValue::Json(value.clone())),
+        _ => None,
+    }
+}
+
+fn identity_from_row<'a>(
+    layout: &[(usize, &'a Column)],
+    mut value_at: impl FnMut(usize) -> Option<&'a Value>,
+    null_allowed: bool,
+) -> Option<RowIdentity> {
+    layout
+        .iter()
+        .map(|(index, column)| {
+            Some((
+                column.name.to_ascii_lowercase(),
+                IdentityType::from(column.ty),
+                identity_value(value_at(*index)?, column.ty, null_allowed)?,
+            ))
+        })
+        .collect::<Option<Vec<_>>>()
+        .map(RowIdentity)
+}
+
+fn identities_for_grid(
+    grid: &ResultGrid,
+    columns: &[(String, ColType)],
+    target: &[&Column],
+    null_allowed: bool,
+) -> Option<Vec<Option<RowIdentity>>> {
+    let layout = identity_layout(columns, target)?;
+    Some(
+        (0..grid.row_count())
+            .map(|row| {
+                identity_from_row(
+                    &layout,
+                    |column| grid.pending.value(row, column),
+                    null_allowed,
+                )
+            })
+            .collect(),
+    )
+}
+
+fn identities_for_result(
+    result: &sql::ResultSet,
+    target: &[&Column],
+    null_allowed: bool,
+) -> Option<Vec<Option<RowIdentity>>> {
+    let layout = identity_layout(&result.columns, target)?;
+    Some(
+        result
+            .rows
+            .iter()
+            .map(|row| identity_from_row(&layout, |column| row.get(column), null_allowed))
+            .collect(),
+    )
+}
+
+fn unique_identity_indices(
+    identities: &[Option<RowIdentity>],
+) -> HashMap<RowIdentity, Option<usize>> {
+    let mut unique = HashMap::with_capacity(identities.len());
+    for (row, identity) in identities.iter().enumerate() {
+        let Some(identity) = identity else {
+            continue;
+        };
+        if let Some(existing) = unique.get_mut(identity) {
+            *existing = None;
+        } else {
+            unique.insert(identity.clone(), Some(row));
+        }
+    }
+    unique
+}
+
+fn reuse_unique_row_keys(
+    old_identities: &[Option<RowIdentity>],
+    new_identities: &[Option<RowIdentity>],
+    source: &ResultGrid,
+    old_key_counts: &HashMap<ItemKey, usize>,
+    row_keys: &mut [Option<ItemKey>],
+    used_keys: &mut HashSet<ItemKey>,
+) {
+    let old_unique = unique_identity_indices(old_identities);
+    let new_unique = unique_identity_indices(new_identities);
+    for (identity, new_row) in new_unique {
+        let Some(new_row) = new_row else {
+            continue;
+        };
+        let Some(old_row) = old_unique.get(&identity).copied().flatten() else {
+            continue;
+        };
+        let Some(slot) = row_keys.get_mut(new_row) else {
+            continue;
+        };
+        if slot.is_some() {
+            continue;
+        }
+        let old_key = source.row_key(old_row);
+        if old_key_counts.get(&old_key) == Some(&1) && used_keys.insert(old_key) {
+            *slot = Some(old_key);
+        }
+    }
+}
+
+fn allocate_row_key(
+    next_key: &mut Option<u64>,
+    used_keys: &mut HashSet<ItemKey>,
+) -> Option<ItemKey> {
+    let mut candidate = (*next_key)?;
+    loop {
+        let key = ItemKey::num(candidate);
+        let next_candidate = candidate.checked_add(1);
+        if used_keys.insert(key) {
+            *next_key = next_candidate;
+            return Some(key);
+        }
+        candidate = next_candidate?;
+        *next_key = Some(candidate);
+    }
+}
+
 impl core::fmt::Debug for ResultGrid {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("ResultGrid")
@@ -409,6 +642,109 @@ impl ResultGrid {
         };
         grid.rebuild_display();
         grid
+    }
+
+    /// Refresh a clean table result while carrying row keys across records whose identity is
+    /// uniquely proven by a declared primary tuple or, when unavailable, an exact full row.
+    /// Ambiguous rows receive fresh monotonic keys so filtering never aliases their selection.
+    pub fn from_filter_refresh(
+        result: &sql::ResultSet,
+        source: &Self,
+        source_columns: &[(String, ColType)],
+        table: &Table,
+    ) -> Option<Self> {
+        if source.pending_total() != 0 {
+            return None;
+        }
+
+        let mut row_keys = vec![None; result.rows.len()];
+        let mut old_key_counts = HashMap::with_capacity(source.row_count());
+        for row in 0..source.row_count() {
+            let key = source.row_key(row);
+            let count = old_key_counts.entry(key).or_insert(0usize);
+            *count = count.saturating_add(1);
+        }
+        let mut used_keys = HashSet::with_capacity(result.rows.len());
+        let same_source = table.qualified();
+        if source.source() == Some(same_source.as_str())
+            && result.source.as_deref() == Some(same_source.as_str())
+        {
+            let primary_columns: Vec<&Column> = table
+                .columns
+                .iter()
+                .filter(|column| column.primary)
+                .collect();
+            if !primary_columns.is_empty()
+                && let Some(old_identities) =
+                    identities_for_grid(source, source_columns, &primary_columns, true)
+                && let Some(new_identities) = identities_for_result(result, &primary_columns, true)
+            {
+                reuse_unique_row_keys(
+                    &old_identities,
+                    &new_identities,
+                    source,
+                    &old_key_counts,
+                    &mut row_keys,
+                    &mut used_keys,
+                );
+            }
+
+            let table_columns: Vec<&Column> = table.columns.iter().collect();
+            if row_keys.iter().any(Option::is_none)
+                && is_complete_source_record(source_columns, &table_columns)
+                && is_complete_source_record(&result.columns, &table_columns)
+                && let Some(old_identities) =
+                    identities_for_grid(source, source_columns, &table_columns, false)
+                && let Some(new_identities) = identities_for_result(result, &table_columns, false)
+            {
+                reuse_unique_row_keys(
+                    &old_identities,
+                    &new_identities,
+                    source,
+                    &old_key_counts,
+                    &mut row_keys,
+                    &mut used_keys,
+                );
+            }
+        }
+
+        let mut next_key = source.pending.next_key;
+        let mut keys = Vec::with_capacity(row_keys.len());
+        for row_key in row_keys {
+            let key = if let Some(key) = row_key {
+                key
+            } else {
+                allocate_row_key(&mut next_key, &mut used_keys)?
+            };
+            keys.push(key);
+        }
+
+        let pending = PendingEdits::from_rows_with_keys(result.rows.clone(), keys, next_key)?;
+        let sort = source.sort.and_then(|(old_key, direction)| {
+            let old_column = usize::from(old_key.raw()).checked_sub(1)?;
+            let name = source_columns.get(old_column)?.0.as_str();
+            let new_column = unique_column_index(&result.columns, name)?;
+            let key = u16::try_from(new_column.checked_add(1)?).ok()?;
+            Some((ColumnKey::num(key), direction))
+        });
+        let mut grid = Self {
+            types: result.columns.iter().map(|(_, ty)| *ty).collect(),
+            pending,
+            sort,
+            total: result.total,
+            editable: result.editable,
+            source: result.source.clone(),
+            duration_ms: result.duration_ms,
+            read_only_reason: (!result.editable)
+                .then(|| "Read-only result: select a primary-key column to edit".to_owned()),
+            display: Vec::new(),
+            undo: Vec::new(),
+        };
+        grid.rebuild_display();
+        if let Some((column, direction)) = sort {
+            grid.sort(column, direction);
+        }
+        Some(grid)
     }
 
     pub fn row_count(&self) -> usize {
@@ -790,6 +1126,44 @@ impl GridEditor for ResultGrid {
 mod tests {
     use super::*;
 
+    fn test_column(name: &str, ty: ColType, primary: bool) -> Column {
+        Column {
+            name: name.to_owned(),
+            ty,
+            nullable: !primary,
+            default: None,
+            primary,
+            references: None,
+            enum_values: Vec::new(),
+            generated: false,
+        }
+    }
+
+    fn test_table(columns: Vec<Column>) -> Table {
+        Table {
+            schema: "public".to_owned(),
+            name: "records".to_owned(),
+            kind: tablepro_demo::db::ObjectKind::Table,
+            columns,
+            indexes: Vec::new(),
+            constraints: Vec::new(),
+            triggers: Vec::new(),
+            row_count: 0,
+            comment: None,
+        }
+    }
+
+    fn test_result(columns: Vec<(String, ColType)>, rows: Vec<Vec<Value>>) -> sql::ResultSet {
+        sql::ResultSet {
+            columns,
+            total: rows.len(),
+            rows,
+            source: Some("public.records".to_owned()),
+            duration_ms: 1,
+            editable: true,
+        }
+    }
+
     #[test]
     fn exhausted_insert_is_atomic_and_undo_never_reuses_keys() {
         let mut grid = ResultGrid::empty();
@@ -1013,6 +1387,333 @@ mod tests {
         assert_eq!(grid.row_key(1), first_key);
     }
 
+    #[test]
+    fn filter_refresh_matches_composite_primary_keys_by_typed_columns() -> Result<(), String> {
+        let table = test_table(vec![
+            test_column("left_key", ColType::Text, true),
+            test_column("right_key", ColType::Text, true),
+            test_column("label", ColType::Text, false),
+        ]);
+        let old = test_result(
+            vec![
+                ("left_key".to_owned(), ColType::Text),
+                ("right_key".to_owned(), ColType::Text),
+                ("label".to_owned(), ColType::Text),
+            ],
+            vec![
+                vec![
+                    Value::Text("ab".to_owned()),
+                    Value::Text("c".to_owned()),
+                    Value::Text("first".to_owned()),
+                ],
+                vec![
+                    Value::Text("a".to_owned()),
+                    Value::Text("bc".to_owned()),
+                    Value::Text("second".to_owned()),
+                ],
+            ],
+        );
+        let old_grid = ResultGrid::from_result(&old);
+        let new = test_result(
+            vec![
+                ("label".to_owned(), ColType::Text),
+                ("right_key".to_owned(), ColType::Text),
+                ("left_key".to_owned(), ColType::Text),
+            ],
+            vec![vec![
+                Value::Text("second".to_owned()),
+                Value::Text("bc".to_owned()),
+                Value::Text("a".to_owned()),
+            ]],
+        );
+
+        let refreshed = ResultGrid::from_filter_refresh(&new, &old_grid, &old.columns, &table)
+            .ok_or("a filtered table result remains available")?;
+        assert_eq!(refreshed.row_count(), 1);
+        assert_eq!(refreshed.row_key(0), ItemKey::num(2));
+        Ok(())
+    }
+
+    #[test]
+    fn filter_refresh_remaps_model_sort_by_column_name_after_projection_reorder()
+    -> Result<(), String> {
+        let table = test_table(vec![
+            test_column("id", ColType::Int, true),
+            test_column("label", ColType::Text, false),
+        ]);
+        let old = test_result(
+            vec![
+                ("id".to_owned(), ColType::Int),
+                ("label".to_owned(), ColType::Text),
+            ],
+            vec![
+                vec![Value::Int(1), Value::Text("zulu".to_owned())],
+                vec![Value::Int(2), Value::Text("alpha".to_owned())],
+                vec![Value::Int(3), Value::Text("mike".to_owned())],
+            ],
+        );
+        let mut old_grid = ResultGrid::from_result(&old);
+        old_grid.sort(ColumnKey::num(2), SortDir::Asc);
+        let new = test_result(
+            vec![
+                ("label".to_owned(), ColType::Text),
+                ("id".to_owned(), ColType::Int),
+            ],
+            vec![
+                vec![Value::Text("mike".to_owned()), Value::Int(3)],
+                vec![Value::Text("zulu".to_owned()), Value::Int(1)],
+                vec![Value::Text("alpha".to_owned()), Value::Int(2)],
+            ],
+        );
+
+        let refreshed = ResultGrid::from_filter_refresh(&new, &old_grid, &old.columns, &table)
+            .ok_or("the filtered projection keeps a valid model")?;
+        assert_eq!(refreshed.cell(0, 0).map(|cell| cell.text), Some("alpha"));
+        assert_eq!(refreshed.row_key(0), ItemKey::num(2));
+        assert_eq!(refreshed.cell(1, 0).map(|cell| cell.text), Some("mike"));
+        assert_eq!(refreshed.row_key(1), ItemKey::num(3));
+        assert_eq!(refreshed.cell(2, 0).map(|cell| cell.text), Some("zulu"));
+        assert_eq!(refreshed.row_key(2), ItemKey::num(1));
+        assert_eq!(refreshed.sort, Some((ColumnKey::num(1), SortDir::Asc)));
+        Ok(())
+    }
+
+    #[test]
+    fn filter_refresh_does_not_match_a_malformed_value_variant_to_a_typed_key() -> Result<(), String>
+    {
+        let table = test_table(vec![test_column("id", ColType::Int, true)]);
+        let old = test_result(
+            vec![("id".to_owned(), ColType::Int)],
+            vec![vec![Value::Text("7".to_owned())]],
+        );
+        let old_grid = ResultGrid::from_result(&old);
+        let new = test_result(old.columns.clone(), vec![vec![Value::Int(7)]]);
+
+        let refreshed = ResultGrid::from_filter_refresh(&new, &old_grid, &old.columns, &table)
+            .ok_or("malformed identity values do not make filtering fail")?;
+        assert_eq!(refreshed.row_key(0), ItemKey::num(2));
+        assert_ne!(refreshed.row_key(0), old_grid.row_key(0));
+        Ok(())
+    }
+
+    #[test]
+    fn filter_refresh_keeps_exact_numeric_identity_not_rounded_display() -> Result<(), String> {
+        let table = test_table(vec![
+            test_column("amount", ColType::Numeric, true),
+            test_column("label", ColType::Text, false),
+        ]);
+        let old = test_result(
+            vec![
+                ("amount".to_owned(), ColType::Numeric),
+                ("label".to_owned(), ColType::Text),
+            ],
+            vec![
+                vec![Value::Num(1.231), Value::Text("first".to_owned())],
+                vec![Value::Num(1.234), Value::Text("second".to_owned())],
+            ],
+        );
+        let old_grid = ResultGrid::from_result(&old);
+        assert_eq!(old_grid.cell(0, 0).map(|cell| cell.text), Some("1.23"));
+        assert_eq!(old_grid.cell(1, 0).map(|cell| cell.text), Some("1.23"));
+        let new = test_result(
+            old.columns.clone(),
+            vec![vec![Value::Num(1.234), Value::Text("second".to_owned())]],
+        );
+
+        let refreshed = ResultGrid::from_filter_refresh(&new, &old_grid, &old.columns, &table)
+            .ok_or("the new result has a valid identity")?;
+        assert_eq!(refreshed.row_key(0), ItemKey::num(2));
+        Ok(())
+    }
+
+    #[test]
+    fn filter_refresh_preserves_unique_full_rows_but_never_guesses_duplicate_occurrences()
+    -> Result<(), String> {
+        let table = test_table(vec![
+            test_column("code", ColType::Text, false),
+            test_column("value", ColType::Int, false),
+        ]);
+        let old = test_result(
+            vec![
+                ("code".to_owned(), ColType::Text),
+                ("value".to_owned(), ColType::Int),
+            ],
+            vec![
+                vec![Value::Text("same".to_owned()), Value::Int(4)],
+                vec![Value::Text("other".to_owned()), Value::Int(9)],
+            ],
+        );
+        let old_grid = ResultGrid::from_result(&old);
+        let unique = test_result(
+            vec![
+                ("value".to_owned(), ColType::Int),
+                ("code".to_owned(), ColType::Text),
+            ],
+            vec![vec![Value::Int(9), Value::Text("other".to_owned())]],
+        );
+        let unique_grid = ResultGrid::from_filter_refresh(&unique, &old_grid, &old.columns, &table)
+            .ok_or("a complete unique row matches without a primary key")?;
+        assert_eq!(unique_grid.row_key(0), ItemKey::num(2));
+
+        let duplicates = test_result(
+            old.columns.clone(),
+            vec![
+                vec![Value::Text("same".to_owned()), Value::Int(4)],
+                vec![Value::Text("same".to_owned()), Value::Int(4)],
+            ],
+        );
+        let duplicate_grid =
+            ResultGrid::from_filter_refresh(&duplicates, &old_grid, &old.columns, &table)
+                .ok_or("duplicate source rows remain present in the filtered result")?;
+        assert_eq!(duplicate_grid.row_count(), 2);
+        assert_eq!(duplicate_grid.row_key(0), ItemKey::num(3));
+        assert_eq!(duplicate_grid.row_key(1), ItemKey::num(4));
+        assert_ne!(duplicate_grid.row_key(0), duplicate_grid.row_key(1));
+        Ok(())
+    }
+
+    #[test]
+    fn filter_refresh_uses_full_rows_when_primary_values_are_null_or_duplicated()
+    -> Result<(), String> {
+        let table = test_table(vec![
+            test_column("id", ColType::Int, true),
+            test_column("label", ColType::Text, false),
+        ]);
+        let old = test_result(
+            vec![
+                ("id".to_owned(), ColType::Int),
+                ("label".to_owned(), ColType::Text),
+            ],
+            vec![
+                vec![Value::Int(1), Value::Text("first".to_owned())],
+                vec![Value::Null, Value::Text("null-key".to_owned())],
+                vec![Value::Int(7), Value::Text("duplicate-a".to_owned())],
+                vec![Value::Int(7), Value::Text("duplicate-b".to_owned())],
+            ],
+        );
+        let old_grid = ResultGrid::from_result(&old);
+        let new = test_result(
+            old.columns.clone(),
+            vec![
+                vec![Value::Null, Value::Text("null-key".to_owned())],
+                vec![Value::Int(7), Value::Text("duplicate-b".to_owned())],
+            ],
+        );
+
+        let refreshed = ResultGrid::from_filter_refresh(&new, &old_grid, &old.columns, &table)
+            .ok_or("non-unique primary values do not reject filtering")?;
+        assert_eq!(refreshed.row_key(0), ItemKey::num(2));
+        assert_eq!(refreshed.row_key(1), ItemKey::num(4));
+        Ok(())
+    }
+
+    #[test]
+    fn filter_refresh_keeps_rows_filterable_when_primary_column_is_not_projected()
+    -> Result<(), String> {
+        let table = test_table(vec![
+            test_column("id", ColType::Int, true),
+            test_column("label", ColType::Text, false),
+        ]);
+        let old = test_result(
+            vec![("label".to_owned(), ColType::Text)],
+            vec![
+                vec![Value::Text("first".to_owned())],
+                vec![Value::Text("second".to_owned())],
+            ],
+        );
+        let old_grid = ResultGrid::from_result(&old);
+        let new = test_result(
+            old.columns.clone(),
+            vec![vec![Value::Text("second".to_owned())]],
+        );
+
+        let refreshed = ResultGrid::from_filter_refresh(&new, &old_grid, &old.columns, &table)
+            .ok_or("a missing identity projection does not block filtering")?;
+        assert_eq!(refreshed.row_count(), 1);
+        assert_eq!(refreshed.row_key(0), ItemKey::num(3));
+        Ok(())
+    }
+
+    #[test]
+    fn filter_refresh_keeps_monotonic_keys_across_shrink_widen_and_insert() -> Result<(), String> {
+        let table = test_table(vec![test_column("id", ColType::Int, true)]);
+        let old = test_result(
+            vec![("id".to_owned(), ColType::Int)],
+            vec![
+                vec![Value::Int(1)],
+                vec![Value::Int(2)],
+                vec![Value::Int(3)],
+            ],
+        );
+        let old_grid = ResultGrid::from_result(&old);
+        let narrow = test_result(
+            old.columns.clone(),
+            vec![vec![Value::Int(1)], vec![Value::Int(3)]],
+        );
+        let narrow_grid = ResultGrid::from_filter_refresh(&narrow, &old_grid, &old.columns, &table)
+            .ok_or("shrink result")?;
+        assert_eq!(narrow_grid.row_key(0), ItemKey::num(1));
+        assert_eq!(narrow_grid.row_key(1), ItemKey::num(3));
+
+        let wide = test_result(
+            old.columns.clone(),
+            vec![
+                vec![Value::Int(1)],
+                vec![Value::Int(2)],
+                vec![Value::Int(3)],
+                vec![Value::Int(4)],
+            ],
+        );
+        let mut wide_grid =
+            ResultGrid::from_filter_refresh(&wide, &narrow_grid, &narrow.columns, &table)
+                .ok_or("widen result")?;
+        assert_eq!(wide_grid.row_key(0), ItemKey::num(1));
+        assert_eq!(wide_grid.row_key(1), ItemKey::num(4));
+        assert_eq!(wide_grid.row_key(2), ItemKey::num(3));
+        assert_eq!(wide_grid.row_key(3), ItemKey::num(5));
+        assert_eq!(wide_grid.insert_row(), Some(4));
+        assert_eq!(wide_grid.row_key(4), ItemKey::num(6));
+        Ok(())
+    }
+
+    #[test]
+    fn filter_refresh_allocator_skips_live_collisions_and_stops_at_key_overflow()
+    -> Result<(), String> {
+        let table = test_table(vec![test_column("id", ColType::Int, true)]);
+        let old = test_result(
+            vec![("id".to_owned(), ColType::Int)],
+            vec![vec![Value::Int(1)]],
+        );
+        let mut old_grid = ResultGrid::from_result(&old);
+        old_grid.pending.next_key = Some(1);
+        let added = test_result(
+            old.columns.clone(),
+            vec![vec![Value::Int(1)], vec![Value::Int(2)]],
+        );
+        let refreshed = ResultGrid::from_filter_refresh(&added, &old_grid, &old.columns, &table)
+            .ok_or("allocator advances beyond a live-key collision")?;
+        assert_eq!(refreshed.row_key(0), ItemKey::num(1));
+        assert_eq!(refreshed.row_key(1), ItemKey::num(2));
+
+        old_grid.pending.next_key = Some(u64::MAX);
+        let last_key = ResultGrid::from_filter_refresh(&added, &old_grid, &old.columns, &table)
+            .ok_or("the final nonzero key can be assigned")?;
+        assert_eq!(last_key.row_key(1), ItemKey::num(u64::MAX));
+        let too_many = test_result(
+            old.columns.clone(),
+            vec![
+                vec![Value::Int(1)],
+                vec![Value::Int(2)],
+                vec![Value::Int(3)],
+            ],
+        );
+        assert!(
+            ResultGrid::from_filter_refresh(&too_many, &old_grid, &old.columns, &table).is_none(),
+            "key exhaustion does not publish a partial row-key assignment"
+        );
+        Ok(())
+    }
+
     struct CatalogTable;
 
     impl CatalogTable {
@@ -1024,7 +1725,7 @@ mod tests {
                     schema: "public".to_owned(),
                     name: "orders".to_owned(),
                     kind: tablepro_demo::db::ObjectKind::Table,
-                    columns: vec![tablepro_demo::db::Column {
+                    columns: vec![Column {
                         name: "id".to_owned(),
                         ty: ColType::Int,
                         nullable: false,

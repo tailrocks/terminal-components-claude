@@ -5,9 +5,9 @@ use tablepro_domain::filter_editor::{Filter, FilterOp};
 use tablepro_domain::tabs::{GridView, Tab, TabKey, TableTab};
 use tablepro_sql::sql;
 use termrock::{
-    Button, FgStep, Field, GridModel, Id, Intent, ItemKey, KeyCode, Modifier, Panel, PanelKind,
-    Part, Rect, Role, RowUi, Select, SelectAction, SelectField, SelectState, StylePatch, Surface,
-    TextAction, TextInput, TextInputState, Ui, Variant, truncate,
+    Button, ColumnKey, FgStep, Field, GridModel, Id, Intent, ItemKey, KeyCode, Modifier, Panel,
+    PanelKind, Part, Reconcile, Rect, Role, RowUi, Select, SelectAction, SelectField, SelectState,
+    StylePatch, Surface, TextAction, TextInput, TextInputState, Ui, Variant, truncate,
 };
 
 use crate::workbench::Workbench;
@@ -107,6 +107,11 @@ impl FilterEditor {
         let column_index = column_index.min(columns.len().saturating_sub(1));
         let filter = original_filter.clone();
         let operator = filter.as_ref().map_or(FilterOp::Eq, |filter| filter.op);
+        let operators = ordered_operators(
+            columns
+                .get(column_index)
+                .map_or(ColType::Text, |(_, ty)| *ty),
+        );
         let mut column_state = SelectState::default();
         column_state.set_value(columns.get(column_index).map(column_key));
         let mut operator_state = SelectState::default();
@@ -121,7 +126,7 @@ impl FilterEditor {
             source_column: columns
                 .get(column_index)
                 .map_or_else(String::new, |(name, _)| name.clone()),
-            operators: FilterOp::ALL.to_vec(),
+            operators,
             value: filter
                 .as_ref()
                 .map_or_else(String::new, |filter| filter.value.clone()),
@@ -177,8 +182,12 @@ impl FilterEditor {
             .columns
             .iter()
             .position(|column| column_key(column) == key)
+            && let Some((_, ty)) = self.columns.get(index)
         {
             self.column_index = index;
+            self.operators = ordered_operators(*ty);
+            self.operator_state
+                .set_value(Some(operator_key(&self.operator)));
             self.error = None;
         }
     }
@@ -249,15 +258,6 @@ impl FilterEditor {
         let source = self.validate(workbench)?;
         let mut candidate = source.clone();
         let filter = self.to_filter();
-        if matches!(
-            filter.op,
-            FilterOp::NotContains | FilterOp::NotIn | FilterOp::Between | FilterOp::Regex
-        ) {
-            return Err(format!(
-                "This filter operator is not supported by the query engine yet: {}",
-                filter.op.label()
-            ));
-        }
         let changed_column = !self.source_column.eq_ignore_ascii_case(&filter.column);
 
         if changed_column {
@@ -285,42 +285,79 @@ impl FilterEditor {
             candidate.set_filter(filter.clone());
         }
 
+        if let Some(unsupported) = candidate.filters.iter().find(|filter| {
+            filter.enabled
+                && matches!(
+                    filter.op,
+                    FilterOp::NotContains | FilterOp::NotIn | FilterOp::Between | FilterOp::Regex
+                )
+        }) {
+            return Err(format!(
+                "This filter operator is not supported by the query engine yet: {}",
+                unsupported.op.label()
+            ));
+        }
+
         let query = super::table_query(&candidate.table, &candidate.filters);
-        let statement = sql::parse(&query).map_err(|error| {
-            if matches!(
-                filter.op,
-                FilterOp::NotContains | FilterOp::NotIn | FilterOp::Between | FilterOp::Regex
-            ) {
-                format!("This filter operator is not supported by the query engine yet: {error:?}")
-            } else {
-                format!("The filter query could not be parsed: {error:?}")
-            }
-        })?;
+        let statement = sql::parse(&query)
+            .map_err(|error| format!("The filter query could not be parsed: {error:?}"))?;
         let sql::Statement::Select(select) = statement else {
             return Err("The filter did not produce a table query".to_owned());
         };
         let result = sql::run_select(catalog, &select)
             .map_err(|error| format!("The filter query failed: {error:?}"))?;
 
-        let old_cursor = source.result.state.cursor().map(|(_, column)| column);
-        candidate.result = GridView::from_result(&result);
-        if let Some(column) = old_cursor
-            && candidate.result.model.row_count() > 0
+        let old_cursor_column = source
+            .result
+            .state
+            .cursor()
+            .and_then(|(_, column)| usize::from(column.raw()).checked_sub(1))
+            .and_then(|index| source.result.columns.get(index))
+            .map(|(name, _)| name.clone());
+        let model = tablepro_domain::domain::ResultGrid::from_filter_refresh(
+            &result,
+            &source.result.model,
+            &source.result.columns,
+            &candidate.table,
+        )
+        .ok_or_else(|| "The table result could not preserve row identity".to_owned())?;
+        let mut state = source.result.state.clone();
+        state.clear_sampled_widths();
+        state.invalidate();
+        state.reconcile(model.row_count(), |row| GridModel::row_key(&model, row));
+
+        if let (Some((row, _)), Some(column_name)) = (state.cursor(), old_cursor_column)
+            && let Some(column_index) = result
+                .columns
+                .iter()
+                .position(|(name, _)| name.eq_ignore_ascii_case(&column_name))
+            && let Ok(column_number) = u16::try_from(column_index.saturating_add(1))
         {
-            let row = GridModel::row_key(&candidate.result.model, 0);
             let id = self.tab_key.control("data");
-            let (specs, count) = super::TableProApp::column_specs(
-                &candidate.result.columns,
-                candidate.result.model.is_editable(),
+            let (specs, count) =
+                super::TableProApp::column_specs(&result.columns, model.is_editable());
+            let visible_columns = specs.get(..count).unwrap_or(&[]);
+            // Rebuild the horizontal window for the new result before restoring its cursor.
+            // GridState keeps this offset across filtering, but the old measured window may
+            // now omit useful leading columns even when the cursor column still exists.
+            let _ = termrock::Grid::new(id, visible_columns).move_cursor_to(
+                &mut state,
+                &model,
+                row,
+                ColumnKey::num(1),
             );
-            let _ = super::result_grid::result_grid(id, specs.get(..count).unwrap_or(&[]))
-                .move_cursor_to(
-                    &mut candidate.result.state,
-                    &candidate.result.model,
-                    row,
-                    column,
-                );
+            let _ = super::result_grid::result_grid(id, visible_columns).move_cursor_to(
+                &mut state,
+                &model,
+                row,
+                ColumnKey::num(column_number),
+            );
         }
+        candidate.result = GridView {
+            columns: result.columns.clone(),
+            model,
+            state,
+        };
         Ok(candidate)
     }
 
@@ -625,6 +662,49 @@ fn operator_key(operator: &FilterOp) -> ItemKey {
     ItemKey::num(*operator as u64)
 }
 
+fn ordered_operators(ty: ColType) -> Vec<FilterOp> {
+    let preferred: &[FilterOp] = match ty {
+        ColType::Int | ColType::Numeric | ColType::Timestamp | ColType::Date => &[
+            FilterOp::Eq,
+            FilterOp::Ne,
+            FilterOp::Gt,
+            FilterOp::Ge,
+            FilterOp::Lt,
+            FilterOp::Le,
+            FilterOp::Between,
+            FilterOp::IsNull,
+            FilterOp::IsNotNull,
+        ],
+        ColType::Bool => &[FilterOp::Eq, FilterOp::IsNull, FilterOp::IsNotNull],
+        ColType::Enum => &[
+            FilterOp::Eq,
+            FilterOp::Ne,
+            FilterOp::In,
+            FilterOp::NotIn,
+            FilterOp::IsNull,
+            FilterOp::IsNotNull,
+        ],
+        ColType::Json => &[FilterOp::Contains, FilterOp::IsNull, FilterOp::IsNotNull],
+        ColType::Uuid | ColType::Text => &[
+            FilterOp::Eq,
+            FilterOp::Ne,
+            FilterOp::Contains,
+            FilterOp::StartsWith,
+            FilterOp::EndsWith,
+            FilterOp::IsNull,
+            FilterOp::IsNotNull,
+            FilterOp::IsEmpty,
+        ],
+    };
+    let mut operators = preferred.to_vec();
+    for operator in FilterOp::ALL {
+        if !operators.contains(&operator) {
+            operators.push(operator);
+        }
+    }
+    operators
+}
+
 fn operator_row(operator: &FilterOp, row: &mut RowUi<'_>) {
     row.label(operator.label());
 }
@@ -655,19 +735,138 @@ mod tests {
 
     #[test]
     fn all_operator_choices_have_unique_stable_keys() {
-        assert_eq!(FilterOp::ALL.len(), 18);
+        let expected = [
+            FilterOp::Eq,
+            FilterOp::Ne,
+            FilterOp::Contains,
+            FilterOp::NotContains,
+            FilterOp::StartsWith,
+            FilterOp::EndsWith,
+            FilterOp::Gt,
+            FilterOp::Ge,
+            FilterOp::Lt,
+            FilterOp::Le,
+            FilterOp::IsNull,
+            FilterOp::IsNotNull,
+            FilterOp::IsEmpty,
+            FilterOp::IsNotEmpty,
+            FilterOp::In,
+            FilterOp::NotIn,
+            FilterOp::Between,
+            FilterOp::Regex,
+        ];
+        assert_eq!(FilterOp::ALL, expected);
         let draft = FilterEditor::from_parts(vec![("id".to_owned(), ColType::Int)], 0, None, true);
-        assert_eq!(draft.operators, FilterOp::ALL);
-        for (index, operator) in FilterOp::ALL.iter().enumerate() {
+        assert_eq!(draft.operators.len(), expected.len());
+        assert!(
+            expected
+                .iter()
+                .all(|operator| draft.operators.contains(operator))
+        );
+        for (index, operator) in expected.iter().enumerate() {
             let key = operator_key(operator);
-            assert_eq!(key, operator_key(&FilterOp::ALL[index]));
+            assert_eq!(key, ItemKey::num(index as u64));
             assert!(
-                FilterOp::ALL[..index]
+                expected[..index]
                     .iter()
                     .all(|previous| operator_key(previous) != key)
             );
         }
-        assert_eq!(FilterOp::ALL.to_vec(), FilterOp::ALL.to_vec());
+    }
+
+    #[test]
+    fn type_preference_reorders_without_changing_operator_identity_or_selection() {
+        let mut draft = FilterEditor::from_parts(
+            vec![
+                ("status".to_owned(), ColType::Enum),
+                ("total_amount".to_owned(), ColType::Numeric),
+                ("notes".to_owned(), ColType::Text),
+                ("shipping_address".to_owned(), ColType::Json),
+                ("is_gift".to_owned(), ColType::Bool),
+            ],
+            0,
+            None,
+            true,
+        );
+        draft.operator = FilterOp::Regex;
+        draft
+            .operator_state
+            .set_value(Some(operator_key(&draft.operator)));
+
+        let enum_order = [
+            FilterOp::Eq,
+            FilterOp::Ne,
+            FilterOp::In,
+            FilterOp::NotIn,
+            FilterOp::IsNull,
+            FilterOp::IsNotNull,
+            FilterOp::Contains,
+            FilterOp::NotContains,
+            FilterOp::StartsWith,
+            FilterOp::EndsWith,
+            FilterOp::Gt,
+            FilterOp::Ge,
+            FilterOp::Lt,
+            FilterOp::Le,
+            FilterOp::IsEmpty,
+            FilterOp::IsNotEmpty,
+            FilterOp::Between,
+            FilterOp::Regex,
+        ];
+        let numeric_order = [
+            FilterOp::Eq,
+            FilterOp::Ne,
+            FilterOp::Gt,
+            FilterOp::Ge,
+            FilterOp::Lt,
+            FilterOp::Le,
+            FilterOp::Between,
+            FilterOp::IsNull,
+            FilterOp::IsNotNull,
+            FilterOp::Contains,
+            FilterOp::NotContains,
+            FilterOp::StartsWith,
+            FilterOp::EndsWith,
+            FilterOp::IsEmpty,
+            FilterOp::IsNotEmpty,
+            FilterOp::In,
+            FilterOp::NotIn,
+            FilterOp::Regex,
+        ];
+        let json_order = [
+            FilterOp::Contains,
+            FilterOp::IsNull,
+            FilterOp::IsNotNull,
+            FilterOp::Eq,
+            FilterOp::Ne,
+            FilterOp::NotContains,
+            FilterOp::StartsWith,
+            FilterOp::EndsWith,
+            FilterOp::Gt,
+            FilterOp::Ge,
+            FilterOp::Lt,
+            FilterOp::Le,
+            FilterOp::IsEmpty,
+            FilterOp::IsNotEmpty,
+            FilterOp::In,
+            FilterOp::NotIn,
+            FilterOp::Between,
+            FilterOp::Regex,
+        ];
+        assert_eq!(draft.operators, enum_order);
+        assert_eq!(draft.operator_state.value(), Some(ItemKey::num(17)));
+
+        let numeric_key = column_key(&draft.columns[1]);
+        draft.choose_column(numeric_key);
+        assert_eq!(draft.operators, numeric_order);
+        assert_eq!(draft.operator, FilterOp::Regex);
+        assert_eq!(draft.operator_state.value(), Some(ItemKey::num(17)));
+        assert_eq!(draft.to_filter().column, "total_amount");
+
+        let json_key = column_key(&draft.columns[3]);
+        draft.choose_column(json_key);
+        assert_eq!(draft.operators, json_order);
+        assert_eq!(draft.operator_state.value(), Some(ItemKey::num(17)));
     }
 
     #[test]
@@ -721,6 +920,46 @@ mod tests {
             );
             assert_eq!(live.result.pending_total(), initial.result.pending_total());
             assert_eq!(live.result.state.cursor(), initial.result.state.cursor());
+        }
+    }
+
+    #[test]
+    fn disabled_unsupported_filters_round_trip_through_staging_without_execution() {
+        let app = orders_app();
+        let initial = app
+            .workbench
+            .active_table()
+            .expect("table is active")
+            .clone();
+        for operator in [
+            FilterOp::Between,
+            FilterOp::NotContains,
+            FilterOp::NotIn,
+            FilterOp::Regex,
+        ] {
+            let mut draft = editor(&app);
+            draft.operator = operator;
+            draft.value = "lower".to_owned();
+            draft.value2 = "upper".to_owned();
+            draft.enabled = false;
+            let candidate = draft
+                .stage(&app.workbench, &app.catalog)
+                .expect("disabled filters are stored without entering SQL");
+            assert_eq!(candidate.filters.len(), 1, "{operator:?}");
+            assert_eq!(candidate.filters[0].op, operator);
+            assert!(!candidate.filters[0].enabled, "{operator:?}");
+            assert_eq!(candidate.filters[0].value, "lower", "{operator:?}");
+            assert_eq!(candidate.filters[0].value2, "upper", "{operator:?}");
+            assert_eq!(
+                candidate.result.model.row_count(),
+                initial.result.model.row_count(),
+                "disabled {operator:?} must not filter rows"
+            );
+            assert_eq!(
+                candidate.result.model.total(),
+                initial.result.model.total(),
+                "disabled {operator:?} must not change result total"
+            );
         }
     }
 
