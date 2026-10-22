@@ -30,6 +30,7 @@ pub struct CompletionValue {
     matched: Vec<usize>,
     insertion: String,
     detail: String,
+    menu_summary: Option<String>,
     disabled: bool,
 }
 
@@ -42,6 +43,7 @@ impl CompletionValue {
             matched: Vec::new(),
             insertion: insertion.into(),
             detail: String::new(),
+            menu_summary: None,
             disabled: false,
         }
     }
@@ -64,6 +66,19 @@ impl CompletionValue {
         self
     }
 
+    /// Set a compact summary for the completion list while retaining the full
+    /// semantic detail for [`Self::full_detail`] and selected-detail views.
+    #[must_use]
+    pub fn menu_summary(mut self, summary: impl Into<String>) -> Self {
+        self.menu_summary = Some(summary.into());
+        self
+    }
+
+    /// Return the full semantic detail, independent of any compact menu summary.
+    pub fn full_detail(&self) -> &str {
+        &self.detail
+    }
+
     #[must_use]
     pub const fn disabled(mut self, disabled: bool) -> Self {
         self.disabled = disabled;
@@ -80,6 +95,10 @@ impl fmt::Debug for CompletionValue {
             .field("matched_count", &self.matched.len())
             .field("insertion", &"[redacted]")
             .field("detail", &"[redacted]")
+            .field(
+                "menu_summary",
+                &self.menu_summary.as_ref().map(|_| "[redacted]"),
+            )
             .field("disabled", &self.disabled)
             .finish()
     }
@@ -91,7 +110,7 @@ impl AsItem for CompletionValue {
             .glyph(&self.glyph)
             .matched(&self.matched)
             .insert(&self.insertion)
-            .detail(&self.detail)
+            .detail(self.menu_summary.as_deref().unwrap_or(&self.detail))
             .disabled(self.disabled)
     }
 }
@@ -171,6 +190,23 @@ impl CompletingCodeEditorState {
     pub const fn is_completion_open(&self) -> bool {
         self.completion.is_open()
     }
+
+    /// Return the currently selected value while its completion popup is open.
+    ///
+    /// Selection resolves through the collection's stable key, so a stale
+    /// cursor or a closed popup never exposes an unrelated vector entry.
+    pub fn selected_completion(&self) -> Option<&CompletionValue> {
+        let key = self.completion.cursor()?;
+        if !self.completion.is_open() {
+            return None;
+        }
+        self.items.iter().find(|item| item.key == key)
+    }
+
+    /// Whether the opt-in selected-detail view is currently visible.
+    pub const fn is_completion_details_open(&self) -> bool {
+        self.completion.details_open()
+    }
 }
 
 pub struct CompletingCodeEditor<'a> {
@@ -178,6 +214,7 @@ pub struct CompletingCodeEditor<'a> {
     id: Id,
     popup_id: Id,
     provider: &'a dyn CompletionProvider,
+    selected_details: bool,
 }
 
 impl fmt::Debug for CompletingCodeEditor<'_> {
@@ -201,11 +238,31 @@ impl<'a> CompletingCodeEditor<'a> {
             id,
             popup_id,
             provider,
+            selected_details: false,
         }
     }
 
-    fn completion(&self) -> Completion<'_, CompletionValue> {
-        Completion::new(self.popup_id)
+    fn completion<'b>(
+        &self,
+        selected_detail: Option<&'b str>,
+        details_open: bool,
+    ) -> Completion<'b, CompletionValue> {
+        let completion = Completion::new(self.popup_id);
+        if self.selected_details {
+            completion.selected_detail(selected_detail, details_open)
+        } else {
+            completion
+        }
+    }
+
+    /// Enable a same-popup, scrollable view of the selected completion's full detail.
+    ///
+    /// The list continues to use its compact `AsItem` detail; the full value is
+    /// shown only after the user invokes the Details binding.
+    #[must_use]
+    pub const fn selected_details(mut self) -> Self {
+        self.selected_details = true;
+        self
     }
 
     /// Configure whether leaving the editor commits its edit session.
@@ -288,9 +345,19 @@ impl<'a> CompletingCodeEditor<'a> {
             return self.editor.update(cx, &mut state.editor);
         }
 
-        let completing = self.completion();
+        let selected_detail = if self.selected_details {
+            state
+                .completion
+                .cursor()
+                .and_then(|key| state.items.iter().find(|item| item.key == key))
+                .map(CompletionValue::full_detail)
+        } else {
+            None
+        };
+        let completing = self.completion(selected_detail, state.completion.details_open());
         let completion_response =
             completing.update_for(self.id, cx, &mut state.completion, &state.items);
+        let details_input_consumed = state.completion.details_input_consumed();
         let mut dismissed_outside = false;
         match completion_response.action_ref() {
             Some(CompletionAction::Accepted(key)) => {
@@ -350,7 +417,11 @@ impl<'a> CompletingCodeEditor<'a> {
             Some(CompletionAction::Moved) | None => {}
         }
 
-        let editor_response = self.editor.update(cx, &mut state.editor);
+        let editor_response = if details_input_consumed {
+            Response::consumed()
+        } else {
+            self.editor.update(cx, &mut state.editor)
+        };
         if manual_requested {
             if !state.editor.is_find_typing()
                 && !self.editor.is_read_only()
@@ -408,9 +479,18 @@ impl<'a> CompletingCodeEditor<'a> {
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, state: &CompletingCodeEditorState) -> Rect {
         let used = self.editor.draw(ui, area, &state.editor);
         if state.completion.is_open() {
+            let selected_detail = if self.selected_details {
+                state
+                    .completion
+                    .cursor()
+                    .and_then(|key| state.items.iter().find(|item| item.key == key))
+                    .map(CompletionValue::full_detail)
+            } else {
+                None
+            };
+            let completion = self.completion(selected_detail, state.completion.details_open());
             let _ = ui.layer(self.popup_id, |ui, popup_area| {
-                self.completion()
-                    .draw(ui, popup_area, &state.completion, &state.items);
+                completion.draw(ui, popup_area, &state.completion, &state.items);
                 let _ = ui.retain_owner_cursor(self.id);
             });
         }

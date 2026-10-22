@@ -40,6 +40,14 @@ pub enum CompletionCmd {
 /// Baseline completion menus sit four cells left of the replaced token.
 const COMPLETION_TEXT_INSET: u16 = 4;
 
+/// Opens the opt-in full-detail view for the currently selected completion.
+pub const COMPLETION_DETAILS_CHORD: Chord = Chord::with(
+    KeyCode::Char('d'),
+    KeyModifiers::from_bits_retain(KeyModifiers::CONTROL.bits() | KeyModifiers::SHIFT.bits()),
+);
+
+const DETAILS_ACTION: ActionKey = ActionKey::custom("completion.details");
+
 fn popup_anchor(anchor: Rect, replace_len: usize) -> Rect {
     let replace = u16::try_from(replace_len).unwrap_or(u16::MAX);
     Rect {
@@ -264,6 +272,16 @@ const BINDINGS: &[Binding<CompletionCmd>] = &[
     ),
 ];
 
+const DETAILS_BINDING: Binding<CompletionCmd> = Binding {
+    action: DETAILS_ACTION,
+    chord: Some(COMPLETION_DETAILS_CHORD),
+    cmd: CompletionCmd::Up,
+    label: "Details",
+    priority: 70,
+    visible: true,
+};
+const NO_ADDITIONAL_BINDINGS: &[Binding<CompletionCmd>] = &[];
+
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct CompletionState {
     core: CollectionCore,
@@ -273,6 +291,10 @@ pub struct CompletionState {
     replace_len: usize,
     opening: Option<LayerOpening>,
     programmatic_close: Option<(LayerOpening, UpdateToken)>,
+    details_open: bool,
+    details_key: Option<ItemKey>,
+    details_input_consumed: bool,
+    details_scroll: crate::scroll::ScrollState,
 }
 
 impl CompletionState {
@@ -284,6 +306,21 @@ impl CompletionState {
     }
     pub const fn replace_len(&self) -> usize {
         self.replace_len
+    }
+
+    pub const fn details_open(&self) -> bool {
+        self.details_open
+    }
+
+    /// Whether the completion view consumed the current editor binding.
+    pub const fn details_input_consumed(&self) -> bool {
+        self.details_input_consumed
+    }
+
+    fn leave_details(&mut self) {
+        self.details_open = false;
+        self.details_key = None;
+        self.details_scroll = crate::scroll::ScrollState::default();
     }
 }
 
@@ -309,6 +346,8 @@ impl CompletionController {
         replace_len: usize,
         items: &[T],
     ) {
+        state.leave_details();
+        state.details_input_consumed = false;
         state.open = !items.is_empty();
         state.owner = state.open.then_some(self.editor_id);
         let anchor = popup_anchor(anchor, replace_len);
@@ -351,6 +390,8 @@ impl CompletionController {
     pub fn dismiss(&self, cx: &mut Cx<'_>, state: &mut CompletionState) {
         state.open = false;
         state.owner = None;
+        state.leave_details();
+        state.details_input_consumed = false;
         if let Some(opening) = cx.layer_opening(self.popup_id) {
             state.opening = Some(opening);
             state.programmatic_close = Some((opening, cx.update_token()));
@@ -412,6 +453,8 @@ pub struct Completion<'a, T, R = ItemRow> {
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
     ov: PartStyle<'a>,
+    selected_detail: Option<&'a str>,
+    details_open: bool,
     _item: PhantomData<fn(&T)>,
 }
 
@@ -434,6 +477,8 @@ impl<T> Completion<'_, T, ItemRow> {
             patch: None,
             parts: &[],
             ov: PartStyle::new(),
+            selected_detail: None,
+            details_open: false,
             _item: PhantomData,
         }
     }
@@ -464,6 +509,8 @@ impl<'a, T, R> Completion<'a, T, R> {
             patch: self.patch,
             parts: self.parts,
             ov: self.ov,
+            selected_detail: self.selected_detail,
+            details_open: self.details_open,
             _item: PhantomData,
         }
     }
@@ -494,6 +541,16 @@ impl<'a, T, R> Completion<'a, T, R> {
         self.ov = self.ov.slot(part, slot);
         self
     }
+
+    /// Enable the same-popup selected-detail view for this completion draw.
+    /// The supplied string is full semantic detail, not the compact row summary.
+    #[must_use]
+    pub const fn selected_detail(mut self, detail: Option<&'a str>, details_open: bool) -> Self {
+        self.selected_detail = detail;
+        self.details_open = details_open;
+        self
+    }
+
     fn scrollbar(&self) -> ScrollRegion<'a> {
         let mut bar = ScrollRegion::new(self.id).patch_part(self.parts);
         if let Some(patch) = self.patch {
@@ -505,6 +562,13 @@ impl<'a, T, R> Completion<'a, T, R> {
             bar = bar.slot(Part::THUMB, slot);
         }
         bar
+    }
+
+    fn detail_scrollbar(&self) -> ScrollRegion<'a> {
+        ScrollRegion::new(self.id)
+            .scrollbar_visible(false)
+            .preserve_underlay(true)
+            .patch_part(self.parts)
     }
 }
 
@@ -544,19 +608,56 @@ impl<T: AsItem, R: RowFn<T>> Completion<'_, T, R> {
         acc: &mut Acc<CompletionAction>,
     ) {
         match intent {
+            Intent::Binding(action) if action == DETAILS_ACTION => {
+                if !state.details_open
+                    && self
+                        .selected_detail
+                        .is_some_and(|detail| !detail.is_empty())
+                {
+                    state.details_open = true;
+                    state.details_key = state.core.cursor();
+                    state.details_scroll = crate::scroll::ScrollState::default();
+                    state.details_input_consumed = true;
+                    acc.consumed();
+                }
+            }
             Intent::Binding(action) => match Binding::command(BINDINGS, action) {
                 Some(cmd) => {
                     let cur = state.core.cursor_index();
-                    let page = state.core.scroll().viewport_len().max(1);
+                    let page = if state.details_open {
+                        state.details_scroll.viewport_len().max(1)
+                    } else {
+                        state.core.scroll().viewport_len().max(1)
+                    };
                     match cmd {
+                        CompletionCmd::Up if state.details_open => {
+                            state.details_scroll.scroll_by(-1);
+                            state.details_input_consumed = true;
+                            acc.consumed();
+                        }
                         CompletionCmd::Up => {
                             Self::move_to(state, items, cur.saturating_sub(1), acc);
+                        }
+                        CompletionCmd::Down if state.details_open => {
+                            state.details_scroll.scroll_by(1);
+                            state.details_input_consumed = true;
+                            acc.consumed();
                         }
                         CompletionCmd::Down => {
                             Self::move_to(state, items, cur.saturating_add(1), acc);
                         }
+                        CompletionCmd::PageUp if state.details_open => {
+                            state.details_scroll.page_up();
+                            state.details_input_consumed = true;
+                            acc.consumed();
+                        }
                         CompletionCmd::PageUp => {
                             Self::move_to(state, items, cur.saturating_sub(page), acc);
+                        }
+                        CompletionCmd::PageDown if state.details_open => {
+                            state.details_scroll.page_down();
+                            state.details_input_consumed = true;
+                            acc.consumed();
                         }
                         CompletionCmd::PageDown => {
                             Self::move_to(state, items, cur.saturating_add(page), acc);
@@ -567,9 +668,15 @@ impl<T: AsItem, R: RowFn<T>> Completion<'_, T, R> {
                             }
                             _ => acc.consumed(),
                         },
+                        CompletionCmd::Dismiss if state.details_open => {
+                            state.leave_details();
+                            state.details_input_consumed = true;
+                            acc.consumed();
+                        }
                         CompletionCmd::Dismiss => {
                             state.open = false;
                             state.owner = None;
+                            state.leave_details();
                             cx.close_layer(self.id, None);
                             acc.action(CompletionAction::Dismissed);
                         }
@@ -581,6 +688,11 @@ impl<T: AsItem, R: RowFn<T>> Completion<'_, T, R> {
                     }
                 }
             },
+            Intent::Cancel if state.details_open => {
+                state.leave_details();
+                state.details_input_consumed = true;
+                acc.consumed();
+            }
             Intent::FocusOut { .. } | Intent::Cancel
                 if controller.dismiss_on_editor_motion(cx, state) =>
             {
@@ -609,6 +721,7 @@ impl<T: AsItem, R: RowFn<T>> Completion<'_, T, R> {
         items: &[T],
     ) -> Response<CompletionAction> {
         let mut events = Acc::<CompletionAction>::new();
+        state.details_input_consumed = false;
         while let Some(receipt) = cx.take_layer_intent_receipt(self.id) {
             let opening = receipt.opening();
             let expected_close = state.programmatic_close.is_some_and(|(expected, update)| {
@@ -634,6 +747,7 @@ impl<T: AsItem, R: RowFn<T>> Completion<'_, T, R> {
                     state.open = false;
                     state.owner = None;
                     state.opening = None;
+                    state.leave_details();
                     if was_open {
                         events.action(CompletionAction::Dismissed);
                     }
@@ -651,6 +765,12 @@ impl<T: AsItem, R: RowFn<T>> Completion<'_, T, R> {
         if state.core.cursor().is_none() && !items.is_empty() {
             state.core.set_cursor(0, Self::key_at(items, 0));
         }
+        if state.details_open
+            && (self.selected_detail.is_none_or(|detail| detail.is_empty())
+                || state.details_key != state.core.cursor())
+        {
+            state.leave_details();
+        }
         cx.resize_layer(self.id, self.measured_size(cx, items));
         cx.reanchor_layer(
             self.id,
@@ -660,9 +780,20 @@ impl<T: AsItem, R: RowFn<T>> Completion<'_, T, R> {
                 align: CrossAlign::Start,
             },
         );
-        let bar = self
-            .scrollbar()
-            .update(cx, state.core.scroll_mut(), items.len());
+        let bar = if state.details_open {
+            let detail_width = cx.layout(self.id).map_or_else(
+                || popup_width(cx, items).saturating_sub(2),
+                |layout| layout.cols,
+            );
+            let detail_len = self.selected_detail.map_or(0, |detail| {
+                usize::from(crate::text::wrapped_rows(detail, detail_width))
+            });
+            self.detail_scrollbar()
+                .update(cx, &mut state.details_scroll, detail_len)
+        } else {
+            self.scrollbar()
+                .update(cx, state.core.scroll_mut(), items.len())
+        };
         let mut acc = Acc::new();
         acc.fold(&bar);
         let controller = CompletionController::new(owner, self.id);
@@ -704,6 +835,19 @@ impl<T: AsItem, R: RowFn<T>> Completion<'_, T, R> {
             {
                 let live = ui.state(owner);
                 ui.publish_bindings(owner, live, self.bindings(BindingState { flags: live }));
+                ui.publish_additional_bindings(
+                    owner,
+                    live,
+                    if !state.details_open
+                        && self
+                            .selected_detail
+                            .is_some_and(|detail| !detail.is_empty())
+                    {
+                        core::slice::from_ref(&DETAILS_BINDING)
+                    } else {
+                        NO_ADDITIONAL_BINDINGS
+                    },
+                );
             }
             let base = self.ov.style(
                 ui,
@@ -733,6 +877,39 @@ impl<T: AsItem, R: RowFn<T>> Completion<'_, T, R> {
                         hint: None,
                     })
                     .draw(ui, inner, 0);
+                return area;
+            }
+            if state.details_open
+                && let Some(detail) = self.selected_detail.filter(|detail| !detail.is_empty())
+            {
+                let lines = crate::text::wrap(detail, inner.width);
+                let content =
+                    self.detail_scrollbar()
+                        .draw(ui, inner, &state.details_scroll, lines.len());
+                let view = ScrollRegion::view(&state.details_scroll, content, lines.len());
+                let text_style = ui.paint_patch(
+                    &StylePatch::new()
+                        .set_fg(crate::theme::Role::Fg(crate::theme::FgStep::Primary))
+                        .set_bg(crate::theme::Role::Surface(crate::theme::Surface::Elevated)),
+                );
+                for (row, line_index) in view.visible_range().enumerate() {
+                    let Some(line) = lines.get(line_index) else {
+                        break;
+                    };
+                    ui.paint_str(
+                        Rect {
+                            x: content.x,
+                            y: content
+                                .y
+                                .saturating_add(row.min(usize::from(u16::MAX)) as u16),
+                            width: content.width,
+                            height: 1,
+                        },
+                        line,
+                        text_style,
+                    );
+                }
+                ui.scroll_edges(content, &view);
                 return area;
             }
             let content = self

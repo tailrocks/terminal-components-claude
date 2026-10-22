@@ -34,3 +34,4 @@ pub use completion::{
     MANUAL_COMPLETION_ACTION,
 };
 pub use diff::{DiffLineKind, DiffMode, DiffRow, DiffSource, DiffView, DiffViewState};
+pub use termrock_overlays::completion::COMPLETION_DETAILS_CHORD;
