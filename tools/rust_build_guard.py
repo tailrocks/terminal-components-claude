@@ -213,12 +213,14 @@ def _cargo_config_output_paths(env: Mapping[str, str], cwd: Path, home: Path) ->
     return paths
 
 
-def _has_nextest_alias(env: Mapping[str, str], cwd: Path, home: Path) -> bool:
+def _has_command_alias(env: Mapping[str, str], cwd: Path, home: Path, command: str) -> bool:
+    if f"CARGO_ALIAS_{command.upper()}" in env:
+        return True
     for _path, config in _cargo_config_documents(env, cwd, home):
         aliases = config.get("alias", {})
         if not isinstance(aliases, dict):
             raise GuardError("Cargo aliases have an invalid configuration shape")
-        if "nextest" in aliases:
+        if command in aliases:
             return True
     return False
 
@@ -299,8 +301,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         if not home_value:
             raise GuardError("home directory is unknown")
         home = _expand_path(home_value, effective, cwd)
-        if subcommand == "nextest" and _has_nextest_alias(effective, cwd, home):
-            raise GuardError("Cargo nextest is configured as an alias; refusing ambiguous command")
+        if _has_command_alias(effective, cwd, home, subcommand):
+            raise GuardError(f"Cargo {subcommand} is configured as an alias; refusing ambiguous command")
         paths = discover_paths(effective, cwd)
         for index, arg in enumerate(cargo_args):
             if arg == "--target-dir":
