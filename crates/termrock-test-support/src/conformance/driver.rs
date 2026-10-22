@@ -1436,12 +1436,126 @@ fn dynamic_bindings_follow_keymap<C: Conformance>(
     }
 }
 
+/// The chords a case declares outside its own binding table: the tables of
+/// the nested child controls it composes, and the chord that opens it.
+fn declared_outside_table<C: Conformance>() -> Vec<Chord> {
+    let mut out = C::nested_binding_chords();
+    if let Some(chord) = C::open_chord() {
+        out.push(chord);
+    }
+    out
+}
+
+/// One chord the case consumes, and whether a declared table accounts for it.
+struct ConsumedChord {
+    chord: Chord,
+    declared: bool,
+}
+
+/// Every chord the case consumes, with the tables that declare it.
+fn consumed_chords<C: Conformance>() -> Vec<ConsumedChord> {
+    let states = C::binding_states();
+    let fixture = C::fixture();
+    let dynamic = C::dynamic_bindings(&fixture);
+    if states.iter().all(|state| C::bindings(*state).is_empty())
+        && dynamic.is_empty()
+        && C::nested_binding_chords().is_empty()
+        && C::legacy_key_chords().is_empty()
+    {
+        return Vec::new();
+    }
+    let outside = declared_outside_table::<C>();
+    let mut out = Vec::new();
+    for &st in states {
+        let table = C::bindings(st);
+        for chord in chord_universe() {
+            if chord.code == KeyCode::Esc {
+                continue;
+            }
+            if has::<C>(Caps::TYPES) && chord.is_bare_char() {
+                continue;
+            }
+            let mut h = harness::<C>(C::fixture());
+            let owner = dynamic
+                .iter()
+                .find_map(|(action, declared)| {
+                    declared
+                        .matches(&termrock::Key {
+                            code: chord.code,
+                            mods: chord.mods,
+                        })
+                        .then(|| C::dynamic_binding_id(*action))
+                })
+                .unwrap_or_else(C::control_id);
+            assert!(h.tab_to(owner));
+            if needs_layer_opened::<C>() {
+                let _ = open_component_layer::<C>(&mut h);
+            }
+            let r = h.key_mod(chord.code, chord.mods);
+            if r.is_consumed() {
+                let key = termrock::Key {
+                    code: chord.code,
+                    mods: chord.mods,
+                };
+                let declared = table
+                    .iter()
+                    .any(|b| b.chord.is_some_and(|chord| chord.matches(&key)))
+                    || dynamic.iter().any(|(_, chord)| chord.matches(&key))
+                    || outside.iter().any(|chord| chord.matches(&key));
+                out.push(ConsumedChord { chord, declared });
+            }
+        }
+    }
+    out
+}
+
+/// The legacy-chord audit of one case.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LegacyChords {
+    /// Chords the case consumes that no declared table accounts for.
+    pub needed: Vec<Chord>,
+    /// The case's legacy list.
+    pub legacy: Vec<Chord>,
+    /// Legacy entries that no undeclared consumed chord needs.
+    pub unused: Vec<Chord>,
+}
+
+/// The chords a case needs a legacy entry for, and the legacy entries it
+/// carries.
+///
+/// The legacy list is the exact set of chords a case consumes without a
+/// declared table behind it. An entry that no undeclared consumed chord
+/// needs, or a chord that no legacy entry covers, is a defect: the list
+/// would grow into a rubber stamp and the binding audit would stop proving
+/// anything.
+pub fn audit_legacy_chords<C: Conformance>() -> LegacyChords {
+    let consumed = consumed_chords::<C>();
+    let mut needed: Vec<Chord> = Vec::new();
+    for entry in &consumed {
+        if !entry.declared && !needed.iter().any(|c| c.effective_eq(&entry.chord)) {
+            needed.push(entry.chord);
+        }
+    }
+    let legacy = C::legacy_key_chords().to_vec();
+    let unused = legacy
+        .iter()
+        .filter(|l| !needed.iter().any(|n| n.effective_eq(l)))
+        .copied()
+        .collect();
+    LegacyChords {
+        needed,
+        legacy,
+        unused,
+    }
+}
+
 pub fn bindings_match_handled_keys<C: Conformance>() {
     let states = C::binding_states();
     let fixture = C::fixture();
     let dynamic = C::dynamic_bindings(&fixture);
     if states.iter().all(|state| C::bindings(*state).is_empty())
         && dynamic.is_empty()
+        && C::nested_binding_chords().is_empty()
         && C::legacy_key_chords().is_empty()
     {
         return;
@@ -1473,48 +1587,22 @@ pub fn bindings_match_handled_keys<C: Conformance>() {
                 chord
             );
         }
-
-        for chord in chord_universe() {
-            if chord.code == KeyCode::Esc {
-                continue;
-            }
-            if has::<C>(Caps::TYPES) && chord.is_bare_char() {
-                continue;
-            }
-            let mut h = harness::<C>(C::fixture());
-            let owner = dynamic
-                .iter()
-                .find_map(|(action, declared)| {
-                    declared
-                        .matches(&termrock::Key {
-                            code: chord.code,
-                            mods: chord.mods,
-                        })
-                        .then(|| C::dynamic_binding_id(*action))
-                })
-                .unwrap_or_else(C::control_id);
-            assert!(h.tab_to(owner));
-            if needs_layer_opened::<C>() {
-                let _ = open_component_layer::<C>(&mut h);
-            }
-            let r = h.key_mod(chord.code, chord.mods);
-            if r.is_consumed() {
-                let key = termrock::Key {
-                    code: chord.code,
-                    mods: chord.mods,
-                };
-                assert!(
-                    table
-                        .iter()
-                        .any(|b| b.chord.is_some_and(|chord| chord.matches(&key)))
-                        || dynamic.iter().any(|(_, chord)| chord.matches(&key))
-                        || C::legacy_key_chords()
-                            .iter()
-                            .any(|chord| chord.matches(&key)),
-                    "{}: consumed {chord} which is not in the binding table or legacy set",
-                    C::NAME
-                );
-            }
-        }
     }
+
+    let audit = audit_legacy_chords::<C>();
+    for chord in &audit.needed {
+        assert!(
+            C::legacy_key_chords()
+                .iter()
+                .any(|legacy| legacy.effective_eq(chord)),
+            "{}: consumed {chord} which is not in the binding table or legacy set",
+            C::NAME
+        );
+    }
+    assert!(
+        audit.unused.is_empty(),
+        "{}: legacy entries no consumed chord needs: {:?}",
+        C::NAME,
+        audit.unused
+    );
 }

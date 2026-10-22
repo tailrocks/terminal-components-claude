@@ -44,73 +44,13 @@ use termrock_test_support::{Harness, Scene, conformance_suite};
 
 const PROBE: Id = Id::root("conformance.probe");
 
-const CONTEXT_MENU_LEGACY_CHORDS: &[Chord] = &[
-    Chord::with(KeyCode::F(10), KeyModifiers::SHIFT),
-    Chord::key(KeyCode::Menu),
-];
-
-const QUERY_LEGACY_CHORDS: &[Chord] = &[
-    Chord::key(KeyCode::Left),
-    Chord::key(KeyCode::Right),
-    Chord::with(KeyCode::Left, KeyModifiers::SHIFT),
-    Chord::with(KeyCode::Right, KeyModifiers::SHIFT),
-    Chord::with(KeyCode::Left, KeyModifiers::CONTROL),
-    Chord::with(KeyCode::Right, KeyModifiers::CONTROL),
-    Chord::with(KeyCode::Left, KeyModifiers::ALT),
-    Chord::with(KeyCode::Right, KeyModifiers::ALT),
-    Chord::key(KeyCode::Home),
-    Chord::key(KeyCode::End),
-    Chord::with(KeyCode::Home, KeyModifiers::SHIFT),
-    Chord::with(KeyCode::End, KeyModifiers::SHIFT),
-    Chord::with(KeyCode::Home, KeyModifiers::CONTROL),
-    Chord::with(KeyCode::End, KeyModifiers::CONTROL),
-    Chord::key(KeyCode::Backspace),
-    Chord::with(KeyCode::Backspace, KeyModifiers::CONTROL),
-    Chord::with(KeyCode::Backspace, KeyModifiers::ALT),
-    Chord::key(KeyCode::Delete),
-    Chord::with(KeyCode::Char('a'), KeyModifiers::CONTROL),
-    Chord::with(KeyCode::Char('e'), KeyModifiers::CONTROL),
-    Chord::with(KeyCode::Char('u'), KeyModifiers::CONTROL),
-    Chord::with(KeyCode::Char('k'), KeyModifiers::CONTROL),
-    Chord::with(KeyCode::Char('w'), KeyModifiers::CONTROL),
-    Chord::with(KeyCode::Char('l'), KeyModifiers::CONTROL),
-    Chord::with(KeyCode::Char('b'), KeyModifiers::ALT),
-    Chord::with(KeyCode::Char('f'), KeyModifiers::ALT),
-    Chord::with(KeyCode::F(10), KeyModifiers::SHIFT),
-    Chord::key(KeyCode::Menu),
-];
-
-const PICKER_LEGACY_CHORDS: &[Chord] = &[
-    Chord::key(KeyCode::F(4)),
-    Chord::key(KeyCode::Left),
-    Chord::key(KeyCode::Right),
-    Chord::with(KeyCode::Left, KeyModifiers::SHIFT),
-    Chord::with(KeyCode::Right, KeyModifiers::SHIFT),
-    Chord::with(KeyCode::Left, KeyModifiers::CONTROL),
-    Chord::with(KeyCode::Right, KeyModifiers::CONTROL),
-    Chord::with(KeyCode::Left, KeyModifiers::ALT),
-    Chord::with(KeyCode::Right, KeyModifiers::ALT),
-    Chord::key(KeyCode::Home),
-    Chord::key(KeyCode::End),
-    Chord::with(KeyCode::Home, KeyModifiers::SHIFT),
-    Chord::with(KeyCode::End, KeyModifiers::SHIFT),
-    Chord::with(KeyCode::Home, KeyModifiers::CONTROL),
-    Chord::with(KeyCode::End, KeyModifiers::CONTROL),
-    Chord::key(KeyCode::Backspace),
-    Chord::with(KeyCode::Backspace, KeyModifiers::CONTROL),
-    Chord::with(KeyCode::Backspace, KeyModifiers::ALT),
-    Chord::key(KeyCode::Delete),
-    Chord::with(KeyCode::Char('a'), KeyModifiers::CONTROL),
-    Chord::with(KeyCode::Char('e'), KeyModifiers::CONTROL),
-    Chord::with(KeyCode::Char('u'), KeyModifiers::CONTROL),
-    Chord::with(KeyCode::Char('k'), KeyModifiers::CONTROL),
-    Chord::with(KeyCode::Char('w'), KeyModifiers::CONTROL),
-    Chord::with(KeyCode::Char('l'), KeyModifiers::CONTROL),
-    Chord::with(KeyCode::Char('b'), KeyModifiers::ALT),
-    Chord::with(KeyCode::Char('f'), KeyModifiers::ALT),
-    Chord::with(KeyCode::F(10), KeyModifiers::SHIFT),
-    Chord::key(KeyCode::Menu),
-];
+/// The edit-menu key.
+///
+/// A text control consumes `Shift+F10` to request its edit menu. The
+/// request is not a binding-table entry, so the conformance contract
+/// declares it here. Every case's binding audit proves that this is the
+/// only chord the control needs a legacy entry for.
+const EDIT_MENU_LEGACY_CHORDS: &[Chord] = &[Chord::with(KeyCode::F(10), KeyModifiers::SHIFT)];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum ProbeCmd {
@@ -419,7 +359,7 @@ impl Conformance for TextInputCase {
     }
 
     fn legacy_key_chords() -> &'static [Chord] {
-        CONTEXT_MENU_LEGACY_CHORDS
+        EDIT_MENU_LEGACY_CHORDS
     }
 
     fn mono_setup_chords(state: StateFlags) -> &'static [Chord] {
@@ -493,7 +433,7 @@ impl Conformance for FieldCase {
     }
 
     fn legacy_key_chords() -> &'static [Chord] {
-        CONTEXT_MENU_LEGACY_CHORDS
+        EDIT_MENU_LEGACY_CHORDS
     }
 
     fn mono_setup_chords(state: StateFlags) -> &'static [Chord] {
@@ -882,16 +822,6 @@ impl Conformance for DialogCase {
 
     fn bindings(s: BindingState) -> &'static [Binding<ButtonCmd>] {
         Button::new(LAUNCH, "").bindings(s)
-    }
-
-    fn legacy_key_chords() -> &'static [Chord] {
-        const CHORDS: &[Chord] = &[
-            Chord::key(KeyCode::Esc),
-            Chord::key(KeyCode::F(4)),
-            Chord::with(KeyCode::F(10), KeyModifiers::SHIFT),
-            Chord::key(KeyCode::Menu),
-        ];
-        CHORDS
     }
 
     fn dynamic_bindings(_fixture: &Fixture) -> Vec<(ActionKey, Chord)> {
@@ -1326,7 +1256,7 @@ impl Conformance for TextAreaCase {
     }
 
     fn legacy_key_chords() -> &'static [Chord] {
-        CONTEXT_MENU_LEGACY_CHORDS
+        EDIT_MENU_LEGACY_CHORDS
     }
 
     fn mono_setup_chords(state: StateFlags) -> &'static [Chord] {
@@ -3393,8 +3323,19 @@ impl Conformance for FilterListCase {
     fn bindings(state: BindingState) -> &'static [Binding<Self::Cmd>] {
         FilterList::<Item<'static>>::new(FILTER_LIST).bindings(state)
     }
+    fn nested_binding_chords() -> Vec<Chord> {
+        // The searchable list owns a query field that publishes the text
+        // control's table under the same owner.
+        TextInput::new(FILTER_LIST)
+            .bindings(BindingState {
+                flags: StateFlags::FOCUSED,
+            })
+            .iter()
+            .filter_map(|binding| binding.chord)
+            .collect()
+    }
     fn legacy_key_chords() -> &'static [Chord] {
-        QUERY_LEGACY_CHORDS
+        EDIT_MENU_LEGACY_CHORDS
     }
     fn item_keys(f: &Fixture) -> Vec<ItemKey> {
         f.rows.iter().map(|r| r.key).collect()
@@ -3500,8 +3441,19 @@ impl Conformance for PickerCase {
     fn bindings(state: BindingState) -> &'static [Binding<Self::Cmd>] {
         FilterList::<Item<'static>>::new(PICKER).bindings(state)
     }
+    fn nested_binding_chords() -> Vec<Chord> {
+        // The picker's query row is a text control that publishes its own
+        // table under the picker's owner.
+        TextInput::new(PICKER)
+            .bindings(BindingState {
+                flags: StateFlags::FOCUSED,
+            })
+            .iter()
+            .filter_map(|binding| binding.chord)
+            .collect()
+    }
     fn legacy_key_chords() -> &'static [Chord] {
-        PICKER_LEGACY_CHORDS
+        EDIT_MENU_LEGACY_CHORDS
     }
     fn item_keys(f: &Fixture) -> Vec<ItemKey> {
         f.rows.iter().map(|r| r.key).collect()
@@ -3647,7 +3599,6 @@ const MENU_ITEMS: [MenuItem<'static>; 2] = [
     MenuItem::new(ActionKey::CLOSE, "Close"),
 ];
 const MENUS: [Menu<'static>; 1] = [Menu::new("File", &MENU_ITEMS)];
-const CONTEXT_LEGACY_CHORDS: &[Chord] = &[Chord::key(KeyCode::F(4))];
 
 macro_rules! menu_case {
     ($case:ident, $name:literal, $id:ident, $ty:ty, $part:expr, $akey:expr, $make:expr, $dynamic:expr, $legacy:expr, $open:expr, $prepare:expr, $layer_draw:expr) => {
@@ -3711,7 +3662,7 @@ menu_case!(
         )
     },
     vec![(ActionKey::SAVE, Chord::key(KeyCode::Char('s')))],
-    CONTEXT_LEGACY_CHORDS,
+    &[],
     Chord::key(KeyCode::F(4)),
     |cx: &mut Cx<'_>, component: &ContextMenu<'_>| {
         if cx.intents(CONTEXT_MENU).any(
@@ -3826,10 +3777,6 @@ impl Conformance for HelpOverlayCase {
     fn bindings(state: BindingState) -> &'static [Binding<Self::Cmd>] {
         const EMPTY: &[HelpSection<'static>] = &[];
         HelpOverlay::new(HELP_OVERLAY, "Application", EMPTY).bindings(state)
-    }
-    fn legacy_key_chords() -> &'static [Chord] {
-        const CHORDS: &[Chord] = &[Chord::key(KeyCode::F(4))];
-        CHORDS
     }
     fn open_chord() -> Option<Chord> {
         Some(Chord::key(KeyCode::F(4)))
@@ -4128,7 +4075,7 @@ impl Conformance for FormCase {
     }
 
     fn legacy_key_chords() -> &'static [Chord] {
-        CONTEXT_MENU_LEGACY_CHORDS
+        EDIT_MENU_LEGACY_CHORDS
     }
 
     fn prepare_scroll_fixture(fixture: &mut Fixture) {
@@ -4168,6 +4115,27 @@ impl Conformance for FormCase {
     fn mono_narrowing_reason() -> &'static str {
         "SELECTED PRESSED DISABLED ERROR WARNING BUSY ACTIVE: Form's real secret TextInput child owns focus and editing; this fixture has no selection, disabled, validation, readiness, or active-item state"
     }
+}
+
+/// The edit-menu key is a real contract, not an allowlist filler: a text
+/// control consumes `Shift+F10` and asks its owner for the edit menu.
+#[test]
+fn the_edit_menu_key_requests_the_edit_menu() {
+    use termrock_test_support::conformance::driver::CaseApp;
+
+    let fixture = Fixture::default();
+    let mut harness = Harness::new(
+        CaseApp::<TextInputCase>::new(fixture),
+        Theme::junie(),
+        40,
+        12,
+    );
+    assert!(harness.tab_to(INPUT));
+    let _ = harness.key_mod(KeyCode::F(10), KeyModifiers::SHIFT);
+    assert!(
+        harness.app_mut().st.st.take_edit_menu_request().is_some(),
+        "Shift+F10 must request the edit menu"
+    );
 }
 
 conformance_suite!(
