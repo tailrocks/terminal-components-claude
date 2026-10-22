@@ -8,6 +8,8 @@ use std::sync::OnceLock;
 
 use crate::support::{self, Case, Color, Session};
 
+pub const TABLEPRO_QUERY_DURATION_MS: u64 = support::TABLEPRO_QUERY_DURATION_MS;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Bin {
     Showcase,
@@ -25,6 +27,13 @@ impl Bin {
             Bin::Tablepro => "tablepro",
             Bin::Jackin => "jackin-preview",
             Bin::Holla => "holla",
+        }
+    }
+
+    const fn query_duration_ms(self) -> Option<u64> {
+        match self {
+            Bin::Tablepro => Some(TABLEPRO_QUERY_DURATION_MS),
+            Bin::Showcase | Bin::Jackin | Bin::Holla => None,
         }
     }
 
@@ -281,6 +290,7 @@ impl Root {
                 sends: v.steps,
                 timeout_ms: v.timeout_ms,
                 env: self.env,
+                query_duration_ms: self.bin.query_duration_ms(),
             },
             None => Case {
                 name: name.into(),
@@ -296,6 +306,7 @@ impl Root {
                 },
                 timeout_ms: self.timeout_ms,
                 env: self.env,
+                query_duration_ms: self.bin.query_duration_ms(),
             },
         };
         if let Some((from_cols, from_rows)) = self.from {
