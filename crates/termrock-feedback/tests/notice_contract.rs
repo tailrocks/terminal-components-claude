@@ -33,7 +33,7 @@ fn draw_notice(
 
 fn expected_marker(theme: &Theme, kind: NoticeKind) -> &'static str {
     if kind == NoticeKind::ERROR {
-        theme.design.glyphs.get(GlyphRole::Error)
+        "!"
     } else if kind == NoticeKind::WARNING {
         theme.design.glyphs.get(GlyphRole::WarningMark)
     } else if kind == NoticeKind::INFO {
@@ -42,6 +42,36 @@ fn expected_marker(theme: &Theme, kind: NoticeKind) -> &'static str {
         assert_eq!(kind, NoticeKind::SUCCESS);
         "✓"
     }
+}
+
+#[test]
+fn default_error_marker_is_literal_and_explicit_override_uses_its_width() {
+    let mut theme = Theme::junie();
+    theme.design.glyphs.set(GlyphRole::Error, "!!");
+
+    let default = draw_notice(
+        Notice::error("x"),
+        theme.clone(),
+        ColorLevel::TrueColor,
+        10,
+        1,
+    );
+    assert_eq!(cell(&default, 0, 0).symbol(), "!");
+    assert_eq!(cell(&default, 0, 0).fg, theme.color.danger);
+    assert!(cell(&default, 0, 0).modifier.contains(Modifier::BOLD));
+    assert_eq!(cell(&default, 1, 0).symbol(), " ");
+    assert_eq!(cell(&default, 2, 0).symbol(), "x");
+
+    let overridden = draw_notice(
+        Notice::error("x").marker("界"),
+        theme,
+        ColorLevel::TrueColor,
+        12,
+        1,
+    );
+    assert_eq!(cell(&overridden, 0, 0).symbol(), "界");
+    assert_eq!(cell(&overridden, 2, 0).symbol(), " ");
+    assert_eq!(cell(&overridden, 3, 0).symbol(), "x");
 }
 
 #[test]
@@ -137,6 +167,73 @@ fn error_notice_uses_three_rows_and_measurement_matches_its_width() {
             "  Press Enter to retry",
         ]
     );
+}
+
+#[test]
+fn suppressed_detail_does_not_affect_measurement_or_rendering() {
+    let no_detail = Notice::new("x");
+    let suppressed = Notice::new("x")
+        .detail("a substantially longer suppressed detail")
+        .max_lines(0);
+    let mut plain = Scene::new(
+        "notice-no-detail",
+        Theme::junie(),
+        ColorLevel::TrueColor,
+        48,
+        7,
+    );
+    let mut hidden = Scene::new(
+        "notice-suppressed-detail",
+        Theme::junie(),
+        ColorLevel::TrueColor,
+        48,
+        7,
+    );
+    let area = Rect::new(3, 2, 40, 4);
+    let mut plain_size = None;
+    let mut hidden_size = None;
+    let mut plain_height = 0;
+    let mut hidden_height = 0;
+    plain.draw(|ui, _| {
+        plain_size = Some(no_detail.measure(ui, Constraints::loose(40, 4)));
+        plain_height = no_detail.height_for_width(ui, 40);
+        no_detail.draw(ui, area);
+    });
+    hidden.draw(|ui, _| {
+        hidden_size = Some(suppressed.measure(ui, Constraints::loose(40, 4)));
+        hidden_height = suppressed.height_for_width(ui, 40);
+        suppressed.draw(ui, area);
+    });
+
+    assert_eq!(plain_size.unwrap().preferred, (3, 1));
+    assert_eq!(plain_size, hidden_size);
+    assert_eq!(plain_height, hidden_height);
+    assert_eq!(plain.cursor_position(), hidden.cursor_position());
+    for y in 0..plain.area().height {
+        for x in 0..plain.area().width {
+            assert_eq!(
+                plain.buffer().cell((x, y)),
+                hidden.buffer().cell((x, y)),
+                "suppressed detail changed cell ({x},{y})"
+            );
+        }
+    }
+
+    let visible_detail = Notice::new("x")
+        .detail("a substantially longer visible detail")
+        .max_lines(1);
+    let mut visible = Scene::new(
+        "notice-visible-detail",
+        Theme::junie(),
+        ColorLevel::TrueColor,
+        48,
+        7,
+    );
+    let mut visible_size = None;
+    visible.draw(|ui, _| {
+        visible_size = Some(visible_detail.measure(ui, Constraints::loose(40, 4)));
+    });
+    assert!(visible_size.unwrap().preferred.0 > plain_size.unwrap().preferred.0);
 }
 
 #[test]
@@ -288,6 +385,83 @@ fn offset_area_clips_paint_and_marks_the_last_visible_cut_row() {
             .unwrap_or("")
             .contains("second…")
     );
+}
+
+#[test]
+fn long_control_hints_keep_visible_suffixes_bounded_and_inside_the_area() {
+    let controls = "\0".repeat(65_536);
+    let control_only = controls.as_str();
+    let with_suffix = format!("{controls}visible");
+    let sentinel = StylePatch::new()
+        .set_fg(Role::Custom(Color::Rgb(19, 29, 39)))
+        .set_bg(Role::Custom(Color::Rgb(49, 59, 69)))
+        .add(Modifier::UNDERLINED);
+
+    for width in [0, 1, 2, 6, 10] {
+        for (hint, expected) in [
+            (control_only, ""),
+            (
+                with_suffix.as_str(),
+                match width {
+                    6 => "vis…",
+                    10 => "visible",
+                    _ => "",
+                },
+            ),
+        ] {
+            let notice = Notice::new("x").hint(hint);
+            let mut scene = Scene::new(
+                "notice-long-control-hint",
+                Theme::junie(),
+                ColorLevel::TrueColor,
+                18,
+                6,
+            );
+            let area = Rect::new(3, 1, width, 3);
+            let mut height = 0;
+            let mut measured = None;
+            scene.draw(|ui, frame| {
+                ui.fill(frame, ui.paint_patch(&sentinel));
+                height = notice.height_for_width(ui, width);
+                measured = Some(notice.measure(ui, Constraints::loose(width, 3)));
+                notice.draw(ui, area);
+            });
+            assert_eq!(height, 2, "width={width}");
+            assert_eq!(measured.unwrap().preferred.1, 2, "width={width}");
+            assert_eq!(scene.cursor_position(), None, "width={width}");
+
+            let expected_scene = Scene::new(
+                "notice-long-control-hint-sentinel",
+                Theme::junie(),
+                ColorLevel::TrueColor,
+                18,
+                6,
+            );
+            let mut expected_scene = expected_scene;
+            expected_scene.draw(|ui, frame| ui.fill(frame, ui.paint_patch(&sentinel)));
+            for y in 0..6 {
+                for x in 0..18 {
+                    let inside =
+                        x >= area.x && x < area.right() && y >= area.y && y < area.bottom();
+                    if !inside {
+                        assert_eq!(
+                            scene.buffer().cell((x, y)),
+                            expected_scene.buffer().cell((x, y)),
+                            "hint painted outside width={width} at ({x},{y})"
+                        );
+                    }
+                }
+            }
+
+            let hint_y = area.y + 1;
+            let shown = (area.x + 2..area.right())
+                .map(|x| cell(&scene, x, hint_y).symbol())
+                .collect::<String>()
+                .trim_end()
+                .to_owned();
+            assert_eq!(shown, expected, "width={width}");
+        }
+    }
 }
 
 #[test]
