@@ -2300,21 +2300,20 @@ impl TableProApp {
     }
 
     fn update_delete_dialog(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        if self.connection_delete != ConnectionDelete::Open {
-            return Response::ignored();
-        }
+        let was_open = self.connection_delete == ConnectionDelete::Open;
         let question = self.delete_question.clone();
         let response = Dialog::destructive(DELETE_DIALOG, "Delete connection?", &question)
             .width(54)
             .update(cx, &mut self.delete_state);
-        let close = match response.action_ref() {
-            Some(DialogAction::Dismissed(_) | DialogAction::Action(ActionKey::CANCEL)) => true,
-            Some(DialogAction::Action(ActionKey::CONFIRM)) => {
-                self.remove_selected_connection();
-                true
-            }
-            _ => false,
-        };
+        let close = was_open
+            && match response.action_ref() {
+                Some(DialogAction::Dismissed(_) | DialogAction::Action(ActionKey::CANCEL)) => true,
+                Some(DialogAction::Action(ActionKey::CONFIRM)) => {
+                    self.remove_selected_connection();
+                    true
+                }
+                _ => false,
+            };
         if close {
             cx.close_layer(DELETE_DIALOG, None);
             self.connection_delete = ConnectionDelete::Closed;
