@@ -214,7 +214,16 @@ impl Traversal {
             };
             self.paths.insert(file.clone());
             self.sources.entry(file.clone()).or_insert(text);
-            let dir = module_directory(&file);
+            // Rust treats a path-attributed external module file like a
+            // `mod.rs` for child lookup. A normal `name.rs` instead gets its
+            // stem appended to the source file's parent.
+            let dir = if path_override.is_some() {
+                file.parent()
+                    .unwrap_or_else(|| Path::new("."))
+                    .to_path_buf()
+            } else {
+                module_directory(&file)
+            };
             if dir.as_os_str().is_empty() {
                 self.complete = false;
                 continue;
@@ -302,7 +311,7 @@ impl Traversal {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 struct ModuleDecl {
     name: Option<String>,
     path: Option<String>,
@@ -312,12 +321,13 @@ struct ModuleDecl {
     inline: Option<(usize, usize)>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 struct IncludeDecl {
     path: String,
     source_dir: PathBuf,
     module_dir: PathBuf,
     predicate: Predicate,
+    origin: usize,
 }
 
 #[derive(Debug)]
@@ -438,6 +448,7 @@ pub fn cfg_test_ranges(source: &str) -> Vec<LineRange> {
         },
         Predicate::ALWAYS,
         true,
+        false,
     ) {
         Some(parsed) if parsed.complete => normalize_ranges(parsed.test_ranges),
         _ => Vec::new(),
@@ -941,6 +952,7 @@ fn parse_source(
         },
         inherited,
         true,
+        true,
     )
 }
 
@@ -958,6 +970,7 @@ fn parse_scope(
     source_context: ParsePath<'_>,
     inherited: Predicate,
     collect_ranges: bool,
+    collect_body_routes: bool,
 ) -> Option<ParsedSource> {
     let mut parsed = ParsedSource {
         modules: Vec::new(),
@@ -1062,6 +1075,7 @@ fn parse_scope(
                     },
                     effective,
                     collect_ranges,
+                    collect_body_routes,
                 )?;
                 parsed.complete &= nested.complete;
                 parsed.modules.extend(nested.modules);
@@ -1107,6 +1121,7 @@ fn parse_scope(
             );
             record_test_attribute_imports(tokens, index, item_end, &mut imported_test_attributes);
             push_range(tokens, item_start, item_end, &mut parsed.test_ranges);
+            skipped_items.push((index, item_end, effective));
             if let Some(path) = include {
                 let source_dir = source_context
                     .file
@@ -1118,6 +1133,7 @@ fn parse_scope(
                     source_dir,
                     module_dir: source_context.module_dir.to_path_buf(),
                     predicate: effective,
+                    origin: index,
                 });
             }
             index = item_end;
@@ -1132,9 +1148,7 @@ fn parse_scope(
             parsed.complete = false;
             return Some(parsed);
         }
-        if !effective.test_only() && include.is_none() {
-            skipped_items.push((index, item_end));
-        }
+        skipped_items.push((index, item_end, effective));
         collect_use_derive_imports(
             tokens,
             index,
@@ -1154,6 +1168,7 @@ fn parse_scope(
                 source_dir,
                 module_dir: source_context.module_dir.to_path_buf(),
                 predicate: effective,
+                origin: index,
             });
         }
         index = item_end;
@@ -1172,17 +1187,264 @@ fn parse_scope(
         // arbitrary module items.
         parsed.complete = false;
     }
-    for (item_start, item_end) in skipped_items {
-        if skipped_item_has_unmodeled_routes(
-            tokens,
-            item_start,
-            item_end,
-            &imported_test_attributes,
-        ) {
+    for (item_start, item_end, effective) in skipped_items {
+        if !(collect_ranges && effective.test_only())
+            && skipped_item_has_unmodeled_routes(
+                tokens,
+                item_start,
+                item_end,
+                &imported_test_attributes,
+            )
+        {
             parsed.complete = false;
         }
+        if collect_body_routes {
+            let routes = collect_body_routes_in_item(
+                tokens,
+                item_start,
+                item_end,
+                source_context,
+                effective,
+            );
+            parsed.complete &= routes.complete;
+            parsed.modules.extend(routes.modules);
+            parsed.includes.extend(routes.includes);
+        }
     }
+    parsed.modules.sort();
+    parsed.modules.dedup();
+    parsed.includes.sort();
+    parsed.includes.dedup();
     Some(parsed)
+}
+
+#[derive(Clone)]
+struct InlineRouteContext {
+    open: usize,
+    close: usize,
+    module_dir: PathBuf,
+    predicate: Predicate,
+}
+
+#[derive(Clone, Copy)]
+struct BodyRouteContext<'a> {
+    source: ParsePath<'a>,
+    predicate: Predicate,
+    inline_scopes: &'a [InlineRouteContext],
+    known_include_origins: &'a BTreeSet<usize>,
+    depth: usize,
+}
+
+fn collect_body_routes_in_item(
+    tokens: &Tokens,
+    start: usize,
+    end: usize,
+    source_context: ParsePath<'_>,
+    inherited: Predicate,
+) -> ParsedSource {
+    let mut routes = ParsedSource {
+        modules: Vec::new(),
+        includes: Vec::new(),
+        test_ranges: Vec::new(),
+        complete: true,
+    };
+    if !matches!(
+        item_head(tokens, start, end),
+        Some("fn" | "impl" | "trait" | "const" | "static")
+    ) {
+        return routes;
+    }
+    let known_include_origins = BTreeSet::new();
+    scan_body_route_groups(
+        tokens,
+        start,
+        end,
+        BodyRouteContext {
+            source: source_context,
+            predicate: inherited,
+            inline_scopes: &[],
+            known_include_origins: &known_include_origins,
+            depth: 0,
+        },
+        &mut routes,
+    );
+    routes.modules.sort();
+    routes.modules.dedup();
+    routes.includes.sort();
+    routes.includes.dedup();
+    routes
+}
+
+fn collect_scope_body_routes(
+    tokens: &Tokens,
+    start: usize,
+    end: usize,
+    source_context: ParsePath<'_>,
+    inherited: Predicate,
+    depth: usize,
+    routes: &mut ParsedSource,
+) {
+    if depth >= 128 {
+        routes.complete = false;
+        return;
+    }
+    let Some(scope) = parse_scope(tokens, start, end, source_context, inherited, false, false)
+    else {
+        routes.complete = false;
+        return;
+    };
+    routes.complete &= scope.complete;
+    let inline_scopes = scope
+        .modules
+        .iter()
+        .filter_map(|module| {
+            let (body_start, close) = module.inline?;
+            Some(InlineRouteContext {
+                open: body_start.checked_sub(1)?,
+                close,
+                module_dir: module.module_dir.clone(),
+                predicate: module.predicate,
+            })
+        })
+        .collect::<Vec<_>>();
+    let known_include_origins = scope
+        .includes
+        .iter()
+        .map(|include| include.origin)
+        .collect::<BTreeSet<_>>();
+    routes.modules.extend(scope.modules);
+    routes.includes.extend(scope.includes);
+    scan_body_route_groups(
+        tokens,
+        start,
+        end,
+        BodyRouteContext {
+            source: source_context,
+            predicate: inherited,
+            inline_scopes: &inline_scopes,
+            known_include_origins: &known_include_origins,
+            depth: depth + 1,
+        },
+        routes,
+    );
+}
+
+fn scan_body_route_groups(
+    tokens: &Tokens,
+    start: usize,
+    end: usize,
+    context: BodyRouteContext<'_>,
+    routes: &mut ParsedSource,
+) {
+    if context.depth >= 128 {
+        routes.complete = false;
+        return;
+    }
+    let mut index = start;
+    while index < end {
+        if is_punct(tokens, index, '#') {
+            if let Some((next, _, attribute)) = parse_attribute(tokens, index, end) {
+                routes.complete &= attribute.complete;
+                index = next;
+            } else {
+                routes.complete = false;
+                index += 1;
+            }
+            continue;
+        }
+        if let Some((path, next)) = parse_include_invocation(tokens, index, end) {
+            if context.known_include_origins.contains(&index) {
+                index = next;
+                continue;
+            }
+            if let Some(path) = path {
+                let source_dir = context
+                    .source
+                    .file
+                    .parent()
+                    .unwrap_or_else(|| Path::new("."))
+                    .to_path_buf();
+                routes.includes.push(IncludeDecl {
+                    path,
+                    source_dir,
+                    module_dir: context.source.module_dir.to_path_buf(),
+                    predicate: context.predicate,
+                    origin: index,
+                });
+            } else {
+                routes.complete = false;
+            }
+            index = next;
+            continue;
+        }
+        if let Some((_, close)) = macro_invocation_group(tokens, index, end) {
+            if macro_starts_block_item(tokens, start, index) {
+                routes.complete = false;
+            }
+            index = close + 1;
+            if is_punct(tokens, index, ';') {
+                index += 1;
+            }
+            continue;
+        }
+        if is_open(tokens, index) {
+            let Some(close) = tokens.pairs.get(index).and_then(|value| *value) else {
+                routes.complete = false;
+                index += 1;
+                continue;
+            };
+            if is_punct(tokens, index, '{') {
+                if let Some(inline) = context
+                    .inline_scopes
+                    .iter()
+                    .find(|inline| inline.open == index && inline.close == close)
+                {
+                    let child_dir = inline.module_dir.clone();
+                    scan_body_route_groups(
+                        tokens,
+                        index + 1,
+                        close,
+                        BodyRouteContext {
+                            source: ParsePath {
+                                file: context.source.file,
+                                module_dir: &child_dir,
+                                path_base: &child_dir,
+                            },
+                            predicate: inline.predicate,
+                            inline_scopes: context.inline_scopes,
+                            known_include_origins: context.known_include_origins,
+                            depth: context.depth + 1,
+                        },
+                        routes,
+                    );
+                } else {
+                    collect_scope_body_routes(
+                        tokens,
+                        index + 1,
+                        close,
+                        context.source,
+                        context.predicate,
+                        context.depth + 1,
+                        routes,
+                    );
+                }
+            } else {
+                scan_body_route_groups(
+                    tokens,
+                    index + 1,
+                    close,
+                    BodyRouteContext {
+                        depth: context.depth + 1,
+                        ..context
+                    },
+                    routes,
+                );
+            }
+            index = close + 1;
+            continue;
+        }
+        index += 1;
+    }
 }
 
 fn parse_attribute(tokens: &Tokens, at: usize, end: usize) -> Option<(usize, bool, Attributes)> {
@@ -1715,38 +1977,64 @@ fn module_keyword(tokens: &Tokens, at: usize, end: usize) -> Option<usize> {
 }
 
 fn is_item_macro(tokens: &Tokens, at: usize, end: usize) -> bool {
+    macro_invocation_group(tokens, at, end).is_some()
+}
+
+fn macro_invocation_group(tokens: &Tokens, at: usize, end: usize) -> Option<(usize, usize)> {
     let mut index = at;
     if is_punct(tokens, index, ':') && is_punct(tokens, index + 1, ':') {
         index += 2;
     }
-    if ident_at(tokens, index).is_none() {
-        return false;
-    }
+    ident_at(tokens, index)?;
     index += 1;
     while is_punct(tokens, index, ':') && is_punct(tokens, index + 1, ':') {
         index += 2;
-        if ident_at(tokens, index).is_none() {
-            return false;
-        }
+        ident_at(tokens, index)?;
         index += 1;
     }
-    is_punct(tokens, index, '!') && is_open(tokens, index + 1) && index + 1 < end
+    if !is_punct(tokens, index, '!') || !is_open(tokens, index + 1) || index + 1 >= end {
+        return None;
+    }
+    let close = tokens.pairs.get(index + 1).and_then(|value| *value)?;
+    (close < end).then_some((index, close))
 }
 
 fn parse_static_include(tokens: &Tokens, at: usize, end: usize) -> Option<String> {
+    let (path, next) = parse_include_invocation(tokens, at, end)?;
+    if !is_punct(tokens, next.saturating_sub(1), ';') {
+        return None;
+    }
+    path
+}
+
+fn parse_include_invocation(
+    tokens: &Tokens,
+    at: usize,
+    end: usize,
+) -> Option<(Option<String>, usize)> {
     if ident_at(tokens, at) != Some("include")
         || !is_punct(tokens, at + 1, '!')
         || !is_punct(tokens, at + 2, '(')
-        || !is_punct(tokens, at + 4, ')')
-        || !is_punct(tokens, at + 5, ';')
-        || at + 6 > end
     {
         return None;
     }
-    match &tokens.values.get(at + 3)?.kind {
-        TokenKind::String(Some(path)) if !path.is_empty() => Some(path.clone()),
-        _ => None,
+    let close = tokens.pairs.get(at + 2).and_then(|value| *value)?;
+    if close >= end {
+        return None;
     }
+    let path = if close == at + 4 {
+        match &tokens.values.get(at + 3)?.kind {
+            TokenKind::String(Some(path)) if !path.is_empty() => Some(path.clone()),
+            _ => None,
+        }
+    } else {
+        None
+    };
+    let mut next = close + 1;
+    if is_punct(tokens, next, ';') {
+        next += 1;
+    }
+    Some((path, next))
 }
 
 fn skipped_item_has_unmodeled_routes(
@@ -1788,14 +2076,29 @@ fn skipped_item_has_unmodeled_routes(
             index = item_end;
             continue;
         }
-        if ident_at(tokens, index) == Some("mod")
-            && ident_at(tokens, index + 1).is_some()
-            && (is_punct(tokens, index + 2, ';') || is_punct(tokens, index + 2, '{'))
-        {
+        if ident_at(tokens, index) == Some("mod") {
+            if ident_at(tokens, index + 1).is_none() {
+                return true;
+            }
+            if is_punct(tokens, index + 2, ';') {
+                index += 3;
+                continue;
+            }
+            if is_punct(tokens, index + 2, '{')
+                && let Some(close) = tokens.pairs.get(index + 2).and_then(|value| *value)
+                && close < end
+            {
+                index = close + 1;
+                continue;
+            }
             return true;
         }
-        if ident_at(tokens, index) == Some("include") && is_punct(tokens, index + 1, '!') {
-            return true;
+        if let Some((path, next)) = parse_include_invocation(tokens, index, end) {
+            if path.is_none() {
+                return true;
+            }
+            index = next;
+            continue;
         }
         if is_item_macro(tokens, index, end) && macro_starts_block_item(tokens, start, index) {
             return true;
