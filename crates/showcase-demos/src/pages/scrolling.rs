@@ -1,5 +1,6 @@
 use termrock::{
-    Color, Cx, Id, Modifier, PaintStyle, Rect, TextViewport, Ui, ViewportLine, ViewportState,
+    Color, Cx, Family, FgStep, Id, Modifier, PaintStyle, Part, Rect, Role, ScrollState, Slot, Span,
+    StateFlags, StylePatch, Surface, TextViewport, Ui, Variant, ViewportLine, ViewportState,
     truncate, width, wrap,
 };
 
@@ -8,6 +9,12 @@ use showcase_data::{PROSE, SCROLL_ROWS, log_lines};
 use super::{Page, PageUpdate, frame};
 
 const LIST_VIEW: Id = termrock::Id::root("showcase_ui::pages::scrolling::scrolling.list");
+const HAND_VIEW: Id = termrock::Id::root("showcase_ui::pages::scrolling::scrolling.hand");
+const DIV_FITS_VIEW: Id =
+    termrock::Id::root("showcase_ui::pages::scrolling::scrolling.divider.fits");
+const DIV_OVER_VIEW: Id =
+    termrock::Id::root("showcase_ui::pages::scrolling::scrolling.divider.over");
+const CURSOR_VIEW: Id = termrock::Id::root("showcase_ui::pages::scrolling::scrolling.cursor");
 
 const BLURB: &str = "Wheel under the pointer, keys on the focused container, thumb shows where you are, edges fade toward hidden rows";
 const SECTIONS: [&str; 3] = ["Playground", "Options", "States"];
@@ -33,6 +40,9 @@ const FAINT: u32 = 0x737373;
 const RULE: u32 = 0x3a3a3a;
 const ACCENT: u32 = 0x48e054;
 const TAB_ACTIVE: u32 = 0x27272a;
+// Gap: the mechanics panes ride TextViewport, whose bar is wired to the
+// viewport family. These pins replay the scrollbar theme tokens until the
+// viewport bar can select the scrollbar family.
 const THUMB: u32 = 0x808080;
 const TRACK: u32 = 0x474747;
 const WARNING: u32 = 0xf59e09;
@@ -246,19 +256,54 @@ fn position(offset: usize, viewport: usize, total: usize) -> String {
     format!("{}–{} of {}", offset.saturating_add(1), end, total)
 }
 
-fn thumb_len(viewport: usize, content: usize, track: usize) -> usize {
-    if content <= viewport || track == 0 {
-        return 0;
+/// The shared scrollbar geometry: the thumb covers the share of the track
+/// the viewport shows, snapped to the end once the view rests there. A
+/// viewport that fits its content shows no bar at all.
+fn bar_state(viewport: usize, content: usize, at_end: bool) -> Option<ScrollState> {
+    let mut state = ScrollState::new(content);
+    state.set_viewport(viewport);
+    if !state.overflows() {
+        return None;
     }
-    viewport
-        .saturating_mul(track)
-        .checked_div(content)
-        .unwrap_or(0)
-        .clamp(1, track)
+    if at_end {
+        state.jump_end();
+    }
+    Some(state)
 }
 
-fn thumb_start(len: usize, track: usize, at_end: bool) -> usize {
-    if at_end { track.saturating_sub(len) } else { 0 }
+/// A shared scrollbar ink: the foreground comes from the scrollbar theme,
+/// the background stays the card surface.
+fn bar_ink(ui: &Ui<'_>, part: Part) -> PaintStyle {
+    let surface = ui.theme_ref().bg(Surface::Surface);
+    ui.resolve(
+        Family::SCROLLBAR,
+        Variant::DEFAULT,
+        part,
+        StateFlags::empty(),
+    )
+    .style
+    .bg(surface)
+}
+
+/// A shared scrollbar glyph: the vertical pair comes from the scrollbar
+/// theme.
+fn bar_glyph(ui: &Ui<'_>, part: Part) -> &'static str {
+    let resolved = ui.resolve(
+        Family::SCROLLBAR,
+        Variant::DEFAULT,
+        part,
+        StateFlags::empty(),
+    );
+    match resolved.glyph {
+        Slot::Set(glyph) => ui.glyph_str(glyph),
+        Slot::Inherit | Slot::Clear => {
+            if part == Part::THUMB {
+                "┃"
+            } else {
+                "┆"
+            }
+        }
+    }
 }
 
 fn fade_row(index: usize, viewport: usize, offset: usize, total: usize) -> bool {
@@ -326,32 +371,39 @@ fn paint_card(ui: &mut Ui<'_>, card: Rect, title: &str, meta: &str) {
 }
 
 fn paint_vbar(ui: &mut Ui<'_>, area: Rect, viewport: usize, content: usize, at_end: bool) {
-    let len = thumb_len(viewport, content, usize::from(area.height));
-    if len == 0 {
+    let Some(state) = bar_state(viewport, content, at_end) else {
         return;
-    }
-    let origin = thumb_start(len, usize::from(area.height), at_end);
+    };
+    let (start, len) = state.thumb(usize::from(area.height));
+    let thumb = bar_ink(ui, Part::THUMB);
+    let track = bar_ink(ui, Part::TRACK);
+    let thumb_glyph = bar_glyph(ui, Part::THUMB);
+    let track_glyph = bar_glyph(ui, Part::TRACK);
     for row in 0..area.height {
-        let on = usize::from(row) >= origin && usize::from(row) < origin.saturating_add(len);
+        let on = usize::from(row) >= start && usize::from(row) < start.saturating_add(len);
         let _ = ui.paint_str(
             Rect::new(area.x, area.y.saturating_add(row), 1, 1),
-            if on { "┃" } else { "┆" },
-            ink(if on { THUMB } else { TRACK }, SURFACE),
+            if on { thumb_glyph } else { track_glyph },
+            if on { thumb } else { track },
         );
     }
 }
 
 fn paint_hbar(ui: &mut Ui<'_>, area: Rect, viewport: usize, content: usize) {
-    let len = thumb_len(viewport, content, usize::from(area.width));
-    if len == 0 {
+    let Some(state) = bar_state(viewport, content, false) else {
         return;
-    }
+    };
+    let (start, len) = state.thumb(usize::from(area.width));
+    // The horizontal pair has no theme role; the viewport's own overflow
+    // bar paints the same two literals.
+    let thumb = bar_ink(ui, Part::THUMB);
+    let track = bar_ink(ui, Part::TRACK);
     for col in 0..area.width {
-        let on = usize::from(col) < len;
+        let on = usize::from(col) >= start && usize::from(col) < start.saturating_add(len);
         let _ = ui.paint_str(
             Rect::new(area.x.saturating_add(col), area.y, 1, 1),
             if on { "━" } else { "┄" },
-            ink(if on { THUMB } else { TRACK }, SURFACE),
+            if on { thumb } else { track },
         );
     }
 }
@@ -583,6 +635,39 @@ fn paint_list_rows(ui: &mut Ui<'_>, area: Rect, offset: usize) {
     );
 }
 
+fn hand_view() -> TextViewport<'static> {
+    TextViewport::new(HAND_VIEW).reserve_gutter(false)
+}
+
+/// The bar behind the hand table keeps the frozen demo inks: the viewport
+/// paints its own bar family and cannot select the scrollbar one.
+const HAND_BAR: &[(Part, StylePatch)] = &[
+    (
+        Part::CONTAINER,
+        StylePatch::new().set_bg(Role::Surface(Surface::Surface)),
+    ),
+    (
+        Part::TEXT,
+        StylePatch::new().set_bg(Role::Surface(Surface::Surface)),
+    ),
+    (
+        Part::TRACK,
+        StylePatch::new().set_fg(Role::Custom(Color::Rgb(
+            ((TRACK >> 16) & 0xff) as u8,
+            ((TRACK >> 8) & 0xff) as u8,
+            (TRACK & 0xff) as u8,
+        ))),
+    ),
+    (
+        Part::THUMB,
+        StylePatch::new().set_fg(Role::Custom(Color::Rgb(
+            ((THUMB >> 16) & 0xff) as u8,
+            ((THUMB >> 8) & 0xff) as u8,
+            (THUMB & 0xff) as u8,
+        ))),
+    ),
+];
+
 fn paint_hand(ui: &mut Ui<'_>, area: Rect) {
     if area.height < 3 || area.width < 2 {
         return;
@@ -597,35 +682,40 @@ fn paint_hand(ui: &mut Ui<'_>, area: Rect) {
         SURFACE,
     );
     let body_h = area.height.saturating_sub(2);
-    let viewport = usize::from(body_h);
-    for index in 0..viewport {
-        let y = area
-            .y
-            .saturating_add(1)
-            .saturating_add(u16::try_from(index).unwrap_or(0));
-        let edge = fade_row(index, viewport, 0, HAND_ROWS);
-        let color = if index == 0 { WHITE } else { SECONDARY };
-        let line = hand_visible(Some(index), text_w);
-        paint_span(
-            ui,
-            Rect::new(area.x, y, text_w, 1),
-            &line,
-            faded(color, edge),
-            SURFACE,
-        );
+    // The hand table scrolls through the shared viewport: the rows keep
+    // their demo inks as span roles, the viewport owns the edge fade and
+    // the bar. The lines stay padded so the fill matches the hand fill.
+    // All rows ride along so the bar sees the full content height.
+    let mut texts = Vec::with_capacity(HAND_ROWS);
+    for index in 0..HAND_ROWS {
+        texts.push(hand_visible(Some(index), text_w));
     }
-    paint_vbar(
-        ui,
-        Rect::new(
-            area.right().saturating_sub(1),
-            area.y.saturating_add(1),
-            1,
-            body_h,
-        ),
-        viewport,
-        HAND_ROWS,
-        false,
+    let spans: Vec<Span<'_>> = texts
+        .iter()
+        .enumerate()
+        .map(|(index, text)| {
+            let role = if index == 0 {
+                Role::Fg(FgStep::Primary)
+            } else {
+                Role::Fg(FgStep::Secondary)
+            };
+            Span::new(text).role(role)
+        })
+        .collect();
+    let lines: Vec<ViewportLine<'_>> = spans
+        .iter()
+        .map(|span| ViewportLine::Spans(std::slice::from_ref(span)))
+        .collect();
+    let body = Rect::new(
+        area.x,
+        area.y.saturating_add(1),
+        text_w.saturating_add(1),
+        body_h,
     );
+    let state = ViewportState::default();
+    let _ = hand_view()
+        .patch_part(HAND_BAR)
+        .draw(ui, body, &state, &lines);
     let cols = (usize::from(text_w) / HAND_W).max(1);
     paint_hbar(
         ui,
@@ -672,71 +762,97 @@ fn paint_dividers(ui: &mut Ui<'_>, area: Rect) {
         let body = Rect::new(rect.x, rect.y.saturating_add(1), rect.width, rows);
         let text_w = body.width.saturating_sub(2);
         let viewport = usize::from(body.height);
-        for index in 0..viewport.min(total) {
-            let y = body.y.saturating_add(u16::try_from(index).unwrap_or(0));
+        // Each pane scrolls through the shared viewport: the rows keep the
+        // demo ink as a span role, the viewport owns the edge fade and the
+        // bar. The fitting pane rides its exact row count so no bar appears.
+        let count = if bar { total } else { viewport.min(total) };
+        let mut texts = Vec::with_capacity(count);
+        for index in 0..count {
             let label = format!("item {}", index.saturating_add(1));
             let shown = if width(&label) <= text_w {
                 label
             } else {
                 truncate(&label, text_w)
             };
-            paint_span(
-                ui,
-                Rect::new(body.x, y, text_w, 1),
-                &shown,
-                SECONDARY,
-                SURFACE,
-            );
-            if bar {
-                continue;
-            }
-            let _ = ui.paint_str(
-                Rect::new(body.right().saturating_sub(1), y, 1, 1),
-                "│",
-                ink(RULE, SURFACE),
-            );
+            let pad = usize::from(text_w.saturating_sub(width(&shown)));
+            texts.push(format!("{shown}{}", " ".repeat(pad)));
         }
-        if bar {
-            paint_vbar(
-                ui,
-                Rect::new(body.right().saturating_sub(1), body.y, 1, body.height),
-                viewport,
-                total,
-                false,
-            );
+        let spans: Vec<Span<'_>> = texts
+            .iter()
+            .map(|text| Span::new(text).role(Role::Fg(FgStep::Secondary)))
+            .collect();
+        let lines: Vec<ViewportLine<'_>> = spans
+            .iter()
+            .map(|span| ViewportLine::Spans(std::slice::from_ref(span)))
+            .collect();
+        let view = Rect::new(body.x, body.y, body.width.saturating_sub(1), body.height);
+        let state = ViewportState::default();
+        let pane = TextViewport::new(if bar { DIV_OVER_VIEW } else { DIV_FITS_VIEW })
+            .reserve_gutter(false)
+            .patch_part(HAND_BAR);
+        let _ = pane.draw(ui, view, &state, &lines);
+        if !bar {
+            for index in 0..count {
+                let y = body.y.saturating_add(u16::try_from(index).unwrap_or(0));
+                let _ = ui.paint_str(
+                    Rect::new(body.right().saturating_sub(1), y, 1, 1),
+                    "│",
+                    ink(RULE, SURFACE),
+                );
+            }
         }
     }
 }
 
 fn paint_cursor(ui: &mut Ui<'_>, area: Rect) {
     let open = (0..LIST_LEN).filter(|index| index % 10 != 9).count();
-    let lines = [
-        ("row 1 · vertical".to_owned(), SECONDARY),
-        ("wrap off · skip disabled on".to_owned(), SECONDARY),
-        (format!("RowFn: {open} of {LIST_LEN} open"), SECONDARY),
-        ("Last: no key yet".to_owned(), SECONDARY),
-        ("KeyStep: Nav · Type".to_owned(), FAINT),
-        ("Moved: To · Stayed · Ignored".to_owned(), FAINT),
-        ("Desktop · 1s · shortcuts first".to_owned(), SECONDARY),
+    // The cursor readout scrolls through the shared viewport: the lines
+    // keep their demo inks as span roles, the viewport owns the edge fade.
+    // The readout never grows a bar, so only the visible rows ride along.
+    let rows = [
+        ("row 1 · vertical".to_owned(), Role::Fg(FgStep::Secondary)),
+        (
+            "wrap off · skip disabled on".to_owned(),
+            Role::Fg(FgStep::Secondary),
+        ),
+        (
+            format!("RowFn: {open} of {LIST_LEN} open"),
+            Role::Fg(FgStep::Secondary),
+        ),
+        ("Last: no key yet".to_owned(), Role::Fg(FgStep::Secondary)),
+        ("KeyStep: Nav · Type".to_owned(), Role::Fg(FgStep::Faint)),
+        (
+            "Moved: To · Stayed · Ignored".to_owned(),
+            Role::Fg(FgStep::Faint),
+        ),
+        (
+            "Desktop · 1s · shortcuts first".to_owned(),
+            Role::Fg(FgStep::Secondary),
+        ),
     ];
-    for (index, (line, color)) in lines.iter().enumerate() {
-        let Ok(offset) = u16::try_from(index) else {
-            break;
-        };
-        if offset >= area.height {
-            break;
-        }
-        let shown = if width(line) <= area.width {
+    let count = usize::from(area.height).min(rows.len());
+    let mut texts = Vec::with_capacity(count);
+    for (line, _) in rows.iter().take(count) {
+        texts.push(if width(line) <= area.width {
             line.clone()
         } else {
             truncate(line, area.width)
-        };
-        let _ = ui.paint_str(
-            Rect::new(area.x, area.y.saturating_add(offset), area.width, 1),
-            &shown,
-            ink(*color, SURFACE),
-        );
+        });
     }
+    let spans: Vec<Span<'_>> = texts
+        .iter()
+        .zip(rows.iter().map(|(_, role)| *role))
+        .map(|(text, role)| Span::new(text).role(role))
+        .collect();
+    let lines: Vec<ViewportLine<'_>> = spans
+        .iter()
+        .map(|span| ViewportLine::Spans(std::slice::from_ref(span)))
+        .collect();
+    let state = ViewportState::default();
+    let _ = TextViewport::new(CURSOR_VIEW)
+        .reserve_gutter(false)
+        .patch_part(HAND_BAR)
+        .draw(ui, area, &state, &lines);
 }
 
 fn paint_mechanics(ui: &mut Ui<'_>, area: Rect) {
@@ -1049,17 +1165,39 @@ fn paint_page_thumb(ui: &mut Ui<'_>, area: Rect) {
         return;
     }
     let track = usize::from(area.height);
-    let len = thumb_len(1, 3, track);
-    if len == 0 {
+    let Some(state) = bar_state(1, 3, false) else {
         return;
-    }
+    };
+    let (start, len) = state.thumb(track);
+    let canvas = ui.theme_ref().bg(Surface::Canvas);
+    let resolve = |part| {
+        let hit = ui.resolve(
+            Family::SCROLLBAR,
+            Variant::DEFAULT,
+            part,
+            StateFlags::empty(),
+        );
+        let glyph = match hit.glyph {
+            Slot::Set(glyph) => ui.glyph_str(glyph),
+            Slot::Inherit | Slot::Clear => {
+                if part == Part::THUMB {
+                    "┃"
+                } else {
+                    "┆"
+                }
+            }
+        };
+        (hit.style.bg(canvas), glyph)
+    };
+    let (thumb_style, thumb_glyph) = resolve(Part::THUMB);
+    let (track_style, track_glyph) = resolve(Part::TRACK);
     let x = area.right().saturating_sub(1);
     for row in 0..area.height {
-        let on = usize::from(row) < len;
+        let on = usize::from(row) >= start && usize::from(row) < start.saturating_add(len);
         let _ = ui.paint_str(
             Rect::new(x, area.y.saturating_add(row), 1, 1),
-            if on { "┃" } else { "┆" },
-            ink(if on { THUMB } else { TRACK }, CANVAS),
+            if on { thumb_glyph } else { track_glyph },
+            if on { thumb_style } else { track_style },
         );
     }
 }
