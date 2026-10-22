@@ -548,6 +548,70 @@ The test-integrity review also ran the detection experiments: the new
 the new `no_false_parity.rs` test fails on its parent (3 of 7 fail), so the
 new tests do detect the old behaviour.
 
+### Independent adjudication of the palette conflict (CLEARED)
+
+An independent, read-only adjudicator worked in a separate worktree and
+pushed its verdict to `wip/oracle-adjudication-20261022` (commit
+`2f987b2`). Verdict: **CLEARED**, and `ec783f6c5` stands while `b4b1a3346`
+does not.
+
+Its measurements, on the decoded approved frames:
+
+| Value | Correct | Evidence |
+| --- | --- | --- |
+| muted and operator ink | `0x8a8a8a` | 206 437 cells; the operator runs read `#8a8a8a` |
+| faint and comment ink | `0x737373` | 33 603 cells; the comment runs read `#737373` |
+| keyword | `#79b8ff`, bold | the bold attribute is confirmed in the frames |
+| string and literal | `#8bd5ca` and `#c6a0f6`, italic | 1 154 italic cells |
+| 256 tier | 111, 116, 183, 245, 242 | the `38;5;` values match |
+| 16 tier | LightBlue, Cyan, LightMagenta | `38;5;12`, `38;5;6`, `38;5;13` |
+| scroll track | `┆` (U+2506) in `#474747` | `│` is the DIVIDER, in `#4d4d4d`, `#262626`, `#3a3a3a` |
+
+The adjudicator also found that the tag's snapshot store mixes two
+vintages: 66 frames at 120x40 truecolor approved on 2026-09-13 and 14 still
+carry `0x808080`, `0x4d4d4d` and the `│` track, while 241 frames
+re-approved on 2026-10-16 and later carry the frozen values. The converted
+corpus was built from exactly the stale subset. The 231 component digest
+failures were not one cause: 132 were palette-sensitive and 99 fail under
+either palette because of a product change.
+
+Reference defects recorded by the adjudicator, both results preserved:
+
+- R-1: the converted corpus measures a different product, so it cannot
+  decide the palette.
+- R-2: the tag's frame store mixes vintages, so a single frame is not a
+  single oracle.
+- R-3: the re-bless at `37f55475f7` was taken from an uncommitted tree.
+
+The two remaining `render::components::picker_chain` failures are HELD as
+an open product/reference conflict: reverting the error ink, the ramp or
+the track glyph fixes neither, and the ramp revert adds six failures.
+
+### Stream results, second wave
+
+**Conformance chord allowlist — landed.** The `legacy_key_chords` allowlist
+had grown to 93 entries across seven lists, so the check could no longer
+fail. The declared set now includes the real child tables and each case's
+open chord, the list is the exact set of chords a case consumes without a
+declared table, and the edit-menu chord is proved by a focused test. The
+allowlist is down to one entry.
+
+**Jackin accounts page — landed.** The tree hit regions, the narrow list
+scroll, the range indicator, the committed-filter key handling, the hint
+bar keys, the add-row region, the filtered title width and the sentinel
+rows are corrected. The three oracle-approved accounts frames match cell for
+cell again: `jackin::accounts::detail/120x40/truecolor` 946 to 0 cells,
+`drawer` 931 to 0, `filter` 201 to 0.
+
+**Showcase pages — landed.** The task runner card paints a seam under a
+secondary title, the terminal page keeps its count, step durations and
+footer off the panel title and border, the pages advertise only the keys
+they handle, the section strip is one shared implementation with theme
+tokens, the chrome page uses the shared scrollbar, and the false-parity
+guard walks every page module and detects a captured cell table by shape
+rather than by spelling. The task runner page-region difference fell from
+1 183 to 310 cells at 120x40 truecolor.
+
 ## Coverage gaps
 
 ### False-parity inventory (read-only audit, revision `40bc297e5`)
