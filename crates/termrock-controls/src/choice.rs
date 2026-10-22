@@ -41,6 +41,28 @@ pub enum RadioNavigation {
     Deferred,
 }
 
+/// The three values of an opt-in tri-state checkbox.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+#[non_exhaustive]
+pub enum CheckboxState {
+    /// The checkbox is not selected.
+    #[default]
+    Unchecked,
+    /// The checkbox is selected.
+    Checked,
+    /// The checkbox represents a partial selection.
+    Mixed,
+}
+
+impl CheckboxState {
+    const fn after_activation(self) -> Self {
+        match self {
+            Self::Checked => Self::Unchecked,
+            Self::Unchecked | Self::Mixed => Self::Checked,
+        }
+    }
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ChoiceCmd {
     Choose,
@@ -192,6 +214,7 @@ pub struct Checkbox<'a> {
     id: Id,
     label: &'a str,
     checked: bool,
+    mixed: bool,
     read_only: bool,
     disabled: bool,
     ov: PartStyle<'a>,
@@ -203,6 +226,7 @@ impl fmt::Debug for Checkbox<'_> {
             .field("id", &self.id)
             .field("label", &self.label)
             .field("checked", &self.checked)
+            .field("mixed", &self.mixed)
             .field("read_only", &self.read_only)
             .field("disabled", &self.disabled)
             .finish_non_exhaustive()
@@ -219,6 +243,7 @@ impl<'a> Checkbox<'a> {
             id,
             label,
             checked: false,
+            mixed: false,
             read_only: false,
             disabled: false,
             ov: PartStyle::new(),
@@ -228,6 +253,27 @@ impl<'a> Checkbox<'a> {
     #[must_use]
     pub const fn checked(mut self, yes: bool) -> Self {
         self.checked = yes;
+        self.mixed = false;
+        self
+    }
+
+    /// Sets the checkbox value for drawing a tri-state checkbox.
+    #[must_use]
+    pub const fn state(mut self, state: CheckboxState) -> Self {
+        match state {
+            CheckboxState::Unchecked => {
+                self.checked = false;
+                self.mixed = false;
+            }
+            CheckboxState::Checked => {
+                self.checked = true;
+                self.mixed = false;
+            }
+            CheckboxState::Mixed => {
+                self.checked = false;
+                self.mixed = true;
+            }
+        }
         self
     }
 
@@ -270,20 +316,21 @@ impl<'a> Checkbox<'a> {
             id: self.id,
             label: self.label,
             checked: self.checked,
+            mixed: self.mixed,
             read_only: self.read_only,
             disabled: self.disabled || inherited,
             ov: self.ov,
         }
     }
 
-    pub fn update(&self, cx: &mut Cx<'_>, value: &mut bool) -> Response<Activated> {
+    fn update_with(&self, cx: &mut Cx<'_>, mut activate: impl FnMut()) -> Response<Activated> {
         let mut acc = Acc::<Activated>::new();
         let can = self.editable();
         for it in cx.intents(self.id) {
             match it {
                 Intent::Binding(action) if can => {
                     if Binding::command(FLAG, action).is_some() {
-                        *value = !*value;
+                        activate();
                         acc.action(Activated);
                     }
                 }
@@ -291,7 +338,7 @@ impl<'a> Checkbox<'a> {
                     phase: Phase::Click | Phase::DoubleClick,
                     ..
                 } if can => {
-                    *value = !*value;
+                    activate();
                     acc.action(Activated);
                 }
                 Intent::Pointer { .. } => acc.consumed(),
@@ -299,6 +346,17 @@ impl<'a> Checkbox<'a> {
             }
         }
         acc.finish(self.id)
+    }
+
+    /// Updates a two-state checkbox without changing its existing bool API.
+    pub fn update(&self, cx: &mut Cx<'_>, value: &mut bool) -> Response<Activated> {
+        self.update_with(cx, || *value = !*value)
+    }
+
+    /// Updates an opt-in tri-state checkbox. An activation moves Mixed to
+    /// Checked, Checked to Unchecked, and Unchecked to Checked.
+    pub fn update_state(&self, cx: &mut Cx<'_>, value: &mut CheckboxState) -> Response<Activated> {
+        self.update_with(cx, || *value = (*value).after_activation())
     }
 
     pub fn update_in_form(
@@ -309,6 +367,17 @@ impl<'a> Checkbox<'a> {
     ) -> Response<Activated> {
         self.with_inherited_disabled(inherited_disabled)
             .update(cx, value)
+    }
+
+    /// Updates a tri-state checkbox while applying its inherited form state.
+    pub fn update_state_in_form(
+        &self,
+        cx: &mut Cx<'_>,
+        value: &mut CheckboxState,
+        inherited_disabled: bool,
+    ) -> Response<Activated> {
+        self.with_inherited_disabled(inherited_disabled)
+            .update_state(cx, value)
     }
 
     fn natural_width(&self) -> u16 {
@@ -324,7 +393,7 @@ impl<'a> Checkbox<'a> {
         }
 
         let mut derived = StateFlags::empty();
-        if self.checked {
+        if self.checked || self.mixed {
             derived |= StateFlags::CHECKED | StateFlags::SELECTED;
         }
         if self.read_only {
@@ -334,7 +403,7 @@ impl<'a> Checkbox<'a> {
             derived |= StateFlags::DISABLED;
         }
         let mut live = PartStyle::flags(crate::ui::FrameRead::state(ui, self.id), derived);
-        if !self.checked {
+        if !(self.checked || self.mixed) {
             live = live.difference(StateFlags::SELECTED);
         }
         if self.disabled {
@@ -352,6 +421,7 @@ impl<'a> Checkbox<'a> {
             ui.publish_bindings(self.id, live, FLAG);
         }
         let on = live.contains(StateFlags::CHECKED);
+        let mixed = self.mixed;
         FlagRow {
             id: self.id,
             ov: self.ov,
@@ -364,12 +434,17 @@ impl<'a> Checkbox<'a> {
             area,
             live,
             &move |ui: &mut Ui<'_>, cell: Rect, style| {
-                let g = if on {
-                    GlyphRole::CheckboxOn
+                if mixed {
+                    let mark = if cell.width >= 3 { "[-]" } else { "-" };
+                    ui.paint_str(cell, mark, style);
                 } else {
-                    GlyphRole::CheckboxOff
-                };
-                ui.glyph(cell, g, style);
+                    let g = if on {
+                        GlyphRole::CheckboxOn
+                    } else {
+                        GlyphRole::CheckboxOff
+                    };
+                    ui.glyph(cell, g, style);
+                }
             },
         )
     }
@@ -383,6 +458,19 @@ impl<'a> Checkbox<'a> {
     ) -> Rect {
         self.with_inherited_disabled(inherited_disabled)
             .checked(value)
+            .draw(ui, area)
+    }
+
+    /// Draws an opt-in tri-state checkbox with inherited form state.
+    pub fn draw_state_in_form(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        value: CheckboxState,
+        inherited_disabled: bool,
+    ) -> Rect {
+        self.with_inherited_disabled(inherited_disabled)
+            .state(value)
             .draw(ui, area)
     }
 
