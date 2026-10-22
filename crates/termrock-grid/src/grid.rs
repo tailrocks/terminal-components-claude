@@ -797,6 +797,10 @@ impl GridState {
         changed
     }
 
+    pub fn set_scroll_reveal(&mut self, row: usize) {
+        self.core.scroll_mut().ensure_visible_on_next_layout(row);
+    }
+
     pub const fn col_offset(&self) -> usize {
         self.col_offset
     }
