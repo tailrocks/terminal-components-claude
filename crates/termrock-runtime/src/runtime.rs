@@ -1568,29 +1568,34 @@ impl<A: App> Runtime<A> {
         frame: &mut Frame<'_>,
     ) -> Result<bool, PreparedFrameError> {
         let actual = frame.area();
-        let Some(output) = self.prepared.as_ref() else {
-            return Err(PreparedFrameError::Stale);
+        let runtime_id = self.services.runtime_id;
+        let generation = self.prepared_generation;
+        let result = if let Some(output) = self.prepared.as_mut() {
+            if token.runtime != runtime_id
+                || token != output.token
+                || token.generation != generation
+            {
+                Err(PreparedFrameError::Stale)
+            } else if token.area != actual {
+                Err(PreparedFrameError::AreaChanged {
+                    expected: token.area,
+                    actual,
+                })
+            } else {
+                frame.buffer_mut().merge(&output.buffer);
+                if let Some(cursor) = output.cursor {
+                    frame.set_cursor_position(cursor);
+                }
+                output.projected = true;
+                Ok(output.cursor_bar)
+            }
+        } else {
+            Err(PreparedFrameError::Stale)
         };
-        if token.runtime != self.services.runtime_id
-            || token != output.token
-            || token.generation != self.prepared_generation
-        {
-            return Err(PreparedFrameError::Stale);
-        }
-        if token.area != actual {
+        if matches!(&result, Err(PreparedFrameError::AreaChanged { .. })) {
             self.invalidate_prepared();
-            return Err(PreparedFrameError::AreaChanged {
-                expected: token.area,
-                actual,
-            });
         }
-        let output = self.prepared.as_mut().expect("validated prepared frame");
-        frame.buffer_mut().merge(&output.buffer);
-        if let Some(cursor) = output.cursor {
-            frame.set_cursor_position(cursor);
-        }
-        output.projected = true;
-        Ok(output.cursor_bar)
+        result
     }
 
     /// Mark a prepared frame as physically presented after the terminal backend succeeds.
@@ -1598,16 +1603,12 @@ impl<A: App> Runtime<A> {
         &mut self,
         token: PreparedFrame,
     ) -> Result<(), PreparedFrameError> {
-        let Some(output) = self.prepared.as_ref() else {
+        let runtime_id = self.services.runtime_id;
+        let Some(output) = self.prepared.take_if(|output| {
+            token.runtime == runtime_id && token == output.token && output.projected
+        }) else {
             return Err(PreparedFrameError::Stale);
         };
-        if token.runtime != self.services.runtime_id || token != output.token {
-            return Err(PreparedFrameError::Stale);
-        }
-        if !output.projected {
-            return Err(PreparedFrameError::Stale);
-        }
-        let output = self.prepared.take().expect("validated prepared frame");
         self.scratch_buffer = Some(output.buffer);
         self.presented = true;
         self.services.continuation_command_pending_present = None;
@@ -3617,6 +3618,21 @@ mod tests {
         present(&mut rt, token);
         assert!(!rt.needs_present());
         assert!(rt.handle(key(KeyCode::Enter)).is_ok());
+    }
+
+    #[test]
+    fn unprojected_acknowledgement_preserves_the_prepared_frame() {
+        let mut rt = Runtime::new(BootstrapProbe::default(), Theme::junie());
+        let token = rt.prepare(SCREEN).expect("frame prepares");
+
+        assert_eq!(
+            rt.acknowledge_presented(token),
+            Err(PreparedFrameError::Stale)
+        );
+        assert!(rt.needs_present());
+
+        present(&mut rt, token);
+        assert!(!rt.needs_present());
     }
 
     #[test]
