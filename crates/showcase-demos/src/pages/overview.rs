@@ -119,6 +119,7 @@ const ACCENT: u32 = 0x48e054;
 const TAB_ACTIVE: u32 = 0x27272a;
 const THUMB: u32 = 0x808080;
 const TRACK: u32 = 0x474747;
+const OVERRIDE_ACCENT: Color = Color::Rgb(0xff, 0x9e, 0x42);
 
 fn planes_and_text(t: &termrock::Theme) -> [(&'static str, Color); 20] {
     match t.capability.color {
@@ -1021,8 +1022,10 @@ fn paint_chrome_roles(ui: &mut Ui<'_>, view: Rect, card: Rect) {
         body,
         3,
         0,
-        "custom: Accent",
-        ui.paint_patch(&termrock::StylePatch::new().set_fg(termrock::Role::Accent)),
+        "local accent override",
+        ui.paint_patch(
+            &termrock::StylePatch::new().set_fg(termrock::Role::Custom(OVERRIDE_ACCENT)),
+        ),
     );
 }
 
@@ -1153,7 +1156,7 @@ fn paint_scrollbar(ui: &mut Ui<'_>, bar: Rect, content_h: u16) {
 
 #[cfg(test)]
 mod tests {
-    use super::{OverviewPage, Page};
+    use super::{OVERRIDE_ACCENT, OverviewPage, Page};
     use termrock::{App, Color, Cx, Modifier, Response, Theme, Ui};
     use termrock_test_support::Harness;
 
@@ -1221,14 +1224,14 @@ mod tests {
     }
 
     #[test]
-    fn chrome_roles_card_shows_status_tag_and_a_local_accent_override() {
+    fn chrome_roles_card_shows_status_tag_and_a_local_custom_accent_override() {
         let theme = Theme::junie();
         let h = Harness::new(Host, theme.clone(), 132, 120);
         let text = h.text();
         assert!(text.contains("Roles · application chrome"), "{text}");
         assert!(text.contains("READY"), "{text}");
         assert!(text.contains("TAG"), "{text}");
-        assert!(text.contains("custom: Accent"), "{text}");
+        assert!(text.contains("local accent override"), "{text}");
 
         let (status_x, status_y) = h.find("READY").expect("status accent sample");
         assert_eq!(h.cell(status_x, status_y).fg, theme.color.status_accent);
@@ -1237,7 +1240,9 @@ mod tests {
         let (tag_x, tag_y) = h.find("TAG").expect("tag ink sample");
         assert_eq!(h.cell(tag_x, tag_y).fg, theme.color.tag_ink);
 
-        let (custom_x, custom_y) = h.find("custom: Accent").expect("custom override");
-        assert_eq!(h.cell(custom_x, custom_y).fg, theme.color.accent);
+        let (custom_x, custom_y) = h
+            .find("local accent override")
+            .expect("local custom accent override");
+        assert_eq!(h.cell(custom_x, custom_y).fg, OVERRIDE_ACCENT);
     }
 }

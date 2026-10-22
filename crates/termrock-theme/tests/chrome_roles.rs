@@ -49,17 +49,9 @@ fn set_token_color(tokens: &mut ColorTokens, role: Role, color: Color) {
     }
 }
 
-fn without_chrome(tokens: ColorTokens) -> ColorTokens {
-    ColorTokens {
-        status_bar_bg: Color::Reset,
-        status_bar_fg: Color::Reset,
-        status_accent: Color::Reset,
-        chrome_rule: Color::Reset,
-        scroll_track: Color::Reset,
-        scroll_thumb: Color::Reset,
-        tag_ink: Color::Reset,
-        ..tokens
-    }
+fn without_role(mut tokens: ColorTokens, role: Role) -> ColorTokens {
+    set_token_color(&mut tokens, role, Color::Reset);
+    tokens
 }
 
 fn resolve_fg(theme: Theme, role: Role) -> Option<Color> {
@@ -162,7 +154,7 @@ fn each_chrome_channel_projects_independently_after_every_intermediate_mutation(
 
     for (role, custom) in CHROME_ROLES.into_iter().zip(custom_colors) {
         for mutation_step in 0..LEVELS.len() {
-            let source = Theme::from_tokens(Theme::junie().color);
+            let source = Theme::junie();
             let mut changed = source.clone();
             let mut baseline = source;
 
@@ -184,9 +176,9 @@ fn each_chrome_channel_projects_independently_after_every_intermediate_mutation(
                     "{role:?}, mutation step {mutation_step}, level {level:?}"
                 );
                 assert_eq!(
-                    without_chrome(changed.color),
-                    without_chrome(baseline.color),
-                    "old channels changed for {role:?}, mutation step {mutation_step}, level {level:?}"
+                    without_role(changed.color, role),
+                    without_role(baseline.color, role),
+                    "other channels changed for {role:?}, mutation step {mutation_step}, level {level:?}"
                 );
             }
         }
