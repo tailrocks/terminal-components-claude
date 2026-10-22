@@ -3,9 +3,9 @@ use termrock::author::PaintStyle;
 use termrock::{
     ActionKey, App as TuiApp, Brand, Chord, ColorLevel, Cx, Dialog, DialogAction, DialogState,
     EmptyState, FrameRead, GlyphRole, Id, Intent, ItemKey, KeyCode, KeyMap, KeyPhase, Moment,
-    Panel, PanelKind, Part, PartRef, Phase, Props, Rect, Response, RowFn, Size, StateFlags, Status,
-    StatusBar, StatusItem, Theme, TooSmall, Tree, TreeAction, TreeNode, TreeState, Ui, Variant, id,
-    width,
+    Panel, PanelKind, Part, PartRef, Phase, Position, Props, Rect, Response, RowFn, Size,
+    StateFlags, Status, StatusBar, StatusItem, Theme, TooSmall, Tree, TreeAction, TreeNode,
+    TreeState, Ui, Variant, id, width,
 };
 
 use showcase_demos::pages::forms::SUBMIT as FORM_SUBMIT;
@@ -789,17 +789,25 @@ fn nav_query_projection(nodes: &[NavNode], state: &TreeState, query: &NavQuery) 
         .map(|node| node.parent && node.label.to_lowercase().contains(&needle))
         .collect::<Vec<_>>();
     for (source, node) in nodes.iter().enumerate() {
+        if node.parent {
+            included[source] = matching_groups[source];
+            continue;
+        }
         let Some(entry_index) = node.entry else {
             continue;
         };
         let Some(entry) = NAV_ENTRIES.get(entry_index) else {
             continue;
         };
-        let parent_matches = (0..source).rev().find_map(|parent| {
-            let candidate = nodes.get(parent)?;
-            (candidate.parent && candidate.depth < node.depth).then_some(matching_groups[parent])
-        }) == Some(true);
-        if nav_entry_matches(entry, entry_index, node.label, &needle) || parent_matches {
+        let parent = (0..source)
+            .rev()
+            .find(|parent| nodes[*parent].parent && nodes[*parent].depth < node.depth);
+        let parent_matches = parent.is_some_and(|parent| matching_groups[parent]);
+        let parent_expanded = parent.is_some_and(|parent| state.is_expanded(nodes[parent].key));
+        // A matching group follows its saved fold; a nonmatching ancestor is revealed by projection.
+        if (parent_matches && parent_expanded)
+            || (!parent_matches && nav_entry_matches(entry, entry_index, node.label, &needle))
+        {
             included[source] = true;
         }
     }
@@ -920,6 +928,7 @@ enum NavQueryInput {
     Backspace,
     Escape,
     FocusOut,
+    Consume,
 }
 
 fn nav_query_input(cx: &Cx<'_>, active: bool) -> Option<NavQueryInput> {
@@ -938,6 +947,16 @@ fn nav_query_input(cx: &Cx<'_>, active: bool) -> Option<NavQueryInput> {
     if active && focus_out {
         return Some(NavQueryInput::FocusOut);
     }
+    if active
+        && raw_key.is_some_and(|key| {
+            matches!(
+                key.code,
+                KeyCode::Left | KeyCode::Right | KeyCode::PageUp | KeyCode::PageDown
+            )
+        })
+    {
+        return Some(NavQueryInput::Consume);
+    }
     if let Some(key) = raw_key
         && key
             .mods
@@ -953,6 +972,22 @@ fn nav_query_input(cx: &Cx<'_>, active: bool) -> Option<NavQueryInput> {
             }
             _ => {}
         }
+    }
+
+    if active
+        && binding.is_some_and(|action| {
+            [
+                "tree.expand",
+                "tree.collapse",
+                "tree.page-up",
+                "tree.page-down",
+            ]
+            .into_iter()
+            .any(|name| action == ActionKey::custom(name))
+        })
+    {
+        // Query owns the key; Tree's matching Left/Right bindings must not navigate or fold.
+        return Some(NavQueryInput::Consume);
     }
 
     let action = binding?;
@@ -1159,8 +1194,11 @@ pub struct App {
     nav_target: NavTarget,
     nav_state: TreeState,
     nav_query: Option<NavQuery>,
+    nav_presentation: std::cell::Cell<Option<NavTreePresentation>>,
     pages: Vec<Box<dyn Page>>,
     help_state: DialogState,
+    help_open: bool,
+    overlay_open: bool,
     selectable: showcase_demos::pages::selectable::Model,
     keymap: KeyMap,
     inspector: bool,
@@ -1180,8 +1218,11 @@ impl core::fmt::Debug for App {
             .field("nav_target", &self.nav_target)
             .field("nav_state", &self.nav_state)
             .field("nav_query", &self.nav_query)
+            .field("nav_presentation", &self.nav_presentation.get())
             .field("pages", &self.pages.len())
             .field("help_state", &self.help_state)
+            .field("help_open", &self.help_open)
+            .field("overlay_open", &self.overlay_open)
             .field("selectable", &self.selectable)
             .field("keymap", &self.keymap)
             .field("inspector", &self.inspector)
@@ -1229,8 +1270,11 @@ impl App {
             nav_target,
             nav_state,
             nav_query: None,
+            nav_presentation: std::cell::Cell::new(None),
             pages,
             help_state: DialogState::default(),
+            help_open: false,
+            overlay_open: false,
             selectable: showcase_demos::pages::selectable::Model::default(),
             keymap: keymap(),
             inspector: false,
@@ -1299,6 +1343,7 @@ impl App {
                 }
             }
             NavQueryInput::Escape | NavQueryInput::FocusOut => self.end_nav_query(),
+            NavQueryInput::Consume => {}
         }
     }
 
@@ -1437,6 +1482,48 @@ struct ShellLayout {
     main: Rect,
     inspector: Option<Rect>,
     footer: Rect,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct SidebarPresentation {
+    query: Option<Rect>,
+    tree: Rect,
+}
+
+impl SidebarPresentation {
+    fn new(sidebar: Rect, query_active: bool) -> Self {
+        if !query_active || sidebar.is_empty() {
+            return Self {
+                query: None,
+                tree: sidebar,
+            };
+        }
+        let query = Rect::new(sidebar.x, sidebar.y, sidebar.width, 1);
+        let tree = Rect {
+            y: sidebar.y.saturating_add(1),
+            height: sidebar.height.saturating_sub(1),
+            ..sidebar
+        };
+        Self {
+            query: Some(query),
+            tree,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct NavTreePresentation {
+    area: Rect,
+    query_revision: Option<u64>,
+}
+
+impl NavTreePresentation {
+    fn new(area: Rect, query: Option<&NavQuery>) -> Self {
+        Self {
+            area,
+            query_revision: query.map(|query| query.revision),
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -1918,6 +2005,115 @@ fn paint_inspector(ui: &mut Ui<'_>, area: Rect, app: &App) {
     });
 }
 
+fn nav_query_display(query: &str, row_width: u16) -> String {
+    match row_width {
+        0 => String::new(),
+        1 => "/".to_owned(),
+        width => format!("/ {}", termrock::truncate(query, width.saturating_sub(3))),
+    }
+}
+
+fn nav_query_cursor(area: Rect, displayed: &str) -> Option<Position> {
+    if area.width < 3 {
+        return None;
+    }
+    let x = area.x.saturating_add(width(displayed));
+    (x < area.right()).then(|| Position::new(x, area.y))
+}
+
+fn paint_nav_query(ui: &mut Ui<'_>, area: Rect, query: &NavQuery, focused: bool) {
+    if area.is_empty() {
+        return;
+    }
+    let field = shell_compat_style(ui.surface_style()).patch(ui.paint_patch(
+        &termrock::StylePatch::new().set_bg(termrock::Role::Surface(termrock::Surface::Field)),
+    ));
+    ui.fill(area, field);
+
+    let prompt = field.patch(ui.paint_patch(
+        &termrock::StylePatch::new().set_fg(termrock::Role::Fg(termrock::FgStep::Faint)),
+    ));
+    let input = field.patch(ui.paint_patch(
+        &termrock::StylePatch::new().set_fg(termrock::Role::Fg(termrock::FgStep::Primary)),
+    ));
+    if area.width > 0 {
+        ui.paint_str(Rect::new(area.x, area.y, 1, 1), "/", prompt);
+    }
+
+    let display = nav_query_display(&query.text, area.width);
+    if area.width > 2 && display.len() > 2 {
+        let text = &display[2..];
+        ui.paint_str(
+            Rect::new(
+                area.x.saturating_add(2),
+                area.y,
+                area.width.saturating_sub(3),
+                1,
+            ),
+            text,
+            input,
+        );
+    }
+    if focused && let Some(cursor) = nav_query_cursor(area, &display) {
+        ui.set_bar_cursor(NAV, cursor);
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum NavCursorKind {
+    None,
+    Group,
+    Leaf,
+}
+
+fn nav_cursor_kind(state: &TreeState, nodes: &[NavNode], query_active: bool) -> NavCursorKind {
+    let Some(key) = state.cursor() else {
+        return NavCursorKind::None;
+    };
+    let Some(node) = nodes
+        .iter()
+        .find(|node| node.key == key && (!query_active || node.query_match))
+    else {
+        return NavCursorKind::None;
+    };
+    if node.parent {
+        NavCursorKind::Group
+    } else if node.target.is_some() {
+        NavCursorKind::Leaf
+    } else {
+        NavCursorKind::None
+    }
+}
+
+const NAV_QUERY_MATCH_HINTS: &[(&str, &str)] = &[
+    ("type", "Filter"),
+    ("↑ ↓", "Move"),
+    ("Backspace", "Edit"),
+    ("Esc", "Clear"),
+    ("Enter", "Open"),
+];
+const NAV_QUERY_EMPTY_HINTS: &[(&str, &str)] = &[
+    ("type", "Filter"),
+    ("↑ ↓", "Move"),
+    ("Backspace", "Edit"),
+    ("Esc", "Clear"),
+];
+const NAV_GROUP_HINTS: &[(&str, &str)] = &[
+    ("↑ ↓", "Move"),
+    ("← →", "Fold"),
+    ("Enter", "Toggle"),
+    ("/", "Filter"),
+    ("q", "Quit"),
+];
+const NAV_LEAF_HINTS: &[(&str, &str)] = &[
+    ("↑ ↓", "Move"),
+    ("Enter", "Open"),
+    ("/", "Filter"),
+    ("q", "Quit"),
+];
+const NAV_EMPTY_HINTS: &[(&str, &str)] = &[("↑ ↓", "Move"), ("/", "Filter"), ("q", "Quit")];
+const HELP_HINTS: &[(&str, &str)] = &[("Esc", "Close")];
+
 #[expect(
     clippy::too_many_arguments,
     reason = "the footer paints pre-resolved part styles without re-resolving per hint"
@@ -1947,12 +2143,10 @@ fn paint_hint(
 fn paint_footer(
     ui: &mut Ui<'_>,
     area: Rect,
-    nav_focused: bool,
-    page_hints: &[(&str, &str)],
-    page_editing: bool,
+    hints: &[(&str, &str)],
+    tab_hint: Option<(&str, &str)>,
     status: Option<&str>,
 ) {
-    const TAB_NEXT: (&str, &str) = ("Tab", "Next");
     if area.is_empty() {
         return;
     }
@@ -1968,22 +2162,9 @@ fn paint_footer(
         ui,
         termrock::theme::baseline_muted(ui.theme().capability.color),
     );
-    let nav_hints: &[(&str, &str)] = if nav_focused {
-        &[
-            ("↑ ↓", "Move"),
-            ("Enter", "Open"),
-            ("Tab", "Into page"),
-            ("q", "Quit"),
-        ]
-    } else {
-        &[]
-    };
-
-    let tab_next = !nav_focused && !page_editing;
     let mut x = area.x.saturating_add(1);
     let reserved = status.map_or(14, |message| width(message).saturating_add(3));
-    let page_hints: &[(&str, &str)] = if nav_focused { &[] } else { page_hints };
-    for &(key, action) in nav_hints.iter().chain(page_hints.iter()) {
+    for &(key, action) in hints.iter().chain(tab_hint.iter()) {
         paint_hint(
             ui,
             area,
@@ -1993,18 +2174,6 @@ fn paint_footer(
             action_style,
             key,
             action,
-        );
-    }
-    if tab_next {
-        paint_hint(
-            ui,
-            area,
-            &mut x,
-            reserved,
-            key_style,
-            action_style,
-            TAB_NEXT.0,
-            TAB_NEXT.1,
         );
     }
     if let Some(message) = status {
@@ -2058,10 +2227,18 @@ impl TuiApp for App {
         let _ = missing_page_panel();
         let _ = inspector_panel();
         let command = cx.command();
-        if let Some(input) = nav_query_input(cx, self.nav_query.is_some()) {
-            self.apply_nav_query_input(input);
-            response |= Response::changed();
-        }
+        let consume_nav_tree_key = match nav_query_input(cx, self.nav_query.is_some()) {
+            Some(NavQueryInput::Consume) => {
+                response |= Response::consumed();
+                true
+            }
+            Some(input) => {
+                self.apply_nav_query_input(input);
+                response |= Response::changed();
+                false
+            }
+            None => false,
+        };
         self.update_header(cx, &mut response);
         match command {
             Some(QUIT | QUIT_CTRL) => {
@@ -2101,15 +2278,41 @@ impl TuiApp for App {
         {
             response |= active.command(cx, action);
         }
-        let sidebar_height = self.resolved_shell_layout(cx.viewport()).sidebar.height;
-        let nodes = nav_nodes_for_query(&self.nav_state, sidebar_height, self.nav_query.as_ref());
-        let nav_response = nav_tree(self.nav_query.as_ref().map(|query| query.revision)).update(
-            cx,
-            &mut self.nav_state,
-            &nodes,
+        let sidebar = SidebarPresentation::new(
+            self.resolved_shell_layout(cx.viewport()).sidebar,
+            self.nav_query.is_some(),
         );
+        let presentation = NavTreePresentation::new(sidebar.tree, self.nav_query.as_ref());
+        let nodes = nav_nodes_for_query(
+            &self.nav_state,
+            sidebar.tree.height,
+            self.nav_query.as_ref(),
+        );
+        let query_disclosure = self.nav_query.as_ref().and_then(|_| {
+            cx.intents(NAV).find_map(|intent| match intent {
+                Intent::Pointer {
+                    phase: Phase::Click | Phase::DoubleClick,
+                    part,
+                    ..
+                } if matches!(part.part, Part::ICON | Part::ROW) => part.item,
+                _ => None,
+            })
+        });
+        let query_disclosure =
+            query_disclosure.filter(|key| nodes.iter().any(|node| node.key == *key && node.parent));
+        let nav_response =
+            if !consume_nav_tree_key && self.nav_presentation.get() == Some(presentation) {
+                nav_tree(presentation.query_revision).update(cx, &mut self.nav_state, &nodes)
+            } else {
+                Response::ignored().repaint()
+            };
         let nav_action = nav_response.action_ref().copied();
         response |= nav_response.erase();
+        if let Some(key) = query_disclosure {
+            // Query-revealed ancestors are temporary; a real row/icon disclosure changes saved membership.
+            self.nav_state.toggle(key);
+            self.bump_nav_query_revision();
+        }
         let mut enter_content = false;
         let picked = match nav_action {
             Some(TreeAction::Chose(key)) => target_for_key(key, &nodes),
@@ -2153,6 +2356,8 @@ impl TuiApp for App {
             cx.focus_next();
         }
         self.update_help(cx, &mut response);
+        self.help_open = cx.is_open(HELP);
+        self.overlay_open = cx.top_layer() != termrock::LayerId::PAGE;
         if !self.motion_paused
             && let Some((_, since)) = &self.status
         {
@@ -2181,17 +2386,22 @@ impl TuiApp for App {
             .copied();
         let section = entry.map(|entry| entry.section).unwrap_or("");
         let label = entry.map(|entry| entry.label).unwrap_or("Overview");
+        let sidebar = SidebarPresentation::new(shell.sidebar, self.nav_query.is_some());
+        let presentation = NavTreePresentation::new(sidebar.tree, self.nav_query.as_ref());
         let nodes = nav_nodes_for_query(
             &self.nav_state,
-            shell.sidebar.height,
+            sidebar.tree.height,
             self.nav_query.as_ref(),
         );
-        nav_tree(self.nav_query.as_ref().map(|query| query.revision)).draw(
-            ui,
-            shell.sidebar,
-            &self.nav_state,
-            &nodes,
-        );
+        nav_tree(presentation.query_revision).draw(ui, sidebar.tree, &self.nav_state, &nodes);
+        self.nav_presentation.set(Some(presentation));
+        if let (Some(query_area), Some(query)) = (sidebar.query, self.nav_query.as_ref()) {
+            let nav_state = ui.state(NAV);
+            let focused = nav_state.contains(StateFlags::FOCUSED)
+                && !nav_state.contains(StateFlags::INACTIVE_LAYER)
+                && !self.overlay_open;
+            paint_nav_query(ui, query_area, query, focused);
+        }
         paint_header(
             ui,
             shell.header,
@@ -2226,12 +2436,51 @@ impl TuiApp for App {
         } else {
             (&[][..], false)
         };
+        let nav_flags = ui.state(NAV);
+        let nav_focused = nav_flags.contains(StateFlags::FOCUSED)
+            && !nav_flags.contains(StateFlags::INACTIVE_LAYER)
+            && !self.overlay_open;
+        let cursor_kind = nav_cursor_kind(&self.nav_state, &nodes, self.nav_query.is_some());
+        let modal_page_hints = match self.nav_target {
+            NavTarget::Selection => self.selectable.hints(),
+            NavTarget::Live(PageId::Pickers | PageId::DialogKinds) => page_hints,
+            NavTarget::Live(_) | NavTarget::Placeholder(_) => &[][..],
+        };
+        let (footer_hints, tab_hint) = if self.overlay_open {
+            if self.help_open {
+                (HELP_HINTS, None)
+            } else {
+                (modal_page_hints, None)
+            }
+        } else if nav_focused {
+            let hints = if self.nav_query.is_some() {
+                if cursor_kind == NavCursorKind::Leaf {
+                    NAV_QUERY_MATCH_HINTS
+                } else {
+                    NAV_QUERY_EMPTY_HINTS
+                }
+            } else {
+                match cursor_kind {
+                    NavCursorKind::Group => NAV_GROUP_HINTS,
+                    NavCursorKind::Leaf => NAV_LEAF_HINTS,
+                    NavCursorKind::None => NAV_EMPTY_HINTS,
+                }
+            };
+            let tab = if self.nav_target.has_content() {
+                ("Tab", "Into page")
+            } else {
+                ("Tab", "Next")
+            };
+            (hints, Some(tab))
+        } else {
+            let tab = (!page_editing).then_some(("Tab", "Next"));
+            (page_hints, tab)
+        };
         paint_footer(
             ui,
             shell.footer,
-            ui.state(NAV).contains(StateFlags::FOCUSED),
-            page_hints,
-            page_editing,
+            footer_hints,
+            tab_hint,
             self.status.as_ref().map(|(status, _)| status.0.as_str()),
         );
         ui.layer(HELP, |ui, area| {
@@ -2438,7 +2687,10 @@ mod nav_query_tests {
             text: query.to_owned(),
             revision: 1,
         };
-        nav_nodes_for_query(&TreeState::new(), 0, Some(&query))
+        let mut state = TreeState::new();
+        let nodes = nav_nodes(&state, 0);
+        expand_nav_groups(&mut state, &nodes);
+        nav_nodes_for_query(&state, 0, Some(&query))
             .into_iter()
             .filter(|node| node.query_match)
             .map(|node| node.key)
@@ -2901,6 +3153,156 @@ mod shell_cache_contract {
         assert_eq!(
             app.resolved_shell_layout(wide).main,
             shell_layout(wide, false).main
+        );
+    }
+}
+
+#[cfg(test)]
+mod sidebar_query_presentation_contract {
+    use super::*;
+
+    #[test]
+    fn partition_preserves_the_inactive_sidebar_and_reserves_one_active_row() {
+        for (x, y) in [(0, 0), (5, 3)] {
+            for width in [72, 80, 99, 100, 109, 110, 120, 160] {
+                for height in [20, 24, 40, 50] {
+                    for inspector in [false, true] {
+                        let area = Rect::new(x, y, width, height);
+                        let sidebar = shell_layout(area, inspector).sidebar;
+                        assert_eq!(SidebarPresentation::new(sidebar, false).tree, sidebar);
+                        let active = SidebarPresentation::new(sidebar, true);
+                        if sidebar.is_empty() {
+                            assert_eq!(active.query, None);
+                            assert_eq!(active.tree, sidebar);
+                        } else {
+                            assert_eq!(
+                                active.query,
+                                Some(Rect::new(sidebar.x, sidebar.y, sidebar.width, 1))
+                            );
+                            assert_eq!(active.tree.x, sidebar.x);
+                            assert_eq!(active.tree.y, sidebar.y.saturating_add(1));
+                            assert_eq!(active.tree.width, sidebar.width);
+                            assert_eq!(active.tree.height, sidebar.height.saturating_sub(1));
+                        }
+                    }
+                }
+            }
+        }
+
+        for (width, height) in [(0, 0), (1, 0), (0, 1)] {
+            let sidebar = Rect::new(7, 9, width, height);
+            let active = SidebarPresentation::new(sidebar, true);
+            assert_eq!(active.query, None);
+            assert_eq!(active.tree, sidebar);
+        }
+        let one_row = Rect::new(7, 9, 1, 1);
+        let active = SidebarPresentation::new(one_row, true);
+        assert_eq!(active.query, Some(one_row));
+        assert_eq!(active.tree, Rect::new(7, 10, 1, 0));
+    }
+
+    #[test]
+    fn query_display_and_caret_respect_narrow_budgets_and_grapheme_widths() {
+        let query = "a\u{301}界👩\u{200d}🚀long";
+        for row_width in 0..=12 {
+            let display = nav_query_display(query, row_width);
+            if row_width == 0 {
+                assert!(display.is_empty());
+                assert_eq!(
+                    nav_query_cursor(Rect::new(7, 9, row_width, 1), &display),
+                    None
+                );
+            } else if row_width < 3 {
+                assert_eq!(display, if row_width == 1 { "/" } else { "/ " });
+                assert_eq!(
+                    nav_query_cursor(Rect::new(7, 9, row_width, 1), &display),
+                    None
+                );
+            } else {
+                assert!(display.starts_with("/ "));
+                assert!(width(&display) <= row_width.saturating_sub(1));
+                let area = Rect::new(7, 9, row_width, 1);
+                let cursor = nav_query_cursor(area, &display).expect("one caret cell is reserved");
+                assert_eq!(cursor.y, area.y);
+                assert!(cursor.x < area.right());
+                assert_eq!(cursor.x, area.x.saturating_add(width(&display)));
+            }
+        }
+    }
+
+    #[test]
+    fn footer_state_excludes_query_owned_shortcuts_and_no_match_activation() {
+        for hints in [NAV_QUERY_MATCH_HINTS, NAV_QUERY_EMPTY_HINTS] {
+            assert!(
+                hints
+                    .iter()
+                    .any(|(key, action)| *key == "Esc" && *action == "Clear")
+            );
+            assert!(!hints.iter().any(|(key, action)| {
+                matches!(*key, "q" | "/" | "i" | "?") || (*key == "Enter" && *action == "Toggle")
+            }));
+        }
+        assert!(NAV_QUERY_MATCH_HINTS.contains(&("Enter", "Open")));
+        assert!(!NAV_QUERY_EMPTY_HINTS.contains(&("Enter", "Open")));
+        assert!(NAV_GROUP_HINTS.contains(&("Enter", "Toggle")));
+        assert!(NAV_GROUP_HINTS.contains(&("← →", "Fold")));
+        assert!(NAV_LEAF_HINTS.contains(&("Enter", "Open")));
+        assert!(NAV_LEAF_HINTS.contains(&("/", "Filter")));
+    }
+
+    #[test]
+    fn query_projection_respects_group_folds_without_mutating_tree_state() {
+        let mut state = TreeState::new();
+        let nodes = nav_nodes(&state, 0);
+        expand_nav_groups(&mut state, &nodes);
+        let app_shell = nodes
+            .iter()
+            .find(|node| node.parent && node.label == "App shell")
+            .expect("catalog has App shell group");
+        let chrome = nodes
+            .iter()
+            .find(|node| node.label == "Chrome")
+            .expect("catalog has Chrome page");
+        let query = NavQuery {
+            text: "App shell".to_owned(),
+            revision: 1,
+        };
+        let expanded_projection = nav_query_projection(&nodes, &state, &query);
+        assert!(
+            expanded_projection[nodes
+                .iter()
+                .position(|node| node.key == app_shell.key)
+                .unwrap()]
+        );
+        assert!(
+            expanded_projection[nodes
+                .iter()
+                .position(|node| node.key == chrome.key)
+                .unwrap()]
+        );
+
+        let cursor = chrome.key;
+        state.set_cursor(1, cursor);
+        state.collapse(app_shell.key);
+        let collapsed_projection = nav_query_projection(&nodes, &state, &query);
+        let app_shell_source = nodes
+            .iter()
+            .position(|node| node.key == app_shell.key)
+            .expect("group source");
+        let chrome_source = nodes
+            .iter()
+            .position(|node| node.key == chrome.key)
+            .expect("leaf source");
+        assert!(collapsed_projection[app_shell_source]);
+        assert!(!collapsed_projection[chrome_source]);
+        assert!(!state.is_expanded(app_shell.key));
+        assert_eq!(state.cursor(), Some(cursor));
+        assert!(
+            nodes
+                .iter()
+                .filter(|node| node.parent && node.key != app_shell.key)
+                .all(|group| state.is_expanded(group.key)),
+            "a query projection only reads the saved folds"
         );
     }
 }
