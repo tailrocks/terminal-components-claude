@@ -27,6 +27,25 @@ fn fixture(scenario: Scenario) -> Harness<App> {
         },
     )
 }
+fn projection_fixture(theme: Theme, configured: bool) -> Harness<App> {
+    let app = App::for_scenario(Scenario::ParityDiscovery, Motion::Paused, 4_000);
+    let app = if configured {
+        app.with_source_theme(theme.clone())
+    } else {
+        app
+    };
+    Harness::new_with_feedback_clock(
+        app,
+        theme,
+        100,
+        30,
+        termrock::FeedbackClock::Simulation {
+            initial: termrock::SimulationMoment::from_millis(4_000),
+        },
+    )
+    .with_color(termrock::ColorLevel::Mono)
+    .with_auto_draw(false)
+}
 fn invariant(harness: &Harness<App>) -> (u64, i64) {
     (
         harness.app().effect_revision(),
@@ -126,6 +145,40 @@ fn production_workload_measurements() {
     }
     query_edits();
     plan_navigation();
+}
+
+#[test]
+fn source_theme_projection_allocations_are_paid_during_configuration() {
+    let _guard = lock();
+    for (name, theme) in [("paper", Theme::paper()), ("junie", Theme::junie())] {
+        let mut configured = projection_fixture(theme.clone(), true);
+        let mut unconfigured = projection_fixture(theme, false);
+        let configured_samples = samples(&mut || configured.draw());
+        let unconfigured_samples = samples(&mut || unconfigured.draw());
+        report(
+            &format!("source_configured_{name}_mono_100x30"),
+            &configured_samples,
+        );
+        report(
+            &format!("source_unconfigured_{name}_mono_100x30"),
+            &unconfigured_samples,
+        );
+
+        assert_eq!(configured.text().lines().count(), 30);
+        assert_eq!(unconfigured.text().lines().count(), 30);
+        for (configured_sample, unconfigured_sample) in
+            configured_samples.iter().zip(&unconfigured_samples)
+        {
+            assert_eq!(
+                configured_sample.allocs, unconfigured_sample.allocs,
+                "{name} configured and unconfigured draw allocation counts"
+            );
+            assert_eq!(
+                configured_sample.bytes, unconfigured_sample.bytes,
+                "{name} configured and unconfigured draw allocation bytes"
+            );
+        }
+    }
 }
 
 #[test]

@@ -185,11 +185,35 @@ pub struct App {
     quit: bool,
 }
 
+/// Authored source plus bounded exact projections for supported terminal color levels.
+/// Configuration pays for the four projections once; draws only select and compare one.
 #[derive(Clone)]
 struct ActivityThemeSource {
     theme: termrock::Theme,
+    projections: [(termrock::ColorLevel, termrock::Theme); 4],
     recipes_are_known: bool,
     preserve_theme_foreground: bool,
+}
+
+impl ActivityThemeSource {
+    // The bounded projections avoid rebuilding `Theme` and its recipe vectors during draw.
+    // Validation still compares the full public theme value so every authored edit invalidates
+    // the retained provenance.
+    fn projection(&self, requested: termrock::ColorLevel) -> Option<&termrock::Theme> {
+        self.projections
+            .iter()
+            .find_map(|(level, theme)| (*level == requested).then_some(theme))
+    }
+
+    fn matches_current(&self, current: &termrock::Theme) -> bool {
+        self.projection(current.capability.color)
+            .is_some_and(|expected| current == expected)
+    }
+}
+
+struct ValidatedActivityTheme<'a> {
+    source: &'a ActivityThemeSource,
+    current: &'a termrock::Theme,
 }
 impl std::fmt::Debug for App {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -1169,9 +1193,29 @@ impl App {
     /// is limited to the built-in recipe sets and token-only themes. Other recipe configuration
     /// can contain level-specific foreground intent that the theme API does not expose; in that
     /// case the fallback is suppressed, and a missing resolved foreground does not count as proof
-    /// that the theme left the channel unconfigured.
+    /// that the theme left the channel unconfigured. This consuming configuration step builds
+    /// four private tier projections so drawing can retain full-theme validation without cloning
+    /// the source theme and its recipes on every frame.
     #[must_use]
     pub fn with_source_theme(mut self, source_theme: termrock::Theme) -> Self {
+        let projections = [
+            (
+                termrock::ColorLevel::TrueColor,
+                source_theme.for_level(termrock::ColorLevel::TrueColor),
+            ),
+            (
+                termrock::ColorLevel::Ansi256,
+                source_theme.for_level(termrock::ColorLevel::Ansi256),
+            ),
+            (
+                termrock::ColorLevel::Ansi16,
+                source_theme.for_level(termrock::ColorLevel::Ansi16),
+            ),
+            (
+                termrock::ColorLevel::Mono,
+                source_theme.for_level(termrock::ColorLevel::Mono),
+            ),
+        ];
         let token_recipes = termrock::Theme::from_tokens(source_theme.color).recipes;
         let paper_recipes = termrock::Theme::paper().recipes;
         let junie_recipes = termrock::Theme::junie().recipes;
@@ -1192,6 +1236,7 @@ impl App {
             || matches!(source_foreground, Some((role, _)) if role != Role::Fg(FgStep::Faint));
         self.source_theme = Some(ActivityThemeSource {
             theme: source_theme,
+            projections,
             recipes_are_known,
             preserve_theme_foreground,
         });
@@ -1800,8 +1845,8 @@ impl App {
         }
     }
 
-    fn activity_overflow_ink(&self, ui: &Ui<'_>) -> Option<Color> {
-        let provenance = self.current_source_theme(ui)?;
+    fn activity_overflow_ink(&self, validated: &ValidatedActivityTheme<'_>) -> Option<Color> {
+        let provenance = validated.source;
         if !provenance.recipes_are_known || provenance.preserve_theme_foreground {
             return None;
         }
@@ -1812,22 +1857,16 @@ impl App {
             return None;
         }
 
-        let current = ui.theme_ref();
-        let projected = source.for_level(current.capability.color);
-        // Theme equality covers every token, recipe, and capability field. Any runtime edit
-        // invalidates the retained source provenance until the app is configured again.
-        if *current != projected {
-            return None;
-        }
+        let current = validated.current;
 
         let authored_faint = source.color.fg[FgStep::Faint.index()];
         let source_bg = termrock::theme::downgrade_color(PARITY_HINT_BG, source.capability.color);
         if termrock::theme::contrast_ratio(authored_faint, source_bg)? < 3.0 {
             return None;
         }
-        let projected_faint = projected.color.fg[FgStep::Faint.index()];
+        let projected_faint = current.color.fg[FgStep::Faint.index()];
         let projected_bg =
-            termrock::theme::downgrade_color(PARITY_HINT_BG, projected.capability.color);
+            termrock::theme::downgrade_color(PARITY_HINT_BG, current.capability.color);
         if projected_faint != projected_bg {
             return None;
         }
@@ -1837,30 +1876,36 @@ impl App {
         // the same contrast helper. Every candidate is checked against this footer's actual
         // black background before use; Reset and low-contrast results are declined.
         [
-            projected.color.on_surface_inverse,
-            projected.color.fg[FgStep::Ghost.index()],
-            projected.color.fg[FgStep::Primary.index()],
-            projected.color.surfaces[0],
+            current.color.on_surface_inverse,
+            current.color.fg[FgStep::Ghost.index()],
+            current.color.fg[FgStep::Primary.index()],
+            current.color.surfaces[0],
         ]
         .into_iter()
         .find_map(|candidate| {
-            let ink = projected.legible_mark(candidate, projected_bg);
+            let ink = current.legible_mark(candidate, projected_bg);
             let contrast = termrock::theme::contrast_ratio(ink, projected_bg)?;
             (ink != projected_faint && contrast >= 3.0).then_some(ink)
         })
     }
 
-    fn current_source_theme<'a>(&'a self, ui: &Ui<'_>) -> Option<&'a ActivityThemeSource> {
+    fn current_source_theme<'a>(&'a self, ui: &'a Ui<'_>) -> Option<ValidatedActivityTheme<'a>> {
         let source = self.source_theme.as_ref()?;
         let current = ui.theme_ref();
-        let projected = source.theme.for_level(current.capability.color);
-        (*current == projected).then_some(source)
+        source
+            .matches_current(current)
+            .then_some(ValidatedActivityTheme { source, current })
     }
 
     fn draw_activities_hints(&self, ui: &mut Ui<'_>, layer: &HintLayer, footer: Rect) {
-        let source_owns_foreground = self
-            .current_source_theme(ui)
-            .is_some_and(|source| source.preserve_theme_foreground);
+        let decision = self.current_source_theme(ui).map(|validated| {
+            let source_owns_foreground = validated.source.preserve_theme_foreground;
+            let ink = (!source_owns_foreground)
+                .then(|| self.activity_overflow_ink(&validated))
+                .flatten();
+            (source_owns_foreground, ink)
+        });
+        let (source_owns_foreground, ink) = decision.unwrap_or((false, None));
         if source_owns_foreground {
             let mut parts = ACTIVITIES_HINT_PARTS;
             if let Some((_, overflow_patch)) = parts.last_mut() {
@@ -1871,7 +1916,7 @@ impl App {
             HintBar::new(FOOTER, layer)
                 .patch_part(&parts)
                 .draw(ui, footer);
-        } else if let Some(ink) = self.activity_overflow_ink(ui) {
+        } else if let Some(ink) = ink {
             let mut parts = ACTIVITIES_HINT_PARTS;
             if let Some((_, overflow_patch)) = parts.last_mut() {
                 *overflow_patch = overflow_patch.merge(
@@ -2624,6 +2669,106 @@ mod tests {
             40,
         )
     }
+
+    #[test]
+    fn source_theme_validation_uses_full_equality_and_requested_level_projections() {
+        let app =
+            App::for_scenario_without_history(Scenario::ParityDiscovery, Motion::Paused, 4_000)
+                .with_source_theme(Theme::paper());
+        let source = app.source_theme.unwrap();
+        let levels = [
+            termrock::ColorLevel::TrueColor,
+            termrock::ColorLevel::Ansi256,
+            termrock::ColorLevel::Ansi16,
+            termrock::ColorLevel::Mono,
+        ];
+        for level in levels {
+            assert_eq!(
+                source.projection(level),
+                Some(&source.theme.for_level(level)),
+                "projection for {level:?}"
+            );
+        }
+
+        let expected = source
+            .projection(termrock::ColorLevel::Mono)
+            .unwrap()
+            .clone();
+        assert!(source.matches_current(&expected));
+
+        let mut changed_tokens = expected.clone();
+        changed_tokens.color.fg[0] = Color::White;
+        assert!(
+            !source.matches_current(&changed_tokens),
+            "color tokens changed"
+        );
+
+        let mut changed_design = expected.clone();
+        changed_design.design.density = match expected.design.density {
+            termrock::Density::Comfortable => termrock::Density::Compact,
+            termrock::Density::Compact => termrock::Density::Comfortable,
+        };
+        assert!(!source.matches_current(&changed_design), "design changed");
+
+        let changed_recipes = expected
+            .clone()
+            .define_family(termrock::Family::MENU, |recipe| {
+                recipe
+                    .part(termrock::Part::LABEL)
+                    .base(StylePatch::new().set_fg(Role::Accent));
+            });
+        assert!(!source.matches_current(&changed_recipes), "recipes changed");
+
+        let mut changed_capability = expected.clone();
+        changed_capability.capability.color = termrock::ColorLevel::TrueColor;
+        assert!(
+            !source.matches_current(&changed_capability),
+            "capability changed"
+        );
+
+        let mut added_palette = expected.clone();
+        added_palette.capability_palettes = Some(std::sync::Arc::new(
+            termrock::CapabilityPalettes::new(added_palette.color),
+        ));
+        assert!(!source.matches_current(&added_palette), "palette was added");
+
+        let junie =
+            App::for_scenario_without_history(Scenario::ParityDiscovery, Motion::Paused, 4_000)
+                .with_source_theme(Theme::junie())
+                .source_theme
+                .unwrap();
+        let mut removed_palette = junie
+            .projection(termrock::ColorLevel::Mono)
+            .unwrap()
+            .clone();
+        assert!(removed_palette.capability_palettes.is_some());
+        removed_palette.capability_palettes = None;
+        assert!(
+            !junie.matches_current(&removed_palette),
+            "palette was removed"
+        );
+
+        changed_tokens.color.fg[0] = expected.color.fg[0];
+        assert!(
+            source.matches_current(&changed_tokens),
+            "exact revert validates"
+        );
+
+        let narrowed = Theme::paper().for_level(termrock::ColorLevel::Ansi256);
+        let narrowed_source =
+            App::for_scenario_without_history(Scenario::ParityDiscovery, Motion::Paused, 4_000)
+                .with_source_theme(narrowed.clone())
+                .source_theme
+                .unwrap();
+        for level in levels {
+            assert_eq!(
+                narrowed_source.projection(level),
+                Some(&narrowed.for_level(level)),
+                "narrowed source projection for {level:?}"
+            );
+        }
+    }
+
     #[test]
     fn menu_bar_pointer_hover_changes_only_the_file_title_and_clears_on_exit() {
         let mut scene = app(Scenario::FirstUse);
