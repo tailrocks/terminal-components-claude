@@ -37,10 +37,10 @@ use tablepro_demo::db::{
     self, Catalog, ColType, ConnectOutcome, Connection, Environment, ObjectKind, SafeMode,
 };
 use tablepro_domain::connections::{self, ConnectionDraft, ConnectionsScreen};
-use tablepro_domain::domain::ResultGrid;
+use tablepro_domain::domain::{PendingEdits, ResultGrid};
 use tablepro_domain::filter_editor::{Filter, FilterOp};
 use tablepro_domain::model::{SwitchTarget, auto_trigger, completion_batch};
-use tablepro_domain::{highlight_sql, segment_sql};
+use tablepro_domain::{highlight_sql, preview_for, segment_sql};
 
 pub const MIN_WIDTH: u16 = 72;
 
@@ -88,6 +88,11 @@ const REPLACE_ACTIONS: [Action<'static>; 2] = [
     Action::new(ActionKey::CANCEL, "Cancel"),
     Action::danger(ActionKey::CONFIRM, "Run query"),
 ];
+const COMMIT_ACTIONS: [Action<'static>; 2] = [
+    Action::quiet(ActionKey::CANCEL, "Cancel"),
+    Action::new(ActionKey::CONFIRM, "Commit"),
+];
+const COMMIT_PREVIEW_LIMIT: usize = 4;
 const QUERY_EDITOR_PLACEHOLDER: &str = "Type SQL. Ctrl+R runs the statement under the cursor.";
 const QUERY_EDITOR_ROWS: u16 = 12;
 
@@ -160,6 +165,20 @@ impl DestructiveRequest {
     }
 }
 
+struct PendingCommit {
+    key: TabKey,
+    generation: u64,
+    target: String,
+    safe_mode: SafeMode,
+    pending: PendingEdits,
+    cursor: Option<(ItemKey, ColumnKey, usize)>,
+    selected_rows: termrock::KeySet,
+    facts: Vec<String>,
+    acknowledgement: String,
+    acknowledgement_label: String,
+    changes: usize,
+}
+
 enum DestructiveIntent {
     Quit {
         question: String,
@@ -185,6 +204,7 @@ enum DestructiveIntent {
         generation: u64,
         connection: Box<Connection>,
     },
+    Commit(PendingCommit),
 }
 
 impl core::fmt::Debug for DestructiveIntent {
@@ -201,6 +221,7 @@ impl core::fmt::Debug for DestructiveIntent {
                 .debug_struct("ReplaceResult")
                 .field("key", key)
                 .finish_non_exhaustive(),
+            Self::Commit(request) => f.debug_tuple("Commit").field(&request.key).finish(),
         }
     }
 }
@@ -233,6 +254,28 @@ impl DestructiveIntent {
                 "Pending row edits in this query result will be lost.",
             )
             .actions(&REPLACE_ACTIONS),
+            Self::Commit(request) => {
+                let rows = u16::try_from(request.facts.len()).unwrap_or(u16::MAX);
+                let dialog = if request.safe_mode.requires_authentication() {
+                    Dialog::acknowledge(
+                        QUIT_DIALOG,
+                        "Review pending changes",
+                        &request.acknowledgement,
+                    )
+                    .input_label(&request.acknowledgement_label)
+                    .body_rows(rows)
+                } else {
+                    Dialog::facts(QUIT_DIALOG, "Review pending changes", &[]).body_rows(rows)
+                };
+                dialog
+                    .description(
+                        "Review the target, row changes, and generated SQL before applying.",
+                    )
+                    .actions(&COMMIT_ACTIONS)
+                    .cancel(ActionKey::CANCEL)
+                    .primary(ActionKey::CONFIRM)
+                    .width(76)
+            }
         }
     }
 }
@@ -1678,10 +1721,26 @@ impl TableProApp {
 
     fn open_destructive(&mut self, cx: &mut Cx<'_>, intent: DestructiveIntent) {
         self.destructive_notice = None;
-        let dialog = intent.dialog().width(54);
+        let width = if matches!(
+            &intent,
+            DestructiveIntent::Commit(request) if request.safe_mode.requires_authentication()
+        ) {
+            76
+        } else {
+            54
+        };
+        let dialog = intent.dialog().width(width);
         let design = cx.design();
         let width = dialog.measured_width(design);
         let height = dialog.measured_height(design);
+        let initial_focus = if matches!(
+            &intent,
+            DestructiveIntent::Commit(request) if request.safe_mode.requires_authentication()
+        ) {
+            dialog.input_id()
+        } else {
+            dialog.action_id(0)
+        };
         let screen = cx.viewport();
         let top = 2u16;
         let bottom = 1u16;
@@ -1697,7 +1756,7 @@ impl TableProApp {
             QUIT_DIALOG,
             LayerSpec::modal(QUIT_DIALOG)
                 .anchor(Anchor::Point(Position::new(x, y.saturating_sub(1))))
-                .initial_focus(dialog.action_id(0))
+                .initial_focus(initial_focus)
                 .size(LayerSize::Fixed(width, height)),
         );
         self.destructive_intent = Some(DestructiveRequest {
@@ -1753,6 +1812,192 @@ impl TableProApp {
         } else {
             self.commit_query_edit();
             let _ = self.execute_query();
+        }
+    }
+
+    fn request_commit(&mut self, cx: &mut Cx<'_>) {
+        if self.screen != Screen::Workbench || self.form_open || self.destructive_intent.is_some() {
+            return;
+        }
+        match self.pending_commit(cx.viewport().width) {
+            Ok(request) => self.open_destructive(cx, DestructiveIntent::Commit(request)),
+            Err(message) => self.status = message.to_owned(),
+        }
+    }
+
+    fn pending_commit(&self, viewport_width: u16) -> Result<PendingCommit, &'static str> {
+        if self.safe_mode == SafeMode::ReadOnly {
+            return Err("Read-only mode refuses row changes");
+        }
+        let key = self.workbench.active_key().ok_or("No active result tab")?;
+        let (_, grid) = self
+            .workbench
+            .active_grid()
+            .ok_or("The active tab has no result grid")?;
+        if grid.state.is_editing() {
+            return Err("Finish or cancel the inline cell edit before saving");
+        }
+        let changes = grid.model.pending_total();
+        if changes == 0 {
+            return Err("No pending changes");
+        }
+        if !grid.model.is_editable() {
+            return Err("This result is read-only");
+        }
+        let source = grid
+            .model
+            .source()
+            .ok_or("This result has no writable table source")?;
+        let (schema, table_name) = source
+            .split_once('.')
+            .ok_or("The result source does not identify a table")?;
+        let table = self
+            .catalog
+            .find(Some(schema), table_name)
+            .filter(|table| table.kind == ObjectKind::Table)
+            .ok_or("The result source table is unavailable")?;
+        let statements = preview_for(table, &grid.model);
+        if statements.is_empty() {
+            return Err("No row changes to commit");
+        }
+        let generation = self
+            .workbench
+            .generation(key)
+            .ok_or("Work changed; request again")?;
+        let pending = grid.model.pending().clone();
+        let mut inserts = 0usize;
+        let mut deletes = 0usize;
+        let mut updates = 0usize;
+        for row in pending.dirty_rows() {
+            if pending.is_inserted(row) {
+                inserts = inserts.saturating_add(1);
+            } else if pending.is_deleted(row) {
+                deletes = deletes.saturating_add(1);
+            } else {
+                updates = updates.saturating_add(1);
+            }
+        }
+        let target = table.qualified();
+        let mut facts = vec![
+            format!("Target: {target}"),
+            format!("Safe mode: {}", self.safe_mode.label()),
+            format!(
+                "Changes: {changes} row(s) ({updates} update, {inserts} insert, {deletes} delete)"
+            ),
+            format!(
+                "Risk: row data and membership will change on {}",
+                table.qualified()
+            ),
+            format!("SQL: {} statement(s)", statements.len()),
+        ];
+        facts.extend(
+            statements
+                .iter()
+                .take(COMMIT_PREVIEW_LIMIT)
+                .map(|statement| format!("  {statement}")),
+        );
+        if statements.len() > COMMIT_PREVIEW_LIMIT {
+            facts.push(format!(
+                "  … {} additional statement(s)",
+                statements.len().saturating_sub(COMMIT_PREVIEW_LIMIT)
+            ));
+        }
+        let body_width = viewport_width.min(76).saturating_sub(8).max(1);
+        let facts = facts
+            .iter()
+            .flat_map(|line| wrap(line, body_width))
+            .collect();
+        let cursor = grid.state.cursor().and_then(|(row_key, column)| {
+            let index =
+                (0..grid.model.row_count()).find(|row| grid.model.row_key(*row) == row_key)?;
+            Some((row_key, column, index))
+        });
+        Ok(PendingCommit {
+            key,
+            generation,
+            target: target.clone(),
+            safe_mode: self.safe_mode,
+            pending,
+            cursor,
+            selected_rows: grid.state.selected_rows().clone(),
+            facts,
+            acknowledgement: target.clone(),
+            acknowledgement_label: format!("Type {target} to confirm"),
+            changes,
+        })
+    }
+
+    fn finish_commit(&mut self, request: PendingCommit) {
+        if self.safe_mode == SafeMode::ReadOnly
+            || self.safe_mode != request.safe_mode
+            || self.workbench.active_key() != Some(request.key)
+            || self.workbench.generation(request.key) != Some(request.generation)
+        {
+            self.stale_destructive();
+            return;
+        }
+        let result = if let Some(tab) = self.workbench.tab_mut(request.key)
+            && let Some((id, grid)) = tab.grid_mut(request.key)
+        {
+            let cursor_matches =
+                grid.state.cursor() == request.cursor.map(|(key, column, _)| (key, column));
+            if !grid.model.is_editable()
+                || grid.model.source() != Some(request.target.as_str())
+                || grid.model.pending_total() == 0
+                || grid.model.pending() != &request.pending
+                || grid.state.is_editing()
+                || !cursor_matches
+                || grid.state.selected_rows() != &request.selected_rows
+            {
+                false
+            } else if grid.model.commit_pending() {
+                if let Some((old_key, column, old_index)) = request.cursor
+                    && !(0..grid.model.row_count()).any(|row| grid.model.row_key(row) == old_key)
+                {
+                    if grid.model.row_count() == 0 {
+                        grid.state = termrock::GridState::default();
+                    } else {
+                        let row = old_index.min(grid.model.row_count().saturating_sub(1));
+                        let (columns, count) =
+                            Self::column_specs(&grid.columns, grid.model.is_editable());
+                        let column_index = usize::from(column.raw()).saturating_sub(1);
+                        if let Some(target_column) = columns
+                            .get(column_index)
+                            .filter(|_| column_index < count)
+                            .or_else(|| columns.first().filter(|_| count > 0))
+                            .map(|column| column.key)
+                        {
+                            let target_row = grid.model.row_key(row);
+                            if result_grid::result_grid(id, columns.get(..count).unwrap_or(&[]))
+                                .move_cursor_to(
+                                    &mut grid.state,
+                                    &grid.model,
+                                    target_row,
+                                    target_column,
+                                )
+                                .is_err()
+                            {
+                                grid.state = termrock::GridState::default();
+                            }
+                        } else {
+                            grid.state = termrock::GridState::default();
+                        }
+                    }
+                }
+                true
+            } else {
+                false
+            }
+        } else {
+            false
+        };
+        if result {
+            self.status = format!(
+                "Committed {} row change(s) to {}",
+                request.changes, request.target
+            );
+        } else {
+            self.stale_destructive();
         }
     }
 
@@ -2360,6 +2605,7 @@ impl TableProApp {
                             self.stale_destructive();
                         }
                     }
+                    DestructiveIntent::Commit(request) => self.finish_commit(request),
                 }
             }
         }
@@ -8569,6 +8815,10 @@ impl App for TableProApp {
                     self.request_query(cx);
                     response |= Response::changed();
                 }
+                c if c == SAVE && self.screen == Screen::Workbench && !self.form_open => {
+                    self.request_commit(cx);
+                    response |= Response::changed();
+                }
                 c if c == EXPLAIN => {
                     // Explain keeps the editor in edit mode. Run is what commits.
                     if let Some(id) = self.query_id() {
@@ -9006,7 +9256,30 @@ impl App for TableProApp {
         }
         if let Some(intent) = self.destructive_intent.as_ref() {
             ui.layer(QUIT_DIALOG, |ui, area| {
-                intent.dialog().draw(ui, area, &self.quit_state, |_, _| {});
+                intent
+                    .dialog()
+                    .draw(ui, area, &self.quit_state, |ui, body| {
+                        let DestructiveIntent::Commit(request) = &intent.intent else {
+                            return;
+                        };
+                        let style = ui.surface_style();
+                        for (offset, fact) in request
+                            .facts
+                            .iter()
+                            .take(usize::from(body.height))
+                            .enumerate()
+                        {
+                            let row = termrock::Rect {
+                                x: body.x,
+                                y: body
+                                    .y
+                                    .saturating_add(u16::try_from(offset).unwrap_or(u16::MAX)),
+                                width: body.width,
+                                height: 1,
+                            };
+                            ui.paint_str(row, fact, style);
+                        }
+                    });
             });
         }
     }

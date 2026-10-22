@@ -193,6 +193,23 @@ impl PendingEdits {
         }
     }
 
+    fn commit(&mut self) -> (usize, usize) {
+        let mut inserted = 0usize;
+        let mut deleted = 0usize;
+        self.rows.retain_mut(|record| {
+            if record.deleted && !record.inserted {
+                deleted = deleted.saturating_add(1);
+                return false;
+            }
+            inserted = inserted.saturating_add(usize::from(record.inserted));
+            record.original = None;
+            record.inserted = false;
+            record.deleted = false;
+            true
+        });
+        (inserted, deleted)
+    }
+
     pub fn reorder(&mut self, order: &[usize]) {
         let mut seen = vec![false; self.rows.len()];
         if order.len() != self.rows.len()
@@ -521,6 +538,21 @@ impl ResultGrid {
         self.undo.push(self.pending.clone());
         self.pending.clear();
         self.restore_sort();
+    }
+
+    /// Applies staged changes to this in-memory result and makes them its new baseline.
+    ///
+    /// Existing row keys and current values survive. Deleted rows are removed, inserted
+    /// rows become ordinary rows, and undo entries from before the commit are cleared.
+    pub fn commit_pending(&mut self) -> bool {
+        if !self.editable || self.pending_total() == 0 {
+            return false;
+        }
+        let (inserted, deleted) = self.pending.commit();
+        self.total = self.total.saturating_add(inserted).saturating_sub(deleted);
+        self.undo.clear();
+        self.restore_sort();
+        true
     }
 
     pub fn undo(&mut self) -> bool {
