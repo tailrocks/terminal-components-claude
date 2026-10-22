@@ -294,6 +294,45 @@ fn the_filtered_title_is_cut_to_the_painted_width() {
 }
 
 #[test]
+fn the_overview_refresh_key_refreshes_every_account() {
+    let mut h = Harness::new(accounts_app(), Theme::junie(), 120, 40);
+    // The overview row is the cursor's home, and the hint bar names `r` as
+    // "Refresh all".
+    assert!(
+        h.text().contains("r Refresh all"),
+        "the overview hint names the refresh:\n{}",
+        h.text()
+    );
+    let _ = h.key(KeyCode::Char('r'));
+    assert!(
+        h.text().contains("Refreshing 12 accounts"),
+        "the overview refresh must reach every account:\n{}",
+        h.text()
+    );
+}
+
+#[test]
+fn a_click_outside_the_filter_field_dismisses_it() {
+    let mut h = Harness::new(accounts_app(), Theme::junie(), 120, 40);
+    let _ = h.key(KeyCode::Char('/'));
+    h.type_str("work");
+    assert!(h.app().accounts.filter_input.is_editing());
+    // A click on the tree dismisses the field, the way the reference dialog
+    // dismisses on an outside click. The first row of the tree is the third
+    // row of the page.
+    let _ = h.click(8, 3);
+    assert!(
+        !h.app().accounts.filter_input.is_editing(),
+        "the outside click must dismiss the field"
+    );
+    assert_eq!(
+        h.app().accounts.filter_query,
+        "work",
+        "the dismissed field keeps the query"
+    );
+}
+
+#[test]
 fn the_account_keys_do_what_the_hint_bar_names() {
     let mut h = Harness::new(accounts_app(), Theme::junie(), 120, 40);
     for _ in 0..4 {
