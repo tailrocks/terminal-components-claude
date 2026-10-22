@@ -310,6 +310,48 @@ fn query_previews_are_neutral_and_enter_commits_even_after_same_target_preview()
 }
 
 #[test]
+fn query_activation_owns_a_newly_revealed_group_until_the_next_commit() {
+    let mut h = harness(App::with_page(PageId::Chrome));
+    set_policy(&mut h, NavExpand::CurrentGroup);
+    click_group(&mut h, "Tables");
+    assert_groups(&h, &["App shell", "Tables"]);
+
+    let _ = h.key(KeyCode::Char('/'));
+    let _ = h.type_str("Buttons");
+    let _ = h.key(KeyCode::Down);
+    assert_eq!(h.app().page(), PageId::Buttons);
+    assert_expanded_groups(&h, &["App shell", "Tables"]);
+
+    let _ = h.key(KeyCode::Enter);
+    assert!(!query_active(&h));
+    assert_eq!(h.app().page(), PageId::Buttons);
+    assert_groups(&h, &["Inputs & forms", "Tables"]);
+
+    advance_route(&mut h, "Buttons", "Lists");
+    assert_eq!(h.app().page(), PageId::Lists);
+    assert_groups(&h, &["Navigation", "Tables"]);
+}
+
+#[test]
+fn query_activation_keeps_a_manually_open_destination_group_manual() {
+    let mut h = harness(App::with_page(PageId::Chrome));
+    set_policy(&mut h, NavExpand::CurrentGroup);
+    click_group(&mut h, "Inputs & forms");
+    assert_groups(&h, &["App shell", "Inputs & forms"]);
+
+    let _ = h.key(KeyCode::Char('/'));
+    let _ = h.type_str("Buttons");
+    let _ = h.key(KeyCode::Down);
+    assert_eq!(h.app().page(), PageId::Buttons);
+    let _ = h.key(KeyCode::Enter);
+    assert!(!query_active(&h));
+
+    advance_route(&mut h, "Buttons", "Lists");
+    assert_eq!(h.app().page(), PageId::Lists);
+    assert_groups(&h, &["Inputs & forms", "Navigation"]);
+}
+
+#[test]
 fn query_pointer_folds_survive_escape_tab_and_focus_out_in_every_policy() {
     #[derive(Clone, Copy, Debug)]
     enum Exit {

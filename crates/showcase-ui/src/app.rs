@@ -1513,6 +1513,11 @@ impl App {
         }
     }
 
+    fn end_nav_query_for_activation(&mut self) {
+        // The committed route sync owns destination reveal and CurrentGroup ownership.
+        self.nav_query = None;
+    }
+
     fn resolved_shell_layout(&self, area: Rect) -> ShellLayout {
         if let Some(cached) = self.shell_layout_cache.get()
             && cached.area == area
@@ -2450,7 +2455,7 @@ impl TuiApp for App {
                 let picked = target_for_key(key, &nodes);
                 enter_content = picked.is_some_and(|(_, target)| target.has_content());
                 if picked.is_some() {
-                    self.end_nav_query();
+                    self.end_nav_query_for_activation();
                 }
                 picked
             }
