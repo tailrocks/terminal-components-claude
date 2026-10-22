@@ -872,6 +872,241 @@ fn block_local_include_discovers_out_of_src_include_chain_only() {
 }
 
 #[test]
+fn included_expression_fragments_reach_nested_literal_include_edges() {
+    for (kind, expression) in [
+        ("direct", "include!(\"nested/leaf.rs\")"),
+        ("parenthesized", "(include!(\"nested/leaf.rs\"))"),
+        ("closure", "|| include!(\"nested/leaf.rs\")"),
+        ("block", "{ include!(\"nested/leaf.rs\") }"),
+    ] {
+        let dir = empty_workspace();
+        write_member_file(
+            &dir,
+            "src/lib.rs",
+            "fn production() { let _value = include!(\"../outside/expr.rs\"); }\n",
+        );
+        write_member_file(&dir, "outside/expr.rs", expression);
+        write_member_file(
+            &dir,
+            "outside/nested/leaf.rs",
+            "None::<u8>.expect(\"nested leaf\");\n",
+        );
+        write_member_file(
+            &dir,
+            "outside/nested/unreferenced.rs",
+            "None::<u8>.expect(\"unreferenced\");\n",
+        );
+
+        let member = dir.path().join("crates/demo-preview");
+        let analysis = termrock_xtask::ownership::module_graph::analyze_member(&member);
+        let expression_source =
+            std::fs::canonicalize(member.join("outside/expr.rs")).expect("expression source");
+        let leaf =
+            std::fs::canonicalize(member.join("outside/nested/leaf.rs")).expect("nested leaf");
+        let orphan = std::fs::canonicalize(member.join("outside/nested/unreferenced.rs"))
+            .expect("unreferenced leaf");
+        assert!(analysis.complete, "{kind}: {analysis:?}");
+        assert!(analysis.sources.contains(&expression_source), "{kind}");
+        assert!(analysis.sources.contains(&leaf), "{kind}: {analysis:?}");
+        assert!(!analysis.sources.contains(&orphan), "{kind}: {analysis:?}");
+        assert_eq!(
+            own14_findings(&check_scratch(&dir)),
+            [("crates/demo-preview/outside/nested/leaf.rs".to_string(), 1)],
+            "{kind}"
+        );
+    }
+}
+
+#[test]
+fn nested_expression_includes_keep_predicates_paths_and_shared_reachability() {
+    let dir = empty_workspace();
+    write_member_file(
+        &dir,
+        "src/lib.rs",
+        "fn production() { let _value = include!(\"../outside/shared/expr.rs\"); }\n\
+         #[cfg(test)] fn test_shared() { let _value = include!(\"../outside/shared/expr.rs\"); }\n\
+         #[cfg(test)] fn test_only() { let _value = include!(\"../outside/test/expr.rs\"); }\n",
+    );
+    write_member_file(
+        &dir,
+        "outside/shared/expr.rs",
+        "include!(\"nested/shared.rs\")",
+    );
+    write_member_file(
+        &dir,
+        "outside/shared/nested/shared.rs",
+        "None::<u8>.expect(\"shared leaf\");\n",
+    );
+    write_member_file(&dir, "outside/test/expr.rs", "include!(\"nested/test.rs\")");
+    write_member_file(
+        &dir,
+        "outside/test/nested/test.rs",
+        "None::<u8>.expect(\"test leaf\");\n",
+    );
+    write_member_file(
+        &dir,
+        "outside/test/nested/unreferenced.rs",
+        "None::<u8>.expect(\"unreferenced test leaf\");\n",
+    );
+
+    let member = dir.path().join("crates/demo-preview");
+    let analysis = termrock_xtask::ownership::module_graph::analyze_member(&member);
+    let shared_expr = std::fs::canonicalize(member.join("outside/shared/expr.rs")).unwrap();
+    let shared_leaf =
+        std::fs::canonicalize(member.join("outside/shared/nested/shared.rs")).unwrap();
+    let test_expr = std::fs::canonicalize(member.join("outside/test/expr.rs")).unwrap();
+    let test_leaf = std::fs::canonicalize(member.join("outside/test/nested/test.rs")).unwrap();
+    let orphan = std::fs::canonicalize(member.join("outside/test/nested/unreferenced.rs")).unwrap();
+    assert!(analysis.complete, "{analysis:?}");
+    for source in [&shared_expr, &shared_leaf, &test_expr, &test_leaf] {
+        assert!(
+            analysis.sources.contains(source),
+            "{source:?}: {analysis:?}"
+        );
+    }
+    assert!(!analysis.sources.contains(&orphan), "{analysis:?}");
+    assert!(!analysis.test_only.contains(&shared_expr), "{analysis:?}");
+    assert!(!analysis.test_only.contains(&shared_leaf), "{analysis:?}");
+    assert!(analysis.test_only.contains(&test_expr), "{analysis:?}");
+    assert!(analysis.test_only.contains(&test_leaf), "{analysis:?}");
+    assert_eq!(
+        own14_findings(&check_scratch(&dir)),
+        [(
+            "crates/demo-preview/outside/shared/nested/shared.rs".to_string(),
+            1
+        )]
+    );
+}
+
+#[test]
+fn nested_expression_fragments_keep_the_callers_logical_module_directory() {
+    let dir = empty_workspace();
+    write_member_file(&dir, "src/lib.rs", "mod caller;\n");
+    write_member_file(
+        &dir,
+        "src/caller.rs",
+        "fn production() { let _value = include!(\"../outside/expr.rs\"); }\n",
+    );
+    write_member_file(
+        &dir,
+        "outside/expr.rs",
+        "{ mod child; let _leaf = include!(\"nested/leaf.rs\"); None::<u8> }",
+    );
+    write_member_file(
+        &dir,
+        "src/caller/child.rs",
+        "None::<u8>.expect(\"logical module\");\n",
+    );
+    write_member_file(
+        &dir,
+        "outside/child.rs",
+        "None::<u8>.expect(\"physical decoy\");\n",
+    );
+    write_member_file(
+        &dir,
+        "outside/nested/leaf.rs",
+        "None::<u8>.expect(\"physical nested leaf\");\n",
+    );
+
+    let member = dir.path().join("crates/demo-preview");
+    let analysis = termrock_xtask::ownership::module_graph::analyze_member(&member);
+    let logical_child =
+        std::fs::canonicalize(member.join("src/caller/child.rs")).expect("logical child");
+    let physical_decoy =
+        std::fs::canonicalize(member.join("outside/child.rs")).expect("physical decoy");
+    let nested_leaf =
+        std::fs::canonicalize(member.join("outside/nested/leaf.rs")).expect("nested leaf");
+    assert!(analysis.sources.contains(&logical_child), "{analysis:?}");
+    assert!(analysis.sources.contains(&nested_leaf), "{analysis:?}");
+    assert!(!analysis.sources.contains(&physical_decoy), "{analysis:?}");
+    assert_eq!(
+        own14_findings(&check_scratch(&dir)),
+        [
+            ("crates/demo-preview/outside/nested/leaf.rs".to_string(), 1),
+            ("crates/demo-preview/src/caller/child.rs".to_string(), 1),
+        ]
+    );
+}
+
+#[test]
+fn nested_expression_unknowns_keep_later_routes_and_cycles_conservative() {
+    let dir = empty_workspace();
+    write_member_file(
+        &dir,
+        "src/lib.rs",
+        "fn production() { let _value = include!(\"../outside/expr.rs\"); }\n",
+    );
+    write_member_file(
+        &dir,
+        "outside/expr.rs",
+        "(\n\
+             unknown_macro!(include!(\"nested/hidden.rs\")),\n\
+             include!(concat!(\"nested/\", \"dynamic.rs\")),\n\
+             include!(\"nested/later.rs\"),\n\
+             include!(\"nested/loop_a.rs\"),\n\
+             include!(\"nested/loop_a.rs\")\n\
+         )",
+    );
+    write_member_file(
+        &dir,
+        "outside/nested/later.rs",
+        "None::<u8>.expect(\"later known route\");\n",
+    );
+    write_member_file(&dir, "outside/nested/loop_a.rs", "include!(\"loop_b.rs\")");
+    write_member_file(&dir, "outside/nested/loop_b.rs", "include!(\"loop_a.rs\")");
+    for relative in [
+        "outside/nested/hidden.rs",
+        "outside/nested/dynamic.rs",
+        "outside/nested/unreferenced.rs",
+    ] {
+        write_member_file(
+            &dir,
+            relative,
+            "None::<u8>.expect(\"must stay unresolved\");\n",
+        );
+    }
+
+    let member = dir.path().join("crates/demo-preview");
+    let analysis = termrock_xtask::ownership::module_graph::analyze_member(&member);
+    assert!(!analysis.complete, "{analysis:?}");
+    for relative in [
+        "outside/expr.rs",
+        "outside/nested/later.rs",
+        "outside/nested/loop_a.rs",
+        "outside/nested/loop_b.rs",
+    ] {
+        let source = std::fs::canonicalize(member.join(relative)).expect("known source");
+        assert!(
+            analysis.sources.contains(&source),
+            "{relative}: {analysis:?}"
+        );
+        assert_eq!(
+            analysis
+                .sources
+                .iter()
+                .filter(|path| *path == &source)
+                .count(),
+            1
+        );
+    }
+    for relative in [
+        "outside/nested/hidden.rs",
+        "outside/nested/dynamic.rs",
+        "outside/nested/unreferenced.rs",
+    ] {
+        let source = std::fs::canonicalize(member.join(relative)).expect("unresolved source");
+        assert!(
+            !analysis.sources.contains(&source),
+            "{relative}: {analysis:?}"
+        );
+    }
+    assert_eq!(
+        own14_findings(&check_scratch(&dir)),
+        [("crates/demo-preview/outside/nested/later.rs".to_string(), 1)]
+    );
+}
+
+#[test]
 fn block_local_path_routes_use_source_and_inline_module_directories() {
     let dir = empty_workspace();
     write_member_file(&dir, "src/lib.rs", "mod outer;\n");

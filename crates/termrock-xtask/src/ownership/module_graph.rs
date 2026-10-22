@@ -121,6 +121,7 @@ struct ContextKey {
     file: PathBuf,
     module_dir: PathBuf,
     predicate: Predicate,
+    expression_fragment: bool,
 }
 
 #[derive(Debug)]
@@ -148,11 +149,18 @@ impl Traversal {
         }
     }
 
-    fn queue_file(&mut self, file: PathBuf, module_dir: PathBuf, predicate: Predicate) {
+    fn queue_file(
+        &mut self,
+        file: PathBuf,
+        module_dir: PathBuf,
+        predicate: Predicate,
+        expression_fragment: bool,
+    ) {
         let key = ContextKey {
             file,
             module_dir,
             predicate,
+            expression_fragment,
         };
         if self.visited.contains(&key) {
             return;
@@ -229,7 +237,7 @@ impl Traversal {
                 continue;
             }
             self.mark_reachable(&file, predicate);
-            self.queue_file(file, dir, predicate);
+            self.queue_file(file, dir, predicate, false);
         }
     }
 
@@ -255,7 +263,12 @@ impl Traversal {
         self.sources.entry(file.clone()).or_insert(text);
         self.included_sources.insert(file.clone());
         self.mark_reachable(&file, include.predicate);
-        self.queue_file(file, include.module_dir, include.predicate);
+        self.queue_file(
+            file,
+            include.module_dir,
+            include.predicate,
+            include.expression_fragment,
+        );
     }
 
     fn analyze(mut self) -> Self {
@@ -264,12 +277,21 @@ impl Traversal {
                 self.complete = false;
                 continue;
             };
-            let parsed = match parse_source(
-                &source,
-                &context.file,
-                &context.module_dir,
-                context.predicate,
-            ) {
+            let parsed = match if context.expression_fragment {
+                parse_expression_fragment(
+                    &source,
+                    &context.file,
+                    &context.module_dir,
+                    context.predicate,
+                )
+            } else {
+                parse_source(
+                    &source,
+                    &context.file,
+                    &context.module_dir,
+                    context.predicate,
+                )
+            } {
                 Some(parsed) => parsed,
                 None => {
                     self.complete = false;
@@ -280,11 +302,13 @@ impl Traversal {
                 self.complete = false;
             }
             if self.included_sources.contains(&context.file)
-                && (!parsed.modules.is_empty() || !parsed.includes.is_empty())
+                && (!parsed.modules.is_empty()
+                    || (!context.expression_fragment && !parsed.includes.is_empty()))
             {
                 // Included text participates in the caller's lexical module
-                // path. Nested module/include resolution is retained as
-                // production until its call-site/file provenance is modeled.
+                // path. Nested module and item-fragment resolution is retained
+                // as production until its call-site provenance is modeled;
+                // expression fragments are traversed with their caller mode.
                 self.complete = false;
             }
             for include in parsed.includes {
@@ -328,6 +352,7 @@ struct IncludeDecl {
     module_dir: PathBuf,
     predicate: Predicate,
     origin: usize,
+    expression_fragment: bool,
 }
 
 #[derive(Debug)]
@@ -403,6 +428,7 @@ pub fn analyze_member(member: &Path) -> MemberAnalysis {
                     canonical.clone(),
                     canonical.parent().unwrap_or(&member_root).to_path_buf(),
                     predicate,
+                    false,
                 );
             }
             _ => traversal.complete = false,
@@ -447,8 +473,11 @@ pub fn cfg_test_ranges(source: &str) -> Vec<LineRange> {
             path_base: module_dir,
         },
         Predicate::ALWAYS,
-        true,
-        false,
+        ParseScopeMode {
+            collect_ranges: true,
+            collect_body_routes: false,
+            expression_fragment: false,
+        },
     ) {
         Some(parsed) if parsed.complete => normalize_ranges(parsed.test_ranges),
         _ => Vec::new(),
@@ -951,9 +980,53 @@ fn parse_source(
             path_base,
         },
         inherited,
-        true,
-        true,
+        ParseScopeMode {
+            collect_ranges: true,
+            collect_body_routes: true,
+            expression_fragment: false,
+        },
     )
+}
+
+fn parse_expression_fragment(
+    source: &str,
+    file: &Path,
+    module_dir: &Path,
+    inherited: Predicate,
+) -> Option<ParsedSource> {
+    let tokens = lex(source)?;
+    let path_base = file.parent().unwrap_or_else(|| Path::new("."));
+    let mut routes = ParsedSource {
+        modules: Vec::new(),
+        includes: Vec::new(),
+        test_ranges: Vec::new(),
+        complete: true,
+    };
+    let known_include_origins = BTreeSet::new();
+    scan_body_route_groups(
+        &tokens,
+        0,
+        tokens.values.len(),
+        BodyRouteContext {
+            source: ParsePath {
+                file,
+                module_dir,
+                path_base,
+            },
+            predicate: inherited,
+            inline_scopes: &[],
+            known_include_origins: &known_include_origins,
+            expression_fragment: true,
+            strict_unknown_macros: true,
+            depth: 0,
+        },
+        &mut routes,
+    );
+    routes.modules.sort();
+    routes.modules.dedup();
+    routes.includes.sort();
+    routes.includes.dedup();
+    Some(routes)
 }
 
 #[derive(Clone, Copy)]
@@ -963,15 +1036,26 @@ struct ParsePath<'a> {
     path_base: &'a Path,
 }
 
+#[derive(Clone, Copy)]
+struct ParseScopeMode {
+    collect_ranges: bool,
+    collect_body_routes: bool,
+    expression_fragment: bool,
+}
+
 fn parse_scope(
     tokens: &Tokens,
     start: usize,
     end: usize,
     source_context: ParsePath<'_>,
     inherited: Predicate,
-    collect_ranges: bool,
-    collect_body_routes: bool,
+    mode: ParseScopeMode,
 ) -> Option<ParsedSource> {
+    let ParseScopeMode {
+        collect_ranges,
+        collect_body_routes,
+        expression_fragment,
+    } = mode;
     let mut parsed = ParsedSource {
         modules: Vec::new(),
         includes: Vec::new(),
@@ -1074,8 +1158,11 @@ fn parse_scope(
                         path_base: &child_dir,
                     },
                     effective,
-                    collect_ranges,
-                    collect_body_routes,
+                    ParseScopeMode {
+                        collect_ranges,
+                        collect_body_routes,
+                        expression_fragment: false,
+                    },
                 )?;
                 parsed.complete &= nested.complete;
                 parsed.modules.extend(nested.modules);
@@ -1103,7 +1190,7 @@ fn parse_scope(
         if !attributes.complete {
             parsed.complete = false;
         }
-        let include = parse_static_include(tokens, index, end);
+        let include = parse_static_include(tokens, index, end, expression_fragment);
         if is_item_macro(tokens, index, end) && include.is_none() {
             parsed.complete = false;
         }
@@ -1134,6 +1221,7 @@ fn parse_scope(
                     module_dir: source_context.module_dir.to_path_buf(),
                     predicate: effective,
                     origin: index,
+                    expression_fragment,
                 });
             }
             index = item_end;
@@ -1141,6 +1229,9 @@ fn parse_scope(
             continue;
         }
         let Some(item_end) = skip_item(tokens, index, end) else {
+            if expression_fragment {
+                break;
+            }
             parsed.complete = false;
             return Some(parsed);
         };
@@ -1169,6 +1260,7 @@ fn parse_scope(
                 module_dir: source_context.module_dir.to_path_buf(),
                 predicate: effective,
                 origin: index,
+                expression_fragment,
             });
         }
         index = item_end;
@@ -1232,6 +1324,8 @@ struct BodyRouteContext<'a> {
     predicate: Predicate,
     inline_scopes: &'a [InlineRouteContext],
     known_include_origins: &'a BTreeSet<usize>,
+    expression_fragment: bool,
+    strict_unknown_macros: bool,
     depth: usize,
 }
 
@@ -1255,6 +1349,10 @@ fn collect_body_routes_in_item(
         return routes;
     }
     let known_include_origins = BTreeSet::new();
+    let expression_fragment = matches!(
+        item_head(tokens, start, end),
+        Some("fn" | "const" | "static")
+    );
     scan_body_route_groups(
         tokens,
         start,
@@ -1264,6 +1362,8 @@ fn collect_body_routes_in_item(
             predicate: inherited,
             inline_scopes: &[],
             known_include_origins: &known_include_origins,
+            expression_fragment,
+            strict_unknown_macros: false,
             depth: 0,
         },
         &mut routes,
@@ -1279,17 +1379,25 @@ fn collect_scope_body_routes(
     tokens: &Tokens,
     start: usize,
     end: usize,
-    source_context: ParsePath<'_>,
-    inherited: Predicate,
-    depth: usize,
+    context: BodyRouteContext<'_>,
     routes: &mut ParsedSource,
 ) {
-    if depth >= 128 {
+    if context.depth >= 128 {
         routes.complete = false;
         return;
     }
-    let Some(scope) = parse_scope(tokens, start, end, source_context, inherited, false, false)
-    else {
+    let Some(scope) = parse_scope(
+        tokens,
+        start,
+        end,
+        context.source,
+        context.predicate,
+        ParseScopeMode {
+            collect_ranges: false,
+            collect_body_routes: false,
+            expression_fragment: context.expression_fragment,
+        },
+    ) else {
         routes.complete = false;
         return;
     };
@@ -1319,11 +1427,13 @@ fn collect_scope_body_routes(
         start,
         end,
         BodyRouteContext {
-            source: source_context,
-            predicate: inherited,
+            source: context.source,
+            predicate: context.predicate,
             inline_scopes: &inline_scopes,
             known_include_origins: &known_include_origins,
-            depth: depth + 1,
+            expression_fragment: context.expression_fragment,
+            strict_unknown_macros: context.strict_unknown_macros,
+            depth: context.depth + 1,
         },
         routes,
     );
@@ -1370,6 +1480,7 @@ fn scan_body_route_groups(
                     module_dir: context.source.module_dir.to_path_buf(),
                     predicate: context.predicate,
                     origin: index,
+                    expression_fragment: true,
                 });
             } else {
                 routes.complete = false;
@@ -1378,7 +1489,7 @@ fn scan_body_route_groups(
             continue;
         }
         if let Some((_, close)) = macro_invocation_group(tokens, index, end) {
-            if macro_starts_block_item(tokens, start, index) {
+            if context.strict_unknown_macros || macro_starts_block_item(tokens, start, index) {
                 routes.complete = false;
             }
             index = close + 1;
@@ -1413,6 +1524,8 @@ fn scan_body_route_groups(
                             predicate: inline.predicate,
                             inline_scopes: context.inline_scopes,
                             known_include_origins: context.known_include_origins,
+                            expression_fragment: false,
+                            strict_unknown_macros: context.strict_unknown_macros,
                             depth: context.depth + 1,
                         },
                         routes,
@@ -1422,9 +1535,10 @@ fn scan_body_route_groups(
                         tokens,
                         index + 1,
                         close,
-                        context.source,
-                        context.predicate,
-                        context.depth + 1,
+                        BodyRouteContext {
+                            depth: context.depth + 1,
+                            ..context
+                        },
                         routes,
                     );
                 }
@@ -1999,9 +2113,14 @@ fn macro_invocation_group(tokens: &Tokens, at: usize, end: usize) -> Option<(usi
     (close < end).then_some((index, close))
 }
 
-fn parse_static_include(tokens: &Tokens, at: usize, end: usize) -> Option<String> {
+fn parse_static_include(
+    tokens: &Tokens,
+    at: usize,
+    end: usize,
+    expression_fragment: bool,
+) -> Option<String> {
     let (path, next) = parse_include_invocation(tokens, at, end)?;
-    if !is_punct(tokens, next.saturating_sub(1), ';') {
+    if !is_punct(tokens, next.saturating_sub(1), ';') && !(expression_fragment && next == end) {
         return None;
     }
     path
@@ -2347,8 +2466,8 @@ mod tests {
         };
         let file = PathBuf::from("/member/src/lib.rs");
         let module_dir = PathBuf::from("/member/src");
-        traversal.queue_file(file.clone(), module_dir.clone(), Predicate::ALWAYS);
-        traversal.queue_file(file, module_dir, Predicate::ALWAYS);
+        traversal.queue_file(file.clone(), module_dir.clone(), Predicate::ALWAYS, false);
+        traversal.queue_file(file, module_dir, Predicate::ALWAYS, false);
         assert_eq!(traversal.queue.len(), 1);
 
         for index in 0..=MAX_CONTEXTS {
@@ -2356,10 +2475,34 @@ mod tests {
                 PathBuf::from(format!("/member/src/{index}.rs")),
                 PathBuf::from(format!("/member/src/{index}")),
                 Predicate::ALWAYS,
+                false,
             );
         }
         assert!(!traversal.complete);
         assert_eq!(traversal.queue.len(), MAX_CONTEXTS);
+    }
+
+    #[test]
+    fn expression_fragment_contexts_do_not_deduplicate_with_item_contexts() {
+        let mut traversal = Traversal {
+            member_root: PathBuf::from("/member"),
+            sources: BTreeMap::new(),
+            included_sources: BTreeSet::new(),
+            paths: BTreeSet::new(),
+            reachable: BTreeMap::new(),
+            visited: BTreeSet::new(),
+            queue: VecDeque::new(),
+            complete: true,
+        };
+        let file = PathBuf::from("/member/outside/shared.inc.rs");
+        let module_dir = PathBuf::from("/member/src/caller");
+        traversal.queue_file(file.clone(), module_dir.clone(), Predicate::ALWAYS, false);
+        traversal.queue_file(file, module_dir, Predicate::ALWAYS, true);
+        assert_eq!(traversal.queue.len(), 2);
+        assert_ne!(
+            traversal.queue[0].expression_fragment,
+            traversal.queue[1].expression_fragment
+        );
     }
 
     #[test]
