@@ -662,6 +662,34 @@ Branches deliberately kept, with the reason:
 | `main` | the base branch |
 | `wip/holla-menu-patch-precedence-20261021`, `wip/owned-fresh-plan-lifecycle-20261021`, `wip/owned-runner-ordinary-phase-20261021`, `wip/holla-rate-limit-20261021`, `wip/jackin-rate-limit-20261021` | held by an open review or an unfinished verification, per the census |
 
+### Hosted CI evidence
+
+The generated-workflow check had been red on every run since the audit
+evidence tree was committed, and the `required` gate failed closed with
+every Rust job skipped, so the hosted pipeline provided no validation at
+all for PR #38.
+
+After the discovery exclusion, hosted run `39728229443` at `64d9a80f4` gives:
+
+| Job group | Result |
+| --- | --- |
+| `Actionlint` | success |
+| `Plan` (the generated-files check) | **success** |
+| 70 Rust crate jobs | success |
+| 28 Rust crate jobs | failure |
+
+The 28 failures are the crates that carry the open gates the local
+workspace run reports: `termrock-core`, `termrock-fields`,
+`termrock-feedback`, `termrock-conformance` (the component digest conflict),
+`showcase-ui`, `jackin-preview-app` and `holla-ui` (the application visual
+baselines), and their `testing` configurations. The failure set matches the
+local measurement, so the hosted pipeline now measures the same state the
+coordinator measures.
+
+The runs before this were all `cancelled`, because each new push to the
+delivery branch cancels the running pipeline. A green hosted run therefore
+needs a quiet branch.
+
 ## Coverage gaps
 
 ### False-parity inventory (read-only audit, revision `40bc297e5`)
