@@ -63,6 +63,41 @@ fn unlabeled_and_indented_rust_fail_closed() {
 }
 
 #[test]
+fn nested_list_paragraph_continuations_are_not_indented_code() {
+    let source = concat!(
+        "2. Failing-first proof (rendered cells through the real `Harness`):\n",
+        "   - `button_cells_carry_container_ink_and_bold_like_the_frozen_frame` —\n",
+        "     red at tip (trailing BOLD dropped), green after.\n",
+        "\n",
+        "11. `1c17d8f262` (current tip) — re-authors the 256 danger family\n",
+        "    indexes and pins the matching expected overrides.\n",
+        "\n",
+        "* New coverage added by the range:\n",
+        "  - `crates/termrock-conformance/tests/conformance.rs`: a new\n",
+        "    `activation_probe_guards` module with 5 tests, including\n",
+        "    `Conformance::fixture()` and the shared driver migration.\n",
+    );
+
+    assert!(
+        inspect_fixture("README.md", source).is_empty(),
+        "list continuation prose is not an indented code block"
+    );
+}
+
+#[test]
+fn nested_list_indented_rust_remains_fail_closed() {
+    for source in [
+        "- example:\n\n      fn main() {}\n      println!(\"list code\");\n",
+        "- outer item\n  - nested item\n\n        fn main() {}\n        println!(\"nested list code\");\n",
+    ] {
+        assert!(
+            !inspect_fixture("README.md", source).is_empty(),
+            "accepted nested-list Rust {source:?}"
+        );
+    }
+}
+
+#[test]
 fn rustdoc_block_and_attribute_inputs_fail_closed() {
     let block = "/**\n * ```rust\n * fn main() {}\n * ```\n */";
     assert!(!inspect_fixture("src/lib.rs", block).is_empty());

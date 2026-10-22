@@ -20,7 +20,7 @@ Stream under review:
 
 ## Findings
 
-```
+```text
 crates/holla-sim/src/catalogue.rs:894: 🔴 blocker: the architecture gate fails at the reviewed sha. `python3 tools/acceptance_architecture.py` exits 1 with `architecture_checks_passed: false` and 2 `frame-marker` findings, one of them this line ("The policy is a width band, not a captured frame size: the frozen reference"); the parent `a972caaf1d` exits 0 with 0 findings. The gate regex `captured (?:terminal )?frame` matches the phrase in the new comment. Reword both new comments so the phrase is not a captured-frame marker, or narrow the rule to code, and re-run the gate to 0 findings.
 crates/holla-ui/src/app.rs:3908: 🔴 blocker: second `frame-marker` finding, same rule, same cause: the new test comment "The width band carries the failure card at every viewport, not only at the captured frame sizes." Rephrase to avoid `captured frame`.
 crates/jackin-preview-app/src/app/accounts_page.rs:1438: 🟠 major: the new accounts page forks shared text measurement. `fn truncate(text: &str, width: usize)` counts `chars()` and cuts at `width-1`; `termrock::text::truncate` (`termrock::text::measure::truncate`) already does grapheme- and cell-width-correct truncation and is exported from the facade. This copy cuts wide CJK glyphs at one cell and breaks grapheme clusters. Delete the local copy and call `termrock::text::truncate`.

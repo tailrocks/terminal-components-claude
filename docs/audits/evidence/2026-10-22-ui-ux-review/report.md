@@ -27,7 +27,7 @@ New files under review: `crates/showcase-demos/tests/no_false_parity.rs`,
 
 ## Findings
 
-```
+```text
 crates/showcase-demos/src/pages/terminal.rs:237: 🔴 blocker: the stored scenario showcase::pages::terminal can no longer be captured. The launch advances one stage per update() call, so the settled frame needs ~36 updates, and the page implements no seek_paused; the harness's stable-frame wait stops the clock before stage 7. Five of five manual captures and the harness trial itself fail with "wait:✓ Ready timed out ... never appeared" after 60.6s, while the base captures the same frame in 6.0s. Drive the launch from a seekable deterministic frame counter (implement seek_paused) or settle on the first tick and paint the finished state.
 crates/jackin-preview-app/src/app/accounts_page.rs:1: 🔴 blocker: the live accounts page breaks three stored, reapproved frames that the base matched exactly. jackin::accounts::detail::120x40::truecolor, jackin::accounts::drawer::120x40::truecolor and jackin::accounts::filter::120x40::truecolor all go PASS → FAIL (946, 936 and 201 differing cells). The harness run of the same seven stored scenarios reports 3 passed / 4 failed on the base and 0 passed / 7 failed on the reviewed tip. Reconcile the live page with the approved frames, or hold the change.
 crates/showcase-demos/src/pages/taskrunner.rs:1: 🔴 blocker: the live task runner regresses the stored frame at every size. 120x40 truecolor goes from 23 differing cells to 1125, 160x50 from 23 to 1605, 72x20 from 18 to 333. The new page drops the panel rule and paints the "Targets" title bold white where the approved frame has it secondary. Match the approved frame before landing.
@@ -117,7 +117,7 @@ are the honest per-screen deltas, not a clean-sheet verdict.
 
 ## Commands run
 
-```
+```bash
 # worktrees (read-only for the review)
 git -C /Users/donbeave/Projects/terminal-components-claude worktree add /Users/donbeave/Projects/review-uiux-20261021 --detach fc2c3bd4e
 git -C /Users/donbeave/Projects/terminal-components-claude worktree add /Users/donbeave/Projects/review-uiux-base-20261021 --detach 5dfff7f20
