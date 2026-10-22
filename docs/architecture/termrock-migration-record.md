@@ -606,6 +606,36 @@ guard walks every page module and detects a captured cell table by shape
 rather than by spelling. The task runner page-region difference fell from
 1 183 to 310 cells at 120x40 truecolor.
 
+### Stream results, third wave
+
+**TablePro footer and explorer — landed.** `crates/tablepro-ui/src/footer.rs`
+is one shared footer component that replaces the per-surface footer painters
+and the bespoke hint-cost model, the hint fitting reserves the overflow gap
+the reference reserves, the connection status always carries its mark, the
+explorer paints its metadata only when the visible rows can carry it, and
+the filter card focuses its value field at every size. The nine conflicted
+hunks were resolved in favour of the shared component and the tip's
+allocation-free work.
+
+Frozen comparison, same base: the delivery tip without the stream passed
+126 of 2762 `tablepro::` cases, the merged stream passes **148**, and no case
+regressed. The gain is 15 `workbench/maximized`, 6 `connections` and 1
+`overlays/tablist_open`. The 11 re-derived digest rows are byte-identical
+to the approved frames at both sizes and all four colour modes. The
+`tablepro::query::results::72x20` cases pass again, so the earlier
+"reference-side defect" reading did not reproduce at these revisions; the
+remaining `query/results` failures are the 16 and 256 tiers, a tab-strip ink
+difference in row 2 that is present on the tip too.
+
+Gate: `cargo nextest run -p tablepro-ui -p tablepro-demo --all-targets`
+gives 217 run, 217 passed; clippy clean; formatting clean; the architecture
+gate reports 0 findings and 0 dependency violations.
+
+The remaining TablePro backlog, measured on the merged stream: 782 cases
+differ in cells and 977 time out because the application never reaches the
+oracle screen, spread over the table (247), connections (160), query (142),
+overlays (127), workbench (50), fade (25), audit (16) and resize (15).
+
 ## Coverage gaps
 
 ### False-parity inventory (read-only audit, revision `40bc297e5`)
