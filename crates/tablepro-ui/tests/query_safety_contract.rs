@@ -13,6 +13,12 @@ const REPLACE_RESULTS: Id = Id::root("tablepro.quit-dialog");
 const HELP: Id = Id::root("tablepro.help");
 const FIXED_DURATION: Duration = Duration::from_millis(42);
 const SELECT_ORDERS: &str = "SELECT * FROM public.orders LIMIT 3";
+type QueryResultSnapshot = (
+    Vec<(String, tablepro_demo::db::ColType)>,
+    usize,
+    usize,
+    tablepro_domain::domain::PendingEdits,
+);
 
 fn query_harness(
     safe_mode: SafeMode,
@@ -57,6 +63,33 @@ fn query_status(harness: &Harness<TableProApp>, key: TabKey) -> Option<(bool, u3
 
 fn confirm_query(harness: &mut Harness<TableProApp>) {
     let _ = harness.click_id(Dialog::new(QUERY_SAFETY).action_id(1));
+}
+
+fn acknowledge_and_confirm_by_keyboard(harness: &mut Harness<TableProApp>) {
+    let dialog = Dialog::new(QUERY_SAFETY);
+    let _ = harness.key(KeyCode::Enter);
+    assert_eq!(harness.focus(), Some(dialog.action_id(0)));
+    let _ = harness.key(KeyCode::Right);
+    assert_eq!(harness.focus(), Some(dialog.action_id(1)));
+    assert!(harness.area_of(dialog.action_id(1)).is_some());
+    let _ = harness.key(KeyCode::Enter);
+}
+
+fn query_result_snapshot(
+    harness: &Harness<TableProApp>,
+    key: TabKey,
+) -> Option<QueryResultSnapshot> {
+    let Some(Tab::Query(tab)) = harness.app().workbench.tab(key) else {
+        return None;
+    };
+    tab.result.as_ref().map(|grid| {
+        (
+            grid.columns.clone(),
+            grid.model.row_count(),
+            grid.model.total(),
+            grid.model.pending().clone(),
+        )
+    })
 }
 
 fn pending_result_harness() -> Result<(Harness<TableProApp>, TabKey), &'static str> {
@@ -305,6 +338,199 @@ fn silent_mode_still_requires_target_ack_for_dangerous_production_write() -> Res
         "{:?}",
         harness.diagnostics()
     );
+    Ok(())
+}
+
+#[test]
+fn delete_without_where_review_keeps_its_destructive_risk_and_target_gate()
+-> Result<(), &'static str> {
+    let sql = "DELETE FROM public.orders";
+    let (mut harness, key) = query_harness(SafeMode::SafeFull, 4, sql)?;
+    let history_before = harness.app().workbench.history.entries.clone();
+    let catalog_before = harness.app().workbench.catalog.tables.clone();
+
+    let _ = harness.ctrl('r');
+    assert!(harness.layer_area(QUERY_SAFETY).is_some());
+    let review = harness.text();
+    assert!(review.contains("DELETE without WHERE"), "{review}");
+    assert!(
+        review.contains("Acknowledgement: type exactly orders"),
+        "{review}"
+    );
+    assert!(review.contains("Target: orders (unverified)"), "{review}");
+    assert_eq!(
+        harness.focus(),
+        Some(Dialog::new(QUERY_SAFETY).input_id()),
+        "the destructive review starts in the target field"
+    );
+    assert_eq!(result_rows(&harness, key), None);
+    assert_eq!(query_status(&harness, key), None);
+
+    let _ = harness.key(KeyCode::Esc);
+    assert!(harness.layer_area(QUERY_SAFETY).is_none());
+    assert_eq!(harness.focus(), Some(key.control("query")));
+    assert_eq!(result_rows(&harness, key), None);
+    assert_eq!(query_status(&harness, key), None);
+    assert_eq!(harness.app().workbench.history.entries, history_before);
+    assert_eq!(harness.app().workbench.catalog.tables, catalog_before);
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+    Ok(())
+}
+
+#[test]
+fn typed_update_acknowledgement_uses_keyboard_and_preserves_existing_result()
+-> Result<(), &'static str> {
+    let sql = "UPDATE public.orders SET status = 'paid' WHERE id = 'missing'";
+    let (mut harness, key) = query_harness(SafeMode::SafeFull, 4, sql)?;
+    harness.app_mut().set_safe_mode(SafeMode::Silent);
+    assert!(matches!(
+        harness.app_mut().run_query(SELECT_ORDERS),
+        QueryOutcome::Executed { rows: 3, .. }
+    ));
+    harness.app_mut().set_safe_mode(SafeMode::SafeFull);
+    let Some(Tab::Query(tab)) = harness.app_mut().workbench.tab_mut(key) else {
+        return Err("the seeded result still belongs to the active query tab");
+    };
+    tab.replace_query(sql);
+    harness.app_mut().surface = Surface::QueryEditing;
+    let result_before = query_result_snapshot(&harness, key);
+    assert!(
+        result_before.is_some(),
+        "the control starts with a query result"
+    );
+    let history_before = harness.app().workbench.history.entries.clone();
+    let catalog_before = harness.app().workbench.catalog.tables.clone();
+
+    let _ = harness.ctrl('r');
+    assert!(harness.layer_area(QUERY_SAFETY).is_some());
+    let review = harness.text();
+    assert!(review.contains("Review query request"), "{review}");
+    assert!(
+        review.contains("Acknowledgement: type exactly orders"),
+        "{review}"
+    );
+    assert!(review.contains("unsupported demo executor"), "{review}");
+    assert!(review.contains(sql), "{review}");
+    assert!(review.contains("Target: orders (unverified)"), "{review}");
+    assert_eq!(
+        harness.focus(),
+        Some(Dialog::new(QUERY_SAFETY).input_id()),
+        "confirmation starts in the acknowledgement field"
+    );
+
+    let _ = harness.type_str("orders");
+    acknowledge_and_confirm_by_keyboard(&mut harness);
+
+    assert!(harness.layer_area(QUERY_SAFETY).is_none());
+    assert_eq!(
+        harness.app().status(),
+        "Query rejected: The demo executor only runs SELECT statements"
+    );
+    assert_eq!(query_status(&harness, key), Some((true, 42)));
+    assert_eq!(query_result_snapshot(&harness, key), result_before);
+    assert_eq!(harness.app().workbench.history.entries, history_before);
+    assert_eq!(harness.app().workbench.catalog.tables, catalog_before);
+    assert_eq!(harness.focus(), Some(key.control("query")));
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+    Ok(())
+}
+
+#[test]
+fn wrong_acknowledgement_cannot_reach_the_confirm_action() -> Result<(), &'static str> {
+    let sql = "UPDATE public.orders SET status = 'paid' WHERE id = 'missing'";
+    let (mut harness, key) = query_harness(SafeMode::SafeFull, 4, sql)?;
+    let status_before = harness.app().status().to_owned();
+    let history_before = harness.app().workbench.history.entries.clone();
+    let catalog_before = harness.app().workbench.catalog.tables.clone();
+
+    let _ = harness.ctrl('r');
+    assert!(harness.layer_area(QUERY_SAFETY).is_some());
+    let _ = harness.type_str("order");
+    let _ = harness.key(KeyCode::Enter);
+    assert_eq!(
+        harness.focus(),
+        Some(Dialog::new(QUERY_SAFETY).action_id(0)),
+        "committing a partial token leaves Cancel selected"
+    );
+    let _ = harness.key(KeyCode::Right);
+    assert_eq!(
+        harness.focus(),
+        Some(Dialog::new(QUERY_SAFETY).action_id(0)),
+        "the disabled Confirm action is skipped for a partial token"
+    );
+    let _ = harness.key(KeyCode::Enter);
+
+    assert!(harness.layer_area(QUERY_SAFETY).is_none());
+    assert_eq!(harness.focus(), Some(key.control("query")));
+    assert_eq!(harness.app().status(), status_before);
+    assert_eq!(result_rows(&harness, key), None);
+    assert_eq!(query_status(&harness, key), None);
+    assert_eq!(harness.app().workbench.history.entries, history_before);
+    assert_eq!(harness.app().workbench.catalog.tables, catalog_before);
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+    Ok(())
+}
+
+#[test]
+fn typed_acknowledgement_escape_and_outside_cancel_clear_on_reopen() -> Result<(), &'static str> {
+    for outside in [false, true] {
+        let sql = "UPDATE public.orders SET status = 'paid' WHERE id = 'missing'";
+        let (mut harness, key) = query_harness(SafeMode::SafeFull, 4, sql)?;
+        let status_before = harness.app().status().to_owned();
+        let history_before = harness.app().workbench.history.entries.clone();
+        let catalog_before = harness.app().workbench.catalog.tables.clone();
+
+        let _ = harness.ctrl('r');
+        assert!(harness.layer_area(QUERY_SAFETY).is_some());
+        assert_eq!(harness.focus(), Some(Dialog::new(QUERY_SAFETY).input_id()));
+        let _ = harness.type_str("orde");
+        if outside {
+            assert!(harness.layer_area(QUERY_SAFETY).is_some());
+            let _ = harness.mouse(MouseKind::Down, 0, 0);
+            let _ = harness.mouse(MouseKind::Up, 0, 0);
+        } else {
+            let _ = harness.key(KeyCode::Esc);
+        }
+
+        assert!(
+            harness.layer_area(QUERY_SAFETY).is_none(),
+            "outside={outside}"
+        );
+        assert_eq!(harness.focus(), Some(key.control("query")));
+        assert_eq!(harness.app().status(), status_before);
+        assert_eq!(result_rows(&harness, key), None);
+        assert_eq!(query_status(&harness, key), None);
+        assert_eq!(harness.app().workbench.history.entries, history_before);
+        assert_eq!(harness.app().workbench.catalog.tables, catalog_before);
+
+        let _ = harness.ctrl('r');
+        assert!(harness.layer_area(QUERY_SAFETY).is_some());
+        assert_eq!(harness.focus(), Some(Dialog::new(QUERY_SAFETY).input_id()));
+        let _ = harness.type_str("orders");
+        acknowledge_and_confirm_by_keyboard(&mut harness);
+        assert!(harness.layer_area(QUERY_SAFETY).is_none());
+        assert_eq!(query_status(&harness, key), Some((true, 42)));
+        assert!(harness.app().status().contains("only runs SELECT"));
+        assert_eq!(harness.app().workbench.history.entries, history_before);
+        assert_eq!(harness.app().workbench.catalog.tables, catalog_before);
+        assert!(
+            harness.diagnostics().is_empty(),
+            "{:?}",
+            harness.diagnostics()
+        );
+    }
     Ok(())
 }
 
