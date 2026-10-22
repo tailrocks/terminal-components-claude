@@ -110,6 +110,27 @@ corpus remains diagnostic-only by default. The branch ledger lists 165 branches,
 while local origin refs total 188; neither is a complete current remote-branch
 census. No claim is made that all relevant branches were reviewed or consolidated.
 
+## Independent runtime review addendum
+
+An independent Rust/runtime review at the same source head found a page-heading
+ownership issue in `showcase-demos/pages/mod.rs:64-103`: the frame paints its own
+title with empty `StateFlags`, without a focus gutter, and manually derives the
+body rectangle. `showcase-demos/pages/settings.rs:216-240` paints a duplicate
+heading. The shared panel title/gutter path in `panel.rs:331-356` requires explicit
+focus props, so replacing the current path with unconditional focus would add a
+second visible focus indicator. The needed contract is a reusable page heading or
+page-frame composition with separate decorative-accent and keyboard-focus state,
+plus layer policy. No exact screenshot root cause is established by this source
+finding.
+
+The same review inspected the resolved layout plan and runtime dispatch paths at
+`ui/composition.rs:291-368`, `runtime.rs:1970-1998`,
+`ui/overlay/mod.rs:1209-1251`, and `Cx` scope handling at `cx.rs:832-845`; it found
+no demonstrated runtime defect in those paths. After the disk gate, test the
+heading through a real harness for control focus, modal/popup focus restoration,
+resize and narrow clipping, and exactly one focus mark. The independent review
+also confirmed palette index 238 matches the frozen reference; do not revert it.
+
 ## Required next work
 
 After the free-space gate is satisfied and the shared API contract is agreed:
