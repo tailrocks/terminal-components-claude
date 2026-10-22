@@ -407,6 +407,25 @@ impl<'f> Ui<'f> {
         self.inert || self.reference.is_some()
     }
 
+    /// The state flags this context contributes to the components it draws.
+    ///
+    /// An inert context — a layer below the active layer, a reference frame,
+    /// or a modal backdrop — reports [`StateFlags::INACTIVE_LAYER`]. The
+    /// flag carries no styling of its own: the palette is frozen, and the
+    /// inert look still comes from [`termrock_theme::Theme::inactive_look`].
+    pub const fn context_state(&self) -> StateFlags {
+        if self.is_inert() {
+            StateFlags::INACTIVE_LAYER
+        } else {
+            StateFlags::empty()
+        }
+    }
+
+    /// Whether this context draws an inactive layer.
+    pub const fn is_inactive_layer(&self) -> bool {
+        self.is_inert()
+    }
+
     /// Append a component-author diagnostic to this frame's bounded runtime
     /// diagnostic stream. Diagnostics are committed with the frame and cannot
     /// be cleared by an individual component.
@@ -752,7 +771,15 @@ impl<'f> Ui<'f> {
     }
 
     pub fn declare_state(&mut self, id: Id, flags: StateFlags) {
-        if self.reference.is_some() || flags.is_empty() {
+        if self.reference.is_some() {
+            return;
+        }
+        // The context state travels with the component's own state so a
+        // consumer reading the declared flags can tell an inactive layer
+        // from a disabled control. It carries no styling, so painting is
+        // unchanged.
+        let flags = flags | self.context_state();
+        if flags.is_empty() {
             return;
         }
         if let Some((_, f)) = self.frame.declared.iter_mut().find(|(i, _)| *i == id) {
@@ -1713,6 +1740,44 @@ mod tests {
             f(&mut ui)
         };
         (out, page)
+    }
+
+    fn with_inert_ui<R>(theme: &Theme, f: impl FnOnce(&mut Ui<'_>) -> R) -> (R, Buffer) {
+        let mut frame = FrameState::default();
+        frame.reset(1, SCREEN);
+        // A layer above the page is the inert floor: everything under it is
+        // drawn but not interactive.
+        frame.inert_floor = crate::layer::LayerId(1);
+        let mut page = Buffer::empty(SCREEN);
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        let out = {
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, theme, &last);
+            f(&mut ui)
+        };
+        (out, page)
+    }
+
+    #[test]
+    fn inactive_layer_is_a_first_class_state() {
+        let theme = Theme::junie();
+        with_ui(&theme, |ui| {
+            assert!(!ui.is_inactive_layer());
+            assert_eq!(ui.context_state(), StateFlags::empty());
+            ui.declare_state(OWNER, StateFlags::FOCUSED);
+            assert_eq!(ui.frame.declared, vec![(OWNER, StateFlags::FOCUSED)]);
+        });
+        with_inert_ui(&theme, |ui| {
+            assert!(ui.is_inactive_layer());
+            assert_eq!(ui.context_state(), StateFlags::INACTIVE_LAYER);
+            assert!(ui.context_state().is_inactive_layer());
+            ui.declare_state(OWNER, StateFlags::FOCUSED);
+            assert_eq!(
+                ui.frame.declared,
+                vec![(OWNER, StateFlags::FOCUSED | StateFlags::INACTIVE_LAYER)],
+                "an inactive layer travels with the component's own state"
+            );
+        });
     }
 
     #[test]
