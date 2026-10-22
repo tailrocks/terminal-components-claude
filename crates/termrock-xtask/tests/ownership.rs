@@ -88,6 +88,67 @@ fn check_scratch(dir: &tempfile::TempDir) -> termrock_xtask::ownership::Report {
     check_workspace(&root, &root.join("exceptions.json"))
 }
 
+fn assert_skipped_body_attribute_is_conservative(attribute: &str, local_item: &str) {
+    let dir = empty_workspace();
+    let source = format!(
+        "#[cfg(test)] mod candidate;\n\
+         #[path = \"../before.rs\"] mod before;\n\
+         fn production() {{\n\
+             {attribute}\n\
+             {local_item}\n\
+         }}\n\
+         include!(\"../after.inc.rs\");\n\
+         #[path = \"../after.rs\"] mod after;\n"
+    );
+    write_member_file(&dir, "src/lib.rs", &source);
+    for (path, name) in [
+        ("src/candidate.rs", "candidate"),
+        ("before.rs", "before"),
+        ("after.inc.rs", "included_after"),
+        ("after.rs", "module_after"),
+    ] {
+        write_member_file(
+            &dir,
+            path,
+            &format!("fn {name}() {{ None::<u8>.expect(\"{name}\"); }}\n"),
+        );
+    }
+
+    let member = dir.path().join("crates/demo-preview");
+    let analysis = termrock_xtask::ownership::module_graph::analyze_member(&member);
+    for path in ["before.rs", "after.inc.rs", "after.rs"] {
+        let external = std::fs::canonicalize(member.join(path)).expect("external route");
+        assert!(
+            analysis.sources.contains(&external),
+            "known sibling route {path} must remain inventoried: {analysis:?}"
+        );
+    }
+    let findings = own14_findings(&check_scratch(&dir));
+    assert!(
+        findings
+            .iter()
+            .any(|(path, _)| path == "crates/demo-preview/src/candidate.rs"),
+        "the cfg(test) candidate must remain in the production ownership inventory: {findings:?}"
+    );
+    assert!(
+        !analysis.complete,
+        "unmodeled skipped-body attribute {attribute} must make provenance incomplete"
+    );
+    assert!(
+        analysis.test_only.is_empty(),
+        "unmodeled skipped-body attributes never authorize pruning"
+    );
+    assert_eq!(
+        findings,
+        [
+            ("crates/demo-preview/after.inc.rs".to_string(), 1),
+            ("crates/demo-preview/after.rs".to_string(), 1),
+            ("crates/demo-preview/before.rs".to_string(), 1),
+            ("crates/demo-preview/src/candidate.rs".to_string(), 1),
+        ]
+    );
+}
+
 #[test]
 fn cfg_test_external_module_is_excluded_but_neighboring_production_is_scanned() {
     let dir = empty_workspace();
@@ -844,6 +905,71 @@ fn function_local_derive_import_keeps_test_route_production() {
         own14_findings(&check_scratch(&dir)),
         [("crates/demo-preview/src/candidate.rs".to_string(), 1)]
     );
+}
+
+#[test]
+fn skipped_unknown_bare_attribute_keeps_candidate_and_later_routes() {
+    assert_skipped_body_attribute_is_conservative("#[make_modules]", "struct Local;");
+}
+
+#[test]
+fn skipped_unknown_qualified_attribute_keeps_candidate_and_later_routes() {
+    assert_skipped_body_attribute_is_conservative("#[custom::make_module]", "fn local() {}");
+}
+
+#[test]
+fn skipped_cfg_attr_unknown_attribute_keeps_candidate_and_later_routes() {
+    assert_skipped_body_attribute_is_conservative(
+        "#[cfg_attr(not(test), custom::make_module)]",
+        "struct Local;",
+    );
+}
+
+#[test]
+fn skipped_malformed_attribute_keeps_candidate_and_later_routes() {
+    assert_skipped_body_attribute_is_conservative("#[custom::]", "struct Local;");
+}
+
+#[test]
+fn skipped_cfg_attr_derive_keeps_candidate_and_later_routes() {
+    assert_skipped_body_attribute_is_conservative(
+        "#[cfg_attr(not(test), derive(Clone))]",
+        "struct Local;",
+    );
+}
+
+#[test]
+fn skipped_supported_attributes_and_attribute_lookalikes_remain_proven() {
+    let dir = empty_workspace();
+    write_member_file(
+        &dir,
+        "src/lib.rs",
+        "#[cfg(test)] mod candidate;\n\
+         fn production() {\n\
+             // #[custom::make_module]\n\
+             #[allow(dead_code)]\n\
+             #[deprecated(note = \"literal #[custom::make_module]\")]\n\
+             #[doc = concat!(\"attribute text #[cfg_attr(test, custom)]\")]\n\
+             struct Local;\n\
+             let _values = vec![1, 2, 3];\n\
+         }\n",
+    );
+    write_member_file(
+        &dir,
+        "src/candidate.rs",
+        "fn test_only() { None::<u8>.expect(\"candidate\"); }\n",
+    );
+
+    let member = dir.path().join("crates/demo-preview");
+    let candidate =
+        std::fs::canonicalize(member.join("src/candidate.rs")).expect("test-only candidate source");
+    let analysis = termrock_xtask::ownership::module_graph::analyze_member(&member);
+    assert!(
+        analysis.complete,
+        "known inert attributes and vec! are understood"
+    );
+    assert!(analysis.test_only.contains(&candidate));
+    assert!(own14_findings(&check_scratch(&dir)).is_empty());
 }
 
 #[test]
