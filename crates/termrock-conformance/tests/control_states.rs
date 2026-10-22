@@ -562,13 +562,17 @@ fn w02_button_variants_all_states_and_focus_gutter() {
         let theme = Theme::junie().downgrade(level);
         for variant in BUTTON_VARIANTS {
             // The gutter recipe keys on FOCUS_VISIBLE (decision recorded in
-            // docs/audits/2026-10-21-button-shared-contract.md): the default
-            // `Always` visibility policy derives it from FOCUSED, a focused
-            // button under `KeyboardOnly` stays gutter-free until the
-            // reference itself carries FOCUS_VISIBLE, and an unfocused button
-            // never paints it.
+            // docs/audits/2026-10-21-button-shared-contract.md). `Always`
+            // promotes the runtime's FOCUSED to FOCUS_VISIBLE only in a live
+            // scope; every leg here draws inside a `ui.reference` scope, which
+            // is inert (`Ui::is_inert`), so the reference must carry
+            // FOCUS_VISIBLE itself for the `▎` to appear. A focused button
+            // under `KeyboardOnly` stays gutter-free until the reference
+            // carries FOCUS_VISIBLE, and an unfocused button never paints it.
+            // Live pointer/keyboard focus promotion is pinned by the
+            // `button_contract` tests through the real Harness.
             for (visibility, state, expected) in [
-                (None, ReferenceState::FOCUSED, "▎"),
+                (None, ReferenceState::FOCUSED, " "),
                 (Some(Bfv::KeyboardOnly), ReferenceState::FOCUSED, " "),
                 (
                     Some(Bfv::KeyboardOnly),
@@ -607,10 +611,15 @@ fn w02_button_variants_all_states_and_focus_gutter() {
                     .variant(variant)
                     .draw(ui, area);
             });
+            // The reference carries FOCUS_VISIBLE: a `ui.reference` scope is
+            // inert, so `Always` never self-promotes FOCUSED there (contract:
+            // docs/audits/2026-10-21-button-shared-contract.md).
             let focus_hover = paint_state(
                 BUTTON_AREA,
                 BUTTON,
-                ReferenceState::FOCUSED.union(ReferenceState::HOVERED),
+                ReferenceState::FOCUSED
+                    .union(ReferenceState::FOCUS_VISIBLE)
+                    .union(ReferenceState::HOVERED),
                 |ui, area| {
                     Button::new(BUTTON, "Action")
                         .variant(variant)
