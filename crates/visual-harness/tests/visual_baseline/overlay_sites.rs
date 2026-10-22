@@ -27,6 +27,10 @@ const NOT_OPENING: [&str; 2] = [
     "let p = self.style(Picker::new(ID.sub(",
 ];
 
+const PURE_QUIT_MODEL_PATH: &str = "crates/termrock-shell/src/quit.rs";
+const PURE_QUIT_MODEL_FUNCTION: &str = "request_quit";
+const PURE_QUIT_MODEL_OPENER: &str = ".request(Leave::";
+
 pub struct Site {
     pub key: &'static str,
     pub rows: &'static [&'static str],
@@ -222,6 +226,13 @@ pub const SITES: &[Site] = &[
         ],
     ),
     rows(
+        "crates/jackin-preview-app/src/app.rs::accounts_add_form_dialog",
+        &[
+            "jackin/accounts/add_form",
+            "jackin/accounts/add_form_required",
+        ],
+    ),
+    rows(
         "crates/jackin-preview-app/src/app.rs::capsule_command_palette",
         &[
             "jackin/capsule/palette",
@@ -268,6 +279,10 @@ pub const SITES: &[Site] = &[
         "OPEN: capsule-help update path shares the uncaptured capsule-help owner",
     ),
     rows(
+        "crates/jackin-preview-app/src/app/manager_help.rs::draw",
+        &["jackin/manager/help_overlay"],
+    ),
+    rows(
         "crates/showcase-demos/src/pages/dialogs.rs::confirm",
         &[
             "showcase/flows/dialogs/open",
@@ -277,6 +292,10 @@ pub const SITES: &[Site] = &[
     rows(
         "crates/showcase-demos/src/pages/dialogs.rs::prompt",
         &["showcase/flows/dialogs/prompt"],
+    ),
+    rows(
+        "crates/showcase-demos/src/pages/dialog_kinds.rs::picker",
+        &["showcase/overlays/dialogkinds_key_picker"],
     ),
     rows(
         "crates/showcase-demos/src/pages/overview.rs::update",
@@ -303,8 +322,47 @@ pub const SITES: &[Site] = &[
         &["tablepro/workbench/quit_confirm"],
     ),
     rows(
+        "crates/tablepro-ui/src/app.rs::delete_dialog",
+        &["tablepro/connections/delete_dialog"],
+    ),
+    rows(
+        "crates/tablepro-ui/src/app.rs::update_delete_dialog",
+        &["tablepro/connections/delete_dialog"],
+    ),
+    rows(
+        "crates/tablepro-ui/src/app/query_safety.rs::dialog",
+        &["tablepro/ack/gate", "tablepro/ack/delete_gate"],
+    ),
+    rows(
+        "crates/tablepro-ui/src/app/query_safety.rs::update",
+        &["tablepro/ack/gate", "tablepro/ack/delete_gate"],
+    ),
+    rows(
+        "crates/tablepro-ui/src/help_keys.rs::draw",
+        &["tablepro/overlays/help_overlay"],
+    ),
+    rows(
+        "crates/tablepro-ui/src/help_keys.rs::layer",
+        &["tablepro/overlays/help_overlay"],
+    ),
+    rows(
+        "crates/tablepro-ui/src/help_keys.rs::update",
+        &["tablepro/overlays/help_overlay"],
+    ),
+    rows(
         "crates/tablepro-ui/src/quick_switcher.rs::component",
         &["tablepro/overlays/picker_open"],
+    ),
+    rows(
+        "crates/tablepro-ui/src/safe_mode.rs::picker",
+        &["tablepro/overlays/safemode_picker"],
+    ),
+    rows(
+        "crates/tablepro-ui/src/tab_list.rs::picker",
+        &[
+            "tablepro/overlays/tablist_open",
+            "tablepro/overlays/tablist_tables",
+        ],
     ),
 ];
 
@@ -317,6 +375,18 @@ fn enclosing_fn(line: &str) -> Option<&str> {
         .split(|c: char| !(c.is_alphanumeric() || c == '_'))
         .next()?;
     (!name.is_empty()).then_some(name)
+}
+
+fn is_pure_quit_model_match(
+    path: &str,
+    function: &str,
+    pattern: &str,
+    matched: &std::ops::Range<usize>,
+) -> bool {
+    path == PURE_QUIT_MODEL_PATH
+        && function == PURE_QUIT_MODEL_FUNCTION
+        && pattern == PURE_QUIT_MODEL_OPENER
+        && matched.start < matched.end
 }
 
 pub fn scan(workspace: &Path) -> BTreeMap<String, usize> {
@@ -346,6 +416,7 @@ pub fn scan(workspace: &Path) -> BTreeMap<String, usize> {
         let matches = matching_patterns(&code, &patterns);
         let (opener_matches, not_opening_matches) = matches.split_at(OPENERS.len());
         let mut line_start = 0;
+        let mut pure_quit_model_matches = 0;
         for line in code.split_inclusive('\n') {
             let mut source_line = line.strip_suffix('\n').unwrap_or(line);
             source_line = source_line.strip_suffix('\r').unwrap_or(source_line);
@@ -353,6 +424,16 @@ pub fn scan(workspace: &Path) -> BTreeMap<String, usize> {
                 current = name.to_string();
             }
             let line_end = line_start + line.len();
+            for (pattern_index, pattern_matches) in opener_matches.iter().enumerate() {
+                for opener in pattern_matches
+                    .iter()
+                    .filter(|opener| (line_start..line_end).contains(&opener.start))
+                {
+                    if is_pure_quit_model_match(&rel, &current, OPENERS[pattern_index], opener) {
+                        pure_quit_model_matches += 1;
+                    }
+                }
+            }
             // Keep the established count unit: each opener pattern contributes at most once
             // per physical line, even when that line contains repeated calls.
             let hits = OPENERS
@@ -365,6 +446,7 @@ pub fn scan(workspace: &Path) -> BTreeMap<String, usize> {
                                 .iter()
                                 .flatten()
                                 .any(|excluded| excluded.contains(&opener.start))
+                            && !is_pure_quit_model_match(&rel, &current, OPENERS[*pattern], opener)
                     })
                 })
                 .count();
@@ -372,6 +454,12 @@ pub fn scan(workspace: &Path) -> BTreeMap<String, usize> {
                 *sites.entry(format!("{rel}::{current}")).or_insert(0) += hits;
             }
             line_start = line_end;
+        }
+        if rel == PURE_QUIT_MODEL_PATH {
+            assert_eq!(
+                pure_quit_model_matches, 1,
+                "expected one exact {PURE_QUIT_MODEL_OPENER} match in {PURE_QUIT_MODEL_PATH}::{PURE_QUIT_MODEL_FUNCTION}, found {pure_quit_model_matches}"
+            );
         }
     }
     sites
@@ -443,6 +531,202 @@ pub fn overlay_sites() {
         "overlay inventory:\n  {}",
         problems.join("\n  ")
     );
+}
+
+pub fn reviewed_overlay_registry_changes_are_exact() {
+    let expected_mappings: [(&str, &[&str]); 12] = [
+        (
+            "crates/jackin-preview-app/src/app.rs::accounts_add_form_dialog",
+            &[
+                "jackin/accounts/add_form",
+                "jackin/accounts/add_form_required",
+            ],
+        ),
+        (
+            "crates/jackin-preview-app/src/app/manager_help.rs::draw",
+            &["jackin/manager/help_overlay"],
+        ),
+        (
+            "crates/showcase-demos/src/pages/dialog_kinds.rs::picker",
+            &["showcase/overlays/dialogkinds_key_picker"],
+        ),
+        (
+            "crates/tablepro-ui/src/app.rs::delete_dialog",
+            &["tablepro/connections/delete_dialog"],
+        ),
+        (
+            "crates/tablepro-ui/src/app.rs::update_delete_dialog",
+            &["tablepro/connections/delete_dialog"],
+        ),
+        (
+            "crates/tablepro-ui/src/app/query_safety.rs::dialog",
+            &["tablepro/ack/gate", "tablepro/ack/delete_gate"],
+        ),
+        (
+            "crates/tablepro-ui/src/app/query_safety.rs::update",
+            &["tablepro/ack/gate", "tablepro/ack/delete_gate"],
+        ),
+        (
+            "crates/tablepro-ui/src/help_keys.rs::draw",
+            &["tablepro/overlays/help_overlay"],
+        ),
+        (
+            "crates/tablepro-ui/src/help_keys.rs::layer",
+            &["tablepro/overlays/help_overlay"],
+        ),
+        (
+            "crates/tablepro-ui/src/help_keys.rs::update",
+            &["tablepro/overlays/help_overlay"],
+        ),
+        (
+            "crates/tablepro-ui/src/safe_mode.rs::picker",
+            &["tablepro/overlays/safemode_picker"],
+        ),
+        (
+            "crates/tablepro-ui/src/tab_list.rs::picker",
+            &[
+                "tablepro/overlays/tablist_open",
+                "tablepro/overlays/tablist_tables",
+            ],
+        ),
+    ];
+    for (key, rows) in expected_mappings {
+        let site = SITES
+            .iter()
+            .find(|site| site.key == key)
+            .unwrap_or_else(|| panic!("missing reviewed source mapping {key}"));
+        assert_eq!(site.rows, rows, "unexpected scenario ownership for {key}");
+        assert!(
+            site.gap.is_empty(),
+            "reviewed source mapping {key} is a gap"
+        );
+    }
+
+    let expected_gaps = [
+        (
+            "crates/holla-ui/src/screens/actions.rs::picker",
+            "OPEN: parity/custom-actions has no captured open/dismiss sequence for the actions picker",
+        ),
+        (
+            "crates/jackin-preview-app/src/app.rs::draw_layers",
+            "OPEN: no capsule-help scenario row; manager/help_overlay exercises a different help content owner",
+        ),
+        (
+            "crates/jackin-preview-app/src/app.rs::editor_exit_dialog",
+            "OPEN: editor exit confirmation has no dedicated captured scenario; editor/quit_guard covers application quit guard",
+        ),
+        (
+            "crates/jackin-preview-app/src/app.rs::launch_dialog",
+            "OPEN: launch confirmation has no current scenario row",
+        ),
+        (
+            "crates/jackin-preview-app/src/app.rs::open_capsule_help",
+            "OPEN: no capsule-help scenario row; manager/help_overlay exercises a different help content owner",
+        ),
+        (
+            "crates/jackin-preview-app/src/app.rs::update_overlays",
+            "OPEN: capsule-help update path shares the uncaptured capsule-help owner",
+        ),
+    ];
+    let actual_gaps: Vec<_> = SITES
+        .iter()
+        .filter(|site| !site.gap.is_empty())
+        .map(|site| (site.key, site.gap))
+        .collect();
+    assert_eq!(
+        actual_gaps, expected_gaps,
+        "the six reviewed gaps must remain open"
+    );
+
+    fn unique_root(id: &str) -> (crate::scenarios::Kind, &'static crate::scenarios::Root) {
+        let matches: Vec<_> = crate::scenarios::tables()
+            .into_iter()
+            .flat_map(|(_, kind, roots)| {
+                roots
+                    .iter()
+                    .filter(move |root| root.root == id)
+                    .map(move |root| (kind, root))
+            })
+            .collect();
+        assert_eq!(matches.len(), 1, "expected one scenario root {id}");
+        matches[0]
+    }
+
+    for (id, steps) in [
+        ("jackin/accounts/add_form", &["a", "wait:New account"][..]),
+        (
+            "jackin/accounts/add_form_required",
+            &["a", "wait:New account", "backtab", "enter", "wait:Required"][..],
+        ),
+    ] {
+        let (kind, root) = unique_root(id);
+        assert_eq!(
+            kind,
+            crate::scenarios::Kind::Overlay,
+            "{id} must be an overlay"
+        );
+        assert_eq!(root.bin, crate::scenarios::Bin::Jackin);
+        assert_eq!(
+            root.args,
+            [
+                "--scenario",
+                "accounts-mixed",
+                "--motion",
+                "paused",
+                "--frame",
+                "40"
+            ]
+        );
+        assert_eq!(root.ready, "jackin❯");
+        assert_eq!(root.steps, steps);
+        assert_eq!(root.status, crate::scenarios::Status::Stored);
+        assert_eq!(root.dismiss, Some(crate::scenarios::Status::Pending));
+    }
+
+    let (delete_kind, delete_gate) = unique_root("tablepro/ack/delete_gate");
+    assert_eq!(delete_kind, crate::scenarios::Kind::Overlay);
+    assert_eq!(delete_gate.bin, crate::scenarios::Bin::Tablepro);
+    assert_eq!(
+        delete_gate.args,
+        ["--connect", "Production", "--query-duration-ms", "42"]
+    );
+    assert_eq!(delete_gate.ready, "Query 1");
+    assert_eq!(
+        delete_gate.steps,
+        [
+            "tab",
+            "type:DELETE FROM orders",
+            "escape",
+            "ctrl-r",
+            "wait:DELETE without WHERE"
+        ]
+    );
+    assert_eq!(delete_gate.status, crate::scenarios::Status::Stored);
+    assert_eq!(delete_gate.dismiss, Some(crate::scenarios::Status::Pending));
+
+    let scenarios = crate::scenarios::all();
+    for id in [
+        "jackin/accounts/add_form",
+        "jackin/accounts/add_form_required",
+        "tablepro/ack/delete_gate",
+    ] {
+        for dismissal in crate::scenarios::Dismiss::ALL {
+            assert!(
+                scenarios.iter().any(|scenario| {
+                    scenario.root.root == id
+                        && scenario.dismiss == Some(dismissal)
+                        && scenario.pending
+                        && scenario.name.starts_with(&format!(
+                            "{}{suffix}",
+                            id,
+                            suffix = dismissal.suffix()
+                        ))
+                }),
+                "missing pending {} case for {id}",
+                dismissal.suffix()
+            );
+        }
+    }
 }
 
 pub fn site_scanner_detects_unlisted_overlay_and_ignores_prefix_matches() {
@@ -691,5 +975,128 @@ pub fn scanner_matches_calls_across_comments_without_losing_owners() {
     assert_eq!(
         scanned, expected,
         "match exact token sequences at their first-token line, preserve one hit per opener type and physical line, and bound preview/fallback exclusions"
+    );
+}
+
+pub fn quit_model_exclusion_is_source_and_span_qualified() {
+    let workspace = std::env::temp_dir().join(format!(
+        "visual-harness-overlay-quit-model-{}",
+        std::process::id()
+    ));
+    let shell_source = workspace.join("crates/termrock-shell/src/quit.rs");
+    let shell_manifest = shell_source
+        .parent()
+        .and_then(Path::parent)
+        .expect("termrock-shell package root")
+        .join("Cargo.toml");
+    std::fs::create_dir_all(shell_source.parent().expect("shell source parent"))
+        .expect("create shell source root");
+    std::fs::write(
+        shell_manifest,
+        "[package]\nname = \"termrock-shell\"\nversion = \"0.1.0\"\n",
+    )
+    .expect("write shell package manifest");
+    std::fs::write(
+        &shell_source,
+        concat!(
+            "fn request_quit() {\n",
+            "    self.request(Leave::Quit, stakes); Dialog::confirm(ID, \"title\", \"body\");\n",
+            "    self.requesting(Leave::Quit, stakes);\n",
+            "}\n",
+            "fn false_identifier() { self.requesting(Leave::Quit, stakes); }\n",
+            "fn another_owner() {\n",
+            "    self /* keep the method chain */\n",
+            "        . /* comments and newlines remain token-transparent */ request\n",
+            "        (Leave :: Quit, stakes);\n",
+            "}\n",
+        ),
+    )
+    .expect("write shell source fixture");
+
+    let other_source = workspace.join("crates/holla-ui/src/quit.rs");
+    let other_manifest = other_source
+        .parent()
+        .and_then(Path::parent)
+        .expect("holla package root")
+        .join("Cargo.toml");
+    std::fs::create_dir_all(other_source.parent().expect("holla source parent"))
+        .expect("create holla source root");
+    std::fs::write(
+        other_manifest,
+        "[package]\nname = \"holla-ui\"\nversion = \"0.1.0\"\n",
+    )
+    .expect("write holla package manifest");
+    std::fs::write(
+        &other_source,
+        "fn request_quit() { self.request(Leave::Quit, stakes); }\n",
+    )
+    .expect("write holla source fixture");
+
+    let scanned = scan(&workspace);
+    let listed: BTreeMap<&str, &Site> = SITES.iter().map(|site| (site.key, site)).collect();
+    std::fs::remove_dir_all(&workspace).expect("remove source fixture");
+
+    let exact_owner = "crates/termrock-shell/src/quit.rs::request_quit";
+    assert_eq!(
+        scanned.get(exact_owner),
+        Some(&1),
+        "the adjacent Dialog::confirm remains detected after excluding only the pure delegate"
+    );
+    assert!(
+        unlisted_sites(&scanned, &listed)
+            .iter()
+            .any(|key| key == exact_owner),
+        "a genuine opener in the qualified function must remain an unlisted site"
+    );
+    assert_eq!(
+        scanned.get("crates/termrock-shell/src/quit.rs::another_owner"),
+        Some(&1),
+        "the same opener in another owner, including comment/newline-separated tokens, remains detected"
+    );
+    assert_eq!(
+        scanned.get("crates/holla-ui/src/quit.rs::request_quit"),
+        Some(&1),
+        "the same function name and body in another source path remains detected"
+    );
+    assert!(
+        !scanned.contains_key("crates/termrock-shell/src/quit.rs::false_identifier"),
+        "a longer request method name does not match the exact opener"
+    );
+}
+
+pub fn quit_model_exclusion_rejects_an_extra_qualified_match() {
+    let workspace = std::env::temp_dir().join(format!(
+        "visual-harness-overlay-quit-model-count-{}",
+        std::process::id()
+    ));
+    let source = workspace.join("crates/termrock-shell/src/quit.rs");
+    let manifest = source
+        .parent()
+        .and_then(Path::parent)
+        .expect("termrock-shell package root")
+        .join("Cargo.toml");
+    std::fs::create_dir_all(source.parent().expect("shell source parent"))
+        .expect("create shell source root");
+    std::fs::write(
+        manifest,
+        "[package]\nname = \"termrock-shell\"\nversion = \"0.1.0\"\n",
+    )
+    .expect("write shell package manifest");
+    std::fs::write(
+        &source,
+        concat!(
+            "fn request_quit() {\n",
+            "    self.request(Leave::Quit, stakes);\n",
+            "    self.request(Leave::Quit, stakes);\n",
+            "}\n",
+        ),
+    )
+    .expect("write duplicate delegate fixture");
+
+    let result = std::panic::catch_unwind(|| scan(&workspace));
+    std::fs::remove_dir_all(&workspace).expect("remove source fixture");
+    assert!(
+        result.is_err(),
+        "a second exact delegate in the qualified owner must fail the count-one assertion"
     );
 }
