@@ -85,7 +85,7 @@ pub fn scan_file(path: &str, member: &str, text: &str) -> ScannedFile {
         generated: is_generated_marker(text),
     };
     strip_lines(text, &mut out.lines, &mut out.strings);
-    out.test_ranges = test_ranges(&out.lines);
+    out.test_ranges = super::module_graph::cfg_test_ranges(text);
     out.functions = fn_spans(&out.lines, &out.test_ranges);
     out.aliases = import_aliases(&out.lines);
     out.macros = macro_spans(&out.lines);
@@ -277,81 +277,6 @@ fn is_char_literal(rest: &[char]) -> bool {
         return rest.len() > 3 && rest[3] == '\'';
     }
     rest[2] == '\''
-}
-
-fn test_ranges(lines: &[CodeLine]) -> Vec<LineRange> {
-    let mut ranges = Vec::new();
-    let mut index = 0;
-    while index < lines.len() {
-        let code = lines[index].code.trim();
-        if let Some(cfg) = cfg_attribute(code)
-            && cfg_tests(cfg)
-            && let Some(end) = skip_item(lines, index + 1)
-        {
-            ranges.push(LineRange {
-                start: lines[index].number,
-                end,
-            });
-            index = end;
-            continue;
-        } else if is_test_mod(code)
-            && let Some(end) = brace_close(lines, index)
-        {
-            ranges.push(LineRange {
-                start: lines[index].number,
-                end,
-            });
-        }
-        index += 1;
-    }
-    ranges
-}
-
-fn cfg_attribute(code: &str) -> Option<&str> {
-    let start = code.find("#[cfg(")?;
-    let after = &code[start + "#[cfg(".len()..];
-    let mut depth = 1;
-    for (offset, char) in after.char_indices() {
-        if char == '(' {
-            depth += 1;
-        } else if char == ')' {
-            depth -= 1;
-            if depth == 0 {
-                return Some(&after[..offset]);
-            }
-        }
-    }
-    None
-}
-
-fn cfg_tests(body: &str) -> bool {
-    let mut cleaned = body.to_string();
-    while let Some(at) = cleaned.find("not(test)") {
-        cleaned.replace_range(at..at + "not(test)".len(), "");
-    }
-    cleaned
-        .split(|c: char| !c.is_alphanumeric() && c != '_')
-        .any(|word| word == "test")
-}
-
-fn is_test_mod(code: &str) -> bool {
-    code.split(|c: char| !c.is_alphanumeric() && c != '_')
-        .collect::<Vec<_>>()
-        .windows(2)
-        .any(|pair| pair[0] == "mod" && (pair[1] == "tests" || pair[1] == "test"))
-}
-
-fn skip_item(lines: &[CodeLine], from: usize) -> Option<usize> {
-    let mut index = from;
-    while index < lines.len() {
-        let code = lines[index].code.trim();
-        if code.is_empty() || code.starts_with("#[") {
-            index += 1;
-            continue;
-        }
-        return item_end(lines, index);
-    }
-    None
 }
 
 fn item_end(lines: &[CodeLine], at: usize) -> Option<usize> {
@@ -774,13 +699,29 @@ mod tests {
         let file = scan_file(
             "crates/demo/src/lib.rs",
             "crates/demo",
-            "fn prod() {}\n#[cfg(test)]\nmod tests {\n    fn helper() {}\n}\n#[cfg(any(test, feature = \"testing\"))]\npub mod stub {\n    fn harness() {}\n}\n",
+            "fn prod() {}\n#[cfg(test)]\nmod tests {\n    fn helper() {}\n}\n#[cfg(all(test, feature = \"testing\"))]\npub mod stub {\n    fn harness() {}\n}\n#[cfg(any(test, feature = \"testing\"))]\nfn production_capable() {}\n#[cfg(not(test))]\nfn prod_only() {}\n#[cfg(test)]\n#[cfg(not(test))]\nfn contradictory() {}\n#[cfg(not(not(test)))]\nfn double_negated_test() {}\n",
         );
         assert!(!file.is_test_line(1));
         assert!(file.is_test_line(4));
         assert!(file.is_test_line(8));
+        assert!(!file.is_test_line(11));
+        assert!(!file.is_test_line(13));
+        assert!(!file.is_test_line(16));
+        assert!(file.is_test_line(18));
         assert!(file.enclosing_fn(1).is_some());
         assert!(file.enclosing_fn(4).is_none());
+    }
+
+    #[test]
+    fn test_names_do_not_create_test_provenance() {
+        let file = scan_file(
+            "crates/demo/src/lib.rs",
+            "crates/demo",
+            "mod tests { fn production() {} }\nmod test;\n",
+        );
+
+        assert!(!file.is_test_line(1));
+        assert!(!file.is_test_line(2));
     }
 
     #[test]

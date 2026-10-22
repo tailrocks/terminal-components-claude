@@ -40,7 +40,14 @@ fn scratch_workspace(member_src: &str, exceptions_json: &str) -> tempfile::TempD
         "[workspace]\nmembers = [\"crates/demo-preview\"]\n",
     )
     .expect("write manifest");
-    let src = root.join("crates").join("demo-preview").join("src");
+    let member = root.join("crates").join("demo-preview");
+    std::fs::create_dir_all(&member).expect("create member");
+    std::fs::write(
+        member.join("Cargo.toml"),
+        "[package]\nname = \"demo-preview\"\nversion = \"0.1.0\"\nedition = \"2024\"\n",
+    )
+    .expect("write member manifest");
+    let src = member.join("src");
     std::fs::create_dir_all(&src).expect("create src");
     std::fs::write(src.join("lib.rs"), member_src).expect("write lib.rs");
     std::fs::write(root.join("exceptions.json"), exceptions_json).expect("write exceptions");
@@ -52,6 +59,386 @@ fn empty_exceptions() -> String {
         r#"{{"schema":"{}","exceptions":[]}}"#,
         exceptions::SCHEMA_VERSION
     )
+}
+
+fn write_member_file(dir: &tempfile::TempDir, relative: &str, text: &str) {
+    let path = dir.path().join("crates/demo-preview").join(relative);
+    std::fs::create_dir_all(path.parent().expect("fixture has a parent"))
+        .expect("create fixture parent");
+    std::fs::write(path, text).expect("write fixture file");
+}
+
+fn own14_findings(report: &termrock_xtask::ownership::Report) -> Vec<(String, usize)> {
+    let mut findings: Vec<_> = report
+        .findings
+        .iter()
+        .filter(|finding| finding.rule == "OWN-14")
+        .map(|finding| (finding.file.clone(), finding.line))
+        .collect();
+    findings.sort();
+    findings
+}
+
+fn empty_workspace() -> tempfile::TempDir {
+    scratch_workspace("", &empty_exceptions())
+}
+
+fn check_scratch(dir: &tempfile::TempDir) -> termrock_xtask::ownership::Report {
+    check_workspace(dir.path(), &dir.path().join("exceptions.json"))
+}
+
+#[test]
+fn cfg_test_external_module_is_excluded_but_neighboring_production_is_scanned() {
+    let dir = empty_workspace();
+    write_member_file(
+        &dir,
+        "src/lib.rs",
+        "fn before() { None::<u8>.expect(\"before\"); }\n\
+         #[cfg(test)]\n\
+         mod picker_contract;\n\
+         fn between() { None::<u8>.expect(\"between\"); }\n\
+         #[cfg(test)]\n\
+         mod extra_contract;\n\
+         fn after() { None::<u8>.expect(\"after\"); }\n",
+    );
+    write_member_file(
+        &dir,
+        "src/picker_contract.rs",
+        "#[test]\nfn fixture_assertion() { None::<u8>.expect(\"fixture\"); }\n",
+    );
+    write_member_file(
+        &dir,
+        "src/extra_contract.rs",
+        "fn helper() { None::<u8>.expect(\"fixture\"); }\n",
+    );
+
+    let report = check_scratch(&dir);
+    assert_eq!(
+        own14_findings(&report),
+        [
+            ("crates/demo-preview/src/lib.rs".to_string(), 1),
+            ("crates/demo-preview/src/lib.rs".to_string(), 4),
+            ("crates/demo-preview/src/lib.rs".to_string(), 7),
+        ]
+    );
+}
+
+#[test]
+fn literal_path_test_child_is_pruned() {
+    let dir = empty_workspace();
+    write_member_file(
+        &dir,
+        "src/lib.rs",
+        "#[cfg(test)]\n#[path = \"test_helpers/picker.rs\"]\nmod picker_contract;\n\
+         fn production() { None::<u8>.expect(\"production\"); }\n",
+    );
+    write_member_file(
+        &dir,
+        "src/test_helpers/picker.rs",
+        "#[test]\nfn picker() { None::<u8>.expect(\"fixture\"); }\n",
+    );
+
+    assert_eq!(
+        own14_findings(&check_scratch(&dir)),
+        [("crates/demo-preview/src/lib.rs".to_string(), 4)]
+    );
+}
+
+#[test]
+fn expression_macros_do_not_disable_test_module_proof() {
+    let dir = empty_workspace();
+    write_member_file(
+        &dir,
+        "src/lib.rs",
+        "const VALUES: Vec<u8> = vec![1, 2, 3];\n\
+         #[cfg(test)]\nmod test_helpers;\n\
+         fn production() { None::<u8>.expect(\"production\"); }\n",
+    );
+    write_member_file(
+        &dir,
+        "src/test_helpers.rs",
+        "fn fixture() { None::<u8>.expect(\"fixture\"); }\n",
+    );
+
+    assert_eq!(
+        own14_findings(&check_scratch(&dir)),
+        [("crates/demo-preview/src/lib.rs".to_string(), 4)]
+    );
+}
+
+#[test]
+fn test_names_any_cfg_and_not_test_remain_production_capable() {
+    let dir = empty_workspace();
+    write_member_file(
+        &dir,
+        "src/lib.rs",
+        "mod tests;\nmod test;\n#[cfg(any(test, feature = \"extra\"))]\nmod any_test;\n#[cfg(not(test))]\nmod not_test;\n",
+    );
+    for module in ["tests", "test", "any_test", "not_test"] {
+        write_member_file(
+            &dir,
+            &format!("src/{module}.rs"),
+            "fn production() { None::<u8>.expect(\"production\"); }\n",
+        );
+    }
+
+    let report = check_scratch(&dir);
+    assert_eq!(own14_findings(&report).len(), 4);
+}
+
+#[test]
+fn complete_cfg_predicates_and_repeated_attributes_prove_test_only() {
+    let dir = empty_workspace();
+    write_member_file(
+        &dir,
+        "src/lib.rs",
+        "#[cfg(all(test, feature = \"extra\",))]\nmod all_test;\n\
+         #[cfg(not(not(test)))]\nmod double_not;\n\
+         #[cfg(test)]\n#[cfg(not(feature = \"extra\"))]\nmod repeated;\n\
+         #[cfg(not(feature = \"extra\"))]\n#[cfg(test)]\nmod reversed;\n\
+         #[cfg(all(test, false))]\nmod always_false;\n\
+         #[cfg(\n             all(test,\n                 feature = \"extra\",\n             )\n         )]\nmod multiline;\n\
+         #[cfg(test)] mod same_line;\n\
+         #[cfg(test)]\n#[cfg(not(test))]\nmod contradictory;\n",
+    );
+    for module in [
+        "all_test",
+        "double_not",
+        "repeated",
+        "reversed",
+        "always_false",
+        "multiline",
+        "same_line",
+        "contradictory",
+    ] {
+        write_member_file(
+            &dir,
+            &format!("src/{module}.rs"),
+            "fn body() { None::<u8>.expect(\"body\"); }\n",
+        );
+    }
+
+    let report = check_scratch(&dir);
+    assert_eq!(
+        own14_findings(&report),
+        [
+            ("crates/demo-preview/src/always_false.rs".to_string(), 1),
+            ("crates/demo-preview/src/contradictory.rs".to_string(), 1),
+        ]
+    );
+}
+
+#[test]
+fn dual_test_and_production_parents_keep_shared_source_production() {
+    let dir = empty_workspace();
+    write_member_file(
+        &dir,
+        "src/lib.rs",
+        "#[cfg(test)]\n#[path = \"shared.rs\"]\nmod test_parent;\n",
+    );
+    write_member_file(
+        &dir,
+        "src/main.rs",
+        "#[path = \"shared.rs\"]\nmod production_parent;\n",
+    );
+    write_member_file(
+        &dir,
+        "src/shared.rs",
+        "fn shared() { None::<u8>.expect(\"shared\"); }\n",
+    );
+
+    assert_eq!(
+        own14_findings(&check_scratch(&dir)),
+        [("crates/demo-preview/src/shared.rs".to_string(), 1)]
+    );
+}
+
+#[test]
+fn test_module_descendant_with_a_production_route_remains_scanned() {
+    let dir = empty_workspace();
+    write_member_file(
+        &dir,
+        "src/lib.rs",
+        "#[cfg(test)]\nmod outer;\n\
+         fn production() { None::<u8>.expect(\"production\"); }\n",
+    );
+    write_member_file(&dir, "src/outer.rs", "mod grandchild;\n");
+    write_member_file(
+        &dir,
+        "src/outer/grandchild.rs",
+        "fn shared() { None::<u8>.expect(\"shared\"); }\n",
+    );
+    write_member_file(
+        &dir,
+        "src/main.rs",
+        "#[path = \"outer/grandchild.rs\"]\nmod live;\n",
+    );
+
+    assert_eq!(
+        own14_findings(&check_scratch(&dir)),
+        [
+            ("crates/demo-preview/src/lib.rs".to_string(), 3),
+            ("crates/demo-preview/src/outer/grandchild.rs".to_string(), 1),
+        ]
+    );
+}
+
+#[test]
+fn unknown_cfg_attr_include_and_unreferenced_sources_fail_closed() {
+    let dir = empty_workspace();
+    write_member_file(
+        &dir,
+        "src/lib.rs",
+        "#[cfg_attr(feature = \"extra\", cfg(test))]\nmod cfg_attr_child;\n\
+         include!(\"dynamic_child.rs\");\n\
+         #[cfg(test)]\nmod unreachable_child;\n\
+         fn root() { None::<u8>.expect(\"root\"); }\n",
+    );
+    for module in [
+        "cfg_attr_child",
+        "dynamic_child",
+        "unreachable_child",
+        "orphan",
+    ] {
+        write_member_file(
+            &dir,
+            &format!("src/{module}.rs"),
+            "fn body() { None::<u8>.expect(\"body\"); }\n",
+        );
+    }
+
+    let report = check_scratch(&dir);
+    assert_eq!(own14_findings(&report).len(), 5);
+}
+
+#[test]
+fn custom_target_and_nested_inline_module_paths_are_graph_roots() {
+    let dir = empty_workspace();
+    write_member_file(
+        &dir,
+        "src/lib.rs",
+        "#[cfg(test)]\nmod nested {\n    mod child;\n}\n\
+         #[cfg(test)]\n#[path = \"shared.rs\"]\nmod test_parent;\n",
+    );
+    write_member_file(
+        &dir,
+        "src/custom_root.rs",
+        "#[path = \"shared.rs\"]\nmod production_parent;\n",
+    );
+    write_member_file(
+        &dir,
+        "src/nested/child.rs",
+        "fn nested() { None::<u8>.expect(\"nested\"); }\n",
+    );
+    write_member_file(
+        &dir,
+        "src/shared.rs",
+        "fn shared() { None::<u8>.expect(\"shared\"); }\n",
+    );
+    write_member_file(
+        &dir,
+        "Cargo.toml",
+        "[package]\nname = \"demo-preview\"\n\
+         [[bin]]\nname = \"custom-root\"\npath = \"src/custom_root.rs\"\n",
+    );
+
+    assert_eq!(
+        own14_findings(&check_scratch(&dir)),
+        [("crates/demo-preview/src/shared.rs".to_string(), 1)]
+    );
+}
+
+#[test]
+fn ambiguous_module_files_are_not_pruned() {
+    let dir = empty_workspace();
+    write_member_file(&dir, "src/lib.rs", "#[cfg(test)]\nmod duplicate;\n");
+    write_member_file(
+        &dir,
+        "src/duplicate.rs",
+        "fn one() { None::<u8>.expect(\"one\"); }\n",
+    );
+    write_member_file(
+        &dir,
+        "src/duplicate/mod.rs",
+        "fn two() { None::<u8>.expect(\"two\"); }\n",
+    );
+
+    assert_eq!(own14_findings(&check_scratch(&dir)).len(), 2);
+}
+
+#[test]
+fn literal_include_contexts_propagate_test_and_production_routes() {
+    let dir = empty_workspace();
+    write_member_file(
+        &dir,
+        "src/lib.rs",
+        "#[cfg(test)]\ninclude!(\"shared.inc.rs\");\n\
+         #[cfg(test)]\ninclude!(\"test_only.inc.rs\");\n",
+    );
+    write_member_file(&dir, "src/main.rs", "include!(\"shared.inc.rs\");\n");
+    write_member_file(
+        &dir,
+        "src/shared.inc.rs",
+        "fn shared() { None::<u8>.expect(\"shared\"); }\n",
+    );
+    write_member_file(
+        &dir,
+        "src/test_only.inc.rs",
+        "fn test_only() { None::<u8>.expect(\"test only\"); }\n",
+    );
+
+    assert_eq!(
+        own14_findings(&check_scratch(&dir)),
+        [("crates/demo-preview/src/shared.inc.rs".to_string(), 1)]
+    );
+}
+
+#[test]
+fn missing_modules_and_item_macros_disable_test_only_pruning() {
+    let dir = empty_workspace();
+    write_member_file(
+        &dir,
+        "src/lib.rs",
+        "#[cfg(test)]\nmod test_child;\n\
+         #[cfg(test)]\nmod missing_child;\n\
+         declare_modules!();\n",
+    );
+    write_member_file(
+        &dir,
+        "src/test_child.rs",
+        "fn test_child() { None::<u8>.expect(\"test child\"); }\n",
+    );
+
+    assert_eq!(own14_findings(&check_scratch(&dir)).len(), 1);
+}
+
+#[cfg(unix)]
+#[test]
+fn symlink_module_aliases_disable_pruning() {
+    let dir = empty_workspace();
+    write_member_file(&dir, "src/lib.rs", "#[cfg(test)]\nmod child;\n");
+    write_member_file(
+        &dir,
+        "src/child.rs",
+        "fn child() { None::<u8>.expect(\"child\"); }\n",
+    );
+    let src = dir.path().join("crates/demo-preview/src");
+    std::os::unix::fs::symlink(src.join("child.rs"), src.join("alias.rs"))
+        .expect("create source alias");
+
+    assert_eq!(own14_findings(&check_scratch(&dir)).len(), 2);
+
+    let cycle = empty_workspace();
+    write_member_file(&cycle, "src/lib.rs", "#[cfg(test)]\nmod child;\n");
+    write_member_file(
+        &cycle,
+        "src/child.rs",
+        "fn child() { None::<u8>.expect(\"child\"); }\n",
+    );
+    let src = cycle.path().join("crates/demo-preview/src");
+    std::os::unix::fs::symlink(&src, src.join("cycle")).expect("create directory cycle");
+
+    assert_eq!(own14_findings(&check_scratch(&cycle)).len(), 1);
 }
 
 #[test]
