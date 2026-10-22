@@ -530,11 +530,11 @@ impl Theme {
 
     /// Concrete-color variant of the backdrop mapping used by the chrome
     /// fill: returns the mapped ink, the mapped background, and whether the
-    /// source cell was blank. Nonblank cells at the Ansi16 and Mono levels
-    /// carry the muted dim ink, matching `backdrop_style`.
+    /// source cell was blank. At the Ansi16 and Mono levels every covered
+    /// cell carries the muted dim ink, matching `backdrop_style`.
     pub fn backdrop_cell(&self, fg: Color, bg: Color) -> (Color, Color, bool) {
         let (mut mapped_fg, mapped_bg, blank) = self.map_backdrop(Some(fg), Some(bg), true);
-        if !blank && (mapped_fg == mapped_bg || self.backdrop_dim_level()) {
+        if (!blank && mapped_fg == mapped_bg) || self.backdrop_dim_level() {
             mapped_fg = self.backdrop_collision_ink(mapped_bg);
         }
         (mapped_fg, mapped_bg, blank)
@@ -741,10 +741,17 @@ mod tests {
             assert_eq!(fg, expected_ink, "{level:?} dim ink");
             assert_eq!(bg, canvas, "{level:?} keeps the canvas bg");
             assert!(!blank, "{level:?} nonblank source");
-            // A blank source cell (fg == bg) never rewrites and never dims.
+            // A blank source cell (fg == bg) keeps the fill at the upper
+            // levels; the dim levels rewrite it to the muted dim ink.
             let (fg, bg, blank) = theme.backdrop_cell(canvas, canvas);
             assert!(blank, "{level:?} blank source");
-            assert_eq!(fg, bg, "{level:?} blank keeps the fill ink");
+            if rewrite {
+                assert_eq!(fg, Color::Gray, "{level:?} blank dim ink");
+                assert_eq!(bg, canvas, "{level:?} blank keeps the canvas bg");
+            } else {
+                // The upper levels keep the blank fill on its own background.
+                assert_eq!(fg, bg, "{level:?} blank keeps the fill ink");
+            }
         }
     }
 
