@@ -1491,8 +1491,14 @@ info/cancel cards. The detailed evidence and proposed shared-component migration
 are in [the source and test-integrity audit](../audits/2026-10-22-pr38-source-integrity-review.md).
 That audit also records reported artifact-provenance mismatches for TablePro and
 Holla, Showcase navigation ownership concerns, the pending oracle, and the
-incomplete branch census. Those reported findings are not presented as a passed
-test or complete independent artifact verification.
+incomplete branch census. The legacy `parity_replay.py compare --all` subcommand
+rejects `--all`; the separate `frozen_baseline.py live-compare --all` option
+exists but is not a completed approved full-cohort acceptance run. The legacy
+corpus is operationally selected by default when no store override is set,
+despite policy D009 classifying it as non-oracle. Comparisons against it are not
+acceptance evidence until routing is corrected and the reference cohort is
+approved. Neither runner-path claim is presented as a passed test or complete
+independent artifact verification.
 
 The coordinator's latest free-space report was approximately 2.893 TB, still
 below the mandatory 3,000,000,000,000-byte gate. The previous detailed operator
