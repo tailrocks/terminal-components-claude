@@ -14,7 +14,6 @@ const DIV_FITS_VIEW: Id =
     termrock::Id::root("showcase_ui::pages::scrolling::scrolling.divider.fits");
 const DIV_OVER_VIEW: Id =
     termrock::Id::root("showcase_ui::pages::scrolling::scrolling.divider.over");
-const CURSOR_VIEW: Id = termrock::Id::root("showcase_ui::pages::scrolling::scrolling.cursor");
 
 const BLURB: &str = "Wheel under the pointer, keys on the focused container, thumb shows where you are, edges fade toward hidden rows";
 const SECTIONS: [&str; 3] = ["Playground", "Options", "States"];
@@ -712,7 +711,9 @@ fn paint_hand(ui: &mut Ui<'_>, area: Rect) {
         text_w.saturating_add(1),
         body_h,
     );
-    let state = ViewportState::default();
+    // The demo rows rest at the top: following would pin the tail.
+    let mut state = ViewportState::default();
+    state.set_follow(false);
     let _ = hand_view()
         .patch_part(HAND_BAR)
         .draw(ui, body, &state, &lines);
@@ -785,8 +786,9 @@ fn paint_dividers(ui: &mut Ui<'_>, area: Rect) {
             .iter()
             .map(|span| ViewportLine::Spans(std::slice::from_ref(span)))
             .collect();
-        let view = Rect::new(body.x, body.y, body.width.saturating_sub(1), body.height);
-        let state = ViewportState::default();
+        let view = Rect::new(body.x, body.y, body.width, body.height);
+        let mut state = ViewportState::default();
+        state.set_follow(false);
         let pane = TextViewport::new(if bar { DIV_OVER_VIEW } else { DIV_FITS_VIEW })
             .reserve_gutter(false)
             .patch_part(HAND_BAR);
@@ -805,54 +807,37 @@ fn paint_dividers(ui: &mut Ui<'_>, area: Rect) {
 }
 
 fn paint_cursor(ui: &mut Ui<'_>, area: Rect) {
+    // Gap: the cursor readout is a static info list with no overflow. The
+    // shared viewport always reserves a bar column, which would clip the
+    // longest line by one cell, so these rows stay hand-painted.
     let open = (0..LIST_LEN).filter(|index| index % 10 != 9).count();
-    // The cursor readout scrolls through the shared viewport: the lines
-    // keep their demo inks as span roles, the viewport owns the edge fade.
-    // The readout never grows a bar, so only the visible rows ride along.
-    let rows = [
-        ("row 1 · vertical".to_owned(), Role::Fg(FgStep::Secondary)),
-        (
-            "wrap off · skip disabled on".to_owned(),
-            Role::Fg(FgStep::Secondary),
-        ),
-        (
-            format!("RowFn: {open} of {LIST_LEN} open"),
-            Role::Fg(FgStep::Secondary),
-        ),
-        ("Last: no key yet".to_owned(), Role::Fg(FgStep::Secondary)),
-        ("KeyStep: Nav · Type".to_owned(), Role::Fg(FgStep::Faint)),
-        (
-            "Moved: To · Stayed · Ignored".to_owned(),
-            Role::Fg(FgStep::Faint),
-        ),
-        (
-            "Desktop · 1s · shortcuts first".to_owned(),
-            Role::Fg(FgStep::Secondary),
-        ),
+    let lines = [
+        ("row 1 · vertical".to_owned(), SECONDARY),
+        ("wrap off · skip disabled on".to_owned(), SECONDARY),
+        (format!("RowFn: {open} of {LIST_LEN} open"), SECONDARY),
+        ("Last: no key yet".to_owned(), SECONDARY),
+        ("KeyStep: Nav · Type".to_owned(), FAINT),
+        ("Moved: To · Stayed · Ignored".to_owned(), FAINT),
+        ("Desktop · 1s · shortcuts first".to_owned(), SECONDARY),
     ];
-    let count = usize::from(area.height).min(rows.len());
-    let mut texts = Vec::with_capacity(count);
-    for (line, _) in rows.iter().take(count) {
-        texts.push(if width(line) <= area.width {
+    for (index, (line, color)) in lines.iter().enumerate() {
+        let Ok(offset) = u16::try_from(index) else {
+            break;
+        };
+        if offset >= area.height {
+            break;
+        }
+        let shown = if width(line) <= area.width {
             line.clone()
         } else {
             truncate(line, area.width)
-        });
+        };
+        let _ = ui.paint_str(
+            Rect::new(area.x, area.y.saturating_add(offset), area.width, 1),
+            &shown,
+            ink(*color, SURFACE),
+        );
     }
-    let spans: Vec<Span<'_>> = texts
-        .iter()
-        .zip(rows.iter().map(|(_, role)| *role))
-        .map(|(text, role)| Span::new(text).role(role))
-        .collect();
-    let lines: Vec<ViewportLine<'_>> = spans
-        .iter()
-        .map(|span| ViewportLine::Spans(std::slice::from_ref(span)))
-        .collect();
-    let state = ViewportState::default();
-    let _ = TextViewport::new(CURSOR_VIEW)
-        .reserve_gutter(false)
-        .patch_part(HAND_BAR)
-        .draw(ui, area, &state, &lines);
 }
 
 fn paint_mechanics(ui: &mut Ui<'_>, area: Rect) {
