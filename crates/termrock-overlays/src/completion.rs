@@ -317,6 +317,12 @@ impl CompletionState {
         self.details_input_consumed
     }
 
+    fn reconcile_detail_selection(&mut self, cursor: Option<ItemKey>, has_detail: bool) {
+        if self.details_open && (!has_detail || self.details_key != cursor) {
+            self.leave_details();
+        }
+    }
+
     fn leave_details(&mut self) {
         self.details_open = false;
         self.details_key = None;
@@ -454,7 +460,6 @@ pub struct Completion<'a, T, R = ItemRow> {
     parts: &'a [(Part, StylePatch)],
     ov: PartStyle<'a>,
     selected_detail: Option<&'a str>,
-    details_open: bool,
     _item: PhantomData<fn(&T)>,
 }
 
@@ -478,7 +483,6 @@ impl<T> Completion<'_, T, ItemRow> {
             parts: &[],
             ov: PartStyle::new(),
             selected_detail: None,
-            details_open: false,
             _item: PhantomData,
         }
     }
@@ -510,7 +514,6 @@ impl<'a, T, R> Completion<'a, T, R> {
             parts: self.parts,
             ov: self.ov,
             selected_detail: self.selected_detail,
-            details_open: self.details_open,
             _item: PhantomData,
         }
     }
@@ -542,12 +545,11 @@ impl<'a, T, R> Completion<'a, T, R> {
         self
     }
 
-    /// Enable the same-popup selected-detail view for this completion draw.
-    /// The supplied string is full semantic detail, not the compact row summary.
+    /// Supply the selected item's full semantic detail for the opt-in Details view.
+    /// The current list or Details mode remains owned by [`CompletionState`].
     #[must_use]
-    pub const fn selected_detail(mut self, detail: Option<&'a str>, details_open: bool) -> Self {
+    pub const fn selected_detail(mut self, detail: Option<&'a str>) -> Self {
         self.selected_detail = detail;
-        self.details_open = details_open;
         self
     }
 
@@ -765,12 +767,11 @@ impl<T: AsItem, R: RowFn<T>> Completion<'_, T, R> {
         if state.core.cursor().is_none() && !items.is_empty() {
             state.core.set_cursor(0, Self::key_at(items, 0));
         }
-        if state.details_open
-            && (self.selected_detail.is_none_or(|detail| detail.is_empty())
-                || state.details_key != state.core.cursor())
-        {
-            state.leave_details();
-        }
+        let selected_key = state.core.cursor();
+        let has_detail = self
+            .selected_detail
+            .is_some_and(|detail| !detail.is_empty());
+        state.reconcile_detail_selection(selected_key, has_detail);
         cx.resize_layer(self.id, self.measured_size(cx, items));
         cx.reanchor_layer(
             self.id,
@@ -1006,5 +1007,40 @@ mod width_tests {
         runtime.draw_buffer(area, &mut buffer).commit_presented();
         let _ = stub::deliver(&mut runtime, Input::Tick);
         runtime.app().measured.unwrap_or(LayerSize::Fixed(0, 0))
+    }
+}
+
+#[cfg(test)]
+mod detail_selection_tests {
+    use super::CompletionState;
+    use crate::id::ItemKey;
+
+    fn details_for(key: ItemKey) -> CompletionState {
+        CompletionState {
+            open: true,
+            details_open: true,
+            details_key: Some(key),
+            ..CompletionState::default()
+        }
+    }
+
+    #[test]
+    fn details_follow_the_same_stable_key_and_close_when_it_changes_or_disappears() {
+        let selected = ItemKey::num(2);
+        let replacement = ItemKey::num(1);
+        let mut state = details_for(selected);
+
+        state.reconcile_detail_selection(Some(selected), true);
+        assert!(state.details_open);
+        assert_eq!(state.details_key, Some(selected));
+
+        state.reconcile_detail_selection(Some(replacement), true);
+        assert!(!state.details_open);
+        assert_eq!(state.details_key, None);
+
+        let mut removed = details_for(selected);
+        removed.reconcile_detail_selection(Some(selected), false);
+        assert!(!removed.details_open);
+        assert_eq!(removed.details_key, None);
     }
 }

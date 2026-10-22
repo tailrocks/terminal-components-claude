@@ -170,6 +170,18 @@ impl fmt::Debug for CompletingCodeEditorState {
     }
 }
 
+fn selected_completion_by_key(
+    is_open: bool,
+    cursor: Option<ItemKey>,
+    items: &[CompletionValue],
+) -> Option<&CompletionValue> {
+    if !is_open {
+        return None;
+    }
+    let key = cursor?;
+    items.iter().find(|item| item.key == key)
+}
+
 impl CompletingCodeEditorState {
     pub fn new(text: &str) -> Self {
         Self {
@@ -196,11 +208,11 @@ impl CompletingCodeEditorState {
     /// Selection resolves through the collection's stable key, so a stale
     /// cursor or a closed popup never exposes an unrelated vector entry.
     pub fn selected_completion(&self) -> Option<&CompletionValue> {
-        let key = self.completion.cursor()?;
-        if !self.completion.is_open() {
-            return None;
-        }
-        self.items.iter().find(|item| item.key == key)
+        selected_completion_by_key(
+            self.completion.is_open(),
+            self.completion.cursor(),
+            &self.items,
+        )
     }
 
     /// Whether the opt-in selected-detail view is currently visible.
@@ -242,14 +254,10 @@ impl<'a> CompletingCodeEditor<'a> {
         }
     }
 
-    fn completion<'b>(
-        &self,
-        selected_detail: Option<&'b str>,
-        details_open: bool,
-    ) -> Completion<'b, CompletionValue> {
+    fn completion<'b>(&self, selected_detail: Option<&'b str>) -> Completion<'b, CompletionValue> {
         let completion = Completion::new(self.popup_id);
         if self.selected_details {
-            completion.selected_detail(selected_detail, details_open)
+            completion.selected_detail(selected_detail)
         } else {
             completion
         }
@@ -354,7 +362,7 @@ impl<'a> CompletingCodeEditor<'a> {
         } else {
             None
         };
-        let completing = self.completion(selected_detail, state.completion.details_open());
+        let completing = self.completion(selected_detail);
         let completion_response =
             completing.update_for(self.id, cx, &mut state.completion, &state.items);
         let details_input_consumed = state.completion.details_input_consumed();
@@ -488,7 +496,7 @@ impl<'a> CompletingCodeEditor<'a> {
             } else {
                 None
             };
-            let completion = self.completion(selected_detail, state.completion.details_open());
+            let completion = self.completion(selected_detail);
             let _ = ui.layer(self.popup_id, |ui, popup_area| {
                 completion.draw(ui, popup_area, &state.completion, &state.items);
                 let _ = ui.retain_owner_cursor(self.id);
@@ -512,3 +520,37 @@ pub const MANUAL_COMPLETION_ACTION: ActionKey = ActionKey::custom("completion.ma
 pub const FOCUS_NEXT_ACTION: ActionKey = ActionKey::custom("focus.next");
 pub const FOCUS_PREVIOUS_ACTION: ActionKey = ActionKey::custom("focus.previous");
 const DISMISS_COMPLETION_ACTION: ActionKey = ActionKey::custom("completion.dismiss");
+
+#[cfg(test)]
+mod selected_key_tests {
+    use super::{AsItem, CompletionValue, selected_completion_by_key};
+    use termrock_core::id::ItemKey;
+
+    #[test]
+    fn selected_value_tracks_its_key_across_reorder_and_rejects_missing_or_closed_values() {
+        let first_key = ItemKey::num(1);
+        let selected_key = ItemKey::num(2);
+        let mut items = vec![
+            CompletionValue::new(first_key, "format", "format!()").detail("fn -> String"),
+            CompletionValue::new(selected_key, "fetch", "fetch()")
+                .detail("async fn -> Result<Body, Error>"),
+        ];
+
+        let selected = selected_completion_by_key(true, Some(selected_key), &items)
+            .expect("selected key exists");
+        assert_eq!(selected.key, selected_key);
+        assert_eq!(selected.full_detail(), "async fn -> Result<Body, Error>");
+        assert_eq!(selected.as_item().insertion(), "fetch()");
+
+        items.swap(0, 1);
+        let selected = selected_completion_by_key(true, Some(selected_key), &items)
+            .expect("the same key survives reorder");
+        assert_eq!(selected.key, selected_key);
+        assert_eq!(selected.as_item().insertion(), "fetch()");
+
+        items.retain(|item| item.key != selected_key);
+        assert!(selected_completion_by_key(true, Some(selected_key), &items).is_none());
+        assert!(selected_completion_by_key(true, None, &items).is_none());
+        assert!(selected_completion_by_key(false, Some(first_key), &items).is_none());
+    }
+}
