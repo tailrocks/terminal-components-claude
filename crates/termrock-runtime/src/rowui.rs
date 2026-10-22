@@ -654,6 +654,18 @@ impl<'u> RowUi<'u> {
 
     pub fn marker(&mut self, g: GlyphRole) {
         let patch = self.patch_for(Part::MARKER);
+        self.paint_marker(g, patch);
+    }
+
+    /// Paint a marker with an explicit patch over the row's authored marker
+    /// patch. Explicit channels override only matching authored channels, and
+    /// the current row resolver still chooses the glyph and style.
+    pub fn marker_patched(&mut self, g: GlyphRole, patch: &StylePatch) {
+        let patch = merge_patch(self.patch_for(Part::MARKER), Some(*patch));
+        self.paint_marker(g, patch);
+    }
+
+    fn paint_marker(&mut self, g: GlyphRole, patch: Option<StylePatch>) {
         let r = resolve_row_part(
             &mut self.ui,
             self.family,
@@ -1148,6 +1160,12 @@ impl<'u> CellUi<'u> {
         }
     }
 
+    /// Remaining unpainted width in terminal cells, excluding any resolved
+    /// trailing glyph reservation.
+    pub fn available_width(&self) -> u16 {
+        self.free().width
+    }
+
     fn paint_resolved_glyph(&mut self) {
         let reserved = self.resolved_glyph_width();
         let free = self.area.width.saturating_sub(self.used);
@@ -1266,6 +1284,18 @@ impl<'u> CellUi<'u> {
     pub fn suffix(&mut self, g: GlyphRole) -> &mut Self {
         let area = self.free();
         let used = self.ui.glyph(area, g, self.style);
+        self.used = self.used.saturating_add(used);
+        self
+    }
+
+    /// Paint a trailing glyph using this style as its base.
+    ///
+    /// Deferred cell-wide tone, modifier, and patch operations still apply to
+    /// this glyph when the cell is dropped. The saved patch has precedence in
+    /// channels it sets, while unset channels retain this base style.
+    pub fn suffix_style(&mut self, g: GlyphRole, style: PaintStyle) -> &mut Self {
+        let area = self.free();
+        let used = self.ui.glyph(area, g, style);
         self.used = self.used.saturating_add(used);
         self
     }
@@ -1534,6 +1564,58 @@ mod tests {
                 row,
             );
             f(&mut r);
+        }
+        page
+    }
+
+    fn paint_cell(
+        area: Rect,
+        resolved_glyph: Slot<GlyphRole>,
+        style: PaintStyle,
+        f: impl FnOnce(&mut CellUi<'_>),
+    ) -> Buffer {
+        let theme = Theme::junie();
+        let mut frame = FrameState::default();
+        frame.reset(1, SCREEN);
+        let mut page = Buffer::empty(SCREEN);
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        {
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+            ui.fill(area, PaintStyle::new());
+            let mut cell = CellUi::with_resolved_glyph(ui.reborrow(), area, style, resolved_glyph);
+            f(&mut cell);
+        }
+        page
+    }
+
+    fn paint_marker_patched_with_author(
+        theme: &Theme,
+        area: Rect,
+        author_patches: &[(Part, StylePatch)],
+        fallback: GlyphRole,
+        explicit_patch: &StylePatch,
+    ) -> Buffer {
+        let mut frame = FrameState::default();
+        frame.reset(1, SCREEN);
+        let mut page = Buffer::empty(SCREEN);
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        {
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, theme, &last);
+            let author_style = crate::author::PartStyle::new().part(author_patches);
+            let mut row = RowUi::new_with_author_style(
+                &mut ui,
+                OWNER,
+                Family::LIST,
+                Variant::DEFAULT,
+                StateFlags::empty(),
+                ItemKey::index(0),
+                area,
+                author_style,
+            );
+            row.marker_patched(fallback, explicit_patch);
+            row.label("item");
         }
         page
     }
@@ -1954,6 +2036,208 @@ mod tests {
             },
         );
         assert_eq!(row_text(&page, 0, 0, 2), "  ");
+    }
+
+    #[test]
+    fn row_ui_marker_patched_merges_author_and_explicit_channels() {
+        let theme = Theme::junie().define_family(Family::LIST, |edit| {
+            edit.part(Part::MARKER).base(
+                StylePatch::new()
+                    .set_fg(Role::Fg(FgStep::Muted))
+                    .set_bg(Role::Surface(crate::theme::Surface::Canvas))
+                    .set_glyph(GlyphRole::CheckboxOff)
+                    .add(Modifier::UNDERLINED),
+            );
+        });
+        let author_patch = StylePatch::new()
+            .set_fg(Role::Success)
+            .set_bg(Role::Accent)
+            .set_glyph(GlyphRole::Checked)
+            .add(Modifier::BOLD);
+        let author_patches = [(Part::MARKER, author_patch)];
+        let explicit_patch = StylePatch::new()
+            .set_fg(Role::Danger)
+            .add(Modifier::ITALIC)
+            .remove(Modifier::BOLD);
+        let page = paint_marker_patched_with_author(
+            &theme,
+            Rect::new(3, 0, 12, 1),
+            &author_patches,
+            GlyphRole::WarningMark,
+            &explicit_patch,
+        );
+
+        let marker = page.cell((3, 0)).expect("marker cell");
+        assert_eq!(marker.symbol(), theme.design.glyphs.get(GlyphRole::Checked));
+        assert_eq!(marker.fg, theme.color.danger);
+        assert_eq!(marker.bg, theme.color.accent);
+        assert!(marker.modifier.contains(Modifier::UNDERLINED));
+        assert!(marker.modifier.contains(Modifier::ITALIC));
+        assert!(!marker.modifier.contains(Modifier::BOLD));
+
+        let label = page.cell((5, 0)).expect("label cell");
+        assert_eq!(label.symbol(), "i");
+        assert_ne!(label.fg, theme.color.danger);
+        assert!(!label.modifier.contains(Modifier::ITALIC));
+    }
+
+    #[test]
+    fn row_ui_marker_patched_preserves_set_clear_and_inherit_glyphs() {
+        let explicit_set = StylePatch::new().set_glyph(GlyphRole::WarningMark);
+        let set_theme = theme_with_part_glyph(Part::MARKER, Slot::Set(GlyphRole::CheckboxOff));
+        let page = paint_marker_patched_with_author(
+            &set_theme,
+            Rect::new(3, 0, 12, 1),
+            &[],
+            GlyphRole::Checked,
+            &explicit_set,
+        );
+        assert_eq!(
+            page.cell((3, 0)).unwrap().symbol(),
+            set_theme.design.glyphs.get(GlyphRole::WarningMark)
+        );
+
+        let explicit_clear = StylePatch {
+            glyph: Slot::Clear,
+            ..StylePatch::new()
+        };
+        let page = paint_marker_patched_with_author(
+            &set_theme,
+            Rect::new(3, 0, 12, 1),
+            &[],
+            GlyphRole::Checked,
+            &explicit_clear,
+        );
+        assert_eq!(page.cell((3, 0)).unwrap().symbol(), " ");
+        assert_eq!(page.cell((4, 0)).unwrap().symbol(), " ");
+        assert_eq!(page.cell((5, 0)).unwrap().symbol(), "i");
+
+        let inherit_theme = theme_with_part_glyph(Part::MARKER, Slot::Inherit);
+        let no_glyph_patch = StylePatch::new().add(Modifier::BOLD);
+        let page = paint_marker_patched_with_author(
+            &inherit_theme,
+            Rect::new(3, 0, 12, 1),
+            &[],
+            GlyphRole::Checked,
+            &no_glyph_patch,
+        );
+        assert_eq!(
+            page.cell((3, 0)).unwrap().symbol(),
+            inherit_theme.design.glyphs.get(GlyphRole::Checked)
+        );
+    }
+
+    #[test]
+    fn cell_available_width_tracks_unicode_and_reserved_glyph_space() {
+        let mut observed = Vec::new();
+        let area = Rect::new(2, 1, 8, 1);
+        let page = paint_cell(
+            area,
+            Slot::Set(GlyphRole::CheckboxOn),
+            PaintStyle::new(),
+            |cell| {
+                observed.push(cell.available_width());
+                cell.text("e\u{301}");
+                observed.push(cell.available_width());
+                cell.text("界");
+                observed.push(cell.available_width());
+                cell.suffix_style(GlyphRole::Checked, PaintStyle::new());
+                observed.push(cell.available_width());
+            },
+        );
+
+        assert_eq!(observed, [5, 4, 2, 1]);
+        assert_eq!(page.cell((2, 1)).unwrap().symbol(), "e\u{301}");
+        assert_eq!(page.cell((3, 1)).unwrap().symbol(), "界");
+        assert_eq!(page.cell((5, 1)).unwrap().symbol(), "✓");
+        assert_eq!(page.cell((6, 1)).unwrap().symbol(), "[");
+        assert_eq!(page.cell((7, 1)).unwrap().symbol(), "✓");
+        assert_eq!(page.cell((8, 1)).unwrap().symbol(), "]");
+
+        let measure = |width, glyph| {
+            let mut available = u16::MAX;
+            let _ = paint_cell(
+                Rect::new(2, 0, width, 1),
+                glyph,
+                PaintStyle::new(),
+                |cell| available = cell.available_width(),
+            );
+            available
+        };
+        assert_eq!(measure(0, Slot::Inherit), 0);
+        assert_eq!(measure(2, Slot::Set(GlyphRole::CheckboxOn)), 0);
+        assert_eq!(measure(4, Slot::Clear), 3);
+        assert_eq!(measure(4, Slot::Inherit), 4);
+    }
+
+    #[test]
+    fn cell_suffix_style_isolated_base_survives_right_alignment() {
+        let area = Rect::new(4, 1, 6, 1);
+        let base = PaintStyle::new()
+            .fg(ratatui_core::style::Color::Green)
+            .bg(ratatui_core::style::Color::Blue)
+            .add_modifier(Modifier::BOLD);
+        let suffix = PaintStyle::new()
+            .fg(ratatui_core::style::Color::Yellow)
+            .bg(ratatui_core::style::Color::Magenta)
+            .add_modifier(Modifier::UNDERLINED);
+        let page = paint_cell(area, Slot::Inherit, base, |cell| {
+            cell.text("x");
+            cell.suffix_style(GlyphRole::Checked, suffix);
+            cell.align(Align::Right);
+        });
+
+        let text = page.cell((8, 1)).unwrap();
+        assert_eq!(text.symbol(), "x");
+        assert_eq!(text.fg, ratatui_core::style::Color::Green);
+        assert_eq!(text.bg, ratatui_core::style::Color::Blue);
+        assert!(text.modifier.contains(Modifier::BOLD));
+        assert!(!text.modifier.contains(Modifier::UNDERLINED));
+
+        let glyph = page.cell((9, 1)).unwrap();
+        assert_eq!(glyph.symbol(), "✓");
+        assert_eq!(glyph.fg, ratatui_core::style::Color::Yellow);
+        assert_eq!(glyph.bg, ratatui_core::style::Color::Magenta);
+        assert!(glyph.modifier.contains(Modifier::UNDERLINED));
+        assert!(!glyph.modifier.contains(Modifier::BOLD));
+
+        let outside = page.cell((10, 1)).unwrap();
+        assert_eq!(outside.symbol(), " ");
+        assert_ne!(outside.bg, ratatui_core::style::Color::Magenta);
+    }
+
+    #[test]
+    fn cell_suffix_style_obeys_deferred_cellwide_style_precedence() {
+        let theme = Theme::junie();
+        let deferred_patch = StylePatch::new()
+            .set_fg(Role::Danger)
+            .set_bg(Role::Accent)
+            .add(Modifier::BOLD)
+            .remove(Modifier::UNDERLINED);
+        let base = PaintStyle::new()
+            .fg(ratatui_core::style::Color::Green)
+            .bg(ratatui_core::style::Color::Blue)
+            .add_modifier(Modifier::UNDERLINED);
+        let suffix = PaintStyle::new()
+            .fg(ratatui_core::style::Color::Yellow)
+            .bg(ratatui_core::style::Color::Magenta)
+            .add_modifier(Modifier::UNDERLINED);
+        let page = paint_cell(Rect::new(2, 0, 6, 1), Slot::Inherit, base, |cell| {
+            cell.text("x");
+            cell.suffix_style(GlyphRole::Checked, suffix);
+            cell.tone(Role::Accent).italic(true).patch(&deferred_patch);
+        });
+
+        for x in [2, 3] {
+            let painted = page.cell((x, 0)).unwrap();
+            assert_eq!(painted.fg, theme.color.danger);
+            assert_eq!(painted.bg, theme.color.accent);
+            assert!(painted.modifier.contains(Modifier::BOLD));
+            assert!(painted.modifier.contains(Modifier::ITALIC));
+            assert!(!painted.modifier.contains(Modifier::UNDERLINED));
+        }
+        assert_eq!(page.cell((2, 0)).unwrap().symbol(), "x");
+        assert_eq!(page.cell((3, 0)).unwrap().symbol(), "✓");
     }
 
     #[test]
