@@ -464,9 +464,9 @@ fn is_complete_source_record(projected: &[(String, ColType)], table_columns: &[&
             .is_some_and(|layout| layout.len() == table_columns.len())
 }
 
-fn identity_value(value: &Value, ty: ColType, null_allowed: bool) -> Option<IdentityValue> {
+fn identity_value(value: &Value, ty: ColType, allow_typed_null: bool) -> Option<IdentityValue> {
     match (value, ty) {
-        (Value::Null, _) if null_allowed => Some(IdentityValue::Null),
+        (Value::Null, _) if allow_typed_null => Some(IdentityValue::Null),
         (
             Value::Text(value),
             ColType::Uuid | ColType::Text | ColType::Timestamp | ColType::Date | ColType::Enum,
@@ -482,7 +482,7 @@ fn identity_value(value: &Value, ty: ColType, null_allowed: bool) -> Option<Iden
 fn identity_from_row<'a>(
     layout: &[(usize, &'a Column)],
     mut value_at: impl FnMut(usize) -> Option<&'a Value>,
-    null_allowed: bool,
+    allow_typed_null: bool,
 ) -> Option<RowIdentity> {
     layout
         .iter()
@@ -490,7 +490,7 @@ fn identity_from_row<'a>(
             Some((
                 column.name.to_ascii_lowercase(),
                 IdentityType::from(column.ty),
-                identity_value(value_at(*index)?, column.ty, null_allowed)?,
+                identity_value(value_at(*index)?, column.ty, allow_typed_null)?,
             ))
         })
         .collect::<Option<Vec<_>>>()
@@ -501,7 +501,7 @@ fn identities_for_grid(
     grid: &ResultGrid,
     columns: &[(String, ColType)],
     target: &[&Column],
-    null_allowed: bool,
+    allow_typed_null: bool,
 ) -> Option<Vec<Option<RowIdentity>>> {
     let layout = identity_layout(columns, target)?;
     Some(
@@ -510,7 +510,7 @@ fn identities_for_grid(
                 identity_from_row(
                     &layout,
                     |column| grid.pending.value(row, column),
-                    null_allowed,
+                    allow_typed_null,
                 )
             })
             .collect(),
@@ -520,14 +520,14 @@ fn identities_for_grid(
 fn identities_for_result(
     result: &sql::ResultSet,
     target: &[&Column],
-    null_allowed: bool,
+    allow_typed_null: bool,
 ) -> Option<Vec<Option<RowIdentity>>> {
     let layout = identity_layout(&result.columns, target)?;
     Some(
         result
             .rows
             .iter()
-            .map(|row| identity_from_row(&layout, |column| row.get(column), null_allowed))
+            .map(|row| identity_from_row(&layout, |column| row.get(column), allow_typed_null))
             .collect(),
     )
 }
@@ -674,10 +674,11 @@ impl ResultGrid {
                 .iter()
                 .filter(|column| column.primary)
                 .collect();
+            // A NULL component cannot prove a primary-key identity, even in a unique result.
             if !primary_columns.is_empty()
                 && let Some(old_identities) =
-                    identities_for_grid(source, source_columns, &primary_columns, true)
-                && let Some(new_identities) = identities_for_result(result, &primary_columns, true)
+                    identities_for_grid(source, source_columns, &primary_columns, false)
+                && let Some(new_identities) = identities_for_result(result, &primary_columns, false)
             {
                 reuse_unique_row_keys(
                     &old_identities,
@@ -693,9 +694,11 @@ impl ResultGrid {
             if row_keys.iter().any(Option::is_none)
                 && is_complete_source_record(source_columns, &table_columns)
                 && is_complete_source_record(&result.columns, &table_columns)
+                // In a complete typed record, NULL is a known cell value and participates in
+                // exact tuple equality when that tuple is unique in both results.
                 && let Some(old_identities) =
-                    identities_for_grid(source, source_columns, &table_columns, false)
-                && let Some(new_identities) = identities_for_result(result, &table_columns, false)
+                    identities_for_grid(source, source_columns, &table_columns, true)
+                && let Some(new_identities) = identities_for_result(result, &table_columns, true)
             {
                 reuse_unique_row_keys(
                     &old_identities,
@@ -1604,6 +1607,170 @@ mod tests {
             .ok_or("non-unique primary values do not reject filtering")?;
         assert_eq!(refreshed.row_key(0), ItemKey::num(2));
         assert_eq!(refreshed.row_key(1), ItemKey::num(4));
+        Ok(())
+    }
+
+    #[test]
+    fn filter_refresh_does_not_reuse_null_primary_key_for_changed_payload() -> Result<(), String> {
+        let table = test_table(vec![
+            test_column("id", ColType::Int, true),
+            test_column("label", ColType::Text, false),
+        ]);
+        let old = test_result(
+            vec![
+                ("id".to_owned(), ColType::Int),
+                ("label".to_owned(), ColType::Text),
+            ],
+            vec![vec![Value::Null, Value::Text("A".to_owned())]],
+        );
+        let old_grid = ResultGrid::from_result(&old);
+        let selected_key = old_grid.row_key(0);
+        let new = test_result(
+            old.columns.clone(),
+            vec![vec![Value::Null, Value::Text("B".to_owned())]],
+        );
+
+        let refreshed = ResultGrid::from_filter_refresh(&new, &old_grid, &old.columns, &table)
+            .ok_or("a row with a null primary value remains filterable")?;
+        assert_eq!(refreshed.row_count(), 1);
+        assert_eq!(
+            refreshed.pending().value(0, 1),
+            Some(&Value::Text("B".to_owned()))
+        );
+        assert_ne!(refreshed.row_key(0), selected_key);
+        assert!((0..refreshed.row_count()).all(|row| refreshed.row_key(row) != selected_key));
+        Ok(())
+    }
+
+    #[test]
+    fn filter_refresh_rejects_composite_primary_tuple_with_null_component() -> Result<(), String> {
+        let table = test_table(vec![
+            test_column("tenant_id", ColType::Int, true),
+            test_column("record_id", ColType::Int, true),
+            test_column("label", ColType::Text, false),
+        ]);
+        let old = test_result(
+            vec![
+                ("tenant_id".to_owned(), ColType::Int),
+                ("record_id".to_owned(), ColType::Int),
+                ("label".to_owned(), ColType::Text),
+            ],
+            vec![vec![
+                Value::Int(7),
+                Value::Null,
+                Value::Text("A".to_owned()),
+            ]],
+        );
+        let old_grid = ResultGrid::from_result(&old);
+        let new = test_result(
+            old.columns.clone(),
+            vec![vec![
+                Value::Int(7),
+                Value::Null,
+                Value::Text("B".to_owned()),
+            ]],
+        );
+
+        let refreshed = ResultGrid::from_filter_refresh(&new, &old_grid, &old.columns, &table)
+            .ok_or("a row with an incomplete composite primary tuple remains filterable")?;
+        assert_ne!(refreshed.row_key(0), old_grid.row_key(0));
+        Ok(())
+    }
+
+    #[test]
+    fn filter_refresh_uses_unique_null_full_row_after_null_primary_ambiguity() -> Result<(), String>
+    {
+        let table = test_table(vec![
+            test_column("id", ColType::Int, true),
+            test_column("label", ColType::Text, false),
+        ]);
+        let old = test_result(
+            vec![
+                ("id".to_owned(), ColType::Int),
+                ("label".to_owned(), ColType::Text),
+            ],
+            vec![
+                vec![Value::Null, Value::Text("A".to_owned())],
+                vec![Value::Null, Value::Text("B".to_owned())],
+            ],
+        );
+        let old_grid = ResultGrid::from_result(&old);
+        let new = test_result(
+            old.columns.clone(),
+            vec![vec![Value::Null, Value::Text("B".to_owned())]],
+        );
+
+        let refreshed = ResultGrid::from_filter_refresh(&new, &old_grid, &old.columns, &table)
+            .ok_or("a unique complete record with null data remains filterable")?;
+        assert_eq!(refreshed.row_key(0), old_grid.row_key(1));
+        Ok(())
+    }
+
+    #[test]
+    fn filter_refresh_matches_unique_no_primary_null_row_but_not_duplicate_occurrences()
+    -> Result<(), String> {
+        let table = test_table(vec![
+            test_column("code", ColType::Text, false),
+            test_column("note", ColType::Text, false),
+        ]);
+        let old = test_result(
+            vec![
+                ("code".to_owned(), ColType::Text),
+                ("note".to_owned(), ColType::Text),
+            ],
+            vec![
+                vec![Value::Text("survivor".to_owned()), Value::Null],
+                vec![
+                    Value::Text("other".to_owned()),
+                    Value::Text("kept".to_owned()),
+                ],
+            ],
+        );
+        let old_grid = ResultGrid::from_result(&old);
+        let reordered = test_result(
+            vec![
+                ("note".to_owned(), ColType::Text),
+                ("code".to_owned(), ColType::Text),
+            ],
+            vec![vec![Value::Null, Value::Text("survivor".to_owned())]],
+        );
+
+        let refreshed =
+            ResultGrid::from_filter_refresh(&reordered, &old_grid, &old.columns, &table)
+                .ok_or("a unique complete no-primary-key row with null data remains filterable")?;
+        assert_eq!(refreshed.row_key(0), old_grid.row_key(0));
+
+        let duplicate_old = test_result(
+            old.columns.clone(),
+            vec![
+                vec![Value::Text("duplicate".to_owned()), Value::Null],
+                vec![Value::Text("duplicate".to_owned()), Value::Null],
+            ],
+        );
+        let duplicate_grid = ResultGrid::from_result(&duplicate_old);
+        let duplicate_new = test_result(
+            old.columns.clone(),
+            vec![
+                vec![Value::Text("duplicate".to_owned()), Value::Null],
+                vec![Value::Text("duplicate".to_owned()), Value::Null],
+            ],
+        );
+        let refreshed_duplicates = ResultGrid::from_filter_refresh(
+            &duplicate_new,
+            &duplicate_grid,
+            &duplicate_old.columns,
+            &table,
+        )
+        .ok_or("ambiguous duplicate null rows remain filterable")?;
+        assert_eq!(refreshed_duplicates.row_count(), 2);
+        assert_eq!(refreshed_duplicates.row_key(0), ItemKey::num(3));
+        assert_eq!(refreshed_duplicates.row_key(1), ItemKey::num(4));
+        assert_ne!(
+            refreshed_duplicates.row_key(0),
+            refreshed_duplicates.row_key(1)
+        );
+        assert_ne!(refreshed_duplicates.row_key(0), duplicate_grid.row_key(0));
+        assert_ne!(refreshed_duplicates.row_key(1), duplicate_grid.row_key(1));
         Ok(())
     }
 

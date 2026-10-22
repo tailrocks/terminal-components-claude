@@ -721,6 +721,9 @@ fn operator_row(operator: &FilterOp, row: &mut RowUi<'_>) {
 mod tests {
     use super::*;
     use crate::app::TableProApp;
+    use tablepro_demo::db::Value;
+    use termrock::Theme;
+    use termrock_test_support::Harness;
 
     fn orders_app() -> TableProApp {
         let mut app = TableProApp::default();
@@ -961,6 +964,149 @@ mod tests {
                 "disabled {operator:?} must not change result total"
             );
         }
+    }
+
+    #[test]
+    fn staged_filter_does_not_transfer_cursor_to_a_changed_null_primary_payload() {
+        let mut app = orders_app();
+        let mut table = app
+            .catalog
+            .find(Some("public"), "orders")
+            .expect("orders table exists")
+            .clone();
+        table.name = "nullable_key_probe".to_owned();
+        table.row_count = 128;
+        table.columns = vec![
+            tablepro_demo::db::Column {
+                name: "phone".to_owned(),
+                ty: ColType::Text,
+                nullable: true,
+                default: None,
+                primary: true,
+                references: None,
+                enum_values: Vec::new(),
+                generated: false,
+            },
+            tablepro_demo::db::Column {
+                name: "order_number".to_owned(),
+                ty: ColType::Int,
+                nullable: false,
+                default: None,
+                primary: false,
+                references: None,
+                enum_values: Vec::new(),
+                generated: false,
+            },
+        ];
+        table.indexes.clear();
+        table.constraints.clear();
+        table.triggers.clear();
+
+        let generated = tablepro_demo::db::rows(&table, 0, table.row_count);
+        let target_order = generated
+            .iter()
+            .find_map(|row| {
+                if row.first() == Some(&Value::Null) {
+                    match row.get(1) {
+                        Some(Value::Int(order)) => Some(*order),
+                        _ => None,
+                    }
+                } else {
+                    None
+                }
+            })
+            .expect("the deterministic fixture has a null primary row");
+
+        let mut catalog = app.catalog.clone();
+        catalog.tables.push(table.clone());
+        let connection = app.workbench.connection.clone();
+        app.catalog = catalog.clone();
+        app.workbench = Workbench::new(connection, catalog);
+        assert!(app.workbench.open_table("nullable_key_probe"));
+        app.surface = crate::app::Surface::TableGrid;
+
+        let original = sql::ResultSet {
+            columns: vec![
+                ("phone".to_owned(), ColType::Text),
+                ("order_number".to_owned(), ColType::Int),
+            ],
+            rows: vec![vec![Value::Null, Value::Int(-1)]],
+            total: 1,
+            source: Some(table.qualified()),
+            duration_ms: 1,
+            editable: true,
+        };
+        let model = tablepro_domain::domain::ResultGrid::from_result(&original);
+        let old_key = model.row_key(0);
+        let specs = [
+            termrock::Column::new(ColumnKey::num(1), "phone"),
+            termrock::Column::new(ColumnKey::num(2), "order_number"),
+        ];
+        let mut state = termrock::GridState::default();
+        let _ = termrock::Grid::new(Id::root("nullable-key-probe"), &specs).move_cursor_to(
+            &mut state,
+            &model,
+            old_key,
+            ColumnKey::num(2),
+        );
+        assert_eq!(state.cursor(), Some((old_key, ColumnKey::num(2))));
+
+        let Some(Tab::Table(live)) = app.workbench.active_mut() else {
+            panic!("the nullable-key probe table is active")
+        };
+        live.result = GridView {
+            columns: original.columns.clone(),
+            model,
+            state,
+        };
+
+        let mut harness = Harness::new(app, Theme::junie(), 120, 40);
+        let result_id = harness
+            .app()
+            .result_id()
+            .expect("the staged probe has a table grid");
+        for _ in 0..=harness.ring().entries().len() {
+            if harness.focus() == Some(result_id) {
+                break;
+            }
+            let _ = harness.key(KeyCode::Tab);
+        }
+        assert_eq!(harness.focus(), Some(result_id));
+        let _ = harness.key(KeyCode::Char(' '));
+        assert!(
+            harness
+                .app()
+                .workbench
+                .active_table()
+                .expect("the probe table remains active")
+                .result
+                .state
+                .selected_rows()
+                .contains(old_key)
+        );
+
+        let mut draft = FilterEditor::capture(&harness.app().workbench, 1, true)
+            .expect("the active table opens the filter editor");
+        draft.value = target_order.to_string();
+        let candidate = draft
+            .stage(&harness.app().workbench, &harness.app().catalog)
+            .expect("filter staging keeps a row with a null primary value");
+        assert_eq!(candidate.result.model.row_count(), 1);
+        assert_eq!(
+            candidate.result.model.pending().value(0, 0),
+            Some(&Value::Null)
+        );
+        let refreshed_key = candidate.result.model.row_key(0);
+        assert_ne!(refreshed_key, old_key);
+        assert_eq!(
+            candidate.result.state.cursor(),
+            Some((refreshed_key, ColumnKey::num(2))),
+            "cursor falls onto the new row without carrying old record identity"
+        );
+        assert!(
+            candidate.result.state.selected_rows().is_empty(),
+            "the selected old record does not alias the changed null-key payload"
+        );
     }
 
     #[test]
