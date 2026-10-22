@@ -1,3 +1,4 @@
+use core::fmt::Write as _;
 use std::cell::RefCell;
 use std::time::{Duration, Instant};
 
@@ -5067,6 +5068,7 @@ fn explorer_counts_fit(
     let offset = state.scroll().offset();
     let mut show = [false; 8];
     show[0] = true;
+    let mut meta = MetaBuf::new();
     let mut index = 0usize;
     for node in nodes {
         let depth = explorer_depth(node);
@@ -5074,8 +5076,8 @@ fn explorer_counts_fit(
             continue;
         }
         let in_view = index >= offset && index.saturating_sub(offset) < height;
-        if in_view && let Some(meta) = explorer_count_text(node) {
-            let need = explorer_count_need(node, indent, width(&meta));
+        if in_view && let Some(meta) = explorer_count_text(node, &mut meta) {
+            let need = explorer_count_need(node, indent, width(meta));
             if need > row_w {
                 return false;
             }
@@ -5092,13 +5094,56 @@ fn explorer_counts_fit(
     true
 }
 
-fn explorer_count_text(node: &ExplorerNode) -> Option<String> {
+/// Fixed-size buffer so explorer count text formats on the stack instead of
+/// allocating a `String` on every workbench frame (see the 100-alloc grid
+/// frame budget).
+struct MetaBuf {
+    buf: [u8; 24],
+    len: usize,
+}
+
+impl MetaBuf {
+    fn new() -> Self {
+        Self {
+            buf: [0; 24],
+            len: 0,
+        }
+    }
+
+    fn clear(&mut self) {
+        self.len = 0;
+    }
+
+    fn as_str(&self) -> &str {
+        let bytes = self.buf.get(..self.len).unwrap_or(&[]);
+        core::str::from_utf8(bytes).unwrap_or("")
+    }
+}
+
+impl core::fmt::Write for MetaBuf {
+    fn write_str(&mut self, s: &str) -> core::fmt::Result {
+        let end = self.len.saturating_add(s.len());
+        let Some(rest) = self.buf.get_mut(self.len..end) else {
+            return Err(core::fmt::Error);
+        };
+        rest.copy_from_slice(s.as_bytes());
+        self.len = end;
+        Ok(())
+    }
+}
+
+fn explorer_count_text<'a>(node: &ExplorerNode, buf: &'a mut MetaBuf) -> Option<&'a str> {
+    buf.clear();
     match node {
-        ExplorerNode::Group { count, .. } => Some(count.to_string()),
+        ExplorerNode::Group { count, .. } => {
+            write!(buf, "{}", count).ok()?;
+            Some(buf.as_str())
+        }
         ExplorerNode::Object { item, .. }
             if matches!(item.kind, ObjectKind::Table | ObjectKind::View) && item.rows > 0 =>
         {
-            Some(tablepro_sql::sql::fmt_rows(item.rows))
+            tablepro_sql::sql::fmt_rows_to(item.rows, buf).ok()?;
+            Some(buf.as_str())
         }
         _ => None,
     }
@@ -5137,12 +5182,16 @@ fn explorer_row(node: &ExplorerNode, row: &mut RowUi<'_>) {
             Span::new(name.as_str()),
         ]),
         ExplorerNode::Group { name, count, .. } => {
-            paint_explorer_count(row, &count.to_string());
+            let mut meta = MetaBuf::new();
+            let _ = write!(meta, "{}", count);
+            paint_explorer_count(row, meta.as_str());
             row.label(name);
         }
         ExplorerNode::Object { item, prefix, .. } => {
             if matches!(item.kind, ObjectKind::Table | ObjectKind::View) && item.rows > 0 {
-                paint_explorer_count(row, &tablepro_sql::sql::fmt_rows(item.rows));
+                let mut meta = MetaBuf::new();
+                let _ = tablepro_sql::sql::fmt_rows_to(item.rows, &mut meta);
+                paint_explorer_count(row, meta.as_str());
             }
             row.label_spans(&[
                 Span::new(prefix).role(TAG_CHROME_FG),
