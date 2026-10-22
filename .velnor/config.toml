@@ -23,7 +23,7 @@ default_shards = 1
 ignore = []
 
 [stacks.rust]
-compile_driver = "cargo"
+compile_driver = "mbx"
 test_runner = "cargo_nextest"
 run_ignored = "default"
 
@@ -86,7 +86,7 @@ exclude = ["xtask/fixtures/**", "tools/termrock-visibility-publisher/**", "tools
 [actions.overrides]
 
 [tools]
-mr-boxington = "1.24.1"
+mr-boxington = "1.26.0"
 
 [agents]
 claude_md = "symlink"
