@@ -103,6 +103,25 @@ class BuildGuardTests(unittest.TestCase):
             with self.assertRaisesRegex(guard.GuardError, "relative MBX cache"):
                 guard._mbx_locations({"HOME": tmp, "MBX_CACHE_DIR": "relative/cache"}, Path(tmp), Path(tmp))
 
+    def test_absolute_cargo_path_is_rejected_to_preserve_mbx_shim(self):
+        with mock.patch.object(guard, "_effective_env") as mise_env:
+            self.assertEqual(guard.main(["mise", "exec", "--", "/usr/bin/cargo", "build"]), 2)
+            mise_env.assert_not_called()
+
+    def test_cargo_configured_rustc_wrappers_fail_closed(self):
+        for key in ("rustc-wrapper", "rustc-workspace-wrapper"):
+            with self.subTest(key=key), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                (root / ".cargo").mkdir()
+                (root / ".cargo/config.toml").write_text(f'[build]\n{key}="/custom/wrapper"\n')
+                with self.assertRaisesRegex(guard.GuardError, "wrapper"):
+                    guard._cargo_config_output_paths({"HOME": tmp}, root, root)
+
+    def test_environment_build_dir_template_fails_closed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaisesRegex(guard.GuardError, "templating"):
+                guard.discover_paths({"HOME": tmp, "CARGO_BUILD_BUILD_DIR": "{workspace-root}/build"}, Path(tmp), tmp)
+
     def test_real_deny_probe_does_not_launch_child(self):
         # On constrained disks this proves the guard exits before any command.
         # If the disk is above policy, the test is skipped to avoid running a
