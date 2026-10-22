@@ -154,6 +154,7 @@ impl DiffViewState {
 struct DiffLayout {
     mode: DiffMode,
     revision: u64,
+    layout_revision: u64,
     width: u16,
     has_source: bool,
     valid: bool,
@@ -163,6 +164,7 @@ struct DiffLayout {
     status_label: String,
     status_role: Option<Role>,
     reset_pending: bool,
+    update_pending: bool,
     scratch: Vec<OwnedLine>,
     projection: ProjectedText,
 }
@@ -208,6 +210,7 @@ impl DiffLayout {
             self.projection
                 .push_line(line.iter().map(|run| (&run.text, run.role, run.modifier)));
         }
+        self.layout_revision = self.layout_revision.saturating_add(1);
         self.revision = revision;
         self.mode = mode;
         self.width = width;
@@ -221,6 +224,7 @@ impl DiffLayout {
             source.map_or_else(String::new, |source| source.status_label().to_owned());
         self.status_role = source.map(DiffSource::status_role);
         self.reset_pending |= source_changed;
+        self.update_pending = true;
         true
     }
 }
@@ -290,8 +294,9 @@ impl<'a> DiffView<'a> {
         self
     }
 
-    fn viewport(&self) -> TextViewport<'a> {
+    fn viewport(&self, layout_revision: u64) -> TextViewport<'a> {
         let mut viewport = TextViewport::new(self.id)
+            .layout_revision(layout_revision)
             .horizontal_pan(self.horizontal_pan)
             .patch_part(self.parts);
         if let Some(patch) = self.patch {
@@ -306,17 +311,26 @@ impl<'a> DiffView<'a> {
     pub fn update(&self, cx: &mut Cx<'_>, state: &mut DiffViewState) -> Response<ViewportAction> {
         let width = cx.area(self.id).map_or(80, |area| area.width);
         let mut layout = core::mem::take(cx.cache::<DiffLayout>(self.id));
-        layout.ensure(self.source, state.mode, width);
-        if layout.reset_pending {
+        let rebuilt = layout.ensure(self.source, state.mode, width);
+        if self.horizontal_pan && layout.reset_pending {
             state.viewport.set_follow(false);
             state.viewport.invalidate();
             state.viewport.reset_scroll_offsets();
             let _ = state.viewport.clear_selection();
             layout.reset_pending = false;
+        } else if !self.horizontal_pan && (rebuilt || layout.reset_pending || layout.update_pending)
+        {
+            state.viewport.set_follow(false);
+            state.viewport.invalidate();
+            let _ = state.viewport.clear_selection();
+            layout.reset_pending = false;
         }
-        let response =
-            self.viewport()
-                .update_projected(cx, &mut state.viewport, &layout.projection);
+        layout.update_pending = false;
+        let response = self.viewport(layout.layout_revision).update_projected(
+            cx,
+            &mut state.viewport,
+            &layout.projection,
+        );
         *cx.cache::<DiffLayout>(self.id) = layout;
         response
     }
@@ -325,15 +339,18 @@ impl<'a> DiffView<'a> {
         let mut layout = core::mem::take(ui.cache::<DiffLayout>(self.id));
         layout.ensure(self.source, state.mode, area.width);
         let mut viewport_state = state.viewport.clone();
-        if layout.reset_pending {
+        if self.horizontal_pan && layout.reset_pending {
             viewport_state.set_follow(false);
             viewport_state.invalidate();
             viewport_state.reset_scroll_offsets();
             let _ = viewport_state.clear_selection();
         }
-        let used = self
-            .viewport()
-            .draw_projected(ui, area, &viewport_state, &layout.projection);
+        let used = self.viewport(layout.layout_revision).draw_projected(
+            ui,
+            area,
+            &viewport_state,
+            &layout.projection,
+        );
         *ui.cache::<DiffLayout>(self.id) = layout;
         used
     }
@@ -351,7 +368,7 @@ impl Bindings for DiffView<'_> {
     type Cmd = ViewportCmd;
 
     fn bindings(&self, state: BindingState) -> &'static [Binding<ViewportCmd>] {
-        self.viewport().bindings(state)
+        self.viewport(0).bindings(state)
     }
 }
 
@@ -735,7 +752,7 @@ mod tests {
     use ratatui_core::buffer::Buffer;
 
     use super::*;
-    use crate::event::{Axis, KeyCode, MouseKind};
+    use crate::event::{Axis, Input, KeyCode, MouseKind};
     use crate::runtime::Runtime;
     use crate::runtime::stub::{Stub, key, mouse};
     use crate::theme::Theme;
@@ -853,6 +870,48 @@ mod tests {
         }
     }
 
+    struct MutableSource {
+        rows: &'static [&'static str],
+        revision: u64,
+    }
+
+    impl DiffSource for MutableSource {
+        fn revision(&self) -> u64 {
+            self.revision
+        }
+
+        fn path(&self) -> &str {
+            "x.rs"
+        }
+
+        fn status_marker(&self) -> &str {
+            "M"
+        }
+
+        fn status_label(&self) -> &str {
+            "modified"
+        }
+
+        fn row_count(&self) -> usize {
+            self.rows.len().saturating_add(1)
+        }
+
+        fn row(&self, index: usize) -> Option<DiffRow<'_>> {
+            if index == 0 {
+                return Some(DiffRow::Hunk {
+                    old_start: 1,
+                    new_start: 1,
+                });
+            }
+            self.rows
+                .get(index.saturating_sub(1))
+                .map(|text| DiffRow::Line {
+                    kind: DiffLineKind::Context,
+                    text,
+                })
+        }
+    }
+
     const FIRST_NAMED_SOURCE: NamedSource = NamedSource {
         revision: 4,
         path: "src/first.rs",
@@ -874,6 +933,7 @@ mod tests {
     struct DiffProbe {
         second_source: bool,
         state: DiffViewState,
+        horizontal_pan: bool,
     }
 
     impl DiffProbe {
@@ -889,16 +949,57 @@ mod tests {
     impl crate::runtime::App for DiffProbe {
         fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
             DiffView::new(ID, Some(self.source()))
-                .horizontal_pan(true)
+                .horizontal_pan(self.horizontal_pan)
                 .update(cx, &mut self.state)
                 .erase()
         }
 
         fn draw(&self, ui: &mut Ui<'_>) {
             DiffView::new(ID, Some(self.source()))
-                .horizontal_pan(true)
-                .draw(ui, Rect::new(0, 0, 20, 6), &self.state);
+                .horizontal_pan(self.horizontal_pan)
+                .draw(ui, ui.full(), &self.state);
         }
+    }
+
+    struct MutableDiffProbe {
+        source: MutableSource,
+        state: DiffViewState,
+        horizontal_pan: bool,
+    }
+
+    impl crate::runtime::App for MutableDiffProbe {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            DiffView::new(ID, Some(&self.source))
+                .horizontal_pan(self.horizontal_pan)
+                .update(cx, &mut self.state)
+                .erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            DiffView::new(ID, Some(&self.source))
+                .horizontal_pan(self.horizontal_pan)
+                .draw(ui, ui.full(), &self.state);
+        }
+    }
+
+    fn render<A: crate::runtime::App>(runtime: &mut Runtime<A>, area: Rect) -> Buffer {
+        let mut buffer = Buffer::empty(area);
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        buffer
+    }
+
+    fn row_text(buffer: &Buffer, area: Rect, row: u16) -> String {
+        buffer
+            .content()
+            .iter()
+            .skip(usize::from(row).saturating_mul(usize::from(area.width)))
+            .take(usize::from(area.width))
+            .map(ratatui_core::buffer::Cell::symbol)
+            .collect()
+    }
+
+    fn horizontal_track(runtime: &Runtime<impl crate::runtime::App>) -> Option<Rect> {
+        runtime.area_of_part(ID, PartRef::of(Part::custom("viewport.horizontal-track")))
     }
 
     fn text(line: &OwnedLine) -> String {
@@ -1121,6 +1222,7 @@ mod tests {
         let app = DiffProbe {
             second_source: false,
             state,
+            horizontal_pan: true,
         };
         let area = Rect::new(0, 0, 20, 6);
         let mut runtime = Runtime::new(app, Theme::junie());
@@ -1155,6 +1257,198 @@ mod tests {
         let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Char('z')));
         assert_eq!(runtime.app().state.viewport.horizontal_offset(), 0);
         assert_eq!(runtime.app().state.viewport.scroll().offset(), 0);
+        assert_eq!(runtime.app().state.viewport.selection(), None);
+    }
+
+    #[test]
+    fn max_revision_reprojects_widest_metrics_on_each_real_draw() {
+        const LONG: &[&str] = &[
+            "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz",
+        ];
+        const SHORT: &[&str] = &["short line"];
+        let mut state = DiffViewState::default();
+        state.viewport.set_follow(false);
+        let app = MutableDiffProbe {
+            source: MutableSource {
+                rows: LONG,
+                revision: u64::MAX,
+            },
+            state,
+            horizontal_pan: true,
+        };
+        let area = Rect::new(0, 0, 40, 6);
+        let mut runtime = Runtime::new(app, Theme::junie());
+        let _ = runtime.initialize();
+
+        let long = render(&mut runtime, area);
+        assert!(horizontal_track(&runtime).is_some());
+        assert!(row_text(&long, area, 2).contains("0123456789"));
+
+        for (rows, overflows, expected) in [
+            (SHORT, false, "short line"),
+            (LONG, true, "0123456789"),
+            (SHORT, false, "short line"),
+            (LONG, true, "0123456789"),
+        ] {
+            runtime.app_mut().source.rows = rows;
+            let frame = render(&mut runtime, area);
+            assert_eq!(horizontal_track(&runtime).is_some(), overflows);
+            assert!(row_text(&frame, area, 2).contains(expected));
+        }
+
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
+        let updated = render(&mut runtime, area);
+        assert!(horizontal_track(&runtime).is_some());
+        assert!(row_text(&updated, area, 2).contains("0123456789"));
+    }
+
+    #[test]
+    fn mode_reprojection_retains_and_clamps_pan_to_fresh_width() {
+        const LONG: &[&str] = &[
+            "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz",
+        ];
+        let source = MutableSource {
+            rows: LONG,
+            revision: 4,
+        };
+        let mut unified = Vec::new();
+        let mut review = Vec::new();
+        unified_lines(&source, &mut unified);
+        review_lines(&source, 40, &mut review);
+        assert_eq!(unified.len(), review.len(), "fixture keeps the row count");
+
+        let mut state = DiffViewState::default();
+        state.viewport.set_follow(false);
+        let app = MutableDiffProbe {
+            source,
+            state,
+            horizontal_pan: true,
+        };
+        let area = Rect::new(0, 0, 40, 6);
+        let mut runtime = Runtime::new(app, Theme::junie());
+        let _ = runtime.initialize();
+        let _ = render(&mut runtime, area);
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Right));
+        assert_eq!(runtime.app().state.viewport.horizontal_offset(), 4);
+
+        runtime.app_mut().state.set_mode(DiffMode::Review);
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
+
+        assert_eq!(runtime.app().state.viewport.horizontal_offset(), 1);
+        let buffer = render(&mut runtime, area);
+        assert!(horizontal_track(&runtime).is_some());
+        assert!(row_text(&buffer, area, 2).contains('│'));
+    }
+
+    #[test]
+    fn default_off_first_draw_preserves_following_and_selection_cells() {
+        let area = Rect::new(0, 0, 60, 4);
+        let view = DiffView::new(ID, Some(&Source));
+        let mut state = DiffViewState::default();
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(area);
+        runtime
+            .draw_scene(area, &mut buffer, |ui, rect| {
+                view.draw(ui, rect, &state);
+            })
+            .commit_presented();
+        assert!(
+            (0..area.height).any(|row| row_text(&buffer, area, row).contains("done")),
+            "default follow should show the tail: {}",
+            (0..area.height)
+                .map(|row| row_text(&buffer, area, row))
+                .collect::<Vec<_>>()
+                .join("\n")
+        );
+        assert!(state.viewport.follow());
+
+        state.viewport.set_follow(false);
+        state
+            .viewport
+            .select(CellPos::new(2, 0), CellPos::new(2, 2));
+        let before = state.clone();
+        let mut selected = Buffer::empty(area);
+        runtime
+            .draw_scene(area, &mut selected, |ui, rect| {
+                view.draw(ui, rect, &state);
+            })
+            .commit_presented();
+        assert_eq!(state, before, "draw must not mutate caller-owned state");
+        let selected_cell = selected
+            .cell(ratatui_core::layout::Position::new(1, 2))
+            .expect("selected diff cell");
+        let ordinary_cell = selected
+            .cell(ratatui_core::layout::Position::new(3, 2))
+            .expect("unselected diff cell");
+        assert_ne!(selected_cell.bg, ordinary_cell.bg);
+    }
+
+    #[test]
+    fn default_off_mode_update_keeps_legacy_selection_and_follow_reset_only() {
+        let mut state = DiffViewState::default();
+        state.viewport.set_follow(false);
+        let mut runtime = Runtime::new(
+            DiffProbe {
+                second_source: false,
+                state,
+                horizontal_pan: false,
+            },
+            Theme::junie(),
+        );
+        let _ = runtime.initialize();
+        let area = Rect::new(0, 0, 20, 6);
+        let _ = render(&mut runtime, area);
+        let _ =
+            crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Wheel(Axis::V, 1), 5, 2));
+        let offset = runtime.app().state.viewport.scroll().offset();
+        assert!(offset > 0);
+        runtime.app_mut().state.viewport.set_follow(true);
+        runtime
+            .app_mut()
+            .state
+            .viewport
+            .select(CellPos::new(2, 1), CellPos::new(2, 3));
+        runtime.app_mut().state.set_mode(DiffMode::Review);
+
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
+
+        assert_eq!(runtime.app().state.viewport.scroll().offset(), offset);
+        assert!(!runtime.app().state.viewport.follow());
+        assert_eq!(runtime.app().state.viewport.selection(), None);
+    }
+
+    #[test]
+    fn default_off_source_update_keeps_scroll_offset_and_clears_selection() {
+        let mut state = DiffViewState::default();
+        state.viewport.set_follow(false);
+        let mut runtime = Runtime::new(
+            DiffProbe {
+                second_source: false,
+                state,
+                horizontal_pan: false,
+            },
+            Theme::junie(),
+        );
+        let _ = runtime.initialize();
+        let area = Rect::new(0, 0, 20, 6);
+        let _ = render(&mut runtime, area);
+        let _ =
+            crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Wheel(Axis::V, 1), 5, 2));
+        let offset = runtime.app().state.viewport.scroll().offset();
+        assert!(offset > 0);
+
+        runtime.app_mut().state.viewport.set_follow(true);
+        runtime
+            .app_mut()
+            .state
+            .viewport
+            .select(CellPos::new(2, 1), CellPos::new(2, 3));
+        runtime.app_mut().second_source = true;
+
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
+
+        assert_eq!(runtime.app().state.viewport.scroll().offset(), offset);
+        assert!(!runtime.app().state.viewport.follow());
         assert_eq!(runtime.app().state.viewport.selection(), None);
     }
 

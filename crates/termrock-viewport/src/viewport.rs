@@ -621,6 +621,7 @@ struct LayoutKey {
     width: u16,
     wrap: bool,
     generation: u32,
+    layout_revision: u64,
 }
 
 #[derive(Debug, Default)]
@@ -645,7 +646,7 @@ impl ViewportLayout {
         measure_widest: bool,
     ) -> usize {
         let lines = lines.into();
-        let reusable = key.generation != u32::MAX;
+        let reusable = key.generation != u32::MAX && key.layout_revision != u64::MAX;
         if reusable
             && self.key == key
             && self.lines == lines.len()
@@ -958,6 +959,7 @@ pub struct TextViewport<'a> {
     id: Id,
     wrap: bool,
     horizontal_pan: bool,
+    layout_revision: u64,
     /// When set, column 0 is the focus gutter and text starts one cell in.
     /// Terminal panes that already draw their prompt turn this off.
     reserve_gutter: bool,
@@ -981,6 +983,7 @@ impl fmt::Debug for TextViewport<'_> {
             .field("id", &self.id)
             .field("wrap", &self.wrap)
             .field("horizontal_pan", &self.horizontal_pan)
+            .field("layout_revision", &self.layout_revision)
             .field("reserve_gutter", &self.reserve_gutter)
             .field("scroll_gap", &self.scroll_gap)
             .field("caret_when_unfocused", &self.caret_when_unfocused)
@@ -1021,6 +1024,7 @@ impl<'a> TextViewport<'a> {
             id,
             wrap: false,
             horizontal_pan: false,
+            layout_revision: 0,
             reserve_gutter: true,
             scroll_gap: 0,
             caret_when_unfocused: false,
@@ -1079,6 +1083,14 @@ impl<'a> TextViewport<'a> {
     #[must_use]
     pub const fn horizontal_pan(mut self, enabled: bool) -> Self {
         self.horizontal_pan = enabled;
+        self
+    }
+
+    /// Distinguish changed borrowed content that keeps the same viewport
+    /// state generation and dimensions. Saturation disables layout reuse.
+    #[must_use]
+    pub const fn layout_revision(mut self, revision: u64) -> Self {
+        self.layout_revision = revision;
         self
     }
 
@@ -1226,6 +1238,7 @@ impl<'a> TextViewport<'a> {
             width,
             wrap: self.wrap,
             generation: st.generation,
+            layout_revision: self.layout_revision,
         }
     }
 
@@ -1521,7 +1534,11 @@ impl<'a> TextViewport<'a> {
                     usize::from(track.width),
                     TrackClick::Page,
                 );
-                acc.consumed();
+                if before == st.horizontal.offset() {
+                    acc.consumed();
+                } else {
+                    acc.changed();
+                }
             }
             Phase::Drag => {
                 let track_pos = if cx.capture_owner() == Some(self.id) {
@@ -2790,6 +2807,76 @@ mod tests {
     }
 
     #[test]
+    fn horizontal_track_page_press_reports_repaint_only_when_offset_changes() {
+        let mut state = ViewportState::default();
+        state.set_follow(false);
+        let mut runtime = Runtime::new(HorizontalWheelProbe::new(state), Theme::junie());
+        let _ = runtime.initialize();
+        let mut buffer = Buffer::empty(POINTER_AREA);
+        runtime
+            .draw_buffer(POINTER_AREA, &mut buffer)
+            .commit_presented();
+
+        let track = runtime
+            .area_of_part(ID, PartRef::of(HORIZONTAL_TRACK))
+            .expect("horizontal track is registered");
+        let thumb = runtime
+            .area_of_part(ID, PartRef::of(HORIZONTAL_THUMB))
+            .expect("horizontal thumb is registered");
+        let page = Position::new(track.right().saturating_sub(1), track.y);
+        assert!(page.x >= thumb.right(), "press lands beyond the thumb");
+
+        let response =
+            crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, page.x, page.y));
+        assert!(runtime.app().state.horizontal_offset() > 0);
+        assert!(response.is_consumed());
+        assert!(response.is_changed(), "a changed page press must repaint");
+
+        let mut edge_state = ViewportState::default();
+        edge_state.horizontal.set_content(30);
+        edge_state.horizontal.set_viewport(10);
+        edge_state
+            .horizontal
+            .scroll_to(edge_state.horizontal.max_offset());
+        let intents = crate::intent::IntentQueue::new();
+        let mut services = crate::ui::cx::FrameServices::default();
+        let mut core = crate::ui::UiCore::default();
+        let last = crate::ui::cx::LastFrame::default();
+        let theme = Theme::junie();
+        let mut cx = crate::ui::Cx::new_with_cause(
+            &intents,
+            &mut services,
+            &mut core,
+            &last,
+            &theme,
+            None,
+            crate::runtime::UpdateCause::Event,
+        );
+        let mut acc = Acc::new();
+        TextViewport::new(ID)
+            .horizontal_pan(true)
+            .handle_horizontal_pointer(
+                &mut cx,
+                &mut edge_state,
+                Rect::new(0, 0, 10, 1),
+                crate::intent::Intent::Pointer {
+                    phase: Phase::Press,
+                    part: PartRef::of(HORIZONTAL_TRACK),
+                    pos: Position::new(9, 0),
+                    local: Position::new(9, 0),
+                    mods: crate::event::KeyModifiers::NONE,
+                },
+                &mut acc,
+            );
+        let response = acc.finish(ID);
+        assert!(response.is_consumed());
+        assert!(
+            !response.is_changed(),
+            "an unchanged clamped track target needs no repaint"
+        );
+    }
+
+    #[test]
     fn pan_window_omits_wide_graphemes_crossed_by_either_edge() {
         let render = |text: &str, offset: usize| {
             let lines = [ViewportLine::Plain(text)];
@@ -3059,6 +3146,7 @@ mod tests {
             width: 4,
             wrap: true,
             generation: 0,
+            layout_revision: 0,
         };
         let mut layout = ViewportLayout::default();
         let first = [ViewportLine::Plain("abcdefgh"), ViewportLine::Plain("ij")];
@@ -3082,6 +3170,7 @@ mod tests {
             width: 4,
             wrap: true,
             generation: 0,
+            layout_revision: 0,
         };
 
         assert_eq!(layout.ensure(&lines, key), lines.len());
@@ -3184,6 +3273,7 @@ mod tests {
                 width,
                 wrap: true,
                 generation: u32::from(width),
+                layout_revision: 0,
             };
             let mut layout = ViewportLayout::default();
             layout.ensure(&lines, key);
@@ -3216,6 +3306,7 @@ mod tests {
             width: 4,
             wrap: true,
             generation: u32::MAX,
+            layout_revision: 0,
         };
         let before = [ViewportLine::Plain("a"), ViewportLine::Plain("b")];
         let after = [ViewportLine::Plain("abcdefgh"), ViewportLine::Plain("b")];
@@ -3234,6 +3325,39 @@ mod tests {
     }
 
     #[test]
+    fn layout_revision_remeasures_changed_content_and_saturation_never_reuses() {
+        let short = [ViewportLine::Plain("x")];
+        let medium = [ViewportLine::Plain("012345")];
+        let long = [ViewportLine::Plain("0123456789")];
+        let mut layout = ViewportLayout::default();
+        let key = LayoutKey {
+            width: 4,
+            wrap: false,
+            generation: 7,
+            layout_revision: 1,
+        };
+
+        layout.ensure_with_widest(&short, key, true);
+        assert_eq!(layout.widest_cols, 1);
+
+        let next = LayoutKey {
+            layout_revision: 2,
+            ..key
+        };
+        layout.ensure_with_widest(&medium, next, true);
+        assert_eq!(layout.widest_cols, 6);
+
+        let saturated = LayoutKey {
+            layout_revision: u64::MAX,
+            ..next
+        };
+        layout.ensure_with_widest(&short, saturated, true);
+        assert_eq!(layout.widest_cols, 1);
+        layout.ensure_with_widest(&long, saturated, true);
+        assert_eq!(layout.widest_cols, 10);
+    }
+
+    #[test]
     fn same_length_offscreen_rewrap_after_invalidate_updates_total_end_thumb_and_mapping() {
         let before = [ViewportLine::Plain("row"); 8];
         let mut after = before;
@@ -3248,6 +3372,7 @@ mod tests {
             width,
             wrap: true,
             generation: state.generation,
+            layout_revision: 0,
         };
         layout.ensure(&before, old_key);
         let old_total = layout.total();
