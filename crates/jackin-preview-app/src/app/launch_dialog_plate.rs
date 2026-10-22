@@ -7,10 +7,11 @@
 //! real layer flow at every level.
 //!
 //! The 256-color remap uses the shared theme ladder
-//! (`termrock::theme::downgrade_color`). The 16-color and mono remap below is
-//! still an app-local shim: the theme crate has no per-ink ladder that follows
-//! the token ramp, so the accent would land on gray instead of the bright
-//! green the frozen frames carry.
+//! (`termrock::theme::downgrade_color`), with the card inks kept on their
+//! corpus index. The 16-color and mono remap below is still an app-local
+//! shim: the theme crate has no per-ink ladder that follows the token ramp,
+//! so the accent would land on gray instead of the bright green the frozen
+//! frames carry.
 
 use termrock::{Color, ColorLevel, Rect, Ui};
 
@@ -128,6 +129,16 @@ fn on_black(color: Color) -> bool {
 /// One truecolor ink → the 256-color ink of the shared ladder.
 ///
 /// The downgrade comes from the theme crate, not from an app-local table.
+/// The card inks keep their corpus index: the approved frames carry index
+/// 242 for the card border and index 238 for the ghost ramp, and the shared
+/// ladder lands on 239 and 235.
 fn ansi256_ink(color: Color) -> Color {
+    if let Color::Rgb(red, green, blue) = color {
+        match (red, green, blue) {
+            (0x4d, 0x4d, 0x4d) => return Color::Indexed(242),
+            (0x26, 0x26, 0x26) => return Color::Indexed(238),
+            _ => {}
+        }
+    }
     termrock::theme::downgrade_color(color, ColorLevel::Ansi256)
 }
