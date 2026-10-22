@@ -1473,3 +1473,30 @@ The independent documentation review cleared diff SHA-256
 against the cited small receipts. `git diff --check` passed. Rust checks were not run because
 the mandatory free-space gate is unmet. This documentation review does not approve application
 parity, library completion or the unfinished global enforcement setup.
+
+### PR #38 source and test-integrity review (2026-10-22)
+
+An independent source-only review examined exact PR #38 HEAD
+`45b8a8020663df109d71d84f39f553836d1a0b82`. It confirmed the old TablePro
+`historical_picker_open.rs` / `historical_tablist_open.rs` snapshot-to-`RUNS`
+replayers from commits `6923311119e060176ee3cf07c585416556416024` and
+`51046a780fafe61bf10ed2dc9d2df4c1eeffa734` are absent from current TablePro
+production source. Retain its live shared Picker adapters and typed state in
+`crates/tablepro-ui/src/quick_switcher.rs`, `tab_list.rs`, and `safe_mode.rs`, and
+their behavioral contract tests. This source finding does not prove visual parity.
+
+Jackin still has fixture/tick/size/theme-conditioned presentation paths, fixed
+cockpit/manager presentation data, and application-owned recoloring of shared
+info/cancel cards. The detailed evidence and proposed shared-component migrations
+are in [the source and test-integrity audit](../audits/2026-10-22-pr38-source-integrity-review.md).
+That audit also records reported artifact-provenance mismatches for TablePro and
+Holla, Showcase navigation ownership concerns, the pending oracle, and the
+incomplete branch census. Those reported findings are not presented as a passed
+test or complete independent artifact verification.
+
+The coordinator's latest free-space report was approximately 2.893 TB, still
+below the mandatory 3,000,000,000,000-byte gate. The previous detailed operator
+receipts referenced above are outside this sparse review worktree and were not
+re-opened for this audit. No builds, tests, visual comparisons, or acceptance
+checks were run. Both exact product match and reusable-library completion remain
+incomplete.
