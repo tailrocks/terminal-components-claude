@@ -5,7 +5,7 @@
 //! Ported from PR #26 `src/core/keyboard.rs` (commit `f4867e9b5`). The
 //! frozen apps never negotiate the protocol at startup (the baseline
 //! captures contain no `CSI >` push and the boot mode check pins only
-//! 1049/1003/1006/2004), so negotiation is opt-in: [`KeyboardProtocol`]
+//! 1049/1003/1006/2004), so negotiation is opt-in: [`keyboard::KeyboardProtocol`]
 //! defaults to `Auto` detection but the session crate only pushes when an
 //! app asks for it.
 
