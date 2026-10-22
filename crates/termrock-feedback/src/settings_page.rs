@@ -3,6 +3,8 @@
 //! Positions follow the labels and the screen edges. The selected tab
 //! carries the focus gutter and the heavy underline.
 
+use std::fmt;
+
 use ratatui_core::layout::Rect;
 use ratatui_core::style::{Color, Modifier};
 
@@ -67,6 +69,194 @@ pub struct SettingsPage<'a> {
     pub cluster: Option<SettingsCluster<'a>>,
 }
 
+/// One masked environment variable row.
+#[derive(Clone, Copy, Debug)]
+#[non_exhaustive]
+pub struct SettingsEnvRow<'a> {
+    key: &'a str,
+    scope: &'a str,
+    stars: usize,
+    source: &'a str,
+    selected: bool,
+}
+
+impl<'a> SettingsEnvRow<'a> {
+    /// Create a row. `stars` is the masked value width in terminal cells.
+    pub const fn new(key: &'a str, scope: &'a str, stars: usize, source: &'a str) -> Self {
+        Self {
+            key,
+            scope,
+            stars,
+            source,
+            selected: false,
+        }
+    }
+
+    /// Set whether this row has the list selection fill.
+    pub const fn selected(mut self, selected: bool) -> Self {
+        self.selected = selected;
+        self
+    }
+}
+
+/// A titled environment group with zero or more rows.
+#[derive(Clone, Copy, Debug)]
+#[non_exhaustive]
+pub struct SettingsEnvGroup<'a> {
+    title: &'a str,
+    right: Option<&'a str>,
+    rows: &'a [SettingsEnvRow<'a>],
+    add: Option<&'a str>,
+}
+
+impl<'a> SettingsEnvGroup<'a> {
+    /// Create a group from borrowed rows.
+    pub const fn new(title: &'a str, rows: &'a [SettingsEnvRow<'a>]) -> Self {
+        Self {
+            title,
+            right: None,
+            rows,
+            add: None,
+        }
+    }
+
+    /// Add a right-aligned summary to the group heading.
+    pub const fn right(mut self, right: &'a str) -> Self {
+        self.right = Some(right);
+        self
+    }
+
+    /// Add a trailing action row after the group's variables.
+    pub const fn add(mut self, label: &'a str) -> Self {
+        self.add = Some(label);
+        self
+    }
+}
+
+/// One role-specific environment group.
+#[derive(Clone, Copy, Debug)]
+#[non_exhaustive]
+pub struct SettingsEnvRole<'a> {
+    name: &'a str,
+    right: Option<&'a str>,
+    rows: &'a [SettingsEnvRow<'a>],
+    add: Option<&'a str>,
+}
+
+impl<'a> SettingsEnvRole<'a> {
+    /// Create a role from borrowed rows.
+    pub const fn new(name: &'a str, rows: &'a [SettingsEnvRow<'a>]) -> Self {
+        Self {
+            name,
+            right: None,
+            rows,
+            add: None,
+        }
+    }
+
+    /// Add a right-aligned summary to the role heading.
+    pub const fn right(mut self, right: &'a str) -> Self {
+        self.right = Some(right);
+        self
+    }
+
+    /// Add a trailing action row after the role's variables.
+    pub const fn add(mut self, label: &'a str) -> Self {
+        self.add = Some(label);
+        self
+    }
+}
+
+/// Borrowed environment content for the shared settings painter.
+#[derive(Clone, Copy, Debug)]
+#[non_exhaustive]
+pub struct SettingsEnv<'a> {
+    groups: &'a [SettingsEnvGroup<'a>],
+    overrides: Option<SettingsEnvOverrides<'a>>,
+}
+
+#[derive(Clone, Copy, Debug)]
+struct SettingsEnvOverrides<'a> {
+    title: &'a str,
+    right: Option<&'a str>,
+    roles: &'a [SettingsEnvRole<'a>],
+    add_role: Option<&'a str>,
+}
+
+impl<'a> SettingsEnv<'a> {
+    /// Create environment content from any number of global groups.
+    pub const fn new(groups: &'a [SettingsEnvGroup<'a>]) -> Self {
+        Self {
+            groups,
+            overrides: None,
+        }
+    }
+
+    /// Add a role-overrides group with any number of roles.
+    pub const fn role_overrides(
+        mut self,
+        title: &'a str,
+        right: Option<&'a str>,
+        roles: &'a [SettingsEnvRole<'a>],
+        add_role: Option<&'a str>,
+    ) -> Self {
+        self.overrides = Some(SettingsEnvOverrides {
+            title,
+            right,
+            roles,
+            add_role,
+        });
+        self
+    }
+}
+
+/// Failure to paint all environment rows inside the supplied page area.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum SettingsEnvPaintError {
+    /// The legacy page still contains sections or mounts that would overlap the Env body.
+    LegacyBodyNotEmpty,
+    /// The page is too narrow to show the row marker and all four data columns.
+    AreaTooNarrow { minimum: u16, actual: u16 },
+    /// The page is too short for the shared header and footer.
+    AreaTooShort { minimum: u16, actual: u16 },
+    /// All content cannot fit above the action row.
+    ContentTooTall {
+        required_lines: usize,
+        available_lines: usize,
+    },
+}
+
+impl fmt::Display for SettingsEnvPaintError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::LegacyBodyNotEmpty => {
+                f.write_str("legacy settings sections and mounts must be empty")
+            }
+            Self::AreaTooNarrow { minimum, actual } => {
+                write!(f, "settings Env needs {minimum} columns, received {actual}")
+            }
+            Self::AreaTooShort { minimum, actual } => {
+                write!(f, "settings page needs {minimum} rows, received {actual}")
+            }
+            Self::ContentTooTall {
+                required_lines,
+                available_lines,
+            } => write!(
+                f,
+                "settings Env needs {required_lines} body rows, but area provides {available_lines}"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for SettingsEnvPaintError {}
+
+const SETTINGS_ENV_MIN_WIDTH: u16 = 16;
+const SETTINGS_ENV_MIN_HEIGHT: u16 = 8;
+const SETTINGS_ENV_BODY_TOP: u16 = 6;
+const SETTINGS_ACTION_OFFSET: u16 = 3;
+
 struct Ink {
     canvas: Color,
     face: Color,
@@ -83,28 +273,85 @@ pub fn paint_settings_page(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>)
     if area.width < 40 || area.height < 8 {
         return;
     }
-    let ink = {
-        let theme = ui.theme_ref();
-        Ink {
-            canvas: theme.bg(Surface::Canvas),
-            face: theme.bg(Surface::Overlay),
-            primary: step(theme, FgStep::Primary),
-            secondary: step(theme, FgStep::Secondary),
-            muted: step(theme, FgStep::Muted),
-            faint: step(theme, FgStep::Faint),
-            accent: theme.color.accent,
-            on_accent: theme.color.on_accent,
-            border: theme.color.border_strong,
-        }
-    };
-    ui.fill(area, plain(ink.primary, ink.canvas));
-    paint_header(ui, area, page, &ink);
-    let (selected_at, selected_span) = paint_tabs(ui, area, page, &ink);
-    paint_underline(ui, area, selected_at, selected_span, &ink);
+    let ink = settings_ink(ui);
+    paint_settings_frame(ui, area, page, &ink);
     paint_sections(ui, area, page, &ink);
     paint_mounts(ui, area, page, &ink);
-    paint_actions(ui, area, page, &ink);
-    paint_hints(ui, area, page, &ink);
+    paint_settings_footer(ui, area, page, &ink);
+}
+
+/// Paint an Env body with the existing page chrome.
+///
+/// `page.sections`, `page.mounts`, and `page.add_mount` must be empty. The
+/// function borrows all rows and paints every row or returns an error before
+/// drawing. Horizontal text clips to the supplied area. Content taller than
+/// the available body space is rejected; this entry point does not scroll or
+/// handle input and focus.
+pub fn paint_settings_page_with_env(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    page: &SettingsPage<'_>,
+    env: &SettingsEnv<'_>,
+) -> Result<(), SettingsEnvPaintError> {
+    if !page.sections.is_empty() || !page.mounts.is_empty() || page.add_mount.is_some() {
+        return Err(SettingsEnvPaintError::LegacyBodyNotEmpty);
+    }
+    if area.width < SETTINGS_ENV_MIN_WIDTH {
+        return Err(SettingsEnvPaintError::AreaTooNarrow {
+            minimum: SETTINGS_ENV_MIN_WIDTH,
+            actual: area.width,
+        });
+    }
+    if area.height < SETTINGS_ENV_MIN_HEIGHT {
+        return Err(SettingsEnvPaintError::AreaTooShort {
+            minimum: SETTINGS_ENV_MIN_HEIGHT,
+            actual: area.height,
+        });
+    }
+    let required_lines = settings_env_required_lines(env);
+    let available_lines = usize::from(
+        area.height
+            .saturating_sub(SETTINGS_ENV_BODY_TOP.saturating_add(SETTINGS_ACTION_OFFSET)),
+    );
+    if required_lines > available_lines {
+        return Err(SettingsEnvPaintError::ContentTooTall {
+            required_lines,
+            available_lines,
+        });
+    }
+
+    let ink = settings_ink(ui);
+    paint_settings_frame(ui, area, page, &ink);
+    paint_settings_env(ui, area, env, &ink);
+    paint_settings_footer(ui, area, page, &ink);
+    Ok(())
+}
+
+fn settings_ink(ui: &Ui<'_>) -> Ink {
+    let theme = ui.theme_ref();
+    Ink {
+        canvas: theme.bg(Surface::Canvas),
+        face: theme.bg(Surface::Overlay),
+        primary: step(theme, FgStep::Primary),
+        secondary: step(theme, FgStep::Secondary),
+        muted: step(theme, FgStep::Muted),
+        faint: step(theme, FgStep::Faint),
+        accent: theme.color.accent,
+        on_accent: theme.color.on_accent,
+        border: theme.color.border_strong,
+    }
+}
+
+fn paint_settings_frame(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>, ink: &Ink) {
+    ui.fill(area, plain(ink.primary, ink.canvas));
+    paint_header(ui, area, page, ink);
+    let (selected_at, selected_span) = paint_tabs(ui, area, page, ink);
+    paint_underline(ui, area, selected_at, selected_span, ink);
+}
+
+fn paint_settings_footer(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>, ink: &Ink) {
+    paint_actions(ui, area, page, ink);
+    paint_hints(ui, area, page, ink);
 }
 
 fn step(theme: &crate::theme::Theme, which: FgStep) -> Color {
@@ -128,8 +375,18 @@ fn bold(fg: Color, bg: Color) -> PaintStyle {
 }
 
 fn put(ui: &mut Ui<'_>, area: Rect, x: u16, y: u16, text: &str, style: PaintStyle) {
+    let x = x.max(area.x);
     let room = area.right().saturating_sub(x);
-    if room == 0 || y >= area.bottom() || text.is_empty() {
+    if room == 0 || y < area.y || y >= area.bottom() || text.is_empty() {
+        return;
+    }
+    ui.paint_str(Rect::new(x, y, room, 1), text, style);
+}
+
+fn put_cols(ui: &mut Ui<'_>, area: Rect, x: u16, y: u16, text: &str, cols: u16, style: PaintStyle) {
+    let x = x.max(area.x);
+    let room = area.right().saturating_sub(x).min(cols);
+    if room == 0 || y < area.y || y >= area.bottom() || text.is_empty() {
         return;
     }
     ui.paint_str(Rect::new(x, y, room, 1), text, style);
@@ -137,25 +394,51 @@ fn put(ui: &mut Ui<'_>, area: Rect, x: u16, y: u16, text: &str, style: PaintStyl
 
 fn paint_header(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>, ink: &Ink) {
     let y = area.y;
-    let brand = format!(" {} ", page.brand);
     put(
         ui,
         area,
         area.x.saturating_add(1),
         y,
-        &brand,
+        " ",
+        bold(ink.on_accent, ink.accent),
+    );
+    let brand_width = width(page.brand);
+    put(
+        ui,
+        area,
+        area.x.saturating_add(2),
+        y,
+        page.brand,
+        bold(ink.on_accent, ink.accent),
+    );
+    put(
+        ui,
+        area,
+        area.x.saturating_add(2).saturating_add(brand_width),
+        y,
+        " ",
         bold(ink.on_accent, ink.accent),
     );
     let mut x = area
         .x
         .saturating_add(1)
-        .saturating_add(width(&brand))
+        .saturating_add(brand_width)
+        .saturating_add(2)
         .saturating_add(2);
     let menu = plain(ink.secondary, ink.canvas);
     for label in page.menus {
-        let text = format!(" {label} ");
-        put(ui, area, x, y, &text, menu);
-        x = x.saturating_add(width(&text)).saturating_add(1);
+        let label_width = width(label);
+        put(ui, area, x, y, " ", menu);
+        put(ui, area, x.saturating_add(1), y, label, menu);
+        put(
+            ui,
+            area,
+            x.saturating_add(1).saturating_add(label_width),
+            y,
+            " ",
+            menu,
+        );
+        x = x.saturating_add(label_width).saturating_add(3);
     }
     let secondary = plain(ink.secondary, ink.canvas);
     if let Some(cluster) = page.cluster {
@@ -215,30 +498,38 @@ fn paint_tabs(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>, ink: &Ink) -
     let mut selected_span = 0;
     for tab in page.tabs {
         let span = tab_span(tab.label);
-        let idle = format!(" {}  ", tab.label);
         if tab.selected {
             selected_at = x;
             selected_span = span;
             let face = bold(ink.primary, ink.face);
             if x == origin {
                 put(ui, area, x, y, "▎", bold(ink.accent, ink.face));
+                put(ui, area, x.saturating_add(1), y, tab.label, face);
                 put(
                     ui,
                     area,
-                    x.saturating_add(1),
+                    x.saturating_add(1).saturating_add(width(tab.label)),
                     y,
-                    &format!("{}  ", tab.label),
+                    "  ",
                     face,
                 );
             } else {
-                put(ui, area, x, y, &idle, face);
+                paint_tab_label(ui, area, x, y, tab.label, face);
             }
         } else {
-            put(ui, area, x, y, &idle, plain(ink.secondary, ink.canvas));
+            paint_tab_label(ui, area, x, y, tab.label, plain(ink.secondary, ink.canvas));
         }
         x = x.saturating_add(span).saturating_add(1);
     }
     (selected_at, selected_span)
+}
+
+fn paint_tab_label(ui: &mut Ui<'_>, area: Rect, x: u16, y: u16, label: &str, style: PaintStyle) {
+    put(ui, area, x, y, " ", style);
+    let label_x = x.saturating_add(1);
+    put(ui, area, label_x, y, label, style);
+    let trailing_x = label_x.saturating_add(width(label));
+    put(ui, area, trailing_x, y, "  ", style);
 }
 
 fn paint_underline(ui: &mut Ui<'_>, area: Rect, selected_at: u16, selected_span: u16, ink: &Ink) {
@@ -687,9 +978,9 @@ fn paint_mount_row(
 
 fn paint_actions(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>, ink: &Ink) {
     let y = area.bottom().saturating_sub(3);
-    let save = format!("{} ", page.save);
-    let cancel = format!("{} ", page.cancel);
-    let save_x = area.right().saturating_sub(5).saturating_sub(width(&save));
+    let save_width = width(page.save).saturating_add(1);
+    let cancel_width = width(page.cancel).saturating_add(1);
+    let save_x = area.right().saturating_sub(5).saturating_sub(save_width);
     let save_ink = if page.save_enabled {
         ink.primary
     } else {
@@ -703,8 +994,16 @@ fn paint_actions(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>, ink: &Ink
         " ",
         plain(ink.face, ink.face),
     );
-    put(ui, area, save_x, y, &save, plain(save_ink, ink.face));
-    let cancel_x = save_x.saturating_sub(4).saturating_sub(width(&cancel));
+    put(ui, area, save_x, y, page.save, plain(save_ink, ink.face));
+    put(
+        ui,
+        area,
+        save_x.saturating_add(width(page.save)),
+        y,
+        " ",
+        plain(save_ink, ink.face),
+    );
+    let cancel_x = save_x.saturating_sub(4).saturating_sub(cancel_width);
     put(
         ui,
         area,
@@ -718,7 +1017,15 @@ fn paint_actions(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>, ink: &Ink
         area,
         cancel_x,
         y,
-        &cancel,
+        page.cancel,
+        plain(ink.secondary, ink.canvas),
+    );
+    put(
+        ui,
+        area,
+        cancel_x.saturating_add(width(page.cancel)),
+        y,
+        " ",
         plain(ink.secondary, ink.canvas),
     );
 }
@@ -736,5 +1043,607 @@ fn paint_hints(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>, ink: &Ink) 
     }
     if let Some(mark) = page.hint_overflow {
         put(ui, area, x, y, mark, plain(ink.faint, ink.canvas));
+    }
+}
+
+fn settings_env_required_lines(env: &SettingsEnv<'_>) -> usize {
+    let mut lines = 0_usize;
+    for (index, group) in env.groups.iter().enumerate() {
+        if index > 0 {
+            lines = lines.saturating_add(1);
+        }
+        lines = lines.saturating_add(1).saturating_add(group.rows.len());
+        if group.add.is_some() {
+            lines = lines.saturating_add(1);
+        }
+    }
+    if let Some(overrides) = env.overrides {
+        if !env.groups.is_empty() {
+            lines = lines.saturating_add(1);
+        }
+        lines = lines.saturating_add(1);
+        for (index, role) in overrides.roles.iter().enumerate() {
+            if index > 0 {
+                lines = lines.saturating_add(1);
+            }
+            lines = lines.saturating_add(1).saturating_add(role.rows.len());
+            if role.add.is_some() {
+                lines = lines.saturating_add(1);
+            }
+        }
+        if overrides.add_role.is_some() {
+            lines = lines.saturating_add(1);
+        }
+    }
+    lines
+}
+
+fn paint_settings_env(ui: &mut Ui<'_>, area: Rect, env: &SettingsEnv<'_>, ink: &Ink) {
+    let mut y = area.y.saturating_add(SETTINGS_ENV_BODY_TOP);
+    for (index, group) in env.groups.iter().enumerate() {
+        if index > 0 {
+            y = y.saturating_add(1);
+        }
+        paint_env_heading(
+            ui,
+            area,
+            y,
+            area.x.saturating_add(4),
+            group.title,
+            group.right,
+            ink,
+        );
+        y = y.saturating_add(1);
+        for row in group.rows {
+            paint_env_row(ui, area, y, row, ink);
+            y = y.saturating_add(1);
+        }
+        if let Some(add) = group.add {
+            paint_env_add(ui, area, y, add, ink);
+            y = y.saturating_add(1);
+        }
+    }
+    if let Some(overrides) = env.overrides {
+        if !env.groups.is_empty() {
+            y = y.saturating_add(1);
+        }
+        paint_env_heading(
+            ui,
+            area,
+            y,
+            area.x.saturating_add(4),
+            overrides.title,
+            overrides.right,
+            ink,
+        );
+        y = y.saturating_add(1);
+        for (index, role) in overrides.roles.iter().enumerate() {
+            if index > 0 {
+                y = y.saturating_add(1);
+            }
+            put_cols(
+                ui,
+                area,
+                area.x.saturating_add(4),
+                y,
+                "▾",
+                1,
+                plain(ink.secondary, ink.canvas),
+            );
+            paint_env_heading(
+                ui,
+                area,
+                y,
+                area.x.saturating_add(6),
+                role.name,
+                role.right,
+                ink,
+            );
+            y = y.saturating_add(1);
+            for row in role.rows {
+                paint_env_row(ui, area, y, row, ink);
+                y = y.saturating_add(1);
+            }
+            if let Some(add) = role.add {
+                paint_env_add(ui, area, y, add, ink);
+                y = y.saturating_add(1);
+            }
+        }
+        if let Some(add) = overrides.add_role {
+            paint_env_add(ui, area, y, add, ink);
+        }
+    }
+}
+
+fn paint_env_heading(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    y: u16,
+    x: u16,
+    title: &str,
+    right: Option<&str>,
+    ink: &Ink,
+) {
+    let end = area.right().saturating_sub(2);
+    let available = end.saturating_sub(x);
+    let right_cols = right
+        .filter(|text| !text.is_empty())
+        .map_or(0, |text| width(text).min(available / 2));
+    let gap = if right_cols > 0 { 1 } else { 0 };
+    let title_cols = available.saturating_sub(right_cols).saturating_sub(gap);
+    put_cols(
+        ui,
+        area,
+        x,
+        y,
+        title,
+        title_cols,
+        bold(ink.secondary, ink.canvas),
+    );
+    if right_cols > 0 {
+        put_cols(
+            ui,
+            area,
+            end.saturating_sub(right_cols),
+            y,
+            right.unwrap_or(""),
+            right_cols,
+            plain(ink.faint, ink.canvas),
+        );
+    }
+}
+
+struct SettingsEnvColumns {
+    key: u16,
+    scope: u16,
+    stars: u16,
+    source: u16,
+}
+
+fn settings_env_columns(area: Rect) -> SettingsEnvColumns {
+    let content_start = area.x.saturating_add(4);
+    let content_end = area.right().saturating_sub(2);
+    let field_budget = content_end.saturating_sub(content_start).saturating_sub(3);
+    let key = scaled_env_column(field_budget, 20, 20);
+    let scope = scaled_env_column(field_budget, 14, 14);
+    let stars = scaled_env_column(field_budget, 22, 22);
+    let source = field_budget.saturating_sub(key.saturating_add(scope).saturating_add(stars));
+    SettingsEnvColumns {
+        key,
+        scope,
+        stars,
+        source,
+    }
+}
+
+fn scaled_env_column(total: u16, weight: u32, maximum: u16) -> u16 {
+    let weighted = u32::from(total).saturating_mul(weight) / 105;
+    u16::try_from(weighted)
+        .unwrap_or(u16::MAX)
+        .min(maximum)
+        .max(1)
+}
+
+fn paint_env_row(ui: &mut Ui<'_>, area: Rect, y: u16, row: &SettingsEnvRow<'_>, ink: &Ink) {
+    let gutter_x = area.x.saturating_add(2);
+    let text_x = area.x.saturating_add(4);
+    let selected = row.selected;
+    let selected_bg = if selected { SELECT_BG } else { ink.canvas };
+    if selected {
+        ui.fill(
+            Rect::new(gutter_x, y, area.width.saturating_sub(4), 1),
+            bold(ink.primary, SELECT_BG),
+        );
+        put_cols(ui, area, gutter_x, y, "▎›", 2, bold(ink.accent, SELECT_BG));
+    } else {
+        put_cols(ui, area, gutter_x, y, " ", 1, plain(ink.canvas, ink.canvas));
+        put_cols(
+            ui,
+            area,
+            gutter_x.saturating_add(1),
+            y,
+            " ",
+            1,
+            plain(ink.secondary, ink.canvas),
+        );
+    }
+
+    let columns = settings_env_columns(area);
+    let key_style = if selected {
+        bold(ink.primary, selected_bg)
+    } else {
+        plain(ink.primary, selected_bg)
+    };
+    let scope_style = if selected {
+        bold(ink.muted, selected_bg)
+    } else {
+        plain(ink.muted, selected_bg)
+    };
+    let stars_style = if selected {
+        bold(ink.secondary, selected_bg)
+    } else {
+        plain(ink.secondary, selected_bg)
+    };
+    let source_style = if selected {
+        bold(ink.faint, selected_bg)
+    } else {
+        plain(ink.faint, selected_bg)
+    };
+
+    let mut x = text_x;
+    put_cols(ui, area, x, y, row.key, columns.key, key_style);
+    x = x.saturating_add(columns.key).saturating_add(1);
+    put_cols(ui, area, x, y, row.scope, columns.scope, scope_style);
+    x = x.saturating_add(columns.scope).saturating_add(1);
+    paint_env_stars(ui, area, x, y, row.stars, columns.stars, stars_style);
+    x = x.saturating_add(columns.stars).saturating_add(1);
+    put_cols(ui, area, x, y, row.source, columns.source, source_style);
+}
+
+fn paint_env_stars(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    x: u16,
+    y: u16,
+    stars: usize,
+    columns: u16,
+    style: PaintStyle,
+) {
+    const STAR_CHUNK: &str = "********************************";
+
+    let visible = area.right().saturating_sub(x).min(columns);
+    let mut remaining = stars.min(usize::from(visible));
+    let mut column = x;
+    while remaining > 0 {
+        let count = remaining.min(STAR_CHUNK.len());
+        let text = &STAR_CHUNK[..count];
+        let width = u16::try_from(count).unwrap_or(u16::MAX);
+        put_cols(ui, area, column, y, text, width, style);
+        column = column.saturating_add(width);
+        remaining -= count;
+    }
+}
+
+fn paint_env_add(ui: &mut Ui<'_>, area: Rect, y: u16, label: &str, ink: &Ink) {
+    put_cols(
+        ui,
+        area,
+        area.x.saturating_add(2),
+        y,
+        " ",
+        1,
+        plain(ink.canvas, ink.canvas),
+    );
+    put_cols(
+        ui,
+        area,
+        area.x.saturating_add(4),
+        y,
+        label,
+        area.right()
+            .saturating_sub(2)
+            .saturating_sub(area.x.saturating_add(4)),
+        plain(ink.secondary, ink.canvas),
+    );
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ratatui_core::layout::Position;
+    use termrock::{ColorLevel, Theme};
+    use termrock_test_support::Scene;
+
+    fn legacy_page<'a>(
+        sections: &'a [SettingsSection<'a>],
+        mounts: &'a [SettingsMount<'a>],
+        add_mount: Option<&'a str>,
+    ) -> SettingsPage<'a> {
+        SettingsPage {
+            brand: "Settings",
+            menus: &[],
+            crumb: "Settings › global",
+            tabs: &[],
+            sections,
+            cancel: "Cancel",
+            save: "Save",
+            save_enabled: true,
+            hints: &[],
+            hint_overflow: None,
+            mounts,
+            add_mount,
+            cluster: None,
+        }
+    }
+
+    #[test]
+    fn legacy_page_literal_still_paints_general_and_mount_content() {
+        let checks = [SettingsCheck {
+            label: "Use cache",
+            checked: true,
+        }];
+        let sections = [SettingsSection {
+            title: "General",
+            checks: &checks,
+            note: None,
+            body: None,
+        }];
+        let page = legacy_page(&sections, &[], None);
+        let mut general = Scene::new(
+            "settings_general_legacy_api",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            80,
+            24,
+        );
+        general.draw(|ui, area| paint_settings_page(ui, area, &page));
+        assert!(general.text().contains("Settings › global"));
+        assert!(general.text().contains("General"));
+        assert!(general.text().contains("Use cache"));
+
+        let mounts = [SettingsMount {
+            path: "/workspace",
+            scope: "global",
+            mode: "read-write",
+            isolation: "host",
+            kind: None,
+            source: None,
+            selected: true,
+        }];
+        let page = legacy_page(&[], &mounts, Some("Add mount"));
+        let mut mount_scene = Scene::new(
+            "settings_mounts_legacy_api",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            120,
+            40,
+        );
+        mount_scene.draw(|ui, area| paint_settings_page(ui, area, &page));
+        assert!(mount_scene.text().contains("Destination"));
+        assert!(mount_scene.text().contains("/workspace"));
+        assert!(mount_scene.text().contains("Add mount"));
+    }
+
+    #[test]
+    fn env_content_renders_variable_groups_roles_and_every_row() {
+        let global_rows = [
+            SettingsEnvRow::new("GH_TOKEN", "global", 8, "credential store").selected(true),
+            SettingsEnvRow::new("APP_HOME", "global", 0, "shell"),
+        ];
+        let project_rows: [SettingsEnvRow<'_>; 0] = [];
+        let groups = [
+            SettingsEnvGroup::new("Global", &global_rows)
+                .right("2 variables")
+                .add("Add global variable"),
+            SettingsEnvGroup::new("Project", &project_rows).right("0 variables"),
+        ];
+        let build_rows = [
+            SettingsEnvRow::new("BUILD_TOKEN", "role", 5, "credential store"),
+            SettingsEnvRow::new("WORKDIR", "role", 0, "inherited"),
+        ];
+        let deploy_rows = [SettingsEnvRow::new("DEPLOY_KEY", "role", 4, "keychain")];
+        let roles = [
+            SettingsEnvRole::new("builder", &build_rows)
+                .right("2 variables")
+                .add("Add role variable"),
+            SettingsEnvRole::new("deployer", &deploy_rows).right("1 variable"),
+        ];
+        let env = SettingsEnv::new(&groups).role_overrides(
+            "Role overrides",
+            Some("2 roles"),
+            &roles,
+            Some("Add role"),
+        );
+        let page = legacy_page(&[], &[], None);
+        let mut scene = Scene::new(
+            "settings_env_content",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            100,
+            34,
+        );
+        scene.draw(|ui, area| {
+            assert_eq!(paint_settings_page_with_env(ui, area, &page, &env), Ok(()));
+        });
+        let text = scene.text();
+        for expected in [
+            "Global",
+            "Project",
+            "GH_TOKEN",
+            "APP_HOME",
+            "Add global variable",
+            "Role overrides",
+            "builder",
+            "deployer",
+            "BUILD_TOKEN",
+            "WORKDIR",
+            "DEPLOY_KEY",
+            "Add role variable",
+            "Add role",
+        ] {
+            assert!(
+                text.contains(expected),
+                "missing {expected:?} from Env page"
+            );
+        }
+    }
+
+    #[test]
+    fn env_content_clips_unicode_and_masked_values_to_offset_area() {
+        let rows = [SettingsEnvRow::new(
+            "非常に長い認証トークン",
+            "共有スコープ",
+            usize::MAX,
+            "credential source tail must be clipped",
+        )];
+        let groups = [
+            SettingsEnvGroup::new("長い環境グループの見出し", &rows).right("右側の長い件数メモ")
+        ];
+        let env = SettingsEnv::new(&groups);
+        let mut page = legacy_page(&[], &[], None);
+        page.crumb = "An intentionally long Unicode settings breadcrumb";
+        page.cancel = "Cancel with a deliberately long label";
+        page.save = "Save with a deliberately long label";
+        let area = Rect::new(9, 3, 24, 26);
+        let mut scene = Scene::new(
+            "settings_env_clip",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            48,
+            36,
+        );
+        scene.draw_over(
+            |buffer| {
+                for pos in buffer.area().positions() {
+                    if let Some(cell) = buffer.cell_mut(pos) {
+                        cell.set_symbol("!");
+                    }
+                }
+            },
+            |ui, _| {
+                assert_eq!(paint_settings_page_with_env(ui, area, &page, &env), Ok(()));
+            },
+        );
+        let text = scene.text();
+        assert!(text.contains("非"));
+        assert!(text.contains("***"));
+        assert!(!text.contains("tail must be clipped"));
+        assert_ne!(
+            scene
+                .buffer()
+                .cell((area.x, area.y))
+                .map(|cell| cell.symbol()),
+            Some("!")
+        );
+        for pos in scene.area().positions() {
+            if !area.contains(Position::new(pos.x, pos.y)) {
+                assert_eq!(
+                    scene.buffer().cell(pos).map(|cell| cell.symbol()),
+                    Some("!"),
+                    "paint escaped supplied area at ({}, {})",
+                    pos.x,
+                    pos.y,
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn env_style_uses_theme_channels_for_selected_fields() {
+        let rows = [
+            SettingsEnvRow::new("TOKEN", "global", 3, "vault").selected(true),
+            SettingsEnvRow::new("OTHER", "shell", 1, "inherited"),
+        ];
+        let groups = [SettingsEnvGroup::new("Global", &rows).right("2 variables")];
+        let env = SettingsEnv::new(&groups);
+        let page = legacy_page(&[], &[], None);
+        let area = Rect::new(0, 0, 80, 20);
+        for theme in [Theme::junie(), Theme::paper()] {
+            let mut scene = Scene::new(
+                "settings_env_styles",
+                theme.clone(),
+                ColorLevel::TrueColor,
+                80,
+                20,
+            );
+            scene.draw(|ui, _| {
+                assert_eq!(paint_settings_page_with_env(ui, area, &page, &env), Ok(()));
+            });
+            let columns = settings_env_columns(area);
+            let scope_x = 4_u16.saturating_add(columns.key).saturating_add(1);
+            let stars_x = scope_x.saturating_add(columns.scope).saturating_add(1);
+            let source_x = stars_x.saturating_add(columns.stars).saturating_add(1);
+            assert_eq!(
+                scene.buffer().cell((2, 7)).map(|cell| cell.fg),
+                Some(theme.color.accent)
+            );
+            assert_eq!(
+                scene.buffer().cell((4, 7)).map(|cell| (cell.fg, cell.bg)),
+                Some((step(&theme, FgStep::Primary), SELECT_BG))
+            );
+            assert_eq!(
+                scene.buffer().cell((scope_x, 7)).map(|cell| cell.fg),
+                Some(step(&theme, FgStep::Muted))
+            );
+            assert_eq!(
+                scene.buffer().cell((stars_x, 7)).map(|cell| cell.fg),
+                Some(step(&theme, FgStep::Secondary))
+            );
+            assert_eq!(
+                scene.buffer().cell((source_x, 7)).map(|cell| cell.fg),
+                Some(step(&theme, FgStep::Faint))
+            );
+            assert_eq!(
+                scene.buffer().cell((4, 6)).map(|cell| cell.fg),
+                Some(step(&theme, FgStep::Secondary))
+            );
+        }
+    }
+
+    #[test]
+    fn env_layout_rejects_overflow_and_invalid_areas_before_painting() {
+        let rows = [
+            SettingsEnvRow::new("ONE", "global", 1, "shell"),
+            SettingsEnvRow::new("TWO", "global", 1, "shell"),
+            SettingsEnvRow::new("THREE", "global", 1, "shell"),
+            SettingsEnvRow::new("FOUR", "global", 1, "shell"),
+            SettingsEnvRow::new("FIVE", "global", 1, "shell"),
+            SettingsEnvRow::new("SIX", "global", 1, "shell"),
+            SettingsEnvRow::new("SEVEN", "global", 1, "shell"),
+        ];
+        let groups = [SettingsEnvGroup::new("Global", &rows)];
+        let env = SettingsEnv::new(&groups);
+        let page = legacy_page(&[], &[], None);
+        let area = Rect::new(0, 0, 32, 16);
+        let mut scene = Scene::new(
+            "settings_env_overflow",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            32,
+            16,
+        );
+        scene.draw_over(
+            |buffer| {
+                for pos in buffer.area().positions() {
+                    if let Some(cell) = buffer.cell_mut(pos) {
+                        cell.set_symbol("!");
+                    }
+                }
+            },
+            |ui, _| {
+                assert_eq!(
+                    paint_settings_page_with_env(ui, area, &page, &env),
+                    Err(SettingsEnvPaintError::ContentTooTall {
+                        required_lines: 8,
+                        available_lines: 7,
+                    })
+                );
+            },
+        );
+        assert!(
+            scene
+                .buffer()
+                .content
+                .iter()
+                .all(|cell| cell.symbol() == "!")
+        );
+
+        let mut narrow = Scene::new(
+            "settings_env_too_narrow",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            15,
+            16,
+        );
+        narrow.draw(|ui, _| {
+            assert_eq!(
+                paint_settings_page_with_env(ui, Rect::new(0, 0, 15, 16), &page, &env),
+                Err(SettingsEnvPaintError::AreaTooNarrow {
+                    minimum: SETTINGS_ENV_MIN_WIDTH,
+                    actual: 15,
+                })
+            );
+        });
+        assert!(narrow.text().is_empty() || narrow.text().trim().is_empty());
     }
 }
