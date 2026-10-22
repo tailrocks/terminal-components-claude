@@ -54,6 +54,14 @@ fn main() {
         ),
         check("isolation::env_isolation", isolation::env_isolation),
         check(
+            "isolation::client_platform_override_child",
+            isolation::client_platform_override_child,
+        ),
+        check(
+            "isolation::invalid_platform_override_keeps_host_fallback",
+            isolation::invalid_platform_override_keeps_host_fallback,
+        ),
+        check(
             "support::clear_actual_leaves_nothing",
             support::clear_actual_leaves_nothing,
         ),
