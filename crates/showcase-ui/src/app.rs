@@ -12,11 +12,12 @@ use showcase_demos::pages::forms::SUBMIT as FORM_SUBMIT;
 use showcase_demos::pages::taskrunner::RUN_COMMAND;
 use showcase_demos::pages::{
     Page, PageStatus, buttons::ButtonsPage, celleditors::CellEditorsPage, chips::ChipsPage,
-    chrome::ChromePage, dialogs::DialogsPage, editable::EditablePage, editor::EditorPage,
-    forms::FormsPage, grid::GridPage, inputs::InputsPage, lists::ListsPage, overview::OverviewPage,
-    panels::PanelsPage, pickers::PickersPage, progress::ProgressPage, scrolling::ScrollingPage,
-    settings::SettingsPage, sidebars::SidebarsPage, tables::TablesPage, taskrunner::TaskRunnerPage,
-    terminal::TerminalPage, textareas::TextAreasPage, trees::TreesPage,
+    chrome::ChromePage, dialog_kinds::DialogKindsPage, dialogs::DialogsPage,
+    editable::EditablePage, editor::EditorPage, forms::FormsPage, grid::GridPage,
+    inputs::InputsPage, lists::ListsPage, overview::OverviewPage, panels::PanelsPage,
+    pickers::PickersPage, progress::ProgressPage, scrolling::ScrollingPage, settings::SettingsPage,
+    sidebars::SidebarsPage, tables::TablesPage, taskrunner::TaskRunnerPage, terminal::TerminalPage,
+    textareas::TextAreasPage, trees::TreesPage,
 };
 
 const NAV: Id = id!("navigation");
@@ -70,6 +71,7 @@ pub enum PageId {
     Grid,
     Chips,
     Pickers,
+    DialogKinds,
     Chrome,
     Settings,
     TaskRunner,
@@ -77,7 +79,7 @@ pub enum PageId {
 }
 
 impl PageId {
-    pub const ALL: [Self; 23] = [
+    pub const ALL: [Self; 24] = [
         Self::Overview,
         Self::Buttons,
         Self::Inputs,
@@ -97,6 +99,7 @@ impl PageId {
         Self::Grid,
         Self::Chips,
         Self::Pickers,
+        Self::DialogKinds,
         Self::Chrome,
         Self::Settings,
         Self::TaskRunner,
@@ -124,6 +127,7 @@ impl PageId {
             Self::Grid => "Data grid",
             Self::Chips => "Chips & selects",
             Self::Pickers => "Pickers",
+            Self::DialogKinds => "Dialog kinds",
             Self::Chrome => "Chrome",
             Self::Settings => "Settings",
             Self::TaskRunner => "Task runner",
@@ -152,6 +156,7 @@ impl PageId {
             Self::Grid => "grid",
             Self::Chips => "chips",
             Self::Pickers => "pickers",
+            Self::DialogKinds => "dialog-kinds",
             Self::Chrome => "chrome",
             Self::Settings => "settings",
             Self::TaskRunner => "taskrunner",
@@ -355,7 +360,7 @@ pub const NAV_ENTRIES: &[NavEntry] = &[
         icon: "•",
     },
     NavEntry {
-        id: PageId::Overview,
+        id: PageId::DialogKinds,
         label: "Dialog kinds",
         section: "Overlays",
         icon: "•",
@@ -739,6 +744,7 @@ fn page(kind: PageId) -> Box<dyn Page> {
         PageId::Grid => Box::new(GridPage::new()),
         PageId::Chips => Box::new(ChipsPage::new()),
         PageId::Pickers => Box::new(PickersPage::new()),
+        PageId::DialogKinds => Box::new(DialogKindsPage::new()),
         PageId::Chrome => Box::new(ChromePage::new()),
         PageId::Settings => Box::new(SettingsPage::new()),
         PageId::TaskRunner => Box::new(TaskRunnerPage::new()),
