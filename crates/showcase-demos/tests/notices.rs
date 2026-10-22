@@ -1,13 +1,20 @@
 use showcase_demos::pages::{Page, notices::NoticesPage};
 use termrock::{
-    App, Axis, Cx, FgStep, Id, ItemKey, KeyCode, Modifier, Part, PartRef, Response, Theme, Ui,
+    App, Axis, Color, Cx, FgStep, Id, ItemKey, KeyCode, Modifier, Part, PartRef, Rect, Response,
+    Theme, Ui,
 };
 use termrock_test_support::Harness;
 
 const PAGE_TABS: Id = Id::root("showcase_ui::pages::notices.page_tabs");
 const PLAY_SCROLL: Id = Id::root("showcase_ui::pages::notices.play_scroll");
 const INLINE_PANEL: Id = Id::root("showcase_ui::pages::notices.inline_panel");
+const CONNECTION_PANEL: Id = Id::root("showcase_ui::pages::notices.connection_panel");
+const QUERY_PANEL: Id = Id::root("showcase_ui::pages::notices.query_panel");
+const STATES_DETAIL_PANEL: Id = Id::root("showcase_ui::pages::notices.states_detail_panel");
+const STATES_HINT_PANEL: Id = Id::root("showcase_ui::pages::notices.states_hint_panel");
 const TEST_CONNECTION: Id = Id::root("showcase_ui::pages::notices.test_connection");
+const OPTIONS_SCROLL: Id = Id::root("showcase_ui::pages::notices.options_scroll");
+const STATES_SCROLL: Id = Id::root("showcase_ui::pages::notices.states_scroll");
 const KIND: Id = Id::root("showcase_ui::pages::notices.option.kind");
 const DETAIL_LINES: Id = Id::root("showcase_ui::pages::notices.option.detail_lines");
 const MESSAGE_LINES: Id = Id::root("showcase_ui::pages::notices.option.message_lines");
@@ -21,6 +28,11 @@ struct PageHost {
     page: NoticesPage,
 }
 
+struct PageAreaHost {
+    page: NoticesPage,
+    area: Rect,
+}
+
 impl App for PageHost {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         self.page.update(cx).response
@@ -28,6 +40,16 @@ impl App for PageHost {
 
     fn draw(&self, ui: &mut Ui<'_>) {
         self.page.draw(ui, ui.full());
+    }
+}
+
+impl App for PageAreaHost {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        self.page.update(cx).response
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        self.page.draw(ui, self.area);
     }
 }
 
@@ -40,6 +62,29 @@ fn host(width: u16, height: u16) -> Harness<PageHost> {
         width,
         height,
     )
+}
+
+fn area_host(area: Rect) -> Harness<PageAreaHost> {
+    Harness::new(
+        PageAreaHost {
+            page: NoticesPage::new(),
+            area,
+        },
+        Theme::junie(),
+        64,
+        16,
+    )
+}
+
+fn section_area_host(section: usize, area: Rect) -> Harness<PageAreaHost> {
+    let mut h = area_host(Rect::new(0, 0, 64, 16));
+    assert!(h.tab_to(PAGE_TABS));
+    for _ in 0..section {
+        let _ = h.key(KeyCode::Right);
+    }
+    h.app_mut().area = area;
+    h.draw();
+    h
 }
 
 fn page_debug(h: &Harness<PageHost>) -> String {
@@ -350,6 +395,178 @@ fn inert_state_specimens_do_not_register_live_page_controls() {
             "reference specimens stay inert: {id:?}"
         );
     }
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn error_and_overflow_specimens_show_their_named_notice_states() {
+    let mut h = host(120, 60);
+    assert!(h.tab_to(PAGE_TABS));
+    let _ = h.key(KeyCode::Right);
+    let _ = h.key(KeyCode::Right);
+
+    let error_message = "Authentication failed while checking";
+    let detail_error = h
+        .find(error_message)
+        .expect("the detail column has a literal Error specimen");
+    assert_eq!(
+        h.cell(detail_error.0.saturating_sub(2), detail_error.1)
+            .symbol(),
+        "!",
+        "the detail Error specimen uses the Error marker"
+    );
+    assert_eq!(
+        h.cell(detail_error.0.saturating_sub(2), detail_error.1).fg,
+        Theme::junie().color.danger
+    );
+
+    let hint_error = "Replica connection failed while checking";
+    let hint_position = h
+        .find(hint_error)
+        .expect("the hint column has its own literal Error specimen");
+    assert_eq!(
+        h.cell(hint_position.0.saturating_sub(2), hint_position.1)
+            .symbol(),
+        "!"
+    );
+    assert_eq!(
+        h.cell(hint_position.0.saturating_sub(2), hint_position.1)
+            .fg,
+        Theme::junie().color.danger
+    );
+
+    let overflow_labels = (0..h.buffer().area().height)
+        .filter(|row| h.row(*row).contains("Overflow"))
+        .collect::<Vec<_>>();
+    assert_eq!(overflow_labels.len(), 2, "each column has one Overflow row");
+    for label_row in overflow_labels {
+        assert!(
+            (label_row..label_row.saturating_add(3).min(h.buffer().area().height))
+                .any(|row| h.row(row).contains('…')),
+            "the Overflow specimen visibly truncates near row {label_row}\n{}",
+            h.text()
+        );
+    }
+
+    assert!(h.tab_to(PAGE_TABS));
+    let _ = h.key(KeyCode::Left);
+    assert!(h.tab_to(MARK_CUT));
+    let _ = h.key(KeyCode::Char(' '));
+    assert!(h.tab_to(PAGE_TABS));
+    let _ = h.key(KeyCode::Right);
+    let _ = h.key(KeyCode::Right);
+    assert!(
+        (0..h.buffer().area().height).all(|row| !h.row(row).contains('…')),
+        "hiding the cut marker does not leave an ellipsis in the actual specimens\n{}",
+        h.text()
+    );
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn states_specimens_fit_their_exact_narrow_render_width() {
+    let mut h = host(80, 48);
+    assert!(h.tab_to(PAGE_TABS));
+    let _ = h.key(KeyCode::Right);
+    let _ = h.key(KeyCode::Right);
+
+    let text = h.text();
+    for specimen in [
+        "Rest",
+        "Authentication failed while checking",
+        "Overflow",
+        "Detail narrow",
+        "tail remains",
+        "Narrow specimen",
+        "Replica connection failed while checking the configured",
+        "Hint narrow tail",
+        "Connection test",
+    ] {
+        assert!(
+            text.contains(specimen),
+            "the narrow rendered sample is not fully painted; missing {specimen}\n{text}"
+        );
+    }
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn page_area_bounds_paint_and_control_registration_at_offset_and_tiny_sizes() {
+    let requested = [
+        Rect::new(7, 3, 0, 4),
+        Rect::new(7, 3, 4, 0),
+        Rect::new(7, 3, 1, 1),
+        Rect::new(7, 3, 2, 2),
+        Rect::new(7, 3, 40, 1),
+        Rect::new(7, 3, 40, 2),
+        Rect::new(7, 3, 40, 8),
+    ];
+
+    for section in 0..3 {
+        for area in requested {
+            let h = section_area_host(section, area);
+            for y in 0..h.buffer().area().height {
+                for x in 0..h.buffer().area().width {
+                    if x >= area.x && x < area.right() && y >= area.y && y < area.bottom() {
+                        continue;
+                    }
+                    let cell = h.cell(x, y);
+                    assert_eq!(cell.symbol(), " ", "outside {area:?} at ({x},{y})");
+                    assert_eq!(cell.fg, Color::Reset, "outside {area:?} at ({x},{y})");
+                    assert_eq!(cell.bg, Color::Reset, "outside {area:?} at ({x},{y})");
+                    assert!(cell.modifier.is_empty(), "outside {area:?} at ({x},{y})");
+                }
+            }
+            assert_eq!(h.cursor(), None, "small page rect {area:?} has no cursor");
+
+            for id in [
+                PAGE_TABS,
+                PLAY_SCROLL,
+                OPTIONS_SCROLL,
+                STATES_SCROLL,
+                CONNECTION_PANEL,
+                QUERY_PANEL,
+                INLINE_PANEL,
+                STATES_DETAIL_PANEL,
+                STATES_HINT_PANEL,
+                TEST_CONNECTION,
+                KIND,
+                DETAIL_LINES,
+                MESSAGE_LINES,
+                DETAIL_TONE,
+                WIDTH,
+                DETAIL,
+                HINT,
+                MARK_CUT,
+            ] {
+                if let Some(control) = h.area_of(id) {
+                    assert!(
+                        control.x >= area.x
+                            && control.y >= area.y
+                            && control.right() <= area.right()
+                            && control.bottom() <= area.bottom(),
+                        "section {section}: {id:?} at {control:?} escaped {area:?}"
+                    );
+                }
+            }
+            assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+        }
+    }
+
+    let mut h = section_area_host(1, Rect::new(7, 3, 40, 12));
+    let kind = h
+        .area_of(KIND)
+        .expect("the offset Options page draws its Select");
+    assert!(kind.x >= 7 && kind.y >= 3 && kind.right() <= 47 && kind.bottom() <= 15);
+    assert!(
+        h.tab_to(KIND),
+        "the offset Select remains keyboard focusable"
+    );
+    let _ = h.click_id(KIND);
+    assert!(
+        h.area_of(KIND).is_some(),
+        "pointer activation stays in the page area"
+    );
     assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
 }
 
