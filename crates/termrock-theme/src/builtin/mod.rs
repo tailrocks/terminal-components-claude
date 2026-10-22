@@ -799,10 +799,9 @@ mod tests {
         }
     }
 
-    fn hovered_and_disabled_parts() -> Vec<(Family, Variant, Part, StylePatch)> {
-        let rs = default_recipes();
+    fn hovered_and_disabled_parts(theme: &Theme) -> Vec<(Family, Variant, Part, StylePatch)> {
         let mut out = Vec::new();
-        for (f, r) in rs.iter() {
+        for (f, r) in theme.recipes.iter() {
             let mut variants = vec![Variant::DEFAULT];
             for (v, _) in &r.variants {
                 if !variants.contains(v) {
@@ -844,7 +843,7 @@ mod tests {
 
     #[test]
     fn hovered_and_disabled_are_declared_together_on_the_parts_that_matter() {
-        let found = hovered_and_disabled_parts();
+        let found = hovered_and_disabled_parts(&Theme::junie());
         for anchor in [
             (Family::BUTTON, Variant::PRIMARY, Part::CONTAINER),
             (Family::FIELD, Variant::DEFAULT, Part::FIELD),
@@ -877,6 +876,7 @@ mod tests {
             }
         }
         let mut t = Theme::junie();
+        let found = hovered_and_disabled_parts(&t);
         for (_, r) in t.recipes.iter_mut() {
             mark(&mut r.parts);
             for (_, m) in &mut r.variants {
@@ -885,20 +885,19 @@ mod tests {
         }
 
         let live = StateFlags::HOVERED | StateFlags::DISABLED;
-        for (f, v, part, _) in hovered_and_disabled_parts() {
+        for (f, v, part, _) in found {
             let r = t.resolve(f, v, part, live, Surface::Canvas);
             assert_eq!(
                 r.style.fg,
                 Some(t.color.danger),
                 "{f:?}/{v:?}/{part:?}: with HOVERED | DISABLED live the HOVERED rule won. \
-                 `DISABLED` must be declared after `HOVERED` — both are single-flag, so \
-                 declaration order in crates/tui/src/theme/builtin/mod.rs is the only \
-                 thing that decides it (§44.2)"
+                 the equal-specificity family/variant tie break must preserve disabled \
+                 ownership for this combination"
             );
         }
     }
 
-    const DISABLED_BG_LOST_TO_HOVER: [(Family, Variant, Part); 3] = [
+    const CROSS_SCOPE_DISABLED_BG: [(Family, Variant, Part); 3] = [
         (Family::BUTTON, Variant::SUBTLE, Part::CONTAINER),
         (Family::BUTTON, Variant::QUIET, Part::CONTAINER),
         (Family::BUTTON, Variant::GHOST, Part::CONTAINER),
@@ -907,33 +906,74 @@ mod tests {
     #[test]
     fn a_hovered_disabled_part_keeps_every_slot_the_disabled_rule_writes() {
         let live = StateFlags::HOVERED | StateFlags::DISABLED;
-        for t in [Theme::junie(), Theme::paper()] {
-            for (f, v, part, d) in hovered_and_disabled_parts() {
-                let only = t
-                    .resolve(f, v, part, StateFlags::DISABLED, Surface::Canvas)
-                    .style;
-                let both = t.resolve(f, v, part, live, Surface::Canvas).style;
-                let at = format!("{f:?}/{v:?}/{part:?}");
-                if d.fg.speaks() {
-                    assert_eq!(both.fg, only.fg, "{at}: hover overrode the disabled fg");
-                }
-                if DISABLED_BG_LOST_TO_HOVER.contains(&(f, v, part)) {
-                    assert_ne!(
-                        both.bg, only.bg,
-                        "{at}: the disabled background now survives hover — delete this entry \
-                         from DISABLED_BG_LOST_TO_HOVER"
+        let levels = [
+            crate::ColorLevel::TrueColor,
+            crate::ColorLevel::Ansi256,
+            crate::ColorLevel::Ansi16,
+            crate::ColorLevel::Mono,
+        ];
+        for (brand, base) in [("Junie", Theme::junie()), ("Paper", Theme::paper())] {
+            for level in levels {
+                let theme = base.downgrade(level);
+                for (f, v, part, d) in hovered_and_disabled_parts(&theme) {
+                    let only = theme.resolve(f, v, part, StateFlags::DISABLED, Surface::Canvas);
+                    let both = theme.resolve(f, v, part, live, Surface::Canvas);
+                    let at = format!("{brand}/{level:?}/{f:?}/{v:?}/{part:?}");
+                    if d.fg.speaks() {
+                        assert_eq!(both.style.fg, only.style.fg, "{at}: disabled fg changed");
+                        assert_eq!(
+                            both.style.fg_role, only.style.fg_role,
+                            "{at}: disabled fg ownership changed"
+                        );
+                    }
+                    if d.bg.speaks() {
+                        assert_eq!(both.style.bg, only.style.bg, "{at}: disabled bg changed");
+                        assert_eq!(
+                            both.style.bg_role, only.style.bg_role,
+                            "{at}: disabled bg ownership changed"
+                        );
+                    }
+                    if d.underline.speaks() {
+                        assert_eq!(
+                            both.style.underline_color, only.style.underline_color,
+                            "{at}: disabled underline changed"
+                        );
+                        assert_eq!(
+                            both.style.underline_role(),
+                            only.style.underline_role(),
+                            "{at}: disabled underline ownership changed"
+                        );
+                        assert_eq!(
+                            both.style.underline_cleared(),
+                            only.style.underline_cleared(),
+                            "{at}: disabled underline clear changed"
+                        );
+                    }
+                    if d.glyph.speaks() {
+                        assert_eq!(both.glyph, only.glyph, "{at}: disabled glyph changed");
+                    }
+                    if d.size.speaks() {
+                        assert_eq!(both.size, only.size, "{at}: disabled size changed");
+                    }
+                    if d.align.speaks() {
+                        assert_eq!(both.align, only.align, "{at}: disabled alignment changed");
+                    }
+                    assert!(
+                        both.style.add_modifier.contains(d.add),
+                        "{at}: hover dropped a modifier the disabled rule adds"
                     );
-                } else if d.bg.speaks() {
-                    assert_eq!(both.bg, only.bg, "{at}: hover overrode the disabled bg");
+                    assert!(
+                        !both.style.add_modifier.intersects(d.remove),
+                        "{at}: hover re-added a modifier the disabled rule removes"
+                    );
+                    if CROSS_SCOPE_DISABLED_BG.contains(&(f, v, part)) {
+                        assert!(d.bg.speaks(), "{at}: target row lost its disabled bg rule");
+                        assert_eq!(
+                            both.style.bg_role, only.style.bg_role,
+                            "{at}: same-valued palette roles must still preserve disabled ownership"
+                        );
+                    }
                 }
-                assert!(
-                    both.add_modifier.contains(d.add),
-                    "{at}: hover dropped a modifier the disabled rule adds"
-                );
-                assert!(
-                    !both.add_modifier.intersects(d.remove),
-                    "{at}: hover re-added a modifier the disabled rule removes"
-                );
             }
         }
     }

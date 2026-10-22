@@ -239,7 +239,15 @@ pub fn merge_states(
             (None, None) => break,
             (Some(_), None) => true,
             (None, Some(_)) => false,
-            (Some(a), Some(b)) => a.specificity() <= b.specificity(),
+            (Some(a), Some(b)) => match (a.when, b.when) {
+                // A family disabled patch must retain ownership of its
+                // channels when a variant supplies only a hover treatment.
+                // Keep the existing family-before-variant tie break for all
+                // other state pairs.
+                (StateFlags::HOVERED, StateFlags::DISABLED) => true,
+                (StateFlags::DISABLED, StateFlags::HOVERED) => false,
+                _ => a.specificity() <= b.specificity(),
+            },
         };
         let rule = if take_family { fam.next() } else { var.next() };
         if let Some(r) = rule
@@ -1054,6 +1062,60 @@ mod tests {
         assert_eq!(acc.glyph, Slot::Set(GlyphRole::Checked));
         let acc = r.apply(StylePatch::new(), StateFlags::SELECTED);
         assert_eq!(acc.glyph, Slot::Set(GlyphRole::Chosen));
+    }
+
+    #[test]
+    fn disabled_hover_has_a_narrow_cross_scope_tie_break() {
+        let merged_fg = |family_state, variant_state, live| {
+            let mut family = PartRecipe::default();
+            family.when(family_state, StylePatch::new().set_fg(Role::Danger));
+            let mut variant = PartRecipe::default();
+            variant.when(variant_state, StylePatch::new().set_fg(Role::Warning));
+            merge_states(StylePatch::new(), &family.states, &variant.states, live).fg
+        };
+
+        assert_eq!(
+            merged_fg(
+                StateFlags::DISABLED,
+                StateFlags::HOVERED,
+                StateFlags::DISABLED | StateFlags::HOVERED,
+            ),
+            Slot::Set(Role::Danger),
+            "disabled retains its ownership when a same-specificity variant supplies hover"
+        );
+        assert_eq!(
+            merged_fg(
+                StateFlags::HOVERED,
+                StateFlags::DISABLED,
+                StateFlags::DISABLED | StateFlags::HOVERED,
+            ),
+            Slot::Set(Role::Warning),
+            "a variant disabled rule remains later than family hover"
+        );
+
+        // The documented family-before-variant order remains in force for
+        // the other exact state ties. Explicit combined rules still sort by
+        // their greater specificity.
+        for state in [
+            StateFlags::PRESSED,
+            StateFlags::SELECTED,
+            StateFlags::READ_ONLY,
+        ] {
+            assert_eq!(
+                merged_fg(StateFlags::DISABLED, state, StateFlags::DISABLED | state),
+                Slot::Set(Role::Warning),
+                "non-hover state tie {state:?} retains variant precedence"
+            );
+        }
+        assert_eq!(
+            merged_fg(
+                StateFlags::DISABLED,
+                StateFlags::DISABLED | StateFlags::PRESSED,
+                StateFlags::DISABLED | StateFlags::PRESSED,
+            ),
+            Slot::Set(Role::Warning),
+            "more-specific combined state rule remains later than a single-flag disabled rule"
+        );
     }
 
     #[test]
