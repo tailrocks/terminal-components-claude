@@ -9,18 +9,18 @@ use ratatui_core::layout::{Position, Rect};
 use ratatui_core::style::Modifier;
 
 use super::{Acc, PartStyle, SlotFn};
-use crate::event::{Chord, KeyCode};
+use crate::event::{Axis, Chord, KeyCode};
 use crate::focus::Focusability;
 use crate::id::{Id, Part, PartRef};
 use crate::intent::{Intent, Phase};
 use crate::keymap::{Binding, BindingState, Bindings};
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
-use crate::scroll::{FollowCursor, ScrollState};
+use crate::scroll::{FollowCursor, ScrollState, TrackClick};
 use crate::text::Span;
 use crate::text::measure::{grapheme_width, graphemes};
 use crate::theme::{Family, GlyphRole, Role, Slot, StylePatch, Variant};
-use crate::ui::{Cx, FrameRead, LayoutFacts, Ui};
+use crate::ui::{Axes, Cx, FrameRead, Headroom, LayoutFacts, Ui};
 use termrock_runtime::scroll_region::ScrollRegion;
 
 const TAB_WIDTH: u16 = 4;
@@ -323,13 +323,80 @@ const BINDINGS: &[Binding<ViewportCmd>] = &[
     ),
 ];
 
-#[derive(Clone, Copy, Debug)]
+/// Semantic action for panning an opted-in, unwrapped [`TextViewport`] left.
+/// Consumers can remap it on the viewport's owner with the runtime keymap.
+pub const HORIZONTAL_PAN_LEFT: crate::ActionKey =
+    crate::ActionKey::custom("viewport.horizontal-pan-left");
+
+/// Semantic action for panning an opted-in, unwrapped [`TextViewport`] right.
+/// Consumers can remap it on the viewport's owner with the runtime keymap.
+pub const HORIZONTAL_PAN_RIGHT: crate::ActionKey =
+    crate::ActionKey::custom("viewport.horizontal-pan-right");
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum HorizontalPanCmd {
+    Left,
+    Right,
+}
+
+const fn pan_binding(
+    action: crate::ActionKey,
+    chord: Option<Chord>,
+    cmd: HorizontalPanCmd,
+    label: &'static str,
+    visible: bool,
+) -> Binding<HorizontalPanCmd> {
+    Binding {
+        action,
+        chord,
+        cmd,
+        label,
+        priority: if visible { 50 } else { 10 },
+        visible,
+    }
+}
+
+const HORIZONTAL_PAN_BINDINGS: &[Binding<HorizontalPanCmd>] = &[
+    pan_binding(
+        HORIZONTAL_PAN_LEFT,
+        Some(Chord::key(KeyCode::Left)),
+        HorizontalPanCmd::Left,
+        "Pan left",
+        true,
+    ),
+    pan_binding(
+        HORIZONTAL_PAN_RIGHT,
+        Some(Chord::key(KeyCode::Right)),
+        HorizontalPanCmd::Right,
+        "Pan right",
+        true,
+    ),
+];
+
+const HORIZONTAL_PAN_SEMANTIC_BINDINGS: &[Binding<HorizontalPanCmd>] = &[
+    pan_binding(HORIZONTAL_PAN_LEFT, None, HorizontalPanCmd::Left, "", false),
+    pan_binding(
+        HORIZONTAL_PAN_RIGHT,
+        None,
+        HorizontalPanCmd::Right,
+        "",
+        false,
+    ),
+];
+
+const HORIZONTAL_TRACK: Part = Part::custom("viewport.horizontal-track");
+const HORIZONTAL_THUMB: Part = Part::custom("viewport.horizontal-thumb");
+
+#[derive(Debug)]
 struct VCell {
     span: usize,
     at: usize,
     len: usize,
     w: u16,
     tab: bool,
+    /// A grapheme that crosses styled-run boundaries. Its style belongs to
+    /// `span`, the run containing its first scalar.
+    joined: Option<Box<str>>,
 }
 
 const fn runs(line: ViewportLine<'_>) -> &[Span<'_>] {
@@ -373,10 +440,15 @@ fn run_style(line: LineRef<'_>, ix: usize) -> (Option<Role>, Modifier) {
     }
 }
 
-fn cell_text<'a>(line: impl Into<LineRef<'a>>, c: VCell) -> &'a str {
+fn cell_text<'line, 'cell>(line: impl Into<LineRef<'line>>, c: &'cell VCell) -> &'cell str
+where
+    'line: 'cell,
+{
     let line = line.into();
     if c.tab {
         " "
+    } else if let Some(joined) = &c.joined {
+        joined
     } else {
         run_text(line, c.span)
             .get(c.at..c.at.saturating_add(c.len))
@@ -384,21 +456,37 @@ fn cell_text<'a>(line: impl Into<LineRef<'a>>, c: VCell) -> &'a str {
     }
 }
 
-fn walk_run(
-    ix: usize,
-    text: &str,
-    f: &mut impl FnMut(VCell) -> ControlFlow<()>,
-) -> ControlFlow<()> {
+fn walk_text(line: LineRef<'_>, text: &str, f: &mut impl FnMut(VCell) -> ControlFlow<()>) {
+    let count = run_count(line);
+    if count == 0 {
+        return;
+    }
+    let mut span = 0usize;
+    let mut run_start = 0usize;
+    let mut run_end = run_text(line, span).len();
     for (at, g) in graphemes(text) {
+        while span + 1 < count && at >= run_end {
+            span += 1;
+            run_start = run_end;
+            run_end = run_end.saturating_add(run_text(line, span).len());
+        }
+        let end = at.saturating_add(g.len());
+        let run_at = at.saturating_sub(run_start);
+        let joined = (end > run_end).then(|| Box::<str>::from(&text[at..end]));
         if g == "\t" {
             for _ in 0..TAB_WIDTH {
-                f(VCell {
-                    span: ix,
-                    at,
+                if f(VCell {
+                    span,
+                    at: run_at,
                     len: g.len(),
                     w: 1,
                     tab: true,
-                })?;
+                    joined: None,
+                })
+                .is_break()
+                {
+                    return;
+                }
             }
             continue;
         }
@@ -406,22 +494,59 @@ fn walk_run(
         if w == 0 {
             continue;
         }
-        f(VCell {
-            span: ix,
-            at,
+        if f(VCell {
+            span,
+            at: run_at,
             len: g.len(),
             w,
             tab: false,
-        })?;
+            joined,
+        })
+        .is_break()
+        {
+            return;
+        }
     }
-    ControlFlow::Continue(())
 }
 
 fn walk_line<'a>(line: impl Into<LineRef<'a>>, mut f: impl FnMut(VCell) -> ControlFlow<()>) {
     let line = line.into();
-    for index in 0..run_count(line) {
-        if walk_run(index, run_text(line, index), &mut f).is_break() {
-            return;
+    match line {
+        LineRef::Borrowed(ViewportLine::Plain(text)) => walk_text(line, text, &mut f),
+        LineRef::Borrowed(ViewportLine::Spans(spans)) => {
+            if spans.len() <= 1 {
+                walk_text(line, spans.first().map_or("", |span| span.text), &mut f);
+            } else {
+                let capacity = spans
+                    .iter()
+                    .fold(0usize, |size, span| size.saturating_add(span.text.len()));
+                let mut joined = String::with_capacity(capacity);
+                for span in spans {
+                    joined.push_str(span.text);
+                }
+                walk_text(line, &joined, &mut f);
+            }
+        }
+        LineRef::Projected(projected, index) => {
+            let Some(runs) = projected.lines.get(index) else {
+                return;
+            };
+            if runs.is_empty() {
+                return;
+            }
+            let Some(first) = projected.runs.get(runs.start) else {
+                return;
+            };
+            let Some(last) = runs
+                .end
+                .checked_sub(1)
+                .and_then(|ix| projected.runs.get(ix))
+            else {
+                return;
+            };
+            if let Some(text) = projected.text.get(first.text.start..last.text.end) {
+                walk_text(line, text, &mut f);
+            }
         }
     }
 }
@@ -503,13 +628,29 @@ struct ViewportLayout {
     key: LayoutKey,
     prefix: Vec<usize>,
     lines: usize,
+    widest_cols: usize,
+    widest_valid: bool,
 }
 
 impl ViewportLayout {
+    #[cfg(test)]
     fn ensure<'a>(&mut self, lines: impl Into<LineSet<'a>>, key: LayoutKey) -> usize {
+        self.ensure_with_widest(lines, key, false)
+    }
+
+    fn ensure_with_widest<'a>(
+        &mut self,
+        lines: impl Into<LineSet<'a>>,
+        key: LayoutKey,
+        measure_widest: bool,
+    ) -> usize {
         let lines = lines.into();
         let reusable = key.generation != u32::MAX;
-        if reusable && self.key == key && self.lines == lines.len() {
+        if reusable
+            && self.key == key
+            && self.lines == lines.len()
+            && (!measure_widest || self.widest_valid)
+        {
             return 0;
         }
         let append = reusable && self.key == key && self.lines <= lines.len();
@@ -517,8 +658,21 @@ impl ViewportLayout {
             self.key = key;
             self.prefix.clear();
             self.lines = 0;
+            self.widest_cols = 0;
+            self.widest_valid = false;
         }
         if !key.wrap {
+            if measure_widest {
+                let first = if self.widest_valid { self.lines } else { 0 };
+                for index in first..lines.len() {
+                    if let Some(line) = lines.get(index) {
+                        self.widest_cols = self.widest_cols.max(line_cols(line));
+                    }
+                }
+                self.widest_valid = true;
+            } else if lines.len() != self.lines {
+                self.widest_valid = false;
+            }
             self.lines = lines.len();
             return 0;
         }
@@ -558,6 +712,10 @@ impl ViewportLayout {
         self.prefix.last().copied().unwrap_or(0)
     }
 
+    fn widest_cols(&self) -> Option<usize> {
+        self.widest_valid.then_some(self.widest_cols)
+    }
+
     fn row_start<'a>(&self, lines: impl Into<LineSet<'a>>, row: usize) -> (usize, usize) {
         let lines = lines.into();
         if !self.key.wrap {
@@ -595,7 +753,7 @@ fn word_at<'a>(line: impl Into<LineRef<'a>>, col: usize) -> Option<(usize, usize
     let mut found: Option<(usize, usize)> = None;
     let mut at = 0usize;
     walk_line(line, |c| {
-        let text = cell_text(line, c);
+        let text = cell_text(line, &c);
         let word = !text.is_empty() && text.chars().all(is_word);
         if word {
             if cur.is_none() {
@@ -624,6 +782,7 @@ fn word_at<'a>(line: impl Into<LineRef<'a>>, col: usize) -> Option<(usize, usize
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct ViewportState {
     scroll: ScrollState,
+    horizontal: ScrollState,
     follow: FollowCursor,
     selection: Option<(CellPos, CellPos)>,
     anchor: Option<CellPos>,
@@ -635,6 +794,7 @@ impl Default for ViewportState {
     fn default() -> Self {
         ViewportState {
             scroll: ScrollState::default(),
+            horizontal: ScrollState::default(),
             follow: FollowCursor::Always,
             selection: None,
             anchor: None,
@@ -647,6 +807,24 @@ impl Default for ViewportState {
 impl ViewportState {
     pub const fn scroll(&self) -> &ScrollState {
         &self.scroll
+    }
+
+    /// The current horizontal display-cell offset of an opted-in viewport.
+    ///
+    /// It stays zero when horizontal panning is disabled or wrapping is on.
+    pub const fn horizontal_offset(&self) -> usize {
+        self.horizontal.offset()
+    }
+
+    /// Reset the vertical and horizontal offsets to the leading edge.
+    ///
+    /// Consumers that replace the displayed source can use this before the
+    /// next draw so the new source is never painted at the previous position.
+    pub fn reset_scroll_offsets(&mut self) {
+        self.scroll.jump_start();
+        self.scroll.release_track();
+        self.horizontal.jump_start();
+        self.horizontal.release_track();
     }
 
     pub const fn follow(&self) -> bool {
@@ -756,7 +934,7 @@ impl ViewportState {
                     return ControlFlow::Break(());
                 }
                 if col >= from {
-                    out.push_str(cell_text(line, c));
+                    out.push_str(cell_text(line, &c));
                 }
                 col = col.saturating_add(usize::from(c.w));
                 ControlFlow::Continue(())
@@ -779,6 +957,7 @@ fn shift(p: &mut CellPos, dropped: usize) {
 pub struct TextViewport<'a> {
     id: Id,
     wrap: bool,
+    horizontal_pan: bool,
     /// When set, column 0 is the focus gutter and text starts one cell in.
     /// Terminal panes that already draw their prompt turn this off.
     reserve_gutter: bool,
@@ -801,6 +980,7 @@ impl fmt::Debug for TextViewport<'_> {
         f.debug_struct("TextViewport")
             .field("id", &self.id)
             .field("wrap", &self.wrap)
+            .field("horizontal_pan", &self.horizontal_pan)
             .field("reserve_gutter", &self.reserve_gutter)
             .field("scroll_gap", &self.scroll_gap)
             .field("caret_when_unfocused", &self.caret_when_unfocused)
@@ -809,6 +989,20 @@ impl fmt::Debug for TextViewport<'_> {
             .field("slot", &self.slot.map(|(p, _)| p))
             .finish_non_exhaustive()
     }
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+struct PanDimensions {
+    text_width: u16,
+    text_height: u16,
+    horizontal_overflow: bool,
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+struct RowPosition {
+    line: usize,
+    wrapped_row: usize,
+    horizontal_offset: usize,
 }
 
 impl<'a> TextViewport<'a> {
@@ -826,6 +1020,7 @@ impl<'a> TextViewport<'a> {
         TextViewport {
             id,
             wrap: false,
+            horizontal_pan: false,
             reserve_gutter: true,
             scroll_gap: 0,
             caret_when_unfocused: false,
@@ -872,6 +1067,18 @@ impl<'a> TextViewport<'a> {
     #[must_use]
     pub const fn wrap(mut self, yes: bool) -> Self {
         self.wrap = yes;
+        self
+    }
+
+    /// Allow display-cell horizontal panning when wrapping is disabled.
+    ///
+    /// The default is off, preserving the original viewport bindings and
+    /// rendered cells. Pan actions use plain Left/Right only when no producer
+    /// caret owns those keys; consumers can remap the public semantic action
+    /// keys without installing a raw-key fallback.
+    #[must_use]
+    pub const fn horizontal_pan(mut self, enabled: bool) -> Self {
+        self.horizontal_pan = enabled;
         self
     }
 
@@ -969,6 +1176,51 @@ impl<'a> TextViewport<'a> {
         }
     }
 
+    const fn pan_active(&self) -> bool {
+        self.horizontal_pan && !self.wrap
+    }
+
+    fn pan_dimensions(&self, area: Rect, content_rows: usize, widest_cols: usize) -> PanDimensions {
+        let mut vertical = false;
+        let mut horizontal = false;
+        for _ in 0..3 {
+            let rows = area
+                .height
+                .saturating_sub(u16::from(horizontal && area.height > 1));
+            let next_vertical = content_rows > usize::from(rows);
+            let text_width =
+                if self.scroll_gap > 0 && !next_vertical && content_rows <= usize::from(rows) {
+                    area.width.saturating_sub(u16::from(self.reserve_gutter))
+                } else {
+                    Self::text_width(area.width, self.reserve_gutter, self.scroll_gap)
+                };
+            let next_horizontal = widest_cols > usize::from(text_width);
+            if next_vertical == vertical && next_horizontal == horizontal {
+                break;
+            }
+            vertical |= next_vertical;
+            horizontal |= next_horizontal;
+        }
+
+        let horizontal_bar = horizontal && area.height > 1;
+        let text_height = area.height.saturating_sub(u16::from(horizontal_bar));
+        let vertical_overflow = content_rows > usize::from(text_height);
+        let text_width = if self.scroll_gap > 0
+            && !vertical_overflow
+            && content_rows <= usize::from(text_height)
+        {
+            area.width.saturating_sub(u16::from(self.reserve_gutter))
+        } else {
+            Self::text_width(area.width, self.reserve_gutter, self.scroll_gap)
+        };
+
+        PanDimensions {
+            text_width,
+            text_height,
+            horizontal_overflow: widest_cols > usize::from(text_width),
+        }
+    }
+
     const fn layout_key(&self, st: &ViewportState, width: u16) -> LayoutKey {
         LayoutKey {
             width,
@@ -981,15 +1233,15 @@ impl<'a> TextViewport<'a> {
         &self,
         cx: &mut Cx<'_>,
         lines: LineSet<'_>,
-        geometry: (Rect, LayoutKey, usize),
+        geometry: (Rect, LayoutKey, usize, usize),
         pos: Position,
     ) -> Option<CellPos> {
-        let (area, key, offset) = geometry;
+        let (area, key, offset, horizontal_offset) = geometry;
         if area.is_empty() || lines.is_empty() {
             return None;
         }
         let layout = cx.cache::<ViewportLayout>(self.id);
-        let indexed = layout.ensure(lines, key);
+        let indexed = layout.ensure_with_widest(lines, key, self.pan_active());
         #[cfg(feature = "testing")]
         self.note_indexed(indexed);
         #[cfg(not(feature = "testing"))]
@@ -1001,9 +1253,14 @@ impl<'a> TextViewport<'a> {
         let (start, end) = row_cols(line, key.width, self.wrap, row);
         let dx = usize::from(pos.x.saturating_sub(area.x));
         let last = end.min(line_cols(line));
+        let col = if self.pan_active() {
+            start.saturating_add(horizontal_offset).saturating_add(dx)
+        } else {
+            start.saturating_add(dx)
+        };
         Some(CellPos {
             line: li,
-            col: start.saturating_add(dx).min(last),
+            col: col.min(last),
         })
     }
 
@@ -1036,11 +1293,36 @@ impl<'a> TextViewport<'a> {
             .and_then(|layout| layout.logical_area)
             .or_else(|| cx.area(self.id))
             .unwrap_or(Rect::ZERO);
-        let width = layout.map_or_else(
+        let fallback_width = layout.map_or_else(
             || Self::text_width(area.width, self.reserve_gutter, self.scroll_gap),
             |layout| layout.cols,
         );
-        let logical_text = self.text_area(area, width);
+        let initial_key = self.layout_key(st, fallback_width);
+        let (total, widest, indexed) = {
+            let viewport_layout = cx.cache::<ViewportLayout>(self.id);
+            let indexed = viewport_layout.ensure_with_widest(lines, initial_key, self.pan_active());
+            (
+                viewport_layout.total(),
+                viewport_layout.widest_cols().unwrap_or(0),
+                indexed,
+            )
+        };
+        #[cfg(feature = "testing")]
+        self.note_indexed(indexed);
+        #[cfg(not(feature = "testing"))]
+        Self::note_indexed(indexed);
+        let dimensions = if self.pan_active() {
+            self.pan_dimensions(area, total, widest)
+        } else {
+            PanDimensions {
+                text_width: fallback_width,
+                text_height: area.height,
+                horizontal_overflow: false,
+            }
+        };
+        let width = dimensions.text_width;
+        let mut logical_text = self.text_area(area, width);
+        logical_text.height = dimensions.text_height;
         let hit_text = cx
             .area_of_part(self.id, PartRef::of(Part::TEXT))
             .unwrap_or(logical_text);
@@ -1053,30 +1335,79 @@ impl<'a> TextViewport<'a> {
         };
         let key = self.layout_key(st, width);
         let (total, indexed) = {
-            let layout = cx.cache::<ViewportLayout>(self.id);
-            let indexed = layout.ensure(lines, key);
-            (layout.total(), indexed)
+            let viewport_layout = cx.cache::<ViewportLayout>(self.id);
+            let indexed = viewport_layout.ensure_with_widest(lines, key, self.pan_active());
+            (viewport_layout.total(), indexed)
         };
         #[cfg(feature = "testing")]
         self.note_indexed(indexed);
         #[cfg(not(feature = "testing"))]
         Self::note_indexed(indexed);
+        let dimensions = if self.pan_active() {
+            let widest = cx
+                .cache::<ViewportLayout>(self.id)
+                .widest_cols()
+                .unwrap_or(0);
+            self.pan_dimensions(area, total, widest)
+        } else {
+            dimensions
+        };
+        st.scroll
+            .apply_layout(usize::from(dimensions.text_height), total);
+        st.horizontal
+            .set_content(if self.pan_active() { widest } else { 0 });
+        st.horizontal
+            .set_viewport(usize::from(dimensions.text_width));
         let before = st.scroll.offset();
-        let bar = self.bar().update(cx, &mut st.scroll, total);
         let mut acc = Acc::<ViewportAction>::new();
-        acc.fold(&bar);
-        if st.scroll.offset() != before {
-            st.follow = if st.scroll.at_end() {
-                FollowCursor::Always
-            } else {
-                FollowCursor::OnMove
-            };
-        }
+        let bar = self.bar();
+        let track_len = bar.prepare(cx, &mut st.scroll, total);
         for it in cx.intents(self.id) {
+            let horizontal_wheel = matches!(it, Intent::Wheel { axis: Axis::H, .. });
+            if !horizontal_wheel || !self.pan_active() {
+                acc.fold(&bar.handle_intent(cx, &mut st.scroll, track_len, it));
+            }
             match it {
                 Intent::Binding(action) => {
                     if let Some(cmd) = Binding::command(BINDINGS, action) {
                         Self::command(st, lines, cmd, &mut acc);
+                    } else if self.pan_active()
+                        && let Some(cmd) = Binding::command(HORIZONTAL_PAN_BINDINGS, action)
+                            .or_else(|| Binding::command(HORIZONTAL_PAN_SEMANTIC_BINDINGS, action))
+                    {
+                        Self::horizontal_command(st, cmd, dimensions.horizontal_overflow, &mut acc);
+                    }
+                }
+                Intent::Wheel {
+                    axis: Axis::H,
+                    delta,
+                    ..
+                } if self.pan_active() && dimensions.horizontal_overflow => {
+                    let horizontal_before = st.horizontal.offset();
+                    st.horizontal
+                        .scroll_by(isize::from(delta.signum()).saturating_mul(4));
+                    if horizontal_before == st.horizontal.offset() {
+                        acc.consumed();
+                    } else {
+                        acc.changed();
+                    }
+                }
+                Intent::Pointer { part, .. }
+                    if self.pan_active()
+                        && (part.part == HORIZONTAL_TRACK || part.part == HORIZONTAL_THUMB) =>
+                {
+                    self.handle_horizontal_pointer(
+                        cx,
+                        st,
+                        self.horizontal_track(area, dimensions),
+                        it,
+                        &mut acc,
+                    );
+                }
+                Intent::Cancel if self.pan_active() => {
+                    st.horizontal.release_track();
+                    if cx.capture_owner() == Some(self.id) {
+                        cx.release_capture();
                     }
                 }
                 Intent::Pointer {
@@ -1091,12 +1422,19 @@ impl<'a> TextViewport<'a> {
                     cx,
                     st,
                     lines,
-                    (area, pointer_text, hit_text, key),
+                    (area, pointer_text, hit_text, key, st.horizontal.offset()),
                     (phase, pos),
                     &mut acc,
                 ),
                 _ => {}
             }
+        }
+        if st.scroll.offset() != before {
+            st.follow = if st.scroll.at_end() {
+                FollowCursor::Always
+            } else {
+                FollowCursor::OnMove
+            };
         }
         if st.follow == FollowCursor::Always {
             st.scroll.jump_end();
@@ -1104,23 +1442,141 @@ impl<'a> TextViewport<'a> {
         acc.finish(self.id)
     }
 
+    fn horizontal_track(&self, area: Rect, dimensions: PanDimensions) -> Rect {
+        if !self.pan_active() || !dimensions.horizontal_overflow || area.height <= 1 {
+            return Rect::ZERO;
+        }
+        Rect::new(
+            area.x.saturating_add(u16::from(self.reserve_gutter)),
+            area.y.saturating_add(dimensions.text_height),
+            dimensions.text_width,
+            1,
+        )
+    }
+
+    fn horizontal_command(
+        st: &mut ViewportState,
+        cmd: HorizontalPanCmd,
+        overflows: bool,
+        acc: &mut Acc<ViewportAction>,
+    ) {
+        if !overflows {
+            acc.consumed();
+            return;
+        }
+        let before = st.horizontal.offset();
+        match cmd {
+            HorizontalPanCmd::Left => st.horizontal.scroll_by(-4),
+            HorizontalPanCmd::Right => st.horizontal.scroll_by(4),
+        }
+        if before == st.horizontal.offset() {
+            acc.consumed();
+        } else {
+            acc.changed();
+        }
+    }
+
+    fn handle_horizontal_pointer(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut ViewportState,
+        track: Rect,
+        intent: Intent<'_>,
+        acc: &mut Acc<ViewportAction>,
+    ) {
+        let Intent::Pointer {
+            phase,
+            part,
+            pos,
+            local,
+            ..
+        } = intent
+        else {
+            return;
+        };
+        if track.is_empty() {
+            st.horizontal.release_track();
+            if cx.capture_owner() == Some(self.id) {
+                cx.release_capture();
+            }
+            acc.consumed();
+            return;
+        }
+
+        let before = st.horizontal.offset();
+        match phase {
+            Phase::Press if part.part == HORIZONTAL_THUMB => {
+                let track_pos = usize::from(pos.x.saturating_sub(track.x));
+                st.horizontal
+                    .press_track(track_pos, usize::from(track.width));
+                if !cx.capture(self.id, PartRef::of(HORIZONTAL_THUMB)) {
+                    st.horizontal.release_track();
+                }
+                acc.consumed();
+            }
+            Phase::Press => {
+                let track_pos = usize::from(local.x);
+                st.horizontal.press_track_with(
+                    track_pos,
+                    usize::from(track.width),
+                    TrackClick::Page,
+                );
+                acc.consumed();
+            }
+            Phase::Drag => {
+                let track_pos = if cx.capture_owner() == Some(self.id) {
+                    let origin = cx.capture_origin().unwrap_or(pos);
+                    let capture_area = cx.capture_area().unwrap_or(track);
+                    let grab = origin.x.saturating_sub(capture_area.x);
+                    let (_, thumb_len) = st.horizontal.thumb(usize::from(track.width));
+                    usize::from(pos.x.saturating_sub(track.x).saturating_sub(grab))
+                        .saturating_add(thumb_len / 2)
+                } else {
+                    usize::from(pos.x.saturating_sub(track.x))
+                };
+                st.horizontal.scroll_to(
+                    st.horizontal
+                        .offset_for_track_pos(track_pos, usize::from(track.width)),
+                );
+                if before == st.horizontal.offset() {
+                    acc.consumed();
+                } else {
+                    acc.changed();
+                }
+            }
+            Phase::Release | Phase::DragEnd => {
+                st.horizontal.release_track();
+                if cx.capture_owner() == Some(self.id) {
+                    cx.release_capture();
+                }
+                acc.consumed();
+            }
+            _ => acc.consumed(),
+        }
+    }
+
     fn handle_text_pointer(
         &self,
         cx: &mut Cx<'_>,
         st: &mut ViewportState,
         lines: LineSet<'_>,
-        geometry: (Rect, Rect, Rect, LayoutKey),
+        geometry: (Rect, Rect, Rect, LayoutKey, usize),
         pointer: (Phase, Position),
         acc: &mut Acc<ViewportAction>,
     ) {
-        let (area, logical_text, hit_text, key) = geometry;
+        let (area, logical_text, hit_text, key, mut horizontal_offset) = geometry;
         let (phase, pos) = pointer;
         match phase {
             Phase::Press | Phase::DragStart => {
                 cx.focus(self.id);
                 let _ = cx.capture(self.id, PartRef::of(Part::TEXT));
                 let had = st.selection.take().is_some();
-                st.anchor = self.pos_at(cx, lines, (logical_text, key, st.scroll.offset()), pos);
+                st.anchor = self.pos_at(
+                    cx,
+                    lines,
+                    (logical_text, key, st.scroll.offset(), horizontal_offset),
+                    pos,
+                );
                 if had {
                     acc.action(ViewportAction::SelectionChanged);
                 } else {
@@ -1128,6 +1584,18 @@ impl<'a> TextViewport<'a> {
                 }
             }
             Phase::Drag => {
+                if self.pan_active() && !hit_text.is_empty() {
+                    let before = st.horizontal.offset();
+                    if pos.x < hit_text.x {
+                        st.horizontal.scroll_by(-1);
+                    } else if pos.x >= hit_text.right() {
+                        st.horizontal.scroll_by(1);
+                    }
+                    horizontal_offset = st.horizontal.offset();
+                    if before != horizontal_offset {
+                        acc.changed();
+                    }
+                }
                 if pos.y < area.y {
                     st.scroll.scroll_by(-1);
                     st.follow = FollowCursor::OnMove;
@@ -1153,7 +1621,12 @@ impl<'a> TextViewport<'a> {
                         ),
                     )
                 };
-                let at = self.pos_at(cx, lines, (logical_text, key, st.scroll.offset()), clamped);
+                let at = self.pos_at(
+                    cx,
+                    lines,
+                    (logical_text, key, st.scroll.offset(), horizontal_offset),
+                    clamped,
+                );
                 match (st.anchor, at) {
                     (Some(anchor), Some(head)) => {
                         st.selection = Some((anchor, head));
@@ -1168,7 +1641,12 @@ impl<'a> TextViewport<'a> {
             }
             Phase::Click | Phase::DoubleClick => {
                 cx.focus(self.id);
-                let at = self.pos_at(cx, lines, (logical_text, key, st.scroll.offset()), pos);
+                let at = self.pos_at(
+                    cx,
+                    lines,
+                    (logical_text, key, st.scroll.offset(), horizontal_offset),
+                    pos,
+                );
                 match at.and_then(|p| {
                     lines
                         .get(p.line)
@@ -1290,29 +1768,58 @@ impl<'a> TextViewport<'a> {
         let id = self.id;
         let runtime = ui.state(id).difference(StateFlags::SELECTED);
         let live = PartStyle::flags(runtime, StateFlags::empty());
-        let rows = area.height;
-        // A vertical bar that is not drawn must not eat a text column.
-        // Capsule panes keep a gap only beside a real bar.
-        let text_w = if self.scroll_gap > 0 && !self.wrap && lines.len() <= usize::from(rows) {
-            area.width.saturating_sub(u16::from(self.reserve_gutter))
-        } else {
-            Self::text_width(area.width, self.reserve_gutter, self.scroll_gap)
-        };
-        let key = self.layout_key(st, text_w);
-        let (total, indexed) = {
-            let lay = ui.cache::<ViewportLayout>(id);
-            let indexed = lay.ensure(lines, key);
-            (lay.total(), indexed)
+        let fallback_width =
+            if self.scroll_gap > 0 && !self.wrap && lines.len() <= usize::from(area.height) {
+                area.width.saturating_sub(u16::from(self.reserve_gutter))
+            } else {
+                Self::text_width(area.width, self.reserve_gutter, self.scroll_gap)
+            };
+        let initial_key = self.layout_key(st, fallback_width);
+        let (total, widest, indexed) = {
+            let layout = ui.cache::<ViewportLayout>(id);
+            let indexed = layout.ensure_with_widest(lines, initial_key, self.pan_active());
+            (layout.total(), layout.widest_cols().unwrap_or(0), indexed)
         };
         #[cfg(feature = "testing")]
         self.note_indexed(indexed);
         #[cfg(not(feature = "testing"))]
         Self::note_indexed(indexed);
+        let dimensions = if self.pan_active() {
+            self.pan_dimensions(area, total, widest)
+        } else {
+            PanDimensions {
+                text_width: fallback_width,
+                text_height: area.height,
+                horizontal_overflow: false,
+            }
+        };
+        let text_w = dimensions.text_width;
+        let key = self.layout_key(st, text_w);
+        let (total, indexed) = {
+            let layout = ui.cache::<ViewportLayout>(id);
+            let indexed = layout.ensure_with_widest(lines, key, self.pan_active());
+            (layout.total(), indexed)
+        };
+        #[cfg(feature = "testing")]
+        self.note_indexed(indexed);
+        #[cfg(not(feature = "testing"))]
+        Self::note_indexed(indexed);
+        let dimensions = if self.pan_active() {
+            let widest = ui.cache::<ViewportLayout>(id).widest_cols().unwrap_or(0);
+            self.pan_dimensions(area, total, widest)
+        } else {
+            dimensions
+        };
+        let rows = dimensions.text_height;
+        let text_w = dimensions.text_width;
         let mut view = st.scroll;
         view.apply_layout(usize::from(rows), total);
         if st.follow == FollowCursor::Always {
             view.jump_end();
         }
+        let mut horizontal = st.horizontal;
+        horizontal.set_content(if self.pan_active() { widest } else { 0 });
+        horizontal.set_viewport(usize::from(text_w));
         let (first_line, first_row) = {
             let lay = ui.cache::<ViewportLayout>(id);
             lay.row_start(lines, view.offset())
@@ -1323,6 +1830,14 @@ impl<'a> TextViewport<'a> {
         });
         ui.register_control(id, area, Focusability::Focusable);
         ui.publish_bindings(id, live, BINDINGS);
+        if self.pan_active() && dimensions.horizontal_overflow {
+            let pan_bindings = if st.caret.is_some() {
+                HORIZONTAL_PAN_SEMANTIC_BINDINGS
+            } else {
+                HORIZONTAL_PAN_BINDINGS
+            };
+            ui.publish_additional_bindings(id, runtime, pan_bindings);
+        }
         let container = ov.style(
             ui,
             id,
@@ -1343,7 +1858,8 @@ impl<'a> TextViewport<'a> {
             height: rows,
         };
         let content = self.bar().draw(ui, body, &view, total);
-        let desired_text = self.text_area(area, text_w);
+        let mut desired_text = self.text_area(area, text_w);
+        desired_text.height = rows;
         let text = Rect {
             width: desired_text.width.min(content.width),
             ..desired_text
@@ -1352,6 +1868,21 @@ impl<'a> TextViewport<'a> {
             id,
             LayoutFacts::new(usize::from(rows), total, rows, text_w).with_logical_area(area),
         );
+        if self.pan_active() {
+            let vertical = view.headroom_v();
+            let horizontal_headroom = horizontal.headroom_v();
+            ui.register_scroll(
+                id,
+                text,
+                Axes::Both,
+                Headroom {
+                    up: vertical.up,
+                    down: vertical.down,
+                    left: horizontal_headroom.up,
+                    right: horizontal_headroom.down,
+                },
+            );
+        }
         if text.is_empty() {
             return text;
         }
@@ -1369,7 +1900,15 @@ impl<'a> TextViewport<'a> {
             ui,
             text,
             lines,
-            (first_line, first_row),
+            RowPosition {
+                line: first_line,
+                wrapped_row: first_row,
+                horizontal_offset: if self.pan_active() {
+                    horizontal.offset()
+                } else {
+                    0
+                },
+            },
             st.selection(),
             (base.style, selected.style),
         );
@@ -1378,9 +1917,22 @@ impl<'a> TextViewport<'a> {
             text,
             st,
             lines,
-            (text_w, view.offset(), caret_line_start),
+            (
+                text_w,
+                view.offset(),
+                caret_line_start,
+                if self.pan_active() {
+                    horizontal.offset()
+                } else {
+                    0
+                },
+            ),
             live,
         );
+        let horizontal_track = self.horizontal_track(area, dimensions);
+        if !horizontal_track.is_empty() {
+            self.paint_horizontal_bar(ui, horizontal_track, &horizontal, live, &ov);
+        }
         // Overflowing panes fade the scrolled edge. The frozen capsule keeps
         // 0.55 on the outer row and 0.8 on the next when the viewport is tall.
         // The gap column beside the bar fades with the text.
@@ -1391,6 +1943,65 @@ impl<'a> TextViewport<'a> {
         faded.width = faded.width.saturating_add(extra);
         ui.scroll_edges(faded, &view);
         text
+    }
+
+    fn paint_horizontal_bar(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        state: &ScrollState,
+        live: StateFlags,
+        overrides: &PartStyle<'a>,
+    ) {
+        if area.is_empty() {
+            return;
+        }
+        let track = overrides.style(
+            ui,
+            self.id,
+            Family::VIEWPORT,
+            Variant::DEFAULT,
+            Part::TRACK,
+            live,
+        );
+        let thumb_live = if ui.pressed_part(self.id) == Some(PartRef::of(HORIZONTAL_THUMB)) {
+            live | StateFlags::PRESSED
+        } else {
+            live
+        };
+        let thumb = overrides.style(
+            ui,
+            self.id,
+            Family::VIEWPORT,
+            Variant::DEFAULT,
+            Part::THUMB,
+            thumb_live,
+        );
+        let (start, len) = state.thumb(usize::from(area.width));
+        let end = start.saturating_add(len);
+        ui.register_part(self.id, PartRef::of(HORIZONTAL_TRACK), area);
+        if len > 0 {
+            ui.register_part(
+                self.id,
+                PartRef::of(HORIZONTAL_THUMB),
+                Rect::new(
+                    area.x
+                        .saturating_add(start.min(usize::from(u16::MAX)) as u16),
+                    area.y,
+                    len.min(usize::from(u16::MAX)) as u16,
+                    1,
+                ),
+            );
+        }
+        for column in 0..area.width {
+            let index = usize::from(column);
+            let on_thumb = (start..end).contains(&index);
+            ui.paint_str(
+                Rect::new(area.x.saturating_add(column), area.y, 1, 1),
+                if on_thumb { "━" } else { "┄" },
+                if on_thumb { thumb.style } else { track.style },
+            );
+        }
     }
 
     /// Paint a horizontal scrollbar on a row the caller reserved.
@@ -1466,11 +2077,12 @@ impl<'a> TextViewport<'a> {
         ui: &mut Ui<'_>,
         text: Rect,
         lines: LineSet<'_>,
-        from: (usize, usize),
+        from: RowPosition,
         sel: Option<(CellPos, CellPos)>,
         styles: (PaintStyle, PaintStyle),
     ) {
-        let (mut li, mut row) = from;
+        let mut li = from.line;
+        let mut row = from.wrapped_row;
         let text_w = text.width;
         let mut rows_here = lines.get(li).map_or(0, |l| line_rows(l, text_w, self.wrap));
         #[cfg(feature = "testing")]
@@ -1481,15 +2093,15 @@ impl<'a> TextViewport<'a> {
             {
                 visible = visible.saturating_add(1);
             }
-            paint_row(
-                ui,
-                y,
-                line,
-                li,
-                row_cols(line, text_w, self.wrap, row),
-                sel,
-                styles,
-            );
+            let cols = if self.pan_active() {
+                (
+                    from.horizontal_offset,
+                    from.horizontal_offset.saturating_add(usize::from(text_w)),
+                )
+            } else {
+                row_cols(line, text_w, self.wrap, row)
+            };
+            paint_row(ui, y, line, li, cols, sel, styles);
             row = row.saturating_add(1);
             if row >= rows_here {
                 row = 0;
@@ -1541,10 +2153,10 @@ impl<'a> TextViewport<'a> {
         text: Rect,
         st: &ViewportState,
         lines: LineSet<'_>,
-        view: (u16, usize, Option<usize>),
+        view: (u16, usize, Option<usize>, usize),
         live: StateFlags,
     ) {
-        let (width, offset, line_start) = view;
+        let (width, offset, line_start, horizontal_offset) = view;
         let Some(c) = st.caret else { return };
         if !live.contains(StateFlags::FOCUSED)
             && !(self.caret_when_unfocused && st.follow() && st.selection().is_none())
@@ -1571,7 +2183,11 @@ impl<'a> TextViewport<'a> {
         }
         let dy = visual.saturating_sub(offset);
         let (start, _) = row_cols(at, width, self.wrap, within);
-        let dx = c.col.saturating_sub(start);
+        let caret_col = c.col.saturating_sub(start);
+        if caret_col < horizontal_offset {
+            return;
+        }
+        let dx = caret_col.saturating_sub(horizontal_offset);
         if dy >= usize::from(text.height) || dx >= usize::from(text.width) {
             return;
         }
@@ -1609,12 +2225,13 @@ impl<'a> TextViewport<'a> {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 struct Run {
     span: usize,
     sel: bool,
     a: usize,
     b: usize,
+    joined: Option<Box<str>>,
 }
 
 fn paint_row(
@@ -1633,7 +2250,11 @@ fn paint_row(
     let mut run: Option<Run> = None;
     let flush = |ui: &mut Ui<'_>, r: Option<Run>, x: &mut u16| {
         let Some(r) = r else { return };
-        let text = run_text(line, r.span).get(r.a..r.b).unwrap_or("");
+        let text = r
+            .joined
+            .as_deref()
+            .or_else(|| run_text(line, r.span).get(r.a..r.b))
+            .unwrap_or("");
         if text.is_empty() || *x >= right {
             return;
         }
@@ -1665,6 +2286,33 @@ fn paint_row(
             col = next;
             return ControlFlow::Continue(());
         }
+        if col < from {
+            flush(ui, run.take(), &mut x);
+            let blank = next
+                .saturating_sub(from)
+                .min(usize::from(right.saturating_sub(x)));
+            let is_sel = sel.is_some_and(|(a, b)| {
+                let p = CellPos { line: line_ix, col };
+                p >= a && p < b
+            });
+            if blank > 0 {
+                ui.fill(
+                    Rect {
+                        x,
+                        y: rect.y,
+                        width: blank.min(usize::from(u16::MAX)) as u16,
+                        height: 1,
+                    },
+                    if is_sel { styles.1 } else { styles.0 },
+                );
+                x = x.saturating_add(blank.min(usize::from(u16::MAX)) as u16);
+            }
+            col = next;
+            return ControlFlow::Continue(());
+        }
+        if next > to {
+            return ControlFlow::Break(());
+        }
         let is_sel = sel.is_some_and(|(a, b)| {
             let p = CellPos { line: line_ix, col };
             p >= a && p < b
@@ -1681,10 +2329,21 @@ fn paint_row(
                 if is_sel { styles.1 } else { styles.0 },
             );
             x = x.saturating_add(1);
+        } else if c.joined.is_some() {
+            flush(ui, run.take(), &mut x);
+            run = Some(Run {
+                span: c.span,
+                sel: is_sel,
+                a: c.at,
+                b: c.at.saturating_add(c.len),
+                joined: c.joined,
+            });
         } else {
             let end = c.at.saturating_add(c.len);
-            match run {
-                Some(r) if r.span == c.span && r.sel == is_sel && r.b == c.at => {
+            match run.take() {
+                Some(r)
+                    if r.joined.is_none() && r.span == c.span && r.sel == is_sel && r.b == c.at =>
+                {
                     run = Some(Run { b: end, ..r });
                 }
                 other => {
@@ -1694,6 +2353,7 @@ fn paint_row(
                         sel: is_sel,
                         a: c.at,
                         b: end,
+                        joined: None,
                     });
                 }
             }
@@ -1717,7 +2377,7 @@ mod tests {
     use ratatui_core::buffer::{Buffer, Cell};
 
     use super::*;
-    use crate::event::MouseKind;
+    use crate::event::{Axis, MouseKind};
     use crate::runtime::stub::{SCREEN, Stub, key, mouse};
     use crate::runtime::{App, Runtime};
     use crate::theme::{ColorLevel, Surface, Theme};
@@ -1726,6 +2386,8 @@ mod tests {
     const ID: Id = Id::root("viewport.tests");
     const POINTER_AREA: Rect = Rect::new(0, 0, 12, 8);
     const MANY_LINES: [ViewportLine<'static>; 100] = [ViewportLine::Plain("row"); 100];
+    const LONG_LINES: [ViewportLine<'static>; 100] =
+        [ViewportLine::Plain("012345678901234567890123456789"); 100];
 
     struct ViewportApp {
         state: ViewportState,
@@ -1748,6 +2410,42 @@ mod tests {
 
         fn draw(&self, ui: &mut Ui<'_>) {
             TextViewport::new(ID).draw(ui, POINTER_AREA, &self.state, &MANY_LINES);
+        }
+    }
+
+    struct HorizontalWheelProbe {
+        state: ViewportState,
+        keymap: crate::keymap::KeyMap,
+    }
+
+    impl HorizontalWheelProbe {
+        fn new(state: ViewportState) -> Self {
+            HorizontalWheelProbe {
+                state,
+                keymap: crate::keymap::KeyMap::new(),
+            }
+        }
+    }
+
+    impl App for HorizontalWheelProbe {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            TextViewport::new(ID)
+                .horizontal_pan(true)
+                .update(cx, &mut self.state, &LONG_LINES)
+                .erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            TextViewport::new(ID).horizontal_pan(true).draw(
+                ui,
+                POINTER_AREA,
+                &self.state,
+                &LONG_LINES,
+            );
+        }
+
+        fn keymap(&self) -> &crate::keymap::KeyMap {
+            &self.keymap
         }
     }
 
@@ -1909,6 +2607,310 @@ mod tests {
             mouse(MouseKind::Down, track.x, track.bottom() - 1),
         );
         assert!(runtime.app().state.scroll.at_end());
+    }
+
+    #[test]
+    fn horizontal_wheel_is_not_reapplied_as_vertical_scroll() {
+        let mut state = ViewportState::default();
+        state.set_follow(false);
+        let mut runtime = Runtime::new(HorizontalWheelProbe::new(state), Theme::junie());
+        let _ = runtime.initialize();
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+
+        let _ =
+            crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Wheel(Axis::H, 1), 4, 3));
+
+        assert_eq!(runtime.app().state.horizontal_offset(), 4);
+        assert_eq!(runtime.app().state.scroll().offset(), 0);
+    }
+
+    #[test]
+    fn horizontal_pan_keys_move_four_cells_and_leave_vertical_position_alone() {
+        let mut state = ViewportState::default();
+        state.set_follow(false);
+        let mut runtime = Runtime::new(HorizontalWheelProbe::new(state), Theme::junie());
+        let _ = runtime.initialize();
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Right));
+        assert_eq!(runtime.app().state.horizontal_offset(), 4);
+        assert_eq!(runtime.app().state.scroll().offset(), 0);
+
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Left));
+        assert_eq!(runtime.app().state.horizontal_offset(), 0);
+        assert_eq!(runtime.app().state.scroll().offset(), 0);
+    }
+
+    #[test]
+    fn pan_remap_disables_the_old_arrow_and_caret_ownership_has_no_raw_fallback() {
+        let mut state = ViewportState::default();
+        state.set_follow(false);
+        state.set_caret(Some(CellPos::new(0, 0)));
+        let mut keymap = crate::keymap::KeyMap::new();
+        keymap.remap_component(ID, HORIZONTAL_PAN_RIGHT, Chord::key(KeyCode::Char('p')));
+        let mut app = HorizontalWheelProbe::new(state);
+        app.keymap = keymap;
+        let mut runtime = Runtime::new(app, Theme::junie());
+        let _ = runtime.initialize();
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Right));
+        assert_eq!(runtime.app().state.horizontal_offset(), 0);
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Char('p')));
+        assert_eq!(runtime.app().state.horizontal_offset(), 4);
+    }
+
+    #[test]
+    fn horizontal_edge_drag_pans_without_changing_logical_selection_or_copy() {
+        let mut state = ViewportState::default();
+        state.set_follow(false);
+        state.horizontal.set_content(30);
+        state.horizontal.set_viewport(10);
+        state.horizontal.scroll_to(4);
+        let mut runtime = Runtime::new(HorizontalWheelProbe::new(state), Theme::junie());
+        let _ = runtime.initialize();
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, 3, 1));
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Drag, 11, 1));
+        assert_eq!(runtime.app().state.horizontal_offset(), 5);
+        assert_eq!(
+            runtime.app().state.selection(),
+            Some((CellPos::new(1, 6), CellPos::new(1, 14)))
+        );
+        let mut copied = String::new();
+        assert!(runtime.app().state.copy_into(&LONG_LINES, &mut copied));
+        assert_eq!(copied, "67890123");
+    }
+
+    #[test]
+    fn vertical_wheel_remains_vertical_inside_the_combined_region() {
+        let mut state = ViewportState::default();
+        state.set_follow(false);
+        let mut runtime = Runtime::new(HorizontalWheelProbe::new(state), Theme::junie());
+        let _ = runtime.initialize();
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+
+        let _ =
+            crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Wheel(Axis::V, 1), 4, 3));
+
+        assert_eq!(runtime.app().state.scroll().offset(), 3);
+        assert_eq!(runtime.app().state.horizontal_offset(), 0);
+    }
+
+    #[test]
+    fn opted_in_text_registers_both_axes_with_independent_headroom_and_a_blank_corner() {
+        let mut state = ViewportState::default();
+        state.set_follow(false);
+        state.scroll.apply_layout(7, LONG_LINES.len());
+        state.scroll.scroll_to(6);
+        state.horizontal.set_content(30);
+        state.horizontal.set_viewport(10);
+        state.horizontal.scroll_to(4);
+        let mut runtime = Runtime::new(HorizontalWheelProbe::new(state), Theme::junie());
+        let _ = runtime.initialize();
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+
+        let text_point = Position::new(4, 2);
+        assert_eq!(
+            runtime
+                .registry()
+                .hit_scroll(text_point, Axis::V)
+                .map(|hit| hit.owner),
+            Some(ID)
+        );
+        assert_eq!(
+            runtime
+                .registry()
+                .hit_scroll(text_point, Axis::H)
+                .map(|hit| hit.owner),
+            Some(ID)
+        );
+        let both = runtime
+            .registry()
+            .regions()
+            .iter()
+            .find(|region| {
+                region.owner == ID
+                    && region.kind == crate::ui::hit::RegionKind::Scroll
+                    && region.scroll().is_some_and(|(axes, _)| axes == Axes::Both)
+            })
+            .expect("opted-in body registers one combined-axis scroll region");
+        let (axes, headroom) = both.scroll().expect("combined region carries headroom");
+        assert_eq!(axes, Axes::Both);
+        assert_eq!((headroom.up, headroom.down), (6, 87));
+        assert_eq!((headroom.left, headroom.right), (4, 16));
+
+        let track = runtime
+            .area_of_part(ID, PartRef::of(HORIZONTAL_TRACK))
+            .expect("horizontal overflow paints and registers its bottom track");
+        assert_eq!(track, Rect::new(1, 7, 10, 1));
+        assert!(
+            !track.contains(Position::new(11, 7)),
+            "the bars' corner stays blank"
+        );
+    }
+
+    #[test]
+    fn horizontal_thumb_drag_tracks_the_logical_offset_and_releases_outside() {
+        let mut state = ViewportState::default();
+        state.set_follow(false);
+        let mut runtime = Runtime::new(HorizontalWheelProbe::new(state), Theme::junie());
+        let _ = runtime.initialize();
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+
+        let track = runtime
+            .area_of_part(ID, PartRef::of(HORIZONTAL_TRACK))
+            .expect("horizontal track is registered");
+        let thumb = runtime
+            .area_of_part(ID, PartRef::of(HORIZONTAL_THUMB))
+            .expect("horizontal thumb is registered separately from the vertical bar");
+        let grab = Position::new(thumb.x, thumb.y);
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, grab.x, grab.y));
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            mouse(MouseKind::Drag, track.right().saturating_sub(1), track.y),
+        );
+        assert_eq!(runtime.app().state.horizontal_offset(), 20);
+        assert_eq!(runtime.app().state.scroll().offset(), 0);
+
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, 30, 20));
+        assert_eq!(runtime.app().state.horizontal_offset(), 20);
+    }
+
+    #[test]
+    fn pan_window_omits_wide_graphemes_crossed_by_either_edge() {
+        let render = |text: &str, offset: usize| {
+            let lines = [ViewportLine::Plain(text)];
+            let mut state = ViewportState::default();
+            state.horizontal.set_content(line_cols(lines[0]));
+            state.horizontal.set_viewport(3);
+            state.horizontal.scroll_to(offset);
+            let area = Rect::new(0, 0, 5, 3);
+            let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+            let mut buffer = Buffer::empty(SCREEN);
+            runtime
+                .draw_scene(SCREEN, &mut buffer, |ui, _| {
+                    TextViewport::new(ID)
+                        .horizontal_pan(true)
+                        .draw(ui, area, &state, &lines);
+                })
+                .commit_presented();
+            (0..3)
+                .map(|x| {
+                    buffer
+                        .cell(Position::new(x + 1, 0))
+                        .map_or_else(String::new, |cell| cell.symbol().to_owned())
+                })
+                .collect::<Vec<_>>()
+        };
+
+        assert_eq!(render("a漢b界c", 2), [" ", "b", " "]);
+        assert_eq!(render("ab漢c", 0), ["a", "b", " "]);
+        assert_eq!(render("xe\u{301}yz", 1), ["e\u{301}", "y", "z"]);
+        assert_eq!(render("x👩\u{200d}💻yz", 2), [" ", "y", "z"]);
+        assert_eq!(render("x🇺🇸yz", 2), [" ", "y", "z"]);
+        assert_eq!(render("ab\tcd", 4), [" ", " ", "c"]);
+    }
+
+    #[test]
+    fn horizontal_pan_keeps_the_style_of_the_visible_projected_run() {
+        let spans = [
+            Span::new("ab").role(Role::Success).modifier(Modifier::BOLD),
+            Span::new("漢cdef")
+                .role(Role::Danger)
+                .modifier(Modifier::UNDERLINED),
+        ];
+        let lines = [ViewportLine::Spans(&spans)];
+        let mut state = ViewportState::default();
+        state.horizontal.set_content(8);
+        state.horizontal.set_viewport(4);
+        state.horizontal.scroll_to(2);
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime
+            .draw_scene(SCREEN, &mut buffer, |ui, _| {
+                TextViewport::new(ID).horizontal_pan(true).draw(
+                    ui,
+                    Rect::new(0, 0, 6, 3),
+                    &state,
+                    &lines,
+                );
+            })
+            .commit_presented();
+
+        let visible = buffer
+            .cell(Position::new(1, 0))
+            .expect("the first panned cell is visible");
+        assert_eq!(visible.symbol(), "漢");
+        assert!(visible.modifier.contains(Modifier::UNDERLINED));
+        assert!(!visible.modifier.contains(Modifier::BOLD));
+        let following = buffer
+            .cell(Position::new(3, 0))
+            .expect("the following styled cell is visible");
+        assert_eq!(following.symbol(), "c");
+        assert!(following.modifier.contains(Modifier::UNDERLINED));
+    }
+
+    #[test]
+    fn graphemes_split_across_styled_runs_keep_the_leading_style() {
+        let check = |first: &'static str, rest: &'static str, grapheme: &'static str| {
+            let spans = [
+                Span::new(first)
+                    .role(Role::Success)
+                    .modifier(Modifier::BOLD),
+                Span::new(rest)
+                    .role(Role::Danger)
+                    .modifier(Modifier::UNDERLINED),
+            ];
+            let lines = [ViewportLine::Spans(&spans)];
+            assert_eq!(
+                line_slice(lines[0], 0, grapheme_width(grapheme) as usize),
+                grapheme
+            );
+
+            let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+            let mut buffer = Buffer::empty(SCREEN);
+            runtime
+                .draw_scene(SCREEN, &mut buffer, |ui, _| {
+                    TextViewport::new(ID).draw(
+                        ui,
+                        Rect::new(0, 0, 8, 2),
+                        &ViewportState::default(),
+                        &lines,
+                    );
+                })
+                .commit_presented();
+
+            let combined = buffer
+                .cell(Position::new(1, 0))
+                .expect("the combined grapheme is visible");
+            assert_eq!(combined.symbol(), grapheme);
+            assert!(combined.modifier.contains(Modifier::BOLD));
+            assert!(!combined.modifier.contains(Modifier::UNDERLINED));
+            let next_x = 1 + grapheme_width(grapheme);
+            let following = buffer
+                .cell(Position::new(next_x, 0))
+                .expect("the next grapheme is visible");
+            assert_eq!(following.symbol(), "x");
+            assert!(following.modifier.contains(Modifier::UNDERLINED));
+            assert!(!following.modifier.contains(Modifier::BOLD));
+        };
+
+        check("e", "\u{301}x", "e\u{301}");
+        check("👩", "\u{200d}💻x", "👩\u{200d}💻");
+        check("🇺", "🇸x", "🇺🇸");
     }
 
     #[test]
@@ -2507,7 +3509,7 @@ mod tests {
                 return ControlFlow::Break(());
             }
             if col >= a {
-                out.push_str(cell_text(line, c));
+                out.push_str(cell_text(line, &c));
             }
             col = col.saturating_add(usize::from(c.w));
             ControlFlow::Continue(())
