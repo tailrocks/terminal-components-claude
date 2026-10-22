@@ -1,3 +1,18 @@
+# 2026-10-22: dim wave-3 per-source-ink landed on the parity branch
+
+`wip/dim3-per-source-ink-20261022` (bf56fbe5cb + 127874f13c + d39b09e607) landed on
+`origin/parity/termrock-visual-baseline` as `07e1199157` (tip after the landing
+amendment). Landing amendment `07e1199157` registers the frozen junie_256 ghost
+slot override lines (fg[4], border_subtle, backdrop_fg = i(238)) in
+`all_73_junie_slots_match_reference_capability_output` per the test's own header
+protocol — the test fails on d39b09e607 without them, passes with them — and notes
+the registration in `docs/audits/2026-10-22-dim-wave-3-per-source-ink.md`. Landing
+gate on the exact pushed HEAD: fmt clean, clippy 0 warnings, theme+runtime
+615/617 (the two adjudication-pending theme reds, pre-existing on tip 835170aad),
+controls 187/187, and the six picker/safemode/dialogs visual_baseline matrices show
+a combo red set byte-identical to plain tip 835170aad (150 combos, no regression
+to list rows). Nothing blessed, no expected frame touched.
+
 # 2026-10-22: showcase false-parity lane complete; Button focus-visible hold owed
 
 Audit record: `docs/audits/2026-10-22-showcase-false-parity-audit.md` (commit `d972ae4` on
