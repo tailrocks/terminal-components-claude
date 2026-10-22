@@ -485,3 +485,53 @@ pinned HEAD after an independent review of
 blessed by this lane. Also red before and after, recorded: jackin
 `returning 100 30 junie truecolor` (got `2359288f161828ad`), holla and the
 render_components tree/too_small/wizard reference rows.
+
+
+# 2026-10-22: coordinator checkpoint — the Termrock migration record is the ledger
+
+Delivery: `parity/termrock-visual-baseline` (PR #38). The single committed
+ledger for this work is
+[docs/architecture/termrock-migration-record.md](../architecture/termrock-migration-record.md).
+Read it first; it holds the decisions, the evidence links, the measured
+parity state and the open reference conflict. The plan is
+[docs/architecture/termrock-coordinator-plan.md](../architecture/termrock-coordinator-plan.md)
+and the branch census is
+[docs/audits/2026-10-21-branch-census.md](../audits/2026-10-21-branch-census.md).
+
+## What this session landed on the delivery branch
+
+- CI unblock: `.velnor/config.toml` discovery excludes the audit evidence
+  tree, so the generated-file check no longer fails and the 47 Rust jobs are
+  no longer skipped.
+- Showcase false-parity removal: the captured cell tables, the exact-size
+  page branches and the tick-timed switch are gone; the chrome page matches
+  the frozen approval cell for cell at all five reference sizes.
+- Jackin live accounts page and its corrections: the four hard-coded view
+  modules are replaced by a page driven from the world state, and the three
+  oracle-approved accounts frames match again.
+- Showcase page corrections: the task runner card, the terminal layout, the
+  hint sets, one section strip and the shared scrollbar.
+- Holla width-band layout policy, and the history default restored to the
+  reference behaviour.
+- The frozen source's theme text and syntax tokens, with the 256 and 16
+  ladders, and the scroll track glyph.
+- The conformance chord allowlist, narrowed from 93 entries to 1.
+- Build repairs: the theme crate and the showcase demo crate did not compile
+  on the delivery tip.
+
+## Open, with the owner named
+
+1. The component digest gate, 247 cases, waits on a reference decision. The
+   adjudication is in
+   [docs/audits/evidence/2026-10-22-oracle-adjudication/verdict.md](../audits/evidence/2026-10-22-oracle-adjudication/verdict.md);
+   the expected digests must not be written from the candidate without that
+   decision.
+2. The TablePro footer stream is being integrated; the branch and the
+   conflict resolution are in flight.
+3. The Holla captured-clock selectors and the literal finder rows are open;
+   the measured plan is in the migration record.
+4. The remaining Jackin bypasses, the remaining library needs and the
+   geometry backlogs are listed per stream in the migration record.
+5. Delivery blockers: 1453 of 1483 commits carry no `Signed-off-by`
+   trailer, and the hosted runs are cancelled by the constant pushes to the
+   branch, so no green hosted run exists yet.
