@@ -1,11 +1,9 @@
 use core::fmt;
 use std::time::Duration;
 
-use termrock::author::PaintStyle;
-
 use termrock::{
-    Button, Color, Cx, FrameRead, Id, Panel, PanelKind, Rect, Response, Spinner, StateFlags,
-    Status, StepState, Steps, StepsState, TextArea, TextAreaState, Ui, Variant, layout,
+    Button, Cx, FrameRead, Id, Panel, PanelKind, Rect, Response, Spinner, StateFlags, Status,
+    StepState, Steps, StepsState, TextArea, TextAreaState, Ui, Variant, layout,
 };
 
 use showcase_data::log_lines;
@@ -23,20 +21,24 @@ const FAIL: Id = termrock::Id::root("showcase_ui::pages::terminal::terminal.fail
 /// The ticks a launch stage takes.
 const STAGE_TICKS: u32 = 6;
 
-const STAGES: &[(&str, StepState)] = &[
-    ("01 Resolve workspace", StepState::Running),
-    ("02 Pull base image", StepState::Queued),
-    ("03 Build container", StepState::Queued),
-    ("04 Mount sources", StepState::Queued),
-    ("05 Resolve credentials", StepState::Queued),
-    ("06 Start agent", StepState::Queued),
-    ("07 Ready", StepState::Queued),
+/// The rows the page's footer keeps below the panes.
+const FOOTER_ROWS: u16 = 2;
+
+const STAGES: &[(&str, StepState, &str)] = &[
+    ("01 Resolve workspace", StepState::Running, "0.8 s"),
+    ("02 Pull base image", StepState::Queued, "2.1 s"),
+    ("03 Build container", StepState::Queued, "3.2 s"),
+    ("04 Mount sources", StepState::Queued, "cached"),
+    ("05 Resolve credentials", StepState::Queued, "1.4 s"),
+    ("06 Start agent", StepState::Queued, "1.1 s"),
+    ("07 Ready", StepState::Queued, "0.1 s"),
 ];
 
 #[derive(Clone, Copy, Debug)]
 struct TerminalStep {
     label: &'static str,
     state: StepState,
+    duration: &'static str,
 }
 
 impl fmt::Display for TerminalStep {
@@ -50,7 +52,9 @@ fn step_state(step: &TerminalStep) -> StepState {
 }
 
 fn step_rail() -> Steps<'static, TerminalStep> {
-    Steps::navigable(RAIL).step(&step_state)
+    Steps::navigable(RAIL)
+        .step(&step_state)
+        .metadata(&|step: &TerminalStep| Some(step.duration))
 }
 
 fn step_spinner() -> Spinner<'static> {
@@ -63,26 +67,8 @@ fn output_panel() -> Panel<'static> {
         .title("Viewport")
 }
 
-fn rail_panel() -> Panel<'static> {
-    Panel::new(RAIL_PANEL).title("Step rail")
-}
-
-/// The stage count rides on the rail panel's title row.
-fn paint_rail_count(ui: &mut Ui<'_>, panel: Rect, settled: usize, running: bool) {
-    let count = if running {
-        format!("{settled} of 7 · running ")
-    } else {
-        format!("{settled} of 7 ")
-    };
-    let width = termrock::width(&count);
-    let x = panel.right().saturating_sub(width).saturating_sub(1);
-    let _ = ui.paint_str(
-        Rect::new(x, panel.y, width, 1),
-        &count,
-        PaintStyle::new()
-            .fg(Color::Rgb(115, 115, 115))
-            .bg(Color::Rgb(17, 17, 17)),
-    );
+fn rail_panel(meta: &str) -> Panel<'_> {
+    Panel::new(RAIL_PANEL).title("Step rail").meta(meta)
 }
 
 fn output() -> TextArea<'static> {
@@ -136,9 +122,10 @@ impl TerminalPage {
             output_state: TextAreaState::default(),
             steps: STAGES
                 .iter()
-                .map(|(label, state)| TerminalStep {
+                .map(|(label, state, duration)| TerminalStep {
                     label,
                     state: *state,
+                    duration,
                 })
                 .collect(),
             steps_state: StepsState::default(),
@@ -151,8 +138,9 @@ impl TerminalPage {
         self.steps = STAGES
             .iter()
             .enumerate()
-            .map(|(index, (label, _))| TerminalStep {
+            .map(|(index, (label, _, duration))| TerminalStep {
                 label,
+                duration,
                 state: if failed && index > 0 {
                     StepState::Blocked
                 } else if failed && index == 0 {
@@ -232,7 +220,6 @@ impl Page for TerminalPage {
         response |= fail.erase();
 
         let _ = output_panel();
-        let _ = rail_panel();
         let _ = step_spinner();
         // The launch runs on its own clock: every tick moves one stage on and
         // the page settles when the last one is done.
@@ -251,7 +238,19 @@ impl Page for TerminalPage {
             self.title(),
             "Viewport with scrollback, selection and copy · drag the seam · step rail reports a job",
             |ui, body| {
-                let (left, right) = panes(body);
+                super::section_strip(ui, body);
+                let content = Rect {
+                    y: body.y.saturating_add(3),
+                    height: body.height.saturating_sub(3),
+                    ..body
+                };
+                // The footer keeps its own rows below the panes, so it never
+                // lands on a panel border.
+                let panes_area = Rect {
+                    height: content.height.saturating_sub(FOOTER_ROWS),
+                    ..content
+                };
+                let (left, right) = panes(panes_area);
                 let wide = left.is_some();
                 if let Some(left) = left {
                     output_panel().draw(ui, left, |ui, inner| {
@@ -261,7 +260,12 @@ impl Page for TerminalPage {
                     });
                 }
 
-                rail_panel().draw(ui, right, |ui, inner| {
+                let count = if self.running {
+                    format!("{} of 7 · running", self.settled())
+                } else {
+                    format!("{} of 7", self.settled())
+                };
+                rail_panel(&count).draw(ui, right, |ui, inner| {
                     let rail_area = Rect {
                         height: inner.height.saturating_sub(3),
                         ..inner
@@ -276,16 +280,6 @@ impl Page for TerminalPage {
                             width: 1,
                             height: 1,
                         },
-                    );
-                    let _ = ui.paint_str(
-                        Rect {
-                            x: inner.right().saturating_sub(5),
-                            y: inner.y,
-                            width: 5,
-                            height: 1,
-                        },
-                        "0.7 s",
-                        ui.surface_style(),
                     );
 
                     let run = run_button();
@@ -311,15 +305,14 @@ impl Page for TerminalPage {
                         fail.draw(ui, rect);
                     }
                 });
-                paint_rail_count(ui, right, self.settled(), self.running);
 
                 if wide {
                     lines(
                         ui,
                         Rect {
-                            y: body.bottom().saturating_sub(2),
-                            height: 2,
-                            ..body
+                            y: panes_area.bottom(),
+                            height: FOOTER_ROWS,
+                            ..content
                         },
                         &[
                             "Output remains borrowed by the public control.",
@@ -333,18 +326,13 @@ impl Page for TerminalPage {
 
     fn hints(&self, ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
         if ui.state(OUTPUT).contains(StateFlags::FOCUSED) {
-            &[
-                ("↑ ↓", "Scroll"),
-                ("Home End", "Oldest / live"),
-                ("f", "Follow"),
-                ("drag", "Select"),
-                ("y", "Copy"),
-                ("Esc", "Clear"),
-            ]
+            // The viewport is a read-only control: it scrolls and its caret
+            // walks the log. It has no follow, copy or clear command.
+            &[("↑ ↓", "Scroll"), ("Home End", "Oldest / live")]
         } else if ui.state(RAIL).contains(StateFlags::FOCUSED) {
-            &[("↑ ↓", "Move"), ("wheel", "Scroll")]
+            &[("↑ ↓", "Move")]
         } else {
-            &[("Enter", "Activate"), ("drag ┃", "Resize")]
+            &[("Enter", "Activate")]
         }
     }
 }
