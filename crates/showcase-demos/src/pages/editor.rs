@@ -78,34 +78,44 @@ const KEYWORDS: &[&str] = &[
     "Self", "static", "struct", "trait", "true", "false", "type", "use", "where", "while",
 ];
 
-const CANDIDATES: &[(&str, &str, &str, &str)] = &[
-    ("fetch(", "async fn (url: &str)", "ƒ", "fetch()"),
-    ("client(", "fn () -> Client", "ƒ", "client()"),
-    ("sleep(", "async fn (ms: u64)", "ƒ", "sleep()"),
+const FETCH_FULL_DETAIL: &str = "async fn (url: &str) -> Result<Body, Error>";
+const FETCH_MENU_SUMMARY: &str = "async fn (url: &str)";
+
+const CANDIDATES: &[(&str, &str, &str, &str, Option<&str>)] = &[
+    (
+        "fetch(",
+        FETCH_FULL_DETAIL,
+        "ƒ",
+        "fetch()",
+        Some(FETCH_MENU_SUMMARY),
+    ),
+    ("client(", "fn () -> Client", "ƒ", "client()", None),
+    ("sleep(", "async fn (ms: u64)", "ƒ", "sleep()", None),
     (
         "schedule(",
         "fn (attempts: u32) -> Vec<u64>",
         "ƒ",
         "schedule()",
+        None,
     ),
-    ("Client", "struct", "T", "Client"),
-    ("Body", "struct", "T", "Body"),
-    ("Error", "enum · Transient, Exhausted", "T", "Error"),
-    ("Result<T, E>", "enum", "T", "Result<T, E>"),
-    ("Option<T>", "enum", "T", "Option<T>"),
-    ("String", "struct", "T", "String"),
-    ("Vec<T>", "struct", "T", "Vec<T>"),
-    ("delay", "local · u64", "v", "delay"),
-    ("attempt", "local · u32", "v", "attempt"),
-    ("url", "param · &str", "v", "url"),
-    ("assert_eq!(", "macro", "m", "assert_eq!()"),
-    ("format!(", "macro", "m", "format!()"),
-    ("println!(", "macro", "m", "println!()"),
-    ("log::warn!(", "macro", "m", "log::warn!()"),
-    ("await", "keyword", "k", "await"),
-    ("async", "keyword", "k", "async"),
-    ("match", "keyword", "k", "match"),
-    ("return", "keyword", "k", "return"),
+    ("Client", "struct", "T", "Client", None),
+    ("Body", "struct", "T", "Body", None),
+    ("Error", "enum · Transient, Exhausted", "T", "Error", None),
+    ("Result<T, E>", "enum", "T", "Result<T, E>", None),
+    ("Option<T>", "enum", "T", "Option<T>", None),
+    ("String", "struct", "T", "String", None),
+    ("Vec<T>", "struct", "T", "Vec<T>", None),
+    ("delay", "local · u64", "v", "delay", None),
+    ("attempt", "local · u32", "v", "attempt", None),
+    ("url", "param · &str", "v", "url", None),
+    ("assert_eq!(", "macro", "m", "assert_eq!()", None),
+    ("format!(", "macro", "m", "format!()", None),
+    ("println!(", "macro", "m", "println!()", None),
+    ("log::warn!(", "macro", "m", "log::warn!()", None),
+    ("await", "keyword", "k", "await", None),
+    ("async", "keyword", "k", "async", None),
+    ("match", "keyword", "k", "match", None),
+    ("return", "keyword", "k", "return", None),
 ];
 
 fn highlight(src: &str) -> Vec<(Range<usize>, SyntaxRole)> {
@@ -241,20 +251,21 @@ impl CompletionProvider for ShowcaseCompletion {
         let mut ranked: Vec<_> = CANDIDATES
             .iter()
             .enumerate()
-            .filter_map(|(index, (label, detail, glyph, insertion))| {
+            .filter_map(|(index, (label, detail, glyph, insertion, menu_summary))| {
                 let (penalty, matched) = termrock::fuzzy(label, word)?;
-                Some((
-                    penalty,
+                let value = CompletionValue::new(
+                    ItemKey::num(u64::try_from(index).ok()?.saturating_add(1)),
                     *label,
-                    CompletionValue::new(
-                        ItemKey::num(u64::try_from(index).ok()?.saturating_add(1)),
-                        *label,
-                        *insertion,
-                    )
-                    .glyph(*glyph)
-                    .matched(matched)
-                    .detail(*detail),
-                ))
+                    *insertion,
+                )
+                .glyph(*glyph)
+                .matched(matched)
+                .detail(*detail);
+                let value = match menu_summary {
+                    Some(summary) => value.menu_summary(*summary),
+                    None => value,
+                };
+                Some((penalty, *label, value))
             })
             .collect();
         ranked.sort_by(|left, right| left.0.cmp(&right.0).then_with(|| left.1.cmp(right.1)));
@@ -278,7 +289,9 @@ fn code_editor() -> CodeEditor<'static> {
 }
 
 fn editor() -> CompletingCodeEditor<'static> {
-    code_editor().with_completion(COMPLETION, &COMPLETION_PROVIDER)
+    code_editor()
+        .with_completion(COMPLETION, &COMPLETION_PROVIDER)
+        .selected_details()
 }
 
 fn find_button() -> Button<'static> {
@@ -637,7 +650,25 @@ impl Page for EditorPage {
     }
 
     fn hints(&self, _ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
-        if self.state.is_completion_open() {
+        if self.state.is_completion_details_open() {
+            &[
+                ("↑ ↓ / PgUp Dn", "Scroll detail"),
+                ("Enter / Tab", "Accept"),
+                ("Esc", "List"),
+            ]
+        } else if self.state.is_completion_open()
+            && self
+                .state
+                .selected_completion()
+                .is_some_and(|item| !item.full_detail().is_empty())
+        {
+            &[
+                ("↑ ↓", "Move"),
+                ("Ctrl+Shift+D", "Details"),
+                ("Enter / Tab", "Accept"),
+                ("Esc", "Close"),
+            ]
+        } else if self.state.is_completion_open() {
             &[("↑ ↓", "Move"), ("Enter", "Accept"), ("Esc", "Close")]
         } else if self.state.editor().is_editing() {
             &[
@@ -714,6 +745,27 @@ mod completion_order_tests {
                 ItemKey::num(u64::try_from(index).unwrap_or(u64::MAX).saturating_add(1))
             );
         }
+    }
+
+    #[test]
+    fn fetch_keeps_its_full_signature_separate_from_the_menu_summary() {
+        let batch = COMPLETION_PROVIDER
+            .complete("fe", 2, CompletionTrigger::Manual)
+            .expect("fetch completion list");
+        let fetch = batch
+            .items
+            .iter()
+            .find(|item| item.as_item().label == "fetch(")
+            .expect("fetch item");
+
+        assert_eq!(batch.replace_len, 2);
+        assert_eq!(fetch.as_item().key, ItemKey::num(1));
+        assert_eq!(fetch.as_item().insertion(), "fetch()");
+        assert_eq!(
+            fetch.full_detail(),
+            "async fn (url: &str) -> Result<Body, Error>"
+        );
+        assert_eq!(fetch.as_item().detail, "async fn (url: &str)");
     }
 
     #[test]
