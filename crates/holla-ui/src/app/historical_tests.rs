@@ -8,13 +8,15 @@ fn fixture(
     width: u16,
     height: u16,
 ) -> Harness<App> {
-    let app = App::for_scenario_without_history(scenario, motion, frame);
+    let source_theme = Theme::junie();
+    let app = App::for_scenario_without_history(scenario, motion, frame)
+        .with_source_theme(source_theme.clone());
     let frame = u64::try_from(app.fixture_time_ms());
     assert!(frame.is_ok(), "fixture time must be nonnegative");
     let initial = SimulationMoment::from_millis(frame.unwrap_or_default());
     Harness::new_with_feedback_clock(
         app,
-        Theme::junie(),
+        source_theme,
         width,
         height,
         FeedbackClock::Simulation { initial },

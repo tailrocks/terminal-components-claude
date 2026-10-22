@@ -169,6 +169,7 @@ enum Overlay {
 
 pub struct App {
     world: World,
+    source_theme: Option<ActivityThemeSource>,
     motion: Motion,
     route: Route,
     home: HomeState,
@@ -182,6 +183,13 @@ pub struct App {
     status_until_ms: Option<i64>,
     last_step_at: Option<termrock::Moment>,
     quit: bool,
+}
+
+#[derive(Clone)]
+struct ActivityThemeSource {
+    theme: termrock::Theme,
+    recipes_are_known: bool,
+    preserve_theme_foreground: bool,
 }
 impl std::fmt::Debug for App {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -304,8 +312,9 @@ const PARITY_HINT_PARTS: &[(Part, StylePatch)] = &[
     ),
 ];
 
-/// Activities footer clips `Ctrl+G` to `…` in meta ink. Other plates keep the theme overflow.
-const ACTIVITIES_HINT_PARTS: &[(Part, StylePatch)] = &[
+/// The activities footer keeps the clipped `Ctrl+G` marker in faint ink unless its theme
+/// authors a foreground for that part.
+const ACTIVITIES_HINT_PARTS: [(Part, StylePatch); 5] = [
     (
         Part::CONTAINER,
         StylePatch::new()
@@ -334,7 +343,7 @@ const ACTIVITIES_HINT_PARTS: &[(Part, StylePatch)] = &[
     (
         Part::OVERFLOW,
         StylePatch::new()
-            .set_fg(Role::Custom(Color::Rgb(0x73, 0x73, 0x73)))
+            .set_fg(Role::Fg(FgStep::Faint))
             .set_bg(Role::Custom(PARITY_HINT_BG)),
     ),
 ];
@@ -1152,6 +1161,46 @@ fn gate_dialog() -> Dialog<'static> {
 }
 
 impl App {
+    /// Retain the caller's authored theme before the host projects it to a terminal tier.
+    ///
+    /// Existing constructors intentionally leave this unset. Embeddings that only pass an
+    /// already-projected theme keep the existing footer behavior because its authorship
+    /// cannot be recovered reliably from the projected colors. The readable overflow fallback
+    /// is limited to the built-in recipe sets and token-only themes. Other recipe configuration
+    /// can contain level-specific foreground intent that the theme API does not expose; in that
+    /// case the fallback is suppressed, and a missing resolved foreground does not count as proof
+    /// that the theme left the channel unconfigured.
+    #[must_use]
+    pub fn with_source_theme(mut self, source_theme: termrock::Theme) -> Self {
+        let token_recipes = termrock::Theme::from_tokens(source_theme.color).recipes;
+        let paper_recipes = termrock::Theme::paper().recipes;
+        let junie_recipes = termrock::Theme::junie().recipes;
+        let recipes_are_known = source_theme.recipes == token_recipes
+            || source_theme.recipes == paper_recipes
+            || source_theme.recipes == junie_recipes;
+        let source_foreground = source_theme
+            .resolve(
+                termrock::Family::HINTBAR,
+                termrock::Variant::DEFAULT,
+                Part::OVERFLOW,
+                termrock::StateFlags::empty(),
+                Surface::Canvas,
+            )
+            .style
+            .fg_role;
+        let preserve_theme_foreground = match source_foreground {
+            Some((Role::Fg(FgStep::Faint), _)) => false,
+            Some(_) => true,
+            None => !recipes_are_known,
+        };
+        self.source_theme = Some(ActivityThemeSource {
+            theme: source_theme,
+            recipes_are_known,
+            preserve_theme_foreground,
+        });
+        self
+    }
+
     pub fn effect_revision(&self) -> u64 {
         self.world.effect_revision
     }
@@ -1210,6 +1259,7 @@ impl App {
         home.history = crate::sim::catalogue::history_enabled();
         Self {
             world,
+            source_theme: None,
             motion,
             route,
             home,
@@ -1752,6 +1802,97 @@ impl App {
             paint_status_text(ui, area, cx, STATUS_CENTER, STATUS_DANGER, false);
         }
     }
+
+    fn activity_overflow_ink(&self, ui: &Ui<'_>) -> Option<Color> {
+        let provenance = self.current_source_theme(ui)?;
+        if !provenance.recipes_are_known || provenance.preserve_theme_foreground {
+            return None;
+        }
+        let source = &provenance.theme;
+        // An explicit capability palette may author a deliberate collision at this tier. The
+        // app-level fallback cannot tell whether that choice is intentional, so keep it intact.
+        if source.capability_palettes.is_some() {
+            return None;
+        }
+
+        let current = ui.theme_ref();
+        let projected = source.for_level(current.capability.color);
+        // Theme equality covers every token, recipe, and capability field. Any runtime edit
+        // invalidates the retained source provenance until the app is configured again.
+        if *current != projected {
+            return None;
+        }
+
+        let authored_faint = source.color.fg[FgStep::Faint.index()];
+        let source_bg = termrock::theme::downgrade_color(PARITY_HINT_BG, source.capability.color);
+        if termrock::theme::contrast_ratio(authored_faint, source_bg)? < 3.0 {
+            return None;
+        }
+        let projected_faint = projected.color.fg[FgStep::Faint.index()];
+        let projected_bg =
+            termrock::theme::downgrade_color(PARITY_HINT_BG, projected.capability.color);
+        if projected_faint != projected_bg {
+            return None;
+        }
+
+        // Prefer semantic inverse/ghost ink. Some light-canvas themes have no projected ink
+        // token at this tier, so the final candidate is their own canvas color, passed through
+        // the same contrast helper. Every candidate is checked against this footer's actual
+        // black background before use; Reset and low-contrast results are declined.
+        [
+            projected.color.on_surface_inverse,
+            projected.color.fg[FgStep::Ghost.index()],
+            projected.color.fg[FgStep::Primary.index()],
+            projected.color.surfaces[0],
+        ]
+        .into_iter()
+        .find_map(|candidate| {
+            let ink = projected.legible_mark(candidate, projected_bg);
+            let contrast = termrock::theme::contrast_ratio(ink, projected_bg)?;
+            (ink != projected_faint && contrast >= 3.0).then_some(ink)
+        })
+    }
+
+    fn current_source_theme<'a>(&'a self, ui: &Ui<'_>) -> Option<&'a ActivityThemeSource> {
+        let source = self.source_theme.as_ref()?;
+        let current = ui.theme_ref();
+        let projected = source.theme.for_level(current.capability.color);
+        (*current == projected).then_some(source)
+    }
+
+    fn draw_activities_hints(&self, ui: &mut Ui<'_>, layer: &HintLayer, footer: Rect) {
+        let source_owns_foreground = self
+            .current_source_theme(ui)
+            .is_some_and(|source| source.preserve_theme_foreground);
+        if source_owns_foreground {
+            let mut parts = ACTIVITIES_HINT_PARTS;
+            if let Some((_, overflow_patch)) = parts.last_mut() {
+                // Preserve a direct recipe foreground, including a Reset/Clear that resolves to
+                // no color. Theme::resolve alone cannot distinguish those from no authored ink.
+                *overflow_patch = StylePatch::new().set_bg(Role::Custom(PARITY_HINT_BG));
+            }
+            HintBar::new(FOOTER, layer)
+                .patch_part(&parts)
+                .draw(ui, footer);
+        } else if let Some(ink) = self.activity_overflow_ink(ui) {
+            let mut parts = ACTIVITIES_HINT_PARTS;
+            if let Some((_, overflow_patch)) = parts.last_mut() {
+                *overflow_patch = overflow_patch.merge(
+                    StylePatch::new()
+                        .set_fg(Role::Custom(ink))
+                        .set_bg(Role::Custom(PARITY_HINT_BG)),
+                );
+            }
+            HintBar::new(FOOTER, layer)
+                .patch_part(&parts)
+                .draw(ui, footer);
+        } else {
+            HintBar::new(FOOTER, layer)
+                .patch_part(&ACTIVITIES_HINT_PARTS)
+                .draw(ui, footer);
+        }
+    }
+
     fn footer_draw(&self, ui: &mut Ui<'_>, footer: Rect) {
         if launch_failure_activity_open(&self.world, ui)
             && self.route == Route::Activity
@@ -1846,9 +1987,7 @@ impl App {
             {
                 scope.label = "Scope ";
             }
-            HintBar::new(FOOTER, &layer)
-                .patch_part(ACTIVITIES_HINT_PARTS)
-                .draw(ui, footer);
+            self.draw_activities_hints(ui, &layer, footer);
             return;
         }
         if crate::sim::catalogue::docker_cleanup_tag_frame(&self.world)
@@ -1865,14 +2004,13 @@ impl App {
             } else {
                 docker_cleanup_hints()
             };
-            let parts = if narrow || mid {
-                ACTIVITIES_HINT_PARTS
+            if narrow || mid {
+                self.draw_activities_hints(ui, &layer, footer);
             } else {
-                PARITY_HINT_PARTS
-            };
-            HintBar::new(FOOTER, &layer)
-                .patch_part(parts)
-                .draw(ui, footer);
+                HintBar::new(FOOTER, &layer)
+                    .patch_part(PARITY_HINT_PARTS)
+                    .draw(ui, footer);
+            }
             return;
         }
         if crate::sim::catalogue::disk_cleanup_tag_frame(&self.world)
@@ -1892,14 +2030,13 @@ impl App {
             // Single-column bands clip the last hint to a meta `…`. The wide
             // card fits every hint, so it keeps the theme overflow.
             let band = layout::Band::of(ui.full().width);
-            let parts = if band.is_narrow() || band.is_mid() {
-                ACTIVITIES_HINT_PARTS
+            if band.is_narrow() || band.is_mid() {
+                self.draw_activities_hints(ui, &layer, footer);
             } else {
-                PARITY_HINT_PARTS
-            };
-            HintBar::new(FOOTER, &layer)
-                .patch_part(parts)
-                .draw(ui, footer);
+                HintBar::new(FOOTER, &layer)
+                    .patch_part(PARITY_HINT_PARTS)
+                    .draw(ui, footer);
+            }
             return;
         }
         let hints = HintLayer::from_bindings(GLOBAL);
@@ -2473,6 +2610,7 @@ mod tests {
     fn harness(app: App, theme: Theme, width: u16, height: u16) -> Harness<App> {
         let initial =
             termrock::SimulationMoment::from_millis(u64::try_from(app.fixture_time_ms()).unwrap());
+        let app = app.with_source_theme(theme.clone());
         Harness::new_with_feedback_clock(
             app,
             theme,
@@ -5474,9 +5612,11 @@ mod tests {
                 initial: termrock::SimulationMoment::from_millis(5_000),
             },
         ] {
-            let app = App::for_scenario_without_history(Scenario::HardCases, Motion::Full, 4_000);
+            let theme = Theme::junie();
+            let app = App::for_scenario_without_history(Scenario::HardCases, Motion::Full, 4_000)
+                .with_source_theme(theme.clone());
             let expected = snapshot(&app);
-            let mut harness = Harness::new_with_feedback_clock(app, Theme::junie(), 120, 40, clock);
+            let mut harness = Harness::new_with_feedback_clock(app, theme, 120, 40, clock);
             assert_eq!(snapshot(harness.app()), expected);
             assert!(!harness.app().world.clock.running);
             assert_eq!(harness.app().motion, Motion::Paused);
@@ -5623,7 +5763,8 @@ mod independent_draw_review {
                 Route::Review,
                 Route::Snapshot,
             ] {
-                let mut app = App::for_scenario_without_history(scenario, Motion::Paused, 4000);
+                let mut app = App::for_scenario_without_history(scenario, Motion::Paused, 4000)
+                    .with_source_theme(termrock::Theme::junie());
                 if route == Route::Plan {
                     let plan = crate::sim::catalogue::catalogue(&app.world)
                         .iter()

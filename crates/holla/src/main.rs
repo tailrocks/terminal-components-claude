@@ -32,7 +32,9 @@ fn main() -> std::process::ExitCode {
             holla_ui::cli::ColorChoice::Ansi16 => termrock::ColorLevel::Ansi16,
             holla_ui::cli::ColorChoice::Mono => termrock::ColorLevel::Mono,
         });
-    let app = holla_ui::App::for_scenario(options.scenario, options.motion, options.frame);
+    let source_theme = termrock::Theme::junie();
+    let app = holla_ui::App::for_scenario(options.scenario, options.motion, options.frame)
+        .with_source_theme(source_theme.clone());
     let Ok(frame) = u64::try_from(app.fixture_time_ms()) else {
         eprintln!("holla: fixture clock precedes its simulation epoch");
         return std::process::ExitCode::FAILURE;
@@ -40,11 +42,7 @@ fn main() -> std::process::ExitCode {
     let feedback = termrock::FeedbackClock::Simulation {
         initial: termrock::SimulationMoment::from_millis(frame),
     };
-    match termrock::run_with_feedback_clock(
-        app,
-        termrock::Theme::junie().downgrade(color),
-        feedback,
-    ) {
+    match termrock::run_with_feedback_clock(app, source_theme.downgrade(color), feedback) {
         Ok(()) => std::process::ExitCode::SUCCESS,
         Err(error) => {
             eprintln!("holla: {error}");
