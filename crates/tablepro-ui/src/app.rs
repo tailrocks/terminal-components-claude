@@ -29,6 +29,7 @@ use crate::workbench::Workbench;
 mod connection_form_focus;
 mod explorer_collapsed;
 mod filter_editor;
+mod query_safety;
 mod result_grid;
 
 use filter_editor::{FILTER_APPLY, FILTER_CANCEL, FILTER_COLUMN, FILTER_OPERATOR, FILTER_VALUE2};
@@ -71,6 +72,7 @@ const DELETE_ROW: ActionKey = ActionKey::application("tablepro.delete-row");
 const DISCARD_ROWS: ActionKey = ActionKey::application("tablepro.discard-rows");
 const QUIT: ActionKey = ActionKey::application("tablepro.quit");
 const CANCEL_OR_QUIT: ActionKey = ActionKey::application("tablepro.cancel-or-quit");
+const CANCEL_QUERY_SAFETY: ActionKey = ActionKey::application("tablepro.query-safety.cancel");
 const QUIT_DIALOG: Id = Id::root("tablepro.quit-dialog");
 const DELETE_DIALOG: Id = Id::root("tablepro.delete-connection");
 const QUIT_ACTIONS: [Action<'static>; 2] = [
@@ -203,10 +205,7 @@ enum DestructiveIntent {
         question: String,
     },
     ReplaceResult {
-        key: TabKey,
-        query: String,
-        generation: u64,
-        connection: Box<Connection>,
+        request: Box<query_safety::QuerySafetyRequest>,
     },
     Commit(Box<PendingCommit>),
 }
@@ -221,9 +220,9 @@ impl core::fmt::Debug for DestructiveIntent {
                 .field("tabs", &scope.len())
                 .finish_non_exhaustive(),
             Self::DiscardRows { key, .. } => f.debug_tuple("DiscardRows").field(key).finish(),
-            Self::ReplaceResult { key, .. } => f
+            Self::ReplaceResult { request } => f
                 .debug_struct("ReplaceResult")
-                .field("key", key)
+                .field("key", &request.key())
                 .finish_non_exhaustive(),
             Self::Commit(request) => f.debug_tuple("Commit").field(&request.key).finish(),
         }
@@ -753,6 +752,7 @@ pub struct TableProApp {
     destructive_notice: Option<&'static str>,
     quit_state: DialogState,
     commit_preview_state: ViewportState,
+    query_safety: query_safety::QuerySafetyController,
     switcher: QuickSwitcher,
     tab_list: TabList,
     safe_mode_picker: SafeModePicker,
@@ -813,6 +813,7 @@ impl core::fmt::Debug for TableProApp {
             .field("destructive_intent", &self.destructive_intent)
             .field("has_destructive_notice", &self.destructive_notice.is_some())
             .field("quit_state", &self.quit_state)
+            .field("query_safety", &self.query_safety)
             .field("switcher", &"<query and target snapshot>")
             .field("tab_list", &self.tab_list.rows.len())
             .field("safe_mode_picker", &self.safe_mode_picker.rows.len())
@@ -896,6 +897,7 @@ impl TableProApp {
             destructive_notice: None,
             quit_state: DialogState::default(),
             commit_preview_state: ViewportState::default(),
+            query_safety: query_safety::QuerySafetyController::default(),
             switcher: QuickSwitcher::default(),
             tab_list: TabList::default(),
             safe_mode_picker: SafeModePicker::default(),
@@ -1557,6 +1559,29 @@ impl TableProApp {
     }
 
     fn execute_snapshot(&mut self, key: TabKey, query: &str) -> QueryOutcome {
+        self.execute_snapshot_inner(key, query, false)
+    }
+
+    fn execute_authorized_query(
+        &mut self,
+        authorization: query_safety::AuthorizedExecution,
+    ) -> QueryOutcome {
+        let request = authorization.into_request();
+        if !request.is_current(self) {
+            self.status = "Work changed; request again".to_owned();
+            return QueryOutcome::Rejected {
+                message: "Work changed; request again".to_owned(),
+            };
+        }
+        self.execute_snapshot_inner(request.key(), request.query(), true)
+    }
+
+    fn execute_snapshot_inner(
+        &mut self,
+        key: TabKey,
+        query: &str,
+        authorized: bool,
+    ) -> QueryOutcome {
         if !matches!(self.workbench.tab(key), Some(Tab::Query(_))) {
             return QueryOutcome::Rejected {
                 message: "Query tab is no longer available".to_owned(),
@@ -1589,7 +1614,7 @@ impl TableProApp {
                 self.status = outcome_message(&out);
                 out
             }
-            tablepro_sql::sql::Decision::Confirm { deliberate } => {
+            tablepro_sql::sql::Decision::Confirm { deliberate } if !authorized => {
                 let risk = tablepro_sql::sql::assess(&statement, table);
                 let out = QueryOutcome::ConfirmationRequired {
                     deliberate,
@@ -1598,64 +1623,74 @@ impl TableProApp {
                 self.status = outcome_message(&out);
                 out
             }
-            tablepro_sql::sql::Decision::Run => {
-                if let tablepro_sql::sql::Statement::Select(select) = statement {
-                    match tablepro_sql::sql::run_select(&self.catalog, &select) {
-                        Ok(result) => {
-                            let out = QueryOutcome::Executed {
-                                rows: result.rows.len(),
-                                editable: result.editable,
-                            };
-                            if let Some(Tab::Query(tab)) = self.workbench.tab_mut(key) {
-                                tab.result = Some(GridView::from_result(&result));
-                                tab.error = None;
-                                tab.editor_state.editor_mut().set_diagnostics(Vec::new());
-                                if tab.editor_state.editor().text() == query {
-                                    tab.commit_query_edit();
-                                }
-                            }
-                            self.status = outcome_message(&out);
-                            self.record_query_status(key, &out, started.elapsed());
-                            out
-                        }
-                        Err(error) => {
-                            let out = QueryOutcome::Rejected {
-                                message: error.message.clone(),
-                            };
-                            if let Some(Tab::Query(tab)) = self.workbench.tab_mut(key) {
-                                tab.result = None;
-                                tab.plan = None;
-                                let text_len = tab.editor_state.editor().text().len();
-                                let range = match error.at {
-                                    Some(at) => {
-                                        let start = at.min(text_len);
-                                        start..start.saturating_add(8).min(text_len)
-                                    }
-                                    None => 0..text_len,
-                                };
-                                tab.editor_state.editor_mut().set_diagnostics(vec![
-                                    CodeDiagnostic::new(
-                                        range,
-                                        CodeSeverity::Error,
-                                        error.message.clone(),
-                                    ),
-                                ]);
-                                tab.error = Some(error.message);
-                            }
-                            self.status = outcome_message(&out);
-                            self.record_query_status(key, &out, started.elapsed());
-                            out
+            tablepro_sql::sql::Decision::Confirm { .. } | tablepro_sql::sql::Decision::Run => {
+                self.execute_accepted_snapshot(key, query, statement, started)
+            }
+        }
+    }
+
+    fn execute_accepted_snapshot(
+        &mut self,
+        key: TabKey,
+        query: &str,
+        statement: tablepro_sql::sql::Statement,
+        started: QueryTimer,
+    ) -> QueryOutcome {
+        if let tablepro_sql::sql::Statement::Select(select) = statement {
+            match tablepro_sql::sql::run_select(&self.catalog, &select) {
+                Ok(result) => {
+                    let out = QueryOutcome::Executed {
+                        rows: result.rows.len(),
+                        editable: result.editable,
+                    };
+                    if let Some(Tab::Query(tab)) = self.workbench.tab_mut(key) {
+                        tab.result = Some(GridView::from_result(&result));
+                        tab.error = None;
+                        tab.editor_state.editor_mut().set_diagnostics(Vec::new());
+                        if tab.editor_state.editor().text() == query {
+                            tab.commit_query_edit();
                         }
                     }
-                } else {
+                    self.status = outcome_message(&out);
+                    self.record_query_status(key, &out, started.elapsed());
+                    out
+                }
+                Err(error) => {
                     let out = QueryOutcome::Rejected {
-                        message: "The demo executor only runs SELECT statements".to_owned(),
+                        message: error.message.clone(),
                     };
+                    if let Some(Tab::Query(tab)) = self.workbench.tab_mut(key) {
+                        tab.result = None;
+                        tab.plan = None;
+                        let text_len = tab.editor_state.editor().text().len();
+                        let range = match error.at {
+                            Some(at) => {
+                                let start = at.min(text_len);
+                                start..start.saturating_add(8).min(text_len)
+                            }
+                            None => 0..text_len,
+                        };
+                        tab.editor_state
+                            .editor_mut()
+                            .set_diagnostics(vec![CodeDiagnostic::new(
+                                range,
+                                CodeSeverity::Error,
+                                error.message.clone(),
+                            )]);
+                        tab.error = Some(error.message);
+                    }
                     self.status = outcome_message(&out);
                     self.record_query_status(key, &out, started.elapsed());
                     out
                 }
             }
+        } else {
+            let out = QueryOutcome::Rejected {
+                message: "The demo executor only runs SELECT statements".to_owned(),
+            };
+            self.status = outcome_message(&out);
+            self.record_query_status(key, &out, started.elapsed());
+            out
         }
     }
 
@@ -1835,24 +1870,54 @@ impl TableProApp {
         let Some(Tab::Query(tab)) = self.workbench.tab(key) else {
             return;
         };
-        if tab.has_pending_result() {
-            let Some(generation) = self.workbench.generation(key) else {
-                self.stale_destructive();
-                return;
-            };
-            let query = tab.editor_state.editor().text().to_owned();
+        let pending_result = tab.has_pending_result();
+        if !pending_result {
+            self.commit_query_edit();
+        }
+        let Some(Tab::Query(tab)) = self.workbench.tab(key) else {
+            self.stale_destructive();
+            return;
+        };
+        let query = tab.editor_state.editor().text().to_owned();
+        let Some(request) = query_safety::QuerySafetyRequest::capture(self, key, query) else {
+            self.stale_destructive();
+            return;
+        };
+        if pending_result {
             self.open_destructive(
                 cx,
                 DestructiveIntent::ReplaceResult {
-                    key,
-                    query,
-                    generation,
-                    connection: Box::new(self.workbench.connection.clone()),
+                    request: Box::new(request),
                 },
             );
         } else {
-            self.commit_query_edit();
-            let _ = self.execute_query();
+            self.prepare_query_request(cx, request);
+        }
+    }
+
+    fn prepare_query_request(
+        &mut self,
+        cx: &mut Cx<'_>,
+        request: query_safety::QuerySafetyRequest,
+    ) {
+        if !request.is_current(self) {
+            self.status = "Work changed; request again".to_owned();
+            return;
+        }
+        if request.needs_review() {
+            if !request.valid_acknowledgement_target() {
+                self.status =
+                    "Query rejected: target cannot be verified for acknowledgement".to_owned();
+                return;
+            }
+            if self.query_safety.open(cx, request) {
+                self.surface = Surface::SafetyDialogTypedAck;
+                self.query_safety.install_escape_capture(&mut self.keymap);
+            } else {
+                self.status = "Could not open query review".to_owned();
+            }
+        } else {
+            let _ = self.execute_snapshot(request.key(), request.query());
         }
     }
 
@@ -2658,17 +2723,11 @@ impl TableProApp {
                             grid.model.discard();
                         }
                     }
-                    DestructiveIntent::ReplaceResult {
-                        key,
-                        query,
-                        generation,
-                        connection,
-                    } => {
-                        if self.workbench.connection == *connection
-                            && self.workbench.generation(key) == Some(generation)
-                        {
-                            let _ = self.execute_snapshot(key, &query);
+                    DestructiveIntent::ReplaceResult { request } => {
+                        if request.is_current(self) {
+                            self.prepare_query_request(cx, *request);
                         } else {
+                            self.status = "Work changed; request again".to_owned();
                             self.stale_destructive();
                         }
                     }
@@ -2677,6 +2736,13 @@ impl TableProApp {
             }
         }
         response.erase() | scroll_response
+    }
+
+    fn update_query_safety(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let mut controller = core::mem::take(&mut self.query_safety);
+        let response = controller.update(self, cx);
+        self.query_safety = controller;
+        response
     }
 
     fn update_tab_controls(&mut self, cx: &mut Cx<'_>) -> Response<()> {
@@ -8506,6 +8572,9 @@ impl App for TableProApp {
         // A status tick must not run the grid. Its first update steals focus
         // onto the result row, and the baseline frame keeps the editor focused.
         if cx.update_cause() == UpdateCause::Tick {
+            if self.query_safety.is_open() || cx.is_open(query_safety::ID) {
+                response |= self.update_query_safety(cx);
+            }
             return response;
         }
         response |= self.update_filter_editor(cx);
@@ -8516,8 +8585,9 @@ impl App for TableProApp {
             self.open_switcher(cx);
         }
         let switcher_was_open = cx.is_open(quick_switcher::ID);
-        let modal_was_open = self.destructive_intent.is_some();
+        let modal_was_open = self.destructive_intent.is_some() || self.query_safety.is_open();
         response |= self.update_destructive_dialog(cx);
+        response |= self.update_query_safety(cx);
         response |= self.update_tab_controls(cx);
         if self.form_open || self.screen != Screen::Connections {
             response |= connection_tree()
@@ -8539,6 +8609,7 @@ impl App for TableProApp {
         response |= self.update_safe_mode(cx);
         response |= self.update_help(cx);
         response |= self.update_delete_dialog(cx);
+        self.query_safety.sync_layer_scope(&mut self.keymap, cx);
         if switcher_was_open {
             return response;
         }
@@ -8898,6 +8969,7 @@ impl App for TableProApp {
             && !self.workbench.maximized
             && self.screen == Screen::Workbench
             && self.destructive_intent.is_none()
+            && !self.query_safety.is_open()
             && let Some(id) = self.query_id()
         {
             cx.focus(id);
@@ -9059,6 +9131,7 @@ impl App for TableProApp {
                 });
             });
         }
+        self.query_safety.draw(ui);
     }
     fn should_quit(&self) -> bool {
         self.quit
@@ -9504,13 +9577,13 @@ mod replacement_tests {
         let Some(key) = app.workbench.active_key() else {
             unreachable!("key")
         };
+        let request =
+            query_safety::QuerySafetyRequest::capture(&app, key, "secret-captured-sql".to_owned())
+                .unwrap_or_else(|| unreachable!("query request capture"));
         app.destructive_intent = Some(DestructiveRequest {
             owner: app.workbench.owner_token(),
             intent: DestructiveIntent::ReplaceResult {
-                key,
-                query: "secret-captured-sql".to_owned(),
-                generation: 0,
-                connection: Box::new(app.connection.clone()),
+                request: Box::new(request),
             },
         });
         let text = format!("{app:?}");
