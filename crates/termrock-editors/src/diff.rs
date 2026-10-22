@@ -157,6 +157,12 @@ struct DiffLayout {
     width: u16,
     has_source: bool,
     valid: bool,
+    path: String,
+    renamed_from: Option<String>,
+    status_marker: String,
+    status_label: String,
+    status_role: Option<Role>,
+    reset_pending: bool,
     scratch: Vec<OwnedLine>,
     projection: ProjectedText,
 }
@@ -165,12 +171,24 @@ impl DiffLayout {
     fn ensure(&mut self, source: Option<&dyn DiffSource>, mode: DiffMode, width: u16) -> bool {
         let revision = source.map_or(0, DiffSource::revision);
         let has_source = source.is_some();
+        let identity_matches = source.is_none_or(|source| {
+            self.path == source.path()
+                && self.renamed_from.as_deref() == source.renamed_from()
+                && self.status_marker == source.status_marker()
+                && self.status_label == source.status_label()
+                && self.status_role == Some(source.status_role())
+        });
+        let source_changed = !self.valid
+            || self.has_source != has_source
+            || self.revision != revision
+            || !identity_matches;
         if revision != u64::MAX
             && self.valid
             && self.revision == revision
             && self.mode == mode
             && self.width == width
             && self.has_source == has_source
+            && identity_matches
         {
             return false;
         }
@@ -195,6 +213,14 @@ impl DiffLayout {
         self.width = width;
         self.has_source = has_source;
         self.valid = true;
+        self.path = source.map_or_else(String::new, |source| source.path().to_owned());
+        self.renamed_from = source.and_then(DiffSource::renamed_from).map(str::to_owned);
+        self.status_marker =
+            source.map_or_else(String::new, |source| source.status_marker().to_owned());
+        self.status_label =
+            source.map_or_else(String::new, |source| source.status_label().to_owned());
+        self.status_role = source.map(DiffSource::status_role);
+        self.reset_pending |= source_changed;
         true
     }
 }
@@ -202,6 +228,7 @@ impl DiffLayout {
 pub struct DiffView<'a> {
     id: Id,
     source: Option<&'a dyn DiffSource>,
+    horizontal_pan: bool,
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
     slot: Option<(Part, SlotFn<'a>)>,
@@ -212,6 +239,7 @@ impl fmt::Debug for DiffView<'_> {
         f.debug_struct("DiffView")
             .field("id", &self.id)
             .field("source", &self.source.is_some())
+            .field("horizontal_pan", &self.horizontal_pan)
             .field("parts", &self.parts.len())
             .field("slot", &self.slot.map(|(part, _)| part))
             .finish_non_exhaustive()
@@ -225,6 +253,7 @@ impl<'a> DiffView<'a> {
         DiffView {
             id,
             source,
+            horizontal_pan: false,
             patch: None,
             parts: &[],
             slot: None,
@@ -233,6 +262,14 @@ impl<'a> DiffView<'a> {
 
     pub const fn id(&self) -> Id {
         self.id
+    }
+
+    /// Enable the shared viewport's horizontal pan controls for long diff lines.
+    /// The default is off, preserving the existing DiffView key and frame surface.
+    #[must_use]
+    pub const fn horizontal_pan(mut self, enabled: bool) -> Self {
+        self.horizontal_pan = enabled;
+        self
     }
 
     #[must_use]
@@ -254,7 +291,9 @@ impl<'a> DiffView<'a> {
     }
 
     fn viewport(&self) -> TextViewport<'a> {
-        let mut viewport = TextViewport::new(self.id).patch_part(self.parts);
+        let mut viewport = TextViewport::new(self.id)
+            .horizontal_pan(self.horizontal_pan)
+            .patch_part(self.parts);
         if let Some(patch) = self.patch {
             viewport = viewport.patch(patch);
         }
@@ -267,10 +306,13 @@ impl<'a> DiffView<'a> {
     pub fn update(&self, cx: &mut Cx<'_>, state: &mut DiffViewState) -> Response<ViewportAction> {
         let width = cx.area(self.id).map_or(80, |area| area.width);
         let mut layout = core::mem::take(cx.cache::<DiffLayout>(self.id));
-        if layout.ensure(self.source, state.mode, width) {
+        layout.ensure(self.source, state.mode, width);
+        if layout.reset_pending {
             state.viewport.set_follow(false);
             state.viewport.invalidate();
+            state.viewport.reset_scroll_offsets();
             let _ = state.viewport.clear_selection();
+            layout.reset_pending = false;
         }
         let response =
             self.viewport()
@@ -282,9 +324,16 @@ impl<'a> DiffView<'a> {
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, state: &DiffViewState) -> Rect {
         let mut layout = core::mem::take(ui.cache::<DiffLayout>(self.id));
         layout.ensure(self.source, state.mode, area.width);
+        let mut viewport_state = state.viewport.clone();
+        if layout.reset_pending {
+            viewport_state.set_follow(false);
+            viewport_state.invalidate();
+            viewport_state.reset_scroll_offsets();
+            let _ = viewport_state.clear_selection();
+        }
         let used = self
             .viewport()
-            .draw_projected(ui, area, &state.viewport, &layout.projection);
+            .draw_projected(ui, area, &viewport_state, &layout.projection);
         *ui.cache::<DiffLayout>(self.id) = layout;
         used
     }
@@ -686,10 +735,13 @@ mod tests {
     use ratatui_core::buffer::Buffer;
 
     use super::*;
+    use crate::event::{Axis, KeyCode, MouseKind};
     use crate::runtime::Runtime;
-    use crate::runtime::stub::Stub;
+    use crate::runtime::stub::{Stub, key, mouse};
     use crate::theme::Theme;
+    use crate::ui::PartRef;
     use crate::{ReferenceState, ReferenceTarget};
+    use termrock_viewport::viewport::CellPos;
 
     const ID: Id = Id::root("diff.tests");
     const ROWS: &[DiffRow<'static>] = &[
@@ -754,6 +806,98 @@ mod tests {
         }
         fn row(&self, index: usize) -> Option<DiffRow<'_>> {
             ROWS.get(index).copied()
+        }
+    }
+
+    #[derive(Clone, Copy)]
+    struct NamedSource {
+        revision: u64,
+        path: &'static str,
+        renamed_from: Option<&'static str>,
+        marker: &'static str,
+        label: &'static str,
+        role: Role,
+    }
+
+    impl DiffSource for NamedSource {
+        fn revision(&self) -> u64 {
+            self.revision
+        }
+
+        fn path(&self) -> &str {
+            self.path
+        }
+
+        fn status_marker(&self) -> &str {
+            self.marker
+        }
+
+        fn status_label(&self) -> &str {
+            self.label
+        }
+
+        fn status_role(&self) -> Role {
+            self.role
+        }
+
+        fn renamed_from(&self) -> Option<&str> {
+            self.renamed_from
+        }
+
+        fn row_count(&self) -> usize {
+            ROWS.len()
+        }
+
+        fn row(&self, index: usize) -> Option<DiffRow<'_>> {
+            ROWS.get(index).copied()
+        }
+    }
+
+    const FIRST_NAMED_SOURCE: NamedSource = NamedSource {
+        revision: 4,
+        path: "src/first.rs",
+        renamed_from: None,
+        marker: "M",
+        label: "modified",
+        role: Role::Warning,
+    };
+
+    const SECOND_NAMED_SOURCE: NamedSource = NamedSource {
+        revision: 4,
+        path: "src/second.rs",
+        renamed_from: None,
+        marker: "A",
+        label: "added",
+        role: Role::Success,
+    };
+
+    struct DiffProbe {
+        second_source: bool,
+        state: DiffViewState,
+    }
+
+    impl DiffProbe {
+        fn source(&self) -> &'static dyn DiffSource {
+            if self.second_source {
+                &SECOND_NAMED_SOURCE
+            } else {
+                &FIRST_NAMED_SOURCE
+            }
+        }
+    }
+
+    impl crate::runtime::App for DiffProbe {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            DiffView::new(ID, Some(self.source()))
+                .horizontal_pan(true)
+                .update(cx, &mut self.state)
+                .erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            DiffView::new(ID, Some(self.source()))
+                .horizontal_pan(true)
+                .draw(ui, Rect::new(0, 0, 20, 6), &self.state);
         }
     }
 
@@ -838,6 +982,180 @@ mod tests {
         assert!(layout.ensure(Some(&Source), DiffMode::Review, 40));
         assert_ne!(layout.scratch, first);
         assert_eq!(layout.width, 40);
+    }
+
+    #[test]
+    fn cache_identity_includes_path_rename_and_header_metadata() {
+        let first = NamedSource {
+            revision: 7,
+            path: "src/old.rs",
+            renamed_from: None,
+            marker: "M",
+            label: "modified",
+            role: Role::Warning,
+        };
+        let second = NamedSource {
+            path: "src/new.rs",
+            renamed_from: Some("src/old.rs"),
+            ..first
+        };
+        let metadata = NamedSource {
+            marker: "A",
+            label: "added",
+            role: Role::Success,
+            ..second
+        };
+        let changed = NamedSource {
+            revision: 8,
+            ..metadata
+        };
+        let mut layout = DiffLayout::default();
+
+        assert!(layout.ensure(Some(&first), DiffMode::Unified, 80));
+        assert!(layout.reset_pending);
+        assert!(text(layout.scratch.first().expect("header row")).contains("src/old.rs"));
+        layout.reset_pending = false;
+        assert!(!layout.ensure(Some(&first), DiffMode::Unified, 80));
+
+        assert!(layout.ensure(Some(&second), DiffMode::Unified, 80));
+        assert!(
+            layout.reset_pending,
+            "a new file identity requests a state reset"
+        );
+        let header_text = text(layout.scratch.first().expect("renamed header"));
+        assert!(
+            header_text.contains("src/old.rs → src/new.rs"),
+            "{header_text}"
+        );
+        layout.reset_pending = false;
+
+        assert!(layout.ensure(Some(&metadata), DiffMode::Unified, 80));
+        assert!(text(layout.scratch.first().expect("status header")).starts_with("A "));
+        layout.reset_pending = false;
+
+        let label_only = NamedSource {
+            label: "staged addition",
+            ..metadata
+        };
+        assert!(layout.ensure(Some(&label_only), DiffMode::Unified, 80));
+        layout.reset_pending = false;
+
+        let role_only = NamedSource {
+            role: Role::Danger,
+            ..label_only
+        };
+        assert!(layout.ensure(Some(&role_only), DiffMode::Unified, 80));
+        assert_eq!(layout.scratch[0][0].role, Some(Role::Danger));
+        layout.reset_pending = false;
+
+        assert!(layout.ensure(Some(&changed), DiffMode::Unified, 80));
+        assert!(
+            layout.reset_pending,
+            "a changed source revision requests a state reset"
+        );
+        assert!(layout.ensure(None, DiffMode::Unified, 80));
+        assert!(
+            layout.reset_pending,
+            "clearing the selected source requests a state reset"
+        );
+        assert!(layout.ensure(Some(&first), DiffMode::Unified, 80));
+        assert!(
+            layout.reset_pending,
+            "switching back rebuilds the previous source"
+        );
+    }
+
+    #[test]
+    fn max_revision_disables_projection_reuse_without_rearming_source_reset() {
+        let source = NamedSource {
+            revision: u64::MAX,
+            path: "src/max.rs",
+            renamed_from: None,
+            marker: "M",
+            label: "modified",
+            role: Role::Warning,
+        };
+        let mut layout = DiffLayout::default();
+        assert!(layout.ensure(Some(&source), DiffMode::Unified, 80));
+        assert!(layout.reset_pending);
+        layout.reset_pending = false;
+        assert!(layout.ensure(Some(&source), DiffMode::Unified, 80));
+        assert!(!layout.reset_pending);
+    }
+
+    #[test]
+    fn horizontal_pan_is_opt_in_on_diff_view() {
+        assert!(!DiffView::new(ID, Some(&Source)).horizontal_pan);
+        assert!(
+            DiffView::new(ID, Some(&Source))
+                .horizontal_pan(true)
+                .horizontal_pan
+        );
+    }
+
+    #[test]
+    fn diff_horizontal_pan_reaches_the_shared_viewport_only_when_enabled() {
+        let area = Rect::new(0, 0, 20, 6);
+        let horizontal_track = PartRef::of(Part::custom("viewport.horizontal-track"));
+        let draw_has_horizontal_track = |view: DiffView<'_>| {
+            let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+            let mut buffer = Buffer::empty(area);
+            runtime
+                .draw_scene(area, &mut buffer, |ui, rect| {
+                    view.draw(ui, rect, &DiffViewState::default());
+                })
+                .commit_presented();
+            runtime.area_of_part(ID, horizontal_track).is_some()
+        };
+
+        assert!(!draw_has_horizontal_track(DiffView::new(ID, Some(&Source))));
+        assert!(draw_has_horizontal_track(
+            DiffView::new(ID, Some(&Source)).horizontal_pan(true)
+        ));
+    }
+
+    #[test]
+    fn source_change_resets_both_offsets_before_the_first_new_draw() {
+        let mut state = DiffViewState::default();
+        state.viewport.set_follow(false);
+        let app = DiffProbe {
+            second_source: false,
+            state,
+        };
+        let area = Rect::new(0, 0, 20, 6);
+        let mut runtime = Runtime::new(app, Theme::junie());
+        let _ = runtime.initialize();
+        let mut buffer = Buffer::empty(area);
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Right));
+        assert_eq!(runtime.app().state.viewport.horizontal_offset(), 4);
+        let _ =
+            crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Wheel(Axis::V, 1), 5, 2));
+        assert!(runtime.app().state.viewport.scroll().offset() > 0);
+        runtime
+            .app_mut()
+            .state
+            .viewport
+            .select(CellPos::new(1, 1), CellPos::new(1, 5));
+        runtime.app_mut().second_source = true;
+
+        buffer = Buffer::empty(area);
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        let new_header: String = buffer
+            .content()
+            .iter()
+            .take(usize::from(area.width))
+            .map(ratatui_core::buffer::Cell::symbol)
+            .collect();
+        assert!(new_header.contains("A src/second.rs"), "{new_header:?}");
+        assert_eq!(runtime.app().state.viewport.horizontal_offset(), 4);
+        assert_eq!(runtime.app().state.viewport.scroll().offset(), 3);
+
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Char('z')));
+        assert_eq!(runtime.app().state.viewport.horizontal_offset(), 0);
+        assert_eq!(runtime.app().state.viewport.scroll().offset(), 0);
+        assert_eq!(runtime.app().state.viewport.selection(), None);
     }
 
     #[test]
