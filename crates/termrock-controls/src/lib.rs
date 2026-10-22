@@ -49,7 +49,7 @@ pub use empty::Empty;
 pub use master_detail::{
     MasterDetail, MasterDetailCmd, MasterDetailLayout, MasterDetailMode, MasterDetailState,
 };
-pub use panel::{Panel, PanelKind};
+pub use panel::{Panel, PanelKind, PanelWindowError};
 pub use props::{
     Props, PropsAction, PropsCmd, PropsList, PropsPresentation, PropsRow, PropsState, PropsValue,
 };
