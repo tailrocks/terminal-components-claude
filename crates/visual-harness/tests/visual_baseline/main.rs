@@ -45,12 +45,24 @@ fn main() {
         ),
         check("overlay_sites", overlay_sites::overlay_sites),
         check(
+            "overlay_sites::reviewed_overlay_registry_changes_are_exact",
+            overlay_sites::reviewed_overlay_registry_changes_are_exact,
+        ),
+        check(
             "overlay_sites::site_scanner_reads_functions",
             overlay_sites::site_scanner_reads_functions,
         ),
         check(
             "overlay_sites::scanner_matches_calls_across_comments_without_losing_owners",
             overlay_sites::scanner_matches_calls_across_comments_without_losing_owners,
+        ),
+        check(
+            "overlay_sites::quit_model_exclusion_is_source_and_span_qualified",
+            overlay_sites::quit_model_exclusion_is_source_and_span_qualified,
+        ),
+        check(
+            "overlay_sites::quit_model_exclusion_rejects_an_extra_qualified_match",
+            overlay_sites::quit_model_exclusion_rejects_an_extra_qualified_match,
         ),
         check("isolation::env_isolation", isolation::env_isolation),
         check(

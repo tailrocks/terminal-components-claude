@@ -117,12 +117,6 @@ pub const SURFACES: &[Root] = &[
 
 
 
-    Root::new("jackin/accounts/add_form", Bin::Jackin, ACCOUNTS, "jackin❯").sends(&["a", "wait:New account"]),
-
-
-
-
-    Root::new("jackin/accounts/add_form_required", Bin::Jackin, ACCOUNTS, "jackin❯").sends(&["a", "wait:New account", "backtab", "enter", "wait:Required"]),
     Root::new("jackin/accounts/filter", Bin::Jackin, ACCOUNTS, "jackin❯").sends(&["/", "type:work", "enter", "wait:Accounts · filt"]),
     Root::new("jackin/usage/detail", Bin::Jackin, ACCOUNTS, "jackin❯").sends(&["u", "down", "enter", "wait:Back to list"]),
     Root::new("jackin/settings/route", Bin::Jackin, ACCOUNTS, "jackin❯").sends(&["s", "wait:Settings › global"]),
@@ -202,6 +196,8 @@ pub const OVERLAYS: &[Root] = &[
 
     Root::new("jackin/manager/menu_open", Bin::Jackin, RETURNING, "jackin❯").sends(&["f10", "wait:New workspace…"]).dismiss_pending(),
     Root::new("jackin/manager/help_overlay", Bin::Jackin, RETURNING, "jackin❯").sends(&["?", "wait:Keyboard shortcuts"]).dismiss_pending(),
+    Root::new("jackin/accounts/add_form", Bin::Jackin, ACCOUNTS, "jackin❯").sends(&["a", "wait:New account"]).dismiss_pending(),
+    Root::new("jackin/accounts/add_form_required", Bin::Jackin, ACCOUNTS, "jackin❯").sends(&["a", "wait:New account", "backtab", "enter", "wait:Required"]).dismiss_pending(),
 
 
     Root::new("jackin/editor/quit_guard", Bin::Jackin, RETURNING, "jackin❯").sends(&["e", "wait:General", "tab", "tab", "tab", "space", "ctrl-q", "wait:Unsaved changes"]).pending().dismiss_pending(),
