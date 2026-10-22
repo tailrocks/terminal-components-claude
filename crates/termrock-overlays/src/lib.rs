@@ -35,6 +35,7 @@ pub mod dialog;
 pub mod help;
 pub mod info_card;
 pub mod menu;
+pub mod notice_reveal;
 pub mod picker;
 pub mod picker_chain;
 pub mod select;
@@ -49,6 +50,7 @@ pub use help::{HelpAction, HelpCmd, HelpOverlay, HelpOverlayState, HelpSection};
 pub use menu::{
     ContextMenu, Menu, MenuAction, MenuBar, MenuBarHoverScope, MenuCmd, MenuItem, MenuState,
 };
+pub use notice_reveal::NoticeReveal;
 pub use picker::{
     AsItem, CommandPalette, Item, ItemRow, ItemRowLayout, Picker, PickerAction, PickerLayout,
     PickerState, ScopeKey,
