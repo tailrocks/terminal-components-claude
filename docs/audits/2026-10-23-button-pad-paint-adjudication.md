@@ -202,6 +202,22 @@ same owner regeneration decision as the `render_components` rows.
   `showcase-data`): run after the repair; `d1ac0c0dac`'s showcase-side
   chrome changes are not touched by this repair.
 
+## Blast-radius verification (paired tip vs repaired HEAD)
+
+Paired runs of every suite that renders `Button` pixels, origin tip
+`01035dba90` vs this repair (clean worktrees, same machine):
+
+- `termrock-conformance --test render_components` groups
+  `tree/too_small/wizard/button`: **identical failure sets** (25 scenario
+  names each) — all pre-existing reference reds, none added by the repair.
+- `jackin-preview-app --test visual`: identical first-failing row and values
+  (`returning 100 30 junie truecolor`, baseline `678f015972a21ee9`, got
+  `2359288f161828ad`) — pre-existing, unchanged.
+- `tablepro-ui` (213 tests, includes `tablepro_visual_baseline`): green at
+  tip and green after the repair.
+- `holla-ui --test visual holla_visual_baseline`: pre-existing red,
+  documented in the holla audits; unchanged.
+
 ## Owner decision owed
 
 Regeneration scope approval for the `render_components` button rows (and the
