@@ -583,7 +583,7 @@ jobs:
       - *s33
       - name: Prepare pinned tools
         env: *m8
-        run: mise --no-config --no-env --no-hooks install gh@2.103.0
+        run: mise --no-config --no-env --no-hooks install gh@2.102.0
       - name: Download plan
         continue-on-error: true
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333

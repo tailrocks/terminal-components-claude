@@ -87,6 +87,7 @@ exclude = ["xtask/fixtures/**", "tools/termrock-visibility-publisher/**", "tools
 [actions.overrides]
 
 [tools]
+gh = "2.102.0"
 mr-boxington = "1.26.0"
 
 [agents]
