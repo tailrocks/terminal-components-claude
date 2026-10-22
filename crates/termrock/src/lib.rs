@@ -159,10 +159,10 @@ pub use termrock_runtime::{
 
 pub use termrock_controls::{
     Brand, BusyMarkerPolicy, Button, ButtonCmd, Checkbox, ChoiceCmd, Empty, LabelRadio,
-    MasterDetailCmd, MasterDetailLayout, MasterDetailMode, Panel, PanelKind, Props, PropsAction,
-    PropsCmd, PropsList, PropsRow, PropsState, PropsValue, RadioField, RadioGroup,
-    RadioGroupAction, RadioGroupState, RadioNavigation, ResetPolicy, SplitAction, SplitCmd,
-    SplitPane, SplitPaneState, Toggle, TooSmall,
+    MasterDetailCmd, MasterDetailLayout, MasterDetailMode, Panel, PanelKind, PanelWindowError,
+    Props, PropsAction, PropsCmd, PropsList, PropsRow, PropsState, PropsValue, RadioField,
+    RadioGroup, RadioGroupAction, RadioGroupState, RadioNavigation, ResetPolicy, SplitAction,
+    SplitCmd, SplitPane, SplitPaneState, Toggle, TooSmall,
 };
 
 pub use termrock_fields::{
