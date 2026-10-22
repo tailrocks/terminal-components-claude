@@ -124,6 +124,29 @@ fn cfg_test_external_module_is_excluded_but_neighboring_production_is_scanned() 
 }
 
 #[test]
+fn mixed_test_spans_never_mask_production_on_shared_physical_lines() {
+    let dir = empty_workspace();
+    write_member_file(
+        &dir,
+        "src/lib.rs",
+        "fn before() { None::<u8>.expect(\"before\"); } #[cfg(test)] mod first {}\n\
+         #[cfg(test)] mod second {} fn after() { None::<u8>.expect(\"after\"); }\n\
+         #[cfg(test)] mod multiline {\n\
+             fn hidden() { None::<u8>.expect(\"test-only\"); }\n\
+         } fn after_close() { None::<u8>.expect(\"after-close\"); }\n",
+    );
+
+    assert_eq!(
+        own14_findings(&check_scratch(&dir)),
+        [
+            ("crates/demo-preview/src/lib.rs".to_string(), 1),
+            ("crates/demo-preview/src/lib.rs".to_string(), 2),
+            ("crates/demo-preview/src/lib.rs".to_string(), 5),
+        ]
+    );
+}
+
+#[test]
 fn literal_path_test_child_is_pruned() {
     let dir = empty_workspace();
     write_member_file(
@@ -141,6 +164,75 @@ fn literal_path_test_child_is_pruned() {
     assert_eq!(
         own14_findings(&check_scratch(&dir)),
         [("crates/demo-preview/src/lib.rs".to_string(), 4)]
+    );
+}
+
+#[test]
+fn non_mod_rs_path_attribute_uses_source_file_directory_not_module_directory() {
+    let dir = empty_workspace();
+    write_member_file(
+        &dir,
+        "src/lib.rs",
+        "#[cfg(test)] #[path = \"shared.rs\"] mod test_helper;\nmod outer;\n",
+    );
+    write_member_file(
+        &dir,
+        "src/outer.rs",
+        "#[path = \"shared.rs\"] mod production;\n",
+    );
+    write_member_file(
+        &dir,
+        "src/shared.rs",
+        "fn production() { None::<u8>.expect(\"shared production\"); }\n",
+    );
+    write_member_file(&dir, "src/outer/shared.rs", "fn unrelated() {}\n");
+
+    assert_eq!(
+        own14_findings(&check_scratch(&dir)),
+        [("crates/demo-preview/src/shared.rs".to_string(), 1)]
+    );
+}
+
+#[test]
+fn inline_path_attributes_follow_mod_rs_and_non_mod_rs_logical_directories() {
+    let dir = empty_workspace();
+    write_member_file(&dir, "src/lib.rs", "mod outer;\n");
+    write_member_file(
+        &dir,
+        "src/outer.rs",
+        "fn production() { None::<u8>.expect(\"outer\"); }\n\
+         mod inline { #[cfg(test)] #[path = \"helpers/child.rs\"] mod helper; }\n",
+    );
+    write_member_file(
+        &dir,
+        "src/outer/inline/helpers/child.rs",
+        "fn fixture() { None::<u8>.expect(\"non-mod-rs test helper\"); }\n",
+    );
+    write_member_file(&dir, "src/nested_root.rs", "mod outer_mod;\n");
+    write_member_file(
+        &dir,
+        "src/outer_mod/mod.rs",
+        "fn production() { None::<u8>.expect(\"mod-rs\"); }\n\
+         mod inline { #[cfg(test)] #[path = \"helpers/child.rs\"] mod helper; }\n",
+    );
+    write_member_file(
+        &dir,
+        "src/outer_mod/inline/helpers/child.rs",
+        "fn fixture() { None::<u8>.expect(\"mod-rs test helper\"); }\n",
+    );
+    write_member_file(
+        &dir,
+        "Cargo.toml",
+        "[package]\nname = \"demo-preview\"\nversion = \"0.1.0\"\nedition = \"2024\"\n\
+         [[bin]]\nname = \"nested-root\"\npath = \"src/nested_root.rs\"\n",
+    );
+
+    assert_eq!(
+        own14_findings(&check_scratch(&dir)),
+        [
+            ("crates/demo-preview/src/outer.rs".to_string(), 1),
+            ("crates/demo-preview/src/outer_mod/mod.rs".to_string(), 1),
+        ]
     );
 }
 
@@ -387,10 +479,231 @@ fn literal_include_contexts_propagate_test_and_production_routes() {
         "fn test_only() { None::<u8>.expect(\"test only\"); }\n",
     );
 
+    let report = check_scratch(&dir);
+    let analysis = termrock_xtask::ownership::module_graph::analyze_member(
+        &dir.path().join("crates/demo-preview"),
+    );
     assert_eq!(
-        own14_findings(&check_scratch(&dir)),
+        own14_findings(&report),
+        [("crates/demo-preview/src/shared.inc.rs".to_string(), 1)],
+        "analysis={analysis:?}, files_scanned={}, failures={:?}, findings={:?}",
+        report.files_scanned,
+        report.failures,
+        report.findings
+    );
+}
+
+#[test]
+fn block_local_module_keeps_dual_parent_source_production() {
+    let module = empty_workspace();
+    write_member_file(
+        &module,
+        "src/lib.rs",
+        "#[cfg(test)] #[path = \"shared.rs\"] mod test_parent;\n\
+         fn production() { #[path = \"shared.rs\"] mod live; }\n",
+    );
+    write_member_file(
+        &module,
+        "src/shared.rs",
+        "fn body() { None::<u8>.expect(\"block module\"); }\n",
+    );
+    assert_eq!(
+        own14_findings(&check_scratch(&module)),
+        [("crates/demo-preview/src/shared.rs".to_string(), 1)]
+    );
+}
+
+#[test]
+fn block_local_include_keeps_dual_parent_source_production() {
+    let include = empty_workspace();
+    write_member_file(
+        &include,
+        "src/lib.rs",
+        "#[cfg(test)] include!(\"shared.inc.rs\");\n\
+         fn production() { let _values = vec![1, 2, 3]; include!(\"shared.inc.rs\"); }\n",
+    );
+    write_member_file(
+        &include,
+        "src/shared.inc.rs",
+        "fn body() { None::<u8>.expect(\"block include\"); }\n",
+    );
+    assert_eq!(
+        own14_findings(&check_scratch(&include)),
         [("crates/demo-preview/src/shared.inc.rs".to_string(), 1)]
     );
+}
+
+#[test]
+fn unknown_derive_and_ambiguous_imported_derive_keep_test_routes_production() {
+    for derive in ["FromStr", "Debug"] {
+        let dir = empty_workspace();
+        let import = if derive == "Debug" {
+            "use custom::Debug;\n"
+        } else {
+            ""
+        };
+        write_member_file(
+            &dir,
+            "src/lib.rs",
+            &format!(
+                "#[cfg(test)] mod candidate;\n{import}#[derive({derive})] struct Generated;\n"
+            ),
+        );
+        write_member_file(
+            &dir,
+            "src/candidate.rs",
+            "fn generated_edge() { None::<u8>.expect(\"candidate\"); }\n",
+        );
+        assert_eq!(
+            own14_findings(&check_scratch(&dir)),
+            [("crates/demo-preview/src/candidate.rs".to_string(), 1)],
+            "derive {derive} must not prove that a custom derive is inert"
+        );
+    }
+}
+
+#[test]
+fn explicit_harness_false_test_target_root_remains_production() {
+    let dir = empty_workspace();
+    write_member_file(
+        &dir,
+        "src/custom_root.rs",
+        "#[cfg(test)] fn helper() { None::<u8>.expect(\"test cfg helper\"); }\n\
+         fn root_contract() { None::<u8>.expect(\"test root is production\"); }\n",
+    );
+    write_member_file(
+        &dir,
+        "Cargo.toml",
+        "[package]\nname = \"demo-preview\"\nversion = \"0.1.0\"\nedition = \"2024\"\n\
+         [[test]]\nname = \"custom-root\"\npath = \"src/custom_root.rs\"\nharness = false\n",
+    );
+
+    let report = check_scratch(&dir);
+    assert_eq!(
+        own14_findings(&report),
+        [("crates/demo-preview/src/custom_root.rs".to_string(), 2)],
+        "files_scanned={}, failures={:?}, findings={:?}",
+        report.files_scanned,
+        report.failures,
+        report.findings
+    );
+}
+
+#[test]
+fn explicit_test_root_does_not_change_lib_or_bin_production_reachability() {
+    let dir = empty_workspace();
+    write_member_file(
+        &dir,
+        "src/lib.rs",
+        "#[path = \"shared.rs\"] mod from_lib;\n\
+         fn library() { None::<u8>.expect(\"library root\"); }\n",
+    );
+    write_member_file(
+        &dir,
+        "src/main.rs",
+        "#[path = \"shared.rs\"] mod from_bin;\n\
+         fn binary() { None::<u8>.expect(\"binary root\"); }\n",
+    );
+    write_member_file(
+        &dir,
+        "src/custom_test.rs",
+        "#[path = \"shared.rs\"] mod from_test;\n\
+         fn explicit_test() { None::<u8>.expect(\"explicit test root\"); }\n",
+    );
+    write_member_file(
+        &dir,
+        "src/shared.rs",
+        "fn shared() { None::<u8>.expect(\"shared from all roots\"); }\n",
+    );
+    write_member_file(
+        &dir,
+        "Cargo.toml",
+        "[package]\nname = \"demo-preview\"\nversion = \"0.1.0\"\nedition = \"2024\"\n\
+         [[test]]\nname = \"explicit\"\npath = \"src/custom_test.rs\"\nharness = false\n",
+    );
+
+    let mut findings = own14_findings(&check_scratch(&dir));
+    findings.sort();
+    assert_eq!(
+        findings,
+        [
+            ("crates/demo-preview/src/custom_test.rs".to_string(), 2),
+            ("crates/demo-preview/src/lib.rs".to_string(), 2),
+            ("crates/demo-preview/src/main.rs".to_string(), 2),
+            ("crates/demo-preview/src/shared.rs".to_string(), 1),
+        ]
+    );
+}
+
+#[test]
+fn skipped_block_item_macro_is_not_assumed_to_be_an_expression_macro() {
+    let dir = empty_workspace();
+    write_member_file(
+        &dir,
+        "src/lib.rs",
+        "#[cfg(test)] mod candidate;\n\
+         fn production() { declare_modules!(); }\n",
+    );
+    write_member_file(
+        &dir,
+        "src/candidate.rs",
+        "fn generated() { None::<u8>.expect(\"candidate\"); }\n",
+    );
+
+    assert_eq!(
+        own14_findings(&check_scratch(&dir)),
+        [("crates/demo-preview/src/candidate.rs".to_string(), 1)]
+    );
+}
+
+#[test]
+fn incomplete_root_still_enumerates_already_known_external_routes() {
+    let dir = empty_workspace();
+    write_member_file(
+        &dir,
+        "src/lib.rs",
+        "#[cfg(test)] #[path = \"../external.rs\"] mod test_parent;\n\
+         fn production() { declare_modules!(); }\n",
+    );
+    write_member_file(
+        &dir,
+        "external.rs",
+        "fn reachable() { None::<u8>.expect(\"external route\"); }\n",
+    );
+    let member = dir.path().join("crates/demo-preview");
+    let external = std::fs::canonicalize(member.join("external.rs")).expect("external source");
+    let analysis = termrock_xtask::ownership::module_graph::analyze_member(&member);
+
+    assert!(
+        !analysis.complete,
+        "the block item macro makes the graph incomplete"
+    );
+    assert!(
+        analysis.test_only.is_empty(),
+        "incomplete provenance never prunes"
+    );
+    assert!(
+        analysis.sources.contains(&external),
+        "the module edge parsed before the unknown route must still be inventoried: {analysis:?}"
+    );
+}
+
+#[test]
+fn skipped_block_expression_macro_is_not_treated_as_an_item_macro() {
+    let dir = empty_workspace();
+    write_member_file(
+        &dir,
+        "src/lib.rs",
+        "#[cfg(test)] mod candidate;\n\
+         fn production() { let _values = vec![1, 2, 3]; }\n",
+    );
+    write_member_file(
+        &dir,
+        "src/candidate.rs",
+        "fn test_only() { None::<u8>.expect(\"candidate\"); }\n",
+    );
+
+    assert!(own14_findings(&check_scratch(&dir)).is_empty());
 }
 
 #[test]

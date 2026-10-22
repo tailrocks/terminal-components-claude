@@ -99,6 +99,7 @@ struct Tokens {
 struct Attributes {
     predicate: Predicate,
     path: Option<String>,
+    derives: BTreeSet<String>,
     complete: bool,
 }
 
@@ -107,15 +108,10 @@ impl Default for Attributes {
         Self {
             predicate: Predicate::ALWAYS,
             path: None,
+            derives: BTreeSet::new(),
             complete: true,
         }
     }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-enum TargetKind {
-    Production,
-    Test,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -156,26 +152,27 @@ impl Traversal {
             module_dir,
             predicate,
         };
-        if self.visited.insert(key.clone()) {
-            if self.visited.len() > MAX_CONTEXTS {
-                self.complete = false;
-                self.queue.clear();
-                return;
-            }
-            self.queue.push_back(key);
+        if self.visited.contains(&key) {
+            return;
         }
+        if self.visited.len() >= MAX_CONTEXTS {
+            self.complete = false;
+            return;
+        }
+        self.visited.insert(key.clone());
+        self.queue.push_back(key);
     }
 
     fn resolve_module(
         &mut self,
-        from: &Path,
         module_dir: &Path,
+        path_base: &Path,
         name: &str,
         path_override: Option<&str>,
         predicate: Predicate,
     ) {
         let candidates = if let Some(path) = path_override {
-            vec![module_dir.join(path)]
+            vec![path_base.join(path)]
         } else {
             vec![
                 module_dir.join(format!("{name}.rs")),
@@ -201,28 +198,28 @@ impl Traversal {
         }
         found.sort();
         found.dedup();
+        if found.is_empty() {
+            self.complete = false;
+            return;
+        }
         if found.len() != 1 {
             self.complete = false;
-            return;
         }
-        let Some(file) = found.into_iter().next() else {
-            self.complete = false;
-            return;
-        };
-        let Ok(text) = fs::read_to_string(&file) else {
-            self.complete = false;
-            return;
-        };
-        self.paths.insert(file.clone());
-        self.sources.entry(file.clone()).or_insert(text);
-        let dir = module_directory(&file);
-        if dir.as_os_str().is_empty() {
-            self.complete = false;
-            return;
+        for file in found {
+            let Ok(text) = fs::read_to_string(&file) else {
+                self.complete = false;
+                continue;
+            };
+            self.paths.insert(file.clone());
+            self.sources.entry(file.clone()).or_insert(text);
+            let dir = module_directory(&file);
+            if dir.as_os_str().is_empty() {
+                self.complete = false;
+                continue;
+            }
+            self.mark_reachable(&file, predicate);
+            self.queue_file(file, dir, predicate);
         }
-        let _ = from;
-        self.mark_reachable(&file, predicate);
-        self.queue_file(file, dir, predicate);
     }
 
     fn resolve_include(&mut self, include: IncludeDecl) {
@@ -251,13 +248,10 @@ impl Traversal {
     }
 
     fn analyze(mut self) -> Self {
-        while self.complete {
-            let Some(context) = self.queue.pop_front() else {
-                break;
-            };
+        while let Some(context) = self.queue.pop_front() {
             let Some(source) = self.sources.get(&context.file).cloned() else {
                 self.complete = false;
-                break;
+                continue;
             };
             let parsed = match parse_source(
                 &source,
@@ -268,12 +262,11 @@ impl Traversal {
                 Some(parsed) => parsed,
                 None => {
                     self.complete = false;
-                    break;
+                    continue;
                 }
             };
             if !parsed.complete {
                 self.complete = false;
-                break;
             }
             if self.included_sources.contains(&context.file)
                 && (!parsed.modules.is_empty() || !parsed.includes.is_empty())
@@ -282,16 +275,9 @@ impl Traversal {
                 // path. Nested module/include resolution is retained as
                 // production until its call-site/file provenance is modeled.
                 self.complete = false;
-                break;
             }
             for include in parsed.includes {
                 self.resolve_include(include);
-                if !self.complete {
-                    break;
-                }
-            }
-            if !self.complete {
-                break;
             }
             for module in parsed.modules {
                 if module.inline.is_some() {
@@ -299,18 +285,15 @@ impl Traversal {
                 }
                 let Some(name) = module.name else {
                     self.complete = false;
-                    break;
+                    continue;
                 };
                 self.resolve_module(
-                    &context.file,
                     &module.module_dir,
+                    &module.path_base,
                     &name,
                     module.path.as_deref(),
                     module.predicate,
                 );
-                if !self.complete {
-                    break;
-                }
             }
         }
         self
@@ -323,6 +306,7 @@ struct ModuleDecl {
     path: Option<String>,
     predicate: Predicate,
     module_dir: PathBuf,
+    path_base: PathBuf,
     inline: Option<(usize, usize)>,
 }
 
@@ -383,7 +367,7 @@ pub fn analyze_member(member: &Path) -> MemberAnalysis {
         }
     }
 
-    for (root, kind) in roots {
+    for root in roots {
         match fs::canonicalize(&root) {
             Ok(canonical) if canonical.starts_with(&member_root) => {
                 if fs::symlink_metadata(&root)
@@ -398,11 +382,10 @@ pub fn analyze_member(member: &Path) -> MemberAnalysis {
                 };
                 traversal.paths.insert(canonical.clone());
                 traversal.sources.entry(canonical.clone()).or_insert(text);
-                let predicate = if kind == TargetKind::Test {
-                    Predicate::TEST
-                } else {
-                    Predicate::ALWAYS
-                };
+                // Explicit Cargo target roots stay production inputs under
+                // this scanner policy; cfg(test) items inside them are still
+                // classified independently.
+                let predicate = Predicate::ALWAYS;
                 traversal.mark_reachable(&canonical, predicate);
                 traversal.queue_file(
                     canonical.clone(),
@@ -446,12 +429,15 @@ pub fn cfg_test_ranges(source: &str) -> Vec<LineRange> {
         &tokens,
         0,
         tokens.values.len(),
-        path,
-        module_dir,
+        ParsePath {
+            file: path,
+            module_dir,
+            path_base: module_dir,
+        },
         Predicate::ALWAYS,
         true,
     ) {
-        Some(parsed) if parsed.complete => parsed.test_ranges,
+        Some(parsed) if parsed.complete => normalize_ranges(parsed.test_ranges),
         _ => Vec::new(),
     }
 }
@@ -534,12 +520,12 @@ fn collect_src_sources(member: &Path) -> (Vec<PathBuf>, bool) {
     (sources, complete)
 }
 
-fn target_roots(member: &Path) -> (Vec<(PathBuf, TargetKind)>, bool) {
+fn target_roots(member: &Path) -> (Vec<PathBuf>, bool) {
     let mut roots = Vec::new();
     let src = member.join("src");
     for conventional in [src.join("lib.rs"), src.join("main.rs")] {
         if conventional.is_file() {
-            roots.push((conventional, TargetKind::Production));
+            roots.push(conventional);
         }
     }
     add_bin_roots(&src.join("bin"), &mut roots);
@@ -589,14 +575,9 @@ fn target_roots(member: &Path) -> (Vec<(PathBuf, TargetKind)>, bool) {
             complete = false;
             continue;
         };
-        let kind = if section == TargetKindSection::Test {
-            TargetKind::Test
-        } else {
-            TargetKind::Production
-        };
-        roots.push((member.join(path), kind));
+        roots.push(member.join(path));
     }
-    roots.sort_by(|a, b| a.0.cmp(&b.0).then(a.1.cmp(&b.1)));
+    roots.sort();
     roots.dedup();
     (roots, complete)
 }
@@ -608,7 +589,7 @@ enum TargetKindSection {
     Test,
 }
 
-fn add_bin_roots(bin_dir: &Path, roots: &mut Vec<(PathBuf, TargetKind)>) {
+fn add_bin_roots(bin_dir: &Path, roots: &mut Vec<PathBuf>) {
     let Ok(entries) = fs::read_dir(bin_dir) else {
         return;
     };
@@ -617,11 +598,11 @@ fn add_bin_roots(bin_dir: &Path, roots: &mut Vec<(PathBuf, TargetKind)>) {
         if entry.file_type().is_ok_and(|kind| kind.is_file())
             && path.extension().is_some_and(|ext| ext == "rs")
         {
-            roots.push((path, TargetKind::Production));
+            roots.push(path);
         } else if entry.file_type().is_ok_and(|kind| kind.is_dir()) {
             let main = path.join("main.rs");
             if main.is_file() {
-                roots.push((main, TargetKind::Production));
+                roots.push(main);
             }
         }
     }
@@ -946,23 +927,33 @@ fn parse_source(
     inherited: Predicate,
 ) -> Option<ParsedSource> {
     let tokens = lex(source)?;
+    let path_base = file.parent().unwrap_or_else(|| Path::new("."));
     parse_scope(
         &tokens,
         0,
         tokens.values.len(),
-        file,
-        module_dir,
+        ParsePath {
+            file,
+            module_dir,
+            path_base,
+        },
         inherited,
         true,
     )
+}
+
+#[derive(Clone, Copy)]
+struct ParsePath<'a> {
+    file: &'a Path,
+    module_dir: &'a Path,
+    path_base: &'a Path,
 }
 
 fn parse_scope(
     tokens: &Tokens,
     start: usize,
     end: usize,
-    file: &Path,
-    module_dir: &Path,
+    source_context: ParsePath<'_>,
     inherited: Predicate,
     collect_ranges: bool,
 ) -> Option<ParsedSource> {
@@ -973,6 +964,9 @@ fn parse_scope(
         complete: true,
     };
     let mut scope_predicate = inherited;
+    let mut derived_names = BTreeSet::new();
+    let mut imported_derive_names = BTreeSet::new();
+    let mut imported_glob = false;
     let mut index = start;
     let mut saw_item = false;
     while index < end {
@@ -999,6 +993,7 @@ fn parse_scope(
                 scope_predicate = scope_predicate.and(attr.predicate);
                 continue;
             }
+            derived_names.extend(attr.derives.iter().cloned());
             attributes.predicate = attributes.predicate.and(attr.predicate);
             if attributes.path.is_some() && attr.path.is_some() {
                 parsed.complete = false;
@@ -1030,7 +1025,8 @@ fn parse_scope(
                     name: Some(name),
                     path: attributes.path,
                     predicate: effective,
-                    module_dir: module_dir.to_path_buf(),
+                    module_dir: source_context.module_dir.to_path_buf(),
+                    path_base: source_context.path_base.to_path_buf(),
                     inline: None,
                 });
                 if collect_ranges && effective.test_only() {
@@ -1045,18 +1041,19 @@ fn parse_scope(
                     parsed.complete = false;
                     return Some(parsed);
                 };
-                if attributes.path.is_some() {
-                    // A path attribute on an inline module changes Rust's
-                    // logical directory rules. Keep this source production.
-                    parsed.complete = false;
-                }
-                let child_dir = module_dir.join(&name);
+                let child_dir = attributes.path.as_deref().map_or_else(
+                    || source_context.module_dir.join(&name),
+                    |path| source_context.path_base.join(path),
+                );
                 let nested = parse_scope(
                     tokens,
                     delimiter + 1,
                     close,
-                    file,
-                    &child_dir,
+                    ParsePath {
+                        file: source_context.file,
+                        module_dir: &child_dir,
+                        path_base: &child_dir,
+                    },
                     effective,
                     collect_ranges,
                 )?;
@@ -1069,9 +1066,10 @@ fn parse_scope(
                 }
                 parsed.modules.push(ModuleDecl {
                     name: Some(name),
-                    path: None,
+                    path: attributes.path,
                     predicate: effective,
                     module_dir: child_dir,
+                    path_base: source_context.path_base.to_path_buf(),
                     inline: Some((delimiter + 1, close)),
                 });
                 index = close + 1;
@@ -1094,16 +1092,24 @@ fn parse_scope(
                 parsed.complete = false;
                 return Some(parsed);
             };
+            collect_use_derive_imports(
+                tokens,
+                index,
+                item_end,
+                &mut imported_derive_names,
+                &mut imported_glob,
+            );
             push_range(tokens, item_start, item_end, &mut parsed.test_ranges);
             if let Some(path) = include {
-                let source_dir = file
+                let source_dir = source_context
+                    .file
                     .parent()
                     .unwrap_or_else(|| Path::new("."))
                     .to_path_buf();
                 parsed.includes.push(IncludeDecl {
                     path,
                     source_dir,
-                    module_dir: module_dir.to_path_buf(),
+                    module_dir: source_context.module_dir.to_path_buf(),
                     predicate: effective,
                 });
             }
@@ -1119,20 +1125,44 @@ fn parse_scope(
             parsed.complete = false;
             return Some(parsed);
         }
+        if !effective.test_only()
+            && include.is_none()
+            && skipped_item_has_unmodeled_routes(tokens, index, item_end)
+        {
+            parsed.complete = false;
+            return Some(parsed);
+        }
+        collect_use_derive_imports(
+            tokens,
+            index,
+            item_end,
+            &mut imported_derive_names,
+            &mut imported_glob,
+        );
         if let Some(path) = include {
-            let source_dir = file
+            let source_dir = source_context
+                .file
                 .parent()
                 .unwrap_or_else(|| Path::new("."))
                 .to_path_buf();
             parsed.includes.push(IncludeDecl {
                 path,
                 source_dir,
-                module_dir: module_dir.to_path_buf(),
+                module_dir: source_context.module_dir.to_path_buf(),
                 predicate: effective,
             });
         }
         index = item_end;
         saw_item = true;
+    }
+    if (imported_glob && !derived_names.is_empty())
+        || derived_names
+            .iter()
+            .any(|name| imported_derive_names.contains(name))
+    {
+        // Without resolving macro namespaces, a matching `use` alias or glob
+        // could shadow a built-in derive and generate arbitrary module items.
+        parsed.complete = false;
     }
     Some(parsed)
 }
@@ -1181,11 +1211,10 @@ fn parse_attribute(tokens: &Tokens, at: usize, end: usize) -> Option<(usize, boo
             }
         }
         "test" | "bench" => attr.predicate = Predicate::TEST,
-        "derive" => {
-            if !builtin_derive_list(tokens, bracket + 2, close - 1) {
-                attr.complete = false;
-            }
-        }
+        "derive" => match builtin_derive_names(tokens, bracket + 2, close - 1) {
+            Some(names) => attr.derives = names,
+            None => attr.complete = false,
+        },
         name if known_inert_attribute(name) => {}
         _ => attr.complete = false,
     }
@@ -1217,7 +1246,6 @@ fn known_inert_attribute(name: &str) -> bool {
             | "used"
             | "target_feature"
             | "macro_export"
-            | "macro_use"
             | "automatically_derived"
             | "global_allocator"
             | "panic_handler"
@@ -1239,11 +1267,11 @@ fn known_inert_attribute(name: &str) -> bool {
     )
 }
 
-fn builtin_derive_list(tokens: &Tokens, start: usize, end: usize) -> bool {
+fn builtin_derive_names(tokens: &Tokens, start: usize, end: usize) -> Option<BTreeSet<String>> {
     if !is_punct(tokens, start, '(')
         || tokens.pairs.get(start).and_then(|value| *value) != Some(end)
     {
-        return false;
+        return None;
     }
     let known = [
         "Clone",
@@ -1255,28 +1283,60 @@ fn builtin_derive_list(tokens: &Tokens, start: usize, end: usize) -> bool {
         "Ord",
         "PartialEq",
         "PartialOrd",
-        "FromStr",
     ];
     let mut index = start + 1;
-    let mut count = 0;
+    let mut names = BTreeSet::new();
     while index < end {
-        let Some(name) = ident_at(tokens, index) else {
-            return false;
-        };
+        let name = ident_at(tokens, index)?;
         if !known.contains(&name) {
-            return false;
+            return None;
         }
-        count += 1;
+        names.insert(name.to_string());
         index += 1;
         if index == end {
             break;
         }
         if !is_punct(tokens, index, ',') {
-            return false;
+            return None;
         }
         index += 1;
     }
-    count > 0
+    (!names.is_empty()).then_some(names)
+}
+
+fn collect_use_derive_imports(
+    tokens: &Tokens,
+    start: usize,
+    end: usize,
+    imported: &mut BTreeSet<String>,
+    imported_glob: &mut bool,
+) {
+    if item_head(tokens, start, end) != Some("use") {
+        return;
+    }
+    const DERIVE_NAMES: &[&str] = &[
+        "Clone",
+        "Copy",
+        "Debug",
+        "Default",
+        "Eq",
+        "Hash",
+        "Ord",
+        "PartialEq",
+        "PartialOrd",
+    ];
+    for index in start..end {
+        if is_punct(tokens, index, '*') {
+            *imported_glob = true;
+        }
+        if let Some(name) = ident_at(tokens, index)
+            && DERIVE_NAMES.contains(&name)
+        {
+            // This is intentionally broader than resolving a use tree: any
+            // matching name could be a derive macro import or alias.
+            imported.insert(name.to_string());
+        }
+    }
 }
 
 fn parse_cfg(tokens: &Tokens, start: usize, end: usize) -> Option<Predicate> {
@@ -1390,6 +1450,42 @@ fn parse_static_include(tokens: &Tokens, at: usize, end: usize) -> Option<String
     }
 }
 
+fn skipped_item_has_unmodeled_routes(tokens: &Tokens, start: usize, end: usize) -> bool {
+    for index in start..end {
+        if ident_at(tokens, index) == Some("mod")
+            && ident_at(tokens, index + 1).is_some()
+            && (is_punct(tokens, index + 2, ';') || is_punct(tokens, index + 2, '{'))
+        {
+            return true;
+        }
+        if ident_at(tokens, index) == Some("include") && is_punct(tokens, index + 1, '!') {
+            return true;
+        }
+        if is_item_macro(tokens, index, end) && macro_starts_block_item(tokens, start, index) {
+            return true;
+        }
+    }
+    false
+}
+
+fn macro_starts_block_item(tokens: &Tokens, item_start: usize, macro_start: usize) -> bool {
+    let mut path_start = macro_start;
+    while path_start >= item_start + 3
+        && is_punct(tokens, path_start - 1, ':')
+        && is_punct(tokens, path_start - 2, ':')
+        && ident_at(tokens, path_start - 3).is_some()
+    {
+        path_start -= 3;
+    }
+    if path_start == item_start {
+        return true;
+    }
+    matches!(
+        tokens.values.get(path_start - 1).map(|token| &token.kind),
+        Some(TokenKind::Punct(';' | '{' | '}' | ']'))
+    )
+}
+
 fn skip_item(tokens: &Tokens, start: usize, end: usize) -> Option<usize> {
     let first = item_head(tokens, start, end);
     let has_braced_body = matches!(
@@ -1466,10 +1562,51 @@ fn push_range(tokens: &Tokens, start: usize, end: usize, ranges: &mut Vec<LineRa
     let Some(last) = token_line(tokens, end.saturating_sub(1)) else {
         return;
     };
-    ranges.push(LineRange {
-        start: first,
-        end: last,
-    });
+    let mut safe_lines = Vec::new();
+    for line in first..=last {
+        let line_start = tokens.values.partition_point(|token| token.line < line);
+        let line_end = tokens.values.partition_point(|token| token.line <= line);
+        if line_start < line_end && line_start >= start && line_end <= end {
+            safe_lines.push(line);
+        }
+    }
+    let mut start: Option<usize> = None;
+    let mut end: Option<usize> = None;
+    for line in safe_lines {
+        match end {
+            Some(previous) if previous.checked_add(1) == Some(line) => end = Some(line),
+            Some(previous) => {
+                ranges.push(LineRange {
+                    start: start.take().unwrap_or(previous),
+                    end: previous,
+                });
+                start = Some(line);
+                end = Some(line);
+            }
+            None => {
+                start = Some(line);
+                end = Some(line);
+            }
+        }
+    }
+    if let (Some(start), Some(end)) = (start, end) {
+        ranges.push(LineRange { start, end });
+    }
+}
+
+fn normalize_ranges(mut ranges: Vec<LineRange>) -> Vec<LineRange> {
+    ranges.sort_by_key(|range| (range.start, range.end));
+    let mut normalized: Vec<LineRange> = Vec::new();
+    for range in ranges {
+        if let Some(previous) = normalized.last_mut()
+            && range.start <= previous.end.saturating_add(1)
+        {
+            previous.end = previous.end.max(range.end);
+        } else {
+            normalized.push(range);
+        }
+    }
+    normalized
 }
 
 fn token_line(tokens: &Tokens, index: usize) -> Option<usize> {
@@ -1580,7 +1717,7 @@ mod tests {
             );
         }
         assert!(!traversal.complete);
-        assert!(traversal.queue.is_empty());
+        assert_eq!(traversal.queue.len(), MAX_CONTEXTS);
     }
 
     #[test]
