@@ -1,11 +1,10 @@
 use showcase_demos::render_number::RenderNumber;
 use termrock::author::PaintStyle;
 use termrock::{
-    ActionKey, App as TuiApp, Brand, ByIndex, Chord, ColorLevel, Cx, Dialog, DialogAction,
-    DialogState, FrameRead, GlyphRole, Id, Intent, ItemKey, KeyCode, KeyMap, KeyPhase, Moment,
-    Panel, PanelKind, Part, PartRef, Phase, Props, Rect, Response, RowFn, Size, StateFlags, Status,
-    StatusBar, StatusItem, Theme, TooSmall, Tree, TreeAction, TreeNode, TreeState, Ui, Variant, id,
-    width,
+    ActionKey, App as TuiApp, Brand, Chord, ColorLevel, Cx, Dialog, DialogAction, DialogState,
+    FrameRead, GlyphRole, Id, Intent, ItemKey, KeyCode, KeyMap, KeyPhase, Moment, Panel, PanelKind,
+    Part, PartRef, Phase, Props, Rect, Response, RowFn, Size, StateFlags, Status, StatusBar,
+    StatusItem, Theme, TooSmall, Tree, TreeAction, TreeNode, TreeState, Ui, Variant, id, width,
 };
 
 use showcase_demos::pages::forms::SUBMIT as FORM_SUBMIT;
@@ -169,9 +168,9 @@ impl PageId {
     }
 
     pub fn from_name(value: &str) -> Option<Self> {
-        nav_index_from_name(value).and_then(|index| {
-            let entry = NAV_ENTRIES.get(index)?;
-            entry_is_live(entry).then_some(entry.id)
+        nav_index_from_name(value).and_then(|index| match nav_target_at(index)? {
+            NavTarget::Live(page) => Some(page),
+            NavTarget::Selection | NavTarget::Placeholder(_) => None,
         })
     }
 
@@ -188,6 +187,26 @@ pub struct NavEntry {
     pub label: &'static str,
     pub section: &'static str,
     pub icon: &'static str,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum NavTarget {
+    Live(PageId),
+    Selection,
+    Placeholder(usize),
+}
+
+impl NavTarget {
+    const fn page(self) -> Option<PageId> {
+        match self {
+            Self::Live(page) => Some(page),
+            Self::Selection | Self::Placeholder(_) => None,
+        }
+    }
+
+    const fn has_content(self) -> bool {
+        matches!(self, Self::Live(_) | Self::Selection)
+    }
 }
 
 impl std::fmt::Display for NavEntry {
@@ -563,10 +582,6 @@ fn normalized_name(input: &str) -> String {
         .collect()
 }
 
-fn entry_is_live(entry: &NavEntry) -> bool {
-    entry.label == "Overview" || entry.id != PageId::Overview
-}
-
 fn nav_index_from_name(value: &str) -> Option<usize> {
     let value = normalized_name(value);
     if let Some(label) = NAV_ALIASES
@@ -582,30 +597,83 @@ fn nav_index_from_name(value: &str) -> Option<usize> {
     {
         return Some(index);
     }
-    NAV_ENTRIES.iter().position(|entry| {
-        entry_is_live(entry)
-            && (normalized_name(entry.id.slug()) == value
-                || normalized_name(entry.id.title()) == value)
-    })
+    NAV_ENTRIES
+        .iter()
+        .enumerate()
+        .find(|(index, entry)| {
+            matches!(nav_target_for_entry(entry, *index), NavTarget::Live(_))
+                && (normalized_name(entry.id.slug()) == value
+                    || normalized_name(entry.id.title()) == value)
+        })
+        .map(|(index, _)| index)
 }
 
 fn index_for_page(page: PageId) -> usize {
     NAV_ENTRIES
         .iter()
-        .position(|entry| entry_is_live(entry) && entry.id == page)
+        .enumerate()
+        .position(|(index, entry)| nav_target_for_entry(entry, index) == NavTarget::Live(page))
         .unwrap_or(0)
 }
 
+const NAV_ENTRY_KEYSPACE: u64 = 0x4e41_5645_4e54_5259;
+const NAV_GROUP_KEYSPACE: u64 = 0x4e41_5647_524f_5550;
+
+fn nav_target_for_entry(entry: &NavEntry, index: usize) -> NavTarget {
+    if entry.label == "Selection" {
+        NavTarget::Selection
+    } else if entry.label == "Overview" || entry.id != PageId::Overview {
+        NavTarget::Live(entry.id)
+    } else {
+        NavTarget::Placeholder(index)
+    }
+}
+
+fn nav_entry_key(index: usize) -> ItemKey {
+    ItemKey::pair(NAV_ENTRY_KEYSPACE, index as u64)
+}
+
+fn nav_group_key(index: usize) -> ItemKey {
+    ItemKey::pair(NAV_GROUP_KEYSPACE, index as u64)
+}
+
+fn nav_index_for_target(target: NavTarget) -> Option<usize> {
+    match target {
+        NavTarget::Placeholder(index) => NAV_ENTRIES
+            .get(index)
+            .filter(|entry| nav_target_for_entry(entry, index) == target)
+            .map(|_| index),
+        _ => NAV_ENTRIES
+            .iter()
+            .enumerate()
+            .find(|(index, entry)| nav_target_for_entry(entry, *index) == target)
+            .map(|(index, _)| index),
+    }
+}
+
+fn nav_display_label(label: &str) -> &str {
+    match label {
+        "Basic table" => "Tables",
+        "Editable" => "Editable tables",
+        _ => label,
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
 struct NavNode {
     label: &'static str,
     depth: u16,
     parent: bool,
     entry: Option<usize>,
+    target: Option<NavTarget>,
+    key: ItemKey,
+    fade: u8,
 }
 
-fn nav_nodes() -> Vec<NavNode> {
+fn nav_nodes(state: &TreeState, viewport_height: u16) -> Vec<NavNode> {
     let mut nodes = Vec::new();
     let mut section = "";
+    let mut section_index = 0usize;
     for (index, entry) in NAV_ENTRIES.iter().enumerate() {
         if entry.section != section {
             section = entry.section;
@@ -615,17 +683,59 @@ fn nav_nodes() -> Vec<NavNode> {
                     depth: 0,
                     parent: true,
                     entry: None,
+                    target: None,
+                    key: nav_group_key(section_index),
+                    fade: 0,
                 });
+                section_index = section_index.saturating_add(1);
             }
         }
         nodes.push(NavNode {
-            label: entry.label,
+            label: nav_display_label(entry.label),
             depth: u16::from(!entry.section.is_empty()),
             parent: false,
             entry: Some(index),
+            target: Some(nav_target_for_entry(entry, index)),
+            key: nav_entry_key(index),
+            fade: 0,
         });
     }
+
+    let mut visible_sources = Vec::with_capacity(nodes.len());
+    let mut collapsed_at = None;
+    for (source, node) in nodes.iter().enumerate() {
+        if collapsed_at.is_some_and(|depth| node.depth > depth) {
+            continue;
+        }
+        collapsed_at = None;
+        visible_sources.push(source);
+        if node.parent && !state.is_expanded(node.key) {
+            collapsed_at = Some(node.depth);
+        }
+    }
+
+    let viewport = usize::from(viewport_height);
+    let mut scroll = *state.scroll();
+    scroll.apply_layout(viewport, visible_sources.len());
+    let offset = scroll.offset();
+    let end = offset.saturating_add(viewport);
+    let after_hidden = visible_sources.len() > end;
+    for (visible, source) in visible_sources.iter().copied().enumerate() {
+        if viewport > 0 && visible >= offset && visible < end {
+            let from_start = visible.saturating_sub(offset);
+            let from_end = end.saturating_sub(visible.saturating_add(1));
+            if offset > 0 && from_start < 2 {
+                nodes[source].fade = if from_start == 0 { 2 } else { 1 };
+            } else if after_hidden && from_end < 2 {
+                nodes[source].fade = if from_end == 0 { 2 } else { 1 };
+            }
+        }
+    }
     nodes
+}
+
+fn nav_node_key(node: &NavNode) -> ItemKey {
+    node.key
 }
 
 fn node_of(node: &NavNode) -> TreeNode {
@@ -641,35 +751,36 @@ const SIDEBAR_CHROME: [(Part, termrock::StylePatch); 1] = [(
     termrock::StylePatch::new().set_bg(termrock::Role::Surface(termrock::Surface::Surface)),
 )];
 
-fn nav_tree() -> Tree<'static, NavNode, ByIndex, impl RowFn<NavNode>> {
+fn nav_tree() -> Tree<'static, NavNode, fn(&NavNode) -> ItemKey, impl RowFn<NavNode>> {
     Tree::new(NAV)
+        .key(nav_node_key as fn(&NavNode) -> ItemKey)
         .patch_part(&SIDEBAR_CHROME)
         .node(&node_of)
         .render_row(&paint_sidebar_row)
 }
 
-fn place_nav(state: &mut TreeState, entry: usize) {
-    let nodes = nav_nodes();
+fn nav_target_at(index: usize) -> Option<NavTarget> {
+    let entry = NAV_ENTRIES.get(index)?;
+    Some(nav_target_for_entry(entry, index))
+}
+
+fn expand_nav_groups(state: &mut TreeState, nodes: &[NavNode]) {
+    for node in nodes.iter().filter(|node| node.parent) {
+        state.expand(node.key);
+    }
+}
+
+fn reveal_nav(state: &mut TreeState, nodes: &[NavNode], entry: usize) {
     let Some(source) = nodes.iter().position(|node| node.entry == Some(entry)) else {
         return;
     };
-    let active_parent = if nodes[source].depth > 0 {
-        (0..source).rev().find(|&index| nodes[index].parent)
-    } else {
-        None
-    };
-    for (index, node) in nodes.iter().enumerate() {
-        if node.parent {
-            let key = ItemKey::index(index);
-            if Some(index) == active_parent {
-                state.expand(key);
-            } else {
-                state.collapse(key);
-            }
-        }
+    if nodes[source].depth > 0
+        && let Some(parent) = nodes[..source].iter().rev().find(|node| node.parent)
+    {
+        state.expand(parent.key);
     }
-    let key = ItemKey::index(source);
-    let visible = visible_index(&nodes, source, state);
+    let key = nodes[source].key;
+    let visible = visible_index(nodes, source, state);
     state.choose(Some(key));
     state.set_cursor(visible, key);
 }
@@ -686,16 +797,16 @@ fn visible_index(nodes: &[NavNode], source: usize, state: &TreeState) -> usize {
             return seen;
         }
         seen = seen.saturating_add(1);
-        if node.parent && !state.is_expanded(ItemKey::index(index)) {
+        if node.parent && !state.is_expanded(node.key) {
             collapsed_at = Some(node.depth);
         }
     }
     0
 }
 
-fn entry_for_key(key: ItemKey, nodes: &[NavNode]) -> Option<usize> {
-    let source = (0..nodes.len()).find(|&index| ItemKey::index(index) == key)?;
-    nodes.get(source)?.entry
+fn target_for_key(key: ItemKey, nodes: &[NavNode]) -> Option<(usize, NavTarget)> {
+    let node = nodes.iter().find(|node| node.key == key)?;
+    Some((node.entry?, node.target?))
 }
 
 fn shell_brand() -> Brand<'static> {
@@ -791,7 +902,7 @@ fn keymap() -> KeyMap {
 
 pub struct App {
     page: PageId,
-    nav_index: usize,
+    nav_target: NavTarget,
     nav_state: TreeState,
     pages: Vec<Box<dyn Page>>,
     help_state: DialogState,
@@ -811,7 +922,7 @@ impl core::fmt::Debug for App {
         formatter
             .debug_struct("App")
             .field("page", &self.page)
-            .field("nav_index", &self.nav_index)
+            .field("nav_target", &self.nav_target)
             .field("nav_state", &self.nav_state)
             .field("pages", &self.pages.len())
             .field("help_state", &self.help_state)
@@ -845,13 +956,12 @@ impl App {
 
     fn boot(nav_index: usize, paused: bool, frame: usize) -> Self {
         let nav_index = nav_index.min(NAV_ENTRIES.len().saturating_sub(1));
-        let selected = NAV_ENTRIES.get(nav_index).copied();
-        let initial = selected
-            .filter(entry_is_live)
-            .map(|entry| entry.id)
-            .unwrap_or(PageId::Overview);
+        let nav_target = nav_target_at(nav_index).unwrap_or(NavTarget::Live(PageId::Overview));
+        let initial = nav_target.page().unwrap_or(PageId::Overview);
         let mut nav_state = TreeState::new();
-        place_nav(&mut nav_state, nav_index);
+        let nodes = nav_nodes(&nav_state, 0);
+        expand_nav_groups(&mut nav_state, &nodes);
+        reveal_nav(&mut nav_state, &nodes, nav_index);
         let mut pages: Vec<Box<dyn Page>> = PageId::ALL.into_iter().map(page).collect();
         if paused {
             for page in &mut pages {
@@ -860,7 +970,7 @@ impl App {
         }
         Self {
             page: initial,
-            nav_index,
+            nav_target,
             nav_state,
             pages,
             help_state: DialogState::default(),
@@ -884,25 +994,15 @@ impl App {
     }
 
     fn goto_entry(&mut self, index: usize) {
-        let Some(entry) = NAV_ENTRIES.get(index).copied() else {
+        let Some(target) = nav_target_at(index) else {
             return;
         };
-        self.nav_index = index;
-        if entry_is_live(&entry) {
-            self.page = entry.id;
-        }
-        place_nav(&mut self.nav_state, index);
-    }
-
-    fn goto_page(&mut self, page: PageId) {
-        if let Some(index) = NAV_ENTRIES
-            .iter()
-            .position(|e| e.id == page && entry_is_live(e))
-        {
-            self.goto_entry(index);
-        } else {
+        self.nav_target = target;
+        if let Some(page) = target.page() {
             self.page = page;
         }
+        let nodes = nav_nodes(&self.nav_state, 0);
+        reveal_nav(&mut self.nav_state, &nodes, index);
     }
 
     fn resolved_shell_layout(&self, area: Rect) -> ShellLayout {
@@ -922,12 +1022,12 @@ impl App {
     }
 
     fn show_live_page(&self) -> bool {
-        NAV_ENTRIES.get(self.nav_index).is_some_and(entry_is_live)
+        matches!(self.nav_target, NavTarget::Live(_))
     }
 
     fn nav_label(&self) -> &'static str {
-        NAV_ENTRIES
-            .get(self.nav_index)
+        nav_index_for_target(self.nav_target)
+            .and_then(|index| NAV_ENTRIES.get(index))
             .map(|entry| entry.label)
             .unwrap_or("Overview")
     }
@@ -1147,103 +1247,13 @@ fn sidebar_plane(ui: &Ui<'_>) -> PaintStyle {
     shell_compat_style(ui.surface_style()).bg(ui.theme().bg(termrock::Surface::Surface))
 }
 
-/// Flat catalog the frozen showcase frames paint. The grouped `NAV_ENTRIES`
-/// tree stays the page index; this list is the visible shell.
-const LEGACY_NAV: &[(&str, &str)] = &[
-    ("Overview", "Foundations"),
-    ("Buttons", "Components"),
-    ("Inputs", "Components"),
-    ("Text areas", "Components"),
-    ("Forms", "Components"),
-    ("Lists", "Components"),
-    ("Trees", "Components"),
-    ("Tables", "Components"),
-    ("Editable tables", "Components"),
-    ("Panels", "Components"),
-    ("Sidebars", "Components"),
-    ("Dialogs", "Components"),
-    ("Progress", "Components"),
-    ("Scrolling", "Components"),
-    ("Terminal", "Components"),
-    ("Code editor", "Components"),
-    ("Diff", "Components"),
-    ("Data grid", "Components"),
-    ("Chips & selects", "Components"),
-    ("Pickers", "Components"),
-    ("Chrome", "Components"),
-    ("Settings", "Screens"),
-    ("Task runner", "Screens"),
-];
-
 fn legacy_crumb(label: &str) -> (&str, &str) {
-    const ALIASES: &[(&str, &str)] = &[("Basic table", "Tables"), ("Editable", "Editable tables")];
-    let shown = ALIASES
-        .iter()
-        .find(|(from, _)| *from == label)
-        .map(|(_, to)| *to)
-        .unwrap_or(label);
-    LEGACY_NAV
-        .iter()
-        .find(|(row, _)| *row == shown)
-        .copied()
-        .unwrap_or((shown, "Components"))
-}
-
-fn legacy_row_at_y(y: u16, sidebar_y: u16, height: u16) -> Option<&'static str> {
-    let mut cur_y = sidebar_y;
-    let mut previous: Option<&str> = None;
-    for (row_label, group) in LEGACY_NAV {
-        if previous != Some(*group) {
-            if previous.is_some() {
-                if cur_y >= sidebar_y.saturating_add(height) {
-                    break;
-                }
-                cur_y = cur_y.saturating_add(1);
-            }
-            if cur_y >= sidebar_y.saturating_add(height) {
-                break;
-            }
-            cur_y = cur_y.saturating_add(1);
-            previous = Some(*group);
-        }
-        if cur_y >= sidebar_y.saturating_add(height) {
-            break;
-        }
-        if cur_y == y {
-            return Some(*row_label);
-        }
-        cur_y = cur_y.saturating_add(1);
-    }
-    None
-}
-
-fn page_for_legacy_label(label: &str) -> Option<PageId> {
-    match label {
-        "Overview" => Some(PageId::Overview),
-        "Buttons" => Some(PageId::Buttons),
-        "Inputs" => Some(PageId::Inputs),
-        "Text areas" => Some(PageId::TextAreas),
-        "Forms" => Some(PageId::Forms),
-        "Lists" => Some(PageId::Lists),
-        "Trees" => Some(PageId::Trees),
-        "Tables" => Some(PageId::Tables),
-        "Editable tables" | "Editable" => Some(PageId::Editable),
-        "Panels" => Some(PageId::Panels),
-        "Sidebars" => Some(PageId::Sidebars),
-        "Dialogs" => Some(PageId::Dialogs),
-        "Progress" => Some(PageId::Progress),
-        "Scrolling" => Some(PageId::Scrolling),
-        "Terminal" => Some(PageId::Terminal),
-        "Code editor" => Some(PageId::Editor),
-        "Diff" => None,
-        "Data grid" => Some(PageId::Grid),
-        "Chips & selects" => Some(PageId::Chips),
-        "Pickers" => Some(PageId::Pickers),
-        "Chrome" => Some(PageId::Chrome),
-        "Settings" => Some(PageId::Settings),
-        "Task runner" => Some(PageId::TaskRunner),
-        _ => None,
-    }
+    let group = match label {
+        "Overview" => "Foundations",
+        "Settings" | "Task runner" => "Screens",
+        _ => "Components",
+    };
+    (nav_display_label(label), group)
 }
 
 fn paint_header(
@@ -1457,136 +1467,6 @@ fn header_action_style(ui: &mut Ui<'_>, id: Id, muted: PaintStyle) -> PaintStyle
     }
 }
 
-/// The navigation hit region keeps the sidebar rail inside its one-column
-/// inset: the tree list starts two rows down and keeps one clear row below.
-/// Painting still fills the whole rail; the shell-chrome pin owns this area.
-fn nav_list_area(area: Rect) -> Rect {
-    Rect::new(
-        area.x.saturating_add(1),
-        area.y.saturating_add(2),
-        area.width.saturating_sub(2),
-        area.height.saturating_sub(3),
-    )
-}
-
-fn paint_sidebar(ui: &mut Ui<'_>, area: Rect, _state: &TreeState, label: &str, screen_width: u16) {
-    if area.is_empty() {
-        return;
-    }
-    if screen_width >= 110 {
-        paint_wide_sidebar(ui, area, label);
-        return;
-    }
-    let canvas = shell_compat_style(ui.surface_style());
-    ui.fill(area, canvas);
-    ui.register_part(NAV, PartRef::of(Part::CONTAINER), area);
-    ui.register_control(NAV, nav_list_area(area), termrock::Focusability::Focusable);
-    let secondary = shell_text_style(ui, termrock::FgStep::Secondary);
-    let primary = shell_text_style(ui, termrock::FgStep::Primary);
-    let chosen = primary.add_modifier(termrock::Modifier::BOLD);
-    let gutter = shell_compat_style(ui.surface_style().fg(ui.theme().color.accent))
-        .add_modifier(termrock::Modifier::BOLD);
-    let black = if ui.theme().capability.color == termrock::ColorLevel::TrueColor
-        || ui.theme().capability.color == termrock::ColorLevel::Ansi256
-    {
-        canvas
-            .fg(termrock::Color::from_u32(0))
-            .bg(termrock::Color::from_u32(0))
-    } else {
-        canvas
-            .fg(termrock::Color::Indexed(0))
-            .bg(termrock::Color::Indexed(0))
-    };
-    let (shown, _) = legacy_crumb(label);
-    let focused = ui.state(NAV).contains(StateFlags::FOCUSED);
-    for (index, (row_label, _)) in LEGACY_NAV.iter().enumerate() {
-        let Ok(offset) = u16::try_from(index) else {
-            break;
-        };
-        let y = area.y.saturating_add(offset);
-        if y >= area.bottom() {
-            break;
-        }
-        let selected = *row_label == shown;
-        let row_label = if screen_width < 100 {
-            clip_label(row_label, 14)
-        } else {
-            (*row_label).to_owned()
-        };
-        let row_label = row_label.as_str();
-        let fade = if screen_width < 100 {
-            nav_fade_steps(index, usize::from(area.height))
-        } else {
-            0
-        };
-        let secondary = fade_paint(secondary, fade);
-        let primary = fade_paint(primary, fade);
-        let chosen = fade_paint(chosen, fade);
-        if selected {
-            if focused {
-                ui.paint_str(Rect::new(area.x, y, 2, 1), "▎›", gutter);
-            } else {
-                ui.paint_str(Rect::new(area.x, y, 1, 1), " ", black);
-                ui.paint_str(Rect::new(area.x.saturating_add(1), y, 1, 1), " ", primary);
-            }
-            ui.paint_str(
-                Rect::new(area.x.saturating_add(2), y, 17, 1),
-                &" ".repeat(17),
-                chosen,
-            );
-            ui.paint_str(
-                Rect::new(area.x.saturating_add(3), y, width(row_label), 1),
-                row_label,
-                chosen,
-            );
-        } else {
-            ui.paint_str(Rect::new(area.x, y, 1, 1), " ", black);
-            ui.paint_str(Rect::new(area.x.saturating_add(1), y, 2, 1), "  ", primary);
-            ui.paint_str(
-                Rect::new(area.x.saturating_add(3), y, 15, 1),
-                &" ".repeat(15),
-                secondary,
-            );
-            ui.paint_str(
-                Rect::new(area.x.saturating_add(3), y, width(row_label), 1),
-                row_label,
-                secondary,
-            );
-        }
-        if screen_width < 100 && area.height < 23 {
-            let mut pad = primary;
-            if selected && focused {
-                pad = pad.add_modifier(termrock::Modifier::BOLD);
-            }
-            ui.paint_str(Rect::new(area.x.saturating_add(17), y, 1, 1), " ", pad);
-        }
-    }
-    if screen_width < 100 && area.height < 23 {
-        paint_nav_seam(ui, area);
-    }
-}
-
-fn nav_fade_steps(index: usize, visible: usize) -> u8 {
-    if visible == 0 || visible >= 23 {
-        return 0;
-    }
-    let depth = if visible >= 12 {
-        2
-    } else if visible >= 4 {
-        1
-    } else {
-        0
-    };
-    let from_end = visible.saturating_sub(1).saturating_sub(index);
-    if from_end == 0 && depth >= 1 {
-        if depth == 1 { 1 } else { 2 }
-    } else if from_end == 1 && depth >= 2 {
-        1
-    } else {
-        0
-    }
-}
-
 fn fade_paint(style: PaintStyle, steps: u8) -> PaintStyle {
     if steps == 0 {
         return style;
@@ -1597,168 +1477,6 @@ fn fade_paint(style: PaintStyle, steps: u8) -> PaintStyle {
     let keep = if steps == 1 { 0.8 } else { 0.55 };
     let mix = |channel: u8| (f32::from(channel) * keep).round() as u8;
     style.fg(termrock::Color::Rgb(mix(red), mix(green), mix(blue)))
-}
-
-fn paint_wide_sidebar(ui: &mut Ui<'_>, area: Rect, label: &str) {
-    let canvas = shell_compat_style(ui.surface_style());
-    ui.fill(area, canvas);
-    ui.register_part(NAV, PartRef::of(Part::CONTAINER), area);
-    ui.register_control(NAV, nav_list_area(area), termrock::Focusability::Focusable);
-    let (shown, _) = legacy_crumb(label);
-    let focused = ui.state(NAV).contains(StateFlags::FOCUSED);
-    let mut y = area.y;
-    let mut previous: Option<&str> = None;
-    for (row_label, group) in LEGACY_NAV {
-        if previous != Some(*group) {
-            if previous.is_some() {
-                if y >= area.bottom() {
-                    break;
-                }
-                y = y.saturating_add(1);
-            }
-            if y >= area.bottom() {
-                break;
-            }
-            paint_wide_group(ui, area, y, group);
-            y = y.saturating_add(1);
-            previous = Some(*group);
-        }
-        if y >= area.bottom() {
-            break;
-        }
-        paint_wide_item(ui, area, y, row_label, *row_label == shown, focused);
-        y = y.saturating_add(1);
-    }
-}
-
-fn paint_wide_group(ui: &mut Ui<'_>, area: Rect, y: u16, group: &str) {
-    let pad = shell_text_style(ui, termrock::FgStep::Primary);
-    let faint = chrome_fg(
-        ui,
-        termrock::theme::baseline_faint(ui.theme().capability.color),
-    );
-    ui.paint_str(Rect::new(area.x, y, 3, 1), "   ", pad);
-    ui.paint_str(
-        Rect::new(area.x.saturating_add(3), y, width(group), 1),
-        group,
-        faint,
-    );
-}
-
-fn paint_wide_item(
-    ui: &mut Ui<'_>,
-    area: Rect,
-    y: u16,
-    row_label: &str,
-    selected: bool,
-    focused: bool,
-) {
-    let secondary = shell_text_style(ui, termrock::FgStep::Secondary);
-    let primary = shell_text_style(ui, termrock::FgStep::Primary);
-    let chosen = primary.add_modifier(termrock::Modifier::BOLD);
-    let gutter = shell_compat_style(ui.surface_style().fg(ui.theme().color.accent))
-        .add_modifier(termrock::Modifier::BOLD);
-    let black = if ui.theme().capability.color == termrock::ColorLevel::TrueColor
-        || ui.theme().capability.color == termrock::ColorLevel::Ansi256
-    {
-        shell_compat_style(ui.surface_style())
-            .fg(termrock::Color::from_u32(0))
-            .bg(termrock::Color::from_u32(0))
-    } else {
-        shell_compat_style(ui.surface_style())
-            .fg(termrock::Color::Indexed(0))
-            .bg(termrock::Color::Indexed(0))
-    };
-    let lane_right = area
-        .x
-        .saturating_add(if selected && focused { 24 } else { 23 });
-    if selected && focused {
-        ui.paint_str(Rect::new(area.x, y, 2, 1), "▎›", gutter);
-        ui.paint_str(
-            Rect::new(
-                area.x.saturating_add(2),
-                y,
-                width(row_label).saturating_add(1),
-                1,
-            ),
-            &format!(" {row_label}"),
-            chosen,
-        );
-        let tail = area.x.saturating_add(3).saturating_add(width(row_label));
-        if lane_right > tail {
-            ui.paint_str(
-                Rect::new(tail, y, lane_right.saturating_sub(tail), 1),
-                &" ".repeat(usize::from(lane_right.saturating_sub(tail))),
-                chosen,
-            );
-        }
-    } else if selected {
-        ui.paint_str(Rect::new(area.x, y, 1, 1), " ", black);
-        ui.paint_str(Rect::new(area.x.saturating_add(1), y, 1, 1), " ", primary);
-        ui.paint_str(
-            Rect::new(area.x.saturating_add(3), y, width(row_label), 1),
-            row_label,
-            chosen,
-        );
-    } else {
-        ui.paint_str(Rect::new(area.x, y, 1, 1), " ", black);
-        ui.paint_str(Rect::new(area.x.saturating_add(1), y, 2, 1), "  ", primary);
-        ui.paint_str(
-            Rect::new(area.x.saturating_add(3), y, width(row_label), 1),
-            row_label,
-            secondary,
-        );
-        let tail = area.x.saturating_add(3).saturating_add(width(row_label));
-        if lane_right > tail {
-            ui.paint_str(
-                Rect::new(tail, y, lane_right.saturating_sub(tail), 1),
-                &" ".repeat(usize::from(lane_right.saturating_sub(tail))),
-                secondary,
-            );
-        }
-    }
-}
-
-fn paint_nav_seam(ui: &mut Ui<'_>, area: Rect) {
-    let canvas = shell_compat_style(ui.surface_style());
-    let level = ui.theme().capability.color;
-    let (thumb_fg, track_fg) = match level {
-        termrock::ColorLevel::TrueColor => (
-            termrock::Color::from_u32(0x00ff_ffff),
-            termrock::Color::from_u32(0x0026_2626),
-        ),
-        termrock::ColorLevel::Ansi256 => {
-            (termrock::Color::Indexed(231), termrock::Color::Indexed(235))
-        }
-        termrock::ColorLevel::Ansi16 | termrock::ColorLevel::Mono => {
-            (termrock::Color::White, termrock::Color::DarkGray)
-        }
-        _ => (termrock::Color::White, termrock::Color::DarkGray),
-    };
-    let bg = if matches!(
-        level,
-        termrock::ColorLevel::TrueColor | termrock::ColorLevel::Ansi256
-    ) {
-        termrock::Color::from_u32(0)
-    } else {
-        termrock::Color::Indexed(0)
-    };
-    let thumb = canvas.fg(thumb_fg).bg(bg);
-    let track = canvas.fg(track_fg).bg(bg);
-    let track_len = usize::from(area.height);
-    let thumb_len = (track_len.saturating_mul(track_len) / 23)
-        .max(1)
-        .min(track_len);
-    let x = area.x.saturating_add(18);
-    for row in 0..area.height {
-        let y = area.y.saturating_add(row);
-        let on_thumb = usize::from(row) < thumb_len;
-        ui.paint_str(
-            Rect::new(x, y, 1, 1),
-            if on_thumb { "┃" } else { "│" },
-            if on_thumb { thumb } else { track },
-        );
-    }
 }
 
 fn chrome_fg(ui: &Ui<'_>, color: termrock::Color) -> PaintStyle {
@@ -1778,32 +1496,42 @@ fn paint_sidebar_row(ui: &mut Ui<'_>, row: Rect, flags: StateFlags, _key: ItemKe
     } else {
         plane.as_style().bg.unwrap_or(accent_bg)
     };
+    let fade = node.fade;
     let mut row_style = plane.bg(row_bg);
     if focused {
         row_style = row_style.add_modifier(termrock::Modifier::BOLD);
     }
     ui.fill(row, row_style);
-    let mut label = shell_row_style(
-        shell_part_style(ui, termrock::Family::LIST, Part::LABEL, flags),
-        flags,
+    let mut label = fade_paint(
+        shell_row_style(
+            shell_part_style(ui, termrock::Family::LIST, Part::LABEL, flags),
+            flags,
+        ),
+        fade,
     )
     .bg(row_bg);
     if selected {
         label = label.fg(ui.theme().color.accent);
     }
-    let secondary = shell_part_style(ui, termrock::Family::PANEL, Part::DETAIL, flags).bg(row_bg);
-    let marker = shell_row_style(
-        shell_part_style(
-            ui,
-            termrock::Family::LIST,
-            Part::MARKER,
-            if selected {
-                flags | StateFlags::SELECTED
-            } else {
-                flags
-            },
+    let secondary = fade_paint(
+        shell_part_style(ui, termrock::Family::PANEL, Part::DETAIL, flags).bg(row_bg),
+        fade,
+    );
+    let marker = fade_paint(
+        shell_row_style(
+            shell_part_style(
+                ui,
+                termrock::Family::LIST,
+                Part::MARKER,
+                if selected {
+                    flags | StateFlags::SELECTED
+                } else {
+                    flags
+                },
+            ),
+            flags,
         ),
-        flags,
+        fade,
     )
     .bg(row_bg);
     if focused {
@@ -2054,16 +1782,15 @@ impl TuiApp for App {
             Some(NEXT_PAGE) => {
                 let count = NAV_ENTRIES.len();
                 if count > 0 {
-                    self.goto_entry(self.nav_index.saturating_add(1) % count);
+                    let current = nav_index_for_target(self.nav_target).unwrap_or(0);
+                    self.goto_entry(current.saturating_add(1) % count);
                 }
             }
             Some(PREV_PAGE) => {
                 let count = NAV_ENTRIES.len();
                 if count > 0 {
-                    let previous = self
-                        .nav_index
-                        .checked_sub(1)
-                        .unwrap_or(count.saturating_sub(1));
+                    let current = nav_index_for_target(self.nav_target).unwrap_or(0);
+                    let previous = current.checked_sub(1).unwrap_or(count.saturating_sub(1));
                     self.goto_entry(previous);
                 }
             }
@@ -2085,96 +1812,33 @@ impl TuiApp for App {
         {
             response |= active.command(cx, action);
         }
-        if self.nav_label() == "Selection" {
+        let sidebar_height = self.resolved_shell_layout(cx.viewport()).sidebar.height;
+        let nodes = nav_nodes(&self.nav_state, sidebar_height);
+        let nav_response = nav_tree().update(cx, &mut self.nav_state, &nodes);
+        let nav_action = nav_response.action_ref().copied();
+        response |= nav_response.erase();
+        let mut enter_content = false;
+        let picked = match nav_action {
+            Some(TreeAction::Chose(key)) => target_for_key(key, &nodes),
+            Some(TreeAction::Activated(key)) => {
+                let picked = target_for_key(key, &nodes);
+                enter_content = picked.is_some_and(|(_, target)| target.has_content());
+                picked
+            }
+            Some(TreeAction::Moved) => self
+                .nav_state
+                .cursor()
+                .and_then(|key| target_for_key(key, &nodes)),
+            Some(TreeAction::Expanded(_) | TreeAction::Collapsed(_)) | None => None,
+        };
+        if let Some((index, _target)) = picked {
+            self.goto_entry(index);
+        }
+
+        if self.nav_target == NavTarget::Selection {
             response |= self.selectable.update(cx);
         } else {
             self.selectable.blur();
-        }
-        let full = cx.viewport();
-        let shell = self.resolved_shell_layout(full);
-        let mut nav_navigated = false;
-        for intent in cx.intents(NAV) {
-            match intent {
-                Intent::Key(key) if cx.state(NAV).contains(StateFlags::FOCUSED) => match key.code {
-                    KeyCode::Down => {
-                        let cur_index = LEGACY_NAV
-                            .iter()
-                            .position(|(label, _)| page_for_legacy_label(label) == Some(self.page))
-                            .unwrap_or(0);
-                        let next = (cur_index + 1).min(LEGACY_NAV.len().saturating_sub(1));
-                        if let Some(page) = page_for_legacy_label(LEGACY_NAV[next].0) {
-                            self.goto_page(page);
-                            nav_navigated = true;
-                            response = response.repaint();
-                        }
-                    }
-                    KeyCode::Up => {
-                        let cur_index = LEGACY_NAV
-                            .iter()
-                            .position(|(label, _)| page_for_legacy_label(label) == Some(self.page))
-                            .unwrap_or(0);
-                        let prev = cur_index.saturating_sub(1);
-                        if let Some(page) = page_for_legacy_label(LEGACY_NAV[prev].0) {
-                            self.goto_page(page);
-                            nav_navigated = true;
-                            response = response.repaint();
-                        }
-                    }
-                    KeyCode::Enter => {
-                        if self.show_live_page() {
-                            cx.focus_next();
-                        }
-                        response = response.repaint();
-                    }
-                    _ => {}
-                },
-                Intent::Pointer {
-                    phase: Phase::Release,
-                    pos,
-                    ..
-                } if pos.x >= shell.sidebar.x
-                    && pos.x < shell.sidebar.right()
-                    && pos.y >= shell.sidebar.y
-                    && pos.y < shell.sidebar.bottom() =>
-                {
-                    let label = if full.width >= 110 {
-                        legacy_row_at_y(pos.y, shell.sidebar.y, shell.sidebar.height)
-                    } else {
-                        let idx = pos.y.saturating_sub(shell.sidebar.y) as usize;
-                        LEGACY_NAV.get(idx).map(|(l, _)| *l)
-                    };
-                    if let Some(label) = label
-                        && let Some(page) = page_for_legacy_label(label)
-                    {
-                        self.goto_page(page);
-                        nav_navigated = true;
-                        response = response.repaint();
-                    }
-                }
-                _ => {}
-            }
-        }
-        if !nav_navigated {
-            let nodes = nav_nodes();
-            let mut picked = None;
-            response |= nav_tree()
-                .update(cx, &mut self.nav_state, &nodes)
-                .on_action(|action| {
-                    let (key, activate) = match action {
-                        TreeAction::Chose(key) => (key, false),
-                        TreeAction::Activated(key) => (key, true),
-                        TreeAction::Moved | TreeAction::Expanded(_) | TreeAction::Collapsed(_) => {
-                            return;
-                        }
-                    };
-                    picked = entry_for_key(key, &nodes).map(|index| (index, activate));
-                });
-            if let Some((index, activate)) = picked {
-                self.goto_entry(index);
-                if activate && self.show_live_page() {
-                    cx.focus_next();
-                }
-            }
         }
 
         if self.show_live_page()
@@ -2188,6 +1852,9 @@ impl TuiApp for App {
                 self.status = Some((status, cx.now()));
                 response = response.repaint();
             }
+        }
+        if enter_content {
+            cx.focus_next();
         }
         self.update_help(cx, &mut response);
         if !self.motion_paused
@@ -2213,10 +1880,13 @@ impl TuiApp for App {
 
         shell_brand().draw(ui, shell.header);
         shell_status().draw(ui, shell.footer);
-        let entry = NAV_ENTRIES.get(self.nav_index).copied();
+        let entry = nav_index_for_target(self.nav_target)
+            .and_then(|index| NAV_ENTRIES.get(index))
+            .copied();
         let section = entry.map(|entry| entry.section).unwrap_or("");
         let label = entry.map(|entry| entry.label).unwrap_or("Overview");
-        paint_sidebar(ui, shell.sidebar, &self.nav_state, label, full.width);
+        let nodes = nav_nodes(&self.nav_state, shell.sidebar.height);
+        nav_tree().draw(ui, shell.sidebar, &self.nav_state, &nodes);
         paint_header(
             ui,
             shell.header,
@@ -2234,7 +1904,7 @@ impl TuiApp for App {
                     let _ = ui.paint_str(area, "No page selected", ui.surface_style());
                 });
             }
-        } else if label == "Selection" {
+        } else if self.nav_target == NavTarget::Selection {
             showcase_demos::pages::selectable::paint(ui, shell.main, &self.selectable);
         } else {
             paint_placeholder(ui, shell.main, label);
@@ -2246,7 +1916,7 @@ impl TuiApp for App {
             self.active()
                 .map(|page| (page.hints(ui), page.editing(ui)))
                 .unwrap_or_default()
-        } else if label == "Selection" {
+        } else if self.nav_target == NavTarget::Selection {
             (self.selectable.hints(), false)
         } else {
             (&[][..], false)
@@ -2568,6 +2238,144 @@ mod app_tests {
             .as_ref()
             .map(|(_, since)| since.as_duration().as_millis());
         assert_eq!(since, Some(5_000));
+    }
+}
+
+#[cfg(test)]
+mod navigation_identity_contract {
+    use super::*;
+
+    #[test]
+    fn every_catalog_entry_has_a_unique_stable_target_and_key() {
+        assert_eq!(NAV_ENTRIES.len(), 54);
+        let nodes = nav_nodes(&TreeState::new(), 0);
+        assert_eq!(nodes.len(), NAV_ENTRIES.len() + 9);
+
+        for left in 0..nodes.len() {
+            for right in left + 1..nodes.len() {
+                assert_ne!(nodes[left].key, nodes[right].key, "duplicate node key");
+            }
+        }
+
+        let targets: Vec<_> = NAV_ENTRIES
+            .iter()
+            .enumerate()
+            .map(|(index, entry)| {
+                let target = nav_target_for_entry(entry, index);
+                assert_eq!(nav_index_from_name(entry.label), Some(index));
+                assert_eq!(nav_index_for_target(target), Some(index));
+                let app = App::boot(index, false, 0);
+                assert_eq!(app.nav_target, target, "boot target for {}", entry.label);
+                assert_eq!(
+                    app.nav_state.cursor(),
+                    Some(nav_entry_key(index)),
+                    "boot cursor for {}",
+                    entry.label
+                );
+                assert_eq!(
+                    app.nav_state.chosen(),
+                    Some(nav_entry_key(index)),
+                    "boot chosen route for {}",
+                    entry.label
+                );
+                match target {
+                    NavTarget::Live(page) => assert_eq!(app.page(), page),
+                    NavTarget::Selection | NavTarget::Placeholder(_) => {
+                        assert_eq!(app.page(), PageId::Overview)
+                    }
+                }
+                match target {
+                    NavTarget::Live(page) => {
+                        assert_eq!(PageId::from_name(entry.label), Some(page));
+                    }
+                    NavTarget::Selection | NavTarget::Placeholder(_) => {
+                        assert_eq!(PageId::from_name(entry.label), None);
+                    }
+                }
+                target
+            })
+            .collect();
+        for left in 0..targets.len() {
+            for right in left + 1..targets.len() {
+                assert_ne!(targets[left], targets[right], "duplicate route target");
+            }
+        }
+        assert_eq!(
+            targets
+                .iter()
+                .filter(|target| matches!(target, NavTarget::Live(_)))
+                .count(),
+            24
+        );
+        assert_eq!(
+            targets
+                .iter()
+                .filter(|target| matches!(target, NavTarget::Selection))
+                .count(),
+            1
+        );
+        assert_eq!(
+            targets
+                .iter()
+                .filter(|target| matches!(target, NavTarget::Placeholder(_)))
+                .count(),
+            29
+        );
+    }
+
+    #[test]
+    fn route_aliases_resolve_to_their_catalog_target() {
+        for (alias, label) in NAV_ALIASES {
+            let expected = NAV_ENTRIES
+                .iter()
+                .position(|entry| entry.label == *label)
+                .unwrap_or_else(|| panic!("alias target {label:?} is absent"));
+            assert_eq!(nav_index_from_name(alias), Some(expected), "alias {alias}");
+            let expected_page = match nav_target_at(expected) {
+                Some(NavTarget::Live(page)) => Some(page),
+                Some(NavTarget::Selection | NavTarget::Placeholder(_)) | None => None,
+            };
+            assert_eq!(
+                PageId::from_name(alias),
+                expected_page,
+                "page alias {alias}"
+            );
+        }
+        assert_eq!(nav_display_label("Basic table"), "Tables");
+        assert_eq!(nav_display_label("Editable"), "Editable tables");
+        assert_eq!(legacy_crumb("Overview"), ("Overview", "Foundations"));
+        assert_eq!(legacy_crumb("Settings"), ("Settings", "Screens"));
+        assert_eq!(legacy_crumb("Basic table"), ("Tables", "Components"));
+    }
+
+    #[test]
+    fn revealing_a_route_preserves_other_group_expansion_state() {
+        let mut app = App::new();
+        let nodes = nav_nodes(&app.nav_state, 0);
+        for group in nodes.iter().filter(|node| node.parent) {
+            app.nav_state.collapse(group.key);
+        }
+
+        let target = NAV_ENTRIES
+            .iter()
+            .position(|entry| entry.label == "Settings")
+            .expect("Settings route is in the public catalog");
+        app.goto_entry(target);
+
+        let screen_group = nodes
+            .iter()
+            .find(|node| node.parent && node.label == "Screens")
+            .expect("Screens group is in the shared tree");
+        let shell_group = nodes
+            .iter()
+            .find(|node| node.parent && node.label == "App shell")
+            .expect("App shell group is in the shared tree");
+        assert!(app.nav_state.is_expanded(screen_group.key));
+        assert!(!app.nav_state.is_expanded(shell_group.key));
+        let key = nav_entry_key(target);
+        assert_eq!(app.nav_state.cursor(), Some(key));
+        assert_eq!(app.nav_state.chosen(), Some(key));
+        assert_eq!(app.nav_target, NavTarget::Live(PageId::Settings));
     }
 }
 
