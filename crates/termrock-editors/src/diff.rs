@@ -164,7 +164,6 @@ struct DiffLayout {
     status_label: String,
     status_role: Option<Role>,
     reset_pending: bool,
-    update_pending: bool,
     scratch: Vec<OwnedLine>,
     projection: ProjectedText,
 }
@@ -224,7 +223,6 @@ impl DiffLayout {
             source.map_or_else(String::new, |source| source.status_label().to_owned());
         self.status_role = source.map(DiffSource::status_role);
         self.reset_pending |= source_changed;
-        self.update_pending = true;
         true
     }
 }
@@ -318,14 +316,17 @@ impl<'a> DiffView<'a> {
             state.viewport.reset_scroll_offsets();
             let _ = state.viewport.clear_selection();
             layout.reset_pending = false;
-        } else if !self.horizontal_pan && (rebuilt || layout.reset_pending || layout.update_pending)
-        {
-            state.viewport.set_follow(false);
-            state.viewport.invalidate();
-            let _ = state.viewport.clear_selection();
+        } else if !self.horizontal_pan {
+            if rebuilt {
+                state.viewport.set_follow(false);
+                state.viewport.invalidate();
+                let _ = state.viewport.clear_selection();
+            }
+            // A draw may have refreshed the shared projection before this
+            // update. Preserve the default-off legacy contract: only an
+            // update that rebuilds its own projection resets caller state.
             layout.reset_pending = false;
         }
-        layout.update_pending = false;
         let response = self.viewport(layout.layout_revision).update_projected(
             cx,
             &mut state.viewport,
@@ -800,6 +801,11 @@ mod tests {
         },
     ];
 
+    const EVENT_ORDER_ROWS: &[&str] = &[
+        "row 00", "row 01", "row 02", "row 03", "row 04", "row 05", "row 06", "row 07", "row 08",
+        "row 09", "row 10", "row 11",
+    ];
+
     struct Source;
 
     impl DiffSource for Source {
@@ -873,6 +879,7 @@ mod tests {
     struct MutableSource {
         rows: &'static [&'static str],
         revision: u64,
+        path: &'static str,
     }
 
     impl DiffSource for MutableSource {
@@ -881,7 +888,7 @@ mod tests {
         }
 
         fn path(&self) -> &str {
-            "x.rs"
+            self.path
         }
 
         fn status_marker(&self) -> &str {
@@ -934,6 +941,8 @@ mod tests {
         second_source: bool,
         state: DiffViewState,
         horizontal_pan: bool,
+        next_mode: Option<DiffMode>,
+        next_source: Option<bool>,
     }
 
     impl DiffProbe {
@@ -948,6 +957,12 @@ mod tests {
 
     impl crate::runtime::App for DiffProbe {
         fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            if let Some(mode) = self.next_mode.take() {
+                self.state.set_mode(mode);
+            }
+            if let Some(second_source) = self.next_source.take() {
+                self.second_source = second_source;
+            }
             DiffView::new(ID, Some(self.source()))
                 .horizontal_pan(self.horizontal_pan)
                 .update(cx, &mut self.state)
@@ -1000,6 +1015,57 @@ mod tests {
 
     fn horizontal_track(runtime: &Runtime<impl crate::runtime::App>) -> Option<Rect> {
         runtime.area_of_part(ID, PartRef::of(Part::custom("viewport.horizontal-track")))
+    }
+
+    fn prepare_default_off_runtime(runtime: &mut Runtime<MutableDiffProbe>, area: Rect) {
+        let _ = runtime.initialize();
+        let _ = crate::runtime::stub::deliver(runtime, Input::Tick);
+        runtime.app_mut().state.viewport.set_follow(false);
+        runtime.app_mut().state.viewport.reset_scroll_offsets();
+        let _ = render(runtime, area);
+        let _ = crate::runtime::stub::deliver(runtime, mouse(MouseKind::Wheel(Axis::V, 1), 5, 2));
+        assert!(runtime.app().state.viewport.scroll().offset() > 0);
+        runtime
+            .app_mut()
+            .state
+            .viewport
+            .select(CellPos::new(4, 0), CellPos::new(4, 4));
+    }
+
+    fn assert_draw_then_tick_preserves_default_off_state(
+        runtime: &mut Runtime<MutableDiffProbe>,
+        area: Rect,
+    ) {
+        let before_follow = runtime.app().state.viewport.follow();
+        let before_offset = runtime.app().state.viewport.scroll().offset();
+        let before_selection = runtime.app().state.viewport.selection();
+        let before = render(runtime, area);
+        assert_eq!(runtime.app().state.viewport.follow(), before_follow);
+        assert_eq!(
+            runtime.app().state.viewport.scroll().offset(),
+            before_offset
+        );
+        assert_eq!(runtime.app().state.viewport.selection(), before_selection);
+        let repeated = render(runtime, area);
+        assert_eq!(
+            before.content(),
+            repeated.content(),
+            "repeated draws of one projection have identical cells"
+        );
+
+        let _ = runtime
+            .handle(Input::Tick)
+            .expect("runtime accepts a tick after the presented draw");
+        let after_state = runtime.app().state.clone();
+        let after = render(runtime, area);
+        assert_eq!(
+            before.content(),
+            after.content(),
+            "the no-op tick keeps the complete rendered cell buffer"
+        );
+        assert_eq!(after_state.viewport.follow(), before_follow);
+        assert_eq!(after_state.viewport.scroll().offset(), before_offset);
+        assert_eq!(after_state.viewport.selection(), before_selection);
     }
 
     fn text(line: &OwnedLine) -> String {
@@ -1223,6 +1289,8 @@ mod tests {
             second_source: false,
             state,
             horizontal_pan: true,
+            next_mode: None,
+            next_source: None,
         };
         let area = Rect::new(0, 0, 20, 6);
         let mut runtime = Runtime::new(app, Theme::junie());
@@ -1272,6 +1340,7 @@ mod tests {
             source: MutableSource {
                 rows: LONG,
                 revision: u64::MAX,
+                path: "x.rs",
             },
             state,
             horizontal_pan: true,
@@ -1310,6 +1379,7 @@ mod tests {
         let source = MutableSource {
             rows: LONG,
             revision: 4,
+            path: "x.rs",
         };
         let mut unified = Vec::new();
         let mut review = Vec::new();
@@ -1384,6 +1454,70 @@ mod tests {
     }
 
     #[test]
+    fn default_off_mode_draw_then_tick_preserves_caller_state_and_cells() {
+        let area = Rect::new(0, 0, 20, 6);
+        let mut runtime = Runtime::new(
+            MutableDiffProbe {
+                source: MutableSource {
+                    rows: EVENT_ORDER_ROWS,
+                    revision: 4,
+                    path: "x.rs",
+                },
+                state: DiffViewState::default(),
+                horizontal_pan: false,
+            },
+            Theme::junie(),
+        );
+        prepare_default_off_runtime(&mut runtime, area);
+        runtime.app_mut().state.set_mode(DiffMode::Review);
+
+        assert_draw_then_tick_preserves_default_off_state(&mut runtime, area);
+    }
+
+    #[test]
+    fn default_off_width_draw_then_tick_preserves_caller_state_and_cells() {
+        let initial_area = Rect::new(0, 0, 20, 6);
+        let mut state = DiffViewState::default();
+        state.set_mode(DiffMode::Review);
+        let mut runtime = Runtime::new(
+            MutableDiffProbe {
+                source: MutableSource {
+                    rows: EVENT_ORDER_ROWS,
+                    revision: 4,
+                    path: "x.rs",
+                },
+                state,
+                horizontal_pan: false,
+            },
+            Theme::junie(),
+        );
+        prepare_default_off_runtime(&mut runtime, initial_area);
+
+        assert_draw_then_tick_preserves_default_off_state(&mut runtime, Rect::new(0, 0, 24, 6));
+    }
+
+    #[test]
+    fn default_off_source_draw_then_tick_preserves_caller_state_and_cells() {
+        let area = Rect::new(0, 0, 20, 6);
+        let mut runtime = Runtime::new(
+            MutableDiffProbe {
+                source: MutableSource {
+                    rows: EVENT_ORDER_ROWS,
+                    revision: 4,
+                    path: "x.rs",
+                },
+                state: DiffViewState::default(),
+                horizontal_pan: false,
+            },
+            Theme::junie(),
+        );
+        prepare_default_off_runtime(&mut runtime, area);
+        runtime.app_mut().source.path = "y.rs";
+
+        assert_draw_then_tick_preserves_default_off_state(&mut runtime, area);
+    }
+
+    #[test]
     fn default_off_mode_update_keeps_legacy_selection_and_follow_reset_only() {
         let mut state = DiffViewState::default();
         state.viewport.set_follow(false);
@@ -1392,6 +1526,8 @@ mod tests {
                 second_source: false,
                 state,
                 horizontal_pan: false,
+                next_mode: None,
+                next_source: None,
             },
             Theme::junie(),
         );
@@ -1402,15 +1538,20 @@ mod tests {
             crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Wheel(Axis::V, 1), 5, 2));
         let offset = runtime.app().state.viewport.scroll().offset();
         assert!(offset > 0);
+        let _ = runtime.settle();
+        let _ = render(&mut runtime, area);
         runtime.app_mut().state.viewport.set_follow(true);
         runtime
             .app_mut()
             .state
             .viewport
             .select(CellPos::new(2, 1), CellPos::new(2, 3));
-        runtime.app_mut().state.set_mode(DiffMode::Review);
+        runtime.app_mut().next_mode = Some(DiffMode::Review);
+        let _ = render(&mut runtime, area);
 
-        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
+        let _ = runtime
+            .handle(Input::Tick)
+            .expect("runtime accepts a tick that observes the mode rebuild");
 
         assert_eq!(runtime.app().state.viewport.scroll().offset(), offset);
         assert!(!runtime.app().state.viewport.follow());
@@ -1426,6 +1567,8 @@ mod tests {
                 second_source: false,
                 state,
                 horizontal_pan: false,
+                next_mode: None,
+                next_source: None,
             },
             Theme::junie(),
         );
@@ -1436,6 +1579,8 @@ mod tests {
             crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Wheel(Axis::V, 1), 5, 2));
         let offset = runtime.app().state.viewport.scroll().offset();
         assert!(offset > 0);
+        let _ = runtime.settle();
+        let _ = render(&mut runtime, area);
 
         runtime.app_mut().state.viewport.set_follow(true);
         runtime
@@ -1443,9 +1588,12 @@ mod tests {
             .state
             .viewport
             .select(CellPos::new(2, 1), CellPos::new(2, 3));
-        runtime.app_mut().second_source = true;
+        runtime.app_mut().next_source = Some(true);
+        let _ = render(&mut runtime, area);
 
-        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
+        let _ = runtime
+            .handle(Input::Tick)
+            .expect("runtime accepts a tick that observes the source rebuild");
 
         assert_eq!(runtime.app().state.viewport.scroll().offset(), offset);
         assert!(!runtime.app().state.viewport.follow());
