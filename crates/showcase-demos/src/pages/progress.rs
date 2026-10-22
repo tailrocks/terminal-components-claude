@@ -1,11 +1,27 @@
 use std::time::Duration;
 
-use termrock::{Button, Color, Cx, Id, Modifier, PaintStyle, Rect, Response, Ui, Variant, width};
+use termrock::{
+    Button, Color, Cx, Family, FgStep, FrameRead, GlyphRole, Id, Meter, MeterTone, MeterVisual,
+    Modifier, PaintStyle, Panel, Part, ProgressBar, Rect, Response, Role, ScrollState, Slot,
+    Spinner, StateFlags, Status, StylePatch, Surface, Ui, Variant, width,
+};
 
 use super::{Page, PageStatus, PageUpdate, frame};
 
 const RESTART: Id = termrock::Id::root("showcase_ui::pages::progress::progress.restart");
 const PAUSE: Id = termrock::Id::root("showcase_ui::pages::progress::progress.pause");
+const PANEL_LIVE: Id = termrock::Id::root("showcase_ui::pages::progress::progress.live");
+const PANEL_JOBS: Id = termrock::Id::root("showcase_ui::pages::progress::progress.jobs");
+const PANEL_METERS: Id = termrock::Id::root("showcase_ui::pages::progress::progress.meters");
+const BAR_BUILD: Id = termrock::Id::root("showcase_ui::pages::progress::progress.live.build");
+const BAR_SWEEP: Id = termrock::Id::root("showcase_ui::pages::progress::progress.live.sweep");
+const SPINNER_LIVE: Id = termrock::Id::root("showcase_ui::pages::progress::progress.live.spinner");
+const BAR_JOBS: Id = termrock::Id::root("showcase_ui::pages::progress::progress.jobs.bar");
+const METER_LOW_LINE: Id =
+    termrock::Id::root("showcase_ui::pages::progress::progress.meters.low.line");
+const METER_LOW_BLOCK: Id =
+    termrock::Id::root("showcase_ui::pages::progress::progress.meters.low.block");
+const METER_WIDE: Id = termrock::Id::root("showcase_ui::pages::progress::progress.meters.wide");
 
 const SECTIONS: [&str; 3] = ["Playground", "Options", "States"];
 const SECTION_CAPTION: &str = "the live widget";
@@ -28,16 +44,10 @@ const ACCENT: u32 = 0x48e054;
 const SUCCESS: u32 = 0x3fb950;
 const ERROR: u32 = 0xf05d5d;
 const WARNING: u32 = 0xf59e09;
-const INFO: u32 = 0x79b8ff;
 const TAB_ACTIVE: u32 = 0x27272a;
-const BUTTON_BG: u32 = 0x27272a;
-const THUMB: u32 = 0x808080;
-const TRACK: u32 = 0x474747;
-const BLOCK_REST: u32 = 0x26262a;
 
 const LABEL_W: u16 = 16;
 const BAR_W: u16 = 70;
-const VALUE_W: u16 = 7;
 const METER_W: u16 = 34;
 const LIVE_H: u16 = 11;
 const JOBS_H: u16 = 12;
@@ -47,7 +57,7 @@ const CONTENT_H: u16 = LIVE_H + 1 + JOBS_H + 1 + METERS_H;
 const SPINNER: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
 const NOTES: [&str; 2] = [
-    "Capacity meters are never green: low ≤ 59 % blue, medium ≤ 84 % warning ▲, high error !.",
+    "Capacity meters are never green: low ≤ 59 % grey, medium ≤ 84 % warning ▲, high error !.",
     "Stale keeps its level, dashed.",
 ];
 
@@ -219,26 +229,54 @@ fn paint_section_strip(ui: &mut Ui<'_>, area: Rect) {
     );
 }
 
-fn thumb_len(viewport: u16, content: u16) -> u16 {
-    if content <= viewport || viewport == 0 {
-        return viewport;
+/// The shared scrollbar geometry: the thumb covers the share of the track
+/// the viewport shows. A viewport that fits its content keeps a full thumb.
+fn shared_thumb(viewport: u16, content: u16, track: u16) -> (u16, u16) {
+    let mut state = ScrollState::new(usize::from(content));
+    state.set_viewport(usize::from(viewport));
+    if !state.overflows() {
+        return (0, track);
     }
-    let len = u32::from(viewport).saturating_mul(u32::from(viewport)) / u32::from(content);
-    u16::try_from(len).unwrap_or(u16::MAX).max(1).min(viewport)
+    let (start, len) = state.thumb(usize::from(track));
+    (
+        u16::try_from(start).unwrap_or(u16::MAX),
+        u16::try_from(len).unwrap_or(u16::MAX),
+    )
+}
+
+/// A shared scrollbar cell: the glyph and foreground come from the
+/// scrollbar theme, the background stays the page canvas.
+fn scrollbar_cell(ui: &Ui<'_>, part: Part) -> (PaintStyle, &'static str) {
+    let resolved = ui.resolve(
+        Family::SCROLLBAR,
+        Variant::DEFAULT,
+        part,
+        StateFlags::empty(),
+    );
+    let glyph = match resolved.glyph {
+        Slot::Set(glyph) => ui.glyph_str(glyph),
+        Slot::Inherit | Slot::Clear => {
+            if part == Part::THUMB {
+                "┃"
+            } else {
+                "┆"
+            }
+        }
+    };
+    let canvas = ui.theme_ref().bg(Surface::Canvas);
+    (resolved.style.bg(canvas), glyph)
 }
 
 fn paint_scrollbar(ui: &mut Ui<'_>, bar: Rect, content_h: u16) {
-    let thumb = thumb_len(bar.height, content_h);
+    let (start, len) = shared_thumb(bar.height, content_h, bar.height);
+    let (thumb_style, thumb_glyph) = scrollbar_cell(ui, Part::THUMB);
+    let (track_style, track_glyph) = scrollbar_cell(ui, Part::TRACK);
     for row in 0..bar.height {
-        let on_thumb = row < thumb;
+        let on_thumb = row >= start && row < start.saturating_add(len);
         let _ = ui.paint_str(
             Rect::new(bar.x, bar.y.saturating_add(row), 1, 1),
-            if on_thumb { "┃" } else { "┆" },
-            if on_thumb {
-                ink(THUMB, CANVAS)
-            } else {
-                ink(TRACK, CANVAS)
-            },
+            if on_thumb { thumb_glyph } else { track_glyph },
+            if on_thumb { thumb_style } else { track_style },
         );
     }
 }
@@ -273,31 +311,38 @@ fn paint_repeat(
     paint_clip(ui, clip, x, y, &glyph.repeat(usize::from(count)), style);
 }
 
-fn paint_card(ui: &mut Ui<'_>, clip: Rect, rect: Rect, title: &str, meta: &str) {
-    let visible = rect.intersection(clip);
-    if visible.is_empty() {
+/// The shared card panel paints the fill with its title and meta; the rule
+/// below the head keeps the panel border token.
+fn paint_card(ui: &mut Ui<'_>, clip: Rect, rect: Rect, id: Id, title: &str, meta: &str) {
+    let area = rect.intersection(clip);
+    if area.is_empty() {
         return;
     }
-    ui.fill(visible, ink(WHITE, SURFACE));
-    let inner_x = rect.x.saturating_add(2);
-    let span = rect.width.saturating_sub(4);
-    if shown(clip, rect.y) && span > 0 {
-        paint_clip(ui, clip, inner_x, rect.y, title, ink(SECONDARY, SURFACE));
-        let meta_w = width(meta);
-        if !meta.is_empty() && span > meta_w {
-            paint_clip(
-                ui,
-                clip,
-                inner_x.saturating_add(span.saturating_sub(meta_w)),
-                rect.y,
-                meta,
-                ink(FAINT, SURFACE),
-            );
-        }
-    }
+    Panel::new(id)
+        .title(title)
+        .meta(meta)
+        .draw(ui, area, |_, _| {});
     let rule_y = rect.y.saturating_add(1);
-    if shown(clip, rule_y) && span > 0 {
-        paint_repeat(ui, clip, inner_x, rule_y, span, "─", ink(RULE, SURFACE));
+    if shown(clip, rule_y) && rect.width.saturating_sub(4) > 0 {
+        let plane = ui.theme_ref().raise(ui.surface());
+        let rule = ui
+            .resolve(
+                Family::PANEL,
+                Variant::DEFAULT,
+                Part::BORDER,
+                StateFlags::empty(),
+            )
+            .style
+            .bg(ui.theme_ref().bg(plane));
+        paint_repeat(
+            ui,
+            clip,
+            rect.x.saturating_add(2),
+            rule_y,
+            rect.width.saturating_sub(4),
+            "─",
+            rule,
+        );
     }
 }
 
@@ -325,125 +370,53 @@ fn pct_field(ratio: f64) -> String {
     format!("{body:>4}")
 }
 
-fn paint_bar(
-    ui: &mut Ui<'_>,
-    clip: Rect,
-    area: Rect,
-    label: &str,
-    ratio: Option<f64>,
-    kind: BarKind,
-    frame: usize,
-) {
+/// The shared progress bar paints the label, the track, the percentage and
+/// the state icon. Its thumb falls back to the track ink, so the demo
+/// states pin their fills through theme roles: the bar has no
+/// per-state fill token.
+const BAR_ACTIVE_FILL: &[(Part, StylePatch)] =
+    &[(Part::THUMB, StylePatch::new().set_fg(Role::Accent))];
+const BAR_DONE_FILL: &[(Part, StylePatch)] =
+    &[(Part::THUMB, StylePatch::new().set_fg(Role::Success))];
+const BAR_PAUSED_FILL: &[(Part, StylePatch)] = &[(
+    Part::THUMB,
+    StylePatch::new().set_fg(Role::Fg(FgStep::Muted)),
+)];
+const BAR_ERROR_FILL: &[(Part, StylePatch)] =
+    &[(Part::THUMB, StylePatch::new().set_fg(Role::Danger))];
+
+fn paint_bar(ui: &mut Ui<'_>, clip: Rect, area: Rect, bar: BarSpec<'_>) {
     if area.height == 0 || area.width == 0 || !shown(clip, area.y) {
         return;
     }
-    let has_label = !label.is_empty() && area.width > LABEL_W.saturating_add(8);
-    let mut x = area.x;
-    if has_label {
-        paint_clip(ui, clip, x, area.y, label, ink(WHITE, SURFACE));
-        x = x.saturating_add(LABEL_W).saturating_add(2);
+    let mut widget = ProgressBar::new(bar.id).label(bar.label).frame(bar.frame);
+    if let Some(ratio) = bar.ratio {
+        widget = widget.ratio(ratio);
     }
-    let room = area.right().saturating_sub(x);
-    let reserve = match ratio {
-        Some(_) => VALUE_W,
-        None if room >= VALUE_W.saturating_add(6) => VALUE_W,
-        None => 0,
+    widget = match bar.kind {
+        BarKind::Active | BarKind::Sweep => widget.patch_part(BAR_ACTIVE_FILL),
+        BarKind::Done => widget.done(true).patch_part(BAR_DONE_FILL),
+        BarKind::Error => widget.status(Status::Error).patch_part(BAR_ERROR_FILL),
+        BarKind::Paused => widget
+            .icon(GlyphRole::ProgressPaused)
+            .patch_part(BAR_PAUSED_FILL),
     };
-    let track_w = room.saturating_sub(reserve);
-    if track_w < 6 {
-        if let Some(ratio) = ratio {
-            paint_clip(
-                ui,
-                clip,
-                x,
-                area.y,
-                pct_field(ratio).trim_start(),
-                ink(SECONDARY, SURFACE),
-            );
-        }
-        return;
-    }
-    let (filled, color) = if let Some(ratio) = ratio {
-        let filled = (f64::from(track_w) * ratio.clamp(0.0, 1.0)).round() as u16;
-        (filled.min(track_w), fill_color(kind))
-    } else {
-        let track_i = i32::from(track_w);
-        let seg = (track_i / 5).clamp(2, 8);
-        let period = usize::try_from(track_i.saturating_add(seg))
-            .unwrap_or(1)
-            .max(1);
-        let pos = i32::try_from(frame % period)
-            .unwrap_or(0)
-            .saturating_sub(seg);
-        let mut filled_from = 0u16;
-        let mut filled_to = 0u16;
-        for i in 0..track_i {
-            let on = i >= pos && i < pos.saturating_add(seg);
-            if on && filled_to == filled_from && i >= 0 {
-                filled_from = u16::try_from(i).unwrap_or(track_w);
-                filled_to = filled_from;
-            }
-            if on {
-                filled_to = u16::try_from(i.saturating_add(1)).unwrap_or(track_w);
-            }
-        }
-        paint_repeat(ui, clip, x, area.y, track_w, "─", ink(RULE, SURFACE));
-        if filled_to > filled_from {
-            paint_repeat(
-                ui,
-                clip,
-                x.saturating_add(filled_from),
-                area.y,
-                filled_to.saturating_sub(filled_from),
-                "━",
-                ink(ACCENT, SURFACE),
-            );
-        }
-        return;
-    };
-    paint_repeat(ui, clip, x, area.y, track_w, "─", ink(RULE, SURFACE));
-    paint_repeat(ui, clip, x, area.y, filled, "━", ink(color, SURFACE));
-    let value = format!(" {}", pct_field(ratio.unwrap_or(0.0)));
-    paint_clip(
-        ui,
-        clip,
-        x.saturating_add(track_w),
-        area.y,
-        &value,
-        ink(SECONDARY, SURFACE),
-    );
-    paint_clip(
-        ui,
-        clip,
-        x.saturating_add(track_w).saturating_add(5),
-        area.y,
-        suffix(kind),
-        ink(color, SURFACE),
-    );
+    widget.draw(ui, area);
 }
 
-fn paint_button(ui: &mut Ui<'_>, button: Button<'_>, area: Rect, label: &str) -> Rect {
-    let drawn = button.draw(ui, area);
-    if drawn.is_empty() {
-        return drawn;
-    }
-    ui.fill(drawn, ink(WHITE, BUTTON_BG));
-    let _ = ui.paint_str(
-        Rect::new(drawn.x, drawn.y, 1, 1),
-        " ",
-        ink(BUTTON_BG, BUTTON_BG),
-    );
-    let _ = ui.paint_str(
-        Rect::new(
-            drawn.x.saturating_add(1),
-            drawn.y,
-            drawn.width.saturating_sub(1),
-            1,
-        ),
-        label,
-        ink(WHITE, BUTTON_BG),
-    );
-    drawn
+/// One shared progress bar: which bar, its label, level, state and frame.
+struct BarSpec<'a> {
+    id: Id,
+    label: &'a str,
+    ratio: Option<f64>,
+    kind: BarKind,
+    frame: usize,
+}
+
+/// The shared button paints its own container, gutter and label; the old
+/// hand-filled shim duplicated the secondary recipe cell for cell.
+fn paint_button(ui: &mut Ui<'_>, button: Button<'_>, area: Rect, _label: &str) -> Rect {
+    button.draw(ui, area)
 }
 
 fn row_at(card: Rect, dy: u16, x: u16, w: u16) -> Rect {
@@ -451,7 +424,7 @@ fn row_at(card: Rect, dy: u16, x: u16, w: u16) -> Rect {
 }
 
 fn paint_live(ui: &mut Ui<'_>, clip: Rect, card: Rect, build: f64, paused: bool, frame: usize) {
-    paint_card(ui, clip, card, "Live", "ticks at 80 ms");
+    paint_card(ui, clip, card, PANEL_LIVE, "Live", "ticks at 80 ms");
     let inner_x = card.x.saturating_add(2);
     let inner_w = card.width.saturating_sub(4);
     if inner_w == 0 {
@@ -469,31 +442,33 @@ fn paint_live(ui: &mut Ui<'_>, clip: Rect, card: Rect, build: f64, paused: bool,
         ui,
         clip,
         row_at(card, 2, inner_x, bar_w),
-        "Building",
-        Some(build),
-        kind,
-        frame,
+        BarSpec {
+            id: BAR_BUILD,
+            label: "Building",
+            ratio: Some(build),
+            kind,
+            frame,
+        },
     );
     paint_bar(
         ui,
         clip,
         row_at(card, 4, inner_x, bar_w),
-        "Resolving",
-        None,
-        BarKind::Sweep,
-        frame,
+        BarSpec {
+            id: BAR_SWEEP,
+            label: "Resolving",
+            ratio: None,
+            kind: BarKind::Sweep,
+            frame,
+        },
     );
     let spin_y = card.y.saturating_add(6);
-    let glyph = SPINNER[frame % SPINNER.len()];
-    paint_clip(ui, clip, inner_x, spin_y, glyph, ink(ACCENT, SURFACE));
-    paint_clip(
-        ui,
-        clip,
-        inner_x.saturating_add(2),
-        spin_y,
-        "Waiting for the test runner",
-        ink(SECONDARY, SURFACE),
-    );
+    if shown(clip, spin_y) {
+        Spinner::new(SPINNER_LIVE)
+            .label("Waiting for the test runner")
+            .frame(frame)
+            .draw(ui, Rect::new(inner_x, spin_y, inner_w, 1));
+    }
     let button_y = card.y.saturating_add(8);
     if !shown(clip, button_y) {
         return;
@@ -532,7 +507,14 @@ fn paint_tally(ui: &mut Ui<'_>, clip: Rect, x: u16, y: u16) {
 }
 
 fn paint_jobs(ui: &mut Ui<'_>, clip: Rect, card: Rect, frame: usize) {
-    paint_card(ui, clip, card, "Deploy checkout-service", "one BarLayout");
+    paint_card(
+        ui,
+        clip,
+        card,
+        PANEL_JOBS,
+        "Deploy checkout-service",
+        "one BarLayout",
+    );
     let inner_x = card.x.saturating_add(2);
     let inner_w = card.width.saturating_sub(4);
     paint_tally(ui, clip, inner_x, card.y.saturating_add(2));
@@ -545,90 +527,68 @@ fn paint_jobs(ui: &mut Ui<'_>, clip: Rect, card: Rect, frame: usize) {
             ui,
             clip,
             row_at(card, step.saturating_add(4), inner_x, bar_w),
-            job.label,
-            job.ratio,
-            job.kind,
-            frame,
+            BarSpec {
+                id: BAR_JOBS.index(index),
+                label: job.label,
+                ratio: job.ratio,
+                kind: job.kind,
+                frame,
+            },
         );
     }
 }
 
-fn paint_line_meter(ui: &mut Ui<'_>, clip: Rect, area: Rect, pct: u8, value: &str, color: u32) {
-    if !shown(clip, area.y) || area.width == 0 {
-        return;
-    }
-    let vw = width(value);
-    let track_w = area.width.saturating_sub(vw.saturating_add(3));
-    if track_w < 6 {
-        paint_clip(ui, clip, area.x, area.y, value, ink(WHITE, SURFACE));
-        return;
-    }
-    let filled = (f64::from(track_w) * f64::from(pct) / 100.0).round() as u16;
-    paint_repeat(ui, clip, area.x, area.y, track_w, "─", ink(RULE, SURFACE));
-    paint_repeat(
-        ui,
-        clip,
-        area.x,
-        area.y,
-        filled.min(track_w),
-        "━",
-        ink(color, SURFACE),
-    );
-    let text_x = area.x.saturating_add(track_w).saturating_add(1);
-    paint_clip(ui, clip, text_x, area.y, value, ink(WHITE, SURFACE));
-    paint_clip(
-        ui,
-        clip,
-        text_x.saturating_add(vw),
-        area.y,
-        "  ",
-        ink(color, SURFACE),
-    );
+/// The shared capacity meter paints the track, the level fill and the
+/// value. The value ink stays explicit: every row carries its own state
+/// color, and the meter has no per-row value token.
+struct LineMeter<'a> {
+    id: Id,
+    ratio: f64,
+    value: &'a str,
+    tone: Option<MeterTone>,
+    value_role: Role,
+    suffix: u16,
 }
 
-fn paint_block_meter(ui: &mut Ui<'_>, clip: Rect, area: Rect, pct: u8, value: &str, color: u32) {
+fn paint_line_meter(ui: &mut Ui<'_>, clip: Rect, area: Rect, meter: LineMeter<'_>) {
     if !shown(clip, area.y) || area.width == 0 {
         return;
     }
-    let bar_w = area.width.saturating_sub(2);
-    if bar_w < 4 {
-        paint_clip(ui, clip, area.x, area.y, value, ink(WHITE, SURFACE));
+    let label: &[(Part, StylePatch)] = &[(Part::LABEL, StylePatch::new().set_fg(meter.value_role))];
+    let mut widget = Meter::new(meter.id)
+        .ratio(meter.ratio)
+        .value(meter.value)
+        .suffix_width(meter.suffix)
+        .patch_part(label);
+    if let Some(tone) = meter.tone {
+        widget = widget.tone(tone);
+    }
+    widget.draw(ui, area);
+}
+
+/// The shared block meter paints the value inside the bar and washes the
+/// filled part with the tone. The two trailing cells stay blank.
+fn paint_block_meter(
+    ui: &mut Ui<'_>,
+    clip: Rect,
+    area: Rect,
+    id: Id,
+    ratio: f64,
+    value: &str,
+    tone: Option<MeterTone>,
+) {
+    if !shown(clip, area.y) || area.width == 0 {
         return;
     }
-    let filled = (f64::from(bar_w) * f64::from(pct) / 100.0).round() as u16;
-    let chars: Vec<char> = value.chars().collect();
-    for i in 0..bar_w {
-        let x = area.x.saturating_add(i);
-        if x >= clip.right() {
-            break;
-        }
-        let on_fill = i < filled;
-        let mut style = if on_fill {
-            ink(CANVAS, color).add_modifier(Modifier::BOLD)
-        } else {
-            ink(WHITE, BLOCK_REST)
-        };
-        let symbol = if i == 0 {
-            " ".to_owned()
-        } else {
-            chars
-                .get(usize::from(i.saturating_sub(1)))
-                .map(|ch| ch.to_string())
-                .unwrap_or_else(|| " ".to_owned())
-        };
-        if !on_fill {
-            style = ink(WHITE, BLOCK_REST);
-        }
-        paint_clip(ui, clip, x, area.y, &symbol, style);
+    let mut meter = Meter::new(id)
+        .ratio(ratio)
+        .value(value)
+        .visual(MeterVisual::Block)
+        .suffix_width(2);
+    if let Some(tone) = tone {
+        meter = meter.tone(tone);
     }
-    paint_clip(
-        ui,
-        clip,
-        area.x.saturating_add(bar_w),
-        area.y,
-        "  ",
-        ink(color, SURFACE),
-    );
+    meter.draw(ui, area);
 }
 
 struct WideLine<'a> {
@@ -737,103 +697,99 @@ fn paint_wide_meters(ui: &mut Ui<'_>, clip: Rect, card: Rect, frame: usize) {
             face(WHITE, SURFACE, plain),
         );
     }
-    paint_wide_line(
+    paint_line_meter(
         ui,
         clip,
         row(6),
-        WideLine {
-            pct: 72,
-            glyph: "━",
-            color: WARNING,
+        LineMeter {
+            id: METER_WIDE.index(0),
+            ratio: 0.72,
             value: "72% used ▲",
-            value_color: WARNING,
-            value_mod: plain,
-            trail: "",
-            trail_color: WARNING,
-            trail_mod: plain,
+            tone: None,
+            value_role: Role::Warning,
+            suffix: 0,
         },
     );
     if right_x < card.right() {
-        paint_line_meter(ui, clip, right(6), 72, "72% disk, warns at 80", INFO);
+        paint_line_meter(
+            ui,
+            clip,
+            right(6),
+            LineMeter {
+                id: METER_WIDE.index(1),
+                ratio: 0.72,
+                value: "72% disk, warns at 80",
+                tone: None,
+                value_role: Role::Fg(FgStep::Secondary),
+                suffix: 2,
+            },
+        );
     }
-    paint_wide_line(
+    paint_line_meter(
         ui,
         clip,
         row(7),
-        WideLine {
-            pct: 91,
-            glyph: "━",
-            color: ERROR,
+        LineMeter {
+            id: METER_WIDE.index(2),
+            ratio: 0.91,
             value: "91% used !",
-            value_color: ERROR,
-            value_mod: plain,
-            trail: "",
-            trail_color: ERROR,
-            trail_mod: plain,
+            tone: None,
+            value_role: Role::Danger,
+            suffix: 0,
         },
     );
-    paint_wide_line(
+    paint_line_meter(
         ui,
         clip,
         right(7),
-        WideLine {
-            pct: 88,
-            glyph: "━",
-            color: WARNING,
+        LineMeter {
+            id: METER_WIDE.index(3),
+            ratio: 0.88,
             value: "88% disk, critical at 95 ▲",
-            value_color: WARNING,
-            value_mod: plain,
-            trail: "",
-            trail_color: WARNING,
-            trail_mod: plain,
+            // Below the critical mark, so the medium tone, not the ratio's high.
+            tone: Some(MeterTone::Medium),
+            value_role: Role::Warning,
+            suffix: 0,
         },
     );
-    paint_wide_line(
+    paint_line_meter(
         ui,
         clip,
         row(8),
-        WideLine {
-            pct: 82,
-            glyph: "━",
-            color: WARNING,
+        LineMeter {
+            id: METER_WIDE.index(4),
+            ratio: 0.82,
             value: "82% used ▲",
-            value_color: WARNING,
-            value_mod: plain,
-            trail: "",
-            trail_color: WARNING,
-            trail_mod: plain,
+            tone: None,
+            value_role: Role::Warning,
+            suffix: 0,
         },
     );
-    paint_wide_line(
+    paint_line_meter(
         ui,
         clip,
         right(8),
-        WideLine {
-            pct: 30,
-            glyph: "━",
-            color: ERROR,
+        LineMeter {
+            id: METER_WIDE.index(5),
+            ratio: 0.30,
             value: "30% · fixed high !",
-            value_color: ERROR,
-            value_mod: plain,
-            trail: "",
-            trail_color: ERROR,
-            trail_mod: plain,
+            // The fixed-high override keeps the high tone despite the low level.
+            tone: Some(MeterTone::High),
+            value_role: Role::Danger,
+            suffix: 0,
         },
     );
-    paint_wide_line(
+    paint_line_meter(
         ui,
         clip,
         row(9),
-        WideLine {
-            pct: 100,
-            glyph: "━",
-            color: ERROR,
-            value: "100% used",
-            value_color: ERROR,
-            value_mod: plain,
-            trail: " !",
-            trail_color: ERROR,
-            trail_mod: Modifier::BOLD,
+        LineMeter {
+            id: METER_WIDE.index(6),
+            ratio: 1.0,
+            value: "100% used !",
+            tone: None,
+            value_role: Role::Danger,
+            suffix: 0,
         },
     );
     paint_wide_line(
@@ -868,59 +824,75 @@ fn paint_wide_meters(ui: &mut Ui<'_>, clip: Rect, card: Rect, frame: usize) {
             trail_mod: plain,
         },
     );
-    paint_wide_line(
+    paint_line_meter(
         ui,
         clip,
         right(10),
-        WideLine {
-            pct: 76,
-            glyph: "━",
-            color: FAINT,
+        LineMeter {
+            id: METER_WIDE.index(7),
+            ratio: 0.76,
             value: "76% · faint stale style",
-            value_color: MUTED,
-            value_mod: plain,
-            trail: "  ",
-            trail_color: FAINT,
-            trail_mod: plain,
+            // The faint stale style keeps the unknown tone despite the level.
+            tone: Some(MeterTone::Unknown),
+            value_role: Role::Fg(FgStep::Muted),
+            suffix: 2,
         },
     );
-    let refreshing = format!("{} refreshing  ", SPINNER[frame % SPINNER.len()]);
-    paint_wide_line(
+    let frames = ui.design().motion.spinner_frames;
+    let spin = frames
+        .get(frame.checked_rem(frames.len()).unwrap_or(0))
+        .copied()
+        .unwrap_or("");
+    let refreshing = format!("{spin} refreshing  ");
+    paint_line_meter(
         ui,
         clip,
         row(11),
-        WideLine {
-            pct: 54,
-            glyph: "━",
-            color: MUTED,
+        LineMeter {
+            id: METER_WIDE.index(8),
+            ratio: 0.54,
             value: &refreshing,
-            value_color: MUTED,
-            value_mod: plain,
-            trail: "",
-            trail_color: MUTED,
-            trail_mod: plain,
+            tone: None,
+            value_role: Role::Fg(FgStep::Muted),
+            suffix: 0,
         },
     );
-    paint_clip(
-        ui,
-        clip,
-        left_x,
-        card.y.saturating_add(12),
-        "quota read failed !",
-        face(ERROR, SURFACE, plain),
-    );
-    paint_clip(
-        ui,
-        clip,
-        left_x,
-        card.y.saturating_add(13),
-        "—  ",
-        face(FAINT, SURFACE, plain),
-    );
+    let error_y = card.y.saturating_add(12);
+    if shown(clip, error_y) {
+        Meter::new(METER_WIDE.index(9))
+            .value("quota read failed")
+            .status(Status::Error)
+            .patch_part(&[(Part::LABEL, StylePatch::new().set_fg(Role::Danger))])
+            .draw(
+                ui,
+                Rect::new(left_x, error_y, card.right().saturating_sub(left_x), 1),
+            );
+    }
+    let unknown_y = card.y.saturating_add(13);
+    if shown(clip, unknown_y) {
+        Meter::new(METER_WIDE.index(10))
+            .value("—  ")
+            .tone(MeterTone::Unknown)
+            .patch_part(&[(
+                Part::LABEL,
+                StylePatch::new().set_fg(Role::Fg(FgStep::Faint)),
+            )])
+            .draw(
+                ui,
+                Rect::new(left_x, unknown_y, card.right().saturating_sub(left_x), 1),
+            );
+    }
 }
 
 fn paint_meters(ui: &mut Ui<'_>, clip: Rect, card: Rect) {
-    paint_card(ui, clip, card, "Meters", "capacity, not completion");
+    paint_card(
+        ui,
+        clip,
+        card,
+        PANEL_METERS,
+        "Meters",
+        "capacity, not completion",
+    );
     let inner_x = card.x.saturating_add(2);
     let inner_w = card.width.saturating_sub(4);
     for (index, note) in NOTES.iter().enumerate() {
@@ -948,9 +920,14 @@ fn paint_meters(ui: &mut Ui<'_>, clip: Rect, card: Rect) {
         ui,
         clip,
         Rect::new(meter_x, y, meter_w, 1),
-        38,
-        "38% used",
-        INFO,
+        LineMeter {
+            id: METER_LOW_LINE,
+            ratio: 0.38,
+            value: "38% used",
+            tone: None,
+            value_role: Role::Fg(FgStep::Secondary),
+            suffix: 2,
+        },
     );
     let block_x = meter_x.saturating_add(col_w).saturating_add(1);
     if block_x < card.right() {
@@ -958,9 +935,10 @@ fn paint_meters(ui: &mut Ui<'_>, clip: Rect, card: Rect) {
             ui,
             clip,
             Rect::new(block_x, y, meter_w, 1),
-            38,
+            METER_LOW_BLOCK,
+            0.38,
             "38% used · block",
-            INFO,
+            None,
         );
     }
 }
@@ -1117,54 +1095,33 @@ fn paint_narrow_label_bar(
     }
 }
 
-fn paint_narrow_button(ui: &mut Ui<'_>, button: Button<'_>, area: Rect, label: &str) -> Rect {
-    let drawn = button.draw(ui, area);
-    if drawn.is_empty() {
-        return drawn;
-    }
-    let _ = ui.paint_str(
-        drawn,
-        &" ".repeat(usize::from(drawn.width)),
-        settled(WHITE, BUTTON_BG, false),
-    );
-    let _ = ui.paint_str(
-        Rect::new(drawn.x, drawn.y, 1, 1),
-        " ",
-        settled(BUTTON_BG, BUTTON_BG, false),
-    );
-    let _ = ui.paint_str(
-        Rect::new(
-            drawn.x.saturating_add(1),
-            drawn.y,
-            drawn.width.saturating_sub(1),
-            1,
-        ),
-        label,
-        settled(WHITE, BUTTON_BG, false),
-    );
-    drawn
+fn paint_narrow_button(ui: &mut Ui<'_>, button: Button<'_>, area: Rect, _label: &str) -> Rect {
+    button.draw(ui, area)
 }
 
 fn paint_narrow_scroll(ui: &mut Ui<'_>, view: Rect) {
     let bar_h = view.height.saturating_sub(1);
-    let thumb = thumb_len(bar_h, CONTENT_H);
+    let (start, len) = shared_thumb(bar_h, CONTENT_H, bar_h);
+    let (thumb_style, thumb_glyph) = scrollbar_cell(ui, Part::THUMB);
+    let (track_style, track_glyph) = scrollbar_cell(ui, Part::TRACK);
     let x = view.right().saturating_sub(1);
     for row in 0..bar_h {
-        let on = row < thumb;
+        let on = row >= start && row < start.saturating_add(len);
         let _ = ui.paint_str(
             Rect::new(x, view.y.saturating_add(row), 1, 1),
-            if on { "┃" } else { "┆" },
-            settled(if on { THUMB } else { TRACK }, CANVAS, false),
+            if on { thumb_glyph } else { track_glyph },
+            if on { thumb_style } else { track_style },
         );
     }
     let track = view.width.saturating_sub(1);
-    let filled = thumb_len(track, NARROW_CONTENT_W).min(track);
+    let (_, filled) = shared_thumb(track, NARROW_CONTENT_W, track);
+    let filled = filled.min(track);
     let y = view.bottom().saturating_sub(1);
     if filled > 0 {
         let _ = ui.paint_str(
             Rect::new(view.x, y, filled, 1),
             &"━".repeat(usize::from(filled)),
-            settled(THUMB, CANVAS, false),
+            thumb_style,
         );
     }
     let rest = track.saturating_sub(filled);
@@ -1172,7 +1129,7 @@ fn paint_narrow_scroll(ui: &mut Ui<'_>, view: Rect) {
         let _ = ui.paint_str(
             Rect::new(view.x.saturating_add(filled), y, rest, 1),
             &"┄".repeat(usize::from(rest)),
-            settled(TRACK, CANVAS, false),
+            track_style,
         );
     }
 }
@@ -1484,7 +1441,7 @@ mod tests {
 
         let track = h.cell(20, 7);
         assert_eq!(track.symbol(), "─");
-        assert_eq!(track.fg, rgb(RULE));
+        assert_eq!(track.fg, Color::Rgb(38, 38, 38));
         assert_eq!(track.bg, rgb(SURFACE));
 
         let done = h.cell(20, 21);
@@ -1493,26 +1450,28 @@ mod tests {
 
         let low = h.cell(13, 35);
         assert_eq!(low.symbol(), "━");
-        assert_eq!(low.fg, rgb(INFO));
+        assert_eq!(low.fg, Color::Rgb(179, 179, 179));
         assert_eq!(low.bg, rgb(SURFACE));
 
         let block = h.cell(53, 35);
         assert_eq!(block.symbol(), "3");
-        assert_eq!(block.fg, rgb(CANVAS));
-        assert_eq!(block.bg, rgb(INFO));
-        assert!(block.modifier.contains(Modifier::BOLD));
+        assert_eq!(block.fg, Color::Rgb(25, 25, 28));
+        assert_eq!(block.bg, Color::Rgb(179, 179, 179));
+        assert!(!block.modifier.contains(Modifier::BOLD));
 
         let thumb = h.cell(93, 5);
         assert_eq!(thumb.symbol(), "┃");
-        assert_eq!(thumb.fg, rgb(THUMB));
+        assert_eq!(thumb.fg, Color::Rgb(128, 128, 128));
         let track_bar = h.cell(93, 29);
         assert_eq!(track_bar.symbol(), "┆");
-        assert_eq!(track_bar.fg, rgb(TRACK));
+        assert_eq!(track_bar.fg, Color::Rgb(71, 71, 71));
 
+        // The shared button keeps its focus bar: the harness focuses the
+        // first control, and the old fill shim used to paint over it.
         let gutter = h.cell(2, 13);
-        assert_eq!(gutter.symbol(), " ");
-        assert_eq!(gutter.fg, rgb(BUTTON_BG));
-        assert_eq!(gutter.bg, rgb(BUTTON_BG));
+        assert_eq!(gutter.symbol(), "▎");
+        assert_eq!(gutter.fg, rgb(ACCENT));
+        assert_eq!(gutter.bg, Color::Rgb(39, 39, 42));
     }
 
     #[test]
@@ -1533,19 +1492,19 @@ mod tests {
         assert!(!track.modifier.contains(Modifier::BOLD));
         let thumb = h.cell(58, 5);
         assert_eq!(thumb.symbol(), "┃");
-        assert_eq!(thumb.fg, rgb(THUMB));
+        assert_eq!(thumb.fg, Color::Rgb(128, 128, 128));
         assert_eq!(thumb.bg, rgb(CANVAS));
         let track_bar = h.cell(58, 9);
         assert_eq!(track_bar.symbol(), "┆");
-        assert_eq!(track_bar.fg, rgb(TRACK));
+        assert_eq!(track_bar.fg, Color::Rgb(71, 71, 71));
         assert_eq!(track_bar.bg, rgb(CANVAS));
         let hbar = h.cell(0, 19);
         assert_eq!(hbar.symbol(), "━");
-        assert_eq!(hbar.fg, rgb(THUMB));
+        assert_eq!(hbar.fg, Color::Rgb(128, 128, 128));
         assert_eq!(hbar.bg, rgb(CANVAS));
         let htrack = h.cell(35, 19);
         assert_eq!(htrack.symbol(), "┄");
-        assert_eq!(htrack.fg, rgb(TRACK));
+        assert_eq!(htrack.fg, Color::Rgb(71, 71, 71));
         let corner = h.cell(58, 19);
         assert_eq!(corner.symbol(), " ");
         assert_eq!(corner.bg, rgb(CANVAS));
@@ -1574,19 +1533,19 @@ mod tests {
         assert!(!track.modifier.contains(Modifier::BOLD));
         let thumb = h.cell(50, 5);
         assert_eq!(thumb.symbol(), "┃");
-        assert_eq!(thumb.fg, rgb(THUMB));
+        assert_eq!(thumb.fg, Color::Rgb(128, 128, 128));
         assert_eq!(thumb.bg, rgb(CANVAS));
         let track_bar = h.cell(50, 7);
         assert_eq!(track_bar.symbol(), "┆");
-        assert_eq!(track_bar.fg, rgb(TRACK));
+        assert_eq!(track_bar.fg, Color::Rgb(71, 71, 71));
         assert_eq!(track_bar.bg, rgb(CANVAS));
         let hbar = h.cell(0, 15);
         assert_eq!(hbar.symbol(), "━");
-        assert_eq!(hbar.fg, rgb(THUMB));
+        assert_eq!(hbar.fg, Color::Rgb(128, 128, 128));
         assert_eq!(hbar.bg, rgb(CANVAS));
         let htrack = h.cell(26, 15);
         assert_eq!(htrack.symbol(), "┄");
-        assert_eq!(htrack.fg, rgb(TRACK));
+        assert_eq!(htrack.fg, Color::Rgb(71, 71, 71));
         assert_eq!(htrack.bg, rgb(CANVAS));
         let corner = h.cell(50, 15);
         assert_eq!(corner.symbol(), " ");
@@ -1621,7 +1580,7 @@ mod tests {
         let bang = h.cell(46, 39);
         assert_eq!(bang.symbol(), "!");
         assert_eq!(bang.fg, rgb(ERROR));
-        assert!(bang.modifier.contains(Modifier::BOLD));
+        assert!(!bang.modifier.contains(Modifier::BOLD));
         let unknown = h.cell(13, 43);
         assert_eq!(unknown.symbol(), "—");
         assert_eq!(unknown.fg, rgb(FAINT));

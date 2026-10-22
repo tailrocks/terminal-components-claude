@@ -1,9 +1,13 @@
 use termrock::author::PaintStyle;
-use termrock::{Brand, Color, Cx, Id, Modifier, Rect, Ui, width, wrap};
+use termrock::{
+    Brand, Color, Cx, Family, FgStep, Id, Modifier, Part, Rect, Role, ScrollState, Slot,
+    StateFlags, StatusBar, StatusItem as StripItem, Surface, Ui, Variant, width, wrap,
+};
 
 use super::{Page, PageStatus, PageUpdate, frame};
 
 const BRAND: Id = termrock::Id::root("showcase_ui::pages::chrome::chrome.brand");
+const STRIP: Id = termrock::Id::root("showcase_ui::pages::chrome::chrome.strip");
 
 const BLURB: &str = "Brand lockup · menu bar with anchored menus · status bar planes and priorities · context menu · hint layers";
 const SECTIONS: [&str; 3] = ["Playground", "Options", "States"];
@@ -53,16 +57,11 @@ const FAINT: u32 = 0x737373;
 const RULE: u32 = 0x3a3a3a;
 const ACCENT: u32 = 0x48e054;
 const TAB_ACTIVE: u32 = 0x27272a;
-const THUMB: u32 = 0x808080;
-const TRACK: u32 = 0x474747;
 const SUCCESS: u32 = 0x3fb950;
 const ERROR: u32 = 0xf05d5d;
 const WARNING: u32 = 0xf59e09;
-const DANGER: u32 = 0xff6b6b;
 const CHIP: u32 = 0x27272a;
 const BLUE: u32 = 0x79b8ff;
-
-const SPINNER: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
 /// The sessions the card lists.
 const SESSIONS: [(&str, &str); 4] = [
@@ -480,48 +479,46 @@ fn paint_card(ui: &mut Ui<'_>, view: Rect, card: &Card, scrolls: bool) {
     );
 }
 
-/// The identity strip: the segments that drop by priority.
-fn paint_strip(ui: &mut Ui<'_>, view: Rect, row: u16, spinner: &str, content: u16) {
-    fill_row(ui, view, row, view.width, ink(WHITE, SURFACE));
-    paint_at(ui, view, 2, row, "payments-platform", bold(WHITE, SURFACE));
-    paint_at(ui, view, 20, row, " ◆ production ", ink(DANGER, SURFACE));
-    paint_at(ui, view, 35, row, "◇ staging", ink(WARNING, SURFACE));
-    paint_at(ui, view, 46, row, spinner, ink(ACCENT, SURFACE));
-    paint_at(ui, view, 47, row, " deploying", ink(SECONDARY, SURFACE));
-    // The right group keeps the playground's edge.
-    let right = content.saturating_sub(2);
-    paint_at(
-        ui,
-        view,
-        right.saturating_sub(21),
-        row,
-        " ",
-        ink(SECONDARY, SURFACE),
-    );
-    paint_at(
-        ui,
-        view,
-        right.saturating_sub(20),
-        row,
-        "·",
-        ink(WARNING, SURFACE),
-    );
-    paint_at(
-        ui,
-        view,
-        right.saturating_sub(19),
-        row,
-        " 3 pending ",
-        ink(SECONDARY, SURFACE),
-    );
-    paint_at(
-        ui,
-        view,
-        right.saturating_sub(7),
-        row,
-        "main ↑2",
-        ink(MUTED, SURFACE),
-    );
+/// A dropped strip segment leaves no marker: the hidden-item ellipsis
+/// would read as new content on a row that used to clip instead.
+fn no_overflow_marker(_: &mut Ui<'_>, _: Rect) {}
+
+/// The identity strip: the segments that drop by priority, through the
+/// shared status bar.
+fn paint_strip(ui: &mut Ui<'_>, view: Rect, row: u16, frame: usize) {
+    let y = view.y.saturating_add(row);
+    if y >= view.bottom() || view.width == 0 {
+        return;
+    }
+    let left = [
+        StripItem::new("payments-platform")
+            .strong()
+            .tone(Role::Fg(FgStep::Primary))
+            .priority(9),
+        StripItem::new(" ◆ production ")
+            .tone(Role::Danger)
+            .priority(7),
+        StripItem::new("◇ staging").tone(Role::Warning).priority(6),
+        StripItem::new(" deploying")
+            .tone(Role::Fg(FgStep::Secondary))
+            .spinner(frame)
+            .priority(5),
+    ];
+    let right = [
+        StripItem::new(" ").priority(2),
+        StripItem::new("·").tone(Role::Warning).priority(3),
+        StripItem::new(" 3 pending ")
+            .tone(Role::Fg(FgStep::Secondary))
+            .priority(4),
+        StripItem::new("main ↑2")
+            .tone(Role::Fg(FgStep::Muted))
+            .priority(1),
+    ];
+    StatusBar::new(STRIP)
+        .left(&left)
+        .right(&right)
+        .slot(Part::OVERFLOW, &no_overflow_marker)
+        .draw(ui, Rect::new(view.x, y, view.width, 1));
 }
 
 /// One status bar item. The meters carry their own glyphs.
@@ -908,7 +905,7 @@ fn paint_hints(ui: &mut Ui<'_>, view: Rect, row: u16) {
     );
 }
 
-fn paint_playground(ui: &mut Ui<'_>, view: Rect, page: &Playground, spinner: &str, scrolls: bool) {
+fn paint_playground(ui: &mut Ui<'_>, view: Rect, page: &Playground, frame: usize, scrolls: bool) {
     paint_menu(ui, view);
     paint_card(ui, view, &page.card, scrolls);
     for (index, line) in page.readout.iter().enumerate() {
@@ -929,7 +926,7 @@ fn paint_playground(ui: &mut Ui<'_>, view: Rect, page: &Playground, spinner: &st
         "identity strip · segments drop by priority · ◆ opens the app menu",
         ink(FAINT, CANVAS),
     );
-    paint_strip(ui, view, page.strip_row, spinner, page.width);
+    paint_strip(ui, view, page.strip_row, frame);
     paint_at(
         ui,
         view,
@@ -965,6 +962,56 @@ fn paint_playground(ui: &mut Ui<'_>, view: Rect, page: &Playground, spinner: &st
     paint_hints(ui, view, page.hint_row);
 }
 
+/// The shared scrollbar geometry: the thumb covers the share of the track
+/// the viewport shows, at the top while the playground rests there.
+fn shared_thumb(viewport: u16, content: u16, track: u16) -> (u16, u16) {
+    let mut state = ScrollState::new(usize::from(content));
+    state.set_viewport(usize::from(viewport));
+    if !state.overflows() {
+        return (0, track);
+    }
+    let (start, len) = state.thumb(usize::from(track));
+    (
+        u16::try_from(start).unwrap_or(u16::MAX),
+        u16::try_from(len).unwrap_or(u16::MAX),
+    )
+}
+
+/// A shared scrollbar ink: the foreground comes from the scrollbar theme,
+/// the background stays the page canvas.
+fn bar_ink(ui: &Ui<'_>, part: Part) -> PaintStyle {
+    let canvas = ui.theme_ref().bg(Surface::Canvas);
+    ui.resolve(
+        Family::SCROLLBAR,
+        Variant::DEFAULT,
+        part,
+        StateFlags::empty(),
+    )
+    .style
+    .bg(canvas)
+}
+
+/// A shared scrollbar glyph: the vertical pair comes from the scrollbar
+/// theme.
+fn bar_glyph(ui: &Ui<'_>, part: Part) -> &'static str {
+    let resolved = ui.resolve(
+        Family::SCROLLBAR,
+        Variant::DEFAULT,
+        part,
+        StateFlags::empty(),
+    );
+    match resolved.glyph {
+        Slot::Set(glyph) => ui.glyph_str(glyph),
+        Slot::Inherit | Slot::Clear => {
+            if part == Part::THUMB {
+                "┃"
+            } else {
+                "┆"
+            }
+        }
+    }
+}
+
 /// The scrollbars: the vertical one on the right, the horizontal one at the
 /// bottom. Both show how much of the playground is visible.
 fn paint_scrollbars(ui: &mut Ui<'_>, scroll: &Scroll, content: &Playground) {
@@ -975,17 +1022,17 @@ fn paint_scrollbars(ui: &mut Ui<'_>, scroll: &Scroll, content: &Playground) {
             1,
             scroll.view.height,
         );
-        let len = thumb_len(track.height, content.height);
+        let (start, len) = shared_thumb(track.height, content.height, track.height);
+        let thumb = bar_ink(ui, Part::THUMB);
+        let track_ink = bar_ink(ui, Part::TRACK);
+        let thumb_glyph = bar_glyph(ui, Part::THUMB);
+        let track_glyph = bar_glyph(ui, Part::TRACK);
         for row in 0..track.height {
-            let on = row < len;
+            let on = row >= start && row < start.saturating_add(len);
             ui.paint_str(
                 Rect::new(track.x, track.y.saturating_add(row), 1, 1),
-                if on { "┃" } else { "┆" },
-                if on {
-                    ink(THUMB, CANVAS)
-                } else {
-                    ink(TRACK, CANVAS)
-                },
+                if on { thumb_glyph } else { track_glyph },
+                if on { thumb } else { track_ink },
             );
         }
     }
@@ -996,29 +1043,20 @@ fn paint_scrollbars(ui: &mut Ui<'_>, scroll: &Scroll, content: &Playground) {
             scroll.area.width.saturating_sub(1),
             1,
         );
-        let len = thumb_len(track.width, content.width);
+        let (start, len) = shared_thumb(track.width, content.width, track.width);
+        // The horizontal pair has no theme role; the viewport's own overflow
+        // bar paints the same two literals.
+        let thumb = bar_ink(ui, Part::THUMB);
+        let track_ink = bar_ink(ui, Part::TRACK);
         for col in 0..track.width {
-            let on = col < len;
+            let on = col >= start && col < start.saturating_add(len);
             ui.paint_str(
                 Rect::new(track.x.saturating_add(col), track.y, 1, 1),
                 if on { "━" } else { "┄" },
-                if on {
-                    ink(THUMB, CANVAS)
-                } else {
-                    ink(TRACK, CANVAS)
-                },
+                if on { thumb } else { track_ink },
             );
         }
     }
-}
-
-/// The thumb covers the share of the track the viewport shows.
-fn thumb_len(track: u16, content: u16) -> u16 {
-    if track == 0 || content == 0 {
-        return track;
-    }
-    let len = (u32::from(track) * u32::from(track) / u32::from(content)) as u16;
-    len.max(1).min(track)
 }
 
 #[derive(Debug, Default)]
@@ -1068,12 +1106,11 @@ impl Page for ChromePage {
             };
             let scroll = Scroll::layout(playground);
             let page = Playground::layout(scroll.content.width);
-            let spinner = SPINNER[self.frame % SPINNER.len()];
             paint_playground(
                 ui,
                 scroll.view,
                 &page,
-                spinner,
+                self.frame,
                 scroll.content.width > scroll.view.width,
             );
             paint_scrollbars(ui, &scroll, &page);
