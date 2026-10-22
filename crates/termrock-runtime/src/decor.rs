@@ -31,7 +31,10 @@ impl CellDecor<'_> {
     pub fn flags(&self) -> StateFlags {
         let mut f = StateFlags::empty();
         if self.error.is_some() {
-            f |= StateFlags::ERROR;
+            // The severity is `ERROR`; the value in the cell is `INVALID`.
+            // Both are reported so a consumer can tell "this cell failed"
+            // from "this cell holds a value that cannot be used".
+            f |= StateFlags::ERROR | StateFlags::INVALID;
         }
         if self.dirty {
             f |= StateFlags::DIRTY;
