@@ -1,6 +1,6 @@
 use termrock::{
     ActionKey, Button, Color, Cx, Dialog, DialogAction, DialogState, Id, Modifier, PaintStyle,
-    Rect, Response, Ui, Variant, width,
+    Rect, Response, TextSection, Ui, Variant, composition, width,
 };
 
 use super::{Page, PageUpdate, frame};
@@ -771,14 +771,30 @@ impl Page for DialogsPage {
             );
         });
         ui.layer(CONFIRM, |ui, layer| {
-            Self::confirm().draw(ui, layer, &self.confirm_state, |ui, body| {
-                let _ = ui.paint_str(body, "Enter confirms · Esc cancels", ui.surface_style());
-            });
+            let component = Self::confirm();
+            let section = TextSection::new("Enter confirms · Esc cancels")
+                .inset(0)
+                .title_style(ui.surface_style());
+            composition::dialog(
+                &component,
+                &self.confirm_state,
+                composition::text_section(&section),
+            )
+            .try_draw(ui, layer)
+            .expect("showcase dialog composition has one nested child");
         });
         ui.layer(PROMPT, |ui, layer| {
-            Self::prompt(self.error.as_deref()).draw(ui, layer, &self.prompt_state, |ui, body| {
-                let _ = ui.paint_str(body, "Type a name, then Enter", ui.surface_style());
-            });
+            let component = Self::prompt(self.error.as_deref());
+            let section = TextSection::new("Type a name, then Enter")
+                .inset(0)
+                .title_style(ui.surface_style());
+            composition::dialog(
+                &component,
+                &self.prompt_state,
+                composition::text_section(&section),
+            )
+            .try_draw(ui, layer)
+            .expect("showcase dialog composition has one nested child");
         });
     }
 
