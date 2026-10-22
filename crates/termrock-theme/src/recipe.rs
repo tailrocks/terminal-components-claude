@@ -521,7 +521,6 @@ impl Recipes {
         self.set_mono_rules(f, rules, true);
     }
 
-    #[cfg(test)]
     pub(crate) fn mono_is_consumer_authored(&self, family: Family) -> bool {
         self.consumer_mono.contains(&family)
     }
