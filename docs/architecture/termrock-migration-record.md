@@ -417,16 +417,11 @@ gate returns to 89 passed / 231 failed, and the reference decision request
 in `docs/audits/2026-10-22-component-digest-reference-decision.md` states
 why the gate stays red until an independent decision lands.
 
-### D-010 — The component digests were never stale; the palette was
+### D-010 — The current expectations are restored; their history is not untouched
 
-The expected digests in `crates/termrock-conformance/tests/baselines/components.txt`
-are byte-identical to `032e9faa3` and were never updated. The 231 failing
-component digests were caused by the palette drifting away from the frozen
-source. With the theme aligned to the frozen source (`ec783f6c5`) the
-component render gate reports **320 tests run: 318 passed, 2 failed**, and
-no expected value was updated, no baseline was re-blessed and `BLESS=1` was
-never used. `docs/audits/2026-10-22-component-digest-reference-decision.md`
-records the evidence and the two remaining failures.
+At the current tree, `crates/termrock-conformance/tests/baselines/components.txt` is byte-identical to `032e9faa3` because `4d7a358d3c` restored the prior expectations pending reference review. The file was updated historically: `18c8f694c` changed 164 component digest values, and `37f55475f7` replaced 1,060 of 2,562 expected values. `d80ad9e17` and `4d7a358d3c` restored the prior file. The current blob identity describes the restored state; it does not mean the file was never changed.
+
+The later theme alignment in `ec783f6c5` did not modify or re-bless the expected file. On that aligned tree, the component render gate was reported as 320 tests run, 318 passed, and two `picker_chain` failures. This comparison supports the recorded palette-drift diagnosis for the recovered failures; the remaining two failures and any future expected-output changes stay governed by their own review. No result here authorizes `BLESS`, skips, or weakened assertions.
 
 ### Independent review: UI/UX (verdict HELD)
 
