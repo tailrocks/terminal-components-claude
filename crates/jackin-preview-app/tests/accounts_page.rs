@@ -222,7 +222,9 @@ fn the_range_indicator_is_clamped_to_the_tree() {
 /// The last row of the range the summary carries.
 fn range_end(text: &str) -> Option<usize> {
     let at = text.find('–')?;
-    let digits: String = text[at + '–'.len_utf8()..]
+    let digits_start = at.checked_add('–'.len_utf8())?;
+    let digits: String = text
+        .get(digits_start..)?
         .chars()
         .take_while(char::is_ascii_digit)
         .collect();
@@ -233,7 +235,7 @@ fn range_end(text: &str) -> Option<usize> {
 fn a_committed_filter_keeps_the_query_and_gives_the_keys_back() {
     let mut h = Harness::new(accounts_app(), Theme::junie(), 120, 40);
     let _ = h.key(KeyCode::Char('/'));
-    h.type_str("work");
+    let _ = h.type_str("work");
     let _ = h.key(KeyCode::Enter);
     // The query stays and the tree follows it.
     assert_eq!(h.app().accounts.filter_query, "work");
@@ -261,7 +263,7 @@ fn a_committed_filter_keeps_the_query_and_gives_the_keys_back() {
 fn a_filtered_tree_drops_the_sentinel_and_the_add_row() {
     let mut h = Harness::new(accounts_app(), Theme::junie(), 120, 40);
     let _ = h.key(KeyCode::Char('/'));
-    h.type_str("work");
+    let _ = h.type_str("work");
     let _ = h.key(KeyCode::Enter);
     h.draw();
     let text = h.text();
@@ -279,7 +281,7 @@ fn a_filtered_tree_drops_the_sentinel_and_the_add_row() {
 fn the_filtered_title_is_cut_to_the_painted_width() {
     let mut h = Harness::new(accounts_app(), Theme::junie(), 120, 40);
     let _ = h.key(KeyCode::Char('/'));
-    h.type_str("work");
+    let _ = h.type_str("work");
     let _ = h.key(KeyCode::Enter);
     h.draw();
     let text = h.text();
@@ -315,7 +317,7 @@ fn the_overview_refresh_key_refreshes_every_account() {
 fn a_click_outside_the_filter_field_dismisses_it() {
     let mut h = Harness::new(accounts_app(), Theme::junie(), 120, 40);
     let _ = h.key(KeyCode::Char('/'));
-    h.type_str("work");
+    let _ = h.type_str("work");
     assert!(h.app().accounts.filter_input.is_editing());
     // A click on the tree dismisses the field, the way the reference dialog
     // dismisses on an outside click. The first row of the tree is the third
