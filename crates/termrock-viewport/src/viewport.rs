@@ -9,7 +9,7 @@ use ratatui_core::layout::{Position, Rect};
 use ratatui_core::style::Modifier;
 
 use super::{Acc, PartStyle, SlotFn};
-use crate::event::{Axis, Chord, KeyCode};
+use crate::event::{Axis, Chord, KeyCode, KeyModifiers};
 use crate::focus::Focusability;
 use crate::id::{Id, Part, PartRef};
 use crate::intent::{Intent, Phase};
@@ -384,6 +384,204 @@ const HORIZONTAL_PAN_SEMANTIC_BINDINGS: &[Binding<HorizontalPanCmd>] = &[
     ),
 ];
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum SelectionCmd {
+    Left,
+    Right,
+    Up,
+    Down,
+    Home,
+    End,
+    WordLeft,
+    WordRight,
+    DocumentHome,
+    DocumentEnd,
+    Clear,
+}
+
+/// Shift+Left selection extension action, remappable on the viewport owner.
+pub const SELECTION_LEFT: crate::ActionKey = crate::ActionKey::custom("viewport.selection-left");
+/// Shift+Right selection extension action, remappable on the viewport owner.
+pub const SELECTION_RIGHT: crate::ActionKey = crate::ActionKey::custom("viewport.selection-right");
+/// Shift+Up selection extension action, remappable on the viewport owner.
+pub const SELECTION_UP: crate::ActionKey = crate::ActionKey::custom("viewport.selection-up");
+/// Shift+Down selection extension action, remappable on the viewport owner.
+pub const SELECTION_DOWN: crate::ActionKey = crate::ActionKey::custom("viewport.selection-down");
+/// Shift+Home selection extension action, remappable on the viewport owner.
+pub const SELECTION_HOME: crate::ActionKey = crate::ActionKey::custom("viewport.selection-home");
+/// Shift+End selection extension action, remappable on the viewport owner.
+pub const SELECTION_END: crate::ActionKey = crate::ActionKey::custom("viewport.selection-end");
+/// Ctrl+Shift+Left selection action that moves by word.
+pub const SELECTION_WORD_LEFT_CTRL: crate::ActionKey =
+    crate::ActionKey::custom("viewport.selection-word-left-ctrl");
+/// Ctrl+Shift+Right selection action that moves by word.
+pub const SELECTION_WORD_RIGHT_CTRL: crate::ActionKey =
+    crate::ActionKey::custom("viewport.selection-word-right-ctrl");
+/// Alt+Shift+Left selection action that moves by word.
+pub const SELECTION_WORD_LEFT_ALT: crate::ActionKey =
+    crate::ActionKey::custom("viewport.selection-word-left-alt");
+/// Alt+Shift+Right selection action that moves by word.
+pub const SELECTION_WORD_RIGHT_ALT: crate::ActionKey =
+    crate::ActionKey::custom("viewport.selection-word-right-alt");
+/// Ctrl+Shift+Up selection action that moves to the adjacent logical line.
+pub const SELECTION_UP_CTRL: crate::ActionKey =
+    crate::ActionKey::custom("viewport.selection-up-ctrl");
+/// Ctrl+Shift+Down selection action that moves to the adjacent logical line.
+pub const SELECTION_DOWN_CTRL: crate::ActionKey =
+    crate::ActionKey::custom("viewport.selection-down-ctrl");
+/// Alt+Shift+Up selection action that moves to the adjacent logical line.
+pub const SELECTION_UP_ALT: crate::ActionKey =
+    crate::ActionKey::custom("viewport.selection-up-alt");
+/// Alt+Shift+Down selection action that moves to the adjacent logical line.
+pub const SELECTION_DOWN_ALT: crate::ActionKey =
+    crate::ActionKey::custom("viewport.selection-down-alt");
+/// Ctrl+Shift+Home selection action that moves to the start of the document.
+pub const SELECTION_DOCUMENT_HOME_CTRL: crate::ActionKey =
+    crate::ActionKey::custom("viewport.selection-document-home-ctrl");
+/// Ctrl+Shift+End selection action that moves to the end of the document.
+pub const SELECTION_DOCUMENT_END_CTRL: crate::ActionKey =
+    crate::ActionKey::custom("viewport.selection-document-end-ctrl");
+/// Alt+Shift+Home selection action that moves to the start of the document.
+pub const SELECTION_DOCUMENT_HOME_ALT: crate::ActionKey =
+    crate::ActionKey::custom("viewport.selection-document-home-alt");
+/// Alt+Shift+End selection action that moves to the end of the document.
+pub const SELECTION_DOCUMENT_END_ALT: crate::ActionKey =
+    crate::ActionKey::custom("viewport.selection-document-end-alt");
+/// Escape action that clears an active selection.
+pub const SELECTION_CLEAR: crate::ActionKey = crate::ActionKey::custom("viewport.selection-clear");
+
+const fn selection_binding(
+    action: crate::ActionKey,
+    chord: Chord,
+    cmd: SelectionCmd,
+) -> Binding<SelectionCmd> {
+    Binding {
+        action,
+        chord: Some(chord),
+        cmd,
+        label: "",
+        priority: 10,
+        visible: false,
+    }
+}
+
+const SELECTION_BINDINGS: &[Binding<SelectionCmd>] = &[
+    selection_binding(
+        SELECTION_LEFT,
+        Chord::with(KeyCode::Left, KeyModifiers::SHIFT),
+        SelectionCmd::Left,
+    ),
+    selection_binding(
+        SELECTION_RIGHT,
+        Chord::with(KeyCode::Right, KeyModifiers::SHIFT),
+        SelectionCmd::Right,
+    ),
+    selection_binding(
+        SELECTION_UP,
+        Chord::with(KeyCode::Up, KeyModifiers::SHIFT),
+        SelectionCmd::Up,
+    ),
+    selection_binding(
+        SELECTION_DOWN,
+        Chord::with(KeyCode::Down, KeyModifiers::SHIFT),
+        SelectionCmd::Down,
+    ),
+    selection_binding(
+        SELECTION_HOME,
+        Chord::with(KeyCode::Home, KeyModifiers::SHIFT),
+        SelectionCmd::Home,
+    ),
+    selection_binding(
+        SELECTION_END,
+        Chord::with(KeyCode::End, KeyModifiers::SHIFT),
+        SelectionCmd::End,
+    ),
+    selection_binding(
+        SELECTION_WORD_LEFT_CTRL,
+        Chord::with(
+            KeyCode::Left,
+            KeyModifiers::SHIFT.union(KeyModifiers::CONTROL),
+        ),
+        SelectionCmd::WordLeft,
+    ),
+    selection_binding(
+        SELECTION_WORD_RIGHT_CTRL,
+        Chord::with(
+            KeyCode::Right,
+            KeyModifiers::SHIFT.union(KeyModifiers::CONTROL),
+        ),
+        SelectionCmd::WordRight,
+    ),
+    selection_binding(
+        SELECTION_WORD_LEFT_ALT,
+        Chord::with(KeyCode::Left, KeyModifiers::SHIFT.union(KeyModifiers::ALT)),
+        SelectionCmd::WordLeft,
+    ),
+    selection_binding(
+        SELECTION_WORD_RIGHT_ALT,
+        Chord::with(KeyCode::Right, KeyModifiers::SHIFT.union(KeyModifiers::ALT)),
+        SelectionCmd::WordRight,
+    ),
+    selection_binding(
+        SELECTION_UP_CTRL,
+        Chord::with(
+            KeyCode::Up,
+            KeyModifiers::SHIFT.union(KeyModifiers::CONTROL),
+        ),
+        SelectionCmd::Up,
+    ),
+    selection_binding(
+        SELECTION_DOWN_CTRL,
+        Chord::with(
+            KeyCode::Down,
+            KeyModifiers::SHIFT.union(KeyModifiers::CONTROL),
+        ),
+        SelectionCmd::Down,
+    ),
+    selection_binding(
+        SELECTION_UP_ALT,
+        Chord::with(KeyCode::Up, KeyModifiers::SHIFT.union(KeyModifiers::ALT)),
+        SelectionCmd::Up,
+    ),
+    selection_binding(
+        SELECTION_DOWN_ALT,
+        Chord::with(KeyCode::Down, KeyModifiers::SHIFT.union(KeyModifiers::ALT)),
+        SelectionCmd::Down,
+    ),
+    selection_binding(
+        SELECTION_DOCUMENT_HOME_CTRL,
+        Chord::with(
+            KeyCode::Home,
+            KeyModifiers::SHIFT.union(KeyModifiers::CONTROL),
+        ),
+        SelectionCmd::DocumentHome,
+    ),
+    selection_binding(
+        SELECTION_DOCUMENT_END_CTRL,
+        Chord::with(
+            KeyCode::End,
+            KeyModifiers::SHIFT.union(KeyModifiers::CONTROL),
+        ),
+        SelectionCmd::DocumentEnd,
+    ),
+    selection_binding(
+        SELECTION_DOCUMENT_HOME_ALT,
+        Chord::with(KeyCode::Home, KeyModifiers::SHIFT.union(KeyModifiers::ALT)),
+        SelectionCmd::DocumentHome,
+    ),
+    selection_binding(
+        SELECTION_DOCUMENT_END_ALT,
+        Chord::with(KeyCode::End, KeyModifiers::SHIFT.union(KeyModifiers::ALT)),
+        SelectionCmd::DocumentEnd,
+    ),
+];
+
+const SELECTION_CLEAR_BINDINGS: &[Binding<SelectionCmd>] = &[selection_binding(
+    SELECTION_CLEAR,
+    Chord::key(KeyCode::Esc),
+    SelectionCmd::Clear,
+)];
+
 const HORIZONTAL_TRACK: Part = Part::custom("viewport.horizontal-track");
 const HORIZONTAL_THUMB: Part = Part::custom("viewport.horizontal-thumb");
 
@@ -624,6 +822,12 @@ struct LayoutKey {
     layout_revision: u64,
 }
 
+#[derive(Clone, Copy)]
+struct SelectionLayout {
+    key: LayoutKey,
+    text_height: u16,
+}
+
 #[derive(Debug, Default)]
 struct ViewportLayout {
     key: LayoutKey,
@@ -780,6 +984,164 @@ fn word_at<'a>(line: impl Into<LineRef<'a>>, col: usize) -> Option<(usize, usize
     found
 }
 
+#[derive(Clone, Copy)]
+struct LogicalCell {
+    start: usize,
+    end: usize,
+    word: bool,
+}
+
+fn logical_cells(line: LineRef<'_>) -> Vec<LogicalCell> {
+    let mut cells = Vec::new();
+    let mut col = 0usize;
+    walk_line(line, |cell| {
+        let end = col.saturating_add(usize::from(cell.w));
+        cells.push(LogicalCell {
+            start: col,
+            end,
+            word: cell_text(line, &cell).chars().all(is_word),
+        });
+        col = end;
+        ControlFlow::Continue(())
+    });
+    cells
+}
+
+fn snap_column(cells: &[LogicalCell], col: usize) -> usize {
+    for cell in cells {
+        if col < cell.end {
+            return cell.start;
+        }
+    }
+    cells.last().map_or(0, |cell| cell.end)
+}
+
+fn cell_at_column(cells: &[LogicalCell], col: usize) -> usize {
+    cells
+        .iter()
+        .position(|cell| col < cell.end)
+        .unwrap_or(cells.len())
+}
+
+fn clamp_position(lines: LineSet<'_>, pos: CellPos) -> Option<CellPos> {
+    let line_index = pos.line.min(lines.len().checked_sub(1)?);
+    let line = lines.get(line_index)?;
+    let cells = logical_cells(line);
+    Some(CellPos::new(line_index, snap_column(&cells, pos.col)))
+}
+
+fn selection_destination(
+    lines: LineSet<'_>,
+    from: CellPos,
+    command: SelectionCmd,
+) -> Option<CellPos> {
+    let last_line = lines.len().checked_sub(1)?;
+    let line_index = from.line.min(last_line);
+    let line = lines.get(line_index)?;
+    let cells = logical_cells(line);
+    let width = cells.last().map_or(0, |cell| cell.end);
+    let col = snap_column(&cells, from.col);
+    let index = cell_at_column(&cells, col);
+    let at = |line: usize, col: usize| Some(CellPos::new(line, col));
+
+    match command {
+        SelectionCmd::Left | SelectionCmd::WordLeft => {
+            if index == 0 {
+                if line_index > 0 {
+                    let previous = logical_cells(lines.get(line_index - 1)?);
+                    return at(line_index - 1, previous.last().map_or(0, |cell| cell.end));
+                }
+                return at(line_index, col);
+            }
+            let target = if command == SelectionCmd::Left {
+                index - 1
+            } else {
+                let mut target = index;
+                while target > 0 && !cells[target - 1].word {
+                    target -= 1;
+                }
+                while target > 0 && cells[target - 1].word {
+                    target -= 1;
+                }
+                target
+            };
+            at(line_index, cells[target].start)
+        }
+        SelectionCmd::Right | SelectionCmd::WordRight => {
+            if index >= cells.len() {
+                if line_index < last_line {
+                    return at(line_index + 1, 0);
+                }
+                return at(line_index, col);
+            }
+            let target = if command == SelectionCmd::Right {
+                index + 1
+            } else {
+                let mut target = index;
+                while target < cells.len() && !cells[target].word {
+                    target += 1;
+                }
+                while target < cells.len() && cells[target].word {
+                    target += 1;
+                }
+                target
+            };
+            at(
+                line_index,
+                cells.get(target).map_or(width, |cell| cell.start),
+            )
+        }
+        SelectionCmd::Up => {
+            if line_index == 0 {
+                return at(0, 0);
+            }
+            let previous = logical_cells(lines.get(line_index - 1)?);
+            let previous_width = previous.last().map_or(0, |cell| cell.end);
+            at(
+                line_index - 1,
+                snap_column(&previous, col.min(previous_width)),
+            )
+        }
+        SelectionCmd::Down => {
+            if line_index == last_line {
+                return at(line_index, width);
+            }
+            let next = logical_cells(lines.get(line_index + 1)?);
+            let next_width = next.last().map_or(0, |cell| cell.end);
+            at(line_index + 1, snap_column(&next, col.min(next_width)))
+        }
+        SelectionCmd::Home => at(line_index, 0),
+        SelectionCmd::End => at(line_index, width),
+        SelectionCmd::DocumentHome => at(0, 0),
+        SelectionCmd::DocumentEnd => {
+            let last = logical_cells(lines.get(last_line)?);
+            at(last_line, last.last().map_or(0, |cell| cell.end))
+        }
+        SelectionCmd::Clear => None,
+    }
+}
+
+fn visual_row_for_position(
+    layout: &ViewportLayout,
+    lines: LineSet<'_>,
+    key: LayoutKey,
+    pos: CellPos,
+) -> Option<usize> {
+    let line = lines.get(pos.line)?;
+    let rows = line_rows(line, key.width, key.wrap).max(1);
+    for row in 0..rows {
+        let (start, end) = row_cols(line, key.width, key.wrap, row);
+        if pos.col >= start && (pos.col < end || (row + 1 == rows && pos.col <= end)) {
+            return Some(layout.line_start(pos.line).saturating_add(row));
+        }
+    }
+    Some(
+        layout
+            .line_start(pos.line)
+            .saturating_add(rows.saturating_sub(1)),
+    )
+}
+
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct ViewportState {
     scroll: ScrollState,
@@ -787,6 +1149,7 @@ pub struct ViewportState {
     follow: FollowCursor,
     selection: Option<(CellPos, CellPos)>,
     anchor: Option<CellPos>,
+    browse: Option<CellPos>,
     caret: Option<CellPos>,
     generation: u32,
 }
@@ -799,6 +1162,7 @@ impl Default for ViewportState {
             follow: FollowCursor::Always,
             selection: None,
             anchor: None,
+            browse: None,
             caret: None,
             generation: 0,
         }
@@ -864,12 +1228,14 @@ impl ViewportState {
     pub const fn select(&mut self, a: CellPos, b: CellPos) {
         self.selection = Some((a, b));
         self.anchor = None;
+        self.browse = Some(b);
     }
 
     pub const fn clear_selection(&mut self) -> bool {
         let had = self.selection.is_some();
         self.selection = None;
         self.anchor = None;
+        self.browse = None;
         had
     }
 
@@ -885,17 +1251,21 @@ impl ViewportState {
         if dropped == 0 {
             return;
         }
-        if self
+        let selection_dropped = self
             .selection
-            .is_some_and(|(a, b)| a.line < dropped && b.line < dropped)
-        {
+            .is_some_and(|(a, b)| a.line < dropped && b.line < dropped);
+        if selection_dropped {
             self.selection = None;
+            self.browse = None;
         } else if let Some((a, b)) = self.selection.as_mut() {
             shift(a, dropped);
             shift(b, dropped);
         }
         if let Some(a) = self.anchor.as_mut() {
             shift(a, dropped);
+        }
+        if !selection_dropped && let Some(b) = self.browse.as_mut() {
+            shift(b, dropped);
         }
         if let Some(c) = self.caret.as_mut() {
             shift(c, dropped);
@@ -1373,6 +1743,7 @@ impl<'a> TextViewport<'a> {
             .set_viewport(usize::from(dimensions.text_width));
         let before = st.scroll.offset();
         let mut acc = Acc::<ViewportAction>::new();
+        let mut selection_moved = false;
         let bar = self.bar();
         let track_len = bar.prepare(cx, &mut st.scroll, total);
         for it in cx.intents(self.id) {
@@ -1389,6 +1760,20 @@ impl<'a> TextViewport<'a> {
                             .or_else(|| Binding::command(HORIZONTAL_PAN_SEMANTIC_BINDINGS, action))
                     {
                         Self::horizontal_command(st, cmd, dimensions.horizontal_overflow, &mut acc);
+                    } else if let Some(cmd) = Binding::command(SELECTION_BINDINGS, action)
+                        .or_else(|| Binding::command(SELECTION_CLEAR_BINDINGS, action))
+                    {
+                        selection_moved |= self.selection_command(
+                            cx,
+                            st,
+                            lines,
+                            SelectionLayout {
+                                key,
+                                text_height: dimensions.text_height,
+                            },
+                            cmd,
+                            &mut acc,
+                        );
                     }
                 }
                 Intent::Wheel {
@@ -1442,15 +1827,17 @@ impl<'a> TextViewport<'a> {
                 _ => {}
             }
         }
-        if st.scroll.offset() != before {
-            st.follow = if st.scroll.at_end() {
-                FollowCursor::Always
-            } else {
-                FollowCursor::OnMove
-            };
-        }
-        if st.follow == FollowCursor::Always {
-            st.scroll.jump_end();
+        if !selection_moved {
+            if st.scroll.offset() != before {
+                st.follow = if st.scroll.at_end() {
+                    FollowCursor::Always
+                } else {
+                    FollowCursor::OnMove
+                };
+            }
+            if st.follow == FollowCursor::Always {
+                st.scroll.jump_end();
+            }
         }
         acc.finish(self.id)
     }
@@ -1487,6 +1874,84 @@ impl<'a> TextViewport<'a> {
         } else {
             acc.changed();
         }
+    }
+
+    fn selection_command(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut ViewportState,
+        lines: LineSet<'_>,
+        layout: SelectionLayout,
+        cmd: SelectionCmd,
+        acc: &mut Acc<ViewportAction>,
+    ) -> bool {
+        let SelectionLayout { key, text_height } = layout;
+        if cmd == SelectionCmd::Clear {
+            if st.clear_selection() {
+                acc.action(ViewportAction::SelectionChanged);
+            }
+            return false;
+        }
+        if lines.is_empty() {
+            acc.consumed();
+            return false;
+        }
+
+        let current = if let Some((_, head)) = st.selection {
+            Some(head)
+        } else {
+            st.browse
+        };
+        let from = current
+            .and_then(|pos| clamp_position(lines, pos))
+            .or_else(|| {
+                let layout = cx.cache::<ViewportLayout>(self.id);
+                let line = if text_height > 0 && layout.total() > 0 {
+                    let last_visible = st
+                        .scroll
+                        .offset()
+                        .saturating_add(usize::from(text_height).saturating_sub(1))
+                        .min(layout.total().saturating_sub(1));
+                    layout.row_start(lines, last_visible).0
+                } else {
+                    lines.len().saturating_sub(1)
+                };
+                let line_ref = lines.get(line)?;
+                Some(CellPos::new(line, line_cols(line_ref)))
+            });
+        let Some(from) = from else {
+            acc.consumed();
+            return false;
+        };
+        let anchor = st
+            .selection
+            .and_then(|(anchor, _)| clamp_position(lines, anchor))
+            .unwrap_or(from);
+        let Some(to) = selection_destination(lines, from, cmd) else {
+            acc.consumed();
+            return false;
+        };
+        if to == from {
+            acc.consumed();
+            return false;
+        }
+
+        let row = {
+            let layout = cx.cache::<ViewportLayout>(self.id);
+            visual_row_for_position(layout, lines, key, to)
+        };
+        st.selection = Some((anchor, to));
+        st.anchor = None;
+        st.browse = Some(to);
+        if let Some(row) = row {
+            st.scroll.ensure_visible(row);
+        }
+        if self.pan_active() {
+            st.horizontal.ensure_visible(to.col);
+        }
+        st.follow = FollowCursor::OnMove;
+        acc.action(ViewportAction::SelectionChanged);
+        true
     }
 
     fn handle_horizontal_pointer(
@@ -1588,6 +2053,7 @@ impl<'a> TextViewport<'a> {
                 cx.focus(self.id);
                 let _ = cx.capture(self.id, PartRef::of(Part::TEXT));
                 let had = st.selection.take().is_some();
+                st.browse = None;
                 st.anchor = self.pos_at(
                     cx,
                     lines,
@@ -1847,6 +2313,10 @@ impl<'a> TextViewport<'a> {
         });
         ui.register_control(id, area, Focusability::Focusable);
         ui.publish_bindings(id, live, BINDINGS);
+        ui.publish_additional_bindings(id, runtime, SELECTION_BINDINGS);
+        if st.selection.is_some() {
+            ui.publish_additional_bindings(id, runtime, SELECTION_CLEAR_BINDINGS);
+        }
         if self.pan_active() && dimensions.horizontal_overflow {
             let pan_bindings = if st.caret.is_some() {
                 HORIZONTAL_PAN_SEMANTIC_BINDINGS
@@ -2399,12 +2869,637 @@ mod tests {
     use crate::runtime::{App, Runtime};
     use crate::theme::{ColorLevel, Surface, Theme};
     use crate::{ReferenceState, ReferenceTarget};
+    use termrock_runtime::LayerSpec;
 
     const ID: Id = Id::root("viewport.tests");
+    const SELECTION_ID: Id = Id::root("viewport.selection.tests");
+    const OTHER_ID: Id = Id::root("viewport.selection.other");
+    const MODAL_LAYER: Id = Id::root("viewport.selection.modal");
+    const MODAL_CONTROL: Id = Id::root("viewport.selection.modal-control");
     const POINTER_AREA: Rect = Rect::new(0, 0, 12, 8);
     const MANY_LINES: [ViewportLine<'static>; 100] = [ViewportLine::Plain("row"); 100];
     const LONG_LINES: [ViewportLine<'static>; 100] =
         [ViewportLine::Plain("012345678901234567890123456789"); 100];
+
+    struct SelectionViewportApp {
+        state: ViewportState,
+        lines: Vec<ViewportLine<'static>>,
+        area: Rect,
+        wrap: bool,
+        pan: bool,
+        keymap: crate::keymap::KeyMap,
+        actions: Vec<ViewportAction>,
+        other_focusable: bool,
+        modal_open: bool,
+    }
+
+    impl SelectionViewportApp {
+        fn new(lines: Vec<ViewportLine<'static>>) -> Self {
+            let mut state = ViewportState::default();
+            state.set_follow(false);
+            SelectionViewportApp {
+                state,
+                lines,
+                area: Rect::new(0, 0, 12, 5),
+                wrap: false,
+                pan: false,
+                keymap: crate::keymap::KeyMap::new(),
+                actions: Vec::new(),
+                other_focusable: false,
+                modal_open: false,
+            }
+        }
+
+        fn viewport(&self) -> TextViewport<'static> {
+            TextViewport::new(SELECTION_ID)
+                .wrap(self.wrap)
+                .horizontal_pan(self.pan)
+        }
+    }
+
+    impl App for SelectionViewportApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            if self.modal_open {
+                cx.open_layer(
+                    MODAL_LAYER,
+                    LayerSpec::modal(MODAL_LAYER).initial_focus(MODAL_CONTROL),
+                );
+            }
+            let response = self.viewport().update(cx, &mut self.state, &self.lines);
+            if let Some(action) = response.action_ref() {
+                self.actions.push(action.clone());
+            }
+            response.erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            self.viewport()
+                .draw(ui, self.area, &self.state, &self.lines);
+            if self.other_focusable {
+                ui.register_control(OTHER_ID, Rect::new(40, 0, 8, 2), Focusability::Focusable);
+            }
+            let _ = ui.layer(MODAL_LAYER, |ui, area| {
+                ui.register_control(MODAL_CONTROL, area, Focusability::Focusable);
+            });
+        }
+
+        fn keymap(&self) -> &crate::keymap::KeyMap {
+            &self.keymap
+        }
+    }
+
+    fn selection_key(code: KeyCode, mods: KeyModifiers) -> crate::event::Input {
+        crate::event::Input::Key(crate::event::Key { code, mods })
+    }
+
+    fn selection_runtime(app: SelectionViewportApp) -> Runtime<SelectionViewportApp> {
+        let mut runtime = Runtime::new(app, Theme::junie());
+        let _ = runtime.initialize();
+        runtime
+    }
+
+    #[test]
+    fn shift_selection_starts_at_the_last_visible_logical_line_end() {
+        let mut app = SelectionViewportApp::new(
+            ["zero", "one", "two", "three", "four", "visible"]
+                .into_iter()
+                .map(ViewportLine::Plain)
+                .collect(),
+        );
+        app.area = Rect::new(0, 0, 12, 4);
+        app.state.scroll.apply_layout(4, app.lines.len());
+        app.state.scroll.scroll_to(2);
+        app.state.set_caret(Some(CellPos::new(2, 1)));
+        let mut runtime = selection_runtime(app);
+
+        let response = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_key(KeyCode::Left, KeyModifiers::SHIFT),
+        );
+
+        assert_eq!(
+            runtime.app().state.selection,
+            Some((CellPos::new(5, 7), CellPos::new(5, 6)))
+        );
+        assert_eq!(runtime.app().state.caret(), Some(CellPos::new(2, 1)));
+        assert!(response.is_changed());
+        assert_eq!(
+            runtime.app().actions.last(),
+            Some(&ViewportAction::SelectionChanged)
+        );
+    }
+
+    #[test]
+    fn plain_pointer_press_clears_selection_without_becoming_keyboard_origin() {
+        let mut app = SelectionViewportApp::new(vec![
+            ViewportLine::Plain("clicked"),
+            ViewportLine::Plain("visible"),
+        ]);
+        app.state.select(CellPos::new(0, 0), CellPos::new(0, 3));
+        let mut runtime = selection_runtime(app);
+
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, 1, 0));
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, 1, 0));
+        assert_eq!(runtime.app().state.selection, None);
+        assert_eq!(runtime.app().state.browse, None);
+
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_key(KeyCode::Left, KeyModifiers::SHIFT),
+        );
+
+        assert_eq!(
+            runtime.app().state.selection,
+            Some((CellPos::new(1, 7), CellPos::new(1, 6))),
+            "a plain click must not replace the documented first-Shift fallback"
+        );
+    }
+
+    #[test]
+    fn wrapped_shift_fallback_uses_the_last_visible_logical_line() {
+        let mut app = SelectionViewportApp::new(vec![
+            ViewportLine::Plain("abcdefghijklmnop"),
+            ViewportLine::Plain("tail"),
+        ]);
+        app.area = Rect::new(0, 0, 8, 2);
+        app.wrap = true;
+        app.state.scroll.apply_layout(2, 4);
+        app.state.scroll.scroll_to(1);
+        let mut runtime = selection_runtime(app);
+
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_key(KeyCode::Left, KeyModifiers::SHIFT),
+        );
+
+        assert_eq!(
+            runtime.app().state.selection,
+            Some((CellPos::new(0, 16), CellPos::new(0, 15)))
+        );
+    }
+
+    #[test]
+    fn horizontal_selection_moves_across_logical_lines_and_line_ends() {
+        let mut app =
+            SelectionViewportApp::new(vec![ViewportLine::Plain("abc"), ViewportLine::Plain("de")]);
+        app.state.select(CellPos::new(0, 3), CellPos::new(0, 3));
+        let mut runtime = selection_runtime(app);
+
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_key(KeyCode::Right, KeyModifiers::SHIFT),
+        );
+        assert_eq!(
+            runtime.app().state.selection,
+            Some((CellPos::new(0, 3), CellPos::new(1, 0)))
+        );
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_key(KeyCode::Left, KeyModifiers::SHIFT),
+        );
+        assert_eq!(
+            runtime.app().state.selection,
+            Some((CellPos::new(0, 3), CellPos::new(0, 3)))
+        );
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_key(KeyCode::Left, KeyModifiers::SHIFT),
+        );
+        assert_eq!(
+            runtime.app().state.selection,
+            Some((CellPos::new(0, 3), CellPos::new(0, 2)))
+        );
+
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_key(KeyCode::Home, KeyModifiers::SHIFT),
+        );
+        assert_eq!(
+            runtime.app().state.selection,
+            Some((CellPos::new(0, 3), CellPos::new(0, 0)))
+        );
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_key(KeyCode::End, KeyModifiers::SHIFT),
+        );
+        assert_eq!(
+            runtime.app().state.selection,
+            Some((CellPos::new(0, 3), CellPos::new(0, 3)))
+        );
+    }
+
+    #[test]
+    fn vertical_selection_clamps_the_current_column_on_each_logical_line() {
+        let mut app = SelectionViewportApp::new(vec![
+            ViewportLine::Plain("abcdef"),
+            ViewportLine::Plain("xy"),
+            ViewportLine::Plain("uvwxyz"),
+        ]);
+        app.state.select(CellPos::new(0, 4), CellPos::new(0, 4));
+        let mut runtime = selection_runtime(app);
+
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_key(KeyCode::Down, KeyModifiers::SHIFT),
+        );
+        assert_eq!(
+            runtime.app().state.selection,
+            Some((CellPos::new(0, 4), CellPos::new(1, 2)))
+        );
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_key(KeyCode::Down, KeyModifiers::SHIFT),
+        );
+        assert_eq!(
+            runtime.app().state.selection,
+            Some((CellPos::new(0, 4), CellPos::new(2, 2))),
+            "the next line starts from the clamped logical column"
+        );
+    }
+
+    #[test]
+    fn pointer_drag_selection_continues_through_collapse_and_reexpansion() {
+        let app = SelectionViewportApp::new(vec![ViewportLine::Plain("abcdef")]);
+        let mut runtime = selection_runtime(app);
+
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, 1, 0));
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Drag, 3, 0));
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, 3, 0));
+        assert_eq!(
+            runtime.app().state.selection(),
+            Some((CellPos::new(0, 0), CellPos::new(0, 2)))
+        );
+
+        for _ in 0..2 {
+            let _ = crate::runtime::stub::deliver(
+                &mut runtime,
+                selection_key(KeyCode::Left, KeyModifiers::SHIFT),
+            );
+        }
+        assert_eq!(
+            runtime.app().state.selection,
+            Some((CellPos::new(0, 0), CellPos::new(0, 0))),
+            "the oriented anchor must survive a collapsed visible range"
+        );
+        assert_eq!(runtime.app().state.selection(), None);
+
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_key(KeyCode::Right, KeyModifiers::SHIFT),
+        );
+        assert_eq!(
+            runtime.app().state.selection,
+            Some((CellPos::new(0, 0), CellPos::new(0, 1)))
+        );
+    }
+
+    #[test]
+    fn selection_word_and_document_chords_move_over_logical_cells() {
+        let app = SelectionViewportApp::new(vec![
+            ViewportLine::Plain("alpha  beta"),
+            ViewportLine::Plain("last"),
+        ]);
+        let mut runtime = selection_runtime(app);
+        runtime
+            .app_mut()
+            .state
+            .select(CellPos::new(0, 0), CellPos::new(0, 0));
+
+        let ctrl_shift = KeyModifiers::CONTROL.union(KeyModifiers::SHIFT);
+        let _ =
+            crate::runtime::stub::deliver(&mut runtime, selection_key(KeyCode::Right, ctrl_shift));
+        assert_eq!(
+            runtime.app().state.selection,
+            Some((CellPos::new(0, 0), CellPos::new(0, 5)))
+        );
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_key(KeyCode::Right, KeyModifiers::ALT.union(KeyModifiers::SHIFT)),
+        );
+        assert_eq!(
+            runtime.app().state.selection,
+            Some((CellPos::new(0, 0), CellPos::new(0, 11)))
+        );
+
+        let _ =
+            crate::runtime::stub::deliver(&mut runtime, selection_key(KeyCode::End, ctrl_shift));
+        assert_eq!(
+            runtime.app().state.selection,
+            Some((CellPos::new(0, 0), CellPos::new(1, 4)))
+        );
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_key(KeyCode::Home, KeyModifiers::ALT.union(KeyModifiers::SHIFT)),
+        );
+        assert_eq!(
+            runtime.app().state.selection,
+            Some((CellPos::new(0, 0), CellPos::new(0, 0)))
+        );
+    }
+
+    #[test]
+    fn empty_viewport_consumes_shift_selection_without_creating_a_range() {
+        let mut runtime = selection_runtime(SelectionViewportApp::new(Vec::new()));
+
+        let response = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_key(KeyCode::Right, KeyModifiers::SHIFT),
+        );
+
+        assert!(response.is_consumed());
+        assert!(!response.is_changed());
+        assert_eq!(runtime.app().state.selection, None);
+        assert_eq!(runtime.app().state.browse, None);
+    }
+
+    #[test]
+    fn selection_boundary_noop_is_consumed_without_changing_selection() {
+        let mut app = SelectionViewportApp::new(vec![ViewportLine::Plain("abc")]);
+        app.state.select(CellPos::new(0, 3), CellPos::new(0, 3));
+        let mut runtime = selection_runtime(app);
+
+        let response = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_key(KeyCode::Right, KeyModifiers::SHIFT),
+        );
+
+        assert!(response.is_consumed());
+        assert!(!response.is_changed());
+        assert!(runtime.app().actions.is_empty());
+        assert_eq!(
+            runtime.app().state.selection,
+            Some((CellPos::new(0, 3), CellPos::new(0, 3)))
+        );
+    }
+
+    #[test]
+    fn reversed_multiline_selection_copies_source_text_after_keyboard_extension() {
+        let mut app = SelectionViewportApp::new(vec![
+            ViewportLine::Plain("abc"),
+            ViewportLine::Plain("defgh"),
+        ]);
+        app.state.select(CellPos::new(1, 4), CellPos::new(0, 1));
+        let mut runtime = selection_runtime(app);
+
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_key(KeyCode::Right, KeyModifiers::SHIFT),
+        );
+        assert_eq!(
+            runtime.app().state.selection,
+            Some((CellPos::new(1, 4), CellPos::new(0, 2)))
+        );
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Char('y')));
+
+        assert!(
+            runtime
+                .app()
+                .actions
+                .contains(&ViewportAction::Copy("c\ndefg".to_owned()))
+        );
+    }
+
+    #[test]
+    fn keyboard_extension_uses_graphemes_across_runs_and_copies_utf8_source() {
+        static RUNS: [Span<'static>; 5] = [
+            Span::new("e"),
+            Span::new("\u{301}👩"),
+            Span::new("\u{200d}"),
+            Span::new("💻🇺"),
+            Span::new("🇸x"),
+        ];
+        let mut app = SelectionViewportApp::new(vec![ViewportLine::Spans(&RUNS)]);
+        app.state.select(CellPos::new(0, 0), CellPos::new(0, 0));
+        let mut runtime = selection_runtime(app);
+
+        for expected_col in [1, 3, 5] {
+            let _ = crate::runtime::stub::deliver(
+                &mut runtime,
+                selection_key(KeyCode::Right, KeyModifiers::SHIFT),
+            );
+            assert_eq!(
+                runtime.app().state.selection.map(|(_, head)| head.col),
+                Some(expected_col)
+            );
+        }
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Char('y')));
+
+        assert!(
+            runtime
+                .app()
+                .actions
+                .contains(&ViewportAction::Copy("e\u{301}👩\u{200d}💻🇺🇸".to_owned()))
+        );
+    }
+
+    #[test]
+    fn vertical_extension_snaps_a_wide_destination_to_its_leading_cell() {
+        let mut app =
+            SelectionViewportApp::new(vec![ViewportLine::Plain("x"), ViewportLine::Plain("漢z")]);
+        app.state.select(CellPos::new(0, 0), CellPos::new(0, 1));
+        let mut runtime = selection_runtime(app);
+
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_key(KeyCode::Down, KeyModifiers::SHIFT),
+        );
+
+        assert_eq!(
+            runtime.app().state.selection,
+            Some((CellPos::new(0, 0), CellPos::new(1, 0)))
+        );
+    }
+
+    #[test]
+    fn selection_actions_are_remappable_without_changing_plain_pan_arrows() {
+        let mut app =
+            SelectionViewportApp::new(vec![ViewportLine::Plain("012345678901234567890123456789")]);
+        app.pan = true;
+        app.state.select(CellPos::new(0, 0), CellPos::new(0, 1));
+        app.keymap.remap_component(
+            SELECTION_ID,
+            SELECTION_RIGHT,
+            Chord::key(KeyCode::Char('p')),
+        );
+        let mut runtime = selection_runtime(app);
+
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_key(KeyCode::Right, KeyModifiers::SHIFT),
+        );
+        assert_eq!(
+            runtime.app().state.selection,
+            Some((CellPos::new(0, 0), CellPos::new(0, 1)))
+        );
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Char('p')));
+        assert_eq!(
+            runtime.app().state.selection,
+            Some((CellPos::new(0, 0), CellPos::new(0, 2)))
+        );
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Right));
+
+        assert_eq!(runtime.app().state.horizontal_offset(), 4);
+        assert_eq!(
+            runtime.app().state.selection,
+            Some((CellPos::new(0, 0), CellPos::new(0, 2))),
+            "plain Right remains owned by horizontal panning"
+        );
+    }
+
+    #[test]
+    fn selection_bindings_do_not_run_outside_the_viewport_focus_or_modal_scope() {
+        let mut app = SelectionViewportApp::new(vec![ViewportLine::Plain("abcdef")]);
+        app.other_focusable = true;
+        let mut runtime = selection_runtime(app);
+        runtime.set_focus(Some(OTHER_ID));
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_key(KeyCode::Right, KeyModifiers::SHIFT),
+        );
+        assert_eq!(runtime.app().state.selection, None);
+
+        let mut app = SelectionViewportApp::new(vec![ViewportLine::Plain("abcdef")]);
+        app.modal_open = true;
+        let mut runtime = selection_runtime(app);
+        assert_eq!(runtime.focus(), Some(MODAL_CONTROL));
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_key(KeyCode::Right, KeyModifiers::SHIFT),
+        );
+        assert_eq!(runtime.app().state.selection, None);
+    }
+
+    #[test]
+    fn selection_reveals_both_axes_and_pauses_follow_without_moving_the_caret() {
+        let mut app =
+            SelectionViewportApp::new(vec![
+                ViewportLine::Plain("012345678901234567890123456789");
+                20
+            ]);
+        app.area = Rect::new(0, 0, 12, 4);
+        app.pan = true;
+        app.state.scroll.apply_layout(4, app.lines.len());
+        app.state.scroll.scroll_to(5);
+        app.state.set_caret(Some(CellPos::new(3, 2)));
+        let mut runtime = selection_runtime(app);
+
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_key(KeyCode::Down, KeyModifiers::SHIFT),
+        );
+
+        assert_eq!(
+            runtime.app().state.selection,
+            Some((CellPos::new(7, 30), CellPos::new(8, 30)))
+        );
+        assert!(runtime.app().state.scroll.offset() > 5);
+        assert!(runtime.app().state.horizontal_offset() > 0);
+        assert_eq!(runtime.app().state.follow_cursor(), FollowCursor::OnMove);
+        assert_eq!(runtime.app().state.caret(), Some(CellPos::new(3, 2)));
+
+        let mut tail = SelectionViewportApp::new(vec![
+            ViewportLine::Plain("long enough to pan"),
+            ViewportLine::Plain("long enough to pan"),
+            ViewportLine::Plain("long enough to pan"),
+        ]);
+        tail.area = Rect::new(0, 0, 12, 4);
+        tail.pan = true;
+        tail.state.set_follow(true);
+        let mut runtime = selection_runtime(tail);
+        assert!(runtime.app().state.scroll.at_end());
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_key(KeyCode::Left, KeyModifiers::SHIFT),
+        );
+        assert_eq!(runtime.app().state.follow_cursor(), FollowCursor::OnMove);
+        assert!(runtime.app().state.scroll.at_end());
+    }
+
+    #[test]
+    fn retained_selection_survives_append_resize_wrap_and_source_rows() {
+        let mut app = SelectionViewportApp::new(vec![
+            ViewportLine::Plain("zero"),
+            ViewportLine::Plain("one"),
+            ViewportLine::Plain("target"),
+        ]);
+        app.state.select(CellPos::new(1, 1), CellPos::new(2, 4));
+        let mut runtime = selection_runtime(app);
+
+        runtime
+            .app_mut()
+            .lines
+            .push(ViewportLine::Plain("appended"));
+        runtime.app_mut().area = Rect::new(0, 0, 9, 3);
+        runtime.app_mut().wrap = true;
+        runtime.app_mut().state.invalidate();
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_key(KeyCode::Left, KeyModifiers::SHIFT),
+        );
+        assert_eq!(
+            runtime.app().state.selection,
+            Some((CellPos::new(1, 1), CellPos::new(2, 3)))
+        );
+
+        runtime.app_mut().state.retained(1);
+        runtime.app_mut().lines.remove(0);
+        runtime.app_mut().state.invalidate();
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_key(KeyCode::Left, KeyModifiers::SHIFT),
+        );
+        assert_eq!(
+            runtime.app().state.selection,
+            Some((CellPos::new(0, 1), CellPos::new(1, 2)))
+        );
+    }
+
+    #[test]
+    fn retention_drops_keyboard_browse_with_a_fully_dropped_selection() {
+        let mut state = ViewportState::default();
+        state.select(CellPos::new(0, 0), CellPos::new(1, 2));
+
+        state.retained(2);
+
+        assert_eq!(state.selection, None);
+        assert_eq!(state.browse, None);
+    }
+
+    #[test]
+    fn escape_clears_keyboard_browse_and_unselected_escape_stays_unhandled() {
+        let mut runtime = selection_runtime(SelectionViewportApp::new(vec![ViewportLine::Plain(
+            "abcdef",
+        )]));
+        runtime
+            .app_mut()
+            .state
+            .select(CellPos::new(0, 1), CellPos::new(0, 3));
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+
+        let response = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Esc));
+        assert!(response.is_consumed());
+        assert_eq!(runtime.app().state.selection, None);
+        assert_eq!(runtime.app().state.browse, None);
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_key(KeyCode::Left, KeyModifiers::SHIFT),
+        );
+        assert_eq!(
+            runtime.app().state.selection,
+            Some((CellPos::new(0, 6), CellPos::new(0, 5)))
+        );
+
+        let mut empty = selection_runtime(SelectionViewportApp::new(vec![ViewportLine::Plain(
+            "abcdef",
+        )]));
+        let response = crate::runtime::stub::deliver(&mut empty, key(KeyCode::Esc));
+        assert!(!response.is_consumed());
+        assert_eq!(empty.app().state.selection, None);
+    }
 
     struct ViewportApp {
         state: ViewportState,
