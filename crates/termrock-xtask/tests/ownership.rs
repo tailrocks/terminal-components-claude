@@ -918,6 +918,118 @@ fn included_expression_fragments_reach_nested_literal_include_edges() {
 }
 
 #[test]
+fn module_item_include_uses_included_filesystem_directory_and_predicate() {
+    let dir = empty_workspace();
+    write_member_file(
+        &dir,
+        "src/lib.rs",
+        "#[cfg(test)] include!(\"../outside/items.rs\");\n",
+    );
+    write_member_file(
+        &dir,
+        "src/child.rs",
+        "fn decoy() { None::<u8>.expect(\"caller-directory decoy\"); }\n",
+    );
+    write_member_file(&dir, "outside/items.rs", "mod child;\n");
+    write_member_file(
+        &dir,
+        "outside/child.rs",
+        "#[path = \"nested/path_child.rs\"] mod explicit;\n\
+         include!(\"nested/chain.inc.rs\");\n",
+    );
+    write_member_file(
+        &dir,
+        "outside/nested/path_child.rs",
+        "fn fixture() { None::<u8>.expect(\"path child\"); }\n",
+    );
+    write_member_file(
+        &dir,
+        "outside/nested/chain.inc.rs",
+        "include!(\"leaf.rs\");\n",
+    );
+    write_member_file(
+        &dir,
+        "outside/nested/leaf.rs",
+        "fn fixture() { None::<u8>.expect(\"nested include leaf\"); }\n",
+    );
+
+    let member = dir.path().join("crates/demo-preview");
+    let analysis = termrock_xtask::ownership::module_graph::analyze_member(&member);
+    let caller_decoy = std::fs::canonicalize(member.join("src/child.rs")).unwrap();
+    let physical_child = std::fs::canonicalize(member.join("outside/child.rs")).unwrap();
+    let path_child = std::fs::canonicalize(member.join("outside/nested/path_child.rs")).unwrap();
+    let leaf = std::fs::canonicalize(member.join("outside/nested/leaf.rs")).unwrap();
+
+    assert!(analysis.complete, "{analysis:?}");
+    assert!(analysis.sources.contains(&physical_child), "{analysis:?}");
+    assert!(analysis.sources.contains(&path_child), "{analysis:?}");
+    assert!(analysis.sources.contains(&leaf), "{analysis:?}");
+    assert!(analysis.test_only.contains(&physical_child), "{analysis:?}");
+    assert!(analysis.test_only.contains(&path_child), "{analysis:?}");
+    assert!(analysis.test_only.contains(&leaf), "{analysis:?}");
+    assert!(!analysis.test_only.contains(&caller_decoy), "{analysis:?}");
+    assert_eq!(
+        own14_findings(&check_scratch(&dir)),
+        [("crates/demo-preview/src/child.rs".to_string(), 1)]
+    );
+}
+
+#[test]
+fn expression_include_uses_physical_module_directory_and_keeps_caller_predicate() {
+    let dir = empty_workspace();
+    write_member_file(&dir, "src/lib.rs", "mod caller;\n");
+    write_member_file(
+        &dir,
+        "src/caller.rs",
+        "mod inline {\n\
+             #[cfg(test)] fn test_fragment() {\n\
+                 let _value = include!(\"../outside/expr.rs\");\n\
+             }\n\
+         }\n",
+    );
+    write_member_file(
+        &dir,
+        "src/caller/inline/child.rs",
+        "fn decoy() { None::<u8>.expect(\"caller namespace decoy\"); }\n",
+    );
+    write_member_file(
+        &dir,
+        "outside/expr.rs",
+        "{ mod child; let _leaf = include!(\"nested/leaf.rs\"); None::<u8> }",
+    );
+    write_member_file(
+        &dir,
+        "outside/child.rs",
+        "fn fixture() { None::<u8>.expect(\"physical expression child\"); }\n",
+    );
+    write_member_file(
+        &dir,
+        "outside/nested/leaf.rs",
+        "None::<u8>.expect(\"expression nested leaf\")",
+    );
+
+    let member = dir.path().join("crates/demo-preview");
+    let analysis = termrock_xtask::ownership::module_graph::analyze_member(&member);
+    let caller_decoy = std::fs::canonicalize(member.join("src/caller/inline/child.rs")).unwrap();
+    let physical_child = std::fs::canonicalize(member.join("outside/child.rs")).unwrap();
+    let leaf = std::fs::canonicalize(member.join("outside/nested/leaf.rs")).unwrap();
+
+    assert!(analysis.complete, "{analysis:?}");
+    assert!(analysis.sources.contains(&physical_child), "{analysis:?}");
+    assert!(analysis.sources.contains(&leaf), "{analysis:?}");
+    assert!(analysis.test_only.contains(&physical_child), "{analysis:?}");
+    assert!(analysis.test_only.contains(&leaf), "{analysis:?}");
+    assert!(!analysis.test_only.contains(&caller_decoy), "{analysis:?}");
+    assert_eq!(
+        own14_findings(&check_scratch(&dir)),
+        [(
+            "crates/demo-preview/src/caller/inline/child.rs".to_string(),
+            1
+        )]
+    );
+}
+
+#[test]
 fn nested_expression_includes_keep_predicates_paths_and_shared_reachability() {
     let dir = empty_workspace();
     write_member_file(
@@ -979,7 +1091,7 @@ fn nested_expression_includes_keep_predicates_paths_and_shared_reachability() {
 }
 
 #[test]
-fn nested_expression_fragments_keep_the_callers_logical_module_directory() {
+fn nested_expression_fragments_keep_caller_namespace_and_use_included_file_directory() {
     let dir = empty_workspace();
     write_member_file(&dir, "src/lib.rs", "mod caller;\n");
     write_member_file(
@@ -995,33 +1107,39 @@ fn nested_expression_fragments_keep_the_callers_logical_module_directory() {
     write_member_file(
         &dir,
         "src/caller/child.rs",
-        "None::<u8>.expect(\"logical module\");\n",
+        "fn decoy() { None::<u8>.expect(\"caller-directory decoy\"); }\n",
     );
     write_member_file(
         &dir,
         "outside/child.rs",
-        "None::<u8>.expect(\"physical decoy\");\n",
+        "fn child() { None::<u8>.expect(\"physical child\"); }\n",
     );
     write_member_file(
         &dir,
         "outside/nested/leaf.rs",
-        "None::<u8>.expect(\"physical nested leaf\");\n",
+        "None::<u8>.expect(\"physical nested leaf\")",
     );
 
     let member = dir.path().join("crates/demo-preview");
     let analysis = termrock_xtask::ownership::module_graph::analyze_member(&member);
-    let logical_child =
-        std::fs::canonicalize(member.join("src/caller/child.rs")).expect("logical child");
-    let physical_decoy =
-        std::fs::canonicalize(member.join("outside/child.rs")).expect("physical decoy");
+    let caller_decoy =
+        std::fs::canonicalize(member.join("src/caller/child.rs")).expect("caller decoy");
+    let included_child =
+        std::fs::canonicalize(member.join("outside/child.rs")).expect("included child");
     let nested_leaf =
         std::fs::canonicalize(member.join("outside/nested/leaf.rs")).expect("nested leaf");
-    assert!(analysis.sources.contains(&logical_child), "{analysis:?}");
+    assert!(analysis.complete, "{analysis:?}");
+    assert!(analysis.sources.contains(&included_child), "{analysis:?}");
     assert!(analysis.sources.contains(&nested_leaf), "{analysis:?}");
-    assert!(!analysis.sources.contains(&physical_decoy), "{analysis:?}");
+    assert!(!analysis.test_only.contains(&caller_decoy), "{analysis:?}");
+    assert!(
+        !analysis.test_only.contains(&included_child),
+        "{analysis:?}"
+    );
     assert_eq!(
         own14_findings(&check_scratch(&dir)),
         [
+            ("crates/demo-preview/outside/child.rs".to_string(), 1),
             ("crates/demo-preview/outside/nested/leaf.rs".to_string(), 1),
             ("crates/demo-preview/src/caller/child.rs".to_string(), 1),
         ]

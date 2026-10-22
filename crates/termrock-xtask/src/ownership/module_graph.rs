@@ -119,7 +119,10 @@ impl Default for Attributes {
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 struct ContextKey {
     file: PathBuf,
+    // The caller's module directory carries the included text's namespace.
     module_dir: PathBuf,
+    // `include!` changes filesystem lookup to the included file's parent.
+    file_module_dir: PathBuf,
     predicate: Predicate,
     expression_fragment: bool,
 }
@@ -128,7 +131,6 @@ struct ContextKey {
 struct Traversal {
     member_root: PathBuf,
     sources: BTreeMap<PathBuf, String>,
-    included_sources: BTreeSet<PathBuf>,
     paths: BTreeSet<PathBuf>,
     reachable: BTreeMap<PathBuf, (bool, bool)>,
     visited: BTreeSet<ContextKey>,
@@ -153,12 +155,14 @@ impl Traversal {
         &mut self,
         file: PathBuf,
         module_dir: PathBuf,
+        file_module_dir: PathBuf,
         predicate: Predicate,
         expression_fragment: bool,
     ) {
         let key = ContextKey {
             file,
             module_dir,
+            file_module_dir,
             predicate,
             expression_fragment,
         };
@@ -176,6 +180,7 @@ impl Traversal {
     fn resolve_module(
         &mut self,
         module_dir: &Path,
+        file_module_dir: &Path,
         path_base: &Path,
         name: &str,
         path_override: Option<&str>,
@@ -185,8 +190,8 @@ impl Traversal {
             vec![path_base.join(path)]
         } else {
             vec![
-                module_dir.join(format!("{name}.rs")),
-                module_dir.join(name).join("mod.rs"),
+                file_module_dir.join(format!("{name}.rs")),
+                file_module_dir.join(name).join("mod.rs"),
             ]
         };
         let mut found = Vec::new();
@@ -225,19 +230,26 @@ impl Traversal {
             // Rust treats a path-attributed external module file like a
             // `mod.rs` for child lookup. A normal `name.rs` instead gets its
             // stem appended to the source file's parent.
-            let dir = if path_override.is_some() {
+            let child_file_module_dir = if path_override.is_some() {
                 file.parent()
                     .unwrap_or_else(|| Path::new("."))
                     .to_path_buf()
             } else {
                 module_directory(&file)
             };
-            if dir.as_os_str().is_empty() {
+            if child_file_module_dir.as_os_str().is_empty() {
                 self.complete = false;
                 continue;
             }
+            let child_module_dir = module_dir.join(name);
             self.mark_reachable(&file, predicate);
-            self.queue_file(file, dir, predicate, false);
+            self.queue_file(
+                file,
+                child_module_dir,
+                child_file_module_dir,
+                predicate,
+                false,
+            );
         }
     }
 
@@ -261,11 +273,15 @@ impl Traversal {
         };
         self.paths.insert(file.clone());
         self.sources.entry(file.clone()).or_insert(text);
-        self.included_sources.insert(file.clone());
         self.mark_reachable(&file, include.predicate);
+        let file_module_dir = file
+            .parent()
+            .unwrap_or_else(|| Path::new("."))
+            .to_path_buf();
         self.queue_file(
             file,
             include.module_dir,
+            file_module_dir,
             include.predicate,
             include.expression_fragment,
         );
@@ -282,6 +298,7 @@ impl Traversal {
                     &source,
                     &context.file,
                     &context.module_dir,
+                    &context.file_module_dir,
                     context.predicate,
                 )
             } else {
@@ -289,6 +306,7 @@ impl Traversal {
                     &source,
                     &context.file,
                     &context.module_dir,
+                    &context.file_module_dir,
                     context.predicate,
                 )
             } {
@@ -299,16 +317,6 @@ impl Traversal {
                 }
             };
             if !parsed.complete {
-                self.complete = false;
-            }
-            if self.included_sources.contains(&context.file)
-                && (!parsed.modules.is_empty()
-                    || (!context.expression_fragment && !parsed.includes.is_empty()))
-            {
-                // Included text participates in the caller's lexical module
-                // path. Nested module and item-fragment resolution is retained
-                // as production until its call-site provenance is modeled;
-                // expression fragments are traversed with their caller mode.
                 self.complete = false;
             }
             for include in parsed.includes {
@@ -324,6 +332,7 @@ impl Traversal {
                 };
                 self.resolve_module(
                     &module.module_dir,
+                    &module.file_module_dir,
                     &module.path_base,
                     &name,
                     module.path.as_deref(),
@@ -341,6 +350,7 @@ struct ModuleDecl {
     path: Option<String>,
     predicate: Predicate,
     module_dir: PathBuf,
+    file_module_dir: PathBuf,
     path_base: PathBuf,
     inline: Option<(usize, usize)>,
 }
@@ -382,7 +392,6 @@ pub fn analyze_member(member: &Path) -> MemberAnalysis {
     let mut traversal = Traversal {
         member_root: member_root.clone(),
         sources: BTreeMap::new(),
-        included_sources: BTreeSet::new(),
         paths: BTreeSet::new(),
         reachable: BTreeMap::new(),
         visited: BTreeSet::new(),
@@ -427,6 +436,7 @@ pub fn analyze_member(member: &Path) -> MemberAnalysis {
                 traversal.queue_file(
                     canonical.clone(),
                     canonical.parent().unwrap_or(&member_root).to_path_buf(),
+                    canonical.parent().unwrap_or(&member_root).to_path_buf(),
                     predicate,
                     false,
                 );
@@ -470,6 +480,7 @@ pub fn cfg_test_ranges(source: &str) -> Vec<LineRange> {
         ParsePath {
             file: path,
             module_dir,
+            file_module_dir: module_dir,
             path_base: module_dir,
         },
         Predicate::ALWAYS,
@@ -966,6 +977,7 @@ fn parse_source(
     source: &str,
     file: &Path,
     module_dir: &Path,
+    file_module_dir: &Path,
     inherited: Predicate,
 ) -> Option<ParsedSource> {
     let tokens = lex(source)?;
@@ -977,6 +989,7 @@ fn parse_source(
         ParsePath {
             file,
             module_dir,
+            file_module_dir,
             path_base,
         },
         inherited,
@@ -992,6 +1005,7 @@ fn parse_expression_fragment(
     source: &str,
     file: &Path,
     module_dir: &Path,
+    file_module_dir: &Path,
     inherited: Predicate,
 ) -> Option<ParsedSource> {
     let tokens = lex(source)?;
@@ -1011,6 +1025,7 @@ fn parse_expression_fragment(
             source: ParsePath {
                 file,
                 module_dir,
+                file_module_dir,
                 path_base,
             },
             predicate: inherited,
@@ -1033,6 +1048,7 @@ fn parse_expression_fragment(
 struct ParsePath<'a> {
     file: &'a Path,
     module_dir: &'a Path,
+    file_module_dir: &'a Path,
     path_base: &'a Path,
 }
 
@@ -1129,6 +1145,7 @@ fn parse_scope(
                     path: attributes.path,
                     predicate: effective,
                     module_dir: source_context.module_dir.to_path_buf(),
+                    file_module_dir: source_context.file_module_dir.to_path_buf(),
                     path_base: source_context.path_base.to_path_buf(),
                     inline: None,
                 });
@@ -1144,8 +1161,9 @@ fn parse_scope(
                     parsed.complete = false;
                     return Some(parsed);
                 };
-                let child_dir = attributes.path.as_deref().map_or_else(
-                    || source_context.module_dir.join(&name),
+                let child_module_dir = source_context.module_dir.join(&name);
+                let child_file_module_dir = attributes.path.as_deref().map_or_else(
+                    || source_context.file_module_dir.join(&name),
                     |path| source_context.path_base.join(path),
                 );
                 let nested = parse_scope(
@@ -1154,8 +1172,9 @@ fn parse_scope(
                     close,
                     ParsePath {
                         file: source_context.file,
-                        module_dir: &child_dir,
-                        path_base: &child_dir,
+                        module_dir: &child_module_dir,
+                        file_module_dir: &child_file_module_dir,
+                        path_base: &child_file_module_dir,
                     },
                     effective,
                     ParseScopeMode {
@@ -1175,7 +1194,8 @@ fn parse_scope(
                     name: Some(name),
                     path: attributes.path,
                     predicate: effective,
-                    module_dir: child_dir,
+                    module_dir: child_module_dir,
+                    file_module_dir: child_file_module_dir,
                     path_base: source_context.path_base.to_path_buf(),
                     inline: Some((delimiter + 1, close)),
                 });
@@ -1315,6 +1335,7 @@ struct InlineRouteContext {
     open: usize,
     close: usize,
     module_dir: PathBuf,
+    file_module_dir: PathBuf,
     predicate: Predicate,
 }
 
@@ -1411,6 +1432,7 @@ fn collect_scope_body_routes(
                 open: body_start.checked_sub(1)?,
                 close,
                 module_dir: module.module_dir.clone(),
+                file_module_dir: module.file_module_dir.clone(),
                 predicate: module.predicate,
             })
         })
@@ -1510,7 +1532,6 @@ fn scan_body_route_groups(
                     .iter()
                     .find(|inline| inline.open == index && inline.close == close)
                 {
-                    let child_dir = inline.module_dir.clone();
                     scan_body_route_groups(
                         tokens,
                         index + 1,
@@ -1518,8 +1539,9 @@ fn scan_body_route_groups(
                         BodyRouteContext {
                             source: ParsePath {
                                 file: context.source.file,
-                                module_dir: &child_dir,
-                                path_base: &child_dir,
+                                module_dir: &inline.module_dir,
+                                file_module_dir: &inline.file_module_dir,
+                                path_base: &inline.file_module_dir,
                             },
                             predicate: inline.predicate,
                             inline_scopes: context.inline_scopes,
@@ -2457,7 +2479,6 @@ mod tests {
         let mut traversal = Traversal {
             member_root: PathBuf::from("/member"),
             sources: BTreeMap::new(),
-            included_sources: BTreeSet::new(),
             paths: BTreeSet::new(),
             reachable: BTreeMap::new(),
             visited: BTreeSet::new(),
@@ -2466,13 +2487,26 @@ mod tests {
         };
         let file = PathBuf::from("/member/src/lib.rs");
         let module_dir = PathBuf::from("/member/src");
-        traversal.queue_file(file.clone(), module_dir.clone(), Predicate::ALWAYS, false);
-        traversal.queue_file(file, module_dir, Predicate::ALWAYS, false);
+        traversal.queue_file(
+            file.clone(),
+            module_dir.clone(),
+            module_dir.clone(),
+            Predicate::ALWAYS,
+            false,
+        );
+        traversal.queue_file(
+            file,
+            module_dir.clone(),
+            module_dir.clone(),
+            Predicate::ALWAYS,
+            false,
+        );
         assert_eq!(traversal.queue.len(), 1);
 
         for index in 0..=MAX_CONTEXTS {
             traversal.queue_file(
                 PathBuf::from(format!("/member/src/{index}.rs")),
+                PathBuf::from(format!("/member/src/{index}")),
                 PathBuf::from(format!("/member/src/{index}")),
                 Predicate::ALWAYS,
                 false,
@@ -2487,7 +2521,6 @@ mod tests {
         let mut traversal = Traversal {
             member_root: PathBuf::from("/member"),
             sources: BTreeMap::new(),
-            included_sources: BTreeSet::new(),
             paths: BTreeSet::new(),
             reachable: BTreeMap::new(),
             visited: BTreeSet::new(),
@@ -2496,8 +2529,15 @@ mod tests {
         };
         let file = PathBuf::from("/member/outside/shared.inc.rs");
         let module_dir = PathBuf::from("/member/src/caller");
-        traversal.queue_file(file.clone(), module_dir.clone(), Predicate::ALWAYS, false);
-        traversal.queue_file(file, module_dir, Predicate::ALWAYS, true);
+        let file_module_dir = PathBuf::from("/member/outside");
+        traversal.queue_file(
+            file.clone(),
+            module_dir.clone(),
+            file_module_dir.clone(),
+            Predicate::ALWAYS,
+            false,
+        );
+        traversal.queue_file(file, module_dir, file_module_dir, Predicate::ALWAYS, true);
         assert_eq!(traversal.queue.len(), 2);
         assert_ne!(
             traversal.queue[0].expression_fragment,
