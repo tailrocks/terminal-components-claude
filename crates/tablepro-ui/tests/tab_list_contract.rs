@@ -2,7 +2,7 @@
 mod tab_navigation;
 
 use tablepro_ui::{Surface, TableProApp};
-use termrock::{Id, KeyCode, Theme};
+use termrock::{Id, KeyCode, MouseKind, Theme};
 use termrock_test_support::Harness;
 
 const TAB_LIST: Id = Id::root("tablepro.tab-list");
@@ -42,6 +42,97 @@ fn choosing_a_query_tab_moves_focus_to_its_editor() {
         "{:?}",
         harness.diagnostics()
     );
+}
+
+#[test]
+fn tab_list_dismissal_preserves_the_active_tab_and_blocks_underlay_input()
+-> Result<(), &'static str> {
+    for outside_dismissal in [false, true] {
+        let mut app = TableProApp::new();
+        assert!(app.connect(0));
+        let Some(first) = app.workbench.active_key() else {
+            return Err("initial query tab");
+        };
+        let Some(active) = app.workbench.new_query("SELECT 'active tab draft'") else {
+            return Err("second query tab");
+        };
+        let Some(other) = app.workbench.new_query("SELECT 'other tab draft'") else {
+            return Err("third query tab");
+        };
+        assert_ne!(first, active);
+        assert_ne!(active, other);
+        assert!(app.workbench.activate(active));
+
+        let mut harness = Harness::new(app, Theme::junie(), 120, 40);
+        let active_editor = active.control("query");
+        assert!(tab_navigation::tab_to(&mut harness, active_editor));
+        let Some(first_tab) = harness.find("Query 1") else {
+            return Err("first tab in strip");
+        };
+        let original_count = harness.app().workbench.tabs().len();
+        let original_query = match harness.app().workbench.active() {
+            Some(tablepro_ui::Tab::Query(query)) => query.query.clone(),
+            _ => return Err("active tab is a query"),
+        };
+        let keys = harness
+            .app()
+            .workbench
+            .tabs()
+            .iter()
+            .map(tablepro_ui::TabRecord::key)
+            .collect::<Vec<_>>();
+
+        let _ = harness.ctrl('g');
+        assert!(harness.layer_area(TAB_LIST).is_some());
+        assert!(harness.text().contains("Open tabs"));
+        let _ = harness.key(KeyCode::Down);
+        assert!(harness.layer_area(TAB_LIST).is_some());
+
+        let _ = harness.ctrl('t');
+        assert!(
+            harness.layer_area(TAB_LIST).is_some(),
+            "picker remains open"
+        );
+        assert_eq!(harness.app().workbench.tabs().len(), original_count);
+        assert_eq!(harness.app().workbench.active_key(), Some(active));
+
+        if outside_dismissal {
+            let Some(layer) = harness.layer_area(TAB_LIST) else {
+                return Err("tab-list layer");
+            };
+            assert!(
+                first_tab.0 < layer.x
+                    || first_tab.0 >= layer.right()
+                    || first_tab.1 < layer.y
+                    || first_tab.1 >= layer.bottom(),
+                "first tab is outside the picker layer: {layer:?}"
+            );
+            let _ = harness.mouse(MouseKind::Down, first_tab.0, first_tab.1);
+            let _ = harness.mouse(MouseKind::Up, first_tab.0, first_tab.1);
+        } else {
+            let _ = harness.key(KeyCode::Esc);
+        }
+
+        assert!(harness.layer_area(TAB_LIST).is_none());
+        assert_eq!(harness.app().workbench.tabs().len(), original_count);
+        assert_eq!(harness.app().workbench.active_key(), Some(active));
+        assert_eq!(harness.focus(), Some(active_editor));
+        assert!(matches!(
+            harness.app().workbench.active(),
+            Some(tablepro_ui::Tab::Query(query)) if query.query == original_query
+        ));
+        assert!(
+            keys.iter()
+                .all(|key| harness.app().workbench.tab(*key).is_some()),
+            "dismissal preserves every stable tab key"
+        );
+        assert!(
+            harness.diagnostics().is_empty(),
+            "{:?}",
+            harness.diagnostics()
+        );
+    }
+    Ok(())
 }
 
 #[test]

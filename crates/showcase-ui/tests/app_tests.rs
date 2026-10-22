@@ -731,33 +731,11 @@ fn dialog_kinds_add_connection_uses_live_form_and_stacked_picker() {
 
     let tunnel = require(h.find("Connect through an SSH tunnel"), "tunnel checkbox");
     click(&mut h, tunnel.0, tunnel.1);
-    let _chooser = require(h.find("Choose…"), "visible SSH key chooser");
-    assert!(h.tab_to(DIALOG_KEY), "chooser is in the dialog focus order");
-    press(&mut h, KeyCode::Enter);
-    assert!(h.is_open(DIALOG_PICKER), "chooser opens the nested picker");
     assert!(
-        h.text().contains("~/.ssh/prod_rsa"),
-        "picker did not open\n{}",
+        h.text().contains("~/.ssh/id_ed25519"),
+        "the form begins with its first stable key choice\n{}",
         h.text()
     );
-    press(&mut h, KeyCode::Down);
-    press(&mut h, KeyCode::Enter);
-    assert!(
-        h.text().contains("~/.ssh/prod_rsa"),
-        "chosen key not reflected\n{}",
-        h.text()
-    );
-    assert!(
-        h.diagnostics().is_empty(),
-        "after choosing SSH key: {:?}",
-        h.diagnostics()
-    );
-    assert_eq!(
-        h.focus(),
-        Some(DIALOG_KEY),
-        "picker choice restores form focus"
-    );
-
     assert!(
         h.tab_to(DIALOG_NAME),
         "name field remains in the form focus order"
@@ -770,8 +748,55 @@ fn dialog_kinds_add_connection_uses_live_form_and_stacked_picker() {
     assert!(
         h.text()
             .contains("postgres://db.eu-west-1.internal/billing"),
-        "preview follows the live edit\n{}",
+        "preview follows the draft before opening the picker\n{}",
         h.text()
+    );
+
+    let _chooser = require(h.find("Choose…"), "visible SSH key chooser");
+    assert!(h.tab_to(DIALOG_KEY), "chooser is in the dialog focus order");
+    press(&mut h, KeyCode::Enter);
+    assert!(
+        h.is_open(DIALOG_FORM),
+        "parent form remains open under the picker"
+    );
+    assert!(h.is_open(DIALOG_PICKER), "chooser opens the nested picker");
+    assert!(
+        h.text().contains("~/.ssh/prod_rsa"),
+        "picker did not open\n{}",
+        h.text()
+    );
+    press(&mut h, KeyCode::Down);
+    press(&mut h, KeyCode::Enter);
+    assert!(
+        !h.is_open(DIALOG_PICKER),
+        "key choice closes only the picker"
+    );
+    assert!(h.is_open(DIALOG_FORM), "key choice leaves the form open");
+    assert!(
+        h.text().contains("~/.ssh/prod_rsa"),
+        "chosen key not reflected\n{}",
+        h.text()
+    );
+    assert!(
+        !h.text().contains("~/.ssh/id_ed25519"),
+        "the chosen key replaces the initial stable key identity\n{}",
+        h.text()
+    );
+    assert!(
+        h.text()
+            .contains("postgres://db.eu-west-1.internal/billing"),
+        "the parent draft survives the picker\n{}",
+        h.text()
+    );
+    assert!(
+        h.diagnostics().is_empty(),
+        "after choosing SSH key: {:?}",
+        h.diagnostics()
+    );
+    assert_eq!(
+        h.focus(),
+        Some(DIALOG_KEY),
+        "picker choice restores form focus"
     );
 
     let test = require(h.find("Test connection"), "test action");
