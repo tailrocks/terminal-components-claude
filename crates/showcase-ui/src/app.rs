@@ -11,16 +11,17 @@ use termrock::{
 use showcase_demos::pages::forms::SUBMIT as FORM_SUBMIT;
 use showcase_demos::pages::taskrunner::RUN_COMMAND;
 use showcase_demos::pages::{
-    Page, PageStatus, buttons::ButtonsPage, celleditors::CellEditorsPage, chips::ChipsPage,
-    chrome::ChromePage, dialog_kinds::DialogKindsPage, dialogs::DialogsPage,
-    editable::EditablePage, editor::EditorPage, forms::FormsPage, grid::GridPage,
-    inputs::InputsPage, lists::ListsPage, overview::OverviewPage, panels::PanelsPage,
-    pickers::PickersPage, progress::ProgressPage, scrolling::ScrollingPage, settings::SettingsPage,
-    sidebars::SidebarsPage, tables::TablesPage, taskrunner::TaskRunnerPage, terminal::TerminalPage,
-    textareas::TextAreasPage, trees::TreesPage,
+    Page, PageStatus, buttons::ButtonsPage, celleditors::CellEditorsPage,
+    checks_radios::ChecksRadiosPage, chips::ChipsPage, chrome::ChromePage,
+    dialog_kinds::DialogKindsPage, dialogs::DialogsPage, editable::EditablePage,
+    editor::EditorPage, forms::FormsPage, grid::GridPage, inputs::InputsPage, lists::ListsPage,
+    overview::OverviewPage, panels::PanelsPage, pickers::PickersPage, progress::ProgressPage,
+    scrolling::ScrollingPage, settings::SettingsPage, sidebars::SidebarsPage, tables::TablesPage,
+    taskrunner::TaskRunnerPage, terminal::TerminalPage, textareas::TextAreasPage, trees::TreesPage,
 };
 
 const NAV: Id = id!("navigation");
+const CHECKS_RADIOS_ENTRY: usize = 12;
 const BRAND: Id = id!("brand");
 const STATUS: Id = id!("status");
 const HELP: Id = id!("help");
@@ -218,7 +219,10 @@ impl NavTarget {
     }
 
     const fn has_content(self) -> bool {
-        matches!(self, Self::Live(_) | Self::Selection)
+        matches!(
+            self,
+            Self::Live(_) | Self::Selection | Self::Placeholder(CHECKS_RADIOS_ENTRY)
+        )
     }
 }
 
@@ -1249,6 +1253,7 @@ pub struct App {
     nav_query: Option<NavQuery>,
     nav_presentation: std::cell::Cell<Option<NavTreePresentation>>,
     pages: Vec<Box<dyn Page>>,
+    checks_radios: ChecksRadiosPage,
     help_state: DialogState,
     help_open: bool,
     overlay_open: bool,
@@ -1275,6 +1280,7 @@ impl core::fmt::Debug for App {
             .field("nav_query", &self.nav_query)
             .field("nav_presentation", &self.nav_presentation.get())
             .field("pages", &self.pages.len())
+            .field("checks_radios", &self.checks_radios)
             .field("help_state", &self.help_state)
             .field("help_open", &self.help_open)
             .field("overlay_open", &self.overlay_open)
@@ -1320,6 +1326,10 @@ impl App {
                 page.seek_paused(frame);
             }
         }
+        let mut checks_radios = ChecksRadiosPage::new();
+        if paused {
+            checks_radios.seek_paused(frame);
+        }
         Self {
             page: initial,
             nav_target,
@@ -1329,6 +1339,7 @@ impl App {
             nav_query: None,
             nav_presentation: std::cell::Cell::new(None),
             pages,
+            checks_radios,
             help_state: DialogState::default(),
             help_open: false,
             overlay_open: false,
@@ -1535,7 +1546,10 @@ impl App {
     }
 
     fn show_live_page(&self) -> bool {
-        matches!(self.nav_target, NavTarget::Live(_))
+        matches!(
+            self.nav_target,
+            NavTarget::Live(_) | NavTarget::Placeholder(CHECKS_RADIOS_ENTRY)
+        )
     }
 
     fn nav_label(&self) -> &'static str {
@@ -1546,7 +1560,19 @@ impl App {
     }
 
     fn active(&self) -> Option<&dyn Page> {
-        self.pages.get(self.page.index()).map(Box::as_ref)
+        if self.nav_target == NavTarget::Placeholder(CHECKS_RADIOS_ENTRY) {
+            Some(&self.checks_radios)
+        } else {
+            self.pages.get(self.page.index()).map(Box::as_ref)
+        }
+    }
+
+    fn active_mut(&mut self) -> Option<&mut (dyn Page + 'static)> {
+        if self.nav_target == NavTarget::Placeholder(CHECKS_RADIOS_ENTRY) {
+            Some(&mut self.checks_radios)
+        } else {
+            self.pages.get_mut(self.page.index()).map(Box::as_mut)
+        }
     }
 
     fn help_dialog() -> Dialog<'static> {
@@ -2401,7 +2427,7 @@ impl TuiApp for App {
                 action,
                 QUIT | QUIT_CTRL | NEXT_PAGE | PREV_PAGE | HELP_COMMAND | INSPECTOR_COMMAND
             )
-            && let Some(active) = self.pages.get_mut(self.page.index())
+            && let Some(active) = self.active_mut()
         {
             response |= active.command(cx, action);
         }
@@ -2478,7 +2504,7 @@ impl TuiApp for App {
         if self.show_live_page()
             && !(cx.update_cause() == termrock::UpdateCause::Tick
                 && (cx.is_open(HELP) || self.motion_paused))
-            && let Some(active) = self.pages.get_mut(self.page.index())
+            && let Some(active) = self.active_mut()
         {
             let update = active.update(cx);
             response |= update.response;
@@ -2578,6 +2604,7 @@ impl TuiApp for App {
         let cursor_kind = nav_cursor_kind(&self.nav_state, &nodes, self.nav_query.is_some());
         let modal_page_hints = match self.nav_target {
             NavTarget::Selection => self.selectable.hints(),
+            NavTarget::Placeholder(CHECKS_RADIOS_ENTRY) => page_hints,
             NavTarget::Live(PageId::Pickers | PageId::DialogKinds) => page_hints,
             NavTarget::Live(_) | NavTarget::Placeholder(_) => &[][..],
         };
@@ -2671,6 +2698,7 @@ impl App {
         for page in &mut self.pages {
             page.seek_paused(self.paused_frame);
         }
+        self.checks_radios.seek_paused(self.paused_frame);
     }
 }
 
