@@ -74,6 +74,10 @@ tests, CI, or completion of the 3 TB free-space gate.
 
 ## Installation and scope receipts (2026-10-22)
 
+The earlier opt-in/design-only description was accurate before global
+installation; this receipt section supersedes that historical status. Git
+history retains the prior wording.
+
 The reviewed source commit was `09a182b0bf865e1b241bcdf7742ab2de45ae718b`;
 the source script SHA-256 is
 `48b606262b4e8a5b485770532fef9175a1318118e9f789dc5bf8a12b34f9dd9b`. The
