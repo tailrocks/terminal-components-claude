@@ -325,22 +325,22 @@ impl Page for DialogKindsPage {
                         }
                         if cx.is_open(PICKER) {
                             cx.close_layer(PICKER, None);
-                            self.picker_close_pending = true;
                         }
                         self.picker_open = false;
                     }
                     Some(PickerAction::Back) => {
                         if cx.is_open(PICKER) {
                             cx.close_layer(PICKER, None);
-                            self.picker_close_pending = true;
                         }
                         self.picker_open = false;
                     }
-                    _ if picker_was_open && !cx.is_open(PICKER) => {
-                        self.picker_close_pending = true;
-                        self.picker_open = false;
-                    }
                     _ => {}
+                }
+                if !cx.is_open(PICKER) {
+                    self.picker_open = false;
+                    if picker_was_open {
+                        self.picker_close_pending = true;
+                    }
                 }
             } else {
                 let form_response = Self::form().update(cx, &mut self.state, &mut self.data);
