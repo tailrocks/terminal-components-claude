@@ -1,14 +1,15 @@
 use termrock::author::PaintStyle;
-use termrock::{Brand, Color, Cx, Id, Modifier, Rect, Ui, width, wrap};
+use termrock::{
+    Brand, Color, Cx, Family, Id, Modifier, Part, Rect, ScrollRegion, ScrollState, StateFlags, Ui,
+    Variant, width, wrap,
+};
 
 use super::{Page, PageStatus, PageUpdate, frame};
 
 const BRAND: Id = termrock::Id::root("showcase_ui::pages::chrome::chrome.brand");
+const SCROLL: Id = termrock::Id::root("showcase_ui::pages::chrome::chrome.scroll");
 
 const BLURB: &str = "Brand lockup · menu bar with anchored menus · status bar planes and priorities · context menu · hint layers";
-const SECTIONS: [&str; 3] = ["Playground", "Options", "States"];
-const SECTION_CAPTION: &str = "the live widget";
-const SECTION_WIDE: u16 = 76;
 
 /// The playground has a natural width. A narrower page scrolls it sideways
 /// and stacks the card notes under the session list.
@@ -52,9 +53,6 @@ const MUTED: u32 = 0x8a8a8a;
 const FAINT: u32 = 0x737373;
 const RULE: u32 = 0x3a3a3a;
 const ACCENT: u32 = 0x48e054;
-const TAB_ACTIVE: u32 = 0x27272a;
-const THUMB: u32 = 0x808080;
-const TRACK: u32 = 0x474747;
 const SUCCESS: u32 = 0x3fb950;
 const ERROR: u32 = 0xf05d5d;
 const WARNING: u32 = 0xf59e09;
@@ -265,67 +263,6 @@ fn fill_row(ui: &mut Ui<'_>, view: Rect, row: u16, width: u16, style: PaintStyle
         return;
     }
     ui.fill(Rect::new(view.x, y, width.min(view.width), 1), style);
-}
-
-fn tab_width(label: &str) -> u16 {
-    width(label).saturating_add(3)
-}
-
-fn paint_section_strip(ui: &mut Ui<'_>, area: Rect) {
-    if area.is_empty() {
-        return;
-    }
-    let mut x = area.x;
-    let mut tab_end = area.x;
-    for (index, label) in SECTIONS.iter().enumerate() {
-        let w = tab_width(label);
-        if x.saturating_add(w) > area.right() {
-            break;
-        }
-        let style = if index == 0 {
-            bold(WHITE, TAB_ACTIVE)
-        } else {
-            ink(SECONDARY, CANVAS)
-        };
-        ui.fill(Rect::new(x, area.y, w, 1), style);
-        ui.paint_str(
-            Rect::new(x.saturating_add(1), area.y, w.saturating_sub(1), 1),
-            label,
-            style,
-        );
-        tab_end = x.saturating_add(w);
-        x = tab_end.saturating_add(1);
-    }
-    if area.width >= SECTION_WIDE {
-        let caption_width = width(SECTION_CAPTION);
-        let caption_x = area.right().saturating_sub(caption_width.saturating_add(1));
-        if caption_x > tab_end.saturating_add(2) {
-            ui.paint_str(
-                Rect::new(caption_x, area.y, caption_width, 1),
-                SECTION_CAPTION,
-                ink(FAINT, CANVAS),
-            );
-        }
-    }
-    if area.height < 2 {
-        return;
-    }
-    let rule_y = area.y.saturating_add(1);
-    ui.paint_str(
-        Rect {
-            y: rule_y,
-            height: 1,
-            ..area
-        },
-        &"─".repeat(usize::from(area.width)),
-        ink(RULE, CANVAS),
-    );
-    let active = tab_width(SECTIONS[0]).min(area.width);
-    ui.paint_str(
-        Rect::new(area.x, rule_y, active, 1),
-        &"━".repeat(usize::from(active)),
-        ink(ACCENT, CANVAS),
-    );
 }
 
 fn paint_blurb(ui: &mut Ui<'_>, area: Rect) {
@@ -967,27 +904,23 @@ fn paint_playground(ui: &mut Ui<'_>, view: Rect, page: &Playground, spinner: &st
 
 /// The scrollbars: the vertical one on the right, the horizontal one at the
 /// bottom. Both show how much of the playground is visible.
+///
+/// The vertical bar is the shared scrollbar: it owns the track, the thumb
+/// and the rest, hover and pressed inks. The library has no shared
+/// horizontal scrollbar, so the horizontal bar borrows the shared scrollbar
+/// inks and glyphs. Library need: a shared horizontal scrollbar.
 fn paint_scrollbars(ui: &mut Ui<'_>, scroll: &Scroll, content: &Playground) {
     if scroll.v_bar {
-        let track = Rect::new(
-            scroll.area.right().saturating_sub(1),
-            scroll.area.y,
-            1,
-            scroll.view.height,
+        let track = Rect {
+            height: scroll.view.height,
+            ..scroll.area
+        };
+        ScrollRegion::new(SCROLL).preserve_underlay(true).draw(
+            ui,
+            track,
+            &ScrollState::default(),
+            usize::from(content.height),
         );
-        let len = thumb_len(track.height, content.height);
-        for row in 0..track.height {
-            let on = row < len;
-            ui.paint_str(
-                Rect::new(track.x, track.y.saturating_add(row), 1, 1),
-                if on { "┃" } else { "┆" },
-                if on {
-                    ink(THUMB, CANVAS)
-                } else {
-                    ink(TRACK, CANVAS)
-                },
-            );
-        }
     }
     if scroll.h_bar {
         let track = Rect::new(
@@ -996,17 +929,29 @@ fn paint_scrollbars(ui: &mut Ui<'_>, scroll: &Scroll, content: &Playground) {
             scroll.area.width.saturating_sub(1),
             1,
         );
+        let thumb = ui
+            .style(
+                Family::SCROLLBAR,
+                Variant::DEFAULT,
+                Part::THUMB,
+                StateFlags::empty(),
+            )
+            .style;
+        let rail = ui
+            .style(
+                Family::SCROLLBAR,
+                Variant::DEFAULT,
+                Part::TRACK,
+                StateFlags::empty(),
+            )
+            .style;
         let len = thumb_len(track.width, content.width);
         for col in 0..track.width {
             let on = col < len;
             ui.paint_str(
                 Rect::new(track.x.saturating_add(col), track.y, 1, 1),
                 if on { "━" } else { "┄" },
-                if on {
-                    ink(THUMB, CANVAS)
-                } else {
-                    ink(TRACK, CANVAS)
-                },
+                if on { thumb } else { rail },
             );
         }
     }
@@ -1060,7 +1005,7 @@ impl Page for ChromePage {
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
         frame(ui, area, self.title(), "", |ui, body| {
             paint_blurb(ui, area);
-            paint_section_strip(ui, body);
+            super::section_strip(ui, body);
             let playground = Rect {
                 y: body.y.saturating_add(3),
                 height: body.height.saturating_sub(3),
@@ -1069,6 +1014,10 @@ impl Page for ChromePage {
             let scroll = Scroll::layout(playground);
             let page = Playground::layout(scroll.content.width);
             let spinner = SPINNER[self.frame % SPINNER.len()];
+            // The bars own their columns: they register before the
+            // playground paints, so the playground's controls keep the
+            // pointer.
+            paint_scrollbars(ui, &scroll, &page);
             paint_playground(
                 ui,
                 scroll.view,
@@ -1076,15 +1025,12 @@ impl Page for ChromePage {
                 spinner,
                 scroll.content.width > scroll.view.width,
             );
-            paint_scrollbars(ui, &scroll, &page);
         });
     }
 
     fn hints(&self, _ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
-        &[
-            ("↑↓", "Move"),
-            ("m", "Context menu"),
-            ("right-click", "Context menu"),
-        ]
+        // The playground is a drawing: the brand lockup is the only control
+        // the page owns, and it answers a click.
+        &[("click", "Brand lockup")]
     }
 }
