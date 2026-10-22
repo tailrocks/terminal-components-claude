@@ -2538,6 +2538,7 @@ mod tests {
         driver: usize,
         ssl: usize,
         tunnel: bool,
+        disable_chooser: bool,
     }
 
     impl Default for PointerData {
@@ -2549,6 +2550,7 @@ mod tests {
                 driver: 0,
                 ssl: 2,
                 tunnel: true,
+                disable_chooser: false,
             }
         }
     }
@@ -2602,6 +2604,10 @@ mod tests {
 
         fn visible(&self, id: Id) -> bool {
             id != POINTER_CHOOSER || self.tunnel
+        }
+
+        fn disabled(&self, id: Id) -> bool {
+            id == POINTER_CHOOSER && self.disable_chooser
         }
 
         fn validate(&self, _id: Id, _value: FieldRef<'_>) -> Result<(), FieldError> {
@@ -3604,6 +3610,104 @@ mod tests {
     }
 
     #[test]
+    fn pointer_hold_is_cleared_when_the_held_field_is_hidden_or_disabled() {
+        for hide in [true, false] {
+            let mut runtime = Runtime::new(PointerRevealApp::default(), Theme::junie());
+            let _ = runtime.initialize();
+            let mut buffer = Buffer::empty(POINTER_SCREEN);
+            runtime
+                .draw_buffer(POINTER_SCREEN, &mut buffer)
+                .commit_presented();
+            runtime.set_focus(Some(POINTER_TUNNEL));
+            let _ = runtime.settle();
+            runtime
+                .draw_buffer(POINTER_SCREEN, &mut buffer)
+                .commit_presented();
+
+            let area = runtime.area_of(POINTER_CHOOSER).expect("visible chooser");
+            let x = area.x.saturating_add(area.width / 2);
+            let y = area.y.saturating_add(area.height / 2);
+            let _ = crate::runtime::stub::deliver(
+                &mut runtime,
+                crate::runtime::stub::mouse(crate::event::MouseKind::Down, x, y),
+            );
+            runtime
+                .draw_buffer(POINTER_SCREEN, &mut buffer)
+                .commit_presented();
+            assert_eq!(
+                runtime.app().state.form().pointer_hold,
+                Some(POINTER_CHOOSER),
+                "pointer down starts a hold on the chooser"
+            );
+
+            if hide {
+                runtime.app_mut().data.tunnel = false;
+            } else {
+                runtime.app_mut().data.disable_chooser = true;
+            }
+            let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
+            runtime
+                .draw_buffer(POINTER_SCREEN, &mut buffer)
+                .commit_presented();
+
+            assert_eq!(
+                runtime.app().state.form().pointer_hold,
+                None,
+                "a hidden or disabled held field ends the pointer hold"
+            );
+            assert_ne!(runtime.focus(), Some(POINTER_CHOOSER));
+            assert!(
+                !runtime.ring().contains(POINTER_CHOOSER),
+                "hidden or disabled chooser is no longer focusable"
+            );
+            if hide {
+                assert_eq!(runtime.area_of(POINTER_CHOOSER), None);
+                assert!(
+                    !runtime.ring().is_registered(POINTER_CHOOSER),
+                    "hidden chooser is removed from the focus registry"
+                );
+            } else {
+                assert!(
+                    runtime
+                        .area_of(POINTER_CHOOSER)
+                        .is_some_and(|area| !area.is_empty()),
+                    "disabled chooser stays drawn after automatic reveal may move its row"
+                );
+                assert!(
+                    runtime
+                        .ring()
+                        .entry(POINTER_CHOOSER)
+                        .is_some_and(|entry| entry.disabled),
+                    "disabled chooser remains registered as disabled"
+                );
+            }
+
+            let actions_before_release = runtime.app().actions.clone();
+            let _ = crate::runtime::stub::deliver(
+                &mut runtime,
+                crate::runtime::stub::mouse(crate::event::MouseKind::Up, x, y),
+            );
+            assert_eq!(
+                runtime.app().state.form().pointer_hold,
+                None,
+                "pointer release leaves no held field"
+            );
+            assert!(
+                !runtime
+                    .app()
+                    .actions
+                    .contains(&FormDialogAction::Chose(POINTER_CHOOSER)),
+                "release cannot activate the chooser after it becomes hidden or disabled"
+            );
+            assert_eq!(
+                runtime.app().actions,
+                actions_before_release,
+                "mouse release emits no action beyond the setup history"
+            );
+        }
+    }
+
+    #[test]
     fn lane_form_keeps_chooser_hit_area_stable_through_pointer_release() {
         let area = Rect::new(0, 0, 62, 22);
         let mut runtime = Runtime::new(PointerRevealLaneApp::default(), Theme::junie());
@@ -3644,6 +3748,82 @@ mod tests {
                 .count(),
             1
         );
+    }
+
+    #[test]
+    fn lane_chooser_activation_does_not_submit_the_form() {
+        struct LaneMatrixApp {
+            state: FormState,
+            data: MatrixData,
+            last: Option<FormAction>,
+        }
+
+        impl App for LaneMatrixApp {
+            fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+                let fields = [matrix_field(self.data.kind)];
+                let rows = [FormRow::Field(MATRIX)];
+                let lanes = [FormLane::new(Id::root("form.tests.matrix.lane"), &rows)];
+                let layout = FormLayout::new(&lanes);
+                let response = Form::new(FORM, &fields)
+                    .actions(ACTIONS)
+                    .try_layout(&layout)
+                    .expect("valid single-field matrix lane")
+                    .update(cx, &mut self.state, &mut self.data);
+                self.last = response.action_ref().copied();
+                response.erase()
+            }
+
+            fn draw(&self, ui: &mut Ui<'_>) {
+                let fields = [matrix_field(self.data.kind)];
+                let rows = [FormRow::Field(MATRIX)];
+                let lanes = [FormLane::new(Id::root("form.tests.matrix.lane"), &rows)];
+                let layout = FormLayout::new(&lanes);
+                let form = Form::new(FORM, &fields)
+                    .actions(ACTIONS)
+                    .try_layout(&layout)
+                    .expect("valid single-field matrix lane");
+                form.draw(ui, ui.full(), &self.state, &self.data);
+            }
+        }
+
+        for (kind, key, expected) in [
+            (
+                MatrixKind::Chooser,
+                KeyCode::Enter,
+                FormAction::Chose(MATRIX),
+            ),
+            (
+                MatrixKind::Chooser,
+                KeyCode::Char(' '),
+                FormAction::Chose(MATRIX),
+            ),
+            (
+                MatrixKind::Check,
+                KeyCode::Enter,
+                FormAction::Action(ActionKey::SAVE),
+            ),
+        ] {
+            let app = LaneMatrixApp {
+                state: FormState::default(),
+                data: MatrixData::new(kind),
+                last: None,
+            };
+            let mut runtime = Runtime::new(app, Theme::junie());
+            let _ = runtime.initialize();
+            let mut buffer = Buffer::empty(SCREEN);
+            runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+            assert_eq!(runtime.focus(), Some(MATRIX));
+
+            let _ = crate::runtime::stub::deliver(&mut runtime, press(key));
+            runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+
+            assert_eq!(runtime.app().last, Some(expected));
+            assert_eq!(
+                runtime.app().data.validations.get(),
+                usize::from(kind != MatrixKind::Chooser),
+                "chooser activation does not run form submission validation"
+            );
+        }
     }
 
     #[test]
