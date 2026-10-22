@@ -866,136 +866,186 @@ fn paint_env_body(ui: &mut Ui<'_>) {
     paint_str(ui, 58, 7, "••••••••", MUTED, BLACK, false);
 }
 
-struct SettingsAgentRow {
-    name: &'static str,
-    mode: &'static str,
-    account: &'static str,
-}
-
 fn paint_agents_page(app: &App, ui: &mut Ui<'_>, full: Rect) {
-    paint_settings_chrome(app, ui, full, 3, None, None);
-    env_paint(ui, 4, 6, "Agent runtime mode", SECONDARY, BLACK, true);
-    env_paint(
-        ui,
-        77,
-        6,
-        "accounts are registered in Accounts (c)",
-        DARK_MUTED,
-        BLACK,
-        false,
-    );
-    env_paint(
-        ui,
-        7,
-        7,
-        "Agent         Mode         Registry default",
-        MUTED,
-        BLACK,
-        false,
-    );
-    const ROWS: &[SettingsAgentRow] = &[
-        SettingsAgentRow {
-            name: " Claude Code   ",
-            mode: "sync        ",
-            account: "★ Claude · Personal",
+    use termrock::feedback::{
+        SettingsAgentRow, SettingsAgents, SettingsCluster, SettingsHint, SettingsPage,
+        SettingsPageChrome, SettingsTab, paint_settings_page_with_agents,
+    };
+
+    const ROWS: &[SettingsAgentRow<'_>] = &[
+        SettingsAgentRow::new(" Claude Code   ", "sync        ", "★ Claude · Personal")
+            .selected(true),
+        SettingsAgentRow::new(" Codex         ", "api key     ", "★ Codex · Primary"),
+        SettingsAgentRow::new(
+            " Amp           ",
+            "sync        ",
+            "discovered · ~/.config/amp/secrets.json",
+        ),
+        SettingsAgentRow::new(
+            " Kimi Code     ",
+            "ignore      ",
+            "no credentials handed to the container",
+        ),
+        SettingsAgentRow::new(
+            " OpenCode      ",
+            "sync        ",
+            "★ OpenCode · Go subscription",
+        ),
+        SettingsAgentRow::new(" Grok Build    ", "api key     ", "★ Grok · Team"),
+    ];
+    const NOTES: &[&str] = &[
+        "sync mirrors the host login · api key and oauth token take material from the registry account",
+        "ignore starts the agent without credentials and removes it from session pickers",
+    ];
+    const HINT_OFFSETS: &[u16] = &[1, 19, 38, 57, 73, 86];
+    let menus = ["File", "Go", "Help"];
+    let tabs = [
+        SettingsTab {
+            label: "General",
+            selected: false,
         },
-        SettingsAgentRow {
-            name: " Codex         ",
-            mode: "api key     ",
-            account: "★ Codex · Primary",
+        SettingsTab {
+            label: "Mounts",
+            selected: false,
         },
-        SettingsAgentRow {
-            name: " Amp           ",
-            mode: "sync        ",
-            account: "discovered · ~/.config/amp/secrets.json",
+        SettingsTab {
+            label: "Environments",
+            selected: false,
         },
-        SettingsAgentRow {
-            name: " Kimi Code     ",
-            mode: "ignore      ",
-            account: "no credentials handed to the container",
+        SettingsTab {
+            label: "Agents",
+            selected: true,
         },
-        SettingsAgentRow {
-            name: " OpenCode      ",
-            mode: "sync        ",
-            account: "★ OpenCode · Go subscription",
-        },
-        SettingsAgentRow {
-            name: " Grok Build    ",
-            mode: "api key     ",
-            account: "★ Grok · Team",
+        SettingsTab {
+            label: "Trust",
+            selected: false,
         },
     ];
-    for (index, row) in ROWS.iter().enumerate() {
-        let y = 8 + index as u16;
-        let selected = index == 0;
-        let bg = if selected { BADGE_BG } else { BLACK };
-        if selected {
-            env_paint(ui, 2, y, &" ".repeat(116), WHITE, bg, true);
-            env_paint(ui, 2, y, "▎›", ACCENT, bg, true);
-        } else {
-            env_gutter(ui, y);
-        }
-        env_paint(ui, 5, y, " ", AMBER, bg, selected);
-        env_paint(ui, 6, y, row.name, WHITE, bg, selected);
-        env_paint(ui, 21, y, row.mode, SECONDARY, bg, selected);
-        if selected {
-            env_split(ui, 34, y, row.account, SECONDARY, MUTED, bg);
-        } else {
-            env_paint(ui, 34, y, row.account, MUTED, BLACK, false);
-        }
-    }
-    env_paint(
-        ui,
-        4,
-        15,
-        "sync mirrors the host login · api key and oauth token take material from the registry account",
-        DARK_MUTED,
-        BLACK,
-        false,
+    let hints = [
+        SettingsHint {
+            key: "Space",
+            action: "Cycle mode",
+        },
+        SettingsHint {
+            key: "d",
+            action: "Remove override",
+        },
+        SettingsHint {
+            key: "c",
+            action: "Manage accounts",
+        },
+        SettingsHint {
+            key: "[ ]",
+            action: "Switch tab",
+        },
+        SettingsHint {
+            key: "Ctrl+S",
+            action: "Save",
+        },
+        SettingsHint {
+            key: "Esc",
+            action: "Back",
+        },
+    ];
+    let running = format!("{} running", app.world.running_count());
+    let page = SettingsPage {
+        brand: "jackin❯",
+        menus: &menus,
+        crumb: "Settings › global › Agents",
+        tabs: &tabs,
+        sections: &[],
+        cancel: "Cancel",
+        save: "Save…",
+        save_enabled: false,
+        hints: &hints,
+        hint_overflow: None,
+        mounts: &[],
+        add_mount: None,
+        cluster: Some(SettingsCluster {
+            note: "inside the Construct",
+            mark: "●",
+            value: &running,
+        }),
+    };
+    let agents = SettingsAgents::new(
+        "Agent runtime mode",
+        "accounts are registered in Accounts (c)",
+        "Agent         Mode         Registry default",
+        ROWS,
+        NOTES,
     );
-    env_paint(
+    let result = paint_settings_page_with_agents(
         ui,
-        4,
-        16,
-        "ignore starts the agent without credentials and removes it from session pickers",
-        DARK_MUTED,
-        BLACK,
-        false,
+        full,
+        &page,
+        &agents,
+        SettingsPageChrome::new().hint_offsets(HINT_OFFSETS),
     );
-    env_paint(ui, 97, 37, " ", BLACK, BLACK, false);
-    env_paint(ui, 98, 37, "Cancel ", SECONDARY, BLACK, false);
-    env_paint(ui, 108, 37, " ", ACTIVE_BG, ACTIVE_BG, false);
-    env_paint(
-        ui,
-        109,
-        37,
-        "Save… ",
-        Color::Rgb(0x4d, 0x4d, 0x4d),
-        ACTIVE_BG,
-        false,
+    debug_assert!(
+        result.is_ok(),
+        "fixed Agents settings page rejected: {result:?}"
     );
-    let y = full.height.saturating_sub(1);
-    env_key(ui, y, 1, "Space", "Cycle mode");
-    env_key(ui, y, 19, "d", "Remove override");
-    env_key(ui, y, 38, "c", "Manage accounts");
-    env_key(ui, y, 57, "[ ]", "Switch tab");
-    env_key(ui, y, 73, "Ctrl+S", "Save");
-    env_key(ui, y, 86, "Esc", "Back");
+    let _ = result;
 }
 
 fn paint_trust_page(app: &App, ui: &mut Ui<'_>, full: Rect) {
-    // The trust page is only reached on the approved 120x40 frame, so the
-    // save preview always shapes its chrome here.
+    use termrock::feedback::{
+        SettingsCluster, SettingsHint, SettingsPage, SettingsPageChrome, SettingsTab,
+        SettingsTrust, SettingsTrustRow, paint_settings_page_with_trust,
+    };
+
     let preview = app.settings_save_preview;
     let diffs = trust_diffs(app);
-    if preview && !diffs.is_empty() {
-        let note = format!("  • {}  ", change_label(diffs.len()));
-        paint_settings_chrome(app, ui, full, 4, Some("•"), Some(&note));
-    } else if preview {
-        paint_settings_chrome(app, ui, full, 4, Some(""), None);
-    } else {
-        paint_settings_chrome(app, ui, full, 4, None, None);
-    }
+    let tab_note = preview.then_some(if diffs.is_empty() { "" } else { "•" });
+    let crumb_owned =
+        (preview && !diffs.is_empty()).then(|| format!("  • {}  ", change_label(diffs.len())));
+    let crumb_note = crumb_owned.as_deref();
+    let menus = ["File", "Go", "Help"];
+    let tabs = [
+        SettingsTab {
+            label: "General",
+            selected: false,
+        },
+        SettingsTab {
+            label: "Mounts",
+            selected: false,
+        },
+        SettingsTab {
+            label: "Environments",
+            selected: false,
+        },
+        SettingsTab {
+            label: "Agents",
+            selected: false,
+        },
+        SettingsTab {
+            label: "Trust",
+            selected: true,
+        },
+    ];
+    const HINT_OFFSETS: &[u16] = &[1, 21, 36, 52, 65];
+    let hints = [
+        SettingsHint {
+            key: "Space",
+            action: "Toggle trust",
+        },
+        SettingsHint {
+            key: "o",
+            action: "Open source",
+        },
+        SettingsHint {
+            key: "[ ]",
+            action: "Switch tab",
+        },
+        SettingsHint {
+            key: "Ctrl+S",
+            action: "Save",
+        },
+        SettingsHint {
+            key: "Esc",
+            action: "Back",
+        },
+    ];
     let trusted = app
         .world
         .global
@@ -1004,103 +1054,82 @@ fn paint_trust_page(app: &App, ui: &mut Ui<'_>, full: Rect) {
         .filter(|row| row.trusted)
         .count();
     let untrusted = app.world.global.trust.len().saturating_sub(trusted);
-    env_paint(ui, 4, 6, "Role sources", SECONDARY, BLACK, true);
     let summary = format!("{trusted} trusted · {untrusted} untrusted");
-    let summary_x = 116u16.saturating_sub(summary.chars().count() as u16);
-    env_paint(ui, summary_x, 6, &summary, DARK_MUTED, BLACK, false);
-
-    for (index, row) in app.world.global.trust.iter().enumerate() {
-        let y = 7 + index as u16;
-        let selected = index == app.settings_trust_cursor;
-        let bg = if selected { BADGE_BG } else { BLACK };
-        let dirty = app
-            .settings_trust_origin
-            .get(index)
-            .is_some_and(|before| *before != row.trusted);
-        if selected {
-            env_paint(ui, 2, y, &" ".repeat(116), WHITE, bg, true);
-            if preview {
-                env_paint(ui, 2, y, " ", bg, bg, false);
-                env_paint(ui, 3, y, "›", ACCENT, bg, true);
-            } else {
-                env_paint(ui, 2, y, "▎›", ACCENT, bg, true);
-            }
-        } else {
-            env_gutter(ui, y);
-        }
-        env_paint(ui, 5, y, if dirty { "•" } else { " " }, AMBER, bg, selected);
-        env_paint(
-            ui,
-            6,
-            y,
-            &format!(" {:<42}", row.source),
-            WHITE,
-            bg,
-            selected,
-        );
-        let kind = format!("{:<5}", trust_kind(&row.source));
-        if selected {
-            env_split(ui, 49, y, &kind, SECONDARY, MUTED, bg);
-        } else {
-            env_paint(ui, 49, y, &kind, MUTED, BLACK, false);
-        }
-        if row.trusted {
-            env_paint(ui, 54, y, " [✓] trusted    ", WHITE, bg, selected);
-        } else {
-            env_paint(ui, 55, y, "[ ] untrusted", AMBER, BLACK, false);
-        }
-        let count = trust_role_label(app, &row.source);
-        if selected {
-            paint_trust_count(ui, y, &count, bg);
-        } else {
-            env_paint(ui, 70, y, &count, DARK_MUTED, BLACK, false);
-        }
-    }
-    env_paint(
-        ui,
-        4,
-        12,
+    let counts: Vec<String> = app
+        .world
+        .global
+        .trust
+        .iter()
+        .map(|row| trust_role_label(app, &row.source))
+        .collect();
+    let rows: Vec<SettingsTrustRow<'_>> = app
+        .world
+        .global
+        .trust
+        .iter()
+        .zip(counts.iter())
+        .enumerate()
+        .map(|(index, (row, count))| {
+            SettingsTrustRow::new(
+                &row.source,
+                trust_source_kind(&row.source),
+                row.trusted,
+                count,
+            )
+            .dirty(
+                app.settings_trust_origin
+                    .get(index)
+                    .is_some_and(|before| *before != row.trusted),
+            )
+            .selected(index == app.settings_trust_cursor)
+        })
+        .collect();
+    const NOTES: &[&str] = &[
         "An untrusted source blocks + Load role until it is trusted here or",
-        DARK_MUTED,
-        BLACK,
-        false,
-    );
-    env_paint(
-        ui,
-        4,
-        13,
         "in the trust dialog that the load opens.",
-        DARK_MUTED,
-        BLACK,
-        false,
+    ];
+    let running = format!("{} running", app.world.running_count());
+    let page = SettingsPage {
+        brand: "jackin❯",
+        menus: &menus,
+        crumb: "Settings › global › Trust",
+        tabs: &tabs,
+        sections: &[],
+        cancel: "Cancel",
+        save: "Save…",
+        save_enabled: preview,
+        hints: &hints,
+        hint_overflow: None,
+        mounts: &[],
+        add_mount: None,
+        cluster: Some(SettingsCluster {
+            note: "inside the Construct",
+            mark: "●",
+            value: &running,
+        }),
+    };
+    let trust = SettingsTrust::new("Role sources", &summary, &rows, NOTES).preview(preview);
+    let mut chrome = SettingsPageChrome::new()
+        .hint_offsets(HINT_OFFSETS)
+        .hide_hints(preview);
+    if let Some(note) = tab_note {
+        chrome = chrome.tab_note(note);
+    }
+    if let Some(note) = crumb_note {
+        chrome = chrome.crumb_note(note);
+    }
+    let result = paint_settings_page_with_trust(ui, full, &page, &trust, chrome);
+    debug_assert!(
+        result.is_ok(),
+        "fixed Trust settings page rejected: {result:?}"
     );
-    env_paint(ui, 97, 37, " ", BLACK, BLACK, false);
-    env_paint(ui, 98, 37, "Cancel ", SECONDARY, BLACK, false);
-    env_paint(ui, 108, 37, " ", ACTIVE_BG, ACTIVE_BG, false);
-    env_paint(
-        ui,
-        109,
-        37,
-        "Save… ",
-        if preview {
-            SECONDARY
-        } else {
-            Color::Rgb(0x4d, 0x4d, 0x4d)
-        },
-        ACTIVE_BG,
-        false,
-    );
-    let y = full.height.saturating_sub(1);
+    let _ = result;
+
     if preview {
+        let y = full.height.saturating_sub(1);
         ui.modal_backdrop(full);
         paint_preview_footer(app, ui, y);
         paint_save_preview(app, ui, full);
-    } else {
-        env_key(ui, y, 1, "Space", "Toggle trust");
-        env_key(ui, y, 21, "o", "Open source");
-        env_key(ui, y, 36, "[ ]", "Switch tab");
-        env_key(ui, y, 52, "Ctrl+S", "Save");
-        env_key(ui, y, 65, "Esc", "Back");
     }
 }
 
@@ -1166,11 +1195,15 @@ fn paint_preview_footer(app: &App, ui: &mut Ui<'_>, y: u16) {
     }
 }
 
-fn trust_kind(source: &str) -> &'static str {
-    if source.starts_with('~') || source.starts_with('/') {
-        "path"
-    } else {
-        "git"
+fn trust_source_kind(source: &str) -> termrock::feedback::SettingsTrustSourceKind {
+    use termrock::feedback::SettingsTrustSourceKind::{Git, Path, Unknown};
+
+    match source {
+        "github.com/chainargos/roles"
+        | "github.com/acme-labs/roles-experimental"
+        | "git@corp:infra/roles" => Git,
+        "~/roles" => Path,
+        _ => Unknown,
     }
 }
 
@@ -1200,30 +1233,6 @@ fn trust_source_has(role: &crate::domain::workspace::RoleEntry, source: &str) ->
             path == source || path.starts_with(&format!("{source}/"))
         }
     }
-}
-
-fn paint_trust_count(ui: &mut Ui<'_>, y: u16, count: &str, bg: Color) {
-    let mut column = 70u16;
-    let mut word = true;
-    let mut current = String::new();
-    let flush = |ui: &mut Ui<'_>, column: &mut u16, current: &mut String, word: bool| {
-        if current.is_empty() {
-            return;
-        }
-        let ink = if word { SECONDARY } else { DARK_MUTED };
-        env_paint(ui, *column, y, current, ink, bg, true);
-        *column = column.saturating_add(current.chars().count() as u16);
-        current.clear();
-    };
-    for ch in count.chars() {
-        let is_word = !ch.is_whitespace();
-        if !current.is_empty() && is_word != word {
-            flush(ui, &mut column, &mut current, word);
-        }
-        word = is_word;
-        current.push(ch);
-    }
-    flush(ui, &mut column, &mut current, word);
 }
 
 fn paint_agents_body(ui: &mut Ui<'_>) {
@@ -1649,4 +1658,31 @@ fn paint_cell(ui: &mut Ui<'_>, x: u16, y: u16, symbol: &str, fg: Color, bg: Colo
         style = style.add_modifier(Modifier::BOLD);
     }
     ui.paint_cell(Position::new(x, y), symbol, style);
+}
+
+#[cfg(test)]
+mod trust_source_kind_tests {
+    use super::trust_source_kind;
+    use termrock::feedback::SettingsTrustSourceKind::{Git, Path, Unknown};
+
+    #[test]
+    fn trust_kind_uses_exact_fixture_ids_and_preserves_unknown_sources() {
+        assert_eq!(trust_source_kind("github.com/chainargos/roles"), Git);
+        assert_eq!(
+            trust_source_kind("github.com/acme-labs/roles-experimental"),
+            Git
+        );
+        assert_eq!(trust_source_kind("~/roles"), Path);
+        assert_eq!(trust_source_kind("git@corp:infra/roles"), Git);
+
+        for unknown in [
+            "relative/roles",
+            "/var/lib/roles",
+            "git+ssh://host/roles",
+            "git@other:infra/roles",
+            "C:\\roles",
+        ] {
+            assert_eq!(trust_source_kind(unknown), Unknown, "{unknown}");
+        }
+    }
 }

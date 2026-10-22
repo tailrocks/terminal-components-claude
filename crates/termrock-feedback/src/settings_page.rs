@@ -176,6 +176,309 @@ pub struct SettingsEnv<'a> {
     overrides: Option<SettingsEnvOverrides<'a>>,
 }
 
+/// Explicit source kind for a trusted role source.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum SettingsTrustSourceKind {
+    /// Source uses a Git transport.
+    Git,
+    /// Source is a local path.
+    Path,
+    /// Caller has no verified source-kind metadata.
+    Unknown,
+}
+
+/// One borrowed agent row for the shared Settings renderer.
+#[derive(Clone, Copy, Debug)]
+#[non_exhaustive]
+pub struct SettingsAgentRow<'a> {
+    name: &'a str,
+    mode: &'a str,
+    account: &'a str,
+    selected: bool,
+}
+
+impl<'a> SettingsAgentRow<'a> {
+    /// Create an agent row. The renderer clips each column to its cell budget.
+    pub const fn new(name: &'a str, mode: &'a str, account: &'a str) -> Self {
+        Self {
+            name,
+            mode,
+            account,
+            selected: false,
+        }
+    }
+
+    /// Set whether the row carries the selected-row treatment.
+    pub const fn selected(mut self, selected: bool) -> Self {
+        self.selected = selected;
+        self
+    }
+}
+
+/// Borrowed Agents table content for the shared Settings renderer.
+#[derive(Clone, Copy, Debug)]
+#[non_exhaustive]
+pub struct SettingsAgents<'a> {
+    title: &'a str,
+    right: &'a str,
+    header: &'a str,
+    rows: &'a [SettingsAgentRow<'a>],
+    notes: &'a [&'a str],
+}
+
+impl<'a> SettingsAgents<'a> {
+    /// Create an Agents table with a title, column header, rows, and fixed notes.
+    pub const fn new(
+        title: &'a str,
+        right: &'a str,
+        header: &'a str,
+        rows: &'a [SettingsAgentRow<'a>],
+        notes: &'a [&'a str],
+    ) -> Self {
+        Self {
+            title,
+            right,
+            header,
+            rows,
+            notes,
+        }
+    }
+}
+
+/// One borrowed trust-source row for the shared Settings renderer.
+#[derive(Clone, Copy, Debug)]
+#[non_exhaustive]
+pub struct SettingsTrustRow<'a> {
+    source: &'a str,
+    kind: SettingsTrustSourceKind,
+    trusted: bool,
+    dirty: bool,
+    count: &'a str,
+    selected: bool,
+}
+
+impl<'a> SettingsTrustRow<'a> {
+    /// Create a trust row with explicit kind metadata and caller-owned count text.
+    pub const fn new(
+        source: &'a str,
+        kind: SettingsTrustSourceKind,
+        trusted: bool,
+        count: &'a str,
+    ) -> Self {
+        Self {
+            source,
+            kind,
+            trusted,
+            dirty: false,
+            count,
+            selected: false,
+        }
+    }
+
+    /// Set whether the trusted value differs from its saved value.
+    pub const fn dirty(mut self, dirty: bool) -> Self {
+        self.dirty = dirty;
+        self
+    }
+
+    /// Set whether the row carries the selected-row treatment.
+    pub const fn selected(mut self, selected: bool) -> Self {
+        self.selected = selected;
+        self
+    }
+}
+
+/// Borrowed Trust table content for the shared Settings renderer.
+#[derive(Clone, Copy, Debug)]
+#[non_exhaustive]
+pub struct SettingsTrust<'a> {
+    title: &'a str,
+    right: &'a str,
+    rows: &'a [SettingsTrustRow<'a>],
+    notes: &'a [&'a str],
+    preview: bool,
+}
+
+impl<'a> SettingsTrust<'a> {
+    /// Create a Trust table with caller-owned summary and notes.
+    pub const fn new(
+        title: &'a str,
+        right: &'a str,
+        rows: &'a [SettingsTrustRow<'a>],
+        notes: &'a [&'a str],
+    ) -> Self {
+        Self {
+            title,
+            right,
+            rows,
+            notes,
+            preview: false,
+        }
+    }
+
+    /// Use the plain selected gutter while a caller-owned preview layer is open.
+    pub const fn preview(mut self, preview: bool) -> Self {
+        self.preview = preview;
+        self
+    }
+}
+
+/// Ink used for optional text after a Settings hint row.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum SettingsHintOverflowTone {
+    /// Use the faint text channel.
+    Faint,
+    /// Use the secondary text channel.
+    Secondary,
+}
+
+/// Typed trailing text for the additive Agents and Trust painters.
+#[derive(Clone, Copy, Debug)]
+#[non_exhaustive]
+pub struct SettingsHintOverflow<'a> {
+    text: &'a str,
+    at: Option<u16>,
+    tone: SettingsHintOverflowTone,
+}
+
+impl<'a> SettingsHintOverflow<'a> {
+    /// Create trailing text that follows the final hint.
+    pub const fn new(text: &'a str) -> Self {
+        Self {
+            text,
+            at: None,
+            tone: SettingsHintOverflowTone::Faint,
+        }
+    }
+
+    /// Place the text at a column offset from the page origin.
+    pub const fn at(mut self, offset: u16) -> Self {
+        self.at = Some(offset);
+        self
+    }
+
+    /// Set the text channel.
+    pub const fn tone(mut self, tone: SettingsHintOverflowTone) -> Self {
+        self.tone = tone;
+        self
+    }
+}
+
+/// Semantic header and footer options for the additive Agents and Trust pages.
+#[derive(Clone, Copy, Debug, Default)]
+#[non_exhaustive]
+pub struct SettingsPageChrome<'a> {
+    tab_note: Option<&'a str>,
+    crumb_note: Option<&'a str>,
+    hint_offsets: Option<&'a [u16]>,
+    overflow: Option<SettingsHintOverflow<'a>>,
+    hide_hints: bool,
+}
+
+impl<'a> SettingsPageChrome<'a> {
+    /// Create default header and footer options.
+    pub const fn new() -> Self {
+        Self {
+            tab_note: None,
+            crumb_note: None,
+            hint_offsets: None,
+            overflow: None,
+            hide_hints: false,
+        }
+    }
+
+    /// Add a note to the selected tab and dim its underline.
+    pub const fn tab_note(mut self, note: &'a str) -> Self {
+        self.tab_note = Some(note);
+        self
+    }
+
+    /// Add a styled note immediately after the breadcrumb.
+    pub const fn crumb_note(mut self, note: &'a str) -> Self {
+        self.crumb_note = Some(note);
+        self
+    }
+
+    /// Place each `SettingsHint` at the matching page-relative column.
+    pub const fn hint_offsets(mut self, offsets: &'a [u16]) -> Self {
+        self.hint_offsets = Some(offsets);
+        self
+    }
+
+    /// Add typed trailing text after the hints or at its explicit offset.
+    pub const fn overflow(mut self, overflow: SettingsHintOverflow<'a>) -> Self {
+        self.overflow = Some(overflow);
+        self
+    }
+
+    /// Hide the standard hint row when another layer owns the footer.
+    pub const fn hide_hints(mut self, hide: bool) -> Self {
+        self.hide_hints = hide;
+        self
+    }
+}
+
+/// Failure to paint an Agents or Trust body inside the supplied page area.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum SettingsBodyPaintError {
+    /// Legacy sections or mounts would overlap the new table body.
+    LegacyBodyNotEmpty,
+    /// The page is too narrow for the Settings frame.
+    AreaTooNarrow { minimum: u16, actual: u16 },
+    /// The fixed body, actions, and footer cannot fit in the page height.
+    AreaTooShort { minimum: u16, actual: u16 },
+    /// The body exceeds its fixed row capacity.
+    TooManyRows { maximum: usize, actual: usize },
+    /// The fixed note area exceeds its row capacity.
+    TooManyNotes { maximum: usize, actual: usize },
+    /// Fixed hint offsets must have one entry per hint.
+    HintOffsetsMismatch { hints: usize, offsets: usize },
+    /// Legacy and typed overflow fields cannot both own the hint tail.
+    ConflictingHintOverflow,
+    /// A breadcrumb note needs a running-context cluster for its fixed anchor.
+    CrumbNoteNeedsCluster,
+}
+
+impl fmt::Display for SettingsBodyPaintError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::LegacyBodyNotEmpty => {
+                f.write_str("legacy settings sections and mounts must be empty")
+            }
+            Self::AreaTooNarrow { minimum, actual } => {
+                write!(
+                    f,
+                    "settings body needs {minimum} columns, received {actual}"
+                )
+            }
+            Self::AreaTooShort { minimum, actual } => {
+                write!(f, "settings body needs {minimum} rows, received {actual}")
+            }
+            Self::TooManyRows { maximum, actual } => {
+                write!(f, "settings body allows {maximum} rows, received {actual}")
+            }
+            Self::TooManyNotes { maximum, actual } => {
+                write!(f, "settings body allows {maximum} notes, received {actual}")
+            }
+            Self::HintOffsetsMismatch { hints, offsets } => write!(
+                f,
+                "settings hint layout has {offsets} offsets for {hints} hints"
+            ),
+            Self::ConflictingHintOverflow => {
+                f.write_str("legacy and typed settings hint overflow cannot both be set")
+            }
+            Self::CrumbNoteNeedsCluster => {
+                f.write_str("settings breadcrumb note needs a running-context cluster")
+            }
+        }
+    }
+}
+
+impl std::error::Error for SettingsBodyPaintError {}
+
 #[derive(Clone, Copy, Debug)]
 struct SettingsEnvOverrides<'a> {
     title: &'a str,
@@ -257,6 +560,10 @@ const SETTINGS_ENV_MIN_WIDTH: u16 = 16;
 const SETTINGS_ENV_MIN_HEIGHT: u16 = 8;
 const SETTINGS_ENV_BODY_TOP: u16 = 6;
 const SETTINGS_ACTION_OFFSET: u16 = 3;
+const SETTINGS_BODY_MIN_WIDTH: u16 = 40;
+const SETTINGS_AGENT_MAX_ROWS: usize = 6;
+const SETTINGS_TRUST_MAX_ROWS: usize = 4;
+const SETTINGS_FIXED_NOTE_MAX_ROWS: usize = 2;
 
 struct Ink {
     canvas: Color,
@@ -268,6 +575,27 @@ struct Ink {
     accent: Color,
     on_accent: Color,
     border: Color,
+}
+
+struct SettingsBodyBounds {
+    maximum_rows: usize,
+    row_floor: u16,
+    row_start: u16,
+}
+
+#[derive(Clone, Copy)]
+struct SettingsWordGapStyles {
+    word: PaintStyle,
+    gap: PaintStyle,
+}
+
+#[derive(Clone, Copy)]
+struct SettingsTextRun {
+    start: usize,
+    end: usize,
+    column: u16,
+    columns: u16,
+    style: PaintStyle,
 }
 
 pub fn paint_settings_page(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>) {
@@ -328,6 +656,143 @@ pub fn paint_settings_page_with_env(
     Ok(())
 }
 
+/// Paint an Agents table with the existing Settings page chrome.
+///
+/// `page.sections`, `page.mounts`, and `page.add_mount` must be empty. The
+/// renderer supports at most six rows and two fixed notes. It validates the
+/// complete layout before it paints any cell. This function does not handle
+/// input or focus.
+pub fn paint_settings_page_with_agents(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    page: &SettingsPage<'_>,
+    agents: &SettingsAgents<'_>,
+    chrome: SettingsPageChrome<'_>,
+) -> Result<(), SettingsBodyPaintError> {
+    validate_settings_body(
+        page,
+        area,
+        chrome,
+        agents.rows.len(),
+        agents.notes.len(),
+        SettingsBodyBounds {
+            maximum_rows: SETTINGS_AGENT_MAX_ROWS,
+            row_floor: 7,
+            row_start: 8,
+        },
+    )?;
+
+    let ink = settings_ink(ui);
+    paint_settings_body_frame(ui, area, page, chrome, &ink);
+    paint_settings_agents(ui, area, agents, &ink);
+    paint_settings_body_footer(ui, area, page, chrome, false, &ink);
+    Ok(())
+}
+
+/// Paint a Trust table with the existing Settings page chrome.
+///
+/// `page.sections`, `page.mounts`, and `page.add_mount` must be empty. The
+/// renderer supports at most four rows and two fixed notes. It validates the
+/// complete layout before it paints any cell. This function does not handle
+/// input, counts, or a caller-owned save preview.
+pub fn paint_settings_page_with_trust(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    page: &SettingsPage<'_>,
+    trust: &SettingsTrust<'_>,
+    chrome: SettingsPageChrome<'_>,
+) -> Result<(), SettingsBodyPaintError> {
+    validate_settings_body(
+        page,
+        area,
+        chrome,
+        trust.rows.len(),
+        trust.notes.len(),
+        SettingsBodyBounds {
+            maximum_rows: SETTINGS_TRUST_MAX_ROWS,
+            row_floor: 6,
+            row_start: 7,
+        },
+    )?;
+
+    let ink = settings_ink(ui);
+    paint_settings_body_frame(ui, area, page, chrome, &ink);
+    paint_settings_trust(ui, area, trust, &ink);
+    paint_settings_body_footer(ui, area, page, chrome, trust.preview, &ink);
+    Ok(())
+}
+
+fn validate_settings_body(
+    page: &SettingsPage<'_>,
+    area: Rect,
+    chrome: SettingsPageChrome<'_>,
+    row_count: usize,
+    note_count: usize,
+    bounds: SettingsBodyBounds,
+) -> Result<(), SettingsBodyPaintError> {
+    if !page.sections.is_empty() || !page.mounts.is_empty() || page.add_mount.is_some() {
+        return Err(SettingsBodyPaintError::LegacyBodyNotEmpty);
+    }
+    if area.width < SETTINGS_BODY_MIN_WIDTH {
+        return Err(SettingsBodyPaintError::AreaTooNarrow {
+            minimum: SETTINGS_BODY_MIN_WIDTH,
+            actual: area.width,
+        });
+    }
+    if row_count > bounds.maximum_rows {
+        return Err(SettingsBodyPaintError::TooManyRows {
+            maximum: bounds.maximum_rows,
+            actual: row_count,
+        });
+    }
+    if note_count > SETTINGS_FIXED_NOTE_MAX_ROWS {
+        return Err(SettingsBodyPaintError::TooManyNotes {
+            maximum: SETTINGS_FIXED_NOTE_MAX_ROWS,
+            actual: note_count,
+        });
+    }
+    if let Some(offsets) = chrome.hint_offsets
+        && offsets.len() != page.hints.len()
+    {
+        return Err(SettingsBodyPaintError::HintOffsetsMismatch {
+            hints: page.hints.len(),
+            offsets: offsets.len(),
+        });
+    }
+    if page.hint_overflow.is_some() && chrome.overflow.is_some() {
+        return Err(SettingsBodyPaintError::ConflictingHintOverflow);
+    }
+    if chrome.crumb_note.is_some() && page.cluster.is_none() {
+        return Err(SettingsBodyPaintError::CrumbNoteNeedsCluster);
+    }
+
+    let last_row = if row_count == 0 {
+        bounds.row_floor
+    } else {
+        bounds
+            .row_start
+            .saturating_add(u16::try_from(row_count.saturating_sub(1)).unwrap_or(u16::MAX))
+    };
+    let note_start = bounds
+        .row_floor
+        .saturating_add(u16::try_from(bounds.maximum_rows).unwrap_or(u16::MAX))
+        .saturating_add(2);
+    let last_note = if note_count == 0 {
+        0
+    } else {
+        note_start.saturating_add(u16::try_from(note_count.saturating_sub(1)).unwrap_or(u16::MAX))
+    };
+    let last_content = last_row.max(last_note);
+    let minimum_height = last_content.saturating_add(4).max(8);
+    if area.height < minimum_height {
+        return Err(SettingsBodyPaintError::AreaTooShort {
+            minimum: minimum_height,
+            actual: area.height,
+        });
+    }
+    Ok(())
+}
+
 fn settings_ink(ui: &Ui<'_>) -> Ink {
     let theme = ui.theme_ref();
     Ink {
@@ -350,9 +815,532 @@ fn paint_settings_frame(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>, in
     paint_underline(ui, area, selected_at, selected_span, ink);
 }
 
+fn paint_settings_body_frame(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    page: &SettingsPage<'_>,
+    chrome: SettingsPageChrome<'_>,
+    ink: &Ink,
+) {
+    ui.fill(area, plain(ink.primary, ink.canvas));
+    if page.cluster.is_some() {
+        paint_anchored_header(ui, area, page, chrome, ink);
+    } else {
+        paint_header(ui, area, page, ink);
+    }
+    let (selected_at, selected_span) = paint_tabs_with_note(ui, area, page, chrome.tab_note, ink);
+    paint_underline_with_note(
+        ui,
+        area,
+        selected_at,
+        selected_span,
+        chrome.tab_note.is_some(),
+        ink,
+    );
+}
+
 fn paint_settings_footer(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>, ink: &Ink) {
     paint_actions(ui, area, page, ink);
     paint_hints(ui, area, page, ink);
+}
+
+fn paint_settings_body_footer(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    page: &SettingsPage<'_>,
+    chrome: SettingsPageChrome<'_>,
+    preview: bool,
+    ink: &Ink,
+) {
+    paint_actions_with_preview(ui, area, page, preview, ink);
+    if !chrome.hide_hints {
+        paint_settings_hints(ui, area, page, chrome, ink);
+    }
+}
+
+fn paint_settings_agents(ui: &mut Ui<'_>, area: Rect, agents: &SettingsAgents<'_>, ink: &Ink) {
+    let y0 = area.y.saturating_add(6);
+    put(
+        ui,
+        area,
+        area.x.saturating_add(4),
+        y0,
+        agents.title,
+        bold(ink.secondary, ink.canvas),
+    );
+    put(
+        ui,
+        area,
+        area.x.saturating_add(77),
+        y0,
+        agents.right,
+        plain(ink.faint, ink.canvas),
+    );
+    put(
+        ui,
+        area,
+        area.x.saturating_add(7),
+        y0.saturating_add(1),
+        agents.header,
+        plain(ink.muted, ink.canvas),
+    );
+    for (index, row) in agents.rows.iter().enumerate() {
+        let row_offset = u16::try_from(index).unwrap_or(u16::MAX);
+        let y = y0.saturating_add(2).saturating_add(row_offset);
+        paint_settings_agent_row(ui, area, y, row, ink);
+    }
+    let notes_y = area.y.saturating_add(15);
+    for (index, note) in agents.notes.iter().enumerate() {
+        let note_offset = u16::try_from(index).unwrap_or(u16::MAX);
+        put(
+            ui,
+            area,
+            area.x.saturating_add(4),
+            notes_y.saturating_add(note_offset),
+            note,
+            plain(ink.faint, ink.canvas),
+        );
+    }
+}
+
+fn paint_settings_agent_row(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    y: u16,
+    row: &SettingsAgentRow<'_>,
+    ink: &Ink,
+) {
+    let bg = if row.selected { SELECT_BG } else { ink.canvas };
+    if row.selected {
+        paint_settings_selected_fill(ui, area, y, false, ink);
+    } else {
+        paint_settings_gutter(ui, area, y, ink);
+    }
+    put_cols(
+        ui,
+        area,
+        area.x.saturating_add(5),
+        y,
+        " ",
+        1,
+        if row.selected {
+            bold(AMBER, bg)
+        } else {
+            plain(AMBER, bg)
+        },
+    );
+    put_cols(
+        ui,
+        area,
+        area.x.saturating_add(6),
+        y,
+        row.name,
+        15,
+        if row.selected {
+            bold(ink.primary, bg)
+        } else {
+            plain(ink.primary, bg)
+        },
+    );
+    put_cols(
+        ui,
+        area,
+        area.x.saturating_add(21),
+        y,
+        row.mode,
+        13,
+        if row.selected {
+            bold(ink.secondary, bg)
+        } else {
+            plain(ink.secondary, bg)
+        },
+    );
+    let account_x = area.x.saturating_add(34);
+    let account_width = area.right().saturating_sub(account_x);
+    if row.selected {
+        paint_settings_word_gap_runs(
+            ui,
+            area,
+            account_x,
+            y,
+            row.account,
+            account_width,
+            SettingsWordGapStyles {
+                word: bold(ink.secondary, bg),
+                gap: bold(ink.muted, bg),
+            },
+        );
+    } else {
+        put_cols(
+            ui,
+            area,
+            account_x,
+            y,
+            row.account,
+            account_width,
+            plain(ink.muted, bg),
+        );
+    }
+}
+
+fn paint_settings_trust(ui: &mut Ui<'_>, area: Rect, trust: &SettingsTrust<'_>, ink: &Ink) {
+    let title_y = area.y.saturating_add(6);
+    put(
+        ui,
+        area,
+        area.x.saturating_add(4),
+        title_y,
+        trust.title,
+        bold(ink.secondary, ink.canvas),
+    );
+    put(
+        ui,
+        area,
+        area.right()
+            .saturating_sub(4)
+            .saturating_sub(width(trust.right)),
+        title_y,
+        trust.right,
+        plain(ink.faint, ink.canvas),
+    );
+    for (index, row) in trust.rows.iter().enumerate() {
+        let row_offset = u16::try_from(index).unwrap_or(u16::MAX);
+        let y = area.y.saturating_add(7).saturating_add(row_offset);
+        paint_settings_trust_row(ui, area, y, row, trust.preview, ink);
+    }
+    let notes_y = area.y.saturating_add(12);
+    for (index, note) in trust.notes.iter().enumerate() {
+        let note_offset = u16::try_from(index).unwrap_or(u16::MAX);
+        put(
+            ui,
+            area,
+            area.x.saturating_add(4),
+            notes_y.saturating_add(note_offset),
+            note,
+            plain(ink.faint, ink.canvas),
+        );
+    }
+}
+
+fn paint_settings_trust_row(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    y: u16,
+    row: &SettingsTrustRow<'_>,
+    preview: bool,
+    ink: &Ink,
+) {
+    let bg = if row.selected { SELECT_BG } else { ink.canvas };
+    if row.selected {
+        paint_settings_selected_fill(ui, area, y, preview, ink);
+    } else {
+        paint_settings_gutter(ui, area, y, ink);
+    }
+    put_cols(
+        ui,
+        area,
+        area.x.saturating_add(5),
+        y,
+        if row.dirty { "•" } else { " " },
+        1,
+        if row.selected {
+            bold(AMBER, bg)
+        } else {
+            plain(AMBER, bg)
+        },
+    );
+    let source_style = if row.selected {
+        bold(ink.primary, bg)
+    } else {
+        plain(ink.primary, bg)
+    };
+    put_cols(ui, area, area.x.saturating_add(6), y, " ", 1, source_style);
+    put_cols(
+        ui,
+        area,
+        area.x.saturating_add(7),
+        y,
+        row.source,
+        42,
+        source_style,
+    );
+
+    let kind = match row.kind {
+        SettingsTrustSourceKind::Git => "git  ",
+        SettingsTrustSourceKind::Path => "path ",
+        SettingsTrustSourceKind::Unknown => "unk  ",
+    };
+    let kind_x = area.x.saturating_add(49);
+    if row.selected {
+        paint_settings_word_gap_runs(
+            ui,
+            area,
+            kind_x,
+            y,
+            kind,
+            5,
+            SettingsWordGapStyles {
+                word: bold(ink.secondary, bg),
+                gap: bold(ink.muted, bg),
+            },
+        );
+    } else {
+        put_cols(ui, area, kind_x, y, kind, 5, plain(ink.muted, bg));
+    }
+
+    if row.trusted {
+        put_cols(
+            ui,
+            area,
+            area.x.saturating_add(54),
+            y,
+            " [✓] trusted    ",
+            16,
+            if row.selected {
+                bold(ink.primary, bg)
+            } else {
+                plain(ink.primary, bg)
+            },
+        );
+    } else {
+        put_cols(
+            ui,
+            area,
+            area.x.saturating_add(55),
+            y,
+            "[ ] untrusted",
+            13,
+            plain(AMBER, ink.canvas),
+        );
+    }
+
+    let count_x = area.x.saturating_add(70);
+    let count_width = area.right().saturating_sub(count_x);
+    if row.selected {
+        paint_settings_word_gap_runs(
+            ui,
+            area,
+            count_x,
+            y,
+            row.count,
+            count_width,
+            SettingsWordGapStyles {
+                word: bold(ink.secondary, bg),
+                gap: bold(ink.faint, bg),
+            },
+        );
+    } else {
+        put_cols(
+            ui,
+            area,
+            count_x,
+            y,
+            row.count,
+            count_width,
+            plain(ink.faint, bg),
+        );
+    }
+}
+
+fn paint_settings_selected_fill(ui: &mut Ui<'_>, area: Rect, y: u16, preview: bool, ink: &Ink) {
+    ui.fill(
+        Rect {
+            x: area.x.saturating_add(2),
+            y,
+            width: area.width.saturating_sub(4),
+            height: 1,
+        },
+        bold(ink.primary, SELECT_BG),
+    );
+    if preview {
+        put_cols(
+            ui,
+            area,
+            area.x.saturating_add(2),
+            y,
+            " ",
+            1,
+            plain(SELECT_BG, SELECT_BG),
+        );
+        put_cols(
+            ui,
+            area,
+            area.x.saturating_add(3),
+            y,
+            "›",
+            1,
+            bold(ink.accent, SELECT_BG),
+        );
+    } else {
+        put_cols(
+            ui,
+            area,
+            area.x.saturating_add(2),
+            y,
+            "▎›",
+            2,
+            bold(ink.accent, SELECT_BG),
+        );
+    }
+}
+
+fn paint_settings_gutter(ui: &mut Ui<'_>, area: Rect, y: u16, ink: &Ink) {
+    put_cols(
+        ui,
+        area,
+        area.x.saturating_add(2),
+        y,
+        " ",
+        1,
+        plain(ink.canvas, ink.canvas),
+    );
+    put_cols(
+        ui,
+        area,
+        area.x.saturating_add(3),
+        y,
+        " ",
+        1,
+        plain(ink.secondary, ink.canvas),
+    );
+}
+
+fn paint_settings_word_gap_runs(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    x: u16,
+    y: u16,
+    text: &str,
+    columns: u16,
+    styles: SettingsWordGapStyles,
+) {
+    let visible = area.right().saturating_sub(x).min(columns);
+    if visible == 0 {
+        return;
+    }
+
+    let mut run_start = 0_usize;
+    let mut run_end = 0_usize;
+    let mut run_column = 0_u16;
+    let mut run_width = 0_u16;
+    let mut run_gap: Option<bool> = None;
+    let mut used = 0_u16;
+    for (byte, grapheme) in graphemes(text) {
+        let grapheme_width = grapheme_width(grapheme);
+        if used.saturating_add(grapheme_width) > visible {
+            break;
+        }
+        let gap = grapheme == " ";
+        if run_gap.is_some_and(|current| current != gap) {
+            paint_settings_run(
+                ui,
+                area,
+                x,
+                y,
+                text,
+                SettingsTextRun {
+                    start: run_start,
+                    end: run_end,
+                    column: run_column,
+                    columns: run_width,
+                    style: if run_gap == Some(true) {
+                        styles.gap
+                    } else {
+                        styles.word
+                    },
+                },
+            );
+            run_start = byte;
+            run_column = used;
+            run_width = 0;
+        } else if run_gap.is_none() {
+            run_start = byte;
+            run_column = used;
+        }
+        run_gap = Some(gap);
+        run_end = byte.saturating_add(grapheme.len());
+        run_width = run_width.saturating_add(grapheme_width);
+        used = used.saturating_add(grapheme_width);
+    }
+    if run_gap.is_some() {
+        paint_settings_run(
+            ui,
+            area,
+            x,
+            y,
+            text,
+            SettingsTextRun {
+                start: run_start,
+                end: run_end,
+                column: run_column,
+                columns: run_width,
+                style: if run_gap == Some(true) {
+                    styles.gap
+                } else {
+                    styles.word
+                },
+            },
+        );
+    }
+}
+
+fn paint_settings_run(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    x: u16,
+    y: u16,
+    text: &str,
+    run: SettingsTextRun,
+) {
+    if let Some(run_text) = text.get(run.start..run.end) {
+        put_cols(
+            ui,
+            area,
+            x.saturating_add(run.column),
+            y,
+            run_text,
+            run.columns,
+            run.style,
+        );
+    }
+}
+
+fn paint_settings_hints(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    page: &SettingsPage<'_>,
+    chrome: SettingsPageChrome<'_>,
+    ink: &Ink,
+) {
+    let y = area.bottom().saturating_sub(1);
+    let mut next_x = area.x.saturating_add(1);
+    let key_style = bold(ink.primary, ink.canvas);
+    let action_style = plain(ink.muted, ink.canvas);
+    for (index, hint) in page.hints.iter().enumerate() {
+        let x = chrome
+            .hint_offsets
+            .and_then(|offsets| offsets.get(index).copied())
+            .map_or(next_x, |offset| area.x.saturating_add(offset));
+        put(ui, area, x, y, hint.key, key_style);
+        let action_x = x.saturating_add(width(hint.key)).saturating_add(1);
+        put(ui, area, action_x, y, hint.action, action_style);
+        next_x = action_x
+            .saturating_add(width(hint.action))
+            .saturating_add(2);
+    }
+
+    if let Some(overflow) = chrome.overflow {
+        let x = overflow
+            .at
+            .map_or(next_x, |offset| area.x.saturating_add(offset));
+        let fg = match overflow.tone {
+            SettingsHintOverflowTone::Faint => ink.faint,
+            SettingsHintOverflowTone::Secondary => ink.secondary,
+        };
+        put(ui, area, x, y, overflow.text, plain(fg, ink.canvas));
+    } else if let Some(overflow) = page.hint_overflow {
+        put(ui, area, next_x, y, overflow, plain(ink.faint, ink.canvas));
+    }
 }
 
 fn step(theme: &crate::theme::Theme, which: FgStep) -> Color {
@@ -434,27 +1422,8 @@ fn put_clipped(
 }
 
 fn paint_header(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>, ink: &Ink) {
+    paint_header_brand_and_menus(ui, area, page, ink);
     let y = area.y;
-    let brand = format!(" {} ", page.brand);
-    put(
-        ui,
-        area,
-        area.x.saturating_add(1),
-        y,
-        &brand,
-        bold(ink.on_accent, ink.accent),
-    );
-    let mut x = area
-        .x
-        .saturating_add(1)
-        .saturating_add(width(&brand))
-        .saturating_add(2);
-    let menu = plain(ink.secondary, ink.canvas);
-    for label in page.menus {
-        let text = format!(" {label} ");
-        put(ui, area, x, y, &text, menu);
-        x = x.saturating_add(width(&text)).saturating_add(1);
-    }
     let secondary = plain(ink.secondary, ink.canvas);
     if let Some(cluster) = page.cluster {
         let value_x = area
@@ -501,11 +1470,96 @@ fn paint_header(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>, ink: &Ink)
     put(ui, area, crumb_x, y, page.crumb, secondary);
 }
 
+fn paint_header_brand_and_menus(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>, ink: &Ink) {
+    let y = area.y;
+    let brand = format!(" {} ", page.brand);
+    put(
+        ui,
+        area,
+        area.x.saturating_add(1),
+        y,
+        &brand,
+        bold(ink.on_accent, ink.accent),
+    );
+    let mut x = area
+        .x
+        .saturating_add(1)
+        .saturating_add(width(&brand))
+        .saturating_add(2);
+    let menu = plain(ink.secondary, ink.canvas);
+    for label in page.menus {
+        let text = format!(" {label} ");
+        put(ui, area, x, y, &text, menu);
+        x = x.saturating_add(width(&text)).saturating_add(1);
+    }
+}
+
+fn paint_anchored_header(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    page: &SettingsPage<'_>,
+    chrome: SettingsPageChrome<'_>,
+    ink: &Ink,
+) {
+    paint_header_brand_and_menus(ui, area, page, ink);
+    let Some(cluster) = page.cluster else {
+        return;
+    };
+    let y = area.y;
+    let secondary = plain(ink.secondary, ink.canvas);
+    let crumb_x = match chrome.crumb_note {
+        Some(note) => area
+            .x
+            .saturating_add(85)
+            .saturating_sub(width(page.crumb).saturating_add(width(note))),
+        None => area.x.saturating_add(83).saturating_sub(width(page.crumb)),
+    };
+    put(ui, area, crumb_x, y, page.crumb, secondary);
+    if let Some(note) = chrome.crumb_note {
+        put(
+            ui,
+            area,
+            crumb_x.saturating_add(width(page.crumb)),
+            y,
+            note,
+            plain(ink.primary, ink.canvas),
+        );
+    }
+    put(
+        ui,
+        area,
+        area.x.saturating_add(85),
+        y,
+        cluster.note,
+        secondary,
+    );
+    put(
+        ui,
+        area,
+        area.x.saturating_add(107),
+        y,
+        cluster.mark,
+        plain(ink.accent, ink.canvas),
+    );
+    let running = format!(" {}", cluster.value);
+    put(ui, area, area.x.saturating_add(108), y, &running, secondary);
+}
+
 fn tab_span(label: &str) -> u16 {
     width(label).saturating_add(3)
 }
 
 fn paint_tabs(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>, ink: &Ink) -> (u16, u16) {
+    paint_tabs_with_note(ui, area, page, None, ink)
+}
+
+fn paint_tabs_with_note(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    page: &SettingsPage<'_>,
+    tab_note: Option<&str>,
+    ink: &Ink,
+) -> (u16, u16) {
     let y = area.y.saturating_add(3);
     let origin = area.x.saturating_add(2);
     let mut x = origin;
@@ -516,20 +1570,26 @@ fn paint_tabs(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>, ink: &Ink) -
         let idle = format!(" {}  ", tab.label);
         if tab.selected {
             selected_at = x;
-            selected_span = span;
             let face = bold(ink.primary, ink.face);
-            if x == origin {
-                put(ui, area, x, y, "▎", bold(ink.accent, ink.face));
-                put(
-                    ui,
-                    area,
-                    x.saturating_add(1),
-                    y,
-                    &format!("{}  ", tab.label),
-                    face,
-                );
+            if let Some(note) = tab_note {
+                let noted = format!(" {} {note}  ", tab.label);
+                selected_span = width(&noted);
+                put(ui, area, x, y, &noted, face);
             } else {
-                put(ui, area, x, y, &idle, face);
+                selected_span = span;
+                if x == origin {
+                    put(ui, area, x, y, "▎", bold(ink.accent, ink.face));
+                    put(
+                        ui,
+                        area,
+                        x.saturating_add(1),
+                        y,
+                        &format!("{}  ", tab.label),
+                        face,
+                    );
+                } else {
+                    put(ui, area, x, y, &idle, face);
+                }
             }
         } else {
             put(ui, area, x, y, &idle, plain(ink.secondary, ink.canvas));
@@ -540,10 +1600,28 @@ fn paint_tabs(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>, ink: &Ink) -
 }
 
 fn paint_underline(ui: &mut Ui<'_>, area: Rect, selected_at: u16, selected_span: u16, ink: &Ink) {
+    paint_underline_with_note(ui, area, selected_at, selected_span, false, ink);
+}
+
+fn paint_underline_with_note(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    selected_at: u16,
+    selected_span: u16,
+    seam_heavy: bool,
+    ink: &Ink,
+) {
     let y = area.y.saturating_add(4);
     let start = area.x.saturating_add(2);
     let rule = plain(Color::Rgb(0x3a, 0x3a, 0x3a), ink.canvas);
-    let heavy = plain(ink.accent, ink.canvas);
+    let heavy = plain(
+        if seam_heavy {
+            Color::Rgb(0x3a, 0x3a, 0x3a)
+        } else {
+            ink.accent
+        },
+        ink.canvas,
+    );
     if selected_at > start {
         put(
             ui,
@@ -623,6 +1701,7 @@ fn paint_sections(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>, ink: &In
 }
 
 const SELECT_BG: Color = Color::Rgb(0x17, 0x3f, 0x1c);
+const AMBER: Color = Color::Rgb(0xf5, 0x9e, 0x09);
 
 struct MountCols {
     path_at: u16,
@@ -984,11 +2063,23 @@ fn paint_mount_row(
 }
 
 fn paint_actions(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>, ink: &Ink) {
+    paint_actions_with_preview(ui, area, page, false, ink);
+}
+
+fn paint_actions_with_preview(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    page: &SettingsPage<'_>,
+    preview: bool,
+    ink: &Ink,
+) {
     let y = area.bottom().saturating_sub(3);
     let save = format!("{} ", page.save);
     let cancel = format!("{} ", page.cancel);
     let save_x = area.right().saturating_sub(5).saturating_sub(width(&save));
-    let save_ink = if page.save_enabled {
+    let save_ink = if preview {
+        ink.secondary
+    } else if page.save_enabled {
         ink.primary
     } else {
         ink.border
@@ -1347,6 +2438,29 @@ mod tests {
         }
     }
 
+    fn heritage_page<'a>(
+        crumb: &'a str,
+        tabs: &'a [SettingsTab<'a>],
+        hints: &'a [SettingsHint<'a>],
+        cluster: Option<SettingsCluster<'a>>,
+    ) -> SettingsPage<'a> {
+        SettingsPage {
+            brand: "jackin❯",
+            menus: &[],
+            crumb,
+            tabs,
+            sections: &[],
+            cancel: "Cancel",
+            save: "Save…",
+            save_enabled: false,
+            hints,
+            hint_overflow: None,
+            mounts: &[],
+            add_mount: None,
+            cluster,
+        }
+    }
+
     #[test]
     fn legacy_page_literal_still_paints_general_and_mount_content() {
         let checks = [SettingsCheck {
@@ -1393,6 +2507,342 @@ mod tests {
         assert!(mount_scene.text().contains("Destination"));
         assert!(mount_scene.text().contains("/workspace"));
         assert!(mount_scene.text().contains("Add mount"));
+    }
+
+    #[test]
+    fn agents_and_trust_painters_keep_fixed_heritage_cells_and_preview_options() {
+        let agent_tabs = [SettingsTab {
+            label: "Agents",
+            selected: true,
+        }];
+        let agent_hints = [SettingsHint {
+            key: "Space",
+            action: "Cycle mode",
+        }];
+        let agent_offsets = [1];
+        let cluster = SettingsCluster {
+            note: "inside the Construct",
+            mark: "●",
+            value: "2 running",
+        };
+        let agent_page = heritage_page(
+            "Settings › global › Agents",
+            &agent_tabs,
+            &agent_hints,
+            Some(cluster),
+        );
+        let agent_rows = [
+            SettingsAgentRow::new("Claude Code", "sync", "Claude · Personal").selected(true),
+            SettingsAgentRow::new("Codex", "api key", "Codex · Primary"),
+        ];
+        let agent_notes = [
+            "sync mirrors the host login",
+            "ignore withholds credentials",
+        ];
+        let agents = SettingsAgents::new(
+            "Agent runtime mode",
+            "accounts are registered in Accounts (c)",
+            "Agent         Mode         Registry default",
+            &agent_rows,
+            &agent_notes,
+        );
+        let mut agent_scene = Scene::new(
+            "settings_agents_shared_painter",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            120,
+            40,
+        );
+        agent_scene.draw(|ui, area| {
+            assert_eq!(
+                paint_settings_page_with_agents(
+                    ui,
+                    area,
+                    &agent_page,
+                    &agents,
+                    SettingsPageChrome::new()
+                        .hint_offsets(&agent_offsets)
+                        .overflow(
+                            SettingsHintOverflow::new("…")
+                                .at(112)
+                                .tone(SettingsHintOverflowTone::Secondary),
+                        ),
+                ),
+                Ok(())
+            );
+        });
+        let agent_text = agent_scene.text();
+        for expected in [
+            "Settings › global › Agents",
+            "inside the Construct",
+            "Agent runtime mode",
+            "Claude Code",
+            "sync mirrors the host login",
+            "Cycle mode",
+        ] {
+            assert!(agent_text.contains(expected), "missing {expected:?}");
+        }
+        assert_eq!(
+            agent_scene.buffer().cell((83, 0)).map(|cell| cell.symbol()),
+            Some(" ")
+        );
+        assert_eq!(
+            agent_scene.buffer().cell((85, 0)).map(|cell| cell.symbol()),
+            Some("i")
+        );
+        assert_eq!(
+            agent_scene
+                .buffer()
+                .cell((107, 0))
+                .map(|cell| cell.symbol()),
+            Some("●")
+        );
+        assert_eq!(
+            agent_scene
+                .buffer()
+                .cell((108, 0))
+                .map(|cell| cell.symbol()),
+            Some(" ")
+        );
+        assert_eq!(
+            agent_scene.buffer().cell((2, 8)).map(|cell| cell.symbol()),
+            Some("▎")
+        );
+        assert_eq!(
+            agent_scene.buffer().cell((4, 15)).map(|cell| cell.symbol()),
+            Some("s")
+        );
+        assert_eq!(
+            agent_scene.buffer().cell((1, 39)).map(|cell| cell.symbol()),
+            Some("S")
+        );
+        assert_eq!(
+            agent_scene
+                .buffer()
+                .cell((112, 39))
+                .map(|cell| cell.symbol()),
+            Some("…")
+        );
+
+        let trust_tabs = [SettingsTab {
+            label: "Trust",
+            selected: true,
+        }];
+        let trust_hints = [SettingsHint {
+            key: "Space",
+            action: "Toggle trust",
+        }];
+        let trust_offsets = [1];
+        let trust_page = heritage_page(
+            "Settings › global › Trust",
+            &trust_tabs,
+            &trust_hints,
+            Some(cluster),
+        );
+        let trust_rows = [SettingsTrustRow::new(
+            "relative/roles",
+            SettingsTrustSourceKind::Unknown,
+            false,
+            "2 roles",
+        )
+        .dirty(true)
+        .selected(true)];
+        let trust_notes = ["The selected row keeps its verified kind."];
+        let trust = SettingsTrust::new(
+            "Role sources",
+            "0 trusted · 1 untrusted",
+            &trust_rows,
+            &trust_notes,
+        )
+        .preview(true);
+        let chrome = SettingsPageChrome::new()
+            .tab_note("•")
+            .crumb_note("  • 1 change  ")
+            .hint_offsets(&trust_offsets)
+            .hide_hints(true);
+        let mut trust_scene = Scene::new(
+            "settings_trust_shared_painter",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            120,
+            40,
+        );
+        trust_scene.draw(|ui, area| {
+            assert_eq!(
+                paint_settings_page_with_trust(ui, area, &trust_page, &trust, chrome),
+                Ok(())
+            );
+        });
+        let trust_text = trust_scene.text();
+        for expected in [
+            "Settings › global › Trust",
+            "• 1 change",
+            "Role sources",
+            "relative/roles",
+            "unk",
+            "2 roles",
+            "The selected row keeps its verified kind.",
+        ] {
+            assert!(trust_text.contains(expected), "missing {expected:?}");
+        }
+        assert!(!trust_text.contains("Toggle trust"));
+        assert_eq!(
+            trust_scene.buffer().cell((2, 7)).map(|cell| cell.symbol()),
+            Some(" ")
+        );
+        assert_eq!(
+            trust_scene.buffer().cell((3, 7)).map(|cell| cell.symbol()),
+            Some("›")
+        );
+        assert_eq!(
+            trust_scene.buffer().cell((49, 7)).map(|cell| cell.symbol()),
+            Some("u")
+        );
+        assert_eq!(
+            trust_scene.buffer().cell((5, 7)).map(|cell| cell.symbol()),
+            Some("•")
+        );
+    }
+
+    #[test]
+    fn body_renderer_clips_wide_text_to_offset_area_and_keeps_sentinels_outside() {
+        let tabs = [SettingsTab {
+            label: "Trust",
+            selected: true,
+        }];
+        let hints: [SettingsHint<'_>; 0] = [];
+        let page = heritage_page("Settings › global › Trust", &tabs, &hints, None);
+        let source = "界".repeat(100);
+        let count = "界 roles ".repeat(1000);
+        let rows = [
+            SettingsTrustRow::new(&source, SettingsTrustSourceKind::Unknown, true, &count)
+                .selected(true),
+        ];
+        let notes = ["note e\u{301} clips at the supplied page edge"];
+        let trust = SettingsTrust::new("Role sources", "1 trusted · 0 untrusted", &rows, &notes);
+        let area = Rect::new(4, 2, 120, 40);
+        let mut scene = Scene::new(
+            "settings_trust_offset_unicode_clip",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            130,
+            46,
+        );
+        scene.draw_over(
+            |buffer| {
+                for pos in buffer.area().positions() {
+                    if let Some(cell) = buffer.cell_mut(pos) {
+                        cell.set_symbol("!");
+                    }
+                }
+            },
+            |ui, _| {
+                assert_eq!(
+                    paint_settings_page_with_trust(
+                        ui,
+                        area,
+                        &page,
+                        &trust,
+                        SettingsPageChrome::new(),
+                    ),
+                    Ok(())
+                );
+            },
+        );
+        assert!(scene.text().contains("界界"));
+        assert!(scene.text().contains("unk"));
+        for pos in scene.area().positions() {
+            if !area.contains(pos) {
+                assert_eq!(
+                    scene.buffer().cell(pos).map(|cell| cell.symbol()),
+                    Some("!"),
+                    "paint escaped supplied area at ({}, {})",
+                    pos.x,
+                    pos.y,
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn body_rejections_leave_the_entire_prefilled_buffer_unchanged() {
+        let tabs = [SettingsTab {
+            label: "Agents",
+            selected: true,
+        }];
+        let hints: [SettingsHint<'_>; 0] = [];
+        let page = heritage_page("Settings › global › Agents", &tabs, &hints, None);
+        let too_many_rows: Vec<_> = (0..7)
+            .map(|_| SettingsAgentRow::new("Agent", "sync", "account"))
+            .collect();
+        let notes = ["one", "two"];
+        let agents = SettingsAgents::new("Agents", "right", "header", &too_many_rows, &notes);
+        let area = Rect::new(0, 0, 120, 40);
+        let mut scene = Scene::new(
+            "settings_body_rejection_sentinel",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            120,
+            40,
+        );
+        scene.draw_over(
+            |buffer| {
+                for pos in buffer.area().positions() {
+                    if let Some(cell) = buffer.cell_mut(pos) {
+                        cell.set_symbol("!");
+                    }
+                }
+            },
+            |ui, _| {
+                assert_eq!(
+                    paint_settings_page_with_agents(
+                        ui,
+                        area,
+                        &page,
+                        &agents,
+                        SettingsPageChrome::new(),
+                    ),
+                    Err(SettingsBodyPaintError::TooManyRows {
+                        maximum: 6,
+                        actual: 7,
+                    })
+                );
+                assert_eq!(
+                    paint_settings_page_with_agents(
+                        ui,
+                        Rect::new(0, 0, 120, 19),
+                        &page,
+                        &SettingsAgents::new("Agents", "right", "header", &[], &notes),
+                        SettingsPageChrome::new(),
+                    ),
+                    Err(SettingsBodyPaintError::AreaTooShort {
+                        minimum: 20,
+                        actual: 19,
+                    })
+                );
+                assert_eq!(
+                    paint_settings_page_with_agents(
+                        ui,
+                        area,
+                        &page,
+                        &SettingsAgents::new("Agents", "right", "header", &[], &notes),
+                        SettingsPageChrome::new().hint_offsets(&[1]),
+                    ),
+                    Err(SettingsBodyPaintError::HintOffsetsMismatch {
+                        hints: 0,
+                        offsets: 1,
+                    })
+                );
+            },
+        );
+        assert!(
+            scene
+                .buffer()
+                .content
+                .iter()
+                .all(|cell| cell.symbol() == "!"),
+            "rejected render changed a sentinel cell"
+        );
     }
 
     #[test]
