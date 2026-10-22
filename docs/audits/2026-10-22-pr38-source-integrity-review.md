@@ -105,10 +105,18 @@ route is different. The exact visual root cause is not established here. Resolve
 the ownership and route mismatch at the shared component/shell layer; retain the
 failing evidence and do not update expected output from the candidate.
 
-The oracle remains pending: the full runner rejects `--all`, and the legacy
-corpus remains diagnostic-only by default. The branch ledger lists 165 branches,
-while local origin refs total 188; neither is a complete current remote-branch
-census. No claim is made that all relevant branches were reviewed or consolidated.
+The oracle remains pending. The legacy `parity_replay.py` compare subcommand
+rejects `--all` (parser handling around line 2946); the separate
+`frozen_baseline.py live-compare --all` option exists (parser handling around
+lines 4998-5003) but is not a completed, approved full-cohort acceptance run.
+The resumable protocol should retain bounded chunks and green ordered receipts.
+Although policy D009 classifies the legacy corpus as non-oracle, the current
+support code selects `DEFAULT_BASELINE_STORE` when no override is set, so the
+legacy corpus is still the operational default. Comparisons against it are not
+acceptance evidence until routing is corrected and the reference cohort is
+approved. The branch ledger lists 165 branches, while local origin refs total
+188; neither is a complete current remote-branch census. No claim is made that
+all relevant branches were reviewed or consolidated.
 
 ## Independent runtime review addendum
 
