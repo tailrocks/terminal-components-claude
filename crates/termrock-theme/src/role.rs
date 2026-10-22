@@ -94,6 +94,9 @@ pub enum MeterRole {
     Series(u8),
 }
 
+/// Semantic color roles used by theme recipes and local style patches.
+///
+/// Downstream exhaustive matches must handle variants added by newer releases.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum Role {
     CurrentSurface,

@@ -177,6 +177,11 @@ impl MeterTokens {
     }
 }
 
+/// Complete semantic color channels for a theme.
+///
+/// Downstream struct literals must supply fields added by newer releases.
+/// To override selected channels, start from a built-in theme's color tokens
+/// and change the fields you need.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct ColorTokens {
     pub surfaces: [Color; SURFACE_LEVELS],
