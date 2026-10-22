@@ -1072,6 +1072,15 @@ mod tests {
     #[test]
     fn menu_pressed_and_help_focused_have_exact_non_color_affordances() {
         let theme = Theme::junie();
+        let danger_row = theme.resolve(
+            Family::MENU,
+            Variant::DANGER,
+            Part::ROW,
+            StateFlags::empty(),
+            Surface::Canvas,
+        );
+        assert_eq!(danger_row.style.fg, Some(theme.color.danger_soft));
+
         for variant in [Variant::DEFAULT, Variant::DANGER] {
             let row = theme.resolve(
                 Family::MENU,
@@ -1185,6 +1194,37 @@ mod tests {
     }
 
     #[test]
+    fn menu_danger_row_custom_ink_downgrades_with_the_authored_recipe() {
+        let custom = Color::Rgb(255, 0, 0);
+        let overridden = Theme::junie().override_variant(Family::MENU, Variant::DANGER, |recipe| {
+            recipe
+                .part(Part::ROW)
+                .base(StylePatch::new().set_fg(Role::Custom(custom)));
+        });
+
+        for level in [
+            crate::ColorLevel::TrueColor,
+            crate::ColorLevel::Ansi256,
+            crate::ColorLevel::Ansi16,
+            crate::ColorLevel::Mono,
+        ] {
+            let theme = overridden.clone().for_level(level);
+            let row = theme.resolve(
+                Family::MENU,
+                Variant::DANGER,
+                Part::ROW,
+                StateFlags::empty(),
+                Surface::Canvas,
+            );
+            assert_eq!(
+                row.style.fg,
+                Some(crate::downgrade_color(custom, level)),
+                "custom danger row at {level:?}"
+            );
+        }
+    }
+
+    #[test]
     fn junie_tokens_equal_the_legacy_palette_exactly() {
         let c = Theme::junie().color;
         assert_eq!(
@@ -1221,7 +1261,7 @@ mod tests {
         // Frozen source 4169783 sets danger (RED) to 0xf05d5d.
         assert_eq!(c.danger, Color::from_u32(0xf05d5d));
         assert_eq!(c.syntax.diagnostic_error, Color::from_u32(0xf05d5d));
-        assert_eq!(c.danger_soft, Color::from_u32(0xd98a8a));
+        assert_eq!(c.danger_soft, Color::from_u32(0xe8a0a0));
         assert_eq!(c.danger_tint, Color::from_u32(0x2e0f0f));
         assert_eq!(c.warning, Color::from_u32(0xf59e09));
         assert_eq!(c.info, Color::from_u32(0x8787ff));
