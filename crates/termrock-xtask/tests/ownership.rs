@@ -266,6 +266,72 @@ fn assert_skipped_body_import_keeps_candidate(imports: &str) {
     );
 }
 
+fn assert_enclosing_import_keeps_skipped_body_candidate(
+    imports_before: &str,
+    body: &str,
+    imports_after: &str,
+) {
+    let dir = empty_workspace();
+    write_member_file(
+        &dir,
+        "src/lib.rs",
+        &format!(
+            "#[cfg(test)] mod candidate;\n\
+             {imports_before}\n\
+             fn production() {{\n{body}\n}}\n\
+             {imports_after}\n"
+        ),
+    );
+    write_member_file(
+        &dir,
+        "src/candidate.rs",
+        "fn body() { None::<u8>.expect(\"candidate\"); }\n",
+    );
+
+    let member = dir.path().join("crates/demo-preview");
+    let candidate =
+        std::fs::canonicalize(member.join("src/candidate.rs")).expect("candidate source");
+    let analysis = termrock_xtask::ownership::module_graph::analyze_member(&member);
+    assert!(
+        !analysis.complete,
+        "an enclosing import may shadow a skipped-body attribute: {analysis:?}"
+    );
+    assert!(
+        analysis.test_only.is_empty(),
+        "uncertain enclosing imports must not authorize test-only pruning"
+    );
+    assert!(analysis.sources.contains(&candidate));
+    assert_eq!(
+        own14_findings(&check_scratch(&dir)),
+        [("crates/demo-preview/src/candidate.rs".to_string(), 1)],
+        "the actual OWN-14 finding must remain"
+    );
+}
+
+fn assert_unshadowed_skipped_body_attribute_proves_candidate(body: &str) {
+    let dir = empty_workspace();
+    write_member_file(
+        &dir,
+        "src/lib.rs",
+        &format!(
+            "#[cfg(test)] mod candidate;\n\
+             fn production() {{\n{body}\n}}\n"
+        ),
+    );
+    write_member_file(&dir, "src/candidate.rs", "fn body() {}\n");
+
+    let member = dir.path().join("crates/demo-preview");
+    let candidate =
+        std::fs::canonicalize(member.join("src/candidate.rs")).expect("candidate source");
+    let analysis = termrock_xtask::ownership::module_graph::analyze_member(&member);
+    assert!(
+        analysis.complete,
+        "built-in attribute context: {analysis:?}"
+    );
+    assert!(analysis.test_only.contains(&candidate));
+    assert!(own14_findings(&check_scratch(&dir)).is_empty());
+}
+
 #[test]
 fn cfg_test_external_module_is_excluded_but_neighboring_production_is_scanned() {
     let dir = empty_workspace();
@@ -1184,6 +1250,93 @@ fn local_imports_cannot_shadow_test_attributes_inside_skipped_bodies() {
     ] {
         assert_skipped_body_import_keeps_candidate(imports);
     }
+}
+
+#[test]
+fn enclosing_direct_import_shadows_a_skipped_body_test_attribute() {
+    assert_enclosing_import_keeps_skipped_body_candidate(
+        "use custom::test;",
+        "#[test]\nstruct Local;",
+        "",
+    );
+}
+
+#[test]
+fn enclosing_alias_import_shadows_a_skipped_body_test_attribute() {
+    assert_enclosing_import_keeps_skipped_body_candidate(
+        "use custom::make as test;",
+        "#[test]\nstruct Local;",
+        "",
+    );
+}
+
+#[test]
+fn enclosing_group_import_shadows_a_skipped_body_test_attribute() {
+    assert_enclosing_import_keeps_skipped_body_candidate(
+        "use custom::{test};",
+        "#[test]\nstruct Local;",
+        "",
+    );
+}
+
+#[test]
+fn enclosing_glob_import_shadows_a_skipped_body_bench_attribute() {
+    assert_enclosing_import_keeps_skipped_body_candidate(
+        "use custom::*;",
+        "#[bench]\nstruct Local;",
+        "",
+    );
+}
+
+#[test]
+fn import_after_a_skipped_function_still_shadows_its_test_attribute() {
+    assert_enclosing_import_keeps_skipped_body_candidate(
+        "",
+        "#[test]\nstruct Local;",
+        "use custom::test;",
+    );
+}
+
+#[test]
+fn enclosing_import_reaches_test_attributes_in_deeper_skipped_blocks() {
+    assert_enclosing_import_keeps_skipped_body_candidate(
+        "use custom::bench;",
+        "if true { { #[bench]\nstruct Local; } }",
+        "",
+    );
+}
+
+#[test]
+fn unshadowed_skipped_body_test_and_bench_attributes_keep_builtin_provenance() {
+    assert_unshadowed_skipped_body_attribute_proves_candidate(
+        "#[test]\nfn generated_test() {}\n#[bench]\nfn generated_bench() {}",
+    );
+}
+
+#[test]
+fn enclosing_test_import_does_not_cross_into_a_nested_module_scope() {
+    let dir = empty_workspace();
+    write_member_file(
+        &dir,
+        "src/lib.rs",
+        "use custom::test;\n\
+         mod nested {\n\
+             fn production() { #[test] struct Local; }\n\
+             #[cfg(test)]\n\
+             mod candidate;\n\
+         }\n",
+    );
+    write_member_file(&dir, "src/nested/candidate.rs", "fn body() {}\n");
+
+    let member = dir.path().join("crates/demo-preview");
+    let candidate = std::fs::canonicalize(member.join("src/nested/candidate.rs"))
+        .expect("nested candidate source");
+    let analysis = termrock_xtask::ownership::module_graph::analyze_member(&member);
+    assert!(
+        analysis.complete,
+        "nested module has its own imports: {analysis:?}"
+    );
+    assert!(analysis.test_only.contains(&candidate));
 }
 
 #[test]
