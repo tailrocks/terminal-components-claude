@@ -232,8 +232,10 @@ pub fn merge_states(
     live: StateFlags,
 ) -> StylePatch {
     let mut acc = acc;
-    let mut fam = family.iter().peekable();
-    let mut var = variant.iter().peekable();
+    // Inactive equal-specificity siblings must not affect the merge order of
+    // the rules which match this query.
+    let mut fam = family.iter().filter(|rule| rule.matches(live)).peekable();
+    let mut var = variant.iter().filter(|rule| rule.matches(live)).peekable();
     loop {
         let take_family = match (fam.peek(), var.peek()) {
             (None, None) => break,
@@ -250,9 +252,7 @@ pub fn merge_states(
             },
         };
         let rule = if take_family { fam.next() } else { var.next() };
-        if let Some(r) = rule
-            && r.matches(live)
-        {
+        if let Some(r) = rule {
             acc = acc.merge(r.patch);
         }
     }
@@ -1066,18 +1066,22 @@ mod tests {
 
     #[test]
     fn disabled_hover_has_a_narrow_cross_scope_tie_break() {
-        let merged_fg = |family_state, variant_state, live| {
+        let merged_fg = |family_states: &[StateFlags], variant_states: &[StateFlags], live| {
             let mut family = PartRecipe::default();
-            family.when(family_state, StylePatch::new().set_fg(Role::Danger));
+            for state in family_states {
+                family.when(*state, StylePatch::new().set_fg(Role::Danger));
+            }
             let mut variant = PartRecipe::default();
-            variant.when(variant_state, StylePatch::new().set_fg(Role::Warning));
+            for state in variant_states {
+                variant.when(*state, StylePatch::new().set_fg(Role::Warning));
+            }
             merge_states(StylePatch::new(), &family.states, &variant.states, live).fg
         };
 
         assert_eq!(
             merged_fg(
-                StateFlags::DISABLED,
-                StateFlags::HOVERED,
+                &[StateFlags::DISABLED],
+                &[StateFlags::HOVERED],
                 StateFlags::DISABLED | StateFlags::HOVERED,
             ),
             Slot::Set(Role::Danger),
@@ -1085,12 +1089,39 @@ mod tests {
         );
         assert_eq!(
             merged_fg(
-                StateFlags::HOVERED,
-                StateFlags::DISABLED,
+                &[StateFlags::HOVERED],
+                &[StateFlags::DISABLED],
                 StateFlags::DISABLED | StateFlags::HOVERED,
             ),
             Slot::Set(Role::Warning),
             "a variant disabled rule remains later than family hover"
+        );
+        assert_eq!(
+            merged_fg(
+                &[StateFlags::DISABLED],
+                &[StateFlags::PRESSED, StateFlags::HOVERED],
+                StateFlags::DISABLED | StateFlags::HOVERED,
+            ),
+            Slot::Set(Role::Danger),
+            "an unmatched variant press sibling must not let hover override family disabled"
+        );
+        assert_eq!(
+            merged_fg(
+                &[StateFlags::DISABLED],
+                &[StateFlags::HOVERED, StateFlags::PRESSED],
+                StateFlags::DISABLED | StateFlags::HOVERED,
+            ),
+            Slot::Set(Role::Danger),
+            "disabled precedence is independent of the variant sibling declaration order"
+        );
+        assert_eq!(
+            merged_fg(
+                &[StateFlags::PRESSED, StateFlags::HOVERED],
+                &[StateFlags::DISABLED],
+                StateFlags::DISABLED | StateFlags::HOVERED,
+            ),
+            Slot::Set(Role::Warning),
+            "an unmatched family press sibling must not let hover override variant disabled"
         );
 
         // The documented family-before-variant order remains in force for
@@ -1102,15 +1133,19 @@ mod tests {
             StateFlags::READ_ONLY,
         ] {
             assert_eq!(
-                merged_fg(StateFlags::DISABLED, state, StateFlags::DISABLED | state),
+                merged_fg(
+                    &[StateFlags::DISABLED],
+                    &[state],
+                    StateFlags::DISABLED | state
+                ),
                 Slot::Set(Role::Warning),
                 "non-hover state tie {state:?} retains variant precedence"
             );
         }
         assert_eq!(
             merged_fg(
-                StateFlags::DISABLED,
-                StateFlags::DISABLED | StateFlags::PRESSED,
+                &[StateFlags::DISABLED],
+                &[StateFlags::DISABLED | StateFlags::PRESSED],
                 StateFlags::DISABLED | StateFlags::PRESSED,
             ),
             Slot::Set(Role::Warning),
