@@ -144,8 +144,8 @@ pub use termrock_runtime::Measure;
 
 pub use termrock_text::{
     CursorPos, EditAction, EditOutcome, Extend, FuzzyBoundary, Motion, Span, TextBuffer,
-    TextEditorCore, fuzzy, fuzzy_with_boundary, truncate, truncate_middle, width, wrap,
-    wrapped_rows,
+    TextEditorCore, fuzzy, fuzzy_with_boundary, middle_parts, truncate, truncate_middle,
+    truncate_parts, width, wrap, wrapped_rows,
 };
 pub use termrock_text::{Secret, SecretPolicy};
 
