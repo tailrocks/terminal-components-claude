@@ -40,9 +40,10 @@ fn reference_mono(r: u8, g: u8, b: u8) -> Color {
 }
 
 #[test]
-fn all_73_junie_slots_match_reference_capability_output() {
+fn all_80_junie_slots_match_reference_capability_output() {
     let original = Theme::junie();
-    assert_eq!(original.color.semantic_colors().len(), 73);
+    assert_eq!(original.color.semantic_colors().len(), 80);
+    assert_eq!(original.color.colors().len(), 79);
     for level in [
         ColorLevel::TrueColor,
         ColorLevel::Ansi256,
@@ -120,6 +121,13 @@ fn all_73_junie_slots_match_reference_capability_output() {
             // docs/audits/2026-10-22-dim-wave-3-per-source-ink.md.
             expected.backdrop_fg = Color::Indexed(238);
             expected.disabled_fg = Color::Indexed(239);
+            expected.status_bar_bg = Color::Indexed(232);
+            expected.status_bar_fg = Color::Indexed(231);
+            expected.status_accent = Color::Indexed(71);
+            expected.chrome_rule = Color::Indexed(238);
+            expected.scroll_track = Color::Indexed(239);
+            expected.scroll_thumb = Color::Indexed(245);
+            expected.tag_ink = Color::Indexed(245);
         }
         if level == ColorLevel::Ansi16 {
             // Frozen apply_16 (`self.text_faint = Gray`): the dimmed faint
@@ -145,6 +153,13 @@ fn all_73_junie_slots_match_reference_capability_output() {
             // Frozen apply_mono (`self.success = White`): the status slot
             // lifts to White on the mono ladder.
             expected.success = Color::White;
+            expected.status_bar_bg = Color::Black;
+            expected.status_bar_fg = Color::White;
+            expected.status_accent = Color::White;
+            expected.chrome_rule = Color::DarkGray;
+            expected.scroll_track = Color::DarkGray;
+            expected.scroll_thumb = Color::Gray;
+            expected.tag_ink = Color::Gray;
         }
         assert_eq!(original.downgrade(level).color, expected, "{level:?}");
     }
