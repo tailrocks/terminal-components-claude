@@ -133,6 +133,7 @@ def discover_paths(env: Mapping[str, str], cwd: Path, temp_dir: str | None = Non
     paths.append(_expand_path(cargo_home, env, cwd))
     mbx_cache, mbx_targets = _mbx_locations(env, cwd, home)
     paths.extend((mbx_cache, mbx_targets))
+    paths.append(_cargo_workspace_root(cwd) / "target")
 
     for name in ("CARGO_TARGET_DIR", "CARGO_BUILD_TARGET_DIR", "CARGO_BUILD_BUILD_DIR", "TMPDIR", "TMP", "TEMP"):
         value = env.get(name)
@@ -143,6 +144,26 @@ def discover_paths(env: Mapping[str, str], cwd: Path, temp_dir: str | None = Non
     paths.extend(_cargo_config_output_paths(env, cwd, home))
     paths.append(Path(temp_dir) if temp_dir else Path(tempfile.gettempdir()))
     return paths
+
+
+def _cargo_workspace_root(cwd: Path) -> Path:
+    nearest_package: Path | None = None
+    for directory in (cwd, *cwd.parents):
+        manifest = directory / "Cargo.toml"
+        if not _exists(manifest):
+            continue
+        try:
+            content = tomllib.loads(manifest.read_text(encoding="utf-8"))
+        except (OSError, UnicodeError, tomllib.TOMLDecodeError) as exc:
+            raise GuardError("could not inspect Cargo workspace manifest") from exc
+        if nearest_package is None and "package" in content:
+            nearest_package = directory
+        package = content.get("package", {})
+        if isinstance(package, dict) and package.get("workspace"):
+            raise GuardError("Cargo package has an external workspace root that cannot be resolved safely")
+        if "workspace" in content:
+            return directory
+    return nearest_package or cwd
 
 
 def _cargo_config_output_paths(env: Mapping[str, str], cwd: Path, home: Path) -> list[Path]:
@@ -164,6 +185,8 @@ def _cargo_config_output_paths(env: Mapping[str, str], cwd: Path, home: Path) ->
             config = tomllib.loads(config_path.read_text(encoding="utf-8"))
         except (OSError, UnicodeError, tomllib.TOMLDecodeError) as exc:
             raise GuardError("could not read Cargo configuration") from exc
+        if "include" in config or "env" in config:
+            raise GuardError("Cargo configuration include/environment can alter build outputs")
         build = config.get("build", {})
         if not isinstance(build, dict):
             raise GuardError("Cargo build configuration has an invalid shape")
@@ -229,14 +252,20 @@ def main(argv: Sequence[str] | None = None) -> int:
         print("usage: rust_build_guard.py -- mise exec -- cargo [ARG ...]", file=sys.stderr)
         return 2
     cargo_args = args[4:]
-    if any(arg == "--config" or arg.startswith("--config=") for arg in cargo_args):
-        print("rust build guard: denied: Cargo --config output overrides are not supported", file=sys.stderr)
+    if any(
+        arg == "--config" or arg.startswith("--config=")
+        or arg == "--manifest-path" or arg.startswith("--manifest-path=")
+        for arg in cargo_args
+    ):
+        print("rust build guard: denied: Cargo --config and --manifest-path overrides are not supported", file=sys.stderr)
         return 125
     cwd = Path.cwd()
     try:
         effective = _effective_env(os.environ, cwd, args[0])
         if effective.get("RUSTC_WRAPPER") or effective.get("RUSTC_WORKSPACE_WRAPPER"):
             raise GuardError("custom rustc wrapper output behavior is unknown")
+        if effective.get("CARGO_BUILD_RUSTC_WRAPPER") or effective.get("CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER"):
+            raise GuardError("Cargo rustc wrapper environment output behavior is unknown")
         paths = discover_paths(effective, cwd)
         for index, arg in enumerate(cargo_args):
             if arg == "--target-dir":

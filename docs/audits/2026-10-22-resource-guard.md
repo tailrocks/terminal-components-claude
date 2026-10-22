@@ -11,7 +11,9 @@ The launcher checks the hardcoded threshold of 3,000,000,000,000 available
 bytes on every distinct filesystem it can discover before it starts the
 command. It checks the working directory, home and Cargo home, temporary
 directories, Cargo output roots from environment and applicable Cargo config,
-and MBX's cache and managed-target roots. Symlinks are resolved. Missing leaves
+and MBX's cache and managed-target roots. The default Cargo output directory
+`<workspace>/target` is checked even when it is missing or redirected by a
+symlink. Symlinks are resolved. Missing leaves
 are checked against their closest existing ancestor. A filesystem is counted
 once using its device identity, and free bytes are computed as
 `f_bavail * f_frsize`. Unknown paths, invalid filesystem values, unparseable
@@ -32,17 +34,19 @@ managed target roots are resolved under the cache root as documented. See also
 the [MBX repository](https://github.com/jdx/mr-boxington).
 
 Cargo config files in the working directory's ancestor chain and `$CARGO_HOME`
-are inspected for `build.target-dir` and `build.build-dir`. A templated Cargo
-build-dir is denied because its complete destination cannot be resolved without
-Cargo's workspace context. `--target-dir` paths are added directly; all
-`--config` options are rejected because the guard does not evaluate Cargo's
-configuration merge rules. Configured or environment-provided
-`rustc-wrapper`/`rustc-workspace-wrapper` is rejected because arbitrary
-wrappers can change output placement. `CARGO_TARGET_DIR`,
-`CARGO_BUILD_TARGET_DIR`, and non-templated `CARGO_BUILD_BUILD_DIR` are checked
-as environment-provided paths. The launcher accepts the literal command
-`mise exec -- cargo`; an absolute Cargo path is rejected to prevent bypassing
-the MBX shim selected by `mise`.
+are inspected for `build.target-dir` and `build.build-dir`. Config `include` and
+`env` tables are rejected because their indirect effects cannot be evaluated
+safely. A templated Cargo build-dir is denied because its complete destination
+cannot be resolved without Cargo's workspace context. `--target-dir` paths are
+added directly; `--config` and `--manifest-path` options are rejected because
+they can change path resolution beyond what this small guard evaluates.
+Configured or environment-provided `rustc-wrapper` and
+`rustc-workspace-wrapper` (including Cargo's `CARGO_BUILD_*` aliases) are
+rejected because arbitrary wrappers can change output placement.
+`CARGO_TARGET_DIR`, `CARGO_BUILD_TARGET_DIR`, and non-templated
+`CARGO_BUILD_BUILD_DIR` are checked as environment-provided paths. The launcher
+accepts the literal command `mise exec -- cargo`; an absolute Cargo path is
+rejected to prevent bypassing the MBX shim selected by `mise`.
 
 ## Limits and verification
 
