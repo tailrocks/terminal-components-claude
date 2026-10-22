@@ -530,7 +530,6 @@ fn paint_roles_body(app: &App, ui: &mut Ui<'_>) {
     );
 
     let visible = 29usize;
-    let thumb = 17usize;
     for (index, role) in app.world.roles.iter().take(visible).enumerate() {
         let y = 7 + index as u16;
         let selected = index == 0;
@@ -538,14 +537,15 @@ fn paint_roles_body(app: &App, ui: &mut Ui<'_>) {
             workspace.roles.allows(&role.full_name()) || workspace.roles.allows(&role.name)
         });
         paint_role_row(ui, y, role, checked, selected, default_leaf);
-        let bar = if index < thumb { "┃" } else { "┆" };
-        let bar_ink = if index < thumb {
-            Color::Rgb(0x80, 0x80, 0x80)
-        } else {
-            Color::Rgb(0x47, 0x47, 0x47)
-        };
-        paint_str(ui, 117, y, bar, bar_ink, BLACK, false);
     }
+    // Shared compact bar in column 117: same `┃`/`┆` glyphs and frozen
+    // thumb/track inks the hand-rolled loop used, with the thumb derived
+    // from the real content length instead of a pinned row count.
+    termrock::viewport::CompactScrollbar::new().paint(
+        ui,
+        Rect::new(117, 7, 1, visible as u16),
+        app.world.roles.len(),
+    );
     // Overflow list: inner edge keeps 0.8, outer edge keeps 0.55. The bar
     // column stays out of the rect so the track glyph is not blended.
     let mut scroll = termrock::ScrollState::new(app.world.roles.len());
