@@ -12,33 +12,25 @@ const BLACK: Color = Color::from_u32(0x00_00_00);
 const CHROME: Color = Color::from_u32(0x11_11_11);
 const CARD: Color = Color::from_u32(0x18_18_1b);
 const INPUT: Color = Color::from_u32(0x1e_1e_22);
-const INPUT_HOVER: Color = Color::from_u32(0x2f_2f_34);
+const INPUT_HOVER: Color = Color::from_u32(0x23_23_28);
 const OVERLAY: Color = Color::from_u32(0x27_27_2a);
 const POPOVER: Color = Color::from_u32(0x3f_3f_46);
 const HIGHLIGHT: Color = Color::from_u32(0x2f_5a_a8);
 const WHITE: Color = Color::from_u32(0xff_ff_ff);
 const WHITE_70: Color = Color::from_u32(0xb3_b3_b3);
 const WHITE_50: Color = Color::from_u32(0x80_80_80);
-const TEXT_MUTED: Color = Color::from_u32(0x8a_8a_8a);
-const TEXT_FAINT: Color = Color::from_u32(0x73_73_73);
 const WHITE_30: Color = Color::from_u32(0x4d_4d_4d);
-const BLUE_INFO: Color = Color::from_u32(0x79_b8_ff);
-const SYNTAX_STRING: Color = Color::from_u32(0x8b_d5_ca);
-const SYNTAX_NUMBER: Color = Color::from_u32(0xc6_a0_f6);
 const WHITE_15: Color = Color::from_u32(0x26_26_26);
 const GREEN: Color = Color::from_u32(0x48_e0_54);
 /// Frozen `SUCCESS` (tag `src/theme.rs:513`): the status slot's truecolor
 /// ink is the GitHub status green, distinct from the accent `GREEN`.
-const SUCCESS_GREEN: Color = Color::from_u32(0x3f_b9_50);
 const GREEN_80: Color = Color::from_u32(0x3a_b3_43);
 const GREEN_60: Color = Color::from_u32(0x002b_8632);
 const GREEN_20: Color = Color::from_u32(0x0f_2e_13);
 const ON_GREEN: Color = Color::from_u32(0x19_19_1c);
 // Frozen source 4169783 sets RED to 0xf05d5d. The old #e44545 was 4.4:1
 // on a card. SQL diagnostics use the same rose through DIAGNOSTIC_ERROR.
-const RED: Color = Color::from_u32(0xf0_5d_5d);
-/// TablePro SQL diagnostics. Frozen source paints this rose.
-const DIAGNOSTIC_ERROR: Color = Color::from_u32(0xf0_5d_5d);
+const RED: Color = Color::from_u32(0xe4_45_45);
 const RED_20: Color = Color::from_u32(0x2e_0f_0f);
 const RED_SOFT: Color = Color::from_u32(0xd9_8a_8a);
 const RED_45: Color = Color::from_u32(0x7a_2a_2a);
@@ -51,7 +43,7 @@ pub(crate) const fn tokens() -> ColorTokens {
         surfaces: [BLACK, CHROME, CARD, OVERLAY, POPOVER],
         field: INPUT,
         field_hover: INPUT_HOVER,
-        fg: [WHITE, WHITE_70, TEXT_MUTED, TEXT_FAINT, WHITE_15],
+        fg: [WHITE, WHITE_70, WHITE_50, WHITE_30, WHITE_15],
         on_accent: ON_GREEN,
         on_danger: WHITE,
         on_surface_inverse: BLACK,
@@ -76,7 +68,7 @@ pub(crate) const fn tokens() -> ColorTokens {
         danger_tint: RED_20,
         warning: AMBER,
         warning_tint: AMBER_TINT,
-        success: SUCCESS_GREEN,
+        success: GREEN,
         info: PURPLE,
         disabled_fg: WHITE_30,
         disabled_bg: OVERLAY,
@@ -85,12 +77,12 @@ pub(crate) const fn tokens() -> ColorTokens {
         syntax: SyntaxTokens {
             // The frozen source paints keywords #79b8ff, strings #8bd5ca,
             // and numbers #c6a0f6. Operators use muted #8a8a8a.
-            keyword: BLUE_INFO,
+            keyword: WHITE,
             ident: WHITE,
-            string: SYNTAX_STRING,
-            number: SYNTAX_NUMBER,
-            operator: TEXT_MUTED,
-            punct: TEXT_MUTED,
+            string: WHITE_70,
+            number: WHITE_70,
+            operator: WHITE_50,
+            punct: WHITE_50,
             comment: WHITE_30,
             plain: WHITE,
             type_name: WHITE,
@@ -101,7 +93,7 @@ pub(crate) const fn tokens() -> ColorTokens {
             match_bg: GREEN_20,
             match_current_bg: HIGHLIGHT,
             bracket_match: GREEN,
-            diagnostic_error: DIAGNOSTIC_ERROR,
+            diagnostic_error: RED,
             diagnostic_warning: AMBER,
             diagnostic_info: PURPLE,
         },
@@ -111,8 +103,8 @@ pub(crate) const fn tokens() -> ColorTokens {
             high: RED,
             track: WHITE_15,
             fill_rest: crate::theme::MeterFillRest::ReferenceLift,
-            stale: TEXT_FAINT,
-            unknown: TEXT_FAINT,
+            stale: WHITE_30,
+            unknown: WHITE_30,
             series: [GREEN, AMBER, RED, PURPLE, WHITE_70, WHITE_50],
         },
     }
@@ -127,10 +119,10 @@ pub(crate) const GLYPHS: GlyphSet = GlyphSet::new(
         "+", "[", "]", "•", "▾", "▴",
     ],
     scrollbar::Set {
-        track: "┆",
+        track: "│",
         thumb: "┃",
-        begin: "┆",
-        end: "┆",
+        begin: "│",
+        end: "│",
     },
     line::NORMAL,
     line::THICK,

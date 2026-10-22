@@ -140,7 +140,7 @@ fn button_variant(m: &mut PartMap<PartRecipe>, v: Variant) {
         .when(
             StateFlags::HOVERED,
             p().set_fg(Role::Fg(FgStep::Primary))
-                .set_bg(Role::Surface(Surface::Overlay)),
+                .set_bg(Role::RaisedSurface),
         )
         .when(
             StateFlags::FOCUSED,
@@ -1198,16 +1198,16 @@ mod tests {
             ]
         );
         assert_eq!(c.field, Color::from_u32(0x1e1e22));
-        assert_eq!(c.field_hover, Color::from_u32(0x2f2f34));
+        assert_eq!(c.field_hover, Color::from_u32(0x232328));
         assert_eq!(
             c.fg,
             [
                 Color::from_u32(0xffffff),
                 Color::from_u32(0xb3b3b3),
-                // TablePro results use muted #8a8a8a and faint #737373.
-                // Showcase chrome keeps #808080 and #4d4d4d on baseline_muted.
-                Color::from_u32(0x8a8a8a),
-                Color::from_u32(0x737373),
+                // The admitted corpus paints the muted ink 0x808080 and the
+                // faint ink 0x4d4d4d in every tier frame.
+                Color::from_u32(0x808080),
+                Color::from_u32(0x4d4d4d),
                 Color::from_u32(0x262626)
             ]
         );
@@ -1218,9 +1218,9 @@ mod tests {
         assert_eq!(c.on_accent, Color::from_u32(0x19191c));
         assert_eq!(c.highlight_bg, Color::from_u32(0x2f5aa8));
         assert_eq!(c.highlight_danger_bg, Color::from_u32(0x7a2a2a));
-        // Frozen source 4169783 sets danger (RED) to 0xf05d5d.
-        assert_eq!(c.danger, Color::from_u32(0xf05d5d));
-        assert_eq!(c.syntax.diagnostic_error, Color::from_u32(0xf05d5d));
+        // The corpus paints the danger ink 0xe44545; index 203 appears nowhere.
+        assert_eq!(c.danger, Color::from_u32(0xe44545));
+        assert_eq!(c.syntax.diagnostic_error, Color::from_u32(0xe44545));
         assert_eq!(c.danger_soft, Color::from_u32(0xd98a8a));
         assert_eq!(c.danger_tint, Color::from_u32(0x2e0f0f));
         assert_eq!(c.warning, Color::from_u32(0xf59e09));

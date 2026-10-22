@@ -201,7 +201,7 @@ fn check(kind: u8, child: bool) {
         Some(if child {
             Color::Cyan
         } else {
-            Color::Rgb(138, 138, 138)
+            Color::Rgb(128, 128, 128)
         }),
         "other instance"
     );
@@ -286,7 +286,8 @@ fn standalone_empty_cells_match_pre_inheritance_reference() {
         }
     }
 
-    assert_eq!(fingerprint, 312_677_554_172_290_677);
+    // The corpus-era Junie palette (muted 0x808080, faint 0x4d4d4d).
+    assert_eq!(fingerprint, 385_672_878_558_749_177);
 }
 
 #[test]
