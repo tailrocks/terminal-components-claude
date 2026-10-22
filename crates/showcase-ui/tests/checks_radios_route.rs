@@ -11,6 +11,11 @@ const RADIO_ISOLATION: Id = Id::root("showcase_ui::pages::checks_radios.radio_is
 const HELP: Id = Id::root("showcase_ui::app::help");
 const HEADER_HELP: Id = Id::root("showcase_ui::app::header.help");
 const OPTION_HIT: Id = Id::root("showcase_ui::pages::checks_radios.option_hit");
+const OPTION_MIXED: Id = Id::root("showcase_ui::pages::checks_radios.option_mixed");
+
+fn footer(h: &Harness<App>) -> String {
+    h.row(39)
+}
 
 #[test]
 fn checks_radios_keeps_placeholder_identity_while_showing_live_controls() {
@@ -98,6 +103,101 @@ fn keyboard_activation_and_tab_enter_the_live_placeholder_body() {
     let _ = h.key(KeyCode::Tab);
     assert_ne!(h.focus(), Some(NAV));
     assert!(h.area_of(PAGE_TABS).is_some());
+}
+
+#[test]
+fn focused_page_tabs_and_controls_advertise_their_working_actions() {
+    let mut h = Harness::new(App::for_page_name("checks"), Theme::junie(), 120, 40);
+
+    assert!(h.tab_to(PAGE_TABS));
+    let hints = footer(&h);
+    assert!(
+        hints.contains("Section"),
+        "page tabs need section hints\n{hints}"
+    );
+    assert!(hints.contains("Jump"), "page tabs need jump hints\n{hints}");
+    assert!(
+        hints.contains("Activate"),
+        "page tabs need activation hints\n{hints}"
+    );
+    assert!(!hints.contains("Toggle"), "{hints}");
+    assert!(!hints.contains("Choose"), "{hints}");
+
+    let _ = h.key(KeyCode::Right);
+    assert!(h.area_of(OPTION_HIT).is_some(), "Right opens Options");
+    assert!(
+        h.key(KeyCode::Enter).is_consumed(),
+        "Tabs' advertised Enter activation is handled"
+    );
+    let _ = h.key(KeyCode::Char('3'));
+    assert!(
+        h.text().contains("Overflow"),
+        "number key opens States\n{}",
+        h.text()
+    );
+    let _ = h.key(KeyCode::Char('1'));
+    assert!(
+        h.area_of(CHECK_ALL).is_some(),
+        "number key returns to Playground"
+    );
+
+    assert!(h.tab_to(GROUP_TABS));
+    let hints = footer(&h);
+    assert!(
+        hints.contains("Section"),
+        "group tabs need section hints\n{hints}"
+    );
+    assert!(
+        hints.contains("Jump"),
+        "group tabs need jump hints\n{hints}"
+    );
+    assert!(
+        hints.contains("Activate"),
+        "group tabs need activation hints\n{hints}"
+    );
+    assert!(!hints.contains("Toggle"), "{hints}");
+
+    let _ = h.key(KeyCode::Right);
+    assert!(h.area_of(RADIO_ISOLATION).is_some(), "Right opens Radios");
+    assert!(h.tab_to(RADIO_ISOLATION));
+    let hints = footer(&h);
+    assert!(
+        hints.contains("Choose"),
+        "radio focus needs choose hints\n{hints}"
+    );
+    assert!(
+        !hints.contains("Toggle"),
+        "radio does not toggle off\n{hints}"
+    );
+    let _ = h.key(KeyCode::Down);
+    assert!(format!("{:?}", h.app()).contains("isolation: 1"));
+    assert!(
+        h.key(KeyCode::Char(' ')).is_consumed(),
+        "radio Space is Choose, not Toggle"
+    );
+
+    assert!(h.tab_to(PAGE_TABS));
+    let _ = h.key(KeyCode::Right);
+    assert!(h.tab_to(OPTION_HIT));
+    let hints = footer(&h);
+    assert!(
+        hints.contains("Choose"),
+        "option radio needs choose hints\n{hints}"
+    );
+    assert!(!hints.contains("Toggle"), "{hints}");
+    let _ = h.key(KeyCode::Down);
+    assert!(format!("{:?}", h.app()).contains("hit: 1"));
+
+    assert!(h.tab_to(OPTION_MIXED));
+    let hints = footer(&h);
+    assert!(
+        hints.contains("Toggle"),
+        "option toggle needs toggle hints\n{hints}"
+    );
+    assert!(!hints.contains("Choose"), "{hints}");
+    let _ = h.key(KeyCode::Char(' '));
+    assert!(format!("{:?}", h.app()).contains("mixed: false"));
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
 }
 
 #[test]
@@ -215,8 +315,14 @@ fn live_state_survives_route_away_and_back_and_help_keeps_modal_ownership() {
     let _ = h.click_id(CHECK_NOTIFICATIONS);
     assert!(format!("{:?}", h.app()).contains("checks: [Mixed, Unchecked, Unchecked, Checked]"));
     assert!(
-        h.text().contains("Toggle"),
-        "checkbox focus gets toggle hints"
+        h.text().contains("Last: Send notifications unchecked"),
+        "the last status captures the checkbox result\n{}",
+        h.text()
+    );
+    assert!(
+        footer(&h).contains("Toggle"),
+        "checkbox focus gets toggle hints\n{}",
+        footer(&h)
     );
     let _ = h.click_part(
         PAGE_TABS,
@@ -243,6 +349,16 @@ fn live_state_survives_route_away_and_back_and_help_keeps_modal_ownership() {
 
     let _ = h.click_part(
         GROUP_TABS,
+        termrock::PartRef::item(termrock::Part::TAB, termrock::ItemKey::index(0)),
+    );
+    assert!(
+        h.text().contains("Last: Send notifications unchecked"),
+        "last status survives option rebuild and route changes\n{}",
+        h.text()
+    );
+
+    let _ = h.click_part(
+        GROUP_TABS,
         termrock::PartRef::item(termrock::Part::TAB, termrock::ItemKey::index(1)),
     );
     let _ = h.click_part(
@@ -250,21 +366,51 @@ fn live_state_survives_route_away_and_back_and_help_keeps_modal_ownership() {
         termrock::PartRef::item(termrock::Part::ROW, termrock::ItemKey::index(0)),
     );
     assert!(
-        h.text().contains("Choose"),
+        footer(&h).contains("Choose"),
         "radio focus gets radio hints\n{}",
-        h.text()
+        footer(&h)
+    );
+    assert!(
+        !footer(&h).contains("Toggle"),
+        "radio hints do not claim toggle\n{}",
+        footer(&h)
     );
     let help = h
         .area_of_part(HEADER_HELP, termrock::PartRef::of(termrock::Part::LABEL))
         .expect("visible shell Help control");
     let _ = h.click(help.x.saturating_add(1), help.y);
     assert!(h.is_open(HELP));
+    assert!(
+        footer(&h).contains("Close"),
+        "Help owns close hints\n{}",
+        footer(&h)
+    );
+    assert!(
+        !footer(&h).contains("Choose"),
+        "Help hides page hints\n{}",
+        footer(&h)
+    );
+    assert!(
+        !footer(&h).contains("Toggle"),
+        "Help hides page hints\n{}",
+        footer(&h)
+    );
     let _ = h.key(KeyCode::Char('x'));
     assert!(h.is_open(HELP));
     assert!(format!("{:?}", h.app()).contains("checks: [Mixed, Unchecked, Unchecked, Checked]"));
     let _ = h.key(KeyCode::Esc);
     assert!(!h.is_open(HELP));
     assert_eq!(h.focus(), Some(RADIO_ISOLATION));
+    assert!(
+        footer(&h).contains("Choose"),
+        "radio hints return after Help\n{}",
+        footer(&h)
+    );
+    assert!(
+        !footer(&h).contains("Toggle"),
+        "radio hints remain owned\n{}",
+        footer(&h)
+    );
     assert!(h.area_of(RADIO_ISOLATION).is_some());
     assert!(
         h.area_of(CHECK_ALL).is_none(),

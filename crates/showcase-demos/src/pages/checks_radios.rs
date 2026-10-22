@@ -55,7 +55,8 @@ const CHECK_IDS: [Id; 4] = [
     CHECK_MANAGED,
 ];
 const TOGGLE_IDS: [Id; 3] = [TOGGLE_AUTOSAVE, TOGGLE_USAGE, TOGGLE_BETA];
-const RADIO_HINTS: &[(&str, &str)] = &[("↑ ↓", "Choose"), ("Space", "Toggle")];
+const TABS_HINTS: &[(&str, &str)] = &[("← →", "Section"), ("1–3", "Jump"), ("Enter", "Activate")];
+const RADIO_HINTS: &[(&str, &str)] = &[("↑ ↓", "Choose"), ("Space", "Choose")];
 const TOGGLE_HINTS: &[(&str, &str)] = &[("Space", "Toggle")];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -102,7 +103,7 @@ pub struct ChecksRadiosPage {
     isolation_state: RadioGroupState,
     region_state: RadioGroupState,
     toggles: [bool; 3],
-    last: &'static str,
+    last: Option<(&'static str, bool)>,
 }
 
 impl ChecksRadiosPage {
@@ -131,7 +132,7 @@ impl ChecksRadiosPage {
             isolation_state,
             region_state,
             toggles: [true, false, false],
-            last: "nothing yet",
+            last: None,
         }
     }
 
@@ -204,7 +205,10 @@ impl ChecksRadiosPage {
             if index == 0 {
                 let result = widget.update_state(cx, &mut self.checks[index]);
                 if result.activated() {
-                    self.last = CHECK_LABELS[index];
+                    self.last = Some((
+                        CHECK_LABELS[index],
+                        self.checks[index] == CheckboxState::Checked,
+                    ));
                 }
                 response |= result.erase();
             } else {
@@ -216,7 +220,7 @@ impl ChecksRadiosPage {
                     } else {
                         CheckboxState::Unchecked
                     };
-                    self.last = CHECK_LABELS[index];
+                    self.last = Some((CHECK_LABELS[index], value));
                 }
                 response |= result.erase();
             }
@@ -520,66 +524,95 @@ impl Page for ChecksRadiosPage {
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
-        frame(
-            ui,
-            area,
-            self.title(),
-            "real controls · persistent options",
-            |ui, body| {
-                Tabs::new(PAGE_TABS).draw(
-                    ui,
-                    Rect { height: 2, ..body },
-                    &self.page_tabs,
-                    PAGE_TABS_ITEMS,
-                );
-                let content = Rect {
-                    y: body.y.saturating_add(3),
-                    height: body.height.saturating_sub(3),
-                    ..body
-                };
-                match self.page_index() {
-                    0 => {
-                        Tabs::new(GROUP_TABS).draw(
-                            ui,
-                            Rect {
-                                height: 2,
+        ui.with_area(area, |ui| {
+            frame(
+                ui,
+                area,
+                self.title(),
+                "real controls · persistent options",
+                |ui, body| {
+                    Tabs::new(PAGE_TABS).draw(
+                        ui,
+                        Rect { height: 2, ..body },
+                        &self.page_tabs,
+                        PAGE_TABS_ITEMS,
+                    );
+                    let content = Rect {
+                        y: body.y.saturating_add(3),
+                        height: body.height.saturating_sub(3),
+                        ..body
+                    };
+                    match self.page_index() {
+                        0 => {
+                            Tabs::new(GROUP_TABS).draw(
+                                ui,
+                                Rect {
+                                    height: 2,
+                                    ..content
+                                },
+                                &self.group_tabs,
+                                GROUP_TABS_ITEMS,
+                            );
+                            let status_y = content.y.saturating_add(2);
+                            let status = match self.last {
+                                None => "Last: nothing yet".to_owned(),
+                                Some((label, checked)) => format!(
+                                    "Last: {label} {}",
+                                    if checked { "checked" } else { "unchecked" }
+                                ),
+                            };
+                            paint_text(
+                                ui,
+                                Rect::new(content.x, status_y, content.width, 1),
+                                &status,
+                            );
+                            let fields = Rect {
+                                y: content.y.saturating_add(4),
+                                height: content.height.saturating_sub(4),
                                 ..content
-                            },
-                            &self.group_tabs,
-                            GROUP_TABS_ITEMS,
-                        );
-                        let status_y = content.y.saturating_add(2);
-                        paint_text(
-                            ui,
-                            Rect::new(content.x, status_y, content.width, 1),
-                            &format!("Last: {}", self.last),
-                        );
-                        let fields = Rect {
-                            y: content.y.saturating_add(4),
-                            height: content.height.saturating_sub(4),
-                            ..content
-                        };
-                        match self.group_index() {
-                            0 => self.draw_checkboxes(ui, fields),
-                            1 => self.draw_radios(ui, fields),
-                            _ => self.draw_toggles(ui, fields),
+                            };
+                            match self.group_index() {
+                                0 => self.draw_checkboxes(ui, fields),
+                                1 => self.draw_radios(ui, fields),
+                                _ => self.draw_toggles(ui, fields),
+                            }
                         }
+                        1 => self.draw_options(ui, content),
+                        _ => self.draw_gallery(ui, content),
                     }
-                    1 => self.draw_options(ui, content),
-                    _ => self.draw_gallery(ui, content),
-                }
-            },
-        );
+                },
+            );
+        });
     }
 
     fn hints(&self, ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
-        if [RADIO_ISOLATION, RADIO_REGION, OPTION_HIT, OPTION_RADIO_NAV]
+        if [PAGE_TABS, GROUP_TABS]
+            .iter()
+            .any(|id| ui.state(*id).contains(StateFlags::FOCUSED))
+        {
+            TABS_HINTS
+        } else if [RADIO_ISOLATION, RADIO_REGION, OPTION_HIT, OPTION_RADIO_NAV]
             .iter()
             .any(|id| ui.state(*id).contains(StateFlags::FOCUSED))
         {
             RADIO_HINTS
-        } else {
+        } else if [
+            CHECK_ALL,
+            CHECK_NOTIFICATIONS,
+            CHECK_ARCHIVED,
+            CHECK_MANAGED,
+            TOGGLE_AUTOSAVE,
+            TOGGLE_USAGE,
+            TOGGLE_BETA,
+            OPTION_MIXED,
+            OPTION_DISABLED,
+        ]
+        .iter()
+        .any(|id| ui.state(*id).contains(StateFlags::FOCUSED))
+        {
             TOGGLE_HINTS
+        } else {
+            &[]
         }
     }
 
