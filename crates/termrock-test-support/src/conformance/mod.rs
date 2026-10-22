@@ -225,6 +225,14 @@ pub trait Conformance: 'static {
     fn legacy_key_chords() -> &'static [Chord] {
         &[]
     }
+    /// Chords published by nested child controls the case composes.
+    ///
+    /// A composite control publishes the child's table under the same owner,
+    /// so the case's own table cannot carry it. The chords come from the
+    /// child's real table, never from a hand-written list.
+    fn nested_binding_chords() -> Vec<Chord> {
+        Vec::new()
+    }
     fn dynamic_bindings(_fixture: &Fixture) -> Vec<(ActionKey, Chord)> {
         Vec::new()
     }
