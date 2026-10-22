@@ -1188,11 +1188,8 @@ impl App {
             )
             .style
             .fg_role;
-        let preserve_theme_foreground = match source_foreground {
-            Some((Role::Fg(FgStep::Faint), _)) => false,
-            Some(_) => true,
-            None => !recipes_are_known,
-        };
+        let preserve_theme_foreground = !recipes_are_known
+            || matches!(source_foreground, Some((role, _)) if role != Role::Fg(FgStep::Faint));
         self.source_theme = Some(ActivityThemeSource {
             theme: source_theme,
             recipes_are_known,
