@@ -170,6 +170,8 @@ const CMD_ACCOUNT_REFRESH: ActionKey = ActionKey::application("jackin.account.re
 const CMD_ACCOUNT_VALIDATE: ActionKey = ActionKey::application("jackin.account.validate");
 const CMD_ACCOUNT_REMOVE: ActionKey = ActionKey::application("jackin.account.remove");
 const CMD_ACCOUNT_DEFAULT: ActionKey = ActionKey::application("jackin.account.default");
+const CMD_ACCOUNT_TOGGLE: ActionKey = ActionKey::application("jackin.account.toggle");
+const CMD_ACCOUNT_EDIT: ActionKey = ActionKey::application("jackin.account.edit");
 const CMD_ACCOUNT_HELP: ActionKey = ActionKey::application("jackin.account.help");
 const CMD_COCKPIT_LOG: ActionKey = ActionKey::application("jackin.cockpit.build-log");
 const CMD_COCKPIT_CANCEL: ActionKey = ActionKey::application("jackin.cockpit.cancel");
@@ -1030,7 +1032,7 @@ impl App {
         }
         let filter = Chord::key(KeyCode::Char('/'));
         self.keymap.remove(KeyPhase::Bubble, filter);
-        if self.route == Route::Accounts && !self.accounts.form_open && !self.accounts.filtering {
+        if self.route == Route::Accounts && !self.accounts.form_open && !self.filter_field_open() {
             self.keymap
                 .add(KeyPhase::Bubble, filter, CMD_ACCOUNT_FILTER);
         }
@@ -1038,7 +1040,7 @@ impl App {
         self.keymap.remove(KeyPhase::Bubble, drawer);
         if self.route == Route::Accounts
             && !self.accounts.form_open
-            && !self.accounts.filtering
+            && !self.filter_field_open()
             && !self.accounts.drawer_open
         {
             self.keymap
@@ -1055,6 +1057,26 @@ impl App {
             // `i` dirties the Mounts row. Accounts and the manager keep this key.
             self.keymap
                 .add(KeyPhase::Bubble, drawer, CMD_EDITOR_MOUNT_ISOLATION);
+        }
+        // The accounts page owns the keys its hint bar names: edit, toggle,
+        // remove and usage. The app-wide bindings for those keys stop here.
+        for (key, command, elsewhere) in [
+            ('e', CMD_ACCOUNT_EDIT, Some(CMD_EDITOR_OPEN)),
+            ('t', CMD_ACCOUNT_TOGGLE, None),
+            ('d', CMD_ACCOUNT_REMOVE, Some(CMD_CAPSULE_DETACH)),
+            ('m', CMD_USAGE, Some(CMD_MANAGER)),
+        ] {
+            let chord = Chord::key(KeyCode::Char(key));
+            self.keymap.remove(KeyPhase::Bubble, chord);
+            self.keymap.remove(KeyPhase::Capture, chord);
+            if self.route == Route::Accounts
+                && !self.accounts.form_open
+                && !self.filter_field_open()
+            {
+                self.keymap.add(KeyPhase::Bubble, chord, command);
+            } else if let Some(elsewhere) = elsewhere {
+                self.keymap.add(KeyPhase::Bubble, chord, elsewhere);
+            }
         }
         let left = Chord::key(KeyCode::Left);
         self.keymap.remove(KeyPhase::Bubble, left);
@@ -2159,9 +2181,22 @@ impl App {
         }
     }
 
+    /// True when a filter query narrows the accounts tree.
+    ///
+    /// The query stays after it is committed, so the tree keeps the filter
+    /// while the list takes the keys again.
+    pub(crate) fn filter_active(&self) -> bool {
+        !self.accounts.filter_query.trim().is_empty()
+    }
+
+    /// True when the filter field holds the caret.
+    fn filter_field_open(&self) -> bool {
+        self.accounts.filter_input.is_editing()
+    }
+
     fn account_matches_filter(&self, account: &Account) -> bool {
         let query = self.accounts.filter_query.trim();
-        if !self.accounts.filtering || query.is_empty() {
+        if query.is_empty() {
             return true;
         }
         let needle = query.to_lowercase();
@@ -2177,7 +2212,7 @@ impl App {
     }
 
     fn reconcile_filtered_account(&mut self) {
-        if !self.accounts.filtering {
+        if !self.filter_active() {
             return;
         }
         let visible: Vec<String> = self
@@ -2320,6 +2355,43 @@ impl App {
         self.account_state = PickerState::default();
         let spec = picker.layer(cx, &self.account_options);
         cx.open_layer(ACCOUNT_PICKER, spec);
+    }
+
+    /// Open the account form on the selected account.
+    ///
+    /// The form carries the current name, provider and credential, so the
+    /// edit starts from the account as the registry knows it.
+    fn open_account_edit(&mut self, cx: &mut Cx<'_>) {
+        let Some(id) = self.accounts.selected_id.clone() else {
+            self.status = Some("Select an account to edit".into());
+            return;
+        };
+        let Some(account) = self.world.accounts.get(&id).cloned() else {
+            self.status = Some("Select an account to edit".into());
+            return;
+        };
+        self.accounts.form_open = true;
+        self.accounts.started = true;
+        self.accounts.editing = Some(id);
+        self.accounts.draft_name = account.display_name.clone();
+        self.accounts.provider_index = provider_index(account.provider);
+        self.accounts.source_index = match &account.source {
+            CredentialSource::OnePassword(reference) => {
+                self.accounts.selected_op = Some(reference.clone());
+                0
+            }
+            CredentialSource::LocalFolder { .. } => 1,
+            CredentialSource::PlainApiKey { .. } => 2,
+            CredentialSource::HostEnv { .. } => 0,
+        };
+        self.accounts.masked_input.clear();
+        self.accounts.folder_input = TextInputState::default();
+        self.accounts.secret_input = TextInputState::default();
+        self.accounts.name_input = TextInputState::default();
+        let name = self.accounts.draft_name.clone();
+        self.accounts.name_input.begin(&name);
+        self.status = Some(format!("Editing {}", account.display_name));
+        cx.focus(crate::screens::accounts::NAME);
     }
 
     fn open_capsule_account_picker(&mut self, cx: &mut Cx<'_>, action: CapsuleAction) {
@@ -3912,49 +3984,6 @@ impl App {
     }
 
     fn update_accounts(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        if self.accounts.filtering && !self.accounts.form_open {
-            let filter = Self::account_filter_input().update(
-                cx,
-                &mut self.accounts.filter_input,
-                &mut self.accounts.filter_query,
-            );
-            let cancelled = filter
-                .action_ref()
-                .is_some_and(|action| *action == TextAction::Cancelled);
-            let committed = filter
-                .action_ref()
-                .is_some_and(|action| *action == TextAction::Committed);
-            let mut result = filter.erase();
-
-            if let Some(draft) = self.accounts.filter_input.draft_text()
-                && self.accounts.filter_query != draft
-            {
-                self.accounts.filter_query = draft.to_owned();
-                self.reconcile_filtered_account();
-                result |= Response::changed();
-            }
-            if committed {
-                if self.accounts.filter_query.trim().is_empty() {
-                    // An empty query keeps the filter open: the caret stays in
-                    // the field so the query can still be typed.
-                    self.accounts.filter_input.begin("");
-                } else {
-                    // Enter leaves the query. The approved filter frame has no
-                    // caret, so focus must leave the field before draw.
-                    cx.focus(ACCOUNTS_LIST);
-                }
-                result |= Response::changed();
-            }
-            if cancelled {
-                self.accounts.filtering = false;
-                self.accounts.filter_query.clear();
-                self.accounts.filter_input = TextInputState::default();
-                // The field is gone: the list takes the focus back.
-                cx.focus(ACCOUNTS_LIST);
-                result |= Response::changed();
-            }
-            return result;
-        }
         if self.accounts.form_open {
             if !self.accounts.started {
                 let start = Self::account_start_button().update(cx);
@@ -4092,7 +4121,7 @@ impl App {
         if matches!(list_action, Some(ListAction::Moved)) && self.accounts.selected_id != previous {
             self.note_selected_account();
         }
-        if matches!(list_action, Some(ListAction::Chose(_))) && !self.accounts.filtering {
+        if matches!(list_action, Some(ListAction::Chose(_))) && !self.filter_field_open() {
             // Enter on an account opens its drawer. Enter on the overview row
             // has nothing to open.
             if self.accounts.selected_id.is_some() {
@@ -4101,6 +4130,52 @@ impl App {
                 self.set_selected_account_default();
             }
             result |= Response::changed();
+        }
+        // The filter field owns the caret while it is open. A committed query
+        // keeps the filter and gives the keys back to the list.
+        if self.filter_field_open() {
+            let filter = Self::account_filter_input().update(
+                cx,
+                &mut self.accounts.filter_input,
+                &mut self.accounts.filter_query,
+            );
+            let cancelled = filter
+                .action_ref()
+                .is_some_and(|action| *action == TextAction::Cancelled);
+            let committed = filter
+                .action_ref()
+                .is_some_and(|action| *action == TextAction::Committed);
+            result |= filter.erase();
+
+            if let Some(draft) = self.accounts.filter_input.draft_text()
+                && self.accounts.filter_query != draft
+            {
+                self.accounts.filter_query = draft.to_owned();
+                self.reconcile_filtered_account();
+                result |= Response::changed();
+            }
+            if committed {
+                if self.accounts.filter_query.trim().is_empty() {
+                    // An empty query keeps the filter open: the caret stays in
+                    // the field so the query can still be typed.
+                    self.accounts.filter_input.begin("");
+                } else {
+                    // Enter leaves the query. The approved filter frame has no
+                    // caret, so focus must leave the field before draw.
+                    self.accounts.filtering = true;
+                    cx.focus(ACCOUNTS_LIST);
+                }
+                result |= Response::changed();
+            }
+            if cancelled {
+                self.accounts.filtering = false;
+                self.accounts.filter_query.clear();
+                self.accounts.filter_input = TextInputState::default();
+                // The field is gone: the list takes the focus back.
+                cx.focus(ACCOUNTS_LIST);
+                result |= Response::changed();
+            }
+            return result;
         }
         let add = Self::account_add_button().update(cx);
         let chosen = add.activated();
@@ -4112,6 +4187,10 @@ impl App {
     }
 
     fn save_account(&mut self) {
+        if let Some(id) = self.accounts.editing.clone() {
+            self.save_account_edit(id);
+            return;
+        }
         let provider = register_provider(self.accounts.provider_index);
         let name = if self.accounts.draft_name.trim().is_empty() {
             "Unnamed"
@@ -4257,6 +4336,39 @@ impl App {
             Some(issue) => format!("Saved {title} · {issue}"),
             None => format!("Saved {title}"),
         });
+    }
+
+    /// Save the edit of an account: the name and the provider move, the
+    /// credential stays the one the registry knows.
+    fn save_account_edit(&mut self, id: String) {
+        let provider = register_provider(self.accounts.provider_index);
+        let name = if self.accounts.draft_name.trim().is_empty() {
+            "Unnamed"
+        } else {
+            self.accounts.draft_name.trim()
+        };
+        if self
+            .world
+            .accounts
+            .name_taken(provider, name, Some(id.as_str()))
+        {
+            self.status = Some(format!("Name already used for {}", provider.short()));
+            return;
+        }
+        let Some(account) = self.world.accounts.get_mut(&id) else {
+            return;
+        };
+        account.display_name = name.to_owned();
+        account.provider = provider;
+        account.surface = provider.usage_surface();
+        let title = account.title();
+        self.accounts.form_open = false;
+        self.accounts.started = false;
+        self.accounts.editing = None;
+        self.accounts.masked_input.clear();
+        self.accounts.secret_input = TextInputState::default();
+        self.accounts.folder_input = TextInputState::default();
+        self.status = Some(format!("Saved {title}"));
     }
 
     fn commit_editor_save(&mut self) {
@@ -5103,6 +5215,27 @@ impl App {
                 }
                 Some(Response::changed())
             }
+            CMD_ACCOUNT_TOGGLE if self.route == Route::Accounts && !self.accounts.form_open => {
+                if let Some(id) = self.accounts.selected_id.clone()
+                    && let Some(account) = self.world.accounts.get_mut(&id)
+                {
+                    account.enabled = !account.enabled;
+                    let name = account.display_name.clone();
+                    self.status = Some(format!(
+                        "{} {name}",
+                        if account.enabled {
+                            "Enabled"
+                        } else {
+                            "Disabled"
+                        }
+                    ));
+                }
+                Some(Response::changed())
+            }
+            CMD_ACCOUNT_EDIT if self.route == Route::Accounts && !self.accounts.form_open => {
+                self.open_account_edit(cx);
+                Some(Response::changed())
+            }
             CMD_ACCOUNT_DEFAULT if self.route == Route::Accounts && !self.accounts.form_open => {
                 if let Some(id) = self.accounts.selected_id.clone() {
                     match self.world.accounts.set_default(&id) {
@@ -5496,7 +5629,7 @@ impl App {
             CMD_NAV_DOWN
                 if self.route == Route::Accounts
                     && !self.accounts.form_open
-                    && !self.accounts.filtering
+                    && !self.filter_field_open()
                     && !self.accounts.drawer_open =>
             {
                 // The accounts list is not the focused control, so Down never
@@ -5594,8 +5727,10 @@ impl App {
             CMD_ACCOUNT_FILTER if self.route == Route::Accounts && !self.accounts.form_open => {
                 self.accounts.filtering = true;
                 self.accounts.drawer_open = false;
-                self.accounts.filter_query.clear();
-                self.accounts.filter_input.begin("");
+                // The field opens on the committed query, so the filter can be
+                // refined instead of retyped.
+                let query = self.accounts.filter_query.clone();
+                self.accounts.filter_input.begin(&query);
                 cx.focus(crate::screens::accounts::FILTER);
                 Some(Response::changed())
             }
@@ -7516,8 +7651,7 @@ impl App {
         self.route == Route::Accounts
             && !self.accounts.form_open
             && !self.accounts.drawer_open
-            && !self.accounts.filtering
-            && self.accounts.filter_query.is_empty()
+            && !self.filter_field_open()
             && self.accounts.selected_id.is_some()
             && !self.help_open
             && !self.quit_open
@@ -10785,7 +10919,7 @@ impl TuiApp for App {
             return self.route_changed();
         }
         if self.route == Route::Accounts {
-            if self.accounts.filtering {
+            if self.filter_field_open() {
                 self.accounts.filtering = false;
                 self.accounts.filter_query.clear();
                 self.accounts.filter_input = TextInputState::default();
@@ -11067,6 +11201,16 @@ fn register_provider(index: u8) -> Provider {
         2 => Provider::XAi,
         3 => Provider::OpenCode,
         _ => Provider::Anthropic,
+    }
+}
+
+/// The form row of a provider.
+fn provider_index(provider: Provider) -> u8 {
+    match provider {
+        Provider::OpenAi => 1,
+        Provider::XAi => 2,
+        Provider::OpenCode => 3,
+        _ => 0,
     }
 }
 
