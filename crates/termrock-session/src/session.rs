@@ -315,14 +315,11 @@ impl TerminalSession {
         let enter_shape_changed = Arc::clone(&cursor_shape_changed);
         let enter_keyboard_pushed = Arc::clone(&keyboard_pushed);
         let mut keyboard = KeyboardNegotiation::default();
-        let mut keyboard_probe = Some(keyboard_detect);
         let terminal = enter_guarded(
             || {
                 enable_raw_mode()?;
                 let mut out = stdout();
-                let push = keyboard.enter(&mut out, keyboard_protocol, || {
-                    keyboard_probe.take().expect("detect runs once")()
-                });
+                let push = keyboard.enter(&mut out, keyboard_protocol, keyboard_detect);
                 if let Ok(true) = push {
                     enter_keyboard_pushed.store(true, Ordering::Relaxed);
                 }
