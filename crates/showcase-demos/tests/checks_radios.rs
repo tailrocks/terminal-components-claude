@@ -18,6 +18,8 @@ const OPTION_MIXED: Id = Id::root("showcase_ui::pages::checks_radios.option_mixe
 const OPTION_RADIO_NAV: Id = Id::root("showcase_ui::pages::checks_radios.option_radio_nav");
 const OPTION_DISABLED: Id = Id::root("showcase_ui::pages::checks_radios.option_disabled");
 const GALLERY_CHECK: Id = Id::root("showcase_ui::pages::checks_radios.gallery.check");
+const GALLERY_RADIO: Id = Id::root("showcase_ui::pages::checks_radios.gallery.radio");
+const GALLERY_TOGGLE: Id = Id::root("showcase_ui::pages::checks_radios.gallery.toggle");
 
 struct PageHost {
     page: ChecksRadiosPage,
@@ -30,7 +32,20 @@ impl App for PageHost {
     }
 
     fn draw(&self, ui: &mut Ui<'_>) {
-        self.page.draw(ui, self.area.unwrap_or_else(|| ui.full()));
+        if let Some(area) = self.area {
+            let full = ui.full();
+            let sentinel = "S".repeat(usize::from(full.width));
+            for y in full.y..full.bottom() {
+                let _ = ui.paint_str(
+                    Rect::new(full.x, y, full.width, 1),
+                    &sentinel,
+                    ui.surface_style(),
+                );
+            }
+            self.page.draw(ui, area);
+        } else {
+            self.page.draw(ui, ui.full());
+        }
     }
 }
 
@@ -52,6 +67,14 @@ fn click_tab(h: &mut Harness<PageHost>, id: Id, index: usize) {
 
 fn debug(h: &Harness<PageHost>) -> String {
     format!("{:?}", h.app().page)
+}
+
+fn values(h: &Harness<PageHost>) -> String {
+    debug(h)
+        .split_once("hit: ")
+        .expect("page debug includes option values")
+        .1
+        .to_owned()
 }
 
 fn cell_run(h: &Harness<PageHost>, x: u16, y: u16, width: u16) -> String {
@@ -93,6 +116,62 @@ fn canonical_defaults_and_mixed_checkbox_cycle_use_real_controls() {
     let _ = h.key(KeyCode::Char(' '));
     assert!(debug(&h).contains("checks: [Checked, Unchecked, Unchecked, Checked]"));
     assert!(h.text().contains("Last: Send notifications"));
+}
+
+#[test]
+fn last_activation_records_its_result_and_survives_page_rebuilds() {
+    let mut h = host(120, 40);
+    assert!(h.text().contains("Last: nothing yet"));
+
+    let _ = h.click_id(CHECK_ALL);
+    assert!(
+        h.text().contains("Last: Select all rows checked"),
+        "{}",
+        h.text()
+    );
+    let _ = h.click_id(CHECK_ALL);
+    assert!(
+        h.text().contains("Last: Select all rows unchecked"),
+        "{}",
+        h.text()
+    );
+
+    let _ = h.click_id(CHECK_NOTIFICATIONS);
+    assert!(
+        h.text().contains("Last: Send notifications unchecked"),
+        "pointer activation captures its result\n{}",
+        h.text()
+    );
+
+    assert!(h.tab_to(CHECK_ARCHIVED));
+    let _ = h.key(KeyCode::Enter);
+    assert!(
+        h.text().contains("Last: Include archived projects checked"),
+        "Enter activation captures its result\n{}",
+        h.text()
+    );
+
+    click_tab(&mut h, PAGE_TABS, 1);
+    let _ = h.click_id(OPTION_MIXED);
+    assert!(
+        debug(&h).contains("checks: [Unchecked, Unchecked, Checked, Checked]"),
+        "{:?}",
+        h.app().page
+    );
+    click_tab(&mut h, PAGE_TABS, 0);
+    assert!(
+        h.text().contains("Last: Include archived projects checked"),
+        "option rebuild keeps the last activation snapshot\n{}",
+        h.text()
+    );
+
+    click_tab(&mut h, GROUP_TABS, 1);
+    click_tab(&mut h, GROUP_TABS, 0);
+    assert!(
+        h.text().contains("Last: Include archived projects checked"),
+        "group changes keep the last activation snapshot\n{}",
+        h.text()
+    );
 }
 
 #[test]
@@ -527,6 +606,115 @@ fn offset_clipped_page_keeps_all_controls_inside_its_page_rect() {
         );
     }
     assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn short_offset_areas_clip_every_page_view_and_group() {
+    let ids = [
+        PAGE_TABS,
+        GROUP_TABS,
+        CHECK_ALL,
+        CHECK_NOTIFICATIONS,
+        CHECK_ARCHIVED,
+        CHECK_MANAGED,
+        RADIO_ISOLATION,
+        RADIO_REGION,
+        TOGGLE_AUTOSAVE,
+        TOGGLE_USAGE,
+        TOGGLE_BETA,
+        OPTION_HIT,
+        OPTION_MIXED,
+        OPTION_RADIO_NAV,
+        OPTION_DISABLED,
+        GALLERY_CHECK.index(0),
+        GALLERY_CHECK.index(1),
+        GALLERY_CHECK.index(2),
+        GALLERY_RADIO,
+        GALLERY_TOGGLE.index(0),
+        GALLERY_TOGGLE.index(1),
+    ];
+    let views = [(0, 0), (0, 1), (0, 2), (1, 0), (2, 0)];
+
+    for (view, group) in views {
+        let mut h = host(80, 24);
+        if view != 0 {
+            click_tab(&mut h, PAGE_TABS, view);
+        } else if group != 0 {
+            click_tab(&mut h, GROUP_TABS, group);
+        }
+
+        for height in 0..=17 {
+            let area = Rect::new(7, 3, 56, height);
+            h.app_mut().area = Some(area);
+            h.draw();
+
+            let sentinel = h.cell(0, 0).clone();
+            for y in 0..24 {
+                for x in 0..80 {
+                    let inside =
+                        x >= area.x && x < area.right() && y >= area.y && y < area.bottom();
+                    if !inside {
+                        assert_eq!(
+                            h.cell(x, y),
+                            &sentinel,
+                            "outside cell changed for view={view}, group={group}, height={height}, cell=({x},{y})"
+                        );
+                    }
+                }
+            }
+
+            for id in ids {
+                if let Some(rect) = h.area_of(id) {
+                    assert!(
+                        rect.width > 0
+                            && rect.height > 0
+                            && rect.x >= area.x
+                            && rect.right() <= area.right()
+                            && rect.y >= area.y
+                            && rect.bottom() <= area.bottom(),
+                        "{id:?} escaped {area:?}: {rect:?}, view={view}, group={group}, height={height}"
+                    );
+                }
+            }
+            if let Some(focus) = h.focus() {
+                let rect = h.area_of(focus).expect("focused control stays mounted");
+                assert!(
+                    rect.x >= area.x
+                        && rect.right() <= area.right()
+                        && rect.y >= area.y
+                        && rect.bottom() <= area.bottom(),
+                    "focus {focus:?} escaped {area:?}: {rect:?}"
+                );
+            }
+
+            if view == 0 && group == 0 && height >= 13 {
+                assert!(h.area_of(CHECK_MANAGED).is_some());
+            }
+            if view == 0 && group == 1 && height >= 17 {
+                assert!(h.area_of(RADIO_REGION).is_some());
+            }
+            if view == 0 && group == 2 && height >= 12 {
+                assert!(h.area_of(TOGGLE_BETA).is_some());
+            }
+            if view == 1 && height >= 11 {
+                for id in [OPTION_HIT, OPTION_MIXED, OPTION_RADIO_NAV, OPTION_DISABLED] {
+                    assert!(h.area_of(id).is_some(), "{id:?} at height={height}");
+                }
+            }
+            if view == 2 && height >= 13 {
+                assert!(
+                    h.text().contains("Overflow"),
+                    "height={height}\n{}",
+                    h.text()
+                );
+            }
+            assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+
+            let before = values(&h);
+            let _ = h.click(area.x.saturating_add(1), area.bottom());
+            assert_eq!(values(&h), before, "outside click changed page values");
+        }
+    }
 }
 
 #[test]
