@@ -106,7 +106,7 @@ class BuildGuardTests(unittest.TestCase):
     def test_absolute_cargo_path_is_rejected_to_preserve_mbx_shim(self):
         with mock.patch.object(guard, "_effective_env") as mise_env:
             self.assertEqual(guard.main(["mise", "exec", "--", "/usr/bin/cargo", "build"]), 2)
-            mise_env.assert_not_called()
+            self.assertEqual(mise_env.call_count, 0)
 
     def test_cargo_configured_rustc_wrappers_fail_closed(self):
         for key in ("rustc-wrapper", "rustc-workspace-wrapper"):
@@ -121,6 +121,51 @@ class BuildGuardTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             with self.assertRaisesRegex(guard.GuardError, "templating"):
                 guard.discover_paths({"HOME": tmp, "CARGO_BUILD_BUILD_DIR": "{workspace-root}/build"}, Path(tmp), tmp)
+
+    def test_default_workspace_target_symlink_low_space_is_checked(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "workspace"
+            root.mkdir()
+            (root / "Cargo.toml").write_text("[workspace]\nmembers=[]\n")
+            target_fs = Path(tmp) / "external-target"
+            target_fs.mkdir()
+            (root / "target").symlink_to(target_fs, target_is_directory=True)
+            paths = guard.discover_paths({"HOME": tmp}, root, tmp)
+            self.assertIn(root / "target", paths)
+
+            def stat(path):
+                resolved = Path(path).resolve()
+                dev = 2 if resolved == target_fs.resolve() else 1
+                return type("Stat", (), {"st_dev": dev})()
+
+            def statvfs(path):
+                dev = stat(path).st_dev
+                free = guard.MIN_FREE_BYTES - 1 if dev == 2 else guard.MIN_FREE_BYTES
+                return type("Vfs", (), {"f_bavail": free, "f_frsize": 1})()
+
+            with self.assertRaisesRegex(guard.GuardError, "device 2"):
+                guard.check_space(paths, stat_fn=stat, statvfs_fn=statvfs)
+
+    def test_manifest_path_outside_cwd_is_rejected(self):
+        with mock.patch.object(guard, "_effective_env") as mise_env:
+            self.assertEqual(guard.main(["mise", "exec", "--", "cargo", "build", "--manifest-path", "../other/Cargo.toml"]), 125)
+            self.assertEqual(mise_env.call_count, 0)
+
+    def test_config_include_and_env_table_fail_closed(self):
+        for body in ('include = ["extra.toml"]\n', '[env]\nTMPDIR={value="/tmp/other",force=true}\n'):
+            with self.subTest(body=body), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                (root / ".cargo").mkdir()
+                (root / ".cargo/config.toml").write_text(body)
+                with self.assertRaisesRegex(guard.GuardError, "Cargo configuration"):
+                    guard._cargo_config_output_paths({"HOME": tmp}, root, root)
+
+    def test_cargo_build_wrapper_environment_aliases_fail_closed(self):
+        for name in ("CARGO_BUILD_RUSTC_WRAPPER", "CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER"):
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as tmp:
+                env = {"HOME": tmp, name: "/custom/wrapper"}
+                with mock.patch.object(guard, "_effective_env", return_value=env):
+                    self.assertEqual(guard.main(["mise", "exec", "--", "cargo", "build"]), 125)
 
     def test_real_deny_probe_does_not_launch_child(self):
         # On constrained disks this proves the guard exits before any command.
