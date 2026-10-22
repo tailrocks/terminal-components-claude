@@ -197,6 +197,18 @@ enum NavTarget {
     Placeholder(usize),
 }
 
+/// Controls how navigation groups follow committed route changes.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum NavExpand {
+    /// Keep every group open by default; later routes preserve manual folds.
+    #[default]
+    All,
+    /// Keep only the committed destination group open; query previews preserve saved folds.
+    Accordion,
+    /// Close only the group opened automatically for the previous route.
+    CurrentGroup,
+}
+
 impl NavTarget {
     const fn page(self) -> Option<PageId> {
         match self {
@@ -1020,6 +1032,16 @@ fn nav_target_at(index: usize) -> Option<NavTarget> {
     Some(nav_target_for_entry(entry, index))
 }
 
+fn nav_group_for_entry(nodes: &[NavNode], entry: usize) -> Option<ItemKey> {
+    let source = nodes.iter().position(|node| node.entry == Some(entry))?;
+    let depth = nodes[source].depth;
+    nodes[..source]
+        .iter()
+        .rev()
+        .find(|node| node.parent && node.depth < depth)
+        .map(|node| node.key)
+}
+
 fn expand_nav_groups(state: &mut TreeState, nodes: &[NavNode]) {
     for node in nodes.iter().filter(|node| node.parent) {
         state.expand(node.key);
@@ -1071,6 +1093,35 @@ fn cursor_to_first_query_entry(state: &mut TreeState, nodes: &[NavNode]) {
             state.set_cursor(visible, node.key);
             return;
         }
+    }
+}
+
+fn reconcile_query_cursor(state: &mut TreeState, nodes: &[NavNode], previous: Option<ItemKey>) {
+    let visible_position = |key: ItemKey| {
+        let source = nodes
+            .iter()
+            .position(|node| node.key == key && node.query_match)?;
+        let visible = nodes[..source]
+            .iter()
+            .filter(|node| node.query_match)
+            .count();
+        Some((visible, key))
+    };
+    let next = previous.and_then(visible_position).or_else(|| {
+        nodes
+            .iter()
+            .enumerate()
+            .find(|(_, node)| node.query_match)
+            .map(|(source, node)| {
+                let visible = nodes[..source]
+                    .iter()
+                    .filter(|candidate| candidate.query_match)
+                    .count();
+                (visible, node.key)
+            })
+    });
+    if let Some((visible, key)) = next {
+        state.set_cursor(visible, key);
     }
 }
 
@@ -1193,6 +1244,8 @@ pub struct App {
     page: PageId,
     nav_target: NavTarget,
     nav_state: TreeState,
+    nav_expand: NavExpand,
+    nav_auto_group: Option<ItemKey>,
     nav_query: Option<NavQuery>,
     nav_presentation: std::cell::Cell<Option<NavTreePresentation>>,
     pages: Vec<Box<dyn Page>>,
@@ -1217,6 +1270,8 @@ impl core::fmt::Debug for App {
             .field("page", &self.page)
             .field("nav_target", &self.nav_target)
             .field("nav_state", &self.nav_state)
+            .field("nav_expand", &self.nav_expand)
+            .field("nav_auto_group", &self.nav_auto_group)
             .field("nav_query", &self.nav_query)
             .field("nav_presentation", &self.nav_presentation.get())
             .field("pages", &self.pages.len())
@@ -1269,6 +1324,8 @@ impl App {
             page: initial,
             nav_target,
             nav_state,
+            nav_expand: NavExpand::All,
+            nav_auto_group: None,
             nav_query: None,
             nav_presentation: std::cell::Cell::new(None),
             pages,
@@ -1286,6 +1343,26 @@ impl App {
         }
     }
 
+    /// Sets the navigation expansion policy and resets saved folds for the current route.
+    ///
+    /// This is an explicit reset, even when `policy` is already selected. During a navigation
+    /// query it preserves the query text, focus, and current route, then refreshes the filtered
+    /// cursor against the reset expansion state.
+    pub fn set_nav_expand(&mut self, policy: NavExpand) {
+        self.nav_expand = policy;
+        self.nav_auto_group = None;
+        let route = nav_index_for_target(self.nav_target).unwrap_or(0);
+        let previous_cursor = self.nav_state.cursor();
+        self.sync_nav_expansion(route, true);
+        let nodes = nav_nodes(&self.nav_state, 0);
+        reveal_nav(&mut self.nav_state, &nodes, route);
+        if self.nav_query.is_some() {
+            self.bump_nav_query_revision();
+            let query_nodes = nav_nodes_for_query(&self.nav_state, 0, self.nav_query.as_ref());
+            reconcile_query_cursor(&mut self.nav_state, &query_nodes, previous_cursor);
+        }
+    }
+
     pub const fn page(&self) -> PageId {
         self.page
     }
@@ -1295,6 +1372,7 @@ impl App {
     }
 
     fn goto_entry(&mut self, index: usize) {
+        let query_preview = self.nav_query.is_some();
         let Some(target) = nav_target_at(index) else {
             return;
         };
@@ -1309,8 +1387,52 @@ impl App {
             }
             self.nav_query = None;
         }
+        if !query_preview {
+            self.sync_nav_expansion(index, false);
+        }
         let nodes = nav_nodes(&self.nav_state, 0);
         reveal_nav(&mut self.nav_state, &nodes, index);
+    }
+
+    fn sync_nav_expansion(&mut self, index: usize, reset: bool) {
+        let nodes = nav_nodes(&self.nav_state, 0);
+        let destination = nav_group_for_entry(&nodes, index);
+        match self.nav_expand {
+            NavExpand::All => {
+                self.nav_auto_group = None;
+                if reset {
+                    self.nav_state.expand_all();
+                }
+            }
+            NavExpand::Accordion => {
+                self.nav_state.collapse_all();
+                self.nav_auto_group = None;
+            }
+            NavExpand::CurrentGroup if reset => {
+                self.nav_state.collapse_all();
+                if let Some(group) = destination {
+                    self.nav_state.expand(group);
+                    self.nav_auto_group = Some(group);
+                } else {
+                    self.nav_auto_group = None;
+                }
+            }
+            NavExpand::CurrentGroup => {
+                let previous_auto = self.nav_auto_group.take();
+                if let Some(previous) = previous_auto
+                    && Some(previous) != destination
+                {
+                    self.nav_state.collapse(previous);
+                }
+                if let Some(group) = destination {
+                    let opened_now = !self.nav_state.is_expanded(group);
+                    self.nav_state.expand(group);
+                    if opened_now || previous_auto == Some(group) {
+                        self.nav_auto_group = Some(group);
+                    }
+                }
+            }
+        }
     }
 
     fn apply_nav_query_input(&mut self, input: NavQueryInput) {
@@ -2300,6 +2422,9 @@ impl TuiApp for App {
         });
         let query_disclosure =
             query_disclosure.filter(|key| nodes.iter().any(|node| node.key == *key && node.parent));
+        let auto_group_expanded_before = self
+            .nav_auto_group
+            .map(|key| self.nav_state.is_expanded(key));
         let nav_response =
             if !consume_nav_tree_key && self.nav_presentation.get() == Some(presentation) {
                 nav_tree(presentation.query_revision).update(cx, &mut self.nav_state, &nodes)
@@ -2312,6 +2437,11 @@ impl TuiApp for App {
             // Query-revealed ancestors are temporary; a real row/icon disclosure changes saved membership.
             self.nav_state.toggle(key);
             self.bump_nav_query_revision();
+        }
+        if let (Some(owner), Some(was_expanded)) = (self.nav_auto_group, auto_group_expanded_before)
+            && self.nav_state.is_expanded(owner) != was_expanded
+        {
+            self.nav_auto_group = None;
         }
         let mut enter_content = false;
         let picked = match nav_action {
