@@ -333,7 +333,19 @@ impl<'a> Notice<'a> {
                 if index >= logical_rows && pending_index.saturating_add(1) == logical_rows {
                     pending_row.cut = true;
                 }
-                self.paint_window_row(ui, area, pending_index, pending_row, window, marker, styles);
+                if let Some(y) = window.physical_row_for_source(pending_index) {
+                    self.paint_row_at(
+                        ui,
+                        area,
+                        RowPosition {
+                            source_row: pending_index,
+                            y,
+                        },
+                        pending_row,
+                        marker,
+                        styles,
+                    );
+                }
             }
 
             if index < logical_rows && visible_rows.contains(&index) {
@@ -341,8 +353,20 @@ impl<'a> Notice<'a> {
             }
         });
 
-        if let Some((index, row)) = pending {
-            self.paint_window_row(ui, area, index, row, window, marker, styles);
+        if let Some((index, row)) = pending
+            && let Some(y) = window.physical_row_for_source(index)
+        {
+            self.paint_row_at(
+                ui,
+                area,
+                RowPosition {
+                    source_row: index,
+                    y,
+                },
+                row,
+                marker,
+                styles,
+            );
         }
     }
 
@@ -473,36 +497,34 @@ impl<'a> Notice<'a> {
         styles: DrawStyles,
     ) {
         let y = area.y.saturating_add(row_index);
-        self.paint_row_at(ui, area, usize::from(row_index), y, row, marker, styles);
-    }
-
-    fn paint_window_row(
-        &self,
-        ui: &mut Ui<'_>,
-        area: Rect,
-        source_row: usize,
-        row: NoticeRow<'a>,
-        window: VerticalWindow,
-        marker: &str,
-        styles: DrawStyles,
-    ) {
-        if let Some(y) = window.physical_row_for_source(source_row) {
-            self.paint_row_at(ui, area, source_row, y, row, marker, styles);
-        }
+        self.paint_row_at(
+            ui,
+            area,
+            RowPosition {
+                source_row: usize::from(row_index),
+                y,
+            },
+            row,
+            marker,
+            styles,
+        );
     }
 
     fn paint_row_at(
         &self,
         ui: &mut Ui<'_>,
         area: Rect,
-        source_row: usize,
-        y: u16,
+        position: RowPosition,
         row: NoticeRow<'a>,
         marker: &str,
         styles: DrawStyles,
     ) {
-        if source_row == 0 {
-            ui.paint_str(Rect::new(area.x, y, area.width, 1), marker, styles.marker);
+        if position.source_row == 0 {
+            ui.paint_str(
+                Rect::new(area.x, position.y, area.width, 1),
+                marker,
+                styles.marker,
+            );
         }
 
         let row_width = area.width.saturating_sub(row.inset);
@@ -510,7 +532,7 @@ impl<'a> Notice<'a> {
             return;
         }
         let x = area.x.saturating_add(row.inset);
-        let rect = Rect::new(x, y, row_width, 1);
+        let rect = Rect::new(x, position.y, row_width, 1);
         let style = match row.kind {
             RowKind::Message => styles.message,
             RowKind::Detail => styles.detail,
@@ -525,7 +547,7 @@ impl<'a> Notice<'a> {
             let marker_width = row_width.saturating_sub(head_width);
             if marker_width > 0 {
                 let marker_x = x.saturating_add(head_width);
-                ui.paint_str(Rect::new(marker_x, y, marker_width, 1), "…", style);
+                ui.paint_str(Rect::new(marker_x, position.y, marker_width, 1), "…", style);
             }
         } else {
             ui.paint_str(rect, row.text.as_ref(), style);
@@ -539,6 +561,12 @@ struct DrawStyles {
     message: PaintStyle,
     detail: PaintStyle,
     hint: PaintStyle,
+}
+
+#[derive(Clone, Copy)]
+struct RowPosition {
+    source_row: usize,
+    y: u16,
 }
 
 fn max_physical_line_width(text: &str) -> u16 {
