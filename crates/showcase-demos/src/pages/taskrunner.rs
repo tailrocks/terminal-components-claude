@@ -2,9 +2,9 @@ use std::{cmp::Ordering, time::Duration};
 use termrock::author::PaintStyle;
 
 use termrock::{
-    ActionKey, Button, Cx, Dialog, DialogAction, DialogState, FrameRead, Id, ItemKey, Panel,
-    PanelKind, ProgressBar, Rect, Response, RowUi, StateFlags, StepState, Steps, StepsAction,
-    StepsState, Ui, Variant, layout, width,
+    ActionKey, Button, Cx, Dialog, DialogAction, DialogState, FrameRead, Id, ItemKey, ProgressBar,
+    Rect, Response, RowUi, StateFlags, StepState, Steps, StepsAction, StepsState, Ui, Variant,
+    layout, width,
 };
 
 use super::{Page, PageUpdate, frame};
@@ -29,27 +29,123 @@ struct RunStep {
     state: StepState,
 }
 
-/// The targets the pipeline runs against: the label, its depth and whether
-/// it holds other targets.
-const TARGET_ROWS: &[(&str, u16, bool)] = &[
-    ("payments-gateway", 0, true),
-    ("build", 1, true),
-    ("compile", 2, false),
-    ("lint", 2, false),
-    ("typecheck", 2, false),
-    ("test", 1, true),
-    ("unit", 2, false),
-    ("integration", 2, false),
-    ("e2e", 2, false),
-    ("deploy", 1, true),
-    ("staging", 2, false),
-    ("production", 2, false),
-    ("shared-libs", 0, true),
-    ("compile", 1, false),
-    ("publish", 1, false),
+/// The targets the pipeline runs against: the label, its depth, whether it
+/// holds other targets and the environment glyph it carries.
+#[derive(Clone, Copy)]
+struct Target {
+    label: &'static str,
+    depth: u16,
+    fold: bool,
+    env: Option<(&'static str, u32, u32)>,
+}
+
+const TARGET_ROWS: &[Target] = &[
+    Target {
+        label: "payments-gateway",
+        depth: 0,
+        fold: true,
+        env: None,
+    },
+    Target {
+        label: "build",
+        depth: 1,
+        fold: true,
+        env: None,
+    },
+    Target {
+        label: "compile",
+        depth: 2,
+        fold: false,
+        env: None,
+    },
+    Target {
+        label: "lint",
+        depth: 2,
+        fold: false,
+        env: None,
+    },
+    Target {
+        label: "typecheck",
+        depth: 2,
+        fold: false,
+        env: None,
+    },
+    Target {
+        label: "test",
+        depth: 1,
+        fold: true,
+        env: None,
+    },
+    Target {
+        label: "unit",
+        depth: 2,
+        fold: false,
+        env: None,
+    },
+    Target {
+        label: "integration",
+        depth: 2,
+        fold: false,
+        env: None,
+    },
+    Target {
+        label: "e2e",
+        depth: 2,
+        fold: false,
+        env: None,
+    },
+    Target {
+        label: "deploy",
+        depth: 1,
+        fold: true,
+        env: None,
+    },
+    Target {
+        label: "staging",
+        depth: 2,
+        fold: false,
+        env: Some(("◇", 0xf5_9e_09, 0xff_ff_ff)),
+    },
+    Target {
+        label: "production",
+        depth: 2,
+        fold: false,
+        env: Some(("◆", 0xff_6b_6b, 0xff_6b_6b)),
+    },
+    Target {
+        label: "shared-libs",
+        depth: 0,
+        fold: true,
+        env: None,
+    },
+    Target {
+        label: "compile",
+        depth: 1,
+        fold: false,
+        env: None,
+    },
+    Target {
+        label: "publish",
+        depth: 1,
+        fold: false,
+        env: None,
+    },
 ];
 
 const NAMES: &[&str] = &["compile", "lint", "typecheck", "unit", "integration", "e2e"];
+
+/// The targets card's width and the gap that separates it from the pipeline
+/// card.
+const TARGETS_W: u16 = 30;
+const PANEL_GAP: u16 = 2;
+
+/// The card's height: the title row, the seam, the tree's rows and the
+/// card's bottom padding.
+fn panel_height() -> u16 {
+    u16::try_from(TARGET_ROWS.len())
+        .unwrap_or(0)
+        .saturating_add(3)
+}
 
 fn step_key(step: &RunStep) -> ItemKey {
     ItemKey::num(u64::from(step.id))
@@ -71,9 +167,10 @@ fn steps()
 /// The targets the pipeline runs against. The tree is a drawing: the
 /// pipeline owns the page's focus.
 fn paint_targets(ui: &mut Ui<'_>, inner: Rect) {
-    let muted = ink(0x8a_8a8a, 0x11_11_11);
+    let gutter = ink(0x11_11_11, 0x11_11_11);
+    let fold = ink(0xb3_b3b3, 0x11_11_11);
     let text = ink(0xff_ff_ff, 0x11_11_11);
-    for (row, (label, depth, parent)) in TARGET_ROWS.iter().enumerate() {
+    for (row, target) in TARGET_ROWS.iter().enumerate() {
         let Ok(row) = u16::try_from(row) else { break };
         if row >= inner.height {
             break;
@@ -83,34 +180,44 @@ fn paint_targets(ui: &mut Ui<'_>, inner: Rect) {
             height: 1,
             ..inner
         };
-        let indent = depth.saturating_mul(2);
-        if *parent {
+        // The tree's gutter column carries no ink.
+        let _ = ui.paint_str(Rect { width: 1, ..area }, " ", gutter);
+        let indent = target.depth.saturating_mul(2);
+        let label_x = area.x.saturating_add(indent).saturating_add(3);
+        if target.fold {
             let _ = ui.paint_str(
                 Rect {
-                    x: area.x.saturating_add(indent),
-                    width: 2,
+                    x: area.x.saturating_add(indent).saturating_add(1),
+                    width: 1,
                     ..area
                 },
-                "▾ ",
-                muted,
+                "▾",
+                fold,
             );
-            let _ = ui.paint_str(
-                Rect {
-                    x: area.x.saturating_add(indent).saturating_add(2),
-                    ..area
-                },
-                label,
-                text,
-            );
-        } else {
-            let _ = ui.paint_str(
-                Rect {
-                    x: area.x.saturating_add(indent).saturating_add(2),
-                    ..area
-                },
-                label,
-                text,
-            );
+        }
+        match target.env {
+            Some((glyph, glyph_ink, label_ink)) => {
+                let _ = ui.paint_str(
+                    Rect {
+                        x: label_x,
+                        width: 1,
+                        ..area
+                    },
+                    glyph,
+                    ink(glyph_ink, 0x11_11_11),
+                );
+                let _ = ui.paint_str(
+                    Rect {
+                        x: label_x.saturating_add(2),
+                        ..area
+                    },
+                    target.label,
+                    ink(label_ink, 0x11_11_11),
+                );
+            }
+            None => {
+                let _ = ui.paint_str(Rect { x: label_x, ..area }, target.label, text);
+            }
         }
     }
 }
@@ -122,8 +229,8 @@ fn run_button(running: bool) -> Button<'static> {
 }
 
 fn cancel_button(running: bool) -> Button<'static> {
-    Button::new(CANCEL, "Cancel pipeline")
-        .variant(Variant::DANGER)
+    Button::new(CANCEL, "Cancel")
+        .variant(Variant::SECONDARY)
         .disabled(!running)
 }
 
@@ -291,38 +398,37 @@ impl Page for TaskRunnerPage {
                     height: body.height.saturating_sub(3),
                     ..body
                 };
-                // The targets tree and the pipeline share the page when it is
-                // wide enough and stack when it is not.
-                let wide = content.width >= 64;
-                let tree_width = if wide { 30 } else { content.width };
-                let tree_height = if wide {
-                    content.height
-                } else {
-                    content.height / 2
-                };
+                // The targets tree and the pipeline share the page: the
+                // targets card keeps its width and the pipeline card takes
+                // the rest.
+                let tree_width = TARGETS_W.min(content.width);
+                let tree_height = content.height.min(panel_height());
                 let tree_area = Rect {
+                    width: tree_width,
                     height: tree_height,
                     ..content
                 };
-                let pipeline_area = if wide {
-                    Rect {
-                        x: content.x.saturating_add(tree_width),
-                        width: content.width.saturating_sub(tree_width),
-                        ..content
-                    }
-                } else {
-                    Rect {
-                        y: content.y.saturating_add(tree_height),
-                        height: content.height.saturating_sub(tree_height),
-                        ..content
-                    }
+                let pipeline_area = Rect {
+                    x: content
+                        .x
+                        .saturating_add(tree_width)
+                        .saturating_add(PANEL_GAP),
+                    width: content
+                        .width
+                        .saturating_sub(tree_width)
+                        .saturating_sub(PANEL_GAP),
+                    ..content
                 };
-                Panel::new(TARGETS_PANEL)
-                    .kind(PanelKind::Card)
-                    .title("Targets")
-                    .draw(ui, tree_area, |ui, inner| {
+                super::card_panel(
+                    ui,
+                    TARGETS_PANEL,
+                    "Targets",
+                    None,
+                    tree_area,
+                    |ui, inner| {
                         paint_targets(ui, inner);
-                    });
+                    },
+                );
                 let done = self
                     .steps
                     .iter()
@@ -334,13 +440,18 @@ impl Page for TaskRunnerPage {
                 } else {
                     "Pipeline"
                 };
-                Panel::new(PIPELINE_PANEL)
-                    .kind(PanelKind::Card)
-                    .title(title)
-                    .meta(&meta)
-                    .draw(ui, pipeline_area, |ui, inner| {
+                super::card_panel(
+                    ui,
+                    PIPELINE_PANEL,
+                    title,
+                    Some(&meta),
+                    pipeline_area,
+                    |ui, inner| {
+                        let steps_height = u16::try_from(self.steps.len())
+                            .unwrap_or(0)
+                            .min(inner.height);
                         let steps_area = Rect {
-                            height: inner.height.saturating_sub(13),
+                            height: steps_height,
                             ..inner
                         };
                         steps().draw(ui, steps_area, &self.state, &self.steps);
@@ -386,7 +497,8 @@ impl Page for TaskRunnerPage {
                             ..inner
                         };
                         paint_log(ui, log_row, self.message, self.running);
-                    });
+                    },
+                );
             },
         );
         ui.layer(CANCEL_DIALOG, |ui, layer| {
@@ -398,7 +510,8 @@ impl Page for TaskRunnerPage {
 
     fn hints(&self, ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
         if ui.state(STEPS).contains(StateFlags::FOCUSED) {
-            &[("↑ ↓", "Move"), ("← →", "Fold")]
+            // The step rail moves and activates; it does not fold.
+            &[("↑ ↓", "Move"), ("Enter", "Activate")]
         } else {
             &[("r", "Run pipeline"), ("Enter", "Activate")]
         }
@@ -407,32 +520,35 @@ impl Page for TaskRunnerPage {
 
 /// The following log: its title, its rule and the latest line.
 fn paint_log(ui: &mut Ui<'_>, row: Rect, message: &str, running: bool) {
-    let muted = ink(0x8a_8a8a, 0x00_00_00);
-    let faint = ink(0x73_73_73, 0x00_00_00);
-    let text = if running || message != "pipeline idle" {
+    let title = ink(0xb3_b3b3, 0x11_11_11);
+    let faint = ink(0x73_73_73, 0x11_11_11);
+    let seam = ink(0x3a_3a_3a, 0x11_11_11);
+    let text = ink(0xb3_b3b3, 0x11_11_11);
+    let message = if running || message != "pipeline idle" {
         message
     } else {
         "Ready. Press r or Run to start the pipeline."
     };
-    let _ = ui.paint_str(Rect { height: 1, ..row }, "Log", muted);
+    let _ = ui.paint_str(Rect { height: 1, ..row }, "Log", title);
     let meta = Rect {
         x: row.right().saturating_sub(width("· following")),
         height: 1,
         ..row
     };
-    let _ = ui.paint_str(meta, "· following", muted);
+    let _ = ui.paint_str(meta, "· following", faint);
     let rule = Rect {
         y: row.y.saturating_add(1),
         height: 1,
         ..row
     };
-    let _ = ui.paint_str(rule, &"─".repeat(usize::from(row.width)), faint);
+    let _ = ui.paint_str(rule, &"─".repeat(usize::from(row.width)), seam);
     let line = Rect {
         y: row.y.saturating_add(2),
         height: 1,
         ..row
     };
-    let _ = ui.paint_str(line, text, faint);
+    ui.fill(line, text);
+    let _ = ui.paint_str(line, message, text);
 }
 
 fn rgb(hex: u32) -> termrock::Color {
