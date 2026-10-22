@@ -1030,6 +1030,34 @@ fn clamp_position(lines: LineSet<'_>, pos: CellPos) -> Option<CellPos> {
     Some(CellPos::new(line_index, snap_column(&cells, pos.col)))
 }
 
+fn word_range_at(lines: LineSet<'_>, pos: CellPos) -> Option<(CellPos, CellPos)> {
+    let line = lines.get(pos.line)?;
+    let (start, end) = word_at(line, pos.col)?;
+    Some((CellPos::new(pos.line, start), CellPos::new(pos.line, end)))
+}
+
+fn logical_line_range(lines: LineSet<'_>, pos: CellPos) -> Option<(CellPos, CellPos)> {
+    let line = lines.get(pos.line)?;
+    Some((
+        CellPos::new(pos.line, 0),
+        CellPos::new(pos.line, line_cols(line)),
+    ))
+}
+
+fn extend_word_range(
+    original: (CellPos, CellPos),
+    head: CellPos,
+    target: Option<(CellPos, CellPos)>,
+) -> (CellPos, CellPos) {
+    let (start, end) = original;
+    let (target_start, target_end) = target.unwrap_or((head, head));
+    if target_start < start {
+        (end, target_start)
+    } else {
+        (start, target_end.max(end))
+    }
+}
+
 fn selection_destination(
     lines: LineSet<'_>,
     from: CellPos,
@@ -1149,9 +1177,66 @@ pub struct ViewportState {
     follow: FollowCursor,
     selection: Option<(CellPos, CellPos)>,
     anchor: Option<CellPos>,
+    pointer_gesture: PointerGesture,
     browse: Option<CellPos>,
     caret: Option<CellPos>,
     generation: u32,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+enum PointerGesture {
+    #[default]
+    Idle,
+    Plain {
+        dragged: bool,
+    },
+    Word {
+        range: (CellPos, CellPos),
+        dragged: bool,
+    },
+    Shift {
+        dragged: bool,
+    },
+    Line {
+        dragged: bool,
+    },
+    SuppressClick,
+}
+
+impl PointerGesture {
+    const fn dragged(self) -> bool {
+        matches!(
+            self,
+            PointerGesture::Plain { dragged: true }
+                | PointerGesture::Word { dragged: true, .. }
+                | PointerGesture::Shift { dragged: true }
+                | PointerGesture::Line { dragged: true }
+        )
+    }
+
+    fn mark_dragged(&mut self) {
+        match self {
+            PointerGesture::Plain { dragged }
+            | PointerGesture::Word { dragged, .. }
+            | PointerGesture::Shift { dragged }
+            | PointerGesture::Line { dragged } => *dragged = true,
+            PointerGesture::Idle | PointerGesture::SuppressClick => {}
+        }
+    }
+
+    fn retain(&mut self, dropped: usize) -> bool {
+        let PointerGesture::Word { range, .. } = self else {
+            return false;
+        };
+        if range.0.line < dropped && range.1.line < dropped {
+            *self = PointerGesture::Idle;
+            true
+        } else {
+            shift(&mut range.0, dropped);
+            shift(&mut range.1, dropped);
+            false
+        }
+    }
 }
 
 impl Default for ViewportState {
@@ -1162,6 +1247,7 @@ impl Default for ViewportState {
             follow: FollowCursor::Always,
             selection: None,
             anchor: None,
+            pointer_gesture: PointerGesture::Idle,
             browse: None,
             caret: None,
             generation: 0,
@@ -1228,6 +1314,7 @@ impl ViewportState {
     pub const fn select(&mut self, a: CellPos, b: CellPos) {
         self.selection = Some((a, b));
         self.anchor = None;
+        self.pointer_gesture = PointerGesture::Idle;
         self.browse = Some(b);
     }
 
@@ -1235,6 +1322,7 @@ impl ViewportState {
         let had = self.selection.is_some();
         self.selection = None;
         self.anchor = None;
+        self.pointer_gesture = PointerGesture::Idle;
         self.browse = None;
         had
     }
@@ -1261,8 +1349,14 @@ impl ViewportState {
             shift(a, dropped);
             shift(b, dropped);
         }
-        if let Some(a) = self.anchor.as_mut() {
-            shift(a, dropped);
+        let word_gesture_dropped = self.pointer_gesture.retain(dropped);
+        if selection_dropped && matches!(self.pointer_gesture, PointerGesture::Shift { .. }) {
+            self.pointer_gesture = PointerGesture::Idle;
+            self.anchor = None;
+        } else if word_gesture_dropped {
+            self.anchor = None;
+        } else if let Some(anchor) = self.anchor.as_mut() {
+            shift(anchor, dropped);
         }
         if !selection_dropped && let Some(b) = self.browse.as_mut() {
             shift(b, dropped);
@@ -1496,6 +1590,10 @@ impl<'a> TextViewport<'a> {
         self
     }
 
+    /// Select a word on a single click when enabled.
+    ///
+    /// A double click selects a word and three or more clicks select the
+    /// logical line, regardless of this setting.
     #[must_use]
     pub const fn click_selects_word(mut self, yes: bool) -> Self {
         self.click_selects_word = yes;
@@ -1671,6 +1769,10 @@ impl<'a> TextViewport<'a> {
         st: &mut ViewportState,
         lines: LineSet<'_>,
     ) -> Response<ViewportAction> {
+        if lines.is_empty() {
+            st.anchor = None;
+            st.pointer_gesture = PointerGesture::Idle;
+        }
         let layout = cx.layout(self.id);
         let area = layout
             .and_then(|layout| layout.logical_area)
@@ -1802,28 +1904,30 @@ impl<'a> TextViewport<'a> {
                         &mut acc,
                     );
                 }
-                Intent::Cancel if self.pan_active() => {
+                Intent::Cancel => {
+                    st.pointer_gesture = PointerGesture::SuppressClick;
+                    st.anchor = None;
                     st.horizontal.release_track();
                     if cx.capture_owner() == Some(self.id) {
                         cx.release_capture();
                     }
                 }
                 Intent::Pointer {
+                    part,
                     phase,
-                    part:
-                        PartRef {
-                            part: Part::TEXT, ..
-                        },
                     pos,
+                    mods,
                     ..
-                } => self.handle_text_pointer(
-                    cx,
-                    st,
-                    lines,
-                    (area, pointer_text, hit_text, key, st.horizontal.offset()),
-                    (phase, pos),
-                    &mut acc,
-                ),
+                } if part.part == Part::TEXT => {
+                    self.handle_text_pointer(
+                        cx,
+                        st,
+                        lines,
+                        (area, pointer_text, hit_text, key, st.horizontal.offset()),
+                        (phase, part, pos, mods),
+                        &mut acc,
+                    );
+                }
                 _ => {}
             }
         }
@@ -2100,30 +2204,80 @@ impl<'a> TextViewport<'a> {
         st: &mut ViewportState,
         lines: LineSet<'_>,
         geometry: (Rect, Rect, Rect, LayoutKey, usize),
-        pointer: (Phase, Position),
+        pointer: (Phase, PartRef, Position, KeyModifiers),
         acc: &mut Acc<ViewportAction>,
     ) {
         let (area, logical_text, hit_text, key, mut horizontal_offset) = geometry;
-        let (phase, pos) = pointer;
+        let (phase, part, pos, mods) = pointer;
         match phase {
             Phase::Press | Phase::DragStart => {
                 cx.focus(self.id);
                 let _ = cx.capture(self.id, PartRef::of(Part::TEXT));
-                let had = st.selection.take().is_some();
-                st.browse = None;
-                st.anchor = self.pos_at(
+                let at = self.pos_at(
                     cx,
                     lines,
                     (logical_text, key, st.scroll.offset(), horizontal_offset),
                     pos,
                 );
-                if had {
-                    acc.action(ViewportAction::SelectionChanged);
+                let Some(at) = at else {
+                    let had = st.selection.take().is_some();
+                    st.browse = None;
+                    st.anchor = None;
+                    st.pointer_gesture = PointerGesture::SuppressClick;
+                    if had {
+                        acc.action(ViewportAction::SelectionChanged);
+                    } else {
+                        acc.consumed();
+                    }
+                    return;
+                };
+
+                if mods.contains(KeyModifiers::SHIFT) {
+                    if let Some(anchor) = st.selection.map(|(anchor, _)| anchor).or(st.anchor) {
+                        st.selection = Some((anchor, at));
+                        st.browse = Some(at);
+                        st.anchor = Some(anchor);
+                        st.pointer_gesture = PointerGesture::Shift { dragged: false };
+                        acc.action(ViewportAction::SelectionChanged);
+                    } else {
+                        st.pointer_gesture = PointerGesture::SuppressClick;
+                        acc.consumed();
+                    }
                 } else {
-                    acc.consumed();
+                    st.browse = None;
+                    let count = cx.pointer_press_count(self.id, part).unwrap_or(1);
+                    if count >= 3 {
+                        if let Some((start, end)) = logical_line_range(lines, at) {
+                            st.select(start, end);
+                            st.pointer_gesture = PointerGesture::Line { dragged: false };
+                            acc.action(ViewportAction::SelectionChanged);
+                        } else {
+                            acc.consumed();
+                        }
+                    } else if count == 2
+                        && let Some((start, end)) = word_range_at(lines, at)
+                    {
+                        st.select(start, end);
+                        st.anchor = Some(start);
+                        st.pointer_gesture = PointerGesture::Word {
+                            range: (start, end),
+                            dragged: false,
+                        };
+                        acc.action(ViewportAction::SelectionChanged);
+                    } else {
+                        let had = st.selection.take().is_some();
+                        st.anchor = Some(at);
+                        st.pointer_gesture = PointerGesture::Plain { dragged: false };
+                        if had {
+                            acc.action(ViewportAction::SelectionChanged);
+                        } else {
+                            acc.consumed();
+                        }
+                    }
                 }
             }
             Phase::Drag => {
+                st.pointer_gesture.mark_dragged();
                 if self.pan_active() && !hit_text.is_empty() {
                     let before = st.horizontal.offset();
                     if pos.x < hit_text.x {
@@ -2167,38 +2321,68 @@ impl<'a> TextViewport<'a> {
                     (logical_text, key, st.scroll.offset(), horizontal_offset),
                     clamped,
                 );
-                match (st.anchor, at) {
-                    (Some(anchor), Some(head)) => {
-                        st.selection = Some((anchor, head));
-                        acc.action(ViewportAction::SelectionChanged);
+                let selected = match (st.pointer_gesture, st.anchor, at) {
+                    (PointerGesture::Word { range, .. }, _, Some(head)) => {
+                        clamp_position(lines, range.0)
+                            .zip(clamp_position(lines, range.1))
+                            .map(|original| {
+                                extend_word_range(original, head, word_range_at(lines, head))
+                            })
                     }
-                    _ => acc.consumed(),
+                    (
+                        PointerGesture::Plain { .. } | PointerGesture::Shift { .. },
+                        Some(anchor),
+                        Some(head),
+                    ) => Some((anchor, head)),
+                    _ => None,
+                };
+                if let Some((anchor, head)) = selected {
+                    st.selection = Some((anchor, head));
+                    st.browse = Some(head);
+                    acc.action(ViewportAction::SelectionChanged);
+                } else {
+                    acc.consumed();
                 }
-            }
-            Phase::Click if !self.click_selects_word => {
-                cx.focus(self.id);
-                acc.consumed();
             }
             Phase::Click | Phase::DoubleClick => {
                 cx.focus(self.id);
+                let gesture = st.pointer_gesture;
+                if gesture.dragged()
+                    || matches!(
+                        gesture,
+                        PointerGesture::Shift { .. } | PointerGesture::SuppressClick
+                    )
+                {
+                    st.anchor = None;
+                    st.pointer_gesture = PointerGesture::Idle;
+                    acc.consumed();
+                    return;
+                }
+
+                let count = cx.pointer_click_count(self.id, part).unwrap_or(1);
                 let at = self.pos_at(
                     cx,
                     lines,
                     (logical_text, key, st.scroll.offset(), horizontal_offset),
                     pos,
                 );
-                match at.and_then(|p| {
-                    lines
-                        .get(p.line)
-                        .and_then(|line| word_at(line, p.col))
-                        .map(|(start, end)| (p.line, start, end))
-                }) {
-                    Some((line, start, end)) => {
-                        st.select(CellPos::new(line, start), CellPos::new(line, end));
-                        acc.action(ViewportAction::SelectionChanged);
+                let selected = at.and_then(|at| {
+                    if count >= 3 {
+                        logical_line_range(lines, at)
+                    } else if count == 2 || self.click_selects_word {
+                        word_range_at(lines, at)
+                    } else {
+                        None
                     }
-                    None => acc.consumed(),
+                });
+                if let Some((start, end)) = selected {
+                    st.select(start, end);
+                    acc.action(ViewportAction::SelectionChanged);
+                } else {
+                    acc.consumed();
                 }
+                st.anchor = None;
+                st.pointer_gesture = PointerGesture::Idle;
             }
             Phase::Release | Phase::DragEnd => {
                 if cx.capture_owner() == Some(self.id) {
@@ -2938,20 +3122,24 @@ mod tests {
     const LONG_LINES: [ViewportLine<'static>; 100] =
         [ViewportLine::Plain("012345678901234567890123456789"); 100];
 
-    struct SelectionViewportApp {
+    struct SelectionViewportApp<'a> {
         state: ViewportState,
-        lines: Vec<ViewportLine<'static>>,
+        lines: Vec<ViewportLine<'a>>,
         area: Rect,
         wrap: bool,
         pan: bool,
+        click_selects_word: bool,
         keymap: crate::keymap::KeyMap,
         actions: Vec<ViewportAction>,
         other_focusable: bool,
+        other_pointer: bool,
+        other_pointer_state: ViewportState,
         modal_open: bool,
+        reference_only: bool,
     }
 
-    impl SelectionViewportApp {
-        fn new(lines: Vec<ViewportLine<'static>>) -> Self {
+    impl<'a> SelectionViewportApp<'a> {
+        fn new(lines: Vec<ViewportLine<'a>>) -> Self {
             let mut state = ViewportState::default();
             state.set_follow(false);
             SelectionViewportApp {
@@ -2960,10 +3148,14 @@ mod tests {
                 area: Rect::new(0, 0, 12, 5),
                 wrap: false,
                 pan: false,
+                click_selects_word: false,
                 keymap: crate::keymap::KeyMap::new(),
                 actions: Vec::new(),
                 other_focusable: false,
+                other_pointer: false,
+                other_pointer_state: ViewportState::default(),
                 modal_open: false,
+                reference_only: false,
             }
         }
 
@@ -2971,18 +3163,26 @@ mod tests {
             TextViewport::new(SELECTION_ID)
                 .wrap(self.wrap)
                 .horizontal_pan(self.pan)
+                .click_selects_word(self.click_selects_word)
         }
     }
 
-    impl App for SelectionViewportApp {
+    impl App for SelectionViewportApp<'_> {
         fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
             if self.modal_open {
                 cx.open_layer(
                     MODAL_LAYER,
-                    LayerSpec::modal(MODAL_LAYER).initial_focus(MODAL_CONTROL),
+                    LayerSpec::modal(SELECTION_ID).initial_focus(MODAL_CONTROL),
                 );
             }
             let response = self.viewport().update(cx, &mut self.state, &self.lines);
+            if self.other_pointer {
+                let _ = TextViewport::new(OTHER_ID).update(
+                    cx,
+                    &mut self.other_pointer_state,
+                    &self.lines,
+                );
+            }
             if let Some(action) = response.action_ref() {
                 self.actions.push(action.clone());
             }
@@ -2990,10 +3190,28 @@ mod tests {
         }
 
         fn draw(&self, ui: &mut Ui<'_>) {
-            self.viewport()
-                .draw(ui, self.area, &self.state, &self.lines);
+            if self.reference_only {
+                ui.reference(
+                    Some(ReferenceTarget::new(SELECTION_ID, ReferenceState::FOCUSED)),
+                    |ui| {
+                        self.viewport()
+                            .draw(ui, self.area, &self.state, &self.lines);
+                    },
+                );
+            } else {
+                self.viewport()
+                    .draw(ui, self.area, &self.state, &self.lines);
+            }
             if self.other_focusable {
                 ui.register_control(OTHER_ID, Rect::new(40, 0, 8, 2), Focusability::Focusable);
+            }
+            if self.other_pointer {
+                TextViewport::new(OTHER_ID).draw(
+                    ui,
+                    Rect::new(26, 0, 12, 5),
+                    &self.other_pointer_state,
+                    &self.lines,
+                );
             }
             let _ = ui.layer(MODAL_LAYER, |ui, area| {
                 ui.register_control(MODAL_CONTROL, area, Focusability::Focusable);
@@ -3009,10 +3227,483 @@ mod tests {
         crate::event::Input::Key(crate::event::Key { code, mods })
     }
 
-    fn selection_runtime(app: SelectionViewportApp) -> Runtime<SelectionViewportApp> {
+    fn selection_runtime<'a>(app: SelectionViewportApp<'a>) -> Runtime<SelectionViewportApp<'a>> {
         let mut runtime = Runtime::new(app, Theme::junie());
         let _ = runtime.initialize();
         runtime
+    }
+
+    fn selection_mouse(kind: MouseKind, x: u16, y: u16, mods: KeyModifiers) -> crate::event::Input {
+        crate::event::Input::Mouse(crate::event::Mouse {
+            kind,
+            pos: Position::new(x, y),
+            mods,
+        })
+    }
+
+    fn deliver_click_count(
+        runtime: &mut Runtime<SelectionViewportApp<'_>>,
+        count: u8,
+        x: u16,
+        y: u16,
+    ) {
+        for _ in 0..count {
+            let _ = crate::runtime::stub::deliver(runtime, mouse(MouseKind::Down, x, y));
+            let _ = crate::runtime::stub::deliver(runtime, mouse(MouseKind::Up, x, y));
+        }
+    }
+
+    fn copy_from_viewport(runtime: &mut Runtime<SelectionViewportApp<'_>>) -> String {
+        let _ = crate::runtime::stub::deliver(
+            runtime,
+            selection_key(KeyCode::Char('y'), KeyModifiers::NONE),
+        );
+        match runtime.app().actions.last() {
+            Some(ViewportAction::Copy(text)) => text.clone(),
+            other => panic!("copy action was not produced: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn pointer_click_counts_select_words_and_wrapped_lines() {
+        for click_selects_word in [false, true] {
+            for count in [2, 3, 4] {
+                let mut app =
+                    SelectionViewportApp::new(vec![ViewportLine::Plain("alpha beta gamma")]);
+                app.area = Rect::new(0, 0, 12, 4);
+                app.wrap = true;
+                app.click_selects_word = click_selects_word;
+                let mut runtime = selection_runtime(app);
+
+                deliver_click_count(&mut runtime, count, 7, 0);
+
+                let expected = if count == 2 {
+                    (CellPos::new(0, 6), CellPos::new(0, 10))
+                } else {
+                    (CellPos::new(0, 0), CellPos::new(0, 16))
+                };
+                assert_eq!(
+                    runtime.app().state.selection,
+                    Some(expected),
+                    "count {count} selected the wrong logical range with click_selects_word={click_selects_word}"
+                );
+                assert_eq!(
+                    copy_from_viewport(&mut runtime),
+                    if count == 2 {
+                        "beta"
+                    } else {
+                        "alpha beta gamma"
+                    },
+                    "count {count} copied the wrong source text"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn single_click_word_selection_stays_opt_in_and_never_moves_the_caret() {
+        for click_selects_word in [false, true] {
+            let mut app = SelectionViewportApp::new(vec![ViewportLine::Plain("alpha beta")]);
+            app.area = Rect::new(0, 0, 16, 4);
+            app.click_selects_word = click_selects_word;
+            app.state.set_caret(Some(CellPos::new(0, 7)));
+            let mut runtime = selection_runtime(app);
+            deliver_click_count(&mut runtime, 1, 3, 0);
+
+            let expected = click_selects_word.then_some((CellPos::new(0, 0), CellPos::new(0, 5)));
+            assert_eq!(runtime.app().state.selection(), expected);
+            assert_eq!(runtime.app().state.caret(), Some(CellPos::new(0, 7)));
+        }
+
+        let mut blocked = SelectionViewportApp::new(vec![ViewportLine::Plain("alpha beta")]);
+        blocked.area = Rect::new(0, 0, 16, 4);
+        blocked.click_selects_word = true;
+        blocked.modal_open = true;
+        let mut runtime = selection_runtime(blocked);
+        assert_eq!(runtime.focus(), Some(MODAL_CONTROL));
+        deliver_click_count(&mut runtime, 1, 3, 0);
+        assert_eq!(runtime.app().state.selection(), None);
+        assert_eq!(runtime.capture_owner(), None);
+
+        let mut reference = SelectionViewportApp::new(vec![ViewportLine::Plain("alpha beta")]);
+        reference.area = Rect::new(0, 0, 16, 4);
+        reference.click_selects_word = true;
+        reference.reference_only = true;
+        let mut runtime = selection_runtime(reference);
+        deliver_click_count(&mut runtime, 1, 3, 0);
+        assert_eq!(runtime.app().state.selection(), None);
+        assert_eq!(runtime.capture_owner(), None);
+    }
+
+    #[test]
+    fn cancelling_a_drag_suppresses_the_stale_click_after_capture_release() {
+        let mut app = SelectionViewportApp::new(vec![ViewportLine::Plain("alpha beta gamma")]);
+        app.area = Rect::new(0, 0, 24, 4);
+        app.click_selects_word = true;
+        let mut runtime = selection_runtime(app);
+        deliver_click_count(&mut runtime, 1, 7, 0);
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, 7, 0));
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Drag, 13, 0));
+        assert_eq!(
+            runtime.app().state.selection,
+            Some((CellPos::new(0, 6), CellPos::new(0, 16)))
+        );
+        assert_eq!(runtime.capture_owner(), Some(SELECTION_ID));
+
+        runtime.app_mut().modal_open = true;
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_key(KeyCode::Char('x'), KeyModifiers::NONE),
+        );
+        runtime.app_mut().modal_open = false;
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_key(KeyCode::Esc, KeyModifiers::NONE),
+        );
+        assert_eq!(runtime.capture_owner(), None);
+
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, 13, 0));
+        assert_eq!(
+            runtime.app().state.selection,
+            Some((CellPos::new(0, 6), CellPos::new(0, 16))),
+            "a cancelled drag must not be replaced by its stale count-two click"
+        );
+    }
+
+    #[test]
+    fn counted_press_starts_word_drag_and_drag_extends_whole_words_both_ways() {
+        let mut forward =
+            SelectionViewportApp::new(vec![ViewportLine::Plain("alpha beta gamma delta")]);
+        forward.area = Rect::new(0, 0, 12, 4);
+        forward.wrap = true;
+        let mut runtime = selection_runtime(forward);
+        deliver_click_count(&mut runtime, 1, 7, 0);
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, 7, 0));
+        assert_eq!(
+            runtime.app().state.selection,
+            Some((CellPos::new(0, 6), CellPos::new(0, 10))),
+            "the second press must select its whole word before dragging"
+        );
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Drag, 3, 1));
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, 3, 1));
+        assert_eq!(
+            runtime.app().state.selection,
+            Some((CellPos::new(0, 6), CellPos::new(0, 16)))
+        );
+        assert_eq!(copy_from_viewport(&mut runtime), "beta gamma");
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_key(KeyCode::Left, KeyModifiers::SHIFT),
+        );
+        assert_eq!(
+            runtime.app().state.selection,
+            Some((CellPos::new(0, 6), CellPos::new(0, 15))),
+            "keyboard extension must continue from the pointer head"
+        );
+
+        let mut reverse =
+            SelectionViewportApp::new(vec![ViewportLine::Plain("alpha beta gamma delta")]);
+        reverse.area = Rect::new(0, 0, 12, 4);
+        reverse.wrap = true;
+        let mut runtime = selection_runtime(reverse);
+        deliver_click_count(&mut runtime, 1, 4, 1);
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, 4, 1));
+        assert_eq!(
+            runtime.app().state.selection,
+            Some((CellPos::new(0, 11), CellPos::new(0, 16)))
+        );
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Drag, 3, 0));
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, 3, 0));
+        assert_eq!(
+            runtime.app().state.selection,
+            Some((CellPos::new(0, 16), CellPos::new(0, 0))),
+            "reverse word drag must retain its oriented anchor"
+        );
+        assert_eq!(copy_from_viewport(&mut runtime), "alpha beta gamma");
+    }
+
+    #[test]
+    fn word_drag_range_tracks_retained_lines_and_shrunk_source() {
+        let mut retained = SelectionViewportApp::new(vec![
+            ViewportLine::Plain("old row"),
+            ViewportLine::Plain("one two three"),
+        ]);
+        retained.area = Rect::new(0, 0, 24, 4);
+        let mut runtime = selection_runtime(retained);
+        deliver_click_count(&mut runtime, 1, 6, 1);
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, 6, 1));
+        assert_eq!(
+            runtime.app().state.selection,
+            Some((CellPos::new(1, 4), CellPos::new(1, 7)))
+        );
+
+        runtime.app_mut().state.retained(1);
+        let _ = runtime.app_mut().lines.remove(0);
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Drag, 10, 0));
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, 10, 0));
+        assert_eq!(
+            runtime.app().state.selection,
+            Some((CellPos::new(0, 4), CellPos::new(0, 13)))
+        );
+        assert_eq!(copy_from_viewport(&mut runtime), "two three");
+
+        let mut shrunk = SelectionViewportApp::new(vec![ViewportLine::Plain("alpha beta")]);
+        shrunk.area = Rect::new(0, 0, 16, 4);
+        let mut runtime = selection_runtime(shrunk);
+        deliver_click_count(&mut runtime, 1, 3, 0);
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, 3, 0));
+        assert_eq!(
+            runtime.app().state.selection,
+            Some((CellPos::new(0, 0), CellPos::new(0, 5)))
+        );
+        runtime.app_mut().lines[0] = ViewportLine::Plain("abc");
+        runtime.app_mut().state.invalidate();
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Drag, 2, 0));
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, 2, 0));
+        assert_eq!(
+            runtime.app().state.selection,
+            Some((CellPos::new(0, 0), CellPos::new(0, 3)))
+        );
+        assert_eq!(copy_from_viewport(&mut runtime), "abc");
+    }
+
+    #[test]
+    fn clearing_source_while_pointer_is_down_discards_its_anchor() {
+        let mut app = SelectionViewportApp::new(vec![ViewportLine::Plain("alpha beta")]);
+        app.area = Rect::new(0, 0, 16, 4);
+        let mut runtime = selection_runtime(app);
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, 3, 0));
+        assert_eq!(runtime.app().state.anchor, Some(CellPos::new(0, 2)));
+
+        runtime.app_mut().lines.clear();
+        runtime.app_mut().state.invalidate();
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, 3, 0));
+        assert_eq!(runtime.app().state.anchor, None);
+        assert_eq!(runtime.app().state.pointer_gesture, PointerGesture::Idle);
+        assert_eq!(runtime.app().state.selection(), None);
+
+        runtime.app_mut().lines = vec![ViewportLine::Plain("new words")];
+        runtime.app_mut().state.invalidate();
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_mouse(MouseKind::Down, 5, 0, KeyModifiers::SHIFT),
+        );
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, 5, 0));
+        assert_eq!(runtime.app().state.selection(), None);
+    }
+
+    #[test]
+    fn shift_pointer_click_extends_oriented_collapsed_and_reverse_selections() {
+        let cases = [
+            (
+                (CellPos::new(0, 5), CellPos::new(0, 10)),
+                17usize,
+                (CellPos::new(0, 5), CellPos::new(0, 17)),
+                (CellPos::new(0, 5), CellPos::new(0, 16)),
+            ),
+            (
+                (CellPos::new(0, 16), CellPos::new(0, 11)),
+                2usize,
+                (CellPos::new(0, 16), CellPos::new(0, 2)),
+                (CellPos::new(0, 16), CellPos::new(0, 1)),
+            ),
+            (
+                (CellPos::new(0, 5), CellPos::new(0, 5)),
+                8usize,
+                (CellPos::new(0, 5), CellPos::new(0, 8)),
+                (CellPos::new(0, 5), CellPos::new(0, 7)),
+            ),
+        ];
+
+        for (initial, target_col, expected, after_keyboard) in cases {
+            let mut app =
+                SelectionViewportApp::new(vec![ViewportLine::Plain("zero alpha beta omega")]);
+            app.area = Rect::new(0, 0, 24, 4);
+            app.click_selects_word = true;
+            app.state.select(initial.0, initial.1);
+            app.state.set_caret(Some(CellPos::new(0, 3)));
+            let mut runtime = selection_runtime(app);
+
+            let _ = crate::runtime::stub::deliver(
+                &mut runtime,
+                selection_mouse(
+                    MouseKind::Down,
+                    u16::try_from(target_col.saturating_add(1)).expect("test coordinate fits"),
+                    0,
+                    KeyModifiers::SHIFT,
+                ),
+            );
+            let _ = crate::runtime::stub::deliver(
+                &mut runtime,
+                mouse(
+                    MouseKind::Up,
+                    u16::try_from(target_col.saturating_add(1)).expect("test coordinate fits"),
+                    0,
+                ),
+            );
+            assert_eq!(runtime.app().state.selection, Some(expected));
+            assert_eq!(runtime.app().state.caret(), Some(CellPos::new(0, 3)));
+
+            let _ = crate::runtime::stub::deliver(
+                &mut runtime,
+                selection_key(KeyCode::Left, KeyModifiers::SHIFT),
+            );
+            assert_eq!(runtime.app().state.selection, Some(after_keyboard));
+        }
+    }
+
+    #[test]
+    fn shift_click_without_selection_ignores_caret_and_a_prior_plain_press() {
+        let line = ViewportLine::Plain("zero alpha beta omega");
+        for starts_selected in [false, true] {
+            let mut app = SelectionViewportApp::new(vec![line]);
+            app.area = Rect::new(0, 0, 24, 4);
+            app.click_selects_word = !starts_selected;
+            app.state.set_caret(Some(CellPos::new(0, 2)));
+            if starts_selected {
+                app.state.select(CellPos::new(0, 1), CellPos::new(0, 5));
+            }
+            let mut runtime = selection_runtime(app);
+            if starts_selected {
+                let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, 8, 0));
+                let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, 8, 0));
+            }
+
+            let _ = crate::runtime::stub::deliver(
+                &mut runtime,
+                selection_mouse(MouseKind::Down, 12, 0, KeyModifiers::SHIFT),
+            );
+            let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, 12, 0));
+            assert_eq!(runtime.app().state.selection(), None);
+            assert_eq!(runtime.app().state.browse, None);
+
+            let _ = crate::runtime::stub::deliver(
+                &mut runtime,
+                selection_key(KeyCode::Left, KeyModifiers::SHIFT),
+            );
+            assert_eq!(
+                runtime.app().state.selection,
+                Some((CellPos::new(0, 21), CellPos::new(0, 20))),
+                "Shift-click without an oriented anchor must use the visible-line fallback, not caret or stale press"
+            );
+            assert_eq!(runtime.app().state.caret(), Some(CellPos::new(0, 2)));
+        }
+    }
+
+    #[test]
+    fn pointer_click_count_resets_after_time_slop_owner_and_part_changes() {
+        let mut timed = SelectionViewportApp::new(vec![ViewportLine::Plain("alpha beta gamma")]);
+        timed.area = Rect::new(0, 0, 24, 4);
+        let mut runtime = selection_runtime(timed);
+        deliver_click_count(&mut runtime, 1, 3, 0);
+        runtime.advance_clock(5_000);
+        deliver_click_count(&mut runtime, 1, 3, 0);
+        assert_eq!(
+            runtime.app().state.selection(),
+            None,
+            "elapsed time must reset the click count"
+        );
+
+        let mut slop = SelectionViewportApp::new(vec![ViewportLine::Plain("alpha beta gamma")]);
+        slop.area = Rect::new(0, 0, 24, 4);
+        let mut runtime = selection_runtime(slop);
+        runtime.set_pointer_click_slop(0);
+        deliver_click_count(&mut runtime, 1, 3, 0);
+        deliver_click_count(&mut runtime, 1, 4, 0);
+        assert_eq!(
+            runtime.app().state.selection(),
+            None,
+            "click slop must be measured against the same point"
+        );
+
+        let mut owner = SelectionViewportApp::new(vec![ViewportLine::Plain("alpha beta gamma")]);
+        owner.area = Rect::new(0, 0, 24, 4);
+        owner.other_pointer = true;
+        let mut runtime = selection_runtime(owner);
+        deliver_click_count(&mut runtime, 1, 3, 0);
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, 30, 0));
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, 30, 0));
+        deliver_click_count(&mut runtime, 1, 3, 0);
+        assert_eq!(
+            runtime.app().state.selection(),
+            None,
+            "changing pointer owner must reset the count"
+        );
+
+        let mut part = SelectionViewportApp::new(vec![ViewportLine::Plain("alpha beta gamma"); 20]);
+        part.area = Rect::new(0, 0, 12, 5);
+        let mut runtime = selection_runtime(part);
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        assert!(
+            runtime
+                .area_of_part(SELECTION_ID, PartRef::of(Part::TRACK))
+                .is_some(),
+            "the overflowing viewport must register its vertical track"
+        );
+        deliver_click_count(&mut runtime, 1, 3, 0);
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, 11, 0));
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, 11, 0));
+        deliver_click_count(&mut runtime, 1, 3, 0);
+        assert_eq!(
+            runtime.app().state.selection(),
+            None,
+            "changing part must reset the count"
+        );
+    }
+
+    #[test]
+    fn pointer_selection_copy_preserves_styled_unicode_and_viewport_offsets() {
+        let spans = [
+            Span::new("e").modifier(Modifier::BOLD),
+            Span::new("\u{301} ").modifier(Modifier::ITALIC),
+            Span::new("界").role(Role::Success),
+            Span::new(" "),
+            Span::new("👩").modifier(Modifier::BOLD),
+            Span::new("\u{200d}💻 ").modifier(Modifier::ITALIC),
+            Span::new("🇺").role(Role::Info),
+            Span::new("🇸 alpha").role(Role::Warning),
+        ];
+        let line_text = "e\u{301} 界 👩\u{200d}💻 🇺🇸 alpha";
+        let mut app = SelectionViewportApp::new(vec![ViewportLine::Spans(&spans)]);
+        app.area = Rect::new(0, 0, 24, 4);
+        let mut runtime = selection_runtime(app);
+        deliver_click_count(&mut runtime, 2, 3, 0);
+        assert_eq!(
+            runtime.app().state.selection,
+            Some((CellPos::new(0, 2), CellPos::new(0, 4))),
+            "double click must map a CJK word through styled grapheme runs and the gutter"
+        );
+        assert_eq!(copy_from_viewport(&mut runtime), "界");
+
+        let mut runtime =
+            selection_runtime(SelectionViewportApp::new(vec![ViewportLine::Spans(&spans)]));
+        deliver_click_count(&mut runtime, 3, 3, 0);
+        assert_eq!(
+            runtime.app().state.selection,
+            Some((
+                CellPos::new(0, 0),
+                CellPos::new(0, line_cols(ViewportLine::Spans(&spans)))
+            )),
+            "triple click selects the logical line, not the painted gutter"
+        );
+        assert_eq!(copy_from_viewport(&mut runtime), line_text);
+
+        let mut panned =
+            SelectionViewportApp::new(vec![ViewportLine::Plain("alpha beta gamma delta")]);
+        panned.area = Rect::new(0, 0, 12, 4);
+        panned.pan = true;
+        panned.state.horizontal.set_content(22);
+        panned.state.horizontal.set_viewport(10);
+        panned.state.horizontal.scroll_to(4);
+        let mut runtime = selection_runtime(panned);
+        deliver_click_count(&mut runtime, 2, 1, 0);
+        assert_eq!(
+            runtime.app().state.selection,
+            Some((CellPos::new(0, 0), CellPos::new(0, 5))),
+            "word mapping must include the horizontal content offset"
+        );
+        assert_eq!(copy_from_viewport(&mut runtime), "alpha");
     }
 
     #[test]
