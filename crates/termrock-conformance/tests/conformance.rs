@@ -2496,14 +2496,15 @@ impl Conformance for CodeEditorCase {
     }
 
     fn binding_states() -> &'static [BindingState] {
-        // The editor enters its editing state on focus, so the table it
-        // publishes while it is focused is the editing table. The
-        // navigation table belongs to the pre-focus state and is never
-        // live under the harness.
-        const STATES: &[BindingState] = &[BindingState {
-            flags: StateFlags::EDITING,
-        }];
-        STATES
+        static STATES: std::sync::OnceLock<[BindingState; 1]> = std::sync::OnceLock::new();
+        // CodeEditor's default Immediate edit policy enters editing as soon as
+        // the conformance harness focuses it, so the published table to audit
+        // here is the live focused editing table, not a nav-mode table.
+        STATES.get_or_init(|| {
+            [BindingState {
+                flags: StateFlags::FOCUSED | StateFlags::EDITING,
+            }]
+        })
     }
 
     fn mono_setup_chords(state: StateFlags) -> &'static [Chord] {
