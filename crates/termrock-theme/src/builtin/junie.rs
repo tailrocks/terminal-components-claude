@@ -40,7 +40,9 @@ const RED: Color = Color::from_u32(0xf0_5d_5d);
 /// TablePro SQL diagnostics. Frozen source paints this rose.
 const DIAGNOSTIC_ERROR: Color = Color::from_u32(0xf0_5d_5d);
 const RED_20: Color = Color::from_u32(0x2e_0f_0f);
-const RED_SOFT: Color = Color::from_u32(0xd9_8a_8a);
+/// Frozen source 4169783 sets RED_SOFT to 0xe8a0a0 (`src/theme.rs:531`,
+/// mapped to `error_soft` at `:747`).
+const RED_SOFT: Color = Color::from_u32(0xe8_a0_a0);
 const RED_45: Color = Color::from_u32(0x7a_2a_2a);
 const AMBER: Color = Color::from_u32(0xf5_9e_09);
 const AMBER_TINT: Color = Color::from_u32(0x2c_22_10);
