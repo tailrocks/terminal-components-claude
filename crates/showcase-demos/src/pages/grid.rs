@@ -1102,6 +1102,7 @@ impl Page for GridPage {
     }
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
         frame(ui, area, self.title(), "", |ui, body| {
+            metrics().draw(ui, body, &self.state, &MetricModel);
             paint_blurb(ui, body);
             paint_section_strip(
                 ui,
