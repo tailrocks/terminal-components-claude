@@ -25,7 +25,7 @@ use crate::action::ActionKey;
 use crate::cursor::CursorRequest;
 use crate::diagnostics::{Diagnostic, Diagnostics};
 use crate::focus::{FocusEntry, FocusRing, Focusability, ScopeId, ScopeMode};
-use crate::hit::{Axes, Headroom, Registry};
+use crate::hit::{Axes, Headroom, Registry, TextDragRegistration};
 use crate::id::{Id, Part, PartRef};
 use crate::keymap::{
     Binding, BindingDescriptor, BindingExtensionError, BindingRegistry, DynamicBindingRegistry,
@@ -1057,6 +1057,39 @@ impl<'f> Ui<'f> {
         self.frame
             .registry
             .register_part(owner, part, area.intersection(self.clip), self.layer);
+    }
+
+    /// Register a text body for captured pointer-drag autoscroll.
+    ///
+    /// The area is clipped and accepted only when the same owner and part have
+    /// an enabled `Part` registration in this frame. Vertical autoscroll is
+    /// required. Horizontal autoscroll is enabled only when `axes` includes
+    /// [`Axes::H`]. `headroom` prevents scheduling movement past a content edge;
+    /// `source_revision` lets a widget restart the interval when its mapping
+    /// changes without changing the visible body geometry.
+    pub fn register_text_drag_autoscroll(
+        &mut self,
+        owner: Id,
+        part: PartRef,
+        area: Rect,
+        axes: Axes,
+        headroom: Headroom,
+        source_revision: u32,
+    ) {
+        if self.registrations_suppressed() {
+            return;
+        }
+        self.frame
+            .registry
+            .register_text_drag_autoscroll(TextDragRegistration {
+                owner,
+                part,
+                area: area.intersection(self.clip),
+                layer: self.layer,
+                axes,
+                headroom,
+                source_revision,
+            });
     }
 
     /// Register a clipped region that participates in live hover only.

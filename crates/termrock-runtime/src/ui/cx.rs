@@ -193,6 +193,7 @@ pub struct FrameServices {
     pub(crate) clipboard: crate::runtime::clipboard::Clipboard,
     pub(crate) pointer_press_count: Option<(Id, PartRef, u8)>,
     pub(crate) reset_pointer_clicks: bool,
+    pub(crate) text_drag_cancellations: Vec<(Id, PartRef)>,
 }
 
 pub struct Cx<'f> {
@@ -504,6 +505,20 @@ impl<'f> Cx<'f> {
 
     pub fn release_capture(&mut self) {
         self.services.capture.release();
+    }
+
+    /// Cancel held text-drag autoscroll for this exact captured owner and part.
+    ///
+    /// The physical pointer capture remains active. A fresh pointer press may
+    /// register a new autoscroll gesture.
+    pub fn cancel_text_drag_autoscroll(&mut self, owner: Id, part: PartRef) {
+        if !self
+            .services
+            .text_drag_cancellations
+            .contains(&(owner, part))
+        {
+            self.services.text_drag_cancellations.push((owner, part));
+        }
     }
 
     pub fn capture_origin(&self) -> Option<Position> {

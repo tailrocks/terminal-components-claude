@@ -73,6 +73,66 @@ pub struct Region {
     pass_through: bool,
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub(crate) struct TextDragRegistration {
+    pub(crate) owner: Id,
+    pub(crate) part: PartRef,
+    pub(crate) area: Rect,
+    pub(crate) layer: LayerId,
+    pub(crate) axes: Axes,
+    pub(crate) headroom: Headroom,
+    pub(crate) source_revision: u32,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub(crate) struct TextDragRegion {
+    owner: Id,
+    part: PartRef,
+    area: Rect,
+    layer: LayerId,
+    generation: u32,
+    axes: Axes,
+    headroom: Headroom,
+    source_revision: u32,
+}
+
+impl TextDragRegion {
+    pub(crate) const fn owner(self) -> Id {
+        self.owner
+    }
+
+    pub(crate) const fn part(self) -> PartRef {
+        self.part
+    }
+
+    pub(crate) const fn area(self) -> Rect {
+        self.area
+    }
+
+    pub(crate) const fn layer(self) -> LayerId {
+        self.layer
+    }
+
+    pub(crate) const fn generation(self) -> u32 {
+        self.generation
+    }
+
+    pub(crate) const fn axes(self) -> Axes {
+        self.axes
+    }
+
+    pub(crate) const fn source_revision(self) -> u32 {
+        self.source_revision
+    }
+
+    pub(crate) const fn can_scroll_at(self, pos: Position) -> bool {
+        (pos.y < self.area.y && self.headroom.up > 0)
+            || (pos.y >= self.area.bottom() && self.headroom.down > 0)
+            || (self.axes.handles(Axis::H) && pos.x < self.area.x && self.headroom.left > 0)
+            || (self.axes.handles(Axis::H) && pos.x >= self.area.right() && self.headroom.right > 0)
+    }
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 enum ScrollRouting {
     #[default]
@@ -119,6 +179,7 @@ impl Region {
 #[derive(Clone, Debug)]
 pub struct Registry {
     regions: Vec<Region>,
+    text_drag_regions: Vec<TextDragRegion>,
     generation: u32,
     has_pointer_exclusions: bool,
     bars: Vec<Bar>,
@@ -135,6 +196,7 @@ impl Registry {
     pub fn new(generation: u32) -> Self {
         Registry {
             regions: Vec::new(),
+            text_drag_regions: Vec::new(),
             generation,
             has_pointer_exclusions: false,
             bars: Vec::new(),
@@ -144,6 +206,7 @@ impl Registry {
 
     pub(crate) fn reset(&mut self, generation: u32) {
         self.regions.clear();
+        self.text_drag_regions.clear();
         self.generation = generation;
         self.has_pointer_exclusions = false;
         self.bars.clear();
@@ -274,6 +337,60 @@ impl Registry {
         if let Some(region) = self.regions.last_mut() {
             region.scroll_routing = ScrollRouting::PassiveReveal;
         }
+    }
+
+    pub(crate) fn register_text_drag_autoscroll(&mut self, registration: TextDragRegistration) {
+        let TextDragRegistration {
+            owner,
+            part,
+            area,
+            layer,
+            axes,
+            headroom,
+            source_revision,
+        } = registration;
+        if area.is_empty() || !axes.handles(Axis::V) {
+            return;
+        }
+        let is_registered_text_part = self.regions.iter().rev().any(|region| {
+            region.owner == owner
+                && region.part == part
+                && region.area == area
+                && region.layer == layer
+                && region.kind == RegionKind::Part
+                && region.pointer_enabled
+        });
+        if !is_registered_text_part {
+            return;
+        }
+        self.text_drag_regions.push(TextDragRegion {
+            owner,
+            part,
+            area,
+            layer,
+            generation: self.generation,
+            axes,
+            headroom,
+            source_revision,
+        });
+    }
+
+    pub(crate) fn text_drag_region(
+        &self,
+        owner: Id,
+        part: PartRef,
+        layer: LayerId,
+    ) -> Option<TextDragRegion> {
+        self.text_drag_regions
+            .iter()
+            .rev()
+            .find(|region| {
+                region.owner == owner
+                    && region.part == part
+                    && region.layer == layer
+                    && region.generation == self.generation
+            })
+            .copied()
     }
 
     fn push(

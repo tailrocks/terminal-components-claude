@@ -1204,6 +1204,16 @@ enum PointerGesture {
 }
 
 impl PointerGesture {
+    const fn allows_autoscroll(self) -> bool {
+        matches!(
+            self,
+            PointerGesture::Plain { .. }
+                | PointerGesture::Word { .. }
+                | PointerGesture::Shift { .. }
+                | PointerGesture::Line { .. }
+        )
+    }
+
     const fn dragged(self) -> bool {
         matches!(
             self,
@@ -1800,6 +1810,9 @@ impl<'a> TextViewport<'a> {
         if lines.is_empty() {
             st.anchor = None;
             st.pointer_gesture = PointerGesture::Idle;
+            if cx.capture_owner() == Some(self.id) {
+                cx.release_capture();
+            }
         }
         let layout = cx.layout(self.id);
         let area = layout
@@ -1876,6 +1889,7 @@ impl<'a> TextViewport<'a> {
         let mut selection_moved = false;
         let bar = self.bar();
         let track_len = bar.prepare(cx, &mut st.scroll, total);
+        let mut edge_drag_scrolled = false;
         for it in cx.intents(self.id) {
             let horizontal_wheel = matches!(it, Intent::Wheel { axis: Axis::H, .. });
             if !horizontal_wheel || !self.pan_active() {
@@ -1893,7 +1907,7 @@ impl<'a> TextViewport<'a> {
                     } else if let Some(cmd) = Binding::command(SELECTION_BINDINGS, action)
                         .or_else(|| Binding::command(SELECTION_CLEAR_BINDINGS, action))
                     {
-                        selection_moved |= self.selection_command(
+                        let moved = self.selection_command(
                             cx,
                             st,
                             lines,
@@ -1904,6 +1918,12 @@ impl<'a> TextViewport<'a> {
                             cmd,
                             &mut acc,
                         );
+                        selection_moved |= moved;
+                        if moved && cx.capture_owner() == Some(self.id) {
+                            cx.cancel_text_drag_autoscroll(self.id, PartRef::of(Part::TEXT));
+                            st.anchor = None;
+                            st.pointer_gesture = PointerGesture::SuppressClick;
+                        }
                     }
                 }
                 Intent::Wheel {
@@ -1947,6 +1967,7 @@ impl<'a> TextViewport<'a> {
                     mods,
                     ..
                 } if part.part == Part::TEXT => {
+                    let scroll_before_pointer = st.scroll.offset();
                     self.handle_text_pointer(
                         cx,
                         st,
@@ -1955,11 +1976,13 @@ impl<'a> TextViewport<'a> {
                         (phase, part, pos, mods),
                         &mut acc,
                     );
+                    edge_drag_scrolled |=
+                        phase == Phase::Drag && st.scroll.offset() != scroll_before_pointer;
                 }
                 _ => {}
             }
         }
-        if !selection_moved {
+        if !selection_moved && !edge_drag_scrolled {
             if st.scroll.offset() != before {
                 st.follow = if st.scroll.at_end() {
                     FollowCursor::Always
@@ -2229,7 +2252,7 @@ impl<'a> TextViewport<'a> {
         pointer: (Phase, PartRef, Position, KeyModifiers),
         acc: &mut Acc<ViewportAction>,
     ) {
-        let (area, logical_text, hit_text, key, mut horizontal_offset) = geometry;
+        let (_area, logical_text, hit_text, key, mut horizontal_offset) = geometry;
         let (phase, part, pos, mods) = pointer;
         let selection_before = st.selection;
         st.reconcile_text_positions(lines);
@@ -2315,16 +2338,21 @@ impl<'a> TextViewport<'a> {
                         acc.changed();
                     }
                 }
-                if pos.y < area.y {
-                    st.scroll.scroll_by(-1);
-                    st.follow = FollowCursor::OnMove;
-                } else if pos.y >= area.bottom() {
-                    st.scroll.scroll_by(1);
-                    st.follow = if st.scroll.at_end() {
-                        FollowCursor::Always
-                    } else {
-                        FollowCursor::OnMove
-                    };
+                let vertical_delta = if !hit_text.is_empty() && pos.y < hit_text.y {
+                    -isize::try_from(hit_text.y - pos.y).unwrap_or(isize::MAX)
+                } else if !hit_text.is_empty() && pos.y >= hit_text.bottom() {
+                    isize::try_from(pos.y.saturating_add(1).saturating_sub(hit_text.bottom()))
+                        .unwrap_or(isize::MAX)
+                } else {
+                    0
+                };
+                if vertical_delta != 0 {
+                    let before = st.scroll.offset();
+                    st.scroll.scroll_by(vertical_delta);
+                    if st.scroll.offset() != before {
+                        st.follow = FollowCursor::OnMove;
+                        acc.changed();
+                    }
                 }
                 let clamped = if hit_text.is_empty() {
                     pos
@@ -2644,6 +2672,36 @@ impl<'a> TextViewport<'a> {
             return text;
         }
         ui.register_part(id, PartRef::of(Part::TEXT), text);
+        let vertical_headroom = view.headroom_v();
+        let horizontal_headroom = horizontal.headroom_v();
+        let drag_axes = if self.pan_active() && dimensions.horizontal_overflow {
+            Axes::Both
+        } else {
+            Axes::V
+        };
+        if st.pointer_gesture.allows_autoscroll() {
+            ui.register_text_drag_autoscroll(
+                id,
+                PartRef::of(Part::TEXT),
+                text,
+                drag_axes,
+                Headroom {
+                    up: vertical_headroom.up,
+                    down: vertical_headroom.down,
+                    left: if drag_axes.handles(Axis::H) {
+                        horizontal_headroom.up
+                    } else {
+                        0
+                    },
+                    right: if drag_axes.handles(Axis::H) {
+                        horizontal_headroom.down
+                    } else {
+                        0
+                    },
+                },
+                st.generation,
+            );
+        }
         let base = ov.style(ui, id, Family::VIEWPORT, Variant::DEFAULT, Part::TEXT, live);
         let selected = ov.style(
             ui,
@@ -3135,8 +3193,9 @@ mod tests {
 
     use super::*;
     use crate::event::{Axis, MouseKind};
+    use crate::intent::FocusVia;
     use crate::runtime::stub::{SCREEN, Stub, key, mouse};
-    use crate::runtime::{App, Runtime};
+    use crate::runtime::{App, Runtime, UpdateCause};
     use crate::theme::{ColorLevel, Surface, Theme};
     use crate::{ReferenceState, ReferenceTarget};
     use termrock_runtime::LayerSpec;
@@ -3150,6 +3209,13 @@ mod tests {
     const MANY_LINES: [ViewportLine<'static>; 100] = [ViewportLine::Plain("row"); 100];
     const LONG_LINES: [ViewportLine<'static>; 100] =
         [ViewportLine::Plain("012345678901234567890123456789"); 100];
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    enum ModalControlEvent {
+        FocusIn(FocusVia),
+        FocusOut(Option<Id>),
+        Key(KeyCode),
+    }
 
     struct SelectionViewportApp<'a> {
         state: ViewportState,
@@ -3165,6 +3231,17 @@ mod tests {
         other_pointer_state: ViewportState,
         modal_open: bool,
         reference_only: bool,
+        show_viewport: bool,
+        request_repaint_after_ms: Option<u64>,
+        cancel_drag_autoscroll: Option<(Id, PartRef)>,
+        update_causes: Vec<UpdateCause>,
+        drag_events: Vec<(UpdateCause, PartRef, Position, KeyModifiers, Option<u8>)>,
+        modal_layer_receipts: Vec<(termrock_runtime::LayerOpening, termrock_runtime::LayerEvent)>,
+        modal_owner_events: Vec<termrock_runtime::LayerEvent>,
+        selection_focus_outs: Vec<Option<Id>>,
+        modal_control_events: Vec<ModalControlEvent>,
+        unhandled_selection_intents: Vec<&'static str>,
+        unhandled_modal_control_intents: Vec<&'static str>,
     }
 
     impl<'a> SelectionViewportApp<'a> {
@@ -3185,6 +3262,17 @@ mod tests {
                 other_pointer_state: ViewportState::default(),
                 modal_open: false,
                 reference_only: false,
+                show_viewport: true,
+                request_repaint_after_ms: None,
+                cancel_drag_autoscroll: None,
+                update_causes: Vec::new(),
+                drag_events: Vec::new(),
+                modal_layer_receipts: Vec::new(),
+                modal_owner_events: Vec::new(),
+                selection_focus_outs: Vec::new(),
+                modal_control_events: Vec::new(),
+                unhandled_selection_intents: Vec::new(),
+                unhandled_modal_control_intents: Vec::new(),
             }
         }
 
@@ -3198,13 +3286,92 @@ mod tests {
 
     impl App for SelectionViewportApp<'_> {
         fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            let cause = cx.update_cause();
+            self.update_causes.push(cause);
+            if let Some(ms) = self.request_repaint_after_ms.take() {
+                cx.request_repaint_after(core::time::Duration::from_millis(ms));
+            }
+            if let Some((owner, part)) = self.cancel_drag_autoscroll.take() {
+                cx.cancel_text_drag_autoscroll(owner, part);
+            }
+            while let Some(receipt) = cx.take_layer_intent_receipt(MODAL_LAYER) {
+                self.modal_layer_receipts
+                    .push((receipt.opening(), receipt.event()));
+            }
+            for intent in cx.intents(SELECTION_ID) {
+                match intent {
+                    Intent::Pointer {
+                        phase: Phase::Drag,
+                        part,
+                        pos,
+                        mods,
+                        ..
+                    } => self.drag_events.push((
+                        cause,
+                        part,
+                        pos,
+                        mods,
+                        cx.pointer_press_count(SELECTION_ID, part),
+                    )),
+                    Intent::Pointer { .. } | Intent::Binding(_) | Intent::Key(_) => {}
+                    Intent::FocusIn { .. } => {}
+                    Intent::FocusOut { to } if self.modal_open && to == Some(MODAL_CONTROL) => {
+                        self.selection_focus_outs.push(to);
+                    }
+                    Intent::Layer(event)
+                        if self.modal_layer_receipts.iter().any(|(opening, received)| {
+                            opening.owner() == SELECTION_ID && *received == event
+                        }) =>
+                    {
+                        self.modal_owner_events.push(event);
+                    }
+                    Intent::FocusOut { .. }
+                    | Intent::Paste(_)
+                    | Intent::Wheel { .. }
+                    | Intent::Layer(_)
+                    | Intent::Cancel => self.unhandled_selection_intents.push(match intent {
+                        Intent::FocusOut { .. } => "FocusOut",
+                        Intent::Paste(_) => "Paste",
+                        Intent::Wheel { .. } => "Wheel",
+                        Intent::Layer(_) => "unmatched Layer event",
+                        Intent::Cancel => "Cancel",
+                        _ => unreachable!("the outer match selected this intent"),
+                    }),
+                    _ => self
+                        .unhandled_selection_intents
+                        .push("other selection intent"),
+                }
+            }
+            for intent in cx.intents(MODAL_CONTROL) {
+                match intent {
+                    Intent::FocusIn { via } => {
+                        self.modal_control_events
+                            .push(ModalControlEvent::FocusIn(via));
+                    }
+                    Intent::FocusOut { to } => {
+                        self.modal_control_events
+                            .push(ModalControlEvent::FocusOut(to));
+                    }
+                    Intent::Key(key) => {
+                        self.modal_control_events
+                            .push(ModalControlEvent::Key(key.code));
+                    }
+                    _ => self
+                        .unhandled_modal_control_intents
+                        .push("unexpected modal-control intent"),
+                }
+            }
             if self.modal_open {
                 cx.open_layer(
                     MODAL_LAYER,
                     LayerSpec::modal(SELECTION_ID).initial_focus(MODAL_CONTROL),
                 );
             }
-            let response = self.viewport().update(cx, &mut self.state, &self.lines);
+            let response = if self.show_viewport {
+                self.viewport().update(cx, &mut self.state, &self.lines)
+            } else {
+                Response::ignored()
+            };
             if self.other_pointer {
                 let _ = TextViewport::new(OTHER_ID).update(
                     cx,
@@ -3219,7 +3386,9 @@ mod tests {
         }
 
         fn draw(&self, ui: &mut Ui<'_>) {
-            if self.reference_only {
+            if !self.show_viewport {
+                // The owner is intentionally absent from this registry frame.
+            } else if self.reference_only {
                 ui.reference(
                     Some(ReferenceTarget::new(SELECTION_ID, ReferenceState::FOCUSED)),
                     |ui| {
@@ -3291,6 +3460,582 @@ mod tests {
             Some(ViewportAction::Copy(text)) => text.clone(),
             other => panic!("copy action was not produced: {other:?}"),
         }
+    }
+
+    #[test]
+    fn captured_text_drag_autoscroll_replays_once_after_fifty_milliseconds() {
+        let mut app = SelectionViewportApp::new(MANY_LINES.to_vec());
+        app.area = Rect::new(2, 2, 12, 5);
+        app.state.set_caret(Some(CellPos::new(0, 1)));
+        let mut runtime = selection_runtime(app);
+
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_mouse(MouseKind::Down, 5, 3, KeyModifiers::NONE),
+        );
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_mouse(MouseKind::Drag, 5, 9, KeyModifiers::SHIFT),
+        );
+
+        assert_eq!(runtime.capture_owner(), Some(SELECTION_ID));
+        let before_replay = runtime.app().state.scroll().offset();
+        assert_eq!(before_replay, 3, "edge movement follows outside distance");
+        let deadline = runtime.next_deadline();
+        assert_eq!(deadline, Some(crate::runtime::Moment::from_millis(50)));
+
+        runtime
+            .advance_to(crate::runtime::Moment::from_millis(49))
+            .expect("the simulated clock is monotonic");
+        assert!(
+            !runtime.needs_settle(),
+            "49 ms is before the replay deadline"
+        );
+        assert_eq!(runtime.app().state.scroll().offset(), before_replay);
+        runtime.app_mut().state.set_follow(true);
+
+        runtime
+            .advance_to(crate::runtime::Moment::from_millis(50))
+            .expect("the simulated clock reaches the replay deadline");
+        assert!(
+            runtime.needs_settle(),
+            "the due replay schedules one runtime tick"
+        );
+        runtime.app_mut().update_causes.clear();
+        runtime.app_mut().drag_events.clear();
+        let _ = runtime.settle();
+
+        assert!(
+            runtime.app().state.scroll().offset() > before_replay,
+            "a stationary pointer continues the captured selection drag"
+        );
+        assert!(runtime.app().state.selection().is_some());
+        assert_eq!(runtime.app().state.caret(), Some(CellPos::new(0, 1)));
+        assert!(
+            !runtime.app().state.follow(),
+            "edge selection pauses follow mode"
+        );
+        assert_eq!(runtime.focus(), Some(SELECTION_ID));
+        assert_eq!(runtime.capture_owner(), Some(SELECTION_ID));
+        assert_eq!(runtime.app().update_causes, [UpdateCause::Tick]);
+        assert_eq!(runtime.app().drag_events.len(), 1);
+        assert_eq!(
+            runtime.app().drag_events[0],
+            (
+                UpdateCause::Tick,
+                PartRef::of(Part::TEXT),
+                Position::new(5, 9),
+                KeyModifiers::SHIFT,
+                Some(1),
+            ),
+            "replay preserves pointer, modifiers, and press count"
+        );
+        assert_eq!(
+            runtime.next_deadline(),
+            Some(crate::runtime::Moment::from_millis(100)),
+            "the next replay is based on the actual tick time, with no catch-up burst"
+        );
+        assert!(runtime.diagnostics().is_empty());
+
+        let offset_after_replay = runtime.app().state.scroll().offset();
+        let _ = runtime.settle();
+        assert_eq!(runtime.app().state.scroll().offset(), offset_after_replay);
+        assert_eq!(runtime.app().update_causes, [UpdateCause::Tick]);
+        assert_eq!(
+            runtime.app().drag_events.len(),
+            1,
+            "settle cannot replay twice"
+        );
+
+        let copied = copy_from_viewport(&mut runtime);
+        assert!(
+            copied.lines().count() > 1,
+            "copy follows the replayed selection"
+        );
+    }
+
+    #[test]
+    fn held_text_drag_replays_once_per_due_tick_with_competing_deadlines() {
+        let mut app = SelectionViewportApp::new(MANY_LINES.to_vec());
+        app.area = Rect::new(2, 2, 12, 5);
+        let mut runtime = selection_runtime(app);
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_mouse(MouseKind::Down, 5, 3, KeyModifiers::NONE),
+        );
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_mouse(MouseKind::Drag, 5, 9, KeyModifiers::SHIFT),
+        );
+        runtime.app_mut().request_repaint_after_ms = Some(25);
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_key(KeyCode::Char('q'), KeyModifiers::NONE),
+        );
+
+        runtime.app_mut().update_causes.clear();
+        runtime.app_mut().drag_events.clear();
+        assert_eq!(
+            runtime.next_deadline(),
+            Some(crate::runtime::Moment::from_millis(25))
+        );
+        runtime
+            .advance_to(crate::runtime::Moment::from_millis(25))
+            .expect("the simulated clock is monotonic");
+        let _ = runtime.settle();
+        assert_eq!(runtime.app().update_causes, [UpdateCause::Tick]);
+        assert!(runtime.app().drag_events.is_empty());
+        assert_eq!(
+            runtime.next_deadline(),
+            Some(crate::runtime::Moment::from_millis(50))
+        );
+
+        runtime.app_mut().update_causes.clear();
+        runtime
+            .advance_to(crate::runtime::Moment::from_millis(250))
+            .expect("the simulated clock is monotonic");
+        let _ = runtime.settle();
+        assert_eq!(runtime.app().update_causes, [UpdateCause::Tick]);
+        assert_eq!(
+            runtime.app().drag_events.len(),
+            1,
+            "a late tick never catches up in a replay storm"
+        );
+        assert_eq!(runtime.app().drag_events[0].0, UpdateCause::Tick);
+        assert_eq!(
+            runtime.next_deadline(),
+            Some(crate::runtime::Moment::from_millis(300))
+        );
+        let offset_after_one_late_replay = runtime.app().state.scroll().offset();
+        let _ = runtime.settle();
+        assert_eq!(
+            runtime.app().state.scroll().offset(),
+            offset_after_one_late_replay
+        );
+        assert_eq!(runtime.app().drag_events.len(), 1);
+        assert!(runtime.diagnostics().is_empty());
+    }
+
+    #[test]
+    fn held_text_drag_reconciles_a_new_source_revision_before_replaying() {
+        let mut app = SelectionViewportApp::new(MANY_LINES.to_vec());
+        app.area = Rect::new(2, 2, 12, 5);
+        let mut runtime = selection_runtime(app);
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_mouse(MouseKind::Down, 5, 3, KeyModifiers::NONE),
+        );
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_mouse(MouseKind::Drag, 5, 9, KeyModifiers::SHIFT),
+        );
+        assert_eq!(
+            runtime.next_deadline(),
+            Some(crate::runtime::Moment::from_millis(50))
+        );
+
+        runtime
+            .advance_to(crate::runtime::Moment::from_millis(20))
+            .unwrap();
+        runtime.app_mut().lines = MANY_LINES
+            .iter()
+            .map(|_| ViewportLine::Plain("new"))
+            .collect();
+        runtime.app_mut().state.invalidate();
+        let area = runtime.screen();
+        let mut buffer = Buffer::empty(area);
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        assert_eq!(
+            runtime.next_deadline(),
+            Some(crate::runtime::Moment::from_millis(70)),
+            "the replacement source registration starts a fresh held-drag interval"
+        );
+
+        let drag_events = runtime.app().drag_events.len();
+        let tick_count = runtime
+            .app()
+            .update_causes
+            .iter()
+            .filter(|cause| **cause == UpdateCause::Tick)
+            .count();
+        runtime
+            .advance_to(crate::runtime::Moment::from_millis(50))
+            .unwrap();
+        assert!(!runtime.needs_settle());
+        let _ = runtime.settle();
+        assert_eq!(runtime.app().drag_events.len(), drag_events);
+        assert_eq!(
+            runtime
+                .app()
+                .update_causes
+                .iter()
+                .filter(|cause| **cause == UpdateCause::Tick)
+                .count(),
+            tick_count
+        );
+
+        runtime
+            .advance_to(crate::runtime::Moment::from_millis(70))
+            .unwrap();
+        let _ = runtime.settle();
+        assert_eq!(runtime.app().drag_events.len(), drag_events + 1);
+        assert_eq!(
+            runtime.app().drag_events.last().unwrap().0,
+            UpdateCause::Tick
+        );
+        assert_eq!(
+            runtime.next_deadline(),
+            Some(crate::runtime::Moment::from_millis(120))
+        );
+        assert!(runtime.diagnostics().is_empty());
+    }
+
+    #[test]
+    fn keyboard_selection_takes_over_and_cancels_held_text_drag() {
+        let mut app = SelectionViewportApp::new(MANY_LINES.to_vec());
+        app.area = Rect::new(2, 2, 12, 5);
+        app.click_selects_word = true;
+        let mut runtime = selection_runtime(app);
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_mouse(MouseKind::Down, 5, 3, KeyModifiers::NONE),
+        );
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_mouse(MouseKind::Drag, 5, 9, KeyModifiers::SHIFT),
+        );
+        assert_eq!(runtime.capture_owner(), Some(SELECTION_ID));
+        assert_eq!(
+            runtime.next_deadline(),
+            Some(crate::runtime::Moment::from_millis(50))
+        );
+        let pointer_selection = runtime.app().state.selection();
+
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_key(KeyCode::Left, KeyModifiers::SHIFT),
+        );
+        assert_ne!(runtime.app().state.selection(), pointer_selection);
+        assert_eq!(runtime.capture_owner(), Some(SELECTION_ID));
+        assert_eq!(runtime.next_deadline(), None);
+        let keyboard_selection = runtime.app().state.selection();
+        let stale_drag = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_mouse(MouseKind::Move, 5, 9, KeyModifiers::SHIFT),
+        );
+        assert!(stale_drag.is_consumed());
+        assert_eq!(runtime.app().state.selection(), keyboard_selection);
+        let drag_events = runtime.app().drag_events.len();
+        runtime
+            .advance_to(crate::runtime::Moment::from_millis(50))
+            .unwrap();
+        assert!(!runtime.needs_settle());
+        let _ = runtime.settle();
+        assert_eq!(runtime.app().drag_events.len(), drag_events);
+        assert_eq!(runtime.capture_owner(), Some(SELECTION_ID));
+        assert!(runtime.diagnostics().is_empty());
+    }
+
+    #[test]
+    fn text_drag_cancellation_is_exact_and_a_fresh_press_rearms_it() {
+        let mut app = SelectionViewportApp::new(MANY_LINES.to_vec());
+        app.area = Rect::new(2, 2, 12, 5);
+        let mut runtime = selection_runtime(app);
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_mouse(MouseKind::Down, 5, 3, KeyModifiers::NONE),
+        );
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_mouse(MouseKind::Drag, 5, 9, KeyModifiers::SHIFT),
+        );
+        let captured_drag_count = runtime.app().drag_events.len();
+        assert_eq!(
+            runtime.next_deadline(),
+            Some(crate::runtime::Moment::from_millis(50))
+        );
+
+        runtime.app_mut().request_repaint_after_ms = Some(25);
+        runtime.app_mut().cancel_drag_autoscroll = Some((OTHER_ID, PartRef::of(Part::TEXT)));
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_key(KeyCode::Char('q'), KeyModifiers::NONE),
+        );
+        assert_eq!(
+            runtime.next_deadline(),
+            Some(crate::runtime::Moment::from_millis(25)),
+            "a wrong owner cannot cancel the gesture or its independent repaint deadline"
+        );
+        assert_eq!(runtime.capture_owner(), Some(SELECTION_ID));
+
+        runtime
+            .advance_to(crate::runtime::Moment::from_millis(25))
+            .unwrap();
+        let _ = runtime.settle();
+        assert_eq!(runtime.app().drag_events.len(), captured_drag_count);
+        assert_eq!(
+            runtime.next_deadline(),
+            Some(crate::runtime::Moment::from_millis(50)),
+            "the exact gesture deadline remains after the unrelated repaint tick"
+        );
+
+        runtime.app_mut().cancel_drag_autoscroll = Some((SELECTION_ID, PartRef::of(Part::TRACK)));
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_key(KeyCode::Char('q'), KeyModifiers::NONE),
+        );
+        assert_eq!(
+            runtime.next_deadline(),
+            Some(crate::runtime::Moment::from_millis(50)),
+            "a wrong part cannot cancel the captured text gesture"
+        );
+
+        let before_keyboard_selection = runtime.app().state.selection();
+        let takeover = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_key(KeyCode::Left, KeyModifiers::SHIFT),
+        );
+        assert!(takeover.is_changed());
+        assert_ne!(runtime.app().state.selection(), before_keyboard_selection);
+        assert_eq!(runtime.capture_owner(), Some(SELECTION_ID));
+        assert_eq!(runtime.next_deadline(), None);
+        let selection_before_stale_move = runtime.app().state.selection();
+        let captured_move = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_mouse(MouseKind::Move, 5, 9, KeyModifiers::SHIFT),
+        );
+        assert!(captured_move.is_consumed());
+        assert_eq!(runtime.capture_owner(), Some(SELECTION_ID));
+        assert_eq!(runtime.app().state.selection(), selection_before_stale_move);
+        let ticks_after_cancel = runtime
+            .app()
+            .update_causes
+            .iter()
+            .filter(|cause| **cause == UpdateCause::Tick)
+            .count();
+        let drags_after_cancel = runtime.app().drag_events.len();
+        runtime
+            .advance_to(crate::runtime::Moment::from_millis(50))
+            .unwrap();
+        assert!(!runtime.needs_settle());
+        let _ = runtime.settle();
+        assert_eq!(runtime.app().drag_events.len(), drags_after_cancel);
+        assert_eq!(
+            runtime
+                .app()
+                .update_causes
+                .iter()
+                .filter(|cause| **cause == UpdateCause::Tick)
+                .count(),
+            ticks_after_cancel
+        );
+
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_mouse(MouseKind::Up, 5, 9, KeyModifiers::SHIFT),
+        );
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_mouse(MouseKind::Down, 5, 3, KeyModifiers::NONE),
+        );
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_mouse(MouseKind::Drag, 5, 9, KeyModifiers::SHIFT),
+        );
+        assert_eq!(
+            runtime.next_deadline(),
+            Some(crate::runtime::Moment::from_millis(100)),
+            "a new press starts a fresh, independently timed drag"
+        );
+        assert!(runtime.diagnostics().is_empty());
+    }
+
+    #[test]
+    fn held_text_drag_cancels_after_release_inside_resize_modal_clear_or_missing_part() {
+        for cancellation in ["release", "inside", "resize", "modal", "clear", "missing"] {
+            let mut app = SelectionViewportApp::new(MANY_LINES.to_vec());
+            app.area = Rect::new(2, 2, 12, 5);
+            let mut runtime = selection_runtime(app);
+            let _ = crate::runtime::stub::deliver(
+                &mut runtime,
+                selection_mouse(MouseKind::Down, 5, 3, KeyModifiers::NONE),
+            );
+            let _ = crate::runtime::stub::deliver(
+                &mut runtime,
+                selection_mouse(MouseKind::Drag, 5, 9, KeyModifiers::SHIFT),
+            );
+            assert_eq!(
+                runtime.next_deadline(),
+                Some(crate::runtime::Moment::from_millis(50))
+            );
+
+            match cancellation {
+                "release" => {
+                    let _ = crate::runtime::stub::deliver(
+                        &mut runtime,
+                        selection_mouse(MouseKind::Up, 5, 9, KeyModifiers::SHIFT),
+                    );
+                    assert_eq!(runtime.capture_owner(), None);
+                }
+                "inside" => {
+                    let _ = crate::runtime::stub::deliver(
+                        &mut runtime,
+                        selection_mouse(MouseKind::Move, 5, 3, KeyModifiers::SHIFT),
+                    );
+                    assert_eq!(runtime.capture_owner(), Some(SELECTION_ID));
+                }
+                "resize" => {
+                    let _ = crate::runtime::stub::deliver(
+                        &mut runtime,
+                        crate::event::Input::Resize(40, 16),
+                    );
+                    assert_eq!(runtime.capture_owner(), None);
+                }
+                "modal" => {
+                    runtime.app_mut().modal_open = true;
+                    let _ = crate::runtime::stub::deliver(
+                        &mut runtime,
+                        selection_key(KeyCode::Char('q'), KeyModifiers::NONE),
+                    );
+                    assert_eq!(runtime.capture_owner(), None);
+                    assert_eq!(runtime.next_deadline(), None);
+                    assert!(
+                        runtime
+                            .app()
+                            .modal_layer_receipts
+                            .iter()
+                            .any(|(opening, event)| {
+                                opening.owner() == SELECTION_ID
+                                    && *event == termrock_runtime::LayerEvent::Opened
+                            })
+                    );
+                    assert_eq!(
+                        runtime.app().selection_focus_outs,
+                        [Some(MODAL_CONTROL)],
+                        "the owner applies the exact FocusOut into the modal control"
+                    );
+                    assert_eq!(
+                        runtime
+                            .app()
+                            .modal_owner_events
+                            .iter()
+                            .filter(|event| **event == termrock_runtime::LayerEvent::Opened)
+                            .count(),
+                        1,
+                        "the viewport owner acknowledges the same modal opening once"
+                    );
+                    assert!(
+                        runtime
+                            .app()
+                            .modal_control_events
+                            .contains(&ModalControlEvent::FocusIn(FocusVia::Programmatic))
+                    );
+                    assert!(runtime.app().unhandled_selection_intents.is_empty());
+                    assert!(runtime.app().unhandled_modal_control_intents.is_empty());
+                }
+                "clear" => {
+                    runtime.app_mut().lines.clear();
+                    let _ = crate::runtime::stub::deliver(
+                        &mut runtime,
+                        selection_key(KeyCode::Char('q'), KeyModifiers::NONE),
+                    );
+                    assert_eq!(runtime.capture_owner(), None);
+                }
+                "missing" => {
+                    runtime.app_mut().show_viewport = false;
+                    let area = runtime.screen();
+                    let mut buffer = Buffer::empty(area);
+                    runtime.draw_buffer(area, &mut buffer).commit_presented();
+                    assert_eq!(runtime.capture_owner(), None);
+                }
+                _ => unreachable!(),
+            }
+
+            assert_eq!(
+                runtime.next_deadline(),
+                None,
+                "{cancellation} must cancel the held timer"
+            );
+            let offset_after_cancel = runtime.app().state.scroll().offset();
+            let drag_events_after_cancel = runtime.app().drag_events.len();
+            let ticks_after_cancel = runtime
+                .app()
+                .update_causes
+                .iter()
+                .filter(|cause| **cause == UpdateCause::Tick)
+                .count();
+            runtime
+                .advance_to(crate::runtime::Moment::from_millis(50))
+                .expect("the simulated clock is monotonic");
+            let _ = runtime.settle();
+            assert_eq!(
+                runtime
+                    .app()
+                    .update_causes
+                    .iter()
+                    .filter(|cause| **cause == UpdateCause::Tick)
+                    .count(),
+                ticks_after_cancel,
+                "{cancellation} must not leave a due tick"
+            );
+            assert_eq!(runtime.app().state.scroll().offset(), offset_after_cancel);
+            assert!(
+                runtime.app().drag_events.len() == drag_events_after_cancel,
+                "{cancellation} must not revive a held drag"
+            );
+            assert!(
+                runtime.diagnostics().is_empty(),
+                "{cancellation}: {:?}",
+                runtime.diagnostics()
+            );
+        }
+    }
+
+    #[test]
+    fn held_text_drag_scrolls_horizontally_only_for_opted_in_unwrapped_pan() {
+        let mut app = SelectionViewportApp::new(LONG_LINES.to_vec());
+        app.area = Rect::new(2, 2, 12, 5);
+        app.pan = true;
+        let mut runtime = selection_runtime(app);
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_mouse(MouseKind::Down, 5, 3, KeyModifiers::NONE),
+        );
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_mouse(MouseKind::Drag, 20, 3, KeyModifiers::NONE),
+        );
+        let before = runtime.app().state.horizontal_offset();
+        assert!(before > 0, "the real drag reaches the horizontal edge");
+        assert_eq!(
+            runtime.next_deadline(),
+            Some(crate::runtime::Moment::from_millis(50))
+        );
+        runtime
+            .advance_to(crate::runtime::Moment::from_millis(50))
+            .expect("the simulated clock is monotonic");
+        let _ = runtime.settle();
+        assert_eq!(runtime.app().state.horizontal_offset(), before + 1);
+
+        let mut app = SelectionViewportApp::new(LONG_LINES.to_vec());
+        app.area = Rect::new(2, 2, 12, 5);
+        app.pan = true;
+        app.wrap = true;
+        let mut runtime = selection_runtime(app);
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_mouse(MouseKind::Down, 5, 3, KeyModifiers::NONE),
+        );
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_mouse(MouseKind::Drag, 20, 3, KeyModifiers::NONE),
+        );
+        assert_eq!(runtime.app().state.horizontal_offset(), 0);
+        assert_eq!(
+            runtime.next_deadline(),
+            None,
+            "wrapped text has no horizontal autoscroll"
+        );
     }
 
     #[test]
