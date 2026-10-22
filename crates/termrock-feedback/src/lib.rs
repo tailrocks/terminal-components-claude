@@ -60,8 +60,10 @@ pub use progress::{ProgressBar, Spinner};
 pub use section::TextSection;
 pub use session_chrome::{SessionChrome, SessionHint, SessionMenu, paint_session_chrome};
 pub use settings_page::{
-    SettingsCheck, SettingsCluster, SettingsHint, SettingsMount, SettingsPage, SettingsSection,
-    SettingsTab, paint_settings_page,
+    SettingsAgentRow, SettingsAgents, SettingsCheck, SettingsCluster, SettingsEnv,
+    SettingsEnvGroup, SettingsEnvRole, SettingsEnvRow, SettingsHint, SettingsMount,
+    SettingsOverflow, SettingsPage, SettingsSection, SettingsTab, SettingsTrust, SettingsTrustRow,
+    paint_settings_page,
 };
 pub use status::{Emphasis, Group, MAX_ITEMS, StatusAction, StatusBar, StatusItem};
 pub use usage_overview::{
