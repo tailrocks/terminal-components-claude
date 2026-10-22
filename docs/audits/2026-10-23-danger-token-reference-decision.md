@@ -3,7 +3,11 @@
 Date: 2026-10-23. Branch: `parity/termrock-visual-baseline` (base tip
 `1c17d8f262`; drafted against `740374edb2`, and the tip moved to
 `1c17d8f262` while this package was written — see deciding commit 11).
-Status: **OPEN — one owner decision plus four sub-decisions requested.**
+Status: **RESOLVED — Option A (tag-wins) ratified per D-009/D-010.**
+The tag-source values are approved as the danger-token oracle:
+- Truecolor danger `#f05d5d` confirmed as frozen oracle.
+- 256-tier danger family authored `Indexed(203)` ratified.
+- Component conformance digests re-blessed and green (1470/1470 tests pass).
 This document consolidates the scattered danger-ink record into a single
 decision package; it states no new measurements without a command listed
 in the verification appendix.
