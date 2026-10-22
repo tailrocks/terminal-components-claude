@@ -33,13 +33,16 @@ the [MBX repository](https://github.com/jdx/mr-boxington).
 
 Cargo config files in the working directory's ancestor chain and `$CARGO_HOME`
 are inspected for `build.target-dir` and `build.build-dir`. A templated Cargo
-output path is denied because its complete destination cannot be resolved
-without Cargo's workspace context. `--target-dir` paths are added directly;
-all `--config` options are rejected because the guard does not evaluate Cargo's
-configuration merge rules. A non-empty `RUSTC_WRAPPER` or
-`RUSTC_WORKSPACE_WRAPPER` is rejected because arbitrary wrappers can change
-output placement. `CARGO_TARGET_DIR`, `CARGO_BUILD_TARGET_DIR`, and
-`CARGO_BUILD_BUILD_DIR` are checked as environment-provided paths.
+build-dir is denied because its complete destination cannot be resolved without
+Cargo's workspace context. `--target-dir` paths are added directly; all
+`--config` options are rejected because the guard does not evaluate Cargo's
+configuration merge rules. Configured or environment-provided
+`rustc-wrapper`/`rustc-workspace-wrapper` is rejected because arbitrary
+wrappers can change output placement. `CARGO_TARGET_DIR`,
+`CARGO_BUILD_TARGET_DIR`, and non-templated `CARGO_BUILD_BUILD_DIR` are checked
+as environment-provided paths. The launcher accepts the literal command
+`mise exec -- cargo`; an absolute Cargo path is rejected to prevent bypassing
+the MBX shim selected by `mise`.
 
 ## Limits and verification
 

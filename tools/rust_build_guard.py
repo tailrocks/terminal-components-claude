@@ -137,6 +137,8 @@ def discover_paths(env: Mapping[str, str], cwd: Path, temp_dir: str | None = Non
     for name in ("CARGO_TARGET_DIR", "CARGO_BUILD_TARGET_DIR", "CARGO_BUILD_BUILD_DIR", "TMPDIR", "TMP", "TEMP"):
         value = env.get(name)
         if value:
+            if name == "CARGO_BUILD_BUILD_DIR" and ("{" in value or "}" in value):
+                raise GuardError("Cargo build-dir environment uses path templating the guard cannot resolve")
             paths.append(_expand_path(value, env, cwd))
     paths.extend(_cargo_config_output_paths(env, cwd, home))
     paths.append(Path(temp_dir) if temp_dir else Path(tempfile.gettempdir()))
@@ -165,6 +167,9 @@ def _cargo_config_output_paths(env: Mapping[str, str], cwd: Path, home: Path) ->
         build = config.get("build", {})
         if not isinstance(build, dict):
             raise GuardError("Cargo build configuration has an invalid shape")
+        for key in ("rustc-wrapper", "rustc-workspace-wrapper"):
+            if key in build and build[key] is not None:
+                raise GuardError(f"Cargo {key} output behavior is unknown")
         for key in ("target-dir", "build-dir"):
             value = build.get(key)
             if value is not None:
@@ -220,7 +225,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
     if args and args[0] == "--":
         args.pop(0)
-    if len(args) < 4 or args[0] != "mise" or args[1] != "exec" or args[2] != "--" or Path(args[3]).name != "cargo":
+    if len(args) < 4 or args[0] != "mise" or args[1] != "exec" or args[2] != "--" or args[3] != "cargo":
         print("usage: rust_build_guard.py -- mise exec -- cargo [ARG ...]", file=sys.stderr)
         return 2
     cargo_args = args[4:]
