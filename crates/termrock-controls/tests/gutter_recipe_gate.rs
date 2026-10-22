@@ -9,17 +9,21 @@
 //! adopt the helpers byte-identically; where it cannot, the recipe-driven
 //! local path stays.
 //!
-//! Measured through the real widgets (matrix run 2026-10-21):
+//! Measured through the real widgets (matrix run 2026-10-21; blanks
+//! re-measured 2026-10-23 after the button pad-paint adjudication,
+//! `docs/audits/2026-10-23-button-pad-paint-adjudication.md`):
 //!
-//! - `BUTTON` matches the helper cell for the resting and disabled blanks
-//!   (except `DANGER`) and for most focus-visible bars. It diverges for the
+//! - `BUTTON` matches the helper cell for most focus-visible bars. Since the
+//!   pad-paint adjudication the resting and disabled blanks paint bg-on-bg
+//!   (frozen `gutter_style` is `fg = bg` when no bar shows), so blanks
+//!   diverge from the helper's container-ink stamp for every variant and
+//!   adoption stays blocked for them. `BUTTON` also diverges for the
 //!   `PRIMARY` bars (per-variant primary label ink), for the 16-colour bars
 //!   on the dark `DEFAULT`/`SECONDARY`/`DANGER`/`TOGGLE` surfaces
-//!   (`legible_mark` swaps the focus ink for the primary text ink), for the
-//!   `DANGER` blanks (the recipe stamps the danger surface ink on the
-//!   reserved cell; the helpers stamp nothing) and for pressed bars (the
-//!   frozen ink stays on the inverted pressed surface; at the mono tier the
-//!   pressed profile replaces the bar cell with the `[` label bracket).
+//!   (`legible_mark` swaps the focus ink for the primary text ink) and for
+//!   pressed bars (the frozen ink stays on the inverted pressed surface; at
+//!   the mono tier the pressed profile replaces the bar cell with the `[`
+//!   label bracket).
 //! - `CHOICE` matches everywhere except the 16-colour focused+selected row
 //!   (accent tint surface; same `legible_mark` swap).
 //! - Blocked beyond the probed states: a focused+disabled `CHOICE` row at the
@@ -148,6 +152,20 @@ fn resolver_fg(
         .fg
 }
 
+fn resolver_bg(
+    theme: &Theme,
+    family: Family,
+    variant: Variant,
+    part: Part,
+    flags: StateFlags,
+) -> Option<Color> {
+    theme
+        .resolve(family, variant, part, flags, Surface::Canvas)
+        .style
+        .as_style()
+        .bg
+}
+
 const FV: ReferenceState = ReferenceState::FOCUSED.union(ReferenceState::FOCUS_VISIBLE);
 const FV_PRESSED: ReferenceState = FV.union(ReferenceState::PRESSED);
 
@@ -171,32 +189,6 @@ fn button_adoptable_states_match_the_helper_cell() {
     for level in LEVELS {
         let theme = base.clone().for_level(level);
         for variant in VARIANTS {
-            // Resting and disabled blanks stamp nothing for every variant
-            // except DANGER (a recorded delta below): the cell keeps the
-            // container ink, exactly what `GutterCell::Inherit` produces.
-            for (name, flags) in [
-                ("rest", StateFlags::empty()),
-                ("disabled", StateFlags::DISABLED),
-            ] {
-                let buf = painted(theme.clone(), None, |ui, area| {
-                    let mut b = Button::new(BUTTON, "Action").variant(variant);
-                    if flags.contains(StateFlags::DISABLED) {
-                        b = b.disabled(true);
-                    }
-                    b.draw(ui, area);
-                });
-                let cell = cell_of(&buf, 0, 0);
-                let ctx = format!("{level:?} {variant:?} {name}");
-                assert_bar(&cell, false, &ctx);
-                if variant != Variant::DANGER {
-                    assert_eq!(
-                        cell.fg,
-                        resolver_fg(&theme, Family::BUTTON, variant, Part::CONTAINER, flags),
-                        "{ctx}: the blank keeps the container ink, so the state could adopt"
-                    );
-                }
-            }
-
             // Focus-visible bars: the shared ink matches except PRIMARY
             // (per-variant ink) and the 16-colour dark-surface swaps listed in
             // the module docs.
@@ -324,28 +316,29 @@ fn button_frozen_cells_diverge_from_the_helper_where_the_recipe_wins() {
                 );
             }
 
-            // DANGER blanks stamp the danger surface ink.
-            if variant == Variant::DANGER {
-                for (name, blank_flags) in [
-                    ("rest", StateFlags::empty()),
-                    ("disabled", StateFlags::DISABLED),
-                ] {
-                    let buf = painted(theme.clone(), None, |ui, area| {
-                        let mut b = Button::new(BUTTON, "Action").variant(variant);
-                        if blank_flags.contains(StateFlags::DISABLED) {
-                            b = b.disabled(true);
-                        }
-                        b.draw(ui, area);
-                    });
-                    let cell = cell_of(&buf, 0, 0);
-                    let ctx = format!("{level:?} DANGER {name}");
-                    assert_bar(&cell, false, &ctx);
-                    assert_eq!(
-                        cell.fg,
-                        resolver_fg(&theme, Family::BUTTON, variant, Part::GUTTER, blank_flags),
-                        "{ctx}: the DANGER blank carries the recipe gutter ink, so the recipe stays"
-                    );
-                }
+            // Resting and disabled blanks paint bg-on-bg (pad-paint
+            // adjudication 2026-10-23): the frozen `gutter_style` is
+            // `fg = bg` when no bar shows, so the blank diverges from the
+            // helper's container-ink stamp and adoption stays blocked.
+            for (name, blank_flags) in [
+                ("rest", StateFlags::empty()),
+                ("disabled", StateFlags::DISABLED),
+            ] {
+                let buf = painted(theme.clone(), None, |ui, area| {
+                    let mut b = Button::new(BUTTON, "Action").variant(variant);
+                    if blank_flags.contains(StateFlags::DISABLED) {
+                        b = b.disabled(true);
+                    }
+                    b.draw(ui, area);
+                });
+                let cell = cell_of(&buf, 0, 0);
+                let ctx = format!("{level:?} {variant:?} {name} blank");
+                assert_bar(&cell, false, &ctx);
+                assert_eq!(
+                    cell.fg,
+                    resolver_bg(&theme, Family::BUTTON, variant, Part::CONTAINER, blank_flags),
+                    "{ctx}: the blank carries the container background (frozen bg-on-bg)"
+                );
             }
         }
     }
