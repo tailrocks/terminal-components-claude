@@ -244,6 +244,73 @@ fn tree_empty_inherits_owner() {
     check(4, true);
 }
 
+fn assert_projected_cell(
+    scene: &Scene,
+    level: ColorLevel,
+    state: &str,
+    standalone: bool,
+    position: (u16, u16),
+    expected: (&str, Color),
+) {
+    let (x, y) = position;
+    let (symbol, fg) = expected;
+    let context = format!("{level:?}/{state}/standalone={standalone} ({x},{y})");
+    let cell = scene
+        .buffer()
+        .cell((x, y))
+        .unwrap_or_else(|| panic!("{context}: expected rendered cell"));
+    assert_eq!(cell.symbol(), symbol, "{context}: symbol");
+    assert_eq!(cell.fg, fg, "{context}: foreground");
+}
+
+fn assert_frozen_empty_palette_cells(
+    scene: &Scene,
+    level: ColorLevel,
+    state: &str,
+    standalone: bool,
+) {
+    let expected: &[(u16, u16, &str, Color)] = match (level, state, standalone) {
+        // TrueColor Danger: the error icon is red in both render paths.
+        (ColorLevel::TrueColor, "Error", false) => &[(10, 0, "!", Color::Rgb(240, 93, 93))],
+        (ColorLevel::TrueColor, "Error", true) => &[(10, 2, "!", Color::Rgb(240, 93, 93))],
+
+        // ANSI 256 FgMuted titles/messages and FgFaint help use the frozen inks.
+        (ColorLevel::Ansi256, "Empty", false) => &[
+            (11, 0, "T", Color::Indexed(245)),
+            (11, 2, "H", Color::Indexed(242)),
+        ],
+        (ColorLevel::Ansi256, "Empty", true) => &[
+            (11, 2, "T", Color::Indexed(245)),
+            (11, 4, "H", Color::Indexed(242)),
+        ],
+        (ColorLevel::Ansi256, "Loading", false) => &[(12, 0, "L", Color::Indexed(245))],
+        (ColorLevel::Ansi256, "Loading", true) => &[(12, 3, "L", Color::Indexed(245))],
+        (ColorLevel::Ansi256, "Partial", false) => &[(12, 0, "P", Color::Indexed(245))],
+        (ColorLevel::Ansi256, "Partial", true) => &[(12, 3, "P", Color::Indexed(245))],
+        (ColorLevel::Ansi256, "Error", false) => &[
+            (12, 0, "E", Color::Indexed(245)),
+            (11, 2, "D", Color::Indexed(242)),
+            (10, 0, "!", Color::Indexed(203)),
+        ],
+        (ColorLevel::Ansi256, "Error", true) => &[
+            (12, 2, "E", Color::Indexed(245)),
+            (11, 4, "D", Color::Indexed(242)),
+            (10, 2, "!", Color::Indexed(203)),
+        ],
+
+        // ANSI 16 FgFaint: Empty hints and Error details use Gray.
+        (ColorLevel::Ansi16, "Empty", false) => &[(11, 2, "H", Color::Gray)],
+        (ColorLevel::Ansi16, "Empty", true) => &[(11, 4, "H", Color::Gray)],
+        (ColorLevel::Ansi16, "Error", false) => &[(11, 2, "D", Color::Gray)],
+        (ColorLevel::Ansi16, "Error", true) => &[(11, 4, "D", Color::Gray)],
+        _ => &[],
+    };
+
+    for &(x, y, symbol, fg) in expected {
+        assert_projected_cell(scene, level, state, standalone, (x, y), (symbol, fg));
+    }
+}
+
 #[test]
 fn standalone_empty_cells_match_pre_inheritance_reference() {
     let mut fingerprint = 0xcbf2_9ce4_8422_2325_u64;
@@ -253,18 +320,24 @@ fn standalone_empty_cells_match_pre_inheritance_reference() {
         ColorLevel::Ansi16,
         ColorLevel::Mono,
     ] {
-        for state in [
-            EMPTY,
-            EmptyState::Loading { label: "L" },
-            EmptyState::Partial {
-                loaded: 1,
-                total: RowTotal::Exact(2),
-                hint: "P",
-            },
-            EmptyState::Error {
-                message: "E",
-                detail: Some("D"),
-            },
+        for (state_name, state) in [
+            ("Empty", EMPTY),
+            ("Loading", EmptyState::Loading { label: "L" }),
+            (
+                "Partial",
+                EmptyState::Partial {
+                    loaded: 1,
+                    total: RowTotal::Exact(2),
+                    hint: "P",
+                },
+            ),
+            (
+                "Error",
+                EmptyState::Error {
+                    message: "E",
+                    detail: Some("D"),
+                },
+            ),
         ] {
             for standalone in [false, true] {
                 let mut scene =
@@ -276,6 +349,7 @@ fn standalone_empty_cells_match_pre_inheritance_reference() {
                         state.draw(ui, Rect::new(0, 0, 24, 7), 0);
                     }
                 });
+                assert_frozen_empty_palette_cells(&scene, level, state_name, standalone);
                 for cell in scene.buffer().content() {
                     for byte in format!("{cell:?}").bytes() {
                         fingerprint =
@@ -286,7 +360,11 @@ fn standalone_empty_cells_match_pre_inheritance_reference() {
         }
     }
 
-    assert_eq!(fingerprint, 312_677_554_172_290_677);
+    // Provenance: reviewed f08d20e0f3 rendered 2_278_838_586_319_248_431;
+    // later 2ca2c7ad33 rendered 312_677_554_172_290_677. The 2ca-to-7a delta
+    // is 20 foreground-only cells matching frozen tag 4169783/design f2f6eb7,
+    // covered by the role/level assertions above.
+    assert_eq!(fingerprint, 3_030_540_740_827_194_175);
 }
 
 #[test]
