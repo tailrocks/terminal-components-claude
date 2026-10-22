@@ -335,12 +335,16 @@ pub(super) fn paint_at(ui: &mut Ui<'_>, area: Rect) {
         key: "Esc",
         action: "Close",
     }];
+    // Header menus follow the live capsule menu bar. Rows, entries, tabs and
+    // status still need App instance state, which this view cannot reach
+    // through its `Ui`-only call sites in `app.rs`.
+    let menus: Vec<&str> = super::CAPSULE_MENUS.iter().map(|menu| menu.label).collect();
     termrock::feedback::paint_capsule_menu(
         ui,
         area,
         &CapsuleMenuFrame {
             brand: "jackin❯",
-            menus: &["File", "Edit", "View", "Session", "Help"],
+            menus: &menus,
             overflow: "…",
             tabs: &tabs,
             menu: CapsuleMenu {
