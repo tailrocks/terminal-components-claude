@@ -70,8 +70,8 @@ pub fn overlay_chrome<R>(
                         ratatui_core::style::Color::Reset,
                         ratatui_core::style::Color::Reset,
                     ));
-                let (backdrop_fg, _, blank) = ui.theme_ref().backdrop_cell(src_fg, src_bg);
-                let dim = !blank && ui.theme_ref().backdrop_dim_level();
+                let (backdrop_fg, _, _) = ui.theme_ref().backdrop_cell(src_fg, src_bg);
+                let dim = ui.theme_ref().backdrop_dim_level();
                 if let Some(cell) = ui.buffer().cell_mut(pos) {
                     cell.set_symbol(" ");
                     cell.fg = backdrop_fg;
