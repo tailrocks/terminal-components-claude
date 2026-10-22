@@ -808,10 +808,15 @@ fn nav_query_projection(nodes: &[NavNode], state: &TreeState, query: &NavQuery) 
         if !included[source] {
             continue;
         }
-        let depth = nodes[source].depth;
+        let mut ancestor_depth = nodes[source].depth;
         for ancestor in (0..source).rev() {
-            if nodes[ancestor].depth < depth && nodes[ancestor].parent {
+            let candidate = &nodes[ancestor];
+            if candidate.parent && candidate.depth < ancestor_depth {
                 included[ancestor] = true;
+                ancestor_depth = candidate.depth;
+                if ancestor_depth == 0 {
+                    break;
+                }
             }
         }
     }
@@ -2428,6 +2433,53 @@ mod paint_contract_tests {
 mod nav_query_tests {
     use super::*;
 
+    fn query_keys(query: &str) -> Vec<ItemKey> {
+        let query = NavQuery {
+            text: query.to_owned(),
+            revision: 1,
+        };
+        nav_nodes_for_query(&TreeState::new(), 0, Some(&query))
+            .into_iter()
+            .filter(|node| node.query_match)
+            .map(|node| node.key)
+            .collect()
+    }
+
+    fn section_key(section: &str) -> ItemKey {
+        let mut previous = "";
+        let mut group_index = 0;
+        for entry in NAV_ENTRIES {
+            if entry.section != previous {
+                previous = entry.section;
+                if !previous.is_empty() {
+                    if previous == section {
+                        return nav_group_key(group_index);
+                    }
+                    group_index += 1;
+                }
+            }
+        }
+        panic!("missing navigation section {section:?}");
+    }
+
+    fn section_entry_keys(section: &str) -> Vec<ItemKey> {
+        NAV_ENTRIES
+            .iter()
+            .enumerate()
+            .filter(|(_, entry)| entry.section == section)
+            .map(|(index, _)| nav_entry_key(index))
+            .collect()
+    }
+
+    fn entry_key(label: &str) -> ItemKey {
+        nav_entry_key(
+            NAV_ENTRIES
+                .iter()
+                .position(|entry| entry.label == label)
+                .unwrap_or_else(|| panic!("missing navigation entry {label:?}")),
+        )
+    }
+
     #[test]
     fn query_folds_unicode_aliases_and_ignores_overview_placeholder_ids() {
         assert!(query_contains("CAFÉ", "café"));
@@ -2460,6 +2512,25 @@ mod nav_query_tests {
             nav_display_label(placeholder.1.label),
             "overview"
         ));
+    }
+
+    #[test]
+    fn query_projection_includes_only_the_matching_leaf_and_its_true_ancestors() {
+        let mut settings = vec![section_key("Screens")];
+        settings.push(entry_key("Settings"));
+        assert_eq!(query_keys("settings"), settings);
+
+        let mut options = vec![section_key("Tables")];
+        options.push(entry_key("Cell editors"));
+        assert_eq!(query_keys("OPTIONS"), options);
+
+        let mut screens = vec![section_key("Screens")];
+        screens.extend(section_entry_keys("Screens"));
+        assert_eq!(
+            query_keys("Screens"),
+            screens,
+            "matching a group includes its own leaves, not preceding groups"
+        );
     }
 }
 
