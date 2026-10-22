@@ -70,12 +70,17 @@ pub fn overlay_chrome<R>(
                         ratatui_core::style::Color::Reset,
                         ratatui_core::style::Color::Reset,
                     ));
-                let (backdrop_fg, _) = ui.theme_ref().backdrop_colors(src_fg, src_bg);
+                let (backdrop_fg, _, blank) = ui.theme_ref().backdrop_cell(src_fg, src_bg);
+                let dim = !blank && ui.theme_ref().backdrop_dim_level();
                 if let Some(cell) = ui.buffer().cell_mut(pos) {
                     cell.set_symbol(" ");
                     cell.fg = backdrop_fg;
                     cell.bg = card_bg;
-                    cell.modifier = Modifier::empty();
+                    cell.modifier = if dim {
+                        Modifier::DIM
+                    } else {
+                        Modifier::empty()
+                    };
                 }
             }
             ui.patch_style(area, detailed.resolved.style, explicit);
@@ -213,7 +218,7 @@ mod tests {
     use crate::id::{Id, Part};
     use crate::response::StateFlags;
     use crate::theme::{
-        Family, Overlay, OverlayRule, Role, Slot, StylePatch, Surface, Theme, Variant,
+        ColorLevel, Family, Overlay, OverlayRule, Role, Slot, StylePatch, Surface, Theme, Variant,
     };
     use crate::ui::cx::LastFrame;
     use crate::ui::{FrameState, Ui, UiCore};
@@ -401,6 +406,30 @@ mod tests {
             resolved.underline_color.expect("theme underline color")
         );
         assert!(cell.modifier.contains(Modifier::UNDERLINED));
+    }
+
+    #[test]
+    fn dialog_chrome_carries_the_dim_modifier_only_at_reduced_levels() {
+        // The frozen picker underlays are DIM-modded at 16/none with the
+        // muted dim ink, while truecolor and 256 keep the mapped ink bare.
+        for (level, dim, expected_fg) in [
+            (ColorLevel::TrueColor, false, None),
+            (ColorLevel::Ansi256, false, Some(Color::Indexed(245))),
+            (ColorLevel::Ansi16, true, Some(Color::Gray)),
+            (ColorLevel::Mono, true, Some(Color::Gray)),
+        ] {
+            let theme = Theme::junie().for_level(level);
+            let page = draw_dialog_chrome(&theme, PartStyle::new(), None);
+            let cell = page.cell((2, 2)).expect("dialog chrome cell");
+            assert_eq!(
+                cell.modifier.contains(Modifier::DIM),
+                dim,
+                "{level:?} dim flag"
+            );
+            if let Some(expected_fg) = expected_fg {
+                assert_eq!(cell.fg, expected_fg, "{level:?} dim ink");
+            }
+        }
     }
 
     #[test]
