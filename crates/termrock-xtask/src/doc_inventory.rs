@@ -5,8 +5,11 @@
 //! that target exists, the guard rejects the documentation input.
 
 use std::collections::BTreeSet;
+use std::ops::Range;
 use std::path::Path;
 use std::process::Command;
+
+use pulldown_cmark::{CodeBlockKind, Event, Parser, Tag, TagEnd};
 
 const EXPECTED_IGNORED_PATH: &str = "crates/termrock-runtime/src/ui/paint.rs";
 const EXPECTED_IGNORED_EXAMPLE: &str = "let view = ScrollRegion::view(st.core.scroll(), content, visible_len);\n\
@@ -927,258 +930,211 @@ fn scan_markdown(path: &str, source: &str, report: &mut Report) {
     inspect_examples(path, source, 1, report);
 }
 
-#[derive(Clone, Copy)]
-struct ListItemIndent {
-    content: usize,
-}
-
-struct ListMarker<'a> {
-    indent: usize,
-    content_indent: usize,
-    content_column: usize,
-    content: &'a str,
-    interrupts_paragraph: bool,
-    has_content: bool,
+struct MarkdownCodeBlock {
+    start: usize,
+    info: String,
+    indented: bool,
+    body: String,
 }
 
 fn inspect_examples(path: &str, text: &str, base_line: usize, report: &mut Report) {
-    let lines = text.lines().collect::<Vec<_>>();
-    let mut index = 0;
-    let mut list_items = Vec::<ListItemIndent>::new();
-    let mut paragraph_open = false;
-    while index < lines.len() {
-        let line = lines[index];
-        let trimmed = line.trim_start();
-        if let Some((marker, marker_len, info)) = fence_open(trimmed) {
-            let start = index;
-            index += 1;
-            let mut body = Vec::new();
-            while index < lines.len() && !fence_close(lines[index].trim_start(), marker, marker_len)
-            {
-                body.push(lines[index]);
-                index += 1;
-            }
-            let rust =
-                rust_info(info) || (info.trim().is_empty() && looks_like_rust(&body.join("\n")));
-            if rust {
-                record_example(path, base_line + start, info, &body, report);
-            }
-            index = index.saturating_add(1);
-            paragraph_open = false;
-            continue;
-        }
+    let mut active_code_block = None;
+    let mut html_ranges = Vec::new();
 
-        if line.trim().is_empty() {
-            paragraph_open = false;
-            index += 1;
-            continue;
-        }
-
-        let indent = indentation_columns(line);
-        if let Some(marker) = list_marker(line) {
-            let mut parent_count = list_items.len();
-            while parent_count > 0 && marker.indent < list_items[parent_count - 1].content {
-                parent_count -= 1;
-            }
-            let parent_indent = parent_count
-                .checked_sub(1)
-                .map(|parent| list_items[parent].content);
-            let marker_fits = match parent_indent {
-                Some(parent) => {
-                    marker.indent >= parent && marker.indent <= parent.saturating_add(3)
+    for (event, range) in Parser::new(text).into_offset_iter() {
+        match event {
+            Event::Start(Tag::CodeBlock(kind)) => {
+                if let Some(block) = active_code_block.take() {
+                    inspect_code_block(path, text, base_line, block, report);
+                    report_parser_event_error(path, text, range.start, base_line, report);
                 }
-                None => marker.indent <= 3,
-            };
-            if marker_fits && (!paragraph_open || marker.interrupts_paragraph) {
-                list_items.truncate(parent_count);
-                list_items.push(ListItemIndent {
-                    content: marker.content_indent,
+                let (info, indented) = match kind {
+                    CodeBlockKind::Fenced(info) => (info.into_string(), false),
+                    CodeBlockKind::Indented => (String::new(), true),
+                };
+                active_code_block = Some(MarkdownCodeBlock {
+                    start: range.start,
+                    info,
+                    indented,
+                    body: String::new(),
                 });
-                let code_indent = marker.content_indent.saturating_add(4);
-                if marker.has_content && marker.content_column >= code_indent {
-                    let start = index;
-                    let mut body = vec![marker.content];
-                    index += 1;
-                    while index < lines.len() {
-                        if lines[index].trim().is_empty() {
-                            body.push(lines[index]);
-                            index += 1;
-                            continue;
-                        }
-                        if indentation_columns(lines[index]) < code_indent {
-                            break;
-                        }
-                        body.push(lines[index]);
-                        index += 1;
-                    }
-                    if looks_like_rust(&body.join("\n")) {
-                        record_example(path, base_line + start, "indented", &body, report);
-                    }
-                    paragraph_open = false;
-                    continue;
+            }
+            Event::Text(content) => {
+                if let Some(block) = active_code_block.as_mut() {
+                    block.body.push_str(&content);
                 }
-
-                paragraph_open = marker.has_content && !starts_markdown_block(marker.content);
-                index += 1;
-                continue;
             }
-        }
-
-        if !paragraph_open {
-            while list_items.last().is_some_and(|item| indent < item.content) {
-                list_items.pop();
-            }
-
-            let code_indent = list_items
-                .last()
-                .map_or(4, |item| item.content.saturating_add(4));
-            if indent >= code_indent {
-                let start = index;
-                let mut body = Vec::new();
-                while index < lines.len() {
-                    if lines[index].trim().is_empty() {
-                        body.push(lines[index]);
-                        index += 1;
-                        continue;
-                    }
-                    if indentation_columns(lines[index]) < code_indent {
-                        break;
-                    }
-                    body.push(lines[index]);
-                    index += 1;
+            Event::SoftBreak | Event::HardBreak => {
+                if let Some(block) = active_code_block.as_mut() {
+                    block.body.push('\n');
                 }
-                if looks_like_rust(&body.join("\n")) {
-                    record_example(path, base_line + start, "indented", &body, report);
+            }
+            Event::End(TagEnd::CodeBlock) => {
+                if let Some(block) = active_code_block.take() {
+                    inspect_code_block(path, text, base_line, block, report);
+                } else {
+                    report_parser_event_error(path, text, range.start, base_line, report);
                 }
-                continue;
             }
-        }
-
-        if starts_markdown_block(line) {
-            paragraph_open = false;
-            index += 1;
-            continue;
-        }
-
-        paragraph_open = true;
-        index += 1;
-    }
-}
-
-fn indentation_columns(line: &str) -> usize {
-    line.chars()
-        .take_while(|ch| *ch == ' ' || *ch == '\t')
-        .fold(0, |column, ch| {
-            if ch == '\t' {
-                column.saturating_add(4 - column % 4)
-            } else {
-                column.saturating_add(1)
-            }
-        })
-}
-
-fn list_marker(line: &str) -> Option<ListMarker<'_>> {
-    let mut prefix_bytes = 0;
-    let mut indent = 0_usize;
-    for (offset, ch) in line.char_indices() {
-        match ch {
-            ' ' => {
-                indent = indent.saturating_add(1);
-                prefix_bytes = offset + ch.len_utf8();
-            }
-            '\t' => {
-                indent = indent.saturating_add(4 - indent % 4);
-                prefix_bytes = offset + ch.len_utf8();
+            Event::Html(_) | Event::InlineHtml(_) => {
+                if active_code_block.is_some() {
+                    report_parser_event_error(path, text, range.start, base_line, report);
+                } else {
+                    html_ranges.push(range);
+                }
             }
             _ => {
-                prefix_bytes = offset;
-                break;
+                if active_code_block.is_some() {
+                    report_parser_event_error(path, text, range.start, base_line, report);
+                }
             }
         }
     }
 
-    let rest = line.get(prefix_bytes..)?;
-    let bytes = rest.as_bytes();
-    let first = *bytes.first()?;
-    let (marker_width, interrupts_paragraph) = match first {
-        b'-' | b'+' | b'*' => (1, true),
-        b'0'..=b'9' => {
-            let digits = bytes
-                .iter()
-                .take_while(|byte| byte.is_ascii_digit())
-                .count();
-            if digits == 0
-                || digits > 9
-                || !bytes
-                    .get(digits)
-                    .is_some_and(|byte| *byte == b'.' || *byte == b')')
-            {
-                return None;
+    if let Some(block) = active_code_block {
+        inspect_code_block(path, text, base_line, block, report);
+    }
+
+    html_ranges.sort_by_key(|range| range.start);
+    let mut merged_html_ranges: Vec<Range<usize>> = Vec::new();
+    for range in html_ranges {
+        if let Some(previous) = merged_html_ranges.last_mut() {
+            let gap_is_whitespace = text
+                .get(previous.end..range.start)
+                .is_some_and(|gap| gap.trim().is_empty());
+            if range.start <= previous.end || gap_is_whitespace {
+                previous.end = previous.end.max(range.end);
+                continue;
             }
-            let interrupts_paragraph = rest[..digits].parse::<u32>().ok() == Some(1);
-            (digits + 1, interrupts_paragraph)
         }
-        _ => return None,
-    };
-
-    let after_marker = rest.get(marker_width..)?;
-    let marker_end_column = indent.saturating_add(marker_width);
-    let mut column = marker_end_column;
-    let mut whitespace_bytes = 0;
-    for (offset, ch) in after_marker.char_indices() {
-        match ch {
-            ' ' => column = column.saturating_add(1),
-            '\t' => column = column.saturating_add(4 - column % 4),
-            _ => break,
-        }
-        whitespace_bytes = offset + ch.len_utf8();
+        merged_html_ranges.push(range);
     }
-    if !after_marker.is_empty() && whitespace_bytes == 0 {
-        return None;
+    for range in merged_html_ranges {
+        inspect_html_fences(path, text, range, base_line, report);
     }
-
-    let padding = column.saturating_sub(marker_end_column);
-    let content_padding = if padding > 4 { 1 } else { padding.max(1) };
-    let content_indent = marker_end_column.saturating_add(content_padding);
-    let content = after_marker.get(whitespace_bytes..)?;
-    let has_content = !content.trim().is_empty();
-
-    Some(ListMarker {
-        indent,
-        content_indent,
-        content_column: column,
-        content,
-        interrupts_paragraph,
-        has_content,
-    })
 }
 
-fn starts_markdown_block(line: &str) -> bool {
-    if indentation_columns(line) > 3 {
-        return false;
-    }
-    let content = line.trim_start_matches([' ', '\t']);
-    if content.starts_with('>') {
-        return true;
-    }
-    if content.starts_with('#') {
-        let level = content.bytes().take_while(|byte| *byte == b'#').count();
-        if (1..=6).contains(&level) {
-            let suffix = &content[level..];
-            if suffix.is_empty() || suffix.starts_with(' ') || suffix.starts_with('\t') {
-                return true;
-            }
+fn inspect_code_block(
+    path: &str,
+    source: &str,
+    base_line: usize,
+    block: MarkdownCodeBlock,
+    report: &mut Report,
+) {
+    let Some(line) = source_line_at(source, block.start, base_line) else {
+        report.issues.push(issue(
+            path,
+            base_line,
+            "Markdown parser returned an invalid source offset",
+        ));
+        return;
+    };
+    let info = if block.indented {
+        "indented"
+    } else {
+        block.info.as_str()
+    };
+    if block.indented {
+        if !looks_like_rust(&block.body) {
+            return;
         }
+    } else if !rust_info(info) && !(info.trim().is_empty() && looks_like_rust(&block.body)) {
+        return;
     }
 
-    let rule = content
-        .chars()
-        .filter(|ch| !ch.is_whitespace())
-        .collect::<Vec<_>>();
-    rule.len() >= 3
-        && (rule.iter().all(|ch| *ch == '-')
-            || rule.iter().all(|ch| *ch == '*')
-            || rule.iter().all(|ch| *ch == '_'))
+    let body = block.body.lines().collect::<Vec<_>>();
+    record_example(path, line, info, &body, report);
+}
+
+fn inspect_html_fences(
+    path: &str,
+    source: &str,
+    range: Range<usize>,
+    base_line: usize,
+    report: &mut Report,
+) {
+    let Some(html) = source.get(range.clone()) else {
+        report.issues.push(issue(
+            path,
+            base_line,
+            "Markdown parser returned an invalid HTML source range",
+        ));
+        return;
+    };
+
+    let mut active_fence: Option<(char, usize, String, usize, Vec<&str>)> = None;
+    let mut relative_start = 0;
+    for raw_line in html.split_inclusive('\n') {
+        let line = raw_line.strip_suffix('\n').unwrap_or(raw_line);
+        let line = line.strip_suffix('\r').unwrap_or(line);
+        let trimmed = line.trim_start();
+        let closes_fence = active_fence
+            .as_ref()
+            .is_some_and(|(marker, minimum, _, _, _)| fence_close(trimmed, *marker, *minimum));
+        if closes_fence {
+            if let Some((_, _, info, start, body)) = active_fence.take() {
+                record_html_fence(path, source, base_line, start, &info, &body, report);
+            }
+        } else if let Some((_, _, _, _, body)) = active_fence.as_mut() {
+            body.push(line);
+        } else if let Some((marker, length, info)) = fence_open(trimmed) {
+            active_fence = Some((
+                marker,
+                length,
+                info.to_string(),
+                range.start + relative_start,
+                Vec::new(),
+            ));
+        }
+        relative_start += raw_line.len();
+    }
+
+    if let Some((_, _, info, start, body)) = active_fence {
+        record_html_fence(path, source, base_line, start, &info, &body, report);
+    }
+}
+
+fn record_html_fence(
+    path: &str,
+    source: &str,
+    base_line: usize,
+    start: usize,
+    info: &str,
+    body: &[&str],
+    report: &mut Report,
+) {
+    if !rust_info(info) && !(info.trim().is_empty() && looks_like_rust(&body.join("\n"))) {
+        return;
+    }
+    let Some(line) = source_line_at(source, start, base_line) else {
+        report.issues.push(issue(
+            path,
+            base_line,
+            "Markdown parser returned an invalid HTML fence offset",
+        ));
+        return;
+    };
+    record_example(path, line, info, body, report);
+}
+
+fn report_parser_event_error(
+    path: &str,
+    source: &str,
+    offset: usize,
+    base_line: usize,
+    report: &mut Report,
+) {
+    let line = source_line_at(source, offset, base_line).unwrap_or(base_line);
+    report.issues.push(issue(
+        path,
+        line,
+        "CommonMark parser emitted an invalid code-block event sequence",
+    ));
+}
+
+fn source_line_at(source: &str, offset: usize, base_line: usize) -> Option<usize> {
+    let prefix = source.get(..offset)?;
+    base_line.checked_add(prefix.bytes().filter(|byte| *byte == b'\n').count())
 }
 
 fn fence_open(line: &str) -> Option<(char, usize, &str)> {
@@ -1356,7 +1312,9 @@ mod tests {
             &mut report,
         );
         assert!(report.issues.iter().any(|issue: &Issue| {
-            issue.path == "src/docs.inc" && issue.detail.contains("unregistered Rust documentation")
+            issue.path == "src/docs.inc"
+                && issue.line == 1
+                && issue.detail.contains("unregistered Rust documentation")
         }));
         assert!(!report.issues.iter().any(|issue| issue.path == "notes.txt"));
     }
