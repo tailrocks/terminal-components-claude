@@ -69,7 +69,8 @@ impl StateFlags {
 
 #[must_use = "a Response carries the consumed/repaint answer; fold it with `|` or read it"]
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Response<A = ()> {    id: Option<Id>,
+pub struct Response<A = ()> {
+    id: Option<Id>,
     flow: Flow,
     invalidate: Invalidate,
     state: StateFlags,
