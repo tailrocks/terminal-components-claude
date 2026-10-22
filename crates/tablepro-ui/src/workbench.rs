@@ -1,5 +1,6 @@
 use crate::filter_editor::Filter;
 use crate::tabs::{self, ExplorerItem, HistoryTab, QueryTab, Tab, TabKey, TabRecord, TableTab};
+use std::time::Duration;
 use tablepro_demo::db::{Catalog, Connection, ObjectKind};
 use tablepro_domain::model::{History, HistoryEntry, HistorySource, SwitcherIndex};
 
@@ -330,6 +331,17 @@ impl Workbench {
         self.maximized = !self.maximized;
     }
     pub fn execute_active(&mut self) -> Result<usize, String> {
+        self.execute_active_inner(None)
+    }
+
+    /// Executes the active query and records the supplied elapsed duration.
+    ///
+    /// The explicit duration is passed to the query tab without sampling a host clock.
+    pub fn execute_active_with_duration(&mut self, elapsed: Duration) -> Result<usize, String> {
+        self.execute_active_inner(Some(elapsed))
+    }
+
+    fn execute_active_inner(&mut self, elapsed: Option<Duration>) -> Result<usize, String> {
         let (query, source) = match self.active() {
             Some(Tab::Query(tab)) if tab.has_pending_result() => {
                 return Err("Pending result edits require confirmation".to_owned());
@@ -339,7 +351,10 @@ impl Workbench {
         };
         let catalog = self.catalog.clone();
         let result = match self.active_mut() {
-            Some(Tab::Query(tab)) => tab.execute(&catalog),
+            Some(Tab::Query(tab)) => match elapsed {
+                Some(elapsed) => tab.execute_with_duration(&catalog, elapsed),
+                None => tab.execute(&catalog),
+            },
             _ => return Err("Active tab is not a query".to_owned()),
         };
         let (rows, error) = match &result {
@@ -353,7 +368,9 @@ impl Workbench {
             database: self.connection.database.clone(),
             schema: "public".to_owned(),
             minutes_ago: 0,
-            duration_ms: Some(1),
+            duration_ms: Some(elapsed.map_or(1, |duration| {
+                u32::try_from(duration.as_millis()).unwrap_or(u32::MAX)
+            })),
             rows,
             error,
             source,
@@ -416,5 +433,116 @@ mod identity_tests {
         assert_eq!(app.workbench.tabs().len(), count);
         assert_eq!(app.surface(), surface);
         assert_eq!(app.result().pending_total(), 1);
+    }
+}
+
+#[cfg(test)]
+mod query_timing_tests {
+    use super::*;
+    use crate::app::TableProApp;
+
+    fn query_status(workbench: &Workbench, key: TabKey) -> (String, bool, u32) {
+        let Some(Tab::Query(tab)) = workbench.tab(key) else {
+            unreachable!("query tab")
+        };
+        let Some(status) = tab.last_status.as_deref() else {
+            unreachable!("query status")
+        };
+        (status.summary.clone(), status.is_error, status.duration_ms)
+    }
+
+    #[test]
+    fn explicit_active_execution_records_the_supplied_duration_and_history() {
+        let mut workbench = TableProApp::default().workbench;
+        let query = "SELECT id, currency FROM orders LIMIT 2";
+        let Some(key) = workbench.new_query(query) else {
+            unreachable!("query tab inserts")
+        };
+
+        assert_eq!(
+            workbench.execute_active_with_duration(Duration::from_millis(1234)),
+            Ok(2)
+        );
+        assert_eq!(workbench.active_key(), Some(key));
+        assert_eq!(
+            query_status(&workbench, key),
+            ("ok · 1.23 s".to_owned(), false, 1234)
+        );
+        let Some(Tab::Query(tab)) = workbench.tab(key) else {
+            unreachable!("query tab")
+        };
+        assert_eq!(
+            tab.result.as_ref().map(|grid| grid.model.row_count()),
+            Some(2)
+        );
+
+        let Some(history) = workbench.history.entries.first() else {
+            unreachable!("new history entry")
+        };
+        assert_eq!(history.sql, query);
+        assert_eq!(history.duration_ms, Some(1234));
+        assert_eq!(history.rows, Some(2));
+        assert_eq!(history.error, None);
+        assert_eq!(history.source, HistorySource::Editor);
+    }
+
+    #[test]
+    fn explicit_active_execution_records_failure_history() {
+        let mut workbench = TableProApp::default().workbench;
+        let Some(key) = workbench.new_query("SELECT FROM") else {
+            unreachable!("query tab inserts")
+        };
+
+        assert!(
+            workbench
+                .execute_active_with_duration(Duration::from_millis(2345))
+                .is_err()
+        );
+        assert_eq!(
+            query_status(&workbench, key),
+            ("error".to_owned(), true, 2345)
+        );
+        let Some(history) = workbench.history.entries.first() else {
+            unreachable!("new history entry")
+        };
+        assert_eq!(history.duration_ms, Some(2345));
+        assert_eq!(history.rows, None);
+        assert!(history.error.is_some());
+    }
+
+    #[test]
+    fn pending_active_result_keeps_status_and_does_not_add_history() {
+        let mut workbench = TableProApp::default().workbench;
+        let Some(key) = workbench.new_query("SELECT id, currency FROM orders LIMIT 1") else {
+            unreachable!("query tab inserts")
+        };
+        assert_eq!(
+            workbench.execute_active_with_duration(Duration::from_millis(1234)),
+            Ok(1)
+        );
+        let previous_status = query_status(&workbench, key);
+        let history_len = workbench.history.entries.len();
+        let Some(Tab::Query(tab)) = workbench.tab_mut(key) else {
+            unreachable!("query tab")
+        };
+        let Some(grid) = tab.result.as_mut() else {
+            unreachable!("query result")
+        };
+        assert!(grid.model.delete_row(0));
+        let pending = grid.model.pending().clone();
+
+        assert_eq!(
+            workbench.execute_active_with_duration(Duration::from_millis(9000)),
+            Err("Pending result edits require confirmation".to_owned())
+        );
+        assert_eq!(query_status(&workbench, key), previous_status);
+        assert_eq!(workbench.history.entries.len(), history_len);
+        let Some(Tab::Query(tab)) = workbench.tab(key) else {
+            unreachable!("query tab")
+        };
+        let Some(grid) = tab.result.as_ref() else {
+            unreachable!("query result")
+        };
+        assert_eq!(grid.model.pending(), &pending);
     }
 }
