@@ -319,22 +319,6 @@ fn enclosing_fn(line: &str) -> Option<&str> {
     (!name.is_empty()).then_some(name)
 }
 
-fn rs_files(dir: &Path, out: &mut Vec<std::path::PathBuf>) {
-    for entry in std::fs::read_dir(dir).unwrap_or_else(|e| panic!("list {}: {e}", dir.display())) {
-        let path = entry.expect("dir entry").path();
-        if path.is_dir() {
-            rs_files(&path, out);
-        } else if path.extension().is_some_and(|e| e == "rs")
-            && !path
-                .file_name()
-                .and_then(|n| n.to_str())
-                .is_some_and(|n| n.contains("tests"))
-        {
-            out.push(path);
-        }
-    }
-}
-
 pub fn scan(workspace: &Path) -> BTreeMap<String, usize> {
     let roots = crate::determinism::source_roots(workspace);
     assert!(
@@ -344,7 +328,7 @@ pub fn scan(workspace: &Path) -> BTreeMap<String, usize> {
     );
     let mut files = Vec::new();
     for root in roots {
-        rs_files(&root, &mut files);
+        files.extend(crate::determinism::sources(&root));
     }
     files.sort();
     let mut sites = BTreeMap::new();
@@ -356,7 +340,8 @@ pub fn scan(workspace: &Path) -> BTreeMap<String, usize> {
             .replace('\\', "/");
         let text = std::fs::read_to_string(&file).unwrap_or_else(|e| panic!("read {rel}: {e}"));
         let mut current = String::from("<top>");
-        for line in code_only(non_test(&text)).lines() {
+        let non_test = non_test(&text).unwrap_or_else(|error| panic!("scan {rel}: {error}"));
+        for line in code_only(&non_test).lines() {
             if let Some(name) = enclosing_fn(line) {
                 current = name.to_string();
             }
@@ -469,15 +454,47 @@ pub fn site_scanner_detects_unlisted_overlay_and_ignores_prefix_matches() {
     .expect("write package manifest");
     std::fs::write(
         &source,
-        "fn newly_added_owner() { Dialog::confirm(ID, \"title\", \"body\"); ProductDialog::new(intent); }\n",
+        concat!(
+            "#[cfg(test)]\n",
+            "mod hidden { fn test_only() { Dialog::confirm(ID, \"title\", \"body\"); } }\n",
+            "#[cfg(test)]\n",
+            "mod historical_tests;\n",
+            "fn newly_added_owner() { Dialog::confirm(ID, \"title\", \"body\"); ProductDialog::new(intent); }\n",
+        ),
     )
     .expect("write overlay source fixture");
+    let test_module = source
+        .parent()
+        .expect("source parent")
+        .join("app/historical_tests.rs");
+    std::fs::create_dir_all(test_module.parent().expect("test module directory"))
+        .expect("create test module directory");
+    std::fs::write(
+        &test_module,
+        "fn test_only() { Dialog::confirm(ID, \"title\", \"body\"); }\n",
+    )
+    .expect("write out-of-line test source fixture");
+    std::fs::write(
+        source
+            .parent()
+            .expect("source parent")
+            .join("production_tests_helper.rs"),
+        "fn helper_owner() { Dialog::new(ID); }\n",
+    )
+    .expect("write production helper source fixture");
     let scanned = scan(&workspace);
     let listed: BTreeMap<&str, &Site> = SITES.iter().map(|site| (site.key, site)).collect();
     std::fs::remove_dir_all(&workspace).expect("remove source fixture");
-    let key = "crates/holla-ui/src/app.rs::newly_added_owner";
-    assert_eq!(scanned.get(key), Some(&1));
-    assert_eq!(unlisted_sites(&scanned, &listed), vec![key.to_string()]);
+    let keys = [
+        "crates/holla-ui/src/app.rs::newly_added_owner",
+        "crates/holla-ui/src/production_tests_helper.rs::helper_owner",
+    ];
+    assert_eq!(scanned.get(keys[0]), Some(&1));
+    assert_eq!(scanned.get(keys[1]), Some(&1));
+    assert_eq!(
+        unlisted_sites(&scanned, &listed),
+        keys.map(str::to_string).to_vec()
+    );
     assert!(!scanned.keys().any(|key| key.contains("ProductDialog")));
 }
 

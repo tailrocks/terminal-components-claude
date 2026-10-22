@@ -62,6 +62,14 @@ fn main() {
             determinism::scanner_ignores_strings_comments_and_tests,
         ),
         check(
+            "determinism::scanner_masks_only_exact_test_module_items",
+            determinism::scanner_masks_only_exact_test_module_items,
+        ),
+        check(
+            "determinism::scanner_detects_forbidden_source_injected_under_root",
+            determinism::scanner_detects_forbidden_source_injected_under_root,
+        ),
+        check(
             "modes::showcase_boot_sets_terminal_modes",
             modes::showcase_boot_sets_terminal_modes,
         ),
