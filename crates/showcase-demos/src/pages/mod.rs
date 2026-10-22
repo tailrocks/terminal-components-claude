@@ -301,6 +301,7 @@ pub mod forms;
 pub mod grid;
 pub mod inputs;
 pub mod lists;
+pub mod notices;
 pub mod overview;
 pub mod panels;
 pub mod pickers;
