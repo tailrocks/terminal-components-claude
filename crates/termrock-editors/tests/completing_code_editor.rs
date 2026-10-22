@@ -426,6 +426,54 @@ fn selected_details_follow_the_key_scroll_inside_the_same_popup_and_keep_accepta
 }
 
 #[test]
+fn details_disabled_preserves_the_compact_popup_row_and_geometry() {
+    let mut runtime = runtime_with("SELECT fe", ProviderMode::Details);
+    runtime.app_mut().details_enabled = false;
+    send(&mut runtime, KeyCode::Char(' '), KeyModifiers::CONTROL);
+    send(&mut runtime, KeyCode::Down, KeyModifiers::NONE);
+
+    let popup = runtime.layer_area(POPUP).expect("completion layer area");
+    assert_eq!(popup.width, 34);
+    assert_eq!(popup.height, 4);
+    let row = runtime
+        .area_of_part(POPUP, PartRef::item(Part::ROW, ItemKey::num(11)))
+        .expect("fetch row hit area");
+    assert_eq!(row.width, popup.width.saturating_sub(2));
+    assert_eq!(row.height, 1);
+    let mut buffer = Buffer::empty(AREA);
+    runtime.draw_buffer(AREA, &mut buffer).commit_presented();
+    let row_text = buffer_row_text(
+        &buffer,
+        Rect::new(row.x, row.y, row.width, row.height),
+        row.y,
+    );
+    assert_eq!(row_text, "   fetch(  async fn (url: &str)");
+    assert!(!row_text.contains("Result<Body, Error>"));
+
+    let text_before = runtime.app().state.editor().text().to_owned();
+    let cursor_before = runtime.app().state.editor().cursor_offset();
+    send(
+        &mut runtime,
+        KeyCode::Char('d'),
+        KeyModifiers::CONTROL | KeyModifiers::SHIFT,
+    );
+    assert!(!runtime.app().state.is_completion_details_open());
+    assert!(runtime.app().state.is_completion_open());
+    assert_eq!(runtime.layer_area(POPUP), Some(popup));
+    assert_eq!(
+        runtime.area_of_part(POPUP, PartRef::item(Part::ROW, ItemKey::num(11))),
+        Some(row)
+    );
+    assert_eq!(runtime.app().state.editor().text(), text_before);
+    assert_eq!(runtime.app().state.editor().cursor_offset(), cursor_before);
+    assert!(
+        runtime.diagnostics().is_empty(),
+        "{:?}",
+        runtime.diagnostics()
+    );
+}
+
+#[test]
 fn enter_accepts_from_details_and_escape_returns_to_list_before_dismissal() {
     let mut enter = runtime_with("SELECT fe", ProviderMode::Details);
     send(&mut enter, KeyCode::Char(' '), KeyModifiers::CONTROL);
