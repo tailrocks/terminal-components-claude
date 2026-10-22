@@ -1268,3 +1268,66 @@ cache/raw allocation estimates total approximately 40.3 GiB, plus small complete
 No new large archive or copy was created. System-wide availability reached 685 GiB while other
 sessions also cleaned the shared disk. Remaining smaller chunk duplicates are still being checked;
 new build/capture work remains paused during that cleanup.
+
+### Mandatory free-space stop and tool state (2026-10-22)
+
+The user set a hard pre-build requirement of at least 3,000,000,000,000 available bytes. The
+threshold is fixed; an environment or project override is not allowed. New Rust builds, tests,
+formatting, linting and application captures therefore remain stopped until the requirement is
+met. The prior published PR #38 tip was `0ad70c97fc947cc02942a1c45dd1f0b9546b44cc` (recorded
+before this stop); it is not evidence for the current source state or acceptance. Tool pins in
+this checkout are Rust `1.99.1` and Nextest `0.9.148`; the effective mise version is `2026.10.17`
+and the effective MBX installation was `1.26.0`. The project `mise.toml` still declares MBX
+`1.24.1`; the separately applied operator override has SHA-256
+`075dcfa06bb4271fd1d22111f842029a3b54b47371d5db27e5b0dbdf40326541` and was updated separately from repository files. The global base configuration was
+preserved. Resolve that pin/override discrepancy before resuming validation.
+
+The preserved MBX configuration has a 50 GiB cache cap and `gc.min_free_size = 3TB`. That
+minimum is a garbage-collection trigger, not a pre-build deny gate. `mbx doctor` passed nine
+checks, which does not prove the free-space requirement. One standard `mise exec -- mbx gc
+--json` attempt timed out after 210.071355 seconds (wrapper exit 124, owned process ended by
+SIGTERM); it produced no completed GC result and no attributable reclaimed-byte total. The
+postcheck measured 1,174,897,156,096 available bytes, still below the required threshold. A later
+independent stop assessment measured 1,184,408,694,784 available bytes, leaving a
+1,815,591,305,216-byte shortfall. Its project census covers 68 of 120 directories; 52 remain
+unresolved. No verified safe route to the threshold is established, but the partial census does
+not support a claim that reaching it is physically impossible. Do not interpret the cache-size
+decrease or shared-host free-space delta as proof that this GC completed.
+
+Evidence: operator report
+`/Users/donbeave/Projects/termrock-review-20261021-1536-9plajc9k/mbx-settings-gc-owner-20261022T011337Z/REVIEW.md`
+(SHA-256 `474a556b4e95e8f9170b7c91c0a58fb1d871370878bce420e15f02d9682d69b8`), with raw command
+receipts and logs alongside it. The independent disk-stop assessment reports measurements for
+68 of 120 project directories, with 52 unresolved; it found no verified safe route to the
+threshold in inspected evidence. This partial census does not establish that meeting the target
+is physically impossible. The assessment and its evidence hashes are recorded at
+`/Users/donbeave/Projects/termrock-review-20261021-1536-9plajc9k/disk-stop-safety-assessment-20261022.json`
+(SHA-256 `a5775deb98bf240b77fb321072f92f03ad2a07217f02317dcdf5f9d112a0d88b`).
+
+A global prebuild launcher and Rust Analyzer routing remain design-only. No launcher or universal
+enforcement was installed or verified. `RUSTC_WRAPPER` is explicitly excluded; MBX remains the
+Cargo provider. Direct binary, shell and GUI entry points remain possible bypasses, so no
+OS-wide enforcement claim is made. The migration work is incomplete and paused at the resource
+gate; no application parity, architecture acceptance or current test pass is implied.
+
+
+The last cleanup removed only three generated cache directories after fresh ownership,
+non-symlink, cache-marker, process and open-file checks. These were
+`termrock-review-targets/caret-cb2e-independent-20261021/build`,
+`termrock-review-targets/forms-dynamic-3a424-review/native-target`, and
+`termrock-targets/conformance-driver-integrate-20261021`, under the operator Projects directory.
+Their recorded allocated size was 6,912,688,128 bytes. Source and evidence siblings remain.
+Paths that changed or disappeared during concurrent cleanup were excluded. The Holla cache
+with an open file was also excluded. See operator receipt
+`termrock-target-cache-cleanup-20261022.json`, SHA-256
+`c830770d647a2459ee300aa211a5cd73540e7eb7eae42309cefbc40753b9c33d`.
+The final receipt measured 1,245,518,901,248 available bytes, still 1,754,481,098,752 bytes
+below the requirement. Concurrent cleanup explains why the measured free-space increase cannot
+be attributed wholly to these three removals. No further source or cache deletion is authorized
+by this record. The required free-space target and global enforcement remain incomplete.
+
+The independent documentation review cleared diff SHA-256
+`67dff89fd7baa6a4a44a9175bfdde5f779bb7673ae6c31267f38428c1b1d5a07`
+against the cited small receipts. `git diff --check` passed. Rust checks were not run because
+the mandatory free-space gate is unmet. This documentation review does not approve application
+parity, library completion or the unfinished global enforcement setup.
