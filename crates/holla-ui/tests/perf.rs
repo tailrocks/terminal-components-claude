@@ -16,9 +16,10 @@ const QUERY: Id = Id::root("home.query");
 const STEPS: Id = Id::root("plan.steps");
 
 fn fixture(scenario: Scenario) -> Harness<App> {
+    let source_theme = Theme::junie();
     Harness::new_with_feedback_clock(
-        App::for_scenario(scenario, Motion::Paused, 4_000),
-        Theme::junie(),
+        App::for_scenario(scenario, Motion::Paused, 4_000).with_source_theme(source_theme.clone()),
+        source_theme,
         WIDTH,
         HEIGHT,
         termrock::FeedbackClock::Simulation {
