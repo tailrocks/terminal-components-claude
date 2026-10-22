@@ -41,6 +41,24 @@ pub enum RadioNavigation {
     Deferred,
 }
 
+/// Keyboard binding profile for a radio group.
+///
+/// The default preserves the existing arrow, `j`/`k`, Home, and End bindings.
+/// Use another profile to opt into a desktop, Vim, or no-Home/End table.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+#[non_exhaustive]
+pub enum RadioKeyPolicy {
+    /// Preserve the existing arrow, `j`/`k`, Home, and End bindings.
+    #[default]
+    Default,
+    /// Use arrows and Home/End, without Vim keys.
+    Desktop,
+    /// Use arrows, Vim `j`/`k`/`J`/`K`/`g`/`G`, and Home/End.
+    Vim,
+    /// Preserve arrows and `j`/`k`, and do not bind Home or End.
+    NoHomeEnd,
+}
+
 /// The three values of an opt-in tri-state checkbox.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 #[non_exhaustive]
@@ -128,6 +146,147 @@ const RADIO: &[Binding<ChoiceCmd>] = &[
     b(Chord::key(KeyCode::Home), ChoiceCmd::First, "First", false),
     b(Chord::key(KeyCode::End), ChoiceCmd::Last, "Last", false),
 ];
+
+const fn action_without_default_chord(cmd: ChoiceCmd, label: &'static str) -> Binding<ChoiceCmd> {
+    // Keep semantic action IDs available to component key remaps when a
+    // profile omits the default Home/End chords.
+    Binding {
+        action: ActionKey::custom(label),
+        chord: None,
+        cmd,
+        label,
+        priority: 10,
+        visible: false,
+    }
+}
+
+const RADIO_DESKTOP: &[Binding<ChoiceCmd>] = &[
+    b(
+        Chord::key(KeyCode::Char(' ')),
+        ChoiceCmd::Choose,
+        "Choose",
+        true,
+    ),
+    b(
+        Chord::key(KeyCode::Enter),
+        ChoiceCmd::Choose,
+        "Choose (Enter)",
+        false,
+    ),
+    b(Chord::key(KeyCode::Up), ChoiceCmd::Prev, "Up", true),
+    b(Chord::key(KeyCode::Down), ChoiceCmd::Next, "Down", true),
+    b(Chord::key(KeyCode::Home), ChoiceCmd::First, "First", false),
+    b(Chord::key(KeyCode::End), ChoiceCmd::Last, "Last", false),
+];
+
+const RADIO_VIM: &[Binding<ChoiceCmd>] = &[
+    b(
+        Chord::key(KeyCode::Char(' ')),
+        ChoiceCmd::Choose,
+        "Choose",
+        true,
+    ),
+    b(
+        Chord::key(KeyCode::Enter),
+        ChoiceCmd::Choose,
+        "Choose (Enter)",
+        false,
+    ),
+    b(Chord::key(KeyCode::Up), ChoiceCmd::Prev, "Up", true),
+    b(Chord::key(KeyCode::Down), ChoiceCmd::Next, "Down", true),
+    b(
+        Chord::key(KeyCode::Char('k')),
+        ChoiceCmd::Prev,
+        "Up (k)",
+        false,
+    ),
+    b(
+        Chord::key(KeyCode::Char('K')),
+        ChoiceCmd::Prev,
+        "Up (K)",
+        false,
+    ),
+    b(
+        Chord::key(KeyCode::Char('j')),
+        ChoiceCmd::Next,
+        "Down (j)",
+        false,
+    ),
+    b(
+        Chord::key(KeyCode::Char('J')),
+        ChoiceCmd::Next,
+        "Down (J)",
+        false,
+    ),
+    b(
+        Chord::key(KeyCode::Home),
+        ChoiceCmd::First,
+        "First (Home)",
+        false,
+    ),
+    b(
+        Chord::key(KeyCode::End),
+        ChoiceCmd::Last,
+        "Last (End)",
+        false,
+    ),
+    b(
+        Chord::key(KeyCode::Char('g')),
+        ChoiceCmd::First,
+        "First (g)",
+        true,
+    ),
+    b(
+        Chord::key(KeyCode::Char('G')),
+        ChoiceCmd::Last,
+        "Last (G)",
+        true,
+    ),
+    action_without_default_chord(ChoiceCmd::First, "First"),
+    action_without_default_chord(ChoiceCmd::Last, "Last"),
+];
+
+const RADIO_NO_HOME_END: &[Binding<ChoiceCmd>] = &[
+    b(
+        Chord::key(KeyCode::Char(' ')),
+        ChoiceCmd::Choose,
+        "Choose",
+        true,
+    ),
+    b(
+        Chord::key(KeyCode::Enter),
+        ChoiceCmd::Choose,
+        "Choose (Enter)",
+        false,
+    ),
+    b(Chord::key(KeyCode::Up), ChoiceCmd::Prev, "Up", true),
+    b(Chord::key(KeyCode::Down), ChoiceCmd::Next, "Down", true),
+    b(
+        Chord::key(KeyCode::Char('k')),
+        ChoiceCmd::Prev,
+        "Up (K)",
+        false,
+    ),
+    b(
+        Chord::key(KeyCode::Char('j')),
+        ChoiceCmd::Next,
+        "Down (J)",
+        false,
+    ),
+    action_without_default_chord(ChoiceCmd::First, "First"),
+    action_without_default_chord(ChoiceCmd::Last, "Last"),
+];
+
+impl RadioKeyPolicy {
+    const fn bindings(self) -> &'static [Binding<ChoiceCmd>] {
+        match self {
+            Self::Default => RADIO,
+            Self::Desktop => RADIO_DESKTOP,
+            Self::Vim => RADIO_VIM,
+            Self::NoHomeEnd => RADIO_NO_HOME_END,
+        }
+    }
+}
 
 struct FlagRow<'r> {
     id: Id,
@@ -783,6 +942,7 @@ pub struct RadioGroup<'a, T, K = ByIndex, R = DefaultRow> {
     row: R,
     value: Option<ItemKey>,
     navigation: RadioNavigation,
+    key_policy: RadioKeyPolicy,
     read_only: bool,
     disabled: bool,
     ov: PartStyle<'a>,
@@ -795,6 +955,7 @@ impl<T, K, R> fmt::Debug for RadioGroup<'_, T, K, R> {
             .field("id", &self.id)
             .field("value", &self.value)
             .field("navigation", &self.navigation)
+            .field("key_policy", &self.key_policy)
             .field("read_only", &self.read_only)
             .field("disabled", &self.disabled)
             .finish_non_exhaustive()
@@ -809,6 +970,7 @@ impl<T> RadioGroup<'_, T, ByIndex, DefaultRow> {
             row: DefaultRow,
             value: None,
             navigation: RadioNavigation::Immediate,
+            key_policy: RadioKeyPolicy::Default,
             read_only: false,
             disabled: false,
             ov: PartStyle::new(),
@@ -825,6 +987,7 @@ impl<'a> RadioGroup<'a, &'a str, ByIndex, DefaultRow> {
             row: DefaultRow,
             value: Some(ItemKey::index(value)),
             navigation: self.navigation,
+            key_policy: self.key_policy,
             read_only: self.read_only,
             disabled: self.disabled || inherited_disabled,
             ov: self.ov,
@@ -896,6 +1059,7 @@ impl<'a, T, K, R> RadioGroup<'a, T, K, R> {
             row: self.row,
             value: self.value,
             navigation: self.navigation,
+            key_policy: self.key_policy,
             read_only: self.read_only,
             disabled: self.disabled,
             ov: self.ov,
@@ -910,6 +1074,7 @@ impl<'a, T, K, R> RadioGroup<'a, T, K, R> {
             row: r,
             value: self.value,
             navigation: self.navigation,
+            key_policy: self.key_policy,
             read_only: self.read_only,
             disabled: self.disabled,
             ov: self.ov,
@@ -926,6 +1091,13 @@ impl<'a, T, K, R> RadioGroup<'a, T, K, R> {
     #[must_use]
     pub const fn navigation(mut self, policy: RadioNavigation) -> Self {
         self.navigation = policy;
+        self
+    }
+
+    /// Sets radio key bindings independently of immediate/deferred choice.
+    #[must_use]
+    pub const fn key_policy(mut self, policy: RadioKeyPolicy) -> Self {
+        self.key_policy = policy;
         self
     }
 
@@ -1060,11 +1232,12 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
             }
         }
         let mut acc = Acc::<RadioGroupAction>::new();
+        let bindings = self.key_policy.bindings();
         for it in cx.intents(self.id) {
             match it {
                 Intent::Binding(action) if can => {
                     let cur = st.core.cursor_index();
-                    match Binding::command(RADIO, action) {
+                    match Binding::command(bindings, action) {
                         Some(ChoiceCmd::Prev) => {
                             self.navigate(st, items, cur.saturating_sub(1), &mut acc);
                         }
@@ -1281,7 +1454,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
             StateFlags::empty(),
         );
         if !ui.is_inert() {
-            ui.publish_bindings(self.id, live, RADIO);
+            ui.publish_bindings(self.id, live, self.key_policy.bindings());
         }
         let cursor = st.core.cursor();
         for (i, item) in items
@@ -1328,7 +1501,7 @@ impl<T, K, R> Bindings for RadioGroup<'_, T, K, R> {
     type Cmd = ChoiceCmd;
 
     fn bindings(&self, _s: BindingState) -> &'static [Binding<ChoiceCmd>] {
-        RADIO
+        self.key_policy.bindings()
     }
 }
 
