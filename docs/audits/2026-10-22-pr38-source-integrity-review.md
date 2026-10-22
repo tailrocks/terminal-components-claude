@@ -105,10 +105,11 @@ route is different. The exact visual root cause is not established here. Resolve
 the ownership and route mismatch at the shared component/shell layer; retain the
 failing evidence and do not update expected output from the candidate.
 
-The oracle remains pending. The legacy `parity_replay.py` compare subcommand
-rejects `--all` (parser handling around line 2946); the separate
-`frozen_baseline.py live-compare --all` option exists (parser handling around
-lines 4998-5003) but is not a completed, approved full-cohort acceptance run.
+The oracle remains pending. `tools/frozen_baseline.py::compare` rejects
+`--all` at its incomplete-cohort guard (around line 2946); this is distinct from
+the separate `frozen_baseline.py live-compare --all` option, which exists in the
+CLI parser (lines 4998-5003) but is not a completed, approved full-cohort
+acceptance run.
 The resumable protocol should retain bounded chunks and green ordered receipts.
 Although policy D009 classifies the legacy corpus as non-oracle, the current
 support code selects `DEFAULT_BASELINE_STORE` when no override is set, so the
