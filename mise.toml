@@ -1,11 +1,20 @@
-min_version = "2026.10.13"
+min_version = "2026.10.17"
 
 [tools]
-"aqua:nextest-rs/nextest/cargo-nextest" = "0.9.148"
+"aqua:nextest-rs/nextest/cargo-nextest" = "0.9.149"
 actionlint = "1.7.12"
 shellcheck = "0.11.0"
 zizmor = "1.31.1"
 gh = "2.102.0"
 "github:tailrocks/velnor-new" = { version = "0.1.32", bin = "velnor-actions" }
-mr-boxington = "1.24.1"
-rust = { version = "1.99.1", components = "clippy,rustfmt", mr_boxington = false }
+mr-boxington = "1.26.0"
+rust = { version = "1.99.1", profile = "minimal", components = ["clippy", "rustfmt"], targets = ["aarch64-unknown-linux-gnu", "x86_64-unknown-linux-gnu"], mr_boxington = true }
+
+[settings]
+cargo.binstall = true
+idiomatic_version_file_enable_tools = ["rust"]
+lockfile = true
+
+[wrappers.cargo]
+command = "mbx"
+env = { MBX_CARGO_SHIM_MODE = "1" }
