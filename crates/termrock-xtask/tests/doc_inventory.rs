@@ -98,6 +98,59 @@ fn nested_list_indented_rust_remains_fail_closed() {
 }
 
 #[test]
+fn all_atx_heading_levels_close_paragraphs_before_indented_rust() {
+    for level in 1..=6 {
+        let heading = format!("{} Title", "#".repeat(level));
+        let source = format!("{heading}\n    fn main() {{}}\n");
+        assert!(
+            !inspect_fixture("README.md", &source).is_empty(),
+            "accepted Rust after heading level {level}: {source:?}"
+        );
+    }
+
+    for heading in ["##\tTabbed", "###", "#not a heading", "####### Too many"] {
+        let source = format!("{heading}\n    fn main() {{}}\n");
+        let issues = inspect_fixture("README.md", &source);
+        if heading.starts_with('#') && (heading == "###" || heading.starts_with("##\t")) {
+            assert!(
+                !issues.is_empty(),
+                "accepted Rust after valid heading {heading:?}"
+            );
+        } else {
+            assert!(
+                issues.is_empty(),
+                "misread paragraph text as a heading: {heading:?}"
+            );
+        }
+    }
+}
+
+#[test]
+fn first_list_child_code_and_list_headings_remain_fail_closed() {
+    for source in [
+        "-     fn main() {}\n",
+        "1.     fn main() {}\n",
+        "-\t    fn main() {}\n",
+        "1.\t   fn main() {}\n",
+        "- outer\n  -     fn main() {}\n",
+        "- ## Heading\n      fn main() {}\n",
+        "- outer\n  - ### Nested heading\n        fn main() {}\n",
+    ] {
+        assert!(
+            !inspect_fixture("README.md", source).is_empty(),
+            "accepted list-contained Rust: {source:?}"
+        );
+    }
+
+    for source in ["-    fn main() {}\n", "1.    fn main() {}\n"] {
+        assert!(
+            inspect_fixture("README.md", source).is_empty(),
+            "treated four-space list padding as an indented code block: {source:?}"
+        );
+    }
+}
+
+#[test]
 fn rustdoc_block_and_attribute_inputs_fail_closed() {
     let block = "/**\n * ```rust\n * fn main() {}\n * ```\n */";
     assert!(!inspect_fixture("src/lib.rs", block).is_empty());

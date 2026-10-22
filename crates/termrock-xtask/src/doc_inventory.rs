@@ -932,9 +932,11 @@ struct ListItemIndent {
     content: usize,
 }
 
-struct ListMarker {
+struct ListMarker<'a> {
     indent: usize,
     content_indent: usize,
+    content_column: usize,
+    content: &'a str,
     interrupts_paragraph: bool,
     has_content: bool,
 }
@@ -992,7 +994,31 @@ fn inspect_examples(path: &str, text: &str, base_line: usize, report: &mut Repor
                 list_items.push(ListItemIndent {
                     content: marker.content_indent,
                 });
-                paragraph_open = marker.has_content;
+                let code_indent = marker.content_indent.saturating_add(4);
+                if marker.has_content && marker.content_column >= code_indent {
+                    let start = index;
+                    let mut body = vec![marker.content];
+                    index += 1;
+                    while index < lines.len() {
+                        if lines[index].trim().is_empty() {
+                            body.push(lines[index]);
+                            index += 1;
+                            continue;
+                        }
+                        if indentation_columns(lines[index]) < code_indent {
+                            break;
+                        }
+                        body.push(lines[index]);
+                        index += 1;
+                    }
+                    if looks_like_rust(&body.join("\n")) {
+                        record_example(path, base_line + start, "indented", &body, report);
+                    }
+                    paragraph_open = false;
+                    continue;
+                }
+
+                paragraph_open = marker.has_content && !starts_markdown_block(marker.content);
                 index += 1;
                 continue;
             }
@@ -1051,7 +1077,7 @@ fn indentation_columns(line: &str) -> usize {
         })
 }
 
-fn list_marker(line: &str) -> Option<ListMarker> {
+fn list_marker(line: &str) -> Option<ListMarker<'_>> {
     let mut prefix_bytes = 0;
     let mut indent = 0_usize;
     for (offset, ch) in line.char_indices() {
@@ -1114,13 +1140,14 @@ fn list_marker(line: &str) -> Option<ListMarker> {
     let padding = column.saturating_sub(marker_end_column);
     let content_padding = if padding > 4 { 1 } else { padding.max(1) };
     let content_indent = marker_end_column.saturating_add(content_padding);
-    let has_content = after_marker
-        .get(whitespace_bytes..)
-        .is_some_and(|content| !content.trim().is_empty());
+    let content = after_marker.get(whitespace_bytes..)?;
+    let has_content = !content.trim().is_empty();
 
     Some(ListMarker {
         indent,
         content_indent,
+        content_column: column,
+        content,
         interrupts_paragraph,
         has_content,
     })
@@ -1134,12 +1161,13 @@ fn starts_markdown_block(line: &str) -> bool {
     if content.starts_with('>') {
         return true;
     }
-    if let Some(heading) = content.strip_prefix('#') {
+    if content.starts_with('#') {
         let level = content.bytes().take_while(|byte| *byte == b'#').count();
-        if (1..=6).contains(&level)
-            && (heading.is_empty() || heading.starts_with(' ') || heading.starts_with('\t'))
-        {
-            return true;
+        if (1..=6).contains(&level) {
+            let suffix = &content[level..];
+            if suffix.is_empty() || suffix.starts_with(' ') || suffix.starts_with('\t') {
+                return true;
+            }
         }
     }
 
