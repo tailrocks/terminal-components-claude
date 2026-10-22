@@ -927,9 +927,23 @@ fn scan_markdown(path: &str, source: &str, report: &mut Report) {
     inspect_examples(path, source, 1, report);
 }
 
+#[derive(Clone, Copy)]
+struct ListItemIndent {
+    content: usize,
+}
+
+struct ListMarker {
+    indent: usize,
+    content_indent: usize,
+    interrupts_paragraph: bool,
+    has_content: bool,
+}
+
 fn inspect_examples(path: &str, text: &str, base_line: usize, report: &mut Report) {
     let lines = text.lines().collect::<Vec<_>>();
     let mut index = 0;
+    let mut list_items = Vec::<ListItemIndent>::new();
+    let mut paragraph_open = false;
     while index < lines.len() {
         let line = lines[index];
         let trimmed = line.trim_start();
@@ -948,28 +962,195 @@ fn inspect_examples(path: &str, text: &str, base_line: usize, report: &mut Repor
                 record_example(path, base_line + start, info, &body, report);
             }
             index = index.saturating_add(1);
+            paragraph_open = false;
             continue;
         }
-        if line.starts_with("    ") || line.starts_with('\t') {
-            let start = index;
-            let mut body = Vec::new();
-            while index < lines.len()
-                && (lines[index].starts_with("    ") || lines[index].starts_with('\t'))
-            {
-                body.push(
-                    lines[index]
-                        .strip_prefix("    ")
-                        .unwrap_or(lines[index].trim_start_matches('\t')),
-                );
+
+        if line.trim().is_empty() {
+            paragraph_open = false;
+            index += 1;
+            continue;
+        }
+
+        let indent = indentation_columns(line);
+        if let Some(marker) = list_marker(line) {
+            let mut parent_count = list_items.len();
+            while parent_count > 0 && marker.indent < list_items[parent_count - 1].content {
+                parent_count -= 1;
+            }
+            let parent_indent = parent_count
+                .checked_sub(1)
+                .map(|parent| list_items[parent].content);
+            let marker_fits = match parent_indent {
+                Some(parent) => {
+                    marker.indent >= parent && marker.indent <= parent.saturating_add(3)
+                }
+                None => marker.indent <= 3,
+            };
+            if marker_fits && (!paragraph_open || marker.interrupts_paragraph) {
+                list_items.truncate(parent_count);
+                list_items.push(ListItemIndent {
+                    content: marker.content_indent,
+                });
+                paragraph_open = marker.has_content;
                 index += 1;
+                continue;
             }
-            if looks_like_rust(&body.join("\n")) {
-                record_example(path, base_line + start, "indented", &body, report);
+        }
+
+        if !paragraph_open {
+            while list_items.last().is_some_and(|item| indent < item.content) {
+                list_items.pop();
             }
+
+            let code_indent = list_items
+                .last()
+                .map_or(4, |item| item.content.saturating_add(4));
+            if indent >= code_indent {
+                let start = index;
+                let mut body = Vec::new();
+                while index < lines.len() {
+                    if lines[index].trim().is_empty() {
+                        body.push(lines[index]);
+                        index += 1;
+                        continue;
+                    }
+                    if indentation_columns(lines[index]) < code_indent {
+                        break;
+                    }
+                    body.push(lines[index]);
+                    index += 1;
+                }
+                if looks_like_rust(&body.join("\n")) {
+                    record_example(path, base_line + start, "indented", &body, report);
+                }
+                continue;
+            }
+        }
+
+        if starts_markdown_block(line) {
+            paragraph_open = false;
+            index += 1;
             continue;
         }
+
+        paragraph_open = true;
         index += 1;
     }
+}
+
+fn indentation_columns(line: &str) -> usize {
+    line.chars()
+        .take_while(|ch| *ch == ' ' || *ch == '\t')
+        .fold(0, |column, ch| {
+            if ch == '\t' {
+                column.saturating_add(4 - column % 4)
+            } else {
+                column.saturating_add(1)
+            }
+        })
+}
+
+fn list_marker(line: &str) -> Option<ListMarker> {
+    let mut prefix_bytes = 0;
+    let mut indent = 0_usize;
+    for (offset, ch) in line.char_indices() {
+        match ch {
+            ' ' => {
+                indent = indent.saturating_add(1);
+                prefix_bytes = offset + ch.len_utf8();
+            }
+            '\t' => {
+                indent = indent.saturating_add(4 - indent % 4);
+                prefix_bytes = offset + ch.len_utf8();
+            }
+            _ => {
+                prefix_bytes = offset;
+                break;
+            }
+        }
+    }
+
+    let rest = line.get(prefix_bytes..)?;
+    let bytes = rest.as_bytes();
+    let first = *bytes.first()?;
+    let (marker_width, interrupts_paragraph) = match first {
+        b'-' | b'+' | b'*' => (1, true),
+        b'0'..=b'9' => {
+            let digits = bytes
+                .iter()
+                .take_while(|byte| byte.is_ascii_digit())
+                .count();
+            if digits == 0
+                || digits > 9
+                || !bytes
+                    .get(digits)
+                    .is_some_and(|byte| *byte == b'.' || *byte == b')')
+            {
+                return None;
+            }
+            let interrupts_paragraph = rest[..digits].parse::<u32>().ok() == Some(1);
+            (digits + 1, interrupts_paragraph)
+        }
+        _ => return None,
+    };
+
+    let after_marker = rest.get(marker_width..)?;
+    let marker_end_column = indent.saturating_add(marker_width);
+    let mut column = marker_end_column;
+    let mut whitespace_bytes = 0;
+    for (offset, ch) in after_marker.char_indices() {
+        match ch {
+            ' ' => column = column.saturating_add(1),
+            '\t' => column = column.saturating_add(4 - column % 4),
+            _ => break,
+        }
+        whitespace_bytes = offset + ch.len_utf8();
+    }
+    if !after_marker.is_empty() && whitespace_bytes == 0 {
+        return None;
+    }
+
+    let padding = column.saturating_sub(marker_end_column);
+    let content_padding = if padding > 4 { 1 } else { padding.max(1) };
+    let content_indent = marker_end_column.saturating_add(content_padding);
+    let has_content = after_marker
+        .get(whitespace_bytes..)
+        .is_some_and(|content| !content.trim().is_empty());
+
+    Some(ListMarker {
+        indent,
+        content_indent,
+        interrupts_paragraph,
+        has_content,
+    })
+}
+
+fn starts_markdown_block(line: &str) -> bool {
+    if indentation_columns(line) > 3 {
+        return false;
+    }
+    let content = line.trim_start_matches([' ', '\t']);
+    if content.starts_with('>') {
+        return true;
+    }
+    if let Some(heading) = content.strip_prefix('#') {
+        let level = content.bytes().take_while(|byte| *byte == b'#').count();
+        if (1..=6).contains(&level)
+            && (heading.is_empty() || heading.starts_with(' ') || heading.starts_with('\t'))
+        {
+            return true;
+        }
+    }
+
+    let rule = content
+        .chars()
+        .filter(|ch| !ch.is_whitespace())
+        .collect::<Vec<_>>();
+    rule.len() >= 3
+        && (rule.iter().all(|ch| *ch == '-')
+            || rule.iter().all(|ch| *ch == '*')
+            || rule.iter().all(|ch| *ch == '_'))
 }
 
 fn fence_open(line: &str) -> Option<(char, usize, &str)> {
