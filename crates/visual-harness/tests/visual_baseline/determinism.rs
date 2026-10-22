@@ -453,8 +453,36 @@ pub fn non_test(text: &str) -> Result<String, String> {
     String::from_utf8(result).map_err(|error| format!("masked Rust source is not UTF-8: {error}"))
 }
 
-fn matching_pattern_offsets(code: &str, tokens: &[Token], pattern: &str) -> Vec<usize> {
-    let (pattern_tokens, _) = tokenize(pattern).expect("reviewed source pattern is valid Rust");
+/// Tokenize an opener prefix without requiring its intentionally unclosed delimiter groups.
+fn tokenize_pattern_fragment(pattern: &str) -> Vec<Token> {
+    let bytes = pattern.as_bytes();
+    let mut tokens = Vec::new();
+    let mut at = 0;
+    while at < bytes.len() {
+        if bytes[at].is_ascii_whitespace() {
+            at += 1;
+            continue;
+        }
+        let start = at;
+        if identifier_byte(bytes[at]) && !bytes[at].is_ascii_digit() {
+            at += 1;
+            while at < bytes.len() && identifier_byte(bytes[at]) {
+                at += 1;
+            }
+        } else {
+            at += 1;
+        }
+        tokens.push(Token { start, end: at });
+    }
+    tokens
+}
+
+fn matching_pattern_ranges(
+    code: &str,
+    tokens: &[Token],
+    pattern: &str,
+) -> Vec<std::ops::Range<usize>> {
+    let pattern_tokens = tokenize_pattern_fragment(pattern);
     if pattern_tokens.is_empty() {
         return Vec::new();
     }
@@ -470,8 +498,24 @@ fn matching_pattern_offsets(code: &str, tokens: &[Token], pattern: &str) -> Vec<
                 .iter()
                 .enumerate()
                 .all(|(offset, token)| &code[token.start..token.end] == expected[offset])
-                .then_some(tokens[start].start)
+                .then_some(tokens[start].start..window.last().expect("non-empty pattern").end)
         })
+        .collect()
+}
+
+fn matching_pattern_offsets(code: &str, tokens: &[Token], pattern: &str) -> Vec<usize> {
+    matching_pattern_ranges(code, tokens, pattern)
+        .into_iter()
+        .map(|range| range.start)
+        .collect()
+}
+
+/// Match reviewed fragments against strictly tokenized source and retain byte ranges.
+pub(super) fn matching_patterns(code: &str, patterns: &[&str]) -> Vec<Vec<std::ops::Range<usize>>> {
+    let (tokens, _) = tokenize(code).expect("overlay source has balanced delimiters");
+    patterns
+        .iter()
+        .map(|pattern| matching_pattern_ranges(code, &tokens, pattern))
         .collect()
 }
 
