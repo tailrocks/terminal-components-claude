@@ -3,12 +3,13 @@ use std::cell::RefCell;
 use ratatui_core::buffer::Buffer;
 use ratatui_core::layout::{Position, Rect};
 use termrock_core::action::ActionKey;
-use termrock_core::id::{Id, ItemKey};
+use termrock_core::id::{Id, ItemKey, Part, PartRef};
 use termrock_editors::code::{CodeAction, CodeEditor};
 use termrock_editors::completion::{
     CompletionBatch, CompletionProvider, CompletionTrigger, CompletionValue, FOCUS_NEXT_ACTION,
     MANUAL_COMPLETION_ACTION,
 };
+use termrock_overlays::completion::AsItem;
 use termrock_runtime::event::{Input, Key, KeyCode, KeyModifiers, Mouse, MouseKind};
 use termrock_runtime::focus::Focusability;
 use termrock_runtime::keymap::KeyMap;
@@ -20,6 +21,7 @@ const EDITOR: Id = Id::root("completion.composite.editor");
 const POPUP: Id = Id::root("completion.composite.popup");
 const NEXT: Id = Id::root("completion.composite.next");
 const AREA: Rect = Rect::new(0, 0, 100, 32);
+const UNICODE_DETAIL: &str = "界 e\u{301} 👨‍👩‍👧‍👦 wide label 界 e\u{301} 👨‍👩‍👧‍👦 ending detail";
 
 struct Provider {
     triggers: RefCell<Vec<CompletionTrigger>>,
@@ -32,6 +34,8 @@ enum ProviderMode {
     Empty,
     Disabled,
     Noop,
+    Details,
+    UnicodeDetails,
 }
 
 impl CompletionProvider for Provider {
@@ -43,6 +47,37 @@ impl CompletionProvider for Provider {
     ) -> Option<CompletionBatch> {
         self.triggers.borrow_mut().push(trigger);
         let token = text.split_whitespace().last().unwrap_or_default();
+        if matches!(self.mode, ProviderMode::UnicodeDetails) {
+            if token != "fe" {
+                return None;
+            }
+            return Some(CompletionBatch {
+                items: vec![
+                    CompletionValue::new(ItemKey::num(20), "fetch", "fetch()")
+                        .detail(UNICODE_DETAIL)
+                        .menu_summary("fn"),
+                ],
+                replace_len: token.len(),
+            });
+        }
+        if matches!(self.mode, ProviderMode::Details) {
+            if token != "fe" {
+                return None;
+            }
+            return Some(CompletionBatch {
+                items: vec![
+                    CompletionValue::new(ItemKey::num(10), "format", "format!()")
+                        .detail("fn (value: &str) -> String")
+                        .menu_summary("f"),
+                    CompletionValue::new(ItemKey::num(11), "fetch(", "fetch()")
+                        .detail(
+                            "async fn (url: &str) -> Result<Body, Error>\nrequest headers\nresponse body stream\ncompletion footer",
+                        )
+                        .menu_summary("async fn (url: &str)"),
+                ],
+                replace_len: token.len(),
+            });
+        }
         if matches!(self.mode, ProviderMode::Empty) {
             return Some(CompletionBatch {
                 items: Vec::new(),
@@ -81,16 +116,24 @@ struct EditorApp {
     disabled: bool,
     commit_on_blur: bool,
     draw_width: u16,
+    draw_x: u16,
+    draw_y: u16,
+    details_enabled: bool,
 }
 
 impl App for EditorApp {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        let response = CodeEditor::new(EDITOR, 6)
+        let component = CodeEditor::new(EDITOR, 6)
             .read_only(self.read_only)
             .disabled(self.disabled)
             .with_completion(POPUP, &self.provider)
-            .commit_on_blur(self.commit_on_blur)
-            .update(cx, &mut self.state);
+            .commit_on_blur(self.commit_on_blur);
+        let component = if self.details_enabled {
+            component.selected_details()
+        } else {
+            component
+        };
+        let response = component.update(cx, &mut self.state);
         if let Some(action) = response.action_ref() {
             self.actions.push(action.clone());
         }
@@ -98,12 +141,21 @@ impl App for EditorApp {
     }
 
     fn draw(&self, ui: &mut Ui<'_>) {
-        CodeEditor::new(EDITOR, 6)
+        let component = CodeEditor::new(EDITOR, 6)
             .read_only(self.read_only)
             .disabled(self.disabled)
             .with_completion(POPUP, &self.provider)
-            .commit_on_blur(self.commit_on_blur)
-            .draw(ui, Rect::new(0, 0, self.draw_width, 8), &self.state);
+            .commit_on_blur(self.commit_on_blur);
+        let component = if self.details_enabled {
+            component.selected_details()
+        } else {
+            component
+        };
+        component.draw(
+            ui,
+            Rect::new(self.draw_x, self.draw_y, self.draw_width, 8),
+            &self.state,
+        );
         ui.register_focus_only(NEXT, Focusability::Focusable);
     }
 
@@ -133,6 +185,9 @@ fn runtime_with(text: &str, mode: ProviderMode) -> Runtime<EditorApp> {
             disabled: false,
             commit_on_blur: true,
             draw_width: 80,
+            draw_x: 0,
+            draw_y: 0,
+            details_enabled: matches!(mode, ProviderMode::Details | ProviderMode::UnicodeDetails),
         },
         Theme::junie(),
     );
@@ -160,6 +215,47 @@ fn send(runtime: &mut Runtime<EditorApp>, code: KeyCode, mods: KeyModifiers) {
     let _ = termrock_runtime::stub::deliver(runtime, key(code, mods));
     let mut buffer = Buffer::empty(AREA);
     runtime.draw_buffer(AREA, &mut buffer).commit_presented();
+}
+
+fn visible_text(runtime: &mut Runtime<EditorApp>) -> String {
+    let mut buffer = Buffer::empty(AREA);
+    runtime.draw_buffer(AREA, &mut buffer).commit_presented();
+    buffer_text(&buffer, AREA)
+}
+
+fn buffer_text(buffer: &Buffer, area: Rect) -> String {
+    (area.y..area.bottom())
+        .map(|y| {
+            (area.x..area.right())
+                .map(|x| buffer[(x, y)].symbol())
+                .collect::<String>()
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+fn buffer_row_text(buffer: &Buffer, area: Rect, row: u16) -> String {
+    use ratatui_core::buffer::CellWidth;
+
+    let mut text = String::new();
+    let mut x = area.x;
+    while x < area.right() {
+        let symbol = buffer[(x, row)].symbol();
+        text.push_str(symbol);
+        x = x.saturating_add(symbol.cell_width().max(1));
+    }
+    text.trim_end_matches(' ').to_owned()
+}
+
+fn send_into(
+    runtime: &mut Runtime<EditorApp>,
+    code: KeyCode,
+    mods: KeyModifiers,
+    area: Rect,
+    buffer: &mut Buffer,
+) {
+    let _ = termrock_runtime::stub::deliver(runtime, key(code, mods));
+    runtime.draw_buffer(area, buffer).commit_presented();
 }
 
 struct BareEditorApp {
@@ -223,6 +319,288 @@ fn completion_opens_when_the_cursor_sits_one_column_past_a_narrow_field() {
         format!("{prefix} count")
     );
     assert!(!runtime.app().state.is_completion_open());
+}
+
+#[test]
+fn selected_details_follow_the_key_scroll_inside_the_same_popup_and_keep_acceptance() {
+    let mut runtime = runtime_with("SELECT fe", ProviderMode::Details);
+    send(&mut runtime, KeyCode::Char(' '), KeyModifiers::CONTROL);
+    assert!(runtime.app().state.is_completion_open());
+    assert!(runtime.app().state.selected_completion().is_none());
+
+    let menu_area = runtime.layer_area(POPUP).expect("completion layer area");
+    send(&mut runtime, KeyCode::Down, KeyModifiers::NONE);
+    let selected = runtime
+        .app()
+        .state
+        .selected_completion()
+        .expect("selected completion value");
+    assert_eq!(selected.as_item().key, ItemKey::num(11));
+    assert_eq!(
+        selected.full_detail().lines().next(),
+        Some("async fn (url: &str) -> Result<Body, Error>")
+    );
+    assert_eq!(selected.as_item().detail, "async fn (url: &str)");
+    assert_eq!(selected.as_item().insertion(), "fetch()");
+    assert_eq!(menu_area.width, 34);
+    let selected_row = runtime
+        .area_of_part(POPUP, PartRef::item(Part::ROW, ItemKey::num(11)))
+        .expect("selected row hit area");
+
+    let cursor = runtime.app().state.editor().cursor_offset();
+    send(
+        &mut runtime,
+        KeyCode::Char('d'),
+        KeyModifiers::CONTROL | KeyModifiers::SHIFT,
+    );
+    assert!(runtime.app().state.is_completion_details_open());
+    assert_eq!(runtime.focus(), Some(EDITOR));
+    assert_eq!(runtime.layer_area(POPUP), Some(menu_area));
+    assert_eq!(runtime.layer_area(POPUP).map(|area| area.width), Some(34));
+    assert_eq!(runtime.app().state.editor().cursor_offset(), cursor);
+    assert!(
+        runtime.diagnostics().is_empty(),
+        "{:?}",
+        runtime.diagnostics()
+    );
+
+    let initial = visible_text(&mut runtime);
+    assert!(initial.contains("async fn (url: &str)"), "{initial}");
+    assert!(initial.contains("->"), "{initial}");
+    assert!(initial.contains("Result<Body, Error>"), "{initial}");
+
+    send(&mut runtime, KeyCode::Char('n'), KeyModifiers::CONTROL);
+    send(&mut runtime, KeyCode::Char('p'), KeyModifiers::CONTROL);
+    send(&mut runtime, KeyCode::PageDown, KeyModifiers::NONE);
+    assert!(visible_text(&mut runtime).contains("response body stream"));
+    send(&mut runtime, KeyCode::PageUp, KeyModifiers::NONE);
+    let restored_signature = visible_text(&mut runtime);
+    assert!(restored_signature.contains("async fn (url: &str)"));
+    assert!(restored_signature.contains("Result<Body, Error>"));
+
+    let mut reached_footer = false;
+    for _ in 0..12 {
+        let text = visible_text(&mut runtime);
+        if text.contains("completion footer") {
+            reached_footer = true;
+            break;
+        }
+        send(&mut runtime, KeyCode::Down, KeyModifiers::NONE);
+    }
+    assert!(
+        reached_footer,
+        "full selected detail did not scroll into view"
+    );
+    assert_eq!(runtime.app().state.editor().cursor_offset(), cursor);
+    assert_eq!(
+        runtime
+            .app()
+            .state
+            .selected_completion()
+            .map(|item| item.as_item().key),
+        Some(ItemKey::num(11))
+    );
+    assert!(
+        runtime.diagnostics().is_empty(),
+        "{:?}",
+        runtime.diagnostics()
+    );
+
+    send(&mut runtime, KeyCode::Esc, KeyModifiers::NONE);
+    assert!(!runtime.app().state.is_completion_details_open());
+    assert!(runtime.app().state.is_completion_open());
+    assert_eq!(runtime.layer_area(POPUP), Some(menu_area));
+    assert_eq!(
+        runtime.area_of_part(POPUP, PartRef::item(Part::ROW, ItemKey::num(11))),
+        Some(selected_row)
+    );
+    send(&mut runtime, KeyCode::Tab, KeyModifiers::NONE);
+    assert_eq!(runtime.app().state.editor().text(), "SELECT fetch()");
+    assert!(!runtime.app().state.is_completion_open());
+    assert!(runtime.app().state.selected_completion().is_none());
+    assert!(
+        runtime.diagnostics().is_empty(),
+        "{:?}",
+        runtime.diagnostics()
+    );
+}
+
+#[test]
+fn enter_accepts_from_details_and_escape_returns_to_list_before_dismissal() {
+    let mut enter = runtime_with("SELECT fe", ProviderMode::Details);
+    send(&mut enter, KeyCode::Char(' '), KeyModifiers::CONTROL);
+    send(&mut enter, KeyCode::Down, KeyModifiers::NONE);
+    send(
+        &mut enter,
+        KeyCode::Char('d'),
+        KeyModifiers::CONTROL | KeyModifiers::SHIFT,
+    );
+    assert!(enter.app().state.is_completion_details_open());
+    send(&mut enter, KeyCode::Enter, KeyModifiers::NONE);
+    assert_eq!(enter.app().state.editor().text(), "SELECT fetch()");
+    assert!(!enter.app().state.is_completion_open());
+    assert!(enter.app().state.selected_completion().is_none());
+    assert!(enter.diagnostics().is_empty(), "{:?}", enter.diagnostics());
+
+    let mut escape = runtime_with("SELECT fe", ProviderMode::Details);
+    send(&mut escape, KeyCode::Char(' '), KeyModifiers::CONTROL);
+    send(&mut escape, KeyCode::Down, KeyModifiers::NONE);
+    send(
+        &mut escape,
+        KeyCode::Char('d'),
+        KeyModifiers::CONTROL | KeyModifiers::SHIFT,
+    );
+    assert!(escape.app().state.is_completion_details_open());
+    send(&mut escape, KeyCode::Esc, KeyModifiers::NONE);
+    assert!(!escape.app().state.is_completion_details_open());
+    assert!(escape.app().state.is_completion_open());
+    assert!(escape.app().state.editor().is_editing());
+    send(&mut escape, KeyCode::Esc, KeyModifiers::NONE);
+    assert!(!escape.app().state.is_completion_open());
+    assert!(escape.app().state.editor().is_editing());
+    send(&mut escape, KeyCode::Esc, KeyModifiers::NONE);
+    assert!(!escape.app().state.editor().is_editing());
+    assert!(
+        escape.diagnostics().is_empty(),
+        "{:?}",
+        escape.diagnostics()
+    );
+}
+
+#[test]
+fn outside_click_dismisses_details_and_preserves_the_editing_session() {
+    let mut runtime = runtime_with("SELECT fe", ProviderMode::Details);
+    send(&mut runtime, KeyCode::Char(' '), KeyModifiers::CONTROL);
+    send(&mut runtime, KeyCode::Down, KeyModifiers::NONE);
+    send(
+        &mut runtime,
+        KeyCode::Char('d'),
+        KeyModifiers::CONTROL | KeyModifiers::SHIFT,
+    );
+    assert!(runtime.app().state.is_completion_details_open());
+
+    click(&mut runtime, 98, 30);
+
+    assert!(!runtime.app().state.is_completion_details_open());
+    assert!(!runtime.app().state.is_completion_open());
+    assert!(runtime.app().state.editor().is_editing());
+    assert!(runtime.app().state.selected_completion().is_none());
+    assert!(
+        runtime.diagnostics().is_empty(),
+        "{:?}",
+        runtime.diagnostics()
+    );
+}
+
+#[test]
+fn selected_details_clip_unicode_at_offset_right_and_bottom_edges() {
+    use ratatui_core::buffer::CellWidth;
+
+    let mut runtime = runtime_with("SELECT fe", ProviderMode::UnicodeDetails);
+    runtime.app_mut().draw_x = 7;
+    runtime.app_mut().draw_y = 4;
+    let area = Rect::new(0, 0, 20, 8);
+    let mut buffer = Buffer::empty(area);
+    runtime.draw_buffer(area, &mut buffer).commit_presented();
+    buffer[(19, 0)].set_symbol("§");
+
+    send_into(
+        &mut runtime,
+        KeyCode::Char(' '),
+        KeyModifiers::CONTROL,
+        area,
+        &mut buffer,
+    );
+    send_into(
+        &mut runtime,
+        KeyCode::Up,
+        KeyModifiers::NONE,
+        area,
+        &mut buffer,
+    );
+    assert_eq!(
+        runtime
+            .app()
+            .state
+            .selected_completion()
+            .map(|item| item.as_item().key),
+        Some(ItemKey::num(20))
+    );
+    send_into(
+        &mut runtime,
+        KeyCode::Char('d'),
+        KeyModifiers::CONTROL | KeyModifiers::SHIFT,
+        area,
+        &mut buffer,
+    );
+
+    let popup = runtime.layer_area(POPUP).expect("completion popup");
+    assert!(popup.right() <= area.right(), "{popup:?} within {area:?}");
+    assert!(popup.bottom() <= area.bottom(), "{popup:?} within {area:?}");
+    assert_eq!(popup.right(), area.right());
+    assert!(popup.bottom() >= area.bottom().saturating_sub(1));
+    assert_eq!(runtime.focus(), Some(EDITOR));
+    assert!(runtime.app().state.is_completion_details_open());
+    assert_eq!(buffer[(19, 0)].symbol(), "§");
+
+    let content = Rect::new(
+        popup.x.saturating_add(1),
+        popup.y.saturating_add(1),
+        popup.width.saturating_sub(2),
+        popup.height.saturating_sub(2),
+    );
+    assert_eq!(
+        content.height, 1,
+        "this control keeps one detail row visible"
+    );
+    let expected_lines = [
+        "界 e\u{301} 👨‍👩‍👧‍👦 wide label",
+        "界 e\u{301} 👨‍👩‍👧‍👦 ending",
+        "detail",
+    ];
+    assert_eq!(content.width, 18);
+    assert_eq!(
+        termrock_text::wrap(UNICODE_DETAIL, content.width),
+        expected_lines
+    );
+    assert_eq!(expected_lines.join(" "), UNICODE_DETAIL);
+
+    let y = popup.y.saturating_add(1);
+    for x in popup.x.saturating_add(1)..popup.right().saturating_sub(1) {
+        let symbol = buffer[(x, y)].symbol();
+        let width = symbol.cell_width();
+        if width > 1 {
+            let end = x.saturating_add(width);
+            assert!(end <= popup.right().saturating_sub(1));
+            for continuation in x.saturating_add(1)..end {
+                assert_eq!(buffer[(continuation, y)].symbol(), " ");
+            }
+        }
+    }
+
+    for (index, expected) in expected_lines.iter().enumerate() {
+        assert_eq!(
+            buffer_row_text(&buffer, content, content.y),
+            *expected,
+            "wrapped detail row {index} was not fully visible"
+        );
+        if index + 1 < expected_lines.len() {
+            send_into(
+                &mut runtime,
+                KeyCode::Down,
+                KeyModifiers::NONE,
+                area,
+                &mut buffer,
+            );
+        }
+    }
+    assert_eq!(buffer[(19, 0)].symbol(), "§");
+    assert_eq!(runtime.layer_area(POPUP), Some(popup));
+    assert!(
+        runtime.diagnostics().is_empty(),
+        "{:?}",
+        runtime.diagnostics()
+    );
 }
 
 #[test]

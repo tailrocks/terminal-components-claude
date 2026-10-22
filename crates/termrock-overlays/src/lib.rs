@@ -41,7 +41,8 @@ pub mod select;
 pub mod select_field;
 
 pub use completion::{
-    Completion, CompletionAction, CompletionCmd, CompletionController, CompletionState,
+    COMPLETION_DETAILS_CHORD, Completion, CompletionAction, CompletionCmd, CompletionController,
+    CompletionState,
 };
 pub use dialog::{Dialog, DialogAction, DialogCmd, DialogState};
 pub use help::{HelpAction, HelpCmd, HelpOverlay, HelpOverlayState, HelpSection};
