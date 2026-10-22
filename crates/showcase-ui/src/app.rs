@@ -2057,6 +2057,7 @@ impl TuiApp for App {
         let entry = NAV_ENTRIES.get(self.nav_index).copied();
         let section = entry.map(|entry| entry.section).unwrap_or("");
         let label = entry.map(|entry| entry.label).unwrap_or("Overview");
+        eprintln!("DEBUG shell.sidebar={:?} main={:?}", shell.sidebar, shell.main);
         paint_sidebar(ui, shell.sidebar, &self.nav_state, label, full.width);
         paint_header(
             ui,
