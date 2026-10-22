@@ -58,6 +58,10 @@ fn main() {
             support::clear_actual_leaves_nothing,
         ),
         check(
+            "support::query_duration_argv_contract",
+            support::query_duration_argv_contract,
+        ),
+        check(
             "determinism::sources_are_deterministic",
             determinism::sources_are_deterministic,
         ),

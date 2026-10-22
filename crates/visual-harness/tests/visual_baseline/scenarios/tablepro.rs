@@ -121,16 +121,18 @@ pub const OVERLAYS: &[Root] = &[
 #[rustfmt::skip]
 pub const JOURNEYS: &[Root] = &[
 
+    // The stored UPDATE status is 42 ms; keep replay output stable at that value.
 
 
 
 
-    Root::new("tablepro/ack/armed", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["tab", "type:UPDATE orders SET status = 'paid' WHERE id = 'x'", "escape", "ctrl-r", "wait:Type orders to confirm", "type:orders", "tab", "right", "wait:▎Execute"]),
-    Root::new("tablepro/ack/executed", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["tab", "type:UPDATE orders SET status = 'paid' WHERE id = 'x'", "escape", "ctrl-r", "wait:Type orders to confirm", "type:orders", "tab", "right", "enter", "wait:rows affected"]),
+
+    Root::new("tablepro/ack/armed", Bin::Tablepro, &["--connect", "Production", "--query-duration-ms", "42"], "Query 1").sends(&["tab", "type:UPDATE orders SET status = 'paid' WHERE id = 'x'", "escape", "ctrl-r", "wait:Type orders to confirm", "type:orders", "tab", "right", "wait:▎Execute"]),
+    Root::new("tablepro/ack/executed", Bin::Tablepro, &["--connect", "Production", "--query-duration-ms", "42"], "Query 1").sends(&["tab", "type:UPDATE orders SET status = 'paid' WHERE id = 'x'", "escape", "ctrl-r", "wait:Type orders to confirm", "type:orders", "tab", "right", "enter", "wait:rows affected"]),
 
 
 
-    Root::new("tablepro/ack/delete_gate", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["tab", "type:DELETE FROM orders", "escape", "ctrl-r", "wait:DELETE without WHERE"]),
+    Root::new("tablepro/ack/delete_gate", Bin::Tablepro, &["--connect", "Production", "--query-duration-ms", "42"], "Query 1").sends(&["tab", "type:DELETE FROM orders", "escape", "ctrl-r", "wait:DELETE without WHERE"]),
 
     Root::new("tablepro/fade/table_wheel", Bin::Tablepro, &["--connect", "Production"], "Query 1").sends(&["down", "down", "down", "down", "down", "enter", "wait:public › orders"]).live(interact::table_wheel),
 ];
