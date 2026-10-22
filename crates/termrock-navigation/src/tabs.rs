@@ -415,6 +415,35 @@ impl fmt::Display for DisplaySegments<'_> {
     }
 }
 
+enum TabsRenderSource<'a, T> {
+    Legacy {
+        state: &'a TabsState,
+        items: &'a [T],
+    },
+    Planned(&'a TabLayout),
+}
+
+impl<T> Copy for TabsRenderSource<'_, T> {}
+
+impl<T> Clone for TabsRenderSource<'_, T> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+enum TabsRowSource<'a, T> {
+    Legacy(&'a T),
+    Planned(&'a TabRowLayout),
+}
+
+impl<T> Copy for TabsRowSource<'_, T> {}
+
+impl<T> Clone for TabsRowSource<'_, T> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
 pub struct Tabs<'a, T, K = ByIndex, R = DefaultRow> {
     id: Id,
     key: K,
@@ -687,33 +716,32 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
     }
 
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &TabsState, items: &[T]) -> Rect {
-        self.draw_impl(ui, area, Some(st), Some(items), None)
+        self.draw_impl(ui, area, TabsRenderSource::Legacy { state: st, items })
     }
 
     #[expect(
         clippy::too_many_lines,
         reason = "one shared paint pass consumes either legacy rows or an owned semantic layout"
     )]
-    fn draw_impl(
-        &self,
-        ui: &mut Ui<'_>,
-        area: Rect,
-        state: Option<&TabsState>,
-        items: Option<&[T]>,
-        planned: Option<&TabLayout>,
-    ) -> Rect {
+    fn draw_impl(&self, ui: &mut Ui<'_>, area: Rect, source: TabsRenderSource<'_, T>) -> Rect {
         if area.is_empty() {
             return area;
         }
-        let len = planned.map_or_else(|| items.map_or(0, <[T]>::len), |layout| layout.content_len);
-        let row0 = planned.map_or_else(|| first_row(area), |layout| layout.row_area);
-        let used = planned.map_or_else(
-            || Rect {
+        let len = match source {
+            TabsRenderSource::Legacy { items, .. } => items.len(),
+            TabsRenderSource::Planned(layout) => layout.content_len,
+        };
+        let row0 = match source {
+            TabsRenderSource::Legacy { .. } => first_row(area),
+            TabsRenderSource::Planned(layout) => layout.row_area,
+        };
+        let used = match source {
+            TabsRenderSource::Legacy { .. } => Rect {
                 height: area.height.min(2),
                 ..area
             },
-            |layout| layout.used_area,
-        );
+            TabsRenderSource::Planned(layout) => layout.used_area,
+        };
         if !ui.is_inert() {
             ui.register_control(self.id, used, Focusability::Focusable);
         }
@@ -732,8 +760,8 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
             StateFlags::empty(),
         );
         ui.fill(used, strip.style);
-        let rule_row = planned.map_or_else(
-            || {
+        let rule_row = match source {
+            TabsRenderSource::Legacy { .. } => {
                 if area.height >= 2 {
                     Some(Rect {
                         y: area.y.saturating_add(1),
@@ -743,9 +771,9 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                 } else {
                     None
                 }
-            },
-            |layout| layout.rule_area,
-        );
+            }
+            TabsRenderSource::Planned(layout) => layout.rule_area,
+        };
         if let Some(rr) = rule_row {
             let quiet = ov.style(
                 ui,
@@ -769,24 +797,20 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                 }
             }
         }
-        let overflow_last = planned.map_or_else(
-            || {
-                ui.layout(self.id)
-                    .is_some_and(|l| l.viewport_len < l.content_len)
-            },
-            |layout| layout.overflow_reserved,
-        );
-        let first_index = planned.map_or_else(
-            || {
-                let st = state.expect("legacy tabs draw requires component state");
-                let items = items.expect("legacy tabs draw requires item data");
-                st.first
-                    .and_then(|f| self.index_of(items, f, Some(st.first_index)))
-                    .unwrap_or(0)
-                    .min(len)
-            },
-            |layout| layout.first_index,
-        );
+        let overflow_last = match source {
+            TabsRenderSource::Legacy { .. } => ui
+                .layout(self.id)
+                .is_some_and(|l| l.viewport_len < l.content_len),
+            TabsRenderSource::Planned(layout) => layout.overflow_reserved,
+        };
+        let first_index = match source {
+            TabsRenderSource::Legacy { state, items } => state
+                .first
+                .and_then(|f| self.index_of(items, f, Some(state.first_index)))
+                .unwrap_or(0)
+                .min(len),
+            TabsRenderSource::Planned(layout) => layout.first_index,
+        };
         let status_w: u16 = if matches!(self.status, Status::Ready) {
             0
         } else {
@@ -799,54 +823,46 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
         } else {
             0
         };
-        let right_limit = planned.map_or_else(
-            || {
-                row0.right()
-                    .saturating_sub(status_w)
-                    .saturating_sub(right_w)
-                    .saturating_sub(new_w)
-            },
-            |layout| layout.right_limit,
-        );
-        let first_tab_x = planned.map_or_else(
-            || row0.x.saturating_add(left_w),
-            |layout| layout.first_tab_x,
-        );
+        let right_limit = match source {
+            TabsRenderSource::Legacy { .. } => row0
+                .right()
+                .saturating_sub(status_w)
+                .saturating_sub(right_w)
+                .saturating_sub(new_w),
+            TabsRenderSource::Planned(layout) => layout.right_limit,
+        };
+        let first_tab_x = match source {
+            TabsRenderSource::Legacy { .. } => row0.x.saturating_add(left_w),
+            TabsRenderSource::Planned(layout) => layout.first_tab_x,
+        };
         let mut x = first_tab_x;
         let mut fit = 0usize;
-        let cursor = planned.map_or_else(
-            || {
-                state
-                    .expect("legacy tabs draw requires component state")
-                    .core
-                    .cursor()
-            },
-            |layout| layout.cursor,
-        );
-        let active = planned.map_or_else(
-            || {
-                state
-                    .expect("legacy tabs draw requires component state")
-                    .active
-            },
-            |layout| layout.active,
-        );
+        let cursor = match source {
+            TabsRenderSource::Legacy { state, .. } => state.core.cursor(),
+            TabsRenderSource::Planned(layout) => layout.cursor,
+        };
+        let active = match source {
+            TabsRenderSource::Legacy { state, .. } => state.active,
+            TabsRenderSource::Planned(layout) => layout.active,
+        };
         let hovered = ui.hovered_part(self.id);
         let pressed = ui.pressed_part(self.id);
-        let row_count = planned.map_or(len.saturating_sub(first_index), |layout| layout.rows.len());
+        let row_count = match source {
+            TabsRenderSource::Legacy { items, .. } => items.len().saturating_sub(first_index),
+            TabsRenderSource::Planned(layout) => layout.rows.len(),
+        };
         for offset in 0..row_count {
             let i = first_index.saturating_add(offset);
-            let row_plan = planned.and_then(|layout| layout.rows.get(offset));
-            let item = items.and_then(|items| items.get(i));
-            let key = row_plan.map_or_else(
-                || {
-                    let item = item.expect("legacy tabs draw requires item data");
-                    self.key.key(item, i)
-                },
-                |row| row.key,
-            );
+            let row_source = match source {
+                TabsRenderSource::Legacy { items, .. } => TabsRowSource::Legacy(&items[i]),
+                TabsRenderSource::Planned(layout) => TabsRowSource::Planned(&layout.rows[offset]),
+            };
+            let key = match row_source {
+                TabsRowSource::Legacy(item) => self.key.key(item, i),
+                TabsRowSource::Planned(row) => row.key,
+            };
             let avail = right_limit.saturating_sub(x);
-            if row_plan.is_none() && avail < 3 {
+            if matches!(row_source, TabsRowSource::Legacy(_)) && avail < 3 {
                 break;
             }
 
@@ -870,29 +886,31 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                 flags |= StateFlags::PRESSED;
             }
 
-            let content = row_plan.map_or_else(
-                || Rect {
+            let content = match row_source {
+                TabsRowSource::Legacy(_) => Rect {
                     x: x.saturating_add(1),
                     y: row0.y,
                     width: avail.saturating_sub(1),
                     height: 1,
                 },
-                |row| row.logical_content,
-            );
+                TabsRowSource::Planned(row) => row.logical_content,
+            };
             {
                 let mut r = RowUi::new(ui, id, Family::TABS, Variant::DEFAULT, flags, key, content);
-                if let Some(row) = row_plan {
-                    r.label_fmt(format_args!("{}", DisplaySegments(&row.label_segments)));
-                } else {
-                    self.row
-                        .row(item.expect("legacy tabs draw requires item data"), &mut r);
+                match row_source {
+                    TabsRowSource::Legacy(item) => self.row.row(item, &mut r),
+                    TabsRowSource::Planned(row) => {
+                        r.label_fmt(format_args!("{}", DisplaySegments(&row.label_segments)));
+                    }
                 }
             }
-            let label_w =
-                row_plan.map_or_else(|| painted_width(ui, content).max(1), |row| row.label_extent);
+            let label_w = match row_source {
+                TabsRowSource::Legacy(_) => painted_width(ui, content).max(1),
+                TabsRowSource::Planned(row) => row.label_extent,
+            };
             let close_w: u16 = if self.closable { 2 } else { 0 };
-            let tab = row_plan.map_or_else(
-                || {
+            let tab = match row_source {
+                TabsRowSource::Legacy(_) => {
                     let tab_w = 1u16
                         .saturating_add(label_w)
                         .saturating_add(1)
@@ -903,9 +921,9 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                         width: tab_w.min(avail),
                         height: 1,
                     }
-                },
-                |row| row.logical_tab,
-            );
+                }
+                TabsRowSource::Planned(row) => row.logical_tab,
+            };
             let tail = Rect {
                 x: tab.right(),
                 y: row0.y,
@@ -928,9 +946,12 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                 }
             }
             if self.closable {
-                let close_cell = row_plan
-                    .and_then(|row| row.logical_close)
-                    .unwrap_or_else(|| cell_at(tab, tab.right().saturating_sub(2)));
+                let close_cell = match row_source {
+                    TabsRowSource::Legacy(_) => cell_at(tab, tab.right().saturating_sub(2)),
+                    TabsRowSource::Planned(row) => row
+                        .logical_close
+                        .unwrap_or_else(|| cell_at(tab, tab.right().saturating_sub(2))),
+                };
                 let close_part = PartRef::item(Part::CLOSE, key);
                 let mut close_flags = flags.difference(StateFlags::HOVERED | StateFlags::PRESSED);
                 if hovered == Some(close_part) {
@@ -984,9 +1005,12 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                 ui.register_part(self.id, PartRef::item(Part::TAB, key), tab);
             }
             if self.closable && !ui.is_inert() {
-                let close_cell = row_plan
-                    .and_then(|row| row.logical_close)
-                    .unwrap_or_else(|| cell_at(tab, tab.right().saturating_sub(2)));
+                let close_cell = match row_source {
+                    TabsRowSource::Legacy(_) => cell_at(tab, tab.right().saturating_sub(2)),
+                    TabsRowSource::Planned(row) => row
+                        .logical_close
+                        .unwrap_or_else(|| cell_at(tab, tab.right().saturating_sub(2))),
+                };
                 ui.register_part(self.id, PartRef::item(Part::CLOSE, key), close_cell);
             }
             x = tab.right().saturating_add(1);
@@ -994,14 +1018,16 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
         }
         let mut buf = [0u8; 2];
         if first_index > 0 {
-            let cell = planned
-                .and_then(|layout| layout.left_overflow)
-                .unwrap_or(Rect {
-                    x: row0.x,
-                    y: row0.y,
-                    width: left_w.min(row0.width),
-                    height: 1,
-                });
+            let fallback = Rect {
+                x: row0.x,
+                y: row0.y,
+                width: left_w.min(row0.width),
+                height: 1,
+            };
+            let cell = match source {
+                TabsRenderSource::Legacy { .. } => fallback,
+                TabsRenderSource::Planned(layout) => layout.left_overflow.unwrap_or(fallback),
+            };
             let os = ov.style(
                 ui,
                 id,
@@ -1024,24 +1050,26 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                 );
             }
         }
-        let hidden_right = planned.map_or_else(
-            || len.saturating_sub(first_index.saturating_add(fit)),
-            |layout| layout.hidden_right,
-        );
+        let hidden_right = match source {
+            TabsRenderSource::Legacy { .. } => len.saturating_sub(first_index.saturating_add(fit)),
+            TabsRenderSource::Planned(layout) => layout.hidden_right,
+        };
         if hidden_right > 0 {
-            let cell = planned
-                .and_then(|layout| layout.right_overflow)
-                .unwrap_or(Rect {
-                    x: row0
-                        .right()
-                        .saturating_sub(status_w)
-                        .saturating_sub(new_w)
-                        .saturating_sub(4)
-                        .max(row0.x),
-                    y: row0.y,
-                    width: 4.min(row0.width),
-                    height: 1,
-                });
+            let fallback = Rect {
+                x: row0
+                    .right()
+                    .saturating_sub(status_w)
+                    .saturating_sub(new_w)
+                    .saturating_sub(4)
+                    .max(row0.x),
+                y: row0.y,
+                width: 4.min(row0.width),
+                height: 1,
+            };
+            let cell = match source {
+                TabsRenderSource::Legacy { .. } => fallback,
+                TabsRenderSource::Planned(layout) => layout.right_overflow.unwrap_or(fallback),
+            };
             let os = ov.style(
                 ui,
                 id,
@@ -1074,7 +1102,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
             }
         }
         if self.allow_new {
-            let cell = planned.and_then(|layout| layout.new_area).unwrap_or(Rect {
+            let fallback = Rect {
                 x: row0
                     .right()
                     .saturating_sub(status_w)
@@ -1083,7 +1111,11 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                 y: row0.y,
                 width: new_w.min(row0.width),
                 height: 1,
-            });
+            };
+            let cell = match source {
+                TabsRenderSource::Legacy { .. } => fallback,
+                TabsRenderSource::Planned(layout) => layout.new_area.unwrap_or(fallback),
+            };
             let ns = ov.style(
                 ui,
                 id,
@@ -1109,14 +1141,16 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
             }
         }
         if status_w > 0 {
-            let icon_cell = planned
-                .and_then(|layout| layout.status_area)
-                .unwrap_or(Rect {
-                    x: row0.right().saturating_sub(status_w).max(row0.x),
-                    y: row0.y,
-                    width: 1.min(row0.width),
-                    height: 1,
-                });
+            let fallback = Rect {
+                x: row0.right().saturating_sub(status_w).max(row0.x),
+                y: row0.y,
+                width: 1.min(row0.width),
+                height: 1,
+            };
+            let icon_cell = match source {
+                TabsRenderSource::Legacy { .. } => fallback,
+                TabsRenderSource::Planned(layout) => layout.status_area.unwrap_or(fallback),
+            };
             if let Some(slot) = ov.slot_for(Part::ICON) {
                 slot(ui, icon_cell);
             } else {
@@ -1142,7 +1176,10 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                 }
             }
         }
-        let viewport_len = planned.map_or(fit, |layout| layout.viewport_len);
+        let viewport_len = match source {
+            TabsRenderSource::Legacy { .. } => fit,
+            TabsRenderSource::Planned(layout) => layout.viewport_len,
+        };
         ui.report_layout(
             self.id,
             LayoutFacts::new(viewport_len, len, used.height, used.width),
@@ -1367,7 +1404,7 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
         {
             return Err(TabLayoutMismatch);
         }
-        Ok(self.draw_impl(ui, layout.area, None, None, Some(layout)))
+        Ok(self.draw_impl(ui, layout.area, TabsRenderSource::Planned(layout)))
     }
 }
 
