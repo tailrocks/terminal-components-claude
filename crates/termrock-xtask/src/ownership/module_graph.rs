@@ -1130,7 +1130,6 @@ fn parse_scope(
             && skipped_item_has_unmodeled_routes(tokens, index, item_end)
         {
             parsed.complete = false;
-            return Some(parsed);
         }
         collect_use_derive_imports(
             tokens,
@@ -1451,6 +1450,9 @@ fn parse_static_include(tokens: &Tokens, at: usize, end: usize) -> Option<String
 }
 
 fn skipped_item_has_unmodeled_routes(tokens: &Tokens, start: usize, end: usize) -> bool {
+    if has_unmodeled_derive_attribute(tokens, start, end) {
+        return true;
+    }
     for index in start..end {
         if ident_at(tokens, index) == Some("mod")
             && ident_at(tokens, index + 1).is_some()
@@ -1466,6 +1468,23 @@ fn skipped_item_has_unmodeled_routes(tokens: &Tokens, start: usize, end: usize) 
         }
     }
     false
+}
+
+fn has_unmodeled_derive_attribute(tokens: &Tokens, start: usize, end: usize) -> bool {
+    (start..end).any(|index| {
+        if !is_punct(tokens, index, '#') {
+            return false;
+        }
+        let bracket = index + usize::from(is_punct(tokens, index + 1, '!')) + 1;
+        if !is_punct(tokens, bracket, '[') {
+            return false;
+        }
+        let Some(close) = tokens.pairs.get(bracket).and_then(|pair| *pair) else {
+            return true;
+        };
+        (bracket + 1..close)
+            .any(|attribute_index| ident_at(tokens, attribute_index) == Some("derive"))
+    })
 }
 
 fn macro_starts_block_item(tokens: &Tokens, item_start: usize, macro_start: usize) -> bool {
