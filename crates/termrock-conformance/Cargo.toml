@@ -8,12 +8,6 @@ license.workspace = true
 [dependencies]
 termrock.workspace = true
 termrock-test-support.workspace = true
-showcase-ui.workspace = true
-jackin-preview-app.workspace = true
-holla-ui.workspace = true
-holla-sim.workspace = true
-tablepro-ui.workspace = true
-tablepro-demo.workspace = true
 tuiscotti.workspace = true
 serde.workspace = true
 serde_json.workspace = true
