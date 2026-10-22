@@ -170,7 +170,9 @@ VISUAL_TOOL=capture VISUAL_NAME=<case> VISUAL_BIN_DIR=<bin dir> \
 
 # full showcase suite with the reviewed tip
 VISUAL_FULL=1 VISUAL_REVIEW=0 VISUAL_BIN_DIR=... cargo nextest run ... --filter-expr 'test(/^showcase::/)' --no-fail-fast
-#   started, still running after 1h45m on a loaded shared machine; no result is claimed for it
+#   partial: the run reached 13435 of 14549 cases with 13435 FAIL and 0 PASS before it
+#   was interrupted (exit 130) on a shared, loaded machine. No complete result is claimed
+#   for the whole showcase suite; the seven-scenario comparison above is the attribution.
 
 # determinism
 #   three captures of showcase/pages/chrome/120x40/truecolor: identical md5 (b04f14e4c4fd4e437e417834852a566e)
