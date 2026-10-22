@@ -1221,7 +1221,8 @@ mod tests {
         // Frozen source 4169783 sets danger (RED) to 0xf05d5d.
         assert_eq!(c.danger, Color::from_u32(0xf05d5d));
         assert_eq!(c.syntax.diagnostic_error, Color::from_u32(0xf05d5d));
-        assert_eq!(c.danger_soft, Color::from_u32(0xd98a8a));
+        // Frozen source 4169783 sets danger_soft (RED_SOFT) to 0xe8a0a0.
+        assert_eq!(c.danger_soft, Color::from_u32(0xe8a0a0));
         assert_eq!(c.danger_tint, Color::from_u32(0x2e0f0f));
         assert_eq!(c.warning, Color::from_u32(0xf59e09));
         assert_eq!(c.info, Color::from_u32(0x8787ff));

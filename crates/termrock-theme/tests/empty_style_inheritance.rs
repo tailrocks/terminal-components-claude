@@ -286,7 +286,10 @@ fn standalone_empty_cells_match_pre_inheritance_reference() {
         }
     }
 
-    assert_eq!(fingerprint, 312_677_554_172_290_677);
+    // D-009/D-010 tag-wins: re-pinned after the danger_soft family moved to
+    // the frozen tag values (0xe8a0a0 truecolor, i(174) at 256, White mono)
+    // — docs/audits/2026-10-22-danger-token-tag-wins-execution.md.
+    assert_eq!(fingerprint, 3_030_540_740_827_194_175);
 }
 
 #[test]
