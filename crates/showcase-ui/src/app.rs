@@ -2,9 +2,10 @@ use showcase_demos::render_number::RenderNumber;
 use termrock::author::PaintStyle;
 use termrock::{
     ActionKey, App as TuiApp, Brand, Chord, ColorLevel, Cx, Dialog, DialogAction, DialogState,
-    FrameRead, GlyphRole, Id, Intent, ItemKey, KeyCode, KeyMap, KeyPhase, Moment, Panel, PanelKind,
-    Part, PartRef, Phase, Props, Rect, Response, RowFn, Size, StateFlags, Status, StatusBar,
-    StatusItem, Theme, TooSmall, Tree, TreeAction, TreeNode, TreeState, Ui, Variant, id, width,
+    EmptyState, FrameRead, GlyphRole, Id, Intent, ItemKey, KeyCode, KeyMap, KeyPhase, Moment,
+    Panel, PanelKind, Part, PartRef, Phase, Props, Rect, Response, RowFn, Size, StateFlags, Status,
+    StatusBar, StatusItem, Theme, TooSmall, Tree, TreeAction, TreeNode, TreeState, Ui, Variant, id,
+    width,
 };
 
 use showcase_demos::pages::forms::SUBMIT as FORM_SUBMIT;
@@ -619,6 +620,12 @@ fn index_for_page(page: PageId) -> usize {
 const NAV_ENTRY_KEYSPACE: u64 = 0x4e41_5645_4e54_5259;
 const NAV_GROUP_KEYSPACE: u64 = 0x4e41_5647_524f_5550;
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct NavQuery {
+    text: String,
+    revision: u64,
+}
+
 fn nav_target_for_entry(entry: &NavEntry, index: usize) -> NavTarget {
     if entry.label == "Selection" {
         NavTarget::Selection
@@ -667,10 +674,19 @@ struct NavNode {
     entry: Option<usize>,
     target: Option<NavTarget>,
     key: ItemKey,
+    query_match: bool,
     fade: u8,
 }
 
 fn nav_nodes(state: &TreeState, viewport_height: u16) -> Vec<NavNode> {
+    nav_nodes_for_query(state, viewport_height, None)
+}
+
+fn nav_nodes_for_query(
+    state: &TreeState,
+    viewport_height: u16,
+    query: Option<&NavQuery>,
+) -> Vec<NavNode> {
     let mut nodes = Vec::new();
     let mut section = "";
     let mut section_index = 0usize;
@@ -685,6 +701,7 @@ fn nav_nodes(state: &TreeState, viewport_height: u16) -> Vec<NavNode> {
                     entry: None,
                     target: None,
                     key: nav_group_key(section_index),
+                    query_match: true,
                     fade: 0,
                 });
                 section_index = section_index.saturating_add(1);
@@ -697,22 +714,27 @@ fn nav_nodes(state: &TreeState, viewport_height: u16) -> Vec<NavNode> {
             entry: Some(index),
             target: Some(nav_target_for_entry(entry, index)),
             key: nav_entry_key(index),
+            query_match: true,
             fade: 0,
         });
     }
 
-    let mut visible_sources = Vec::with_capacity(nodes.len());
-    let mut collapsed_at = None;
-    for (source, node) in nodes.iter().enumerate() {
-        if collapsed_at.is_some_and(|depth| node.depth > depth) {
-            continue;
-        }
-        collapsed_at = None;
-        visible_sources.push(source);
-        if node.parent && !state.is_expanded(node.key) {
-            collapsed_at = Some(node.depth);
+    let query_matches = query.map(|query| nav_query_projection(&nodes, state, query));
+    if let Some(matches) = &query_matches {
+        for (node, included) in nodes.iter_mut().zip(matches.iter().copied()) {
+            node.query_match = included;
         }
     }
+
+    let visible_sources = if let Some(matches) = &query_matches {
+        matches
+            .iter()
+            .enumerate()
+            .filter_map(|(source, included)| included.then_some(source))
+            .collect::<Vec<_>>()
+    } else {
+        nav_expanded_sources(&nodes, state)
+    };
 
     let viewport = usize::from(viewport_height);
     let mut scroll = *state.scroll();
@@ -734,6 +756,90 @@ fn nav_nodes(state: &TreeState, viewport_height: u16) -> Vec<NavNode> {
     nodes
 }
 
+fn nav_expanded_sources(nodes: &[NavNode], state: &TreeState) -> Vec<usize> {
+    let mut visible_sources = Vec::with_capacity(nodes.len());
+    let mut collapsed_at = None;
+    for (source, node) in nodes.iter().enumerate() {
+        if collapsed_at.is_some_and(|depth| node.depth > depth) {
+            continue;
+        }
+        collapsed_at = None;
+        visible_sources.push(source);
+        if node.parent && !state.is_expanded(node.key) {
+            collapsed_at = Some(node.depth);
+        }
+    }
+    visible_sources
+}
+
+fn nav_query_projection(nodes: &[NavNode], state: &TreeState, query: &NavQuery) -> Vec<bool> {
+    let mut included = vec![false; nodes.len()];
+    if query.text.is_empty() {
+        for source in nav_expanded_sources(nodes, state) {
+            if let Some(row) = included.get_mut(source) {
+                *row = true;
+            }
+        }
+        return included;
+    }
+
+    let needle = query.text.to_lowercase();
+    let matching_groups = nodes
+        .iter()
+        .map(|node| node.parent && node.label.to_lowercase().contains(&needle))
+        .collect::<Vec<_>>();
+    for (source, node) in nodes.iter().enumerate() {
+        let Some(entry_index) = node.entry else {
+            continue;
+        };
+        let Some(entry) = NAV_ENTRIES.get(entry_index) else {
+            continue;
+        };
+        let parent_matches = (0..source).rev().find_map(|parent| {
+            let candidate = nodes.get(parent)?;
+            (candidate.parent && candidate.depth < node.depth).then_some(matching_groups[parent])
+        }) == Some(true);
+        if nav_entry_matches(entry, entry_index, node.label, &needle) || parent_matches {
+            included[source] = true;
+        }
+    }
+
+    for source in 0..nodes.len() {
+        if !included[source] {
+            continue;
+        }
+        let depth = nodes[source].depth;
+        for ancestor in (0..source).rev() {
+            if nodes[ancestor].depth < depth && nodes[ancestor].parent {
+                included[ancestor] = true;
+            }
+        }
+    }
+    included
+}
+
+fn nav_entry_matches(entry: &NavEntry, index: usize, display_label: &str, needle: &str) -> bool {
+    [display_label, entry.label]
+        .into_iter()
+        .any(|label| query_contains(label, needle))
+        || (matches!(nav_target_for_entry(entry, index), NavTarget::Live(_))
+            && [entry.id.title(), entry.id.slug()]
+                .into_iter()
+                .any(|label| query_contains(label, needle)))
+        || NAV_ALIASES
+            .iter()
+            .filter(|(_, label)| *label == entry.label)
+            .any(|(alias, _)| query_contains(alias, needle))
+}
+
+fn query_contains(label: &str, needle: &str) -> bool {
+    label.to_lowercase().contains(needle)
+}
+
+fn nav_query_match(node: &NavNode) -> bool {
+    node.query_match
+}
+
 fn nav_node_key(node: &NavNode) -> ItemKey {
     node.key
 }
@@ -751,12 +857,122 @@ const SIDEBAR_CHROME: [(Part, termrock::StylePatch); 1] = [(
     termrock::StylePatch::new().set_bg(termrock::Role::Surface(termrock::Surface::Canvas)),
 )];
 
-fn nav_tree() -> Tree<'static, NavNode, fn(&NavNode) -> ItemKey, impl RowFn<NavNode>> {
-    Tree::new(NAV)
+fn nav_tree(
+    query_revision: Option<u64>,
+) -> Tree<'static, NavNode, fn(&NavNode) -> ItemKey, impl RowFn<NavNode>> {
+    let tree = Tree::new(NAV)
         .key(nav_node_key as fn(&NavNode) -> ItemKey)
         .patch_part(&SIDEBAR_CHROME)
         .node(&node_of)
         .render_row(&paint_sidebar_row)
+        .empty(EmptyState::Empty {
+            title: "No matching pages",
+            hint: None,
+        });
+    if let Some(revision) = query_revision {
+        tree.query(revision, &nav_query_match)
+    } else {
+        tree
+    }
+}
+
+// Claim Tree's printable shortcuts while NAV owns query input.
+const TREE_QUERY_BINDINGS: [(ActionKey, Chord); 7] = [
+    (
+        ActionKey::custom("tree.up-vim"),
+        Chord::key(KeyCode::Char('k')),
+    ),
+    (
+        ActionKey::custom("tree.down-vim"),
+        Chord::key(KeyCode::Char('j')),
+    ),
+    (
+        ActionKey::custom("tree.home-vim"),
+        Chord::key(KeyCode::Char('g')),
+    ),
+    (
+        ActionKey::custom("tree.end-vim"),
+        Chord::key(KeyCode::Char('G')),
+    ),
+    (
+        ActionKey::custom("tree.expand-vim"),
+        Chord::key(KeyCode::Char('l')),
+    ),
+    (
+        ActionKey::custom("tree.collapse-vim"),
+        Chord::key(KeyCode::Char('h')),
+    ),
+    (
+        ActionKey::custom("tree.choose"),
+        Chord::key(KeyCode::Char(' ')),
+    ),
+];
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum NavQueryInput {
+    Start,
+    Insert(char),
+    Backspace,
+    Escape,
+    FocusOut,
+}
+
+fn nav_query_input(cx: &Cx<'_>, active: bool) -> Option<NavQueryInput> {
+    let mut raw_key = None;
+    let mut binding = None;
+    let mut focus_out = false;
+    for intent in cx.intents(NAV) {
+        match intent {
+            Intent::Key(key) => raw_key = Some(key),
+            Intent::Binding(action) => binding = Some(action),
+            Intent::FocusOut { .. } => focus_out = true,
+            _ => {}
+        }
+    }
+
+    if active && focus_out {
+        return Some(NavQueryInput::FocusOut);
+    }
+    if let Some(key) = raw_key
+        && key
+            .mods
+            .difference(termrock::KeyModifiers::SHIFT)
+            .is_empty()
+    {
+        match key.code {
+            KeyCode::Esc if active => return Some(NavQueryInput::Escape),
+            KeyCode::Backspace if active => return Some(NavQueryInput::Backspace),
+            KeyCode::Char('/') if !active => return Some(NavQueryInput::Start),
+            KeyCode::Char(character) if active && key.bare_char().is_some() => {
+                return Some(NavQueryInput::Insert(character));
+            }
+            _ => {}
+        }
+    }
+
+    let action = binding?;
+    for (candidate, default) in TREE_QUERY_BINDINGS {
+        if action != candidate {
+            continue;
+        }
+        let chord = cx.effective_chord(NAV, action, Some(default))?;
+        if !chord.is_bare_char() {
+            return None;
+        }
+        let KeyCode::Char(character) = chord.code else {
+            return None;
+        };
+        if active || character == '/' {
+            return cx.claim_binding_chord(NAV, chord).map(|_| {
+                if active {
+                    NavQueryInput::Insert(character)
+                } else {
+                    NavQueryInput::Start
+                }
+            });
+        }
+    }
+    None
 }
 
 fn nav_target_at(index: usize) -> Option<NavTarget> {
@@ -783,6 +999,39 @@ fn reveal_nav(state: &mut TreeState, nodes: &[NavNode], entry: usize) {
     let visible = visible_index(nodes, source, state);
     state.choose(Some(key));
     state.set_cursor(visible, key);
+}
+
+fn query_entry_position(nodes: &[NavNode], entry: usize) -> Option<(usize, ItemKey)> {
+    let source = nodes
+        .iter()
+        .position(|node| node.entry == Some(entry) && node.query_match)?;
+    let visible = nodes[..source]
+        .iter()
+        .filter(|node| node.query_match)
+        .count();
+    Some((visible, nodes[source].key))
+}
+
+fn reveal_query_entry(state: &mut TreeState, nodes: &[NavNode], entry: usize) -> bool {
+    let Some((visible, key)) = query_entry_position(nodes, entry) else {
+        return false;
+    };
+    state.choose(Some(key));
+    state.set_cursor(visible, key);
+    true
+}
+
+fn cursor_to_first_query_entry(state: &mut TreeState, nodes: &[NavNode]) {
+    for (source, node) in nodes.iter().enumerate() {
+        if node.entry.is_some() && node.query_match {
+            let visible = nodes[..source]
+                .iter()
+                .filter(|candidate| candidate.query_match)
+                .count();
+            state.set_cursor(visible, node.key);
+            return;
+        }
+    }
 }
 
 fn visible_index(nodes: &[NavNode], source: usize, state: &TreeState) -> usize {
@@ -904,6 +1153,7 @@ pub struct App {
     page: PageId,
     nav_target: NavTarget,
     nav_state: TreeState,
+    nav_query: Option<NavQuery>,
     pages: Vec<Box<dyn Page>>,
     help_state: DialogState,
     selectable: showcase_demos::pages::selectable::Model,
@@ -924,6 +1174,7 @@ impl core::fmt::Debug for App {
             .field("page", &self.page)
             .field("nav_target", &self.nav_target)
             .field("nav_state", &self.nav_state)
+            .field("nav_query", &self.nav_query)
             .field("pages", &self.pages.len())
             .field("help_state", &self.help_state)
             .field("selectable", &self.selectable)
@@ -972,6 +1223,7 @@ impl App {
             page: initial,
             nav_target,
             nav_state,
+            nav_query: None,
             pages,
             help_state: DialogState::default(),
             selectable: showcase_demos::pages::selectable::Model::default(),
@@ -1001,8 +1253,92 @@ impl App {
         if let Some(page) = target.page() {
             self.page = page;
         }
+        if let Some(query) = self.nav_query.as_ref() {
+            let nodes = nav_nodes_for_query(&self.nav_state, 0, Some(query));
+            if reveal_query_entry(&mut self.nav_state, &nodes, index) {
+                return;
+            }
+            self.nav_query = None;
+        }
         let nodes = nav_nodes(&self.nav_state, 0);
         reveal_nav(&mut self.nav_state, &nodes, index);
+    }
+
+    fn apply_nav_query_input(&mut self, input: NavQueryInput) {
+        match input {
+            NavQueryInput::Start => {
+                if self.nav_query.is_none() {
+                    self.nav_query = Some(NavQuery {
+                        text: String::new(),
+                        revision: 1,
+                    });
+                }
+            }
+            NavQueryInput::Insert(character) => {
+                if self.nav_query.is_some() {
+                    if let Some(query) = &mut self.nav_query {
+                        query.text.push(character);
+                    }
+                    self.bump_nav_query_revision();
+                    self.refresh_nav_query_cursor();
+                }
+            }
+            NavQueryInput::Backspace => {
+                let changed = self
+                    .nav_query
+                    .as_mut()
+                    .is_some_and(|query| query.text.pop().is_some());
+                if changed {
+                    self.bump_nav_query_revision();
+                    self.refresh_nav_query_cursor();
+                }
+            }
+            NavQueryInput::Escape | NavQueryInput::FocusOut => self.end_nav_query(),
+        }
+    }
+
+    fn bump_nav_query_revision(&mut self) {
+        let saturated = if let Some(query) = &mut self.nav_query {
+            match query.revision.checked_add(1) {
+                Some(revision) => {
+                    query.revision = revision;
+                    false
+                }
+                None => {
+                    query.revision = 1;
+                    true
+                }
+            }
+        } else {
+            false
+        };
+        if saturated {
+            self.nav_state.invalidate();
+        }
+    }
+
+    fn refresh_nav_query_cursor(&mut self) {
+        let Some(query) = self.nav_query.as_ref() else {
+            return;
+        };
+        let nodes = nav_nodes_for_query(&self.nav_state, 0, Some(query));
+        if query.text.is_empty() {
+            if let Some(entry) = nav_index_for_target(self.nav_target) {
+                reveal_nav(&mut self.nav_state, &nodes, entry);
+            }
+        } else {
+            cursor_to_first_query_entry(&mut self.nav_state, &nodes);
+        }
+    }
+
+    fn end_nav_query(&mut self) {
+        if self.nav_query.take().is_none() {
+            return;
+        }
+        let nodes = nav_nodes(&self.nav_state, 0);
+        if let Some(entry) = nav_index_for_target(self.nav_target) {
+            reveal_nav(&mut self.nav_state, &nodes, entry);
+        }
     }
 
     fn resolved_shell_layout(&self, area: Rect) -> ShellLayout {
@@ -1717,6 +2053,10 @@ impl TuiApp for App {
         let _ = missing_page_panel();
         let _ = inspector_panel();
         let command = cx.command();
+        if let Some(input) = nav_query_input(cx, self.nav_query.is_some()) {
+            self.apply_nav_query_input(input);
+            response |= Response::changed();
+        }
         self.update_header(cx, &mut response);
         match command {
             Some(QUIT | QUIT_CTRL) => {
@@ -1757,8 +2097,12 @@ impl TuiApp for App {
             response |= active.command(cx, action);
         }
         let sidebar_height = self.resolved_shell_layout(cx.viewport()).sidebar.height;
-        let nodes = nav_nodes(&self.nav_state, sidebar_height);
-        let nav_response = nav_tree().update(cx, &mut self.nav_state, &nodes);
+        let nodes = nav_nodes_for_query(&self.nav_state, sidebar_height, self.nav_query.as_ref());
+        let nav_response = nav_tree(self.nav_query.as_ref().map(|query| query.revision)).update(
+            cx,
+            &mut self.nav_state,
+            &nodes,
+        );
         let nav_action = nav_response.action_ref().copied();
         response |= nav_response.erase();
         let mut enter_content = false;
@@ -1767,6 +2111,9 @@ impl TuiApp for App {
             Some(TreeAction::Activated(key)) => {
                 let picked = target_for_key(key, &nodes);
                 enter_content = picked.is_some_and(|(_, target)| target.has_content());
+                if picked.is_some() {
+                    self.end_nav_query();
+                }
                 picked
             }
             Some(TreeAction::Moved) => self
@@ -1829,8 +2176,17 @@ impl TuiApp for App {
             .copied();
         let section = entry.map(|entry| entry.section).unwrap_or("");
         let label = entry.map(|entry| entry.label).unwrap_or("Overview");
-        let nodes = nav_nodes(&self.nav_state, shell.sidebar.height);
-        nav_tree().draw(ui, shell.sidebar, &self.nav_state, &nodes);
+        let nodes = nav_nodes_for_query(
+            &self.nav_state,
+            shell.sidebar.height,
+            self.nav_query.as_ref(),
+        );
+        nav_tree(self.nav_query.as_ref().map(|query| query.revision)).draw(
+            ui,
+            shell.sidebar,
+            &self.nav_state,
+            &nodes,
+        );
         paint_header(
             ui,
             shell.header,
@@ -2065,6 +2421,45 @@ mod paint_contract_tests {
         assert_eq!(accent.add_modifier, Modifier::BOLD);
         assert_eq!(accent.fg, Some(Color::Rgb(100, 100, 100)));
         assert_eq!(accent.as_style(), danger.as_style());
+    }
+}
+
+#[cfg(test)]
+mod nav_query_tests {
+    use super::*;
+
+    #[test]
+    fn query_folds_unicode_aliases_and_ignores_overview_placeholder_ids() {
+        assert!(query_contains("CAFÉ", "café"));
+
+        let cell_editors = NAV_ENTRIES
+            .iter()
+            .enumerate()
+            .find(|(_, entry)| entry.label == "Cell editors")
+            .expect("Cell editors catalog entry");
+        assert!(nav_entry_matches(
+            cell_editors.1,
+            cell_editors.0,
+            nav_display_label(cell_editors.1.label),
+            "options"
+        ));
+
+        let placeholder = NAV_ENTRIES
+            .iter()
+            .enumerate()
+            .find(|(index, entry)| {
+                matches!(
+                    nav_target_for_entry(entry, *index),
+                    NavTarget::Placeholder(_)
+                )
+            })
+            .expect("a non-page catalog placeholder");
+        assert!(!nav_entry_matches(
+            placeholder.1,
+            placeholder.0,
+            nav_display_label(placeholder.1.label),
+            "overview"
+        ));
     }
 }
 
