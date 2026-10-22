@@ -523,6 +523,7 @@ pub struct App {
     pub editor: EditorState,
     pub settings: SettingsState,
     pub usage: UsageState,
+    usage_detail_viewport: ViewportState,
     pub cockpit: CockpitState,
     pub capsule: CapsuleState,
     pub inspect: InspectState,
@@ -734,6 +735,7 @@ impl App {
             editor: EditorState::default(),
             settings: SettingsState::default(),
             usage: UsageState::default(),
+            usage_detail_viewport: ViewportState::default(),
             cockpit: CockpitState::default(),
             capsule: CapsuleState::default(),
             inspect: InspectState::default(),
@@ -1776,7 +1778,7 @@ impl App {
         ]
     }
 
-    fn open_usage_detail(&mut self) {
+    fn open_usage_detail(&mut self, cx: &mut Cx<'_>) {
         if self.usage.selected().is_none() {
             let id = self
                 .world
@@ -1788,6 +1790,7 @@ impl App {
             self.usage.select(id);
         }
         let _ = self.usage.open_detail();
+        cx.focus(crate::screens::usage::DETAIL);
     }
 
     fn open_about(&mut self, cx: &mut Cx<'_>) {
@@ -5065,11 +5068,12 @@ impl App {
             Route::Editor => self.update_editor(cx),
             Route::Accounts => self.update_accounts(cx),
             Route::Usage => {
+                let detail = self.update_usage_detail(cx);
                 if cx.activation_key() == Some(ActivationKey::Enter) && !self.usage.detail_open() {
-                    self.open_usage_detail();
-                    Response::changed()
+                    self.open_usage_detail(cx);
+                    detail | Response::changed()
                 } else {
-                    Response::ignored()
+                    detail
                 }
             }
             Route::Settings => self.update_settings(cx),
@@ -5797,8 +5801,8 @@ impl App {
                 self.open_agent_picker(cx);
                 Some(Response::changed())
             }
-            CMD_EXIT_CONFIRM if self.route == Route::Usage => {
-                self.open_usage_detail();
+            CMD_EXIT_CONFIRM if self.route == Route::Usage && !self.usage.detail_open() => {
+                self.open_usage_detail(cx);
                 Some(Response::changed())
             }
             CMD_EXIT_CONFIRM if self.accounts_drawer_enter() => {
@@ -7030,18 +7034,14 @@ impl App {
 
     fn draw_usage(&self, ui: &mut Ui<'_>, area: Rect) {
         if self.usage.detail_open() {
-            let account = self
-                .usage
-                .selected()
-                .and_then(|id| self.world.accounts.get(id));
-            let mut lines = vec!["Usage detail · read-only".to_owned()];
-            if let Some(account) = account {
-                lines.push(account.title());
-                lines.push(account.status_word().to_owned());
-                lines.push(format!("Surface · {}", account.surface.surface_name()));
-            }
-            lines.push("Limits".to_owned());
-            paint_lines(ui, area, &lines);
+            let lines = self.usage_detail_view_lines();
+            let viewport_lines = lines
+                .iter()
+                .map(|line| ViewportLine::Plain(line.as_str()))
+                .collect::<Vec<_>>();
+            TextViewport::new(crate::screens::usage::DETAIL)
+                .wrap(true)
+                .draw(ui, area, &self.usage_detail_viewport, &viewport_lines);
             return;
         }
         let summary = OverallSummary::compute(&self.world.accounts.accounts);
@@ -7069,6 +7069,62 @@ impl App {
             ),
         ];
         paint_lines(ui, area, &lines);
+    }
+
+    fn update_usage_detail(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        if !self.usage.detail_open() {
+            return Response::ignored();
+        }
+        let lines = self.usage_detail_view_lines();
+        let viewport_lines = lines
+            .iter()
+            .map(|line| ViewportLine::Plain(line.as_str()))
+            .collect::<Vec<_>>();
+        TextViewport::new(crate::screens::usage::DETAIL)
+            .wrap(true)
+            .update(cx, &mut self.usage_detail_viewport, &viewport_lines)
+            .erase()
+    }
+
+    fn usage_detail_view_lines(&self) -> Vec<String> {
+        let Some(account) = self
+            .usage
+            .selected()
+            .and_then(|id| self.world.accounts.get(id))
+        else {
+            return vec!["Usage detail · no account selected".to_owned()];
+        };
+
+        use termrock::feedback::UsageAccountLine;
+
+        let mut lines = vec!["Usage detail · read-only".to_owned(), account.title()];
+        let account_lines = usage_account_lines(account, &self.world);
+        let mut has_quota = false;
+        for line in account_lines {
+            match line {
+                UsageAccountLine::Blank => lines.push(String::new()),
+                UsageAccountLine::Text { text, .. } => lines.push(text),
+                UsageAccountLine::Quota(quota) => {
+                    has_quota = true;
+                    let detail = if quota.detail.is_empty() {
+                        String::new()
+                    } else {
+                        format!(" · {}", quota.detail)
+                    };
+                    lines.push(format!("{} · {}%{detail}", quota.label.trim(), quota.pct));
+                }
+            }
+        }
+        if !has_quota {
+            lines.push("No reported quota values".to_owned());
+        }
+        if let Some(retry_secs) = account.usage.freshness.retry_secs {
+            lines.push(format!(
+                "Retry        {}",
+                self.world.clock.reset_label(retry_secs)
+            ));
+        }
+        lines
     }
 
     fn draw_settings(&self, ui: &mut Ui<'_>, area: Rect) {
