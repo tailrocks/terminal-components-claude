@@ -149,6 +149,123 @@ fn assert_skipped_body_attribute_is_conservative(attribute: &str, local_item: &s
     );
 }
 
+fn assert_uncertain_module_attribute_keeps_candidate(attribute: &str) {
+    let dir = empty_workspace();
+    write_member_file(
+        &dir,
+        "src/lib.rs",
+        &format!("#[cfg(test)]\n{attribute}\nmod candidate;\n"),
+    );
+    write_member_file(
+        &dir,
+        "src/candidate.rs",
+        "fn body() { None::<u8>.expect(\"candidate\"); }\n",
+    );
+
+    let member = dir.path().join("crates/demo-preview");
+    let candidate =
+        std::fs::canonicalize(member.join("src/candidate.rs")).expect("candidate source");
+    let analysis = termrock_xtask::ownership::module_graph::analyze_member(&member);
+    assert!(
+        !analysis.complete,
+        "uncertain attribute {attribute} must make provenance incomplete"
+    );
+    assert!(
+        analysis.test_only.is_empty(),
+        "uncertain attribute {attribute} must not prove test-only sources"
+    );
+    assert!(
+        analysis.sources.contains(&candidate),
+        "the uncertain candidate must stay in the source graph: {analysis:?}"
+    );
+    assert_eq!(
+        own14_findings(&check_scratch(&dir)),
+        [("crates/demo-preview/src/candidate.rs".to_string(), 1)],
+        "the candidate's actual OWN-14 finding must remain"
+    );
+}
+
+fn assert_shadowed_test_attribute_keeps_candidate(imports: &str, attribute: &str) {
+    let dir = empty_workspace();
+    write_member_file(
+        &dir,
+        "src/lib.rs",
+        &format!("{imports}\n#[cfg(test)]\n{attribute}\nmod candidate;\n"),
+    );
+    write_member_file(
+        &dir,
+        "src/candidate.rs",
+        "fn body() { None::<u8>.expect(\"candidate\"); }\n",
+    );
+
+    let member = dir.path().join("crates/demo-preview");
+    let candidate =
+        std::fs::canonicalize(member.join("src/candidate.rs")).expect("candidate source");
+    let analysis = termrock_xtask::ownership::module_graph::analyze_member(&member);
+    assert!(
+        !analysis.complete,
+        "possibly shadowed attribute {attribute} must make provenance incomplete"
+    );
+    assert!(analysis.test_only.is_empty());
+    assert!(analysis.sources.contains(&candidate));
+    assert_eq!(
+        own14_findings(&check_scratch(&dir)),
+        [("crates/demo-preview/src/candidate.rs".to_string(), 1)],
+        "the potentially shadowed candidate must retain its actual OWN-14 finding"
+    );
+}
+
+fn assert_unshadowed_test_import_keeps_test_provenance(imports: &str) {
+    let dir = empty_workspace();
+    write_member_file(
+        &dir,
+        "src/lib.rs",
+        &format!("{imports}\n#[cfg(test)]\n#[test]\nmod candidate;\n"),
+    );
+    write_member_file(&dir, "src/candidate.rs", "fn body() {}\n");
+
+    let member = dir.path().join("crates/demo-preview");
+    let candidate =
+        std::fs::canonicalize(member.join("src/candidate.rs")).expect("candidate source");
+    let analysis = termrock_xtask::ownership::module_graph::analyze_member(&member);
+    assert!(analysis.complete, "non-shadowing import: {imports}");
+    assert!(
+        analysis.test_only.contains(&candidate),
+        "the exact test-only route should remain proven: {analysis:?}"
+    );
+}
+
+fn assert_skipped_body_import_keeps_candidate(imports: &str) {
+    let dir = empty_workspace();
+    write_member_file(
+        &dir,
+        "src/lib.rs",
+        &format!(
+            "#[cfg(test)] mod candidate;\n\
+             fn production() {{ {imports} #[test] fn generated() {{}} }}\n"
+        ),
+    );
+    write_member_file(
+        &dir,
+        "src/candidate.rs",
+        "fn body() {{ None::<u8>.expect(\"candidate\"); }}\n",
+    );
+    let member = dir.path().join("crates/demo-preview");
+    let candidate =
+        std::fs::canonicalize(member.join("src/candidate.rs")).expect("candidate source");
+    let analysis = termrock_xtask::ownership::module_graph::analyze_member(&member);
+    assert!(
+        !analysis.complete,
+        "local import must be unresolved: {imports}"
+    );
+    assert!(analysis.test_only.is_empty());
+    assert!(analysis.sources.contains(&candidate));
+    assert_eq!(
+        own14_findings(&check_scratch(&dir)),
+        [("crates/demo-preview/src/candidate.rs".to_string(), 1)]
+    );
+}
+
 #[test]
 fn cfg_test_external_module_is_excluded_but_neighboring_production_is_scanned() {
     let dir = empty_workspace();
@@ -951,6 +1068,8 @@ fn skipped_supported_attributes_and_attribute_lookalikes_remain_proven() {
              #[deprecated(note = \"literal #[custom::make_module]\")]\n\
              #[doc = concat!(\"attribute text #[cfg_attr(test, custom)]\")]\n\
              struct Local;\n\
+             #[cold]\n\
+             fn local_cold() {}\n\
              let _values = vec![1, 2, 3];\n\
          }\n",
     );
@@ -970,6 +1089,101 @@ fn skipped_supported_attributes_and_attribute_lookalikes_remain_proven() {
     );
     assert!(analysis.test_only.contains(&candidate));
     assert!(own14_findings(&check_scratch(&dir)).is_empty());
+}
+
+#[test]
+fn qualified_recognized_prefixes_and_malformed_test_shapes_fail_closed() {
+    for attribute in [
+        "#[test::make_module]",
+        "#[bench::make_module]",
+        "#[test(extra)]",
+        "#[bench = \"x\"]",
+        "#[test::]",
+        "#[::test]",
+        "#[cfg::test]",
+        "#[cfg_attr::test]",
+        "#[path::make_module]",
+        "#[derive::Clone]",
+        "#[cfg(test) trailing]",
+        "#[path = \"candidate.rs\" trailing]",
+        "#[derive(Clone) trailing]",
+    ] {
+        assert_uncertain_module_attribute_keeps_candidate(attribute);
+    }
+}
+
+#[test]
+fn qualified_and_malformed_inert_prefixes_fail_closed_in_module_and_body() {
+    for attribute in ["#[allow::make_module]", "#[doc::make_module]"] {
+        assert_uncertain_module_attribute_keeps_candidate(attribute);
+        assert_skipped_body_attribute_is_conservative(attribute, "struct Local;");
+    }
+    for (attribute, item) in [
+        ("#[allow(dead_code) trailing]", "struct Local;"),
+        ("#[doc = \"x\" trailing]", "fn local() {}"),
+        ("#[allow = \"x\"]", "struct Local;"),
+        ("#[inline(unknown)]", "fn local() {}"),
+    ] {
+        assert_uncertain_module_attribute_keeps_candidate(attribute);
+        assert_skipped_body_attribute_is_conservative(attribute, item);
+    }
+}
+
+#[test]
+fn only_complete_bare_test_and_bench_attributes_grant_test_provenance() {
+    let ranges = termrock_xtask::ownership::module_graph::cfg_test_ranges(
+        "#[test]\nfn test_case() {}\n#[bench]\nfn bench_case() {}\n",
+    );
+    assert_eq!(
+        ranges
+            .iter()
+            .map(|range| (range.start, range.end))
+            .collect::<Vec<_>>(),
+        [(1, 4)]
+    );
+    assert!(
+        termrock_xtask::ownership::module_graph::cfg_test_ranges(
+            "#[test(extra)]\nfn malformed() {}\n#[bench = \"x\"]\nfn malformed_bench() {}\n"
+        )
+        .is_empty()
+    );
+}
+
+#[test]
+fn imported_or_glob_test_attributes_do_not_prove_builtin_test_provenance() {
+    assert_shadowed_test_attribute_keeps_candidate("use custom::test;", "#[test]");
+    assert_shadowed_test_attribute_keeps_candidate("use custom::*;", "#[bench]");
+    assert_shadowed_test_attribute_keeps_candidate("use custom::{test};", "#[test]");
+    assert_shadowed_test_attribute_keeps_candidate("use custom::{*};", "#[bench]");
+    assert_shadowed_test_attribute_keeps_candidate("use custom::make as test;", "#[test]");
+    assert_shadowed_test_attribute_keeps_candidate("use custom::make as bench;", "#[bench]");
+    assert_shadowed_test_attribute_keeps_candidate("use custom::{test as };", "#[test]");
+}
+
+#[test]
+fn test_attribute_imports_match_only_proven_local_bindings() {
+    for imports in [
+        "use custom::test::helper;",
+        "use custom::make as test_helper;",
+        "use custom::{test as helper};",
+        "use custom::{make as test_helper};",
+        "use {custom::test::helper, custom::make as test_helper};",
+        "use custom::{test::helper, make as test_helper};",
+        "use custom::test as _;",
+    ] {
+        assert_unshadowed_test_import_keeps_test_provenance(imports);
+    }
+}
+
+#[test]
+fn local_imports_cannot_shadow_test_attributes_inside_skipped_bodies() {
+    for imports in [
+        "use custom::test;",
+        "use custom::{test};",
+        "use custom::make as test;",
+    ] {
+        assert_skipped_body_import_keeps_candidate(imports);
+    }
 }
 
 #[test]
