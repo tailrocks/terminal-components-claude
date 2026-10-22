@@ -734,6 +734,82 @@ fn holla_paper_mono_overflow_uses_only_configured_readable_source_provenance() {
 }
 
 #[test]
+fn holla_source_projection_cache_tracks_level_changes_narrowed_sources_and_reconfiguration() {
+    let scene = harness(
+        Scenario::ParityDiscovery,
+        Theme::paper(),
+        80,
+        24,
+        ColorLevel::TrueColor,
+    );
+    let mut scene = scene;
+    scene
+        .runtime_mut()
+        .set_theme(Theme::paper().for_level(ColorLevel::Ansi16));
+    scene.draw();
+    assert_eq!(
+        scene
+            .buffer()
+            .cell((77, 23))
+            .expect("clipped marker after ANSI16 projection")
+            .fg,
+        Color::DarkGray,
+        "the same scene selects the cached ANSI16 source projection"
+    );
+    scene
+        .runtime_mut()
+        .set_theme(Theme::paper().for_level(ColorLevel::Mono));
+    scene.draw();
+    assert_eq!(
+        scene
+            .buffer()
+            .cell((77, 23))
+            .expect("clipped marker after Mono projection"),
+        &expected_cell("…", Color::White, Color::Black, Modifier::empty()),
+        "the same scene selects the cached Mono source projection"
+    );
+
+    let narrowed_source = Theme::paper().for_level(ColorLevel::Ansi256);
+    let narrowed = harness(
+        Scenario::ParityDiscovery,
+        narrowed_source,
+        80,
+        24,
+        ColorLevel::Mono,
+    );
+    assert_eq!(
+        narrowed
+            .buffer()
+            .cell((77, 23))
+            .expect("clipped marker from a narrowed source"),
+        &expected_cell("…", Color::White, Color::Black, Modifier::empty()),
+        "an already-projected source remains narrow while its exact Mono projection validates"
+    );
+
+    let source_theme = Theme::paper();
+    let app = App::for_scenario_without_history(Scenario::ParityDiscovery, Motion::Paused, 4_000)
+        .with_source_theme(Theme::junie())
+        .with_source_theme(source_theme.clone());
+    let initial = SimulationMoment::from_millis(app.fixture_time_ms() as u64);
+    let reconfigured = Harness::new_with_feedback_clock(
+        app,
+        source_theme,
+        80,
+        24,
+        FeedbackClock::Simulation { initial },
+    )
+    .with_color(ColorLevel::Mono);
+    assert_eq!(
+        reconfigured
+            .buffer()
+            .cell((77, 23))
+            .expect("clipped marker after source reconfiguration"),
+        &expected_cell("…", Color::White, Color::Black, Modifier::empty()),
+        "reconfiguration replaces source metadata and every cached projection together"
+    );
+}
+
+#[test]
 fn holla_overflow_preserves_authored_part_and_level_foregrounds() {
     let paper = paper_theme_with_faint(Color::Rgb(156, 148, 138));
     let direct_ink = paper.clone().define_family(Family::HINTBAR, |recipe| {
