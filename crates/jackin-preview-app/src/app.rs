@@ -10510,12 +10510,21 @@ impl App {
         if !self.accounts.form_open || self.accounts_add_form_scene() {
             return;
         }
+        let warning_border = [(
+            Part::BORDER,
+            termrock::StylePatch::new().set_fg(termrock::Role::Warning),
+        )];
         let dialog = Dialog::chrome(ACCOUNT_FORM_LAYER.sub("chrome"))
             .title("New account")
             .meta("registration · unsaved")
             .head_in_border()
             .width(70)
             .body_rows(27);
+        let dialog = if self.account_form_warning_ticks > 0 {
+            dialog.patch_part(&warning_border)
+        } else {
+            dialog
+        };
         let width = dialog.measured_width(ui.design()).min(area.width);
         let height = dialog.measured_height(ui.design()).min(area.height);
         let panel = Rect::new(
@@ -10533,14 +10542,6 @@ impl App {
         dialog.draw(ui, panel, &DialogState::default(), |ui, body| {
             self.draw_account_form_content(ui, body);
         });
-        if self.account_form_warning_ticks > 0 && !panel.is_empty() {
-            let warning = ui.paint_patch(
-                &termrock::StylePatch::new()
-                    .set_fg(termrock::Role::Warning)
-                    .set_bg(termrock::Role::Surface(termrock::Surface::Overlay)),
-            );
-            let _ = ui.frame(panel, warning);
-        }
         if panel.width >= 8 && panel.height >= 3 {
             Button::new(ACCOUNT_FORM_CLOSE, "×")
                 .variant(Variant::QUIET)
@@ -12108,19 +12109,89 @@ impl From<&Account> for AccountOption {
 mod tests {
     use super::*;
 
-    fn live_account_form() -> termrock_test_support::Harness<App> {
-        use termrock::Theme;
+    type CapturedCell = (String, termrock::Color, termrock::Color, Modifier);
 
+    fn account_form_cells(
+        harness: &termrock_test_support::Harness<App>,
+        area: Rect,
+    ) -> Vec<CapturedCell> {
+        let mut cells = Vec::new();
+        for y in area.y..area.bottom() {
+            for x in area.x..area.right() {
+                let cell = harness
+                    .buffer()
+                    .cell((x, y))
+                    .expect("captured account-form cell is inside the buffer");
+                cells.push((cell.symbol().to_owned(), cell.fg, cell.bg, cell.modifier));
+            }
+        }
+        cells
+    }
+
+    fn account_form_text(
+        harness: &termrock_test_support::Harness<App>,
+        x: u16,
+        y: u16,
+        width: u16,
+    ) -> String {
+        let mut text = String::new();
+        for col in x..x.saturating_add(width) {
+            text.push_str(
+                harness
+                    .buffer()
+                    .cell((col, y))
+                    .expect("captured account-form text is inside the buffer")
+                    .symbol(),
+            );
+        }
+        text
+    }
+
+    fn account_form_cell(
+        harness: &termrock_test_support::Harness<App>,
+        x: u16,
+        y: u16,
+    ) -> CapturedCell {
+        let cell = harness
+            .buffer()
+            .cell((x, y))
+            .expect("captured account-form cell is inside the buffer");
+        (cell.symbol().to_owned(), cell.fg, cell.bg, cell.modifier)
+    }
+
+    fn live_account_form_at(
+        theme: termrock::Theme,
+        width: u16,
+        height: u16,
+    ) -> termrock_test_support::Harness<App> {
         let mut harness = termrock_test_support::Harness::new(
             App::for_scenario(Scenario::AccountsMixed, Motion::Reduced),
-            Theme::junie(),
-            120,
-            40,
+            theme,
+            width,
+            height,
         );
         let _ = harness.key(KeyCode::Char('a'));
         assert!(harness.app().accounts.form_open);
         assert!(harness.app().account_form_opening.is_some());
         harness
+    }
+
+    fn live_account_form() -> termrock_test_support::Harness<App> {
+        live_account_form_at(termrock::Theme::junie(), 120, 40)
+    }
+
+    fn assert_area_inside(outer: Rect, inner: Rect, label: &str) {
+        assert!(
+            !inner.is_empty(),
+            "{label} must have visible geometry: {inner:?}"
+        );
+        assert!(
+            inner.x >= outer.x
+                && inner.y >= outer.y
+                && inner.right() <= outer.right()
+                && inner.bottom() <= outer.bottom(),
+            "{label} must stay inside the account panel: {inner:?} outside {outer:?}"
+        );
     }
 
     #[test]
@@ -12239,54 +12310,261 @@ mod tests {
 
     #[test]
     fn account_form_warning_expires_on_product_ticks_with_the_current_theme() {
-        fn title_style(
-            harness: &termrock_test_support::Harness<App>,
-        ) -> (termrock::Color, termrock::Color, Modifier) {
-            let position = harness
-                .find("New account")
-                .expect("live account dialog title is painted");
-            let cell = harness
-                .buffer()
-                .cell((position.0, position.1))
-                .expect("dialog title cell is inside the frame");
-            (cell.fg, cell.bg, cell.modifier)
-        }
+        let mono = termrock::Theme::junie().downgrade(termrock::ColorLevel::Mono);
+        let mut custom_colors = termrock::Theme::junie().color;
+        custom_colors.warning = termrock::Color::Rgb(0xe1, 0x21, 0x3a);
+        custom_colors.border_strong = termrock::Color::Rgb(0x11, 0x2a, 0x4e);
+        custom_colors.fg[0] = termrock::Color::Rgb(0x1e, 0xa4, 0xc7);
+        custom_colors.fg[3] = termrock::Color::Rgb(0x83, 0x65, 0xc9);
+        custom_colors.surfaces[2] = termrock::Color::Rgb(0x23, 0x31, 0x42);
+        let custom = termrock::Theme::from_tokens(custom_colors);
 
-        let normal = live_account_form().with_color(termrock::ColorLevel::Mono);
-        let normal_style = title_style(&normal);
+        for (theme_name, theme) in [("mono", mono), ("custom", custom)] {
+            let normal = live_account_form_at(theme.clone(), 120, 40);
+            let panel = normal
+                .area_of(ACCOUNT_FORM_PANEL_SHIELD)
+                .expect("normal frame has the account panel shield");
+            let close = normal
+                .area_of(ACCOUNT_FORM_CLOSE)
+                .expect("normal frame has its pointer-only close control");
+            assert_area_inside(panel, close, "dialog close control");
+            let normal_cells = account_form_cells(&normal, panel);
+            let title = " New account ";
+            let meta = " registration · unsaved ";
+            let title_x = panel.x.saturating_add(2);
+            let meta_x = panel
+                .right()
+                .saturating_sub(6)
+                .saturating_sub(u16::try_from(meta.chars().count()).expect("short meta"));
+            let title_cell_count = u16::try_from(title.chars().count()).expect("short title");
+            let meta_cell_count = u16::try_from(meta.chars().count()).expect("short meta");
+            let body = Rect::new(
+                panel.x.saturating_add(2),
+                panel.y.saturating_add(1),
+                panel.width.saturating_sub(5),
+                panel.height.saturating_sub(2),
+            );
 
-        let mut warning = live_account_form();
-        let opening = warning
-            .app()
-            .account_form_opening
-            .expect("the form owns one opening");
-        let _ = warning.click(0, 0);
-        assert_eq!(warning.app().account_form_warning_ticks, 3);
-        warning = warning.with_color(termrock::ColorLevel::Mono);
-        assert_eq!(warning.app().account_form_opening, Some(opening));
-        let warning_style = title_style(&warning);
-        assert_ne!(warning_style, normal_style);
+            assert_eq!(
+                account_form_text(&normal, title_x, panel.y, title_cell_count),
+                title
+            );
+            assert_eq!(
+                account_form_text(&normal, meta_x, panel.y, meta_cell_count),
+                meta
+            );
+            assert_area_inside(panel, body, "dialog body");
 
-        for remaining in [2, 1] {
-            let _ = warning.advance(Duration::from_millis(200));
-            assert_eq!(warning.app().account_form_warning_ticks, remaining);
+            let mut warning = live_account_form_at(theme.clone(), 120, 40);
+            let opening = warning
+                .app()
+                .account_form_opening
+                .expect("the form owns one opening");
+            let _ = warning.click(0, 0);
+            assert_eq!(warning.app().account_form_warning_ticks, 3);
             assert_eq!(warning.app().account_form_opening, Some(opening));
+            assert_eq!(
+                warning.area_of(ACCOUNT_FORM_PANEL_SHIELD),
+                Some(panel),
+                "{theme_name} warning must preserve panel geometry"
+            );
+            assert_eq!(
+                warning.area_of(ACCOUNT_FORM_CLOSE),
+                Some(close),
+                "{theme_name} warning must preserve close-button geometry"
+            );
+
+            let warning_cells = account_form_cells(&warning, panel);
+            assert_eq!(
+                account_form_text(&warning, title_x, panel.y, title_cell_count),
+                title,
+                "{theme_name} title must remain at its border coordinates"
+            );
+            assert_eq!(
+                account_form_text(&warning, meta_x, panel.y, meta_cell_count),
+                meta,
+                "{theme_name} metadata must remain at its border coordinates"
+            );
+            assert_eq!(
+                account_form_cells(&normal, body),
+                account_form_cells(&warning, body),
+                "{theme_name} warning must leave every body cell unchanged"
+            );
+
+            let close_left = panel.right().saturating_sub(5);
+            let close_right = panel.right().saturating_sub(2);
+            let in_title = |x: u16| title_x <= x && x < title_x.saturating_add(title_cell_count);
+            let in_meta = |x: u16| meta_x <= x && x < meta_x.saturating_add(meta_cell_count);
+            for y in panel.y..panel.bottom() {
+                for x in panel.x..panel.right() {
+                    let at_border = x == panel.x
+                        || x == panel.right().saturating_sub(1)
+                        || y == panel.y
+                        || y == panel.bottom().saturating_sub(1);
+                    if !at_border {
+                        assert_eq!(
+                            warning_cells[usize::from(y - panel.y) * usize::from(panel.width)
+                                + usize::from(x - panel.x)],
+                            normal_cells[usize::from(y - panel.y) * usize::from(panel.width)
+                                + usize::from(x - panel.x)],
+                            "{theme_name} warning must not alter nonborder cell ({x},{y})"
+                        );
+                        continue;
+                    }
+
+                    let cell_index = usize::from(y - panel.y) * usize::from(panel.width)
+                        + usize::from(x - panel.x);
+                    let normal_cell = &normal_cells[cell_index];
+                    let warning_cell = &warning_cells[cell_index];
+                    assert_eq!(
+                        warning_cell.0, normal_cell.0,
+                        "{theme_name} border glyph at ({x},{y})"
+                    );
+                    assert_eq!(
+                        warning_cell.2, normal_cell.2,
+                        "{theme_name} border background at ({x},{y})"
+                    );
+                    assert_eq!(
+                        warning_cell.3, normal_cell.3,
+                        "{theme_name} border modifiers at ({x},{y})"
+                    );
+
+                    let is_caption = y == panel.y
+                        && (in_title(x) || in_meta(x) || (close_left <= x && x < close_right));
+                    if is_caption {
+                        assert_eq!(
+                            warning_cell, normal_cell,
+                            "{theme_name} caption/close cell ({x},{y})"
+                        );
+                    } else {
+                        assert_eq!(
+                            warning_cell.1, theme.color.warning,
+                            "{theme_name} warning border ink at ({x},{y})"
+                        );
+                    }
+                }
+            }
+            if theme_name == "custom" {
+                assert_eq!(normal_cells[0].1, theme.color.border_strong);
+                assert_eq!(normal_cells[0].2, theme.color.surfaces[2]);
+                assert_eq!(warning_cells[0].1, theme.color.warning);
+                assert_eq!(warning_cells[0].2, theme.color.surfaces[2]);
+                let title_cell = account_form_cell(&normal, title_x, panel.y);
+                let meta_cell = account_form_cell(&normal, meta_x, panel.y);
+                assert_eq!(title_cell.1, theme.color.fg[0]);
+                assert_eq!(title_cell.2, theme.color.surfaces[2]);
+                assert_eq!(meta_cell.1, theme.color.fg[3]);
+                assert_eq!(meta_cell.2, theme.color.surfaces[2]);
+            }
+
+            for remaining in [2, 1] {
+                let _ = warning.advance(Duration::from_millis(200));
+                assert_eq!(warning.app().account_form_warning_ticks, remaining);
+                assert_eq!(warning.app().account_form_opening, Some(opening));
+                assert_eq!(account_form_cells(&warning, panel), warning_cells);
+                assert!(
+                    warning.diagnostics().is_empty(),
+                    "{theme_name} warning tick with {remaining} remaining: {:?}",
+                    warning.diagnostics()
+                );
+            }
+            let _ = warning.advance(Duration::from_millis(200));
+
+            assert_eq!(warning.app().account_form_warning_ticks, 0);
+            assert_eq!(warning.app().account_form_opening, Some(opening));
+            assert_eq!(account_form_cells(&warning, panel), normal_cells);
             assert!(
                 warning.diagnostics().is_empty(),
-                "warning tick with {remaining} remaining: {:?}",
+                "{theme_name} warning expiry: {:?}",
                 warning.diagnostics()
             );
         }
-        let _ = warning.advance(Duration::from_millis(200));
+    }
 
-        assert_eq!(warning.app().account_form_warning_ticks, 0);
-        assert_eq!(warning.app().account_form_opening, Some(opening));
-        assert_eq!(title_style(&warning), normal_style);
-        assert!(
-            warning.diagnostics().is_empty(),
-            "warning expiry: {:?}",
-            warning.diagnostics()
-        );
+    #[test]
+    fn account_form_source_credential_and_save_are_reachable_at_supported_sizes() {
+        for (width, height) in [(72, 20), (80, 24)] {
+            let mut harness = live_account_form_at(termrock::Theme::junie(), width, height);
+            let panel = harness
+                .area_of(ACCOUNT_FORM_PANEL_SHIELD)
+                .expect("live form has a panel shield");
+            let original_account_count = harness.app().world.accounts.accounts.len();
+            let start = harness
+                .area_of(crate::screens::accounts::START)
+                .expect("unstarted form exposes the New account button");
+            assert_area_inside(panel, start, "New account button");
+            let _ = harness.click_id(crate::screens::accounts::START);
+            assert!(
+                harness.app().accounts.started,
+                "{width}x{height} Start must activate"
+            );
+
+            let source = harness
+                .area_of(crate::screens::accounts::SOURCE)
+                .expect("started form exposes its credential-source list");
+            let save = harness
+                .area_of(crate::screens::accounts::SAVE)
+                .expect("started form exposes its Save account button");
+            assert_area_inside(panel, source, "credential-source list");
+            assert_area_inside(panel, save, "Save account button");
+            assert!(
+                source.height >= 3,
+                "{width}x{height} must show every credential source"
+            );
+
+            let _ = harness.click(source.x, source.y.saturating_add(2));
+            assert_eq!(
+                harness.app().accounts.source_index,
+                2,
+                "{width}x{height} source hit must choose API key"
+            );
+            let secret = harness
+                .area_of(crate::screens::accounts::SECRET)
+                .expect("API-key source exposes its input");
+            assert_area_inside(panel, secret, "API-key input");
+            assert!(
+                harness.tab_to(crate::screens::accounts::SECRET),
+                "{width}x{height} API-key input must be keyboard reachable"
+            );
+            assert_eq!(harness.focus(), Some(crate::screens::accounts::SECRET));
+            let _ = harness.key(KeyCode::Enter);
+            assert!(
+                harness.app().accounts.secret_input.is_editing(),
+                "{width}x{height} Enter must begin credential editing"
+            );
+            let _ = harness.type_str("synthetic-account-key-2048");
+            assert!(
+                harness.app().accounts.secret_input.visible_text_equals(
+                    &harness.app().accounts.masked_input,
+                    "synthetic-account-key-2048"
+                ),
+                "{width}x{height} credential editor must accept the synthetic input"
+            );
+            let _ = harness.key(KeyCode::Enter);
+            assert!(
+                !harness.app().accounts.masked_input.is_empty(),
+                "{width}x{height} credential commit must reach account state"
+            );
+            assert!(
+                harness.tab_to(crate::screens::accounts::SAVE),
+                "{width}x{height} Save account button must be keyboard reachable"
+            );
+            assert_eq!(harness.focus(), Some(crate::screens::accounts::SAVE));
+            let _ = harness.click_id(crate::screens::accounts::SAVE);
+
+            assert_eq!(
+                harness.app().world.accounts.accounts.len(),
+                original_account_count + 1,
+                "{width}x{height} pointer activation must save the entered account"
+            );
+            assert!(!harness.app().accounts.form_open);
+            assert!(!harness.is_open(ACCOUNT_FORM_LAYER));
+            assert!(
+                harness.diagnostics().is_empty(),
+                "{width}x{height} save: {:?}",
+                harness.diagnostics()
+            );
+        }
     }
 
     #[test]
