@@ -12,7 +12,9 @@ pub mod undo;
 pub use buffer::{CursorPos, TextBuffer};
 pub use editor::{EditAction, EditOutcome, Extend, Motion, TextEditorCore};
 pub use fuzzy::{FuzzyBoundary, fuzzy, fuzzy_with_boundary};
-pub use measure::{truncate, truncate_middle, width, wrap, wrapped_rows};
+pub use measure::{
+    middle_parts, truncate, truncate_middle, truncate_parts, width, wrap, wrapped_rows,
+};
 pub use secret::{CellWriter, Secret, SecretPolicy};
 pub use span::Span;
 pub use termrock_core::secret::wipe_string;
