@@ -8,6 +8,7 @@ use crate::text::measure::{grapheme_width, graphemes};
 use crate::text::width;
 use crate::theme::{FgStep, GlyphRole, Modifier, PaintStyle, Role, StylePatch};
 use crate::ui::Ui;
+use termrock_runtime::author::VerticalWindow;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum NoticeKindValue {
@@ -283,6 +284,68 @@ impl<'a> Notice<'a> {
         }
     }
 
+    /// Draw the rows visible through a validated window into the notice's
+    /// original logical row range.
+    ///
+    /// `window.logical_rows()` is the height cap that an ordinary draw would
+    /// receive. Cropping at a physical viewport edge does not create a new
+    /// logical cut row. A full window uses the same path as [`Self::draw`].
+    pub fn draw_window(&self, ui: &mut Ui<'_>, window: VerticalWindow) {
+        let area = window.visible_body();
+        if window == VerticalWindow::full(area) {
+            self.draw(ui, area);
+            return;
+        }
+        if area.is_empty() {
+            return;
+        }
+
+        let visible_rows = window.visible_source_range();
+        if visible_rows.is_empty() {
+            return;
+        }
+
+        let marker = self.marker_text(ui);
+        let marker_inset = self.marker_inset(ui);
+        let marker_patch = self.marker_default_patch().merge(self.marker_patch);
+        let message_patch = self.message_default_patch().merge(self.message_patch);
+        let detail_patch = StylePatch::new()
+            .set_fg(Role::Fg(self.detail_tone))
+            .merge(self.detail_patch);
+        let hint_patch = StylePatch::new()
+            .set_fg(Role::Fg(FgStep::Muted))
+            .merge(self.hint_patch);
+        let styles = DrawStyles {
+            marker: ui.paint_patch(&marker_patch),
+            message: ui.paint_patch(&message_patch),
+            detail: ui.paint_patch(&detail_patch),
+            hint: ui.paint_patch(&hint_patch),
+        };
+
+        let logical_rows = window.logical_rows();
+        let mut source_row = 0usize;
+        let mut pending: Option<(usize, NoticeRow<'a>)> = None;
+        self.walk_rows(area.width, marker_inset, |row| {
+            let index = source_row;
+            source_row = source_row.saturating_add(1);
+
+            if let Some((pending_index, mut pending_row)) = pending.take() {
+                if index >= logical_rows && pending_index.saturating_add(1) == logical_rows {
+                    pending_row.cut = true;
+                }
+                self.paint_window_row(ui, area, pending_index, pending_row, window, marker, styles);
+            }
+
+            if index < logical_rows && visible_rows.contains(&index) {
+                pending = Some((index, row));
+            }
+        });
+
+        if let Some((index, row)) = pending {
+            self.paint_window_row(ui, area, index, row, window, marker, styles);
+        }
+    }
+
     fn marker_text(&self, ui: &Ui<'_>) -> &'a str {
         if let Some(marker) = self.marker {
             return marker;
@@ -410,7 +473,35 @@ impl<'a> Notice<'a> {
         styles: DrawStyles,
     ) {
         let y = area.y.saturating_add(row_index);
-        if row_index == 0 {
+        self.paint_row_at(ui, area, usize::from(row_index), y, row, marker, styles);
+    }
+
+    fn paint_window_row(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        source_row: usize,
+        row: NoticeRow<'a>,
+        window: VerticalWindow,
+        marker: &str,
+        styles: DrawStyles,
+    ) {
+        if let Some(y) = window.physical_row_for_source(source_row) {
+            self.paint_row_at(ui, area, source_row, y, row, marker, styles);
+        }
+    }
+
+    fn paint_row_at(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        source_row: usize,
+        y: u16,
+        row: NoticeRow<'a>,
+        marker: &str,
+        styles: DrawStyles,
+    ) {
+        if source_row == 0 {
             ui.paint_str(Rect::new(area.x, y, area.width, 1), marker, styles.marker);
         }
 
