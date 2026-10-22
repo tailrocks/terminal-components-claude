@@ -1910,23 +1910,29 @@ impl<'a> TextInput<'a> {
                             cursor_col.saturating_sub(hs).min(usize::from(u16::MAX)) as u16
                         )
                         .min(inner.right());
+                    let pos = Position::new(cx, inner.y);
+                    if area.contains(pos) {
+                        if matches!(
+                            self.typing_policy,
+                            crate::TypingPolicy::Fallback { cursor: true }
+                        ) {
+                            ui.offer_typing_cursor(self.id, pos);
+                        } else {
+                            ui.set_bar_cursor(self.id, pos);
+                        }
+                    }
+                }
+            } else if owns_cursor && self.editable() && !self.embedded_cell {
+                let pos = Position::new(inner.x, inner.y);
+                if area.contains(pos) {
                     if matches!(
                         self.typing_policy,
                         crate::TypingPolicy::Fallback { cursor: true }
                     ) {
-                        ui.offer_typing_cursor(self.id, Position::new(cx, inner.y));
+                        ui.offer_typing_cursor(self.id, pos);
                     } else {
-                        ui.set_bar_cursor(self.id, Position::new(cx, inner.y));
+                        ui.set_bar_cursor(self.id, pos);
                     }
-                }
-            } else if owns_cursor && self.editable() && !self.embedded_cell {
-                if matches!(
-                    self.typing_policy,
-                    crate::TypingPolicy::Fallback { cursor: true }
-                ) {
-                    ui.offer_typing_cursor(self.id, Position::new(inner.x, inner.y));
-                } else {
-                    ui.set_bar_cursor(self.id, Position::new(inner.x, inner.y));
                 }
             }
         }
