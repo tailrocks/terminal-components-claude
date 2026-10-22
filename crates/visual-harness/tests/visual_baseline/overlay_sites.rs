@@ -457,6 +457,8 @@ pub fn site_scanner_detects_unlisted_overlay_and_ignores_prefix_matches() {
         concat!(
             "#[cfg(test)]\n",
             "mod hidden { fn test_only() { Dialog::confirm(ID, \"title\", \"body\"); } }\n",
+            "#[emit(#[cfg(test)] mod quoted { fn generated() { Dialog::new(ID); } })]\n",
+            "fn quoted_marker() {}\n",
             "#[cfg(test)]\n",
             "mod historical_tests;\n",
             "#[cfg(test)] mod shared;\n",
@@ -541,6 +543,7 @@ pub fn site_scanner_detects_unlisted_overlay_and_ignores_prefix_matches() {
     let listed: BTreeMap<&str, &Site> = SITES.iter().map(|site| (site.key, site)).collect();
     std::fs::remove_dir_all(&workspace).expect("remove source fixture");
     let keys = [
+        "crates/holla-ui/src/app.rs::generated",
         "crates/holla-ui/src/app.rs::newly_added_owner",
         "crates/holla-ui/src/app/historical_tests.rs::test_only",
         "crates/holla-ui/src/conditional.rs::conditional_open",

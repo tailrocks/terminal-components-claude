@@ -424,16 +424,21 @@ fn test_module_ranges(text: &str) -> Result<Vec<std::ops::Range<usize>>, String>
             at += 1;
             continue;
         }
-        let Some(attribute) = cfg_test_attribute(&code, &tokens, &matching, at) else {
-            at += 1;
-            continue;
+        let Some(attribute_end) = attribute_end(&code, &tokens, &matching, at) else {
+            return Err(format!(
+                "unmatched attribute group at byte {}",
+                tokens[at].start
+            ));
         };
-        if let Some(range) =
-            module_after_attribute(&code, &tokens, &matching, attribute, tokens[at].start)
+        // Attribute arguments are arbitrary token streams. Only inspect an attribute at its
+        // current item context; nested `#[cfg(test)]` tokens belong to the outer attribute.
+        if let Some(attribute) = cfg_test_attribute(&code, &tokens, &matching, at)
+            && let Some(range) =
+                module_after_attribute(&code, &tokens, &matching, attribute, tokens[at].start)
         {
             test_ranges.push(range);
         }
-        at += 1;
+        at = attribute_end + 1;
     }
     Ok(test_ranges)
 }
@@ -960,5 +965,70 @@ pub fn scanner_retains_uncertain_external_bindings_in_real_roots() {
         )),
         Some(&vec![1]),
         "the retained external test source is visible as an attributed, non-waived inventory hit"
+    );
+}
+
+pub fn scanner_preserves_attribute_arguments_and_masks_real_test_items() {
+    let root = std::env::temp_dir().join(format!(
+        "visual-harness-determinism-attribute-arguments-{}",
+        std::process::id()
+    ));
+    let package = root.join("crates/example");
+    let source = package.join("src");
+    std::fs::create_dir_all(&source).expect("create source root");
+    std::fs::write(
+        package.join("Cargo.toml"),
+        "[package]\nname = \"example\"\nversion = \"0.1.0\"\n",
+    )
+    .expect("write package manifest");
+    let source_text = concat!(
+        "#[emit(#[cfg(test)] mod quoted { fn generated() { SystemTime::now(); } })] fn marker() {}\r\n",
+        "#[emit(#[cfg(test)] mod quoted_utf8 { const LABEL: &str = \"café\"; })]\r\n",
+        "#[cfg(test)] #[allow(dead_code)] pub(crate) mod actual_tests { SystemTime::now(); }\r\n",
+        "#[cfg(test)] mod only_tests { fn generated() { SystemTime::now(); } } fn render_inline() { SystemTime::now(); }\r\n",
+        "fn render() { SystemTime::now(); }\r\n",
+        "fn later() { SystemTime::now(); }\r\n",
+    );
+    assert_eq!(source_text.find("SystemTime"), Some(50));
+    std::fs::write(source.join("lib.rs"), source_text).expect("write attribute source fixture");
+
+    let filtered = non_test(source_text).expect("mask only proven test modules");
+    assert_eq!(
+        filtered.len(),
+        source_text.len(),
+        "preserve original byte offsets"
+    );
+    assert_eq!(filtered.as_bytes().get(50..60), Some(&b"SystemTime"[..]));
+    assert_eq!(
+        filtered
+            .as_bytes()
+            .windows(2)
+            .filter(|pair| *pair == b"\r\n")
+            .count(),
+        source_text
+            .as_bytes()
+            .windows(2)
+            .filter(|pair| *pair == b"\r\n")
+            .count(),
+        "preserve CRLF line offsets"
+    );
+    assert!(filtered.contains("fn marker() {}"));
+    assert!(!filtered.contains("actual_tests"));
+    assert_eq!(code_only(&filtered).matches("SystemTime").count(), 4);
+
+    let roots = source_roots(&root);
+    let (hits, _, count) = scan_roots(&root, &roots);
+    std::fs::remove_dir_all(&root).expect("remove source fixture");
+
+    assert_eq!(count, 1);
+    assert_eq!(
+        hits,
+        [
+            "crates/example/src/lib.rs:1: `SystemTime`",
+            "crates/example/src/lib.rs:4: `SystemTime`",
+            "crates/example/src/lib.rs:5: `SystemTime`",
+            "crates/example/src/lib.rs:6: `SystemTime`",
+        ],
+        "retain quoted attribute tokens and production while masking actual test items"
     );
 }

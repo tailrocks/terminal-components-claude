@@ -78,6 +78,10 @@ fn main() {
             determinism::scanner_retains_uncertain_external_bindings_in_real_roots,
         ),
         check(
+            "determinism::scanner_preserves_attribute_arguments_and_masks_real_test_items",
+            determinism::scanner_preserves_attribute_arguments_and_masks_real_test_items,
+        ),
+        check(
             "modes::showcase_boot_sets_terminal_modes",
             modes::showcase_boot_sets_terminal_modes,
         ),
