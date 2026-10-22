@@ -51,9 +51,10 @@ Cargo subcommands are `build`, `check`, `clippy`, `fmt`, `doc`, and `run`, plus
 `nextest run` and `nextest list`. Only the first listed subcommand may appear
 immediately after `cargo`; global options before it are denied. Unknown
 commands (including aliases such as `low = "build --target-dir …"`) are denied,
-and a configured `nextest` alias is denied even though the native nextest
-subcommand is allowed. This deliberately avoids interpreting Cargo's full
-alias and install command grammar.
+and any accepted command configured as a Cargo alias (in `[alias]` or
+`CARGO_ALIAS_<COMMAND>`) is denied. This includes the native nextest
+subcommand. This deliberately avoids interpreting Cargo's full alias and
+install command grammar.
 
 ## Limits and verification
 

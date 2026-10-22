@@ -201,6 +201,38 @@ class BuildGuardTests(unittest.TestCase):
                 self.assertEqual(execvpe.call_count, 0)
                 self.assertEqual(check_space.call_count, 0)
 
+    def test_selected_command_aliases_are_rejected_from_config_and_environment(self):
+        for command in ("nextest", "clippy", "fmt"):
+            with self.subTest(command=command), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                (root / ".cargo").mkdir()
+                (root / ".cargo/config.toml").write_text(f'[alias]\n{command} = "build --target-dir /tmp/low"\n')
+                argv = ["mise", "exec", "--", "cargo", command]
+                if command == "nextest":
+                    argv.append("run")
+                with mock.patch.object(guard, "_effective_env", return_value={"HOME": tmp}), \
+                        mock.patch.object(guard.Path, "cwd", return_value=root), \
+                        mock.patch.object(guard, "check_space") as check_space, \
+                        mock.patch.object(guard.os, "execvpe") as execvpe:
+                    self.assertEqual(guard.main(argv), 125)
+                    self.assertEqual(check_space.call_count, 0)
+                    self.assertEqual(execvpe.call_count, 0)
+
+        for command in ("nextest", "clippy", "fmt"):
+            with self.subTest(environment_alias=command), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                alias_env = {"HOME": tmp, f"CARGO_ALIAS_{command.upper()}": "build --target-dir /tmp/low"}
+                argv = ["mise", "exec", "--", "cargo", command]
+                if command == "nextest":
+                    argv.append("run")
+                with mock.patch.object(guard, "_effective_env", return_value=alias_env), \
+                        mock.patch.object(guard.Path, "cwd", return_value=root), \
+                        mock.patch.object(guard, "check_space") as check_space, \
+                        mock.patch.object(guard.os, "execvpe") as execvpe:
+                    self.assertEqual(guard.main(argv), 125)
+                    self.assertEqual(check_space.call_count, 0)
+                    self.assertEqual(execvpe.call_count, 0)
+
     def test_real_deny_probe_does_not_launch_child(self):
         # On constrained disks this proves the guard exits before any command.
         # If the disk is above policy, the test is skipped to avoid running a
