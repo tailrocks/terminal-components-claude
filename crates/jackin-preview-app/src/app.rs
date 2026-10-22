@@ -735,7 +735,7 @@ impl App {
             editor: EditorState::default(),
             settings: SettingsState::default(),
             usage: UsageState::default(),
-            usage_detail_viewport: ViewportState::default(),
+            usage_detail_viewport: Self::new_usage_detail_viewport(),
             cockpit: CockpitState::default(),
             capsule: CapsuleState::default(),
             inspect: InspectState::default(),
@@ -1789,8 +1789,15 @@ impl App {
                 .map(|account| account.id.clone());
             self.usage.select(id);
         }
+        self.usage_detail_viewport = Self::new_usage_detail_viewport();
         let _ = self.usage.open_detail();
         cx.focus(crate::screens::usage::DETAIL);
+    }
+
+    fn new_usage_detail_viewport() -> ViewportState {
+        let mut viewport = ViewportState::default();
+        viewport.set_follow(false);
+        viewport
     }
 
     fn open_about(&mut self, cx: &mut Cx<'_>) {
@@ -7087,12 +7094,11 @@ impl App {
     }
 
     fn usage_detail_view_lines(&self) -> Vec<String> {
-        let Some(account) = self
-            .usage
-            .selected()
-            .and_then(|id| self.world.accounts.get(id))
-        else {
+        let Some(selected_id) = self.usage.selected() else {
             return vec!["Usage detail · no account selected".to_owned()];
+        };
+        let Some(account) = self.world.accounts.get(selected_id) else {
+            return vec!["Usage detail · selected account unavailable".to_owned()];
         };
 
         use termrock::feedback::UsageAccountLine;
