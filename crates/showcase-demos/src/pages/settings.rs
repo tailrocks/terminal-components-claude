@@ -1,8 +1,8 @@
 use termrock::author::PaintStyle;
 use termrock::{
-    Button, Color, Cx, Dialog, DialogAction, DialogState, FrameRead, Id, ItemKey, List, ListAction,
-    ListState, Modifier, Rect, Response, RowUi, StateFlags, Tabs, TabsAction, TabsState, Ui,
-    Variant, width,
+    Button, Color, Cx, Dialog, DialogAction, DialogState, FrameRead, GlyphRole, Id, ItemKey, List,
+    ListAction, ListState, Modifier, Part, Rect, Response, Role, RowUi, StateFlags, StylePatch,
+    Tabs, TabsAction, TabsState, Ui, Variant, truncate_parts, width,
 };
 
 use super::{Page, PageUpdate, frame};
@@ -20,6 +20,66 @@ struct Member {
     id: u8,
     name: &'static str,
     email: &'static str,
+    account_kind: AccountKind,
+    lifecycle: MemberLifecycle,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum AccountKind {
+    Person,
+    Service,
+}
+
+impl AccountKind {
+    const fn label(self) -> &'static str {
+        match self {
+            Self::Person => "Person",
+            Self::Service => "Service account",
+        }
+    }
+
+    const fn glyph(self) -> GlyphRole {
+        match self {
+            Self::Person => GlyphRole::Bullet,
+            Self::Service => GlyphRole::FollowRef,
+        }
+    }
+
+    const fn marker_role(self) -> Role {
+        match self {
+            Self::Person => Role::Info,
+            Self::Service => Role::Accent,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum MemberLifecycle {
+    Active,
+    InvitationPending,
+}
+
+impl MemberLifecycle {
+    const fn label(self) -> &'static str {
+        match self {
+            Self::Active => "active",
+            Self::InvitationPending => "invitation pending",
+        }
+    }
+
+    const fn glyph(self) -> GlyphRole {
+        match self {
+            Self::Active => GlyphRole::DotOn,
+            Self::InvitationPending => GlyphRole::DotOff,
+        }
+    }
+
+    const fn color(self) -> Color {
+        match self {
+            Self::Active => Color::Green,
+            Self::InvitationPending => Color::Yellow,
+        }
+    }
 }
 
 const INITIAL_MEMBERS: &[Member] = &[
@@ -27,40 +87,75 @@ const INITIAL_MEMBERS: &[Member] = &[
         id: 1,
         name: "Mira Okafor",
         email: "mira@acme.dev",
+        account_kind: AccountKind::Person,
+        lifecycle: MemberLifecycle::Active,
     },
     Member {
         id: 2,
         name: "Jonas Weber",
         email: "jonas@acme.dev",
+        account_kind: AccountKind::Person,
+        lifecycle: MemberLifecycle::Active,
     },
     Member {
         id: 3,
         name: "Ana Costa",
         email: "ana@acme.dev",
+        account_kind: AccountKind::Person,
+        lifecycle: MemberLifecycle::Active,
     },
     Member {
         id: 4,
         name: "Kai Tanaka",
         email: "kai@acme.dev",
+        account_kind: AccountKind::Person,
+        lifecycle: MemberLifecycle::Active,
     },
     Member {
         id: 5,
         name: "Sofia Rossi",
         email: "sofia@acme.dev",
+        account_kind: AccountKind::Person,
+        lifecycle: MemberLifecycle::InvitationPending,
     },
     Member {
         id: 6,
         name: "deploy-bot",
         email: "bot@acme.dev",
+        account_kind: AccountKind::Service,
+        lifecycle: MemberLifecycle::Active,
     },
 ];
+
+const MEMBER_STATUS_MAX_WIDTH: u16 = 20;
+const MEMBER_LABEL_AND_MARKER_MIN_WIDTH: u16 = 20;
 
 fn member_key(member: &Member) -> ItemKey {
     ItemKey::num(u64::from(member.id))
 }
 fn member_row(member: &Member, row: &mut RowUi<'_>) {
-    row.label(member.name);
     row.meta(member.email);
+
+    let status_width = row
+        .remaining_width()
+        .saturating_sub(MEMBER_LABEL_AND_MARKER_MIN_WIDTH)
+        .min(MEMBER_STATUS_MAX_WIDTH);
+    if status_width > 0 {
+        let mut status = row.part(Part::META, status_width);
+        // DotOn and DotOff each reserve one terminal cell at the end.
+        let text_width = status.available_width().saturating_sub(1);
+        let (head, ellipsis) = truncate_parts(member.lifecycle.label(), text_width);
+        status.text(head).text(ellipsis).suffix_style(
+            member.lifecycle.glyph(),
+            PaintStyle::new().fg(member.lifecycle.color()),
+        );
+    }
+
+    let marker_patch = StylePatch::new().set_fg(member.account_kind.marker_role());
+    row.marker_patched(member.account_kind.glyph(), &marker_patch);
+    row.label(member.account_kind.label());
+    row.label(" · ");
+    row.label(member.name);
 }
 fn member_list()
 -> List<'static, Member, impl Fn(&Member) -> ItemKey, impl Fn(&Member, &mut RowUi<'_>)> {
