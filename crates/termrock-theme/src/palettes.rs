@@ -72,12 +72,15 @@ const fn junie_256() -> ColorTokens {
             // frames use those indices.
             Color::Indexed(245),
             Color::Indexed(242),
-            Color::Indexed(235),
+            // The frozen ghost dim ink renders as cell 238 at this level: the
+            // covered page blanks in the approved 256 frames carry i(238)
+            // (the apply_256 text_ghost), not the source #262626 cube cell.
+            Color::Indexed(238),
         ],
         on_accent: Color::Indexed(232),
         on_danger: Color::Indexed(231),
         on_surface_inverse: Color::Indexed(16),
-        border_subtle: Color::Indexed(235),
+        border_subtle: Color::Indexed(238),
         border_strong: Color::Indexed(242),
         accent: Color::Indexed(78),
         accent_hover: Color::Indexed(77),
@@ -93,7 +96,7 @@ const fn junie_256() -> ColorTokens {
         // `highlight_danger = i(88)`); the corpus never renders this slot.
         highlight_danger_bg: Color::Indexed(88),
         highlight_danger_fg: Color::Indexed(231),
-        backdrop_fg: Color::Indexed(235),
+        backdrop_fg: Color::Indexed(238),
         backdrop_bg: Color::Indexed(16),
         // apply_256 error is 203 (#ff5f5f). Nearest of #f05d5d is 210.
         danger: Color::Indexed(203),
