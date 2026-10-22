@@ -464,8 +464,7 @@ impl NoticesPage {
             self.play_content_height(ui, width)
         });
         let view = ScrollRegion::new(PLAY_SCROLL).draw(ui, area, &self.play_scroll, content_len);
-        let Some(content_window) =
-            scroll_content_window(view, content_len, self.play_scroll.offset())
+        let Some(content_window) = scroll_content_window(view, content_len, &self.play_scroll)
         else {
             return;
         };
@@ -601,8 +600,7 @@ impl NoticesPage {
         });
         let view =
             ScrollRegion::new(STATES_SCROLL).draw(ui, area, &self.states_scroll, content_len);
-        let Some(content_window) =
-            scroll_content_window(view, content_len, self.states_scroll.offset())
+        let Some(content_window) = scroll_content_window(view, content_len, &self.states_scroll)
         else {
             return;
         };
@@ -758,11 +756,9 @@ impl Page for NoticesPage {
                                 &self.options_scroll,
                                 scroll_len,
                             );
-                            if let Some(window) = scroll_content_window(
-                                view,
-                                scroll_len,
-                                self.options_scroll.offset(),
-                            ) {
+                            if let Some(window) =
+                                scroll_content_window(view, scroll_len, &self.options_scroll)
+                            {
                                 ui.with_area(view, |ui| self.paint_options(ui, window));
                             }
                         }
@@ -861,11 +857,15 @@ fn scroll_content_len(
 fn scroll_content_window(
     view: Rect,
     logical_rows: usize,
-    first_source_row: usize,
+    state: &ScrollState,
 ) -> Option<VerticalWindow> {
     if view.width == 0 || view.height == 0 || logical_rows == 0 {
         return None;
     }
+    // Match the projection ScrollRegion used for its chrome against this
+    // frame's viewport and content. Stored state may still describe the last
+    // viewport (notably during the first draw after a resize).
+    let first_source_row = ScrollRegion::view(state, view, logical_rows).offset();
     let first_source_row = first_source_row.min(logical_rows);
     let visible_rows = usize::from(view.height).min(logical_rows.saturating_sub(first_source_row));
     if visible_rows == 0 {

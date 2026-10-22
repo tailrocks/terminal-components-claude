@@ -91,6 +91,32 @@ fn page_debug(h: &Harness<PageHost>) -> String {
     format!("{:?}", h.app().page)
 }
 
+fn stored_scroll_offset(h: &Harness<PageHost>, field: &str) -> usize {
+    let marker = format!("{field}: ScrollState {{ offset: ");
+    page_debug(h)
+        .split(&marker)
+        .nth(1)
+        .and_then(|state| state.split(',').next())
+        .and_then(|value| value.parse().ok())
+        .unwrap_or_else(|| panic!("missing {field} offset in {:?}", h.app().page))
+}
+
+fn scroll_to_bottom(h: &mut Harness<PageHost>, id: Id) {
+    for _ in 0..20 {
+        let area = h.area_of(id).expect("the active section has a scroll area");
+        let _ = h.wheel(Axis::V, 3, area.x.saturating_add(1), area.y);
+    }
+}
+
+fn choose_compact_notice_options(h: &mut Harness<PageHost>) {
+    select_index(h, DETAIL_LINES, 1);
+    select_index(h, MESSAGE_LINES, 1);
+    for id in [DETAIL, HINT] {
+        assert!(h.tab_to(id), "option {id:?} is reachable");
+        let _ = h.key(KeyCode::Char(' '));
+    }
+}
+
 fn select_index(h: &mut Harness<PageHost>, id: Id, index: usize) {
     assert!(h.tab_to(id), "select {id:?} participates in keyboard focus");
     let _ = h.key(KeyCode::Enter);
@@ -277,6 +303,232 @@ fn short_options_scroll_omits_offscreen_selects_and_keeps_visible_checkbox_live(
     assert_eq!(h.focus(), Some(MARK_CUT));
     let _ = h.key(KeyCode::Char(' '));
     assert!(page_debug(&h).contains("mark_cut: false"));
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn options_resize_projects_the_new_viewport_on_the_first_returned_frame() {
+    let mut h = host(80, 12);
+    assert!(h.tab_to(PAGE_TABS));
+    let _ = h.key(KeyCode::Right);
+    scroll_to_bottom(&mut h, OPTIONS_SCROLL);
+    assert!(stored_scroll_offset(&h, "options_scroll") > 0);
+
+    let _ = h.resize(80, 40);
+
+    let mut fresh = host(80, 40);
+    assert!(fresh.tab_to(PAGE_TABS));
+    let _ = fresh.key(KeyCode::Right);
+    assert_eq!(
+        h.text(),
+        fresh.text(),
+        "the first resized frame uses offset zero"
+    );
+    assert_eq!(h.focus(), Some(PAGE_TABS));
+    for id in [
+        KIND,
+        DETAIL_LINES,
+        MESSAGE_LINES,
+        DETAIL_TONE,
+        WIDTH,
+        DETAIL,
+        HINT,
+        MARK_CUT,
+    ] {
+        assert_eq!(h.area_of(id), fresh.area_of(id), "control {id:?}");
+        assert!(h.area_of(id).is_some(), "control {id:?} remains reachable");
+    }
+    assert_eq!(
+        h.area_of_part(OPTIONS_SCROLL, PartRef::of(Part::THUMB)),
+        None,
+        "fitting Options has no stale scrollbar thumb"
+    );
+    assert!(h.tab_to(KIND));
+    assert_eq!(h.focus(), Some(KIND));
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn options_resize_preserves_a_still_valid_scroll_offset() {
+    let mut h = host(80, 12);
+    assert!(h.tab_to(PAGE_TABS));
+    let _ = h.key(KeyCode::Right);
+    let area = h.area_of(OPTIONS_SCROLL).unwrap();
+    let _ = h.wheel(Axis::V, 1, area.x.saturating_add(1), area.y);
+    let offset = stored_scroll_offset(&h, "options_scroll");
+    assert!(offset > 0);
+
+    let _ = h.resize(80, 13);
+
+    let mut fresh = host(80, 13);
+    assert!(fresh.tab_to(PAGE_TABS));
+    let _ = fresh.key(KeyCode::Right);
+    let area = fresh.area_of(OPTIONS_SCROLL).unwrap();
+    let _ = fresh.wheel(Axis::V, 1, area.x.saturating_add(1), area.y);
+    assert_eq!(stored_scroll_offset(&fresh, "options_scroll"), offset);
+    assert_eq!(h.text(), fresh.text(), "the legal offset is not reset");
+    assert_eq!(h.area_of(KIND), fresh.area_of(KIND));
+    assert_eq!(
+        h.area_of_part(OPTIONS_SCROLL, PartRef::of(Part::THUMB)),
+        fresh.area_of_part(OPTIONS_SCROLL, PartRef::of(Part::THUMB))
+    );
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn shrinking_playground_options_to_fit_projects_the_first_source_row() {
+    let mut h = host(80, 34);
+    assert!(
+        h.area_of_part(PLAY_SCROLL, PartRef::of(Part::THUMB))
+            .is_some(),
+        "the default Notices playground overflows at this size"
+    );
+    scroll_to_bottom(&mut h, PLAY_SCROLL);
+    assert!(stored_scroll_offset(&h, "play_scroll") > 0);
+
+    assert!(h.tab_to(PAGE_TABS));
+    let _ = h.key(KeyCode::Right);
+    choose_compact_notice_options(&mut h);
+    assert!(h.tab_to(PAGE_TABS));
+    let _ = h.key(KeyCode::Left);
+
+    let text = h.text();
+    assert!(
+        text.contains("prod-replica"),
+        "the fitting source begins at row zero\n{text}\npage={:?}",
+        h.app().page
+    );
+    assert!(text.contains("Authentication failed"), "{text}");
+    assert!(text.contains("Result 1"), "{text}");
+    assert!(text.contains("Saved 12 rows in 84 ms"), "{text}");
+    let state = page_debug(&h);
+    for option in [
+        "detail_lines: 1",
+        "message_lines: 1",
+        "show_detail: false",
+        "show_hint: false",
+    ] {
+        assert!(
+            state.contains(option),
+            "the option interaction changed {option}: {state}"
+        );
+    }
+    assert!(h.area_of(TEST_CONNECTION).is_some());
+    assert!(h.area_of(INLINE_PANEL).is_some());
+    assert_eq!(
+        h.area_of_part(PLAY_SCROLL, PartRef::of(Part::THUMB)),
+        None,
+        "all content now fits, so no thumb is drawn"
+    );
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn shrinking_states_options_keeps_current_body_and_scrollbar_in_sync() {
+    let mut h = host(80, 12);
+    assert!(h.tab_to(PAGE_TABS));
+    let _ = h.key(KeyCode::Right);
+    let _ = h.key(KeyCode::Right);
+    scroll_to_bottom(&mut h, STATES_SCROLL);
+    assert!(stored_scroll_offset(&h, "states_scroll") > 0);
+
+    assert!(h.tab_to(PAGE_TABS));
+    let _ = h.key(KeyCode::Left);
+    choose_compact_notice_options(&mut h);
+    assert!(h.tab_to(PAGE_TABS));
+    let _ = h.key(KeyCode::Right);
+
+    let text = h.text();
+    assert!(
+        text.contains("With detail"),
+        "the first source panel remains visible\n{text}"
+    );
+    assert!(text.contains("Authentication failed"), "{text}");
+    assert!(
+        !text.contains("Connection test"),
+        "hints are hidden\n{text}"
+    );
+    assert!(
+        !text.contains("Password rejected for acme_app"),
+        "details are hidden\n{text}"
+    );
+    let view = h.area_of(STATES_SCROLL).unwrap();
+    let panel = h
+        .area_of(STATES_DETAIL_PANEL)
+        .expect("the first card is projected into view");
+    assert!(panel.y >= view.y && panel.bottom() <= view.bottom());
+    let track = h
+        .area_of_part(STATES_SCROLL, PartRef::of(Part::TRACK))
+        .expect("the reduced States content still overflows");
+    let thumb = h
+        .area_of_part(STATES_SCROLL, PartRef::of(Part::THUMB))
+        .expect("the overflow thumb remains visible");
+    assert_eq!(
+        thumb.y, track.y,
+        "the body and chrome both start at source row zero"
+    );
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn playground_resize_projects_the_new_viewport_before_painting_body_rows() {
+    let mut h = host(80, 12);
+    scroll_to_bottom(&mut h, PLAY_SCROLL);
+    assert!(stored_scroll_offset(&h, "play_scroll") > 0);
+
+    let _ = h.resize(80, 40);
+
+    let text = h.text();
+    assert!(
+        text.contains("prod-replica"),
+        "the first card fits after resize\n{text}"
+    );
+    assert!(text.contains("Result 1"), "{text}");
+    assert!(text.contains("Saved 12 rows in 84 ms"), "{text}");
+    let view = h.area_of(PLAY_SCROLL).unwrap();
+    let connection = h.area_of(CONNECTION_PANEL).unwrap();
+    let button = h.area_of(TEST_CONNECTION).unwrap();
+    assert!(connection.y >= view.y && connection.bottom() <= view.bottom());
+    assert!(button.y >= view.y && button.bottom() <= view.bottom());
+    assert_eq!(
+        h.area_of_part(PLAY_SCROLL, PartRef::of(Part::THUMB)),
+        None,
+        "fitting Playground has no stale thumb"
+    );
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn states_resize_projects_the_new_viewport_before_painting_gallery_rows() {
+    let mut h = host(80, 12);
+    assert!(h.tab_to(PAGE_TABS));
+    let _ = h.key(KeyCode::Right);
+    let _ = h.key(KeyCode::Right);
+    scroll_to_bottom(&mut h, STATES_SCROLL);
+    assert!(stored_scroll_offset(&h, "states_scroll") > 0);
+
+    let _ = h.resize(80, 40);
+
+    let text = h.text();
+    assert!(
+        text.contains("With detail"),
+        "the first gallery card is visible\n{text}"
+    );
+    assert!(
+        text.contains("Connection test"),
+        "the last gallery specimen is visible\n{text}"
+    );
+    assert!(text.contains("Hint narrow tail"), "{text}");
+    let view = h.area_of(STATES_SCROLL).unwrap();
+    for id in [STATES_DETAIL_PANEL, STATES_HINT_PANEL] {
+        let panel = h.area_of(id).expect("both panels fit after resize");
+        assert!(panel.y >= view.y && panel.bottom() <= view.bottom());
+    }
+    assert_eq!(
+        h.area_of_part(STATES_SCROLL, PartRef::of(Part::THUMB)),
+        None,
+        "fitting States has no stale thumb"
+    );
     assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
 }
 
