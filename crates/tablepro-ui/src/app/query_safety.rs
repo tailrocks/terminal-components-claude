@@ -516,22 +516,15 @@ fn evaluate(app: &TableProApp, query: &str) -> Option<Evaluation> {
 }
 
 fn resolve_table(app: &TableProApp, statement: &Statement) -> Option<Table> {
-    match statement {
-        Statement::Select(select) => app
-            .catalog
-            .find(select.schema.as_deref(), &select.table)
-            .cloned(),
-        _ => {
-            let target = statement.target()?;
-            if let Some((schema, name)) = target.rsplit_once('.') {
-                app.catalog.find(Some(schema), name).cloned()
-            } else {
-                app.catalog
-                    .find(Some(app.workbench.current_schema()), target)
-                    .cloned()
-            }
-        }
-    }
+    let Statement::Select(select) = statement else {
+        // The current write AST retains only the table token, not its SQL
+        // schema qualifier. The active schema is useful context for the user,
+        // but it cannot establish which object a qualified write names.
+        return None;
+    };
+    app.catalog
+        .find(select.schema.as_deref(), &select.table)
+        .cloned()
 }
 
 fn reviewed_scope(statement: &Statement) -> String {

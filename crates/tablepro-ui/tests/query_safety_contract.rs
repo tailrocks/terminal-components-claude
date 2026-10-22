@@ -362,6 +362,57 @@ fn confirmed_unsupported_write_is_reported_as_an_error_not_success() -> Result<(
     Ok(())
 }
 
+fn assert_qualified_unsupported_write_stays_unverified(sql: &str) -> Result<(), &'static str> {
+    let (mut harness, key) = query_harness(SafeMode::SafeFull, 4, sql)?;
+    let history_before = harness.app().workbench.history.entries.len();
+
+    assert_eq!(harness.app().workbench.current_schema(), "public");
+    let _ = harness.ctrl('r');
+
+    assert!(harness.layer_area(QUERY_SAFETY).is_some());
+    let review = harness.text();
+    assert!(review.contains(sql));
+    assert!(review.contains("schema context: public"));
+    assert!(review.contains("Target: orders (unverified)"));
+    assert!(!review.contains("Target: public.orders"));
+    assert!(review.contains("Acknowledgement: type exactly orders"));
+
+    let _ = harness.type_str("orders");
+    confirm_query(&mut harness);
+
+    assert!(harness.layer_area(QUERY_SAFETY).is_none());
+    assert!(harness.app().status().contains("only runs SELECT"));
+    assert_eq!(query_status(&harness, key), Some((true, 42)));
+    assert_eq!(result_rows(&harness, key), None);
+    assert_eq!(
+        harness.app().workbench.history.entries.len(),
+        history_before
+    );
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+    Ok(())
+}
+
+#[test]
+fn missing_qualified_schema_is_not_rebound_to_current_schema_target() -> Result<(), &'static str> {
+    assert_qualified_unsupported_write_stays_unverified(
+        "UPDATE missing_schema.orders SET status = 'paid' WHERE id = 'missing'",
+    )
+}
+
+#[test]
+fn same_named_target_in_other_schema_is_not_rebound_to_current_schema_table()
+-> Result<(), &'static str> {
+    // The fixture has public.orders. SQL naming analytics.orders must not be
+    // presented as verified public.orders when the parser drops the qualifier.
+    assert_qualified_unsupported_write_stays_unverified(
+        "UPDATE analytics.orders SET status = 'paid' WHERE id = 'missing'",
+    )
+}
+
 #[test]
 fn query_safety_cancel_and_outside_dismissal_preserve_query_state() -> Result<(), &'static str> {
     for outside in [false, true] {
