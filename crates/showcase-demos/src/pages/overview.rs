@@ -550,7 +550,7 @@ fn card_title(card: OverviewCard) -> &'static str {
         OverviewCard::Ladders => "Ladders · theme.ladders",
         OverviewCard::Contrast => "Contrast on the card, per level",
         OverviewCard::Principles => "Principles",
-        OverviewCard::Roles => "Roles",
+        OverviewCard::Roles => "Roles · application chrome",
         OverviewCard::Explorer => "Explorer",
         OverviewCard::Mods => "State modifiers · theme.mods",
         OverviewCard::Settings => "Theme settings",
@@ -804,6 +804,7 @@ fn paint_card(ui: &mut Ui<'_>, card: Rect, view: Rect, kind: OverviewCard) {
         OverviewCard::Accents => paint_swatches(ui, view, card, &accent_and_status(t)),
         OverviewCard::Glyphs => paint_glyphs(ui, view, card),
         OverviewCard::Ladders => paint_ladders(ui, view, card),
+        OverviewCard::Roles => paint_chrome_roles(ui, view, card),
         _ => {}
     }
 }
@@ -936,6 +937,93 @@ fn paint_glyphs(ui: &mut Ui<'_>, view: Rect, card: Rect) {
         paint_body(ui, view, body, row, 15, unicode, value);
         paint_body(ui, view, body, row, 33, ascii, value);
     }
+}
+
+fn paint_chrome_roles(ui: &mut Ui<'_>, view: Rect, card: Rect) {
+    let body = card_body(card);
+    if body.is_empty() {
+        return;
+    }
+
+    let status = ui.paint_patch(
+        &termrock::StylePatch::new()
+            .set_fg(termrock::Role::StatusBarFg)
+            .set_bg(termrock::Role::StatusBarBg),
+    );
+    let status_row = Rect::new(body.x, body.y, body.width, 1).intersection(view);
+    if !status_row.is_empty() {
+        ui.fill(status_row, status);
+    }
+    paint_body(ui, view, body, 0, 0, "Junie", status);
+    paint_body(
+        ui,
+        view,
+        body,
+        0,
+        7,
+        "READY",
+        ui.paint_patch(
+            &termrock::StylePatch::new()
+                .set_fg(termrock::Role::StatusAccent)
+                .set_bg(termrock::Role::StatusBarBg),
+        ),
+    );
+
+    let muted = ui.paint_patch(
+        &termrock::StylePatch::new().set_fg(termrock::Role::Fg(termrock::FgStep::Muted)),
+    );
+    paint_body(ui, view, body, 1, 0, "rule", muted);
+    paint_body(
+        ui,
+        view,
+        body,
+        1,
+        5,
+        "─",
+        ui.paint_patch(&termrock::StylePatch::new().set_fg(termrock::Role::ChromeRule)),
+    );
+    paint_body(ui, view, body, 1, 8, "scroll", muted);
+    paint_body(
+        ui,
+        view,
+        body,
+        1,
+        15,
+        "┆",
+        ui.paint_patch(&termrock::StylePatch::new().set_fg(termrock::Role::ScrollTrack)),
+    );
+    paint_body(
+        ui,
+        view,
+        body,
+        1,
+        16,
+        "┃",
+        ui.paint_patch(&termrock::StylePatch::new().set_fg(termrock::Role::ScrollThumb)),
+    );
+
+    paint_body(
+        ui,
+        view,
+        body,
+        2,
+        0,
+        " TAG ",
+        ui.paint_patch(
+            &termrock::StylePatch::new()
+                .set_fg(termrock::Role::TagInk)
+                .set_bg(termrock::Role::Surface(termrock::Surface::Elevated)),
+        ),
+    );
+    paint_body(
+        ui,
+        view,
+        body,
+        3,
+        0,
+        "custom: Accent",
+        ui.paint_patch(&termrock::StylePatch::new().set_fg(termrock::Role::Accent)),
+    );
 }
 
 fn paint_ladders(ui: &mut Ui<'_>, view: Rect, card: Rect) {
@@ -1130,5 +1218,26 @@ mod tests {
         assert_eq!(h.cell(hx + 17, hy).symbol(), "┃");
         assert_eq!(h.cell(hx + 17, hy).fg, Color::Rgb(0x80, 0x80, 0x80));
         assert_eq!(h.cell(hx + 27, hy).fg, Color::Rgb(0x48, 0xe0, 0x54));
+    }
+
+    #[test]
+    fn chrome_roles_card_shows_status_tag_and_a_local_accent_override() {
+        let theme = Theme::junie();
+        let h = Harness::new(Host, theme.clone(), 132, 120);
+        let text = h.text();
+        assert!(text.contains("Roles · application chrome"), "{text}");
+        assert!(text.contains("READY"), "{text}");
+        assert!(text.contains("TAG"), "{text}");
+        assert!(text.contains("custom: Accent"), "{text}");
+
+        let (status_x, status_y) = h.find("READY").expect("status accent sample");
+        assert_eq!(h.cell(status_x, status_y).fg, theme.color.status_accent);
+        assert_eq!(h.cell(status_x, status_y).bg, theme.color.status_bar_bg);
+
+        let (tag_x, tag_y) = h.find("TAG").expect("tag ink sample");
+        assert_eq!(h.cell(tag_x, tag_y).fg, theme.color.tag_ink);
+
+        let (custom_x, custom_y) = h.find("custom: Accent").expect("custom override");
+        assert_eq!(h.cell(custom_x, custom_y).fg, theme.color.accent);
     }
 }
