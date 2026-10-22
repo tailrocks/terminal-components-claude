@@ -1704,7 +1704,22 @@ impl<'a> TextInput<'a> {
             let Some((family, variant, target_part)) =
                 text_style_target.filter(|_| part == Part::TEXT)
             else {
-                return ov.style(ui, id, base_target.0, base_target.1, base_target.2, live);
+                let local_patch = ov.part_patch(part);
+                let resolved = match local_patch {
+                    Some(patch) => {
+                        ui.style_patched(base_target.0, base_target.1, base_target.2, live, &patch)
+                    }
+                    None => ui.style(base_target.0, base_target.1, base_target.2, live),
+                };
+                ov.note(
+                    ui,
+                    id,
+                    base_target.0,
+                    base_target.1,
+                    base_target.2,
+                    resolved,
+                );
+                return resolved;
             };
 
             // A host may supply only the text decoration while the input
@@ -3377,6 +3392,45 @@ mod tests {
         assert_ne!(placeholder[(2, 0)].fg, value[(2, 0)].fg);
         assert_ne!(value[(2, 0)].fg, selected[(2, 0)].fg);
         assert_ne!(value[(0, 0)].fg, value[(2, 0)].fg);
+    }
+
+    #[test]
+    fn hosted_query_keeps_local_field_and_text_patches_on_input_parts() {
+        const LOCAL_PATCHES: &[(Part, StylePatch)] = &[
+            (
+                Part::FIELD,
+                StylePatch::new().set_bg(crate::theme::Role::Danger),
+            ),
+            (
+                Part::TEXT,
+                StylePatch::new().set_fg(crate::theme::Role::Success),
+            ),
+        ];
+
+        let theme = Theme::junie().override_family(Family::PICKER, |recipe| {
+            recipe.part(Part::QUERY).base(
+                StylePatch::new()
+                    .set_fg(crate::theme::Role::Warning)
+                    .set_bg(crate::theme::Role::Accent),
+            );
+        });
+        let mut runtime = Runtime::new(Stub::default(), theme.clone());
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime
+            .draw_scene(SCREEN, &mut buffer, |ui, area| {
+                TextInput::new(ID)
+                    .value("X")
+                    .style_target(Family::PICKER, Variant::DEFAULT, Part::QUERY)
+                    .patch_part(LOCAL_PATCHES)
+                    .draw(ui, area, &TextInputState::default());
+            })
+            .commit_presented();
+
+        assert_eq!(buffer[(1, 0)].fg, theme.color.warning);
+        assert_eq!(buffer[(1, 0)].bg, theme.color.danger);
+        assert_eq!(buffer[(2, 0)].symbol(), "X");
+        assert_eq!(buffer[(2, 0)].fg, theme.color.success);
+        assert_eq!(buffer[(2, 0)].bg, theme.color.accent);
     }
 
     #[test]
