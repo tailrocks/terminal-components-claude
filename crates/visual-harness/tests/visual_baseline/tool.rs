@@ -1,5 +1,8 @@
 use crate::scenarios;
 use crate::support;
+use termrock_core::platform::ClientPlatform;
+
+pub const CLIENT_PLATFORM_PROBE_END: &str = "END-OF-CLIENT-PLATFORM-PROBE";
 
 pub fn run(tool: &str) -> Result<(), String> {
     match tool {
@@ -17,6 +20,14 @@ pub fn run(tool: &str) -> Result<(), String> {
             env_probe();
             Ok(())
         }
+        "client-platform-probe" => {
+            client_platform_probe();
+            Ok(())
+        }
+        "client-platform-proxy" => {
+            client_platform_proxy();
+            Ok(())
+        }
         "harness-hash" => {
             let dir = std::env::var_os("VISUAL_DIR")
                 .map(std::path::PathBuf::from)
@@ -28,9 +39,62 @@ pub fn run(tool: &str) -> Result<(), String> {
             Ok(())
         }
         other => Err(format!(
-            "unknown VISUAL_TOOL `{other}` (list, capture, env-probe, harness-hash)"
+            "unknown VISUAL_TOOL `{other}` (list, capture, env-probe, client-platform-probe, client-platform-proxy, harness-hash)"
         )),
     }
+}
+
+fn client_platform_probe() {
+    let label = match ClientPlatform::current() {
+        ClientPlatform::MacOs => "macos",
+        ClientPlatform::Other => "other",
+    };
+    println!("CLIENT_PLATFORM={label}");
+    println!(
+        "CLIENT_PLATFORM_OVERRIDE={}",
+        std::env::var(ClientPlatform::OVERRIDE_ENV).unwrap_or_else(|_| "<unset>".to_string())
+    );
+    println!("{CLIENT_PLATFORM_PROBE_END}");
+}
+
+fn client_platform_proxy() {
+    let executable = std::env::current_exe().expect("test binary path");
+    let case = support::Case::new(
+        "probe/client-platform/120x40/nocolor",
+        "unused",
+        &[],
+        120,
+        40,
+        support::Color::NoColorEnv,
+        CLIENT_PLATFORM_PROBE_END,
+    );
+    let mut extra = vec![("VISUAL_TOOL", "client-platform-probe")];
+    match std::env::var("VISUAL_CHILD_CLIENT_PLATFORM")
+        .ok()
+        .as_deref()
+    {
+        Some("other") => {
+            extra.push((ClientPlatform::OVERRIDE_ENV, "other"));
+            extra.push(("TERM_PROGRAM", "Apple_Terminal"));
+            extra.push(("LC_TERMINAL", "iTerm2"));
+        }
+        Some("macos") => {
+            extra.push((ClientPlatform::OVERRIDE_ENV, "macos"));
+            extra.push(("TERM_PROGRAM", "WindowsTerminal"));
+            extra.push(("LC_TERMINAL", "WindowsTerminal"));
+        }
+        Some(other) => panic!("unsupported child platform override `{other}`"),
+        None => {}
+    }
+
+    let mut session = support::spawn_with_program(&case, &executable, &extra);
+    session
+        .wait_for_text(CLIENT_PLATFORM_PROBE_END)
+        .unwrap_or_else(|e| panic!("isolated platform child did not report its result: {e}"));
+    let frame = session
+        .wait_stable(std::time::Duration::from_millis(100))
+        .unwrap_or_else(|e| panic!("isolated platform child did not settle: {e}"));
+    print!("{}", frame.text());
 }
 
 fn approval(name: &str) -> &'static str {

@@ -3,6 +3,7 @@ use std::cell::RefCell;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
+use termrock_core::platform::ClientPlatform;
 use tuiscotti::grouped::{ArtifactSet, GroupedStore};
 use tuiscotti::locate::{Locator, Span};
 use tuiscotti::render::{self, Renderer};
@@ -640,9 +641,10 @@ pub fn scenario_home(name: &str) -> PathBuf {
     manifest_path("target/tuiscotti/home").join(name)
 }
 
-pub const PINNED_ENV: [(&str, &str); 9] = [
+pub const PINNED_ENV: [(&str, &str); 10] = [
     ("SHELL", "/bin/sh"),
     ("JUNIE_TUI_CLIENT_PLATFORM", "macos"),
+    (ClientPlatform::OVERRIDE_ENV, "macos"),
     ("TERM", "xterm-256color"),
     ("COLORTERM", "truecolor"),
     ("LANG", "C.UTF-8"),
@@ -657,6 +659,14 @@ pub fn spawn(case: &Case) -> Session {
 }
 
 pub fn spawn_with_env(case: &Case, extra: &[(&str, &str)]) -> Session {
+    spawn_with_program(case, Path::new(case.bin), extra)
+}
+
+pub fn spawn_with_program(case: &Case, program: &Path, extra: &[(&str, &str)]) -> Session {
+    let mut argv = argv_for(case);
+    let executable = argv.first_mut().expect("argv contains the executable");
+    *executable = program.to_string_lossy().into_owned();
+
     let home = scenario_home(&case.name);
     match std::fs::remove_dir_all(&home) {
         Ok(()) => {}
@@ -664,7 +674,7 @@ pub fn spawn_with_env(case: &Case, extra: &[(&str, &str)]) -> Session {
         Err(e) => panic!("empty {}: {e}", home.display()),
     }
     std::fs::create_dir_all(&home).unwrap_or_else(|e| panic!("mkdir {}: {e}", home.display()));
-    let mut tui = Tui::new(argv_for(case))
+    let mut tui = Tui::new(argv)
         .size(case.cols, case.rows)
         .env_clear(true)
         .env("HOME", &home)

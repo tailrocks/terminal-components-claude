@@ -2,9 +2,10 @@ use std::collections::BTreeMap;
 use std::process::Command;
 
 use crate::support;
-use crate::tool::ENV_PROBE_END;
+use crate::tool::{CLIENT_PLATFORM_PROBE_END, ENV_PROBE_END};
+use termrock_core::platform::ClientPlatform;
 
-const LEAKS: [(&str, &str); 13] = [
+const LEAKS: [(&str, &str); 17] = [
     ("SHELL", "/leaked/shell"),
     ("NO_COLOR", "1"),
     ("FORCE_COLOR", "3"),
@@ -15,7 +16,11 @@ const LEAKS: [(&str, &str); 13] = [
     ("TERM", "dumb"),
     ("LANG", "fr_FR.ISO8859-1"),
     ("TZ", "Asia/Bangkok"),
+    ("TERM_PROGRAM", "Apple_Terminal"),
+    ("LC_TERMINAL", "iTerm2"),
     ("HOME", "/nonexistent-leaked-home"),
+    ("JUNIE_TUI_CLIENT_PLATFORM", "macos"),
+    ("TERMROCK_CLIENT_PLATFORM", "other"),
     ("JUNIE_TUI_GLYPHS", "ascii"),
     ("JUNIE_LEAK_CANARY", "leaked"),
 ];
@@ -85,6 +90,76 @@ fn app_capture_ignores_parent_env() {
         "truecolor capture has RGB colours"
     );
     assert_eq!(clean, leaky, "the parent environment changed `{name}`");
+}
+
+fn platform_child(parent_env: &[(&str, &str)], child_platform: Option<&str>) -> String {
+    let exe = std::env::current_exe().expect("test binary path");
+    let mut command = Command::new(exe);
+    command
+        .env("VISUAL_TOOL", "client-platform-proxy")
+        .env_remove("VISUAL_CHILD_CLIENT_PLATFORM")
+        .envs(parent_env.iter().copied());
+    if let Some(platform) = child_platform {
+        command.env("VISUAL_CHILD_CLIENT_PLATFORM", platform);
+    }
+    let out = command
+        .output()
+        .unwrap_or_else(|e| panic!("launch platform proxy child: {e}"));
+    assert!(
+        out.status.success(),
+        "platform proxy failed: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    String::from_utf8(out.stdout).expect("platform probe output is UTF-8")
+}
+
+pub fn client_platform_override_child() {
+    let pinned = platform_child(&LEAKS, None);
+    assert!(
+        pinned.contains("CLIENT_PLATFORM=macos"),
+        "capture child must detect its pinned macOS platform:\n{pinned}"
+    );
+    assert!(
+        pinned.contains("CLIENT_PLATFORM_OVERRIDE=macos"),
+        "capture child must receive the new typed platform override, not rely on host fallback:\n{pinned}"
+    );
+    assert!(
+        pinned.contains(CLIENT_PLATFORM_PROBE_END),
+        "capture child did not complete its typed platform probe:\n{pinned}"
+    );
+
+    let other = platform_child(&LEAKS, Some("other"));
+    assert!(
+        other.contains("CLIENT_PLATFORM=other"),
+        "explicit `other` override must defeat macOS terminal hints:\n{other}"
+    );
+    assert!(
+        other.contains("CLIENT_PLATFORM_OVERRIDE=other"),
+        "the isolated child must receive the explicit `other` override:\n{other}"
+    );
+
+    let macos = platform_child(&LEAKS, Some("macos"));
+    assert!(
+        macos.contains("CLIENT_PLATFORM=macos"),
+        "explicit `macos` override must survive contrary terminal hints:\n{macos}"
+    );
+    assert!(
+        macos.contains("CLIENT_PLATFORM_OVERRIDE=macos"),
+        "the isolated child must receive the explicit `macos` override:\n{macos}"
+    );
+}
+
+pub fn invalid_platform_override_keeps_host_fallback() {
+    for value in ["", "invalid"] {
+        let platform = ClientPlatform::from_env(|key| {
+            (key == ClientPlatform::OVERRIDE_ENV).then(|| value.to_string())
+        });
+        assert_eq!(
+            platform,
+            ClientPlatform::build_target(),
+            "invalid override {value:?} must keep live host fallback"
+        );
+    }
 }
 
 pub fn env_isolation() {
