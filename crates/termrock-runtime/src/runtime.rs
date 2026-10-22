@@ -7,6 +7,7 @@ pub(crate) mod typing;
 pub use time::{ClockError, Moment};
 pub use typing::TypingPolicy;
 
+use core::time::Duration;
 use ratatui_core::buffer::Buffer;
 use ratatui_core::layout::{Position, Rect};
 use ratatui_core::terminal::Frame;
@@ -18,7 +19,7 @@ use crate::cursor;
 use crate::diagnostics::Diagnostic;
 use crate::event::{Axis, Input, Key, KeyCode, KeyModifiers, Mouse, MouseKind};
 use crate::focus::{FocusRing, FocusState, ScopeId};
-use crate::hit::{Hit, RegionKind};
+use crate::hit::{Hit, RegionKind, TextDragRegion};
 use crate::id::{Id, Part, PartRef};
 use crate::intent::{FocusVia, IntentQueue, Phase};
 use crate::keymap::{BindingTableId, KeyMap, KeyPhase};
@@ -151,6 +152,29 @@ struct Press {
     click_count: u8,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct DragMotion {
+    position: Position,
+    modifiers: KeyModifiers,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct LiveTextDrag {
+    capture: Capture,
+    press: Press,
+    motion: DragMotion,
+    region: TextDragRegion,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct HeldTextDrag {
+    region: TextDragRegion,
+    position: Position,
+    modifiers: KeyModifiers,
+    click_count: u8,
+    next_due: Option<Moment>,
+}
+
 #[derive(Clone, Copy, Debug)]
 struct LastClick {
     owner: Id,
@@ -167,11 +191,13 @@ struct Interaction {
     hover_suppressed: bool,
     hover_passes: u8,
     press: Option<Press>,
+    drag_motion: Option<DragMotion>,
     last_click: Option<LastClick>,
     last_input_key: bool,
 }
 
 const MAX_FOCUS_PASSES: usize = 4;
+const TEXT_DRAG_AUTOSCROLL_INTERVAL: Duration = Duration::from_millis(50);
 
 #[derive(Clone, Default)]
 pub struct RenderSnapshot {
@@ -414,6 +440,8 @@ pub struct Runtime<A: App> {
     services: FrameServices,
     intents: IntentQueue,
     inter: Interaction,
+    held_text_drag: Option<HeldTextDrag>,
+    cancelled_text_drag: Option<(Id, PartRef)>,
     pending_tick: bool,
     frame: FrameState,
     core: UiCore,
@@ -529,6 +557,8 @@ impl<A: App> Runtime<A> {
             },
             intents: IntentQueue::new(),
             inter: Interaction::default(),
+            held_text_drag: None,
+            cancelled_text_drag: None,
             pending_tick: false,
             frame: FrameState::default(),
             core,
@@ -631,13 +661,14 @@ impl<A: App> Runtime<A> {
         if self.pending_tick {
             return Some(self.now());
         }
-        match (
+        [
             self.services.repaint_at,
             self.services.feedback.elapsed_deadline(),
-        ) {
-            (Some(a), Some(b)) => Some(a.min(b)),
-            (a, b) => a.or(b),
-        }
+            self.held_text_drag.and_then(|drag| drag.next_due),
+        ]
+        .into_iter()
+        .flatten()
+        .min()
     }
 
     pub fn activation_feedback(&self) -> Option<ActivationFeedback> {
@@ -659,9 +690,15 @@ impl<A: App> Runtime<A> {
             self.invalidate_prepared();
         }
         self.services.now = now;
-        if !self.pending_tick && self.services.repaint_at.is_some_and(|at| at <= now) {
-            self.pending_tick = true;
+        let repaint_due = self.services.repaint_at.is_some_and(|at| at <= now);
+        let text_drag_due = self
+            .held_text_drag
+            .is_some_and(|drag| drag.next_due.is_some_and(|at| at <= now));
+        if repaint_due {
             self.services.repaint_at = None;
+        }
+        if !self.pending_tick && (repaint_due || text_drag_due) {
+            self.pending_tick = true;
         }
         if self.services.feedback.expire_elapsed(now) {
             if self.inter.press.is_none() {
@@ -865,6 +902,9 @@ impl<A: App> Runtime<A> {
         self.services.capture.release();
         self.services.press_pos = None;
         self.inter.press = None;
+        self.inter.drag_motion = None;
+        self.held_text_drag = None;
+        self.cancelled_text_drag = None;
         self.inter.hover = None;
         self.last.snapshot.pressed = None;
         self.last.snapshot.hover = None;
@@ -952,6 +992,17 @@ impl<A: App> Runtime<A> {
     fn enqueue_mouse(&mut self, m: Mouse) {
         self.services.pointer_press_count = None;
         self.inter.pointer_position = Some(m.pos);
+        if matches!(m.kind, MouseKind::Down | MouseKind::Up) {
+            self.inter.drag_motion = None;
+        }
+        if m.kind == MouseKind::Down {
+            self.held_text_drag = None;
+            self.cancelled_text_drag = None;
+        }
+        if m.kind == MouseKind::Up {
+            self.held_text_drag = None;
+            self.cancelled_text_drag = None;
+        }
         if m.kind == MouseKind::Up {
             self.services.press_pos = None;
         }
@@ -985,6 +1036,10 @@ impl<A: App> Runtime<A> {
             }
             MouseKind::Drag => {
                 let Some(p) = self.inter.press else { return };
+                self.inter.drag_motion = Some(DragMotion {
+                    position: m.pos,
+                    modifiers: m.mods,
+                });
                 if !p.dragging {
                     self.intents.pointer(
                         p.owner,
@@ -1187,6 +1242,10 @@ impl<A: App> Runtime<A> {
         let local = cap.local(m.pos);
         match m.kind {
             MouseKind::Drag | MouseKind::Move => {
+                self.inter.drag_motion = Some(DragMotion {
+                    position: m.pos,
+                    modifiers: m.mods,
+                });
                 self.intents
                     .pointer(cap.owner, Phase::Drag, cap.part, m.pos, local, m.mods);
             }
@@ -1708,6 +1767,7 @@ impl<A: App> Runtime<A> {
                 return Response::ignored();
             }
             self.intents.clear();
+            self.enqueue_due_text_drag();
             self.pump_layer_events();
             let r = self.run_update(None, UpdateCause::Tick, None);
             return self.finish(r);
@@ -1761,6 +1821,7 @@ impl<A: App> Runtime<A> {
             }
             Input::Tick => {
                 update_cause = UpdateCause::Tick;
+                self.enqueue_due_text_drag();
             }
             Input::Key(k) => {
                 let swallows = self.swallows_typing() || self.last.typing.fallback.is_some();
@@ -1950,6 +2011,7 @@ impl<A: App> Runtime<A> {
     }
 
     fn finish(&mut self, mut r: Response<()>) -> Response<()> {
+        self.apply_text_drag_cancellations();
         self.reconcile_held_pointer();
         if core::mem::take(&mut self.services.reset_pointer_clicks) {
             self.inter.last_click = None;
@@ -2354,6 +2416,16 @@ impl<A: App> Runtime<A> {
         if capture_invalid || press_invalid {
             self.inter.press = None;
             self.services.press_pos = None;
+            self.inter.drag_motion = None;
+        }
+        if let Some((owner, part)) = self.cancelled_text_drag
+            && !self
+                .services
+                .capture
+                .get()
+                .is_some_and(|capture| capture.owner == owner && capture.part == part)
+        {
+            self.cancelled_text_drag = None;
         }
 
         let pressed = self
@@ -2368,6 +2440,138 @@ impl<A: App> Runtime<A> {
         }
         self.last.snapshot.capture = capture;
         self.last.snapshot.pressed = pressed;
+        self.reconcile_held_text_drag();
+    }
+
+    fn live_text_drag(&self) -> Option<LiveTextDrag> {
+        let capture = self.services.capture.get()?;
+        let press = self.inter.press?;
+        let motion = self.inter.drag_motion?;
+        if press.owner != capture.owner || press.part != capture.part {
+            return None;
+        }
+        if self.cancelled_text_drag == Some((capture.owner, capture.part)) {
+            return None;
+        }
+        let region =
+            self.last
+                .registry
+                .text_drag_region(capture.owner, capture.part, self.top())?;
+        if region.generation() != self.last.registry.generation()
+            || capture.generation > region.generation()
+            || !region.can_scroll_at(motion.position)
+            || crate::capture::target_area(
+                &self.last.registry,
+                &self.last.ring,
+                self.top(),
+                capture.owner,
+                capture.part,
+            )
+            .is_none()
+        {
+            return None;
+        }
+        Some(LiveTextDrag {
+            capture,
+            press,
+            motion,
+            region,
+        })
+    }
+
+    fn text_drag_deadline(now: Moment) -> Option<Moment> {
+        let deadline = now.saturating_add(TEXT_DRAG_AUTOSCROLL_INTERVAL);
+        (deadline > now).then_some(deadline)
+    }
+
+    fn same_text_drag_registration(left: TextDragRegion, right: TextDragRegion) -> bool {
+        left.owner() == right.owner()
+            && left.part() == right.part()
+            && left.layer() == right.layer()
+            && left.area() == right.area()
+            && left.axes() == right.axes()
+            && left.source_revision() == right.source_revision()
+    }
+
+    fn reconcile_held_text_drag(&mut self) {
+        let previous = self.held_text_drag;
+        let Some(live) = self.live_text_drag() else {
+            self.held_text_drag = None;
+            return;
+        };
+        let next_due = match previous
+            .filter(|held| Self::same_text_drag_registration(held.region, live.region))
+        {
+            Some(held) => held.next_due,
+            None => Self::text_drag_deadline(self.now()),
+        };
+        self.held_text_drag = Some(HeldTextDrag {
+            region: live.region,
+            position: live.motion.position,
+            modifiers: live.motion.modifiers,
+            click_count: live.press.click_count,
+            next_due,
+        });
+    }
+
+    fn enqueue_due_text_drag(&mut self) {
+        let Some(held) = self.held_text_drag else {
+            return;
+        };
+        if !held.next_due.is_some_and(|deadline| deadline <= self.now()) {
+            return;
+        }
+        let Some(live) = self.live_text_drag() else {
+            self.held_text_drag = None;
+            return;
+        };
+        if !Self::same_text_drag_registration(held.region, live.region)
+            || held.position != live.motion.position
+        {
+            self.held_text_drag = None;
+            self.reconcile_held_text_drag();
+            return;
+        }
+
+        self.intents.pointer(
+            live.capture.owner,
+            Phase::Drag,
+            live.capture.part,
+            held.position,
+            live.capture.local(held.position),
+            held.modifiers,
+        );
+        self.services.pointer_press_count =
+            Some((live.press.owner, live.press.part, held.click_count));
+        self.held_text_drag = Some(HeldTextDrag {
+            region: live.region,
+            position: live.motion.position,
+            modifiers: live.motion.modifiers,
+            click_count: live.press.click_count,
+            next_due: Self::text_drag_deadline(self.now()),
+        });
+    }
+
+    fn apply_text_drag_cancellations(&mut self) {
+        let cancellations = core::mem::take(&mut self.services.text_drag_cancellations);
+        for (owner, part) in cancellations {
+            let captured = self
+                .services
+                .capture
+                .get()
+                .is_some_and(|capture| capture.owner == owner && capture.part == part);
+            let pressed = self
+                .inter
+                .press
+                .is_some_and(|press| press.owner == owner && press.part == part);
+            let held = self
+                .held_text_drag
+                .is_some_and(|drag| drag.region.owner() == owner && drag.region.part() == part);
+            if captured || pressed || held {
+                self.cancelled_text_drag = Some((owner, part));
+                self.held_text_drag = None;
+            }
+        }
     }
 
     fn reconcile_hover(&mut self) {
