@@ -1892,54 +1892,111 @@ impl<'a> TextViewport<'a> {
             }
             return false;
         }
+        let previous_selection = st.selection;
+        let previous_browse = st.browse;
+        let previous_head = previous_selection.map(|(_, head)| head).or(previous_browse);
         if lines.is_empty() {
-            acc.consumed();
-            return false;
+            st.selection = None;
+            st.browse = None;
+            if previous_head.is_some() {
+                st.follow = FollowCursor::OnMove;
+            }
+            if previous_selection.is_some() {
+                acc.action(ViewportAction::SelectionChanged);
+            } else if previous_browse.is_some() {
+                acc.changed();
+            } else {
+                acc.consumed();
+            }
+            return previous_head.is_some();
         }
 
-        let current = if let Some((_, head)) = st.selection {
+        let selection = previous_selection.and_then(|(anchor, head)| {
+            Some((clamp_position(lines, anchor)?, clamp_position(lines, head)?))
+        });
+        let browse = if let Some((_, head)) = selection {
             Some(head)
         } else {
-            st.browse
+            previous_browse.and_then(|pos| clamp_position(lines, pos))
         };
-        let from = current
-            .and_then(|pos| clamp_position(lines, pos))
-            .or_else(|| {
-                let layout = cx.cache::<ViewportLayout>(self.id);
-                let line = if text_height > 0 && layout.total() > 0 {
-                    let last_visible = st
-                        .scroll
-                        .offset()
-                        .saturating_add(usize::from(text_height).saturating_sub(1))
-                        .min(layout.total().saturating_sub(1));
-                    layout.row_start(lines, last_visible).0
-                } else {
-                    lines.len().saturating_sub(1)
-                };
-                let line_ref = lines.get(line)?;
-                Some(CellPos::new(line, line_cols(line_ref)))
-            });
-        let Some(from) = from else {
-            acc.consumed();
-            return false;
-        };
-        let anchor = st
-            .selection
-            .and_then(|(anchor, _)| clamp_position(lines, anchor))
-            .unwrap_or(from);
-        let Some(to) = selection_destination(lines, from, cmd) else {
-            acc.consumed();
-            return false;
-        };
-        if to == from {
-            acc.consumed();
-            return false;
-        }
+        st.selection = selection;
+        st.browse = browse;
+        let selection_changed = previous_selection != st.selection;
+        let browse_changed = previous_browse != st.browse;
+        let reconciled_head = st.selection.map(|(_, head)| head).or(st.browse);
+        let head_changed = previous_head != reconciled_head;
 
+        let current = reconciled_head;
+        let from = current.or_else(|| {
+            let layout = cx.cache::<ViewportLayout>(self.id);
+            let line = if text_height > 0 && layout.total() > 0 {
+                let last_visible = st
+                    .scroll
+                    .offset()
+                    .saturating_add(usize::from(text_height).saturating_sub(1))
+                    .min(layout.total().saturating_sub(1));
+                layout.row_start(lines, last_visible).0
+            } else {
+                lines.len().saturating_sub(1)
+            };
+            let line_ref = lines.get(line)?;
+            Some(CellPos::new(line, line_cols(line_ref)))
+        });
+        let Some(from) = from else {
+            if selection_changed {
+                acc.action(ViewportAction::SelectionChanged);
+            } else if browse_changed {
+                acc.changed();
+            } else {
+                acc.consumed();
+            }
+            if head_changed {
+                st.follow = FollowCursor::OnMove;
+                return true;
+            }
+            return false;
+        };
+        let anchor = st.selection.map_or(from, |(anchor, _)| anchor);
+        let Some(to) = selection_destination(lines, from, cmd) else {
+            if selection_changed {
+                acc.action(ViewportAction::SelectionChanged);
+            } else if browse_changed {
+                acc.changed();
+            } else {
+                acc.consumed();
+            }
+            if head_changed {
+                st.follow = FollowCursor::OnMove;
+                return true;
+            }
+            return false;
+        };
         let row = {
             let layout = cx.cache::<ViewportLayout>(self.id);
             visual_row_for_position(layout, lines, key, to)
         };
+
+        if to == from {
+            if selection_changed {
+                acc.action(ViewportAction::SelectionChanged);
+            } else if browse_changed {
+                acc.changed();
+            } else {
+                acc.consumed();
+            }
+            if head_changed {
+                if let Some(row) = row {
+                    st.scroll.ensure_visible(row);
+                }
+                if self.pan_active() {
+                    st.horizontal.ensure_visible(to.col);
+                }
+                st.follow = FollowCursor::OnMove;
+                return true;
+            }
+            return false;
+        }
+
         st.selection = Some((anchor, to));
         st.anchor = None;
         st.browse = Some(to);
@@ -3210,6 +3267,210 @@ mod tests {
         assert!(!response.is_changed());
         assert_eq!(runtime.app().state.selection, None);
         assert_eq!(runtime.app().state.browse, None);
+    }
+
+    #[test]
+    fn a_shrunk_multiline_selection_reconciles_before_a_boundary_command() {
+        let mut app = SelectionViewportApp::new(vec![
+            ViewportLine::Plain("first"),
+            ViewportLine::Plain("second"),
+        ]);
+        app.area = Rect::new(0, 0, 12, 1);
+        app.state.select(CellPos::new(0, 0), CellPos::new(1, 6));
+        app.state.scroll.apply_layout(1, 2);
+        app.state.scroll.scroll_to(1);
+        app.state.set_follow(true);
+        app.state.set_caret(Some(CellPos::new(1, 3)));
+        let mut runtime = selection_runtime(app);
+        let mut buffer = Buffer::empty(SCREEN);
+
+        runtime.app_mut().lines = vec![ViewportLine::Plain("x")];
+        runtime.app_mut().state.invalidate();
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        let response = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_key(KeyCode::End, KeyModifiers::SHIFT),
+        );
+
+        let expected = Some((CellPos::new(0, 0), CellPos::new(0, 1)));
+        assert!(response.is_consumed() && response.is_changed());
+        assert_eq!(runtime.app().state.selection, expected);
+        assert_eq!(runtime.app().state.selection(), expected);
+        assert_eq!(runtime.app().state.browse, Some(CellPos::new(0, 1)));
+        assert_eq!(runtime.app().state.follow_cursor(), FollowCursor::OnMove);
+        assert_eq!(runtime.app().state.scroll.offset(), 0);
+        assert_eq!(runtime.app().state.caret(), Some(CellPos::new(1, 3)));
+        assert_eq!(
+            runtime.app().actions.last(),
+            Some(&ViewportAction::SelectionChanged)
+        );
+
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Char('y')));
+        assert!(
+            runtime
+                .app()
+                .actions
+                .contains(&ViewportAction::Copy("x".to_owned()))
+        );
+
+        runtime.app_mut().lines = vec![ViewportLine::Plain("x"), ViewportLine::Plain("appended")];
+        runtime.app_mut().state.invalidate();
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        let response = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_key(KeyCode::Left, KeyModifiers::SHIFT),
+        );
+
+        assert!(response.is_consumed() && response.is_changed());
+        assert_eq!(
+            runtime.app().state.selection,
+            Some((CellPos::new(0, 0), CellPos::new(0, 0)))
+        );
+        assert_eq!(runtime.app().state.selection(), None);
+        assert_eq!(runtime.app().state.browse, Some(CellPos::new(0, 0)));
+    }
+
+    #[test]
+    fn a_wide_cell_shrink_reconciles_both_oriented_endpoints_before_noop() {
+        let mut app = SelectionViewportApp::new(vec![ViewportLine::Plain("abc漢q")]);
+        app.state.select(CellPos::new(0, 4), CellPos::new(0, 6));
+        app.state.set_follow(true);
+        app.state.set_caret(Some(CellPos::new(0, 1)));
+        let mut runtime = selection_runtime(app);
+        let mut buffer = Buffer::empty(SCREEN);
+
+        runtime.app_mut().lines = vec![ViewportLine::Plain("abc漢")];
+        runtime.app_mut().state.invalidate();
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        let response = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_key(KeyCode::End, KeyModifiers::SHIFT),
+        );
+
+        let expected = Some((CellPos::new(0, 3), CellPos::new(0, 5)));
+        assert!(response.is_consumed() && response.is_changed());
+        assert_eq!(runtime.app().state.selection, expected);
+        assert_eq!(runtime.app().state.selection(), expected);
+        assert_eq!(runtime.app().state.browse, Some(CellPos::new(0, 5)));
+        assert_eq!(runtime.app().state.follow_cursor(), FollowCursor::OnMove);
+        assert_eq!(runtime.app().state.caret(), Some(CellPos::new(0, 1)));
+        assert_eq!(
+            runtime.app().actions.last(),
+            Some(&ViewportAction::SelectionChanged)
+        );
+
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Char('y')));
+        assert!(
+            runtime
+                .app()
+                .actions
+                .contains(&ViewportAction::Copy("漢".to_owned()))
+        );
+
+        runtime.app_mut().lines = vec![ViewportLine::Plain("abc漢q")];
+        runtime.app_mut().state.invalidate();
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        let response = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_key(KeyCode::Left, KeyModifiers::SHIFT),
+        );
+
+        assert!(response.is_consumed() && response.is_changed());
+        assert_eq!(
+            runtime.app().state.selection,
+            Some((CellPos::new(0, 3), CellPos::new(0, 3)))
+        );
+        assert_eq!(runtime.app().state.selection(), None);
+        assert_eq!(runtime.app().state.browse, Some(CellPos::new(0, 3)));
+    }
+
+    #[test]
+    fn browse_only_reconciliation_marks_change_without_selection_action() {
+        let mut app = SelectionViewportApp::new(vec![ViewportLine::Plain("abcdef")]);
+        app.state.browse = Some(CellPos::new(0, 6));
+        app.state.set_follow(true);
+        let mut runtime = selection_runtime(app);
+        let mut buffer = Buffer::empty(SCREEN);
+
+        runtime.app_mut().lines = vec![ViewportLine::Plain("abc")];
+        runtime.app_mut().state.invalidate();
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        let response = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_key(KeyCode::End, KeyModifiers::SHIFT),
+        );
+
+        assert!(response.is_consumed() && response.is_changed());
+        assert_eq!(runtime.app().state.selection, None);
+        assert_eq!(runtime.app().state.browse, Some(CellPos::new(0, 3)));
+        assert_eq!(runtime.app().state.follow_cursor(), FollowCursor::OnMove);
+        assert!(runtime.app().actions.is_empty());
+    }
+
+    #[test]
+    fn an_empty_source_clears_keyboard_continuation_before_repopulation() {
+        let mut app = SelectionViewportApp::new(vec![
+            ViewportLine::Plain("old-first"),
+            ViewportLine::Plain("obsolete"),
+        ]);
+        app.area = Rect::new(0, 0, 12, 1);
+        app.state.select(CellPos::new(0, 2), CellPos::new(1, 8));
+        app.state.scroll.apply_layout(1, 2);
+        app.state.scroll.scroll_to(1);
+        app.state.set_follow(true);
+        app.state.set_caret(Some(CellPos::new(1, 2)));
+        let mut runtime = selection_runtime(app);
+        let mut buffer = Buffer::empty(SCREEN);
+
+        runtime.app_mut().lines.clear();
+        runtime.app_mut().state.invalidate();
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        let response = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_key(KeyCode::Left, KeyModifiers::SHIFT),
+        );
+
+        assert!(response.is_consumed() && response.is_changed());
+        assert_eq!(runtime.app().state.selection, None);
+        assert_eq!(runtime.app().state.selection(), None);
+        assert_eq!(runtime.app().state.browse, None);
+        assert_eq!(runtime.app().state.follow_cursor(), FollowCursor::OnMove);
+        assert_eq!(runtime.app().state.caret(), Some(CellPos::new(1, 2)));
+        assert_eq!(
+            runtime.app().actions.last(),
+            Some(&ViewportAction::SelectionChanged)
+        );
+
+        runtime.app_mut().lines = vec![
+            ViewportLine::Plain("new-first"),
+            ViewportLine::Plain("last"),
+        ];
+        runtime.app_mut().state.invalidate();
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        let response = crate::runtime::stub::deliver(
+            &mut runtime,
+            selection_key(KeyCode::Left, KeyModifiers::SHIFT),
+        );
+
+        assert!(response.is_consumed() && response.is_changed());
+        assert_eq!(
+            runtime.app().state.selection,
+            Some((CellPos::new(0, 9), CellPos::new(0, 8)))
+        );
+        assert_eq!(
+            runtime.app().state.selection(),
+            Some((CellPos::new(0, 8), CellPos::new(0, 9)))
+        );
+        assert_eq!(runtime.app().state.browse, Some(CellPos::new(0, 8)));
+        assert_eq!(runtime.app().state.caret(), Some(CellPos::new(1, 2)));
+
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Char('y')));
+        assert!(
+            runtime
+                .app()
+                .actions
+                .contains(&ViewportAction::Copy("t".to_owned()))
+        );
     }
 
     #[test]
