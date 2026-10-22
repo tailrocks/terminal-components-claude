@@ -343,3 +343,37 @@ Three MINOR findings, all dispositioned:
 Standing next step, unchanged: the owner records the regeneration scope
 approval (store, families, sizes, color levels) at a pinned HEAD before
 anything is regenerated; nothing is blessed by this record.
+
+---
+
+## Addendum 2026-10-23: corrections from the bless adjudication (conclusions above unchanged)
+
+Two factual corrections, recorded by the independent adjudication of the
+`7f240b2730` bless
+(`docs/audits/2026-10-23-holla-bless-7f240b2730-adjudication.md`; verdict:
+receipt-only defect, bless faithful, zero unattributable rows). The
+conclusions and decisions above are not edited; only these two citations
+are stale:
+
+1. **Dead expected value.** This document's expected value
+   `e30768d9339a0fb9` for `first-use 80 24 junie truecolor` is dead: the
+   `7f240b2730` bless rewrote the store, and `app.txt:125` now carries
+   `d737412561a7e6fa` for that row. All "expected" readings in the
+   reproduction table above refer to the pre-bless store and no longer
+   reproduce against the current tree.
+2. **Abort-site citation.** The abort on the first mismatching row happens
+   at the `panic!` in `crates/termrock-test-support/src/digest.rs:284`.
+   Line `275` is the `Lookup::Mismatch` message formatter and line `364`
+   the `Lookup::Mismatch` constructor (both citations correct as sites, but
+   neither is the abort site). The independent-review section below states
+   "the actual ... sites are `digest.rs:275` ... and `:364`" as a
+   correction of `:284`; the full citation is `:284` (abort),
+   `:275` (formatter), `:364` (constructor), verified against source at
+   `bdf62e3be`, `7f240b2730^`, `7f240b2730` and tip `6e68fb0cf8` — the
+   line numbers are stable across all four.
+
+Status note: the store this document gated on has since been rewritten once
+(`7f240b2730`) and has drifted red again at tip `6e68fb0cf8` (first
+mismatch `rust-dirty 80 24 junie 256`); the Option B conditions — recorded
+owner approval, pinned-HEAD single batch with receipt, digest store plus the
+27 frozen families together — remain unmet and standing.
