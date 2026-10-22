@@ -88,6 +88,35 @@ fn tiny_input_full_cell_sentinel_stays_outside_allocated_area() {
 }
 
 #[test]
+fn tiny_input_published_cursor_stays_inside_allocated_area() {
+    for width in 0..13 {
+        for height in 0..4 {
+            let area = Rect::new(3, 2, width, height);
+            let page = harness(area, "日本語👩‍💻abcdef");
+            if area.is_empty() {
+                assert!(page.cursor().is_none(), "empty {area:?} published a cursor");
+            }
+            if let Some(cursor) = page.cursor() {
+                assert!(area.contains(cursor), "{area:?}: cursor {cursor:?}");
+            }
+        }
+    }
+}
+
+#[test]
+fn cursor_outside_screen_clip_is_not_relocated_into_the_field() {
+    let area = Rect::new(19, 2, 8, 1);
+    let mut page = harness(area, "abcdefghijkl");
+    let _ = page.key(KeyCode::End);
+
+    assert!(
+        page.cursor().is_none(),
+        "clipped field published {:?}",
+        page.cursor()
+    );
+}
+
+#[test]
 fn clicking_the_published_caret_after_wide_text_scroll_keeps_the_byte_offset() {
     let area = Rect::new(2, 1, 8, 1);
     let mut page = harness(area, WIDE_VALUE);
