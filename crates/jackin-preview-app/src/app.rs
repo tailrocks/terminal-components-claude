@@ -1833,7 +1833,7 @@ impl App {
         ]
     }
 
-    fn open_usage_detail(&mut self, cx: &mut Cx<'_>) {
+    fn open_usage_detail(&mut self, cx: &mut Cx<'_>) -> bool {
         if self.usage.selected().is_none() {
             let id = self
                 .world
@@ -1844,10 +1844,14 @@ impl App {
                 .map(|account| account.id.clone());
             self.usage.select(id);
         }
+        if !self.usage.open_detail() {
+            return false;
+        }
+
         self.usage_detail_viewport = Self::new_usage_detail_viewport();
-        let _ = self.usage.open_detail();
         self.usage_focus = UsageFocus::Detail;
         cx.focus(crate::screens::usage::DETAIL);
+        true
     }
 
     fn new_usage_detail_viewport() -> ViewportState {
@@ -1941,8 +1945,10 @@ impl App {
             if let Some(account_id) = row.account_id.as_deref() {
                 self.usage.select(Some(account_id.to_owned()));
                 self.usage_focus = UsageFocus::List;
-                if chosen && cx.activation_key() == Some(ActivationKey::Enter) {
-                    self.open_usage_detail(cx);
+                if chosen
+                    && cx.activation_key() == Some(ActivationKey::Enter)
+                    && self.open_usage_detail(cx)
+                {
                     result |= Response::changed();
                 }
             }
@@ -1964,8 +1970,8 @@ impl App {
 
         if self.usage_focus == UsageFocus::Tabs
             && (tabs_enter || cx.activation_key() == Some(ActivationKey::Enter))
+            && self.open_usage_detail(cx)
         {
-            self.open_usage_detail(cx);
             result |= Response::changed();
         }
 
