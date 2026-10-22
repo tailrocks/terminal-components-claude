@@ -59,7 +59,7 @@ fn every_hover_plane_uses_reference_tokens_in_all_color_modes() {
         (
             ColorLevel::TrueColor,
             [
-                0x18_18_1b, 0x27_27_2a, 0x27_27_2a, 0x3f_3f_46, 0x3f_3f_46, 0x2f_2f_34, 0x3f_3f_46,
+                0x18_18_1b, 0x27_27_2a, 0x27_27_2a, 0x3f_3f_46, 0x3f_3f_46, 0x23_23_28, 0x3f_3f_46,
             ]
             .map(Color::from_u32),
         ),
@@ -854,7 +854,7 @@ fn nested_public_layers_dim_the_composited_origin_and_preserve_unwritten_cells()
                 ),
                 (
                     "P",
-                    Color::Rgb(138, 138, 138),
+                    Color::Rgb(128, 128, 128),
                     Color::Rgb(0, 0, 0),
                     Color::Reset,
                     Modifier::empty(),

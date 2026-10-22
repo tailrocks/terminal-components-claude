@@ -395,7 +395,9 @@ impl<'a> Button<'a> {
         if self.focus_visibility == ButtonFocusVisibility::Always
             && !disabled
             && !self.busy()
-            && !style_flags.contains(StateFlags::PRESSED)
+            // An inert scope never promotes focus: it has no live focus owner
+            // to show a focus bar for.
+            && !ui.is_inert()
             && style_flags.contains(StateFlags::FOCUSED)
         {
             style_flags |= StateFlags::FOCUS_VISIBLE;
@@ -405,16 +407,7 @@ impl<'a> Button<'a> {
             ov.style(ui, self.id, Family::BUTTON, self.variant, part, style_flags)
         };
         let container = style(ui, Part::CONTAINER);
-        // Pad cells take the button background as their foreground. The label
-        // paint covers the glyphs. A text-colored pad reads as a stray mark.
-        let pad = match container.style.as_style().bg {
-            Some(bg) => container
-                .style
-                .fg(bg)
-                .remove_modifier(ratatui_core::style::Modifier::BOLD),
-            None => container.style,
-        };
-        ui.fill(area, pad);
+        ui.fill(area, container.style);
 
         let gutter_cell = cell_at(area, area.x);
         if let Some(f) = ov.slot_for(Part::GUTTER) {
@@ -425,7 +418,7 @@ impl<'a> Button<'a> {
                 Slot::Set(glyph) => {
                     ui.glyph(gutter_cell, glyph, g.style);
                 }
-                Slot::Inherit | Slot::Clear => {}
+                Slot::Inherit | Slot::Clear => ui.fill(gutter_cell, g.style),
             }
         }
 
@@ -499,17 +492,6 @@ impl<'a> Button<'a> {
                     None => ui.fill(marker_cell, marker_style),
                 }
             }
-            // The cell after the marker is label ink, not the button fill.
-            if text.width > 1 {
-                ui.fill(
-                    Rect {
-                        x: marker_cell.x.saturating_add(1),
-                        width: 1,
-                        ..marker_cell
-                    },
-                    container.style,
-                );
-            }
             text = shift(text, 2);
         }
         if let Some(f) = ov.slot_for(Part::LABEL) {
@@ -538,15 +520,6 @@ impl<'a> Button<'a> {
             } else {
                 ui.paint_str(text, label, label_style);
             }
-        }
-        // The trailing pad keeps the label ink, including disabled dim.
-        // The leading pad stays the fill.
-        if area.width >= 2 {
-            let label = style(ui, Part::LABEL);
-            ui.fill(
-                cell_at(area, area.right().saturating_sub(1)),
-                label.over(container.style),
-            );
         }
         area
     }

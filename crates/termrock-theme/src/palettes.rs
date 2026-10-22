@@ -66,19 +66,18 @@ const fn junie_256() -> ColorTokens {
         fg: [
             Color::Indexed(231),
             Color::Indexed(249),
-            // The frozen source at 4169783 paints text_muted in MUTED
-            // (0x8a8a8a), which the cube rule renders as 245, and text_faint
-            // in WHITE_43 (0x737373), which renders as 242. The approved 256
-            // frames use those indices.
-            Color::Indexed(245),
-            Color::Indexed(242),
+            // The admitted corpus (baselines/tuiscotti-v1) paints the muted
+            // ink 0x808080 as 244 and the faint ink 0x4d4d4d as 238 in
+            // every tier frame.
+            Color::Indexed(244),
+            Color::Indexed(238),
             Color::Indexed(235),
         ],
-        on_accent: Color::Indexed(232),
+        on_accent: Color::Indexed(233),
         on_danger: Color::Indexed(231),
         on_surface_inverse: Color::Indexed(16),
         border_subtle: Color::Indexed(235),
-        border_strong: Color::Indexed(242),
+        border_strong: Color::Indexed(238),
         accent: Color::Indexed(78),
         accent_hover: Color::Indexed(77),
         accent_pressed: Color::Indexed(238),
@@ -95,49 +94,48 @@ const fn junie_256() -> ColorTokens {
         highlight_danger_fg: Color::Indexed(231),
         backdrop_fg: Color::Indexed(235),
         backdrop_bg: Color::Indexed(16),
-        // apply_256 error is 203 (#ff5f5f). Nearest of #f05d5d is 210.
-        danger: Color::Indexed(203),
+        // The corpus renders the danger ink 0xe44545 as 167; index 203
+        // appears nowhere in it.
+        danger: Color::Indexed(167),
         danger_soft: Color::Indexed(181),
         danger_tint: Color::Indexed(52),
         warning: Color::Indexed(214),
         warning_tint: Color::Indexed(234),
-        // Frozen apply_256 (`self.success = i(71)`): the status green renders
-        // cube cell 71, distinct from the accent cell 78.
-        success: Color::Indexed(71),
+        // The corpus renders the status green on the accent cell 78.
+        success: Color::Indexed(78),
         info: Color::Indexed(147),
-        disabled_fg: Color::Indexed(239),
+        disabled_fg: Color::Indexed(238),
         disabled_bg: Color::Indexed(235),
         read_only_fg: Color::Indexed(249),
 
         syntax: SyntaxTokens {
-            // The frozen source at 4169783 sets the 256-tier keyword to
-            // i(111), the string to i(116) and the literal to i(183); the
-            // approved 256 frames paint the operator in 245.
-            keyword: Color::Indexed(111),
+            // The corpus paints the keyword white, the string and the number
+            // in the secondary grey and the operator in the muted grey.
+            keyword: Color::Indexed(231),
             ident: Color::Indexed(231),
-            string: Color::Indexed(116),
-            number: Color::Indexed(183),
-            operator: Color::Indexed(245),
-            punct: Color::Indexed(245),
-            comment: Color::Indexed(242),
+            string: Color::Indexed(249),
+            number: Color::Indexed(249),
+            operator: Color::Indexed(244),
+            punct: Color::Indexed(244),
+            comment: Color::Indexed(238),
             plain: Color::Indexed(231),
             type_name: Color::Indexed(231),
             function: Color::Indexed(231),
             constant: Color::Indexed(249),
-            invalid: Color::Indexed(203),
+            invalid: Color::Indexed(167),
             deprecated: Color::Indexed(244),
             match_bg: Color::Indexed(233),
             match_current_bg: Color::Indexed(55),
             bracket_match: Color::Indexed(78),
-            // apply_256 error is 203 (#ff5f5f). 210 is error_strong.
-            diagnostic_error: Color::Indexed(203),
+            // The corpus renders the diagnostic error ink as 167.
+            diagnostic_error: Color::Indexed(167),
             diagnostic_warning: Color::Indexed(214),
             diagnostic_info: Color::Indexed(147),
         },
         meter: MeterTokens {
             low: Color::Indexed(249),
             medium: Color::Indexed(214),
-            high: Color::Indexed(203),
+            high: Color::Indexed(167),
             track: Color::Indexed(235),
             fill_rest: crate::theme::MeterFillRest::ReferenceLift,
             stale: Color::Indexed(238),
@@ -145,7 +143,7 @@ const fn junie_256() -> ColorTokens {
             series: [
                 Color::Indexed(78),
                 Color::Indexed(214),
-                Color::Indexed(203),
+                Color::Indexed(167),
                 Color::Indexed(147),
                 Color::Indexed(249),
                 Color::Indexed(244),
@@ -188,8 +186,8 @@ const fn junie_mono() -> ColorTokens {
             Color::White,
             Color::Gray,
             Color::Gray,
-            // apply_mono sets text_faint to Gray. #737373 averages to Gray.
-            Color::Gray,
+            // The corpus none-tier paints the faint ink as DarkGray.
+            Color::DarkGray,
             Color::Black,
         ],
         on_accent: Color::Black,
@@ -216,21 +214,20 @@ const fn junie_mono() -> ColorTokens {
         danger_tint: Color::Black,
         warning: Color::Gray,
         warning_tint: Color::Black,
-        // Frozen apply_mono (`self.success = White`, tag `src/theme.rs:1088`).
-        success: Color::White,
+        // The corpus none-tier paints the status green as Gray.
+        success: Color::Gray,
         info: Color::Gray,
         disabled_fg: Color::DarkGray,
         disabled_bg: Color::Black,
         read_only_fg: Color::Gray,
 
         syntax: SyntaxTokens {
-            // The mono tier is the luma projection of the truecolor syntax
-            // tokens: the keyword, the string and the operator land on Gray,
-            // the literal on White and the comment on DarkGray.
-            keyword: Color::Gray,
+            // The corpus none-tier paints the keyword white and the number in
+            // the muted grey.
+            keyword: Color::White,
             ident: Color::White,
             string: Color::Gray,
-            number: Color::White,
+            number: Color::Gray,
             operator: Color::Gray,
             punct: Color::Gray,
             comment: Color::DarkGray,
@@ -253,8 +250,8 @@ const fn junie_mono() -> ColorTokens {
             high: Color::Gray,
             track: Color::Black,
             fill_rest: crate::theme::MeterFillRest::ReferenceLift,
-            stale: Color::Gray,
-            unknown: Color::Gray,
+            stale: Color::DarkGray,
+            unknown: Color::DarkGray,
             series: [
                 Color::Gray,
                 Color::Gray,
