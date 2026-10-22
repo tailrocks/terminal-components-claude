@@ -140,20 +140,23 @@ fn hovered_field_surface_uses_frozen_profile_values_in_real_text_input() {
 }
 
 #[test]
-fn authored_ansi16_profile_overlays_only_the_qualified_field_hover_token() {
+fn authored_ansi16_profile_matches_qualified_frozen_tokens() {
     let source = Theme::junie();
     let generic = Theme::from_tokens(source.color)
         .for_level(ColorLevel::Ansi16)
         .color;
     let authored = source.for_level(ColorLevel::Ansi16).color;
 
-    assert_eq!(authored.field_hover, Color::DarkGray);
-    let mut compare = authored;
-    compare.field_hover = generic.field_hover;
-    compare.fg[3] = generic.fg[3];
-    compare.meter.stale = generic.meter.stale;
-    compare.meter.unknown = generic.meter.unknown;
-    assert_eq!(compare, generic);
+    // Preserve Junie's source-qualified apply_16 mappings from frozen 4169783.
+    let mut expected = generic;
+    expected.field_hover = Color::DarkGray;
+    expected.fg[3] = Color::Gray;
+    expected.border_strong = Color::Gray;
+    expected.success = Color::Green;
+    expected.meter.stale = Color::Gray;
+    expected.meter.unknown = Color::Gray;
+
+    assert_eq!(authored, expected);
 }
 
 #[test]
