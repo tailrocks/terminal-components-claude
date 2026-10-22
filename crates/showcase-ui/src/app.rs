@@ -1218,33 +1218,11 @@ fn shell_compat_style(style: PaintStyle) -> PaintStyle {
     }
 }
 
-fn shell_row_style(style: PaintStyle, flags: StateFlags) -> PaintStyle {
-    let style = shell_compat_style(style);
-    if flags.contains(StateFlags::FOCUSED) {
-        style.add_modifier(termrock::Modifier::BOLD)
-    } else {
-        style
-    }
-}
-
 fn shell_text_style(ui: &Ui<'_>, step: termrock::FgStep) -> PaintStyle {
     shell_compat_style(
         ui.surface_style()
             .patch(ui.paint_patch(&termrock::StylePatch::new().set_fg(termrock::Role::Fg(step)))),
     )
-}
-
-fn tag_accent_bg(theme: &termrock::Theme) -> termrock::Color {
-    let drifted = termrock::Color::from_u32(0x000f_2e13);
-    if theme.color.accent_tint == drifted {
-        termrock::Color::from_u32(0x0017_3f1c)
-    } else {
-        theme.color.accent_tint
-    }
-}
-
-fn sidebar_plane(ui: &Ui<'_>) -> PaintStyle {
-    shell_compat_style(ui.surface_style()).bg(ui.theme().bg(termrock::Surface::Surface))
 }
 
 fn legacy_crumb(label: &str) -> (&str, &str) {
@@ -1489,60 +1467,19 @@ fn paint_sidebar_row(ui: &mut Ui<'_>, row: Rect, flags: StateFlags, _key: ItemKe
     }
     let focused = flags.contains(StateFlags::FOCUSED);
     let selected = flags.contains(StateFlags::SELECTED);
-    let plane = sidebar_plane(ui);
-    let accent_bg = tag_accent_bg(ui.theme());
-    let row_bg = if selected {
-        accent_bg
-    } else {
-        plane.as_style().bg.unwrap_or(accent_bg)
-    };
     let fade = node.fade;
-    let mut row_style = plane.bg(row_bg);
+    let canvas = shell_compat_style(ui.surface_style());
+    let primary = fade_paint(shell_text_style(ui, termrock::FgStep::Primary), fade);
+    let secondary = fade_paint(shell_text_style(ui, termrock::FgStep::Secondary), fade);
+    let group_ink = fade_paint(shell_text_style(ui, termrock::FgStep::Faint), fade);
+    let selected_ink = primary.add_modifier(termrock::Modifier::BOLD);
+    let accent = ui.paint_patch(&termrock::StylePatch::new().set_fg(termrock::Role::Accent));
+    let marker = fade_paint(shell_compat_style(canvas.patch(accent)), fade)
+        .add_modifier(termrock::Modifier::BOLD);
+
+    ui.fill(row, canvas);
     if focused {
-        row_style = row_style.add_modifier(termrock::Modifier::BOLD);
-    }
-    ui.fill(row, row_style);
-    let mut label = fade_paint(
-        shell_row_style(
-            shell_part_style(ui, termrock::Family::LIST, Part::LABEL, flags),
-            flags,
-        ),
-        fade,
-    )
-    .bg(row_bg);
-    if selected {
-        label = label.fg(ui.theme().color.accent);
-    }
-    let secondary = fade_paint(
-        shell_part_style(ui, termrock::Family::PANEL, Part::DETAIL, flags).bg(row_bg),
-        fade,
-    );
-    let marker = fade_paint(
-        shell_row_style(
-            shell_part_style(
-                ui,
-                termrock::Family::LIST,
-                Part::MARKER,
-                if selected {
-                    flags | StateFlags::SELECTED
-                } else {
-                    flags
-                },
-            ),
-            flags,
-        ),
-        fade,
-    )
-    .bg(row_bg);
-    if focused {
-        let gutter = shell_row_style(
-            shell_part_style(ui, termrock::Family::LIST, Part::GUTTER, flags),
-            flags,
-        )
-        .bg(row_bg);
-        ui.glyph(Rect::new(row.x, row.y, 1, 1), GlyphRole::FocusBar, gutter);
-    } else if let Some(color) = plane.as_style().bg {
-        ui.paint_str(Rect::new(row.x, row.y, 1, 1), " ", plane.fg(color));
+        ui.glyph(Rect::new(row.x, row.y, 1, 1), GlyphRole::FocusBar, marker);
     }
     let indent = node.depth.saturating_mul(2);
     let mark_x = row.x.saturating_add(1).saturating_add(indent);
@@ -1552,13 +1489,20 @@ fn paint_sidebar_row(ui: &mut Ui<'_>, row: Rect, flags: StateFlags, _key: ItemKe
         } else {
             GlyphRole::Collapsed
         };
-        ui.glyph(Rect::new(mark_x, row.y, 1, 1), role, secondary);
+        ui.glyph(Rect::new(mark_x, row.y, 1, 1), role, group_ink);
     } else if selected {
         ui.glyph(Rect::new(mark_x, row.y, 1, 1), GlyphRole::Chosen, marker);
     }
     let label_x = mark_x.saturating_add(2);
     let room = row.right().saturating_sub(label_x).saturating_sub(1);
     let text = clip_label(node.label, room);
+    let label = if node.parent {
+        group_ink
+    } else if selected {
+        selected_ink
+    } else {
+        secondary
+    };
     if room > 0 {
         ui.fill(Rect::new(label_x, row.y, room, 1), label);
     }
@@ -2443,6 +2387,19 @@ mod shell_layout_contract {
                             "inspector {area:?} {inspector}"
                         );
                         assert_eq!(new.footer, old.footer, "footer {area:?} {inspector}");
+                        let expected_sidebar = if width >= SIDEBAR_WIDE_FROM {
+                            SIDEBAR_WIDE
+                        } else {
+                            SIDEBAR_NARROW
+                        };
+                        assert_eq!(new.sidebar.width, expected_sidebar);
+                        assert_eq!(new.main.x, new.sidebar.right().saturating_add(SHELL_GAP));
+                        assert!(new.sidebar.right() <= new.main.x);
+                        if let Some(dock) = new.inspector {
+                            assert_eq!(dock.width, INSPECTOR_WIDTH);
+                            assert_eq!(dock.x, new.main.right().saturating_add(2));
+                            assert!(new.main.right() <= dock.x);
+                        }
                     }
                 }
             }

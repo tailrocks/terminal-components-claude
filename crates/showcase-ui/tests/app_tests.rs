@@ -44,6 +44,23 @@ fn click(h: &mut Harness<App>, x: u16, y: u16) {
     let _ = h.click(x, y);
 }
 
+// A depth-one catalog label starts at column 5; a same-named group starts at
+// column 3. This selects the actual “Tables” leaf, not its disclosure row.
+fn visible_nav_leaf_row(h: &Harness<App>, label: &str) -> Option<(u16, u16)> {
+    let area = h.area_of(APP_NAV)?;
+    (area.y..area.bottom()).find_map(|y| {
+        let row = h.row(y);
+        let sidebar = row
+            .chars()
+            .take(usize::from(area.width))
+            .collect::<String>();
+        sidebar.find(label).and_then(|byte| {
+            let x = sidebar[..byte].chars().count();
+            (x >= 5).then(|| (u16::try_from(x).expect("leaf label position fits u16"), y))
+        })
+    })
+}
+
 fn wheel(h: &mut Harness<App>, axis: Axis, delta: i16, x: u16, y: u16) {
     let _ = h.wheel(axis, delta, x, y);
 }
@@ -1452,13 +1469,37 @@ fn keyboard_navigation_between_pages() {
     assert_eq!(h.app().page(), PageId::Overview);
 
     press(&mut h, KeyCode::Down);
+    assert_eq!(
+        h.app().page(),
+        PageId::Overview,
+        "a group row does not route"
+    );
+    assert!(h.text().contains("App shell"));
     press(&mut h, KeyCode::Down);
+    assert_eq!(h.app().page(), PageId::Chrome, "the next leaf is Chrome");
+    let chrome_has_focusable_content = h.ring().reachable().any(|entry| entry.id != APP_NAV);
     press(&mut h, KeyCode::Enter);
-    assert_eq!(h.app().page(), PageId::Inputs);
+    if chrome_has_focusable_content {
+        assert_ne!(
+            h.focus(),
+            Some(APP_NAV),
+            "Enter hands focus to page content"
+        );
+    } else {
+        assert_eq!(
+            h.focus(),
+            Some(APP_NAV),
+            "Chrome has no keyboard focus target; its brand is pointer-only"
+        );
+    }
 
-    let (x, y) = require(h.find("Tables"), "navigation item");
-    click(&mut h, x, y);
-    assert_eq!(h.app().page(), PageId::Tables);
+    let mut tables = Harness::new(App::with_page(PageId::Grid), Theme::junie(), 120, 40);
+    let (x, y) = require(
+        visible_nav_leaf_row(&tables, "Tables"),
+        "visible Basic table alias beside Data grid",
+    );
+    click(&mut tables, x, y);
+    assert_eq!(tables.app().page(), PageId::Tables);
 }
 
 #[test]
@@ -1670,22 +1711,48 @@ fn overview_header_crumb_omits_foundations_and_idle_nav_rows_omit_the_gutter() {
 }
 
 #[test]
-fn sidebar_matches_the_frozen_width() {
-    let narrow = Harness::new(App::for_page_name("buttons"), Theme::junie(), 72, 20);
-    let narrow_text = narrow.text();
-    assert!(narrow_text.contains("Editable tabl…"), "{narrow_text}");
-    assert!(narrow_text.contains('┃'), "{narrow_text}");
-    assert!(!narrow_text.contains("Foundations"), "{narrow_text}");
+fn sidebar_reveals_long_rows_at_frozen_width_breakpoints() {
+    for (width, height, expected_sidebar, visible_label) in [
+        (72, 20, 20, "Editable tab…"),
+        (100, 30, 20, "Editable tab…"),
+        (120, 40, 25, "Editable tables"),
+    ] {
+        let h = Harness::new(
+            App::for_page_name("Editable"),
+            Theme::junie(),
+            width,
+            height,
+        );
+        assert_eq!(h.app().page(), PageId::Editable);
+        let area = h.area_of(APP_NAV).expect("catalog Tree region");
+        assert_eq!(area.width, expected_sidebar, "terminal width {width}");
+        let row = (area.y..area.bottom()).find(|y| {
+            h.row(*y)
+                .chars()
+                .take(usize::from(area.width))
+                .collect::<String>()
+                .contains(visible_label)
+        });
+        let row = require(row, "route-revealed Editable tables row");
+        let sidebar = h
+            .row(row)
+            .chars()
+            .take(usize::from(area.width))
+            .collect::<String>();
+        assert!(sidebar.contains(visible_label), "{sidebar}");
+        if width < 110 {
+            assert!(!sidebar.contains("Editable tables"), "{sidebar}");
+        }
 
-    let mid = Harness::new(App::for_page_name("buttons"), Theme::junie(), 100, 30);
-    let mid_text = mid.text();
-    assert!(mid_text.contains("Editable tables"), "{mid_text}");
-    assert!(!mid_text.contains('┃'), "{mid_text}");
-    assert!(!mid_text.contains("Foundations"), "{mid_text}");
-
-    let wide = Harness::new(App::for_page_name("buttons"), Theme::junie(), 120, 40);
-    let wide_text = wide.text();
-    assert!(wide_text.contains("Foundations"), "{wide_text}");
-    assert!(wide_text.contains("Screens"), "{wide_text}");
-    assert!(!wide_text.contains('┃'), "{wide_text}");
+        let track = h
+            .area_of_part(APP_NAV, PartRef::of(Part::TRACK))
+            .expect("63-node catalog overflows this viewport");
+        let thumb = h
+            .area_of_part(APP_NAV, PartRef::of(Part::THUMB))
+            .expect("overflow has a visible thumb");
+        assert_eq!(track.width, 1, "track stays in the final sidebar column");
+        assert_eq!(track.right(), area.right());
+        assert_eq!(thumb.width, 1);
+        assert!(thumb.y >= track.y && thumb.bottom() <= track.bottom());
+    }
 }

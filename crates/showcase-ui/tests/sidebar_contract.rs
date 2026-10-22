@@ -4,6 +4,24 @@ use termrock_test_support::Harness;
 
 const NAV: Id = Id::root("showcase_ui::app::navigation");
 
+fn visible_nav_row(h: &Harness<App>, label: &str) -> Option<(u16, u16)> {
+    let area = h.area_of(NAV)?;
+    (area.y..area.bottom()).find_map(|y| {
+        let row = h.row(y);
+        let sidebar = row
+            .chars()
+            .take(usize::from(area.width))
+            .collect::<String>();
+        sidebar.find(label).map(|byte| {
+            let x = sidebar[..byte].chars().count();
+            (
+                u16::try_from(x).expect("navigation label position fits u16"),
+                y,
+            )
+        })
+    })
+}
+
 fn require(found: Option<(u16, u16)>, what: &str) -> (u16, u16) {
     found.unwrap_or_else(|| panic!("{what}"))
 }
@@ -15,8 +33,8 @@ fn overview_shell_uses_baseline_sidebar_colors() {
     assert!(text.contains("Junie Design system"));
     assert!(text.contains("/ Foundations / Overview"));
     assert!(text.contains("Text areas"));
-    assert!(!text.contains("App shell"));
-    let (sx, sy) = require(h.find("Text areas"), "flat catalog row");
+    assert!(text.contains("App shell"), "catalog section is visible");
+    let (sx, sy) = require(visible_nav_row(&h, "Text areas"), "idle catalog leaf");
     assert_eq!(h.cell(sx, sy).fg, Color::Rgb(0xb3, 0xb3, 0xb3));
     assert_eq!(h.cell(sx, sy).bg, Color::Rgb(0, 0, 0));
 }
