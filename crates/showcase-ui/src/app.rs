@@ -15,13 +15,15 @@ use showcase_demos::pages::{
     checks_radios::ChecksRadiosPage, chips::ChipsPage, chrome::ChromePage,
     dialog_kinds::DialogKindsPage, dialogs::DialogsPage, editable::EditablePage,
     editor::EditorPage, forms::FormsPage, grid::GridPage, inputs::InputsPage, lists::ListsPage,
-    overview::OverviewPage, panels::PanelsPage, pickers::PickersPage, progress::ProgressPage,
-    scrolling::ScrollingPage, settings::SettingsPage, sidebars::SidebarsPage, tables::TablesPage,
-    taskrunner::TaskRunnerPage, terminal::TerminalPage, textareas::TextAreasPage, trees::TreesPage,
+    notices::NoticesPage, overview::OverviewPage, panels::PanelsPage, pickers::PickersPage,
+    progress::ProgressPage, scrolling::ScrollingPage, settings::SettingsPage,
+    sidebars::SidebarsPage, tables::TablesPage, taskrunner::TaskRunnerPage, terminal::TerminalPage,
+    textareas::TextAreasPage, trees::TreesPage,
 };
 
 const NAV: Id = id!("navigation");
 const CHECKS_RADIOS_ENTRY: usize = 12;
+const NOTICES_ENTRY: usize = 33;
 const BRAND: Id = id!("brand");
 const STATUS: Id = id!("status");
 const HELP: Id = id!("help");
@@ -221,7 +223,10 @@ impl NavTarget {
     const fn has_content(self) -> bool {
         matches!(
             self,
-            Self::Live(_) | Self::Selection | Self::Placeholder(CHECKS_RADIOS_ENTRY)
+            Self::Live(_)
+                | Self::Selection
+                | Self::Placeholder(CHECKS_RADIOS_ENTRY)
+                | Self::Placeholder(NOTICES_ENTRY)
         )
     }
 }
@@ -1254,6 +1259,7 @@ pub struct App {
     nav_presentation: std::cell::Cell<Option<NavTreePresentation>>,
     pages: Vec<Box<dyn Page>>,
     checks_radios: ChecksRadiosPage,
+    notices: NoticesPage,
     help_state: DialogState,
     help_open: bool,
     overlay_open: bool,
@@ -1281,6 +1287,7 @@ impl core::fmt::Debug for App {
             .field("nav_presentation", &self.nav_presentation.get())
             .field("pages", &self.pages.len())
             .field("checks_radios", &self.checks_radios)
+            .field("notices", &self.notices)
             .field("help_state", &self.help_state)
             .field("help_open", &self.help_open)
             .field("overlay_open", &self.overlay_open)
@@ -1340,6 +1347,7 @@ impl App {
             nav_presentation: std::cell::Cell::new(None),
             pages,
             checks_radios,
+            notices: NoticesPage::new(),
             help_state: DialogState::default(),
             help_open: false,
             overlay_open: false,
@@ -1548,7 +1556,9 @@ impl App {
     fn show_live_page(&self) -> bool {
         matches!(
             self.nav_target,
-            NavTarget::Live(_) | NavTarget::Placeholder(CHECKS_RADIOS_ENTRY)
+            NavTarget::Live(_)
+                | NavTarget::Placeholder(CHECKS_RADIOS_ENTRY)
+                | NavTarget::Placeholder(NOTICES_ENTRY)
         )
     }
 
@@ -1562,6 +1572,8 @@ impl App {
     fn active(&self) -> Option<&dyn Page> {
         if self.nav_target == NavTarget::Placeholder(CHECKS_RADIOS_ENTRY) {
             Some(&self.checks_radios)
+        } else if self.nav_target == NavTarget::Placeholder(NOTICES_ENTRY) {
+            Some(&self.notices)
         } else {
             self.pages.get(self.page.index()).map(Box::as_ref)
         }
@@ -1570,6 +1582,8 @@ impl App {
     fn active_mut(&mut self) -> Option<&mut (dyn Page + 'static)> {
         if self.nav_target == NavTarget::Placeholder(CHECKS_RADIOS_ENTRY) {
             Some(&mut self.checks_radios)
+        } else if self.nav_target == NavTarget::Placeholder(NOTICES_ENTRY) {
+            Some(&mut self.notices)
         } else {
             self.pages.get_mut(self.page.index()).map(Box::as_mut)
         }
@@ -2604,7 +2618,7 @@ impl TuiApp for App {
         let cursor_kind = nav_cursor_kind(&self.nav_state, &nodes, self.nav_query.is_some());
         let modal_page_hints = match self.nav_target {
             NavTarget::Selection => self.selectable.hints(),
-            NavTarget::Placeholder(CHECKS_RADIOS_ENTRY) => page_hints,
+            NavTarget::Placeholder(CHECKS_RADIOS_ENTRY | NOTICES_ENTRY) => page_hints,
             NavTarget::Live(PageId::Pickers | PageId::DialogKinds) => page_hints,
             NavTarget::Live(_) | NavTarget::Placeholder(_) => &[][..],
         };
