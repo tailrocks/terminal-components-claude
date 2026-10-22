@@ -111,6 +111,15 @@ const fn junie_256() -> ColorTokens {
         disabled_fg: Color::Indexed(239),
         disabled_bg: Color::Indexed(235),
         read_only_fg: Color::Indexed(249),
+        // The chrome rule and the scroll track keep the frozen 256 cells:
+        // `#3a3a3a` is cell 238 and `#474747` is cell 239.
+        status_bar_bg: Color::Indexed(232),
+        status_bar_fg: Color::Indexed(231),
+        status_accent: Color::Indexed(71),
+        chrome_rule: Color::Indexed(238),
+        scroll_track: Color::Indexed(239),
+        scroll_thumb: Color::Indexed(245),
+        tag_ink: Color::Indexed(245),
 
         syntax: SyntaxTokens {
             // The frozen source at 4169783 sets the 256-tier keyword to
@@ -230,6 +239,13 @@ const fn junie_mono() -> ColorTokens {
         disabled_fg: Color::DarkGray,
         disabled_bg: Color::Black,
         read_only_fg: Color::Gray,
+        status_bar_bg: Color::Black,
+        status_bar_fg: Color::White,
+        status_accent: Color::White,
+        chrome_rule: Color::DarkGray,
+        scroll_track: Color::DarkGray,
+        scroll_thumb: Color::Gray,
+        tag_ink: Color::Gray,
 
         syntax: SyntaxTokens {
             // The mono tier is the luma projection of the truecolor syntax

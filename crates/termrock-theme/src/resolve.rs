@@ -656,6 +656,13 @@ fn profile_role_color(tokens: super::ColorTokens, role: Role, surface: Surface) 
         Role::DisabledFg => tokens.disabled_fg,
         Role::DisabledBg => tokens.disabled_bg,
         Role::ReadOnlyFg => tokens.read_only_fg,
+        Role::StatusBarBg => tokens.status_bar_bg,
+        Role::StatusBarFg => tokens.status_bar_fg,
+        Role::StatusAccent => tokens.status_accent,
+        Role::ChromeRule => tokens.chrome_rule,
+        Role::ScrollTrack => tokens.scroll_track,
+        Role::ScrollThumb => tokens.scroll_thumb,
+        Role::TagInk => tokens.tag_ink,
         Role::Syntax(role) => match role {
             SyntaxRole::Keyword => tokens.syntax.keyword,
             SyntaxRole::Ident => tokens.syntax.ident,
@@ -1068,6 +1075,13 @@ pub fn bind_role(theme: &Theme, role: Role, surface: Surface) -> Option<Color> {
         Role::DisabledFg => c.disabled_fg,
         Role::DisabledBg => c.disabled_bg,
         Role::ReadOnlyFg => c.read_only_fg,
+        Role::StatusBarBg => c.status_bar_bg,
+        Role::StatusBarFg => c.status_bar_fg,
+        Role::StatusAccent => c.status_accent,
+        Role::ChromeRule => c.chrome_rule,
+        Role::ScrollTrack => c.scroll_track,
+        Role::ScrollThumb => c.scroll_thumb,
+        Role::TagInk => c.tag_ink,
         Role::Syntax(s) => {
             let t = &c.syntax;
             match s {
