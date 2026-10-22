@@ -748,7 +748,7 @@ fn node_of(node: &NavNode) -> TreeNode {
 
 const SIDEBAR_CHROME: [(Part, termrock::StylePatch); 1] = [(
     Part::CONTAINER,
-    termrock::StylePatch::new().set_bg(termrock::Role::Surface(termrock::Surface::Surface)),
+    termrock::StylePatch::new().set_bg(termrock::Role::Surface(termrock::Surface::Canvas)),
 )];
 
 fn nav_tree() -> Tree<'static, NavNode, fn(&NavNode) -> ItemKey, impl RowFn<NavNode>> {

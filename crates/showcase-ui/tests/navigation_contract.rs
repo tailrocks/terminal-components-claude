@@ -1,7 +1,7 @@
 use showcase_ui::{App, NAV_ENTRIES, PageId};
 use termrock::{
-    Axis, ColorLevel, GlyphRole, Id, KeyCode, Modifier, MouseKind, Part, PartRef, Rect, Surface,
-    Theme,
+    Axis, Color, ColorLevel, GlyphRole, Id, KeyCode, Modifier, MouseKind, Part, PartRef, Rect,
+    Surface, Theme,
 };
 use termrock_test_support::Harness;
 
@@ -57,6 +57,31 @@ fn assert_no_diagnostics(h: &Harness<App>) {
         "TUI diagnostics: {:?}",
         h.diagnostics()
     );
+}
+
+fn collapse_all_nav_groups(h: &mut Harness<App>) {
+    let mut sections = Vec::new();
+    for entry in NAV_ENTRIES {
+        if !entry.section.is_empty() && !sections.contains(&entry.section) {
+            sections.push(entry.section);
+        }
+    }
+    for section in sections {
+        let (x, y) = require_nav_row(h, section, 25);
+        let _ = h.click(x.saturating_add(1), y);
+        assert_eq!(h.app().page(), PageId::Overview, "fold {section}");
+    }
+}
+
+fn blank_nav_rows(h: &Harness<App>, nav: Rect) -> Vec<u16> {
+    (nav.y..nav.bottom())
+        .filter(|&y| {
+            h.row(y)
+                .chars()
+                .take(usize::from(nav.width))
+                .all(|ch| ch == ' ')
+        })
+        .collect()
 }
 
 #[test]
@@ -127,6 +152,114 @@ fn sidebar_uses_canvas_idle_selected_and_accent_focus_roles() {
             assert_eq!(selected.cell(0, unfocused_y).symbol(), " ");
         }
     }
+}
+
+#[test]
+fn collapsed_sidebar_blank_cells_use_builtin_canvas_at_every_color_level() {
+    for theme in [Theme::junie(), Theme::paper()] {
+        for level in COLOR_LEVELS {
+            let expected_canvas = theme.clone().downgrade(level).bg(Surface::Canvas);
+            let mut h = Harness::new(App::new(), theme.clone(), 120, 40).with_color(level);
+            collapse_all_nav_groups(&mut h);
+
+            let nav = h.area_of(NAV).expect("full sidebar remains registered");
+            let blank_rows = blank_nav_rows(&h, nav);
+            assert!(blank_rows.len() >= 3, "{level:?}: {blank_rows:?}");
+            let first = *blank_rows.first().expect("at least three blank rows");
+            let last = *blank_rows.last().expect("at least three blank rows");
+            let samples = [first, blank_rows[blank_rows.len() / 2], last];
+            let columns = [nav.x, nav.x.saturating_add(nav.width / 2), nav.right() - 1];
+            for y in samples {
+                for x in columns {
+                    assert_eq!(
+                        h.cell(x, y).bg,
+                        expected_canvas,
+                        "{theme:?} {level:?} blank sidebar cell ({x},{y})"
+                    );
+                }
+            }
+            assert!(
+                h.area_of_part(NAV, PartRef::of(Part::TRACK)).is_none(),
+                "a fitting collapsed tree has no scrollbar"
+            );
+            assert_no_diagnostics(&h);
+        }
+    }
+}
+
+#[test]
+fn sidebar_canvas_and_ink_follow_custom_semantic_channels() {
+    let canvas = Color::Rgb(1, 2, 3);
+    let surface = Color::Rgb(20, 21, 22);
+    let primary = Color::Rgb(240, 10, 20);
+    let secondary = Color::Rgb(10, 240, 20);
+    let accent = Color::Rgb(10, 20, 240);
+    let theme = Theme::junie()
+        .builder()
+        .clear_capability_palettes()
+        .surfaces([
+            canvas,
+            surface,
+            Color::Rgb(30, 31, 32),
+            Color::Rgb(40, 41, 42),
+            Color::Rgb(50, 51, 52),
+        ])
+        .fg([
+            primary,
+            secondary,
+            Color::Rgb(60, 61, 62),
+            Color::Rgb(70, 71, 72),
+            Color::Rgb(80, 81, 82),
+        ])
+        .accent(accent)
+        .build();
+    assert_ne!(canvas, surface);
+    assert_ne!(primary, secondary);
+    assert_ne!(secondary, accent);
+    assert_ne!(primary, accent);
+
+    let idle = Harness::new(App::new(), theme.clone(), 120, 40);
+    let (idle_x, idle_y) = require_nav_row(&idle, "Text areas", 25);
+    assert_eq!(idle.cell(idle_x, idle_y).fg, secondary);
+    assert_eq!(idle.cell(idle_x, idle_y).bg, canvas);
+
+    let mut selected = Harness::new(App::for_page_name("Text areas"), theme.clone(), 120, 40);
+    let (selected_x, selected_y) = require_nav_row(&selected, "Text areas", 25);
+    let selected_cell = selected.cell(selected_x, selected_y);
+    assert_eq!(selected_cell.fg, primary);
+    assert_eq!(selected_cell.bg, canvas);
+    assert!(selected_cell.modifier.contains(Modifier::BOLD));
+    assert_eq!(selected.cell(0, selected_y).fg, accent);
+    assert_eq!(
+        selected.cell(selected_x.saturating_sub(2), selected_y).fg,
+        accent
+    );
+
+    let _ = selected.key(KeyCode::Tab);
+    let (unfocused_x, unfocused_y) = require_nav_row(&selected, "Text areas", 25);
+    let unfocused_cell = selected.cell(unfocused_x, unfocused_y);
+    assert_eq!(unfocused_cell.fg, primary);
+    assert_eq!(unfocused_cell.bg, canvas);
+    assert!(unfocused_cell.modifier.contains(Modifier::BOLD));
+    assert_eq!(selected.cell(0, unfocused_y).symbol(), " ");
+
+    let mut collapsed = Harness::new(App::new(), theme, 120, 40);
+    collapse_all_nav_groups(&mut collapsed);
+    let nav = collapsed
+        .area_of(NAV)
+        .expect("full sidebar remains registered");
+    let blank_rows = blank_nav_rows(&collapsed, nav);
+    assert!(blank_rows.len() >= 3, "custom theme: {blank_rows:?}");
+    let first = *blank_rows.first().expect("at least three blank rows");
+    let last = *blank_rows.last().expect("at least three blank rows");
+    for y in [first, last] {
+        for x in [nav.x, nav.right() - 1] {
+            assert_eq!(collapsed.cell(x, y).bg, canvas, "blank ({x},{y})");
+        }
+    }
+    assert_no_diagnostics(&idle);
+    assert_no_diagnostics(&selected);
+    assert_no_diagnostics(&collapsed);
 }
 
 #[test]
