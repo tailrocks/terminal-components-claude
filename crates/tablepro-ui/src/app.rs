@@ -1865,6 +1865,8 @@ impl TableProApp {
             .is_err()
         {
             let _ = grid.model.undo();
+        } else if row.saturating_add(1) == grid.model.row_count() {
+            grid.state.set_scroll_reveal(row.saturating_sub(1));
         }
     }
 
