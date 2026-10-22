@@ -1,10 +1,11 @@
 use core::mem;
+use std::borrow::Cow;
 
 use ratatui_core::layout::Rect;
 
 use crate::measure::{Constraints, Size};
 use crate::text::measure::{grapheme_width, graphemes};
-use crate::text::{truncate_parts, width};
+use crate::text::width;
 use crate::theme::{FgStep, GlyphRole, Modifier, PaintStyle, Role, StylePatch};
 use crate::ui::Ui;
 
@@ -56,8 +57,8 @@ enum RowKind {
     Hint,
 }
 
-struct NoticeRow {
-    text: String,
+struct NoticeRow<'a> {
+    text: Cow<'a, str>,
     cut: bool,
     kind: RowKind,
     inset: u16,
@@ -263,7 +264,7 @@ impl<'a> Notice<'a> {
         };
 
         let mut row_index = 0u16;
-        let mut pending: Option<(u16, NoticeRow)> = None;
+        let mut pending: Option<(u16, NoticeRow<'a>)> = None;
         self.walk_rows(area.width, marker_inset, |row| {
             let index = row_index;
             row_index = row_index.saturating_add(1);
@@ -287,7 +288,7 @@ impl<'a> Notice<'a> {
             return marker;
         }
         match self.kind.0 {
-            NoticeKindValue::Error => ui.theme_ref().design.glyphs.get(GlyphRole::Error),
+            NoticeKindValue::Error => "!",
             NoticeKindValue::Warning => ui.theme_ref().design.glyphs.get(GlyphRole::WarningMark),
             NoticeKindValue::Info => "i",
             NoticeKindValue::Success => "✓",
@@ -319,9 +320,12 @@ impl<'a> Notice<'a> {
     fn natural_width(&self, ui: &Ui<'_>) -> u16 {
         let message_inset = self.marker_inset(ui);
         let message_width = max_physical_line_width(self.message).saturating_add(message_inset);
-        let detail_width = self
-            .detail
-            .map_or(0, |text| max_physical_line_width(text).saturating_add(2));
+        let detail_width = if self.max_lines > 0 {
+            self.detail
+                .map_or(0, |text| max_physical_line_width(text).saturating_add(2))
+        } else {
+            0
+        };
         let hint_width = self.hint.map_or(0, |text| {
             width(text.split('\n').next().unwrap_or("")).saturating_add(2)
         });
@@ -332,7 +336,7 @@ impl<'a> Notice<'a> {
         &self,
         available_width: u16,
         message_inset: u16,
-        mut emit: impl FnMut(NoticeRow),
+        mut emit: impl FnMut(NoticeRow<'a>),
     ) -> u16 {
         let mut row_count = 0u16;
         let message_width = available_width.saturating_sub(message_inset);
@@ -344,7 +348,7 @@ impl<'a> Notice<'a> {
                     cut = true;
                 }
                 emit(NoticeRow {
-                    text: line.text,
+                    text: Cow::Owned(line.text),
                     cut,
                     kind: RowKind::Message,
                     inset: message_inset,
@@ -366,7 +370,7 @@ impl<'a> Notice<'a> {
                         cut = true;
                     }
                     emit(NoticeRow {
-                        text: line.text,
+                        text: Cow::Owned(line.text),
                         cut,
                         kind: RowKind::Detail,
                         inset: 2,
@@ -381,11 +385,12 @@ impl<'a> Notice<'a> {
         {
             let hint_width = available_width.saturating_sub(2);
             let first_line = hint.split('\n').next().unwrap_or("");
-            let (head, ellipsis) = truncate_parts(first_line, hint_width);
-            let cut = !ellipsis.is_empty() || first_line.len() != hint.len();
+            let cut = width(first_line) > hint_width
+                || first_line.len() != hint.len()
+                || (hint_width == 0 && !first_line.is_empty());
             emit(NoticeRow {
-                text: head.to_owned(),
-                cut: cut || (hint_width == 0 && !first_line.is_empty()),
+                text: Cow::Borrowed(first_line),
+                cut,
                 kind: RowKind::Hint,
                 inset: 2,
             });
@@ -400,7 +405,7 @@ impl<'a> Notice<'a> {
         ui: &mut Ui<'_>,
         area: Rect,
         row_index: u16,
-        row: NoticeRow,
+        row: NoticeRow<'a>,
         marker: &str,
         styles: DrawStyles,
     ) {
@@ -409,12 +414,12 @@ impl<'a> Notice<'a> {
             ui.paint_str(Rect::new(area.x, y, area.width, 1), marker, styles.marker);
         }
 
-        let width = area.width.saturating_sub(row.inset);
-        if width == 0 {
+        let row_width = area.width.saturating_sub(row.inset);
+        if row_width == 0 {
             return;
         }
         let x = area.x.saturating_add(row.inset);
-        let rect = Rect::new(x, y, width, 1);
+        let rect = Rect::new(x, y, row_width, 1);
         let style = match row.kind {
             RowKind::Message => styles.message,
             RowKind::Detail => styles.detail,
@@ -422,13 +427,17 @@ impl<'a> Notice<'a> {
         };
 
         if row.cut && self.mark_cut {
-            let head = prefix_at_width(&row.text, width.saturating_sub(1));
-            let mut marked = String::with_capacity(head.len() + '…'.len_utf8());
-            marked.push_str(head);
-            marked.push('…');
-            ui.paint_str(rect, &marked, style);
+            let text = row.text.as_ref();
+            let head = prefix_at_width(text, row_width.saturating_sub(1));
+            ui.paint_str(rect, head, style);
+            let head_width = width(head);
+            let marker_width = row_width.saturating_sub(head_width);
+            if marker_width > 0 {
+                let marker_x = x.saturating_add(head_width);
+                ui.paint_str(Rect::new(marker_x, y, marker_width, 1), "…", style);
+            }
         } else {
-            ui.paint_str(rect, &row.text, style);
+            ui.paint_str(rect, row.text.as_ref(), style);
         }
     }
 }
@@ -662,5 +671,40 @@ where
             self.emitted = self.emitted.saturating_add(1);
         }
         self.emitted
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Notice, RowKind};
+
+    #[test]
+    fn long_hint_rows_retain_the_borrowed_text_and_cut_state() {
+        let controls = "\0".repeat(65_536);
+        let visible = format!("{controls}visible");
+        for hint in [controls.as_str(), visible.as_str()] {
+            for width in [0, 1, 2, 6, 10] {
+                let notice = Notice::new("x").hint(hint);
+                let mut retained = None;
+                let rows = notice.walk_rows(width, 2, |row| {
+                    if matches!(row.kind, RowKind::Hint) {
+                        retained = Some((row.text.as_ptr(), row.text.len(), row.cut));
+                    }
+                });
+                let (_, retained_len, cut) = retained.expect("the hint produces a row");
+                assert_eq!(rows, 2);
+                assert_eq!(retained_len, hint.len(), "width={width}");
+                assert!(
+                    retained.is_some_and(|(pointer, _, _)| pointer == hint.as_ptr()),
+                    "the hint row copied input at width={width}"
+                );
+                let expected_cut = if hint == controls {
+                    width <= 2
+                } else {
+                    width <= 6
+                };
+                assert_eq!(cut, expected_cut, "width={width}");
+            }
+        }
     }
 }
