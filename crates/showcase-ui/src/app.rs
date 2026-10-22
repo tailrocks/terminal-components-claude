@@ -4,8 +4,8 @@ use termrock::{
     ActionKey, App as TuiApp, Brand, ByIndex, Chord, ColorLevel, Cx, Dialog, DialogAction,
     DialogState, FrameRead, GlyphRole, Id, Intent, ItemKey, KeyCode, KeyMap, KeyPhase, Moment,
     Panel, PanelKind, Part, PartRef, Phase, Props, Rect, Response, RowFn, Size, StateFlags, Status,
-    StatusBar, StatusItem, Theme, TooSmall, Tree, TreeAction, TreeBranchActivation,
-    TreeBranchClick, TreeNode, TreeState, Ui, Variant, id, width,
+    StatusBar, StatusItem, Theme, TooSmall, Tree, TreeAction, TreeNode, TreeState, Ui, Variant, id,
+    width,
 };
 
 use showcase_demos::pages::forms::SUBMIT as FORM_SUBMIT;
@@ -640,8 +640,6 @@ fn nav_tree() -> Tree<'static, NavNode, ByIndex, impl RowFn<NavNode>> {
     Tree::new(NAV)
         .patch_part(&SIDEBAR_CHROME)
         .node(&node_of)
-        .branch_activation(TreeBranchActivation::Activate)
-        .branch_click(TreeBranchClick::Choose)
         .render_row(&paint_sidebar_row)
 }
 
@@ -650,10 +648,20 @@ fn place_nav(state: &mut TreeState, entry: usize) {
     let Some(source) = nodes.iter().position(|node| node.entry == Some(entry)) else {
         return;
     };
-    if nodes[source].depth > 0
-        && let Some(parent) = (0..source).rev().find(|&index| nodes[index].parent)
-    {
-        state.expand(ItemKey::index(parent));
+    let active_parent = if nodes[source].depth > 0 {
+        (0..source).rev().find(|&index| nodes[index].parent)
+    } else {
+        None
+    };
+    for (index, node) in nodes.iter().enumerate() {
+        if node.parent {
+            let key = ItemKey::index(index);
+            if Some(index) == active_parent {
+                state.expand(key);
+            } else {
+                state.collapse(key);
+            }
+        }
     }
     let key = ItemKey::index(source);
     let visible = visible_index(&nodes, source, state);
@@ -682,10 +690,7 @@ fn visible_index(nodes: &[NavNode], source: usize, state: &TreeState) -> usize {
 
 fn entry_for_key(key: ItemKey, nodes: &[NavNode]) -> Option<usize> {
     let source = (0..nodes.len()).find(|&index| ItemKey::index(index) == key)?;
-    nodes
-        .get(source)?
-        .entry
-        .or_else(|| nodes[source..].iter().find_map(|node| node.entry))
+    nodes.get(source)?.entry
 }
 
 fn shell_brand() -> Brand<'static> {
@@ -881,6 +886,17 @@ impl App {
             self.page = entry.id;
         }
         place_nav(&mut self.nav_state, index);
+    }
+
+    fn goto_page(&mut self, page: PageId) {
+        if let Some(index) = NAV_ENTRIES
+            .iter()
+            .position(|e| e.id == page && entry_is_live(e))
+        {
+            self.goto_entry(index);
+        } else {
+            self.page = page;
+        }
     }
 
     fn resolved_shell_layout(&self, area: Rect) -> ShellLayout {
@@ -1167,6 +1183,63 @@ fn legacy_crumb(label: &str) -> (&str, &str) {
         .unwrap_or((shown, "Components"))
 }
 
+fn legacy_row_at_y(y: u16, sidebar_y: u16, height: u16) -> Option<&'static str> {
+    let mut cur_y = sidebar_y;
+    let mut previous: Option<&str> = None;
+    for (row_label, group) in LEGACY_NAV {
+        if previous != Some(*group) {
+            if previous.is_some() {
+                if cur_y >= sidebar_y.saturating_add(height) {
+                    break;
+                }
+                cur_y = cur_y.saturating_add(1);
+            }
+            if cur_y >= sidebar_y.saturating_add(height) {
+                break;
+            }
+            cur_y = cur_y.saturating_add(1);
+            previous = Some(*group);
+        }
+        if cur_y >= sidebar_y.saturating_add(height) {
+            break;
+        }
+        if cur_y == y {
+            return Some(*row_label);
+        }
+        cur_y = cur_y.saturating_add(1);
+    }
+    None
+}
+
+fn page_for_legacy_label(label: &str) -> Option<PageId> {
+    match label {
+        "Overview" => Some(PageId::Overview),
+        "Buttons" => Some(PageId::Buttons),
+        "Inputs" => Some(PageId::Inputs),
+        "Text areas" => Some(PageId::TextAreas),
+        "Forms" => Some(PageId::Forms),
+        "Lists" => Some(PageId::Lists),
+        "Trees" => Some(PageId::Trees),
+        "Tables" => Some(PageId::Tables),
+        "Editable tables" | "Editable" => Some(PageId::Editable),
+        "Panels" => Some(PageId::Panels),
+        "Sidebars" => Some(PageId::Sidebars),
+        "Dialogs" => Some(PageId::Dialogs),
+        "Progress" => Some(PageId::Progress),
+        "Scrolling" => Some(PageId::Scrolling),
+        "Terminal" => Some(PageId::Terminal),
+        "Code editor" => Some(PageId::Editor),
+        "Diff" => None,
+        "Data grid" => Some(PageId::Grid),
+        "Chips & selects" => Some(PageId::Chips),
+        "Pickers" => Some(PageId::Pickers),
+        "Chrome" => Some(PageId::Chrome),
+        "Settings" => Some(PageId::Settings),
+        "Task runner" => Some(PageId::TaskRunner),
+        _ => None,
+    }
+}
+
 fn paint_header(
     ui: &mut Ui<'_>,
     area: Rect,
@@ -1400,6 +1473,7 @@ fn paint_sidebar(ui: &mut Ui<'_>, area: Rect, _state: &TreeState, label: &str, s
     }
     let canvas = shell_compat_style(ui.surface_style());
     ui.fill(area, canvas);
+    ui.register_part(NAV, PartRef::of(Part::CONTAINER), area);
     ui.register_control(NAV, nav_list_area(area), termrock::Focusability::Focusable);
     let secondary = shell_text_style(ui, termrock::FgStep::Secondary);
     let primary = shell_text_style(ui, termrock::FgStep::Primary);
@@ -1522,6 +1596,7 @@ fn fade_paint(style: PaintStyle, steps: u8) -> PaintStyle {
 fn paint_wide_sidebar(ui: &mut Ui<'_>, area: Rect, label: &str) {
     let canvas = shell_compat_style(ui.surface_style());
     ui.fill(area, canvas);
+    ui.register_part(NAV, PartRef::of(Part::CONTAINER), area);
     ui.register_control(NAV, nav_list_area(area), termrock::Focusability::Focusable);
     let (shown, _) = legacy_crumb(label);
     let focused = ui.state(NAV).contains(StateFlags::FOCUSED);
@@ -2009,24 +2084,90 @@ impl TuiApp for App {
         } else {
             self.selectable.blur();
         }
-        let nodes = nav_nodes();
-        let mut picked = None;
-        response |= nav_tree()
-            .update(cx, &mut self.nav_state, &nodes)
-            .on_action(|action| {
-                let (key, activate) = match action {
-                    TreeAction::Chose(key) => (key, false),
-                    TreeAction::Activated(key) => (key, true),
-                    TreeAction::Moved | TreeAction::Expanded(_) | TreeAction::Collapsed(_) => {
-                        return;
+        let full = cx.viewport();
+        let shell = self.resolved_shell_layout(full);
+        let mut nav_navigated = false;
+        for intent in cx.intents(NAV) {
+            match intent {
+                Intent::Key(key) if cx.state(NAV).contains(StateFlags::FOCUSED) => match key.code {
+                    KeyCode::Down => {
+                        let cur_index = LEGACY_NAV
+                            .iter()
+                            .position(|(label, _)| page_for_legacy_label(label) == Some(self.page))
+                            .unwrap_or(0);
+                        let next = (cur_index + 1).min(LEGACY_NAV.len().saturating_sub(1));
+                        if let Some(page) = page_for_legacy_label(LEGACY_NAV[next].0) {
+                            self.goto_page(page);
+                            nav_navigated = true;
+                            response = response.repaint();
+                        }
                     }
-                };
-                picked = entry_for_key(key, &nodes).map(|index| (index, activate));
-            });
-        if let Some((index, activate)) = picked {
-            self.goto_entry(index);
-            if activate && self.show_live_page() {
-                cx.focus_next();
+                    KeyCode::Up => {
+                        let cur_index = LEGACY_NAV
+                            .iter()
+                            .position(|(label, _)| page_for_legacy_label(label) == Some(self.page))
+                            .unwrap_or(0);
+                        let prev = cur_index.saturating_sub(1);
+                        if let Some(page) = page_for_legacy_label(LEGACY_NAV[prev].0) {
+                            self.goto_page(page);
+                            nav_navigated = true;
+                            response = response.repaint();
+                        }
+                    }
+                    KeyCode::Enter => {
+                        if self.show_live_page() {
+                            cx.focus_next();
+                        }
+                        response = response.repaint();
+                    }
+                    _ => {}
+                },
+                Intent::Pointer {
+                    phase: Phase::Release,
+                    pos,
+                    ..
+                } if pos.x >= shell.sidebar.x
+                    && pos.x < shell.sidebar.right()
+                    && pos.y >= shell.sidebar.y
+                    && pos.y < shell.sidebar.bottom() =>
+                {
+                    let label = if full.width >= 110 {
+                        legacy_row_at_y(pos.y, shell.sidebar.y, shell.sidebar.height)
+                    } else {
+                        let idx = pos.y.saturating_sub(shell.sidebar.y) as usize;
+                        LEGACY_NAV.get(idx).map(|(l, _)| *l)
+                    };
+                    if let Some(label) = label
+                        && let Some(page) = page_for_legacy_label(label)
+                    {
+                        self.goto_page(page);
+                        nav_navigated = true;
+                        response = response.repaint();
+                    }
+                }
+                _ => {}
+            }
+        }
+        if !nav_navigated {
+            let nodes = nav_nodes();
+            let mut picked = None;
+            response |= nav_tree()
+                .update(cx, &mut self.nav_state, &nodes)
+                .on_action(|action| {
+                    let (key, activate) = match action {
+                        TreeAction::Chose(key) => (key, false),
+                        TreeAction::Activated(key) => (key, true),
+                        TreeAction::Moved | TreeAction::Expanded(_) | TreeAction::Collapsed(_) => {
+                            return;
+                        }
+                    };
+                    picked = entry_for_key(key, &nodes).map(|index| (index, activate));
+                });
+            if let Some((index, activate)) = picked {
+                self.goto_entry(index);
+                if activate && self.show_live_page() {
+                    cx.focus_next();
+                }
             }
         }
 
