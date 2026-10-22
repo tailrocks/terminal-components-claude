@@ -100,7 +100,8 @@ const fn junie_256() -> ColorTokens {
         backdrop_bg: Color::Indexed(16),
         // apply_256 error is 203 (#ff5f5f). Nearest of #f05d5d is 210.
         danger: Color::Indexed(203),
-        danger_soft: Color::Indexed(181),
+        // Frozen `DANGER_SOFT` ink uses ANSI-256 cell 174.
+        danger_soft: Color::Indexed(174),
         danger_tint: Color::Indexed(52),
         warning: Color::Indexed(214),
         warning_tint: Color::Indexed(234),
@@ -182,6 +183,7 @@ fn junie_16() -> ColorTokens {
     tokens.border_strong = Color::Gray;
     // Frozen apply_16 (`self.success = Green`): base ladder slot, not bright.
     tokens.success = Color::Green;
+    tokens.danger_soft = Color::LightRed;
     tokens.meter.stale = Color::DarkGray;
     tokens.meter.unknown = Color::DarkGray;
     tokens
@@ -229,7 +231,7 @@ const fn junie_mono() -> ColorTokens {
         backdrop_fg: Color::Black,
         backdrop_bg: Color::Black,
         danger: Color::Gray,
-        danger_soft: Color::Gray,
+        danger_soft: Color::White,
         danger_tint: Color::Black,
         warning: Color::Gray,
         warning_tint: Color::Black,

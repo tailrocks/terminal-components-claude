@@ -1,5 +1,8 @@
 use ratatui_core::style::Color;
-use termrock_theme::{CapabilityPalettes, ColorLevel, Theme, downgrade_color};
+use termrock_theme::{
+    CapabilityPalettes, ColorLevel, Family, Part, Role, StateFlags, Surface, Theme, Variant,
+    downgrade_color,
+};
 
 #[expect(
     clippy::arithmetic_side_effects,
@@ -97,6 +100,8 @@ fn all_80_junie_slots_match_reference_capability_output() {
             // Danger, invalid, and the meter high slot follow apply_256
             // error 203. The cube rule on #f05d5d would pick 210.
             expected.danger = Color::Indexed(203);
+            // The menu danger row has a separate soft-danger ANSI-256 slot.
+            expected.danger_soft = Color::Indexed(174);
             expected.syntax.invalid = Color::Indexed(203);
             expected.meter.high = Color::Indexed(203);
             expected.meter.series[2] = Color::Indexed(203);
@@ -142,6 +147,7 @@ fn all_80_junie_slots_match_reference_capability_output() {
             expected.success = Color::Green;
             expected.meter.stale = Color::DarkGray;
             expected.meter.unknown = Color::DarkGray;
+            expected.danger_soft = Color::LightRed;
         }
         if level == ColorLevel::Mono {
             // Frozen baseline apply_mono keeps the hovered field black.
@@ -153,6 +159,7 @@ fn all_80_junie_slots_match_reference_capability_output() {
             // Frozen apply_mono (`self.success = White`): the status slot
             // lifts to White on the mono ladder.
             expected.success = Color::White;
+            expected.danger_soft = Color::White;
             expected.status_bar_bg = Color::Black;
             expected.status_bar_fg = Color::White;
             expected.status_accent = Color::White;
@@ -171,6 +178,78 @@ fn all_80_junie_slots_match_reference_capability_output() {
         original.downgrade(ColorLevel::Ansi256).color.accent,
         Color::Indexed(78)
     );
+}
+
+#[test]
+fn danger_soft_and_danger_keep_their_separate_frozen_profile_slots() {
+    let source = Theme::junie();
+    assert_eq!(source.color.danger_soft, Color::Rgb(0xe8, 0xa0, 0xa0));
+    assert_eq!(source.color.danger, Color::Rgb(0xf0, 0x5d, 0x5d));
+
+    for (level, expected_soft, expected_danger) in [
+        (
+            ColorLevel::TrueColor,
+            Color::Rgb(0xe8, 0xa0, 0xa0),
+            Color::Rgb(0xf0, 0x5d, 0x5d),
+        ),
+        (
+            ColorLevel::Ansi256,
+            Color::Indexed(174),
+            Color::Indexed(203),
+        ),
+        (ColorLevel::Ansi16, Color::LightRed, Color::LightRed),
+        (ColorLevel::Mono, Color::White, Color::Gray),
+    ] {
+        let projected = source.clone().for_level(level);
+        assert_eq!(projected.color.danger_soft, expected_soft, "{level:?}");
+        assert_eq!(projected.color.danger, expected_danger, "{level:?}");
+    }
+}
+
+#[test]
+fn direct_danger_soft_mutations_project_and_reset_without_reusing_authored_ink() {
+    let source = Theme::junie();
+    let levels = [
+        ColorLevel::TrueColor,
+        ColorLevel::Ansi256,
+        ColorLevel::Ansi16,
+        ColorLevel::Mono,
+    ];
+
+    for custom in [Color::Rgb(255, 0, 0), Color::Reset] {
+        let mut changed = source.clone();
+        changed.color.danger_soft = custom;
+
+        for level in levels {
+            let projected = changed.clone().for_level(level);
+            let expected = if custom == Color::Reset {
+                None
+            } else {
+                Some(downgrade_color(custom, level))
+            };
+            assert_eq!(
+                projected.color.danger_soft,
+                expected.unwrap_or(Color::Reset),
+                "token at {level:?} for {custom:?}"
+            );
+            assert_eq!(
+                termrock_theme::resolve::bind_role(&projected, Role::DangerSoft, Surface::Canvas),
+                expected,
+                "role binding at {level:?} for {custom:?}"
+            );
+            let row = projected.resolve(
+                Family::MENU,
+                Variant::DANGER,
+                Part::ROW,
+                StateFlags::empty(),
+                Surface::Canvas,
+            );
+            assert_eq!(
+                row.style.fg, expected,
+                "menu row at {level:?} for {custom:?}"
+            );
+        }
+    }
 }
 
 #[test]
