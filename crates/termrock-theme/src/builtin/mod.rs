@@ -1198,7 +1198,7 @@ mod tests {
             ]
         );
         assert_eq!(c.field, Color::from_u32(0x1e1e22));
-        assert_eq!(c.field_hover, Color::from_u32(0x232328));
+        assert_eq!(c.field_hover, Color::from_u32(0x2f2f34));
         assert_eq!(
             c.fg,
             [

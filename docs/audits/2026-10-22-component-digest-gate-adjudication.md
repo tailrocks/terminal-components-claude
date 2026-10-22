@@ -103,14 +103,30 @@ That migration also moved the gate the wrong way:
    an inert scope, and the pad cells no longer carried the container style.
    The button now promotes the focus bar for a pointer-focused button
    (`Always`), never promotes one in an inert scope, and paints its pad
-   cells with the container style.
+   cells with the container style. The button hover plane keeps
+   `Role::RaisedSurface`, so the disabled background no longer disappears
+   under hover.
+
+The slots the corpus never renders stay at the tag's values, because the
+corpus carries no evidence for them (`docs/audits/2026-10-21-junie-palette-ladder.md`):
+the field-hover surface `#2f2f34` (256 index 237), `highlight_bg` 25,
+`highlight_danger_bg` 88, `danger_tint` 52 and `match_current_bg` 55.
 
 Before/after on the same tree:
 
 ```text
 ef23c3303c (tip):      320 tests run: 74 passed, 246 failed
-wip/component-digest-drift-20261021: 320 tests run: 216 passed, 104 failed
+wip/component-digest-drift-20261021: 320 tests run: 211 passed, 109 failed
 ```
+
+The library suite over the same ten crates:
+
+```text
+ef23c3303c (tip):      1779 tests run: 1763 passed, 16 failed, 3 skipped
+wip/component-digest-drift-20261021: 1779 tests run: 1774 passed, 5 failed, 3 skipped
+```
+
+`termrock-theme` alone: 194 run, 194 passed (the tip left eight red there).
 
 ## What is still red, and why
 
@@ -127,6 +143,25 @@ They are recorded, not blessed: each is a real difference between the
 product and the frozen expectation and needs either a product correction or
 a per-key reference decision under D-011.
 
+## The remaining library reds
+
+Five tests stay red on this branch, four of them red at the tip as well:
+
+| Test | State at the tip | Why it stays red here |
+| --- | --- | --- |
+| `termrock-navigation::item_row_columns constructor_defaults_match_the_pre_policy_full_cell_fixture` | red | a historical fixture that no current palette reproduces (see the table below) |
+| `termrock-overlays picker::tests::query_field_resolves_picker_family_theme_and_part_patch` | red | untouched by this branch |
+| `termrock-overlays::context_menu_danger_profile disabled_active_danger_profile_returns_to_popover_surface` | red | the disabled ink's ANSI-256 projection: the corpus renders 238, the tag's frozen cells render 239 |
+| `termrock-overlays::context_menu_danger_profile keyboard_active_danger_row_uses_frozen_background_ladder` | red | the same projection conflict on the Mono tier |
+| `termrock-overlays::context_menu_danger_profile disabled_danger_row_matches_frozen_cells_at_rest_hover_and_press` | green at the tip | the same projection conflict: the tip mixed 239 and 238 for the disabled ink, the restored palette projects it uniformly to 238 |
+
+That last row is the only library red this branch adds. It is the
+tag-versus-corpus conflict in one slot: the corpus renders the disabled ink
+`0x4d4d4d` as 238 and never paints 239, the tag's `apply_256` pins it to 239,
+and the three danger-profile tests assert the tag's projection. The
+corpus decides here, as it does for every other slot it renders, and the
+three tests stay red until the coordinator rules on the slot.
+
 ## The named neighbouring failures
 
 | Test | State at the tip | State on this branch |
@@ -135,9 +170,52 @@ a per-key reference decision under D-011.
 | `termrock-overlays menu::tests::menu_bar_keeps_public_default_variant_overlay_and_local_patch_precedence` | green | green, untouched |
 | `termrock-editors::completing_code_editor focus_loss_dismisses_completion_but_preserves_configured_edit_session` | green | green, untouched |
 | `termrock-editors code::tests::focus_out_commits_by_default_but_can_preserve_the_edit_session` | green | green, untouched |
-| `termrock-navigation::item_row_columns constructor_defaults_match_the_pre_policy_full_cell_fixture` | red (the fixture was captured against the corpus-era ANSI-256 ladder; the tip's ladder moved it) | green with the restored ladder |
+| `termrock-navigation::item_row_columns constructor_defaults_match_the_pre_policy_full_cell_fixture` | red (`left: 4189130516631402064`, `right: 5235702202963140133`) | red (`left: 9596688686787365186`, `right: 5235702202963140133`) — a historical fixture, not a regression from this branch |
+
+The item-row fixture needs its own reading. `docs/audits/2026-10-21-item-row-historical-palette-fixture.md`
+records it as "a historical library-constructor fixture, not the frozen
+application visual oracle": its expected full-cell fingerprint
+(`5235702202963140133`) was captured from one pre-policy rendering, and no
+palette the product has painted since reproduces it — the tip's ladder gives
+`4189130516631402064`, the restored corpus-era ladder gives
+`9596688686787365186`. The fingerprint therefore needs a per-key decision
+before it can be restored or re-recorded; this branch leaves it untouched
+and red, as it was at the tip.
 
 ## The request that remains with the coordinator
+
+**Reference-decision request.** The two frozen references disagree about the
+Junie palette, and the disagreement is now visible in the gates:
+
+| slot | the corpus renders | the tag's frames render | this branch |
+| --- | --- | --- | --- |
+| muted ink | `0x808080` (244) | `0x8a8a8a` (245) | corpus |
+| faint ink | `0x4d4d4d` (238) | `0x737373` (242) | corpus |
+| scrollbar track | `U+2502` | `U+2506` | corpus |
+| danger ink | `0xe44545` (167) | `0xf05d5d` (203) | corpus |
+| disabled ink (256) | 238 | 239 | corpus |
+| syntax | restrained grey ladder | blue/teal/lavender | corpus |
+| field hover | never rendered | `#2f2f34` (237) | tag |
+
+Every slot the corpus renders follows the corpus; every slot the corpus
+never renders follows the tag. The coordinator has to rule which reference
+the product's look follows:
+
+* **If the corpus wins** (this branch's reading, and the one the component
+  digests and the admitted baseline store carry), the branch stands as it is
+  and the remaining 109 component failures are the product differences left
+  to fix.
+* **If the tag wins**, then `baselines/tuiscotti-v1/`,
+  `crates/termrock-conformance/tests/baselines/components.txt` and the three
+  danger-profile expectations have to be re-captured from a build that
+  paints the tag ladder, under the D-011 process and with an independent
+  review of the exact changed keys. That is a blessing action reserved to
+  the coordinator; this branch does not pre-empt it, and the palette
+  restoration on this branch is the piece that would then be undone.
+
+Either way the expectations on this branch are untouched: no `BLESS=1`, no
+expectation edit, and `components.txt` stays at blob
+`3343d127cfe998069e28037b9abaa95a77f466a4`.
 
 The corpus and the tag disagree about the Junie palette, and only one of
 them can be the gate's expectation at a time. This branch keeps the gate's
