@@ -189,6 +189,20 @@ fn authored_policy_transitions_use_typed_slot_guards() {
 fn low_and_stale_tokens_match_reference_roles_but_custom_colors_remain_authoritative() {
     for level in LEVELS {
         let reference = Theme::junie().for_level(level);
+        let expected_faint = match level {
+            ColorLevel::TrueColor => Color::Rgb(115, 115, 115),
+            ColorLevel::Ansi256 => Color::Indexed(242),
+            ColorLevel::Ansi16 | ColorLevel::Mono => Color::Gray,
+            _ => unreachable!("LEVELS lists every current color level"),
+        };
+        assert_eq!(
+            reference.color.meter.stale, expected_faint,
+            "{level:?} stale"
+        );
+        assert_eq!(
+            reference.color.meter.unknown, expected_faint,
+            "{level:?} unknown"
+        );
         assert_eq!(reference.color.meter.low, reference.color.fg[1]);
         assert_eq!(reference.color.meter.stale, reference.color.fg[3]);
         assert_eq!(reference.color.meter.unknown, reference.color.fg[3]);
