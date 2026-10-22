@@ -117,9 +117,10 @@ fn all_80_junie_slots_match_reference_capability_output() {
             // Frozen apply_256 (`self.success = i(71)`): the status green is
             // its own ladder slot, off the accent cube cell 78.
             expected.success = Color::Indexed(71);
-            // Corpus stale/unknown meter ink shares the faint/chrome source.
-            expected.meter.stale = Color::Indexed(238);
-            expected.meter.unknown = Color::Indexed(238);
+            // Frozen apply_256 maps `text_faint` to cell 242; stale and
+            // unknown meter ink retain that faint channel at this level.
+            expected.meter.stale = Color::Indexed(242);
+            expected.meter.unknown = Color::Indexed(242);
             // The frozen dim backdrop ink renders as cell 238 at this level
             // (the apply_256 text_ghost), not the source #262626 cube cell.
             // Frozen-corpus evidence:
@@ -145,8 +146,10 @@ fn all_80_junie_slots_match_reference_capability_output() {
             expected.border_strong = Color::Gray;
             // Frozen apply_16 (`self.success = Green`): base ladder slot.
             expected.success = Color::Green;
-            expected.meter.stale = Color::DarkGray;
-            expected.meter.unknown = Color::DarkGray;
+            // Frozen apply_16 maps `text_faint` to Gray; meter stale and
+            // unknown ink use that channel in the ANSI16 projection.
+            expected.meter.stale = Color::Gray;
+            expected.meter.unknown = Color::Gray;
             expected.danger_soft = Color::LightRed;
         }
         if level == ColorLevel::Mono {

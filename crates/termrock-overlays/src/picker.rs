@@ -1147,6 +1147,11 @@ mod tests {
 
     #[test]
     fn query_field_resolves_picker_family_theme_and_part_patch() {
+        use ratatui_core::style::Color;
+        use termrock_runtime::event::{Input, KeyCode};
+        use termrock_runtime::runtime::Runtime;
+        use termrock_runtime::runtime::stub::{deliver, key};
+
         const ID: Id = Id::root("picker.query-presentation");
         const QUERY_PATCH: &[(Part, StylePatch)] = &[(
             Part::QUERY,
@@ -1187,7 +1192,11 @@ mod tests {
             }
         }
 
-        let render = |patch_kind: u8, themed, focused_style| {
+        let render = |patch_kind: u8,
+                      themed: bool,
+                      focused_style: bool,
+                      placeholder_style: bool,
+                      enter_query: bool| {
             let theme = if themed {
                 Theme::junie().override_family(Family::PICKER, |recipe| {
                     recipe
@@ -1199,11 +1208,16 @@ mod tests {
                             StylePatch::new().set_fg(crate::theme::Role::Success),
                         );
                     }
+                    if placeholder_style {
+                        recipe
+                            .part(Part::PLACEHOLDER)
+                            .base(StylePatch::new().set_fg(crate::theme::Role::Info));
+                    }
                 })
             } else {
                 Theme::junie()
             };
-            let mut runtime = termrock_runtime::runtime::Runtime::new(
+            let mut runtime = Runtime::new(
                 PaintApp {
                     state: PickerState::default(),
                     patch_kind,
@@ -1214,36 +1228,100 @@ mod tests {
             let area = Rect::new(0, 0, 30, 12);
             let mut buffer = ratatui_core::buffer::Buffer::empty(area);
             runtime.draw_buffer(area, &mut buffer).commit_presented();
+            let _ = deliver(&mut runtime, Input::Tick);
+            runtime.draw_buffer(area, &mut buffer).commit_presented();
+            assert_eq!(runtime.focus(), Some(ID), "the picker query owns focus");
+            if enter_query {
+                let _ = deliver(&mut runtime, key(KeyCode::Char('X')));
+                buffer = ratatui_core::buffer::Buffer::empty(area);
+                runtime.draw_buffer(area, &mut buffer).commit_presented();
+                assert_eq!(runtime.app().state.query(), "X");
+            } else {
+                assert_eq!(runtime.app().state.query(), "");
+            }
             buffer
         };
 
-        let plain = render(0, false, false);
-        let base_theme = render(0, true, false);
-        let themed = render(0, true, true);
-        let patched = render(2, true, true);
-        let globally_patched = render(1, false, false);
-        let query_cell = plain
-            .content
-            .iter()
-            .position(|cell| cell.symbol() == "X")
-            .expect("query placeholder is visible");
-        let query_x = u16::try_from(query_cell % 30).expect("screen x fits u16");
-        let query_y = u16::try_from(query_cell / 30).expect("screen y fits u16");
-        assert_ne!(
-            plain[(query_x, query_y)].fg,
-            base_theme[(query_x, query_y)].fg
+        let visible_x = |buffer: &ratatui_core::buffer::Buffer| {
+            let positions = buffer
+                .content
+                .iter()
+                .enumerate()
+                .filter(|(_, cell)| cell.symbol() == "X")
+                .map(|(index, _)| index)
+                .collect::<Vec<_>>();
+            assert_eq!(
+                positions.len(),
+                1,
+                "exactly one query or placeholder X is visible"
+            );
+            let cell = positions[0];
+            let x = u16::try_from(cell % 30).expect("screen x fits u16");
+            let y = u16::try_from(cell / 30).expect("screen y fits u16");
+            (x, y)
+        };
+
+        let plain_query = render(0, false, false, false, true);
+        let base_theme = render(0, true, false, false, true);
+        let focused_theme = render(0, true, true, false, true);
+        let locally_patched = render(2, true, true, false, true);
+        let globally_patched = render(1, false, false, false, true);
+        let plain_cell = &plain_query[visible_x(&plain_query)];
+        let base_cell = &base_theme[visible_x(&base_theme)];
+        let focused_cell = &focused_theme[visible_x(&focused_theme)];
+        let local_cell = &locally_patched[visible_x(&locally_patched)];
+        let global_cell = &globally_patched[visible_x(&globally_patched)];
+
+        assert_eq!(plain_cell.fg, Color::Rgb(255, 255, 255));
+        assert_eq!(base_cell.fg, Color::Rgb(245, 158, 9));
+        assert_eq!(focused_cell.fg, Color::Rgb(63, 185, 80));
+        assert_eq!(local_cell.fg, Color::Rgb(240, 93, 93));
+        assert_eq!(global_cell.fg, Color::Rgb(255, 255, 255));
+        assert_eq!(global_cell.bg, Color::Rgb(240, 93, 93));
+        assert_ne!(plain_cell.fg, base_cell.fg);
+        assert_ne!(base_cell.fg, focused_cell.fg);
+        assert_ne!(focused_cell.fg, local_cell.fg);
+        assert_ne!(plain_cell.bg, global_cell.bg);
+
+        let placeholder_plain = render(0, false, false, false, false);
+        let placeholder_base = render(0, true, false, false, false);
+        let placeholder_focused = render(0, true, true, false, false);
+        let placeholder_local = render(2, true, true, false, false);
+        let placeholder_override = render(0, true, true, true, false);
+        let placeholder_query = render(0, true, true, false, true);
+        let query_with_placeholder_override = render(0, true, true, true, true);
+        let muted = Color::Rgb(138, 138, 138);
+
+        for (name, buffer) in [
+            ("plain", &placeholder_plain),
+            ("base QUERY theme", &placeholder_base),
+            ("focused QUERY theme", &placeholder_focused),
+            ("local QUERY patch", &placeholder_local),
+        ] {
+            assert_eq!(
+                buffer[visible_x(buffer)].fg,
+                muted,
+                "{name} keeps placeholder ink"
+            );
+        }
+        let overridden_placeholder_cell = &placeholder_override[visible_x(&placeholder_override)];
+        assert_eq!(overridden_placeholder_cell.fg, Color::Rgb(135, 135, 255));
+        assert_ne!(overridden_placeholder_cell.fg, muted);
+
+        let query_without_placeholder_override = &placeholder_query[visible_x(&placeholder_query)];
+        let query_with_placeholder_override_cell =
+            &query_with_placeholder_override[visible_x(&query_with_placeholder_override)];
+        assert_eq!(
+            query_without_placeholder_override.fg,
+            Color::Rgb(63, 185, 80)
         );
-        assert_ne!(
-            base_theme[(query_x, query_y)].fg,
-            themed[(query_x, query_y)].fg
+        assert_eq!(
+            query_with_placeholder_override_cell.fg, query_without_placeholder_override.fg,
+            "PLACEHOLDER styling does not recolor entered QUERY text"
         );
-        assert_ne!(
-            themed[(query_x, query_y)].fg,
-            patched[(query_x, query_y)].fg
-        );
-        assert_ne!(
-            plain[(query_x, query_y)].bg,
-            globally_patched[(query_x, query_y)].bg
+        assert_eq!(
+            query_with_placeholder_override_cell.bg, query_without_placeholder_override.bg,
+            "PLACEHOLDER styling does not change entered QUERY background"
         );
     }
 
