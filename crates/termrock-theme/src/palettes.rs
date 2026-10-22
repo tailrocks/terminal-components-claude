@@ -100,7 +100,10 @@ const fn junie_256() -> ColorTokens {
         backdrop_bg: Color::Indexed(16),
         // apply_256 error is 203 (#ff5f5f). Nearest of #f05d5d is 210.
         danger: Color::Indexed(203),
-        danger_soft: Color::Indexed(181),
+        // Frozen apply_256 (`self.error_soft = i(174)`, tag
+        // `src/theme.rs:964`): the soft danger ink keeps the frozen ladder
+        // slot, not the cube cell 217 the tag's #e8a0a0 derives.
+        danger_soft: Color::Indexed(174),
         danger_tint: Color::Indexed(52),
         warning: Color::Indexed(214),
         warning_tint: Color::Indexed(234),
@@ -220,7 +223,9 @@ const fn junie_mono() -> ColorTokens {
         backdrop_fg: Color::Black,
         backdrop_bg: Color::Black,
         danger: Color::Gray,
-        danger_soft: Color::Gray,
+        // Frozen apply_mono (`self.error_soft = White`, tag
+        // `src/theme.rs:1096`): the soft danger ink lifts to White.
+        danger_soft: Color::White,
         danger_tint: Color::Black,
         warning: Color::Gray,
         warning_tint: Color::Black,
