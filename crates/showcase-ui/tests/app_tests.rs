@@ -808,6 +808,46 @@ fn dialog_kinds_add_connection_uses_live_form_and_stacked_picker() {
 }
 
 #[test]
+fn dialog_kinds_outside_picker_dismissal_restores_form_lifecycle() {
+    let mut h = harness(PageId::DialogKinds);
+    let open = require(h.find("Add connection…"), "Add connection opener");
+    click(&mut h, open.0.saturating_add(1), open.1);
+    let tunnel = require(h.find("Connect through an SSH tunnel"), "tunnel checkbox");
+    click(&mut h, tunnel.0, tunnel.1);
+    let _chooser = require(h.find("Choose…"), "visible SSH key chooser");
+    assert!(h.tab_to(DIALOG_KEY), "chooser is in the dialog focus order");
+    press(&mut h, KeyCode::Enter);
+    assert!(h.is_open(DIALOG_PICKER), "chooser opens the nested picker");
+
+    let _ = h.mouse(MouseKind::Down, 119, 39);
+    assert!(
+        h.diagnostics().is_empty(),
+        "after outside-click picker dismissal: {:?}",
+        h.diagnostics()
+    );
+    assert!(!h.is_open(DIALOG_PICKER), "outside click closes the picker");
+    assert!(h.is_open(DIALOG_FORM), "outside click leaves the form open");
+    assert_eq!(
+        h.focus(),
+        Some(DIALOG_KEY),
+        "outside click restores chooser focus"
+    );
+
+    assert!(
+        h.tab_to(DIALOG_SAVE),
+        "form remains responsive after outside-click dismissal"
+    );
+    press(&mut h, KeyCode::Enter);
+    assert!(!h.is_open(DIALOG_FORM), "Save closes the form");
+    assert!(h.text().contains("Form · Save · orders-prod"));
+    assert!(
+        h.diagnostics().is_empty(),
+        "after Save following outside-click dismissal: {:?}",
+        h.diagnostics()
+    );
+}
+
+#[test]
 fn dialog_kinds_picker_escape_restores_form_and_cancel_discards_changes() {
     let mut h = harness(PageId::DialogKinds);
     let open = require(h.find("Add connection…"), "Add connection opener");
