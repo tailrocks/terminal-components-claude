@@ -641,6 +641,12 @@ pub(crate) static SELECT_MONO_RULES: [MonoRule; 3] = [
     ),
 ];
 
+pub(crate) static INPUT_MONO_RULES: [MonoRule; 1] = [(
+    Part::ROW,
+    StateFlags::SELECTED,
+    StylePatch::new().add(Modifier::REVERSED),
+)];
+
 pub(crate) static BUTTON_MONO_RULES: [MonoRule; 1] = [(
     Part::GUTTER,
     StateFlags::FOCUS_VISIBLE,
@@ -650,6 +656,7 @@ pub(crate) static BUTTON_MONO_RULES: [MonoRule; 1] = [(
 pub(crate) fn builtin_family_mono_rules(family: Family) -> &'static [MonoRule] {
     match family {
         Family::BUTTON => &BUTTON_MONO_RULES,
+        Family::INPUT => &INPUT_MONO_RULES,
         Family::VIEWPORT => &VIEWPORT_MONO_RULES,
         Family::GRID => &GRID_MONO_RULES,
         Family::MENU => &MENU_MONO_RULES,
@@ -745,6 +752,10 @@ mod tests {
 
     fn select_mono_rules() -> Vec<MonoRule> {
         SELECT_MONO_RULES.to_vec()
+    }
+
+    fn input_mono_rules() -> Vec<MonoRule> {
+        INPUT_MONO_RULES.to_vec()
     }
 
     fn button_mono_rules() -> Vec<MonoRule> {
@@ -1282,6 +1293,7 @@ mod tests {
         let help = help_mono_rules();
         let picker = picker_mono_rules();
         let select = select_mono_rules();
+        let input = input_mono_rules();
         assert_eq!(rules.len(), 15);
         assert_eq!(extra.len(), 5);
         assert!(extra.iter().any(|(part, when, patch)| {
@@ -1295,6 +1307,15 @@ mod tests {
         assert_eq!(help.len(), 2);
         assert_eq!(picker.len(), 3);
         assert_eq!(select.len(), 3);
+        assert_eq!(input.len(), 1);
+        assert_eq!(
+            input,
+            vec![(
+                Part::ROW,
+                StateFlags::SELECTED,
+                StylePatch::new().add(Modifier::REVERSED)
+            )]
+        );
         assert!(grid.iter().any(|(part, when, patch)| {
             *part == Part::ROW && *when == StateFlags::PRESSED && patch.add.contains(Modifier::BOLD)
         }));
@@ -1381,6 +1402,7 @@ mod tests {
             .chain(help_mono_rules().iter())
             .chain(picker_mono_rules().iter())
             .chain(select_mono_rules().iter())
+            .chain(input_mono_rules().iter())
             .map(|(part, when, _)| (*part, *when))
             .collect();
         sorted_rule_pairs(pairs)
@@ -1481,6 +1503,7 @@ mod tests {
             MONO_RULES_PER_FAMILY - 1
         );
         for (f, pairs) in [
+            (Family::INPUT, 21),
             (Family::VIEWPORT, 21),
             (Family::GRID, 22),
             (Family::MENU, 22),

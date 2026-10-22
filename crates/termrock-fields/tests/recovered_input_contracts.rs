@@ -11,7 +11,7 @@ use ratatui_core::{
 use termrock_fields::{TextInput, TextInputState};
 use termrock_runtime::{App, Cx, Id, KeyCode, Part, PartRef, Response, Ui, UpdateCause};
 use termrock_test_support::Harness;
-use termrock_theme::Theme;
+use termrock_theme::{ColorLevel, Family, StateFlags, StylePatch, Theme};
 
 const SCREEN: Rect = Rect::new(0, 0, 20, 8);
 const INPUT: Id = Id::root("recovered.input-contracts");
@@ -21,12 +21,16 @@ struct InputPage {
     state: TextInputState,
     value: String,
     area: Rect,
+    select_all: bool,
 }
 
 impl App for InputPage {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         if cx.update_cause() == UpdateCause::Bootstrap {
             self.state.begin(&self.value);
+            if self.select_all {
+                self.state.select_all();
+            }
             if !self.area.is_empty() {
                 cx.focus(INPUT);
             }
@@ -44,13 +48,23 @@ impl App for InputPage {
 }
 
 fn harness(area: Rect, value: &str) -> Harness<InputPage> {
+    harness_with_theme(area, value, false, Theme::junie())
+}
+
+fn harness_with_theme(
+    area: Rect,
+    value: &str,
+    select_all: bool,
+    theme: Theme,
+) -> Harness<InputPage> {
     Harness::new(
         InputPage {
             state: TextInputState::default(),
             value: value.to_owned(),
             area,
+            select_all,
         },
-        Theme::junie(),
+        theme,
         SCREEN.width,
         SCREEN.height,
     )
@@ -114,6 +128,66 @@ fn cursor_outside_screen_clip_is_not_relocated_into_the_field() {
         "clipped field published {:?}",
         page.cursor()
     );
+}
+
+#[test]
+fn selected_input_row_is_reversed_only_at_the_mono_capability() {
+    let area = Rect::new(1, 1, 16, 1);
+    for level in [
+        ColorLevel::TrueColor,
+        ColorLevel::Ansi256,
+        ColorLevel::Ansi16,
+        ColorLevel::Mono,
+    ] {
+        let theme = Theme::junie().downgrade(level);
+        let page = harness_with_theme(area, "select", true, theme);
+        assert_eq!(page.runtime().theme().capability.color, level);
+        assert_eq!(page.app().state.selection(), Some(0.."select".len()));
+        let text_area = page
+            .area_of_part(INPUT, PartRef::of(Part::TEXT))
+            .expect("text part is registered");
+        assert!(text_area.width > 6, "{text_area:?}");
+
+        for offset in 0..6 {
+            let cell = page.cell(text_area.x + offset, text_area.y);
+            assert_eq!(
+                cell.modifier.contains(Modifier::REVERSED),
+                level == ColorLevel::Mono,
+                "{level:?}: selected cell {offset}: {cell:?}"
+            );
+        }
+        assert!(
+            !page
+                .cell(text_area.x + 6, text_area.y)
+                .modifier
+                .contains(Modifier::REVERSED),
+            "{level:?}: adjacent unselected cell was reversed"
+        );
+    }
+}
+
+#[test]
+fn consumer_authored_input_mono_rule_keeps_precedence_over_builtin() {
+    let mono_rules = [(
+        Part::ROW,
+        StateFlags::SELECTED,
+        StylePatch::new().add(Modifier::BOLD),
+    )];
+    let theme = Theme::junie()
+        .builder()
+        .mono_rules(Family::INPUT, &mono_rules)
+        .build()
+        .downgrade(ColorLevel::Mono);
+    let page = harness_with_theme(Rect::new(1, 1, 16, 1), "select", true, theme);
+    let text_area = page
+        .area_of_part(INPUT, PartRef::of(Part::TEXT))
+        .expect("text part is registered");
+
+    for offset in 0..6 {
+        let cell = page.cell(text_area.x + offset, text_area.y);
+        assert!(cell.modifier.contains(Modifier::BOLD), "{cell:?}");
+        assert!(!cell.modifier.contains(Modifier::REVERSED), "{cell:?}");
+    }
 }
 
 #[test]
