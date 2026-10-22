@@ -84,7 +84,8 @@ fn empty_workspace() -> tempfile::TempDir {
 }
 
 fn check_scratch(dir: &tempfile::TempDir) -> termrock_xtask::ownership::Report {
-    check_workspace(dir.path(), &dir.path().join("exceptions.json"))
+    let root = std::fs::canonicalize(dir.path()).expect("canonical scratch workspace");
+    check_workspace(&root, &root.join("exceptions.json"))
 }
 
 #[test]
@@ -685,6 +686,163 @@ fn incomplete_root_still_enumerates_already_known_external_routes() {
     assert!(
         analysis.sources.contains(&external),
         "the module edge parsed before the unknown route must still be inventoried: {analysis:?}"
+    );
+}
+
+#[test]
+fn incomplete_root_continues_to_later_out_of_src_module_and_include_routes() {
+    let dir = empty_workspace();
+    write_member_file(
+        &dir,
+        "src/lib.rs",
+        "#[path = \"../before.rs\"] mod before;\n\
+         fn uncertain() { declare_modules!(); }\n\
+         include!(\"../between.inc.rs\");\n\
+         #[path = \"../after.rs\"] mod after;\n",
+    );
+    for (path, name) in [
+        ("before.rs", "before"),
+        ("between.inc.rs", "between"),
+        ("after.rs", "after"),
+    ] {
+        write_member_file(
+            &dir,
+            path,
+            &format!("fn {name}() {{ None::<u8>.expect(\"{name}\"); }}\n"),
+        );
+    }
+
+    let member = dir.path().join("crates/demo-preview");
+    let analysis = termrock_xtask::ownership::module_graph::analyze_member(&member);
+    assert!(
+        !analysis.complete,
+        "the function block is an unknown module route"
+    );
+    assert!(
+        analysis.test_only.is_empty(),
+        "incomplete provenance never prunes"
+    );
+    for path in ["before.rs", "between.inc.rs", "after.rs"] {
+        let external = std::fs::canonicalize(member.join(path)).expect("external route");
+        assert!(
+            analysis.sources.contains(&external),
+            "later sibling route {path} must remain inventoried: {analysis:?}"
+        );
+    }
+    assert_eq!(
+        own14_findings(&check_scratch(&dir)),
+        [
+            ("crates/demo-preview/after.rs".to_string(), 1),
+            ("crates/demo-preview/before.rs".to_string(), 1),
+            ("crates/demo-preview/between.inc.rs".to_string(), 1),
+        ]
+    );
+}
+
+#[test]
+fn incomplete_nested_custom_target_continues_to_later_routes() {
+    let dir = empty_workspace();
+    write_member_file(
+        &dir,
+        "Cargo.toml",
+        "[package]\nname = \"demo-preview\"\nversion = \"0.1.0\"\nedition = \"2024\"\n\
+         [[bin]]\nname = \"custom\"\npath = \"targets/main.rs\"\n",
+    );
+    write_member_file(
+        &dir,
+        "targets/main.rs",
+        "mod nested {\n\
+             #[path = \"before.rs\"] mod before;\n\
+             fn uncertain() { declare_modules!(); }\n\
+             #[path = \"external.rs\"] mod external;\n\
+             include!(\"nested/include.inc.rs\");\n\
+         }\n",
+    );
+    write_member_file(
+        &dir,
+        "targets/nested/before.rs",
+        "fn nested_before() { None::<u8>.expect(\"nested before\"); }\n",
+    );
+    write_member_file(
+        &dir,
+        "targets/nested/external.rs",
+        "fn nested_external() { None::<u8>.expect(\"nested external\"); }\n",
+    );
+    write_member_file(
+        &dir,
+        "targets/nested/include.inc.rs",
+        "fn nested_include() { None::<u8>.expect(\"nested include\"); }\n",
+    );
+
+    let member = dir.path().join("crates/demo-preview");
+    let analysis = termrock_xtask::ownership::module_graph::analyze_member(&member);
+    assert!(!analysis.complete, "the nested function block is unknown");
+    assert!(
+        analysis.test_only.is_empty(),
+        "incomplete provenance never prunes"
+    );
+    for path in [
+        "targets/nested/before.rs",
+        "targets/nested/external.rs",
+        "targets/nested/include.inc.rs",
+    ] {
+        let external = std::fs::canonicalize(member.join(path)).expect("external route");
+        assert!(
+            analysis.sources.contains(&external),
+            "nested custom-target route {path} must remain inventoried: {analysis:?}"
+        );
+    }
+    assert_eq!(
+        own14_findings(&check_scratch(&dir)),
+        [
+            (
+                "crates/demo-preview/targets/nested/before.rs".to_string(),
+                1
+            ),
+            (
+                "crates/demo-preview/targets/nested/external.rs".to_string(),
+                1
+            ),
+            (
+                "crates/demo-preview/targets/nested/include.inc.rs".to_string(),
+                1,
+            ),
+        ]
+    );
+}
+
+#[test]
+fn function_local_derive_import_keeps_test_route_production() {
+    let dir = empty_workspace();
+    write_member_file(
+        &dir,
+        "src/lib.rs",
+        "#[cfg(test)] mod candidate;\n\
+         fn production() {\n\
+             use custom::Clone;\n\
+             #[derive(Clone)]\n\
+             struct Local;\n\
+         }\n",
+    );
+    write_member_file(
+        &dir,
+        "src/candidate.rs",
+        "fn generated_edge() { None::<u8>.expect(\"potential production edge\"); }\n",
+    );
+
+    let member = dir.path().join("crates/demo-preview");
+    let analysis = termrock_xtask::ownership::module_graph::analyze_member(&member);
+    assert!(
+        !analysis.complete,
+        "a derive inside the skipped function body can generate module items"
+    );
+    assert!(
+        analysis.test_only.is_empty(),
+        "uncertain derives never prune"
+    );
+    assert_eq!(
+        own14_findings(&check_scratch(&dir)),
+        [("crates/demo-preview/src/candidate.rs".to_string(), 1)]
     );
 }
 
