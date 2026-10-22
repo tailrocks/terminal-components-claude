@@ -146,7 +146,7 @@ fn vim_profile_handles_arrows_jk_uppercase_aliases_and_g_without_hl_or_modified_
 }
 
 #[test]
-fn no_home_end_rejects_home_and_end_but_keeps_remappable_semantic_actions() {
+fn no_home_end_rejects_default_home_end_and_vim_keys_but_keeps_remaps() {
     let mut page = RadioPage::new(RadioKeyPolicy::NoHomeEnd, RadioNavigation::Immediate);
     let mut keymap = KeyMap::new();
     keymap.remap_component(
@@ -173,8 +173,31 @@ fn no_home_end_rejects_home_and_end_but_keeps_remappable_semantic_actions() {
     assert_eq!(h.app().selected_item(), Some("beta"));
     let _ = h.key_mod(KeyCode::Char('u'), KeyModifiers::ALT);
     assert_eq!(h.app().selected_item(), Some("alpha"));
+    let _ = h.key(KeyCode::Down);
+    assert_eq!(h.app().selected_item(), Some("beta"));
     let _ = h.key(KeyCode::Char('j'));
     assert_eq!(h.app().selected_item(), Some("beta"));
+    let _ = h.key(KeyCode::Char('k'));
+    assert_eq!(h.app().selected_item(), Some("beta"));
+    let _ = h.key_mod(KeyCode::Char('J'), KeyModifiers::SHIFT);
+    assert_eq!(h.app().selected_item(), Some("beta"));
+    let _ = h.key_mod(KeyCode::Char('K'), KeyModifiers::SHIFT);
+    assert_eq!(h.app().selected_item(), Some("beta"));
+    let _ = h.key(KeyCode::Char('g'));
+    assert_eq!(h.app().selected_item(), Some("beta"));
+    let _ = h.key(KeyCode::Char('G'));
+    assert_eq!(h.app().selected_item(), Some("beta"));
+
+    let _ = h.key(KeyCode::Down);
+    let _ = h.key(KeyCode::Down);
+    assert_eq!(h.app().selected_item(), Some("gamma"));
+    let mut home_remap = KeyMap::new();
+    home_remap.remap_component(RADIO, ActionKey::custom("First"), Chord::key(KeyCode::Home));
+    h.app_mut().keymap = home_remap;
+    let _ = h.key(KeyCode::Home);
+    assert_eq!(h.app().selected_item(), Some("alpha"));
+    let _ = h.key(KeyCode::End);
+    assert_eq!(h.app().selected_item(), Some("alpha"));
     assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
 }
 

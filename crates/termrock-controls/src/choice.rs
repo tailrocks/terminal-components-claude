@@ -55,7 +55,7 @@ pub enum RadioKeyPolicy {
     Desktop,
     /// Use arrows, Vim `j`/`k`/`J`/`K`/`g`/`G`, and Home/End.
     Vim,
-    /// Preserve arrows and `j`/`k`, and do not bind Home or End.
+    /// Use arrows without Vim keys or default Home/End bindings.
     NoHomeEnd,
 }
 
@@ -261,18 +261,6 @@ const RADIO_NO_HOME_END: &[Binding<ChoiceCmd>] = &[
     ),
     b(Chord::key(KeyCode::Up), ChoiceCmd::Prev, "Up", true),
     b(Chord::key(KeyCode::Down), ChoiceCmd::Next, "Down", true),
-    b(
-        Chord::key(KeyCode::Char('k')),
-        ChoiceCmd::Prev,
-        "Up (K)",
-        false,
-    ),
-    b(
-        Chord::key(KeyCode::Char('j')),
-        ChoiceCmd::Next,
-        "Down (J)",
-        false,
-    ),
     action_without_default_chord(ChoiceCmd::First, "First"),
     action_without_default_chord(ChoiceCmd::Last, "Last"),
 ];
