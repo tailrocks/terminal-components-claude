@@ -8,13 +8,16 @@ use crate::focus::Focusability;
 use crate::id::{Id, Part, PartRef};
 use crate::intent::Intent;
 use crate::keymap::{Binding, BindingState, Bindings, HintLayer};
-use crate::layer::{Anchor, DismissReason, LayerEvent, LayerSize, LayerSpec, ScreenAlign};
+use crate::layer::{
+    Anchor, DismissReason, LayerEvent, LayerOpening, LayerSize, LayerSpec, ScreenAlign, UpdateToken,
+};
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
 use crate::scroll::ScrollState;
 use crate::text::width;
 use crate::theme::{Family, GlyphRole, Modifier, Role, StylePatch, Surface, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
+use termrock_controls::Button;
 use termrock_core::geometry::{Axes, Headroom};
 use termrock_feedback::keyhint::HintText;
 use termrock_runtime::scroll_region::ScrollRegion;
@@ -93,6 +96,7 @@ impl<'a> HelpSection<'a> {
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct HelpOverlayState {
     scroll: ScrollState,
+    action_close: Option<(LayerOpening, UpdateToken)>,
 }
 
 impl HelpOverlayState {
@@ -306,6 +310,7 @@ impl<'a> HelpOverlay<'a> {
     }
 
     pub fn update(&self, cx: &mut Cx<'_>, st: &mut HelpOverlayState) -> Response<HelpAction> {
+        let action_close = st.action_close.take();
         if cx.is_open(self.id) {
             cx.resize_layer(self.id, self.measured_size(cx));
         }
@@ -316,15 +321,46 @@ impl<'a> HelpOverlay<'a> {
         let scroll = self.scrollbar().update(cx, &mut st.scroll, content_len);
         let mut acc = Acc::new();
         acc.fold(&scroll);
+        let done = Button::new(self.done_id(), "Done").update(cx);
+        let done_activated = done.activated() && cx.is_open(self.id);
+        if done_activated {
+            let close_token = self.close_token(cx);
+            cx.close_layer(self.id, None);
+            st.action_close = close_token;
+            acc.action(HelpAction::Closed(DismissReason::Programmatic));
+        } else {
+            acc.fold(&done.erase());
+        }
         for intent in cx.intents(self.id) {
             let response = match intent {
                 Intent::Layer(LayerEvent::Dismissed(reason)) => {
-                    Response::action(HelpAction::Closed(reason))
+                    let receipt = cx.layer_event_receipt(self.id);
+                    let dismissed_after_action = reason == DismissReason::Programmatic
+                        && action_close.is_some_and(|action_close| {
+                            receipt.is_some_and(|receipt| {
+                                receipt.opening() == action_close.0
+                                    && receipt.update() == Some(action_close.1)
+                            })
+                        });
+                    if dismissed_after_action {
+                        Response::ignored().repaint()
+                    } else {
+                        Response::action(HelpAction::Closed(reason))
+                    }
                 }
-                Intent::Layer(_) => Response::ignored().repaint(),
+                Intent::Layer(_) => {
+                    let _ = cx.layer_event_receipt(self.id);
+                    Response::ignored().repaint()
+                }
                 Intent::Cancel => {
-                    cx.close_layer(self.id, None);
-                    Response::action(HelpAction::Closed(DismissReason::Esc))
+                    if !done_activated && cx.is_open(self.id) {
+                        let close_token = self.close_token(cx);
+                        cx.close_layer(self.id, None);
+                        st.action_close = close_token;
+                        Response::action(HelpAction::Closed(DismissReason::Esc))
+                    } else {
+                        Response::ignored()
+                    }
                 }
                 Intent::Binding(action) => match Binding::command(BINDINGS, action) {
                     Some(HelpCmd::Prev) => scroll_by(&mut st.scroll, -1),
@@ -332,8 +368,14 @@ impl<'a> HelpOverlay<'a> {
                     Some(HelpCmd::PageUp) => page(&mut st.scroll, false),
                     Some(HelpCmd::PageDown) => page(&mut st.scroll, true),
                     Some(HelpCmd::Close) => {
-                        cx.close_layer(self.id, None);
-                        Response::action(HelpAction::Closed(DismissReason::Programmatic))
+                        if !done_activated && cx.is_open(self.id) {
+                            let close_token = self.close_token(cx);
+                            cx.close_layer(self.id, None);
+                            st.action_close = close_token;
+                            Response::action(HelpAction::Closed(DismissReason::Programmatic))
+                        } else {
+                            Response::ignored()
+                        }
                     }
                     None => Response::ignored(),
                 },
@@ -346,6 +388,11 @@ impl<'a> HelpOverlay<'a> {
             }
         }
         acc.finish(self.id)
+    }
+
+    fn close_token(&self, cx: &Cx<'_>) -> Option<(LayerOpening, UpdateToken)> {
+        cx.layer_opening(self.id)
+            .map(|opening| (opening, cx.update_token()))
     }
 
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &HelpOverlayState) -> Rect {
@@ -660,7 +707,11 @@ impl<'a> HelpOverlay<'a> {
             gutter,
         );
         ui.paint_str(cell_row(x, y, bw), label, face);
-        ui.register_control(self.done_id(), cell_row(x, y, bw), Focusability::Focusable);
+        let id = self.done_id();
+        ui.register_control(id, cell_row(x, y, bw), Focusability::Focusable);
+        let done = Button::new(id, "Done");
+        let state = ui.state(id);
+        ui.publish_bindings(id, state, done.bindings(BindingState { flags: state }));
     }
 
     pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
