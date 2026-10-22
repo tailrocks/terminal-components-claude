@@ -14,6 +14,12 @@ const EDITOR: Id = Id::root("showcase_ui::pages::editor::editor.code");
 const EDITOR_FIND: Id = Id::root("showcase_ui::pages::editor::editor.find");
 const EDITOR_RUN: Id = Id::root("showcase_ui::pages::editor::editor.run");
 const EDITOR_STATE_LIST: Id = Id::root("showcase_ui::pages::editor::editor.state.list");
+const DIALOG_OPEN: Id = Id::root("showcase_ui::pages::dialog_kinds::dialog_kinds.open_form");
+const DIALOG_FORM: Id = Id::root("showcase_ui::pages::dialog_kinds::dialog_kinds.connection");
+const DIALOG_NAME: Id = DIALOG_FORM.part(Part::BODY).part(Part::FIELD).index(0);
+const DIALOG_KEY: Id = DIALOG_FORM.part(Part::BODY).part(Part::FIELD).index(6);
+const DIALOG_SAVE: Id = DIALOG_FORM.part(Part::BODY).part(Part::ACTIONS).index(2);
+const DIALOG_PICKER: Id = Id::root("showcase_ui::pages::dialog_kinds::dialog_kinds.ssh_keys");
 
 fn harness(page: PageId) -> Harness<App> {
     Harness::new(App::with_page(page), Theme::junie(), 120, 40)
@@ -235,6 +241,18 @@ fn exercise_page_state(h: &mut Harness<App>, page: PageId) {
             press(h, KeyCode::Esc);
             assert!(h.text().contains("Cancelled"));
             assert_eq!(h.top_layer(), LayerId::PAGE);
+        }
+        PageId::DialogKinds => {
+            let (x, y) = require(h.find("Add connection…"), "Add connection opener");
+            click(h, x.saturating_add(1), y);
+            assert!(h.text().contains("Add connection"));
+            assert_ne!(h.top_layer(), LayerId::PAGE, "opener opens the form");
+            let (x, y) = require(h.find("Cancel"), "dialog cancel action");
+            click(h, x.saturating_add(1), y);
+            assert_eq!(h.top_layer(), LayerId::PAGE);
+            assert!(!h.is_open(DIALOG_FORM), "Cancel closes the form");
+            assert!(h.text().contains("Form · Cancel"), "{}", h.text());
+            assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
         }
         PageId::Progress => {
             let before = h.snapshot().digest();
@@ -677,7 +695,175 @@ fn launches_and_renders_shell() {
     assert!(text.contains("Playground"));
     assert!(text.contains("Tokens and principles behind every component"));
     assert_eq!(NAV_ENTRIES.len(), 54);
-    assert_eq!(PageId::ALL.len(), 23);
+    assert_eq!(PageId::ALL.len(), 24);
+    assert_eq!(PageId::from_name("Dialog kinds"), Some(PageId::DialogKinds));
+}
+
+#[test]
+fn dialog_kinds_add_connection_uses_live_form_and_stacked_picker() {
+    let mut h = harness(PageId::DialogKinds);
+    let open = require(h.find("Add connection…"), "Add connection opener");
+    click(&mut h, open.0.saturating_add(1), open.1);
+    assert!(h.text().contains("Add connection"));
+    assert!(h.text().contains("orders-prod"));
+    assert!(h.text().contains("db.eu-west-1.internal"));
+    assert!(!h.text().contains("demo-only"));
+    assert!(
+        h.text()
+            .contains("postgres://db.eu-west-1.internal/orders-prod")
+    );
+
+    let tunnel = require(h.find("Connect through an SSH tunnel"), "tunnel checkbox");
+    click(&mut h, tunnel.0, tunnel.1);
+    let _chooser = require(h.find("Choose…"), "visible SSH key chooser");
+    assert!(h.tab_to(DIALOG_KEY), "chooser is in the dialog focus order");
+    press(&mut h, KeyCode::Enter);
+    assert!(h.is_open(DIALOG_PICKER), "chooser opens the nested picker");
+    assert!(
+        h.text().contains("~/.ssh/prod_rsa"),
+        "picker did not open\n{}",
+        h.text()
+    );
+    press(&mut h, KeyCode::Down);
+    press(&mut h, KeyCode::Enter);
+    assert!(
+        h.text().contains("~/.ssh/prod_rsa"),
+        "chosen key not reflected\n{}",
+        h.text()
+    );
+    assert!(
+        h.diagnostics().is_empty(),
+        "after choosing SSH key: {:?}",
+        h.diagnostics()
+    );
+    assert_eq!(
+        h.focus(),
+        Some(DIALOG_KEY),
+        "picker choice restores form focus"
+    );
+
+    assert!(
+        h.tab_to(DIALOG_NAME),
+        "name field remains in the form focus order"
+    );
+    press(&mut h, KeyCode::Home);
+    for _ in 0..11 {
+        press(&mut h, KeyCode::Delete);
+    }
+    type_text(&mut h, "billing");
+    assert!(
+        h.text()
+            .contains("postgres://db.eu-west-1.internal/billing"),
+        "preview follows the live edit\n{}",
+        h.text()
+    );
+
+    let test = require(h.find("Test connection"), "test action");
+    click(&mut h, test.0.saturating_add(1), test.1);
+    assert!(h.text().contains("Connected in 42 ms"));
+    assert!(h.text().contains("Add connection"), "test keeps form open");
+    assert!(
+        h.diagnostics().is_empty(),
+        "after test action: {:?}",
+        h.diagnostics()
+    );
+
+    assert!(
+        h.tab_to(DIALOG_SAVE),
+        "Save action is in the dialog focus order"
+    );
+    press(&mut h, KeyCode::Enter);
+    assert!(!h.is_open(DIALOG_FORM), "Save closes the form");
+    assert!(h.text().contains("Form · Save · billing"));
+    assert_eq!(h.top_layer(), LayerId::PAGE);
+    assert!(
+        h.diagnostics().is_empty(),
+        "after save: {:?}",
+        h.diagnostics()
+    );
+    assert_eq!(
+        h.focus(),
+        Some(DIALOG_OPEN),
+        "closing the form restores focus to its opener"
+    );
+    press(&mut h, KeyCode::Tab);
+    assert!(
+        h.text().contains("Form · Save · billing"),
+        "a later input must not reinterpret the Save receipt as Cancel\n{}",
+        h.text()
+    );
+    let open = require(
+        h.find("Add connection…"),
+        "Add connection opener after Save",
+    );
+    click(&mut h, open.0.saturating_add(1), open.1);
+    assert!(
+        h.text().contains("orders-prod"),
+        "Save leaves the next form fresh"
+    );
+    assert!(
+        h.is_open(DIALOG_FORM),
+        "reopening remains possible after Save"
+    );
+}
+
+#[test]
+fn dialog_kinds_picker_escape_restores_form_and_cancel_discards_changes() {
+    let mut h = harness(PageId::DialogKinds);
+    let open = require(h.find("Add connection…"), "Add connection opener");
+    click(&mut h, open.0.saturating_add(1), open.1);
+    let tunnel = require(h.find("Connect through an SSH tunnel"), "tunnel checkbox");
+    click(&mut h, tunnel.0, tunnel.1);
+    let _chooser = require(h.find("Choose…"), "visible SSH key chooser");
+    assert!(h.tab_to(DIALOG_KEY), "chooser is in the dialog focus order");
+    press(&mut h, KeyCode::Enter);
+    assert!(h.is_open(DIALOG_PICKER), "chooser opens the nested picker");
+    assert!(
+        h.text().contains("~/.ssh/prod_rsa"),
+        "picker did not open\n{}",
+        h.text()
+    );
+    press(&mut h, KeyCode::Esc);
+    assert!(h.text().contains("Add connection"));
+    assert!(
+        h.text().contains("Choose…"),
+        "form returned without its chooser\n{}",
+        h.text()
+    );
+    assert_eq!(h.focus(), Some(DIALOG_KEY), "Escape restores form focus");
+    assert!(
+        h.diagnostics().is_empty(),
+        "after picker Escape: {:?}",
+        h.diagnostics()
+    );
+    press(&mut h, KeyCode::Esc);
+    assert!(
+        !h.is_open(DIALOG_FORM),
+        "Escape closes the form\n{}",
+        h.text()
+    );
+    assert_eq!(h.top_layer(), LayerId::PAGE);
+    assert!(h.text().contains("Form · Cancel"), "{}", h.text());
+    assert!(
+        h.diagnostics().is_empty(),
+        "after form Escape: {:?}",
+        h.diagnostics()
+    );
+
+    let open = require(
+        h.find("Add connection…"),
+        "Add connection opener after cancel",
+    );
+    click(&mut h, open.0.saturating_add(1), open.1);
+    assert!(
+        h.text().contains("orders-prod"),
+        "cancel discards the draft"
+    );
+    assert!(
+        !h.text().contains("Choose…"),
+        "cancel resets the tunnel flag"
+    );
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
 }
 
 #[test]
