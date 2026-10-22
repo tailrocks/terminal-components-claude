@@ -277,7 +277,7 @@ const KIND_PRIMARY: u8 = 1;
 const KIND_FOREIGN: u8 = 2;
 
 type GridScrollSnapshot = (termrock::Rect, usize, usize, Option<usize>);
-fn digit_count(mut n: usize) -> u16 {
+const fn digit_count(mut n: usize) -> u16 {
     if n == 0 {
         return 1;
     }
@@ -289,7 +289,10 @@ fn digit_count(mut n: usize) -> u16 {
     count
 }
 
-fn format_row_number(buf: &mut [u8; 16], num: usize, width: usize) -> &str {
+const MAX_USIZE_DECIMAL_BYTES: usize = digit_count(usize::MAX) as usize;
+const HIDDEN_LABEL_BUFFER_BYTES: usize = MAX_USIZE_DECIMAL_BYTES + "›".len();
+
+fn format_row_number(buf: &mut [u8; MAX_USIZE_DECIMAL_BYTES], num: usize, width: usize) -> &str {
     let mut n = num;
     let mut idx = buf.len();
     if n == 0 {
@@ -317,7 +320,7 @@ fn format_row_number(buf: &mut [u8; 16], num: usize, width: usize) -> &str {
         .unwrap_or("")
 }
 
-fn format_hidden_label(buf: &mut [u8; 16], num: usize) -> &str {
+fn format_hidden_label(buf: &mut [u8; HIDDEN_LABEL_BUFFER_BYTES], num: usize) -> &str {
     let mut n = num;
     let arrow = "›".as_bytes();
     let mut idx = buf.len();
@@ -1117,7 +1120,7 @@ fn paint_grid_header(
     }
     if chrome.columns > chrome.complete {
         let hidden = chrome.columns.saturating_sub(chrome.complete);
-        let mut label_buf = [0u8; 16];
+        let mut label_buf = [0u8; HIDDEN_LABEL_BUFFER_BYTES];
         let label = format_hidden_label(&mut label_buf, hidden);
         let label_w = width(label);
         let end = area
@@ -1186,7 +1189,7 @@ fn paint_row_numbers(
     let digits = usize::from(chrome.gutter.saturating_sub(4)).max(1);
     let visible = usize::from(area.height.saturating_sub(1)).min(rows);
     let plain = ui.surface_style().remove_modifier(Modifier::BOLD);
-    let mut num_buf = [0u8; 16];
+    let mut num_buf = [0u8; MAX_USIZE_DECIMAL_BYTES];
     for row in 0..visible {
         let y = area.y.saturating_add(1).saturating_add(row as u16);
         let model_row = origin.saturating_add(row);
@@ -1392,5 +1395,50 @@ pub(crate) fn result_grid<'a>(id: Id, columns: &'a [termrock::Column<'a>]) -> Gr
         grid.header_prefixes(&ID_HEADER_PREFIX)
     } else {
         grid
+    }
+}
+
+#[cfg(test)]
+mod row_number_formatting_tests {
+    use super::{
+        HIDDEN_LABEL_BUFFER_BYTES, MAX_USIZE_DECIMAL_BYTES, digit_count, format_hidden_label,
+        format_row_number,
+    };
+
+    #[test]
+    fn row_number_formats_the_full_usize_range() {
+        let mut buffer = [0; MAX_USIZE_DECIMAL_BYTES];
+        let number = usize::MAX;
+
+        assert_eq!(
+            format_row_number(&mut buffer, number, usize::from(digit_count(number))),
+            number.to_string()
+        );
+    }
+
+    #[test]
+    fn hidden_column_label_formats_the_full_usize_range() {
+        let mut buffer = [0; HIDDEN_LABEL_BUFFER_BYTES];
+
+        assert_eq!(
+            format_hidden_label(&mut buffer, usize::MAX),
+            format!("{}›", usize::MAX)
+        );
+    }
+
+    #[test]
+    fn row_number_preserves_zero_padding_and_wider_digits() {
+        let mut buffer = [0; MAX_USIZE_DECIMAL_BYTES];
+
+        assert_eq!(format_row_number(&mut buffer, 0, 4), "   0");
+        assert_eq!(format_row_number(&mut buffer, 123, 5), "  123");
+        assert_eq!(format_row_number(&mut buffer, 123, 2), "123");
+    }
+
+    #[test]
+    fn hidden_column_label_formats_zero() {
+        let mut buffer = [0; HIDDEN_LABEL_BUFFER_BYTES];
+
+        assert_eq!(format_hidden_label(&mut buffer, 0), "0›");
     }
 }
