@@ -1450,10 +1450,23 @@ fn parse_static_include(tokens: &Tokens, at: usize, end: usize) -> Option<String
 }
 
 fn skipped_item_has_unmodeled_routes(tokens: &Tokens, start: usize, end: usize) -> bool {
-    if has_unmodeled_derive_attribute(tokens, start, end) {
-        return true;
-    }
-    for index in start..end {
+    let mut index = start;
+    while index < end {
+        if is_punct(tokens, index, '#') {
+            let Some((next, inner, attribute)) = parse_attribute(tokens, index, end) else {
+                return true;
+            };
+            let bracket = index + usize::from(inner) + 1;
+            let is_derive = ident_at(tokens, bracket + 1) == Some("derive");
+            if !attribute.complete || (!inner && is_derive) {
+                return true;
+            }
+            // Advance over the complete attribute, including its arguments. A
+            // hash-like token inside known inert metadata is not a second
+            // attached attribute.
+            index = next;
+            continue;
+        }
         if ident_at(tokens, index) == Some("mod")
             && ident_at(tokens, index + 1).is_some()
             && (is_punct(tokens, index + 2, ';') || is_punct(tokens, index + 2, '{'))
@@ -1466,25 +1479,9 @@ fn skipped_item_has_unmodeled_routes(tokens: &Tokens, start: usize, end: usize) 
         if is_item_macro(tokens, index, end) && macro_starts_block_item(tokens, start, index) {
             return true;
         }
+        index += 1;
     }
     false
-}
-
-fn has_unmodeled_derive_attribute(tokens: &Tokens, start: usize, end: usize) -> bool {
-    (start..end).any(|index| {
-        if !is_punct(tokens, index, '#') {
-            return false;
-        }
-        let bracket = index + usize::from(is_punct(tokens, index + 1, '!')) + 1;
-        if !is_punct(tokens, bracket, '[') {
-            return false;
-        }
-        let Some(close) = tokens.pairs.get(bracket).and_then(|pair| *pair) else {
-            return true;
-        };
-        (bracket + 1..close)
-            .any(|attribute_index| ident_at(tokens, attribute_index) == Some("derive"))
-    })
 }
 
 fn macro_starts_block_item(tokens: &Tokens, item_start: usize, macro_start: usize) -> bool {
