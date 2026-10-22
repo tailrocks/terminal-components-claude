@@ -1181,3 +1181,90 @@ exited 0 and detached-workspace profile discovery succeeded. A separate root-cwd
 `show-config test-groups` probe with an explicit config path began `cargo test --no-run`;
 its owned process group was stopped before tests, the transient root `Cargo.lock` diff was
 preserved in operator-local evidence, and the committed lockfile content was restored.
+
+
+### Disk-pressure priority and completed-cache cleanup (2026-10-22)
+
+The user made aggressive disk cleanup the first priority. New application builds and captures
+are paused. The coordinator and task owners removed only completed, task-owned disposable
+build outputs after checking exact task paths and absence of open files. Source,
+unpushed changes, reference revisions, immutable artifacts and raw review receipts remain intact.
+
+The completed CodeEditor target removed approximately 3.12 GiB of allocated cache while retaining its 43,905,536-byte
+final executable by a same-filesystem rename with unchanged SHA-256. Its original metadata path
+is consequently stale and needs explicit remapping before any future authorized reuse. Cleanup
+manifest SHA-256: `f4a2020b48edc8edfe9e75869c9119c7f75fce4b61e4717c3c8d7b94c7d9770c`.
+Four additional completed prototype/lint/consumer targets removed 2,387,712 KiB of allocated cache; the exact
+path/open-file checks and removals are in `completed-build-cache-cleanup-20261022.json`, SHA-256
+`12143a04b7115c5cfc1cbbb1e7b9472313cb7920b7003c32d3a89756ca15384b`.
+Completed consumer and detached review worktrees were also removed normally after verifying
+clean status and retained source reachability. No foreign managed cache was removed.
+
+Approximately 61 GiB of historical review exports require further custody analysis. Their raw
+files must not simply be discarded: existing compressed chunks may already preserve identical
+bytes. Independent checks are comparing those streams before any exact duplicate removal.
+This cleanup changes storage representation only; it does not approve source transfers, resolve
+reference conflicts or complete application verification. System-wide free-space changes are
+not attributed wholly to these removals because other sessions share the disk.
+
+
+Three further generated Rust caches were removed, totaling 1,967,676 KiB. Both button-probe
+checkouts retained their uncommitted source/PNG changes, with modified-file hashes identical
+before and after removal; the prototype source remained unchanged. Receipt:
+`rust-build-cache-cleanup-20261022.txt`, SHA-256
+`03ac0da45e48de5ddcd3dcfed58b516b7ae675b76c3a59299e97a062eef8bce0`.
+
+A003's historical raw `source.patch` and duplicate command stdout were then compacted without
+creating a new archive. Two independent checks proved that the retained 233 ordered gzip
+chunks reconstruct exactly 3,069,130,756 bytes with full-stream SHA-256
+`e9ff821f0bf8a50d72b1d53382fadf1210f55d2681319457948bfd3bde769681`.
+The duplicate stdout was separately hashed against the same proven stream. Fresh inode/stat,
+retained-chunk and open-file checks preceded each exact unlink. Original receipts, native file
+metadata and extended-attribute listings remain preserved. Custody maps were sealed before
+removal; their SHA-256 values are
+`4bf1751ffe63b0e93756a7d5a807882bf6390a322888c9179dbace62b934d6ab`
+and `dee99f77cfe17351aa3bd60ed665163ee8e12f7b571e3270004678d9d36abe13`.
+The two raw representations accounted for 6,138,265,600 allocated bytes.
+
+Detailed deletion receipts are `a003-source-raw-cleanup-receipt-20261022.json` and
+`a003-stdout-raw-cleanup-receipt-20261022.json` in the operator evidence root. The old unpacked
+layout is now superseded: direct readers and exporter resumes must explicitly resolve custody
+or reconstruct and verify the original path. The completed compressed export, incomplete legacy
+job, failed attempts and source-review status retain their original meanings. This storage
+compaction grants no quality or acceptance approval. Additional exact duplicates remain under
+verification; no unverified raw stream or canonical Git/reference store was removed.
+
+
+A004's corresponding two raw representations were also removed after its execution-bound
+233-chunk/two-file comparison and independent script/receipt review. Both files reconstructed
+exactly 3,069,127,303 bytes with SHA-256
+`eff02f2a573d02e2404c36efc4f16f57c022e3361413aba060efa901ba5fcf14`.
+The deletion receipt records exact paths, absent-after state and allocation estimates;
+all original metadata and receipts remain preserved. The retained gzip stage and sealed maps
+replace 6,138,257,408 allocated bytes. See `a004-raw-cleanup-receipt-20261022.json`.
+
+A006's canonical 12,763,655,660-byte `source.patch` remains present and explicitly pinned by
+`source.patch.custody-pin.json`, SHA-256
+`ccc66091adb752bf6100f21fb2e0a287dd368d18748b411b2051893b6743bbe6`.
+An independently executed full comparison proved its duplicate successful stdout byte-identical
+with full SHA-256 `7d28e1393d1c35a34d831758c2db08d5a190e99c45ea02e2fe0c17e1282c2364`.
+A separate bounded comparison proved the failed stdout is exactly its first 10,446,487,552 bytes,
+SHA-256 `080cc35577df2d39771078ca6b1a41786a3c5bda1f7ef83d383f700bbd235935`.
+The saved script, execution receipt, raw logs, metadata and range-custody contract received
+independent review before fresh coordinator checks and exact duplicate-only removal. Both
+successful and failed attempt receipts retain their original statuses; the failed attempt remains
+failed. The initial inline full-comparison report's execution-binding limitation is preserved and
+superseded by the later saved-script/receipt execution, not silently repaired.
+
+The two A006 stdout representations accounted for 23,210,143,744 allocated bytes. Their sealed
+maps bind canonical full-stream custody and the exact failed prefix range; the canonical file
+must not be removed until both dependencies are migrated and independently verified. See
+`a006-duplicate-and-prefix-cleanup-receipt-20261022.json` and the sealed review
+`A006-DUPLICATE-AND-PREFIX-CUSTODY-REVIEW.md`, SHA-256
+`c2229d4e4ec50d5b6c8265641d731fdb47122b6fe2bf6445eb9f74881aa99a22`.
+
+The task work area measured 156 GiB before cleanup and 116 GiB after these removals. Recorded
+cache/raw allocation estimates total approximately 40.3 GiB, plus small completed worktrees.
+No new large archive or copy was created. System-wide availability reached 685 GiB while other
+sessions also cleaned the shared disk. Remaining smaller chunk duplicates are still being checked;
+new build/capture work remains paused during that cleanup.
