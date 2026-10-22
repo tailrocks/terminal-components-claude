@@ -12,27 +12,12 @@ use super::{App, Route};
 /// The paused narrow manager paints the approved frame while every
 /// transient state stays closed and the list rests on its first row.
 pub(super) fn approved(app: &App, _ui: &Ui<'_>, screen: Rect) -> bool {
-    if !(screen.width < 120
+    screen.width < 120
         && app.route == Route::Manager
         && app.world.scenario == Scenario::HardCases
         && app.motion == Motion::Paused
-        && app.status.is_none()
-        && !app.help_open
-        && !app.quit_open
-        && !app.cancel_open
-        && !app.about_open
-        && !app.manager_file_menu
-        && !app.manager_inspect
-        && app.launch.is_none()
-        && app.picker_mode.is_none()
-        && !app.launch_picker_open
-        && app.agent_options.is_empty()
-        && app.active_instance.is_none()
-        && !app.manager.detail_open())
-    {
-        return false;
-    }
-    on_first_row(app)
+        && !app.overlay_open()
+        && on_first_row(app)
 }
 
 fn on_first_row(app: &App) -> bool {
