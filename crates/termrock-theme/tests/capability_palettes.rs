@@ -67,11 +67,21 @@ fn all_73_junie_slots_match_reference_capability_output() {
             // index 242); the approved 256 frames use those indices.
             expected.fg[2] = Color::Indexed(245);
             expected.fg[3] = Color::Indexed(242);
+            // The frozen ghost dim ink renders as cell 238 at this level: the
+            // covered page blanks in the approved 256 frames carry i(238)
+            // (the apply_256 text_ghost), not the source #262626 cube cell.
+            // Frozen-corpus evidence: docs/audits/2026-10-22-dim-wave-3-per-source-ink.md.
+            expected.fg[4] = Color::Indexed(238);
             // #19191c is gray 233 by the cube rule. apply_256 uses 232.
             expected.on_accent = Color::Indexed(232);
             // #4d4d4d is gray 238 by the cube rule. apply_256 border_strong
             // is 242. Query seams use a custom role that stays 239.
             expected.border_strong = Color::Indexed(242);
+            // The frozen quiet borders render as cell 238 at this level
+            // (the apply_256 border_subtle), not the source #262626 cube
+            // cell. Frozen-corpus evidence:
+            // docs/audits/2026-10-22-dim-wave-3-per-source-ink.md.
+            expected.border_subtle = Color::Indexed(238);
             // The frozen source apply_256 table sets the syntax keyword to
             // i(111), the string to i(116) and the literal to i(183); the
             // approved 256 code editor frame paints 111, 116, 183, 245 and
@@ -104,6 +114,11 @@ fn all_73_junie_slots_match_reference_capability_output() {
             // Corpus stale/unknown meter ink shares the faint/chrome source.
             expected.meter.stale = Color::Indexed(238);
             expected.meter.unknown = Color::Indexed(238);
+            // The frozen dim backdrop ink renders as cell 238 at this level
+            // (the apply_256 text_ghost), not the source #262626 cube cell.
+            // Frozen-corpus evidence:
+            // docs/audits/2026-10-22-dim-wave-3-per-source-ink.md.
+            expected.backdrop_fg = Color::Indexed(238);
             expected.disabled_fg = Color::Indexed(239);
         }
         if level == ColorLevel::Ansi16 {

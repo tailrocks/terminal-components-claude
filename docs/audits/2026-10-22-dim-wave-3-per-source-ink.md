@@ -74,3 +74,12 @@ Pre-existing reds left untouched: the two adjudication-pending
 termrock-theme tests (`standalone_empty_cells...` fingerprint,
 `a_hovered_disabled_part...`) and the termrock-conformance digest reds,
 which reproduce at the base commit.
+
+Landing amendment (2026-10-22, parity tip): the frozen-slot override
+lines for `fg[4]`, `border_subtle` and `backdrop_fg` at Ansi256 were
+registered in the
+`all_73_junie_slots_match_reference_capability_output` reference test
+(crates/termrock-theme/tests/capability_palettes.rs) with the
+frozen-corpus citation above, as part of landing the wave on
+`origin/parity/termrock-visual-baseline`; the test fails on the
+pre-amendment wave tip d39b09e607 and passes with the lines.
