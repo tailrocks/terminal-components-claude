@@ -9,14 +9,15 @@ use termrock::author::PaintStyle;
 
 use termrock::{
     Action, ActionKey, ActivationKey, App as TuiApp, AsItem, Brand, Button, Chord, ContextMenu, Cx,
-    Dialog, DialogAction, DialogState, FrameRead, GlyphRole, HelpAction, HelpOverlay,
+    Dialog, DialogAction, DialogState, Dismiss, FrameRead, GlyphRole, HelpAction, HelpOverlay,
     HelpOverlayState, HelpSection, Hint, HintBar, HintLayer, Id, Intent, Item, ItemKey, KeyCode,
-    KeyMap, KeyModifiers, KeyPhase, List, ListAction, ListState, Menu, MenuAction, MenuBar,
-    MenuBarHoverScope, MenuItem, MenuState, Modifier, Moment, NavList, NavListAction, NavListState,
-    Panel, Part, PartRef, Phase, Picker, PickerAction, PickerState, Position, ProjectedText,
-    PropsList, PropsRow, PropsState, Reconcile, Rect, Response, RowUi, SecretPolicy, StatusBar,
-    StatusItem, Tabs, TabsAction, TabsState, TextAction, TextInput, TextInputState, TextViewport,
-    TooSmall, Ui, UpdateCause, Variant, ViewportAction, ViewportLine, ViewportState,
+    KeyMap, KeyModifiers, KeyPhase, LayerEvent, LayerOpening, LayerSpec, List, ListAction,
+    ListState, Menu, MenuAction, MenuBar, MenuBarHoverScope, MenuItem, MenuState, Modifier, Moment,
+    NavList, NavListAction, NavListState, Panel, Part, PartRef, Phase, Picker, PickerAction,
+    PickerState, Position, ProjectedText, PropsList, PropsRow, PropsState, Reconcile, Rect,
+    Response, RowUi, SecretPolicy, StatusBar, StatusItem, Tabs, TabsAction, TabsState, TextAction,
+    TextInput, TextInputState, TextViewport, TooSmall, Ui, UpdateCause, Variant, ViewportAction,
+    ViewportLine, ViewportState,
 };
 
 use crate::domain::account::{
@@ -65,6 +66,12 @@ impl std::fmt::Display for ManagerRow {
     }
 }
 
+#[derive(Debug, Clone)]
+struct AccountFormReturn {
+    selected_id: Option<String>,
+    list: ListState,
+}
+
 pub const APP: Id = Id::root("jackin.preview");
 pub const ENTER: Id = APP.sub("enter");
 pub const MANAGER: Id = APP.sub("manager");
@@ -77,6 +84,10 @@ const USAGE_TABS: [&str; 3] = ["Overview", "Registration", "Quota"];
 pub const ACCOUNTS_LIST: Id = crate::screens::accounts::LIST;
 pub const LAUNCH: Id = crate::screens::manager::LAUNCH;
 pub const ACCOUNT_ADD: Id = APP.sub("account-add");
+pub const ACCOUNT_FORM_LAYER: Id = APP.sub("account-form-layer");
+const ACCOUNT_FORM_BACKDROP: Id = ACCOUNT_FORM_LAYER.sub("backdrop");
+const ACCOUNT_FORM_PANEL_SHIELD: Id = ACCOUNT_FORM_LAYER.sub("panel-shield");
+const ACCOUNT_FORM_CLOSE: Id = ACCOUNT_FORM_LAYER.sub("close");
 pub const SETTINGS_TRUST: Id = crate::screens::settings::TRUST;
 pub const CAPSULE_TABS: Id = crate::screens::capsule::TABS;
 pub const CAPSULE_PANES: Id = crate::screens::capsule::PANES;
@@ -570,6 +581,10 @@ pub struct App {
     pub world: World,
     pub manager: ManagerState,
     pub accounts: AccountsState,
+    account_form_return: Option<AccountFormReturn>,
+    account_form_opening: Option<LayerOpening>,
+    account_form_closing: Vec<LayerOpening>,
+    account_form_warning_ticks: u8,
     pub prelude: PreludeState,
     pub editor: EditorState,
     pub settings: SettingsState,
@@ -785,6 +800,10 @@ impl App {
             world,
             manager: ManagerState::default(),
             accounts: AccountsState::default(),
+            account_form_return: None,
+            account_form_opening: None,
+            account_form_closing: Vec::new(),
+            account_form_warning_ticks: 0,
             prelude: PreludeState::default(),
             editor: EditorState::default(),
             settings: SettingsState::default(),
@@ -2545,6 +2564,244 @@ impl App {
         cx.open_layer(ACCOUNT_PICKER, spec);
     }
 
+    fn restore_account_form_return(&mut self) {
+        let Some(snapshot) = self.account_form_return.take() else {
+            return;
+        };
+        let previous_index = snapshot.list.cursor().and_then(|key| match key {
+            ItemKey::Index(index) => Some(index),
+            _ => None,
+        });
+        self.accounts.list = snapshot.list;
+        let Some(selected_id) = snapshot.selected_id else {
+            self.accounts.selected_id = None;
+            return;
+        };
+        if self.world.accounts.get(&selected_id).is_some()
+            && let Some(index) = self.account_row_index(&selected_id)
+        {
+            if self.accounts.list.cursor() != Some(ItemKey::index(index)) {
+                self.accounts.list.set_cursor(index, ItemKey::index(index));
+            }
+            self.accounts.selected_id = Some(selected_id);
+            return;
+        }
+
+        let cursor = previous_index.unwrap_or(0);
+        let fallback = accounts_page::tree(self)
+            .rows
+            .iter()
+            .enumerate()
+            .filter_map(|(index, row)| {
+                matches!(&row.node, accounts_page::Node::Account(_)).then_some(index)
+            })
+            .min_by_key(|index| (index.abs_diff(cursor), *index));
+        if let Some(index) = fallback {
+            self.accounts.list.set_cursor(index, ItemKey::index(index));
+            self.accounts.selected_id = self.selected_account_id();
+        } else {
+            self.accounts.selected_id = None;
+        }
+    }
+
+    fn settle_account_form_layer(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        while let Some(receipt) = cx.take_layer_intent_receipt(ACCOUNT_FORM_LAYER) {
+            let opening = receipt.opening();
+            if self.account_form_opening == Some(opening)
+                || self.account_form_closing.contains(&opening)
+            {
+                match receipt.event() {
+                    LayerEvent::Opened => {}
+                    LayerEvent::Dismissed(_) | LayerEvent::Closed(_) => {
+                        if self.account_form_opening == Some(opening) {
+                            self.account_form_opening = None;
+                            if !self.account_form_closing.contains(&opening) {
+                                self.account_form_closing.push(opening);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        let closing = mem::take(&mut self.account_form_closing);
+        for opening in closing {
+            if let Some(outcome) = cx.focus_continuation_result(opening, ACCOUNTS_LIST)
+                && (!outcome.continued() || outcome.restored_focus() != Some(ACCOUNTS_LIST))
+            {
+                // A stale or redirected close has no Accounts-list resume to apply.
+                // A successful return stays pending until the real List update below.
+                let _ = cx.acknowledge_focus_continuation_result(opening, ACCOUNTS_LIST);
+            }
+            if cx.take_layer_completion(opening).is_some() {
+                if self.account_form_opening == Some(opening) {
+                    self.account_form_opening = None;
+                }
+            } else {
+                self.account_form_closing.push(opening);
+            }
+        }
+        Response::ignored()
+    }
+
+    fn update_account_list_focus_transition(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let focus_out_targets: Vec<_> = cx
+            .intents(ACCOUNTS_LIST)
+            .filter_map(|intent| match intent {
+                Intent::FocusOut { to: Some(target) } => Some(target),
+                _ => None,
+            })
+            .collect();
+        let rows = self.account_rows();
+        let list = List::new(ACCOUNTS_LIST).update(cx, &mut self.accounts.list, &rows);
+        for target in focus_out_targets {
+            if cx.focus_is_continued(ACCOUNTS_LIST, target) {
+                let _ = cx.acknowledge_focus_continuation(ACCOUNTS_LIST, target);
+            }
+        }
+        list.erase()
+    }
+
+    fn acknowledge_account_list_focus_results(&self, cx: &mut Cx<'_>) {
+        for opening in self.account_form_closing.iter().copied() {
+            if cx
+                .focus_continuation_result(opening, ACCOUNTS_LIST)
+                .is_some()
+            {
+                let _ = cx.acknowledge_focus_continuation_result(opening, ACCOUNTS_LIST);
+            }
+        }
+    }
+
+    fn sync_account_form_layer(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let mut result = self.settle_account_form_layer(cx);
+        if self.accounts.form_open && !self.accounts_add_form_scene() {
+            if let Some(opening) = cx.layer_opening(ACCOUNT_FORM_LAYER) {
+                if self.account_form_opening != Some(opening) {
+                    if let Some(previous) = self.account_form_opening.replace(opening)
+                        && !self.account_form_closing.contains(&previous)
+                    {
+                        self.account_form_closing.push(previous);
+                    }
+                    result |= Response::changed();
+                }
+            } else {
+                if let Some(previous) = self.account_form_opening.take()
+                    && !self.account_form_closing.contains(&previous)
+                {
+                    self.account_form_closing.push(previous);
+                }
+                let spec = LayerSpec::modal(ACCOUNT_FORM_LAYER)
+                    .dismiss(Dismiss::NONE)
+                    .continues_focus(ACCOUNTS_LIST)
+                    .size(termrock::LayerSize::Fill);
+                if let Some(opening) = cx.open_layer_with_token(ACCOUNT_FORM_LAYER, spec) {
+                    self.account_form_opening = Some(opening);
+                    result |= Response::changed();
+                }
+            }
+        }
+        result |= self.settle_account_form_layer(cx);
+        result
+    }
+
+    fn account_form_owns_input(&self, cx: &Cx<'_>) -> bool {
+        self.accounts.form_open
+            && self
+                .account_form_opening
+                .is_some_and(|opening| cx.layer_opening(ACCOUNT_FORM_LAYER) == Some(opening))
+    }
+
+    fn close_account_form_layer(&mut self, cx: &mut Cx<'_>, action: ActionKey) -> bool {
+        let Some(opening) = self.account_form_opening else {
+            return false;
+        };
+        if cx.layer_opening(ACCOUNT_FORM_LAYER) != Some(opening) {
+            return false;
+        }
+        self.account_form_opening = None;
+        if !self.account_form_closing.contains(&opening) {
+            self.account_form_closing.push(opening);
+        }
+        cx.close_layer(ACCOUNT_FORM_LAYER, Some(action));
+        true
+    }
+
+    fn update_account_form_host_controls(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let outside = cx.intents(ACCOUNT_FORM_BACKDROP).any(|intent| {
+            matches!(
+                intent,
+                Intent::Pointer {
+                    phase: Phase::Press | Phase::Click | Phase::DoubleClick,
+                    ..
+                }
+            )
+        });
+        let panel = cx.intents(ACCOUNT_FORM_PANEL_SHIELD).any(|intent| {
+            matches!(
+                intent,
+                Intent::Pointer {
+                    phase: Phase::Press | Phase::Click | Phase::DoubleClick,
+                    ..
+                }
+            )
+        });
+        let close = Button::new(ACCOUNT_FORM_CLOSE, "×")
+            .variant(Variant::QUIET)
+            .focusability(termrock::Focusability::ClickOnly)
+            .update(cx);
+        let close_chosen = close.activated();
+        let mut result = close.erase();
+        if outside || panel {
+            result |= Response::consumed();
+        }
+        if outside {
+            self.account_form_warning_ticks = 3;
+            result |= Response::changed();
+        }
+        if close_chosen {
+            if self.cancel_account_form(cx) {
+                self.status = Some("Cancelled account registration".into());
+                cx.focus(ACCOUNTS_LIST);
+                result |= Response::changed();
+            } else {
+                result |= Response::consumed();
+            }
+        }
+        result
+    }
+
+    fn cancel_account_form(&mut self, cx: &mut Cx<'_>) -> bool {
+        if !self.accounts_add_form_scene() && !self.account_form_owns_input(cx) {
+            return false;
+        }
+        if self.account_form_opening.is_some()
+            && !self.close_account_form_layer(cx, ActionKey::CANCEL)
+        {
+            return false;
+        }
+        self.accounts.close();
+        self.accounts.started = false;
+        self.accounts.editing = None;
+        self.accounts.draft_name.clear();
+        self.accounts.masked_input.clear();
+        self.accounts.name_input = TextInputState::default();
+        self.accounts.folder_input = TextInputState::default();
+        self.accounts.secret_input = TextInputState::default();
+        self.accounts.provider_list = ListState::default();
+        self.accounts.source_list = ListState::default();
+        self.accounts.provider_index = 0;
+        self.accounts.source_index = 0;
+        self.accounts.selected_op = None;
+        self.accounts.op_item.clear();
+        self.accounts.op_stage = 0;
+        self.add_form_backtab = false;
+        self.add_form_required = false;
+        self.op_item_key.clear();
+        self.account_form_warning_ticks = 0;
+        self.restore_account_form_return();
+        true
+    }
+
     /// Open the account form on the selected account.
     ///
     /// The form carries the current name, provider and credential, so the
@@ -2558,6 +2815,7 @@ impl App {
             self.status = Some("Select an account to edit".into());
             return;
         };
+        self.account_form_return = None;
         self.accounts.form_open = true;
         self.accounts.started = true;
         self.accounts.editing = Some(id);
@@ -4173,16 +4431,39 @@ impl App {
 
     fn update_accounts(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         if self.accounts.form_open {
+            let paused_form = self.accounts_add_form_scene();
+            let live_form = self.account_form_owns_input(cx);
+            if !paused_form && !live_form {
+                return Response::consumed();
+            }
+            let mut host_result = if live_form {
+                self.update_account_form_host_controls(cx)
+            } else {
+                Response::ignored()
+            };
+            if live_form
+                && cx.intents(ACCOUNTS_LIST).any(|intent| {
+                    matches!(intent, Intent::FocusIn { .. } | Intent::FocusOut { .. })
+                })
+            {
+                // The modal keeps the selected list entry logically active, so settle its real
+                // focus transition without allowing an underlying list action.
+                host_result |= self.update_account_list_focus_transition(cx);
+                self.acknowledge_account_list_focus_results(cx);
+            }
+            if !self.accounts.form_open {
+                return host_result;
+            }
             if !self.accounts.started {
                 let start = Self::account_start_button().update(cx);
                 let chosen = start.activated();
-                let mut result = start.erase();
+                host_result |= start.erase();
                 if chosen {
                     self.accounts.started = true;
                     cx.focus(crate::screens::accounts::NAME);
-                    result |= Response::changed();
+                    host_result |= Response::changed();
                 }
-                return result;
+                return host_result;
             }
 
             let name = Self::account_name_input().update(
@@ -4190,7 +4471,7 @@ impl App {
                 &mut self.accounts.name_input,
                 &mut self.accounts.draft_name,
             );
-            let mut result = name.erase();
+            let mut result = host_result | name.erase();
 
             let agent = Self::account_agent_button().update(cx);
             result |= agent.erase();
@@ -4293,8 +4574,13 @@ impl App {
             let save_chosen = save.activated();
             result |= save.erase();
             if save_chosen {
+                let was_open = self.accounts.form_open;
                 self.save_account();
-                cx.focus(ACCOUNTS_LIST);
+                if was_open && !self.accounts.form_open {
+                    self.account_form_return = None;
+                    let _ = self.close_account_form_layer(cx, ActionKey::CONFIRM);
+                    cx.focus(ACCOUNTS_LIST);
+                }
                 result |= Response::changed();
             }
             return result;
@@ -4309,6 +4595,7 @@ impl App {
         if matches!(list_action, Some(ListAction::Moved)) && self.accounts.selected_id != previous {
             self.note_selected_account();
         }
+        self.acknowledge_account_list_focus_results(cx);
         if matches!(list_action, Some(ListAction::Chose(_))) && !self.filter_field_open() {
             // Enter on an account opens its drawer. Enter on the overview row
             // has nothing to open.
@@ -5261,6 +5548,14 @@ impl App {
     }
 
     fn update_command(&mut self, cx: &mut Cx<'_>, command: ActionKey) -> Option<Response<()>> {
+        if self.account_form_owns_input(cx)
+            && matches!(
+                command,
+                CMD_MANAGER | CMD_ACCOUNTS | CMD_USAGE | CMD_SETTINGS | CMD_CAPSULE
+            )
+        {
+            return Some(Response::consumed());
+        }
         if self.route == Route::Capsule
             && self.inspect.instance.is_some()
             && matches!(command, CMD_MANAGER | CMD_CAPSULE_DETACH | CMD_EXIT_CONFIRM)
@@ -5343,7 +5638,12 @@ impl App {
                     return Some(Response::changed());
                 }
                 if self.route == Route::Accounts {
+                    self.account_form_return = Some(AccountFormReturn {
+                        selected_id: self.accounts.selected_id.clone(),
+                        list: self.accounts.list.clone(),
+                    });
                     self.accounts.open_new();
+                    self.account_form_warning_ticks = 0;
                     self.add_form_backtab = false;
                     self.add_form_required = false;
                     self.op_item_key.clear();
@@ -6268,6 +6568,9 @@ impl App {
         let messages = self.world.tick(cadence);
 
         let mut result = Response::changed();
+        if self.account_form_warning_ticks > 0 {
+            self.account_form_warning_ticks -= 1;
+        }
         for message in messages {
             match message {
                 crate::sim::world::Msg::WorkspaceSaved { id, ok } => {
@@ -7054,123 +7357,11 @@ impl App {
     }
 
     fn draw_accounts(&self, ui: &mut Ui<'_>, area: Rect) {
-        if self.accounts.form_open && !self.accounts_add_form_scene() {
-            if !self.accounts.started {
-                paint_lines(
-                    ui,
-                    area,
-                    &[
-                        "New account",
-                        "Register a provider account without storing secret material.",
-                    ],
-                );
-                Self::account_start_button()
-                    .draw(ui, Rect::new(area.x, area.y.saturating_add(3), 18, 1));
-                self.paint_form_hints(ui, area, false);
-                return;
-            }
-            paint_lines(
-                ui,
-                area,
-                &[
-                    "New account · register",
-                    "Name · provider · credential source",
-                ],
-            );
-            Self::account_name_input()
-                .value(&self.accounts.draft_name)
-                .draw(
-                    ui,
-                    Rect::new(area.x, area.y.saturating_add(3), area.width, 1),
-                    &self.accounts.name_input,
-                );
-            ui.paint_str(
-                Rect::new(area.x, area.y.saturating_add(4), area.width, 1),
-                "Agent · Claude Code",
-                ui.surface_style(),
-            );
-            Self::account_agent_button().draw(
-                ui,
-                Rect::new(area.x, area.y.saturating_add(5), area.width.min(28), 1),
-            );
-            List::new(crate::screens::accounts::PROVIDER).draw(
-                ui,
-                Rect::new(area.x, area.y.saturating_add(6), area.width.min(34), 4),
-                &self.accounts.provider_list,
-                &[
-                    provider_label(Provider::Anthropic),
-                    provider_label(Provider::OpenAi),
-                    provider_label(Provider::XAi),
-                    provider_label(Provider::OpenCode),
-                ],
-            );
-            let source_y = area.y.saturating_add(11);
-            List::new(crate::screens::accounts::SOURCE).draw(
-                ui,
-                Rect::new(area.x, source_y, area.width.min(34), 3),
-                &self.accounts.source_list,
-                &[source_label(0), source_label(1), source_label(2)],
-            );
-            let input_y = source_y.saturating_add(4);
-            match self.accounts.source_index {
-                0 => {
-                    Button::new(
-                        crate::screens::accounts::OP,
-                        self.accounts.selected_op.as_ref().map_or(
-                            "Choose 1Password reference…",
-                            |_| "Selected 1Password reference",
-                        ),
-                    )
-                    .draw(ui, Rect::new(area.x, input_y, area.width.min(38), 1));
-                }
-                1 => {
-                    Self::account_folder_input()
-                        .value(&self.accounts.masked_input)
-                        .draw(
-                            ui,
-                            Rect::new(area.x, input_y, area.width, 1),
-                            &self.accounts.folder_input,
-                        );
-                }
-                2 => {
-                    Self::account_secret_input()
-                        .value(&self.accounts.masked_input)
-                        .draw(
-                            ui,
-                            Rect::new(area.x, input_y, area.width, 1),
-                            &self.accounts.secret_input,
-                        );
-                    if !self.accounts.masked_input.is_empty() {
-                        let tail = tail_of(&self.accounts.masked_input);
-                        ui.paint_str(
-                            Rect::new(area.x, input_y.saturating_add(1), area.width, 1),
-                            &format!("Last four · {tail}"),
-                            ui.surface_style(),
-                        );
-                    }
-                }
-                _ => {
-                    if let Some(reference) = self.accounts.selected_op.as_ref() {
-                        let display = reference.display_path();
-                        ui.paint_str(
-                            Rect::new(area.x, input_y, area.width, 1),
-                            &display,
-                            ui.surface_style(),
-                        );
-                    } else {
-                        ui.paint_str(
-                            Rect::new(area.x, input_y, area.width, 1),
-                            "Choose 1Password reference…",
-                            ui.surface_style(),
-                        );
-                    }
-                }
-            }
-            Self::account_save_button().draw(
-                ui,
-                Rect::new(area.x, area.bottom().saturating_sub(1), 18, 1),
-            );
-            self.paint_form_hints(ui, area, true);
+        if self.accounts.form_open
+            && !self.accounts_add_form_scene()
+            && self.account_form_opening.is_none()
+        {
+            self.draw_account_form_content(ui, area);
             return;
         }
         let rows = self.account_rows();
@@ -7213,6 +7404,152 @@ impl App {
                 ..area
             },
         );
+    }
+
+    fn draw_account_form_content(&self, ui: &mut Ui<'_>, area: Rect) {
+        if !self.accounts.started {
+            paint_lines(
+                ui,
+                area,
+                &[
+                    "New account",
+                    "Register a provider account without storing secret material.",
+                ],
+            );
+            Self::account_start_button()
+                .draw(ui, Rect::new(area.x, area.y.saturating_add(3), 18, 1));
+            self.paint_form_hints(ui, area, false);
+            return;
+        }
+        paint_lines(
+            ui,
+            area,
+            &[
+                "New account · register",
+                "Name · provider · credential source",
+            ],
+        );
+        Self::account_name_input()
+            .value(&self.accounts.draft_name)
+            .draw(
+                ui,
+                Rect::new(area.x, area.y.saturating_add(3), area.width, 1),
+                &self.accounts.name_input,
+            );
+        ui.paint_str(
+            Rect::new(area.x, area.y.saturating_add(4), area.width.min(28), 1),
+            "Agent · Claude Code",
+            ui.surface_style(),
+        );
+        Self::account_agent_button().draw(
+            ui,
+            Rect::new(area.x, area.y.saturating_add(5), area.width.min(28), 1),
+        );
+        let provider_area = Rect::new(area.x, area.y.saturating_add(7), area.width.min(34), 4);
+        ui.paint_str(
+            Rect::new(
+                provider_area.x,
+                provider_area.y.saturating_sub(1),
+                provider_area.width,
+                1,
+            ),
+            "Provider",
+            ui.surface_style(),
+        );
+        List::new(crate::screens::accounts::PROVIDER).draw(
+            ui,
+            provider_area,
+            &self.accounts.provider_list,
+            &[
+                provider_label(Provider::Anthropic),
+                provider_label(Provider::OpenAi),
+                provider_label(Provider::XAi),
+                provider_label(Provider::OpenCode),
+            ],
+        );
+        let source_x = area.x.saturating_add(36);
+        let source_area = Rect::new(
+            source_x,
+            provider_area.y,
+            area.right().saturating_sub(source_x),
+            3,
+        );
+        ui.paint_str(
+            Rect::new(
+                source_area.x,
+                source_area.y.saturating_sub(1),
+                source_area.width,
+                1,
+            ),
+            "Credential source",
+            ui.surface_style(),
+        );
+        List::new(crate::screens::accounts::SOURCE).draw(
+            ui,
+            source_area,
+            &self.accounts.source_list,
+            &[source_label(0), source_label(1), source_label(2)],
+        );
+        let input_y = area.y.saturating_add(12);
+        match self.accounts.source_index {
+            0 => {
+                Button::new(
+                    crate::screens::accounts::OP,
+                    self.accounts.selected_op.as_ref().map_or(
+                        "Choose 1Password reference…",
+                        |_| "Selected 1Password reference",
+                    ),
+                )
+                .draw(ui, Rect::new(area.x, input_y, area.width.min(38), 1));
+            }
+            1 => {
+                Self::account_folder_input()
+                    .value(&self.accounts.masked_input)
+                    .draw(
+                        ui,
+                        Rect::new(area.x, input_y, area.width, 1),
+                        &self.accounts.folder_input,
+                    );
+            }
+            2 => {
+                Self::account_secret_input()
+                    .value(&self.accounts.masked_input)
+                    .draw(
+                        ui,
+                        Rect::new(area.x, input_y, area.width, 1),
+                        &self.accounts.secret_input,
+                    );
+                if !self.accounts.masked_input.is_empty() {
+                    let tail = tail_of(&self.accounts.masked_input);
+                    ui.paint_str(
+                        Rect::new(area.x, input_y.saturating_add(1), area.width, 1),
+                        &format!("Last four · {tail}"),
+                        ui.surface_style(),
+                    );
+                }
+            }
+            _ => {
+                if let Some(reference) = self.accounts.selected_op.as_ref() {
+                    let display = reference.display_path();
+                    ui.paint_str(
+                        Rect::new(area.x, input_y, area.width, 1),
+                        &display,
+                        ui.surface_style(),
+                    );
+                } else {
+                    ui.paint_str(
+                        Rect::new(area.x, input_y, area.width, 1),
+                        "Choose 1Password reference…",
+                        ui.surface_style(),
+                    );
+                }
+            }
+        }
+        Self::account_save_button().draw(
+            ui,
+            Rect::new(area.x, area.bottom().saturating_sub(1), 18, 1),
+        );
+        self.paint_form_hints(ui, area, true);
     }
 
     fn draw_usage(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -10027,6 +10364,14 @@ impl App {
     }
 
     fn draw_layers(&self, ui: &mut Ui<'_>) {
+        let _ = ui.layer(ACCOUNT_FORM_LAYER, |ui, area| {
+            ui.register_control(
+                ACCOUNT_FORM_BACKDROP,
+                area,
+                termrock::Focusability::ClickOnly,
+            );
+            self.draw_account_form_layer(ui, area);
+        });
         let _ = ui.layer(CAPSULE_HELP, |ui, area| {
             Self::with_capsule_help(|sections| {
                 let help = HelpOverlay::new(CAPSULE_HELP, "Capsule", sections);
@@ -10160,6 +10505,52 @@ impl App {
             });
         });
     }
+
+    fn draw_account_form_layer(&self, ui: &mut Ui<'_>, area: Rect) {
+        if !self.accounts.form_open || self.accounts_add_form_scene() {
+            return;
+        }
+        let dialog = Dialog::chrome(ACCOUNT_FORM_LAYER.sub("chrome"))
+            .title("New account")
+            .meta("registration · unsaved")
+            .head_in_border()
+            .width(70)
+            .body_rows(27);
+        let width = dialog.measured_width(ui.design()).min(area.width);
+        let height = dialog.measured_height(ui.design()).min(area.height);
+        let panel = Rect::new(
+            area.x.saturating_add(area.width.saturating_sub(width) / 2),
+            area.y
+                .saturating_add(area.height.saturating_sub(height) / 2),
+            width,
+            height,
+        );
+        ui.register_control(
+            ACCOUNT_FORM_PANEL_SHIELD,
+            panel,
+            termrock::Focusability::ClickOnly,
+        );
+        dialog.draw(ui, panel, &DialogState::default(), |ui, body| {
+            self.draw_account_form_content(ui, body);
+        });
+        if self.account_form_warning_ticks > 0 && !panel.is_empty() {
+            let warning = ui.paint_patch(
+                &termrock::StylePatch::new()
+                    .set_fg(termrock::Role::Warning)
+                    .set_bg(termrock::Role::Surface(termrock::Surface::Overlay)),
+            );
+            let _ = ui.frame(panel, warning);
+        }
+        if panel.width >= 8 && panel.height >= 3 {
+            Button::new(ACCOUNT_FORM_CLOSE, "×")
+                .variant(Variant::QUIET)
+                .focusability(termrock::Focusability::ClickOnly)
+                .draw(
+                    ui,
+                    Rect::new(panel.right().saturating_sub(5), panel.y, 3, 1),
+                );
+        }
+    }
 }
 
 impl App {
@@ -10195,6 +10586,7 @@ impl App {
         self.screen_junie = Self::junie_truecolor(cx.theme());
         let _shell = Self::shell_panel(&self.shell_meta);
         let mut result = self.advance_virtual_state(cx, product_tick);
+        result |= self.sync_account_form_layer(cx);
 
         let entry = Self::enter_button().update(cx);
         let enter_chosen = entry.activated();
@@ -10222,12 +10614,32 @@ impl App {
         if let Some(command) = cx.command()
             && let Some(command_result) = self.update_command(cx, command)
         {
+            result |= command_result;
+            result |= self.sync_account_form_layer(cx);
+            if cx.update_cause() == UpdateCause::Settle {
+                if self.account_form_owns_input(cx) {
+                    // Runtime focus settlement repeats the root command. Its route action was
+                    // already consumed; update the new host's controls so they can claim focus
+                    // notifications.
+                    result |= self.update_accounts(cx);
+                } else if !self.account_form_closing.is_empty()
+                    && cx.intents(ACCOUNTS_LIST).all(|intent| {
+                        matches!(intent, Intent::FocusIn { .. } | Intent::FocusOut { .. })
+                    })
+                {
+                    // The route command was already applied above. Settle only the List owner's
+                    // actual focus transition before acknowledging its exact close result.
+                    result |= self.update_account_list_focus_transition(cx);
+                    self.acknowledge_account_list_focus_results(cx);
+                }
+                result |= self.sync_account_form_layer(cx);
+            }
             if self.route == Route::Manager {
                 self.ensure_manager_rows();
             }
             self.ensure_manager_header();
             self.sync_workspace_keymap();
-            return result | command_result;
+            return result;
         }
         result |= self.update_overlays(cx);
         if cx.is_open(ROLE_PICKER)
@@ -10246,7 +10658,10 @@ impl App {
             self.sync_workspace_keymap();
             return result;
         }
-        if navigation_enabled && let Some(route) = navigation_route {
+        if navigation_enabled
+            && let Some(route) = navigation_route
+            && !self.account_form_owns_input(cx)
+        {
             self.route = route;
             self.status = None;
         }
@@ -10254,6 +10669,7 @@ impl App {
             self.enter_intro();
         }
         result |= self.update_route(cx, product_tick);
+        result |= self.sync_account_form_layer(cx);
         if self.route == Route::Manager {
             self.ensure_manager_rows();
         }
@@ -11332,10 +11748,14 @@ impl TuiApp for App {
             }
             if self.accounts.form_open {
                 // Cancelling the form returns to the list it came from.
-                self.accounts.close();
-                self.status = Some("Cancelled account registration".into());
-                cx.focus(ACCOUNTS_LIST);
-                return self.route_changed();
+                if self.cancel_account_form(cx) {
+                    self.status = Some("Cancelled account registration".into());
+                    cx.focus(ACCOUNTS_LIST);
+                    let result = self.route_changed();
+                    let _ = self.settle_account_form_layer(cx);
+                    return result;
+                }
+                return Response::consumed();
             }
             self.route = Route::Manager;
             cx.focus(crate::screens::manager::TREE);
@@ -11688,6 +12108,21 @@ impl From<&Account> for AccountOption {
 mod tests {
     use super::*;
 
+    fn live_account_form() -> termrock_test_support::Harness<App> {
+        use termrock::Theme;
+
+        let mut harness = termrock_test_support::Harness::new(
+            App::for_scenario(Scenario::AccountsMixed, Motion::Reduced),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let _ = harness.key(KeyCode::Char('a'));
+        assert!(harness.app().accounts.form_open);
+        assert!(harness.app().account_form_opening.is_some());
+        harness
+    }
+
     #[test]
     fn role_labels_require_an_exact_current_catalog_identity() {
         let mut app = App::default();
@@ -11736,6 +12171,261 @@ mod tests {
         assert_eq!(
             app_keymap().lookup(KeyPhase::Capture, &key, false),
             Some(CMD_NEW_WORKSPACE)
+        );
+    }
+
+    #[test]
+    fn account_form_host_is_click_only_and_refusal_keeps_its_opening() {
+        let mut harness = live_account_form();
+        let opening = harness
+            .app()
+            .account_form_opening
+            .expect("live form has an opening token");
+        let layer = harness
+            .layer_area(ACCOUNT_FORM_LAYER)
+            .expect("live form layer is open");
+        assert_eq!(layer, Rect::new(0, 0, 120, 40));
+        assert!(
+            harness
+                .ring()
+                .entries()
+                .iter()
+                .any(|entry| { entry.id == crate::screens::accounts::START })
+        );
+        for click_only in [
+            ACCOUNT_FORM_BACKDROP,
+            ACCOUNT_FORM_PANEL_SHIELD,
+            ACCOUNT_FORM_CLOSE,
+        ] {
+            assert!(
+                harness
+                    .ring()
+                    .entries()
+                    .iter()
+                    .all(|entry| entry.id != click_only),
+                "{click_only:?} must not be tabbable"
+            );
+        }
+
+        let panel = harness
+            .area_of(ACCOUNT_FORM_PANEL_SHIELD)
+            .expect("panel shield matches the live dialog bounds");
+        let _ = harness.click(panel.x, panel.y);
+        assert_eq!(harness.app().account_form_warning_ticks, 0);
+        assert_eq!(harness.app().account_form_opening, Some(opening));
+
+        let _ = harness.click(0, 0);
+        assert!(harness.app().account_form_warning_ticks > 0);
+        assert_eq!(harness.app().account_form_opening, Some(opening));
+        assert!(harness.is_open(ACCOUNT_FORM_LAYER));
+        assert!(
+            harness.diagnostics().is_empty(),
+            "{:?}",
+            harness.diagnostics()
+        );
+
+        let _ = harness.resize(80, 24);
+        assert_eq!(harness.app().account_form_opening, Some(opening));
+        assert_eq!(
+            harness.layer_area(ACCOUNT_FORM_LAYER),
+            Some(Rect::new(0, 0, 80, 24))
+        );
+        assert!(
+            harness.diagnostics().is_empty(),
+            "{:?}",
+            harness.diagnostics()
+        );
+    }
+
+    #[test]
+    fn account_form_warning_expires_on_product_ticks_with_the_current_theme() {
+        fn title_style(
+            harness: &termrock_test_support::Harness<App>,
+        ) -> (termrock::Color, termrock::Color, Modifier) {
+            let position = harness
+                .find("New account")
+                .expect("live account dialog title is painted");
+            let cell = harness
+                .buffer()
+                .cell((position.0, position.1))
+                .expect("dialog title cell is inside the frame");
+            (cell.fg, cell.bg, cell.modifier)
+        }
+
+        let normal = live_account_form().with_color(termrock::ColorLevel::Mono);
+        let normal_style = title_style(&normal);
+
+        let mut warning = live_account_form();
+        let opening = warning
+            .app()
+            .account_form_opening
+            .expect("the form owns one opening");
+        let _ = warning.click(0, 0);
+        assert_eq!(warning.app().account_form_warning_ticks, 3);
+        warning = warning.with_color(termrock::ColorLevel::Mono);
+        assert_eq!(warning.app().account_form_opening, Some(opening));
+        let warning_style = title_style(&warning);
+        assert_ne!(warning_style, normal_style);
+
+        for remaining in [2, 1] {
+            let _ = warning.advance(Duration::from_millis(200));
+            assert_eq!(warning.app().account_form_warning_ticks, remaining);
+            assert_eq!(warning.app().account_form_opening, Some(opening));
+            assert!(
+                warning.diagnostics().is_empty(),
+                "warning tick with {remaining} remaining: {:?}",
+                warning.diagnostics()
+            );
+        }
+        let _ = warning.advance(Duration::from_millis(200));
+
+        assert_eq!(warning.app().account_form_warning_ticks, 0);
+        assert_eq!(warning.app().account_form_opening, Some(opening));
+        assert_eq!(title_style(&warning), normal_style);
+        assert!(
+            warning.diagnostics().is_empty(),
+            "warning expiry: {:?}",
+            warning.diagnostics()
+        );
+    }
+
+    #[test]
+    fn account_form_close_button_cancels_the_same_live_layer() {
+        let mut harness = live_account_form();
+        let opening = harness
+            .app()
+            .account_form_opening
+            .expect("live form has an opening token");
+        let registry = harness.app().world.accounts.clone();
+        let selected_id = harness.app().accounts.selected_id.clone();
+        let selected_row = harness.app().accounts.list.cursor();
+        let _ = harness.click_id(ACCOUNT_FORM_CLOSE);
+
+        assert!(!harness.app().accounts.form_open);
+        assert_eq!(harness.app().account_form_opening, None);
+        assert!(!harness.is_open(ACCOUNT_FORM_LAYER));
+        assert!(
+            !harness.app().account_form_closing.contains(&opening),
+            "the same-frame close must settle its exact opening"
+        );
+        assert!(
+            harness.diagnostics().is_empty(),
+            "close frame: {:?}",
+            harness.diagnostics()
+        );
+
+        let _ = harness.resize(120, 40);
+
+        assert_eq!(harness.app().route, Route::Accounts);
+        assert_eq!(harness.app().world.accounts, registry);
+        assert_eq!(harness.app().account_form_opening, None);
+        assert!(!harness.is_open(ACCOUNT_FORM_LAYER));
+        assert_eq!(harness.focus(), Some(ACCOUNTS_LIST));
+        assert_eq!(harness.app().accounts.selected_id, selected_id);
+        assert_eq!(harness.app().accounts.list.cursor(), selected_row);
+        assert!(!harness.app().account_form_closing.contains(&opening));
+        assert!(
+            harness.diagnostics().is_empty(),
+            "{:?}",
+            harness.diagnostics()
+        );
+    }
+
+    #[test]
+    fn account_form_tiny_resize_preserves_draft_and_opening() {
+        let mut harness = live_account_form();
+        let _ = harness.key(KeyCode::Enter);
+        let _ = harness.type_str("keep this draft");
+        let opening = harness
+            .app()
+            .account_form_opening
+            .expect("live form has an opening token");
+        let _ = harness.resize(24, 8);
+
+        assert_eq!(harness.app().account_form_opening, Some(opening));
+        assert!(harness.app().accounts.form_open);
+        assert_eq!(harness.app().accounts.draft_name, "keep this draft");
+        assert_eq!(
+            harness.layer_area(ACCOUNT_FORM_LAYER),
+            Some(Rect::new(0, 0, 24, 8))
+        );
+        assert!(
+            harness.diagnostics().is_empty(),
+            "{:?}",
+            harness.diagnostics()
+        );
+    }
+
+    #[test]
+    fn account_form_immediate_reopen_keeps_the_new_opening_after_old_close() {
+        let mut harness = termrock_test_support::Harness::new(
+            App::for_scenario(Scenario::AccountsMixed, Motion::Reduced),
+            termrock::Theme::junie(),
+            120,
+            40,
+        );
+        for _ in 0..4 {
+            let _ = harness.key(KeyCode::Down);
+        }
+        let mut harness = harness.with_auto_draw(false);
+        let _ = harness.key(KeyCode::Char('a'));
+        let old = harness
+            .app()
+            .account_form_opening
+            .expect("first live form has an opening token");
+        let return_selection = harness
+            .app()
+            .account_form_return
+            .as_ref()
+            .and_then(|snapshot| snapshot.selected_id.clone());
+        let selected_row = harness.app().accounts.list.cursor();
+        assert_eq!(return_selection.as_deref(), Some("acct-claude-work"));
+        let _ = harness.key(KeyCode::Esc);
+        assert!(!harness.app().accounts.form_open);
+        assert_eq!(harness.app().account_form_opening, None);
+        assert_eq!(harness.app().account_form_closing, vec![old]);
+        assert_eq!(harness.app().accounts.selected_id, return_selection);
+        assert_eq!(harness.app().accounts.list.cursor(), selected_row);
+        assert!(
+            harness.diagnostics().is_empty(),
+            "Esc close frame: {:?}",
+            harness.diagnostics()
+        );
+
+        let _ = harness.key(KeyCode::Char('a'));
+        assert!(
+            harness.diagnostics().is_empty(),
+            "reopen frame: {:?}",
+            harness.diagnostics()
+        );
+        let current = harness
+            .app()
+            .account_form_opening
+            .expect("reopened form has an opening token");
+
+        assert_ne!(old, current);
+        assert_eq!(harness.app().account_form_opening, Some(current));
+        assert_eq!(
+            harness
+                .app()
+                .account_form_return
+                .as_ref()
+                .and_then(|snapshot| snapshot.selected_id.as_deref()),
+            return_selection.as_deref()
+        );
+        assert_eq!(harness.app().accounts.list.cursor(), selected_row);
+        harness.draw();
+        assert!(!harness.app().account_form_closing.contains(&old));
+        assert!(harness.is_open(ACCOUNT_FORM_LAYER));
+        assert!(harness.text().contains("Work"));
+        assert_eq!(
+            harness.layer_area(ACCOUNT_FORM_LAYER),
+            Some(Rect::new(0, 0, 120, 40))
+        );
+        assert!(
+            harness.diagnostics().is_empty(),
+            "resize after old completion: {:?}",
+            harness.diagnostics()
         );
     }
 }
