@@ -1,5 +1,7 @@
-use termrock::author::PaintStyle;
-use termrock::{Family, Part, Rect, Response, StateFlags, Ui, Variant, width};
+use termrock::{
+    Color, Family, FgStep, FrameRead, Id, Modifier, Panel, PanelKind, Part, Rect, Response, Role,
+    StateFlags, StylePatch, Surface, Ui, Variant, width,
+};
 
 pub struct PageStatus(pub String);
 
@@ -126,22 +128,54 @@ fn paint_clipped_meta(
     }
 }
 
+/// The frozen capsule seam ink.
+///
+/// The theme resolves the library's tab rule to `border_subtle` (`#262626`),
+/// while the approved frames paint the capsule seam `#3a3a3a`. The theme
+/// exposes no public token for that ink, so the demo layer names it once,
+/// here. Library need: a public seam token on `Theme`.
+const SEAM: u32 = 0x003a_3a3a;
+
+/// The panel title ink the playground cards use: secondary, never bold, with
+/// the meta one step fainter.
+const CARD_TITLE: [(Part, StylePatch); 2] = [
+    (
+        Part::TITLE,
+        StylePatch::new()
+            .set_fg(Role::Fg(FgStep::Secondary))
+            .remove(Modifier::BOLD),
+    ),
+    (
+        Part::DETAIL,
+        StylePatch::new().set_fg(Role::Fg(FgStep::Faint)),
+    ),
+];
+
 /// The section strip every playground page opens with: the section tabs,
 /// their rule and the caption that names the live section.
 pub fn section_strip(ui: &mut Ui<'_>, area: Rect) {
     const SECTIONS: [&str; 3] = ["Playground", "Options", "States"];
     const CAPTION: &str = "the live widget";
     const WIDE: u16 = 76;
-    const CANVAS: u32 = 0x000000;
-    const WHITE: u32 = 0xffffff;
-    const SECONDARY: u32 = 0xb3b3b3;
-    const FAINT: u32 = 0x737373;
-    const RULE: u32 = 0x3a3a3a;
-    const ACCENT: u32 = 0x48e054;
-    const TAB_ACTIVE: u32 = 0x27272a;
     if area.is_empty() {
         return;
     }
+    let canvas = ui.surface_style();
+    let active_tab = canvas.patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Primary))
+                .set_bg(Role::Surface(Surface::Overlay))
+                .add(Modifier::BOLD),
+        ),
+    );
+    let idle_tab =
+        canvas.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))));
+    let caption_style =
+        canvas.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint))));
+    let seam = canvas
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Custom(Color::from_u32(SEAM)))));
+    let accent_seam = canvas.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)));
     let tab_width = |label: &str| width(label).saturating_add(3);
     let mut x = area.x;
     let mut tab_end = area.x;
@@ -150,16 +184,7 @@ pub fn section_strip(ui: &mut Ui<'_>, area: Rect) {
         if x.saturating_add(w) > area.right() {
             break;
         }
-        let style = if index == 0 {
-            PaintStyle::new()
-                .fg(termrock::Color::Rgb(255, 255, 255))
-                .bg(termrock::Color::Rgb(39, 39, 42))
-                .add_modifier(termrock::Modifier::BOLD)
-        } else {
-            PaintStyle::new()
-                .fg(termrock::Color::Rgb(179, 179, 179))
-                .bg(termrock::Color::Rgb(0, 0, 0))
-        };
+        let style = if index == 0 { active_tab } else { idle_tab };
         ui.fill(Rect::new(x, area.y, w, 1), style);
         ui.paint_str(
             Rect::new(x.saturating_add(1), area.y, w.saturating_sub(1), 1),
@@ -176,9 +201,7 @@ pub fn section_strip(ui: &mut Ui<'_>, area: Rect) {
             ui.paint_str(
                 Rect::new(caption_x, area.y, caption_width, 1),
                 CAPTION,
-                PaintStyle::new()
-                    .fg(termrock::Color::Rgb(115, 115, 115))
-                    .bg(termrock::Color::Rgb(0, 0, 0)),
+                caption_style,
             );
         }
     }
@@ -193,19 +216,57 @@ pub fn section_strip(ui: &mut Ui<'_>, area: Rect) {
             ..area
         },
         &"─".repeat(usize::from(area.width)),
-        PaintStyle::new()
-            .fg(termrock::Color::Rgb(58, 58, 58))
-            .bg(termrock::Color::Rgb(0, 0, 0)),
+        seam,
     );
     let active = tab_width(SECTIONS[0]).min(area.width);
     ui.paint_str(
         Rect::new(area.x, rule_y, active, 1),
         &"━".repeat(usize::from(active)),
-        PaintStyle::new()
-            .fg(termrock::Color::Rgb(72, 224, 84))
-            .bg(termrock::Color::Rgb(0, 0, 0)),
+        accent_seam,
     );
-    let _ = (CANVAS, WHITE, SECONDARY, FAINT, RULE, ACCENT, TAB_ACTIVE);
+}
+
+/// The card panel the playground pages draw: the panel's own title row, the
+/// frozen seam under it and the body below.
+///
+/// The panel widget owns the title, the meta and the body; the demo layer
+/// owns the seam the approved frames paint under the title.
+pub fn card_panel(
+    ui: &mut Ui<'_>,
+    id: Id,
+    title: &str,
+    meta: Option<&str>,
+    area: Rect,
+    body: impl FnOnce(&mut Ui<'_>, Rect),
+) {
+    let mut panel = Panel::new(id).kind(PanelKind::Card).title(title);
+    if let Some(meta) = meta {
+        panel = panel.meta(meta);
+    }
+    let inner = panel.inner(ui, area);
+    panel
+        .patch_part(&CARD_TITLE)
+        .draw(ui, area, |ui, inner| body(ui, inner));
+    if area.height < 2 || inner.is_empty() {
+        return;
+    }
+    // The seam sits between the panel's title row and its body, on the
+    // panel's own plane.
+    let plane = ui.theme().bg(ui.theme().raise(ui.surface()));
+    let seam = ui
+        .surface_style()
+        .bg(plane)
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Custom(Color::from_u32(SEAM)))));
+    ui.paint_str(
+        Rect {
+            x: inner.x,
+            y: area.y.saturating_add(1),
+            width: inner.width,
+            height: 1,
+        },
+        &"─".repeat(usize::from(inner.width)),
+        seam,
+    );
 }
 
 pub fn lines(ui: &mut Ui<'_>, area: Rect, text: &[&str]) {
