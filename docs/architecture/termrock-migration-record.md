@@ -466,33 +466,27 @@ scrollbar with hard-coded inks and no states.
 
 Measured fidelity table and the command list are in the review report.
 
-### Workspace gate, final measurement this round
+### Workspace gate, final measurement
 
 `cargo nextest run --all-targets --workspace --no-fail-fast` on the
-coordinator source: **4768 tests run: 4740 passed, 28 failed, 29516
-skipped**. The session started at 4687 run, 4357 passed, 330 failed, so
-302 tests moved from red to green.
+coordinator source: **4815 tests run, 4545 passed, 270 failed, 29516
+skipped**.
 
-The 28 remaining failures, by crate:
+The 270 failures break down as:
 
-| Crate | Failures |
-| --- | --- |
-| showcase-ui | 6 (`editor_playground_keeps_live_find_completion_and_run_contracts`, two `editor_shell_completion_*`, two `page_headings::*`, `showcase_visual_baseline`) |
-| tablepro-ui | 4 (`query_editor_keeps_multiline_unicode_and_cursor_through_resize`, two `perf::frame_*`, `tablepro_visual_baseline`) |
-| holla-ui / holla | 3 (`menu_bar_pointer_hover_changes_only_the_file_title_and_clears_on_exit`, `holla_visual_baseline`, `holla_pty::a_bounded_input_flood_is_drained_fairly_and_a_quit_behind_it_is_honoured`) |
-| jackin-preview-app | 1 (`jackin_visual_baseline`) |
-| termrock-controls | 3 (button focus-visibility policies) |
-| termrock-overlays | 3 (context menu danger profile ×2, picker query field) |
-| termrock-conformance | 2 (`render::components::picker_chain::pressed`, `::disabled`) |
-| termrock-theme | 1 (`empty_style_inheritance::standalone_empty_cells_match_pre_inheritance_reference`) |
-| termrock-navigation | 1 (`item_row_columns::constructor_defaults_match_the_pre_policy_full_cell_fixture`) |
-| termrock-feedback | 1 (`meter_semantic_tokens::low_and_stale_tokens_match_reference_roles_but_custom_colors_remain_authoritative`) |
-| termrock-xtask | 1 (`ownership_check_passes_on_workspace`) |
-| visual-harness | 2 (`determinism::sources_are_deterministic`, `overlay_sites`) |
+| Group | Count | State |
+| --- | --- | --- |
+| `termrock-conformance::render_components::*` | 247 | the open palette conflict, adjudicated and escalated; a reference decision is required to re-bless the expected digests, and the task forbids the coordinator from writing them from the candidate |
+| per-application visual baselines (`holla_visual_baseline`, `jackin_visual_baseline`, `showcase_visual_baseline`, `tablepro_visual_baseline`) and `page_headings` | 5 | pre-existing; the application digest baselines still carry the corpus-era palette |
+| library palette and contract cases (button contract, gutter recipe gate, meter tokens, field hover, item row columns, overlay dialog and picker, context menu danger profile, theme builtin and empty style, conformance overlay renders) | 15 | pre-existing, the same palette conflict seen through the component contracts |
+| `termrock-xtask::ownership` | 1 | the ownership gate, about 100 findings across the application crates |
+| `termrock-xtask::doc_inventory` | 1 | an indented Rust block in `docs/audits/2026-10-23-danger-token-reference-decision.md`, from another stream |
+| `visual-harness` determinism and overlay sites | 2 | pre-existing |
 
-The four `*_visual_baseline` failures are the per-application visual
-baselines, and they are the ones the reference comparison measures at
-application level.
+The session started at 4687 run, 4357 passed, 330 failed. The number of
+non-component failures fell from 99 to 23. The component count moved
+because the palette decision changed, and it is the subject of the open
+reference decision rather than of an unreported change.
 
 ### Independent reviews: runtime correctness, API boundaries, test integrity
 
