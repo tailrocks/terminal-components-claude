@@ -466,3 +466,22 @@ revert). **Owner decision owed**: regeneration scope approval (store,
 families, sizes, color levels) at a pinned HEAD. Until that approval is
 recorded in docs/audits, no reference store is regenerated and nothing is
 blessed; all observed values remain preserved in the audit.
+
+## 2026-10-23: Button pad-paint adjudication landed; owner decision owed
+
+Pushed tip `dabf76d597` on `parity/termrock-visual-baseline` (commits
+`14b637501b` repair, `72c26be9cd` + `dabf76d597` records). Verdict on
+`d1ac0c0dac`'s Button pad repaint: the gutter-blank fix is oracle-correct and
+kept; the pad fg = bg override and the trailing label-ink fill are
+regressions against the frozen `4169783ae` frames and were reverted
+(`button_contract` 21/21, `gutter_recipe_gate` blanks re-measured bg-on-bg).
+**Owner decision owed**: the `render_components` `button::*` digest rows (8
+scenarios, got-digests preserved in the audit) and button-bearing
+`showcase.txt` rows (`showcase_visual_baseline` red at tip and after,
+byte-identical got-digest `8b54edf362c1d6fc`) encode pre-`d1ac0c0dac`
+non-frozen gutter bytes; regeneration needs the owner's scope approval at a
+pinned HEAD after an independent review of
+`docs/audits/2026-10-23-button-pad-paint-adjudication.md`. Nothing was
+blessed by this lane. Also red before and after, recorded: jackin
+`returning 100 30 junie truecolor` (got `2359288f161828ad`), holla and the
+render_components tree/too_small/wizard reference rows.
