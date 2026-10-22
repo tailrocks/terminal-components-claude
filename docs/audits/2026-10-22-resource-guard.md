@@ -46,7 +46,14 @@ rejected because arbitrary wrappers can change output placement.
 `CARGO_TARGET_DIR`, `CARGO_BUILD_TARGET_DIR`, and non-templated
 `CARGO_BUILD_BUILD_DIR` are checked as environment-provided paths. The launcher
 accepts the literal command `mise exec -- cargo`; an absolute Cargo path is
-rejected to prevent bypassing the MBX shim selected by `mise`.
+rejected to prevent bypassing the MBX shim selected by `mise`. The accepted
+Cargo subcommands are `build`, `check`, `clippy`, `fmt`, `doc`, and `run`, plus
+`nextest run` and `nextest list`. Only the first listed subcommand may appear
+immediately after `cargo`; global options before it are denied. Unknown
+commands (including aliases such as `low = "build --target-dir …"`) are denied,
+and a configured `nextest` alias is denied even though the native nextest
+subcommand is allowed. This deliberately avoids interpreting Cargo's full
+alias and install command grammar.
 
 ## Limits and verification
 
