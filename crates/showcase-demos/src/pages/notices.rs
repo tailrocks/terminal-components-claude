@@ -1,10 +1,11 @@
 use termrock::{
     Button, Checkbox, Cx, FgStep, FrameRead, Id, ItemKey, Panel, PanelKind, Rect, Response,
     ScrollRegion, ScrollState, Select, SelectState, StateFlags, Tabs, TabsState, Ui, Variant,
+    author::VerticalWindow,
     feedback::{Notice, NoticeKind},
 };
 
-use super::{Page, PageStatus, PageUpdate, card_panel, frame};
+use super::{Page, PageStatus, PageUpdate, card_panel_window, frame};
 
 const PAGE_TABS: Id = Id::root("showcase_ui::pages::notices.page_tabs");
 const PLAY_SCROLL: Id = Id::root("showcase_ui::pages::notices.play_scroll");
@@ -215,7 +216,7 @@ impl NoticesPage {
             .saturating_add(3)
             .saturating_add(1)
             .saturating_add(inline)
-            .saturating_add(6)
+            .saturating_add(3)
     }
 
     fn panel_inner_width(&self, ui: &Ui<'_>, width: u16) -> u16 {
@@ -382,7 +383,8 @@ impl NoticesPage {
         response
     }
 
-    fn paint_options(&self, ui: &mut Ui<'_>, view: Rect, offset: usize) {
+    fn paint_options(&self, ui: &mut Ui<'_>, window: VerticalWindow) {
+        let view = window.visible_body();
         let gutter = 2u16.min(view.width);
         let column_width = view.width.saturating_sub(gutter) / 2;
         let right_x = view.x.saturating_add(column_width).saturating_add(gutter);
@@ -396,16 +398,18 @@ impl NoticesPage {
         ];
         for (index, (label, id)) in rows.into_iter().enumerate() {
             let row = index.saturating_mul(2);
-            let x = view.x;
-            let label_y = logical_y(view.y, row, offset);
-            let input_y = logical_y(view.y, row.saturating_add(1), offset);
-            paint_label(
-                ui,
-                Rect::new(x, label_y, column_width, 1),
-                label,
-                title_style,
-            );
-            let input_area = Rect::new(x, input_y, column_width, 1);
+            if let Some(label_y) = window.physical_row_for_source(row) {
+                paint_label(
+                    ui,
+                    Rect::new(view.x, label_y, column_width, 1),
+                    label,
+                    title_style,
+                );
+            }
+            let Some(input_y) = window.physical_row_for_source(row.saturating_add(1)) else {
+                continue;
+            };
+            let input_area = Rect::new(view.x, input_y, column_width, 1);
             match id {
                 KIND => {
                     let _ = Select::new(KIND).draw(ui, input_area, &self.kind_state, KIND_ITEMS);
@@ -445,7 +449,9 @@ impl NoticesPage {
             (3usize, HINT, "Show hint", self.show_hint),
             (5usize, MARK_CUT, "Show cut marker", self.mark_cut),
         ] {
-            let y = logical_y(view.y, row, offset);
+            let Some(y) = window.physical_row_for_source(row) else {
+                continue;
+            };
             Checkbox::new(id, label).checked(checked).draw(
                 ui,
                 Rect::new(right_x, y, view.right().saturating_sub(right_x), 1),
@@ -458,7 +464,11 @@ impl NoticesPage {
             self.play_content_height(ui, width)
         });
         let view = ScrollRegion::new(PLAY_SCROLL).draw(ui, area, &self.play_scroll, content_len);
-        let offset = self.play_scroll.offset();
+        let Some(content_window) =
+            scroll_content_window(view, content_len, self.play_scroll.offset())
+        else {
+            return;
+        };
         let content_width = self.content_width(self.panel_inner_width(ui, view.width));
         let connection = self.connection();
         let query = self.query();
@@ -478,78 +488,110 @@ impl NoticesPage {
             .saturating_add(1);
 
         ui.with_area(view, |ui| {
-            let connection_area = card_rect(view, 0, connection_card_height, offset);
-            card_panel(
-                ui,
-                CONNECTION_PANEL,
-                "prod-replica",
-                Some(CONNECTION_META),
-                connection_area,
-                |ui, inner| {
-                    paint_label(
-                        ui,
-                        Rect::new(inner.x, inner.y, inner.width, 1),
-                        ADDRESS,
-                        ui.surface_style().fg(ui.theme_ref().color.fg[1]),
-                    );
-                    let notice_y = inner.y.saturating_add(2);
-                    connection.draw(
-                        ui,
-                        Rect::new(
-                            inner.x,
-                            notice_y,
-                            content_width.min(inner.width),
+            if let Some((connection_area, connection_window)) =
+                child_window(content_window, 0, connection_card_height, view.width)
+                && card_panel_window(
+                    ui,
+                    CONNECTION_PANEL,
+                    "prod-replica",
+                    Some(CONNECTION_META),
+                    connection_area,
+                    connection_window,
+                    |ui, inner_window| {
+                        let Some(inner_window) = inner_window else {
+                            return;
+                        };
+                        let inner = inner_window.visible_body();
+                        if let Some(y) = inner_window.physical_row_for_source(0) {
+                            paint_label(
+                                ui,
+                                Rect::new(inner.x, y, inner.width, 1),
+                                ADDRESS,
+                                ui.surface_style().fg(ui.theme_ref().color.fg[1]),
+                            );
+                        }
+                        if let Some((_, notice_window)) = child_window(
+                            inner_window,
+                            2,
                             connection_height,
-                        ),
-                    );
-                    let button_y = notice_y.saturating_add(connection_height).saturating_add(1);
-                    Button::new(TEST_CONNECTION, "Test connection")
-                        .variant(Variant::SECONDARY)
-                        .draw(ui, Rect::new(inner.x, button_y, inner.width, 1));
-                },
-            );
-
-            let query_area = card_rect(view, query_start, query_card_height, offset);
-            card_panel(
-                ui,
-                QUERY_PANEL,
-                "Result 1",
-                Some(QUERY_META),
-                query_area,
-                |ui, inner| {
-                    query.draw(
-                        ui,
-                        Rect::new(
-                            inner.x,
-                            inner.y,
                             content_width.min(inner.width),
+                        ) {
+                            connection.draw_window(ui, notice_window);
+                        }
+                        let button_row = usize::from(connection_height).saturating_add(3);
+                        if let Some(y) = inner_window.physical_row_for_source(button_row) {
+                            Button::new(TEST_CONNECTION, "Test connection")
+                                .variant(Variant::SECONDARY)
+                                .draw(ui, Rect::new(inner.x, y, inner.width, 1));
+                        }
+                    },
+                )
+                .is_err()
+            {
+                return;
+            }
+
+            if let Some((query_area, query_window)) =
+                child_window(content_window, query_start, query_card_height, view.width)
+                && card_panel_window(
+                    ui,
+                    QUERY_PANEL,
+                    "Result 1",
+                    Some(QUERY_META),
+                    query_area,
+                    query_window,
+                    |ui, inner_window| {
+                        let Some(inner_window) = inner_window else {
+                            return;
+                        };
+                        if let Some((_, notice_window)) = child_window(
+                            inner_window,
+                            0,
                             query_height,
-                        ),
-                    );
-                },
-            );
+                            content_width.min(inner_window.visible_body().width),
+                        ) {
+                            query.draw_window(ui, notice_window);
+                        }
+                    },
+                )
+                .is_err()
+            {
+                return;
+            }
 
             let inline_card_height =
                 u16::try_from(inline_height.saturating_add(3)).unwrap_or(u16::MAX);
-            let inline_area = card_rect(view, inline_start, inline_card_height, offset);
-            card_panel(
-                ui,
-                INLINE_PANEL,
-                "New connection",
-                Some(INLINE_META),
-                inline_area,
-                |ui, inner| {
-                    let mut y = inner.y;
-                    for notice in &inline {
-                        let height = notice.height_for_width(ui, content_width);
-                        notice.draw(
-                            ui,
-                            Rect::new(inner.x, y, content_width.min(inner.width), height),
-                        );
-                        y = y.saturating_add(height).saturating_add(1);
-                    }
-                },
-            );
+            if let Some((inline_area, inline_window)) =
+                child_window(content_window, inline_start, inline_card_height, view.width)
+            {
+                let _ = card_panel_window(
+                    ui,
+                    INLINE_PANEL,
+                    "New connection",
+                    Some(INLINE_META),
+                    inline_area,
+                    inline_window,
+                    |ui, inner_window| {
+                        let Some(inner_window) = inner_window else {
+                            return;
+                        };
+                        let inner = inner_window.visible_body();
+                        let mut source_row = 0usize;
+                        for notice in &inline {
+                            let width = content_width.min(inner.width);
+                            let height = notice.height_for_width(ui, width);
+                            if let Some((_, notice_window)) =
+                                child_window(inner_window, source_row, height, width)
+                            {
+                                notice.draw_window(ui, notice_window);
+                            }
+                            source_row = source_row
+                                .saturating_add(usize::from(height))
+                                .saturating_add(1);
+                        }
+                    },
+                );
+            }
         });
     }
 
@@ -559,7 +601,11 @@ impl NoticesPage {
         });
         let view =
             ScrollRegion::new(STATES_SCROLL).draw(ui, area, &self.states_scroll, content_len);
-        let offset = self.states_scroll.offset();
+        let Some(content_window) =
+            scroll_content_window(view, content_len, self.states_scroll.offset())
+        else {
+            return;
+        };
         let panel_inner_width = self.panel_inner_width(ui, view.width);
         let width = self.content_width(panel_inner_width);
         let detail_rows = self.state_rows(true, ui, panel_inner_width, width);
@@ -577,26 +623,42 @@ impl NoticesPage {
         let hint_samples = self.state_samples(false);
 
         ui.with_area(view, |ui| {
-            card_panel(
-                ui,
-                STATES_DETAIL_PANEL,
-                "With detail",
-                Some("real Notice specimens · inert reference rendering"),
-                card_rect(view, 0, detail_height, offset),
-                |ui, inner| {
-                    draw_reference_rows(ui, inner, &detail_samples, width);
-                },
-            );
-            card_panel(
-                ui,
-                STATES_HINT_PANEL,
-                "With hint",
-                Some("real Notice specimens · no input ownership"),
-                card_rect(view, hint_start, hint_height, offset),
-                |ui, inner| {
-                    draw_reference_rows(ui, inner, &hint_samples, width);
-                },
-            );
+            if let Some((detail_area, detail_window)) =
+                child_window(content_window, 0, detail_height, view.width)
+                && card_panel_window(
+                    ui,
+                    STATES_DETAIL_PANEL,
+                    "With detail",
+                    Some("real Notice specimens · inert reference rendering"),
+                    detail_area,
+                    detail_window,
+                    |ui, inner_window| {
+                        if let Some(inner_window) = inner_window {
+                            draw_reference_rows(ui, inner_window, &detail_samples, width);
+                        }
+                    },
+                )
+                .is_err()
+            {
+                return;
+            }
+            if let Some((hint_area, hint_window)) =
+                child_window(content_window, hint_start, hint_height, view.width)
+            {
+                let _ = card_panel_window(
+                    ui,
+                    STATES_HINT_PANEL,
+                    "With hint",
+                    Some("real Notice specimens · no input ownership"),
+                    hint_area,
+                    hint_window,
+                    |ui, inner_window| {
+                        if let Some(inner_window) = inner_window {
+                            draw_reference_rows(ui, inner_window, &hint_samples, width);
+                        }
+                    },
+                );
+            }
         });
     }
 }
@@ -696,9 +758,13 @@ impl Page for NoticesPage {
                                 &self.options_scroll,
                                 scroll_len,
                             );
-                            ui.with_area(view, |ui| {
-                                self.paint_options(ui, view, self.options_scroll.offset())
-                            });
+                            if let Some(window) = scroll_content_window(
+                                view,
+                                scroll_len,
+                                self.options_scroll.offset(),
+                            ) {
+                                ui.with_area(view, |ui| self.paint_options(ui, window));
+                            }
                         }
                         _ => self.draw_states(ui, content),
                     }
@@ -735,26 +801,33 @@ impl Page for NoticesPage {
 
 fn draw_reference_rows(
     ui: &mut Ui<'_>,
-    inner: Rect,
+    inner_window: VerticalWindow,
     samples: &[(&str, Notice<'static>); 4],
     width: u16,
 ) {
+    let inner = inner_window.visible_body();
     let label_width = 10.min(inner.width / 3);
     let notice_x = inner.x.saturating_add(label_width).saturating_add(1);
-    let mut y = inner.y;
+    let mut source_row = 0usize;
     for (label, notice) in samples {
         let sample_width = specimen_notice_width(inner.width, width, *label == "Narrow");
         let height = notice.height_for_width(ui, sample_width);
-        paint_label(
-            ui,
-            Rect::new(inner.x, y, label_width, 1),
-            label,
-            ui.surface_style().fg(ui.theme_ref().color.fg[1]),
-        );
-        ui.reference(None, |ui| {
-            notice.draw(ui, Rect::new(notice_x, y, sample_width, height));
-        });
-        y = y.saturating_add(height).saturating_add(1);
+        if let Some(y) = inner_window.physical_row_for_source(source_row) {
+            paint_label(
+                ui,
+                Rect::new(inner.x, y, label_width, 1),
+                label,
+                ui.surface_style().fg(ui.theme_ref().color.fg[1]),
+            );
+        }
+        if let Some((_, notice_window)) =
+            child_window_at(inner_window, source_row, height, notice_x, sample_width)
+        {
+            ui.reference(None, |ui| notice.draw_window(ui, notice_window));
+        }
+        source_row = source_row
+            .saturating_add(usize::from(height))
+            .saturating_add(1);
     }
 }
 
@@ -785,27 +858,78 @@ fn scroll_content_len(
     }
 }
 
-fn logical_y(view_y: u16, row: usize, offset: usize) -> u16 {
-    let row = isize::try_from(row).unwrap_or(isize::MAX);
-    let offset = isize::try_from(offset).unwrap_or(isize::MAX);
-    let delta = row.saturating_sub(offset);
-    let delta = i16::try_from(delta).unwrap_or_else(|_| {
-        if delta.is_negative() {
-            i16::MIN
-        } else {
-            i16::MAX
-        }
-    });
-    view_y.saturating_add_signed(delta)
+fn scroll_content_window(
+    view: Rect,
+    logical_rows: usize,
+    first_source_row: usize,
+) -> Option<VerticalWindow> {
+    if view.width == 0 || view.height == 0 || logical_rows == 0 {
+        return None;
+    }
+    let first_source_row = first_source_row.min(logical_rows);
+    let visible_rows = usize::from(view.height).min(logical_rows.saturating_sub(first_source_row));
+    if visible_rows == 0 {
+        return None;
+    }
+    let visible_body = Rect {
+        height: u16::try_from(visible_rows).ok()?,
+        ..view
+    };
+    VerticalWindow::new(visible_body, logical_rows, first_source_row).ok()
 }
 
-fn card_rect(view: Rect, source_y: usize, height: u16, offset: usize) -> Rect {
-    Rect::new(
-        view.x,
-        logical_y(view.y, source_y, offset),
-        view.width,
-        height,
+fn child_window(
+    parent: VerticalWindow,
+    source_start: usize,
+    logical_rows: u16,
+    width: u16,
+) -> Option<(Rect, VerticalWindow)> {
+    child_window_at(
+        parent,
+        source_start,
+        logical_rows,
+        parent.visible_body().x,
+        width,
     )
+}
+
+fn child_window_at(
+    parent: VerticalWindow,
+    source_start: usize,
+    logical_rows: u16,
+    x: u16,
+    width: u16,
+) -> Option<(Rect, VerticalWindow)> {
+    if logical_rows == 0 || width == 0 {
+        return None;
+    }
+    let parent_area = parent.visible_body();
+    if x < parent_area.x || x >= parent_area.right() {
+        return None;
+    }
+    let width = width.min(parent_area.right().saturating_sub(x));
+    if width == 0 {
+        return None;
+    }
+    let source_end = source_start.checked_add(usize::from(logical_rows))?;
+    let visible = parent.visible_source_range();
+    let first = source_start.max(visible.start);
+    let end = source_end.min(visible.end);
+    if first >= end {
+        return None;
+    }
+
+    let physical_y = parent.physical_row_for_source(first)?;
+    let visible_height = u16::try_from(end.saturating_sub(first)).ok()?;
+    let visible_body = Rect::new(x, physical_y, width, visible_height);
+    let window = VerticalWindow::new(
+        visible_body,
+        usize::from(logical_rows),
+        first - source_start,
+    )
+    .ok()?;
+    let logical_area = Rect::new(visible_body.x, physical_y, visible_body.width, logical_rows);
+    Some((logical_area, window))
 }
 
 fn paint_label(ui: &mut Ui<'_>, area: Rect, text: &str, style: termrock::author::PaintStyle) {

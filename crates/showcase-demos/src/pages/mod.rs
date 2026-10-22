@@ -1,6 +1,6 @@
 use termrock::{
-    Color, Family, FgStep, FrameRead, Id, Modifier, Panel, PanelKind, Part, Rect, Response, Role,
-    StateFlags, StylePatch, Surface, Ui, Variant, width,
+    Color, Family, FgStep, FrameRead, Id, Modifier, Panel, PanelKind, PanelWindowError, Part, Rect,
+    Response, Role, StateFlags, StylePatch, Surface, Ui, Variant, author::VerticalWindow, width,
 };
 
 pub struct PageStatus(pub String);
@@ -267,6 +267,52 @@ pub fn card_panel(
         &"─".repeat(usize::from(inner.width)),
         seam,
     );
+}
+
+/// Draw a card panel through a validated vertical window into its logical rows.
+///
+/// The callback receives the visible portion of the panel's original inner
+/// body. The title and capsule seam are painted only when their source rows are
+/// visible, so scrolling does not move later body rows into their place.
+pub fn card_panel_window(
+    ui: &mut Ui<'_>,
+    id: Id,
+    title: &str,
+    meta: Option<&str>,
+    logical_area: Rect,
+    window: VerticalWindow,
+    body: impl FnOnce(&mut Ui<'_>, Option<VerticalWindow>),
+) -> Result<(), PanelWindowError> {
+    let mut panel = Panel::new(id).kind(PanelKind::Card).title(title);
+    if let Some(meta) = meta {
+        panel = panel.meta(meta);
+    }
+    let inner = panel.inner(ui, logical_area);
+    panel
+        .patch_part(&CARD_TITLE)
+        .draw_window(ui, logical_area, window, body)?;
+    if logical_area.height < 2 || inner.is_empty() {
+        return Ok(());
+    }
+    let Some(y) = window.physical_row_for_source(1) else {
+        return Ok(());
+    };
+    let plane = ui.theme().bg(ui.theme().raise(ui.surface()));
+    let seam = ui
+        .surface_style()
+        .bg(plane)
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Custom(Color::from_u32(SEAM)))));
+    ui.paint_str(
+        Rect {
+            x: inner.x,
+            y,
+            width: inner.width,
+            height: 1,
+        },
+        &"─".repeat(usize::from(inner.width)),
+        seam,
+    );
+    Ok(())
 }
 
 pub fn lines(ui: &mut Ui<'_>, area: Rect, text: &[&str]) {

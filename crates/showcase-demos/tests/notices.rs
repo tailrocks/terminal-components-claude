@@ -177,6 +177,134 @@ fn real_connection_query_and_four_inline_kinds_render_at_both_shell_sizes() {
 }
 
 #[test]
+fn short_playground_scroll_keeps_source_rows_and_drops_offscreen_button() {
+    let mut h = host(80, 12);
+    let scroll = h
+        .area_of(PLAY_SCROLL)
+        .expect("the compact playground has a scroll viewport");
+
+    for _ in 0..16 {
+        let _ = h.wheel(Axis::V, 3, scroll.x.saturating_add(1), scroll.y);
+    }
+
+    let text = h.text();
+    assert!(
+        text.contains("Read-only replica"),
+        "{text}\npage={:?}",
+        h.app().page
+    );
+    assert!(
+        text.contains("Saved 12 rows in 84 ms"),
+        "{text}\npage={:?}",
+        h.app().page
+    );
+    assert!(
+        !text.contains("prod-replica"),
+        "the first card is above the short scrolled viewport\n{text}"
+    );
+    assert!(
+        h.area_of(TEST_CONNECTION).is_none(),
+        "the fully scrolled-away button must not register a ghost hit target"
+    );
+    let visible = h
+        .area_of(INLINE_PANEL)
+        .expect("the last logical card remains visible at the bottom");
+    let scroll = h.area_of(PLAY_SCROLL).unwrap();
+    assert!(visible.y >= scroll.y && visible.bottom() <= scroll.bottom());
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn cropped_notice_rows_match_the_same_logical_rows_in_a_full_render() {
+    let full = host(80, 24);
+    let mut cropped = host(80, 12);
+    let full_view = full
+        .area_of(PLAY_SCROLL)
+        .expect("the full playground has a scroll viewport");
+    let cropped_view = cropped
+        .area_of(PLAY_SCROLL)
+        .expect("the compact playground has a scroll viewport");
+    let _ = cropped.wheel(Axis::V, 2, cropped_view.x.saturating_add(1), cropped_view.y);
+
+    let debug = page_debug(&cropped);
+    let offset = debug
+        .split("play_scroll: ScrollState { offset: ")
+        .nth(1)
+        .and_then(|state| state.split(',').next())
+        .and_then(|value| value.parse::<u16>().ok())
+        .expect("the compact page records its logical scroll offset");
+    assert_eq!(offset, 6, "{debug}");
+
+    let content_width = cropped_view.width.saturating_sub(1);
+    for row in 0..cropped_view.height {
+        let cropped_y = cropped_view.y.saturating_add(row);
+        let full_y = full_view.y.saturating_add(offset).saturating_add(row);
+        for x in cropped_view.x..cropped_view.x.saturating_add(content_width) {
+            let actual = cropped.cell(x, cropped_y);
+            let source = full.cell(x, full_y);
+            assert_eq!(actual.symbol(), source.symbol(), "at ({x},{cropped_y})");
+            assert_eq!(actual.fg, source.fg, "at ({x},{cropped_y})");
+            assert_eq!(actual.bg, source.bg, "at ({x},{cropped_y})");
+            assert_eq!(actual.modifier, source.modifier, "at ({x},{cropped_y})");
+        }
+    }
+    assert!(
+        cropped.diagnostics().is_empty(),
+        "{:?}",
+        cropped.diagnostics()
+    );
+}
+
+#[test]
+fn short_options_scroll_omits_offscreen_selects_and_keeps_visible_checkbox_live() {
+    let mut h = host(80, 12);
+    assert!(h.tab_to(PAGE_TABS));
+    let _ = h.key(KeyCode::Right);
+    let scroll = h
+        .area_of(OPTIONS_SCROLL)
+        .expect("Options has a scroll viewport");
+
+    for _ in 0..4 {
+        let _ = h.wheel(Axis::V, 3, scroll.x.saturating_add(1), scroll.y);
+    }
+
+    assert!(h.area_of(KIND).is_none(), "the first Select scrolled away");
+    let cut = h
+        .area_of(MARK_CUT)
+        .expect("the last checkbox remains visible");
+    assert!(cut.y >= scroll.y && cut.bottom() <= scroll.bottom());
+    assert!(h.tab_to(MARK_CUT));
+    assert_eq!(h.focus(), Some(MARK_CUT));
+    let _ = h.key(KeyCode::Char(' '));
+    assert!(page_debug(&h).contains("mark_cut: false"));
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn short_states_scroll_reaches_the_later_reference_panel_without_ghosting_the_first() {
+    let mut h = host(80, 12);
+    assert!(h.tab_to(PAGE_TABS));
+    let _ = h.key(KeyCode::Right);
+    let _ = h.key(KeyCode::Right);
+    let scroll = h
+        .area_of(STATES_SCROLL)
+        .expect("States has a scroll viewport");
+
+    for _ in 0..16 {
+        let _ = h.wheel(Axis::V, 3, scroll.x.saturating_add(1), scroll.y);
+    }
+
+    assert!(h.area_of(STATES_DETAIL_PANEL).is_none());
+    let hint_panel = h
+        .area_of(STATES_HINT_PANEL)
+        .expect("the later logical panel remains visible at the bottom");
+    assert!(hint_panel.y >= scroll.y && hint_panel.bottom() <= scroll.bottom());
+    assert!(h.text().contains("Retry is available"), "{}", h.text());
+    assert!(h.text().contains("Connection test"), "{}", h.text());
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
 fn every_notice_option_is_a_live_control_and_changes_the_rendered_notices() {
     let mut h = host(120, 40);
     assert!(h.tab_to(PAGE_TABS));
