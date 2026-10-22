@@ -4134,6 +4134,14 @@ impl App {
         // The filter field owns the caret while it is open. A committed query
         // keeps the filter and gives the keys back to the list.
         if self.filter_field_open() {
+            if matches!(list_action, Some(ListAction::Chose(_))) {
+                // A click outside the field dismisses it, the way the
+                // reference dialog dismisses on an outside click. The query
+                // stays: the tree has been filtered with it all along.
+                self.accounts.filter_input.cancel();
+                cx.focus(ACCOUNTS_LIST);
+                result |= Response::changed();
+            }
             let filter = Self::account_filter_input().update(
                 cx,
                 &mut self.accounts.filter_input,
@@ -5174,13 +5182,33 @@ impl App {
                 Some(Response::changed())
             }
             CMD_ACCOUNT_REFRESH if self.route == Route::Accounts && !self.accounts.form_open => {
-                if let Some(id) = self.accounts.selected_id.clone() {
-                    self.accounts.pending_refresh = Some(id.clone());
-                    self.status = Some("Refreshing account…".into());
-                    self.world.schedule(
-                        1_000,
-                        crate::sim::world::Msg::AccountRefreshed { account: id },
-                    );
+                match self.accounts.selected_id.clone() {
+                    Some(id) => {
+                        self.accounts.pending_refresh = Some(id.clone());
+                        self.status = Some("Refreshing account…".into());
+                        self.world.schedule(
+                            1_000,
+                            crate::sim::world::Msg::AccountRefreshed { account: id },
+                        );
+                    }
+                    None => {
+                        // The overview row refreshes every account, the way
+                        // the hint bar names it.
+                        let ids: Vec<String> = self
+                            .world
+                            .accounts
+                            .sorted()
+                            .iter()
+                            .map(|account| account.id.clone())
+                            .collect();
+                        self.status = Some(format!("Refreshing {} accounts…", ids.len()));
+                        for id in ids {
+                            self.world.schedule(
+                                1_000,
+                                crate::sim::world::Msg::AccountRefreshed { account: id },
+                            );
+                        }
+                    }
                 }
                 Some(Response::changed())
             }
