@@ -312,6 +312,11 @@ impl<'a> Panel<'a> {
         body: impl FnOnce(&mut Ui<'_>, Option<VerticalWindow>) -> R,
     ) -> Result<R, PanelWindowError> {
         if window == VerticalWindow::full(logical_area) {
+            if !logical_area.is_empty()
+                && VerticalWindow::new(logical_area, usize::from(logical_area.height), 0).is_err()
+            {
+                return Err(PanelWindowError::InvalidWindow);
+            }
             return Ok(self.draw(ui, logical_area, |ui, inner| {
                 let body_window = (!inner.is_empty()).then(|| VerticalWindow::full(inner));
                 body(ui, body_window)
