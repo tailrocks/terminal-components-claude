@@ -92,9 +92,31 @@ impl Case {
 }
 
 pub fn argv_for(case: &Case) -> Vec<String> {
+    let has_binary_override = std::env::var_os("VISUAL_BIN_DIR").is_some();
+    // Custom binaries keep old arguments unless the caller opts them in.
+    let opted_in =
+        std::env::var_os("VISUAL_BIN_SUPPORTS_QUERY_DURATION").is_some_and(|value| value == "1");
+    argv_for_with_query_duration_support(
+        case,
+        query_duration_supported(has_binary_override, opted_in),
+    )
+}
+
+fn query_duration_supported(has_binary_override: bool, opted_in: bool) -> bool {
+    !has_binary_override || opted_in
+}
+
+fn argv_for_with_query_duration_support(case: &Case, supported: bool) -> Vec<String> {
     let mut argv = Vec::with_capacity(case.args.len() + 3);
     argv.push(case.bin.to_string());
-    argv.extend(case.args.iter().map(|s| s.to_string()));
+    let mut args = case.args.iter().copied();
+    while let Some(arg) = args.next() {
+        if !supported && arg == "--query-duration-ms" {
+            let _ = args.next();
+        } else {
+            argv.push(arg.to_string());
+        }
+    }
     let flag = match case.color {
         Color::Truecolor => Some("truecolor"),
         Color::Ansi256 => Some("256"),
@@ -107,6 +129,51 @@ pub fn argv_for(case: &Case) -> Vec<String> {
         argv.push(flag.to_string());
     }
     argv
+}
+
+/// Custom `VISUAL_BIN_DIR` binaries keep old arguments unless callers set
+/// `VISUAL_BIN_SUPPORTS_QUERY_DURATION=1` for binaries that accept the flag.
+pub fn query_duration_argv_contract() {
+    let case = Case::new(
+        "tablepro/ack/executed",
+        "tablepro",
+        &["--connect", "Production", "--query-duration-ms", "42"],
+        120,
+        40,
+        Color::Truecolor,
+        "Query 1",
+    );
+    let current = [
+        "tablepro",
+        "--connect",
+        "Production",
+        "--query-duration-ms",
+        "42",
+        "--color",
+        "truecolor",
+    ];
+    assert_eq!(
+        argv_for_with_query_duration_support(&case, true),
+        current.iter().map(ToString::to_string).collect::<Vec<_>>()
+    );
+
+    let legacy_override = [
+        "tablepro",
+        "--connect",
+        "Production",
+        "--color",
+        "truecolor",
+    ];
+    assert_eq!(
+        argv_for_with_query_duration_support(&case, false),
+        legacy_override
+            .iter()
+            .map(ToString::to_string)
+            .collect::<Vec<_>>()
+    );
+    assert!(query_duration_supported(false, false));
+    assert!(!query_duration_supported(true, false));
+    assert!(query_duration_supported(true, true));
 }
 
 pub const ARTIFACTS: ArtifactSet = ArtifactSet::AnsiCursor;

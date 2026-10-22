@@ -779,6 +779,7 @@ pub struct TableProApp {
     delete_question: String,
     delete_state: DialogState,
     motion: Motion,
+    query_timing: QueryTiming,
     tick: u64,
     explorer_pin: u8,
     grid_sort: Option<(TabKey, u16, SortDir)>,
@@ -851,6 +852,18 @@ impl Default for TableProApp {
 
 impl TableProApp {
     pub fn new() -> Self {
+        Self::new_with_timing(QueryTiming::Live)
+    }
+
+    /// Constructs an app that reports `duration` for every query execution.
+    ///
+    /// This policy is active before the initial query runs and does not sample
+    /// a host clock. Use it for deterministic embedding and replay.
+    pub fn new_with_query_duration(duration: Duration) -> Self {
+        Self::new_with_timing(QueryTiming::Explicit(duration))
+    }
+
+    fn new_with_timing(query_timing: QueryTiming) -> Self {
         let catalog = Catalog::acme_prod();
         let connections = db::connections();
         let connection = connections
@@ -905,6 +918,7 @@ impl TableProApp {
             delete_question: String::new(),
             delete_state: DialogState::default(),
             motion: Motion::Full,
+            query_timing,
             tick: 0,
             explorer_pin: 0,
             grid_sort: None,
@@ -1543,7 +1557,7 @@ impl TableProApp {
                 message: "Query tab is no longer available".to_owned(),
             };
         }
-        let started = Instant::now();
+        let started = self.query_timing.start();
         let statement = match tablepro_sql::sql::parse(query.trim()) {
             Ok(statement) => statement,
             Err(error) => {
@@ -9077,6 +9091,36 @@ impl Motion {
     }
 }
 
+#[derive(Clone, Copy)]
+enum QueryTiming {
+    Live,
+    Explicit(Duration),
+}
+
+impl QueryTiming {
+    fn start(self) -> QueryTimer {
+        match self {
+            Self::Live => QueryTimer::Live(Instant::now()),
+            Self::Explicit(duration) => QueryTimer::Explicit(duration),
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+enum QueryTimer {
+    Live(Instant),
+    Explicit(Duration),
+}
+
+impl QueryTimer {
+    fn elapsed(self) -> Duration {
+        match self {
+            Self::Live(started) => started.elapsed(),
+            Self::Explicit(duration) => duration,
+        }
+    }
+}
+
 pub fn run_with(theme: Theme, connect: Option<&str>) -> std::io::Result<()> {
     run_session(theme, connect, Motion::Full, 0)
 }
@@ -9087,7 +9131,33 @@ pub(crate) fn run_session(
     motion: Motion,
     frame: u64,
 ) -> std::io::Result<()> {
-    let mut app = TableProApp::default();
+    run_session_with_timing(theme, connect, motion, frame, QueryTiming::Live)
+}
+
+pub(crate) fn run_session_with_query_duration(
+    theme: Theme,
+    connect: Option<&str>,
+    motion: Motion,
+    frame: u64,
+    duration: Duration,
+) -> std::io::Result<()> {
+    run_session_with_timing(
+        theme,
+        connect,
+        motion,
+        frame,
+        QueryTiming::Explicit(duration),
+    )
+}
+
+fn run_session_with_timing(
+    theme: Theme,
+    connect: Option<&str>,
+    motion: Motion,
+    frame: u64,
+    query_timing: QueryTiming,
+) -> std::io::Result<()> {
+    let mut app = TableProApp::new_with_timing(query_timing);
     if let Some(name) = connect {
         let Some(index) = app
             .connections

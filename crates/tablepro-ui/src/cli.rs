@@ -1,4 +1,5 @@
 use std::io::{self, Write};
+use std::time::Duration;
 
 use termrock::{ColorLevel, Theme};
 
@@ -6,9 +7,10 @@ use crate::app::Motion;
 
 const HELP: &str = "tablepro — TablePro's core workflow as a terminal application\n\n\
 USAGE: tablepro [--color truecolor|256|16|none] [--connect NAME] [--theme junie|paper]\n\
-         [--motion full|reduced|paused] [--frame N]\n\n\
+         [--motion full|reduced|paused] [--frame N] [--query-duration-ms N]\n\n\
 Motion:    explicit --motion wins; otherwise TABLEPRO_NO_MOTION=1 selects reduced motion\n\
 Frame:     with --motion paused, the exact tick to render\n\n\
+Query time: fixed reported duration for deterministic replay; absent means live timing\n\
 Keys: Ctrl+O open quickly · Ctrl+T new query · Ctrl+R run · Ctrl+Y history · ? help · q quit\n";
 
 #[derive(Clone, Copy)]
@@ -35,6 +37,7 @@ enum Command {
         connect: Option<String>,
         motion: Motion,
         frame: u64,
+        query_duration: Option<Duration>,
     },
 }
 
@@ -49,7 +52,21 @@ pub fn run() -> io::Result<()> {
             connect,
             motion,
             frame,
-        } => crate::app::run_session(theme.resolve(level), connect.as_deref(), motion, frame),
+            query_duration,
+        } => {
+            let theme = theme.resolve(level);
+            if let Some(duration) = query_duration {
+                crate::app::run_session_with_query_duration(
+                    theme,
+                    connect.as_deref(),
+                    motion,
+                    frame,
+                    duration,
+                )
+            } else {
+                crate::app::run_session(theme, connect.as_deref(), motion, frame)
+            }
+        }
     }
 }
 
@@ -67,6 +84,7 @@ fn parse_args(
     let mut connect = None;
     let mut motion = None;
     let mut frame = 0u64;
+    let mut query_duration = None;
     let mut args = args.into_iter();
     while let Some(arg) = args.next() {
         match arg.as_str() {
@@ -113,6 +131,15 @@ fn parse_args(
                     .parse()
                     .map_err(|_| invalid_arg("--frame must be a non-negative integer"))?;
             }
+            "--query-duration-ms" => {
+                let value = args
+                    .next()
+                    .ok_or_else(|| invalid_arg("--query-duration-ms requires a value"))?;
+                let milliseconds = value.parse::<u64>().map_err(|_| {
+                    invalid_arg("--query-duration-ms must be a non-negative integer")
+                })?;
+                query_duration = Some(Duration::from_millis(milliseconds));
+            }
             "-h" | "--help" => return Ok(Command::Help),
             _ => {}
         }
@@ -127,6 +154,7 @@ fn parse_args(
             Motion::Full
         }),
         frame,
+        query_duration,
     })
 }
 
@@ -175,6 +203,7 @@ mod tests {
             connect,
             motion,
             frame,
+            ..
         } = parse_args(
             ["--unknown", "value", "--connect"].map(str::to_owned),
             ColorLevel::Ansi16,
@@ -189,6 +218,53 @@ mod tests {
         );
         assert!(connect.is_none());
         assert_eq!((motion, frame), (Motion::Full, 0));
+        assert!(matches!(
+            parse_args(std::iter::empty::<String>(), ColorLevel::TrueColor, false)?,
+            Command::Run {
+                query_duration: None,
+                ..
+            }
+        ));
+        Ok(())
+    }
+
+    #[test]
+    fn query_duration_flag_is_optional_numeric_and_documented() -> io::Result<()> {
+        let Command::Run {
+            query_duration,
+            connect,
+            motion,
+            frame,
+            ..
+        } = parse_args(
+            ["--query-duration-ms", "42", "--connect", "Production"].map(str::to_owned),
+            ColorLevel::TrueColor,
+            false,
+        )?
+        else {
+            return Err(io::Error::other("expected run command"));
+        };
+        assert_eq!(query_duration, Some(Duration::from_millis(42)));
+        assert_eq!(connect.as_deref(), Some("Production"));
+        assert_eq!((motion, frame), (Motion::Full, 0));
+        assert!(HELP.contains("--query-duration-ms N"));
+        assert!(HELP.contains("absent means live timing"));
+
+        for args in [
+            &["--query-duration-ms"][..],
+            &["--query-duration-ms", "-1"],
+            &["--query-duration-ms", "1.5"],
+            &["--query-duration-ms", "18446744073709551616"],
+        ] {
+            let Err(error) = parse_args(
+                args.iter().map(|arg| (*arg).to_owned()),
+                ColorLevel::TrueColor,
+                false,
+            ) else {
+                return Err(io::Error::other("invalid query duration was accepted"));
+            };
+            assert_eq!(error.kind(), io::ErrorKind::InvalidInput);
+        }
         Ok(())
     }
 
