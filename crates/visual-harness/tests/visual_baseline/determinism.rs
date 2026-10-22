@@ -27,6 +27,9 @@ const REVIEWED_PATTERNS: [&str; 2] = ["Instant::now", "target_os"];
 
 const TARGET_OS_ALLOWED: [(&str, usize, &str); 0] = [];
 
+type ReviewedPatternLocations = BTreeMap<(String, String), Vec<usize>>;
+type ScanResult = (Vec<String>, ReviewedPatternLocations, usize);
+
 fn mask_range(bytes: &mut [u8], range: std::ops::Range<usize>) {
     for byte in &mut bytes[range] {
         if *byte != b'\n' && *byte != b'\r' {
@@ -282,21 +285,6 @@ fn attribute_end(
     matching[at + 1]
 }
 
-#[derive(Debug)]
-struct ModuleItem {
-    name: String,
-    start: usize,
-    end: usize,
-    external: bool,
-    test_only: bool,
-}
-
-struct ModuleInventory {
-    modules: Vec<ModuleItem>,
-    test_ranges: Vec<std::ops::Range<usize>>,
-    has_custom_path: bool,
-}
-
 fn cfg_test_attribute(
     code: &str,
     tokens: &[Token],
@@ -328,44 +316,34 @@ fn identifier_token(code: &str, tokens: &[Token], at: usize) -> bool {
     }
 }
 
-fn module_body(
+fn module_item_range(
     code: &str,
     tokens: &[Token],
     matching: &[Option<usize>],
     mod_at: usize,
     start: usize,
-    test_only: bool,
-) -> Option<ModuleItem> {
+) -> Option<std::ops::Range<usize>> {
     let mut name_at = mod_at + 1;
-    let name;
     if token_text(code, tokens, name_at) == "r"
         && tokens
             .get(name_at + 1)
             .is_some_and(|_| token_text(code, tokens, name_at + 1) == "#")
         && identifier_token(code, tokens, name_at + 2)
     {
-        name = token_text(code, tokens, name_at + 2).to_string();
         name_at += 3;
     } else {
         if !identifier_token(code, tokens, name_at) {
             return None;
         }
-        name = token_text(code, tokens, name_at).to_string();
         name_at += 1;
     }
     let token = tokens.get(name_at)?;
-    let (end, external) = match token_text(code, tokens, name_at) {
-        ";" => (token.end, true),
-        "{" => (tokens[matching[name_at]?].end, false),
+    let end = match token_text(code, tokens, name_at) {
+        ";" => token.end,
+        "{" => tokens[matching[name_at]?].end,
         _ => return None,
     };
-    Some(ModuleItem {
-        name,
-        start,
-        end,
-        external,
-        test_only,
-    })
+    Some(start..end)
 }
 
 fn module_after_attribute(
@@ -374,7 +352,7 @@ fn module_after_attribute(
     matching: &[Option<usize>],
     after_attribute: usize,
     start: usize,
-) -> Option<ModuleItem> {
+) -> Option<std::ops::Range<usize>> {
     let mut at = after_attribute + 1;
     loop {
         if let Some(end) = attribute_end(code, tokens, matching, at) {
@@ -400,7 +378,7 @@ fn module_after_attribute(
     {
         return None;
     }
-    module_body(code, tokens, matching, at, start, true)
+    module_item_range(code, tokens, matching, at, start)
 }
 
 fn macro_token_ranges(
@@ -430,11 +408,10 @@ fn macro_token_ranges(
     ranges
 }
 
-fn module_inventory(text: &str) -> Result<ModuleInventory, String> {
+fn test_module_ranges(text: &str) -> Result<Vec<std::ops::Range<usize>>, String> {
     let code = String::from_utf8(mask_non_code(text)?).expect("lexical mask preserves UTF-8");
     let (tokens, matching) = tokenize(&code)?;
     let macro_ranges = macro_token_ranges(&code, &tokens, &matching);
-    let mut modules = Vec::new();
     let mut test_ranges = Vec::new();
     let mut at = 0;
     while at + 1 < tokens.len() {
@@ -451,59 +428,54 @@ fn module_inventory(text: &str) -> Result<ModuleInventory, String> {
             at += 1;
             continue;
         };
-        if let Some(module) =
+        if let Some(range) =
             module_after_attribute(&code, &tokens, &matching, attribute, tokens[at].start)
         {
-            test_ranges.push(module.start..module.end);
-            modules.push(module);
+            test_ranges.push(range);
         }
         at += 1;
     }
-    for at in 0..tokens.len() {
-        if token_text(&code, &tokens, at) != "mod"
-            || macro_ranges
-                .iter()
-                .any(|range| range.contains(&tokens[at].start))
-            || test_ranges
-                .iter()
-                .any(|range| range.contains(&tokens[at].start))
-        {
-            continue;
-        }
-        if let Some(module) = module_body(&code, &tokens, &matching, at, tokens[at].start, false) {
-            modules.push(module);
-        }
-    }
-    let has_custom_path = (0..tokens.len()).any(|at| {
-        token_text(&code, &tokens, at) == "#"
-            && token_text(&code, &tokens, at + 1) == "["
-            && tokens.get(at + 2).is_some()
-            && token_text(&code, &tokens, at + 2) == "path"
-    });
-    Ok(ModuleInventory {
-        modules,
-        test_ranges,
-        has_custom_path,
-    })
+    Ok(test_ranges)
 }
 
 /// Blanks only syntactically complete cfg(test) module items, preserving every newline and byte offset.
 pub fn non_test(text: &str) -> Result<String, String> {
-    let inventory = module_inventory(text)?;
+    let test_ranges = test_module_ranges(text)?;
     let mut result = text.as_bytes().to_vec();
-    for range in inventory.test_ranges {
+    for range in test_ranges {
         mask_range(&mut result, range);
     }
     String::from_utf8(result).map_err(|error| format!("masked Rust source is not UTF-8: {error}"))
 }
 
-fn contains_word(line: &str, pat: &str) -> bool {
-    line.match_indices(pat).any(|(at, _)| {
-        !line[..at]
-            .chars()
-            .next_back()
-            .is_some_and(|c| c.is_alphanumeric() || c == '_')
-    })
+fn matching_pattern_offsets(code: &str, tokens: &[Token], pattern: &str) -> Vec<usize> {
+    let (pattern_tokens, _) = tokenize(pattern).expect("reviewed source pattern is valid Rust");
+    if pattern_tokens.is_empty() {
+        return Vec::new();
+    }
+    let expected: Vec<_> = pattern_tokens
+        .iter()
+        .map(|token| &pattern[token.start..token.end])
+        .collect();
+    tokens
+        .windows(expected.len())
+        .enumerate()
+        .filter_map(|(start, window)| {
+            window
+                .iter()
+                .enumerate()
+                .all(|(offset, token)| &code[token.start..token.end] == expected[offset])
+                .then_some(tokens[start].start)
+        })
+        .collect()
+}
+
+fn source_line_at(code: &str, offset: usize) -> usize {
+    code.as_bytes()[..offset]
+        .iter()
+        .filter(|byte| **byte == b'\n')
+        .count()
+        + 1
 }
 
 fn collect_rs_files(dir: &Path, out: &mut Vec<std::path::PathBuf>) {
@@ -517,54 +489,13 @@ fn collect_rs_files(dir: &Path, out: &mut Vec<std::path::PathBuf>) {
     }
 }
 
-fn external_module_path(owner: &Path, name: &str) -> Option<std::path::PathBuf> {
-    let parent = owner.parent()?;
-    let file_name = owner.file_name()?.to_str()?;
-    let base = if matches!(file_name, "lib.rs" | "main.rs" | "mod.rs") {
-        parent.to_path_buf()
-    } else {
-        parent.join(owner.file_stem()?)
-    };
-    let flat = base.join(format!("{name}.rs"));
-    let nested = base.join(name).join("mod.rs");
-    match (flat.is_file(), nested.is_file()) {
-        (true, false) => Some(flat),
-        (false, true) => Some(nested),
-        _ => None,
-    }
-}
-
 pub(super) fn sources(dir: &Path) -> Vec<std::path::PathBuf> {
+    // Keep every Rust file below src. An external source can have multiple or
+    // conditional production bindings, so a test-only declaration alone is
+    // not proof that the file is absent from production.
     let mut files = Vec::new();
     collect_rs_files(dir, &mut files);
     files.sort();
-    let mut test_only_modules = std::collections::BTreeSet::new();
-    let mut production_modules = std::collections::BTreeSet::new();
-    let mut unresolved_path_attribute = false;
-    for file in &files {
-        let text = std::fs::read_to_string(file)
-            .unwrap_or_else(|error| panic!("read {}: {error}", file.display()));
-        let inventory = module_inventory(&text)
-            .unwrap_or_else(|error| panic!("scan {}: {error}", file.display()));
-        unresolved_path_attribute |= inventory.has_custom_path;
-        for module in inventory
-            .modules
-            .into_iter()
-            .filter(|module| module.external)
-        {
-            let Some(path) = external_module_path(file, &module.name) else {
-                continue;
-            };
-            if module.test_only {
-                test_only_modules.insert(path);
-            } else {
-                production_modules.insert(path);
-            }
-        }
-    }
-    if !unresolved_path_attribute {
-        files.retain(|file| !test_only_modules.contains(file) || production_modules.contains(file));
-    }
     files
 }
 
@@ -604,10 +535,7 @@ pub(super) fn source_roots(workspace: &Path) -> Vec<std::path::PathBuf> {
     roots
 }
 
-fn scan_roots(
-    workspace: &Path,
-    roots: &[std::path::PathBuf],
-) -> (Vec<String>, BTreeMap<(String, String), usize>, usize) {
+fn scan_roots(workspace: &Path, roots: &[std::path::PathBuf]) -> ScanResult {
     assert!(
         !roots.is_empty(),
         "no application or termrock source roots found under {}",
@@ -620,7 +548,7 @@ fn scan_roots(
     files.sort();
     let source_count = files.len();
     let mut hits = Vec::new();
-    let mut instants = BTreeMap::new();
+    let mut reviewed_locations = BTreeMap::new();
     for file in files {
         let rel = file
             .strip_prefix(workspace)
@@ -630,24 +558,26 @@ fn scan_roots(
         let text = std::fs::read_to_string(&file).unwrap_or_else(|e| panic!("read {rel}: {e}"));
         let non_test = non_test(&text).unwrap_or_else(|error| panic!("scan {rel}: {error}"));
         let code = code_only(&non_test);
-        for (n, line) in code.lines().enumerate() {
-            for pat in FORBIDDEN {
-                if contains_word(line, pat) {
-                    hits.push(format!("{rel}:{}: `{pat}`", n + 1));
-                }
+        let (tokens, _) = tokenize(&code).unwrap_or_else(|error| panic!("tokenize {rel}: {error}"));
+        for pat in FORBIDDEN {
+            for offset in matching_pattern_offsets(&code, &tokens, pat) {
+                hits.push(format!("{rel}:{}: `{pat}`", source_line_at(&code, offset)));
             }
         }
         for pat in REVIEWED_PATTERNS {
-            let count = code.matches(pat).count();
-            if count > 0 {
-                instants.insert((pat.to_string(), rel.clone()), count);
+            let lines: Vec<_> = matching_pattern_offsets(&code, &tokens, pat)
+                .into_iter()
+                .map(|offset| source_line_at(&code, offset))
+                .collect();
+            if !lines.is_empty() {
+                reviewed_locations.insert((pat.to_string(), rel.clone()), lines);
             }
         }
     }
-    (hits, instants, source_count)
+    (hits, reviewed_locations, source_count)
 }
 
-fn scan(workspace: &Path) -> (Vec<String>, BTreeMap<(String, String), usize>, usize) {
+fn scan(workspace: &Path) -> ScanResult {
     let roots = source_roots(workspace);
     scan_roots(workspace, &roots)
 }
@@ -668,7 +598,7 @@ pub fn sources_are_deterministic() {
             "production source root `{required}` is missing from deterministic scan"
         );
     }
-    let (hits, instants, source_count) = scan(&workspace);
+    let (hits, reviewed_locations, source_count) = scan(&workspace);
     assert!(
         source_count > 0,
         "no production Rust source files scanned under {}",
@@ -683,9 +613,13 @@ pub fn sources_are_deterministic() {
                 .map(|(f, n, _)| (("target_os".to_string(), f.to_string()), *n)),
         )
         .collect();
-    if !hits.is_empty() || instants != allowed {
+    let reviewed_counts: BTreeMap<_, _> = reviewed_locations
+        .iter()
+        .map(|(key, lines)| (key.clone(), lines.len()))
+        .collect();
+    if !hits.is_empty() || reviewed_counts != allowed {
         eprintln!(
-            "determinism inventory: source_files={source_count}, forbidden={hits:?}, reviewed_patterns={instants:?}, expected_patterns={allowed:?}"
+            "determinism inventory: source_files={source_count}, forbidden={hits:?}, reviewed_pattern_lines={reviewed_locations:?}, expected_patterns={allowed:?}"
         );
     }
     assert!(
@@ -694,7 +628,7 @@ pub fn sources_are_deterministic() {
         hits.join("\n  ")
     );
     assert_eq!(
-        instants, allowed,
+        reviewed_counts, allowed,
         "Instant::now / target_os uses changed: review that the new use cannot change a frame's content (or differ between macOS and the ubuntu CI runner), then update determinism::INSTANT_ALLOWED / TARGET_OS_ALLOWED"
     );
 }
@@ -713,11 +647,20 @@ pub fn scanner_ignores_strings_comments_and_tests() {
         assert!(!code.contains(pat), "`{pat}` survived in {code:?}");
     }
     assert_eq!(code.matches("Instant::now").count(), 1);
-    assert!(!contains_word(
-        "use crate::widgets::brand::Lockup;",
-        "rand::"
-    ));
-    assert!(contains_word("let r = rand::random();", "rand::"));
+    let path_code = code_only("use crate::widgets::brand::Lockup;");
+    let (tokens, _) = tokenize(&path_code).expect("valid Rust source");
+    assert!(matching_pattern_offsets(&path_code, &tokens, "rand::").is_empty());
+    let path_code = code_only("let r = rand::random();");
+    let (tokens, _) = tokenize(&path_code).expect("valid Rust source");
+    assert_eq!(
+        matching_pattern_offsets(&path_code, &tokens, "rand::").len(),
+        1,
+        "code={path_code:?}, tokens={:?}",
+        tokens
+            .iter()
+            .map(|token| &path_code[token.start..token.end])
+            .collect::<Vec<_>>()
+    );
     assert_eq!(
         code_only("let x = SystemTime::now();")
             .matches("SystemTime")
@@ -821,10 +764,201 @@ pub fn scanner_detects_forbidden_source_injected_under_root() {
     let (hits, _, count) = scan_roots(&root, &roots);
     std::fs::remove_dir_all(&root).expect("remove source fixture");
     assert_eq!(
-        count, 2,
-        "only the proven out-of-line test module is excluded"
+        count, 3,
+        "external Rust files remain in the conservative inventory"
     );
-    assert_eq!(hits.len(), 2, "both production files are scanned");
-    assert!(hits[0].contains("lib.rs:5") && hits[0].contains("SystemTime"));
-    assert!(hits[1].contains("production_tests_helper.rs:1") && hits[1].contains("UNIX_EPOCH"));
+    assert_eq!(
+        hits.len(),
+        3,
+        "both production files and the test-only external file are visible"
+    );
+    assert!(
+        hits.iter()
+            .any(|hit| hit.contains("lib.rs:5") && hit.contains("SystemTime"))
+    );
+    assert!(
+        hits.iter()
+            .any(|hit| hit.contains("historical_checks.rs:1") && hit.contains("SystemTime"))
+    );
+    assert!(
+        hits.iter().any(|hit| {
+            hit.contains("production_tests_helper.rs:1") && hit.contains("UNIX_EPOCH")
+        })
+    );
+}
+
+pub fn scanner_matches_qualified_paths_across_comments_and_whitespace() {
+    let root = std::env::temp_dir().join(format!(
+        "visual-harness-determinism-qualified-paths-{}",
+        std::process::id()
+    ));
+    let package = root.join("crates/example");
+    let source = package.join("src");
+    std::fs::create_dir_all(&source).expect("create source root");
+    std::fs::write(
+        package.join("Cargo.toml"),
+        "[package]\nname = \"example\"\nversion = \"0.1.0\"\n",
+    )
+    .expect("write package manifest");
+    std::fs::write(
+        source.join("lib.rs"),
+        concat!(
+            "fn calls() {\n",
+            "    std::time::Instant /* separator */\n",
+            "        :: /* separator */ now();\n",
+            "    rand /* separator */ :: /* separator */ random();\n",
+            "    chrono\n",
+            "        /* separator */ :: Local;\n",
+            "    Local /* separator */ ::\n",
+            "        now();\n",
+            "    Utc /* separator */\n",
+            "        :: now();\n",
+            "    std::collections::hash_map::RandomState /* separator */\n",
+            "        :: new();\n",
+            "    std::process /* separator */ :: id();\n",
+            "    let text = \"Instant::now rand::random chrono::Local\";\n",
+            "    // Instant::now rand::random chrono::Local\n",
+            "}\n",
+        ),
+    )
+    .expect("write qualified-path source fixture");
+
+    let roots = source_roots(&root);
+    let (hits, reviewed, count) = scan_roots(&root, &roots);
+    std::fs::remove_dir_all(&root).expect("remove source fixture");
+
+    assert_eq!(count, 1);
+    for expected in [
+        "crates/example/src/lib.rs:4: `rand::`",
+        "crates/example/src/lib.rs:5: `chrono::`",
+        "crates/example/src/lib.rs:7: `Local::now`",
+        "crates/example/src/lib.rs:9: `Utc::now`",
+        "crates/example/src/lib.rs:11: `RandomState::new`",
+        "crates/example/src/lib.rs:13: `process::id`",
+    ] {
+        assert!(
+            hits.iter().any(|hit| hit == expected),
+            "missing {expected}: {hits:?}"
+        );
+    }
+    assert_eq!(
+        reviewed.get(&(
+            "Instant::now".to_string(),
+            "crates/example/src/lib.rs".to_string(),
+        )),
+        Some(&vec![2]),
+        "reviewed path counting uses the same token-aware matcher"
+    );
+}
+
+pub fn scanner_retains_uncertain_external_bindings_in_real_roots() {
+    let root = std::env::temp_dir().join(format!(
+        "visual-harness-determinism-bindings-{}",
+        std::process::id()
+    ));
+    let ambiguous_package = root.join("crates/ambiguous");
+    let ambiguous_src = ambiguous_package.join("src");
+    let explicit_package = root.join("crates/explicit");
+    let explicit_src = explicit_package.join("src");
+    for package in [&ambiguous_package, &explicit_package] {
+        std::fs::create_dir_all(package.join("src")).expect("create package source root");
+        std::fs::write(
+            package.join("Cargo.toml"),
+            format!(
+                "[package]\nname = \"{}\"\nversion = \"0.1.0\"\n",
+                package.file_name().unwrap().to_string_lossy()
+            ),
+        )
+        .expect("write package manifest");
+    }
+    std::fs::create_dir_all(ambiguous_src.join("nested")).expect("create nested module root");
+    let write = |path: &Path, content: &str| {
+        std::fs::write(path, content)
+            .unwrap_or_else(|error| panic!("write {}: {error}", path.display()));
+    };
+    write(
+        &ambiguous_src.join("lib.rs"),
+        concat!(
+            "#[cfg(test)] mod shared;\n",
+            "#[cfg_attr(all(), path = \"shared.rs\")] mod production_alias;\n",
+            "#[cfg(test)] mod conditional;\n",
+            "#[cfg_attr(feature = \"production\", path = \"conditional.rs\")] mod conditional_alias;\n",
+            "#[cfg(test)] mod included;\n",
+            "include!(\"included.rs\");\n",
+            "#[cfg(test)] mod unresolved;\n",
+            "macro_rules! declare_production { () => { mod unresolved; } }\n",
+            "declare_production!();\n",
+            "#[cfg(test)] mod historical_checks;\n",
+            "mod nested;\n",
+        ),
+    );
+    write(
+        &ambiguous_src.join("shared.rs"),
+        "pub fn shared_render() { rand::random(); }\n",
+    );
+    write(
+        &ambiguous_src.join("conditional.rs"),
+        "pub fn conditional_render() { chrono::Local::now(); }\n",
+    );
+    write(
+        &ambiguous_src.join("included.rs"),
+        "pub fn included_render() { UNIX_EPOCH; }\n",
+    );
+    write(
+        &ambiguous_src.join("unresolved.rs"),
+        "pub fn unresolved_render() { getrandom(); }\n",
+    );
+    write(
+        &ambiguous_src.join("historical_checks.rs"),
+        "fn test_only() { Instant::now(); }\n",
+    );
+    write(
+        &ambiguous_src.join("production_tests_helper.rs"),
+        "pub fn helper_render() { fastrand::usize(..); }\n",
+    );
+    write(
+        &ambiguous_src.join("nested/mod.rs"),
+        "mod child; pub fn nested_render() { Local::now(); }\n",
+    );
+    write(
+        &ambiguous_src.join("nested/child.rs"),
+        "pub fn nested_child_render() { process::id(); }\n",
+    );
+    write(
+        &explicit_src.join("lib.rs"),
+        "#[path = \"direct.rs\"] mod direct;\n",
+    );
+    write(
+        &explicit_src.join("direct.rs"),
+        "pub fn direct_render() { OffsetDateTime::now_utc(); }\n",
+    );
+
+    let roots = source_roots(&root);
+    let (hits, reviewed, count) = scan_roots(&root, &roots);
+    std::fs::remove_dir_all(&root).expect("remove source fixture");
+
+    assert_eq!(count, 11, "all source files remain in inventory");
+    for expected in [
+        "crates/ambiguous/src/shared.rs:1: `rand::`",
+        "crates/ambiguous/src/conditional.rs:1: `chrono::`",
+        "crates/ambiguous/src/included.rs:1: `UNIX_EPOCH`",
+        "crates/ambiguous/src/unresolved.rs:1: `getrandom`",
+        "crates/ambiguous/src/production_tests_helper.rs:1: `fastrand`",
+        "crates/ambiguous/src/nested/mod.rs:1: `Local::now`",
+        "crates/ambiguous/src/nested/child.rs:1: `process::id`",
+        "crates/explicit/src/direct.rs:1: `OffsetDateTime`",
+    ] {
+        assert!(
+            hits.iter().any(|hit| hit == expected),
+            "missing {expected}: {hits:?}"
+        );
+    }
+    assert_eq!(
+        reviewed.get(&(
+            "Instant::now".to_string(),
+            "crates/ambiguous/src/historical_checks.rs".to_string(),
+        )),
+        Some(&vec![1]),
+        "the retained external test source is visible as an attributed, non-waived inventory hit"
+    );
 }
