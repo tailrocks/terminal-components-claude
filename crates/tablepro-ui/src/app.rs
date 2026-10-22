@@ -14,8 +14,9 @@ use termrock::{
     KeyPhase, LayerId, LayerSize, LayerSpec, Maximized, Modifier, Moment, Panel, PanelKind, Part,
     Phase, PickerAction, PickerSlotExt, Position, Response, Role, RowUi, ScreenAlign, Size,
     SortDir, Span, SplitAxis, SplitPane, SplitPaneState, StateFlags, StylePatch, Tabs, TabsAction,
-    TabsState, TextAction, TextInput, TextInputState, Theme, Tree, TreeAction,
-    TreeBranchActivation, TreeNode, TreeState, Ui, UpdateCause, truncate, width, wrap,
+    TabsState, TextAction, TextInput, TextInputState, TextViewport, Theme, Tree, TreeAction,
+    TreeBranchActivation, TreeNode, TreeState, Ui, UpdateCause, ViewportLine, ViewportState,
+    truncate, width, wrap,
 };
 
 use crate::footer::{self, Hint};
@@ -37,10 +38,13 @@ use tablepro_demo::db::{
     self, Catalog, ColType, ConnectOutcome, Connection, Environment, ObjectKind, SafeMode,
 };
 use tablepro_domain::connections::{self, ConnectionDraft, ConnectionsScreen};
+use tablepro_domain::domain::preview_sql;
 use tablepro_domain::domain::{PendingEdits, ResultGrid};
 use tablepro_domain::filter_editor::{Filter, FilterOp};
-use tablepro_domain::model::{SwitchTarget, auto_trigger, completion_batch};
-use tablepro_domain::{highlight_sql, preview_for, segment_sql};
+use tablepro_domain::model::{
+    HistoryEntry, HistorySource, SwitchTarget, auto_trigger, completion_batch,
+};
+use tablepro_domain::{highlight_sql, segment_sql};
 
 pub const MIN_WIDTH: u16 = 72;
 
@@ -92,7 +96,7 @@ const COMMIT_ACTIONS: [Action<'static>; 2] = [
     Action::quiet(ActionKey::CANCEL, "Cancel"),
     Action::new(ActionKey::CONFIRM, "Commit"),
 ];
-const COMMIT_PREVIEW_LIMIT: usize = 4;
+const COMMIT_PREVIEW: Id = Id::root("tablepro.commit-preview");
 const QUERY_EDITOR_PLACEHOLDER: &str = "Type SQL. Ctrl+R runs the statement under the cursor.";
 const QUERY_EDITOR_ROWS: u16 = 12;
 
@@ -159,21 +163,18 @@ struct DestructiveRequest {
     owner: std::sync::Weak<()>,
 }
 
-impl DestructiveRequest {
-    fn dialog(&self) -> Dialog<'_> {
-        self.intent.dialog()
-    }
-}
-
 struct PendingCommit {
     key: TabKey,
     generation: u64,
+    connection: Connection,
+    schema: String,
     target: String,
     safe_mode: SafeMode,
     pending: PendingEdits,
     cursor: Option<(ItemKey, ColumnKey, usize)>,
     selected_rows: termrock::KeySet,
-    facts: Vec<String>,
+    description: String,
+    statements: Vec<String>,
     acknowledgement: String,
     acknowledgement_label: String,
     changes: usize,
@@ -204,7 +205,7 @@ enum DestructiveIntent {
         generation: u64,
         connection: Box<Connection>,
     },
-    Commit(PendingCommit),
+    Commit(Box<PendingCommit>),
 }
 
 impl core::fmt::Debug for DestructiveIntent {
@@ -227,8 +228,8 @@ impl core::fmt::Debug for DestructiveIntent {
 }
 
 impl DestructiveIntent {
-    fn dialog(&self) -> Dialog<'_> {
-        match self {
+    fn dialog(&self, width: u16, body_rows: u16) -> Dialog<'_> {
+        let dialog = match self {
             Self::Quit { question, .. } => {
                 Dialog::destructive(QUIT_DIALOG, "Quit TablePro?", question).actions(&QUIT_ACTIONS)
             }
@@ -255,7 +256,6 @@ impl DestructiveIntent {
             )
             .actions(&REPLACE_ACTIONS),
             Self::Commit(request) => {
-                let rows = u16::try_from(request.facts.len()).unwrap_or(u16::MAX);
                 let dialog = if request.safe_mode.requires_authentication() {
                     Dialog::acknowledge(
                         QUIT_DIALOG,
@@ -263,20 +263,60 @@ impl DestructiveIntent {
                         &request.acknowledgement,
                     )
                     .input_label(&request.acknowledgement_label)
-                    .body_rows(rows)
+                    .body_rows(body_rows)
                 } else {
-                    Dialog::facts(QUIT_DIALOG, "Review pending changes", &[]).body_rows(rows)
+                    Dialog::facts(QUIT_DIALOG, "Review pending changes", &[]).body_rows(body_rows)
                 };
                 dialog
-                    .description(
-                        "Review the target, row changes, and generated SQL before applying.",
-                    )
+                    .description(&request.description)
                     .actions(&COMMIT_ACTIONS)
                     .cancel(ActionKey::CANCEL)
                     .primary(ActionKey::CONFIRM)
-                    .width(76)
             }
-        }
+        };
+        dialog.width(width)
+    }
+
+    fn dialog_for(
+        &self,
+        viewport_width: u16,
+        viewport_height: u16,
+        design: &termrock::DesignTokens,
+    ) -> Dialog<'_> {
+        let desired_width = if matches!(self, Self::Commit(_)) {
+            76
+        } else {
+            54
+        };
+        let width = desired_width.min(viewport_width.saturating_sub(2).max(1));
+        let body_rows = if matches!(self, Self::Commit(_)) {
+            let available_height = viewport_height.saturating_sub(2);
+            let base_height = self.dialog(width, 1).measured_height(design);
+            let max_body_rows = available_height
+                .saturating_sub(base_height)
+                .saturating_add(1)
+                .max(1);
+            let text_width = width.saturating_sub(7).max(1);
+            let content_rows = match self {
+                Self::Commit(request) => request.statements.iter().fold(0u16, |rows, statement| {
+                    rows.saturating_add(
+                        u16::try_from(wrap(statement, text_width).len()).unwrap_or(u16::MAX),
+                    )
+                }),
+                _ => 0,
+            };
+            max_body_rows.min(content_rows.max(1))
+        } else {
+            0
+        };
+        self.dialog(width, body_rows)
+    }
+
+    fn layer(&self, cx: &Cx<'_>, initial_focus: Option<Id>) -> LayerSpec {
+        let viewport = cx.viewport();
+        let dialog = self.dialog_for(viewport.width, viewport.height, cx.design());
+        let layer = dialog.layer(cx);
+        initial_focus.map_or(layer, |focus| layer.initial_focus(focus))
     }
 }
 
@@ -701,8 +741,10 @@ pub struct TableProApp {
     connection_status_arm: bool,
     quit: bool,
     destructive_intent: Option<DestructiveRequest>,
+    destructive_viewport: Option<(u16, u16)>,
     destructive_notice: Option<&'static str>,
     quit_state: DialogState,
+    commit_preview_state: ViewportState,
     switcher: QuickSwitcher,
     tab_list: TabList,
     safe_mode_picker: SafeModePicker,
@@ -835,8 +877,10 @@ impl TableProApp {
             connection_status_arm: false,
             quit: false,
             destructive_intent: None,
+            destructive_viewport: None,
             destructive_notice: None,
             quit_state: DialogState::default(),
+            commit_preview_state: ViewportState::default(),
             switcher: QuickSwitcher::default(),
             tab_list: TabList::default(),
             safe_mode_picker: SafeModePicker::default(),
@@ -1721,44 +1765,25 @@ impl TableProApp {
 
     fn open_destructive(&mut self, cx: &mut Cx<'_>, intent: DestructiveIntent) {
         self.destructive_notice = None;
-        let width = if matches!(
-            &intent,
-            DestructiveIntent::Commit(request) if request.safe_mode.requires_authentication()
-        ) {
-            76
-        } else {
-            54
-        };
-        let dialog = intent.dialog().width(width);
-        let design = cx.design();
-        let width = dialog.measured_width(design);
-        let height = dialog.measured_height(design);
         let initial_focus = if matches!(
             &intent,
             DestructiveIntent::Commit(request) if request.safe_mode.requires_authentication()
         ) {
-            dialog.input_id()
+            intent
+                .dialog_for(cx.viewport().width, cx.viewport().height, cx.design())
+                .input_id()
         } else {
-            dialog.action_id(0)
+            intent
+                .dialog_for(cx.viewport().width, cx.viewport().height, cx.design())
+                .action_id(0)
         };
         let screen = cx.viewport();
-        let top = 2u16;
-        let bottom = 1u16;
-        let bounds_h = screen.height.saturating_sub(top.saturating_add(bottom));
-        let y = screen
-            .y
-            .saturating_add(top)
-            .saturating_add(bounds_h.saturating_sub(height) / 2);
-        let x = screen
-            .x
-            .saturating_add(screen.width.saturating_sub(width) / 2);
-        cx.open_layer(
-            QUIT_DIALOG,
-            LayerSpec::modal(QUIT_DIALOG)
-                .anchor(Anchor::Point(Position::new(x, y.saturating_sub(1))))
-                .initial_focus(initial_focus)
-                .size(LayerSize::Fixed(width, height)),
-        );
+        cx.open_layer(QUIT_DIALOG, intent.layer(cx, Some(initial_focus)));
+        self.destructive_viewport = Some((screen.width, screen.height));
+        if matches!(&intent, DestructiveIntent::Commit(_)) {
+            self.commit_preview_state = ViewportState::default();
+            self.commit_preview_state.set_follow(false);
+        }
         self.destructive_intent = Some(DestructiveRequest {
             intent,
             owner: self.workbench.owner_token(),
@@ -1819,13 +1844,13 @@ impl TableProApp {
         if self.screen != Screen::Workbench || self.form_open || self.destructive_intent.is_some() {
             return;
         }
-        match self.pending_commit(cx.viewport().width) {
-            Ok(request) => self.open_destructive(cx, DestructiveIntent::Commit(request)),
+        match self.pending_commit() {
+            Ok(request) => self.open_destructive(cx, DestructiveIntent::Commit(Box::new(request))),
             Err(message) => self.status = message.to_owned(),
         }
     }
 
-    fn pending_commit(&self, viewport_width: u16) -> Result<PendingCommit, &'static str> {
+    fn pending_commit(&self) -> Result<PendingCommit, &'static str> {
         if self.safe_mode == SafeMode::ReadOnly {
             return Err("Read-only mode refuses row changes");
         }
@@ -1856,7 +1881,7 @@ impl TableProApp {
             .find(Some(schema), table_name)
             .filter(|table| table.kind == ObjectKind::Table)
             .ok_or("The result source table is unavailable")?;
-        let statements = preview_for(table, &grid.model);
+        let statements = preview_sql(table, &grid.columns, grid.model.pending());
         if statements.is_empty() {
             return Err("No row changes to commit");
         }
@@ -1878,35 +1903,16 @@ impl TableProApp {
             }
         }
         let target = table.qualified();
-        let mut facts = vec![
-            format!("Target: {target}"),
-            format!("Safe mode: {}", self.safe_mode.label()),
-            format!(
-                "Changes: {changes} row(s) ({updates} update, {inserts} insert, {deletes} delete)"
-            ),
-            format!(
-                "Risk: row data and membership will change on {}",
-                table.qualified()
-            ),
-            format!("SQL: {} statement(s)", statements.len()),
-        ];
-        facts.extend(
-            statements
-                .iter()
-                .take(COMMIT_PREVIEW_LIMIT)
-                .map(|statement| format!("  {statement}")),
+        let connection = self.workbench.connection.clone();
+        let description = format!(
+            "Connection: {} · {}\nDatabase: {} · Target: {}\nChanges: {changes} row(s) ({updates} update · {inserts} insert · {deletes} delete) · {} mode\nRisk: row values and membership will change\nSQL: {} statement(s) · PgUp/PgDn, ↑/↓ or wheel to review",
+            connection.name,
+            connection.environment.label(),
+            connection.database,
+            target,
+            self.safe_mode.label(),
+            statements.len(),
         );
-        if statements.len() > COMMIT_PREVIEW_LIMIT {
-            facts.push(format!(
-                "  … {} additional statement(s)",
-                statements.len().saturating_sub(COMMIT_PREVIEW_LIMIT)
-            ));
-        }
-        let body_width = viewport_width.min(76).saturating_sub(8).max(1);
-        let facts = facts
-            .iter()
-            .flat_map(|line| wrap(line, body_width))
-            .collect();
         let cursor = grid.state.cursor().and_then(|(row_key, column)| {
             let index =
                 (0..grid.model.row_count()).find(|row| grid.model.row_key(*row) == row_key)?;
@@ -1915,12 +1921,15 @@ impl TableProApp {
         Ok(PendingCommit {
             key,
             generation,
+            connection,
+            schema: table.schema.clone(),
             target: target.clone(),
             safe_mode: self.safe_mode,
             pending,
             cursor,
             selected_rows: grid.state.selected_rows().clone(),
-            facts,
+            description,
+            statements,
             acknowledgement: target.clone(),
             acknowledgement_label: format!("Type {target} to confirm"),
             changes,
@@ -1930,6 +1939,7 @@ impl TableProApp {
     fn finish_commit(&mut self, request: PendingCommit) {
         if self.safe_mode == SafeMode::ReadOnly
             || self.safe_mode != request.safe_mode
+            || self.workbench.connection != request.connection
             || self.workbench.active_key() != Some(request.key)
             || self.workbench.generation(request.key) != Some(request.generation)
         {
@@ -1992,6 +2002,20 @@ impl TableProApp {
             false
         };
         if result {
+            for sql in &request.statements {
+                self.workbench.history.push(HistoryEntry {
+                    id: 0,
+                    sql: sql.clone(),
+                    connection: request.connection.name.clone(),
+                    database: request.connection.database.clone(),
+                    schema: request.schema.clone(),
+                    minutes_ago: 0,
+                    duration_ms: Some(1),
+                    rows: Some(1),
+                    error: None,
+                    source: HistorySource::RowEdits,
+                });
+            }
             self.status = format!(
                 "Committed {} row change(s) to {}",
                 request.changes, request.target
@@ -2523,6 +2547,15 @@ impl TableProApp {
     }
 
     fn update_destructive_dialog(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let screen = cx.viewport();
+        let viewport_size = (screen.width, screen.height);
+        if self.destructive_intent.is_some()
+            && self.destructive_viewport != Some(viewport_size)
+            && let Some(request) = self.destructive_intent.as_ref()
+        {
+            cx.open_layer(QUIT_DIALOG, request.intent.layer(cx, None));
+            self.destructive_viewport = Some(viewport_size);
+        }
         let fallback = DestructiveIntent::Quit {
             question: String::new(),
             scope: Vec::new(),
@@ -2531,11 +2564,28 @@ impl TableProApp {
             .destructive_intent
             .as_ref()
             .map_or(&fallback, |request| &request.intent);
-        let response = intent.dialog().update(cx, &mut self.quit_state);
+        let scroll_response = if let DestructiveIntent::Commit(request) = intent {
+            let lines: Vec<_> = request
+                .statements
+                .iter()
+                .map(|statement| ViewportLine::Plain(statement))
+                .collect();
+            TextViewport::new(COMMIT_PREVIEW)
+                .wrap(true)
+                .reserve_gutter(false)
+                .update(cx, &mut self.commit_preview_state, &lines)
+                .erase()
+        } else {
+            Response::ignored()
+        };
+        let response = intent
+            .dialog_for(screen.width, screen.height, cx.design())
+            .update(cx, &mut self.quit_state);
         if let Some(action) = response.action_ref() {
             let confirmed = matches!(action, DialogAction::Action(ActionKey::CONFIRM))
                 && cx.is_open(QUIT_DIALOG);
             cx.close_layer(QUIT_DIALOG, None);
+            self.destructive_viewport = None;
             if let Some(request) = self.destructive_intent.take()
                 && confirmed
             {
@@ -2605,11 +2655,11 @@ impl TableProApp {
                             self.stale_destructive();
                         }
                     }
-                    DestructiveIntent::Commit(request) => self.finish_commit(request),
+                    DestructiveIntent::Commit(request) => self.finish_commit(*request),
                 }
             }
         }
-        response.erase()
+        response.erase() | scroll_response
     }
 
     fn update_tab_controls(&mut self, cx: &mut Cx<'_>) -> Response<()> {
@@ -7607,12 +7657,7 @@ fn paint_history_card(ui: &mut Ui<'_>, inner: termrock::Rect, history: &crate::t
     }
 }
 
-fn paint_history_detail(
-    ui: &mut Ui<'_>,
-    inner: termrock::Rect,
-    entry: &tablepro_domain::model::HistoryEntry,
-    list_y: u16,
-) {
+fn paint_history_detail(ui: &mut Ui<'_>, inner: termrock::Rect, entry: &HistoryEntry, list_y: u16) {
     let x = inner.x.saturating_add(43);
     let bg = termrock::Color::Rgb(17, 17, 17);
     let card = termrock::Rect::new(
@@ -9255,31 +9300,25 @@ impl App for TableProApp {
             });
         }
         if let Some(intent) = self.destructive_intent.as_ref() {
+            let full = ui.full();
+            let dialog = intent
+                .intent
+                .dialog_for(full.width, full.height, ui.design());
             ui.layer(QUIT_DIALOG, |ui, area| {
-                intent
-                    .dialog()
-                    .draw(ui, area, &self.quit_state, |ui, body| {
-                        let DestructiveIntent::Commit(request) = &intent.intent else {
-                            return;
-                        };
-                        let style = ui.surface_style();
-                        for (offset, fact) in request
-                            .facts
-                            .iter()
-                            .take(usize::from(body.height))
-                            .enumerate()
-                        {
-                            let row = termrock::Rect {
-                                x: body.x,
-                                y: body
-                                    .y
-                                    .saturating_add(u16::try_from(offset).unwrap_or(u16::MAX)),
-                                width: body.width,
-                                height: 1,
-                            };
-                            ui.paint_str(row, fact, style);
-                        }
-                    });
+                dialog.draw(ui, area, &self.quit_state, |ui, body| {
+                    let DestructiveIntent::Commit(request) = &intent.intent else {
+                        return;
+                    };
+                    let lines: Vec<_> = request
+                        .statements
+                        .iter()
+                        .map(|statement| ViewportLine::Plain(statement))
+                        .collect();
+                    TextViewport::new(COMMIT_PREVIEW)
+                        .wrap(true)
+                        .reserve_gutter(false)
+                        .draw(ui, body, &self.commit_preview_state, &lines);
+                });
             });
         }
     }
