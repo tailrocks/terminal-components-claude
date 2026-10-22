@@ -151,6 +151,59 @@ fn first_list_child_code_and_list_headings_remain_fail_closed() {
 }
 
 #[test]
+fn commonmark_container_transitions_keep_indented_rust_fail_closed() {
+    for (source, line) in [
+        ("- item\n# Heading\n    fn main() {}\n", 3),
+        ("- item\n## Heading\n    fn main() {}\n", 3),
+        (
+            "- outer\n  - nested\n    ## Heading\n        fn main() {}\n",
+            4,
+        ),
+        ("- item\n  ## Heading\n      fn main() {}\n", 3),
+    ] {
+        let issues = inspect_fixture("README.md", source);
+        assert!(
+            issues.iter().any(|issue| issue.line == line),
+            "accepted indented Rust at line {line}: {source:?}; got {issues:?}"
+        );
+    }
+}
+
+#[test]
+fn markdown_code_blocks_preserve_contexts_and_source_lines() {
+    let cases = [
+        ("preamble\n> ```rust\n> fn quoted() {}\n> ```\n", 2),
+        ("- item\n  ```rust\n  fn listed() {}\n  ```\n", 2),
+        ("Heading\n---\n    fn after_setext() {}\n", 3),
+        ("Préface\r\n```rust\r\nfn crlf() {}\r\n```\r\n", 2),
+        ("<!--\n```rust\nfn in_comment() {}\n```\n-->\n", 2),
+        (
+            "<details>\n```rust\nfn in_html_block() {}\n```\n</details>\n",
+            2,
+        ),
+        ("before\n```rust\nfn unclosed() {}\n", 2),
+    ];
+
+    for (source, line) in cases {
+        let issues = inspect_fixture("README.md", source);
+        assert!(
+            issues.iter().filter(|issue| issue.line == line).count() == 1,
+            "expected one code-block finding on line {line}: {source:?}; got {issues:?}"
+        );
+    }
+}
+
+#[test]
+fn rustdoc_markdown_code_block_reports_original_source_line() {
+    let source = "/// Overview.\n/// ```rust\n/// fn documented() {}\n/// ```\n";
+    let issues = inspect_fixture("src/lib.rs", source);
+    assert!(
+        issues.iter().any(|issue| issue.line == 2),
+        "reported the wrong source line for a rustdoc fence: {issues:?}"
+    );
+}
+
+#[test]
 fn rustdoc_block_and_attribute_inputs_fail_closed() {
     let block = "/**\n * ```rust\n * fn main() {}\n * ```\n */";
     assert!(!inspect_fixture("src/lib.rs", block).is_empty());
@@ -173,6 +226,9 @@ fn rustdoc_block_and_attribute_inputs_fail_closed() {
 fn non_rust_markdown_and_ordinary_rust_strings_do_not_trigger() {
     let markdown = "```bash\nfn main() {}\n```\n\nPlain prose mentioning `let value = 3`.";
     assert!(inspect_fixture("README.md", markdown).is_empty());
+
+    let fenced_body = "~~~~text\n```rust\nfn not_a_nested_example() {}\n```\n~~~~\n";
+    assert!(inspect_fixture("README.md", fenced_body).is_empty());
 
     let rust = r###"fn example_text() {
     let text = r#"
