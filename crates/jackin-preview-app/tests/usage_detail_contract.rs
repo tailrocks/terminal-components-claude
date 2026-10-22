@@ -315,6 +315,65 @@ fn empty_usage_list_has_no_stale_selection_or_keyboard_target() {
 }
 
 #[test]
+fn empty_usage_activation_keeps_focus_on_registered_controls() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    h.key(KeyCode::Char('u'));
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Tab);
+    assert_eq!(h.focus(), Some(jackin_preview_app::screens::usage::LIST));
+    h.key(KeyCode::Down);
+    assert_eq!(h.app().usage.selected(), Some("acct-claude-work"));
+
+    h.app_mut().world.accounts.accounts.clear();
+    h.key(KeyCode::Down);
+    assert_eq!(h.app().usage.selected(), None);
+    assert!(!h.app().usage.detail_open());
+    assert_eq!(h.focus(), Some(jackin_preview_app::screens::usage::LIST));
+
+    for key in [KeyCode::Enter, KeyCode::Right] {
+        h.key(key);
+        assert_eq!(h.app().usage.selected(), None);
+        assert!(!h.app().usage.detail_open());
+        assert_eq!(h.focus(), Some(jackin_preview_app::screens::usage::LIST));
+        assert!(
+            h.harness.diagnostics().is_empty(),
+            "{:?}",
+            h.harness.diagnostics()
+        );
+    }
+
+    // Tabs focus is tested from the route's valid initial focus, before the
+    // empty row set changes which focus targets are registered.
+    let mut tabs = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    tabs.key(KeyCode::Char('u'));
+    assert_eq!(tabs.focus(), Some(jackin_preview_app::screens::usage::TABS));
+    tabs.app_mut().world.accounts.accounts.clear();
+    tabs.app_mut().usage.select(None::<String>);
+    assert_eq!(tabs.app().usage.selected(), None);
+    tabs.key(KeyCode::Enter);
+    assert_eq!(tabs.app().usage.selected(), None);
+    assert!(!tabs.app().usage.detail_open());
+    assert_eq!(tabs.focus(), Some(jackin_preview_app::screens::usage::TABS));
+    assert!(
+        tabs.harness.diagnostics().is_empty(),
+        "{:?}",
+        tabs.harness.diagnostics()
+    );
+
+    tabs.key(KeyCode::Down);
+    assert_eq!(
+        tabs.app().usage.tab,
+        jackin_preview_app::screens::usage::Tab::Registration
+    );
+    assert_eq!(tabs.focus(), Some(jackin_preview_app::screens::usage::TABS));
+    assert!(
+        tabs.harness.diagnostics().is_empty(),
+        "{:?}",
+        tabs.harness.diagnostics()
+    );
+}
+
+#[test]
 fn selected_nonfirst_work_account_detail_includes_its_window_and_freshness() {
     let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
     let personal = h
