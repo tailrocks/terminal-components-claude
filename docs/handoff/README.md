@@ -13,6 +13,13 @@ Owed owner decision: Button pressed-vs-focus-visible. `37f55475f7` added a
 only because the same commit rewrote W02-01 and `components.txt`. Fixing either side
 edits expected output; adjudicate before touching code.
 
+RESOLVED 2026-10-23: adjudicated, Side A stands (pressed focused button keeps
+the `▎`; frozen oracle `4169783ae` source, WCAG 2.2 SC 2.4.7, and repo law).
+Repair + decision record: `docs/audits/2026-10-23-button-pressed-focus-adjudication.md`,
+commit `1bf630ec45`. Remaining reds (`owner_wide_reference_styles...`,
+`button::default`/`button::pressed` digests) are pre-existing `d1ac0c0dac`
+drift, recorded there — no owner decision owed on the pressed question.
+
 =======
 # 2026-10-23: owner decision owed — danger-token reference package
 
