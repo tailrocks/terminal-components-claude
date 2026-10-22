@@ -100,6 +100,7 @@ struct Attributes {
     predicate: Predicate,
     path: Option<String>,
     derives: BTreeSet<String>,
+    test_attributes: BTreeSet<String>,
     complete: bool,
 }
 
@@ -109,6 +110,7 @@ impl Default for Attributes {
             predicate: Predicate::ALWAYS,
             path: None,
             derives: BTreeSet::new(),
+            test_attributes: BTreeSet::new(),
             complete: true,
         }
     }
@@ -966,7 +968,11 @@ fn parse_scope(
     let mut scope_predicate = inherited;
     let mut derived_names = BTreeSet::new();
     let mut imported_derive_names = BTreeSet::new();
-    let mut imported_glob = false;
+    let mut imported_derive_glob = false;
+    let mut test_attributes = BTreeSet::new();
+    let mut imported_test_attributes = BTreeSet::new();
+    let mut imported_test_glob = false;
+    let mut uncertain_test_import = false;
     let mut index = start;
     let mut saw_item = false;
     while index < end {
@@ -994,6 +1000,7 @@ fn parse_scope(
                 continue;
             }
             derived_names.extend(attr.derives.iter().cloned());
+            test_attributes.extend(attr.test_attributes.iter().cloned());
             attributes.predicate = attributes.predicate.and(attr.predicate);
             if attributes.path.is_some() && attr.path.is_some() {
                 parsed.complete = false;
@@ -1097,7 +1104,15 @@ fn parse_scope(
                 index,
                 item_end,
                 &mut imported_derive_names,
-                &mut imported_glob,
+                &mut imported_derive_glob,
+            );
+            record_test_attribute_imports(
+                tokens,
+                index,
+                item_end,
+                &mut imported_test_attributes,
+                &mut imported_test_glob,
+                &mut uncertain_test_import,
             );
             push_range(tokens, item_start, item_end, &mut parsed.test_ranges);
             if let Some(path) = include {
@@ -1136,7 +1151,15 @@ fn parse_scope(
             index,
             item_end,
             &mut imported_derive_names,
-            &mut imported_glob,
+            &mut imported_derive_glob,
+        );
+        record_test_attribute_imports(
+            tokens,
+            index,
+            item_end,
+            &mut imported_test_attributes,
+            &mut imported_test_glob,
+            &mut uncertain_test_import,
         );
         if let Some(path) = include {
             let source_dir = source_context
@@ -1154,13 +1177,19 @@ fn parse_scope(
         index = item_end;
         saw_item = true;
     }
-    if (imported_glob && !derived_names.is_empty())
+    if (imported_derive_glob && !derived_names.is_empty())
+        || (imported_test_glob && !test_attributes.is_empty())
+        || (uncertain_test_import && !test_attributes.is_empty())
         || derived_names
             .iter()
             .any(|name| imported_derive_names.contains(name))
+        || test_attributes
+            .iter()
+            .any(|name| imported_test_attributes.contains(name))
     {
         // Without resolving macro namespaces, a matching `use` alias or glob
-        // could shadow a built-in derive and generate arbitrary module items.
+        // could shadow a built-in derive or test attribute and generate
+        // arbitrary module items.
         parsed.complete = false;
     }
     Some(parsed)
@@ -1177,10 +1206,22 @@ fn parse_attribute(tokens: &Tokens, at: usize, end: usize) -> Option<(usize, boo
         return None;
     }
     let mut attr = Attributes::default();
-    let first = ident_at(tokens, bracket + 1)?;
-    match first {
+    let Some((name, input, qualified)) = attribute_path(tokens, bracket + 1, close) else {
+        attr.complete = false;
+        attr.predicate = Predicate::UNKNOWN;
+        return Some((close + 1, inner, attr));
+    };
+    if qualified {
+        // Built-in attribute meaning comes from the complete unqualified
+        // name. A tool or proc-macro path with a familiar first segment is
+        // still unresolved and must not prove test-only reachability.
+        attr.complete = false;
+        attr.predicate = Predicate::UNKNOWN;
+        return Some((close + 1, inner, attr));
+    }
+    match name {
         "cfg" => {
-            let open = bracket + 2;
+            let open = input;
             let cfg_close = tokens.pairs.get(open).and_then(|value| *value);
             if !is_punct(tokens, open, '(') || cfg_close != Some(close - 1) {
                 attr.complete = false;
@@ -1197,73 +1238,161 @@ fn parse_attribute(tokens: &Tokens, at: usize, end: usize) -> Option<(usize, boo
             attr.predicate = Predicate::UNKNOWN;
         }
         "path" => {
-            if is_punct(tokens, bracket + 2, '=')
+            if is_punct(tokens, input, '=')
                 && let Some(TokenKind::String(Some(path))) =
-                    tokens.values.get(bracket + 3).map(|token| &token.kind)
-                && bracket + 4 == close
+                    tokens.values.get(input + 1).map(|token| &token.kind)
+                && input + 2 == close
                 && !path.is_empty()
                 && !Path::new(path).is_absolute()
             {
                 attr.path = Some(path.clone());
             } else {
                 attr.complete = false;
+                attr.predicate = Predicate::UNKNOWN;
             }
         }
-        "test" | "bench" => attr.predicate = Predicate::TEST,
-        "derive" => match builtin_derive_names(tokens, bracket + 2, close - 1) {
+        "test" | "bench" if input == close => {
+            attr.predicate = Predicate::TEST;
+            attr.test_attributes.insert(name.to_string());
+        }
+        "test" | "bench" => {
+            attr.complete = false;
+            attr.predicate = Predicate::UNKNOWN;
+        }
+        "derive" => match builtin_derive_names(tokens, input, close - 1) {
             Some(names) => attr.derives = names,
-            None => attr.complete = false,
+            None => {
+                attr.complete = false;
+                attr.predicate = Predicate::UNKNOWN;
+            }
         },
-        name if known_inert_attribute(name) => {}
-        _ => attr.complete = false,
+        name if known_inert_attribute(name, tokens, input, close) => {}
+        _ => {
+            attr.complete = false;
+            attr.predicate = Predicate::UNKNOWN;
+        }
     }
     Some((close + 1, inner, attr))
 }
 
-fn known_inert_attribute(name: &str) -> bool {
-    matches!(
-        name,
-        "doc"
+fn attribute_path(tokens: &Tokens, start: usize, end: usize) -> Option<(&str, usize, bool)> {
+    let name = ident_at(tokens, start)?;
+    let mut next = start.checked_add(1)?;
+    let mut qualified = false;
+    while is_punct(tokens, next, ':') {
+        if !is_punct(tokens, next + 1, ':') || ident_at(tokens, next + 2).is_none() {
+            return None;
+        }
+        qualified = true;
+        next = next.checked_add(3)?;
+        if next > end {
+            return None;
+        }
+    }
+    Some((name, next, qualified))
+}
+
+fn known_inert_attribute(name: &str, tokens: &Tokens, input: usize, end: usize) -> bool {
+    if input == end {
+        return matches!(
+            name,
+            "ignore"
+                | "should_panic"
+                | "inline"
+                | "cold"
+                | "track_caller"
+                | "deprecated"
+                | "must_use"
+                | "non_exhaustive"
+                | "no_mangle"
+                | "used"
+                | "macro_export"
+                | "automatically_derived"
+                | "global_allocator"
+                | "panic_handler"
+                | "proc_macro"
+                | "proc_macro_attribute"
+                | "no_std"
+                | "no_main"
+                | "allow_internal_unsafe"
+        );
+    }
+
+    if is_punct(tokens, input, '(') {
+        let Some(group_end) = tokens.pairs.get(input).and_then(|value| *value) else {
+            return false;
+        };
+        if group_end != end - 1 || input + 1 == group_end {
+            return false;
+        }
+        return match name {
+            "doc"
             | "allow"
             | "warn"
             | "deny"
             | "forbid"
             | "expect"
-            | "ignore"
             | "should_panic"
-            | "inline"
-            | "cold"
-            | "track_caller"
             | "deprecated"
             | "must_use"
-            | "non_exhaustive"
             | "repr"
-            | "no_mangle"
-            | "export_name"
             | "link"
-            | "link_name"
-            | "used"
             | "target_feature"
             | "macro_export"
-            | "automatically_derived"
-            | "global_allocator"
-            | "panic_handler"
-            | "proc_macro"
-            | "proc_macro_attribute"
             | "proc_macro_derive"
-            | "no_std"
-            | "no_main"
-            | "crate_type"
-            | "crate_name"
-            | "recursion_limit"
-            | "type_length_limit"
             | "allow_internal_unstable"
             | "allow_internal_unsafe"
             | "stable"
             | "unstable"
-            | "rustfmt"
-            | "coverage"
+            | "coverage" => true,
+            "inline" => {
+                matches!(ident_at(tokens, input + 1), Some("always" | "never"))
+                    && (input + 2 == group_end
+                        || (input + 3 == group_end && is_punct(tokens, input + 2, ',')))
+            }
+            _ => false,
+        };
+    }
+
+    if !is_punct(tokens, input, '=') || !supported_string_value_attribute(name) {
+        return false;
+    }
+    if matches!(
+        tokens.values.get(input + 1).map(|token| &token.kind),
+        Some(TokenKind::String(Some(_)))
+    ) && input + 2 == end
+    {
+        return true;
+    }
+
+    name == "doc" && complete_macro_expression(tokens, input + 1, end)
+}
+
+fn supported_string_value_attribute(name: &str) -> bool {
+    matches!(
+        name,
+        "doc"
+            | "ignore"
+            | "should_panic"
+            | "deprecated"
+            | "must_use"
+            | "export_name"
+            | "link_name"
+            | "crate_type"
+            | "crate_name"
+            | "recursion_limit"
+            | "type_length_limit"
     )
+}
+
+fn complete_macro_expression(tokens: &Tokens, start: usize, end: usize) -> bool {
+    let Some((_, bang, _)) = attribute_path(tokens, start, end) else {
+        return false;
+    };
+    if !is_punct(tokens, bang, '!') || !is_punct(tokens, bang + 1, '(') {
+        return false;
+    }
+    tokens.pairs.get(bang + 1).and_then(|value| *value) == Some(end - 1)
 }
 
 fn builtin_derive_names(tokens: &Tokens, start: usize, end: usize) -> Option<BTreeSet<String>> {
@@ -1335,6 +1464,181 @@ fn collect_use_derive_imports(
             // matching name could be a derive macro import or alias.
             imported.insert(name.to_string());
         }
+    }
+}
+
+#[derive(Default)]
+struct TestAttributeImports {
+    names: BTreeSet<String>,
+    wildcard: bool,
+}
+
+fn record_test_attribute_imports(
+    tokens: &Tokens,
+    start: usize,
+    end: usize,
+    imported: &mut BTreeSet<String>,
+    imported_glob: &mut bool,
+    uncertain: &mut bool,
+) {
+    if item_head(tokens, start, end) != Some("use") {
+        return;
+    }
+    match parse_test_attribute_imports(tokens, start, end) {
+        Some(imports) => {
+            imported.extend(imports.names);
+            *imported_glob |= imports.wildcard;
+        }
+        None => *uncertain = true,
+    }
+}
+
+// Resolve only the local binding produced by a complete use tree. Path
+// segments that happen to spell `test` or `bench` do not shadow an attribute;
+// wildcard and unrecognized trees stay conservative at the containing scope.
+fn parse_test_attribute_imports(
+    tokens: &Tokens,
+    start: usize,
+    end: usize,
+) -> Option<TestAttributeImports> {
+    if end <= start + 2 || !is_punct(tokens, end - 1, ';') {
+        return None;
+    }
+    let mut use_index = start;
+    if ident_at(tokens, use_index) == Some("pub") {
+        use_index += 1;
+        if is_punct(tokens, use_index, '(') {
+            use_index = tokens.pairs.get(use_index).and_then(|value| *value)? + 1;
+        }
+    }
+    if ident_at(tokens, use_index) != Some("use") {
+        return None;
+    }
+    let mut imports = TestAttributeImports::default();
+    let mut prefix = Vec::new();
+    let next = parse_use_tree_list(tokens, use_index + 1, end - 1, &mut prefix, &mut imports, 0)?;
+    (next == end - 1).then_some(imports)
+}
+
+fn parse_use_tree_list(
+    tokens: &Tokens,
+    mut index: usize,
+    end: usize,
+    prefix: &mut Vec<String>,
+    imports: &mut TestAttributeImports,
+    depth: usize,
+) -> Option<usize> {
+    if depth > 64 || prefix.len() > 64 || index >= end {
+        return None;
+    }
+    loop {
+        index = parse_use_tree(tokens, index, end, prefix, imports, depth)?;
+        if index == end {
+            return Some(index);
+        }
+        if !is_punct(tokens, index, ',') {
+            return None;
+        }
+        index += 1;
+        if index == end {
+            return Some(index);
+        }
+    }
+}
+
+fn parse_use_tree(
+    tokens: &Tokens,
+    mut index: usize,
+    end: usize,
+    prefix: &mut Vec<String>,
+    imports: &mut TestAttributeImports,
+    depth: usize,
+) -> Option<usize> {
+    if depth > 64 || index >= end {
+        return None;
+    }
+    if is_punct(tokens, index, '*') {
+        imports.wildcard = true;
+        return Some(index + 1);
+    }
+    if is_punct(tokens, index, '{') {
+        let group = index;
+        let close = tokens.pairs.get(group).and_then(|value| *value)?;
+        if close >= end {
+            return None;
+        }
+        let next = parse_use_tree_list(tokens, group + 1, close, prefix, imports, depth + 1)?;
+        return (next == close).then_some(close + 1);
+    }
+    if is_punct(tokens, index, ':') {
+        if !is_punct(tokens, index + 1, ':') {
+            return None;
+        }
+        index += 2;
+    }
+    let mut path = prefix.clone();
+    loop {
+        let segment = ident_at(tokens, index)?;
+        index += 1;
+        if is_punct(tokens, index, ':') {
+            if !is_punct(tokens, index + 1, ':') {
+                return None;
+            }
+            if is_punct(tokens, index + 2, '*') {
+                if index + 3 != end {
+                    return None;
+                }
+                imports.wildcard = true;
+                return Some(index + 3);
+            }
+            if is_punct(tokens, index + 2, '{') {
+                let group = index + 2;
+                let close = tokens.pairs.get(group).and_then(|value| *value)?;
+                if close >= end {
+                    return None;
+                }
+                path.push(segment.to_string());
+                if path.len() > 64 {
+                    return None;
+                }
+                let next =
+                    parse_use_tree_list(tokens, group + 1, close, &mut path, imports, depth + 1)?;
+                if next != close || close + 1 > end {
+                    return None;
+                }
+                return Some(close + 1);
+            }
+            path.push(segment.to_string());
+            if path.len() > 64 {
+                return None;
+            }
+            index += 2;
+            if index >= end {
+                return None;
+            }
+            continue;
+        }
+        if ident_at(tokens, index) == Some("as") {
+            let alias = ident_at(tokens, index + 1)?;
+            if alias == "_" {
+                return Some(index + 2);
+            }
+            record_imported_attribute(alias, imports);
+            return Some(index + 2);
+        }
+        let local_name = if segment == "self" {
+            path.last().map(String::as_str)?
+        } else {
+            segment
+        };
+        record_imported_attribute(local_name, imports);
+        return Some(index);
+    }
+}
+
+fn record_imported_attribute(name: &str, imports: &mut TestAttributeImports) {
+    if matches!(name, "test" | "bench") {
+        imports.names.insert(name.to_string());
     }
 }
 
@@ -1451,6 +1755,10 @@ fn parse_static_include(tokens: &Tokens, at: usize, end: usize) -> Option<String
 
 fn skipped_item_has_unmodeled_routes(tokens: &Tokens, start: usize, end: usize) -> bool {
     let mut index = start;
+    let mut test_attributes = BTreeSet::new();
+    let mut imported_test_attributes = BTreeSet::new();
+    let mut imported_test_glob = false;
+    let mut uncertain_test_import = false;
     while index < end {
         if is_punct(tokens, index, '#') {
             let Some((next, inner, attribute)) = parse_attribute(tokens, index, end) else {
@@ -1461,10 +1769,31 @@ fn skipped_item_has_unmodeled_routes(tokens: &Tokens, start: usize, end: usize) 
             if !attribute.complete || (!inner && is_derive) {
                 return true;
             }
+            if !inner {
+                test_attributes.extend(attribute.test_attributes);
+            }
             // Advance over the complete attribute, including its arguments. A
             // hash-like token inside known inert metadata is not a second
             // attached attribute.
             index = next;
+            continue;
+        }
+        if item_head(tokens, index, end) == Some("use") {
+            let Some(item_end) = skip_item(tokens, index, end) else {
+                return true;
+            };
+            if item_end <= index {
+                return true;
+            }
+            record_test_attribute_imports(
+                tokens,
+                index,
+                item_end,
+                &mut imported_test_attributes,
+                &mut imported_test_glob,
+                &mut uncertain_test_import,
+            );
+            index = item_end;
             continue;
         }
         if ident_at(tokens, index) == Some("mod")
@@ -1481,7 +1810,10 @@ fn skipped_item_has_unmodeled_routes(tokens: &Tokens, start: usize, end: usize) 
         }
         index += 1;
     }
-    false
+    (!test_attributes.is_empty() && (imported_test_glob || uncertain_test_import))
+        || test_attributes
+            .iter()
+            .any(|name| imported_test_attributes.contains(name))
 }
 
 fn macro_starts_block_item(tokens: &Tokens, item_start: usize, macro_start: usize) -> bool {
