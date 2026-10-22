@@ -17,15 +17,41 @@ const FORBIDDEN: [&str; 13] = [
     "fastrand",
 ];
 
-const INSTANT_ALLOWED: [(&str, usize, &str); 1] = [(
-    "crates/termrock-session/src/session.rs",
-    1,
-    "session loop scheduling; controls when another frame is drawn, not frame content",
-)];
+const INSTANT_ALLOWED: [(&str, usize, &str); 5] = [
+    (
+        "crates/termrock-session/src/session.rs",
+        1,
+        "session loop event scheduling; timed controls still use explicit fixture clocks",
+    ),
+    (
+        "crates/tablepro-domain/src/tabs.rs",
+        1,
+        "public execute records visible duration; execute_with_duration bypasses the clock",
+    ),
+    (
+        "crates/tablepro-ui/src/app.rs",
+        1,
+        "private QueryTiming::Live starts the live query clock; Explicit installs fixture duration before the initial SELECT",
+    ),
+    (
+        "crates/termrock-core/src/typeahead.rs",
+        1,
+        "public live feed expiry; feed_at is the deterministic explicit-time entrypoint",
+    ),
+    (
+        "crates/termrock-session/src/esc_bridge.rs",
+        1,
+        "live terminal poll deadline accounts for transport timeouts and split-ESC delivery",
+    ),
+];
 
 const REVIEWED_PATTERNS: [&str; 2] = ["Instant::now", "target_os"];
 
-const TARGET_OS_ALLOWED: [(&str, usize, &str); 0] = [];
+const TARGET_OS_ALLOWED: [(&str, usize, &str); 1] = [(
+    "crates/termrock-core/src/platform.rs",
+    1,
+    "capture children pin the typed platform override before detection; production retains host fallback",
+)];
 
 type ReviewedPatternLocations = BTreeMap<(String, String), Vec<usize>>;
 type ScanResult = (Vec<String>, ReviewedPatternLocations, usize);
