@@ -448,6 +448,33 @@ fn review_binds_connection_environment_database_and_target() {
 }
 
 #[test]
+fn changed_projection_cannot_reuse_commit_review() {
+    let (app, _, _, _, _) = staged_app(SafeMode::Silent);
+    let mut h = Harness::new(app, Theme::junie(), 120, 40);
+    let pending_before = h.app().result().pending().clone();
+    let history_before = h.app().workbench.history.entries.len();
+
+    save(&mut h);
+    assert!(
+        h.find("UPDATE public.orders SET currency = 'EUR'")
+            .is_some()
+    );
+
+    let Some((_, grid)) = h.app_mut().workbench.active_grid_mut() else {
+        unreachable!("editable result grid")
+    };
+    grid.columns.swap(0, 1);
+    h.draw();
+    confirm(&mut h);
+
+    assert_eq!(h.app().result().pending(), &pending_before);
+    assert_eq!(h.app().result().pending_total(), 3);
+    assert_eq!(h.app().workbench.history.entries.len(), history_before);
+    assert!(h.find("Work changed; request again").is_some());
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
 fn every_preview_statement_scrolls_at_narrow_size_and_after_resize() {
     let mut app = TableProApp::default();
     assert!(app.connect(0));
