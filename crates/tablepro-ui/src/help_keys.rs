@@ -21,7 +21,7 @@ const SHELL: &[(&str, &str)] = &[
     ("Ctrl+D", "Data / Structure"),
     ("Ctrl+S", "Save pending changes"),
     ("Ctrl+F", "Filter or find"),
-    ("z", "Maximize the pane"),
+    ("z", "Zoom workbench; focused query pane"),
     ("Ctrl+↑", "Grow the results"),
     ("Ctrl+↓", "Grow the editor"),
     ("Ctrl+N", "New connection"),

@@ -1,4 +1,5 @@
 use core::fmt::Write as _;
+use std::cell::RefCell;
 use std::time::{Duration, Instant};
 
 use termrock::author::{PaintStyle, StyleDefaults};
@@ -29,11 +30,13 @@ use crate::workbench::Workbench;
 mod connection_form_focus;
 mod explorer_collapsed;
 mod filter_editor;
+mod query_panes;
 mod query_safety;
 mod result_grid;
 
 use filter_editor::{FILTER_APPLY, FILTER_CANCEL, FILTER_COLUMN, FILTER_OPERATOR, FILTER_VALUE2};
 use filter_editor::{FilterEditor, FilterOutcome};
+use query_panes::{QueryContent, QueryLayout, QueryPaneMode, QueryPaneState, idle_query_top};
 use result_grid::ResultGridView;
 
 #[cfg(test)]
@@ -753,6 +756,7 @@ pub struct TableProApp {
     quit_state: DialogState,
     commit_preview_state: ViewportState,
     query_safety: query_safety::QuerySafetyController,
+    query_panes: RefCell<QueryPaneState>,
     switcher: QuickSwitcher,
     tab_list: TabList,
     safe_mode_picker: SafeModePicker,
@@ -814,6 +818,7 @@ impl core::fmt::Debug for TableProApp {
             .field("has_destructive_notice", &self.destructive_notice.is_some())
             .field("quit_state", &self.quit_state)
             .field("query_safety", &self.query_safety)
+            .field("query_panes", &self.query_panes.borrow())
             .field("switcher", &"<query and target snapshot>")
             .field("tab_list", &self.tab_list.rows.len())
             .field("safe_mode_picker", &self.safe_mode_picker.rows.len())
@@ -898,6 +903,7 @@ impl TableProApp {
             quit_state: DialogState::default(),
             commit_preview_state: ViewportState::default(),
             query_safety: query_safety::QuerySafetyController::default(),
+            query_panes: RefCell::new(QueryPaneState::default()),
             switcher: QuickSwitcher::default(),
             tab_list: TabList::default(),
             safe_mode_picker: SafeModePicker::default(),
@@ -980,6 +986,45 @@ impl TableProApp {
 
     pub fn result_id(&self) -> Option<Id> {
         self.workbench.active_grid().map(|(id, _)| id)
+    }
+
+    fn sync_query_panes(&self) {
+        self.query_panes.borrow_mut().sync(&self.workbench);
+    }
+
+    fn active_query_pane_mode(&self) -> QueryPaneMode {
+        self.workbench
+            .active_key()
+            .map_or(QueryPaneMode::None, |key| {
+                self.query_panes.borrow().mode(key)
+            })
+    }
+
+    fn visible_query_pane_mode(&self) -> QueryPaneMode {
+        if self.workbench.maximized {
+            self.active_query_pane_mode()
+        } else {
+            QueryPaneMode::None
+        }
+    }
+
+    fn focused_query_pane(&self, cx: &Cx<'_>) -> QueryPaneMode {
+        if !matches!(self.workbench.active(), Some(Tab::Query(_))) {
+            return QueryPaneMode::None;
+        }
+        if self.query_id().is_some_and(|id| {
+            cx.focused_in_scope(termrock::ScopeId::new(id.sub("pane-scope")))
+                .is_some()
+        }) {
+            return QueryPaneMode::Editor;
+        }
+        if self.result_id().is_some_and(|id| {
+            cx.focused_in_scope(termrock::ScopeId::new(id.sub("pane-scope")))
+                .is_some()
+        }) {
+            return QueryPaneMode::Results;
+        }
+        QueryPaneMode::None
     }
 
     pub fn status(&self) -> &str {
@@ -2748,6 +2793,7 @@ impl TableProApp {
     fn update_tab_controls(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut response = Response::ignored();
         let active_key = self.workbench.active_key();
+        let active_pane = self.visible_query_pane_mode();
         let query_visible = self.screen == Screen::Workbench;
         let provider = SqlCompletionProvider {
             catalog: &self.catalog,
@@ -2756,21 +2802,28 @@ impl TableProApp {
             if let Tab::Query(query) = tab {
                 let id = key.control("query");
                 let active_editor = query_visible && active_key == Some(key);
-                let editor = query_editor(id, QUERY_EDITOR_ROWS, &provider, active_editor);
-                let editor_response = editor.update(cx, &mut query.editor_state);
-                if matches!(
-                    editor_response.action_ref(),
-                    Some(CodeAction::Changed | CodeAction::Committed | CodeAction::Leave { .. })
-                ) {
-                    query.sync_query_text();
+                if !active_editor || active_pane != QueryPaneMode::Results {
+                    let editor = query_editor(id, QUERY_EDITOR_ROWS, &provider, active_editor);
+                    let editor_response = editor.update(cx, &mut query.editor_state);
+                    if matches!(
+                        editor_response.action_ref(),
+                        Some(
+                            CodeAction::Changed | CodeAction::Committed | CodeAction::Leave { .. }
+                        )
+                    ) {
+                        query.sync_query_text();
+                    }
+                    response |= editor_response.erase();
                 }
-                response |= editor_response.erase();
 
                 // Inactive query tabs still receive their addressed focus-out so the shared
                 // component can settle its lifecycle. Their edit session is retained because
                 // the tab is removed from the visible composition; active editors commit on
                 // ordinary blur as before.
                 if !active_editor {
+                    continue;
+                }
+                if active_pane == QueryPaneMode::Editor {
                     continue;
                 }
             }
@@ -3147,21 +3200,30 @@ impl TableProApp {
         if !viewport.has_grid_body() {
             return;
         }
-        if let Some((id, grid)) = self.workbench.active_grid() {
-            let (columns, count) = Self::column_specs(&grid.columns, grid.model.is_editable());
-            self.result_grid.draw(
-                ui,
-                viewport.grid,
-                id,
-                &grid.columns,
-                columns.get(..count).unwrap_or(&[]),
-                &grid.state,
-                &grid.model,
-                false,
-                true,
-            );
-        }
-        self.result_grid.paint_horizontal(ui, viewport.horizontal);
+        ui.focus_scope(
+            self.result_id()
+                .unwrap_or_else(|| Id::root("tablepro.query.results"))
+                .sub("pane-scope"),
+            termrock::ScopeMode::Normal,
+            |ui| {
+                if let Some((id, grid)) = self.workbench.active_grid() {
+                    let (columns, count) =
+                        Self::column_specs(&grid.columns, grid.model.is_editable());
+                    self.result_grid.draw(
+                        ui,
+                        viewport.grid,
+                        id,
+                        &grid.columns,
+                        columns.get(..count).unwrap_or(&[]),
+                        &grid.state,
+                        &grid.model,
+                        false,
+                        true,
+                    );
+                }
+                self.result_grid.paint_horizontal(ui, viewport.horizontal);
+            },
+        );
     }
 
     fn draw_connection_details(&self, ui: &mut Ui<'_>, area: termrock::Rect) {
@@ -3448,6 +3510,7 @@ impl TableProApp {
     }
 
     fn draw_content(&self, ui: &mut Ui<'_>, area: termrock::Rect) {
+        let pane_mode = self.visible_query_pane_mode();
         let explorer_focused = ui.state(EXPLORER).contains(StateFlags::FOCUSED);
         let (title, meta) = match self.workbench.active() {
             Some(Tab::Table(table)) => (
@@ -3490,6 +3553,9 @@ impl TableProApp {
         };
         let content_focused = self.surface != Surface::FilterEditor
             && match self.workbench.active() {
+                Some(Tab::Query(_)) if pane_mode == QueryPaneMode::Results => self
+                    .result_id()
+                    .is_some_and(|id| ui.state(id).contains(StateFlags::FOCUSED)),
                 Some(Tab::Query(_)) => self
                     .query_id()
                     .is_some_and(|id| ui.state(id).contains(StateFlags::FOCUSED)),
@@ -3528,7 +3594,8 @@ impl TableProApp {
                 );
             }
         }
-        if let Some(Tab::Query(query)) = self.workbench.active()
+        if pane_mode == QueryPaneMode::None
+            && let Some(Tab::Query(query)) = self.workbench.active()
             && query.result.is_none()
             && query.error.is_none()
             && query.plan.is_none()
@@ -3537,20 +3604,23 @@ impl TableProApp {
         {
             extend_idle_query_edge(ui, area, inner, query.editor_state.editor().is_editing());
         }
-        if let Some(Tab::Query(query)) = self.workbench.active()
+        if pane_mode == QueryPaneMode::None
+            && let Some(Tab::Query(query)) = self.workbench.active()
             && query.error.is_some()
             && query.plan.is_none()
         {
             extend_query_error_edge(ui, area, inner);
         }
-        if let Some(Tab::Query(query)) = self.workbench.active()
+        if pane_mode == QueryPaneMode::None
+            && let Some(Tab::Query(query)) = self.workbench.active()
             && let Some(plan) = query.plan.as_ref()
             && query.error.is_none()
             && query.result.is_none()
         {
             extend_query_plan_edge(ui, area, inner, plan);
         }
-        if let Some(Tab::Query(query)) = self.workbench.active()
+        if pane_mode == QueryPaneMode::None
+            && let Some(Tab::Query(query)) = self.workbench.active()
             && query.result.is_some()
             && query.plan.is_none()
             && query.error.is_none()
@@ -3593,12 +3663,13 @@ impl TableProApp {
         }
         self.result_grid.paint_scrollbar(ui);
         let blank_sql = self.blank_sql();
-        if blank_sql
-            || explorer_focused
-                && matches!(
-                    self.workbench.active(),
-                    Some(Tab::Query(query)) if query.result.is_none()
-                )
+        if pane_mode == QueryPaneMode::None
+            && (blank_sql
+                || explorer_focused
+                    && matches!(
+                        self.workbench.active(),
+                        Some(Tab::Query(query)) if query.result.is_none()
+                    ))
         {
             let editor_focused = self
                 .query_id()
@@ -3631,6 +3702,13 @@ impl TableProApp {
         inner: termrock::Rect,
         explorer_focused: bool,
     ) {
+        let pane_mode = self.visible_query_pane_mode();
+        if pane_mode != QueryPaneMode::None
+            && let Some(Tab::Query(query)) = self.workbench.active()
+        {
+            self.draw_query_pane(ui, area, inner, query, pane_mode);
+            return;
+        }
         match self.workbench.active() {
             Some(Tab::Query(query)) if explorer_focused && query.result.is_none() => {
                 let editor_area = paint_idle_query(ui, area, inner);
@@ -3712,6 +3790,70 @@ impl TableProApp {
         }
     }
 
+    fn draw_query_pane(
+        &self,
+        ui: &mut Ui<'_>,
+        area: termrock::Rect,
+        inner: termrock::Rect,
+        query: &crate::tabs::QueryTab,
+        mode: QueryPaneMode,
+    ) {
+        let content_kind = if query.plan.is_some() {
+            QueryContent::Plan
+        } else if query.error.is_some() {
+            QueryContent::Error
+        } else if query.result.is_some() {
+            QueryContent::Results
+        } else {
+            QueryContent::Idle
+        };
+        let Some(layout) = QueryLayout::new(
+            area,
+            inner,
+            ui.design().space.frame_inset,
+            mode,
+            content_kind,
+        ) else {
+            return;
+        };
+        paint_query_toolbar(ui, layout.toolbar);
+        match mode {
+            QueryPaneMode::Editor => {
+                if let (Some(id), Some(editor)) = (self.query_id(), layout.editor) {
+                    self.draw_query_editor(ui, id, editor, &query.editor_state);
+                }
+            }
+            QueryPaneMode::Results => {
+                if let Some(plan) = query.plan.as_ref()
+                    && query.error.is_none()
+                    && query.result.is_none()
+                {
+                    paint_plan_results(
+                        ui,
+                        layout.content,
+                        query.query.as_str(),
+                        plan,
+                        inner.right(),
+                    );
+                } else if let Some(message) = query.error.as_deref() {
+                    paint_query_error_results(ui, layout.content, message);
+                } else if let Some(result) = query.result.as_ref() {
+                    let grid_area = paint_query_result_summary(
+                        ui,
+                        layout.content,
+                        result.model.row_count(),
+                        result.model.duration_ms(),
+                        result.model.source(),
+                    );
+                    self.draw_result_grid(ui, grid_area);
+                } else {
+                    paint_query_empty(ui, layout.content);
+                }
+            }
+            QueryPaneMode::None => {}
+        }
+    }
+
     fn draw_query_editor(
         &self,
         ui: &mut Ui<'_>,
@@ -3722,7 +3864,9 @@ impl TableProApp {
         let provider = SqlCompletionProvider {
             catalog: &self.catalog,
         };
-        query_editor(id, QUERY_EDITOR_ROWS, &provider, true).draw(ui, area, state);
+        ui.focus_scope(id.sub("pane-scope"), termrock::ScopeMode::Normal, |ui| {
+            query_editor(id, QUERY_EDITOR_ROWS, &provider, true).draw(ui, area, state)
+        });
     }
 }
 
@@ -3807,46 +3951,18 @@ fn paint_idle_query(
     area: termrock::Rect,
     inner: termrock::Rect,
 ) -> termrock::Rect {
-    if inner.height < 8 || inner.width == 0 {
-        return termrock::Rect::ZERO;
-    }
     let inset = ui.design().space.frame_inset;
-    let body = termrock::Rect {
-        x: area.x.saturating_add(inset),
-        y: inner.y,
-        width: area.width.saturating_sub(inset),
-        height: inner.height,
+    let Some(layout) =
+        QueryLayout::new(area, inner, inset, QueryPaneMode::None, QueryContent::Idle)
+    else {
+        return termrock::Rect::ZERO;
     };
-    let top = idle_query_top(inner.height);
-    let editor_rows = query_editor_rows(top);
-    paint_query_toolbar(ui, termrock::Rect { height: 1, ..body });
-    // The frame paints a gap and a border on the last two columns. The
-    // baseline editor stops before that chrome, so the position label and
-    // the editing underline end on the field.
-    let editor = termrock::Rect {
-        y: body.y.saturating_add(1),
-        height: editor_rows,
-        width: body.width.saturating_sub(2),
-        ..body
-    };
-    let seam_y = editor.y.saturating_add(editor.height);
-    paint_query_seam(
-        ui,
-        termrock::Rect {
-            y: seam_y,
-            height: 1,
-            ..body
-        },
-    );
-    let results_y = seam_y.saturating_add(1);
-    let lane = termrock::Rect {
-        x: area.x.saturating_add(1),
-        y: results_y,
-        width: area.width.saturating_sub(2),
-        height: inner.bottom().saturating_sub(results_y),
-    };
-    paint_query_empty(ui, lane);
-    editor
+    paint_query_toolbar(ui, layout.toolbar);
+    if let Some(seam) = layout.seam {
+        paint_query_seam(ui, seam);
+    }
+    paint_query_empty(ui, layout.content);
+    layout.editor.unwrap_or(termrock::Rect::ZERO)
 }
 
 const SQL_ERROR: Role = Role::Custom(termrock::Color::from_u32(0x00f0_5d5d));
@@ -3861,42 +3977,18 @@ fn paint_query_plan(
     sql: &str,
     plan: &tablepro_sql::sql::PlanNode,
 ) -> termrock::Rect {
-    if inner.height < 8 || inner.width == 0 {
-        return termrock::Rect::ZERO;
-    }
     let inset = ui.design().space.frame_inset;
-    let body = termrock::Rect {
-        x: area.x.saturating_add(inset),
-        y: inner.y,
-        width: area.width.saturating_sub(inset),
-        height: inner.height,
+    let Some(layout) =
+        QueryLayout::new(area, inner, inset, QueryPaneMode::None, QueryContent::Plan)
+    else {
+        return termrock::Rect::ZERO;
     };
-    let top = idle_query_top(inner.height);
-    let editor_rows = query_editor_rows(top);
-    paint_query_toolbar(ui, termrock::Rect { height: 1, ..body });
-    // The frame paints a gap and a border on the last two columns.
-    let editor = termrock::Rect {
-        y: body.y.saturating_add(1),
-        height: editor_rows,
-        width: body.width.saturating_sub(2),
-        ..body
-    };
-    let seam_y = editor.y.saturating_add(editor.height);
-    paint_query_seam(
-        ui,
-        termrock::Rect {
-            y: seam_y,
-            height: 1,
-            ..body
-        },
-    );
-    let results = termrock::Rect {
-        y: seam_y.saturating_add(1),
-        height: body.bottom().saturating_sub(seam_y.saturating_add(1)),
-        ..body
-    };
-    paint_plan_results(ui, results, sql, plan, inner.right());
-    editor
+    paint_query_toolbar(ui, layout.toolbar);
+    if let Some(seam) = layout.seam {
+        paint_query_seam(ui, seam);
+    }
+    paint_plan_results(ui, layout.content, sql, plan, inner.right());
+    layout.editor.unwrap_or(termrock::Rect::ZERO)
 }
 
 /// Baseline `PLAN_COLS_W`: the cost strip stays this wide on the tree.
@@ -4281,40 +4373,31 @@ fn paint_query_results_chrome(
     duration_ms: u32,
     source: Option<&str>,
 ) -> (termrock::Rect, termrock::Rect) {
-    if inner.height < 8 || inner.width == 0 {
-        return (termrock::Rect::ZERO, inner);
-    }
     let inset = ui.design().space.frame_inset;
-    let body = termrock::Rect {
-        x: area.x.saturating_add(inset),
-        y: inner.y,
-        width: area.width.saturating_sub(inset),
-        height: inner.height,
+    let Some(layout) = QueryLayout::new(
+        area,
+        inner,
+        inset,
+        QueryPaneMode::None,
+        QueryContent::Results,
+    ) else {
+        return (termrock::Rect::ZERO, inner);
     };
-    let top = idle_query_top(inner.height);
-    let editor_rows = query_editor_rows(top);
-    paint_query_toolbar(ui, termrock::Rect { height: 1, ..body });
-    // The frame paints a gap and a border on the last two columns.
-    let editor = termrock::Rect {
-        y: body.y.saturating_add(1),
-        height: editor_rows,
-        width: body.width.saturating_sub(2),
-        ..body
-    };
-    let seam_y = editor.y.saturating_add(editor.height);
-    paint_query_seam(
-        ui,
-        termrock::Rect {
-            y: seam_y,
-            height: 1,
-            ..body
-        },
-    );
-    let below = termrock::Rect {
-        y: seam_y.saturating_add(1),
-        height: body.bottom().saturating_sub(seam_y.saturating_add(1)),
-        ..body
-    };
+    paint_query_toolbar(ui, layout.toolbar);
+    if let Some(seam) = layout.seam {
+        paint_query_seam(ui, seam);
+    }
+    let grid = paint_query_result_summary(ui, layout.content, rows, duration_ms, source);
+    (layout.editor.unwrap_or(termrock::Rect::ZERO), grid)
+}
+
+fn paint_query_result_summary(
+    ui: &mut Ui<'_>,
+    below: termrock::Rect,
+    rows: usize,
+    duration_ms: u32,
+    source: Option<&str>,
+) -> termrock::Rect {
     let table = source
         .and_then(|name| name.rsplit('.').next())
         .unwrap_or("orders");
@@ -4396,12 +4479,11 @@ fn paint_query_results_chrome(
         &rest,
         muted,
     );
-    let grid = termrock::Rect {
+    termrock::Rect {
         y: below.y.saturating_add(3),
         height: below.height.saturating_sub(3),
         ..below
-    };
-    (editor, grid)
+    }
 }
 
 fn paint_query_error(
@@ -4410,42 +4492,18 @@ fn paint_query_error(
     inner: termrock::Rect,
     message: &str,
 ) -> termrock::Rect {
-    if inner.height < 8 || inner.width == 0 {
-        return termrock::Rect::ZERO;
-    }
     let inset = ui.design().space.frame_inset;
-    let body = termrock::Rect {
-        x: area.x.saturating_add(inset),
-        y: inner.y,
-        width: area.width.saturating_sub(inset),
-        height: inner.height,
+    let Some(layout) =
+        QueryLayout::new(area, inner, inset, QueryPaneMode::None, QueryContent::Error)
+    else {
+        return termrock::Rect::ZERO;
     };
-    let top = idle_query_top(inner.height);
-    let editor_rows = query_editor_rows(top);
-    paint_query_toolbar(ui, termrock::Rect { height: 1, ..body });
-    // The frame paints a gap and a border on the last two columns.
-    let editor = termrock::Rect {
-        y: body.y.saturating_add(1),
-        height: editor_rows,
-        width: body.width.saturating_sub(2),
-        ..body
-    };
-    let seam_y = editor.y.saturating_add(editor.height);
-    paint_query_seam(
-        ui,
-        termrock::Rect {
-            y: seam_y,
-            height: 1,
-            ..body
-        },
-    );
-    let results = termrock::Rect {
-        y: seam_y.saturating_add(1),
-        height: body.bottom().saturating_sub(seam_y.saturating_add(1)),
-        ..body
-    };
-    paint_query_error_results(ui, results, message);
-    editor
+    paint_query_toolbar(ui, layout.toolbar);
+    if let Some(seam) = layout.seam {
+        paint_query_seam(ui, seam);
+    }
+    paint_query_error_results(ui, layout.content, message);
+    layout.editor.unwrap_or(termrock::Rect::ZERO)
 }
 
 fn relation_error_detail(message: &str) -> Option<&'static str> {
@@ -4630,23 +4688,6 @@ fn paint_query_error_results(ui: &mut Ui<'_>, area: termrock::Rect, message: &st
     );
 }
 
-fn idle_query_top(height: u16) -> u16 {
-    // Half-up so a 42-row query pane lands on 16, matching the frozen 160×50
-    // editor. Truncation keeps 32 rows at 12, so the 120×40 seam stays put.
-    let ratio = u16::try_from(u32::from(height).saturating_mul(38).saturating_add(50) / 100)
-        .unwrap_or(height);
-    ratio.max(4).min(height.saturating_sub(6).max(4))
-}
-
-/// Rows for the editor under the toolbar.
-///
-/// A top pane of 4 still keeps a code line, the horizontal bar, and the
-/// position footer. Wider panes keep the existing `top - 2` height.
-fn query_editor_rows(top: u16) -> u16 {
-    let rows = top.saturating_sub(2);
-    if top > 3 { rows.max(3) } else { rows }
-}
-
 fn paint_query_toolbar(ui: &mut Ui<'_>, area: termrock::Rect) {
     let plain = ui.surface_style().remove_modifier(Modifier::BOLD);
     let mut button = plain.patch(
@@ -4751,22 +4792,14 @@ fn idle_editor_rect(
     area: termrock::Rect,
     inner: termrock::Rect,
 ) -> Option<termrock::Rect> {
-    if inner.height < 8 || inner.width == 0 {
-        return None;
-    }
-    let inset = ui.design().space.frame_inset;
-    let body = termrock::Rect {
-        x: area.x.saturating_add(inset),
-        y: inner.y,
-        width: area.width.saturating_sub(inset),
-        height: inner.height,
-    };
-    let editor_rows = query_editor_rows(idle_query_top(inner.height));
-    Some(termrock::Rect {
-        y: body.y.saturating_add(1),
-        height: editor_rows,
-        ..body
-    })
+    QueryLayout::new(
+        area,
+        inner,
+        ui.design().space.frame_inset,
+        QueryPaneMode::None,
+        QueryContent::Idle,
+    )
+    .and_then(|layout| layout.editor)
 }
 
 fn extend_query_plan_edge(
@@ -4775,13 +4808,20 @@ fn extend_query_plan_edge(
     inner: termrock::Rect,
     plan: &tablepro_sql::sql::PlanNode,
 ) {
-    if inner.height < 8 || inner.width == 0 {
+    let Some(layout) = QueryLayout::new(
+        area,
+        inner,
+        ui.design().space.frame_inset,
+        QueryPaneMode::None,
+        QueryContent::Plan,
+    ) else {
         return;
-    }
-    let body_y = inner.y;
-    let top = idle_query_top(inner.height);
-    let editor_rows = query_editor_rows(top);
-    let editor_y = body_y.saturating_add(1);
+    };
+    let Some(editor) = layout.editor else {
+        return;
+    };
+    let editor_y = editor.y;
+    let editor_rows = editor.height;
     let x = inner.right();
     let field = ui.surface_style().patch(
         ui.paint_patch(
@@ -4809,7 +4849,9 @@ fn extend_query_plan_edge(
             field,
         );
     }
-    let seam_y = editor_y.saturating_add(editor_rows);
+    let seam_y = layout
+        .seam
+        .map_or(editor_y.saturating_add(editor_rows), |r| r.y);
     let seam = ui
         .surface_style()
         .patch(ui.paint_patch(&StylePatch::new().set_fg(QUERY_SEAM_FG)));
@@ -4882,12 +4924,20 @@ fn extend_query_results_edge(
     inner: termrock::Rect,
     query: &str,
 ) {
-    if inner.height < 8 || inner.width == 0 {
+    let Some(layout) = QueryLayout::new(
+        area,
+        inner,
+        ui.design().space.frame_inset,
+        QueryPaneMode::None,
+        QueryContent::Results,
+    ) else {
         return;
-    }
-    let top = idle_query_top(inner.height);
-    let editor_rows = query_editor_rows(top);
-    let editor_y = inner.y.saturating_add(1);
+    };
+    let Some(editor) = layout.editor else {
+        return;
+    };
+    let editor_rows = editor.height;
+    let editor_y = editor.y;
     let x = inner.right();
     let field = ui.surface_style().patch(
         ui.paint_patch(
@@ -4914,7 +4964,9 @@ fn extend_query_results_edge(
             thumb,
         );
     }
-    let seam_y = editor_y.saturating_add(editor_rows);
+    let seam_y = layout
+        .seam
+        .map_or(editor_y.saturating_add(editor_rows), |r| r.y);
     let seam = ui
         .surface_style()
         .patch(ui.paint_patch(&StylePatch::new().set_fg(QUERY_SEAM_FG)));
@@ -4930,13 +4982,20 @@ fn extend_query_results_edge(
 }
 
 fn extend_query_error_edge(ui: &mut Ui<'_>, area: termrock::Rect, inner: termrock::Rect) {
-    if inner.height < 8 || inner.width == 0 {
+    let Some(layout) = QueryLayout::new(
+        area,
+        inner,
+        ui.design().space.frame_inset,
+        QueryPaneMode::None,
+        QueryContent::Error,
+    ) else {
         return;
-    }
-    let body_y = inner.y;
-    let top = idle_query_top(inner.height);
-    let editor_rows = query_editor_rows(top);
-    let editor_y = body_y.saturating_add(1);
+    };
+    let Some(editor) = layout.editor else {
+        return;
+    };
+    let editor_rows = editor.height;
+    let editor_y = editor.y;
     let x = inner.right();
     let field = ui.surface_style().patch(
         ui.paint_patch(
@@ -4946,7 +5005,9 @@ fn extend_query_error_edge(ui: &mut Ui<'_>, area: termrock::Rect, inner: termroc
         ),
     );
     ui.fill(termrock::Rect::new(x, editor_y, 1, editor_rows), field);
-    let seam_y = editor_y.saturating_add(editor_rows);
+    let seam_y = layout
+        .seam
+        .map_or(editor_y.saturating_add(editor_rows), |r| r.y);
     let seam = ui
         .surface_style()
         .patch(ui.paint_patch(&StylePatch::new().set_fg(QUERY_SEAM_FG)));
@@ -5124,6 +5185,16 @@ fn maximized_footer_hints() -> Vec<Hint> {
         Hint::new("Ctrl+G", "Tab list"),
         Hint::new("z", "Zoom"),
         Hint::new("Shift+F10", "Menu"),
+        Hint::new("Tab", "Next"),
+    ]
+}
+
+fn query_pane_footer_hints() -> Vec<Hint> {
+    vec![
+        Hint::new("Esc", "Restore"),
+        Hint::new("0", "Explorer"),
+        Hint::new("z", "Zoom"),
+        Hint::new("Ctrl+R", "Run"),
         Hint::new("Tab", "Next"),
     ]
 }
@@ -8240,6 +8311,26 @@ fn footer_hints(
     if app.form_open {
         return (form_footer_hints(), None);
     }
+    match app.visible_query_pane_mode() {
+        QueryPaneMode::Editor if query_completion_open(app) => {
+            return (completion_footer_hints(), Some("EDIT"));
+        }
+        QueryPaneMode::Editor
+            if matches!(
+                app.workbench.active(),
+                Some(Tab::Query(query)) if query.editor_state.editor().is_editing()
+            ) =>
+        {
+            return (query_editor_footer_hints(), Some("EDIT"));
+        }
+        QueryPaneMode::Results if grid_is_editing(app) => {
+            return (cell_edit_footer_hints(), Some("EDIT"));
+        }
+        QueryPaneMode::Editor | QueryPaneMode::Results => {
+            return (query_pane_footer_hints(), None);
+        }
+        QueryPaneMode::None => {}
+    }
     if app.screen == Screen::Connections && app.connection_filter_editing {
         return (connection_filter_footer_hints(), Some("EDIT"));
     }
@@ -8493,6 +8584,9 @@ impl TableProApp {
     }
 
     fn blank_maximized_query(&self) -> bool {
+        if self.visible_query_pane_mode() != QueryPaneMode::None {
+            return false;
+        }
         match self.workbench.active() {
             Some(Tab::Query(query)) => {
                 query.query.is_empty()
@@ -8504,6 +8598,10 @@ impl TableProApp {
         }
     }
     fn prepare_grid_slots(&self) {
+        if self.visible_query_pane_mode() == QueryPaneMode::Editor {
+            self.result_grid.begin_frame(Vec::new(), None, None);
+            return;
+        }
         let filtered_columns = self
             .workbench
             .active_table()
@@ -8568,6 +8666,7 @@ impl TableProApp {
 
 impl App for TableProApp {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        self.query_panes.get_mut().sync(&self.workbench);
         let mut response = self.roll_connection_status(cx);
         // A status tick must not run the grid. Its first update steals focus
         // onto the result row, and the baseline frame keeps the editor focused.
@@ -8798,9 +8897,22 @@ impl App for TableProApp {
                 c if c == ZOOM
                     && self.screen == Screen::Workbench
                     && !self.form_open
-                    && self.destructive_intent.is_none() =>
+                    && self.destructive_intent.is_none()
+                    && !self.query_safety.is_open()
+                    && self.filter_editor.is_none() =>
                 {
-                    self.workbench.toggle_maximized();
+                    if self.workbench.maximized {
+                        self.workbench.maximized = false;
+                        if let Some(key) = self.workbench.active_key() {
+                            self.query_panes.get_mut().set(key, QueryPaneMode::None);
+                        }
+                    } else {
+                        self.workbench.maximized = true;
+                        if let Some(key) = self.workbench.active_key() {
+                            let mode = self.focused_query_pane(cx);
+                            self.query_panes.get_mut().set(key, mode);
+                        }
+                    }
                     response |= Response::changed();
                 }
                 c if c == TOGGLE_EXPLORER
@@ -8814,12 +8926,17 @@ impl App for TableProApp {
                 c if c == FOCUS_EXPLORER
                     && self.screen == Screen::Workbench
                     && !self.form_open
-                    && self.destructive_intent.is_none() =>
+                    && self.destructive_intent.is_none()
+                    && !self.query_safety.is_open()
+                    && self.filter_editor.is_none() =>
                 {
                     if self.split_state.maximized() == Maximized::Second {
                         self.split_state.toggle_max(Maximized::Second);
                     }
                     self.workbench.maximized = false;
+                    if let Some(key) = self.workbench.active_key() {
+                        self.query_panes.get_mut().set(key, QueryPaneMode::None);
+                    }
                     cx.focus(EXPLORER);
                     response |= Response::changed();
                 }
@@ -8979,7 +9096,53 @@ impl App for TableProApp {
 
         response
     }
+
+    fn on_esc(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        if cx.top_layer() != LayerId::PAGE
+            || self.screen != Screen::Workbench
+            || self.form_open
+            || self.destructive_intent.is_some()
+            || self.query_safety.is_open()
+            || self.filter_editor.is_some()
+            || matches!(
+                self.surface,
+                Surface::QuickSwitcher
+                    | Surface::TabListPicker
+                    | Surface::SafeModePicker
+                    | Surface::HelpDialog
+                    | Surface::FilterEditor
+                    | Surface::SafetyDialogTypedAck
+            )
+        {
+            return Response::ignored();
+        }
+        if !self.workbench.maximized {
+            return Response::ignored();
+        }
+
+        let mode = self.active_query_pane_mode();
+        self.workbench.maximized = false;
+        if let Some(key) = self.workbench.active_key() {
+            self.query_panes.get_mut().set(key, QueryPaneMode::None);
+        }
+        match mode {
+            QueryPaneMode::Editor => {
+                if let Some(id) = self.query_id() {
+                    cx.focus(id);
+                }
+            }
+            QueryPaneMode::Results => {
+                if let Some(id) = self.result_id() {
+                    cx.focus(id);
+                }
+            }
+            QueryPaneMode::None => {}
+        }
+        Response::changed()
+    }
+
     fn draw(&self, ui: &mut Ui<'_>) {
+        self.sync_query_panes();
         self.prepare_grid_slots();
         let full = ui.full();
         if full.width < MIN_WIDTH || full.height < MIN_HEIGHT {
