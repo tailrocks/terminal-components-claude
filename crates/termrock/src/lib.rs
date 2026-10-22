@@ -204,8 +204,8 @@ pub use termrock_overlays::{
 pub use termrock_grid::{
     CellAction, CellRef, Column, ColumnKey, EditIntent, GRID_MAX_COLUMNS, Grid, GridAction,
     GridCell, GridCmd, GridColumnFit, GridCursorError, GridEditor, GridGutter, GridHeaderSizing,
-    GridModel, GridOverflowIndicator, GridSortIndicator, GridState, NavUnit, SortDir, WidthSample,
-    WidthSampleError,
+    GridModel, GridOverflowIndicator, GridSortIndicator, GridState, NavUnit, SortDir, Table,
+    TableAction, TableColumn, TableSort, TableState, WidthSample, WidthSampleError,
 };
 
 pub use termrock_editors::{

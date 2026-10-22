@@ -22,6 +22,45 @@ use termrock_runtime::author::CompositionLeaf;
 use termrock_runtime::rowui::RowFn;
 use termrock_runtime::{CompositionSlots, ContentSlot, MAX_COMPOSITION_DEPTH, Measure, Ui};
 
+pub mod adapters;
+pub use adapters::*;
+
+/// A leaf that delegates measurement and drawing to callbacks.
+///
+/// The callbacks carry the component and its caller-owned state, so a
+/// composition child does not copy application data or introduce a second
+/// measurement or rendering path.
+pub struct Leaf<M, D> {
+    measure: M,
+    draw: D,
+}
+
+impl<M, D> Leaf<M, D> {
+    /// Build a leaf from a measurement callback and a drawing callback.
+    pub const fn new(measure: M, draw: D) -> Self {
+        Self { measure, draw }
+    }
+}
+
+impl<M, D> Measure for Leaf<M, D>
+where
+    M: for<'ui> Fn(&Ui<'ui>, Constraints) -> Size,
+{
+    fn measure(&self, ui: &Ui<'_>, constraints: Constraints) -> Size {
+        (self.measure)(ui, constraints)
+    }
+}
+
+impl<M, D> CompositionLeaf for Leaf<M, D>
+where
+    M: for<'ui> Fn(&Ui<'ui>, Constraints) -> Size,
+    D: for<'ui> Fn(&mut Ui<'ui>, ratatui_core::layout::Rect),
+{
+    fn draw(&self, ui: &mut Ui<'_>, logical: ratatui_core::layout::Rect) {
+        (self.draw)(ui, logical);
+    }
+}
+
 /// A borrowed component configured for placement in a composition group.
 ///
 /// Create children with [`button`], [`tabs`], [`steps`], [`nav_list`], [`code_editor`], or
@@ -34,9 +73,27 @@ pub struct Child<'a> {
 
 enum ChildContent<'a> {
     Leaf(Box<dyn CompositionLeaf + 'a>),
-    MasterDetail(Box<MasterDetailLeaf<'a, 'a>>),
+    Nested {
+        leaf: Box<dyn CompositionLeaf + 'a>,
+        depth: usize,
+    },
+    Rejected {
+        depth: usize,
+    },
     Group(Box<Group<'a>>),
     Panel(Box<PanelLeaf<'a>>),
+}
+
+struct RejectedLeaf;
+
+impl Measure for RejectedLeaf {
+    fn measure(&self, _ui: &Ui<'_>, _constraints: Constraints) -> Size {
+        Size::default()
+    }
+}
+
+impl CompositionLeaf for RejectedLeaf {
+    fn draw(&self, _ui: &mut Ui<'_>, _logical: ratatui_core::layout::Rect) {}
 }
 
 impl fmt::Debug for Child<'_> {
@@ -47,7 +104,8 @@ impl fmt::Debug for Child<'_> {
                 "content",
                 &match &self.content {
                     ChildContent::Leaf(_) => "leaf",
-                    ChildContent::MasterDetail(_) => "master_detail",
+                    ChildContent::Nested { .. } => "nested leaf",
+                    ChildContent::Rejected { .. } => "rejected nested leaf",
                     ChildContent::Group(_) => "group",
                     ChildContent::Panel(_) => "panel",
                 },
@@ -76,6 +134,41 @@ impl Child<'_> {
     pub const fn flex(mut self, weight: u16) -> Self {
         self.policy = self.policy.flex(weight);
         self
+    }
+
+    /// Measure this child while checking that nested composition stays
+    /// within the supported depth.
+    pub fn try_measure(
+        &self,
+        ui: &Ui<'_>,
+        constraints: Constraints,
+    ) -> Result<Size, CompositionError> {
+        self.validate_depth()?;
+        Ok(self.measure_validated(ui, constraints))
+    }
+
+    /// Draw this child into a component-owned logical rectangle after
+    /// checking its nested composition depth.
+    pub fn try_draw(
+        &self,
+        ui: &mut Ui<'_>,
+        logical: ratatui_core::layout::Rect,
+    ) -> Result<(), CompositionError> {
+        self.validate_depth()?;
+        self.draw_validated(ui, logical);
+        Ok(())
+    }
+
+    fn validate_depth(&self) -> Result<(), CompositionError> {
+        let depth = self.nested_depth();
+        if depth > MAX_COMPOSITION_DEPTH {
+            Err(CompositionError::DepthExceeded {
+                depth,
+                maximum: MAX_COMPOSITION_DEPTH,
+            })
+        } else {
+            Ok(())
+        }
     }
 }
 
@@ -122,8 +215,12 @@ where
     'config: 'a,
 {
     component.validate_composition()?;
+    let depth = component.composition_depth();
     Ok(Child {
-        content: ChildContent::MasterDetail(Box::new(MasterDetailLeaf { component, state })),
+        content: ChildContent::Nested {
+            leaf: Box::new(MasterDetailLeaf { component, state }),
+            depth,
+        },
         policy: ChildPolicy::default(),
     })
 }
@@ -512,21 +609,6 @@ pub struct Group<'a> {
     depth: usize,
 }
 
-impl Drop for Group<'_> {
-    fn drop(&mut self) {
-        // Deep invalid groups must remain safely destructible after the
-        // depth guard rejects them. Drain descendants iteratively.
-        let mut pending = core::mem::take(&mut self.children);
-        while let Some(child) = pending.pop() {
-            match child.content {
-                ChildContent::Group(mut group) => pending.append(&mut group.children),
-                ChildContent::Panel(panel) => pending.push(panel.body),
-                ChildContent::Leaf(_) | ChildContent::MasterDetail(_) => {}
-            }
-        }
-    }
-}
-
 impl<'a> Group<'a> {
     /// Lay out children horizontally.
     pub fn row(children: impl IntoIterator<Item = Child<'a>>) -> Self {
@@ -611,7 +693,17 @@ impl<'a> Group<'a> {
 
     fn new(direction: Direction, children: impl IntoIterator<Item = Child<'a>>) -> Self {
         let children: Vec<_> = children.into_iter().collect();
-        let depth = 1 + children.iter().map(Child::nested_depth).max().unwrap_or(0);
+        let depth =
+            1usize.saturating_add(children.iter().map(Child::nested_depth).max().unwrap_or(0));
+        let children = if depth > MAX_COMPOSITION_DEPTH {
+            // Keep an over-deep group as a small error carrier. Its children
+            // are bounded to MAX_COMPOSITION_DEPTH and can therefore be
+            // dropped without recursive stack growth.
+            drop(children);
+            Vec::new()
+        } else {
+            children
+        };
         Self {
             direction,
             spec: LayoutComposition::new(),
@@ -625,7 +717,8 @@ impl Child<'_> {
     fn nested_depth(&self) -> usize {
         match &self.content {
             ChildContent::Leaf(_) => 0,
-            ChildContent::MasterDetail(block) => block.component.composition_depth(),
+            ChildContent::Nested { depth, .. } => *depth,
+            ChildContent::Rejected { depth } => *depth,
             ChildContent::Group(group) => group.depth,
             ChildContent::Panel(panel) => panel.nested_depth(),
         }
@@ -634,7 +727,8 @@ impl Child<'_> {
     fn measure_validated(&self, ui: &Ui<'_>, constraints: Constraints) -> Size {
         match &self.content {
             ChildContent::Leaf(leaf) => leaf.measure(ui, constraints),
-            ChildContent::MasterDetail(block) => block.measure(ui, constraints),
+            ChildContent::Nested { leaf, .. } => leaf.measure(ui, constraints),
+            ChildContent::Rejected { .. } => Size::default(),
             ChildContent::Group(group) => group.measure_validated(ui, constraints),
             ChildContent::Panel(panel) => panel.measure(ui, constraints),
         }
@@ -643,7 +737,8 @@ impl Child<'_> {
     fn draw_validated(&self, ui: &mut Ui<'_>, logical: ratatui_core::layout::Rect) {
         match &self.content {
             ChildContent::Leaf(leaf) => leaf.draw(ui, logical),
-            ChildContent::MasterDetail(block) => block.draw(ui, logical),
+            ChildContent::Nested { leaf, .. } => leaf.draw(ui, logical),
+            ChildContent::Rejected { .. } => {}
             ChildContent::Group(group) => group.draw_at_validated(ui, logical),
             ChildContent::Panel(panel) => panel.draw(ui, logical),
         }
@@ -652,9 +747,22 @@ impl Child<'_> {
     fn slot(&self) -> ContentSlot<'_> {
         match &self.content {
             ChildContent::Leaf(leaf) => ContentSlot::new(leaf.as_ref(), self.policy),
-            ChildContent::MasterDetail(block) => ContentSlot::new(block.as_ref(), self.policy),
+            ChildContent::Nested { leaf, .. } => ContentSlot::new(leaf.as_ref(), self.policy),
+            ChildContent::Rejected { .. } => ContentSlot::new(&RejectedLeaf, self.policy),
             ChildContent::Group(group) => ContentSlot::nested(group.slots(), self.policy),
             ChildContent::Panel(panel) => ContentSlot::new(panel.as_ref(), self.policy),
         }
+    }
+}
+
+impl Measure for Child<'_> {
+    fn measure(&self, ui: &Ui<'_>, constraints: Constraints) -> Size {
+        self.try_measure(ui, constraints).unwrap_or_default()
+    }
+}
+
+impl CompositionLeaf for Child<'_> {
+    fn draw(&self, ui: &mut Ui<'_>, logical: ratatui_core::layout::Rect) {
+        let _ = self.try_draw(ui, logical);
     }
 }

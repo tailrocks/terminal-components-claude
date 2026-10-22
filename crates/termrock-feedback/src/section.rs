@@ -1,5 +1,7 @@
 use ratatui_core::layout::Rect;
 
+use crate::measure::{Constraints, Size};
+use crate::text::width;
 use crate::theme::{FgStep, PaintStyle, Role, StylePatch};
 use crate::ui::Ui;
 
@@ -76,6 +78,22 @@ impl<'a> TextSection<'a> {
     pub const fn title_style(mut self, style: PaintStyle) -> Self {
         self.title_style = Some(style);
         self
+    }
+
+    /// Measure the section's intrinsic text extent, clipped to its constraints.
+    ///
+    /// Each configured line remains a single painted row; long lines are
+    /// clipped by the available width rather than wrapped.
+    pub fn measure(&self, _ui: &Ui<'_>, constraints: Constraints) -> Size {
+        let text_width = width(self.title)
+            .max(self.subtitle.map_or(0, width))
+            .max(self.body.map_or(0, width));
+        let width = text_width.saturating_add(self.inset.saturating_mul(2));
+        let height = self
+            .subtitle
+            .map_or(1, |_| 2)
+            .max(self.body.map_or(0, |_| self.body_row.saturating_add(1)));
+        Size::exact(width, height).fit(constraints)
     }
 
     pub fn render(self, ui: &mut Ui<'_>, area: Rect) {
@@ -335,5 +353,37 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn measure_uses_display_width_and_configured_rows_then_fits_constraints() {
+        let section = TextSection::new("界")
+            .subtitle("detail")
+            .body("🦀")
+            .inset(2);
+        let mut scene = Scene::new(
+            "text-section-measure",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            10,
+            4,
+        );
+        let mut natural = None;
+        scene.draw(|ui, _| {
+            natural = Some(section.measure(ui, Constraints::loose(20, 10)));
+        });
+        assert_eq!(natural, Some(Size::exact(10, 4)));
+
+        let mut narrow = None;
+        scene.draw(|ui, _| {
+            narrow = Some(section.measure(ui, Constraints::loose(4, 2)));
+        });
+        assert_eq!(narrow, Some(Size::exact(4, 2)));
+
+        let mut tight = None;
+        scene.draw(|ui, _| {
+            tight = Some(section.measure(ui, Constraints::tight(7, 6)));
+        });
+        assert_eq!(tight, Some(Size::exact(7, 6)));
     }
 }
