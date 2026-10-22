@@ -30,6 +30,19 @@ pub struct SettingsSection<'a> {
 pub struct SettingsHint<'a> {
     pub key: &'a str,
     pub action: &'a str,
+    /// Column offset from the page left edge. `None` flows after the
+    /// previous hint. The fixed-cell heritage pages pin every hint.
+    pub at: Option<u16>,
+}
+
+/// Trailing text after the hint row, e.g. the mounts `…` or the env page's
+/// clipped source peek.
+pub struct SettingsOverflow<'a> {
+    pub text: &'a str,
+    /// Column offset from the page left edge. `None` flows after the hints.
+    pub at: Option<u16>,
+    /// Secondary ink instead of the faint mark.
+    pub secondary: bool,
 }
 
 pub struct SettingsMount<'a> {
@@ -40,6 +53,74 @@ pub struct SettingsMount<'a> {
     pub kind: Option<&'a str>,
     pub source: Option<&'a str>,
     pub selected: bool,
+}
+
+pub struct SettingsEnvRow<'a> {
+    pub key: &'a str,
+    pub scope: &'a str,
+    /// Masked value length; the painter renders one `*` per unit.
+    pub stars: usize,
+    pub source: &'a str,
+    pub selected: bool,
+}
+
+pub struct SettingsEnvGroup<'a> {
+    pub title: &'a str,
+    pub right: &'a str,
+    pub rows: &'a [SettingsEnvRow<'a>],
+    pub add: &'a str,
+}
+
+pub struct SettingsEnvRole<'a> {
+    pub name: &'a str,
+    pub right: &'a str,
+    pub rows: &'a [SettingsEnvRow<'a>],
+    pub add: &'a str,
+}
+
+/// Environments body: global group, role-overrides group with one expanded
+/// role, then the trailing add-role row.
+pub struct SettingsEnv<'a> {
+    pub global: SettingsEnvGroup<'a>,
+    pub overrides_title: &'a str,
+    pub overrides_right: &'a str,
+    pub role: SettingsEnvRole<'a>,
+    pub add_role: &'a str,
+}
+
+pub struct SettingsAgentRow<'a> {
+    pub name: &'a str,
+    pub mode: &'a str,
+    pub account: &'a str,
+    pub selected: bool,
+}
+
+/// Agents body: title row, column header, agent rows, then footnote lines.
+pub struct SettingsAgents<'a> {
+    pub title: &'a str,
+    pub right: &'a str,
+    pub header: &'a str,
+    pub rows: &'a [SettingsAgentRow<'a>],
+    pub notes: &'a [&'a str],
+}
+
+pub struct SettingsTrustRow<'a> {
+    pub source: &'a str,
+    pub trusted: bool,
+    pub dirty: bool,
+    pub count: &'a str,
+    pub selected: bool,
+}
+
+/// Trust body: title row, one row per role source, then footnote lines.
+/// `preview` dims the selected gutter to the plain cursor while the save
+/// preview dialog owns the layer.
+pub struct SettingsTrust<'a> {
+    pub title: &'a str,
+    pub right: &'a str,
+    pub rows: &'a [SettingsTrustRow<'a>],
+    pub notes: &'a [&'a str],
+    pub preview: bool,
 }
 
 #[derive(Clone, Copy)]
@@ -53,18 +134,32 @@ pub struct SettingsPage<'a> {
     pub brand: &'a str,
     pub menus: &'a [&'a str],
     pub crumb: &'a str,
+    /// Note appended to the selected tab label (trust save preview).
+    /// A note also dims the active underline from accent to seam.
+    pub tab_note: Option<&'a str>,
+    /// Note painted after the crumb (trust save preview change count).
+    pub crumb_note: Option<&'a str>,
     pub tabs: &'a [SettingsTab<'a>],
     pub sections: &'a [SettingsSection<'a>],
     pub cancel: &'a str,
     pub save: &'a str,
     pub save_enabled: bool,
     pub hints: &'a [SettingsHint<'a>],
-    pub hint_overflow: Option<&'a str>,
+    pub hint_overflow: Option<SettingsOverflow<'a>>,
+    /// Skip the hint row; the page paints its own footer (trust preview).
+    pub hide_hints: bool,
     pub mounts: &'a [SettingsMount<'a>],
     pub add_mount: Option<&'a str>,
+    pub env: Option<SettingsEnv<'a>>,
+    pub agents: Option<SettingsAgents<'a>>,
+    pub trust: Option<SettingsTrust<'a>>,
     /// Wide header: crumb, note, mark, and value, packed from the right edge.
     /// Absent on the narrow page, which keeps the ellipsis before the crumb.
     pub cluster: Option<SettingsCluster<'a>>,
+    /// Fixed-cell header anchor: the crumb ends at column 83, the note sits
+    /// at 85 and the mark at 107 (env/agents/trust heritage frames).
+    /// Without it the cluster packs from the right edge (general/mounts).
+    pub legacy_header: bool,
 }
 
 struct Ink {
@@ -100,11 +195,23 @@ pub fn paint_settings_page(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>)
     ui.fill(area, plain(ink.primary, ink.canvas));
     paint_header(ui, area, page, &ink);
     let (selected_at, selected_span) = paint_tabs(ui, area, page, &ink);
-    paint_underline(ui, area, selected_at, selected_span, &ink);
+    paint_underline(
+        ui,
+        area,
+        selected_at,
+        selected_span,
+        &ink,
+        page.tab_note.is_some(),
+    );
     paint_sections(ui, area, page, &ink);
     paint_mounts(ui, area, page, &ink);
+    paint_env(ui, area, page, &ink);
+    paint_agents(ui, area, page, &ink);
+    paint_trust(ui, area, page, &ink);
     paint_actions(ui, area, page, &ink);
-    paint_hints(ui, area, page, &ink);
+    if !page.hide_hints {
+        paint_hints(ui, area, page, &ink);
+    }
 }
 
 fn step(theme: &crate::theme::Theme, which: FgStep) -> Color {
@@ -159,6 +266,10 @@ fn paint_header(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>, ink: &Ink)
     }
     let secondary = plain(ink.secondary, ink.canvas);
     if let Some(cluster) = page.cluster {
+        if page.legacy_header {
+            paint_legacy_cluster(ui, area, page, cluster, &ink);
+            return;
+        }
         let value_x = area
             .right()
             .saturating_sub(2)
@@ -167,8 +278,21 @@ fn paint_header(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>, ink: &Ink)
             .saturating_sub(1)
             .saturating_sub(width(cluster.mark));
         let note_x = mark_x.saturating_sub(2).saturating_sub(width(cluster.note));
-        let crumb_x = note_x.saturating_sub(2).saturating_sub(width(page.crumb));
+        let mut crumb_x = note_x.saturating_sub(2).saturating_sub(width(page.crumb));
+        if let Some(note) = page.crumb_note {
+            crumb_x = crumb_x.saturating_sub(width(note));
+        }
         put(ui, area, crumb_x, y, page.crumb, secondary);
+        if let Some(note) = page.crumb_note {
+            put(
+                ui,
+                area,
+                crumb_x.saturating_add(width(page.crumb)),
+                y,
+                note,
+                plain(ink.primary, ink.canvas),
+            );
+        }
         put(ui, area, note_x, y, cluster.note, secondary);
         put(
             ui,
@@ -203,6 +327,60 @@ fn paint_header(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>, ink: &Ink)
     put(ui, area, crumb_x, y, page.crumb, secondary);
 }
 
+fn paint_legacy_cluster(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    page: &SettingsPage<'_>,
+    cluster: SettingsCluster<'_>,
+    ink: &Ink,
+) {
+    let y = area.y;
+    let secondary = plain(ink.secondary, ink.canvas);
+    let crumb_w = width(page.crumb);
+    let crumb_x = match page.crumb_note {
+        Some(note) => area
+            .x
+            .saturating_add(85)
+            .saturating_sub(crumb_w.saturating_add(width(note))),
+        None => area.x.saturating_add(83).saturating_sub(crumb_w),
+    };
+    put(ui, area, crumb_x, y, page.crumb, secondary);
+    if let Some(note) = page.crumb_note {
+        put(
+            ui,
+            area,
+            crumb_x.saturating_add(crumb_w),
+            y,
+            note,
+            plain(ink.primary, ink.canvas),
+        );
+    }
+    put(
+        ui,
+        area,
+        area.x.saturating_add(85),
+        y,
+        cluster.note,
+        secondary,
+    );
+    put(
+        ui,
+        area,
+        area.x.saturating_add(107),
+        y,
+        cluster.mark,
+        plain(ink.accent, ink.canvas),
+    );
+    put(
+        ui,
+        area,
+        area.x.saturating_add(108),
+        y,
+        &format!(" {}", cluster.value),
+        secondary,
+    );
+}
+
 fn tab_span(label: &str) -> u16 {
     width(label).saturating_add(3)
 }
@@ -218,20 +396,26 @@ fn paint_tabs(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>, ink: &Ink) -
         let idle = format!(" {}  ", tab.label);
         if tab.selected {
             selected_at = x;
-            selected_span = span;
             let face = bold(ink.primary, ink.face);
-            if x == origin {
-                put(ui, area, x, y, "▎", bold(ink.accent, ink.face));
-                put(
-                    ui,
-                    area,
-                    x.saturating_add(1),
-                    y,
-                    &format!("{}  ", tab.label),
-                    face,
-                );
+            if let Some(note) = page.tab_note {
+                let noted = format!(" {} {note}  ", tab.label);
+                selected_span = width(&noted);
+                put(ui, area, x, y, &noted, face);
             } else {
-                put(ui, area, x, y, &idle, face);
+                selected_span = span;
+                if x == origin {
+                    put(ui, area, x, y, "▎", bold(ink.accent, ink.face));
+                    put(
+                        ui,
+                        area,
+                        x.saturating_add(1),
+                        y,
+                        &format!("{}  ", tab.label),
+                        face,
+                    );
+                } else {
+                    put(ui, area, x, y, &idle, face);
+                }
             }
         } else {
             put(ui, area, x, y, &idle, plain(ink.secondary, ink.canvas));
@@ -241,11 +425,25 @@ fn paint_tabs(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>, ink: &Ink) -
     (selected_at, selected_span)
 }
 
-fn paint_underline(ui: &mut Ui<'_>, area: Rect, selected_at: u16, selected_span: u16, ink: &Ink) {
+fn paint_underline(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    selected_at: u16,
+    selected_span: u16,
+    ink: &Ink,
+    seam_heavy: bool,
+) {
     let y = area.y.saturating_add(4);
     let start = area.x.saturating_add(2);
     let rule = plain(Color::Rgb(0x3a, 0x3a, 0x3a), ink.canvas);
-    let heavy = plain(ink.accent, ink.canvas);
+    let heavy = plain(
+        if seam_heavy {
+            Color::Rgb(0x3a, 0x3a, 0x3a)
+        } else {
+            ink.accent
+        },
+        ink.canvas,
+    );
     if selected_at > start {
         put(
             ui,
@@ -321,6 +519,550 @@ fn paint_sections(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>, ink: &In
             y = y.saturating_add(1);
         }
         y = y.saturating_add(1);
+    }
+}
+
+const AMBER: Color = Color::Rgb(0xf5, 0x9e, 0x09);
+
+/// Column geometry of the heritage 120-column pages. Positions are offsets
+/// from the page left edge; the approved frames are 120 wide.
+fn gutter(ui: &mut Ui<'_>, area: Rect, y: u16, ink: &Ink) {
+    put(
+        ui,
+        area,
+        area.x.saturating_add(2),
+        y,
+        " ",
+        plain(ink.canvas, ink.canvas),
+    );
+    put(
+        ui,
+        area,
+        area.x.saturating_add(3),
+        y,
+        " ",
+        plain(ink.secondary, ink.canvas),
+    );
+}
+
+fn right_note(ui: &mut Ui<'_>, area: Rect, y: u16, text: &str, ink: &Ink) {
+    let x = area
+        .right()
+        .saturating_sub(3)
+        .saturating_sub(width(text));
+    put(ui, area, x, y, text, plain(ink.faint, ink.canvas));
+}
+
+fn selected_fill(ui: &mut Ui<'_>, area: Rect, y: u16, ink: &Ink) {
+    ui.fill(
+        Rect {
+            x: area.x.saturating_add(2),
+            y,
+            width: area.width.saturating_sub(4),
+            height: 1,
+        },
+        bold(ink.primary, SELECT_BG),
+    );
+    put(
+        ui,
+        area,
+        area.x.saturating_add(2),
+        y,
+        "▎›",
+        bold(ink.accent, SELECT_BG),
+    );
+}
+
+/// Paint `text` word by word: words in `word`, gaps in `gap`. Ports the
+/// heritage split painters, which recolored gaps inside selected fields.
+fn paint_runs(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    x: u16,
+    y: u16,
+    text: &str,
+    word: PaintStyle,
+    gap: PaintStyle,
+) {
+    let mut column = x;
+    let mut current = String::new();
+    let mut spaces = false;
+    let mut flush = |column: &mut u16, current: &mut String, spaces: bool| {
+        if current.is_empty() {
+            return;
+        }
+        put(
+            ui,
+            area,
+            *column,
+            y,
+            current,
+            if spaces { gap } else { word },
+        );
+        *column = column.saturating_add(width(current));
+        current.clear();
+    };
+    for ch in text.chars() {
+        let is_space = ch == ' ';
+        if !current.is_empty() && is_space != spaces {
+            flush(&mut column, &mut current, spaces);
+        }
+        spaces = is_space;
+        current.push(ch);
+    }
+    flush(&mut column, &mut current, spaces);
+}
+
+fn clip(text: &str, max: u16) -> String {
+    crate::text::truncate(text, max)
+}
+
+fn pad(text: &str, cols: u16) -> String {
+    let have = width(text);
+    if have >= cols {
+        return text.to_owned();
+    }
+    let mut out = text.to_owned();
+    out.push_str(&" ".repeat(usize::from(cols - have)));
+    out
+}
+
+fn paint_env(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>, ink: &Ink) {
+    let Some(env) = &page.env else {
+        return;
+    };
+    let mut y = area.y.saturating_add(6);
+    let title = bold(ink.secondary, ink.canvas);
+    y = paint_env_group(ui, area, y, &env.global, ink, title);
+    put(
+        ui,
+        area,
+        area.x.saturating_add(6),
+        y,
+        env.overrides_title,
+        title,
+    );
+    right_note(ui, area, y, env.overrides_right, ink);
+    y = y.saturating_add(1);
+    put(ui, area, area.x.saturating_add(4), y, "▾", title);
+    put(
+        ui,
+        area,
+        area.x.saturating_add(6),
+        y,
+        env.role.name,
+        title,
+    );
+    right_note(ui, area, y, env.role.right, ink);
+    y = y.saturating_add(1);
+    for row in env.role.rows {
+        paint_env_row(ui, area, y, row, ink);
+        y = y.saturating_add(1);
+    }
+    paint_add_row(ui, area, y, env.role.add, ink);
+    y = y.saturating_add(1);
+    paint_add_row(ui, area, y, env.add_role, ink);
+}
+
+fn paint_env_group(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    y: u16,
+    group: &SettingsEnvGroup<'_>,
+    ink: &Ink,
+    title: PaintStyle,
+) -> u16 {
+    let mut y = y;
+    put(ui, area, area.x.saturating_add(6), y, group.title, title);
+    right_note(ui, area, y, group.right, ink);
+    y = y.saturating_add(1);
+    for row in group.rows {
+        paint_env_row(ui, area, y, row, ink);
+        y = y.saturating_add(1);
+    }
+    paint_add_row(ui, area, y, group.add, ink);
+    y.saturating_add(1)
+}
+
+fn paint_add_row(ui: &mut Ui<'_>, area: Rect, y: u16, label: &str, ink: &Ink) {
+    gutter(ui, area, y, ink);
+    put(
+        ui,
+        area,
+        area.x.saturating_add(8),
+        y,
+        label,
+        plain(ink.secondary, ink.canvas),
+    );
+}
+
+fn paint_env_row(ui: &mut Ui<'_>, area: Rect, y: u16, row: &SettingsEnvRow<'_>, ink: &Ink) {
+    let key = format!("    {:<20}", row.key);
+    let scope = pad(row.scope, 14);
+    let value = format!("{:<22}", "*".repeat(row.stars));
+    let source = clip(row.source, 49);
+    if row.selected {
+        selected_fill(ui, area, y, ink);
+        put(
+            ui,
+            area,
+            area.x.saturating_add(4),
+            y,
+            &key,
+            bold(ink.primary, SELECT_BG),
+        );
+        paint_runs(
+            ui,
+            area,
+            area.x.saturating_add(28),
+            y,
+            &scope,
+            bold(ink.secondary, SELECT_BG),
+            bold(ink.muted, SELECT_BG),
+        );
+        put(
+            ui,
+            area,
+            area.x.saturating_add(44),
+            y,
+            &value,
+            bold(ink.secondary, SELECT_BG),
+        );
+        paint_runs(
+            ui,
+            area,
+            area.x.saturating_add(68),
+            y,
+            &source,
+            bold(ink.secondary, SELECT_BG),
+            bold(ink.muted, SELECT_BG),
+        );
+    } else {
+        gutter(ui, area, y, ink);
+        put(
+            ui,
+            area,
+            area.x.saturating_add(4),
+            y,
+            &key,
+            plain(ink.primary, ink.canvas),
+        );
+        put(
+            ui,
+            area,
+            area.x.saturating_add(28),
+            y,
+            &scope,
+            plain(ink.muted, ink.canvas),
+        );
+        put(
+            ui,
+            area,
+            area.x.saturating_add(44),
+            y,
+            &value,
+            plain(ink.secondary, ink.canvas),
+        );
+        put(
+            ui,
+            area,
+            area.x.saturating_add(68),
+            y,
+            &pad(&source, 49),
+            plain(ink.muted, ink.canvas),
+        );
+    }
+}
+
+fn paint_agents(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>, ink: &Ink) {
+    let Some(agents) = &page.agents else {
+        return;
+    };
+    let y0 = area.y.saturating_add(6);
+    let title = bold(ink.secondary, ink.canvas);
+    put(ui, area, area.x.saturating_add(4), y0, agents.title, title);
+    put(
+        ui,
+        area,
+        area.x.saturating_add(77),
+        y0,
+        agents.right,
+        plain(ink.faint, ink.canvas),
+    );
+    put(
+        ui,
+        area,
+        area.x.saturating_add(7),
+        y0.saturating_add(1),
+        agents.header,
+        plain(ink.muted, ink.canvas),
+    );
+    for (index, row) in agents.rows.iter().enumerate() {
+        paint_agent_row(
+            ui,
+            area,
+            y0.saturating_add(2).saturating_add(index as u16),
+            row,
+            ink,
+        );
+    }
+    let mut y = y0
+        .saturating_add(2)
+        .saturating_add(agents.rows.len() as u16)
+        .saturating_add(1);
+    for note in agents.notes {
+        put(
+            ui,
+            area,
+            area.x.saturating_add(4),
+            y,
+            note,
+            plain(ink.faint, ink.canvas),
+        );
+        y = y.saturating_add(1);
+    }
+}
+
+fn paint_agent_row(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    y: u16,
+    row: &SettingsAgentRow<'_>,
+    ink: &Ink,
+) {
+    let bg = if row.selected { SELECT_BG } else { ink.canvas };
+    if row.selected {
+        selected_fill(ui, area, y, ink);
+    } else {
+        gutter(ui, area, y, ink);
+    }
+    let dot = if row.selected {
+        bold(AMBER, bg)
+    } else {
+        plain(AMBER, bg)
+    };
+    put(ui, area, area.x.saturating_add(5), y, " ", dot);
+    let name = if row.selected {
+        bold(ink.primary, bg)
+    } else {
+        plain(ink.primary, bg)
+    };
+    put(ui, area, area.x.saturating_add(6), y, row.name, name);
+    let mode = if row.selected {
+        bold(ink.secondary, bg)
+    } else {
+        plain(ink.secondary, bg)
+    };
+    put(ui, area, area.x.saturating_add(21), y, row.mode, mode);
+    if row.selected {
+        paint_runs(
+            ui,
+            area,
+            area.x.saturating_add(34),
+            y,
+            row.account,
+            bold(ink.secondary, bg),
+            bold(ink.muted, bg),
+        );
+    } else {
+        put(
+            ui,
+            area,
+            area.x.saturating_add(34),
+            y,
+            row.account,
+            plain(ink.muted, ink.canvas),
+        );
+    }
+}
+
+fn paint_trust(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>, ink: &Ink) {
+    let Some(trust) = &page.trust else {
+        return;
+    };
+    let y0 = area.y.saturating_add(6);
+    let title = bold(ink.secondary, ink.canvas);
+    put(ui, area, area.x.saturating_add(4), y0, trust.title, title);
+    put(
+        ui,
+        area,
+        area.right().saturating_sub(4).saturating_sub(width(trust.right)),
+        y0,
+        trust.right,
+        plain(ink.faint, ink.canvas),
+    );
+    for (index, row) in trust.rows.iter().enumerate() {
+        paint_trust_row(
+            ui,
+            area,
+            y0.saturating_add(1).saturating_add(index as u16),
+            row,
+            trust.preview,
+            ink,
+        );
+    }
+    // Footnotes sit on fixed rows below the four-row heritage table.
+    let mut y = area.y.saturating_add(12);
+    for note in trust.notes {
+        put(
+            ui,
+            area,
+            area.x.saturating_add(4),
+            y,
+            note,
+            plain(ink.faint, ink.canvas),
+        );
+        y = y.saturating_add(1);
+    }
+}
+
+fn paint_trust_row(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    y: u16,
+    row: &SettingsTrustRow<'_>,
+    preview: bool,
+    ink: &Ink,
+) {
+    let bg = if row.selected { SELECT_BG } else { ink.canvas };
+    if row.selected {
+        ui.fill(
+            Rect {
+                x: area.x.saturating_add(2),
+                y,
+                width: area.width.saturating_sub(4),
+                height: 1,
+            },
+            bold(ink.primary, SELECT_BG),
+        );
+        if preview {
+            put(
+                ui,
+                area,
+                area.x.saturating_add(2),
+                y,
+                " ",
+                plain(bg, bg),
+            );
+            put(
+                ui,
+                area,
+                area.x.saturating_add(3),
+                y,
+                "›",
+                bold(ink.accent, bg),
+            );
+        } else {
+            put(
+                ui,
+                area,
+                area.x.saturating_add(2),
+                y,
+                "▎›",
+                bold(ink.accent, bg),
+            );
+        }
+    } else {
+        gutter(ui, area, y, ink);
+    }
+    let dot = if row.selected {
+        bold(AMBER, bg)
+    } else {
+        plain(AMBER, bg)
+    };
+    put(
+        ui,
+        area,
+        area.x.saturating_add(5),
+        y,
+        if row.dirty { "•" } else { " " },
+        dot,
+    );
+    let source = if row.selected {
+        bold(ink.primary, bg)
+    } else {
+        plain(ink.primary, bg)
+    };
+    put(
+        ui,
+        area,
+        area.x.saturating_add(6),
+        y,
+        &format!(" {:<42}", row.source),
+        source,
+    );
+    let kind = format!("{:<5}", trust_kind(row.source));
+    if row.selected {
+        paint_runs(
+            ui,
+            area,
+            area.x.saturating_add(49),
+            y,
+            &kind,
+            bold(ink.secondary, bg),
+            bold(ink.muted, bg),
+        );
+    } else {
+        put(
+            ui,
+            area,
+            area.x.saturating_add(49),
+            y,
+            &kind,
+            plain(ink.muted, ink.canvas),
+        );
+    }
+    if row.trusted {
+        let state = if row.selected {
+            bold(ink.primary, bg)
+        } else {
+            plain(ink.primary, bg)
+        };
+        put(
+            ui,
+            area,
+            area.x.saturating_add(54),
+            y,
+            " [✓] trusted    ",
+            state,
+        );
+    } else {
+        put(
+            ui,
+            area,
+            area.x.saturating_add(55),
+            y,
+            "[ ] untrusted",
+            plain(AMBER, ink.canvas),
+        );
+    }
+    if row.selected {
+        paint_runs(
+            ui,
+            area,
+            area.x.saturating_add(70),
+            y,
+            row.count,
+            bold(ink.secondary, bg),
+            bold(ink.faint, bg),
+        );
+    } else {
+        put(
+            ui,
+            area,
+            area.x.saturating_add(70),
+            y,
+            row.count,
+            plain(ink.faint, ink.canvas),
+        );
+    }
+}
+
+fn trust_kind(source: &str) -> &'static str {
+    if source.starts_with('~') || source.starts_with('/') {
+        "path"
+    } else {
+        "git"
     }
 }
 
@@ -690,8 +1432,10 @@ fn paint_actions(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>, ink: &Ink
     let save = format!("{} ", page.save);
     let cancel = format!("{} ", page.cancel);
     let save_x = area.right().saturating_sub(5).saturating_sub(width(&save));
+    // An armed Save paints secondary, matching the only approved enabled
+    // frame (trust save preview), not a primary call to action.
     let save_ink = if page.save_enabled {
-        ink.primary
+        ink.secondary
     } else {
         ink.border
     };
@@ -729,12 +1473,32 @@ fn paint_hints(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>, ink: &Ink) 
     let key_style = bold(ink.primary, ink.canvas);
     let action_style = plain(ink.muted, ink.canvas);
     for hint in page.hints {
+        if let Some(at) = hint.at {
+            x = area.x.saturating_add(at);
+        }
         put(ui, area, x, y, hint.key, key_style);
         x = x.saturating_add(width(hint.key)).saturating_add(1);
         put(ui, area, x, y, hint.action, action_style);
         x = x.saturating_add(width(hint.action)).saturating_add(2);
     }
-    if let Some(mark) = page.hint_overflow {
-        put(ui, area, x, y, mark, plain(ink.faint, ink.canvas));
+    if let Some(tail) = &page.hint_overflow {
+        if let Some(at) = tail.at {
+            x = area.x.saturating_add(at);
+        }
+        put(
+            ui,
+            area,
+            x,
+            y,
+            tail.text,
+            plain(
+                if tail.secondary {
+                    ink.secondary
+                } else {
+                    ink.faint
+                },
+                ink.canvas,
+            ),
+        );
     }
 }
