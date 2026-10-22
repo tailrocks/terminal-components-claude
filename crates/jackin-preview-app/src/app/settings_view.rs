@@ -235,64 +235,79 @@ fn paint_mounts_page(ui: &mut Ui<'_>, full: Rect) {
         termrock::feedback::SettingsHint {
             key: "Enter",
             action: "Edit…",
+            at: None,
         },
         termrock::feedback::SettingsHint {
             key: "r",
             action: "Read-only",
+            at: None,
         },
         termrock::feedback::SettingsHint {
             key: "i",
             action: "Isolation",
+            at: None,
         },
         termrock::feedback::SettingsHint {
             key: "o",
             action: "Open source",
+            at: None,
         },
         termrock::feedback::SettingsHint {
             key: "d",
             action: "Remove",
+            at: None,
         },
         termrock::feedback::SettingsHint {
             key: "Esc",
             action: "Back",
+            at: None,
         },
     ];
     let wide_hints = [
         termrock::feedback::SettingsHint {
             key: "Enter",
             action: "Edit…",
+            at: None,
         },
         termrock::feedback::SettingsHint {
             key: "r",
             action: "Read-only",
+            at: None,
         },
         termrock::feedback::SettingsHint {
             key: "i",
             action: "Isolation",
+            at: None,
         },
         termrock::feedback::SettingsHint {
             key: "o",
             action: "Open source",
+            at: None,
         },
         termrock::feedback::SettingsHint {
             key: "d",
             action: "Remove",
+            at: None,
         },
         termrock::feedback::SettingsHint {
             key: "s",
             action: "Scope…",
+            at: None,
         },
         termrock::feedback::SettingsHint {
             key: "a",
             action: "Add mount…",
+            at: None,
         },
         termrock::feedback::SettingsHint {
             key: "[ ]",
             action: "Switch tab",
+            at: None,
         },
         termrock::feedback::SettingsHint {
             key: "Esc",
             action: "Back",
+            at: None,
         },
     ];
     let hints: &[termrock::feedback::SettingsHint<'_>] =
@@ -309,16 +324,27 @@ fn paint_mounts_page(ui: &mut Ui<'_>, full: Rect) {
             brand: "jackin❯",
             menus: &menus,
             crumb: "Settings › global › Mounts",
+            tab_note: None,
+            crumb_note: None,
             tabs: &tabs,
             sections: &[],
             cancel: "Cancel",
             save: "Save…",
             save_enabled: false,
             hints,
-            hint_overflow: Some("…"),
+            hint_overflow: Some(termrock::feedback::SettingsOverflow {
+                text: "…",
+                at: None,
+                secondary: false,
+            }),
+            hide_hints: false,
             mounts: &mounts,
             add_mount: Some("+ Add mount"),
+            env: None,
+            agents: None,
+            trust: None,
             cluster,
+            legacy_header: false,
         },
     );
 }
@@ -401,26 +427,32 @@ fn paint_general_page(ui: &mut Ui<'_>, full: Rect) {
         termrock::feedback::SettingsHint {
             key: "←→",
             action: "Tab",
+            at: None,
         },
         termrock::feedback::SettingsHint {
             key: "1–5",
             action: "Jump",
+            at: None,
         },
         termrock::feedback::SettingsHint {
             key: "Enter",
             action: "Edit fields",
+            at: None,
         },
         termrock::feedback::SettingsHint {
             key: "[ ]",
             action: "Switch tab",
+            at: None,
         },
         termrock::feedback::SettingsHint {
             key: "Ctrl+S",
             action: "Save",
+            at: None,
         },
         termrock::feedback::SettingsHint {
             key: "Esc",
             action: "Back",
+            at: None,
         },
     ];
     let cluster = wide.then_some(termrock::feedback::SettingsCluster {
@@ -435,6 +467,8 @@ fn paint_general_page(ui: &mut Ui<'_>, full: Rect) {
             brand: "jackin❯",
             menus: &menus,
             crumb: "Settings › global › General",
+            tab_note: None,
+            crumb_note: None,
             tabs: &tabs,
             sections: &sections,
             cancel: "Cancel",
@@ -442,9 +476,14 @@ fn paint_general_page(ui: &mut Ui<'_>, full: Rect) {
             save_enabled: false,
             hints: &hints,
             hint_overflow: None,
+            hide_hints: false,
             mounts: &[],
             add_mount: None,
+            env: None,
+            agents: None,
+            trust: None,
             cluster,
+            legacy_header: false,
         },
     );
 }
@@ -564,269 +603,170 @@ fn paint_mounts_body(ui: &mut Ui<'_>) {
     paint_str(ui, 8, 10, "+ Add mount", SECONDARY, BLACK, false);
 }
 
-struct SettingsEnvRow {
-    key: &'static str,
-    scope: &'static str,
-    stars: usize,
-    source: &'static str,
-}
-
-fn paint_settings_chrome(
-    app: &App,
-    ui: &mut Ui<'_>,
-    full: Rect,
-    active: usize,
-    tab_note: Option<&str>,
-    crumb_note: Option<&str>,
-) {
-    ui.fill(full, env_canvas());
-    let Some(tab) = TABS.get(active) else {
-        return;
-    };
-    env_paint(ui, 1, 0, " jackin❯ ", BRAND_FG, ACCENT, true);
-    env_paint(ui, 12, 0, " File ", SECONDARY, BLACK, false);
-    env_paint(ui, 19, 0, " Go ", SECONDARY, BLACK, false);
-    env_paint(ui, 24, 0, " Help ", SECONDARY, BLACK, false);
-    let crumb = format!("Settings › global › {}", tab.0);
-    if let Some(note) = crumb_note {
-        let crumb_x = 85u16.saturating_sub((crumb.chars().count() + note.chars().count()) as u16);
-        env_paint(ui, crumb_x, 0, &crumb, SECONDARY, BLACK, false);
-        let note_x = crumb_x.saturating_add(crumb.chars().count() as u16);
-        env_paint(ui, note_x, 0, note, WHITE, BLACK, false);
-    } else {
-        let crumb_x = 83u16.saturating_sub(crumb.chars().count() as u16);
-        env_paint(ui, crumb_x, 0, &crumb, SECONDARY, BLACK, false);
-    }
-    env_paint(ui, 85, 0, "inside the Construct", SECONDARY, BLACK, false);
-    env_paint(ui, 107, 0, "●", ACCENT, BLACK, false);
-    env_paint(
-        ui,
-        108,
-        0,
-        &format!(" {} running", app.world.running_count()),
-        SECONDARY,
-        BLACK,
-        false,
-    );
-    let mut active_w = tab.2;
-    for (index, &(name, x, _)) in TABS.iter().enumerate() {
-        let label = if index == active {
-            if let Some(note) = tab_note {
-                format!(" {name} {note}  ")
-            } else {
-                format!(" {name}  ")
-            }
-        } else {
-            format!(" {name}  ")
-        };
-        if index == active {
-            active_w = label.chars().count() as u16;
-            env_paint(ui, x, 3, &label, WHITE, ACTIVE_BG, true);
-        } else {
-            env_paint(ui, x, 3, &label, SECONDARY, BLACK, false);
-        }
-    }
-    let active_x = tab.1;
-    let accent_end = active_x.saturating_add(active_w);
-    let heavy = if tab_note.is_some() { SEAM } else { ACCENT };
-    for col in 2..full.width.saturating_sub(2) {
-        if col >= active_x && col < accent_end {
-            env_cell(ui, col, 4, "━", heavy, BLACK);
-        } else {
-            env_cell(ui, col, 4, "─", SEAM, BLACK);
-        }
-    }
-}
 
 fn paint_env_page(app: &App, ui: &mut Ui<'_>, full: Rect) {
-    paint_settings_chrome(app, ui, full, 2, None, None);
-
-    const GLOBAL: &[SettingsEnvRow] = &[
+    use termrock::feedback::{
+        SettingsCluster, SettingsEnv, SettingsEnvGroup, SettingsEnvRole, SettingsEnvRow,
+        SettingsHint, SettingsOverflow, SettingsPage, SettingsTab, paint_settings_page,
+    };
+    let menus = ["File", "Go", "Help"];
+    let tabs = [
+        SettingsTab {
+            label: "General",
+            selected: false,
+        },
+        SettingsTab {
+            label: "Mounts",
+            selected: false,
+        },
+        SettingsTab {
+            label: "Environments",
+            selected: true,
+        },
+        SettingsTab {
+            label: "Agents",
+            selected: false,
+        },
+        SettingsTab {
+            label: "Trust",
+            selected: false,
+        },
+    ];
+    const GLOBAL: &[SettingsEnvRow<'_>] = &[
         SettingsEnvRow {
             key: "GH_TOKEN",
             scope: "global",
             stars: 16,
             source: "[op] Engineering › GitHub · CLI token › credential",
+            selected: true,
         },
         SettingsEnvRow {
             key: "EDITOR",
             scope: "global",
             stars: 4,
             source: "plain",
+            selected: false,
         },
         SettingsEnvRow {
             key: "CARGO_NET_GIT_FET…",
             scope: "global",
             stars: 4,
             source: "plain",
+            selected: false,
         },
     ];
-    const ROLE: &[SettingsEnvRow] = &[SettingsEnvRow {
+    const ROLE: &[SettingsEnvRow<'_>] = &[SettingsEnvRow {
         key: "KUBECONFIG",
         scope: "role sre",
         stars: 16,
         source: "plain",
+        selected: false,
     }];
-
-    env_paint(ui, 6, 6, "Global", SECONDARY, BLACK, true);
-    env_right(ui, 6, &format!("{} vars", GLOBAL.len()));
-    let mut y = 7u16;
-    for (index, row) in GLOBAL.iter().enumerate() {
-        paint_settings_env_row(ui, y, row, index == 0);
-        y = y.saturating_add(1);
-    }
-    env_gutter(ui, y);
-    env_paint(
+    let hints = [
+        SettingsHint {
+            key: "Enter",
+            action: "Edit",
+            at: Some(1),
+        },
+        SettingsHint {
+            key: "m",
+            action: "Show",
+            at: Some(13),
+        },
+        SettingsHint {
+            key: "p",
+            action: "1Password…",
+            at: Some(21),
+        },
+        SettingsHint {
+            key: "s",
+            action: "Scope…",
+            at: Some(35),
+        },
+        SettingsHint {
+            key: "d",
+            action: "Remove…",
+            at: Some(45),
+        },
+        SettingsHint {
+            key: "a",
+            action: "Add…",
+            at: Some(56),
+        },
+        SettingsHint {
+            key: "[ ]",
+            action: "Switch tab",
+            at: Some(64),
+        },
+        SettingsHint {
+            key: "Ctrl+S",
+            action: "Save",
+            at: Some(80),
+        },
+        SettingsHint {
+            key: "Esc",
+            action: "Back",
+            at: Some(93),
+        },
+    ];
+    let tail = clip_cols("[op] Engineering › GitHub · CLI token › credential", 14);
+    let running = format!("{} running", app.world.running_count());
+    paint_settings_page(
         ui,
-        8,
-        y,
-        "+ Add environment variable",
-        SECONDARY,
-        BLACK,
-        false,
-    );
-    y = y.saturating_add(1);
-
-    env_paint(ui, 6, y, "Role overrides", SECONDARY, BLACK, true);
-    env_right(ui, y, "1 configured · 46 in the registry");
-    y = y.saturating_add(1);
-    env_paint(ui, 4, y, "▾", SECONDARY, BLACK, false);
-    env_paint(ui, 6, y, "Role: sre", SECONDARY, BLACK, true);
-    env_right(ui, y, "1 var");
-    y = y.saturating_add(1);
-    for row in ROLE {
-        paint_settings_env_row(ui, y, row, false);
-        y = y.saturating_add(1);
-    }
-    env_gutter(ui, y);
-    env_paint(
-        ui,
-        8,
-        y,
-        "+ Add sre environment variable",
-        SECONDARY,
-        BLACK,
-        false,
-    );
-    y = y.saturating_add(1);
-    env_gutter(ui, y);
-    env_paint(ui, 8, y, "+ Add role override…", SECONDARY, BLACK, false);
-
-    env_paint(ui, 97, 37, " ", BLACK, BLACK, false);
-    env_paint(ui, 98, 37, "Cancel ", SECONDARY, BLACK, false);
-    env_paint(ui, 108, 37, " ", ACTIVE_BG, ACTIVE_BG, false);
-    env_paint(
-        ui,
-        109,
-        37,
-        "Save… ",
-        Color::Rgb(0x4d, 0x4d, 0x4d),
-        ACTIVE_BG,
-        false,
-    );
-
-    let y = full.height.saturating_sub(1);
-    env_key(ui, y, 1, "Enter", "Edit");
-    env_key(ui, y, 13, "m", "Show");
-    env_key(ui, y, 21, "p", "1Password…");
-    env_key(ui, y, 35, "s", "Scope…");
-    env_key(ui, y, 45, "d", "Remove…");
-    env_key(ui, y, 56, "a", "Add…");
-    env_key(ui, y, 64, "[ ]", "Switch tab");
-    env_key(ui, y, 80, "Ctrl+S", "Save");
-    env_key(ui, y, 93, "Esc", "Back");
-    env_paint(
-        ui,
-        105,
-        y,
-        &clip_cols("[op] Engineering › GitHub · CLI token › credential", 14),
-        SECONDARY,
-        BLACK,
-        false,
+        full,
+        &SettingsPage {
+            brand: "jackin❯",
+            menus: &menus,
+            crumb: "Settings › global › Environments",
+            tab_note: None,
+            crumb_note: None,
+            tabs: &tabs,
+            sections: &[],
+            cancel: "Cancel",
+            save: "Save…",
+            save_enabled: false,
+            hints: &hints,
+            hint_overflow: Some(SettingsOverflow {
+                text: &tail,
+                at: Some(105),
+                secondary: true,
+            }),
+            hide_hints: false,
+            mounts: &[],
+            add_mount: None,
+            env: Some(SettingsEnv {
+                global: SettingsEnvGroup {
+                    title: "Global",
+                    right: "3 vars",
+                    rows: GLOBAL,
+                    add: "+ Add environment variable",
+                },
+                overrides_title: "Role overrides",
+                overrides_right: "1 configured · 46 in the registry",
+                role: SettingsEnvRole {
+                    name: "Role: sre",
+                    right: "1 var",
+                    rows: ROLE,
+                    add: "+ Add sre environment variable",
+                },
+                add_role: "+ Add role override…",
+            }),
+            agents: None,
+            trust: None,
+            cluster: Some(SettingsCluster {
+                note: "inside the Construct",
+                mark: "●",
+                value: &running,
+            }),
+            legacy_header: true,
+        },
     );
 }
 
-fn paint_settings_env_row(ui: &mut Ui<'_>, y: u16, row: &SettingsEnvRow, selected: bool) {
-    let bg = if selected { BADGE_BG } else { BLACK };
-    if selected {
-        env_paint(ui, 2, y, &" ".repeat(116), WHITE, bg, true);
-        env_paint(ui, 2, y, "▎›", ACCENT, bg, true);
-    } else {
-        env_gutter(ui, y);
-    }
-    env_paint(
-        ui,
-        4,
-        y,
-        &format!("    {:<20}", row.key),
-        WHITE,
-        bg,
-        selected,
-    );
-    let scope = format!("{:<14}", row.scope);
-    if selected {
-        env_split(ui, 28, y, &scope, SECONDARY, MUTED, bg);
-    } else {
-        env_paint(ui, 28, y, &scope, MUTED, BLACK, false);
-    }
-    let value = format!("{:<22}", "*".repeat(row.stars));
-    env_paint(ui, 44, y, &value, SECONDARY, bg, selected);
-    let source = clip_cols(row.source, 49);
-    if selected {
-        env_split(ui, 68, y, &source, SECONDARY, MUTED, bg);
-    } else {
-        env_paint(ui, 68, y, &format!("{source:<49}"), MUTED, BLACK, false);
-    }
-}
 
-fn env_right(ui: &mut Ui<'_>, y: u16, text: &str) {
-    let x = 117u16.saturating_sub(text.chars().count() as u16);
-    env_paint(ui, x, y, text, DARK_MUTED, BLACK, false);
-}
 
-fn env_gutter(ui: &mut Ui<'_>, y: u16) {
-    env_paint(ui, 2, y, " ", BLACK, BLACK, false);
-    env_paint(ui, 3, y, " ", SECONDARY, BLACK, false);
-}
 
-fn env_key(ui: &mut Ui<'_>, y: u16, x: u16, key: &str, desc: &str) {
-    env_paint(ui, x, y, key, WHITE, BLACK, true);
-    let desc_x = x
-        .saturating_add(key.chars().count() as u16)
-        .saturating_add(1);
-    env_paint(ui, desc_x, y, desc, MUTED, BLACK, false);
-}
 
-fn env_split(ui: &mut Ui<'_>, x: u16, y: u16, text: &str, word: Color, gap: Color, bg: Color) {
-    let mut column = x;
-    let mut current = String::new();
-    let mut spaces = false;
-    let flush = |ui: &mut Ui<'_>, column: &mut u16, current: &mut String, spaces: bool| {
-        if current.is_empty() {
-            return;
-        }
-        env_paint(
-            ui,
-            *column,
-            y,
-            current,
-            if spaces { gap } else { word },
-            bg,
-            true,
-        );
-        *column = column.saturating_add(current.chars().count() as u16);
-        current.clear();
-    };
-    for ch in text.chars() {
-        let is_space = ch == ' ';
-        if !current.is_empty() && is_space != spaces {
-            flush(ui, &mut column, &mut current, spaces);
-        }
-        spaces = is_space;
-        current.push(ch);
-    }
-    flush(ui, &mut column, &mut current, spaces);
-}
 
 fn clip_cols(text: &str, max: usize) -> String {
     if text.chars().count() <= max {
@@ -837,24 +777,8 @@ fn clip_cols(text: &str, max: usize) -> String {
     }
 }
 
-fn env_canvas() -> PaintStyle {
-    PaintStyle::new()
-        .fg(WHITE)
-        .bg(BLACK)
-        .remove_modifier(Modifier::BOLD | Modifier::ITALIC | Modifier::UNDERLINED | Modifier::DIM)
-}
 
-fn env_paint(ui: &mut Ui<'_>, x: u16, y: u16, text: &str, fg: Color, bg: Color, bold: bool) {
-    let mut style = env_canvas().fg(fg).bg(bg);
-    if bold {
-        style = style.add_modifier(Modifier::BOLD);
-    }
-    ui.paint_str(Rect::new(x, y, text.chars().count() as u16, 1), text, style);
-}
 
-fn env_cell(ui: &mut Ui<'_>, x: u16, y: u16, symbol: &str, fg: Color, bg: Color) {
-    ui.paint_cell(Position::new(x, y), symbol, env_canvas().fg(fg).bg(bg));
-}
 
 fn paint_env_body(ui: &mut Ui<'_>) {
     paint_str(ui, 8, 6, "Key", MUTED, BLACK, false);
@@ -866,136 +790,191 @@ fn paint_env_body(ui: &mut Ui<'_>) {
     paint_str(ui, 58, 7, "••••••••", MUTED, BLACK, false);
 }
 
-struct SettingsAgentRow {
-    name: &'static str,
-    mode: &'static str,
-    account: &'static str,
-}
 
 fn paint_agents_page(app: &App, ui: &mut Ui<'_>, full: Rect) {
-    paint_settings_chrome(app, ui, full, 3, None, None);
-    env_paint(ui, 4, 6, "Agent runtime mode", SECONDARY, BLACK, true);
-    env_paint(
-        ui,
-        77,
-        6,
-        "accounts are registered in Accounts (c)",
-        DARK_MUTED,
-        BLACK,
-        false,
-    );
-    env_paint(
-        ui,
-        7,
-        7,
-        "Agent         Mode         Registry default",
-        MUTED,
-        BLACK,
-        false,
-    );
-    const ROWS: &[SettingsAgentRow] = &[
+    use termrock::feedback::{
+        SettingsAgentRow, SettingsAgents, SettingsCluster, SettingsHint, SettingsPage,
+        SettingsTab, paint_settings_page,
+    };
+    let menus = ["File", "Go", "Help"];
+    let tabs = [
+        SettingsTab {
+            label: "General",
+            selected: false,
+        },
+        SettingsTab {
+            label: "Mounts",
+            selected: false,
+        },
+        SettingsTab {
+            label: "Environments",
+            selected: false,
+        },
+        SettingsTab {
+            label: "Agents",
+            selected: true,
+        },
+        SettingsTab {
+            label: "Trust",
+            selected: false,
+        },
+    ];
+    const ROWS: &[SettingsAgentRow<'_>] = &[
         SettingsAgentRow {
             name: " Claude Code   ",
             mode: "sync        ",
             account: "★ Claude · Personal",
+            selected: true,
         },
         SettingsAgentRow {
             name: " Codex         ",
             mode: "api key     ",
             account: "★ Codex · Primary",
+            selected: false,
         },
         SettingsAgentRow {
             name: " Amp           ",
             mode: "sync        ",
             account: "discovered · ~/.config/amp/secrets.json",
+            selected: false,
         },
         SettingsAgentRow {
             name: " Kimi Code     ",
             mode: "ignore      ",
             account: "no credentials handed to the container",
+            selected: false,
         },
         SettingsAgentRow {
             name: " OpenCode      ",
             mode: "sync        ",
             account: "★ OpenCode · Go subscription",
+            selected: false,
         },
         SettingsAgentRow {
             name: " Grok Build    ",
             mode: "api key     ",
             account: "★ Grok · Team",
+            selected: false,
         },
     ];
-    for (index, row) in ROWS.iter().enumerate() {
-        let y = 8 + index as u16;
-        let selected = index == 0;
-        let bg = if selected { BADGE_BG } else { BLACK };
-        if selected {
-            env_paint(ui, 2, y, &" ".repeat(116), WHITE, bg, true);
-            env_paint(ui, 2, y, "▎›", ACCENT, bg, true);
-        } else {
-            env_gutter(ui, y);
-        }
-        env_paint(ui, 5, y, " ", AMBER, bg, selected);
-        env_paint(ui, 6, y, row.name, WHITE, bg, selected);
-        env_paint(ui, 21, y, row.mode, SECONDARY, bg, selected);
-        if selected {
-            env_split(ui, 34, y, row.account, SECONDARY, MUTED, bg);
-        } else {
-            env_paint(ui, 34, y, row.account, MUTED, BLACK, false);
-        }
-    }
-    env_paint(
-        ui,
-        4,
-        15,
+    const NOTES: &[&str] = &[
         "sync mirrors the host login · api key and oauth token take material from the registry account",
-        DARK_MUTED,
-        BLACK,
-        false,
-    );
-    env_paint(
-        ui,
-        4,
-        16,
         "ignore starts the agent without credentials and removes it from session pickers",
-        DARK_MUTED,
-        BLACK,
-        false,
-    );
-    env_paint(ui, 97, 37, " ", BLACK, BLACK, false);
-    env_paint(ui, 98, 37, "Cancel ", SECONDARY, BLACK, false);
-    env_paint(ui, 108, 37, " ", ACTIVE_BG, ACTIVE_BG, false);
-    env_paint(
+    ];
+    let hints = [
+        SettingsHint {
+            key: "Space",
+            action: "Cycle mode",
+            at: Some(1),
+        },
+        SettingsHint {
+            key: "d",
+            action: "Remove override",
+            at: Some(19),
+        },
+        SettingsHint {
+            key: "c",
+            action: "Manage accounts",
+            at: Some(38),
+        },
+        SettingsHint {
+            key: "[ ]",
+            action: "Switch tab",
+            at: Some(57),
+        },
+        SettingsHint {
+            key: "Ctrl+S",
+            action: "Save",
+            at: Some(73),
+        },
+        SettingsHint {
+            key: "Esc",
+            action: "Back",
+            at: Some(86),
+        },
+    ];
+    let running = format!("{} running", app.world.running_count());
+    paint_settings_page(
         ui,
-        109,
-        37,
-        "Save… ",
-        Color::Rgb(0x4d, 0x4d, 0x4d),
-        ACTIVE_BG,
-        false,
+        full,
+        &SettingsPage {
+            brand: "jackin❯",
+            menus: &menus,
+            crumb: "Settings › global › Agents",
+            tab_note: None,
+            crumb_note: None,
+            tabs: &tabs,
+            sections: &[],
+            cancel: "Cancel",
+            save: "Save…",
+            save_enabled: false,
+            hints: &hints,
+            hint_overflow: None,
+            hide_hints: false,
+            mounts: &[],
+            add_mount: None,
+            env: None,
+            agents: Some(SettingsAgents {
+                title: "Agent runtime mode",
+                right: "accounts are registered in Accounts (c)",
+                header: "Agent         Mode         Registry default",
+                rows: ROWS,
+                notes: NOTES,
+            }),
+            trust: None,
+            cluster: Some(SettingsCluster {
+                note: "inside the Construct",
+                mark: "●",
+                value: &running,
+            }),
+            legacy_header: true,
+        },
     );
-    let y = full.height.saturating_sub(1);
-    env_key(ui, y, 1, "Space", "Cycle mode");
-    env_key(ui, y, 19, "d", "Remove override");
-    env_key(ui, y, 38, "c", "Manage accounts");
-    env_key(ui, y, 57, "[ ]", "Switch tab");
-    env_key(ui, y, 73, "Ctrl+S", "Save");
-    env_key(ui, y, 86, "Esc", "Back");
 }
 
+
 fn paint_trust_page(app: &App, ui: &mut Ui<'_>, full: Rect) {
+    use termrock::feedback::{
+        SettingsCluster, SettingsHint, SettingsPage, SettingsTab, SettingsTrust,
+        SettingsTrustRow, paint_settings_page,
+    };
     // The trust page is only reached on the approved 120x40 frame, so the
     // save preview always shapes its chrome here.
     let preview = app.settings_save_preview;
     let diffs = trust_diffs(app);
-    if preview && !diffs.is_empty() {
-        let note = format!("  • {}  ", change_label(diffs.len()));
-        paint_settings_chrome(app, ui, full, 4, Some("•"), Some(&note));
-    } else if preview {
-        paint_settings_chrome(app, ui, full, 4, Some(""), None);
-    } else {
-        paint_settings_chrome(app, ui, full, 4, None, None);
+    let mut tab_note: Option<&str> = None;
+    if preview {
+        tab_note = Some(if diffs.is_empty() { "" } else { "•" });
     }
+    let crumb_owned: Option<String> = if preview && !diffs.is_empty() {
+        Some(format!("  • {}  ", change_label(diffs.len())))
+    } else {
+        None
+    };
+    let crumb_note = crumb_owned.as_deref();
+    let menus = ["File", "Go", "Help"];
+    let tabs = [
+        SettingsTab {
+            label: "General",
+            selected: false,
+        },
+        SettingsTab {
+            label: "Mounts",
+            selected: false,
+        },
+        SettingsTab {
+            label: "Environments",
+            selected: false,
+        },
+        SettingsTab {
+            label: "Agents",
+            selected: false,
+        },
+        SettingsTab {
+            label: "Trust",
+            selected: true,
+        },
+    ];
     let trusted = app
         .world
         .global
@@ -1004,103 +983,104 @@ fn paint_trust_page(app: &App, ui: &mut Ui<'_>, full: Rect) {
         .filter(|row| row.trusted)
         .count();
     let untrusted = app.world.global.trust.len().saturating_sub(trusted);
-    env_paint(ui, 4, 6, "Role sources", SECONDARY, BLACK, true);
     let summary = format!("{trusted} trusted · {untrusted} untrusted");
-    let summary_x = 116u16.saturating_sub(summary.chars().count() as u16);
-    env_paint(ui, summary_x, 6, &summary, DARK_MUTED, BLACK, false);
-
-    for (index, row) in app.world.global.trust.iter().enumerate() {
-        let y = 7 + index as u16;
-        let selected = index == app.settings_trust_cursor;
-        let bg = if selected { BADGE_BG } else { BLACK };
-        let dirty = app
-            .settings_trust_origin
-            .get(index)
-            .is_some_and(|before| *before != row.trusted);
-        if selected {
-            env_paint(ui, 2, y, &" ".repeat(116), WHITE, bg, true);
-            if preview {
-                env_paint(ui, 2, y, " ", bg, bg, false);
-                env_paint(ui, 3, y, "›", ACCENT, bg, true);
-            } else {
-                env_paint(ui, 2, y, "▎›", ACCENT, bg, true);
-            }
-        } else {
-            env_gutter(ui, y);
-        }
-        env_paint(ui, 5, y, if dirty { "•" } else { " " }, AMBER, bg, selected);
-        env_paint(
-            ui,
-            6,
-            y,
-            &format!(" {:<42}", row.source),
-            WHITE,
-            bg,
-            selected,
-        );
-        let kind = format!("{:<5}", trust_kind(&row.source));
-        if selected {
-            env_split(ui, 49, y, &kind, SECONDARY, MUTED, bg);
-        } else {
-            env_paint(ui, 49, y, &kind, MUTED, BLACK, false);
-        }
-        if row.trusted {
-            env_paint(ui, 54, y, " [✓] trusted    ", WHITE, bg, selected);
-        } else {
-            env_paint(ui, 55, y, "[ ] untrusted", AMBER, BLACK, false);
-        }
-        let count = trust_role_label(app, &row.source);
-        if selected {
-            paint_trust_count(ui, y, &count, bg);
-        } else {
-            env_paint(ui, 70, y, &count, DARK_MUTED, BLACK, false);
-        }
-    }
-    env_paint(
-        ui,
-        4,
-        12,
+    let counts: Vec<String> = app
+        .world
+        .global
+        .trust
+        .iter()
+        .map(|row| trust_role_label(app, &row.source))
+        .collect();
+    let rows: Vec<SettingsTrustRow<'_>> = app
+        .world
+        .global
+        .trust
+        .iter()
+        .enumerate()
+        .map(|(index, row)| SettingsTrustRow {
+            source: &row.source,
+            trusted: row.trusted,
+            dirty: app
+                .settings_trust_origin
+                .get(index)
+                .is_some_and(|before| *before != row.trusted),
+            count: &counts[index],
+            selected: index == app.settings_trust_cursor,
+        })
+        .collect();
+    const NOTES: &[&str] = &[
         "An untrusted source blocks + Load role until it is trusted here or",
-        DARK_MUTED,
-        BLACK,
-        false,
-    );
-    env_paint(
-        ui,
-        4,
-        13,
         "in the trust dialog that the load opens.",
-        DARK_MUTED,
-        BLACK,
-        false,
-    );
-    env_paint(ui, 97, 37, " ", BLACK, BLACK, false);
-    env_paint(ui, 98, 37, "Cancel ", SECONDARY, BLACK, false);
-    env_paint(ui, 108, 37, " ", ACTIVE_BG, ACTIVE_BG, false);
-    env_paint(
-        ui,
-        109,
-        37,
-        "Save… ",
-        if preview {
-            SECONDARY
-        } else {
-            Color::Rgb(0x4d, 0x4d, 0x4d)
+    ];
+    let hints = [
+        SettingsHint {
+            key: "Space",
+            action: "Toggle trust",
+            at: Some(1),
         },
-        ACTIVE_BG,
-        false,
+        SettingsHint {
+            key: "o",
+            action: "Open source",
+            at: Some(21),
+        },
+        SettingsHint {
+            key: "[ ]",
+            action: "Switch tab",
+            at: Some(36),
+        },
+        SettingsHint {
+            key: "Ctrl+S",
+            action: "Save",
+            at: Some(52),
+        },
+        SettingsHint {
+            key: "Esc",
+            action: "Back",
+            at: Some(65),
+        },
+    ];
+    let running = format!("{} running", app.world.running_count());
+    paint_settings_page(
+        ui,
+        full,
+        &SettingsPage {
+            brand: "jackin❯",
+            menus: &menus,
+            crumb: "Settings › global › Trust",
+            tab_note,
+            crumb_note,
+            tabs: &tabs,
+            sections: &[],
+            cancel: "Cancel",
+            save: "Save…",
+            save_enabled: preview,
+            hints: &hints,
+            hint_overflow: None,
+            hide_hints: preview,
+            mounts: &[],
+            add_mount: None,
+            env: None,
+            agents: None,
+            trust: Some(SettingsTrust {
+                title: "Role sources",
+                right: &summary,
+                rows: &rows,
+                notes: NOTES,
+                preview,
+            }),
+            cluster: Some(SettingsCluster {
+                note: "inside the Construct",
+                mark: "●",
+                value: &running,
+            }),
+            legacy_header: true,
+        },
     );
-    let y = full.height.saturating_sub(1);
     if preview {
+        let y = full.height.saturating_sub(1);
         ui.modal_backdrop(full);
         paint_preview_footer(app, ui, y);
         paint_save_preview(app, ui, full);
-    } else {
-        env_key(ui, y, 1, "Space", "Toggle trust");
-        env_key(ui, y, 21, "o", "Open source");
-        env_key(ui, y, 36, "[ ]", "Switch tab");
-        env_key(ui, y, 52, "Ctrl+S", "Save");
-        env_key(ui, y, 65, "Esc", "Back");
     }
 }
 
@@ -1144,33 +1124,25 @@ fn trust_word(value: bool) -> &'static str {
 }
 
 fn paint_preview_footer(app: &App, ui: &mut Ui<'_>, y: u16) {
-    env_paint(ui, 0, y, &" ".repeat(120), WHITE, BLACK, false);
-    env_paint(ui, 1, y, "←→ ", WHITE, BLACK, true);
+    paint_str(ui, 0, y, &" ".repeat(120), WHITE, BLACK, false);
+    paint_str(ui, 1, y, "←→ ", WHITE, BLACK, true);
     // Frozen frame keeps bold on the first two letters of Choose and the c of Cancel.
-    env_paint(ui, 4, y, "Ch", MUTED, BLACK, true);
-    env_paint(ui, 6, y, "oose", MUTED, BLACK, false);
-    env_paint(ui, 12, y, "Enter", WHITE, BLACK, true);
-    env_paint(ui, 18, y, "Can", MUTED, BLACK, false);
-    env_paint(ui, 21, y, "c", MUTED, BLACK, true);
-    env_paint(ui, 22, y, "el", MUTED, BLACK, false);
-    env_paint(ui, 26, y, "Esc", WHITE, BLACK, true);
-    env_paint(ui, 30, y, "Cancel", MUTED, BLACK, false);
-    env_paint(ui, 36, y, "   ", WHITE, BLACK, true);
+    paint_str(ui, 4, y, "Ch", MUTED, BLACK, true);
+    paint_str(ui, 6, y, "oose", MUTED, BLACK, false);
+    paint_str(ui, 12, y, "Enter", WHITE, BLACK, true);
+    paint_str(ui, 18, y, "Can", MUTED, BLACK, false);
+    paint_str(ui, 21, y, "c", MUTED, BLACK, true);
+    paint_str(ui, 22, y, "el", MUTED, BLACK, false);
+    paint_str(ui, 26, y, "Esc", WHITE, BLACK, true);
+    paint_str(ui, 30, y, "Cancel", MUTED, BLACK, false);
+    paint_str(ui, 36, y, "   ", WHITE, BLACK, true);
     if let Some(row) = app.world.global.trust.get(app.settings_trust_cursor) {
         let status = format!(
             "{} · {} · save to apply",
             row.source,
             trust_word(row.trusted)
         );
-        env_paint(ui, 54, y, &status, SECONDARY, BLACK, false);
-    }
-}
-
-fn trust_kind(source: &str) -> &'static str {
-    if source.starts_with('~') || source.starts_with('/') {
-        "path"
-    } else {
-        "git"
+        paint_str(ui, 54, y, &status, SECONDARY, BLACK, false);
     }
 }
 
@@ -1200,30 +1172,6 @@ fn trust_source_has(role: &crate::domain::workspace::RoleEntry, source: &str) ->
             path == source || path.starts_with(&format!("{source}/"))
         }
     }
-}
-
-fn paint_trust_count(ui: &mut Ui<'_>, y: u16, count: &str, bg: Color) {
-    let mut column = 70u16;
-    let mut word = true;
-    let mut current = String::new();
-    let flush = |ui: &mut Ui<'_>, column: &mut u16, current: &mut String, word: bool| {
-        if current.is_empty() {
-            return;
-        }
-        let ink = if word { SECONDARY } else { DARK_MUTED };
-        env_paint(ui, *column, y, current, ink, bg, true);
-        *column = column.saturating_add(current.chars().count() as u16);
-        current.clear();
-    };
-    for ch in count.chars() {
-        let is_word = !ch.is_whitespace();
-        if !current.is_empty() && is_word != word {
-            flush(ui, &mut column, &mut current, word);
-        }
-        word = is_word;
-        current.push(ch);
-    }
-    flush(ui, &mut column, &mut current, word);
 }
 
 fn paint_agents_body(ui: &mut Ui<'_>) {
