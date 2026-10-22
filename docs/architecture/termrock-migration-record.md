@@ -1143,3 +1143,23 @@ of the rebased increment found only documentation changes from that tested revis
 not claim the later commit itself was executed. The coordinator also reran scoped formatting
 on the rebased checkout. No application, complete conformance, pinned-toolchain, full CI or
 final acceptance claim follows from this focused result.
+
+### Standalone external-consumer Nextest CI profile (2026-10-22)
+
+The standalone `external-consumer-demo` workspace had no local Nextest configuration,
+so the pinned CI command's `ci` profile lookup failed with exit 96 (`profile ci not
+found; known profiles: default, default-miri`; workflow run 119561823590). Added
+`external-consumer-demo/.config/nextest.toml` with the same CI policy as the repository
+root: `fail-fast = false` and `slow-timeout = { period = "60s", terminate-after = 10 }`.
+No test selection, expected value, generated workflow, or product code changed.
+
+Installed Nextest 0.9.149 accepted the TOML. A `show-config version` command alone
+did not validate profile selection. A negative `show-config test-groups --profile
+not-a-profile` probe reported known profiles `ci`, `default`, and `default-miri`,
+confirming the new profile was parsed; that command also began `cargo test --no-run`
+compilation, so its owned process group was stopped immediately after discovery. No test
+ran. The detached-manifest `show-config version` probe was blocked by the local MBX
+Cargo-storage metadata check. The probe briefly rewrote root `Cargo.lock` while resolving. Its exact diff remains in
+operator-local evidence, and the committed lockfile content was restored; no lockfile
+change remains in this worktree. Focused CI execution remains required to verify the fix against the detached
+manifest.
