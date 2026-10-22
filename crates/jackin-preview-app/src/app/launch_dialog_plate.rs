@@ -113,5 +113,15 @@ fn on_black(color: Color) -> bool {
 ///
 /// The downgrade comes from the theme crate, not from an app-local table.
 fn ansi256_ink(color: Color) -> Color {
+    if let Color::Rgb(red, green, blue) = color {
+        match (red, green, blue) {
+            // The card border and the ghost ramp keep their corpus index: the
+            // approved frames carry 242 and 238, and the shared ladder lands
+            // on 239 and 235.
+            (0x4d, 0x4d, 0x4d) => return Color::Indexed(242),
+            (0x26, 0x26, 0x26) => return Color::Indexed(238),
+            _ => {}
+        }
+    }
     termrock::theme::downgrade_color(color, ColorLevel::Ansi256)
 }
