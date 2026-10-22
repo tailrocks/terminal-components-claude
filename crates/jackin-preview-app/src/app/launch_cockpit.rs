@@ -1,5 +1,12 @@
-//! Paused launch cockpit for sizes other than the 120×40 presentation blit.
+//! Paused launch cockpit, painted live through [`Ui`].
 //! Geometry follows the baseline `CockpitScreen::render` plus the shell strip.
+//!
+//! Body content paints directly onto the live surface; there is no offscreen
+//! full-frame replay. The rain keeps its buffer-only painter on a scratch
+//! that stamps live, each footer row keeps a one-row scratch so the approved
+//! bold columns survive, and the failure card keeps a card-sized scratch so
+//! its underlay-preserving fill survives. All three stamp through one shared
+//! style resolver.
 
 #![allow(clippy::indexing_slicing)]
 
@@ -20,6 +27,263 @@ const CREDENTIALS: &str = "credentials  5 accounts · Claude · Work (1Password)
 const CREDENTIAL_VALUE: &str = "quota readable · session choice";
 const SPINNER: &str = "⠋";
 
+/// Hint rows shared by the paused cockpit footers. The open info and cancel
+/// cards share one footer through [`paint_open_footer`]; the closed cockpit
+/// and the failure frame keep their own rows.
+const INFO_HINTS: &[(&str, &str)] = &[("↑↓", "Move"), ("y", "Copy"), ("Esc", "Close")];
+const CANCEL_HINTS: &[(&str, &str)] = &[
+    ("←→", "Choose"),
+    ("Enter", "Keep launching"),
+    ("Esc", "Keep launching"),
+];
+const CLOSED_HINTS: &[(&str, &str)] = &[
+    ("i", "Container info"),
+    ("x", "Cancel launch…"),
+    ("Ctrl+Q", "Quit"),
+    ("Ctrl+C", "Abort now"),
+];
+
+/// Bounds of the failure card, shared by the dialog painter so the
+/// approved geometry cannot drift between uses.
+const FAILURE_LEFT: u16 = 25;
+const FAILURE_RIGHT: u16 = 95;
+const FAILURE_TOP: u16 = 9;
+const FAILURE_BOTTOM: u16 = 31;
+
+/// Which approved bold columns a footer row carries.
+#[derive(Clone, Copy)]
+enum FooterKind {
+    Plain,
+    Open { cancel: bool },
+    Failure,
+}
+
+/// Live paint context. Frame content paints directly onto the [`Ui`]
+/// surface; [`Live::resolve`] applies the exact per-cell mapping the
+/// offscreen blit used to apply when copying a composed buffer, so the
+/// downgrade, the rail fade and the modifier policy land on the same cells.
+struct Live<'a, 'b> {
+    ui: &'a mut Ui<'b>,
+    level: termrock::ColorLevel,
+    mono_frame: bool,
+    fade: Option<(u16, u16, u16)>,
+}
+
+impl<'a, 'b> Live<'a, 'b> {
+    fn new(ui: &'a mut Ui<'b>, screen: Rect) -> Self {
+        let level = ui.theme_ref().capability.color;
+        Live {
+            ui,
+            level,
+            mono_frame: level == termrock::ColorLevel::Mono
+                && std::env::var_os("NO_COLOR").is_none(),
+            fade: fade_band(screen),
+        }
+    }
+
+    fn resolve(&self, mut style: Style, x: u16, y: u16) -> PaintStyle {
+        let level = self.level;
+        let indexed = matches!(
+            level,
+            termrock::ColorLevel::Ansi256 | termrock::ColorLevel::Ansi16
+        );
+        if self.mono_frame {
+            if let (Some(fg), Some(bg)) = (style.fg, style.bg)
+                && let Some(mapped) = termrock::theme::legacy_mono(fg, bg, y == 0)
+            {
+                style.fg = Some(mapped.fg);
+                style.bg = Some(mapped.bg);
+                if mapped.underline {
+                    style = style.add_modifier(Modifier::UNDERLINED);
+                }
+                if mapped.reverse {
+                    style = style.add_modifier(Modifier::REVERSED);
+                }
+            }
+        } else if indexed {
+            if let (Some(fg), Some(bg)) = (style.fg, style.bg) {
+                let (fg, bg) = termrock::theme::downgrade_pair(fg, bg, level);
+                style.fg = Some(fg);
+                style.bg = Some(bg);
+            } else if let Some(fg) = style.fg {
+                style.fg = Some(termrock::theme::downgrade_color(fg, level));
+            } else if let Some(bg) = style.bg {
+                style.bg = Some(termrock::theme::downgrade_color(bg, level));
+            }
+        }
+        if let Some((x0, x1, fade_y)) = self.fade
+            && y == fade_y
+            && x >= x0
+            && x < x1
+        {
+            if level == termrock::ColorLevel::TrueColor {
+                if let Some(Color::Rgb(red, green, blue)) = style.fg {
+                    style.fg = Some(Color::Rgb(
+                        mix_channel(red),
+                        mix_channel(green),
+                        mix_channel(blue),
+                    ));
+                }
+            } else {
+                style = style.add_modifier(Modifier::DIM);
+            }
+        }
+        let mut paint = PaintStyle::new();
+        if let Some(fg) = style.fg {
+            paint = paint.fg(fg);
+        }
+        if let Some(bg) = style.bg {
+            paint = paint.bg(bg);
+        }
+        paint = paint.remove_modifier(
+            Modifier::BOLD
+                | Modifier::DIM
+                | Modifier::ITALIC
+                | Modifier::UNDERLINED
+                | Modifier::REVERSED
+                | Modifier::CROSSED_OUT,
+        );
+        if style.add_modifier.contains(Modifier::BOLD) {
+            paint = paint.add_modifier(Modifier::BOLD);
+        }
+        if style.add_modifier.contains(Modifier::UNDERLINED) {
+            paint = paint.add_modifier(Modifier::UNDERLINED);
+        }
+        if style.add_modifier.contains(Modifier::REVERSED) {
+            paint = paint.add_modifier(Modifier::REVERSED);
+        }
+        if style.add_modifier.contains(Modifier::DIM) {
+            paint = paint.add_modifier(Modifier::DIM);
+        }
+        paint
+    }
+
+    fn dot(&mut self, x: u16, y: u16, ch: char, style: Style) {
+        let paint = self.resolve(style, x, y);
+        let mut bytes = [0u8; 4];
+        self.ui
+            .paint_cell(Position::new(x, y), ch.encode_utf8(&mut bytes), paint);
+    }
+
+    fn text(&mut self, x: u16, y: u16, text: &str, style: Style) {
+        let mut col = x;
+        for ch in text.chars() {
+            self.dot(col, y, ch, style);
+            col = col.saturating_add(1);
+        }
+    }
+
+    fn fill_rect(&mut self, area: Rect, style: Style) {
+        for y in area.y..area.bottom() {
+            for x in area.x..area.right() {
+                self.dot(x, y, ' ', style);
+            }
+        }
+    }
+
+    fn centered(&mut self, area: Rect, y: u16, text: &str, style: Style) {
+        let n = u16::try_from(text.chars().count()).unwrap_or(0);
+        let x = area.x.saturating_add(area.width.saturating_sub(n) / 2);
+        self.text(x, y, &truncate(text, usize::from(area.width)), style);
+    }
+
+    fn clear(&mut self, x: u16, y: u16, width: u16, rows: u16, style: Style) {
+        for row in 0..rows {
+            for col in 0..width {
+                self.dot(x.saturating_add(col), y.saturating_add(row), ' ', style);
+            }
+        }
+    }
+
+    /// Stamp scratch cells onto the live surface, skipping cells the scratch
+    /// painter never touched.
+    fn stamp(&mut self, buf: &Buffer, area: Rect) {
+        for y in area.y..area.bottom() {
+            for x in area.x..area.right() {
+                let Some(cell) = buf.cell(Position::new(x, y)) else {
+                    continue;
+                };
+                if cell.symbol() == " "
+                    && cell.fg == Color::Reset
+                    && cell.bg == Color::Reset
+                    && cell.modifier.is_empty()
+                {
+                    continue;
+                }
+                let paint = self.resolve(cell.style(), x, y);
+                self.ui
+                    .paint_cell(Position::new(x, y), cell.symbol(), paint);
+            }
+        }
+    }
+}
+
+/// Paint target shared by the live surface and the failure-body scratch, so
+/// the rail and the hero paint once per target without duplicated logic.
+trait Surface {
+    fn dot(&mut self, x: u16, y: u16, ch: char, style: Style);
+    fn text(&mut self, x: u16, y: u16, text: &str, style: Style);
+    fn centered(&mut self, area: Rect, y: u16, text: &str, style: Style);
+}
+
+impl Surface for Live<'_, '_> {
+    fn dot(&mut self, x: u16, y: u16, ch: char, style: Style) {
+        Live::dot(self, x, y, ch, style);
+    }
+
+    fn text(&mut self, x: u16, y: u16, text: &str, style: Style) {
+        Live::text(self, x, y, text, style);
+    }
+
+    fn centered(&mut self, area: Rect, y: u16, text: &str, style: Style) {
+        Live::centered(self, area, y, text, style);
+    }
+}
+
+/// Buffer-backed [`Surface`] for the failure-body scratch.
+struct Buf<'a>(&'a mut Buffer);
+
+impl Surface for Buf<'_> {
+    fn dot(&mut self, x: u16, y: u16, ch: char, style: Style) {
+        put(&mut *self.0, x, y, ch, style);
+    }
+
+    fn text(&mut self, x: u16, y: u16, text: &str, style: Style) {
+        put_str(&mut *self.0, x, y, text, style);
+    }
+
+    fn centered(&mut self, area: Rect, y: u16, text: &str, style: Style) {
+        center(&mut *self.0, area, y, text, style);
+    }
+}
+
+/// Footer row shared by the closed cockpit, the failure frame and the open
+/// info/cancel cards. The row composes on a one-row scratch so the approved
+/// bold columns survive the move off the replay buffer, then stamps live.
+fn paint_footer_row(
+    live: &mut Live<'_, '_>,
+    screen: Rect,
+    fill: Style,
+    hints: &[(&str, &str)],
+    kind: FooterKind,
+) {
+    if screen.height == 0 {
+        return;
+    }
+    let mut scratch = Buffer::empty(screen);
+    let y = screen.bottom().saturating_sub(1);
+    for x in 0..screen.width {
+        put(&mut scratch, x, y, ' ', fill);
+    }
+    paint_footer(&mut scratch, screen, hints);
+    match kind {
+        FooterKind::Plain => {}
+        FooterKind::Open { cancel } => emphasize_footer(&mut scratch, screen, cancel),
+        FooterKind::Failure => emphasize_failure_footer(&mut scratch, screen),
+    }
+    live.stamp(&scratch, Rect::new(screen.x, y, screen.width, 1));
+}
+
 /// Left column of the stage rail. The 120×40 info frame keeps this column
 /// undimmed.
 pub(super) fn stage_rail_left(screen: Rect) -> Option<Rect> {
@@ -34,30 +298,20 @@ pub(super) fn stage_rail_left(screen: Rect) -> Option<Rect> {
     Some(Rect::new(rail_x, y, 1, rail_h))
 }
 
-/// Footer for the 120×40 info frame. The presentation blit still shows the
-/// closed-cockpit hints, and the dim leaves the last row alone.
+/// Footer for the open info and cancel cards over the paused cockpit.
+/// The closed-cockpit hints stay on the frame, and the dim leaves the last
+/// row alone.
 pub(super) fn paint_open_footer(ui: &mut Ui<'_>, cancel: bool) {
     let screen = ui.full();
-    if screen.height == 0 {
-        return;
-    }
-    let mut buf = Buffer::empty(screen);
-    let y = screen.bottom().saturating_sub(1);
-    for x in 0..screen.width {
-        put(&mut buf, x, y, ' ', ink(0x00ff_ffff, 0, false));
-    }
-    let hints: &[(&str, &str)] = if cancel {
-        &[
-            ("←→", "Choose"),
-            ("Enter", "Keep launching"),
-            ("Esc", "Keep launching"),
-        ]
-    } else {
-        &[("↑↓", "Move"), ("y", "Copy"), ("Esc", "Close")]
-    };
-    paint_footer(&mut buf, screen, hints);
-    emphasize_footer(&mut buf, screen, cancel);
-    blit(ui, &buf, Rect::new(screen.x, y, screen.width, 1));
+    let mut live = Live::new(ui, screen);
+    let hints = if cancel { CANCEL_HINTS } else { INFO_HINTS };
+    paint_footer_row(
+        &mut live,
+        screen,
+        ink(0x00ff_ffff, 0, false),
+        hints,
+        FooterKind::Open { cancel },
+    );
 }
 
 pub(super) fn paint_failure(app: &App, ui: &mut Ui<'_>) {
@@ -65,23 +319,29 @@ pub(super) fn paint_failure(app: &App, ui: &mut Ui<'_>) {
     let Some(launch) = app.launch() else {
         return;
     };
-    let mut buf = Buffer::empty(screen);
-    fill(&mut buf, screen, ink(0x00ff_ffff, 0, false));
+    let muted_fill = ink(0x008a_8a8a, 0, false);
+    let mut live = Live::new(ui, screen);
+    live.fill_rect(screen, muted_fill);
     let body = body_rect(screen);
-    paint_rain_at(&mut buf, body, 231, false, true);
-    mute_white(&mut buf, screen);
-    paint_strip(app, &mut buf, screen, true);
-    paint_failure_hero(&mut buf, body, launch);
-    paint_failure_dialog(&mut buf, launch);
-    paint_failure_status(&mut buf, screen, launch);
-    let footer_y = screen.bottom().saturating_sub(1);
-    for x in 0..screen.width {
-        put(&mut buf, x, footer_y, ' ', ink(0x00ff_ffff, 0, false));
-    }
-    let hints: &[(&str, &str)] = &[("↑↓", "Move"), ("y", "Copy"), ("Esc", "Close")];
-    paint_footer(&mut buf, screen, hints);
-    emphasize_failure_footer(&mut buf, screen);
-    blit(ui, &buf, screen);
+    // The body composes on a scratch: the failure card preserves dimmed
+    // underlay ink and the log fade mixes it, both needing cell readback.
+    // It stamps live through the shared resolver.
+    let mut body_buf = Buffer::empty(body);
+    fill(&mut body_buf, body, muted_fill);
+    paint_rain_at(&mut body_buf, body, 231, false, true);
+    mute_white(&mut body_buf, screen);
+    paint_failure_hero(&mut Buf(&mut body_buf), body, launch);
+    paint_failure_dialog(&mut body_buf, launch);
+    paint_failure_status(&mut body_buf, screen, launch);
+    live.stamp(&body_buf, body);
+    paint_strip(app, &mut live, screen, true);
+    paint_footer_row(
+        &mut live,
+        screen,
+        ink(0x00ff_ffff, 0, false),
+        INFO_HINTS,
+        FooterKind::Failure,
+    );
 }
 
 fn paint_rain_at(buf: &mut Buffer, body: Rect, tick: u64, running: bool, failed: bool) {
@@ -121,7 +381,7 @@ fn mute_white(buf: &mut Buffer, screen: Rect) {
     }
 }
 
-fn paint_failure_hero(buf: &mut Buffer, body: Rect, launch: &LaunchRun) {
+fn paint_failure_hero<S: Surface>(s: &mut S, body: Rect, launch: &LaunchRun) {
     if body.height < 6 {
         return;
     }
@@ -131,15 +391,14 @@ fn paint_failure_hero(buf: &mut Buffer, body: Rect, launch: &LaunchRun) {
     let ident_y = body.y.saturating_add(1);
     let faint = ink(0x0073_7373, 0, false);
     let brand = ink(0x0073_7373, 0x0027_272a, false);
-    center(buf, body, ident_y, BRAND, brand);
-    center(
-        buf,
+    s.centered(body, ident_y, BRAND, brand);
+    s.centered(
         body,
         ident_y.saturating_add(1),
         &format!("Loading {ROLE} into workspace {WORKSPACE}"),
         ink(0x008a_8a8a, 0, false),
     );
-    center(buf, body, ident_y.saturating_add(2), AGENT_LINE, faint);
+    s.centered(body, ident_y.saturating_add(2), AGENT_LINE, faint);
     let (done, skipped) = launch.counts();
     let frontier = launch.states.iter().position(|state| !state.terminal());
     let stage_line = match frontier {
@@ -152,23 +411,16 @@ fn paint_failure_hero(buf: &mut Buffer, body: Rect, launch: &LaunchRun) {
         None if launch.done => "all stages complete".to_owned(),
         None => "stopped".to_owned(),
     };
-    center(buf, body, ident_y.saturating_add(3), &stage_line, faint);
+    s.centered(body, ident_y.saturating_add(3), &stage_line, faint);
     let rail = Rect::new(rail_x, ident_y.saturating_add(5), rail_w, rail_h);
-    paint_rail(buf, rail, launch, true);
+    paint_rail(s, rail, launch, true);
     let cred_y = rail.bottom().saturating_add(1);
     let x = rail.x.saturating_sub(4);
     let width = body.right().saturating_sub(x.saturating_add(2));
     // Resolved line: cockpit rewrites the value once Credentials finishes.
     let resolved = format!("resolved in memory · discarded after injection · {CREDENTIAL_VALUE}");
-    put_str(
-        buf,
-        x,
-        cred_y,
-        &truncate(CREDENTIALS, usize::from(width)),
-        faint,
-    );
-    put_str(
-        buf,
+    s.text(x, cred_y, &truncate(CREDENTIALS, usize::from(width)), faint);
+    s.text(
         x.saturating_add(13),
         cred_y.saturating_add(1),
         &truncate(&resolved, usize::from(width.saturating_sub(13))),
@@ -178,10 +430,10 @@ fn paint_failure_hero(buf: &mut Buffer, body: Rect, launch: &LaunchRun) {
 
 fn paint_failure_dialog(buf: &mut Buffer, launch: &LaunchRun) {
     let card = Color::Rgb(0x18, 0x18, 0x1b);
-    let left = 25u16;
-    let right = 95u16;
-    let top = 9u16;
-    let bottom = 31u16;
+    let left = FAILURE_LEFT;
+    let right = FAILURE_RIGHT;
+    let top = FAILURE_TOP;
+    let bottom = FAILURE_BOTTOM;
     for y in top.saturating_add(1)..bottom.saturating_sub(1) {
         for x in left.saturating_add(1)..right.saturating_sub(1) {
             let Some(cell) = buf.cell_mut(Position::new(x, y)) else {
@@ -419,36 +671,23 @@ pub(super) fn paint(app: &App, ui: &mut Ui<'_>) {
     let Some(launch) = app.launch() else {
         return;
     };
-    let mut buf = Buffer::empty(screen);
-    fill(&mut buf, screen, ink(0x00ff_ffff, 0, false));
+    let mut live = Live::new(ui, screen);
+    live.fill_rect(screen, ink(0x00ff_ffff, 0, false));
 
     let body = body_rect(screen);
-    paint_rain(&mut buf, body);
-    paint_strip(app, &mut buf, screen, false);
-    paint_body(&mut buf, body, launch);
-    let hints: &[(&str, &str)] = if app.cockpit_info_open {
-        &[("↑↓", "Move"), ("y", "Copy"), ("Esc", "Close")]
+    let mut rain = Buffer::empty(screen);
+    paint_rain(&mut rain, body);
+    live.stamp(&rain, body);
+    paint_strip(app, &mut live, screen, false);
+    paint_body(&mut live, body, launch);
+    let (hints, kind) = if app.cockpit_info_open {
+        (INFO_HINTS, FooterKind::Open { cancel: false })
     } else if app.cancel_open {
-        &[
-            ("←→", "Choose"),
-            ("Enter", "Keep launching"),
-            ("Esc", "Keep launching"),
-        ]
+        (CANCEL_HINTS, FooterKind::Open { cancel: true })
     } else {
-        &[
-            ("i", "Container info"),
-            ("x", "Cancel launch…"),
-            ("Ctrl+Q", "Quit"),
-            ("Ctrl+C", "Abort now"),
-        ]
+        (CLOSED_HINTS, FooterKind::Plain)
     };
-    paint_footer(&mut buf, screen, hints);
-    if app.cockpit_info_open || app.cancel_open {
-        // The baseline hint row keeps bold on two fixed columns. The glyphs
-        // there are whatever the hints already painted.
-        emphasize_footer(&mut buf, screen, app.cancel_open);
-    }
-    blit(ui, &buf, screen);
+    paint_footer_row(&mut live, screen, ink(0x00ff_ffff, 0, false), hints, kind);
 }
 
 fn emphasize_footer(buf: &mut Buffer, screen: Rect, cancel: bool) {
@@ -496,13 +735,13 @@ fn paint_rain(buf: &mut Buffer, body: Rect) {
         ),
         Rect::new(body.x, body.bottom().saturating_sub(3), body.width, 3),
     ];
-    // Rain samples the truecolor junie ladder. The blit downgrades it, so a
+    // Rain samples the truecolor junie ladder. The live stamp downgrades it, so a
     // 256 or mono theme does not bake the nearest index in first.
     let theme = termrock::Theme::junie();
     crate::rain::paint_atmosphere(buf, body, &exclude, 40, true, false, &theme);
 }
 
-fn paint_strip(app: &App, buf: &mut Buffer, screen: Rect, failed: bool) {
+fn paint_strip(app: &App, live: &mut Live<'_, '_>, screen: Rect, failed: bool) {
     if screen.width < 12 || screen.height == 0 {
         return;
     }
@@ -511,7 +750,7 @@ fn paint_strip(app: &App, buf: &mut Buffer, screen: Rect, failed: bool) {
     } else {
         ink(0x0019_191c, 0x0048_e054, true)
     };
-    put_str(buf, 1, 0, BRAND, brand);
+    live.text(1, 0, BRAND, brand);
     let area = Rect::new(10, 0, screen.width.saturating_sub(10), 1);
     let running = app.world.running_count();
     let left = [
@@ -554,17 +793,17 @@ fn paint_strip(app: &App, buf: &mut Buffer, screen: Rect, failed: bool) {
             tone: if failed { Tone::Faint } else { Tone::Muted },
         },
     ];
-    paint_segments(buf, area, &left, &right);
+    paint_segments(live, area, &left, &right);
     if std::env::var_os("NO_COLOR").is_some() {
         let brand = Style::new()
             .fg(Color::Rgb(0, 0, 0))
             .bg(Color::Reset)
             .add_modifier(Modifier::BOLD | Modifier::REVERSED);
-        put_str(buf, 1, 0, BRAND, brand);
+        live.text(1, 0, BRAND, brand);
     }
 }
 
-fn paint_body(buf: &mut Buffer, body: Rect, launch: &LaunchRun) {
+fn paint_body(live: &mut Live<'_, '_>, body: Rect, launch: &LaunchRun) {
     if body.height < 6 {
         return;
     }
@@ -577,21 +816,14 @@ fn paint_body(buf: &mut Buffer, body: Rect, launch: &LaunchRun) {
     let secondary = ink(0x00b3_b3b3, 0, false);
     let muted = ink(0x008a_8a8a, 0, false);
 
-    center(
-        buf,
-        body,
-        ident_y,
-        BRAND,
-        ink(0x0019_191c, 0x0048_e054, true),
-    );
-    center(
-        buf,
+    live.centered(body, ident_y, BRAND, ink(0x0019_191c, 0x0048_e054, true));
+    live.centered(
         body,
         ident_y.saturating_add(1),
         &format!("Loading {ROLE} into workspace {WORKSPACE}"),
         bold_white,
     );
-    center(buf, body, ident_y.saturating_add(2), AGENT_LINE, secondary);
+    live.centered(body, ident_y.saturating_add(2), AGENT_LINE, secondary);
     let (done, skipped) = launch.counts();
     let frontier = launch.states.iter().position(|state| !state.terminal());
     let stage_line = match frontier {
@@ -604,25 +836,18 @@ fn paint_body(buf: &mut Buffer, body: Rect, launch: &LaunchRun) {
         None if launch.done => "all stages complete".to_owned(),
         None => "stopped".to_owned(),
     };
-    center(buf, body, ident_y.saturating_add(3), &stage_line, muted);
+    live.centered(body, ident_y.saturating_add(3), &stage_line, muted);
 
     let rail = Rect::new(rail_x, ident_y.saturating_add(5), rail_w, rail_h);
-    paint_rail(buf, rail, launch, false);
+    paint_rail(live, rail, launch, false);
 
     let mut cred_y = rail.bottom().saturating_add(1);
     if cred_y.saturating_add(1) < body.bottom().saturating_sub(3) {
-        clear_rows(buf, body.x, cred_y, body.width, 2, white);
+        live.clear(body.x, cred_y, body.width, 2, white);
         let x = rail.x.saturating_sub(4);
         let width = body.right().saturating_sub(x.saturating_add(2));
-        put_str(
-            buf,
-            x,
-            cred_y,
-            &truncate(CREDENTIALS, usize::from(width)),
-            muted,
-        );
-        put_str(
-            buf,
+        live.text(x, cred_y, &truncate(CREDENTIALS, usize::from(width)), muted);
+        live.text(
             x.saturating_add(13),
             cred_y.saturating_add(1),
             &truncate(CREDENTIAL_VALUE, usize::from(width.saturating_sub(13))),
@@ -633,18 +858,17 @@ fn paint_body(buf: &mut Buffer, body: Rect, launch: &LaunchRun) {
     let _ = cred_y;
 
     let ay = body.bottom().saturating_sub(2);
-    clear_rows(buf, body.x, ay.saturating_sub(1), body.width, 3, white);
-    put_str(
-        buf,
+    live.clear(body.x, ay.saturating_sub(1), body.width, 3, white);
+    live.text(
         body.x.saturating_add(1),
         ay,
         &format!("{SPINNER} Resolving credentials…"),
         secondary,
     );
-    paint_cancel(buf, body, ay.saturating_add(1));
+    paint_cancel(live, body, ay.saturating_add(1));
 }
 
-fn paint_rail(buf: &mut Buffer, rail: Rect, launch: &LaunchRun, failed: bool) {
+fn paint_rail<S: Surface>(s: &mut S, rail: Rect, launch: &LaunchRun, failed: bool) {
     if rail.is_empty() {
         return;
     }
@@ -656,7 +880,7 @@ fn paint_rail(buf: &mut Buffer, rail: Rect, launch: &LaunchRun, failed: bool) {
         let y = rail.y.saturating_add(u16::try_from(k).unwrap_or(0));
         let state = launch.states[k];
         let stage = Stage::ALL[k];
-        put(buf, rail.x, y, ' ', ink(0, 0, false));
+        s.dot(rail.x, y, ' ', ink(0, 0, false));
         let glyph_style = match state {
             termrock::StepState::Done if failed => ink(0x0073_7373, 0, false),
             termrock::StepState::Done => ink(0x003f_b950, 0, false),
@@ -669,14 +893,13 @@ fn paint_rail(buf: &mut Buffer, rail: Rect, launch: &LaunchRun, failed: bool) {
             termrock::StepState::Running => SPINNER,
             _ => " ",
         };
-        put_str(buf, rail.x.saturating_add(1), y, glyph, glyph_style);
+        s.text(rail.x.saturating_add(1), y, glyph, glyph_style);
         let number_style = if state == termrock::StepState::Running {
             ink(0x00b3_b3b3, 0, false)
         } else {
             ink(0x0073_7373, 0, false)
         };
-        put_str(
-            buf,
+        s.text(
             rail.x.saturating_add(3),
             y,
             &format!("{:02}", k.saturating_add(1)),
@@ -704,17 +927,11 @@ fn paint_rail(buf: &mut Buffer, rail: Rect, launch: &LaunchRun, failed: bool) {
         } else {
             avail
         };
-        put_str(
-            buf,
-            label_x,
-            y,
-            &truncate(stage.label(), label_w),
-            label_style,
-        );
+        s.text(label_x, y, &truncate(stage.label(), label_w), label_style);
         if show_meta && let Some(meta) = meta {
             let meta_x =
                 row_right.saturating_sub(u16::try_from(meta_w).unwrap_or(0).saturating_add(1));
-            put_str(buf, meta_x, y, &meta, ink(0x0073_7373, 0, false));
+            s.text(meta_x, y, &meta, ink(0x0073_7373, 0, false));
         }
     }
     if has_bar {
@@ -723,9 +940,9 @@ fn paint_rail(buf: &mut Buffer, rail: Rect, launch: &LaunchRun, failed: bool) {
         for k in 0..view {
             let y = rail.y.saturating_add(u16::try_from(k).unwrap_or(0));
             if k < thumb {
-                put(buf, x, y, '┃', ink(0x0080_8080, 0, false));
+                s.dot(x, y, '┃', ink(0x0080_8080, 0, false));
             } else {
-                put(buf, x, y, '┆', ink(0x0047_4747, 0, false));
+                s.dot(x, y, '┆', ink(0x0047_4747, 0, false));
             }
         }
     }
@@ -765,7 +982,7 @@ fn shown_meta(state: termrock::StepState, duration: u64) -> Option<String> {
     }
 }
 
-fn paint_cancel(buf: &mut Buffer, body: Rect, y: u16) {
+fn paint_cancel(live: &mut Live<'_, '_>, body: Rect, y: u16) {
     let label = "Cancel launch…";
     let label_w = u16::try_from(label.chars().count()).unwrap_or(0);
     let bw = label_w.saturating_add(2);
@@ -775,9 +992,9 @@ fn paint_cancel(buf: &mut Buffer, body: Rect, y: u16) {
     }
     let gutter = ink(0x0027_272a, 0x0027_272a, false);
     let face = ink(0x00ff_ffff, 0x0027_272a, false);
-    put(buf, bx, y, ' ', gutter);
-    put_str(buf, bx.saturating_add(1), y, label, face);
-    put(buf, bx.saturating_add(bw.saturating_sub(1)), y, ' ', face);
+    live.dot(bx, y, ' ', gutter);
+    live.text(bx.saturating_add(1), y, label, face);
+    live.dot(bx.saturating_add(bw.saturating_sub(1)), y, ' ', face);
 }
 
 fn paint_footer(buf: &mut Buffer, screen: Rect, hints: &[(&str, &str)]) {
@@ -827,7 +1044,7 @@ impl Seg {
     }
 }
 
-fn paint_segments(buf: &mut Buffer, area: Rect, left: &[Seg], right: &[Seg]) {
+fn paint_segments(live: &mut Live<'_, '_>, area: Rect, left: &[Seg], right: &[Seg]) {
     if area.is_empty() {
         return;
     }
@@ -877,7 +1094,7 @@ fn paint_segments(buf: &mut Buffer, area: Rect, left: &[Seg], right: &[Seg]) {
         if !keep {
             continue;
         }
-        draw_seg(buf, x, area.y, seg);
+        draw_seg(live, x, area.y, seg);
         x = x.saturating_add(seg.width()).saturating_add(2);
     }
     let mut rx = area.right().saturating_sub(EDGE);
@@ -891,7 +1108,7 @@ fn paint_segments(buf: &mut Buffer, area: Rect, left: &[Seg], right: &[Seg]) {
         } else {
             rx
         };
-        draw_seg(buf, start, area.y, seg);
+        draw_seg(live, start, area.y, seg);
         rx = rx.saturating_sub(2);
     }
     let hidden = left
@@ -905,11 +1122,11 @@ fn paint_segments(buf: &mut Buffer, area: Rect, left: &[Seg], right: &[Seg]) {
         } else {
             rx.saturating_sub(1).max(area.x.saturating_add(EDGE))
         };
-        put(buf, at, area.y, '…', ink(0x008a_8a8a, 0, false));
+        live.dot(at, area.y, '…', ink(0x008a_8a8a, 0, false));
     }
 }
 
-fn draw_seg(buf: &mut Buffer, x: u16, y: u16, seg: &Seg) {
+fn draw_seg(live: &mut Live<'_, '_>, x: u16, y: u16, seg: &Seg) {
     let style = match seg.tone {
         Tone::Normal => ink(0x00ff_ffff, 0, false),
         Tone::Secondary => ink(0x00b3_b3b3, 0, false),
@@ -921,14 +1138,14 @@ fn draw_seg(buf: &mut Buffer, x: u16, y: u16, seg: &Seg) {
     } else {
         seg.shown()
     };
-    put_str(buf, x, y, &text, style);
+    live.text(x, y, &text, style);
     if let Some(glyph) = seg.lead {
         let lead = if seg.tone == Tone::Faint {
             ink(0x0073_7373, 0, false)
         } else {
             ink(0x0048_e054, 0, false)
         };
-        put_str(buf, x, y, glyph, lead);
+        live.text(x, y, glyph, lead);
     }
 }
 
@@ -936,20 +1153,6 @@ fn center(buf: &mut Buffer, area: Rect, y: u16, text: &str, style: Style) {
     let n = u16::try_from(text.chars().count()).unwrap_or(0);
     let x = area.x.saturating_add(area.width.saturating_sub(n) / 2);
     put_str(buf, x, y, &truncate(text, usize::from(area.width)), style);
-}
-
-fn clear_rows(buf: &mut Buffer, x: u16, y: u16, width: u16, rows: u16, style: Style) {
-    for row in 0..rows {
-        for col in 0..width {
-            put(
-                buf,
-                x.saturating_add(col),
-                y.saturating_add(row),
-                ' ',
-                style,
-            );
-        }
-    }
 }
 
 fn truncate(text: &str, max: usize) -> String {
@@ -1004,91 +1207,4 @@ fn ink(fg: u32, bg: u32, bold: bool) -> Style {
         style = style.add_modifier(Modifier::BOLD);
     }
     style
-}
-
-fn blit(ui: &mut Ui<'_>, buf: &Buffer, area: Rect) {
-    let level = ui.theme_ref().capability.color;
-    let indexed = matches!(
-        level,
-        termrock::ColorLevel::Ansi256 | termrock::ColorLevel::Ansi16
-    );
-    let mono_frame = level == termrock::ColorLevel::Mono && std::env::var_os("NO_COLOR").is_none();
-    let fade = fade_band(area);
-    for y in area.y..area.bottom() {
-        for x in area.x..area.right() {
-            let Some(cell) = buf.cell(Position::new(x, y)) else {
-                continue;
-            };
-            let mut style = cell.style();
-            if mono_frame {
-                if let (Some(fg), Some(bg)) = (style.fg, style.bg)
-                    && let Some(mapped) = termrock::theme::legacy_mono(fg, bg, y == 0)
-                {
-                    style.fg = Some(mapped.fg);
-                    style.bg = Some(mapped.bg);
-                    if mapped.underline {
-                        style = style.add_modifier(Modifier::UNDERLINED);
-                    }
-                    if mapped.reverse {
-                        style = style.add_modifier(Modifier::REVERSED);
-                    }
-                }
-            } else if indexed {
-                if let (Some(fg), Some(bg)) = (style.fg, style.bg) {
-                    let (fg, bg) = termrock::theme::downgrade_pair(fg, bg, level);
-                    style.fg = Some(fg);
-                    style.bg = Some(bg);
-                } else if let Some(fg) = style.fg {
-                    style.fg = Some(termrock::theme::downgrade_color(fg, level));
-                } else if let Some(bg) = style.bg {
-                    style.bg = Some(termrock::theme::downgrade_color(bg, level));
-                }
-            }
-            if let Some((x0, x1, fade_y)) = fade
-                && y == fade_y
-                && x >= x0
-                && x < x1
-            {
-                if level == termrock::ColorLevel::TrueColor {
-                    if let Some(Color::Rgb(red, green, blue)) = style.fg {
-                        style.fg = Some(Color::Rgb(
-                            mix_channel(red),
-                            mix_channel(green),
-                            mix_channel(blue),
-                        ));
-                    }
-                } else {
-                    style = style.add_modifier(Modifier::DIM);
-                }
-            }
-            let mut paint = PaintStyle::new();
-            if let Some(fg) = style.fg {
-                paint = paint.fg(fg);
-            }
-            if let Some(bg) = style.bg {
-                paint = paint.bg(bg);
-            }
-            paint = paint.remove_modifier(
-                Modifier::BOLD
-                    | Modifier::DIM
-                    | Modifier::ITALIC
-                    | Modifier::UNDERLINED
-                    | Modifier::REVERSED
-                    | Modifier::CROSSED_OUT,
-            );
-            if style.add_modifier.contains(Modifier::BOLD) {
-                paint = paint.add_modifier(Modifier::BOLD);
-            }
-            if style.add_modifier.contains(Modifier::UNDERLINED) {
-                paint = paint.add_modifier(Modifier::UNDERLINED);
-            }
-            if style.add_modifier.contains(Modifier::REVERSED) {
-                paint = paint.add_modifier(Modifier::REVERSED);
-            }
-            if style.add_modifier.contains(Modifier::DIM) {
-                paint = paint.add_modifier(Modifier::DIM);
-            }
-            ui.paint_cell(Position::new(x, y), cell.symbol(), paint);
-        }
-    }
 }
