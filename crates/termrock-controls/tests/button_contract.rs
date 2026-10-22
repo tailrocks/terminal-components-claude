@@ -1193,3 +1193,109 @@ fn disabled_focusability_never_takes_autofocus() {
     assert_ne!(h.focus(), Some(DISABLED_POLICY_BUTTON));
     assert!(!h.ring().contains(DISABLED_POLICY_BUTTON));
 }
+
+// ---------------------------------------------------------------------------
+// Frozen-frame paint contract (visual-baseline 4169783ae, buttons/100x30):
+// the oracle paints the gutter cell bg-on-bg (fg = bg, no BOLD) and every
+// other cell of the button with the container style — container ink,
+// container background, modifiers (BOLD for PRIMARY) kept — including the
+// trailing pad. See docs/audits/2026-10-23-button-pad-paint-adjudication.md.
+// Tests draw inside an inert reference scope so no focus promotion interferes.
+// ---------------------------------------------------------------------------
+
+struct FrozenPaintPage {
+    checked: bool,
+}
+
+impl App for FrozenPaintPage {
+    fn update(&mut self, _: &mut Cx<'_>) -> Response<()> {
+        Response::ignored()
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        ui.reference(None, |ui| {
+            let mut b = Button::new(BUTTON, "Go").variant(Variant::PRIMARY);
+            if self.checked {
+                b = b.checked(true).status(Status::Error);
+            }
+            // Width 4 = natural width of "Go": the label fills the text
+            // region, so the trailing pad takes the explicit trailing fill.
+            b.draw(ui, Rect { width: 4, ..AREA });
+        });
+    }
+}
+
+#[test]
+fn primary_button_trailing_pad_keeps_container_ink_and_bold_like_frozen_frame() {
+    let h = Harness::new(FrozenPaintPage { checked: false }, Theme::junie(), 20, 1);
+    // Gutter cell is bg-on-bg without the container BOLD (frozen x23).
+    let gutter = h.cell(0, 0);
+    assert_eq!(gutter.fg, Color::from_u32(0x0048_e054), "gutter fg = bg");
+    assert_eq!(gutter.bg, Color::from_u32(0x0048_e054), "gutter bg = accent");
+    assert!(
+        !gutter.modifier.contains(ratatui_core::style::Modifier::BOLD),
+        "gutter must not carry the container BOLD modifier"
+    );
+    // Label cells keep container ink + BOLD (frozen x24..x31).
+    for x in [1u16, 2] {
+        let cell = h.cell(x, 0);
+        assert_eq!(cell.fg, Color::from_u32(0x0019_191c), "label fg at x={x}");
+        assert_eq!(cell.bg, Color::from_u32(0x0048_e054), "label bg at x={x}");
+        assert!(
+            cell.modifier.contains(ratatui_core::style::Modifier::BOLD),
+            "label BOLD at x={x}"
+        );
+    }
+    // The trailing pad is a body-styled cell in the frozen frame (x32:
+    // fg = container ink, bg = accent, BOLD kept) — not a bg-colored pad
+    // and not a de-weighted label cell.
+    let trailing = h.cell(3, 0);
+    assert_eq!(trailing.fg, Color::from_u32(0x0019_191c), "trailing fg");
+    assert_eq!(trailing.bg, Color::from_u32(0x0048_e054), "trailing bg");
+    assert!(
+        trailing.modifier.contains(ratatui_core::style::Modifier::BOLD),
+        "trailing keeps the container BOLD modifier"
+    );
+}
+
+#[test]
+fn pad_gap_cells_carry_container_ink_not_background() {
+    // checked + Error: gutter | icon | gap | marker | gap | label | trailing.
+    // The frozen source paints the dot/icon and its trailing space in one
+    // body-style pass, so every pad gap must resolve the container style:
+    // a CONTAINER part patch stays visible there (owner-wide contract).
+    const CONTAINER_INK: Color = Color::from_u32(0x0011_2233);
+    struct PatchedPage;
+    impl App for PatchedPage {
+        fn update(&mut self, _: &mut Cx<'_>) -> Response<()> {
+            Response::ignored()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let patch = [(Part::CONTAINER, StylePatch::new().set_fg(Role::Custom(CONTAINER_INK)))];
+            ui.reference(None, |ui| {
+                Button::new(BUTTON, "Go")
+                    .variant(Variant::PRIMARY)
+                    .status(Status::Error)
+                    .checked(true)
+                    .patch_part(&patch)
+                    .draw(ui, AREA);
+            });
+        }
+    }
+
+    let h = Harness::new(PatchedPage, Theme::junie(), 20, 1);
+    for x in [2u16, 4, 7] {
+        let cell = h.cell(x, 0);
+        assert_eq!(
+            cell.fg, CONTAINER_INK,
+            "pad/gap/trailing cell fg at x={x} must follow the CONTAINER patch"
+        );
+        assert_eq!(cell.bg, Color::from_u32(0x0048_e054), "pad cell bg at x={x}");
+    }
+    // Trailing pad keeps the container BOLD (frozen body style).
+    assert!(
+        h.cell(7, 0).modifier.contains(ratatui_core::style::Modifier::BOLD),
+        "trailing pad keeps the container BOLD modifier"
+    );
+}
