@@ -16,9 +16,9 @@ use crate::action::ActionKey;
 use crate::capture::Capture;
 use crate::cursor;
 use crate::diagnostics::Diagnostic;
-use crate::event::{Input, Key, KeyCode, KeyModifiers, Mouse, MouseKind};
+use crate::event::{Axis, Input, Key, KeyCode, KeyModifiers, Mouse, MouseKind};
 use crate::focus::{FocusRing, FocusState, ScopeId};
-use crate::hit::Hit;
+use crate::hit::{Hit, RegionKind};
 use crate::id::{Id, Part, PartRef};
 use crate::intent::{FocusVia, IntentQueue, Phase};
 use crate::keymap::{BindingTableId, KeyMap, KeyPhase};
@@ -1033,12 +1033,46 @@ impl<A: App> Runtime<A> {
             }
             MouseKind::SecondaryUp => {}
             MouseKind::Wheel(axis, delta) => {
-                if let Some(h) = self.last.registry.hit_scroll(m.pos, axis)
-                    && h.layer == top
-                {
+                let mut skipped_passive_reveal = false;
+                for candidate in self.last.registry.scroll_candidates(m.pos, axis, top) {
+                    let hit = candidate.hit();
+                    if candidate.passive_reveal() {
+                        if skipped_passive_reveal {
+                            continue;
+                        }
+                        let headroom = candidate.headroom();
+                        let has_directional_extent = if delta > 0 {
+                            headroom.down > 0
+                        } else {
+                            headroom.up > 0
+                        };
+                        if !m.mods.is_empty()
+                            || axis != Axis::V
+                            || delta == 0
+                            || !has_directional_extent
+                        {
+                            skipped_passive_reveal = true;
+                            continue;
+                        }
+                        self.intents.wheel(
+                            hit.owner,
+                            axis,
+                            delta.saturating_mul(3),
+                            hit.part,
+                            m.pos,
+                        );
+                        break;
+                    }
+
                     let rows = self.theme.design.motion.wheel_rows as i16;
-                    self.intents
-                        .wheel(h.owner, axis, delta.saturating_mul(rows), h.part, m.pos);
+                    self.intents.wheel(
+                        hit.owner,
+                        axis,
+                        delta.saturating_mul(rows),
+                        hit.part,
+                        m.pos,
+                    );
+                    break;
                 }
             }
         }
@@ -1053,7 +1087,9 @@ impl<A: App> Runtime<A> {
         if self.inter.hover != visible_previous {
             self.services.repaint = true;
         }
-        if let Some(h) = live {
+        if let Some(h) = live
+            && h.kind != RegionKind::HoverOnly
+        {
             let area = self.region_area(h);
             self.intents.pointer(
                 h.owner,
@@ -5130,5 +5166,546 @@ mod tests {
         assert_eq!(rt.focus(), Some(BUBBLE_SIBLING_CHILD));
         assert_eq!(rt.app().outer_calls, 0);
         assert_eq!(rt.app().esc_calls, 0);
+    }
+
+    const PASSIVE_HOVER: Id = Id::root("passive-hover");
+    const PASSIVE_BUTTON: Id = Id::root("passive-button");
+    const PASSIVE_EDITOR: Id = Id::root("passive-editor");
+    const PASSIVE_NEXT: Id = Id::root("passive-next");
+    const PASSIVE_PAGE_SCROLL: Id = Id::root("passive-page-scroll");
+    const PASSIVE_REVEAL_SCROLL: Id = Id::root("passive-reveal-scroll");
+    const PASSIVE_SECOND_REVEAL_SCROLL: Id = Id::root("passive-second-reveal-scroll");
+    const PASSIVE_MODAL: Id = Id::root("passive-modal");
+    const PASSIVE_MODAL_BUTTON: Id = Id::root("passive-modal-button");
+    const PASSIVE_MODAL_SCROLL: Id = Id::root("passive-modal-scroll");
+    const PASSIVE_BUTTON_AREA: Rect = Rect::new(0, 0, 8, 2);
+    const PASSIVE_EDITOR_AREA: Rect = Rect::new(0, 3, 8, 1);
+    const PASSIVE_NEXT_AREA: Rect = Rect::new(0, 4, 8, 1);
+    const PASSIVE_REVEAL_AREA: Rect = Rect::new(10, 0, 10, 10);
+
+    #[derive(Default)]
+    struct PassiveRuntimeProbe {
+        pointer: Vec<(Id, crate::intent::Phase)>,
+        keys: Vec<(Id, crate::event::Key)>,
+        wheels: Vec<(Id, crate::event::Axis, i16)>,
+        modal_open: bool,
+        open_modal_next: bool,
+        capture_button: bool,
+        normal_scroll: bool,
+        second_reveal_scroll: bool,
+        reveal_scroll: bool,
+        normal_headroom: crate::hit::Headroom,
+        second_reveal_headroom: crate::hit::Headroom,
+        reveal_headroom: crate::hit::Headroom,
+    }
+
+    impl App for PassiveRuntimeProbe {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            if cx.update_cause() == UpdateCause::Bootstrap {
+                cx.focus(PASSIVE_EDITOR);
+                return Response::ignored();
+            }
+            for owner in [
+                PASSIVE_BUTTON,
+                PASSIVE_EDITOR,
+                PASSIVE_NEXT,
+                PASSIVE_PAGE_SCROLL,
+                PASSIVE_SECOND_REVEAL_SCROLL,
+                PASSIVE_REVEAL_SCROLL,
+                PASSIVE_MODAL_BUTTON,
+                PASSIVE_MODAL_SCROLL,
+            ] {
+                for intent in cx.intents(owner) {
+                    match intent {
+                        Intent::Pointer { phase, part, .. } => {
+                            self.pointer.push((owner, phase));
+                            if owner == PASSIVE_BUTTON
+                                && phase == crate::intent::Phase::Press
+                                && self.capture_button
+                            {
+                                assert!(cx.capture(PASSIVE_BUTTON, part));
+                            }
+                        }
+                        Intent::Key(key) => self.keys.push((owner, key)),
+                        Intent::Wheel { axis, delta, .. } => {
+                            self.wheels.push((owner, axis, delta));
+                        }
+                        _ => {}
+                    }
+                }
+            }
+            if self.open_modal_next && cx.update_cause() == UpdateCause::Event {
+                self.open_modal_next = false;
+                self.modal_open = true;
+                cx.open_layer(PASSIVE_MODAL, LayerSpec::modal(PASSIVE_MODAL));
+            }
+            Response::ignored()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            ui.register_control(PASSIVE_BUTTON, PASSIVE_BUTTON_AREA, Focusability::Focusable);
+            ui.register_part(
+                PASSIVE_BUTTON,
+                PartRef::of(crate::id::Part::LABEL),
+                PASSIVE_BUTTON_AREA,
+            );
+            ui.register_editor(
+                PASSIVE_EDITOR,
+                PASSIVE_EDITOR_AREA,
+                Focusability::Focusable,
+                crate::response::StateFlags::EDITING,
+            );
+            ui.publish_typing_target::<u8>(PASSIVE_EDITOR, &[], |_| true, false);
+            ui.register_control(PASSIVE_NEXT, PASSIVE_NEXT_AREA, Focusability::Focusable);
+            ui.register_hover_part(PASSIVE_HOVER, PartRef::of(crate::id::Part::HELP), SCREEN);
+            if self.normal_scroll {
+                ui.register_scroll(
+                    PASSIVE_PAGE_SCROLL,
+                    SCREEN,
+                    crate::hit::Axes::Both,
+                    self.normal_headroom,
+                );
+            }
+            if self.second_reveal_scroll {
+                ui.register_passive_reveal_scroll(
+                    PASSIVE_SECOND_REVEAL_SCROLL,
+                    PASSIVE_REVEAL_AREA,
+                    self.second_reveal_headroom,
+                );
+            }
+            if self.reveal_scroll {
+                ui.register_passive_reveal_scroll(
+                    PASSIVE_REVEAL_SCROLL,
+                    PASSIVE_REVEAL_AREA,
+                    self.reveal_headroom,
+                );
+            }
+            if self.modal_open {
+                let _ = ui.layer(PASSIVE_MODAL, |ui, area| {
+                    ui.register_control(PASSIVE_MODAL_BUTTON, area, Focusability::Focusable);
+                    if self.normal_scroll {
+                        ui.register_scroll(
+                            PASSIVE_MODAL_SCROLL,
+                            area,
+                            crate::hit::Axes::Both,
+                            self.normal_headroom,
+                        );
+                    }
+                });
+            }
+        }
+    }
+
+    fn passive_runtime(
+        probe: PassiveRuntimeProbe,
+        theme: Theme,
+    ) -> (Runtime<PassiveRuntimeProbe>, Buffer) {
+        let mut rt = Runtime::new(probe, theme);
+        let _ = rt.initialize();
+        let mut buf = Buffer::empty(SCREEN);
+        for _ in 0..16 {
+            rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+            if !rt.needs_settle() {
+                return (rt, buf);
+            }
+            let _ = rt.settle();
+        }
+        panic!(
+            "passive runtime fixture did not settle: {:?}",
+            rt.diagnostics()
+        );
+    }
+
+    fn passive_present(rt: &mut Runtime<PassiveRuntimeProbe>, buf: &mut Buffer) {
+        for _ in 0..16 {
+            if rt.needs_settle() {
+                let _ = rt.settle();
+            }
+            if rt.needs_present() {
+                rt.draw_buffer(SCREEN, buf).commit_presented();
+            }
+            if !rt.needs_settle() && !rt.needs_present() {
+                return;
+            }
+        }
+        panic!(
+            "passive runtime frame did not settle: {:?}",
+            rt.diagnostics()
+        );
+    }
+
+    fn passive_mouse(kind: MouseKind, x: u16, y: u16, mods: crate::event::KeyModifiers) -> Input {
+        Input::Mouse(crate::event::Mouse {
+            kind,
+            pos: Position::new(x, y),
+            mods,
+        })
+    }
+
+    fn passive_deliver(rt: &mut Runtime<PassiveRuntimeProbe>, input: Input, buf: &mut Buffer) {
+        let _ = deliver(rt, input);
+        passive_present(rt, buf);
+    }
+
+    #[test]
+    fn hover_only_keeps_first_click_secondary_and_keyboard_ownership_unchanged() {
+        let (mut rt, mut buf) = passive_runtime(PassiveRuntimeProbe::default(), Theme::junie());
+        assert_eq!(rt.focus(), Some(PASSIVE_EDITOR));
+
+        passive_deliver(&mut rt, mouse(MouseKind::Move, 2, 0), &mut buf);
+        assert_eq!(rt.hover(), Some(PASSIVE_HOVER));
+        assert_eq!(
+            rt.focus(),
+            Some(PASSIVE_EDITOR),
+            "passive hover never takes focus"
+        );
+        assert_eq!(rt.capture_owner(), None);
+        assert!(
+            !rt.app()
+                .pointer
+                .iter()
+                .any(|(owner, _)| *owner == PASSIVE_HOVER)
+        );
+
+        passive_deliver(&mut rt, mouse(MouseKind::Down, 2, 0), &mut buf);
+        passive_deliver(&mut rt, mouse(MouseKind::Up, 2, 0), &mut buf);
+        passive_deliver(&mut rt, mouse(MouseKind::Secondary, 2, 0), &mut buf);
+        assert_eq!(
+            rt.app()
+                .pointer
+                .iter()
+                .filter(|(owner, phase)| *owner == PASSIVE_BUTTON
+                    && *phase == crate::intent::Phase::Click)
+                .count(),
+            1,
+            "the first click is delivered exactly once to the underlying button"
+        );
+        assert_eq!(
+            rt.app()
+                .pointer
+                .iter()
+                .filter(|(owner, phase)| *owner == PASSIVE_BUTTON
+                    && *phase == crate::intent::Phase::Secondary)
+                .count(),
+            1,
+            "secondary input also skips the passive region"
+        );
+        assert!(
+            !rt.diagnostics().iter().any(|diagnostic| matches!(
+                diagnostic,
+                crate::diagnostics::Diagnostic::UndeliveredIntent { .. }
+            )),
+            "passive regions emit no undelivered intents"
+        );
+
+        let (mut rt, mut buf) = passive_runtime(PassiveRuntimeProbe::default(), Theme::junie());
+        passive_deliver(&mut rt, mouse(MouseKind::Move, 2, 3), &mut buf);
+        assert_eq!(rt.hover(), Some(PASSIVE_HOVER));
+        let editor_keys = [
+            crate::event::Key {
+                code: KeyCode::Char('x'),
+                mods: crate::event::KeyModifiers::NONE,
+            },
+            crate::event::Key {
+                code: KeyCode::Char('s'),
+                mods: crate::event::KeyModifiers::CONTROL,
+            },
+            crate::event::Key {
+                code: KeyCode::Esc,
+                mods: crate::event::KeyModifiers::NONE,
+            },
+        ];
+        for editor_key in editor_keys {
+            passive_deliver(&mut rt, Input::Key(editor_key), &mut buf);
+            assert_eq!(rt.focus(), Some(PASSIVE_EDITOR));
+            assert!(rt.app().keys.contains(&(PASSIVE_EDITOR, editor_key)));
+            assert_eq!(
+                rt.hover(),
+                None,
+                "keyboard input suppresses passive hover until pointer motion"
+            );
+            passive_deliver(&mut rt, mouse(MouseKind::Move, 2, 3), &mut buf);
+            assert_eq!(rt.hover(), Some(PASSIVE_HOVER));
+        }
+        passive_deliver(&mut rt, key(KeyCode::Tab), &mut buf);
+        assert_eq!(rt.focus(), Some(PASSIVE_NEXT));
+        assert!(!rt.diagnostics().iter().any(|diagnostic| matches!(
+            diagnostic,
+            crate::diagnostics::Diagnostic::UndeliveredIntent { .. }
+        )));
+    }
+
+    #[test]
+    fn hover_only_does_not_receive_captured_drag_motion() {
+        let probe = PassiveRuntimeProbe {
+            capture_button: true,
+            ..PassiveRuntimeProbe::default()
+        };
+        let (mut rt, mut buf) = passive_runtime(probe, Theme::junie());
+        passive_deliver(&mut rt, mouse(MouseKind::Down, 2, 0), &mut buf);
+        assert_eq!(rt.capture_owner(), Some(PASSIVE_BUTTON));
+        passive_deliver(&mut rt, mouse(MouseKind::Move, 2, 0), &mut buf);
+        assert!(
+            rt.app()
+                .pointer
+                .iter()
+                .any(|(owner, phase)| *owner == PASSIVE_BUTTON
+                    && *phase == crate::intent::Phase::Drag)
+        );
+        assert!(
+            !rt.app()
+                .pointer
+                .iter()
+                .any(|(owner, _)| *owner == PASSIVE_HOVER)
+        );
+        passive_deliver(&mut rt, mouse(MouseKind::Up, 2, 0), &mut buf);
+        assert_eq!(rt.capture_owner(), None);
+    }
+
+    #[test]
+    fn passive_reveal_wheel_uses_three_lines_and_same_layer_fallback_rules() {
+        use crate::event::{Axis, KeyModifiers};
+        use crate::hit::Headroom;
+
+        let mut theme = Theme::junie();
+        theme.design.motion.wheel_rows = 5;
+        let probe = PassiveRuntimeProbe {
+            normal_scroll: true,
+            reveal_scroll: true,
+            normal_headroom: Headroom {
+                up: 10,
+                down: 10,
+                left: 10,
+                right: 10,
+            },
+            reveal_headroom: Headroom {
+                up: 10,
+                down: 10,
+                ..Headroom::default()
+            },
+            ..PassiveRuntimeProbe::default()
+        };
+        let (mut rt, mut buf) = passive_runtime(probe, theme);
+        let cases = [
+            (
+                Axis::V,
+                2,
+                KeyModifiers::NONE,
+                Headroom {
+                    up: 10,
+                    down: 10,
+                    ..Headroom::default()
+                },
+                vec![(PASSIVE_REVEAL_SCROLL, Axis::V, 6)],
+            ),
+            (
+                Axis::V,
+                -4,
+                KeyModifiers::NONE,
+                Headroom {
+                    up: 10,
+                    down: 10,
+                    ..Headroom::default()
+                },
+                vec![(PASSIVE_REVEAL_SCROLL, Axis::V, -12)],
+            ),
+            (
+                Axis::V,
+                2,
+                KeyModifiers::SHIFT,
+                Headroom {
+                    up: 10,
+                    down: 10,
+                    ..Headroom::default()
+                },
+                vec![(PASSIVE_PAGE_SCROLL, Axis::V, 10)],
+            ),
+            (
+                Axis::H,
+                2,
+                KeyModifiers::NONE,
+                Headroom {
+                    up: 10,
+                    down: 10,
+                    ..Headroom::default()
+                },
+                vec![(PASSIVE_PAGE_SCROLL, Axis::H, 10)],
+            ),
+            (
+                Axis::V,
+                0,
+                KeyModifiers::NONE,
+                Headroom {
+                    up: 10,
+                    down: 10,
+                    ..Headroom::default()
+                },
+                vec![(PASSIVE_PAGE_SCROLL, Axis::V, 0)],
+            ),
+            (
+                Axis::V,
+                2,
+                KeyModifiers::NONE,
+                Headroom::default(),
+                vec![(PASSIVE_PAGE_SCROLL, Axis::V, 10)],
+            ),
+            (
+                Axis::V,
+                2,
+                KeyModifiers::NONE,
+                Headroom {
+                    up: 10,
+                    down: 0,
+                    ..Headroom::default()
+                },
+                vec![(PASSIVE_PAGE_SCROLL, Axis::V, 10)],
+            ),
+            (
+                Axis::V,
+                -2,
+                KeyModifiers::NONE,
+                Headroom {
+                    up: 0,
+                    down: 10,
+                    ..Headroom::default()
+                },
+                vec![(PASSIVE_PAGE_SCROLL, Axis::V, -10)],
+            ),
+        ];
+        for (axis, delta, mods, headroom, expected) in cases {
+            rt.app_mut().wheels.clear();
+            rt.app_mut().reveal_headroom = headroom;
+            passive_deliver(
+                &mut rt,
+                passive_mouse(MouseKind::Wheel(axis, delta), 12, 2, mods),
+                &mut buf,
+            );
+            assert_eq!(
+                rt.app().wheels,
+                expected,
+                "wheel case {axis:?} {delta} {mods:?} {headroom:?}"
+            );
+        }
+
+        rt.app_mut().wheels.clear();
+        rt.app_mut().reveal_headroom = Headroom {
+            up: 10,
+            down: 10,
+            ..Headroom::default()
+        };
+        passive_deliver(
+            &mut rt,
+            passive_mouse(MouseKind::Wheel(Axis::V, 2), 4, 2, KeyModifiers::NONE),
+            &mut buf,
+        );
+        assert_eq!(
+            rt.app().wheels,
+            [(PASSIVE_PAGE_SCROLL, Axis::V, 10)],
+            "outside the reveal region, ordinary page scrolling receives the event"
+        );
+
+        rt.app_mut().wheels.clear();
+        rt.app_mut().second_reveal_scroll = true;
+        rt.app_mut().second_reveal_headroom = Headroom {
+            up: 10,
+            down: 10,
+            ..Headroom::default()
+        };
+        rt.app_mut().reveal_headroom = Headroom {
+            up: 10,
+            down: 0,
+            ..Headroom::default()
+        };
+        passive_deliver(
+            &mut rt,
+            passive_mouse(MouseKind::Wheel(Axis::V, 2), 12, 2, KeyModifiers::NONE),
+            &mut buf,
+        );
+        assert_eq!(
+            rt.app().wheels,
+            [(PASSIVE_PAGE_SCROLL, Axis::V, 10)],
+            "a skipped reveal candidate continues to the next normal scroll target, not another reveal"
+        );
+
+        rt.app_mut().wheels.clear();
+        rt.app_mut().reveal_scroll = false;
+        rt.app_mut().second_reveal_scroll = false;
+        rt.app_mut().normal_headroom = Headroom::default();
+        passive_deliver(
+            &mut rt,
+            passive_mouse(MouseKind::Wheel(Axis::V, 1), 12, 2, KeyModifiers::NONE),
+            &mut buf,
+        );
+        assert_eq!(
+            rt.app().wheels,
+            [(PASSIVE_PAGE_SCROLL, Axis::V, 5)],
+            "ordinary zero-headroom scroll preserves legacy endpoint consumption"
+        );
+
+        rt.app_mut().wheels.clear();
+        rt.app_mut().normal_scroll = false;
+        rt.app_mut().reveal_scroll = true;
+        rt.app_mut().reveal_headroom = Headroom {
+            up: 2,
+            down: 0,
+            ..Headroom::default()
+        };
+        passive_deliver(
+            &mut rt,
+            passive_mouse(MouseKind::Wheel(Axis::V, 1), 4, 2, KeyModifiers::NONE),
+            &mut buf,
+        );
+        assert!(
+            rt.app().wheels.is_empty(),
+            "passing the reveal end does not invent a target"
+        );
+    }
+
+    #[test]
+    fn passive_reveal_wheel_never_falls_through_a_modal_top_layer() {
+        use crate::event::{Axis, KeyModifiers};
+        use crate::hit::Headroom;
+
+        let probe = PassiveRuntimeProbe {
+            normal_scroll: true,
+            reveal_scroll: true,
+            normal_headroom: Headroom {
+                up: 5,
+                down: 5,
+                ..Headroom::default()
+            },
+            reveal_headroom: Headroom {
+                up: 5,
+                down: 5,
+                ..Headroom::default()
+            },
+            ..PassiveRuntimeProbe::default()
+        };
+        let (mut rt, mut buf) = passive_runtime(probe, Theme::junie());
+        rt.app_mut().open_modal_next = true;
+        passive_deliver(&mut rt, key(KeyCode::Enter), &mut buf);
+        assert!(rt.is_open(PASSIVE_MODAL));
+        passive_deliver(&mut rt, mouse(MouseKind::Move, 4, 2), &mut buf);
+        assert_eq!(rt.hover(), Some(PASSIVE_MODAL_BUTTON));
+        rt.app_mut().wheels.clear();
+        passive_deliver(
+            &mut rt,
+            passive_mouse(MouseKind::Wheel(Axis::V, 2), 12, 2, KeyModifiers::NONE),
+            &mut buf,
+        );
+        assert_eq!(rt.app().wheels, [(PASSIVE_MODAL_SCROLL, Axis::V, 6)]);
+        assert!(
+            !rt.app()
+                .wheels
+                .iter()
+                .any(|(owner, _, _)| *owner == PASSIVE_PAGE_SCROLL
+                    || *owner == PASSIVE_REVEAL_SCROLL)
+        );
+        assert!(
+            !rt.app()
+                .pointer
+                .iter()
+                .any(|(owner, _)| *owner == PASSIVE_HOVER)
+        );
     }
 }
