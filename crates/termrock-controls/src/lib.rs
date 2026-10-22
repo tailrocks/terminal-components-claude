@@ -43,7 +43,7 @@ pub use brand::Brand;
 pub use button::{BusyMarkerPolicy, Button, ButtonCmd, ButtonFocusVisibility};
 pub use choice::{
     Checkbox, CheckboxState, ChoiceCmd, LabelRadio, RadioGroup, RadioGroupAction, RadioGroupState,
-    RadioNavigation, Toggle,
+    RadioKeyPolicy, RadioNavigation, Toggle,
 };
 pub use empty::Empty;
 pub use master_detail::{
