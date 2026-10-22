@@ -6,6 +6,8 @@
 //! no page replays a historical frame, no page mounts widgets in a
 //! zero-area rect, and every page renders its content at more than one size.
 
+use std::path::{Path, PathBuf};
+
 use showcase_demos::pages::Page;
 use showcase_demos::pages::{
     buttons, chips, chrome, dialogs, editable, editor, forms, grid, inputs, lists, overview,
@@ -18,8 +20,10 @@ use termrock_test_support::Harness;
 /// Every page source, so the source guards below cover new pages too. Adding
 /// a page means adding its line here; the count assertion in
 /// [`every_page_source_is_guarded`] refuses to let the list drift.
-const SOURCES: [(&str, &str); 23] = [
+const SOURCES: [(&str, &str); 25] = [
+    ("author", include_str!("../src/pages/author.rs")),
     ("buttons", include_str!("../src/pages/buttons.rs")),
+    ("celleditors", include_str!("../src/pages/celleditors.rs")),
     ("chips", include_str!("../src/pages/chips.rs")),
     ("chrome", include_str!("../src/pages/chrome.rs")),
     ("dialogs", include_str!("../src/pages/dialogs.rs")),
@@ -43,6 +47,129 @@ const SOURCES: [(&str, &str); 23] = [
     ("textareas", include_str!("../src/pages/textareas.rs")),
     ("trees", include_str!("../src/pages/trees.rs")),
 ];
+
+/// The page directories the captured-cell guard reads. Every page module of
+/// the showcase and of the jackin preview lives in one of them.
+const PAGE_DIRECTORIES: [&str; 2] = [
+    "crates/showcase-demos/src/pages",
+    "crates/jackin-preview-app/src/app",
+];
+
+/// The workspace root, two levels above the crate manifest.
+fn workspace_root() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .and_then(Path::parent)
+        .expect("the workspace root")
+        .to_path_buf()
+}
+
+/// Every page source the showcase and the jackin preview own.
+///
+/// The walk reads the page modules that exist today and any page module
+/// added later: a captured cell table cannot hide in a file the guard does
+/// not read.
+fn page_sources() -> Vec<(String, String)> {
+    let root = workspace_root();
+    let mut out = Vec::new();
+    for directory in PAGE_DIRECTORIES {
+        collect_sources(&root.join(directory), &mut out);
+    }
+    out
+}
+
+fn collect_sources(directory: &Path, out: &mut Vec<(String, String)>) {
+    let Ok(entries) = std::fs::read_dir(directory) else {
+        return;
+    };
+    let mut paths: Vec<PathBuf> = entries.flatten().map(|entry| entry.path()).collect();
+    paths.sort();
+    for path in paths {
+        if path.extension().and_then(|ext| ext.to_str()) != Some("rs") {
+            continue;
+        }
+        let Ok(source) = std::fs::read_to_string(&path) else {
+            continue;
+        };
+        out.push((path.display().to_string(), source));
+    }
+}
+
+/// The index of the parenthesis that closes the one at `start`.
+fn closing_paren(source: &str, start: usize) -> Option<usize> {
+    let mut depth = 0u32;
+    for (offset, ch) in source[start..].char_indices() {
+        match ch {
+            '(' => depth += 1,
+            ')' => {
+                depth -= 1;
+                if depth == 0 {
+                    return Some(start + offset);
+                }
+            }
+            _ => {}
+        }
+    }
+    None
+}
+
+/// The comma-separated fields of a tuple body.
+fn tuple_fields(body: &str) -> Vec<String> {
+    let mut fields = Vec::new();
+    let mut depth = 0u32;
+    let mut last = 0;
+    for (offset, ch) in body.char_indices() {
+        match ch {
+            '(' | '[' | '{' => depth += 1,
+            ')' | ']' | '}' => depth -= 1,
+            ',' if depth == 0 => {
+                fields.push(body[last..offset].trim().to_string());
+                last = offset + 1;
+            }
+            _ => {}
+        }
+    }
+    fields.push(body[last..].trim().to_string());
+    fields
+}
+
+fn is_number_field(field: &str) -> bool {
+    matches!(
+        field.trim(),
+        "u8" | "u16" | "u32" | "u64" | "usize" | "i8" | "i16" | "i32" | "i64" | "isize"
+    )
+}
+
+fn is_text_field(field: &str) -> bool {
+    let field = field
+        .trim()
+        .trim_start_matches("&")
+        .trim_start_matches("mut ");
+    field == "str" || field == "String" || field.ends_with("str")
+}
+
+/// A captured cell table is an array of tuples that carry coordinates and
+/// text: `(u16, u16, u32, u32, bool, &str)`. The guard matches the shape,
+/// not one spelling, so a table written any other way still fails.
+fn captured_table(source: &str) -> Option<String> {
+    let mut rest = source;
+    while let Some(at) = rest.find("&[(") {
+        let tuple = &rest[at + 2..];
+        let Some(end) = closing_paren(tuple, 0) else {
+            break;
+        };
+        let fields = tuple_fields(&tuple[1..end]);
+        if fields.len() >= 4
+            && is_number_field(&fields[0])
+            && is_number_field(&fields[1])
+            && fields.iter().any(|field| is_text_field(field))
+        {
+            return Some(tuple[..end].to_string());
+        }
+        rest = &tuple[end..];
+    }
+    None
+}
 
 /// Pages whose exact-size switches are owned by later waves, not this one.
 /// Every other page must already be free of them. All four converted pages
@@ -137,7 +264,7 @@ fn zero_area_mount(source: &str) -> Option<String> {
 fn every_page_source_is_guarded() {
     assert_eq!(
         SOURCES.len(),
-        23,
+        25,
         "a page was added without extending the guard sources"
     );
     assert_eq!(
@@ -147,9 +274,57 @@ fn every_page_source_is_guarded() {
     );
 }
 
+/// The captured-cell guard reads the shape of a table, not its spelling.
+#[test]
+fn the_captured_table_guard_reads_the_shape_not_the_spelling() {
+    for table in [
+        "const SETTLED: &[(u16, u16, u32, u32, bool, &str)] = &[",
+        "const CELLS: &[(u32, u32, u32, u32, String)] = &[",
+        "static FRAME: &[(usize, usize, u16, u16, &str)] = &[",
+    ] {
+        assert!(
+            captured_table(table).is_some(),
+            "the guard misses a captured table: {table}"
+        );
+    }
+    for legal in [
+        "let points = &[(u16, u16)];",
+        "let rows: &[(u16, &str)] = &[];",
+        "let cells = &[(u8, u8, u8)];",
+    ] {
+        assert!(
+            captured_table(legal).is_none(),
+            "the guard flags a legal table: {legal}"
+        );
+    }
+}
+
+/// The captured-cell guard reads every page module of the showcase and of
+/// the jackin preview, so a table cannot hide in an uncovered file.
+#[test]
+fn every_page_module_is_covered_by_the_guard() {
+    let sources = page_sources();
+    assert!(
+        sources.len() >= 35,
+        "the guard read only {} page sources",
+        sources.len()
+    );
+    for page in [
+        "taskrunner.rs",
+        "terminal.rs",
+        "chrome.rs",
+        "accounts_page.rs",
+    ] {
+        assert!(
+            sources.iter().any(|(path, _)| path.ends_with(page)),
+            "the guard does not read {page}"
+        );
+    }
+}
+
 #[test]
 fn no_page_holds_a_captured_cell_table() {
-    for (name, source) in SOURCES {
+    for (name, source) in page_sources() {
         assert!(
             !source.contains("&[(u16, u16, u32, u32, bool, &str)]"),
             "{name}: a captured cell table is back"
@@ -165,6 +340,11 @@ fn no_page_holds_a_captured_cell_table() {
         assert!(
             !source.contains(".ansi"),
             "{name}: an ansi frame bypass is back"
+        );
+        let table = captured_table(&source);
+        assert!(
+            table.is_none(),
+            "{name}: a captured cell table is back: {table:?}"
         );
     }
 }
