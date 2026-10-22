@@ -217,6 +217,29 @@ fn keyboard_active_danger_row_uses_frozen_background_ladder() {
 }
 
 #[test]
+fn consumer_mono_menu_override_wins_over_the_exact_danger_profile() {
+    let rules = [(
+        Part::ROW,
+        StateFlags::PRESSED,
+        StylePatch::new().set_bg(Role::Custom(Color::White)),
+    )];
+    let theme = Theme::junie()
+        .builder()
+        .mono_rules(Family::MENU, &rules)
+        .build()
+        .downgrade(ColorLevel::Mono);
+    let resolved = theme.resolve(
+        Family::MENU,
+        Variant::DANGER,
+        Part::ROW,
+        StateFlags::ACTIVE | StateFlags::PRESSED,
+        Surface::Popover,
+    );
+
+    assert_eq!(resolved.style.as_style().bg, Some(Color::White));
+}
+
+#[test]
 fn keyboard_activation_returns_the_danger_item_action() {
     let mut harness = focused_danger(ColorLevel::TrueColor);
     let _ = harness.key(KeyCode::Enter);

@@ -556,12 +556,16 @@ fn authored_mono_override(
     live: StateFlags,
     authored: Option<&[super::MonoRule]>,
 ) -> StylePatch {
-    let builtin = super::downgrade::builtin_family_mono_rules(family);
-    theme
-        .recipes
-        .mono_rules(family)
-        .or(authored.filter(|rules| !rules.is_empty()))
-        .unwrap_or(builtin)
+    // Built-in mono rules are fallbacks. If an exact level profile covers a
+    // channel, the fallback must not mask that profile while it is restored.
+    // Only consumer-authored rules (or component defaults when no theme rule
+    // set takes precedence) can claim targeted channels here.
+    let rules = match theme.recipes.mono_rules(family) {
+        Some(rules) if theme.recipes.mono_is_consumer_authored(family) => rules,
+        Some(_) => &[],
+        None => authored.filter(|rules| !rules.is_empty()).unwrap_or(&[]),
+    };
+    rules
         .iter()
         .filter(|(rule_part, when, _)| *rule_part == part && live.contains(*when))
         .fold(StylePatch::new(), |patch, (_, _, rule)| patch.merge(*rule))
