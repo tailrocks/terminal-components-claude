@@ -12,10 +12,11 @@ use termrock::{
     EnterPolicy, FgStep, Focusability, Form, FormAction, FormState, FrameRead, GlyphRole,
     GridAction, GridEditor, GridModel, Id, Intent, ItemKey, KeyCode, KeyMap, KeyModifiers,
     KeyPhase, LayerId, LayerSize, LayerSpec, Maximized, Modifier, Moment, Panel, PanelKind, Part,
-    Phase, PickerAction, PickerSlotExt, Position, Response, Role, RowUi, ScreenAlign, Size,
-    SortDir, Span, SplitAxis, SplitPane, SplitPaneState, StateFlags, StylePatch, Tabs, TabsAction,
-    TabsState, TextAction, TextInput, TextInputState, Theme, Tree, TreeAction,
-    TreeBranchActivation, TreeNode, TreeState, Ui, UpdateCause, truncate, width, wrap,
+    Phase, PickerAction, PickerSlotExt, Position, Response, Role, RowUi, ScreenAlign, Select,
+    SelectAction, SelectState, Size, SortDir, Span, SplitAxis, SplitPane, SplitPaneState,
+    StateFlags, StylePatch, Tabs, TabsAction, TabsState, TextAction, TextInput, TextInputState,
+    Theme, Tree, TreeAction, TreeBranchActivation, TreeNode, TreeState, Ui, UpdateCause, truncate,
+    width, wrap,
 };
 
 use crate::quick_switcher::{self, QuickSwitcher};
@@ -54,8 +55,19 @@ const TAB_STRIP: Id = Id::root("tablepro.workbench.tab-strip");
 const WORKBENCH_SPLIT: Id = Id::root("tablepro.workbench.split");
 const FILTER_LAYER: Id = Id::root("tablepro.filter.layer");
 const FILTER_VALUE: Id = Id::root("tablepro.filter.value");
-const FILTER_STEP: Id = Id::root("tablepro.filter.step");
-const FILTER_APPLY: Id = Id::root("tablepro.filter.apply");
+const FILTER_COLUMN: Id = Id::root("tablepro.filter.column");
+const FILTER_OP: Id = Id::root("tablepro.filter.op");
+const FILTER_OPERATORS: [(&str, FilterOp); 9] = [
+    ("=", FilterOp::Eq),
+    ("≠", FilterOp::Ne),
+    ("contains", FilterOp::Contains),
+    ("starts with", FilterOp::StartsWith),
+    ("ends with", FilterOp::EndsWith),
+    (">", FilterOp::Gt),
+    (">=", FilterOp::Ge),
+    ("<", FilterOp::Lt),
+    ("<=", FilterOp::Le),
+];
 const RUN: ActionKey = ActionKey::application("tablepro.run");
 const UNDO: ActionKey = ActionKey::application("tablepro.undo");
 const INSERT_ROW: ActionKey = ActionKey::application("tablepro.insert-row");
@@ -698,8 +710,12 @@ pub struct TableProApp {
 
 struct FilterDraft {
     column: String,
+    op: FilterOp,
     value: String,
     input: TextInputState,
+    columns: Vec<String>,
+    column_select: SelectState,
+    op_select: SelectState,
 }
 
 impl core::fmt::Debug for TableProApp {
@@ -2533,13 +2549,34 @@ impl TableProApp {
         let Some(name) = grid.columns.get(index).map(|(name, _)| name.clone()) else {
             return false;
         };
+        let columns: Vec<String> = grid.columns.iter().map(|(name, _)| name.clone()).collect();
+        let selected = columns.iter().position(|candidate| *candidate == name);
+        let mut column_select = SelectState::default();
+        column_select.set_value(selected.map(ItemKey::index));
+        let mut op_select = SelectState::default();
+        op_select.set_value(Some(ItemKey::index(0)));
+        cx.close_layer(FILTER_COLUMN, None);
+        cx.close_layer(FILTER_OP, None);
         self.filter_editor = Some(FilterDraft {
             column: name,
+            op: FilterOp::Eq,
             value: String::new(),
             input: TextInputState::default(),
+            columns,
+            column_select,
+            op_select,
         });
-        cx.focus(FILTER_APPLY);
         true
+    }
+
+    fn open_filter_layer(cx: &mut Cx<'_>, initial: Id) {
+        cx.open_layer(
+            FILTER_LAYER,
+            LayerSpec::modal(FILTER_LAYER)
+                .anchor(Anchor::Screen(ScreenAlign::GeometricCenter))
+                .initial_focus(initial)
+                .size(LayerSize::Fixed(64, 15)),
+        );
     }
 
     fn begin_filter_card(&mut self, cx: &mut Cx<'_>) -> bool {
@@ -2568,29 +2605,47 @@ impl TableProApp {
             .is_some_and(|draft| draft.column == "id" && draft.value.is_empty());
         if id_column {
             self.surface = Surface::FilterEditor;
-            cx.open_layer(
-                FILTER_LAYER,
-                LayerSpec::modal(FILTER_LAYER)
-                    .anchor(Anchor::Screen(ScreenAlign::GeometricCenter))
-                    .initial_focus(FILTER_VALUE)
-                    .size(LayerSize::Fixed(64, 15)),
-            );
         }
+        Self::open_filter_layer(cx, if id_column { FILTER_VALUE } else { FILTER_OP });
         true
     }
 
     fn update_filter_editor(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let was_open = cx.is_open(FILTER_LAYER);
+        // Layer lifecycle events (opened, dismissed) carry no payload here;
+        // open/close transitions are tracked through `was_open` below.
+        for _ in cx.intents(FILTER_LAYER) {}
         let Some(draft) = self.filter_editor.as_mut() else {
             for _ in cx.intents(FILTER_VALUE) {}
-            for _ in cx.intents(FILTER_STEP) {}
-            for _ in cx.intents(FILTER_APPLY) {}
             return Response::ignored();
         };
-        let response = TextInput::new(FILTER_VALUE).update(cx, &mut draft.input, &mut draft.value);
-        let committed = response.action_ref() == Some(&TextAction::Committed);
-        let response = response.erase();
+        let input = TextInput::new(FILTER_VALUE).update(cx, &mut draft.input, &mut draft.value);
+        let committed = input.action_ref() == Some(&TextAction::Committed);
+        let mut response = input.erase();
+        let columns: Vec<&str> = draft.columns.iter().map(String::as_str).collect();
+        let column = Select::new(FILTER_COLUMN).update(cx, &mut draft.column_select, &columns);
+        if let Some(SelectAction::Chose(ItemKey::Index(index))) = column.action_ref()
+            && let Some(name) = draft.columns.get(*index)
+        {
+            name.clone_into(&mut draft.column);
+        }
+        response |= column.erase();
+        let operators: Vec<&str> = FILTER_OPERATORS.iter().map(|(label, _)| *label).collect();
+        let operator = Select::new(FILTER_OP).update(cx, &mut draft.op_select, &operators);
+        if let Some(SelectAction::Chose(ItemKey::Index(index))) = operator.action_ref()
+            && let Some((_, op)) = FILTER_OPERATORS.get(*index)
+        {
+            draft.op = *op;
+        }
+        response |= operator.erase();
         if committed {
             self.commit_filter_editor(cx);
+        }
+        if was_open && !cx.is_open(FILTER_LAYER) && self.filter_editor.is_some() {
+            self.filter_editor = None;
+            if self.surface == Surface::FilterEditor {
+                self.sync_active_tab();
+            }
         }
         response
     }
@@ -2599,9 +2654,13 @@ impl TableProApp {
         let Some(draft) = self.filter_editor.take() else {
             return;
         };
+        cx.close_layer(FILTER_LAYER, None);
+        if self.surface == Surface::FilterEditor {
+            self.sync_active_tab();
+        }
         let filter = Filter {
             column: draft.column,
-            op: FilterOp::Eq,
+            op: draft.op,
             value: draft.value,
             value2: String::new(),
             enabled: true,
@@ -2658,15 +2717,9 @@ impl TableProApp {
         let Some(draft) = &self.filter_editor else {
             return;
         };
-        if self.surface == Surface::FilterEditor {
-            ui.layer(FILTER_LAYER, |ui, area| {
-                paint_filter_card(ui, area, &draft.column, &draft.value, &draft.input);
-            });
-            return;
-        }
-        TextInput::new(FILTER_VALUE).draw(ui, termrock::Rect::new(0, 0, 12, 1), &draft.input);
-        ui.register_focus_only(FILTER_STEP, Focusability::Focusable);
-        ui.register_focus_only(FILTER_APPLY, Focusability::Focusable);
+        ui.layer(FILTER_LAYER, |ui, area| {
+            paint_filter_card(ui, area, draft);
+        });
     }
 
     fn sort_status_prefix(&self) -> Option<String> {
@@ -8241,95 +8294,7 @@ fn paint_filter_footer(ui: &mut Ui<'_>, area: termrock::Rect) {
     );
 }
 
-fn paint_closed_select(
-    ui: &mut Ui<'_>,
-    area: termrock::Rect,
-    label: &str,
-    value: &str,
-    help: Option<&str>,
-) {
-    let elevated = Role::Surface(termrock::Surface::Elevated);
-    let secondary = ui.surface_style().patch(
-        ui.paint_patch(
-            &StylePatch::new()
-                .set_fg(Role::Fg(FgStep::Secondary))
-                .set_bg(elevated),
-        ),
-    );
-    let field = ui.surface_style().patch(
-        ui.paint_patch(
-            &StylePatch::new()
-                .set_fg(Role::Fg(FgStep::Primary))
-                .set_bg(TAG_FIELD_BG),
-        ),
-    );
-    let blank = field.with_fg_from_bg(field);
-    let chevron =
-        field.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))));
-    let muted = ui.surface_style().patch(
-        ui.paint_patch(
-            &StylePatch::new()
-                .set_fg(Role::Fg(FgStep::Muted))
-                .set_bg(elevated),
-        ),
-    );
-    ui.paint_str(
-        termrock::Rect {
-            x: area.x.saturating_add(2),
-            y: area.y,
-            width: width(label),
-            height: 1,
-        },
-        label,
-        secondary,
-    );
-    let row = termrock::Rect {
-        y: area.y.saturating_add(1),
-        height: 1,
-        ..area
-    };
-    ui.fill(row, field);
-    ui.paint_str(termrock::Rect { width: 1, ..row }, " ", blank);
-    ui.paint_str(
-        termrock::Rect {
-            x: row.x.saturating_add(2),
-            width: width(value),
-            ..row
-        },
-        value,
-        field,
-    );
-    ui.paint_str(
-        termrock::Rect {
-            x: row.right().saturating_sub(2),
-            width: 1,
-            ..row
-        },
-        "▾",
-        chevron,
-    );
-    if let Some(help) = help {
-        let shown = truncate(help, area.width.saturating_sub(2));
-        ui.paint_str(
-            termrock::Rect {
-                x: area.x.saturating_add(2),
-                y: area.y.saturating_add(2),
-                width: width(&shown),
-                height: 1,
-            },
-            &shown,
-            muted,
-        );
-    }
-}
-
-fn paint_filter_card(
-    ui: &mut Ui<'_>,
-    area: termrock::Rect,
-    column: &str,
-    value: &str,
-    input: &TextInputState,
-) {
+fn paint_filter_card(ui: &mut Ui<'_>, area: termrock::Rect, draft: &FilterDraft) {
     termrock::runtime::overlay_chrome(
         ui,
         FILTER_LAYER,
@@ -8340,18 +8305,12 @@ fn paint_filter_card(
         StateFlags::empty(),
         StateFlags::FOCUSED,
         |ui, _framed| {
-            paint_filter_card_body(ui, area, column, value, input);
+            paint_filter_card_body(ui, area, draft);
         },
     );
 }
 
-fn paint_filter_card_body(
-    ui: &mut Ui<'_>,
-    area: termrock::Rect,
-    column: &str,
-    value: &str,
-    input: &TextInputState,
-) {
+fn paint_filter_card_body(ui: &mut Ui<'_>, area: termrock::Rect, draft: &FilterDraft) {
     let elevated = Role::Surface(termrock::Surface::Elevated);
     let bold = ui.surface_style().patch(
         ui.paint_patch(
@@ -8368,16 +8327,13 @@ fn paint_filter_card_body(
                 .set_bg(elevated),
         ),
     );
-    let field = ui.surface_style().patch(
+    let muted = ui.surface_style().patch(
         ui.paint_patch(
             &StylePatch::new()
-                .set_fg(Role::Fg(FgStep::Primary))
-                .set_bg(TAG_FIELD_BG),
+                .set_fg(Role::Fg(FgStep::Muted))
+                .set_bg(elevated),
         ),
     );
-    let placeholder =
-        field.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
-    let caret = field.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)));
     ui.paint_str(
         termrock::Rect {
             x: area.x.saturating_add(3),
@@ -8394,19 +8350,53 @@ fn paint_filter_card_body(
     let left_w = band_w.saturating_sub(2) / 2;
     let right_w = band_w.saturating_sub(2).saturating_sub(left_w);
     let right_x = band_x.saturating_add(left_w).saturating_add(2);
-    paint_closed_select(
-        ui,
-        termrock::Rect::new(band_x, band_y, left_w, 3),
+    ui.paint_str(
+        termrock::Rect {
+            x: band_x.saturating_add(2),
+            y: band_y,
+            width: width("Column"),
+            height: 1,
+        },
         "Column",
-        column,
-        None,
+        secondary,
     );
-    paint_closed_select(
+    let columns: Vec<&str> = draft.columns.iter().map(String::as_str).collect();
+    Select::new(FILTER_COLUMN).draw(
         ui,
-        termrock::Rect::new(right_x, band_y, right_w, 3),
+        termrock::Rect::new(band_x, band_y.saturating_add(1), left_w, 1),
+        &draft.column_select,
+        &columns,
+    );
+    ui.paint_str(
+        termrock::Rect {
+            x: right_x.saturating_add(2),
+            y: band_y,
+            width: width("Operator"),
+            height: 1,
+        },
         "Operator",
-        "=",
-        Some("Operators that fit the column type come first"),
+        secondary,
+    );
+    let operators: Vec<&str> = FILTER_OPERATORS.iter().map(|(label, _)| *label).collect();
+    Select::new(FILTER_OP).draw(
+        ui,
+        termrock::Rect::new(right_x, band_y.saturating_add(1), right_w, 1),
+        &draft.op_select,
+        &operators,
+    );
+    let help = truncate(
+        "Operators that fit the column type come first",
+        right_w.saturating_sub(2),
+    );
+    ui.paint_str(
+        termrock::Rect {
+            x: right_x.saturating_add(2),
+            y: band_y.saturating_add(2),
+            width: width(&help),
+            height: 1,
+        },
+        &help,
+        muted,
     );
     let value_w = band_w;
     let value_label = fit_cols("Value", value_w.saturating_sub(2));
@@ -8429,32 +8419,17 @@ fn paint_filter_card_body(
     TextInput::new(FILTER_VALUE)
         .placeholder("value")
         .placeholder_while_editing(true)
-        .draw(ui, value_row, input);
-    ui.fill(value_row, field);
-    ui.paint_str(
-        termrock::Rect {
-            width: 1,
-            ..value_row
-        },
-        "▎",
-        caret,
+        .draw(ui, value_row, &draft.input);
+    let symbol = FILTER_OPERATORS
+        .iter()
+        .find_map(|(label, op)| (*op == draft.op).then_some(*label))
+        .unwrap_or("=");
+    let preview = format!(
+        "WHERE {} {} '{}'",
+        draft.column,
+        symbol,
+        draft.value.replace('\'', "''")
     );
-    let shown = if value.is_empty() { "value" } else { value };
-    let shown_style = if value.is_empty() { placeholder } else { field };
-    ui.paint_str(
-        termrock::Rect {
-            x: value_row.x.saturating_add(2),
-            width: width(shown),
-            ..value_row
-        },
-        shown,
-        shown_style,
-    );
-    ui.set_bar_cursor(
-        FILTER_VALUE,
-        Position::new(value_row.x.saturating_add(2), value_row.y),
-    );
-    let preview = format!("WHERE {column} = '{}'", value.replace('\'', "''"));
     ui.paint_str(
         termrock::Rect {
             x: area.x.saturating_add(3),
@@ -8523,8 +8498,6 @@ fn paint_filter_card_body(
         "Add filter ",
         apply,
     );
-    ui.register_focus_only(FILTER_STEP, Focusability::Focusable);
-    ui.register_focus_only(FILTER_APPLY, Focusability::Focusable);
 }
 
 fn paint_delete_footer(ui: &mut Ui<'_>, area: termrock::Rect) {
@@ -9379,6 +9352,7 @@ impl App for TableProApp {
                     response |= Response::changed();
                 }
                 c if c == FILTER && self.begin_column_filter(cx) => {
+                    Self::open_filter_layer(cx, FILTER_OP);
                     response |= Response::changed();
                 }
                 c if c == FILTER_CARD && self.begin_filter_card(cx) => {
@@ -9588,14 +9562,6 @@ impl App for TableProApp {
             && let Some(id) = self.query_id()
         {
             cx.focus(id);
-        }
-        if self.surface == Surface::FilterEditor
-            && self
-                .filter_editor
-                .as_ref()
-                .is_some_and(|draft| draft.column == "id" && draft.value.is_empty())
-        {
-            cx.focus(FILTER_VALUE);
         }
 
         response
