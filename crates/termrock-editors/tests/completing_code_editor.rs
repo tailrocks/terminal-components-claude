@@ -42,11 +42,19 @@ impl CompletionProvider for Provider {
     fn complete(
         &self,
         text: &str,
-        _cursor: usize,
+        cursor: usize,
         trigger: CompletionTrigger,
     ) -> Option<CompletionBatch> {
         self.triggers.borrow_mut().push(trigger);
-        let token = text.split_whitespace().last().unwrap_or_default();
+        let completion_text = if matches!(self.mode, ProviderMode::UnicodeDetails) {
+            text.get(..cursor).unwrap_or_default()
+        } else {
+            text
+        };
+        let token = completion_text
+            .split_whitespace()
+            .last()
+            .unwrap_or_default();
         if matches!(self.mode, ProviderMode::UnicodeDetails) {
             if token != "fe" {
                 return None;
@@ -541,6 +549,121 @@ fn outside_click_dismisses_details_and_preserves_the_editing_session() {
 }
 
 #[test]
+fn pointer_inside_details_cannot_use_the_previous_completion_row_hit() {
+    let mut runtime = runtime_with("SELECT fe", ProviderMode::Details);
+    send(&mut runtime, KeyCode::Char(' '), KeyModifiers::CONTROL);
+    send(&mut runtime, KeyCode::Down, KeyModifiers::NONE);
+    let popup = runtime.layer_area(POPUP).expect("completion popup");
+    let previous_row = runtime
+        .area_of_part(POPUP, PartRef::item(Part::ROW, ItemKey::num(11)))
+        .expect("fetch row before opening details");
+
+    send(
+        &mut runtime,
+        KeyCode::Char('d'),
+        KeyModifiers::CONTROL | KeyModifiers::SHIFT,
+    );
+    assert!(runtime.app().state.is_completion_details_open());
+    assert_eq!(runtime.layer_area(POPUP), Some(popup));
+    assert!(
+        runtime
+            .area_of_part(POPUP, PartRef::item(Part::ROW, ItemKey::num(11)))
+            .is_none()
+    );
+
+    let x = previous_row.x.saturating_add(3);
+    let y = previous_row.y;
+    assert!(x >= popup.x && x < popup.right());
+    assert!(y >= popup.y && y < popup.bottom());
+    let original_text = runtime.app().state.editor().text().to_owned();
+    let original_cursor = runtime.app().state.editor().cursor_offset();
+    let original_actions = runtime.app().actions.clone();
+
+    click(&mut runtime, x, y);
+
+    assert!(runtime.app().state.is_completion_details_open());
+    assert!(runtime.app().state.is_completion_open());
+    assert_eq!(runtime.layer_area(POPUP), Some(popup));
+    assert!(
+        runtime
+            .area_of_part(POPUP, PartRef::item(Part::ROW, ItemKey::num(11)))
+            .is_none()
+    );
+    let selected = runtime
+        .app()
+        .state
+        .selected_completion()
+        .expect("fetch remains selected");
+    assert_eq!(selected.as_item().key, ItemKey::num(11));
+    assert_eq!(selected.as_item().insertion(), "fetch()");
+    assert_eq!(runtime.app().state.editor().text(), original_text);
+    assert_eq!(
+        runtime.app().state.editor().cursor_offset(),
+        original_cursor
+    );
+    assert_eq!(runtime.app().actions, original_actions);
+    assert!(
+        runtime.diagnostics().is_empty(),
+        "{:?}",
+        runtime.diagnostics()
+    );
+}
+
+#[test]
+fn tab_accepts_utf8_replacement_directly_from_details_once_and_keeps_suffix() {
+    let source = "λ SELECT fe界suffix";
+    let cursor = "λ SELECT fe".len();
+    let mut runtime = runtime_with(source, ProviderMode::UnicodeDetails);
+    runtime.app_mut().state.editor_mut().jump_to(cursor);
+    let mut buffer = Buffer::empty(AREA);
+    runtime.draw_buffer(AREA, &mut buffer).commit_presented();
+
+    send(&mut runtime, KeyCode::Char(' '), KeyModifiers::CONTROL);
+    send(&mut runtime, KeyCode::Down, KeyModifiers::NONE);
+    send(
+        &mut runtime,
+        KeyCode::Char('d'),
+        KeyModifiers::CONTROL | KeyModifiers::SHIFT,
+    );
+    assert!(runtime.app().state.is_completion_details_open());
+    assert_eq!(runtime.app().state.editor().text(), source);
+    assert_eq!(runtime.app().state.editor().cursor_offset(), cursor);
+
+    let changed_before = runtime
+        .app()
+        .actions
+        .iter()
+        .filter(|action| **action == CodeAction::Changed)
+        .count();
+    send(&mut runtime, KeyCode::Tab, KeyModifiers::NONE);
+
+    assert_eq!(
+        runtime.app().state.editor().text(),
+        "λ SELECT fetch()界suffix"
+    );
+    assert_eq!(
+        runtime.app().state.editor().cursor_offset(),
+        "λ SELECT fetch()".len()
+    );
+    assert!(!runtime.app().state.is_completion_open());
+    assert!(!runtime.app().state.is_completion_details_open());
+    assert!(runtime.app().state.selected_completion().is_none());
+    let changed_after = runtime
+        .app()
+        .actions
+        .iter()
+        .filter(|action| **action == CodeAction::Changed)
+        .count();
+    assert_eq!(changed_after, changed_before + 1);
+    assert_eq!(runtime.app().actions.last(), Some(&CodeAction::Changed));
+    assert!(
+        runtime.diagnostics().is_empty(),
+        "{:?}",
+        runtime.diagnostics()
+    );
+}
+
+#[test]
 fn selected_details_clip_unicode_at_offset_right_and_bottom_edges() {
     use ratatui_core::buffer::CellWidth;
 
@@ -644,6 +767,136 @@ fn selected_details_clip_unicode_at_offset_right_and_bottom_edges() {
     }
     assert_eq!(buffer[(19, 0)].symbol(), "§");
     assert_eq!(runtime.layer_area(POPUP), Some(popup));
+    assert!(
+        runtime.diagnostics().is_empty(),
+        "{:?}",
+        runtime.diagnostics()
+    );
+}
+
+#[test]
+fn selected_details_reflow_clamp_and_remain_reachable_across_resizes() {
+    let mut runtime = runtime_with("SELECT fe", ProviderMode::Details);
+    send(&mut runtime, KeyCode::Char(' '), KeyModifiers::CONTROL);
+    send(&mut runtime, KeyCode::Down, KeyModifiers::NONE);
+    send(
+        &mut runtime,
+        KeyCode::Char('d'),
+        KeyModifiers::CONTROL | KeyModifiers::SHIFT,
+    );
+    assert!(runtime.app().state.is_completion_details_open());
+
+    for _ in 0..8 {
+        send(&mut runtime, KeyCode::PageDown, KeyModifiers::NONE);
+    }
+    assert!(visible_text(&mut runtime).contains("completion footer"));
+
+    let small_area = Rect::new(0, 0, 12, 8);
+    runtime.app_mut().draw_width = 12;
+    runtime.app_mut().draw_x = 7;
+    runtime.app_mut().draw_y = 4;
+    let mut small_buffer = Buffer::empty(Rect::new(0, 0, 20, 10));
+    small_buffer[(19, 9)].set_symbol("§");
+    runtime
+        .draw_buffer(small_area, &mut small_buffer)
+        .commit_presented();
+    let small_popup = runtime.layer_area(POPUP).expect("small popup");
+    assert!(small_popup.right() <= small_area.right());
+    assert!(small_popup.bottom() <= small_area.bottom());
+    assert_eq!(small_popup.width, 12);
+    let small_content = Rect::new(
+        small_popup.x.saturating_add(1),
+        small_popup.y.saturating_add(1),
+        small_popup.width.saturating_sub(2),
+        small_popup.height.saturating_sub(2),
+    );
+    assert_eq!(small_content.width, 10);
+    assert_eq!(small_buffer[(19, 9)].symbol(), "§");
+    for _ in 0..8 {
+        send_into(
+            &mut runtime,
+            KeyCode::PageUp,
+            KeyModifiers::NONE,
+            small_area,
+            &mut small_buffer,
+        );
+    }
+    assert!(buffer_text(&small_buffer, small_area).contains("async"));
+    assert_eq!(small_buffer[(19, 9)].symbol(), "§");
+    assert!(runtime.app().state.is_completion_details_open());
+
+    let tiny_area = Rect::new(0, 0, 2, 2);
+    runtime.app_mut().draw_width = 2;
+    runtime.app_mut().draw_x = 0;
+    runtime.app_mut().draw_y = 0;
+    let backing_area = Rect::new(0, 0, 20, 10);
+    let mut tiny_buffer = Buffer::empty(backing_area);
+    tiny_buffer[(19, 9)].set_symbol("§");
+    runtime
+        .draw_buffer(tiny_area, &mut tiny_buffer)
+        .commit_presented();
+    let tiny_popup = runtime.layer_area(POPUP).expect("tiny popup");
+    assert!(tiny_popup.right() <= tiny_area.right());
+    assert!(tiny_popup.bottom() <= tiny_area.bottom());
+    assert_eq!(tiny_popup.width.saturating_sub(2), 0);
+    assert_eq!(tiny_popup.height.saturating_sub(2), 0);
+    assert_eq!(tiny_buffer[(19, 9)].symbol(), "§");
+    send_into(
+        &mut runtime,
+        KeyCode::PageDown,
+        KeyModifiers::NONE,
+        tiny_area,
+        &mut tiny_buffer,
+    );
+    assert_eq!(tiny_buffer[(19, 9)].symbol(), "§");
+    assert!(runtime.app().state.is_completion_details_open());
+    assert!(
+        runtime.diagnostics().is_empty(),
+        "{:?}",
+        runtime.diagnostics()
+    );
+
+    let wide_area = Rect::new(0, 0, 50, 14);
+    runtime.app_mut().draw_width = 50;
+    runtime.app_mut().draw_x = 0;
+    runtime.app_mut().draw_y = 0;
+    let mut wide_buffer = Buffer::empty(wide_area);
+    wide_buffer[(49, 13)].set_symbol("§");
+    runtime
+        .draw_buffer(wide_area, &mut wide_buffer)
+        .commit_presented();
+    let wide_popup = runtime.layer_area(POPUP).expect("wide popup");
+    assert!(wide_popup.right() <= wide_area.right());
+    assert!(wide_popup.bottom() <= wide_area.bottom());
+    assert_eq!(wide_popup.width, 34);
+    assert_eq!(
+        wide_popup.width.saturating_sub(2),
+        small_content.width.saturating_add(22)
+    );
+    assert_eq!(wide_buffer[(49, 13)].symbol(), "§");
+
+    let mut reached_end = false;
+    for _ in 0..20 {
+        if buffer_text(&wide_buffer, wide_area).contains("completion footer") {
+            reached_end = true;
+            break;
+        }
+        send_into(
+            &mut runtime,
+            KeyCode::PageDown,
+            KeyModifiers::NONE,
+            wide_area,
+            &mut wide_buffer,
+        );
+    }
+    assert!(
+        reached_end,
+        "reflowed detail did not reach its last line:\n{}",
+        buffer_text(&wide_buffer, wide_area)
+    );
+    assert_eq!(wide_buffer[(49, 13)].symbol(), "§");
+    assert_eq!(runtime.layer_area(POPUP), Some(wide_popup));
+    assert!(runtime.app().state.is_completion_details_open());
     assert!(
         runtime.diagnostics().is_empty(),
         "{:?}",
