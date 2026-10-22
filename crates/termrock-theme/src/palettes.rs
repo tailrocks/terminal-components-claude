@@ -153,8 +153,8 @@ const fn junie_256() -> ColorTokens {
             high: Color::Indexed(203),
             track: Color::Indexed(235),
             fill_rest: crate::theme::MeterFillRest::ReferenceLift,
-            stale: Color::Indexed(238),
-            unknown: Color::Indexed(238),
+            stale: Color::Indexed(242),
+            unknown: Color::Indexed(242),
             series: [
                 Color::Indexed(78),
                 Color::Indexed(214),
@@ -184,8 +184,8 @@ fn junie_16() -> ColorTokens {
     // Frozen apply_16 (`self.success = Green`): base ladder slot, not bright.
     tokens.success = Color::Green;
     tokens.danger_soft = Color::LightRed;
-    tokens.meter.stale = Color::DarkGray;
-    tokens.meter.unknown = Color::DarkGray;
+    tokens.meter.stale = Color::Gray;
+    tokens.meter.unknown = Color::Gray;
     tokens
 }
 
