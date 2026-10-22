@@ -57,7 +57,7 @@ pub use manager_split::{
     paint_manager_detail_drawer, paint_manager_split,
 };
 pub use meter::{Meter, MeterTone, MeterVisual};
-pub use notice::{Notice, NoticeKind};
+pub use notice::{Notice, NoticeCut, NoticeKind, NoticeSource};
 pub use progress::{ProgressBar, Spinner};
 pub use section::TextSection;
 pub use session_chrome::{SessionChrome, SessionHint, SessionMenu, paint_session_chrome};

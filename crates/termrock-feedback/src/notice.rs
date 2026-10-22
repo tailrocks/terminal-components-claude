@@ -51,6 +51,66 @@ impl Default for NoticeKind {
     }
 }
 
+/// The semantic text source represented by a cut Notice row.
+#[non_exhaustive]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum NoticeSource {
+    /// The primary message.
+    Message,
+    /// The optional detail paragraph.
+    Detail,
+    /// The optional supporting hint.
+    Hint,
+}
+
+/// Borrowed metadata for one logically cut row of a Notice.
+///
+/// The original source remains intact even when the row shown by the Notice
+/// has been wrapped or truncated.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct NoticeCut<'a> {
+    source: NoticeSource,
+    logical_row: u16,
+    inset: u16,
+    original_text: &'a str,
+}
+
+impl<'a> NoticeCut<'a> {
+    fn from_row(logical_row: u16, row: NoticeRow<'a>) -> Self {
+        let source = match row.kind {
+            RowKind::Message => NoticeSource::Message,
+            RowKind::Detail => NoticeSource::Detail,
+            RowKind::Hint => NoticeSource::Hint,
+        };
+        Self {
+            source,
+            logical_row,
+            inset: row.inset,
+            original_text: row.original_text,
+        }
+    }
+
+    /// Return the message, detail, or hint represented by this row.
+    pub const fn source(&self) -> NoticeSource {
+        self.source
+    }
+
+    /// Return this row's zero-based position in the complete logical Notice.
+    pub const fn logical_row(&self) -> u16 {
+        self.logical_row
+    }
+
+    /// Return the text's horizontal inset from the Notice's left edge.
+    pub const fn inset(&self) -> u16 {
+        self.inset
+    }
+
+    /// Return the complete original message, detail, or hint text.
+    pub const fn original_text(&self) -> &'a str {
+        self.original_text
+    }
+}
+
 #[derive(Clone, Copy, Debug)]
 enum RowKind {
     Message,
@@ -60,6 +120,7 @@ enum RowKind {
 
 struct NoticeRow<'a> {
     text: Cow<'a, str>,
+    original_text: &'a str,
     cut: bool,
     kind: RowKind,
     inset: u16,
@@ -229,6 +290,42 @@ impl<'a> Notice<'a> {
         self.walk_rows(width, self.marker_inset(ui), |_| {})
     }
 
+    /// Visit each logically cut row without allocating wrapped text.
+    ///
+    /// `width` and `logical_height` must match the logical geometry supplied
+    /// to [`Self::draw`]. For [`Self::draw_window`], pass the visible body's
+    /// width and the window's logical row count. A physical viewport crop does
+    /// not create a cut; callers can map each returned row through their
+    /// validated window and clip.
+    ///
+    /// The visitor receives rows in Notice order. Its row number is relative
+    /// to the complete Notice, and its text is the complete original source,
+    /// not the wrapped or painted row. The visible `mark_cut` setting does not
+    /// affect this metadata.
+    pub fn visit_cuts(
+        &self,
+        ui: &Ui<'_>,
+        width: u16,
+        logical_height: u16,
+        mut visit: impl FnMut(NoticeCut<'a>),
+    ) {
+        if width == 0 || logical_height == 0 {
+            return;
+        }
+
+        self.walk_visible_rows(
+            width,
+            self.marker_inset(ui),
+            usize::from(logical_height),
+            false,
+            |index, row| {
+                if row.cut {
+                    visit(NoticeCut::from_row(index, row));
+                }
+            },
+        );
+    }
+
     /// Measure the notice within the supplied constraints.
     pub fn measure(&self, ui: &Ui<'_>, constraints: Constraints) -> Size {
         let natural_width = self.natural_width(ui).min(constraints.max.0);
@@ -264,24 +361,13 @@ impl<'a> Notice<'a> {
             hint: ui.paint_patch(&hint_patch),
         };
 
-        let mut row_index = 0u16;
-        let mut pending: Option<(u16, NoticeRow<'a>)> = None;
-        self.walk_rows(area.width, marker_inset, |row| {
-            let index = row_index;
-            row_index = row_index.saturating_add(1);
-            if index < area.height {
-                if let Some((old_index, old_row)) = pending.replace((index, row)) {
-                    self.paint_row(ui, area, old_index, old_row, marker, styles);
-                }
-            } else if let Some((old_index, mut old_row)) = pending.take() {
-                old_row.cut = true;
-                self.paint_row(ui, area, old_index, old_row, marker, styles);
-            }
-        });
-
-        if let Some((index, row)) = pending {
-            self.paint_row(ui, area, index, row, marker, styles);
-        }
+        self.walk_visible_rows(
+            area.width,
+            marker_inset,
+            usize::from(area.height),
+            true,
+            |index, row| self.paint_row(ui, area, index, row, marker, styles),
+        );
     }
 
     /// Draw the rows visible through a validated window into the notice's
@@ -322,52 +408,22 @@ impl<'a> Notice<'a> {
             hint: ui.paint_patch(&hint_patch),
         };
 
-        let logical_rows = window.logical_rows();
-        let mut source_row = 0usize;
-        let mut pending: Option<(usize, NoticeRow<'a>)> = None;
-        self.walk_rows(area.width, marker_inset, |row| {
-            let index = source_row;
-            source_row = source_row.saturating_add(1);
-
-            if let Some((pending_index, mut pending_row)) = pending.take() {
-                if index >= logical_rows && pending_index.saturating_add(1) == logical_rows {
-                    pending_row.cut = true;
+        self.walk_visible_rows(
+            area.width,
+            marker_inset,
+            window.logical_rows(),
+            true,
+            |index, row| {
+                let source_row = usize::from(index);
+                if !visible_rows.contains(&source_row) {
+                    return;
                 }
-                if let Some(y) = window.physical_row_for_source(pending_index) {
-                    self.paint_row_at(
-                        ui,
-                        area,
-                        RowPosition {
-                            source_row: pending_index,
-                            y,
-                        },
-                        pending_row,
-                        marker,
-                        styles,
-                    );
-                }
-            }
-
-            if index < logical_rows && visible_rows.contains(&index) {
-                pending = Some((index, row));
-            }
-        });
-
-        if let Some((index, row)) = pending
-            && let Some(y) = window.physical_row_for_source(index)
-        {
-            self.paint_row_at(
-                ui,
-                area,
-                RowPosition {
-                    source_row: index,
-                    y,
-                },
-                row,
-                marker,
-                styles,
-            );
-        }
+                let Some(y) = window.physical_row_for_source(source_row) else {
+                    return;
+                };
+                self.paint_row_at(ui, area, RowPosition { source_row, y }, row, marker, styles);
+            },
+        );
     }
 
     fn marker_text(&self, ui: &Ui<'_>) -> &'a str {
@@ -423,26 +479,78 @@ impl<'a> Notice<'a> {
         &self,
         available_width: u16,
         message_inset: u16,
+        emit: impl FnMut(NoticeRow<'a>),
+    ) -> u16 {
+        self.walk_rows_with_capture(available_width, message_inset, true, emit)
+    }
+
+    /// Emit the visible logical rows, marking the final row when this height
+    /// cap omits later content. Drawing, windowed drawing, and cut reporting
+    /// all use this lookahead so their cap semantics cannot drift apart.
+    fn walk_visible_rows(
+        &self,
+        available_width: u16,
+        message_inset: u16,
+        logical_height: usize,
+        capture_text: bool,
+        mut emit: impl FnMut(u16, NoticeRow<'a>),
+    ) {
+        if logical_height == 0 {
+            return;
+        }
+
+        let mut row_index = 0u16;
+        let mut pending: Option<(u16, NoticeRow<'a>)> = None;
+        self.walk_rows_with_capture(available_width, message_inset, capture_text, |row| {
+            let index = row_index;
+            row_index = row_index.saturating_add(1);
+            if usize::from(index) < logical_height {
+                if let Some((previous_index, previous_row)) = pending.replace((index, row)) {
+                    emit(previous_index, previous_row);
+                }
+            } else if let Some((last_index, mut last_row)) = pending.take() {
+                last_row.cut = true;
+                emit(last_index, last_row);
+            }
+        });
+
+        if let Some((index, row)) = pending {
+            emit(index, row);
+        }
+    }
+
+    fn walk_rows_with_capture(
+        &self,
+        available_width: u16,
+        message_inset: u16,
+        capture_text: bool,
         mut emit: impl FnMut(NoticeRow<'a>),
     ) -> u16 {
         let mut row_count = 0u16;
         let message_width = available_width.saturating_sub(message_inset);
         let message_cap = self.message_lines.max(1).min(usize::from(u16::MAX));
-        walk_wrapped(self.message, message_width, message_cap, |line| {
-            if row_count < u16::MAX {
-                let mut cut = line.cut;
-                if message_width == 0 && !line.text.is_empty() {
-                    cut = true;
+        walk_wrapped(
+            self.message,
+            message_width,
+            message_cap,
+            capture_text,
+            |line| {
+                if row_count < u16::MAX {
+                    let mut cut = line.cut;
+                    if message_width == 0 && !line.text.is_empty() {
+                        cut = true;
+                    }
+                    emit(NoticeRow {
+                        text: Cow::Owned(line.text),
+                        original_text: self.message,
+                        cut,
+                        kind: RowKind::Message,
+                        inset: message_inset,
+                    });
+                    row_count = row_count.saturating_add(1);
                 }
-                emit(NoticeRow {
-                    text: Cow::Owned(line.text),
-                    cut,
-                    kind: RowKind::Message,
-                    inset: message_inset,
-                });
-                row_count = row_count.saturating_add(1);
-            }
-        });
+            },
+        );
 
         if let Some(detail) = self.detail
             && self.max_lines > 0
@@ -450,7 +558,7 @@ impl<'a> Notice<'a> {
         {
             let detail_width = available_width.saturating_sub(2);
             let cap = self.max_lines.min(usize::from(u16::MAX - row_count));
-            walk_wrapped(detail, detail_width, cap, |line| {
+            walk_wrapped(detail, detail_width, cap, capture_text, |line| {
                 if row_count < u16::MAX {
                     let mut cut = line.cut;
                     if detail_width == 0 && !line.text.is_empty() {
@@ -458,6 +566,7 @@ impl<'a> Notice<'a> {
                     }
                     emit(NoticeRow {
                         text: Cow::Owned(line.text),
+                        original_text: detail,
                         cut,
                         kind: RowKind::Detail,
                         inset: 2,
@@ -477,6 +586,7 @@ impl<'a> Notice<'a> {
                 || (hint_width == 0 && !first_line.is_empty());
             emit(NoticeRow {
                 text: Cow::Borrowed(first_line),
+                original_text: hint,
                 cut,
                 kind: RowKind::Hint,
                 inset: 2,
@@ -577,6 +687,7 @@ fn walk_wrapped(
     text: &str,
     available_width: u16,
     cap: usize,
+    capture_text: bool,
     emit: impl FnMut(WrappedLine),
 ) -> usize {
     let limit = cap.max(1).min(usize::from(u16::MAX));
@@ -584,7 +695,7 @@ fn walk_wrapped(
         return walk_unwrapped_lines(text, limit, emit);
     }
     let wrap_width = available_width.max(1);
-    let mut state = BoundedWrap::new(limit, emit);
+    let mut state = BoundedWrap::new(limit, capture_text, emit);
 
     for (paragraph_index, paragraph) in text.split('\n').enumerate() {
         if paragraph_index > 0 {
@@ -649,6 +760,7 @@ fn prefix_at_width(text: &str, max_width: u16) -> &str {
 
 struct BoundedWrap<F> {
     limit: usize,
+    capture_text: bool,
     seen: usize,
     emitted: usize,
     current: String,
@@ -664,9 +776,10 @@ impl<F> BoundedWrap<F>
 where
     F: FnMut(WrappedLine),
 {
-    fn new(limit: usize, emit: F) -> Self {
+    fn new(limit: usize, capture_text: bool, emit: F) -> Self {
         Self {
             limit,
+            capture_text,
             seen: 0,
             emitted: 0,
             current: String::new(),
@@ -722,7 +835,9 @@ where
             .saturating_add(word_width)
             <= wrap_width
         {
-            self.current.push(' ');
+            if self.capture_text {
+                self.current.push(' ');
+            }
             self.current_width = self.current_width.saturating_add(1);
             if word_width <= wrap_width {
                 self.append(word, word_width);
@@ -767,9 +882,11 @@ where
 
     fn append(&mut self, text: &str, text_width: u16) {
         self.current_active = true;
-        for (_, grapheme) in graphemes(text) {
-            if grapheme_width(grapheme) > 0 {
-                self.current.push_str(grapheme);
+        if self.capture_text {
+            for (_, grapheme) in graphemes(text) {
+                if grapheme_width(grapheme) > 0 {
+                    self.current.push_str(grapheme);
+                }
             }
         }
         self.current_width = self.current_width.saturating_add(text_width);
