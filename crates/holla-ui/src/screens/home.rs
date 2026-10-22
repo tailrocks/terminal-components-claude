@@ -1132,7 +1132,9 @@ fn paint_tag_list(
         y = y.saturating_add(1);
     }
     if overflow {
-        paint_narrow_scrollbar(
+        // List thumb on the narrow plate: shared compact bar, default black
+        // background (the preview plate uses `#111111` instead).
+        termrock::viewport::CompactScrollbar::new().paint(
             ui,
             Rect::new(
                 area.right().saturating_sub(1),
@@ -1478,16 +1480,19 @@ fn paint_tag_preview(
         );
     }
     if overflow {
-        paint_preview_scrollbar(
-            ui,
-            Rect::new(
-                detail.x.saturating_add(detail.width).saturating_sub(3),
-                detail.y.saturating_add(2),
-                1,
-                u16::try_from(shown).unwrap_or(u16::MAX),
-            ),
-            flat.len(),
-        );
+        // Preview thumb over the `#111111` plate: shared compact bar.
+        termrock::viewport::CompactScrollbar::new()
+            .background(PREVIEW_BG)
+            .paint(
+                ui,
+                Rect::new(
+                    detail.x.saturating_add(detail.width).saturating_sub(3),
+                    detail.y.saturating_add(2),
+                    1,
+                    u16::try_from(shown).unwrap_or(u16::MAX),
+                ),
+                flat.len(),
+            );
     }
 }
 
@@ -1559,56 +1564,6 @@ fn mix_channel(fg: u8, bg: u8, num: u32, den: u32) -> u8 {
         .saturating_add(u32::from(fg).saturating_mul(num));
     let rounded = mixed.saturating_add(den / 2) / den;
     u8::try_from(rounded.min(u32::from(u8::MAX))).unwrap_or(u8::MAX)
-}
-
-const SCROLL_THUMB: Color = Color::Rgb(0x80, 0x80, 0x80);
-const SCROLL_TRACK: Color = Color::Rgb(0x47, 0x47, 0x47);
-
-fn paint_preview_scrollbar(ui: &mut Ui<'_>, area: Rect, content_len: usize) {
-    if area.is_empty() {
-        return;
-    }
-    let mut scroll = termrock::ScrollState::new(content_len);
-    scroll.set_viewport(usize::from(area.height));
-    let (start, len) = scroll.thumb(usize::from(area.height));
-    let thumb_end = start.saturating_add(len);
-    for row in 0..area.height {
-        let on_thumb = (start..thumb_end).contains(&usize::from(row));
-        let (glyph, color) = if on_thumb {
-            ("┃", SCROLL_THUMB)
-        } else {
-            ("┆", SCROLL_TRACK)
-        };
-        ui.paint_str(
-            Rect::new(area.x, area.y.saturating_add(row), 1, 1),
-            glyph,
-            ink(ui, color, PREVIEW_BG, false),
-        );
-    }
-}
-
-/// List thumb on the narrow plate. Same geometry as the preview thumb, on black not `#111111`.
-fn paint_narrow_scrollbar(ui: &mut Ui<'_>, area: Rect, content_len: usize) {
-    if area.is_empty() {
-        return;
-    }
-    let mut scroll = termrock::ScrollState::new(content_len);
-    scroll.set_viewport(usize::from(area.height));
-    let (start, len) = scroll.thumb(usize::from(area.height));
-    let thumb_end = start.saturating_add(len);
-    for row in 0..area.height {
-        let on_thumb = (start..thumb_end).contains(&usize::from(row));
-        let (glyph, color) = if on_thumb {
-            ("┃", SCROLL_THUMB)
-        } else {
-            ("┆", SCROLL_TRACK)
-        };
-        ui.paint_str(
-            Rect::new(area.x, area.y.saturating_add(row), 1, 1),
-            glyph,
-            ink(ui, color, BLACK, false),
-        );
-    }
 }
 
 fn flatten_preview(
