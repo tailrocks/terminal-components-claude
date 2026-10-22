@@ -111,8 +111,8 @@ fn explicit_custom_rest_and_paper_remain_color_tokens() {
 #[test]
 fn symbolic_slots_never_shift_palette_projection_or_mutation_guards() {
     let source = Theme::junie();
-    assert_eq!(source.color.semantic_colors().len(), 73);
-    assert_eq!(source.color.colors().len(), 72);
+    assert_eq!(source.color.semantic_colors().len(), 80);
+    assert_eq!(source.color.colors().len(), 79);
     for a in LEVELS {
         for b in LEVELS {
             for c in LEVELS {
