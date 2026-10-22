@@ -654,7 +654,7 @@ impl Page for EditorPage {
             &[
                 ("↑ ↓ / PgUp Dn", "Scroll detail"),
                 ("Enter / Tab", "Accept"),
-                ("Esc", "List"),
+                ("Esc", "Back to list"),
             ]
         } else if self.state.is_completion_open()
             && self
