@@ -188,3 +188,36 @@ cargo nextest run --locked -p tablepro-ui --test app_tests \
 `/tmp/perf-{afb6,2c58,29dd,707b,30cf-parent,fc7e,ed5b,8a9a,2f61,09aa,52e1}.log`,
 `/tmp/bisect-grid-run.log`, `/tmp/grid-312b.log`,
 `/tmp/resize-{afb6,4d6a,707b,312b,30cf}.log`, `/tmp/fix-perf.log`.
+
+## Closure: Finding 2 re-regression (lane termrock-grid-perf, 2026-10-22)
+
+Finding 2's fix (8ff0a5f746) was re-broken by `89e49b8c7c` — "fix(tablepro):
+show wide explorer counts and the 160 editor seam". git bisect
+(8ff0a5f746 good, tip `000a510a73` bad at 105 allocs vs the 100 budget,
+5 over) names it first bad; its parent `ecaa1bb96a` passes.
+
+New allocation source: `explorer_count_text` built a `String` per visible
+node (`count.to_string`, `tablepro_sql::sql::fmt_rows`) inside the
+per-frame `explorer_counts_fit` check, and `explorer_row` built two more
+for painting (`count.to_string`, `fmt_rows`) — ~5 allocations per frame.
+
+Fix (38e7bad101, behavior-identical): the counts format into a
+stack-resident `MetaBuf` (`[u8; 24]`, `core::fmt::Write`), and
+`tablepro-sql` gains `fmt_rows_to(n, &mut impl Write)`; `fmt_rows` keeps
+its exact text by delegating to it. `workbench-default 120 40 junie
+truecolor` verified `cb84ccedef019170` before and after the fix via a
+scratch digest probe (since deleted; the shared visual harness aborts at
+the first mismatching row, which is `connections 120 40 junie mono`, a
+pre-existing red on a clean tip checkout).
+
+Still red on a clean `origin/parity/termrock-visual-baseline` tip
+checkout, unrelated to this fix, recorded for their owning lanes:
+
+- `tablepro_visual_baseline`: first failing row `connections 120 40 junie
+  mono`, baseline `6666e5439019ec7c`, got `2fcc68b9c6a6b0a8`.
+- `app_tests alt_d_duplicates_orders_and_scrolls_the_inserted_row_just_out_of_view`
+  fails on a clean tip checkout as well.
+
+Also observed at tip: `cargo clippy -p termrock-session --all-targets` is
+clean; the two warnings introduced by `354d60456d` were already removed
+by that lane's `d5b421aff7`.
