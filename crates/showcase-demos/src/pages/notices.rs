@@ -37,6 +37,8 @@ const CONNECTION_META: &str = "postgres · connection test";
 const QUERY_META: &str = "error card · 0.4 ms";
 const INLINE_META: &str = "inline · one per kind, the glyph carries it";
 const SQL_DETAIL: &str = "LINE 1: SELECT id, email, created_at FORM users WHERE created_at > now() - interval '7 days' ORDER BY created_at DESC LIMIT 200";
+const OVERFLOW_DETAIL: &str = "FATAL: password authentication failed after the server checked the saved credential, account status, database role, connection policy, and configured authentication method. Review the keychain entry and connection settings before trying again.";
+const OVERFLOW_HINT: &str = "The connection worker will retry after checking each configured endpoint and the current network route. Wait for the next status update or test the connection again.";
 
 const TAB_HINTS: &[(&str, &str)] = &[("← →", "Section"), ("1–3", "Jump"), ("Enter", "Activate")];
 const SELECT_HINTS: &[(&str, &str)] = &[("↑ ↓", "Choose"), ("Enter", "Open / choose")];
@@ -196,8 +198,8 @@ impl NoticesPage {
         ]
     }
 
-    fn play_content_height(&self, ui: &Ui<'_>, area: Rect) -> usize {
-        let width = self.content_width(self.panel_inner_width(ui, area.width));
+    fn play_content_height(&self, ui: &Ui<'_>, outer_width: u16) -> usize {
+        let width = self.content_width(self.panel_inner_width(ui, outer_width));
         let connection = self.connection().height_for_width(ui, width);
         let query = self.query().height_for_width(ui, width);
         let inline = self
@@ -228,50 +230,92 @@ impl NoticesPage {
         11
     }
 
-    fn states_content_height(&self, ui: &Ui<'_>, area: Rect) -> usize {
-        let width = self.content_width(self.panel_inner_width(ui, area.width));
-        let detail = self.state_rows(true, ui, width);
-        let hint = self.state_rows(false, ui, width);
+    fn states_content_height(&self, ui: &Ui<'_>, outer_width: u16) -> usize {
+        let panel_width = self.panel_inner_width(ui, outer_width);
+        let width = self.content_width(panel_width);
+        let detail = self.state_rows(true, ui, panel_width, width);
+        let hint = self.state_rows(false, ui, panel_width, width);
         6usize
             .saturating_add(detail.into_iter().map(usize::from).sum::<usize>())
             .saturating_add(hint.into_iter().map(usize::from).sum::<usize>())
             .saturating_add(7)
     }
 
-    fn state_rows(&self, with_detail: bool, ui: &Ui<'_>, width: u16) -> [u16; 4] {
-        let rows = if with_detail {
+    fn state_samples(&self, with_detail: bool) -> [(&'static str, Notice<'static>); 4] {
+        if with_detail {
             [
-                self.styled(
-                    Notice::error("Authentication failed").detail("Password rejected for acme_app"),
+                (
+                    "Rest",
+                    self.styled(
+                        Notice::error("Authentication failed")
+                            .detail("Password rejected for acme_app"),
+                    ),
                 ),
-                self.styled(
-                    Notice::warning("Credential check needs attention")
-                        .detail("The stored password may have expired"),
+                (
+                    "Error",
+                    self.styled(
+                        Notice::error(
+                            "Authentication failed while checking the saved database credential",
+                        )
+                        .detail("The saved credential was rejected"),
+                    ),
                 ),
-                self.styled(Notice::error(
-                    "Authentication failed; check the keychain entry",
-                ))
-                .max_lines(1),
-                self.styled(Notice::error("Password rejected").detail("Narrow specimen")),
+                (
+                    "Overflow",
+                    self.styled(Notice::error("The password was rejected").detail(OVERFLOW_DETAIL)),
+                ),
+                (
+                    "Narrow",
+                    self.styled(
+                        Notice::error("Detail narrow tail remains available")
+                            .detail("Narrow specimen"),
+                    ),
+                ),
             ]
         } else {
             [
-                self.with_hint(
-                    Notice::warning("Disk almost full"),
-                    "Free space to keep writing",
+                (
+                    "Rest",
+                    self.with_hint(
+                        Notice::warning("Disk almost full"),
+                        "Free space to keep writing",
+                    ),
                 ),
-                self.with_hint(
-                    Notice::info("Replica is read-only"),
-                    "Inspect the connection details",
+                (
+                    "Error",
+                    self.with_hint(
+                        Notice::error(
+                            "Replica connection failed while checking the configured database service",
+                        ),
+                        "The configured service rejected the connection",
+                    ),
                 ),
-                self.with_hint(Notice::warning("Retry is available"), "Use Test connection"),
-                self.with_hint(Notice::success("Connected"), "Connection test completed"),
+                (
+                    "Overflow",
+                    self.with_hint(Notice::warning("Retry is available"), OVERFLOW_HINT),
+                ),
+                (
+                    "Narrow",
+                    self.with_hint(
+                        Notice::success("Hint narrow tail remains available"),
+                        "Connection test completed",
+                    ),
+                ),
             ]
-        };
-        let narrow = width.min(18);
+        }
+    }
+
+    fn state_rows(
+        &self,
+        with_detail: bool,
+        ui: &Ui<'_>,
+        panel_inner_width: u16,
+        content_width: u16,
+    ) -> [u16; 4] {
+        let rows = self.state_samples(with_detail);
         let mut heights = [0; 4];
-        for (index, notice) in rows.iter().enumerate() {
-            let available = if index == 3 { narrow } else { width };
+        for (index, (_, notice)) in rows.iter().enumerate() {
+            let available = specimen_notice_width(panel_inner_width, content_width, index == 3);
             heights[index] = notice.height_for_width(ui, available);
         }
         heights
@@ -410,7 +454,9 @@ impl NoticesPage {
     }
 
     fn draw_playground(&self, ui: &mut Ui<'_>, area: Rect) {
-        let content_len = self.play_content_height(ui, area);
+        let content_len = scroll_content_len(area, &self.play_scroll, |width| {
+            self.play_content_height(ui, width)
+        });
         let view = ScrollRegion::new(PLAY_SCROLL).draw(ui, area, &self.play_scroll, content_len);
         let offset = self.play_scroll.offset();
         let content_width = self.content_width(self.panel_inner_width(ui, view.width));
@@ -508,13 +554,16 @@ impl NoticesPage {
     }
 
     fn draw_states(&self, ui: &mut Ui<'_>, area: Rect) {
-        let content_len = self.states_content_height(ui, area);
+        let content_len = scroll_content_len(area, &self.states_scroll, |width| {
+            self.states_content_height(ui, width)
+        });
         let view =
             ScrollRegion::new(STATES_SCROLL).draw(ui, area, &self.states_scroll, content_len);
         let offset = self.states_scroll.offset();
-        let width = self.content_width(self.panel_inner_width(ui, view.width));
-        let detail_rows = self.state_rows(true, ui, width);
-        let hint_rows = self.state_rows(false, ui, width);
+        let panel_inner_width = self.panel_inner_width(ui, view.width);
+        let width = self.content_width(panel_inner_width);
+        let detail_rows = self.state_rows(true, ui, panel_inner_width, width);
+        let hint_rows = self.state_rows(false, ui, panel_inner_width, width);
         let detail_height = detail_rows
             .into_iter()
             .fold(0u16, |sum, h| sum.saturating_add(h).saturating_add(1))
@@ -524,56 +573,8 @@ impl NoticesPage {
             .into_iter()
             .fold(0u16, |sum, h| sum.saturating_add(h).saturating_add(1))
             .saturating_add(2);
-        let detail_samples = [
-            (
-                "Rest",
-                self.styled(
-                    Notice::error("Authentication failed").detail("Password rejected for acme_app"),
-                ),
-            ),
-            (
-                "Error",
-                self.styled(
-                    Notice::warning("Credential check needs attention")
-                        .detail("The stored password may have expired"),
-                ),
-            ),
-            (
-                "Overflow",
-                self.styled(Notice::error(
-                    "Authentication failed; check the keychain entry",
-                ))
-                .max_lines(1),
-            ),
-            (
-                "Narrow",
-                self.styled(Notice::error("Password rejected").detail("Narrow specimen")),
-            ),
-        ];
-        let hint_samples = [
-            (
-                "Rest",
-                self.with_hint(
-                    Notice::warning("Disk almost full"),
-                    "Free space to keep writing",
-                ),
-            ),
-            (
-                "Error",
-                self.with_hint(
-                    Notice::info("Replica is read-only"),
-                    "Inspect the connection details",
-                ),
-            ),
-            (
-                "Overflow",
-                self.with_hint(Notice::warning("Retry is available"), "Use Test connection"),
-            ),
-            (
-                "Narrow",
-                self.with_hint(Notice::success("Connected"), "Connection test completed"),
-            ),
-        ];
+        let detail_samples = self.state_samples(true);
+        let hint_samples = self.state_samples(false);
 
         ui.with_area(view, |ui| {
             card_panel(
@@ -656,41 +657,54 @@ impl Page for NoticesPage {
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
-        frame(
-            ui,
-            area,
-            self.title(),
-            "feedback · real controls",
-            |ui, body| {
-                Tabs::new(PAGE_TABS).draw(
-                    ui,
-                    Rect { height: 2, ..body },
-                    &self.page_tabs,
-                    PAGE_TABS_ITEMS,
-                );
-                let content = Rect {
-                    y: body.y.saturating_add(3),
-                    height: body.height.saturating_sub(3),
-                    ..body
-                };
-                match self.section() {
-                    0 => self.draw_playground(ui, content),
-                    1 => {
-                        let scroll_len = self.options_content_height();
-                        let view = ScrollRegion::new(OPTIONS_SCROLL).draw(
-                            ui,
-                            content,
-                            &self.options_scroll,
-                            scroll_len,
-                        );
-                        ui.with_area(view, |ui| {
-                            self.paint_options(ui, view, self.options_scroll.offset())
-                        });
+        ui.with_area(area, |ui| {
+            frame(
+                ui,
+                area,
+                self.title(),
+                "feedback · real controls",
+                |ui, body| {
+                    if body.is_empty() {
+                        return;
                     }
-                    _ => self.draw_states(ui, content),
-                }
-            },
-        );
+                    let tabs_height = body.height.min(2);
+                    Tabs::new(PAGE_TABS).draw(
+                        ui,
+                        Rect {
+                            height: tabs_height,
+                            ..body
+                        },
+                        &self.page_tabs,
+                        PAGE_TABS_ITEMS,
+                    );
+                    let used_height = body.height.min(3);
+                    let content = Rect {
+                        y: body.y.saturating_add(used_height),
+                        height: body.height.saturating_sub(used_height),
+                        ..body
+                    };
+                    if content.is_empty() {
+                        return;
+                    }
+                    match self.section() {
+                        0 => self.draw_playground(ui, content),
+                        1 => {
+                            let scroll_len = self.options_content_height();
+                            let view = ScrollRegion::new(OPTIONS_SCROLL).draw(
+                                ui,
+                                content,
+                                &self.options_scroll,
+                                scroll_len,
+                            );
+                            ui.with_area(view, |ui| {
+                                self.paint_options(ui, view, self.options_scroll.offset())
+                            });
+                        }
+                        _ => self.draw_states(ui, content),
+                    }
+                },
+            );
+        });
     }
 
     fn hints(&self, ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
@@ -727,32 +741,47 @@ fn draw_reference_rows(
 ) {
     let label_width = 10.min(inner.width / 3);
     let notice_x = inner.x.saturating_add(label_width).saturating_add(1);
-    let notice_width = inner.right().saturating_sub(notice_x).min(width);
     let mut y = inner.y;
     for (label, notice) in samples {
-        let height = notice.height_for_width(
-            ui,
-            if *label == "Narrow" {
-                notice_width.min(18)
-            } else {
-                notice_width
-            },
-        );
+        let sample_width = specimen_notice_width(inner.width, width, *label == "Narrow");
+        let height = notice.height_for_width(ui, sample_width);
         paint_label(
             ui,
             Rect::new(inner.x, y, label_width, 1),
             label,
             ui.surface_style().fg(ui.theme_ref().color.fg[1]),
         );
-        let sample_width = if *label == "Narrow" {
-            notice_width.min(18)
-        } else {
-            notice_width
-        };
         ui.reference(None, |ui| {
             notice.draw(ui, Rect::new(notice_x, y, sample_width, height));
         });
         y = y.saturating_add(height).saturating_add(1);
+    }
+}
+
+fn specimen_notice_width(inner_width: u16, content_width: u16, narrow: bool) -> u16 {
+    let label_width = 10.min(inner_width / 3);
+    let notice_width = inner_width
+        .saturating_sub(label_width.saturating_add(1))
+        .min(content_width);
+    if narrow {
+        notice_width.min(18)
+    } else {
+        notice_width
+    }
+}
+
+fn scroll_content_len(
+    area: Rect,
+    state: &ScrollState,
+    mut measure: impl FnMut(u16) -> usize,
+) -> usize {
+    let content_len = measure(area.width);
+    let mut projected = *state;
+    projected.apply_layout(usize::from(area.height), content_len);
+    if projected.overflows() {
+        measure(area.width.saturating_sub(1))
+    } else {
+        content_len
     }
 }
 
