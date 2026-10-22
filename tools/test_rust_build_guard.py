@@ -78,7 +78,7 @@ class BuildGuardTests(unittest.TestCase):
                 guard.check_space([Path("/device-1")], stat_fn=fs.stat, statvfs_fn=fs.statvfs)
 
     def test_command_argv_and_environment_are_preserved_on_exec(self):
-        original = {"PATH": "/tools", "TOKEN_FOR_TEST": "unchanged"}
+        original = {"PATH": "/tools", "HOME": "/tmp", "TOKEN_FOR_TEST": "unchanged"}
         args = ["mise", "exec", "--", "cargo", "nextest", "run", "two words"]
         with mock.patch.object(guard, "_effective_env", return_value={**original, "MISE_ONLY": "for-discovery"}), \
                 mock.patch.object(guard, "discover_paths", return_value=[Path("/")]), \
@@ -166,6 +166,40 @@ class BuildGuardTests(unittest.TestCase):
                 env = {"HOME": tmp, name: "/custom/wrapper"}
                 with mock.patch.object(guard, "_effective_env", return_value=env):
                     self.assertEqual(guard.main(["mise", "exec", "--", "cargo", "build"]), 125)
+
+    def test_install_with_root_or_path_is_rejected_before_exec(self):
+        with mock.patch.object(guard, "_effective_env") as mise_env, mock.patch.object(guard.os, "execvpe") as execvpe:
+            result = guard.main(["mise", "exec", "--", "cargo", "install", "--root", "/tmp/install", "--path", "."])
+            self.assertEqual(result, 125)
+            self.assertEqual(mise_env.call_count, 0)
+            self.assertEqual(execvpe.call_count, 0)
+
+    def test_cargo_alias_is_rejected_before_exec(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / ".cargo").mkdir()
+            (root / ".cargo/config.toml").write_text('[alias]\nlow = "build --target-dir /tmp/low"\n')
+            with mock.patch.object(guard, "_effective_env", return_value={"HOME": tmp}) as mise_env, \
+                    mock.patch.object(guard.Path, "cwd", return_value=root), \
+                    mock.patch.object(guard.os, "execvpe") as execvpe:
+                result = guard.main(["mise", "exec", "--", "cargo", "low"])
+                self.assertEqual(result, 125)
+                self.assertEqual(mise_env.call_count, 0)
+                self.assertEqual(execvpe.call_count, 0)
+
+    def test_nextest_alias_is_rejected_before_exec(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / ".cargo").mkdir()
+            (root / ".cargo/config.toml").write_text('[alias]\nnextest = "build --target-dir /tmp/low"\n')
+            with mock.patch.object(guard, "_effective_env", return_value={"HOME": tmp}), \
+                    mock.patch.object(guard.Path, "cwd", return_value=root), \
+                    mock.patch.object(guard.os, "execvpe") as execvpe, \
+                    mock.patch.object(guard, "check_space") as check_space:
+                result = guard.main(["mise", "exec", "--", "cargo", "nextest", "run"])
+                self.assertEqual(result, 125)
+                self.assertEqual(execvpe.call_count, 0)
+                self.assertEqual(check_space.call_count, 0)
 
     def test_real_deny_probe_does_not_launch_child(self):
         # On constrained disks this proves the guard exits before any command.

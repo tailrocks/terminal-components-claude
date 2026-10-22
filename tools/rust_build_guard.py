@@ -16,6 +16,7 @@ from typing import Callable, Mapping, Sequence
 
 
 MIN_FREE_BYTES = 3_000_000_000_000
+SUPPORTED_COMMANDS = {"build", "check", "clippy", "fmt", "doc", "run"}
 
 
 class GuardError(RuntimeError):
@@ -166,8 +167,8 @@ def _cargo_workspace_root(cwd: Path) -> Path:
     return nearest_package or cwd
 
 
-def _cargo_config_output_paths(env: Mapping[str, str], cwd: Path, home: Path) -> list[Path]:
-    """Include configured Cargo output roots; inspect every applicable config."""
+def _cargo_config_documents(env: Mapping[str, str], cwd: Path, home: Path) -> list[tuple[Path, dict]]:
+    """Load applicable Cargo configs and reject indirect path-changing policy."""
     configs: list[Path] = []
     for directory in (cwd, *cwd.parents):
         for name in (".cargo/config.toml", ".cargo/config"):
@@ -179,7 +180,7 @@ def _cargo_config_output_paths(env: Mapping[str, str], cwd: Path, home: Path) ->
         path = cargo_home / name
         if _exists(path):
             configs.append(path)
-    paths: list[Path] = []
+    documents: list[tuple[Path, dict]] = []
     for config_path in configs:
         try:
             config = tomllib.loads(config_path.read_text(encoding="utf-8"))
@@ -187,6 +188,14 @@ def _cargo_config_output_paths(env: Mapping[str, str], cwd: Path, home: Path) ->
             raise GuardError("could not read Cargo configuration") from exc
         if "include" in config or "env" in config:
             raise GuardError("Cargo configuration include/environment can alter build outputs")
+        documents.append((config_path, config))
+    return documents
+
+
+def _cargo_config_output_paths(env: Mapping[str, str], cwd: Path, home: Path) -> list[Path]:
+    """Include configured Cargo output roots; inspect every applicable config."""
+    paths: list[Path] = []
+    for config_path, config in _cargo_config_documents(env, cwd, home):
         build = config.get("build", {})
         if not isinstance(build, dict):
             raise GuardError("Cargo build configuration has an invalid shape")
@@ -202,6 +211,16 @@ def _cargo_config_output_paths(env: Mapping[str, str], cwd: Path, home: Path) ->
                     raise GuardError(f"Cargo {key} uses path templating the guard cannot resolve")
                 paths.append(_expand_path(value, env, config_path.parent.parent))
     return paths
+
+
+def _has_nextest_alias(env: Mapping[str, str], cwd: Path, home: Path) -> bool:
+    for _path, config in _cargo_config_documents(env, cwd, home):
+        aliases = config.get("alias", {})
+        if not isinstance(aliases, dict):
+            raise GuardError("Cargo aliases have an invalid configuration shape")
+        if "nextest" in aliases:
+            return True
+    return False
 
 
 def filesystem_free_bytes(path: Path, *, stat_fn: Callable = os.stat, statvfs_fn: Callable = os.statvfs) -> tuple[int, int]:
@@ -252,6 +271,16 @@ def main(argv: Sequence[str] | None = None) -> int:
         print("usage: rust_build_guard.py -- mise exec -- cargo [ARG ...]", file=sys.stderr)
         return 2
     cargo_args = args[4:]
+    if not cargo_args:
+        print("rust build guard: denied: Cargo subcommand is required", file=sys.stderr)
+        return 125
+    subcommand = cargo_args[0]
+    if subcommand not in SUPPORTED_COMMANDS and subcommand != "nextest":
+        print(f"rust build guard: denied: unsupported Cargo command {subcommand!r}", file=sys.stderr)
+        return 125
+    if subcommand == "nextest" and (len(cargo_args) < 2 or cargo_args[1] not in {"run", "list"}):
+        print("rust build guard: denied: only cargo nextest run/list are supported", file=sys.stderr)
+        return 125
     if any(
         arg == "--config" or arg.startswith("--config=")
         or arg == "--manifest-path" or arg.startswith("--manifest-path=")
@@ -266,6 +295,12 @@ def main(argv: Sequence[str] | None = None) -> int:
             raise GuardError("custom rustc wrapper output behavior is unknown")
         if effective.get("CARGO_BUILD_RUSTC_WRAPPER") or effective.get("CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER"):
             raise GuardError("Cargo rustc wrapper environment output behavior is unknown")
+        home_value = effective.get("HOME") or effective.get("USERPROFILE")
+        if not home_value:
+            raise GuardError("home directory is unknown")
+        home = _expand_path(home_value, effective, cwd)
+        if subcommand == "nextest" and _has_nextest_alias(effective, cwd, home):
+            raise GuardError("Cargo nextest is configured as an alias; refusing ambiguous command")
         paths = discover_paths(effective, cwd)
         for index, arg in enumerate(cargo_args):
             if arg == "--target-dir":
