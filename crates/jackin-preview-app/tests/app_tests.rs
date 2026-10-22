@@ -18,6 +18,7 @@
 use termrock::{KeyCode, MouseKind};
 
 use jackin_preview_app::Route;
+use jackin_preview_app::app::{ACCOUNT_FORM_LAYER, ACCOUNTS_LIST};
 use jackin_preview_app::{Motion, Scenario};
 mod support;
 use support::H;
@@ -2131,4 +2132,426 @@ fn paused_returning_down_paints_the_expanded_payments_tree() {
     assert!(text.contains("Prewarm"), "{text}");
     assert!(text.contains("→"), "{text}");
     assert!(text.contains("Workspaces › payments-platform"), "{text}");
+}
+
+fn start_live_account_form(h: &mut H) {
+    h.key(KeyCode::Char('a'));
+    assert_eq!(h.app().route(), Route::Accounts);
+    assert!(h.app().accounts.form_open);
+    assert_eq!(
+        h.focus(),
+        Some(jackin_preview_app::screens::accounts::START)
+    );
+
+    h.key(KeyCode::Enter);
+    assert!(h.app().accounts.started);
+    assert_eq!(h.focus(), Some(jackin_preview_app::screens::accounts::NAME));
+}
+
+#[test]
+fn account_name_escape_reverts_the_field_without_closing_the_form() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 120, 40);
+    start_live_account_form(&mut h);
+
+    h.type_str("discard this field edit");
+    assert!(h.app().accounts.name_input.is_editing());
+    assert!(h.text().contains("discard this field edit"), "{}", h.text());
+
+    h.key(KeyCode::Esc);
+
+    assert_eq!(h.app().route(), Route::Accounts);
+    assert!(
+        h.app().accounts.form_open,
+        "field Esc must not cancel the form"
+    );
+    assert!(!h.app().accounts.name_input.is_editing());
+    assert_eq!(h.app().accounts.draft_name, "");
+    assert!(h.text().contains("New account · register"), "{}", h.text());
+}
+
+#[test]
+fn account_form_cancel_preserves_the_selected_account_and_registry() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 120, 40);
+    for _ in 0..4 {
+        h.key(KeyCode::Down);
+    }
+    let selected_id = h
+        .app()
+        .accounts
+        .selected_id
+        .clone()
+        .expect("four Down inputs select Claude · Work");
+    assert_eq!(selected_id, "acct-claude-work");
+    let list_before = h.app().accounts.list.clone();
+    let registry_before = h.app().world.accounts.clone();
+
+    start_live_account_form(&mut h);
+    h.type_str("temporary account");
+    h.key(KeyCode::Enter);
+    assert_eq!(h.app().accounts.draft_name, "temporary account");
+    h.key(KeyCode::Esc);
+
+    assert_eq!(h.app().route(), Route::Accounts);
+    assert!(!h.app().accounts.form_open);
+    assert_eq!(
+        h.app().accounts.selected_id.as_deref(),
+        Some(selected_id.as_str())
+    );
+    assert_eq!(h.app().accounts.list, list_before);
+    assert_eq!(h.app().world.accounts, registry_before);
+    assert_eq!(h.focus(), Some(ACCOUNTS_LIST));
+}
+
+#[test]
+fn account_form_cancel_clears_name_and_credential_draft_immediately() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 120, 40);
+    start_live_account_form(&mut h);
+
+    h.type_str("temporary account");
+    h.key(KeyCode::Enter);
+    h.tab_to(jackin_preview_app::screens::accounts::SOURCE);
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Down);
+    assert_eq!(h.app().accounts.source_index, 2);
+    h.tab_to(jackin_preview_app::screens::accounts::SECRET);
+    h.key(KeyCode::Enter);
+    h.type_str("sk-cancel-secret-1234");
+    assert!(!h.text().contains("sk-cancel-secret-1234"));
+    h.key(KeyCode::Enter);
+    assert_eq!(h.app().accounts.masked_input, "sk-cancel-secret-1234");
+
+    h.key(KeyCode::Esc);
+
+    assert!(!h.app().accounts.form_open);
+    assert_eq!(h.app().accounts.draft_name, "");
+    assert_eq!(h.app().accounts.masked_input, "");
+    assert!(h.app().accounts.selected_op.is_none());
+    assert_eq!(h.app().accounts.op_item, "");
+    assert_eq!(h.app().accounts.op_stage, 0);
+}
+
+#[test]
+fn account_picker_escape_closes_only_the_nested_picker() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 120, 40);
+    start_live_account_form(&mut h);
+    h.tab_to(jackin_preview_app::screens::accounts::OP);
+    h.key(KeyCode::Enter);
+    assert!(
+        h.harness
+            .layer_area(jackin_preview_app::ACCOUNT_PICKER)
+            .is_some(),
+        "the real 1Password picker should own input above the form"
+    );
+
+    h.key(KeyCode::Esc);
+
+    assert!(
+        h.harness
+            .layer_area(jackin_preview_app::ACCOUNT_PICKER)
+            .is_none(),
+        "Esc should close the nested picker"
+    );
+    assert_eq!(h.app().route(), Route::Accounts);
+    assert!(
+        h.app().accounts.form_open,
+        "Esc must leave the parent form open"
+    );
+    assert_eq!(h.app().accounts.op_stage, 0);
+    assert!(h.app().accounts.selected_op.is_none());
+    assert!(h.app().world.accounts.get("acct-claude-work").is_some());
+}
+
+#[test]
+fn account_form_ignores_clicks_on_blank_content_outside_its_controls() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 120, 40);
+    start_live_account_form(&mut h);
+    h.type_str("draft survives an outside click");
+    assert_eq!(
+        h.app().accounts.name_input.draft_text(),
+        Some("draft survives an outside click")
+    );
+    let focus = h.focus();
+    let registry = h.app().world.accounts.clone();
+
+    // The live inline form has no control at this blank lower-right content cell.
+    let _ = h.harness.click(118, 30);
+
+    assert_eq!(h.app().route(), Route::Accounts);
+    assert!(h.app().accounts.form_open);
+    assert_eq!(
+        h.app().accounts.name_input.draft_text(),
+        Some("draft survives an outside click")
+    );
+    assert_eq!(h.focus(), focus);
+    assert_eq!(h.app().world.accounts, registry);
+}
+
+#[test]
+fn account_form_does_not_let_an_underlying_navigation_click_change_route() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 120, 40);
+    start_live_account_form(&mut h);
+    h.type_str("draft stays owned by the form");
+    assert_eq!(
+        h.app().accounts.name_input.draft_text(),
+        Some("draft stays owned by the form")
+    );
+    let registry = h.app().world.accounts.clone();
+    let (manager_x, manager_y) = h.find("Manager").expect("underlay Manager navigation");
+    let _ = h.harness.click(manager_x, manager_y);
+
+    assert_eq!(h.app().route(), Route::Accounts);
+    assert!(h.app().accounts.form_open);
+    assert_eq!(
+        h.app().accounts.name_input.draft_text(),
+        Some("draft stays owned by the form")
+    );
+    assert_eq!(h.app().world.accounts, registry);
+}
+
+#[test]
+fn account_form_consumes_every_underlying_route_key() {
+    for route_key in ['m', 'a', 'u', 's', 'c'] {
+        let mut h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 120, 40);
+        h.key(KeyCode::Char('a'));
+        assert!(h.app().accounts.form_open);
+        assert!(!h.app().accounts.started);
+        let registry = h.app().world.accounts.clone();
+
+        h.key(KeyCode::Char(route_key));
+
+        assert_eq!(h.app().route(), Route::Accounts, "route key {route_key:?}");
+        assert!(h.app().accounts.form_open, "route key {route_key:?}");
+        assert!(!h.app().accounts.started, "route key {route_key:?}");
+        assert_eq!(h.app().world.accounts, registry, "route key {route_key:?}");
+        assert!(
+            h.harness.layer_area(ACCOUNT_FORM_LAYER).is_some(),
+            "route key {route_key:?} must leave the host open"
+        );
+    }
+}
+
+#[test]
+fn nested_account_picker_keeps_the_parent_form_route_keys_blocked() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 120, 40);
+    start_live_account_form(&mut h);
+    h.tab_to(jackin_preview_app::screens::accounts::OP);
+    h.key(KeyCode::Enter);
+    assert!(h.harness.is_open(jackin_preview_app::ACCOUNT_PICKER));
+
+    h.key(KeyCode::Char('m'));
+
+    assert_eq!(h.app().route(), Route::Accounts);
+    assert!(h.app().accounts.form_open);
+    assert!(h.harness.is_open(jackin_preview_app::ACCOUNT_PICKER));
+    assert!(h.harness.is_open(ACCOUNT_FORM_LAYER));
+}
+
+#[test]
+fn account_add_save_does_not_overwrite_the_selected_existing_account() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 120, 40);
+    for _ in 0..4 {
+        h.key(KeyCode::Down);
+    }
+    let selected_id = h.app().accounts.selected_id.clone().unwrap();
+    assert_eq!(selected_id, "acct-claude-work");
+    let existing = h.app().world.accounts.get(&selected_id).unwrap().clone();
+    let account_count = h.app().world.accounts.accounts.len();
+
+    start_live_account_form(&mut h);
+    h.type_str("Fresh");
+    h.tab_to(jackin_preview_app::screens::accounts::SOURCE);
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Down);
+    h.tab_to(jackin_preview_app::screens::accounts::SECRET);
+    h.key(KeyCode::Enter);
+    h.type_str("sk-ant-new-account-abcdef1234");
+    h.key(KeyCode::Enter);
+    h.tab_to(jackin_preview_app::screens::accounts::FORM.sub("save"));
+    h.key(KeyCode::Enter);
+
+    assert!(!h.app().accounts.form_open);
+    assert_eq!(h.app().world.accounts.accounts.len(), account_count + 1);
+    assert_eq!(h.app().world.accounts.get(&selected_id), Some(&existing));
+    assert!(h.app().world.accounts.get("acct-anthropic-fresh").is_some());
+    assert_eq!(
+        h.app().accounts.selected_id.as_deref(),
+        Some("acct-anthropic-fresh")
+    );
+}
+
+#[test]
+fn account_add_cancel_reconciles_when_the_return_account_disappears() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 120, 40);
+    for _ in 0..4 {
+        h.key(KeyCode::Down);
+    }
+    let removed_id = h.app().accounts.selected_id.clone().unwrap();
+    start_live_account_form(&mut h);
+    h.app_mut()
+        .world
+        .accounts
+        .remove(&removed_id)
+        .expect("selected account exists before removal");
+    h.key(KeyCode::Enter);
+
+    h.key(KeyCode::Esc);
+
+    assert!(!h.app().accounts.form_open);
+    assert_ne!(
+        h.app().accounts.selected_id.as_deref(),
+        Some(removed_id.as_str())
+    );
+    assert!(
+        h.app()
+            .accounts
+            .selected_id
+            .as_ref()
+            .is_none_or(|id| { h.app().world.accounts.get(id).is_some() })
+    );
+}
+
+#[test]
+fn account_form_focus_continuation_is_acknowledged_across_repeated_open_close() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 120, 40);
+    for _ in 0..4 {
+        h.key(KeyCode::Down);
+    }
+    let selected_id = h.app().accounts.selected_id.clone();
+    let list_cursor = h.app().accounts.list.cursor();
+    assert_eq!(selected_id.as_deref(), Some("acct-claude-work"));
+
+    for cycle in 0..36 {
+        h.key(KeyCode::Char('a'));
+        assert!(h.app().accounts.form_open, "open cycle {cycle}");
+        assert!(h.harness.is_open(ACCOUNT_FORM_LAYER), "layer cycle {cycle}");
+        assert!(
+            h.harness.diagnostics().is_empty(),
+            "open cycle {cycle}: {:?}",
+            h.harness.diagnostics()
+        );
+
+        h.key(KeyCode::Esc);
+        assert!(!h.app().accounts.form_open, "close cycle {cycle}");
+        assert_eq!(h.focus(), Some(ACCOUNTS_LIST), "focus cycle {cycle}");
+        assert_eq!(
+            h.app().accounts.selected_id,
+            selected_id,
+            "selection cycle {cycle}"
+        );
+        assert_eq!(
+            h.app().accounts.list.cursor(),
+            list_cursor,
+            "cursor cycle {cycle}"
+        );
+        assert!(
+            h.harness.diagnostics().is_empty(),
+            "close cycle {cycle}: {:?}",
+            h.harness.diagnostics()
+        );
+    }
+
+    // Runtime continuation receipts expire after 32 presented frames unless the
+    // owner applies and acknowledges the settled focus result.
+    h.ticks(40);
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "post-close continuation expiry: {:?}",
+        h.harness.diagnostics()
+    );
+}
+
+#[test]
+fn account_add_invalid_save_keeps_the_same_form_open_for_correction() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 120, 40);
+    start_live_account_form(&mut h);
+    let registry = h.app().world.accounts.clone();
+
+    h.tab_to(jackin_preview_app::screens::accounts::FORM.sub("save"));
+    h.key(KeyCode::Enter);
+
+    assert!(h.app().accounts.form_open);
+    assert!(h.app().accounts.started);
+    assert!(h.text().contains("Choose a 1Password reference first"));
+    assert_eq!(h.app().world.accounts, registry);
+    assert!(h.harness.is_open(ACCOUNT_FORM_LAYER));
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "{:?}",
+        h.harness.diagnostics()
+    );
+}
+
+#[test]
+fn account_edit_save_and_cancel_use_the_live_host_without_touching_credentials() {
+    let mut save = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 120, 40);
+    for _ in 0..4 {
+        save.key(KeyCode::Down);
+    }
+    save.key(KeyCode::Char('e'));
+    assert!(save.app().accounts.form_open);
+    assert!(save.harness.is_open(ACCOUNT_FORM_LAYER));
+    let id = save
+        .app()
+        .accounts
+        .editing
+        .clone()
+        .expect("selected account edit");
+    let before = save.app().world.accounts.get(&id).unwrap().clone();
+    save.type_str("-updated");
+    save.tab_to(jackin_preview_app::screens::accounts::FORM.sub("save"));
+    save.key(KeyCode::Enter);
+
+    assert!(!save.app().accounts.form_open);
+    let updated = save
+        .app()
+        .world
+        .accounts
+        .get(&id)
+        .expect("edited account remains");
+    assert_eq!(updated.display_name, "Work-updated");
+    assert_eq!(updated.source, before.source);
+    assert_eq!(updated.id, before.id);
+    assert!(!save.harness.is_open(ACCOUNT_FORM_LAYER));
+    assert_eq!(save.focus(), Some(ACCOUNTS_LIST));
+    assert!(
+        save.harness.diagnostics().is_empty(),
+        "{:?}",
+        save.harness.diagnostics()
+    );
+
+    let mut cancel = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 120, 40);
+    for _ in 0..4 {
+        cancel.key(KeyCode::Down);
+    }
+    let id = cancel.app().accounts.selected_id.clone().unwrap();
+    let registry = cancel.app().world.accounts.clone();
+    cancel.key(KeyCode::Char('e'));
+    cancel.type_str("-discarded");
+    cancel.key(KeyCode::Esc);
+    assert!(
+        cancel.app().accounts.form_open,
+        "first Esc reverts the field"
+    );
+    assert_eq!(cancel.app().accounts.draft_name, "Work");
+    assert!(cancel.harness.is_open(ACCOUNT_FORM_LAYER));
+    assert!(
+        cancel.harness.diagnostics().is_empty(),
+        "field revert frame: {:?}",
+        cancel.harness.diagnostics()
+    );
+    cancel.key(KeyCode::Esc);
+
+    assert!(!cancel.app().accounts.form_open);
+    assert_eq!(cancel.app().world.accounts, registry);
+    assert_eq!(
+        cancel.app().accounts.selected_id.as_deref(),
+        Some(id.as_str())
+    );
+    assert!(!cancel.harness.is_open(ACCOUNT_FORM_LAYER));
+    assert_eq!(cancel.focus(), Some(ACCOUNTS_LIST));
+    assert!(
+        cancel.harness.diagnostics().is_empty(),
+        "{:?}",
+        cancel.harness.diagnostics()
+    );
 }
