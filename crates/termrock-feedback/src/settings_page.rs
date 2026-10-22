@@ -8,6 +8,7 @@ use std::fmt;
 use ratatui_core::layout::Rect;
 use ratatui_core::style::{Color, Modifier};
 
+use crate::text::measure::{grapheme_width, graphemes};
 use crate::text::width;
 use crate::theme::{FgStep, PaintStyle, Surface};
 use crate::ui::Ui;
@@ -375,70 +376,84 @@ fn bold(fg: Color, bg: Color) -> PaintStyle {
 }
 
 fn put(ui: &mut Ui<'_>, area: Rect, x: u16, y: u16, text: &str, style: PaintStyle) {
-    let x = x.max(area.x);
-    let room = area.right().saturating_sub(x);
-    if room == 0 || y < area.y || y >= area.bottom() || text.is_empty() {
-        return;
-    }
-    ui.paint_str(Rect::new(x, y, room, 1), text, style);
+    let width = area.right().saturating_sub(x);
+    put_clipped(ui, area, x, y, text, width, style);
 }
 
 fn put_cols(ui: &mut Ui<'_>, area: Rect, x: u16, y: u16, text: &str, cols: u16, style: PaintStyle) {
-    let x = x.max(area.x);
-    let room = area.right().saturating_sub(x).min(cols);
-    if room == 0 || y < area.y || y >= area.bottom() || text.is_empty() {
+    put_clipped(ui, area, x, y, text, cols, style);
+}
+
+fn put_clipped(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    x: u16,
+    y: u16,
+    text: &str,
+    width: u16,
+    style: PaintStyle,
+) {
+    if width == 0 || y < area.y || y >= area.bottom() || text.is_empty() {
         return;
     }
-    ui.paint_str(Rect::new(x, y, room, 1), text, style);
+
+    let right = x.saturating_add(width).min(area.right());
+    if right <= area.x {
+        return;
+    }
+
+    let mut draw_x = x;
+    let mut text_start = 0;
+    if draw_x < area.x {
+        for (byte, grapheme) in graphemes(text) {
+            if draw_x >= area.x {
+                text_start = byte;
+                break;
+            }
+
+            draw_x = draw_x.saturating_add(grapheme_width(grapheme));
+            text_start = byte.saturating_add(grapheme.len());
+        }
+    }
+
+    if draw_x < area.x || draw_x >= right {
+        return;
+    }
+    let Some(visible_text) = text.get(text_start..) else {
+        return;
+    };
+    if visible_text.is_empty() {
+        return;
+    }
+
+    ui.paint_str(
+        Rect::new(draw_x, y, right.saturating_sub(draw_x), 1),
+        visible_text,
+        style,
+    );
 }
 
 fn paint_header(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>, ink: &Ink) {
     let y = area.y;
+    let brand = format!(" {} ", page.brand);
     put(
         ui,
         area,
         area.x.saturating_add(1),
         y,
-        " ",
-        bold(ink.on_accent, ink.accent),
-    );
-    let brand_width = width(page.brand);
-    put(
-        ui,
-        area,
-        area.x.saturating_add(2),
-        y,
-        page.brand,
-        bold(ink.on_accent, ink.accent),
-    );
-    put(
-        ui,
-        area,
-        area.x.saturating_add(2).saturating_add(brand_width),
-        y,
-        " ",
+        &brand,
         bold(ink.on_accent, ink.accent),
     );
     let mut x = area
         .x
         .saturating_add(1)
-        .saturating_add(brand_width)
-        .saturating_add(2)
+        .saturating_add(width(&brand))
         .saturating_add(2);
     let menu = plain(ink.secondary, ink.canvas);
     for label in page.menus {
-        let label_width = width(label);
-        put(ui, area, x, y, " ", menu);
-        put(ui, area, x.saturating_add(1), y, label, menu);
-        put(
-            ui,
-            area,
-            x.saturating_add(1).saturating_add(label_width),
-            y,
-            " ",
-            menu,
-        );
-        x = x.saturating_add(label_width).saturating_add(3);
+        let text = format!(" {label} ");
+        put(ui, area, x, y, &text, menu);
+        x = x.saturating_add(width(&text)).saturating_add(1);
     }
     let secondary = plain(ink.secondary, ink.canvas);
     if let Some(cluster) = page.cluster {
@@ -498,38 +513,30 @@ fn paint_tabs(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>, ink: &Ink) -
     let mut selected_span = 0;
     for tab in page.tabs {
         let span = tab_span(tab.label);
+        let idle = format!(" {}  ", tab.label);
         if tab.selected {
             selected_at = x;
             selected_span = span;
             let face = bold(ink.primary, ink.face);
             if x == origin {
                 put(ui, area, x, y, "▎", bold(ink.accent, ink.face));
-                put(ui, area, x.saturating_add(1), y, tab.label, face);
                 put(
                     ui,
                     area,
-                    x.saturating_add(1).saturating_add(width(tab.label)),
+                    x.saturating_add(1),
                     y,
-                    "  ",
+                    &format!("{}  ", tab.label),
                     face,
                 );
             } else {
-                paint_tab_label(ui, area, x, y, tab.label, face);
+                put(ui, area, x, y, &idle, face);
             }
         } else {
-            paint_tab_label(ui, area, x, y, tab.label, plain(ink.secondary, ink.canvas));
+            put(ui, area, x, y, &idle, plain(ink.secondary, ink.canvas));
         }
         x = x.saturating_add(span).saturating_add(1);
     }
     (selected_at, selected_span)
-}
-
-fn paint_tab_label(ui: &mut Ui<'_>, area: Rect, x: u16, y: u16, label: &str, style: PaintStyle) {
-    put(ui, area, x, y, " ", style);
-    let label_x = x.saturating_add(1);
-    put(ui, area, label_x, y, label, style);
-    let trailing_x = label_x.saturating_add(width(label));
-    put(ui, area, trailing_x, y, "  ", style);
 }
 
 fn paint_underline(ui: &mut Ui<'_>, area: Rect, selected_at: u16, selected_span: u16, ink: &Ink) {
@@ -978,9 +985,9 @@ fn paint_mount_row(
 
 fn paint_actions(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>, ink: &Ink) {
     let y = area.bottom().saturating_sub(3);
-    let save_width = width(page.save).saturating_add(1);
-    let cancel_width = width(page.cancel).saturating_add(1);
-    let save_x = area.right().saturating_sub(5).saturating_sub(save_width);
+    let save = format!("{} ", page.save);
+    let cancel = format!("{} ", page.cancel);
+    let save_x = area.right().saturating_sub(5).saturating_sub(width(&save));
     let save_ink = if page.save_enabled {
         ink.primary
     } else {
@@ -994,16 +1001,8 @@ fn paint_actions(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>, ink: &Ink
         " ",
         plain(ink.face, ink.face),
     );
-    put(ui, area, save_x, y, page.save, plain(save_ink, ink.face));
-    put(
-        ui,
-        area,
-        save_x.saturating_add(width(page.save)),
-        y,
-        " ",
-        plain(save_ink, ink.face),
-    );
-    let cancel_x = save_x.saturating_sub(4).saturating_sub(cancel_width);
+    put(ui, area, save_x, y, &save, plain(save_ink, ink.face));
+    let cancel_x = save_x.saturating_sub(4).saturating_sub(width(&cancel));
     put(
         ui,
         area,
@@ -1017,15 +1016,7 @@ fn paint_actions(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>, ink: &Ink
         area,
         cancel_x,
         y,
-        page.cancel,
-        plain(ink.secondary, ink.canvas),
-    );
-    put(
-        ui,
-        area,
-        cancel_x.saturating_add(width(page.cancel)),
-        y,
-        " ",
+        &cancel,
         plain(ink.secondary, ink.canvas),
     );
 }
@@ -1402,6 +1393,199 @@ mod tests {
         assert!(mount_scene.text().contains("Destination"));
         assert!(mount_scene.text().contains("/workspace"));
         assert!(mount_scene.text().contains("Add mount"));
+    }
+
+    #[test]
+    fn put_preserves_the_logical_ascii_origin_and_stays_inside_its_area() {
+        let area = Rect::new(4, 2, 6, 3);
+        let mut scene = Scene::new(
+            "settings_put_offset_ascii",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            16,
+            8,
+        );
+        scene.draw_over(
+            |buffer| {
+                for pos in buffer.area().positions() {
+                    if let Some(cell) = buffer.cell_mut(pos) {
+                        cell.set_symbol("!");
+                    }
+                }
+            },
+            |ui, _| put(ui, area, 1, 3, "abcdefgh", PaintStyle::new()),
+        );
+
+        for (x, expected) in [(4, "d"), (5, "e"), (6, "f"), (7, "g"), (8, "h")] {
+            assert_eq!(
+                scene.buffer().cell((x, 3)).map(|cell| cell.symbol()),
+                Some(expected)
+            );
+        }
+        assert_eq!(
+            scene.buffer().cell((9, 3)).map(|cell| cell.symbol()),
+            Some("!")
+        );
+        for pos in scene.area().positions() {
+            if !area.contains(pos) {
+                assert_eq!(
+                    scene.buffer().cell(pos).map(|cell| cell.symbol()),
+                    Some("!"),
+                    "put changed a cell outside the supplied area at ({}, {})",
+                    pos.x,
+                    pos.y,
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn put_cols_keeps_its_original_width_budget_after_left_clipping() {
+        let area = Rect::new(4, 2, 12, 3);
+        let mut scene = Scene::new(
+            "settings_put_cols_offset_budget",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            18,
+            8,
+        );
+        scene.draw_over(
+            |buffer| {
+                for pos in buffer.area().positions() {
+                    if let Some(cell) = buffer.cell_mut(pos) {
+                        cell.set_symbol("!");
+                    }
+                }
+            },
+            |ui, _| put_cols(ui, area, 1, 3, "abcdefghi", 6, PaintStyle::new()),
+        );
+
+        assert_eq!(
+            scene.buffer().cell((4, 3)).map(|cell| cell.symbol()),
+            Some("d")
+        );
+        assert_eq!(
+            scene.buffer().cell((5, 3)).map(|cell| cell.symbol()),
+            Some("e")
+        );
+        assert_eq!(
+            scene.buffer().cell((6, 3)).map(|cell| cell.symbol()),
+            Some("f")
+        );
+        assert_eq!(
+            scene.buffer().cell((7, 3)).map(|cell| cell.symbol()),
+            Some("!")
+        );
+        for pos in scene.area().positions() {
+            if !area.contains(pos) {
+                assert_eq!(
+                    scene.buffer().cell(pos).map(|cell| cell.symbol()),
+                    Some("!"),
+                    "put_cols changed a cell outside the supplied area at ({}, {})",
+                    pos.x,
+                    pos.y,
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn put_clips_only_at_complete_grapheme_boundaries_on_both_sides() {
+        let family = "👨‍👩‍👧‍👦";
+        let mut scene = Scene::new(
+            "settings_put_unicode_clipping",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            12,
+            8,
+        );
+        let areas = [
+            Rect::new(1, 1, 8, 1),
+            Rect::new(1, 2, 8, 1),
+            Rect::new(1, 3, 8, 1),
+            Rect::new(1, 4, 8, 1),
+            Rect::new(3, 5, 1, 1),
+            Rect::new(3, 6, 1, 1),
+        ];
+        scene.draw_over(
+            |buffer| {
+                for pos in buffer.area().positions() {
+                    if let Some(cell) = buffer.cell_mut(pos) {
+                        cell.set_symbol("!");
+                    }
+                }
+            },
+            |ui, _| {
+                put(ui, areas[0], 0, 1, "e\u{301}X", PaintStyle::new());
+                put(ui, areas[1], 0, 2, "\u{301}XY", PaintStyle::new());
+                put(ui, areas[2], 0, 3, "界X", PaintStyle::new());
+                put(ui, areas[3], 0, 4, &format!("{family}Z"), PaintStyle::new());
+                put(ui, areas[4], 3, 5, "界X", PaintStyle::new());
+                put(ui, areas[5], 3, 6, family, PaintStyle::new());
+            },
+        );
+
+        assert_eq!(
+            scene.buffer().cell((1, 1)).map(|cell| cell.symbol()),
+            Some("X")
+        );
+        assert_eq!(
+            scene.buffer().cell((1, 2)).map(|cell| cell.symbol()),
+            Some("Y")
+        );
+        assert_eq!(
+            scene.buffer().cell((1, 3)).map(|cell| cell.symbol()),
+            Some("!")
+        );
+        assert_eq!(
+            scene.buffer().cell((2, 3)).map(|cell| cell.symbol()),
+            Some("X")
+        );
+        assert_eq!(
+            scene.buffer().cell((1, 4)).map(|cell| cell.symbol()),
+            Some("!")
+        );
+        assert_eq!(
+            scene.buffer().cell((2, 4)).map(|cell| cell.symbol()),
+            Some("Z")
+        );
+        assert_eq!(
+            scene.buffer().cell((3, 5)).map(|cell| cell.symbol()),
+            Some("!")
+        );
+        assert_eq!(
+            scene.buffer().cell((3, 6)).map(|cell| cell.symbol()),
+            Some("!")
+        );
+    }
+
+    #[test]
+    fn chrome_keeps_combining_marks_attached_to_group_padding() {
+        let tabs = [SettingsTab {
+            label: "\u{301}General",
+            selected: false,
+        }];
+        let mut page = legacy_page(&[], &[], None);
+        page.brand = "\u{301}Settings";
+        page.menus = &["\u{301}Files"];
+        page.tabs = &tabs;
+        let mut scene = Scene::new(
+            "settings_grouped_combining_chrome",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            80,
+            24,
+        );
+        scene.draw(|ui, area| paint_settings_page(ui, area, &page));
+
+        assert_eq!(
+            scene.buffer().cell((1, 0)).map(|cell| cell.symbol()),
+            Some(" \u{301}")
+        );
+        assert_eq!(
+            scene.buffer().cell((2, 3)).map(|cell| cell.symbol()),
+            Some(" \u{301}")
+        );
     }
 
     #[test]
