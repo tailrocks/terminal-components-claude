@@ -9,6 +9,8 @@ pub struct H {
     pub harness: Harness<App>,
 }
 
+// Integration tests compile this shared adapter separately and use different subsets.
+#[allow(dead_code)]
 impl H {
     pub fn new(scenario: Scenario, motion: Motion, frame: u64, w: u16, h: u16) -> Self {
         Self {
