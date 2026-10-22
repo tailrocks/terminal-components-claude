@@ -48,6 +48,10 @@ fn main() {
             "overlay_sites::site_scanner_reads_functions",
             overlay_sites::site_scanner_reads_functions,
         ),
+        check(
+            "overlay_sites::scanner_matches_calls_across_comments_without_losing_owners",
+            overlay_sites::scanner_matches_calls_across_comments_without_losing_owners,
+        ),
         check("isolation::env_isolation", isolation::env_isolation),
         check(
             "support::clear_actual_leaves_nothing",

@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
-use crate::determinism::{code_only, non_test};
+use crate::determinism::{code_only, matching_patterns, non_test};
 
 const OPENERS: [&str; 16] = [
     "req.menu(",
@@ -341,31 +341,40 @@ pub fn scan(workspace: &Path) -> BTreeMap<String, usize> {
         let text = std::fs::read_to_string(&file).unwrap_or_else(|e| panic!("read {rel}: {e}"));
         let mut current = String::from("<top>");
         let non_test = non_test(&text).unwrap_or_else(|error| panic!("scan {rel}: {error}"));
-        for line in code_only(&non_test).lines() {
-            if let Some(name) = enclosing_fn(line) {
+        let code = code_only(&non_test);
+        let patterns: Vec<_> = OPENERS.iter().chain(NOT_OPENING.iter()).copied().collect();
+        let matches = matching_patterns(&code, &patterns);
+        let (opener_matches, not_opening_matches) = matches.split_at(OPENERS.len());
+        let mut line_start = 0;
+        for line in code.split_inclusive('\n') {
+            let mut source_line = line.strip_suffix('\n').unwrap_or(line);
+            source_line = source_line.strip_suffix('\r').unwrap_or(source_line);
+            if let Some(name) = enclosing_fn(source_line) {
                 current = name.to_string();
             }
-            if NOT_OPENING.iter().any(|p| line.contains(p)) {
-                continue;
-            }
-            let hits = OPENERS.iter().filter(|p| contains_call(line, p)).count();
+            let line_end = line_start + line.len();
+            // Keep the established count unit: each opener pattern contributes at most once
+            // per physical line, even when that line contains repeated calls.
+            let hits = OPENERS
+                .iter()
+                .enumerate()
+                .filter(|(pattern, _)| {
+                    opener_matches[*pattern].iter().any(|opener| {
+                        (line_start..line_end).contains(&opener.start)
+                            && !not_opening_matches
+                                .iter()
+                                .flatten()
+                                .any(|excluded| excluded.contains(&opener.start))
+                    })
+                })
+                .count();
             if hits > 0 {
                 *sites.entry(format!("{rel}::{current}")).or_insert(0) += hits;
             }
+            line_start = line_end;
         }
     }
     sites
-}
-
-fn contains_call(line: &str, pattern: &str) -> bool {
-    line.match_indices(pattern).any(|(at, _)| {
-        pattern.starts_with('.')
-            || at == 0
-            || !line[..at]
-                .chars()
-                .next_back()
-                .is_some_and(|c| c.is_alphanumeric() || c == '_')
-    })
 }
 
 fn unlisted_sites(
@@ -577,7 +586,110 @@ pub fn site_scanner_reads_functions() {
     assert_eq!(enclosing_fn("fn a<'b>() {}"), Some("a"));
     assert_eq!(enclosing_fn("let f = Fn::new();"), None);
     assert_eq!(enclosing_fn("    let defn = 1;"), None);
-    assert!(contains_call("Dialog::confirm(ID)", "Dialog::confirm("));
-    assert!(!contains_call("ProductDialog::new(ID)", "Dialog::new("));
+    assert_eq!(
+        matching_patterns("Dialog::confirm(ID)", &["Dialog::confirm("])[0].len(),
+        1
+    );
+    assert!(matching_patterns("ProductDialog::new(ID)", &["Dialog::new("])[0].is_empty());
     site_scanner_detects_unlisted_overlay_and_ignores_prefix_matches();
+}
+
+pub fn scanner_matches_calls_across_comments_without_losing_owners() {
+    let workspace = std::env::temp_dir().join(format!(
+        "visual-harness-overlay-token-matches-{}",
+        std::process::id()
+    ));
+    let source = workspace.join("crates/holla-ui/src/app.rs");
+    let package = source
+        .parent()
+        .and_then(Path::parent)
+        .expect("package root");
+    std::fs::create_dir_all(source.parent().expect("source parent")).expect("create source root");
+    std::fs::write(
+        package.join("Cargo.toml"),
+        "[package]\nname = \"holla-ui\"\nversion = \"0.1.0\"\n",
+    )
+    .expect("write package manifest");
+    std::fs::write(
+        &source,
+        concat!(
+            "#[cfg(test)] mod hidden { fn test_only() { Dialog::new(ID); } }\n",
+            "#[emit(#[cfg(test)] mod quoted { fn generated() { Dialog::new(ID); } })]\n",
+            "fn attribute_marker() {}\n",
+            "fn inline_open() { Dialog/**/::new(ID); }\n",
+            "fn after_inline() { Dialog::confirm(ID, \"title\", \"body\"); }\n",
+            "fn multiline_open() {\n",
+            "    Dialog /* first */\n",
+            "        :: /* second */ new(ID);\n",
+            "}\n",
+            "fn after_multiline() { Picker::new(ID); }\n",
+            "fn fallback_only() { let _value = value.unwrap_or(ModalTag::new(ID)); }\n",
+            "fn fallback_with_real() { let _value = value.unwrap_or(ModalTag/**/::new(ID)); Dialog::new(ID); }\n",
+            "fn fallback_multiline() {\n",
+            "    let _value = value.unwrap_or(\n",
+            "        ModalTag /* fallback */\n",
+            "            :: /* path */ new(ID)\n",
+            "    );\n",
+            "    Dialog\n",
+            "        :: new(ID);\n",
+            "}\n",
+            "fn preview_only() { let p = self.style(Picker::new(ID.sub(\"preview\", \"item\"))); }\n",
+            "fn preview_with_real() {\n",
+            "    let p = self.style(\n",
+            "        Picker /* preview */\n",
+            "            :: /* path */ new(ID.sub(\"preview\", \"item\"))\n",
+            "    );\n",
+            "    Dialog::new(ID);\n",
+            "}\n",
+            "fn boundaries() { unrelatedreq.menu(ID); ProductDialog/**/::new(ID); Dialog::newer(ID); this.req /* receiver */ . menu(ID); Dialog::new(ID); }\n",
+            "fn method_openers() {\n",
+            "    self /* receiver */ . menu /* method */ . open(ID);\n",
+            "    self\n",
+            "        . /* method */ push(Modal::confirm(ID));\n",
+            "}\n",
+            "fn repeated() { Dialog::new(ID); Dialog::new(ID); }\n",
+            "fn repeated_lines() {\n",
+            "    Dialog::new(ID);\n",
+            "    Dialog::new(ID);\n",
+            "}\n",
+            "fn lexical_noise() { let _text = \"Dialog::new(ID)\"; }\n",
+            "// Dialog::new(ID)\n",
+            "fn production_after_test() { Dialog::facts(ID, \"title\", \"body\"); }\n",
+        ),
+    )
+    .expect("write overlay token fixture");
+
+    let scanned = scan(&workspace);
+    std::fs::remove_dir_all(&workspace).expect("remove source fixture");
+    let expected = BTreeMap::from([
+        ("crates/holla-ui/src/app.rs::after_inline".to_string(), 1),
+        ("crates/holla-ui/src/app.rs::after_multiline".to_string(), 1),
+        ("crates/holla-ui/src/app.rs::generated".to_string(), 1),
+        ("crates/holla-ui/src/app.rs::boundaries".to_string(), 2),
+        (
+            "crates/holla-ui/src/app.rs::fallback_multiline".to_string(),
+            1,
+        ),
+        (
+            "crates/holla-ui/src/app.rs::fallback_with_real".to_string(),
+            1,
+        ),
+        ("crates/holla-ui/src/app.rs::inline_open".to_string(), 1),
+        ("crates/holla-ui/src/app.rs::method_openers".to_string(), 2),
+        ("crates/holla-ui/src/app.rs::multiline_open".to_string(), 1),
+        (
+            "crates/holla-ui/src/app.rs::preview_with_real".to_string(),
+            1,
+        ),
+        (
+            "crates/holla-ui/src/app.rs::production_after_test".to_string(),
+            1,
+        ),
+        ("crates/holla-ui/src/app.rs::repeated".to_string(), 1),
+        ("crates/holla-ui/src/app.rs::repeated_lines".to_string(), 2),
+    ]);
+    assert_eq!(
+        scanned, expected,
+        "match exact token sequences at their first-token line, preserve one hit per opener type and physical line, and bound preview/fallback exclusions"
+    );
 }
