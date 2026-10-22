@@ -1059,6 +1059,22 @@ impl<'f> Ui<'f> {
             .register_part(owner, part, area.intersection(self.clip), self.layer);
     }
 
+    /// Register a clipped region that participates in live hover only.
+    ///
+    /// Hover-only regions do not receive clicks, focus, capture, move intents,
+    /// or scrolling. Ordinary hit testing continues to the underlying region.
+    pub fn register_hover_part(&mut self, owner: Id, part: PartRef, area: Rect) {
+        if self.registrations_suppressed() {
+            return;
+        }
+        self.frame.registry.register_hover_part(
+            owner,
+            part,
+            area.intersection(self.clip),
+            self.layer,
+        );
+    }
+
     pub fn register_decor(&mut self, owner: Id, part: PartRef, area: Rect) {
         if self.registrations_suppressed() {
             return;
@@ -1077,6 +1093,24 @@ impl<'f> Ui<'f> {
             area.intersection(self.clip),
             self.layer,
             axes,
+            head,
+        );
+    }
+
+    /// Register a vertical passive-reveal scroll region.
+    ///
+    /// Eligible unmodified wheel input scrolls this region by three lines. At
+    /// either end, or for modified, horizontal, zero-delta, or unavailable
+    /// scroll input, routing may continue to another scroll region on the same
+    /// top layer. Ordinary [`Ui::register_scroll`] behavior is unchanged.
+    pub fn register_passive_reveal_scroll(&mut self, id: Id, area: Rect, head: Headroom) {
+        if self.registrations_suppressed() {
+            return;
+        }
+        self.frame.registry.register_passive_reveal_scroll(
+            id,
+            area.intersection(self.clip),
+            self.layer,
             head,
         );
     }
@@ -1682,7 +1716,7 @@ mod tests {
     use crate::action::ActionKey;
     use crate::event::{Chord, KeyCode};
     use crate::focus::Focusability;
-    use crate::hit::{Axes, Headroom};
+    use crate::hit::{Axes, Headroom, RegionKind};
     use crate::id::{Id, ItemKey, Part, PartRef};
     use crate::keymap::Binding;
     use crate::layer::{LayerId, LayerSpec};
@@ -1965,6 +1999,8 @@ mod tests {
                 ui.register_part(OWNER, PartRef::of(Part::LABEL), SCREEN);
                 ui.register_decor(OWNER, PartRef::of(Part::HELP), SCREEN);
                 ui.register_scroll(OWNER, SCREEN, Axes::Both, Headroom::default());
+                ui.register_hover_part(OWNER, PartRef::of(Part::LABEL), SCREEN);
+                ui.register_passive_reveal_scroll(OWNER, SCREEN, Headroom::default());
                 ui.declare_state(OWNER, StateFlags::ERROR);
                 ui.report_layout(OWNER, LayoutFacts::new(1, 2, 3, 4));
                 ui.set_cursor(OWNER, Position::new(1, 1));
@@ -1996,6 +2032,47 @@ mod tests {
                 .active()
                 .first()
                 .is_some_and(|layer| !layer.drawn)
+        );
+    }
+
+    #[test]
+    fn passive_registrations_respect_the_current_clip_and_inert_floor() {
+        const HOVER: Id = Id::root("ui.passive-hover");
+        const REVEAL_SCROLL: Id = Id::root("ui.passive-scroll");
+        let theme = Theme::junie();
+        let clip = Rect::new(3, 1, 5, 2);
+        let registered = with_ui(&theme, |ui| {
+            ui.with_area(clip, |ui| {
+                ui.register_hover_part(HOVER, PartRef::of(Part::LABEL), Rect::new(0, 0, 20, 8));
+                ui.register_passive_reveal_scroll(
+                    REVEAL_SCROLL,
+                    Rect::new(0, 0, 20, 8),
+                    Headroom {
+                        down: 4,
+                        ..Headroom::default()
+                    },
+                );
+            });
+            ui.frame.registry.regions().to_vec()
+        })
+        .0;
+        assert_eq!(registered.len(), 2);
+        assert_eq!(registered[0].owner, HOVER);
+        assert_eq!(registered[0].kind, RegionKind::HoverOnly);
+        assert_eq!(registered[0].area, clip);
+        assert_eq!(registered[1].owner, REVEAL_SCROLL);
+        assert_eq!(registered[1].kind, RegionKind::Scroll);
+        assert_eq!(registered[1].area, clip);
+
+        let inert_regions = with_inert_ui(&theme, |ui| {
+            ui.register_hover_part(HOVER, PartRef::of(Part::LABEL), SCREEN);
+            ui.register_passive_reveal_scroll(REVEAL_SCROLL, SCREEN, Headroom::default());
+            ui.frame.registry.regions().to_vec()
+        })
+        .0;
+        assert!(
+            inert_regions.is_empty(),
+            "inert registrations are suppressed"
         );
     }
 

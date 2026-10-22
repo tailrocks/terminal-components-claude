@@ -13,6 +13,8 @@ pub enum RegionKind {
     Control,
     Part,
     Scroll,
+    /// A non-interactive region that participates only in top-layer hover.
+    HoverOnly,
     Decorative,
     /// A light-dismiss backdrop registered behind a popup or modal.
     Backdrop,
@@ -66,8 +68,37 @@ pub struct Region {
     pub kind: RegionKind,
     pub generation: u32,
     scroll: Option<(Axes, Headroom)>,
+    scroll_routing: ScrollRouting,
     pointer_enabled: bool,
     pass_through: bool,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+enum ScrollRouting {
+    #[default]
+    Capture,
+    PassiveReveal,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct ScrollCandidate {
+    hit: Hit,
+    headroom: Headroom,
+    passive_reveal: bool,
+}
+
+impl ScrollCandidate {
+    pub(crate) const fn hit(self) -> Hit {
+        self.hit
+    }
+
+    pub(crate) const fn headroom(self) -> Headroom {
+        self.headroom
+    }
+
+    pub(crate) const fn passive_reveal(self) -> bool {
+        self.passive_reveal
+    }
 }
 
 impl Region {
@@ -190,6 +221,16 @@ impl Registry {
         self.push(owner, part, area, layer, RegionKind::Part, None);
     }
 
+    pub(crate) fn register_hover_part(
+        &mut self,
+        owner: Id,
+        part: PartRef,
+        area: Rect,
+        layer: LayerId,
+    ) {
+        self.push(owner, part, area, layer, RegionKind::HoverOnly, None);
+    }
+
     pub fn register_decor(&mut self, owner: Id, part: PartRef, area: Rect, layer: LayerId) {
         self.push(owner, part, area, layer, RegionKind::Decorative, None);
     }
@@ -210,6 +251,29 @@ impl Registry {
             RegionKind::Scroll,
             Some((axes, head)),
         );
+    }
+
+    pub(crate) fn register_passive_reveal_scroll(
+        &mut self,
+        owner: Id,
+        area: Rect,
+        layer: LayerId,
+        head: Headroom,
+    ) {
+        if area.is_empty() {
+            return;
+        }
+        self.push(
+            owner,
+            PartRef::of(Part::CONTAINER),
+            area,
+            layer,
+            RegionKind::Scroll,
+            Some((Axes::V, head)),
+        );
+        if let Some(region) = self.regions.last_mut() {
+            region.scroll_routing = ScrollRouting::PassiveReveal;
+        }
     }
 
     fn push(
@@ -264,6 +328,7 @@ impl Registry {
             kind,
             generation: self.generation,
             scroll: None,
+            scroll_routing: ScrollRouting::Capture,
             pointer_enabled,
             pass_through,
         });
@@ -287,7 +352,9 @@ impl Registry {
             .iter()
             .enumerate()
             .filter(|(_, r)| {
-                r.pointer_enabled && r.kind != RegionKind::Scroll && r.area.contains(pos)
+                r.pointer_enabled
+                    && !matches!(r.kind, RegionKind::Scroll | RegionKind::HoverOnly)
+                    && r.area.contains(pos)
             })
             .max_by_key(|(i, r)| (r.layer, *i))
             .map(|(_, r)| Self::hit_of(r, pos))
@@ -300,7 +367,10 @@ impl Registry {
             .filter(|(_, r)| {
                 r.pointer_enabled
                     && r.layer == layer
-                    && matches!(r.kind, RegionKind::Control | RegionKind::Part)
+                    && matches!(
+                        r.kind,
+                        RegionKind::Control | RegionKind::Part | RegionKind::HoverOnly
+                    )
                     && r.area.contains(pos)
             })
             .max_by_key(|(i, _)| *i)
@@ -319,6 +389,29 @@ impl Registry {
             })
             .max_by_key(|(i, r)| (r.layer, *i))
             .map(|(_, r)| Self::hit_of(r, pos))
+    }
+
+    pub(crate) fn scroll_candidates(
+        &self,
+        pos: Position,
+        axis: Axis,
+        layer: LayerId,
+    ) -> impl Iterator<Item = ScrollCandidate> + '_ {
+        self.regions.iter().rev().filter_map(move |region| {
+            if !region.pointer_enabled
+                || region.kind != RegionKind::Scroll
+                || region.layer != layer
+                || !region.area.contains(pos)
+            {
+                return None;
+            }
+            let (axes, headroom) = region.scroll?;
+            axes.handles(axis).then_some(ScrollCandidate {
+                hit: Self::hit_of(region, pos),
+                headroom,
+                passive_reveal: region.scroll_routing == ScrollRouting::PassiveReveal,
+            })
+        })
     }
 
     pub fn area_of(&self, id: Id) -> Option<Rect> {
@@ -548,6 +641,81 @@ mod tests {
         assert_eq!(hit, Some((A, part, RegionKind::Part, Position::new(4, 0))));
         assert_eq!(h.area_of_part(A, part), Some(Rect::new(0, 3, 10, 1)));
         assert_eq!(h.area_of(A), Some(Rect::new(0, 0, 10, 10)));
+    }
+
+    #[test]
+    fn hover_only_is_observable_for_top_layer_hover_but_not_click_delivery() {
+        let mut registry = Registry::new(1);
+        let area = Rect::new(1, 2, 8, 3);
+        let hover_part = PartRef::of(Part::LABEL);
+        registry.register_control(A, area, LayerId::PAGE);
+        registry.register_hover_part(B, hover_part, area, LayerId::PAGE);
+
+        let hover = registry
+            .hit_live(Position::new(3, 3), LayerId::PAGE)
+            .expect("the exact top-layer hover-only part");
+        assert_eq!(
+            (hover.owner, hover.part, hover.kind),
+            (B, hover_part, RegionKind::HoverOnly)
+        );
+        assert_eq!(
+            registry
+                .hit(Position::new(3, 3))
+                .map(|hit| (hit.owner, hit.kind)),
+            Some((A, RegionKind::Control)),
+            "ordinary click hit testing skips hover-only registrations"
+        );
+        assert_eq!(registry.hit_live(Position::new(3, 3), LayerId(1)), None);
+        assert_eq!(registry.hit_scroll(Position::new(3, 3), Axis::V), None);
+        assert!(!registry.delivers_to(B));
+        assert!(
+            registry
+                .regions()
+                .iter()
+                .filter(|region| region.owner == B)
+                .all(|region| region.kind == RegionKind::HoverOnly && region.scroll().is_none())
+        );
+    }
+
+    #[test]
+    fn passive_scroll_policy_is_attached_to_each_registration_and_top_layer() {
+        let mut registry = Registry::new(1);
+        let area = Rect::new(1, 1, 12, 6);
+        let normal_headroom = Headroom {
+            down: 8,
+            ..Headroom::default()
+        };
+        let passive_headroom = Headroom {
+            up: 2,
+            down: 3,
+            ..Headroom::default()
+        };
+        registry.register_scroll(A, area, LayerId::PAGE, Axes::V, normal_headroom);
+        registry.register_passive_reveal_scroll(A, area, LayerId::PAGE, passive_headroom);
+        registry.register_scroll(B, area, LayerId(1), Axes::V, Headroom::default());
+
+        let page_candidates = registry
+            .scroll_candidates(Position::new(4, 3), Axis::V, LayerId::PAGE)
+            .map(|candidate| (candidate.passive_reveal(), candidate.headroom()))
+            .collect::<Vec<_>>();
+        assert_eq!(
+            page_candidates,
+            [(true, passive_headroom), (false, normal_headroom),],
+            "reverse registration order keeps policy on the exact duplicate owner registration"
+        );
+        let modal_candidates = registry
+            .scroll_candidates(Position::new(4, 3), Axis::V, LayerId(1))
+            .map(|candidate| (candidate.hit().owner, candidate.passive_reveal()))
+            .collect::<Vec<_>>();
+        assert_eq!(modal_candidates, [(B, false)]);
+
+        assert_eq!(
+            registry
+                .hit_scroll(Position::new(4, 3), Axis::V)
+                .map(|hit| hit.owner),
+            Some(B),
+            "legacy generic hit_scroll ordering and endpoint behavior remain unchanged"
+        );
     }
 
     #[test]
