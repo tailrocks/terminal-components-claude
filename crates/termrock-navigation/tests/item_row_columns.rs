@@ -4,10 +4,12 @@ use termrock_navigation::{
     FilterList, FilterListAction, FilterListState, FilterPolicy, Item, ItemRowLayout,
 };
 use termrock_runtime::{
-    App, Cx, Id, ItemKey, KeyCode, Part, PartRef, Response, RowUi, Ui, UpdateCause,
+    App, Cx, Id, ItemKey, KeyCode, Part, PartRef, Response, RowUi, StateFlags, Ui, UpdateCause,
 };
 use termrock_test_support::Harness;
-use termrock_theme::{ColorLevel, CursorStyle, Modifier, Role, StylePatch, Theme};
+use termrock_theme::{
+    ColorLevel, CursorStyle, Family, FgStep, Modifier, MonoRule, Role, StylePatch, Theme,
+};
 use unicode_segmentation::UnicodeSegmentation;
 const ID: Id = Id::root("columns.list");
 const OWNER_FG: Color = Color::Rgb(17, 83, 149);
@@ -243,6 +245,93 @@ fn at(h: &Harness<Page>, area: Rect, offset: u16, text: &str) {
     }
 }
 
+fn assert_text_foreground(h: &Harness<Page>, x: u16, y: u16, text: &str, fg: Color) {
+    let mut x = x;
+    for grapheme in text.graphemes(true) {
+        let cell = h.cell(x, y);
+        assert_eq!(cell.symbol(), grapheme);
+        assert_eq!(cell.fg, fg, "foreground for {grapheme:?} at ({x}, {y})");
+        x = x.saturating_add(termrock_text::width(grapheme));
+    }
+}
+
+fn changed_cell_positions(left: &Harness<Page>, right: &Harness<Page>) -> Vec<(u16, u16)> {
+    let left = left.buffer();
+    let right = right.buffer();
+    assert_eq!(left.area, right.area);
+    let mut positions = Vec::new();
+    for y in left.area.y..left.area.bottom() {
+        for x in left.area.x..left.area.right() {
+            if left[(x, y)] != right[(x, y)] {
+                positions.push((x, y));
+            }
+        }
+    }
+    positions.sort_unstable();
+    positions
+}
+
+fn historical_picker_recipe(theme: Theme) -> Theme {
+    theme.define_family(Family::PICKER, |family| {
+        family.part(Part::ICON).base(
+            StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Muted))
+                .remove(Modifier::BOLD),
+        );
+        family.part(Part::META).base(
+            StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Muted))
+                .remove(Modifier::BOLD),
+        );
+    })
+}
+
+fn historical_mono_disabled_label(theme: Theme) -> Theme {
+    const HISTORICAL_PICKER_MONO_RULES: [MonoRule; 1] = [(
+        Part::LABEL,
+        StateFlags::DISABLED,
+        StylePatch::new()
+            .set_fg(Role::Fg(FgStep::Primary))
+            .remove(Modifier::all())
+            .add(Modifier::DIM),
+    )];
+    theme
+        .builder()
+        .mono_rules(Family::PICKER, &HISTORICAL_PICKER_MONO_RULES)
+        .build()
+}
+
+fn historical_fixture_theme(level: ColorLevel) -> Theme {
+    let mut theme = Theme::junie().for_level(level);
+    if level == ColorLevel::Ansi256 {
+        // The historical 256-color fingerprint predates the frozen Junie palette.
+        theme.color.fg[2] = Color::Indexed(244);
+        theme.color.fg[3] = Color::Indexed(238);
+        theme.color.disabled_fg = Color::Indexed(238);
+    }
+    let theme = historical_picker_recipe(theme);
+    if level == ColorLevel::Mono {
+        historical_mono_disabled_label(theme)
+    } else {
+        theme
+    }
+}
+
+fn assert_current_picker_ink(h: &Harness<Page>, theme: &Theme, level: ColorLevel) {
+    let focused_row = row(h, 1);
+    let focused_icon = h.cell(focused_row.x.saturating_add(1), focused_row.y);
+    assert_eq!(focused_icon.symbol(), "T", "{level:?} focused icon");
+    assert_eq!(
+        focused_icon.fg, theme.color.fg[0],
+        "{level:?} focused icon ink"
+    );
+
+    let (open_x, open_y) = h.find("open").expect("first item's tag is visible");
+    assert_text_foreground(h, open_x, open_y, "open", theme.color.fg[1]);
+    let (tag_x, tag_y) = h.find("tag").expect("fourth item's tag is visible");
+    assert_text_foreground(h, tag_x, tag_y, "tag", theme.color.fg[1]);
+}
+
 fn full_cell_fingerprint(h: &Harness<Page>) -> u64 {
     const OFFSET: u64 = 0xcbf2_9ce4_8422_2325;
     const PRIME: u64 = 0x0100_0000_01b3;
@@ -314,8 +403,8 @@ fn columns_align_complete_projection_and_emphasize_original_graphemes() {
 }
 
 #[test]
-fn constructor_defaults_match_the_pre_policy_full_cell_fixture() {
-    const PRE_POLICY_LEGACY_PALETTE: [u64; 4] = [
+fn constructor_defaults_follow_current_policy_and_historical_fixture_replays_are_pinned() {
+    const HISTORICAL_FULL_CELL_FIXTURE: [u64; 4] = [
         5_235_702_202_963_140_133,
         12_184_706_452_759_668_872,
         617_874_636_223_778_604,
@@ -341,14 +430,129 @@ fn constructor_defaults_match_the_pre_policy_full_cell_fixture() {
         );
         assert_eq!(default.buffer(), explicit.buffer(), "{level:?}");
         assert_eq!(default.cursor(), explicit.cursor(), "{level:?}");
+
+        let current_theme = Theme::junie().for_level(level);
+        assert_current_picker_ink(&default, &current_theme, level);
+
+        // Replay the old muted ICON/META recipe on today's palette to pin the exact
+        // current-vs-historical component-ink projection at each color capability.
+        let historical_component_style = page_with_theme(
+            ItemRowLayout::Columns,
+            64,
+            4,
+            false,
+            None,
+            None,
+            ITEMS.to_vec(),
+            historical_picker_recipe(current_theme),
+        );
+        let mut expected_component_ink_changes =
+            if matches!(level, ColorLevel::TrueColor | ColorLevel::Ansi256) {
+                vec![
+                    (2, 1),
+                    (51, 1),
+                    (51, 4),
+                    (52, 1),
+                    (52, 4),
+                    (53, 1),
+                    (53, 4),
+                    (54, 1),
+                ]
+            } else {
+                vec![(2, 1)]
+            };
+        expected_component_ink_changes.sort_unstable();
+        assert_eq!(
+            changed_cell_positions(&default, &historical_component_style),
+            expected_component_ink_changes,
+            "current component ink changes only the historical icon/tag cells at {level:?}"
+        );
+        for (x, y) in expected_component_ink_changes.iter().copied() {
+            let current = &default.buffer()[(x, y)];
+            let historical = &historical_component_style.buffer()[(x, y)];
+            assert_eq!(
+                current.symbol(),
+                historical.symbol(),
+                "{level:?} ({x}, {y})"
+            );
+            assert_eq!(current.bg, historical.bg, "{level:?} ({x}, {y})");
+            assert_eq!(
+                current.modifier, historical.modifier,
+                "{level:?} ({x}, {y})"
+            );
+            assert_ne!(current.fg, historical.fg, "{level:?} ({x}, {y})");
+        }
+
+        // The pinned hashes belong to the original a848 recipe and palette. Rebuild
+        // those inputs explicitly instead of claiming they describe today's defaults.
+        let historical = page_with_theme(
+            ItemRowLayout::Columns,
+            64,
+            4,
+            false,
+            None,
+            None,
+            ITEMS.to_vec(),
+            historical_fixture_theme(level),
+        );
+        assert_eq!(
+            full_cell_fingerprint(&historical),
+            HISTORICAL_FULL_CELL_FIXTURE[index],
+            "historical full-cell replay under its authored component recipe and palette"
+        );
+
+        if level == ColorLevel::Mono {
+            let (disabled_x, disabled_y) = default
+                .find("disabled")
+                .expect("disabled item's label is visible");
+            let mut expected_mono_changes = vec![(2, 1)];
+            expected_mono_changes.extend((0..8).map(|offset| (disabled_x + offset, disabled_y)));
+            expected_mono_changes.sort_unstable();
+            assert_eq!(
+                changed_cell_positions(&default, &historical),
+                expected_mono_changes,
+                "Mono's historical replay differs only at the focused icon and disabled label"
+            );
+            let (historical_disabled_x, historical_disabled_y) = historical
+                .find("disabled")
+                .expect("historical disabled item's label is visible");
+            assert_eq!(
+                (disabled_x, disabled_y),
+                (historical_disabled_x, historical_disabled_y)
+            );
+            let mut x = disabled_x;
+            for grapheme in "disabled".graphemes(true) {
+                let current = default.cell(x, disabled_y);
+                let prior = historical.cell(x, historical_disabled_y);
+                assert_eq!(current.symbol(), grapheme);
+                assert_eq!(current.symbol(), prior.symbol());
+                assert_eq!(current.fg, Color::DarkGray);
+                assert_eq!(prior.fg, Color::White);
+                assert_eq!(current.bg, prior.bg);
+                assert_eq!(current.modifier, Modifier::DIM);
+                assert_eq!(current.modifier, prior.modifier);
+                x = x.saturating_add(termrock_text::width(grapheme));
+            }
+        }
+
         if level == ColorLevel::Ansi256 {
-            // This fixture was authored before the frozen Junie palette correction. Keep
-            // its historical fingerprint under its explicit legacy muted/faint colors.
-            let mut legacy_theme = Theme::junie().for_level(ColorLevel::Ansi256);
-            legacy_theme.color.fg[2] = Color::Indexed(244);
-            legacy_theme.color.fg[3] = Color::Indexed(238);
-            legacy_theme.color.disabled_fg = Color::Indexed(238);
-            let legacy = page_with_theme(
+            let historical_muted_cells = historical
+                .buffer()
+                .content()
+                .iter()
+                .filter(|cell| cell.fg == Color::Indexed(244))
+                .count();
+            assert_eq!(
+                historical_muted_cells, 174,
+                "the historical recipe retains its original muted-cell palette mutation proof"
+            );
+
+            // Keep the existing palette-mutation proof against current row styling.
+            let mut legacy_palette_theme = Theme::junie().for_level(ColorLevel::Ansi256);
+            legacy_palette_theme.color.fg[2] = Color::Indexed(244);
+            legacy_palette_theme.color.fg[3] = Color::Indexed(238);
+            legacy_palette_theme.color.disabled_fg = Color::Indexed(238);
+            let legacy_palette = page_with_theme(
                 ItemRowLayout::Columns,
                 64,
                 4,
@@ -356,12 +560,7 @@ fn constructor_defaults_match_the_pre_policy_full_cell_fixture() {
                 None,
                 None,
                 ITEMS.to_vec(),
-                legacy_theme,
-            );
-            assert_eq!(
-                full_cell_fingerprint(&legacy),
-                PRE_POLICY_LEGACY_PALETTE[index],
-                "legacy fixture fingerprint under authored legacy palette"
+                legacy_palette_theme,
             );
 
             let mut incomplete_theme = Theme::junie().for_level(ColorLevel::Ansi256);
@@ -377,12 +576,12 @@ fn constructor_defaults_match_the_pre_policy_full_cell_fixture() {
                 ITEMS.to_vec(),
                 incomplete_theme,
             );
-            let disabled_row = row(&legacy, 3);
+            let disabled_row = row(&legacy_palette, 3);
             let mut disabled_ink_differences = Vec::new();
-            for y in legacy.buffer().area.y..legacy.buffer().area.bottom() {
-                for x in legacy.buffer().area.x..legacy.buffer().area.right() {
+            for y in legacy_palette.buffer().area.y..legacy_palette.buffer().area.bottom() {
+                for x in legacy_palette.buffer().area.x..legacy_palette.buffer().area.right() {
                     let old = &incomplete.buffer()[(x, y)];
-                    let restored = &legacy.buffer()[(x, y)];
+                    let restored = &legacy_palette.buffer()[(x, y)];
                     if old != restored {
                         disabled_ink_differences.push((
                             x,
@@ -414,14 +613,14 @@ fn constructor_defaults_match_the_pre_policy_full_cell_fixture() {
                     .collect::<Vec<_>>(),
                 "omitting the historical disabled foreground changes only these cells"
             );
-            assert_eq!(incomplete.cursor(), legacy.cursor());
+            assert_eq!(incomplete.cursor(), legacy_palette.cursor());
             assert_eq!(
                 incomplete.runtime().registry().regions(),
-                legacy.runtime().registry().regions(),
+                legacy_palette.runtime().registry().regions(),
                 "reconstructing disabled ink must not change hit regions"
             );
 
-            let mut corrected = legacy.buffer().clone();
+            let mut corrected = legacy_palette.buffer().clone();
             let mut muted_positions = Vec::new();
             for y in corrected.area.y..corrected.area.bottom() {
                 for x in corrected.area.x..corrected.area.right() {
@@ -433,18 +632,39 @@ fn constructor_defaults_match_the_pre_policy_full_cell_fixture() {
             }
             assert_eq!(
                 muted_positions.len(),
-                174,
-                "only muted foreground cells change"
+                166,
+                "current Primary/Secondary component ink leaves these muted cells to normalize"
             );
-            let mut disabled_cells = 0;
-            for y in disabled_row.y..disabled_row.bottom() {
-                for x in disabled_row.x..disabled_row.right() {
-                    let cell = &mut corrected[(x, y)];
-                    if cell.fg == Color::Indexed(238) {
-                        cell.fg = Color::Indexed(239);
-                        disabled_cells += 1;
+            let current_muted = Theme::junie().for_level(ColorLevel::Ansi256).color.fg[2];
+            let mut current_muted_positions = Vec::new();
+            for y in default.buffer().area.y..default.buffer().area.bottom() {
+                for x in default.buffer().area.x..default.buffer().area.right() {
+                    let current = &default.buffer()[(x, y)];
+                    if current.fg == current_muted {
+                        current_muted_positions.push((x, y));
                     }
                 }
+            }
+            assert_eq!(
+                muted_positions, current_muted_positions,
+                "only old Index(244) muted positions normalize to today's muted token"
+            );
+            for (x, y) in muted_positions.iter().copied() {
+                let cell = &mut corrected[(x, y)];
+                let current = &default.buffer()[(x, y)];
+                assert_eq!(cell.fg, Color::Indexed(244));
+                assert_eq!(current.fg, current_muted);
+                assert_eq!(cell.symbol(), current.symbol());
+                assert_eq!(cell.bg, current.bg);
+                assert_eq!(cell.modifier, current.modifier);
+                cell.fg = current_muted;
+            }
+            let mut disabled_cells = 0usize;
+            for (x, y, _, current_fg, historical_fg) in &disabled_ink_differences {
+                let cell = &mut corrected[(*x, *y)];
+                assert_eq!(cell.fg, *historical_fg);
+                cell.fg = *current_fg;
+                disabled_cells += 1;
             }
             assert_eq!(
                 disabled_cells,
@@ -454,12 +674,12 @@ fn constructor_defaults_match_the_pre_policy_full_cell_fixture() {
             assert_eq!(
                 default.buffer(),
                 &corrected,
-                "frozen muted and disabled colors restore full-cell output"
+                "current muted and disabled colors restore full-cell output"
             );
-            assert_eq!(default.cursor(), legacy.cursor());
+            assert_eq!(default.cursor(), legacy_palette.cursor());
             assert_eq!(
                 default.runtime().registry().regions(),
-                legacy.runtime().registry().regions(),
+                legacy_palette.runtime().registry().regions(),
                 "palette reconstruction preserves all hit regions"
             );
 
@@ -467,23 +687,35 @@ fn constructor_defaults_match_the_pre_policy_full_cell_fixture() {
             for (x, y) in muted_positions.iter().copied() {
                 let before = &corrected[(x, y)];
                 let cell = &mut wrong_muted[(x, y)];
-                assert_eq!(before.fg, Color::Indexed(244));
+                assert_eq!(before.fg, current_muted);
                 assert_eq!(cell.symbol(), before.symbol());
                 assert_eq!(cell.bg, before.bg);
                 assert_eq!(cell.modifier, before.modifier);
                 cell.fg = Color::Indexed(246);
             }
-            assert_eq!(muted_positions.len(), 174);
+            assert_eq!(muted_positions.len(), 166);
+            let mut current_component_ink_cells = vec![(2, 1)];
+            current_component_ink_cells.extend((51..=54).map(|x| (x, 1)));
+            current_component_ink_cells.extend((51..=53).map(|x| (x, 4)));
+            for (x, y) in current_component_ink_cells {
+                assert!(
+                    !muted_positions.contains(&(x, y)),
+                    "component ink cell ({x}, {y}) must remain outside muted-token mutation"
+                );
+                let before = &corrected[(x, y)];
+                let after = &wrong_muted[(x, y)];
+                assert_eq!(after, before, "non-muted component ink at ({x}, {y})");
+                let expected_fg = if (x, y) == (2, 1) {
+                    Theme::junie().for_level(ColorLevel::Ansi256).color.fg[0]
+                } else {
+                    Theme::junie().for_level(ColorLevel::Ansi256).color.fg[1]
+                };
+                assert_eq!(before.fg, expected_fg, "component role at ({x}, {y})");
+            }
             assert_ne!(
                 default.buffer(),
                 &wrong_muted,
                 "mutating only normalized muted cells must change full-cell output"
-            );
-        } else {
-            assert_eq!(
-                full_cell_fingerprint(&default),
-                PRE_POLICY_LEGACY_PALETTE[index],
-                "historical full-cell fixture outside the corrected ANSI-256 palette"
             );
         }
     }
