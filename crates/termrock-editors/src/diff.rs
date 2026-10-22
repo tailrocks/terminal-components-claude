@@ -666,11 +666,11 @@ fn review_lines_with_digits(
 
 fn review_number_width(source: &dyn DiffSource) -> usize {
     let mut max = 1usize;
-    for (index, row) in source_rows(source).enumerate() {
-        if let DiffRow::Hunk {
+    for index in 0..source.row_count() {
+        if let Some(DiffRow::Hunk {
             old_start,
             new_start,
-        } = row
+        }) = source.row(index)
         {
             let (old_len, new_len) = hunk_lengths(source, index);
             max = max
@@ -983,6 +983,35 @@ mod tests {
         },
     ];
 
+    const SPARSE_NUMBER_BUDGET_ROWS: &[Option<DiffRow<'static>>] = &[
+        None,
+        Some(DiffRow::Hunk {
+            old_start: 998,
+            new_start: 998,
+        }),
+        Some(DiffRow::Line {
+            kind: DiffLineKind::Context,
+            text: "0123456789abcdef",
+        }),
+        Some(DiffRow::Line {
+            kind: DiffLineKind::Context,
+            text: "0123456789abcdef",
+        }),
+        Some(DiffRow::Line {
+            kind: DiffLineKind::Context,
+            text: "0123456789abcdef",
+        }),
+        None,
+        Some(DiffRow::Hunk {
+            old_start: 999,
+            new_start: 999,
+        }),
+        Some(DiffRow::Line {
+            kind: DiffLineKind::Context,
+            text: "later",
+        }),
+    ];
+
     const UNICODE_ROWS: &[DiffRow<'static>] = &[DiffRow::Line {
         kind: DiffLineKind::Context,
         text: "café 界",
@@ -1139,6 +1168,39 @@ mod tests {
         }
     }
 
+    #[derive(Clone, Copy)]
+    struct SparseRowsSource {
+        rows: &'static [Option<DiffRow<'static>>],
+        revision: u64,
+        path: &'static str,
+    }
+
+    impl DiffSource for SparseRowsSource {
+        fn revision(&self) -> u64 {
+            self.revision
+        }
+
+        fn path(&self) -> &str {
+            self.path
+        }
+
+        fn status_marker(&self) -> &str {
+            "M"
+        }
+
+        fn status_label(&self) -> &str {
+            "modified"
+        }
+
+        fn row_count(&self) -> usize {
+            self.rows.len()
+        }
+
+        fn row(&self, index: usize) -> Option<DiffRow<'_>> {
+            self.rows.get(index).copied().flatten()
+        }
+    }
+
     const FIRST_NAMED_SOURCE: NamedSource = NamedSource {
         revision: 4,
         path: "src/first.rs",
@@ -1241,6 +1303,26 @@ mod tests {
             DiffView::new(ID, Some(&self.source))
                 .horizontal_pan(self.horizontal_pan)
                 .responsive_review(self.responsive_review)
+                .draw(ui, ui.full(), &self.state);
+        }
+    }
+
+    struct SparseResponsiveDiffProbe {
+        source: SparseRowsSource,
+        state: DiffViewState,
+    }
+
+    impl crate::runtime::App for SparseResponsiveDiffProbe {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            DiffView::new(ID, Some(&self.source))
+                .responsive_review(true)
+                .update(cx, &mut self.state)
+                .erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            DiffView::new(ID, Some(&self.source))
+                .responsive_review(true)
                 .draw(ui, ui.full(), &self.state);
         }
     }
@@ -1626,6 +1708,52 @@ mod tests {
         let fits_four_digits = Rect::new(0, 0, 47, 12);
         let four_digit_review = render(&mut runtime, fits_four_digits);
         assert!(row_text(&four_digit_review, fits_four_digits, 2).contains(" │ "));
+        assert_eq!(
+            runtime
+                .area_of_part(ID, PartRef::of(Part::TEXT))
+                .unwrap()
+                .width,
+            45
+        );
+    }
+
+    #[test]
+    fn responsive_review_sparse_rows_keep_original_hunk_indices_at_runtime() {
+        let source = SparseRowsSource {
+            rows: SPARSE_NUMBER_BUDGET_ROWS,
+            revision: 1,
+            path: "sparse.rs",
+        };
+        let mut state = DiffViewState::default();
+        state.set_mode(DiffMode::Review);
+        let mut runtime = Runtime::new(SparseResponsiveDiffProbe { source, state }, Theme::junie());
+        let _ = runtime.initialize();
+
+        let short_area = Rect::new(0, 0, 45, 10);
+        let short = render(&mut runtime, short_area);
+        assert!(
+            (0..short_area.height).all(|row| !row_text(&short, short_area, row).contains(" │ ")),
+            "three omitted columns would truncate the four-digit review lanes"
+        );
+        assert_eq!(runtime.app().state.mode(), DiffMode::Review);
+        assert_eq!(
+            runtime
+                .area_of_part(ID, PartRef::of(Part::TEXT))
+                .unwrap()
+                .width,
+            43
+        );
+        assert_eq!(hunk_lengths(&source, 1), (3, 3));
+        assert_eq!(hunk_lengths(&source, 6), (1, 1));
+        assert_eq!(review_number_width(&source), 4);
+
+        let fitting_area = Rect::new(0, 0, 47, 10);
+        let fitting = render(&mut runtime, fitting_area);
+        let last_line = row_text(&fitting, fitting_area, 4);
+        assert!(
+            last_line.contains("1000 0123456789abcdef │ 1000 0123456789abcdef"),
+            "the final context row must fit its four-digit gutters: {last_line:?}"
+        );
         assert_eq!(
             runtime
                 .area_of_part(ID, PartRef::of(Part::TEXT))
