@@ -21,3 +21,4 @@ parity/
 # Local one-off consumer workspaces (backend-free/facade probes) live here.
 /target/*
 /target
+/cargo-target
