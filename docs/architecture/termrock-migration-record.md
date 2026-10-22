@@ -1446,11 +1446,11 @@ is physically impossible. The assessment and its evidence hashes are recorded at
 `/Users/donbeave/Projects/termrock-review-20261021-1536-9plajc9k/disk-stop-safety-assessment-20261022.json`
 (SHA-256 `a5775deb98bf240b77fb321072f92f03ad2a07217f02317dcdf5f9d112a0d88b`).
 
-A global prebuild launcher and Rust Analyzer routing remain design-only. No launcher or universal
-enforcement was installed or verified. `RUSTC_WRAPPER` is explicitly excluded; MBX remains the
-Cargo provider. Direct binary, shell and GUI entry points remain possible bypasses, so no
-OS-wide enforcement claim is made. The migration work is incomplete and paused at the resource
-gate; no application parity, architecture acceptance or current test pass is implied.
+A global prebuild launcher and Rust Analyzer routing were design-only at this record point; that
+status is superseded by the resource-guard installation update below. Direct binary, shell and GUI
+entry points remain possible bypasses, so no OS-wide enforcement claim is made. The migration work
+is incomplete and paused at the resource gate; no application parity or architecture acceptance is
+implied.
 
 
 The last cleanup removed only three generated cache directories after fresh ownership,
@@ -1507,3 +1507,37 @@ receipts referenced above are outside this sparse review worktree and were not
 re-opened for this audit. No builds, tests, visual comparisons, or acceptance
 checks were run. Both exact product match and reusable-library completion remain
 incomplete.
+
+### Resource guard installation and post-rebase verification (2026-10-22)
+
+This entry supersedes the earlier design-only launcher status above. The independently reviewed
+resource-guard source commit `09a182b0bf865e1b241bcdf7742ab2de45ae718b` cleared two independent
+reviews with 22 Python tests passing. Its `tools/rust_build_guard.py` SHA-256 is
+`48b606262b4e8a5b485770532fef9175a1318118e9f789dc5bf8a12b34f9dd9b`; the exact test-file hash
+was `d68530cb91b44671e067cd5bbb73626982982ee0c1e0bce120d973822695f139`. The source was rebased
+onto `origin/parity/termrock-visual-baseline` at `51ebab484ca9465505753120bd5dbd9aab6160bc`;
+post-rebase `PYTHONDONTWRITEBYTECODE=1 python3 tools/test_rust_build_guard.py` passed all 22 tests,
+and `git diff --check` passed. No Cargo/Rust command or build was run. The focused guard suite is
+not the full repository validation suite.
+
+The reviewed script was installed unchanged as `/Users/donbeave/.local/bin/rust-build-guard`
+(SHA-256 above, UID 501, mode 0755). The global installation updated four AGENTS/CODEX_POLICY
+files. Its receipt confirms one marker in each file and preservation of each prior content prefix.
+`mise exec -- command -v cargo` resolved to
+`/Users/donbeave/Library/Application Support/mbx/bin/cargo`, confirming the MBX shim route.
+
+The installed guard denied its harmless child-execution probe with status 125 when the checked
+filesystem reported 2,818,665,132,032 available bytes; the verification receipt recorded zero
+child exec calls. This proves only the denial path and does not meet or waive the hard
+3,000,000,000,000-byte free-space gate. Rust Analyzer remains unconfigured and uncovered. Direct
+Cargo shell/GUI entry points, Rust Analyzer, already-running foreign Rust processes, and commands
+that bypass the launcher remain outside its coverage. No OS-wide enforcement, Rust build, consumer
+test, full workspace check, parity run, or acceptance is claimed. Both product parity and reusable
+library acceptance remain incomplete.
+
+Receipts are stored outside this worktree at:
+
+- `/Users/donbeave/Projects/termrock-review-20261021-1536-9plajc9k/resource-guard-global-install-20261022.json`
+  (SHA-256 `832f1d4c7c86b15e65df95dde9c7fdccbbac0622bc97dcf6b5b716ba229e29b1`).
+- `/Users/donbeave/Projects/termrock-review-20261021-1536-9plajc9k/resource-guard-global-verification-20261022.json`
+  (SHA-256 `c018253e6609e54d5b629c5096115291fd1c8b9814efdffd93dcb7a007ecee95`).
