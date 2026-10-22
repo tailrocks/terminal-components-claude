@@ -13,7 +13,7 @@ use termrock::author::PaintStyle;
 use termrock::{
     ActionKey, CellAction, CellUi, FgStep, FrameRead, Grid, GridCell, GridColumnFit, GridGutter,
     GridModel, GridSortIndicator, Id, ItemKey, Modifier, Part, Role, RowDecor, RowTotal, SortDir,
-    StateFlags, StylePatch, Ui, truncate, truncate_middle, width,
+    StateFlags, StylePatch, Ui, middle_parts, truncate, truncate_parts, width,
 };
 
 use super::{
@@ -277,13 +277,110 @@ const KIND_PRIMARY: u8 = 1;
 const KIND_FOREIGN: u8 = 2;
 
 type GridScrollSnapshot = (termrock::Rect, usize, usize, Option<usize>);
+fn digit_count(mut n: usize) -> u16 {
+    if n == 0 {
+        return 1;
+    }
+    let mut count = 0;
+    while n > 0 {
+        count += 1;
+        n /= 10;
+    }
+    count
+}
+
+fn format_row_number(buf: &mut [u8; 16], num: usize, width: usize) -> &str {
+    let mut n = num;
+    let mut idx = buf.len();
+    if n == 0 {
+        idx = idx.saturating_sub(1);
+        if let Some(slot) = buf.get_mut(idx) {
+            *slot = b'0';
+        }
+    } else {
+        while n > 0 {
+            idx = idx.saturating_sub(1);
+            if let Some(slot) = buf.get_mut(idx) {
+                *slot = b'0' + (n % 10) as u8;
+            }
+            n /= 10;
+        }
+    }
+    let digits = buf.len().saturating_sub(idx);
+    let pad = width.saturating_sub(digits);
+    let start = idx.saturating_sub(pad);
+    if let Some(slice) = buf.get_mut(start..idx) {
+        slice.fill(b' ');
+    }
+    buf.get(start..)
+        .and_then(|slice| std::str::from_utf8(slice).ok())
+        .unwrap_or("")
+}
+
+fn format_hidden_label(buf: &mut [u8; 16], num: usize) -> &str {
+    let mut n = num;
+    let arrow = "›".as_bytes();
+    let mut idx = buf.len();
+    for &b in arrow.iter().rev() {
+        idx = idx.saturating_sub(1);
+        if let Some(slot) = buf.get_mut(idx) {
+            *slot = b;
+        }
+    }
+    if n == 0 {
+        idx = idx.saturating_sub(1);
+        if let Some(slot) = buf.get_mut(idx) {
+            *slot = b'0';
+        }
+    } else {
+        while n > 0 {
+            idx = idx.saturating_sub(1);
+            if let Some(slot) = buf.get_mut(idx) {
+                *slot = b'0' + (n % 10) as u8;
+            }
+            n /= 10;
+        }
+    }
+    buf.get(idx..)
+        .and_then(|slice| std::str::from_utf8(slice).ok())
+        .unwrap_or("")
+}
+
+fn paint_cell_text(ui: &mut CellUi<'_>, text: &str, budget: ColBudget) {
+    if budget.kind == KIND_FOREIGN {
+        if width(text) <= budget.text {
+            ui.text(text);
+        } else {
+            let [head, ellipsis, tail] = middle_parts(text, budget.text);
+            if !head.is_empty() {
+                ui.text(head);
+            }
+            if !ellipsis.is_empty() {
+                ui.text(ellipsis);
+            }
+            if !tail.is_empty() {
+                ui.text(tail);
+            }
+        }
+    } else if width(text) <= budget.text {
+        ui.text(text);
+    } else {
+        let (head, ellipsis) = truncate_parts(text, budget.text);
+        if !head.is_empty() {
+            ui.text(head);
+        }
+        if !ellipsis.is_empty() {
+            ui.text(ellipsis);
+        }
+    }
+}
+
 fn install_grid_budgets(
     area_width: u16,
     columns: &[(String, ColType)],
     model: &ResultGrid,
 ) -> (Vec<ColBudget>, GridChrome) {
-    let row_count = model.row_count().max(1).to_string();
-    let digits = width(&row_count);
+    let digits = digit_count(model.row_count().max(1));
     let gutter = digits.saturating_add(4);
     let avail = area_width
         .saturating_sub(1)
@@ -436,14 +533,7 @@ fn paint_result_cell(
     if budget.text == 0 {
         return;
     }
-    let shown = if budget.kind == KIND_FOREIGN {
-        truncate_middle(cell.value.text, budget.text)
-    } else if width(cell.value.text) > budget.text {
-        truncate(cell.value.text, budget.text)
-    } else {
-        cell.value.text.to_owned()
-    };
-    ui.text(&shown);
+    paint_cell_text(ui, cell.value.text, budget);
     if cell.flags.contains(StateFlags::ACTIVE) {
         let mut patch = StylePatch::new()
             .set_bg(LEGACY_CELL_BG)
@@ -612,8 +702,7 @@ fn install_scrolled_budgets(
     if focus == 0 || focus >= columns.len() {
         return None;
     }
-    let row_count = model.row_count().max(1).to_string();
-    let gutter = width(&row_count).saturating_add(4);
+    let gutter = digit_count(model.row_count().max(1)).saturating_add(4);
     let avail = column_budget_avail(area_width, gutter);
     let wide = edit;
     let widths: Vec<u16> = columns
@@ -1003,23 +1092,34 @@ fn paint_grid_header(
                 primary,
             );
         } else {
-            let shown = truncate(name, place.width);
-            ui.paint_str(
-                termrock::Rect {
-                    x: origin,
-                    y: area.y,
-                    width: place.width,
-                    height: 1,
-                },
-                &shown,
-                muted,
-            );
+            let (head, ellipsis) = truncate_parts(name, place.width);
+            let rect = termrock::Rect {
+                x: origin,
+                y: area.y,
+                width: place.width,
+                height: 1,
+            };
+            if ellipsis.is_empty() {
+                ui.paint_str(rect, head, muted);
+            } else {
+                let used = ui.paint_str(rect, head, muted);
+                ui.paint_str(
+                    termrock::Rect {
+                        x: origin.saturating_add(used),
+                        width: place.width.saturating_sub(used),
+                        ..rect
+                    },
+                    ellipsis,
+                    muted,
+                );
+            }
         }
     }
     if chrome.columns > chrome.complete {
         let hidden = chrome.columns.saturating_sub(chrome.complete);
-        let label = format!("{hidden}›");
-        let label_w = width(&label);
+        let mut label_buf = [0u8; 16];
+        let label = format_hidden_label(&mut label_buf, hidden);
+        let label_w = width(label);
         let end = area
             .x
             .saturating_add(chrome.gutter)
@@ -1045,7 +1145,7 @@ fn paint_grid_header(
                 width: label_w,
                 height: 1,
             },
-            &label,
+            label,
             base.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_PATH_FG))),
         );
     }
@@ -1086,6 +1186,7 @@ fn paint_row_numbers(
     let digits = usize::from(chrome.gutter.saturating_sub(4)).max(1);
     let visible = usize::from(area.height.saturating_sub(1)).min(rows);
     let plain = ui.surface_style().remove_modifier(Modifier::BOLD);
+    let mut num_buf = [0u8; 16];
     for row in 0..visible {
         let y = area.y.saturating_add(1).saturating_add(row as u16);
         let model_row = origin.saturating_add(row);
@@ -1147,7 +1248,7 @@ fn paint_row_numbers(
         } else {
             LEGACY_FAINT
         };
-        let text = format!("{:>width$}", model_row.saturating_add(1), width = digits);
+        let text = format_row_number(&mut num_buf, model_row.saturating_add(1), digits);
         ui.paint_str(
             termrock::Rect {
                 x: area.x.saturating_add(3),
@@ -1155,7 +1256,7 @@ fn paint_row_numbers(
                 width: digits as u16,
                 height: 1,
             },
-            &text,
+            text,
             plain.patch(ui.paint_patch(&StylePatch::new().set_fg(role))),
         );
         if model.pending().is_dirty_row(model_row) {
