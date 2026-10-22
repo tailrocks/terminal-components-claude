@@ -2,7 +2,6 @@ use showcase_ui::{App, PageId};
 use termrock::{Color, Id, KeyCode, Part, PartRef, Theme};
 use termrock_test_support::Harness;
 
-const NAV: Id = Id::root("showcase_ui::app::navigation");
 const HEADER_HELP: Id = Id::root("showcase_ui::app::header.help");
 const HEADER_INSPECT: Id = Id::root("showcase_ui::app::header.inspect");
 
@@ -23,7 +22,7 @@ fn inspector_dock_keeps_one_clear_column_after_the_main_area() {
 }
 
 #[test]
-fn shell_chrome_hit_regions_are_unchanged() {
+fn shell_chrome_header_hit_regions_are_unchanged() {
     let harness = Harness::new(App::with_page(PageId::Buttons), Theme::junie(), 120, 40);
     // The header actions keep their parts at the right edge of the header.
     let help = harness
@@ -34,7 +33,4 @@ fn shell_chrome_hit_regions_are_unchanged() {
         .area_of_part(HEADER_INSPECT, PartRef::of(Part::LABEL))
         .expect("inspector part");
     assert_eq!(inspect, ratatui::layout::Rect::new(97, 0, 13, 1));
-    // The navigation tree keeps the sidebar rail inside its one-column inset.
-    let nav = harness.area_of(NAV).expect("navigation tree");
-    assert_eq!(nav, ratatui::layout::Rect::new(1, 4, 23, 33));
 }

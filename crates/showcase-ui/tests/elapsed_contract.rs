@@ -1,8 +1,10 @@
 use std::time::Duration;
 
 use showcase_ui::{App, PageId};
-use termrock::{KeyCode, Theme};
+use termrock::{Axis, Id, KeyCode, Part, PartRef, Theme};
 use termrock_test_support::Harness;
+
+const APP_NAV: Id = Id::root("showcase_ui::app::navigation");
 
 #[expect(
     clippy::panic,
@@ -11,6 +13,45 @@ use termrock_test_support::Harness;
 fn click_text(h: &mut Harness<App>, label: &str) {
     let Some((x, y)) = h.find(label) else {
         panic!("missing visible control: {label}");
+    };
+    let _ = h.click(x, y);
+}
+
+fn visible_nav_row(h: &Harness<App>, label: &str) -> Option<(u16, u16)> {
+    let area = h.area_of(APP_NAV)?;
+    (area.y..area.bottom()).find_map(|y| {
+        let row = h.row(y);
+        let sidebar = row
+            .chars()
+            .take(usize::from(area.width))
+            .collect::<String>();
+        sidebar.find(label).map(|byte| {
+            let x = sidebar[..byte].chars().count();
+            (
+                u16::try_from(x).expect("navigation label position fits u16"),
+                y,
+            )
+        })
+    })
+}
+
+fn wheel_nav(h: &mut Harness<App>, delta: i16) {
+    let track = h
+        .area_of_part(APP_NAV, PartRef::of(Part::TRACK))
+        .expect("overflowing catalog registers a scrollbar track");
+    let _ = h.wheel(Axis::V, delta, track.x, track.y.saturating_add(1));
+}
+
+#[expect(
+    clippy::panic,
+    reason = "a navigation journey must click a visible catalog row"
+)]
+fn click_visible_nav(h: &mut Harness<App>, label: &str) {
+    let Some((x, y)) = visible_nav_row(h, label) else {
+        panic!(
+            "navigation row {label:?} is outside the visible sidebar\n{}",
+            h.text()
+        );
     };
     let _ = h.click(x, y);
 }
@@ -150,9 +191,15 @@ fn progress_pause_resume_and_hidden_time_preserve_eligible_steps() {
     click_text(&mut h, "Resume");
     let _ = h.advance(Duration::from_millis(80));
     assert_eq!(building(&h), "1%");
-    click_text(&mut h, "Overview");
+    wheel_nav(&mut h, -80);
+    assert!(visible_nav_row(&h, "Overview").is_some());
+    click_visible_nav(&mut h, "Overview");
+    assert_eq!(h.app().page(), PageId::Overview);
     let _ = h.advance(Duration::from_secs(100));
-    click_text(&mut h, "Progress");
+    wheel_nav(&mut h, 80);
+    assert!(visible_nav_row(&h, "Progress").is_some());
+    click_visible_nav(&mut h, "Progress");
+    assert_eq!(h.app().page(), PageId::Progress);
     assert_eq!(building(&h), "1%");
     let _ = h.advance(Duration::ZERO);
     assert_eq!(building(&h), "1%", "only the second .006 step");
