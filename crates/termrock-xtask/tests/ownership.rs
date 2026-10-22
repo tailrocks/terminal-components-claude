@@ -779,6 +779,413 @@ fn block_local_include_keeps_dual_parent_source_production() {
 }
 
 #[test]
+fn block_local_path_module_discovers_only_its_out_of_src_target() {
+    let dir = empty_workspace();
+    write_member_file(
+        &dir,
+        "src/lib.rs",
+        "fn production() { #[path = \"../outside/only.rs\"] mod local; }\n",
+    );
+    write_member_file(
+        &dir,
+        "outside/only.rs",
+        "fn body() { None::<u8>.expect(\"local module\"); }\n",
+    );
+    write_member_file(
+        &dir,
+        "outside/unreferenced.rs",
+        "fn orphan() { None::<u8>.expect(\"orphan\"); }\n",
+    );
+
+    let member = dir.path().join("crates/demo-preview");
+    let analysis = termrock_xtask::ownership::module_graph::analyze_member(&member);
+    let reached = std::fs::canonicalize(member.join("outside/only.rs")).expect("route target");
+    let orphan = std::fs::canonicalize(member.join("outside/unreferenced.rs")).expect("orphan");
+    assert!(analysis.sources.contains(&reached), "analysis={analysis:?}");
+    assert!(!analysis.sources.contains(&orphan), "analysis={analysis:?}");
+    assert_eq!(
+        own14_findings(&check_scratch(&dir)),
+        [("crates/demo-preview/outside/only.rs".to_string(), 1)]
+    );
+}
+
+#[test]
+fn block_local_include_discovers_out_of_src_include_chain_only() {
+    let dir = empty_workspace();
+    write_member_file(
+        &dir,
+        "src/lib.rs",
+        "fn production() {\n\
+             if true { { include!(\"../outside/entry.inc.rs\"); } }\n\
+             let _expression = include!(\"../outside/expression.inc.rs\");\n\
+         }\n",
+    );
+    write_member_file(
+        &dir,
+        "outside/entry.inc.rs",
+        "include!(\"nested/child.inc.rs\");\n",
+    );
+    write_member_file(
+        &dir,
+        "outside/nested/child.inc.rs",
+        "fn body() { None::<u8>.expect(\"included child\"); }\n",
+    );
+    write_member_file(
+        &dir,
+        "outside/expression.inc.rs",
+        "None::<u8>.expect(\"included expression\")\n",
+    );
+    write_member_file(
+        &dir,
+        "outside/unreferenced.inc.rs",
+        "fn orphan() { None::<u8>.expect(\"orphan\"); }\n",
+    );
+
+    let member = dir.path().join("crates/demo-preview");
+    let analysis = termrock_xtask::ownership::module_graph::analyze_member(&member);
+    for relative in [
+        "outside/entry.inc.rs",
+        "outside/nested/child.inc.rs",
+        "outside/expression.inc.rs",
+    ] {
+        let reached = std::fs::canonicalize(member.join(relative)).expect("route target");
+        assert!(
+            analysis.sources.contains(&reached),
+            "{relative}: {analysis:?}"
+        );
+    }
+    let orphan = std::fs::canonicalize(member.join("outside/unreferenced.inc.rs")).expect("orphan");
+    assert!(!analysis.sources.contains(&orphan), "analysis={analysis:?}");
+    assert_eq!(
+        own14_findings(&check_scratch(&dir)),
+        [
+            (
+                "crates/demo-preview/outside/expression.inc.rs".to_string(),
+                1
+            ),
+            (
+                "crates/demo-preview/outside/nested/child.inc.rs".to_string(),
+                1
+            ),
+        ]
+    );
+}
+
+#[test]
+fn block_local_path_routes_use_source_and_inline_module_directories() {
+    let dir = empty_workspace();
+    write_member_file(&dir, "src/lib.rs", "mod outer;\n");
+    write_member_file(
+        &dir,
+        "src/outer/inline/placeholder.rs",
+        "fn placeholder() {}\n",
+    );
+    write_member_file(
+        &dir,
+        "src/outer.rs",
+        "fn production() {\n\
+             #[path = \"../outside/source_parent/anchor.rs\"] mod source_relative;\n\
+             if true { mod inline {\n\
+                 #[path = \"../../../outside/inline_parent/anchor.rs\"] mod inline_relative;\n\
+             } }\n\
+         }\n",
+    );
+    write_member_file(
+        &dir,
+        "outside/source_parent/anchor.rs",
+        "fn body() { None::<u8>.expect(\"source relative\"); }\nmod child;\n",
+    );
+    write_member_file(
+        &dir,
+        "outside/source_parent/child.rs",
+        "fn body() { None::<u8>.expect(\"source child\"); }\n",
+    );
+    write_member_file(
+        &dir,
+        "outside/inline_parent/anchor.rs",
+        "fn body() { None::<u8>.expect(\"inline relative\"); }\nmod child;\n",
+    );
+    write_member_file(
+        &dir,
+        "outside/inline_parent/child.rs",
+        "fn body() { None::<u8>.expect(\"inline child\"); }\n",
+    );
+
+    let member = dir.path().join("crates/demo-preview");
+    let analysis = termrock_xtask::ownership::module_graph::analyze_member(&member);
+    for relative in [
+        "outside/source_parent/anchor.rs",
+        "outside/source_parent/child.rs",
+        "outside/inline_parent/anchor.rs",
+        "outside/inline_parent/child.rs",
+    ] {
+        let reached = std::fs::canonicalize(member.join(relative)).expect("route target");
+        assert!(
+            analysis.sources.contains(&reached),
+            "{relative}: {analysis:?}"
+        );
+    }
+    assert_eq!(
+        own14_findings(&check_scratch(&dir)),
+        [
+            (
+                "crates/demo-preview/outside/inline_parent/anchor.rs".to_string(),
+                1
+            ),
+            (
+                "crates/demo-preview/outside/inline_parent/child.rs".to_string(),
+                1
+            ),
+            (
+                "crates/demo-preview/outside/source_parent/anchor.rs".to_string(),
+                1
+            ),
+            (
+                "crates/demo-preview/outside/source_parent/child.rs".to_string(),
+                1
+            ),
+        ]
+    );
+}
+
+#[test]
+fn block_local_include_cycles_and_duplicate_routes_reach_each_source_once() {
+    let dir = empty_workspace();
+    write_member_file(
+        &dir,
+        "src/lib.rs",
+        "fn first() { include!(\"../outside/entry.inc.rs\"); }\n\
+         fn duplicate() { if true { include!(\"../outside/entry.inc.rs\"); } }\n",
+    );
+    write_member_file(
+        &dir,
+        "outside/entry.inc.rs",
+        "fn entry() { None::<u8>.expect(\"entry\"); }\
+         include!(\"nested/loop.inc.rs\");\n",
+    );
+    write_member_file(
+        &dir,
+        "outside/nested/loop.inc.rs",
+        "fn loop_file() { None::<u8>.expect(\"loop\"); }\
+         include!(\"../entry.inc.rs\");\n",
+    );
+    write_member_file(
+        &dir,
+        "outside/unreferenced.inc.rs",
+        "fn orphan() { None::<u8>.expect(\"orphan\"); }\n",
+    );
+
+    let member = dir.path().join("crates/demo-preview");
+    let analysis = termrock_xtask::ownership::module_graph::analyze_member(&member);
+    for relative in ["outside/entry.inc.rs", "outside/nested/loop.inc.rs"] {
+        let reached = std::fs::canonicalize(member.join(relative)).expect("route target");
+        assert!(
+            analysis.sources.contains(&reached),
+            "{relative}: {analysis:?}"
+        );
+        assert_eq!(
+            analysis
+                .sources
+                .iter()
+                .filter(|source| *source == &reached)
+                .count(),
+            1
+        );
+    }
+    let orphan = std::fs::canonicalize(member.join("outside/unreferenced.inc.rs")).expect("orphan");
+    assert!(!analysis.sources.contains(&orphan), "analysis={analysis:?}");
+    assert_eq!(
+        own14_findings(&check_scratch(&dir)),
+        [
+            ("crates/demo-preview/outside/entry.inc.rs".to_string(), 1),
+            (
+                "crates/demo-preview/outside/nested/loop.inc.rs".to_string(),
+                1
+            ),
+        ]
+    );
+}
+
+#[test]
+fn block_local_module_routes_preserve_test_production_and_shared_owners() {
+    let dir = empty_workspace();
+    write_member_file(
+        &dir,
+        "src/lib.rs",
+        "#[cfg(test)] fn test_only() {\n\
+             #[path = \"../outside/test_only.rs\"] mod fixture;\n\
+         }\n\
+         fn production() { #[path = \"../outside/shared.rs\"] mod shared; }\n\
+         #[cfg(test)] fn shared_test() {\n\
+             #[path = \"../outside/shared.rs\"] mod shared;\n\
+         }\n",
+    );
+    write_member_file(
+        &dir,
+        "outside/test_only.rs",
+        "fn fixture() { None::<u8>.expect(\"test only\"); }\n",
+    );
+    write_member_file(
+        &dir,
+        "outside/shared.rs",
+        "fn shared() { None::<u8>.expect(\"shared\"); }\n",
+    );
+
+    let member = dir.path().join("crates/demo-preview");
+    let analysis = termrock_xtask::ownership::module_graph::analyze_member(&member);
+    let test_only = std::fs::canonicalize(member.join("outside/test_only.rs")).unwrap();
+    let shared = std::fs::canonicalize(member.join("outside/shared.rs")).unwrap();
+    assert!(analysis.complete, "analysis={analysis:?}");
+    assert!(
+        analysis.sources.contains(&test_only),
+        "analysis={analysis:?}"
+    );
+    assert!(analysis.sources.contains(&shared), "analysis={analysis:?}");
+    assert!(
+        analysis.test_only.contains(&test_only),
+        "analysis={analysis:?}"
+    );
+    assert!(
+        !analysis.test_only.contains(&shared),
+        "analysis={analysis:?}"
+    );
+    assert_eq!(
+        own14_findings(&check_scratch(&dir)),
+        [("crates/demo-preview/outside/shared.rs".to_string(), 1)]
+    );
+}
+
+#[test]
+fn block_local_unknown_routes_keep_later_known_siblings_discoverable() {
+    let dir = empty_workspace();
+    write_member_file(
+        &dir,
+        "src/lib.rs",
+        "fn routes() {\n\
+             unknown_routes!({ #[path = \"../outside/macro_only.rs\"] mod hidden; });\n\
+             #[path = concat!(\"../outside/\", \"dynamic.rs\")] mod dynamic;\n\
+             #[path(\"../outside/malformed.rs\")] mod malformed;\n\
+             include!(concat!(\"../outside/\", \"dynamic.inc.rs\"));\n\
+             #[path = \"../outside/later.rs\"] mod later;\n\
+             include!(\"../outside/later.inc.rs\");\n\
+         }\n",
+    );
+    for relative in [
+        "outside/macro_only.rs",
+        "outside/dynamic.rs",
+        "outside/dynamic.inc.rs",
+        "outside/malformed.rs",
+    ] {
+        write_member_file(
+            &dir,
+            relative,
+            "fn not_reached() { None::<u8>.expect(\"unknown route\"); }\n",
+        );
+    }
+    write_member_file(
+        &dir,
+        "outside/later.rs",
+        "fn later() { None::<u8>.expect(\"later module\"); }\n",
+    );
+    write_member_file(
+        &dir,
+        "outside/later.inc.rs",
+        "fn later_include() { None::<u8>.expect(\"later include\"); }\n",
+    );
+
+    let member = dir.path().join("crates/demo-preview");
+    let analysis = termrock_xtask::ownership::module_graph::analyze_member(&member);
+    assert!(!analysis.complete, "analysis={analysis:?}");
+    for relative in ["outside/later.rs", "outside/later.inc.rs"] {
+        let reached = std::fs::canonicalize(member.join(relative)).expect("route target");
+        assert!(
+            analysis.sources.contains(&reached),
+            "{relative}: {analysis:?}"
+        );
+    }
+    for relative in [
+        "outside/macro_only.rs",
+        "outside/dynamic.rs",
+        "outside/dynamic.inc.rs",
+        "outside/malformed.rs",
+    ] {
+        let unresolved = std::fs::canonicalize(member.join(relative)).expect("unresolved target");
+        assert!(
+            !analysis.sources.contains(&unresolved),
+            "{relative}: {analysis:?}"
+        );
+    }
+    assert_eq!(
+        own14_findings(&check_scratch(&dir)),
+        [
+            ("crates/demo-preview/outside/later.inc.rs".to_string(), 1),
+            ("crates/demo-preview/outside/later.rs".to_string(), 1),
+        ]
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn block_local_routes_reject_member_and_symlink_escapes_without_losing_known_siblings() {
+    use std::os::unix::fs::symlink;
+
+    let dir = empty_workspace();
+    write_member_file(
+        &dir,
+        "src/lib.rs",
+        "fn routes() {\n\
+             #[path = \"../../../outside.rs\"] mod outside;\n\
+             #[path = \"../outside/escape.rs\"] mod symlinked;\n\
+             include!(\"../../../outside.inc.rs\");\n\
+             include!(\"../outside/escape.inc.rs\");\n\
+             #[path = \"../outside/known.rs\"] mod known;\n\
+         }\n",
+    );
+    let outside_rs = dir.path().join("outside.rs");
+    let outside_inc = dir.path().join("outside.inc.rs");
+    std::fs::write(
+        &outside_rs,
+        "fn outside() { None::<u8>.expect(\"outside member\"); }\n",
+    )
+    .unwrap();
+    std::fs::write(
+        &outside_inc,
+        "fn outside_include() { None::<u8>.expect(\"outside member include\"); }\n",
+    )
+    .unwrap();
+    write_member_file(
+        &dir,
+        "outside/known.rs",
+        "fn known() { None::<u8>.expect(\"known\"); }\n",
+    );
+    let outside = dir.path().join("outside.rs");
+    let outside_include = dir.path().join("outside.inc.rs");
+    let member = dir.path().join("crates/demo-preview");
+    std::fs::create_dir_all(member.join("outside")).unwrap();
+    symlink(outside, member.join("outside/escape.rs")).unwrap();
+    symlink(outside_include, member.join("outside/escape.inc.rs")).unwrap();
+
+    let analysis = termrock_xtask::ownership::module_graph::analyze_member(&member);
+    assert!(!analysis.complete, "analysis={analysis:?}");
+    let known = std::fs::canonicalize(member.join("outside/known.rs")).unwrap();
+    assert!(analysis.sources.contains(&known), "analysis={analysis:?}");
+    assert!(
+        !analysis
+            .sources
+            .contains(&std::fs::canonicalize(dir.path().join("outside.rs")).unwrap())
+    );
+    assert!(
+        !analysis
+            .sources
+            .contains(&std::fs::canonicalize(dir.path().join("outside.inc.rs")).unwrap())
+    );
+    assert_eq!(
+        own14_findings(&check_scratch(&dir)),
+        [("crates/demo-preview/outside/known.rs".to_string(), 1)]
+    );
+}
+
+#[test]
 fn unknown_derive_and_ambiguous_imported_derive_keep_test_routes_production() {
     for derive in ["FromStr", "Debug"] {
         let dir = empty_workspace();
