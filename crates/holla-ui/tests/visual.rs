@@ -7,7 +7,7 @@ use ratatui::{
 use termrock::{
     ColorLevel, Family, FeedbackClock, FgStep, Part, Role, SimulationMoment, StylePatch, Theme,
 };
-use termrock_test_support::{Baseline, Harness};
+use termrock_test_support::{Baseline, Harness, Scene};
 
 const BASELINE: Baseline = Baseline::new(concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -187,6 +187,33 @@ fn is_historical_overflow_faint_case(
             || ((width, height) == (80, 24)
                 && *theme == Theme::paper()
                 && color == ColorLevel::Mono))
+}
+
+fn historical_80_overflow_faint_color(
+    scenario: Scenario,
+    width: u16,
+    height: u16,
+    theme: &Theme,
+    color: ColorLevel,
+) -> Option<Color> {
+    if scenario != Scenario::ParityDiscovery || (width, height) != (80, 24) {
+        return None;
+    }
+
+    // Source 830ca083 authored overflow as Custom(RGB 115,115,115). These are its exact
+    // projected Faint colors for the four independently measured built-in/theme-tier pairs.
+    if *theme == Theme::junie() && color == ColorLevel::Mono {
+        Some(Color::Black)
+    } else if *theme == Theme::paper() {
+        match color {
+            ColorLevel::TrueColor => Some(Color::Rgb(115, 115, 115)),
+            ColorLevel::Ansi256 => Some(Color::Indexed(242)),
+            ColorLevel::Ansi16 => Some(Color::Gray),
+            _ => None,
+        }
+    } else {
+        None
+    }
 }
 
 fn historical_ansi16_faint_positions(scenario: Scenario, height: u16) -> Vec<(u16, u16)> {
@@ -435,6 +462,105 @@ fn assert_historical_overflow_faint_replay(theme: Theme, color: ColorLevel) {
         .assert_against(&BASELINE);
 }
 
+fn projected_historical_80_faint_harness(
+    theme: Theme,
+    color: ColorLevel,
+    historical_faint: Color,
+) -> Harness<App> {
+    let mut projected_theme = if color == ColorLevel::TrueColor {
+        theme
+    } else {
+        theme.downgrade(color)
+    };
+    projected_theme.color.fg[FgStep::Faint.index()] = historical_faint;
+
+    let app = App::for_scenario_without_history(Scenario::ParityDiscovery, Motion::Paused, 4_000);
+    let initial = SimulationMoment::from_millis(app.fixture_time_ms() as u64);
+    Harness::new_with_feedback_clock(
+        app,
+        projected_theme,
+        80,
+        24,
+        FeedbackClock::Simulation { initial },
+    )
+}
+
+fn assert_historical_80_overflow_faint_replay(theme: Theme, color: ColorLevel) {
+    const POSITION: (u16, u16) = (77, 23);
+    let historical_faint =
+        historical_80_overflow_faint_color(Scenario::ParityDiscovery, 80, 24, &theme, color)
+            .expect("reviewed exact built-in theme and 80x24 tier");
+    let current_faint = expected_overflow_faint(&theme, color).expect("reviewed current tier");
+    let historical_theme_name = if theme == Theme::junie() {
+        "junie"
+    } else {
+        "paper"
+    };
+
+    let current = harness(Scenario::ParityDiscovery, theme.clone(), 80, 24, color);
+    let historical = projected_historical_80_faint_harness(theme, color, historical_faint);
+
+    assert_eq!(current.buffer().area, Rect::new(0, 0, 80, 24));
+    assert_eq!(historical.buffer().area, current.buffer().area);
+    assert_eq!(current.cursor(), Some(Position { x: 3, y: 4 }));
+    assert_eq!(historical.cursor(), current.cursor());
+    assert_foreground_only_replay(
+        current.buffer(),
+        historical.buffer(),
+        &[POSITION],
+        current_faint,
+        historical_faint,
+    );
+
+    let current_cell = current
+        .buffer()
+        .cell(POSITION)
+        .expect("current clipped marker inside frame");
+    assert_eq!(
+        current_cell,
+        &expected_cell(
+            "…",
+            current_faint,
+            black_for_level(color),
+            Modifier::empty(),
+        )
+    );
+    let historical_cell = historical
+        .buffer()
+        .cell(POSITION)
+        .expect("historical clipped marker inside frame");
+    assert_eq!(
+        historical_cell,
+        &expected_cell(
+            "…",
+            historical_faint,
+            black_for_level(color),
+            Modifier::empty(),
+        )
+    );
+    assert!(current.row(23).trim_end().ends_with('…'));
+    assert!(historical.row(23).trim_end().ends_with('…'));
+    let color_label = match color {
+        ColorLevel::TrueColor => "truecolor",
+        ColorLevel::Ansi256 => "256",
+        ColorLevel::Ansi16 => "16",
+        ColorLevel::Mono => "mono",
+        _ => "other",
+    };
+    let historical_scene = Scene::from_buffer(
+        Scenario::ParityDiscovery.name(),
+        historical_theme_name,
+        color,
+        historical.buffer().clone(),
+    );
+    assert_eq!(
+        historical_scene.key(),
+        format!("parity-discovery 80 24 {historical_theme_name} {color_label}"),
+        "the projected test profile retains the original built-in baseline identity"
+    );
+    historical_scene.assert_against(&BASELINE);
+}
+
 #[test]
 fn holla_visual_baseline() {
     for scenario in Scenario::ALL {
@@ -447,6 +573,12 @@ fn holla_visual_baseline() {
                     }
                     if is_historical_ansi16_faint_case(scenario, width, height, &theme, color) {
                         assert_historical_ansi16_faint_replay(scenario, width, height);
+                        continue;
+                    }
+                    if historical_80_overflow_faint_color(scenario, width, height, &theme, color)
+                        .is_some()
+                    {
+                        assert_historical_80_overflow_faint_replay(theme.clone(), color);
                         continue;
                     }
                     if is_historical_overflow_faint_case(scenario, width, height, &theme, color) {
@@ -487,6 +619,20 @@ fn holla_historical_faint_replays_match_the_seventeen_reviewed_frames() {
         }
     }
     assert_original_paper_mono_80_historical_replay();
+}
+
+#[test]
+fn holla_historical_projected_faint_replays_match_the_four_reviewed_80x24_frames() {
+    let cases = [
+        (Theme::junie(), ColorLevel::Mono),
+        (Theme::paper(), ColorLevel::TrueColor),
+        (Theme::paper(), ColorLevel::Ansi256),
+        (Theme::paper(), ColorLevel::Ansi16),
+    ];
+    assert_eq!(cases.len(), 4);
+    for (theme, color) in cases {
+        assert_historical_80_overflow_faint_replay(theme, color);
+    }
 }
 
 #[test]
@@ -572,6 +718,79 @@ fn holla_historical_faint_replay_selectors_are_exact() {
         &junie,
         ColorLevel::Mono
     ));
+    let historical_80_cases = [
+        (Theme::junie(), ColorLevel::Mono, Color::Black),
+        (
+            Theme::paper(),
+            ColorLevel::TrueColor,
+            Color::Rgb(115, 115, 115),
+        ),
+        (Theme::paper(), ColorLevel::Ansi256, Color::Indexed(242)),
+        (Theme::paper(), ColorLevel::Ansi16, Color::Gray),
+    ];
+    assert_eq!(historical_80_cases.len(), 4);
+    for (theme, color, expected) in &historical_80_cases {
+        assert_eq!(
+            historical_80_overflow_faint_color(Scenario::ParityDiscovery, 80, 24, theme, *color,),
+            Some(*expected)
+        );
+    }
+    for (theme, color, _) in &historical_80_cases {
+        for (scenario, width, height) in [
+            (Scenario::ParityHistory, 80, 24),
+            (Scenario::ParityDiscovery, 81, 24),
+            (Scenario::ParityDiscovery, 80, 25),
+        ] {
+            assert_eq!(
+                historical_80_overflow_faint_color(scenario, width, height, theme, *color),
+                None
+            );
+        }
+    }
+    for color in [
+        ColorLevel::TrueColor,
+        ColorLevel::Ansi256,
+        ColorLevel::Ansi16,
+        ColorLevel::Mono,
+    ] {
+        assert_eq!(
+            historical_80_overflow_faint_color(Scenario::ParityDiscovery, 80, 24, &junie, color,),
+            (color == ColorLevel::Mono).then_some(Color::Black)
+        );
+        assert_eq!(
+            historical_80_overflow_faint_color(Scenario::ParityDiscovery, 80, 24, &paper, color,),
+            match color {
+                ColorLevel::TrueColor => Some(Color::Rgb(115, 115, 115)),
+                ColorLevel::Ansi256 => Some(Color::Indexed(242)),
+                ColorLevel::Ansi16 => Some(Color::Gray),
+                ColorLevel::Mono => None,
+                _ => None,
+            }
+        );
+    }
+    let mut changed_paper = paper.clone();
+    changed_paper.color.fg[0] = Color::Green;
+    assert_eq!(
+        historical_80_overflow_faint_color(
+            Scenario::ParityDiscovery,
+            80,
+            24,
+            &changed_paper,
+            ColorLevel::TrueColor,
+        ),
+        None
+    );
+    assert_eq!(
+        historical_80_overflow_faint_color(
+            Scenario::ParityDiscovery,
+            80,
+            24,
+            &Theme::from_tokens(paper.color),
+            ColorLevel::TrueColor,
+        ),
+        None,
+        "token-only themes have no historical recipe provenance"
+    );
     for color in [
         ColorLevel::TrueColor,
         ColorLevel::Ansi256,
