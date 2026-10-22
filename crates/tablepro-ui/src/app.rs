@@ -171,6 +171,7 @@ struct PendingCommit {
     target: String,
     safe_mode: SafeMode,
     pending: PendingEdits,
+    columns: Vec<(String, ColType)>,
     cursor: Option<(ItemKey, ColumnKey, usize)>,
     selected_rows: termrock::KeySet,
     description: String,
@@ -1926,6 +1927,7 @@ impl TableProApp {
             target: target.clone(),
             safe_mode: self.safe_mode,
             pending,
+            columns: grid.columns.clone(),
             cursor,
             selected_rows: grid.state.selected_rows().clone(),
             description,
@@ -1955,6 +1957,7 @@ impl TableProApp {
                 || grid.model.source() != Some(request.target.as_str())
                 || grid.model.pending_total() == 0
                 || grid.model.pending() != &request.pending
+                || grid.columns != request.columns
                 || grid.state.is_editing()
                 || !cursor_matches
                 || grid.state.selected_rows() != &request.selected_rows
