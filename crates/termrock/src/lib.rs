@@ -186,6 +186,7 @@ pub use termrock_navigation::{
     TreeBranchClick, TreeCmd, TreeNode, TreeState,
 };
 
+pub use termrock_runtime::scroll_region::position_label;
 pub use termrock_viewport::{
     CellPos, ProjectedText, ScrollRegion, TextViewport, ViewportAction, ViewportCmd, ViewportLine,
     ViewportState,
