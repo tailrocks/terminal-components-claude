@@ -832,9 +832,13 @@ impl Page for DiffPage {
                         &self.tabs,
                         PAGE_TABS_ITEMS,
                     );
+                    // Stacked state specimens use six logical rows each.
+                    // Reuse the blank row below the tabs so a short viewport
+                    // can expose each whole card at ordinary wheel offsets.
+                    let content_offset = if self.section() == 2 { 2 } else { 3 };
                     let content = Rect {
-                        y: body.y.saturating_add(3),
-                        height: body.height.saturating_sub(3),
+                        y: body.y.saturating_add(content_offset),
+                        height: body.height.saturating_sub(content_offset),
                         ..body
                     };
                     if content.is_empty() {
@@ -924,15 +928,13 @@ fn state_specimen_source_start(group_start: usize, mode: DiffMode, state_index: 
     })
 }
 
-fn state_specimen_diff_height(mode: DiffMode, state_index: usize) -> u16 {
-    if state_index == 3 {
-        // Narrow caps the component at 42 columns; Review then uses the
-        // complete five-row Unified projection after its width fallback.
-        return 5;
-    }
+fn state_specimen_diff_height(mode: DiffMode, _state_index: usize) -> u16 {
     match mode {
         DiffMode::Unified => 5, // Header, hunk, and all three source rows.
-        DiffMode::Review => 4,  // Header, hunk, paired change, and context row.
+        // A Review component needs four rows when it fits. At widths below
+        // the shared threshold, it uses the five-row Unified projection.
+        // Reserve the maximum so every specimen remains complete.
+        DiffMode::Review => 5,
     }
 }
 
