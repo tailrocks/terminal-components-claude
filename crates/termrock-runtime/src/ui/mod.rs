@@ -403,6 +403,30 @@ impl<'f> Ui<'f> {
         self.layer
     }
 
+    /// Whether a higher native runtime layer covers this drawing context.
+    ///
+    /// This reports the current frame's native layer stack, independently of
+    /// [`Self::is_inert`]. It does not account for application-owned overlays
+    /// or establish whether input can reach an owner. A detached reference is
+    /// presented independently of the live layer stack and therefore returns
+    /// `false`.
+    pub fn is_covered_by_native_layer(&self) -> bool {
+        self.reference.is_none() && self.layer != self.frame.top
+    }
+
+    /// Whether `owner` has focus in this context's presentation.
+    ///
+    /// Live drawing reads only the focus captured in the bound frame; declared
+    /// or themed `FOCUSED` flags do not grant focus. A reference reports only
+    /// the synthetic focus injected for its exact target. That reference value
+    /// is presentation data, not physical focus or input permission.
+    pub fn owner_has_focus_presentation(&self, owner: Id) -> bool {
+        match self.reference_state(owner) {
+            Some(state) => state.contains(StateFlags::FOCUSED),
+            None => self.last.snapshot.focus == Some(owner),
+        }
+    }
+
     pub const fn is_inert(&self) -> bool {
         self.inert || self.reference.is_some()
     }
