@@ -54,6 +54,9 @@ impl Pty {
             ws_ypixel: 0,
         };
 
+        // SAFETY: `master` and `slave` are distinct writable integers, and `win` is an
+        // initialized Winsize that remains live for this synchronous call. The optional
+        // name and termios pointers are null.
         let rc = unsafe {
             openpty(
                 &mut master,
@@ -65,6 +68,8 @@ impl Pty {
         };
         assert_eq!(rc, 0, "openpty failed");
 
+        // SAFETY: `openpty` succeeded, so `slave` is open and not yet owned by a File.
+        // This transfers ownership once; later clones are separate Stdio descriptors.
         let slave_in = unsafe { File::from_raw_fd(slave) };
         let slave_out = slave_in.try_clone().unwrap();
         let slave_err = slave_in.try_clone().unwrap();
@@ -100,6 +105,8 @@ impl Pty {
         let child = cmd.spawn().expect("spawn holla on the pty");
         drop(cmd);
 
+        // SAFETY: `openpty` returned this open master descriptor, which has not been
+        // wrapped or closed in the parent. File takes ownership once before cloning.
         let master = unsafe { File::from_raw_fd(master) };
         let output = Arc::new(Mutex::new(Vec::new()));
         let sink = Arc::clone(&output);
