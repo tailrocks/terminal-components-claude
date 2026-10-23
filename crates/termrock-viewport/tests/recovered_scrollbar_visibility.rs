@@ -13,6 +13,40 @@ const FRAME_HEIGHT: u16 = 9;
 const AREA: Rect = Rect::new(3, 2, 6, 4);
 const SENTINEL_FG: Color = Color::Rgb(213, 174, 117);
 const SENTINEL_BG: Color = Color::Rgb(37, 51, 69);
+const SENTINEL_GLYPHS: &[u8] = b"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+
+fn paint_outside_sentinels(ui: &mut Ui<'_>) {
+    let frame = ui.full();
+    let style = Style::new().fg(SENTINEL_FG).bg(SENTINEL_BG);
+    for y in frame.y..frame.bottom() {
+        for x in frame.x..frame.right() {
+            if (AREA.x..AREA.right()).contains(&x) && (AREA.y..AREA.bottom()).contains(&y) {
+                continue;
+            }
+            let row = usize::from(y.saturating_sub(frame.y));
+            let column = usize::from(x.saturating_sub(frame.x));
+            let offset = row
+                .saturating_mul(usize::from(frame.width))
+                .saturating_add(column)
+                % SENTINEL_GLYPHS.len();
+            let mut symbol_bytes = [0; 4];
+            let symbol = char::from(SENTINEL_GLYPHS[offset]).encode_utf8(&mut symbol_bytes);
+            ui.paint_str(Rect::new(x, y, 1, 1), symbol, style);
+        }
+    }
+}
+
+struct SentinelPage;
+
+impl App for SentinelPage {
+    fn update(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
+        Response::ignored()
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        paint_outside_sentinels(ui);
+    }
+}
 
 struct ScrollbarPage {
     state: ScrollState,
@@ -29,13 +63,7 @@ impl App for ScrollbarPage {
     }
 
     fn draw(&self, ui: &mut Ui<'_>) {
-        let sentinel = Style::new().fg(SENTINEL_FG).bg(SENTINEL_BG);
-        for y in AREA.y..AREA.bottom() {
-            ui.paint_str(Rect::new(AREA.x.saturating_sub(1), y, 1, 1), "L", sentinel);
-            ui.paint_str(Rect::new(AREA.right(), y, 1, 1), "R", sentinel);
-        }
-        ui.paint_str(Rect::new(AREA.x, AREA.y - 1, 1, 1), "T", sentinel);
-        ui.paint_str(Rect::new(AREA.x, AREA.bottom(), 1, 1), "B", sentinel);
+        paint_outside_sentinels(ui);
 
         let returned = ScrollRegion::new(OWNER)
             .scrollbar_visible(self.visible)
@@ -69,32 +97,43 @@ fn harness(visible: bool, content_len: usize) -> Harness<ScrollbarPage> {
     )
 }
 
-fn assert_outside_sentinels(h: &Harness<ScrollbarPage>) {
-    let check = |x, y, symbol| {
-        let cell = h
-            .buffer()
-            .cell(Position::new(x, y))
-            .expect("sentinel is inside the frame");
-        assert_eq!(cell.symbol(), symbol, "sentinel at ({x}, {y})");
-        assert_eq!(cell.fg, SENTINEL_FG, "sentinel foreground at ({x}, {y})");
-        assert_eq!(cell.bg, SENTINEL_BG, "sentinel background at ({x}, {y})");
-        assert_eq!(
-            cell.modifier,
-            termrock_theme::Modifier::empty(),
-            "sentinel modifiers at ({x}, {y})"
-        );
-    };
+fn sentinel_control() -> Harness<SentinelPage> {
+    Harness::new(SentinelPage, Theme::junie(), FRAME_WIDTH, FRAME_HEIGHT)
+}
 
-    for y in AREA.y..AREA.bottom() {
-        check(AREA.x.saturating_sub(1), y, "L");
-        check(AREA.right(), y, "R");
+fn assert_outside_cells(h: &Harness<ScrollbarPage>, expected: &Harness<SentinelPage>) {
+    let mut checked = 0;
+    for y in 0..FRAME_HEIGHT {
+        for x in 0..FRAME_WIDTH {
+            if (AREA.x..AREA.right()).contains(&x) && (AREA.y..AREA.bottom()).contains(&y) {
+                continue;
+            }
+            let position = Position::new(x, y);
+            let actual = h
+                .buffer()
+                .cell(position)
+                .expect("outside cell is inside the frame");
+            let sentinel = expected
+                .buffer()
+                .cell(position)
+                .expect("outside sentinel is inside the frame");
+            assert_ne!(sentinel.symbol(), " ", "control paints ({x}, {y})");
+            assert_eq!(actual, sentinel, "full outside cell at ({x}, {y})");
+            checked += 1;
+        }
     }
-    check(AREA.x, AREA.y - 1, "T");
-    check(AREA.x, AREA.bottom(), "B");
+    let expected_outside = usize::from(FRAME_WIDTH)
+        .saturating_mul(usize::from(FRAME_HEIGHT))
+        .saturating_sub(usize::from(AREA.width).saturating_mul(usize::from(AREA.height)));
+    assert_eq!(
+        checked, expected_outside,
+        "inspect every outside-frame cell"
+    );
 }
 
 #[test]
 fn fitting_scroll_region_keeps_full_area_and_matches_explicit_no_bar_control() {
+    let sentinel = sentinel_control();
     let visible = harness(true, usize::from(AREA.height));
     let hidden = harness(false, usize::from(AREA.height));
 
@@ -119,14 +158,15 @@ fn fitting_scroll_region_keeps_full_area_and_matches_explicit_no_bar_control() {
             "fit path must keep the normal container fill at ({rightmost_x}, {y})"
         );
     }
-    assert_outside_sentinels(&visible);
-    assert_outside_sentinels(&hidden);
+    assert_outside_cells(&visible, &sentinel);
+    assert_outside_cells(&hidden, &sentinel);
     assert!(visible.diagnostics().is_empty());
     assert!(hidden.diagnostics().is_empty());
 }
 
 #[test]
 fn overflowing_scroll_region_reserves_and_paints_a_real_track_inside_its_area() {
+    let sentinel = sentinel_control();
     let visible = harness(true, 30);
     let hidden = harness(false, 30);
 
@@ -180,8 +220,8 @@ fn overflowing_scroll_region_reserves_and_paints_a_real_track_inside_its_area() 
         "visible track glyphs differ from the no-bar control"
     );
 
-    assert_outside_sentinels(&visible);
-    assert_outside_sentinels(&hidden);
+    assert_outside_cells(&visible, &sentinel);
+    assert_outside_cells(&hidden, &sentinel);
     assert!(visible.diagnostics().is_empty());
     assert!(hidden.diagnostics().is_empty());
 }
