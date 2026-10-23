@@ -217,7 +217,7 @@ pub struct TabsState {
     active: Option<ItemKey>,
     first: Option<ItemKey>,
     first_index: usize,
-    // Keep a hidden CLOSE from replacing the TAB target during its press.
+    // Defer the live CLOSE target while its hidden cell belongs to a TAB press.
     close_reveal_press: Option<ItemKey>,
 }
 
@@ -1042,7 +1042,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
             };
             let close_part = PartRef::item(Part::CLOSE, key);
             let close_visible = close_enabled
-                && close_reveal_press != Some(key)
                 && match self.close_reveal {
                     TabCloseReveal::Always => true,
                     TabCloseReveal::Hover => {
@@ -1053,6 +1052,8 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                             || pressed == Some(close_part)
                     }
                 };
+            let close_hit_visible = close_visible
+                && (self.close_reveal != TabCloseReveal::Hover || close_reveal_press != Some(key));
             let close_w: u16 = if close_enabled { 2 } else { 0 };
             let tab = match row_source {
                 TabsRowSource::Legacy(_) => {
@@ -1156,7 +1157,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
             if !ui.is_inert() {
                 ui.register_part(self.id, PartRef::item(Part::TAB, key), tab);
             }
-            if close_visible
+            if close_hit_visible
                 && !ui.is_inert()
                 && let Some(close_cell) = close_cell
             {

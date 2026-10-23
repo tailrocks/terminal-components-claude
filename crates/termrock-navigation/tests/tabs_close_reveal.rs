@@ -42,6 +42,7 @@ struct Page {
     reveal: Option<TabCloseReveal>,
     close_paint: ClosePaint,
     reference_hover: Option<ItemKey>,
+    planned: bool,
     actions: Vec<TabsAction>,
 }
 
@@ -69,21 +70,12 @@ impl Page {
             reveal,
             close_paint: ClosePaint::Default,
             reference_hover: None,
+            planned: false,
             actions: Vec::new(),
         }
     }
 
     fn draw_tabs(&self, ui: &mut Ui<'_>) {
-        let base = Tabs::new(TABS)
-            .closable(false)
-            .closable_keys(&self.close_keys);
-        let mut tabs = match self.reveal {
-            Some(reveal) => base.close_reveal(reveal),
-            None => base,
-        }
-        .key(tab_key)
-        .row(tab_row);
-
         let patches = [(
             Part::CLOSE,
             match self.close_paint {
@@ -101,11 +93,37 @@ impl Page {
                 }
             },
         )];
-        if !matches!(self.close_paint, ClosePaint::Default) {
-            tabs = tabs.patch_part(&patches);
-        }
         let area = ui.full();
-        tabs.draw(ui, area, &self.state, &self.items);
+        if self.planned {
+            let base = Tabs::new(TABS)
+                .closable(false)
+                .closable_keys(&self.close_keys);
+            let mut tabs = match self.reveal {
+                Some(reveal) => base.close_reveal(reveal),
+                None => base,
+            }
+            .key(tab_key);
+            if !matches!(self.close_paint, ClosePaint::Default) {
+                tabs = tabs.patch_part(&patches);
+            }
+            let layout = tabs.layout_default(area, area, &self.state, &self.items, None);
+            tabs.draw_layout(ui, &layout)
+                .expect("matching test layout draws");
+        } else {
+            let base = Tabs::new(TABS)
+                .closable(false)
+                .closable_keys(&self.close_keys);
+            let mut tabs = match self.reveal {
+                Some(reveal) => base.close_reveal(reveal),
+                None => base,
+            }
+            .key(tab_key)
+            .row(tab_row);
+            if !matches!(self.close_paint, ClosePaint::Default) {
+                tabs = tabs.patch_part(&patches);
+            }
+            tabs.draw(ui, area, &self.state, &self.items);
+        }
     }
 }
 
@@ -326,6 +344,144 @@ fn hidden_close_cell_keeps_tab_activation_and_allows_immediate_close() {
     h.app_mut().actions.clear();
     let _ = h.click_part(TABS, PartRef::item(Part::CLOSE, idle));
     assert_eq!(h.app().actions, [TabsAction::Close(idle)]);
+}
+
+#[test]
+fn hover_close_paints_while_tab_press_defers_its_hit_in_legacy_and_planned_draws() {
+    let idle = ItemKey::num(3);
+    let glyph = Theme::junie().design.glyphs.get(GlyphRole::Error);
+
+    for planned in [false, true] {
+        let mut h = harness(Some(TabCloseReveal::Hover));
+        h.app_mut().close_paint = ClosePaint::CustomGlyph;
+        let tab = tab_area(&h, idle);
+        let (x, y) = close_position(tab);
+
+        assert_eq!(close_area(&h, idle), None);
+        let _ = h.mouse(MouseKind::Down, x, y);
+        assert_eq!(h.app().state.cursor(), Some(idle));
+        assert_eq!(h.app().state.active(), Some(ItemKey::num(2)));
+        h.app_mut().planned = planned;
+        h.draw();
+
+        assert_eq!(
+            h.cell(x, y).symbol(),
+            glyph,
+            "hover reveal paints the close"
+        );
+        assert!(
+            h.cell(x, y).modifier.contains(Modifier::UNDERLINED),
+            "the close uses its configured local style during TAB capture"
+        );
+        assert_eq!(close_area(&h, idle), None, "TAB retains the live target");
+
+        let _ = h.mouse(MouseKind::Up, x, y);
+        assert_eq!(
+            h.app().actions,
+            [TabsAction::Activated(idle)],
+            "planned={planned}"
+        );
+        assert_eq!(close_area(&h, idle), Some(Rect::new(x, y, 1, 1)));
+        h.app_mut().actions.clear();
+        let _ = h.click_part(TABS, PartRef::item(Part::CLOSE, idle));
+        assert_eq!(h.app().actions, [TabsAction::Close(idle)]);
+    }
+
+    let mut cleared = harness(Some(TabCloseReveal::Hover));
+    cleared.app_mut().close_paint = ClosePaint::Clear;
+    let tab = tab_area(&cleared, idle);
+    let (x, y) = close_position(tab);
+    let _ = cleared.mouse(MouseKind::Down, x, y);
+    cleared.app_mut().planned = true;
+    cleared.draw();
+    assert_eq!(cleared.cell(x, y).symbol(), " ");
+    assert!(cleared.cell(x, y).modifier.contains(Modifier::UNDERLINED));
+    assert_eq!(close_area(&cleared, idle), None);
+
+    let _ = cleared.mouse(MouseKind::Up, x, y);
+    assert_eq!(cleared.app().actions, [TabsAction::Activated(idle)]);
+    assert_eq!(close_area(&cleared, idle), Some(Rect::new(x, y, 1, 1)));
+}
+
+#[test]
+fn inert_reference_keeps_hover_close_paint_during_a_real_tab_press() {
+    let idle = ItemKey::num(3);
+    let glyph = Theme::junie().design.glyphs.get(GlyphRole::Error);
+    let mut h = harness(Some(TabCloseReveal::Hover));
+    h.app_mut().close_paint = ClosePaint::CustomGlyph;
+    let tab = tab_area(&h, idle);
+    let (x, y) = close_position(tab);
+
+    let _ = h.mouse(MouseKind::Down, x, y);
+    h.app_mut().planned = true;
+    h.app_mut().reference_hover = Some(idle);
+    h.draw();
+    assert_eq!(h.cell(x, y).symbol(), glyph);
+    assert!(h.cell(x, y).modifier.contains(Modifier::UNDERLINED));
+    assert_eq!(
+        close_area(&h, idle),
+        None,
+        "reference adds no live close hit"
+    );
+    h.app_mut().reference_hover = None;
+    h.draw();
+    let _ = h.mouse(MouseKind::Up, 35, 2);
+    assert!(
+        h.app().actions.is_empty(),
+        "outside release never activates"
+    );
+}
+
+#[test]
+fn always_draw_ignores_hover_press_deferral_before_update() {
+    let idle = ItemKey::num(3);
+    let glyph = Theme::junie().design.glyphs.get(GlyphRole::Error);
+
+    for planned in [false, true] {
+        for reveal in [None, Some(TabCloseReveal::Always)] {
+            let mut h = harness(Some(TabCloseReveal::Hover));
+            h.app_mut().close_paint = ClosePaint::CustomGlyph;
+            let tab = tab_area(&h, idle);
+            let (x, y) = close_position(tab);
+
+            let _ = h.mouse(MouseKind::Down, x, y);
+            assert_eq!(close_area(&h, idle), None);
+
+            h.app_mut().reveal = reveal;
+            h.app_mut().planned = planned;
+            h.draw();
+
+            let mut control = harness(Some(TabCloseReveal::Hover));
+            control.app_mut().close_paint = ClosePaint::CustomGlyph;
+            let control_tab = tab_area(&control, idle);
+            assert_eq!(control_tab, tab);
+            let _ = control.mouse(MouseKind::Down, x, y);
+            assert_eq!(close_area(&control, idle), None);
+            control.app_mut().reveal = reveal;
+            control.app_mut().planned = planned;
+            let _ = control.tick();
+            let control_close = close_area(&control, idle).expect("clean Always close is live");
+            assert_eq!(tab_area(&h, idle), control_tab);
+            assert_eq!(close_area(&h, idle), Some(control_close));
+            assert_eq!(h.cell(x, y).symbol(), glyph);
+            assert_eq!(h.cell(x, y).symbol(), control.cell(x, y).symbol());
+            assert_eq!(h.cell(x, y).style(), control.cell(x, y).style());
+
+            let _ = h.mouse(MouseKind::Up, x, y);
+            let _ = control.mouse(MouseKind::Up, x, y);
+            assert!(
+                h.app().actions.is_empty(),
+                "a configuration change during a TAB press never closes the tab"
+            );
+            assert!(control.app().actions.is_empty());
+            assert_eq!(h.app().state.active(), Some(ItemKey::num(2)));
+            assert_eq!(h.app().state.cursor(), Some(idle));
+            assert_eq!(close_area(&h, idle), Some(control_close));
+
+            let _ = h.click_part(TABS, PartRef::item(Part::CLOSE, idle));
+            assert_eq!(h.app().actions, [TabsAction::Close(idle)]);
+        }
+    }
 }
 
 #[test]
