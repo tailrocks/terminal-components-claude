@@ -1,3 +1,5 @@
+use std::{fs, process::Command};
+
 use termrock_xtask::doc_inventory::{inspect_fixture, scan_workspace};
 
 fn workspace_root() -> std::path::PathBuf {
@@ -8,12 +10,142 @@ fn workspace_root() -> std::path::PathBuf {
         .to_path_buf()
 }
 
+fn package_readme_fixture(readme: &str) -> tempfile::TempDir {
+    let root = tempfile::tempdir().expect("temporary workspace");
+    let package = root.path().join("tools/refactor-proof");
+    fs::create_dir_all(package.join("src")).expect("package source directory");
+    fs::write(
+        root.path().join("Cargo.toml"),
+        "[workspace]\nresolver = \"3\"\nmembers = [\"tools/refactor-proof\"]\n",
+    )
+    .expect("workspace manifest");
+    fs::write(
+        root.path().join("Cargo.lock"),
+        "version = 4\n\n[[package]]\nname = \"readme-fixture\"\nversion = \"0.1.0\"\n",
+    )
+    .expect("workspace lockfile");
+    fs::write(
+        package.join("Cargo.toml"),
+        "[package]\nname = \"readme-fixture\"\nversion = \"0.1.0\"\nedition = \"2024\"\n",
+    )
+    .expect("package manifest");
+    fs::write(package.join("src/lib.rs"), "pub fn fixture() {}\n").expect("package target");
+    let reviewed_ignore = root.path().join("crates/termrock-runtime/src/ui/paint.rs");
+    fs::create_dir_all(reviewed_ignore.parent().expect("ignore parent"))
+        .expect("reviewed-ignore directory");
+    fs::write(
+        reviewed_ignore,
+        "/// ```ignore\n/// let view = ScrollRegion::view(st.core.scroll(), content, visible_len);\n/// ui.fade_picker_overflow(content, &view);\n/// ```\n",
+    )
+    .expect("reviewed illustrative ignore");
+    fs::write(root.path().join("README.md"), "Workspace-root decoy.\n")
+        .expect("workspace README decoy");
+    fs::write(package.join("README.md"), readme).expect("package README");
+
+    let init = Command::new("git")
+        .args(["init", "--quiet"])
+        .current_dir(root.path())
+        .output()
+        .expect("initialize temporary tracked workspace");
+    assert!(init.status.success(), "git init failed: {init:?}");
+    let add = Command::new("git")
+        .args(["add", "--all"])
+        .current_dir(root.path())
+        .output()
+        .expect("track temporary workspace inputs");
+    assert!(add.status.success(), "git add failed: {add:?}");
+    root
+}
+
+fn package_readme_issue(report: &termrock_xtask::doc_inventory::Report) -> bool {
+    report.issues.iter().any(|issue| {
+        issue.path == "tools/refactor-proof/Cargo.toml" && issue.detail.contains("package README")
+    })
+}
+
+fn package_readme_example_issue(report: &termrock_xtask::doc_inventory::Report) -> bool {
+    report.issues.iter().any(|issue| {
+        issue.path == "tools/refactor-proof/README.md"
+            && issue
+                .detail
+                .contains("unregistered Rust documentation example")
+    })
+}
+
+fn assert_package_fixture_inventory(report: &termrock_xtask::doc_inventory::Report) {
+    assert_eq!(
+        report.package_count,
+        1,
+        "unexpected package inventory: {}",
+        report.describe()
+    );
+    assert_eq!(
+        report.target_count,
+        1,
+        "unexpected target inventory: {}",
+        report.describe()
+    );
+    assert_eq!(
+        report.package_readmes,
+        1,
+        "unexpected README inventory: {}",
+        report.describe()
+    );
+    assert!(
+        !report.issues.iter().any(|issue| {
+            issue.path == "Cargo.toml" || issue.path == "crates/termrock-runtime/src/ui/paint.rs"
+        }),
+        "fixture has an unrelated workspace/ignore issue: {}",
+        report.describe()
+    );
+}
+
 #[test]
 fn tracked_workspace_documentation_has_no_unregistered_examples() {
     let report = scan_workspace(&workspace_root());
     assert!(
         report.passed(),
         "Rust documentation inventory failed:\n{}",
+        report.describe()
+    );
+}
+
+#[test]
+fn package_relative_readme_is_resolved_from_manifest_directory_and_scanned() {
+    let root = package_readme_fixture("```rust\nfn main() {}\n```\n");
+    let workspace = root
+        .path()
+        .canonicalize()
+        .expect("canonical workspace root");
+    let report = scan_workspace(&workspace);
+
+    assert_package_fixture_inventory(&report);
+    assert!(
+        !package_readme_issue(&report),
+        "package-relative README was not resolved from its manifest directory:\n{}",
+        report.describe()
+    );
+    assert!(
+        package_readme_example_issue(&report),
+        "the inventoried package README bypassed the existing content policy:\n{}",
+        report.describe()
+    );
+
+    fs::write(
+        workspace.join("tools/refactor-proof/README.md"),
+        "```bash\nfn main() {}\n```\n",
+    )
+    .expect("replace README with a shell-only example");
+    let report = scan_workspace(&workspace);
+    assert_package_fixture_inventory(&report);
+    assert!(
+        !package_readme_issue(&report),
+        "package-relative README failed after a content-only change:\n{}",
+        report.describe()
+    );
+    assert!(
+        !package_readme_example_issue(&report),
+        "a shell fence was treated as a Rust example:\n{}",
         report.describe()
     );
 }
