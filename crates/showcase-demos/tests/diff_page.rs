@@ -108,6 +108,90 @@ fn find_in(h: &Harness<PageHost>, area: Rect, needle: &str) -> Option<(u16, u16)
     })
 }
 
+fn text_in(h: &Harness<PageHost>, area: Rect) -> String {
+    (area.y..area.bottom())
+        .map(|y| {
+            (area.x..area.right())
+                .map(|x| h.cell(x, y).symbol())
+                .collect::<String>()
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+fn state_view_area(h: &Harness<PageHost>, two_columns: bool) -> Rect {
+    let area = h
+        .area_of(STATES_SCROLL)
+        .expect("the real state gallery has a scroll viewport");
+    let content_rows = if two_columns {
+        1usize.saturating_add(4usize.saturating_mul(6))
+    } else {
+        50
+    };
+    assert!(
+        area.height as usize >= content_rows,
+        "the width control fits without a vertical scrollbar, so its component width is the actual post-gutter width: area={area:?}, content_rows={content_rows}"
+    );
+    area
+}
+
+fn review_specimen_area(h: &Harness<PageHost>, two_columns: bool, state: usize) -> Rect {
+    let body = state_view_area(h, two_columns);
+    let label = GALLERY_STATES[state];
+    let mut in_review_group = false;
+    let label_y = (body.y..body.bottom()).find(|y| {
+        let line = h.row(*y);
+        let row = line.trim_start();
+        if two_columns {
+            row.starts_with(label)
+        } else if row.starts_with("review") {
+            in_review_group = true;
+            false
+        } else {
+            in_review_group && row.starts_with(label)
+        }
+    });
+    let label_y = label_y.unwrap_or_else(|| {
+        panic!(
+            "the {label} label is visible in the {} gallery\n{}",
+            if two_columns { "matrix" } else { "stacked" },
+            h.text()
+        )
+    });
+    if two_columns {
+        let content_x = body.x.saturating_add(10);
+        let content_width = body.right().saturating_sub(content_x);
+        let left_width = content_width.saturating_sub(2) / 2;
+        let review_x = content_x.saturating_add(left_width).saturating_add(2);
+        let review_width = body.right().saturating_sub(review_x);
+        Rect::new(review_x, label_y.saturating_add(1), review_width, 5)
+    } else {
+        Rect::new(body.x, label_y.saturating_add(1), body.width, 5)
+    }
+}
+
+fn assert_unified_review_fallback(h: &Harness<PageHost>, state: usize, two_columns: bool) {
+    let area = review_specimen_area(h, two_columns, state);
+    assert!(
+        area.width < 45,
+        "control exercises actual post-scrollbar-gutter DiffView width below the shared 45-column Review threshold: {area:?}"
+    );
+    let text = text_in(h, area);
+    for expected in [
+        "M retry.toml  +1 −1 · 1 hunk",
+        "@@ -1,2 +1,2 @@",
+        "  1     - attempts = 3",
+        "      1 + attempts = 5",
+        "  2   2   enabled = true",
+    ] {
+        assert!(
+            text.contains(expected),
+            "requested Review state {state} uses a complete actual Unified fallback; missing {expected:?} in area {area:?}:\n{text}\nfull frame:\n{}",
+            h.text()
+        );
+    }
+}
+
 #[test]
 fn four_real_changes_keep_canonical_status_counts_and_unicode_rows() {
     let mut h = host(120, 40);
@@ -544,8 +628,17 @@ fn gallery_uses_real_inert_diff_views_and_keeps_rows_reachable() {
     let scroll = short
         .area_of(STATES_SCROLL)
         .expect("state gallery scroll region");
+    let tabs = short.area_of(PAGE_TABS).expect("page section tabs");
+    assert!(
+        scroll.y >= tabs.bottom(),
+        "gallery follows tabs: {scroll:?} {tabs:?}"
+    );
+    assert!(
+        scroll.height >= 8,
+        "short stacked cards need a viewport tall enough for one group heading and a complete six-row specimen: {scroll:?}"
+    );
     let initial_short_text = short.text();
-    let mut active_mode = None;
+    let mut active_mode = Some(0);
     let mut reached = [[false; GALLERY_STATES.len()]; 2];
     for _ in 0..64 {
         for y in 0..short.buffer().area().height {
@@ -562,6 +655,15 @@ fn gallery_uses_real_inert_diff_views_and_keeps_rows_reachable() {
             else {
                 continue;
             };
+            // The one-row group heading can scroll out before the next card is
+            // fully visible. The duplicated Rest label then marks the start
+            // of the second mode group even if that heading was skipped.
+            if active_mode == Some(0)
+                && state_index == 0
+                && reached[0].iter().all(|visible| *visible)
+            {
+                active_mode = Some(1);
+            }
             let Some(mode_index) = active_mode else {
                 continue;
             };
@@ -573,11 +675,7 @@ fn gallery_uses_real_inert_diff_views_and_keeps_rows_reachable() {
                     "the complete Empty specimen is reachable in mode {mode_index}\n{frame}"
                 );
             } else {
-                let diff_rows = if mode_index == 1 && state_index != 3 {
-                    4
-                } else {
-                    5
-                };
+                let diff_rows = 5;
                 let last_y = y.saturating_add(diff_rows as u16);
                 assert!(
                     last_y < short.buffer().area().height,
@@ -628,6 +726,53 @@ fn gallery_uses_real_inert_diff_views_and_keeps_rows_reachable() {
         short.text()
     );
     assert!(short.diagnostics().is_empty(), "{:?}", short.diagnostics());
+}
+
+#[test]
+fn matrix_review_fallback_keeps_complete_unified_rows_at_eighty_columns() {
+    let mut h = host(80, 40);
+    section(&mut h, 2);
+
+    for state in [0, 1] {
+        assert_unified_review_fallback(&h, state, true);
+    }
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn stacked_review_fallback_keeps_complete_unified_rows_at_forty_four_columns() {
+    let mut h = host(44, 64);
+    section(&mut h, 2);
+
+    for state in [0, 1] {
+        assert_unified_review_fallback(&h, state, false);
+    }
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn sufficiently_wide_gallery_review_keeps_paired_rows() {
+    let mut h = host(120, 40);
+    section(&mut h, 2);
+
+    for state in [0, 1] {
+        let area = review_specimen_area(&h, true, state);
+        assert!(area.width >= 45, "wide Review control: {area:?}");
+        let text = text_in(&h, Rect { height: 4, ..area });
+        for expected in [
+            "M retry.toml  +1 −1 · 1 hunk · review",
+            "@@ -1,2 +1,2 @@",
+            "attempts = 3",
+            "attempts = 5",
+            "enabled = true",
+        ] {
+            assert!(
+                text.contains(expected),
+                "wide requested Review state {state} retains paired rows; missing {expected:?} in area {area:?}:\n{text}"
+            );
+        }
+    }
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
 }
 
 #[test]
