@@ -1,0 +1,23 @@
+# Component contracts
+
+This page indexes component ownership and acceptance requirements against the reviewed source snapshot [`54daace12e750db17ca785f2a076e8fd2266d5ae`](https://github.com/tailrocks/terminal-components-claude/tree/54daace12e750db17ca785f2a076e8fd2266d5ae). Source and test links identify the inspected scope; this page does not claim that every component contract is complete, that linked tests passed in this documentation change, or that product visuals match the design reference.
+
+## Public surface and owners
+
+The public facade is [`termrock`](../crates/termrock/src/lib.rs), with the lower-level authoring surface at `termrock::author`. Shared crates own reusable component and runtime mechanisms; applications own domain state and workflow composition. See [architecture](architecture.md), [requirements](requirements.md), and the [application acceptance plan](plan.md) for the broader ownership and product gates. A crate or export alone does not prove that its API supports a real consumer or that its behavior meets acceptance.
+
+## Acceptance categories
+
+1. **Independent authoring.** A consumer can construct components with caller-owned state, measure and lay them out, route deterministic input, and test focus, hit registration, identity, styled-part accounting, conformance, and tiny or empty geometry. The current workspace contains an isolated public-facade consumer; its exact scope and remaining limits are recorded in [authoring](contracts/authoring.md).
+2. **Identity and event flow.** Preserve typed flow, actions, invalidation, event phases, pointer targets, and part identity. Use domain keys for reorderable items and positional keys only where position is the identity. Consumed input may require no repaint.
+3. **State and rendering phases.** Keep semantic state transitions in update. Drawing may paint and update runtime frame registration, diagnostics, or derived caches. Keep live interaction state separate from synthetic reference state, and suppress reference-only side effects.
+4. **Theme and customization.** Preserve semantic roles, supported color capabilities, customization scope, precedence, sibling isolation, and the distinct `Slot` inherit/set/clear rules. Use the maintained [customization](contracts/overrides.md) and [theme](contracts/theming.md) contracts rather than copying their scenario matrices here.
+5. **Components and data.** Preserve composed dialog bodies and owner lifecycle, focus and dismissal, caller-capturing validation or extension behavior, typed errors, optional frame facts, borrowed visible-row data, keyed Grid sorting, edit policy, selection identity, and viewport behavior.
+6. **Safety and determinism.** Avoid unchecked string slicing for generated IDs or tokens; keep secrets out of rendered, logged, and copied output; make timers and update causes deterministic; route input from the appropriate published geometry. Retain the rationale in [SAFETY.md](../SAFETY.md). These requirements are not a complete safety audit.
+7. **Dependency ownership.** Put generic reusable behavior in shared crates and application-specific domain vocabulary, workflow policy, SQL semantics, and composition in applications. This boundary does not prohibit an application from authoring a component or supplying a paint callback where the API permits it.
+
+## Evidence and history
+
+Use the [authoring map](contracts/authoring.md) for current API and consumer evidence and the [migration map](contracts/migration.md) for semantic requirements retained from the former workspace. The exact older guides remain at immutable [`d1122f69`](https://github.com/tailrocks/terminal-components-claude/tree/d1122f69e6b9c2364aa6ede8174e7d35b8cfff39): [authoring](https://github.com/tailrocks/terminal-components-claude/blob/d1122f69e6b9c2364aa6ede8174e7d35b8cfff39/docs/guides/authoring.md), [migration](https://github.com/tailrocks/terminal-components-claude/blob/d1122f69e6b9c2364aa6ede8174e7d35b8cfff39/docs/guides/migration.md), [theming](https://github.com/tailrocks/terminal-components-claude/blob/d1122f69e6b9c2364aa6ede8174e7d35b8cfff39/docs/guides/theming.md), and [overrides](https://github.com/tailrocks/terminal-components-claude/blob/d1122f69e6b9c2364aa6ede8174e7d35b8cfff39/docs/guides/overrides.md). Their old imports and examples are historical, not current instructions.
+
+The workspace consumer and the named tests in these maps are evidence for the paths they exercise. They are not a published downstream compatibility guarantee, universal component conformance, or visual-parity proof. Compare rendered behavior against the retained `design/interaction-polish` reference under the separate visual acceptance process.
