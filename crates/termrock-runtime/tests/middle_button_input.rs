@@ -25,10 +25,20 @@ struct PointerIntent {
     mods: KeyModifiers,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct PointerCountObservation {
+    owner: Id,
+    part: PartRef,
+    phase: Phase,
+    press_count: Option<u8>,
+    click_count: Option<u8>,
+}
+
 #[derive(Default)]
 struct Probe {
     updates: usize,
     pointers: Vec<PointerIntent>,
+    pointer_counts: Vec<PointerCountObservation>,
     unexpected: usize,
     capture_on_press: bool,
     open_modal: bool,
@@ -62,6 +72,13 @@ impl App for Probe {
                             pos,
                             local,
                             mods,
+                        });
+                        self.pointer_counts.push(PointerCountObservation {
+                            owner,
+                            part,
+                            phase,
+                            press_count: cx.pointer_press_count(owner, part),
+                            click_count: cx.pointer_click_count(owner, part),
                         });
                         capture_requested |= owner == TARGET && phase == Phase::Press;
                         if owner == FOCUS && phase == Phase::Middle && self.remove_target_on_middle
@@ -498,6 +515,60 @@ fn middle_does_not_change_the_primary_click_count() {
             .any(|intent| intent.phase == Phase::DoubleClick),
         "a middle press must not reset or advance the primary click sequence"
     );
+}
+
+#[test]
+fn middle_update_has_no_stale_primary_pointer_counts() {
+    let mut rt = ready_runtime(Probe::default());
+    let primary = |kind| {
+        Input::Mouse(termrock_core::Mouse {
+            kind,
+            pos: Position::new(13, 6),
+            mods: KeyModifiers::NONE,
+        })
+    };
+
+    let _ = rt.handle(primary(termrock_core::MouseKind::Down)).unwrap();
+    present(&mut rt);
+    let press = rt
+        .app()
+        .pointer_counts
+        .iter()
+        .find(|observation| {
+            observation.owner == TARGET
+                && observation.part == ITEM
+                && observation.phase == Phase::Press
+        })
+        .copied()
+        .expect("a real primary press reports its current count");
+    assert_eq!((press.press_count, press.click_count), (Some(1), Some(1)));
+
+    let _ = rt.handle(primary(termrock_core::MouseKind::Up)).unwrap();
+    present(&mut rt);
+    rt.app_mut().pointer_counts.clear();
+    present(&mut rt);
+
+    let middle = RoutedInput::from_crossterm(mouse(
+        MouseEventKind::Down(MouseButton::Middle),
+        13,
+        6,
+        KeyModifiers::NONE,
+    ))
+    .expect("middle down is preserved");
+    let _ = rt.handle_routed(middle).unwrap();
+
+    let middle = rt
+        .app()
+        .pointer_counts
+        .iter()
+        .find(|observation| {
+            observation.owner == TARGET
+                && observation.part == ITEM
+                && observation.phase == Phase::Middle
+        })
+        .copied()
+        .expect("the target observes the Middle update");
+    assert_eq!((middle.press_count, middle.click_count), (None, None));
 }
 
 #[test]
