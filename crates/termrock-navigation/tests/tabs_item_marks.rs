@@ -378,6 +378,163 @@ fn absent_and_clean_mappers_preserve_cells_hits_and_global_busy_defaults() {
 }
 
 #[test]
+fn unmarked_long_default_rows_keep_the_parent_content_budget() {
+    let label = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
+    for width in [12u16, 32] {
+        let items = vec![Tab {
+            label,
+            marks: TabMarks::default(),
+        }];
+        let parent_content = Rect::new(1, 0, width.saturating_sub(1), 1);
+        let absent_tabs = Page::new(items.clone(), false, true, Status::Ready).tabs();
+        let absent_plan = absent_tabs.layout_default(
+            Rect::new(0, 0, width, 2),
+            Rect::new(0, 0, width, 2),
+            &TabsState::default(),
+            &items,
+            None,
+        );
+        assert_eq!(
+            absent_plan.rows()[0].logical_content,
+            parent_content,
+            "width {width}: the parent path gave an unmarked closable row all cells after its leading pad"
+        );
+
+        let variants = [
+            Harness::new(
+                Page::new(items.clone(), false, true, Status::Ready),
+                Theme::junie(),
+                width,
+                2,
+            ),
+            Harness::new(
+                Page::new(items.clone(), true, true, Status::Ready),
+                Theme::junie(),
+                width,
+                2,
+            ),
+            Harness::new(
+                Page::new(items.clone(), false, true, Status::Ready).with_plan(),
+                Theme::junie(),
+                width,
+                2,
+            ),
+            Harness::new(
+                Page::new(items, true, true, Status::Ready).with_plan(),
+                Theme::junie(),
+                width,
+                2,
+            ),
+        ];
+        let close_glyph = Theme::junie().design.glyphs.get(GlyphRole::Close);
+        for x in 0..width {
+            let expected = if x == width.saturating_sub(2) {
+                close_glyph.to_owned()
+            } else if x > 0 && x < width {
+                label
+                    .chars()
+                    .nth(usize::from(x.saturating_sub(1)))
+                    .map(|character| character.to_string())
+                    .expect("the parent row budget fits inside this long label")
+            } else {
+                " ".to_owned()
+            };
+            assert_eq!(
+                variants[0].cell(x, 0).symbol(),
+                expected,
+                "width {width}, x {x}: the long parent label reaches the final visible cell"
+            );
+            for variant in variants.iter().skip(1) {
+                assert_eq!(variant.cell(x, 0).symbol(), variants[0].cell(x, 0).symbol());
+                assert_eq!(variant.cell(x, 0).style(), variants[0].cell(x, 0).style());
+            }
+        }
+        for x in 0..width {
+            assert_eq!(variants[0].cell(x, 1).symbol(), variants[1].cell(x, 1).symbol());
+            assert_eq!(variants[0].cell(x, 1).style(), variants[1].cell(x, 1).style());
+            assert_eq!(variants[0].cell(x, 1).symbol(), variants[2].cell(x, 1).symbol());
+            assert_eq!(variants[0].cell(x, 1).style(), variants[2].cell(x, 1).style());
+        }
+
+        for variant in &variants {
+            assert_eq!(
+                tab_area(variant, ItemKey::index(0)),
+                Rect::new(0, 0, width, 1)
+            );
+            assert_eq!(
+                variant.area_of_part(TABS, PartRef::item(Part::CLOSE, ItemKey::index(0))),
+                Some(Rect::new(width.saturating_sub(2), 0, 1, 1))
+            );
+            assert_eq!(variant.area_of_part(TABS, PartRef::of(Part::NEW)), None);
+            assert_eq!(
+                variant.area_of_part(TABS, PartRef::item(Part::OVERFLOW, ItemKey::index(1))),
+                None
+            );
+        }
+    }
+}
+
+#[test]
+fn unmarked_long_custom_rows_keep_the_parent_meta_cell_and_hit_bounds() {
+    let label = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
+    for width in [12u16, 32] {
+        let make = |marks_first| {
+            Harness::new(
+                CustomPage {
+                    state: TabsState::default(),
+                    item: Tab {
+                        label,
+                        marks: TabMarks::default(),
+                    },
+                    marks_first,
+                    actions: Vec::new(),
+                },
+                Theme::junie(),
+                width,
+                2,
+            )
+        };
+        let absent = make(false);
+        let clean = make(true);
+        let tab = tab_area(&absent, ItemKey::num(41));
+        let close = Rect::new(width.saturating_sub(2), 0, 1, 1);
+
+        assert_eq!(tab, Rect::new(0, 0, width, 1));
+        assert_eq!(
+            absent.area_of_part(TABS, PartRef::item(Part::CLOSE, ItemKey::num(41))),
+            Some(close)
+        );
+        assert_eq!(
+            absent.cell(1, 0).symbol(),
+            ">",
+            "the custom prefix remains at its parent cell"
+        );
+        assert_eq!(
+            absent.cell(width.saturating_sub(1), 0).symbol(),
+            "S",
+            "the parent content budget placed custom trailing metadata in the last cell"
+        );
+        for y in 0..2 {
+            for x in 0..width {
+                assert_eq!(absent.cell(x, y).symbol(), clean.cell(x, y).symbol());
+                assert_eq!(absent.cell(x, y).style(), clean.cell(x, y).style());
+            }
+        }
+        assert_eq!(
+            clean.area_of_part(TABS, PartRef::item(Part::TAB, ItemKey::num(41))),
+            Some(tab)
+        );
+        assert_eq!(
+            clean.area_of_part(TABS, PartRef::item(Part::CLOSE, ItemKey::num(41))),
+            Some(close)
+        );
+        assert_eq!(absent.area_of_part(TABS, PartRef::of(Part::NEW)), None);
+    }
+}
+
+#[test]
 fn direct_and_planned_default_rows_match_cells_and_existing_hit_bounds() {
     let items = vec![
         Tab {

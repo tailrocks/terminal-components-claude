@@ -1288,7 +1288,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                         .saturating_sub(1)
                         .saturating_sub(mark_width)
                         .saturating_sub(u16::from(mark.is_some()))
-                        .saturating_sub(close_w),
+                        .saturating_sub(if mark.is_some() { close_w } else { 0 }),
                     height: 1,
                 },
                 TabsRowSource::Planned(row) => row.logical_content,
@@ -1742,7 +1742,7 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
                     .saturating_sub(1)
                     .saturating_sub(mark_width)
                     .saturating_sub(u16::from(mark.is_some()))
-                    .saturating_sub(close_w),
+                    .saturating_sub(if mark.is_some() { close_w } else { 0 }),
                 height: 1,
             };
             let mut writer = SegmentWriter(Vec::new());
