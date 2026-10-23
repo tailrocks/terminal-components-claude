@@ -1,5 +1,10 @@
+use std::cell::RefCell;
+
 use showcase_demos::pages::{Page, diff::DiffPage};
-use termrock::{App, Axis, ColorLevel, Cx, Id, KeyCode, Rect, Response, Theme, Ui};
+use termrock::{
+    App, Axis, ColorLevel, Cx, Id, KeyCode, KeyModifiers, Rect, Response, Role, Surface, Theme, Ui,
+    theme::resolve::bind_role,
+};
 use termrock_test_support::Harness;
 
 const PAGE_TABS: Id = Id::root("showcase_ui::pages::diff.page_tabs");
@@ -12,10 +17,12 @@ const FILES: Id = Id::root("showcase_ui::pages::diff.option.files");
 const WIDTH: Id = Id::root("showcase_ui::pages::diff.option.width");
 const STATES_SCROLL: Id = Id::root("showcase_ui::pages::diff.states_scroll");
 const STATE_ROOT: Id = Id::root("showcase_ui::pages::diff.states");
+const GALLERY_STATES: [&str; 4] = ["Rest", "Focused", "Empty", "Narrow"];
 
 struct PageHost {
     page: DiffPage,
     status: Option<String>,
+    hints: RefCell<Vec<(&'static str, &'static str)>>,
 }
 
 impl App for PageHost {
@@ -26,6 +33,7 @@ impl App for PageHost {
     }
 
     fn draw(&self, ui: &mut Ui<'_>) {
+        *self.hints.borrow_mut() = self.page.hints(ui).to_vec();
         self.page.draw(ui, ui.full());
     }
 }
@@ -50,6 +58,7 @@ fn host(width: u16, height: u16) -> Harness<PageHost> {
         PageHost {
             page: DiffPage::new(),
             status: None,
+            hints: RefCell::new(Vec::new()),
         },
         Theme::junie(),
         width,
@@ -88,6 +97,15 @@ fn choose_select(h: &mut Harness<PageHost>, id: Id, down: bool) {
 
 fn specimen_id(state: usize, mode: usize) -> Id {
     STATE_ROOT.index(state.saturating_mul(2).saturating_add(mode))
+}
+
+fn find_in(h: &Harness<PageHost>, area: Rect, needle: &str) -> Option<(u16, u16)> {
+    (area.y..area.bottom()).find_map(|y| {
+        let row = h.row(y);
+        let byte = row.find(needle)?;
+        let x = termrock::width(&row[..byte]);
+        (x >= area.x && x < area.right()).then_some((x, y))
+    })
 }
 
 #[test]
@@ -134,6 +152,104 @@ fn four_real_changes_keep_canonical_status_counts_and_unicode_rows() {
         "{text}"
     );
     assert!(text.contains("use super::exponential;"), "{text}");
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn chooser_and_diff_header_keep_each_status_role_and_rename_origin() {
+    let theme = Theme::junie();
+    let expected_roles = [
+        ("M", Role::Warning),
+        ("A", Role::Success),
+        ("D", Role::Danger),
+        ("R", Role::Fg(termrock::FgStep::Secondary)),
+    ];
+    let mut h = Harness::new(
+        PageHost {
+            page: DiffPage::new(),
+            status: None,
+            hints: RefCell::new(Vec::new()),
+        },
+        theme.clone(),
+        120,
+        40,
+    );
+
+    for (index, (marker, role)) in expected_roles.into_iter().enumerate() {
+        assert!(h.tab_to(FILE_LIST));
+        for _ in 0..4 {
+            let _ = h.key(KeyCode::Up);
+        }
+        for _ in 0..index {
+            let _ = h.key(KeyCode::Down);
+        }
+        let chooser_text = h.text();
+        let path = [
+            "config/service.toml",
+            "docs/retries.md",
+            "src/legacy_backoff.rs",
+            "src/backoff/retry.rs",
+        ][index];
+        let list_area = h.area_of(FILE_LIST).expect("change chooser rows");
+        let chooser_needle = [
+            "M config/service.toml",
+            "A docs/retries.md",
+            "D src/legacy_backoff.rs",
+            "R src/retry.rs",
+        ][index];
+        let (chooser_x, chooser_y) = find_in(&h, list_area, chooser_needle)
+            .unwrap_or_else(|| panic!("chooser lost {marker} status for {path}\n{chooser_text}"));
+        let chooser_role = bind_role(&theme, role, Surface::Canvas).expect("semantic status role");
+        assert_eq!(
+            h.cell(chooser_x, chooser_y).fg,
+            chooser_role,
+            "{marker} chooser marker has its semantic role"
+        );
+        if index == 3 {
+            assert!(
+                h.row(chooser_y).contains("R src/retry.rs → src/back +1 −1"),
+                "chooser lost the rename origin, destination prefix, or count\n{}",
+                h.row(chooser_y)
+            );
+        }
+
+        let header_needle = if index == 3 {
+            "R src/retry.rs → src/backoff/retry.rs".to_owned()
+        } else {
+            format!("{marker} {path}")
+        };
+        let count = [
+            "+10 −5 · 5 hunks",
+            "+3 −0 · 1 hunk",
+            "+0 −3 · 1 hunk",
+            "+1 −1 · 1 hunk",
+        ][index];
+        let (header_x, header_y) = (0..h.buffer().area().height)
+            .find_map(|y| {
+                let row = h.row(y);
+                if !row.contains(&header_needle) || !row.contains(count) {
+                    return None;
+                }
+                let byte = row.find(&header_needle)?;
+                Some((termrock::width(&row[..byte]), y))
+            })
+            .unwrap_or_else(|| panic!("live header lost {header_needle}\n{chooser_text}"));
+        let header_row = h.row(header_y);
+        if index == 3 {
+            assert!(
+                header_row.contains("src/retry.rs → src/backoff/retry.rs"),
+                "live header lost the full rename\n{header_row}"
+            );
+        }
+        let expected = bind_role(&theme, role, Surface::Canvas).expect("semantic status role");
+        assert_eq!(
+            h.cell(header_x, header_y).fg,
+            expected,
+            "{marker} live Diff status marker has its semantic role"
+        );
+        assert!(header_row.contains(count), "{header_row}");
+    }
+    assert!(h.text().contains("+1 −1 · 1 hunk"));
     assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
 }
 
@@ -220,8 +336,9 @@ fn shared_diff_view_scrolls_pans_and_captures_unicode_selection() {
     );
     let _ = h.drag((x, y), (end_x, y));
     assert_eq!(h.focus(), Some(LIVE_VIEW));
+    let _ = h.key_mod(KeyCode::Right, KeyModifiers::SHIFT);
     let _ = h.key(KeyCode::Char('y'));
-    let status = format!("Captured selection: {expected}");
+    let status = format!("Captured selection: {expected}\"");
     assert_eq!(h.app().status.as_deref(), Some(status.as_str()));
     assert!(h.text().contains("Selection captured"), "{}", h.text());
 
@@ -252,6 +369,60 @@ fn shared_diff_view_scrolls_pans_and_captures_unicode_selection() {
         "vertical wheel still scrolls rows"
     );
     assert!(pan.diagnostics().is_empty(), "{:?}", pan.diagnostics());
+}
+
+#[test]
+fn keyboard_selection_can_start_at_the_visible_diff_tail() {
+    let mut h = host(120, 40);
+    assert!(h.tab_to(FILE_LIST));
+    let _ = h.key(KeyCode::Down);
+    let _ = h.key(KeyCode::Down);
+    assert!(h.text().contains("src/legacy_backoff.rs"));
+
+    assert!(h.tab_to(LIVE_VIEW));
+    let _ = h.key_mod(KeyCode::Left, KeyModifiers::SHIFT);
+    let _ = h.key(KeyCode::Char('y'));
+    assert_eq!(
+        h.app().status.as_deref(),
+        Some("Captured selection: }"),
+        "Shift+Left starts from the last visible logical line"
+    );
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn selection_hints_describe_start_and_then_capture_controls() {
+    let mut h = host(120, 40);
+    assert!(h.tab_to(LIVE_VIEW));
+    let hints = h.app().hints.borrow().clone();
+    assert!(hints.contains(&("Drag", "Select")), "{hints:?}");
+    assert!(
+        hints.contains(&("Shift+← →", "Start / extend (default)")),
+        "{hints:?}"
+    );
+    assert!(
+        !hints.iter().any(|(_, action)| *action == "Capture"),
+        "{hints:?}"
+    );
+    assert!(
+        !hints.iter().any(|(_, action)| *action == "Clear"),
+        "{hints:?}"
+    );
+
+    let (x, y) = h.find("attempts = 3").expect("removed row is visible");
+    let _ = h.drag((x, y), (x.saturating_add(7), y));
+    let hints = h.app().hints.borrow().clone();
+    assert!(hints.contains(&("Shift+← →", "Extend")), "{hints:?}");
+    assert!(hints.contains(&("y", "Capture")), "{hints:?}");
+    assert!(hints.contains(&("Esc", "Clear")), "{hints:?}");
+
+    assert!(h.tab_to(FILE_LIST));
+    let hints = h.app().hints.borrow().clone();
+    assert!(hints.contains(&("↑ ↓", "View file")), "{hints:?}");
+    assert!(
+        !hints.iter().any(|(_, action)| *action == "Capture"),
+        "{hints:?}"
+    );
 }
 
 #[test]
@@ -320,9 +491,40 @@ fn gallery_uses_real_inert_diff_views_and_keeps_rows_reachable() {
         assert!(text.contains("No file selected"), "{color:?}\n{text}");
         assert!(text.contains("retry.toml"), "{color:?}\n{text}");
         assert!(
+            text.contains("+1 −1 · 1 hunk"),
+            "Rest and Focused specimens retain one removal, one addition, and one hunk\n{text}"
+        );
+        assert!(
+            text.contains("@@ -1,2 +1,2 @@"),
+            "the canonical gallery hunk header is rendered\n{text}"
+        );
+        assert!(
+            text.contains("  1     - attempts = 3"),
+            "the removal uses the canonical old line number\n{text}"
+        );
+        assert!(
+            text.contains("      1 + attempts = 5"),
+            "the addition uses the canonical new line number\n{text}"
+        );
+        assert!(
+            text.contains("  2   2   enabled = true"),
+            "the context tail remains visible after the hunk\n{text}"
+        );
+        assert!(
             h.diagnostics().is_empty(),
             "{color:?}: {:?}",
             h.diagnostics()
+        );
+        assert_eq!(text.matches("M retry.toml").count(), 6, "{color:?}: {text}");
+        assert_eq!(
+            text.matches("No file selected").count(),
+            2,
+            "{color:?}: {text}"
+        );
+        assert_eq!(
+            text.matches("@@ -1,2 +1,2 @@").count(),
+            6,
+            "all Rest, Focused, and Narrow views retain their real hunk in both columns\n{text}"
         );
 
         assert!(h.tab_to(PAGE_TABS));
@@ -337,17 +539,92 @@ fn gallery_uses_real_inert_diff_views_and_keeps_rows_reachable() {
         }
     }
 
-    let mut short = host(80, 12);
+    let mut short = host(48, 12);
     section(&mut short, 2);
     let scroll = short
         .area_of(STATES_SCROLL)
         .expect("state gallery scroll region");
-    for _ in 0..16 {
-        let _ = short.wheel(Axis::V, 3, scroll.x.saturating_add(1), scroll.y);
+    let initial_short_text = short.text();
+    let mut active_mode = None;
+    let mut reached = [[false; GALLERY_STATES.len()]; 2];
+    for _ in 0..64 {
+        for y in 0..short.buffer().area().height {
+            let row = short.row(y);
+            let trimmed = row.trim_start();
+            if trimmed.starts_with("unified") {
+                active_mode = Some(0);
+            } else if trimmed.starts_with("review") {
+                active_mode = Some(1);
+            }
+            let Some(state_index) = GALLERY_STATES
+                .iter()
+                .position(|label| trimmed.starts_with(label))
+            else {
+                continue;
+            };
+            let Some(mode_index) = active_mode else {
+                continue;
+            };
+
+            let frame = short.text();
+            if state_index == 2 {
+                assert!(
+                    short.row(y.saturating_add(1)).contains("No file selected"),
+                    "the complete Empty specimen is reachable in mode {mode_index}\n{frame}"
+                );
+            } else {
+                let diff_rows = if mode_index == 1 && state_index != 3 {
+                    4
+                } else {
+                    5
+                };
+                let last_y = y.saturating_add(diff_rows as u16);
+                assert!(
+                    last_y < short.buffer().area().height,
+                    "a gallery label cannot be shown without its complete diff body (label_y={y}, body_rows={diff_rows}, scroll={scroll:?}, terminal={:?})\n{frame}",
+                    short.buffer().area()
+                );
+                let body = (y.saturating_add(1)..=last_y)
+                    .map(|row| short.row(row))
+                    .collect::<Vec<_>>()
+                    .join("\n");
+                assert!(
+                    body.contains("M retry.toml") && body.contains("+1 −1 · 1 hunk"),
+                    "specimen status and actual hunk counts remain visible\n{frame}"
+                );
+                assert!(
+                    body.contains("@@ -1,2 +1,2 @@"),
+                    "specimen keeps its real hunk header\n{frame}"
+                );
+                if mode_index == 1 && state_index != 3 {
+                    assert!(
+                        body.contains("· review")
+                            && body.contains("attempts = 3")
+                            && body.contains("attempts = 5")
+                            && body.contains("enabled = true"),
+                        "the requested Review specimen retains both sides and its context tail\n{frame}"
+                    );
+                } else {
+                    assert!(
+                        !body.contains("· review")
+                            && body.contains("  1     - attempts = 3")
+                            && body.contains("      1 + attempts = 5")
+                            && body.contains("  2   2   enabled = true"),
+                        "the complete Unified projection retains numbering and context tail\n{frame}"
+                    );
+                }
+            }
+            reached[mode_index][state_index] = true;
+        }
+        if reached.iter().flatten().all(|visible| *visible) {
+            break;
+        }
+        let _ = short.wheel(Axis::V, 1, scroll.x.saturating_add(1), scroll.y);
     }
-    assert!(
-        short.text().contains("Narrow"),
-        "last state row is reachable\n{}",
+    assert_eq!(
+        reached,
+        [[true; GALLERY_STATES.len()]; 2],
+        "all eight complete specimens are reachable in the short stacked gallery; initial frame:\n{initial_short_text}\nfinal frame:\n{}",
         short.text()
     );
     assert!(short.diagnostics().is_empty(), "{:?}", short.diagnostics());

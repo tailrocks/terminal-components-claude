@@ -1,7 +1,7 @@
 use termrock::{
     Cx, DiffLineKind, DiffMode, DiffRow, DiffSource, DiffView, DiffViewState, FrameRead, Id,
-    ItemKey, List, ListAction, ListState, Part, PartRef, Rect, Response, ScrollRegion, ScrollState,
-    Select, SelectMode, SelectState, StateFlags, Tabs, TabsState, Toggle, Ui,
+    ItemKey, List, ListAction, ListState, Part, PartRef, Rect, Response, Role, ScrollRegion,
+    ScrollState, Select, SelectMode, SelectState, Span, StateFlags, Tabs, TabsState, Toggle, Ui,
     author::VerticalWindow,
 };
 
@@ -32,7 +32,6 @@ const COLUMN_GAP: u16 = 2;
 const NARROW_WIDTH: u16 = 48;
 const PLAY_CONTROL_ROWS: u16 = 2;
 const STATE_ROWS: usize = 4;
-const STATE_DIFF_HEIGHT: u16 = 4;
 const STATE_ROW_HEIGHT: usize = 6;
 const STATE_LABEL_WIDTH: u16 = 9;
 
@@ -41,8 +40,16 @@ const TOGGLE_HINTS: &[(&str, &str)] = &[("Space", "Toggle"), ("Enter", "Toggle")
 const LIST_HINTS: &[(&str, &str)] = &[("↑ ↓", "View file"), ("Wheel", "Scroll")];
 const SELECT_HINTS: &[(&str, &str)] = &[("↑ ↓", "Choose"), ("Enter", "Open / choose")];
 const SCROLL_HINTS: &[(&str, &str)] = &[("Wheel", "Scroll")];
-const DIFF_HINTS: &[(&str, &str)] = &[("↑ ↓", "Scroll"), ("End", "Tail"), ("f", "Follow")];
-const DIFF_PAN_HINTS: &[(&str, &str)] = &[
+const DIFF_START_HINTS: &[(&str, &str)] = &[
+    ("Drag", "Select"),
+    ("Shift+← →", "Start / extend (default)"),
+    ("↑ ↓", "Scroll"),
+    ("End", "Tail"),
+    ("f", "Follow"),
+];
+const DIFF_START_PAN_HINTS: &[(&str, &str)] = &[
+    ("Drag", "Select"),
+    ("Shift+← →", "Start / extend (default)"),
     ("↑ ↓", "Scroll"),
     ("← →", "Pan"),
     ("End", "Tail"),
@@ -154,6 +161,7 @@ struct Source {
     revision: u64,
     path: &'static str,
     marker: &'static str,
+    status_role: Role,
     status: &'static str,
     rename_from: Option<&'static str>,
     rows: &'static [DiffRow<'static>],
@@ -171,6 +179,10 @@ impl DiffSource for Source {
 
     fn status_marker(&self) -> &str {
         self.marker
+    }
+
+    fn status_role(&self) -> Role {
+        self.status_role
     }
 
     fn status_label(&self) -> &str {
@@ -195,6 +207,7 @@ static CHANGES: [Source; 4] = [
         revision: 1,
         path: "config/service.toml",
         marker: "M",
+        status_role: Role::Warning,
         status: "modified",
         rename_from: None,
         rows: CONFIG_ROWS,
@@ -204,6 +217,7 @@ static CHANGES: [Source; 4] = [
         revision: 1,
         path: "docs/retries.md",
         marker: "A",
+        status_role: Role::Success,
         status: "added",
         rename_from: None,
         rows: ADDED_ROWS,
@@ -213,6 +227,7 @@ static CHANGES: [Source; 4] = [
         revision: 1,
         path: "src/legacy_backoff.rs",
         marker: "D",
+        status_role: Role::Danger,
         status: "deleted",
         rename_from: None,
         rows: DELETED_ROWS,
@@ -222,6 +237,7 @@ static CHANGES: [Source; 4] = [
         revision: 1,
         path: "src/backoff/retry.rs",
         marker: "R",
+        status_role: Role::Fg(termrock::FgStep::Secondary),
         status: "renamed",
         rename_from: Some("src/retry.rs"),
         rows: RENAMED_ROWS,
@@ -233,9 +249,11 @@ const STATE_ROWS_SOURCE: Source = Source {
     revision: 1,
     path: "retry.toml",
     marker: "M",
+    status_role: Role::Warning,
     status: "modified",
     rename_from: None,
     rows: &[
+        hunk(1, 1),
         remove("attempts = 3"),
         add("attempts = 5"),
         context("enabled = true"),
@@ -244,8 +262,16 @@ const STATE_ROWS_SOURCE: Source = Source {
 };
 
 fn file_row(source: &Source, row: &mut termrock::RowUi<'_>) {
-    row.label(source.path);
     row.meta(source.meta);
+    let mut spans = Vec::with_capacity(5);
+    spans.push(Span::new(source.marker).role(source.status_role).bold());
+    spans.push(Span::new(" "));
+    if let Some(rename_from) = source.rename_from {
+        spans.push(Span::new(rename_from));
+        spans.push(Span::new(" → "));
+    }
+    spans.push(Span::new(source.path));
+    row.label_spans(&spans);
 }
 
 fn files_list()
@@ -641,7 +667,7 @@ impl DiffPage {
         let visible = window.visible_source_range();
         for state_index in 0..STATE_ROWS {
             let source_start = 1usize.saturating_add(state_index.saturating_mul(STATE_ROW_HEIGHT));
-            let source_end = source_start.saturating_add(STATE_ROW_HEIGHT.saturating_sub(1));
+            let source_end = source_start.saturating_add(STATE_ROW_HEIGHT);
             if source_start < visible.start || source_end > visible.end {
                 continue;
             }
@@ -656,7 +682,7 @@ impl DiffPage {
             {
                 let diff_area = Rect {
                     y: y.saturating_add(1),
-                    height: STATE_DIFF_HEIGHT,
+                    height: state_specimen_diff_height(mode, state_index),
                     ..columns[mode_index]
                 };
                 self.draw_specimen(ui, diff_area, mode, state_index, mode_index);
@@ -670,8 +696,11 @@ impl DiffPage {
             .into_iter()
             .enumerate()
         {
-            let group_start = mode_index
-                .saturating_mul(1usize.saturating_add(STATE_ROWS.saturating_mul(STATE_ROW_HEIGHT)));
+            let group_start = if mode_index == 0 {
+                0
+            } else {
+                state_mode_rows(DiffMode::Unified)
+            };
             if let Some(y) = window.physical_row_for_source(group_start) {
                 ui.paint_str(
                     Rect::new(window.visible_body().x, y, window.visible_body().width, 1),
@@ -680,10 +709,11 @@ impl DiffPage {
                 );
             }
             for state_index in 0..STATE_ROWS {
-                let source_start = group_start
+                let source_start = state_specimen_source_start(group_start, mode, state_index);
+                let diff_height = state_specimen_diff_height(mode, state_index);
+                let source_end = source_start
                     .saturating_add(1)
-                    .saturating_add(state_index.saturating_mul(STATE_ROW_HEIGHT));
-                let source_end = source_start.saturating_add(STATE_ROW_HEIGHT.saturating_sub(1));
+                    .saturating_add(usize::from(diff_height));
                 if source_start < visible.start || source_end > visible.end {
                     continue;
                 }
@@ -698,8 +728,8 @@ impl DiffPage {
                 );
                 let diff_area = Rect {
                     y: y.saturating_add(1),
-                    height: STATE_DIFF_HEIGHT,
-                    ..Rect::new(body.x, y, body.width, STATE_DIFF_HEIGHT.saturating_add(1))
+                    height: diff_height,
+                    ..Rect::new(body.x, y, body.width, diff_height.saturating_add(1))
                 };
                 self.draw_specimen(ui, diff_area, mode, state_index, mode_index);
             }
@@ -854,7 +884,11 @@ impl Page for DiffPage {
                     DIFF_SELECTION_HINTS
                 };
             }
-            return if has_pan { DIFF_PAN_HINTS } else { DIFF_HINTS };
+            return if has_pan {
+                DIFF_START_PAN_HINTS
+            } else {
+                DIFF_START_HINTS
+            };
         }
         match self.section() {
             0 => LIST_HINTS,
@@ -867,11 +901,38 @@ impl Page for DiffPage {
 const OPTIONS_CONTENT_ROWS: usize = 6;
 
 fn state_content_rows(two_columns: bool) -> usize {
-    let group = 1usize.saturating_add(STATE_ROWS.saturating_mul(STATE_ROW_HEIGHT));
     if two_columns {
-        group
+        1usize.saturating_add(STATE_ROWS.saturating_mul(STATE_ROW_HEIGHT))
     } else {
-        group.saturating_mul(2)
+        state_mode_rows(DiffMode::Unified).saturating_add(state_mode_rows(DiffMode::Review))
+    }
+}
+
+fn state_mode_rows(mode: DiffMode) -> usize {
+    (0..STATE_ROWS).fold(1usize, |rows, state_index| {
+        rows.saturating_add(
+            1usize.saturating_add(usize::from(state_specimen_diff_height(mode, state_index))),
+        )
+    })
+}
+
+fn state_specimen_source_start(group_start: usize, mode: DiffMode, state_index: usize) -> usize {
+    (0..state_index).fold(group_start.saturating_add(1), |start, previous| {
+        start.saturating_add(
+            1usize.saturating_add(usize::from(state_specimen_diff_height(mode, previous))),
+        )
+    })
+}
+
+fn state_specimen_diff_height(mode: DiffMode, state_index: usize) -> u16 {
+    if state_index == 3 {
+        // Narrow caps the component at 42 columns; Review then uses the
+        // complete five-row Unified projection after its width fallback.
+        return 5;
+    }
+    match mode {
+        DiffMode::Unified => 5, // Header, hunk, and all three source rows.
+        DiffMode::Review => 4,  // Header, hunk, paired change, and context row.
     }
 }
 
