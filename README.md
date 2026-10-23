@@ -4,6 +4,8 @@ Termrock is a Rust terminal UI component library with deterministic demonstratio
 
 Start with [direction](docs/direction.md), [current state](docs/current-state.md), [architecture](docs/architecture.md), [product](docs/product.md), [requirements](docs/requirements.md), [development](docs/development.md), and [decisions](docs/decisions.md). The repository's `AGENTS.md` remains the instruction file for agent workflow.
 
+Historical provenance: the [pinned design-work index](docs/plans/design-work-index.md) records source planning requirements, and [SAFETY.md](SAFETY.md) preserves original safety-rationale excerpts. Their counts and excerpts do not establish current implementation or constitute a current safety audit; keep necessary safety invariants understandable at their operations and callers.
+
 | Workspace | What it represents |
 |---|---|
 | `main` | The intended modular crate direction and incomplete implementation. |
