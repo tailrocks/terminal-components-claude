@@ -1801,8 +1801,16 @@ impl<A: App> Runtime<A> {
         }
 
         let mut current = first;
-        let hit_stack =
-            self.last.registry.routed_scroll_policy(first.key) == Some(ScrollRoutePolicy::HitStack);
+        let hit_stack = self
+            .last
+            .registry
+            .routed_scroll_policy(first.key)
+            .is_some_and(|policy| {
+                matches!(
+                    policy,
+                    ScrollRoutePolicy::HitStack | ScrollRoutePolicy::EventLocalHitStack
+                )
+            });
         let mut offered_owners = if hit_stack {
             let mut owners = Vec::with_capacity(self.last.registry.len());
             owners.push(first.owner());

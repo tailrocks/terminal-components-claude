@@ -1184,6 +1184,36 @@ impl<'f> Ui<'f> {
         )
     }
 
+    /// Register an event-local, source-qualified wheel target.
+    ///
+    /// The returned key identifies this clipped registration in the current
+    /// frame. Repeated owner/part registrations may use disjoint geometry or
+    /// axes. Only pointer-enabled scroll targets on the same layer that contain
+    /// the event position and handle its axis participate in ambiguity checks.
+    /// Exact duplicates coalesce; conflicting eligible registrations stop
+    /// fallback. The owner must independently resolve its live source from the
+    /// event position and axis before acknowledging an attempt.
+    pub fn register_event_local_hit_stack_wheel(
+        &mut self,
+        id: Id,
+        part: PartRef,
+        area: Rect,
+        axes: Axes,
+        source_revision: u64,
+    ) -> Option<ScrollRouteKey> {
+        if self.registrations_suppressed() {
+            return None;
+        }
+        self.frame.registry.register_event_local_hit_stack_wheel(
+            id,
+            part,
+            area.intersection(self.clip),
+            self.layer,
+            axes,
+            source_revision,
+        )
+    }
+
     /// Link this frame's routed child registration to its immediate parent.
     ///
     /// The parent must be a containing routed registration on the same layer.
