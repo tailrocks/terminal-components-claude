@@ -141,3 +141,101 @@ fn disabled_invalid_input_stays_inside_tiny_allocations_at_truecolor_and_mono() 
         }
     }
 }
+
+#[test]
+fn enabled_error_input_stays_inside_tiny_allocations_at_truecolor_and_mono() {
+    let mut sentinel = Cell::new("§");
+    sentinel.fg = Color::Rgb(193, 37, 211);
+    sentinel.bg = Color::Rgb(17, 83, 149);
+    sentinel.underline_color = Color::Rgb(71, 191, 43);
+    sentinel.modifier = Modifier::BOLD | Modifier::ITALIC | Modifier::UNDERLINED;
+
+    for level in [ColorLevel::TrueColor, ColorLevel::Mono] {
+        for (value, is_invalid) in [
+            ("日本語👩‍💻abcdef", true),
+            ("日本語👩‍💻abcdef@example.test", false),
+        ] {
+            let mut page = Harness::new(
+                ErrorPage {
+                    state: TextInputState::default(),
+                    value: value.to_owned(),
+                    area: INITIAL_AREA,
+                    disabled: false,
+                },
+                Theme::junie().downgrade(level),
+                SCREEN.width,
+                SCREEN.height,
+            );
+
+            let _ = page.key(KeyCode::Enter);
+            assert_eq!(
+                page.app().state.error().map(|error| error.message.as_ref()),
+                is_invalid.then_some("Invalid address"),
+                "validation result for {level:?} input {value:?}"
+            );
+            assert!(!page.app().state.is_editing());
+
+            // Reopen through the public editor lifecycle. `begin` keeps the
+            // just-validated error while restoring the enabled edit state.
+            let committed_value = page.app().value.clone();
+            page.app_mut().state.begin(&committed_value);
+            page.app_mut().area = INITIAL_AREA;
+            assert!(page.app().state.is_editing());
+            assert_eq!(
+                page.app().state.error().map(|error| error.message.as_ref()),
+                is_invalid.then_some("Invalid address")
+            );
+            page.runtime_mut().set_focus(Some(INPUT));
+            let _ = page.tick();
+            assert!(page.app().state.is_editing());
+
+            let cursor = page
+                .cursor()
+                .expect("wide focused enabled input publishes a cursor");
+            assert!(INITIAL_AREA.contains(cursor), "{level:?}: {cursor:?}");
+            assert!(page.state_of(INPUT).contains(StateFlags::FOCUSED));
+
+            for width in 0..=12 {
+                for height in 0..=3 {
+                    let area = Rect::new(3, 2, width, height);
+                    page.app_mut().area = area;
+                    let mut buffer = Buffer::filled(SCREEN, sentinel.clone());
+                    page.runtime_mut()
+                        .draw_buffer(SCREEN, &mut buffer)
+                        .commit_presented();
+
+                    assert!(page.app().state.is_editing(), "{level:?} {area:?}");
+                    assert_eq!(
+                        page.app().state.error().map(|error| error.message.as_ref()),
+                        is_invalid.then_some("Invalid address"),
+                        "error state changed for {level:?} {area:?}"
+                    );
+                    assert!(
+                        page.cursor().is_none_or(|cursor| area.contains(cursor)),
+                        "{level:?} {area:?}: cursor {:?} escapes",
+                        page.cursor()
+                    );
+                    if area.is_empty() {
+                        assert!(
+                            page.cursor().is_none(),
+                            "{level:?} {area:?} published a cursor"
+                        );
+                    }
+
+                    for y in 0..SCREEN.height {
+                        for x in 0..SCREEN.width {
+                            if !area.contains(Position::new(x, y)) {
+                                assert_eq!(
+                                    buffer[(x, y)],
+                                    sentinel,
+                                    "{level:?} {area:?}: outside cell ({x}, {y}) changed"
+                                );
+                            }
+                        }
+                    }
+                    assert!(page.diagnostics().is_empty(), "{:?}", page.diagnostics());
+                }
+            }
+        }
+    }
+}
