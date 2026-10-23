@@ -105,6 +105,7 @@ struct Page {
     items: Vec<Tab>,
     passive: bool,
     passive_focused: bool,
+    passive_configured: bool,
     tabs_y: u16,
     builder_before_key_row: bool,
     custom_row: bool,
@@ -163,6 +164,7 @@ impl Page {
             items,
             passive,
             passive_focused: false,
+            passive_configured: passive,
             tabs_y: 0,
             builder_before_key_row: false,
             custom_row: false,
@@ -219,17 +221,24 @@ impl Page {
             .middle_click_closes(self.middle_click_closes)
             .close_reveal(self.close_reveal);
         let tabs = if self.builder_before_key_row {
-            base.passive(passive)
-                .passive_focused(passive_focused)
-                .item_marks(tab_marks as fn(&Tab) -> TabMarks)
-                .key(tab_key as fn(&Tab) -> ItemKey)
-                .row(self.row_fn())
-        } else {
+            let base = if self.passive_configured {
+                base.passive(passive).passive_focused(passive_focused)
+            } else {
+                base
+            };
             base.item_marks(tab_marks as fn(&Tab) -> TabMarks)
                 .key(tab_key as fn(&Tab) -> ItemKey)
                 .row(self.row_fn())
-                .passive(passive)
-                .passive_focused(passive_focused)
+        } else {
+            let tabs = base
+                .item_marks(tab_marks as fn(&Tab) -> TabMarks)
+                .key(tab_key as fn(&Tab) -> ItemKey)
+                .row(self.row_fn());
+            if self.passive_configured {
+                tabs.passive(passive).passive_focused(passive_focused)
+            } else {
+                tabs
+            }
         };
         self.configure_tabs(tabs)
     }
@@ -245,15 +254,22 @@ impl Page {
             .middle_click_closes(self.middle_click_closes)
             .close_reveal(self.close_reveal);
         let tabs = if self.builder_before_key_row {
-            base.passive(passive)
-                .passive_focused(passive_focused)
-                .item_marks(tab_marks as fn(&Tab) -> TabMarks)
-                .key(tab_key as fn(&Tab) -> ItemKey)
-        } else {
+            let base = if self.passive_configured {
+                base.passive(passive).passive_focused(passive_focused)
+            } else {
+                base
+            };
             base.item_marks(tab_marks as fn(&Tab) -> TabMarks)
                 .key(tab_key as fn(&Tab) -> ItemKey)
-                .passive(passive)
-                .passive_focused(passive_focused)
+        } else {
+            let tabs = base
+                .item_marks(tab_marks as fn(&Tab) -> TabMarks)
+                .key(tab_key as fn(&Tab) -> ItemKey);
+            if self.passive_configured {
+                tabs.passive(passive).passive_focused(passive_focused)
+            } else {
+                tabs
+            }
         };
         self.configure_tabs(tabs)
     }
@@ -776,6 +792,7 @@ fn switching_active_tabs_to_passive_rejects_stale_binding_actions() {
         let mut h = harness(Page::new(false), Theme::junie());
         assert_eq!(h.focus(), Some(TABS_ID));
         h.app_mut().passive = true;
+        h.app_mut().passive_configured = true;
         let response = h.key(chord);
         assert!(
             response.is_consumed(),
@@ -796,6 +813,7 @@ fn switching_active_tabs_to_passive_rejects_stale_binding_actions() {
     let mut reenabled = harness(Page::new(false), Theme::junie());
     assert_eq!(reenabled.focus(), Some(TABS_ID));
     reenabled.app_mut().passive = true;
+    reenabled.app_mut().passive_configured = true;
     let _ = reenabled.key(KeyCode::Right);
     reenabled.app_mut().passive = false;
     assert!(reenabled.tab_to(TABS_ID));
@@ -812,20 +830,13 @@ fn passive_configuration_is_additive_and_false_defaults_are_cell_exact() {
     for level in LEVELS {
         let theme = Theme::junie().for_level(level);
         let plain = harness(Page::new(false), theme.clone());
-        let mut explicit = Page::new(false);
-        explicit.passive = false;
-        explicit.passive_focused = true;
-        let explicit = harness(explicit, theme);
-        assert_eq!(
-            plain.buffer(),
-            explicit.buffer(),
-            "complete buffer {level:?}"
-        );
-        assert_eq!(
-            plain.runtime().registry().regions(),
-            explicit.runtime().registry().regions(),
-            "all live control/part registrations {level:?}"
-        );
+        let mut explicit_false_page = Page::new(false);
+        explicit_false_page.passive_configured = true;
+        let mut ignored_focus_page = Page::new(false);
+        ignored_focus_page.passive_configured = true;
+        ignored_focus_page.passive_focused = true;
+        let mut explicit_false = harness(explicit_false_page, theme.clone());
+        let mut ignored_focus = harness(ignored_focus_page, theme);
         let ids = |h: &Harness<Page>| {
             h.ring()
                 .entries()
@@ -833,23 +844,43 @@ fn passive_configuration_is_additive_and_false_defaults_are_cell_exact() {
                 .map(|entry| entry.id)
                 .collect::<Vec<_>>()
         };
-        assert_eq!(ids(&plain), ids(&explicit), "focus ring {level:?}");
-        assert_eq!(plain.focus(), explicit.focus());
+        for candidate in [&explicit_false, &ignored_focus] {
+            assert_eq!(
+                plain.buffer(),
+                candidate.buffer(),
+                "complete buffer {level:?}"
+            );
+            assert_eq!(
+                plain.runtime().registry().regions(),
+                candidate.runtime().registry().regions(),
+                "all live control/part registrations {level:?}"
+            );
+            assert_eq!(ids(&plain), ids(candidate), "focus ring {level:?}");
+            assert_eq!(plain.focus(), candidate.focus());
+            assert_eq!(plain.app().state, candidate.app().state);
+            assert_eq!(
+                plain.app().tabs().bindings(BindingState::default()),
+                candidate.app().tabs().bindings(BindingState::default())
+            );
+        }
 
         let mut plain_input = plain;
-        let mut explicit_input = explicit;
         assert!(plain_input.tab_to(TABS_ID));
-        assert!(explicit_input.tab_to(TABS_ID));
+        assert!(explicit_false.tab_to(TABS_ID));
+        assert!(ignored_focus.tab_to(TABS_ID));
         let _ = plain_input.key(KeyCode::Right);
-        let _ = explicit_input.key(KeyCode::Right);
-        assert_eq!(plain_input.app().actions, explicit_input.app().actions);
-        assert_eq!(plain_input.app().state, explicit_input.app().state);
-        assert_eq!(
-            plain_input.runtime().repaint_after(),
-            explicit_input.runtime().repaint_after()
-        );
+        let _ = explicit_false.key(KeyCode::Right);
+        let _ = ignored_focus.key(KeyCode::Right);
+        for candidate in [&explicit_false, &ignored_focus] {
+            assert_eq!(plain_input.app().actions, candidate.app().actions);
+            assert_eq!(plain_input.app().state, candidate.app().state);
+            assert_eq!(
+                plain_input.runtime().repaint_after(),
+                candidate.runtime().repaint_after()
+            );
+            assert!(candidate.diagnostics().is_empty());
+        }
         assert!(plain_input.diagnostics().is_empty());
-        assert!(explicit_input.diagnostics().is_empty());
     }
 }
 
@@ -908,11 +939,13 @@ fn passive_plans_snapshot_both_settings_and_reject_mismatch_before_effects() {
         for builder_before_key_row in [false, true] {
             let mut legacy = Page::new(passive);
             legacy.passive_focused = passive_focused;
+            legacy.passive_configured = true;
             legacy.builder_before_key_row = builder_before_key_row;
             let legacy = harness(legacy, Theme::junie());
 
             let mut planned = Page::new(passive);
             planned.passive_focused = passive_focused;
+            planned.passive_configured = true;
             planned.builder_before_key_row = builder_before_key_row;
             planned.planned = true;
             let planned = harness(planned, Theme::junie());
