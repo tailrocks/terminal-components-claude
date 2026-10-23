@@ -1158,6 +1158,63 @@ impl<'u> RowUi<'u> {
         self.record_meta_paint(need, Some(cell.x));
     }
 
+    /// Paint one `ICON` glyph four logical cells before the latest admitted
+    /// metadata value.
+    ///
+    /// The mark is anchored to the metadata call's logical position, even
+    /// after label painting consumes the remaining content budget. This does
+    /// not reserve space or change that budget. It is a no-op when metadata
+    /// was not admitted, the mark would fall outside this row, or the row has
+    /// no height. When the merged authored and call-site `ICON` patch inherits
+    /// its background, the target cell's existing background is retained so
+    /// row tint remains visible. An explicit patch background, including
+    /// `Clear` or `Reset`, remains authoritative.
+    pub fn glyph_before_meta(&mut self, role: GlyphRole, patch: &StylePatch) {
+        let Some(meta) = self.last_meta_paint else {
+            return;
+        };
+        if meta.admitted_width() == 0 || self.row.height == 0 {
+            return;
+        }
+        let Some(meta_x) = meta.logical_x() else {
+            return;
+        };
+        let Some(x) = meta_x.checked_sub(4) else {
+            return;
+        };
+        if x < self.row.x || x >= self.row.right() {
+            return;
+        }
+
+        let patch = self
+            .patch_for(Part::ICON)
+            .map_or(*patch, |authored| authored.merge(*patch));
+        let mut style = resolve_row_part(
+            &mut self.ui,
+            self.family,
+            self.variant,
+            self.flags,
+            Part::ICON,
+            Some(patch),
+            self.cursor_style,
+        )
+        .style;
+        if matches!(patch.bg, Slot::Inherit)
+            && let Some(bg) = self
+                .ui
+                .buffer()
+                .cell((x, self.row.y))
+                .and_then(|cell| cell.style().bg)
+        {
+            style = style.bg(bg);
+        }
+
+        let area = Rect::new(x, self.row.y, 1, 1);
+        if self.ui.glyph(area, role, style) > 0 {
+            self.ui.patch_style(area, style, patch);
+        }
+    }
+
     pub fn trailing(&mut self, s: &str, p: &StylePatch) {
         let need = width(s);
         let area = self.remaining();
