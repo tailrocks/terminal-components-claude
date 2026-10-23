@@ -1,4 +1,6 @@
 use core::fmt;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 use ratatui::crossterm::event::{Event, MouseButton, MouseEvent, MouseEventKind};
 use ratatui_core::layout::Rect;
@@ -10,14 +12,22 @@ use termrock_core::{Id, ItemKey, KeyCode, MouseKind, Part, PartRef, StateFlags};
 use termrock_navigation::tabs::TabWindowReceipt;
 use termrock_navigation::{TabMarks, TabRule, Tabs, TabsAction, TabsState};
 use termrock_runtime::rowui::RowUi;
-use termrock_runtime::{App, Cx, FrameRead, ReferenceState, ReferenceTarget, Status, Ui};
+use termrock_runtime::{
+    Anchor, App, Cx, Dismiss, FrameRead, LayerSize, LayerSpec, Position, ReferenceState,
+    ReferenceTarget, Status, Ui,
+};
 use termrock_test_support::Harness;
 use termrock_theme::resolve::bind_role;
 use termrock_theme::{ColorLevel, Family, GlyphRole, Role, StylePatch, Surface, Theme};
 
 const TABS: Id = Id::root("tabs.rule-policy");
 const OTHER: Id = Id::root("tabs.rule-policy.other");
+const CONTEXT_TABS: Id = Id::root("tabs.rule-policy.context");
+const CONTEXT_OTHER: Id = Id::root("tabs.rule-policy.context.other");
+const CONTEXT_POPOVER: Id = Id::root("tabs.rule-policy.context.popover");
 const TABS_AREA: Rect = Rect::new(0, 0, 48, 2);
+const CONTEXT_AREA: Rect = Rect::new(0, 0, 48, 2);
+const CONTEXT_REFERENCE_AREA: Rect = Rect::new(0, 2, 48, 2);
 const LEVELS: [ColorLevel; 4] = [
     ColorLevel::TrueColor,
     ColorLevel::Ansi256,
@@ -91,6 +101,7 @@ struct Page {
     state: TabsState,
     items: Vec<Tab>,
     rule: Option<TabRule>,
+    rule_focus_hidden: Option<bool>,
     planned: bool,
     marks: MarkMode,
     status: Status,
@@ -120,6 +131,7 @@ impl Page {
                 },
             ],
             rule,
+            rule_focus_hidden: None,
             planned: false,
             marks: MarkMode::None,
             status: Status::Ready,
@@ -141,6 +153,10 @@ impl Page {
             .status(self.status);
         let base = match self.rule {
             Some(rule) => base.rule(rule),
+            None => base,
+        };
+        let base = match self.rule_focus_hidden {
+            Some(hidden) => base.rule_focus_hidden(hidden),
             None => base,
         };
         let base = match self.marks {
@@ -213,6 +229,13 @@ fn expected_role(theme: &Theme, role: Role) -> Color {
     bind_role(theme, role, Surface::Canvas).unwrap_or(Color::Reset)
 }
 
+fn distinct_rule_theme(level: ColorLevel) -> Theme {
+    let mut theme = Theme::junie().for_level(level);
+    theme.color.accent = Color::Red;
+    theme.color.border_strong = Color::Blue;
+    theme
+}
+
 fn assert_non_foreground_channels_equal(
     actual: &ratatui_core::buffer::Cell,
     expected: &ratatui_core::buffer::Cell,
@@ -227,12 +250,177 @@ fn assert_non_foreground_channels_equal(
     assert_eq!(actual.modifier, expected.modifier, "{context}: modifiers");
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct RuleContextReading {
+    context: &'static str,
+    covered: bool,
+    inert: bool,
+    owner_focused: bool,
+    state_focused: bool,
+    focus_visible: bool,
+}
+
+struct ContextPage {
+    state: TabsState,
+    items: [Tab; 1],
+    rule: TabRule,
+    focus_hidden: Option<bool>,
+    planned: bool,
+    popover_open: bool,
+    declare_focused: bool,
+    reference: Option<ReferenceState>,
+    readings: Rc<RefCell<Vec<RuleContextReading>>>,
+    actions: Vec<TabsAction>,
+}
+
+impl ContextPage {
+    fn new(rule: TabRule, popover_open: bool, reference: Option<ReferenceState>) -> Self {
+        let mut state = TabsState::default();
+        state.set_active(0, ItemKey::num(1));
+        Self {
+            state,
+            items: [Tab {
+                id: 1,
+                label: "Context",
+                marks: TabMarks::default(),
+            }],
+            rule,
+            focus_hidden: None,
+            planned: false,
+            popover_open,
+            declare_focused: false,
+            reference,
+            readings: Rc::new(RefCell::new(Vec::new())),
+            actions: Vec::new(),
+        }
+    }
+
+    fn tabs(&self) -> Tabs<'static, Tab, fn(&Tab) -> ItemKey> {
+        let mut tabs = Tabs::new(CONTEXT_TABS)
+            .key(key as fn(&Tab) -> ItemKey)
+            .rule(self.rule);
+        if let Some(hidden) = self.focus_hidden {
+            tabs = tabs.rule_focus_hidden(hidden);
+        }
+        tabs
+    }
+
+    fn observe(&self, context: &'static str, ui: &Ui<'_>) {
+        let state = ui.state(CONTEXT_TABS);
+        self.readings.borrow_mut().push(RuleContextReading {
+            context,
+            covered: ui.is_covered_by_native_layer(),
+            inert: ui.is_inert(),
+            owner_focused: ui.owner_has_focus_presentation(CONTEXT_TABS),
+            state_focused: state.contains(StateFlags::FOCUSED),
+            focus_visible: state.contains(StateFlags::FOCUS_VISIBLE),
+        });
+    }
+
+    fn draw_tabs(&self, ui: &mut Ui<'_>, area: Rect) {
+        let tabs = self.tabs();
+        if self.planned {
+            let layout = tabs.layout_default(area, area, &self.state, &self.items, None);
+            tabs.draw_layout(ui, &layout)
+                .expect("context page plans and draws with the same rule configuration");
+        } else {
+            tabs.draw(ui, area, &self.state, &self.items);
+        }
+    }
+}
+
+impl App for ContextPage {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        if self.popover_open && !cx.is_open(CONTEXT_POPOVER) {
+            cx.open_layer(
+                CONTEXT_POPOVER,
+                LayerSpec::popover(CONTEXT_POPOVER, Anchor::Point(Position::new(56, 5)))
+                    .size(LayerSize::Fixed(12, 3))
+                    .dismiss(Dismiss::NONE),
+            );
+        } else if !self.popover_open && cx.is_open(CONTEXT_POPOVER) {
+            cx.close_layer(CONTEXT_POPOVER, None);
+        }
+
+        let mut response = self.tabs().update(cx, &mut self.state, &self.items);
+        if let Some(action) = response.take_action() {
+            self.actions.push(action);
+        }
+        let mut response = response.erase();
+        response |= Button::new(CONTEXT_OTHER, "Other").update(cx).erase();
+        response
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        self.readings.borrow_mut().clear();
+        if self.declare_focused {
+            ui.declare_state(CONTEXT_TABS, StateFlags::FOCUSED);
+        }
+        self.observe("live", ui);
+        self.draw_tabs(ui, CONTEXT_AREA);
+        if let Some(reference) = self.reference {
+            ui.reference(
+                Some(ReferenceTarget::new(CONTEXT_TABS, reference).part(PartRef::of(Part::RULE))),
+                |reference_ui| {
+                    self.observe("reference", reference_ui);
+                    self.draw_tabs(reference_ui, CONTEXT_REFERENCE_AREA);
+                },
+            );
+        }
+        Button::new(CONTEXT_OTHER, "Other").draw(ui, Rect::new(0, 6, 20, 1));
+        if self.popover_open {
+            let _ = ui.layer(CONTEXT_POPOVER, |popover, area| {
+                Button::new(CONTEXT_POPOVER, "Popover").draw(popover, area);
+            });
+        }
+    }
+}
+
+fn context_harness(rule: TabRule, theme: Theme, covered: bool) -> Harness<ContextPage> {
+    Harness::new(ContextPage::new(rule, covered, None), theme, 72, 8)
+}
+
+fn context_rule_fg(harness: &Harness<ContextPage>, y: u16) -> Color {
+    harness.cell(0, y).fg
+}
+
+fn context_reading(page: &ContextPage, context: &str) -> RuleContextReading {
+    page.readings
+        .borrow()
+        .iter()
+        .copied()
+        .find(|reading| reading.context == context)
+        .unwrap_or_else(|| panic!("missing {context} context reading"))
+}
+
+fn assert_same_regions(left: &Harness<ContextPage>, right: &Harness<ContextPage>) {
+    let left = left.runtime().registry().regions();
+    let right = right.runtime().registry().regions();
+    assert_eq!(left.len(), right.len());
+    for (left, right) in left.iter().zip(right) {
+        assert_eq!(left.id, right.id);
+        assert_eq!(left.owner, right.owner);
+        assert_eq!(left.part, right.part);
+        assert_eq!(left.area, right.area);
+        assert_eq!(left.layer, right.layer);
+        assert_eq!(left.kind, right.kind);
+        assert_eq!(left.scroll(), right.scroll());
+        assert_eq!(left.pointer_enabled(), right.pointer_enabled());
+        assert_eq!(left.pass_through(), right.pass_through());
+    }
+}
+
 #[test]
 fn fixed_rule_roles_follow_theme_tokens_and_change_only_active_foreground() {
     for (theme_name, base) in [("Junie", Theme::junie()), ("Paper", Theme::paper())] {
         for level in LEVELS {
             let theme = base.clone().for_level(level);
-            for rule in [TabRule::Accent, TabRule::Neutral] {
+            for rule in [
+                TabRule::Accent,
+                TabRule::Neutral,
+                TabRule::Auto,
+                TabRule::FocusOnly,
+            ] {
                 let mut original = harness(Page::new(None), theme.clone());
                 let mut configured = harness(Page::new(Some(rule)), theme.clone());
                 let beta = tab_area(&configured, 2);
@@ -253,7 +441,8 @@ fn fixed_rule_roles_follow_theme_tokens_and_change_only_active_foreground() {
                 let role = match rule {
                     TabRule::Accent => Role::Accent,
                     TabRule::Neutral => Role::BorderStrong,
-                    _ => unreachable!("tests cover only the implemented fixed policies"),
+                    TabRule::Auto | TabRule::FocusOnly => Role::Accent,
+                    _ => unreachable!("future rule policies are outside this fixture"),
                 };
                 let expected = expected_role(&theme, role);
                 for y in 0..5 {
@@ -276,6 +465,224 @@ fn fixed_rule_roles_follow_theme_tokens_and_change_only_active_foreground() {
                     theme.design.glyphs.get(GlyphRole::RuleActive),
                     "the semantic active glyph is retained"
                 );
+            }
+        }
+    }
+}
+
+#[test]
+fn auto_and_focus_only_follow_live_focus_and_native_coverage_at_every_color_tier() {
+    for level in LEVELS {
+        let theme = distinct_rule_theme(level);
+        let accent = expected_role(&theme, Role::Accent);
+        let neutral = expected_role(&theme, Role::BorderStrong);
+        assert_ne!(
+            accent, neutral,
+            "custom RULE roles must stay distinguishable"
+        );
+
+        let mut auto = context_harness(TabRule::Auto, theme.clone(), false);
+        assert_eq!(
+            context_rule_fg(&auto, 1),
+            accent,
+            "Auto is accented while uncovered even before focus is inspected"
+        );
+        assert!(!context_reading(auto.app(), "live").covered);
+        assert!(auto.tab_to(CONTEXT_OTHER));
+        assert_eq!(
+            context_rule_fg(&auto, 1),
+            accent,
+            "Auto ignores owner focus"
+        );
+
+        let mut focus_only = context_harness(TabRule::FocusOnly, theme.clone(), false);
+        assert_eq!(focus_only.focus(), Some(CONTEXT_TABS));
+        assert_eq!(context_rule_fg(&focus_only, 1), accent);
+        assert!(focus_only.tab_to(CONTEXT_OTHER));
+        assert_eq!(context_rule_fg(&focus_only, 1), neutral);
+        let reading = context_reading(focus_only.app(), "live");
+        assert!(!reading.owner_focused);
+
+        assert!(focus_only.tab_to(CONTEXT_TABS));
+        assert_eq!(context_rule_fg(&focus_only, 1), accent);
+        let reading = context_reading(focus_only.app(), "live");
+        assert!(reading.owner_focused);
+        assert!(reading.state_focused);
+
+        let mut pointer_focus = context_harness(TabRule::FocusOnly, theme.clone(), false);
+        assert!(pointer_focus.tab_to(CONTEXT_OTHER));
+        assert_eq!(pointer_focus.focus(), Some(CONTEXT_OTHER));
+        let _ = pointer_focus.mouse(MouseKind::Down, 1, 0);
+        assert_eq!(pointer_focus.focus(), Some(CONTEXT_TABS));
+        assert_eq!(context_rule_fg(&pointer_focus, 1), accent);
+        let reading = context_reading(pointer_focus.app(), "live");
+        assert!(reading.owner_focused);
+        assert!(
+            !reading.focus_visible,
+            "pointer-established owner focus does not require the keyboard ring"
+        );
+
+        let mut declared_only = context_harness(TabRule::FocusOnly, theme.clone(), false);
+        assert!(declared_only.tab_to(CONTEXT_OTHER));
+        declared_only.app_mut().declare_focused = true;
+        let _ = declared_only.key(KeyCode::F(12));
+        let reading = context_reading(declared_only.app(), "live");
+        assert!(reading.state_focused, "the fixture declares FOCUSED");
+        assert!(!reading.owner_focused, "declared state is not owner focus");
+        assert_eq!(context_rule_fg(&declared_only, 1), neutral);
+
+        let mut covered = context_harness(TabRule::Auto, theme.clone(), false);
+        assert_eq!(context_rule_fg(&covered, 1), accent);
+        covered.app_mut().popover_open = true;
+        let _ = covered.key(KeyCode::F(12));
+        assert!(covered.is_open(CONTEXT_POPOVER));
+        let reading = context_reading(covered.app(), "live");
+        assert!(reading.covered);
+        assert!(!reading.inert, "the native Popover does not inert the page");
+        assert_eq!(context_rule_fg(&covered, 1), neutral);
+        covered.app_mut().popover_open = false;
+        let _ = covered.key(KeyCode::F(12));
+        assert!(!covered.is_open(CONTEXT_POPOVER));
+        assert!(!context_reading(covered.app(), "live").covered);
+        assert_eq!(context_rule_fg(&covered, 1), accent);
+
+        let mut covered_focused = context_harness(TabRule::FocusOnly, theme.clone(), false);
+        assert_eq!(covered_focused.focus(), Some(CONTEXT_TABS));
+        covered_focused.app_mut().popover_open = true;
+        let _ = covered_focused.key(KeyCode::F(12));
+        assert!(covered_focused.is_open(CONTEXT_POPOVER));
+        let reading = context_reading(covered_focused.app(), "live");
+        assert!(reading.covered);
+        assert!(reading.owner_focused, "nonmodal Popover retains page focus");
+        assert_eq!(context_rule_fg(&covered_focused, 1), neutral);
+
+        let mut detached_auto =
+            ContextPage::new(TabRule::Auto, true, Some(ReferenceState::default()));
+        detached_auto.planned = true;
+        let detached_auto = Harness::new(detached_auto, theme.clone(), 72, 8);
+        let live = context_reading(detached_auto.app(), "live");
+        let reference = context_reading(detached_auto.app(), "reference");
+        assert!(live.covered && !live.inert);
+        assert!(!reference.covered && reference.inert);
+        assert_eq!(context_rule_fg(&detached_auto, 1), neutral);
+        assert_eq!(context_rule_fg(&detached_auto, 3), accent);
+
+        let mut detached_focus =
+            ContextPage::new(TabRule::FocusOnly, true, Some(ReferenceState::FOCUSED));
+        detached_focus.planned = true;
+        let detached_focus = Harness::new(detached_focus, theme.clone(), 72, 8);
+        let reference = context_reading(detached_focus.app(), "reference");
+        assert!(!reference.covered && reference.inert);
+        assert!(reference.owner_focused && reference.state_focused);
+        assert_eq!(context_rule_fg(&detached_focus, 3), accent);
+
+        let mut detached_unfocused =
+            ContextPage::new(TabRule::FocusOnly, true, Some(ReferenceState::default()));
+        detached_unfocused.planned = true;
+        let detached_unfocused = Harness::new(detached_unfocused, theme.clone(), 72, 8);
+        let reference = context_reading(detached_unfocused.app(), "reference");
+        assert!(!reference.covered && reference.inert);
+        assert!(!reference.owner_focused);
+        assert_eq!(context_rule_fg(&detached_unfocused, 3), neutral);
+    }
+}
+
+#[test]
+fn explicit_host_hidden_override_changes_only_dynamic_rule_presentation() {
+    let theme = distinct_rule_theme(ColorLevel::TrueColor);
+    let accent = expected_role(&theme, Role::Accent);
+    let neutral = expected_role(&theme, Role::BorderStrong);
+
+    let mut host_hidden = ContextPage::new(TabRule::Auto, false, None);
+    host_hidden.focus_hidden = Some(true);
+    let host_hidden = Harness::new(host_hidden, theme.clone(), 72, 8);
+    assert!(!context_reading(host_hidden.app(), "live").covered);
+    assert_eq!(context_rule_fg(&host_hidden, 1), neutral);
+
+    let mut host_visible = ContextPage::new(TabRule::Auto, true, None);
+    host_visible.focus_hidden = Some(false);
+    let mut host_visible = Harness::new(host_visible, theme.clone(), 72, 8);
+    let reading = context_reading(host_visible.app(), "live");
+    assert!(reading.covered && !reading.inert);
+    assert_eq!(context_rule_fg(&host_visible, 1), accent);
+
+    let mut host_hidden_focus = ContextPage::new(TabRule::FocusOnly, false, None);
+    host_hidden_focus.focus_hidden = Some(true);
+    let host_hidden_focus = Harness::new(host_hidden_focus, theme.clone(), 72, 8);
+    assert_eq!(host_hidden_focus.focus(), Some(CONTEXT_TABS));
+    assert!(context_reading(host_hidden_focus.app(), "live").owner_focused);
+    assert_eq!(context_rule_fg(&host_hidden_focus, 1), neutral);
+
+    let mut host_visible_focus = ContextPage::new(TabRule::FocusOnly, false, None);
+    host_visible_focus.focus_hidden = Some(false);
+    let host_visible_focus = Harness::new(host_visible_focus, theme.clone(), 72, 8);
+    assert_eq!(host_visible_focus.focus(), Some(CONTEXT_TABS));
+    assert_eq!(context_rule_fg(&host_visible_focus, 1), accent);
+
+    let mut covered_focus_visible = ContextPage::new(TabRule::FocusOnly, false, None);
+    covered_focus_visible.focus_hidden = Some(false);
+    let mut covered_focus_visible = Harness::new(covered_focus_visible, theme.clone(), 72, 8);
+    assert_eq!(covered_focus_visible.focus(), Some(CONTEXT_TABS));
+    covered_focus_visible.app_mut().popover_open = true;
+    let _ = covered_focus_visible.key(KeyCode::F(12));
+    assert!(covered_focus_visible.is_open(CONTEXT_POPOVER));
+    let reading = context_reading(covered_focus_visible.app(), "live");
+    assert!(reading.covered);
+    assert!(reading.owner_focused, "nonmodal Popover retains page focus");
+    assert_eq!(context_rule_fg(&covered_focus_visible, 1), accent);
+
+    let mut host_hidden_under_popover = ContextPage::new(TabRule::Auto, true, None);
+    host_hidden_under_popover.focus_hidden = Some(true);
+    let host_hidden_under_popover = Harness::new(host_hidden_under_popover, theme.clone(), 72, 8);
+    assert!(context_reading(host_hidden_under_popover.app(), "live").covered);
+    assert_same_regions(&host_visible, &host_hidden_under_popover);
+
+    let actions_before = host_visible.app().actions.clone();
+    let active_before = host_visible.app().state.active();
+    let _ = host_visible.mouse(MouseKind::Down, 1, 0);
+    let _ = host_visible.mouse(MouseKind::Up, 1, 0);
+    assert_eq!(host_visible.app().actions, actions_before);
+    assert_eq!(host_visible.app().state.active(), active_before);
+
+    for rule in [TabRule::Accent, TabRule::Neutral] {
+        for covered in [false, true] {
+            let baseline_page = ContextPage::new(rule, covered, None);
+            let baseline = Harness::new(baseline_page, Theme::junie(), 72, 8);
+            let mut override_page = ContextPage::new(rule, covered, None);
+            override_page.focus_hidden = Some(!covered);
+            let overridden = Harness::new(override_page, Theme::junie(), 72, 8);
+            assert_eq!(
+                baseline.buffer(),
+                overridden.buffer(),
+                "fixed {rule:?} rules ignore dynamic presentation overrides"
+            );
+        }
+    }
+}
+
+#[test]
+fn dynamic_rule_legacy_and_planned_rows_match_for_live_host_contexts() {
+    for level in LEVELS {
+        let theme = distinct_rule_theme(level);
+        for rule in [TabRule::Auto, TabRule::FocusOnly] {
+            for hidden in [None, Some(false), Some(true)] {
+                for covered in [false, true] {
+                    let mut legacy_page = ContextPage::new(rule, covered, None);
+                    legacy_page.focus_hidden = hidden;
+                    let legacy = Harness::new(legacy_page, theme.clone(), 72, 8);
+
+                    let mut planned_page = ContextPage::new(rule, covered, None);
+                    planned_page.focus_hidden = hidden;
+                    planned_page.planned = true;
+                    let planned = Harness::new(planned_page, theme.clone(), 72, 8);
+
+                    assert_eq!(
+                        legacy.buffer(),
+                        planned.buffer(),
+                        "{rule:?}, hidden={hidden:?}, covered={covered}, {level:?}"
+                    );
+                    assert_same_regions(&legacy, &planned);
+                }
             }
         }
     }
@@ -396,6 +803,8 @@ fn explicit_rule_policy_overrides_recipe_foreground_only() {
     for (rule, role) in [
         (TabRule::Accent, Role::Accent),
         (TabRule::Neutral, Role::BorderStrong),
+        (TabRule::Auto, Role::Accent),
+        (TabRule::FocusOnly, Role::Accent),
     ] {
         let configured = harness(Page::new(Some(rule)), theme.clone());
         let active = tab_area(&configured, 1);
@@ -413,41 +822,54 @@ fn explicit_rule_policy_overrides_recipe_foreground_only() {
 #[test]
 fn explicit_global_and_part_rule_patches_override_policy_including_reset() {
     let theme = Theme::junie();
-    let mut global = Page::new(Some(TabRule::Accent));
-    global.patch = RulePatch::Global;
-    let global = harness(global, theme.clone());
-    let active = tab_area(&global, 1);
-    assert_eq!(
-        global.cell(active.x, 1).fg,
-        expected_role(&theme, Role::Info)
-    );
-    assert_eq!(
-        global.cell(active.x, 1).bg,
-        expected_role(&theme, Role::Custom(Color::DarkGray))
-    );
-    assert!(global.cell(active.x, 1).modifier.contains(Modifier::BOLD));
+    for rule in [
+        TabRule::Accent,
+        TabRule::Neutral,
+        TabRule::Auto,
+        TabRule::FocusOnly,
+    ] {
+        let mut global = Page::new(Some(rule));
+        global.patch = RulePatch::Global;
+        let global = harness(global, theme.clone());
+        let active = tab_area(&global, 1);
+        assert_eq!(
+            global.cell(active.x, 1).fg,
+            expected_role(&theme, Role::Info),
+            "global RULE foreground overrides {rule:?}"
+        );
+        assert_eq!(
+            global.cell(active.x, 1).bg,
+            expected_role(&theme, Role::Custom(Color::DarkGray))
+        );
+        assert!(global.cell(active.x, 1).modifier.contains(Modifier::BOLD));
 
-    let mut part = Page::new(Some(TabRule::Accent));
-    part.patch = RulePatch::GlobalAndPart;
-    let part = harness(part, theme.clone());
-    let active = tab_area(&part, 1);
-    assert_eq!(
-        part.cell(active.x, 1).fg,
-        expected_role(&theme, Role::Success)
-    );
-    assert_eq!(part.cell(active.x, 1).bg, Color::Blue);
-    assert_eq!(part.cell(active.x, 1).underline_color, Color::Yellow);
-    assert!(!part.cell(active.x, 1).modifier.contains(Modifier::BOLD));
+        let mut part = Page::new(Some(rule));
+        part.patch = RulePatch::GlobalAndPart;
+        let part = harness(part, theme.clone());
+        let active = tab_area(&part, 1);
+        assert_eq!(
+            part.cell(active.x, 1).fg,
+            expected_role(&theme, Role::Success),
+            "part RULE foreground overrides {rule:?}"
+        );
+        assert_eq!(part.cell(active.x, 1).bg, Color::Blue);
+        assert_eq!(part.cell(active.x, 1).underline_color, Color::Yellow);
+        assert!(!part.cell(active.x, 1).modifier.contains(Modifier::BOLD));
 
-    let mut reset = Page::new(Some(TabRule::Neutral));
-    reset.patch = RulePatch::Reset;
-    let reset = harness(reset, theme);
-    let active = tab_area(&reset, 1);
-    assert_eq!(reset.cell(active.x, 1).fg, Color::Reset);
-    assert_eq!(
-        reset.cell(active.x, 1).symbol(),
-        Theme::junie().design.glyphs.get(GlyphRole::RuleActive)
-    );
+        let mut reset = Page::new(Some(rule));
+        reset.patch = RulePatch::Reset;
+        let reset = harness(reset, theme.clone());
+        let active = tab_area(&reset, 1);
+        assert_eq!(
+            reset.cell(active.x, 1).fg,
+            Color::Reset,
+            "RULE clear remains authoritative over {rule:?}"
+        );
+        assert_eq!(
+            reset.cell(active.x, 1).symbol(),
+            Theme::junie().design.glyphs.get(GlyphRole::RuleActive)
+        );
+    }
 }
 
 #[test]
@@ -547,6 +969,57 @@ fn rule_policy_mismatch_rejects_before_paint_or_registration_even_for_empty_plan
     }
 }
 
+struct HostHiddenMismatchPage {
+    rejected: std::cell::Cell<bool>,
+}
+
+impl App for HostHiddenMismatchPage {
+    fn update(&mut self, _: &mut Cx<'_>) -> Response<()> {
+        Response::ignored()
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        let full = ui.full();
+        ui.fill(full, Style::default().bg(Color::Blue));
+        let state = TabsState::default();
+        let items = ["Alpha"];
+        let planned = Tabs::<&str>::new(TABS)
+            .rule(TabRule::Auto)
+            .rule_focus_hidden(true)
+            .layout_default(TABS_AREA, full, &state, &items, None);
+        self.rejected.set(
+            Tabs::<&str>::new(TABS)
+                .rule(TabRule::Auto)
+                .rule_focus_hidden(false)
+                .draw_layout(ui, &planned)
+                .is_err(),
+        );
+    }
+}
+
+#[test]
+fn host_hidden_plan_mismatch_rejects_before_paint_or_registration() {
+    let h = Harness::new(
+        HostHiddenMismatchPage {
+            rejected: std::cell::Cell::new(false),
+        },
+        Theme::junie(),
+        64,
+        5,
+    );
+    assert!(h.app().rejected.get());
+    for y in 0..5 {
+        for x in 0..64 {
+            assert_eq!(h.cell(x, y).bg, Color::Blue, "sentinel at ({x},{y})");
+        }
+    }
+    assert!(
+        h.area_of_part(TABS, PartRef::item(Part::TAB, ItemKey::index(0)))
+            .is_none(),
+        "a rejected hidden-context plan does not register controls"
+    );
+}
+
 #[test]
 fn rule_and_existing_builder_settings_survive_key_row_and_marks_order() {
     type CustomTabs = Tabs<'static, Tab, fn(&Tab) -> ItemKey, for<'a> fn(&Tab, &mut RowUi<'a>)>;
@@ -581,13 +1054,19 @@ fn rule_and_existing_builder_settings_survive_key_row_and_marks_order() {
             .middle_click_closes(false)
             .key(key);
         if rule_first {
-            base.rule(TabRule::Accent).item_marks(marks).row(row)
+            base.rule(TabRule::Auto)
+                .rule_focus_hidden(true)
+                .item_marks(marks)
+                .row(row)
         } else {
-            base.row(row).item_marks(marks).rule(TabRule::Neutral)
+            base.row(row)
+                .item_marks(marks)
+                .rule(TabRule::FocusOnly)
+                .rule_focus_hidden(true)
         }
     }
 
-    for (rule_first, role) in [(true, Role::Accent), (false, Role::BorderStrong)] {
+    for (rule_first, role) in [(true, Role::BorderStrong), (false, Role::BorderStrong)] {
         let page = CustomPage {
             state: TabsState::default(),
             items: [Tab {

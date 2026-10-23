@@ -44,7 +44,7 @@ pub enum TabCloseReveal {
     Hover,
 }
 
-/// Fixed foreground policy for the active tab's rule.
+/// Foreground policy for the active tab's rule.
 ///
 /// The policy changes only the active rule's foreground. The default Tabs
 /// rendering path is unchanged unless a policy is selected. This enum is
@@ -57,13 +57,37 @@ pub enum TabRule {
     Accent,
     /// Resolve the active rule with the theme's BorderStrong role.
     Neutral,
+    /// Use Accent while the Tabs context is not hidden; otherwise use
+    /// BorderStrong.
+    ///
+    /// Without an explicit host override, hidden means that a native runtime
+    /// layer covers the current drawing context.
+    Auto,
+    /// Use Accent only while this Tabs owner has focus and its context is not
+    /// hidden; otherwise use BorderStrong.
+    ///
+    /// Focus is presentation data, not input permission. Without an explicit
+    /// host override, hidden means that a native runtime layer covers the
+    /// current drawing context.
+    FocusOnly,
 }
 
 impl TabRule {
-    const fn foreground(self) -> Role {
+    fn foreground(self, ui: &Ui<'_>, owner: Id, focus_hidden: Option<bool>) -> Role {
         match self {
             Self::Accent => Role::Accent,
             Self::Neutral => Role::BorderStrong,
+            Self::Auto if !focus_hidden.unwrap_or_else(|| ui.is_covered_by_native_layer()) => {
+                Role::Accent
+            }
+            Self::Auto => Role::BorderStrong,
+            Self::FocusOnly
+                if !focus_hidden.unwrap_or_else(|| ui.is_covered_by_native_layer())
+                    && ui.owner_has_focus_presentation(owner) =>
+            {
+                Role::Accent
+            }
+            Self::FocusOnly => Role::BorderStrong,
         }
     }
 }
@@ -456,6 +480,7 @@ pub struct TabLayout {
     close_reveal_press: Option<ItemKey>,
     status: Status,
     rule: Option<TabRule>,
+    rule_focus_hidden: Option<bool>,
     left_overflow: Option<Rect>,
     right_overflow: Option<Rect>,
     new_area: Option<Rect>,
@@ -625,6 +650,7 @@ pub struct Tabs<'a, T, K = ByIndex, R = DefaultRow> {
     close_danger_hover: bool,
     status: Status,
     rule: Option<TabRule>,
+    rule_focus_hidden: Option<bool>,
     item_marks: Option<fn(&T) -> TabMarks>,
     ov: PartStyle<'a>,
     _t: PhantomData<fn(&T)>,
@@ -643,6 +669,7 @@ impl<T, K, R> fmt::Debug for Tabs<'_, T, K, R> {
             .field("close_danger_hover", &self.close_danger_hover)
             .field("status", &self.status)
             .field("rule", &self.rule)
+            .field("rule_focus_hidden", &self.rule_focus_hidden)
             .field("item_marks", &self.item_marks.is_some())
             .finish_non_exhaustive()
     }
@@ -663,6 +690,7 @@ impl<T> Tabs<'_, T, ByIndex, DefaultRow> {
             close_danger_hover: false,
             status: Status::Ready,
             rule: None,
+            rule_focus_hidden: None,
             item_marks: None,
             ov: PartStyle::new(),
             _t: PhantomData,
@@ -702,6 +730,7 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
             close_danger_hover: self.close_danger_hover,
             status: self.status,
             rule: self.rule,
+            rule_focus_hidden: self.rule_focus_hidden,
             item_marks: self.item_marks,
             ov: self.ov,
             _t: PhantomData,
@@ -722,6 +751,7 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
             close_danger_hover: self.close_danger_hover,
             status: self.status,
             rule: self.rule,
+            rule_focus_hidden: self.rule_focus_hidden,
             item_marks: self.item_marks,
             ov: self.ov,
             _t: PhantomData,
@@ -814,6 +844,21 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
     #[must_use]
     pub fn rule(mut self, rule: TabRule) -> Self {
         self.rule = Some(rule);
+        self
+    }
+
+    /// Override native-layer coverage for the dynamic active-rule policies.
+    ///
+    /// Without this setting, [`TabRule::Auto`] and [`TabRule::FocusOnly`]
+    /// consult the current frame's native layer stack. Set this to `true` when
+    /// a host-owned overlay or popup hides the Tabs context without opening a
+    /// native layer; set it to `false` to explicitly present the rule as
+    /// uncovered. This changes only active-rule presentation, never focus,
+    /// hit registration, or input eligibility. It has no effect on the fixed
+    /// [`TabRule::Accent`] and [`TabRule::Neutral`] policies.
+    #[must_use]
+    pub fn rule_focus_hidden(mut self, hidden: bool) -> Self {
+        self.rule_focus_hidden = Some(hidden);
         self
     }
 
@@ -1565,7 +1610,11 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
             if is_active && let Some(rr) = rule_row {
                 let (rs, explicit) = match self.rule {
                     Some(rule) => {
-                        let mode = StylePatch::new().set_fg(rule.foreground());
+                        let mode = StylePatch::new().set_fg(rule.foreground(
+                            ui,
+                            id,
+                            self.rule_focus_hidden,
+                        ));
                         let patch = ov
                             .part_patch(Part::RULE)
                             .map_or(mode, |local| mode.merge(local));
@@ -1864,6 +1913,7 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
                 close_reveal_press: state.close_reveal_press,
                 status: self.status,
                 rule: self.rule,
+                rule_focus_hidden: self.rule_focus_hidden,
                 left_overflow: None,
                 right_overflow: None,
                 new_area: None,
@@ -2029,6 +2079,7 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
             close_reveal_press: state.close_reveal_press,
             status: self.status,
             rule: self.rule,
+            rule_focus_hidden: self.rule_focus_hidden,
             item_marks_enabled: self.item_marks.is_some(),
             left_overflow,
             right_overflow,
@@ -2062,6 +2113,7 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
             || layout.close_danger_hover != self.close_danger_hover
             || layout.status != self.status
             || layout.rule != self.rule
+            || layout.rule_focus_hidden != self.rule_focus_hidden
             || layout.item_marks_enabled != self.item_marks.is_some()
         {
             return Err(TabLayoutMismatch);
