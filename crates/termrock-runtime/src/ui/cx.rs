@@ -1,3 +1,4 @@
+use core::cell::Cell;
 use core::time::Duration;
 
 use ratatui_core::layout::{Position, Rect};
@@ -17,7 +18,7 @@ use crate::layer::{
     LayerEventReceipt, LayerId, LayerOpening, LayerSize, LayerSpec, LayerStack, UpdateToken,
 };
 use crate::response::StateFlags;
-use crate::runtime::UpdateCause;
+use crate::runtime::{UpdateCause, WheelRouteAttempt, WheelRouteResult};
 use crate::theme::{DesignTokens, Theme};
 
 use super::UiCore;
@@ -194,6 +195,27 @@ pub struct FrameServices {
     pub(crate) pointer_press_count: Option<(Id, PartRef, u8)>,
     pub(crate) reset_pointer_clicks: bool,
     pub(crate) text_drag_cancellations: Vec<(Id, PartRef)>,
+    pub(crate) pending_wheel_route: Option<WheelRouteAttempt>,
+    pub(crate) active_wheel_route: Option<WheelRouteAttempt>,
+    pub(crate) wheel_route_ack: Cell<WheelRouteAck>,
+    pub(crate) wheel_route_invalidated: bool,
+    pub(crate) next_wheel_route_event: u64,
+}
+
+impl FrameServices {
+    pub(crate) fn next_wheel_route_event(&mut self) -> Option<u64> {
+        let event_id = self.next_wheel_route_event.checked_add(1)?;
+        self.next_wheel_route_event = event_id;
+        Some(event_id)
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) enum WheelRouteAck {
+    #[default]
+    Unset,
+    Acknowledged(WheelRouteResult),
+    Invalid,
 }
 
 pub struct Cx<'f> {
@@ -226,6 +248,69 @@ impl<'f> Cx<'f> {
     /// stream. Components cannot clear diagnostics emitted by other owners.
     pub fn diagnostic(&mut self, diagnostic: crate::diagnostics::Diagnostic) {
         self.services.diagnostics.push(diagnostic);
+    }
+
+    /// Return the active wheel attempt for this exact owner, part, and axis.
+    ///
+    /// The attempt is available only during the original event update or the
+    /// targeted `ScrollRoute` callback. Owners must validate its source revision
+    /// before they acknowledge a local result.
+    pub fn wheel_route_attempt(
+        &self,
+        owner: Id,
+        part: PartRef,
+        axis: crate::event::Axis,
+    ) -> Option<WheelRouteAttempt> {
+        if !matches!(
+            self.update_cause,
+            UpdateCause::Event | UpdateCause::ScrollRoute
+        ) {
+            return None;
+        }
+        self.services.active_wheel_route.filter(|attempt| {
+            attempt.owner() == owner && attempt.part() == part && attempt.axis() == axis
+        })
+    }
+
+    /// Acknowledge the local result for the active wheel attempt.
+    ///
+    /// Only one acknowledgement is accepted. A stale, wrong, duplicate, or
+    /// conflicting acknowledgement invalidates fallback for this event.
+    pub fn acknowledge_wheel_route(
+        &self,
+        attempt: &WheelRouteAttempt,
+        result: WheelRouteResult,
+    ) -> bool {
+        let Some(active) = self.services.active_wheel_route else {
+            return false;
+        };
+        if active != *attempt
+            || !matches!(
+                self.update_cause,
+                UpdateCause::Event | UpdateCause::ScrollRoute
+            )
+        {
+            self.services.wheel_route_ack.set(WheelRouteAck::Invalid);
+            return false;
+        }
+        match self.services.wheel_route_ack.get() {
+            WheelRouteAck::Unset => {
+                self.services
+                    .wheel_route_ack
+                    .set(WheelRouteAck::Acknowledged(result));
+                true
+            }
+            WheelRouteAck::Acknowledged(_) | WheelRouteAck::Invalid => {
+                self.services.wheel_route_ack.set(WheelRouteAck::Invalid);
+                false
+            }
+        }
+    }
+
+    fn invalidate_active_wheel_route(&mut self) {
+        if self.services.active_wheel_route.is_some() {
+            self.services.wheel_route_invalidated = true;
+        }
     }
 
     fn invalidate_continuation_result_readiness(&mut self) {
@@ -356,6 +441,7 @@ impl<'f> Cx<'f> {
     }
 
     pub fn focus(&mut self, id: Id) {
+        self.invalidate_active_wheel_route();
         self.invalidate_continuation_result_readiness();
         self.services.initial_focus_layer = None;
         self.services.deferred_focus = None;
@@ -363,6 +449,7 @@ impl<'f> Cx<'f> {
     }
 
     pub fn focus_next(&mut self) {
+        self.invalidate_active_wheel_route();
         self.invalidate_continuation_result_readiness();
         self.services.initial_focus_layer = None;
         self.services.focus_request = None;
@@ -402,6 +489,7 @@ impl<'f> Cx<'f> {
     }
 
     pub fn focus_prev(&mut self) {
+        self.invalidate_active_wheel_route();
         self.invalidate_continuation_result_readiness();
         self.services.initial_focus_layer = None;
         self.services.focus_request = None;
@@ -475,13 +563,17 @@ impl<'f> Cx<'f> {
         let Some(origin) = self.services.press_pos else {
             return false;
         };
-        self.services.capture.claim(Capture {
+        let captured = self.services.capture.claim(Capture {
             owner,
             part,
             origin,
             area,
             generation: self.services.registry_gen,
-        })
+        });
+        if captured {
+            self.invalidate_active_wheel_route();
+        }
+        captured
     }
 
     pub fn capture_owner(&self) -> Option<Id> {
@@ -504,7 +596,9 @@ impl<'f> Cx<'f> {
     }
 
     pub fn release_capture(&mut self) {
-        self.services.capture.release();
+        if self.services.capture.release().is_some() {
+            self.invalidate_active_wheel_route();
+        }
     }
 
     /// Cancel held text-drag autoscroll for this exact captured owner and part.
@@ -545,6 +639,7 @@ impl<'f> Cx<'f> {
                 .layers
                 .open_with_runtime(id, spec, restore, self.services.runtime_id);
         if let Some(opening) = opening {
+            self.invalidate_active_wheel_route();
             self.services.reset_pointer_clicks = true;
             self.services.initial_focus_layer = None;
             if let Some(target) = spec.initial_focus {
@@ -759,19 +854,29 @@ impl<'f> Cx<'f> {
     }
 
     pub fn resize_layer(&mut self, id: Id, size: LayerSize) {
-        if let Some(spec) = self.services.layers.spec_mut(id)
-            && spec.size != size
-        {
+        let changed = self.services.layers.spec_mut(id).is_some_and(|spec| {
+            if spec.size == size {
+                return false;
+            }
             spec.size = size;
+            true
+        });
+        if changed {
+            self.invalidate_active_wheel_route();
             self.services.repaint = true;
         }
     }
 
     pub fn reanchor_layer(&mut self, id: Id, anchor: Anchor) {
-        if let Some(spec) = self.services.layers.spec_mut(id)
-            && spec.anchor != anchor
-        {
+        let changed = self.services.layers.spec_mut(id).is_some_and(|spec| {
+            if spec.anchor == anchor {
+                return false;
+            }
             spec.anchor = anchor;
+            true
+        });
+        if changed {
+            self.invalidate_active_wheel_route();
             self.services.repaint = true;
         }
     }
@@ -787,6 +892,7 @@ impl<'f> Cx<'f> {
             .layers
             .close_with_update(id, ev, Some(self.update_token));
         if !closed.is_empty() {
+            self.invalidate_active_wheel_route();
             self.services.reset_pointer_clicks = true;
             self.services.direct_closed_layers.push(closed[0]);
         }

@@ -19,7 +19,7 @@ use crate::cursor;
 use crate::diagnostics::Diagnostic;
 use crate::event::{Axis, Input, Key, KeyCode, KeyModifiers, Mouse, MouseKind};
 use crate::focus::{FocusRing, FocusState, ScopeId};
-use crate::hit::{Hit, RegionKind, TextDragRegion};
+use crate::hit::{Hit, RegionKind, ScrollRouteKey, TextDragRegion};
 use crate::id::{Id, Part, PartRef};
 use crate::intent::{FocusVia, IntentQueue, Phase};
 use crate::keymap::{BindingTableId, KeyMap, KeyPhase};
@@ -32,7 +32,7 @@ use crate::measure::Size;
 use crate::response::StateFlags;
 use crate::response::{Invalidate, Response};
 use crate::theme::Theme;
-use crate::ui::cx::{FrameServices, LastFrame};
+use crate::ui::cx::{FrameServices, LastFrame, WheelRouteAck};
 use crate::ui::{Cx, FrameState, Ui, UiCore};
 
 static NEXT_RUNTIME_ID: AtomicU64 = AtomicU64::new(1);
@@ -91,6 +91,21 @@ pub trait App {
 
     fn draw(&self, ui: &mut Ui<'_>);
 
+    /// Service one explicitly addressed, opt-in scroll fallback attempt.
+    ///
+    /// The callback receives no ordinary input intents and must dispatch only
+    /// the named scroll registration. It must acknowledge the attempt through
+    /// [`Cx::acknowledge_wheel_route`] after checking the live source revision.
+    /// The returned response contributes repaint or layout invalidation only;
+    /// it does not describe whether this target handled the wheel.
+    fn route_wheel_attempt(
+        &mut self,
+        _cx: &mut Cx<'_>,
+        _attempt: WheelRouteAttempt,
+    ) -> Response<()> {
+        Response::ignored()
+    }
+
     fn should_quit(&self) -> bool {
         false
     }
@@ -127,6 +142,110 @@ pub trait App {
     }
 }
 
+/// Local result from one exact opted-in scroll target.
+#[non_exhaustive]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum WheelRouteResult {
+    /// This target cannot handle the wheel and made no scroll-side change.
+    Ignored,
+    /// This target accepted the wheel, including an eligible saturated edge.
+    Consumed,
+    /// This target changed its scroll position.
+    Changed,
+}
+
+/// Opaque identity and immutable input data for one wheel-route attempt.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct WheelRouteAttempt {
+    runtime_id: u64,
+    event_id: u64,
+    attempt_index: u32,
+    key: ScrollRouteKey,
+    owner: Id,
+    part: PartRef,
+    layer: LayerId,
+    axis: Axis,
+    delta: i16,
+    position: Position,
+    registry_generation: u32,
+    source_revision: u64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct WheelRouteTarget {
+    runtime_id: u64,
+    event_id: u64,
+    attempt_index: u32,
+    key: ScrollRouteKey,
+    owner: Id,
+    part: PartRef,
+    layer: LayerId,
+    registry_generation: u32,
+    source_revision: u64,
+}
+
+impl WheelRouteAttempt {
+    const fn new(target: WheelRouteTarget, axis: Axis, delta: i16, position: Position) -> Self {
+        Self {
+            runtime_id: target.runtime_id,
+            event_id: target.event_id,
+            attempt_index: target.attempt_index,
+            key: target.key,
+            owner: target.owner,
+            part: target.part,
+            layer: target.layer,
+            axis,
+            delta,
+            position,
+            registry_generation: target.registry_generation,
+            source_revision: target.source_revision,
+        }
+    }
+
+    /// Return the private event identity shared by attempts for one physical wheel.
+    pub const fn event_id(self) -> u64 {
+        self.event_id
+    }
+
+    /// Return this target's position in the bounded route.
+    pub const fn attempt_index(self) -> u32 {
+        self.attempt_index
+    }
+
+    pub const fn owner(self) -> Id {
+        self.owner
+    }
+
+    pub const fn part(self) -> PartRef {
+        self.part
+    }
+
+    pub const fn layer(self) -> LayerId {
+        self.layer
+    }
+
+    pub const fn axis(self) -> Axis {
+        self.axis
+    }
+
+    /// Return the already-scaled delta shared by every target in this route.
+    pub const fn delta(self) -> i16 {
+        self.delta
+    }
+
+    pub const fn position(self) -> Position {
+        self.position
+    }
+
+    pub const fn registry_generation(self) -> u32 {
+        self.registry_generation
+    }
+
+    pub const fn source_revision(self) -> u64 {
+        self.source_revision
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ActivationKey {
     Enter,
@@ -140,6 +259,8 @@ pub enum UpdateCause {
     Event,
     Tick,
     Settle,
+    /// Targeted, empty-intent wheel fallback service.
+    ScrollRoute,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -429,6 +550,14 @@ struct PendingFocus {
     to: Option<Id>,
     via: FocusVia,
     from_layer: Option<LayerId>,
+}
+
+#[derive(Clone, Copy, Debug)]
+struct WheelRouteGuard {
+    focus: Option<Id>,
+    top_layer: LayerId,
+    registry_generation: u32,
+    capture: Option<Capture>,
 }
 
 pub struct Runtime<A: App> {
@@ -1120,13 +1249,37 @@ impl<A: App> Runtime<A> {
                     }
 
                     let rows = self.theme.design.motion.wheel_rows as i16;
-                    self.intents.wheel(
-                        hit.owner,
-                        axis,
-                        delta.saturating_mul(rows),
-                        hit.part,
-                        m.pos,
-                    );
+                    let scaled_delta = delta.saturating_mul(rows);
+                    self.intents
+                        .wheel(hit.owner, axis, scaled_delta, hit.part, m.pos);
+                    if let Some((key, source_revision)) = self
+                        .last
+                        .registry
+                        .routed_scroll_info(candidate.registration_index())
+                        .filter(|(key, _)| {
+                            self.last
+                                .registry
+                                .route_key_is_eligible(*key, axis, m.pos, top)
+                        })
+                        && let Some(event_id) = self.services.next_wheel_route_event()
+                    {
+                        self.services.pending_wheel_route = Some(WheelRouteAttempt::new(
+                            WheelRouteTarget {
+                                runtime_id: self.services.runtime_id,
+                                event_id,
+                                attempt_index: 0,
+                                key,
+                                owner: hit.owner,
+                                part: hit.part,
+                                layer: hit.layer,
+                                registry_generation: self.last.registry.generation(),
+                                source_revision,
+                            },
+                            axis,
+                            scaled_delta,
+                            m.pos,
+                        ));
+                    }
                     break;
                 }
             }
@@ -1510,6 +1663,9 @@ impl<A: App> Runtime<A> {
                 .with_activation_key(activation_key);
                 self.app.update(&mut cx)
             };
+            if first_pass {
+                self.services.active_wheel_route = None;
+            }
             folded |= r;
 
             for owner in self.intents.undrained() {
@@ -1575,6 +1731,130 @@ impl<A: App> Runtime<A> {
             }
         }
         self.unsettled = 0;
+        folded
+    }
+
+    fn wheel_route_context_is_live(
+        &self,
+        guard: WheelRouteGuard,
+        attempt: WheelRouteAttempt,
+        response: &Response<()>,
+    ) -> bool {
+        if response.invalidate() == Invalidate::Layout
+            || self.services.wheel_route_invalidated
+            || self.services.focus_request.is_some()
+            || self.staged_focus.is_some()
+            || self.pending_focus.is_some()
+            || self.focus.current() != guard.focus
+            || self.services.layers.top() != guard.top_layer
+            || self.services.capture.get() != guard.capture
+            || self.last.registry.generation() != guard.registry_generation
+            || self.services.runtime_id != attempt.runtime_id
+            || attempt.layer() != guard.top_layer
+            || attempt.registry_generation() != guard.registry_generation
+        {
+            return false;
+        }
+        if self
+            .last
+            .registry
+            .routed_scroll_source_revision(attempt.key)
+            != Some(attempt.source_revision)
+        {
+            return false;
+        }
+        self.last
+            .registry
+            .routed_scroll_hit(
+                attempt.key,
+                attempt.axis(),
+                attempt.position(),
+                attempt.layer(),
+            )
+            .is_some_and(|hit| hit.owner == attempt.owner() && hit.part == attempt.part())
+    }
+
+    fn service_ignored_wheel_route(
+        &mut self,
+        first: WheelRouteAttempt,
+        guard: WheelRouteGuard,
+        mut folded: Response<()>,
+    ) -> Response<()> {
+        if self.services.wheel_route_ack.get()
+            != WheelRouteAck::Acknowledged(WheelRouteResult::Ignored)
+            || !self.wheel_route_context_is_live(guard, first, &folded)
+        {
+            return folded;
+        }
+
+        let mut current = first;
+        for _ in 0..self.last.registry.len() {
+            let Some((key, source_revision)) = self.last.registry.next_scroll_route_parent(
+                current.key,
+                current.axis(),
+                current.position(),
+                current.layer(),
+            ) else {
+                break;
+            };
+            let Some(index) = current.attempt_index.checked_add(1) else {
+                break;
+            };
+            let Some(hit) = self.last.registry.routed_scroll_hit(
+                key,
+                current.axis(),
+                current.position(),
+                current.layer(),
+            ) else {
+                break;
+            };
+            if !self.wheel_route_context_is_live(guard, current, &folded) {
+                break;
+            }
+            let attempt = WheelRouteAttempt::new(
+                WheelRouteTarget {
+                    runtime_id: current.runtime_id,
+                    event_id: current.event_id,
+                    attempt_index: index,
+                    key,
+                    owner: hit.owner,
+                    part: hit.part,
+                    layer: hit.layer,
+                    registry_generation: current.registry_generation(),
+                    source_revision,
+                },
+                current.axis(),
+                current.delta(),
+                current.position(),
+            );
+            self.services.active_wheel_route = Some(attempt);
+            self.services.wheel_route_ack.set(WheelRouteAck::Unset);
+            let empty_intents = IntentQueue::new();
+            let edit_entry = self.app.edit_entry();
+            let response = {
+                let mut cx = Cx::new_with_cause(
+                    &empty_intents,
+                    &mut self.services,
+                    &mut self.core,
+                    &self.last,
+                    &self.theme,
+                    None,
+                    UpdateCause::ScrollRoute,
+                )
+                .with_edit_entry(edit_entry);
+                self.app.route_wheel_attempt(&mut cx, attempt)
+            };
+            self.services.active_wheel_route = None;
+            folded |= response;
+            if !self.wheel_route_context_is_live(guard, attempt, &folded)
+                || self.services.wheel_route_ack.get()
+                    != WheelRouteAck::Acknowledged(WheelRouteResult::Ignored)
+            {
+                break;
+            }
+            current = attempt;
+        }
+        self.services.active_wheel_route = None;
         folded
     }
 
@@ -1806,9 +2086,16 @@ impl<A: App> Runtime<A> {
             .extend(self.keymap_conflicts.iter().cloned());
         self.services.repaint = false;
         self.intents.clear();
+        self.services.pending_wheel_route = None;
+        self.services.active_wheel_route = None;
+        self.services
+            .wheel_route_ack
+            .set(crate::ui::cx::WheelRouteAck::Unset);
+        self.services.wheel_route_invalidated = false;
         self.services.registry_gen = self.last.registry.generation();
         self.pump_layer_events();
         let mut key_input = None;
+        let mut wheel_route_attempt = None;
         let mut update_cause = UpdateCause::Event;
         match &input {
             Input::Resize(w, h) => {
@@ -1840,7 +2127,10 @@ impl<A: App> Runtime<A> {
                 key_input = Some(*k);
                 self.enqueue_key(*k);
             }
-            Input::Mouse(m) => self.enqueue_mouse(*m),
+            Input::Mouse(m) => {
+                self.enqueue_mouse(*m);
+                wheel_route_attempt = self.services.pending_wheel_route.take();
+            }
             Input::Paste(s) => {
                 let consumed = crate::test_clock_enabled()
                     && crate::parse_test_clock_step(s)
@@ -1856,7 +2146,23 @@ impl<A: App> Runtime<A> {
         // scope.
         let input_top_layer = self.services.layers.top();
         let input_focus = self.focus.current();
+        let wheel_route_guard = wheel_route_attempt.map(|_| WheelRouteGuard {
+            focus: self.focus.current(),
+            top_layer: self.services.layers.top(),
+            registry_generation: self.last.registry.generation(),
+            capture: self.services.capture.get(),
+        });
+        if let Some(attempt) = wheel_route_attempt {
+            self.services.active_wheel_route = Some(attempt);
+            self.services
+                .wheel_route_ack
+                .set(crate::ui::cx::WheelRouteAck::Unset);
+            self.services.wheel_route_invalidated = false;
+        }
         let mut r = self.run_update(None, update_cause, activation_key);
+        if let (Some(attempt), Some(guard)) = (wheel_route_attempt, wheel_route_guard) {
+            r = self.service_ignored_wheel_route(attempt, guard, r);
+        }
         let mut input_scope_changed =
             self.services.layers.top() != input_top_layer || self.focus.current() != input_focus;
 
@@ -2011,6 +2317,10 @@ impl<A: App> Runtime<A> {
     }
 
     fn finish(&mut self, mut r: Response<()>) -> Response<()> {
+        self.services.pending_wheel_route = None;
+        self.services.active_wheel_route = None;
+        self.services.wheel_route_ack.set(WheelRouteAck::Unset);
+        self.services.wheel_route_invalidated = false;
         self.apply_text_drag_cancellations();
         self.reconcile_held_pointer();
         if core::mem::take(&mut self.services.reset_pointer_clicks) {
@@ -3124,6 +3434,7 @@ mod tests {
     use crate::event::MouseKind;
     use crate::focus::Focusability;
     use crate::focus::{ScopeId, ScopeMode};
+    use crate::hit::{Axes, Headroom};
     use crate::intent::Intent;
     use crate::layer::{Anchor, LayerSize, LayerSpec, ScreenAlign};
     use crate::ui::FrameRead;
@@ -5911,5 +6222,706 @@ mod tests {
                 .iter()
                 .any(|(owner, _)| *owner == PASSIVE_HOVER)
         );
+    }
+
+    const ROUTE_ROOT: Id = Id::root("wheel-route-root");
+    const ROUTE_PARENT: Id = Id::root("wheel-route-parent");
+    const ROUTE_CHILD: Id = Id::root("wheel-route-child");
+    const ROUTE_MODAL: Id = Id::root("wheel-route-modal");
+    const ROUTE_POINT: Position = Position::new(4, 4);
+    const ROUTE_OUTER: Rect = Rect::new(0, 0, 24, 10);
+    const ROUTE_INNER: Rect = Rect::new(2, 2, 12, 5);
+
+    #[derive(Clone, Copy, Debug)]
+    struct RoutedWheelNode {
+        owner: Id,
+        area: Rect,
+        source_revision: u64,
+        parent: Option<Id>,
+    }
+
+    #[derive(Debug)]
+    struct RoutedWheelProbe {
+        nodes: Vec<RoutedWheelNode>,
+        update_order: Vec<Id>,
+        route_enabled: bool,
+        focusable_controls: bool,
+        capture_on_wheel: bool,
+        modal_on_bootstrap: bool,
+        initial_result: Option<WheelRouteResult>,
+        callback_results: Vec<(Id, Option<WheelRouteResult>)>,
+        live_child_revision: Option<u64>,
+        live_parent_revision: Option<u64>,
+        stale_attempt: Option<WheelRouteAttempt>,
+        use_stale_attempt: bool,
+        duplicate_initial_ack: bool,
+        duplicate_service_ack: bool,
+        open_close_on_service: Option<Id>,
+        focus_child_on_event: bool,
+        initial_relayout: bool,
+        service_relayout: bool,
+        update_causes: Vec<UpdateCause>,
+        service_causes: Vec<UpdateCause>,
+        event_updates: usize,
+        wheel_deliveries: Vec<(Id, Axis, i16, Position)>,
+        initial_attempts: Vec<WheelRouteAttempt>,
+        service_attempts: Vec<WheelRouteAttempt>,
+        service_intent_counts: Vec<usize>,
+        ack_results: Vec<bool>,
+    }
+
+    impl RoutedWheelProbe {
+        fn new(nodes: Vec<RoutedWheelNode>, update_order: Vec<Id>) -> Self {
+            Self {
+                nodes,
+                update_order,
+                route_enabled: true,
+                focusable_controls: false,
+                capture_on_wheel: false,
+                modal_on_bootstrap: false,
+                initial_result: Some(WheelRouteResult::Ignored),
+                callback_results: Vec::new(),
+                live_child_revision: None,
+                live_parent_revision: None,
+                stale_attempt: None,
+                use_stale_attempt: false,
+                duplicate_initial_ack: false,
+                duplicate_service_ack: false,
+                open_close_on_service: None,
+                focus_child_on_event: false,
+                initial_relayout: false,
+                service_relayout: false,
+                update_causes: Vec::new(),
+                service_causes: Vec::new(),
+                event_updates: 0,
+                wheel_deliveries: Vec::new(),
+                initial_attempts: Vec::new(),
+                service_attempts: Vec::new(),
+                service_intent_counts: Vec::new(),
+                ack_results: Vec::new(),
+            }
+        }
+
+        fn source_revision(&self, owner: Id) -> Option<u64> {
+            self.nodes
+                .iter()
+                .find(|node| node.owner == owner)
+                .map(|node| {
+                    if owner == ROUTE_CHILD {
+                        self.live_child_revision.unwrap_or(node.source_revision)
+                    } else if owner == ROUTE_PARENT {
+                        self.live_parent_revision.unwrap_or(node.source_revision)
+                    } else {
+                        node.source_revision
+                    }
+                })
+        }
+    }
+
+    impl App for RoutedWheelProbe {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            self.update_causes.push(cx.update_cause());
+            if cx.update_cause() == UpdateCause::Bootstrap {
+                if self.modal_on_bootstrap {
+                    cx.open_layer(ROUTE_MODAL, LayerSpec::modal(ROUTE_MODAL));
+                }
+                return Response::ignored();
+            }
+            if cx.update_cause() == UpdateCause::Event {
+                self.event_updates = self.event_updates.saturating_add(1);
+                for owner in self.update_order.clone() {
+                    for intent in cx.intents(owner) {
+                        if let Intent::Wheel {
+                            axis,
+                            delta,
+                            part,
+                            pos,
+                        } = intent
+                        {
+                            self.wheel_deliveries.push((owner, axis, delta, pos));
+                            let Some(attempt) = cx.wheel_route_attempt(owner, part, axis) else {
+                                continue;
+                            };
+                            self.initial_attempts.push(attempt);
+                            if self.capture_on_wheel && owner == ROUTE_CHILD {
+                                assert!(cx.capture(owner, part));
+                            }
+                            assert_eq!(
+                                cx.wheel_route_attempt(
+                                    ROUTE_PARENT,
+                                    PartRef::of(Part::CONTAINER),
+                                    axis,
+                                )
+                                .is_some(),
+                                owner == ROUTE_PARENT
+                            );
+                            assert!(
+                                cx.wheel_route_attempt(owner, PartRef::of(Part::LABEL), axis)
+                                    .is_none()
+                            );
+                            assert!(
+                                cx.wheel_route_attempt(
+                                    owner,
+                                    part,
+                                    if axis == Axis::V { Axis::H } else { Axis::V },
+                                )
+                                .is_none()
+                            );
+                            if self.use_stale_attempt
+                                && let Some(stale) = self.stale_attempt
+                            {
+                                self.ack_results.push(
+                                    cx.acknowledge_wheel_route(&stale, WheelRouteResult::Ignored),
+                                );
+                            }
+                            if self.source_revision(owner) == Some(attempt.source_revision())
+                                && let Some(result) = self.initial_result
+                            {
+                                self.ack_results
+                                    .push(cx.acknowledge_wheel_route(&attempt, result));
+                                if self.duplicate_initial_ack {
+                                    self.ack_results
+                                        .push(cx.acknowledge_wheel_route(&attempt, result));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            if self.focus_child_on_event && cx.update_cause() == UpdateCause::Event {
+                cx.focus(ROUTE_CHILD);
+            }
+            if self.initial_relayout && cx.update_cause() == UpdateCause::Event {
+                return Response::ignored().relayout();
+            }
+            Response::ignored()
+        }
+
+        fn route_wheel_attempt(
+            &mut self,
+            cx: &mut Cx<'_>,
+            attempt: WheelRouteAttempt,
+        ) -> Response<()> {
+            self.service_attempts.push(attempt);
+            self.service_causes.push(cx.update_cause());
+            self.service_intent_counts
+                .push(cx.intents(attempt.owner()).count());
+            if let Some(layer) = self.open_close_on_service.take() {
+                cx.open_layer(layer, LayerSpec::modal(layer));
+                cx.close_layer(layer, None);
+            }
+            if self.source_revision(attempt.owner()) == Some(attempt.source_revision())
+                && let Some(result) = self
+                    .callback_results
+                    .iter()
+                    .find(|(owner, _)| *owner == attempt.owner())
+                    .and_then(|(_, result)| *result)
+            {
+                let accepted = cx.acknowledge_wheel_route(&attempt, result);
+                self.ack_results.push(accepted);
+                if self.duplicate_service_ack {
+                    self.ack_results
+                        .push(cx.acknowledge_wheel_route(&attempt, result));
+                }
+            }
+            if self.service_relayout {
+                Response::ignored().relayout()
+            } else {
+                Response::ignored()
+            }
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let mut keys = Vec::new();
+            for node in &self.nodes {
+                if self.focusable_controls {
+                    ui.register_control(node.owner, node.area, Focusability::Focusable);
+                }
+                let key = if self.route_enabled {
+                    ui.register_routed_scroll(
+                        node.owner,
+                        node.area,
+                        Axes::V,
+                        Headroom::default(),
+                        node.source_revision,
+                    )
+                } else {
+                    ui.register_scroll(node.owner, node.area, Axes::V, Headroom::default());
+                    None
+                };
+                if let Some(key) = key {
+                    keys.push((node.owner, key));
+                }
+            }
+            if self.modal_on_bootstrap
+                && let Some(node) = self.nodes.iter().find(|node| node.owner == ROUTE_CHILD)
+            {
+                let node = *node;
+                let key = ui
+                    .layer(ROUTE_MODAL, |ui, _| {
+                        if self.focusable_controls {
+                            ui.register_control(node.owner, node.area, Focusability::Focusable);
+                        }
+                        if self.route_enabled {
+                            ui.register_routed_scroll(
+                                node.owner,
+                                node.area,
+                                Axes::V,
+                                Headroom::default(),
+                                node.source_revision,
+                            )
+                        } else {
+                            ui.register_scroll(node.owner, node.area, Axes::V, Headroom::default());
+                            None
+                        }
+                    })
+                    .flatten();
+                if let Some(key) = key {
+                    keys.push((node.owner, key));
+                }
+            }
+            for node in &self.nodes {
+                if let Some(parent) = node.parent {
+                    let child_key = keys
+                        .iter()
+                        .find(|(owner, _)| *owner == node.owner)
+                        .map(|(_, key)| *key);
+                    let parent_key = keys
+                        .iter()
+                        .find(|(owner, _)| *owner == parent)
+                        .map(|(_, key)| *key);
+                    if let (Some(child), Some(parent)) = (child_key, parent_key) {
+                        assert!(ui.link_scroll_parent(child, parent));
+                    }
+                }
+            }
+        }
+    }
+
+    fn two_level_route_probe(parent_first: bool) -> RoutedWheelProbe {
+        let nodes = vec![
+            RoutedWheelNode {
+                owner: ROUTE_PARENT,
+                area: ROUTE_OUTER,
+                source_revision: 21,
+                parent: None,
+            },
+            RoutedWheelNode {
+                owner: ROUTE_CHILD,
+                area: ROUTE_INNER,
+                source_revision: 34,
+                parent: Some(ROUTE_PARENT),
+            },
+        ];
+        let order = if parent_first {
+            vec![ROUTE_PARENT, ROUTE_CHILD]
+        } else {
+            vec![ROUTE_CHILD, ROUTE_PARENT]
+        };
+        let mut probe = RoutedWheelProbe::new(nodes, order);
+        probe.callback_results = vec![(ROUTE_PARENT, Some(WheelRouteResult::Ignored))];
+        probe
+    }
+
+    fn three_level_route_probe() -> RoutedWheelProbe {
+        let nodes = vec![
+            RoutedWheelNode {
+                owner: ROUTE_ROOT,
+                area: ROUTE_OUTER,
+                source_revision: 8,
+                parent: None,
+            },
+            RoutedWheelNode {
+                owner: ROUTE_PARENT,
+                area: ROUTE_OUTER,
+                source_revision: 21,
+                parent: Some(ROUTE_ROOT),
+            },
+            RoutedWheelNode {
+                owner: ROUTE_CHILD,
+                area: ROUTE_INNER,
+                source_revision: 34,
+                parent: Some(ROUTE_PARENT),
+            },
+        ];
+        let mut probe = RoutedWheelProbe::new(nodes, vec![ROUTE_CHILD, ROUTE_PARENT, ROUTE_ROOT]);
+        probe.callback_results = vec![
+            (ROUTE_PARENT, Some(WheelRouteResult::Ignored)),
+            (ROUTE_ROOT, Some(WheelRouteResult::Ignored)),
+        ];
+        probe
+    }
+
+    fn ready_routed_runtime(probe: RoutedWheelProbe) -> Runtime<RoutedWheelProbe> {
+        let mut runtime = Runtime::new(probe, Theme::junie());
+        let _ = runtime.initialize();
+        let mut buffer = Buffer::empty(SCREEN);
+        for _ in 0..16 {
+            if runtime.needs_settle() {
+                let _ = runtime.settle();
+            }
+            if runtime.needs_present() {
+                runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+            }
+            if !runtime.needs_settle() && !runtime.needs_present() {
+                return runtime;
+            }
+        }
+        panic!(
+            "routed wheel fixture did not settle: {:?}",
+            runtime.diagnostics()
+        );
+    }
+
+    fn route_wheel_input(axis: Axis, delta: i16) -> Input {
+        Input::Mouse(Mouse {
+            kind: MouseKind::Wheel(axis, delta),
+            pos: ROUTE_POINT,
+            mods: KeyModifiers::NONE,
+        })
+    }
+
+    #[test]
+    fn ignored_routed_child_services_parent_once_in_both_update_orders() {
+        for parent_first in [true, false] {
+            let mut runtime = ready_routed_runtime(two_level_route_probe(parent_first));
+            let _ = deliver(&mut runtime, route_wheel_input(Axis::V, 2));
+
+            let probe = runtime.app();
+            assert_eq!(
+                probe.event_updates, 1,
+                "one physical wheel runs one App event update"
+            );
+            assert_eq!(
+                probe.wheel_deliveries,
+                [(
+                    ROUTE_CHILD,
+                    Axis::V,
+                    2 * Theme::junie().design.motion.wheel_rows as i16,
+                    ROUTE_POINT
+                )]
+            );
+            assert_eq!(probe.service_attempts.len(), 1);
+            let initial = probe.initial_attempts[0];
+            let parent = probe.service_attempts[0];
+            assert_eq!(initial.owner(), ROUTE_CHILD);
+            assert_eq!(parent.owner(), ROUTE_PARENT);
+            assert_eq!(initial.event_id(), parent.event_id());
+            assert_eq!((initial.attempt_index(), parent.attempt_index()), (0, 1));
+            assert_eq!(
+                (initial.axis(), initial.delta(), initial.position()),
+                (parent.axis(), parent.delta(), parent.position())
+            );
+            assert_eq!(parent.source_revision(), 21);
+            assert_eq!(
+                probe.service_intent_counts,
+                [0],
+                "targeted callback has no replayed intents"
+            );
+            assert_eq!(probe.service_causes, [UpdateCause::ScrollRoute]);
+            assert_eq!(
+                probe
+                    .update_causes
+                    .iter()
+                    .filter(|cause| **cause == UpdateCause::Event)
+                    .count(),
+                1
+            );
+            assert_eq!(probe.ack_results, [true, true]);
+            assert_eq!(runtime.diagnostics(), []);
+        }
+    }
+
+    #[test]
+    fn two_ignored_targets_reach_root_once_and_all_ignored_stops_at_root() {
+        for root_result in [WheelRouteResult::Consumed, WheelRouteResult::Ignored] {
+            let mut probe = three_level_route_probe();
+            probe.callback_results = vec![
+                (ROUTE_PARENT, Some(WheelRouteResult::Ignored)),
+                (ROUTE_ROOT, Some(root_result)),
+            ];
+            let mut runtime = ready_routed_runtime(probe);
+            let _ = deliver(&mut runtime, route_wheel_input(Axis::V, -3));
+
+            let app = runtime.app();
+            assert_eq!(app.event_updates, 1);
+            assert_eq!(
+                app.service_attempts
+                    .iter()
+                    .map(|attempt| attempt.owner())
+                    .collect::<Vec<_>>(),
+                [ROUTE_PARENT, ROUTE_ROOT]
+            );
+            assert_eq!(
+                app.service_attempts
+                    .iter()
+                    .map(|attempt| attempt.attempt_index())
+                    .collect::<Vec<_>>(),
+                [1, 2]
+            );
+            assert_eq!(app.service_causes, [UpdateCause::ScrollRoute; 2]);
+            assert_eq!(
+                app.initial_attempts[0].delta(),
+                -3 * Theme::junie().design.motion.wheel_rows as i16
+            );
+            assert!(app.service_attempts.iter().all(|attempt| {
+                attempt.event_id() == app.initial_attempts[0].event_id()
+                    && attempt.delta() == app.initial_attempts[0].delta()
+                    && attempt.position() == ROUTE_POINT
+                    && attempt.axis() == Axis::V
+            }));
+            assert_eq!(app.ack_results, [true, true, true]);
+            assert_eq!(runtime.diagnostics(), []);
+
+            let service_count = runtime.app().service_attempts.len();
+            let _ = deliver(&mut runtime, Input::Tick);
+            assert_eq!(runtime.app().service_attempts.len(), service_count);
+            assert_eq!(runtime.app().event_updates, 1);
+        }
+    }
+
+    #[test]
+    fn moved_consumed_missing_and_stale_results_stop_the_route() {
+        for initial_result in [
+            Some(WheelRouteResult::Changed),
+            Some(WheelRouteResult::Consumed),
+            None,
+        ] {
+            let mut probe = two_level_route_probe(false);
+            probe.initial_result = initial_result;
+            let mut runtime = ready_routed_runtime(probe);
+            let _ = deliver(&mut runtime, route_wheel_input(Axis::V, 1));
+            assert!(runtime.app().service_attempts.is_empty());
+            assert_eq!(runtime.app().wheel_deliveries.len(), 1);
+        }
+
+        for parent_result in [WheelRouteResult::Changed, WheelRouteResult::Consumed] {
+            let mut probe = three_level_route_probe();
+            probe.callback_results = vec![
+                (ROUTE_PARENT, Some(parent_result)),
+                (ROUTE_ROOT, Some(WheelRouteResult::Consumed)),
+            ];
+            let mut runtime = ready_routed_runtime(probe);
+            let _ = deliver(&mut runtime, route_wheel_input(Axis::V, 1));
+            assert_eq!(
+                runtime
+                    .app()
+                    .service_attempts
+                    .iter()
+                    .map(|attempt| attempt.owner())
+                    .collect::<Vec<_>>(),
+                [ROUTE_PARENT],
+                "only Ignored may continue to the root"
+            );
+        }
+
+        let mut probe = two_level_route_probe(false);
+        probe.live_child_revision = Some(35);
+        let mut runtime = ready_routed_runtime(probe);
+        let _ = deliver(&mut runtime, route_wheel_input(Axis::V, 1));
+        assert!(
+            runtime.app().service_attempts.is_empty(),
+            "stale source cannot acknowledge Ignored"
+        );
+
+        let mut probe = three_level_route_probe();
+        probe.live_parent_revision = Some(22);
+        let mut runtime = ready_routed_runtime(probe);
+        let _ = deliver(&mut runtime, route_wheel_input(Axis::V, 1));
+        assert_eq!(
+            runtime
+                .app()
+                .service_attempts
+                .iter()
+                .map(|attempt| attempt.owner())
+                .collect::<Vec<_>>(),
+            [ROUTE_PARENT]
+        );
+        assert_eq!(runtime.app().ack_results, [true]);
+
+        let mut probe = three_level_route_probe();
+        probe.callback_results.clear();
+        let mut runtime = ready_routed_runtime(probe);
+        let _ = deliver(&mut runtime, route_wheel_input(Axis::V, 1));
+        assert_eq!(
+            runtime
+                .app()
+                .service_attempts
+                .iter()
+                .map(|attempt| attempt.owner())
+                .collect::<Vec<_>>(),
+            [ROUTE_PARENT],
+            "a missing parent acknowledgement stops before root"
+        );
+
+        let mut probe = three_level_route_probe();
+        probe.duplicate_service_ack = true;
+        let mut runtime = ready_routed_runtime(probe);
+        let _ = deliver(&mut runtime, route_wheel_input(Axis::V, 1));
+        assert_eq!(
+            runtime
+                .app()
+                .service_attempts
+                .iter()
+                .map(|attempt| attempt.owner())
+                .collect::<Vec<_>>(),
+            [ROUTE_PARENT],
+            "a duplicate parent acknowledgement stops before root"
+        );
+
+        let mut probe = two_level_route_probe(false);
+        probe.duplicate_initial_ack = true;
+        let mut runtime = ready_routed_runtime(probe);
+        let _ = deliver(&mut runtime, route_wheel_input(Axis::V, 1));
+        assert!(
+            runtime.app().service_attempts.is_empty(),
+            "duplicate acknowledgement fails closed"
+        );
+        assert_eq!(runtime.app().ack_results, [true, false]);
+
+        let mut runtime = ready_routed_runtime(two_level_route_probe(false));
+        let _ = deliver(&mut runtime, route_wheel_input(Axis::V, 1));
+        let previous = runtime.app().initial_attempts[0];
+        runtime.app_mut().stale_attempt = Some(previous);
+        runtime.app_mut().use_stale_attempt = true;
+        let prior_services = runtime.app().service_attempts.len();
+        let _ = deliver(&mut runtime, route_wheel_input(Axis::V, 1));
+        assert_ne!(
+            runtime.app().initial_attempts[1].event_id(),
+            previous.event_id()
+        );
+        assert_eq!(runtime.app().service_attempts.len(), prior_services);
+        assert_eq!(
+            &runtime.app().ack_results[2..],
+            [false, false],
+            "a receipt from a previous wheel invalidates the current attempt"
+        );
+    }
+
+    #[test]
+    fn lifecycle_or_layout_invalidation_stops_before_the_next_parent() {
+        let mut nodes = two_level_route_probe(false).nodes;
+        nodes.insert(
+            0,
+            RoutedWheelNode {
+                owner: ROUTE_ROOT,
+                area: ROUTE_OUTER,
+                source_revision: 8,
+                parent: None,
+            },
+        );
+        nodes[1].parent = Some(ROUTE_ROOT);
+        let mut probe =
+            RoutedWheelProbe::new(nodes.clone(), vec![ROUTE_CHILD, ROUTE_PARENT, ROUTE_ROOT]);
+        probe.open_close_on_service = Some(ROUTE_MODAL);
+        probe.callback_results = vec![
+            (ROUTE_PARENT, Some(WheelRouteResult::Ignored)),
+            (ROUTE_ROOT, Some(WheelRouteResult::Consumed)),
+        ];
+        let mut runtime = ready_routed_runtime(probe);
+        let _ = deliver(&mut runtime, route_wheel_input(Axis::V, 1));
+        assert_eq!(
+            runtime
+                .app()
+                .service_attempts
+                .iter()
+                .map(|attempt| attempt.owner())
+                .collect::<Vec<_>>(),
+            [ROUTE_PARENT],
+            "open-close-away-and-back invalidates the remaining route"
+        );
+
+        let mut probe = RoutedWheelProbe::new(nodes, vec![ROUTE_CHILD, ROUTE_PARENT, ROUTE_ROOT]);
+        probe.initial_relayout = true;
+        probe.callback_results = vec![(ROUTE_PARENT, Some(WheelRouteResult::Consumed))];
+        let mut runtime = ready_routed_runtime(probe);
+        let _ = deliver(&mut runtime, route_wheel_input(Axis::V, 1));
+        assert!(
+            runtime.app().service_attempts.is_empty(),
+            "layout invalidation makes routing stale"
+        );
+
+        let mut probe = three_level_route_probe();
+        probe.service_relayout = true;
+        let mut runtime = ready_routed_runtime(probe);
+        let _ = deliver(&mut runtime, route_wheel_input(Axis::V, 1));
+        assert_eq!(
+            runtime
+                .app()
+                .service_attempts
+                .iter()
+                .map(|attempt| attempt.owner())
+                .collect::<Vec<_>>(),
+            [ROUTE_PARENT],
+            "target service layout invalidation stops before root"
+        );
+
+        let mut probe = two_level_route_probe(false);
+        probe.focus_child_on_event = true;
+        probe.focusable_controls = true;
+        let mut runtime = ready_routed_runtime(probe);
+        let _ = deliver(&mut runtime, route_wheel_input(Axis::V, 1));
+        assert_eq!(runtime.focus(), Some(ROUTE_CHILD));
+        assert!(
+            runtime.app().service_attempts.is_empty(),
+            "a focus transition stops fallback"
+        );
+
+        let mut probe = two_level_route_probe(false);
+        probe.modal_on_bootstrap = true;
+        let mut runtime = ready_routed_runtime(probe);
+        assert!(runtime.is_open(ROUTE_MODAL));
+        let _ = deliver(&mut runtime, route_wheel_input(Axis::V, 1));
+        assert_eq!(runtime.app().wheel_deliveries.len(), 1);
+        assert_eq!(runtime.app().wheel_deliveries[0].0, ROUTE_CHILD);
+        assert!(
+            runtime.app().service_attempts.is_empty(),
+            "a top modal route does not offer a page target"
+        );
+
+        let mut probe = three_level_route_probe();
+        probe.focusable_controls = true;
+        probe.capture_on_wheel = true;
+        let mut runtime = ready_routed_runtime(probe);
+        let _ = deliver(
+            &mut runtime,
+            Input::Mouse(Mouse {
+                kind: MouseKind::Down,
+                pos: ROUTE_POINT,
+                mods: KeyModifiers::NONE,
+            }),
+        );
+        assert_eq!(runtime.capture_owner(), None);
+        let _ = deliver(&mut runtime, route_wheel_input(Axis::V, 1));
+        assert_eq!(
+            runtime
+                .app()
+                .service_attempts
+                .iter()
+                .map(|attempt| attempt.owner())
+                .collect::<Vec<_>>(),
+            [],
+            "capture ownership changes invalidate the remaining route"
+        );
+        assert_eq!(runtime.capture_owner(), Some(ROUTE_CHILD));
+    }
+
+    #[test]
+    fn plain_scroll_registration_keeps_single_target_wheel_behavior() {
+        let mut probe = two_level_route_probe(false);
+        probe.route_enabled = false;
+        let mut runtime = ready_routed_runtime(probe);
+        let _ = deliver(&mut runtime, route_wheel_input(Axis::V, 1));
+        assert_eq!(
+            runtime
+                .app()
+                .wheel_deliveries
+                .iter()
+                .map(|delivery| delivery.0)
+                .collect::<Vec<_>>(),
+            [ROUTE_CHILD]
+        );
+        assert!(runtime.app().initial_attempts.is_empty());
+        assert!(runtime.app().service_attempts.is_empty());
     }
 }

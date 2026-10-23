@@ -1,11 +1,22 @@
 pub use termrock_core::geometry::{Axes, Headroom};
 
 use ratatui_core::layout::{Position, Rect};
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::diagnostics::Diagnostic;
 use crate::event::Axis;
 use crate::id::{Id, Part, PartRef};
 use crate::layer::LayerId;
+
+static NEXT_SCROLL_REGISTRY_ID: AtomicU64 = AtomicU64::new(1);
+
+fn next_scroll_registry_id() -> u64 {
+    NEXT_SCROLL_REGISTRY_ID
+        .try_update(Ordering::Relaxed, Ordering::Relaxed, |next| {
+            next.checked_add(1)
+        })
+        .expect("scroll registry identity space exhausted")
+}
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 #[non_exhaustive]
@@ -71,6 +82,23 @@ pub struct Region {
     scroll_routing: ScrollRouting,
     pointer_enabled: bool,
     pass_through: bool,
+}
+
+/// Opaque identity for one opt-in scroll registration in one presented registry.
+///
+/// A key can link only registrations created in the same registry generation.
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ScrollRouteKey {
+    registry_id: u64,
+    registry_epoch: u64,
+    generation: u32,
+    registration_index: usize,
+}
+
+impl core::fmt::Debug for ScrollRouteKey {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str("ScrollRouteKey { .. }")
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -145,6 +173,7 @@ pub(crate) struct ScrollCandidate {
     hit: Hit,
     headroom: Headroom,
     passive_reveal: bool,
+    registration_index: usize,
 }
 
 impl ScrollCandidate {
@@ -159,6 +188,17 @@ impl ScrollCandidate {
     pub(crate) const fn passive_reveal(self) -> bool {
         self.passive_reveal
     }
+
+    pub(crate) const fn registration_index(self) -> usize {
+        self.registration_index
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct RoutedScroll {
+    source_revision: u64,
+    parent_index: Option<usize>,
+    invalid: bool,
 }
 
 impl Region {
@@ -176,14 +216,35 @@ impl Region {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct Registry {
     regions: Vec<Region>,
+    routed_scrolls: Vec<Option<RoutedScroll>>,
     text_drag_regions: Vec<TextDragRegion>,
+    registry_id: u64,
     generation: u32,
+    route_epoch: u64,
+    route_epoch_exhausted: bool,
     has_pointer_exclusions: bool,
     bars: Vec<Bar>,
     releases: Vec<(Id, ReleaseFrom)>,
+}
+
+impl Clone for Registry {
+    fn clone(&self) -> Self {
+        Self {
+            regions: self.regions.clone(),
+            routed_scrolls: self.routed_scrolls.clone(),
+            text_drag_regions: self.text_drag_regions.clone(),
+            registry_id: next_scroll_registry_id(),
+            generation: self.generation,
+            route_epoch: self.route_epoch,
+            route_epoch_exhausted: self.route_epoch_exhausted,
+            has_pointer_exclusions: self.has_pointer_exclusions,
+            bars: self.bars.clone(),
+            releases: self.releases.clone(),
+        }
+    }
 }
 
 impl Default for Registry {
@@ -196,8 +257,12 @@ impl Registry {
     pub fn new(generation: u32) -> Self {
         Registry {
             regions: Vec::new(),
+            routed_scrolls: Vec::new(),
             text_drag_regions: Vec::new(),
+            registry_id: next_scroll_registry_id(),
             generation,
+            route_epoch: 1,
+            route_epoch_exhausted: false,
             has_pointer_exclusions: false,
             bars: Vec::new(),
             releases: Vec::new(),
@@ -206,8 +271,14 @@ impl Registry {
 
     pub(crate) fn reset(&mut self, generation: u32) {
         self.regions.clear();
+        self.routed_scrolls.clear();
         self.text_drag_regions.clear();
         self.generation = generation;
+        if let Some(next) = self.route_epoch.checked_add(1) {
+            self.route_epoch = next;
+        } else {
+            self.route_epoch_exhausted = true;
+        }
         self.has_pointer_exclusions = false;
         self.bars.clear();
         self.releases.clear();
@@ -314,6 +385,309 @@ impl Registry {
             RegionKind::Scroll,
             Some((axes, head)),
         );
+    }
+
+    /// Register a scroll target that can explicitly acknowledge a wheel route.
+    ///
+    /// The returned key is valid only for this registry frame. Existing scroll
+    /// registrations remain single-target unless they use this opt-in method.
+    pub fn register_routed_scroll(
+        &mut self,
+        owner: Id,
+        area: Rect,
+        layer: LayerId,
+        axes: Axes,
+        head: Headroom,
+        source_revision: u64,
+    ) -> Option<ScrollRouteKey> {
+        if area.is_empty() || self.route_epoch_exhausted {
+            return None;
+        }
+        let registration_index = self.regions.len();
+        self.push(
+            owner,
+            PartRef::of(Part::CONTAINER),
+            area,
+            layer,
+            RegionKind::Scroll,
+            Some((axes, head)),
+        );
+        if self.regions.len() == registration_index {
+            return None;
+        }
+        let route = self.routed_scrolls.get_mut(registration_index)?;
+        *route = Some(RoutedScroll {
+            source_revision,
+            parent_index: None,
+            invalid: false,
+        });
+        Some(ScrollRouteKey {
+            registry_id: self.registry_id,
+            registry_epoch: self.route_epoch,
+            generation: self.generation,
+            registration_index,
+        })
+    }
+
+    /// Link an opt-in child target to its immediate containing parent target.
+    ///
+    /// The parent must be the next eligible registration below the child in
+    /// reverse hit order. Invalid links disable routing for the child.
+    pub fn link_scroll_parent(&mut self, child: ScrollRouteKey, parent: ScrollRouteKey) -> bool {
+        let Some(child_index) = self.valid_route_key(child) else {
+            return false;
+        };
+        let Some(parent_index) = self.valid_route_key(parent) else {
+            self.invalidate_routed_scroll(child_index);
+            return false;
+        };
+        let valid_pair = child_index > parent_index
+            && self.regions.get(child_index).is_some_and(|child_region| {
+                self.regions.get(parent_index).is_some_and(|parent_region| {
+                    child_region.kind == RegionKind::Scroll
+                        && parent_region.kind == RegionKind::Scroll
+                        && child_region.layer == parent_region.layer
+                        && parent_region.area.intersection(child_region.area) == child_region.area
+                        && child_region.scroll_routing == ScrollRouting::Capture
+                        && parent_region.scroll_routing == ScrollRouting::Capture
+                })
+            });
+        if !valid_pair || self.would_form_scroll_route_cycle(child_index, parent_index) {
+            self.invalidate_routed_scroll(child_index);
+            return false;
+        }
+        let Some(child_route) = self
+            .routed_scrolls
+            .get_mut(child_index)
+            .and_then(Option::as_mut)
+        else {
+            return false;
+        };
+        if child_route.invalid {
+            return false;
+        }
+        match child_route.parent_index {
+            None => {
+                child_route.parent_index = Some(parent_index);
+                true
+            }
+            Some(existing) if existing == parent_index => true,
+            Some(_) => {
+                child_route.invalid = true;
+                false
+            }
+        }
+    }
+
+    fn valid_route_key(&self, key: ScrollRouteKey) -> Option<usize> {
+        (key.registry_epoch == self.route_epoch
+            && key.registry_id == self.registry_id
+            && key.generation == self.generation
+            && !self.route_epoch_exhausted
+            && self
+                .routed_scrolls
+                .get(key.registration_index)
+                .is_some_and(Option::is_some))
+        .then_some(key.registration_index)
+    }
+
+    fn invalidate_routed_scroll(&mut self, index: usize) {
+        if let Some(Some(route)) = self.routed_scrolls.get_mut(index) {
+            route.invalid = true;
+        }
+    }
+
+    fn would_form_scroll_route_cycle(&self, child_index: usize, parent_index: usize) -> bool {
+        let mut current = Some(parent_index);
+        for _ in 0..=self.routed_scrolls.len() {
+            let Some(index) = current else {
+                return false;
+            };
+            if index == child_index {
+                return true;
+            }
+            current = self
+                .routed_scrolls
+                .get(index)
+                .and_then(Option::as_ref)
+                .filter(|route| !route.invalid)
+                .and_then(|route| route.parent_index);
+        }
+        true
+    }
+
+    pub(crate) fn routed_scroll_info(
+        &self,
+        registration_index: usize,
+    ) -> Option<(ScrollRouteKey, u64)> {
+        if self.route_epoch_exhausted {
+            return None;
+        }
+        let route = self.routed_scrolls.get(registration_index)?.as_ref()?;
+        let region = self.regions.get(registration_index)?;
+        if route.invalid || region.kind != RegionKind::Scroll {
+            return None;
+        }
+        Some((
+            ScrollRouteKey {
+                registry_id: self.registry_id,
+                registry_epoch: self.route_epoch,
+                generation: self.generation,
+                registration_index,
+            },
+            route.source_revision,
+        ))
+    }
+
+    pub(crate) fn routed_scroll_source_revision(&self, key: ScrollRouteKey) -> Option<u64> {
+        let index = self.valid_route_key(key)?;
+        let route = self.routed_scrolls.get(index)?.as_ref()?;
+        let region = self.regions.get(index)?;
+        (!route.invalid && region.kind == RegionKind::Scroll).then_some(route.source_revision)
+    }
+
+    pub(crate) fn next_scroll_route_parent(
+        &self,
+        key: ScrollRouteKey,
+        axis: Axis,
+        pos: Position,
+        layer: LayerId,
+    ) -> Option<(ScrollRouteKey, u64)> {
+        let child_index = self.valid_route_key(key)?;
+        let child_region = self.regions.get(child_index)?;
+        let child_route = self.routed_scrolls.get(child_index)?.as_ref()?;
+        let parent_index = child_route.parent_index?;
+        if child_route.invalid
+            || !self.route_region_is_eligible(child_index, axis, pos, layer)
+            || self.route_pair_is_ambiguous(child_index, parent_index)
+        {
+            return None;
+        }
+        let parent_region = self.regions.get(parent_index)?;
+        let parent_route = self.routed_scrolls.get(parent_index)?.as_ref()?;
+        if parent_route.invalid
+            || !self.route_region_is_eligible(parent_index, axis, pos, layer)
+            || parent_region.area.intersection(child_region.area) != child_region.area
+        {
+            return None;
+        }
+
+        let mut saw_child = false;
+        for candidate in self.scroll_candidates(pos, axis, layer) {
+            let candidate_index = candidate.registration_index();
+            if candidate_index == child_index {
+                saw_child = true;
+                continue;
+            }
+            if !saw_child {
+                continue;
+            }
+            if candidate_index == parent_index {
+                return self.routed_scroll_info(parent_index);
+            }
+            if self.same_routed_registration(child_index, candidate_index) {
+                continue;
+            }
+            return None;
+        }
+        None
+    }
+
+    pub(crate) fn route_key_is_eligible(
+        &self,
+        key: ScrollRouteKey,
+        axis: Axis,
+        pos: Position,
+        layer: LayerId,
+    ) -> bool {
+        self.valid_route_key(key).is_some_and(|index| {
+            self.route_region_is_eligible(index, axis, pos, layer)
+                && !self.routed_scrolls[index].is_some_and(|route| route.invalid)
+        })
+    }
+
+    pub(crate) fn routed_scroll_hit(
+        &self,
+        key: ScrollRouteKey,
+        axis: Axis,
+        pos: Position,
+        layer: LayerId,
+    ) -> Option<Hit> {
+        let index = self.valid_route_key(key)?;
+        if !self.route_region_is_eligible(index, axis, pos, layer) {
+            return None;
+        }
+        Some(Self::hit_of(self.regions.get(index)?, pos))
+    }
+
+    fn route_region_is_eligible(
+        &self,
+        index: usize,
+        axis: Axis,
+        pos: Position,
+        layer: LayerId,
+    ) -> bool {
+        self.regions.get(index).is_some_and(|region| {
+            region.pointer_enabled
+                && region.kind == RegionKind::Scroll
+                && region.scroll_routing == ScrollRouting::Capture
+                && region.layer == layer
+                && region.area.contains(pos)
+                && region.scroll.is_some_and(|(axes, _)| axes.handles(axis))
+        })
+    }
+
+    fn route_pair_is_ambiguous(&self, child_index: usize, parent_index: usize) -> bool {
+        let Some(child) = self.regions.get(child_index) else {
+            return true;
+        };
+        let Some(parent) = self.regions.get(parent_index) else {
+            return true;
+        };
+        self.regions.iter().enumerate().any(|(index, region)| {
+            index != child_index
+                && region.kind == RegionKind::Scroll
+                && (region.owner, region.part) == (child.owner, child.part)
+                && region.area == child.area
+                && !self.same_routed_registration(child_index, index)
+        }) || self.regions.iter().enumerate().any(|(index, region)| {
+            index != parent_index
+                && region.kind == RegionKind::Scroll
+                && (region.owner, region.part) == (parent.owner, parent.part)
+                && region.area == parent.area
+                && !self.same_routed_registration(parent_index, index)
+        })
+    }
+
+    fn same_routed_registration(&self, left_index: usize, right_index: usize) -> bool {
+        let Some((left, right)) = self
+            .regions
+            .get(left_index)
+            .zip(self.regions.get(right_index))
+        else {
+            return false;
+        };
+        let Some((Some(left_route), Some(right_route))) = self
+            .routed_scrolls
+            .get(left_index)
+            .zip(self.routed_scrolls.get(right_index))
+        else {
+            return false;
+        };
+        left.owner == right.owner
+            && left.part == right.part
+            && left.area == right.area
+            && left.layer == right.layer
+            && left.kind == right.kind
+            && left.generation == right.generation
+            && left.scroll == right.scroll
+            && left.scroll_routing == right.scroll_routing
+            && left.pointer_enabled == right.pointer_enabled
+            && left.pass_through == right.pass_through
+            && left_route.source_revision == right_route.source_revision
+            && left_route.parent_index == right_route.parent_index
+            && !left_route.invalid
+            && !right_route.invalid
     }
 
     pub(crate) fn register_passive_reveal_scroll(
@@ -449,6 +823,7 @@ impl Registry {
             pointer_enabled,
             pass_through,
         });
+        self.routed_scrolls.push(None);
     }
 
     const fn hit_of(r: &Region, pos: Position) -> Hit {
@@ -514,21 +889,26 @@ impl Registry {
         axis: Axis,
         layer: LayerId,
     ) -> impl Iterator<Item = ScrollCandidate> + '_ {
-        self.regions.iter().rev().filter_map(move |region| {
-            if !region.pointer_enabled
-                || region.kind != RegionKind::Scroll
-                || region.layer != layer
-                || !region.area.contains(pos)
-            {
-                return None;
-            }
-            let (axes, headroom) = region.scroll?;
-            axes.handles(axis).then_some(ScrollCandidate {
-                hit: Self::hit_of(region, pos),
-                headroom,
-                passive_reveal: region.scroll_routing == ScrollRouting::PassiveReveal,
+        self.regions
+            .iter()
+            .enumerate()
+            .rev()
+            .filter_map(move |(registration_index, region)| {
+                if !region.pointer_enabled
+                    || region.kind != RegionKind::Scroll
+                    || region.layer != layer
+                    || !region.area.contains(pos)
+                {
+                    return None;
+                }
+                let (axes, headroom) = region.scroll?;
+                axes.handles(axis).then_some(ScrollCandidate {
+                    hit: Self::hit_of(region, pos),
+                    headroom,
+                    passive_reveal: region.scroll_routing == ScrollRouting::PassiveReveal,
+                    registration_index,
+                })
             })
-        })
     }
 
     pub fn area_of(&self, id: Id) -> Option<Rect> {
@@ -832,6 +1212,276 @@ mod tests {
                 .map(|hit| hit.owner),
             Some(B),
             "legacy generic hit_scroll ordering and endpoint behavior remain unchanged"
+        );
+    }
+
+    #[test]
+    fn explicit_scroll_parent_skips_only_exact_duplicate_child_registrations() {
+        let mut registry = Registry::new(3);
+        let outer = Rect::new(0, 0, 20, 20);
+        let inner = Rect::new(2, 2, 10, 10);
+        let parent = registry
+            .register_routed_scroll(A, outer, LayerId::PAGE, Axes::V, Headroom::default(), 7)
+            .expect("the parent registration");
+        let child = registry
+            .register_routed_scroll(B, inner, LayerId::PAGE, Axes::V, Headroom::default(), 11)
+            .expect("the child registration");
+        let duplicate = registry
+            .register_routed_scroll(B, inner, LayerId::PAGE, Axes::V, Headroom::default(), 11)
+            .expect("the duplicate child registration");
+        assert!(registry.link_scroll_parent(child, parent));
+        assert!(registry.link_scroll_parent(duplicate, parent));
+
+        assert_eq!(
+            registry.next_scroll_route_parent(
+                duplicate,
+                Axis::V,
+                Position::new(4, 4),
+                LayerId::PAGE,
+            ),
+            Some((parent, 7)),
+            "identical registration metadata coalesces to one target"
+        );
+    }
+
+    #[test]
+    fn conflicting_duplicate_or_unrelated_overlap_blocks_scroll_fallback() {
+        let outer = Rect::new(0, 0, 20, 20);
+        let inner = Rect::new(2, 2, 10, 10);
+        let mut conflict = Registry::new(3);
+        let parent = conflict
+            .register_routed_scroll(A, outer, LayerId::PAGE, Axes::V, Headroom::default(), 7)
+            .expect("the parent registration");
+        let first = conflict
+            .register_routed_scroll(B, inner, LayerId::PAGE, Axes::V, Headroom::default(), 11)
+            .expect("the first child registration");
+        let second = conflict
+            .register_routed_scroll(B, inner, LayerId::PAGE, Axes::V, Headroom::default(), 12)
+            .expect("the conflicting child registration");
+        assert!(conflict.link_scroll_parent(first, parent));
+        assert!(conflict.link_scroll_parent(second, parent));
+        assert_eq!(
+            conflict.next_scroll_route_parent(second, Axis::V, Position::new(4, 4), LayerId::PAGE,),
+            None,
+            "same-owner geometry with a changed source revision is ambiguous"
+        );
+
+        let mut overlap = Registry::new(3);
+        let parent = overlap
+            .register_routed_scroll(A, outer, LayerId::PAGE, Axes::V, Headroom::default(), 7)
+            .expect("the parent registration");
+        overlap.register_scroll(
+            C,
+            Rect::new(1, 1, 15, 15),
+            LayerId::PAGE,
+            Axes::V,
+            Headroom::default(),
+        );
+        let child = overlap
+            .register_routed_scroll(B, inner, LayerId::PAGE, Axes::V, Headroom::default(), 11)
+            .expect("the child registration");
+        assert!(overlap.link_scroll_parent(child, parent));
+        assert_eq!(
+            overlap.next_scroll_route_parent(child, Axis::V, Position::new(4, 4), LayerId::PAGE),
+            None,
+            "an unrelated eligible registration is not skipped"
+        );
+    }
+
+    #[test]
+    fn scroll_route_links_are_generation_layer_and_axis_bound() {
+        let mut registry = Registry::new(3);
+        let outer = Rect::new(0, 0, 20, 20);
+        let inner = Rect::new(2, 2, 10, 10);
+        let parent = registry
+            .register_routed_scroll(A, outer, LayerId::PAGE, Axes::V, Headroom::default(), 7)
+            .expect("the parent registration");
+        let horizontal = registry
+            .register_routed_scroll(C, inner, LayerId::PAGE, Axes::H, Headroom::default(), 8)
+            .expect("the horizontal overlap");
+        let child = registry
+            .register_routed_scroll(B, inner, LayerId::PAGE, Axes::V, Headroom::default(), 11)
+            .expect("the child registration");
+        assert!(registry.link_scroll_parent(child, parent));
+        assert_eq!(
+            registry.next_scroll_route_parent(child, Axis::V, Position::new(4, 4), LayerId::PAGE),
+            Some((parent, 7)),
+            "an axis-ineligible overlapping target is not a route candidate"
+        );
+
+        let wrong_layer = registry
+            .register_routed_scroll(A, outer, LayerId(1), Axes::V, Headroom::default(), 7)
+            .expect("the modal registration");
+        let modal_child = registry
+            .register_routed_scroll(B, inner, LayerId(1), Axes::V, Headroom::default(), 11)
+            .expect("the modal child");
+        assert!(registry.link_scroll_parent(modal_child, wrong_layer));
+        assert!(!registry.link_scroll_parent(modal_child, child));
+        assert_eq!(
+            registry.next_scroll_route_parent(
+                modal_child,
+                Axis::V,
+                Position::new(4, 4),
+                LayerId(1)
+            ),
+            None,
+            "cross-layer re-linking invalidates the child"
+        );
+        assert_ne!(horizontal, child);
+
+        let stale = parent;
+        registry.reset(4);
+        let new_parent = registry
+            .register_routed_scroll(A, outer, LayerId::PAGE, Axes::V, Headroom::default(), 7)
+            .expect("the current parent registration");
+        let new_child = registry
+            .register_routed_scroll(B, inner, LayerId::PAGE, Axes::V, Headroom::default(), 11)
+            .expect("the current child registration");
+        assert!(!registry.link_scroll_parent(new_child, stale));
+        assert_eq!(
+            registry.next_scroll_route_parent(
+                new_child,
+                Axis::V,
+                Position::new(4, 4),
+                LayerId::PAGE
+            ),
+            None,
+            "a stale key cannot authorize a current route"
+        );
+
+        registry.reset(5);
+        let fresh_parent = registry
+            .register_routed_scroll(A, outer, LayerId::PAGE, Axes::V, Headroom::default(), 7)
+            .expect("the fresh parent registration");
+        let fresh_child = registry
+            .register_routed_scroll(B, inner, LayerId::PAGE, Axes::V, Headroom::default(), 11)
+            .expect("the fresh child registration");
+        assert!(registry.link_scroll_parent(fresh_child, fresh_parent));
+        assert_eq!(
+            registry.next_scroll_route_parent(
+                fresh_child,
+                Axis::V,
+                Position::new(4, 4),
+                LayerId::PAGE,
+            ),
+            Some((fresh_parent, 7))
+        );
+        assert_ne!(new_parent, fresh_parent);
+
+        let mut foreign_registry = Registry::new(5);
+        let foreign_parent = foreign_registry
+            .register_routed_scroll(A, outer, LayerId::PAGE, Axes::V, Headroom::default(), 7)
+            .expect("the foreign parent registration");
+        assert!(!registry.link_scroll_parent(fresh_child, foreign_parent));
+        assert_eq!(
+            registry.next_scroll_route_parent(
+                fresh_child,
+                Axis::V,
+                Position::new(4, 4),
+                LayerId::PAGE,
+            ),
+            None,
+            "a key from another registry cannot authorize a route"
+        );
+    }
+
+    #[test]
+    fn cloned_registry_preserves_regions_but_gets_a_fresh_route_identity() {
+        let mut source = Registry::new(3);
+        let outer = Rect::new(0, 0, 20, 20);
+        let inner = Rect::new(2, 2, 10, 10);
+        let parent = source
+            .register_routed_scroll(A, outer, LayerId::PAGE, Axes::V, Headroom::default(), 7)
+            .expect("the source parent");
+        let child = source
+            .register_routed_scroll(B, inner, LayerId::PAGE, Axes::V, Headroom::default(), 11)
+            .expect("the source child");
+        assert!(source.link_scroll_parent(child, parent));
+
+        let mut clone = source.clone();
+        assert!(!clone.link_scroll_parent(child, parent));
+        assert_eq!(
+            clone.next_scroll_route_parent(child, Axis::V, Position::new(4, 4), LayerId::PAGE),
+            None,
+            "source keys cannot be used in a cloned registry"
+        );
+
+        let outer = Rect::new(30, 30, 20, 20);
+        let inner = Rect::new(32, 32, 10, 10);
+        let clone_parent = clone
+            .register_routed_scroll(A, outer, LayerId::PAGE, Axes::V, Headroom::default(), 17)
+            .expect("a new parent in the clone");
+        let clone_child = clone
+            .register_routed_scroll(B, inner, LayerId::PAGE, Axes::V, Headroom::default(), 19)
+            .expect("a new child in the clone");
+        assert!(clone.link_scroll_parent(clone_child, clone_parent));
+        assert_eq!(
+            clone.next_scroll_route_parent(
+                clone_child,
+                Axis::V,
+                Position::new(34, 34),
+                LayerId::PAGE,
+            ),
+            Some((clone_parent, 17)),
+            "fresh clone registrations remain routable"
+        );
+    }
+
+    #[test]
+    fn disabled_and_empty_routed_regions_do_not_offer_a_target() {
+        let mut registry = Registry::new(3);
+        let outer = Rect::new(0, 0, 20, 20);
+        let inner = Rect::new(2, 2, 10, 10);
+        let parent = registry
+            .register_routed_scroll(A, outer, LayerId::PAGE, Axes::V, Headroom::default(), 7)
+            .expect("the parent registration");
+        let child = registry
+            .register_routed_scroll(B, inner, LayerId::PAGE, Axes::V, Headroom::default(), 11)
+            .expect("the child registration");
+        assert!(registry.link_scroll_parent(child, parent));
+        assert_eq!(
+            registry.register_routed_scroll(
+                C,
+                Rect::ZERO,
+                LayerId::PAGE,
+                Axes::V,
+                Headroom::default(),
+                12,
+            ),
+            None,
+            "empty clipped geometry has no route key"
+        );
+        registry.register_keyboard_control(B, inner, LayerId::PAGE);
+        assert!(!registry.route_key_is_eligible(
+            child,
+            Axis::V,
+            Position::new(4, 4),
+            LayerId::PAGE,
+        ));
+        assert_eq!(
+            registry.next_scroll_route_parent(child, Axis::V, Position::new(4, 4), LayerId::PAGE),
+            None,
+            "a keyboard-only disabled registration cannot route"
+        );
+    }
+
+    #[test]
+    fn same_owner_control_region_does_not_conflict_with_its_routed_scroll() {
+        let mut registry = Registry::new(3);
+        let outer = Rect::new(0, 0, 20, 20);
+        let inner = Rect::new(2, 2, 10, 10);
+        let parent = registry
+            .register_routed_scroll(A, outer, LayerId::PAGE, Axes::V, Headroom::default(), 7)
+            .expect("the parent registration");
+        let child = registry
+            .register_routed_scroll(B, inner, LayerId::PAGE, Axes::V, Headroom::default(), 11)
+            .expect("the child registration");
+        assert!(registry.link_scroll_parent(child, parent));
+        registry.register_control(B, inner, LayerId::PAGE);
+        assert_eq!(
+            registry.next_scroll_route_parent(child, Axis::V, Position::new(4, 4), LayerId::PAGE),
+            Some((parent, 7)),
+            "non-scroll control registration does not create scroll-route ambiguity"
         );
     }
 
