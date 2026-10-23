@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use termrock_xtask::ownership::{check_workspace, exceptions, rules};
+use termrock_xtask::ownership::{check_workspace, exceptions, module_graph, rules};
 
 fn workspace_root() -> PathBuf {
     let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -388,6 +388,209 @@ fn mixed_test_spans_never_mask_production_on_shared_physical_lines() {
             ("crates/demo-preview/src/lib.rs".to_string(), 2),
             ("crates/demo-preview/src/lib.rs".to_string(), 5),
         ]
+    );
+}
+
+#[test]
+fn literal_inline_cfg_test_opacity_preserves_other_production_rules() {
+    let dir = empty_workspace();
+    write_member_file(
+        &dir,
+        "src/lib.rs",
+        "fn before() { buffer.set_string(0, 0, \"before\", Style::default()); None::<u8>.expect(\"before\"); }\n\
+         #[allow(dead_code)]\n\
+         #[cfg(test)]\n\
+         mod test_helpers {\n\
+             use super::*;\n\
+             use super::{Buffer as Alias};\n\
+             #[test]\n\
+             fn helper() { buffer.set_string(0, 0, \"inside\", Style::default()); None::<u8>.expect(\"inside\"); }\n\
+             #[derive(Clone)] struct Derived;\n\
+             #[custom_rewrite] fn rewritten() {}\n\
+             mod deeper { #[test] fn nested() { None::<u8>.expect(\"nested\"); } }\n\
+         }\n\
+         fn after() { buffer.set_string(0, 0, \"after\", Style::default()); None::<u8>.expect(\"after\"); }\n",
+    );
+
+    let report = check_scratch(&dir);
+    let mut own14 = own14_findings(&report);
+    own14.sort();
+    assert_eq!(
+        own14,
+        [
+            ("crates/demo-preview/src/lib.rs".to_string(), 1),
+            ("crates/demo-preview/src/lib.rs".to_string(), 13),
+        ],
+        "only the literal cfg(test) body should be excluded: {:?}",
+        report.findings
+    );
+    let mut paint_lines: Vec<_> = report
+        .findings
+        .iter()
+        .filter(|finding| finding.rule == "OWN-02")
+        .map(|finding| (finding.file.clone(), finding.line))
+        .collect();
+    paint_lines.sort();
+    assert_eq!(
+        paint_lines,
+        [
+            ("crates/demo-preview/src/lib.rs".to_string(), 1),
+            ("crates/demo-preview/src/lib.rs".to_string(), 13),
+        ],
+        "production_lines based paint findings must use the same ranges"
+    );
+}
+
+fn assert_inline_cfg_candidate_stays_production(attributes: &str) {
+    let dir = empty_workspace();
+    let source = format!(
+        "{attributes}\nmod candidate {{\n    use super::*;\n    #[test]\n    fn body() {{ None::<u8>.expect(\"candidate\"); }}\n}}\n"
+    );
+    let body_line = source
+        .lines()
+        .position(|line| line.contains("fn body()"))
+        .map(|index| index + 1)
+        .unwrap_or(0);
+    write_member_file(&dir, "src/lib.rs", &source);
+    assert_eq!(
+        own14_findings(&check_scratch(&dir)),
+        [("crates/demo-preview/src/lib.rs".to_string(), body_line)],
+        "outer attributes must not grant opacity: {attributes}"
+    );
+}
+
+#[test]
+fn inline_cfg_test_opacity_requires_complete_compatible_outer_attributes() {
+    for attributes in [
+        "mod tests",
+        "#[test]",
+        "#[bench]",
+        "#[cfg(any(test, feature = \"x\"))]",
+        "#[cfg(not(test))]",
+        "#[cfg(test) trailing]",
+        "#[cfg::test]",
+        "#[test::helper]\n#[cfg(test)]",
+        "#[derive::Clone]\n#[cfg(test)]",
+        "#[custom_rewrite]\n#[cfg(test)]",
+        "#[cfg(test)]\n#[custom_rewrite]",
+        "#[cfg_attr(test, path = \"candidate.rs\")]\n#[cfg(test)]",
+        "#[path = \"candidate.rs\"]\n#[cfg(test)]",
+        "#[cfg(test)]\n#[derive(Clone)]",
+    ] {
+        if attributes == "mod tests" {
+            let dir = empty_workspace();
+            write_member_file(
+                &dir,
+                "src/lib.rs",
+                "mod tests { use super::*; #[test] fn body() { None::<u8>.expect(\"ordinary\"); } }\n",
+            );
+            assert_eq!(
+                own14_findings(&check_scratch(&dir)),
+                [("crates/demo-preview/src/lib.rs".to_string(), 1)],
+                "an ordinary mod tests is not test-only"
+            );
+        } else {
+            assert_inline_cfg_candidate_stays_production(attributes);
+        }
+    }
+    for attribute in ["#[test]", "#[bench]"] {
+        let dir = empty_workspace();
+        let source = format!(
+            "use custom::*;\n{attribute}\nmod candidate {{ #[test] fn body() {{ None::<u8>.expect(\"shadowed\"); }} }}\n"
+        );
+        write_member_file(&dir, "src/lib.rs", &source);
+        assert_eq!(
+            own14_findings(&check_scratch(&dir)).len(),
+            1,
+            "a possibly shadowed bare {attribute} cannot prove cfg(test)"
+        );
+    }
+    let dir = empty_workspace();
+    write_member_file(
+        &dir,
+        "src/lib.rs",
+        "#[cfg(test)] mod malformed { fn body() { None::<u8>.expect(\"open\");\n",
+    );
+    assert_eq!(
+        own14_findings(&check_scratch(&dir)),
+        [("crates/demo-preview/src/lib.rs".to_string(), 1)],
+        "unclosed delimiters remain fail-closed"
+    );
+}
+
+#[test]
+fn inline_cfg_test_range_mode_does_not_change_member_graph_routes() {
+    let dir = empty_workspace();
+    let member = std::fs::canonicalize(dir.path().join("crates/demo-preview"))
+        .unwrap_or_else(|error| panic!("canonicalize member root: {error}"));
+    std::fs::write(
+        member.join("Cargo.toml"),
+        "[package]\nname = \"demo-preview\"\nversion = \"0.1.0\"\nedition = \"2024\"\n\
+         [[test]]\nname = \"ownership-root\"\npath = \"tests/ownership_root.rs\"\n",
+    )
+    .unwrap_or_else(|error| panic!("write explicit test target: {error}"));
+    write_member_file(
+        &dir,
+        "src/lib.rs",
+        "#[cfg(test)] mod ambiguous { use super::*; #[test] fn body() {} }\n\
+         #[path = \"../outside/shared_path.rs\"] mod shared;\n\
+         include!(\"../outside/lib.inc.rs\");\n\
+         unknown_routes!({ #[path = \"../outside/macro_only.rs\"] mod hidden; });\n\
+         #[path = \"../outside/later.rs\"] mod later;\n",
+    );
+    write_member_file(
+        &dir,
+        "src/main.rs",
+        "#[path = \"../outside/shared_path.rs\"] mod shared_again;\n",
+    );
+    write_member_file(
+        &dir,
+        "tests/ownership_root.rs",
+        "#[cfg(test)] mod ambiguous { use super::*; #[test] fn body() {} }\n\
+         #[path = \"../outside/test_path.rs\"] mod test_path;\n\
+         include!(\"../outside/test.inc.rs\");\n",
+    );
+    for relative in [
+        "outside/shared_path.rs",
+        "outside/lib.inc.rs",
+        "outside/later.rs",
+        "outside/test_path.rs",
+        "outside/test.inc.rs",
+        "outside/macro_only.rs",
+    ] {
+        write_member_file(&dir, relative, "fn routed() {}\n");
+    }
+
+    let analysis = module_graph::analyze_member(&member);
+    let mut actual: Vec<_> = analysis
+        .sources
+        .iter()
+        .map(|path| {
+            path.strip_prefix(&member)
+                .unwrap_or_else(|_| panic!("source escaped member: {}", path.display()))
+                .to_string_lossy()
+                .replace('\\', "/")
+        })
+        .collect();
+    actual.sort();
+    assert_eq!(
+        actual,
+        [
+            "outside/later.rs",
+            "outside/lib.inc.rs",
+            "outside/shared_path.rs",
+            "outside/test.inc.rs",
+            "outside/test_path.rs",
+            "src/lib.rs",
+            "src/main.rs",
+            "tests/ownership_root.rs",
+        ],
+        "known later siblings, dual routes, and explicit test roots stay inventoried"
+    );
+    assert!(!analysis.complete, "ambiguous routes remain conservative");
+    assert!(
+        analysis.test_only.is_empty(),
+        "explicit test roots and ambiguous full-graph bodies stay production"
     );
 }
 
