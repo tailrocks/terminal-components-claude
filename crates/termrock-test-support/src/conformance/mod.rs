@@ -222,6 +222,14 @@ pub trait Conformance: 'static {
         ];
         STATES
     }
+    /// Binding probes for this case must open its owning layer first.
+    ///
+    /// This is separate from activation setup: a case may need its real
+    /// binding table to be live only after an overlay opens, even when the
+    /// component and activation control share an ID.
+    fn binding_probes_require_overlay() -> bool {
+        false
+    }
     fn legacy_key_chords() -> &'static [Chord] {
         &[]
     }

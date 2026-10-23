@@ -23,6 +23,7 @@ struct Page {
     state: HelpOverlayState,
     closed: Vec<DismissReason>,
     underlay_activations: usize,
+    draw_closed_help: bool,
 }
 
 impl App for Page {
@@ -44,9 +45,12 @@ impl App for Page {
     fn draw(&self, ui: &mut Ui<'_>) {
         Button::new(OPEN, "Open help").draw(ui, Rect::new(1, 1, 14, 1));
         Button::new(UNDERLAY, "Underlay action").draw(ui, Rect::new(20, 1, 18, 1));
-        ui.layer(HELP, |ui, area| {
+        let drawn = ui.layer(HELP, |ui, area| {
             help().draw(ui, area, &self.state);
         });
+        if drawn.is_none() && self.draw_closed_help {
+            help().draw(ui, Rect::new(1, 3, 36, 14), &self.state);
+        }
     }
 }
 
@@ -140,5 +144,50 @@ fn done_enter_space_and_click_close_once_without_activating_the_underlay() {
     assert!(!harness.is_open(HELP));
     assert_eq!(harness.app().closed.len(), 2);
     assert_eq!(harness.focus(), Some(OPEN));
+    assert_clean(&mut harness);
+}
+
+#[test]
+fn question_binding_closes_open_help_when_its_real_binding_owner_has_focus() {
+    let mut harness = page();
+    assert_eq!(harness.focus(), Some(OPEN));
+    let _ = harness.click_id(OPEN);
+    assert!(harness.is_open(HELP));
+    assert_eq!(harness.focus(), Some(DONE));
+
+    assert!(harness.tab_to(HELP));
+    assert_eq!(harness.focus(), Some(HELP));
+    let response = harness.key(KeyCode::Char('?'));
+
+    assert!(response.is_consumed());
+    assert!(!harness.is_open(HELP));
+    assert_eq!(harness.app().closed.len(), 1);
+    assert_eq!(
+        harness.app().closed.last(),
+        Some(&DismissReason::Programmatic)
+    );
+    assert_eq!(harness.focus(), Some(OPEN));
+    assert_eq!(harness.app().underlay_activations, 0);
+    assert_clean(&mut harness);
+}
+
+#[test]
+fn closed_help_draw_binding_is_published_but_does_not_emit_closed() {
+    let app = Page {
+        draw_closed_help: true,
+        ..Page::default()
+    };
+    let mut harness = Harness::new(app, Theme::junie(), 60, 20);
+    assert!(!harness.is_open(HELP));
+    assert!(harness.tab_to(HELP));
+    assert_eq!(harness.focus(), Some(HELP));
+
+    let response = harness.key(KeyCode::Char('?'));
+
+    assert!(!response.is_consumed());
+    assert!(!harness.is_open(HELP));
+    assert!(harness.app().closed.is_empty());
+    assert_eq!(harness.focus(), Some(HELP));
+    assert_eq!(harness.app().underlay_activations, 0);
     assert_clean(&mut harness);
 }

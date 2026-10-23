@@ -2422,6 +2422,10 @@ impl Conformance for TextViewportCase {
         TextViewport::new(TEXT_VIEWPORT).bindings(s)
     }
 
+    fn dynamic_bindings(_fixture: &Fixture) -> Vec<(ActionKey, Chord)> {
+        TextViewport::selection_binding_chords().collect()
+    }
+
     fn mono_states() -> &'static [StateFlags] {
         const STATES: [StateFlags; 3] = [
             StateFlags::empty(),
@@ -2613,6 +2617,10 @@ impl Conformance for DiffViewCase {
         TextViewport::new(DIFF_VIEW).bindings(state)
     }
 
+    fn dynamic_bindings(_fixture: &Fixture) -> Vec<(ActionKey, Chord)> {
+        TextViewport::selection_binding_chords().collect()
+    }
+
     fn mono_states() -> &'static [StateFlags] {
         const STATES: &[StateFlags] = &[
             StateFlags::empty(),
@@ -2625,6 +2633,190 @@ impl Conformance for DiffViewCase {
     fn mono_narrowing_reason() -> &'static str {
         "SELECTED DISABLED ERROR WARNING EDITING BUSY ACTIVE: DiffView is a read-only viewport projection with range selection and no validation, edit, readiness, or active-item state"
     }
+}
+
+const SELECTION_PROBE: Id = Id::root("conformance.viewport.selection-proof");
+const SELECTION_PROBE_LINES: &[ViewportLine<'static>] = &[ViewportLine::Plain("abc")];
+
+#[derive(Default)]
+struct SelectionProbe {
+    state: ViewportState,
+    actions: Vec<ViewportAction>,
+}
+
+impl App for SelectionProbe {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        TextViewport::new(SELECTION_PROBE)
+            .wrap(true)
+            .update(cx, &mut self.state, SELECTION_PROBE_LINES)
+            .on_action(|action| self.actions.push(action))
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        TextViewport::new(SELECTION_PROBE).wrap(true).draw(
+            ui,
+            Rect::new(0, 0, 24, 3),
+            &self.state,
+            SELECTION_PROBE_LINES,
+        );
+    }
+}
+
+#[test]
+fn text_viewport_shift_binding_selects_and_copies_source_bytes() {
+    let mut app = SelectionProbe::default();
+    app.state.set_caret(Some(CellPos::new(0, 2)));
+    app.state.set_follow(false);
+    let mut harness = Harness::new(app, Theme::junie(), 24, 4);
+    assert!(harness.tab_to(SELECTION_PROBE));
+
+    assert_eq!(harness.focus(), Some(SELECTION_PROBE));
+    assert_eq!(harness.app().state.selection(), None);
+    assert_eq!(harness.app().state.caret(), Some(CellPos::new(0, 2)));
+    assert_eq!(harness.app().state.scroll().offset(), 0);
+    let text = harness
+        .area_of_part(SELECTION_PROBE, PartRef::of(Part::TEXT))
+        .expect("TextViewport registers its rendered text area");
+    assert!(text.width >= 3, "the full source line must be visible");
+    assert!(
+        text.height >= 1,
+        "the text area must contain the source line"
+    );
+    assert_eq!(harness.cell(text.x, text.y).symbol(), "a");
+    assert_eq!(harness.cell(text.x + 1, text.y).symbol(), "b");
+    assert_eq!(harness.cell(text.x + 2, text.y).symbol(), "c");
+
+    let response = harness.key_mod(KeyCode::Left, KeyModifiers::SHIFT);
+    assert!(response.is_consumed() && response.is_changed());
+    assert_eq!(
+        harness.app().state.selection(),
+        Some((CellPos::new(0, 2), CellPos::new(0, 3)))
+    );
+    assert_eq!(harness.app().state.caret(), Some(CellPos::new(0, 2)));
+    assert!(
+        harness
+            .app()
+            .actions
+            .contains(&ViewportAction::SelectionChanged)
+    );
+
+    let response = harness.key(KeyCode::Char('y'));
+    assert!(response.is_consumed());
+    assert_eq!(
+        harness.app().actions.last(),
+        Some(&ViewportAction::Copy("c".to_owned()))
+    );
+    assert_eq!(harness.app().state.caret(), Some(CellPos::new(0, 2)));
+    assert!(harness.diagnostics().is_empty());
+}
+
+struct TextViewportMissingSelectionLeft;
+
+impl Conformance for TextViewportMissingSelectionLeft {
+    const NAME: &'static str = "text_viewport_missing_selection_left";
+    const FAMILY: Family = Family::VIEWPORT;
+    const PARTS: &'static [Part] = TextViewport::PARTS;
+    type State = ViewportState;
+    type Action = ViewportAction;
+    type Cmd = ViewportCmd;
+
+    fn caps() -> Caps {
+        TextViewportCase::caps()
+    }
+
+    fn id() -> Id {
+        TEXT_VIEWPORT
+    }
+
+    fn update(
+        cx: &mut Cx<'_>,
+        state: &mut Self::State,
+        fixture: &Fixture,
+    ) -> Response<Self::Action> {
+        TextViewportCase::update(cx, state, fixture)
+    }
+
+    fn draw(ui: &mut Ui<'_>, area: Rect, state: &Self::State, fixture: &Fixture) {
+        TextViewportCase::draw(ui, area, state, fixture);
+    }
+
+    fn bindings(state: BindingState) -> &'static [Binding<Self::Cmd>] {
+        TextViewportCase::bindings(state)
+    }
+
+    fn dynamic_bindings(_fixture: &Fixture) -> Vec<(ActionKey, Chord)> {
+        TextViewport::selection_binding_chords()
+            .filter(|(action, _)| *action != termrock::viewport::viewport::SELECTION_LEFT)
+            .collect()
+    }
+}
+
+struct DiffViewMissingSelectionLeft;
+
+impl Conformance for DiffViewMissingSelectionLeft {
+    const NAME: &'static str = "diff_view_missing_selection_left";
+    const FAMILY: Family = Family::DIFF;
+    const PARTS: &'static [Part] = DiffView::PARTS;
+    type State = DiffViewState;
+    type Action = ViewportAction;
+    type Cmd = ViewportCmd;
+
+    fn caps() -> Caps {
+        DiffViewCase::caps()
+    }
+
+    fn id() -> Id {
+        DIFF_VIEW
+    }
+
+    fn update(
+        cx: &mut Cx<'_>,
+        state: &mut Self::State,
+        fixture: &Fixture,
+    ) -> Response<Self::Action> {
+        DiffViewCase::update(cx, state, fixture)
+    }
+
+    fn draw(ui: &mut Ui<'_>, area: Rect, state: &Self::State, fixture: &Fixture) {
+        DiffViewCase::draw(ui, area, state, fixture);
+    }
+
+    fn bindings(state: BindingState) -> &'static [Binding<Self::Cmd>] {
+        DiffViewCase::bindings(state)
+    }
+
+    fn dynamic_bindings(_fixture: &Fixture) -> Vec<(ActionKey, Chord)> {
+        TextViewport::selection_binding_chords()
+            .filter(|(action, _)| *action != termrock::viewport::viewport::SELECTION_LEFT)
+            .collect()
+    }
+}
+
+fn assert_omitted_selection_left_is_rejected<C: Conformance>() {
+    assert!(C::legacy_key_chords().is_empty());
+    let result = std::panic::catch_unwind(|| {
+        termrock_test_support::conformance::driver::bindings_match_handled_keys::<C>();
+    });
+    let panic = result.expect_err("the audit accepted omitted Shift+Left selection metadata");
+    let message = panic
+        .downcast_ref::<String>()
+        .map(String::as_str)
+        .or_else(|| panic.downcast_ref::<&str>().copied())
+        .unwrap_or("unexpected audit panic");
+    assert!(
+        message.contains("consumed Shift+← which is not in the binding table or legacy set"),
+        "expected omitted Shift+Left (rendered Shift+←) to be rejected, got: {message}"
+    );
+}
+
+#[test]
+fn text_viewport_binding_audit_rejects_omitted_selection_left() {
+    assert_omitted_selection_left_is_rejected::<TextViewportMissingSelectionLeft>();
+}
+
+#[test]
+fn diff_view_binding_audit_rejects_omitted_selection_left() {
+    assert_omitted_selection_left_is_rejected::<DiffViewMissingSelectionLeft>();
 }
 
 const TREE: Id = Id::root("conformance.tree");
@@ -3783,6 +3975,9 @@ impl Conformance for HelpOverlayCase {
     }
     fn layer_id() -> Option<Id> {
         Some(HELP_OVERLAY)
+    }
+    fn binding_probes_require_overlay() -> bool {
+        true
     }
     fn prepare_scroll_fixture(fixture: &mut Fixture) {
         fixture.area.height = 10;
