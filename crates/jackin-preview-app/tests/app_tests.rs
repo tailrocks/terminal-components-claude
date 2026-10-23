@@ -15,7 +15,7 @@
     clippy::expect_used
 )]
 
-use termrock::{KeyCode, MouseKind};
+use termrock::{GlyphRole, KeyCode, MouseKind, Part, PartRef, Theme};
 
 use jackin_preview_app::Route;
 use jackin_preview_app::app::{ACCOUNT_FORM_LAYER, ACCOUNTS_LIST};
@@ -1216,6 +1216,83 @@ fn editor_accounts_tab_switches_inherited_defaults_off_and_extra_accounts_on() {
         None,
     );
     assert_eq!(r.account.as_deref(), Some("acct-codex-experiments"));
+}
+
+#[test]
+fn editor_accounts_enter_toggles_the_selected_account_after_tab_transition() {
+    let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Char('e'));
+    h.key(KeyCode::Char('5'));
+    h.key(KeyCode::Enter); // Clears the intentional Editor-tab transition.
+
+    let account_index = h
+        .app()
+        .world
+        .accounts
+        .sorted()
+        .iter()
+        .position(|account| account.id == "acct-claude-personal")
+        .expect("fixture has the inherited Claude account");
+    let list_id = jackin_preview_app::screens::editor::ROOT.sub("accounts-list");
+    let row = h
+        .harness
+        .area_of_part(
+            list_id,
+            PartRef::item(Part::ROW, termrock::ItemKey::index(account_index)),
+        )
+        .expect("the selected account has a real row target");
+    assert!(row.width > 1 && row.height > 0, "account row: {row:?}");
+    assert_eq!(h.focus(), Some(list_id));
+
+    let before_disabled = h.app().editor.pending.accounts.disabled_defaults.clone();
+    assert!(!before_disabled.contains("acct-claude-personal"));
+    assert!(
+        h.app()
+            .editor
+            .pending
+            .effective_accounts(&h.app().world.accounts)
+            .iter()
+            .any(|account| account.id == "acct-claude-personal")
+    );
+
+    h.key(KeyCode::Enter);
+
+    let mut expected_disabled = before_disabled;
+    expected_disabled.insert("acct-claude-personal".to_owned());
+    assert_eq!(
+        h.app().editor.pending.accounts.disabled_defaults,
+        expected_disabled,
+        "one real Enter toggles only the selected inherited account"
+    );
+    let effective = h
+        .app()
+        .editor
+        .pending
+        .effective_accounts(&h.app().world.accounts);
+    assert!(
+        effective
+            .iter()
+            .all(|account| account.id != "acct-claude-personal")
+    );
+    assert!(
+        effective
+            .iter()
+            .any(|account| account.id == "acct-claude-work")
+    );
+    assert!(h.text().contains("off for this Workspace"), "{}", h.text());
+
+    let chosen = Theme::junie().design.glyphs.get(GlyphRole::Chosen);
+    assert_eq!(
+        h.harness.cell(row.x.saturating_add(1), row.y).symbol(),
+        chosen,
+        "Enter retains the chosen marker on the domain row"
+    );
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "{:?}",
+        h.harness.diagnostics()
+    );
 }
 
 #[test]
