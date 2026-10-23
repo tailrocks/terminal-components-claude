@@ -1157,6 +1157,33 @@ impl<'f> Ui<'f> {
         )
     }
 
+    /// Register an explicitly enrolled, source-qualified wheel target.
+    ///
+    /// This adds scroll-only routing metadata for `part`; it does not change an
+    /// existing control or part registration. Only other targets registered
+    /// with this method can receive an Ignored fallback offer. A matching
+    /// ordinary control or part remains available to click and focus routing.
+    pub fn register_hit_stack_wheel(
+        &mut self,
+        id: Id,
+        part: PartRef,
+        area: Rect,
+        axes: Axes,
+        source_revision: u64,
+    ) -> Option<ScrollRouteKey> {
+        if self.registrations_suppressed() {
+            return None;
+        }
+        self.frame.registry.register_hit_stack_wheel(
+            id,
+            part,
+            area.intersection(self.clip),
+            self.layer,
+            axes,
+            source_revision,
+        )
+    }
+
     /// Link this frame's routed child registration to its immediate parent.
     ///
     /// The parent must be a containing routed registration on the same layer.

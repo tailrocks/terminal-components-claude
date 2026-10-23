@@ -19,7 +19,7 @@ use crate::cursor;
 use crate::diagnostics::Diagnostic;
 use crate::event::{Axis, Input, Key, KeyCode, KeyModifiers, Mouse, MouseKind};
 use crate::focus::{FocusRing, FocusState, ScopeId};
-use crate::hit::{Hit, RegionKind, ScrollRouteKey, TextDragRegion};
+use crate::hit::{Hit, RegionKind, ScrollRouteKey, ScrollRoutePolicy, TextDragRegion};
 use crate::id::{Id, Part, PartRef};
 use crate::intent::{FocusVia, IntentQueue, Phase};
 use crate::keymap::{BindingTableId, KeyMap, KeyPhase};
@@ -91,10 +91,10 @@ pub trait App {
 
     fn draw(&self, ui: &mut Ui<'_>);
 
-    /// Service one explicitly addressed, opt-in scroll fallback attempt.
+    /// Service one explicitly addressed, opt-in wheel fallback attempt.
     ///
     /// The callback receives no ordinary input intents and must dispatch only
-    /// the named scroll registration. It must acknowledge the attempt through
+    /// the named wheel registration. It must acknowledge the attempt through
     /// [`Cx::acknowledge_wheel_route`] after checking the live source revision.
     /// The returned response contributes repaint or layout invalidation only;
     /// it does not describe whether this target handled the wheel.
@@ -142,15 +142,15 @@ pub trait App {
     }
 }
 
-/// Local result from one exact opted-in scroll target.
+/// Local result from one exact opted-in wheel target.
 #[non_exhaustive]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum WheelRouteResult {
-    /// This target cannot handle the wheel and made no scroll-side change.
+    /// This target cannot handle the wheel and made no wheel-related change.
     Ignored,
-    /// This target accepted the wheel, including an eligible saturated edge.
+    /// This target accepted the wheel without reporting a model change.
     Consumed,
-    /// This target changed its scroll position.
+    /// This target changed its model in response to the wheel.
     Changed,
 }
 
@@ -167,6 +167,7 @@ pub struct WheelRouteAttempt {
     axis: Axis,
     delta: i16,
     position: Position,
+    modifiers: KeyModifiers,
     registry_generation: u32,
     source_revision: u64,
 }
@@ -185,7 +186,13 @@ struct WheelRouteTarget {
 }
 
 impl WheelRouteAttempt {
-    const fn new(target: WheelRouteTarget, axis: Axis, delta: i16, position: Position) -> Self {
+    const fn new(
+        target: WheelRouteTarget,
+        axis: Axis,
+        delta: i16,
+        position: Position,
+        modifiers: KeyModifiers,
+    ) -> Self {
         Self {
             runtime_id: target.runtime_id,
             event_id: target.event_id,
@@ -197,6 +204,7 @@ impl WheelRouteAttempt {
             axis,
             delta,
             position,
+            modifiers,
             registry_generation: target.registry_generation,
             source_revision: target.source_revision,
         }
@@ -235,6 +243,10 @@ impl WheelRouteAttempt {
 
     pub const fn position(self) -> Position {
         self.position
+    }
+
+    pub const fn modifiers(self) -> KeyModifiers {
+        self.modifiers
     }
 
     pub const fn registry_generation(self) -> u32 {
@@ -1278,6 +1290,7 @@ impl<A: App> Runtime<A> {
                             axis,
                             scaled_delta,
                             m.pos,
+                            m.mods,
                         ));
                     }
                     break;
@@ -1788,12 +1801,22 @@ impl<A: App> Runtime<A> {
         }
 
         let mut current = first;
+        let hit_stack =
+            self.last.registry.routed_scroll_policy(first.key) == Some(ScrollRoutePolicy::HitStack);
+        let mut offered_owners = if hit_stack {
+            let mut owners = Vec::with_capacity(self.last.registry.len());
+            owners.push(first.owner());
+            owners
+        } else {
+            Vec::new()
+        };
         for _ in 0..self.last.registry.len() {
-            let Some((key, source_revision)) = self.last.registry.next_scroll_route_parent(
+            let Some((key, source_revision)) = self.last.registry.next_scroll_route_target(
                 current.key,
                 current.axis(),
                 current.position(),
                 current.layer(),
+                &offered_owners,
             ) else {
                 break;
             };
@@ -1826,6 +1849,7 @@ impl<A: App> Runtime<A> {
                 current.axis(),
                 current.delta(),
                 current.position(),
+                current.modifiers(),
             );
             self.services.active_wheel_route = Some(attempt);
             self.services.wheel_route_ack.set(WheelRouteAck::Unset);
@@ -1851,6 +1875,9 @@ impl<A: App> Runtime<A> {
                     != WheelRouteAck::Acknowledged(WheelRouteResult::Ignored)
             {
                 break;
+            }
+            if hit_stack {
+                offered_owners.push(attempt.owner());
             }
             current = attempt;
         }
