@@ -181,9 +181,9 @@ pub use termrock_navigation::{
     FilterListAction, FilterListCmd, FilterListState, FilterPolicy, Item, ItemLabelOverflow,
     ItemRow, ItemRowLayout, List, ListAction, ListCmd, ListSelectionCmd, ListState, NavList,
     NavListAction, NavListCmd, NavListState, NavMode, NodeKind, SelectionPolicy, SemanticItemRow,
-    StepState, Steps, StepsAction, StepsCmd, StepsState, TabCloseReveal, TabMarks, TabRule, Tabs,
-    TabsAction, TabsCmd, TabsState, Tree, TreeAction, TreeBranchActivation, TreeBranchClick,
-    TreeCmd, TreeNode, TreeState,
+    StepState, Steps, StepsAction, StepsCmd, StepsState, TabCloseReveal, TabMarks, TabNavProfile,
+    TabRule, Tabs, TabsAction, TabsCmd, TabsState, Tree, TreeAction, TreeBranchActivation,
+    TreeBranchClick, TreeCmd, TreeNode, TreeState,
 };
 
 pub use termrock_viewport::{
