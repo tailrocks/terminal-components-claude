@@ -284,68 +284,6 @@ fn compact_frame(body: Rect) -> bool {
     body.width <= COMPACT_W
 }
 
-fn paint_clip(
-    ui: &mut Ui<'_>,
-    area: Rect,
-    x: u16,
-    y: u16,
-    text: &str,
-    style: PaintStyle,
-    cols: u16,
-) {
-    let (shown, clipped) = clip_prefix(text, cols, true);
-    paint_at(ui, area, x, y, &shown, style);
-    if clipped && cols > 0 {
-        paint_at(
-            ui,
-            area,
-            x.saturating_add(cols.saturating_sub(1)),
-            y,
-            "…",
-            style,
-        );
-    }
-}
-
-#[expect(clippy::if_same_then_else)]
-fn paint_heading(ui: &mut Ui<'_>, body: Rect) {
-    let y = body.y.saturating_sub(2);
-    let title = "Project settings";
-    paint_at(ui, Rect { y, ..body }, 0, y, title, bold(WHITE, CANVAS));
-    let meta = "Composed: tabs, form, editable table, list, dialogs";
-    let meta_x = width(title).saturating_add(2);
-    let row = Rect { y, ..body };
-    if narrow_frame(body) {
-        let room = body.width.saturating_sub(meta_x).saturating_sub(1);
-        if room > 0 {
-            paint_clip(ui, row, meta_x, y, meta, plain(MUTED, CANVAS), room);
-        }
-        paint_at(
-            ui,
-            row,
-            body.width.saturating_sub(1),
-            y,
-            " ",
-            plain(WHITE, CANVAS),
-        );
-    } else if compact_frame(body) {
-        let room = body.width.saturating_sub(meta_x).saturating_sub(1);
-        if room > 0 {
-            paint_clip(ui, row, meta_x, y, meta, plain(MUTED, CANVAS), room);
-        }
-        paint_at(
-            ui,
-            row,
-            body.width.saturating_sub(1),
-            y,
-            " ",
-            plain(WHITE, CANVAS),
-        );
-    } else if body.width > meta_x {
-        paint_at(ui, row, meta_x, y, meta, ink(MUTED, CANVAS));
-    }
-}
-
 fn paint_member_summary(ui: &mut Ui<'_>, body: Rect, members: &[Member]) {
     let mut line = format!("{} members", members.len());
     for member in members {
@@ -933,7 +871,6 @@ impl Page for SettingsPage {
                     remove_button(!self.members.is_empty()).draw(ui, action_row);
                     paint_member_summary(ui, body, &self.members);
                 }
-                paint_heading(ui, body);
                 if !member_tab {
                     paint_general(ui, body, active_tab(&self.tabs));
                 }

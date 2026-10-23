@@ -145,23 +145,6 @@ fn wide_page(area: Rect) -> bool {
     area.width >= WIDE_MIN_W
 }
 
-fn paint_blurb(ui: &mut Ui<'_>, body: Rect) {
-    let title_w = width("Progress");
-    if body.width <= title_w.saturating_add(4) {
-        return;
-    }
-    let _ = ui.paint_str(
-        Rect::new(
-            body.x.saturating_add(title_w).saturating_add(2),
-            body.y.saturating_sub(2),
-            body.width.saturating_sub(title_w).saturating_sub(3),
-            1,
-        ),
-        BLURB,
-        ink(MUTED, CANVAS),
-    );
-}
-
 fn paint_section_strip(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
         return;
@@ -965,24 +948,6 @@ fn paint_meters(ui: &mut Ui<'_>, clip: Rect, card: Rect) {
     }
 }
 
-fn paint_narrow_blurb(ui: &mut Ui<'_>, body: Rect) {
-    let title_w = width("Progress");
-    let cols = body.width.saturating_sub(title_w).saturating_sub(3);
-    if cols == 0 {
-        return;
-    }
-    let _ = ui.paint_str(
-        Rect::new(
-            body.x.saturating_add(title_w).saturating_add(2),
-            body.y.saturating_sub(2),
-            cols,
-            1,
-        ),
-        &termrock::truncate(BLURB, cols),
-        settled(MUTED, CANVAS, false),
-    );
-}
-
 fn paint_narrow_card(ui: &mut Ui<'_>, card: Rect, title: &str) {
     if card.is_empty() {
         return;
@@ -1178,7 +1143,6 @@ fn paint_narrow_scroll(ui: &mut Ui<'_>, view: Rect) {
 }
 
 fn paint_narrow(ui: &mut Ui<'_>, body: Rect, build: f64, paused: bool, frame: usize) {
-    paint_narrow_blurb(ui, body);
     paint_section_strip(
         ui,
         Rect {
@@ -1350,13 +1314,12 @@ impl Page for ProgressPage {
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
-        frame(ui, area, self.title(), "", |ui, body| {
+        frame(ui, area, self.title(), BLURB, |ui, body| {
             // Shells up to 80×24 show the compact strip.
             if compact_page(area) {
                 paint_narrow(ui, body, self.build, self.paused, self.frame);
                 return;
             }
-            paint_blurb(ui, body);
             paint_section_strip(
                 ui,
                 Rect {

@@ -80,8 +80,7 @@ impl Page for OverviewPage {
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
-        frame(ui, area, self.title(), "", |ui, body| {
-            paint_blurb(ui, area);
+        frame(ui, area, self.title(), BLURB, |ui, body| {
             paint_section_strip(ui, body);
             let content = Rect {
                 y: body.y.saturating_add(3),
@@ -452,34 +451,6 @@ fn ink(ui: &Ui<'_>, fg: u32, bg: u32) -> PaintStyle {
     PaintStyle::new()
         .fg(token_color(t, fg))
         .bg(token_color(t, bg))
-}
-
-fn paint_blurb(ui: &mut Ui<'_>, area: Rect) {
-    let title_width = width("Overview");
-    if area.width <= title_width.saturating_add(4) {
-        return;
-    }
-    let meta = Rect {
-        x: area.x.saturating_add(title_width).saturating_add(2),
-        width: area.width.saturating_sub(title_width).saturating_sub(3),
-        height: 1,
-        ..area
-    };
-    let style = ink(ui, MUTED, CANVAS);
-    if width(BLURB) <= meta.width {
-        ui.paint_str(meta, BLURB, style);
-        return;
-    }
-    let budget = Rect {
-        width: meta.width.saturating_sub(1),
-        ..meta
-    };
-    let used = ui.paint_str(budget, BLURB, style);
-    ui.paint_str(
-        Rect::new(meta.x.saturating_add(used), meta.y, 1, 1),
-        "…",
-        style,
-    );
 }
 
 fn tab_width(label: &str) -> u16 {

@@ -73,35 +73,6 @@ fn tab_width(label: &str) -> u16 {
     width(label).saturating_add(3)
 }
 
-fn paint_blurb(ui: &mut Ui<'_>, body: Rect) {
-    let blurb = "Cards group; a frame only where a pane needs an edge; nothing boxed twice";
-    let title_w = width("Panels");
-    if body.width <= title_w.saturating_add(4) {
-        return;
-    }
-    let meta = Rect::new(
-        body.x.saturating_add(title_w).saturating_add(2),
-        body.y.saturating_sub(2),
-        body.width.saturating_sub(title_w).saturating_sub(3),
-        1,
-    );
-    let style = ink(MUTED, CANVAS);
-    if width(blurb) <= meta.width {
-        let _ = ui.paint_str(meta, blurb, style);
-        return;
-    }
-    let budget = Rect {
-        width: meta.width.saturating_sub(1),
-        ..meta
-    };
-    let used = ui.paint_str(budget, blurb, style);
-    let _ = ui.paint_str(
-        Rect::new(meta.x.saturating_add(used), meta.y, 1, 1),
-        "…",
-        style,
-    );
-}
-
 fn paint_section_strip(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
         return;
@@ -703,29 +674,34 @@ impl Page for PanelsPage {
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
         let lines = log_lines(60);
-        frame(ui, area, self.title(), "", |ui, body| {
-            paint_blurb(ui, body);
-            paint_section_strip(
-                ui,
-                Rect {
-                    height: 2.min(body.height),
-                    ..body
-                },
-            );
-            let top = body.y.saturating_add(3);
-            if top >= body.bottom() {
-                return;
-            }
-            paint_playground(
-                ui,
-                Rect {
-                    y: top,
-                    height: body.bottom().saturating_sub(top),
-                    ..body
-                },
-                &lines,
-            );
-        });
+        frame(
+            ui,
+            area,
+            self.title(),
+            "Cards group; a frame only where a pane needs an edge; nothing boxed twice",
+            |ui, body| {
+                paint_section_strip(
+                    ui,
+                    Rect {
+                        height: 2.min(body.height),
+                        ..body
+                    },
+                );
+                let top = body.y.saturating_add(3);
+                if top >= body.bottom() {
+                    return;
+                }
+                paint_playground(
+                    ui,
+                    Rect {
+                        y: top,
+                        height: body.bottom().saturating_sub(top),
+                        ..body
+                    },
+                    &lines,
+                );
+            },
+        );
     }
 
     fn hints(&self, _ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
