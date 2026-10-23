@@ -4597,13 +4597,9 @@ impl App {
         }
         self.acknowledge_account_list_focus_results(cx);
         if matches!(list_action, Some(ListAction::Chose(_))) && !self.filter_field_open() {
-            // Enter on an account opens its drawer. Enter on the overview row
-            // has nothing to open.
-            if self.accounts.selected_id.is_some() {
-                self.accounts.drawer_open = true;
-            } else {
-                self.set_selected_account_default();
-            }
+            // A committed row choice selects in the detail view. Opening the
+            // drawer remains an explicit Enter or inspector action.
+            self.accounts.drawer_open = false;
             result |= Response::changed();
         }
         // The filter field owns the caret while it is open. A committed query

@@ -1842,6 +1842,18 @@ fn accounts_drawer_enter_paints_the_approved_work_drawer() {
     for _ in 0..4 {
         h.key(KeyCode::Down);
     }
+    let defaults_before = h
+        .app()
+        .world
+        .accounts
+        .accounts
+        .iter()
+        .filter(|account| {
+            account.provider == jackin_preview_app::domain::agent::Provider::Anthropic
+        })
+        .filter(|account| account.default_for_provider)
+        .map(|account| account.id.clone())
+        .collect::<Vec<_>>();
     assert!(!h.app().accounts.drawer_open);
     assert!(
         !h.text().contains("Tab Actions"),
@@ -1853,6 +1865,20 @@ fn accounts_drawer_enter_paints_the_approved_work_drawer() {
     assert_eq!(
         h.app().accounts.selected_id.as_deref(),
         Some("acct-claude-work")
+    );
+    assert_eq!(
+        h.app()
+            .world
+            .accounts
+            .accounts
+            .iter()
+            .filter(|account| account.provider
+                == jackin_preview_app::domain::agent::Provider::Anthropic)
+            .filter(|account| account.default_for_provider)
+            .map(|account| account.id.clone())
+            .collect::<Vec<_>>(),
+        defaults_before,
+        "Enter opens the drawer without changing the provider default"
     );
     assert!(h.text().contains("Tab Actions"), "{}", h.text());
     // The open drawer keeps the crumb: the selection is still the account.
@@ -1883,6 +1909,323 @@ fn accounts_drawer_enter_paints_the_approved_work_drawer() {
         !h.text().contains("Tab Actions"),
         "escape must leave the drawer frame: {}",
         h.text()
+    );
+}
+
+#[test]
+fn accounts_row_click_selects_without_opening_drawer_or_mutating_account() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    let account_id = "acct-claude-personal";
+    let account = h
+        .app()
+        .world
+        .accounts
+        .get(account_id)
+        .expect("fixture account");
+    let source_before = account.source.clone();
+    let enabled_before = account.enabled;
+    let defaults_before = h
+        .app()
+        .world
+        .accounts
+        .accounts
+        .iter()
+        .filter(|account| account.default_for_provider)
+        .map(|account| account.id.clone())
+        .collect::<Vec<_>>();
+    let registry_revision = h.app().world.accounts.revision;
+    let account_count = h.app().world.accounts.accounts.len();
+
+    let (x, y) = h.find("★ Personal").expect("painted account row");
+    assert!(x > 0 && x < 40, "click must hit the left tree: ({x}, {y})");
+    h.click(x, y);
+
+    assert_eq!(
+        h.app().accounts.list.cursor(),
+        Some(termrock::ItemKey::index(2)),
+        "the click must select the painted account row"
+    );
+    assert_eq!(h.app().accounts.selected_id.as_deref(), Some(account_id));
+    assert!(
+        !h.app().accounts.drawer_open,
+        "a row click selects the account without opening its drawer"
+    );
+    assert!(!h.text().contains("Tab Actions"), "{}", h.text());
+    let selected = h
+        .app()
+        .world
+        .accounts
+        .get(account_id)
+        .expect("selected fixture account");
+    assert!(
+        selected.source == source_before,
+        "click must preserve credentials"
+    );
+    assert_eq!(selected.enabled, enabled_before);
+    assert_eq!(
+        h.app()
+            .world
+            .accounts
+            .accounts
+            .iter()
+            .filter(|account| account.default_for_provider)
+            .map(|account| account.id.clone())
+            .collect::<Vec<_>>(),
+        defaults_before,
+        "click must not change a provider default"
+    );
+    assert_eq!(h.app().world.accounts.revision, registry_revision);
+    assert_eq!(h.app().world.accounts.accounts.len(), account_count);
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "{:?}",
+        h.harness.diagnostics()
+    );
+}
+
+#[test]
+fn accounts_click_closes_open_drawer_for_same_and_different_rows() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    let (personal_x, personal_y) = h.find("★ Personal").expect("Personal row");
+    assert!(
+        personal_x < 40,
+        "Personal must be in the tree: {personal_x}"
+    );
+    h.click(personal_x, personal_y);
+    assert_eq!(
+        h.app().accounts.selected_id.as_deref(),
+        Some("acct-claude-personal")
+    );
+    assert!(!h.app().accounts.drawer_open);
+
+    h.key(KeyCode::Enter);
+    assert!(h.app().accounts.drawer_open, "root Enter opens the drawer");
+    assert!(h.text().contains("Tab Actions"), "{}", h.text());
+    advance_past_junie_double_click_window(&mut h);
+
+    let (same_x, same_y) = h.find("★ Personal").expect("Personal row while open");
+    assert!(same_x < 40, "same-row click must target the tree: {same_x}");
+    h.click(same_x, same_y);
+    assert_eq!(
+        h.app().accounts.selected_id.as_deref(),
+        Some("acct-claude-personal")
+    );
+    assert!(
+        !h.app().accounts.drawer_open,
+        "same-row click closes the drawer; cursor={:?}, chosen={:?}, focus={:?}, diagnostics={:?}",
+        h.app().accounts.list.cursor(),
+        h.app().accounts.list.chosen(),
+        h.focus(),
+        h.harness.diagnostics()
+    );
+    assert!(!h.text().contains("Tab Actions"), "{}", h.text());
+    assert!(
+        h.text().contains("Enter Details"),
+        "detail hints remain visible: {}",
+        h.text()
+    );
+    assert_eq!(h.focus(), Some(ACCOUNTS_LIST));
+
+    h.key(KeyCode::Enter);
+    assert!(h.app().accounts.drawer_open);
+    advance_past_junie_double_click_window(&mut h);
+    let (work_x, work_y) = h.find("Work").expect("Work row while drawer is open");
+    assert!(
+        work_x < 40,
+        "different-row click must target the tree: {work_x}"
+    );
+    h.click(work_x, work_y);
+    assert_eq!(
+        h.app().accounts.selected_id.as_deref(),
+        Some("acct-claude-work")
+    );
+    assert!(
+        !h.app().accounts.drawer_open,
+        "different-row click closes the drawer"
+    );
+    assert!(!h.text().contains("Tab Actions"), "{}", h.text());
+    assert!(
+        h.text().contains("Enter Details"),
+        "detail hints remain visible: {}",
+        h.text()
+    );
+    assert_eq!(h.focus(), Some(ACCOUNTS_LIST));
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "{:?}",
+        h.harness.diagnostics()
+    );
+}
+
+fn advance_past_junie_double_click_window(h: &mut H) {
+    let threshold = Theme::junie().design.motion.double_click_ms;
+    let _ = h.harness.advance(std::time::Duration::from_millis(
+        threshold.saturating_add(1),
+    ));
+}
+
+#[test]
+fn accounts_double_click_activation_does_not_open_the_drawer() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    let (x, y) = h.find("★ Personal").expect("Personal row");
+    assert!(x > 0 && x < 40);
+
+    let _ = h.harness.double_click(x, y);
+
+    assert_eq!(
+        h.app().accounts.selected_id.as_deref(),
+        Some("acct-claude-personal")
+    );
+    assert!(!h.app().accounts.drawer_open);
+    assert!(!h.text().contains("Tab Actions"), "{}", h.text());
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "{:?}",
+        h.harness.diagnostics()
+    );
+}
+
+#[test]
+fn accounts_row_click_keeps_selection_only_at_supported_narrow_size() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 80, 24);
+    let (x, y) = h.find("★ Personal").expect("painted Personal row at 80x24");
+    assert!(x > 0 && x < 40, "click must hit the left tree: ({x}, {y})");
+    h.click(x, y);
+    assert_eq!(
+        h.app().accounts.selected_id.as_deref(),
+        Some("acct-claude-personal")
+    );
+    assert!(!h.app().accounts.drawer_open);
+    assert!(!h.text().contains("Tab Actions"), "{}", h.text());
+    assert_eq!(h.focus(), Some(ACCOUNTS_LIST));
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "{:?}",
+        h.harness.diagnostics()
+    );
+}
+
+#[test]
+fn accounts_space_sets_work_default_once_without_opening_drawer() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    for _ in 0..4 {
+        h.key(KeyCode::Down);
+    }
+    assert_eq!(
+        h.app().accounts.selected_id.as_deref(),
+        Some("acct-claude-work")
+    );
+    assert!(!h.app().accounts.drawer_open);
+    let revision_before = h.app().world.accounts.revision;
+
+    h.key(KeyCode::Char(' '));
+
+    assert!(!h.app().accounts.drawer_open);
+    assert_eq!(h.app().world.accounts.revision, revision_before + 1);
+    assert!(
+        h.app()
+            .world
+            .accounts
+            .get("acct-claude-work")
+            .unwrap()
+            .default_for_provider
+    );
+    assert!(
+        !h.app()
+            .world
+            .accounts
+            .get("acct-claude-personal")
+            .unwrap()
+            .default_for_provider
+    );
+    assert!(h.text().contains("Default set"), "{}", h.text());
+    h.ticks(3);
+    assert_eq!(h.app().world.accounts.revision, revision_before + 1);
+    assert!(!h.app().accounts.drawer_open);
+}
+
+#[test]
+fn accounts_filter_click_dismisses_input_and_selects_without_opening_drawer() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    h.key(KeyCode::Char('/'));
+    assert!(h.app().accounts.filter_input.is_editing());
+    assert_eq!(
+        h.focus(),
+        Some(jackin_preview_app::screens::accounts::FILTER)
+    );
+    assert!(h.harness.cursor().is_some(), "filter owns a visible caret");
+    h.type_str("work");
+    assert_eq!(h.app().accounts.filter_query, "work");
+    assert!(h.app().accounts.filter_input.is_editing());
+
+    let (x, y) = h.find("Work").expect("filtered Work result");
+    assert!(
+        x > 0 && x < 40,
+        "click must hit the filtered tree: ({x}, {y})"
+    );
+    h.click(x, y);
+
+    assert_eq!(
+        h.app().accounts.selected_id.as_deref(),
+        Some("acct-claude-work")
+    );
+    assert!(!h.app().accounts.drawer_open);
+    assert!(h.app().accounts.filtering);
+    assert!(!h.app().accounts.filter_input.is_editing());
+    assert_eq!(h.app().accounts.filter_query, "work");
+    assert_eq!(h.focus(), Some(ACCOUNTS_LIST));
+    assert!(h.text().contains("Accounts · filt"), "{}", h.text());
+    assert!(!h.text().contains("Tab Actions"), "{}", h.text());
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "{:?}",
+        h.harness.diagnostics()
+    );
+}
+
+#[test]
+fn accounts_form_owns_enter_and_space_without_mutating_the_underlay() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 120, 40);
+    let selected_before = h.app().accounts.selected_id.clone();
+    let registry_before = h.app().world.accounts.clone();
+    let defaults_before = h
+        .app()
+        .world
+        .accounts
+        .accounts
+        .iter()
+        .filter(|account| account.default_for_provider)
+        .map(|account| account.id.clone())
+        .collect::<Vec<_>>();
+
+    start_live_account_form(&mut h);
+    // The inline form owns the route input while its fields are active. Its
+    // underlying account tree is intentionally not addressable through the
+    // form's painted controls, so verify the real form-owned key path here.
+    h.key(KeyCode::Enter);
+    h.key(KeyCode::Char(' '));
+
+    assert_eq!(h.app().route(), Route::Accounts);
+    assert!(h.app().accounts.form_open);
+    assert!(!h.app().accounts.drawer_open);
+    assert_eq!(h.app().accounts.selected_id, selected_before);
+    assert_eq!(h.app().world.accounts, registry_before);
+    assert_eq!(
+        h.app()
+            .world
+            .accounts
+            .accounts
+            .iter()
+            .filter(|account| account.default_for_provider)
+            .map(|account| account.id.clone())
+            .collect::<Vec<_>>(),
+        defaults_before
+    );
+    assert!(h.harness.is_open(ACCOUNT_FORM_LAYER));
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "{:?}",
+        h.harness.diagnostics()
     );
 }
 
@@ -2052,6 +2395,10 @@ fn accounts_filter_enter_paints_the_approved_filter_frame() {
     h.key(KeyCode::Char('/'));
     h.type_str("work");
     h.key(KeyCode::Enter);
+    assert!(
+        !h.app().accounts.drawer_open,
+        "filter Enter is owned by its field"
+    );
     assert!(h.app().accounts.filtering);
     assert!(!h.app().accounts.filter_input.is_editing());
     assert_eq!(h.app().accounts.filter_query, "work");
@@ -2079,6 +2426,10 @@ fn accounts_filter_enter_paints_the_approved_80_filter_cell() {
     h.key(KeyCode::Char('/'));
     h.type_str("work");
     h.key(KeyCode::Enter);
+    assert!(
+        !h.app().accounts.drawer_open,
+        "filter Enter is owned by its field"
+    );
     assert!(h.app().accounts.filtering);
     assert!(!h.app().accounts.filter_input.is_editing());
     assert_eq!(h.app().accounts.filter_query, "work");
