@@ -1124,3 +1124,45 @@ fn plan_rejects_none_vs_empty_group_changes_before_paint_or_registration() {
         assert!(h.app().hints.borrow().is_empty());
     }
 }
+
+#[test]
+fn plan_rejects_close_only_changes_with_new_group_unchanged() {
+    let planned_config = Config {
+        configured: true,
+        new_keys: Some(&NEW_T),
+        ..Config::default()
+    };
+    let cases: [(Option<&'static [Binding<TabsCmd>]>, bool); 3] = [
+        (Some(&[]), false),
+        (Some(&[]), true),
+        (Some(&CLOSE_PROFILE), false),
+    ];
+
+    for (close_keys, empty_area) in cases {
+        let actual_config = Config {
+            close_keys,
+            ..planned_config
+        };
+        let mut page = Page::new(actual_config);
+        page.plan = Some(PlanCase {
+            config: planned_config,
+            empty_area,
+        });
+        page.sentinel = true;
+
+        let h = harness(page, 48);
+        assert!(h.app().plan_rejected.get());
+        assert_eq!(h.cell(0, 0).bg, Color::Blue);
+        assert_eq!(h.cell(1, 1).bg, Color::Blue);
+        assert!(h.area_of(TABS).is_none());
+        for part in [
+            PartRef::item(Part::TAB, ItemKey::Num(1)),
+            PartRef::item(Part::CLOSE, ItemKey::Num(1)),
+            PartRef::of(Part::NEW),
+            PartRef::of(Part::OVERFLOW),
+        ] {
+            assert!(h.area_of_part(TABS, part).is_none(), "{part:?}");
+        }
+        assert!(h.app().hints.borrow().is_empty());
+    }
+}
