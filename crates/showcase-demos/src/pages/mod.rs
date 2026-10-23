@@ -341,6 +341,7 @@ pub mod chips;
 pub mod chrome;
 pub mod dialog_kinds;
 pub mod dialogs;
+pub mod diff;
 pub mod editable;
 pub mod editor;
 pub mod forms;
