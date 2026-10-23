@@ -558,8 +558,11 @@ fn terminate_by_signal(signal: libc::c_int) -> io::Result<()> {
     #[cfg(unix)]
     {
 
+        // SAFETY: `getpid` has no preconditions and returns this process ID.
         let pid = unsafe { libc::getpid() };
 
+        // SAFETY: `pid` is this process. The sole production caller supplies SIGKILL
+        // from `parse_nextest_signal`; that caller restriction is not in this parameter's type.
         if unsafe { libc::kill(pid, signal) } != 0 {
             return Err(io::Error::last_os_error());
         }

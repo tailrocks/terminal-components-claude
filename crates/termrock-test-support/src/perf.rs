@@ -31,22 +31,31 @@ unsafe impl GlobalAlloc for Counting {
     unsafe fn alloc(&self, l: Layout) -> *mut u8 {
         count(l.size());
 
+        // SAFETY: The caller must supply a valid nonzero layout; it is forwarded
+        // unchanged to the system allocator.
         unsafe { System.alloc(l) }
     }
 
     unsafe fn dealloc(&self, p: *mut u8, l: Layout) {
+        // SAFETY: The caller must supply a live allocation from this allocator and
+        // its matching layout. The pointer and layout are forwarded unchanged.
         unsafe { System.dealloc(p, l) }
     }
 
     unsafe fn alloc_zeroed(&self, l: Layout) -> *mut u8 {
         count(l.size());
 
+        // SAFETY: The caller must supply a valid nonzero layout; it is forwarded
+        // unchanged to the system allocator.
         unsafe { System.alloc_zeroed(l) }
     }
 
     unsafe fn realloc(&self, p: *mut u8, l: Layout, new_size: usize) -> *mut u8 {
         count(new_size.saturating_sub(l.size()));
 
+        // SAFETY: The caller must supply a live allocation from this allocator, its
+        // matching layout, and a valid new size. All inputs are forwarded unchanged;
+        // the allocation may come from `alloc_zeroed` or an earlier `realloc`.
         unsafe { System.realloc(p, l, new_size) }
     }
 }
