@@ -457,7 +457,7 @@ impl TextBuffer {
 
     fn delete_selection(&mut self) -> bool {
         if let Some(r) = self.selection() {
-            self.remove_range(r.clone());
+            self.remove_range_raw(r.clone());
             self.cursor = r.start;
             self.anchor = None;
             self.normalize_positions();
@@ -535,7 +535,7 @@ impl TextBuffer {
         if start == self.cursor {
             return false;
         }
-        self.remove_range(start..self.cursor);
+        self.remove_range_raw(start..self.cursor);
         self.cursor = start;
         self.normalize_positions();
         true
@@ -549,7 +549,7 @@ impl TextBuffer {
         if end == self.cursor {
             return false;
         }
-        self.remove_range(self.cursor..end);
+        self.remove_range_raw(self.cursor..end);
         self.normalize_positions();
         true
     }
@@ -562,7 +562,7 @@ impl TextBuffer {
         if start == self.cursor {
             return false;
         }
-        self.remove_range(start..self.cursor);
+        self.remove_range_raw(start..self.cursor);
         self.cursor = start;
         self.normalize_positions();
         true
@@ -576,7 +576,7 @@ impl TextBuffer {
         if end == self.cursor {
             return false;
         }
-        self.remove_range(self.cursor..end);
+        self.remove_range_raw(self.cursor..end);
         self.normalize_positions();
         true
     }
@@ -589,13 +589,98 @@ impl TextBuffer {
         if start == self.cursor {
             return false;
         }
-        self.remove_range(start..self.cursor);
+        self.remove_range_raw(start..self.cursor);
         self.cursor = start;
         self.normalize_positions();
         true
     }
 
-    fn remove_range(&mut self, range: Range<usize>) {
+    /// Insert normalized text at a UTF-8 byte offset without consuming the selection.
+    ///
+    /// The offset is clamped to the buffer and floored to a grapheme boundary.
+    /// Existing cursor and anchor offsets at or after the insertion point move
+    /// after the inserted bytes. The cursor then ceils and the anchor floors to
+    /// grapheme boundaries in the resulting text.
+    pub fn insert_at(&mut self, at: usize, text: &str) {
+        let at = Self::floor_boundary(&self.text, at.min(self.text.len()));
+        let inserted = normalized_text(text, self.multiline);
+        let inserted_len = inserted.len();
+        if inserted_len == 0 {
+            if self.sensitive
+                && let Cow::Owned(normalized) = inserted
+            {
+                wipe_string(normalized);
+            }
+            return;
+        }
+
+        if self.sensitive {
+            let mut next = String::with_capacity(self.text.len().saturating_add(inserted_len));
+            next.push_str(&self.text[..at]);
+            next.push_str(&inserted);
+            next.push_str(&self.text[at..]);
+            self.replace_text(next);
+            if let Cow::Owned(normalized) = inserted {
+                wipe_string(normalized);
+            }
+        } else {
+            self.text.insert_str(at, &inserted);
+        }
+
+        if self.cursor >= at {
+            self.cursor = self.cursor.saturating_add(inserted_len);
+        }
+        if let Some(anchor) = self.anchor {
+            self.anchor = Some(if anchor >= at {
+                anchor.saturating_add(inserted_len)
+            } else {
+                anchor
+            });
+        }
+        self.normalize_positions();
+    }
+
+    /// Remove the graphemes touched by a clamped half-open UTF-8 byte range.
+    ///
+    /// Empty or reversed ranges are no-ops. Cursor and anchor positions before
+    /// or at the expanded start remain in place; positions strictly inside the
+    /// removed range collapse to its start, and positions at or after its end
+    /// move left by the removed byte length. Afterward the cursor ceils and the
+    /// anchor floors to grapheme boundaries in the resulting text.
+    pub fn remove_range(&mut self, range: Range<usize>) {
+        let len = self.text.len();
+        let start = range.start.min(len);
+        let end = range.end.min(len);
+        if start >= end {
+            return;
+        }
+
+        let start = Self::floor_boundary(&self.text, start);
+        let end = Self::ceil_boundary(&self.text, end);
+        let removed_len = end.saturating_sub(start);
+        if removed_len == 0 {
+            return;
+        }
+
+        self.remove_range_raw(start..end);
+        if self.cursor >= end {
+            self.cursor = self.cursor.saturating_sub(removed_len);
+        } else if self.cursor > start {
+            self.cursor = start;
+        }
+        if let Some(anchor) = self.anchor {
+            self.anchor = Some(if anchor >= end {
+                anchor.saturating_sub(removed_len)
+            } else if anchor > start {
+                start
+            } else {
+                anchor
+            });
+        }
+        self.normalize_positions();
+    }
+
+    fn remove_range_raw(&mut self, range: Range<usize>) {
         if self.sensitive {
             self.replace_text(without_range(&self.text, range));
         } else {
@@ -1113,6 +1198,108 @@ mod tests {
         assert!(b.is_empty());
         assert!(b.sensitive);
         assert!(!format!("{b:?}").contains("hunter2"));
+    }
+
+    #[test]
+    fn renamed_raw_deletion_callers_keep_cursor_local_behavior() {
+        let mut selected_backspace = TextBuffer::single("abcdef");
+        selected_backspace.select_range(4, 2);
+        assert!(selected_backspace.backspace());
+        assert_eq!(selected_backspace.text(), "abef");
+        assert_eq!(selected_backspace.cursor_offset(), 2);
+        assert_eq!(selected_backspace.selection(), None);
+
+        let mut selected_delete = TextBuffer::single("abcdef");
+        selected_delete.select_range(2, 4);
+        assert!(selected_delete.delete());
+        assert_eq!(selected_delete.text(), "abef");
+        assert_eq!(selected_delete.cursor_offset(), 2);
+        assert_eq!(selected_delete.selection(), None);
+
+        let mut backspace = TextBuffer::single("abcdef");
+        backspace.set_cursor_line_col(0, 4);
+        assert!(backspace.backspace());
+        assert_eq!(backspace.text(), "abcef");
+        assert_eq!(backspace.cursor_offset(), 3);
+
+        let mut delete = TextBuffer::single("abcdef");
+        delete.set_cursor_line_col(0, 2);
+        assert!(delete.delete());
+        assert_eq!(delete.text(), "abdef");
+        assert_eq!(delete.cursor_offset(), 2);
+
+        let mut word_left = TextBuffer::single("one two");
+        assert!(word_left.delete_word_left());
+        assert_eq!(word_left.text(), "one ");
+        assert_eq!(word_left.cursor_offset(), 4);
+
+        let mut line_end = TextBuffer::multi("ab\ncd");
+        line_end.set_cursor_line_col(1, 1);
+        assert!(line_end.delete_to_line_end());
+        assert_eq!(line_end.text(), "ab\nc");
+        assert_eq!(line_end.cursor_offset(), 4);
+
+        let mut line_start = TextBuffer::multi("ab\ncd");
+        line_start.set_cursor_line_col(1, 1);
+        assert!(line_start.delete_to_line_start());
+        assert_eq!(line_start.text(), "ab\nd");
+        assert_eq!(line_start.cursor_offset(), 3);
+    }
+
+    #[test]
+    fn renamed_raw_deletion_callers_keep_empty_noop_results() {
+        let mut backspace = TextBuffer::single("a");
+        backspace.set_cursor_line_col(0, 0);
+        assert!(!backspace.backspace());
+        assert_eq!(backspace.text(), "a");
+        assert_eq!(backspace.cursor_offset(), 0);
+
+        let mut delete = TextBuffer::single("a");
+        assert!(!delete.delete());
+        assert_eq!(delete.text(), "a");
+        assert_eq!(delete.cursor_offset(), 1);
+
+        let mut word_left = TextBuffer::single("a");
+        word_left.set_cursor_line_col(0, 0);
+        assert!(!word_left.delete_word_left());
+        assert_eq!(word_left.text(), "a");
+        assert_eq!(word_left.cursor_offset(), 0);
+
+        let mut line_end = TextBuffer::multi("a\nb");
+        line_end.set_cursor_line_col(1, 1);
+        assert!(!line_end.delete_to_line_end());
+        assert_eq!(line_end.text(), "a\nb");
+        assert_eq!(line_end.cursor_offset(), 3);
+
+        let mut line_start = TextBuffer::multi("a\nb");
+        line_start.set_cursor_line_col(0, 0);
+        assert!(!line_start.delete_to_line_start());
+        assert_eq!(line_start.text(), "a\nb");
+        assert_eq!(line_start.cursor_offset(), 0);
+    }
+
+    #[test]
+    fn sensitive_off_cursor_edits_replace_storage_and_rebase_reverse_selection() {
+        let mut buffer = TextBuffer::sensitive_multi("abcdef");
+        buffer.select_range(4, 2);
+        let original_storage = buffer.text.as_ptr() as usize;
+
+        buffer.insert_at(0, "\r\nZ\r");
+        assert_eq!(buffer.text(), "\nZ\nabcdef");
+        assert_eq!(buffer.cursor_offset(), 5);
+        assert_eq!(buffer.selection(), Some(5..7));
+        assert!(buffer.sensitive);
+        assert_ne!(buffer.text.as_ptr() as usize, original_storage);
+        assert!(!format!("{buffer:?}").contains("abcdef"));
+
+        let inserted_storage = buffer.text.as_ptr() as usize;
+        buffer.remove_range(0..3);
+        assert_eq!(buffer.text(), "abcdef");
+        assert_eq!(buffer.cursor_offset(), 2);
+        assert_eq!(buffer.selection(), Some(2..4));
+        assert!(buffer.sensitive);
+        assert_ne!(buffer.text.as_ptr() as usize, inserted_storage);
+        assert!(!format!("{buffer:?}").contains("abcdef"));
     }
 
     #[test]
