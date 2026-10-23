@@ -251,6 +251,38 @@ fn resolve_row_part_with_defaults(
     }
 }
 
+/// Logical admission outcome for the most recent [`RowUi`] metadata call.
+///
+/// `admitted_width` describes the row's content budget, not the number of
+/// cells visible through the current UI clip. A metadata value can be
+/// admitted while its logical position is outside the visible buffer.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct MetaPaint {
+    needed_width: u16,
+    admitted_width: u16,
+    logical_x: Option<u16>,
+}
+
+impl MetaPaint {
+    /// Cell width required by the metadata text.
+    pub const fn needed_width(self) -> u16 {
+        self.needed_width
+    }
+
+    /// Cell width admitted by the row budget, or zero when the text was
+    /// omitted.
+    pub const fn admitted_width(self) -> u16 {
+        self.admitted_width
+    }
+
+    /// Logical x-coordinate where admitted metadata starts.
+    ///
+    /// This coordinate is not clipped to the visible buffer.
+    pub const fn logical_x(self) -> Option<u16> {
+        self.logical_x
+    }
+}
+
 pub struct RowUi<'u> {
     ui: Ui<'u>,
     owner: Id,
@@ -267,6 +299,7 @@ pub struct RowUi<'u> {
     label_patch: Option<StylePatch>,
     left: u16,
     right: u16,
+    last_meta_paint: Option<MetaPaint>,
 }
 
 impl fmt::Debug for RowUi<'_> {
@@ -509,6 +542,7 @@ impl<'u> RowUi<'u> {
             label_patch,
             left: 0,
             right: 0,
+            last_meta_paint: None,
         }
     }
 
@@ -814,6 +848,23 @@ impl<'u> RowUi<'u> {
         self.row = self.remaining();
         self.left = 0;
         self.right = 0;
+        self.last_meta_paint = None;
+    }
+
+    /// Return the logical admission outcome from the latest metadata call.
+    ///
+    /// The query has no drawing or style-resolution side effects. It returns
+    /// `None` before a metadata call and after [`RowUi::begin_content`].
+    pub const fn meta_paint(&self) -> Option<MetaPaint> {
+        self.last_meta_paint
+    }
+
+    fn record_meta_paint(&mut self, needed_width: u16, logical_x: Option<u16>) {
+        self.last_meta_paint = Some(MetaPaint {
+            needed_width,
+            admitted_width: if logical_x.is_some() { needed_width } else { 0 },
+            logical_x,
+        });
     }
 
     pub fn indent(&mut self, depth: u16) {
@@ -940,9 +991,11 @@ impl<'u> RowUi<'u> {
             .checked_sub(gap)
             .and_then(|width| width.checked_sub(1))
         else {
+            self.record_meta_paint(need, None);
             return;
         };
         if need == 0 || need > metadata_budget {
+            self.record_meta_paint(need, None);
             return;
         }
         let st = self.style_of(Part::META);
@@ -954,6 +1007,7 @@ impl<'u> RowUi<'u> {
         };
         self.ui.paint_str(cell, s, st);
         self.right = self.right.saturating_add(need).saturating_add(gap);
+        self.record_meta_paint(need, Some(cell.x));
     }
 
     /// Paint right-aligned metadata with a lower-precedence component default.
@@ -966,6 +1020,7 @@ impl<'u> RowUi<'u> {
         let need = width(s);
         let area = self.remaining();
         if need == 0 || need.saturating_add(2) > area.width {
+            self.record_meta_paint(need, None);
             return;
         }
         let st = self.style_of_with_defaults(Part::META, defaults);
@@ -977,6 +1032,7 @@ impl<'u> RowUi<'u> {
         };
         self.ui.paint_str(cell, s, st);
         self.right = self.right.saturating_add(need).saturating_add(1);
+        self.record_meta_paint(need, Some(cell.x));
     }
 
     pub fn trailing(&mut self, s: &str, p: &StylePatch) {
@@ -1547,11 +1603,22 @@ mod tests {
         row: Rect,
         f: impl FnOnce(&mut RowUi<'_>),
     ) -> Buffer {
+        paint_with_result(theme, family, flags, row, f).0
+    }
+
+    fn paint_with_result<T>(
+        theme: &Theme,
+        family: Family,
+        flags: StateFlags,
+        row: Rect,
+        f: impl FnOnce(&mut RowUi<'_>) -> T,
+    ) -> (Buffer, T) {
         let mut frame = FrameState::default();
         frame.reset(1, SCREEN);
         let mut page = Buffer::empty(SCREEN);
         let mut core = UiCore::default();
         let last = LastFrame::default();
+        let result;
         {
             let mut ui = Ui::new(&mut frame, &mut page, &mut core, theme, &last);
             let mut r = RowUi::new(
@@ -1563,9 +1630,9 @@ mod tests {
                 ItemKey::index(0),
                 row,
             );
-            f(&mut r);
+            result = f(&mut r);
         }
-        page
+        (page, result)
     }
 
     fn paint_cell(
@@ -2007,6 +2074,275 @@ mod tests {
 
         let page = paint(Rect::new(0, 0, 4, 1), |r| r.meta("42"));
         assert_eq!(row_text(&page, 0, 0, 4), "  42");
+    }
+
+    fn assert_meta_paint(
+        outcome: Option<MetaPaint>,
+        needed_width: u16,
+        admitted_width: u16,
+        logical_x: Option<u16>,
+    ) {
+        assert!(outcome.is_some(), "metadata call should publish an outcome");
+        if let Some(outcome) = outcome {
+            assert_eq!(outcome.needed_width(), needed_width);
+            assert_eq!(outcome.admitted_width(), admitted_width);
+            assert_eq!(outcome.logical_x(), logical_x);
+        }
+    }
+
+    #[test]
+    fn row_ui_meta_outcome_reports_logical_admission_without_changing_placement() {
+        let (page, outcome) = paint_with_result(
+            &Theme::junie(),
+            Family::LIST,
+            StateFlags::empty(),
+            Rect::new(0, 0, 12, 1),
+            |row| {
+                assert_eq!(row.meta_paint(), None);
+                let _: () = row.meta("42");
+                let outcome = row.meta_paint();
+                assert_eq!(row.meta_paint(), outcome);
+                row.label("name");
+                outcome
+            },
+        );
+        assert_meta_paint(outcome, 2, 2, Some(10));
+        assert_eq!(row_text(&page, 0, 0, 12), "name      42");
+
+        let (page, outcome) = paint_with_result(
+            &Theme::junie(),
+            Family::LIST,
+            StateFlags::empty(),
+            Rect::new(0, 0, 3, 1),
+            |row| {
+                let _: () = row.meta("42");
+                let outcome = row.meta_paint();
+                row.label("name");
+                outcome
+            },
+        );
+        assert_meta_paint(outcome, 2, 0, None);
+        assert_eq!(row_text(&page, 0, 0, 3), "na…");
+
+        let (page, outcome) = paint_with_result(
+            &Theme::junie(),
+            Family::LIST,
+            StateFlags::empty(),
+            Rect::new(0, 0, 4, 1),
+            |row| {
+                let _: () = row.meta("42");
+                row.meta_paint()
+            },
+        );
+        assert_meta_paint(outcome, 2, 2, Some(2));
+        assert_eq!(row_text(&page, 0, 0, 4), "  42");
+    }
+
+    #[test]
+    fn row_ui_meta_gap_outcomes_preserve_budget_and_content() {
+        for (row_width, gap, expected_x, expected_text) in [
+            (3, 0, Some(5), "…XY"),
+            (4, 1, Some(6), "… XY"),
+            (6, 3, Some(8), "…   XY"),
+            (5, 3, None, "abcd…"),
+        ] {
+            let (page, outcome) = paint_with_result(
+                &Theme::junie(),
+                Family::LIST,
+                StateFlags::empty(),
+                Rect::new(4, 0, row_width, 1),
+                |row| {
+                    let _: () = row.meta_with_gap("XY", gap);
+                    let outcome = row.meta_paint();
+                    row.label("abcdef");
+                    outcome
+                },
+            );
+            let admitted = if expected_x.is_some() { 2 } else { 0 };
+            assert_meta_paint(outcome, 2, admitted, expected_x);
+            assert_eq!(row_text(&page, 0, 4, 4 + row_width), expected_text);
+        }
+    }
+
+    #[test]
+    fn row_ui_meta_outcome_tracks_each_attempt_and_content_phase() {
+        let (page, (first, dropped, empty)) = paint_with_result(
+            &Theme::junie(),
+            Family::LIST,
+            StateFlags::empty(),
+            Rect::new(0, 0, 12, 1),
+            |row| {
+                let _: () = row.meta("42");
+                let first = row.meta_paint();
+                let _: () = row.meta_with_gap("123456789", 0);
+                let dropped = row.meta_paint();
+                let _: () = row.meta_with_defaults("", crate::theme::StyleDefaults::default());
+                let empty = row.meta_paint();
+                row.label("1234567890");
+                (first, dropped, empty)
+            },
+        );
+
+        assert_meta_paint(first, 2, 2, Some(10));
+        assert_meta_paint(dropped, 9, 0, None);
+        assert_meta_paint(empty, 0, 0, None);
+        assert_eq!(row_text(&page, 0, 0, 12), "12345678… 42");
+
+        let (page, (before, after)) = paint_with_result(
+            &Theme::junie(),
+            Family::LIST,
+            StateFlags::empty(),
+            Rect::new(0, 0, 12, 1),
+            |row| {
+                let _: () = row.meta("42");
+                let before = row.meta_paint();
+                row.begin_content();
+                let after = row.meta_paint();
+                row.label("name");
+                (before, after)
+            },
+        );
+        assert_meta_paint(before, 2, 2, Some(10));
+        assert_eq!(after, None);
+        assert_eq!(row_text(&page, 0, 0, 12), "name      42");
+    }
+
+    #[test]
+    fn row_ui_meta_defaults_keep_style_precedence_and_publish_outcome() {
+        let theme = Theme::junie().override_family(Family::LIST, |recipe| {
+            recipe.part(Part::META).base(
+                StylePatch::new()
+                    .set_fg(Role::Danger)
+                    .add(Modifier::UNDERLINED),
+            );
+        });
+        let defaults = crate::theme::StyleDefaults::new(
+            StylePatch::new()
+                .set_fg(Role::Accent)
+                .set_bg(Role::Accent)
+                .add(Modifier::BOLD),
+        );
+        let (page, outcome) = paint_with_result(
+            &theme,
+            Family::LIST,
+            StateFlags::empty(),
+            Rect::new(0, 0, 4, 1),
+            |row| {
+                let _: () = row.meta_with_defaults("42", defaults);
+                let outcome = row.meta_paint();
+                row.label("x");
+                outcome
+            },
+        );
+
+        assert_meta_paint(outcome, 2, 2, Some(2));
+        assert_eq!(row_text(&page, 0, 0, 4), "x 42");
+        assert!(
+            page.cell((2, 0)).is_some(),
+            "metadata cell should be visible"
+        );
+        if let Some(cell) = page.cell((2, 0)) {
+            assert_eq!(cell.fg, theme.color.danger);
+            assert_eq!(cell.bg, theme.color.accent);
+            assert!(cell.modifier.contains(Modifier::BOLD));
+            assert!(cell.modifier.contains(Modifier::UNDERLINED));
+        }
+    }
+
+    #[test]
+    fn row_ui_non_meta_parts_do_not_publish_meta_outcomes() {
+        let (page, outcome) = paint_with_result(
+            &Theme::junie(),
+            Family::LIST,
+            StateFlags::empty(),
+            Rect::new(0, 0, 12, 1),
+            |row| {
+                assert_eq!(row.meta_paint(), None);
+                row.trailing("!", &StylePatch::new());
+                assert_eq!(row.meta_paint(), None);
+                row.part(Part::META, 2).text("?");
+                row.meta_paint()
+            },
+        );
+        assert_eq!(outcome, None);
+        assert_eq!(page.cell((11, 0)).map(|cell| cell.symbol()), Some("!"));
+    }
+
+    #[test]
+    fn row_ui_meta_outcome_uses_grapheme_width_and_survives_clipping() {
+        for (text, expected_width, expected_text) in [
+            ("e\u{301}", 1, "z e\u{301}"),
+            ("界", 2, "z 界"),
+            ("👩‍💻", 2, "z 👩‍💻"),
+        ] {
+            assert_eq!(width(text), expected_width);
+            let row_width = expected_width + 2;
+            let (page, outcome) = paint_with_result(
+                &Theme::junie(),
+                Family::LIST,
+                StateFlags::empty(),
+                Rect::new(4, 0, row_width, 1),
+                |row| {
+                    let _: () = row.meta_with_gap(text, 1);
+                    let outcome = row.meta_paint();
+                    row.label("z");
+                    outcome
+                },
+            );
+            assert_meta_paint(outcome, expected_width, expected_width, Some(6));
+            assert_eq!(row_text(&page, 0, 4, 4 + row_width), expected_text);
+            if expected_width == 2 {
+                assert_eq!(page.cell((7, 0)).map(|cell| cell.symbol()), Some(" "));
+            }
+        }
+
+        let (page, outcome) = paint_with_result(
+            &Theme::junie(),
+            Family::LIST,
+            StateFlags::empty(),
+            Rect::new(7, 1, 0, 0),
+            |row| {
+                let _: () = row.meta("42");
+                let outcome = row.meta_paint();
+                row.label("x");
+                outcome
+            },
+        );
+        assert_meta_paint(outcome, 2, 0, None);
+        assert_eq!(row_text(&page, 0, 0, 30), " ".repeat(30));
+        assert_eq!(row_text(&page, 1, 0, 30), " ".repeat(30));
+
+        let (page, outcome) = paint_with_result(
+            &Theme::junie(),
+            Family::LIST,
+            StateFlags::empty(),
+            Rect::new(28, 1, 3, 1),
+            |row| {
+                let _: () = row.meta_with_gap("42", 0);
+                let outcome = row.meta_paint();
+                row.label("x");
+                outcome
+            },
+        );
+        assert_meta_paint(outcome, 2, 2, Some(29));
+        assert_eq!(page.cell((28, 1)).map(|cell| cell.symbol()), Some("x"));
+        assert_eq!(page.cell((29, 1)).map(|cell| cell.symbol()), Some("4"));
+
+        let (page, outcome) = paint_with_result(
+            &Theme::junie(),
+            Family::LIST,
+            StateFlags::empty(),
+            Rect::new(5, 2, 6, 0),
+            |row| {
+                let _: () = row.meta("42");
+                let outcome = row.meta_paint();
+                row.label("x");
+                outcome
+            },
+        );
+        assert_meta_paint(outcome, 2, 2, Some(9));
+        assert_eq!(row_text(&page, 0, 0, 30), " ".repeat(30));
+        assert_eq!(row_text(&page, 1, 0, 30), " ".repeat(30));
     }
 
     #[test]
