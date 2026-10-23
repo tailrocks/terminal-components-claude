@@ -30,9 +30,10 @@ pub enum TabsAction {
 
 /// Controls when an eligible tab's close affordance is painted and registered.
 ///
-/// Both modes reserve the same close-cell geometry. In [`Hover`](Self::Hover)
-/// mode, the close cell is a live hit target only while its tab is active or
-/// focused, its tab or close part is hovered, or its close part is pressed.
+/// Both modes reserve the same close-target geometry. In
+/// [`Hover`](Self::Hover) mode, the target is a live hit only while its tab is
+/// active or focused, its tab or close part is hovered, or its close part is
+/// pressed.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum TabCloseReveal {
     /// Keep every eligible close affordance visible. This preserves the
@@ -411,11 +412,13 @@ pub struct TabRowLayout {
     pub visible_content: Rect,
     pub logical_tab: Rect,
     pub visible_tab: Rect,
-    /// Allocated close-cell geometry for an eligible item. In [`TabCloseReveal::Hover`]
-    /// mode this remains present while the affordance is hidden.
+    /// Allocated close-target geometry for an eligible item. An explicitly
+    /// widened target may overlap label or mark cells. In
+    /// [`TabCloseReveal::Hover`] mode this remains present while the affordance
+    /// is hidden.
     pub logical_close: Option<Rect>,
-    /// Clipped allocation for an eligible close cell, not a promise that the
-    /// current frame registered a live target. The committed UI hit registry
+    /// Clipped allocation for an eligible close target, not a promise that
+    /// the current frame registered a live hit. The committed UI hit registry
     /// is authoritative for current interaction visibility.
     pub visible_close: Option<Rect>,
     logical_mark: Option<Rect>,
@@ -448,6 +451,8 @@ pub struct TabLayout {
     closable: bool,
     closable_keys: Option<Vec<ItemKey>>,
     close_reveal: TabCloseReveal,
+    close_target_w: Option<u16>,
+    close_danger_hover: bool,
     close_reveal_press: Option<ItemKey>,
     status: Status,
     rule: Option<TabRule>,
@@ -616,6 +621,8 @@ pub struct Tabs<'a, T, K = ByIndex, R = DefaultRow> {
     closable_keys: Option<&'a [ItemKey]>,
     middle_click_closes: bool,
     close_reveal: TabCloseReveal,
+    close_target_w: Option<u16>,
+    close_danger_hover: bool,
     status: Status,
     rule: Option<TabRule>,
     item_marks: Option<fn(&T) -> TabMarks>,
@@ -632,6 +639,8 @@ impl<T, K, R> fmt::Debug for Tabs<'_, T, K, R> {
             .field("closable_keys", &self.closable_keys)
             .field("middle_click_closes", &self.middle_click_closes)
             .field("close_reveal", &self.close_reveal)
+            .field("close_target_w", &self.close_target_w)
+            .field("close_danger_hover", &self.close_danger_hover)
             .field("status", &self.status)
             .field("rule", &self.rule)
             .field("item_marks", &self.item_marks.is_some())
@@ -650,6 +659,8 @@ impl<T> Tabs<'_, T, ByIndex, DefaultRow> {
             closable_keys: None,
             middle_click_closes: true,
             close_reveal: TabCloseReveal::Always,
+            close_target_w: None,
+            close_danger_hover: false,
             status: Status::Ready,
             rule: None,
             item_marks: None,
@@ -687,6 +698,8 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
             closable_keys: self.closable_keys,
             middle_click_closes: self.middle_click_closes,
             close_reveal: self.close_reveal,
+            close_target_w: self.close_target_w,
+            close_danger_hover: self.close_danger_hover,
             status: self.status,
             rule: self.rule,
             item_marks: self.item_marks,
@@ -705,6 +718,8 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
             closable_keys: self.closable_keys,
             middle_click_closes: self.middle_click_closes,
             close_reveal: self.close_reveal,
+            close_target_w: self.close_target_w,
+            close_danger_hover: self.close_danger_hover,
             status: self.status,
             rule: self.rule,
             item_marks: self.item_marks,
@@ -752,12 +767,36 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
     /// Choose when an eligible close affordance is visible and interactive.
     ///
     /// The default is [`TabCloseReveal::Always`]. [`TabCloseReveal::Hover`]
-    /// keeps each eligible close cell reserved so tab geometry does not shift,
-    /// but registers that cell only while its tab is active or focused, its
+    /// keeps each eligible close target reserved so tab geometry does not
+    /// shift, but registers it only while its tab is active or focused, its
     /// tab or close part is hovered, or its close part is pressed.
     #[must_use]
     pub fn close_reveal(mut self, reveal: TabCloseReveal) -> Self {
         self.close_reveal = reveal;
+        self
+    }
+
+    /// Widen the close hit target around its existing close glyph.
+    ///
+    /// The default is `None`, which preserves the current one-cell target.
+    /// Explicit widths follow the centered one-cell-glyph plate calculation:
+    /// even requests round down to the nearest odd width, and zero means one
+    /// cell. The target is clamped within each tab and does not change tab
+    /// sizing or the reserved close-label space.
+    #[must_use]
+    pub fn close_target_w(mut self, cells: u16) -> Self {
+        self.close_target_w = Some(cells);
+        self
+    }
+
+    /// Use danger semantic colors while the close target is hovered or
+    /// pressed.
+    ///
+    /// The default is `false`, preserving the theme's existing CLOSE recipe.
+    /// This changes only the close target's hovered and pressed presentation.
+    #[must_use]
+    pub fn close_danger_hover(mut self, danger: bool) -> Self {
+        self.close_danger_hover = danger;
         self
     }
 
@@ -1289,7 +1328,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
             };
             let close_enabled = match row_source {
                 TabsRowSource::Legacy(_) => self.close_enabled(key),
-                TabsRowSource::Planned(row) => row.logical_close.is_some(),
+                TabsRowSource::Planned(_) => self.close_enabled(key),
             };
             let mark_width = if mark.is_some() { 2 } else { 0 };
             let close_w: u16 = if close_enabled { 2 } else { 0 };
@@ -1412,13 +1451,16 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                     self.paint_item_mark(ui, mark, mark_area, ts.style);
                 }
             }
-            let close_cell = close_enabled.then(|| match row_source {
-                TabsRowSource::Legacy(_) => cell_at(tab, tab.right().saturating_sub(2)),
-                TabsRowSource::Planned(row) => row
-                    .logical_close
-                    .unwrap_or_else(|| cell_at(tab, tab.right().saturating_sub(2))),
-            });
-            if let Some(close_cell) = close_cell {
+            let close_target = if close_enabled {
+                match row_source {
+                    TabsRowSource::Legacy(_) => close_target_rect(tab, self.close_target_w),
+                    TabsRowSource::Planned(row) => row.logical_close,
+                }
+            } else {
+                None
+            };
+            let close_glyph = close_target.map(|_| close_glyph_cell(tab));
+            if let (Some(close_target), Some(close_glyph)) = (close_target, close_glyph) {
                 if close_visible {
                     let mut close_flags =
                         flags.difference(StateFlags::HOVERED | StateFlags::PRESSED);
@@ -1428,30 +1470,84 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                     if pressed == Some(close_part) {
                         close_flags |= StateFlags::PRESSED;
                     }
-                    let cs = ov.style(
-                        ui,
-                        id,
-                        Family::TABS,
-                        Variant::DEFAULT,
-                        Part::CLOSE,
-                        close_flags,
-                    );
+                    let close_is_hovered = close_flags.contains(StateFlags::HOVERED);
+                    let close_is_pressed = close_flags.contains(StateFlags::PRESSED);
+                    let danger_active = self.close_danger_hover
+                        && !close_flags.contains(StateFlags::DISABLED)
+                        && (close_is_hovered || close_is_pressed);
+                    let mode_patch = if danger_active && close_is_pressed {
+                        Some(
+                            StylePatch::new()
+                                .set_fg(Role::OnDanger)
+                                .set_bg(Role::Danger),
+                        )
+                    } else if danger_active && close_is_hovered {
+                        Some(StylePatch::new().set_fg(Role::Danger))
+                    } else {
+                        None
+                    };
+                    let full_plate_style = close_flags
+                        .intersects(StateFlags::HOVERED | StateFlags::PRESSED)
+                        && (self.close_target_w.is_some() || danger_active);
+                    let (cs, explicit) = if self.close_target_w.is_some() || danger_active {
+                        let local = match (mode_patch, ov.part_patch(Part::CLOSE)) {
+                            (Some(mode), Some(instance)) => Some(mode.merge(instance)),
+                            (Some(mode), None) => Some(mode),
+                            (None, instance) => instance,
+                        };
+                        let resolved = ui.style_defaults_with_explicit(
+                            Family::TABS,
+                            Variant::DEFAULT,
+                            Part::CLOSE,
+                            close_flags,
+                            StyleDefaults::default(),
+                            local.as_ref(),
+                        );
+                        ov.note(
+                            ui,
+                            id,
+                            Family::TABS,
+                            Variant::DEFAULT,
+                            Part::CLOSE,
+                            resolved.resolved,
+                        );
+                        (resolved.resolved, Some(resolved.explicit))
+                    } else {
+                        (
+                            ov.style(
+                                ui,
+                                id,
+                                Family::TABS,
+                                Variant::DEFAULT,
+                                Part::CLOSE,
+                                close_flags,
+                            ),
+                            None,
+                        )
+                    };
+                    if full_plate_style {
+                        ui.paint_style(close_target, cs.style);
+                    }
                     match cs.glyph {
                         Slot::Set(glyph) => {
-                            ui.glyph(close_cell, glyph, cs.style);
+                            ui.glyph(close_glyph, glyph, cs.style);
                         }
                         Slot::Inherit => {
-                            ui.glyph(close_cell, GlyphRole::Close, cs.style);
+                            ui.glyph(close_glyph, GlyphRole::Close, cs.style);
                         }
                         Slot::Clear => {
-                            ui.fill(close_cell, cs.style);
+                            ui.fill(close_glyph, cs.style);
                         }
+                    }
+                    if full_plate_style && let Some(explicit) = explicit {
+                        termrock_runtime::author::patch_style(ui, close_target, cs.style, explicit);
                     }
                 } else {
                     // A previous visible frame may have left a custom glyph or
-                    // close-state style in this reserved cell. Restore the tab
-                    // plane rather than inheriting stale close presentation.
-                    ui.fill(close_cell, ts.style);
+                    // close-state style in this reserved glyph lane. Restore
+                    // that lane only; row text and marks have already been
+                    // repainted, and may overlap a widened target.
+                    ui.fill(close_glyph, ts.style);
                 }
             }
             if is_active && let Some(rr) = rule_row {
@@ -1511,9 +1607,9 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
             }
             if close_hit_visible
                 && !ui.is_inert()
-                && let Some(close_cell) = close_cell
+                && let Some(close_target) = close_target
             {
-                ui.register_part(self.id, PartRef::item(Part::CLOSE, key), close_cell);
+                ui.register_part(self.id, PartRef::item(Part::CLOSE, key), close_target);
             }
             x = tab.right().saturating_add(1);
             fit = fit.saturating_add(1);
@@ -1751,6 +1847,8 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
                 closable: self.closable,
                 closable_keys: self.closable_keys.map(<[ItemKey]>::to_vec),
                 close_reveal: self.close_reveal,
+                close_target_w: self.close_target_w,
+                close_danger_hover: self.close_danger_hover,
                 close_reveal_press: state.close_reveal_press,
                 status: self.status,
                 rule: self.rule,
@@ -1832,7 +1930,9 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
                 width: tab_w.min(avail),
                 height: 1,
             };
-            let close = close_enabled.then(|| cell_at(tab, tab.right().saturating_sub(2)));
+            let close = close_enabled
+                .then(|| close_target_rect(tab, self.close_target_w))
+                .flatten();
             let logical_mark = mark.map(|_| Rect {
                 x: x.saturating_add(1).saturating_add(label_extent),
                 y: row0.y,
@@ -1912,6 +2012,8 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
             closable: self.closable,
             closable_keys: self.closable_keys.map(<[ItemKey]>::to_vec),
             close_reveal: self.close_reveal,
+            close_target_w: self.close_target_w,
+            close_danger_hover: self.close_danger_hover,
             close_reveal_press: state.close_reveal_press,
             status: self.status,
             rule: self.rule,
@@ -1944,6 +2046,8 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
             || layout.closable != self.closable
             || layout.closable_keys.as_deref() != self.closable_keys
             || layout.close_reveal != self.close_reveal
+            || layout.close_target_w != self.close_target_w
+            || layout.close_danger_hover != self.close_danger_hover
             || layout.status != self.status
             || layout.rule != self.rule
             || layout.item_marks_enabled != self.item_marks.is_some()
@@ -1952,6 +2056,38 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
         }
         Ok(self.draw_impl(ui, layout.area, TabsRenderSource::Planned(layout)))
     }
+}
+
+const fn normalized_close_target_width(requested: u16) -> u16 {
+    let pad = requested.saturating_sub(1) / 2;
+    1u16.saturating_add(pad.saturating_mul(2))
+}
+
+fn close_target_rect(tab: Rect, requested: Option<u16>) -> Option<Rect> {
+    match requested {
+        None => Some(cell_at(tab, tab.right().saturating_sub(2))),
+        Some(_) if tab.is_empty() => None,
+        Some(requested) => {
+            let width = normalized_close_target_width(requested).min(tab.width);
+            if width == 0 {
+                return None;
+            }
+            let pad = normalized_close_target_width(requested).saturating_sub(1) / 2;
+            let glyph_x = tab.right().saturating_sub(2);
+            let max_left = tab.right().saturating_sub(width).max(tab.x);
+            let left = glyph_x.saturating_sub(pad).max(tab.x).min(max_left);
+            Some(Rect {
+                x: left,
+                y: tab.y,
+                width,
+                height: tab.height,
+            })
+        }
+    }
+}
+
+fn close_glyph_cell(tab: Rect) -> Rect {
+    cell_at(tab, tab.right().saturating_sub(2))
 }
 
 fn semantic_label_extent(segments: &[String], content: Rect, clip: Rect) -> u16 {
