@@ -1489,7 +1489,9 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                     let full_plate_style = close_flags
                         .intersects(StateFlags::HOVERED | StateFlags::PRESSED)
                         && (self.close_target_w.is_some() || danger_active);
-                    let (cs, explicit) = if self.close_target_w.is_some() || danger_active {
+                    let opted_close_style =
+                        self.close_target_w.is_some() || self.close_danger_hover;
+                    let (cs, explicit) = if opted_close_style {
                         let local = match (mode_patch, ov.part_patch(Part::CLOSE)) {
                             (Some(mode), Some(instance)) => Some(mode.merge(instance)),
                             (Some(mode), None) => Some(mode),
@@ -1539,8 +1541,18 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                             ui.fill(close_glyph, cs.style);
                         }
                     }
-                    if full_plate_style && let Some(explicit) = explicit {
-                        termrock_runtime::author::patch_style(ui, close_target, cs.style, explicit);
+                    if let Some(explicit) = explicit {
+                        let explicit_area = if full_plate_style {
+                            close_target
+                        } else {
+                            close_glyph
+                        };
+                        termrock_runtime::author::patch_style(
+                            ui,
+                            explicit_area,
+                            cs.style,
+                            explicit,
+                        );
                     }
                 } else {
                     // A previous visible frame may have left a custom glyph or
