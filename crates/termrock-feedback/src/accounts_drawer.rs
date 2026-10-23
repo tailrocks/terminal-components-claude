@@ -885,10 +885,11 @@ impl ProjectionSink {
                     .checked_add(cells)
                     .ok_or(DrawerProjectionError::ColumnOverflow)?;
                 emission_column = end;
+                let style = projected_style_at(&glyphs, column, emission.style);
                 emission_glyphs.push(ProjectionGlyph {
                     columns: column..end,
                     text: grapheme.to_owned(),
-                    style: Some(emission.style),
+                    style: Some(style),
                     source,
                     source_bytes,
                 });
@@ -998,6 +999,34 @@ struct ProjectionGlyph {
 
 fn ranges_overlap(left: &Range<usize>, right: &Range<usize>) -> bool {
     left.start < right.end && right.start < left.end
+}
+
+fn projected_style_at(
+    glyphs: &[ProjectionGlyph],
+    column: usize,
+    emitted: PaintStyle,
+) -> PaintStyle {
+    let Some(previous) = glyphs
+        .iter()
+        .find(|glyph| glyph.columns.start <= column && column < glyph.columns.end)
+    else {
+        return emitted;
+    };
+
+    if previous.columns.start == column {
+        previous.style.unwrap_or_default().patch(emitted)
+    } else {
+        // Ui::paint_cluster resets every continuation cell of a wide glyph.
+        // A later emission into that cell therefore starts from default cell
+        // style, even though the row projection is otherwise a patch on its
+        // destination's underlay. Encode that reset before the new patch.
+        PaintStyle::new()
+            .fg(Color::Reset)
+            .bg(Color::Reset)
+            .underline_color(Color::Reset)
+            .remove_modifier(Modifier::all())
+            .patch(emitted)
+    }
 }
 
 impl LineSink for ProjectionSink {
@@ -1445,5 +1474,143 @@ fn span_style(tone: DetailInk, ink: &Ink) -> PaintStyle {
         DetailInk::DangerBold => bold(DANGER, ink.chrome),
         DetailInk::Warning => plain(WARNING, ink.chrome),
         DetailInk::Info => plain(INFO, ink.chrome),
+    }
+}
+
+#[cfg(test)]
+mod projection_style_tests {
+    use super::{DrawerProjectionSource, ProjectionGlyph, projected_style_at};
+    use crate::theme::{PaintStyle, Role, Surface};
+    use ratatui_core::buffer::Cell;
+    use ratatui_core::style::{Color, Modifier, Style};
+
+    #[test]
+    fn overlapping_style_composition_matches_sequential_cell_paints_and_keeps_roles() {
+        let previous = PaintStyle::bound(
+            Style::new()
+                .fg(Color::Rgb(0x11, 0x22, 0x33))
+                .bg(Color::Rgb(0x44, 0x55, 0x66))
+                .underline_color(Color::Rgb(0x77, 0x88, 0x99))
+                .add_modifier(Modifier::BOLD | Modifier::UNDERLINED),
+            Some(Role::Accent),
+            Some(Role::Surface(Surface::Canvas)),
+            Surface::Surface,
+        );
+        let later = PaintStyle::new()
+            .fg(Color::Reset)
+            .underline_color(Color::Reset)
+            .remove_modifier(Modifier::BOLD | Modifier::UNDERLINED)
+            .add_modifier(Modifier::ITALIC);
+        let underlay = PaintStyle::new()
+            .fg(Color::Rgb(0xaa, 0xbb, 0xcc))
+            .bg(Color::Rgb(0xdd, 0xee, 0xff))
+            .underline_color(Color::Rgb(0x0a, 0x0b, 0x0c))
+            .add_modifier(Modifier::DIM | Modifier::REVERSED | Modifier::UNDERLINED);
+        let old = [ProjectionGlyph {
+            columns: 5..6,
+            text: "x".to_owned(),
+            style: Some(previous),
+            source: DrawerProjectionSource::Text,
+            source_bytes: Some(0..1),
+        }];
+        let composed = projected_style_at(&old, 5, later);
+
+        // Ui::paint_cluster applies each PaintStyle with Cell::set_style on a
+        // leading cell. The projection must replay the same ordered patches.
+        let mut sequential = Cell::default();
+        sequential.set_style(underlay.into_style());
+        sequential.set_style(previous.into_style());
+        sequential.set_style(later.into_style());
+
+        let mut projected = Cell::default();
+        projected.set_style(underlay.into_style());
+        projected.set_style(composed.into_style());
+
+        assert_eq!(sequential.fg, projected.fg);
+        assert_eq!(sequential.bg, projected.bg);
+        assert_eq!(sequential.underline_color, projected.underline_color);
+        assert_eq!(sequential.modifier, projected.modifier);
+        assert_eq!(projected.fg, Color::Reset);
+        assert_eq!(projected.bg, Color::Rgb(0x44, 0x55, 0x66));
+        assert_eq!(projected.underline_color, Color::Reset);
+        assert_eq!(
+            projected.modifier,
+            Modifier::DIM | Modifier::REVERSED | Modifier::ITALIC
+        );
+        assert_eq!(composed.fg_role, None);
+        assert_eq!(
+            composed.bg_role,
+            Some((Role::Surface(Surface::Canvas), Surface::Surface))
+        );
+
+        let modifier_only = PaintStyle::new().add_modifier(Modifier::BOLD);
+        let remove_bold = PaintStyle::new().remove_modifier(Modifier::BOLD);
+        let modifier_glyph = [ProjectionGlyph {
+            columns: 5..6,
+            text: "x".to_owned(),
+            style: Some(modifier_only),
+            source: DrawerProjectionSource::Text,
+            source_bytes: Some(0..1),
+        }];
+        let inherited_channels = projected_style_at(&modifier_glyph, 5, remove_bold);
+        let mut sequential_inherited = Cell::default();
+        sequential_inherited.set_style(underlay.into_style());
+        sequential_inherited.set_style(modifier_only.into_style());
+        sequential_inherited.set_style(remove_bold.into_style());
+        let mut projected_inherited = Cell::default();
+        projected_inherited.set_style(underlay.into_style());
+        projected_inherited.set_style(inherited_channels.into_style());
+        assert_eq!(sequential_inherited.fg, projected_inherited.fg);
+        assert_eq!(sequential_inherited.bg, projected_inherited.bg);
+        assert_eq!(
+            sequential_inherited.underline_color,
+            projected_inherited.underline_color
+        );
+        assert_eq!(sequential_inherited.modifier, projected_inherited.modifier);
+        assert_eq!(projected_inherited.fg, Color::Rgb(0xaa, 0xbb, 0xcc));
+        assert_eq!(projected_inherited.bg, Color::Rgb(0xdd, 0xee, 0xff));
+        assert_eq!(
+            projected_inherited.underline_color,
+            Color::Rgb(0x0a, 0x0b, 0x0c)
+        );
+        assert_eq!(
+            projected_inherited.modifier,
+            Modifier::DIM | Modifier::REVERSED | Modifier::UNDERLINED
+        );
+
+        let continuation = [ProjectionGlyph {
+            columns: 4..6,
+            text: "界".to_owned(),
+            style: Some(previous),
+            source: DrawerProjectionSource::Text,
+            source_bytes: Some(0.."界".len()),
+        }];
+        let reset_then_later = projected_style_at(&continuation, 5, later);
+
+        // Ui::paint_cluster resets wide-glyph continuation cells before later
+        // content reaches them. The projection represents that reset too.
+        let mut sequential_continuation = Cell::default();
+        sequential_continuation.set_style(underlay.into_style());
+        sequential_continuation.reset();
+        sequential_continuation.set_style(later.into_style());
+
+        let mut projected_continuation = Cell::default();
+        projected_continuation.set_style(underlay.into_style());
+        projected_continuation.set_style(reset_then_later.into_style());
+
+        assert_eq!(sequential_continuation.fg, projected_continuation.fg);
+        assert_eq!(sequential_continuation.bg, projected_continuation.bg);
+        assert_eq!(
+            sequential_continuation.underline_color,
+            projected_continuation.underline_color
+        );
+        assert_eq!(
+            sequential_continuation.modifier,
+            projected_continuation.modifier
+        );
+        assert_eq!(projected_continuation.fg, Color::Reset);
+        assert_eq!(projected_continuation.bg, Color::Reset);
+        assert_eq!(projected_continuation.underline_color, Color::Reset);
+        assert_eq!(projected_continuation.modifier, Modifier::ITALIC);
     }
 }

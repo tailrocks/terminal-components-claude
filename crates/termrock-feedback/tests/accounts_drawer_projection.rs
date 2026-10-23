@@ -1,5 +1,5 @@
 use ratatui_core::layout::{Position, Rect};
-use ratatui_core::style::{Color, Modifier};
+use ratatui_core::style::{Color, Modifier, Style};
 use termrock_feedback::{
     DetailInk, DetailLine, DetailSpan, DrawerButton, DrawerInk, DrawerLine, DrawerMeter,
     DrawerProjectionError, DrawerProjectionSource, DrawerTone, PaneChrome,
@@ -137,6 +137,11 @@ fn draw_projection(ui: &mut termrock::Ui<'_>, layout: Rect, line: &DrawerLine<'_
             .bg(theme.bg(Surface::Surface))
             .remove_modifier(clear),
     );
+    paint_projection(ui, layout, line);
+}
+
+fn paint_projection(ui: &mut termrock::Ui<'_>, layout: Rect, line: &DrawerLine<'_>) {
+    let theme = ui.theme_ref();
     let projection =
         project_accounts_drawer_line(theme, layout, layout.x, line, PaneChrome::Drawer)
             .expect("fixture line should have a grapheme-safe projection");
@@ -179,6 +184,39 @@ fn draw_scene(line: &DrawerLine<'_>, theme: Theme, level: ColorLevel, projected:
                 draw_projection(ui, layout, line);
             } else {
                 draw_source(ui, layout, line);
+            }
+        },
+    );
+    scene
+}
+
+fn draw_seeded_scene(
+    line: &DrawerLine<'_>,
+    theme: Theme,
+    level: ColorLevel,
+    projected: bool,
+    seed: Style,
+) -> Scene {
+    let mut scene = Scene::new("accounts-drawer-projection-seeded", theme, level, 120, 12);
+    let layout = row_layout();
+    scene.draw_over(
+        |buffer| {
+            for cell in &mut buffer.content {
+                cell.set_symbol("§").set_style(seed);
+            }
+        },
+        |ui, _| {
+            if projected {
+                paint_projection(ui, layout, line);
+            } else {
+                let _ = paint_accounts_drawer_lines_window(
+                    ui,
+                    layout,
+                    layout,
+                    0,
+                    core::slice::from_ref(line),
+                    PaneChrome::Drawer,
+                );
             }
         },
     );
@@ -251,6 +289,216 @@ fn projection_matches_window_painter_full_cells_for_every_line_and_theme_tier() 
                             "theme {theme_index}, level {level:?}, line {line_index}, cell {pos:?}"
                         );
                     }
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn projection_preserves_readout_modifiers_under_track_overpaint() {
+    let line = DrawerLine::Meter(DrawerMeter {
+        label: "Requests",
+        readout: "1234",
+        fill_cols: 2,
+        track_cols: 2,
+        tone: DrawerTone::Warning,
+        mark: "",
+        mark_bold: false,
+        note: "",
+    });
+    let themes = [Theme::junie(), Theme::paper(), custom_theme()];
+    let layout = row_layout();
+    let track_x = layout.x + 24;
+    let blank = DrawerLine::Blank;
+    let prefilled = draw_scene(&blank, Theme::junie(), ColorLevel::TrueColor, false);
+    let before_row = prefilled
+        .buffer()
+        .cell(Position::new(track_x, layout.y))
+        .unwrap();
+    assert_eq!(before_row.modifier, Modifier::empty());
+
+    for (theme_index, theme) in themes.into_iter().enumerate() {
+        for level in LEVELS {
+            let source = draw_scene(&line, theme.clone(), level, false);
+            let projected = draw_scene(&line, theme.clone(), level, true);
+            let source_track = source
+                .buffer()
+                .cell(Position::new(track_x, layout.y))
+                .unwrap();
+            assert_eq!(source_track.symbol(), " ");
+            assert_eq!(source_track.modifier, Modifier::BOLD | Modifier::ITALIC);
+            if theme_index == 0 && level == ColorLevel::TrueColor {
+                assert_eq!(
+                    source_track.fg,
+                    Theme::junie().color.fg[FgStep::Secondary.index()]
+                );
+                assert_eq!(source_track.bg, Color::Rgb(0x26, 0x26, 0x2a));
+            }
+
+            for y in 0..source.area().height {
+                for x in 0..source.area().width {
+                    let pos = Position::new(x, y);
+                    assert_eq!(
+                        format!("{:?}", source.buffer().cell(pos)),
+                        format!("{:?}", projected.buffer().cell(pos)),
+                        "theme {theme_index}, level {level:?}, cell {pos:?}"
+                    );
+                }
+            }
+        }
+    }
+
+    let projection =
+        project_accounts_drawer_line(&Theme::junie(), layout, layout.x, &line, PaneChrome::Drawer)
+            .unwrap();
+    let track_ranges: Vec<_> = projection
+        .ranges()
+        .iter()
+        .filter(|range| range.source() == DrawerProjectionSource::MeterTrack)
+        .collect();
+    assert_eq!(track_ranges.len(), 2);
+    assert_eq!(track_ranges[0].columns(), 24..25);
+    assert_eq!(track_ranges[1].columns(), 25..26);
+    assert!(
+        track_ranges
+            .iter()
+            .all(|range| range.source_bytes().is_none())
+    );
+    assert!(track_ranges.iter().all(|range| {
+        let style = range.style().unwrap();
+        style.as_style().fg == Some(Theme::junie().color.fg[FgStep::Secondary.index()])
+            && style.as_style().bg == Some(Color::Rgb(0x26, 0x26, 0x2a))
+            && style.as_style().add_modifier == Modifier::BOLD | Modifier::ITALIC
+    }));
+}
+
+#[test]
+fn projection_composes_track_mark_and_note_patches_over_the_real_underlay() {
+    let readout = "0123456789012345678901234567890123456789";
+    let line = DrawerLine::Meter(DrawerMeter {
+        label: "Requests",
+        readout,
+        fill_cols: 0,
+        track_cols: 2,
+        tone: DrawerTone::Warning,
+        mark: "!",
+        mark_bold: false,
+        note: "note",
+    });
+    let seed = Style::new()
+        .fg(Color::Rgb(0x12, 0x34, 0x56))
+        .bg(Color::Rgb(0x65, 0x43, 0x21))
+        .underline_color(Color::Rgb(0x98, 0x76, 0x54))
+        .add_modifier(
+            Modifier::UNDERLINED | Modifier::DIM | Modifier::REVERSED | Modifier::SLOW_BLINK,
+        );
+    let themes = [Theme::junie(), Theme::paper(), custom_theme()];
+    let layout = row_layout();
+    let track_x = layout.x + 22;
+    let mark_x = track_x + 34;
+    let note_x = mark_x + 4;
+
+    for (theme_index, theme) in themes.into_iter().enumerate() {
+        for level in LEVELS {
+            let source = draw_seeded_scene(&line, theme.clone(), level, false, seed);
+            let projected = draw_seeded_scene(&line, theme.clone(), level, true, seed);
+            let track = source
+                .buffer()
+                .cell(Position::new(track_x, layout.y))
+                .unwrap();
+            assert_eq!(track.symbol(), " ");
+            assert_eq!(track.bg, Color::Rgb(0x26, 0x26, 0x2a));
+            assert!(track.modifier.contains(
+                Modifier::BOLD
+                    | Modifier::ITALIC
+                    | Modifier::UNDERLINED
+                    | Modifier::DIM
+                    | Modifier::REVERSED
+                    | Modifier::SLOW_BLINK
+            ));
+            assert_eq!(track.underline_color, Color::Rgb(0x98, 0x76, 0x54));
+
+            let mark = source
+                .buffer()
+                .cell(Position::new(mark_x, layout.y))
+                .unwrap();
+            assert_eq!(mark.symbol(), "!");
+            assert_eq!(
+                mark.modifier,
+                Modifier::REVERSED | Modifier::SLOW_BLINK,
+                "plain mark must remove prior bold, italic, underline and dim"
+            );
+            assert_eq!(mark.underline_color, Color::Rgb(0x98, 0x76, 0x54));
+
+            let note = source
+                .buffer()
+                .cell(Position::new(note_x, layout.y))
+                .unwrap();
+            assert_eq!(note.symbol(), "n");
+            assert_eq!(note.modifier, Modifier::REVERSED | Modifier::SLOW_BLINK);
+            assert_eq!(note.underline_color, Color::Rgb(0x98, 0x76, 0x54));
+
+            for y in 0..source.area().height {
+                for x in 0..source.area().width {
+                    let pos = Position::new(x, y);
+                    assert_eq!(
+                        format!("{:?}", source.buffer().cell(pos)),
+                        format!("{:?}", projected.buffer().cell(pos)),
+                        "theme {theme_index}, level {level:?}, cell {pos:?}"
+                    );
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn projection_matches_full_wide_grapheme_overwrite_and_continuation_reset() {
+    let label = "12345678901234567890界";
+    let line = DrawerLine::Field {
+        label,
+        value: "value",
+        ink: DrawerInk::Plain,
+    };
+    let seed = Style::new()
+        .fg(Color::Rgb(0x12, 0x34, 0x56))
+        .bg(Color::Rgb(0x65, 0x43, 0x21))
+        .underline_color(Color::Rgb(0x98, 0x76, 0x54))
+        .add_modifier(
+            Modifier::UNDERLINED | Modifier::DIM | Modifier::REVERSED | Modifier::SLOW_BLINK,
+        );
+    let themes = [Theme::junie(), Theme::paper(), custom_theme()];
+    let layout = row_layout();
+    let value_x = layout.x + 22;
+
+    for (theme_index, theme) in themes.into_iter().enumerate() {
+        for level in LEVELS {
+            let source = draw_seeded_scene(&line, theme.clone(), level, false, seed);
+            let projected = draw_seeded_scene(&line, theme.clone(), level, true, seed);
+            let first = source
+                .buffer()
+                .cell(Position::new(value_x, layout.y))
+                .unwrap();
+            let continuation = source
+                .buffer()
+                .cell(Position::new(value_x + 1, layout.y))
+                .unwrap();
+            assert_eq!(first.symbol(), "v");
+            assert_eq!(continuation.symbol(), "a");
+            assert_eq!(first.modifier, Modifier::REVERSED | Modifier::SLOW_BLINK);
+            assert_eq!(first.underline_color, Color::Rgb(0x98, 0x76, 0x54));
+            assert_eq!(continuation.modifier, Modifier::empty());
+            assert_eq!(continuation.underline_color, Color::Reset);
+
+            for y in 0..source.area().height {
+                for x in 0..source.area().width {
+                    let pos = Position::new(x, y);
+                    assert_eq!(
+                        format!("{:?}", source.buffer().cell(pos)),
+                        format!("{:?}", projected.buffer().cell(pos)),
+                        "theme {theme_index}, level {level:?}, cell {pos:?}"
+                    );
                 }
             }
         }
