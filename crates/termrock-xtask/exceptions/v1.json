@@ -631,13 +631,6 @@
       "rule": "OWN-11"
     },
     {
-      "max": 9,
-      "path": "crates/showcase-demos/src/pages/terminal.rs",
-      "reason": "Integration re-baseline: the adopted target content is the governance baseline at the split merge; growth beyond this stays gated (recovery ledger R-42).",
-      "review": "Split-merge integration baseline",
-      "rule": "OWN-02"
-    },
-    {
       "max": 4,
       "path": "crates/showcase-demos/src/pages/terminal.rs",
       "reason": "Integration re-baseline: the adopted target content is the governance baseline at the split merge; growth beyond this stays gated (recovery ledger R-42).",
