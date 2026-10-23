@@ -8,10 +8,10 @@ use ratatui_core::buffer::Buffer;
 use ratatui_core::layout::{Position, Rect};
 use termrock_core::event::{KeyModifiers, RoutedInput};
 use termrock_core::{Id, Intent, ItemKey, Part, PartRef, Phase, Response};
-use termrock_navigation::{TabCloseReveal, Tabs, TabsAction, TabsState};
+use termrock_navigation::{TabCloseReveal, TabMarks, Tabs, TabsAction, TabsState};
 use termrock_runtime::rowui::RowUi;
 use termrock_runtime::{App, Cx, Runtime, Ui};
-use termrock_theme::Theme;
+use termrock_theme::{GlyphRole, Theme};
 
 const TABS: Id = Id::root("tabs.middle-close");
 const AREA: Rect = Rect::new(0, 0, 48, 5);
@@ -63,6 +63,8 @@ struct Page {
     closable: bool,
     middle_click_closes: Option<bool>,
     middle_policy_order: MiddlePolicyOrder,
+    item_marks: bool,
+    item_marks_before_middle: bool,
     close_reveal: TabCloseReveal,
     capture_primary_tab: bool,
     reference_draw: bool,
@@ -97,6 +99,8 @@ impl Page {
             closable: true,
             middle_click_closes: None,
             middle_policy_order: MiddlePolicyOrder::BeforeKey,
+            item_marks: false,
+            item_marks_before_middle: false,
             close_reveal: TabCloseReveal::Always,
             capture_primary_tab: false,
             reference_draw: false,
@@ -113,6 +117,8 @@ fn tabs<'a>(
     close_keys: Option<&'a [ItemKey]>,
     middle_click_closes: Option<bool>,
     middle_policy_order: MiddlePolicyOrder,
+    item_marks: bool,
+    item_marks_before_middle: bool,
     close_reveal: TabCloseReveal,
 ) -> Tabs<'a, Tab, TabKeyFn, TabRowFn> {
     let mut builder = Tabs::new(TABS)
@@ -121,10 +127,13 @@ fn tabs<'a>(
     if let Some(keys) = close_keys {
         builder = builder.closable_keys(keys);
     }
+    if item_marks && item_marks_before_middle {
+        builder = builder.item_marks(dirty_marks);
+    }
 
     let key: TabKeyFn = tab_key;
     let row: TabRowFn = tab_row;
-    match (middle_click_closes, middle_policy_order) {
+    let builder = match (middle_click_closes, middle_policy_order) {
         (Some(enabled), MiddlePolicyOrder::BeforeKey) => {
             builder.middle_click_closes(enabled).key(key).row(row)
         }
@@ -135,7 +144,16 @@ fn tabs<'a>(
             builder.key(key).row(row).middle_click_closes(enabled)
         }
         (None, _) => builder.key(key).row(row),
+    };
+    if item_marks && !item_marks_before_middle {
+        builder.item_marks(dirty_marks)
+    } else {
+        builder
     }
+}
+
+fn dirty_marks(_: &Tab) -> TabMarks {
+    TabMarks::default().dirty(true)
 }
 
 impl App for Page {
@@ -179,6 +197,8 @@ impl App for Page {
             self.close_keys.as_deref(),
             self.middle_click_closes,
             self.middle_policy_order,
+            self.item_marks,
+            self.item_marks_before_middle,
             self.close_reveal,
         );
         let mut response = tabs.update(cx, &mut self.state, &self.items);
@@ -196,6 +216,8 @@ impl App for Page {
                     self.close_keys.as_deref(),
                     self.middle_click_closes,
                     self.middle_policy_order,
+                    self.item_marks,
+                    self.item_marks_before_middle,
                     self.close_reveal,
                 )
                 .draw(ui, ui.full(), &self.state, &self.items);
@@ -206,6 +228,8 @@ impl App for Page {
                 self.close_keys.as_deref(),
                 self.middle_click_closes,
                 self.middle_policy_order,
+                self.item_marks,
+                self.item_marks_before_middle,
                 self.close_reveal,
             )
             .draw(ui, ui.full(), &self.state, &self.items);
@@ -234,6 +258,32 @@ fn ready_runtime(page: Page) -> Runtime<Page> {
     let _ = rt.initialize();
     present(&mut rt);
     rt
+}
+
+fn presented_buffer(rt: &mut Runtime<Page>) -> Buffer {
+    let mut buffer = Buffer::empty(AREA);
+    rt.draw_buffer(AREA, &mut buffer).commit_presented();
+    buffer
+}
+
+fn assert_dirty_mark(rt: &mut Runtime<Page>, key: ItemKey, label: &str) {
+    let tab = part_area(rt, Part::TAB, key).expect("marked tab has a committed hit");
+    let buffer = presented_buffer(rt);
+    let label_width = u16::try_from(label.len()).expect("test labels fit in a terminal row");
+    let mark_x = tab.x.saturating_add(2).saturating_add(label_width);
+    assert_eq!(
+        buffer
+            .cell(Position::new(mark_x, tab.y))
+            .expect("the mark is inside the tab frame")
+            .symbol(),
+        Theme::junie().design.glyphs.get(GlyphRole::Dirty),
+        "the row carries a real nonempty item mark"
+    );
+    assert_eq!(
+        part_area(rt, Part::ICON, key),
+        None,
+        "item marks do not become separate hit targets"
+    );
 }
 
 fn routed_mouse(kind: MouseEventKind, x: u16, y: u16) -> RoutedInput {
@@ -336,6 +386,133 @@ fn default_middle_closes_the_clicked_stable_tab_without_activating_it() {
         );
     }
     assert!(rt.diagnostics().is_empty(), "{:?}", rt.diagnostics());
+}
+
+#[test]
+fn marked_rows_keep_default_middle_close_and_item_eligibility() {
+    let target = ItemKey::num(3);
+
+    for part in [Part::TAB, Part::CLOSE] {
+        let mut page = Page::new();
+        page.item_marks = true;
+        let mut rt = ready_runtime(page);
+        assert_dirty_mark(&mut rt, target, "Gamma");
+        let before = (
+            rt.app().state.active(),
+            rt.app().state.cursor(),
+            rt.app().state.first(),
+        );
+        let area = part_area(&rt, part, target).expect("default middle close keeps this hit");
+
+        let response = middle_down(&mut rt, center(area));
+
+        assert!(response.is_consumed());
+        assert_eq!(rt.app().actions, [TabsAction::Close(target)]);
+        assert_eq!(
+            (
+                rt.app().state.active(),
+                rt.app().state.cursor(),
+                rt.app().state.first()
+            ),
+            before,
+            "closing a marked row leaves the active, cursor and viewport keys unchanged"
+        );
+        assert!(rt.diagnostics().is_empty(), "{:?}", rt.diagnostics());
+    }
+
+    for close_policy in [None, Some(vec![ItemKey::num(2)])] {
+        let mut page = Page::new();
+        page.item_marks = true;
+        if let Some(keys) = close_policy {
+            page.close_keys = Some(keys);
+        } else {
+            page.closable = false;
+        }
+        let mut rt = ready_runtime(page);
+        assert_dirty_mark(&mut rt, target, "Gamma");
+        let tab = part_area(&rt, Part::TAB, target).expect("ineligible row remains visible");
+        assert_eq!(part_area(&rt, Part::CLOSE, target), None);
+        let before = (rt.app().state.active(), rt.app().state.cursor());
+
+        let response = middle_down(&mut rt, center(tab));
+
+        assert!(!response.is_consumed());
+        assert!(rt.app().actions.is_empty());
+        assert_eq!((rt.app().state.active(), rt.app().state.cursor()), before);
+        assert!(rt.diagnostics().is_empty(), "{:?}", rt.diagnostics());
+    }
+}
+
+#[test]
+fn marked_rows_keep_middle_opt_out_through_all_builder_orders() {
+    let target = ItemKey::num(3);
+
+    for order in [
+        MiddlePolicyOrder::BeforeKey,
+        MiddlePolicyOrder::BetweenKeyAndRow,
+        MiddlePolicyOrder::AfterRow,
+    ] {
+        for marks_before_middle in [true, false] {
+            let mut page = Page::new();
+            page.middle_click_closes = Some(false);
+            page.middle_policy_order = order;
+            page.item_marks = true;
+            page.item_marks_before_middle = marks_before_middle;
+            let mut rt = ready_runtime(page);
+            assert_dirty_mark(&mut rt, target, "Gamma");
+            let tab = part_area(&rt, Part::TAB, target).expect("marked tab remains pointerable");
+            let state_before = (rt.app().state.active(), rt.app().state.cursor());
+
+            let response = middle_down(&mut rt, center(tab));
+
+            assert!(
+                !response.is_consumed(),
+                "marked opt-out remains ignored for {order:?}, mapper-before={marks_before_middle}"
+            );
+            assert!(rt.app().actions.is_empty());
+            assert_eq!(
+                (rt.app().state.active(), rt.app().state.cursor()),
+                state_before
+            );
+
+            let tab = part_area(&rt, Part::TAB, target).expect("tab remains live after Middle");
+            let point = center(tab);
+            let _ = route_mouse(
+                &mut rt,
+                MouseEventKind::Down(MouseButton::Left),
+                point.x,
+                point.y,
+            );
+            let _ = route_mouse(
+                &mut rt,
+                MouseEventKind::Up(MouseButton::Left),
+                point.x,
+                point.y,
+            );
+            assert_eq!(rt.app().actions, [TabsAction::Activated(target)]);
+
+            let close = part_area(&rt, Part::CLOSE, target).expect("default close remains live");
+            let point = center(close);
+            let _ = route_mouse(
+                &mut rt,
+                MouseEventKind::Down(MouseButton::Left),
+                point.x,
+                point.y,
+            );
+            let _ = route_mouse(
+                &mut rt,
+                MouseEventKind::Up(MouseButton::Left),
+                point.x,
+                point.y,
+            );
+            assert_eq!(
+                rt.app().actions,
+                [TabsAction::Activated(target), TabsAction::Close(target)],
+                "ordinary activation and close work with marked rows for {order:?}, mapper-before={marks_before_middle}"
+            );
+            assert!(rt.diagnostics().is_empty(), "{:?}", rt.diagnostics());
+        }
+    }
 }
 
 #[test]
