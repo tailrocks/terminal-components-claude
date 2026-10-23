@@ -468,6 +468,59 @@ fn explicit_palette_contents_fingerprint_and_missing_level_fallback() {
 }
 
 #[test]
+fn public_caller_authored_mono_palette_is_used_and_other_levels_fall_back() {
+    let source = Theme::from_tokens(Theme::junie().color);
+    let source_tokens = source.color;
+    let generic = source.clone().builder().clear_capability_palettes().build();
+    assert!(generic.capability_palettes.is_none());
+
+    let mut authored_tokens = source.downgrade(ColorLevel::Mono).color;
+    assert_eq!(
+        authored_tokens,
+        source_tokens.map_colors(&mut |color| downgrade_color(color, ColorLevel::Mono))
+    );
+    authored_tokens.accent = Color::Gray;
+    // The generic luminance projection maps Junie's danger source to Black;
+    // this caller-authored value ensures the table differs from fallback.
+    authored_tokens.danger = Color::LightRed;
+
+    let authored = source
+        .clone()
+        .builder()
+        .capability_palettes(
+            CapabilityPalettes::new(source_tokens).with(ColorLevel::Mono, authored_tokens),
+        )
+        .build();
+
+    let generic_mono = generic.for_level(ColorLevel::Mono).color;
+    let authored_mono = authored.for_level(ColorLevel::Mono).color;
+    assert_eq!(
+        generic_mono,
+        source_tokens.map_colors(&mut |color| downgrade_color(color, ColorLevel::Mono))
+    );
+    assert_eq!(generic_mono.danger, Color::Black);
+    assert_eq!(authored_mono, authored_tokens);
+    assert_eq!(authored_mono.accent, Color::Gray);
+    assert_eq!(authored_mono.danger, Color::LightRed);
+    assert_ne!(authored_mono, generic_mono);
+    assert_eq!(authored.for_level(ColorLevel::Mono).color, authored_mono);
+
+    for level in [
+        ColorLevel::TrueColor,
+        ColorLevel::Ansi256,
+        ColorLevel::Ansi16,
+    ] {
+        assert_eq!(
+            authored.for_level(level).color,
+            generic.for_level(level).color,
+            "custom Mono palette changed {level:?} output"
+        );
+    }
+    assert_eq!(source.color, source_tokens);
+    assert!(source.capability_palettes.is_none());
+}
+
+#[test]
 fn direct_mutation_after_narrowing_detaches_only_that_semantic_slot() {
     let mut theme = Theme::junie().for_level(ColorLevel::Ansi256);
     theme.color.focus = Color::Indexed(99);
