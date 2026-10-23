@@ -35,7 +35,7 @@ pub mod zoom_pane;
 
 pub use accounts_detail::{
     AccountRole, AccountRow, AccountsDetail, DetailAlert, DetailHint, DetailTail,
-    paint_accounts_detail,
+    accounts_detail_summary_area, paint_accounts_detail,
 };
 pub use accounts_drawer::{
     AccountsDrawer, DrawerButton, DrawerInk, DrawerLine, DrawerMeter, DrawerTone, PaneChrome,
