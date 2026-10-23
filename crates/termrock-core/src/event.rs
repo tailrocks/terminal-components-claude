@@ -12,6 +12,59 @@ pub enum Input {
     Tick,
 }
 
+/// Terminal input that preserves supported pointer buttons without changing
+/// the existing [`Input`] mouse contract.
+#[non_exhaustive]
+#[derive(Clone, PartialEq, Eq)]
+pub enum RoutedInput {
+    /// An input represented by the established [`Input`] API.
+    Input(Input),
+    /// A middle-button press at the supplied terminal position.
+    MiddleClick { pos: Position, mods: KeyModifiers },
+}
+
+impl From<Input> for RoutedInput {
+    fn from(input: Input) -> Self {
+        Self::Input(input)
+    }
+}
+
+impl fmt::Debug for RoutedInput {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Input(input) => f.debug_tuple("Input").field(input).finish(),
+            Self::MiddleClick { pos, mods } => f
+                .debug_struct("MiddleClick")
+                .field("pos", pos)
+                .field("mods", mods)
+                .finish(),
+        }
+    }
+}
+
+impl RoutedInput {
+    /// Decode one Crossterm event while retaining middle-button presses.
+    ///
+    /// Every event other than middle-button Down uses the established
+    /// [`Input::from_crossterm`] decoder unchanged.
+    #[cfg(feature = "crossterm")]
+    pub fn from_crossterm(ev: ratatui_crossterm::crossterm::event::Event) -> Option<Self> {
+        use ratatui_crossterm::crossterm::event::{Event, MouseButton, MouseEvent, MouseEventKind};
+        match ev {
+            Event::Mouse(MouseEvent {
+                kind: MouseEventKind::Down(MouseButton::Middle),
+                column,
+                row,
+                modifiers,
+            }) => Some(Self::MiddleClick {
+                pos: Position::new(column, row),
+                mods: modifiers.into(),
+            }),
+            other => Input::from_crossterm(other).map(Self::Input),
+        }
+    }
+}
+
 impl fmt::Debug for Input {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -285,6 +338,88 @@ mod tests {
             )),
             None
         );
+    }
+
+    #[test]
+    #[cfg(feature = "crossterm")]
+    fn routed_input_preserves_only_middle_down_beyond_legacy_decoder() {
+        let modifiers = KeyModifiers::SHIFT | KeyModifiers::ALT;
+        let down = mouse(MouseEventKind::Down(MouseButton::Middle), modifiers);
+        assert_eq!(Input::from_crossterm(down.clone()), None);
+        assert_eq!(
+            RoutedInput::from_crossterm(down),
+            Some(RoutedInput::MiddleClick {
+                pos: Position::new(3, 4),
+                mods: modifiers,
+            })
+        );
+        for kind in [
+            MouseEventKind::Up(MouseButton::Middle),
+            MouseEventKind::Drag(MouseButton::Middle),
+        ] {
+            let event = mouse(kind, modifiers);
+            assert_eq!(
+                RoutedInput::from_crossterm(event.clone()),
+                Input::from_crossterm(event).map(RoutedInput::Input)
+            );
+        }
+    }
+
+    #[test]
+    #[cfg(feature = "crossterm")]
+    fn routed_decoder_delegates_every_legacy_event_unchanged() {
+        let mouse = |kind| {
+            Event::Mouse(MouseEvent {
+                kind,
+                column: 13,
+                row: 7,
+                modifiers: KeyModifiers::CONTROL.into(),
+            })
+        };
+        let key = |kind| {
+            Event::Key(KeyEvent {
+                code: KeyCode::Char('x').into(),
+                modifiers: KeyModifiers::ALT.into(),
+                kind,
+                state: KeyEventState::NONE,
+            })
+        };
+        let events = [
+            key(KeyEventKind::Press),
+            key(KeyEventKind::Repeat),
+            key(KeyEventKind::Release),
+            mouse(MouseEventKind::Down(MouseButton::Left)),
+            mouse(MouseEventKind::Up(MouseButton::Left)),
+            mouse(MouseEventKind::Drag(MouseButton::Left)),
+            mouse(MouseEventKind::Down(MouseButton::Right)),
+            mouse(MouseEventKind::Up(MouseButton::Right)),
+            mouse(MouseEventKind::Drag(MouseButton::Right)),
+            mouse(MouseEventKind::Moved),
+            mouse(MouseEventKind::ScrollUp),
+            mouse(MouseEventKind::ScrollDown),
+            mouse(MouseEventKind::ScrollLeft),
+            mouse(MouseEventKind::ScrollRight),
+            mouse(MouseEventKind::Up(MouseButton::Middle)),
+            mouse(MouseEventKind::Drag(MouseButton::Middle)),
+            Event::Resize(81, 24),
+            Event::Paste("owned paste".to_owned()),
+            Event::FocusGained,
+            Event::FocusLost,
+        ];
+        for event in events {
+            let expected = Input::from_crossterm(event.clone()).map(RoutedInput::Input);
+            assert_eq!(RoutedInput::from_crossterm(event), expected);
+        }
+    }
+
+    #[test]
+    fn routed_debug_keeps_paste_payload_redacted() {
+        let debug = format!(
+            "{:?}",
+            RoutedInput::Input(Input::Paste("swordfish".to_owned()))
+        );
+        assert!(debug.contains("len"));
+        assert!(!debug.contains("swordfish"));
     }
 
     #[test]

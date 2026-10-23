@@ -17,7 +17,7 @@ use crate::action::ActionKey;
 use crate::capture::Capture;
 use crate::cursor;
 use crate::diagnostics::Diagnostic;
-use crate::event::{Axis, Input, Key, KeyCode, KeyModifiers, Mouse, MouseKind};
+use crate::event::{Axis, Input, Key, KeyCode, KeyModifiers, Mouse, MouseKind, RoutedInput};
 use crate::focus::{FocusRing, FocusState, ScopeId};
 use crate::hit::{Hit, RegionKind, ScrollRouteKey, ScrollRoutePolicy, TextDragRegion};
 use crate::id::{Id, Part, PartRef};
@@ -458,6 +458,22 @@ pub struct PendingInput(Input);
 impl PendingInput {
     pub fn into_input(self) -> Input {
         self.0
+    }
+}
+
+/// An input rejected until the runtime has a settled, presented frame.
+pub struct PendingRoutedInput(RoutedInput);
+
+impl PendingRoutedInput {
+    /// Recover the exact routed input for a later retry.
+    pub fn into_routed_input(self) -> RoutedInput {
+        self.0
+    }
+}
+
+impl core::fmt::Debug for PendingRoutedInput {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str("PendingRoutedInput { event: <redacted> }")
     }
 }
 
@@ -1299,6 +1315,25 @@ impl<A: App> Runtime<A> {
         }
     }
 
+    fn enqueue_middle_click(&mut self, pos: Position, mods: KeyModifiers) {
+        self.inter.pointer_position = Some(pos);
+        let Some(hit) = self.last.registry.hit(pos) else {
+            return;
+        };
+        if !self.deliverable(hit) {
+            return;
+        }
+        let area = self.region_area(hit);
+        self.intents.pointer(
+            hit.owner,
+            Phase::Middle,
+            hit.part,
+            pos,
+            Self::local_in(area, pos),
+            mods,
+        );
+    }
+
     fn pointer_moved(&mut self, m: Mouse, top: LayerId, hover_was_suppressed: bool) {
         let live = self.last.registry.hit_live(m.pos, top);
         let previous = self.inter.hover;
@@ -2105,8 +2140,24 @@ impl<A: App> Runtime<A> {
         if !self.bootstrapped || !self.presented || self.needs_settle() {
             return Err(PendingInput(input));
         }
+        Ok(self.handle_ready(RoutedInput::Input(input)))
+    }
+
+    /// Handle one decoded terminal event, including supported middle presses.
+    /// Inputs are retained unchanged when the runtime is not ready.
+    pub fn handle_routed(
+        &mut self,
+        input: RoutedInput,
+    ) -> Result<Response<()>, PendingRoutedInput> {
+        if !self.bootstrapped || !self.presented || self.needs_settle() {
+            return Err(PendingRoutedInput(input));
+        }
+        Ok(self.handle_ready(input))
+    }
+
+    fn handle_ready(&mut self, input: RoutedInput) -> Response<()> {
         let activation_key = match &input {
-            Input::Key(key) if key.mods.is_empty() => match key.code {
+            RoutedInput::Input(Input::Key(key)) if key.mods.is_empty() => match key.code {
                 KeyCode::Enter => Some(ActivationKey::Enter),
                 KeyCode::Char(' ') => Some(ActivationKey::Space),
                 _ => None,
@@ -2133,19 +2184,19 @@ impl<A: App> Runtime<A> {
         let mut wheel_route_attempt = None;
         let mut update_cause = UpdateCause::Event;
         match &input {
-            Input::Resize(w, h) => {
+            RoutedInput::Input(Input::Resize(w, h)) => {
                 self.resize(*w, *h);
 
                 let r = self.run_update(None, UpdateCause::Event, activation_key)
                     | Response::changed().relayout();
                 drop(input);
-                return Ok(self.finish(r));
+                return self.finish(r);
             }
-            Input::Tick => {
+            RoutedInput::Input(Input::Tick) => {
                 update_cause = UpdateCause::Tick;
                 self.enqueue_due_text_drag();
             }
-            Input::Key(k) => {
+            RoutedInput::Input(Input::Key(k)) => {
                 let swallows = self.swallows_typing() || self.last.typing.fallback.is_some();
                 let scoped = self
                     .last
@@ -2157,16 +2208,16 @@ impl<A: App> Runtime<A> {
                 {
                     let r = self.run_update(Some(cmd), UpdateCause::Event, activation_key);
                     drop(input);
-                    return Ok(self.finish(r));
+                    return self.finish(r);
                 }
                 key_input = Some(*k);
                 self.enqueue_key(*k);
             }
-            Input::Mouse(m) => {
+            RoutedInput::Input(Input::Mouse(m)) => {
                 self.enqueue_mouse(*m);
                 wheel_route_attempt = self.services.pending_wheel_route.take();
             }
-            Input::Paste(s) => {
+            RoutedInput::Input(Input::Paste(s)) => {
                 let consumed = crate::test_clock_enabled()
                     && crate::parse_test_clock_step(s)
                         .is_some_and(|step_ms| self.app.accept_paused_clock_step(step_ms));
@@ -2174,12 +2225,18 @@ impl<A: App> Runtime<A> {
                     self.intents.paste(owner, s.as_str());
                 }
             }
+            RoutedInput::MiddleClick { pos, mods } => {
+                self.enqueue_middle_click(*pos, *mods);
+            }
+            _ => {}
         }
         // A key event belongs to the input scope that was active when it
         // arrived. An update may open/close a layer or move focus; bubble
         // fallback for the same physical key must not then act on that new
         // scope.
         let input_top_layer = self.services.layers.top();
+        let swallow_middle =
+            matches!(&input, RoutedInput::MiddleClick { .. }) && input_top_layer != LayerId::PAGE;
         let input_focus = self.focus.current();
         let wheel_route_guard = wheel_route_attempt.map(|_| WheelRouteGuard {
             focus: self.focus.current(),
@@ -2195,6 +2252,9 @@ impl<A: App> Runtime<A> {
             self.services.wheel_route_invalidated = false;
         }
         let mut r = self.run_update(None, update_cause, activation_key);
+        if swallow_middle {
+            r |= Response::consumed();
+        }
         if let (Some(attempt), Some(guard)) = (wheel_route_attempt, wheel_route_guard) {
             r = self.service_ignored_wheel_route(attempt, guard, r);
         }
@@ -2270,7 +2330,7 @@ impl<A: App> Runtime<A> {
             }
         }
         drop(input);
-        Ok(self.finish(r))
+        self.finish(r)
     }
 
     fn scoped_bubble_bindings(
