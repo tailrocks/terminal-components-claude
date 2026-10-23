@@ -125,6 +125,25 @@ fn paint_clipped_meta(
     }
 }
 
+/// Preserves the old one-column compact-page metadata admission at the exact
+/// title-plus-four boundary while keeping the shared semantic metadata style.
+/// The general [`frame`] gate intentionally remains stricter for every other
+/// page.
+pub(super) fn paint_boundary_meta(ui: &mut Ui<'_>, area: Rect, title: &str, meta: &str) {
+    let title_width = width(title);
+    if area.is_empty() || meta.is_empty() || area.width != title_width.saturating_add(4) {
+        return;
+    }
+    let meta_area = Rect {
+        x: area.x.saturating_add(title_width).saturating_add(2),
+        width: 1,
+        height: 1,
+        ..area
+    };
+    let style = heading_style(ui, Family::LIST, Part::META);
+    paint_clipped_meta(ui, meta_area, meta, style);
+}
+
 /// The frozen capsule seam ink.
 ///
 /// The theme resolves the library's tab rule to `border_subtle` (`#262626`),

@@ -1,11 +1,51 @@
 use std::collections::HashSet;
 
+use ratatui::buffer::CellDiffOption;
+use ratatui::layout::Position;
+use ratatui::style::Style;
+use showcase_demos::pages::{Page as DemoPage, progress::ProgressPage, settings::SettingsPage};
 use showcase_ui::{App, PageId};
 use termrock::{
-    Color, ColorLevel, Family, Modifier, Part, Role, StateFlags, StylePatch, Surface, Theme,
-    Variant, width,
+    App as TermrockApp, Color, ColorLevel, Cx, Family, Modifier, Part, Rect, Response, Role,
+    StateFlags, StylePatch, Surface, Theme, Ui, Variant, width,
 };
 use termrock_test_support::Harness;
+
+struct DirectPage<P> {
+    page: P,
+    area: Rect,
+}
+
+impl<P: DemoPage> TermrockApp for DirectPage<P> {
+    fn update(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
+        Response::ignored()
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        let (buffer, _) = ui.raw();
+        let full = *buffer.area();
+        buffer.set_style(
+            full,
+            Style::default()
+                .fg(Color::Rgb(201, 17, 33))
+                .bg(Color::Rgb(21, 45, 79))
+                .underline_color(Color::Rgb(101, 111, 121))
+                .add_modifier(Modifier::BOLD | Modifier::ITALIC),
+        );
+        for pos in full.positions() {
+            let cell = buffer.cell_mut(pos).expect("sentinel cell is in bounds");
+            cell.set_symbol("X");
+            cell.set_diff_option(CellDiffOption::AlwaysUpdate);
+        }
+        for pos in self.area.positions() {
+            buffer
+                .cell_mut(pos)
+                .expect("page cell is in bounds")
+                .reset();
+        }
+        self.page.draw(ui, self.area);
+    }
+}
 
 #[derive(Clone, Copy)]
 struct Heading {
@@ -398,4 +438,380 @@ fn narrow_chrome_heading_keeps_middle_dot_and_clips_with_styled_ellipsis() {
         "trailing cell remains outside metadata clip"
     );
     assert_eq!(harness.cell(meta_x, y).symbol(), "B");
+}
+
+fn direct_page_harness<P: DemoPage>(
+    page: P,
+    theme: Theme,
+    color: ColorLevel,
+    area: Rect,
+) -> Harness<DirectPage<P>> {
+    let width = area.right().saturating_add(2);
+    let height = area.bottom().saturating_add(2);
+    Harness::new(DirectPage { page, area }, theme, width, height).with_color(color)
+}
+
+fn rect_contains_rect(outer: Rect, inner: Rect) -> bool {
+    inner.x >= outer.x
+        && inner.y >= outer.y
+        && inner.right() <= outer.right()
+        && inner.bottom() <= outer.bottom()
+}
+
+fn assert_outside_sentinels<A: TermrockApp>(harness: &Harness<A>, area: Rect, label: &str) {
+    for y in 0..harness.buffer().area().height {
+        for x in 0..harness.buffer().area().width {
+            let pos = Position::new(x, y);
+            if area.contains(pos) {
+                continue;
+            }
+            let cell = harness.cell(x, y);
+            assert_eq!(cell.symbol(), "X", "{label}: outside symbol at {x},{y}");
+            assert_eq!(cell.fg, Color::Rgb(201, 17, 33), "{label}: outside fg");
+            assert_eq!(cell.bg, Color::Rgb(21, 45, 79), "{label}: outside bg");
+            assert_eq!(
+                cell.underline_color,
+                Color::Rgb(101, 111, 121),
+                "{label}: outside underline"
+            );
+            assert_eq!(
+                cell.modifier,
+                Modifier::BOLD | Modifier::ITALIC,
+                "{label}: outside modifiers"
+            );
+            assert_eq!(
+                cell.diff_option,
+                CellDiffOption::AlwaysUpdate,
+                "{label}: outside diff option"
+            );
+        }
+    }
+}
+
+fn assert_area_boundaries<A: TermrockApp>(harness: &mut Harness<A>, area: Rect, label: &str) {
+    for entry in harness.ring().entries() {
+        assert!(
+            rect_contains_rect(area, entry.area),
+            "{label}: focus entry {:?} escaped {:?}",
+            entry.area,
+            area
+        );
+    }
+    if let Some(cursor) = harness.cursor() {
+        assert!(area.contains(cursor), "{label}: cursor escaped {area:?}");
+    }
+    assert_outside_sentinels(harness, area, label);
+    let bounds = *harness.buffer().area();
+    let center = Position::new(
+        area.x.saturating_add(area.width / 2),
+        area.y.saturating_add(area.height / 2),
+    );
+    let candidates = [
+        area.x.checked_sub(1).map(|x| Position::new(x, center.y)),
+        (area.right() < bounds.right()).then(|| Position::new(area.right(), center.y)),
+        area.y.checked_sub(1).map(|y| Position::new(center.x, y)),
+        (area.bottom() < bounds.bottom()).then(|| Position::new(center.x, area.bottom())),
+    ];
+    let focus_before = harness.focus();
+    for pos in candidates.into_iter().flatten() {
+        assert!(
+            !area.contains(pos),
+            "{label}: neighbor probe must stay outside the page"
+        );
+        let response = harness.click(pos.x, pos.y);
+        assert!(
+            !response.is_consumed(),
+            "{label}: outside click at {},{} was consumed",
+            pos.x,
+            pos.y
+        );
+        assert_eq!(
+            harness.focus(),
+            focus_before,
+            "{label}: outside focus changed"
+        );
+    }
+}
+
+fn assert_default_meta_cell<A: TermrockApp>(
+    harness: &Harness<A>,
+    x: u16,
+    y: u16,
+    symbol: &str,
+    meta_fg: Color,
+    canvas: Color,
+    label: &str,
+) {
+    let cell = harness.cell(x, y);
+    assert_eq!(cell.symbol(), symbol, "{label}: metadata glyph");
+    assert_eq!(cell.fg, meta_fg, "{label}: semantic LIST/META fg");
+    assert_eq!(cell.bg, canvas, "{label}: active canvas surface");
+    assert_eq!(cell.underline_color, Color::Reset, "{label}: underline");
+    assert!(
+        !cell.modifier.contains(Modifier::BOLD),
+        "{label}: metadata weight"
+    );
+}
+
+fn assert_resolved_meta_cell<A: TermrockApp>(
+    harness: &Harness<A>,
+    x: u16,
+    y: u16,
+    theme: &Theme,
+    canvas: Color,
+    label: &str,
+) {
+    let expected = theme.resolve(
+        Family::LIST,
+        Variant::DEFAULT,
+        Part::META,
+        StateFlags::empty(),
+        Surface::Canvas,
+    );
+    let cell = harness.cell(x, y);
+    assert_eq!(cell.symbol(), "…", "{label}: metadata glyph");
+    assert_eq!(cell.fg, expected.style.fg.unwrap(), "{label}: semantic fg");
+    assert_eq!(
+        cell.bg,
+        expected.style.bg.unwrap_or(canvas),
+        "{label}: Reset inherits active surface"
+    );
+    assert_eq!(
+        cell.underline_color,
+        expected.style.underline_color.unwrap(),
+        "{label}: semantic underline"
+    );
+    assert!(
+        cell.modifier.contains(Modifier::ITALIC),
+        "{label}: italic override"
+    );
+    assert!(
+        !cell.modifier.contains(Modifier::BOLD),
+        "{label}: not title weight"
+    );
+}
+
+#[test]
+fn progress_compact_page_preserves_tiny_metadata_admission() {
+    for (color, label, _, meta_fg, canvas) in LEVELS {
+        for (origin_x, origin_y) in [(0, 0), (7, 3)] {
+            for width in [11, 12, 13] {
+                let area = Rect::new(origin_x, origin_y, width, 16);
+                let mut harness =
+                    direct_page_harness(ProgressPage::new(), Theme::junie(), color, area);
+                let title = harness.cell(origin_x, origin_y);
+                assert_eq!(title.symbol(), "P", "progress {width} {label}: title");
+                assert_eq!(
+                    harness.cell(origin_x + 8, origin_y).symbol(),
+                    " ",
+                    "progress {width} {label}: title/meta gap"
+                );
+                let meta_x = origin_x + 10;
+                match width {
+                    11 => assert_eq!(harness.cell(meta_x, origin_y).symbol(), " "),
+                    12 => assert_default_meta_cell(
+                        &harness,
+                        meta_x,
+                        origin_y,
+                        "…",
+                        meta_fg,
+                        canvas,
+                        &format!("progress width12 {label}"),
+                    ),
+                    13 => {
+                        assert_default_meta_cell(
+                            &harness,
+                            meta_x,
+                            origin_y,
+                            "D",
+                            meta_fg,
+                            canvas,
+                            &format!("progress width13 {label}"),
+                        );
+                        assert_default_meta_cell(
+                            &harness,
+                            meta_x + 1,
+                            origin_y,
+                            "…",
+                            meta_fg,
+                            canvas,
+                            &format!("progress width13 ellipsis {label}"),
+                        );
+                    }
+                    _ => unreachable!(),
+                }
+                assert_eq!(
+                    harness.cell(area.right() - 1, origin_y).symbol(),
+                    " ",
+                    "progress {width} {label}: right edge stays blank"
+                );
+                assert_eq!(
+                    harness.cell(origin_x + 2, origin_y + 5).symbol(),
+                    "L",
+                    "progress {width} {label}: compact body remains at its old row"
+                );
+                assert_area_boundaries(
+                    &mut harness,
+                    area,
+                    &format!("progress {width} {label} at {origin_x},{origin_y}"),
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn settings_compact_page_preserves_tiny_metadata_admission() {
+    for (color, label, _, meta_fg, canvas) in LEVELS {
+        for (origin_x, origin_y) in [(0, 0), (7, 3)] {
+            for width in [19, 20, 21] {
+                let area = Rect::new(origin_x, origin_y, width, 16);
+                let mut harness =
+                    direct_page_harness(SettingsPage::new(), Theme::junie(), color, area);
+                let title = harness.cell(origin_x, origin_y);
+                assert_eq!(title.symbol(), "P", "settings {width} {label}: title");
+                assert_eq!(
+                    harness.cell(origin_x + 16, origin_y).symbol(),
+                    " ",
+                    "settings {width} {label}: title/meta gap"
+                );
+                let meta_x = origin_x + 18;
+                match width {
+                    19 => assert_eq!(harness.cell(meta_x, origin_y).symbol(), " "),
+                    20 => assert_default_meta_cell(
+                        &harness,
+                        meta_x,
+                        origin_y,
+                        "…",
+                        meta_fg,
+                        canvas,
+                        &format!("settings width20 {label}"),
+                    ),
+                    21 => {
+                        assert_default_meta_cell(
+                            &harness,
+                            meta_x,
+                            origin_y,
+                            "C",
+                            meta_fg,
+                            canvas,
+                            &format!("settings width21 {label}"),
+                        );
+                        assert_default_meta_cell(
+                            &harness,
+                            meta_x + 1,
+                            origin_y,
+                            "…",
+                            meta_fg,
+                            canvas,
+                            &format!("settings width21 ellipsis {label}"),
+                        );
+                    }
+                    _ => unreachable!(),
+                }
+                assert_eq!(
+                    harness.cell(area.right() - 1, origin_y).symbol(),
+                    " ",
+                    "settings {width} {label}: right edge stays blank"
+                );
+                assert_eq!(
+                    harness.cell(origin_x + 1, origin_y + 2).symbol(),
+                    "P",
+                    "settings {width} {label}: tabs body remains at its old row"
+                );
+                assert!(
+                    harness.text().contains("Playground"),
+                    "settings {width} {label}: section tabs remain visible"
+                );
+                assert_area_boundaries(
+                    &mut harness,
+                    area,
+                    &format!("settings {width} {label} at {origin_x},{origin_y}"),
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn compact_boundary_metadata_keeps_custom_semantic_and_reset_channels() {
+    for (color, label, _, _, canvas) in LEVELS {
+        let theme = custom_heading_theme(color);
+        for (origin_x, origin_y) in [(0, 0), (7, 3)] {
+            let progress_area = Rect::new(origin_x, origin_y, 12, 16);
+            let mut progress =
+                direct_page_harness(ProgressPage::new(), theme.clone(), color, progress_area);
+            assert_resolved_meta_cell(
+                &progress,
+                origin_x + 10,
+                origin_y,
+                &theme,
+                canvas,
+                &format!("progress custom {label}"),
+            );
+            assert_area_boundaries(
+                &mut progress,
+                progress_area,
+                &format!("progress custom {label} at {origin_x},{origin_y}"),
+            );
+
+            let settings_area = Rect::new(origin_x, origin_y, 20, 16);
+            let mut settings =
+                direct_page_harness(SettingsPage::new(), theme.clone(), color, settings_area);
+            assert_resolved_meta_cell(
+                &settings,
+                origin_x + 18,
+                origin_y,
+                &theme,
+                canvas,
+                &format!("settings custom {label}"),
+            );
+            assert_area_boundaries(
+                &mut settings,
+                settings_area,
+                &format!("settings custom {label} at {origin_x},{origin_y}"),
+            );
+        }
+    }
+}
+
+fn assert_short_page<P: DemoPage>(
+    make_page: impl Fn() -> P,
+    label: &str,
+    width: u16,
+    meta_x: u16,
+    title: &str,
+) {
+    let area = Rect::new(7, 3, width, 1);
+    let harness = direct_page_harness(make_page(), Theme::junie(), ColorLevel::TrueColor, area);
+    let cell = harness.cell(area.x + meta_x, area.y);
+    assert_eq!(
+        cell.symbol(),
+        "…",
+        "{label} short row keeps clipped metadata"
+    );
+    assert_eq!(
+        harness.cell(area.x + width - 1, area.y).symbol(),
+        " ",
+        "{label} short row keeps its trailing blank"
+    );
+    assert_eq!(harness.cell(area.x, area.y).symbol(), &title[..1]);
+    assert_outside_sentinels(&harness, area, &format!("{label} short row"));
+
+    let empty = Rect::new(7, 3, 0, 16);
+    let empty_harness =
+        direct_page_harness(make_page(), Theme::junie(), ColorLevel::TrueColor, empty);
+    assert_outside_sentinels(&empty_harness, empty, &format!("{label} empty rect"));
+}
+
+fn assert_empty_page<P: DemoPage>(make_page: impl Fn() -> P, label: &str) {
+    let empty = Rect::new(7, 3, 0, 16);
+    let harness = direct_page_harness(make_page(), Theme::junie(), ColorLevel::TrueColor, empty);
+    assert_outside_sentinels(&harness, empty, &format!("{label} empty rect"));
+}
+
+#[test]
+fn compact_metadata_boundaries_handle_short_and_empty_page_rectangles() {
+    assert_short_page(ProgressPage::new, "progress", 12, 10, "Progress");
+    assert_empty_page(SettingsPage::new, "settings");
 }
