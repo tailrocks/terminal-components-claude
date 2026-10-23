@@ -849,31 +849,27 @@ impl Page for SettingsPage {
             "Project settings",
             "Composed: tabs, form, editable table, list, dialogs",
             |ui, body| {
-                let member_tab = active_tab(&self.tabs) == 1;
-                Tabs::new(TAB).draw(ui, Rect { height: 2, ..body }, &self.tabs, TABS);
-                if member_tab {
-                    member_list().draw(
-                        ui,
-                        Rect {
-                            y: body.y.saturating_add(3),
-                            height: 12,
-                            ..body
-                        },
-                        &self.member_state,
-                        &self.members,
-                    );
-                    let action_row = Rect {
-                        y: body.y.saturating_add(16),
-                        height: 1,
-                        ..body
-                    };
-                    invite_button().draw(ui, action_row);
-                    remove_button(!self.members.is_empty()).draw(ui, action_row);
-                    paint_member_summary(ui, body, &self.members);
+                if body.is_empty() {
+                    return;
                 }
-                if !member_tab {
-                    paint_general(ui, body, active_tab(&self.tabs));
-                }
+                ui.with_area(body, |ui| {
+                    let member_tab = active_tab(&self.tabs) == 1;
+                    if let Some(tabs_area) = row_band(body, 0, 2) {
+                        Tabs::new(TAB).draw(ui, tabs_area, &self.tabs, TABS);
+                    }
+                    if member_tab {
+                        if let Some(list_area) = row_band(body, 3, 12) {
+                            member_list().draw(ui, list_area, &self.member_state, &self.members);
+                        }
+                        if let Some(action_row) = row_band(body, 16, 1) {
+                            invite_button().draw(ui, action_row);
+                            remove_button(!self.members.is_empty()).draw(ui, action_row);
+                        }
+                        paint_member_summary(ui, body, &self.members);
+                    } else {
+                        paint_general(ui, body, active_tab(&self.tabs));
+                    }
+                });
             },
         );
         paint_boundary_meta(
