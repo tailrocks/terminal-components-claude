@@ -8,7 +8,7 @@ use ratatui_core::style::Modifier;
 use crate::id::{Id, ItemKey, Part};
 use crate::layout::{Track, distribute_into};
 use crate::response::StateFlags;
-use crate::text::{Span, width};
+use crate::text::{Span, truncate_middle, width};
 use crate::theme::{
     Align, CursorStyle, Family, FgStep, GlyphRole, Role, Slot, StylePatch, Variant,
 };
@@ -933,6 +933,43 @@ impl<'u> RowUi<'u> {
         )
         .style;
         self.label_in(s, st);
+    }
+
+    /// Paint a middle-truncated label in the remaining row slot.
+    ///
+    /// The slot leaves its final cell untouched and is padded with the same
+    /// resolved label style as the text. A positive slot is fully consumed,
+    /// including when `text` is empty. A zero-width slot is a no-op. Truncation
+    /// follows [`truncate_middle`], including its narrow-slot behavior.
+    pub fn label_middle(&mut self, text: &str, patch: &StylePatch) {
+        let remaining = self.remaining();
+        let slot_width = remaining.width.saturating_sub(1);
+        if slot_width == 0 {
+            return;
+        }
+
+        let patch = self
+            .patch_for(Part::LABEL)
+            .map_or(*patch, |forwarded| forwarded.merge(*patch));
+        let style = resolve_row_part(
+            &mut self.ui,
+            self.family,
+            self.variant,
+            self.flags,
+            Part::LABEL,
+            Some(patch),
+            self.cursor_style,
+        )
+        .style;
+        let slot = Rect {
+            width: slot_width,
+            ..remaining
+        };
+        let truncated = truncate_middle(text, slot_width);
+
+        self.ui.fill(slot, style);
+        let _ = self.ui.paint_str(slot, &truncated, style);
+        self.left = self.left.saturating_add(slot_width);
     }
 
     fn label_in(&mut self, s: &str, st: PaintStyle) {
