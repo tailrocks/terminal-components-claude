@@ -28,6 +28,29 @@ pub enum ScrollbarGutter {
     Stable,
 }
 
+/// Format the currently visible logical row range of an overflowing scroll state.
+///
+/// The range is one-based for display and uses an inclusive end, so a viewport
+/// of 13 rows at offset 11 is shown as `12–24 of 120`. This helper only reads
+/// the model; it does not apply pending layout, reveal rows, or alter a grab.
+///
+/// Returns an empty string when the content fits or the viewport has no rows.
+pub fn position_label(scroll: &ScrollState) -> String {
+    if !scroll.overflows() {
+        return String::new();
+    }
+    let visible = scroll.visible_range();
+    if visible.is_empty() {
+        return String::new();
+    }
+    format!(
+        "{}–{} of {}",
+        visible.start.saturating_add(1),
+        visible.end,
+        scroll.content_len()
+    )
+}
+
 pub struct ScrollRegion<'a> {
     id: Id,
     family: Family,
