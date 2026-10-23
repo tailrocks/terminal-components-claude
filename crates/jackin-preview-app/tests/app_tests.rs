@@ -15,13 +15,320 @@
     clippy::expect_used
 )]
 
-use termrock::{GlyphRole, KeyCode, MouseKind, Part, PartRef, Theme};
+use termrock::{
+    ActionKey, App as TuiApp, Cx, Diagnostic, DismissReason, FrameRead, GlyphRole, KeyCode,
+    LayerEvent, LayerOpening, LayerSpec, MouseKind, Part, PartRef, Position, Response, Theme, Ui,
+    UpdateCause,
+};
 
 use jackin_preview_app::Route;
 use jackin_preview_app::app::{ACCOUNT_FORM_LAYER, ACCOUNTS_LIST};
-use jackin_preview_app::{Motion, Scenario};
+use jackin_preview_app::domain::{Lifecycle, QuotaStatus};
+use jackin_preview_app::{App, Motion, Scenario};
 mod support;
 use support::H;
+use termrock::runtime::LayerEventReceipt;
+use termrock_test_support::Harness;
+
+const HANDOFF_TOOLTIP: termrock::Id = termrock::Id::root("jackin.test.accounts-usage-tooltip");
+
+#[derive(Debug, Clone, Copy)]
+struct TooltipHandoff {
+    from: Route,
+    to: Route,
+    owner: termrock::Id,
+    open_tooltip: bool,
+    append_account_before_settle: bool,
+    reorder_and_append_account_before_settle: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct HandoffAppCall {
+    cause: UpdateCause,
+    command: Option<ActionKey>,
+    route_before: Route,
+    route_after: Route,
+    selected_before: Option<String>,
+    selected_after: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct HandoffListSnapshot {
+    selected_id: Option<String>,
+    cursor: Option<termrock::ItemKey>,
+    chosen: Option<termrock::ItemKey>,
+    content_len: usize,
+    list: termrock::ListState,
+}
+
+#[derive(Debug)]
+struct TooltipHandoffApp {
+    inner: App,
+    handoff: TooltipHandoff,
+    opening: Option<LayerOpening>,
+    transition_recorded: bool,
+    receipts: Vec<LayerEventReceipt>,
+    account_ids_before_settle: Option<Vec<String>>,
+    account_ids_after_settle_mutation: Option<Vec<String>>,
+    outgoing_owner_focused_before_event: Option<bool>,
+    outgoing_list_before_event: Option<HandoffListSnapshot>,
+    outgoing_account_ids_before_event: Option<Vec<String>>,
+    outgoing_source_row_count_before_event: Option<usize>,
+    source_mutation_after_event: Option<(UpdateCause, Route, Route)>,
+    source_row_count_after_mutation: Option<usize>,
+    list_before_settle: Option<HandoffListSnapshot>,
+    destination_selected_id_at_settle: Option<String>,
+    list_content_len_before_settle: Option<usize>,
+    list_content_len_after_settle: Option<usize>,
+    calls: Vec<HandoffAppCall>,
+}
+
+impl TooltipHandoffApp {
+    fn new(inner: App, handoff: TooltipHandoff) -> Self {
+        Self {
+            inner,
+            handoff,
+            opening: None,
+            transition_recorded: false,
+            receipts: Vec::new(),
+            account_ids_before_settle: None,
+            account_ids_after_settle_mutation: None,
+            outgoing_owner_focused_before_event: None,
+            outgoing_list_before_event: None,
+            outgoing_account_ids_before_event: None,
+            outgoing_source_row_count_before_event: None,
+            source_mutation_after_event: None,
+            source_row_count_after_mutation: None,
+            list_before_settle: None,
+            list_content_len_before_settle: None,
+            destination_selected_id_at_settle: None,
+            list_content_len_after_settle: None,
+            calls: Vec::new(),
+        }
+    }
+
+    fn capture_before_route_event(&mut self, cx: &Cx<'_>) {
+        self.outgoing_owner_focused_before_event = Some(
+            cx.state(self.handoff.owner)
+                .contains(termrock::StateFlags::FOCUSED),
+        );
+        self.outgoing_list_before_event = Some(self.list_snapshot());
+        self.outgoing_account_ids_before_event = Some(self.sorted_account_ids());
+        self.outgoing_source_row_count_before_event = Some(account_tree_row_count(&self.inner));
+    }
+
+    fn list_snapshot(&self) -> HandoffListSnapshot {
+        HandoffListSnapshot {
+            selected_id: self.inner.accounts.selected_id.clone(),
+            cursor: self.inner.accounts.list.cursor(),
+            chosen: self.inner.accounts.list.chosen(),
+            content_len: self.inner.accounts.list.scroll().content_len(),
+            list: self.inner.accounts.list.clone(),
+        }
+    }
+
+    fn sorted_account_ids(&self) -> Vec<String> {
+        self.inner
+            .world
+            .accounts
+            .sorted()
+            .into_iter()
+            .map(|account| account.id.clone())
+            .collect()
+    }
+
+    fn capture_list_before_source_mutation(&mut self) {
+        self.list_before_settle = Some(self.list_snapshot());
+        self.list_content_len_before_settle = Some(self.inner.accounts.list.scroll().content_len());
+        self.account_ids_before_settle = Some(self.sorted_account_ids());
+    }
+
+    fn insert_later_provider_account(&mut self) {
+        let mut added = self
+            .inner
+            .world
+            .accounts
+            .get("acct-codex-experiments")
+            .expect("OpenAI fixture account in the later provider section")
+            .clone();
+        added.id = "acct-codex-handoff-probe".into();
+        added.display_name = "Zulu handoff probe".into();
+        added.default_for_provider = false;
+        self.inner.world.accounts.insert(added);
+    }
+
+    fn append_account_before_settle(&mut self) {
+        self.capture_list_before_source_mutation();
+        self.insert_later_provider_account();
+        self.account_ids_after_settle_mutation = Some(self.sorted_account_ids());
+        self.source_row_count_after_mutation = Some(account_tree_row_count(&self.inner));
+    }
+
+    fn reorder_and_append_account_before_settle(&mut self) {
+        self.capture_list_before_source_mutation();
+        self.inner
+            .world
+            .accounts
+            .get_mut("acct-claude-archive")
+            .expect("archive fixture account")
+            .display_name = "ZZZ archived profile".into();
+        self.insert_later_provider_account();
+        self.account_ids_after_settle_mutation = Some(self.sorted_account_ids());
+        self.source_row_count_after_mutation = Some(account_tree_row_count(&self.inner));
+    }
+}
+
+impl TuiApp for TooltipHandoffApp {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let cause = cx.update_cause();
+        let command = cx.command();
+        let route_before = self.inner.route();
+        let selected_before = self.inner.accounts.selected_id.clone();
+        if !self.transition_recorded
+            && cause == UpdateCause::Event
+            && route_before == self.handoff.from
+        {
+            self.capture_before_route_event(cx);
+        }
+        let result = TuiApp::update(&mut self.inner, cx);
+
+        if cx.update_cause() == UpdateCause::Settle && self.opening.is_some() {
+            self.destination_selected_id_at_settle = self.inner.accounts.selected_id.clone();
+            self.list_content_len_after_settle =
+                Some(self.inner.accounts.list.scroll().content_len());
+        }
+
+        if !self.transition_recorded
+            && cx.update_cause() == UpdateCause::Event
+            && route_before == self.handoff.from
+            && self.inner.route() == self.handoff.to
+        {
+            self.transition_recorded = true;
+            self.source_mutation_after_event = Some((cause, route_before, self.inner.route()));
+            if self.handoff.append_account_before_settle {
+                self.append_account_before_settle();
+            }
+            if self.handoff.reorder_and_append_account_before_settle {
+                self.reorder_and_append_account_before_settle();
+            }
+            if self.handoff.open_tooltip {
+                self.opening = cx.open_layer_with_token(
+                    HANDOFF_TOOLTIP,
+                    LayerSpec::tooltip(self.handoff.owner, Position::new(2, 2)),
+                );
+                assert!(self.opening.is_some(), "native tooltip opening token");
+            }
+        }
+
+        if self.transition_recorded {
+            self.calls.push(HandoffAppCall {
+                cause,
+                command,
+                route_before,
+                route_after: self.inner.route(),
+                selected_before,
+                selected_after: self.inner.accounts.selected_id.clone(),
+            });
+        }
+
+        if cx.update_cause() == UpdateCause::Settle && self.opening.is_some() {
+            while let Some(receipt) = cx.take_layer_intent_receipt(HANDOFF_TOOLTIP) {
+                self.receipts.push(receipt);
+            }
+        }
+
+        result
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        TuiApp::draw(&self.inner, ui);
+        if self.handoff.open_tooltip {
+            let _ = ui.layer(HANDOFF_TOOLTIP, |_ui, _area| {});
+        }
+    }
+
+    fn should_quit(&self) -> bool {
+        TuiApp::should_quit(&self.inner)
+    }
+
+    fn keymap(&self) -> &termrock::KeyMap {
+        TuiApp::keymap(&self.inner)
+    }
+
+    fn min_size(&self) -> termrock::Size {
+        TuiApp::min_size(&self.inner)
+    }
+
+    fn on_esc(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        TuiApp::on_esc(&mut self.inner, cx)
+    }
+}
+
+fn assert_handoff_tooltip_receipt(app: &TooltipHandoffApp) {
+    let opening = app.opening.expect("route Event opened the tooltip");
+    let expected_events = match (app.handoff.from, app.handoff.to, app.handoff.owner) {
+        (Route::Accounts, Route::Usage, ACCOUNTS_LIST)
+        | (Route::Usage, Route::Accounts, ACCOUNTS_LIST) => vec![LayerEvent::Opened],
+        (Route::Usage, Route::Accounts, _) => vec![
+            LayerEvent::Opened,
+            LayerEvent::Dismissed(DismissReason::FocusOut),
+        ],
+        _ => panic!("unexpected tooltip handoff test case"),
+    };
+    assert_eq!(app.receipts.len(), expected_events.len());
+    assert!(
+        app.receipts
+            .iter()
+            .all(|receipt| receipt.opening() == opening)
+    );
+    assert_eq!(
+        app.receipts
+            .iter()
+            .map(|receipt| receipt.event())
+            .collect::<Vec<_>>(),
+        expected_events
+    );
+}
+
+fn displayed_account_rows(app: &App) -> Vec<(usize, String)> {
+    let mut rows = Vec::new();
+    let mut previous_provider = None;
+    let mut row_index = 1usize; // The Accounts tree begins with Overview.
+    for account in app.world.accounts.sorted() {
+        if previous_provider != Some(account.provider) {
+            previous_provider = Some(account.provider);
+            row_index += 1; // Provider heading.
+        }
+        rows.push((row_index, account.id.clone()));
+        row_index += 1;
+    }
+    rows
+}
+
+fn account_tree_row_count(app: &App) -> usize {
+    let accounts = app.world.accounts.sorted();
+    let mut provider_groups = 0;
+    let mut previous_provider = None;
+    for account in &accounts {
+        if previous_provider != Some(account.provider) {
+            provider_groups += 1;
+            previous_provider = Some(account.provider);
+        }
+    }
+    let unsupported_row = accounts.iter().any(|account| {
+        account.enabled
+            && (account.lifecycle == Lifecycle::Unsupported
+                || (!account.usage.windows.is_empty()
+                    && account
+                        .usage
+                        .windows
+                        .iter()
+                        .all(|window| window.status == QuotaStatus::Unsupported)))
+    });
+    // The scenario remains unfiltered: Overview, provider groups, accounts,
+    // the optional Unsupported sentinel, and Add account are the live rows.
+    1 + provider_groups + accounts.len() + usize::from(unsupported_row) + 1
+}
 
 #[test]
 fn first_use_plays_intro_then_manager_and_no_replay_when_returning() {
@@ -414,6 +721,11 @@ fn usage_overlay_is_read_only_and_hands_off_to_accounts() {
     let mut h = H::new(Scenario::Returning, Motion::Full, 0, 120, 40);
     h.key(KeyCode::Char('u'));
     assert_eq!(h.app().route(), Route::Usage);
+    assert_eq!(
+        h.focus(),
+        Some(jackin_preview_app::screens::usage::TABS),
+        "the route command focuses the actual Usage Tabs owner"
+    );
     assert!(h.text().contains("Usage · read-only"));
     assert!(h.text().contains("Usage › Overview"));
     assert!(h.text().contains("Overview"));
@@ -424,6 +736,579 @@ fn usage_overlay_is_read_only_and_hands_off_to_accounts() {
     assert!(h.text().contains("Accounts › "));
     h.key(KeyCode::Esc);
     assert_eq!(h.app().route(), Route::Manager);
+}
+
+#[test]
+fn accounts_list_handoff_does_not_reconcile_a_reordered_source_off_route() {
+    let app = App::for_scenario_at(Scenario::Returning, Motion::Paused, 40);
+    let mut h = Harness::new(
+        TooltipHandoffApp::new(
+            app,
+            TooltipHandoff {
+                from: Route::Accounts,
+                to: Route::Usage,
+                owner: ACCOUNTS_LIST,
+                open_tooltip: false,
+                append_account_before_settle: false,
+                reorder_and_append_account_before_settle: true,
+            },
+        ),
+        Theme::junie(),
+        120,
+        40,
+    );
+    let _ = h.key(KeyCode::Char('a'));
+    assert_eq!(h.app().inner.route(), Route::Accounts);
+    assert_eq!(h.focus(), Some(ACCOUNTS_LIST));
+    for _ in 0..4 {
+        let _ = h.key(KeyCode::Down);
+    }
+    let selected = h.app().inner.accounts.selected_id.clone();
+    let list = h.app().inner.accounts.list.clone();
+    let content_len = h.app().inner.accounts.list.scroll().content_len();
+    let source_row_count_before = account_tree_row_count(&h.app().inner);
+    assert_eq!(source_row_count_before, content_len);
+    let order_before = h
+        .app()
+        .inner
+        .world
+        .accounts
+        .sorted()
+        .into_iter()
+        .map(|account| account.id.clone())
+        .collect::<Vec<_>>();
+    assert_eq!(selected.as_deref(), Some("acct-claude-work"));
+    assert!(
+        h.app().inner.accounts.list.cursor().is_some(),
+        "the outgoing Accounts List has an active row cursor"
+    );
+    assert!(
+        h.app().inner.accounts.list.chosen().is_none(),
+        "the row cursor is not a committed choice"
+    );
+    let displayed_before = displayed_account_rows(&h.app().inner);
+    let selected_row_before = displayed_before
+        .iter()
+        .find(|(_, id)| id == "acct-claude-work")
+        .map(|(row, _)| *row)
+        .expect("the selected Work account has a live tree row");
+
+    let _ = h.key(KeyCode::Char('m'));
+    assert_eq!(h.app().inner.route(), Route::Usage);
+    assert_eq!(h.focus(), Some(jackin_preview_app::screens::usage::TABS));
+
+    let app = h.app();
+    assert_eq!(
+        app.source_mutation_after_event,
+        Some((UpdateCause::Event, Route::Accounts, Route::Usage)),
+        "the wrapper changes source after the real route Event and before Runtime Settle"
+    );
+    assert_eq!(app.outgoing_owner_focused_before_event, Some(true));
+    let outgoing_before_event = app
+        .outgoing_list_before_event
+        .as_ref()
+        .expect("the wrapper captured the outgoing List before the route Event");
+    assert_eq!(outgoing_before_event.selected_id, selected);
+    assert_eq!(outgoing_before_event.list, list);
+    assert_eq!(outgoing_before_event.content_len, content_len);
+    assert_eq!(
+        app.outgoing_source_row_count_before_event,
+        Some(source_row_count_before)
+    );
+    assert_eq!(
+        app.outgoing_account_ids_before_event.as_ref(),
+        Some(&order_before)
+    );
+    let before_mutation = app
+        .list_before_settle
+        .as_ref()
+        .expect("the wrapper captured List state after Event and before source mutation");
+    assert_eq!(before_mutation.list, list);
+    assert_eq!(before_mutation.selected_id, selected);
+    assert_eq!(before_mutation.content_len, content_len);
+
+    let order_after = app
+        .account_ids_after_settle_mutation
+        .as_ref()
+        .expect("the route Event performed the recorded source mutation");
+    assert_eq!(order_after.len(), order_before.len() + 1);
+    assert!(order_after.contains(&"acct-codex-handoff-probe".to_owned()));
+    let original_accounts_after = order_after
+        .iter()
+        .filter(|id| id.as_str() != "acct-codex-handoff-probe")
+        .cloned()
+        .collect::<Vec<_>>();
+    assert_ne!(
+        order_before, original_accounts_after,
+        "renaming the Archive account genuinely reorders the original source"
+    );
+    assert_eq!(
+        app.inner
+            .world
+            .accounts
+            .get("acct-claude-archive")
+            .map(|account| account.display_name.as_str()),
+        Some("ZZZ archived profile")
+    );
+    assert_eq!(
+        app.inner
+            .world
+            .accounts
+            .get("acct-codex-handoff-probe")
+            .map(|account| account.display_name.as_str()),
+        Some("Zulu handoff probe")
+    );
+    let source_row_count_after = app
+        .source_row_count_after_mutation
+        .expect("the wrapper counted the live source rows after mutation");
+    assert_eq!(source_row_count_after, content_len + 1);
+    assert_ne!(
+        source_row_count_after, outgoing_before_event.content_len,
+        "the live row extent differs from the saved outgoing ListState"
+    );
+    assert_eq!(account_tree_row_count(&app.inner), source_row_count_after);
+    let mut normal_reconciliation_control = list.clone();
+    let _ = termrock::Reconcile::reconcile(
+        &mut normal_reconciliation_control,
+        source_row_count_after,
+        termrock::ItemKey::index,
+    );
+    assert_eq!(
+        normal_reconciliation_control.scroll().content_len(),
+        source_row_count_after,
+        "normal List reconciliation observes the larger live source"
+    );
+    assert_ne!(
+        normal_reconciliation_control, list,
+        "a normal List update would change the saved outgoing ListState"
+    );
+
+    let event_call = app
+        .calls
+        .iter()
+        .position(|call| {
+            call.cause == UpdateCause::Event
+                && call.route_before == Route::Accounts
+                && call.route_after == Route::Usage
+        })
+        .expect("the wrapper records the real Accounts-to-Usage Event");
+    let settle_call = app
+        .calls
+        .iter()
+        .position(|call| call.cause == UpdateCause::Settle)
+        .expect("the wrapper records Runtime's subsequent Settle");
+    assert!(event_call < settle_call);
+    assert_eq!(
+        app.calls
+            .iter()
+            .filter(|call| call.cause == UpdateCause::Event
+                && call.route_before == Route::Accounts
+                && call.route_after == Route::Usage)
+            .count(),
+        1
+    );
+    assert_eq!(
+        app.calls
+            .iter()
+            .filter(|call| call.cause == UpdateCause::Settle)
+            .count(),
+        1
+    );
+    assert_eq!(
+        app.calls[settle_call].command,
+        Some(ActionKey::application("jackin.usage"))
+    );
+
+    let registry_after_source_mutation = app.inner.world.accounts.clone();
+    assert!(
+        app.transition_recorded,
+        "the clean route transition is one-shot"
+    );
+    assert!(app.opening.is_none(), "the clean control opens no Tooltip");
+    assert!(
+        app.receipts.is_empty(),
+        "the clean control requests no layer receipt"
+    );
+    assert_eq!(app.inner.accounts.selected_id, selected);
+    assert_eq!(app.inner.accounts.list, list);
+    assert_eq!(
+        app.inner.accounts.list.scroll().content_len(),
+        content_len,
+        "the actual outgoing ListState retains its saved extent"
+    );
+    assert_eq!(app.inner.world.accounts, registry_after_source_mutation);
+    let selected_row_after = displayed_account_rows(&app.inner)
+        .iter()
+        .find(|(_, id)| id == "acct-claude-work")
+        .map(|(row, _)| *row)
+        .expect("the selected Work account remains in the live tree");
+    assert_ne!(
+        selected_row_after, selected_row_before,
+        "the genuine source reorder changes Work's displayed row while its selected ID remains stable"
+    );
+    assert_eq!(app.inner.accounts.selected_id, selected);
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+    assert!(
+        h.area_of(HANDOFF_TOOLTIP).is_none(),
+        "the clean control registers no Tooltip layer"
+    );
+
+    let _ = h.advance(std::time::Duration::ZERO);
+    assert_eq!(h.app().inner.route(), Route::Usage);
+    assert_eq!(h.focus(), Some(jackin_preview_app::screens::usage::TABS));
+    assert_eq!(h.app().inner.accounts.selected_id, selected);
+    assert_eq!(h.app().inner.accounts.list, list);
+    assert_eq!(h.app().inner.world.accounts, registry_after_source_mutation);
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn usage_navlist_handoff_services_only_its_real_focus_out() {
+    let mut h = H::new(Scenario::Returning, Motion::Paused, 40, 120, 40);
+    h.key(KeyCode::Char('u'));
+    assert_eq!(h.app().route(), Route::Usage);
+    assert_eq!(h.focus(), Some(jackin_preview_app::screens::usage::TABS));
+    h.tab_to(jackin_preview_app::screens::usage::LIST);
+    assert_eq!(h.focus(), Some(jackin_preview_app::screens::usage::LIST));
+    assert!(
+        h.harness
+            .area_of(jackin_preview_app::screens::usage::LIST)
+            .is_some(),
+        "the outgoing NavList is mounted and registered"
+    );
+    let selected = h.app().usage.selected().map(str::to_owned);
+    let tab = h.app().usage.tab;
+    let registry = h.app().world.accounts.clone();
+
+    h.key(KeyCode::Char('m'));
+
+    assert_eq!(h.app().route(), Route::Accounts);
+    assert_eq!(h.focus(), Some(ACCOUNTS_LIST));
+    assert_eq!(h.app().usage.selected().map(str::to_owned), selected);
+    assert_eq!(h.app().usage.tab, tab);
+    assert_eq!(h.app().world.accounts, registry);
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "{:?}",
+        h.harness.diagnostics()
+    );
+
+    h.key(KeyCode::Char('m'));
+    assert_eq!(h.app().route(), Route::Usage);
+    h.tab_to(jackin_preview_app::screens::usage::LIST);
+    assert_eq!(h.focus(), Some(jackin_preview_app::screens::usage::LIST));
+    assert_eq!(h.app().usage.selected().map(str::to_owned), selected);
+    assert_eq!(h.app().usage.tab, tab);
+    assert_eq!(h.app().world.accounts, registry);
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "{:?}",
+        h.harness.diagnostics()
+    );
+}
+
+#[test]
+fn accounts_list_mixed_handoff_reports_the_unhandled_owner_intent() {
+    let app = App::for_scenario_at(Scenario::AccountsMixed, Motion::Paused, 40);
+    let mut h = Harness::new(
+        TooltipHandoffApp::new(
+            app,
+            TooltipHandoff {
+                from: Route::Accounts,
+                to: Route::Usage,
+                owner: ACCOUNTS_LIST,
+                open_tooltip: true,
+                append_account_before_settle: false,
+                reorder_and_append_account_before_settle: false,
+            },
+        ),
+        Theme::junie(),
+        120,
+        40,
+    );
+    assert_eq!(h.app().inner.route(), Route::Accounts);
+    assert_eq!(h.focus(), Some(ACCOUNTS_LIST));
+    let list = h.app().inner.accounts.list.clone();
+    let selected = h.app().inner.accounts.selected_id.clone();
+    let registry = h.app().inner.world.accounts.clone();
+
+    let _ = h.key(KeyCode::Char('u'));
+
+    assert_eq!(h.app().inner.route(), Route::Usage);
+    assert_eq!(h.focus(), Some(jackin_preview_app::screens::usage::TABS));
+    assert_eq!(h.app().inner.accounts.list, list);
+    assert_eq!(h.app().inner.accounts.selected_id, selected);
+    assert_eq!(h.app().inner.world.accounts, registry);
+    assert_handoff_tooltip_receipt(h.app());
+    assert_eq!(
+        h.diagnostics(),
+        &[Diagnostic::UndeliveredIntent {
+            owner: ACCOUNTS_LIST
+        }]
+    );
+}
+
+#[test]
+fn usage_navlist_mixed_handoff_reports_the_unhandled_owner_intent() {
+    let app = App::for_scenario_at(Scenario::Returning, Motion::Paused, 40);
+    let mut h = Harness::new(
+        TooltipHandoffApp::new(
+            app,
+            TooltipHandoff {
+                from: Route::Usage,
+                to: Route::Accounts,
+                owner: jackin_preview_app::screens::usage::LIST,
+                open_tooltip: true,
+                append_account_before_settle: false,
+                reorder_and_append_account_before_settle: false,
+            },
+        ),
+        Theme::junie(),
+        120,
+        40,
+    );
+    let _ = h.key(KeyCode::Char('u'));
+    h.tab_to(jackin_preview_app::screens::usage::LIST);
+    assert_eq!(h.focus(), Some(jackin_preview_app::screens::usage::LIST));
+    let selected = h.app().inner.usage.selected().map(str::to_owned);
+    let tab = h.app().inner.usage.tab;
+    let registry = h.app().inner.world.accounts.clone();
+
+    let _ = h.key(KeyCode::Char('m'));
+
+    assert_eq!(h.app().inner.route(), Route::Accounts);
+    assert_eq!(h.focus(), Some(ACCOUNTS_LIST));
+    assert_eq!(h.app().inner.usage.selected().map(str::to_owned), selected);
+    assert_eq!(h.app().inner.usage.tab, tab);
+    assert_eq!(h.app().inner.world.accounts, registry);
+    assert_handoff_tooltip_receipt(h.app());
+    assert_eq!(
+        h.diagnostics(),
+        &[Diagnostic::UndeliveredIntent {
+            owner: jackin_preview_app::screens::usage::LIST
+        }]
+    );
+}
+
+#[test]
+fn usage_tabs_mixed_handoff_reports_the_unhandled_owner_intent() {
+    let app = App::for_scenario_at(Scenario::Returning, Motion::Paused, 40);
+    let mut h = Harness::new(
+        TooltipHandoffApp::new(
+            app,
+            TooltipHandoff {
+                from: Route::Usage,
+                to: Route::Accounts,
+                owner: jackin_preview_app::screens::usage::TABS,
+                open_tooltip: true,
+                append_account_before_settle: false,
+                reorder_and_append_account_before_settle: false,
+            },
+        ),
+        Theme::junie(),
+        120,
+        40,
+    );
+    let _ = h.key(KeyCode::Char('u'));
+    assert_eq!(h.focus(), Some(jackin_preview_app::screens::usage::TABS));
+    let selected = h.app().inner.usage.selected().map(str::to_owned);
+    let tab = h.app().inner.usage.tab;
+    let registry = h.app().inner.world.accounts.clone();
+
+    let _ = h.key(KeyCode::Char('m'));
+
+    assert_eq!(h.app().inner.route(), Route::Accounts);
+    assert_eq!(h.focus(), Some(ACCOUNTS_LIST));
+    assert_eq!(h.app().inner.usage.selected().map(str::to_owned), selected);
+    assert_eq!(h.app().inner.usage.tab, tab);
+    assert_eq!(h.app().inner.world.accounts, registry);
+    assert_handoff_tooltip_receipt(h.app());
+    assert_eq!(
+        h.diagnostics(),
+        &[Diagnostic::UndeliveredIntent {
+            owner: jackin_preview_app::screens::usage::TABS
+        }]
+    );
+}
+
+#[test]
+fn accounts_destination_settle_updates_the_mounted_list_once() {
+    let app = App::for_scenario_at(Scenario::AccountsMixed, Motion::Paused, 40);
+    let mut h = Harness::new(
+        TooltipHandoffApp::new(
+            app,
+            TooltipHandoff {
+                from: Route::Usage,
+                to: Route::Accounts,
+                owner: ACCOUNTS_LIST,
+                open_tooltip: true,
+                append_account_before_settle: true,
+                reorder_and_append_account_before_settle: false,
+            },
+        ),
+        Theme::junie(),
+        120,
+        40,
+    );
+    assert_eq!(h.app().inner.route(), Route::Accounts);
+    assert_eq!(h.focus(), Some(ACCOUNTS_LIST));
+    for _ in 0..4 {
+        let _ = h.key(KeyCode::Down);
+    }
+    assert_eq!(
+        h.app().inner.accounts.selected_id.as_deref(),
+        Some("acct-claude-work")
+    );
+    let cursor = h.app().inner.accounts.list.cursor();
+    let chosen = h.app().inner.accounts.list.chosen();
+    let content_len = h.app().inner.accounts.list.scroll().content_len();
+    assert_eq!(cursor, Some(termrock::ItemKey::index(4)));
+    assert_eq!(chosen, None);
+    assert_eq!(content_len, 23);
+    let account_ids_before = h
+        .app()
+        .inner
+        .world
+        .accounts
+        .sorted()
+        .into_iter()
+        .map(|account| account.id.clone())
+        .collect::<Vec<_>>();
+    let displayed_before = displayed_account_rows(&h.app().inner);
+    let cursor_index = match cursor {
+        Some(termrock::ItemKey::Index(index)) => index,
+        other => panic!("expected the Accounts row cursor, got {other:?}"),
+    };
+    assert_eq!(
+        displayed_before
+            .iter()
+            .find(|(row, _)| *row == cursor_index)
+            .map(|(_, id)| id.as_str()),
+        Some("acct-claude-work"),
+        "the live List cursor and selected model ID refer to Work"
+    );
+    let _ = h.key(KeyCode::Char('u'));
+    assert_eq!(h.app().inner.route(), Route::Usage);
+    assert_eq!(h.focus(), Some(jackin_preview_app::screens::usage::TABS));
+
+    let _ = h.key(KeyCode::Char('a'));
+
+    assert_eq!(h.app().inner.route(), Route::Accounts);
+    assert_eq!(h.focus(), Some(ACCOUNTS_LIST));
+    assert_eq!(h.app().inner.accounts.list.cursor(), cursor);
+    assert_eq!(h.app().inner.accounts.list.chosen(), chosen);
+    assert_eq!(
+        h.app().inner.accounts.selected_id.as_deref(),
+        Some("acct-claude-work"),
+        "the selected model identity remains Work"
+    );
+    let before_settle = h
+        .app()
+        .list_before_settle
+        .as_ref()
+        .expect("wrapper captures list/model state before source mutation");
+    let content_before_settle = h
+        .app()
+        .list_content_len_before_settle
+        .expect("wrapper captures the visible list extent before source mutation");
+    assert_eq!(
+        before_settle.selected_id.as_deref(),
+        Some("acct-claude-work")
+    );
+    assert_eq!(before_settle.cursor, cursor);
+    assert_eq!(before_settle.chosen, chosen);
+    assert_eq!(before_settle.content_len, content_len);
+    assert_eq!(content_before_settle, content_len);
+    let account_ids_after = h
+        .app()
+        .account_ids_after_settle_mutation
+        .as_ref()
+        .expect("wrapper captures the updated account source");
+    assert_eq!(
+        h.app().account_ids_before_settle.as_ref(),
+        Some(&account_ids_before),
+        "the wrapper did not alter the source before the route handoff"
+    );
+    assert_eq!(account_ids_after.len(), account_ids_before.len() + 1);
+    assert!(account_ids_after.contains(&"acct-codex-handoff-probe".to_owned()));
+    assert_eq!(
+        account_ids_after
+            .iter()
+            .filter(|id| id.as_str() != "acct-codex-handoff-probe")
+            .cloned()
+            .collect::<Vec<_>>(),
+        account_ids_before,
+        "the fixture addition does not reorder any original account ID"
+    );
+    assert_eq!(
+        h.app()
+            .inner
+            .world
+            .accounts
+            .sorted()
+            .into_iter()
+            .map(|account| account.id.clone())
+            .collect::<Vec<_>>(),
+        *account_ids_after,
+        "only the recorded later-provider row was appended"
+    );
+    let displayed_after = displayed_account_rows(&h.app().inner);
+    assert_eq!(
+        displayed_after
+            .iter()
+            .find(|(row, _)| *row == cursor_index)
+            .map(|(_, id)| id.as_str()),
+        Some("acct-claude-work"),
+        "the later-provider row does not change the selected row's position"
+    );
+    assert!(
+        displayed_after
+            .iter()
+            .find(|(_, id)| id == "acct-codex-handoff-probe")
+            .is_some_and(|(row, _)| *row > cursor_index),
+        "the added account appears after the selected Work row"
+    );
+    let selected_at_settle = h
+        .app()
+        .destination_selected_id_at_settle
+        .as_deref()
+        .expect("wrapper records destination state immediately after mixed Settle");
+    assert_eq!(selected_at_settle, "acct-claude-work");
+    let content_after_settle = h
+        .app()
+        .list_content_len_after_settle
+        .expect("wrapper records List extent after the mounted destination update");
+    assert_eq!(content_after_settle, content_before_settle + 1);
+    assert_eq!(content_after_settle, 24);
+    assert_eq!(
+        h.app().inner.accounts.list.scroll().content_len(),
+        content_after_settle
+    );
+    let settle_calls = h
+        .app()
+        .calls
+        .iter()
+        .filter(|call| call.cause == UpdateCause::Settle)
+        .collect::<Vec<_>>();
+    assert_eq!(
+        settle_calls.len(),
+        1,
+        "one App callback services the mixed Settle"
+    );
+    assert!(
+        settle_calls[0].command.is_some(),
+        "Runtime repeats the actual route command in focus Settle: {:?}",
+        h.app().calls
+    );
+    assert_eq!(settle_calls[0].route_before, Route::Accounts);
+    assert_eq!(settle_calls[0].route_after, Route::Accounts);
+    assert_eq!(
+        settle_calls[0].command,
+        Some(ActionKey::application("jackin.accounts")),
+        "Settle is for the real Accounts route command"
+    );
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+    assert_handoff_tooltip_receipt(h.app());
 }
 
 #[test]
@@ -1883,6 +2768,11 @@ fn accounts_drawer_enter_paints_the_approved_work_drawer() {
     assert!(!h.text().contains("Tab Actions"), "{}", h.text());
     assert!(h.text().contains("↑↓ Scroll"), "{}", h.text());
     assert!(h.text().contains("Provider"), "{}", h.text());
+    assert!(
+        h.text().contains("Accounts › Claude › Work"),
+        "the selected-account breadcrumb remains visible: {}",
+        h.text()
+    );
     // The shared right pane still names the exact selected account.
     assert!(h.text().contains("Claude · Work"), "{}", h.text());
     let mark = h.buffer().cell((2, 0)).expect("jackin prompt");
@@ -2169,6 +3059,446 @@ fn account_inspector_escape_restores_list_focus_and_exact_selection() {
     assert_eq!(h.app().accounts.list, list_before);
     assert_eq!(h.focus(), Some(ACCOUNTS_LIST));
     assert!(h.text().contains("Enter Details"), "{}", h.text());
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "{:?}",
+        h.harness.diagnostics()
+    );
+}
+
+#[test]
+fn account_inspector_edit_transfers_focus_to_the_real_form_and_returns_cleanly() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 80, 24);
+    for _ in 0..4 {
+        h.key(KeyCode::Down);
+    }
+    let selected = h.app().accounts.selected_id.clone();
+    let list = h.app().accounts.list.clone();
+    let registry = h.app().world.accounts.clone();
+    let original_name = registry
+        .get(selected.as_deref().expect("selected account"))
+        .expect("selected account is registered")
+        .display_name
+        .clone();
+    h.key(KeyCode::Enter);
+    assert!(h.app().accounts.drawer_open);
+    assert_eq!(
+        h.focus(),
+        Some(termrock::Id::root("jackin.preview").sub("accounts-inspector"))
+    );
+
+    h.key(KeyCode::Char('e'));
+    assert!(h.app().accounts.form_open, "{}", h.text());
+    assert!(!h.app().accounts.drawer_open, "{}", h.text());
+    assert_eq!(h.app().accounts.editing.as_deref(), selected.as_deref());
+    assert_eq!(h.focus(), Some(jackin_preview_app::screens::accounts::NAME));
+    assert!(
+        h.harness
+            .area_of(termrock::Id::root("jackin.preview").sub("accounts-inspector"))
+            .is_none()
+    );
+    assert_eq!(h.app().world.accounts, registry);
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "{:?}",
+        h.harness.diagnostics()
+    );
+
+    h.type_str("-draft");
+    assert!(h.app().accounts.name_input.is_editing());
+    let edited_name = format!("{original_name}-draft");
+    assert_eq!(
+        h.app().accounts.name_input.draft_text(),
+        Some(edited_name.as_str())
+    );
+    h.key(KeyCode::Esc);
+    assert!(
+        h.app().accounts.form_open,
+        "the first Escape belongs to the name field"
+    );
+    assert!(!h.app().accounts.name_input.is_editing());
+    assert_eq!(h.app().accounts.name_input.draft_text(), None);
+    assert_eq!(h.app().accounts.draft_name, original_name);
+    assert_eq!(h.app().accounts.editing.as_deref(), selected.as_deref());
+    assert_eq!(h.focus(), Some(jackin_preview_app::screens::accounts::NAME));
+    assert_eq!(h.app().world.accounts, registry);
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "first Escape: {:?}",
+        h.harness.diagnostics()
+    );
+
+    h.key(KeyCode::Esc);
+    assert!(!h.app().accounts.form_open);
+    assert!(!h.app().accounts.drawer_open);
+    assert_eq!(h.app().accounts.selected_id, selected);
+    assert_eq!(h.app().accounts.list, list);
+    assert_eq!(h.focus(), Some(ACCOUNTS_LIST));
+    assert_eq!(h.app().world.accounts, registry);
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "{:?}",
+        h.harness.diagnostics()
+    );
+
+    h.key(KeyCode::Down);
+    assert!(!h.app().accounts.drawer_open);
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "{:?}",
+        h.harness.diagnostics()
+    );
+}
+
+#[test]
+fn account_inspector_edit_close_button_cancels_without_committing_draft() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 80, 24);
+    for _ in 0..4 {
+        h.key(KeyCode::Down);
+    }
+    let selected = h.app().accounts.selected_id.clone();
+    let list = h.app().accounts.list.clone();
+    let registry = h.app().world.accounts.clone();
+    h.key(KeyCode::Enter);
+    assert!(h.app().accounts.drawer_open);
+    h.key(KeyCode::Char('e'));
+    h.type_str("-draft");
+    assert!(h.app().accounts.name_input.is_editing());
+    assert_eq!(h.app().accounts.name_input.draft_text(), Some("Work-draft"));
+
+    let close = ACCOUNT_FORM_LAYER.sub("close");
+    assert!(
+        h.harness.area_of(close).is_some(),
+        "the real close button is drawn"
+    );
+    let _ = h.harness.click_id(close);
+
+    assert!(!h.app().accounts.form_open);
+    assert!(!h.harness.is_open(ACCOUNT_FORM_LAYER));
+    assert_eq!(h.app().accounts.editing, None);
+    assert_eq!(h.app().accounts.selected_id, selected);
+    assert_eq!(h.app().accounts.list, list);
+    assert_eq!(h.app().world.accounts, registry);
+    assert_eq!(h.focus(), Some(ACCOUNTS_LIST));
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "{:?}",
+        h.harness.diagnostics()
+    );
+}
+
+#[test]
+fn account_inspector_add_transfers_focus_to_new_form_and_restores_selection_on_cancel() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 80, 24);
+    for _ in 0..4 {
+        h.key(KeyCode::Down);
+    }
+    let selected = h.app().accounts.selected_id.clone();
+    let list = h.app().accounts.list.clone();
+    let registry = h.app().world.accounts.clone();
+    h.key(KeyCode::Enter);
+    assert!(h.app().accounts.drawer_open);
+    h.key(KeyCode::Char('a'));
+
+    assert!(h.app().accounts.form_open, "{}", h.text());
+    assert!(!h.app().accounts.drawer_open, "{}", h.text());
+    assert_eq!(h.app().accounts.editing, None);
+    assert_eq!(
+        h.focus(),
+        Some(jackin_preview_app::screens::accounts::START)
+    );
+    assert!(
+        h.harness
+            .area_of(jackin_preview_app::screens::accounts::START)
+            .is_some(),
+        "the paused Add scene registers its existing START control"
+    );
+    assert!(
+        !h.harness.is_open(ACCOUNT_FORM_LAYER),
+        "the paused START host remains distinct from the live form layer"
+    );
+    assert!(
+        h.harness
+            .area_of(termrock::Id::root("jackin.preview").sub("accounts-inspector"))
+            .is_none()
+    );
+    assert_eq!(h.app().world.accounts, registry);
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "{:?}",
+        h.harness.diagnostics()
+    );
+
+    h.key(KeyCode::Esc);
+    assert!(!h.app().accounts.form_open);
+    assert_eq!(h.app().accounts.selected_id, selected);
+    assert_eq!(h.app().accounts.list, list);
+    assert_eq!(h.focus(), Some(ACCOUNTS_LIST));
+    assert_eq!(h.app().world.accounts, registry);
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "{:?}",
+        h.harness.diagnostics()
+    );
+}
+
+#[test]
+fn account_add_backtab_encodings_keep_start_and_show_required_only_on_enter() {
+    for (encoding, code, modifiers) in [
+        (
+            "BackTab/NONE",
+            KeyCode::BackTab,
+            termrock::KeyModifiers::NONE,
+        ),
+        (
+            "BackTab/SHIFT",
+            KeyCode::BackTab,
+            termrock::KeyModifiers::SHIFT,
+        ),
+        ("Tab/SHIFT", KeyCode::Tab, termrock::KeyModifiers::SHIFT),
+    ] {
+        let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+        let selected = h.app().accounts.selected_id.clone();
+        let list = h.app().accounts.list.clone();
+        let registry = h.app().world.accounts.clone();
+
+        h.key(KeyCode::Char('a'));
+        assert_eq!(h.app().route(), Route::Accounts, "{encoding}");
+        assert!(h.app().accounts.form_open, "{encoding}");
+        assert!(!h.app().accounts.started, "{encoding}");
+        let start = jackin_preview_app::screens::accounts::START;
+        assert_eq!(h.focus(), Some(start), "{encoding}");
+        let cursor = h.harness.cursor();
+        assert!(
+            cursor.is_some(),
+            "the real START focus owns a cursor: {encoding}"
+        );
+
+        h.key_mod(code, modifiers);
+        assert!(h.app().accounts.form_open, "{encoding}");
+        assert!(!h.app().accounts.started, "{encoding}");
+        assert!(!h.text().contains("Required"), "{encoding}: {}", h.text());
+        assert_eq!(h.focus(), Some(start), "{encoding}");
+        assert_eq!(h.harness.cursor(), cursor, "{encoding}");
+        assert_eq!(h.app().accounts.selected_id, selected, "{encoding}");
+        assert_eq!(h.app().accounts.list, list, "{encoding}");
+        assert_eq!(h.app().world.accounts, registry, "{encoding}");
+
+        h.key(KeyCode::Enter);
+        assert!(h.text().contains("Required"), "{encoding}: {}", h.text());
+        assert!(h.app().accounts.form_open, "{encoding}");
+        assert!(!h.app().accounts.started, "{encoding}");
+        assert_eq!(h.app().route(), Route::Accounts, "{encoding}");
+        assert_eq!(h.focus(), Some(start), "{encoding}");
+        assert_eq!(h.harness.cursor(), cursor, "{encoding}");
+        assert_eq!(h.app().world.accounts, registry, "{encoding}");
+
+        // A later ordinary input refreshes diagnostics after the keymap change.
+        h.key(KeyCode::Esc);
+        assert!(!h.app().accounts.form_open, "{encoding}");
+        assert_eq!(h.app().route(), Route::Accounts, "{encoding}");
+        assert_eq!(h.app().accounts.selected_id, selected, "{encoding}");
+        assert_eq!(h.app().accounts.list, list, "{encoding}");
+        assert_eq!(h.app().world.accounts, registry, "{encoding}");
+        assert!(
+            h.harness.diagnostics().is_empty(),
+            "{encoding}: {:?}",
+            h.harness.diagnostics()
+        );
+    }
+}
+
+#[test]
+fn account_inspector_help_keeps_viewport_owner_and_usage_route_closes_it() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    for _ in 0..4 {
+        h.key(KeyCode::Down);
+    }
+    let selected = h.app().accounts.selected_id.clone();
+    let list = h.app().accounts.list.clone();
+    let registry = h.app().world.accounts.clone();
+    let inspector = termrock::Id::root("jackin.preview").sub("accounts-inspector");
+    h.key(KeyCode::Enter);
+    assert!(h.app().accounts.drawer_open);
+    assert_eq!(h.focus(), Some(inspector));
+
+    h.key(KeyCode::Char('?'));
+    assert!(h.text().contains("Credential sources"), "{}", h.text());
+    assert!(h.app().accounts.drawer_open);
+    assert_eq!(h.focus(), Some(inspector));
+    assert_eq!(h.app().world.accounts, registry);
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "{:?}",
+        h.harness.diagnostics()
+    );
+
+    h.key(KeyCode::Char('m'));
+    assert_eq!(h.app().route(), Route::Usage);
+    assert!(!h.app().accounts.drawer_open);
+    assert_eq!(h.focus(), Some(jackin_preview_app::screens::usage::TABS));
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "{:?}",
+        h.harness.diagnostics()
+    );
+    let usage_selected = h.app().usage.selected().map(str::to_owned);
+    let usage_tab = h.app().usage.tab;
+    h.key(KeyCode::Down);
+    assert_eq!(
+        h.app().usage.tab,
+        usage_tab.next(),
+        "the current Usage Tabs owner still handles its ordinary action exactly once"
+    );
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "{:?}",
+        h.harness.diagnostics()
+    );
+    let usage_tab = h.app().usage.tab;
+    h.key(KeyCode::Char('?'));
+    let usage_frame = h.text();
+    assert_eq!(h.app().accounts.selected_id, selected);
+    assert_eq!(h.app().accounts.list, list);
+    assert!(h.harness.area_of(inspector).is_none());
+    assert_eq!(h.app().world.accounts, registry);
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "{:?}",
+        h.harness.diagnostics()
+    );
+
+    h.key(KeyCode::Char('m'));
+    assert_eq!(h.app().route(), Route::Accounts);
+    assert!(!h.app().accounts.drawer_open);
+    assert_eq!(h.app().accounts.selected_id, selected);
+    assert_eq!(h.app().accounts.list, list);
+    assert_eq!(h.focus(), Some(ACCOUNTS_LIST));
+    assert_eq!(h.app().world.accounts, registry);
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "{:?}",
+        h.harness.diagnostics()
+    );
+
+    // Exercise a later ordinary Accounts owner event after the old Tabs
+    // FocusOut was serviced, then return twice to prove no stale notification.
+    h.key(KeyCode::Down);
+    assert_eq!(h.app().route(), Route::Accounts);
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "{:?}",
+        h.harness.diagnostics()
+    );
+    h.key(KeyCode::Up);
+    assert_eq!(h.app().accounts.selected_id, selected);
+    assert_eq!(h.app().accounts.list, list);
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "{:?}",
+        h.harness.diagnostics()
+    );
+
+    for _ in 0..2 {
+        h.key(KeyCode::Char('m'));
+        assert_eq!(h.app().route(), Route::Usage);
+        assert!(!h.app().accounts.drawer_open);
+        assert_eq!(h.focus(), Some(jackin_preview_app::screens::usage::TABS));
+        assert_eq!(h.app().usage.tab, usage_tab);
+        assert_eq!(h.app().usage.selected().map(str::to_owned), usage_selected);
+        assert_eq!(h.app().accounts.selected_id, selected);
+        assert_eq!(h.app().accounts.list, list);
+        assert_eq!(h.app().world.accounts, registry);
+        assert!(h.harness.area_of(inspector).is_none());
+        assert!(
+            h.harness.diagnostics().is_empty(),
+            "{:?}",
+            h.harness.diagnostics()
+        );
+        h.key(KeyCode::Char('?'));
+        assert_eq!(h.text(), usage_frame);
+        assert!(
+            h.harness.diagnostics().is_empty(),
+            "{:?}",
+            h.harness.diagnostics()
+        );
+
+        h.key(KeyCode::Char('m'));
+        assert_eq!(h.app().route(), Route::Accounts);
+        assert_eq!(h.focus(), Some(ACCOUNTS_LIST));
+        assert_eq!(h.app().accounts.selected_id, selected);
+        assert_eq!(h.app().accounts.list, list);
+        assert_eq!(h.app().world.accounts, registry);
+        assert!(
+            h.harness.diagnostics().is_empty(),
+            "{:?}",
+            h.harness.diagnostics()
+        );
+    }
+}
+
+#[test]
+fn account_inspector_usage_command_closes_and_settles_viewport() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    for _ in 0..4 {
+        h.key(KeyCode::Down);
+    }
+    let selected = h.app().accounts.selected_id.clone();
+    let list = h.app().accounts.list.clone();
+    let registry = h.app().world.accounts.clone();
+    let inspector = termrock::Id::root("jackin.preview").sub("accounts-inspector");
+    h.key(KeyCode::Enter);
+    assert!(h.app().accounts.drawer_open);
+    assert_eq!(h.focus(), Some(inspector));
+
+    assert!(
+        h.harness.area_of(jackin_preview_app::USAGE).is_none(),
+        "Accounts does not register the header Usage button; this journey uses the real `m` command"
+    );
+    h.key(KeyCode::Char('m'));
+    assert_eq!(h.app().route(), Route::Usage);
+    assert!(!h.app().accounts.drawer_open);
+    assert_eq!(h.focus(), Some(jackin_preview_app::screens::usage::TABS));
+    assert_eq!(h.app().accounts.selected_id, selected);
+    assert_eq!(h.app().accounts.list, list);
+    assert!(h.harness.area_of(inspector).is_none());
+    assert_eq!(h.app().world.accounts, registry);
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "{:?}",
+        h.harness.diagnostics()
+    );
+}
+
+#[test]
+fn account_inspector_resize_below_minimum_removes_viewport_and_recovers_list_focus() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 80, 24);
+    for _ in 0..4 {
+        h.key(KeyCode::Down);
+    }
+    let selected = h.app().accounts.selected_id.clone();
+    let list = h.app().accounts.list.clone();
+    let inspector = termrock::Id::root("jackin.preview").sub("accounts-inspector");
+    h.key(KeyCode::Enter);
+    assert!(h.app().accounts.drawer_open);
+    assert!(h.harness.area_of(inspector).is_some());
+
+    h.resize(71, 19);
+    assert!(!h.app().accounts.drawer_open);
+    assert_ne!(h.focus(), Some(inspector));
+    assert!(h.harness.area_of(inspector).is_none());
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "{:?}",
+        h.harness.diagnostics()
+    );
+
+    h.resize(80, 24);
+    assert!(!h.app().accounts.drawer_open);
+    assert_eq!(h.app().accounts.selected_id, selected);
+    assert_eq!(h.app().accounts.list, list);
+    assert_eq!(h.focus(), Some(ACCOUNTS_LIST));
+    assert!(h.harness.area_of(inspector).is_none());
     assert!(
         h.harness.diagnostics().is_empty(),
         "{:?}",

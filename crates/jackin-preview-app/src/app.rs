@@ -9,15 +9,15 @@ use termrock::author::PaintStyle;
 
 use termrock::{
     Action, ActionKey, ActivationKey, App as TuiApp, AsItem, Brand, Button, Chord, ContextMenu, Cx,
-    Dialog, DialogAction, DialogState, Dismiss, FrameRead, GlyphRole, HelpAction, HelpOverlay,
-    HelpOverlayState, HelpSection, Hint, HintBar, HintLayer, Id, Intent, Item, ItemKey, KeyCode,
-    KeyMap, KeyModifiers, KeyPhase, LayerEvent, LayerOpening, LayerSpec, List, ListAction,
-    ListState, Menu, MenuAction, MenuBar, MenuBarHoverScope, MenuItem, MenuState, Modifier, Moment,
-    NavList, NavListAction, NavListState, Panel, Part, PartRef, Phase, Picker, PickerAction,
-    PickerState, Position, ProjectedText, PropsList, PropsRow, PropsState, Reconcile, Rect,
-    Response, RowUi, SecretPolicy, StatusBar, StatusItem, Tabs, TabsAction, TabsState, TextAction,
-    TextInput, TextInputState, TextViewport, TooSmall, Ui, UpdateCause, Variant, ViewportAction,
-    ViewportLine, ViewportState,
+    Diagnostic, Dialog, DialogAction, DialogState, Dismiss, FrameRead, GlyphRole, HelpAction,
+    HelpOverlay, HelpOverlayState, HelpSection, Hint, HintBar, HintLayer, Id, Intent, Item,
+    ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, LayerEvent, LayerOpening, LayerSpec, List,
+    ListAction, ListState, Menu, MenuAction, MenuBar, MenuBarHoverScope, MenuItem, MenuState,
+    Modifier, Moment, NavList, NavListAction, NavListState, Panel, Part, PartRef, Phase, Picker,
+    PickerAction, PickerState, Position, ProjectedText, PropsList, PropsRow, PropsState, Reconcile,
+    Rect, Response, RowUi, SecretPolicy, StatusBar, StatusItem, Tabs, TabsAction, TabsState,
+    TextAction, TextInput, TextInputState, TextViewport, TooSmall, Ui, UpdateCause, Variant,
+    ViewportAction, ViewportLine, ViewportState,
 };
 
 use crate::domain::account::{
@@ -424,6 +424,21 @@ impl Route {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum AccountsUsageFocusOwner {
+    AccountsList,
+    AccountInspector,
+    UsageTabs,
+    UsageList,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct AccountsUsageFocusHandoff {
+    from: Route,
+    to: Route,
+    owner: AccountsUsageFocusOwner,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct RoleOption {
     key: String,
@@ -592,6 +607,7 @@ pub struct App {
     account_form_opening: Option<LayerOpening>,
     account_form_closing: Vec<LayerOpening>,
     account_form_warning_ticks: u8,
+    pending_accounts_usage_handoff: Option<AccountsUsageFocusHandoff>,
     pub prelude: PreludeState,
     pub editor: EditorState,
     pub settings: SettingsState,
@@ -815,6 +831,7 @@ impl App {
             account_form_opening: None,
             account_form_closing: Vec::new(),
             account_form_warning_ticks: 0,
+            pending_accounts_usage_handoff: None,
             prelude: PreludeState::default(),
             editor: EditorState::default(),
             settings: SettingsState::default(),
@@ -1063,10 +1080,9 @@ impl App {
         if self.add_form_key_host() && !self.add_form_required {
             // The shell tab before the start button is Capsule. Backtab must
             // stay on the empty dialog so Enter can show Required.
+            // BackTab/NONE also matches Crossterm's BackTab/SHIFT encoding.
             self.keymap
                 .add(KeyPhase::Capture, backtab, CMD_ADD_FORM_BACKTAB);
-            self.keymap
-                .add(KeyPhase::Capture, backtab_shift, CMD_ADD_FORM_BACKTAB);
             self.keymap
                 .add(KeyPhase::Capture, shift_tab, CMD_ADD_FORM_BACKTAB);
         }
@@ -2825,6 +2841,9 @@ impl App {
     /// The form carries the current name, provider and credential, so the
     /// edit starts from the account as the registry knows it.
     fn open_account_edit(&mut self, cx: &mut Cx<'_>) {
+        if self.accounts.drawer_open {
+            let _ = self.close_account_inspector_to(cx, None);
+        }
         let Some(id) = self.accounts.selected_id.clone() else {
             self.status = Some("Select an account to edit".into());
             return;
@@ -4785,6 +4804,150 @@ impl App {
         result
     }
 
+    fn accounts_usage_handoff_candidate(
+        &self,
+        cx: &Cx<'_>,
+        to: Route,
+    ) -> Option<AccountsUsageFocusHandoff> {
+        if cx.update_cause() != UpdateCause::Event
+            || !matches!(
+                (self.route, to),
+                (Route::Accounts, Route::Usage) | (Route::Usage, Route::Accounts)
+            )
+            || self.accounts.form_open
+            || self.account_form_owns_input(cx)
+            || self.usage.detail_open()
+            || self.account_form_opening.is_some()
+            || !self.account_form_closing.is_empty()
+            || self.quit_open
+            || self.cancel_open
+            || self.editor_exit_open
+            || cx.is_open(ACCOUNT_FORM_LAYER)
+            || cx.is_open(ACCOUNT_PICKER)
+            || cx.is_open(ROLE_PICKER)
+            || cx.is_open(crate::screens::manager::AGENT_PICKER)
+            || cx.is_open(LAUNCH_DIALOG)
+            || cx.is_open(CAPSULE_CONTAINER_INFO)
+            || cx.is_open(CAPSULE_HELP)
+            || cx.is_open(ABOUT_DIALOG)
+            || cx.is_open(QUIT_DIALOG)
+            || cx.is_open(CANCEL_LAUNCH_DIALOG)
+            || cx.is_open(COCKPIT_INFO_DIALOG)
+            || cx.is_open(LAUNCH_FAILURE_DIALOG)
+            || cx.is_open(EDITOR_EXIT_DIALOG)
+        {
+            return None;
+        }
+
+        let owner = match self.route {
+            Route::Accounts => {
+                let list_focused = cx
+                    .state(ACCOUNTS_LIST)
+                    .contains(termrock::StateFlags::FOCUSED);
+                let inspector_focused = self.accounts.drawer_open
+                    && cx
+                        .state(ACCOUNT_INSPECTOR)
+                        .contains(termrock::StateFlags::FOCUSED);
+                match (list_focused, inspector_focused) {
+                    (true, false) if !self.accounts.drawer_open => {
+                        AccountsUsageFocusOwner::AccountsList
+                    }
+                    (false, true) => AccountsUsageFocusOwner::AccountInspector,
+                    _ => return None,
+                }
+            }
+            Route::Usage => {
+                let tabs_focused = cx
+                    .state(crate::screens::usage::TABS)
+                    .contains(termrock::StateFlags::FOCUSED);
+                let list_focused = cx
+                    .state(crate::screens::usage::LIST)
+                    .contains(termrock::StateFlags::FOCUSED);
+                match (tabs_focused, list_focused) {
+                    (true, false) => AccountsUsageFocusOwner::UsageTabs,
+                    (false, true) => AccountsUsageFocusOwner::UsageList,
+                    _ => return None,
+                }
+            }
+            _ => return None,
+        };
+
+        Some(AccountsUsageFocusHandoff {
+            from: self.route,
+            to,
+            owner,
+        })
+    }
+
+    fn accounts_usage_handoff_for_command(
+        &self,
+        cx: &Cx<'_>,
+        command: ActionKey,
+    ) -> Option<AccountsUsageFocusHandoff> {
+        let to = match (self.route, command) {
+            (Route::Accounts, CMD_USAGE) => Route::Usage,
+            (Route::Usage, CMD_MANAGER | CMD_ACCOUNTS) => Route::Accounts,
+            _ => return None,
+        };
+        self.accounts_usage_handoff_candidate(cx, to)
+    }
+
+    fn settle_accounts_usage_handoff(
+        &mut self,
+        cx: &mut Cx<'_>,
+        handoff: AccountsUsageFocusHandoff,
+    ) -> Response<()> {
+        if cx.update_cause() != UpdateCause::Settle
+            || self.route != handoff.to
+            || !matches!(
+                (handoff.from, handoff.to),
+                (Route::Accounts, Route::Usage) | (Route::Usage, Route::Accounts)
+            )
+        {
+            return Response::ignored();
+        }
+
+        match handoff.owner {
+            AccountsUsageFocusOwner::AccountsList => {
+                match List::<String>::new(ACCOUNTS_LIST)
+                    .update_focus_out(cx, &mut self.accounts.list)
+                {
+                    Some(response) => response,
+                    None => {
+                        cx.diagnostic(Diagnostic::UndeliveredIntent {
+                            owner: ACCOUNTS_LIST,
+                        });
+                        Response::ignored()
+                    }
+                }
+            }
+            AccountsUsageFocusOwner::AccountInspector => Response::ignored(),
+            AccountsUsageFocusOwner::UsageTabs => {
+                let tabs = crate::screens::usage::TABS;
+                let supported = cx
+                    .intents(tabs)
+                    .all(|intent| matches!(intent, Intent::FocusOut { .. }));
+                if !supported {
+                    cx.diagnostic(Diagnostic::UndeliveredIntent { owner: tabs });
+                    return Response::ignored();
+                }
+                Tabs::new(tabs)
+                    .update(cx, &mut self.usage_tabs, &USAGE_TABS)
+                    .erase()
+            }
+            AccountsUsageFocusOwner::UsageList => {
+                let list = crate::screens::usage::LIST;
+                match usage_nav_list().update_focus_out(cx) {
+                    Some(response) => response,
+                    None => {
+                        cx.diagnostic(Diagnostic::UndeliveredIntent { owner: list });
+                        Response::ignored()
+                    }
+                }
+            }
+        }
+    }
+
     fn save_account(&mut self) {
         if let Some(id) = self.accounts.editing.clone() {
             self.save_account_edit(id);
@@ -5664,6 +5827,7 @@ impl App {
     }
 
     fn update_command(&mut self, cx: &mut Cx<'_>, command: ActionKey) -> Option<Response<()>> {
+        let route_handoff = self.accounts_usage_handoff_for_command(cx, command);
         if self.account_form_owns_input(cx)
             && matches!(
                 command,
@@ -5671,6 +5835,15 @@ impl App {
             )
         {
             return Some(Response::consumed());
+        }
+        let account_inspector_was_open = self.route == Route::Accounts && self.accounts.drawer_open;
+        if account_inspector_was_open
+            && matches!(
+                command,
+                CMD_MANAGER | CMD_ACCOUNTS | CMD_USAGE | CMD_SETTINGS | CMD_CAPSULE
+            )
+        {
+            let _ = self.close_account_inspector_to(cx, None);
         }
         if self.route == Route::Capsule
             && self.inspect.instance.is_some()
@@ -5729,6 +5902,7 @@ impl App {
                 } else if self.route == Route::Usage {
                     self.accounts.selected_id = self.usage.manage_target().map(str::to_owned);
                     self.route = Route::Accounts;
+                    self.pending_accounts_usage_handoff = route_handoff;
                     if let Some(id) = self.accounts.selected_id.as_deref()
                         && let Some(account) = self.world.accounts.get(id)
                     {
@@ -5736,6 +5910,9 @@ impl App {
                     }
                 } else {
                     self.route = Route::Manager;
+                    if account_inspector_was_open {
+                        cx.focus(MANAGER_LIST);
+                    }
                 }
                 Some(Response::changed())
             }
@@ -5754,6 +5931,7 @@ impl App {
                     return Some(Response::changed());
                 }
                 if self.route == Route::Accounts {
+                    let _ = self.close_account_inspector_to(cx, None);
                     self.account_form_return = Some(AccountFormReturn {
                         selected_id: self.accounts.selected_id.clone(),
                         list: self.accounts.list.clone(),
@@ -5766,6 +5944,7 @@ impl App {
                     cx.focus(crate::screens::accounts::START);
                 } else {
                     self.route = Route::Accounts;
+                    self.pending_accounts_usage_handoff = route_handoff;
                     cx.focus(ACCOUNTS_LIST);
                 }
                 Some(Response::changed())
@@ -5890,6 +6069,9 @@ impl App {
                 Some(Response::changed())
             }
             CMD_USAGE => {
+                if cx.update_cause() == UpdateCause::Settle && self.route == Route::Usage {
+                    return Some(Response::changed());
+                }
                 if self.route == Route::Capsule && self.capsule_prefix {
                     self.capsule_prefix = false;
                     self.capsule_usage = true;
@@ -5905,6 +6087,7 @@ impl App {
                         self.usage.select(selected);
                     }
                     self.route = Route::Usage;
+                    self.pending_accounts_usage_handoff = route_handoff;
                     self.usage_focus = UsageFocus::Tabs;
                     self.sync_usage_tabs();
                     let rows = self.usage_navigation_rows();
@@ -5916,6 +6099,9 @@ impl App {
             CMD_SETTINGS => {
                 self.route = Route::Settings;
                 self.settings.clear_error();
+                if account_inspector_was_open {
+                    cx.focus(SETTINGS);
+                }
                 Some(Response::changed())
             }
             CMD_CAPSULE_NEW_TAB if self.route == Route::Capsule => {
@@ -5943,6 +6129,9 @@ impl App {
                     cx.focus(ACCOUNTS_LIST);
                 } else {
                     self.route = Route::Capsule;
+                    if account_inspector_was_open {
+                        cx.focus(CAPSULE);
+                    }
                 }
                 Some(Response::changed())
             }
@@ -6367,6 +6556,7 @@ impl App {
                 Some(Response::changed())
             }
             CMD_ACCOUNT_DRAWER if self.accounts_drawer_enter() => {
+                self.status = Some("Account inspector".into());
                 Some(self.open_account_inspector(cx))
             }
             CMD_SETTINGS_TAB_PREV
@@ -8434,12 +8624,15 @@ impl App {
         self.account_inspector_id = Some(id);
         self.account_inspector_content = Some(content);
         self.account_inspector_viewport = Self::new_account_inspector_viewport();
-        self.status = Some("Account inspector".into());
         cx.focus(ACCOUNT_INSPECTOR);
         Response::changed()
     }
 
     fn close_account_inspector(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        self.close_account_inspector_to(cx, Some(ACCOUNTS_LIST))
+    }
+
+    fn close_account_inspector_to(&mut self, cx: &mut Cx<'_>, focus: Option<Id>) -> Response<()> {
         if !self.accounts.drawer_open
             && self.account_inspector_id.is_none()
             && self.account_inspector_content.is_none()
@@ -8450,7 +8643,9 @@ impl App {
         self.account_inspector_id = None;
         self.account_inspector_close_pending = self.account_inspector_content.is_some();
         self.status = None;
-        cx.focus(ACCOUNTS_LIST);
+        if let Some(focus) = focus {
+            cx.focus(focus);
+        }
         Response::changed()
     }
 
@@ -10733,7 +10928,16 @@ impl App {
         self.screen = cx.viewport();
         self.screen_junie = Self::junie_truecolor(cx.theme());
         let _shell = Self::shell_panel(&self.shell_meta);
+        let route_handoff = if cx.update_cause() == UpdateCause::Settle {
+            self.pending_accounts_usage_handoff.take()
+        } else {
+            self.pending_accounts_usage_handoff = None;
+            None
+        };
         let mut result = self.settle_closed_account_inspector(cx);
+        if let Some(handoff) = route_handoff {
+            result |= self.settle_accounts_usage_handoff(cx, handoff);
+        }
         result |= self.advance_virtual_state(cx, product_tick);
         result |= self.sync_account_form_layer(cx);
 
@@ -10766,10 +10970,44 @@ impl App {
             result |= command_result;
             result |= self.sync_account_form_layer(cx);
             if cx.update_cause() == UpdateCause::Settle {
+                let add_start_focus_settle = self.accounts_add_form_scene()
+                    && cx
+                        .state(crate::screens::accounts::START)
+                        .contains(termrock::StateFlags::FOCUSED)
+                    && cx
+                        .intents(crate::screens::accounts::START)
+                        .any(|intent| matches!(intent, Intent::FocusIn { .. }))
+                    && cx.intents(crate::screens::accounts::START).all(|intent| {
+                        matches!(intent, Intent::FocusIn { .. } | Intent::FocusOut { .. })
+                    });
+                let usage_tabs_focus_settle = route_handoff
+                    .is_some_and(|handoff| handoff.to == Route::Usage)
+                    && self.route == Route::Usage
+                    && cx
+                        .state(crate::screens::usage::TABS)
+                        .contains(termrock::StateFlags::FOCUSED);
+                let accounts_list_focus_settle = route_handoff
+                    .is_some_and(|handoff| handoff.to == Route::Accounts)
+                    && self.route == Route::Accounts
+                    && cx
+                        .state(ACCOUNTS_LIST)
+                        .contains(termrock::StateFlags::FOCUSED);
                 if self.account_form_owns_input(cx) {
                     // Runtime focus settlement repeats the root command. Its route action was
                     // already consumed; update the new host's controls so they can claim focus
                     // notifications.
+                    result |= self.update_accounts(cx);
+                } else if add_start_focus_settle {
+                    // The paused Add fixture uses its existing START host without a modal layer.
+                    // Settle only its real focus transition through the same Accounts controls.
+                    result |= self.update_accounts(cx);
+                } else if usage_tabs_focus_settle {
+                    // The Usage route command has already run. Let the mounted Tabs owner claim
+                    // its recorded destination focus transition without replaying route setup.
+                    result |= self.update_usage(cx);
+                } else if accounts_list_focus_settle {
+                    // Accounts is the recorded destination. Run only its actual mounted page
+                    // handler so the List receives FocusIn without another route action.
                     result |= self.update_accounts(cx);
                 } else if !self.account_form_closing.is_empty()
                     && cx.intents(ACCOUNTS_LIST).all(|intent| {
@@ -10811,7 +11049,12 @@ impl App {
             && let Some(route) = navigation_route
             && !self.account_form_owns_input(cx)
         {
+            let route_handoff = self.accounts_usage_handoff_candidate(cx, route);
+            if self.route == Route::Accounts && self.accounts.drawer_open {
+                let _ = self.close_account_inspector_to(cx, None);
+            }
             self.route = route;
+            self.pending_accounts_usage_handoff = route_handoff;
             self.status = None;
         }
         if self.route == Route::Intro && enter_chosen {
