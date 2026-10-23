@@ -25,7 +25,7 @@ use crate::action::ActionKey;
 use crate::cursor::CursorRequest;
 use crate::diagnostics::{Diagnostic, Diagnostics};
 use crate::focus::{FocusEntry, FocusRing, Focusability, ScopeId, ScopeMode};
-use crate::hit::{Axes, Headroom, Registry, TextDragRegistration};
+use crate::hit::{Axes, Headroom, Registry, ScrollRouteKey, TextDragRegistration};
 use crate::id::{Id, Part, PartRef};
 use crate::keymap::{
     Binding, BindingDescriptor, BindingExtensionError, BindingRegistry, DynamicBindingRegistry,
@@ -1128,6 +1128,42 @@ impl<'f> Ui<'f> {
             axes,
             head,
         );
+    }
+
+    /// Register an opt-in scroll target that can acknowledge wheel routing.
+    ///
+    /// The returned key identifies this clipped registration in the current
+    /// frame. The owner must check the supplied source revision before it
+    /// acknowledges a route attempt. Ordinary [`Ui::register_scroll`]
+    /// registrations keep single-target wheel behavior.
+    pub fn register_routed_scroll(
+        &mut self,
+        id: Id,
+        area: Rect,
+        axes: Axes,
+        head: Headroom,
+        source_revision: u64,
+    ) -> Option<ScrollRouteKey> {
+        if self.registrations_suppressed() {
+            return None;
+        }
+        self.frame.registry.register_routed_scroll(
+            id,
+            area.intersection(self.clip),
+            self.layer,
+            axes,
+            head,
+            source_revision,
+        )
+    }
+
+    /// Link this frame's routed child registration to its immediate parent.
+    ///
+    /// The parent must be a containing routed registration on the same layer.
+    /// The runtime checks that it is the next eligible target in reverse hit
+    /// order before it services a fallback.
+    pub fn link_scroll_parent(&mut self, child: ScrollRouteKey, parent: ScrollRouteKey) -> bool {
+        !self.registrations_suppressed() && self.frame.registry.link_scroll_parent(child, parent)
     }
 
     /// Register a vertical passive-reveal scroll region.
