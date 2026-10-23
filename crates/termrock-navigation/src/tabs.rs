@@ -27,6 +27,21 @@ pub enum TabsAction {
     New,
 }
 
+/// Controls when an eligible tab's close affordance is painted and registered.
+///
+/// Both modes reserve the same close-cell geometry. In [`Hover`](Self::Hover)
+/// mode, the close cell is a live hit target only while its tab is active or
+/// focused, its tab or close part is hovered, or its close part is pressed.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub enum TabCloseReveal {
+    /// Keep every eligible close affordance visible. This preserves the
+    /// historical default.
+    #[default]
+    Always,
+    /// Reveal an eligible close affordance only while its tab is in use.
+    Hover,
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum TabsCmd {
     Prev,
@@ -271,7 +286,12 @@ pub struct TabRowLayout {
     pub visible_content: Rect,
     pub logical_tab: Rect,
     pub visible_tab: Rect,
+    /// Allocated close-cell geometry for an eligible item. In [`TabCloseReveal::Hover`]
+    /// mode this remains present while the affordance is hidden.
     pub logical_close: Option<Rect>,
+    /// Clipped allocation for an eligible close cell, not a promise that the
+    /// current frame registered a live target. The committed UI hit registry
+    /// is authoritative for current interaction visibility.
     pub visible_close: Option<Rect>,
     label_segments: Vec<String>,
     pub label_extent: u16,
@@ -299,6 +319,7 @@ pub struct TabLayout {
     allow_new: bool,
     closable: bool,
     closable_keys: Option<Vec<ItemKey>>,
+    close_reveal: TabCloseReveal,
     status: Status,
     left_overflow: Option<Rect>,
     right_overflow: Option<Rect>,
@@ -350,7 +371,12 @@ impl TabLayout {
         self.used_area
     }
 
-    /// Return logical and clipped bounds for an interactive tabs part.
+    /// Return logical and clipped allocated bounds for a tabs part.
+    ///
+    /// A close bound is potential geometry for an eligible item. With
+    /// [`TabCloseReveal::Hover`], the close affordance may be hidden and have
+    /// no live hit target; query the committed UI hit registry to determine
+    /// current interaction visibility.
     pub fn part_bounds(&self, part: PartRef) -> Option<(Rect, Rect)> {
         match part.part {
             Part::TAB => self
@@ -452,6 +478,7 @@ pub struct Tabs<'a, T, K = ByIndex, R = DefaultRow> {
     allow_new: bool,
     closable: bool,
     closable_keys: Option<&'a [ItemKey]>,
+    close_reveal: TabCloseReveal,
     status: Status,
     ov: PartStyle<'a>,
     _t: PhantomData<fn(&T)>,
@@ -464,6 +491,7 @@ impl<T, K, R> fmt::Debug for Tabs<'_, T, K, R> {
             .field("allow_new", &self.allow_new)
             .field("closable", &self.closable)
             .field("closable_keys", &self.closable_keys)
+            .field("close_reveal", &self.close_reveal)
             .field("status", &self.status)
             .finish_non_exhaustive()
     }
@@ -478,6 +506,7 @@ impl<T> Tabs<'_, T, ByIndex, DefaultRow> {
             allow_new: false,
             closable: false,
             closable_keys: None,
+            close_reveal: TabCloseReveal::Always,
             status: Status::Ready,
             ov: PartStyle::new(),
             _t: PhantomData,
@@ -511,6 +540,7 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
             allow_new: self.allow_new,
             closable: self.closable,
             closable_keys: self.closable_keys,
+            close_reveal: self.close_reveal,
             status: self.status,
             ov: self.ov,
             _t: PhantomData,
@@ -525,6 +555,7 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
             allow_new: self.allow_new,
             closable: self.closable,
             closable_keys: self.closable_keys,
+            close_reveal: self.close_reveal,
             status: self.status,
             ov: self.ov,
             _t: PhantomData,
@@ -552,6 +583,18 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
     #[must_use]
     pub fn closable_keys(mut self, keys: &'a [ItemKey]) -> Self {
         self.closable_keys = Some(keys);
+        self
+    }
+
+    /// Choose when an eligible close affordance is visible and interactive.
+    ///
+    /// The default is [`TabCloseReveal::Always`]. [`TabCloseReveal::Hover`]
+    /// keeps each eligible close cell reserved so tab geometry does not shift,
+    /// but registers that cell only while its tab is active or focused, its
+    /// tab or close part is hovered, or its close part is pressed.
+    #[must_use]
+    pub fn close_reveal(mut self, reveal: TabCloseReveal) -> Self {
+        self.close_reveal = reveal;
         self
     }
 
@@ -955,6 +998,18 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                 TabsRowSource::Legacy(_) => self.close_enabled(key),
                 TabsRowSource::Planned(row) => row.logical_close.is_some(),
             };
+            let close_part = PartRef::item(Part::CLOSE, key);
+            let close_visible = close_enabled
+                && match self.close_reveal {
+                    TabCloseReveal::Always => true,
+                    TabCloseReveal::Hover => {
+                        is_active
+                            || (is_cursor && live.contains(StateFlags::FOCUSED))
+                            || hovered == Some(tab_part)
+                            || hovered == Some(close_part)
+                            || pressed == Some(close_part)
+                    }
+                };
             let close_w: u16 = if close_enabled { 2 } else { 0 };
             let tab = match row_source {
                 TabsRowSource::Legacy(_) => {
@@ -992,39 +1047,46 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                     );
                 }
             }
-            if close_enabled {
-                let close_cell = match row_source {
-                    TabsRowSource::Legacy(_) => cell_at(tab, tab.right().saturating_sub(2)),
-                    TabsRowSource::Planned(row) => row
-                        .logical_close
-                        .unwrap_or_else(|| cell_at(tab, tab.right().saturating_sub(2))),
-                };
-                let close_part = PartRef::item(Part::CLOSE, key);
-                let mut close_flags = flags.difference(StateFlags::HOVERED | StateFlags::PRESSED);
-                if hovered == Some(close_part) {
-                    close_flags |= StateFlags::HOVERED;
-                }
-                if pressed == Some(close_part) {
-                    close_flags |= StateFlags::PRESSED;
-                }
-                let cs = ov.style(
-                    ui,
-                    id,
-                    Family::TABS,
-                    Variant::DEFAULT,
-                    Part::CLOSE,
-                    close_flags,
-                );
-                match cs.glyph {
-                    Slot::Set(glyph) => {
-                        ui.glyph(close_cell, glyph, cs.style);
+            let close_cell = close_enabled.then(|| match row_source {
+                TabsRowSource::Legacy(_) => cell_at(tab, tab.right().saturating_sub(2)),
+                TabsRowSource::Planned(row) => row
+                    .logical_close
+                    .unwrap_or_else(|| cell_at(tab, tab.right().saturating_sub(2))),
+            });
+            if let Some(close_cell) = close_cell {
+                if close_visible {
+                    let mut close_flags =
+                        flags.difference(StateFlags::HOVERED | StateFlags::PRESSED);
+                    if hovered == Some(close_part) {
+                        close_flags |= StateFlags::HOVERED;
                     }
-                    Slot::Inherit => {
-                        ui.glyph(close_cell, GlyphRole::Close, cs.style);
+                    if pressed == Some(close_part) {
+                        close_flags |= StateFlags::PRESSED;
                     }
-                    Slot::Clear => {
-                        ui.fill(close_cell, cs.style);
+                    let cs = ov.style(
+                        ui,
+                        id,
+                        Family::TABS,
+                        Variant::DEFAULT,
+                        Part::CLOSE,
+                        close_flags,
+                    );
+                    match cs.glyph {
+                        Slot::Set(glyph) => {
+                            ui.glyph(close_cell, glyph, cs.style);
+                        }
+                        Slot::Inherit => {
+                            ui.glyph(close_cell, GlyphRole::Close, cs.style);
+                        }
+                        Slot::Clear => {
+                            ui.fill(close_cell, cs.style);
+                        }
                     }
+                } else {
+                    // A previous visible frame may have left a custom glyph or
+                    // close-state style in this reserved cell. Restore the tab
+                    // plane rather than inheriting stale close presentation.
+                    ui.fill(close_cell, ts.style);
                 }
             }
             if is_active && let Some(rr) = rule_row {
@@ -1051,13 +1113,10 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
             if !ui.is_inert() {
                 ui.register_part(self.id, PartRef::item(Part::TAB, key), tab);
             }
-            if close_enabled && !ui.is_inert() {
-                let close_cell = match row_source {
-                    TabsRowSource::Legacy(_) => cell_at(tab, tab.right().saturating_sub(2)),
-                    TabsRowSource::Planned(row) => row
-                        .logical_close
-                        .unwrap_or_else(|| cell_at(tab, tab.right().saturating_sub(2))),
-                };
+            if close_visible
+                && !ui.is_inert()
+                && let Some(close_cell) = close_cell
+            {
                 ui.register_part(self.id, PartRef::item(Part::CLOSE, key), close_cell);
             }
             x = tab.right().saturating_add(1);
@@ -1283,6 +1342,7 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
                 allow_new: self.allow_new,
                 closable: self.closable,
                 closable_keys: self.closable_keys.map(<[ItemKey]>::to_vec),
+                close_reveal: self.close_reveal,
                 status: self.status,
                 left_overflow: None,
                 right_overflow: None,
@@ -1421,6 +1481,7 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
             allow_new: self.allow_new,
             closable: self.closable,
             closable_keys: self.closable_keys.map(<[ItemKey]>::to_vec),
+            close_reveal: self.close_reveal,
             status: self.status,
             left_overflow,
             right_overflow,
@@ -1449,6 +1510,7 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
             || layout.allow_new != self.allow_new
             || layout.closable != self.closable
             || layout.closable_keys.as_deref() != self.closable_keys
+            || layout.close_reveal != self.close_reveal
             || layout.status != self.status
         {
             return Err(TabLayoutMismatch);
@@ -1765,8 +1827,14 @@ mod tests {
         );
     }
 
-    fn render_semantic_pair(
+    #[derive(Clone, Copy)]
+    struct TabsRenderMode {
         semantic: bool,
+        close_reveal: TabCloseReveal,
+    }
+
+    fn render_semantic_pair(
+        mode: TabsRenderMode,
         area: Rect,
         state: &TabsState,
         items: &[&str],
@@ -1782,6 +1850,7 @@ mod tests {
         let tabs = Tabs::new(TABS)
             .allow_new(true)
             .closable(true)
+            .close_reveal(mode.close_reveal)
             .status(Status::Error);
         let layout = tabs.layout_default(area, area, state, items, previous);
         let mut runtime = Runtime::new(Stub::default(), Theme::junie().downgrade(level));
@@ -1789,7 +1858,7 @@ mod tests {
         runtime
             .draw_scene(area, &mut buffer, |ui, area| {
                 ui.reference(target, |ui| {
-                    if semantic {
+                    if mode.semantic {
                         tabs.draw_layout(ui, &layout)
                             .expect("same tabs configuration draws its planned layout")
                     } else {
@@ -1838,30 +1907,70 @@ mod tests {
                 )
                 .part(PartRef::item(Part::CLOSE, ItemKey::index(2))),
             ),
+            Some(
+                crate::ReferenceTarget::new(TABS, crate::ReferenceState::HOVERED)
+                    .part(PartRef::item(Part::TAB, ItemKey::index(3))),
+            ),
+            Some(
+                crate::ReferenceTarget::new(TABS, crate::ReferenceState::HOVERED)
+                    .part(PartRef::item(Part::CLOSE, ItemKey::index(3))),
+            ),
+            Some(
+                crate::ReferenceTarget::new(TABS, crate::ReferenceState::PRESSED)
+                    .part(PartRef::item(Part::CLOSE, ItemKey::index(3))),
+            ),
         ];
 
-        for level in [
-            ColorLevel::TrueColor,
-            ColorLevel::Ansi256,
-            ColorLevel::Ansi16,
-            ColorLevel::Mono,
-        ] {
-            for width in [0, 1, 2, 8, 13, 24, 40] {
-                let area = Rect::new(3, 2, width, 2);
-                for target in targets {
-                    let legacy =
-                        render_semantic_pair(false, area, &state, &items, None, level, target);
-                    let semantic =
-                        render_semantic_pair(true, area, &state, &items, None, level, target);
-                    assert_eq!(semantic.0, legacy.0, "cells differ at {width} / {level:?}");
-                    assert_eq!(semantic.1, legacy.1, "parts differ at {width} / {level:?}");
-                    assert_eq!(
-                        semantic.2, legacy.2,
-                        "cursor differs at {width} / {level:?}"
-                    );
-                    assert_eq!(semantic.3.viewport_len, legacy.3.viewport_len);
-                    assert_eq!(semantic.3.content_len, items.len());
-                    assert_eq!(semantic.3.clip(), area);
+        for reveal in [TabCloseReveal::Always, TabCloseReveal::Hover] {
+            for level in [
+                ColorLevel::TrueColor,
+                ColorLevel::Ansi256,
+                ColorLevel::Ansi16,
+                ColorLevel::Mono,
+            ] {
+                for width in [0, 1, 2, 8, 13, 24, 40] {
+                    let area = Rect::new(3, 2, width, 2);
+                    for target in targets {
+                        let legacy = render_semantic_pair(
+                            TabsRenderMode {
+                                semantic: false,
+                                close_reveal: reveal,
+                            },
+                            area,
+                            &state,
+                            &items,
+                            None,
+                            level,
+                            target,
+                        );
+                        let semantic = render_semantic_pair(
+                            TabsRenderMode {
+                                semantic: true,
+                                close_reveal: reveal,
+                            },
+                            area,
+                            &state,
+                            &items,
+                            None,
+                            level,
+                            target,
+                        );
+                        assert_eq!(
+                            semantic.0, legacy.0,
+                            "cells differ at {width} / {level:?} / {reveal:?}"
+                        );
+                        assert_eq!(
+                            semantic.1, legacy.1,
+                            "parts differ at {width} / {level:?} / {reveal:?}"
+                        );
+                        assert_eq!(
+                            semantic.2, legacy.2,
+                            "cursor differs at {width} / {level:?} / {reveal:?}"
+                        );
+                        assert_eq!(semantic.3.viewport_len, legacy.3.viewport_len);
+                        assert_eq!(semantic.3.content_len, items.len());
+                        assert_eq!(semantic.3.clip(), area);
+                    }
                 }
             }
         }
@@ -2132,71 +2241,74 @@ mod tests {
             PiecesDisplay(&["last"]),
         ];
         let eligible = [ItemKey::index(1), ItemKey::index(3)];
-        let tabs = Tabs::new(TABS)
-            .allow_new(true)
-            .closable(false)
-            .closable_keys(&eligible);
-        let mut offset = TabsState::default();
-        offset.set_active(4, ItemKey::index(4));
-        offset.first = Some(ItemKey::index(3));
-        offset.first_index = 3;
-        let states = [TabsState::default(), offset];
-        let cases = [
-            (Rect::new(0, 0, 0, 0), Rect::new(0, 0, 0, 0)),
-            (Rect::new(0, 0, 1, 1), Rect::new(0, 0, 1, 1)),
-            (Rect::new(0, 0, 2, 2), Rect::new(0, 0, 2, 2)),
-            (Rect::new(0, 0, 9, 1), Rect::new(0, 0, 9, 1)),
-            (Rect::new(0, 0, 24, 2), Rect::new(0, 0, 24, 2)),
-            (Rect::new(0, 0, 32, 2), Rect::new(5, 0, 20, 2)),
-        ];
+        for reveal in [TabCloseReveal::Always, TabCloseReveal::Hover] {
+            let tabs = Tabs::new(TABS)
+                .allow_new(true)
+                .closable(false)
+                .closable_keys(&eligible)
+                .close_reveal(reveal);
+            let mut offset = TabsState::default();
+            offset.set_active(4, ItemKey::index(4));
+            offset.first = Some(ItemKey::index(3));
+            offset.first_index = 3;
+            let states = [TabsState::default(), offset];
+            let cases = [
+                (Rect::new(0, 0, 0, 0), Rect::new(0, 0, 0, 0)),
+                (Rect::new(0, 0, 1, 1), Rect::new(0, 0, 1, 1)),
+                (Rect::new(0, 0, 2, 2), Rect::new(0, 0, 2, 2)),
+                (Rect::new(0, 0, 9, 1), Rect::new(0, 0, 9, 1)),
+                (Rect::new(0, 0, 24, 2), Rect::new(0, 0, 24, 2)),
+                (Rect::new(0, 0, 32, 2), Rect::new(5, 0, 20, 2)),
+            ];
 
-        for state in &states {
-            for (area, clip) in cases {
-                let mut legacy_runtime = Runtime::new(Stub::default(), Theme::junie());
-                let mut semantic_runtime = Runtime::new(Stub::default(), Theme::junie());
-                let mut legacy = Buffer::empty(area);
-                let mut semantic = Buffer::empty(area);
-                let mut previous = None;
+            for state in &states {
+                for (area, clip) in cases {
+                    let mut legacy_runtime = Runtime::new(Stub::default(), Theme::junie());
+                    let mut semantic_runtime = Runtime::new(Stub::default(), Theme::junie());
+                    let mut legacy = Buffer::empty(area);
+                    let mut semantic = Buffer::empty(area);
+                    let mut previous = None;
 
-                for _ in 0..2 {
-                    let layout = tabs.layout_default(area, clip, state, &items, previous);
-                    assert_eq!(
-                        layout.part_bounds(PartRef::item(Part::CLOSE, ItemKey::index(0))),
-                        None
-                    );
-                    assert_eq!(
-                        layout
-                            .part_bounds(PartRef::item(Part::CLOSE, ItemKey::index(1)))
-                            .is_some(),
-                        layout.rows().iter().any(|row| row.key == ItemKey::index(1))
-                    );
+                    for _ in 0..2 {
+                        let layout = tabs.layout_default(area, clip, state, &items, previous);
+                        assert_eq!(
+                            layout.part_bounds(PartRef::item(Part::CLOSE, ItemKey::index(0))),
+                            None
+                        );
+                        assert_eq!(
+                            layout
+                                .part_bounds(PartRef::item(Part::CLOSE, ItemKey::index(1)))
+                                .is_some(),
+                            layout.rows().iter().any(|row| row.key == ItemKey::index(1))
+                        );
 
-                    legacy_runtime
-                        .draw_scene(area, &mut legacy, |ui, _| {
-                            ui.with_area(clip, |ui| tabs.draw(ui, area, state, &items));
-                        })
-                        .commit_presented();
-                    semantic_runtime
-                        .draw_scene(area, &mut semantic, |ui, _| {
-                            ui.with_area(clip, |ui| {
-                                tabs.draw_layout(ui, &layout)
-                                    .expect("same close policy draws its planned layout");
-                            });
-                        })
-                        .commit_presented();
+                        legacy_runtime
+                            .draw_scene(area, &mut legacy, |ui, _| {
+                                ui.with_area(clip, |ui| tabs.draw(ui, area, state, &items));
+                            })
+                            .commit_presented();
+                        semantic_runtime
+                            .draw_scene(area, &mut semantic, |ui, _| {
+                                ui.with_area(clip, |ui| {
+                                    tabs.draw_layout(ui, &layout)
+                                        .expect("same close policy draws its planned layout");
+                                });
+                            })
+                            .commit_presented();
 
-                    assert_eq!(semantic, legacy, "cells differ for {area:?} / {clip:?}");
-                    assert_eq!(
-                        semantic_runtime.registry().regions(),
-                        legacy_runtime.registry().regions(),
-                        "parts differ for {area:?} / {clip:?}"
-                    );
-                    assert_eq!(
-                        semantic_runtime.cursor(),
-                        legacy_runtime.cursor(),
-                        "cursor differs for {area:?} / {clip:?}"
-                    );
-                    previous = layout.window_receipt();
+                        assert_eq!(semantic, legacy, "cells differ for {area:?} / {clip:?}");
+                        assert_eq!(
+                            semantic_runtime.registry().regions(),
+                            legacy_runtime.registry().regions(),
+                            "parts differ for {area:?} / {clip:?}"
+                        );
+                        assert_eq!(
+                            semantic_runtime.cursor(),
+                            legacy_runtime.cursor(),
+                            "cursor differs for {area:?} / {clip:?}"
+                        );
+                        previous = layout.window_receipt();
+                    }
                 }
             }
         }
@@ -2231,5 +2343,38 @@ mod tests {
                 .area_of_part(TABS, PartRef::item(Part::CLOSE, ItemKey::index(0))),
             None
         );
+    }
+
+    #[test]
+    fn planned_close_bounds_are_potential_geometry_and_reveal_mismatch_is_preflighted() {
+        let area = Rect::new(0, 0, 36, 2);
+        let items = ["active", "idle"];
+        let mut state = TabsState::default();
+        state.set_active(0, ItemKey::index(0));
+        let eligible = [ItemKey::index(0), ItemKey::index(1)];
+        let planned = Tabs::new(TABS)
+            .closable_keys(&eligible)
+            .close_reveal(TabCloseReveal::Hover);
+        let layout = planned.layout_default(area, area, &state, &items, None);
+        let idle_close = PartRef::item(Part::CLOSE, ItemKey::index(1));
+        assert!(layout.part_bounds(idle_close).is_some());
+
+        let renderer = Tabs::<&str>::new(TABS)
+            .closable_keys(&eligible)
+            .close_reveal(TabCloseReveal::Always);
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(area);
+        let unpainted = buffer.clone();
+        let result = Cell::new(None);
+
+        runtime
+            .draw_scene(area, &mut buffer, |ui, _| {
+                result.set(Some(renderer.draw_layout(ui, &layout)));
+            })
+            .commit_presented();
+
+        assert_eq!(result.get(), Some(Err(TabLayoutMismatch)));
+        assert_eq!(buffer, unpainted);
+        assert_eq!(runtime.registry().regions(), &[]);
     }
 }
