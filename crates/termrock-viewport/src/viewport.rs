@@ -21,6 +21,8 @@ use crate::text::Span;
 use crate::text::measure::{grapheme_width, graphemes};
 use crate::theme::{Family, GlyphRole, Role, Slot, StylePatch, Variant};
 use crate::ui::{Axes, Cx, FrameRead, Headroom, LayoutFacts, Ui};
+use termrock_runtime::hit::ScrollRouteKey;
+use termrock_runtime::runtime::{WheelRouteAttempt, WheelRouteResult};
 use termrock_runtime::scroll_region::ScrollRegion;
 
 const TAB_WIDTH: u16 = 4;
@@ -820,6 +822,7 @@ struct LayoutKey {
     wrap: bool,
     generation: u32,
     layout_revision: u64,
+    source_revision: Option<u64>,
 }
 
 #[derive(Clone, Copy)]
@@ -850,7 +853,11 @@ impl ViewportLayout {
         measure_widest: bool,
     ) -> usize {
         let lines = lines.into();
-        let reusable = key.generation != u32::MAX && key.layout_revision != u64::MAX;
+        let reusable = key.generation != u32::MAX
+            && key.layout_revision != u64::MAX
+            && key
+                .source_revision
+                .is_none_or(|revision| revision != u64::MAX);
         if reusable
             && self.key == key
             && self.lines == lines.len()
@@ -1503,6 +1510,17 @@ struct PanDimensions {
     horizontal_overflow: bool,
 }
 
+#[derive(Clone, Copy)]
+struct UpdateLayout {
+    area: Rect,
+    hit_text: Rect,
+    pointer_text: Rect,
+    key: LayoutKey,
+    total: usize,
+    widest: usize,
+    dimensions: PanDimensions,
+}
+
 #[derive(Clone, Copy, Debug, Default)]
 struct RowPosition {
     line: usize,
@@ -1739,12 +1757,99 @@ impl<'a> TextViewport<'a> {
         }
     }
 
-    const fn layout_key(&self, st: &ViewportState, width: u16) -> LayoutKey {
+    const fn layout_key(
+        &self,
+        st: &ViewportState,
+        width: u16,
+        source_revision: Option<u64>,
+    ) -> LayoutKey {
         LayoutKey {
             width,
             wrap: self.wrap,
             generation: st.generation,
             layout_revision: self.layout_revision,
+            source_revision,
+        }
+    }
+
+    fn update_layout(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &ViewportState,
+        lines: LineSet<'_>,
+        source_revision: Option<u64>,
+    ) -> UpdateLayout {
+        let layout = cx.layout(self.id);
+        let area = layout
+            .and_then(|layout| layout.logical_area)
+            .or_else(|| cx.area(self.id))
+            .unwrap_or(Rect::ZERO);
+        let fallback_width = layout.map_or_else(
+            || Self::text_width(area.width, self.reserve_gutter, self.scroll_gap),
+            |layout| layout.cols,
+        );
+        let initial_key = self.layout_key(st, fallback_width, source_revision);
+        let (total, indexed) = {
+            let viewport_layout = cx.cache::<ViewportLayout>(self.id);
+            let indexed = viewport_layout.ensure_with_widest(lines, initial_key, self.pan_active());
+            (viewport_layout.total(), indexed)
+        };
+        #[cfg(feature = "testing")]
+        self.note_indexed(indexed);
+        #[cfg(not(feature = "testing"))]
+        Self::note_indexed(indexed);
+        let dimensions = if self.pan_active() {
+            let widest = cx
+                .cache::<ViewportLayout>(self.id)
+                .widest_cols()
+                .unwrap_or(0);
+            self.pan_dimensions(area, total, widest)
+        } else {
+            PanDimensions {
+                text_width: fallback_width,
+                text_height: area.height,
+                horizontal_overflow: false,
+            }
+        };
+        let mut logical_text = self.text_area(area, dimensions.text_width);
+        logical_text.height = dimensions.text_height;
+        let hit_text = cx
+            .area_of_part(self.id, PartRef::of(Part::TEXT))
+            .unwrap_or(logical_text);
+        // The registry clips the hit area. Keep its horizontal visible origin for pointer
+        // mapping, while retaining the logical row origin and wrapping width from draw.
+        let pointer_text = Rect {
+            x: hit_text.x,
+            y: logical_text.y,
+            ..logical_text
+        };
+        let key = self.layout_key(st, dimensions.text_width, source_revision);
+        let (total, indexed, widest) = {
+            let viewport_layout = cx.cache::<ViewportLayout>(self.id);
+            let indexed = viewport_layout.ensure_with_widest(lines, key, self.pan_active());
+            (
+                viewport_layout.total(),
+                indexed,
+                viewport_layout.widest_cols().unwrap_or(0),
+            )
+        };
+        #[cfg(feature = "testing")]
+        self.note_indexed(indexed);
+        #[cfg(not(feature = "testing"))]
+        Self::note_indexed(indexed);
+        let dimensions = if self.pan_active() {
+            self.pan_dimensions(area, total, widest)
+        } else {
+            dimensions
+        };
+        UpdateLayout {
+            area,
+            hit_text,
+            pointer_text,
+            key,
+            total,
+            widest,
+            dimensions,
         }
     }
 
@@ -1789,7 +1894,7 @@ impl<'a> TextViewport<'a> {
         st: &mut ViewportState,
         lines: &[ViewportLine<'_>],
     ) -> Response<ViewportAction> {
-        self.update_lines(cx, st, LineSet::Borrowed(lines))
+        self.update_lines(cx, st, LineSet::Borrowed(lines), None)
     }
 
     pub fn update_projected(
@@ -1798,7 +1903,250 @@ impl<'a> TextViewport<'a> {
         st: &mut ViewportState,
         lines: &ProjectedText,
     ) -> Response<ViewportAction> {
-        self.update_lines(cx, st, LineSet::Projected(lines))
+        self.update_lines(cx, st, LineSet::Projected(lines), None)
+    }
+
+    /// Update a viewport whose caller supplies an identity for the live text
+    /// source. A source-aware draw and update must use the same revision. The
+    /// caller must advance it for replacements, reorderings, and layout-affecting
+    /// changes, and must not reuse it while an older route can still arrive.
+    /// Revisions must fail closed at exhaustion instead of wrapping.
+    pub fn update_routed(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut ViewportState,
+        lines: &[ViewportLine<'_>],
+        source_revision: u64,
+    ) -> Response<ViewportAction> {
+        self.update_source_lines(cx, st, LineSet::Borrowed(lines), source_revision)
+    }
+
+    /// Projected-text form of [`TextViewport::update_routed`].
+    pub fn update_projected_routed(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut ViewportState,
+        lines: &ProjectedText,
+        source_revision: u64,
+    ) -> Response<ViewportAction> {
+        self.update_source_lines(cx, st, LineSet::Projected(lines), source_revision)
+    }
+
+    /// Service only this viewport's active routed wheel attempt. A stale source
+    /// revision remains unacknowledged and does not prepare or mutate state.
+    pub fn service_routed_wheel(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut ViewportState,
+        lines: &[ViewportLine<'_>],
+        source_revision: u64,
+    ) -> Response<ViewportAction> {
+        self.service_source_wheel(cx, st, LineSet::Borrowed(lines), source_revision)
+    }
+
+    /// Projected-text form of [`TextViewport::service_routed_wheel`].
+    pub fn service_projected_routed_wheel(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut ViewportState,
+        lines: &ProjectedText,
+        source_revision: u64,
+    ) -> Response<ViewportAction> {
+        self.service_source_wheel(cx, st, LineSet::Projected(lines), source_revision)
+    }
+
+    fn update_source_lines(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut ViewportState,
+        lines: LineSet<'_>,
+        source_revision: u64,
+    ) -> Response<ViewportAction> {
+        if let Some(attempt) = self.active_wheel_attempt(cx) {
+            if cx.update_cause() == termrock_runtime::runtime::UpdateCause::Event {
+                let intents = cx.intents(self.id);
+                let route_wheel_count = Self::count_route_wheel_intents(intents.clone(), attempt);
+                if route_wheel_count == 1 {
+                    let other_intents = Self::without_route_wheel_intent(intents, attempt);
+                    let has_other_intents = other_intents.clone().next().is_some();
+                    let routed =
+                        self.service_source_wheel_attempt(cx, st, lines, source_revision, attempt);
+                    if has_other_intents {
+                        let other = self.update_lines_with(
+                            cx,
+                            st,
+                            lines,
+                            Some(source_revision),
+                            other_intents,
+                        );
+                        return Self::fold_routed_and_other(routed, other, self.id);
+                    }
+                    return routed;
+                }
+                if route_wheel_count > 1 {
+                    // Duplicate matches cannot be attributed to one physical input. Consume
+                    // only those ambiguous wheel intents, leave the attempt unacknowledged,
+                    // and still deliver every unrelated intent through the ordinary path.
+                    let other_intents = Self::without_route_wheel_intent(intents, attempt);
+                    if other_intents.clone().next().is_some() {
+                        return self.update_lines_with(
+                            cx,
+                            st,
+                            lines,
+                            Some(source_revision),
+                            other_intents,
+                        );
+                    }
+                    return Response::ignored().for_id(self.id);
+                }
+                // If the active attempt has no matching physical intent, it has no
+                // authority to acknowledge or mutate for that event. Preserve the actual
+                // queue through the ordinary update path.
+                return self.update_lines_with(cx, st, lines, Some(source_revision), intents);
+            }
+            return self.service_source_wheel_attempt(cx, st, lines, source_revision, attempt);
+        }
+        self.update_lines(cx, st, lines, Some(source_revision))
+    }
+
+    fn fold_routed_and_other(
+        routed: Response<ViewportAction>,
+        mut other: Response<ViewportAction>,
+        id: Id,
+    ) -> Response<ViewportAction> {
+        let action = other.take_action();
+        let mut acc = Acc::new();
+        acc.fold(&routed.erase());
+        acc.fold(&other.erase());
+        if let Some(action) = action {
+            acc.action(action);
+        }
+        acc.finish(id)
+    }
+
+    fn is_route_wheel_intent(intent: &Intent<'_>, attempt: WheelRouteAttempt) -> bool {
+        matches!(
+            intent,
+            Intent::Wheel {
+                axis,
+                delta,
+                part,
+                pos,
+            } if *axis == attempt.axis()
+                && *delta == attempt.delta()
+                && *part == attempt.part()
+                && *pos == attempt.position()
+        )
+    }
+
+    fn count_route_wheel_intents<'f>(
+        intents: impl Iterator<Item = Intent<'f>>,
+        attempt: WheelRouteAttempt,
+    ) -> usize {
+        intents
+            .filter(|intent| Self::is_route_wheel_intent(intent, attempt))
+            .count()
+    }
+
+    fn without_route_wheel_intent<'f, I>(
+        intents: I,
+        attempt: WheelRouteAttempt,
+    ) -> impl Iterator<Item = Intent<'f>> + Clone + 'f
+    where
+        I: Iterator<Item = Intent<'f>> + Clone + 'f,
+    {
+        intents.filter(move |intent| !Self::is_route_wheel_intent(intent, attempt))
+    }
+
+    fn active_wheel_attempt(&self, cx: &Cx<'_>) -> Option<WheelRouteAttempt> {
+        cx.wheel_route_attempt(self.id, PartRef::of(Part::CONTAINER), Axis::V)
+            .or_else(|| cx.wheel_route_attempt(self.id, PartRef::of(Part::CONTAINER), Axis::H))
+    }
+
+    fn service_source_wheel(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut ViewportState,
+        lines: LineSet<'_>,
+        source_revision: u64,
+    ) -> Response<ViewportAction> {
+        let Some(attempt) = self.active_wheel_attempt(cx) else {
+            return Response::ignored().for_id(self.id);
+        };
+        self.service_source_wheel_attempt(cx, st, lines, source_revision, attempt)
+    }
+
+    fn service_source_wheel_attempt(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut ViewportState,
+        lines: LineSet<'_>,
+        source_revision: u64,
+        attempt: WheelRouteAttempt,
+    ) -> Response<ViewportAction> {
+        if attempt.source_revision() != source_revision {
+            return Response::ignored().for_id(self.id);
+        }
+
+        let before = st.clone();
+        let prepared = self.update_layout(cx, st, lines, Some(source_revision));
+        let eligible = match attempt.axis() {
+            Axis::V => prepared.total > usize::from(prepared.dimensions.text_height),
+            Axis::H => self.pan_active() && prepared.dimensions.horizontal_overflow,
+        };
+        if !eligible {
+            if !cx.acknowledge_wheel_route(&attempt, WheelRouteResult::Ignored) {
+                return Response::ignored().for_id(self.id);
+            }
+            return Response::ignored().for_id(self.id);
+        }
+
+        let result = match attempt.axis() {
+            Axis::V => {
+                st.scroll
+                    .apply_layout(usize::from(prepared.dimensions.text_height), prepared.total);
+                let _ = self.bar().prepare(cx, &mut st.scroll, prepared.total);
+                let before_wheel = st.scroll.offset();
+                let _ = st.scroll.wheel(attempt.delta());
+                if st.scroll.offset() != before_wheel {
+                    st.follow = if st.scroll.at_end() {
+                        FollowCursor::Always
+                    } else {
+                        FollowCursor::OnMove
+                    };
+                    if st.follow == FollowCursor::Always {
+                        st.scroll.jump_end();
+                    }
+                    WheelRouteResult::Changed
+                } else {
+                    WheelRouteResult::Consumed
+                }
+            }
+            Axis::H => {
+                st.horizontal.set_content(prepared.widest);
+                st.horizontal
+                    .set_viewport(usize::from(prepared.dimensions.text_width));
+                let before_wheel = st.horizontal.offset();
+                st.horizontal
+                    .scroll_by(isize::from(attempt.delta().signum()).saturating_mul(4));
+                if st.horizontal.offset() != before_wheel {
+                    WheelRouteResult::Changed
+                } else {
+                    WheelRouteResult::Consumed
+                }
+            }
+        };
+
+        if !cx.acknowledge_wheel_route(&attempt, result) {
+            *st = before;
+            return Response::ignored().for_id(self.id);
+        }
+        match result {
+            WheelRouteResult::Ignored => Response::ignored().for_id(self.id),
+            WheelRouteResult::Consumed => Response::consumed().for_id(self.id),
+            WheelRouteResult::Changed => Response::changed().for_id(self.id),
+            _ => Response::ignored().for_id(self.id),
+        }
     }
 
     fn update_lines(
@@ -1806,6 +2154,18 @@ impl<'a> TextViewport<'a> {
         cx: &mut Cx<'_>,
         st: &mut ViewportState,
         lines: LineSet<'_>,
+        source_revision: Option<u64>,
+    ) -> Response<ViewportAction> {
+        self.update_lines_with(cx, st, lines, source_revision, cx.intents(self.id))
+    }
+
+    fn update_lines_with<'f>(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut ViewportState,
+        lines: LineSet<'_>,
+        source_revision: Option<u64>,
+        intents: impl Iterator<Item = Intent<'f>>,
     ) -> Response<ViewportAction> {
         if lines.is_empty() {
             st.anchor = None;
@@ -1814,70 +2174,16 @@ impl<'a> TextViewport<'a> {
                 cx.release_capture();
             }
         }
-        let layout = cx.layout(self.id);
-        let area = layout
-            .and_then(|layout| layout.logical_area)
-            .or_else(|| cx.area(self.id))
-            .unwrap_or(Rect::ZERO);
-        let fallback_width = layout.map_or_else(
-            || Self::text_width(area.width, self.reserve_gutter, self.scroll_gap),
-            |layout| layout.cols,
-        );
-        let initial_key = self.layout_key(st, fallback_width);
-        let (total, widest, indexed) = {
-            let viewport_layout = cx.cache::<ViewportLayout>(self.id);
-            let indexed = viewport_layout.ensure_with_widest(lines, initial_key, self.pan_active());
-            (
-                viewport_layout.total(),
-                viewport_layout.widest_cols().unwrap_or(0),
-                indexed,
-            )
-        };
-        #[cfg(feature = "testing")]
-        self.note_indexed(indexed);
-        #[cfg(not(feature = "testing"))]
-        Self::note_indexed(indexed);
-        let dimensions = if self.pan_active() {
-            self.pan_dimensions(area, total, widest)
-        } else {
-            PanDimensions {
-                text_width: fallback_width,
-                text_height: area.height,
-                horizontal_overflow: false,
-            }
-        };
-        let width = dimensions.text_width;
-        let mut logical_text = self.text_area(area, width);
-        logical_text.height = dimensions.text_height;
-        let hit_text = cx
-            .area_of_part(self.id, PartRef::of(Part::TEXT))
-            .unwrap_or(logical_text);
-        // The registry clips the hit area. Keep its horizontal visible origin for pointer
-        // mapping, while retaining the logical row origin and wrapping width from draw.
-        let pointer_text = Rect {
-            x: hit_text.x,
-            y: logical_text.y,
-            ..logical_text
-        };
-        let key = self.layout_key(st, width);
-        let (total, indexed) = {
-            let viewport_layout = cx.cache::<ViewportLayout>(self.id);
-            let indexed = viewport_layout.ensure_with_widest(lines, key, self.pan_active());
-            (viewport_layout.total(), indexed)
-        };
-        #[cfg(feature = "testing")]
-        self.note_indexed(indexed);
-        #[cfg(not(feature = "testing"))]
-        Self::note_indexed(indexed);
-        let dimensions = if self.pan_active() {
-            let widest = cx
-                .cache::<ViewportLayout>(self.id)
-                .widest_cols()
-                .unwrap_or(0);
-            self.pan_dimensions(area, total, widest)
-        } else {
-            dimensions
-        };
+        let prepared = self.update_layout(cx, st, lines, source_revision);
+        let UpdateLayout {
+            area,
+            hit_text,
+            pointer_text,
+            key,
+            total,
+            widest,
+            dimensions,
+        } = prepared;
         st.scroll
             .apply_layout(usize::from(dimensions.text_height), total);
         st.horizontal
@@ -1890,7 +2196,7 @@ impl<'a> TextViewport<'a> {
         let bar = self.bar();
         let track_len = bar.prepare(cx, &mut st.scroll, total);
         let mut edge_drag_scrolled = false;
-        for it in cx.intents(self.id) {
+        for it in intents {
             let horizontal_wheel = matches!(it, Intent::Wheel { axis: Axis::H, .. });
             if !horizontal_wheel || !self.pan_active() {
                 acc.fold(&bar.handle_intent(cx, &mut st.scroll, track_len, it));
@@ -2522,7 +2828,8 @@ impl<'a> TextViewport<'a> {
         st: &ViewportState,
         lines: &[ViewportLine<'_>],
     ) -> Rect {
-        self.draw_lines(ui, area, st, LineSet::Borrowed(lines))
+        self.draw_lines(ui, area, st, LineSet::Borrowed(lines), None)
+            .0
     }
 
     pub fn draw_projected(
@@ -2532,7 +2839,48 @@ impl<'a> TextViewport<'a> {
         st: &ViewportState,
         lines: &ProjectedText,
     ) -> Rect {
-        self.draw_lines(ui, area, st, LineSet::Projected(lines))
+        self.draw_lines(ui, area, st, LineSet::Projected(lines), None)
+            .0
+    }
+
+    /// Draw a viewport as an opt-in wheel target with explicit live-source
+    /// identity. Its key is valid only for the current draw frame and must be
+    /// linked explicitly to a containing parent. The caller must advance the
+    /// revision when source order, contents, or layout-affecting source data
+    /// changes, and must not wrap or reuse it while an old route can arrive.
+    pub fn draw_routed(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        st: &ViewportState,
+        lines: &[ViewportLine<'_>],
+        source_revision: u64,
+    ) -> (Rect, Option<ScrollRouteKey>) {
+        self.draw_lines(
+            ui,
+            area,
+            st,
+            LineSet::Borrowed(lines),
+            Some(source_revision),
+        )
+    }
+
+    /// Projected-text form of [`TextViewport::draw_routed`].
+    pub fn draw_projected_routed(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        st: &ViewportState,
+        lines: &ProjectedText,
+        source_revision: u64,
+    ) -> (Rect, Option<ScrollRouteKey>) {
+        self.draw_lines(
+            ui,
+            area,
+            st,
+            LineSet::Projected(lines),
+            Some(source_revision),
+        )
     }
 
     fn draw_lines(
@@ -2541,9 +2889,10 @@ impl<'a> TextViewport<'a> {
         area: Rect,
         st: &ViewportState,
         lines: LineSet<'_>,
-    ) -> Rect {
+        source_revision: Option<u64>,
+    ) -> (Rect, Option<ScrollRouteKey>) {
         if area.is_empty() {
-            return area;
+            return (area, None);
         }
         let ov = self.overrides();
         let id = self.id;
@@ -2555,7 +2904,7 @@ impl<'a> TextViewport<'a> {
             } else {
                 Self::text_width(area.width, self.reserve_gutter, self.scroll_gap)
             };
-        let initial_key = self.layout_key(st, fallback_width);
+        let initial_key = self.layout_key(st, fallback_width, source_revision);
         let (total, widest, indexed) = {
             let layout = ui.cache::<ViewportLayout>(id);
             let indexed = layout.ensure_with_widest(lines, initial_key, self.pan_active());
@@ -2575,7 +2924,7 @@ impl<'a> TextViewport<'a> {
             }
         };
         let text_w = dimensions.text_width;
-        let key = self.layout_key(st, text_w);
+        let key = self.layout_key(st, text_w, source_revision);
         let (total, indexed) = {
             let layout = ui.cache::<ViewportLayout>(id);
             let indexed = layout.ensure_with_widest(lines, key, self.pan_active());
@@ -2642,7 +2991,12 @@ impl<'a> TextViewport<'a> {
             width: area.width.saturating_sub(gutter_w),
             height: rows,
         };
-        let content = self.bar().draw(ui, body, &view, total);
+        let bar = self.bar();
+        let content = if source_revision.is_some() {
+            bar.draw_without_wheel_registration(ui, body, &view, total)
+        } else {
+            bar.draw(ui, body, &view, total)
+        };
         let mut desired_text = self.text_area(area, text_w);
         desired_text.height = rows;
         let text = Rect {
@@ -2653,7 +3007,44 @@ impl<'a> TextViewport<'a> {
             id,
             LayoutFacts::new(usize::from(rows), total, rows, text_w).with_logical_area(area),
         );
-        if self.pan_active() {
+        let mut route_key = None;
+        if let Some(source_revision) = source_revision {
+            let vertical = view.headroom_v();
+            let horizontal_headroom = horizontal.headroom_v();
+            let axes = if self.pan_active() {
+                Axes::Both
+            } else {
+                Axes::V
+            };
+            if view.overflows() && body.width > 0 && body.height > 0 {
+                let bar_strip = Rect::new(body.right().saturating_sub(1), body.y, 1, body.height);
+                if bar_strip.intersection(text).is_empty() {
+                    ui.register_scroll(id, bar_strip, Axes::V, vertical);
+                }
+            }
+            // Keep the CONTAINER alias on the text target; the disjoint bar strip
+            // is an ordinary wheel region and is registered first.
+            route_key = ui.register_routed_scroll(
+                id,
+                text,
+                axes,
+                Headroom {
+                    up: vertical.up,
+                    down: vertical.down,
+                    left: if axes.handles(Axis::H) {
+                        horizontal_headroom.up
+                    } else {
+                        0
+                    },
+                    right: if axes.handles(Axis::H) {
+                        horizontal_headroom.down
+                    } else {
+                        0
+                    },
+                },
+                source_revision,
+            );
+        } else if self.pan_active() {
             let vertical = view.headroom_v();
             let horizontal_headroom = horizontal.headroom_v();
             ui.register_scroll(
@@ -2669,7 +3060,7 @@ impl<'a> TextViewport<'a> {
             );
         }
         if text.is_empty() {
-            return text;
+            return (text, None);
         }
         ui.register_part(id, PartRef::of(Part::TEXT), text);
         let vertical_headroom = view.headroom_v();
@@ -2757,7 +3148,7 @@ impl<'a> TextViewport<'a> {
             .min(area.right().saturating_sub(text.right()));
         faded.width = faded.width.saturating_add(extra);
         ui.scroll_edges(faded, &view);
-        text
+        (text, route_key)
     }
 
     fn paint_horizontal_bar(
@@ -3209,6 +3600,245 @@ mod tests {
     const MANY_LINES: [ViewportLine<'static>; 100] = [ViewportLine::Plain("row"); 100];
     const LONG_LINES: [ViewportLine<'static>; 100] =
         [ViewportLine::Plain("012345678901234567890123456789"); 100];
+    const ROUTED_PARENT: Id = Id::root("viewport.routed.parent");
+    const ROUTED_CHILD: Id = Id::root("viewport.routed.child");
+    const ROUTED_FRONT: Id = Id::root("viewport.routed.front");
+    const ROUTED_AREA: Rect = Rect::new(2, 2, 24, 8);
+    const ROUTED_SHORT: [ViewportLine<'static>; 2] =
+        [ViewportLine::Plain("short"), ViewportLine::Plain("text")];
+    const ROUTED_SHORT_32: [ViewportLine<'static>; 32] = [ViewportLine::Plain("short"); 32];
+    const ROUTED_LONG: [ViewportLine<'static>; 32] =
+        [ViewportLine::Plain("0123456789012345678901234567890123456789"); 32];
+
+    type ObservedRouteAttempt = (UpdateCause, Option<(Id, Axis, u64)>);
+
+    struct RoutedViewportApp {
+        state: ViewportState,
+        parent: ScrollState,
+        long: bool,
+        empty: bool,
+        same_count: bool,
+        source_revision: u64,
+        replace_on_event: bool,
+        replacement_long: bool,
+        front_router: bool,
+        wrap: bool,
+        pan: bool,
+        projected: Option<ProjectedText>,
+        linked: std::cell::Cell<bool>,
+        child_key: std::cell::Cell<Option<ScrollRouteKey>>,
+        front_key: std::cell::Cell<Option<ScrollRouteKey>>,
+        event_updates: usize,
+        tick_updates: usize,
+        route_callbacks: usize,
+        route_owners: Vec<Id>,
+        route_callbacks_empty: bool,
+        observed_route_attempts: Vec<ObservedRouteAttempt>,
+        observed_update_state: Vec<(UpdateCause, u64, usize, usize)>,
+        last_event_attempt: Option<WheelRouteAttempt>,
+    }
+
+    impl RoutedViewportApp {
+        fn new(long: bool, wrap: bool, pan: bool) -> Self {
+            let mut state = ViewportState::default();
+            state.set_follow(false);
+            state.scroll.apply_layout(7, ROUTED_LONG.len());
+            let mut parent = ScrollState::new(200);
+            parent.set_viewport(usize::from(SCREEN.height));
+            Self {
+                state,
+                parent,
+                long,
+                empty: false,
+                same_count: false,
+                source_revision: 7,
+                replace_on_event: false,
+                replacement_long: true,
+                front_router: false,
+                wrap,
+                pan,
+                projected: None,
+                linked: std::cell::Cell::new(false),
+                child_key: std::cell::Cell::new(None),
+                front_key: std::cell::Cell::new(None),
+                event_updates: 0,
+                tick_updates: 0,
+                route_callbacks: 0,
+                route_owners: Vec::new(),
+                route_callbacks_empty: true,
+                observed_route_attempts: Vec::new(),
+                observed_update_state: Vec::new(),
+                last_event_attempt: None,
+            }
+        }
+
+        fn borrowed_lines(&self) -> &'static [ViewportLine<'static>] {
+            if self.empty {
+                &[]
+            } else if self.long {
+                &ROUTED_LONG
+            } else if self.same_count {
+                &ROUTED_SHORT_32
+            } else {
+                &ROUTED_SHORT
+            }
+        }
+
+        fn viewport(&self) -> TextViewport<'static> {
+            TextViewport::new(ROUTED_CHILD)
+                .wrap(self.wrap)
+                .horizontal_pan(self.pan)
+        }
+
+        fn update_viewport(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            let viewport = self.viewport();
+            let source_revision = self.source_revision;
+            let borrowed_lines = self.borrowed_lines();
+            if let Some(projected) = &self.projected {
+                viewport
+                    .update_projected_routed(cx, &mut self.state, projected, source_revision)
+                    .erase()
+            } else {
+                viewport
+                    .update_routed(cx, &mut self.state, borrowed_lines, source_revision)
+                    .erase()
+            }
+        }
+
+        fn service_viewport(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            let viewport = self.viewport();
+            let source_revision = self.source_revision;
+            let borrowed_lines = self.borrowed_lines();
+            if let Some(projected) = &self.projected {
+                viewport
+                    .service_projected_routed_wheel(cx, &mut self.state, projected, source_revision)
+                    .erase()
+            } else {
+                viewport
+                    .service_routed_wheel(cx, &mut self.state, borrowed_lines, source_revision)
+                    .erase()
+            }
+        }
+    }
+
+    impl App for RoutedViewportApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            let cause = cx.update_cause();
+            let viewport_before = self.state.scroll.viewport_len();
+            if let Some(attempt) =
+                cx.wheel_route_attempt(ROUTED_FRONT, PartRef::of(Part::CONTAINER), Axis::V)
+            {
+                for _ in cx.intents(ROUTED_FRONT) {}
+                assert!(cx.acknowledge_wheel_route(&attempt, WheelRouteResult::Ignored));
+            }
+            let route_attempt = cx
+                .wheel_route_attempt(ROUTED_CHILD, PartRef::of(Part::CONTAINER), Axis::V)
+                .or_else(|| {
+                    cx.wheel_route_attempt(ROUTED_CHILD, PartRef::of(Part::CONTAINER), Axis::H)
+                });
+            if cause == UpdateCause::Event && route_attempt.is_some() {
+                self.last_event_attempt = route_attempt;
+            }
+            self.observed_route_attempts.push((
+                cause,
+                route_attempt
+                    .map(|attempt| (attempt.owner(), attempt.axis(), attempt.source_revision())),
+            ));
+            match cause {
+                UpdateCause::Event => {
+                    self.event_updates = self.event_updates.saturating_add(1);
+                    if self.replace_on_event {
+                        self.long = self.replacement_long;
+                        self.source_revision = self.source_revision.saturating_add(1);
+                        self.replace_on_event = false;
+                    }
+                }
+                UpdateCause::Tick => self.tick_updates = self.tick_updates.saturating_add(1),
+                _ => {}
+            }
+            let parent = ScrollRegion::new(ROUTED_PARENT)
+                .scrollbar_visible(false)
+                .update_routed(cx, &mut self.parent, 200, 11);
+            let viewport_response = self.update_viewport(cx);
+            self.observed_update_state.push((
+                cause,
+                self.source_revision,
+                viewport_before,
+                self.state.scroll.viewport_len(),
+            ));
+            parent | viewport_response
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let parent = ScrollRegion::new(ROUTED_PARENT).scrollbar_visible(false);
+            let (_, parent_key) = parent.draw_routed(ui, ui.full(), &self.parent, 200, 11);
+            let viewport = self.viewport();
+            let (text, child_key) = if let Some(projected) = &self.projected {
+                viewport.draw_projected_routed(
+                    ui,
+                    ROUTED_AREA,
+                    &self.state,
+                    projected,
+                    self.source_revision,
+                )
+            } else {
+                viewport.draw_routed(
+                    ui,
+                    ROUTED_AREA,
+                    &self.state,
+                    self.borrowed_lines(),
+                    self.source_revision,
+                )
+            };
+            self.child_key.set(child_key);
+            let front_key = self
+                .front_router
+                .then(|| {
+                    ui.register_routed_scroll(
+                        ROUTED_FRONT,
+                        text,
+                        Axes::V,
+                        Headroom {
+                            up: 1,
+                            down: 1,
+                            left: 0,
+                            right: 0,
+                        },
+                        self.source_revision,
+                    )
+                })
+                .flatten();
+            self.front_key.set(front_key);
+            if let (Some(front), Some(child)) = (front_key, child_key) {
+                let _ = ui.link_scroll_parent(front, child);
+            }
+            let linked = child_key
+                .zip(parent_key)
+                .is_some_and(|(child, parent)| ui.link_scroll_parent(child, parent));
+            self.linked.set(linked);
+            let _ = text;
+        }
+
+        fn route_wheel_attempt(
+            &mut self,
+            cx: &mut Cx<'_>,
+            attempt: WheelRouteAttempt,
+        ) -> Response<()> {
+            self.route_callbacks = self.route_callbacks.saturating_add(1);
+            self.route_owners.push(attempt.owner());
+            self.route_callbacks_empty &= cx.update_cause() == UpdateCause::ScrollRoute
+                && cx.intents(ROUTED_PARENT).next().is_none()
+                && cx.intents(ROUTED_CHILD).next().is_none()
+                && cx.intents(ROUTED_FRONT).next().is_none();
+            if attempt.owner() == ROUTED_PARENT {
+                ScrollRegion::new(ROUTED_PARENT).service_routed_wheel(cx, &mut self.parent, 200, 11)
+            } else if attempt.owner() == ROUTED_CHILD {
+                self.service_viewport(cx)
+            } else {
+                Response::ignored()
+            }
+        }
+    }
 
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
     enum ModalControlEvent {
@@ -6205,6 +6835,7 @@ mod tests {
             wrap: true,
             generation: 0,
             layout_revision: 0,
+            source_revision: None,
         };
         let mut layout = ViewportLayout::default();
         let first = [ViewportLine::Plain("abcdefgh"), ViewportLine::Plain("ij")];
@@ -6229,6 +6860,7 @@ mod tests {
             wrap: true,
             generation: 0,
             layout_revision: 0,
+            source_revision: None,
         };
 
         assert_eq!(layout.ensure(&lines, key), lines.len());
@@ -6332,6 +6964,7 @@ mod tests {
                 wrap: true,
                 generation: u32::from(width),
                 layout_revision: 0,
+                source_revision: None,
             };
             let mut layout = ViewportLayout::default();
             layout.ensure(&lines, key);
@@ -6365,6 +6998,7 @@ mod tests {
             wrap: true,
             generation: u32::MAX,
             layout_revision: 0,
+            source_revision: None,
         };
         let before = [ViewportLine::Plain("a"), ViewportLine::Plain("b")];
         let after = [ViewportLine::Plain("abcdefgh"), ViewportLine::Plain("b")];
@@ -6393,6 +7027,7 @@ mod tests {
             wrap: false,
             generation: 7,
             layout_revision: 1,
+            source_revision: None,
         };
 
         layout.ensure_with_widest(&short, key, true);
@@ -6400,6 +7035,7 @@ mod tests {
 
         let next = LayoutKey {
             layout_revision: 2,
+            source_revision: None,
             ..key
         };
         layout.ensure_with_widest(&medium, next, true);
@@ -6407,12 +7043,37 @@ mod tests {
 
         let saturated = LayoutKey {
             layout_revision: u64::MAX,
+            source_revision: None,
             ..next
         };
         layout.ensure_with_widest(&short, saturated, true);
         assert_eq!(layout.widest_cols, 1);
         layout.ensure_with_widest(&long, saturated, true);
         assert_eq!(layout.widest_cols, 10);
+    }
+
+    #[test]
+    fn source_revision_saturation_never_reuses_stale_layout() {
+        let short = [ViewportLine::Plain("x")];
+        let long = [ViewportLine::Plain("0123456789")];
+        let key = LayoutKey {
+            width: 4,
+            wrap: true,
+            generation: 7,
+            layout_revision: 2,
+            source_revision: Some(u64::MAX),
+        };
+        let mut layout = ViewportLayout::default();
+
+        assert_eq!(layout.ensure_with_widest(&short, key, true), 1);
+        assert_eq!(layout.total(), 1);
+        assert_eq!(layout.ensure_with_widest(&long, key, true), 1);
+        assert_eq!(layout.total(), 3);
+        assert_eq!(
+            layout.widest_cols(),
+            None,
+            "wrapped layouts do not cache width"
+        );
     }
 
     #[test]
@@ -6431,6 +7092,7 @@ mod tests {
             wrap: true,
             generation: state.generation,
             layout_revision: 0,
+            source_revision: None,
         };
         layout.ensure(&before, old_key);
         let old_total = layout.total();
@@ -7155,5 +7817,760 @@ mod tests {
                 "a slot on {part:?} changes cells, and `## Overrides` says it does not"
             );
         }
+    }
+
+    fn routed_runtime(app: RoutedViewportApp) -> Runtime<RoutedViewportApp> {
+        let mut runtime = Runtime::new(app, Theme::junie());
+        let _ = runtime.initialize();
+        let mut buffer = Buffer::empty(SCREEN);
+        for _ in 0..16 {
+            runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+            if !runtime.needs_settle() {
+                return runtime;
+            }
+            let _ = runtime.settle();
+        }
+        panic!(
+            "routed viewport fixture did not settle: {:?}",
+            runtime.diagnostics()
+        );
+    }
+
+    fn routed_text_point(runtime: &Runtime<RoutedViewportApp>) -> Position {
+        let text = runtime
+            .area_of_part(ROUTED_CHILD, PartRef::of(Part::TEXT))
+            .expect("routed viewport paints its text part");
+        Position::new(text.x, text.y)
+    }
+
+    #[test]
+    fn routed_text_ignores_a_short_child_then_services_one_parent_attempt() {
+        let mut runtime = routed_runtime(RoutedViewportApp::new(false, false, false));
+        assert!(runtime.app().linked.get());
+        assert!(runtime.app().child_key.get().is_some());
+        let point = routed_text_point(&runtime);
+        assert_eq!(
+            runtime
+                .registry()
+                .hit_scroll(point, Axis::V)
+                .map(|hit| hit.owner),
+            Some(ROUTED_CHILD)
+        );
+
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            mouse(MouseKind::Wheel(Axis::V, 1), point.x, point.y),
+        );
+
+        assert_eq!(runtime.app().state.scroll().offset(), 0);
+        assert!(runtime.app().parent.offset() > 0);
+        assert_eq!(runtime.app().event_updates, 1);
+        assert_eq!(runtime.app().route_callbacks, 1);
+        assert_eq!(runtime.app().route_owners, [ROUTED_PARENT]);
+        assert!(runtime.app().route_callbacks_empty);
+        assert_eq!(runtime.app().tick_updates, 0);
+    }
+
+    #[test]
+    fn empty_routed_viewport_ignores_wheel_and_services_the_containing_parent() {
+        let mut app = RoutedViewportApp::new(false, false, false);
+        app.empty = true;
+        let mut runtime = routed_runtime(app);
+        assert!(runtime.app().child_key.get().is_some());
+        let point = routed_text_point(&runtime);
+
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            mouse(MouseKind::Wheel(Axis::V, 1), point.x, point.y),
+        );
+
+        assert_eq!(runtime.app().state.scroll().offset(), 0);
+        assert!(runtime.app().parent.offset() > 0);
+        assert_eq!(runtime.app().route_owners, [ROUTED_PARENT]);
+        assert!(runtime.app().route_callbacks_empty);
+        assert!(
+            runtime.diagnostics().is_empty(),
+            "{:?}",
+            runtime.diagnostics()
+        );
+    }
+
+    #[test]
+    fn route_wheel_partition_consumes_only_the_exact_physical_intent() {
+        let mut runtime = routed_runtime(RoutedViewportApp::new(true, false, false));
+        let point = routed_text_point(&runtime);
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            mouse(MouseKind::Wheel(Axis::V, 1), point.x, point.y),
+        );
+        let attempt = runtime
+            .app()
+            .last_event_attempt
+            .expect("the real wheel event exposed its exact route attempt");
+        let exact_wheel = Intent::Wheel {
+            axis: attempt.axis(),
+            delta: attempt.delta(),
+            part: attempt.part(),
+            pos: attempt.position(),
+        };
+        let different_axis = Intent::Wheel {
+            axis: Axis::H,
+            delta: attempt.delta(),
+            part: attempt.part(),
+            pos: attempt.position(),
+        };
+        let different_position = Intent::Wheel {
+            axis: attempt.axis(),
+            delta: attempt.delta(),
+            part: attempt.part(),
+            pos: Position::new(attempt.position().x.saturating_add(1), attempt.position().y),
+        };
+        let unrelated = Intent::FocusOut {
+            to: Some(ROUTED_PARENT),
+        };
+        let cancel = Intent::Cancel;
+        let queued = [
+            unrelated,
+            exact_wheel,
+            different_axis,
+            cancel,
+            different_position,
+        ];
+
+        assert_eq!(
+            TextViewport::count_route_wheel_intents(queued.iter().copied(), attempt),
+            1
+        );
+        assert_eq!(
+            TextViewport::without_route_wheel_intent(queued.iter().copied(), attempt)
+                .collect::<Vec<_>>(),
+            vec![unrelated, different_axis, cancel, different_position],
+            "only the exact axis/delta/part/position is consumed; unrelated order is kept"
+        );
+        assert!(runtime.diagnostics().is_empty());
+    }
+
+    #[test]
+    fn routed_pan_target_and_vertical_bar_are_disjoint_and_keep_pointer_behavior() {
+        let mut runtime = routed_runtime(RoutedViewportApp::new(true, false, true));
+        assert!(runtime.app().linked.get());
+        assert!(runtime.app().child_key.get().is_some());
+        let text = runtime
+            .area_of_part(ROUTED_CHILD, PartRef::of(Part::TEXT))
+            .expect("text body is visible");
+        let point = Position::new(text.x, text.y);
+        let child_scrolls = runtime
+            .registry()
+            .regions()
+            .iter()
+            .filter(|region| {
+                region.owner == ROUTED_CHILD && region.kind == crate::ui::hit::RegionKind::Scroll
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(
+            child_scrolls.len(),
+            2,
+            "text route plus a separate bar strip"
+        );
+        let body_route = child_scrolls
+            .iter()
+            .find(|region| region.area == text)
+            .expect("one routed target covers the clipped text body");
+        assert_eq!(body_route.scroll().map(|(axes, _)| axes), Some(Axes::Both));
+        let bar = child_scrolls
+            .iter()
+            .find(|region| region.area != text)
+            .expect("the vertical scrollbar keeps an ordinary wheel strip");
+        assert_eq!(bar.scroll().map(|(axes, _)| axes), Some(Axes::V));
+        assert!(bar.area.intersection(text).is_empty());
+        assert_eq!(
+            child_scrolls
+                .iter()
+                .filter(|region| region.area.contains(point))
+                .count(),
+            1,
+            "the text point has exactly one candidate for this owner"
+        );
+        assert_eq!(
+            runtime
+                .registry()
+                .hit_scroll(point, Axis::H)
+                .map(|hit| hit.owner),
+            Some(ROUTED_CHILD)
+        );
+        assert_eq!(
+            runtime
+                .registry()
+                .hit_scroll(point, Axis::V)
+                .map(|hit| hit.owner),
+            Some(ROUTED_CHILD)
+        );
+
+        let vertical_before = runtime.app().state.scroll().offset();
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            mouse(MouseKind::Wheel(Axis::H, 1), point.x, point.y),
+        );
+        assert_eq!(runtime.app().state.horizontal_offset(), 4);
+        assert_eq!(runtime.app().state.scroll().offset(), vertical_before);
+        assert_eq!(runtime.app().parent.offset(), 0);
+        assert_eq!(runtime.app().route_callbacks, 0);
+
+        let track = runtime
+            .area_of_part(ROUTED_CHILD, PartRef::of(Part::TRACK))
+            .expect("suppression keeps the painted vertical track registered");
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            mouse(MouseKind::Down, track.x, track.bottom().saturating_sub(1)),
+        );
+        assert!(runtime.app().state.scroll().at_end());
+    }
+
+    #[test]
+    fn routed_draw_preserves_cells_and_non_scroll_geometry() {
+        let mut state = ViewportState::default();
+        state.set_follow(false);
+        state.scroll.apply_layout(7, ROUTED_LONG.len());
+        state.horizontal.set_content(40);
+        state.horizontal.set_viewport(22);
+        let render = |routed: bool| {
+            let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+            let mut buffer = Buffer::empty(SCREEN);
+            let mut content = None;
+            let mut route_key = None;
+            runtime
+                .draw_scene(SCREEN, &mut buffer, |ui, _| {
+                    let viewport = TextViewport::new(ROUTED_CHILD).horizontal_pan(true);
+                    if routed {
+                        let (rect, key) =
+                            viewport.draw_routed(ui, ROUTED_AREA, &state, &ROUTED_LONG, 7);
+                        content = Some(rect);
+                        route_key = key;
+                    } else {
+                        content = Some(viewport.draw(ui, ROUTED_AREA, &state, &ROUTED_LONG));
+                    }
+                })
+                .commit_presented();
+            let parts = TextViewport::PARTS
+                .iter()
+                .map(|part| runtime.area_of_part(ROUTED_CHILD, PartRef::of(*part)))
+                .collect::<Vec<_>>();
+            let non_scroll_regions = runtime
+                .registry()
+                .regions()
+                .iter()
+                .filter(|region| region.kind != crate::ui::hit::RegionKind::Scroll)
+                .map(|region| (region.owner, region.part, region.kind, region.area))
+                .collect::<Vec<_>>();
+            let scroll_regions = runtime
+                .registry()
+                .regions()
+                .iter()
+                .filter(|region| region.owner == ROUTED_CHILD)
+                .filter(|region| region.kind == crate::ui::hit::RegionKind::Scroll)
+                .map(|region| {
+                    (
+                        region.part,
+                        region.area,
+                        region.scroll().map(|(axes, _)| axes),
+                    )
+                })
+                .collect::<Vec<_>>();
+            (
+                buffer,
+                content,
+                parts,
+                non_scroll_regions,
+                scroll_regions,
+                route_key,
+                runtime.diagnostics().to_vec(),
+            )
+        };
+
+        let ordinary = render(false);
+        let routed = render(true);
+        assert_eq!(routed.0, ordinary.0, "all painted cells stay identical");
+        assert_eq!(routed.1, ordinary.1, "content rectangles stay identical");
+        assert_eq!(
+            &routed.2[1..],
+            &ordinary.2[1..],
+            "text, gutter, and scrollbar pointer parts stay identical"
+        );
+        assert_eq!(
+            routed.2[0], routed.1,
+            "route-mode CONTAINER stays on the clipped text target, not the later bar strip"
+        );
+        assert_eq!(
+            ordinary.2[0], ordinary.1,
+            "ordinary CONTAINER remains the visible inner ScrollRegion body"
+        );
+        assert_eq!(
+            routed.3, ordinary.3,
+            "focus, pointer, and decoration registrations stay identical"
+        );
+        assert_eq!(routed.4.len(), 2);
+        assert_eq!(ordinary.4.len(), 2);
+        let routed_content = routed.1.expect("route-mode text content is present");
+        let routed_text_scroll = routed
+            .4
+            .iter()
+            .find(|(_, area, _)| *area == routed_content)
+            .expect("the clipped text body has its unique routed scroll target");
+        assert_eq!(routed_text_scroll.2, Some(Axes::Both));
+        let routed_bar_scroll = routed
+            .4
+            .iter()
+            .find(|(_, area, _)| *area != routed_content)
+            .expect("the vertical bar keeps an ordinary wheel region");
+        assert_eq!(routed_bar_scroll.2, Some(Axes::V));
+        assert!(routed_bar_scroll.1.intersection(routed_content).is_empty());
+        let ordinary_pan_scroll = ordinary
+            .4
+            .iter()
+            .find(|(_, _, axes)| *axes == Some(Axes::Both))
+            .expect("ordinary pan keeps its combined-axis text registration");
+        assert_eq!(
+            ordinary_pan_scroll.1,
+            ordinary.1.expect("ordinary text is present")
+        );
+        let ordinary_vertical_scroll = ordinary
+            .4
+            .iter()
+            .find(|(_, _, axes)| *axes == Some(Axes::V))
+            .expect("ordinary ScrollRegion keeps its broad vertical registration");
+        assert_eq!(
+            ordinary_vertical_scroll.1.intersection(routed_content),
+            routed_content
+        );
+        assert_ne!(routed.4, ordinary.4, "only wheel routing geometry changes");
+        assert!(routed.5.is_some());
+        assert_eq!(routed.6, ordinary.6);
+    }
+
+    #[test]
+    fn clipped_and_too_small_routed_text_geometry_fails_closed() {
+        let state = ViewportState::default();
+        let render = |clip: Rect, area: Rect| {
+            let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+            let mut buffer = Buffer::empty(SCREEN);
+            let mut key = None;
+            runtime
+                .draw_scene(SCREEN, &mut buffer, |ui, _| {
+                    ui.with_area(clip, |ui| {
+                        key = TextViewport::new(ROUTED_CHILD)
+                            .horizontal_pan(true)
+                            .draw_routed(ui, area, &state, &ROUTED_LONG, 7)
+                            .1;
+                    });
+                })
+                .commit_presented();
+            let scroll_count = runtime
+                .registry()
+                .regions()
+                .iter()
+                .filter(|region| {
+                    region.owner == ROUTED_CHILD
+                        && region.kind == crate::ui::hit::RegionKind::Scroll
+                })
+                .count();
+            (key, scroll_count)
+        };
+
+        assert_eq!(render(Rect::new(50, 20, 1, 1), ROUTED_AREA), (None, 0));
+        assert_eq!(
+            render(Rect::new(0, 0, 40, 20), Rect::new(2, 2, 1, 1)),
+            (None, 0)
+        );
+    }
+
+    #[test]
+    fn targeted_text_viewport_fallback_services_only_its_exact_wheel_attempt() {
+        let mut app = RoutedViewportApp::new(true, false, false);
+        app.front_router = true;
+        let mut runtime = routed_runtime(app);
+        assert!(runtime.app().linked.get());
+        assert!(runtime.app().front_key.get().is_some());
+        let point = routed_text_point(&runtime);
+        assert_eq!(
+            runtime
+                .registry()
+                .hit_scroll(point, Axis::V)
+                .map(|hit| hit.owner),
+            Some(ROUTED_FRONT)
+        );
+        let before = runtime.app().state.scroll().offset();
+
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            mouse(MouseKind::Wheel(Axis::V, 1), point.x, point.y),
+        );
+
+        assert!(runtime.app().state.scroll().offset() > before);
+        assert_eq!(runtime.app().parent.offset(), 0);
+        assert_eq!(runtime.app().route_callbacks, 1);
+        assert_eq!(runtime.app().route_owners, [ROUTED_CHILD]);
+        assert!(runtime.app().route_callbacks_empty);
+        assert_eq!(runtime.app().event_updates, 1);
+        assert_eq!(runtime.app().tick_updates, 0);
+        assert!(runtime.diagnostics().is_empty());
+    }
+
+    #[test]
+    fn active_pan_without_horizontal_overflow_acknowledges_ignored_without_state_change() {
+        let mut app = RoutedViewportApp::new(false, false, true);
+        app.same_count = true;
+        let mut runtime = routed_runtime(app);
+        let point = routed_text_point(&runtime);
+        assert!(runtime.app().child_key.get().is_some());
+        assert_eq!(
+            runtime
+                .registry()
+                .hit_scroll(point, Axis::H)
+                .map(|hit| hit.owner),
+            Some(ROUTED_CHILD),
+            "active unwrapped pan registers H even before overflow"
+        );
+        let state_before = runtime.app().state.clone();
+
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            mouse(MouseKind::Wheel(Axis::H, 1), point.x, point.y),
+        );
+
+        assert_eq!(runtime.app().state, state_before);
+        assert_eq!(runtime.app().parent.offset(), 0);
+        assert_eq!(runtime.app().route_callbacks, 0);
+        assert!(
+            runtime
+                .app()
+                .observed_route_attempts
+                .iter()
+                .any(|(cause, attempt)| {
+                    *cause == UpdateCause::Event && *attempt == Some((ROUTED_CHILD, Axis::H, 7))
+                })
+        );
+    }
+
+    #[test]
+    fn routed_horizontal_wheel_keeps_four_cell_steps_and_consumes_both_edges() {
+        let mut runtime = routed_runtime(RoutedViewportApp::new(true, false, true));
+        let point = routed_text_point(&runtime);
+        let vertical_before = runtime.app().state.scroll().offset();
+
+        for delta in [i16::MIN, 0] {
+            let _ = crate::runtime::stub::deliver(
+                &mut runtime,
+                mouse(MouseKind::Wheel(Axis::H, delta), point.x, point.y),
+            );
+            assert_eq!(runtime.app().state.horizontal_offset(), 0);
+            assert_eq!(runtime.app().state.scroll().offset(), vertical_before);
+            assert_eq!(runtime.app().route_callbacks, 0);
+        }
+
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            mouse(MouseKind::Wheel(Axis::H, i16::MAX), point.x, point.y),
+        );
+        assert_eq!(runtime.app().state.horizontal_offset(), 4);
+        assert_eq!(runtime.app().state.scroll().offset(), vertical_before);
+
+        let max_horizontal_offset = runtime.app().state.horizontal.max_offset();
+        runtime
+            .app_mut()
+            .state
+            .horizontal
+            .scroll_to(max_horizontal_offset);
+        let end = runtime.app().state.horizontal_offset();
+        assert!(end > 4);
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        let point = routed_text_point(&runtime);
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            mouse(MouseKind::Wheel(Axis::H, i16::MAX), point.x, point.y),
+        );
+        assert_eq!(runtime.app().state.horizontal_offset(), end);
+        assert_eq!(runtime.app().state.scroll().offset(), vertical_before);
+        assert_eq!(runtime.app().parent.offset(), 0);
+        assert_eq!(runtime.app().route_callbacks, 0);
+    }
+
+    #[test]
+    fn routed_vertical_wheel_changes_interior_and_consumes_both_edges() {
+        let mut runtime = routed_runtime(RoutedViewportApp::new(true, false, false));
+        let point = routed_text_point(&runtime);
+
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            mouse(MouseKind::Wheel(Axis::V, -1), point.x, point.y),
+        );
+        assert_eq!(runtime.app().state.scroll().offset(), 0);
+        assert_eq!(runtime.app().parent.offset(), 0);
+        assert_eq!(runtime.app().route_callbacks, 0);
+
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            mouse(MouseKind::Wheel(Axis::V, 1), point.x, point.y),
+        );
+        let inside = runtime.app().state.scroll().offset();
+        assert!(inside > 0);
+        assert_eq!(runtime.app().parent.offset(), 0);
+        assert_eq!(runtime.app().route_callbacks, 0);
+
+        runtime.app_mut().state.scroll.jump_end();
+        let end = runtime.app().state.scroll().offset();
+        assert!(end > inside);
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        let point = routed_text_point(&runtime);
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            mouse(MouseKind::Wheel(Axis::V, 1), point.x, point.y),
+        );
+        assert_eq!(runtime.app().state.scroll().offset(), end);
+        assert_eq!(runtime.app().parent.offset(), 0);
+        assert_eq!(runtime.app().route_callbacks, 0);
+    }
+
+    #[test]
+    fn wrapped_or_disabled_pan_registers_only_vertical_routes() {
+        for app in [
+            RoutedViewportApp::new(true, true, true),
+            RoutedViewportApp::new(true, false, false),
+        ] {
+            let runtime = routed_runtime(app);
+            let point = routed_text_point(&runtime);
+            assert!(runtime.app().child_key.get().is_some());
+            assert_eq!(
+                runtime
+                    .registry()
+                    .hit_scroll(point, Axis::V)
+                    .map(|hit| hit.owner),
+                Some(ROUTED_CHILD)
+            );
+            assert_eq!(runtime.registry().hit_scroll(point, Axis::H), None);
+        }
+    }
+
+    #[test]
+    fn same_length_source_revision_rejects_old_horizontal_attempt_then_remeasures() {
+        let mut app = RoutedViewportApp::new(false, false, true);
+        app.same_count = true;
+        app.replace_on_event = true;
+        let mut runtime = routed_runtime(app);
+        let point = routed_text_point(&runtime);
+        let before = runtime.app().state.clone();
+        assert!(runtime.app().child_key.get().is_some());
+        assert_eq!(
+            runtime
+                .registry()
+                .hit_scroll(point, Axis::H)
+                .map(|hit| hit.owner),
+            Some(ROUTED_CHILD)
+        );
+
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            mouse(MouseKind::Wheel(Axis::H, 1), point.x, point.y),
+        );
+
+        assert!(
+            runtime
+                .app()
+                .observed_route_attempts
+                .iter()
+                .any(|(cause, attempt)| {
+                    *cause == UpdateCause::Event && *attempt == Some((ROUTED_CHILD, Axis::H, 7))
+                })
+        );
+        assert_eq!(
+            runtime
+                .app()
+                .observed_update_state
+                .iter()
+                .find(|row| row.0 == UpdateCause::Event),
+            Some(&(UpdateCause::Event, 8, 8, 8))
+        );
+        assert_eq!(
+            runtime.app().state,
+            before,
+            "stale source rejects before mutation"
+        );
+        assert_eq!(runtime.app().parent.offset(), 0);
+        assert_eq!(runtime.app().route_callbacks, 0);
+
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        let point = routed_text_point(&runtime);
+        assert!(runtime.app().child_key.get().is_some());
+        assert_eq!(
+            runtime
+                .registry()
+                .hit_scroll(point, Axis::H)
+                .map(|hit| hit.owner),
+            Some(ROUTED_CHILD)
+        );
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            mouse(MouseKind::Wheel(Axis::H, 1), point.x, point.y),
+        );
+        assert_eq!(runtime.app().state.horizontal_offset(), 4);
+        assert_eq!(runtime.app().state.scroll().offset(), 0);
+        assert_eq!(runtime.app().route_callbacks, 0);
+    }
+
+    #[test]
+    fn same_length_wrapped_source_revision_rebuilds_vertical_measurements() {
+        let mut app = RoutedViewportApp::new(false, true, false);
+        app.same_count = true;
+        app.replace_on_event = true;
+        let mut runtime = routed_runtime(app);
+        let point = routed_text_point(&runtime);
+        let before = runtime.app().state.clone();
+
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            mouse(MouseKind::Wheel(Axis::V, 1), point.x, point.y),
+        );
+        assert_eq!(
+            runtime.app().state,
+            before,
+            "stale source rejects before mutation"
+        );
+
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        let point = routed_text_point(&runtime);
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            mouse(MouseKind::Wheel(Axis::V, 1), point.x, point.y),
+        );
+        assert!(runtime.app().state.scroll().offset() > 0);
+        assert_eq!(runtime.app().state.scroll().content_len(), 64);
+    }
+
+    #[test]
+    fn same_length_long_to_short_pan_remeasures_without_wheel_motion() {
+        let mut app = RoutedViewportApp::new(true, false, true);
+        app.same_count = true;
+        app.replace_on_event = true;
+        app.replacement_long = false;
+        let mut runtime = routed_runtime(app);
+        let before = runtime.app().state.clone();
+        let point = routed_text_point(&runtime);
+        assert_eq!(
+            runtime
+                .registry()
+                .hit_scroll(point, Axis::H)
+                .map(|hit| hit.owner),
+            Some(ROUTED_CHILD)
+        );
+
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            mouse(MouseKind::Wheel(Axis::H, 1), point.x, point.y),
+        );
+        assert_eq!(
+            runtime.app().state,
+            before,
+            "the old revision has no side effects"
+        );
+        assert!(
+            runtime
+                .app()
+                .observed_route_attempts
+                .iter()
+                .any(|(cause, attempt)| {
+                    *cause == UpdateCause::Event && *attempt == Some((ROUTED_CHILD, Axis::H, 7))
+                })
+        );
+
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Char('x')));
+        assert_eq!(runtime.app().state.horizontal.content_len(), 5);
+        assert_eq!(runtime.app().state.horizontal_offset(), 0);
+        let point = routed_text_point(&runtime);
+        let before_wheel = runtime.app().state.clone();
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            mouse(MouseKind::Wheel(Axis::H, 1), point.x, point.y),
+        );
+        assert_eq!(runtime.app().state.horizontal_offset(), 0);
+        assert_eq!(
+            runtime.app().state.scroll().offset(),
+            before_wheel.scroll().offset()
+        );
+        assert_eq!(runtime.app().parent.offset(), 0);
+    }
+
+    #[test]
+    fn same_length_wrapped_long_to_short_rebuilds_vertical_measurements() {
+        let mut app = RoutedViewportApp::new(true, true, false);
+        app.same_count = true;
+        app.replace_on_event = true;
+        app.replacement_long = false;
+        let mut runtime = routed_runtime(app);
+        assert_eq!(runtime.app().state.scroll().content_len(), 64);
+        let before = runtime.app().state.clone();
+        let point = routed_text_point(&runtime);
+
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            mouse(MouseKind::Wheel(Axis::V, 1), point.x, point.y),
+        );
+        assert_eq!(
+            runtime.app().state,
+            before,
+            "the old revision has no side effects"
+        );
+        assert!(
+            runtime
+                .app()
+                .observed_route_attempts
+                .iter()
+                .any(|(cause, attempt)| {
+                    *cause == UpdateCause::Event && *attempt == Some((ROUTED_CHILD, Axis::V, 7))
+                })
+        );
+
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Char('x')));
+        assert_eq!(runtime.app().state.scroll().content_len(), 32);
+        assert_eq!(runtime.app().state.scroll().offset(), 0);
+        let point = routed_text_point(&runtime);
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            mouse(MouseKind::Wheel(Axis::V, 1), point.x, point.y),
+        );
+        assert!(runtime.app().state.scroll().offset() > 0);
+        assert_eq!(runtime.app().state.scroll().content_len(), 32);
+        assert_eq!(runtime.app().parent.offset(), 0);
+    }
+
+    #[test]
+    fn projected_text_uses_the_same_routed_horizontal_service() {
+        let mut projected = ProjectedText::default();
+        for _ in 0..32 {
+            projected.push_line([(
+                "0123456789012345678901234567890123456789",
+                None,
+                ratatui_core::style::Modifier::empty(),
+            )]);
+        }
+        let mut app = RoutedViewportApp::new(false, false, true);
+        app.projected = Some(projected);
+        let mut runtime = routed_runtime(app);
+        let point = routed_text_point(&runtime);
+
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            mouse(MouseKind::Wheel(Axis::H, 1), point.x, point.y),
+        );
+
+        assert_eq!(runtime.app().state.horizontal_offset(), 4);
+        assert_eq!(runtime.app().state.scroll().offset(), 0);
+        assert_eq!(runtime.app().route_callbacks, 0);
     }
 }

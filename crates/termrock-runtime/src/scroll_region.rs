@@ -80,6 +80,7 @@ struct ScrollPointer {
 
 #[derive(Clone, Copy)]
 enum ScrollRegistration {
+    Suppressed,
     Ordinary,
     Routed { source_revision: u64 },
 }
@@ -414,6 +415,31 @@ impl<'a> ScrollRegion<'a> {
         self.draw_window(ui, VerticalWindow::full(area), st, content_len)
     }
 
+    /// Paint this region without registering its broad wheel target.
+    ///
+    /// Layout facts, decoration, scrollbar painting, and track/thumb pointer
+    /// registrations are unchanged. Use this only when the caller registers
+    /// its own disjoint wheel targets for the same painted region.
+    pub fn draw_without_wheel_registration(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        st: &ScrollState,
+        content_len: usize,
+    ) -> Rect {
+        if area.is_empty() {
+            return area;
+        }
+        self.draw_window_registered(
+            ui,
+            VerticalWindow::full(area),
+            st,
+            content_len,
+            ScrollRegistration::Suppressed,
+        )
+        .0
+    }
+
     /// Draw this region as an opt-in vertical wheel target.
     ///
     /// The returned key is valid only for the current draw frame. The caller
@@ -524,6 +550,7 @@ impl<'a> ScrollRegion<'a> {
         );
         ui.register_decor(self.id, PartRef::of(Part::CONTAINER), area);
         let route_key = match registration {
+            ScrollRegistration::Suppressed => None,
             ScrollRegistration::Ordinary => {
                 ui.register_scroll(self.id, area, Axes::V, view.headroom_v());
                 None
@@ -1010,6 +1037,82 @@ mod tests {
             )
         };
         assert_eq!(render(false), render(true));
+    }
+
+    #[test]
+    fn wheel_suppression_keeps_scroll_region_paint_and_pointer_parts() {
+        let area = Rect::new(2, 1, 8, 7);
+        let mut state = ScrollState::new(60);
+        state.set_viewport(7);
+        state.scroll_to(20);
+        let render = |suppress_wheel: bool| {
+            let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+            let mut buffer = Buffer::empty(SCREEN);
+            let mut content = None;
+            runtime
+                .draw_scene(SCREEN, &mut buffer, |ui, _| {
+                    let region = ScrollRegion::new(ID);
+                    content = Some(if suppress_wheel {
+                        region.draw_without_wheel_registration(ui, area, &state, 60)
+                    } else {
+                        region.draw(ui, area, &state, 60)
+                    });
+                })
+                .commit_presented();
+            let parts = [Part::CONTAINER, Part::TRACK, Part::THUMB]
+                .map(|part| runtime.area_of_part(ID, PartRef::of(part)));
+            let regions = runtime
+                .registry()
+                .regions()
+                .iter()
+                .map(|region| (region.owner, region.part, region.kind, region.area))
+                .collect::<Vec<_>>();
+            (
+                buffer,
+                content,
+                parts,
+                runtime.diagnostics().to_vec(),
+                regions,
+            )
+        };
+
+        let ordinary = render(false);
+        let suppressed = render(true);
+        assert_eq!(
+            suppressed.0, ordinary.0,
+            "painting must stay byte-identical"
+        );
+        assert_eq!(suppressed.1, ordinary.1, "content geometry must stay equal");
+        assert_eq!(
+            suppressed.2, ordinary.2,
+            "container and pointer parts stay equal"
+        );
+        assert_eq!(suppressed.3, ordinary.3, "diagnostics must stay equal");
+        assert_eq!(
+            ordinary
+                .4
+                .iter()
+                .filter(|(_, _, kind, _)| *kind == crate::hit::RegionKind::Scroll)
+                .count(),
+            1
+        );
+        assert_eq!(
+            suppressed
+                .4
+                .iter()
+                .filter(|(_, _, kind, _)| *kind == crate::hit::RegionKind::Scroll)
+                .count(),
+            0,
+            "only the broad wheel target is suppressed"
+        );
+        for part in [Part::TRACK, Part::THUMB] {
+            assert!(suppressed.4.iter().any(|(_, registered, kind, area)| {
+                *registered == PartRef::of(part)
+                    && *kind == crate::hit::RegionKind::Part
+                    && *area
+                        == suppressed.2[usize::from(part == Part::THUMB) + 1].unwrap_or_default()
+            }));
+        }
     }
 
     struct ScrollHarness {
