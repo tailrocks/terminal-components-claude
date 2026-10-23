@@ -73,7 +73,14 @@ pub enum TabRule {
 }
 
 impl TabRule {
-    fn foreground(self, ui: &Ui<'_>, owner: Id, focus_hidden: Option<bool>) -> Role {
+    fn foreground(
+        self,
+        ui: &Ui<'_>,
+        owner: Id,
+        focus_hidden: Option<bool>,
+        passive: bool,
+        passive_focused: bool,
+    ) -> Role {
         match self {
             Self::Accent => Role::Accent,
             Self::Neutral => Role::BorderStrong,
@@ -81,6 +88,8 @@ impl TabRule {
                 Role::Accent
             }
             Self::Auto => Role::BorderStrong,
+            Self::FocusOnly if passive && passive_focused => Role::Accent,
+            Self::FocusOnly if passive => Role::BorderStrong,
             Self::FocusOnly
                 if !focus_hidden.unwrap_or_else(|| ui.is_covered_by_native_layer())
                     && ui.owner_has_focus_presentation(owner) =>
@@ -481,6 +490,8 @@ pub struct TabLayout {
     status: Status,
     rule: Option<TabRule>,
     rule_focus_hidden: Option<bool>,
+    passive: bool,
+    passive_focused: bool,
     left_overflow: Option<Rect>,
     right_overflow: Option<Rect>,
     new_area: Option<Rect>,
@@ -651,6 +662,8 @@ pub struct Tabs<'a, T, K = ByIndex, R = DefaultRow> {
     status: Status,
     rule: Option<TabRule>,
     rule_focus_hidden: Option<bool>,
+    passive: bool,
+    passive_focused: bool,
     item_marks: Option<fn(&T) -> TabMarks>,
     ov: PartStyle<'a>,
     _t: PhantomData<fn(&T)>,
@@ -670,6 +683,8 @@ impl<T, K, R> fmt::Debug for Tabs<'_, T, K, R> {
             .field("status", &self.status)
             .field("rule", &self.rule)
             .field("rule_focus_hidden", &self.rule_focus_hidden)
+            .field("passive", &self.passive)
+            .field("passive_focused", &self.passive_focused)
             .field("item_marks", &self.item_marks.is_some())
             .finish_non_exhaustive()
     }
@@ -691,6 +706,8 @@ impl<T> Tabs<'_, T, ByIndex, DefaultRow> {
             status: Status::Ready,
             rule: None,
             rule_focus_hidden: None,
+            passive: false,
+            passive_focused: false,
             item_marks: None,
             ov: PartStyle::new(),
             _t: PhantomData,
@@ -731,6 +748,8 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
             status: self.status,
             rule: self.rule,
             rule_focus_hidden: self.rule_focus_hidden,
+            passive: self.passive,
+            passive_focused: self.passive_focused,
             item_marks: self.item_marks,
             ov: self.ov,
             _t: PhantomData,
@@ -752,6 +771,8 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
             status: self.status,
             rule: self.rule,
             rule_focus_hidden: self.rule_focus_hidden,
+            passive: self.passive,
+            passive_focused: self.passive_focused,
             item_marks: self.item_marks,
             ov: self.ov,
             _t: PhantomData,
@@ -862,6 +883,26 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
         self
     }
 
+    /// Keep the tab strip out of the automatic focus order and keyboard map.
+    ///
+    /// Visible tab, close, new and overflow parts remain interactive. The
+    /// default is `false`, which preserves the ordinary focusable strip.
+    #[must_use]
+    pub fn passive(mut self, passive: bool) -> Self {
+        self.passive = passive;
+        self
+    }
+
+    /// Choose whether a passive strip presents its cursor row as focused.
+    ///
+    /// This only affects presentation while [`Self::passive`] is `true`; it
+    /// never grants focus or keyboard input. The default is `false`.
+    #[must_use]
+    pub fn passive_focused(mut self, focused: bool) -> Self {
+        self.passive_focused = focused;
+        self
+    }
+
     /// Map each item to independent optional status marks.
     ///
     /// The default is unconfigured and does not reserve per-item space. A
@@ -895,7 +936,11 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
     }
 
     fn table(&self) -> &'static [Binding<TabsCmd>] {
-        table_for(self.close_binding_enabled(), self.allow_new)
+        if self.passive {
+            &[]
+        } else {
+            table_for(self.close_binding_enabled(), self.allow_new)
+        }
     }
 
     fn close_binding_enabled(&self) -> bool {
@@ -1002,6 +1047,10 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                     st.close_reveal_press = None;
                 }
                 Intent::Binding(action) => {
+                    if self.passive {
+                        acc.consumed();
+                        continue;
+                    }
                     let cur = st.core.cursor_index();
                     match Binding::command(table, action) {
                         Some(TabsCmd::Prev) => {
@@ -1242,11 +1291,16 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
             },
             TabsRenderSource::Planned(layout) => layout.used_area,
         };
-        if !ui.is_inert() {
+        if !ui.is_inert() && !self.passive {
             ui.register_control(self.id, used, Focusability::Focusable);
         }
         let live = PartStyle::flags(ui.state(self.id), self.status.flags());
-        if !ui.is_inert() {
+        let live = if self.passive {
+            live.difference(StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE)
+        } else {
+            live
+        };
+        if !ui.is_inert() && !self.passive {
             ui.publish_bindings(self.id, live, self.table());
         }
         let ov = self.ov;
@@ -1392,7 +1446,13 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                 flags |= StateFlags::ACTIVE;
             }
             if is_cursor {
-                flags |= live & (StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE);
+                if self.passive {
+                    if self.passive_focused {
+                        flags |= StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE;
+                    }
+                } else {
+                    flags |= live & (StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE);
+                }
                 if pressed.is_none() {
                     flags |= live & StateFlags::PRESSED;
                 }
@@ -1436,8 +1496,13 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                 && match self.close_reveal {
                     TabCloseReveal::Always => true,
                     TabCloseReveal::Hover => {
+                        let cursor_focused = if self.passive {
+                            self.passive_focused
+                        } else {
+                            live.contains(StateFlags::FOCUSED)
+                        };
                         is_active
-                            || (is_cursor && live.contains(StateFlags::FOCUSED))
+                            || (is_cursor && cursor_focused)
                             || hovered == Some(tab_part)
                             || hovered == Some(close_part)
                             || pressed == Some(close_part)
@@ -1614,6 +1679,8 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                             ui,
                             id,
                             self.rule_focus_hidden,
+                            self.passive,
+                            self.passive_focused,
                         ));
                         let patch = ov
                             .part_patch(Part::RULE)
@@ -1914,6 +1981,8 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
                 status: self.status,
                 rule: self.rule,
                 rule_focus_hidden: self.rule_focus_hidden,
+                passive: self.passive,
+                passive_focused: self.passive_focused,
                 left_overflow: None,
                 right_overflow: None,
                 new_area: None,
@@ -2080,6 +2149,8 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
             status: self.status,
             rule: self.rule,
             rule_focus_hidden: self.rule_focus_hidden,
+            passive: self.passive,
+            passive_focused: self.passive_focused,
             item_marks_enabled: self.item_marks.is_some(),
             left_overflow,
             right_overflow,
@@ -2114,6 +2185,8 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
             || layout.status != self.status
             || layout.rule != self.rule
             || layout.rule_focus_hidden != self.rule_focus_hidden
+            || layout.passive != self.passive
+            || layout.passive_focused != self.passive_focused
             || layout.item_marks_enabled != self.item_marks.is_some()
         {
             return Err(TabLayoutMismatch);
