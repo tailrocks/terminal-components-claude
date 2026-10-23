@@ -7,11 +7,12 @@ use ratatui_core::style::Modifier;
 use super::{PartStyle, SlotFn};
 use crate::author::VerticalWindow;
 use crate::diagnostics::Diagnostic;
-use crate::hit::Axes;
+use crate::hit::{Axes, ScrollRouteKey};
 use crate::id::{Id, Part, PartRef};
 use crate::intent::{Intent, Phase};
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
+use crate::runtime::WheelRouteResult;
 use crate::scroll::ScrollState;
 use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, LayoutFacts, Ui};
@@ -75,6 +76,12 @@ struct ScrollPointer {
     local: Position,
     track_len: usize,
     window: Option<VerticalWindow>,
+}
+
+#[derive(Clone, Copy)]
+enum ScrollRegistration {
+    Ordinary,
+    Routed { source_revision: u64 },
 }
 
 impl fmt::Debug for ScrollRegion<'_> {
@@ -175,6 +182,80 @@ impl<'a> ScrollRegion<'a> {
             r |= self.handle_intent_in_window(cx, st, track_len, window, it);
         }
         r.for_id(self.id)
+    }
+
+    /// Update this region with an explicit source revision for nested wheel
+    /// routing. Ordinary events retain [`ScrollRegion::update`] behavior. If
+    /// this region is the addressed vertical wheel target, the revision is
+    /// checked before layout preparation or scroll-state mutation.
+    pub fn update_routed(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut ScrollState,
+        content_len: usize,
+        source_revision: u64,
+    ) -> Response<()> {
+        let Some(attempt) =
+            cx.wheel_route_attempt(self.id, PartRef::of(Part::CONTAINER), crate::event::Axis::V)
+        else {
+            return self.update(cx, st, content_len);
+        };
+        self.service_routed_wheel_attempt(cx, st, content_len, source_revision, attempt)
+    }
+
+    /// Service only the active vertical wheel fallback addressed to this
+    /// region. A missing or stale attempt is left unacknowledged and does not
+    /// prepare or mutate the scroll state.
+    pub fn service_routed_wheel(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut ScrollState,
+        content_len: usize,
+        source_revision: u64,
+    ) -> Response<()> {
+        let Some(attempt) =
+            cx.wheel_route_attempt(self.id, PartRef::of(Part::CONTAINER), crate::event::Axis::V)
+        else {
+            return Response::ignored().for_id(self.id);
+        };
+        self.service_routed_wheel_attempt(cx, st, content_len, source_revision, attempt)
+    }
+
+    fn service_routed_wheel_attempt(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut ScrollState,
+        content_len: usize,
+        source_revision: u64,
+        attempt: crate::runtime::WheelRouteAttempt,
+    ) -> Response<()> {
+        if attempt.source_revision() != source_revision {
+            return Response::ignored().for_id(self.id);
+        }
+
+        let before_prepare = *st;
+        self.prepare(cx, st, content_len);
+        let prepared_offset = st.offset();
+        let overflows = st.overflows();
+        let wheel_response = st.wheel(attempt.delta());
+        let changed = before_prepare.offset() != prepared_offset || prepared_offset != st.offset();
+        let result = if changed {
+            WheelRouteResult::Changed
+        } else if overflows {
+            WheelRouteResult::Consumed
+        } else {
+            WheelRouteResult::Ignored
+        };
+        let response = if before_prepare.offset() != prepared_offset {
+            wheel_response | Response::changed()
+        } else {
+            wheel_response
+        };
+        if !cx.acknowledge_wheel_route(&attempt, result) {
+            *st = before_prepare;
+            return Response::ignored().for_id(self.id);
+        }
+        response.for_id(self.id)
     }
 
     pub fn prepare(&self, cx: &Cx<'_>, st: &mut ScrollState, content_len: usize) -> u16 {
@@ -333,6 +414,35 @@ impl<'a> ScrollRegion<'a> {
         self.draw_window(ui, VerticalWindow::full(area), st, content_len)
     }
 
+    /// Draw this region as an opt-in vertical wheel target.
+    ///
+    /// The returned key is valid only for the current draw frame. The caller
+    /// supplies a revision that distinguishes source replacement, reorder,
+    /// and other source changes that affect scrolling or layout. Do not derive
+    /// it from content length or state generation. The caller must not reuse a
+    /// revision while an older registration can still be serviced; exhaustion
+    /// must fail closed rather than wrap and reuse one.
+    /// The caller links nested regions with [`Ui::link_scroll_parent`].
+    pub fn draw_routed(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        st: &ScrollState,
+        content_len: usize,
+        source_revision: u64,
+    ) -> (Rect, Option<ScrollRouteKey>) {
+        if area.is_empty() {
+            return (area, None);
+        }
+        self.draw_window_routed(
+            ui,
+            VerticalWindow::full(area),
+            st,
+            content_len,
+            source_revision,
+        )
+    }
+
     /// Draw a ScrollRegion whose physical body is a visible window into the
     /// original logical viewport. The state and thumb retain logical sizing.
     pub fn draw_window(
@@ -342,6 +452,43 @@ impl<'a> ScrollRegion<'a> {
         st: &ScrollState,
         content_len: usize,
     ) -> Rect {
+        self.draw_window_registered(ui, window, st, content_len, ScrollRegistration::Ordinary)
+            .0
+    }
+
+    /// Draw a visible logical window as an opt-in vertical wheel target.
+    ///
+    /// The returned key is frame-local and carries the caller's source
+    /// revision. Empty or clipped-away regions return no key. The caller must
+    /// keep revisions unique across any source changes that affect scrolling
+    /// or layout while an older registration can still be serviced. Do not
+    /// derive revisions from content length or state generation; on exhaustion,
+    /// fail closed rather than wrapping and reusing one.
+    pub fn draw_window_routed(
+        &self,
+        ui: &mut Ui<'_>,
+        window: VerticalWindow,
+        st: &ScrollState,
+        content_len: usize,
+        source_revision: u64,
+    ) -> (Rect, Option<ScrollRouteKey>) {
+        self.draw_window_registered(
+            ui,
+            window,
+            st,
+            content_len,
+            ScrollRegistration::Routed { source_revision },
+        )
+    }
+
+    fn draw_window_registered(
+        &self,
+        ui: &mut Ui<'_>,
+        window: VerticalWindow,
+        st: &ScrollState,
+        content_len: usize,
+        registration: ScrollRegistration,
+    ) -> (Rect, Option<ScrollRouteKey>) {
         let area = window.visible_body();
         if area.is_empty() {
             ui.report_layout(
@@ -349,7 +496,7 @@ impl<'a> ScrollRegion<'a> {
                 LayoutFacts::new(window.logical_rows(), content_len, 0, area.width)
                     .with_vertical_window(window),
             );
-            return area;
+            return (area, None);
         }
         let mut view = *st;
         view.apply_layout(window.logical_rows(), content_len);
@@ -376,13 +523,25 @@ impl<'a> ScrollRegion<'a> {
             .with_vertical_window(window),
         );
         ui.register_decor(self.id, PartRef::of(Part::CONTAINER), area);
-        ui.register_scroll(self.id, area, Axes::V, view.headroom_v());
+        let route_key = match registration {
+            ScrollRegistration::Ordinary => {
+                ui.register_scroll(self.id, area, Axes::V, view.headroom_v());
+                None
+            }
+            ScrollRegistration::Routed { source_revision } => ui.register_routed_scroll(
+                self.id,
+                area,
+                Axes::V,
+                view.headroom_v(),
+                source_revision,
+            ),
+        };
         if !self.scrollbar_visible {
-            return area;
+            return (area, route_key);
         }
         let overflows = view.overflows();
         if !overflows && self.scrollbar_gutter == ScrollbarGutter::Auto {
-            return area;
+            return (area, route_key);
         }
         let bar = Rect {
             x: area.right().saturating_sub(1),
@@ -397,7 +556,7 @@ impl<'a> ScrollRegion<'a> {
         if overflows {
             self.paint_bar(ui, bar, &view, window);
         }
-        content
+        (content, route_key)
     }
 
     fn paint_bar(&self, ui: &mut Ui<'_>, bar: Rect, view: &ScrollState, window: VerticalWindow) {
