@@ -98,6 +98,7 @@ struct Tokens {
 #[derive(Debug, Clone)]
 struct Attributes {
     predicate: Predicate,
+    literal_cfg_test: bool,
     path: Option<String>,
     derives: BTreeSet<String>,
     test_attributes: BTreeSet<String>,
@@ -108,6 +109,7 @@ impl Default for Attributes {
     fn default() -> Self {
         Self {
             predicate: Predicate::ALWAYS,
+            literal_cfg_test: false,
             path: None,
             derives: BTreeSet::new(),
             test_attributes: BTreeSet::new(),
@@ -1113,7 +1115,12 @@ fn parse_scope(
             }
             derived_names.extend(attr.derives.iter().cloned());
             test_attributes.extend(attr.test_attributes.iter().cloned());
+            attributes.derives.extend(attr.derives.iter().cloned());
+            attributes
+                .test_attributes
+                .extend(attr.test_attributes.iter().cloned());
             attributes.predicate = attributes.predicate.and(attr.predicate);
+            attributes.literal_cfg_test |= attr.literal_cfg_test;
             if attributes.path.is_some() && attr.path.is_some() {
                 parsed.complete = false;
             } else if attr.path.is_some() {
@@ -1161,6 +1168,20 @@ fn parse_scope(
                     parsed.complete = false;
                     return Some(parsed);
                 };
+                if collect_ranges
+                    && !collect_body_routes
+                    && attributes.complete
+                    && attributes.literal_cfg_test
+                    && attributes.path.is_none()
+                    && attributes.derives.is_empty()
+                    && attributes.test_attributes.is_empty()
+                    && effective.test_only()
+                {
+                    push_range(tokens, item_start, close + 1, &mut parsed.test_ranges);
+                    index = close + 1;
+                    saw_item = true;
+                    continue;
+                }
                 let child_module_dir = source_context.module_dir.join(&name);
                 let child_file_module_dir = attributes.path.as_deref().map_or_else(
                     || source_context.file_module_dir.join(&name),
@@ -1616,6 +1637,8 @@ fn parse_attribute(tokens: &Tokens, at: usize, end: usize) -> Option<(usize, boo
                 attr.predicate = Predicate::UNKNOWN;
             } else if let Some(predicate) = parse_cfg(tokens, open + 1, close - 1) {
                 attr.predicate = predicate;
+                attr.literal_cfg_test =
+                    ident_at(tokens, open + 1) == Some("test") && cfg_close == open.checked_add(2);
             } else {
                 attr.complete = false;
                 attr.predicate = Predicate::UNKNOWN;
@@ -2441,6 +2464,20 @@ mod tests {
         let actual = ranges(source);
         assert!(actual.iter().any(|range| range.contains(6)));
         assert!(!actual.iter().any(|range| range.contains(9)));
+    }
+
+    #[test]
+    fn inline_cfg_test_range_does_not_resolve_descendant_attributes() {
+        let source = "fn before() {} #[allow(dead_code)] #[cfg(test)] mod helpers {\n\
+                      use super::*;\n\
+                      #[test] fn nested_test() {}\n\
+                      #[derive(Clone)] struct Derived;\n\
+                      #[custom_rewrite] fn rewritten() {}\n\
+                      } fn after() {}\n";
+        let actual = ranges(source);
+        assert_eq!(actual, [LineRange { start: 2, end: 5 }]);
+        assert!(!actual.iter().any(|range| range.contains(1)));
+        assert!(!actual.iter().any(|range| range.contains(6)));
     }
 
     #[test]
