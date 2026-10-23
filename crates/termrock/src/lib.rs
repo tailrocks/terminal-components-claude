@@ -182,8 +182,8 @@ pub use termrock_navigation::{
     ItemRow, ItemRowLayout, List, ListAction, ListCmd, ListSelectionCmd, ListState, NavList,
     NavListAction, NavListCmd, NavListState, NavMode, NodeKind, SelectionPolicy, SemanticItemRow,
     StepState, Steps, StepsAction, StepsCmd, StepsState, TabCloseReveal, Tabs, TabsAction, TabsCmd,
-    TabsState,
-    Tree, TreeAction, TreeBranchActivation, TreeBranchClick, TreeCmd, TreeNode, TreeState,
+    TabsState, Tree, TreeAction, TreeBranchActivation, TreeBranchClick, TreeCmd, TreeNode,
+    TreeState,
 };
 
 pub use termrock_viewport::{
