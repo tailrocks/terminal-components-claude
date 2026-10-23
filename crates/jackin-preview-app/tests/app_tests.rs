@@ -1880,13 +1880,11 @@ fn accounts_drawer_enter_paints_the_approved_work_drawer() {
         defaults_before,
         "Enter opens the drawer without changing the provider default"
     );
-    assert!(h.text().contains("Tab Actions"), "{}", h.text());
-    // The open drawer keeps the crumb: the selection is still the account.
-    assert!(
-        h.text().contains("Accounts › Claude › Work"),
-        "{}",
-        h.text()
-    );
+    assert!(!h.text().contains("Tab Actions"), "{}", h.text());
+    assert!(h.text().contains("↑↓ Scroll"), "{}", h.text());
+    assert!(h.text().contains("Provider"), "{}", h.text());
+    // The shared right pane still names the exact selected account.
+    assert!(h.text().contains("Claude · Work"), "{}", h.text());
     let mark = h.buffer().cell((2, 0)).expect("jackin prompt");
     assert_eq!(mark.symbol(), "j");
     assert_eq!(mark.fg, termrock::Color::from_u32(0x19_19_1c));
@@ -1897,11 +1895,6 @@ fn accounts_drawer_enter_paints_the_approved_work_drawer() {
     assert_eq!(title.fg, termrock::Color::from_u32(0xff_ff_ff));
     assert_eq!(title.bg, termrock::Color::from_u32(0x11_11_11));
     assert!(title.modifier.contains(termrock::Modifier::BOLD));
-    let tab = h.buffer().cell((12, 39)).expect("drawer tab hint");
-    assert_eq!(tab.symbol(), "T");
-    assert_eq!(tab.fg, termrock::Color::from_u32(0xff_ff_ff));
-    assert_eq!(tab.bg, termrock::Color::from_u32(0x00_00_00));
-    assert!(tab.modifier.contains(termrock::Modifier::BOLD));
     assert_eq!(h.harness.cursor(), None);
     h.key(KeyCode::Esc);
     assert!(!h.app().accounts.drawer_open);
@@ -2000,7 +1993,9 @@ fn accounts_click_closes_open_drawer_for_same_and_different_rows() {
 
     h.key(KeyCode::Enter);
     assert!(h.app().accounts.drawer_open, "root Enter opens the drawer");
-    assert!(h.text().contains("Tab Actions"), "{}", h.text());
+    assert!(!h.text().contains("Tab Actions"), "{}", h.text());
+    assert!(h.text().contains("↑↓ Scroll"), "{}", h.text());
+    assert!(h.text().contains("Provider"), "{}", h.text());
     advance_past_junie_double_click_window(&mut h);
 
     let (same_x, same_y) = h.find("★ Personal").expect("Personal row while open");
@@ -2103,6 +2098,318 @@ fn accounts_row_click_keeps_selection_only_at_supported_narrow_size() {
         "{:?}",
         h.harness.diagnostics()
     );
+}
+
+fn accounts_summary_click_opens_inspector_at(width: u16, height: u16) {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, width, height);
+    for _ in 0..4 {
+        h.key(KeyCode::Down);
+    }
+    assert_eq!(
+        h.app().accounts.selected_id.as_deref(),
+        Some("acct-claude-work")
+    );
+    let summary =
+        termrock::feedback::accounts_detail_summary_area(termrock::Rect::new(0, 0, width, height))
+            .expect("the closed account summary is visible");
+    let registry = h.app().world.accounts.clone();
+    h.click(summary.x.saturating_add(1), summary.y.saturating_add(2));
+
+    assert!(
+        h.app().accounts.drawer_open,
+        "clicking the visible selected-account summary opens its inspector"
+    );
+    assert!(h.text().contains("Provider"), "{}", h.text());
+    assert!(h.text().contains("Credential"), "{}", h.text());
+    assert_eq!(
+        h.focus(),
+        Some(termrock::Id::root("jackin.preview").sub("accounts-inspector")),
+        "the real detail viewport owns focus after opening"
+    );
+    assert_eq!(h.app().world.accounts, registry);
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "{:?}",
+        h.harness.diagnostics()
+    );
+}
+
+#[test]
+fn accounts_summary_click_opens_visible_inspector_at_80x24() {
+    accounts_summary_click_opens_inspector_at(80, 24);
+}
+
+#[test]
+fn accounts_summary_click_opens_visible_inspector_at_72x20() {
+    accounts_summary_click_opens_inspector_at(72, 20);
+}
+
+#[test]
+fn account_inspector_escape_restores_list_focus_and_exact_selection() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 80, 24);
+    for _ in 0..4 {
+        h.key(KeyCode::Down);
+    }
+    let selected = h.app().accounts.selected_id.clone();
+    let cursor = h.app().accounts.list.cursor();
+    let list_before = h.app().accounts.list.clone();
+
+    h.key(KeyCode::Enter);
+    assert!(h.app().accounts.drawer_open);
+    assert!(h.text().contains("Provider"), "{}", h.text());
+    assert_eq!(
+        h.focus(),
+        Some(termrock::Id::root("jackin.preview").sub("accounts-inspector"))
+    );
+
+    h.key(KeyCode::Esc);
+    assert!(!h.app().accounts.drawer_open);
+    assert_eq!(h.app().accounts.selected_id, selected);
+    assert_eq!(h.app().accounts.list.cursor(), cursor);
+    assert_eq!(h.app().accounts.list, list_before);
+    assert_eq!(h.focus(), Some(ACCOUNTS_LIST));
+    assert!(h.text().contains("Enter Details"), "{}", h.text());
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "{:?}",
+        h.harness.diagnostics()
+    );
+}
+
+#[test]
+fn account_inspector_scrolls_live_facts_without_mutating_the_registry() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 80, 24);
+    let purpose = format!("{}Inspector end marker", "long read-only fact ".repeat(420));
+    h.app_mut()
+        .world
+        .accounts
+        .get_mut("acct-claude-work")
+        .expect("work fixture")
+        .purpose = Some(purpose);
+    let registry = h.app().world.accounts.clone();
+    for _ in 0..4 {
+        h.key(KeyCode::Down);
+    }
+    h.key(KeyCode::Enter);
+    assert!(h.app().accounts.drawer_open);
+    assert!(!h.text().contains("end marker"), "{}", h.text());
+
+    for _ in 0..10 {
+        if h.text().contains("end marker") {
+            break;
+        }
+        h.key(KeyCode::PageDown);
+    }
+    assert!(h.text().contains("end marker"), "{}", h.text());
+    assert_eq!(
+        h.app().accounts.selected_id.as_deref(),
+        Some("acct-claude-work")
+    );
+    assert_eq!(h.app().world.accounts, registry);
+    h.key(KeyCode::Esc);
+    assert_eq!(h.app().world.accounts, registry);
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "{:?}",
+        h.harness.diagnostics()
+    );
+}
+
+#[test]
+fn account_inspector_can_read_disabled_and_discovered_accounts_without_mutation() {
+    for (account_id, title, disabled, discovered) in [
+        ("acct-claude-archive", "Archived contractor", true, false),
+        ("disc-amp", "Amp · discovered", false, true),
+    ] {
+        let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 80, 24);
+        let limit = h.app().world.accounts.accounts.len().saturating_mul(3);
+        for _ in 0..limit {
+            if h.app().accounts.selected_id.as_deref() == Some(account_id) {
+                break;
+            }
+            h.key(KeyCode::Down);
+        }
+        assert_eq!(h.app().accounts.selected_id.as_deref(), Some(account_id));
+        let account = h
+            .app()
+            .world
+            .accounts
+            .get(account_id)
+            .expect("fixture account");
+        assert_eq!(!account.enabled, disabled);
+        assert_eq!(
+            account.origin == jackin_preview_app::domain::account::AccountOrigin::Discovered,
+            discovered
+        );
+        let registry = h.app().world.accounts.clone();
+
+        h.key(KeyCode::Enter);
+        assert!(h.app().accounts.drawer_open);
+        assert!(h.text().contains(title), "{}", h.text());
+        assert_eq!(h.app().world.accounts, registry);
+        assert_eq!(
+            h.focus(),
+            Some(termrock::Id::root("jackin.preview").sub("accounts-inspector"))
+        );
+
+        h.key(KeyCode::Esc);
+        assert!(!h.app().accounts.drawer_open);
+        assert_eq!(h.app().accounts.selected_id.as_deref(), Some(account_id));
+        assert_eq!(h.app().world.accounts, registry);
+        assert!(
+            h.harness.diagnostics().is_empty(),
+            "{:?}",
+            h.harness.diagnostics()
+        );
+    }
+}
+
+#[test]
+fn account_inspector_keeps_its_account_across_resize_reorder_and_removal() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 80, 24);
+    for _ in 0..4 {
+        h.key(KeyCode::Down);
+    }
+    h.key(KeyCode::Enter);
+    let inspector = termrock::Id::root("jackin.preview").sub("accounts-inspector");
+    assert_eq!(h.focus(), Some(inspector));
+
+    h.resize(120, 40);
+    assert!(h.app().accounts.drawer_open);
+    assert_eq!(
+        h.app().accounts.selected_id.as_deref(),
+        Some("acct-claude-work")
+    );
+    assert_eq!(h.focus(), Some(inspector));
+    assert!(h.text().contains("Provider"), "{}", h.text());
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "after wide resize: {:?}",
+        h.harness.diagnostics()
+    );
+    h.resize(102, 24);
+    assert!(h.app().accounts.drawer_open);
+    assert_eq!(
+        h.app().accounts.selected_id.as_deref(),
+        Some("acct-claude-work")
+    );
+    assert_eq!(h.focus(), Some(inspector));
+    assert!(h.text().contains("Provider"), "{}", h.text());
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "at 102×24: {:?}",
+        h.harness.diagnostics()
+    );
+    h.resize(80, 24);
+    assert!(h.app().accounts.drawer_open);
+    assert_eq!(h.focus(), Some(inspector));
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "after narrow resize: {:?}",
+        h.harness.diagnostics()
+    );
+    h.resize(120, 40);
+    assert!(h.app().accounts.drawer_open);
+    assert_eq!(h.focus(), Some(inspector));
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "after wide return: {:?}",
+        h.harness.diagnostics()
+    );
+
+    h.app_mut()
+        .world
+        .accounts
+        .get_mut("acct-claude-work")
+        .expect("work fixture")
+        .display_name = "ZZZ Work".into();
+    h.key(KeyCode::Down);
+    assert_eq!(
+        h.app().accounts.selected_id.as_deref(),
+        Some("acct-claude-work")
+    );
+    assert!(h.text().contains("ZZZ Work"), "{}", h.text());
+
+    let _ = h.app_mut().world.accounts.remove("acct-claude-work");
+    assert!(h.app().world.accounts.get("acct-claude-work").is_none());
+    assert!(
+        h.harness
+            .area_of_part(
+                ACCOUNTS_LIST,
+                PartRef::item(Part::ROW, termrock::ItemKey::index(0))
+            )
+            .is_some()
+    );
+    let _ = h.harness.click_part(
+        ACCOUNTS_LIST,
+        PartRef::item(Part::ROW, termrock::ItemKey::index(0)),
+    );
+    assert!(!h.app().accounts.drawer_open);
+    assert_eq!(h.app().accounts.selected_id, None);
+    assert_eq!(h.focus(), Some(ACCOUNTS_LIST));
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "{:?}",
+        h.harness.diagnostics()
+    );
+}
+
+#[test]
+fn account_inspector_removal_at_80x24_closes_without_selecting_another_account() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 80, 24);
+    for _ in 0..4 {
+        h.key(KeyCode::Down);
+    }
+    h.key(KeyCode::Enter);
+    assert!(h.app().accounts.drawer_open);
+    assert_eq!(
+        h.app().accounts.selected_id.as_deref(),
+        Some("acct-claude-work")
+    );
+
+    let _ = h.app_mut().world.accounts.remove("acct-claude-work");
+    let _ = h.harness.tick();
+
+    assert!(!h.app().accounts.drawer_open);
+    assert_eq!(h.app().accounts.selected_id, None);
+    assert_eq!(h.focus(), Some(ACCOUNTS_LIST));
+    assert!(h.text().contains("Enter Details"), "{}", h.text());
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "{:?}",
+        h.harness.diagnostics()
+    );
+}
+
+#[test]
+fn account_inspector_command_uses_the_selected_account_and_modal_owns_clicks() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    for _ in 0..4 {
+        h.key(KeyCode::Down);
+    }
+    let registry = h.app().world.accounts.clone();
+    h.key(KeyCode::Char('i'));
+    assert!(h.app().accounts.drawer_open);
+    assert_eq!(
+        h.app().accounts.selected_id.as_deref(),
+        Some("acct-claude-work")
+    );
+    assert_eq!(
+        h.focus(),
+        Some(termrock::Id::root("jackin.preview").sub("accounts-inspector"))
+    );
+    assert_eq!(h.app().world.accounts, registry);
+    h.key(KeyCode::Esc);
+
+    let mut modal = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 80, 24);
+    modal.key(KeyCode::Char('a'));
+    assert!(modal.app().accounts.form_open);
+    let summary =
+        termrock::feedback::accounts_detail_summary_area(termrock::Rect::new(0, 0, 80, 24))
+            .expect("closed summary geometry");
+    modal.click(summary.x.saturating_add(1), summary.y.saturating_add(2));
+    assert!(modal.app().accounts.form_open);
+    assert!(!modal.app().accounts.drawer_open);
 }
 
 #[test]
@@ -2474,8 +2781,17 @@ fn accounts_filter_and_inspector_open_without_writing_a_credential() {
     assert!(!h.app().accounts.filtering);
     assert!(!h.text().contains("Filter accounts"), "{}", h.text());
     h.key(KeyCode::Char('i'));
+    assert!(
+        !h.app().accounts.drawer_open,
+        "the inspector command must not choose a first account"
+    );
+    for _ in 0..4 {
+        h.key(KeyCode::Down);
+    }
+    h.key(KeyCode::Char('i'));
     assert!(h.app().accounts.drawer_open);
-    assert!(h.text().contains("Tab Actions"), "{}", h.text());
+    assert!(!h.text().contains("Tab Actions"), "{}", h.text());
+    assert!(h.text().contains("Provider"), "{}", h.text());
     h.key(KeyCode::Esc);
     assert!(!h.app().accounts.drawer_open);
     assert_eq!(h.app().route(), Route::Accounts);

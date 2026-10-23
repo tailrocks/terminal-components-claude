@@ -11,7 +11,7 @@ use termrock::feedback::{
     DetailSpan, DetailTail, DrawerButton, DrawerInk, DrawerLine, DrawerMeter, DrawerTone,
     FilterHint, InspectLine, InspectSpan, InspectTone, PaneChrome, PaneRow, SettingsCluster,
 };
-use termrock::{FrameRead, Rect, Ui};
+use termrock::{FrameRead, Rect, TextViewport, Ui, ViewportLine};
 
 use crate::domain::account::{Account, AccountOrigin, CredentialSource, IssueCode, Lifecycle};
 use crate::domain::agent::Provider;
@@ -153,6 +153,17 @@ const DRAWER_HINTS: [FilterHint<'static>; 3] = [
     FilterHint {
         key: "Tab",
         action: "Actions",
+    },
+    FilterHint {
+        key: "Esc",
+        action: "Back",
+    },
+];
+
+const INSPECTOR_HINTS: [FilterHint<'static>; 2] = [
+    FilterHint {
+        key: "↑↓",
+        action: "Scroll",
     },
     FilterHint {
         key: "Esc",
@@ -397,7 +408,11 @@ pub(super) fn paint(app: &App, ui: &mut Ui<'_>, area: Rect) {
     if area.width >= WIDE_MIN_WIDTH && area.height >= WIDE_MIN_HEIGHT {
         paint_wide(app, ui, area, &tree);
     } else {
-        paint_narrow(app, ui, area, &tree);
+        if app.accounts.drawer_open {
+            paint_narrow_inspector(app, ui, area);
+        } else {
+            paint_narrow(app, ui, area, &tree);
+        }
     }
     paint_filter_field(app, ui, area);
 }
@@ -429,7 +444,13 @@ fn paint_filter_field(app: &App, ui: &mut Ui<'_>, area: Rect) {
 
 /// The list beside the inspector.
 fn paint_wide(app: &App, ui: &mut Ui<'_>, area: Rect, tree: &Tree) {
-    let selection = selection(app, tree);
+    let selection = if app.accounts.drawer_open {
+        app.account_inspector_id
+            .as_ref()
+            .map_or_else(|| selection(app, tree), |id| Selection::Account(id.clone()))
+    } else {
+        selection(app, tree)
+    };
     let visible = visible_rows(area, true);
     let total = tree.rows.len();
     let offset = list_offset(app, total, visible);
@@ -452,7 +473,7 @@ fn paint_wide(app: &App, ui: &mut Ui<'_>, area: Rect, tree: &Tree) {
         .collect();
     let lines = panel_lines(&panel, area, &buttons);
     let hints: &[FilterHint<'_>] = match &selection {
-        Selection::Account(_) if app.accounts.drawer_open => &DRAWER_HINTS,
+        Selection::Account(_) if app.accounts.drawer_open => &INSPECTOR_HINTS,
         Selection::Account(_) => &ACCOUNT_HINTS,
         Selection::Provider(_) => &PROVIDER_HINTS,
         Selection::Overview => &OVERVIEW_HINTS,
@@ -483,6 +504,26 @@ fn paint_wide(app: &App, ui: &mut Ui<'_>, area: Rect, tree: &Tree) {
     termrock::feedback::paint_accounts_drawer(ui, area, &page);
     if !matches!(selection, Selection::Account(_)) {
         termrock::feedback::paint_inspector_body(ui, area, &panel.body);
+    }
+    if app.accounts.drawer_open
+        && let Some(content) = app.account_inspector_content.as_ref()
+    {
+        let body_x = area.x.saturating_add(LIST_PANE_W).saturating_add(5);
+        let body_y = area.y.saturating_add(3);
+        let body_bottom = area.bottom().saturating_sub(3);
+        let viewport_area = Rect::new(
+            body_x,
+            body_y,
+            area.right().saturating_sub(body_x).saturating_sub(1),
+            body_bottom.saturating_sub(body_y),
+        );
+        let lines = content.viewport_lines();
+        ui.with_surface(termrock::Surface::Surface, |ui| {
+            TextViewport::new(super::ACCOUNT_INSPECTOR)
+                .wrap(true)
+                .reserve_gutter(false)
+                .draw(ui, viewport_area, &app.account_inspector_viewport, &lines);
+        });
     }
     register_add_row(ui, area, tree, offset);
 }
@@ -546,7 +587,49 @@ fn paint_narrow(app: &App, ui: &mut Ui<'_>, area: Rect, tree: &Tree) {
         hint_overflow: &overflow,
     };
     termrock::feedback::paint_accounts_detail(ui, area, &page);
+    if matches!(selection, Selection::Account(_))
+        && !app.filter_field_open()
+        && !app.accounts.drawer_open
+        && let Some(summary_area) = termrock::feedback::accounts_detail_summary_area(area)
+    {
+        ui.register_control(
+            super::ACCOUNT_INSPECTOR_SUMMARY,
+            summary_area,
+            termrock::Focusability::ClickOnly,
+        );
+    }
     register_add_row(ui, area, tree, offset);
+}
+
+/// The narrow inspector replaces the summary/list frame with a real viewport.
+fn paint_narrow_inspector(app: &App, ui: &mut Ui<'_>, area: Rect) {
+    let Some(content) = app.account_inspector_content.as_ref() else {
+        return;
+    };
+    let panel_area = Rect {
+        height: area.height.saturating_sub(1),
+        ..area
+    };
+    let panel = termrock::Panel::new(super::ACCOUNT_INSPECTOR_PANEL)
+        .kind(termrock::PanelKind::Framed)
+        .title(&content.title)
+        .meta(&content.meta)
+        .focused(
+            ui.state(super::ACCOUNT_INSPECTOR)
+                .contains(termrock::StateFlags::FOCUSED),
+        );
+    let lines = content.viewport_lines();
+    panel.draw(ui, panel_area, |ui, body| {
+        TextViewport::new(super::ACCOUNT_INSPECTOR)
+            .wrap(true)
+            .reserve_gutter(false)
+            .draw(ui, body, &app.account_inspector_viewport, &lines);
+    });
+    ui.paint_str(
+        Rect::new(area.x, area.bottom().saturating_sub(1), area.width, 1),
+        "↑↓ Scroll · PgUp/PgDn Scroll · Esc Back",
+        ui.surface_style(),
+    );
 }
 
 /// Register the add-account row of the tree as the add control.
@@ -706,6 +789,83 @@ struct PanelMeter {
     mark_bold: bool,
     /// The note after the mark, cut to the room of the note.
     note: String,
+}
+
+/// The live, read-only projection used by the selected-account inspector.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) struct InspectorContent {
+    pub(super) title: String,
+    pub(super) meta: String,
+    lines: Vec<String>,
+}
+
+impl InspectorContent {
+    pub(super) fn viewport_lines(&self) -> Vec<ViewportLine<'_>> {
+        self.lines
+            .iter()
+            .map(|line| ViewportLine::Plain(line.as_str()))
+            .collect()
+    }
+}
+
+/// Project one exact account ID through the same account, quota, freshness,
+/// validation, and status logic used by the existing drawer.
+pub(super) fn inspector_content(app: &App, id: &str) -> Option<InspectorContent> {
+    app.world.accounts.get(id)?;
+    let panel = panel_for(app, &Selection::Account(id.to_owned()), 4096, 4096);
+    let mut lines = Vec::new();
+    for field in &panel.fields {
+        for (index, part) in field.parts.iter().enumerate() {
+            if index == 0 && !field.label.is_empty() {
+                lines.push(format!("{}: {part}", field.label));
+            } else {
+                lines.push(part.clone());
+            }
+        }
+    }
+    if let Some((label, freshness)) = &panel.quota {
+        lines.push(format!("{label} · {freshness}"));
+    }
+    for meter in &panel.meters {
+        let detail = meter.note.trim();
+        let readout = meter.readout.trim();
+        lines.push(if detail.is_empty() {
+            format!("{} · {readout}", meter.label.trim())
+        } else {
+            format!("{} · {readout} · {detail}", meter.label.trim())
+        });
+    }
+    if let Some(validation) = &panel.validation {
+        for (index, part) in validation.parts.iter().enumerate() {
+            lines.push(if index == 0 {
+                format!("{}: {part}", validation.label)
+            } else {
+                part.clone()
+            });
+        }
+    }
+    if let Some(status) = &panel.status {
+        for (index, part) in status.parts.iter().enumerate() {
+            lines.push(if index == 0 {
+                format!("Status: {part}")
+            } else {
+                part.clone()
+            });
+        }
+    }
+    Some(InspectorContent {
+        title: panel.title,
+        meta: panel.meta,
+        lines,
+    })
+}
+
+pub(super) fn overview_row_index(app: &App) -> usize {
+    tree(app)
+        .rows
+        .iter()
+        .position(|row| row.node == Node::Overview)
+        .unwrap_or(0)
 }
 
 /// The panel of the selected node.

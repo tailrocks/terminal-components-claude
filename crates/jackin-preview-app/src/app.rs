@@ -82,6 +82,9 @@ pub const CAPSULE: Id = APP.sub("capsule");
 pub const MANAGER_LIST: Id = crate::screens::manager::TREE;
 const USAGE_TABS: [&str; 3] = ["Overview", "Registration", "Quota"];
 pub const ACCOUNTS_LIST: Id = crate::screens::accounts::LIST;
+const ACCOUNT_INSPECTOR_PANEL: Id = APP.sub("accounts-inspector-panel");
+const ACCOUNT_INSPECTOR: Id = APP.sub("accounts-inspector");
+const ACCOUNT_INSPECTOR_SUMMARY: Id = APP.sub("accounts-inspector-summary");
 pub const LAUNCH: Id = crate::screens::manager::LAUNCH;
 pub const ACCOUNT_ADD: Id = APP.sub("account-add");
 pub const ACCOUNT_FORM_LAYER: Id = APP.sub("account-form-layer");
@@ -581,6 +584,10 @@ pub struct App {
     pub world: World,
     pub manager: ManagerState,
     pub accounts: AccountsState,
+    account_inspector_id: Option<String>,
+    account_inspector_content: Option<accounts_page::InspectorContent>,
+    account_inspector_viewport: ViewportState,
+    account_inspector_close_pending: bool,
     account_form_return: Option<AccountFormReturn>,
     account_form_opening: Option<LayerOpening>,
     account_form_closing: Vec<LayerOpening>,
@@ -800,6 +807,10 @@ impl App {
             world,
             manager: ManagerState::default(),
             accounts: AccountsState::default(),
+            account_inspector_id: None,
+            account_inspector_content: None,
+            account_inspector_viewport: Self::new_account_inspector_viewport(),
+            account_inspector_close_pending: false,
             account_form_return: None,
             account_form_opening: None,
             account_form_closing: Vec::new(),
@@ -1876,6 +1887,13 @@ impl App {
     fn new_usage_detail_viewport() -> ViewportState {
         let mut viewport = ViewportState::default();
         viewport.set_follow(false);
+        viewport
+    }
+
+    fn new_account_inspector_viewport() -> ViewportState {
+        let mut viewport = ViewportState::default();
+        viewport.set_follow(false);
+        viewport.reset_scroll_offsets();
         viewport
     }
 
@@ -4586,12 +4604,55 @@ impl App {
             return result;
         }
 
+        let mut inspector_result = Response::ignored();
+        let list_pointer_input = cx
+            .intents(ACCOUNTS_LIST)
+            .any(|intent| matches!(intent, Intent::Pointer { .. } | Intent::Wheel { .. }));
+        let inspector_id = self.account_inspector_id.clone();
+        if self.accounts.drawer_open {
+            if self.screen.width < 72 || self.screen.height < 20 {
+                inspector_result |= self.close_account_inspector(cx);
+            } else if let Some(id) = self.account_inspector_id.clone() {
+                let row_index = self.account_row_index(&id);
+                if self.world.accounts.get(&id).is_none() || row_index.is_none() {
+                    inspector_result |= self.close_account_inspector(cx);
+                    let overview = accounts_page::overview_row_index(self);
+                    self.accounts
+                        .list
+                        .set_cursor(overview, ItemKey::index(overview));
+                    self.accounts.selected_id = None;
+                } else if let Some(index) = row_index {
+                    if !list_pointer_input
+                        && self.accounts.list.cursor() != Some(ItemKey::index(index))
+                    {
+                        self.accounts.list.set_cursor(index, ItemKey::index(index));
+                        inspector_result |= Response::changed();
+                    }
+                    if !list_pointer_input {
+                        self.accounts.selected_id = Some(id);
+                    }
+                }
+            } else {
+                inspector_result |= self.close_account_inspector(cx);
+                let overview = accounts_page::overview_row_index(self);
+                self.accounts
+                    .list
+                    .set_cursor(overview, ItemKey::index(overview));
+                self.accounts.selected_id = None;
+            }
+        }
+
         let rows = self.account_rows();
         let list = List::new(ACCOUNTS_LIST).update(cx, &mut self.accounts.list, &rows);
         let list_action = list.action_ref().copied();
-        let mut result = list.erase();
+        let mut result = inspector_result | list.erase();
         let previous = self.accounts.selected_id.clone();
-        self.accounts.selected_id = self.selected_account_id();
+        self.accounts.selected_id =
+            if self.accounts.drawer_open && !matches!(list_action, Some(ListAction::Chose(_))) {
+                inspector_id
+            } else {
+                self.selected_account_id()
+            };
         if matches!(list_action, Some(ListAction::Moved)) && self.accounts.selected_id != previous {
             self.note_selected_account();
         }
@@ -4599,8 +4660,7 @@ impl App {
         if matches!(list_action, Some(ListAction::Chose(_))) && !self.filter_field_open() {
             // A committed row choice selects in the detail view. Opening the
             // drawer remains an explicit Enter or inspector action.
-            self.accounts.drawer_open = false;
-            result |= Response::changed();
+            result |= self.close_account_inspector(cx);
         }
         // The filter field owns the caret while it is open. A committed query
         // keeps the filter and gives the keys back to the list.
@@ -4656,12 +4716,72 @@ impl App {
             }
             return result;
         }
-        let add = Self::account_add_button().update(cx);
-        let chosen = add.activated();
-        result |= add.erase();
-        if chosen {
-            self.open_account_picker(cx);
+        if !self.accounts.drawer_open {
+            let add = Self::account_add_button().update(cx);
+            let chosen = add.activated();
+            result |= add.erase();
+            if chosen {
+                self.open_account_picker(cx);
+            }
+
+            let summary = Button::new(ACCOUNT_INSPECTOR_SUMMARY, "")
+                .focusability(termrock::Focusability::ClickOnly)
+                .update(cx);
+            let open = summary.activated();
+            result |= summary.erase();
+            if open {
+                result |= self.open_account_inspector(cx);
+            }
         }
+        if self.accounts.drawer_open {
+            result |= self.update_account_inspector(cx);
+        }
+        result
+    }
+
+    fn update_account_inspector(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let Some(id) = self.account_inspector_id.as_deref() else {
+            return Response::ignored();
+        };
+        let Some(content) = accounts_page::inspector_content(self, id) else {
+            return self.close_account_inspector(cx);
+        };
+        if self.account_inspector_content.as_ref() != Some(&content) {
+            self.account_inspector_viewport.invalidate();
+            self.account_inspector_content = Some(content);
+        }
+        let lines = self
+            .account_inspector_content
+            .as_ref()
+            .map_or_else(Vec::new, accounts_page::InspectorContent::viewport_lines);
+        TextViewport::new(ACCOUNT_INSPECTOR)
+            .wrap(true)
+            .reserve_gutter(false)
+            .update(cx, &mut self.account_inspector_viewport, &lines)
+            .erase()
+    }
+
+    fn settle_closed_account_inspector(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        if !self.account_inspector_close_pending || self.accounts.drawer_open {
+            return Response::ignored();
+        }
+        self.account_inspector_close_pending = false;
+        let mut result = Response::ignored();
+        if let Some(content) = self.account_inspector_content.take()
+            && cx.intents(ACCOUNT_INSPECTOR).next().is_some()
+        {
+            // Keep the closing viewport alive for one App update so it can
+            // consume its exact focus/input transition after the List takes
+            // ownership. Do not drain unrelated owners' intents.
+            let lines = content.viewport_lines();
+            result |= TextViewport::new(ACCOUNT_INSPECTOR)
+                .wrap(true)
+                .reserve_gutter(false)
+                .update(cx, &mut self.account_inspector_viewport, &lines)
+                .erase();
+        }
+        self.account_inspector_content = None;
+        self.account_inspector_viewport = Self::new_account_inspector_viewport();
         result
     }
 
@@ -6235,8 +6355,10 @@ impl App {
                 Some(Response::changed())
             }
             CMD_ACCOUNT_FILTER if self.route == Route::Accounts && !self.accounts.form_open => {
+                if self.accounts.drawer_open {
+                    let _ = self.close_account_inspector(cx);
+                }
                 self.accounts.filtering = true;
-                self.accounts.drawer_open = false;
                 // The field opens on the committed query, so the filter can be
                 // refined instead of retyped.
                 let query = self.accounts.filter_query.clone();
@@ -6244,26 +6366,8 @@ impl App {
                 cx.focus(crate::screens::accounts::FILTER);
                 Some(Response::changed())
             }
-            CMD_ACCOUNT_DRAWER if self.route == Route::Accounts && !self.accounts.form_open => {
-                if self.accounts.selected_id.is_none() {
-                    self.accounts.selected_id = self
-                        .world
-                        .accounts
-                        .sorted()
-                        .into_iter()
-                        .next()
-                        .map(|account| account.id.clone());
-                }
-                // The drawer shows the inspected account: the list cursor
-                // follows it.
-                if let Some(id) = self.accounts.selected_id.clone()
-                    && let Some(index) = self.account_row_index(&id)
-                {
-                    self.accounts.list.set_cursor(index, ItemKey::index(index));
-                }
-                self.accounts.drawer_open = true;
-                self.status = Some("Account inspector".into());
-                Some(Response::changed())
+            CMD_ACCOUNT_DRAWER if self.accounts_drawer_enter() => {
+                Some(self.open_account_inspector(cx))
             }
             CMD_SETTINGS_TAB_PREV
                 if self.route == Route::Settings && !self.settings_save_preview =>
@@ -6280,10 +6384,7 @@ impl App {
                 Some(Response::changed())
             }
             CMD_EXIT_CONFIRM if self.accounts_drawer_enter() => {
-                // Enter on this row opens the drawer. Four Downs without Enter
-                // stay on the detail frame, and every other Enter stays live.
-                self.accounts.drawer_open = true;
-                Some(Response::changed())
+                Some(self.open_account_inspector(cx))
             }
             CMD_PRELUDE_SPACE if self.route == Route::Prelude => {
                 if self.prelude.step() == 1 {
@@ -8289,18 +8390,68 @@ impl App {
         );
     }
 
-    /// Enter on the accounts list opens the drawer of the selected account.
-    fn accounts_drawer_enter(&self) -> bool {
+    fn can_open_account_inspector(&self) -> bool {
         self.route == Route::Accounts
             && !self.accounts.form_open
             && !self.accounts.drawer_open
             && !self.filter_field_open()
-            && self.accounts.selected_id.is_some()
+            && self.accounts.remove_confirmation.is_none()
             && !self.help_open
             && !self.quit_open
             && !self.cancel_open
             && !self.about_open
             && self.picker_mode.is_none()
+            && self.screen.width >= 72
+            && self.screen.height >= 20
+            && self.accounts.selected_id.as_deref().is_some_and(|id| {
+                self.world.accounts.get(id).is_some() && self.account_row_index(id).is_some()
+            })
+    }
+
+    /// Enter on the accounts list opens the selected account's inspector.
+    fn accounts_drawer_enter(&self) -> bool {
+        self.can_open_account_inspector()
+    }
+
+    fn open_account_inspector(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        if !self.can_open_account_inspector() {
+            return Response::ignored();
+        }
+        let Some(id) = self.accounts.selected_id.clone() else {
+            return Response::ignored();
+        };
+        let Some(index) = self.account_row_index(&id) else {
+            return Response::ignored();
+        };
+        let Some(content) = accounts_page::inspector_content(self, &id) else {
+            return Response::ignored();
+        };
+
+        self.account_inspector_close_pending = false;
+        self.accounts.list.set_cursor(index, ItemKey::index(index));
+        self.accounts.selected_id = Some(id.clone());
+        self.accounts.drawer_open = true;
+        self.account_inspector_id = Some(id);
+        self.account_inspector_content = Some(content);
+        self.account_inspector_viewport = Self::new_account_inspector_viewport();
+        self.status = Some("Account inspector".into());
+        cx.focus(ACCOUNT_INSPECTOR);
+        Response::changed()
+    }
+
+    fn close_account_inspector(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        if !self.accounts.drawer_open
+            && self.account_inspector_id.is_none()
+            && self.account_inspector_content.is_none()
+        {
+            return Response::ignored();
+        }
+        self.accounts.drawer_open = false;
+        self.account_inspector_id = None;
+        self.account_inspector_close_pending = self.account_inspector_content.is_some();
+        self.status = None;
+        cx.focus(ACCOUNTS_LIST);
+        Response::changed()
     }
 
     fn usage_overview_narrow_host(&self, theme: &termrock::Theme, screen: Rect) -> bool {
@@ -10582,7 +10733,8 @@ impl App {
         self.screen = cx.viewport();
         self.screen_junie = Self::junie_truecolor(cx.theme());
         let _shell = Self::shell_panel(&self.shell_meta);
-        let mut result = self.advance_virtual_state(cx, product_tick);
+        let mut result = self.settle_closed_account_inspector(cx);
+        result |= self.advance_virtual_state(cx, product_tick);
         result |= self.sync_account_form_layer(cx);
 
         let entry = Self::enter_button().update(cx);
@@ -11727,9 +11879,7 @@ impl TuiApp for App {
                 return self.route_changed();
             }
             if self.accounts.drawer_open {
-                self.accounts.drawer_open = false;
-                self.status = None;
-                return self.route_changed();
+                return self.close_account_inspector(cx);
             }
             if self
                 .status
