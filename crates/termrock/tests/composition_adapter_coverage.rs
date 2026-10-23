@@ -27,9 +27,10 @@ const COMPONENT_CRATES: &[&str] = &[
 
 /// The public names of the component crates that are not components.
 ///
-/// Every name listed here is a state, an action, a policy, a data row, a
-/// type alias of a component, or a measurement type. A name that is not on
-/// this list and is not a known component fails the coverage test.
+/// Every name listed here is a state, an action, a policy, a data row, an
+/// error/result support type, a type alias of a component, or a measurement
+/// type. A name that is not on this list and is not a known component fails
+/// the coverage test.
 const NOT_COMPONENTS: &[&str] = &[
     // termrock_controls
     "BusyMarkerPolicy",
@@ -40,6 +41,7 @@ const NOT_COMPONENTS: &[&str] = &[
     "MasterDetailLayout",
     "MasterDetailMode",
     "PanelKind",
+    "PanelWindowError",
     "Props",
     "PropsAction",
     "PropsCmd",
@@ -89,6 +91,7 @@ const NOT_COMPONENTS: &[&str] = &[
     "ItemRowLayout",
     "ListAction",
     "ListCmd",
+    "ListSelectionCmd",
     "ListState",
     "NavListAction",
     "NavListCmd",
@@ -104,6 +107,10 @@ const NOT_COMPONENTS: &[&str] = &[
     "TabsAction",
     "TabsCmd",
     "TabsState",
+    "TabCloseReveal",
+    "TabMarks",
+    "TabNavProfile",
+    "TabRule",
     "TreeAction",
     "TreeBranchActivation",
     "TreeBranchClick",
@@ -332,6 +339,65 @@ fn a_new_component_without_an_adapter_fails_the_coverage_gate() {
     assert!(
         !NOT_COMPONENTS.contains(&"List"),
         "a component is not on the non-component list"
+    );
+
+    let not_components: BTreeSet<&str> = NOT_COMPONENTS.iter().copied().collect();
+    let adapters: BTreeSet<String> = composition::PUBLIC_COMPONENTS
+        .iter()
+        .map(|name| (*name).to_owned())
+        .collect();
+
+    for name in [
+        "ListSelectionCmd",
+        "PanelWindowError",
+        "TabCloseReveal",
+        "TabMarks",
+        "TabNavProfile",
+        "TabRule",
+    ] {
+        assert!(exported.contains(name), "{name} must be facade-exported");
+        assert!(not_components.contains(name), "{name} must be excluded");
+        assert!(
+            !adapters.contains(name),
+            "{name} must not be a standalone adapter"
+        );
+    }
+
+    for name in ["List", "Panel", "Tabs"] {
+        assert!(exported.contains(name), "{name} must be facade-exported");
+        assert!(
+            !not_components.contains(name),
+            "{name} must remain a component"
+        );
+        assert!(
+            adapters.contains(name),
+            "{name} must retain its composition adapter"
+        );
+    }
+
+    const UNKNOWN_COMPONENT: &str = "CompositionCoverageUnknownComponent";
+    let mut synthetic_export = exported;
+    assert!(
+        !synthetic_export.contains(UNKNOWN_COMPONENT),
+        "the unknown-component probe must not collide with a real export"
+    );
+    synthetic_export.insert(UNKNOWN_COMPONENT.to_owned());
+    assert!(
+        !not_components.contains(UNKNOWN_COMPONENT),
+        "the unknown-component probe must not be excluded"
+    );
+    let synthetic_components: BTreeSet<String> = synthetic_export
+        .iter()
+        .filter(|name| !not_components.contains(name.as_str()))
+        .cloned()
+        .collect();
+    let missing: BTreeSet<String> = synthetic_components
+        .difference(&adapters)
+        .cloned()
+        .collect();
+    assert!(
+        missing.contains(UNKNOWN_COMPONENT),
+        "an unknown exported component must remain missing without an adapter"
     );
 }
 
