@@ -611,11 +611,20 @@ impl TextBuffer {
         Self::pos_of(&self.text, self.cursor)
     }
 
+    /// Return the line and display column at a UTF-8 byte offset.
+    ///
+    /// Offsets past the end clamp to the end. An offset inside a UTF-8 scalar
+    /// moves back to that scalar's start. Valid UTF-8 boundaries are measured
+    /// as given, including boundaries inside a grapheme cluster.
     pub fn pos_of(text: &str, offset: usize) -> CursorPos {
-        let before = text.get(..offset.min(text.len())).unwrap_or("");
+        let mut end = offset.min(text.len());
+        while !text.is_char_boundary(end) {
+            end = end.saturating_sub(1);
+        }
+        let before = &text[..end];
         let line = before.matches('\n').count();
         let line_start = before.rfind('\n').map_or(0, |i| i.saturating_add(1));
-        let col = usize::from(width(before.get(line_start..).unwrap_or("")));
+        let col = usize::from(width(&before[line_start..]));
         CursorPos { line, col }
     }
 
@@ -1011,6 +1020,56 @@ mod tests {
         assert_eq!(b.offset_at(0, 2), 3);
         assert_eq!(b.offset_at(0, 1), 0);
         assert_eq!(b.width(), 4);
+    }
+
+    #[test]
+    fn pos_of_retains_nonempty_prefix_before_malformed_byte() {
+        assert_eq!(TextBuffer::pos_of("xé", 2), CursorPos { line: 0, col: 1 });
+    }
+
+    #[test]
+    fn pos_of_retains_newline_before_malformed_byte() {
+        assert_eq!(TextBuffer::pos_of("a\né", 3), CursorPos { line: 1, col: 0 });
+    }
+
+    #[test]
+    fn pos_of_preserves_original_direct_offset_values() {
+        assert_eq!(TextBuffer::pos_of("é", usize::MAX).col, 1);
+        assert_eq!(TextBuffer::pos_of("é", 1).col, 0);
+    }
+
+    #[test]
+    fn pos_of_floors_only_inside_utf8_scalars() {
+        assert_eq!(TextBuffer::pos_of("x日", 2), CursorPos { line: 0, col: 1 });
+        assert_eq!(TextBuffer::pos_of("x😀", 2), CursorPos { line: 0, col: 1 });
+        assert_eq!(
+            TextBuffer::pos_of("e\u{301}", 2),
+            CursorPos { line: 0, col: 1 }
+        );
+        assert_eq!(
+            TextBuffer::pos_of("x👩\u{200d}💻", 6),
+            CursorPos { line: 0, col: 3 }
+        );
+        assert_eq!(TextBuffer::pos_of("", usize::MAX), CursorPos::default());
+        assert_eq!(TextBuffer::pos_of("a\né", 1), CursorPos { line: 0, col: 1 });
+        assert_eq!(TextBuffer::pos_of("a\né", 2), CursorPos { line: 1, col: 0 });
+        assert_eq!(TextBuffer::pos_of("a\né", 4), CursorPos { line: 1, col: 1 });
+        assert_eq!(
+            TextBuffer::pos_of("a\né", usize::MAX),
+            CursorPos { line: 1, col: 1 }
+        );
+    }
+
+    #[test]
+    fn pos_of_preserves_valid_offsets_inside_graphemes() {
+        assert_eq!(
+            TextBuffer::pos_of("e\u{301}", 1),
+            CursorPos { line: 0, col: 1 }
+        );
+        assert_eq!(
+            TextBuffer::pos_of("x👩\u{200d}💻", 5),
+            CursorPos { line: 0, col: 3 }
+        );
     }
 
     #[test]
