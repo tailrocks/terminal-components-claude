@@ -189,6 +189,7 @@ pub struct SplitPane<'a> {
     focusability: Focusability,
     keyboard_navigation: bool,
     hit_padding: u16,
+    preserve_drag_offset: bool,
     fixed_first_share: Option<(u8, u16, u16)>,
     fixed_second_share: Option<(u8, u16, u16)>,
     fixed_sizing: bool,
@@ -212,6 +213,7 @@ impl fmt::Debug for SplitPane<'_> {
             .field("focusability", &self.focusability)
             .field("keyboard_navigation", &self.keyboard_navigation)
             .field("hit_padding", &self.hit_padding)
+            .field("preserve_drag_offset", &self.preserve_drag_offset)
             .field("fixed_first_share", &self.fixed_first_share)
             .field("fixed_second_share", &self.fixed_second_share)
             .field("fixed_sizing", &self.fixed_sizing)
@@ -239,6 +241,7 @@ impl<'a> SplitPane<'a> {
             focusability: Focusability::Focusable,
             keyboard_navigation: true,
             hit_padding: 0,
+            preserve_drag_offset: false,
             fixed_first_share: None,
             fixed_second_share: None,
             fixed_sizing: false,
@@ -360,6 +363,17 @@ impl<'a> SplitPane<'a> {
     #[must_use]
     pub const fn hit_padding(mut self, padding: u16) -> Self {
         self.hit_padding = padding;
+        self
+    }
+
+    /// Preserve the pointer's grab offset when dragging a narrow aligned seam.
+    ///
+    /// By default, narrow seam drags continue to use the pointer's raw
+    /// coordinate as the first-pane edge. Enable this policy when the seam
+    /// should move by the same number of cells as the pointer.
+    #[must_use]
+    pub const fn preserve_drag_offset(mut self, preserve: bool) -> Self {
+        self.preserve_drag_offset = preserve;
         self
     }
 
@@ -648,14 +662,18 @@ impl<'a> SplitPane<'a> {
                         SplitAxis::Horizontal => pos.x,
                         SplitAxis::Vertical => pos.y,
                     };
-                    // Preserve the click offset for the full-gap target and
-                    // explicitly padded targets. Narrow aligned seam targets
-                    // retain their raw-coordinate drag contract.
-                    st.grab_offset = Some(if self.hit_padding > 0 || self.seam.is_none() {
-                        i32::from(coordinate) - i32::from(edge)
-                    } else {
-                        0
-                    });
+                    // Preserve the click offset for the full-gap target,
+                    // explicitly padded targets, and opt-in narrow seams.
+                    // Narrow aligned seams retain their raw-coordinate drag
+                    // contract by default.
+                    st.grab_offset = Some(
+                        if self.hit_padding > 0 || self.seam.is_none() || self.preserve_drag_offset
+                        {
+                            i32::from(coordinate) - i32::from(edge)
+                        } else {
+                            0
+                        },
+                    );
                 }
                 acc.consumed();
             }

@@ -146,6 +146,7 @@ pub struct MasterDetail {
     detail_owners: Vec<Id>,
     reset_policy: ResetPolicy,
     split_sizing: SplitSizing,
+    preserve_drag_offset: bool,
     resize_step_cells: u16,
     resize_bindings: Option<&'static [Binding<SplitCmd>]>,
 }
@@ -166,6 +167,7 @@ impl MasterDetail {
             detail_owners: Vec::new(),
             reset_policy: ResetPolicy::Balanced,
             split_sizing: SplitSizing::Resizable,
+            preserve_drag_offset: false,
             resize_step_cells: 1,
             resize_bindings: None,
         }
@@ -268,6 +270,16 @@ impl MasterDetail {
     #[must_use]
     pub const fn resize_step_cells(mut self, cells: u16) -> Self {
         self.resize_step_cells = if cells == 0 { 1 } else { cells };
+        self
+    }
+
+    /// Preserve the pointer's grab offset while dragging narrow aligned seams.
+    ///
+    /// The default remains the historical raw-coordinate behavior. When
+    /// enabled, the seam follows the pointer by the same number of cells.
+    #[must_use]
+    pub const fn preserve_drag_offset(mut self, preserve: bool) -> Self {
+        self.preserve_drag_offset = preserve;
         self
     }
 
@@ -515,7 +527,8 @@ impl MasterDetail {
             .resizable(true)
             .resize_step_cells(self.resize_step_cells)
             .reset_policy(self.reset_policy)
-            .seam_at_offset(1, self.gap / 2);
+            .seam_at_offset(1, self.gap / 2)
+            .preserve_drag_offset(self.preserve_drag_offset);
         if let Some(table) = self.resize_bindings {
             split = split.resize_bindings(table);
         }
