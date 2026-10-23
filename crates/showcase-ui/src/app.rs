@@ -28,6 +28,7 @@ use showcase_demos::pages::{
     grid::GridPage,
     inputs::InputsPage,
     lists::ListsPage,
+    master_detail::MasterDetailPage,
     notices::{NOTICE_REVEAL_OWNERS, NoticeRevealTarget, NoticesPage},
     overview::OverviewPage,
     panels::PanelsPage,
@@ -48,6 +49,7 @@ const CHECKS_RADIOS_ENTRY: usize = 12;
 const EMPTY_ERROR_ENTRY: usize = 31;
 const NOTICES_ENTRY: usize = 33;
 const DIFF_ENTRY: usize = 40;
+const MASTER_DETAIL_ENTRY: usize = 37;
 const BRAND: Id = id!("brand");
 const STATUS: Id = id!("status");
 const HELP: Id = id!("help");
@@ -253,6 +255,7 @@ impl NavTarget {
                 | Self::Placeholder(EMPTY_ERROR_ENTRY)
                 | Self::Placeholder(NOTICES_ENTRY)
                 | Self::Placeholder(DIFF_ENTRY)
+                | Self::Placeholder(MASTER_DETAIL_ENTRY)
         )
     }
 }
@@ -1288,6 +1291,7 @@ pub struct App {
     empty_error: EmptyErrorPage,
     notices: NoticesPage,
     diff: DiffPage,
+    master_detail: MasterDetailPage,
     notice_reveals: std::cell::RefCell<[NoticeReveal; 6]>,
     notice_reveal_snapshot: Option<NoticeRevealSnapshot>,
     notice_reveal_revision: u64,
@@ -1328,6 +1332,7 @@ impl core::fmt::Debug for App {
             .field("checks_radios", &self.checks_radios)
             .field("empty_error", &self.empty_error)
             .field("notices", &self.notices)
+            .field("master_detail", &self.master_detail)
             .field("notice_reveal_snapshot", &self.notice_reveal_snapshot)
             .field("notice_reveal_revision", &self.notice_reveal_revision)
             .field("help_state", &self.help_state)
@@ -1396,6 +1401,7 @@ impl App {
             empty_error: EmptyErrorPage::new(),
             notices: NoticesPage::new(),
             diff,
+            master_detail: MasterDetailPage::new(),
             notice_reveals: std::cell::RefCell::new(std::array::from_fn(|index| {
                 NoticeReveal::new(NOTICE_REVEAL_OWNERS[index])
             })),
@@ -1654,6 +1660,7 @@ impl App {
                 | NavTarget::Placeholder(EMPTY_ERROR_ENTRY)
                 | NavTarget::Placeholder(NOTICES_ENTRY)
                 | NavTarget::Placeholder(DIFF_ENTRY)
+                | NavTarget::Placeholder(MASTER_DETAIL_ENTRY)
         )
     }
 
@@ -1673,6 +1680,8 @@ impl App {
             Some(&self.notices)
         } else if self.nav_target == NavTarget::Placeholder(DIFF_ENTRY) {
             Some(&self.diff)
+        } else if self.nav_target == NavTarget::Placeholder(MASTER_DETAIL_ENTRY) {
+            Some(&self.master_detail)
         } else {
             self.pages.get(self.page.index()).map(Box::as_ref)
         }
@@ -1687,6 +1696,8 @@ impl App {
             Some(&mut self.notices)
         } else if self.nav_target == NavTarget::Placeholder(DIFF_ENTRY) {
             Some(&mut self.diff)
+        } else if self.nav_target == NavTarget::Placeholder(MASTER_DETAIL_ENTRY) {
+            Some(&mut self.master_detail)
         } else {
             self.pages.get_mut(self.page.index()).map(Box::as_mut)
         }
@@ -2734,7 +2745,8 @@ impl TuiApp for App {
         let modal_page_hints = match self.nav_target {
             NavTarget::Selection => self.selectable.hints(),
             NavTarget::Placeholder(
-                CHECKS_RADIOS_ENTRY | EMPTY_ERROR_ENTRY | NOTICES_ENTRY | DIFF_ENTRY,
+                CHECKS_RADIOS_ENTRY | EMPTY_ERROR_ENTRY | NOTICES_ENTRY | DIFF_ENTRY
+                | MASTER_DETAIL_ENTRY,
             ) => page_hints,
             NavTarget::Live(PageId::Pickers | PageId::DialogKinds) => page_hints,
             NavTarget::Live(_) | NavTarget::Placeholder(_) => &[][..],
