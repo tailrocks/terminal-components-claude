@@ -6876,7 +6876,51 @@ mod tests {
                 parent: None,
             },
         );
+        nodes[1].parent = Some(0);
         nodes[2].parent = Some(1);
+
+        let mut clean_probe =
+            RoutedWheelProbe::new(nodes.clone(), vec![ROUTE_CHILD, ROUTE_PARENT, ROUTE_ROOT]);
+        clean_probe.callback_results = vec![
+            (ROUTE_PARENT, Some(WheelRouteResult::Ignored)),
+            (ROUTE_ROOT, Some(WheelRouteResult::Consumed)),
+        ];
+        let mut clean_runtime = ready_routed_runtime(clean_probe);
+        let _ = deliver(&mut clean_runtime, route_wheel_input(Axis::V, 1));
+        assert_eq!(
+            clean_runtime
+                .app()
+                .service_attempts
+                .iter()
+                .map(|attempt| attempt.owner())
+                .collect::<Vec<_>>(),
+            [ROUTE_PARENT, ROUTE_ROOT],
+            "the unmutated three-level graph reaches both ancestors"
+        );
+        assert_eq!(clean_runtime.app().event_updates, 1);
+        assert_eq!(
+            clean_runtime.app().wheel_deliveries,
+            [(
+                ROUTE_CHILD,
+                Axis::V,
+                Theme::junie().design.motion.wheel_rows as i16,
+                ROUTE_POINT,
+            )],
+            "clean ancestry preserves one original scaled wheel delivery"
+        );
+        assert_eq!(clean_runtime.app().initial_attempts.len(), 1);
+        assert_eq!(clean_runtime.app().ack_results, [true, true, true]);
+        assert_eq!(
+            clean_runtime.app().service_intent_counts,
+            [0, 0],
+            "targeted ancestor callbacks do not replay ordinary intents"
+        );
+        assert_eq!(
+            clean_runtime.app().service_causes,
+            [UpdateCause::ScrollRoute; 2]
+        );
+        assert_eq!(clean_runtime.diagnostics(), []);
+
         let mut probe =
             RoutedWheelProbe::new(nodes.clone(), vec![ROUTE_CHILD, ROUTE_PARENT, ROUTE_ROOT]);
         probe.open_close_on_service = Some(ROUTE_MODAL);
@@ -6886,6 +6930,17 @@ mod tests {
         ];
         let mut runtime = ready_routed_runtime(probe);
         let _ = deliver(&mut runtime, route_wheel_input(Axis::V, 1));
+        assert_eq!(runtime.app().event_updates, 1);
+        assert_eq!(
+            runtime.app().wheel_deliveries,
+            [(
+                ROUTE_CHILD,
+                Axis::V,
+                Theme::junie().design.motion.wheel_rows as i16,
+                ROUTE_POINT,
+            )],
+            "invalidated ancestry preserves one original scaled wheel delivery"
+        );
         assert_eq!(
             runtime
                 .app()
@@ -6896,6 +6951,11 @@ mod tests {
             [ROUTE_PARENT],
             "open-close-away-and-back invalidates the remaining route"
         );
+        assert_eq!(runtime.app().initial_attempts.len(), 1);
+        assert_eq!(runtime.app().ack_results, [true, true]);
+        assert_eq!(runtime.app().service_intent_counts, [0]);
+        assert_eq!(runtime.app().service_causes, [UpdateCause::ScrollRoute]);
+        assert_eq!(runtime.diagnostics(), []);
 
         let mut probe = RoutedWheelProbe::new(nodes, vec![ROUTE_CHILD, ROUTE_PARENT, ROUTE_ROOT]);
         probe.initial_relayout = true;
