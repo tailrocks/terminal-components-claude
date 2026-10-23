@@ -8398,6 +8398,11 @@ mod tests {
         );
         assert_eq!(runtime.app().parent.offset(), 0);
         assert_eq!(runtime.app().route_callbacks, 0);
+        assert!(
+            runtime.diagnostics().is_empty(),
+            "{:?}",
+            runtime.diagnostics()
+        );
 
         let mut buffer = Buffer::empty(SCREEN);
         runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
