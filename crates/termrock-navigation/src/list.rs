@@ -48,6 +48,15 @@ pub enum ListCmd {
     ToggleAll,
 }
 
+/// An additive selection command separate from the exhaustive [`ListCmd`] and
+/// [`ListAction`] APIs.
+#[non_exhaustive]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum ListSelectionCmd {
+    /// Select every enabled item without clearing an existing full selection.
+    SelectAll,
+}
+
 const fn b(
     action: &'static str,
     chord: Chord,
@@ -204,6 +213,39 @@ const MULTI: [Binding<ListCmd>; 15] = [
 
 const NONE: [Binding<ListCmd>; 11] = BASE;
 
+const fn selection_binding(
+    action: &'static str,
+    chord: Chord,
+    label: &'static str,
+    visible: bool,
+) -> Binding<ListSelectionCmd> {
+    Binding {
+        action: crate::ActionKey::custom(action),
+        chord: Some(chord),
+        cmd: ListSelectionCmd::SelectAll,
+        label,
+        priority: if visible { 60 } else { 10 },
+        visible,
+    }
+}
+
+// Distinct stable action identities allow each default chord to be remapped
+// or unbound independently without duplicate binding descriptors.
+const DEFAULT_SELECTION: [Binding<ListSelectionCmd>; 2] = [
+    selection_binding(
+        "list.select-all",
+        Chord::with(KeyCode::Char('a'), KeyModifiers::CONTROL),
+        "Select all",
+        true,
+    ),
+    selection_binding(
+        "list.select-all-super",
+        Chord::with(KeyCode::Char('a'), KeyModifiers::SUPER),
+        "Select all",
+        false,
+    ),
+];
+
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct ListState {
     core: CollectionCore,
@@ -283,6 +325,7 @@ pub struct List<'a, T, K = ByIndex, R = DefaultRow> {
     row_gap: u16,
     whole_rows: bool,
     select_mode: SelectMode,
+    selection_bindings: Option<&'static [Binding<ListSelectionCmd>]>,
     leave_at_boundary: bool,
     activate_focused_on_click: bool,
     empty: Option<EmptyState<'a>>,
@@ -336,6 +379,7 @@ impl<T> List<'_, T, ByIndex, DefaultRow> {
             row_gap: 0,
             whole_rows: false,
             select_mode: SelectMode::Single,
+            selection_bindings: None,
             leave_at_boundary: false,
             activate_focused_on_click: false,
             empty: None,
@@ -462,6 +506,7 @@ impl<'a, T, K, R> List<'a, T, K, R> {
             row_gap: self.row_gap,
             whole_rows: self.whole_rows,
             select_mode: self.select_mode,
+            selection_bindings: self.selection_bindings,
             leave_at_boundary: self.leave_at_boundary,
             activate_focused_on_click: self.activate_focused_on_click,
             empty: self.empty,
@@ -487,6 +532,7 @@ impl<'a, T, K, R> List<'a, T, K, R> {
             row_gap: self.row_gap,
             whole_rows: self.whole_rows,
             select_mode: self.select_mode,
+            selection_bindings: self.selection_bindings,
             leave_at_boundary: self.leave_at_boundary,
             activate_focused_on_click: self.activate_focused_on_click,
             empty: self.empty,
@@ -512,6 +558,22 @@ impl<'a, T, K, R> List<'a, T, K, R> {
     #[must_use]
     pub fn select_mode(mut self, m: SelectMode) -> Self {
         self.select_mode = m;
+        self
+    }
+
+    /// Replace the default Multi/Range Select All bindings with a static table.
+    ///
+    /// The table is ignored in [`SelectMode::Single`] and [`SelectMode::None`].
+    /// Passing an empty slice disables this extra command. The default table
+    /// uses the stable component actions `list.select-all` and
+    /// `list.select-all-super`, which can be remapped or unbound through a
+    /// component [`KeyMap`](termrock_runtime::keymap::KeyMap).
+    #[must_use]
+    pub const fn selection_bindings(
+        mut self,
+        bindings: &'static [Binding<ListSelectionCmd>],
+    ) -> Self {
+        self.selection_bindings = Some(bindings);
         self
     }
 
@@ -589,6 +651,16 @@ impl<'a, T, K, R> List<'a, T, K, R> {
             SelectMode::Single => &SINGLE,
             SelectMode::Multi | SelectMode::Range => &MULTI,
             SelectMode::None => &NONE,
+        }
+    }
+
+    const fn selection_table(&self) -> &'static [Binding<ListSelectionCmd>] {
+        match self.select_mode {
+            SelectMode::Multi | SelectMode::Range => match self.selection_bindings {
+                Some(bindings) => bindings,
+                None => &DEFAULT_SELECTION,
+            },
+            SelectMode::Single | SelectMode::None => &[],
         }
     }
 
@@ -675,6 +747,31 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
             }
         }
         acc.action(ListAction::ToggledAll);
+    }
+
+    fn select_all(&self, st: &mut ListState, items: &[T], acc: &mut Acc<ListAction>) {
+        let mut changed = false;
+        for i in 0..items.len() {
+            if st.core.checked().contains(self.key_at(items, i)) != self.enabled_at(items, i) {
+                changed = true;
+                break;
+            }
+        }
+        if !changed {
+            acc.consumed();
+            return;
+        }
+
+        // Keep the collection's existing AllExcept semantics for future keys,
+        // while explicitly removing disabled keys in the current source.
+        let checked = st.core.checked_mut();
+        checked.all();
+        for i in 0..items.len() {
+            if !self.enabled_at(items, i) {
+                checked.remove(self.key_at(items, i));
+            }
+        }
+        acc.changed();
     }
 
     fn choose(&self, st: &mut ListState, items: &[T], i: usize, acc: &mut Acc<ListAction>) {
@@ -779,6 +876,11 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
         acc.fold(&bar);
         let page_rows = self.item_at_line(st.core.scroll().viewport_len()).max(1);
         let table = self.table();
+        let selection_table = if len == 0 {
+            &[][..]
+        } else {
+            self.selection_table()
+        };
         let mut released = false;
         for it in cx.intents(self.id) {
             match it {
@@ -788,6 +890,16 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                 Intent::Binding(action) => {
                     st.click_cursor = None;
                     let cur = st.core.cursor_index();
+                    if Binding::command(selection_table, action)
+                        == Some(ListSelectionCmd::SelectAll)
+                    {
+                        if !cx.state(self.id).contains(StateFlags::DISABLED)
+                            && matches!(self.select_mode, SelectMode::Multi | SelectMode::Range)
+                        {
+                            self.select_all(st, items, &mut acc);
+                        }
+                        continue;
+                    }
                     match Binding::command(table, action) {
                         Some(ListCmd::Up)
                             if self.leave_at_boundary
@@ -954,6 +1066,14 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
         let live = PartStyle::flags(ui.state(self.id), self.status.flags());
         if !ui.is_inert() {
             ui.publish_bindings(self.id, live, self.table());
+            let selection_table = if len == 0 {
+                &[][..]
+            } else {
+                self.selection_table()
+            };
+            if !selection_table.is_empty() && !live.contains(StateFlags::DISABLED) {
+                ui.publish_additional_bindings(self.id, live, selection_table);
+            }
         }
         let ov = self.ov;
         let id = self.id;
