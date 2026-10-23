@@ -11,6 +11,7 @@ use termrock_collections::collection::{
 };
 use termrock_core::id::{Id, ItemKey, Part, PartRef};
 use termrock_core::response::{Response, StateFlags};
+use termrock_runtime::UpdateCause;
 use termrock_runtime::empty::{EmptyState, Status};
 use termrock_runtime::event::{Chord, KeyCode, KeyModifiers};
 use termrock_runtime::focus::Focusability;
@@ -286,6 +287,10 @@ impl ListState {
     pub fn choose(&mut self, key: Option<ItemKey>) {
         self.chosen = key;
     }
+
+    fn clear_click_cursor(&mut self) {
+        self.click_cursor = None;
+    }
 }
 
 impl Reconcile for ListState {
@@ -413,6 +418,35 @@ impl<'a, T, K, R> List<'a, T, K, R> {
 
     pub const fn id(&self) -> Id {
         self.id
+    }
+
+    /// Handle an isolated focus loss without reconciling the list's source or layout.
+    ///
+    /// `None` means the update cause is not `Settle`, or this owner has another
+    /// intent. Inspecting the owner bucket acknowledges it for diagnostics; any
+    /// unclaimed intents remain available to the ordinary update loop. Call
+    /// [`Self::update`] on this same list and state in the same pass after `None`.
+    /// An empty bucket returns `Some(Response::ignored())`.
+    pub fn update_focus_out(&self, cx: &mut Cx<'_>, state: &mut ListState) -> Option<Response<()>> {
+        if cx.update_cause() != UpdateCause::Settle {
+            return None;
+        }
+
+        let mut focus_out = false;
+        let mut unsupported = false;
+        for intent in cx.intents(self.id) {
+            match intent {
+                Intent::FocusOut { .. } => focus_out = true,
+                _ => unsupported = true,
+            }
+        }
+        if unsupported {
+            return None;
+        }
+        if focus_out {
+            state.clear_click_cursor();
+        }
+        Some(Response::ignored())
     }
 
     #[must_use]
@@ -891,9 +925,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
         let mut released = false;
         for it in cx.intents(self.id) {
             match it {
-                Intent::FocusOut { .. } | Intent::Cancel => {
-                    st.click_cursor = None;
-                }
+                Intent::FocusOut { .. } | Intent::Cancel => st.clear_click_cursor(),
                 Intent::Binding(action) => {
                     st.click_cursor = None;
                     let cur = st.core.cursor_index();

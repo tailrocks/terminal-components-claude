@@ -11,6 +11,7 @@ use termrock_collections::collection::{
 };
 use termrock_core::id::{Id, ItemKey, Part, PartRef};
 use termrock_core::response::{Response, StateFlags};
+use termrock_runtime::UpdateCause;
 use termrock_runtime::event::{Chord, KeyCode};
 use termrock_runtime::focus::Focusability;
 use termrock_runtime::intent::{Intent, Phase};
@@ -321,6 +322,27 @@ impl<'a, T, K, R> NavList<'a, T, K, R> {
     #[must_use]
     pub const fn id(&self) -> Id {
         self.id
+    }
+
+    /// Acknowledge an isolated focus loss without reconciling source or layout.
+    ///
+    /// `NavListState` has no focus-loss state to update. `None` means the update
+    /// cause is not `Settle`, or this owner has another intent. Inspecting the
+    /// owner bucket acknowledges it for diagnostics; any unclaimed intents remain
+    /// available to the ordinary update loop. Call [`Self::update`] on this same
+    /// list, state, and pass after `None`. An empty bucket returns
+    /// `Some(Response::ignored())`.
+    pub fn update_focus_out(&self, cx: &mut Cx<'_>) -> Option<crate::response::Response<()>> {
+        if cx.update_cause() != UpdateCause::Settle {
+            return None;
+        }
+
+        for intent in cx.intents(self.id) {
+            if !matches!(intent, Intent::FocusOut { .. }) {
+                return None;
+            }
+        }
+        Some(crate::response::Response::ignored())
     }
 
     #[must_use]
