@@ -6,7 +6,7 @@
 
 use std::collections::BTreeSet;
 use std::ops::Range;
-use std::path::Path;
+use std::path::{Component, Path, PathBuf};
 use std::process::Command;
 
 use pulldown_cmark::{CodeBlockKind, Event, Parser, Tag, TagEnd};
@@ -265,20 +265,11 @@ fn scan_cargo_inventory(
         match package.get("readme") {
             Some(serde_json::Value::String(path)) => {
                 report.package_readmes += 1;
-                let Some(relative) = Path::new(path).strip_prefix(root).ok() else {
+                if let Err(detail) = resolve_package_readme(root, &manifest, path, tracked) {
                     report.issues.push(issue(
                         &manifest,
                         1,
-                        "package README resolves outside the workspace root",
-                    ));
-                    continue;
-                };
-                let relative = slash_path(relative);
-                if !is_markdown(&relative) || !tracked.contains(&relative) {
-                    report.issues.push(issue(
-                        &relative,
-                        1,
-                        "package README is not a tracked Markdown input",
+                        format!("package README `{path}` is invalid: {detail}"),
                     ));
                 }
             }
@@ -316,6 +307,102 @@ fn scan_cargo_inventory(
         ));
     }
     source_paths
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct PackageReadmePaths {
+    declared: String,
+    physical: String,
+}
+
+fn resolve_package_readme(
+    root: &Path,
+    manifest: &str,
+    readme: &str,
+    tracked: &BTreeSet<String>,
+) -> Result<PackageReadmePaths, String> {
+    let canonical_root = root
+        .canonicalize()
+        .map_err(|error| format!("workspace root cannot be resolved: {error}"))?;
+    let manifest = Path::new(manifest);
+    if manifest.is_absolute() {
+        return Err("package manifest path is not workspace-relative".to_string());
+    }
+    let package_directory = manifest
+        .parent()
+        .ok_or_else(|| "package manifest has no parent directory".to_string())?;
+    let readme_path = Path::new(readme);
+
+    let declared_path = if readme_path.is_absolute() {
+        readme_path
+            .strip_prefix(root)
+            .or_else(|_| readme_path.strip_prefix(&canonical_root))
+            .map_err(|_| "absolute path is outside the workspace root".to_string())?
+            .to_path_buf()
+    } else {
+        package_directory.join(readme_path)
+    };
+    let declared_relative = normalize_workspace_relative(&declared_path)?;
+    let declared = slash_path(&declared_relative);
+    if !is_markdown(&declared) {
+        return Err(format!("declared path `{declared}` is not Markdown"));
+    }
+    if !tracked.contains(&declared) {
+        return Err(format!("declared path `{declared}` is not tracked"));
+    }
+
+    let candidate = if readme_path.is_absolute() {
+        readme_path.to_path_buf()
+    } else {
+        canonical_root.join(package_directory).join(readme_path)
+    };
+    let physical_path = candidate
+        .canonicalize()
+        .map_err(|error| format!("declared path `{declared}` cannot be resolved: {error}"))?;
+    if !physical_path.starts_with(&canonical_root) {
+        return Err(format!(
+            "declared path `{declared}` resolves to `{}` outside the workspace root",
+            physical_path.display()
+        ));
+    }
+    if !physical_path.is_file() {
+        return Err(format!("declared path `{declared}` is not a file"));
+    }
+    let physical_relative = physical_path
+        .strip_prefix(&canonical_root)
+        .map_err(|_| format!("declared path `{declared}` resolves outside the workspace root"))?;
+    let physical = slash_path(physical_relative);
+    if !is_markdown(&physical) {
+        return Err(format!("physical target `{physical}` is not Markdown"));
+    }
+    if !tracked.contains(&physical) {
+        return Err(format!("physical target `{physical}` is not tracked"));
+    }
+    std::fs::File::open(&candidate)
+        .map_err(|error| format!("declared path `{declared}` cannot be read: {error}"))?;
+
+    Ok(PackageReadmePaths { declared, physical })
+}
+
+fn normalize_workspace_relative(path: &Path) -> Result<PathBuf, String> {
+    let mut normalized = PathBuf::new();
+    for component in path.components() {
+        match component {
+            Component::CurDir => {}
+            Component::Normal(part) => normalized.push(part),
+            Component::ParentDir if !normalized.pop() => {
+                return Err("path escapes the workspace root".to_string());
+            }
+            Component::ParentDir => {}
+            Component::RootDir | Component::Prefix(_) => {
+                return Err("path is not workspace-relative".to_string());
+            }
+        }
+    }
+    if normalized.as_os_str().is_empty() {
+        return Err("path does not name a file".to_string());
+    }
+    Ok(normalized)
 }
 
 /// Scan tracked Rust files, Cargo target roots, and every statically resolvable `include!`
@@ -1270,9 +1357,36 @@ pub fn inspect_fixture(path: &str, source: &str) -> Vec<Issue> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Issue, Report, scan_rust_inputs};
+    use super::{Issue, PackageReadmePaths, Report, resolve_package_readme, scan_rust_inputs};
     use std::collections::BTreeSet;
     use std::fs;
+
+    fn readme_fixture() -> (tempfile::TempDir, BTreeSet<String>) {
+        let root = tempfile::tempdir().expect("temporary workspace");
+        let package = root.path().join("tools/pkg");
+        fs::create_dir_all(package.join("docs")).expect("package docs directory");
+        fs::write(package.join("README.md"), "package README\n").expect("package README");
+        fs::write(package.join("docs/README.markdown"), "nested README\n").expect("nested README");
+        fs::write(root.path().join("tools/shared.md"), "shared README\n").expect("shared README");
+        fs::write(package.join("notes.txt"), "not Markdown\n").expect("text file");
+        fs::write(package.join("untracked.md"), "untracked\n").expect("untracked Markdown");
+        let tracked = BTreeSet::from([
+            "tools/pkg/Cargo.toml".to_string(),
+            "tools/pkg/README.md".to_string(),
+            "tools/pkg/docs/README.markdown".to_string(),
+            "tools/shared.md".to_string(),
+            "tools/pkg/notes.txt".to_string(),
+        ]);
+        (root, tracked)
+    }
+
+    fn resolve_readme(
+        root: &tempfile::TempDir,
+        tracked: &BTreeSet<String>,
+        readme: &str,
+    ) -> Result<PackageReadmePaths, String> {
+        resolve_package_readme(root.path(), "tools/pkg/Cargo.toml", readme, tracked)
+    }
 
     #[test]
     fn cfg_attr_doc_assignment_trivia_is_detected() {
@@ -1341,6 +1455,150 @@ mod tests {
                 .issues
                 .iter()
                 .any(|issue| issue.detail.contains("direct string literal"))
+        );
+    }
+
+    #[test]
+    fn package_readmes_resolve_relative_absolute_and_parent_paths() {
+        let (root, tracked) = readme_fixture();
+
+        assert_eq!(
+            resolve_readme(&root, &tracked, "README.md").expect("manifest-relative README"),
+            PackageReadmePaths {
+                declared: "tools/pkg/README.md".to_string(),
+                physical: "tools/pkg/README.md".to_string(),
+            }
+        );
+        assert_eq!(
+            resolve_readme(&root, &tracked, "docs/README.markdown")
+                .expect("nested manifest-relative README")
+                .declared,
+            "tools/pkg/docs/README.markdown"
+        );
+        assert_eq!(
+            resolve_readme(&root, &tracked, "../shared.md")
+                .expect("parent-relative README that remains in workspace")
+                .declared,
+            "tools/shared.md"
+        );
+
+        let absolute = root
+            .path()
+            .canonicalize()
+            .expect("canonical workspace")
+            .join("tools/pkg/README.md");
+        assert_eq!(
+            resolve_readme(&root, &tracked, absolute.to_str().expect("UTF-8 path"))
+                .expect("absolute in-workspace README")
+                .declared,
+            "tools/pkg/README.md"
+        );
+    }
+
+    #[test]
+    fn package_readme_rejects_escape_missing_untracked_and_non_markdown_paths() {
+        let (root, mut tracked) = readme_fixture();
+        assert!(
+            resolve_readme(&root, &tracked, "../../../outside.md")
+                .expect_err("parent traversal leaves workspace")
+                .contains("escapes the workspace")
+        );
+
+        let outside = tempfile::tempdir().expect("outside directory");
+        let outside_readme = outside.path().join("outside.md");
+        fs::write(&outside_readme, "outside\n").expect("outside README");
+        assert!(
+            resolve_readme(
+                &root,
+                &tracked,
+                outside_readme.to_str().expect("UTF-8 path")
+            )
+            .expect_err("absolute outside path")
+            .contains("outside the workspace")
+        );
+
+        tracked.insert("tools/pkg/missing.md".to_string());
+        assert!(
+            resolve_readme(&root, &tracked, "missing.md")
+                .expect_err("tracked but missing README")
+                .contains("cannot be resolved")
+        );
+        assert!(
+            resolve_readme(&root, &tracked, "notes.txt")
+                .expect_err("non-Markdown path")
+                .contains("not Markdown")
+        );
+        assert!(
+            resolve_readme(&root, &tracked, "untracked.md")
+                .expect_err("untracked Markdown")
+                .contains("not tracked")
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn package_readme_symlinks_bind_declared_and_physical_tracked_paths() {
+        use std::os::unix::fs::symlink;
+
+        let (root, mut tracked) = readme_fixture();
+        let package = root.path().join("tools/pkg");
+        symlink("README.md", package.join("alias.md")).expect("in-workspace symlink");
+        tracked.insert("tools/pkg/alias.md".to_string());
+        assert_eq!(
+            resolve_readme(&root, &tracked, "alias.md").expect("tracked alias"),
+            PackageReadmePaths {
+                declared: "tools/pkg/alias.md".to_string(),
+                physical: "tools/pkg/README.md".to_string(),
+            }
+        );
+
+        symlink("untracked.md", package.join("alias-untracked.md"))
+            .expect("alias to untracked physical input");
+        tracked.insert("tools/pkg/alias-untracked.md".to_string());
+        assert!(
+            resolve_readme(&root, &tracked, "alias-untracked.md")
+                .expect_err("physical target is untracked")
+                .contains("physical target `tools/pkg/untracked.md` is not tracked")
+        );
+
+        let outside = tempfile::tempdir().expect("outside directory");
+        let outside_readme = outside.path().join("outside.md");
+        fs::write(&outside_readme, "outside\n").expect("outside README");
+        symlink(&outside_readme, package.join("alias-outside.md")).expect("alias to outside file");
+        tracked.insert("tools/pkg/alias-outside.md".to_string());
+        let outside_detail = resolve_readme(&root, &tracked, "alias-outside.md")
+            .expect_err("physical target escapes workspace");
+        assert!(outside_detail.contains("outside the workspace root"));
+        assert!(
+            outside_detail.contains(
+                outside_readme
+                    .canonicalize()
+                    .expect("canonical outside README")
+                    .to_str()
+                    .expect("UTF-8 path")
+            )
+        );
+
+        let outside_nested = outside.path().join("nested");
+        fs::create_dir_all(&outside_nested).expect("outside nested directory");
+        let outside_parent = outside.path().join("escaped.md");
+        fs::write(&outside_parent, "outside parent\n").expect("outside parent README");
+        fs::write(package.join("escaped.md"), "in-workspace lexical decoy\n")
+            .expect("in-workspace lexical decoy");
+        symlink(&outside_nested, package.join("jump-outside"))
+            .expect("intermediate symlink to outside directory");
+        tracked.insert("tools/pkg/escaped.md".to_string());
+        let intermediate_escape = resolve_readme(&root, &tracked, "jump-outside/../escaped.md")
+            .expect_err("intermediate symlink cannot bypass parent traversal confinement");
+        assert!(intermediate_escape.contains("outside the workspace root"));
+        assert!(
+            intermediate_escape.contains(
+                outside_parent
+                    .canonicalize()
+                    .expect("canonical escaped README")
+                    .to_str()
+                    .expect("UTF-8 path")
+            )
         );
     }
 }
