@@ -12,6 +12,7 @@ const MIDDLE: Id = Id::root("wheel-hit-stack.middle");
 const TOP: Id = Id::root("wheel-hit-stack.top");
 const OWNER: Id = Id::root("wheel-hit-stack.owner");
 const MODAL: Id = Id::root("wheel-hit-stack.modal");
+const FOCUS_START: Id = Id::root("wheel-hit-stack.focus-start");
 const FOCUS_TARGET: Id = Id::root("wheel-hit-stack.focus");
 const PAGE_SENTINEL: Id = Id::root("wheel-hit-stack.page-sentinel");
 const MODAL_UNDER: Id = Id::root("wheel-hit-stack.modal-under");
@@ -857,13 +858,20 @@ fn layout_or_focus_change_invalidates_fallback_before_targeted_service() {
         target(UNDER, SCREEN),
         target(TOP, SCREEN),
         Target::new(
-            FOCUS_TARGET,
+            FOCUS_START,
             CONTAINER,
             Rect::new(0, 6, 4, 2),
             Registration::FocusableControl,
         ),
+        Target::new(
+            FOCUS_TARGET,
+            CONTAINER,
+            Rect::new(5, 6, 4, 2),
+            Registration::FocusableControl,
+        ),
     ];
     let mut h = harness(HitStackProbe::new(targets));
+    assert_eq!(h.focus(), Some(FOCUS_START));
     wheel(&mut h, Axis::V, 1, 4, 3);
     assert_eq!(h.app().event_updates, 1);
     assert_eq!(attempted_owners(h.app()), [TOP, UNDER]);
@@ -872,6 +880,7 @@ fn layout_or_focus_change_invalidates_fallback_before_targeted_service() {
     let mut app = HitStackProbe::new(targets);
     app.relayout_after_event = true;
     let mut h = harness(app);
+    assert_eq!(h.focus(), Some(FOCUS_START));
     wheel(&mut h, Axis::V, 1, 4, 3);
     assert_eq!(h.app().event_updates, 1);
     assert_eq!(h.app().initial_attempts[0].owner, TOP);
@@ -880,6 +889,7 @@ fn layout_or_focus_change_invalidates_fallback_before_targeted_service() {
     let mut app = HitStackProbe::new(targets);
     app.focus_after_event = Some(FOCUS_TARGET);
     let mut h = harness(app);
+    assert_eq!(h.focus(), Some(FOCUS_START));
     wheel(&mut h, Axis::V, 1, 4, 3);
     assert_eq!(h.app().event_updates, 1);
     assert_eq!(h.app().initial_attempts[0].owner, TOP);
