@@ -85,6 +85,133 @@ pub enum DrawerLine<'a> {
     Blank,
 }
 
+/// Identifies the semantic segment that produced a projected drawer range.
+///
+/// The source [`DrawerLine`] remains available on [`DrawerLineProjection`];
+/// this enum identifies which part of that source produced each visible run.
+#[non_exhaustive]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum DrawerProjectionSource {
+    TitleMarker,
+    Title,
+    TitleMeta,
+    Rule,
+    FieldLabel,
+    FieldValue,
+    Value,
+    HeadingLabel,
+    HeadingMeta,
+    MeterLabel,
+    MeterReadout,
+    MeterPadding,
+    MeterTrack,
+    MeterMark,
+    MeterNote,
+    Span(usize),
+    Text,
+    ButtonLead(usize),
+    ButtonLabel(usize),
+    LayoutGap,
+}
+
+/// A styled source mapping in a [`DrawerLineProjection`].
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct DrawerProjectionRange {
+    bytes: Range<usize>,
+    columns: Range<usize>,
+    style: Option<PaintStyle>,
+    source: DrawerProjectionSource,
+    source_bytes: Option<Range<usize>>,
+}
+
+impl DrawerProjectionRange {
+    /// UTF-8 byte range in the projected display text.
+    #[must_use]
+    pub fn bytes(&self) -> Range<usize> {
+        self.bytes.clone()
+    }
+
+    /// Logical display-cell range relative to the projection's column origin.
+    #[must_use]
+    pub fn columns(&self) -> Range<usize> {
+        self.columns.clone()
+    }
+
+    /// Complete painter style for this range, or `None` for an unpainted gap.
+    #[must_use]
+    pub const fn style(&self) -> Option<PaintStyle> {
+        self.style
+    }
+
+    /// Semantic segment in the original [`DrawerLine`].
+    #[must_use]
+    pub const fn source(&self) -> DrawerProjectionSource {
+        self.source
+    }
+
+    /// Source UTF-8 byte range, when this range maps directly to source text.
+    #[must_use]
+    pub fn source_bytes(&self) -> Option<Range<usize>> {
+        self.source_bytes.clone()
+    }
+}
+
+/// Logical display text and painter mappings for one drawer row.
+///
+/// The original typed line is retained so callers can rebuild this projection
+/// when their layout changes instead of deriving semantic facts from clipped
+/// display text.
+pub struct DrawerLineProjection<'line, 'text> {
+    source: &'line DrawerLine<'text>,
+    origin_x: u16,
+    text: String,
+    ranges: Vec<DrawerProjectionRange>,
+}
+
+impl<'line, 'text> DrawerLineProjection<'line, 'text> {
+    /// Original typed source line.
+    #[must_use]
+    pub const fn source(&self) -> &'line DrawerLine<'text> {
+        self.source
+    }
+
+    /// Absolute x coordinate represented by logical column zero.
+    #[must_use]
+    pub const fn origin_x(&self) -> u16 {
+        self.origin_x
+    }
+
+    /// Full logical display text, including the spaces between painted parts.
+    #[must_use]
+    pub fn text(&self) -> &str {
+        &self.text
+    }
+
+    /// Non-overlapping styled ranges ordered by display position.
+    #[must_use]
+    pub fn ranges(&self) -> &[DrawerProjectionRange] {
+        &self.ranges
+    }
+}
+
+/// A row shape that cannot be represented as one logical grapheme-safe line.
+#[non_exhaustive]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum DrawerProjectionError {
+    /// A right-aligned emission begins before the requested column origin.
+    BeforeOrigin,
+    /// An operation replaces only part of a previously emitted wide grapheme.
+    PartialGraphemeOverlap,
+    /// Separately emitted text joins into a grapheme with ambiguous ownership.
+    GraphemeJoinAcrossEmissions,
+    /// A grapheme boundary splits the direct/synthetic part of an emission.
+    GraphemeCrossesSourceBoundary,
+    /// A standalone control or zero-width grapheme has no display-cell mapping.
+    UnrenderableGrapheme,
+    /// Logical display columns cannot be represented without integer overflow.
+    ColumnOverflow,
+}
+
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum PaneChrome {
     /// Open drawer. The list rule is quiet and selection has no focus bar.
@@ -293,8 +420,39 @@ pub fn paint_accounts_drawer_lines_window(
     Some(visible_start..end)
 }
 
+/// Project one typed drawer row into its full logical display text and styles.
+///
+/// This uses the same row-emission path as the existing painters. It does not
+/// apply a physical clip: callers receive the complete logical row and can
+/// retain the original [`DrawerLine`] for width-dependent rebuilding. Some
+/// painter operations cannot be represented as one grapheme-safe row; those
+/// inputs return a [`DrawerProjectionError`] instead of silently losing text
+/// or style ownership.
+pub fn project_accounts_drawer_line<'line, 'text>(
+    theme: &termrock_theme::Theme,
+    layout: Rect,
+    content_x: u16,
+    line: &'line DrawerLine<'text>,
+    chrome: PaneChrome,
+) -> Result<DrawerLineProjection<'line, 'text>, DrawerProjectionError> {
+    let mut sink = ProjectionSink::new(content_x);
+    emit_line(
+        &mut sink,
+        layout,
+        0,
+        content_x,
+        line,
+        &drawer_ink_from_theme(theme),
+        LinePaintOptions { chrome, clip: None },
+    );
+    sink.finish(line)
+}
+
 fn drawer_ink(ui: &Ui<'_>) -> Ink {
-    let theme = ui.theme_ref();
+    drawer_ink_from_theme(ui.theme_ref())
+}
+
+fn drawer_ink_from_theme(theme: &termrock_theme::Theme) -> Ink {
     Ink {
         canvas: theme.bg(Surface::Canvas),
         chrome: theme.bg(Surface::Surface),
@@ -618,8 +776,271 @@ fn slots(role: AccountRole, gutter: u16) -> (u16, u16) {
     }
 }
 
+#[derive(Clone, Copy)]
+enum EmissionMapping {
+    None,
+    All,
+    Prefix(usize),
+}
+
+struct LineEmission<'text> {
+    layout: Rect,
+    clip: Option<Rect>,
+    x: u16,
+    y: u16,
+    text: &'text str,
+    style: PaintStyle,
+    source: DrawerProjectionSource,
+    mapping: EmissionMapping,
+}
+
+trait LineSink {
+    fn emit(&mut self, emission: LineEmission<'_>);
+}
+
+struct UiLineSink<'ui, 'frame> {
+    ui: &'ui mut Ui<'frame>,
+}
+
+impl LineSink for UiLineSink<'_, '_> {
+    fn emit(&mut self, emission: LineEmission<'_>) {
+        put_line(
+            self.ui,
+            emission.layout,
+            emission.clip,
+            emission.x,
+            emission.y,
+            emission.text,
+            emission.style,
+        );
+    }
+}
+
+struct ProjectionEmission {
+    x: u16,
+    text: String,
+    style: PaintStyle,
+    source: DrawerProjectionSource,
+    mapping: EmissionMapping,
+}
+
+struct ProjectionSink {
+    origin_x: u16,
+    emissions: Vec<ProjectionEmission>,
+    error: Option<DrawerProjectionError>,
+}
+
+impl ProjectionSink {
+    fn new(origin_x: u16) -> Self {
+        Self {
+            origin_x,
+            emissions: Vec::new(),
+            error: None,
+        }
+    }
+
+    fn finish<'line, 'text>(
+        self,
+        source_line: &'line DrawerLine<'text>,
+    ) -> Result<DrawerLineProjection<'line, 'text>, DrawerProjectionError> {
+        if let Some(error) = self.error {
+            return Err(error);
+        }
+
+        let mut glyphs: Vec<ProjectionGlyph> = Vec::new();
+        for emission in self.emissions {
+            let Some(start) = emission.x.checked_sub(self.origin_x) else {
+                return Err(DrawerProjectionError::BeforeOrigin);
+            };
+            let mut emission_glyphs = Vec::new();
+            let mut emission_column = usize::from(start);
+            for (byte, grapheme) in crate::text::measure::graphemes(&emission.text) {
+                if grapheme.contains(char::is_control) {
+                    return Err(DrawerProjectionError::UnrenderableGrapheme);
+                }
+                let cells = usize::from(crate::text::measure::grapheme_width(grapheme));
+                if cells == 0 {
+                    return Err(DrawerProjectionError::UnrenderableGrapheme);
+                }
+                let byte_end = byte
+                    .checked_add(grapheme.len())
+                    .ok_or(DrawerProjectionError::ColumnOverflow)?;
+                let source_bytes = match emission.mapping {
+                    EmissionMapping::None => None,
+                    EmissionMapping::All => Some(byte..byte_end),
+                    EmissionMapping::Prefix(prefix) if byte_end <= prefix => Some(byte..byte_end),
+                    EmissionMapping::Prefix(prefix) if byte >= prefix => None,
+                    EmissionMapping::Prefix(_) => {
+                        return Err(DrawerProjectionError::GraphemeCrossesSourceBoundary);
+                    }
+                };
+                let source = match emission.mapping {
+                    EmissionMapping::Prefix(prefix) if byte >= prefix => {
+                        DrawerProjectionSource::MeterPadding
+                    }
+                    _ => emission.source,
+                };
+                let column = emission_column;
+                let end = column
+                    .checked_add(cells)
+                    .ok_or(DrawerProjectionError::ColumnOverflow)?;
+                emission_column = end;
+                emission_glyphs.push(ProjectionGlyph {
+                    columns: column..end,
+                    text: grapheme.to_owned(),
+                    style: Some(emission.style),
+                    source,
+                    source_bytes,
+                });
+            }
+
+            // Each operation is applied in order. Remove old graphemes only
+            // when this entire operation covers them; a partial wide overwrite
+            // cannot be represented as an ordinary display-row source range.
+            for old in &glyphs {
+                if !emission_glyphs
+                    .iter()
+                    .any(|new| ranges_overlap(&old.columns, &new.columns))
+                {
+                    continue;
+                }
+                let mut coverage = old.columns.start;
+                for new in &emission_glyphs {
+                    if new.columns.start > coverage {
+                        continue;
+                    }
+                    coverage = coverage.max(new.columns.end);
+                    if coverage >= old.columns.end {
+                        break;
+                    }
+                }
+                if coverage < old.columns.end {
+                    return Err(DrawerProjectionError::PartialGraphemeOverlap);
+                }
+            }
+            glyphs.retain(|old| {
+                !emission_glyphs
+                    .iter()
+                    .any(|new| ranges_overlap(&old.columns, &new.columns))
+            });
+            glyphs.extend(emission_glyphs);
+        }
+
+        glyphs.sort_by_key(|glyph| glyph.columns.start);
+        let mut text = String::new();
+        let mut ranges = Vec::new();
+        let mut column = 0usize;
+        for glyph in glyphs {
+            if glyph.columns.start < column {
+                return Err(DrawerProjectionError::PartialGraphemeOverlap);
+            }
+            while column < glyph.columns.start {
+                let byte = text.len();
+                text.push(' ');
+                ranges.push(DrawerProjectionRange {
+                    bytes: byte..byte + 1,
+                    columns: column..column + 1,
+                    style: None,
+                    source: DrawerProjectionSource::LayoutGap,
+                    source_bytes: None,
+                });
+                column += 1;
+            }
+            let byte = text.len();
+            text.push_str(&glyph.text);
+            let byte_end = text.len();
+            ranges.push(DrawerProjectionRange {
+                bytes: byte..byte_end,
+                columns: glyph.columns.clone(),
+                style: glyph.style,
+                source: glyph.source,
+                source_bytes: glyph.source_bytes,
+            });
+            column = glyph.columns.end;
+        }
+
+        // Separate emissions may join into a different grapheme (for example,
+        // regional indicators). Reject ambiguous source/style boundaries.
+        let mut range_index = 0usize;
+        for (byte, grapheme) in crate::text::measure::graphemes(&text) {
+            let end = byte
+                .checked_add(grapheme.len())
+                .ok_or(DrawerProjectionError::ColumnOverflow)?;
+            let Some(range) = ranges.get(range_index) else {
+                return Err(DrawerProjectionError::GraphemeJoinAcrossEmissions);
+            };
+            if range.bytes.start != byte || range.bytes.end != end {
+                return Err(DrawerProjectionError::GraphemeJoinAcrossEmissions);
+            }
+            range_index += 1;
+        }
+        if range_index != ranges.len() {
+            return Err(DrawerProjectionError::GraphemeJoinAcrossEmissions);
+        }
+
+        Ok(DrawerLineProjection {
+            source: source_line,
+            origin_x: self.origin_x,
+            text,
+            ranges,
+        })
+    }
+}
+
+#[derive(Clone)]
+struct ProjectionGlyph {
+    columns: Range<usize>,
+    text: String,
+    style: Option<PaintStyle>,
+    source: DrawerProjectionSource,
+    source_bytes: Option<Range<usize>>,
+}
+
+fn ranges_overlap(left: &Range<usize>, right: &Range<usize>) -> bool {
+    left.start < right.end && right.start < left.end
+}
+
+impl LineSink for ProjectionSink {
+    fn emit(&mut self, emission: LineEmission<'_>) {
+        if self.error.is_some() || emission.text.is_empty() {
+            return;
+        }
+        if emission.x < self.origin_x {
+            self.error = Some(DrawerProjectionError::BeforeOrigin);
+            return;
+        }
+        self.emissions.push(ProjectionEmission {
+            x: emission.x,
+            text: emission.text.to_owned(),
+            style: emission.style,
+            source: emission.source,
+            mapping: emission.mapping,
+        });
+    }
+}
+
 fn paint_line(
     ui: &mut Ui<'_>,
+    area: Rect,
+    y: u16,
+    content_x: u16,
+    line: &DrawerLine<'_>,
+    ink: &Ink,
+    options: LinePaintOptions,
+) {
+    emit_line(
+        &mut UiLineSink { ui },
+        area,
+        y,
+        content_x,
+        line,
+        ink,
+        options,
+    );
+}
+
+fn emit_line<S: LineSink>(
+    sink: &mut S,
     area: Rect,
     y: u16,
     content_x: u16,
@@ -632,132 +1053,150 @@ fn paint_line(
     match line {
         DrawerLine::Title { title, meta } => {
             if chrome == PaneChrome::Drawer {
-                put_line(
-                    ui,
-                    area,
+                sink.emit(LineEmission {
+                    layout: area,
                     clip,
-                    content_x.saturating_add(1),
+                    x: content_x.saturating_add(1),
                     y,
-                    "▎",
-                    plain(ink.accent, ink.chrome),
-                );
+                    text: "▎",
+                    style: plain(ink.accent, ink.chrome),
+                    source: DrawerProjectionSource::TitleMarker,
+                    mapping: EmissionMapping::None,
+                });
             }
             let title_style = if chrome == PaneChrome::Drawer {
                 bold(ink.primary, ink.chrome)
             } else {
                 plain(ink.secondary, ink.chrome)
             };
-            put_line(
-                ui,
-                area,
+            sink.emit(LineEmission {
+                layout: area,
                 clip,
-                content_x.saturating_add(2),
+                x: content_x.saturating_add(2),
                 y,
-                title,
-                title_style,
-            );
-            put_line(
-                ui,
-                area,
+                text: title,
+                style: title_style,
+                source: DrawerProjectionSource::Title,
+                mapping: EmissionMapping::All,
+            });
+            sink.emit(LineEmission {
+                layout: area,
                 clip,
-                align.saturating_sub(width(meta)),
+                x: align.saturating_sub(width(meta)),
                 y,
-                meta,
-                plain(ink.faint, ink.chrome),
-            );
+                text: meta,
+                style: plain(ink.faint, ink.chrome),
+                source: DrawerProjectionSource::TitleMeta,
+                mapping: EmissionMapping::All,
+            });
         }
         DrawerLine::Rule => {
             let from = content_x.saturating_add(2);
-            put_line(
-                ui,
-                area,
+            sink.emit(LineEmission {
+                layout: area,
                 clip,
-                from,
+                x: from,
                 y,
-                &"─".repeat(usize::from(align.saturating_sub(from))),
-                plain(RULE, ink.chrome),
-            );
+                text: &"─".repeat(usize::from(align.saturating_sub(from))),
+                style: plain(RULE, ink.chrome),
+                source: DrawerProjectionSource::Rule,
+                mapping: EmissionMapping::None,
+            });
         }
         DrawerLine::Field {
             label,
             value,
             ink: tone,
         } => {
-            put_line(
-                ui,
-                area,
+            sink.emit(LineEmission {
+                layout: area,
                 clip,
-                content_x.saturating_add(2),
+                x: content_x.saturating_add(2),
                 y,
-                label,
-                plain(ink.muted, ink.chrome),
-            );
-            put_line(
-                ui,
-                area,
+                text: label,
+                style: plain(ink.muted, ink.chrome),
+                source: DrawerProjectionSource::FieldLabel,
+                mapping: EmissionMapping::All,
+            });
+            sink.emit(LineEmission {
+                layout: area,
                 clip,
-                content_x.saturating_add(VALUE_AT),
+                x: content_x.saturating_add(VALUE_AT),
                 y,
-                value,
-                plain(tone_color(*tone, ink), ink.chrome),
-            );
+                text: value,
+                style: plain(tone_color(*tone, ink), ink.chrome),
+                source: DrawerProjectionSource::FieldValue,
+                mapping: EmissionMapping::All,
+            });
         }
         DrawerLine::Value { text, ink: tone } => {
-            put_line(
-                ui,
-                area,
+            sink.emit(LineEmission {
+                layout: area,
                 clip,
-                content_x.saturating_add(VALUE_AT),
+                x: content_x.saturating_add(VALUE_AT),
                 y,
                 text,
-                plain(tone_color(*tone, ink), ink.chrome),
-            );
+                style: plain(tone_color(*tone, ink), ink.chrome),
+                source: DrawerProjectionSource::Value,
+                mapping: EmissionMapping::All,
+            });
         }
         DrawerLine::Heading { label, meta } => {
-            put_line(
-                ui,
-                area,
+            sink.emit(LineEmission {
+                layout: area,
                 clip,
-                content_x.saturating_add(2),
+                x: content_x.saturating_add(2),
                 y,
-                label,
-                bold(ink.secondary, ink.chrome),
-            );
-            put_line(
-                ui,
-                area,
+                text: label,
+                style: bold(ink.secondary, ink.chrome),
+                source: DrawerProjectionSource::HeadingLabel,
+                mapping: EmissionMapping::All,
+            });
+            sink.emit(LineEmission {
+                layout: area,
                 clip,
-                align.saturating_sub(width(meta)),
+                x: align.saturating_sub(width(meta)),
                 y,
-                meta,
-                plain(ink.faint, ink.chrome),
-            );
+                text: meta,
+                style: plain(ink.faint, ink.chrome),
+                source: DrawerProjectionSource::HeadingMeta,
+                mapping: EmissionMapping::All,
+            });
         }
-        DrawerLine::Meter(meter) => paint_meter(ui, area, y, content_x, meter, ink, clip),
+        DrawerLine::Meter(meter) => paint_meter(sink, area, y, content_x, meter, ink, clip),
         DrawerLine::Spans(line) => {
             let mut x = content_x;
-            for span in line.spans {
-                let style = span_style(span.ink, ink);
-                put_line(ui, area, clip, x, y, span.text, style);
+            for (index, span) in line.spans.iter().enumerate() {
+                sink.emit(LineEmission {
+                    layout: area,
+                    clip,
+                    x,
+                    y,
+                    text: span.text,
+                    style: span_style(span.ink, ink),
+                    source: DrawerProjectionSource::Span(index),
+                    mapping: EmissionMapping::All,
+                });
                 x = x.saturating_add(width(span.text));
             }
         }
-        DrawerLine::Text(text) => put_line(
-            ui,
-            area,
+        DrawerLine::Text(text) => sink.emit(LineEmission {
+            layout: area,
             clip,
-            content_x,
+            x: content_x,
             y,
             text,
-            plain(ink.primary, ink.chrome),
-        ),
-        DrawerLine::Buttons(buttons) => paint_buttons(ui, area, y, content_x, buttons, ink, clip),
+            style: plain(ink.primary, ink.chrome),
+            source: DrawerProjectionSource::Text,
+            mapping: EmissionMapping::All,
+        }),
+        DrawerLine::Buttons(buttons) => paint_buttons(sink, area, y, content_x, buttons, ink, clip),
         DrawerLine::Blank => {}
     }
 }
 
-fn paint_meter(
-    ui: &mut Ui<'_>,
+fn paint_meter<S: LineSink>(
+    sink: &mut S,
     area: Rect,
     y: u16,
     content_x: u16,
@@ -765,15 +1204,16 @@ fn paint_meter(
     ink: &Ink,
     clip: Option<Rect>,
 ) {
-    put_line(
-        ui,
-        area,
+    sink.emit(LineEmission {
+        layout: area,
         clip,
-        content_x,
+        x: content_x,
         y,
-        meter.label,
-        plain(ink.primary, ink.chrome),
-    );
+        text: meter.label,
+        style: plain(ink.primary, ink.chrome),
+        source: DrawerProjectionSource::MeterLabel,
+        mapping: EmissionMapping::All,
+    });
     let bar_x = content_x.saturating_add(LABEL_W);
     let fill = tone_color_tone(meter.tone);
     // `plain` records a modifier removal. A later add does not clear that
@@ -787,21 +1227,31 @@ fn paint_meter(
     if shown.chars().count() < cols {
         shown.push_str(&" ".repeat(cols - shown.chars().count()));
     }
-    put_line(ui, area, clip, bar_x, y, &shown, style);
+    sink.emit(LineEmission {
+        layout: area,
+        clip,
+        x: bar_x,
+        y,
+        text: &shown,
+        style,
+        source: DrawerProjectionSource::MeterReadout,
+        mapping: EmissionMapping::Prefix(meter.readout.len()),
+    });
     if meter.track_cols > 0 {
         let track = PaintStyle::new()
             .fg(ink.secondary)
             .bg(TRACK)
             .add_modifier(Modifier::ITALIC);
-        put_line(
-            ui,
-            area,
+        sink.emit(LineEmission {
+            layout: area,
             clip,
-            bar_x.saturating_add(meter.fill_cols),
+            x: bar_x.saturating_add(meter.fill_cols),
             y,
-            &" ".repeat(usize::from(meter.track_cols)),
-            track,
-        );
+            text: &" ".repeat(usize::from(meter.track_cols)),
+            style: track,
+            source: DrawerProjectionSource::MeterTrack,
+            mapping: EmissionMapping::None,
+        });
     }
     let mark_x = bar_x.saturating_add(BAR_W);
     let mark_style = if meter.mark_bold {
@@ -809,20 +1259,30 @@ fn paint_meter(
     } else {
         plain(fill, ink.chrome)
     };
-    put_line(ui, area, clip, mark_x, y, meter.mark, mark_style);
-    put_line(
-        ui,
-        area,
+    sink.emit(LineEmission {
+        layout: area,
         clip,
-        mark_x.saturating_add(4),
+        x: mark_x,
         y,
-        meter.note,
-        plain(ink.muted, ink.chrome),
-    );
+        text: meter.mark,
+        style: mark_style,
+        source: DrawerProjectionSource::MeterMark,
+        mapping: EmissionMapping::All,
+    });
+    sink.emit(LineEmission {
+        layout: area,
+        clip,
+        x: mark_x.saturating_add(4),
+        y,
+        text: meter.note,
+        style: plain(ink.muted, ink.chrome),
+        source: DrawerProjectionSource::MeterNote,
+        mapping: EmissionMapping::All,
+    });
 }
 
-fn paint_buttons(
-    ui: &mut Ui<'_>,
+fn paint_buttons<S: LineSink>(
+    sink: &mut S,
     area: Rect,
     y: u16,
     content_x: u16,
@@ -831,15 +1291,33 @@ fn paint_buttons(
     clip: Option<Rect>,
 ) {
     let mut x = content_x.saturating_add(1);
-    for button in buttons {
-        put_line(ui, area, clip, x, y, " ", plain(ink.face, ink.face));
+    for (index, button) in buttons.iter().enumerate() {
+        sink.emit(LineEmission {
+            layout: area,
+            clip,
+            x,
+            y,
+            text: " ",
+            style: plain(ink.face, ink.face),
+            source: DrawerProjectionSource::ButtonLead(index),
+            mapping: EmissionMapping::None,
+        });
         x = x.saturating_add(1);
         let fg = if button.danger {
             BUTTON_DANGER
         } else {
             ink.primary
         };
-        put_line(ui, area, clip, x, y, button.label, plain(fg, ink.face));
+        sink.emit(LineEmission {
+            layout: area,
+            clip,
+            x,
+            y,
+            text: button.label,
+            style: plain(fg, ink.face),
+            source: DrawerProjectionSource::ButtonLabel(index),
+            mapping: EmissionMapping::All,
+        });
         x = x.saturating_add(width(button.label)).saturating_add(2);
     }
 }
