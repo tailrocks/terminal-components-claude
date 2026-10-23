@@ -254,6 +254,29 @@ fn close_area(h: &Harness<Page>) -> Rect {
         .expect("eligible close target is present")
 }
 
+fn close_area_for(h: &Harness<Page>, key: ItemKey) -> Option<Rect> {
+    h.area_of_part(TABS, PartRef::item(Part::CLOSE, key))
+}
+
+fn tab_area_for(h: &Harness<Page>, key: ItemKey) -> Rect {
+    h.area_of_part(TABS, PartRef::item(Part::TAB, key))
+        .expect("tab hit is present")
+}
+
+fn marked_hover_page(target_width: Option<u16>) -> Page {
+    let mut page = Page::new(target_width, false, "Active");
+    page.state.set_active(0, ItemKey::num(41));
+    page.reveal = termrock_navigation::TabCloseReveal::Hover;
+    page.marked = true;
+    page.items[0].marked = false;
+    page.items.push(Tab {
+        id: 42,
+        label: "B",
+        marked: true,
+    });
+    page
+}
+
 #[test]
 fn omitted_target_and_explicit_one_cell_preserve_complete_default_render() {
     let omitted = harness(Page::new(None, false, "LongLabel"), 48, Theme::junie());
@@ -281,6 +304,13 @@ fn omitted_target_and_explicit_one_cell_preserve_complete_default_render() {
     assert_eq!(
         implicit_false.runtime().registry().regions(),
         explicit_false.runtime().registry().regions()
+    );
+
+    let danger_only = harness(Page::new(None, true, "LongLabel"), 48, Theme::junie());
+    assert_eq!(implicit_false.buffer(), danger_only.buffer());
+    assert_eq!(
+        implicit_false.runtime().registry().regions(),
+        danger_only.runtime().registry().regions()
     );
 
     let mut default_hover = harness(Page::new(None, false, "VeryLongLabel"), 48, Theme::junie());
@@ -430,6 +460,245 @@ fn wide_hover_styles_the_plate_without_erasing_overlapping_label_or_mark_glyphs(
         assert_eq!(cell.underline_color, original.3);
         assert_eq!(cell.modifier, original.4);
     }
+}
+
+#[test]
+fn explicit_clear_and_reset_reach_only_the_resting_glyph_in_opted_paths() {
+    for patch in [
+        ClosePatch::Clear,
+        ClosePatch::GlobalClear,
+        ClosePatch::Reset,
+    ] {
+        for danger_hover in [false, true] {
+            let mut page = Page::new(Some(5), danger_hover, "A");
+            page.patch = patch;
+            page.marked = true;
+            page.items[0].marked = true;
+            let mut h = harness(page, 32, Theme::junie());
+
+            let (baseline_width, baseline_danger, baseline_patch) = match patch {
+                ClosePatch::GlobalClear => (None, false, ClosePatch::GlobalClear),
+                _ => (Some(5), danger_hover, ClosePatch::None),
+            };
+            let mut baseline_page = Page::new(baseline_width, baseline_danger, "A");
+            baseline_page.marked = true;
+            baseline_page.items[0].marked = true;
+            baseline_page.patch = baseline_patch;
+            let baseline = harness(baseline_page, 32, Theme::junie());
+
+            let target = close_area(&h);
+            let tab = tab_area(&h);
+            let glyph_x = tab.right() - 2;
+            let mark = Rect::new(tab.x + 2, tab.y, 2, 1);
+            assert_eq!(target.width, 5);
+            assert!((mark.x..mark.right()).any(|x| h.cell(x, mark.y).symbol() != " "));
+            assert!(target.x < mark.right() && mark.x < target.right());
+            assert!(target.x <= glyph_x && glyph_x < target.right());
+
+            let rest_cells: Vec<_> = (target.x..target.right())
+                .map(|x| {
+                    let cell = h.cell(x, target.y);
+                    (
+                        cell.symbol().to_owned(),
+                        cell.fg,
+                        cell.bg,
+                        cell.underline_color,
+                        cell.modifier,
+                    )
+                })
+                .collect();
+            let glyph = h.cell(glyph_x, target.y);
+            assert_eq!(glyph.fg, Color::Reset, "{patch:?}, danger={danger_hover}");
+            assert_eq!(glyph.bg, Color::Reset, "{patch:?}, danger={danger_hover}");
+            assert_eq!(
+                glyph.underline_color,
+                Color::Reset,
+                "{patch:?}, danger={danger_hover}"
+            );
+            assert_eq!(glyph.symbol(), baseline.cell(glyph_x, target.y).symbol());
+            for x in target.x..target.right() {
+                if x != glyph_x {
+                    assert_eq!(
+                        h.cell(x, target.y).style(),
+                        baseline.cell(x, target.y).style(),
+                        "resting padding x={x}, {patch:?}, danger={danger_hover}"
+                    );
+                    assert_eq!(
+                        h.cell(x, target.y).symbol(),
+                        baseline.cell(x, target.y).symbol(),
+                        "resting content x={x}, {patch:?}, danger={danger_hover}"
+                    );
+                }
+            }
+
+            let _ = h.mouse(MouseKind::Move, target.x, target.y);
+            for x in target.x..target.right() {
+                let cell = h.cell(x, target.y);
+                assert_eq!(cell.fg, Color::Reset);
+                assert_eq!(cell.bg, Color::Reset);
+                assert_eq!(cell.underline_color, Color::Reset);
+                assert_eq!(
+                    cell.symbol(),
+                    rest_cells[usize::from(x - target.x)].0,
+                    "hover glyph preservation x={x}"
+                );
+            }
+            let _ = h.mouse(MouseKind::Down, target.x + 2, target.y);
+            for x in target.x..target.right() {
+                let cell = h.cell(x, target.y);
+                assert_eq!(cell.fg, Color::Reset);
+                assert_eq!(cell.bg, Color::Reset);
+                assert_eq!(cell.underline_color, Color::Reset);
+                assert_eq!(
+                    cell.symbol(),
+                    rest_cells[usize::from(x - target.x)].0,
+                    "pressed glyph preservation x={x}"
+                );
+            }
+            let _ = h.mouse(MouseKind::Up, target.x + 2, target.y);
+            assert_eq!(
+                h.app().actions,
+                [TabsAction::Close(ItemKey::num(41))],
+                "release over the live plate closes once"
+            );
+            for x in target.x..target.right() {
+                let cell = h.cell(x, target.y);
+                assert_eq!(cell.fg, Color::Reset);
+                assert_eq!(cell.bg, Color::Reset);
+                assert_eq!(cell.underline_color, Color::Reset);
+                assert_eq!(
+                    cell.symbol(),
+                    rest_cells[usize::from(x - target.x)].0,
+                    "release glyph preservation x={x}"
+                );
+            }
+            let _ = h.mouse(MouseKind::Move, 31, 2);
+            let _ = h.advance(core::time::Duration::from_millis(1_000));
+            h.draw();
+            for x in target.x..target.right() {
+                let cell = h.cell(x, target.y);
+                let actual = (
+                    cell.symbol().to_owned(),
+                    cell.fg,
+                    cell.bg,
+                    cell.underline_color,
+                    cell.modifier,
+                );
+                assert_eq!(
+                    actual,
+                    rest_cells[usize::from(x - target.x)],
+                    "cleanup x={x}, target={target:?}, tab={tab:?}, glyph={glyph_x}, hover={:?}, state={:?}, {patch:?}, danger={danger_hover}",
+                    h.hover(),
+                    h.state_of(TABS)
+                );
+            }
+        }
+    }
+
+    // Danger mode alone opts into explicit close resolution; omitted width
+    // plus danger=false keeps the historic rendering path.
+    for patch in [
+        ClosePatch::Clear,
+        ClosePatch::GlobalClear,
+        ClosePatch::Reset,
+    ] {
+        let mut page = Page::new(None, true, "LongLabel");
+        page.patch = patch;
+        let mut h = harness(page, 32, Theme::junie());
+        let mut baseline_page = Page::new(None, false, "LongLabel");
+        baseline_page.patch = patch;
+        let baseline = harness(baseline_page, 32, Theme::junie());
+        let target = close_area(&h);
+        let glyph = h.cell(target.x, target.y);
+        assert_eq!(glyph.fg, Color::Reset, "danger-only {patch:?}");
+        assert_eq!(glyph.bg, Color::Reset, "danger-only {patch:?}");
+        assert_eq!(glyph.underline_color, Color::Reset, "danger-only {patch:?}");
+        for y in 0..3 {
+            for x in 0..32 {
+                if (x, y) != (target.x, target.y) {
+                    assert_eq!(h.cell(x, y), baseline.cell(x, y));
+                }
+            }
+        }
+
+        let _ = h.mouse(MouseKind::Move, target.x, target.y);
+        let _ = h.mouse(MouseKind::Down, target.x, target.y);
+        let _ = h.mouse(MouseKind::Up, target.x, target.y);
+        let _ = h.mouse(MouseKind::Move, 31, 2);
+        h.draw();
+        let glyph = h.cell(target.x, target.y);
+        assert_eq!(glyph.fg, Color::Reset, "danger-only cleanup {patch:?}");
+        assert_eq!(glyph.bg, Color::Reset, "danger-only cleanup {patch:?}");
+    }
+}
+
+#[test]
+fn widened_hover_uses_tab_then_close_hits_and_cleans_pressed_only_reveal() {
+    let idle = ItemKey::num(42);
+    let mut h = harness(marked_hover_page(Some(5)), 48, Theme::junie());
+    let idle_tab = tab_area_for(&h, idle);
+    let padding_x = idle_tab.right() - 5;
+    let glyph_x = idle_tab.right() - 2;
+    let mark = Rect::new(idle_tab.x + 2, idle_tab.y, 2, 1);
+    assert!(padding_x < glyph_x);
+    assert_eq!(close_area_for(&h, idle), None);
+    assert_eq!(h.cell(glyph_x, idle_tab.y).symbol(), " ");
+    assert!((mark.x..mark.right()).any(|x| h.cell(x, mark.y).symbol() != " "));
+
+    let _ = h.mouse(MouseKind::Down, padding_x, idle_tab.y);
+    assert_eq!(h.app().state.active(), Some(ItemKey::num(41)));
+    assert_eq!(h.app().state.cursor(), Some(idle));
+    assert!(h.app().actions.is_empty());
+    assert_eq!(close_area_for(&h, idle), None);
+    assert_eq!(
+        h.cell(glyph_x, idle_tab.y).symbol(),
+        Theme::junie().design.glyphs.get(GlyphRole::Close),
+        "the close paints while TAB retains the live hit"
+    );
+    let _ = h.mouse(MouseKind::Up, padding_x, idle_tab.y);
+    assert_eq!(h.app().actions, [TabsAction::Activated(idle)]);
+    assert_eq!(h.app().state.active(), Some(idle));
+    assert_eq!(
+        h.app().items.len(),
+        2,
+        "activation does not remove the item"
+    );
+    let target = close_area_for(&h, idle).expect("activation reveals the close");
+    assert_eq!(target.width, 5);
+    assert_eq!(target.x, padding_x);
+
+    h.app_mut().actions.clear();
+    let _ = h.click(padding_x, idle_tab.y);
+    assert_eq!(h.app().actions, [TabsAction::Close(idle)]);
+    assert_eq!(h.app().items.len(), 2, "close action remains caller-owned");
+
+    let mut h = harness(marked_hover_page(Some(5)), 48, Theme::junie());
+    let original = h.buffer().clone();
+    let idle_tab = tab_area_for(&h, idle);
+    let close_x = idle_tab.right() - 5;
+    let glyph_x = idle_tab.right() - 2;
+    let _ = h.mouse(MouseKind::Move, close_x, idle_tab.y);
+    let target = close_area_for(&h, idle).expect("tab hover reveals widened target");
+    assert_eq!(target.width, 5);
+    assert_ne!(h.cell(glyph_x, idle_tab.y).symbol(), " ");
+    let _ = h.mouse(MouseKind::Down, close_x, idle_tab.y);
+    let _ = h.mouse(MouseKind::Drag, 47, 2);
+    assert_eq!(close_area_for(&h, idle), Some(target));
+    assert_ne!(h.cell(glyph_x, idle_tab.y).symbol(), " ");
+    assert!(
+        h.state_of(TABS)
+            .contains(termrock_runtime::StateFlags::PRESSED)
+    );
+    assert!(h.app().actions.is_empty());
+    let _ = h.mouse(MouseKind::Up, 47, 2);
+    assert!(h.app().actions.is_empty(), "outside release does not close");
+    assert_eq!(close_area_for(&h, idle), None);
+    h.draw();
+    assert_eq!(
+        h.buffer(),
+        &original,
+        "label, mark, plate and glyph restore"
+    );
 }
 
 #[test]
