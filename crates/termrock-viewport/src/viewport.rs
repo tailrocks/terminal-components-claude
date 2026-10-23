@@ -84,6 +84,7 @@ pub(crate) struct ProjectedRun {
     text: Range<usize>,
     role: Option<Role>,
     modifier: Modifier,
+    paint: Option<PaintStyle>,
 }
 
 impl ProjectedText {
@@ -100,15 +101,46 @@ impl ProjectedText {
     {
         let start = self.runs.len();
         for (value, role, modifier) in runs {
-            let text_start = self.text.len();
-            self.text.push_str(value.as_ref());
-            self.runs.push(ProjectedRun {
-                text: text_start..self.text.len(),
-                role,
-                modifier,
-            });
+            self.push_run(value.as_ref(), role, modifier, None);
         }
         self.lines.push(start..self.runs.len());
+    }
+
+    /// Add a line with complete paint styles for each text run.
+    ///
+    /// The viewport still measures, wraps, selects, copies, clips, and paints
+    /// the line. A grapheme that crosses run boundaries uses the style of the
+    /// run containing its first scalar, matching [`ViewportLine::Spans`].
+    /// Styles are stored as supplied; rebuild this projection from the current
+    /// theme and paint context when those inputs change. The viewport does not
+    /// use its source revision as a theme-style cache key.
+    pub fn push_styled_line<I, S>(&mut self, runs: I)
+    where
+        I: IntoIterator<Item = (S, PaintStyle)>,
+        S: AsRef<str>,
+    {
+        let start = self.runs.len();
+        for (value, paint) in runs {
+            self.push_run(value.as_ref(), None, Modifier::empty(), Some(paint));
+        }
+        self.lines.push(start..self.runs.len());
+    }
+
+    fn push_run(
+        &mut self,
+        value: &str,
+        role: Option<Role>,
+        modifier: Modifier,
+        paint: Option<PaintStyle>,
+    ) {
+        let text_start = self.text.len();
+        self.text.push_str(value);
+        self.runs.push(ProjectedRun {
+            text: text_start..self.text.len(),
+            role,
+            modifier,
+            paint,
+        });
     }
 
     /// Widest line in terminal columns. Horizontal bars use this, not the
@@ -627,16 +659,28 @@ fn run_text(line: LineRef<'_>, ix: usize) -> &str {
     }
 }
 
-fn run_style(line: LineRef<'_>, ix: usize) -> (Option<Role>, Modifier) {
+fn run_style(line: LineRef<'_>, ix: usize) -> (Option<Role>, Modifier, Option<PaintStyle>) {
     match line {
         LineRef::Borrowed(line) => runs(line)
             .get(ix)
-            .map_or((None, Modifier::empty()), |s| (s.role, s.add)),
+            .map_or((None, Modifier::empty(), None), |s| (s.role, s.add, None)),
         LineRef::Projected(text, line) => text
             .lines
             .get(line)
             .and_then(|line| text.runs.get(line.start.saturating_add(ix)))
-            .map_or((None, Modifier::empty()), |run| (run.role, run.modifier)),
+            .map_or((None, Modifier::empty(), None), |run| {
+                (run.role, run.modifier, run.paint)
+            }),
+    }
+}
+
+fn run_paint_style(base: PaintStyle, run: PaintStyle, selected: bool) -> PaintStyle {
+    if selected {
+        // Keep the viewport's selected style authoritative over producer ink
+        // and its existing selection-modifier policy.
+        run.patch(base)
+    } else {
+        base.patch(run)
     }
 }
 
@@ -3464,23 +3508,24 @@ fn paint_row(
         if text.is_empty() || *x >= right {
             return;
         }
-        let (role, add) = run_style(line, r.span);
-        let sp = Span {
-            text,
-            role: if r.sel { None } else { role },
-            add,
-        };
+        let (role, add, paint) = run_style(line, r.span);
         let base = if r.sel { styles.1 } else { styles.0 };
-        let w = ui.paint_spans(
-            Rect {
-                x: *x,
-                y: rect.y,
-                width: right.saturating_sub(*x),
-                height: 1,
-            },
-            &[sp],
-            base,
-        );
+        let area = Rect {
+            x: *x,
+            y: rect.y,
+            width: right.saturating_sub(*x),
+            height: 1,
+        };
+        let w = if let Some(paint) = paint {
+            ui.paint_str(area, text, run_paint_style(base, paint, r.sel))
+        } else {
+            let sp = Span {
+                text,
+                role: if r.sel { None } else { role },
+                add,
+            };
+            ui.paint_spans(area, &[sp], base)
+        };
         *x = x.saturating_add(w);
     };
     walk_line(line, |c| {
@@ -3525,6 +3570,10 @@ fn paint_row(
         });
         if c.tab {
             flush(ui, run.take(), &mut x);
+            let base = if is_sel { styles.1 } else { styles.0 };
+            let paint = run_style(line, c.span)
+                .2
+                .map_or(base, |paint| run_paint_style(base, paint, is_sel));
             ui.fill(
                 Rect {
                     x,
@@ -3532,7 +3581,7 @@ fn paint_row(
                     width: 1,
                     height: 1,
                 },
-                if is_sel { styles.1 } else { styles.0 },
+                paint,
             );
             x = x.saturating_add(1);
         } else if c.joined.is_some() {
