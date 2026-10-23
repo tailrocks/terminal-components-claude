@@ -18,6 +18,7 @@ const ELSEWHERE: Id = Id::root("code.idle_scroll_position.elsewhere");
 const POPUP: Id = Id::root("code.idle_scroll_position.completion");
 const SCREEN: Rect = Rect::new(0, 0, 100, 40);
 const AREA: Rect = Rect::new(8, 4, 58, 8);
+const ELSEWHERE_AREA: Rect = Rect::new(0, 0, 12, 1);
 const DOCUMENT: &str = "row 00\nrow 01\nrow 02\nrow 03\nrow 04\nrow 05\nrow 06\nrow 07\nrow 08\nrow 09\nrow 10\nrow 11\nrow 12\nrow 13\nrow 14\nrow 15\nrow 16\nrow 17\nrow 18\nrow 19\nrow 20\nrow 21\nrow 22\nrow 23\nrow 24\nrow 25\nrow 26\nrow 27\nrow 28\nrow 29\nrow 30\nrow 31";
 
 const EMPTY_PATCH: StylePatch = StylePatch::new();
@@ -100,7 +101,7 @@ impl App for CodeApp {
     }
 
     fn draw(&self, ui: &mut Ui<'_>) {
-        Button::new(ELSEWHERE, "Elsewhere").draw(ui, Rect::new(0, 0, 12, 1));
+        Button::new(ELSEWHERE, "Elsewhere").draw(ui, ELSEWHERE_AREA);
         self.editor().draw(ui, self.area, &self.state);
     }
 }
@@ -183,23 +184,21 @@ fn footer_label(buffer: &Buffer, area: Rect) -> String {
 }
 
 fn assert_outside_sentinel(buffer: &Buffer, area: Rect) {
-    for point in [
-        Position::new(99, 39),
-        Position::new(70, 20),
-        Position::new(2, 15),
-    ] {
-        if (point.x >= area.x
-            && point.x < area.right()
-            && point.y >= area.y
-            && point.y < area.bottom())
-            || (point.y == 0 && point.x < 12)
-        {
-            continue;
+    let sentinel = sentinel_buffer();
+    for y in SCREEN.y..SCREEN.bottom() {
+        for x in SCREEN.x..SCREEN.right() {
+            let point = Position::new(x, y);
+            let in_editor = area.contains(point);
+            let in_peer = ELSEWHERE_AREA.contains(point);
+            if in_editor || in_peer {
+                continue;
+            }
+            assert_eq!(
+                format!("{:?}", buffer[(x, y)]),
+                format!("{:?}", sentinel[(x, y)]),
+                "outside sentinel cell changed at {point:?}"
+            );
         }
-        let cell = &buffer[(point.x, point.y)];
-        assert_eq!(cell.symbol(), "~", "outside sentinel at {point:?}");
-        assert_eq!(cell.fg, Color::Rgb(7, 19, 31), "outside ink at {point:?}");
-        assert_eq!(cell.bg, Color::Rgb(2, 4, 6), "outside plane at {point:?}");
     }
 }
 
@@ -290,7 +289,11 @@ fn default_and_explicit_false_preserve_full_overflow_interaction_frames() {
     let false_wheel = wheel(&mut explicit_false, AREA.x + 5, AREA.y + 2, 1);
     assert_eq!(buffer_cells(&default_wheel), buffer_cells(&false_wheel));
     assert_eq!(default.app().state, explicit_false.app().state);
-    assert!(default.app().state.scroll().offset() > 0);
+    assert_eq!(
+        default.app().state.scroll().offset(),
+        3,
+        "stock Junie scales one wheel detent by its default three-row motion token"
+    );
     assert_eq!(footer_label(&default_wheel, AREA), "");
 
     default.set_focus(Some(EDITOR));
@@ -361,27 +364,52 @@ fn default_and_explicit_false_preserve_full_overflow_interaction_frames() {
 
 #[test]
 fn opt_in_uses_the_shared_range_for_live_wheel_offsets_without_taking_focus() {
-    let mut runtime = runtime(DOCUMENT, PositionOption::Explicit(true), Theme::junie());
+    let mut one_row_wheel = Theme::junie();
+    one_row_wheel.design.motion.wheel_rows = 1;
+    let mut default_mode = runtime(DOCUMENT, PositionOption::Default, one_row_wheel.clone());
+    let mut runtime = runtime(DOCUMENT, PositionOption::Explicit(true), one_row_wheel);
+    let state_before = runtime.app().state.clone();
+    let focus_before = runtime.focus();
+    let cursor_before = runtime.cursor();
     let top = present(&mut runtime);
     assert_eq!(footer_label(&top, AREA), "1–7 of 32");
-    assert_eq!(runtime.focus(), Some(ELSEWHERE));
-    assert!(!runtime.state_of(EDITOR).contains(StateFlags::FOCUSED));
-    assert!(
-        runtime
-            .area_of_part(EDITOR, PartRef::of(Part::TEXT))
-            .is_some()
-    );
-    assert!(runtime.app().state.scroll().offset() == 0);
-    let state_before = runtime.app().state.clone();
-    let cursor_before = runtime.cursor();
+    assert_eq!(focus_before, Some(ELSEWHERE));
+    assert_eq!(runtime.focus(), focus_before);
+    assert_eq!(runtime.cursor(), cursor_before);
     assert_eq!(
         runtime.app().state,
         state_before,
-        "drawing the range is observational"
+        "drawing is observational"
+    );
+    assert!(!runtime.state_of(EDITOR).contains(StateFlags::FOCUSED));
+    assert_eq!(
+        text_area(&runtime).expect("overflowing document registers TEXT"),
+        Rect::new(14, 4, 51, 7)
+    );
+    assert_eq!(
+        runtime.area_of_part(EDITOR, PartRef::of(Part::TRACK)),
+        Some(Rect::new(65, 4, 1, 7)),
+        "overflowing document registers its complete scrollbar track"
+    );
+    assert_eq!(runtime.app().state.scroll().offset(), 0);
+    assert_eq!(runtime.app().state.scroll().viewport_len(), 7);
+    assert_outside_sentinel(&top, AREA);
+    let default_top = present(&mut default_mode);
+    assert_eq!(footer_label(&default_top, AREA), "");
+    assert_same_except_footer_label(&top, &default_top, AREA, "1–7 of 32");
+    assert_eq!(text_area(&default_mode), text_area(&runtime));
+    assert_eq!(
+        default_mode.area_of_part(EDITOR, PartRef::of(Part::TRACK)),
+        runtime.area_of_part(EDITOR, PartRef::of(Part::TRACK))
     );
 
     let middle = wheel(&mut runtime, AREA.x + 5, AREA.y + 2, 1);
-    assert!(runtime.app().state.scroll().offset() > 0);
+    let default_middle = wheel(&mut default_mode, AREA.x + 5, AREA.y + 2, 1);
+    assert_eq!(runtime.app().state.scroll().offset(), 1);
+    assert_eq!(default_mode.app().state.scroll().offset(), 1);
+    assert_eq!(runtime.app().state, default_mode.app().state);
+    assert_same_except_footer_label(&middle, &default_middle, AREA, "2–8 of 32");
+    assert_outside_sentinel(&default_middle, AREA);
     assert_eq!(runtime.focus(), Some(ELSEWHERE));
     assert_eq!(
         runtime.app().state.cursor_offset(),
@@ -389,19 +417,38 @@ fn opt_in_uses_the_shared_range_for_live_wheel_offsets_without_taking_focus() {
     );
     assert_eq!(runtime.cursor(), cursor_before);
     let middle_label = footer_label(&middle, AREA);
+    assert_eq!(middle_label, "2–8 of 32");
     assert_eq!(
         middle_label,
         termrock_runtime::scroll_region::position_label(runtime.app().state.scroll())
     );
-    assert!(middle_label.contains(" of 32"));
+    assert_eq!(
+        text_area(&runtime).expect("middle view registers TEXT"),
+        Rect::new(14, 4, 51, 7)
+    );
+    assert_eq!(
+        runtime.area_of_part(EDITOR, PartRef::of(Part::TRACK)),
+        Some(Rect::new(65, 4, 1, 7))
+    );
+    assert_outside_sentinel(&middle, AREA);
 
     let mut end = middle;
     for _ in 0..64 {
         end = wheel(&mut runtime, AREA.x + 5, AREA.y + 2, 12);
     }
     assert!(runtime.app().state.scroll().at_end());
+    assert_eq!(runtime.app().state.scroll().offset(), 25);
     assert_eq!(footer_label(&end, AREA), "26–32 of 32");
     assert_eq!(runtime.focus(), Some(ELSEWHERE));
+    assert_eq!(
+        text_area(&runtime).expect("bottom view registers TEXT"),
+        Rect::new(14, 4, 51, 7)
+    );
+    assert_eq!(
+        runtime.area_of_part(EDITOR, PartRef::of(Part::TRACK)),
+        Some(Rect::new(65, 4, 1, 7))
+    );
+    assert_outside_sentinel(&end, AREA);
 
     let fit_area = Rect::new(8, 4, 58, 8);
     let mut fit = Runtime::new(
@@ -549,6 +596,7 @@ fn find_diagnostics_fit_and_tiny_allocations_stay_inside_the_assigned_frame() {
     assert!(narrow_footer.contains("syntax"), "{narrow_footer:?}");
     assert!(narrow_footer.contains("of 32"), "{narrow_footer:?}");
     assert_eq!(text_area(&narrow).expect("narrow TEXT part").width, 21);
+    assert_outside_sentinel(&narrow_buffer, narrow_area);
 
     for (width, height) in [(0, 8), (1, 8), (2, 8), (12, 4), (58, 0), (58, 1), (58, 2)] {
         let area = Rect::new(8, 4, width, height);
@@ -575,20 +623,64 @@ fn find_diagnostics_fit_and_tiny_allocations_stay_inside_the_assigned_frame() {
 fn direct_resize_and_shrink_draw_use_current_local_layout_before_model_convergence() {
     let mut runtime = runtime(DOCUMENT, PositionOption::Explicit(true), Theme::junie());
     let text_before = runtime.app().state.text().to_owned();
-    assert_eq!(footer_label(&present(&mut runtime), AREA), "1–7 of 32");
+    let initial = present(&mut runtime);
+    assert_eq!(footer_label(&initial, AREA), "1–7 of 32");
     assert_eq!(runtime.app().state.scroll().content_len(), 32);
+    assert_outside_sentinel(&initial, AREA);
+
+    let mut old_bottom = initial;
+    for _ in 0..64 {
+        old_bottom = wheel(&mut runtime, AREA.x + 5, AREA.y + 2, 12);
+    }
+    assert_eq!(runtime.app().state.scroll().offset(), 25);
+    assert_eq!(runtime.app().state.scroll().viewport_len(), 7);
+    assert_eq!(runtime.app().state.scroll().content_len(), 32);
+    assert_eq!(footer_label(&old_bottom, AREA), "26–32 of 32");
+    assert_outside_sentinel(&old_bottom, AREA);
 
     let resized = Rect::new(8, 4, 44, 10);
     runtime.app_mut().area = resized;
     runtime.app_mut().rows = resized.height;
+    let before_resize_draw = runtime.app().state.clone();
+    let focus_before_resize_draw = runtime.focus();
+    let cursor_before_resize_draw = runtime.cursor();
+    let first_resized = present(&mut runtime);
+    assert_eq!(footer_label(&first_resized, resized), "24–32 of 32");
+    assert!(row_text(&first_resized, resized, resized.y).contains("row 23"));
+    assert_eq!(
+        text_area(&runtime).expect("resized current TEXT registration"),
+        Rect::new(14, 4, 37, 9)
+    );
+    assert_eq!(
+        runtime.area_of_part(EDITOR, PartRef::of(Part::TRACK)),
+        Some(Rect::new(51, 4, 1, 9))
+    );
+    assert_eq!(runtime.app().state, before_resize_draw);
+    assert_eq!(runtime.focus(), focus_before_resize_draw);
+    assert_eq!(runtime.cursor(), cursor_before_resize_draw);
+    assert_eq!(runtime.app().state.scroll().offset(), 25);
+    assert_eq!(runtime.app().state.scroll().viewport_len(), 7);
+    assert_eq!(runtime.app().state.scroll().content_len(), 32);
+    assert_outside_sentinel(&first_resized, resized);
+
+    let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, Input::Tick);
+    let converged_resize = present(&mut runtime);
+    assert_eq!(runtime.app().state.scroll().offset(), 23);
+    assert_eq!(runtime.app().state.scroll().viewport_len(), 9);
+    assert_eq!(runtime.app().state.scroll().content_len(), 32);
+    assert_eq!(footer_label(&converged_resize, resized), "24–32 of 32");
+    assert_outside_sentinel(&converged_resize, resized);
+
     let same_line_count = (0..32)
         .map(|line| format!("replacement {line:02}界"))
         .collect::<Vec<_>>()
         .join("\n");
     runtime.app_mut().state.set_text(&same_line_count);
-    let first_resized = present(&mut runtime);
-    assert!(row_text(&first_resized, resized, resized.y).contains("replacement"));
-    assert_eq!(footer_label(&first_resized, resized), "1–9 of 32");
+    assert_eq!(runtime.app().state.scroll().offset(), 0);
+    assert_eq!(runtime.app().state.scroll().content_len(), 32);
+    let first_replacement = present(&mut runtime);
+    assert!(row_text(&first_replacement, resized, resized.y).contains("replacement"));
+    assert_eq!(footer_label(&first_replacement, resized), "1–9 of 32");
     assert_eq!(
         text_area(&runtime)
             .expect("current TEXT registration")
@@ -597,21 +689,43 @@ fn direct_resize_and_shrink_draw_use_current_local_layout_before_model_convergen
     );
     assert_eq!(runtime.app().state.scroll().content_len(), 32);
     assert_ne!(runtime.app().state.text(), text_before);
+    assert_outside_sentinel(&first_replacement, resized);
+
+    let mut replacement_bottom = first_replacement;
+    for _ in 0..64 {
+        replacement_bottom = wheel(&mut runtime, resized.x + 5, resized.y + 2, 12);
+    }
+    assert_eq!(runtime.app().state.scroll().offset(), 23);
+    assert_eq!(footer_label(&replacement_bottom, resized), "24–32 of 32");
+    assert_outside_sentinel(&replacement_bottom, resized);
 
     let shorter = (0..12)
         .map(|line| format!("short {line:02}"))
         .collect::<Vec<_>>()
         .join("\n");
     runtime.app_mut().state.set_text(&shorter);
+    assert_eq!(runtime.app().state.scroll().offset(), 0);
+    assert_eq!(runtime.app().state.scroll().viewport_len(), 9);
+    assert_eq!(
+        runtime.app().state.scroll().content_len(),
+        32,
+        "set_text resets the offset while old layout facts remain pending"
+    );
     let first_shrink = present(&mut runtime);
     assert!(row_text(&first_shrink, resized, resized.y).contains("short 00"));
     assert_eq!(footer_label(&first_shrink, resized), "1–9 of 12");
     assert_eq!(runtime.app().state.scroll().content_len(), 32);
+    assert_eq!(
+        text_area(&runtime).expect("first shrink frame uses current TEXT registration"),
+        Rect::new(14, 4, 37, 9)
+    );
+    assert_outside_sentinel(&first_shrink, resized);
 
     let _ = termrock_runtime::runtime::stub::deliver(&mut runtime, Input::Tick);
     let converged = present(&mut runtime);
     assert_eq!(runtime.app().state.scroll().content_len(), 12);
     assert_eq!(footer_label(&converged, resized), "1–9 of 12");
+    assert_outside_sentinel(&converged, resized);
 }
 
 #[test]
@@ -777,7 +891,7 @@ impl App for CompletingApp {
     }
 
     fn draw(&self, ui: &mut Ui<'_>) {
-        Button::new(ELSEWHERE, "Elsewhere").draw(ui, Rect::new(0, 0, 12, 1));
+        Button::new(ELSEWHERE, "Elsewhere").draw(ui, ELSEWHERE_AREA);
         let editor: CompletingCodeEditor<'_> = CodeEditor::new(EDITOR, AREA.height)
             .idle_scroll_position(true)
             .edit_entry(EditEntry::Explicit)
