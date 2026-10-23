@@ -94,25 +94,6 @@ fn tab_width(label: &str) -> u16 {
     width(label).saturating_add(3)
 }
 
-fn paint_blurb(ui: &mut Ui<'_>, body: Rect) {
-    let title_w = width("Scrolling");
-    if body.width <= title_w.saturating_add(4) {
-        return;
-    }
-    let area = Rect::new(
-        body.x.saturating_add(title_w).saturating_add(2),
-        body.y.saturating_sub(2),
-        body.width.saturating_sub(title_w).saturating_sub(3),
-        1,
-    );
-    let shown = if width(BLURB) <= area.width {
-        BLURB.to_owned()
-    } else {
-        truncate(BLURB, area.width)
-    };
-    let _ = ui.paint_str(area, &shown, ink(MUTED, CANVAS));
-}
-
 fn paint_section_strip(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
         return;
@@ -1216,8 +1197,7 @@ impl Page for ScrollingPage {
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
         let list_offset = self.list_state.scroll().offset();
         let log_offset = self.log.len().saturating_sub(6);
-        frame(ui, area, self.title(), "", |ui, body| {
-            paint_blurb(ui, body);
+        frame(ui, area, self.title(), BLURB, |ui, body| {
             paint_section_strip(
                 ui,
                 Rect {

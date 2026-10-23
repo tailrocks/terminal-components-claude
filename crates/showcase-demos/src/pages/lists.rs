@@ -209,38 +209,6 @@ fn mix(fg: u32, bg: u32, keep: f32) -> u32 {
     (channel(16) << 16) | (channel(8) << 8) | channel(0)
 }
 
-fn paint_blurb(ui: &mut Ui<'_>, body: Rect) {
-    let blurb = "Single and multiple selection, disabled items, scrolling, empty state";
-    let title_w = width("Lists");
-    if body.width <= title_w.saturating_add(4) {
-        return;
-    }
-    let meta = Rect::new(
-        body.x.saturating_add(title_w).saturating_add(2),
-        body.y.saturating_sub(2),
-        body.width.saturating_sub(title_w).saturating_sub(3),
-        1,
-    );
-    let style = ink(MUTED, CANVAS);
-    if width(blurb) <= meta.width {
-        ui.paint_str(meta, blurb, style);
-        return;
-    }
-    if meta.width == 0 {
-        return;
-    }
-    let budget = Rect {
-        width: meta.width.saturating_sub(1),
-        ..meta
-    };
-    let used = ui.paint_str(budget, blurb, style);
-    ui.paint_str(
-        Rect::new(meta.x.saturating_add(used), meta.y, 1, 1),
-        "…",
-        style,
-    );
-}
-
 fn tab_width(label: &str) -> u16 {
     width(label).saturating_add(3)
 }
@@ -989,32 +957,37 @@ impl Page for ListsPage {
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
         let chosen = self.chosen_label();
         let wide = area.width >= EQUAL_COLUMNS_MIN_W;
-        frame(ui, area, self.title(), "", |ui, body| {
-            paint_blurb(ui, body);
-            paint_section_strip(
-                ui,
-                Rect {
-                    height: 2.min(body.height),
-                    ..body
-                },
-            );
-            let top = body.y.saturating_add(3);
-            if top >= body.bottom() {
-                return;
-            }
-            paint_playground(
-                ui,
-                Rect {
-                    y: top,
-                    height: body.bottom().saturating_sub(top),
-                    ..body
-                },
-                chosen,
-                &self.single,
-                &self.multi,
-                wide,
-            );
-        });
+        frame(
+            ui,
+            area,
+            self.title(),
+            "Single and multiple selection, disabled items, scrolling, empty state",
+            |ui, body| {
+                paint_section_strip(
+                    ui,
+                    Rect {
+                        height: 2.min(body.height),
+                        ..body
+                    },
+                );
+                let top = body.y.saturating_add(3);
+                if top >= body.bottom() {
+                    return;
+                }
+                paint_playground(
+                    ui,
+                    Rect {
+                        y: top,
+                        height: body.bottom().saturating_sub(top),
+                        ..body
+                    },
+                    chosen,
+                    &self.single,
+                    &self.multi,
+                    wide,
+                );
+            },
+        );
     }
 
     fn hints(&self, ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {

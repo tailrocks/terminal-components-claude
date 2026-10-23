@@ -265,43 +265,6 @@ fn fill_row(ui: &mut Ui<'_>, view: Rect, row: u16, width: u16, style: PaintStyle
     ui.fill(Rect::new(view.x, y, width.min(view.width), 1), style);
 }
 
-fn paint_blurb(ui: &mut Ui<'_>, area: Rect) {
-    let title_w = width("Chrome");
-    ui.paint_str(
-        Rect {
-            width: title_w.min(area.width),
-            height: 1,
-            ..area
-        },
-        "Chrome",
-        bold(WHITE, CANVAS),
-    );
-    if area.width <= title_w.saturating_add(4) {
-        return;
-    }
-    let meta = Rect {
-        x: area.x.saturating_add(title_w).saturating_add(2),
-        width: area.width.saturating_sub(title_w).saturating_sub(3),
-        height: 1,
-        ..area
-    };
-    let style = ink(MUTED, CANVAS);
-    if width(BLURB) <= meta.width {
-        ui.paint_str(meta, BLURB, style);
-        return;
-    }
-    let budget = Rect {
-        width: meta.width.saturating_sub(1),
-        ..meta
-    };
-    let used = ui.paint_str(budget, BLURB, style);
-    ui.paint_str(
-        Rect::new(meta.x.saturating_add(used), meta.y, 1, 1),
-        "…",
-        style,
-    );
-}
-
 fn paint_menu(ui: &mut Ui<'_>, view: Rect) {
     let _ = brand().draw(
         ui,
@@ -1003,8 +966,7 @@ impl Page for ChromePage {
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
-        frame(ui, area, self.title(), "", |ui, body| {
-            paint_blurb(ui, area);
+        frame(ui, area, self.title(), BLURB, |ui, body| {
             super::section_strip(ui, body);
             let playground = Rect {
                 y: body.y.saturating_add(3),
