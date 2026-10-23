@@ -431,7 +431,14 @@ impl<'a> Button<'a> {
                 Slot::Set(glyph) => {
                     ui.glyph(gutter_cell, glyph, g.style);
                 }
-                Slot::Inherit | Slot::Clear => ui.fill(gutter_cell, pad),
+                Slot::Inherit => ui.fill(gutter_cell, pad),
+                Slot::Clear => match ov.part_patch(Part::GUTTER) {
+                    Some(explicit) if explicit.glyph == Slot::Clear => {
+                        ui.fill(gutter_cell, g.style);
+                        termrock_runtime::author::patch_style(ui, gutter_cell, g.style, explicit);
+                    }
+                    _ => ui.fill(gutter_cell, pad),
+                },
             }
         }
 
