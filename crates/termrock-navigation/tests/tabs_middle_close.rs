@@ -40,6 +40,13 @@ fn tab_row(tab: &Tab, row: &mut RowUi<'_>) {
 type TabKeyFn = fn(&Tab) -> ItemKey;
 type TabRowFn = for<'a> fn(&Tab, &mut RowUi<'a>);
 
+#[derive(Clone, Copy, Debug)]
+enum MiddlePolicyOrder {
+    BeforeKey,
+    BetweenKeyAndRow,
+    AfterRow,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct PointerObservation {
     phase: Phase,
@@ -55,7 +62,7 @@ struct Page {
     close_keys: Option<Vec<ItemKey>>,
     closable: bool,
     middle_click_closes: Option<bool>,
-    middle_policy_after_retype: bool,
+    middle_policy_order: MiddlePolicyOrder,
     close_reveal: TabCloseReveal,
     capture_primary_tab: bool,
     reference_draw: bool,
@@ -89,7 +96,7 @@ impl Page {
             close_keys: None,
             closable: true,
             middle_click_closes: None,
-            middle_policy_after_retype: false,
+            middle_policy_order: MiddlePolicyOrder::BeforeKey,
             close_reveal: TabCloseReveal::Always,
             capture_primary_tab: false,
             reference_draw: false,
@@ -105,7 +112,7 @@ fn tabs<'a>(
     closable: bool,
     close_keys: Option<&'a [ItemKey]>,
     middle_click_closes: Option<bool>,
-    middle_policy_after_retype: bool,
+    middle_policy_order: MiddlePolicyOrder,
     close_reveal: TabCloseReveal,
 ) -> Tabs<'a, Tab, TabKeyFn, TabRowFn> {
     let mut builder = Tabs::new(TABS)
@@ -117,9 +124,16 @@ fn tabs<'a>(
 
     let key: TabKeyFn = tab_key;
     let row: TabRowFn = tab_row;
-    match (middle_click_closes, middle_policy_after_retype) {
-        (Some(enabled), true) => builder.key(key).row(row).middle_click_closes(enabled),
-        (Some(enabled), false) => builder.middle_click_closes(enabled).key(key).row(row),
+    match (middle_click_closes, middle_policy_order) {
+        (Some(enabled), MiddlePolicyOrder::BeforeKey) => {
+            builder.middle_click_closes(enabled).key(key).row(row)
+        }
+        (Some(enabled), MiddlePolicyOrder::BetweenKeyAndRow) => {
+            builder.key(key).middle_click_closes(enabled).row(row)
+        }
+        (Some(enabled), MiddlePolicyOrder::AfterRow) => {
+            builder.key(key).row(row).middle_click_closes(enabled)
+        }
         (None, _) => builder.key(key).row(row),
     }
 }
@@ -164,7 +178,7 @@ impl App for Page {
             self.closable,
             self.close_keys.as_deref(),
             self.middle_click_closes,
-            self.middle_policy_after_retype,
+            self.middle_policy_order,
             self.close_reveal,
         );
         let mut response = tabs.update(cx, &mut self.state, &self.items);
@@ -181,7 +195,7 @@ impl App for Page {
                     self.closable,
                     self.close_keys.as_deref(),
                     self.middle_click_closes,
-                    self.middle_policy_after_retype,
+                    self.middle_policy_order,
                     self.close_reveal,
                 )
                 .draw(ui, ui.full(), &self.state, &self.items);
@@ -191,7 +205,7 @@ impl App for Page {
                 self.closable,
                 self.close_keys.as_deref(),
                 self.middle_click_closes,
-                self.middle_policy_after_retype,
+                self.middle_policy_order,
                 self.close_reveal,
             )
             .draw(ui, ui.full(), &self.state, &self.items);
@@ -374,18 +388,30 @@ fn hover_reveal_keeps_a_hidden_close_middle_clickable_through_its_tab_cell() {
 fn opt_out_plain_tabs_and_ineligible_items_do_not_close() {
     let target = ItemKey::num(3);
 
-    let mut opted_out = Page::new();
-    opted_out.middle_click_closes = Some(false);
-    opted_out.middle_policy_after_retype = true;
-    let mut rt = ready_runtime(opted_out);
-    let tab = part_area(&rt, Part::TAB, target).expect("tab remains pointer-addressable");
-    let response = middle_down(&mut rt, center(tab));
-    assert!(
-        !response.is_consumed(),
-        "opt-out middle press stays ignored"
-    );
-    assert!(rt.app().actions.is_empty());
-    assert!(rt.diagnostics().is_empty(), "{:?}", rt.diagnostics());
+    for order in [
+        MiddlePolicyOrder::BeforeKey,
+        MiddlePolicyOrder::BetweenKeyAndRow,
+        MiddlePolicyOrder::AfterRow,
+    ] {
+        let mut opted_out = Page::new();
+        opted_out.middle_click_closes = Some(false);
+        opted_out.middle_policy_order = order;
+        let mut rt = ready_runtime(opted_out);
+        let tab = part_area(&rt, Part::TAB, target).expect("tab remains pointer-addressable");
+        let state_before = (rt.app().state.active(), rt.app().state.cursor());
+        let response = middle_down(&mut rt, center(tab));
+        assert!(
+            !response.is_consumed(),
+            "opt-out middle press stays ignored"
+        );
+        assert!(rt.app().actions.is_empty());
+        assert_eq!(
+            (rt.app().state.active(), rt.app().state.cursor()),
+            state_before,
+            "opt-out remains inert for builder order {order:?}"
+        );
+        assert!(rt.diagnostics().is_empty(), "{:?}", rt.diagnostics());
+    }
 
     let mut plain = Page::new();
     plain.closable = false;
