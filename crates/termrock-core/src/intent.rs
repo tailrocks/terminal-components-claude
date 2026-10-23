@@ -86,6 +86,7 @@ impl fmt::Debug for Intent<'_> {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Phase {
     Move,
+    Middle,
     Press,
     Release,
     Click,

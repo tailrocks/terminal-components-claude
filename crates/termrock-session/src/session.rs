@@ -16,7 +16,7 @@ use ratatui_crossterm::crossterm::terminal::{
 };
 use ratatui_crossterm::crossterm::{execute, queue};
 
-use termrock_core::event::Input;
+use termrock_core::event::RoutedInput;
 use termrock_core::keys::keyboard::KeyboardProtocol;
 use termrock_runtime::{App, FeedbackClock, Moment, PreparedFrameError, Runtime};
 use termrock_terminal::KeyboardNegotiation;
@@ -519,9 +519,9 @@ fn run_with_cursor_shape_startup<A: App>(
             break;
         }
         if let Some(input) = pending.take() {
-            match rt.handle(input) {
+            match rt.handle_routed(input) {
                 Ok(_) => {}
-                Err(event) => pending = Some(event.into_input()),
+                Err(event) => pending = Some(event.into_routed_input()),
             }
             continue;
         }
@@ -550,8 +550,8 @@ fn run_with_cursor_shape_startup<A: App>(
     session.leave()
 }
 
-fn decode_session_input(event: Event) -> Option<Input> {
-    Input::from_crossterm(event)
+fn decode_session_input(event: Event) -> Option<RoutedInput> {
+    RoutedInput::from_crossterm(event)
 }
 
 fn prepare_startup_input(
@@ -740,7 +740,7 @@ mod tests {
         ] {
             let input = super::decode_session_input(key_event).expect("key event converts");
             let _ = runtime
-                .handle(input)
+                .handle_routed(input)
                 .expect("runtime dispatches converted input");
             present(&mut runtime, &mut terminal, area);
         }
@@ -760,13 +760,46 @@ mod tests {
         ] {
             let input = super::decode_session_input(event).expect("non-key event converts");
             let _ = runtime
-                .handle(input)
+                .handle_routed(input)
                 .expect("runtime dispatches converted non-key input");
             present(&mut runtime, &mut terminal, area);
         }
         assert_eq!(
             *commands.lock().expect("command log"),
             vec![X, UNICODE, UPPER, ALT_X]
+        );
+    }
+
+    #[test]
+    fn private_session_decoder_keeps_middle_down_only() {
+        use ratatui_core::layout::Position;
+        use ratatui_crossterm::crossterm::event::{
+            Event as CrosstermEvent, MouseButton, MouseEvent, MouseEventKind,
+        };
+        use termrock_core::event::{KeyModifiers, RoutedInput};
+
+        let event = |kind| {
+            CrosstermEvent::Mouse(MouseEvent {
+                kind,
+                column: 17,
+                row: 9,
+                modifiers: KeyModifiers::CONTROL.into(),
+            })
+        };
+        assert_eq!(
+            decode_session_input(event(MouseEventKind::Down(MouseButton::Middle))),
+            Some(RoutedInput::MiddleClick {
+                pos: Position::new(17, 9),
+                mods: KeyModifiers::CONTROL,
+            })
+        );
+        assert_eq!(
+            decode_session_input(event(MouseEventKind::Drag(MouseButton::Middle))),
+            None
+        );
+        assert_eq!(
+            decode_session_input(event(MouseEventKind::Up(MouseButton::Middle))),
+            None
         );
     }
 
