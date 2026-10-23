@@ -431,6 +431,18 @@ table!(CLOSABLE, 17, [CLOSE_X, CLOSE_DEL]);
 table!(NEWABLE, 16, [NEW_N]);
 table!(FULL, 18, [CLOSE_X, CLOSE_DEL, NEW_N]);
 
+macro_rules! digit_free_table {
+    ($name:ident, $n:expr, [$($extra:expr),*]) => {
+        const $name: [Binding<TabsCmd>; $n] = [
+            BASE[0], BASE[1], BASE[2], BASE[3], BASE[4], BASE[5], $($extra),*
+        ];
+    };
+}
+digit_free_table!(PLAIN_DIGIT_FREE, 6, []);
+digit_free_table!(CLOSABLE_DIGIT_FREE, 8, [CLOSE_X, CLOSE_DEL]);
+digit_free_table!(NEWABLE_DIGIT_FREE, 7, [NEW_N]);
+digit_free_table!(FULL_DIGIT_FREE, 9, [CLOSE_X, CLOSE_DEL, NEW_N]);
+
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct TabsState {
     core: CollectionCore,
@@ -720,6 +732,7 @@ pub struct Tabs<'a, T, K = ByIndex, R = DefaultRow> {
     row: R,
     allow_new: bool,
     new_key_bindings: Option<&'static [Binding<TabsCmd>]>,
+    digit_jump: bool,
     closable: bool,
     closable_keys: Option<&'a [ItemKey]>,
     close_key_bindings: Option<&'static [Binding<TabsCmd>]>,
@@ -743,6 +756,7 @@ impl<T, K, R> fmt::Debug for Tabs<'_, T, K, R> {
             .field("id", &self.id)
             .field("allow_new", &self.allow_new)
             .field("new_key_bindings", &self.new_key_bindings)
+            .field("digit_jump", &self.digit_jump)
             .field("closable", &self.closable)
             .field("closable_keys", &self.closable_keys)
             .field("close_key_bindings", &self.close_key_bindings)
@@ -768,6 +782,7 @@ impl<T> Tabs<'_, T, ByIndex, DefaultRow> {
             row: DefaultRow,
             allow_new: false,
             new_key_bindings: None,
+            digit_jump: true,
             closable: false,
             closable_keys: None,
             close_key_bindings: None,
@@ -812,6 +827,7 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
             row: self.row,
             allow_new: self.allow_new,
             new_key_bindings: self.new_key_bindings,
+            digit_jump: self.digit_jump,
             closable: self.closable,
             closable_keys: self.closable_keys,
             close_key_bindings: self.close_key_bindings,
@@ -837,6 +853,7 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
             row: r,
             allow_new: self.allow_new,
             new_key_bindings: self.new_key_bindings,
+            digit_jump: self.digit_jump,
             closable: self.closable,
             closable_keys: self.closable_keys,
             close_key_bindings: self.close_key_bindings,
@@ -858,6 +875,17 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
     #[must_use]
     pub fn allow_new(mut self, yes: bool) -> Self {
         self.allow_new = yes;
+        self
+    }
+
+    /// Enable the built-in `1`–`9` shortcuts for selecting tabs by position.
+    ///
+    /// The default is `true`. Disabling digit jumps removes those actions from
+    /// the published key tables while leaving tab layout and pointer behavior
+    /// unchanged.
+    #[must_use]
+    pub fn digit_jump(mut self, yes: bool) -> Self {
+        self.digit_jump = yes;
         self
     }
 
@@ -1102,9 +1130,9 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
         let base = if self.new_key_bindings.is_none() && self.close_key_bindings.is_none() {
             // Keep the original static table and descriptor order byte-for-byte
             // when neither optional group is configured.
-            table_for(close_enabled, self.allow_new)
+            table_for_digit_jump(close_enabled, self.allow_new, self.digit_jump)
         } else {
-            table_for(close_base_enabled, new_base_enabled)
+            table_for_digit_jump(close_base_enabled, new_base_enabled, self.digit_jump)
         };
         let new = if self.allow_new {
             self.new_key_bindings.unwrap_or(&[])
@@ -1136,6 +1164,22 @@ pub(crate) const fn table_for(closable: bool, allow_new: bool) -> &'static [Bind
         (true, false) => &CLOSABLE,
         (false, true) => &NEWABLE,
         (true, true) => &FULL,
+    }
+}
+
+const fn table_for_digit_jump(
+    closable: bool,
+    allow_new: bool,
+    digit_jump: bool,
+) -> &'static [Binding<TabsCmd>] {
+    if digit_jump {
+        return table_for(closable, allow_new);
+    }
+    match (closable, allow_new) {
+        (false, false) => &PLAIN_DIGIT_FREE,
+        (true, false) => &CLOSABLE_DIGIT_FREE,
+        (false, true) => &NEWABLE_DIGIT_FREE,
+        (true, true) => &FULL_DIGIT_FREE,
     }
 }
 
