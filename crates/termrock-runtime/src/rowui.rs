@@ -8,7 +8,7 @@ use ratatui_core::style::Modifier;
 use crate::id::{Id, ItemKey, Part};
 use crate::layout::{Track, distribute_into};
 use crate::response::StateFlags;
-use crate::text::{Span, truncate_middle, width};
+use crate::text::{Span, truncate, truncate_middle, width};
 use crate::theme::{
     Align, CursorStyle, Family, FgStep, GlyphRole, Role, Slot, StylePatch, Variant,
 };
@@ -299,6 +299,8 @@ pub struct RowUi<'u> {
     label_patch: Option<StylePatch>,
     left: u16,
     right: u16,
+    keep_tail: bool,
+    padded_tail: bool,
     last_meta_paint: Option<MetaPaint>,
 }
 
@@ -542,6 +544,8 @@ impl<'u> RowUi<'u> {
             label_patch,
             left: 0,
             right: 0,
+            keep_tail: false,
+            padded_tail: false,
             last_meta_paint: None,
         }
     }
@@ -840,6 +844,15 @@ impl<'u> RowUi<'u> {
         !self.remaining().is_empty()
     }
 
+    /// Reserve `n` columns at the right of the remaining row content.
+    ///
+    /// This changes only the logical content budget; it does not paint the
+    /// reserved columns or consume space from the left. Repeated reservations
+    /// accumulate with saturating arithmetic.
+    pub fn reserve_right(&mut self, n: u16) {
+        self.right = self.right.saturating_add(n);
+    }
+
     /// Begin caller-owned content after component-author leading/trailing parts.
     ///
     /// The resulting `area()` preserves the pre-composition row-content area
@@ -970,6 +983,79 @@ impl<'u> RowUi<'u> {
         self.ui.fill(slot, style);
         let _ = self.ui.paint_str(slot, &truncated, style);
         self.left = self.left.saturating_add(slot_width);
+    }
+
+    /// End-truncate a label and fill its available row slot with the resolved
+    /// label style.
+    ///
+    /// The final cell of the current remaining area is kept for the row fill
+    /// when the label is truncated or [`RowUi::keep_row_tail`] was called.
+    /// Otherwise, a fitting label also fills that cell. The logical slot is
+    /// consumed independently of the visible clipping area. A one-cell area
+    /// is a no-op; any positive slot is consumed even when `text` is empty.
+    pub fn label_end(&mut self, text: &str, patch: &StylePatch) {
+        let remaining = self.remaining();
+        let slot_width = remaining.width.saturating_sub(1);
+        if slot_width == 0 {
+            return;
+        }
+
+        let patch = self
+            .patch_for(Part::LABEL)
+            .map_or(*patch, |forwarded| forwarded.merge(*patch));
+        let style = resolve_row_part(
+            &mut self.ui,
+            self.family,
+            self.variant,
+            self.flags,
+            Part::LABEL,
+            Some(patch),
+            self.cursor_style,
+        )
+        .style;
+        let slot = Rect {
+            width: slot_width,
+            ..remaining
+        };
+
+        // Prefill the complete logical slot before painting. The visible
+        // width can be narrower than the logical slot when the row is clipped.
+        self.ui.fill(slot, style);
+        let truncated = truncate(text, slot_width);
+        let _ = self.ui.paint_str(slot, &truncated, style);
+        self.left = self.left.saturating_add(slot_width);
+
+        if !self.keep_tail && width(text) <= slot_width {
+            self.ui.fill(
+                Rect {
+                    x: remaining.x.saturating_add(slot_width),
+                    width: 1,
+                    ..remaining
+                },
+                style,
+            );
+            self.left = self.left.saturating_add(1);
+            self.padded_tail = true;
+        }
+    }
+
+    /// Keep the final cell of each subsequent [`RowUi::label_end`] call
+    /// untouched.
+    ///
+    /// This setting is sticky for this `RowUi` instance. It does not undo a
+    /// final cell already painted by an earlier call.
+    pub fn keep_row_tail(&mut self) {
+        self.keep_tail = true;
+    }
+
+    /// Whether any `label_end` call on this row has filled its extra final
+    /// cell with the resolved label style.
+    ///
+    /// This remains true after later calls. It is a sticky outcome indicator,
+    /// not a paint rectangle or a general instruction to erase the physical
+    /// row edge.
+    pub const fn padded_tail(&self) -> bool {
+        self.padded_tail
     }
 
     fn label_in(&mut self, s: &str, st: PaintStyle) {
