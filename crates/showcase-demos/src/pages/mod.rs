@@ -349,6 +349,7 @@ pub mod forms;
 pub mod grid;
 pub mod inputs;
 pub mod lists;
+pub mod master_detail;
 pub mod notices;
 pub mod overview;
 pub mod panels;
