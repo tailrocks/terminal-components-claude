@@ -1607,6 +1607,19 @@ impl<'a> TextViewport<'a> {
         }
     }
 
+    /// Returns the default, always-published supplemental selection bindings.
+    ///
+    /// This testing-only view is derived from the same table that the
+    /// viewport publishes and dispatches. It excludes the conditional
+    /// selection-clear and horizontal-pan tables, and does not describe
+    /// consumer remaps or every conditional viewport command.
+    #[cfg(feature = "testing")]
+    pub fn selection_binding_chords() -> impl Iterator<Item = (crate::ActionKey, Chord)> {
+        SELECTION_BINDINGS
+            .iter()
+            .filter_map(|binding| binding.chord.map(|chord| (binding.action, chord)))
+    }
+
     #[cfg(feature = "testing")]
     #[must_use]
     pub const fn work_probe(mut self, probe: &'a ViewportWorkProbe) -> Self {

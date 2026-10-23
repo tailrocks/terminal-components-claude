@@ -227,6 +227,34 @@ fn open_component_layer<C: Conformance>(h: &mut Harness<CaseApp<C>>) -> Option<C
     chord
 }
 
+fn prepare_binding_probe<C: Conformance>(h: &mut Harness<CaseApp<C>>, owner: Id) {
+    if needs_layer_opened::<C>() || C::binding_probes_require_overlay() {
+        let initial_focus = if C::binding_probes_require_overlay() {
+            C::opener_id()
+        } else {
+            owner
+        };
+        assert!(
+            h.tab_to(initial_focus),
+            "{}: cannot focus binding setup control {initial_focus:?}",
+            C::NAME
+        );
+        let _ = open_component_layer::<C>(h);
+        let layer = C::layer_id()
+            .unwrap_or_else(|| panic!("{}: binding setup requires an owning layer ID", C::NAME));
+        assert!(
+            h.is_open(layer),
+            "{}: binding setup did not open layer {layer:?}",
+            C::NAME
+        );
+    }
+    assert!(
+        h.tab_to(owner),
+        "{}: cannot focus binding owner {owner:?}",
+        C::NAME
+    );
+}
+
 fn prepare_activation<C: Conformance>(h: &mut Harness<CaseApp<C>>) {
     let requires_overlay = C::activation_requires_overlay();
     let initial_focus = if requires_overlay {
@@ -1394,10 +1422,7 @@ fn dynamic_bindings_follow_keymap<C: Conformance>(
     for (action, chord) in dynamic {
         let owner = C::dynamic_binding_id(*action);
         let mut default = harness::<C>(fixture.clone());
-        assert!(default.tab_to(owner));
-        if needs_layer_opened::<C>() {
-            let _ = open_component_layer::<C>(&mut default);
-        }
+        prepare_binding_probe::<C>(&mut default, owner);
         assert!(
             default.key_mod(chord.code, chord.mods).is_consumed(),
             "{}: dynamic binding {chord} was not consumed",
@@ -1406,10 +1431,7 @@ fn dynamic_bindings_follow_keymap<C: Conformance>(
 
         let replacement = Chord::key(KeyCode::F(11));
         let mut remapped = harness::<C>(fixture.clone());
-        assert!(remapped.tab_to(owner));
-        if needs_layer_opened::<C>() {
-            let _ = open_component_layer::<C>(&mut remapped);
-        }
+        prepare_binding_probe::<C>(&mut remapped, owner);
         remapped
             .app_mut()
             .keymap
@@ -1423,10 +1445,7 @@ fn dynamic_bindings_follow_keymap<C: Conformance>(
         );
 
         let mut removed = harness::<C>(fixture.clone());
-        assert!(removed.tab_to(owner));
-        if needs_layer_opened::<C>() {
-            let _ = open_component_layer::<C>(&mut removed);
-        }
+        prepare_binding_probe::<C>(&mut removed, owner);
         removed.app_mut().keymap.remove_component(owner, *action);
         assert!(
             !removed.key_mod(chord.code, chord.mods).is_consumed(),
@@ -1487,10 +1506,7 @@ fn consumed_chords<C: Conformance>() -> Vec<ConsumedChord> {
                         .then(|| C::dynamic_binding_id(*action))
                 })
                 .unwrap_or_else(C::control_id);
-            assert!(h.tab_to(owner));
-            if needs_layer_opened::<C>() {
-                let _ = open_component_layer::<C>(&mut h);
-            }
+            prepare_binding_probe::<C>(&mut h, owner);
             let r = h.key_mod(chord.code, chord.mods);
             if r.is_consumed() {
                 let key = termrock::Key {
@@ -1566,10 +1582,7 @@ pub fn bindings_match_handled_keys<C: Conformance>() {
 
         for b in table {
             let mut h = harness::<C>(C::fixture());
-            assert!(h.tab_to(C::control_id()));
-            if needs_layer_opened::<C>() {
-                let _ = open_component_layer::<C>(&mut h);
-            }
+            prepare_binding_probe::<C>(&mut h, C::control_id());
             let chord = if let Some(chord) = b.chord {
                 chord
             } else {
