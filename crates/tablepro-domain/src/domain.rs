@@ -936,12 +936,7 @@ impl ResultGrid {
         order.sort_by(|&a, &b| {
             let left = self.pending.value(a, column).unwrap_or(&Value::Null);
             let right = self.pending.value(b, column).unwrap_or(&Value::Null);
-            let cmp = sql::cmp_values(left, right);
-            if direction == SortDir::Asc {
-                cmp
-            } else {
-                cmp.reverse()
-            }
+            sql::cmp_values_nulls_last(left, right, direction == SortDir::Asc)
         });
         self.pending.reorder(&order);
         self.rebuild_display();
@@ -1388,6 +1383,108 @@ mod tests {
         grid.sort(ColumnKey::num(1), SortDir::Asc);
         assert_eq!(grid.cell(0, 0).map(|cell| cell.text), Some("10"));
         assert_eq!(grid.row_key(1), first_key);
+    }
+
+    #[test]
+    fn descending_sort_keeps_nulls_last_and_pending_values_with_their_row_keys()
+    -> Result<(), String> {
+        let result = test_result(
+            vec![
+                ("id".to_owned(), ColType::Int),
+                ("sort_key".to_owned(), ColType::Int),
+                ("label".to_owned(), ColType::Text),
+            ],
+            vec![
+                vec![Value::Int(1), Value::Int(2), Value::Text("one".to_owned())],
+                vec![Value::Int(2), Value::Null, Value::Text("two".to_owned())],
+                vec![
+                    Value::Int(3),
+                    Value::Int(10),
+                    Value::Text("three".to_owned()),
+                ],
+                vec![Value::Int(4), Value::Int(2), Value::Text("four".to_owned())],
+                vec![Value::Int(5), Value::Null, Value::Text("five".to_owned())],
+                vec![Value::Int(6), Value::Int(10), Value::Text("six".to_owned())],
+                vec![
+                    Value::Int(7),
+                    Value::Int(1),
+                    Value::Text("seven".to_owned()),
+                ],
+                vec![
+                    Value::Int(8),
+                    Value::Int(2),
+                    Value::Text("eight".to_owned()),
+                ],
+            ],
+        );
+        let snapshot = |grid: &ResultGrid| -> Result<Vec<(ItemKey, Vec<Value>)>, String> {
+            (0..grid.row_count())
+                .map(|row| {
+                    let cells = (0..3)
+                        .map(|column| grid.pending().value(row, column).cloned())
+                        .collect::<Option<Vec<_>>>()
+                        .ok_or_else(|| format!("row {row} did not contain all cells"))?;
+                    Ok((GridModel::row_key(grid, row), cells))
+                })
+                .collect()
+        };
+        let ids = |grid: &ResultGrid| -> Result<Vec<i64>, String> {
+            (0..grid.row_count())
+                .map(|row| match grid.pending().value(row, 0) {
+                    Some(Value::Int(id)) => Ok(*id),
+                    _ => Err(format!("row {row} did not contain an integer id")),
+                })
+                .collect()
+        };
+        let mut grid = ResultGrid::from_result(&result);
+        assert!(grid.commit_cell(0, 2, "edited one").is_ok());
+        let original = snapshot(&grid)?;
+
+        let assert_keyed_rows_survive = |grid: &ResultGrid,
+                                         expected: &[(ItemKey, Vec<Value>)]|
+         -> Result<(), String> {
+            let actual = snapshot(grid)?;
+            assert_eq!(actual.len(), expected.len());
+            for (key, expected_row) in expected {
+                let (_, actual_row) = actual
+                    .iter()
+                    .find(|(actual_key, _)| actual_key == key)
+                    .ok_or_else(|| format!("row key {key:?} disappeared during sort"))?;
+                assert_eq!(actual_row, expected_row, "row key {key:?} changed records");
+            }
+            Ok(())
+        };
+        let assert_pending_edit_survives = |grid: &ResultGrid| -> Result<(), String> {
+            let row = (0..grid.row_count())
+                .find(|&row| grid.pending().value(row, 0) == Some(&Value::Int(1)))
+                .ok_or_else(|| "edited row disappeared during sort".to_owned())?;
+            assert_eq!(grid.pending_total(), 1);
+            assert_eq!(grid.dirty_cell_count(), 1);
+            assert!(grid.pending().is_dirty(row, 2));
+            assert_eq!(
+                grid.pending().value(row, 2),
+                Some(&Value::Text("edited one".to_owned()))
+            );
+            Ok(())
+        };
+
+        grid.sort(ColumnKey::num(2), SortDir::Asc);
+        assert_eq!(ids(&grid)?, vec![7, 1, 4, 8, 3, 6, 2, 5]);
+        assert_keyed_rows_survive(&grid, &original)?;
+        assert_pending_edit_survives(&grid)?;
+
+        grid.sort(ColumnKey::num(2), SortDir::Desc);
+        assert_eq!(ids(&grid)?, vec![3, 6, 1, 4, 8, 7, 2, 5]);
+        assert_keyed_rows_survive(&grid, &original)?;
+        assert_pending_edit_survives(&grid)?;
+        let first_null = (0..grid.row_count())
+            .find(|&row| grid.pending().value(row, 1) == Some(&Value::Null))
+            .ok_or_else(|| "descending sort lost NULL rows".to_owned())?;
+        assert!(
+            (first_null..grid.row_count())
+                .all(|row| grid.pending().value(row, 1) == Some(&Value::Null))
+        );
+        Ok(())
     }
 
     #[test]

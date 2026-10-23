@@ -6224,15 +6224,11 @@ fn sorted_scan(table: &db::Table, grid: &GridView, index: usize, direction: Sort
     let mut rows = db::rows(table, 0, scan);
     rows.sort_by(|left, right| {
         let null = db::Value::Null;
-        let cmp = crate::sql::cmp_values(
+        crate::sql::cmp_values_nulls_last(
             left.get(index).unwrap_or(&null),
             right.get(index).unwrap_or(&null),
-        );
-        if direction == SortDir::Asc {
-            cmp
-        } else {
-            cmp.reverse()
-        }
+            direction == SortDir::Asc,
+        )
     });
     rows.truncate(keep);
     ResultGrid::from_result(&crate::sql::ResultSet {

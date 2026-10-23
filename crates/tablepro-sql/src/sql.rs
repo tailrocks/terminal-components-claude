@@ -1000,6 +1000,28 @@ pub fn cmp_values(a: &Value, b: &Value) -> std::cmp::Ordering {
     }
 }
 
+/// Compares values using `TablePro`'s simulated sort policy: NULL sorts last in
+/// either direction, while non-NULL values follow the requested direction.
+///
+/// The generic [`cmp_values`] ordering remains unchanged for existing callers.
+pub fn cmp_values_nulls_last(a: &Value, b: &Value, ascending: bool) -> std::cmp::Ordering {
+    use std::cmp::Ordering;
+
+    match (a, b) {
+        (Value::Null, Value::Null) => Ordering::Equal,
+        (Value::Null, _) => Ordering::Greater,
+        (_, Value::Null) => Ordering::Less,
+        _ => {
+            let ordering = cmp_values(a, b);
+            if ascending {
+                ordering
+            } else {
+                ordering.reverse()
+            }
+        }
+    }
+}
+
 pub fn run_select(cat: &Catalog, sel: &Select) -> Result<ResultSet, ExecError> {
     let table = cat
         .find(sel.schema.as_deref(), &sel.table)
@@ -1094,10 +1116,7 @@ pub fn run_select(cat: &Catalog, sel: &Select) -> Result<ResultSet, ExecError> {
                 at: None,
             });
         };
-        all.sort_by(|a, b| {
-            let o = cmp_values(&a[ci], &b[ci]);
-            if *asc { o } else { o.reverse() }
-        });
+        all.sort_by(|a, b| cmp_values_nulls_last(&a[ci], &b[ci], *asc));
     }
 
     let total = if sel.predicates.is_empty() {
@@ -1400,6 +1419,82 @@ pub fn plan_text(node: &PlanNode, depth: usize, out: &mut Vec<String>) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashSet;
+    use tablepro_demo::db::{Column, ObjectKind};
+
+    #[test]
+    fn nulls_last_comparison_keeps_nulls_last_in_both_directions() {
+        use std::cmp::Ordering;
+
+        assert_eq!(
+            cmp_values_nulls_last(&Value::Null, &Value::Int(2), true),
+            Ordering::Greater
+        );
+        assert_eq!(
+            cmp_values_nulls_last(&Value::Null, &Value::Int(2), false),
+            Ordering::Greater
+        );
+        assert_eq!(
+            cmp_values_nulls_last(&Value::Int(2), &Value::Null, true),
+            Ordering::Less
+        );
+        assert_eq!(
+            cmp_values_nulls_last(&Value::Int(2), &Value::Null, false),
+            Ordering::Less
+        );
+        assert_eq!(
+            cmp_values_nulls_last(&Value::Null, &Value::Null, false),
+            Ordering::Equal
+        );
+        assert_eq!(
+            cmp_values_nulls_last(&Value::Int(2), &Value::Int(10), true),
+            Ordering::Less
+        );
+        assert_eq!(
+            cmp_values_nulls_last(&Value::Int(2), &Value::Int(10), false),
+            Ordering::Greater
+        );
+        assert_eq!(
+            cmp_values(&Value::Null, &Value::Int(2)),
+            Ordering::Greater,
+            "the generic comparator keeps its established behavior"
+        );
+    }
+
+    fn nulls_last_rows(rows: &[Vec<Value>], column: usize, ascending: bool) -> Vec<Vec<Value>> {
+        let null = Value::Null;
+        let mut non_null = Vec::new();
+        let mut null_rows = Vec::new();
+        for row in rows {
+            if matches!(row.get(column), Some(Value::Null)) {
+                null_rows.push(row.clone());
+            } else {
+                non_null.push(row.clone());
+            }
+        }
+        non_null.sort_by(|left, right| {
+            let order = cmp_values(
+                left.get(column).unwrap_or(&null),
+                right.get(column).unwrap_or(&null),
+            );
+            if ascending { order } else { order.reverse() }
+        });
+        non_null.extend(null_rows);
+        non_null
+    }
+
+    fn int_column(name: &str) -> Column {
+        Column {
+            name: name.to_owned(),
+            ty: ColType::Int,
+            nullable: false,
+            default: None,
+            primary: false,
+            references: None,
+            enum_values: Vec::new(),
+            generated: false,
+        }
+    }
 
     fn parse_statement(source: &str) -> Result<Statement, String> {
         parse(source).map_err(|error| format!("parse at {}: {}", error.at, error.message))
@@ -1607,6 +1702,151 @@ mod tests {
             .ok_or_else(|| "last amount was not numeric".to_owned())?;
         assert!(first >= last);
         assert!(rs.editable);
+        Ok(())
+    }
+
+    #[test]
+    fn nullable_select_keeps_nulls_last_before_applying_limit() -> Result<(), String> {
+        let mut catalog = Catalog::acme_prod();
+        let table = catalog
+            .tables
+            .iter_mut()
+            .find(|table| table.schema == "public" && table.name == "payments")
+            .ok_or_else(|| "public.payments was missing from the fixture".to_owned())?;
+        table.row_count = 96;
+        let table = catalog
+            .find(Some("public"), "payments")
+            .ok_or_else(|| "public.payments was missing from the fixture".to_owned())?;
+        let source = tablepro_demo::db::rows(table, 0, table.row_count);
+        let id_column = table
+            .columns
+            .iter()
+            .position(|column| column.name == "id")
+            .ok_or_else(|| "payments.id was missing".to_owned())?;
+        let sort_column = table
+            .columns
+            .iter()
+            .position(|column| column.name == "failure_reason")
+            .ok_or_else(|| "payments.failure_reason was missing".to_owned())?;
+        assert!(
+            source
+                .iter()
+                .any(|row| { matches!(row.get(sort_column), Some(Value::Null)) })
+        );
+        assert!(source.iter().any(|row| {
+            row.get(sort_column)
+                .is_some_and(|value| !matches!(value, Value::Null))
+        }));
+
+        let limit = source.len().saturating_sub(7);
+        for (ascending, direction) in [(true, "ASC"), (false, "DESC")] {
+            let expected = nulls_last_rows(&source, sort_column, ascending)
+                .into_iter()
+                .map(|row| vec![row[id_column].clone(), row[sort_column].clone()])
+                .collect::<Vec<_>>();
+            let full = run_select(
+                &catalog,
+                &parse_select(&format!(
+                    "SELECT id, failure_reason FROM public.payments ORDER BY failure_reason {direction}"
+                ))?,
+            )
+            .map_err(|error| error.message)?;
+            assert_eq!(full.rows, expected, "wrong full order for {direction}");
+            let first_null = full
+                .rows
+                .iter()
+                .position(|row| matches!(row.get(1), Some(Value::Null)))
+                .ok_or_else(|| "ordered result lost its NULL rows".to_owned())?;
+            assert!(first_null > 0, "fixture must retain non-NULL rows");
+            assert!(
+                full.rows[first_null..]
+                    .iter()
+                    .all(|row| matches!(row.get(1), Some(Value::Null)))
+            );
+
+            let limited = run_select(
+                &catalog,
+                &parse_select(&format!(
+                    "SELECT id, failure_reason FROM public.payments ORDER BY failure_reason {direction} LIMIT {limit}"
+                ))?,
+            )
+            .map_err(|error| error.message)?;
+            assert_eq!(
+                limited.rows,
+                expected[..limit],
+                "LIMIT changed {direction} order"
+            );
+            assert!(
+                limited
+                    .rows
+                    .iter()
+                    .any(|row| matches!(row.get(1), Some(Value::Null)))
+            );
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn numeric_select_keeps_numeric_order_and_stable_duplicates() -> Result<(), String> {
+        let mut catalog = Catalog::acme_prod();
+        let mut table = catalog
+            .find(Some("public"), "payments")
+            .cloned()
+            .ok_or_else(|| "public.payments was missing from the fixture".to_owned())?;
+        // The demo generator seeds by table-name length. This six-character
+        // name makes the bounded scan include both 2 and 10 deterministically.
+        table.name = "probe1".to_owned();
+        table.columns = vec![int_column("id"), int_column("month_offset")];
+        table.indexes.clear();
+        table.constraints.clear();
+        table.triggers.clear();
+        table.row_count = 400;
+        table.kind = ObjectKind::Table;
+        catalog.tables.push(table);
+        let table = catalog
+            .find(Some("public"), "probe1")
+            .ok_or_else(|| "numeric probe table was missing".to_owned())?;
+        let source = tablepro_demo::db::rows(table, 0, table.row_count);
+        let values = source
+            .iter()
+            .filter_map(|row| match row.get(1) {
+                Some(Value::Int(value)) => Some(*value),
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+        assert!(values.contains(&2), "probe must contain numeric 2");
+        assert!(values.contains(&10), "probe must contain numeric 10");
+        let mut seen = HashSet::new();
+        assert!(
+            values.iter().any(|value| !seen.insert(*value)),
+            "probe must contain duplicate numeric sort keys"
+        );
+
+        for (ascending, direction) in [(true, "ASC"), (false, "DESC")] {
+            let expected = nulls_last_rows(&source, 1, ascending)
+                .into_iter()
+                .map(|row| vec![row[0].clone(), row[1].clone()])
+                .collect::<Vec<_>>();
+            let actual = run_select(
+                &catalog,
+                &parse_select(&format!(
+                    "SELECT id, month_offset FROM public.probe1 ORDER BY month_offset {direction}"
+                ))?,
+            )
+            .map_err(|error| error.message)?;
+            assert_eq!(actual.rows, expected, "wrong numeric order for {direction}");
+            let first_two = actual
+                .rows
+                .iter()
+                .position(|row| row.get(1) == Some(&Value::Int(2)))
+                .ok_or_else(|| "ordered result lost numeric 2".to_owned())?;
+            let first_ten = actual
+                .rows
+                .iter()
+                .position(|row| row.get(1) == Some(&Value::Int(10)))
+                .ok_or_else(|| "ordered result lost numeric 10".to_owned())?;
+            assert_eq!(ascending, first_two < first_ten);
+        }
         Ok(())
     }
 
