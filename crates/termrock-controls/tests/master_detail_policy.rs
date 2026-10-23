@@ -62,8 +62,10 @@ enum Sizing {
 struct PolicyPage {
     state: MasterDetailState,
     area: Rect,
+    master_share: u8,
     sizing: Sizing,
     resize_bindings: Option<&'static [Binding<SplitCmd>]>,
+    preserve_drag_offset: bool,
     step: u16,
     keymap: KeyMap,
 }
@@ -73,8 +75,10 @@ impl Default for PolicyPage {
         Self {
             state: MasterDetailState::default(),
             area: AREA,
+            master_share: 50,
             sizing: Sizing::Resizable,
             resize_bindings: None,
+            preserve_drag_offset: false,
             step: 1,
             keymap: KeyMap::new(),
         }
@@ -84,12 +88,13 @@ impl Default for PolicyPage {
 impl PolicyPage {
     fn control(&self) -> MasterDetail {
         let control = MasterDetail::new(CONTAINER, MASTER, DETAIL)
-            .master_share(50)
+            .master_share(self.master_share)
             .min_master(26)
             .min_detail(34)
             .gap(2)
             .collapse_below(100)
             .detail_owns(&[DETAIL_CHILD])
+            .preserve_drag_offset(self.preserve_drag_offset)
             .resize_step_cells(self.step);
         let control = match self.resize_bindings {
             Some(bindings) => control.resize_bindings(bindings),
@@ -133,7 +138,11 @@ impl App for PolicyPage {
 }
 
 fn harness(page: PolicyPage) -> Harness<PolicyPage> {
-    Harness::new(page, Theme::junie(), AREA.width, AREA.height)
+    harness_sized(page, AREA.width, AREA.height)
+}
+
+fn harness_sized(page: PolicyPage, width: u16, height: u16) -> Harness<PolicyPage> {
+    Harness::new(page, Theme::junie(), width, height)
 }
 
 fn layout(h: &Harness<PolicyPage>) -> MasterDetailLayout {
@@ -258,6 +267,92 @@ fn configured_two_cell_step_moves_the_actual_pane_by_two_cells() {
 }
 
 #[test]
+fn aligned_seam_drag_keeps_raw_default_and_can_opt_into_the_grab_offset() {
+    let area = Rect::new(0, 6, 120, 34);
+    let mut raw = harness_sized(
+        PolicyPage {
+            area,
+            master_share: 40,
+            resize_bindings: Some(RESIZE_BINDINGS),
+            step: 2,
+            ..PolicyPage::default()
+        },
+        120,
+        40,
+    );
+    raw.runtime_mut().set_focus(Some(MASTER));
+    raw.draw();
+    let raw_initial = raw
+        .area_of_part(CONTAINER, PartRef::of(Part::SEAM))
+        .expect("the aligned split is published before nudging");
+    let _ = raw.key_mod(KeyCode::Char('l'), KeyModifiers::CONTROL);
+    let raw_start = raw
+        .area_of_part(CONTAINER, PartRef::of(Part::SEAM))
+        .expect("default MasterDetail has an aligned seam");
+    assert_eq!(raw_start.x, raw_initial.x + 2);
+    let _ = raw.mouse(MouseKind::Down, raw_start.x, raw_start.y + 5);
+    let _ = raw.mouse(MouseKind::Drag, raw_start.x + 8, raw_start.y + 5);
+    let raw_after = raw
+        .area_of_part(CONTAINER, PartRef::of(Part::SEAM))
+        .expect("raw drag keeps the live seam");
+    assert_eq!(raw_after.x, raw_start.x + 9);
+    let _ = raw.mouse(MouseKind::Up, raw_start.x + 8, raw_start.y + 5);
+    assert_eq!(raw.runtime().capture_owner(), None);
+
+    let mut exact = harness_sized(
+        PolicyPage {
+            area,
+            master_share: 40,
+            preserve_drag_offset: true,
+            resize_bindings: Some(RESIZE_BINDINGS),
+            step: 2,
+            ..PolicyPage::default()
+        },
+        120,
+        40,
+    );
+    exact.runtime_mut().set_focus(Some(MASTER));
+    exact.draw();
+    let exact_initial = exact
+        .area_of_part(CONTAINER, PartRef::of(Part::SEAM))
+        .expect("the opt-in split is published before nudging");
+    let _ = exact.key_mod(KeyCode::Char('l'), KeyModifiers::CONTROL);
+    let exact_start = exact
+        .area_of_part(CONTAINER, PartRef::of(Part::SEAM))
+        .expect("opt-in MasterDetail has the same aligned seam");
+    assert_eq!(exact_start.x, exact_initial.x + 2);
+    let _ = exact.mouse(MouseKind::Down, exact_start.x, exact_start.y + 5);
+    let focused_seam = exact.focus();
+    assert_eq!(focused_seam, Some(CONTAINER));
+    let _ = exact.mouse(MouseKind::Drag, exact_start.x, exact_start.y + 5);
+    assert_eq!(
+        exact
+            .area_of_part(CONTAINER, PartRef::of(Part::SEAM))
+            .expect("zero movement leaves the seam present"),
+        exact_start,
+        "pressing on the painted seam and holding still does not jump"
+    );
+    let _ = exact.mouse(MouseKind::Drag, exact_start.x + 8, exact_start.y + 5);
+    let moved = exact
+        .area_of_part(CONTAINER, PartRef::of(Part::SEAM))
+        .expect("opt-in drag keeps the live seam");
+    assert_eq!(moved.x, exact_start.x + 8);
+    let _ = exact.mouse(MouseKind::Drag, exact_start.x, exact_start.y + 5);
+    assert_eq!(
+        exact
+            .area_of_part(CONTAINER, PartRef::of(Part::SEAM))
+            .expect("reverse drag keeps the live seam"),
+        exact_start,
+        "returning to the original pointer coordinate restores the original split"
+    );
+    let _ = exact.mouse(MouseKind::Up, exact_start.x, exact_start.y + 5);
+    assert_eq!(exact.runtime().capture_owner(), None);
+    assert_eq!(exact.focus(), focused_seam);
+    assert!(raw.diagnostics().is_empty(), "{:?}", raw.diagnostics());
+    assert!(exact.diagnostics().is_empty(), "{:?}", exact.diagnostics());
+}
+
+#[test]
 fn legacy_container_focused_resize_remains_one_exact_cell() {
     let mut h = harness(PolicyPage::default());
     h.runtime_mut().set_focus(Some(CONTAINER));
@@ -376,6 +471,7 @@ fn fixed_modes_round_clamp_and_keep_layout_within_offset_and_tiny_areas() {
 fn fixed_modes_have_no_seam_bindings_pointer_capture_or_reset_and_keep_ratio_on_return() {
     let mut h = harness(PolicyPage {
         resize_bindings: Some(RESIZE_BINDINGS),
+        preserve_drag_offset: true,
         step: 5,
         ..PolicyPage::default()
     });

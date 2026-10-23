@@ -30,6 +30,7 @@ struct Page {
     min_second: u16,
     resizable: bool,
     disabled: bool,
+    preserve_drag_offset: bool,
     sentinel: bool,
     state: SplitPaneState,
     observed_part: Option<Rect>,
@@ -48,6 +49,7 @@ impl Default for Page {
             min_second: 40,
             resizable: true,
             disabled: false,
+            preserve_drag_offset: false,
             sentinel: false,
             state: SplitPaneState::new(32),
             observed_part: None,
@@ -63,6 +65,7 @@ impl Page {
             .min_first(self.min_first)
             .min_second(self.min_second)
             .resizable(self.resizable)
+            .preserve_drag_offset(self.preserve_drag_offset)
             .disabled(self.disabled);
         let pane = if self.sentinel {
             pane.patch(&SENTINEL)
@@ -146,6 +149,74 @@ fn manager_end_one_leaves_leading_gap_blank_and_noninteractive() {
         h.runtime().diagnostics()
     );
 }
+
+#[test]
+fn opt_in_drag_tracks_pointer_on_both_axes_and_odd_even_gaps_at_an_offset_root() {
+    for axis in [SplitAxis::Horizontal, SplitAxis::Vertical] {
+        for gap in [1, 2, 3, 4] {
+            let mut h = harness(Page {
+                axis,
+                area: Rect::new(5, 4, 110, 30),
+                gap,
+                min_first: 8,
+                min_second: 8,
+                preserve_drag_offset: true,
+                ..Page::default()
+            });
+            let before = seam(&h).expect("opt-in split publishes a real seam");
+            let (press_x, press_y) = match axis {
+                SplitAxis::Horizontal => (before.x, before.y + 3),
+                SplitAxis::Vertical => (before.x + 3, before.y),
+            };
+            let _ = h.mouse(MouseKind::Down, press_x, press_y);
+            assert_eq!(h.runtime().capture_owner(), Some(ID));
+            let (drag_x, drag_y) = match axis {
+                SplitAxis::Horizontal => (press_x + 6, press_y),
+                SplitAxis::Vertical => (press_x, press_y + 6),
+            };
+            let _ = h.mouse(MouseKind::Drag, drag_x, drag_y);
+            let after = seam(&h).expect("drag keeps the seam registered");
+            match axis {
+                SplitAxis::Horizontal => assert_eq!(after.x, before.x + 6, "gap={gap}"),
+                SplitAxis::Vertical => assert_eq!(after.y, before.y + 6, "gap={gap}"),
+            }
+            let _ = h.mouse(MouseKind::Up, drag_x, drag_y);
+            assert_eq!(h.runtime().capture_owner(), None);
+            assert!(h.runtime().diagnostics().is_empty());
+        }
+    }
+}
+
+#[test]
+fn opt_in_drag_remains_clamped_to_both_pane_minima() {
+    let area = Rect::new(5, 4, 50, 30);
+    let mut h = harness(Page {
+        area,
+        min_first: 8,
+        min_second: 10,
+        preserve_drag_offset: true,
+        ..Page::default()
+    });
+    let initial = seam(&h).expect("bounded opt-in split has a seam");
+    let y = initial.y + 3;
+    let _ = h.mouse(MouseKind::Down, initial.x, y);
+    let _ = h.mouse(MouseKind::Drag, area.right() - 1, y);
+    assert_eq!(
+        seam(&h).expect("max-clamped split keeps the seam").x,
+        area.right() - 10 - 2 + 1,
+        "the detail minimum is preserved at the far edge"
+    );
+    let _ = h.mouse(MouseKind::Drag, 0, y);
+    assert_eq!(
+        seam(&h).expect("min-clamped split keeps the seam").x,
+        area.x + 8 + 1,
+        "the master minimum is preserved at the near edge"
+    );
+    let _ = h.mouse(MouseKind::Up, 0, y);
+    assert_eq!(h.runtime().capture_owner(), None);
+    assert!(h.runtime().diagnostics().is_empty());
+}
+
 #[test]
 fn default_full_gap_and_container_focus_area_are_preserved() {
     let mut h = harness(Page {
@@ -252,7 +323,10 @@ fn empty_collapsed_maximized_and_clipped_seams_never_escape() {
 }
 #[test]
 fn zero_width_publication_cancels_existing_capture() {
-    let mut h = harness(Page::default());
+    let mut h = harness(Page {
+        preserve_drag_offset: true,
+        ..Page::default()
+    });
     let _ = h.mouse(MouseKind::Down, 39, 3);
     assert_eq!(h.runtime().capture_owner(), Some(ID));
     h.app_mut().seam = Seam::End(0);
