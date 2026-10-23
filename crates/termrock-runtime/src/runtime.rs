@@ -1127,6 +1127,16 @@ impl<A: App> Runtime<A> {
         crate::capture::target_eligible(&self.last.ring, self.top(), hit.owner, hit.layer, hit.kind)
     }
 
+    fn is_disabled_primary_hit(&self, hit: Hit) -> bool {
+        hit.layer == self.top()
+            && matches!(hit.kind, RegionKind::Control | RegionKind::Part)
+            && self
+                .last
+                .ring
+                .entry(hit.owner)
+                .is_some_and(|entry| entry.disabled && entry.layer == hit.layer)
+    }
+
     fn local_in(area: Rect, pos: Position) -> Position {
         Position {
             x: pos.x.saturating_sub(area.x),
@@ -1146,7 +1156,7 @@ impl<A: App> Runtime<A> {
         }
     }
 
-    fn enqueue_mouse(&mut self, m: Mouse) {
+    fn enqueue_mouse(&mut self, m: Mouse) -> bool {
         self.services.pointer_press_count = None;
         self.inter.pointer_position = Some(m.pos);
         if matches!(m.kind, MouseKind::Down | MouseKind::Up) {
@@ -1175,24 +1185,28 @@ impl<A: App> Runtime<A> {
 
         if let Some(cap) = self.services.capture.get() {
             self.pointer_captured(cap, m);
-            return;
+            return false;
         }
         let hit = self.last.registry.hit(m.pos);
         let top = self.top();
         let outside = hit.is_none_or(|h| h.layer < top);
+        let mut disabled_primary_refusal = false;
         match m.kind {
             MouseKind::Move => self.pointer_moved(m, top, hover_was_suppressed),
             MouseKind::Down => {
                 if outside {
                     self.outside_click();
-                    return;
+                    return false;
                 }
                 if let Some(h) = hit {
+                    disabled_primary_refusal = self.is_disabled_primary_hit(h);
                     self.pointer_down(h, m);
                 }
             }
             MouseKind::Drag => {
-                let Some(p) = self.inter.press else { return };
+                let Some(p) = self.inter.press else {
+                    return false;
+                };
                 self.inter.drag_motion = Some(DragMotion {
                     position: m.pos,
                     modifiers: m.mods,
@@ -1227,11 +1241,13 @@ impl<A: App> Runtime<A> {
             MouseKind::Secondary => {
                 if outside {
                     self.outside_click();
-                    return;
+                    return false;
                 }
-                let Some(h) = hit else { return };
+                let Some(h) = hit else {
+                    return false;
+                };
                 if !self.deliverable(h) {
-                    return;
+                    return false;
                 }
                 let area = self.region_area(h);
                 self.intents.pointer(
@@ -1313,6 +1329,7 @@ impl<A: App> Runtime<A> {
                 }
             }
         }
+        disabled_primary_refusal
     }
 
     fn enqueue_middle_click(&mut self, pos: Position, mods: KeyModifiers) {
@@ -2183,6 +2200,7 @@ impl<A: App> Runtime<A> {
         self.pump_layer_events();
         let mut key_input = None;
         let mut wheel_route_attempt = None;
+        let mut disabled_primary_refusal = false;
         let mut update_cause = UpdateCause::Event;
         match &input {
             RoutedInput::Input(Input::Resize(w, h)) => {
@@ -2215,7 +2233,7 @@ impl<A: App> Runtime<A> {
                 self.enqueue_key(*k);
             }
             RoutedInput::Input(Input::Mouse(m)) => {
-                self.enqueue_mouse(*m);
+                disabled_primary_refusal = self.enqueue_mouse(*m);
                 wheel_route_attempt = self.services.pending_wheel_route.take();
             }
             RoutedInput::Input(Input::Paste(s)) => {
@@ -2253,6 +2271,9 @@ impl<A: App> Runtime<A> {
             self.services.wheel_route_invalidated = false;
         }
         let mut r = self.run_update(None, update_cause, activation_key);
+        if disabled_primary_refusal && !r.is_consumed() {
+            r |= Response::consumed();
+        }
         if swallow_middle {
             r |= Response::consumed();
         }
