@@ -6,7 +6,7 @@ use ratatui_core::buffer::CellWidth;
 use ratatui_core::layout::{Position, Rect};
 
 use super::{Acc, PartStyle, SlotFn, cell_at, first_row, paint_pressed_bracket};
-use crate::event::{Chord, KeyCode};
+use crate::event::{Chord, KeyCode, KeyModifiers};
 use crate::focus::Focusability;
 use crate::id::{Id, ItemKey, Part, PartRef};
 use crate::intent::{Intent, Phase};
@@ -20,6 +20,21 @@ use termrock_collections::collection::{
 };
 use termrock_runtime::empty::Status;
 use termrock_runtime::rowui::{RowFn, RowUi};
+
+/// Keyboard aliases used for adjacent tab navigation.
+///
+/// The default `None` profile preserves the existing arrow and lowercase
+/// `h`/`l` bindings. This opt-in profile changes only the Prev/Next keyboard
+/// descriptors; it does not change layout or pointer behavior. The profiles
+/// cover adjacent navigation only and do not add Home/End or `g`/`G` actions.
+#[non_exhaustive]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum TabNavProfile {
+    /// Use Left/Right arrows, including Shift+Left/Right.
+    Desktop,
+    /// Use Desktop arrows plus `h`/`H` for Prev and `l`/`L` for Next.
+    Vim,
+}
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum TabsAction {
@@ -208,7 +223,7 @@ pub enum TabsCmd {
     New,
 }
 
-/// Configuration errors for replacement Tabs New and Close key groups.
+/// Configuration errors for Tabs navigation and replacement New/Close groups.
 ///
 /// A group may contain only its corresponding command. Action identities must
 /// be unique across the effective Tabs table, and declared chords must not
@@ -376,6 +391,34 @@ const BASE: [Binding<TabsCmd>; 15] = [
         false,
     ),
 ];
+const PREVIOUS_SHIFT_ARROW: Binding<TabsCmd> = b(
+    "tabs.previous-shift-arrow",
+    Chord::with(KeyCode::Left, KeyModifiers::SHIFT),
+    TabsCmd::Prev,
+    "Prev tab",
+    false,
+);
+const NEXT_SHIFT_ARROW: Binding<TabsCmd> = b(
+    "tabs.next-shift-arrow",
+    Chord::with(KeyCode::Right, KeyModifiers::SHIFT),
+    TabsCmd::Next,
+    "Next tab",
+    false,
+);
+const PREVIOUS_VIM_UPPER: Binding<TabsCmd> = b(
+    "tabs.previous-vim-upper",
+    Chord::key(KeyCode::Char('H')),
+    TabsCmd::Prev,
+    "Prev tab",
+    false,
+);
+const NEXT_VIM_UPPER: Binding<TabsCmd> = b(
+    "tabs.next-vim-upper",
+    Chord::key(KeyCode::Char('L')),
+    TabsCmd::Next,
+    "Next tab",
+    false,
+);
 const CLOSE_X: Binding<TabsCmd> = b(
     "tabs.close",
     Chord::key(KeyCode::Char('x')),
@@ -442,6 +485,125 @@ digit_free_table!(PLAIN_DIGIT_FREE, 6, []);
 digit_free_table!(CLOSABLE_DIGIT_FREE, 8, [CLOSE_X, CLOSE_DEL]);
 digit_free_table!(NEWABLE_DIGIT_FREE, 7, [NEW_N]);
 digit_free_table!(FULL_DIGIT_FREE, 9, [CLOSE_X, CLOSE_DEL, NEW_N]);
+
+macro_rules! profile_tables {
+    (
+        $plain:ident,
+        $closable:ident,
+        $newable:ident,
+        $full:ident,
+        $plain_digit_free:ident,
+        $closable_digit_free:ident,
+        $newable_digit_free:ident,
+        $full_digit_free:ident;
+        full [$($full_base:expr),* $(,)?];
+        digit_free [$($free_base:expr),* $(,)?]
+    ) => {
+        const $plain: &[Binding<TabsCmd>] = &[$($full_base),*];
+        const $closable: &[Binding<TabsCmd>] = &[$($full_base),*, CLOSE_X, CLOSE_DEL];
+        const $newable: &[Binding<TabsCmd>] = &[$($full_base),*, NEW_N];
+        const $full: &[Binding<TabsCmd>] = &[$($full_base),*, CLOSE_X, CLOSE_DEL, NEW_N];
+        const $plain_digit_free: &[Binding<TabsCmd>] = &[$($free_base),*];
+        const $closable_digit_free: &[Binding<TabsCmd>] = &[$($free_base),*, CLOSE_X, CLOSE_DEL];
+        const $newable_digit_free: &[Binding<TabsCmd>] = &[$($free_base),*, NEW_N];
+        const $full_digit_free: &[Binding<TabsCmd>] = &[$($free_base),*, CLOSE_X, CLOSE_DEL, NEW_N];
+    };
+}
+
+profile_tables!(
+    DESKTOP_PLAIN,
+    DESKTOP_CLOSABLE,
+    DESKTOP_NEWABLE,
+    DESKTOP_FULL,
+    DESKTOP_PLAIN_DIGIT_FREE,
+    DESKTOP_CLOSABLE_DIGIT_FREE,
+    DESKTOP_NEWABLE_DIGIT_FREE,
+    DESKTOP_FULL_DIGIT_FREE;
+    full [
+        BASE[0], BASE[1], PREVIOUS_SHIFT_ARROW, NEXT_SHIFT_ARROW,
+        BASE[4], BASE[5], BASE[6], BASE[7], BASE[8], BASE[9], BASE[10], BASE[11], BASE[12],
+        BASE[13], BASE[14]
+    ];
+    digit_free [
+        BASE[0], BASE[1], PREVIOUS_SHIFT_ARROW, NEXT_SHIFT_ARROW, BASE[4], BASE[5]
+    ]
+);
+profile_tables!(
+    VIM_PLAIN,
+    VIM_CLOSABLE,
+    VIM_NEWABLE,
+    VIM_FULL,
+    VIM_PLAIN_DIGIT_FREE,
+    VIM_CLOSABLE_DIGIT_FREE,
+    VIM_NEWABLE_DIGIT_FREE,
+    VIM_FULL_DIGIT_FREE;
+    full [
+        BASE[0], BASE[1], BASE[2], BASE[3], PREVIOUS_VIM_UPPER, NEXT_VIM_UPPER,
+        PREVIOUS_SHIFT_ARROW, NEXT_SHIFT_ARROW, BASE[4], BASE[5], BASE[6], BASE[7], BASE[8],
+        BASE[9], BASE[10], BASE[11], BASE[12], BASE[13], BASE[14]
+    ];
+    digit_free [
+        BASE[0], BASE[1], BASE[2], BASE[3], PREVIOUS_VIM_UPPER, NEXT_VIM_UPPER,
+        PREVIOUS_SHIFT_ARROW, NEXT_SHIFT_ARROW, BASE[4], BASE[5]
+    ]
+);
+
+#[derive(Clone, Copy)]
+struct TabsProfileTables {
+    plain: &'static [Binding<TabsCmd>],
+    closable: &'static [Binding<TabsCmd>],
+    newable: &'static [Binding<TabsCmd>],
+    full: &'static [Binding<TabsCmd>],
+    plain_digit_free: &'static [Binding<TabsCmd>],
+    closable_digit_free: &'static [Binding<TabsCmd>],
+    newable_digit_free: &'static [Binding<TabsCmd>],
+    full_digit_free: &'static [Binding<TabsCmd>],
+}
+
+impl TabsProfileTables {
+    const fn table(
+        self,
+        closable: bool,
+        allow_new: bool,
+        digit_jump: bool,
+    ) -> &'static [Binding<TabsCmd>] {
+        match (digit_jump, closable, allow_new) {
+            (true, false, false) => self.plain,
+            (true, true, false) => self.closable,
+            (true, false, true) => self.newable,
+            (true, true, true) => self.full,
+            (false, false, false) => self.plain_digit_free,
+            (false, true, false) => self.closable_digit_free,
+            (false, false, true) => self.newable_digit_free,
+            (false, true, true) => self.full_digit_free,
+        }
+    }
+}
+
+fn profile_tables(profile: TabNavProfile) -> TabsProfileTables {
+    match profile {
+        TabNavProfile::Desktop => TabsProfileTables {
+            plain: DESKTOP_PLAIN,
+            closable: DESKTOP_CLOSABLE,
+            newable: DESKTOP_NEWABLE,
+            full: DESKTOP_FULL,
+            plain_digit_free: DESKTOP_PLAIN_DIGIT_FREE,
+            closable_digit_free: DESKTOP_CLOSABLE_DIGIT_FREE,
+            newable_digit_free: DESKTOP_NEWABLE_DIGIT_FREE,
+            full_digit_free: DESKTOP_FULL_DIGIT_FREE,
+        },
+        TabNavProfile::Vim => TabsProfileTables {
+            plain: VIM_PLAIN,
+            closable: VIM_CLOSABLE,
+            newable: VIM_NEWABLE,
+            full: VIM_FULL,
+            plain_digit_free: VIM_PLAIN_DIGIT_FREE,
+            closable_digit_free: VIM_CLOSABLE_DIGIT_FREE,
+            newable_digit_free: VIM_NEWABLE_DIGIT_FREE,
+            full_digit_free: VIM_FULL_DIGIT_FREE,
+        },
+    }
+}
 
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct TabsState {
@@ -730,6 +892,7 @@ pub struct Tabs<'a, T, K = ByIndex, R = DefaultRow> {
     id: Id,
     key: K,
     row: R,
+    nav_profile: Option<TabNavProfile>,
     allow_new: bool,
     new_key_bindings: Option<&'static [Binding<TabsCmd>]>,
     digit_jump: bool,
@@ -755,6 +918,7 @@ impl<T, K, R> fmt::Debug for Tabs<'_, T, K, R> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Tabs")
             .field("id", &self.id)
+            .field("nav_profile", &self.nav_profile)
             .field("allow_new", &self.allow_new)
             .field("new_key_bindings", &self.new_key_bindings)
             .field("digit_jump", &self.digit_jump)
@@ -782,6 +946,7 @@ impl<T> Tabs<'_, T, ByIndex, DefaultRow> {
             id,
             key: ByIndex,
             row: DefaultRow,
+            nav_profile: None,
             allow_new: false,
             new_key_bindings: None,
             digit_jump: true,
@@ -823,11 +988,33 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
         self.id
     }
 
+    /// Select an adjacent-tab navigation profile.
+    ///
+    /// `None` preserves the current default table exactly. A profile changes
+    /// only Prev/Next descriptors; Activate, digit, New, Close, pointer,
+    /// overflow, layout, and wrapping semantics stay unchanged. The selected
+    /// descriptors are used for both binding publication and dispatch.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when a current custom New or Close binding reuses an
+    /// action identity or effective chord with the selected profile or another
+    /// effective binding.
+    pub fn try_nav_profile(
+        mut self,
+        profile: Option<TabNavProfile>,
+    ) -> Result<Self, TabsKeyBindingsError> {
+        validate_tabs_key_bindings(profile, self.new_key_bindings, self.close_key_bindings)?;
+        self.nav_profile = profile;
+        Ok(self)
+    }
+
     pub fn key<K2: Fn(&T) -> ItemKey>(self, k: K2) -> Tabs<'a, T, K2, R> {
         Tabs {
             id: self.id,
             key: k,
             row: self.row,
+            nav_profile: self.nav_profile,
             allow_new: self.allow_new,
             new_key_bindings: self.new_key_bindings,
             digit_jump: self.digit_jump,
@@ -855,6 +1042,7 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
             id: self.id,
             key: self.key,
             row: r,
+            nav_profile: self.nav_profile,
             allow_new: self.allow_new,
             new_key_bindings: self.new_key_bindings,
             digit_jump: self.digit_jump,
@@ -928,7 +1116,7 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
         mut self,
         bindings: Option<&'static [Binding<TabsCmd>]>,
     ) -> Result<Self, TabsKeyBindingsError> {
-        validate_tabs_key_bindings(bindings, self.close_key_bindings)?;
+        validate_tabs_key_bindings(self.nav_profile, bindings, self.close_key_bindings)?;
         self.new_key_bindings = bindings;
         Ok(self)
     }
@@ -961,7 +1149,7 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
         mut self,
         bindings: Option<&'static [Binding<TabsCmd>]>,
     ) -> Result<Self, TabsKeyBindingsError> {
-        validate_tabs_key_bindings(self.new_key_bindings, bindings)?;
+        validate_tabs_key_bindings(self.nav_profile, self.new_key_bindings, bindings)?;
         self.close_key_bindings = bindings;
         Ok(self)
     }
@@ -1146,10 +1334,20 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
         let close_base_enabled = close_enabled && self.close_key_bindings.is_none();
         let base = if self.new_key_bindings.is_none() && self.close_key_bindings.is_none() {
             // Keep the original static table and descriptor order byte-for-byte
-            // when neither optional group is configured.
-            table_for_digit_jump(close_enabled, self.allow_new, self.digit_jump)
+            // when no navigation profile or optional group is configured.
+            table_for_navigation_profile(
+                self.nav_profile,
+                close_enabled,
+                self.allow_new,
+                self.digit_jump,
+            )
         } else {
-            table_for_digit_jump(close_base_enabled, new_base_enabled, self.digit_jump)
+            table_for_navigation_profile(
+                self.nav_profile,
+                close_base_enabled,
+                new_base_enabled,
+                self.digit_jump,
+            )
         };
         let new = if self.allow_new {
             self.new_key_bindings.unwrap_or(&[])
@@ -1200,7 +1398,20 @@ const fn table_for_digit_jump(
     }
 }
 
+fn table_for_navigation_profile(
+    profile: Option<TabNavProfile>,
+    closable: bool,
+    allow_new: bool,
+    digit_jump: bool,
+) -> &'static [Binding<TabsCmd>] {
+    match profile {
+        Some(profile) => profile_tables(profile).table(closable, allow_new, digit_jump),
+        None => table_for_digit_jump(closable, allow_new, digit_jump),
+    }
+}
+
 fn validate_tabs_key_bindings(
+    profile: Option<TabNavProfile>,
     new_bindings: Option<&'static [Binding<TabsCmd>]>,
     close_bindings: Option<&'static [Binding<TabsCmd>]>,
 ) -> Result<(), TabsKeyBindingsError> {
@@ -1228,7 +1439,12 @@ fn validate_tabs_key_bindings(
     // Validate every command that could become active, regardless of current
     // allow_new, close eligibility, or passive presentation. A configured
     // override replaces only its own default group in this potential union.
-    let base = table_for(close_bindings.is_none(), new_bindings.is_none());
+    let base = table_for_navigation_profile(
+        profile,
+        close_bindings.is_none(),
+        new_bindings.is_none(),
+        true,
+    );
     let mut seen: Vec<(crate::ActionKey, Option<Chord>)> = Vec::new();
     for binding in base
         .iter()
