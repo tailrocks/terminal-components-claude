@@ -1,5 +1,6 @@
 use core::fmt;
 use core::marker::PhantomData;
+use core::time::Duration;
 
 use ratatui_core::buffer::CellWidth;
 use ratatui_core::layout::{Position, Rect};
@@ -12,7 +13,7 @@ use crate::intent::{Intent, Phase};
 use crate::keymap::{Binding, BindingState, Bindings};
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
-use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
+use crate::theme::{Family, GlyphRole, Role, Slot, StyleDefaults, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, LayoutFacts, Ui};
 use termrock_collections::collection::{
     ByIndex, CollectionCore, DefaultRow, KeyFn, Reconcile, Reconciliation,
@@ -40,6 +41,103 @@ pub enum TabCloseReveal {
     Always,
     /// Reveal an eligible close affordance only while its tab is in use.
     Hover,
+}
+
+/// Independent status facts for one tab item.
+///
+/// When any fact is set, Tabs reserves a two-cell [`Part::ICON`] lane after
+/// the row content and before its close affordance. If several facts are set,
+/// the visible mark uses this priority: busy, error, dirty, then done. The
+/// type keeps its storage private so callers can use builders without taking
+/// a dependency on its exact representation.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub struct TabMarks {
+    dirty: bool,
+    busy: bool,
+    error: bool,
+    done: bool,
+}
+
+impl TabMarks {
+    #[must_use]
+    pub const fn dirty(mut self, dirty: bool) -> Self {
+        self.dirty = dirty;
+        self
+    }
+
+    #[must_use]
+    pub const fn busy(mut self, busy: bool) -> Self {
+        self.busy = busy;
+        self
+    }
+
+    #[must_use]
+    pub const fn error(mut self, error: bool) -> Self {
+        self.error = error;
+        self
+    }
+
+    #[must_use]
+    pub const fn done(mut self, done: bool) -> Self {
+        self.done = done;
+        self
+    }
+
+    const fn visible(self) -> Option<TabItemMark> {
+        if self.busy {
+            Some(TabItemMark::Busy)
+        } else if self.error {
+            Some(TabItemMark::Error)
+        } else if self.dirty {
+            Some(TabItemMark::Dirty)
+        } else if self.done {
+            Some(TabItemMark::Done)
+        } else {
+            None
+        }
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum TabItemMark {
+    Busy,
+    Error,
+    Dirty,
+    Done,
+}
+
+impl TabItemMark {
+    const fn flags(self) -> StateFlags {
+        match self {
+            Self::Busy => StateFlags::BUSY,
+            Self::Error => StateFlags::ERROR,
+            Self::Dirty => StateFlags::DIRTY,
+            Self::Done => StateFlags::CHECKED,
+        }
+    }
+
+    const fn default_role(self) -> Role {
+        match self {
+            Self::Busy => Role::Accent,
+            Self::Error => Role::Danger,
+            Self::Dirty => Role::Warning,
+            Self::Done => Role::Success,
+        }
+    }
+
+    const fn default_glyph(self) -> Option<GlyphRole> {
+        match self {
+            Self::Busy => None,
+            Self::Error => Some(GlyphRole::Error),
+            Self::Dirty => Some(GlyphRole::Dirty),
+            Self::Done => Some(GlyphRole::ProgressDone),
+        }
+    }
+}
+
+#[derive(Default)]
+struct ItemSpinnerPhase {
+    frame: usize,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -296,6 +394,9 @@ pub struct TabRowLayout {
     /// current frame registered a live target. The committed UI hit registry
     /// is authoritative for current interaction visibility.
     pub visible_close: Option<Rect>,
+    logical_mark: Option<Rect>,
+    visible_mark: Option<Rect>,
+    mark: Option<TabItemMark>,
     label_segments: Vec<String>,
     pub label_extent: u16,
 }
@@ -329,6 +430,7 @@ pub struct TabLayout {
     right_overflow: Option<Rect>,
     new_area: Option<Rect>,
     status_area: Option<Rect>,
+    item_marks_enabled: bool,
     right_limit: u16,
     hidden_right: usize,
     pub logical_area: Rect,
@@ -408,6 +510,11 @@ impl TabLayout {
             Part::ICON if part.item.is_none() => self
                 .status_area
                 .map(|area| (area, area.intersection(self.clip))),
+            Part::ICON => self
+                .rows
+                .iter()
+                .find(|row| Some(row.key) == part.item)
+                .and_then(|row| Some((row.logical_mark?, row.visible_mark?))),
             _ => None,
         }
     }
@@ -485,6 +592,7 @@ pub struct Tabs<'a, T, K = ByIndex, R = DefaultRow> {
     middle_click_closes: bool,
     close_reveal: TabCloseReveal,
     status: Status,
+    item_marks: Option<fn(&T) -> TabMarks>,
     ov: PartStyle<'a>,
     _t: PhantomData<fn(&T)>,
 }
@@ -499,6 +607,7 @@ impl<T, K, R> fmt::Debug for Tabs<'_, T, K, R> {
             .field("middle_click_closes", &self.middle_click_closes)
             .field("close_reveal", &self.close_reveal)
             .field("status", &self.status)
+            .field("item_marks", &self.item_marks.is_some())
             .finish_non_exhaustive()
     }
 }
@@ -515,6 +624,7 @@ impl<T> Tabs<'_, T, ByIndex, DefaultRow> {
             middle_click_closes: true,
             close_reveal: TabCloseReveal::Always,
             status: Status::Ready,
+            item_marks: None,
             ov: PartStyle::new(),
             _t: PhantomData,
         }
@@ -550,6 +660,7 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
             middle_click_closes: self.middle_click_closes,
             close_reveal: self.close_reveal,
             status: self.status,
+            item_marks: self.item_marks,
             ov: self.ov,
             _t: PhantomData,
         }
@@ -566,6 +677,7 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
             middle_click_closes: self.middle_click_closes,
             close_reveal: self.close_reveal,
             status: self.status,
+            item_marks: self.item_marks,
             ov: self.ov,
             _t: PhantomData,
         }
@@ -622,6 +734,20 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
     #[must_use]
     pub fn status(mut self, s: Status) -> Self {
         self.status = s;
+        self
+    }
+
+    /// Map each item to independent optional status marks.
+    ///
+    /// The default is unconfigured and does not reserve per-item space. A
+    /// configured mapper that returns clean marks also reserves no space.
+    /// Nonempty marks reserve two cells after the row content and before an
+    /// eligible close affordance. The mapper's result is copied into a
+    /// [`TabLayout`] when planning; rebuild that plan after changing item data
+    /// or the mapper to display the new facts.
+    #[must_use]
+    pub fn item_marks(mut self, mapper: fn(&T) -> TabMarks) -> Self {
+        self.item_marks = Some(mapper);
         self
     }
 
@@ -861,6 +987,27 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                 _ => {}
             }
         }
+        if let Some(mapper) = self.item_marks
+            && items.iter().any(|item| mapper(item).busy)
+        {
+            let frames = cx.design().motion.spinner_frames;
+            if frames.len() > 1 {
+                let tick_ms = cx.design().motion.tick_ms.max(1);
+                let now = cx.now();
+                let elapsed_ms = now.as_duration().as_millis();
+                let frame =
+                    usize::try_from((elapsed_ms / u128::from(tick_ms)) % frames.len() as u128)
+                        .unwrap_or(0);
+                let phase = cx.cache::<ItemSpinnerPhase>(self.id);
+                if phase.frame != frame {
+                    phase.frame = frame;
+                    acc.changed();
+                }
+                let elapsed_in_tick = elapsed_ms % u128::from(tick_ms);
+                let delay = tick_ms.saturating_sub(u64::try_from(elapsed_in_tick).unwrap_or(0));
+                cx.request_repaint_after(Duration::from_millis(delay));
+            }
+        }
         if let Some(l) = cx.layout(self.id) {
             self.follow(st, items, l.viewport_len);
         }
@@ -869,6 +1016,82 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
 
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &TabsState, items: &[T]) -> Rect {
         self.draw_impl(ui, area, TabsRenderSource::Legacy { state: st, items })
+    }
+
+    fn paint_item_mark(
+        &self,
+        ui: &mut Ui<'_>,
+        mark: TabItemMark,
+        area: Rect,
+        tab_style: impl Into<crate::theme::PaintStyle>,
+    ) {
+        if area.is_empty() {
+            return;
+        }
+        let tab_style = tab_style.into();
+        ui.fill(area, tab_style);
+        if let Some(slot) = self.ov.slot_for(Part::ICON) {
+            slot(ui, area);
+            return;
+        }
+
+        let mut defaults = StylePatch::new().set_fg(mark.default_role());
+        if mark == TabItemMark::Done {
+            defaults = defaults.remove(ratatui_core::style::Modifier::BOLD);
+        }
+        let local = self.ov.part_patch(Part::ICON);
+        let resolved = ui.style_defaults_with_explicit(
+            Family::TABS,
+            Variant::DEFAULT,
+            Part::ICON,
+            mark.flags(),
+            StyleDefaults::new(defaults),
+            local.as_ref(),
+        );
+        let icon = resolved.resolved;
+        let explicit = resolved.explicit;
+        let mark_style = icon.over(tab_style);
+        self.ov.note(
+            ui,
+            self.id,
+            Family::TABS,
+            Variant::DEFAULT,
+            Part::ICON,
+            icon,
+        );
+
+        match icon.glyph {
+            Slot::Set(glyph) => {
+                let text = ui.glyph_str(glyph);
+                let icon_area = item_mark_glyph_area(area, crate::text::width(text));
+                ui.glyph(icon_area, glyph, mark_style);
+            }
+            Slot::Clear => ui.fill(area, mark_style),
+            Slot::Inherit => match mark {
+                TabItemMark::Busy => {
+                    let frames = ui.design().motion.spinner_frames;
+                    if !frames.is_empty() {
+                        let frame_index = if frames.len() > 1 {
+                            ui.cache::<ItemSpinnerPhase>(self.id).frame % frames.len()
+                        } else {
+                            0
+                        };
+                        if let Some(frame) = frames.get(frame_index) {
+                            let icon_area = item_mark_glyph_area(area, crate::text::width(frame));
+                            ui.paint_str(icon_area, frame, mark_style);
+                        }
+                    }
+                }
+                _ => {
+                    if let Some(glyph) = mark.default_glyph() {
+                        let text = ui.glyph_str(glyph);
+                        let icon_area = item_mark_glyph_area(area, crate::text::width(text));
+                        ui.glyph(icon_area, glyph, mark_style);
+                    }
+                }
+            },
+        }
+        termrock_runtime::author::patch_style(ui, area, icon.style, explicit);
     }
 
     #[expect(
@@ -1017,8 +1240,23 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                 TabsRowSource::Legacy(item) => self.key.key(item, i),
                 TabsRowSource::Planned(row) => row.key,
             };
+            let mark = match row_source {
+                TabsRowSource::Legacy(item) => {
+                    self.item_marks.and_then(|mapper| mapper(item).visible())
+                }
+                TabsRowSource::Planned(row) => row.mark,
+            };
+            let close_enabled = match row_source {
+                TabsRowSource::Legacy(_) => self.close_enabled(key),
+                TabsRowSource::Planned(row) => row.logical_close.is_some(),
+            };
+            let mark_width = if mark.is_some() { 2 } else { 0 };
+            let close_w: u16 = if close_enabled { 2 } else { 0 };
             let avail = right_limit.saturating_sub(x);
             if matches!(row_source, TabsRowSource::Legacy(_)) && avail < 3 {
+                break;
+            }
+            if mark.is_some() && avail < 1 + 1 + mark_width + 1 + close_w {
                 break;
             }
 
@@ -1046,7 +1284,11 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                 TabsRowSource::Legacy(_) => Rect {
                     x: x.saturating_add(1),
                     y: row0.y,
-                    width: avail.saturating_sub(1),
+                    width: avail
+                        .saturating_sub(1)
+                        .saturating_sub(mark_width)
+                        .saturating_sub(u16::from(mark.is_some()))
+                        .saturating_sub(close_w),
                     height: 1,
                 },
                 TabsRowSource::Planned(row) => row.logical_content,
@@ -1064,10 +1306,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                 TabsRowSource::Legacy(_) => painted_width(ui, content).max(1),
                 TabsRowSource::Planned(row) => row.label_extent,
             };
-            let close_enabled = match row_source {
-                TabsRowSource::Legacy(_) => self.close_enabled(key),
-                TabsRowSource::Planned(row) => row.logical_close.is_some(),
-            };
             let close_part = PartRef::item(Part::CLOSE, key);
             let close_visible = close_enabled
                 && match self.close_reveal {
@@ -1082,11 +1320,11 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                 };
             let close_hit_visible = close_visible
                 && (self.close_reveal != TabCloseReveal::Hover || close_reveal_press != Some(key));
-            let close_w: u16 = if close_enabled { 2 } else { 0 };
             let tab = match row_source {
                 TabsRowSource::Legacy(_) => {
                     let tab_w = 1u16
                         .saturating_add(label_w)
+                        .saturating_add(mark_width)
                         .saturating_add(1)
                         .saturating_add(close_w);
                     Rect {
@@ -1117,6 +1355,20 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                         cell_at(tab, tab.x.saturating_add(1).saturating_add(label_w)),
                         ls.style,
                     );
+                }
+            }
+            if let Some(mark) = mark {
+                let mark_area = match row_source {
+                    TabsRowSource::Legacy(_) => Some(Rect {
+                        x: x.saturating_add(1).saturating_add(label_w),
+                        y: row0.y,
+                        width: 2,
+                        height: 1,
+                    }),
+                    TabsRowSource::Planned(row) => row.logical_mark,
+                };
+                if let Some(mark_area) = mark_area {
+                    self.paint_item_mark(ui, mark, mark_area, ts.style);
                 }
             }
             let close_cell = close_enabled.then(|| match row_source {
@@ -1375,6 +1627,18 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
     }
 }
 
+fn item_mark_glyph_area(area: Rect, glyph_width: u16) -> Rect {
+    if glyph_width <= 1 {
+        Rect {
+            x: area.right().saturating_sub(1),
+            width: area.width.min(1),
+            ..area
+        }
+    } else {
+        area
+    }
+}
+
 impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
     /// Resolve default display rows without painting or reading a buffer.
     ///
@@ -1421,6 +1685,7 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
                 right_overflow: None,
                 new_area: None,
                 status_area: None,
+                item_marks_enabled: self.item_marks.is_some(),
                 right_limit: area.x,
                 hidden_right: len.saturating_sub(first_index),
                 logical_area: area,
@@ -1459,23 +1724,33 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
         for i in first_index..len {
             let Some(item) = items.get(i) else { break };
             let key = self.key_at(items, i);
+            let mark = self.item_marks.and_then(|mapper| mapper(item).visible());
+            let mark_width = if mark.is_some() { 2 } else { 0 };
+            let close_enabled = self.close_enabled(key);
+            let close_w: u16 = if close_enabled { 2 } else { 0 };
             let avail = right_limit.saturating_sub(x);
             if avail < 3 {
+                break;
+            }
+            if mark.is_some() && avail < 1 + 1 + mark_width + 1 + close_w {
                 break;
             }
             let content = Rect {
                 x: x.saturating_add(1),
                 y: row0.y,
-                width: avail.saturating_sub(1),
+                width: avail
+                    .saturating_sub(1)
+                    .saturating_sub(mark_width)
+                    .saturating_sub(u16::from(mark.is_some()))
+                    .saturating_sub(close_w),
                 height: 1,
             };
             let mut writer = SegmentWriter(Vec::new());
             let _ = fmt::write(&mut writer, format_args!("{item}"));
             let label_extent = semantic_label_extent(&writer.0, content, clip).max(1);
-            let close_enabled = self.close_enabled(key);
-            let close_w: u16 = if close_enabled { 2 } else { 0 };
             let tab_w = 1u16
                 .saturating_add(label_extent)
+                .saturating_add(mark_width)
                 .saturating_add(1)
                 .saturating_add(close_w);
             let tab = Rect {
@@ -1485,6 +1760,12 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
                 height: 1,
             };
             let close = close_enabled.then(|| cell_at(tab, tab.right().saturating_sub(2)));
+            let logical_mark = mark.map(|_| Rect {
+                x: x.saturating_add(1).saturating_add(label_extent),
+                y: row0.y,
+                width: 2,
+                height: 1,
+            });
             rows.push(TabRowLayout {
                 key,
                 index: i,
@@ -1494,6 +1775,9 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
                 visible_tab: tab.intersection(clip),
                 logical_close: close,
                 visible_close: close.map(|rect| rect.intersection(clip)),
+                logical_mark,
+                visible_mark: logical_mark.map(|rect| rect.intersection(clip)),
+                mark,
                 label_segments: writer.0,
                 label_extent,
             });
@@ -1557,6 +1841,7 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
             close_reveal: self.close_reveal,
             close_reveal_press: state.close_reveal_press,
             status: self.status,
+            item_marks_enabled: self.item_marks.is_some(),
             left_overflow,
             right_overflow,
             new_area,
@@ -1586,6 +1871,7 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
             || layout.closable_keys.as_deref() != self.closable_keys
             || layout.close_reveal != self.close_reveal
             || layout.status != self.status
+            || layout.item_marks_enabled != self.item_marks.is_some()
         {
             return Err(TabLayoutMismatch);
         }
