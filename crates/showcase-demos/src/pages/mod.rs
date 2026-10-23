@@ -61,6 +61,12 @@ pub fn color_u32(color: termrock::Color) -> u32 {
     }
 }
 
+fn heading_style(ui: &mut Ui<'_>, family: Family, part: Part) -> termrock::author::PaintStyle {
+    let surface = ui.surface_style();
+    let resolved = ui.style(family, Variant::DEFAULT, part, StateFlags::empty());
+    surface.patch(resolved.style)
+}
+
 pub fn frame(
     ui: &mut Ui<'_>,
     area: Rect,
@@ -72,17 +78,8 @@ pub fn frame(
         return;
     }
     ui.fill(area, ui.surface_style());
-    let title_style = ui
-        .style(
-            Family::PANEL,
-            Variant::DEFAULT,
-            Part::TITLE,
-            StateFlags::empty(),
-        )
-        .style;
-    let meta_style = ui.surface_style().fg(termrock::theme::baseline_muted(
-        ui.theme_ref().capability.color,
-    ));
+    let title_style = heading_style(ui, Family::PANEL, Part::TITLE);
+    let meta_style = heading_style(ui, Family::LIST, Part::META);
     let title_area = Rect { height: 1, ..area };
     let title_width = width(title).min(area.width);
     ui.paint_str(title_area, title, title_style);
