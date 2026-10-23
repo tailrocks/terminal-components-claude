@@ -23,6 +23,11 @@ const FAIL: Id = termrock::Id::root("showcase_ui::pages::terminal::terminal.fail
 const STAGE_TICKS: u32 = 6;
 const TICK_INTERVAL: Duration = Duration::from_millis(16);
 
+fn future_deadline(now: Moment) -> Option<Moment> {
+    let deadline = now.saturating_add(TICK_INTERVAL);
+    (deadline > now).then_some(deadline)
+}
+
 /// The rows the page's footer keeps below the panes.
 const FOOTER_ROWS: u16 = 2;
 
@@ -230,12 +235,19 @@ impl Page for TerminalPage {
         // ordinary page updates must not consume a stage interval.
         if self.running {
             let now = cx.now();
-            let deadline = *self
+            if self.next_deadline.is_none() {
+                self.next_deadline = future_deadline(now);
+            }
+            if self
                 .next_deadline
-                .get_or_insert_with(|| now.saturating_add(TICK_INTERVAL));
-            if cx.update_cause() == UpdateCause::Tick && now >= deadline {
+                .is_some_and(|deadline| cx.update_cause() == UpdateCause::Tick && now >= deadline)
+            {
                 self.advance();
-                self.next_deadline = self.running.then(|| now.saturating_add(TICK_INTERVAL));
+                self.next_deadline = if self.running {
+                    future_deadline(now)
+                } else {
+                    None
+                };
                 response = response.repaint();
             }
             if let Some(deadline) = self.next_deadline {
@@ -548,6 +560,89 @@ mod terminal_clock_contract {
             harness.app().page.next_deadline,
             Some(Moment::from_millis(232))
         );
+    }
+
+    #[test]
+    fn saturated_clock_advances_once_without_rearming_at_max() {
+        let mut harness = harness();
+        let max = Moment::from_duration(std::time::Duration::MAX);
+        let output = harness.app().page.output.clone();
+
+        let _ = harness.advance_to(max).expect("clock moves to MAX");
+
+        assert_eq!(harness.now(), max);
+        assert_eq!(harness.app().page.tick, 1);
+        assert_eq!(states(&harness), INITIAL_STATES);
+        assert_eq!(harness.app().page.next_deadline, None);
+
+        let settled_states = states(&harness);
+        let _ = harness.tick();
+        let _ = harness
+            .advance_to(max)
+            .expect("same-Moment advance is valid");
+        let _ = harness.tick();
+
+        assert_eq!(harness.app().page.tick, 1);
+        assert_eq!(states(&harness), settled_states);
+        assert_eq!(harness.app().page.output, output);
+        assert_eq!(harness.app().page.next_deadline, None);
+    }
+
+    #[test]
+    fn run_at_max_stays_running_without_a_non_future_deadline() {
+        let mut harness = harness();
+        let max = Moment::from_duration(std::time::Duration::MAX);
+        let _ = harness.advance_to(max).expect("clock moves to MAX");
+
+        let _ = harness.click_id(FAIL);
+        assert!(!harness.app().page.running);
+        assert_eq!(harness.app().page.tick, 0);
+        assert_eq!(harness.app().page.next_deadline, None);
+
+        let _ = harness.click_id(RUN);
+        assert!(harness.app().page.running);
+        assert_eq!(harness.app().page.tick, 0);
+        assert_eq!(states(&harness), INITIAL_STATES);
+        assert_eq!(harness.app().page.next_deadline, None);
+
+        let _ = harness.key(KeyCode::Char('x'));
+        let _ = harness.tick();
+        let _ = harness
+            .advance_to(max)
+            .expect("same-Moment advance is valid");
+
+        assert!(harness.app().page.running);
+        assert_eq!(harness.app().page.tick, 0);
+        assert_eq!(states(&harness), INITIAL_STATES);
+        assert_eq!(harness.app().page.next_deadline, None);
+    }
+
+    #[test]
+    fn near_max_clock_keeps_one_strictly_future_deadline() {
+        let mut harness = harness();
+        let max = Moment::from_duration(std::time::Duration::MAX);
+        let near_max =
+            Moment::from_duration(std::time::Duration::MAX - std::time::Duration::from_millis(8));
+
+        let _ = harness
+            .advance_to(near_max)
+            .expect("clock moves to a representable pre-MAX moment");
+        assert_eq!(harness.now(), near_max);
+        assert_eq!(harness.app().page.tick, 1);
+        assert_eq!(harness.app().page.next_deadline, Some(max));
+
+        let _ = harness
+            .advance_to(max)
+            .expect("the future MAX deadline is due");
+        assert_eq!(harness.app().page.tick, 2);
+        assert_eq!(harness.app().page.next_deadline, None);
+
+        let _ = harness.tick();
+        let _ = harness
+            .advance_to(max)
+            .expect("same-Moment advance is valid");
+        assert_eq!(harness.app().page.tick, 2);
+        assert_eq!(harness.app().page.next_deadline, None);
     }
 
     #[test]
