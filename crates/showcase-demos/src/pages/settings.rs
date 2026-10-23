@@ -5,7 +5,7 @@ use termrock::{
     Tabs, TabsAction, TabsState, Ui, Variant, truncate_parts, width,
 };
 
-use super::{Page, PageUpdate, frame};
+use super::{Page, PageUpdate, frame, paint_boundary_meta};
 
 const TAB: Id = termrock::Id::root("showcase_ui::pages::settings::settings.tabs");
 const MEMBERS: Id = termrock::Id::root("showcase_ui::pages::settings::settings.members");
@@ -875,6 +875,12 @@ impl Page for SettingsPage {
                     paint_general(ui, body, active_tab(&self.tabs));
                 }
             },
+        );
+        paint_boundary_meta(
+            ui,
+            area,
+            "Project settings",
+            "Composed: tabs, form, editable table, list, dialogs",
         );
         ui.layer(REMOVE_DIALOG, |ui, layer| {
             remove_dialog().draw(ui, layer, &self.remove_state, |ui, body| {

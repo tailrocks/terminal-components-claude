@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use termrock::{Button, Color, Cx, Id, Modifier, PaintStyle, Rect, Response, Ui, Variant, width};
 
-use super::{Page, PageStatus, PageUpdate, frame};
+use super::{Page, PageStatus, PageUpdate, frame, paint_boundary_meta};
 
 const RESTART: Id = termrock::Id::root("showcase_ui::pages::progress::progress.restart");
 const PAUSE: Id = termrock::Id::root("showcase_ui::pages::progress::progress.pause");
@@ -1386,6 +1386,7 @@ impl Page for ProgressPage {
                 );
             }
         });
+        paint_boundary_meta(ui, area, self.title(), BLURB);
     }
 
     fn hints(&self, _ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
