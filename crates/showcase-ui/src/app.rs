@@ -23,6 +23,7 @@ use showcase_demos::pages::{
     diff::DiffPage,
     editable::EditablePage,
     editor::EditorPage,
+    empty_error::EmptyErrorPage,
     forms::FormsPage,
     grid::GridPage,
     inputs::InputsPage,
@@ -44,6 +45,7 @@ use showcase_demos::pages::{
 
 const NAV: Id = id!("navigation");
 const CHECKS_RADIOS_ENTRY: usize = 12;
+const EMPTY_ERROR_ENTRY: usize = 31;
 const NOTICES_ENTRY: usize = 33;
 const DIFF_ENTRY: usize = 40;
 const BRAND: Id = id!("brand");
@@ -248,6 +250,7 @@ impl NavTarget {
             Self::Live(_)
                 | Self::Selection
                 | Self::Placeholder(CHECKS_RADIOS_ENTRY)
+                | Self::Placeholder(EMPTY_ERROR_ENTRY)
                 | Self::Placeholder(NOTICES_ENTRY)
                 | Self::Placeholder(DIFF_ENTRY)
         )
@@ -1282,6 +1285,7 @@ pub struct App {
     nav_presentation: std::cell::Cell<Option<NavTreePresentation>>,
     pages: Vec<Box<dyn Page>>,
     checks_radios: ChecksRadiosPage,
+    empty_error: EmptyErrorPage,
     notices: NoticesPage,
     diff: DiffPage,
     notice_reveals: std::cell::RefCell<[NoticeReveal; 6]>,
@@ -1322,6 +1326,7 @@ impl core::fmt::Debug for App {
             .field("nav_presentation", &self.nav_presentation.get())
             .field("pages", &self.pages.len())
             .field("checks_radios", &self.checks_radios)
+            .field("empty_error", &self.empty_error)
             .field("notices", &self.notices)
             .field("notice_reveal_snapshot", &self.notice_reveal_snapshot)
             .field("notice_reveal_revision", &self.notice_reveal_revision)
@@ -1388,6 +1393,7 @@ impl App {
             nav_presentation: std::cell::Cell::new(None),
             pages,
             checks_radios,
+            empty_error: EmptyErrorPage::new(),
             notices: NoticesPage::new(),
             diff,
             notice_reveals: std::cell::RefCell::new(std::array::from_fn(|index| {
@@ -1645,6 +1651,7 @@ impl App {
             self.nav_target,
             NavTarget::Live(_)
                 | NavTarget::Placeholder(CHECKS_RADIOS_ENTRY)
+                | NavTarget::Placeholder(EMPTY_ERROR_ENTRY)
                 | NavTarget::Placeholder(NOTICES_ENTRY)
                 | NavTarget::Placeholder(DIFF_ENTRY)
         )
@@ -1660,6 +1667,8 @@ impl App {
     fn active(&self) -> Option<&dyn Page> {
         if self.nav_target == NavTarget::Placeholder(CHECKS_RADIOS_ENTRY) {
             Some(&self.checks_radios)
+        } else if self.nav_target == NavTarget::Placeholder(EMPTY_ERROR_ENTRY) {
+            Some(&self.empty_error)
         } else if self.nav_target == NavTarget::Placeholder(NOTICES_ENTRY) {
             Some(&self.notices)
         } else if self.nav_target == NavTarget::Placeholder(DIFF_ENTRY) {
@@ -1672,6 +1681,8 @@ impl App {
     fn active_mut(&mut self) -> Option<&mut (dyn Page + 'static)> {
         if self.nav_target == NavTarget::Placeholder(CHECKS_RADIOS_ENTRY) {
             Some(&mut self.checks_radios)
+        } else if self.nav_target == NavTarget::Placeholder(EMPTY_ERROR_ENTRY) {
+            Some(&mut self.empty_error)
         } else if self.nav_target == NavTarget::Placeholder(NOTICES_ENTRY) {
             Some(&mut self.notices)
         } else if self.nav_target == NavTarget::Placeholder(DIFF_ENTRY) {
@@ -2722,7 +2733,9 @@ impl TuiApp for App {
         let cursor_kind = nav_cursor_kind(&self.nav_state, &nodes, self.nav_query.is_some());
         let modal_page_hints = match self.nav_target {
             NavTarget::Selection => self.selectable.hints(),
-            NavTarget::Placeholder(CHECKS_RADIOS_ENTRY | NOTICES_ENTRY | DIFF_ENTRY) => page_hints,
+            NavTarget::Placeholder(
+                CHECKS_RADIOS_ENTRY | EMPTY_ERROR_ENTRY | NOTICES_ENTRY | DIFF_ENTRY,
+            ) => page_hints,
             NavTarget::Live(PageId::Pickers | PageId::DialogKinds) => page_hints,
             NavTarget::Live(_) | NavTarget::Placeholder(_) => &[][..],
         };
