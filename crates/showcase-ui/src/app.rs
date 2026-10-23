@@ -75,9 +75,8 @@ const HELP_MOUSE_HINT: &str = "Mouse: hover to preview, click to focus and activ
 
 fn build_help_description() -> String {
     format!(
-        "{HELP_INSTRUCTIONS}\nNavigation: {} destinations · {} implemented pages.\n{HELP_MOUSE_HINT}",
-        NAV_ENTRIES.len(),
-        PageId::ALL.len()
+        "{HELP_INSTRUCTIONS}\nNavigation: {} destinations.\n{HELP_MOUSE_HINT}",
+        NAV_ENTRIES.len()
     )
 }
 
