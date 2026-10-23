@@ -332,34 +332,6 @@ fn tab_width(label: &str) -> u16 {
     width(label).saturating_add(3)
 }
 
-fn paint_blurb(ui: &mut Ui<'_>, body: Rect) {
-    let title_w = width("Tables");
-    if body.width <= title_w.saturating_add(4) {
-        return;
-    }
-    let meta = Rect::new(
-        body.x.saturating_add(title_w).saturating_add(2),
-        body.y.saturating_sub(2),
-        body.width.saturating_sub(title_w).saturating_sub(3),
-        1,
-    );
-    let style = ink(MUTED, CANVAS);
-    if width(BLURB) <= meta.width {
-        ui.paint_str(meta, BLURB, style);
-        return;
-    }
-    let budget = Rect {
-        width: meta.width.saturating_sub(1),
-        ..meta
-    };
-    let used = ui.paint_str(budget, BLURB, style);
-    ui.paint_str(
-        Rect::new(meta.x.saturating_add(used), meta.y, 1, 1),
-        "…",
-        style,
-    );
-}
-
 fn paint_section_strip(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
         return;
@@ -976,8 +948,7 @@ impl Page for TablesPage {
 
 impl TablesPage {
     fn draw_clipped(&self, ui: &mut Ui<'_>, area: Rect) {
-        frame(ui, area, self.title(), "", |ui, body| {
-            paint_blurb(ui, body);
+        frame(ui, area, self.title(), BLURB, |ui, body| {
             paint_section_strip(
                 ui,
                 Rect {

@@ -6,7 +6,7 @@ use termrock::{
 
 use showcase_data::LANGUAGES;
 
-use super::{Page, PageUpdate};
+use super::{Page, PageUpdate, frame};
 
 const CHIPS: Id = termrock::Id::root("showcase_ui::pages::chips::chips.filters");
 const SELECT: Id = termrock::Id::root("showcase_ui::pages::chips::chips.language");
@@ -782,34 +782,6 @@ fn paint_empty(ui: &mut Ui<'_>, view: Rect, card: Rect) {
     }
 }
 
-fn paint_blurb(ui: &mut Ui<'_>, area: Rect) {
-    let title_w = width("Chips & selects");
-    if area.width <= title_w.saturating_add(4) {
-        return;
-    }
-    let meta = Rect::new(
-        area.x.saturating_add(title_w).saturating_add(2),
-        area.y,
-        area.width.saturating_sub(title_w).saturating_sub(3),
-        1,
-    );
-    let style = ink(MUTED, CANVAS);
-    if width(BLURB) <= meta.width {
-        ui.paint_str(meta, BLURB, style);
-        return;
-    }
-    let budget = Rect {
-        width: meta.width.saturating_sub(1),
-        ..meta
-    };
-    let used = ui.paint_str(budget, BLURB, style);
-    ui.paint_str(
-        Rect::new(meta.x.saturating_add(used), meta.y, 1, 1),
-        "…",
-        style,
-    );
-}
-
 fn paint_playground(ui: &mut Ui<'_>, area: Rect, last: &str) {
     if area.is_empty() {
         return;
@@ -891,50 +863,48 @@ impl Page for ChipsPage {
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
-        ui.fill(area, ink(WHITE, CANVAS));
-        if area.is_empty() {
-            return;
-        }
-        ui.paint_str(
-            Rect { height: 1, ..area },
-            self.title(),
-            bold(WHITE, CANVAS),
-        );
-        paint_blurb(ui, area);
-        if area.height < 3 {
-            return;
-        }
-        let body = Rect {
-            y: area.y.saturating_add(2),
-            height: area.height.saturating_sub(2),
-            ..area
-        };
-        paint_section_strip(
-            ui,
-            Rect {
-                height: 2.min(body.height),
+        frame(ui, area, self.title(), BLURB, |ui, body| {
+            if area.height >= 2 {
+                ui.fill(
+                    Rect {
+                        y: area.y.saturating_add(1),
+                        height: 1,
+                        ..area
+                    },
+                    ink(WHITE, CANVAS),
+                );
+            }
+            ui.fill(body, ink(WHITE, CANVAS));
+            if area.height < 3 {
+                return;
+            }
+            paint_section_strip(
+                ui,
+                Rect {
+                    height: 2.min(body.height),
+                    ..body
+                },
+            );
+            let top = body.y.saturating_add(3);
+            if top >= body.bottom() {
+                return;
+            }
+            let playground_area = Rect {
+                y: top,
+                height: body.bottom().saturating_sub(top),
                 ..body
-            },
-        );
-        let top = body.y.saturating_add(3);
-        if top >= body.bottom() {
-            return;
-        }
-        let playground_area = Rect {
-            y: top,
-            height: body.bottom().saturating_sub(top),
-            ..body
-        };
-        let (chip_area, rest) = termrock::layout::split_v(playground_area, 4);
-        chips().draw(ui, chip_area, &self.chip_state, FILTERS);
-        let (select_area, _) = termrock::layout::split_v(rest, 3);
-        select().draw(ui, select_area, &self.select_state, LANGUAGES);
-        let action = if self.last == "no filter selected" {
-            "nothing yet"
-        } else {
-            self.last
-        };
-        paint_playground(ui, playground_area, action);
+            };
+            let (chip_area, rest) = termrock::layout::split_v(playground_area, 4);
+            chips().draw(ui, chip_area, &self.chip_state, FILTERS);
+            let (select_area, _) = termrock::layout::split_v(rest, 3);
+            select().draw(ui, select_area, &self.select_state, LANGUAGES);
+            let action = if self.last == "no filter selected" {
+                "nothing yet"
+            } else {
+                self.last
+            };
+            paint_playground(ui, playground_area, action);
+        });
     }
 
     fn hints(&self, ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
