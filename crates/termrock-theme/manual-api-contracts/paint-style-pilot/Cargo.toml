@@ -1,0 +1,30 @@
+[workspace]
+resolver = "3"
+
+[package]
+name = "paint-style-api-contract-pilot"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.99"
+publish = false
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
+
+[dependencies]
+termrock-theme = { path = "../.." }
+ratatui-core = { version = "=0.1.2", default-features = false, features = ["std", "underline-color"] }
+
+[[bin]]
+name = "paint_style_positive"
+path = "src/bin/paint_style_positive.rs"
+test = false
+bench = false
+
+[[bin]]
+name = "paint_style_negative"
+path = "src/bin/paint_style_negative.rs"
+test = false
+bench = false
