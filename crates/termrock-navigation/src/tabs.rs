@@ -217,6 +217,8 @@ pub struct TabsState {
     active: Option<ItemKey>,
     first: Option<ItemKey>,
     first_index: usize,
+    // Keep a hidden CLOSE from replacing the TAB target during its press.
+    close_reveal_press: Option<ItemKey>,
 }
 
 impl TabsState {
@@ -263,6 +265,7 @@ impl Reconcile for TabsState {
 
     fn invalidate(&mut self) {
         self.core.invalidate();
+        self.close_reveal_press = None;
     }
 }
 
@@ -320,6 +323,7 @@ pub struct TabLayout {
     closable: bool,
     closable_keys: Option<Vec<ItemKey>>,
     close_reveal: TabCloseReveal,
+    close_reveal_press: Option<ItemKey>,
     status: Status,
     left_overflow: Option<Rect>,
     right_overflow: Option<Rect>,
@@ -704,6 +708,13 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
     pub fn update(&self, cx: &mut Cx<'_>, st: &mut TabsState, items: &[T]) -> Response<TabsAction> {
         let len = items.len();
         let _ = st.reconcile(len, |i| self.key_at(items, i));
+        if st.close_reveal_press.is_some_and(|key| {
+            self.close_reveal != TabCloseReveal::Hover
+                || self.index_of(items, key, None).is_none()
+                || !self.close_enabled(key)
+        }) {
+            st.close_reveal_press = None;
+        }
         if st.core.cursor().is_none() && len > 0 {
             let key = self.key_at(items, 0);
             st.core.set_cursor(0, key);
@@ -719,6 +730,9 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
         let table = self.table();
         for it in cx.intents(self.id) {
             match it {
+                Intent::Cancel | Intent::FocusOut { .. } | Intent::Layer(_) => {
+                    st.close_reveal_press = None;
+                }
                 Intent::Binding(action) => {
                     let cur = st.core.cursor_index();
                     match Binding::command(table, action) {
@@ -753,45 +767,69 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                         None => {}
                     }
                 }
-                Intent::Pointer { phase, part, .. } => match (phase, part.part, part.item) {
-                    (Phase::Press, Part::TAB, Some(k)) => {
-                        if let Some(i) = self.index_of(items, k, Some(st.core.cursor_index())) {
-                            st.core.set_cursor(i, k);
+                Intent::Pointer { phase, part, .. } => {
+                    match phase {
+                        Phase::Press => {
+                            st.close_reveal_press = if self.close_reveal == TabCloseReveal::Hover
+                                && part.part == Part::TAB
+                            {
+                                part.item.filter(|key| {
+                                    self.close_enabled(*key)
+                                        && cx
+                                            .area_of_part(self.id, PartRef::item(Part::CLOSE, *key))
+                                            .is_none()
+                                })
+                            } else {
+                                None
+                            };
                         }
-                        acc.changed();
-                    }
-                    (Phase::Click | Phase::DoubleClick, Part::TAB, Some(k)) => {
-                        match self.index_of(items, k, Some(st.core.cursor_index())) {
-                            Some(i) => self.activate(st, items, i, &mut acc),
-                            None => acc.consumed(),
-                        }
-                    }
-                    (Phase::Click, Part::CLOSE, Some(k)) => {
-                        if self
-                            .index_of(items, k, Some(st.core.cursor_index()))
-                            .is_some()
-                            && self.close_enabled(k)
+                        Phase::Release | Phase::DragEnd
+                            if part.part == Part::TAB && st.close_reveal_press == part.item =>
                         {
-                            acc.action(TabsAction::Close(k));
-                        } else {
-                            acc.consumed();
+                            st.close_reveal_press = None;
                         }
+                        _ => {}
                     }
-                    (Phase::Click, Part::NEW, _) => acc.action(TabsAction::New),
-                    (Phase::Click, Part::OVERFLOW, Some(ItemKey::Index(0))) => {
-                        let i = st.first_index.saturating_sub(1);
-                        st.first_index = i;
-                        st.first = (len > 0).then(|| self.key_at(items, i));
-                        acc.changed();
+                    match (phase, part.part, part.item) {
+                        (Phase::Press, Part::TAB, Some(k)) => {
+                            if let Some(i) = self.index_of(items, k, Some(st.core.cursor_index())) {
+                                st.core.set_cursor(i, k);
+                            }
+                            acc.changed();
+                        }
+                        (Phase::Click | Phase::DoubleClick, Part::TAB, Some(k)) => {
+                            match self.index_of(items, k, Some(st.core.cursor_index())) {
+                                Some(i) => self.activate(st, items, i, &mut acc),
+                                None => acc.consumed(),
+                            }
+                        }
+                        (Phase::Click, Part::CLOSE, Some(k)) => {
+                            if self
+                                .index_of(items, k, Some(st.core.cursor_index()))
+                                .is_some()
+                                && self.close_enabled(k)
+                            {
+                                acc.action(TabsAction::Close(k));
+                            } else {
+                                acc.consumed();
+                            }
+                        }
+                        (Phase::Click, Part::NEW, _) => acc.action(TabsAction::New),
+                        (Phase::Click, Part::OVERFLOW, Some(ItemKey::Index(0))) => {
+                            let i = st.first_index.saturating_sub(1);
+                            st.first_index = i;
+                            st.first = (len > 0).then(|| self.key_at(items, i));
+                            acc.changed();
+                        }
+                        (Phase::Click, Part::OVERFLOW, Some(ItemKey::Index(_))) => {
+                            let i = st.first_index.saturating_add(1).min(len.saturating_sub(1));
+                            st.first_index = i;
+                            st.first = (len > 0).then(|| self.key_at(items, i));
+                            acc.changed();
+                        }
+                        _ => acc.consumed(),
                     }
-                    (Phase::Click, Part::OVERFLOW, Some(ItemKey::Index(_))) => {
-                        let i = st.first_index.saturating_add(1).min(len.saturating_sub(1));
-                        st.first_index = i;
-                        st.first = (len > 0).then(|| self.key_at(items, i));
-                        acc.changed();
-                    }
-                    _ => acc.consumed(),
-                },
+                }
                 _ => {}
             }
         }
@@ -933,6 +971,10 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
         };
         let hovered = ui.hovered_part(self.id);
         let pressed = ui.pressed_part(self.id);
+        let close_reveal_press = match source {
+            TabsRenderSource::Legacy { state, .. } => state.close_reveal_press,
+            TabsRenderSource::Planned(layout) => layout.close_reveal_press,
+        };
         let row_count = match source {
             TabsRenderSource::Legacy { items, .. } => items.len().saturating_sub(first_index),
             TabsRenderSource::Planned(layout) => layout.rows.len(),
@@ -1000,6 +1042,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
             };
             let close_part = PartRef::item(Part::CLOSE, key);
             let close_visible = close_enabled
+                && close_reveal_press != Some(key)
                 && match self.close_reveal {
                     TabCloseReveal::Always => true,
                     TabCloseReveal::Hover => {
@@ -1343,6 +1386,7 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
                 closable: self.closable,
                 closable_keys: self.closable_keys.map(<[ItemKey]>::to_vec),
                 close_reveal: self.close_reveal,
+                close_reveal_press: state.close_reveal_press,
                 status: self.status,
                 left_overflow: None,
                 right_overflow: None,
@@ -1482,6 +1526,7 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
             closable: self.closable,
             closable_keys: self.closable_keys.map(<[ItemKey]>::to_vec),
             close_reveal: self.close_reveal,
+            close_reveal_press: state.close_reveal_press,
             status: self.status,
             left_overflow,
             right_overflow,

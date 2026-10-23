@@ -190,6 +190,16 @@ fn default_reveal_and_explicit_always_preserve_complete_render_and_actions() {
         [TabsAction::Activated(ItemKey::num(3))]
     );
 
+    let mut default_click = harness(None);
+    let mut always_click = harness(Some(TabCloseReveal::Always));
+    let idle = ItemKey::num(3);
+    let _ = default_click.click_part(TABS, PartRef::item(Part::TAB, idle));
+    let _ = always_click.click_part(TABS, PartRef::item(Part::TAB, idle));
+    assert_eq!(default_click.app().actions, [TabsAction::Activated(idle)]);
+    assert_eq!(always_click.app().actions, [TabsAction::Activated(idle)]);
+    assert_eq!(default_click.app().state.active(), Some(idle));
+    assert_eq!(always_click.app().state.active(), Some(idle));
+
     default.app_mut().actions.clear();
     always.app_mut().actions.clear();
     let _ = default.click_part(TABS, PartRef::item(Part::CLOSE, ItemKey::num(3)));
@@ -287,7 +297,7 @@ fn hover_reveals_active_and_tab_hovered_closes_without_changing_allocations() {
 }
 
 #[test]
-fn first_click_on_hidden_close_space_routes_to_tab_then_visible_close_closes() {
+fn hidden_close_cell_keeps_tab_activation_and_allows_immediate_close() {
     let mut h = harness(Some(TabCloseReveal::Hover));
     let idle = ItemKey::num(3);
     let tab = tab_area(&h, idle);
@@ -295,22 +305,81 @@ fn first_click_on_hidden_close_space_routes_to_tab_then_visible_close_closes() {
 
     assert_eq!(close_area(&h, idle), None);
     let _ = h.mouse(MouseKind::Down, x, y);
+    assert_eq!(h.app().state.active(), Some(ItemKey::num(2)));
     assert_eq!(
-        h.app().state.cursor(),
-        Some(idle),
-        "the hidden cell press reaches its tab"
+        close_area(&h, idle),
+        None,
+        "newly focused close cannot replace the pressed tab target"
     );
     let _ = h.mouse(MouseKind::Up, x, y);
-    assert_eq!(h.app().state.active(), Some(ItemKey::num(2)));
-    assert!(!h.app().actions.contains(&TabsAction::Close(idle)));
+    assert_eq!(h.app().state.cursor(), Some(idle));
+    assert_eq!(h.app().state.active(), Some(idle));
+    assert_eq!(h.app().actions, [TabsAction::Activated(idle)]);
+    assert_eq!(h.app().items.len(), 3, "tab activation never removes items");
+    assert_eq!(h.focus(), Some(TABS));
+    assert!(h.diagnostics().is_empty());
     assert!(
         close_area(&h, idle).is_some(),
-        "the focused cursor tab reveals its close"
+        "activation reveals close immediately after release"
     );
 
     h.app_mut().actions.clear();
     let _ = h.click_part(TABS, PartRef::item(Part::CLOSE, idle));
     assert_eq!(h.app().actions, [TabsAction::Close(idle)]);
+}
+
+#[test]
+fn pressed_close_alone_keeps_capture_visible_until_release() {
+    let mut h = harness(Some(TabCloseReveal::Hover));
+    let active = ItemKey::num(2);
+    let idle = ItemKey::num(3);
+    let idle_tab = tab_area(&h, idle);
+    let (x, y) = close_position(idle_tab);
+
+    assert_eq!(h.app().state.active(), Some(active));
+    assert_eq!(h.app().state.cursor(), Some(active));
+    assert_eq!(close_area(&h, idle), None);
+
+    let _ = h.mouse(MouseKind::Move, x, y);
+    assert!(close_area(&h, idle).is_some(), "hover reveals the close");
+    assert_eq!(h.app().state.active(), Some(active));
+    assert_eq!(h.app().state.cursor(), Some(active));
+
+    let _ = h.mouse(MouseKind::Down, x, y);
+    let _ = h.mouse(MouseKind::Drag, 35, 2);
+    assert_eq!(h.app().state.active(), Some(active));
+    assert_eq!(h.app().state.cursor(), Some(active));
+    assert!(
+        close_area(&h, idle).is_some(),
+        "physical close press alone retains the captured affordance"
+    );
+    assert_ne!(h.cell(x, y).symbol(), " ");
+
+    let _ = h.mouse(MouseKind::Up, 35, 2);
+    assert!(h.app().actions.is_empty(), "release outside never closes");
+    assert_eq!(close_area(&h, idle), None);
+    assert_eq!(h.cell(x, y).symbol(), " ");
+
+    let _ = h.mouse(MouseKind::Move, x, y);
+    let _ = h.mouse(MouseKind::Down, x, y);
+    let _ = h.mouse(MouseKind::Up, x, y);
+    assert_eq!(h.app().actions, [TabsAction::Close(idle)]);
+}
+
+#[test]
+fn tab_press_does_not_suppress_a_close_that_was_already_live() {
+    let mut h = harness(Some(TabCloseReveal::Hover));
+    let active = ItemKey::num(2);
+    let tab = tab_area(&h, active);
+    let close = close_area(&h, active).expect("active close is already live");
+    let body_x = tab.x.saturating_add(1);
+
+    assert_ne!(body_x, close.x);
+    let _ = h.mouse(MouseKind::Down, body_x, tab.y);
+    assert_eq!(close_area(&h, active), Some(close));
+    assert_ne!(h.cell(close.x, close.y).symbol(), " ");
+    let _ = h.mouse(MouseKind::Up, body_x, tab.y);
+    assert_eq!(h.app().state.active(), Some(active));
 }
 
 #[test]
