@@ -34,9 +34,11 @@ struct Page {
     disable_first_on_input: bool,
     remove_nav: bool,
     disable_first: bool,
+    survivor_only: bool,
     request: Option<Request>,
     updates: usize,
     focus_ins: usize,
+    key_owners: Vec<Id>,
 }
 
 impl App for Page {
@@ -49,8 +51,12 @@ impl App for Page {
         }
         for owner in [NAV, OLD, NEW, LAST, MODAL, MODAL_FIRST, MODAL_LAST] {
             for intent in cx.intents(owner) {
-                if matches!(intent, Intent::FocusIn { .. }) {
-                    self.focus_ins = self.focus_ins.saturating_add(1);
+                match intent {
+                    Intent::FocusIn { .. } => {
+                        self.focus_ins = self.focus_ins.saturating_add(1);
+                    }
+                    Intent::Key(_) => self.key_owners.push(owner),
+                    _ => {}
                 }
             }
         }
@@ -85,6 +91,10 @@ impl App for Page {
     }
 
     fn draw(&self, ui: &mut Ui<'_>) {
+        if self.survivor_only {
+            ui.register_control(LAST, Rect::new(0, 4, 8, 1), Focusability::Focusable);
+            return;
+        }
         if !self.remove_nav {
             ui.register_control(NAV, Rect::new(0, 0, 8, 1), Focusability::Focusable);
         }
@@ -159,6 +169,54 @@ fn removed_anchor_reconciles_to_nearest_surviving_control() {
     let _ = termrock_test_support::deliver(&mut rt, AREA, input());
     rt.draw_buffer(AREA, &mut buffer).commit_presented();
     assert_eq!(rt.focus(), Some(OLD));
+}
+
+#[test]
+fn removed_focused_control_falls_back_to_the_sole_survivor_and_routes_next_key() {
+    let (mut rt, mut buffer) = runtime();
+    assert_eq!(rt.focus(), Some(NAV));
+
+    let _ = termrock_test_support::deliver(
+        &mut rt,
+        AREA,
+        Input::Key(Key {
+            code: KeyCode::Tab,
+            mods: KeyModifiers::NONE,
+        }),
+    );
+    rt.draw_buffer(AREA, &mut buffer).commit_presented();
+    assert_eq!(rt.focus(), Some(OLD), "B must be focused before removal");
+
+    // Publish only A. No Event, focus request, or traversal runs during this
+    // removal; the Runtime must reconcile the previously focused B itself.
+    rt.app_mut().survivor_only = true;
+    rt.draw_buffer(AREA, &mut buffer).commit_presented();
+    let reachable = rt
+        .ring()
+        .reachable()
+        .map(|entry| entry.id)
+        .collect::<Vec<_>>();
+    assert_eq!(reachable, [LAST], "A must be the sole reachable control");
+    assert_eq!(rt.focus(), Some(LAST), "focus must fall back to A");
+    assert!(
+        rt.diagnostics().is_empty(),
+        "unexpected diagnostics: {:?}",
+        rt.diagnostics()
+    );
+
+    let routed_before = rt.app().key_owners.len();
+    let _ = termrock_test_support::deliver(&mut rt, AREA, input());
+    assert_eq!(rt.app().key_owners.len(), routed_before + 1);
+    assert_eq!(
+        rt.app().key_owners[routed_before],
+        LAST,
+        "the next key must route to A"
+    );
+    assert!(
+        rt.diagnostics().is_empty(),
+        "unexpected diagnostics: {:?}",
+        rt.diagnostics()
+    );
 }
 
 #[test]
