@@ -559,7 +559,7 @@ impl Registry {
         let parent_index = child_route.parent_index?;
         if child_route.invalid
             || !self.route_region_is_eligible(child_index, axis, pos, layer)
-            || self.route_pair_is_ambiguous(child_index, parent_index)
+            || self.route_pair_is_ambiguous(child_index, parent_index, axis, pos, layer)
         {
             return None;
         }
@@ -637,25 +637,29 @@ impl Registry {
         })
     }
 
-    fn route_pair_is_ambiguous(&self, child_index: usize, parent_index: usize) -> bool {
+    fn route_pair_is_ambiguous(
+        &self,
+        child_index: usize,
+        parent_index: usize,
+        axis: Axis,
+        pos: Position,
+        layer: LayerId,
+    ) -> bool {
         let Some(child) = self.regions.get(child_index) else {
             return true;
         };
         let Some(parent) = self.regions.get(parent_index) else {
             return true;
         };
-        self.regions.iter().enumerate().any(|(index, region)| {
-            index != child_index
-                && region.kind == RegionKind::Scroll
-                && (region.owner, region.part) == (child.owner, child.part)
-                && region.area == child.area
-                && !self.same_routed_registration(child_index, index)
-        }) || self.regions.iter().enumerate().any(|(index, region)| {
-            index != parent_index
-                && region.kind == RegionKind::Scroll
-                && (region.owner, region.part) == (parent.owner, parent.part)
-                && region.area == parent.area
-                && !self.same_routed_registration(parent_index, index)
+        self.scroll_candidates(pos, axis, layer).any(|candidate| {
+            let index = candidate.registration_index();
+            let Some(region) = self.regions.get(index) else {
+                return true;
+            };
+            ((region.owner, region.part) == (child.owner, child.part)
+                && !self.same_routed_registration(child_index, index))
+                || ((region.owner, region.part) == (parent.owner, parent.part)
+                    && !self.same_routed_registration(parent_index, index))
         })
     }
 
@@ -1285,6 +1289,62 @@ mod tests {
             overlap.next_scroll_route_parent(child, Axis::V, Position::new(4, 4), LayerId::PAGE),
             None,
             "an unrelated eligible registration is not skipped"
+        );
+    }
+
+    #[test]
+    fn older_same_owner_part_scroll_conflicts_block_parent_offer() {
+        let outer = Rect::new(0, 0, 30, 30);
+        let parent_area = Rect::new(0, 0, 20, 20);
+        let inner = Rect::new(2, 2, 10, 10);
+        let point = Position::new(4, 4);
+
+        let mut older_child_conflict = Registry::new(3);
+        older_child_conflict
+            .register_routed_scroll(B, outer, LayerId::PAGE, Axes::V, Headroom::default(), 99)
+            .expect("the older conflicting child registration");
+        let parent = older_child_conflict
+            .register_routed_scroll(
+                A,
+                parent_area,
+                LayerId::PAGE,
+                Axes::V,
+                Headroom::default(),
+                7,
+            )
+            .expect("the selected parent");
+        let child = older_child_conflict
+            .register_routed_scroll(B, inner, LayerId::PAGE, Axes::V, Headroom::default(), 11)
+            .expect("the selected child with conflicting owner metadata");
+        assert!(older_child_conflict.link_scroll_parent(child, parent));
+        assert_eq!(
+            older_child_conflict.next_scroll_route_parent(child, Axis::V, point, LayerId::PAGE),
+            None,
+            "an older event-eligible same-owner/part child conflict blocks the parent"
+        );
+
+        let mut older_parent_conflict = Registry::new(3);
+        older_parent_conflict
+            .register_routed_scroll(A, outer, LayerId::PAGE, Axes::V, Headroom::default(), 99)
+            .expect("the older conflicting parent registration");
+        let parent = older_parent_conflict
+            .register_routed_scroll(
+                A,
+                parent_area,
+                LayerId::PAGE,
+                Axes::V,
+                Headroom::default(),
+                7,
+            )
+            .expect("the selected parent with conflicting owner metadata");
+        let child = older_parent_conflict
+            .register_routed_scroll(B, inner, LayerId::PAGE, Axes::V, Headroom::default(), 11)
+            .expect("the selected child");
+        assert!(older_parent_conflict.link_scroll_parent(child, parent));
+        assert_eq!(
+            older_parent_conflict.next_scroll_route_parent(child, Axis::V, point, LayerId::PAGE),
+            None,
+            "an older event-eligible same-owner/part parent conflict blocks the offer"
         );
     }
 

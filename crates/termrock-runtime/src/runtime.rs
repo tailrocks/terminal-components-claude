@@ -6237,7 +6237,7 @@ mod tests {
         owner: Id,
         area: Rect,
         source_revision: u64,
-        parent: Option<Id>,
+        parent: Option<usize>,
     }
 
     #[derive(Debug)]
@@ -6305,6 +6305,7 @@ mod tests {
         fn source_revision(&self, owner: Id) -> Option<u64> {
             self.nodes
                 .iter()
+                .rev()
                 .find(|node| node.owner == owner)
                 .map(|node| {
                     if owner == ROUTE_CHILD {
@@ -6432,7 +6433,7 @@ mod tests {
         }
 
         fn draw(&self, ui: &mut Ui<'_>) {
-            let mut keys = Vec::new();
+            let mut keys = Vec::with_capacity(self.nodes.len());
             for node in &self.nodes {
                 if self.focusable_controls {
                     ui.register_control(node.owner, node.area, Focusability::Focusable);
@@ -6449,9 +6450,7 @@ mod tests {
                     ui.register_scroll(node.owner, node.area, Axes::V, Headroom::default());
                     None
                 };
-                if let Some(key) = key {
-                    keys.push((node.owner, key));
-                }
+                keys.push(key);
             }
             if self.modal_on_bootstrap
                 && let Some(node) = self.nodes.iter().find(|node| node.owner == ROUTE_CHILD)
@@ -6476,20 +6475,12 @@ mod tests {
                         }
                     })
                     .flatten();
-                if let Some(key) = key {
-                    keys.push((node.owner, key));
-                }
+                let _ = key;
             }
-            for node in &self.nodes {
-                if let Some(parent) = node.parent {
-                    let child_key = keys
-                        .iter()
-                        .find(|(owner, _)| *owner == node.owner)
-                        .map(|(_, key)| *key);
-                    let parent_key = keys
-                        .iter()
-                        .find(|(owner, _)| *owner == parent)
-                        .map(|(_, key)| *key);
+            for (child_index, node) in self.nodes.iter().enumerate() {
+                if let Some(parent_index) = node.parent {
+                    let child_key = keys.get(child_index).copied().flatten();
+                    let parent_key = keys.get(parent_index).copied().flatten();
                     if let (Some(child), Some(parent)) = (child_key, parent_key) {
                         assert!(ui.link_scroll_parent(child, parent));
                     }
@@ -6510,7 +6501,7 @@ mod tests {
                 owner: ROUTE_CHILD,
                 area: ROUTE_INNER,
                 source_revision: 34,
-                parent: Some(ROUTE_PARENT),
+                parent: Some(0),
             },
         ];
         let order = if parent_first {
@@ -6535,13 +6526,13 @@ mod tests {
                 owner: ROUTE_PARENT,
                 area: ROUTE_OUTER,
                 source_revision: 21,
-                parent: Some(ROUTE_ROOT),
+                parent: Some(0),
             },
             RoutedWheelNode {
                 owner: ROUTE_CHILD,
                 area: ROUTE_INNER,
                 source_revision: 34,
-                parent: Some(ROUTE_PARENT),
+                parent: Some(1),
             },
         ];
         let mut probe = RoutedWheelProbe::new(nodes, vec![ROUTE_CHILD, ROUTE_PARENT, ROUTE_ROOT]);
@@ -6628,6 +6619,81 @@ mod tests {
                 1
             );
             assert_eq!(probe.ack_results, [true, true]);
+            assert_eq!(runtime.diagnostics(), []);
+        }
+    }
+
+    #[test]
+    fn older_conflicting_owner_regions_keep_one_wheel_delivery_and_suppress_parent_service() {
+        let outer_conflict = Rect::new(0, 0, 30, 30);
+        let cases = [
+            vec![
+                RoutedWheelNode {
+                    owner: ROUTE_CHILD,
+                    area: outer_conflict,
+                    source_revision: 99,
+                    parent: None,
+                },
+                RoutedWheelNode {
+                    owner: ROUTE_PARENT,
+                    area: ROUTE_OUTER,
+                    source_revision: 7,
+                    parent: None,
+                },
+                RoutedWheelNode {
+                    owner: ROUTE_CHILD,
+                    area: ROUTE_INNER,
+                    source_revision: 34,
+                    parent: Some(1),
+                },
+            ],
+            vec![
+                RoutedWheelNode {
+                    owner: ROUTE_PARENT,
+                    area: outer_conflict,
+                    source_revision: 99,
+                    parent: None,
+                },
+                RoutedWheelNode {
+                    owner: ROUTE_PARENT,
+                    area: ROUTE_OUTER,
+                    source_revision: 7,
+                    parent: None,
+                },
+                RoutedWheelNode {
+                    owner: ROUTE_CHILD,
+                    area: ROUTE_INNER,
+                    source_revision: 34,
+                    parent: Some(1),
+                },
+            ],
+        ];
+
+        for nodes in cases {
+            let mut probe = RoutedWheelProbe::new(nodes, vec![ROUTE_CHILD, ROUTE_PARENT]);
+            probe.callback_results = vec![(ROUTE_PARENT, Some(WheelRouteResult::Ignored))];
+            let mut runtime = ready_routed_runtime(probe);
+            let _ = deliver(&mut runtime, route_wheel_input(Axis::V, 2));
+
+            let app = runtime.app();
+            assert_eq!(app.event_updates, 1, "the physical wheel updates once");
+            assert_eq!(
+                app.wheel_deliveries,
+                [(
+                    ROUTE_CHILD,
+                    Axis::V,
+                    2 * Theme::junie().design.motion.wheel_rows as i16,
+                    ROUTE_POINT,
+                )],
+                "the ordinary wheel delivery is preserved exactly once"
+            );
+            assert_eq!(app.initial_attempts.len(), 1);
+            assert_eq!(app.initial_attempts[0].owner(), ROUTE_CHILD);
+            assert!(
+                app.service_attempts.is_empty(),
+                "conflicting older owner metadata blocks the parent callback"
+            );
+            assert_eq!(app.ack_results, [true]);
             assert_eq!(runtime.diagnostics(), []);
         }
     }
@@ -6810,7 +6876,7 @@ mod tests {
                 parent: None,
             },
         );
-        nodes[1].parent = Some(ROUTE_ROOT);
+        nodes[2].parent = Some(1);
         let mut probe =
             RoutedWheelProbe::new(nodes.clone(), vec![ROUTE_CHILD, ROUTE_PARENT, ROUTE_ROOT]);
         probe.open_close_on_service = Some(ROUTE_MODAL);
