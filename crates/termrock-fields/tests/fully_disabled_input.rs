@@ -1,7 +1,7 @@
 use std::{cell::RefCell, rc::Rc};
 
 use termrock_fields::{TextAction, TextInput, TextInputState};
-use termrock_runtime::{App, Cx, Id, Rect, Response, Ui};
+use termrock_runtime::{App, Cx, Id, MouseKind, Rect, Response, Ui};
 use termrock_test_support::Harness;
 use termrock_theme::Theme;
 
@@ -83,7 +83,17 @@ fn fully_disabled_input_stays_unchanged_and_does_not_take_keyboard_focus() {
         "the enabled control is a real keyboard-binding control"
     );
 
-    let _ = page.click(4, LOCKED_AREA.y);
+    let disabled_down = page.mouse(MouseKind::Down, 4, LOCKED_AREA.y);
+    let disabled_up = page.mouse(MouseKind::Up, 4, LOCKED_AREA.y);
+    let disabled_click = disabled_down.clone() | disabled_up.clone();
+    assert!(
+        disabled_down.is_consumed(),
+        "the disabled physical primary Down is refused"
+    );
+    assert!(
+        !disabled_up.is_consumed(),
+        "a refused Down did not create a press for the following Up"
+    );
     assert_eq!(
         page.focus(),
         Some(EDITABLE),
@@ -106,4 +116,9 @@ fn fully_disabled_input_stays_unchanged_and_does_not_take_keyboard_focus() {
     assert_eq!(page.app().locked_state, locked_state_before);
     assert_eq!(page.app().locked_value, "locked");
     assert!(page.app().locked_actions.borrow().is_empty());
+
+    assert!(
+        disabled_click.is_consumed(),
+        "the ordinary Down|Up aggregate reports the refused click; down={disabled_down:?}, up={disabled_up:?}, aggregate={disabled_click:?}"
+    );
 }
