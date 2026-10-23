@@ -208,6 +208,50 @@ pub enum TabsCmd {
     New,
 }
 
+/// Configuration errors for replacement Tabs New and Close key groups.
+///
+/// A group may contain only its corresponding command. Action identities must
+/// be unique across the effective Tabs table, and declared chords must not
+/// collide under [`Chord::effective_eq`]. The default New or Close group is
+/// omitted from validation when that same group is replaced.
+#[non_exhaustive]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TabsKeyBindingsError {
+    /// A binding in the New group had a command other than [`TabsCmd::New`].
+    NewGroupCommand { index: usize, found: TabsCmd },
+    /// A binding in the Close group had a command other than [`TabsCmd::Close`].
+    CloseGroupCommand { index: usize, found: TabsCmd },
+    /// Two effective bindings reused one action identity.
+    DuplicateAction { action: crate::ActionKey },
+    /// Two effective bindings declared chords that match the same input.
+    ConflictingChord {
+        first: crate::ActionKey,
+        second: crate::ActionKey,
+    },
+}
+
+impl fmt::Display for TabsKeyBindingsError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::NewGroupCommand { index, found } => {
+                write!(f, "New binding {index} uses non-New command {found:?}")
+            }
+            Self::CloseGroupCommand { index, found } => {
+                write!(f, "Close binding {index} uses non-Close command {found:?}")
+            }
+            Self::DuplicateAction { action } => {
+                write!(f, "Tabs key bindings reuse action identity {action:?}")
+            }
+            Self::ConflictingChord { first, second } => write!(
+                f,
+                "Tabs actions {first:?} and {second:?} declare conflicting chords"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for TabsKeyBindingsError {}
+
 const fn b(
     action: &'static str,
     chord: Chord,
@@ -353,6 +397,26 @@ const NEW_N: Binding<TabsCmd> = b(
     "New",
     true,
 );
+#[derive(Clone, Copy)]
+struct EffectiveTabsKeyGroups {
+    base: &'static [Binding<TabsCmd>],
+    new: &'static [Binding<TabsCmd>],
+    close: &'static [Binding<TabsCmd>],
+}
+
+impl EffectiveTabsKeyGroups {
+    const EMPTY: Self = Self {
+        base: &[],
+        new: &[],
+        close: &[],
+    };
+
+    fn command(self, action: crate::ActionKey) -> Option<TabsCmd> {
+        [self.base, self.new, self.close]
+            .into_iter()
+            .find_map(|table| Binding::command(table, action))
+    }
+}
 
 macro_rules! table {
     ($name:ident, $n:expr, [$($extra:expr),*]) => {
@@ -481,8 +545,10 @@ pub struct TabLayout {
     first: Option<ItemKey>,
     first_tab_x: u16,
     allow_new: bool,
+    new_key_bindings: Option<&'static [Binding<TabsCmd>]>,
     closable: bool,
     closable_keys: Option<Vec<ItemKey>>,
+    close_key_bindings: Option<&'static [Binding<TabsCmd>]>,
     close_reveal: TabCloseReveal,
     close_target_w: Option<u16>,
     close_danger_hover: bool,
@@ -653,8 +719,10 @@ pub struct Tabs<'a, T, K = ByIndex, R = DefaultRow> {
     key: K,
     row: R,
     allow_new: bool,
+    new_key_bindings: Option<&'static [Binding<TabsCmd>]>,
     closable: bool,
     closable_keys: Option<&'a [ItemKey]>,
+    close_key_bindings: Option<&'static [Binding<TabsCmd>]>,
     middle_click_closes: bool,
     close_reveal: TabCloseReveal,
     close_target_w: Option<u16>,
@@ -674,8 +742,10 @@ impl<T, K, R> fmt::Debug for Tabs<'_, T, K, R> {
         f.debug_struct("Tabs")
             .field("id", &self.id)
             .field("allow_new", &self.allow_new)
+            .field("new_key_bindings", &self.new_key_bindings)
             .field("closable", &self.closable)
             .field("closable_keys", &self.closable_keys)
+            .field("close_key_bindings", &self.close_key_bindings)
             .field("middle_click_closes", &self.middle_click_closes)
             .field("close_reveal", &self.close_reveal)
             .field("close_target_w", &self.close_target_w)
@@ -697,8 +767,10 @@ impl<T> Tabs<'_, T, ByIndex, DefaultRow> {
             key: ByIndex,
             row: DefaultRow,
             allow_new: false,
+            new_key_bindings: None,
             closable: false,
             closable_keys: None,
+            close_key_bindings: None,
             middle_click_closes: true,
             close_reveal: TabCloseReveal::Always,
             close_target_w: None,
@@ -739,8 +811,10 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
             key: k,
             row: self.row,
             allow_new: self.allow_new,
+            new_key_bindings: self.new_key_bindings,
             closable: self.closable,
             closable_keys: self.closable_keys,
+            close_key_bindings: self.close_key_bindings,
             middle_click_closes: self.middle_click_closes,
             close_reveal: self.close_reveal,
             close_target_w: self.close_target_w,
@@ -762,8 +836,10 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
             key: self.key,
             row: r,
             allow_new: self.allow_new,
+            new_key_bindings: self.new_key_bindings,
             closable: self.closable,
             closable_keys: self.closable_keys,
+            close_key_bindings: self.close_key_bindings,
             middle_click_closes: self.middle_click_closes,
             close_reveal: self.close_reveal,
             close_target_w: self.close_target_w,
@@ -785,10 +861,64 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
         self
     }
 
+    /// Replace the keyboard bindings for [`TabsCmd::New`].
+    ///
+    /// The default `None` keeps the built-in New binding in the base
+    /// [`Bindings`] table. `Some(&[])` explicitly removes New keyboard
+    /// bindings while leaving the pointer New part governed by
+    /// [`Self::allow_new`]. A custom static table is published with its
+    /// original action, chord, label, priority, and visibility metadata.
+    ///
+    /// The complete potential command table is validated, even when New is
+    /// currently disabled or this Tabs instance is passive. Use
+    /// [`Self::new_key_table`] to publish the supplemental table when painting
+    /// manually alongside [`Bindings::bindings`].
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when a binding uses a command other than
+    /// [`TabsCmd::New`], reuses an effective action identity, or has a chord
+    /// that conflicts with another effective binding.
+    pub fn try_new_key_bindings(
+        mut self,
+        bindings: Option<&'static [Binding<TabsCmd>]>,
+    ) -> Result<Self, TabsKeyBindingsError> {
+        validate_tabs_key_bindings(bindings, self.close_key_bindings)?;
+        self.new_key_bindings = bindings;
+        Ok(self)
+    }
+
     #[must_use]
     pub fn closable(mut self, yes: bool) -> Self {
         self.closable = yes;
         self
+    }
+
+    /// Replace the keyboard bindings for [`TabsCmd::Close`].
+    ///
+    /// The default `None` keeps the built-in Close bindings in the base
+    /// [`Bindings`] table. `Some(&[])` explicitly removes Close keyboard
+    /// bindings without changing close-target eligibility, pointer clicks, or
+    /// Middle behavior. A custom static table is published with its original
+    /// action, chord, label, priority, and visibility metadata.
+    ///
+    /// The complete potential command table is validated, even when no item
+    /// is currently closable or this Tabs instance is passive. Use
+    /// [`Self::close_key_table`] to publish the supplemental table when
+    /// painting manually alongside [`Bindings::bindings`].
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when a binding uses a command other than
+    /// [`TabsCmd::Close`], reuses an effective action identity, or has a chord
+    /// that conflicts with another effective binding.
+    pub fn try_close_key_bindings(
+        mut self,
+        bindings: Option<&'static [Binding<TabsCmd>]>,
+    ) -> Result<Self, TabsKeyBindingsError> {
+        validate_tabs_key_bindings(self.new_key_bindings, bindings)?;
+        self.close_key_bindings = bindings;
+        Ok(self)
     }
 
     /// Close the currently closable tab under a middle-button press.
@@ -935,12 +1065,58 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
         self
     }
 
+    /// Supplemental New bindings for the current keyboard configuration.
+    ///
+    /// The built-in New command remains in the unchanged base table returned
+    /// by [`Bindings::bindings`] while no custom New table is configured. This
+    /// accessor returns only the extra table to publish when a custom table
+    /// replaces that default, and returns an empty slice when New is gated or
+    /// the Tabs owner is passive.
+    pub fn new_key_table(&self) -> &'static [Binding<TabsCmd>] {
+        self.effective_key_groups().new
+    }
+
+    /// Supplemental Close bindings for the current keyboard configuration.
+    ///
+    /// The built-in Close commands remain in the unchanged base table
+    /// returned by [`Bindings::bindings`] while no custom Close table is
+    /// configured. This accessor returns only the extra table to publish when
+    /// a custom table replaces those defaults, and returns an empty slice when
+    /// Close is gated or the Tabs owner is passive.
+    pub fn close_key_table(&self) -> &'static [Binding<TabsCmd>] {
+        self.effective_key_groups().close
+    }
+
     fn table(&self) -> &'static [Binding<TabsCmd>] {
+        self.effective_key_groups().base
+    }
+
+    fn effective_key_groups(&self) -> EffectiveTabsKeyGroups {
         if self.passive {
-            &[]
-        } else {
-            table_for(self.close_binding_enabled(), self.allow_new)
+            return EffectiveTabsKeyGroups::EMPTY;
         }
+
+        let close_enabled = self.close_binding_enabled();
+        let new_base_enabled = self.allow_new && self.new_key_bindings.is_none();
+        let close_base_enabled = close_enabled && self.close_key_bindings.is_none();
+        let base = if self.new_key_bindings.is_none() && self.close_key_bindings.is_none() {
+            // Keep the original static table and descriptor order byte-for-byte
+            // when neither optional group is configured.
+            table_for(close_enabled, self.allow_new)
+        } else {
+            table_for(close_base_enabled, new_base_enabled)
+        };
+        let new = if self.allow_new {
+            self.new_key_bindings.unwrap_or(&[])
+        } else {
+            &[]
+        };
+        let close = if close_enabled {
+            self.close_key_bindings.unwrap_or(&[])
+        } else {
+            &[]
+        };
+        EffectiveTabsKeyGroups { base, new, close }
     }
 
     fn close_binding_enabled(&self) -> bool {
@@ -961,6 +1137,61 @@ pub(crate) const fn table_for(closable: bool, allow_new: bool) -> &'static [Bind
         (false, true) => &NEWABLE,
         (true, true) => &FULL,
     }
+}
+
+fn validate_tabs_key_bindings(
+    new_bindings: Option<&'static [Binding<TabsCmd>]>,
+    close_bindings: Option<&'static [Binding<TabsCmd>]>,
+) -> Result<(), TabsKeyBindingsError> {
+    if let Some(bindings) = new_bindings {
+        for (index, binding) in bindings.iter().enumerate() {
+            if binding.cmd != TabsCmd::New {
+                return Err(TabsKeyBindingsError::NewGroupCommand {
+                    index,
+                    found: binding.cmd,
+                });
+            }
+        }
+    }
+    if let Some(bindings) = close_bindings {
+        for (index, binding) in bindings.iter().enumerate() {
+            if binding.cmd != TabsCmd::Close {
+                return Err(TabsKeyBindingsError::CloseGroupCommand {
+                    index,
+                    found: binding.cmd,
+                });
+            }
+        }
+    }
+
+    // Validate every command that could become active, regardless of current
+    // allow_new, close eligibility, or passive presentation. A configured
+    // override replaces only its own default group in this potential union.
+    let base = table_for(close_bindings.is_none(), new_bindings.is_none());
+    let mut seen: Vec<(crate::ActionKey, Option<Chord>)> = Vec::new();
+    for binding in base
+        .iter()
+        .chain(new_bindings.unwrap_or(&[]))
+        .chain(close_bindings.unwrap_or(&[]))
+    {
+        if seen.iter().any(|(action, _)| *action == binding.action) {
+            return Err(TabsKeyBindingsError::DuplicateAction {
+                action: binding.action,
+            });
+        }
+        if let Some(chord) = binding.chord
+            && let Some((first, _)) = seen
+                .iter()
+                .find(|(_, prior)| prior.is_some_and(|prior| prior.effective_eq(&chord)))
+        {
+            return Err(TabsKeyBindingsError::ConflictingChord {
+                first: *first,
+                second: binding.action,
+            });
+        }
+        seen.push((binding.action, binding.chord));
+    }
+    Ok(())
 }
 
 fn digits(n: usize, buf: &mut [u8; 2]) -> &str {
@@ -1040,7 +1271,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
             st.first_index = 0;
         }
         let mut acc = Acc::<TabsAction>::new();
-        let table = self.table();
+        let key_groups = self.effective_key_groups();
         for it in cx.intents(self.id) {
             match it {
                 Intent::Cancel | Intent::FocusOut { .. } | Intent::Layer(_) => {
@@ -1052,7 +1283,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                         continue;
                     }
                     let cur = st.core.cursor_index();
-                    match Binding::command(table, action) {
+                    match key_groups.command(action) {
                         Some(TabsCmd::Prev) => {
                             self.activate(st, items, cur.saturating_sub(1), &mut acc);
                         }
@@ -1300,8 +1531,15 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
         } else {
             live
         };
+        let key_groups = self.effective_key_groups();
         if !ui.is_inert() && !self.passive {
-            ui.publish_bindings(self.id, live, self.table());
+            ui.publish_bindings(self.id, live, key_groups.base);
+            if !key_groups.new.is_empty() {
+                ui.publish_additional_bindings(self.id, live, key_groups.new);
+            }
+            if !key_groups.close.is_empty() {
+                ui.publish_additional_bindings(self.id, live, key_groups.close);
+            }
         }
         let ov = self.ov;
         let id = self.id;
@@ -1972,8 +2210,10 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
                 first: state.first,
                 first_tab_x: area.x,
                 allow_new: self.allow_new,
+                new_key_bindings: self.new_key_bindings,
                 closable: self.closable,
                 closable_keys: self.closable_keys.map(<[ItemKey]>::to_vec),
+                close_key_bindings: self.close_key_bindings,
                 close_reveal: self.close_reveal,
                 close_target_w: self.close_target_w,
                 close_danger_hover: self.close_danger_hover,
@@ -2140,8 +2380,10 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
             first: state.first,
             first_tab_x,
             allow_new: self.allow_new,
+            new_key_bindings: self.new_key_bindings,
             closable: self.closable,
             closable_keys: self.closable_keys.map(<[ItemKey]>::to_vec),
+            close_key_bindings: self.close_key_bindings,
             close_reveal: self.close_reveal,
             close_target_w: self.close_target_w,
             close_danger_hover: self.close_danger_hover,
@@ -2177,8 +2419,10 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
     ) -> Result<Rect, TabLayoutMismatch> {
         if layout.id != self.id
             || layout.allow_new != self.allow_new
+            || layout.new_key_bindings != self.new_key_bindings
             || layout.closable != self.closable
             || layout.closable_keys.as_deref() != self.closable_keys
+            || layout.close_key_bindings != self.close_key_bindings
             || layout.close_reveal != self.close_reveal
             || layout.close_target_w != self.close_target_w
             || layout.close_danger_hover != self.close_danger_hover
@@ -2311,6 +2555,9 @@ fn painted_width(ui: &mut Ui<'_>, row: Rect) -> u16 {
 impl<T, K, R> Bindings for Tabs<'_, T, K, R> {
     type Cmd = TabsCmd;
 
+    // With a replacement group, the built-in rows for that group are removed
+    // from this base table. Manual publishers must add the corresponding
+    // supplemental table returned by `new_key_table` or `close_key_table`.
     fn bindings(&self, _s: BindingState) -> &'static [Binding<TabsCmd>] {
         self.table()
     }
