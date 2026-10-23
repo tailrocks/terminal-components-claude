@@ -84,7 +84,7 @@ pub struct Region {
     pass_through: bool,
 }
 
-/// Opaque identity for one opt-in scroll registration in one presented registry.
+/// Opaque identity for one opt-in wheel registration in one presented registry.
 ///
 /// A key can link only registrations created in the same registry generation.
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
@@ -198,7 +198,14 @@ impl ScrollCandidate {
 struct RoutedScroll {
     source_revision: u64,
     parent_index: Option<usize>,
+    policy: ScrollRoutePolicy,
     invalid: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum ScrollRoutePolicy {
+    LinkedParent,
+    HitStack,
 }
 
 impl Region {
@@ -400,13 +407,66 @@ impl Registry {
         head: Headroom,
         source_revision: u64,
     ) -> Option<ScrollRouteKey> {
+        self.register_routed_wheel_target(
+            owner,
+            PartRef::of(Part::CONTAINER),
+            area,
+            layer,
+            axes,
+            head,
+            source_revision,
+            ScrollRoutePolicy::LinkedParent,
+        )
+    }
+
+    /// Register a scroll-only, source-qualified wheel target in the opt-in hit stack.
+    ///
+    /// This creates a `Scroll` region with the supplied part, while leaving any
+    /// ordinary `Control` or `Part` registration unchanged. Only other targets
+    /// registered with this method can receive fallback offers.
+    pub fn register_hit_stack_wheel(
+        &mut self,
+        owner: Id,
+        part: PartRef,
+        area: Rect,
+        layer: LayerId,
+        axes: Axes,
+        source_revision: u64,
+    ) -> Option<ScrollRouteKey> {
+        self.register_routed_wheel_target(
+            owner,
+            part,
+            area,
+            layer,
+            axes,
+            Headroom::default(),
+            source_revision,
+            ScrollRoutePolicy::HitStack,
+        )
+    }
+
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "one registry helper creates an exact source-qualified wheel registration"
+    )]
+    fn register_routed_wheel_target(
+        &mut self,
+        owner: Id,
+        part: PartRef,
+        area: Rect,
+        layer: LayerId,
+        axes: Axes,
+        head: Headroom,
+        source_revision: u64,
+        policy: ScrollRoutePolicy,
+    ) -> Option<ScrollRouteKey> {
         if area.is_empty() || self.route_epoch_exhausted {
             return None;
         }
         let registration_index = self.regions.len();
         self.push(
             owner,
-            PartRef::of(Part::CONTAINER),
+            part,
             area,
             layer,
             RegionKind::Scroll,
@@ -419,6 +479,7 @@ impl Registry {
         *route = Some(RoutedScroll {
             source_revision,
             parent_index: None,
+            policy,
             invalid: false,
         });
         Some(ScrollRouteKey {
@@ -442,6 +503,16 @@ impl Registry {
             return false;
         };
         let valid_pair = child_index > parent_index
+            && self
+                .routed_scrolls
+                .get(child_index)
+                .and_then(Option::as_ref)
+                .is_some_and(|route| route.policy == ScrollRoutePolicy::LinkedParent)
+            && self
+                .routed_scrolls
+                .get(parent_index)
+                .and_then(Option::as_ref)
+                .is_some_and(|route| route.policy == ScrollRoutePolicy::LinkedParent)
             && self.regions.get(child_index).is_some_and(|child_region| {
                 self.regions.get(parent_index).is_some_and(|parent_region| {
                     child_region.kind == RegionKind::Scroll
@@ -546,6 +617,13 @@ impl Registry {
         (!route.invalid && region.kind == RegionKind::Scroll).then_some(route.source_revision)
     }
 
+    pub(crate) fn routed_scroll_policy(&self, key: ScrollRouteKey) -> Option<ScrollRoutePolicy> {
+        let index = self.valid_route_key(key)?;
+        let route = self.routed_scrolls.get(index)?.as_ref()?;
+        let region = self.regions.get(index)?;
+        (!route.invalid && region.kind == RegionKind::Scroll).then_some(route.policy)
+    }
+
     pub(crate) fn next_scroll_route_parent(
         &self,
         key: ScrollRouteKey,
@@ -593,6 +671,182 @@ impl Registry {
         None
     }
 
+    pub(crate) fn next_scroll_route_target(
+        &self,
+        key: ScrollRouteKey,
+        axis: Axis,
+        pos: Position,
+        layer: LayerId,
+        offered_owners: &[Id],
+    ) -> Option<(ScrollRouteKey, u64)> {
+        match self.routed_scroll_policy(key)? {
+            ScrollRoutePolicy::LinkedParent => self.next_scroll_route_parent(key, axis, pos, layer),
+            ScrollRoutePolicy::HitStack => {
+                self.next_hit_stack_wheel_target(key, axis, pos, layer, offered_owners)
+            }
+        }
+    }
+
+    fn next_hit_stack_wheel_target(
+        &self,
+        key: ScrollRouteKey,
+        axis: Axis,
+        pos: Position,
+        layer: LayerId,
+        offered_owners: &[Id],
+    ) -> Option<(ScrollRouteKey, u64)> {
+        let current_index = self.valid_route_key(key)?;
+        let current_route = self.routed_scrolls.get(current_index)?.as_ref()?;
+        if current_route.invalid
+            || current_route.policy != ScrollRoutePolicy::HitStack
+            || !self.route_region_is_eligible(current_index, axis, pos, layer)
+            || !self.hit_stack_route_is_unambiguous(current_index, layer)
+            || !self.hit_stack_route_is_clear_above(current_index, axis, pos, layer, offered_owners)
+        {
+            return None;
+        }
+
+        let mut after_current = false;
+        for (index, region) in self.regions.iter().enumerate().rev() {
+            if index == current_index {
+                after_current = true;
+                continue;
+            }
+            if !after_current
+                || !region.pointer_enabled
+                || region.layer != layer
+                || !region.area.contains(pos)
+                || region.kind == RegionKind::HoverOnly
+            {
+                continue;
+            }
+
+            if offered_owners.contains(&region.owner) {
+                continue;
+            }
+
+            match region.kind {
+                RegionKind::Control | RegionKind::Part => {
+                    if self.hit_stack_region_is_enrolled_part(index, axis, pos, layer) {
+                        continue;
+                    }
+                    return None;
+                }
+                RegionKind::Scroll => {
+                    let (axes, _) = region.scroll?;
+                    if !axes.handles(axis) {
+                        continue;
+                    }
+                    let route = self.routed_scrolls.get(index).and_then(Option::as_ref)?;
+                    if route.invalid
+                        || route.policy != ScrollRoutePolicy::HitStack
+                        || region.scroll_routing != ScrollRouting::Capture
+                        || !self.hit_stack_route_is_unambiguous(index, layer)
+                    {
+                        return None;
+                    }
+                    return self.routed_scroll_info(index);
+                }
+                RegionKind::HoverOnly => {}
+                RegionKind::Decorative | RegionKind::Backdrop => return None,
+            }
+        }
+        None
+    }
+
+    fn hit_stack_route_is_unambiguous(&self, selected_index: usize, layer: LayerId) -> bool {
+        let Some(selected) = self.regions.get(selected_index) else {
+            return false;
+        };
+        self.regions.iter().enumerate().all(|(index, region)| {
+            index == selected_index
+                || region.kind != RegionKind::Scroll
+                || region.layer != layer
+                || (region.owner, region.part) != (selected.owner, selected.part)
+                || self.same_routed_registration(selected_index, index)
+        })
+    }
+
+    fn hit_stack_route_is_clear_above(
+        &self,
+        selected_index: usize,
+        axis: Axis,
+        pos: Position,
+        layer: LayerId,
+        offered_owners: &[Id],
+    ) -> bool {
+        for (index, region) in self.regions.iter().enumerate().rev() {
+            if index <= selected_index {
+                break;
+            }
+            if !region.pointer_enabled || region.layer != layer || !region.area.contains(pos) {
+                continue;
+            }
+            match region.kind {
+                RegionKind::HoverOnly => continue,
+                RegionKind::Control | RegionKind::Part => {
+                    if offered_owners.contains(&region.owner)
+                        && self.hit_stack_region_is_enrolled_part(index, axis, pos, layer)
+                    {
+                        continue;
+                    }
+                    return false;
+                }
+                RegionKind::Scroll => {
+                    if !region.scroll.is_some_and(|(axes, _)| axes.handles(axis)) {
+                        continue;
+                    }
+                    let is_offered_hit_stack_target = offered_owners.contains(&region.owner)
+                        && self
+                            .routed_scrolls
+                            .get(index)
+                            .and_then(Option::as_ref)
+                            .is_some_and(|route| {
+                                route.policy == ScrollRoutePolicy::HitStack && !route.invalid
+                            });
+                    if is_offered_hit_stack_target
+                        || self.same_routed_registration(selected_index, index)
+                    {
+                        continue;
+                    }
+                    return false;
+                }
+                RegionKind::Decorative | RegionKind::Backdrop => return false,
+            }
+        }
+        true
+    }
+
+    fn hit_stack_region_is_enrolled_part(
+        &self,
+        region_index: usize,
+        axis: Axis,
+        pos: Position,
+        layer: LayerId,
+    ) -> bool {
+        let Some(region) = self.regions.get(region_index) else {
+            return false;
+        };
+        if !matches!(region.kind, RegionKind::Control | RegionKind::Part) {
+            return false;
+        }
+        self.regions
+            .iter()
+            .enumerate()
+            .any(|(target_index, target)| {
+                target.owner == region.owner
+                    && target.part == region.part
+                    && target.area == region.area
+                    && target.layer == region.layer
+                    && target.generation == region.generation
+                    && target.kind == RegionKind::Scroll
+                    && self.routed_scrolls[target_index].is_some_and(|route| {
+                        route.policy == ScrollRoutePolicy::HitStack && !route.invalid
+                    })
+                    && self.route_region_is_eligible(target_index, axis, pos, layer)
+            })
+    }
+
     pub(crate) fn route_key_is_eligible(
         &self,
         key: ScrollRouteKey,
@@ -600,10 +854,13 @@ impl Registry {
         pos: Position,
         layer: LayerId,
     ) -> bool {
-        self.valid_route_key(key).is_some_and(|index| {
-            self.route_region_is_eligible(index, axis, pos, layer)
-                && !self.routed_scrolls[index].is_some_and(|route| route.invalid)
-        })
+        let Some(index) = self.valid_route_key(key) else {
+            return false;
+        };
+        let Some(route) = self.routed_scrolls.get(index).and_then(Option::as_ref) else {
+            return false;
+        };
+        self.route_region_is_eligible(index, axis, pos, layer) && !route.invalid
     }
 
     pub(crate) fn routed_scroll_hit(
@@ -690,6 +947,7 @@ impl Registry {
             && left.pass_through == right.pass_through
             && left_route.source_revision == right_route.source_revision
             && left_route.parent_index == right_route.parent_index
+            && left_route.policy == right_route.policy
             && !left_route.invalid
             && !right_route.invalid
     }
@@ -1246,6 +1504,82 @@ mod tests {
             Some((parent, 7)),
             "identical registration metadata coalesces to one target"
         );
+    }
+
+    #[test]
+    fn hit_stack_keys_are_registry_scoped_and_epoch_exhaustion_fails_closed() {
+        let area = Rect::new(1, 1, 12, 6);
+        let mut registry = Registry::new(3);
+        let key = registry
+            .register_hit_stack_wheel(
+                A,
+                PartRef::of(Part::LABEL),
+                area,
+                LayerId::PAGE,
+                Axes::Both,
+                7,
+            )
+            .expect("the hit-stack registration");
+        assert!(registry.route_key_is_eligible(key, Axis::H, Position::new(4, 3), LayerId::PAGE,));
+
+        let mut clone = registry.clone();
+        assert!(!clone.route_key_is_eligible(key, Axis::H, Position::new(4, 3), LayerId::PAGE,));
+        let clone_key = clone
+            .register_hit_stack_wheel(
+                A,
+                PartRef::of(Part::LABEL),
+                area,
+                LayerId::PAGE,
+                Axes::Both,
+                7,
+            )
+            .expect("the clone creates a registry-local key");
+        assert_ne!(key, clone_key);
+        assert!(clone.route_key_is_eligible(
+            clone_key,
+            Axis::H,
+            Position::new(4, 3),
+            LayerId::PAGE,
+        ));
+
+        registry.route_epoch = u64::MAX;
+        registry.reset(4);
+        assert!(registry.route_epoch_exhausted);
+        assert!(
+            registry
+                .register_hit_stack_wheel(
+                    A,
+                    PartRef::of(Part::LABEL),
+                    area,
+                    LayerId::PAGE,
+                    Axes::Both,
+                    7,
+                )
+                .is_none()
+        );
+    }
+
+    #[test]
+    fn hit_stack_keys_cannot_be_mixed_into_parent_links() {
+        let mut registry = Registry::new(3);
+        let outer = Rect::new(0, 0, 20, 12);
+        let inner = Rect::new(2, 2, 12, 6);
+        let parent = registry
+            .register_routed_scroll(A, outer, LayerId::PAGE, Axes::Both, Headroom::default(), 7)
+            .expect("the linked parent");
+        let child = registry
+            .register_hit_stack_wheel(
+                B,
+                PartRef::of(Part::LABEL),
+                inner,
+                LayerId::PAGE,
+                Axes::Both,
+                11,
+            )
+            .expect("the hit-stack child");
+
+        assert!(!registry.link_scroll_parent(child, parent));
+        assert_eq!(registry.routed_scroll_source_revision(child), None);
     }
 
     #[test]
