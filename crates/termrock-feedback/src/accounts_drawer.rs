@@ -3,6 +3,8 @@
 //! The list is the narrow column. The drawer is the chrome panel: fields,
 //! quota meters, and actions. Positions follow the panel edges.
 
+use core::ops::Range;
+
 use ratatui_core::layout::Rect;
 use ratatui_core::style::{Color, Modifier};
 
@@ -119,6 +121,12 @@ struct Ink {
     border: Color,
 }
 
+#[derive(Clone, Copy)]
+struct LinePaintOptions {
+    chrome: PaneChrome,
+    clip: Option<Rect>,
+}
+
 const SELECT_BG: Color = Color::Rgb(0x17, 0x3f, 0x1c);
 const DANGER: Color = Color::Rgb(0xf0, 0x5d, 0x5d);
 const ERROR_STRONG: Color = Color::Rgb(0xff, 0x8a, 0x8a);
@@ -136,19 +144,7 @@ pub fn paint_accounts_drawer(ui: &mut Ui<'_>, area: Rect, page: &AccountsDrawer<
     if area.width < 80 || area.height < 24 {
         return;
     }
-    let theme = ui.theme_ref();
-    let ink = Ink {
-        canvas: theme.bg(Surface::Canvas),
-        chrome: theme.bg(Surface::Surface),
-        face: theme.bg(Surface::Overlay),
-        primary: step(theme, FgStep::Primary),
-        secondary: step(theme, FgStep::Secondary),
-        muted: step(theme, FgStep::Muted),
-        faint: step(theme, FgStep::Faint),
-        accent: theme.color.accent,
-        on_accent: theme.color.on_accent,
-        border: theme.color.border_strong,
-    };
+    let ink = drawer_ink(ui);
     ui.fill(area, plain(ink.primary, ink.canvas));
     paint_header(ui, area, page, &ink);
     let list_x = area.x.saturating_add(1);
@@ -210,10 +206,130 @@ pub fn paint_accounts_drawer(ui: &mut Ui<'_>, area: Rect, page: &AccountsDrawer<
             "│",
             plain(ink.border, ink.canvas),
         );
-        paint_line(ui, area, line_y, content_x, line, &ink, page.chrome);
+        paint_line(
+            ui,
+            area,
+            line_y,
+            content_x,
+            line,
+            &ink,
+            LinePaintOptions {
+                chrome: page.chrome,
+                clip: None,
+            },
+        );
         line_y = line_y.saturating_add(1);
     }
     paint_hints(ui, area, page, &ink);
+}
+
+/// Paint borrowed account-drawer rows through a bounded physical window.
+///
+/// `content_layout` describes the full, unscrolled content column: its left
+/// edge is the text origin and its right edge retains all right-aligned
+/// metadata anchors. `content_clip` is a physical sub-rectangle of that
+/// column, and `first_source_row` is the source row at its top edge. The
+/// returned range contains the source rows visible through both the requested
+/// clip and the current `Ui` clip. Empty clips are valid and return an empty
+/// range. Invalid geometry or a source offset past `lines.len()` returns
+/// `None` before painting any cells.
+///
+/// This painter leaves row backgrounds to its caller. Graphemes cut by a
+/// horizontal clip edge are omitted whole; remaining text keeps its original
+/// logical columns. The existing whole drawer painter keeps its historic
+/// clipping behavior.
+pub fn paint_accounts_drawer_lines_window(
+    ui: &mut Ui<'_>,
+    content_layout: Rect,
+    content_clip: Rect,
+    first_source_row: usize,
+    lines: &[DrawerLine<'_>],
+    chrome: PaneChrome,
+) -> Option<Range<usize>> {
+    if first_source_row > lines.len()
+        || content_layout.width == 0
+        || !rect_has_representable_end(content_layout)
+        || !rect_has_representable_end(content_clip)
+        || !rect_contains(content_layout, content_clip)
+    {
+        return None;
+    }
+
+    let clip = ui.full().intersection(content_clip);
+    let source_delta = usize::from(clip.y.saturating_sub(content_clip.y));
+    let remaining = lines.len().saturating_sub(first_source_row);
+    let visible_start = first_source_row
+        .checked_add(source_delta.min(remaining))
+        .unwrap_or(lines.len())
+        .min(lines.len());
+    if clip.width == 0 || clip.height == 0 {
+        return Some(visible_start..visible_start);
+    }
+    let row_count = usize::from(clip.height).min(lines.len().saturating_sub(visible_start));
+    let end = visible_start.checked_add(row_count)?;
+    let last_offset = u16::try_from(row_count.saturating_sub(1)).ok()?;
+    clip.y.checked_add(last_offset)?;
+
+    if row_count == 0 {
+        return Some(visible_start..end);
+    }
+    let ink = drawer_ink(ui);
+    let mut y = clip.y;
+    for line in &lines[visible_start..end] {
+        paint_line(
+            ui,
+            content_layout,
+            y,
+            content_layout.x,
+            line,
+            &ink,
+            LinePaintOptions {
+                chrome,
+                clip: Some(clip),
+            },
+        );
+        y = y.saturating_add(1);
+    }
+    Some(visible_start..end)
+}
+
+fn drawer_ink(ui: &Ui<'_>) -> Ink {
+    let theme = ui.theme_ref();
+    Ink {
+        canvas: theme.bg(Surface::Canvas),
+        chrome: theme.bg(Surface::Surface),
+        face: theme.bg(Surface::Overlay),
+        primary: step(theme, FgStep::Primary),
+        secondary: step(theme, FgStep::Secondary),
+        muted: step(theme, FgStep::Muted),
+        faint: step(theme, FgStep::Faint),
+        accent: theme.color.accent,
+        on_accent: theme.color.on_accent,
+        border: theme.color.border_strong,
+    }
+}
+
+fn rect_has_representable_end(area: Rect) -> bool {
+    area.x.checked_add(area.width).is_some() && area.y.checked_add(area.height).is_some()
+}
+
+fn rect_contains(outer: Rect, inner: Rect) -> bool {
+    let Some(outer_right) = outer.x.checked_add(outer.width) else {
+        return false;
+    };
+    let Some(outer_bottom) = outer.y.checked_add(outer.height) else {
+        return false;
+    };
+    let Some(inner_right) = inner.x.checked_add(inner.width) else {
+        return false;
+    };
+    let Some(inner_bottom) = inner.y.checked_add(inner.height) else {
+        return false;
+    };
+    inner.x >= outer.x
+        && inner.y >= outer.y
+        && inner_right <= outer_right
+        && inner_bottom <= outer_bottom
 }
 
 fn step(theme: &crate::theme::Theme, which: FgStep) -> Color {
@@ -509,15 +625,17 @@ fn paint_line(
     content_x: u16,
     line: &DrawerLine<'_>,
     ink: &Ink,
-    chrome: PaneChrome,
+    options: LinePaintOptions,
 ) {
+    let LinePaintOptions { chrome, clip } = options;
     let align = area.right().saturating_sub(3);
     match line {
         DrawerLine::Title { title, meta } => {
             if chrome == PaneChrome::Drawer {
-                put(
+                put_line(
                     ui,
                     area,
+                    clip,
                     content_x.saturating_add(1),
                     y,
                     "▎",
@@ -529,10 +647,19 @@ fn paint_line(
             } else {
                 plain(ink.secondary, ink.chrome)
             };
-            put(ui, area, content_x.saturating_add(2), y, title, title_style);
-            put(
+            put_line(
                 ui,
                 area,
+                clip,
+                content_x.saturating_add(2),
+                y,
+                title,
+                title_style,
+            );
+            put_line(
+                ui,
+                area,
+                clip,
                 align.saturating_sub(width(meta)),
                 y,
                 meta,
@@ -541,9 +668,10 @@ fn paint_line(
         }
         DrawerLine::Rule => {
             let from = content_x.saturating_add(2);
-            put(
+            put_line(
                 ui,
                 area,
+                clip,
                 from,
                 y,
                 &"─".repeat(usize::from(align.saturating_sub(from))),
@@ -555,17 +683,19 @@ fn paint_line(
             value,
             ink: tone,
         } => {
-            put(
+            put_line(
                 ui,
                 area,
+                clip,
                 content_x.saturating_add(2),
                 y,
                 label,
                 plain(ink.muted, ink.chrome),
             );
-            put(
+            put_line(
                 ui,
                 area,
+                clip,
                 content_x.saturating_add(VALUE_AT),
                 y,
                 value,
@@ -573,9 +703,10 @@ fn paint_line(
             );
         }
         DrawerLine::Value { text, ink: tone } => {
-            put(
+            put_line(
                 ui,
                 area,
+                clip,
                 content_x.saturating_add(VALUE_AT),
                 y,
                 text,
@@ -583,34 +714,44 @@ fn paint_line(
             );
         }
         DrawerLine::Heading { label, meta } => {
-            put(
+            put_line(
                 ui,
                 area,
+                clip,
                 content_x.saturating_add(2),
                 y,
                 label,
                 bold(ink.secondary, ink.chrome),
             );
-            put(
+            put_line(
                 ui,
                 area,
+                clip,
                 align.saturating_sub(width(meta)),
                 y,
                 meta,
                 plain(ink.faint, ink.chrome),
             );
         }
-        DrawerLine::Meter(meter) => paint_meter(ui, area, y, content_x, meter, ink),
+        DrawerLine::Meter(meter) => paint_meter(ui, area, y, content_x, meter, ink, clip),
         DrawerLine::Spans(line) => {
             let mut x = content_x;
             for span in line.spans {
                 let style = span_style(span.ink, ink);
-                put(ui, area, x, y, span.text, style);
+                put_line(ui, area, clip, x, y, span.text, style);
                 x = x.saturating_add(width(span.text));
             }
         }
-        DrawerLine::Text(text) => put(ui, area, content_x, y, text, plain(ink.primary, ink.chrome)),
-        DrawerLine::Buttons(buttons) => paint_buttons(ui, area, y, content_x, buttons, ink),
+        DrawerLine::Text(text) => put_line(
+            ui,
+            area,
+            clip,
+            content_x,
+            y,
+            text,
+            plain(ink.primary, ink.chrome),
+        ),
+        DrawerLine::Buttons(buttons) => paint_buttons(ui, area, y, content_x, buttons, ink, clip),
         DrawerLine::Blank => {}
     }
 }
@@ -622,10 +763,12 @@ fn paint_meter(
     content_x: u16,
     meter: &DrawerMeter<'_>,
     ink: &Ink,
+    clip: Option<Rect>,
 ) {
-    put(
+    put_line(
         ui,
         area,
+        clip,
         content_x,
         y,
         meter.label,
@@ -644,15 +787,16 @@ fn paint_meter(
     if shown.chars().count() < cols {
         shown.push_str(&" ".repeat(cols - shown.chars().count()));
     }
-    put(ui, area, bar_x, y, &shown, style);
+    put_line(ui, area, clip, bar_x, y, &shown, style);
     if meter.track_cols > 0 {
         let track = PaintStyle::new()
             .fg(ink.secondary)
             .bg(TRACK)
             .add_modifier(Modifier::ITALIC);
-        put(
+        put_line(
             ui,
             area,
+            clip,
             bar_x.saturating_add(meter.fill_cols),
             y,
             &" ".repeat(usize::from(meter.track_cols)),
@@ -665,10 +809,11 @@ fn paint_meter(
     } else {
         plain(fill, ink.chrome)
     };
-    put(ui, area, mark_x, y, meter.mark, mark_style);
-    put(
+    put_line(ui, area, clip, mark_x, y, meter.mark, mark_style);
+    put_line(
         ui,
         area,
+        clip,
         mark_x.saturating_add(4),
         y,
         meter.note,
@@ -683,18 +828,96 @@ fn paint_buttons(
     content_x: u16,
     buttons: &[DrawerButton<'_>],
     ink: &Ink,
+    clip: Option<Rect>,
 ) {
     let mut x = content_x.saturating_add(1);
     for button in buttons {
-        put(ui, area, x, y, " ", plain(ink.face, ink.face));
+        put_line(ui, area, clip, x, y, " ", plain(ink.face, ink.face));
         x = x.saturating_add(1);
         let fg = if button.danger {
             BUTTON_DANGER
         } else {
             ink.primary
         };
-        put(ui, area, x, y, button.label, plain(fg, ink.face));
+        put_line(ui, area, clip, x, y, button.label, plain(fg, ink.face));
         x = x.saturating_add(width(button.label)).saturating_add(2);
+    }
+}
+
+fn put_line(
+    ui: &mut Ui<'_>,
+    layout: Rect,
+    clip: Option<Rect>,
+    x: u16,
+    y: u16,
+    text: &str,
+    style: PaintStyle,
+) {
+    if let Some(clip) = clip {
+        put_window(ui, layout, clip, x, y, text, style);
+    } else {
+        put(ui, layout, x, y, text, style);
+    }
+}
+
+fn put_window(
+    ui: &mut Ui<'_>,
+    layout: Rect,
+    clip: Rect,
+    x: u16,
+    y: u16,
+    text: &str,
+    style: PaintStyle,
+) {
+    if text.is_empty() || clip.width == 0 || clip.height == 0 || y < clip.y || y >= clip.bottom() {
+        return;
+    }
+    let left = u32::from(x.max(clip.x));
+    let right = u32::from(layout.right().min(clip.right()));
+    if left >= right {
+        return;
+    }
+
+    let left = u64::from(left);
+    let right = u64::from(right);
+    let mut logical_x = u64::from(x);
+    let mut start = None;
+    let mut end = 0usize;
+    let mut paint_x = None;
+    for (byte, grapheme) in crate::text::measure::graphemes(text) {
+        let cell_width = u64::from(crate::text::measure::grapheme_width(grapheme));
+        let grapheme_end = logical_x.saturating_add(cell_width);
+        if cell_width == 0 {
+            if start.is_some() {
+                end = byte.saturating_add(grapheme.len());
+            }
+            continue;
+        }
+        if grapheme_end <= left || logical_x < left {
+            logical_x = grapheme_end;
+            continue;
+        }
+        if grapheme_end > right {
+            break;
+        }
+        if start.is_none() {
+            start = Some(byte);
+            paint_x = u16::try_from(logical_x).ok();
+        }
+        end = byte.saturating_add(grapheme.len());
+        logical_x = grapheme_end;
+    }
+    let (Some(start), Some(paint_x)) = (start, paint_x) else {
+        return;
+    };
+    let Some(text) = text.get(start..end) else {
+        return;
+    };
+    let Some(width) = u16::try_from(right.saturating_sub(u64::from(paint_x))).ok() else {
+        return;
+    };
+    if width > 0 {
+        ui.paint_str(Rect::new(paint_x, y, width, 1), text, style);
     }
 }
 
