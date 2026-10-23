@@ -638,10 +638,56 @@ fn short_offset_gallery_scroll_keeps_every_canonical_row_reachable_and_inert() {
 fn offset_and_short_page_geometry_never_registers_outside_the_supplied_area() {
     let area = Rect::new(7, 4, 58, 11);
     let mut h = area_host(80, 24, area);
+    let row_actions = h
+        .area_of(ROW_ACTIONS)
+        .expect("the offset Playground draws its Row actions button");
+    let orders_grid = h
+        .area_of(ORDERS_GRID)
+        .expect("the offset Playground draws its Orders grid");
+    for (id, hit) in [(ROW_ACTIONS, row_actions), (ORDERS_GRID, orders_grid)] {
+        assert!(
+            hit.x >= area.x && hit.right() <= area.right(),
+            "{id:?}: {hit:?}"
+        );
+        assert!(
+            hit.y >= area.y && hit.bottom() <= area.bottom(),
+            "{id:?}: {hit:?}"
+        );
+    }
+    assert!(h.area_of(CONNECTION_PRIMARY).is_none());
+
+    assert!(
+        h.tab_to(ROW_ACTIONS),
+        "Row actions remains a real hit target"
+    );
+    let _ = h.click_id(ROW_ACTIONS);
+    assert!(h.is_open(ROW_MENU), "Row actions opens its menu by pointer");
+    let _ = h.key(KeyCode::Esc);
+    assert!(!h.is_open(ROW_MENU));
+
+    assert!(
+        h.tab_to(ORDERS_GRID),
+        "the read-only grid remains focusable"
+    );
+    let _ = h.key(KeyCode::Enter);
+    assert!(
+        h.app().status.as_deref().is_some_and(|status| {
+            status.contains("orders_view is a view: views cannot be edited")
+        }),
+        "the real grid hit explains its read-only state: {:?}",
+        h.app().status
+    );
+    h.app_mut().status = None;
+    let _ = h.click(2, 8);
+    assert!(h.app().status.is_none());
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn offset_states_page_keeps_scroll_and_inert_gallery_inside_its_area() {
+    let area = Rect::new(7, 4, 58, 11);
+    let mut h = area_host(80, 24, area);
     click_tab(&mut h, 2);
-    assert_eq!(h.cell(0, 0).symbol(), "S");
-    assert_eq!(h.cell(6, 7).symbol(), "S");
-    assert_eq!(h.cell(66, 7).symbol(), "S");
 
     for y in 0..24 {
         for x in 0..80 {
@@ -652,21 +698,37 @@ fn offset_and_short_page_geometry_never_registers_outside_the_supplied_area() {
         }
     }
 
-    for id in [ROW_ACTIONS, ORDERS_GRID] {
-        if let Some(hit) = h.area_of(id) {
-            assert!(
-                hit.x >= area.x && hit.right() <= area.right(),
-                "{id:?}: {hit:?}"
-            );
-            assert!(
-                hit.y >= area.y && hit.bottom() <= area.bottom(),
-                "{id:?}: {hit:?}"
-            );
-        }
+    let scroll = h
+        .area_of(STATES_SCROLL)
+        .expect("the offset States section keeps its ScrollRegion");
+    assert!(!scroll.is_empty(), "the States ScrollRegion is hittable");
+    assert!(
+        scroll.x >= area.x && scroll.right() <= area.right(),
+        "{scroll:?}"
+    );
+    assert!(
+        scroll.y >= area.y && scroll.bottom() <= area.bottom(),
+        "{scroll:?}"
+    );
+
+    for row in 0..7 {
+        let action = GALLERY_ACTION.item(ItemKey::index(row * 3 + 2));
+        assert!(
+            h.area_of(action).is_none(),
+            "the inert States gallery registers no action target: {action:?}"
+        );
+        assert!(
+            !h.tab_to(action),
+            "the inert States gallery adds no action to the focus ring: {action:?}"
+        );
     }
-    assert!(h.area_of(CONNECTION_PRIMARY).is_none());
+    let _ = h.click(scroll.right().saturating_sub(1), scroll.y);
+    assert!(h.app().status.is_none(), "the gallery remains inert");
     let _ = h.click(2, 8);
-    assert!(h.app().status.is_none());
+    assert!(
+        h.app().status.is_none(),
+        "outside clicks do not reach the page"
+    );
     assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
 }
 
