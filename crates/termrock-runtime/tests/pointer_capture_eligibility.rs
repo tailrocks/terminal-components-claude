@@ -4,7 +4,9 @@ use ratatui_core::layout::{Position, Rect};
 use termrock_core::{
     Id, Input, Intent, KeyModifiers, Mouse, MouseKind, Part, PartRef, Phase, Response,
 };
-use termrock_runtime::{Anchor, App, Cx, Focusability, LayerSpec, Runtime, ScreenAlign, Ui};
+use termrock_runtime::{
+    Anchor, App, Cx, Focusability, LayerSpec, Runtime, ScreenAlign, Ui, UpdateCause,
+};
 use termrock_theme::{StateFlags, Theme};
 const A: Id = Id::root("audit.a");
 const B: Id = Id::root("audit.b");
@@ -31,18 +33,33 @@ struct Model {
     origin: Option<Position>,
     capture_area: Option<Rect>,
     phases: Vec<Phase>,
+    pointer_deliveries: Vec<(Id, PartRef, Phase, Position, KeyModifiers)>,
+    event_updates: usize,
 }
 impl App for Model {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        let mut press = false;
-        for intent in cx.intents(A) {
-            if let Intent::Pointer { phase, .. } = intent {
-                self.phases.push(phase);
-                press |= phase == Phase::Press;
-            }
+        if cx.update_cause() == UpdateCause::Event {
+            self.event_updates = self.event_updates.saturating_add(1);
         }
-        for id in [B, POP] {
-            for _ in cx.intents(id) {}
+        let mut press = false;
+        for owner in [A, B, POP] {
+            for intent in cx.intents(owner) {
+                if let Intent::Pointer {
+                    phase,
+                    part,
+                    pos,
+                    mods,
+                    ..
+                } = intent
+                {
+                    self.pointer_deliveries
+                        .push((owner, part, phase, pos, mods));
+                    if owner == A {
+                        self.phases.push(phase);
+                        press |= phase == Phase::Press;
+                    }
+                }
+            }
         }
         if press && self.capture {
             assert!(cx.capture(A, THUMB));
@@ -126,15 +143,109 @@ fn mouse(rt: &mut Runtime<Model>, kind: MouseKind) {
     mouse_at(rt, kind, Position::new(1, 1));
 }
 fn mouse_at(rt: &mut Runtime<Model>, kind: MouseKind, pos: Position) {
-    let _ = rt
-        .handle(Input::Mouse(Mouse {
-            kind,
-            pos,
-            mods: KeyModifiers::NONE,
-        }))
-        .unwrap();
+    mouse_at_with_mods(rt, kind, pos, KeyModifiers::NONE);
+}
+fn mouse_at_with_mods(rt: &mut Runtime<Model>, kind: MouseKind, pos: Position, mods: KeyModifiers) {
+    let _ = rt.handle(Input::Mouse(Mouse { kind, pos, mods })).unwrap();
     present(rt);
 }
+
+#[test]
+fn captured_press_routes_outside_drag_and_release_once_without_drag_start() {
+    let mut rt = runtime(true);
+    let press = Position::new(1, 1);
+    let drag = Position::new(22, 5);
+    let second_drag = Position::new(23, 6);
+    let release = Position::new(24, 6);
+
+    mouse_at(&mut rt, MouseKind::Down, press);
+    assert_eq!(rt.app().event_updates, 1);
+    assert_eq!(rt.capture_owner(), Some(A));
+    assert_eq!(rt.app().origin, Some(press));
+    assert_eq!(rt.app().capture_area, Some(Rect::new(0, 0, 4, 2)));
+    assert_eq!(
+        rt.app().pointer_deliveries,
+        vec![(A, THUMB, Phase::Press, press, KeyModifiers::NONE)]
+    );
+    assert!(rt.diagnostics().is_empty());
+
+    mouse_at_with_mods(&mut rt, MouseKind::Drag, drag, KeyModifiers::SHIFT);
+    assert_eq!(rt.app().event_updates, 2);
+    assert_eq!(rt.capture_owner(), Some(A));
+    assert_eq!(rt.app().origin, Some(press));
+    assert_eq!(rt.app().capture_area, Some(Rect::new(0, 0, 4, 2)));
+    assert_eq!(
+        rt.app().pointer_deliveries,
+        vec![
+            (A, THUMB, Phase::Press, press, KeyModifiers::NONE),
+            (A, THUMB, Phase::Drag, drag, KeyModifiers::SHIFT),
+        ]
+    );
+    assert!(rt.diagnostics().is_empty());
+
+    mouse_at(&mut rt, MouseKind::Drag, second_drag);
+    assert_eq!(rt.app().event_updates, 3);
+    assert_eq!(rt.capture_owner(), Some(A));
+    assert_eq!(rt.app().origin, Some(press));
+    assert_eq!(rt.app().capture_area, Some(Rect::new(0, 0, 4, 2)));
+    assert_eq!(
+        rt.app().pointer_deliveries,
+        vec![
+            (A, THUMB, Phase::Press, press, KeyModifiers::NONE),
+            (A, THUMB, Phase::Drag, drag, KeyModifiers::SHIFT),
+            (A, THUMB, Phase::Drag, second_drag, KeyModifiers::NONE),
+        ]
+    );
+    assert!(rt.diagnostics().is_empty());
+
+    mouse_at(&mut rt, MouseKind::Up, release);
+    assert_eq!(rt.app().event_updates, 4);
+    assert_eq!(rt.capture_owner(), None);
+    assert_eq!(
+        rt.app().pointer_deliveries,
+        vec![
+            (A, THUMB, Phase::Press, press, KeyModifiers::NONE),
+            (A, THUMB, Phase::Drag, drag, KeyModifiers::SHIFT),
+            (A, THUMB, Phase::Drag, second_drag, KeyModifiers::NONE),
+            (A, THUMB, Phase::Release, release, KeyModifiers::NONE),
+            (A, THUMB, Phase::DragEnd, release, KeyModifiers::NONE),
+        ]
+    );
+    assert!(!rt.app().phases.contains(&Phase::Click));
+    assert!(rt.diagnostics().is_empty());
+}
+
+#[test]
+fn uncaptured_drag_start_is_emitted_once_before_drag() {
+    let mut rt = runtime(false);
+    let press = Position::new(1, 1);
+    let first_drag = Position::new(22, 5);
+    let second_drag = Position::new(23, 5);
+    let release = Position::new(24, 5);
+
+    mouse_at(&mut rt, MouseKind::Down, press);
+    assert_eq!(rt.capture_owner(), None);
+    mouse_at_with_mods(&mut rt, MouseKind::Drag, first_drag, KeyModifiers::SHIFT);
+    mouse_at(&mut rt, MouseKind::Drag, second_drag);
+    mouse_at(&mut rt, MouseKind::Up, release);
+
+    assert_eq!(rt.app().event_updates, 4);
+    assert_eq!(rt.capture_owner(), None);
+    assert_eq!(
+        rt.app().pointer_deliveries,
+        vec![
+            (A, THUMB, Phase::Press, press, KeyModifiers::NONE),
+            (A, THUMB, Phase::DragStart, first_drag, KeyModifiers::SHIFT),
+            (A, THUMB, Phase::Drag, first_drag, KeyModifiers::SHIFT),
+            (A, THUMB, Phase::Drag, second_drag, KeyModifiers::NONE),
+            (A, THUMB, Phase::Release, release, KeyModifiers::NONE),
+            (A, THUMB, Phase::DragEnd, release, KeyModifiers::NONE),
+        ]
+    );
+    assert!(!rt.app().phases.contains(&Phase::Click));
+    assert!(rt.diagnostics().is_empty());
+}
+
 #[test]
 fn stationary_pointer_tracks_replaced_geometry() {
     let mut rt = runtime(false);
