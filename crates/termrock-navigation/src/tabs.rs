@@ -733,6 +733,7 @@ pub struct Tabs<'a, T, K = ByIndex, R = DefaultRow> {
     allow_new: bool,
     new_key_bindings: Option<&'static [Binding<TabsCmd>]>,
     digit_jump: bool,
+    wrap: bool,
     closable: bool,
     closable_keys: Option<&'a [ItemKey]>,
     close_key_bindings: Option<&'static [Binding<TabsCmd>]>,
@@ -757,6 +758,7 @@ impl<T, K, R> fmt::Debug for Tabs<'_, T, K, R> {
             .field("allow_new", &self.allow_new)
             .field("new_key_bindings", &self.new_key_bindings)
             .field("digit_jump", &self.digit_jump)
+            .field("wrap", &self.wrap)
             .field("closable", &self.closable)
             .field("closable_keys", &self.closable_keys)
             .field("close_key_bindings", &self.close_key_bindings)
@@ -783,6 +785,7 @@ impl<T> Tabs<'_, T, ByIndex, DefaultRow> {
             allow_new: false,
             new_key_bindings: None,
             digit_jump: true,
+            wrap: false,
             closable: false,
             closable_keys: None,
             close_key_bindings: None,
@@ -828,6 +831,7 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
             allow_new: self.allow_new,
             new_key_bindings: self.new_key_bindings,
             digit_jump: self.digit_jump,
+            wrap: self.wrap,
             closable: self.closable,
             closable_keys: self.closable_keys,
             close_key_bindings: self.close_key_bindings,
@@ -854,6 +858,7 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
             allow_new: self.allow_new,
             new_key_bindings: self.new_key_bindings,
             digit_jump: self.digit_jump,
+            wrap: self.wrap,
             closable: self.closable,
             closable_keys: self.closable_keys,
             close_key_bindings: self.close_key_bindings,
@@ -886,6 +891,18 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
     #[must_use]
     pub fn digit_jump(mut self, yes: bool) -> Self {
         self.digit_jump = yes;
+        self
+    }
+
+    /// Wrap the existing previous/next tab commands at the ends of the list.
+    ///
+    /// The default is `false`, which preserves the current endpoint behavior.
+    /// When enabled, only the existing previous/next key actions cycle between
+    /// the first and last tabs; pointer, overflow, and wheel interaction is
+    /// unchanged.
+    #[must_use]
+    pub fn wrap(mut self, yes: bool) -> Self {
+        self.wrap = yes;
         self
     }
 
@@ -1329,10 +1346,21 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                     let cur = st.core.cursor_index();
                     match key_groups.command(action) {
                         Some(TabsCmd::Prev) => {
-                            self.activate(st, items, cur.saturating_sub(1), &mut acc);
+                            let previous = if self.wrap && !items.is_empty() && cur == 0 {
+                                len.saturating_sub(1)
+                            } else {
+                                cur.saturating_sub(1)
+                            };
+                            self.activate(st, items, previous, &mut acc);
                         }
                         Some(TabsCmd::Next) => {
-                            self.activate(st, items, cur.saturating_add(1), &mut acc);
+                            let next =
+                                if self.wrap && !items.is_empty() && cur >= len.saturating_sub(1) {
+                                    0
+                                } else {
+                                    cur.saturating_add(1)
+                                };
+                            self.activate(st, items, next, &mut acc);
                         }
                         Some(TabsCmd::Activate) => self.activate(st, items, cur, &mut acc),
                         Some(TabsCmd::Nth(n)) => {
