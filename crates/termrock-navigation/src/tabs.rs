@@ -482,6 +482,7 @@ pub struct Tabs<'a, T, K = ByIndex, R = DefaultRow> {
     allow_new: bool,
     closable: bool,
     closable_keys: Option<&'a [ItemKey]>,
+    middle_click_closes: bool,
     close_reveal: TabCloseReveal,
     status: Status,
     ov: PartStyle<'a>,
@@ -495,6 +496,7 @@ impl<T, K, R> fmt::Debug for Tabs<'_, T, K, R> {
             .field("allow_new", &self.allow_new)
             .field("closable", &self.closable)
             .field("closable_keys", &self.closable_keys)
+            .field("middle_click_closes", &self.middle_click_closes)
             .field("close_reveal", &self.close_reveal)
             .field("status", &self.status)
             .finish_non_exhaustive()
@@ -510,6 +512,7 @@ impl<T> Tabs<'_, T, ByIndex, DefaultRow> {
             allow_new: false,
             closable: false,
             closable_keys: None,
+            middle_click_closes: true,
             close_reveal: TabCloseReveal::Always,
             status: Status::Ready,
             ov: PartStyle::new(),
@@ -544,6 +547,7 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
             allow_new: self.allow_new,
             closable: self.closable,
             closable_keys: self.closable_keys,
+            middle_click_closes: self.middle_click_closes,
             close_reveal: self.close_reveal,
             status: self.status,
             ov: self.ov,
@@ -559,6 +563,7 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
             allow_new: self.allow_new,
             closable: self.closable,
             closable_keys: self.closable_keys,
+            middle_click_closes: self.middle_click_closes,
             close_reveal: self.close_reveal,
             status: self.status,
             ov: self.ov,
@@ -575,6 +580,18 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
     #[must_use]
     pub fn closable(mut self, yes: bool) -> Self {
         self.closable = yes;
+        self
+    }
+
+    /// Close the currently closable tab under a middle-button press.
+    ///
+    /// The default is `true`. This emits [`TabsAction::Close`] for the
+    /// pointed stable item key without activating or moving the tab cursor.
+    /// Close eligibility remains controlled by [`Self::closable`] and
+    /// [`Self::closable_keys`].
+    #[must_use]
+    pub fn middle_click_closes(mut self, yes: bool) -> Self {
+        self.middle_click_closes = yes;
         self
     }
 
@@ -814,6 +831,17 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                                 acc.consumed();
                             }
                         }
+                        (Phase::Middle, Part::TAB | Part::CLOSE, Some(k)) => {
+                            if self.middle_click_closes
+                                && self
+                                    .index_of(items, k, Some(st.core.cursor_index()))
+                                    .is_some()
+                                && self.close_enabled(k)
+                            {
+                                acc.action(TabsAction::Close(k));
+                            }
+                        }
+                        (Phase::Middle, _, _) => {}
                         (Phase::Click, Part::NEW, _) => acc.action(TabsAction::New),
                         (Phase::Click, Part::OVERFLOW, Some(ItemKey::Index(0))) => {
                             let i = st.first_index.saturating_sub(1);
