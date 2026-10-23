@@ -2,8 +2,9 @@ use core::fmt;
 use std::time::Duration;
 
 use termrock::{
-    Button, Cx, FrameRead, Id, Panel, PanelKind, Rect, Response, Spinner, StateFlags, Status,
-    StepState, Steps, StepsState, TextArea, TextAreaState, Ui, Variant, layout,
+    Button, Cx, FrameRead, Id, Moment, Panel, PanelKind, Rect, Response, Spinner, StateFlags,
+    Status, StepState, Steps, StepsState, TextArea, TextAreaState, Ui, UpdateCause, Variant,
+    layout,
 };
 
 use showcase_data::log_lines;
@@ -20,6 +21,7 @@ const FAIL: Id = termrock::Id::root("showcase_ui::pages::terminal::terminal.fail
 
 /// The ticks a launch stage takes.
 const STAGE_TICKS: u32 = 6;
+const TICK_INTERVAL: Duration = Duration::from_millis(16);
 
 /// The rows the page's footer keeps below the panes.
 const FOOTER_ROWS: u16 = 2;
@@ -113,6 +115,7 @@ pub struct TerminalPage {
     steps_state: StepsState,
     running: bool,
     tick: u32,
+    next_deadline: Option<Moment>,
 }
 
 impl TerminalPage {
@@ -131,6 +134,7 @@ impl TerminalPage {
             steps_state: StepsState::default(),
             running: true,
             tick: 0,
+            next_deadline: None,
         }
     }
 
@@ -155,6 +159,7 @@ impl TerminalPage {
         self.steps_state = StepsState::default();
         self.running = !failed;
         self.tick = 0;
+        self.next_deadline = None;
     }
 
     /// The launch advances one stage at a time. The page settles when the
@@ -221,12 +226,23 @@ impl Page for TerminalPage {
 
         let _ = output_panel();
         let _ = step_spinner();
-        // The launch runs on its own clock: every tick moves one stage on and
-        // the page settles when the last one is done.
+        // Keep the simulation on its own clock. Only one due Tick moves it;
+        // ordinary page updates must not consume a stage interval.
         if self.running {
-            self.advance();
-            cx.request_repaint_after(Duration::from_millis(16));
-            response = response.repaint();
+            let now = cx.now();
+            let deadline = *self
+                .next_deadline
+                .get_or_insert_with(|| now.saturating_add(TICK_INTERVAL));
+            if cx.update_cause() == UpdateCause::Tick && now >= deadline {
+                self.advance();
+                self.next_deadline = self.running.then(|| now.saturating_add(TICK_INTERVAL));
+                response = response.repaint();
+            }
+            if let Some(deadline) = self.next_deadline {
+                cx.request_repaint_at(deadline);
+            }
+        } else {
+            self.next_deadline = None;
         }
         response.into()
     }
@@ -334,6 +350,311 @@ impl Page for TerminalPage {
         } else {
             &[("Enter", "Activate")]
         }
+    }
+}
+
+#[cfg(test)]
+mod terminal_clock_contract {
+    use super::*;
+    use termrock::{App, Axis, Cx, ItemKey, KeyCode, Part, PartRef, Response, Theme, Ui};
+    use termrock_test_support::Harness;
+
+    const INITIAL_STATES: [StepState; 7] = [
+        StepState::Running,
+        StepState::Queued,
+        StepState::Queued,
+        StepState::Queued,
+        StepState::Queued,
+        StepState::Queued,
+        StepState::Queued,
+    ];
+
+    struct TerminalHost {
+        page: TerminalPage,
+    }
+
+    impl App for TerminalHost {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            self.page.update(cx).response
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            self.page.draw(ui, ui.full());
+        }
+    }
+
+    fn harness() -> Harness<TerminalHost> {
+        Harness::new(
+            TerminalHost {
+                page: TerminalPage::new(),
+            },
+            Theme::junie(),
+            120,
+            40,
+        )
+    }
+
+    fn states(harness: &Harness<TerminalHost>) -> Vec<StepState> {
+        harness
+            .app()
+            .page
+            .steps
+            .iter()
+            .map(|step| step.state)
+            .collect()
+    }
+
+    fn assert_initial_progress(harness: &Harness<TerminalHost>) {
+        assert_eq!(harness.app().page.tick, 0);
+        assert_eq!(states(harness), INITIAL_STATES);
+    }
+
+    fn assert_component_bounds(harness: &Harness<TerminalHost>) {
+        let frame = *harness.buffer().area();
+        for id in [OUTPUT, RAIL, RUN, FAIL] {
+            let area = harness
+                .area_of(id)
+                .unwrap_or_else(|| panic!("missing {id:?}"));
+            assert!(area.width > 0 && area.height > 0, "empty area for {id:?}");
+            assert!(
+                area.x >= frame.x && area.y >= frame.y,
+                "area starts outside frame: {id:?} {area:?}"
+            );
+            assert!(
+                area.right() <= frame.right(),
+                "area ends outside frame: {id:?} {area:?}"
+            );
+            assert!(
+                area.bottom() <= frame.bottom(),
+                "area ends outside frame: {id:?} {area:?}"
+            );
+        }
+        assert!(
+            harness
+                .area_of_part(RAIL, PartRef::item(Part::ROW, ItemKey::index(0)))
+                .is_some(),
+            "the live rail exposes its first task row"
+        );
+    }
+
+    #[test]
+    fn bootstrap_and_draw_settle_do_not_advance_task_progress() {
+        let harness = harness();
+
+        assert_eq!(harness.now(), termrock::Moment::ZERO);
+        assert_initial_progress(&harness);
+        assert_eq!(
+            harness.app().page.next_deadline,
+            Some(Moment::from_millis(16))
+        );
+        assert!(harness.text().contains("0 of 7 · running"));
+        assert_component_bounds(&harness);
+    }
+
+    #[test]
+    fn ordinary_event_updates_at_one_moment_do_not_advance_task_progress() {
+        let mut harness = harness();
+        let before_tick = harness.app().page.tick;
+        let before_states = states(&harness);
+        let before_now = harness.now();
+
+        let _ = harness.key(KeyCode::Char('x'));
+
+        assert_eq!(harness.now(), before_now);
+        assert_eq!(harness.app().page.tick, before_tick);
+        assert_eq!(states(&harness), before_states);
+    }
+
+    #[test]
+    fn only_due_ticks_advance_and_each_tick_moves_at_most_one_step() {
+        let mut harness = harness();
+        let output = harness.app().page.output.clone();
+
+        let _ = harness
+            .advance_to(Moment::from_millis(15))
+            .expect("clock moves forward");
+        let _ = harness.tick();
+        assert_eq!(harness.now(), Moment::from_millis(15));
+        assert_initial_progress(&harness);
+        assert_eq!(
+            harness.app().page.next_deadline,
+            Some(Moment::from_millis(16))
+        );
+
+        let _ = harness
+            .advance_to(Moment::from_millis(16))
+            .expect("the first deadline is due");
+        assert_eq!(harness.app().page.tick, 1);
+        assert_eq!(states(&harness), INITIAL_STATES);
+        assert_eq!(
+            harness.app().page.next_deadline,
+            Some(Moment::from_millis(32))
+        );
+
+        harness.draw();
+        let _ = harness.tick();
+        assert_eq!(
+            harness.app().page.tick,
+            1,
+            "draw and an early Tick do not catch up"
+        );
+
+        for tick in 2..=6 {
+            let _ = harness
+                .advance_to(Moment::from_millis(u64::from(tick) * 16))
+                .expect("the next stage deadline is due");
+            assert_eq!(harness.app().page.tick, tick);
+        }
+        assert_eq!(
+            states(&harness),
+            [
+                StepState::Done,
+                StepState::Running,
+                StepState::Queued,
+                StepState::Queued,
+                StepState::Queued,
+                StepState::Queued,
+                StepState::Queued,
+            ]
+        );
+        assert!(harness.text().contains("1 of 7 · running"));
+        assert_eq!(harness.app().page.output, output);
+        assert_eq!(
+            harness.app().page.next_deadline,
+            Some(Moment::from_millis(112))
+        );
+    }
+
+    #[test]
+    fn overdue_deadline_advances_once_without_a_catch_up_burst() {
+        let mut harness = harness();
+
+        let _ = harness
+            .advance_to(Moment::from_millis(200))
+            .expect("clock moves forward past the first deadline");
+
+        assert_eq!(harness.app().page.tick, 1);
+        assert_eq!(
+            harness.app().page.next_deadline,
+            Some(Moment::from_millis(216))
+        );
+        assert_eq!(states(&harness), INITIAL_STATES);
+
+        let _ = harness
+            .advance_to(Moment::from_millis(216))
+            .expect("the rearmed deadline is due");
+        assert_eq!(harness.app().page.tick, 2);
+        assert_eq!(
+            harness.app().page.next_deadline,
+            Some(Moment::from_millis(232))
+        );
+    }
+
+    #[test]
+    fn input_can_move_the_rail_and_scroll_output_without_moving_its_clock() {
+        let mut harness = harness();
+        let output = harness.app().page.output.clone();
+        let deadline = harness.app().page.next_deadline;
+        let output_area = harness
+            .area_of(OUTPUT)
+            .expect("output is visible at this size");
+        let scroll_before = harness.app().page.output_state.scroll().offset();
+        assert_component_bounds(&harness);
+
+        for _ in 0..8 {
+            let _ = harness.key(KeyCode::Char('x'));
+        }
+        let _ = harness.click_part(RAIL, PartRef::item(Part::ROW, ItemKey::index(3)));
+        assert_eq!(
+            harness.app().page.steps_state.cursor(),
+            Some(ItemKey::index(3)),
+            "pointer navigation remains independent from task progress"
+        );
+        let _ = harness.wheel(
+            Axis::V,
+            1,
+            output_area.x.saturating_add(output_area.width / 2),
+            output_area.y.saturating_add(output_area.height / 2),
+        );
+        assert!(harness.app().page.output_state.scroll().offset() > scroll_before);
+        let _ = harness.resize(121, 40);
+        assert_component_bounds(&harness);
+
+        assert_eq!(harness.now(), Moment::ZERO);
+        assert_eq!(harness.app().page.tick, 0);
+        assert_eq!(states(&harness), INITIAL_STATES);
+        assert_eq!(harness.app().page.next_deadline, deadline);
+        assert_eq!(harness.app().page.output, output);
+    }
+
+    #[test]
+    fn fail_stops_the_clock_and_run_rearms_without_same_event_progress() {
+        let mut harness = harness();
+        let _ = harness
+            .advance_to(Moment::from_millis(16))
+            .expect("first task tick is due");
+        assert_eq!(harness.app().page.tick, 1);
+
+        let _ = harness.click_id(FAIL);
+        assert!(!harness.app().page.running);
+        assert_eq!(harness.app().page.tick, 0);
+        assert_eq!(
+            states(&harness),
+            [
+                StepState::Failed,
+                StepState::Blocked,
+                StepState::Blocked,
+                StepState::Blocked,
+                StepState::Blocked,
+                StepState::Blocked,
+                StepState::Blocked,
+            ]
+        );
+        assert_eq!(harness.app().page.next_deadline, None);
+
+        let _ = harness.tick();
+        let _ = harness
+            .advance_to(Moment::from_millis(32))
+            .expect("an already scheduled repaint may still be delivered");
+        assert!(!harness.app().page.running);
+        assert_eq!(harness.app().page.tick, 0);
+        assert_eq!(harness.app().page.next_deadline, None);
+
+        let _ = harness.click_id(RUN);
+        assert!(harness.app().page.running);
+        assert_initial_progress(&harness);
+        assert_eq!(
+            harness.app().page.next_deadline,
+            Some(Moment::from_millis(48))
+        );
+        let _ = harness.tick();
+        assert_initial_progress(&harness);
+        assert_eq!(
+            harness.app().page.next_deadline,
+            Some(Moment::from_millis(48))
+        );
+
+        let _ = harness
+            .advance_to(Moment::from_millis(48))
+            .expect("Run rearmed the page clock");
+        assert_eq!(harness.app().page.tick, 1);
+    }
+
+    #[test]
+    fn completion_stops_the_page_deadline_and_repeated_ticks() {
+        let mut harness = harness();
+        for tick in 1_u32..=36 {
+            let _ = harness
+                .advance_to(Moment::from_millis(u64::from(tick) * 16))
+                .expect("the task deadline is due");
+        }
+
+        assert_eq!(harness.app().page.tick, 36);
+        assert!(!harness.app().page.running);
+        assert_eq!(states(&harness), [StepState::Done; 7]);
+        assert_eq!(harness.app().page.next_deadline, None);
+        let _ = harness.tick();
+        assert_eq!(harness.app().page.tick, 36);
     }
 }
 
