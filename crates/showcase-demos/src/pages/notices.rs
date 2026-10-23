@@ -16,6 +16,22 @@ const QUERY_PANEL: Id = Id::root("showcase_ui::pages::notices.query_panel");
 const INLINE_PANEL: Id = Id::root("showcase_ui::pages::notices.inline_panel");
 const STATES_DETAIL_PANEL: Id = Id::root("showcase_ui::pages::notices.states_detail_panel");
 const STATES_HINT_PANEL: Id = Id::root("showcase_ui::pages::notices.states_hint_panel");
+const CONNECTION_REVEAL: Id = Id::root("showcase_ui::pages::notices.reveal.connection");
+const QUERY_REVEAL: Id = Id::root("showcase_ui::pages::notices.reveal.query");
+const INLINE_REVEALS: [Id; 4] = [
+    Id::root("showcase_ui::pages::notices.reveal.inline.0"),
+    Id::root("showcase_ui::pages::notices.reveal.inline.1"),
+    Id::root("showcase_ui::pages::notices.reveal.inline.2"),
+    Id::root("showcase_ui::pages::notices.reveal.inline.3"),
+];
+pub const NOTICE_REVEAL_OWNERS: [Id; 6] = [
+    CONNECTION_REVEAL,
+    QUERY_REVEAL,
+    INLINE_REVEALS[0],
+    INLINE_REVEALS[1],
+    INLINE_REVEALS[2],
+    INLINE_REVEALS[3],
+];
 const TEST_CONNECTION: Id = Id::root("showcase_ui::pages::notices.test_connection");
 const KIND: Id = Id::root("showcase_ui::pages::notices.option.kind");
 const DETAIL_LINES: Id = Id::root("showcase_ui::pages::notices.option.detail_lines");
@@ -51,7 +67,13 @@ const OUTCOMES: [(NoticeKind, &str, &str); 3] = [
     (
         NoticeKind::ERROR,
         "Authentication failed",
-        "FATAL: password authentication failed for user \"acme_app\" (SQLSTATE 28P01). Check the password in the keychain or use “Prompt for password”.",
+        concat!(
+            "FATAL: password authentication failed for user \"acme_app\" (SQLSTATE 28P01). Check the password in the keychain or use “Prompt for password”. ",
+            "The connection report keeps the complete diagnostic so a clipped row can be inspected without changing its visible preview. Verify the credential source, account status, database role, network policy, and configured authentication method before retrying. ",
+            "The saved profile is shared by the analytics console and scheduled reports; confirm that a credential refresh will not interrupt an active export. If the keychain entry is valid, ask the database owner to confirm the role mapping and server-side password policy. ",
+            "Recovery notes: retain the original SQLSTATE, endpoint, and request time when filing a support report. Do not include the password itself. Compare the connection settings with the deployment record, then test again after the policy or credential has been corrected. ",
+            "Unicode audit identifiers: 北京, combining e\u{301}, and family 👩‍👩‍👧‍👦. Complete source tail: NOTICE_REVEAL_SOURCE_TAIL."
+        ),
     ),
     (
         NoticeKind::WARNING,
@@ -64,6 +86,26 @@ const OUTCOMES: [(NoticeKind, &str, &str); 3] = [
         "PostgreSQL 16.4 · 42 schemas · TLS 1.3",
     ),
 ];
+
+/// One current live Notice and the exact logical window used to draw it.
+///
+/// The App consumes these short-lived values after page content and the
+/// footer have drawn. No borrowed Notice text survives the current draw.
+#[derive(Clone, Copy, Debug)]
+pub struct NoticeRevealTarget {
+    pub owner: Id,
+    pub notice: Notice<'static>,
+    pub logical_area: Rect,
+    pub window: VerticalWindow,
+    pub revision: u64,
+}
+
+/// The content and page-scroll state which governs live Notice cut rows.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct NoticeRevealPageState {
+    pub content_revision: u64,
+    pub play_scroll_offset: usize,
+}
 
 #[derive(Debug)]
 pub struct NoticesPage {
@@ -197,6 +239,29 @@ impl NoticesPage {
             self.styled(Notice::info("Read-only replica: edits are disabled")),
             self.styled(Notice::success("Saved 12 rows in 84 ms")),
         ]
+    }
+
+    /// Return the content and page-scroll state that governs live cut rows.
+    #[must_use]
+    pub fn reveal_state(&self) -> Option<NoticeRevealPageState> {
+        if self.section() != 0 {
+            return None;
+        }
+
+        let content_revision = (self.outcome as u64)
+            | ((self.kind.min(3) as u64) << 2)
+            | ((self.detail_lines.min(2) as u64) << 4)
+            | ((self.message_lines.min(1) as u64) << 6)
+            | ((self.detail_tone.min(1) as u64) << 7)
+            | ((self.width.min(1) as u64) << 8)
+            | (u64::from(self.show_detail) << 9)
+            | (u64::from(self.show_hint) << 10)
+            | (u64::from(self.mark_cut) << 11);
+
+        Some(NoticeRevealPageState {
+            content_revision,
+            play_scroll_offset: self.play_scroll.offset(),
+        })
     }
 
     fn play_content_height(&self, ui: &Ui<'_>, outer_width: u16) -> usize {
@@ -459,14 +524,20 @@ impl NoticesPage {
         }
     }
 
-    fn draw_playground(&self, ui: &mut Ui<'_>, area: Rect) {
+    fn draw_playground(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        revision: u64,
+    ) -> [Option<NoticeRevealTarget>; 6] {
+        let mut reveal_targets = [None; 6];
         let content_len = scroll_content_len(area, &self.play_scroll, |width| {
             self.play_content_height(ui, width)
         });
         let view = ScrollRegion::new(PLAY_SCROLL).draw(ui, area, &self.play_scroll, content_len);
         let Some(content_window) = scroll_content_window(view, content_len, &self.play_scroll)
         else {
-            return;
+            return reveal_targets;
         };
         let content_width = self.content_width(self.panel_inner_width(ui, view.width));
         let connection = self.connection();
@@ -509,13 +580,20 @@ impl NoticesPage {
                                 ui.surface_style().fg(ui.theme_ref().color.fg[1]),
                             );
                         }
-                        if let Some((_, notice_window)) = child_window(
+                        if let Some((logical_area, notice_window)) = child_window(
                             inner_window,
                             2,
                             connection_height,
                             content_width.min(inner.width),
                         ) {
                             connection.draw_window(ui, notice_window);
+                            reveal_targets[0] = Some(NoticeRevealTarget {
+                                owner: CONNECTION_REVEAL,
+                                notice: connection,
+                                logical_area,
+                                window: notice_window,
+                                revision,
+                            });
                         }
                         let button_row = usize::from(connection_height).saturating_add(3);
                         if let Some(y) = inner_window.physical_row_for_source(button_row) {
@@ -543,13 +621,20 @@ impl NoticesPage {
                         let Some(inner_window) = inner_window else {
                             return;
                         };
-                        if let Some((_, notice_window)) = child_window(
+                        if let Some((logical_area, notice_window)) = child_window(
                             inner_window,
                             0,
                             query_height,
                             content_width.min(inner_window.visible_body().width),
                         ) {
                             query.draw_window(ui, notice_window);
+                            reveal_targets[1] = Some(NoticeRevealTarget {
+                                owner: QUERY_REVEAL,
+                                notice: query,
+                                logical_area,
+                                window: notice_window,
+                                revision,
+                            });
                         }
                     },
                 )
@@ -576,13 +661,20 @@ impl NoticesPage {
                         };
                         let inner = inner_window.visible_body();
                         let mut source_row = 0usize;
-                        for notice in &inline {
+                        for (index, notice) in inline.iter().enumerate() {
                             let width = content_width.min(inner.width);
                             let height = notice.height_for_width(ui, width);
-                            if let Some((_, notice_window)) =
+                            if let Some((logical_area, notice_window)) =
                                 child_window(inner_window, source_row, height, width)
                             {
                                 notice.draw_window(ui, notice_window);
+                                reveal_targets[index + 2] = Some(NoticeRevealTarget {
+                                    owner: INLINE_REVEALS[index],
+                                    notice: *notice,
+                                    logical_area,
+                                    window: notice_window,
+                                    revision,
+                                });
                             }
                             source_row = source_row
                                 .saturating_add(usize::from(height))
@@ -592,6 +684,7 @@ impl NoticesPage {
                 );
             }
         });
+        reveal_targets
     }
 
     fn draw_states(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -659,6 +752,77 @@ impl NoticesPage {
             }
         });
     }
+
+    fn draw_page(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        revision: u64,
+    ) -> [Option<NoticeRevealTarget>; 6] {
+        let mut reveal_targets = [None; 6];
+        ui.with_area(area, |ui| {
+            frame(
+                ui,
+                area,
+                self.title(),
+                "feedback · real controls",
+                |ui, body| {
+                    if body.is_empty() {
+                        return;
+                    }
+                    let tabs_height = body.height.min(2);
+                    Tabs::new(PAGE_TABS).draw(
+                        ui,
+                        Rect {
+                            height: tabs_height,
+                            ..body
+                        },
+                        &self.page_tabs,
+                        PAGE_TABS_ITEMS,
+                    );
+                    let used_height = body.height.min(3);
+                    let content = Rect {
+                        y: body.y.saturating_add(used_height),
+                        height: body.height.saturating_sub(used_height),
+                        ..body
+                    };
+                    if content.is_empty() {
+                        return;
+                    }
+                    match self.section() {
+                        0 => reveal_targets = self.draw_playground(ui, content, revision),
+                        1 => {
+                            let scroll_len = self.options_content_height();
+                            let view = ScrollRegion::new(OPTIONS_SCROLL).draw(
+                                ui,
+                                content,
+                                &self.options_scroll,
+                                scroll_len,
+                            );
+                            if let Some(window) =
+                                scroll_content_window(view, scroll_len, &self.options_scroll)
+                            {
+                                ui.with_area(view, |ui| self.paint_options(ui, window));
+                            }
+                        }
+                        _ => self.draw_states(ui, content),
+                    }
+                },
+            );
+        });
+        reveal_targets
+    }
+
+    /// Draw the current page and return only the live Notices and exact
+    /// logical windows needed by the Showcase root reveal painter.
+    pub fn draw_with_reveal_targets(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        revision: u64,
+    ) -> [Option<NoticeRevealTarget>; 6] {
+        self.draw_page(ui, area, revision)
+    }
 }
 
 impl Default for NoticesPage {
@@ -717,56 +881,7 @@ impl Page for NoticesPage {
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
-        ui.with_area(area, |ui| {
-            frame(
-                ui,
-                area,
-                self.title(),
-                "feedback · real controls",
-                |ui, body| {
-                    if body.is_empty() {
-                        return;
-                    }
-                    let tabs_height = body.height.min(2);
-                    Tabs::new(PAGE_TABS).draw(
-                        ui,
-                        Rect {
-                            height: tabs_height,
-                            ..body
-                        },
-                        &self.page_tabs,
-                        PAGE_TABS_ITEMS,
-                    );
-                    let used_height = body.height.min(3);
-                    let content = Rect {
-                        y: body.y.saturating_add(used_height),
-                        height: body.height.saturating_sub(used_height),
-                        ..body
-                    };
-                    if content.is_empty() {
-                        return;
-                    }
-                    match self.section() {
-                        0 => self.draw_playground(ui, content),
-                        1 => {
-                            let scroll_len = self.options_content_height();
-                            let view = ScrollRegion::new(OPTIONS_SCROLL).draw(
-                                ui,
-                                content,
-                                &self.options_scroll,
-                                scroll_len,
-                            );
-                            if let Some(window) =
-                                scroll_content_window(view, scroll_len, &self.options_scroll)
-                            {
-                                ui.with_area(view, |ui| self.paint_options(ui, window));
-                            }
-                        }
-                        _ => self.draw_states(ui, content),
-                    }
-                },
-            );
-        });
+        let _ = self.draw_page(ui, area, 0);
     }
 
     fn hints(&self, ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {

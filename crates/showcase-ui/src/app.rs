@@ -1,5 +1,6 @@
 use showcase_demos::render_number::RenderNumber;
 use termrock::author::PaintStyle;
+use termrock::overlays::NoticeReveal;
 use termrock::{
     ActionKey, App as TuiApp, Brand, Chord, ColorLevel, Cx, Dialog, DialogAction, DialogState,
     EmptyState, FrameRead, GlyphRole, Id, Intent, ItemKey, KeyCode, KeyMap, KeyPhase, Moment,
@@ -11,14 +12,33 @@ use termrock::{
 use showcase_demos::pages::forms::SUBMIT as FORM_SUBMIT;
 use showcase_demos::pages::taskrunner::RUN_COMMAND;
 use showcase_demos::pages::{
-    Page, PageStatus, buttons::ButtonsPage, celleditors::CellEditorsPage,
-    checks_radios::ChecksRadiosPage, chips::ChipsPage, chrome::ChromePage,
-    dialog_kinds::DialogKindsPage, dialogs::DialogsPage, editable::EditablePage,
-    editor::EditorPage, forms::FormsPage, grid::GridPage, inputs::InputsPage, lists::ListsPage,
-    notices::NoticesPage, overview::OverviewPage, panels::PanelsPage, pickers::PickersPage,
-    progress::ProgressPage, scrolling::ScrollingPage, settings::SettingsPage,
-    sidebars::SidebarsPage, tables::TablesPage, taskrunner::TaskRunnerPage, terminal::TerminalPage,
-    textareas::TextAreasPage, trees::TreesPage,
+    Page, PageStatus,
+    buttons::ButtonsPage,
+    celleditors::CellEditorsPage,
+    checks_radios::ChecksRadiosPage,
+    chips::ChipsPage,
+    chrome::ChromePage,
+    dialog_kinds::DialogKindsPage,
+    dialogs::DialogsPage,
+    editable::EditablePage,
+    editor::EditorPage,
+    forms::FormsPage,
+    grid::GridPage,
+    inputs::InputsPage,
+    lists::ListsPage,
+    notices::{NOTICE_REVEAL_OWNERS, NoticeRevealTarget, NoticesPage},
+    overview::OverviewPage,
+    panels::PanelsPage,
+    pickers::PickersPage,
+    progress::ProgressPage,
+    scrolling::ScrollingPage,
+    settings::SettingsPage,
+    sidebars::SidebarsPage,
+    tables::TablesPage,
+    taskrunner::TaskRunnerPage,
+    terminal::TerminalPage,
+    textareas::TextAreasPage,
+    trees::TreesPage,
 };
 
 const NAV: Id = id!("navigation");
@@ -1260,6 +1280,9 @@ pub struct App {
     pages: Vec<Box<dyn Page>>,
     checks_radios: ChecksRadiosPage,
     notices: NoticesPage,
+    notice_reveals: std::cell::RefCell<[NoticeReveal; 6]>,
+    notice_reveal_snapshot: Option<NoticeRevealSnapshot>,
+    notice_reveal_revision: u64,
     help_state: DialogState,
     help_open: bool,
     overlay_open: bool,
@@ -1272,6 +1295,14 @@ pub struct App {
     motion_paused: bool,
     /// Paused-frame index. `--frame` seeks here, and a paused clock paste adds its milliseconds.
     paused_frame: usize,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct NoticeRevealSnapshot {
+    content_revision: u64,
+    play_scroll_offset: usize,
+    viewport: Rect,
+    main: Rect,
 }
 
 impl core::fmt::Debug for App {
@@ -1288,6 +1319,8 @@ impl core::fmt::Debug for App {
             .field("pages", &self.pages.len())
             .field("checks_radios", &self.checks_radios)
             .field("notices", &self.notices)
+            .field("notice_reveal_snapshot", &self.notice_reveal_snapshot)
+            .field("notice_reveal_revision", &self.notice_reveal_revision)
             .field("help_state", &self.help_state)
             .field("help_open", &self.help_open)
             .field("overlay_open", &self.overlay_open)
@@ -1348,6 +1381,11 @@ impl App {
             pages,
             checks_radios,
             notices: NoticesPage::new(),
+            notice_reveals: std::cell::RefCell::new(std::array::from_fn(|index| {
+                NoticeReveal::new(NOTICE_REVEAL_OWNERS[index])
+            })),
+            notice_reveal_snapshot: None,
+            notice_reveal_revision: 0,
             help_state: DialogState::default(),
             help_open: false,
             overlay_open: false,
@@ -1551,6 +1589,46 @@ impl App {
             layout,
         }));
         layout
+    }
+
+    fn update_notice_reveals(&mut self, cx: &mut Cx<'_>, response: &mut Response<()>) {
+        let full = cx.viewport();
+        let snapshot = if self.nav_target == NavTarget::Placeholder(NOTICES_ENTRY)
+            && self.nav_query.is_none()
+            && !self.overlay_open
+            && cx.top_layer() == termrock::LayerId::PAGE
+            && full.width >= 72
+            && full.height >= 20
+        {
+            self.notices
+                .reveal_state()
+                .map(|page| NoticeRevealSnapshot {
+                    content_revision: page.content_revision,
+                    play_scroll_offset: page.play_scroll_offset,
+                    viewport: full,
+                    main: self.resolved_shell_layout(full).main,
+                })
+        } else {
+            None
+        };
+
+        if let Some(snapshot) = snapshot {
+            if self.notice_reveal_snapshot != Some(snapshot) {
+                self.notice_reveal_revision = self.notice_reveal_revision.wrapping_add(1).max(1);
+                self.notice_reveal_snapshot = Some(snapshot);
+                *response |= Response::changed();
+            }
+            for reveal in self.notice_reveals.get_mut() {
+                *response |= reveal.update(cx, self.notice_reveal_revision);
+            }
+        } else {
+            if self.notice_reveal_snapshot.take().is_some() {
+                *response |= Response::changed();
+            }
+            for reveal in self.notice_reveals.get_mut() {
+                reveal.reset();
+            }
+        }
     }
 
     fn show_live_page(&self) -> bool {
@@ -2533,6 +2611,7 @@ impl TuiApp for App {
         self.update_help(cx, &mut response);
         self.help_open = cx.is_open(HELP);
         self.overlay_open = cx.top_layer() != termrock::LayerId::PAGE;
+        self.update_notice_reveals(cx, &mut response);
         if !self.motion_paused
             && let Some((_, since)) = &self.status
         {
@@ -2586,8 +2665,19 @@ impl TuiApp for App {
             label,
             self.inspector,
         );
+        let mut notice_reveal_targets: Option<[Option<NoticeRevealTarget>; 6]> = None;
         if self.show_live_page() {
-            if let Some(active) = self.active() {
+            if self.nav_target == NavTarget::Placeholder(NOTICES_ENTRY) {
+                if self.nav_query.is_none() && !self.overlay_open {
+                    notice_reveal_targets = Some(self.notices.draw_with_reveal_targets(
+                        ui,
+                        shell.main,
+                        self.notice_reveal_revision,
+                    ));
+                } else {
+                    self.notices.draw(ui, shell.main);
+                }
+            } else if let Some(active) = self.active() {
                 active.draw(ui, shell.main);
             } else {
                 missing_page_panel().draw(ui, shell.main, |ui, area| {
@@ -2659,6 +2749,26 @@ impl TuiApp for App {
             tab_hint,
             self.status.as_ref().map(|(status, _)| status.0.as_str()),
         );
+        if let Some(targets) = notice_reveal_targets
+            && self.nav_target == NavTarget::Placeholder(NOTICES_ENTRY)
+            && self.nav_query.is_none()
+            && !self.overlay_open
+        {
+            let mut reveals = self.notice_reveals.borrow_mut();
+            for (reveal, target) in reveals.iter_mut().zip(targets) {
+                if let Some(target) = target {
+                    let _ = reveal.draw(
+                        ui,
+                        &target.notice,
+                        target.logical_area,
+                        target.window,
+                        target.revision,
+                    );
+                } else {
+                    reveal.reset();
+                }
+            }
+        }
         ui.layer(HELP, |ui, area| {
             Self::help_dialog().draw(ui, area, &self.help_state, |ui, body| {
                 let _ = ui.paint_str(body, "q quit   ? help   Esc close", ui.surface_style());
