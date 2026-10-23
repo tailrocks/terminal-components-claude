@@ -451,10 +451,10 @@ fn unmarked_long_default_rows_keep_the_parent_content_budget() {
             }
         }
         for x in 0..width {
-            assert_eq!(variants[0].cell(x, 1).symbol(), variants[1].cell(x, 1).symbol());
-            assert_eq!(variants[0].cell(x, 1).style(), variants[1].cell(x, 1).style());
-            assert_eq!(variants[0].cell(x, 1).symbol(), variants[2].cell(x, 1).symbol());
-            assert_eq!(variants[0].cell(x, 1).style(), variants[2].cell(x, 1).style());
+            for variant in variants.iter().skip(1) {
+                assert_eq!(variant.cell(x, 1).symbol(), variants[0].cell(x, 1).symbol());
+                assert_eq!(variant.cell(x, 1).style(), variants[0].cell(x, 1).style());
+            }
         }
 
         for variant in &variants {
