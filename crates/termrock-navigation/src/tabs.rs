@@ -298,6 +298,7 @@ pub struct TabLayout {
     first_tab_x: u16,
     allow_new: bool,
     closable: bool,
+    closable_keys: Option<Vec<ItemKey>>,
     status: Status,
     left_overflow: Option<Rect>,
     right_overflow: Option<Rect>,
@@ -450,6 +451,7 @@ pub struct Tabs<'a, T, K = ByIndex, R = DefaultRow> {
     row: R,
     allow_new: bool,
     closable: bool,
+    closable_keys: Option<&'a [ItemKey]>,
     status: Status,
     ov: PartStyle<'a>,
     _t: PhantomData<fn(&T)>,
@@ -461,6 +463,7 @@ impl<T, K, R> fmt::Debug for Tabs<'_, T, K, R> {
             .field("id", &self.id)
             .field("allow_new", &self.allow_new)
             .field("closable", &self.closable)
+            .field("closable_keys", &self.closable_keys)
             .field("status", &self.status)
             .finish_non_exhaustive()
     }
@@ -474,6 +477,7 @@ impl<T> Tabs<'_, T, ByIndex, DefaultRow> {
             row: DefaultRow,
             allow_new: false,
             closable: false,
+            closable_keys: None,
             status: Status::Ready,
             ov: PartStyle::new(),
             _t: PhantomData,
@@ -506,6 +510,7 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
             row: self.row,
             allow_new: self.allow_new,
             closable: self.closable,
+            closable_keys: self.closable_keys,
             status: self.status,
             ov: self.ov,
             _t: PhantomData,
@@ -519,6 +524,7 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
             row: r,
             allow_new: self.allow_new,
             closable: self.closable,
+            closable_keys: self.closable_keys,
             status: self.status,
             ov: self.ov,
             _t: PhantomData,
@@ -534,6 +540,18 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
     #[must_use]
     pub fn closable(mut self, yes: bool) -> Self {
         self.closable = yes;
+        self
+    }
+
+    /// Set close eligibility by stable item key.
+    ///
+    /// When this policy is present, only current items with a listed key get a
+    /// close affordance. It overrides [`Self::closable`], including when the
+    /// slice is empty. When this method is not called, [`Self::closable`]
+    /// keeps its existing all-items behavior.
+    #[must_use]
+    pub fn closable_keys(mut self, keys: &'a [ItemKey]) -> Self {
+        self.closable_keys = Some(keys);
         self
     }
 
@@ -562,7 +580,17 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
     }
 
     fn table(&self) -> &'static [Binding<TabsCmd>] {
-        table_for(self.closable, self.allow_new)
+        table_for(self.close_binding_enabled(), self.allow_new)
+    }
+
+    fn close_binding_enabled(&self) -> bool {
+        self.closable_keys
+            .map_or(self.closable, |keys| !keys.is_empty())
+    }
+
+    fn close_enabled(&self, key: ItemKey) -> bool {
+        self.closable_keys
+            .map_or(self.closable, |keys| keys.contains(&key))
     }
 }
 
@@ -667,8 +695,13 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                             }
                         }
                         Some(TabsCmd::Close) => {
-                            if len > 0 {
-                                acc.action(TabsAction::Close(self.key_at(items, cur)));
+                            if let Some(item) = items.get(cur) {
+                                let key = self.key.key(item, cur);
+                                if self.close_enabled(key) {
+                                    acc.action(TabsAction::Close(key));
+                                } else {
+                                    acc.consumed();
+                                }
                             } else {
                                 acc.consumed();
                             }
@@ -690,7 +723,17 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                             None => acc.consumed(),
                         }
                     }
-                    (Phase::Click, Part::CLOSE, Some(k)) => acc.action(TabsAction::Close(k)),
+                    (Phase::Click, Part::CLOSE, Some(k)) => {
+                        if self
+                            .index_of(items, k, Some(st.core.cursor_index()))
+                            .is_some()
+                            && self.close_enabled(k)
+                        {
+                            acc.action(TabsAction::Close(k));
+                        } else {
+                            acc.consumed();
+                        }
+                    }
                     (Phase::Click, Part::NEW, _) => acc.action(TabsAction::New),
                     (Phase::Click, Part::OVERFLOW, Some(ItemKey::Index(0))) => {
                         let i = st.first_index.saturating_sub(1);
@@ -908,7 +951,11 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                 TabsRowSource::Legacy(_) => painted_width(ui, content).max(1),
                 TabsRowSource::Planned(row) => row.label_extent,
             };
-            let close_w: u16 = if self.closable { 2 } else { 0 };
+            let close_enabled = match row_source {
+                TabsRowSource::Legacy(_) => self.close_enabled(key),
+                TabsRowSource::Planned(row) => row.logical_close.is_some(),
+            };
+            let close_w: u16 = if close_enabled { 2 } else { 0 };
             let tab = match row_source {
                 TabsRowSource::Legacy(_) => {
                     let tab_w = 1u16
@@ -945,7 +992,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                     );
                 }
             }
-            if self.closable {
+            if close_enabled {
                 let close_cell = match row_source {
                     TabsRowSource::Legacy(_) => cell_at(tab, tab.right().saturating_sub(2)),
                     TabsRowSource::Planned(row) => row
@@ -1004,7 +1051,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
             if !ui.is_inert() {
                 ui.register_part(self.id, PartRef::item(Part::TAB, key), tab);
             }
-            if self.closable && !ui.is_inert() {
+            if close_enabled && !ui.is_inert() {
                 let close_cell = match row_source {
                     TabsRowSource::Legacy(_) => cell_at(tab, tab.right().saturating_sub(2)),
                     TabsRowSource::Planned(row) => row
@@ -1235,6 +1282,7 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
                 first_tab_x: area.x,
                 allow_new: self.allow_new,
                 closable: self.closable,
+                closable_keys: self.closable_keys.map(<[ItemKey]>::to_vec),
                 status: self.status,
                 left_overflow: None,
                 right_overflow: None,
@@ -1291,7 +1339,8 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
             let mut writer = SegmentWriter(Vec::new());
             let _ = fmt::write(&mut writer, format_args!("{item}"));
             let label_extent = semantic_label_extent(&writer.0, content, clip).max(1);
-            let close_w: u16 = if self.closable { 2 } else { 0 };
+            let close_enabled = self.close_enabled(key);
+            let close_w: u16 = if close_enabled { 2 } else { 0 };
             let tab_w = 1u16
                 .saturating_add(label_extent)
                 .saturating_add(1)
@@ -1302,9 +1351,7 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
                 width: tab_w.min(avail),
                 height: 1,
             };
-            let close = self
-                .closable
-                .then(|| cell_at(tab, tab.right().saturating_sub(2)));
+            let close = close_enabled.then(|| cell_at(tab, tab.right().saturating_sub(2)));
             rows.push(TabRowLayout {
                 key,
                 index: i,
@@ -1373,6 +1420,7 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
             first_tab_x,
             allow_new: self.allow_new,
             closable: self.closable,
+            closable_keys: self.closable_keys.map(<[ItemKey]>::to_vec),
             status: self.status,
             left_overflow,
             right_overflow,
@@ -1400,6 +1448,7 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
         if layout.id != self.id
             || layout.allow_new != self.allow_new
             || layout.closable != self.closable
+            || layout.closable_keys.as_deref() != self.closable_keys
             || layout.status != self.status
         {
             return Err(TabLayoutMismatch);
@@ -2070,6 +2119,117 @@ mod tests {
         assert_eq!(
             semantic_runtime.registry().regions(),
             legacy_runtime.registry().regions()
+        );
+    }
+
+    #[test]
+    fn mixed_close_policy_layout_matches_legacy_across_clipping_and_overflow_frames() {
+        let items = [
+            PiecesDisplay(&["pin"]),
+            PiecesDisplay(&["e", "\u{301}", "界"]),
+            PiecesDisplay(&["three"]),
+            PiecesDisplay(&["四"]),
+            PiecesDisplay(&["last"]),
+        ];
+        let eligible = [ItemKey::index(1), ItemKey::index(3)];
+        let tabs = Tabs::new(TABS)
+            .allow_new(true)
+            .closable(false)
+            .closable_keys(&eligible);
+        let mut offset = TabsState::default();
+        offset.set_active(4, ItemKey::index(4));
+        offset.first = Some(ItemKey::index(3));
+        offset.first_index = 3;
+        let states = [TabsState::default(), offset];
+        let cases = [
+            (Rect::new(0, 0, 0, 0), Rect::new(0, 0, 0, 0)),
+            (Rect::new(0, 0, 1, 1), Rect::new(0, 0, 1, 1)),
+            (Rect::new(0, 0, 2, 2), Rect::new(0, 0, 2, 2)),
+            (Rect::new(0, 0, 9, 1), Rect::new(0, 0, 9, 1)),
+            (Rect::new(0, 0, 24, 2), Rect::new(0, 0, 24, 2)),
+            (Rect::new(0, 0, 32, 2), Rect::new(5, 0, 20, 2)),
+        ];
+
+        for state in &states {
+            for (area, clip) in cases {
+                let mut legacy_runtime = Runtime::new(Stub::default(), Theme::junie());
+                let mut semantic_runtime = Runtime::new(Stub::default(), Theme::junie());
+                let mut legacy = Buffer::empty(area);
+                let mut semantic = Buffer::empty(area);
+                let mut previous = None;
+
+                for _ in 0..2 {
+                    let layout = tabs.layout_default(area, clip, state, &items, previous);
+                    assert_eq!(
+                        layout.part_bounds(PartRef::item(Part::CLOSE, ItemKey::index(0))),
+                        None
+                    );
+                    assert_eq!(
+                        layout
+                            .part_bounds(PartRef::item(Part::CLOSE, ItemKey::index(1)))
+                            .is_some(),
+                        layout.rows().iter().any(|row| row.key == ItemKey::index(1))
+                    );
+
+                    legacy_runtime
+                        .draw_scene(area, &mut legacy, |ui, _| {
+                            ui.with_area(clip, |ui| tabs.draw(ui, area, state, &items));
+                        })
+                        .commit_presented();
+                    semantic_runtime
+                        .draw_scene(area, &mut semantic, |ui, _| {
+                            ui.with_area(clip, |ui| {
+                                tabs.draw_layout(ui, &layout)
+                                    .expect("same close policy draws its planned layout");
+                            });
+                        })
+                        .commit_presented();
+
+                    assert_eq!(semantic, legacy, "cells differ for {area:?} / {clip:?}");
+                    assert_eq!(
+                        semantic_runtime.registry().regions(),
+                        legacy_runtime.registry().regions(),
+                        "parts differ for {area:?} / {clip:?}"
+                    );
+                    assert_eq!(
+                        semantic_runtime.cursor(),
+                        legacy_runtime.cursor(),
+                        "cursor differs for {area:?} / {clip:?}"
+                    );
+                    previous = layout.window_receipt();
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn planned_draw_rejects_changed_close_policy_before_paint_or_registration() {
+        let area = Rect::new(0, 0, 24, 2);
+        let items = ["pinned", "open"];
+        let state = TabsState::default();
+        let planned_keys = [ItemKey::index(0)];
+        let renderer_keys = [ItemKey::index(1)];
+        let planned = Tabs::new(TABS).closable_keys(&planned_keys);
+        let layout = planned.layout_default(area, area, &state, &items, None);
+        let renderer = Tabs::<&str>::new(TABS).closable_keys(&renderer_keys);
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(area);
+        let unpainted = buffer.clone();
+        let result = Cell::new(None);
+
+        runtime
+            .draw_scene(area, &mut buffer, |ui, _| {
+                result.set(Some(renderer.draw_layout(ui, &layout)));
+            })
+            .commit_presented();
+
+        assert_eq!(result.get(), Some(Err(TabLayoutMismatch)));
+        assert_eq!(buffer, unpainted);
+        assert_eq!(
+            runtime
+                .registry()
+                .area_of_part(TABS, PartRef::item(Part::CLOSE, ItemKey::index(0))),
+            None
         );
     }
 }
