@@ -1316,6 +1316,7 @@ impl<A: App> Runtime<A> {
     }
 
     fn enqueue_middle_click(&mut self, pos: Position, mods: KeyModifiers) {
+        self.services.pointer_press_count = None;
         self.inter.pointer_position = Some(pos);
         let Some(hit) = self.last.registry.hit(pos) else {
             return;
