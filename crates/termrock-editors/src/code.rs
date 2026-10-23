@@ -24,7 +24,7 @@ use crate::theme::{
 };
 use crate::ui::{Cx, FrameRead, Ui};
 use termrock_core::edit_entry::EditEntry;
-use termrock_runtime::scroll_region::ScrollRegion;
+use termrock_runtime::scroll_region::{ScrollRegion, position_label};
 use termrock_text::CursorPos;
 
 const CTRL: KeyModifiers = KeyModifiers::CONTROL;
@@ -805,6 +805,7 @@ pub struct CodeEditor<'a> {
     id: Id,
     rows: u16,
     fill_height: bool,
+    idle_scroll_position: bool,
     highlighter: Option<&'a dyn Highlighter>,
     segmenter: Option<&'a dyn Segmenter>,
     placeholder: Option<&'a str>,
@@ -823,6 +824,7 @@ impl fmt::Debug for CodeEditor<'_> {
             .field("id", &self.id)
             .field("rows", &self.rows)
             .field("fill_height", &self.fill_height)
+            .field("idle_scroll_position", &self.idle_scroll_position)
             .field("highlighter", &self.highlighter.is_some())
             .field("segmenter", &self.segmenter.is_some())
             .field("placeholder", &self.placeholder)
@@ -857,6 +859,7 @@ impl<'a> CodeEditor<'a> {
             id,
             rows,
             fill_height: false,
+            idle_scroll_position: false,
             highlighter: None,
             segmenter: None,
             placeholder: None,
@@ -877,6 +880,16 @@ impl<'a> CodeEditor<'a> {
     #[must_use]
     pub const fn fill_height(mut self, fill: bool) -> Self {
         self.fill_height = fill;
+        self
+    }
+
+    /// Show the visible row range in the existing footer while the editor is idle and unfocused.
+    ///
+    /// The default is `false`, which preserves the blank idle footer. Focused or editing position
+    /// labels and an open find bar keep their existing precedence.
+    #[must_use]
+    pub const fn idle_scroll_position(mut self, enabled: bool) -> Self {
+        self.idle_scroll_position = enabled;
         self
     }
 
@@ -1956,6 +1969,8 @@ impl<'a> CodeEditor<'a> {
                     lines.max(1),
                     cursor.col.saturating_add(1)
                 )
+            } else if self.idle_scroll_position {
+                position_label(&view)
             } else {
                 String::new()
             };
