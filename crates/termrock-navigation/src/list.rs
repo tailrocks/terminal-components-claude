@@ -959,7 +959,11 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                         Some(ListCmd::Choose) => self.choose(st, items, cur, &mut acc),
                         Some(ListCmd::Activate) => {
                             if self.enabled_at(items, cur) && len > 0 {
-                                acc.action(ListAction::Activated(self.key_at(items, cur)));
+                                let key = self.key_at(items, cur);
+                                if self.select_mode == SelectMode::Single {
+                                    st.chosen = Some(key);
+                                }
+                                acc.action(ListAction::Activated(key));
                             } else {
                                 acc.consumed();
                             }
