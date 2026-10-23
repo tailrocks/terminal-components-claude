@@ -84,10 +84,32 @@ const SEAM: Color = Color::Rgb(0x47, 0x47, 0x47);
 const SEAM_HEAVY: Color = Color::Rgb(0x80, 0x80, 0x80);
 const FADE_KEEP: f32 = 0.55;
 
-pub fn paint_accounts_detail(ui: &mut Ui<'_>, area: Rect, page: &AccountsDetail<'_>) {
+/// Returns the visible six-row summary band painted by [`paint_accounts_detail`].
+///
+/// Areas below the painter's supported minimum, or whose summary band has no
+/// visible intersection with the supplied area, have no summary target.
+#[must_use]
+pub fn accounts_detail_summary_area(area: Rect) -> Option<Rect> {
     if area.width < 40 || area.height < 16 {
-        return;
+        return None;
     }
+
+    let border_x = area.x.saturating_add(area.width.saturating_sub(2));
+    let detail_y = area.y.saturating_add(area.height.saturating_sub(8));
+    let band = Rect::new(
+        area.x.saturating_add(1),
+        detail_y,
+        border_x.saturating_sub(area.x),
+        6,
+    )
+    .intersection(area);
+    if band.is_empty() { None } else { Some(band) }
+}
+
+pub fn paint_accounts_detail(ui: &mut Ui<'_>, area: Rect, page: &AccountsDetail<'_>) {
+    let Some(detail_area) = accounts_detail_summary_area(area) else {
+        return;
+    };
     let theme = ui.theme_ref();
     let ink = Ink {
         canvas: theme.bg(Surface::Canvas),
@@ -103,7 +125,7 @@ pub fn paint_accounts_detail(ui: &mut Ui<'_>, area: Rect, page: &AccountsDetail<
     ui.fill(area, plain(ink.primary, ink.canvas));
     paint_header(ui, area, page, &ink);
     let border_x = area.x.saturating_add(area.width.saturating_sub(2));
-    let detail_y = area.y.saturating_add(area.height.saturating_sub(8));
+    let detail_y = detail_area.y;
     let box_top = area.y.saturating_add(2);
     let box_bottom = detail_y.saturating_sub(2);
     paint_box_top(ui, area, box_top, border_x, page, &ink);
@@ -144,7 +166,7 @@ pub fn paint_accounts_detail(ui: &mut Ui<'_>, area: Rect, page: &AccountsDetail<
         &format!("╰{dashes}╯"),
         plain(ink.border, ink.canvas),
     );
-    paint_detail(ui, area, detail_y, border_x, page, &ink);
+    paint_detail(ui, area, detail_area, border_x, page, &ink);
     paint_hints(ui, area, page, &ink);
 }
 
@@ -484,26 +506,18 @@ fn fade_keep(color: Color) -> Color {
 fn paint_detail(
     ui: &mut Ui<'_>,
     area: Rect,
-    y: u16,
+    detail_area: Rect,
     border_x: u16,
     page: &AccountsDetail<'_>,
     ink: &Ink,
 ) {
     let band = plain(ink.primary, ink.chrome);
-    ui.fill(
-        Rect {
-            x: area.x.saturating_add(1),
-            y,
-            width: border_x.saturating_sub(area.x),
-            height: 6,
-        },
-        band,
-    );
+    ui.fill(detail_area, band);
     put(
         ui,
         area,
         area.x.saturating_add(3),
-        y,
+        detail_area.y,
         page.heading,
         plain(ink.secondary, ink.chrome),
     );
@@ -512,7 +526,7 @@ fn paint_detail(
         ui,
         area,
         meta_end.saturating_sub(width(page.heading_meta)),
-        y,
+        detail_area.y,
         page.heading_meta,
         plain(ink.faint, ink.chrome),
     );
@@ -521,13 +535,13 @@ fn paint_detail(
         ui,
         area,
         rule_from,
-        y.saturating_add(1),
+        detail_area.y.saturating_add(1),
         &"─".repeat(usize::from(meta_end.saturating_sub(rule_from))),
         plain(RULE, ink.chrome),
     );
     for (index, fact) in page.facts.iter().enumerate() {
         let mut x = area.x.saturating_add(1);
-        let row = y.saturating_add(2).saturating_add(index as u16);
+        let row = detail_area.y.saturating_add(2).saturating_add(index as u16);
         for span in fact.spans {
             let style = match span.ink {
                 DetailInk::Plain => band,
