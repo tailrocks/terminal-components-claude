@@ -17,6 +17,9 @@ use showcase_demos::pages::{
 use termrock::{App, Cx, Response, Theme, Ui};
 use termrock_test_support::Harness;
 
+#[path = "../../visual-harness/tests/visual_baseline/rust_source.rs"]
+mod rust_source;
+
 /// Every page source, so the source guards below cover new pages too. Adding
 /// a page means adding its line here; the count assertion in
 /// [`every_page_source_is_guarded`] refuses to let the list drift.
@@ -378,19 +381,13 @@ fn no_page_switches_on_an_exact_page_size() {
 #[test]
 fn no_page_replays_a_historical_frame() {
     for (name, source) in SOURCES {
+        let matches =
+            historical_identifiers(name, source).unwrap_or_else(|error| panic!("{error}"));
         assert!(
-            !source.contains("paint_historical"),
-            "{name}: a historical replay is back"
+            matches.is_empty(),
+            "{name}: a historical replay is back at {:?}",
+            matches.iter().map(|range| range.start).collect::<Vec<_>>()
         );
-        // editable.rs keeps one comment naming the historical ID-first paint
-        // order. It describes a convention, not a replay; its cleanup belongs
-        // to a later wave.
-        if name != "editable" {
-            assert!(
-                !source.contains("historical"),
-                "{name}: a historical replay is back"
-            );
-        }
     }
 }
 
@@ -415,11 +412,118 @@ fn no_page_hides_reference_widgets_off_screen() {
         if VISIBLE_REFERENCE_PAGES.contains(&name) {
             continue;
         }
+        let matches =
+            hidden_reference_calls(name, source).unwrap_or_else(|error| panic!("{error}"));
         assert!(
-            !source.contains("ui.reference(None"),
-            "{name}: a reference block mounts widgets; draw them visibly or not at all"
+            matches.is_empty(),
+            "{name}: a reference block mounts widgets; draw them visibly or not at all (matches at {:?})",
+            matches.iter().map(|range| range.start).collect::<Vec<_>>()
         );
     }
+}
+
+fn historical_identifiers(name: &str, source: &str) -> Result<Vec<std::ops::Range<usize>>, String> {
+    let code =
+        rust_source::production_code(source).map_err(|error| format!("scan {name}: {error}"))?;
+    let identifiers = rust_source::matching_patterns_checked(&code, &[])
+        .map_err(|error| format!("tokenize {name}: {error}"))?;
+    Ok(identifiers
+        .identifiers
+        .into_iter()
+        .filter(|range| code[range.clone()].contains("historical"))
+        .collect())
+}
+
+fn hidden_reference_calls(name: &str, source: &str) -> Result<Vec<std::ops::Range<usize>>, String> {
+    let code =
+        rust_source::production_code(source).map_err(|error| format!("scan {name}: {error}"))?;
+    let mut matches = rust_source::matching_patterns_checked(&code, &["ui.reference(None"])
+        .map_err(|error| format!("tokenize {name}: {error}"))?;
+    Ok(matches.matches.remove(0))
+}
+
+#[test]
+fn production_source_guards_mask_only_nonproduction_text_and_exact_test_modules() {
+    let source = concat!(
+        "fn before() { paint_historical(); }\n",
+        "#[cfg(test)] mod early { fn ignored() { paint_historical(); ui.reference(None, Rect::ZERO, |_| {}); } }\n",
+        "fn after() { ui /* receiver */ . reference ( None, Rect::ZERO, |_| {}); }\n",
+        "mod nested { #[cfg(test)] mod tests { fn ignored() { paint_historical(); } } fn live() { paint_historical(); } }\n",
+        "mod tests { fn production() { paint_historical(); } }\n",
+        "#[cfg(any(test, feature = \"live\"))] mod conditional { fn production() { ui.reference(None, Rect::ZERO, |_| {}); } }\n",
+        "macro_rules! generated { () => { fn macro_generated() { paint_historical(); } }; }\n",
+        "// #[cfg(test)] mod fake { fn erased() { paint_historical(); } }\n",
+        "fn raw_lookalike() { let fake = r#\"#[cfg(test)] mod fake { paint_historical(); }\"#; ui.reference(None, Rect::ZERO, |_| {}); }\n",
+        "fn after_lookalike() { ui.reference(None, Rect::ZERO, |_| {}); }\n",
+    );
+    assert_eq!(
+        historical_identifiers("fixture.rs", source).unwrap().len(),
+        4
+    );
+    assert_eq!(
+        hidden_reference_calls("fixture.rs", source).unwrap().len(),
+        4
+    );
+
+    let noncode = concat!(
+        "// paint_historical(); ui.reference(None, Rect::ZERO, |_| {});\n",
+        "/* outer /* nested paint_historical ui.reference(None */ done */\n",
+        "fn strings() { let a = \"paint_historical ui.reference(None\"; ",
+        "let b = r###\"#[cfg(test)] mod fake { paint_historical(); ui.reference(None); }\"###; ",
+        "let c = b\"paint_historical ui.reference(None\"; ",
+        "let _lifetime: &'static str = \"café\"; let _character = '}'; }\n",
+    );
+    assert!(
+        historical_identifiers("noncode.rs", noncode)
+            .unwrap()
+            .is_empty()
+    );
+    assert!(
+        hidden_reference_calls("noncode.rs", noncode)
+            .unwrap()
+            .is_empty()
+    );
+}
+
+#[test]
+fn production_source_guards_fail_closed_and_reject_controlled_lists_injections() {
+    for malformed in [
+        "#[cfg(test)] mod tests {",
+        "fn broken() { let text = \"unterminated; }",
+        "fn broken() { let text = r#\"unterminated; }",
+        "/* unterminated comment",
+        "fn broken() { ) }",
+    ] {
+        assert!(
+            historical_identifiers("malformed.rs", malformed)
+                .unwrap_err()
+                .contains("malformed.rs"),
+            "malformed source was not rejected with its path: {malformed:?}"
+        );
+    }
+
+    let lists = SOURCES
+        .iter()
+        .find_map(|(name, source)| (*name == "lists").then_some(*source))
+        .expect("Lists source is included in SOURCES");
+    assert!(historical_identifiers("lists", lists).unwrap().is_empty());
+    assert!(hidden_reference_calls("lists", lists).unwrap().is_empty());
+
+    let injected = format!(
+        "{lists}\nfn injected_historical() {{ paint_historical(); }}\nfn injected_reference(ui: &mut Ui<'_>) {{ ui /* split */ . reference (None, Rect::ZERO, |_| {{}}); }}\n"
+    );
+    assert!(
+        !historical_identifiers("lists+injected", &injected)
+            .unwrap()
+            .is_empty(),
+        "a production replay identifier added to the same Lists source must be caught"
+    );
+    assert!(
+        !hidden_reference_calls("lists+injected", &injected)
+            .unwrap()
+            .is_empty(),
+        "a production reference call added to the same Lists source must be caught"
+    );
 }
 
 struct PageHost(Box<dyn Page>);
