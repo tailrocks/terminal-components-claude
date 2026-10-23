@@ -13,6 +13,8 @@ const TOP: Id = Id::root("wheel-hit-stack.top");
 const OWNER: Id = Id::root("wheel-hit-stack.owner");
 const MODAL: Id = Id::root("wheel-hit-stack.modal");
 const FOCUS_TARGET: Id = Id::root("wheel-hit-stack.focus");
+const PAGE_SENTINEL: Id = Id::root("wheel-hit-stack.page-sentinel");
+const MODAL_UNDER: Id = Id::root("wheel-hit-stack.modal-under");
 const CONTAINER: PartRef = PartRef::of(Part::CONTAINER);
 const LABEL: PartRef = PartRef::of(Part::LABEL);
 const BODY: PartRef = PartRef::of(Part::BODY);
@@ -24,6 +26,7 @@ enum Registration {
     PlainScroll,
     PassiveReveal,
     Control,
+    FocusableControl,
     Part,
     ControlPartHitStack,
 }
@@ -234,6 +237,10 @@ impl HitStackProbe {
                 ui.register_control(target.owner, target.area, Focusability::Disabled);
                 None
             }
+            Registration::FocusableControl => {
+                ui.register_control(target.owner, target.area, Focusability::Focusable);
+                None
+            }
             Registration::Part => {
                 ui.register_part(target.owner, target.part, target.area);
                 None
@@ -337,15 +344,24 @@ impl App for HitStackProbe {
     }
 
     fn draw(&self, ui: &mut Ui<'_>) {
-        let mut keys = Vec::with_capacity(self.targets.len());
-        for target in &self.targets {
-            let key = if let Some(layer) = target.layer {
-                ui.layer(layer, |layer_ui, _| Self::draw_target(layer_ui, *target))
-                    .flatten()
-            } else {
-                Self::draw_target(ui, *target)
+        let mut keys = vec![None; self.targets.len()];
+        let mut drawn_layers = Vec::new();
+        for (index, target) in self.targets.iter().enumerate() {
+            let Some(layer) = target.layer else {
+                keys[index] = Self::draw_target(ui, *target);
+                continue;
             };
-            keys.push(key);
+            if drawn_layers.contains(&layer) {
+                continue;
+            }
+            drawn_layers.push(layer);
+            let _ = ui.layer(layer, |layer_ui, _| {
+                for (layer_index, layer_target) in self.targets.iter().enumerate() {
+                    if layer_target.layer == Some(layer) {
+                        keys[layer_index] = Self::draw_target(layer_ui, *layer_target);
+                    }
+                }
+            });
         }
         for (child, parent) in &self.links {
             if let (Some(Some(child)), Some(Some(parent))) = (keys.get(*child), keys.get(*parent)) {
@@ -577,6 +593,7 @@ fn conflicting_same_owner_part_metadata_fails_closed() {
 fn ordinary_scroll_parts_passive_and_linked_routes_block_hit_stack_fallback() {
     for registration in [
         Registration::PlainScroll,
+        Registration::Control,
         Registration::Part,
         Registration::PassiveReveal,
         Registration::Linked,
@@ -760,7 +777,11 @@ fn opening_a_modal_during_the_event_invalidates_the_pending_stack() {
 
 #[test]
 fn closing_the_top_modal_during_the_event_invalidates_fallback() {
-    let mut app = HitStackProbe::new([target(UNDER, SCREEN), target(TOP, SCREEN).on_layer(MODAL)]);
+    let mut app = HitStackProbe::new([
+        target(PAGE_SENTINEL, SCREEN),
+        target(MODAL_UNDER, SCREEN).on_layer(MODAL),
+        target(TOP, SCREEN).on_layer(MODAL),
+    ]);
     app.open_modal_on_bootstrap = true;
     app.close_modal_after_event = true;
     let mut h = harness(app);
@@ -768,8 +789,30 @@ fn closing_the_top_modal_during_the_event_invalidates_fallback() {
     wheel(&mut h, Axis::V, 1, 4, 3);
 
     assert!(!h.is_open(MODAL));
+    assert_eq!(h.app().event_updates, 1);
     assert_eq!(h.app().initial_attempts[0].owner, TOP);
+    assert!(
+        !h.app()
+            .initial_attempts
+            .iter()
+            .any(|attempt| attempt.owner == PAGE_SENTINEL)
+    );
     assert!(h.app().service_attempts.is_empty());
+
+    let mut app = HitStackProbe::new([
+        target(PAGE_SENTINEL, SCREEN),
+        target(MODAL_UNDER, SCREEN).on_layer(MODAL),
+        target(TOP, SCREEN).on_layer(MODAL),
+    ]);
+    app.open_modal_on_bootstrap = true;
+    let mut h = harness(app);
+    wheel(&mut h, Axis::V, 1, 4, 3);
+
+    assert!(h.is_open(MODAL));
+    assert_eq!(h.app().event_updates, 1);
+    assert_eq!(attempted_owners(h.app()), [TOP, MODAL_UNDER]);
+    assert!(!attempted_owners(h.app()).contains(&PAGE_SENTINEL));
+    assert_eq!(h.app().service_attempts.len(), 1);
 }
 
 #[test]
@@ -810,23 +853,36 @@ fn stale_next_source_is_offered_but_cannot_acknowledge_or_continue() {
 
 #[test]
 fn layout_or_focus_change_invalidates_fallback_before_targeted_service() {
-    let mut app = HitStackProbe::new([
+    let targets = [
         target(UNDER, SCREEN),
         target(TOP, SCREEN),
-        Target::new(FOCUS_TARGET, CONTAINER, SCREEN, Registration::Control),
-    ]);
+        Target::new(
+            FOCUS_TARGET,
+            CONTAINER,
+            Rect::new(0, 6, 4, 2),
+            Registration::FocusableControl,
+        ),
+    ];
+    let mut h = harness(HitStackProbe::new(targets));
+    wheel(&mut h, Axis::V, 1, 4, 3);
+    assert_eq!(h.app().event_updates, 1);
+    assert_eq!(attempted_owners(h.app()), [TOP, UNDER]);
+    assert_eq!(h.app().service_attempts.len(), 1);
+
+    let mut app = HitStackProbe::new(targets);
     app.relayout_after_event = true;
     let mut h = harness(app);
     wheel(&mut h, Axis::V, 1, 4, 3);
+    assert_eq!(h.app().event_updates, 1);
+    assert_eq!(h.app().initial_attempts[0].owner, TOP);
     assert!(h.app().service_attempts.is_empty());
 
-    let mut app = HitStackProbe::new([
-        target(UNDER, SCREEN),
-        target(TOP, SCREEN),
-        Target::new(FOCUS_TARGET, CONTAINER, SCREEN, Registration::Control),
-    ]);
+    let mut app = HitStackProbe::new(targets);
     app.focus_after_event = Some(FOCUS_TARGET);
     let mut h = harness(app);
     wheel(&mut h, Axis::V, 1, 4, 3);
+    assert_eq!(h.app().event_updates, 1);
+    assert_eq!(h.app().initial_attempts[0].owner, TOP);
+    assert_eq!(h.focus(), Some(FOCUS_TARGET));
     assert!(h.app().service_attempts.is_empty());
 }
