@@ -189,7 +189,11 @@ pub struct SplitPane<'a> {
     focusability: Focusability,
     keyboard_navigation: bool,
     hit_padding: u16,
+    fixed_first_share: Option<(u8, u16, u16)>,
     fixed_second_share: Option<(u8, u16, u16)>,
+    fixed_sizing: bool,
+    resize_step_cells: u16,
+    resize_bindings: Option<&'static [Binding<SplitCmd>]>,
     reset_policy: ResetPolicy,
     ov: PartStyle<'a>,
 }
@@ -208,7 +212,11 @@ impl fmt::Debug for SplitPane<'_> {
             .field("focusability", &self.focusability)
             .field("keyboard_navigation", &self.keyboard_navigation)
             .field("hit_padding", &self.hit_padding)
+            .field("fixed_first_share", &self.fixed_first_share)
             .field("fixed_second_share", &self.fixed_second_share)
+            .field("fixed_sizing", &self.fixed_sizing)
+            .field("resize_step_cells", &self.resize_step_cells)
+            .field("resize_bindings", &self.resize_bindings)
             .field("reset_policy", &self.reset_policy)
             .field("overrides", &self.ov)
             .finish()
@@ -231,7 +239,11 @@ impl<'a> SplitPane<'a> {
             focusability: Focusability::Focusable,
             keyboard_navigation: true,
             hit_padding: 0,
+            fixed_first_share: None,
             fixed_second_share: None,
+            fixed_sizing: false,
+            resize_step_cells: 1,
+            resize_bindings: None,
             reset_policy: ResetPolicy::Balanced,
             ov: PartStyle::new(),
         }
@@ -252,6 +264,10 @@ impl<'a> SplitPane<'a> {
         let model = self.model(*state);
         let first = first.max(model.min_first);
         let second = second.max(model.min_second);
+        if let Some((percent, min, max)) = self.fixed_first_share {
+            return model
+                .required_extent_with_first_share(self.gap, percent, min, max, first, second);
+        }
         if let Some((percent, min, max)) = self.fixed_second_share {
             return model
                 .required_extent_with_second_share(self.gap, percent, min, max, first, second);
@@ -347,6 +363,39 @@ impl<'a> SplitPane<'a> {
         self
     }
 
+    /// Set the number of terminal cells moved by each keyboard resize command.
+    /// The default remains one cell.
+    #[must_use]
+    pub const fn resize_step_cells(mut self, cells: u16) -> Self {
+        self.resize_step_cells = if cells == 0 { 1 } else { cells };
+        self
+    }
+
+    pub(crate) const fn resize_bindings(mut self, table: &'static [Binding<SplitCmd>]) -> Self {
+        self.resize_bindings = Some(table);
+        self
+    }
+
+    /// Resolve a fixed first-pane share with nearest-cell rounding.
+    #[must_use]
+    pub(crate) const fn fixed_first_share(mut self, percent: u8, min: u16, max: u16) -> Self {
+        let percent = if percent > 100 { 100 } else { percent };
+        let low = if min < max { min } else { max };
+        let high = if min > max { min } else { max };
+        self.fixed_first_share = Some((percent, low, high));
+        self.fixed_second_share = None;
+        self
+    }
+
+    /// Apply the non-interactive sizing policy used by fixed MasterDetail modes.
+    #[must_use]
+    pub(crate) const fn fixed_sizing(mut self) -> Self {
+        self.fixed_sizing = true;
+        self.resizable = false;
+        self.seam = Some((0, SeamAlign::Offset(0)));
+        self
+    }
+
     /// Set a fixed share for the second pane. Intended for reusable blocks
     /// with a documented responsive policy; interactive splits keep using
     /// their stateful ratio by default.
@@ -356,6 +405,7 @@ impl<'a> SplitPane<'a> {
         let percent = if percent > 100 { 100 } else { percent };
         let low = if min < max { min } else { max };
         let high = if min > max { min } else { max };
+        self.fixed_first_share = None;
         self.fixed_second_share = Some((percent, low, high));
         self
     }
@@ -386,17 +436,24 @@ impl<'a> SplitPane<'a> {
 
     const fn model(&self, st: SplitPaneState) -> SplitModel {
         let mut m = SplitModel::new(self.axis, st.percent, self.min_first, self.min_second);
-        m.maximized = st.maximized;
+        m.maximized = if self.fixed_sizing {
+            Maximized::None
+        } else {
+            st.maximized
+        };
         m
     }
 
     pub(crate) fn panes(&self, st: SplitPaneState, area: Rect) -> (Rect, Rect) {
         let model = self.model(st);
-        match self.fixed_second_share {
-            Some((percent, min, max)) => {
+        match (self.fixed_first_share, self.fixed_second_share) {
+            (Some((percent, min, max)), _) => {
+                model.layout_with_first_share(area, self.gap, percent, min, max)
+            }
+            (_, Some((percent, min, max))) => {
                 model.layout_with_second_share(area, self.gap, percent, min, max)
             }
-            None => model.layout_with_basis_points(area, self.gap, st.basis_points),
+            (None, None) => model.layout_with_basis_points(area, self.gap, st.basis_points),
         }
     }
 
@@ -449,8 +506,11 @@ impl<'a> SplitPane<'a> {
     }
 
     const fn table(&self) -> &'static [Binding<SplitCmd>] {
-        if self.disabled || !self.resizable || !self.keyboard_navigation {
+        if self.fixed_sizing || self.disabled || !self.resizable || !self.keyboard_navigation {
             return &[];
+        }
+        if let Some(table) = self.resize_bindings {
+            return table;
         }
         match self.axis {
             SplitAxis::Horizontal => HORIZONTAL,
@@ -477,6 +537,32 @@ impl<'a> SplitPane<'a> {
     }
 
     pub fn update(&self, cx: &mut Cx<'_>, st: &mut SplitPaneState) -> Response<SplitAction> {
+        self.update_for_owner(cx, st, self.id, true)
+    }
+
+    pub(crate) fn update_from_owner(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut SplitPaneState,
+        owner: Id,
+    ) -> Response<SplitAction> {
+        self.update_for_owner(cx, st, owner, false)
+    }
+
+    fn update_for_owner(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut SplitPaneState,
+        owner: Id,
+        allow_pointer: bool,
+    ) -> Response<SplitAction> {
+        if self.fixed_sizing {
+            if cx.capture_owner() == Some(self.id) {
+                cx.release_capture();
+            }
+            st.grab_offset = None;
+            return Response::ignored();
+        }
         let area = cx
             .layout(self.id)
             .and_then(|facts| facts.logical_area)
@@ -484,7 +570,8 @@ impl<'a> SplitPane<'a> {
         let gap = self.gap;
         let table = self.table();
         let mut acc = Acc::<SplitAction>::new();
-        for it in cx.intents(self.id) {
+        let step = i16::try_from(self.resize_step_cells).unwrap_or(i16::MAX);
+        for it in cx.intents(owner) {
             if self.disabled {
                 continue;
             }
@@ -494,7 +581,7 @@ impl<'a> SplitPane<'a> {
                         self.apply(
                             st,
                             |m, basis_points| {
-                                m.nudge_with_basis_points(area, gap, -1, basis_points);
+                                m.nudge_with_basis_points(area, gap, -step, basis_points);
                             },
                             &mut acc,
                         );
@@ -502,7 +589,7 @@ impl<'a> SplitPane<'a> {
                     Some(SplitCmd::Grow) => self.apply(
                         st,
                         |m, basis_points| {
-                            m.nudge_with_basis_points(area, gap, 1, basis_points);
+                            m.nudge_with_basis_points(area, gap, step, basis_points);
                         },
                         &mut acc,
                     ),
@@ -525,8 +612,8 @@ impl<'a> SplitPane<'a> {
                         },
                     pos,
                     ..
-                } => self.pointer(cx, st, phase, pos, area, &mut acc),
-                Intent::Cancel => {
+                } if allow_pointer => self.pointer(cx, st, phase, pos, area, &mut acc),
+                Intent::Cancel if allow_pointer => {
                     if cx.capture_owner() == Some(self.id) {
                         cx.release_capture();
                     }

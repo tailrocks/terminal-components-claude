@@ -7,7 +7,7 @@ use crate::intent::Intent;
 use crate::keymap::Binding;
 use crate::layout::SplitAxis;
 use crate::response::Response;
-use crate::split::{ResetPolicy, SplitAction, SplitPane, SplitPaneState};
+use crate::split::{ResetPolicy, SplitAction, SplitCmd, SplitPane, SplitPaneState};
 use crate::ui::{Cx, FrameRead, LayoutFacts, Ui};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -90,6 +90,13 @@ pub struct MasterDetailState {
     return_focus: Option<Id>,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum SplitSizing {
+    Resizable,
+    FixedDetail { percent: u8, min: u16, max: u16 },
+    FixedMaster { percent: u8, min: u16, max: u16 },
+}
+
 impl MasterDetailState {
     pub const fn split(&self) -> Option<SplitPaneState> {
         self.split
@@ -138,6 +145,9 @@ pub struct MasterDetail {
     esc_returns: bool,
     detail_owners: Vec<Id>,
     reset_policy: ResetPolicy,
+    split_sizing: SplitSizing,
+    resize_step_cells: u16,
+    resize_bindings: Option<&'static [Binding<SplitCmd>]>,
 }
 
 impl MasterDetail {
@@ -155,6 +165,9 @@ impl MasterDetail {
             esc_returns: true,
             detail_owners: Vec::new(),
             reset_policy: ResetPolicy::Balanced,
+            split_sizing: SplitSizing::Resizable,
+            resize_step_cells: 1,
+            resize_bindings: None,
         }
     }
 
@@ -198,9 +211,72 @@ impl MasterDetail {
         }
     }
 
+    /// Set the initial resizable split ratio, preserving the one-argument
+    /// compatibility builder and its existing behaviour.
     #[must_use]
     pub const fn master_share(mut self, percent: u8) -> Self {
         self.master_share = percent;
+        self
+    }
+
+    /// Use a fixed share for the detail pane, measured from the full width.
+    /// The requested width is floored and clamped to `min..=max`. Calling
+    /// [`Self::resizable`] later restores the stored interactive split ratio.
+    #[must_use]
+    pub const fn fixed_detail_share(mut self, percent: u8, min: u16, max: u16) -> Self {
+        let percent = if percent > 100 { 100 } else { percent };
+        let low = if min < max { min } else { max };
+        let high = if min > max { min } else { max };
+        self.split_sizing = SplitSizing::FixedDetail {
+            percent,
+            min: low,
+            max: high,
+        };
+        self
+    }
+
+    /// Use a fixed share for the master pane, measured from the full width.
+    /// The requested width is rounded to the nearest cell and clamped to
+    /// `min..=max`. Calling [`Self::resizable`] later restores the stored
+    /// interactive split ratio.
+    #[must_use]
+    pub const fn fixed_master_share(mut self, percent: u8, min: u16, max: u16) -> Self {
+        let percent = if percent > 100 { 100 } else { percent };
+        let low = if min < max { min } else { max };
+        let high = if min > max { min } else { max };
+        self.split_sizing = SplitSizing::FixedMaster {
+            percent,
+            min: low,
+            max: high,
+        };
+        self
+    }
+
+    /// Return to an interactive split after a fixed-share builder.
+    ///
+    /// The most recent sizing-mode builder wins. This does not change the
+    /// stateful ratio configured by [`Self::master_share`] or retained in
+    /// [`MasterDetailState`].
+    #[must_use]
+    pub const fn resizable(mut self) -> Self {
+        self.split_sizing = SplitSizing::Resizable;
+        self
+    }
+
+    /// Set the cell count moved by each resize command. Zero is normalized to
+    /// one cell; the default remains one cell.
+    #[must_use]
+    pub const fn resize_step_cells(mut self, cells: u16) -> Self {
+        self.resize_step_cells = if cells == 0 { 1 } else { cells };
+        self
+    }
+
+    /// Set the static resize command table used both for hints and handling.
+    /// An empty table disables keyboard resizing while leaving seam dragging
+    /// available in resizable mode.
+    #[must_use]
+    pub const fn resize_bindings(mut self, table: &'static [Binding<SplitCmd>]) -> Self {
+        self.resize_bindings = Some(table);
         self
     }
 
@@ -290,7 +366,32 @@ impl MasterDetail {
         let split = state
             .split
             .get_or_insert_with(|| SplitPaneState::new(self.master_share));
-        self.split_pane().update(cx, split)
+        let pane = self.split_pane();
+        let mut response = pane.update(cx, split);
+        if self.split_sizing == SplitSizing::Resizable && self.resize_bindings.is_some() {
+            let split_active = cx
+                .layout(self.id)
+                .and_then(|facts| facts.logical_area)
+                .is_some_and(|area| area.width >= self.collapse_below);
+            if split_active {
+                let owner = if master_focused {
+                    Some(self.master)
+                } else {
+                    self.detail_owners
+                        .iter()
+                        .copied()
+                        .chain([self.detail])
+                        .find(|id| cx.state(*id).contains(crate::response::StateFlags::FOCUSED))
+                };
+                if let Some(owner) = owner.filter(|owner| *owner != self.id) {
+                    let child_response = pane.update_from_owner(cx, split, owner);
+                    if child_response.is_consumed() || child_response.is_changed() {
+                        response = child_response;
+                    }
+                }
+            }
+        }
+        response
     }
 
     /// Compute stable pane regions for a terminal area.
@@ -364,7 +465,7 @@ impl MasterDetail {
                 .unwrap_or_else(|| SplitPaneState::new(self.master_share));
             return split.draw(ui, area, &split_state, |ui, _, _| {
                 let result = body(ui, layout);
-                self.publish_navigation_bindings(ui);
+                self.publish_navigation_bindings(ui, true);
                 result
             });
         }
@@ -374,18 +475,30 @@ impl MasterDetail {
         );
         ui.with_area(area, |ui| {
             let result = body(ui, layout);
-            self.publish_navigation_bindings(ui);
+            self.publish_navigation_bindings(ui, false);
             result
         })
     }
 
-    fn publish_navigation_bindings(&self, ui: &mut Ui<'_>) {
+    fn publish_navigation_bindings(&self, ui: &mut Ui<'_>, split_active: bool) {
         let master = ui.state(self.master);
         ui.publish_additional_bindings(self.master, master, OPEN_DETAIL);
         if self.esc_returns {
             for owner in self.detail_owners.iter().copied().chain([self.detail]) {
                 let live = ui.state(owner);
                 ui.publish_additional_bindings(owner, live, CLOSE_DETAIL);
+            }
+        }
+        if split_active
+            && self.split_sizing == SplitSizing::Resizable
+            && let Some(table) = self.resize_bindings
+        {
+            ui.publish_additional_bindings(self.master, master, table);
+            for owner in self.detail_owners.iter().copied().chain([self.detail]) {
+                if owner != self.master {
+                    let live = ui.state(owner);
+                    ui.publish_additional_bindings(owner, live, table);
+                }
             }
         }
     }
@@ -395,13 +508,26 @@ impl MasterDetail {
     /// Exposed for component-author adapters that need to measure the same
     /// pane configuration without creating a second split policy.
     pub fn split_pane(&self) -> SplitPane<'static> {
-        SplitPane::new(self.id, SplitAxis::Horizontal)
+        let mut split = SplitPane::new(self.id, SplitAxis::Horizontal)
             .gap(self.gap)
             .min_first(self.min_master)
             .min_second(self.min_detail)
             .resizable(true)
+            .resize_step_cells(self.resize_step_cells)
             .reset_policy(self.reset_policy)
-            .seam_at_offset(1, self.gap / 2)
+            .seam_at_offset(1, self.gap / 2);
+        if let Some(table) = self.resize_bindings {
+            split = split.resize_bindings(table);
+        }
+        match self.split_sizing {
+            SplitSizing::Resizable => split,
+            SplitSizing::FixedDetail { percent, min, max } => {
+                split.fixed_second_share(percent, min, max).fixed_sizing()
+            }
+            SplitSizing::FixedMaster { percent, min, max } => {
+                split.fixed_first_share(percent, min, max).fixed_sizing()
+            }
+        }
     }
 }
 

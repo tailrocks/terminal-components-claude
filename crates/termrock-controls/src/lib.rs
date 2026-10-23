@@ -20,6 +20,7 @@ pub(crate) mod collection {}
 pub(crate) use termrock_runtime::field_control;
 
 pub use termrock_core::action::ActionKey;
+pub use termrock_runtime::Binding;
 pub use termrock_runtime::{ReferenceState, ReferenceTarget, ScrollRegion, Ui};
 pub use termrock_text::{Secret, SecretPolicy};
 pub use termrock_theme::ColorLevel;
