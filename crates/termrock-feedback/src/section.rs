@@ -130,7 +130,41 @@ impl<'a> TextSection<'a> {
 mod tests {
     use super::*;
     use crate::theme::{ColorLevel, Theme};
+    use ratatui_core::buffer::{Buffer, Cell, CellDiffOption};
+    use ratatui_core::style::{Color, Modifier, Style};
     use termrock_test_support::Scene;
+
+    const SENTINEL_FG: Color = Color::Rgb(17, 29, 43);
+    const SENTINEL_BG: Color = Color::Rgb(53, 67, 79);
+
+    fn prefill_sentinels(buffer: &mut Buffer) {
+        let style = Style::default()
+            .fg(SENTINEL_FG)
+            .bg(SENTINEL_BG)
+            .add_modifier(Modifier::ITALIC | Modifier::UNDERLINED);
+        for cell in &mut buffer.content {
+            cell.set_symbol("·")
+                .set_style(style)
+                .set_diff_option(CellDiffOption::AlwaysUpdate);
+        }
+    }
+
+    fn assert_untouched(scene: &Scene, before: &[Cell], painted: impl Fn(u16, u16) -> bool) {
+        let area = scene.area();
+        for y in 0..area.height {
+            for x in 0..area.width {
+                if painted(x, y) {
+                    continue;
+                }
+                let index = usize::from(y) * usize::from(area.width) + usize::from(x);
+                assert_eq!(
+                    scene.buffer().content[index],
+                    before[index],
+                    "untouched cell at ({x}, {y})"
+                );
+            }
+        }
+    }
 
     fn symbol(scene: &Scene, x: u16, y: u16) -> Option<&str> {
         scene.buffer().cell((x, y)).map(|cell| cell.symbol())
@@ -385,5 +419,185 @@ mod tests {
             tight = Some(section.measure(ui, Constraints::tight(7, 6)));
         });
         assert_eq!(tight, Some(Size::exact(7, 6)));
+    }
+
+    #[test]
+    fn measured_offset_extent_maps_unicode_lines_and_preserves_padding_cells() {
+        let section = TextSection::new("界A")
+            .subtitle("e\u{301}B")
+            .body("🦀Z")
+            .inset(2);
+        let mut scene = Scene::new(
+            "text-section-measured-unicode",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            11,
+            7,
+        );
+        let cursor_before = scene.cursor_position();
+        let mut measured = None;
+        let mut before = Vec::new();
+        scene.draw_over(
+            |buffer| {
+                prefill_sentinels(buffer);
+                before = buffer.content.clone();
+            },
+            |ui, _| {
+                let size = section.measure(ui, Constraints::loose(20, 10));
+                measured = Some(size);
+                section.render(ui, Rect::new(2, 1, size.preferred.0, size.preferred.1));
+            },
+        );
+
+        assert_eq!(measured, Some(Size::exact(7, 4)));
+        assert_eq!(symbol(&scene, 4, 1), Some("界"));
+        assert_eq!(scene.buffer().cell((5, 1)), Some(&Cell::EMPTY));
+        assert_eq!(symbol(&scene, 6, 1), Some("A"));
+        assert_eq!(symbol(&scene, 4, 2), Some("e\u{301}"));
+        assert_eq!(symbol(&scene, 5, 2), Some("B"));
+        assert_eq!(symbol(&scene, 4, 4), Some("🦀"));
+        assert_eq!(scene.buffer().cell((5, 4)), Some(&Cell::EMPTY));
+        assert_eq!(symbol(&scene, 6, 4), Some("Z"));
+
+        let title = scene.buffer().cell((4, 1)).unwrap();
+        let subtitle = scene.buffer().cell((4, 2)).unwrap();
+        let body = scene.buffer().cell((4, 4)).unwrap();
+        assert!(title.modifier.contains(Modifier::BOLD));
+        assert!(!subtitle.modifier.contains(Modifier::BOLD));
+        assert_ne!(title.fg, subtitle.fg);
+        assert_eq!(subtitle.fg, body.fg);
+        for cell in [title, subtitle, body] {
+            assert_ne!(cell.fg, SENTINEL_FG);
+            assert_eq!(cell.bg, SENTINEL_BG);
+        }
+
+        assert_untouched(&scene, &before, |x, y| {
+            matches!((x, y), (4..=6, 1) | (4..=5, 2) | (4..=6, 4))
+        });
+        assert_eq!(scene.cursor_position(), cursor_before);
+    }
+
+    #[test]
+    fn measured_nondefault_body_row_contains_body_at_its_configured_row() {
+        let section = TextSection::new("T")
+            .subtitle("S")
+            .body("B")
+            .body_row(2)
+            .inset(1);
+        let mut scene = Scene::new(
+            "text-section-measured-body-row",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            8,
+            6,
+        );
+        let mut measured = None;
+        let mut before = Vec::new();
+        scene.draw_over(
+            |buffer| {
+                prefill_sentinels(buffer);
+                before = buffer.content.clone();
+            },
+            |ui, _| {
+                let size = section.measure(ui, Constraints::loose(8, 8));
+                measured = Some(size);
+                section.render(ui, Rect::new(2, 1, size.preferred.0, size.preferred.1));
+            },
+        );
+
+        assert_eq!(measured, Some(Size::exact(3, 3)));
+        assert_eq!(symbol(&scene, 3, 1), Some("T"));
+        assert_eq!(symbol(&scene, 3, 2), Some("S"));
+        assert_eq!(symbol(&scene, 3, 3), Some("B"));
+        assert_untouched(&scene, &before, |x, y| matches!((x, y), (3, 1..=3)));
+    }
+
+    #[test]
+    fn constrained_measured_extent_clips_without_wrapping_or_revealing_body() {
+        let section = TextSection::new("界A")
+            .subtitle("Detail")
+            .body("Body")
+            .inset(2);
+        let mut scene = Scene::new(
+            "text-section-measured-constrained",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            12,
+            7,
+        );
+        let mut measured = None;
+        let mut before = Vec::new();
+        scene.draw_over(
+            |buffer| {
+                prefill_sentinels(buffer);
+                before = buffer.content.clone();
+            },
+            |ui, _| {
+                let size = section.measure(ui, Constraints::loose(6, 2));
+                measured = Some(size);
+                section.render(ui, Rect::new(3, 2, size.preferred.0, size.preferred.1));
+            },
+        );
+
+        assert_eq!(measured, Some(Size::exact(6, 2)));
+        assert_eq!(symbol(&scene, 5, 2), Some("界"));
+        assert_eq!(scene.buffer().cell((6, 2)), Some(&Cell::EMPTY));
+        assert_eq!(symbol(&scene, 5, 3), Some("D"));
+        assert_eq!(symbol(&scene, 6, 3), Some("e"));
+        assert_eq!(symbol(&scene, 7, 2), Some("·"));
+        assert_eq!(symbol(&scene, 5, 4), Some("·"));
+        assert_untouched(&scene, &before, |x, y| {
+            matches!((x, y), (5..=6, 2) | (5..=6, 3))
+        });
+    }
+
+    #[test]
+    fn inset_dominated_and_zero_measured_extents_leave_full_cells_untouched() {
+        let inset_section = TextSection::new("A").subtitle("B").body("C").inset(2);
+        let mut inset_scene = Scene::new(
+            "text-section-measured-inset-boundary",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            8,
+            6,
+        );
+        let mut inset_size = None;
+        let mut inset_before = Vec::new();
+        inset_scene.draw_over(
+            |buffer| {
+                prefill_sentinels(buffer);
+                inset_before = buffer.content.clone();
+            },
+            |ui, _| {
+                let size = inset_section.measure(ui, Constraints::loose(3, 4));
+                inset_size = Some(size);
+                inset_section.render(ui, Rect::new(2, 1, size.preferred.0, size.preferred.1));
+            },
+        );
+        assert_eq!(inset_size, Some(Size::exact(3, 4)));
+        assert_eq!(inset_scene.buffer().content, inset_before);
+
+        let mut zero_scene = Scene::new(
+            "text-section-measured-zero-boundary",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            8,
+            6,
+        );
+        let mut zero_size = None;
+        let mut zero_before = Vec::new();
+        zero_scene.draw_over(
+            |buffer| {
+                prefill_sentinels(buffer);
+                zero_before = buffer.content.clone();
+            },
+            |ui, _| {
+                let size = inset_section.measure(ui, Constraints::loose(0, 0));
+                zero_size = Some(size);
+                inset_section.render(ui, Rect::new(5, 3, size.preferred.0, size.preferred.1));
+            },
+        );
+        assert_eq!(zero_size, Some(Size::exact(0, 0)));
+        assert_eq!(zero_scene.buffer().content, zero_before);
     }
 }
