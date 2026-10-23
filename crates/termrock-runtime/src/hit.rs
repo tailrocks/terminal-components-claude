@@ -1651,7 +1651,7 @@ mod tests {
     fn event_local_ambiguity_ignores_pointer_disabled_sibling_targets() {
         let mut registry = Registry::new(3);
         let left = Rect::new(0, 0, 8, 8);
-        let right = Rect::new(12, 0, 8, 8);
+        let overlapping = Rect::new(0, 0, 8, 8);
         let under = registry
             .register_event_local_hit_stack_wheel(
                 C,
@@ -1676,12 +1676,24 @@ mod tests {
             .register_event_local_hit_stack_wheel(
                 A,
                 PartRef::of(Part::BODY),
-                right,
+                overlapping,
                 LayerId::PAGE,
                 Axes::Both,
                 22,
             )
             .expect("the pointer-disabled sibling");
+        assert_eq!(
+            registry.next_scroll_route_target(
+                selected,
+                Axis::V,
+                Position::new(2, 2),
+                LayerId::PAGE,
+                &[A],
+            ),
+            None,
+            "an enabled overlapping sibling with another source is ambiguous"
+        );
+
         registry.regions[disabled.registration_index].pointer_enabled = false;
 
         assert_eq!(
