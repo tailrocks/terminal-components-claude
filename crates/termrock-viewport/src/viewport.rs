@@ -111,9 +111,12 @@ impl ProjectedText {
     /// The viewport still measures, wraps, selects, copies, clips, and paints
     /// the line. A grapheme that crosses run boundaries uses the style of the
     /// run containing its first scalar, matching [`ViewportLine::Spans`].
-    /// Styles are stored as supplied; rebuild this projection from the current
-    /// theme and paint context when those inputs change. The viewport does not
-    /// use its source revision as a theme-style cache key.
+    /// On selected cells, the viewport's selected foreground and background
+    /// remain authoritative while producer modifiers and underline channels
+    /// compose over that selected style. Styles are stored as supplied; rebuild
+    /// this projection from the current theme and paint context when those
+    /// inputs change. The viewport does not use its source revision as a
+    /// theme-style cache key.
     pub fn push_styled_line<I, S>(&mut self, runs: I)
     where
         I: IntoIterator<Item = (S, PaintStyle)>,
@@ -675,12 +678,14 @@ fn run_style(line: LineRef<'_>, ix: usize) -> (Option<Role>, Modifier, Option<Pa
 }
 
 fn run_paint_style(base: PaintStyle, run: PaintStyle, selected: bool) -> PaintStyle {
+    let composed = base.patch(run);
     if selected {
-        // Keep the viewport's selected style authoritative over producer ink
-        // and its existing selection-modifier policy.
-        run.patch(base)
+        // Rich producer modifiers and underline channels compose just like
+        // ordinary span additions over the selected base. Only selected ink
+        // is authoritative, and these helpers preserve its role metadata.
+        composed.with_fg_from(base).with_bg_from(base)
     } else {
-        base.patch(run)
+        composed
     }
 }
 
