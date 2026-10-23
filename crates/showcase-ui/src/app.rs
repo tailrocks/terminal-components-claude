@@ -63,15 +63,23 @@ const HELP_COMMAND: ActionKey = ActionKey::application("showcase.help");
 const INSPECTOR_COMMAND: ActionKey = ActionKey::application("showcase.inspector");
 const NEXT_PAGE: ActionKey = ActionKey::application("showcase.page.next");
 const PREV_PAGE: ActionKey = ActionKey::application("showcase.page.previous");
-const HELP_TEXT: &str = "Tab / Shift+Tab   move keyboard focus\n\
+const HELP_INSTRUCTIONS: &str = "Tab / Shift+Tab   move keyboard focus\n\
 ↑ ↓ ← →           move inside the focused control\n\
 Enter / Space     activate · start editing\n\
 Esc               cancel editing · back to navigation\n\
 [ ]               previous / next page\n\
 0                 jump to navigation\n\
 i                 toggle state inspector\n\
-q                 quit\n\n\
-Mouse: hover to preview, click to focus and activate, wheel to scroll, drag the scrollbar thumb.";
+q                 quit";
+const HELP_MOUSE_HINT: &str = "Mouse: hover to preview, click to focus and activate, wheel to scroll, drag the scrollbar thumb.";
+
+fn build_help_description() -> String {
+    format!(
+        "{HELP_INSTRUCTIONS}\nNavigation: {} destinations · {} implemented pages.\n{HELP_MOUSE_HINT}",
+        NAV_ENTRIES.len(),
+        PageId::ALL.len()
+    )
+}
 
 const STATUS_LEFT: [StatusItem<'static>; 1] = [StatusItem::new("showcase")];
 const STATUS_RIGHT: [StatusItem<'static>; 2] = [
@@ -1295,6 +1303,7 @@ pub struct App {
     notice_reveals: std::cell::RefCell<[NoticeReveal; 6]>,
     notice_reveal_snapshot: Option<NoticeRevealSnapshot>,
     notice_reveal_revision: u64,
+    help_description: String,
     help_state: DialogState,
     help_open: bool,
     overlay_open: bool,
@@ -1407,6 +1416,7 @@ impl App {
             })),
             notice_reveal_snapshot: None,
             notice_reveal_revision: 0,
+            help_description: build_help_description(),
             help_state: DialogState::default(),
             help_open: false,
             overlay_open: false,
@@ -1703,14 +1713,15 @@ impl App {
         }
     }
 
-    fn help_dialog() -> Dialog<'static> {
+    fn help_dialog(description: &str) -> Dialog<'_> {
         Dialog::info(HELP, "Keyboard & mouse")
-            .description(HELP_TEXT)
+            .description(description)
+            .body_rows(1)
             .width(70)
     }
 
     fn update_help(&mut self, cx: &mut Cx<'_>, response: &mut Response<()>) {
-        let help = Self::help_dialog().update(cx, &mut self.help_state);
+        let help = Self::help_dialog(&self.help_description).update(cx, &mut self.help_state);
         if let Some(action) = help.action_ref() {
             match action {
                 DialogAction::Action(_) | DialogAction::Dismissed(_) => {
@@ -1735,7 +1746,7 @@ impl App {
         });
         if help_clicked {
             if !cx.is_open(HELP) {
-                let layer = Self::help_dialog().layer(cx);
+                let layer = Self::help_dialog(&self.help_description).layer(cx);
                 cx.open_layer(HELP, layer);
             }
             *response |= Response::changed();
@@ -2542,7 +2553,7 @@ impl TuiApp for App {
                 }
             }
             Some(HELP_COMMAND) if !cx.is_open(HELP) => {
-                cx.open_layer(HELP, Self::help_dialog().layer(cx));
+                cx.open_layer(HELP, Self::help_dialog(&self.help_description).layer(cx));
             }
             Some(INSPECTOR_COMMAND) => {
                 self.inspector = !self.inspector;
@@ -2809,9 +2820,14 @@ impl TuiApp for App {
             }
         }
         ui.layer(HELP, |ui, area| {
-            Self::help_dialog().draw(ui, area, &self.help_state, |ui, body| {
-                let _ = ui.paint_str(body, "q quit   ? help   Esc close", ui.surface_style());
-            });
+            Self::help_dialog(&self.help_description).draw(
+                ui,
+                area,
+                &self.help_state,
+                |ui, body| {
+                    let _ = ui.paint_str(body, "q quit   ? help   Esc close", ui.surface_style());
+                },
+            );
         });
         if label == "Selection" {
             showcase_demos::pages::selectable::Model::draw_dialog(ui, &self.selectable);
