@@ -38,7 +38,14 @@ const ACTION_ITEMS: &[&str] = &["None", "One", "Two"];
 const REASON_ITEMS: &[&str] = &["View", "No primary key", "Query result"];
 const PAGE_SECTIONS: &[&str] = &["Playground", "Options", "States"];
 const EMPTY_SAVED_QUERIES: &[&str] = &[];
-const STATES_HEIGHT: usize = 21;
+const GALLERY_COLUMN_LABELS: [&str; 3] = ["Title", "Title + hint", "With actions"];
+const GALLERY_ROW_LABELS: [&str; 7] = [
+    "Rest", "Hover", "Pressed", "Focused", "Error", "Overflow", "Narrow",
+];
+const GALLERY_LABEL_WIDTH: u16 = 14;
+const GALLERY_HEADER_ROWS: usize = 1;
+const GALLERY_SPECIMEN_ROWS: usize = 3;
+const STATES_HEIGHT: usize = GALLERY_HEADER_ROWS + GALLERY_ROW_LABELS.len() * GALLERY_SPECIMEN_ROWS;
 
 const GRID_HINTS: &[(&str, &str)] = &[
     ("↑↓←→", "Cell"),
@@ -602,29 +609,61 @@ impl EmptyErrorPage {
         }
         let projected = ScrollRegion::view(&self.states_scroll, view, STATES_HEIGHT);
         let first_row = projected.offset().min(STATES_HEIGHT);
-        let logical_height = STATES_HEIGHT.max(usize::from(view.height));
-        let Some(window) = VerticalWindow::new(view, logical_height, first_row).ok() else {
+        let logical_height = u16::try_from(STATES_HEIGHT).unwrap_or(u16::MAX);
+        let visible = Rect {
+            height: view.height.min(logical_height),
+            ..view
+        };
+        let Some(window) = VerticalWindow::new(visible, STATES_HEIGHT, first_row).ok() else {
             return;
         };
-        let visible = window.visible_source_range();
-        let col_width = view.width / 3;
-        let remainder = view.width % 3;
-        for row in 0..7usize {
-            let source_y = row.saturating_mul(3);
-            if source_y < visible.start || source_y.saturating_add(3) > visible.end {
+        let source_rows = window.visible_source_range();
+        let view_width = view.width;
+        let label_width = GALLERY_LABEL_WIDTH.min(view_width);
+        let grid_x = view.x.saturating_add(label_width);
+        let grid_width = view_width.saturating_sub(label_width);
+        let col_width = grid_width / GALLERY_COLUMN_LABELS.len() as u16;
+        let remainder = grid_width % GALLERY_COLUMN_LABELS.len() as u16;
+
+        if let Some(y) = window.physical_row_for_source(0) {
+            let _ = ui.paint_str(
+                Rect::new(view.x, y, label_width, 1),
+                "State",
+                ui.surface_style(),
+            );
+            let mut x = grid_x;
+            for (col, label) in GALLERY_COLUMN_LABELS.iter().enumerate() {
+                let width = col_width.saturating_add(u16::from((col as u16) < remainder));
+                let _ = ui.paint_str(Rect::new(x, y, width, 1), label, ui.surface_style());
+                x = x.saturating_add(width);
+            }
+        }
+
+        for (row, label) in GALLERY_ROW_LABELS.iter().enumerate() {
+            let source_y =
+                GALLERY_HEADER_ROWS.saturating_add(row.saturating_mul(GALLERY_SPECIMEN_ROWS));
+            let source_end = source_y.saturating_add(GALLERY_SPECIMEN_ROWS);
+            if source_y < source_rows.start || source_end > source_rows.end {
                 continue;
             }
             let Some(y) = window.physical_row_for_source(source_y) else {
                 continue;
             };
-            let mut x = view.x;
-            for col in 0..3usize {
+            if let Some(label_y) = window.physical_row_for_source(source_y.saturating_add(1)) {
+                let _ = ui.paint_str(
+                    Rect::new(view.x, label_y, label_width, 1),
+                    label,
+                    ui.surface_style(),
+                );
+            }
+            let mut x = grid_x;
+            for col in 0..GALLERY_COLUMN_LABELS.len() {
                 let width = col_width.saturating_add(u16::from((col as u16) < remainder));
                 if width == 0 {
                     x = x.saturating_add(width);
                     continue;
                 }
-                let cell = Rect::new(x, y, width, 3);
+                let cell = Rect::new(x, y, width, GALLERY_SPECIMEN_ROWS as u16);
                 self.draw_specimen(ui, cell, row, col);
                 x = x.saturating_add(width);
             }
@@ -828,27 +867,17 @@ fn specimen_id(base: Id, row: usize, col: usize) -> Id {
 }
 
 fn specimen_state(row: usize, col: usize) -> (EmptyState<'static>, &'static str) {
-    let action = if row == 4 { "Retry" } else { "New" };
-    let title = match (row, col) {
-        (0, 2) => "Rest: No connections",
-        (1, 2) => "Hover: No connections",
-        (2, 2) => "Pressed: No connections",
-        (3, 2) => "Focused: No connections",
-        (0, _) => "Rest: No rows",
-        (1, _) => "Hover: No rows",
-        (2, _) => "Pressed: No rows",
-        (3, _) => "Focused: No rows",
-        (4, _) => "Could not load connections",
-        (5, _) => "Overflow: Authentication failed while checking the saved database credential",
-        _ => "Narrow: No connections",
+    let base_title = if col == 2 {
+        "No connections"
+    } else {
+        "No rows"
     };
-    let detail = match (row, col) {
-        (0, 1) => Some("Run a query to fill it"),
-        (4, 1) => Some("The config file is unreadable: check its permissions"),
-        (5, 1) => Some("Complete diagnostics stay available in this clipped specimen"),
-        (6, 1) => Some("The narrow cell clips this supporting line"),
-        _ => None,
+    let title = match row {
+        5 if col == 2 => "No connections in a view far too narrow for it",
+        5 => "No rows in a view far too narrow for it",
+        _ => base_title,
     };
+    let detail = (col == 1).then_some("Run the query to fill it");
     let state = if row == 4 {
         EmptyState::Error {
             message: title,
@@ -860,5 +889,5 @@ fn specimen_state(row: usize, col: usize) -> (EmptyState<'static>, &'static str)
             hint: detail,
         }
     };
-    (state, action)
+    (state, "New")
 }

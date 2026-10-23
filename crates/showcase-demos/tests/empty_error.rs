@@ -1,6 +1,7 @@
 use showcase_demos::pages::{Page, empty_error::EmptyErrorPage};
 use termrock::{
-    App, Cx, Id, ItemKey, KeyCode, KeyModifiers, Part, PartRef, Rect, Response, Theme, Ui,
+    App, Axis, Cx, GlyphRole, Id, ItemKey, KeyCode, KeyModifiers, Part, PartRef, Rect, Response,
+    Theme, Ui,
 };
 use termrock_test_support::Harness;
 
@@ -16,7 +17,13 @@ const CONNECTION_IMPORT: Id = Id::root("showcase_ui::pages::empty_error.connecti
 const ORDERS_GRID: Id = Id::root("showcase_ui::pages::empty_error.orders.grid");
 const ROW_ACTIONS: Id = Id::root("showcase_ui::pages::empty_error.orders.actions");
 const ROW_MENU: Id = Id::root("showcase_ui::pages::empty_error.orders.menu");
+const STATES_SCROLL: Id = Id::root("showcase_ui::pages::empty_error.states.scroll");
 const GALLERY_ACTION: Id = Id::root("showcase_ui::pages::empty_error.gallery.action");
+const GALLERY_LABEL_WIDTH: u16 = 14;
+const GALLERY_HEIGHT: usize = 22;
+const GALLERY_ROWS: [&str; 7] = [
+    "Rest", "Hover", "Pressed", "Focused", "Error", "Overflow", "Narrow",
+];
 
 struct PageHost {
     page: EmptyErrorPage,
@@ -96,6 +103,112 @@ fn choose(h: &mut Harness<PageHost>, id: Id, current: usize, target: usize) {
 
 fn page_debug(h: &Harness<PageHost>) -> String {
     format!("{:?}", h.app().page)
+}
+
+fn view_width(scroll: Rect) -> u16 {
+    scroll
+        .width
+        .saturating_sub(u16::from(usize::from(scroll.height) < GALLERY_HEIGHT))
+}
+
+fn gallery_column(scroll: Rect, column: usize) -> Rect {
+    let width = view_width(scroll);
+    let grid_x = scroll.x.saturating_add(GALLERY_LABEL_WIDTH.min(width));
+    let grid_width = width.saturating_sub(GALLERY_LABEL_WIDTH.min(width));
+    let base = grid_width / 3;
+    let remainder = grid_width % 3;
+    let mut x = grid_x;
+    for current in 0..column {
+        x = x
+            .saturating_add(base)
+            .saturating_add(u16::from((current as u16) < remainder));
+    }
+    Rect::new(
+        x,
+        scroll.y,
+        base.saturating_add(u16::from((column as u16) < remainder)),
+        scroll.height,
+    )
+}
+
+fn text_in(h: &Harness<PageHost>, area: Rect) -> String {
+    let mut text = String::new();
+    for y in area.y..area.bottom() {
+        if !text.is_empty() {
+            text.push('\n');
+        }
+        for x in area.x..area.right() {
+            text.push_str(h.cell(x, y).symbol());
+        }
+    }
+    text.trim().to_owned()
+}
+
+fn gallery_cell_text(h: &Harness<PageHost>, scroll: Rect, top: u16, column: usize) -> String {
+    let column = gallery_column(scroll, column);
+    text_in(
+        h,
+        Rect::new(
+            column.x,
+            top,
+            column.width,
+            3.min(scroll.bottom().saturating_sub(top)),
+        ),
+    )
+}
+
+fn assert_gallery_row(h: &Harness<PageHost>, scroll: Rect, top: u16, row: usize) {
+    let columns = [
+        gallery_cell_text(h, scroll, top, 0),
+        gallery_cell_text(h, scroll, top, 1),
+        gallery_cell_text(h, scroll, top, 2),
+    ];
+    let error_glyph = Theme::junie().design.glyphs.get(GlyphRole::Error);
+    match row {
+        0 => {
+            assert!(columns[0].contains("No rows"), "{columns:?}");
+            assert!(columns[1].contains("No rows"), "{columns:?}");
+            assert!(columns[1].contains("Run the query"), "{columns:?}");
+            assert!(columns[2].contains("No connections"), "{columns:?}");
+            assert!(columns[2].contains("New"), "{columns:?}");
+        }
+        1..=3 => {
+            assert!(columns[0].contains("N/A · no action"), "{columns:?}");
+            assert!(columns[1].contains("N/A · no action"), "{columns:?}");
+            assert!(columns[2].contains("No connections"), "{columns:?}");
+            assert!(columns[2].contains("New"), "{columns:?}");
+        }
+        4 => {
+            for (column, text) in columns.iter().enumerate() {
+                let expected = if column == 2 {
+                    "No connections"
+                } else {
+                    "No rows"
+                };
+                assert!(
+                    text.contains(error_glyph),
+                    "error glyph missing: {columns:?}"
+                );
+                assert!(text.contains(expected), "{columns:?}");
+            }
+            assert!(columns[1].contains("Run the query"), "{columns:?}");
+            assert!(columns[2].contains("New"), "{columns:?}");
+        }
+        5 => {
+            assert!(columns[0].contains("No rows in a view"), "{columns:?}");
+            assert!(columns[1].contains("No rows in a view"), "{columns:?}");
+            assert!(columns[1].contains("Run the query"), "{columns:?}");
+            assert!(columns[2].contains("No connections in"), "{columns:?}");
+            assert!(columns[2].contains("New"), "{columns:?}");
+        }
+        6 => {
+            assert!(columns[0].contains("No rows"), "{columns:?}");
+            assert!(columns[1].contains("Run the"), "{columns:?}");
+            assert!(columns[2].contains("No"), "{columns:?}");
+            assert!(columns[2].contains("New"), "{columns:?}");
+        }
+        _ => panic!("unknown gallery row {row}"),
+    }
 }
 
 #[test]
@@ -278,6 +391,7 @@ fn orders_refuse_enter_and_f2_without_changing_rows_and_keep_copy_live() {
     );
     assert!(!page_debug(&h).contains("edit: Some"), "{}", page_debug(&h));
 
+    h.app_mut().status = None;
     let _ = h.key(KeyCode::Down);
     let _ = h.key(KeyCode::F(2));
     assert!(
@@ -392,29 +506,131 @@ fn row_menu_blocks_mutations_and_reports_copy_previews_without_claiming_a_write(
 }
 
 #[test]
-fn reference_gallery_uses_inert_components_and_marks_noninteractive_states() {
-    let mut h = host(100, 40);
+fn reference_gallery_preserves_canonical_columns_rows_and_payloads() {
+    let mut h = host(200, 60);
     click_tab(&mut h, 2);
-    let text = h.text();
+    let scroll = h
+        .area_of(STATES_SCROLL)
+        .expect("the States section registers its ScrollRegion");
+    assert!(scroll.height >= GALLERY_HEIGHT as u16, "{scroll:?}");
+    let header = text_in(&h, Rect::new(scroll.x, scroll.y, view_width(scroll), 1));
+    assert!(header.contains("State"), "{header:?}");
+    for column in ["Title", "Title + hint", "With actions"] {
+        assert!(header.contains(column), "missing {column:?}: {header:?}");
+    }
+    for (row, label) in GALLERY_ROWS.iter().enumerate() {
+        let top = scroll.y.saturating_add(1 + (row as u16).saturating_mul(3));
+        let row_label = text_in(
+            &h,
+            Rect::new(scroll.x, top.saturating_add(1), GALLERY_LABEL_WIDTH, 1),
+        );
+        assert!(
+            row_label.contains(label),
+            "missing {label:?}: {row_label:?}"
+        );
+        assert_gallery_row(&h, scroll, top, row);
+    }
+
+    let overflow_top = scroll.y.saturating_add(1 + 5 * 3);
+    let overflow_columns = [
+        gallery_cell_text(&h, scroll, overflow_top, 0),
+        gallery_cell_text(&h, scroll, overflow_top, 1),
+        gallery_cell_text(&h, scroll, overflow_top, 2),
+    ];
     assert!(
-        text.contains("Rest: No rows"),
-        "{text}\npage={:?}",
-        h.app().page
+        overflow_columns[0].contains("No rows in a view far too narrow for it"),
+        "{overflow_columns:?}"
     );
-    assert!(text.contains("Hover: No connections"), "{text}");
-    assert!(text.contains("Pressed: No connections"), "{text}");
-    assert!(text.contains("Focused: No connections"), "{text}");
-    assert!(text.contains("Could not load connections"), "{text}");
-    assert!(text.contains("Overflow:"), "{text}");
-    assert!(text.contains("Narrow:"), "{text}");
-    assert!(text.contains("N/A · no action"), "{text}");
-    let hovered_action = GALLERY_ACTION.item(ItemKey::index(5));
-    let focused_action = GALLERY_ACTION.item(ItemKey::index(11));
-    assert!(h.area_of(hovered_action).is_none());
-    assert!(h.area_of(focused_action).is_none());
-    assert!(!h.tab_to(hovered_action));
-    let _ = h.click(10, 4);
+    assert!(
+        overflow_columns[1].contains("No rows in a view far too narrow for it")
+            && overflow_columns[1].contains("Run the query to fill it"),
+        "{overflow_columns:?}"
+    );
+    assert!(
+        overflow_columns[2].contains("No connections in a view far too narrow for it")
+            && overflow_columns[2].contains("New"),
+        "{overflow_columns:?}"
+    );
+
+    let narrow_top = scroll.y.saturating_add(1 + 6 * 3);
+    let narrow_hint = gallery_cell_text(&h, scroll, narrow_top, 1);
+    let narrow_action = gallery_cell_text(&h, scroll, narrow_top, 2);
+    assert!(narrow_hint.contains("Run the"), "{narrow_hint:?}");
+    assert!(
+        !narrow_hint.contains("Run the query to fill it"),
+        "{narrow_hint:?}"
+    );
+    assert!(narrow_action.contains("No"), "{narrow_action:?}");
+    assert!(
+        !narrow_action.contains("No connections"),
+        "{narrow_action:?}"
+    );
+    assert!(narrow_action.contains("New"), "{narrow_action:?}");
+
+    let gallery_text = h.text();
+    assert!(gallery_text.contains("N/A · no action"), "{gallery_text}");
+    for row in 0..7 {
+        let action = GALLERY_ACTION.item(ItemKey::index(row * 3 + 2));
+        assert!(
+            h.area_of(action).is_none(),
+            "live gallery target: {action:?}"
+        );
+        assert!(
+            !h.tab_to(action),
+            "gallery action must remain inert: {action:?}"
+        );
+    }
+    let action_column = gallery_column(scroll, 2);
+    let _ = h.click(
+        action_column.x.saturating_add(1),
+        scroll.y.saturating_add(3),
+    );
     assert!(h.app().status.is_none());
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn short_offset_gallery_scroll_keeps_every_canonical_row_reachable_and_inert() {
+    let page_area = Rect::new(7, 4, 66, 16);
+    let mut h = area_host(80, 24, page_area);
+    click_tab(&mut h, 2);
+    let mut seen = [false; 7];
+
+    for _ in 0..24 {
+        let scroll = h
+            .area_of(STATES_SCROLL)
+            .expect("the offset States section keeps its ScrollRegion");
+        for (row, label) in GALLERY_ROWS.iter().enumerate() {
+            for y in scroll.y..scroll.bottom() {
+                let row_label = text_in(&h, Rect::new(scroll.x, y, GALLERY_LABEL_WIDTH, 1));
+                if !row_label.contains(label) {
+                    continue;
+                }
+                let Some(top) = y.checked_sub(1) else {
+                    continue;
+                };
+                if top < scroll.y || top.saturating_add(3) > scroll.bottom() {
+                    continue;
+                }
+                seen[row] = true;
+                assert_gallery_row(&h, scroll, top, row);
+            }
+        }
+        for row in 0..7 {
+            let action = GALLERY_ACTION.item(ItemKey::index(row * 3 + 2));
+            assert!(
+                h.area_of(action).is_none(),
+                "ghost gallery target: {action:?}"
+            );
+        }
+        assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+        let _ = h.wheel(Axis::V, 1, scroll.x.saturating_add(1), scroll.y);
+    }
+
+    assert!(
+        seen.into_iter().all(|visible| visible),
+        "unreached rows: {seen:?}"
+    );
     assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
 }
 
@@ -422,9 +638,19 @@ fn reference_gallery_uses_inert_components_and_marks_noninteractive_states() {
 fn offset_and_short_page_geometry_never_registers_outside_the_supplied_area() {
     let area = Rect::new(7, 4, 58, 11);
     let mut h = area_host(80, 24, area);
+    click_tab(&mut h, 2);
     assert_eq!(h.cell(0, 0).symbol(), "S");
     assert_eq!(h.cell(6, 7).symbol(), "S");
     assert_eq!(h.cell(66, 7).symbol(), "S");
+
+    for y in 0..24 {
+        for x in 0..80 {
+            let inside = x >= area.x && x < area.right() && y >= area.y && y < area.bottom();
+            if !inside {
+                assert_eq!(h.cell(x, y).symbol(), "S", "outside page at ({x}, {y})");
+            }
+        }
+    }
 
     for id in [ROW_ACTIONS, ORDERS_GRID] {
         if let Some(hit) = h.area_of(id) {
