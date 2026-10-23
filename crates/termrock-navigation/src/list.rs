@@ -654,7 +654,14 @@ impl<'a, T, K, R> List<'a, T, K, R> {
         }
     }
 
-    const fn selection_table(&self) -> &'static [Binding<ListSelectionCmd>] {
+    /// Bindings for additive multi-selection commands such as SelectAll.
+    ///
+    /// Single and non-selectable lists return an empty table. Multi and range
+    /// lists return their static override when one was configured, or the
+    /// shared default table otherwise. An explicitly empty override disables
+    /// these additional commands. Callers that publish the table must apply
+    /// the same non-inert, non-empty, and non-disabled guards as [`List::draw`].
+    pub const fn selection_table(&self) -> &'static [Binding<ListSelectionCmd>] {
         match self.select_mode {
             SelectMode::Multi | SelectMode::Range => match self.selection_bindings {
                 Some(bindings) => bindings,

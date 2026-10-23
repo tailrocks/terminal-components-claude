@@ -1,7 +1,7 @@
 use termrock::{
     Color, Cx, EmptyState, Focusability, FrameRead, GlyphRole, Id, ItemKey, List, ListAction,
-    ListState, Modifier, PaintStyle, Part, PartRef, Rect, Response, SelectMode, StateFlags,
-    StylePatch, Ui, width,
+    ListCmd, ListSelectionCmd, ListState, Modifier, PaintStyle, Part, PartRef, Rect, Response,
+    SelectMode, StateFlags, StylePatch, Ui, width,
 };
 
 use showcase_data::LANGUAGES;
@@ -45,16 +45,14 @@ const DISABLED: u32 = 0x4d4d4d;
 const WARNING: u32 = 0xf59e09;
 const SUCCESS: u32 = 0x3fb950;
 
+// Retained as a sizing-only input for the narrow layout. These historical
+// bytes are not a description of the live profile or its current bindings.
 const READOUT: [&str; 2] = [
     "nav default · type-ahead on (TypeAhead, 1000 ms pause) · click ClickPolicy { activate: Double, edit_on: Double, check: BoxOnly }, check BoxOnly · wrap false · skip_disabled true",
     "toggle platform+click · scrollbar_gap 1 · track_click Page · reveal tooltip · a ListCmd::ToggleAll · ⌘A ListCmd::SelectAll",
 ];
 // Equal columns and this readout kick in at the 160×50 shell width; any height works.
 const EQUAL_COLUMNS_MIN_W: u16 = 134;
-const WIDE_READOUT: [&str; 2] = [
-    "nav default · type-ahead on (TypeAhead, 1000 ms pause) · click Double, check BoxOnly · wrap false · skip_disabled true",
-    "toggle platform+click · scrollbar_gap 1 · track_click Page · reveal tooltip · a ListCmd::ToggleAll · Ctrl+A ListCmd::SelectAll",
-];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct FileRow {
@@ -732,8 +730,18 @@ fn paint_files(ui: &mut Ui<'_>, card: Rect, multi: &ListState) {
         MULTI,
         termrock::LayoutFacts::new(viewport, FILES.len(), list.height, list.width),
     );
+    let list_profile = multi_list();
+    let live = ui.state(MULTI);
     if !ui.is_inert() {
-        ui.publish_bindings(MULTI, ui.state(MULTI), multi_list().table());
+        ui.publish_bindings(MULTI, live, list_profile.table());
+        let selection_table = if FILES.is_empty() {
+            &[][..]
+        } else {
+            list_profile.selection_table()
+        };
+        if !selection_table.is_empty() && !live.contains(StateFlags::DISABLED) {
+            ui.publish_additional_bindings(MULTI, live, selection_table);
+        }
     }
     for (row_idx, (_, file)) in FILES
         .iter()
@@ -788,9 +796,62 @@ fn paint_search(ui: &mut Ui<'_>, card: Rect, center_title: bool) {
     ui.paint_str(Rect::new(text_x, y, text_w, 1), title, ink(MUTED, SURFACE));
 }
 
+fn chord_readout(chord: termrock::Chord) -> String {
+    if chord.mods.contains(termrock::KeyModifiers::SUPER) {
+        let rest = termrock::Chord::with(
+            chord.code,
+            chord.mods.difference(termrock::KeyModifiers::SUPER),
+        );
+        format!("Super+{rest}")
+    } else {
+        chord.to_string()
+    }
+}
+
+fn wide_readout_lines(ui: &Ui<'_>) -> [String; 2] {
+    let live = ui.state(MULTI);
+    if ui.is_inert() || live.contains(StateFlags::DISABLED) || FILES.is_empty() {
+        return [String::new(), String::new()];
+    }
+
+    let profile = multi_list();
+    let toggle = profile
+        .table()
+        .iter()
+        .find(|binding| binding.cmd == ListCmd::ToggleAll)
+        .and_then(|binding| {
+            ui.effective_chord(MULTI, binding.action, binding.chord)
+                .map(|chord| {
+                    format!(
+                        "{} {} / none (ListCmd::ToggleAll)",
+                        chord_readout(chord),
+                        binding.label
+                    )
+                })
+        })
+        .unwrap_or_default();
+    let selection = profile
+        .selection_table()
+        .iter()
+        .filter(|binding| binding.cmd == ListSelectionCmd::SelectAll)
+        .filter_map(|binding| {
+            ui.effective_chord(MULTI, binding.action, binding.chord)
+                .map(|chord| format!("{} {}", chord_readout(chord), binding.label))
+        })
+        .collect::<Vec<_>>()
+        .join(" · ");
+    let selection = if selection.is_empty() {
+        String::new()
+    } else {
+        format!("{selection} (ListSelectionCmd::SelectAll)")
+    };
+    [toggle, selection]
+}
+
 fn paint_wide_readout(ui: &mut Ui<'_>, area: Rect, cards_h: u16) {
     let y = area.y.saturating_add(cards_h).saturating_add(1);
-    for (index, line) in WIDE_READOUT.iter().enumerate() {
+    let lines = wide_readout_lines(ui);
+    for (index, line) in lines.iter().enumerate() {
         let Ok(offset) = u16::try_from(index) else {
             break;
         };
@@ -973,7 +1034,12 @@ impl Page for ListsPage {
 #[cfg(test)]
 mod tests {
     use super::{ListsPage, Page, content_height, thumb_len};
-    use termrock::{App, Color, Cx, Modifier, Response, Theme, Ui};
+    use std::cell::RefCell;
+
+    use termrock::{
+        App, Chord, Color, Cx, HintKey, HintLayer, KeyCode, KeyMap, KeyModifiers, ListSelectionCmd,
+        Modifier, Response, StateFlags, Theme, Ui,
+    };
     use termrock_test_support::Harness;
 
     struct Host;
@@ -986,6 +1052,400 @@ mod tests {
         fn draw(&self, ui: &mut Ui<'_>) {
             ListsPage::new().draw(ui, ui.full());
         }
+    }
+
+    struct LiveHost {
+        page: ListsPage,
+        keymap: KeyMap,
+        disabled_multi: bool,
+        reference: bool,
+        hints: RefCell<Option<HintLayer>>,
+    }
+
+    impl App for LiveHost {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            self.page.update(cx).response
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            self.hints.replace(None);
+            let area = ui.full();
+            if self.reference {
+                ui.reference(None, |ui| self.page.draw(ui, area));
+            } else {
+                if self.disabled_multi {
+                    ui.declare_state(super::MULTI, StateFlags::DISABLED);
+                }
+                self.page.draw(ui, area);
+                ui.with_focused_hints(|_, layer| self.hints.replace(Some(layer.clone())));
+            }
+        }
+
+        fn keymap(&self) -> &KeyMap {
+            &self.keymap
+        }
+    }
+
+    fn live_host(width: u16, height: u16) -> Harness<LiveHost> {
+        Harness::new(
+            LiveHost {
+                page: ListsPage::new(),
+                keymap: KeyMap::new(),
+                disabled_multi: false,
+                reference: false,
+                hints: RefCell::new(None),
+            },
+            Theme::junie(),
+            width,
+            height,
+        )
+    }
+
+    #[test]
+    fn live_ctrl_a_selects_all_enabled_files_without_an_action() {
+        let mut h = live_host(180, 60);
+        assert!(h.tab_to(super::MULTI));
+        assert_eq!(h.focus(), Some(super::MULTI));
+        assert!(
+            super::FILES.iter().all(|file| h
+                .area_of_part(
+                    super::MULTI,
+                    termrock::PartRef::item(termrock::Part::ROW, super::file_key(file)),
+                )
+                .is_some()),
+            "the wide real list publishes all twelve file rows"
+        );
+
+        let moved = h.key(KeyCode::End);
+        assert!(moved.is_consumed());
+        let initial_chosen = h.app().page.chosen;
+        let initial_cursor = h.app().page.multi.cursor();
+        let initial_scroll = h.app().page.multi.scroll().offset();
+
+        let response = h.ctrl('a');
+        assert!(response.is_changed(), "SelectAll changes the selection");
+        assert!(
+            response.action_ref().is_none(),
+            "SelectAll is not an app action"
+        );
+
+        let checked = h.app().page.multi.checked();
+        assert_eq!(checked.len_in(super::FILES.len()), 10);
+        for file in super::FILES {
+            assert_eq!(
+                checked.contains(super::file_key(file)),
+                !file.disabled,
+                "file key {} has the expected SelectAll membership",
+                file.key,
+            );
+        }
+        assert_eq!(h.app().page.chosen, initial_chosen);
+        assert_eq!(h.app().page.multi.cursor(), initial_cursor);
+        assert_eq!(h.app().page.multi.scroll().offset(), initial_scroll);
+        assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+    }
+
+    #[test]
+    fn wide_readout_is_derived_from_live_list_descriptors() {
+        let h = live_host(180, 60);
+        let text = h.text();
+        assert!(text.contains("a All / none (ListCmd::ToggleAll)"), "{text}");
+        assert!(text.contains("Ctrl+a Select all"), "{text}");
+        assert!(text.contains("Super+a Select all"), "{text}");
+        assert!(text.contains("ListSelectionCmd::SelectAll"), "{text}");
+        for unsupported in [
+            "TypeAhead",
+            "ClickPolicy",
+            "BoxOnly",
+            "scrollbar_gap",
+            "track_click",
+            "reveal tooltip",
+            "ListCmd::SelectAll",
+        ] {
+            assert!(
+                !text.contains(unsupported),
+                "unsupported {unsupported}: {text}"
+            );
+        }
+
+        let mut h = live_host(180, 60);
+        assert!(h.tab_to(super::MULTI));
+        assert!(h.ctrl('a').is_changed());
+        assert_only_enabled_files_are_checked(&h);
+    }
+
+    fn assert_only_enabled_files_are_checked(h: &Harness<LiveHost>) {
+        let checked = h.app().page.multi.checked();
+        assert_eq!(checked.len_in(super::FILES.len()), 10);
+        for file in super::FILES {
+            assert_eq!(
+                checked.contains(super::file_key(file)),
+                !file.disabled,
+                "file key {} has the expected SelectAll membership",
+                file.key,
+            );
+        }
+    }
+
+    fn selection_actions() -> (termrock::ActionKey, termrock::ActionKey) {
+        let bindings = super::multi_list().selection_table();
+        assert_eq!(bindings.len(), 2);
+        assert!(super::single_list().selection_table().is_empty());
+        assert!(super::empty_list().selection_table().is_empty());
+        assert!(
+            super::multi_list()
+                .table()
+                .iter()
+                .any(|binding| binding.cmd == super::ListCmd::ToggleAll)
+        );
+        assert!(bindings.iter().all(|binding| {
+            binding.cmd == ListSelectionCmd::SelectAll && binding.label == "Select all"
+        }));
+        assert_ne!(bindings[0].action, bindings[1].action);
+        assert!(bindings[0].visible);
+        assert!(!bindings[1].visible);
+        (bindings[0].action, bindings[1].action)
+    }
+
+    fn focused_selection_hints(h: &Harness<LiveHost>) -> Vec<(Chord, &'static str)> {
+        h.app()
+            .hints
+            .borrow()
+            .as_ref()
+            .expect("active draw derives focused hints")
+            .hints
+            .iter()
+            .filter(|hint| hint.label == "Select all")
+            .map(|hint| match hint.key {
+                HintKey::Chord(chord) | HintKey::ChordWithCase { chord, .. } => (chord, hint.label),
+                HintKey::Label(_) => panic!("SelectAll hint has a physical chord"),
+            })
+            .collect()
+    }
+
+    #[test]
+    fn select_all_aliases_are_effective_and_idempotent() {
+        let mut h = live_host(180, 60);
+        assert!(h.tab_to(super::MULTI));
+        let initial_chosen = h.app().page.chosen;
+        let initial_cursor = h.app().page.multi.cursor();
+        let initial_scroll = h.app().page.multi.scroll().offset();
+        let (ctrl_action, super_action) = selection_actions();
+        assert_ne!(ctrl_action, super_action);
+        let hints = focused_selection_hints(&h);
+        assert_eq!(
+            hints.len(),
+            1,
+            "the alias table has one primary visible hint"
+        );
+        assert_eq!(
+            hints[0],
+            (
+                Chord::with(KeyCode::Char('a'), KeyModifiers::CONTROL),
+                "Select all"
+            )
+        );
+
+        let first = h.ctrl('a');
+        assert!(first.is_changed());
+        assert!(first.action_ref().is_none());
+        assert_only_enabled_files_are_checked(&h);
+        assert_eq!(h.app().page.chosen, initial_chosen);
+        assert_eq!(h.app().page.multi.cursor(), initial_cursor);
+        assert_eq!(h.app().page.multi.scroll().offset(), initial_scroll);
+
+        let repeated = h.ctrl('a');
+        assert!(repeated.is_consumed());
+        assert!(!repeated.is_changed(), "an already-full set is idempotent");
+        assert!(repeated.action_ref().is_none());
+        assert_only_enabled_files_are_checked(&h);
+
+        h.app_mut().keymap.remap_component(
+            super::MULTI,
+            ctrl_action,
+            Chord::with(KeyCode::Char('z'), KeyModifiers::CONTROL),
+        );
+        h.draw();
+        let text = h.text();
+        assert!(text.contains("Ctrl+z"), "effective remap is shown: {text}");
+        assert!(!text.contains("Ctrl+a"), "stale chord is omitted: {text}");
+        assert_eq!(focused_selection_hints(&h).len(), 1);
+        assert_eq!(
+            focused_selection_hints(&h)[0].0,
+            Chord::with(KeyCode::Char('z'), KeyModifiers::CONTROL)
+        );
+
+        h.app_mut().page.multi.checked_mut().none();
+        h.draw();
+        let old = h.ctrl('a');
+        assert!(!old.is_consumed());
+        assert_eq!(h.app().page.multi.checked().len_in(super::FILES.len()), 0);
+        let remapped = h.ctrl('z');
+        assert!(remapped.is_changed());
+        assert!(remapped.action_ref().is_none());
+        assert_only_enabled_files_are_checked(&h);
+        assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+
+        h.app_mut().page.multi.checked_mut().none();
+        h.app_mut()
+            .keymap
+            .remove_component(super::MULTI, ctrl_action);
+        h.draw();
+        let text = h.text();
+        assert!(
+            !text.contains("Ctrl+z"),
+            "removed primary is not claimed: {text}"
+        );
+        assert!(text.contains("Super+a"), "remaining alias is shown: {text}");
+        assert!(!h.ctrl('z').is_consumed());
+        assert_eq!(h.app().page.multi.checked().len_in(super::FILES.len()), 0);
+        let super_response = h.key_mod(KeyCode::Char('a'), KeyModifiers::SUPER);
+        assert!(super_response.is_changed());
+        assert!(super_response.action_ref().is_none());
+        assert_only_enabled_files_are_checked(&h);
+        let super_repeat = h.key_mod(KeyCode::Char('a'), KeyModifiers::SUPER);
+        assert!(super_repeat.is_consumed());
+        assert!(!super_repeat.is_changed());
+        assert_only_enabled_files_are_checked(&h);
+        assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+
+        let mut other = live_host(180, 60);
+        assert!(other.tab_to(super::MULTI));
+        let (_ctrl, super_action) = selection_actions();
+        other
+            .app_mut()
+            .keymap
+            .remove_component(super::MULTI, super_action);
+        other.app_mut().page.multi.checked_mut().none();
+        other.draw();
+        assert!(!other.text().contains("Super+a"));
+        let removed = other.key_mod(KeyCode::Char('a'), KeyModifiers::SUPER);
+        assert!(!removed.is_consumed());
+        assert_eq!(
+            other.app().page.multi.checked().len_in(super::FILES.len()),
+            0
+        );
+        let primary = other.ctrl('a');
+        assert!(primary.is_changed());
+        assert_only_enabled_files_are_checked(&other);
+        assert!(other.diagnostics().is_empty(), "{:?}", other.diagnostics());
+    }
+
+    #[test]
+    fn plain_a_space_and_single_language_selection_keep_their_meanings() {
+        let mut h = live_host(180, 60);
+        assert!(h.tab_to(super::MULTI));
+        let initial_chosen = h.app().page.chosen;
+        assert!(h.ctrl('a').is_changed());
+        assert_only_enabled_files_are_checked(&h);
+
+        let toggled_off = h.key(KeyCode::Char('a'));
+        assert!(toggled_off.is_changed());
+        assert!(toggled_off.action_ref().is_none());
+        assert_eq!(h.app().page.multi.checked().len_in(super::FILES.len()), 0);
+        let toggled_on = h.key(KeyCode::Char('a'));
+        assert!(toggled_on.is_changed());
+        assert_only_enabled_files_are_checked(&h);
+
+        let space = h.key(KeyCode::Char(' '));
+        assert!(space.is_changed());
+        assert_eq!(h.app().page.multi.checked().len_in(super::FILES.len()), 9);
+        let first_key = super::file_key(&super::FILES[0]);
+        assert!(!h.app().page.multi.checked().contains(first_key));
+
+        assert!(h.tab_to(super::SINGLE));
+        let moved = h.key(KeyCode::Down);
+        assert!(moved.is_consumed());
+        let choose = h.key(KeyCode::Char(' '));
+        assert!(choose.is_changed());
+        let chosen = h.app().page.chosen;
+        assert_ne!(chosen, None);
+        assert_ne!(
+            chosen, initial_chosen,
+            "Space chooses the moved language row"
+        );
+        assert!(h.tab_to(super::MULTI));
+        let selected = h.ctrl('a');
+        assert!(selected.is_changed());
+        assert_only_enabled_files_are_checked(&h);
+        assert_eq!(h.app().page.chosen, chosen);
+        assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+    }
+
+    #[test]
+    fn select_all_is_local_to_focused_files_and_inactive_contexts() {
+        let mut focused_elsewhere = live_host(180, 60);
+        assert!(focused_elsewhere.tab_to(super::MULTI));
+        let before = focused_elsewhere.app().page.multi.checked().clone();
+        assert!(focused_elsewhere.tab_to(super::SINGLE));
+        let response = focused_elsewhere.ctrl('a');
+        assert!(!response.is_consumed());
+        assert_eq!(focused_elsewhere.app().page.multi.checked(), &before);
+        assert_eq!(focused_elsewhere.focus(), Some(super::SINGLE));
+        assert!(focused_elsewhere.diagnostics().is_empty());
+
+        let mut disabled = live_host(180, 60);
+        assert!(disabled.tab_to(super::MULTI));
+        disabled.app_mut().disabled_multi = true;
+        disabled.draw();
+        disabled.draw();
+        assert!(
+            disabled
+                .state_of(super::MULTI)
+                .contains(StateFlags::DISABLED)
+        );
+        {
+            let disabled_hints = disabled.app().hints.borrow();
+            let disabled_hints = disabled_hints
+                .as_ref()
+                .expect("disabled consumer still publishes its focused base profile");
+            assert!(
+                disabled_hints
+                    .hints
+                    .iter()
+                    .all(|hint| hint.label != "Select all"),
+                "selection-only bindings are not published while disabled"
+            );
+        }
+        let before = disabled.app().page.multi.checked().clone();
+        assert!(!disabled.text().contains("Select all"));
+        let response = disabled.ctrl('a');
+        assert!(!response.is_consumed());
+        assert_eq!(disabled.app().page.multi.checked(), &before);
+        assert!(
+            disabled.diagnostics().is_empty(),
+            "{:?}",
+            disabled.diagnostics()
+        );
+
+        let mut reference = live_host(180, 60);
+        assert!(reference.tab_to(super::MULTI));
+        let before = reference.app().page.multi.checked().clone();
+        reference.app_mut().reference = true;
+        reference.draw();
+        assert!(reference.app().hints.borrow().is_none());
+        let response = reference.ctrl('a');
+        assert!(!response.is_consumed());
+        assert_eq!(reference.app().page.multi.checked(), &before);
+        assert!(
+            reference.diagnostics().is_empty(),
+            "{:?}",
+            reference.diagnostics()
+        );
+
+        let mut active = live_host(180, 60);
+        assert!(active.tab_to(super::MULTI));
+        let response = active.ctrl('a');
+        assert!(
+            response.is_changed(),
+            "active counterpart proves denial is nonvacuous"
+        );
+        assert_only_enabled_files_are_checked(&active);
+        assert!(
+            active.diagnostics().is_empty(),
+            "{:?}",
+            active.diagnostics()
+        );
     }
 
     #[test]
