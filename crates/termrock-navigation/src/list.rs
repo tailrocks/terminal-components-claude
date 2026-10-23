@@ -339,6 +339,7 @@ pub struct List<'a, T, K = ByIndex, R = DefaultRow> {
     bare: bool,
     bare_item: Option<&'a dyn Fn(&T) -> bool>,
     status: Status,
+    fade_edges: Option<bool>,
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
     ov: PartStyle<'a>,
@@ -393,6 +394,7 @@ impl<T> List<'_, T, ByIndex, DefaultRow> {
             bare: false,
             bare_item: None,
             status: Status::Ready,
+            fade_edges: None,
             patch: None,
             parts: &[],
             ov: PartStyle::new(),
@@ -479,6 +481,20 @@ impl<'a, T, K, R> List<'a, T, K, R> {
         self
     }
 
+    /// Enable or disable the final scroll-edge fade for this list.
+    ///
+    /// By default, the built-in row renderer fades overflowing content. A
+    /// custom [`Self::render_row`] renderer keeps its output unchanged unless
+    /// this is set to `true`. Set this to `false` when the built-in renderer's
+    /// authored edge colors must remain unchanged. Fading runs only when an
+    /// overflowing scrollbar reserves a column and the full vertical content
+    /// viewport is visible.
+    #[must_use]
+    pub const fn fade_edges(mut self, enabled: bool) -> Self {
+        self.fade_edges = Some(enabled);
+        self
+    }
+
     fn stride(&self) -> usize {
         usize::from(self.row_height).saturating_add(usize::from(self.row_gap))
     }
@@ -549,6 +565,7 @@ impl<'a, T, K, R> List<'a, T, K, R> {
             bare: self.bare,
             bare_item: self.bare_item,
             status: self.status,
+            fade_edges: self.fade_edges,
             patch: self.patch,
             parts: self.parts,
             ov: self.ov,
@@ -575,6 +592,7 @@ impl<'a, T, K, R> List<'a, T, K, R> {
             bare: self.bare,
             bare_item: self.bare_item,
             status: self.status,
+            fade_edges: self.fade_edges,
             patch: self.patch,
             parts: self.parts,
             ov: self.ov,
@@ -1185,6 +1203,8 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
             return area;
         }
         let cursor = st.core.cursor();
+        let should_fade = self.fade_edges.unwrap_or(self.render_row.is_none());
+        let mut visible_cursor_block = None;
         let hovered = ui.hovered_part(self.id);
         let pressed = ui.pressed_part(self.id);
 
@@ -1236,6 +1256,12 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                 width: content.width,
                 height: self.row_height,
             };
+            if is_cursor {
+                let visible = row.intersection(content).intersection(ui.full());
+                if !visible.is_empty() {
+                    visible_cursor_block = Some(visible);
+                }
+            }
             if let Some(renderer) = self.render_row {
                 if !row.intersection(ui.full()).is_empty() {
                     ui.with_area(content, |ui| {
@@ -1320,6 +1346,35 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                 };
                 ui.register_part(self.id, part, row.intersection(content));
             }
+        }
+        let full_vertical_content_visible =
+            content.y >= ui.full().y && content.bottom() <= ui.full().bottom();
+        if should_fade
+            && view.overflows()
+            && surface.width < area.width
+            && !content.is_empty()
+            && full_vertical_content_visible
+        {
+            let mut kept_rows = [0_u16; 4];
+            let mut kept_len = 0;
+            if let Some(cursor_block) = visible_cursor_block {
+                let candidates = [
+                    content.y,
+                    content.y.saturating_add(1),
+                    content.bottom().saturating_sub(2),
+                    content.bottom().saturating_sub(1),
+                ];
+                for y in candidates {
+                    if cursor_block.y <= y
+                        && y < cursor_block.bottom()
+                        && !kept_rows[..kept_len].contains(&y)
+                    {
+                        kept_rows[kept_len] = y;
+                        kept_len += 1;
+                    }
+                }
+            }
+            ui.scroll_edges_except(content, &view, &kept_rows[..kept_len]);
         }
         area
     }
