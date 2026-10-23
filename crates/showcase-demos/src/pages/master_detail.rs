@@ -574,42 +574,34 @@ impl MasterDetailPage {
             return;
         }
         let meta = if drawer {
-            "Esc returns to tables"
+            (self.esc_returns == 1).then_some("Esc returns to tables")
         } else {
-            "facts"
+            Some("facts")
         };
         let rows = table_facts(table);
-        card_panel(
-            ui,
-            ids.detail_panel,
-            table.name,
-            Some(meta),
-            area,
-            |ui, inner| {
-                if inner.is_empty() {
-                    return;
-                }
-                let button_height = u16::from(inner.height > 1);
-                let fact_area = Rect {
-                    height: inner.height.saturating_sub(button_height),
+        card_panel(ui, ids.detail_panel, table.name, meta, area, |ui, inner| {
+            if inner.is_empty() {
+                return;
+            }
+            let button_height = u16::from(inner.height > 1);
+            let fact_area = Rect {
+                height: inner.height.saturating_sub(button_height),
+                ..inner
+            };
+            let _ = PropsList::new(ids.props)
+                .sheet()
+                .draw(ui, fact_area, &self.props_state, &rows);
+            if button_height > 0 {
+                let button_area = Rect {
+                    y: inner.bottom().saturating_sub(1),
+                    height: 1,
                     ..inner
                 };
-                let _ =
-                    PropsList::new(ids.props)
-                        .sheet()
-                        .draw(ui, fact_area, &self.props_state, &rows);
-                if button_height > 0 {
-                    let button_area = Rect {
-                        y: inner.bottom().saturating_sub(1),
-                        height: 1,
-                        ..inner
-                    };
-                    let _ = Button::new(ids.open, "Open table")
-                        .variant(Variant::SECONDARY)
-                        .draw(ui, button_area);
-                }
-            },
-        );
+                let _ = Button::new(ids.open, "Open table")
+                    .variant(Variant::SECONDARY)
+                    .draw(ui, button_area);
+            }
+        });
     }
 
     fn draw_summary(&self, ui: &mut Ui<'_>, area: Rect, table: &Table) {
@@ -789,7 +781,7 @@ impl MasterDetailPage {
             .min_master(24)
             .min_detail(34)
             .gap(2)
-            .collapse_below(80)
+            .collapse_below(if index == 3 { u16::MAX } else { 0 })
             .summary_rows(1)
             .detail_owns(&[ids.props, ids.open]);
         let selected = &TABLES[index.min(TABLES.len() - 1)];
