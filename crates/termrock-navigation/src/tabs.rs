@@ -43,6 +43,30 @@ pub enum TabCloseReveal {
     Hover,
 }
 
+/// Fixed foreground policy for the active tab's rule.
+///
+/// The policy changes only the active rule's foreground. The default Tabs
+/// rendering path is unchanged unless a policy is selected. This enum is
+/// non-exhaustive so additional rule policies can be added without breaking
+/// downstream matches.
+#[non_exhaustive]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum TabRule {
+    /// Resolve the active rule with the theme's Accent role.
+    Accent,
+    /// Resolve the active rule with the theme's BorderStrong role.
+    Neutral,
+}
+
+impl TabRule {
+    const fn foreground(self) -> Role {
+        match self {
+            Self::Accent => Role::Accent,
+            Self::Neutral => Role::BorderStrong,
+        }
+    }
+}
+
 /// Independent status facts for one tab item.
 ///
 /// When any fact is set, Tabs reserves a two-cell [`Part::ICON`] lane after
@@ -426,6 +450,7 @@ pub struct TabLayout {
     close_reveal: TabCloseReveal,
     close_reveal_press: Option<ItemKey>,
     status: Status,
+    rule: Option<TabRule>,
     left_overflow: Option<Rect>,
     right_overflow: Option<Rect>,
     new_area: Option<Rect>,
@@ -592,6 +617,7 @@ pub struct Tabs<'a, T, K = ByIndex, R = DefaultRow> {
     middle_click_closes: bool,
     close_reveal: TabCloseReveal,
     status: Status,
+    rule: Option<TabRule>,
     item_marks: Option<fn(&T) -> TabMarks>,
     ov: PartStyle<'a>,
     _t: PhantomData<fn(&T)>,
@@ -607,6 +633,7 @@ impl<T, K, R> fmt::Debug for Tabs<'_, T, K, R> {
             .field("middle_click_closes", &self.middle_click_closes)
             .field("close_reveal", &self.close_reveal)
             .field("status", &self.status)
+            .field("rule", &self.rule)
             .field("item_marks", &self.item_marks.is_some())
             .finish_non_exhaustive()
     }
@@ -624,6 +651,7 @@ impl<T> Tabs<'_, T, ByIndex, DefaultRow> {
             middle_click_closes: true,
             close_reveal: TabCloseReveal::Always,
             status: Status::Ready,
+            rule: None,
             item_marks: None,
             ov: PartStyle::new(),
             _t: PhantomData,
@@ -660,6 +688,7 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
             middle_click_closes: self.middle_click_closes,
             close_reveal: self.close_reveal,
             status: self.status,
+            rule: self.rule,
             item_marks: self.item_marks,
             ov: self.ov,
             _t: PhantomData,
@@ -677,6 +706,7 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
             middle_click_closes: self.middle_click_closes,
             close_reveal: self.close_reveal,
             status: self.status,
+            rule: self.rule,
             item_marks: self.item_marks,
             ov: self.ov,
             _t: PhantomData,
@@ -734,6 +764,17 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
     #[must_use]
     pub fn status(mut self, s: Status) -> Self {
         self.status = s;
+        self
+    }
+
+    /// Choose the foreground role for the active rule.
+    ///
+    /// The default is unset, which preserves the existing theme-resolved
+    /// active rule. An explicit RULE foreground in this Tabs instance takes
+    /// precedence over the selected policy.
+    #[must_use]
+    pub fn rule(mut self, rule: TabRule) -> Self {
+        self.rule = Some(rule);
         self
     }
 
@@ -1414,7 +1455,35 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                 }
             }
             if is_active && let Some(rr) = rule_row {
-                let rs = ov.style(ui, id, Family::TABS, Variant::DEFAULT, Part::RULE, flags);
+                let (rs, explicit) = match self.rule {
+                    Some(rule) => {
+                        let mode = StylePatch::new().set_fg(rule.foreground());
+                        let patch = ov
+                            .part_patch(Part::RULE)
+                            .map_or(mode, |local| mode.merge(local));
+                        let resolved = ui.style_defaults_with_explicit(
+                            Family::TABS,
+                            Variant::DEFAULT,
+                            Part::RULE,
+                            flags,
+                            StyleDefaults::default(),
+                            Some(&patch),
+                        );
+                        ov.note(
+                            ui,
+                            id,
+                            Family::TABS,
+                            Variant::DEFAULT,
+                            Part::RULE,
+                            resolved.resolved,
+                        );
+                        (resolved.resolved, Some(resolved.explicit))
+                    }
+                    None => (
+                        ov.style(ui, id, Family::TABS, Variant::DEFAULT, Part::RULE, flags),
+                        None,
+                    ),
+                };
                 let span = Rect {
                     x: tab.x,
                     width: tab.width,
@@ -1432,6 +1501,9 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                             ui.fill(col, rs.style);
                         }
                     }
+                }
+                if let Some(explicit) = explicit {
+                    termrock_runtime::author::patch_style(ui, span, rs.style, explicit);
                 }
             }
             if !ui.is_inert() {
@@ -1681,6 +1753,7 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
                 close_reveal: self.close_reveal,
                 close_reveal_press: state.close_reveal_press,
                 status: self.status,
+                rule: self.rule,
                 left_overflow: None,
                 right_overflow: None,
                 new_area: None,
@@ -1841,6 +1914,7 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
             close_reveal: self.close_reveal,
             close_reveal_press: state.close_reveal_press,
             status: self.status,
+            rule: self.rule,
             item_marks_enabled: self.item_marks.is_some(),
             left_overflow,
             right_overflow,
@@ -1871,6 +1945,7 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
             || layout.closable_keys.as_deref() != self.closable_keys
             || layout.close_reveal != self.close_reveal
             || layout.status != self.status
+            || layout.rule != self.rule
             || layout.item_marks_enabled != self.item_marks.is_some()
         {
             return Err(TabLayoutMismatch);

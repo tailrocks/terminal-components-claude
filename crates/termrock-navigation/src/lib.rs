@@ -41,7 +41,7 @@ pub use item::{
 pub use list::{List, ListAction, ListCmd, ListSelectionCmd, ListState};
 pub use nav_list::{BadgeFn, NavList, NavListAction, NavListCmd, NavListState, NavMode};
 pub use steps::{StepState, Steps, StepsAction, StepsCmd, StepsState};
-pub use tabs::{TabCloseReveal, TabMarks, Tabs, TabsAction, TabsCmd, TabsState};
+pub use tabs::{TabCloseReveal, TabMarks, TabRule, Tabs, TabsAction, TabsCmd, TabsState};
 pub use tree::{
     NodeKind, Tree, TreeAction, TreeBranchActivation, TreeBranchClick, TreeCmd, TreeIconFn,
     TreeNode, TreeState, TreeTrailingMarkFn,
