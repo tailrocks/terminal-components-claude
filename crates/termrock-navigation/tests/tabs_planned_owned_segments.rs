@@ -1,13 +1,13 @@
 use core::cell::{Cell, RefCell};
 use core::fmt;
 
-use ratatui_core::layout::Rect;
+use ratatui_core::layout::{Position, Rect};
 use ratatui_core::style::Modifier;
-use termrock_core::{Id, ItemKey, Part, PartRef, Response};
+use termrock_core::{Axis, Id, ItemKey, Part, PartRef, Response};
 use termrock_navigation::tabs::TabWindowReceipt;
 use termrock_navigation::{TabCloseReveal, TabMarks, Tabs, TabsAction, TabsState};
 use termrock_runtime::empty::Status;
-use termrock_runtime::{App, Cx, FrameRead, Ui};
+use termrock_runtime::{App, Axes, Cx, FrameRead, LayerId, RegionKind, Ui};
 use termrock_test_support::Harness;
 use termrock_theme::resolve::bind_role;
 use termrock_theme::{ColorLevel, FgStep, GlyphRole, Role, StylePatch, Surface, Theme};
@@ -98,6 +98,7 @@ struct Observation {
     first_index: usize,
     viewport_len: usize,
     content_len: usize,
+    wheel_area: Option<Rect>,
     overflow_reserved: bool,
     runtime_input: Option<TabWindowReceipt>,
     previous: Option<TabWindowReceipt>,
@@ -224,12 +225,17 @@ impl App for Page {
                 let accepted = tabs.draw_layout(ui, &layout).is_ok();
                 planned_output = accepted.then(|| layout.window_receipt()).flatten();
                 let after_draw = snapshots(&self.items);
+                let wheel_area = (!layout.visible_area.is_empty()
+                    && layout.viewport_len > 0
+                    && layout.content_len > layout.viewport_len)
+                    .then_some(layout.visible_area);
                 self.observations.borrow_mut().push(Observation {
                     plan_calls: deltas(&before, &after_plan),
                     draw_calls: deltas(&after_plan, &after_draw),
                     first_index: layout.first_index(),
                     viewport_len: layout.viewport_len,
                     content_len: layout.content_len,
+                    wheel_area,
                     overflow_reserved: layout.overflow_reserved,
                     runtime_input,
                     previous: supplied_input,
@@ -488,13 +494,65 @@ fn assert_frame_parity(legacy: &Harness<Page>, planned: &Harness<Page>) {
             .iter()
             .all(|region| region.generation == legacy_generation)
     );
+    let expected_wheel_area = last_observation(planned).wheel_area;
+    let planned_scrolls = planned_regions
+        .iter()
+        .filter(|region| region.kind == RegionKind::Scroll)
+        .count();
+    assert_eq!(
+        planned_scrolls,
+        if expected_wheel_area.is_some() { 1 } else { 0 },
+        "the eligible overflowing plan registers exactly one scroll region"
+    );
+    assert!(
+        legacy_regions
+            .iter()
+            .all(|region| region.kind != RegionKind::Scroll),
+        "legacy rendering does not register planned wheel authority"
+    );
+    if let Some(area) = expected_wheel_area {
+        let scroll = planned_regions
+            .first()
+            .copied()
+            .expect("the eligible planned scroll region is first");
+        assert_eq!(scroll.kind, RegionKind::Scroll);
+        assert_eq!(scroll.id, TABS);
+        assert_eq!(scroll.owner, TABS);
+        assert_eq!(scroll.part, PartRef::of(Part::CONTAINER));
+        assert_eq!(scroll.layer, LayerId::PAGE);
+        assert_eq!(
+            scroll.area, area,
+            "scroll area is the clipped planned viewport"
+        );
+        assert_eq!(
+            scroll.scroll().map(|(axes, _)| axes),
+            Some(Axes::Both),
+            "the planned region routes both wheel axes"
+        );
+        let point = Position::new(area.x, area.y);
+        for axis in [Axis::H, Axis::V] {
+            let hit = planned
+                .runtime()
+                .registry()
+                .hit_scroll(point, axis)
+                .expect("the clipped planned area resolves on both wheel axes");
+            assert_eq!(hit.owner, TABS);
+            assert_eq!(hit.part, PartRef::of(Part::CONTAINER));
+            assert_eq!(hit.layer, LayerId::PAGE);
+            assert_eq!(hit.kind, RegionKind::Scroll);
+        }
+        planned_regions.remove(0);
+    }
     for region in &mut planned_regions {
         region.generation = 0;
     }
     for region in &mut legacy_regions {
         region.generation = 0;
     }
-    assert_eq!(planned_regions, legacy_regions);
+    assert_eq!(
+        planned_regions, legacy_regions,
+        "all full legacy Region records remain equal after the one approved planned scroll addition"
+    );
     assert_eq!(planned.cursor(), legacy.cursor());
     assert_eq!(planned.app().state.active(), legacy.app().state.active());
     assert_eq!(planned.app().state.cursor(), legacy.app().state.cursor());
