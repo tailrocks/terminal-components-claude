@@ -4,8 +4,8 @@
 //! Alt prefix is gone and the next byte is a plain character. TablePro's
 //! explain-analyze chord is Esc, then Alt+x. A slow 160-column frame delivers
 //! those bytes in one read (`\x1b\x1bx`). This bridge owns the real tty and
-//! writes the first Esc to a side pty before the second Esc, so Crossterm
-//! sees two reads.
+//! writes the first Esc to a side pty while retaining the suffix until
+//! Crossterm returns the standalone Escape to Session.
 
 use std::io::{self, ErrorKind};
 use std::ops::Range;
@@ -13,10 +13,13 @@ use std::os::fd::{AsRawFd, FromRawFd, OwnedFd, RawFd};
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
-use ratatui_crossterm::crossterm::event::poll as crossterm_poll;
+use ratatui_crossterm::crossterm::event::{
+    Event, KeyCode, KeyEventKind, KeyModifiers, poll as crossterm_poll,
+};
 use termrock_core::keys::keyboard::{QUERY, parse_flags_reply};
 
 /// Index of the second ESC in the first `\x1b\x1b` pair.
+#[cfg(test)]
 pub(crate) fn second_esc_index(bytes: &[u8]) -> Option<usize> {
     bytes
         .windows(2)
@@ -24,10 +27,228 @@ pub(crate) fn second_esc_index(bytes: &[u8]) -> Option<usize> {
         .map(|index| index + 1)
 }
 
+#[derive(Default)]
+struct InputState {
+    stash: Vec<u8>,
+    framing: InputFraming,
+    split_prefix_pending: bool,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+enum InputFraming {
+    #[default]
+    Ground,
+    Escape,
+    Utf8 {
+        remaining: u8,
+    },
+    AltUtf8 {
+        remaining: u8,
+    },
+    Csi(CsiFraming),
+    Ss3,
+    Paste {
+        close_progress: u8,
+    },
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum CsiFraming {
+    Start,
+    DoubleBracket,
+    Private { length: u8 },
+    Numbered { paste_progress: u8 },
+    SgrMouse,
+    NormalMouse { length: u8 },
+}
+
+impl InputFraming {
+    // This lexical tracker mirrors only the pinned reader's buffering
+    // boundaries, not its key decoding. Incomplete prefixes never split: the
+    // bytes still go to Crossterm unchanged. Known parser errors clear on the
+    // byte that completes the malformed sequence; private CSI and paste stay
+    // opaque until their source-defined terminator or bridge reset.
+    fn at_event_boundary(self) -> bool {
+        self == Self::Ground
+    }
+
+    fn feed(&mut self, byte: u8) {
+        *self = match *self {
+            Self::Ground => match byte {
+                0x1b => Self::Escape,
+                0xc0..=0xdf => Self::Utf8 { remaining: 1 },
+                0xe0..=0xef => Self::Utf8 { remaining: 2 },
+                0xf0..=0xf7 => Self::Utf8 { remaining: 3 },
+                _ => Self::Ground,
+            },
+            Self::Escape => match byte {
+                b'[' => Self::Csi(CsiFraming::Start),
+                b'O' => Self::Ss3,
+                0x1b => Self::Ground,
+                0xc0..=0xdf => Self::AltUtf8 { remaining: 1 },
+                0xe0..=0xef => Self::AltUtf8 { remaining: 2 },
+                0xf0..=0xf7 => Self::AltUtf8 { remaining: 3 },
+                _ => Self::Ground,
+            },
+            Self::Utf8 { remaining } => feed_utf8(remaining, byte, false),
+            Self::AltUtf8 { remaining } => feed_utf8(remaining, byte, true),
+            Self::Csi(CsiFraming::Start) => match byte {
+                b'?' => Self::Csi(CsiFraming::Private { length: 3 }),
+                b'<' => Self::Csi(CsiFraming::SgrMouse),
+                b'M' => Self::Csi(CsiFraming::NormalMouse { length: 3 }),
+                b'0'..=b'9' => Self::Csi(CsiFraming::Numbered {
+                    paste_progress: u8::from(byte == b'2'),
+                }),
+                // These single-byte CSI forms complete in Crossterm on this byte.
+                b'D' | b'C' | b'A' | b'B' | b'H' | b'F' | b'Z' | b'I' | b'O' | b'P' | b'Q'
+                | b'S' => Self::Ground,
+                b'[' => Self::Csi(CsiFraming::DoubleBracket),
+                // Unknown CSI introducers error and Crossterm clears its buffer here.
+                _ => Self::Ground,
+            },
+            Self::Csi(CsiFraming::DoubleBracket) => Self::Ground,
+            Self::Csi(CsiFraming::Private { length }) => match byte {
+                b'c' => Self::Ground,
+                b'u' if length >= 4 => Self::Ground,
+                _ => Self::Csi(CsiFraming::Private {
+                    length: length.saturating_add(1),
+                }),
+            },
+            Self::Csi(CsiFraming::Numbered { paste_progress }) => {
+                if paste_progress == 3 && byte == b'~' {
+                    Self::Paste { close_progress: 0 }
+                } else if (0x40..=0x7e).contains(&byte) {
+                    Self::Ground
+                } else {
+                    Self::Csi(CsiFraming::Numbered {
+                        paste_progress: next_paste_start_progress(paste_progress, byte),
+                    })
+                }
+            }
+            Self::Csi(CsiFraming::SgrMouse) => match byte {
+                b'm' | b'M' => Self::Ground,
+                _ => Self::Csi(CsiFraming::SgrMouse),
+            },
+            Self::Csi(CsiFraming::NormalMouse { length }) => {
+                if length >= 5 {
+                    Self::Ground
+                } else {
+                    Self::Csi(CsiFraming::NormalMouse {
+                        length: length.saturating_add(1),
+                    })
+                }
+            }
+            Self::Ss3 => Self::Ground,
+            Self::Paste { close_progress } => {
+                let next = next_paste_end_progress(close_progress, byte);
+                if next == BRACKETED_PASTE_END.len() as u8 {
+                    Self::Ground
+                } else {
+                    Self::Paste {
+                        close_progress: next,
+                    }
+                }
+            }
+        };
+    }
+}
+
+fn feed_utf8(remaining: u8, byte: u8, alt: bool) -> InputFraming {
+    if byte & 0xc0 != 0x80 {
+        // Crossterm reports the malformed character and clears its parser buffer.
+        return InputFraming::Ground;
+    }
+    if remaining == 1 {
+        InputFraming::Ground
+    } else if alt {
+        InputFraming::AltUtf8 {
+            remaining: remaining - 1,
+        }
+    } else {
+        InputFraming::Utf8 {
+            remaining: remaining - 1,
+        }
+    }
+}
+
+fn next_paste_start_progress(progress: u8, byte: u8) -> u8 {
+    match (progress, byte) {
+        (1, b'0') => 2,
+        (2, b'0') => 3,
+        _ => 0,
+    }
+}
+
+fn next_paste_end_progress(progress: u8, byte: u8) -> u8 {
+    if BRACKETED_PASTE_END.get(usize::from(progress)) == Some(&byte) {
+        progress + 1
+    } else {
+        u8::from(byte == BRACKETED_PASTE_END[0])
+    }
+}
+
+impl InputState {
+    fn acknowledge_split_prefix_consumed(&mut self, event: &Event) {
+        let is_standalone_escape = matches!(
+            event,
+            Event::Key(key)
+                if key.code == KeyCode::Esc
+                    && key.modifiers == KeyModifiers::NONE
+                    && key.kind == KeyEventKind::Press
+        );
+        if is_standalone_escape && self.framing == InputFraming::Escape {
+            self.framing = InputFraming::Ground;
+            self.split_prefix_pending = false;
+        }
+    }
+
+    fn prepare_write(&mut self, incoming: &[u8]) -> Option<Vec<u8>> {
+        self.stash.extend_from_slice(incoming);
+        if self.split_prefix_pending || self.stash.is_empty() {
+            return None;
+        }
+
+        let bytes = std::mem::take(&mut self.stash);
+        for (index, byte) in bytes.iter().copied().enumerate() {
+            if self.framing.at_event_boundary() && byte == 0x1b {
+                if bytes.get(index + 1) == Some(&0x1b) {
+                    self.framing.feed(byte);
+                    self.stash.extend_from_slice(&bytes[index + 1..]);
+                    self.split_prefix_pending = true;
+                    return Some(bytes[..=index].to_vec());
+                }
+                if index + 1 == bytes.len() {
+                    // Keep a boundary ESC carried across writes. Without this,
+                    // `ordinary bytes + ESC` followed by `ESC + suffix` can
+                    // coalesce in Crossterm even though neither write held a
+                    // complete pair. The byte is still in Ground and has not
+                    // been emitted to the parser.
+                    self.stash.push(byte);
+                    return (!bytes[..index].is_empty()).then(|| bytes[..index].to_vec());
+                }
+            }
+            self.framing.feed(byte);
+        }
+        Some(bytes)
+    }
+
+    fn take_held_escape_for_flush(&mut self) -> bool {
+        if self.split_prefix_pending || self.stash != [0x1b] {
+            return false;
+        }
+        self.stash.clear();
+        self.framing.feed(0x1b);
+        // The timeout makes this held ESC a standalone event. Keep later
+        // input behind the same consumption barrier until Session reads it.
+        self.split_prefix_pending = true;
+        true
+    }
+}
+
 struct Bridge {
     real: OwnedFd,
     master: OwnedFd,
-    stash: Vec<u8>,
+    input: InputState,
     /// Termios of the real tty before this bridge switched it to raw mode.
     original: libc::termios,
 }
@@ -92,7 +313,7 @@ pub(crate) fn probe_keyboard_enhancement() -> io::Result<bool> {
         };
         let real_fd = active.real.as_raw_fd();
         probe_keyboard_enhancement_with(
-            &mut active.stash,
+            &mut active.input.stash,
             deadline,
             ProbeIo {
                 now: Instant::now,
@@ -622,7 +843,7 @@ fn install_with(
     *bridge() = Some(Bridge {
         real,
         master,
-        stash: Vec::new(),
+        input: InputState::default(),
         original,
     });
     Ok(())
@@ -660,8 +881,8 @@ pub(crate) fn restore_stdin() {
 /// Wait until Crossterm has one event, or until `timeout` elapses.
 ///
 /// `None` waits until an event arrives. Bytes are moved from the real tty to
-/// the side pty, splitting the first `\x1b\x1b` pair so the second ESC stays
-/// the start of the next sequence.
+/// the side pty. A double ESC is split only at a known Crossterm event
+/// boundary; its suffix stays in the bridge until Session reads that Esc.
 pub(crate) fn wait_for_event(timeout: Option<Duration>) -> io::Result<bool> {
     let start = Instant::now();
     loop {
@@ -710,47 +931,24 @@ fn pump_stash() -> io::Result<()> {
     write_master(&bytes)
 }
 
-/// A stash that is only a second ESC stays held until another byte arrives,
-/// so Alt+x is not split into Esc and `x`.
+/// A lone ESC stays held until another byte arrives, so Alt+x is not split
+/// into Esc and `x`.
 fn take_ready_stash() -> Option<Vec<u8>> {
     let mut guard = bridge();
     let bridge = guard.as_mut()?;
-    if bridge.stash.is_empty() || bridge.stash == [0x1b] {
-        return None;
-    }
-    let bytes = std::mem::take(&mut bridge.stash);
-    if let Some(second) = second_esc_index(&bytes) {
-        bridge.stash = bytes[second..].to_vec();
-        Some(bytes[..second].to_vec())
-    } else {
-        Some(bytes)
-    }
+    bridge.input.prepare_write(&[])
 }
 
 fn queue_bytes(bytes: &[u8]) -> io::Result<()> {
-    let pending = {
+    let output = {
         let mut guard = bridge();
         let Some(bridge) = guard.as_mut() else {
             return Ok(());
         };
-        if bridge.stash == [0x1b] {
-            let mut combined = std::mem::take(&mut bridge.stash);
-            combined.extend_from_slice(bytes);
-            combined
-        } else if bridge.stash.is_empty() {
-            bytes.to_vec()
-        } else {
-            bridge.stash.extend_from_slice(bytes);
-            std::mem::take(&mut bridge.stash)
-        }
+        bridge.input.prepare_write(bytes)
     };
-    if let Some(second) = second_esc_index(&pending) {
-        write_master(&pending[..second])?;
-        if let Some(bridge) = bridge().as_mut() {
-            bridge.stash.extend_from_slice(&pending[second..]);
-        }
-    } else {
-        write_master(&pending)?;
+    if let Some(output) = output {
+        write_master(&output)?;
     }
     Ok(())
 }
@@ -761,17 +959,21 @@ fn flush_held_esc() -> io::Result<()> {
         let Some(bridge) = guard.as_mut() else {
             return Ok(());
         };
-        if bridge.stash == [0x1b] {
-            bridge.stash.clear();
-            true
-        } else {
-            false
-        }
+        bridge.input.take_held_escape_for_flush()
     };
     if held {
         write_master(&[0x1b])?;
     }
     Ok(())
+}
+
+/// Release a safe split only after Crossterm has returned its standalone Esc
+/// to the Session reader. Other event kinds leave the queued suffix untouched.
+pub(crate) fn acknowledge_split_prefix_consumed(event: &Event) {
+    let mut guard = bridge();
+    if let Some(bridge) = guard.as_mut() {
+        bridge.input.acknowledge_split_prefix_consumed(event);
+    }
 }
 
 fn real_is_readable(timeout: Duration) -> io::Result<bool> {
@@ -956,12 +1158,16 @@ mod tests {
     use std::rc::Rc;
     use std::time::{Duration, Instant};
 
+    use ratatui_crossterm::crossterm::event::{
+        Event, KeyCode, KeyEvent, KeyModifiers, MouseEvent, MouseEventKind,
+    };
+
     use super::{
-        CharacterDeviceId, ProbeIo, QUERY, dup_stdin, endpoint_matches_real_tty, install,
-        install_with, installed, make_raw, open_probe_endpoint, open_probe_endpoint_path,
-        open_probe_endpoint_with, open_pty, open_raw_pty, probe_keyboard_enhancement_with,
-        read_termios, replace_stdin, restore_stdin, same_character_device, second_esc_index,
-        set_cloexec, tty_path_for_fd, write_termios,
+        CharacterDeviceId, InputFraming, InputState, ProbeIo, QUERY, dup_stdin,
+        endpoint_matches_real_tty, install, install_with, installed, make_raw, open_probe_endpoint,
+        open_probe_endpoint_path, open_probe_endpoint_with, open_pty, open_raw_pty,
+        probe_keyboard_enhancement_with, read_termios, replace_stdin, restore_stdin,
+        same_character_device, second_esc_index, set_cloexec, tty_path_for_fd, write_termios,
     };
 
     struct StdinFixture {
@@ -1198,6 +1404,198 @@ mod tests {
     #[test]
     fn the_split_is_the_first_pair_after_a_csi_sequence() {
         assert_eq!(second_esc_index(b"\x1b[A\x1b\x1bx"), Some(4));
+    }
+
+    #[test]
+    fn split_suffix_waits_for_the_consumed_standalone_escape() {
+        let mut input = InputState::default();
+        assert_eq!(input.prepare_write(b"\x1b\x1bx"), Some(b"\x1b".to_vec()));
+        assert_eq!(input.stash, b"\x1bx");
+        assert!(input.split_prefix_pending);
+
+        // A zero-ready poll, non-key events, and the wait timeout keep the
+        // exact suffix and phase. The timeout path's held-ESC flush is inert.
+        assert_eq!(input.prepare_write(&[]), None);
+        assert!(!input.take_held_escape_for_flush());
+        input.acknowledge_split_prefix_consumed(&Event::Resize(80, 24));
+        input.acknowledge_split_prefix_consumed(&Event::Mouse(MouseEvent {
+            kind: MouseEventKind::Moved,
+            column: 3,
+            row: 4,
+            modifiers: KeyModifiers::NONE,
+        }));
+        assert_eq!(input.stash, b"\x1bx");
+        assert!(input.split_prefix_pending);
+        assert_eq!(input.prepare_write(&[]), None);
+
+        input.acknowledge_split_prefix_consumed(&Event::Key(KeyEvent::new(
+            KeyCode::Char('x'),
+            KeyModifiers::ALT,
+        )));
+        assert!(input.split_prefix_pending);
+        input.acknowledge_split_prefix_consumed(&Event::Key(KeyCode::Esc.into()));
+        assert!(!input.split_prefix_pending);
+        assert_eq!(input.framing, InputFraming::Ground);
+        assert_eq!(input.prepare_write(&[]), Some(b"\x1bx".to_vec()));
+        assert!(input.stash.is_empty());
+    }
+
+    #[test]
+    fn trailing_escape_after_ordinary_bytes_is_carried_across_writes() {
+        let mut input = InputState::default();
+        let mut emitted = Vec::new();
+
+        emitted.extend(input.prepare_write(b"a\x1b").unwrap());
+        assert_eq!(emitted, b"a");
+        assert_eq!(input.stash, b"\x1b");
+        assert_eq!(input.framing, InputFraming::Ground);
+        assert!(!input.split_prefix_pending);
+
+        emitted.extend(input.prepare_write(b"\x1bx").unwrap());
+        assert_eq!(emitted, b"a\x1b");
+        assert_eq!(input.stash, b"\x1bx");
+        assert!(input.split_prefix_pending);
+
+        input.acknowledge_split_prefix_consumed(&Event::Key(KeyCode::Esc.into()));
+        emitted.extend(input.prepare_write(&[]).unwrap());
+        assert_eq!(emitted, b"a\x1b\x1bx");
+        assert!(input.stash.is_empty());
+        assert_eq!(input.framing, InputFraming::Ground);
+    }
+
+    #[test]
+    fn carried_trailing_escape_keeps_a_later_single_alt_chord_intact() {
+        let mut input = InputState::default();
+        let mut emitted = Vec::new();
+
+        emitted.extend(input.prepare_write(b"a\x1b").unwrap());
+        assert_eq!(input.stash, b"\x1b");
+        emitted.extend(input.prepare_write(b"x").unwrap());
+
+        assert_eq!(emitted, b"a\x1bx");
+        assert!(input.stash.is_empty());
+        assert!(!input.split_prefix_pending);
+        assert_eq!(input.framing, InputFraming::Ground);
+    }
+
+    #[test]
+    fn timeout_flushed_escape_holds_a_following_alt_prefix_until_consumed() {
+        let mut input = InputState::default();
+        let mut emitted = Vec::new();
+
+        assert_eq!(input.prepare_write(b"\x1b"), None);
+        assert!(input.take_held_escape_for_flush());
+        emitted.push(0x1b); // The production flush writes this standalone ESC.
+        assert_eq!(input.framing, InputFraming::Escape);
+        assert!(input.split_prefix_pending);
+
+        assert_eq!(input.prepare_write(b"\x1bx"), None);
+        assert_eq!(input.stash, b"\x1bx");
+        assert!(!input.take_held_escape_for_flush());
+
+        input.acknowledge_split_prefix_consumed(&Event::Resize(80, 24));
+        assert!(input.split_prefix_pending);
+        input.acknowledge_split_prefix_consumed(&Event::Key(KeyCode::Esc.into()));
+        assert_eq!(input.prepare_write(&[]), Some(b"\x1bx".to_vec()));
+        emitted.extend_from_slice(b"\x1bx");
+        assert_eq!(emitted, b"\x1b\x1bx");
+        assert!(input.stash.is_empty());
+        assert_eq!(input.framing, InputFraming::Ground);
+    }
+
+    #[test]
+    fn another_split_can_wait_behind_the_first_consumed_escape() {
+        let mut input = InputState::default();
+        let mut emitted = Vec::new();
+        emitted.extend(input.prepare_write(b"\x1b\x1bx").unwrap());
+        assert_eq!(input.prepare_write(b"\x1b\x1by"), None);
+        assert_eq!(input.stash, b"\x1bx\x1b\x1by");
+
+        input.acknowledge_split_prefix_consumed(&Event::Key(KeyCode::Esc.into()));
+        emitted.extend(input.prepare_write(&[]).unwrap());
+        assert_eq!(emitted, b"\x1b\x1bx\x1b");
+        assert_eq!(input.stash, b"\x1by");
+        assert!(input.split_prefix_pending);
+
+        input.acknowledge_split_prefix_consumed(&Event::Key(KeyEvent::new(
+            KeyCode::Char('x'),
+            KeyModifiers::ALT,
+        )));
+        assert!(input.split_prefix_pending);
+        input.acknowledge_split_prefix_consumed(&Event::Key(KeyCode::Esc.into()));
+        emitted.extend(input.prepare_write(&[]).unwrap());
+        assert_eq!(emitted, b"\x1b\x1bx\x1b\x1by");
+        assert!(input.stash.is_empty());
+    }
+
+    #[test]
+    fn bracketed_paste_payload_is_never_split_and_delimiters_span_reads() {
+        let mut input = InputState::default();
+        let mut emitted = Vec::new();
+        let opener_prefix = b"\x1b[20";
+        let paste_payload = b"0~body\x1b\x1bx\x1b[20";
+        let paste_end_and_chord = b"1~\x1b\x1bx";
+
+        emitted.extend(input.prepare_write(opener_prefix).unwrap());
+        emitted.extend(input.prepare_write(paste_payload).unwrap());
+        assert!(matches!(input.framing, InputFraming::Paste { .. }));
+        assert!(!input.split_prefix_pending);
+        assert_eq!(input.stash, b"");
+
+        emitted.extend(input.prepare_write(paste_end_and_chord).unwrap());
+        assert!(input.split_prefix_pending);
+        assert_eq!(input.stash, b"\x1bx");
+        input.acknowledge_split_prefix_consumed(&Event::Key(KeyCode::Esc.into()));
+        emitted.extend(input.prepare_write(&[]).unwrap());
+
+        let mut expected = Vec::new();
+        expected.extend_from_slice(opener_prefix);
+        expected.extend_from_slice(paste_payload);
+        expected.extend_from_slice(paste_end_and_chord);
+        assert_eq!(emitted, expected);
+        assert!(input.stash.is_empty());
+        assert_eq!(input.framing, InputFraming::Ground);
+    }
+
+    #[test]
+    fn incomplete_csi_ss3_and_utf8_prefixes_pass_double_esc_unchanged() {
+        for (prefix, pair) in [
+            (b"\x1b[2".as_slice(), b"\x1b\x1bx".as_slice()),
+            (b"\x1bO".as_slice(), b"\x1b\x1bx".as_slice()),
+            (b"\xc3".as_slice(), b"\x1b\x1bx".as_slice()),
+        ] {
+            let mut input = InputState::default();
+            let first = input.prepare_write(prefix).unwrap();
+            let second = input.prepare_write(pair).unwrap();
+            assert_eq!(first, prefix);
+            assert_eq!(second, pair);
+            assert!(!input.split_prefix_pending);
+            assert!(input.stash.is_empty());
+        }
+    }
+
+    #[test]
+    fn malformed_context_passes_through_then_resynchronizes_at_source_boundary() {
+        let mut input = InputState::default();
+        assert_eq!(input.prepare_write(b"\x1bO1").unwrap(), b"\x1bO1");
+        assert_eq!(input.framing, InputFraming::Ground);
+        assert_eq!(input.prepare_write(b"\x1b\x1bx"), Some(b"\x1b".to_vec()));
+        assert!(input.split_prefix_pending);
+
+        let mut unknown_private = InputState::default();
+        assert_eq!(
+            unknown_private.prepare_write(b"\x1b[?x\x1b\x1by").unwrap(),
+            b"\x1b[?x\x1b\x1by"
+        );
+        assert!(matches!(unknown_private.framing, InputFraming::Csi(_)));
+        assert!(!unknown_private.split_prefix_pending);
+        assert_eq!(unknown_private.prepare_write(b"c").unwrap(), b"c");
+        assert_eq!(unknown_private.framing, InputFraming::Ground);
+        assert_eq!(
+            unknown_private.prepare_write(b"\x1b\x1bz"),
+            Some(b"\x1b".to_vec())
+        );
+        assert!(unknown_private.split_prefix_pending);
     }
 
     #[test]

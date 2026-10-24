@@ -717,7 +717,11 @@ fn run_with_cursor_shape_startup<A: App>(
             Ok(ready)
         })?;
         if ready {
-            pending = decode_session_input(read()?);
+            let event = read()?;
+            if bridged {
+                crate::esc_bridge::acknowledge_split_prefix_consumed(&event);
+            }
+            pending = decode_session_input(event);
         }
     }
     session.leave()
