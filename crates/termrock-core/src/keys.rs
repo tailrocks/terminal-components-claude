@@ -10,6 +10,7 @@
 //! app asks for it.
 
 pub mod keyboard {
+    use std::ffi::OsString;
     use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 
     use crate::event::{Input, Key};
@@ -131,24 +132,49 @@ pub mod keyboard {
     }
 
     impl KeyboardProtocol {
-        /// Environment override for the policy.
+        /// Canonical environment override for the policy.
         pub const ENV: &'static str = "TERMROCK_KEYBOARD_PROTOCOL";
+        /// Legacy environment override for the policy.
+        pub const LEGACY_ENV: &'static str = "JUNIE_TUI_KEYBOARD_PROTOCOL";
 
-        /// Read the policy from an environment lookup.
+        /// Read an explicit environment override, if either variable is present.
+        ///
+        /// The canonical variable wins by presence. A present blank, unrecognized,
+        /// or non-UTF-8 value resolves to `Auto` and does not fall back.
+        pub fn override_from_env(get: impl Fn(&str) -> Option<OsString>) -> Option<Self> {
+            let value = get(Self::ENV).or_else(|| get(Self::LEGACY_ENV))?;
+            Some(match value.into_string() {
+                Ok(value) => Self::parse_env_value(&value),
+                Err(_) => Self::Auto,
+            })
+        }
+
+        /// Read from a string-valued environment lookup; the canonical name wins by presence.
+        /// No override resolves to `Auto`.
         pub fn from_env(get: impl Fn(&str) -> Option<String>) -> Self {
-            match get(Self::ENV)
-                .map(|v| v.trim().to_ascii_lowercase())
+            get(Self::ENV)
+                .or_else(|| get(Self::LEGACY_ENV))
                 .as_deref()
-            {
-                Some("on" | "1" | "true" | "kitty") => Self::On,
-                Some("off" | "0" | "false" | "legacy") => Self::Off,
+                .map(Self::parse_env_value)
+                .unwrap_or(Self::Auto)
+        }
+
+        fn parse_env_value(value: &str) -> Self {
+            match value.trim().to_ascii_lowercase().as_str() {
+                "on" | "1" | "true" | "kitty" => Self::On,
+                "off" | "0" | "false" | "legacy" => Self::Off,
                 _ => Self::Auto,
             }
         }
 
-        /// Read the policy from the real environment.
+        /// Read an explicit override from the real environment, if present.
+        pub fn current_override() -> Option<Self> {
+            Self::override_from_env(|key| std::env::var_os(key))
+        }
+
+        /// Read the policy from the real environment. No override resolves to `Auto`.
         pub fn current() -> Self {
-            Self::from_env(|k| std::env::var(k).ok())
+            Self::current_override().unwrap_or(Self::Auto)
         }
     }
 
@@ -493,10 +519,22 @@ pub mod keyboard {
             );
         }
 
+        fn protocol_override(
+            canonical: Option<OsString>,
+            legacy: Option<OsString>,
+        ) -> Option<KeyboardProtocol> {
+            KeyboardProtocol::override_from_env(|key| match key {
+                KeyboardProtocol::ENV => canonical.clone(),
+                KeyboardProtocol::LEGACY_ENV => legacy.clone(),
+                _ => None,
+            })
+        }
+
         #[test]
-        fn the_env_override() {
-            let env =
-                |v: &'static str| move |k: &str| (k == KeyboardProtocol::ENV).then(|| v.to_owned());
+        fn the_canonical_string_lookup_keeps_existing_parser_cases() {
+            let env = |value: &'static str| {
+                move |key: &str| (key == KeyboardProtocol::ENV).then(|| value.to_owned())
+            };
             assert_eq!(
                 KeyboardProtocol::from_env(env("off")),
                 KeyboardProtocol::Off
@@ -509,7 +547,96 @@ pub mod keyboard {
                 KeyboardProtocol::from_env(env("maybe")),
                 KeyboardProtocol::Auto
             );
+        }
+
+        #[test]
+        fn the_env_override_accepts_aliases_for_both_names() {
+            for name in [KeyboardProtocol::ENV, KeyboardProtocol::LEGACY_ENV] {
+                for (value, expected) in [
+                    ("on", KeyboardProtocol::On),
+                    ("1", KeyboardProtocol::On),
+                    ("true", KeyboardProtocol::On),
+                    ("kitty", KeyboardProtocol::On),
+                    ("off", KeyboardProtocol::Off),
+                    ("0", KeyboardProtocol::Off),
+                    ("false", KeyboardProtocol::Off),
+                    ("legacy", KeyboardProtocol::Off),
+                ] {
+                    let value = OsString::from(value);
+                    assert_eq!(
+                        KeyboardProtocol::override_from_env(|key| {
+                            (key == name).then(|| value.clone())
+                        }),
+                        Some(expected),
+                        "{name}={value:?}",
+                    );
+                }
+            }
+
+            assert_eq!(
+                protocol_override(Some(OsString::from("  KiTtY\t")), None),
+                Some(KeyboardProtocol::On),
+            );
+            assert_eq!(
+                protocol_override(None, Some(OsString::from("  LeGaCy\n"))),
+                Some(KeyboardProtocol::Off),
+            );
+        }
+
+        #[test]
+        fn the_env_override_uses_presence_precedence_and_stays_optional() {
+            assert_eq!(
+                protocol_override(Some(OsString::from("on")), None),
+                Some(KeyboardProtocol::On),
+            );
+            assert_eq!(
+                protocol_override(None, Some(OsString::from("off"))),
+                Some(KeyboardProtocol::Off),
+            );
+            assert_eq!(protocol_override(None, None), None);
+            assert_eq!(
+                protocol_override(Some(OsString::from("off")), Some(OsString::from("on")),),
+                Some(KeyboardProtocol::Off),
+            );
+
+            for canonical in ["", "  \t", "maybe"] {
+                assert_eq!(
+                    protocol_override(Some(OsString::from(canonical)), Some(OsString::from("on")),),
+                    Some(KeyboardProtocol::Auto),
+                    "canonical={canonical:?}",
+                );
+            }
+
             assert_eq!(KeyboardProtocol::from_env(|_| None), KeyboardProtocol::Auto);
+            assert_eq!(
+                KeyboardProtocol::from_env(|key| {
+                    (key == KeyboardProtocol::LEGACY_ENV).then(|| "off".to_owned())
+                }),
+                KeyboardProtocol::Off,
+            );
+        }
+
+        #[cfg(unix)]
+        fn non_utf8_os_string() -> OsString {
+            use std::os::unix::ffi::OsStringExt;
+
+            OsString::from_vec(vec![0xff])
+        }
+
+        #[cfg(windows)]
+        fn non_utf8_os_string() -> OsString {
+            use std::os::windows::ffi::OsStringExt;
+
+            OsString::from_wide(&[0xd800])
+        }
+
+        #[cfg(any(unix, windows))]
+        #[test]
+        fn present_non_utf8_canonical_override_resolves_to_auto() {
+            assert_eq!(
+                protocol_override(Some(non_utf8_os_string()), Some(OsString::from("on")),),
+                Some(KeyboardProtocol::Auto),
+            );
         }
 
         fn env<'a>(vars: &'a [(&'a str, &'a str)]) -> impl Fn(&str) -> Option<String> + 'a {
