@@ -2321,7 +2321,10 @@ impl TableProApp {
         self.switcher.open(&self.workbench);
         cx.open_layer(
             quick_switcher::ID,
-            self.switcher.component().layer(cx, &self.switcher.items),
+            self.switcher
+                .component()
+                .layer(cx, &self.switcher.items)
+                .viewport_margin(4, 2),
         );
         self.surface = Surface::QuickSwitcher;
     }
@@ -2336,7 +2339,9 @@ impl TableProApp {
         self.tab_list.open(&self.workbench);
         cx.open_layer(
             tab_list::ID,
-            tab_list::picker(self.tab_list.rows.len()).layer(cx, &self.tab_list.rows),
+            tab_list::picker(self.tab_list.rows.len())
+                .layer(cx, &self.tab_list.rows)
+                .viewport_margin(4, 2),
         );
         // Direct assign: `set_surface` never opens layers. Picker rows and the
         // owner token come from `open` above, the same builder production uses.

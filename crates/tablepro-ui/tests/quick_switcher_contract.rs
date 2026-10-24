@@ -365,3 +365,249 @@ fn actual_ctrl_o_renders_semantic_columns_and_matched_label_cells() {
         assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
     }
 }
+
+#[test]
+fn quick_switcher_margin_clamps_bootstrap_and_restores_desired_size() -> Result<(), &'static str> {
+    use tablepro_domain::model::SwitchTarget;
+    use termrock::ItemKey;
+
+    let mut app = TableProApp::new();
+    if !app.connect(0) {
+        return Err("production connection");
+    }
+    app.set_surface(Surface::QuickSwitcher);
+    let items = app.workbench.switcher().items;
+    let visible_count = items
+        .iter()
+        .filter(|item| !matches!(&item.target, SwitchTarget::Connection(_)))
+        .count();
+    if visible_count < 12 {
+        return Err("bootstrap fixture requests the twelve-row, 19-cell picker");
+    }
+    let mut ranked_items = app.workbench.switcher().search("");
+    ranked_items.retain(|item| !matches!(&item.target, SwitchTarget::Connection(_)));
+    ranked_items.truncate(24);
+    let Some(first_key) = ranked_items.first().map(|item| ItemKey::text(&item.key)) else {
+        return Err("ranked quick-switcher item");
+    };
+    // Surface::QuickSwitcher opens through the real Bootstrap update path.
+    let mut h = Harness::new(app, Theme::junie(), 120, 20);
+    let Some(area) = h.layer_area(PICKER) else {
+        return Err("bootstrap opened quick switcher");
+    };
+    assert_eq!((area.x, area.y, area.width, area.height), (16, 1, 88, 18));
+    assert_switcher_margin_regions(&h, first_key)?;
+
+    let _ = h.resize(120, 40);
+    let Some(area) = h.layer_area(PICKER) else {
+        return Err("quick switcher remains open after grow");
+    };
+    assert_eq!((area.x, area.y, area.width, area.height), (16, 10, 88, 19));
+    assert_switcher_margin_regions(&h, first_key)?;
+
+    let _ = h.resize(80, 24);
+    let Some(area) = h.layer_area(PICKER) else {
+        return Err("quick switcher remains open at adjacent viewport");
+    };
+    assert_eq!((area.x, area.y, area.width, area.height), (2, 2, 76, 19));
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+
+    let _ = h.resize(120, 40);
+    let _ = h.key(KeyCode::Esc);
+    assert!(h.layer_area(PICKER).is_none());
+
+    // Exercise Ctrl+O at the supported minimum viewport, separately from Bootstrap.
+    let _ = h.resize(120, 20);
+    let restored_focus = h.focus();
+    let _ = h.ctrl('o');
+    let Some(area) = h.layer_area(PICKER) else {
+        return Err("Ctrl+O opens quick switcher at a short viewport");
+    };
+    assert_eq!((area.x, area.y, area.width, area.height), (16, 1, 88, 18));
+    assert_switcher_margin_regions(&h, first_key)?;
+    let _ = h.resize(120, 40);
+    let Some(area) = h.layer_area(PICKER) else {
+        return Err("Ctrl+O picker survives grow");
+    };
+    assert_eq!((area.x, area.y, area.width, area.height), (16, 10, 88, 19));
+    let _ = h.key(KeyCode::Esc);
+    assert!(h.layer_area(PICKER).is_none());
+    assert_eq!(h.focus(), restored_focus);
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+    Ok(())
+}
+
+fn assert_switcher_margin_regions(
+    h: &Harness<TableProApp>,
+    first_key: termrock::ItemKey,
+) -> Result<(), &'static str> {
+    use termrock::{Part, PartRef};
+
+    if h.focus() != Some(PICKER) || h.ring().entry(PICKER).is_none() {
+        return Err("quick-switcher query owner is registered and focused");
+    }
+    if h.area_of_part(PICKER, PartRef::of(Part::BORDER)).is_none() {
+        return Err("quick-switcher border is registered");
+    }
+    if h.area_of_part(PICKER, PartRef::item(Part::ROW, first_key))
+        .is_none()
+    {
+        return Err("quick-switcher result row is registered");
+    }
+    if h.find("Search tables").is_none() || h.find("Esc Clear / Close").is_none() {
+        return Err("quick-switcher query and hint are visible");
+    }
+    Ok(())
+}
+
+#[test]
+fn quick_switcher_query_scope_and_selection_survive_margin_reflow() -> Result<(), &'static str> {
+    use termrock::{ItemKey, Part, PartRef};
+
+    let mut h = connected();
+    let Some(customer_key) = h
+        .app()
+        .workbench
+        .switcher()
+        .items
+        .iter()
+        .find(|item| item.label == "customers")
+        .map(|item| ItemKey::text(&item.key))
+    else {
+        return Err("customers quick-switcher item");
+    };
+    let _ = h.ctrl('o');
+    let _ = h.key(KeyCode::Tab);
+    let _ = h.type_str("cust");
+    if !h.text().contains("Tables · Tab scope") || !h.text().contains("customers") {
+        return Err("filtered quick switcher shows its scope and selected target");
+    }
+    let picker_focus = h.focus();
+    if picker_focus != Some(PICKER) {
+        return Err("quick-switcher owns focus before resize");
+    }
+
+    let _ = h.resize(120, 20);
+    let Some(short) = h.layer_area(PICKER) else {
+        return Err("filtered quick switcher remains open when short");
+    };
+    assert_eq!((short.x, short.width), (16, 88));
+    assert!(short.y >= 1 && short.bottom() <= 19 && short.height <= 18);
+    assert!(
+        h.area_of_part(PICKER, PartRef::item(Part::ROW, customer_key))
+            .is_some()
+    );
+    assert_eq!(h.focus(), picker_focus);
+    if !h.text().contains("Tables · Tab scope") || !h.text().contains("customers") {
+        return Err("query, scope, and target remain after short resize");
+    }
+
+    let _ = h.resize(120, 40);
+    assert_eq!(h.focus(), picker_focus);
+    if !h.text().contains("Tables · Tab scope") || !h.text().contains("customers") {
+        return Err("query, scope, and target remain after grow");
+    }
+    let _ = h.key(KeyCode::Enter);
+    assert!(h.layer_area(PICKER).is_none());
+    assert!(matches!(
+        h.app().workbench.active(),
+        Some(Tab::Table(table)) if table.table.name == "customers"
+    ));
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+    Ok(())
+}
+
+#[test]
+fn quick_switcher_restores_requested_width_after_narrow_open() -> Result<(), &'static str> {
+    use termrock::{ItemKey, Part, PartRef};
+
+    let mut app = TableProApp::new();
+    if !app.connect(0) {
+        return Err("production connection");
+    }
+    let active_before = app.workbench.active_key();
+    let Some(customer_key) = app
+        .workbench
+        .switcher()
+        .items
+        .iter()
+        .find(|item| item.label == "customers")
+        .map(|item| ItemKey::text(&item.key))
+    else {
+        return Err("customers quick-switcher result");
+    };
+
+    let mut h = Harness::new(app, Theme::junie(), 80, 24);
+    let _ = h.ctrl('o');
+    let Some(narrow) = h.layer_area(PICKER) else {
+        return Err("Ctrl+O opens at the narrow viewport");
+    };
+    assert_eq!(
+        (narrow.x, narrow.y, narrow.width, narrow.height),
+        (2, 2, 76, 19)
+    );
+    assert_eq!(h.focus(), Some(PICKER));
+    assert!(h.ring().entry(PICKER).is_some());
+
+    let _ = h.type_str("cust");
+    assert!(h.text().contains("cust"), "{}", h.text());
+    assert!(h.text().contains("customers"), "{}", h.text());
+    assert!(
+        h.cursor().is_some(),
+        "quick-switcher query cursor is visible"
+    );
+    assert!(
+        h.area_of_part(PICKER, PartRef::item(Part::ROW, customer_key))
+            .is_some()
+    );
+    assert_eq!(h.app().workbench.active_key(), active_before);
+
+    let _ = h.resize(120, 40);
+    let Some(wide) = h.layer_area(PICKER) else {
+        return Err("quick switcher remains open after a real Resize input");
+    };
+    let filtered_rows = h
+        .app()
+        .workbench
+        .switcher()
+        .search("cust")
+        .iter()
+        .filter(|item| !matches!(&item.target, tablepro_ui::SwitchTarget::Connection(_)))
+        .count()
+        .clamp(1, 12);
+    let expected_height = u16::try_from(filtered_rows).unwrap_or(12).saturating_add(7);
+    let expected_y = 40u16.saturating_sub(expected_height) / 2;
+    assert_eq!(
+        (wide.x, wide.y, wide.width, wide.height),
+        (16, expected_y, 88, expected_height)
+    );
+    assert_eq!(h.focus(), Some(PICKER));
+    assert!(h.ring().entry(PICKER).is_some());
+    assert!(
+        h.cursor().is_some(),
+        "quick-switcher query cursor remains visible after reflow"
+    );
+    let _ = h.type_str("x");
+    assert!(
+        h.text().contains("custx"),
+        "the caret remains after the query: {}",
+        h.text()
+    );
+    let _ = h.key(KeyCode::Backspace);
+    assert!(h.text().contains("cust"), "{}", h.text());
+    assert!(
+        h.area_of_part(PICKER, PartRef::item(Part::ROW, customer_key))
+            .is_some()
+    );
+    assert_eq!(h.app().workbench.active_key(), active_before);
+
+    let _ = h.key(KeyCode::Enter);
+    assert!(h.layer_area(PICKER).is_none());
+    assert!(matches!(
+        h.app().workbench.active(),
+        Some(Tab::Table(table)) if table.table.name == "customers"
+    ));
+    assert_eq!(h.focus(), h.app().result_id());
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+    Ok(())
+}
