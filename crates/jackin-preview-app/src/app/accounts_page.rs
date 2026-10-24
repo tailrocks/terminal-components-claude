@@ -6,11 +6,13 @@
 //! is given: a wide area gets the list beside the inspector, a narrow area
 //! gets the list above the inspector band. Nothing here keys on a screen size.
 
+use termrock::controls::{MasterDetail, MasterDetailLayout, MasterDetailMode, MasterDetailState};
 use termrock::feedback::{
     AccountRole, AccountRow, AccountsDetail, AccountsDrawer, DetailAlert, DetailInk, DetailLine,
     DetailSpan, DetailTail, DrawerButton, DrawerInk, DrawerLine, DrawerMeter, DrawerTone,
     FilterHint, InspectLine, InspectSpan, InspectTone, PaneChrome, PaneRow, SettingsCluster,
 };
+use termrock::{ActionKey, Binding, Chord, KeyCode, ScrollRegion, ScrollState};
 use termrock::{FrameRead, Rect, Ui};
 
 use crate::domain::account::{Account, AccountOrigin, CredentialSource, IssueCode, Lifecycle};
@@ -18,7 +20,7 @@ use crate::domain::agent::Provider;
 use crate::domain::usage::{Freshness, HealthWord, OverallSummary, QuotaStatus};
 use crate::sim::onepassword::OpSession;
 
-use super::App;
+use super::{App, Route};
 
 /// The layout switches to the inspector beside the list when the area is wide
 /// enough for both columns and tall enough for the shared painters.
@@ -159,6 +161,351 @@ const DRAWER_HINTS: [FilterHint<'static>; 3] = [
         action: "Back",
     },
 ];
+
+const ACCOUNTS_SPLIT: termrock::Id = termrock::Id::root("jackin.accounts.split");
+const ACCOUNTS_DETAIL: termrock::Id = termrock::Id::root("jackin.accounts.detail");
+const ACCOUNTS_DETAIL_SCROLL: termrock::Id = termrock::Id::root("jackin.accounts.detail.scroll");
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum DetailScrollCmd {
+    PageUp,
+    PageDown,
+    Home,
+    End,
+}
+
+const DETAIL_SCROLL_BINDINGS: &[Binding<DetailScrollCmd>] = &[
+    Binding {
+        action: ActionKey::custom("accounts.detail.page_up"),
+        chord: Some(Chord::key(KeyCode::PageUp)),
+        cmd: DetailScrollCmd::PageUp,
+        label: "Page up",
+        priority: 35,
+        visible: true,
+    },
+    Binding {
+        action: ActionKey::custom("accounts.detail.page_down"),
+        chord: Some(Chord::key(KeyCode::PageDown)),
+        cmd: DetailScrollCmd::PageDown,
+        label: "Page down",
+        priority: 35,
+        visible: true,
+    },
+    Binding {
+        action: ActionKey::custom("accounts.detail.home"),
+        chord: Some(Chord::key(KeyCode::Home)),
+        cmd: DetailScrollCmd::Home,
+        label: "First",
+        priority: 35,
+        visible: true,
+    },
+    Binding {
+        action: ActionKey::custom("accounts.detail.end"),
+        chord: Some(Chord::key(KeyCode::End)),
+        cmd: DetailScrollCmd::End,
+        label: "Last",
+        priority: 35,
+        visible: true,
+    },
+];
+
+#[derive(Clone, Debug, Default)]
+pub(super) struct AccountsViewState {
+    master_detail: MasterDetailState,
+    detail_scroll: ScrollState,
+    selection: Option<Selection>,
+}
+
+#[derive(Clone, Copy)]
+struct DetailBodyLayout {
+    drawer: termrock::feedback::AccountsDrawerLayout,
+    inspector_widths: Option<termrock::feedback::InspectorBodyWidths>,
+}
+
+fn uses_split(area: Rect) -> bool {
+    area.width >= WIDE_MIN_WIDTH && area.height >= WIDE_MIN_HEIGHT
+}
+
+fn split_area(area: Rect) -> Rect {
+    Rect::new(
+        area.x.saturating_add(1),
+        area.y.saturating_add(2),
+        area.width.saturating_sub(2),
+        area.height.saturating_sub(4),
+    )
+}
+
+fn master_detail(area: Rect) -> MasterDetail {
+    let collapse_below = if area.height < WIDE_MIN_HEIGHT {
+        u16::MAX
+    } else if uses_split(area) {
+        WIDE_MIN_WIDTH.saturating_sub(2)
+    } else {
+        WIDE_MIN_WIDTH
+    };
+    MasterDetail::new(ACCOUNTS_SPLIT, crate::ACCOUNTS_LIST, ACCOUNTS_DETAIL)
+        .initial_master_cells(LIST_PANE_W)
+        .preserve_drag_offset(true)
+        .min_master(LIST_PANE_W)
+        .min_detail(40)
+        .gap(2)
+        .collapse_below(collapse_below)
+        .reset_policy(termrock::controls::ResetPolicy::Initial)
+        .detail_owns(&[ACCOUNTS_DETAIL_SCROLL])
+}
+
+pub(super) fn open_drawer(state: &mut AccountsViewState, cx: &mut termrock::Cx<'_>, area: Rect) {
+    master_detail(area).open_drawer_from(&mut state.master_detail, cx, crate::ACCOUNTS_LIST);
+}
+
+pub(super) fn close_drawer(state: &mut AccountsViewState, cx: &mut termrock::Cx<'_>, area: Rect) {
+    master_detail(area).close_drawer(&mut state.master_detail, cx);
+}
+
+pub(super) fn sync_selection(app: &mut App) {
+    let tree = tree(app);
+    let selected = selection(app, &tree);
+    if app.accounts_view.selection.as_ref() != Some(&selected) {
+        app.accounts_view.selection = Some(selected);
+        app.accounts_view.detail_scroll = ScrollState::default();
+    }
+}
+
+pub(super) fn update_master(app: &mut App, cx: &mut termrock::Cx<'_>) -> termrock::Response<()> {
+    let control = master_detail(app.screen);
+    let response = control.update(cx, &mut app.accounts_view.master_detail);
+    app.accounts.drawer_open = app.accounts_view.master_detail.drawer_open();
+    response.erase()
+}
+
+pub(super) fn settle_retired_detail_focus(
+    app: &App,
+    cx: &mut termrock::Cx<'_>,
+) -> termrock::Response<()> {
+    if cx.update_cause() != termrock::UpdateCause::Settle
+        || app.route != Route::Accounts
+        || app.accounts.form_open
+    {
+        return termrock::Response::ignored();
+    }
+
+    let mode_area = if uses_split(app.screen) {
+        split_area(app.screen)
+    } else {
+        app.screen
+    };
+    if master_detail(app.screen)
+        .layout(mode_area, &app.accounts_view.master_detail)
+        .mode
+        != MasterDetailMode::Master
+    {
+        return termrock::Response::ignored();
+    }
+
+    for owner in [ACCOUNTS_DETAIL, ACCOUNTS_DETAIL_SCROLL] {
+        let targets: Vec<_> = cx
+            .intents(owner)
+            .filter_map(|intent| match intent {
+                termrock::Intent::FocusOut { to: Some(target) } => Some(target),
+                _ => None,
+            })
+            .collect();
+        for target in targets {
+            if cx.focus_is_continued(owner, target) {
+                let _ = cx.acknowledge_focus_continuation(owner, target);
+            }
+        }
+    }
+    termrock::Response::ignored()
+}
+
+pub(super) fn update_detail(app: &mut App, cx: &mut termrock::Cx<'_>) -> termrock::Response<()> {
+    let tree = tree(app);
+    let selected = selection(app, &tree);
+    let control = master_detail(app.screen);
+    let mode_area = if uses_split(app.screen) {
+        split_area(app.screen)
+    } else {
+        app.screen
+    };
+    let responsive = control.layout(mode_area, &app.accounts_view.master_detail);
+    if responsive.mode == MasterDetailMode::Master {
+        if app.accounts_view.selection.as_ref() != Some(&selected) {
+            app.accounts_view.selection = Some(selected);
+            app.accounts_view.detail_scroll = ScrollState::default();
+        }
+        return termrock::Response::ignored();
+    }
+
+    let geometry = detail_body_layout(
+        app.screen,
+        responsive,
+        matches!(selected, Selection::Account(_)),
+    );
+    let (content_len, _) = detail_content_measure(app, &selected, geometry);
+    if app.accounts_view.selection.as_ref() != Some(&selected) {
+        app.accounts_view.selection = Some(selected);
+        app.accounts_view.detail_scroll = ScrollState::new(content_len);
+    }
+
+    let mut result = ScrollRegion::new(ACCOUNTS_DETAIL_SCROLL).update(
+        cx,
+        &mut app.accounts_view.detail_scroll,
+        content_len,
+    );
+    for intent in cx.intents(ACCOUNTS_DETAIL) {
+        let termrock::Intent::Binding(action) = intent else {
+            continue;
+        };
+        let Some(command) = Binding::command(DETAIL_SCROLL_BINDINGS, action) else {
+            continue;
+        };
+        match command {
+            DetailScrollCmd::PageUp => app.accounts_view.detail_scroll.page_up(),
+            DetailScrollCmd::PageDown => app.accounts_view.detail_scroll.page_down(),
+            DetailScrollCmd::Home => app.accounts_view.detail_scroll.jump_start(),
+            DetailScrollCmd::End => app.accounts_view.detail_scroll.jump_end(),
+        }
+        result |= termrock::Response::changed();
+    }
+    app.accounts_view
+        .detail_scroll
+        .apply_layout(usize::from(geometry.drawer.detail_body.height), content_len);
+    result
+}
+
+fn detail_body_layout(
+    outer: Rect,
+    responsive: MasterDetailLayout,
+    account_body: bool,
+) -> DetailBodyLayout {
+    let split = responsive.mode == MasterDetailMode::Split;
+    let master_box = if split { responsive.master } else { Rect::ZERO };
+    let master_rows = if split {
+        Rect::new(
+            master_box.x,
+            master_box.y.saturating_add(1),
+            master_box.width,
+            master_box.height.saturating_sub(2),
+        )
+    } else {
+        Rect::ZERO
+    };
+    let detail_box = if split {
+        responsive.detail
+    } else {
+        let area = responsive.detail;
+        Rect::new(
+            area.x.saturating_add(1),
+            area.y.saturating_add(2),
+            area.width.saturating_sub(2),
+            area.height.saturating_sub(4),
+        )
+    };
+    let content_x = if split {
+        detail_box.x
+    } else {
+        detail_box.x.saturating_add(1)
+    };
+    let content_right = if split {
+        detail_box.right()
+    } else {
+        detail_box.right().saturating_sub(1)
+    };
+    let content_width = content_right.saturating_sub(content_x);
+    let body_y = detail_box.y.saturating_add(2);
+    let body_height = detail_box.height.saturating_sub(5);
+    let body = if account_body {
+        Rect::new(content_x, body_y, content_width, body_height)
+    } else {
+        Rect::new(
+            content_x.saturating_add(2),
+            body_y,
+            content_width.saturating_sub(4),
+            body_height,
+        )
+    };
+    let header_x = content_x;
+    let header_width = content_width;
+    let button_y = detail_box.bottom().saturating_sub(2);
+    let drawer = termrock::feedback::AccountsDrawerLayout {
+        outer,
+        header: Rect::new(outer.x, outer.y, outer.width, 1),
+        footer: Rect::new(outer.x, outer.bottom().saturating_sub(1), outer.width, 1),
+        master_box,
+        master_rows,
+        seam: if split { responsive.seam } else { Rect::ZERO },
+        detail_box,
+        detail_header: Rect::new(header_x, detail_box.y, header_width, 2),
+        detail_body: body,
+        detail_content: body,
+        detail_clip: body,
+        detail_footer: Rect::new(header_x, button_y, header_width, 1),
+    };
+    let inspector_widths = if account_body {
+        None
+    } else {
+        let full = body.width;
+        let narrow = full.saturating_sub(2);
+        Some(termrock::feedback::InspectorBodyWidths::new(full, narrow))
+    };
+    DetailBodyLayout {
+        drawer,
+        inspector_widths,
+    }
+}
+
+fn detail_content_measure(
+    app: &App,
+    selection: &Selection,
+    geometry: DetailBodyLayout,
+) -> (usize, Panel) {
+    let content_x = if geometry.drawer.master_box.is_empty() {
+        geometry.drawer.detail_box.x.saturating_add(1)
+    } else {
+        geometry.drawer.detail_box.x
+    };
+    let content_right = if geometry.drawer.master_box.is_empty() {
+        geometry.drawer.detail_box.right().saturating_sub(1)
+    } else {
+        geometry.drawer.detail_box.right()
+    };
+    let body_right = content_right.saturating_sub(2);
+    let value_x = content_x.saturating_add(PANEL_VALUE_AT);
+    let room = usize::from(body_right.saturating_sub(value_x));
+    let note_x = value_x.saturating_add(METER_BAR_W).saturating_add(4);
+    let note_room = usize::from(body_right.saturating_sub(note_x));
+    let panel = panel_for(app, selection, room, note_room);
+    if matches!(selection, Selection::Account(_)) {
+        let lines = panel_content_lines(&panel);
+        (lines.len().saturating_sub(2), panel)
+    } else {
+        let Some(widths) = inspector_widths(&panel.body, geometry) else {
+            return (0, panel);
+        };
+        (
+            termrock::feedback::inspector_body_row_count(&panel.body, widths),
+            panel,
+        )
+    }
+}
+
+fn inspector_widths(
+    lines: &[InspectLine],
+    geometry: DetailBodyLayout,
+) -> Option<termrock::feedback::InspectorBodyWidths> {
+    let full = geometry.inspector_widths?;
+    if termrock::feedback::inspector_body_row_count(lines, full)
+        > usize::from(geometry.drawer.detail_body.height)
+    {
+        Some(termrock::feedback::InspectorBodyWidths::new(
+            full.text_width.saturating_sub(2),
+            full.prewrap_width,
+        ))
+    } else {
+        Some(full)
+    }
+}
 
 /// What a tree row stands for.
 #[derive(Clone, PartialEq, Eq)]
@@ -394,12 +741,161 @@ fn quota_is_hidden(account: &Account) -> bool {
 /// Paint the accounts page into `area`.
 pub(super) fn paint(app: &App, ui: &mut Ui<'_>, area: Rect) {
     let tree = tree(app);
-    if area.width >= WIDE_MIN_WIDTH && area.height >= WIDE_MIN_HEIGHT {
-        paint_wide(app, ui, area, &tree);
+    let control = master_detail(area);
+    let mode_area = if uses_split(area) {
+        split_area(area)
     } else {
-        paint_narrow(app, ui, area, &tree);
+        area
+    };
+    let responsive = control.layout(mode_area, &app.accounts_view.master_detail);
+    match responsive.mode {
+        MasterDetailMode::Split => {
+            if responsive.detail.is_empty() {
+                // Keep the original fixed39 page as a fail-closed rendering
+                // path if the split cannot resolve a real detail rectangle.
+                paint_wide(app, ui, area, &tree);
+            } else {
+                paint_live_detail(app, ui, area, &tree, control, mode_area, responsive);
+            }
+        }
+        MasterDetailMode::Master => {
+            paint_narrow(app, ui, area, &tree);
+            control.draw(ui, mode_area, &app.accounts_view.master_detail, |_, _| {});
+        }
+        MasterDetailMode::Drawer => {
+            paint_live_detail(app, ui, area, &tree, control, mode_area, responsive);
+        }
     }
     paint_filter_field(app, ui, area);
+}
+
+fn paint_live_detail(
+    app: &App,
+    ui: &mut Ui<'_>,
+    area: Rect,
+    tree: &Tree,
+    control: MasterDetail,
+    mode_area: Rect,
+    responsive: MasterDetailLayout,
+) {
+    let selection = selection(app, tree);
+    let account_body = matches!(selection, Selection::Account(_));
+    let mut geometry = detail_body_layout(area, responsive, account_body);
+    let (content_len, panel) = detail_content_measure(app, &selection, geometry);
+    let buttons: Vec<DrawerButton<'_>> = panel
+        .buttons
+        .iter()
+        .map(|(label, danger)| DrawerButton {
+            label,
+            danger: *danger,
+        })
+        .collect();
+    let mut lines = panel_content_lines(&panel);
+    lines.push(DrawerLine::Buttons(&buttons));
+
+    let split = responsive.mode == MasterDetailMode::Split;
+    let names = if split {
+        pane_names_for_width(tree, geometry.drawer.master_box.width)
+    } else {
+        Vec::new()
+    };
+    let (summary, rows, list_title) = if split {
+        let visible = usize::from(geometry.drawer.master_rows.height);
+        let offset = list_offset(app, tree.rows.len(), visible);
+        let rows = pane_rows(app, tree, &names, offset, visible);
+        let summary = list_summary(app);
+        let title = list_title_for_box(app, &selection, &summary, geometry.drawer.master_box);
+        (summary, rows, title)
+    } else {
+        (String::new(), Vec::new(), String::new())
+    };
+    let (crumb, status, running, note) = header_parts(app, area, &selection, split);
+    let hints: &[FilterHint<'_>] = match &selection {
+        Selection::Account(_) if app.accounts.drawer_open => &DRAWER_HINTS,
+        Selection::Account(_) => &ACCOUNT_HINTS,
+        Selection::Provider(_) => &PROVIDER_HINTS,
+        Selection::Overview => &OVERVIEW_HINTS,
+    };
+    let (hints, overflow) = fit_hints(hints, area.width);
+    let page = AccountsDrawer {
+        brand: "jackin❯",
+        menus: &["File", "Go", "Help"],
+        crumb: &crumb,
+        status: &status,
+        cluster: SettingsCluster {
+            note: &note,
+            mark: "●",
+            value: &running,
+        },
+        title: &list_title,
+        summary: &summary,
+        rows: &rows,
+        lines: &lines,
+        hints: &hints,
+        hint_overflow: &overflow,
+        chrome: if app.accounts.drawer_open {
+            PaneChrome::Drawer
+        } else {
+            PaneChrome::Detail
+        },
+    };
+    control.draw(ui, mode_area, &app.accounts_view.master_detail, |_, _| {});
+    if split {
+        draw_list_owner(app, ui, geometry.drawer.master_rows);
+    }
+    termrock::feedback::paint_accounts_drawer_layout(ui, geometry.drawer, &page);
+
+    if split {
+        let visible = usize::from(geometry.drawer.master_rows.height);
+        let offset = list_offset(app, tree.rows.len(), visible);
+        register_add_row_in(
+            ui,
+            tree,
+            offset,
+            geometry.drawer.master_rows,
+            geometry.drawer.master_box,
+        );
+    }
+    ui.register_control(
+        ACCOUNTS_DETAIL,
+        geometry.drawer.detail_box,
+        termrock::Focusability::Focusable,
+    );
+    let scroll = ScrollRegion::new(ACCOUNTS_DETAIL_SCROLL).preserve_underlay(true);
+    let body_clip = scroll.draw(
+        ui,
+        geometry.drawer.detail_body,
+        &app.accounts_view.detail_scroll,
+        content_len,
+    );
+    geometry.drawer.detail_clip = body_clip.intersection(geometry.drawer.detail_content);
+
+    if account_body {
+        let body_lines = lines.get(2..lines.len().saturating_sub(1)).unwrap_or(&[]);
+        let _ = termrock::feedback::paint_accounts_drawer_lines_window(
+            ui,
+            geometry.drawer.detail_content,
+            geometry.drawer.detail_clip,
+            app.accounts_view.detail_scroll.offset(),
+            body_lines,
+            page.chrome,
+        );
+    } else if let Some(widths) = inspector_widths(&panel.body, geometry) {
+        let _ = termrock::feedback::paint_inspector_body_lines_window(
+            ui,
+            geometry.drawer.detail_content,
+            geometry.drawer.detail_clip,
+            app.accounts_view.detail_scroll.offset(),
+            &panel.body,
+            widths,
+        );
+    }
+
+    ui.publish_additional_bindings(
+        ACCOUNTS_DETAIL,
+        ui.state(ACCOUNTS_DETAIL),
+        DETAIL_SCROLL_BINDINGS,
+    );
 }
 
 /// The filter field, while it holds the caret.
@@ -582,6 +1078,43 @@ fn register_add_row(ui: &mut Ui<'_>, area: Rect, tree: &Tree, offset: usize) {
     ui.register_control(
         crate::ACCOUNT_ADD,
         Rect::new(area.x.saturating_add(name_x), y, 20, 1),
+        termrock::Focusability::Focusable,
+    );
+}
+
+fn register_add_row_in(
+    ui: &mut Ui<'_>,
+    tree: &Tree,
+    offset: usize,
+    rows_area: Rect,
+    master_box: Rect,
+) {
+    let Some(index) = tree
+        .rows
+        .iter()
+        .position(|row| row.node == Node::AddAccount)
+    else {
+        return;
+    };
+    let Some(row) = tree.rows.get(index) else {
+        return;
+    };
+    let name_x = match row.role {
+        AccountRole::Root | AccountRole::Group => 6,
+        AccountRole::Item | AccountRole::Note => 8,
+    };
+    let Some(painted) = index.checked_sub(offset) else {
+        return;
+    };
+    let y = rows_area
+        .y
+        .saturating_add(u16::try_from(painted).unwrap_or(u16::MAX));
+    if y >= rows_area.bottom() {
+        return;
+    }
+    ui.register_control(
+        crate::ACCOUNT_ADD,
+        Rect::new(master_box.x.saturating_add(name_x), y, 20, 1),
         termrock::Focusability::Focusable,
     );
 }
@@ -1553,6 +2086,7 @@ fn truncate(text: &str, width: usize) -> String {
 }
 
 /// What the tree cursor stands for.
+#[derive(Clone, Debug, PartialEq, Eq)]
 enum Selection {
     Overview,
     Provider(Provider),
@@ -1582,6 +2116,13 @@ fn pane_names(tree: &Tree) -> Vec<String> {
     tree.rows
         .iter()
         .map(|row| truncate(&row.name, pane_name_width(row)))
+        .collect()
+}
+
+fn pane_names_for_width(tree: &Tree, pane_width: u16) -> Vec<String> {
+    tree.rows
+        .iter()
+        .map(|row| truncate(&row.name, pane_name_width_for(row, pane_width)))
         .collect()
 }
 
@@ -1654,11 +2195,15 @@ fn detail_rows<'a>(
 
 /// The name column of a row of the wide list.
 fn pane_name_width(row: &TreeRow) -> usize {
+    pane_name_width_for(row, LIST_PANE_W)
+}
+
+fn pane_name_width_for(row: &TreeRow, pane_width: u16) -> usize {
     let name_x = name_column(row);
     let right = if row.alert.is_some() {
-        LIST_PANE_W.saturating_sub(5)
+        pane_width.saturating_sub(5)
     } else {
-        LIST_PANE_W.saturating_sub(2)
+        pane_width.saturating_sub(2)
     };
     usize::from(right.saturating_sub(name_x))
 }
@@ -1727,6 +2272,25 @@ fn list_title(app: &App, selection: &Selection, summary: &str, area: Rect, wide:
             .saturating_sub(3)
             .saturating_sub(u16::try_from(text_width(summary)).unwrap_or(u16::MAX))
     };
+    let room = summary_x.saturating_sub(title_x).saturating_sub(1);
+    let inner = truncate(&inner, usize::from(room.saturating_sub(2)));
+    format!(" {inner} ")
+}
+
+fn list_title_for_box(app: &App, selection: &Selection, summary: &str, master_box: Rect) -> String {
+    let inner = if app.filter_active() {
+        format!("Accounts · filter {}", app.accounts.filter_query.trim())
+    } else {
+        match selection {
+            Selection::Provider(provider) => provider.usage_surface().surface_name().to_owned(),
+            Selection::Overview | Selection::Account(_) => "Accounts".to_owned(),
+        }
+    };
+    let title_x = master_box.x.saturating_add(2);
+    let summary_x = master_box
+        .right()
+        .saturating_sub(2)
+        .saturating_sub(u16::try_from(text_width(summary)).unwrap_or(u16::MAX));
     let room = summary_x.saturating_sub(title_x).saturating_sub(1);
     let inner = truncate(&inner, usize::from(room.saturating_sub(2)));
     format!(" {inner} ")
@@ -1904,6 +2468,22 @@ fn panel_lines<'a>(
     area: Rect,
     buttons: &'a [DrawerButton<'a>],
 ) -> Vec<DrawerLine<'a>> {
+    let mut lines = panel_content_lines(panel);
+    // The buttons sit at the foot of the panel.
+    let panel_rows = usize::from(area.height.saturating_sub(4));
+    while lines.len() + 2 < panel_rows {
+        lines.push(DrawerLine::Blank);
+    }
+    lines.push(DrawerLine::Buttons(buttons));
+    lines.push(DrawerLine::Blank);
+    lines
+}
+
+/// Typed title, fields, quota rows, validation and status before panel padding.
+///
+/// The live scroll owner uses this same source without viewport-sized padding;
+/// the frozen whole painter still adds its blank tail and buttons.
+fn panel_content_lines<'a>(panel: &'a Panel) -> Vec<DrawerLine<'a>> {
     let mut lines = vec![
         DrawerLine::Title {
             title: &panel.title,
@@ -1938,13 +2518,6 @@ fn panel_lines<'a>(
     if let Some(status) = &panel.status {
         push_field(&mut lines, status);
     }
-    // The buttons sit at the foot of the panel.
-    let panel_rows = usize::from(area.height.saturating_sub(4));
-    while lines.len() + 2 < panel_rows {
-        lines.push(DrawerLine::Blank);
-    }
-    lines.push(DrawerLine::Buttons(buttons));
-    lines.push(DrawerLine::Blank);
     lines
 }
 

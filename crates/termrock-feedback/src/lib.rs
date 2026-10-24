@@ -38,10 +38,10 @@ pub use accounts_detail::{
     accounts_detail_summary_area, paint_accounts_detail,
 };
 pub use accounts_drawer::{
-    AccountsDrawer, DrawerButton, DrawerInk, DrawerLine, DrawerLineProjection, DrawerMeter,
-    DrawerProjectionError, DrawerProjectionRange, DrawerProjectionSource, DrawerTone, PaneChrome,
-    PaneRow, paint_accounts_drawer, paint_accounts_drawer_lines_window,
-    project_accounts_drawer_line,
+    AccountsDrawer, AccountsDrawerLayout, DrawerButton, DrawerInk, DrawerLine,
+    DrawerLineProjection, DrawerMeter, DrawerProjectionError, DrawerProjectionRange,
+    DrawerProjectionSource, DrawerTone, PaneChrome, PaneRow, paint_accounts_drawer,
+    paint_accounts_drawer_layout, paint_accounts_drawer_lines_window, project_accounts_drawer_line,
 };
 pub use accounts_filter::{
     AccountsFilter, DetailInk, DetailLine, DetailSpan, FilterHint, FilterRow, TailTone,
