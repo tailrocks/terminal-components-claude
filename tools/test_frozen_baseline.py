@@ -1817,6 +1817,894 @@ class RunnerGuards(unittest.TestCase):
                     else:
                         self.assertTrue(json.loads(output.getvalue())["verified"])
 
+    def _owned_fresh_plan_creation_fixture(
+        self, root: Path, *, budget: int = runner.PREPARE_OWNED_MAX_BUDGET
+    ) -> dict[str, object]:
+        root.mkdir(parents=True, exist_ok=True)
+        plan = self._fresh_plan_fixture(
+            root,
+            advance_budget_seconds=budget,
+            cohort_id=runner.PREPARE_LIVE_OWNED_COHORT,
+        )
+        (root / "source" / "Cargo.toml").write_text("[workspace]\n")
+        return plan
+
+    def _run_owned_fresh_plan_creator(
+        self,
+        root: Path,
+        execution: runner.PrepareExecution,
+        plan_fixture: dict[str, object],
+        commitment_path: Path,
+        pending_receipt_path: Path,
+    ) -> dict[str, object]:
+        return runner._create_fresh_plan_owned(
+            root / "repo",
+            root,
+            runner.PREPARE_LIVE_OWNED_COHORT,
+            root / "bins",
+            execution.work_budget,
+            1,
+            None,
+            execution=execution,
+            commitment_path=commitment_path,
+            pending_receipt_path=pending_receipt_path,
+        )
+
+    def test_owned_fresh_plan_creator_publishes_durable_nonaccepting_plan_in_order(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp).resolve()
+            root = base / "plan-root"
+            fixture_plan = self._owned_fresh_plan_creation_fixture(root)
+            commitment_path = base / "receipts" / "created" / "creation.json"
+            pending_path = base / "receipts" / "pending" / "pending.json"
+            commitment_path.parent.mkdir(parents=True)
+            pending_path.parent.mkdir(parents=True)
+            plan_path = root / runner.FRESH_PLAN_FILE
+            output = io.StringIO()
+            observed: list[str] = []
+            original_print = print
+
+            with runner.PrepareExecution(runner.PREPARE_OWNED_MAX_BUDGET) as execution:
+                stack, _mocks = self._owned_fresh_plan_dependencies(root, fixture_plan, execution)
+                root_binding = runner._owned_root_binding(root, check_work=execution.check_work)
+
+                def observe_print(*args, **kwargs):
+                    text = str(args[0]) if args else ""
+                    if '"status":"pending-plan-publication"' in text:
+                        self.assertFalse(plan_path.exists(), "pending status must precede the plan link")
+                        observed.append("pending")
+                    elif '"status": "prepared-not-executed"' in text:
+                        self.assertTrue(plan_path.is_file(), "success status follows plan publication")
+                        observed.append("success")
+                    return original_print(*args, **kwargs)
+
+                with (
+                    stack,
+                    patch("builtins.print", side_effect=observe_print),
+                    redirect_stdout(output),
+                ):
+                    plan = self._run_owned_fresh_plan_creator(
+                        root, execution, fixture_plan, commitment_path, pending_path
+                    )
+
+                commitment_digest = runner.sha256(commitment_path, check_work=execution.check_work)
+                commitment = runner._read_creation_commitment(
+                    commitment_path, commitment_digest, check_work=execution.check_work
+                )
+                pending = runner._read_pending_receipt(pending_path, check_work=execution.check_work)
+                with (
+                    patch.object(runner, "EXPECTED_SCENARIOS", 1),
+                    patch.object(runner, "EXPECTED_ORDINARY_TESTS", 2),
+                    patch.object(
+                        runner,
+                        "ordinary_test_groups",
+                        return_value=(
+                            ["source_only::fixture"],
+                            ["modes::showcase_boot_sets_terminal_modes"],
+                        ),
+                    ),
+                ):
+                    durable_plan = runner._read_self_sealed_plan_at_root(
+                        root,
+                        runner.FRESH_PLAN_FILE,
+                        runner.sha256(plan_path, check_work=execution.check_work),
+                        check_work=execution.check_work,
+                        expected_advance_budget=execution.work_budget,
+                    )
+
+            self.assertEqual(observed, ["pending", "success"])
+            self.assertEqual(durable_plan, plan)
+            self.assertEqual(plan["cohort"]["cohort_id"], runner.PREPARE_LIVE_OWNED_COHORT)
+            self.assertEqual(plan["execution"]["timeout_seconds_per_advance"], runner.PREPARE_OWNED_MAX_BUDGET)
+            self.assertFalse(plan["execution"]["candidate_comparison_eligible"])
+            self.assertFalse(plan["execution"]["product_acceptance"])
+            creation_digest = runner.hashlib.sha256(runner._canonical_document_bytes(plan)).hexdigest()
+            self.assertEqual(commitment["plan_creation_sha256"], creation_digest)
+            self.assertEqual(commitment["plan_self_sha256"], plan["plan_sha256"])
+            self.assertEqual(commitment["cohort_id"], runner.PREPARE_LIVE_OWNED_COHORT)
+            for key, value in root_binding.items():
+                self.assertEqual(commitment[key], value)
+                self.assertEqual(pending[key], value)
+            self.assertEqual(pending["creation_commitment_sha256"], commitment_digest)
+            self.assertEqual(pending["plan_creation_sha256"], creation_digest)
+            self.assertEqual(pending["plan_id"], plan["plan_id"])
+            self.assertEqual(commitment_path.stat().st_mode & 0o777, 0o400)
+            self.assertEqual(pending_path.stat().st_mode & 0o777, 0o400)
+            first, rest = output.getvalue().split("\n", 1)
+            pending_line = json.loads(first)
+            success_record = json.loads(rest)
+            self.assertEqual(pending_line["status"], "pending-plan-publication")
+            self.assertFalse(pending_line["plan_published"])
+            self.assertFalse(pending_line["verified"])
+            self.assertFalse(pending_line["candidate_comparison_eligible"])
+            self.assertFalse(pending_line["product_acceptance"])
+            self.assertEqual(success_record["creation_commitment_sha256"], commitment_digest)
+            self.assertEqual(success_record["creation_file_sha256"], runner.sha256(plan_path))
+
+    def test_owned_fresh_plan_creator_rejects_unpinned_cohort_and_bad_destinations_before_probes(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp).resolve()
+            root = base / "plan-root"
+            self._owned_fresh_plan_creation_fixture(root)
+            with runner.PrepareExecution(20) as execution:
+                with (
+                    patch.object(runner, "_owned_root_binding") as bind_root,
+                    self.assertRaisesRegex(runner.RunnerError, "pinned frozen-20261021-serial-nonincr-r1-r2 cohort"),
+                ):
+                    runner._create_fresh_plan_owned(
+                        root / "repo", root, "another-capture-eligible-cohort", root / "bins", 20, 1, None,
+                        execution=execution, commitment_path=base / "creation.json",
+                        pending_receipt_path=base / "pending.json",
+                    )
+                bind_root.assert_not_called()
+
+            for commitment, pending, message in (
+                (base / "same.json", base / "same.json", "must use distinct files"),
+                (root / "inside.json", base / "pending.json", "must be outside the plan root"),
+            ):
+                with self.subTest(commitment=commitment, pending=pending), runner.PrepareExecution(20) as execution:
+                    with (
+                        patch.object(runner, "paths") as paths,
+                        patch.object(runner, "verify_source") as verify_source,
+                        self.assertRaisesRegex(runner.RunnerError, message),
+                    ):
+                        runner._create_fresh_plan_owned(
+                            root / "repo", root, runner.PREPARE_LIVE_OWNED_COHORT, root / "bins", 20, 1, None,
+                            execution=execution, commitment_path=commitment, pending_receipt_path=pending,
+                        )
+                    paths.assert_not_called()
+                    verify_source.assert_not_called()
+
+    def test_owned_fresh_plan_creator_preflight_collisions_preserve_all_destinations(self) -> None:
+        for occupied in ("commitment", "pending", "plan"):
+            with self.subTest(occupied=occupied), tempfile.TemporaryDirectory() as temp:
+                base = Path(temp).resolve()
+                root = base / "plan-root"
+                self._owned_fresh_plan_creation_fixture(root)
+                commitment_path = base / "creation.json"
+                pending_path = base / "pending.json"
+                existing = {
+                    "commitment": commitment_path,
+                    "pending": pending_path,
+                    "plan": root / runner.FRESH_PLAN_FILE,
+                }[occupied]
+                existing.write_bytes(b"keep operator-owned bytes")
+                before = existing.read_bytes()
+                with runner.PrepareExecution(20) as execution:
+                    with (
+                        patch.object(runner, "paths") as paths,
+                        patch.object(runner, "verify_source") as verify_source,
+                        self.assertRaisesRegex(runner.RunnerError, "refusing to replace immutable"),
+                    ):
+                        runner._create_fresh_plan_owned(
+                            root / "repo", root, runner.PREPARE_LIVE_OWNED_COHORT, root / "bins", 20, 1, None,
+                            execution=execution, commitment_path=commitment_path,
+                            pending_receipt_path=pending_path,
+                        )
+                    paths.assert_not_called()
+                    verify_source.assert_not_called()
+                self.assertEqual(existing.read_bytes(), before)
+                for other in (commitment_path, pending_path, root / runner.FRESH_PLAN_FILE):
+                    if other != existing:
+                        self.assertFalse(other.exists(), other)
+
+    def test_owned_fresh_plan_creator_receipt_sync_failures_leave_only_committed_evidence(self) -> None:
+        for fail_on, commitment_exists, pending_exists in (
+            (1, False, False), (2, True, False), (3, True, False), (4, True, True)
+        ):
+            with self.subTest(fail_on=fail_on), tempfile.TemporaryDirectory() as temp:
+                base = Path(temp).resolve()
+                root = base / "plan-root"
+                fixture_plan = self._owned_fresh_plan_creation_fixture(root)
+                commitment_path = base / "creation.json"
+                pending_path = base / "pending.json"
+                output = io.StringIO()
+                calls = 0
+                real_fsync = runner.os.fsync
+
+                def fail_selected_sync(fd: int) -> None:
+                    nonlocal calls
+                    calls += 1
+                    if calls == fail_on:
+                        raise OSError("injected owned receipt fsync failure")
+                    real_fsync(fd)
+
+                with runner.PrepareExecution(20) as execution:
+                    stack, _mocks = self._owned_fresh_plan_dependencies(root, fixture_plan, execution)
+                    with (
+                        stack,
+                        patch.object(runner.os, "fsync", side_effect=fail_selected_sync),
+                        redirect_stdout(output),
+                        self.assertRaisesRegex(OSError, "injected owned receipt fsync failure"),
+                    ):
+                        runner._create_fresh_plan_owned(
+                            root / "repo", root, runner.PREPARE_LIVE_OWNED_COHORT, root / "bins", 20, 1, None,
+                            execution=execution, commitment_path=commitment_path,
+                            pending_receipt_path=pending_path,
+                        )
+                self.assertEqual(calls, fail_on)
+                self.assertEqual(commitment_path.is_file(), commitment_exists)
+                self.assertEqual(pending_path.is_file(), pending_exists)
+                self.assertFalse((root / runner.FRESH_PLAN_FILE).exists())
+                self.assertEqual(output.getvalue(), "")
+
+    def test_owned_fresh_plan_creator_pending_collision_race_keeps_commitment_and_operator_bytes(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp).resolve()
+            root = base / "plan-root"
+            fixture_plan = self._owned_fresh_plan_creation_fixture(root)
+            commitment_path = base / "creation.json"
+            pending_path = base / "pending.json"
+            original_writer = runner._atomic_create_creation_commitment
+
+            def publish_commitment_then_create_collision(path, document, **kwargs):
+                digest = original_writer(path, document, **kwargs)
+                pending_path.write_bytes(b"operator-owned race winner")
+                return digest
+
+            with runner.PrepareExecution(20) as execution:
+                stack, _mocks = self._owned_fresh_plan_dependencies(root, fixture_plan, execution)
+                with (
+                    stack,
+                    patch.object(runner, "_atomic_create_creation_commitment", side_effect=publish_commitment_then_create_collision),
+                    redirect_stdout(io.StringIO()) as output,
+                    self.assertRaisesRegex(runner.RunnerError, "refusing to replace immutable fresh plan pending receipt"),
+                ):
+                    runner._create_fresh_plan_owned(
+                        root / "repo", root, runner.PREPARE_LIVE_OWNED_COHORT, root / "bins", 20, 1, None,
+                        execution=execution, commitment_path=commitment_path,
+                        pending_receipt_path=pending_path,
+                    )
+            self.assertTrue(commitment_path.is_file())
+            self.assertEqual(pending_path.read_bytes(), b"operator-owned race winner")
+            self.assertFalse((root / runner.FRESH_PLAN_FILE).exists())
+            self.assertEqual(output.getvalue(), "")
+
+    def test_owned_fresh_plan_creator_inventory_timeout_reaps_child_before_any_output(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp).resolve()
+            root = base / "plan-root"
+            fixture_plan = self._owned_fresh_plan_creation_fixture(root, budget=2)
+            fake_bin = base / "fake-bin"
+            fake_bin.mkdir()
+            pid_path = base / "fake-cargo.pid"
+            cargo = fake_bin / "cargo"
+            cargo.write_text(
+                f"#!{sys.executable}\n"
+                "import os, time\n"
+                "open(os.environ['FAKE_CARGO_PID_FILE'], 'w').write(str(os.getpid()))\n"
+                "time.sleep(10)\n"
+            )
+            cargo.chmod(0o755)
+            commitment_parent = base / "commitments"
+            pending_parent = base / "pending-receipts"
+            commitment_parent.mkdir()
+            pending_parent.mkdir()
+            commitment_path = commitment_parent / "creation.json"
+            pending_path = pending_parent / "pending.json"
+            output = io.StringIO()
+            errors = io.StringIO()
+            actual_nextest_inventory = runner.nextest_inventory
+            env = {
+                "PATH": f"{fake_bin}:/bin:/usr/bin",
+                "HOME": str(base),
+                "LANG": "C",
+                "TERM": "xterm-256color",
+                "FAKE_CARGO_PID_FILE": str(pid_path),
+            }
+
+            with runner.PrepareExecution(2) as execution:
+                stack, _mocks = self._owned_fresh_plan_dependencies(root, fixture_plan, execution)
+                with (
+                    stack,
+                    patch.object(runner, "nextest_inventory", side_effect=actual_nextest_inventory),
+                    patch.object(runner, "fresh_clean_env", return_value=env),
+                    redirect_stdout(output),
+                    redirect_stderr(errors),
+                    self.assertRaisesRegex(runner.RunnerError, "work deadline expired"),
+                ):
+                    runner._create_fresh_plan_owned(
+                        root / "repo", root, runner.PREPARE_LIVE_OWNED_COHORT, root / "bins", 2, 1, None,
+                        execution=execution, commitment_path=commitment_path,
+                        pending_receipt_path=pending_path,
+                    )
+
+            self.assertTrue(pid_path.is_file(), errors.getvalue())
+            child_pid = int(pid_path.read_text())
+            deadline = time.monotonic() + 2
+            while time.monotonic() < deadline:
+                try:
+                    os.kill(child_pid, 0)
+                except ProcessLookupError:
+                    break
+                time.sleep(0.02)
+            else:
+                self.fail(f"owned nextest child {child_pid} survived deadline cleanup")
+            self.assertFalse(commitment_path.exists())
+            self.assertFalse(pending_path.exists())
+            self.assertTrue(commitment_path.parent.is_dir())
+            self.assertTrue(pending_path.parent.is_dir())
+            self.assertFalse((root / runner.FRESH_PLAN_FILE).exists())
+            self.assertNotIn("pending-plan-publication", output.getvalue())
+            self.assertNotIn("prepared-not-executed", output.getvalue())
+
+    def test_owned_fresh_plan_creator_root_replacement_never_publishes_through_replacement(self) -> None:
+        for stage in ("before-link", "after-link"):
+            with self.subTest(stage=stage), tempfile.TemporaryDirectory() as temp:
+                base = Path(temp).resolve()
+                root = base / "plan-root"
+                fixture_plan = self._owned_fresh_plan_creation_fixture(root)
+                moved = base / "moved-original-root"
+                replacement = base / "replacement-root"
+                replacement.mkdir()
+                commitment_path = base / "creation.json"
+                pending_path = base / "pending.json"
+                original_publish = runner._atomic_create_plan_owned
+                output = io.StringIO()
+
+                def substitute_root(path, document, **kwargs):
+                    if stage == "before-link":
+                        root.rename(moved)
+                        root.symlink_to(replacement, target_is_directory=True)
+                        return original_publish(path, document, **kwargs)
+                    digest = original_publish(path, document, **kwargs)
+                    root.rename(moved)
+                    root.symlink_to(replacement, target_is_directory=True)
+                    return digest
+
+                with runner.PrepareExecution(20) as execution:
+                    stack, _mocks = self._owned_fresh_plan_dependencies(root, fixture_plan, execution)
+                    with (
+                        stack,
+                        patch.object(runner, "_atomic_create_plan_owned", side_effect=substitute_root),
+                        redirect_stdout(output),
+                        self.assertRaisesRegex(runner.RunnerError, "canonical|symlink|pathname|identity"),
+                    ):
+                        runner._create_fresh_plan_owned(
+                            root / "repo", root, runner.PREPARE_LIVE_OWNED_COHORT, root / "bins", 20, 1, None,
+                            execution=execution, commitment_path=commitment_path,
+                            pending_receipt_path=pending_path,
+                        )
+                self.assertTrue(root.is_symlink())
+                self.assertTrue(commitment_path.is_file())
+                self.assertTrue(pending_path.is_file())
+                self.assertFalse((replacement / runner.FRESH_PLAN_FILE).exists())
+                if stage == "before-link":
+                    self.assertFalse((moved / runner.FRESH_PLAN_FILE).exists())
+                else:
+                    self.assertTrue((moved / runner.FRESH_PLAN_FILE).is_file())
+                self.assertEqual(len(output.getvalue().splitlines()), 1)
+                self.assertIn("pending-plan-publication", output.getvalue())
+                self.assertNotIn("prepared-not-executed", output.getvalue())
+
+    def test_owned_fresh_plan_creator_external_parent_replacement_never_receives_output(self) -> None:
+        for stage in (
+            "commitment-before-link",
+            "commitment-after-link",
+            "pending-before-link",
+            "pending-after-link",
+        ):
+            with self.subTest(stage=stage), tempfile.TemporaryDirectory() as temp:
+                base = Path(temp).resolve()
+                root = base / "plan-root"
+                fixture_plan = self._owned_fresh_plan_creation_fixture(root)
+                commitment_parent = base / "commitment-parent"
+                pending_parent = base / "pending-parent"
+                commitment_parent.mkdir()
+                pending_parent.mkdir()
+                target = stage.split("-", 1)[0]
+                parent = commitment_parent if target == "commitment" else pending_parent
+                moved = base / f"moved-{target}-parent"
+                replacement = base / f"replacement-{target}-parent"
+                replacement.mkdir()
+                commitment_path = commitment_parent / "creation.json"
+                pending_path = pending_parent / "pending.json"
+                original_commitment_writer = runner._atomic_create_creation_commitment
+                original_pending_writer = runner._atomic_create_pending_receipt
+                output = io.StringIO()
+
+                def replace_parent() -> None:
+                    parent.rename(moved)
+                    parent.symlink_to(replacement, target_is_directory=True)
+
+                def wrap_writer(original_writer, path, document, **kwargs):
+                    if stage.endswith("before-link"):
+                        replace_parent()
+                        return original_writer(path, document, **kwargs)
+                    digest = original_writer(path, document, **kwargs)
+                    replace_parent()
+                    return digest
+
+                commitment_side_effect = (
+                    (lambda path, document, **kwargs: wrap_writer(original_commitment_writer, path, document, **kwargs))
+                    if target == "commitment"
+                    else original_commitment_writer
+                )
+                pending_side_effect = (
+                    (lambda path, document, **kwargs: wrap_writer(original_pending_writer, path, document, **kwargs))
+                    if target == "pending"
+                    else original_pending_writer
+                )
+                with runner.PrepareExecution(20) as execution:
+                    stack, _mocks = self._owned_fresh_plan_dependencies(root, fixture_plan, execution)
+                    with (
+                        stack,
+                        patch.object(
+                            runner,
+                            "_atomic_create_creation_commitment",
+                            side_effect=commitment_side_effect,
+                        ),
+                        patch.object(
+                            runner,
+                            "_atomic_create_pending_receipt",
+                            side_effect=pending_side_effect,
+                        ),
+                        redirect_stdout(output),
+                        self.assertRaisesRegex(runner.RunnerError, "canonical|symlink|directory|identity"),
+                    ):
+                        runner._create_fresh_plan_owned(
+                            root / "repo", root, runner.PREPARE_LIVE_OWNED_COHORT, root / "bins", 20, 1, None,
+                            execution=execution, commitment_path=commitment_path,
+                            pending_receipt_path=pending_path,
+                        )
+                self.assertTrue(parent.is_symlink())
+                self.assertFalse((replacement / ("creation.json" if target == "commitment" else "pending.json")).exists())
+                self.assertFalse((root / runner.FRESH_PLAN_FILE).exists())
+                self.assertEqual(output.getvalue(), "")
+                moved_output = moved / ("creation.json" if target == "commitment" else "pending.json")
+                if stage.endswith("after-link"):
+                    self.assertTrue(moved_output.is_file())
+                else:
+                    self.assertFalse(moved_output.exists())
+                if target == "pending":
+                    self.assertTrue(commitment_path.is_file())
+                else:
+                    self.assertFalse(pending_path.exists())
+
+    def test_owned_fresh_document_writer_rejects_temporary_mode_drift(self) -> None:
+        for stage in ("descriptor", "entry"):
+            with self.subTest(stage=stage), tempfile.TemporaryDirectory() as temp:
+                parent = Path(temp).resolve() / "receipts"
+                parent.mkdir()
+                destination = parent / "creation.json"
+                directory_fd, directory_identity = runner._open_owned_directory_capability(
+                    parent, check_work=lambda: None
+                )
+                real_stat = runner.os.stat
+                temporary_name = ".creation.json.entry-drift.tmp"
+
+                def change_mode_before_entry(path, *args, **kwargs):
+                    if stage == "entry" and path == temporary_name:
+                        mode_fd = os.open(
+                            path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0),
+                            dir_fd=kwargs["dir_fd"],
+                        )
+                        try:
+                            os.fchmod(mode_fd, 0o600)
+                        finally:
+                            os.close(mode_fd)
+                    return real_stat(path, *args, **kwargs)
+
+                try:
+                    if stage == "descriptor":
+                        with patch.object(runner.os, "fchmod", return_value=None):
+                            with self.assertRaisesRegex(runner.RunnerError, "temporary descriptor mode is not 0400"):
+                                runner._atomic_create_creation_commitment(
+                                    destination,
+                                    {"schema_version": "fixture"},
+                                    directory_fd=directory_fd,
+                                    directory_identity=directory_identity,
+                                    check_work=lambda: None,
+                                )
+                    else:
+                        with (
+                            patch.object(runner.secrets, "token_hex", return_value="entry-drift"),
+                            patch.object(runner.os, "stat", side_effect=change_mode_before_entry),
+                        ):
+                            with self.assertRaisesRegex(runner.RunnerError, "temporary entry changed before publication"):
+                                runner._atomic_create_creation_commitment(
+                                    destination,
+                                    {"schema_version": "fixture"},
+                                    directory_fd=directory_fd,
+                                    directory_identity=directory_identity,
+                                    check_work=lambda: None,
+                                )
+                    self.assertFalse(destination.exists())
+                    self.assertEqual(list(parent.iterdir()), [])
+                finally:
+                    os.close(directory_fd)
+
+    def test_owned_fresh_document_writer_rejects_published_mode_drift(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            parent = Path(temp).resolve() / "receipts"
+            parent.mkdir()
+            destination = parent / "creation.json"
+            directory_fd, directory_identity = runner._open_owned_directory_capability(
+                parent, check_work=lambda: None
+            )
+            real_link = runner.os.link
+
+            def change_temporary_mode(source, target, *, src_dir_fd, dst_dir_fd, follow_symlinks):
+                mode_fd = os.open(
+                    source, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0), dir_fd=src_dir_fd
+                )
+                try:
+                    os.fchmod(mode_fd, 0o600)
+                finally:
+                    os.close(mode_fd)
+                return real_link(
+                    source,
+                    target,
+                    src_dir_fd=src_dir_fd,
+                    dst_dir_fd=dst_dir_fd,
+                    follow_symlinks=follow_symlinks,
+                )
+
+            try:
+                with (
+                    patch.object(runner.os, "link", side_effect=change_temporary_mode),
+                    self.assertRaisesRegex(runner.RunnerError, "temporary entry changed during publication"),
+                ):
+                    runner._atomic_create_creation_commitment(
+                        destination,
+                        {"schema_version": "fixture"},
+                        directory_fd=directory_fd,
+                        directory_identity=directory_identity,
+                        check_work=lambda: None,
+                    )
+                self.assertTrue(destination.is_file())
+                self.assertEqual(stat.S_IMODE(destination.stat().st_mode), 0o600)
+                self.assertEqual([entry.name for entry in parent.iterdir()], ["creation.json"])
+            finally:
+                os.close(directory_fd)
+
+    def test_owned_fresh_plan_creator_rejects_replaced_readback_identity(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp).resolve()
+            root = base / "plan-root"
+            fixture_plan = self._owned_fresh_plan_creation_fixture(root)
+            commitment_parent = base / "commitment-parent"
+            pending_parent = base / "pending-parent"
+            commitment_parent.mkdir()
+            pending_parent.mkdir()
+            commitment_path = commitment_parent / "creation.json"
+            pending_path = pending_parent / "pending.json"
+            original_writer = runner._atomic_create_creation_commitment
+            output = io.StringIO()
+
+            def replace_published_identity(path, document, **kwargs):
+                digest, created_identity = original_writer(path, document, **kwargs)
+                directory_fd = kwargs["directory_fd"]
+                os.link(
+                    path.name,
+                    "created-original.json",
+                    src_dir_fd=directory_fd,
+                    dst_dir_fd=directory_fd,
+                    follow_symlinks=False,
+                )
+                os.unlink(path.name, dir_fd=directory_fd)
+                replacement_fd = os.open(
+                    path.name,
+                    os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0),
+                    0o400,
+                    dir_fd=directory_fd,
+                )
+                try:
+                    payload = runner._canonical_document_bytes(document)
+                    view = memoryview(payload)
+                    while view:
+                        count = os.write(replacement_fd, view)
+                        if count <= 0:
+                            raise AssertionError("replacement write was incomplete")
+                        view = view[count:]
+                finally:
+                    os.close(replacement_fd)
+                return digest, created_identity
+
+            with runner.PrepareExecution(20) as execution:
+                stack, _mocks = self._owned_fresh_plan_dependencies(root, fixture_plan, execution)
+                with (
+                    stack,
+                    patch.object(
+                        runner,
+                        "_atomic_create_creation_commitment",
+                        side_effect=replace_published_identity,
+                    ),
+                    redirect_stdout(output),
+                    self.assertRaisesRegex(runner.RunnerError, "is not the file created by this operation"),
+                ):
+                    runner._create_fresh_plan_owned(
+                        root / "repo", root, runner.PREPARE_LIVE_OWNED_COHORT, root / "bins", 20, 1, None,
+                        execution=execution, commitment_path=commitment_path,
+                        pending_receipt_path=pending_path,
+                    )
+            retained_original = commitment_parent / "created-original.json"
+            self.assertTrue(retained_original.is_file())
+            self.assertTrue(commitment_path.is_file())
+            self.assertEqual(retained_original.read_bytes(), commitment_path.read_bytes())
+            self.assertEqual(stat.S_IMODE(commitment_path.stat().st_mode), 0o400)
+            self.assertNotEqual(retained_original.stat().st_ino, commitment_path.stat().st_ino)
+            self.assertFalse(pending_path.exists())
+            self.assertFalse((root / runner.FRESH_PLAN_FILE).exists())
+            self.assertEqual(output.getvalue(), "")
+
+    def test_owned_fresh_plan_creator_rejects_published_mode_drift_on_readback(self) -> None:
+        for target, writer_name in (
+            ("commitment", "_atomic_create_creation_commitment"),
+            ("pending", "_atomic_create_pending_receipt"),
+            ("plan", "_atomic_create_plan_owned"),
+        ):
+            with self.subTest(target=target), tempfile.TemporaryDirectory() as temp:
+                base = Path(temp).resolve()
+                root = base / "plan-root"
+                fixture_plan = self._owned_fresh_plan_creation_fixture(root)
+                commitment_parent = base / "commitment-parent"
+                pending_parent = base / "pending-parent"
+                commitment_parent.mkdir()
+                pending_parent.mkdir()
+                commitment_path = commitment_parent / "creation.json"
+                pending_path = pending_parent / "pending.json"
+                destination = {
+                    "commitment": commitment_path,
+                    "pending": pending_path,
+                    "plan": root / runner.FRESH_PLAN_FILE,
+                }[target]
+                original_writer = getattr(runner, writer_name)
+                output = io.StringIO()
+
+                def publish_then_change_mode(path, document, **kwargs):
+                    result = original_writer(path, document, **kwargs)
+                    path.chmod(0o600)
+                    return result
+
+                with runner.PrepareExecution(20) as execution:
+                    stack, _mocks = self._owned_fresh_plan_dependencies(root, fixture_plan, execution)
+                    with (
+                        stack,
+                        patch.object(runner, writer_name, side_effect=publish_then_change_mode),
+                        redirect_stdout(output),
+                        self.assertRaisesRegex(runner.RunnerError, "mode differs from the requested mode"),
+                    ):
+                        runner._create_fresh_plan_owned(
+                            root / "repo", root, runner.PREPARE_LIVE_OWNED_COHORT, root / "bins", 20, 1, None,
+                            execution=execution, commitment_path=commitment_path,
+                            pending_receipt_path=pending_path,
+                        )
+                self.assertTrue(destination.is_file())
+                self.assertEqual(stat.S_IMODE(destination.stat().st_mode), 0o600)
+                if target == "commitment":
+                    self.assertFalse(pending_path.exists())
+                    self.assertFalse((root / runner.FRESH_PLAN_FILE).exists())
+                    self.assertEqual(output.getvalue(), "")
+                elif target == "pending":
+                    self.assertEqual(stat.S_IMODE(commitment_path.stat().st_mode), 0o400)
+                    self.assertFalse((root / runner.FRESH_PLAN_FILE).exists())
+                    self.assertEqual(output.getvalue(), "")
+                else:
+                    self.assertEqual(stat.S_IMODE(commitment_path.stat().st_mode), 0o400)
+                    self.assertEqual(stat.S_IMODE(pending_path.stat().st_mode), 0o400)
+                    self.assertEqual(len(output.getvalue().splitlines()), 1)
+                    self.assertIn("pending-plan-publication", output.getvalue())
+
+    def test_owned_fresh_plan_creator_requires_external_parents_before_probes(self) -> None:
+        for missing in ("commitment", "pending"):
+            with self.subTest(missing=missing), tempfile.TemporaryDirectory() as temp:
+                base = Path(temp).resolve()
+                root = base / "plan-root"
+                fixture_plan = self._owned_fresh_plan_creation_fixture(root)
+                commitment_parent = base / "commitment-parent"
+                pending_parent = base / "pending-parent"
+                absent_parent = commitment_parent if missing == "commitment" else pending_parent
+                present_parent = pending_parent if missing == "commitment" else commitment_parent
+                present_parent.mkdir()
+                commitment_path = commitment_parent / "creation.json"
+                pending_path = pending_parent / "pending.json"
+                output = io.StringIO()
+                message = (
+                    "owned fresh-plan creation commitment parent must already exist"
+                    if missing == "commitment"
+                    else "owned fresh-plan pending receipt parent must already exist"
+                )
+
+                with runner.PrepareExecution(20) as execution:
+                    stack, _mocks = self._owned_fresh_plan_dependencies(root, fixture_plan, execution)
+                    with (
+                        stack,
+                        patch.object(runner, "paths") as paths,
+                        patch.object(runner, "verify_source") as verify_source,
+                        redirect_stdout(output),
+                        self.assertRaisesRegex(runner.RunnerError, message),
+                    ):
+                        runner._create_fresh_plan_owned(
+                            root / "repo", root, runner.PREPARE_LIVE_OWNED_COHORT,
+                            root / "bins", 20, 1, None,
+                            execution=execution, commitment_path=commitment_path,
+                            pending_receipt_path=pending_path,
+                        )
+
+                paths.assert_not_called()
+                verify_source.assert_not_called()
+                self.assertFalse(absent_parent.exists())
+                self.assertFalse(commitment_path.exists())
+                self.assertFalse(pending_path.exists())
+                self.assertFalse((root / runner.FRESH_PLAN_FILE).exists())
+                self.assertEqual(output.getvalue(), "")
+
+    def test_owned_fresh_plan_creator_preserves_operator_temp_replacement(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp).resolve()
+            parent = base / "receipts"
+            parent.mkdir()
+            destination = parent / "creation.json"
+            temp_name = ".creation.json.operator-test.tmp"
+            check_work = lambda: None
+            directory_fd, directory_identity = runner._open_owned_directory_capability(
+                parent, check_work=check_work
+            )
+            operator_bytes = b"operator-owned replacement"
+
+            def replace_then_fail(source, target, *, src_dir_fd, dst_dir_fd, follow_symlinks):
+                self.assertEqual(source, temp_name)
+                self.assertEqual(target, destination.name)
+                os.unlink(source, dir_fd=src_dir_fd)
+                replacement_fd = os.open(
+                    source,
+                    os.O_WRONLY | os.O_CREAT | os.O_EXCL,
+                    0o600,
+                    dir_fd=src_dir_fd,
+                )
+                try:
+                    os.write(replacement_fd, operator_bytes)
+                finally:
+                    os.close(replacement_fd)
+                raise OSError("injected stop after operator replaced temporary name")
+
+            try:
+                with (
+                    patch.object(runner.secrets, "token_hex", return_value="operator-test"),
+                    patch.object(runner.os, "link", side_effect=replace_then_fail),
+                    self.assertRaisesRegex(OSError, "operator replaced temporary name"),
+                ):
+                    runner._atomic_create_creation_commitment(
+                        destination,
+                        {"schema_version": "fixture"},
+                        directory_fd=directory_fd,
+                        directory_identity=directory_identity,
+                        check_work=check_work,
+                    )
+                self.assertEqual((parent / temp_name).read_bytes(), operator_bytes)
+                self.assertFalse(destination.exists())
+            finally:
+                os.close(directory_fd)
+
+    def test_owned_fresh_plan_creator_cancellation_preserves_publication_boundary(self) -> None:
+        for stage in ("pending-file-sync", "pending-status", "after-plan-link"):
+            with self.subTest(stage=stage), tempfile.TemporaryDirectory() as temp:
+                base = Path(temp).resolve()
+                root = base / "plan-root"
+                fixture_plan = self._owned_fresh_plan_creation_fixture(root)
+                commitment_path = base / "creation.json"
+                pending_path = base / "pending.json"
+                plan_path = root / runner.FRESH_PLAN_FILE
+                output = io.StringIO()
+                calls = 0
+                real_fsync = runner.os.fsync
+                original_print = print
+                original_create_plan = runner._atomic_create_plan_owned
+
+                def cancel_pending_file_sync(fd: int) -> None:
+                    nonlocal calls
+                    calls += 1
+                    real_fsync(fd)
+                    if calls == 3:
+                        signal.raise_signal(signal.SIGTERM)
+
+                def cancel_pending_status(*args, **kwargs):
+                    text = str(args[0]) if args else ""
+                    result = original_print(*args, **kwargs)
+                    if '"status":"pending-plan-publication"' in text:
+                        signal.raise_signal(signal.SIGTERM)
+                    return result
+
+                def cancel_after_plan_link(
+                    path: Path, document: dict[str, object], **kwargs
+                ) -> tuple[str, tuple[int, int, int]]:
+                    digest = original_create_plan(path, document, **kwargs)
+                    signal.raise_signal(signal.SIGTERM)
+                    return digest
+
+                with runner.PrepareExecution(20) as execution:
+                    stack, _mocks = self._owned_fresh_plan_dependencies(root, fixture_plan, execution)
+                    contexts = [stack, redirect_stdout(output)]
+                    if stage == "pending-file-sync":
+                        contexts.append(patch.object(runner.os, "fsync", side_effect=cancel_pending_file_sync))
+                    elif stage == "pending-status":
+                        contexts.append(patch("builtins.print", side_effect=cancel_pending_status))
+                    else:
+                        contexts.append(patch.object(runner, "_atomic_create_plan_owned", side_effect=cancel_after_plan_link))
+                    with ExitStack() as active_contexts:
+                        for context in contexts:
+                            active_contexts.enter_context(context)
+                        active_contexts.enter_context(
+                            self.assertRaisesRegex(runner.RunnerError, "cancelled by signal")
+                        )
+                        runner._create_fresh_plan_owned(
+                            root / "repo", root, runner.PREPARE_LIVE_OWNED_COHORT, root / "bins", 20, 1, None,
+                            execution=execution, commitment_path=commitment_path,
+                            pending_receipt_path=pending_path,
+                        )
+                self.assertTrue(commitment_path.is_file())
+                if stage == "pending-file-sync":
+                    self.assertFalse(pending_path.exists())
+                    self.assertFalse(plan_path.exists())
+                    self.assertEqual(output.getvalue(), "")
+                elif stage == "pending-status":
+                    self.assertTrue(pending_path.is_file())
+                    self.assertFalse(plan_path.exists())
+                    self.assertEqual(len(output.getvalue().splitlines()), 1)
+                else:
+                    self.assertTrue(pending_path.is_file())
+                    self.assertTrue(plan_path.is_file())
+                    self.assertEqual(len(output.getvalue().splitlines()), 1)
+                    self.assertIn("pending-plan-publication", output.getvalue())
+
+    def test_owned_fresh_plan_creator_postchecks_flushed_success_and_keeps_plan(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp).resolve()
+            root = base / "plan-root"
+            fixture_plan = self._owned_fresh_plan_creation_fixture(root)
+            commitment_path = base / "creation.json"
+            pending_path = base / "pending.json"
+            plan_path = root / runner.FRESH_PLAN_FILE
+            output = io.StringIO()
+            original_print = print
+
+            def cancel_after_success_flush(*args, **kwargs):
+                text = str(args[0]) if args else ""
+                self.assertTrue(kwargs.get("flush"))
+                result = original_print(*args, **kwargs)
+                if '"status": "prepared-not-executed"' in text:
+                    signal.raise_signal(signal.SIGTERM)
+                return result
+
+            with runner.PrepareExecution(20) as execution:
+                stack, _mocks = self._owned_fresh_plan_dependencies(root, fixture_plan, execution)
+                with (
+                    stack,
+                    patch("builtins.print", side_effect=cancel_after_success_flush),
+                    redirect_stdout(output),
+                    self.assertRaisesRegex(runner.RunnerError, "cancelled by signal"),
+                ):
+                    runner._create_fresh_plan_owned(
+                        root / "repo", root, runner.PREPARE_LIVE_OWNED_COHORT, root / "bins", 20, 1, None,
+                        execution=execution, commitment_path=commitment_path,
+                        pending_receipt_path=pending_path,
+                    )
+            self.assertTrue(plan_path.is_file())
+            first_line, success_text = output.getvalue().split("\n", 1)
+            self.assertEqual(json.loads(first_line)["status"], "pending-plan-publication")
+            self.assertEqual(json.loads(success_text)["status"], "prepared-not-executed")
+
     def test_fresh_plan_is_complete_capture_only_inventory_and_verifiable(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
