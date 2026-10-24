@@ -2508,14 +2508,12 @@ impl TableProApp {
 
     fn update_tab_list(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let was_open = cx.is_open(tab_list::ID);
-        // Pump the picker first so the focused key is consumed even when the
-        // list turns out to be stale; its action is discarded below.
-        let mut response = tab_list::picker(self.tab_list.rows.len()).update(
-            cx,
-            &mut self.tab_list.state,
-            &self.tab_list.rows,
-        );
         if was_open && !self.workbench.matches_owner(&self.tab_list.owner) {
+            // Refuse to interpret old picker state against the replacement Workbench.
+            // Acknowledge only the root and results owner buckets this picker owns.
+            for owner in [tab_list::ID, tab_list::ID.sub("results")] {
+                for _ in cx.intents(owner) {}
+            }
             cx.close_layer(tab_list::ID, None);
             self.tab_list.rows.clear();
             "Workbench changed; reopen tab list".clone_into(&mut self.status);
@@ -2524,6 +2522,11 @@ impl TableProApp {
             }
             return Response::changed();
         }
+        let mut response = tab_list::picker(self.tab_list.rows.len()).update(
+            cx,
+            &mut self.tab_list.state,
+            &self.tab_list.rows,
+        );
         match response.take_action() {
             Some(PickerAction::QueryChanged) if was_open => {
                 tab_list::picker(self.tab_list.rows.len())
