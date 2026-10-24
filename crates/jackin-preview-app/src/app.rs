@@ -5792,6 +5792,9 @@ impl App {
                 Some(Response::changed())
             }
             CMD_USAGE => {
+                if cx.update_cause() == UpdateCause::Settle {
+                    return Some(Response::changed());
+                }
                 if self.route == Route::Capsule && self.capsule_prefix {
                     self.capsule_prefix = false;
                     self.capsule_usage = true;
@@ -10643,7 +10646,10 @@ impl App {
                     // already consumed; update the new host's controls so they can claim focus
                     // notifications.
                     result |= self.update_accounts(cx);
-                } else if !self.account_form_closing.is_empty()
+                } else if (!self.account_form_closing.is_empty()
+                    || (self.route == Route::Accounts
+                        && !self.accounts.form_open
+                        && matches!(command, CMD_ACCOUNTS | CMD_CAPSULE)))
                     && cx.intents(ACCOUNTS_LIST).all(|intent| {
                         matches!(intent, Intent::FocusIn { .. } | Intent::FocusOut { .. })
                     })
@@ -10652,6 +10658,15 @@ impl App {
                     // actual focus transition before acknowledging its exact close result.
                     result |= self.update_account_list_focus_transition(cx);
                     self.acknowledge_account_list_focus_results(cx);
+                } else if self.route == Route::Usage
+                    && matches!(command, CMD_USAGE)
+                    && cx.intents(crate::screens::usage::TABS).all(|intent| {
+                        matches!(intent, Intent::FocusIn { .. } | Intent::FocusOut { .. })
+                    })
+                {
+                    result |= Tabs::new(crate::screens::usage::TABS)
+                        .update(cx, &mut self.usage_tabs, &USAGE_TABS)
+                        .erase();
                 }
                 result |= self.sync_account_form_layer(cx);
             }
@@ -10751,10 +10766,36 @@ impl App {
                 .is_some_and(|row| self.manager.list.cursor() == Some(row.key))
     }
 
+    fn launch_picker_semantic_scope(&self, screen: Rect) -> bool {
+        // This is the action contract, independent of the visual host's theme.
+        // Keep the same narrow Returning shell, current-row, and overlay scope.
+        !self.manager_file_menu
+            && !self.manager_inspect
+            && !self.help_open
+            && screen.width == 120
+            && screen.height == 40
+            && self.route == Route::Manager
+            && self.world.scenario == Scenario::Returning
+            && self.motion == Motion::Paused
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.about_open
+            && self.launch.is_none()
+            && self.picker_mode.is_none()
+            && self.active_instance.is_none()
+            && !self.manager.detail_open()
+            && self
+                .manager_rows_cache
+                .first()
+                .is_some_and(|row| self.manager.list.cursor() == Some(row.key))
+    }
+
     fn launch_picker_enter(&self, cx: &Cx<'_>) -> bool {
         !self.launch_picker_open
             && !cx.is_open(crate::screens::manager::AGENT_PICKER)
-            && self.launch_picker_host(cx.theme(), cx.viewport())
+            && cx.state(MANAGER).contains(termrock::StateFlags::FOCUSED)
+            && (self.launch_picker_host(cx.theme(), cx.viewport())
+                || self.launch_picker_semantic_scope(cx.viewport()))
     }
 
     fn hard_launch_picker_host(&self, theme: &termrock::Theme, screen: Rect) -> bool {
