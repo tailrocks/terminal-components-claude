@@ -6,6 +6,9 @@ pub use canvas::{
     put_text_in, put_text_w, text_width,
 };
 
+mod surface;
+pub use surface::{CellView, PaintSurface};
+
 mod window;
 pub use window::{VerticalWindow, VerticalWindowError};
 
