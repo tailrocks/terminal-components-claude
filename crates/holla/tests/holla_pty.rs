@@ -102,7 +102,13 @@ impl Pty {
                 Ok(())
             });
         }
-        let child = cmd.spawn().expect("spawn holla on the pty");
+        let child = match cmd.spawn() {
+            Ok(child) => child,
+            Err(error) => panic!(
+                "spawn holla on the pty: {error:?}; command: {:?}; args: {args:?}; terminal dimensions: {cols}x{rows}",
+                env!("CARGO_BIN_EXE_holla"),
+            ),
+        };
         drop(cmd);
 
         // SAFETY: `openpty` returned this open master descriptor, which has not been
