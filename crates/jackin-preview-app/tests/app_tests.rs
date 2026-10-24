@@ -24,6 +24,9 @@ use termrock_test_support::Scene;
 mod support;
 use support::H;
 
+const MANAGER_DETAIL_ACTION: termrock::Id =
+    jackin_preview_app::screens::manager::DETAIL.sub("activate-selected");
+
 #[test]
 fn first_use_plays_intro_then_manager_and_no_replay_when_returning() {
     let mut h = H::new(Scenario::FirstUse, Motion::Full, 0, 120, 40);
@@ -107,13 +110,91 @@ fn manager_navigation_expand_and_detail_focus() {
         h.text().contains("7f3a"),
         "instance children visible after expand"
     );
-    h.key(KeyCode::Down);
-    let (x, y) = h.find("7f3a").unwrap();
-    h.click(x, y);
-    h.key(KeyCode::Tab);
-    assert!(h.text().contains("Live topology"));
+
+    let instance = h
+        .app()
+        .world
+        .instances
+        .iter()
+        .find(|instance| instance.workspace == Some(workspace))
+        .expect("expanded workspace has a live instance");
+    let instance_id = instance.id.clone();
+    let instance_workspace = instance
+        .workspace
+        .and_then(|id| h.app().world.workspace(id))
+        .map_or_else(
+            || "Current directory".to_owned(),
+            |workspace| workspace.name.clone(),
+        );
+    let expected_agent = format!(
+        "Agent · {} · role {}",
+        instance.agent.label(),
+        instance.role
+    );
+    let expected_status = format!(
+        "Status · {} · {}",
+        instance.status.label(),
+        instance.dirty_summary()
+    );
+    let expected_workdir = format!("Workdir · {}", instance.workdir);
+    let row_key =
+        jackin_preview_app::screens::manager::ManagerRowKey::Instance(instance_id.clone())
+            .stable_key();
+    let row = h
+        .harness
+        .area_of_part(
+            jackin_preview_app::MANAGER_LIST,
+            PartRef::item(Part::ROW, termrock::ItemKey::text(&row_key)),
+        )
+        .expect("expanded live instance has a registered row");
+    h.click(row.x, row.y);
+    assert_eq!(
+        h.app().manager.selected_row(),
+        &jackin_preview_app::screens::manager::ManagerRowKey::Instance(instance_id.clone())
+    );
+    assert!(h.app().manager.detail_open());
+    assert_eq!(h.focus(), Some(MANAGER_DETAIL_ACTION));
+    assert!(
+        h.harness
+            .area_of(jackin_preview_app::screens::manager::DETAIL)
+            .is_some()
+    );
+    assert!(h.harness.area_of(MANAGER_DETAIL_ACTION).is_some());
+    let detail = h.text();
+    assert!(
+        detail.contains(&format!("Instance › {instance_id}")),
+        "{detail}"
+    );
+    assert!(
+        detail.contains(&format!("Workspace · {instance_workspace}")),
+        "{detail}"
+    );
+    assert!(detail.contains(&expected_agent), "{detail}");
+    assert!(detail.contains(&expected_status), "{detail}");
+    assert!(detail.contains(&expected_workdir), "{detail}");
+
     h.key(KeyCode::Esc);
-    assert_eq!(h.focus(), Some(jackin_preview_app::screens::manager::TREE));
+    assert_eq!(h.focus(), Some(jackin_preview_app::MANAGER_LIST));
+    assert!(!h.app().manager.detail_open());
+
+    h.key(KeyCode::Tab);
+    assert!(h.app().manager.detail_open());
+    assert_eq!(h.focus(), Some(MANAGER_DETAIL_ACTION));
+    assert!(
+        h.harness
+            .area_of(jackin_preview_app::screens::manager::DETAIL)
+            .is_some()
+    );
+    let reopened = h.text();
+    assert!(
+        reopened.contains(&format!("Instance › {instance_id}")),
+        "{reopened}"
+    );
+    assert!(reopened.contains(&expected_status), "{reopened}");
+    h.key(KeyCode::Esc);
+    assert_eq!(h.focus(), Some(jackin_preview_app::MANAGER_LIST));
+    assert!(!h.app().manager.detail_open());
+    assert_eq!(h.harness.diagnostics(), []);
 
     let (x, y) = h.find("infra-control-plane").unwrap();
     h.click(x, y);

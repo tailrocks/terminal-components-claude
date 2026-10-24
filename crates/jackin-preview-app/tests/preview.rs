@@ -146,10 +146,23 @@ fn resize_preserves_focus_and_does_not_create_diagnostics() {
         100,
         30,
     );
-    assert!(harness.tab_to(LAUNCH));
+    assert!(!harness.app().manager.detail_open());
+    assert!(harness.area_of(LAUNCH).is_some());
+    let budget = harness.ring().entries().len().saturating_add(1);
+    for _ in 0..budget {
+        if harness.focus() == Some(LAUNCH) {
+            break;
+        }
+        let _ = harness.key(KeyCode::BackTab);
+    }
+    assert_eq!(harness.focus(), Some(LAUNCH));
+    assert!(harness.area_of(LAUNCH).is_some());
+    assert!(!harness.app().manager.detail_open());
     let before = harness.focus();
     let _ = harness.resize(84, 24);
     assert_eq!(harness.focus(), before);
+    assert!(harness.area_of(LAUNCH).is_some());
+    assert!(!harness.app().manager.detail_open());
     assert!(harness.area_of(APP).is_some());
     assert!(
         harness.diagnostics().is_empty(),
