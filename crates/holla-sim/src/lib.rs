@@ -5,6 +5,7 @@ pub mod fixtures;
 pub mod pg;
 pub mod plans;
 pub mod scenario;
+pub mod task_args;
 pub mod world;
 
 pub use files::{
