@@ -1,4 +1,5 @@
 use super::{App, Motion, Route, Scenario};
+use crate::domain::mise::Trust;
 use termrock::{FeedbackClock, KeyCode, SimulationMoment, Theme};
 use termrock_test_support::Harness;
 fn fixture(
@@ -26,6 +27,17 @@ fn find(h: &Harness<App>, needle: &str) -> (u16, u16) {
     let position = h.find(needle);
     assert!(position.is_some(), "missing fixture text: {needle}");
     position.unwrap_or_default()
+}
+
+type TaskTrustSnapshot = Vec<(String, String, crate::domain::mise::Trust)>;
+
+fn task_trust_snapshot(h: &Harness<App>) -> Option<TaskTrustSnapshot> {
+    h.app().world.mise.as_ref().map(|mise| {
+        mise.tasks
+            .iter()
+            .map(|task| (task.id.clone(), task.defined_in.clone(), task.trust))
+            .collect()
+    })
 }
 
 #[test]
@@ -640,7 +652,32 @@ fn disk_plan_policy_skips_active_today() {
 
 #[test]
 fn mise_trust_gate_then_child_task_runs() {
+    const RESET_ID: &str = "//projects/backend:reset-db";
+    const TARGET_FILE: &str = "~/work/monorepo/projects/backend/mise.toml";
     let mut h = fixture(Scenario::MonorepoRoot, Motion::Paused, 4_000, 120, 40);
+    let before = task_trust_snapshot(&h);
+    assert!(before.is_some(), "monorepo fixture must include mise tasks");
+    let Some(before) = before else { return };
+    let target_before: Vec<_> = before
+        .iter()
+        .filter(|(_, file, _)| file == TARGET_FILE)
+        .cloned()
+        .collect();
+    assert!(
+        target_before
+            .iter()
+            .any(|(id, _, trust)| id == RESET_ID && *trust == Trust::Untrusted),
+        "the selected child task must begin untrusted: {target_before:?}"
+    );
+    let unrelated_before: Vec<_> = before
+        .iter()
+        .filter(|(_, file, _)| file != TARGET_FILE)
+        .cloned()
+        .collect();
+    let before_revision = h.app().world.effect_revision;
+    let before_cwd = h.app().world.cwd.clone();
+    let before_activities = h.app().world.activities.len();
+
     let _ = h.type_str("reset-db");
     let t = h.text();
     assert!(t.contains("untrusted config"), "{t}");
@@ -648,23 +685,194 @@ fn mise_trust_gate_then_child_task_runs() {
     let _ = h.key(KeyCode::Enter);
     let t = h.text();
     assert!(t.contains("Trust this task file?"), "{t}");
-    assert!(
-        t.contains("~/work/monorepo/projects/backend/mise.toml"),
-        "{t}"
-    );
+    assert!(t.contains(TARGET_FILE), "{t}");
     assert!(t.contains("this exact file only"), "{t}");
 
     let _ = h.key(KeyCode::Right);
     let _ = h.key(KeyCode::Enter);
-    assert!(h.text().contains("Trusted mise.toml"), "{}", h.text());
-
-    let _ = h.key(KeyCode::Enter);
+    let t = h.text();
+    assert!(t.contains("Trusted mise.toml"), "{t}");
+    assert!(t.contains("Would run:"), "{t}");
+    let status = h.app().status.as_deref().unwrap_or("");
     assert!(
-        h.text()
-            .contains("Would run: mise run //projects/backend:reset-db"),
-        "{}",
-        h.text()
+        status.contains("Trusted mise.toml · task re-resolved"),
+        "{status:?}"
     );
+    assert!(
+        status.contains("Would run: mise run //projects/backend:reset-db"),
+        "{status:?}"
+    );
+    assert!(status.contains("simulated, nothing executed"), "{status:?}");
+    assert_eq!(h.app().world.effect_revision, before_revision);
+    assert_eq!(h.app().world.cwd, before_cwd);
+    assert_eq!(h.app().world.activities.len(), before_activities);
+
+    let after = task_trust_snapshot(&h);
+    assert!(after.is_some(), "mise state must remain available");
+    let Some(after) = after else { return };
+    let target_after: Vec<_> = after
+        .iter()
+        .filter(|(_, file, _)| file == TARGET_FILE)
+        .cloned()
+        .collect();
+    let expected_target_after: Vec<_> = target_before
+        .iter()
+        .map(|(id, file, trust)| {
+            if id == RESET_ID {
+                (id.clone(), file.clone(), Trust::Trusted)
+            } else {
+                (id.clone(), file.clone(), *trust)
+            }
+        })
+        .collect();
+    assert_eq!(target_after, expected_target_after);
+    let unrelated_after: Vec<_> = after
+        .into_iter()
+        .filter(|(_, file, _)| file != TARGET_FILE)
+        .collect();
+    assert_eq!(unrelated_after, unrelated_before);
+}
+
+#[test]
+fn cancelling_mise_trust_does_not_continue_or_change_trust() {
+    let mut h = fixture(Scenario::MonorepoRoot, Motion::Paused, 4_000, 120, 40);
+    let before = task_trust_snapshot(&h);
+    assert!(before.is_some(), "monorepo fixture must include mise tasks");
+    let Some(before) = before else { return };
+    let before_revision = h.app().world.effect_revision;
+    let before_activities = h.app().world.activities.len();
+
+    let _ = h.type_str("reset-db");
+    let _ = h.key(KeyCode::Enter);
+    assert!(h.text().contains("Trust this task file?"), "{}", h.text());
+    let _ = h.key(KeyCode::Esc);
+
+    let t = h.text();
+    assert!(!t.contains("Trust this task file?"), "{t}");
+    assert!(!t.contains("Would run:"), "{t}");
+    assert_eq!(task_trust_snapshot(&h), Some(before));
+    assert_eq!(h.app().world.effect_revision, before_revision);
+    assert_eq!(h.app().world.activities.len(), before_activities);
+}
+
+#[test]
+fn changed_action_context_rejects_mise_trust_without_continuation() {
+    let mut h = fixture(Scenario::MonorepoRoot, Motion::Paused, 4_000, 120, 40);
+    let before = task_trust_snapshot(&h);
+    assert!(before.is_some(), "monorepo fixture must include mise tasks");
+    let Some(before) = before else { return };
+    let before_revision = h.app().world.effect_revision;
+    let before_activities = h.app().world.activities.len();
+
+    let _ = h.type_str("reset-db");
+    let _ = h.key(KeyCode::Enter);
+    assert!(h.text().contains("Trust this task file?"), "{}", h.text());
+    h.app_mut().world.cwd = "~/work/monorepo/projects/backend".into();
+    let _ = h.key(KeyCode::Right);
+    let _ = h.key(KeyCode::Enter);
+
+    let status = h.app().status.as_deref().unwrap_or("");
+    assert!(
+        status.contains("Action context changed · review it again"),
+        "{status:?}"
+    );
+    assert!(!status.contains("Would run:"), "{status:?}");
+    assert_eq!(task_trust_snapshot(&h), Some(before));
+    assert_eq!(h.app().world.effect_revision, before_revision);
+    assert_eq!(h.app().world.activities.len(), before_activities);
+}
+
+#[test]
+fn changed_mise_task_file_rejects_exact_file_trust() {
+    const RESET_ID: &str = "//projects/backend:reset-db";
+    const OLD_FILE: &str = "~/work/monorepo/projects/backend/mise.toml";
+    const NEW_FILE: &str = "~/work/monorepo/projects/backend/changed.mise.toml";
+    let mut h = fixture(Scenario::MonorepoRoot, Motion::Paused, 4_000, 120, 40);
+    let before = task_trust_snapshot(&h);
+    assert!(before.is_some(), "monorepo fixture must include mise tasks");
+    let Some(before) = before else { return };
+    let before_revision = h.app().world.effect_revision;
+    let before_cwd = h.app().world.cwd.clone();
+    let before_activities = h.app().world.activities.len();
+
+    let _ = h.type_str("reset-db");
+    let _ = h.key(KeyCode::Enter);
+    assert!(h.text().contains("Trust this task file?"), "{}", h.text());
+    let mut changed = false;
+    if let Some(mise) = h.app_mut().world.mise.as_mut() {
+        for task in &mut mise.tasks {
+            if task.id == RESET_ID {
+                task.defined_in = NEW_FILE.into();
+                changed = true;
+            }
+        }
+    }
+    assert!(changed, "fixture reset-db task must be available");
+    let _ = h.key(KeyCode::Right);
+    let _ = h.key(KeyCode::Enter);
+
+    let status = h.app().status.as_deref().unwrap_or("");
+    assert!(
+        status.contains("Task file changed · nothing trusted"),
+        "{status:?}"
+    );
+    assert!(!status.contains("Would run:"), "{status:?}");
+    let after = task_trust_snapshot(&h);
+    assert!(after.is_some(), "mise state must remain available");
+    let Some(after) = after else { return };
+    let before_id_trust: Vec<_> = before
+        .iter()
+        .map(|(id, _, trust)| (id.clone(), *trust))
+        .collect();
+    let after_id_trust: Vec<_> = after
+        .iter()
+        .map(|(id, _, trust)| (id.clone(), *trust))
+        .collect();
+    assert_eq!(after_id_trust, before_id_trust);
+    assert!(after.iter().any(|(id, file, trust)| {
+        id == RESET_ID && file == NEW_FILE && *trust == Trust::Untrusted
+    }));
+    assert!(
+        !after
+            .iter()
+            .any(|(_, file, trust)| { file == OLD_FILE && *trust == Trust::Untrusted })
+    );
+    assert_eq!(h.app().world.cwd, before_cwd);
+    assert_eq!(h.app().world.effect_revision, before_revision);
+    assert_eq!(h.app().world.activities.len(), before_activities);
+}
+
+#[test]
+fn already_trusted_mise_task_runs_on_enter() {
+    const RESET_ID: &str = "//projects/backend:reset-db";
+    let mut h = fixture(Scenario::MonorepoRoot, Motion::Paused, 4_000, 120, 40);
+    let mut found = false;
+    if let Some(mise) = h.app_mut().world.mise.as_mut() {
+        for task in &mut mise.tasks {
+            if task.id == RESET_ID {
+                task.trust = Trust::Trusted;
+                found = true;
+            }
+        }
+    }
+    assert!(found, "fixture reset-db task must be available");
+    let before_revision = h.app().world.effect_revision;
+    let before_activities = h.app().world.activities.len();
+
+    let _ = h.type_str("reset-db");
+    let _ = h.key(KeyCode::Enter);
+
+    let t = h.text();
+    assert!(!t.contains("Trust this task file?"), "{t}");
+    assert!(t.contains("Would run:"), "{t}");
+    let status = h.app().status.as_deref().unwrap_or("");
+    assert!(
+        status.contains("Would run: mise run //projects/backend:reset-db"),
+        "{status:?}"
+    );
+    assert!(status.contains("simulated, nothing executed"), "{status:?}");
+    assert_eq!(h.app().world.effect_revision, before_revision);
+    assert_eq!(h.app().world.activities.len(), before_activities);
 }
 
 #[test]
