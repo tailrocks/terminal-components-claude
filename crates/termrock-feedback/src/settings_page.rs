@@ -206,6 +206,90 @@ pub struct SettingsEnv<'a> {
     overrides: Option<SettingsEnvOverrides<'a>>,
 }
 
+/// One safe value presentation for the live workspace Editor.
+///
+/// Plain values cross this boundary only as a star count. OnePassword paths
+/// and HostEnv names are public display references, never resolved secrets.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum EditorEnvironmentValue<'a> {
+    /// A Plain value represented only by its visible masked width.
+    PlainMasked { stars: usize },
+    /// A OnePassword value represented by a masked value and display path.
+    OnePassword { display_path: &'a str },
+    /// A host environment variable reference shown as `$NAME`.
+    HostEnv { name: &'a str },
+}
+
+/// One borrowed row in the live workspace Editor environment body.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[non_exhaustive]
+pub struct EditorEnvironmentRow<'a> {
+    key: &'a str,
+    value: EditorEnvironmentValue<'a>,
+    selected: bool,
+}
+
+impl<'a> EditorEnvironmentRow<'a> {
+    /// Create a row from a key and a redacted display value.
+    pub const fn new(key: &'a str, value: EditorEnvironmentValue<'a>) -> Self {
+        Self {
+            key,
+            value,
+            selected: false,
+        }
+    }
+
+    /// Set whether this workspace row has the list selection fill.
+    pub const fn selected(mut self, selected: bool) -> Self {
+        self.selected = selected;
+        self
+    }
+}
+
+/// One non-empty role override in the live workspace Editor environment body.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[non_exhaustive]
+pub struct EditorEnvironmentRole<'a> {
+    name: &'a str,
+    right: &'a str,
+    rows: &'a [EditorEnvironmentRow<'a>],
+}
+
+impl<'a> EditorEnvironmentRole<'a> {
+    /// Create a role from its displayed leaf name, summary, and rows.
+    pub const fn new(name: &'a str, right: &'a str, rows: &'a [EditorEnvironmentRow<'a>]) -> Self {
+        Self { name, right, rows }
+    }
+}
+
+/// Borrowed environment content for the live workspace Editor body.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[non_exhaustive]
+pub struct EditorEnvironmentBody<'a> {
+    workspace_right: &'a str,
+    workspace_rows: &'a [EditorEnvironmentRow<'a>],
+    overrides_right: &'a str,
+    roles: &'a [EditorEnvironmentRole<'a>],
+}
+
+impl<'a> EditorEnvironmentBody<'a> {
+    /// Create the workspace and role sections shown by the live Editor.
+    pub const fn new(
+        workspace_right: &'a str,
+        workspace_rows: &'a [EditorEnvironmentRow<'a>],
+        overrides_right: &'a str,
+        roles: &'a [EditorEnvironmentRole<'a>],
+    ) -> Self {
+        Self {
+            workspace_right,
+            workspace_rows,
+            overrides_right,
+            roles,
+        }
+    }
+}
+
 /// Explicit source kind for a trusted role source.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]
@@ -586,10 +670,52 @@ impl fmt::Display for SettingsEnvPaintError {
 
 impl std::error::Error for SettingsEnvPaintError {}
 
+/// Failure to paint the fixed live Editor environment body.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum EditorEnvironmentPaintError {
+    /// The fixed key, value, and source columns need at least 120 columns.
+    AreaTooNarrow { minimum: u16, actual: u16 },
+    /// The current Editor frame and its footer need at least 40 rows.
+    AreaTooShort { minimum: u16, actual: u16 },
+    /// Every environment row and Add action must fit before the footer.
+    ContentTooTall {
+        required_lines: usize,
+        available_lines: usize,
+    },
+}
+
+impl fmt::Display for EditorEnvironmentPaintError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::AreaTooNarrow { minimum, actual } => {
+                write!(f, "Editor Env needs {minimum} columns, received {actual}")
+            }
+            Self::AreaTooShort { minimum, actual } => {
+                write!(f, "Editor Env needs {minimum} rows, received {actual}")
+            }
+            Self::ContentTooTall {
+                required_lines,
+                available_lines,
+            } => write!(
+                f,
+                "Editor Env needs {required_lines} body rows, but area provides {available_lines}"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for EditorEnvironmentPaintError {}
+
 const SETTINGS_ENV_MIN_WIDTH: u16 = 16;
 const SETTINGS_ENV_MIN_HEIGHT: u16 = 8;
 const SETTINGS_ENV_BODY_TOP: u16 = 6;
 const SETTINGS_ACTION_OFFSET: u16 = 3;
+const EDITOR_ENV_MIN_WIDTH: u16 = 120;
+const EDITOR_ENV_MIN_HEIGHT: u16 = 40;
+const EDITOR_ENV_BODY_TOP: u16 = 6;
+const EDITOR_ENV_FOOTER_ROW: u16 = 37;
+const EDITOR_ENV_RIGHT_EDGE: u16 = 117;
 const SETTINGS_BODY_MIN_WIDTH: u16 = 40;
 const SETTINGS_AGENT_MAX_ROWS: usize = 6;
 const SETTINGS_TRUST_MAX_ROWS: usize = 4;
@@ -683,6 +809,61 @@ pub fn paint_settings_page_with_env(
     paint_settings_frame(ui, area, page, &ink);
     paint_settings_env(ui, area, env, &ink);
     paint_settings_footer(ui, area, page, &ink);
+    Ok(())
+}
+
+/// Paint only the fixed environment body used by the live workspace Editor.
+///
+/// `area` is the full screen allocation. The body starts at row six and ends
+/// before the fixed row-37 footer. This entry does not paint Editor chrome,
+/// footer labels, or input controls. Plain values enter only as a star count.
+/// The function validates the full current allocation and all body rows before
+/// painting any ink. It does not scroll or drop rows. Each fixed key, value,
+/// and source column clips its text to that column's terminal-cell width.
+///
+/// # Errors
+///
+/// Returns an error when the area is narrower than the fixed Editor columns,
+/// shorter than the frame and footer, or cannot contain all body rows.
+pub fn paint_editor_environment_body(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    body: &EditorEnvironmentBody<'_>,
+) -> Result<(), EditorEnvironmentPaintError> {
+    if area.width < EDITOR_ENV_MIN_WIDTH {
+        return Err(EditorEnvironmentPaintError::AreaTooNarrow {
+            minimum: EDITOR_ENV_MIN_WIDTH,
+            actual: area.width,
+        });
+    }
+    if area.height < EDITOR_ENV_MIN_HEIGHT {
+        return Err(EditorEnvironmentPaintError::AreaTooShort {
+            minimum: EDITOR_ENV_MIN_HEIGHT,
+            actual: area.height,
+        });
+    }
+
+    let body_area = Rect {
+        height: EDITOR_ENV_FOOTER_ROW,
+        ..area
+    };
+    let required_lines = editor_environment_required_lines(body);
+    let available_lines = usize::from(body_area.height.saturating_sub(EDITOR_ENV_BODY_TOP));
+    if required_lines > available_lines {
+        return Err(EditorEnvironmentPaintError::ContentTooTall {
+            required_lines,
+            available_lines,
+        });
+    }
+
+    let content = Rect::new(
+        area.x,
+        area.y.saturating_add(EDITOR_ENV_BODY_TOP),
+        area.width,
+        body_area.height.saturating_sub(EDITOR_ENV_BODY_TOP),
+    );
+    ui.fill(content, plain(EDITOR_ENV_WHITE, EDITOR_ENV_BLACK));
+    paint_editor_environment(ui, body_area, body);
     Ok(())
 }
 
@@ -1894,6 +2075,12 @@ fn paint_sections(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>, ink: &In
 
 const SELECT_BG: Color = Color::Rgb(0x17, 0x3f, 0x1c);
 const AMBER: Color = Color::Rgb(0xf5, 0x9e, 0x09);
+const EDITOR_ENV_BLACK: Color = Color::Rgb(0x00, 0x00, 0x00);
+const EDITOR_ENV_WHITE: Color = Color::Rgb(0xff, 0xff, 0xff);
+const EDITOR_ENV_SECONDARY: Color = Color::Rgb(0xb3, 0xb3, 0xb3);
+const EDITOR_ENV_MUTED: Color = Color::Rgb(0x8a, 0x8a, 0x8a);
+const EDITOR_ENV_DARK_MUTED: Color = Color::Rgb(0x73, 0x73, 0x73);
+const EDITOR_ENV_BADGE: Color = Color::Rgb(0x17, 0x3f, 0x1c);
 
 struct MountCols {
     path_at: u16,
@@ -2472,6 +2659,240 @@ fn paint_env_heading(
             right_cols,
             plain(ink.faint, ink.canvas),
         );
+    }
+}
+
+fn editor_environment_required_lines(body: &EditorEnvironmentBody<'_>) -> usize {
+    let workspace = 1_usize
+        .saturating_add(body.workspace_rows.len())
+        .saturating_add(1);
+    let roles = body.roles.iter().fold(0_usize, |lines, role| {
+        lines
+            .saturating_add(1)
+            .saturating_add(role.rows.len())
+            .saturating_add(1)
+    });
+    workspace
+        .saturating_add(1)
+        .saturating_add(roles)
+        .saturating_add(1)
+}
+
+fn paint_editor_environment(ui: &mut Ui<'_>, area: Rect, body: &EditorEnvironmentBody<'_>) {
+    let mut y = area.y.saturating_add(EDITOR_ENV_BODY_TOP);
+    paint_editor_environment_heading(
+        ui,
+        area,
+        y,
+        area.x.saturating_add(6),
+        "Workspace",
+        body.workspace_right,
+    );
+    y = y.saturating_add(1);
+    for row in body.workspace_rows {
+        paint_editor_environment_row(ui, area, y, row);
+        y = y.saturating_add(1);
+    }
+    paint_editor_environment_add(ui, area, y, "+ Add environment variable");
+    y = y.saturating_add(1);
+
+    paint_editor_environment_heading(
+        ui,
+        area,
+        y,
+        area.x.saturating_add(6),
+        "Role overrides",
+        body.overrides_right,
+    );
+    y = y.saturating_add(1);
+    for role in body.roles {
+        let title = format!("Role: {}", role.name);
+        put(
+            ui,
+            area,
+            area.x.saturating_add(4),
+            y,
+            "▾",
+            plain(EDITOR_ENV_SECONDARY, EDITOR_ENV_BLACK),
+        );
+        paint_editor_environment_heading(ui, area, y, area.x.saturating_add(6), &title, role.right);
+        y = y.saturating_add(1);
+        for row in role.rows {
+            paint_editor_environment_row(ui, area, y, row);
+            y = y.saturating_add(1);
+        }
+        let add = format!("+ Add {} environment variable", role.name);
+        paint_editor_environment_add(ui, area, y, &add);
+        y = y.saturating_add(1);
+    }
+    paint_editor_environment_add(ui, area, y, "+ Add role override…");
+}
+
+fn paint_editor_environment_heading(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    y: u16,
+    x: u16,
+    title: &str,
+    right: &str,
+) {
+    put(
+        ui,
+        area,
+        x,
+        y,
+        title,
+        bold(EDITOR_ENV_SECONDARY, EDITOR_ENV_BLACK),
+    );
+    let right_width = width(right);
+    let right_x = area
+        .x
+        .saturating_add(EDITOR_ENV_RIGHT_EDGE.saturating_sub(right_width));
+    put(
+        ui,
+        area,
+        right_x,
+        y,
+        right,
+        plain(EDITOR_ENV_DARK_MUTED, EDITOR_ENV_BLACK),
+    );
+}
+
+fn paint_editor_environment_add(ui: &mut Ui<'_>, area: Rect, y: u16, label: &str) {
+    put(
+        ui,
+        area,
+        area.x.saturating_add(2),
+        y,
+        " ",
+        plain(EDITOR_ENV_BLACK, EDITOR_ENV_BLACK),
+    );
+    put(
+        ui,
+        area,
+        area.x.saturating_add(3),
+        y,
+        " ",
+        plain(EDITOR_ENV_SECONDARY, EDITOR_ENV_BLACK),
+    );
+    put(
+        ui,
+        area,
+        area.x.saturating_add(8),
+        y,
+        label,
+        plain(EDITOR_ENV_SECONDARY, EDITOR_ENV_BLACK),
+    );
+}
+
+fn paint_editor_environment_row(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    y: u16,
+    row: &EditorEnvironmentRow<'_>,
+) {
+    let gutter_x = area.x.saturating_add(2);
+    let key_x = area.x.saturating_add(4);
+    let value_x = area.x.saturating_add(28);
+    let source_x = area.x.saturating_add(54);
+    let selected = row.selected;
+    let background = if selected {
+        EDITOR_ENV_BADGE
+    } else {
+        EDITOR_ENV_BLACK
+    };
+
+    if selected {
+        ui.fill(
+            Rect::new(gutter_x, y, 116, 1),
+            bold(EDITOR_ENV_WHITE, EDITOR_ENV_BADGE),
+        );
+        let accent = ui.theme_ref().color.accent;
+        put(ui, area, gutter_x, y, "▎›", bold(accent, EDITOR_ENV_BADGE));
+    } else {
+        put(
+            ui,
+            area,
+            gutter_x,
+            y,
+            " ",
+            plain(EDITOR_ENV_BLACK, EDITOR_ENV_BLACK),
+        );
+        put(
+            ui,
+            area,
+            gutter_x.saturating_add(1),
+            y,
+            " ",
+            plain(EDITOR_ENV_SECONDARY, EDITOR_ENV_BLACK),
+        );
+    }
+
+    let key_style = if selected {
+        bold(EDITOR_ENV_WHITE, background)
+    } else {
+        plain(EDITOR_ENV_WHITE, background)
+    };
+    let value_style = if selected {
+        bold(EDITOR_ENV_SECONDARY, background)
+    } else {
+        plain(EDITOR_ENV_SECONDARY, background)
+    };
+    let source_style = if selected {
+        bold(EDITOR_ENV_SECONDARY, background)
+    } else {
+        plain(EDITOR_ENV_MUTED, background)
+    };
+    ui.fill(Rect::new(key_x, y, 24, 1), key_style);
+    ui.fill(Rect::new(value_x, y, 24, 1), value_style);
+    ui.fill(Rect::new(source_x, y, 63, 1), source_style);
+
+    let key = format!("    {:<20}", row.key);
+    put_cols(ui, area, key_x, y, &key, 24, key_style);
+
+    let (source, stars, public_value) = match row.value {
+        EditorEnvironmentValue::PlainMasked { stars } => ("plain", stars.min(16), None),
+        EditorEnvironmentValue::OnePassword { display_path } => {
+            ("", 16, Some(format!("[op] {display_path}")))
+        }
+        EditorEnvironmentValue::HostEnv { name } => ("host env", 0, Some(format!("${name}"))),
+    };
+    match row.value {
+        EditorEnvironmentValue::HostEnv { .. } => {
+            if let Some(value) = public_value.as_deref() {
+                put_cols(ui, area, value_x, y, value, 24, value_style);
+            }
+        }
+        EditorEnvironmentValue::PlainMasked { .. } | EditorEnvironmentValue::OnePassword { .. } => {
+            paint_env_stars(ui, area, value_x, y, stars, 24, value_style);
+        }
+    }
+
+    let source = public_value
+        .as_deref()
+        .filter(|_| matches!(row.value, EditorEnvironmentValue::OnePassword { .. }))
+        .unwrap_or(source);
+    if selected {
+        let source_width = width(source).min(EDITOR_ENV_RIGHT_EDGE.saturating_sub(54));
+        put_cols(ui, area, source_x, y, source, source_width, source_style);
+        let tail_x = source_x.saturating_add(source_width);
+        let tail_width = area
+            .x
+            .saturating_add(EDITOR_ENV_RIGHT_EDGE)
+            .saturating_sub(tail_x);
+        if tail_width > 0 {
+            put_cols(
+                ui,
+                area,
+                tail_x,
+                y,
+                &" ".repeat(usize::from(tail_width)),
+                tail_width,
+                bold(EDITOR_ENV_MUTED, EDITOR_ENV_BADGE),
+            );
+        }
+    } else {
+        put_cols(ui, area, source_x, y, source, 63, source_style);
     }
 }
 
@@ -4359,5 +4780,267 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn editor_environment_body_keeps_fixed_columns_and_contiguous_groups() {
+        let workspace_rows = [
+            EditorEnvironmentRow::new(
+                "DATABASE_URL",
+                EditorEnvironmentValue::PlainMasked { stars: 8 },
+            )
+            .selected(true),
+            EditorEnvironmentRow::new(
+                "DEPLOY_TOKEN",
+                EditorEnvironmentValue::OnePassword {
+                    display_path: "prod/deploy-token",
+                },
+            ),
+            EditorEnvironmentRow::new(
+                "TERM_PROGRAM",
+                EditorEnvironmentValue::HostEnv {
+                    name: "TERM_PROGRAM",
+                },
+            ),
+        ];
+        let role_rows = [EditorEnvironmentRow::new(
+            "AWS_PROFILE",
+            EditorEnvironmentValue::PlainMasked { stars: 4 },
+        )];
+        let roles = [EditorEnvironmentRole::new("release", "1 var", &role_rows)];
+        let body = EditorEnvironmentBody::new("3 vars", &workspace_rows, "1 configured", &roles);
+        let mut scene = Scene::new(
+            "editor_environment_body_semantic_rows",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            120,
+            40,
+        );
+        scene.draw(|ui, area| {
+            assert_eq!(paint_editor_environment_body(ui, area, &body), Ok(()));
+        });
+
+        let text = scene.text();
+        for expected in [
+            "Workspace",
+            "3 vars",
+            "DATABASE_URL",
+            "DEPLOY_TOKEN",
+            "[op] prod/deploy-token",
+            "TERM_PROGRAM",
+            "$TERM_PROGRAM",
+            "host env",
+            "Role overrides",
+            "Role: release",
+            "AWS_PROFILE",
+            "+ Add release environment variable",
+            "+ Add role override…",
+        ] {
+            assert!(text.contains(expected), "missing {expected:?}: {text}");
+        }
+        assert!(!text.contains("postgres://"), "plain value leaked: {text}");
+
+        assert_eq!(
+            scene
+                .buffer()
+                .cell((2, 7))
+                .expect("selected gutter")
+                .symbol(),
+            "▎"
+        );
+        assert_eq!(
+            scene.buffer().cell((8, 7)).expect("workspace key").symbol(),
+            "D"
+        );
+        assert_eq!(
+            scene.buffer().cell((28, 7)).expect("masked value").symbol(),
+            "*"
+        );
+        assert_eq!(
+            scene.buffer().cell((54, 7)).expect("plain source").symbol(),
+            "p"
+        );
+        assert_eq!(
+            scene
+                .buffer()
+                .cell((54, 8))
+                .expect("one-password source")
+                .symbol(),
+            "["
+        );
+        assert_eq!(
+            scene
+                .buffer()
+                .cell((28, 9))
+                .expect("host reference")
+                .symbol(),
+            "$"
+        );
+        assert_eq!(
+            scene.buffer().cell((54, 9)).expect("host source").symbol(),
+            "h"
+        );
+        assert_eq!(
+            scene.buffer().cell((8, 13)).expect("role key").symbol(),
+            "A"
+        );
+    }
+
+    #[test]
+    fn editor_environment_body_rejects_unproved_allocations_before_ink() {
+        use ratatui_core::style::Style;
+        use std::cell::RefCell;
+
+        let row =
+            EditorEnvironmentRow::new("SECRET", EditorEnvironmentValue::PlainMasked { stars: 16 });
+        let valid_rows = [row];
+        let too_many_rows = vec![row; 28];
+        let valid = EditorEnvironmentBody::new("1 vars", &valid_rows, "0 configured", &[]);
+        let too_tall = EditorEnvironmentBody::new("28 vars", &too_many_rows, "0 configured", &[]);
+        let mut scene = Scene::new(
+            "editor_environment_body_rejects_without_ink",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            120,
+            40,
+        );
+        let sentinel = RefCell::new(None);
+        scene.draw_over(
+            |buffer| {
+                buffer.set_style(
+                    Rect::new(0, 0, 120, 40),
+                    Style::default()
+                        .fg(Color::Rgb(0x11, 0x22, 0x33))
+                        .bg(Color::Rgb(0x44, 0x55, 0x66)),
+                );
+                *sentinel.borrow_mut() =
+                    Some(format!("{:?}", buffer.cell((0, 0)).expect("sentinel cell")));
+            },
+            |ui, area| {
+                assert_eq!(
+                    paint_editor_environment_body(ui, Rect::new(0, 0, 119, 40), &valid),
+                    Err(EditorEnvironmentPaintError::AreaTooNarrow {
+                        minimum: 120,
+                        actual: 119,
+                    })
+                );
+                assert_eq!(
+                    paint_editor_environment_body(ui, Rect::new(0, 0, 120, 39), &valid),
+                    Err(EditorEnvironmentPaintError::AreaTooShort {
+                        minimum: 40,
+                        actual: 39,
+                    })
+                );
+                assert_eq!(
+                    paint_editor_environment_body(ui, area, &too_tall),
+                    Err(EditorEnvironmentPaintError::ContentTooTall {
+                        required_lines: 32,
+                        available_lines: 31,
+                    })
+                );
+            },
+        );
+        let sentinel = sentinel.into_inner().expect("recorded sentinel");
+        for y in 0..40 {
+            for x in 0..120 {
+                let cell = scene.buffer().cell((x, y)).expect("scene cell");
+                assert_eq!(
+                    format!("{cell:?}"),
+                    sentinel,
+                    "rejected write at ({x}, {y})"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn editor_environment_body_respects_origin_nested_clip_and_wide_fields() {
+        use ratatui_core::style::Style;
+        use std::cell::RefCell;
+
+        let rows = [
+            EditorEnvironmentRow::new(
+                "超長いキー名と大きな値",
+                EditorEnvironmentValue::OnePassword {
+                    display_path: "production/credential/with/a/long/界面/path",
+                },
+            )
+            .selected(true),
+            EditorEnvironmentRow::new(
+                "TERM_PROGRAM_WITH_A_LONG_SUFFIX",
+                EditorEnvironmentValue::HostEnv {
+                    name: "TERM_PROGRAM_WITH_A_LONG_SUFFIX",
+                },
+            ),
+        ];
+        let body = EditorEnvironmentBody::new("2 vars", &rows, "0 configured", &[]);
+        let screen = Rect::new(0, 0, 128, 42);
+        let area = Rect::new(4, 1, 120, 40);
+        let clip = Rect::new(10, 8, 20, 4);
+        let sentinel_style = Style::default()
+            .fg(Color::Rgb(0x11, 0x22, 0x33))
+            .bg(Color::Rgb(0x44, 0x55, 0x66));
+        let mut scene = Scene::new(
+            "editor_environment_body_origin_and_nested_clip",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            screen.width,
+            screen.height,
+        );
+        let sentinel = RefCell::new(None);
+        scene.draw_over(
+            |buffer| {
+                buffer.set_style(screen, sentinel_style);
+                *sentinel.borrow_mut() =
+                    Some(format!("{:?}", buffer.cell((0, 0)).expect("sentinel cell")));
+            },
+            |ui, _| {
+                ui.with_area(clip, |ui| {
+                    assert_eq!(paint_editor_environment_body(ui, area, &body), Ok(()));
+                });
+            },
+        );
+        let sentinel = sentinel.into_inner().expect("recorded sentinel");
+        let mut changed_inside = false;
+        for y in 0..screen.height {
+            for x in 0..screen.width {
+                let cell = scene.buffer().cell((x, y)).expect("scene cell");
+                if clip.contains(Position::new(x, y)) {
+                    changed_inside |= format!("{cell:?}") != sentinel;
+                } else {
+                    assert_eq!(format!("{cell:?}"), sentinel, "outside clip at ({x}, {y})");
+                }
+            }
+        }
+        assert!(changed_inside, "the nested clip contained no body ink");
+
+        let mut wide = Scene::new(
+            "editor_environment_body_wide_cell_clipping",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            120,
+            40,
+        );
+        wide.draw(|ui, area| {
+            assert_eq!(paint_editor_environment_body(ui, area, &body), Ok(()));
+        });
+        let text = wide.text();
+        assert!(text.contains("超長いキー名"), "wide key was lost: {text}");
+        assert!(
+            text.contains("production/credential"),
+            "path was lost: {text}"
+        );
+        assert!(
+            text.contains("$TERM_PROGRAM_WITH_A_LON"),
+            "host ref was lost: {text}"
+        );
+        assert_eq!(
+            wide.buffer().cell((117, 7)).expect("right edge").symbol(),
+            " "
+        );
+        assert_eq!(
+            wide.buffer().cell((117, 8)).expect("right edge").symbol(),
+            " "
+        );
     }
 }
