@@ -4893,6 +4893,7 @@ impl App {
         result |= confirm.erase();
         if save_chosen {
             if self.settings.dirty {
+                self.settings_save_preview = true;
                 cx.focus(SETTINGS_SAVE_CONFIRM);
                 self.status = Some("Save settings · choose a confirmation action".into());
                 result |= Response::changed();
