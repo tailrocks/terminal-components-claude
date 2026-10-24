@@ -2301,7 +2301,10 @@ impl App {
                 Overlay::Actions(picker) => picker.update(cx).0,
             });
 
-        let (home_response, home_action) = self.home.update(&self.world, cx);
+        let viewport = cx.viewport();
+        let (home_response, home_action) =
+            self.home
+                .update(&self.world, cx, home_allocation(viewport), viewport.width);
         let (plan_response, plan_event) = self
             .plan
             .as_mut()
@@ -2454,15 +2457,9 @@ impl termrock::App for App {
                 .draw(ui, area);
             return;
         }
-        let regions = AppShell::new()
-            .header(1)
-            .gap(1)
-            .footer(1)
-            .inset(1)
-            .regions(area);
-        let body = regions.body;
+        let (body, home_area) = shell_areas(area);
         match self.route {
-            Route::Home => self.home.draw(&self.world, ui, home_body(body)),
+            Route::Home => self.home.draw(&self.world, ui, home_area),
             Route::Plan => {
                 if let Some(plan) = &self.plan {
                     plan.draw(ui, body);
@@ -2542,6 +2539,24 @@ impl termrock::App for App {
 
 fn too_small(area: Rect) -> bool {
     area.width < MIN_WIDTH || area.height < MIN_HEIGHT
+}
+
+fn home_allocation(area: Rect) -> Option<Rect> {
+    if too_small(area) {
+        return None;
+    }
+    Some(shell_areas(area).1)
+}
+
+fn shell_areas(area: Rect) -> (Rect, Rect) {
+    let body = AppShell::new()
+        .header(1)
+        .gap(1)
+        .footer(1)
+        .inset(1)
+        .regions(area)
+        .body;
+    (body, home_body(body))
 }
 
 /// Tag body starts under a 4-row header. `body` is the port's y+2 frame, so Home drops two more rows for the band and one for the tag footer gap.
@@ -2735,7 +2750,7 @@ mod tests {
     use super::*;
     use crate::sim::catalogue;
     use termrock::{Dialog, Theme};
-    use termrock_test_support::Harness;
+    use termrock_test_support::{Harness, Scene};
     fn harness(app: App, theme: Theme, width: u16, height: u16) -> Harness<App> {
         let initial =
             termrock::SimulationMoment::from_millis(u64::try_from(app.fixture_time_ms()).unwrap());
@@ -2755,6 +2770,385 @@ mod tests {
             120,
             40,
         )
+    }
+
+    #[test]
+    fn parity_discovery_uses_keyed_rows_and_selected_action_preview() {
+        let mut harness = harness(
+            App::for_scenario_without_history(Scenario::ParityDiscovery, Motion::Paused, 80),
+            Theme::junie(),
+            120,
+            40,
+        );
+        assert_eq!(harness.app().world.now_ms(), 80);
+        let pull = PartRef::item(Part::ROW, ItemKey::text("git.pull"));
+        assert!(
+            harness.find("move every .idea").is_some(),
+            "the original Clean detail remains a passive sample before ROWS focus"
+        );
+        assert!(
+            harness.area_of_part(home::ROWS, pull).is_some(),
+            "the canonical Pull Action must own a real NavList row hit"
+        );
+        for decoration_index in [0, 6, 11] {
+            assert!(
+                harness
+                    .area_of_part(
+                        home::ROWS,
+                        PartRef::item(Part::ROW, ItemKey::index(decoration_index)),
+                    )
+                    .is_none(),
+                "decorative finder lines must not register actionable rows"
+            );
+        }
+        assert!(harness.tab_to(home::ROWS));
+        assert_eq!(harness.focus(), Some(home::ROWS));
+        assert_eq!(
+            harness
+                .app()
+                .home
+                .selected(&harness.app().world)
+                .map(|action| action.id),
+            Some("git.pull".into())
+        );
+
+        let _ = harness.key(KeyCode::Down);
+        assert_eq!(
+            harness
+                .app()
+                .home
+                .selected(&harness.app().world)
+                .map(|action| action.id),
+            Some("idea.clean".into()),
+            "navigation skips the non-action headings and chips"
+        );
+        assert!(harness.find("move every .idea").is_some());
+
+        let _ = harness.key(KeyCode::Down);
+        assert_eq!(
+            harness
+                .app()
+                .home
+                .selected(&harness.app().world)
+                .map(|action| action.id),
+            Some("deploy".into())
+        );
+        assert!(harness.find("tools/deploy.sh").is_some());
+        assert!(harness.find("Does").is_none());
+
+        let _ = harness.key(KeyCode::End);
+        let after_end_selected = harness
+            .app()
+            .home
+            .selected(&harness.app().world)
+            .map(|action| action.id);
+        assert_eq!(
+            after_end_selected,
+            Some("scope.system".into()),
+            "End skips the non-action recent/chip lines"
+        );
+        assert!(harness.find("explore · host").is_some());
+
+        let status = PartRef::item(Part::ROW, ItemKey::text("git.status"));
+        assert!(harness.area_of_part(home::ROWS, status).is_some());
+        let _ = harness.type_str("pull");
+        assert_eq!(harness.focus(), Some(home::ROWS));
+        assert_eq!(harness.app().home.query(), "pull");
+        let _ = harness.key(KeyCode::Home);
+        let _ = harness.type_str("x");
+        assert_eq!(
+            harness.app().home.query(),
+            "pullx",
+            "printable fallback remains in the query while Home belongs to focused rows"
+        );
+        let _ = harness.ctrl('u');
+        assert_eq!(harness.app().home.query(), "");
+        assert!(harness.tab_to(home::ROWS));
+        assert!(harness.area_of_part(home::ROWS, status).is_some());
+        let _ = harness.click_part(home::ROWS, status);
+        assert_eq!(
+            harness
+                .app()
+                .home
+                .selected(&harness.app().world)
+                .map(|action| action.id),
+            Some("git.status".into())
+        );
+        assert!(matches!(harness.app().route, Route::Home));
+        assert_eq!(
+            harness.app().status.as_deref(),
+            Some("Would run: git status · simulated, nothing executed")
+        );
+        assert!(harness.app().world.activities.is_empty());
+        assert!(harness.diagnostics().is_empty());
+    }
+
+    #[test]
+    fn parity_discovery_query_enter_still_previews_the_first_action() {
+        let mut harness = harness(
+            App::for_scenario_without_history(Scenario::ParityDiscovery, Motion::Paused, 80),
+            Theme::junie(),
+            120,
+            40,
+        );
+        assert!(harness.tab_to(home::QUERY));
+        assert_eq!(harness.focus(), Some(home::QUERY));
+        assert_eq!(
+            harness
+                .app()
+                .home
+                .selected(&harness.app().world)
+                .map(|action| action.id),
+            Some("git.pull".into())
+        );
+        let _ = harness.type_str("pull");
+        assert_eq!(harness.app().home.query(), "pull");
+        let _ = harness.key(KeyCode::Home);
+        let _ = harness.type_str("x");
+        assert_eq!(
+            harness.app().home.query(),
+            "xpull",
+            "Home moves the caret in the focused query"
+        );
+        let _ = harness.key(KeyCode::End);
+        let _ = harness.type_str("y");
+        assert_eq!(
+            harness.app().home.query(),
+            "xpully",
+            "End moves the caret in the focused query"
+        );
+        let _ = harness.ctrl('u');
+        assert_eq!(harness.app().home.query(), "");
+        assert_eq!(
+            harness
+                .app()
+                .home
+                .selected(&harness.app().world)
+                .map(|action| action.id),
+            Some("git.pull".into()),
+            "clearing the query restores the first action"
+        );
+        let _ = harness.key(KeyCode::Enter);
+        assert!(matches!(harness.app().overlay, Some(Overlay::Dialog(_))));
+        assert!(harness.find("Pull").is_some());
+        assert!(matches!(harness.app().route, Route::Home));
+    }
+
+    fn parity_fixture_harness(width: u16, height: u16) -> Harness<App> {
+        harness(
+            App::for_scenario_without_history(Scenario::ParityDiscovery, Motion::Paused, 80),
+            Theme::junie(),
+            width,
+            height,
+        )
+    }
+
+    #[test]
+    fn parity_discovery_passive_body_matches_retained_native_cells_and_respects_allocation() {
+        for width in [80, 100, 120, 160] {
+            let current = parity_fixture_harness(width, 40);
+            let frame = Rect::new(0, 0, width, 40);
+            let (_, home_area) = shell_areas(frame);
+            let mut reference = Scene::new(
+                "retained ParityDiscovery body",
+                Theme::junie(),
+                termrock::ColorLevel::TrueColor,
+                width,
+                40,
+            );
+            let mut reference_rows = None;
+            reference.draw(|ui, full| {
+                ui.fill(full, ui.surface_style());
+                reference_rows = home::paint_legacy_parity_discovery_for_test(
+                    ui,
+                    &current.app().world,
+                    home_area,
+                    current.app().home.query(),
+                );
+            });
+            let rows = reference_rows.expect("retained custom body paints at the tested width");
+            for y in rows.y..rows.bottom() {
+                for x in rows.x..rows.right() {
+                    let actual = current
+                        .buffer()
+                        .cell((x, y))
+                        .expect("current passive cell inside the allocated Home rows");
+                    let expected = reference
+                        .buffer()
+                        .cell((x, y))
+                        .expect("retained passive cell inside the allocated Home rows");
+                    assert_eq!(
+                        actual, expected,
+                        "complete passive cell at ({x},{y}) for width {width}"
+                    );
+                    assert_eq!(
+                        format!("{actual:?}"),
+                        format!("{expected:?}"),
+                        "complete Cell Debug at ({x},{y}) for width {width}"
+                    );
+                }
+            }
+
+            let mut sentinel = Scene::new(
+                "retained ParityDiscovery allocation sentinel",
+                Theme::junie(),
+                termrock::ColorLevel::TrueColor,
+                width,
+                40,
+            );
+            let mut seeded = None;
+            let mut sentinel_rows = None;
+            sentinel.draw_over(
+                |buffer| {
+                    let area = *buffer.area();
+                    for y in area.y..area.bottom() {
+                        for x in area.x..area.right() {
+                            let cell = buffer
+                                .cell_mut((x, y))
+                                .expect("sentinel cell inside the full frame");
+                            cell.set_symbol("S");
+                            cell.fg = termrock::Color::Rgb(1, 2, 3);
+                            cell.bg = termrock::Color::Rgb(4, 5, 6);
+                            cell.modifier = termrock::Modifier::BOLD;
+                        }
+                    }
+                    seeded = Some(buffer.clone());
+                },
+                |ui, _full| {
+                    sentinel_rows = home::paint_legacy_parity_discovery_for_test(
+                        ui,
+                        &current.app().world,
+                        home_area,
+                        current.app().home.query(),
+                    );
+                },
+            );
+            let seeded = seeded.expect("full-frame sentinel was captured before painting");
+            let painted_rows = sentinel_rows.expect("legacy body returns its owned allocation");
+            let sentinel_area = sentinel.area();
+            for y in sentinel_area.y..sentinel_area.bottom() {
+                for x in sentinel_area.x..sentinel_area.right() {
+                    let inside_rows = x >= painted_rows.x
+                        && x < painted_rows.right()
+                        && y >= painted_rows.y
+                        && y < painted_rows.bottom();
+                    if inside_rows {
+                        continue;
+                    }
+                    let after = sentinel
+                        .buffer()
+                        .cell((x, y))
+                        .expect("painted sentinel cell inside the full frame");
+                    let before = seeded
+                        .cell((x, y))
+                        .expect("captured sentinel cell inside the full frame");
+                    assert_eq!(
+                        after, before,
+                        "retained Home painter writes outside rows at ({x},{y}) width {width}"
+                    );
+                    assert_eq!(
+                        format!("{after:?}"),
+                        format!("{before:?}"),
+                        "outside-allocation Cell Debug at ({x},{y}) width {width}"
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn parity_discovery_action_selection_survives_width_short_and_empty_query_frames() {
+        let mut harness = parity_fixture_harness(120, 40);
+        let clean = PartRef::item(Part::ROW, ItemKey::text("idea.clean"));
+        let system = PartRef::item(Part::ROW, ItemKey::text("scope.system"));
+        assert!(harness.tab_to(home::ROWS));
+        let _ = harness.key(KeyCode::Down);
+        assert_eq!(
+            harness
+                .app()
+                .home
+                .selected(&harness.app().world)
+                .map(|action| action.id),
+            Some("idea.clean".into())
+        );
+
+        let _ = harness.resize(119, 40);
+        assert_eq!(
+            harness
+                .app()
+                .home
+                .selected(&harness.app().world)
+                .map(|action| action.id),
+            Some("idea.clean".into()),
+            "crossing below the action-card breakpoint keeps the selected Action key"
+        );
+        assert!(
+            harness.area_of(home::ROWS).is_none(),
+            "the 80–119 passive compatibility painter does not claim a NavList owner"
+        );
+
+        let _ = harness.resize(120, 40);
+        assert!(harness.area_of_part(home::ROWS, clean).is_some());
+        assert_eq!(
+            harness
+                .app()
+                .home
+                .selected(&harness.app().world)
+                .map(|action| action.id),
+            Some("idea.clean".into())
+        );
+        for decoration in [0, 6, 11] {
+            assert!(
+                harness
+                    .area_of_part(
+                        home::ROWS,
+                        PartRef::item(Part::ROW, ItemKey::index(decoration)),
+                    )
+                    .is_none(),
+                "decorative line {decoration} is not an actionable row"
+            );
+        }
+        assert!(harness.tab_to(home::ROWS));
+        assert_eq!(harness.focus(), Some(home::ROWS));
+        let _ = harness.key(KeyCode::End);
+        let after_end_selected = harness
+            .app()
+            .home
+            .selected(&harness.app().world)
+            .map(|action| action.id);
+        assert_eq!(
+            after_end_selected,
+            Some("scope.system".into()),
+            "keyboard reaches the last real Action through decorative lines"
+        );
+
+        let _ = harness.resize(120, 19);
+        assert!(harness.area_of(home::ROWS).is_none());
+        assert!(harness.area_of(home::QUERY).is_none());
+        let _ = harness.resize(120, 40);
+        assert!(harness.area_of_part(home::ROWS, system).is_some());
+        assert_eq!(
+            harness
+                .app()
+                .home
+                .selected(&harness.app().world)
+                .map(|action| action.id),
+            Some("scope.system".into()),
+            "the TooSmall frame does not replace the stored Action key"
+        );
+
+        assert!(harness.tab_to(home::QUERY));
+        let _ = harness.type_str("no-such-parity-action");
+        assert_eq!(harness.app().home.query(), "no-such-parity-action");
+        assert!(harness.app().home.selected(&harness.app().world).is_none());
+        assert!(harness.area_of(home::ROWS).is_none());
+        assert!(harness.area_of_part(home::ROWS, system).is_none());
+        assert!(harness.find("Nothing matches").is_some());
+        assert!(
+            harness.diagnostics().is_empty(),
+            "{:?}",
+            harness.diagnostics()
+        );
     }
 
     #[test]

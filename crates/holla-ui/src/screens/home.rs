@@ -4,7 +4,8 @@ use termrock::theme::CursorStyle;
 use termrock::{
     BlurPolicy, Chord, Color, Cx, Family, FgStep, FrameRead, Hint, HintKey, HintLayer, Id, ItemKey,
     KeyCode, KeyModifiers, NavList, NavListAction, NavListState, Part, Rect, Response, Role,
-    StateFlags, StylePatch, TextAction, TextInput, TextInputState, TypingPolicy, Ui, Variant,
+    StateFlags, StylePatch, TextAction, TextCmd, TextInput, TextInputState, TypingPolicy, Ui,
+    Variant,
 };
 
 use crate::domain::action::{Action, Availability, Scope};
@@ -12,6 +13,19 @@ use crate::sim::{catalogue, world::World};
 
 pub(crate) const QUERY: Id = Id::root("home.query");
 pub(crate) const ROWS: Id = Id::root("home.rows");
+
+const PARITY_ACTION_IDS: [&str; 6] = [
+    "git.pull",
+    "idea.clean",
+    "deploy",
+    "mise.task.test",
+    "git.status",
+    "scope.system",
+];
+const PARITY_ROW_QUERY_EXCLUDED_COMMANDS: &[TextCmd] = &[
+    TextCmd::Move(termrock::text::Motion::Home, termrock::text::Extend::No),
+    TextCmd::Move(termrock::text::Motion::End, termrock::text::Extend::No),
+];
 
 pub(crate) struct HomeState {
     value: String,
@@ -40,6 +54,18 @@ pub(crate) struct HomeRow {
     section: &'static str,
     action: Action,
     columns: ActionColumns,
+}
+
+enum ParityItem {
+    Decoration {
+        key: ItemKey,
+        line: catalogue::FinderLine,
+    },
+    Action {
+        action: Box<Action>,
+        tag: catalogue::TagRow,
+        columns: TagCols,
+    },
 }
 
 #[derive(Clone, Copy, Default)]
@@ -172,6 +198,77 @@ impl HomeState {
         self.editor.is_editing()
     }
 
+    fn parity_items(&self, world: &World) -> Option<Vec<ParityItem>> {
+        let projection = catalogue::parity_discovery(world)?;
+        if projection.actions.len() != PARITY_ACTION_IDS.len() {
+            return None;
+        }
+        let catalogue::ParityDiscovery { lines, actions, .. } = projection;
+        let live_rows = self.rows(world);
+        let mut live_ids = Vec::with_capacity(live_rows.len());
+        for row in &live_rows {
+            let id = row.action.id.as_str();
+            if !PARITY_ACTION_IDS.contains(&id) || live_ids.contains(&id) {
+                return None;
+            }
+            live_ids.push(id);
+        }
+
+        let expected_rows = lines
+            .iter()
+            .filter(|line| matches!(line, catalogue::FinderLine::Row(_)))
+            .count();
+        if expected_rows != PARITY_ACTION_IDS.len() {
+            return None;
+        }
+
+        let mut actions = actions.into_iter();
+        let mut action_index = 0_usize;
+        let mut items = Vec::with_capacity(lines.len());
+        for (line_index, line) in lines.into_iter().enumerate() {
+            match line {
+                catalogue::FinderLine::Row(tag) => {
+                    let expected_id = *PARITY_ACTION_IDS.get(action_index)?;
+                    let action = actions.next()?;
+                    if action.id != expected_id
+                        || action.title != tag.title
+                        || action.reason != tag.reason
+                        || action.scope.label() != tag.scope_word
+                        || (action.scope == Scope::Here) != tag.here
+                    {
+                        return None;
+                    }
+                    action_index = action_index.saturating_add(1);
+                    if let Some(row) = live_rows.iter().find(|row| row.action.id == expected_id) {
+                        if row.action != action {
+                            return None;
+                        }
+                        items.push(ParityItem::Action {
+                            action: Box::new(action),
+                            tag,
+                            columns: TagCols::default(),
+                        });
+                    }
+                }
+                line => items.push(ParityItem::Decoration {
+                    key: ItemKey::index(line_index),
+                    line,
+                }),
+            }
+        }
+        if action_index != PARITY_ACTION_IDS.len()
+            || actions.next().is_some()
+            || items
+                .iter()
+                .filter(|item| matches!(item, ParityItem::Action { .. }))
+                .count()
+                != live_rows.len()
+        {
+            return None;
+        }
+        Some(items)
+    }
+
     pub(crate) fn selected(&self, world: &World) -> Option<Action> {
         let rows = self.rows(world);
         self.rows
@@ -204,15 +301,33 @@ impl HomeState {
         &mut self,
         world: &World,
         cx: &mut Cx<'_>,
+        home_area: Option<Rect>,
+        viewport_width: u16,
     ) -> (Response<()>, Option<Action>) {
-        let mut text = query_input().update(cx, &mut self.editor, &mut self.value);
+        let rows_own_navigation = cx.state(ROWS).contains(StateFlags::FOCUSED)
+            && catalogue::parity_discovery(world).is_some();
+        let mut text =
+            query_input(rows_own_navigation).update(cx, &mut self.editor, &mut self.value);
         let submit = matches!(text.take_action(), Some(TextAction::Committed));
 
         if !self.editor.is_editing() {
             self.editor.begin(&self.value);
         }
         let rows = self.rows(world);
-        let mut navigation = nav_list().update(cx, &mut self.rows, &rows);
+        let discovery = home_area.and_then(|area| {
+            let (_, rows_area, _) = home_rows_layout(area, world, self.query());
+            let layout = parity_action_layout(rows_area, viewport_width, !rows.is_empty())?;
+            if layout.has_action_rows && catalogue::parity_discovery(world).is_some() {
+                self.parity_items(world)
+            } else {
+                None
+            }
+        });
+        let mut navigation = if let Some(items) = discovery.as_deref() {
+            parity_nav_list().update(cx, &mut self.rows, items)
+        } else {
+            nav_list().update(cx, &mut self.rows, &rows)
+        };
         let chosen = match navigation.take_action() {
             Some(NavListAction::LeaveBackward) => {
                 cx.focus_prev();
@@ -222,11 +337,20 @@ impl HomeState {
                 cx.focus_next();
                 None
             }
-            Some(NavListAction::Chose(key) | NavListAction::EnterContent(key)) => rows
-                .into_iter()
-                .find(|row| row_key(row) == key)
-                .map(|row| row.action),
-            _ if submit => rows.into_iter().next().map(|row| row.action),
+            Some(NavListAction::Chose(key) | NavListAction::EnterContent(key)) => {
+                if let Some(items) = discovery.as_deref() {
+                    items
+                        .iter()
+                        .find(|item| parity_item_key(item) == key)
+                        .and_then(parity_item_action)
+                        .cloned()
+                } else {
+                    rows.iter()
+                        .find(|row| row_key(row) == key)
+                        .map(|row| row.action.clone())
+                }
+            }
+            _ if submit => rows.first().map(|row| row.action.clone()),
             _ => None,
         };
         (text.erase() | navigation.erase(), chosen)
@@ -252,7 +376,9 @@ impl HomeState {
             )
             .style;
         ui.fill(Rect::new(area.x, area.y, area.width, 1), field);
-        let mut input = query_input();
+        let rows_own_navigation = ui.state(ROWS).contains(StateFlags::FOCUSED)
+            && catalogue::parity_discovery(world).is_some();
+        let mut input = query_input(rows_own_navigation);
         if catalogue::docker_cleanup_tag_frame(world) {
             input = input.patch_part(DOCKER_QUERY_PARTS);
         }
@@ -274,21 +400,15 @@ impl HomeState {
         );
         let mut rows = self.rows(world);
         ActionColumns::apply(&mut rows);
-        let mut rows_area = Rect::new(
-            area.x,
-            area.y.saturating_add(2),
-            area.width,
-            area.height.saturating_sub(2),
-        );
+        let (lead_area, rows_area, paints_recent_lead) =
+            home_rows_layout(area, world, self.query());
         if let Some(view) = catalogue::parity_files_view(world, ui.full().width)
-            && paint_parity_files(ui, rows_area, &view)
+            && paint_parity_files(ui, lead_area, &view)
         {
             return;
         }
-        if self.query().trim().is_empty() && world.scenario.boot_title() == super::finder::RECENT {
-            let used = super::finder::paint_recent_lead(ui, rows_area);
-            rows_area.y = rows_area.y.saturating_add(used);
-            rows_area.height = rows_area.height.saturating_sub(used);
+        if paints_recent_lead {
+            super::finder::paint_recent_lead(ui, lead_area);
         }
         if let Some(view) = catalogue::first_use_view(world, ui.full().width, self.history)
             && paint_narrow_tag_list(ui, rows_area, &view)
@@ -320,10 +440,37 @@ impl HomeState {
         {
             return;
         }
-        if let Some(view) = catalogue::parity_discovery_view(world, ui.full().width)
-            && paint_parity_discovery_view(ui, rows_area, &view)
-        {
-            return;
+        if let Some(view) = catalogue::parity_discovery_view(world, ui.full().width) {
+            if let Some(layout) = parity_action_layout(rows_area, ui.full().width, !rows.is_empty())
+                && let Some(mut items) = self.parity_items(world)
+            {
+                if !layout.has_action_rows {
+                    paint_empty_home_rows(ui, rows_area, self.query(), self.scope);
+                    return;
+                }
+                if paint_parity_action_card(ui, layout, &view, &self.rows, &mut items) {
+                    return;
+                }
+            }
+            if paint_parity_discovery_view(ui, rows_area, &view) {
+                return;
+            }
+        }
+        if let Some(view) = catalogue::parity_discovery(world) {
+            if let Some(layout) = parity_action_layout(rows_area, ui.full().width, !rows.is_empty())
+                && let Some(mut items) = self.parity_items(world)
+            {
+                if !layout.has_action_rows {
+                    paint_empty_home_rows(ui, rows_area, self.query(), self.scope);
+                    return;
+                }
+                if paint_parity_action_card(ui, layout, &view, &self.rows, &mut items) {
+                    return;
+                }
+            }
+            if paint_parity_discovery(ui, rows_area, &view) {
+                return;
+            }
         }
         if let Some(view) = catalogue::parity_history_view(world, ui.full().width)
             && paint_parity_history(ui, rows_area, &view)
@@ -355,8 +502,7 @@ impl HomeState {
         {
             return;
         }
-        if let Some(view) = catalogue::parity_discovery(world)
-            .or_else(|| catalogue::first_use_plate(world, self.history))
+        if let Some(view) = catalogue::first_use_plate(world, self.history)
             .or_else(|| catalogue::monorepo_root_plate(world, self.history))
             .or_else(|| catalogue::monorepo_child_tag(world))
             .or_else(|| catalogue::activities_multi_plate(world, self.history))
@@ -372,25 +518,7 @@ impl HomeState {
             return;
         }
         if rows.is_empty() {
-            let note = if self.query().trim().is_empty() {
-                self.scope.map_or_else(
-                    || "Nothing discovered here yet".to_owned(),
-                    |scope| format!("Nothing in scope {} here", scope.label()),
-                )
-            } else {
-                format!("Nothing matches “{}” here", self.query().trim())
-            };
-            let style = ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted)));
-            ui.paint_str(
-                Rect::new(
-                    rows_area.x.saturating_add(2),
-                    rows_area.y,
-                    rows_area.width.saturating_sub(4),
-                    1,
-                ),
-                &note,
-                style,
-            );
+            paint_empty_home_rows(ui, rows_area, self.query(), self.scope);
         } else {
             nav_list().draw(ui, rows_area, &self.rows, &rows);
         }
@@ -472,13 +600,18 @@ const HEADER_PAD: StylePatch = StylePatch::new()
 const HEADER_TEXT: StylePatch = TAG_GREY.remove(termrock::Modifier::BOLD);
 const HEADER_PARTS: &[(Part, StylePatch)] = &[(Part::HEADER, HEADER_PAD)];
 
-fn query_input() -> TextInput<'static> {
-    TextInput::new(QUERY)
+fn query_input(rows_own_navigation: bool) -> TextInput<'static> {
+    let input = TextInput::new(QUERY)
         .placeholder("Search actions and resources…")
         .placeholder_while_editing(true)
         .blur(BlurPolicy::Keep)
         .typing_policy(TypingPolicy::Fallback { cursor: true })
-        .patch_part(QUERY_PARTS)
+        .patch_part(QUERY_PARTS);
+    if rows_own_navigation {
+        input.exclude_commands(PARITY_ROW_QUERY_EXCLUDED_COMMANDS)
+    } else {
+        input
+    }
 }
 fn section(row: &HomeRow) -> &str {
     row.section
@@ -498,6 +631,97 @@ fn nav_list()
 }
 fn row_key(row: &HomeRow) -> ItemKey {
     ItemKey::text(&row.action.id)
+}
+
+fn parity_item_key(item: &ParityItem) -> ItemKey {
+    match item {
+        ParityItem::Decoration { key, .. } => *key,
+        ParityItem::Action { action, .. } => ItemKey::text(&action.id),
+    }
+}
+
+fn parity_item_disabled(item: &ParityItem) -> bool {
+    matches!(item, ParityItem::Decoration { .. })
+}
+
+fn parity_item_action(item: &ParityItem) -> Option<&Action> {
+    match item {
+        ParityItem::Decoration { .. } => None,
+        ParityItem::Action { action, .. } => Some(action),
+    }
+}
+
+type ParityRowFn = for<'row> fn(&ParityItem, &mut RowUi<'row>);
+
+fn parity_nav_list<'a>() -> NavList<'a, ParityItem, fn(&ParityItem) -> ItemKey, ParityRowFn> {
+    NavList::new(ROWS)
+        .compact()
+        .scrollable(true)
+        .leave_at_boundary(true)
+        .key(parity_item_key as fn(&ParityItem) -> ItemKey)
+        .disabled_item(&parity_item_disabled)
+        .row(parity_fallback_row as ParityRowFn)
+        .render_row(&paint_parity_item)
+}
+
+fn parity_fallback_row(item: &ParityItem, row: &mut RowUi<'_>) {
+    match item {
+        ParityItem::Action { action, .. } => row.label(&action.title),
+        ParityItem::Decoration { line, .. } => match line {
+            catalogue::FinderLine::Heading(text) => row.label(text),
+            catalogue::FinderLine::Blank => row.label(""),
+            catalogue::FinderLine::Chips(labels) => row.label(&labels.join(" · ")),
+            catalogue::FinderLine::Row(tag) => row.label(&tag.title),
+        },
+    }
+}
+
+fn paint_parity_item(
+    ui: &mut Ui<'_>,
+    rect: Rect,
+    flags: StateFlags,
+    _key: ItemKey,
+    item: &ParityItem,
+) {
+    match item {
+        ParityItem::Decoration { line, .. } => match line {
+            catalogue::FinderLine::Heading(text) => paint_tag_heading(ui, rect, rect.y, text, None),
+            catalogue::FinderLine::Blank => {}
+            catalogue::FinderLine::Chips(labels) => paint_tag_chips(ui, rect, rect.y, labels, None),
+            catalogue::FinderLine::Row(_) => {}
+        },
+        ParityItem::Action { tag, columns, .. } => {
+            let mut row = tag.clone();
+            row.selected = if ui.state(ROWS).contains(StateFlags::FOCUSED) {
+                flags.contains(StateFlags::FOCUSED)
+            } else {
+                tag.selected
+            };
+            paint_tag_row(ui, rect, rect.y, &row, columns, None);
+        }
+    }
+}
+
+fn paint_empty_home_rows(ui: &mut Ui<'_>, area: Rect, query: &str, scope: Option<Scope>) {
+    let note = if query.trim().is_empty() {
+        scope.map_or_else(
+            || "Nothing discovered here yet".to_owned(),
+            |scope| format!("Nothing in scope {} here", scope.label()),
+        )
+    } else {
+        format!("Nothing matches “{}” here", query.trim())
+    };
+    let style = ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted)));
+    ui.paint_str(
+        Rect::new(
+            area.x.saturating_add(2),
+            area.y,
+            area.width.saturating_sub(4),
+            1,
+        ),
+        &note,
+        style,
+    );
 }
 
 fn paint_action(row: &HomeRow, cells: &mut RowUi<'_>) {
@@ -630,6 +854,7 @@ const DANGER_FG: Color = Color::Rgb(0xf0, 0x5d, 0x5d);
 const WHITE: Color = Color::Rgb(0xff, 0xff, 0xff);
 const BLACK: Color = Color::Rgb(0, 0, 0);
 
+#[derive(Clone, Copy, Default)]
 struct TagCols {
     label: u16,
     kind: u16,
@@ -767,6 +992,49 @@ fn tag_columns(rows: &[&catalogue::TagRow], content_w: u16) -> TagCols {
         scope,
         reason,
     }
+}
+
+fn home_rows_layout(area: Rect, world: &World, query: &str) -> (Rect, Rect, bool) {
+    let lead = Rect::new(
+        area.x,
+        area.y.saturating_add(2),
+        area.width,
+        area.height.saturating_sub(2),
+    );
+    let paints_recent_lead = query.trim().is_empty()
+        && world.scenario.boot_title() == super::finder::RECENT
+        && lead.height >= 3;
+    let reserved = if paints_recent_lead { 3 } else { 0 };
+    let rows = Rect::new(
+        lead.x,
+        lead.y.saturating_add(reserved),
+        lead.width,
+        lead.height.saturating_sub(reserved),
+    );
+    (lead, rows, paints_recent_lead)
+}
+
+#[derive(Clone, Copy)]
+struct ParityActionLayout {
+    master: Rect,
+    detail: Rect,
+    has_action_rows: bool,
+}
+
+fn parity_action_layout(
+    area: Rect,
+    viewport_width: u16,
+    has_action_rows: bool,
+) -> Option<ParityActionLayout> {
+    if viewport_width < 120 {
+        return None;
+    }
+    let (master, detail) = split_detail(area)?;
+    Some(ParityActionLayout {
+        master,
+        detail,
+        has_action_rows,
+    })
 }
 
 fn split_detail(area: Rect) -> Option<(Rect, Rect)> {
@@ -1198,6 +1466,19 @@ fn paint_parity_discovery_view(
     paint_parity_discovery(ui, area, view)
 }
 
+#[cfg(test)]
+/// Paint the retained custom Finder body over the same real Home row allocation.
+pub(crate) fn paint_legacy_parity_discovery_for_test(
+    ui: &mut Ui<'_>,
+    world: &World,
+    home_area: Rect,
+    query: &str,
+) -> Option<Rect> {
+    let (_, rows_area, _) = home_rows_layout(home_area, world, query);
+    let view = catalogue::parity_discovery_view(world, ui.full().width)?;
+    paint_parity_discovery_view(ui, rows_area, &view).then_some(rows_area)
+}
+
 fn paint_parity_discovery(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityDiscovery) -> bool {
     let Some((master, _)) = split_detail(area) else {
         return false;
@@ -1216,6 +1497,153 @@ fn paint_parity_discovery(ui: &mut Ui<'_>, area: Rect, view: &catalogue::ParityD
         view,
         tag_columns(&rows, master.width.saturating_sub(4)),
     )
+}
+
+fn paint_parity_action_card(
+    ui: &mut Ui<'_>,
+    layout: ParityActionLayout,
+    view: &catalogue::ParityDiscovery,
+    state: &NavListState,
+    items: &mut [ParityItem],
+) -> bool {
+    let ParityActionLayout { master, detail, .. } = layout;
+    let columns = {
+        let tags: Vec<&catalogue::TagRow> = items
+            .iter()
+            .filter_map(|item| match item {
+                ParityItem::Action { tag, .. } => Some(tag),
+                ParityItem::Decoration { .. } => None,
+            })
+            .collect();
+        if tags.is_empty() {
+            return false;
+        }
+        tag_columns(&tags, master.width.saturating_sub(4))
+    };
+    for item in items.iter_mut() {
+        if let ParityItem::Action {
+            columns: row_columns,
+            ..
+        } = item
+        {
+            *row_columns = columns;
+        }
+    }
+    parity_nav_list().draw(ui, master, state, items);
+
+    let rows_focused = ui.state(ROWS).contains(StateFlags::FOCUSED);
+    let selected = if rows_focused {
+        state.cursor().and_then(|key| {
+            items
+                .iter()
+                .find(|item| parity_item_key(item) == key && parity_item_action(item).is_some())
+        })
+    } else {
+        None
+    };
+    let title = if rows_focused {
+        selected.and_then(|item| match item {
+            ParityItem::Action { tag, .. } => Some(tag.title.as_str()),
+            ParityItem::Decoration { .. } => None,
+        })
+    } else {
+        view.lines.iter().find_map(|line| match line {
+            catalogue::FinderLine::Row(tag) if tag.selected => Some(tag.title.as_str()),
+            _ => None,
+        })
+    };
+    let mut live_view = view.clone();
+    if rows_focused {
+        if let Some(ParityItem::Action { action, tag, .. }) = selected {
+            live_view = parity_action_preview(view, action, tag);
+        } else {
+            live_view.preview.clear();
+            live_view.preview_meta.clear();
+        }
+    }
+    if rows_focused {
+        let preview_rows: Vec<&catalogue::TagRow> = items
+            .iter()
+            .filter_map(|item| match item {
+                ParityItem::Action { tag, .. } => Some(tag),
+                ParityItem::Decoration { .. } => None,
+            })
+            .collect();
+        paint_tag_preview(ui, detail, &live_view, &preview_rows, title);
+    } else {
+        let passive_rows: Vec<&catalogue::TagRow> = view
+            .lines
+            .iter()
+            .filter_map(|line| match line {
+                catalogue::FinderLine::Row(tag) => Some(tag),
+                _ => None,
+            })
+            .collect();
+        paint_tag_preview(ui, detail, view, &passive_rows, title);
+    }
+    true
+}
+
+fn parity_action_preview(
+    source: &catalogue::ParityDiscovery,
+    action: &Action,
+    tag: &catalogue::TagRow,
+) -> catalogue::ParityDiscovery {
+    let mut view = source.clone();
+    if action.id == "idea.clean" {
+        return view;
+    }
+    let command = if action.command.is_empty() {
+        "no command"
+    } else {
+        action.command.as_str()
+    };
+    let workdir = if action.workdir.is_empty() {
+        action.target.as_str()
+    } else {
+        action.workdir.as_str()
+    };
+    let risk_tone = if action.risk == crate::domain::action::Risk::Broad
+        || !matches!(action.availability, Availability::Ready)
+    {
+        catalogue::PreviewTone::Danger
+    } else {
+        catalogue::PreviewTone::Meta
+    };
+    view.preview = vec![
+        catalogue::PreviewLine {
+            label: "Runs",
+            value: command.to_owned(),
+            tone: catalogue::PreviewTone::Secondary,
+            wraps: true,
+        },
+        catalogue::PreviewLine {
+            label: "In",
+            value: workdir.to_owned(),
+            tone: catalogue::PreviewTone::Text,
+            wraps: false,
+        },
+        catalogue::PreviewLine {
+            label: "Scope",
+            value: scope_text(action),
+            tone: catalogue::PreviewTone::Text,
+            wraps: false,
+        },
+        catalogue::PreviewLine {
+            label: "Why",
+            value: action.reason.clone(),
+            tone: catalogue::PreviewTone::Text,
+            wraps: true,
+        },
+        catalogue::PreviewLine {
+            label: "Risk",
+            value: risk_text(action),
+            tone: risk_tone,
+            wraps: true,
+        },
+    ];
+    view.preview_meta = format!("{} · {}", tag.kind, tag.scope_word);
+    view
 }
 
 fn paint_parity_card(
@@ -1661,7 +2089,10 @@ mod tests {
     }
     impl App for HomeFixture {
         fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-            let (response, action) = self.home.update(&self.world, cx);
+            let viewport = cx.viewport();
+            let (response, action) =
+                self.home
+                    .update(&self.world, cx, Some(viewport), viewport.width);
             if action.is_some() {
                 self.invoked = action;
             }
