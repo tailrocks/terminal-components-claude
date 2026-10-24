@@ -2804,6 +2804,29 @@ impl TableProApp {
         response
     }
 
+    fn update_history_focus(cx: &mut Cx<'_>) -> Response<()> {
+        let mut saw_focus_lifecycle = false;
+        let mut saw_other = false;
+        for intent in cx.intents(HISTORY_LIST) {
+            match intent {
+                Intent::FocusIn { .. } | Intent::FocusOut { .. } => {
+                    saw_focus_lifecycle = true;
+                }
+                _ => saw_other = true,
+            }
+        }
+        if saw_other {
+            cx.diagnostic(termrock::Diagnostic::UndeliveredIntent {
+                owner: HISTORY_LIST,
+            });
+        }
+        if saw_focus_lifecycle {
+            Response::consumed()
+        } else {
+            Response::ignored()
+        }
+    }
+
     fn update_tab_controls(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut response = Response::ignored();
         let active_key = self.workbench.active_key();
@@ -8678,6 +8701,7 @@ impl App for TableProApp {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         self.query_panes.get_mut().sync(&self.workbench);
         let mut response = self.roll_connection_status(cx);
+        response |= Self::update_history_focus(cx);
         // A status tick must not run the grid. Its first update steals focus
         // onto the result row, and the baseline frame keeps the editor focused.
         if cx.update_cause() == UpdateCause::Tick {
