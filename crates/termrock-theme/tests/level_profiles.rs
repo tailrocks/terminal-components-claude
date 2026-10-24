@@ -451,6 +451,326 @@ fn ordinary_overrides_keep_family_variant_scope_and_instance_precedence() {
     assert_eq!(scoped.style.bg, Some(Color::Indexed(35)));
 }
 
+fn fallback_ownership_theme(level: ColorLevel, profile: StylePatch) -> Theme {
+    Theme::junie()
+        .define_family(FAMILY, |recipe| {
+            recipe.default_variant(Variant::PRIMARY);
+        })
+        .define_variant(FAMILY, Variant::PRIMARY, |recipe| {
+            recipe.part(Part::CONTAINER).base(
+                StylePatch::new()
+                    .set_fg(Role::Accent)
+                    .remove(Modifier::BOLD),
+            );
+        })
+        .define_variant_for_level(level, FAMILY, Variant::PRIMARY, |recipe| {
+            recipe.part(Part::CONTAINER).base(profile);
+        })
+        .for_level(level)
+}
+
+#[test]
+fn fallback_ownership_tracks_eligible_profile_set_clear_and_modifier_channels() {
+    let profile = StylePatch::new()
+        .set_fg(Role::Custom(Color::Indexed(201)))
+        .add(Modifier::BOLD);
+    let theme = fallback_ownership_theme(ColorLevel::Ansi256, profile);
+    let defaults = StyleDefaults::new(
+        StylePatch::new()
+            .set_fg(Role::Fg(termrock_theme::FgStep::Muted))
+            .remove(Modifier::BOLD),
+    );
+    let resolved = termrock_theme::resolve::bind_defaults(
+        &theme,
+        (FAMILY, Variant::DEFAULT, Part::CONTAINER),
+        StateFlags::empty(),
+        &[],
+        Surface::Canvas,
+        defaults,
+        None,
+    );
+    let old_api = termrock_theme::resolve::bind_defaults_with_explicit(
+        &theme,
+        (FAMILY, Variant::DEFAULT, Part::CONTAINER),
+        StateFlags::empty(),
+        &[],
+        Surface::Canvas,
+        defaults,
+        None,
+    );
+    let (with_ownership, ownership) =
+        termrock_theme::resolve::bind_defaults_with_fallback_ownership(
+            &theme,
+            (FAMILY, Variant::DEFAULT, Part::CONTAINER),
+            StateFlags::empty(),
+            &[],
+            Surface::Canvas,
+            defaults,
+            None,
+        );
+
+    assert_eq!(with_ownership, resolved);
+    assert_eq!(old_api.resolved, resolved);
+    assert_eq!(old_api.explicit, StylePatch::new());
+    assert_eq!(ownership.fg, Slot::Set(Role::Custom(Color::Indexed(201))));
+    assert!(ownership.add.contains(Modifier::BOLD));
+
+    let clear_theme = fallback_ownership_theme(
+        ColorLevel::Ansi256,
+        StylePatch::new().clear_fg().remove(Modifier::BOLD),
+    );
+    let (_, clear_ownership) = termrock_theme::resolve::bind_defaults_with_fallback_ownership(
+        &clear_theme,
+        (FAMILY, Variant::DEFAULT, Part::CONTAINER),
+        StateFlags::empty(),
+        &[],
+        Surface::Canvas,
+        defaults,
+        None,
+    );
+    assert_eq!(clear_ownership.fg, Slot::Clear);
+    assert!(clear_ownership.remove.contains(Modifier::BOLD));
+
+    let same_valued_theme = fallback_ownership_theme(
+        ColorLevel::Ansi256,
+        StylePatch::new()
+            .set_fg(Role::Accent)
+            .remove(Modifier::BOLD),
+    );
+    let (_, same_ownership) = termrock_theme::resolve::bind_defaults_with_fallback_ownership(
+        &same_valued_theme,
+        (FAMILY, Variant::DEFAULT, Part::CONTAINER),
+        StateFlags::empty(),
+        &[],
+        Surface::Canvas,
+        StyleDefaults::default(),
+        None,
+    );
+    assert_eq!(same_ownership.fg, Slot::Set(Role::Accent));
+    assert!(same_ownership.remove.contains(Modifier::BOLD));
+}
+
+#[test]
+fn fallback_ownership_obeys_explicit_precedence_and_mono_targets() {
+    static OVERLAY_RULES: [OverlayRule; 1] = [(
+        FAMILY,
+        Variant::PRIMARY,
+        Part::CONTAINER,
+        StateFlags::empty(),
+        StylePatch::new()
+            .set_fg(Role::Custom(Color::Indexed(204)))
+            .remove(Modifier::BOLD),
+    )];
+    const MONO_RULES: [MonoRule; 1] = [(
+        Part::CONTAINER,
+        StateFlags::empty(),
+        StylePatch::new()
+            .set_fg(Role::Custom(Color::Indexed(37)))
+            .remove(Modifier::BOLD),
+    )];
+
+    let theme = fallback_ownership_theme(
+        ColorLevel::Ansi256,
+        StylePatch::new()
+            .set_fg(Role::Custom(Color::Indexed(201)))
+            .add(Modifier::BOLD),
+    )
+    .override_variant(FAMILY, Variant::PRIMARY, |recipe| {
+        recipe
+            .part(Part::CONTAINER)
+            .base(StylePatch::new().set_fg(Role::Custom(Color::Indexed(203))));
+    });
+    let overlay = Overlay::new(&OVERLAY_RULES);
+    let local = StylePatch::new()
+        .set_fg(Role::Custom(Color::Indexed(205)))
+        .add(Modifier::BOLD);
+    let (_, ownership) = termrock_theme::resolve::bind_defaults_with_fallback_ownership(
+        &theme,
+        (FAMILY, Variant::DEFAULT, Part::CONTAINER),
+        StateFlags::empty(),
+        &[overlay],
+        Surface::Canvas,
+        StyleDefaults::default(),
+        Some(&local),
+    );
+    assert_eq!(ownership.fg, Slot::Set(Role::Custom(Color::Indexed(205))));
+    assert!(ownership.add.contains(Modifier::BOLD));
+    assert!(!ownership.remove.contains(Modifier::BOLD));
+
+    let mono_theme = fallback_ownership_theme(
+        ColorLevel::Mono,
+        StylePatch::new()
+            .set_fg(Role::Custom(Color::White))
+            .add(Modifier::BOLD),
+    );
+    let defaults = StyleDefaults::default().mono(&MONO_RULES);
+    let (_, mono_ownership) = termrock_theme::resolve::bind_defaults_with_fallback_ownership(
+        &mono_theme,
+        (FAMILY, Variant::DEFAULT, Part::CONTAINER),
+        StateFlags::empty(),
+        &[],
+        Surface::Canvas,
+        defaults,
+        None,
+    );
+    assert_eq!(
+        mono_ownership.fg,
+        Slot::Set(Role::Custom(Color::Indexed(37)))
+    );
+    assert!(mono_ownership.add.is_empty());
+    assert!(mono_ownership.remove.contains(Modifier::BOLD));
+}
+
+#[test]
+fn fallback_ownership_only_reports_current_surface_and_still_eligible_channels() {
+    let theme = Theme::junie()
+        .define_family(FAMILY, |recipe| {
+            recipe.default_variant(Variant::PRIMARY);
+        })
+        .define_variant(FAMILY, Variant::PRIMARY, |recipe| {
+            recipe.part(Part::CONTAINER).base(
+                StylePatch::new()
+                    .set_fg(Role::Accent)
+                    .remove(Modifier::BOLD),
+            );
+        })
+        .define_variant_for_level_on_surface(
+            ColorLevel::Ansi256,
+            FAMILY,
+            Variant::PRIMARY,
+            Surface::Surface,
+            |recipe| {
+                recipe.part(Part::CONTAINER).base(
+                    StylePatch::new()
+                        .set_fg(Role::Custom(Color::Indexed(201)))
+                        .add(Modifier::BOLD),
+                );
+            },
+        )
+        .for_level(ColorLevel::Ansi256);
+    let (_, canvas) = termrock_theme::resolve::bind_defaults_with_fallback_ownership(
+        &theme,
+        (FAMILY, Variant::DEFAULT, Part::CONTAINER),
+        StateFlags::empty(),
+        &[],
+        Surface::Canvas,
+        StyleDefaults::default(),
+        None,
+    );
+    assert_eq!(canvas, StylePatch::new());
+    let (_, matching_surface) = termrock_theme::resolve::bind_defaults_with_fallback_ownership(
+        &theme,
+        (FAMILY, Variant::DEFAULT, Part::CONTAINER),
+        StateFlags::empty(),
+        &[],
+        Surface::Surface,
+        StyleDefaults::default(),
+        None,
+    );
+    assert_eq!(
+        matching_surface.fg,
+        Slot::Set(Role::Custom(Color::Indexed(201)))
+    );
+    assert!(matching_surface.add.contains(Modifier::BOLD));
+
+    let changed_recipe = theme.define_variant(FAMILY, Variant::PRIMARY, |recipe| {
+        recipe
+            .part(Part::CONTAINER)
+            .base(StylePatch::new().set_fg(Role::Danger));
+    });
+    let (_, still_eligible) = termrock_theme::resolve::bind_defaults_with_fallback_ownership(
+        &changed_recipe,
+        (FAMILY, Variant::DEFAULT, Part::CONTAINER),
+        StateFlags::empty(),
+        &[],
+        Surface::Surface,
+        StyleDefaults::default(),
+        None,
+    );
+    assert_eq!(still_eligible.fg, Slot::Inherit);
+    assert!(
+        still_eligible.add.contains(Modifier::BOLD),
+        "an unrelated modifier profile remains eligible after foreground source changes"
+    );
+
+    let state_profile = Theme::junie()
+        .define_family(FAMILY, |recipe| {
+            recipe.default_variant(Variant::PRIMARY);
+        })
+        .define_variant(FAMILY, Variant::PRIMARY, |recipe| {
+            recipe
+                .part(Part::CONTAINER)
+                .base(StylePatch::new().set_fg(Role::Accent));
+        })
+        .define_variant_for_level(ColorLevel::Ansi256, FAMILY, Variant::PRIMARY, |recipe| {
+            recipe.part(Part::CONTAINER).when(
+                StateFlags::PRESSED,
+                StylePatch::new().set_fg(Role::Custom(Color::Indexed(199))),
+            );
+        })
+        .for_level(ColorLevel::Ansi256);
+    let (_, idle_state) = termrock_theme::resolve::bind_defaults_with_fallback_ownership(
+        &state_profile,
+        (FAMILY, Variant::DEFAULT, Part::CONTAINER),
+        StateFlags::empty(),
+        &[],
+        Surface::Canvas,
+        StyleDefaults::default(),
+        None,
+    );
+    assert_eq!(idle_state, StylePatch::new());
+    let (_, pressed_state) = termrock_theme::resolve::bind_defaults_with_fallback_ownership(
+        &state_profile,
+        (FAMILY, Variant::DEFAULT, Part::CONTAINER),
+        StateFlags::PRESSED,
+        &[],
+        Surface::Canvas,
+        StyleDefaults::default(),
+        None,
+    );
+    assert_eq!(
+        pressed_state.fg,
+        Slot::Set(Role::Custom(Color::Indexed(199)))
+    );
+
+    let other = Family::custom("profile_contract.other_owner");
+    let scoped_theme = Theme::junie()
+        .define_family(FAMILY, |recipe| {
+            recipe.default_variant(Variant::PRIMARY);
+        })
+        .define_variant(FAMILY, Variant::PRIMARY, |_| {})
+        .define_family(other, |recipe| {
+            recipe.default_variant(Variant::PRIMARY);
+        })
+        .define_variant(other, Variant::PRIMARY, |_| {})
+        .define_variant_for_level(ColorLevel::Ansi256, other, Variant::SECONDARY, |recipe| {
+            recipe
+                .part(Part::CONTAINER)
+                .base(StylePatch::new().set_fg(Role::Custom(Color::Indexed(198))));
+        })
+        .for_level(ColorLevel::Ansi256);
+    let (_, wrong_family) = termrock_theme::resolve::bind_defaults_with_fallback_ownership(
+        &scoped_theme,
+        (FAMILY, Variant::DEFAULT, Part::CONTAINER),
+        StateFlags::empty(),
+        &[],
+        Surface::Canvas,
+        StyleDefaults::default(),
+        None,
+    );
+    assert_eq!(wrong_family, StylePatch::new());
+    let (_, wrong_variant) = termrock_theme::resolve::bind_defaults_with_fallback_ownership(
+        &scoped_theme,
+        (other, Variant::DEFAULT, Part::CONTAINER),
+        StateFlags::empty(),
+        &[],
+        Surface::Canvas,
+        StyleDefaults::default(),
+        None,
+    );
+    assert_eq!(wrong_variant, StylePatch::new());
+}
+
 struct ProfileButton;
 
 impl App for ProfileButton {

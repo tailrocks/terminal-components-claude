@@ -571,6 +571,32 @@ impl<'f> Ui<'f> {
         )
     }
 
+    /// Resolve defaults and report which channels are owned by capability
+    /// profiles or authored overrides.
+    ///
+    /// Components can use the ownership patch to decide whether a semantic
+    /// fallback should apply while keeping the resolved paint, including
+    /// capability-specific role bindings, canonical.
+    pub fn style_defaults_with_fallback_ownership(
+        &self,
+        family: Family,
+        variant: Variant,
+        part: Part,
+        flags: StateFlags,
+        defaults: crate::theme::StyleDefaults<'_>,
+        local: Option<&crate::theme::StylePatch>,
+    ) -> (Resolved, crate::theme::StylePatch) {
+        crate::theme::resolve::bind_defaults_with_fallback_ownership(
+            self.theme,
+            (family, variant, part),
+            flags,
+            &self.core.overlays,
+            self.surface,
+            defaults,
+            local,
+        )
+    }
+
     pub fn paint_patch(&self, patch: &crate::theme::StylePatch) -> crate::theme::PaintStyle {
         crate::theme::resolve::bind(self.theme, *patch, None, self.surface).style
     }
