@@ -16,7 +16,7 @@ use crate::{
         plan_gate::PlanGate,
         review, snapshot,
     },
-    sim::{pg, world::World},
+    sim::{catalogue, pg, world::World},
 };
 use termrock::{
     ActionKey, AppShell, Binding, Brand, Chord, Color, Constraints, Cx, Dialog, FgStep,
@@ -1379,10 +1379,19 @@ impl App {
             },
             Destination::Monitor => self.open_dialog(dialogs::Intent::Monitor, cx),
             Destination::Clone => {
-                if let Some(github) = &self.world.github {
-                    let picker = ClonePicker::new(github);
-                    picker.open(cx);
-                    self.overlay = Some(Overlay::Clone(picker));
+                let action = catalogue::catalogue(&self.world)
+                    .into_iter()
+                    .find(|action| action.id == "gh.clone")
+                    .and_then(|action| catalogue::resolve_intent(&self.world, &action).ok())
+                    .filter(|action| action.intent_id() == Some("gh.clone"));
+                match (self.world.github.clone(), action) {
+                    (Some(github), Some(action)) => {
+                        let binding = dialogs::CloneBinding::of(&self.world);
+                        let picker = ClonePicker::new(&github, action, binding);
+                        picker.open(cx);
+                        self.overlay = Some(Overlay::Clone(picker));
+                    }
+                    _ => self.set_status("Clone target changed · review it again".to_owned()),
                 }
             }
         }
@@ -1610,6 +1619,12 @@ impl App {
                         dialogs::Event::Destination(destination) => {
                             self.destination(*destination, cx);
                         }
+                        dialogs::Event::OpenCloneOptions(request) => {
+                            self.open_dialog(dialogs::Intent::CloneOptions(request), cx);
+                        }
+                        dialogs::Event::ReturnToCloneReview(request) => {
+                            self.open_dialog(dialogs::Intent::CloneReview(request), cx);
+                        }
                     }
                 }
                 (response, closed)
@@ -1617,8 +1632,13 @@ impl App {
             Overlay::Clone(picker) => {
                 let (response, chosen, closed) = picker.update(cx);
                 let done = chosen.is_some() || closed;
-                if let Some((repo, login)) = chosen {
-                    self.open_dialog(dialogs::Intent::Clone { repo, login }, cx);
+                if let Some((repo, login, action, github, binding)) = chosen {
+                    let request = dialogs::CloneRequest::new(repo, login, action, github, binding);
+                    if request.target_is_current(&self.world) {
+                        self.open_dialog(dialogs::Intent::CloneReview(request), cx);
+                    } else {
+                        self.set_status("Clone target changed · review it again".to_owned());
+                    }
                 }
                 (response, done)
             }

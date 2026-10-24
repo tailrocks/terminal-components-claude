@@ -1,6 +1,6 @@
-use super::{App, Motion, Route, Scenario};
+use super::{App, Motion, Route, Scenario, dialogs};
 use crate::domain::mise::Trust;
-use termrock::{FeedbackClock, KeyCode, SimulationMoment, Theme};
+use termrock::{Dialog, FeedbackClock, KeyCode, SimulationMoment, Theme};
 use termrock_test_support::Harness;
 fn fixture(
     scenario: Scenario,
@@ -903,6 +903,219 @@ fn clone_flow_collects_argument_then_reviews() {
         "{}",
         h.text()
     );
+}
+
+#[test]
+fn clone_destination_validation_keeps_literal_data_and_rejects_line_controls() {
+    let literal = r#" spaced/with "quotes" & café "#;
+    assert!(dialogs::validate_clone_destination(literal).is_ok());
+    assert_eq!(
+        dialogs::validate_clone_destination("folder\0name")
+            .err()
+            .map(|error| error.to_string()),
+        Some("Destination cannot contain control characters".into())
+    );
+    assert_eq!(
+        dialogs::validate_clone_destination("folder\nname")
+            .err()
+            .map(|error| error.to_string()),
+        Some("Destination cannot contain control characters".into())
+    );
+}
+
+fn open_clone_options(h: &mut Harness<App>) {
+    let _ = h.type_str("clone");
+    let _ = h.key(KeyCode::Enter);
+    assert!(h.text().contains("Clone which repository?"), "{}", h.text());
+    let _ = h.key(KeyCode::Enter);
+    assert!(h.text().contains("Clone pave-io/pave?"), "{}", h.text());
+    assert!(h.text().contains("ssh"), "{}", h.text());
+    let _ = h.key(KeyCode::Right);
+    let _ = h.key(KeyCode::Right);
+    let _ = h.key(KeyCode::Enter);
+    assert!(h.text().contains("Edit clone options"), "{}", h.text());
+    assert_eq!(h.focus(), Some(dialogs::CLONE_DESTINATION));
+    assert!(h.text().contains("~/work/pave/pave"), "{}", h.text());
+    assert!(h.area_of(dialogs::CLONE_PROTOCOL).is_some());
+    assert!(h.area_of(dialogs::CLONE_DESTINATION).is_some());
+}
+
+#[test]
+fn clone_options_fields_fit_the_short_supported_layout() {
+    let mut h = fixture(Scenario::RustDirty, Motion::Paused, 4_000, 80, 24);
+    open_clone_options(&mut h);
+    let text = h.text();
+    assert!(text.contains("Protocol"), "{text}");
+    assert!(text.contains("Destination"), "{text}");
+    assert_eq!(h.focus(), Some(dialogs::CLONE_DESTINATION));
+    let cancel = Dialog::new(dialogs::DIALOG).action_id(0);
+    let _ = h.click_id(cancel);
+    assert!(h.text().contains("Clone pave-io/pave?"), "{}", h.text());
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn clone_options_propagate_literal_values_and_cancel_only_the_draft() {
+    let mut h = fixture(Scenario::RustDirty, Motion::Paused, 4_000, 120, 40);
+    let before_revision = h.app().world.effect_revision;
+    let before_activities = h.app().world.activities.len();
+    open_clone_options(&mut h);
+
+    let _ = h.click_id(dialogs::CLONE_PROTOCOL);
+    let _ = h.key(KeyCode::Down);
+    let _ = h.key(KeyCode::Enter);
+    let _ = h.click_id(dialogs::CLONE_DESTINATION);
+    let _ = h.ctrl('l');
+    let destination = r#"release & notes "café""#;
+    let _ = h.paste(destination);
+    let review = Dialog::new(dialogs::DIALOG).action_id(1);
+    let _ = h.click_id(review);
+
+    let bound = format!("{}/{}", h.app().world.cwd, destination);
+    let text = h.text();
+    assert!(text.contains("Protocol"), "{text}");
+    assert!(text.contains("https"), "{text}");
+    assert!(text.contains("Destination"), "{text}");
+    assert!(text.contains("release & notes"), "{text}");
+
+    // A later edit is a draft until Review accepts it.
+    let _ = h.key(KeyCode::Right);
+    let _ = h.key(KeyCode::Right);
+    let _ = h.key(KeyCode::Enter);
+    assert!(h.text().contains("release & notes"), "{}", h.text());
+    let _ = h.click_id(dialogs::CLONE_DESTINATION);
+    let _ = h.ctrl('l');
+    let _ = h.paste("discard this draft");
+    let cancel = Dialog::new(dialogs::DIALOG).action_id(0);
+    let _ = h.click_id(cancel);
+    let text = h.text();
+    assert!(text.contains("https"), "{text}");
+    assert!(text.contains("release & notes"), "{text}");
+    assert!(!text.contains("discard this draft"), "{text}");
+
+    let confirm = Dialog::new(dialogs::DIALOG).action_id(1);
+    let _ = h.click_id(confirm);
+    let expected =
+        format!("Would clone pave-io/pave via https to {bound} · simulated, nothing executed");
+    assert_eq!(h.app().status.as_deref(), Some(expected.as_str()));
+    assert_eq!(h.app().world.effect_revision, before_revision);
+    assert_eq!(h.app().world.activities.len(), before_activities);
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn clone_options_reject_empty_destination_and_keep_the_field_focused() {
+    let mut h = fixture(Scenario::RustDirty, Motion::Paused, 4_000, 120, 40);
+    let before_revision = h.app().world.effect_revision;
+    let before_activities = h.app().world.activities.len();
+    open_clone_options(&mut h);
+    let _ = h.ctrl('l');
+    let _ = h.key(KeyCode::Backspace);
+    let review = Dialog::new(dialogs::DIALOG).action_id(1);
+    let _ = h.click_id(review);
+
+    let text = h.text();
+    assert!(text.contains("Enter a destination"), "{text}");
+    assert_eq!(h.focus(), Some(dialogs::CLONE_DESTINATION));
+    assert!(matches!(
+        h.app().overlay.as_ref(),
+        Some(super::Overlay::Dialog(_))
+    ));
+    assert_eq!(h.app().world.effect_revision, before_revision);
+    assert_eq!(h.app().world.activities.len(), before_activities);
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn clone_options_revalidate_repo_login_cwd_and_action_before_review() {
+    for stale in ["repo", "login", "cwd", "action"] {
+        let mut h = fixture(Scenario::RustDirty, Motion::Paused, 4_000, 120, 40);
+        let before_revision = h.app().world.effect_revision;
+        let before_activities = h.app().world.activities.len();
+        open_clone_options(&mut h);
+        match stale {
+            "repo" => {
+                if let Some(github) = &mut h.app_mut().world.github {
+                    github.repos.retain(|repo| repo.slug() != "pave-io/pave");
+                }
+            }
+            "login" => {
+                if let Some(github) = &mut h.app_mut().world.github {
+                    github.login.push_str("-changed");
+                }
+            }
+            "cwd" => h.app_mut().world.cwd.push_str("/changed"),
+            "action" => h.app_mut().world.discovery.clear(),
+            _ => {}
+        }
+        let review = Dialog::new(dialogs::DIALOG).action_id(1);
+        let _ = h.click_id(review);
+        assert!(
+            h.app()
+                .status
+                .as_deref()
+                .is_some_and(|status| status.contains("Clone target changed")),
+            "stale {stale}: {}",
+            h.text()
+        );
+        assert_eq!(h.app().world.effect_revision, before_revision, "{stale}");
+        assert_eq!(h.app().world.activities.len(), before_activities, "{stale}");
+        assert!(h.diagnostics().is_empty(), "{stale}: {:?}", h.diagnostics());
+    }
+}
+
+#[test]
+fn clone_picker_rejects_context_changed_before_repository_choice() {
+    let mut h = fixture(Scenario::RustDirty, Motion::Paused, 4_000, 120, 40);
+    let before_revision = h.app().world.effect_revision;
+    let before_activities = h.app().world.activities.len();
+    let _ = h.type_str("clone");
+    let _ = h.key(KeyCode::Enter);
+    assert!(h.text().contains("Clone which repository?"), "{}", h.text());
+
+    h.app_mut().world.host.env = crate::domain::host::Environment::Production;
+    let _ = h.key(KeyCode::Enter);
+
+    assert!(
+        h.app()
+            .status
+            .as_deref()
+            .is_some_and(|status| status.contains("Clone target changed")),
+        "{}",
+        h.text()
+    );
+    assert!(!h.text().contains("Clone pave-io/pave?"), "{}", h.text());
+    assert_eq!(h.app().world.effect_revision, before_revision);
+    assert_eq!(h.app().world.activities.len(), before_activities);
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+}
+
+#[test]
+fn clone_confirmation_revalidates_accepted_snapshot() {
+    let mut h = fixture(Scenario::RustDirty, Motion::Paused, 4_000, 120, 40);
+    let before_revision = h.app().world.effect_revision;
+    let before_activities = h.app().world.activities.len();
+    open_clone_options(&mut h);
+    let review = Dialog::new(dialogs::DIALOG).action_id(1);
+    let _ = h.click_id(review);
+    assert!(h.text().contains("Clone pave-io/pave?"), "{}", h.text());
+
+    if let Some(github) = &mut h.app_mut().world.github {
+        github.login.push_str("-changed");
+    }
+    let confirm = Dialog::new(dialogs::DIALOG).action_id(1);
+    let _ = h.click_id(confirm);
+    assert!(
+        h.app()
+            .status
+            .as_deref()
+            .is_some_and(|status| status.contains("Clone target changed")),
+        "{}",
+        h.text()
+    );
+    assert_eq!(h.app().world.effect_revision, before_revision);
+    assert_eq!(h.app().world.activities.len(), before_activities);
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
 }
 
 #[test]

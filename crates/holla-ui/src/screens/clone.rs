@@ -1,5 +1,14 @@
-use crate::domain::github::{GhRepo, GhState};
+use crate::{
+    domain::{
+        action::Action,
+        github::{GhRepo, GhState},
+    },
+    screens::dialogs::CloneBinding,
+};
 use termrock::{Cx, Id, Item, ItemKey, Picker, PickerAction, PickerState, Response, Ui};
+
+pub(crate) type CloneSelection = (GhRepo, String, Action, GhState, CloneBinding);
+
 const PICKER: Id = Id::root("clone.picker");
 fn picker<'s>(filtering: bool) -> Picker<'s, Item<'s>> {
     let picker = Picker::new(PICKER).title("Clone which repository?");
@@ -10,14 +19,20 @@ fn picker<'s>(filtering: bool) -> Picker<'s, Item<'s>> {
     }
 }
 pub(crate) struct ClonePicker {
+    action: Action,
+    github: GhState,
+    binding: CloneBinding,
     login: String,
     repos: Vec<GhRepo>,
     labels: Vec<String>,
     state: PickerState,
 }
 impl ClonePicker {
-    pub(crate) fn new(github: &GhState) -> Self {
+    pub(crate) fn new(github: &GhState, action: Action, binding: CloneBinding) -> Self {
         Self {
+            action,
+            github: github.clone(),
+            binding,
             login: github.login.clone(),
             repos: github.repos.clone(),
             labels: github.repos.iter().map(GhRepo::slug).collect(),
@@ -42,7 +57,7 @@ impl ClonePicker {
     pub(crate) fn update(
         &mut self,
         cx: &mut Cx<'_>,
-    ) -> (Response<()>, Option<(GhRepo, String)>, bool) {
+    ) -> (Response<()>, Option<CloneSelection>, bool) {
         let mut state = std::mem::take(&mut self.state);
         let mut response = picker(true).update(cx, &mut state, &self.items());
         self.state = state;
@@ -52,7 +67,15 @@ impl ClonePicker {
                 .iter()
                 .zip(&self.labels)
                 .find(|(_, label)| ItemKey::text(label) == key)
-                .map(|(repo, _)| (repo.clone(), self.login.clone())),
+                .map(|(repo, _)| {
+                    (
+                        repo.clone(),
+                        self.login.clone(),
+                        self.action.clone(),
+                        self.github.clone(),
+                        self.binding.clone(),
+                    )
+                }),
             _ => None,
         };
         let closed = !cx.is_open(PICKER);

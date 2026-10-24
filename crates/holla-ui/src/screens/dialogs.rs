@@ -1,20 +1,189 @@
+use std::path::Path;
+
 use super::context::Context;
 use crate::dispatch::{self, Destination};
 use crate::domain::{
     action::{Action, Availability},
-    github::GhRepo,
+    github::{GhRepo, GhState},
+    host::{Environment, HostKind},
     ssh::SshHost,
 };
 use crate::sim::{catalogue, pg, world::World};
 use termrock::{
-    Action as UiAction, ActionKey, Cx, Dialog, DialogAction, DialogState, Id, Props, Rect,
-    Response, TextViewport, Ui, ViewportLine, ViewportState,
+    Action as UiAction, ActionKey, Cx, Dialog, DialogAction, DialogState, Field, FieldError, Id,
+    ItemKey, Props, Rect, Response, Select, SelectAction, SelectField, SelectState, TextInput,
+    TextInputState, TextViewport, Ui, ViewportLine, ViewportState,
 };
 
 pub(crate) const DIALOG: Id = Id::root("holla.dialog");
 const CODE: Id = Id::root("holla.dialog.code");
 const TERMINATE: ActionKey = ActionKey::application("holla.pg.terminate");
 const BROWSE_FILES: ActionKey = ActionKey::application("holla.folder-browser.browse");
+const EDIT_CLONE_OPTIONS: ActionKey = ActionKey::application("holla.clone.edit-options");
+pub(crate) const CLONE_PROTOCOL: Id = Id::root("holla.clone.protocol");
+pub(crate) const CLONE_DESTINATION: Id = Id::root("holla.clone.destination");
+const CLONE_PROTOCOLS: [&str; 2] = ["SSH", "HTTPS"];
+const EMPTY_DESTINATION: &str = "Enter a destination";
+const CONTROL_DESTINATION: &str = "Destination cannot contain control characters";
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum CloneProtocol {
+    Ssh,
+    Https,
+}
+impl CloneProtocol {
+    const fn label(self) -> &'static str {
+        match self {
+            Self::Ssh => "ssh",
+            Self::Https => "https",
+        }
+    }
+
+    const fn index(self) -> usize {
+        match self {
+            Self::Ssh => 0,
+            Self::Https => 1,
+        }
+    }
+}
+
+#[derive(Clone)]
+struct CloneOptions {
+    protocol: CloneProtocol,
+    destination: String,
+}
+
+#[derive(Clone, PartialEq, Eq)]
+pub(crate) struct CloneBinding {
+    host: String,
+    kind: HostKind,
+    environment: Environment,
+    cwd: String,
+    effect_revision: u64,
+}
+impl CloneBinding {
+    pub(crate) fn of(world: &World) -> Self {
+        Self {
+            host: world.host.name.clone(),
+            kind: world.host.kind,
+            environment: world.host.env,
+            cwd: world.cwd.clone(),
+            effect_revision: world.effect_revision,
+        }
+    }
+}
+
+#[derive(Clone)]
+pub(crate) struct CloneRequest {
+    action: Action,
+    repo: GhRepo,
+    github: GhState,
+    login: String,
+    cwd: String,
+    binding: CloneBinding,
+    options: CloneOptions,
+}
+impl CloneRequest {
+    pub(crate) fn new(
+        repo: GhRepo,
+        login: String,
+        action: Action,
+        github: GhState,
+        binding: CloneBinding,
+    ) -> Self {
+        let cwd = binding.cwd.clone();
+        let destination = format!("{cwd}/{}", repo.name);
+        Self {
+            action,
+            repo: repo.clone(),
+            github,
+            login,
+            cwd,
+            binding,
+            options: CloneOptions {
+                protocol: CloneProtocol::Ssh,
+                destination,
+            },
+        }
+    }
+
+    pub(crate) fn target_is_current(&self, world: &World) -> bool {
+        if self.binding != CloneBinding::of(world) || self.cwd != world.cwd {
+            return false;
+        }
+        let Ok(current_action) = catalogue::resolve_intent(world, &self.action) else {
+            return false;
+        };
+        current_action == self.action
+            && current_action.intent_id() == Some("gh.clone")
+            && world.github.as_ref() == Some(&self.github)
+            && self.github.login == self.login
+            && self.github.repos.iter().any(|repo| repo == &self.repo)
+    }
+}
+
+struct CloneExecution {
+    protocol: CloneProtocol,
+    repository: String,
+    destination: String,
+}
+impl CloneExecution {
+    fn from_request(request: &CloneRequest) -> Self {
+        Self {
+            protocol: request.options.protocol,
+            repository: request.repo.slug(),
+            destination: bind_destination(&request.cwd, &request.options.destination),
+        }
+    }
+}
+
+fn bind_destination(cwd: &str, destination: &str) -> String {
+    let cwd_prefix = format!("{}/", cwd.trim_end_matches('/'));
+    if Path::new(destination).is_absolute()
+        || destination == cwd
+        || destination.starts_with(&cwd_prefix)
+    {
+        destination.to_owned()
+    } else {
+        Path::new(cwd)
+            .join(destination)
+            .to_string_lossy()
+            .into_owned()
+    }
+}
+
+pub(crate) fn validate_clone_destination(value: &str) -> Result<(), FieldError> {
+    if value.trim().is_empty() {
+        return Err(FieldError::new(EMPTY_DESTINATION));
+    }
+    if value.chars().any(|character| {
+        matches!(
+            character,
+            '\0' | '\n' | '\r' | '\u{000B}' | '\u{000C}' | '\u{0085}' | '\u{2028}' | '\u{2029}'
+        )
+    }) {
+        return Err(FieldError::new(CONTROL_DESTINATION));
+    }
+    Ok(())
+}
+
+fn destination_error_label(error: &FieldError) -> &'static str {
+    if error.message.as_ref() == EMPTY_DESTINATION {
+        EMPTY_DESTINATION
+    } else {
+        CONTROL_DESTINATION
+    }
+}
+
+fn clone_destination_input<'a>(value: Option<&'a str>) -> TextInput<'a> {
+    let input = TextInput::new(CLONE_DESTINATION)
+        .placeholder("~/work/project/repository")
+        .validate(&validate_clone_destination);
+    match value {
+        Some(value) => input.value(value),
+        None => input,
+    }
+}
 
 pub(crate) enum Intent {
     About,
@@ -30,10 +199,8 @@ pub(crate) enum Intent {
         cancel: Option<pg::Review>,
         terminate: Option<pg::Review>,
     },
-    Clone {
-        repo: GhRepo,
-        login: String,
-    },
+    CloneReview(CloneRequest),
+    CloneOptions(CloneRequest),
     Alias(Action),
     TopFiles,
     CleanupReview,
@@ -48,6 +215,8 @@ pub(crate) enum Event {
     BrowseFiles,
     Quit,
     Destination(Box<Destination>),
+    OpenCloneOptions(CloneRequest),
+    ReturnToCloneReview(CloneRequest),
 }
 pub(crate) struct ProductDialog {
     intent: Intent,
@@ -61,6 +230,11 @@ pub(crate) struct ProductDialog {
     actions: Vec<UiAction<'static>>,
     dialog: DialogState,
     output: ViewportState,
+    clone_protocol: CloneProtocol,
+    clone_protocol_state: SelectState,
+    clone_destination: String,
+    clone_destination_state: TextInputState,
+    clone_destination_error: Option<&'static str>,
 }
 impl ProductDialog {
     #[expect(
@@ -68,6 +242,15 @@ impl ProductDialog {
         reason = "Pure intent-to-dialog projection keeps each pinned fact and action group together; effects live in the separate confirmation reducer"
     )]
     pub(crate) fn new(intent: Intent, world: &World) -> Self {
+        let (clone_protocol, clone_destination) = match &intent {
+            Intent::CloneReview(request) | Intent::CloneOptions(request) => (
+                request.options.protocol,
+                request.options.destination.clone(),
+            ),
+            _ => (CloneProtocol::Ssh, String::new()),
+        };
+        let mut clone_protocol_state = SelectState::default();
+        clone_protocol_state.set_value(Some(ItemKey::index(clone_protocol.index())));
         let mut view = Self {
             intent,
             context: Context::of(world),
@@ -80,6 +263,11 @@ impl ProductDialog {
             actions: vec![UiAction::quiet(ActionKey::CANCEL, "Close")],
             dialog: DialogState::default(),
             output: ViewportState::default(),
+            clone_protocol,
+            clone_protocol_state,
+            clone_destination,
+            clone_destination_state: TextInputState::default(),
+            clone_destination_error: None,
         };
         match &view.intent {
             Intent::About => {
@@ -291,25 +479,35 @@ impl ProductDialog {
                         .push(UiAction::new(TERMINATE, "Terminate (pg_terminate_backend)"));
                 }
             }
-            Intent::Clone { repo, login } => {
-                let slug = repo.slug();
-                let destination = format!("{}/{}", world.cwd, repo.name);
-                view.title = format!("Clone {slug}?");
+            Intent::CloneReview(request) => {
+                let execution = CloneExecution::from_request(request);
+                view.title = format!("Clone {}?", request.repo.slug());
                 view.facts = facts(&[
-                    ("Account", format!("github.com/{login}")),
-                    ("Owner", repo.owner.clone()),
-                    ("Protocol", "ssh".into()),
-                    ("Destination", destination.clone()),
-                    ("Primary branch", repo.default_branch.clone()),
+                    ("Account", format!("github.com/{}", request.login)),
+                    ("Owner", request.repo.owner.clone()),
+                    ("Protocol", execution.protocol.label().into()),
+                    ("Destination", execution.destination.clone()),
+                    ("Primary branch", request.repo.default_branch.clone()),
                     ("Fork", "no · direct clone".into()),
                     (
                         "Confirmation",
                         "asks once before creating the directory".into(),
                     ),
                 ]);
-                view.commands
-                    .push(format!("gh repo clone {slug} {destination}"));
                 view.actions.push(confirm_action("Clone (simulated)"));
+                view.actions
+                    .push(UiAction::new(EDIT_CLONE_OPTIONS, "Edit clone options"));
+            }
+            Intent::CloneOptions(_) => {
+                view.width = 76;
+                view.title = "Edit clone options".into();
+                view.description =
+                    "Only the transport and destination change; repository selection is retained."
+                        .into();
+                view.actions = vec![
+                    UiAction::quiet(ActionKey::CANCEL, "Cancel"),
+                    confirm_action("Review"),
+                ];
             }
             Intent::Alias(action) => {
                 view.width = 54;
@@ -439,17 +637,19 @@ impl ProductDialog {
         dialog
             .actions(&self.actions)
             .cancel(ActionKey::CANCEL)
-            .body_rows(
+            .body_rows(if matches!(self.intent, Intent::CloneOptions(_)) {
+                6
+            } else {
                 self.facts
                     .len()
                     .saturating_add(usize::from(!self.commands.is_empty()))
                     .saturating_add(self.commands.len().min(8))
-                    .min(usize::from(u16::MAX)) as u16,
-            )
+                    .min(usize::from(u16::MAX)) as u16
+            })
             .width(self.width)
     }
     pub(crate) fn is_editing(&self) -> bool {
-        self.dialog.is_editing()
+        self.dialog.is_editing() || self.clone_destination_state.is_editing()
     }
 
     pub(crate) fn is_folder_browser(&self) -> bool {
@@ -459,7 +659,9 @@ impl ProductDialog {
     pub(crate) fn open(&self, cx: &mut Cx<'_>) {
         let props = self.props();
         cx.open_layer(DIALOG, props.layer(cx));
-        cx.focus(if matches!(self.intent, Intent::Alias(_)) {
+        cx.focus(if matches!(self.intent, Intent::CloneOptions(_)) {
+            CLONE_DESTINATION
+        } else if matches!(self.intent, Intent::Alias(_)) {
             props.input_id()
         } else if matches!(
             self.intent,
@@ -474,17 +676,46 @@ impl ProductDialog {
         });
     }
     pub(crate) fn poll(&mut self, cx: &mut Cx<'_>) -> (Response<()>, Option<DialogAction>) {
+        let mut response = Response::ignored();
+        if matches!(self.intent, Intent::CloneOptions(_)) {
+            let protocol = Select::new(CLONE_PROTOCOL).update(
+                cx,
+                &mut self.clone_protocol_state,
+                &CLONE_PROTOCOLS,
+            );
+            if let Some(SelectAction::Chose(ItemKey::Index(index))) = protocol.action_ref() {
+                self.clone_protocol = if *index == 1 {
+                    CloneProtocol::Https
+                } else {
+                    CloneProtocol::Ssh
+                };
+            }
+            response |= protocol.erase();
+
+            let destination = clone_destination_input(None).update(
+                cx,
+                &mut self.clone_destination_state,
+                &mut self.clone_destination,
+            );
+            self.clone_destination_error = self
+                .clone_destination_state
+                .error()
+                .map(destination_error_label);
+            response |= destination.erase();
+        }
+
         let mut state = std::mem::take(&mut self.dialog);
-        let mut response = self.props().update(cx, &mut state);
+        let mut dialog_response = self.props().update(cx, &mut state);
         self.dialog = state;
+        let action = dialog_response.take_action();
         let lines: Vec<_> = self
             .commands
             .iter()
             .map(|line| ViewportLine::Plain(line))
             .collect();
         let output = code_viewport().update(cx, &mut self.output, &lines);
-        let action = response.take_action();
-        (response.erase() | output.erase(), action)
+        response |= dialog_response.erase() | output.erase();
+        (response, action)
     }
     pub(crate) fn update(
         &mut self,
@@ -494,7 +725,24 @@ impl ProductDialog {
         let (response, action) = self.poll(cx);
         let event = match action {
             Some(DialogAction::Action(ActionKey::CANCEL) | DialogAction::Dismissed(_)) => {
-                Some(Event::Close)
+                match &self.intent {
+                    Intent::CloneOptions(request) => {
+                        Some(Event::ReturnToCloneReview(request.clone()))
+                    }
+                    _ => Some(Event::Close),
+                }
+            }
+            Some(DialogAction::Action(EDIT_CLONE_OPTIONS)) => match &self.intent {
+                Intent::CloneReview(request) if request.target_is_current(world) => {
+                    Some(Event::OpenCloneOptions(request.clone()))
+                }
+                Intent::CloneReview(_) => Some(notice("Clone target changed · review it again")),
+                _ => Some(Event::Close),
+            },
+            Some(DialogAction::Action(ActionKey::CONFIRM))
+                if matches!(self.intent, Intent::CloneOptions(_)) =>
+            {
+                self.accept_clone_options(world, cx)
             }
             Some(DialogAction::Action(key)) => Some(self.confirm(world, key)),
             None => None,
@@ -507,6 +755,26 @@ impl ProductDialog {
         let _ = confirm_action("Confirm");
         (response, event)
     }
+    fn accept_clone_options(&mut self, world: &World, cx: &mut Cx<'_>) -> Option<Event> {
+        let Intent::CloneOptions(request) = &self.intent else {
+            return Some(Event::Close);
+        };
+        if !request.target_is_current(world) {
+            return Some(notice("Clone target changed · review it again"));
+        }
+        if let Err(error) = validate_clone_destination(&self.clone_destination) {
+            self.clone_destination_error = Some(destination_error_label(&error));
+            cx.focus(CLONE_DESTINATION);
+            return None;
+        }
+        let mut accepted = request.clone();
+        accepted.options = CloneOptions {
+            protocol: self.clone_protocol,
+            destination: self.clone_destination.clone(),
+        };
+        Some(Event::ReturnToCloneReview(accepted))
+    }
+
     fn confirm(&mut self, world: &mut World, key: ActionKey) -> Event {
         if self.context != Context::of(world) {
             return notice("Action context changed · review it again");
@@ -570,18 +838,19 @@ impl ProductDialog {
                     None => notice("Session review already consumed"),
                 }
             }
-            Intent::Clone { repo, login } => {
-                if world.github.as_ref().is_some_and(|gh| {
-                    gh.login == *login && gh.repos.iter().any(|current| current == repo)
-                }) {
-                    notice(format!(
-                        "Would clone {} · simulated, nothing executed",
-                        repo.slug()
-                    ))
-                } else {
-                    notice("Clone target changed · review it again")
+            Intent::CloneReview(request) if key == ActionKey::CONFIRM => {
+                if !request.target_is_current(world) {
+                    return notice("Clone target changed · review it again");
                 }
+                let execution = CloneExecution::from_request(request);
+                notice(format!(
+                    "Would clone {} via {} to {} · simulated, nothing executed",
+                    execution.repository,
+                    execution.protocol.label(),
+                    execution.destination
+                ))
             }
+            Intent::CloneReview(_) | Intent::CloneOptions(_) => Event::Close,
             Intent::Alias(action) => {
                 match world.memory.set_alias(self.dialog.draft(), &action.command) {
                     Ok(()) => notice(format!(
@@ -613,16 +882,46 @@ impl ProductDialog {
         let _ = confirm_action("Confirm");
         ui.layer(DIALOG, |ui, area| {
             self.props().draw(ui, area, &self.dialog, |ui, body| {
-                let facts: Vec<_> = self
-                    .facts
-                    .iter()
-                    .map(|(label, value)| (label.as_str(), value.as_str()))
-                    .collect();
-                let height = self.facts.len().min(usize::from(u16::MAX)) as u16;
-                Props::new(&facts).draw(
-                    ui,
-                    Rect::new(body.x, body.y, body.width, body.height.min(height)),
-                );
+                let height = if matches!(self.intent, Intent::CloneOptions(_)) {
+                    6
+                } else {
+                    self.facts.len().min(usize::from(u16::MAX)) as u16
+                };
+                if matches!(self.intent, Intent::CloneOptions(_)) {
+                    let protocol = SelectField::new(Select::new(CLONE_PROTOCOL), &CLONE_PROTOCOLS);
+                    let _ = Field::new("Protocol", protocol)
+                        .required(true)
+                        .plain(true)
+                        .draw(
+                            ui,
+                            Rect::new(body.x, body.y, body.width, 3),
+                            &self.clone_protocol_state,
+                        );
+                    let destination_y = body.y.saturating_add(3);
+                    let _ = Field::new(
+                        "Destination",
+                        clone_destination_input(Some(&self.clone_destination)),
+                    )
+                    .required(true)
+                    .plain(true)
+                    .help("Relative destinations are based at the captured working directory")
+                    .error(self.clone_destination_error)
+                    .draw(
+                        ui,
+                        Rect::new(body.x, destination_y, body.width, 3),
+                        &self.clone_destination_state,
+                    );
+                } else {
+                    let facts: Vec<_> = self
+                        .facts
+                        .iter()
+                        .map(|(label, value)| (label.as_str(), value.as_str()))
+                        .collect();
+                    Props::new(&facts).draw(
+                        ui,
+                        Rect::new(body.x, body.y, body.width, body.height.min(height)),
+                    );
+                }
                 if !self.commands.is_empty() {
                     let lines: Vec<_> = self
                         .commands
