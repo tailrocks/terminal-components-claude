@@ -68,6 +68,65 @@ const SETTINGS_AGENTS: termrock::feedback::SettingsAgents<'static> =
         SETTINGS_AGENT_NOTES,
     );
 
+const SETTINGS_MOUNTS_WIDE: [termrock::feedback::SettingsMount<'static>; 3] = [
+    termrock::feedback::SettingsMount {
+        path: "/home/agent/.gitconfig",
+        scope: "global",
+        mode: "ro",
+        isolation: "shared",
+        kind: Some("host"),
+        source: Some("~/.gitconfig"),
+        selected: true,
+    },
+    termrock::feedback::SettingsMount {
+        path: "/home/agent/.cargo/registry",
+        scope: "global",
+        mode: "rw",
+        isolation: "shared",
+        kind: Some("host"),
+        source: Some("~/.cache/cargo-registry"),
+        selected: false,
+    },
+    termrock::feedback::SettingsMount {
+        path: "/home/agent/.kube",
+        scope: "role sre",
+        mode: "ro",
+        isolation: "shared",
+        kind: Some("host"),
+        source: Some("~/roles/sre-kube"),
+        selected: false,
+    },
+];
+const SETTINGS_MOUNTS_NARROW: [termrock::feedback::SettingsMount<'static>; 3] = [
+    termrock::feedback::SettingsMount {
+        path: "/home/agent/.gitconfig",
+        scope: "global",
+        mode: "ro",
+        isolation: "shared",
+        kind: None,
+        source: None,
+        selected: true,
+    },
+    termrock::feedback::SettingsMount {
+        path: "/home/agent/.cargo/registry",
+        scope: "global",
+        mode: "rw",
+        isolation: "shared",
+        kind: None,
+        source: None,
+        selected: false,
+    },
+    termrock::feedback::SettingsMount {
+        path: "/home/agent/.kube",
+        scope: "role sre",
+        mode: "ro",
+        isolation: "shared",
+        kind: None,
+        source: None,
+        selected: false,
+    },
+];
+
 pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
     if full.is_empty() {
         return;
@@ -152,7 +211,7 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
     // Body
     match app.settings.tab {
         0 => paint_general_body(app, ui),
-        1 => paint_mounts_body(ui),
+        1 => paint_mounts_body(ui, full),
         2 => paint_env_body(ui),
         3 => paint_agents_body(ui, full),
         4 => paint_trust_body(app, ui, full),
@@ -212,66 +271,10 @@ fn paint_mounts_page(ui: &mut Ui<'_>, full: Rect) {
             selected: false,
         },
     ];
-    let mounts = if wide {
-        [
-            termrock::feedback::SettingsMount {
-                path: "/home/agent/.gitconfig",
-                scope: "global",
-                mode: "ro",
-                isolation: "shared",
-                kind: Some("host"),
-                source: Some("~/.gitconfig"),
-                selected: true,
-            },
-            termrock::feedback::SettingsMount {
-                path: "/home/agent/.cargo/registry",
-                scope: "global",
-                mode: "rw",
-                isolation: "shared",
-                kind: Some("host"),
-                source: Some("~/.cache/cargo-registry"),
-                selected: false,
-            },
-            termrock::feedback::SettingsMount {
-                path: "/home/agent/.kube",
-                scope: "role sre",
-                mode: "ro",
-                isolation: "shared",
-                kind: Some("host"),
-                source: Some("~/roles/sre-kube"),
-                selected: false,
-            },
-        ]
+    let mounts: &[termrock::feedback::SettingsMount<'_>] = if wide {
+        &SETTINGS_MOUNTS_WIDE
     } else {
-        [
-            termrock::feedback::SettingsMount {
-                path: "/home/agent/.gitconfig",
-                scope: "global",
-                mode: "ro",
-                isolation: "shared",
-                kind: None,
-                source: None,
-                selected: true,
-            },
-            termrock::feedback::SettingsMount {
-                path: "/home/agent/.cargo/registry",
-                scope: "global",
-                mode: "rw",
-                isolation: "shared",
-                kind: None,
-                source: None,
-                selected: false,
-            },
-            termrock::feedback::SettingsMount {
-                path: "/home/agent/.kube",
-                scope: "role sre",
-                mode: "ro",
-                isolation: "shared",
-                kind: None,
-                source: None,
-                selected: false,
-            },
-        ]
+        &SETTINGS_MOUNTS_NARROW
     };
     let narrow_hints = [
         termrock::feedback::SettingsHint {
@@ -358,7 +361,7 @@ fn paint_mounts_page(ui: &mut Ui<'_>, full: Rect) {
             save_enabled: false,
             hints,
             hint_overflow: Some("…"),
-            mounts: &mounts,
+            mounts,
             add_mount: Some("+ Add mount"),
             cluster,
         },
@@ -521,7 +524,24 @@ fn paint_general_body(app: &App, ui: &mut Ui<'_>) {
     paint_str(ui, 4, 23, trust_label, WHITE, BLACK, false);
 }
 
-fn paint_mounts_body(ui: &mut Ui<'_>) {
+fn paint_mounts_body(ui: &mut Ui<'_>, full: Rect) {
+    // Below 18 rows, shared clearing would overwrite the native Trust control.
+    let content_end = full.y.saturating_add(11);
+    let native_trust = full.bottom().saturating_sub(7);
+    if content_end > native_trust {
+        paint_mounts_body_legacy(ui);
+        return;
+    }
+
+    termrock::feedback::paint_settings_mounts_body(
+        ui,
+        full,
+        &SETTINGS_MOUNTS_WIDE,
+        Some("+ Add mount"),
+    );
+}
+
+fn paint_mounts_body_legacy(ui: &mut Ui<'_>) {
     paint_str(ui, 8, 6, "Destination", MUTED, BLACK, false);
     paint_str(ui, 39, 6, "Scope", MUTED, BLACK, false);
     paint_str(ui, 55, 6, "Mode", MUTED, BLACK, false);
@@ -1757,6 +1777,82 @@ mod trust_source_kind_tests {
             "C:\\roles",
         ] {
             assert_eq!(trust_source_kind(unknown), Unknown, "{unknown}");
+        }
+    }
+}
+
+#[cfg(test)]
+mod mounts_body_allocation_tests {
+    use super::*;
+    use termrock::{ColorLevel, Theme};
+    use termrock_test_support::Scene;
+
+    fn scene(page_height: u16, adapter: bool) -> Scene {
+        let mut scene = Scene::new(
+            "settings_mounts_body_page_height",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            80,
+            24,
+        );
+        scene.draw(|ui, _| {
+            let page = Rect::new(0, 0, 80, page_height);
+            let trust_y = page.bottom().saturating_sub(7);
+            let save_y = page.bottom().saturating_sub(6);
+            ui.paint_cell(
+                Position::new(4, trust_y),
+                "T",
+                PaintStyle::new()
+                    .fg(Color::Rgb(1, 2, 3))
+                    .bg(Color::Rgb(4, 5, 6)),
+            );
+            ui.paint_cell(
+                Position::new(4, save_y),
+                "S",
+                PaintStyle::new()
+                    .fg(Color::Rgb(1, 2, 3))
+                    .bg(Color::Rgb(4, 5, 6)),
+            );
+            if adapter {
+                paint_mounts_body(ui, page);
+            } else if page_height == 17 {
+                paint_mounts_body_legacy(ui);
+            } else {
+                termrock::feedback::paint_settings_mounts_body(
+                    ui,
+                    page,
+                    &SETTINGS_MOUNTS_WIDE,
+                    Some("+ Add mount"),
+                );
+            }
+        });
+        scene
+    }
+
+    #[test]
+    fn mounts_body_17_falls_back_and_18_keeps_the_footer_band() {
+        for page_height in [17, 18] {
+            let actual = scene(page_height, true);
+            let expected = scene(page_height, false);
+            for y in 0..24 {
+                for x in 0..80 {
+                    assert_eq!(
+                        format!("{:?}", actual.buffer().cell((x, y))),
+                        format!("{:?}", expected.buffer().cell((x, y))),
+                        "full native cell at ({x}, {y}) for page height {page_height}"
+                    );
+                }
+            }
+            let trust_y = page_height.saturating_sub(7);
+            let save_y = page_height.saturating_sub(6);
+            assert_eq!(
+                actual.buffer().cell((4, trust_y)).map(|cell| cell.symbol()),
+                Some("T")
+            );
+            assert_eq!(
+                actual.buffer().cell((4, save_y)).map(|cell| cell.symbol()),
+                Some("S")
+            );
         }
     }
 }

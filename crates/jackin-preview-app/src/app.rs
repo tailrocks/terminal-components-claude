@@ -10739,6 +10739,13 @@ impl App {
                     result |= Tabs::new(crate::screens::usage::TABS)
                         .update(cx, &mut self.usage_tabs, &USAGE_TABS)
                         .erase();
+                } else if self.route == Route::Settings && matches!(command, CMD_SAVE) {
+                    // CMD_SAVE was already applied on the Event pass. Runtime repeats the root
+                    // command while settling focus, so update only the Settings owners that
+                    // receive those focus notifications; do not replay the save action.
+                    result |= Self::settings_trust_button(self.trusted).update(cx).erase();
+                    result |= Self::settings_save_button().update(cx).erase();
+                    result |= Self::settings_save_confirm_button().update(cx).erase();
                 }
                 result |= self.sync_account_form_layer(cx);
             }
