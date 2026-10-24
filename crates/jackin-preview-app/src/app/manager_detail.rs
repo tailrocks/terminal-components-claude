@@ -6,7 +6,7 @@ use termrock::{
     MasterDetailLayout, MasterDetailMode, Response, StateFlags, Ui, Variant,
 };
 
-use crate::screens::manager::{DETAIL, ManagerRowKey};
+use crate::screens::manager::{AGENT_PICKER, DETAIL, ManagerRowKey};
 use crate::{App, MANAGER, MANAGER_LIST, Route};
 
 const LAYOUT: Id = DETAIL.sub("responsive");
@@ -162,8 +162,22 @@ pub(super) fn close_off_route_state(app: &mut App) {
 }
 
 pub(super) fn settle_off_route_focus(app: &App, cx: &mut Cx<'_>) {
-    if app.route == Route::Manager {
+    let picker_owns_manager_route = app.route == Route::Manager && cx.is_open(AGENT_PICKER);
+    if app.route == Route::Manager && !picker_owns_manager_route {
         return;
+    }
+    if picker_owns_manager_route {
+        let focus_out_pending = [DETAIL, ACTION].into_iter().any(|owner| {
+            cx.intents(owner)
+                .any(|intent| matches!(intent, Intent::FocusOut { .. }))
+        });
+        let only_focus_intents = [DETAIL, ACTION].into_iter().all(|owner| {
+            cx.intents(owner)
+                .all(|intent| matches!(intent, Intent::FocusIn { .. } | Intent::FocusOut { .. }))
+        });
+        if !focus_out_pending || !only_focus_intents {
+            return;
+        }
     }
     settle_focus_out(cx, DETAIL, "‹ Workspaces", false);
     let label = action_label(app);
