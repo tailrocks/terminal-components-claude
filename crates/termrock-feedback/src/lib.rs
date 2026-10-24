@@ -51,7 +51,10 @@ pub use capsule_menu::{
     CapsuleMenu, CapsuleMenuFrame, ClipSpan, ClipTone, MenuEntry, paint_capsule_menu,
 };
 pub use hintbar::{DerivedHintBar, HintBar};
-pub use inspector_body::{InspectLine, InspectSpan, InspectTone, paint_inspector_body};
+pub use inspector_body::{
+    InspectLine, InspectSpan, InspectTone, InspectorBodyWidths, inspector_body_row_count,
+    paint_inspector_body, paint_inspector_body_lines_window,
+};
 pub use keyhint::{ChordText, HintText, KeyHint};
 pub use manager_frame::{
     ManagerFrame, ManagerFrameLayout, ManagerLeaf, paint_manager_frame,
