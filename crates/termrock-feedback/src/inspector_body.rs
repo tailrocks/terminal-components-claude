@@ -60,6 +60,27 @@ pub enum InspectLine {
     Blank,
 }
 
+/// Explicit wrapping widths for an Inspector visual-row measurement or window.
+///
+/// `text_width` is the width used by ordinary body rows and the second pass of
+/// [`InspectLine::Prewrapped`]. `prewrap_width` is the first pass for that
+/// variant. Callers choose both values from their resolved content geometry;
+/// the Inspector does not infer a scrollbar gutter or a page layout here.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct InspectorBodyWidths {
+    pub text_width: u16,
+    pub prewrap_width: u16,
+}
+
+impl InspectorBodyWidths {
+    pub const fn new(text_width: u16, prewrap_width: u16) -> Self {
+        Self {
+            text_width,
+            prewrap_width,
+        }
+    }
+}
+
 const WARNING: Color = Color::Rgb(0xf5, 0x9e, 0x09);
 const DANGER: Color = Color::Rgb(0xf0, 0x5d, 0x5d);
 const INFO: Color = Color::Rgb(0x79, 0xb8, 0xff);
@@ -165,6 +186,118 @@ pub fn paint_inspector_body(ui: &mut Ui<'_>, area: Rect, lines: &[InspectLine]) 
             rows.len(),
             &ink,
         );
+    }
+}
+
+/// Count the wrapped visual rows the Inspector window painter will consume.
+///
+/// This uses the same typed line layout as the whole-body painter. The caller
+/// supplies the resolved logical text and prewrap widths and should use this
+/// count when preparing its own `ScrollState`.
+pub fn inspector_body_row_count(lines: &[InspectLine], widths: InspectorBodyWidths) -> usize {
+    layout(
+        lines,
+        widths.text_width,
+        widths.prewrap_width,
+        label_column(lines),
+    )
+    .len()
+}
+
+/// Paint a vertical window of wrapped Inspector rows inside an existing pane.
+///
+/// `logical` is the full physical content viewport, `clip` is a vertically
+/// clipped region within it, and `first_visual_row` is an offset into the
+/// already wrapped visual rows (not an `InspectLine` index). Horizontal
+/// anchoring stays at `logical.x`; a clip may reduce the right edge but may not
+/// shift the text origin. The caller owns frames, backgrounds, scrollbars,
+/// fades, input registration and scroll state.
+///
+/// Returns the source visual-row range painted after both the requested clip
+/// and the surrounding [`Ui`] clip are applied. Invalid or empty requested
+/// rectangles, widths that do not fit the logical viewport, an uncontained
+/// requested clip, or an offset past the measured rows return `None` without
+/// painting. If valid geometry is fully hidden by an ancestor clip, returns an
+/// empty range at `first_visual_row` without painting.
+pub fn paint_inspector_body_lines_window(
+    ui: &mut Ui<'_>,
+    logical: Rect,
+    clip: Rect,
+    first_visual_row: usize,
+    lines: &[InspectLine],
+    widths: InspectorBodyWidths,
+) -> Option<core::ops::Range<usize>> {
+    let logical_right = logical.x.checked_add(logical.width)?;
+    let logical_bottom = logical.y.checked_add(logical.height)?;
+    let clip_right = clip.x.checked_add(clip.width)?;
+    let clip_bottom = clip.y.checked_add(clip.height)?;
+    if logical.width == 0
+        || logical.height == 0
+        || clip.width == 0
+        || clip.height == 0
+        || widths.text_width == 0
+        || widths.prewrap_width == 0
+        || widths.text_width > logical.width
+        || widths.prewrap_width > logical.width
+        || clip.x != logical.x
+        || clip_right > logical_right
+        || clip.y < logical.y
+        || clip_bottom > logical_bottom
+    {
+        return None;
+    }
+
+    let rows = layout(
+        lines,
+        widths.text_width,
+        widths.prewrap_width,
+        label_column(lines),
+    );
+    if first_visual_row > rows.len() {
+        return None;
+    }
+
+    let actual_clip = clip.intersection(ui.full());
+    if actual_clip.width == 0 || actual_clip.height == 0 {
+        return Some(first_visual_row..first_visual_row);
+    }
+    let clipped_top = usize::from(actual_clip.y.checked_sub(clip.y)?);
+    let first_painted = first_visual_row.checked_add(clipped_top)?.min(rows.len());
+    let end = first_painted
+        .checked_add(usize::from(actual_clip.height))?
+        .min(rows.len());
+    let label_w = label_column(lines);
+    let ink = window_ink(ui);
+    ui.with_area(actual_clip, |ui| {
+        for (visible_index, source_index) in (first_painted..end).enumerate() {
+            let Some(row) = rows.get(source_index) else {
+                return;
+            };
+            paint_row(
+                ui,
+                logical,
+                PaintAt {
+                    x: logical.x,
+                    y: actual_clip.y.saturating_add(visible_index as u16),
+                    text_w: widths.text_width,
+                    label_w,
+                },
+                row,
+                &ink,
+            );
+        }
+    });
+    Some(first_painted..end)
+}
+
+fn window_ink(ui: &Ui<'_>) -> Ink {
+    let theme = ui.theme_ref();
+    Ink {
+        chrome: theme.bg(Surface::Surface),
+        primary: step(theme, FgStep::Primary),
+        secondary: step(theme, FgStep::Secondary),
+        muted: step(theme, FgStep::Muted),
+        faint: step(theme, FgStep::Faint),
     }
 }
 
@@ -700,5 +833,454 @@ mod tests {
             "MiniMax (single account or different windows) · OpenCode (single"
         );
         assert_eq!(lines[3], "account or different windows)");
+    }
+}
+
+#[cfg(test)]
+mod window_tests {
+    use super::*;
+    use ratatui_core::buffer::Buffer;
+    use ratatui_core::layout::Position;
+    use ratatui_core::style::Style;
+    use termrock_test_support::Scene;
+    use termrock_theme::{ColorLevel, Theme};
+
+    const SENTINEL_FG: Color = Color::Rgb(0xa1, 0x33, 0x7f);
+    const SENTINEL_BG: Color = Color::Rgb(0x23, 0x6b, 0x8d);
+    const SENTINEL: &str = "§";
+
+    fn fill_sentinels(buffer: &mut Buffer) {
+        for cell in &mut buffer.content {
+            cell.set_symbol(SENTINEL).set_style(
+                Style::new()
+                    .fg(SENTINEL_FG)
+                    .bg(SENTINEL_BG)
+                    .add_modifier(Modifier::UNDERLINED),
+            );
+        }
+    }
+
+    fn assert_sentinels_outside(scene: &Scene, clip: Rect) {
+        let mut expected = Buffer::empty(*scene.buffer().area());
+        fill_sentinels(&mut expected);
+        for y in 0..scene.area().height {
+            for x in 0..scene.area().width {
+                if x >= clip.x
+                    && x < clip.x.saturating_add(clip.width)
+                    && y >= clip.y
+                    && y < clip.y.saturating_add(clip.height)
+                {
+                    continue;
+                }
+                let pos = Position::new(x, y);
+                let actual = scene.buffer().cell(pos).map(|cell| format!("{cell:?}"));
+                let sentinel = expected.cell(pos).map(|cell| format!("{cell:?}"));
+                assert!(
+                    actual.is_some() && sentinel.is_some(),
+                    "cell outside buffer at ({x}, {y})"
+                );
+                assert_eq!(
+                    actual, sentinel,
+                    "full sentinel cell outside clip at ({x}, {y})"
+                );
+            }
+        }
+    }
+
+    fn all_variants() -> Vec<InspectLine> {
+        vec![
+            InspectLine::Prop {
+                label: "Account".to_owned(),
+                value: "界 e\u{301} current with a long value that wraps safely".to_owned(),
+                tone: InspectTone::Info,
+            },
+            InspectLine::Spans {
+                label: "State".to_owned(),
+                spans: vec![
+                    InspectSpan {
+                        text: " Warning".to_owned(),
+                        tone: InspectTone::Warning,
+                    },
+                    InspectSpan {
+                        text: " · stale".to_owned(),
+                        tone: InspectTone::Danger,
+                    },
+                    InspectSpan {
+                        text: " · bold".to_owned(),
+                        tone: InspectTone::DangerBold,
+                    },
+                ],
+            },
+            InspectLine::Text {
+                text: "A long plain paragraph with wide 界 and combining e\u{301} graphemes."
+                    .to_owned(),
+                tone: InspectTone::Secondary,
+            },
+            InspectLine::Prewrapped {
+                text:
+                    "  source prewrap stays distinct   continuation value with enough words to wrap"
+                        .to_owned(),
+                tone: InspectTone::Muted,
+            },
+            InspectLine::Heading {
+                label: "Quota".to_owned(),
+                meta: "WEEK".to_owned(),
+            },
+            InspectLine::Status {
+                fail: false,
+                spans: vec![InspectSpan {
+                    text: "warning status".to_owned(),
+                    tone: InspectTone::Warning,
+                }],
+            },
+            InspectLine::Status {
+                fail: true,
+                spans: vec![InspectSpan {
+                    text: "failure status".to_owned(),
+                    tone: InspectTone::DangerBold,
+                }],
+            },
+            InspectLine::Blank,
+        ]
+    }
+
+    fn long_rows() -> Vec<InspectLine> {
+        (0..32)
+            .map(|index| InspectLine::Text {
+                text: format!(
+                    "Fact {index:02}: alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi omicron pi rho sigma tau alpha beta gamma delta epsilon zeta"
+                ),
+                tone: if index % 2 == 0 { InspectTone::Plain } else { InspectTone::Warning },
+            })
+            .collect()
+    }
+
+    fn assert_cell_debug_eq(
+        left: &Buffer,
+        left_pos: Position,
+        right: &Buffer,
+        right_pos: Position,
+    ) {
+        let left_cell = left.cell(left_pos).map(|cell| format!("{cell:?}"));
+        let right_cell = right.cell(right_pos).map(|cell| format!("{cell:?}"));
+        assert!(
+            left_cell.is_some() && right_cell.is_some(),
+            "compared cell is outside a buffer"
+        );
+        assert_eq!(
+            left_cell, right_cell,
+            "cell at {left_pos:?} / {right_pos:?}"
+        );
+    }
+
+    #[test]
+    fn every_typed_line_matches_the_legacy_whole_painter_at_offset_zero() -> Result<(), String> {
+        for color in [ColorLevel::TrueColor, ColorLevel::Mono] {
+            let lines = all_variants();
+            let area = Rect::new(0, 0, 120, 220);
+            let body =
+                body_geom(area).ok_or_else(|| "legacy body geometry unavailable".to_owned())?;
+            let widths = InspectorBodyWidths::new(body.full_w, body.prewrap);
+            let body_rect = Rect::new(body.x, body.y, body.full_w, body.height);
+            let count = inspector_body_row_count(&lines, widths);
+            assert!(
+                count <= usize::from(body.height),
+                "fixture must avoid owner decorations"
+            );
+
+            let mut legacy = Scene::new(
+                "inspector-whole",
+                Theme::junie(),
+                color,
+                area.width,
+                area.height,
+            );
+            legacy.draw_over(fill_sentinels, |ui, area| {
+                paint_inspector_body(ui, area, &lines)
+            });
+            let mut window = Scene::new(
+                "inspector-window",
+                Theme::junie(),
+                color,
+                area.width,
+                area.height,
+            );
+            let mut painted = None;
+            window.draw_over(fill_sentinels, |ui, _| {
+                painted =
+                    paint_inspector_body_lines_window(ui, body_rect, body_rect, 0, &lines, widths);
+            });
+            assert_eq!(painted, Some(0..count));
+            for y in 0..area.height {
+                for x in 0..area.width {
+                    let pos = Position::new(x, y);
+                    assert_cell_debug_eq(legacy.buffer(), pos, window.buffer(), pos);
+                }
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn first_middle_and_end_visual_windows_match_the_legacy_full_source() -> Result<(), String> {
+        let lines = long_rows();
+        let area = Rect::new(0, 0, 120, 220);
+        let body = body_geom(area).ok_or_else(|| "legacy body geometry unavailable".to_owned())?;
+        let widths = InspectorBodyWidths::new(body.full_w, body.prewrap);
+        let count = inspector_body_row_count(&lines, widths);
+        assert!(count > 8 && count <= usize::from(body.height));
+        let mut legacy = Scene::new(
+            "inspector-window-source",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            area.width,
+            area.height,
+        );
+        legacy.draw_over(fill_sentinels, |ui, area| {
+            paint_inspector_body(ui, area, &lines)
+        });
+
+        for first in [0, count / 2, count - 3] {
+            let clip = Rect::new(body.x, 120, body.full_w, 3);
+            let logical = clip;
+            let mut actual = Scene::new(
+                "inspector-window-slice",
+                Theme::junie(),
+                ColorLevel::TrueColor,
+                area.width,
+                area.height,
+            );
+            let mut painted = None;
+            actual.draw_over(fill_sentinels, |ui, _| {
+                painted =
+                    paint_inspector_body_lines_window(ui, logical, clip, first, &lines, widths);
+            });
+            assert_eq!(painted, Some(first..first + 3));
+            for row in 0..3 {
+                for x in body.x..body.x + body.full_w {
+                    assert_cell_debug_eq(
+                        actual.buffer(),
+                        Position::new(x, clip.y + row),
+                        legacy.buffer(),
+                        Position::new(x, body.y + (first + usize::from(row)) as u16),
+                    );
+                }
+            }
+            assert_sentinels_outside(&actual, clip);
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn parent_clip_advances_source_rows_and_hidden_window_paints_nothing() -> Result<(), String> {
+        let lines = long_rows();
+        let area = Rect::new(0, 0, 120, 220);
+        let body = body_geom(area).ok_or_else(|| "legacy body geometry unavailable".to_owned())?;
+        let logical = Rect::new(body.x, body.y, body.full_w, body.height);
+        let clip = logical;
+        let widths = InspectorBodyWidths::new(body.full_w, body.prewrap);
+        let first = 2usize;
+        let mut legacy = Scene::new(
+            "inspector-parent-clip-source",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            area.width,
+            area.height,
+        );
+        legacy.draw_over(fill_sentinels, |ui, area| {
+            paint_inspector_body(ui, area, &lines)
+        });
+
+        let parent = Rect::new(0, logical.y + 2, area.width, 3);
+        let actual_clip = clip.intersection(parent);
+        let mut actual = Scene::new(
+            "inspector-parent-clipped-window",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            area.width,
+            area.height,
+        );
+        let mut painted = None;
+        actual.draw_over(fill_sentinels, |ui, _| {
+            ui.with_area(parent, |ui| {
+                painted =
+                    paint_inspector_body_lines_window(ui, logical, clip, first, &lines, widths);
+            });
+        });
+        let skipped = usize::from(actual_clip.y - clip.y);
+        let first_painted = first + skipped;
+        assert_eq!(
+            painted,
+            Some(first_painted..first_painted + usize::from(actual_clip.height))
+        );
+        for row in 0..actual_clip.height {
+            for x in actual_clip.x..actual_clip.x + actual_clip.width {
+                assert_cell_debug_eq(
+                    actual.buffer(),
+                    Position::new(x, actual_clip.y + row),
+                    legacy.buffer(),
+                    Position::new(x, body.y + (first_painted + usize::from(row)) as u16),
+                );
+            }
+        }
+        assert_sentinels_outside(&actual, actual_clip);
+
+        let mut hidden = Scene::new(
+            "inspector-parent-hidden-window",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            area.width,
+            area.height,
+        );
+        let mut hidden_result = None;
+        hidden.draw_over(fill_sentinels, |ui, _| {
+            ui.with_area(Rect::new(0, 0, area.width, 1), |ui| {
+                hidden_result =
+                    paint_inspector_body_lines_window(ui, logical, clip, first, &lines, widths);
+            });
+        });
+        assert_eq!(hidden_result, Some(first..first));
+        assert_sentinels_outside(&hidden, Rect::new(0, 0, 0, 0));
+        Ok(())
+    }
+
+    #[test]
+    fn invalid_horizontal_shift_preserves_full_cell_sentinels() -> Result<(), String> {
+        let lines = all_variants();
+        let area = Rect::new(0, 0, 120, 80);
+        let body = body_geom(area).ok_or_else(|| "legacy body geometry unavailable".to_owned())?;
+        let logical = Rect::new(body.x, body.y, body.full_w, body.height);
+        let clip = Rect::new(body.x + 1, body.y, body.full_w - 1, body.height);
+        let widths = InspectorBodyWidths::new(body.full_w, body.prewrap);
+        let mut scene = Scene::new(
+            "inspector-invalid-clip",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            area.width,
+            area.height,
+        );
+        let mut result = Some(0..1);
+        scene.draw_over(fill_sentinels, |ui, _| {
+            result = paint_inspector_body_lines_window(ui, logical, clip, 0, &lines, widths);
+        });
+        assert_eq!(result, None);
+        assert_sentinels_outside(&scene, Rect::new(0, 0, 0, 0));
+        Ok(())
+    }
+
+    #[test]
+    fn distinct_prewrap_width_and_tiny_window_are_measured_consistently() -> Result<(), String> {
+        let lines = vec![InspectLine::Prewrapped {
+            text: "alpha beta gamma delta epsilon zeta eta theta".to_owned(),
+            tone: InspectTone::Plain,
+        }];
+        let narrow_first_pass = InspectorBodyWidths::new(28, 10);
+        let wide_first_pass = InspectorBodyWidths::new(28, 28);
+        let narrow_rows = inspector_body_row_count(&lines, narrow_first_pass);
+        let wide_rows = inspector_body_row_count(&lines, wide_first_pass);
+        assert!(
+            narrow_rows > wide_rows,
+            "Prewrapped retains its separate first-pass width"
+        );
+
+        let mut scene = Scene::new(
+            "inspector-tiny-window",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            80,
+            8,
+        );
+        let logical = Rect::new(3, 2, 32, 4);
+        let clip = Rect::new(3, 4, 32, 1);
+        let mut painted = None;
+        scene.draw_over(fill_sentinels, |ui, _| {
+            painted =
+                paint_inspector_body_lines_window(ui, logical, clip, 1, &lines, narrow_first_pass);
+        });
+        assert_eq!(painted, Some(1..2));
+        assert_sentinels_outside(&scene, clip);
+
+        let mut invalid_offset = Scene::new(
+            "inspector-invalid-offset",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            80,
+            8,
+        );
+        let mut invalid_result = Some(0..1);
+        invalid_offset.draw_over(fill_sentinels, |ui, _| {
+            invalid_result = paint_inspector_body_lines_window(
+                ui,
+                logical,
+                clip,
+                narrow_rows + 1,
+                &lines,
+                narrow_first_pass,
+            );
+        });
+        assert_eq!(invalid_result, None);
+        assert_sentinels_outside(&invalid_offset, Rect::new(0, 0, 0, 0));
+
+        let mut empty = Scene::new(
+            "inspector-empty-window",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            80,
+            8,
+        );
+        let mut result = Some(0..1);
+        empty.draw_over(fill_sentinels, |ui, _| {
+            result = paint_inspector_body_lines_window(
+                ui,
+                logical,
+                Rect::new(3, 2, 32, 0),
+                0,
+                &lines,
+                narrow_first_pass,
+            );
+        });
+        assert_eq!(result, None);
+        assert_sentinels_outside(&empty, Rect::new(0, 0, 0, 0));
+        Ok(())
+    }
+
+    #[test]
+    fn right_clip_does_not_paint_half_of_a_wide_grapheme() -> Result<(), String> {
+        let lines = vec![InspectLine::Text {
+            text: format!("{}界", "a".repeat(73)),
+            tone: InspectTone::Plain,
+        }];
+        let logical = Rect::new(0, 0, 75, 1);
+        let clip = Rect::new(0, 0, 74, 1);
+        let widths = InspectorBodyWidths::new(75, 75);
+        let mut scene = Scene::new(
+            "inspector-wide-right-clip",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            80,
+            4,
+        );
+        scene.draw_over(fill_sentinels, |ui, _| {
+            assert_eq!(
+                paint_inspector_body_lines_window(ui, logical, clip, 0, &lines, widths),
+                Some(0..1),
+            );
+        });
+        assert_eq!(
+            scene
+                .buffer()
+                .cell(Position::new(72, 0))
+                .map(|cell| cell.symbol()),
+            Some("a")
+        );
+        assert_eq!(
+            scene
+                .buffer()
+                .cell(Position::new(73, 0))
+                .map(|cell| cell.symbol()),
+            Some(SENTINEL)
+        );
+        assert_sentinels_outside(&scene, clip);
+        Ok(())
     }
 }
