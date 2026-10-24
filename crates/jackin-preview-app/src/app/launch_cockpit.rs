@@ -3,8 +3,8 @@
 
 #![allow(clippy::indexing_slicing)]
 
-use termrock::author::PaintStyle;
-use termrock::{Buffer, Color, Modifier, Position, Rect, Style, Ui};
+use termrock::author::{PaintStyle, PaintSurface};
+use termrock::{Buffer, Color, ColorLevel, Modifier, Position, Rect, Style, Ui};
 
 use super::App;
 use crate::sim::launch::{LaunchRun, Stage};
@@ -41,10 +41,15 @@ pub(super) fn paint_open_footer(ui: &mut Ui<'_>, cancel: bool) {
     if screen.height == 0 {
         return;
     }
-    let mut buf = Buffer::empty(screen);
+    let mut surface = PaintSurface::new(screen);
     let y = screen.bottom().saturating_sub(1);
     for x in 0..screen.width {
-        put(&mut buf, x, y, ' ', ink(0x00ff_ffff, 0, false));
+        put_surface(
+            &mut surface,
+            Position::new(x, y),
+            ' ',
+            ink(0x00ff_ffff, 0, false),
+        );
     }
     let hints: &[(&str, &str)] = if cancel {
         &[
@@ -55,9 +60,9 @@ pub(super) fn paint_open_footer(ui: &mut Ui<'_>, cancel: bool) {
     } else {
         &[("↑↓", "Move"), ("y", "Copy"), ("Esc", "Close")]
     };
-    paint_footer(&mut buf, screen, hints);
-    emphasize_footer(&mut buf, screen, cancel);
-    blit(ui, &buf, Rect::new(screen.x, y, screen.width, 1));
+    paint_footer_surface(&mut surface, screen, hints);
+    emphasize_footer_surface(&mut surface, screen, cancel);
+    blit_surface(ui, &surface, Rect::new(screen.x, y, screen.width, 1));
 }
 
 pub(super) fn paint_failure(app: &App, ui: &mut Ui<'_>) {
@@ -452,20 +457,33 @@ pub(super) fn paint(app: &App, ui: &mut Ui<'_>) {
 }
 
 fn emphasize_footer(buf: &mut Buffer, screen: Rect, cancel: bool) {
+    for pos in footer_emphasis_positions(screen, cancel) {
+        let Some(cell) = buf.cell_mut(pos) else {
+            continue;
+        };
+        cell.set_style(cell.style().add_modifier(Modifier::BOLD));
+    }
+}
+
+fn emphasize_footer_surface(surface: &mut PaintSurface, screen: Rect, cancel: bool) {
+    for pos in footer_emphasis_positions(screen, cancel) {
+        surface.restyle(Rect::new(pos.x, pos.y, 1, 1), |_, cell| {
+            Some(cell.style.add_modifier(Modifier::BOLD))
+        });
+    }
+}
+
+fn footer_emphasis_positions(screen: Rect, cancel: bool) -> Vec<Position> {
     let y = screen.bottom().saturating_sub(1);
     let mut columns = vec![37, 38, 39, 40, 41, 42, 50, 51, 52, 53, 54, 55];
     if cancel {
         columns.push(19);
     }
-    for x in columns {
-        if x >= screen.width {
-            continue;
-        }
-        let Some(cell) = buf.cell_mut(Position::new(x, y)) else {
-            continue;
-        };
-        cell.set_style(cell.style().add_modifier(Modifier::BOLD));
-    }
+    columns
+        .into_iter()
+        .filter(|x| *x < screen.width)
+        .map(|x| Position::new(x, y))
+        .collect()
 }
 
 fn body_rect(screen: Rect) -> Rect {
@@ -781,6 +799,18 @@ fn paint_cancel(buf: &mut Buffer, body: Rect, y: u16) {
 }
 
 fn paint_footer(buf: &mut Buffer, screen: Rect, hints: &[(&str, &str)]) {
+    emit_footer(screen, hints, |pos, ch, style| {
+        put(buf, pos.x, pos.y, ch, style);
+    });
+}
+
+fn paint_footer_surface(surface: &mut PaintSurface, screen: Rect, hints: &[(&str, &str)]) {
+    emit_footer(screen, hints, |pos, ch, style| {
+        put_surface(surface, pos, ch, style);
+    });
+}
+
+fn emit_footer(screen: Rect, hints: &[(&str, &str)], mut write: impl FnMut(Position, char, Style)) {
     if screen.height == 0 {
         return;
     }
@@ -789,13 +819,32 @@ fn paint_footer(buf: &mut Buffer, screen: Rect, hints: &[(&str, &str)]) {
     let action = ink(0x008a_8a8a, 0, false);
     let mut x = 1u16;
     for (chord, label) in hints {
-        put_str(buf, x, y, chord, key);
+        emit_footer_text(&mut write, x, y, chord, key);
         x = x.saturating_add(u16::try_from(chord.chars().count()).unwrap_or(0));
         x = x.saturating_add(1);
-        put_str(buf, x, y, label, action);
+        emit_footer_text(&mut write, x, y, label, action);
         x = x.saturating_add(u16::try_from(label.chars().count()).unwrap_or(0));
         x = x.saturating_add(2);
     }
+}
+
+fn emit_footer_text(
+    write: &mut impl FnMut(Position, char, Style),
+    x: u16,
+    y: u16,
+    text: &str,
+    style: Style,
+) {
+    let mut column = x;
+    for ch in text.chars() {
+        write(Position::new(column, y), ch, style);
+        column = column.saturating_add(1);
+    }
+}
+
+fn put_surface(surface: &mut PaintSurface, pos: Position, ch: char, style: Style) {
+    let mut encoded = [0; 4];
+    surface.symbol(pos, ch.encode_utf8(&mut encoded), style);
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -1008,87 +1057,659 @@ fn ink(fg: u32, bg: u32, bold: bool) -> Style {
 
 fn blit(ui: &mut Ui<'_>, buf: &Buffer, area: Rect) {
     let level = ui.theme_ref().capability.color;
-    let indexed = matches!(
-        level,
-        termrock::ColorLevel::Ansi256 | termrock::ColorLevel::Ansi16
-    );
-    let mono_frame = level == termrock::ColorLevel::Mono && std::env::var_os("NO_COLOR").is_none();
+    let no_color_present = level == ColorLevel::Mono && std::env::var_os("NO_COLOR").is_some();
     let fade = fade_band(area);
     for y in area.y..area.bottom() {
         for x in area.x..area.right() {
             let Some(cell) = buf.cell(Position::new(x, y)) else {
                 continue;
             };
-            let mut style = cell.style();
-            if mono_frame {
-                if let (Some(fg), Some(bg)) = (style.fg, style.bg)
-                    && let Some(mapped) = termrock::theme::legacy_mono(fg, bg, y == 0)
-                {
-                    style.fg = Some(mapped.fg);
-                    style.bg = Some(mapped.bg);
-                    if mapped.underline {
-                        style = style.add_modifier(Modifier::UNDERLINED);
-                    }
-                    if mapped.reverse {
-                        style = style.add_modifier(Modifier::REVERSED);
-                    }
-                }
-            } else if indexed {
-                if let (Some(fg), Some(bg)) = (style.fg, style.bg) {
-                    let (fg, bg) = termrock::theme::downgrade_pair(fg, bg, level);
-                    style.fg = Some(fg);
-                    style.bg = Some(bg);
-                } else if let Some(fg) = style.fg {
-                    style.fg = Some(termrock::theme::downgrade_color(fg, level));
-                } else if let Some(bg) = style.bg {
-                    style.bg = Some(termrock::theme::downgrade_color(bg, level));
-                }
-            }
-            if let Some((x0, x1, fade_y)) = fade
-                && y == fade_y
-                && x >= x0
-                && x < x1
-            {
-                if level == termrock::ColorLevel::TrueColor {
-                    if let Some(Color::Rgb(red, green, blue)) = style.fg {
-                        style.fg = Some(Color::Rgb(
-                            mix_channel(red),
-                            mix_channel(green),
-                            mix_channel(blue),
-                        ));
-                    }
-                } else {
-                    style = style.add_modifier(Modifier::DIM);
-                }
-            }
-            let mut paint = PaintStyle::new();
-            if let Some(fg) = style.fg {
-                paint = paint.fg(fg);
-            }
-            if let Some(bg) = style.bg {
-                paint = paint.bg(bg);
-            }
-            paint = paint.remove_modifier(
-                Modifier::BOLD
-                    | Modifier::DIM
-                    | Modifier::ITALIC
-                    | Modifier::UNDERLINED
-                    | Modifier::REVERSED
-                    | Modifier::CROSSED_OUT,
+            ui.paint_cell(
+                Position::new(x, y),
+                cell.symbol(),
+                blit_style(
+                    cell.style(),
+                    Position::new(x, y),
+                    level,
+                    no_color_present,
+                    fade,
+                ),
             );
-            if style.add_modifier.contains(Modifier::BOLD) {
-                paint = paint.add_modifier(Modifier::BOLD);
-            }
-            if style.add_modifier.contains(Modifier::UNDERLINED) {
-                paint = paint.add_modifier(Modifier::UNDERLINED);
-            }
-            if style.add_modifier.contains(Modifier::REVERSED) {
-                paint = paint.add_modifier(Modifier::REVERSED);
-            }
-            if style.add_modifier.contains(Modifier::DIM) {
-                paint = paint.add_modifier(Modifier::DIM);
-            }
-            ui.paint_cell(Position::new(x, y), cell.symbol(), paint);
         }
+    }
+}
+
+fn blit_surface(ui: &mut Ui<'_>, surface: &PaintSurface, area: Rect) {
+    let level = ui.theme_ref().capability.color;
+    let no_color_present = level == ColorLevel::Mono && std::env::var_os("NO_COLOR").is_some();
+    let fade = fade_band(area);
+    for y in area.y..area.bottom() {
+        for x in area.x..area.right() {
+            let pos = Position::new(x, y);
+            let Some(cell) = surface.cell(pos) else {
+                continue;
+            };
+            ui.paint_cell(
+                pos,
+                &cell.symbol,
+                blit_style(cell.style, pos, level, no_color_present, fade),
+            );
+        }
+    }
+}
+
+fn blit_style(
+    mut style: Style,
+    pos: Position,
+    level: ColorLevel,
+    no_color_present: bool,
+    fade: Option<(u16, u16, u16)>,
+) -> PaintStyle {
+    let indexed = matches!(level, ColorLevel::Ansi256 | ColorLevel::Ansi16);
+    let mono_frame = level == ColorLevel::Mono && !no_color_present;
+    if mono_frame {
+        if let (Some(fg), Some(bg)) = (style.fg, style.bg)
+            && let Some(mapped) = termrock::theme::legacy_mono(fg, bg, pos.y == 0)
+        {
+            style.fg = Some(mapped.fg);
+            style.bg = Some(mapped.bg);
+            if mapped.underline {
+                style = style.add_modifier(Modifier::UNDERLINED);
+            }
+            if mapped.reverse {
+                style = style.add_modifier(Modifier::REVERSED);
+            }
+        }
+    } else if indexed {
+        if let (Some(fg), Some(bg)) = (style.fg, style.bg) {
+            let (fg, bg) = termrock::theme::downgrade_pair(fg, bg, level);
+            style.fg = Some(fg);
+            style.bg = Some(bg);
+        } else if let Some(fg) = style.fg {
+            style.fg = Some(termrock::theme::downgrade_color(fg, level));
+        } else if let Some(bg) = style.bg {
+            style.bg = Some(termrock::theme::downgrade_color(bg, level));
+        }
+    }
+    if let Some((x0, x1, fade_y)) = fade
+        && pos.y == fade_y
+        && pos.x >= x0
+        && pos.x < x1
+    {
+        if level == ColorLevel::TrueColor {
+            if let Some(Color::Rgb(red, green, blue)) = style.fg {
+                style.fg = Some(Color::Rgb(
+                    mix_channel(red),
+                    mix_channel(green),
+                    mix_channel(blue),
+                ));
+            }
+        } else {
+            style = style.add_modifier(Modifier::DIM);
+        }
+    }
+    let mut paint = PaintStyle::new();
+    if let Some(fg) = style.fg {
+        paint = paint.fg(fg);
+    }
+    if let Some(bg) = style.bg {
+        paint = paint.bg(bg);
+    }
+    paint = paint.remove_modifier(
+        Modifier::BOLD
+            | Modifier::DIM
+            | Modifier::ITALIC
+            | Modifier::UNDERLINED
+            | Modifier::REVERSED
+            | Modifier::CROSSED_OUT,
+    );
+    if style.add_modifier.contains(Modifier::BOLD) {
+        paint = paint.add_modifier(Modifier::BOLD);
+    }
+    if style.add_modifier.contains(Modifier::UNDERLINED) {
+        paint = paint.add_modifier(Modifier::UNDERLINED);
+    }
+    if style.add_modifier.contains(Modifier::REVERSED) {
+        paint = paint.add_modifier(Modifier::REVERSED);
+    }
+    if style.add_modifier.contains(Modifier::DIM) {
+        paint = paint.add_modifier(Modifier::DIM);
+    }
+    paint
+}
+
+#[cfg(test)]
+mod footer_consumer_tests {
+    use super::*;
+    use termrock::{App as TuiApp, Cx, Response, Runtime, Theme};
+    use termrock_test_support::Harness;
+
+    struct FooterFixture {
+        cancel: bool,
+        legacy: bool,
+        clip: Option<Rect>,
+    }
+
+    impl TuiApp for FooterFixture {
+        fn update(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
+            Response::ignored()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            seed_underlay(ui);
+            if let Some(clip) = self.clip {
+                ui.with_area(clip, |ui| self.paint_footer(ui));
+            } else {
+                self.paint_footer(ui);
+            }
+        }
+    }
+
+    impl FooterFixture {
+        fn paint_footer(&self, ui: &mut Ui<'_>) {
+            if self.legacy {
+                legacy_paint_open_footer(ui, self.cancel);
+            } else {
+                paint_open_footer(ui, self.cancel);
+            }
+        }
+    }
+
+    struct EmptyApp;
+
+    impl TuiApp for EmptyApp {
+        fn update(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
+            Response::ignored()
+        }
+
+        fn draw(&self, _ui: &mut Ui<'_>) {}
+    }
+
+    fn seed_underlay(ui: &mut Ui<'_>) {
+        let style = PaintStyle::new()
+            .fg(Color::Rgb(0x31, 0x52, 0x73))
+            .bg(Color::Rgb(0x12, 0x23, 0x34));
+        for pos in ui.full().positions() {
+            ui.paint_cell(pos, "S", style);
+        }
+    }
+
+    fn legacy_paint_open_footer(ui: &mut Ui<'_>, cancel: bool) {
+        let screen = ui.full();
+        if screen.height == 0 {
+            return;
+        }
+        let mut buf = Buffer::empty(screen);
+        let y = screen.bottom().saturating_sub(1);
+        for x in 0..screen.width {
+            legacy_put(&mut buf, x, y, ' ', ink(0x00ff_ffff, 0, false));
+        }
+        let hints: &[(&str, &str)] = if cancel {
+            &[
+                ("←→", "Choose"),
+                ("Enter", "Keep launching"),
+                ("Esc", "Keep launching"),
+            ]
+        } else {
+            &[("↑↓", "Move"), ("y", "Copy"), ("Esc", "Close")]
+        };
+        legacy_paint_footer(&mut buf, screen, hints);
+        let mut columns = vec![37, 38, 39, 40, 41, 42, 50, 51, 52, 53, 54, 55];
+        if cancel {
+            columns.push(19);
+        }
+        for x in columns {
+            if x >= screen.width {
+                continue;
+            }
+            let Some(cell) = buf.cell_mut(Position::new(x, y)) else {
+                continue;
+            };
+            cell.set_style(cell.style().add_modifier(Modifier::BOLD));
+        }
+        legacy_blit(ui, &buf, Rect::new(screen.x, y, screen.width, 1));
+    }
+
+    fn legacy_paint_footer(buf: &mut Buffer, screen: Rect, hints: &[(&str, &str)]) {
+        if screen.height == 0 {
+            return;
+        }
+        let y = screen.bottom().saturating_sub(1);
+        let key = ink(0x00ff_ffff, 0, true);
+        let action = ink(0x008a_8a8a, 0, false);
+        let mut x = 1u16;
+        for (chord, label) in hints {
+            legacy_put_str(buf, x, y, chord, key);
+            x = x.saturating_add(u16::try_from(chord.chars().count()).unwrap_or(0));
+            x = x.saturating_add(1);
+            legacy_put_str(buf, x, y, label, action);
+            x = x.saturating_add(u16::try_from(label.chars().count()).unwrap_or(0));
+            x = x.saturating_add(2);
+        }
+    }
+
+    fn legacy_put_str(buf: &mut Buffer, x: u16, y: u16, text: &str, style: Style) {
+        let mut column = x;
+        for ch in text.chars() {
+            legacy_put(buf, column, y, ch, style);
+            column = column.saturating_add(1);
+        }
+    }
+
+    fn legacy_put(buf: &mut Buffer, x: u16, y: u16, ch: char, style: Style) {
+        let Some(cell) = buf.cell_mut(Position::new(x, y)) else {
+            return;
+        };
+        cell.set_symbol(&ch.to_string());
+        cell.set_style(style);
+    }
+
+    fn legacy_blit(ui: &mut Ui<'_>, buf: &Buffer, area: Rect) {
+        let level = ui.theme_ref().capability.color;
+        let indexed = matches!(level, ColorLevel::Ansi256 | ColorLevel::Ansi16);
+        let mono_frame = level == ColorLevel::Mono && std::env::var_os("NO_COLOR").is_none();
+        let fade = fade_band(area);
+        for y in area.y..area.bottom() {
+            for x in area.x..area.right() {
+                let Some(cell) = buf.cell(Position::new(x, y)) else {
+                    continue;
+                };
+                let mut style = cell.style();
+                if mono_frame {
+                    if let (Some(fg), Some(bg)) = (style.fg, style.bg)
+                        && let Some(mapped) = termrock::theme::legacy_mono(fg, bg, y == 0)
+                    {
+                        style.fg = Some(mapped.fg);
+                        style.bg = Some(mapped.bg);
+                        if mapped.underline {
+                            style = style.add_modifier(Modifier::UNDERLINED);
+                        }
+                        if mapped.reverse {
+                            style = style.add_modifier(Modifier::REVERSED);
+                        }
+                    }
+                } else if indexed {
+                    if let (Some(fg), Some(bg)) = (style.fg, style.bg) {
+                        let (fg, bg) = termrock::theme::downgrade_pair(fg, bg, level);
+                        style.fg = Some(fg);
+                        style.bg = Some(bg);
+                    } else if let Some(fg) = style.fg {
+                        style.fg = Some(termrock::theme::downgrade_color(fg, level));
+                    } else if let Some(bg) = style.bg {
+                        style.bg = Some(termrock::theme::downgrade_color(bg, level));
+                    }
+                }
+                if let Some((x0, x1, fade_y)) = fade
+                    && y == fade_y
+                    && x >= x0
+                    && x < x1
+                {
+                    if level == ColorLevel::TrueColor {
+                        if let Some(Color::Rgb(red, green, blue)) = style.fg {
+                            style.fg = Some(Color::Rgb(
+                                mix_channel(red),
+                                mix_channel(green),
+                                mix_channel(blue),
+                            ));
+                        }
+                    } else {
+                        style = style.add_modifier(Modifier::DIM);
+                    }
+                }
+                let mut paint = PaintStyle::new();
+                if let Some(fg) = style.fg {
+                    paint = paint.fg(fg);
+                }
+                if let Some(bg) = style.bg {
+                    paint = paint.bg(bg);
+                }
+                paint = paint.remove_modifier(
+                    Modifier::BOLD
+                        | Modifier::DIM
+                        | Modifier::ITALIC
+                        | Modifier::UNDERLINED
+                        | Modifier::REVERSED
+                        | Modifier::CROSSED_OUT,
+                );
+                if style.add_modifier.contains(Modifier::BOLD) {
+                    paint = paint.add_modifier(Modifier::BOLD);
+                }
+                if style.add_modifier.contains(Modifier::UNDERLINED) {
+                    paint = paint.add_modifier(Modifier::UNDERLINED);
+                }
+                if style.add_modifier.contains(Modifier::REVERSED) {
+                    paint = paint.add_modifier(Modifier::REVERSED);
+                }
+                if style.add_modifier.contains(Modifier::DIM) {
+                    paint = paint.add_modifier(Modifier::DIM);
+                }
+                ui.paint_cell(Position::new(x, y), cell.symbol(), paint);
+            }
+        }
+    }
+
+    fn assert_buffers_same(actual: &Buffer, expected: &Buffer, area: Rect) {
+        for pos in area.positions() {
+            let Some(actual_cell) = actual.cell(pos) else {
+                panic!("actual buffer missing cell at {pos:?}");
+            };
+            let Some(expected_cell) = expected.cell(pos) else {
+                panic!("expected buffer missing cell at {pos:?}");
+            };
+            assert_eq!(actual_cell.symbol(), expected_cell.symbol(), "at {pos:?}");
+            assert_eq!(actual_cell.fg, expected_cell.fg, "at {pos:?}");
+            assert_eq!(actual_cell.bg, expected_cell.bg, "at {pos:?}");
+            assert_eq!(actual_cell.modifier, expected_cell.modifier, "at {pos:?}");
+            assert_eq!(
+                format!("{actual_cell:?}"),
+                format!("{expected_cell:?}"),
+                "full cell debug at {pos:?}"
+            );
+        }
+    }
+
+    fn assert_symbol(buffer: &Buffer, pos: Position, symbol: &str) {
+        let Some(cell) = buffer.cell(pos) else {
+            panic!("buffer missing cell at {pos:?}");
+        };
+        assert_eq!(cell.symbol(), symbol, "at {pos:?}");
+    }
+
+    #[test]
+    fn real_footer_matches_independent_buffer_path_for_cancel_and_capabilities() {
+        for level in [
+            ColorLevel::TrueColor,
+            ColorLevel::Ansi256,
+            ColorLevel::Ansi16,
+            ColorLevel::Mono,
+        ] {
+            for cancel in [false, true] {
+                let actual = Harness::new(
+                    FooterFixture {
+                        cancel,
+                        legacy: false,
+                        clip: None,
+                    },
+                    Theme::junie(),
+                    80,
+                    24,
+                )
+                .with_color(level);
+                let expected = Harness::new(
+                    FooterFixture {
+                        cancel,
+                        legacy: true,
+                        clip: None,
+                    },
+                    Theme::junie(),
+                    80,
+                    24,
+                )
+                .with_color(level);
+
+                assert!(
+                    actual.diagnostics().is_empty(),
+                    "{level:?}, cancel={cancel}"
+                );
+                assert!(
+                    expected.diagnostics().is_empty(),
+                    "{level:?}, cancel={cancel}"
+                );
+                assert_buffers_same(actual.buffer(), expected.buffer(), Rect::new(0, 0, 80, 24));
+                assert_eq!(
+                    actual
+                        .buffer()
+                        .cell(Position::new(0, 0))
+                        .map(|c| c.symbol()),
+                    Some("S")
+                );
+                let row = actual.row(23);
+                if cancel {
+                    assert!(row.contains("Keep launching"));
+                    assert_symbol(actual.buffer(), Position::new(1, 23), "←");
+                    assert_symbol(actual.buffer(), Position::new(2, 23), "→");
+                    assert_symbol(actual.buffer(), Position::new(4, 23), "C");
+                    assert_symbol(actual.buffer(), Position::new(12, 23), "E");
+                    assert_symbol(actual.buffer(), Position::new(18, 23), "K");
+                    assert_symbol(actual.buffer(), Position::new(38, 23), "K");
+                    assert!(
+                        actual
+                            .buffer()
+                            .cell(Position::new(19, 23))
+                            .is_some_and(|cell| cell.modifier.contains(Modifier::BOLD))
+                    );
+                } else {
+                    assert!(row.contains("Move"));
+                    assert_symbol(actual.buffer(), Position::new(1, 23), "↑");
+                    assert_symbol(actual.buffer(), Position::new(2, 23), "↓");
+                    assert_symbol(actual.buffer(), Position::new(4, 23), "M");
+                    assert_symbol(actual.buffer(), Position::new(10, 23), "y");
+                    assert_symbol(actual.buffer(), Position::new(12, 23), "C");
+                    assert_symbol(actual.buffer(), Position::new(18, 23), "E");
+                    assert_symbol(actual.buffer(), Position::new(22, 23), "C");
+                    assert!(
+                        actual
+                            .buffer()
+                            .cell(Position::new(19, 23))
+                            .is_some_and(|cell| cell.modifier.contains(Modifier::BOLD))
+                    );
+                    assert!(
+                        actual
+                            .buffer()
+                            .cell(Position::new(4, 23))
+                            .is_some_and(|cell| !cell.modifier.contains(Modifier::BOLD))
+                    );
+                }
+                assert!(
+                    actual
+                        .buffer()
+                        .cell(Position::new(37, 23))
+                        .is_some_and(|cell| cell.modifier.contains(Modifier::BOLD))
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn real_footer_respects_narrow_ui_clip_and_preserves_outside_sentinels() {
+        let clip = Rect::new(0, 6, 60, 8);
+        for cancel in [false, true] {
+            let actual = Harness::new(
+                FooterFixture {
+                    cancel,
+                    legacy: false,
+                    clip: Some(clip),
+                },
+                Theme::junie(),
+                80,
+                24,
+            );
+            let expected = Harness::new(
+                FooterFixture {
+                    cancel,
+                    legacy: true,
+                    clip: Some(clip),
+                },
+                Theme::junie(),
+                80,
+                24,
+            );
+            assert!(actual.diagnostics().is_empty(), "cancel={cancel}");
+            assert!(expected.diagnostics().is_empty(), "cancel={cancel}");
+            assert_buffers_same(actual.buffer(), expected.buffer(), Rect::new(0, 0, 80, 24));
+            assert_symbol(
+                actual.buffer(),
+                Position::new(1, 13),
+                if cancel { "←" } else { "↑" },
+            );
+            for pos in [
+                Position::new(0, 0),
+                Position::new(70, 13),
+                Position::new(10, 5),
+                Position::new(10, 14),
+            ] {
+                assert_symbol(actual.buffer(), pos, "S");
+            }
+        }
+    }
+
+    fn render_scene(area: Rect, level: ColorLevel, cancel: bool, legacy: bool) -> Buffer {
+        let mut runtime = Runtime::new(EmptyApp, Theme::junie().downgrade(level));
+        let mut buffer = Buffer::empty(area);
+        runtime
+            .draw_scene(area, &mut buffer, |ui, _| {
+                seed_underlay(ui);
+                if legacy {
+                    legacy_paint_open_footer(ui, cancel);
+                } else {
+                    paint_open_footer(ui, cancel);
+                }
+            })
+            .commit_presented();
+        buffer
+    }
+
+    #[test]
+    fn real_footer_preserves_nonzero_tiny_and_zero_geometry_behavior() {
+        let areas = [
+            Rect::new(5, 3, 40, 8),
+            Rect::new(0, 0, 1, 1),
+            Rect::new(2, 2, 0, 1),
+            Rect::new(2, 2, 9, 0),
+        ];
+        for area in areas {
+            for cancel in [false, true] {
+                let actual = render_scene(area, ColorLevel::TrueColor, cancel, false);
+                let expected = render_scene(area, ColorLevel::TrueColor, cancel, true);
+                assert_buffers_same(&actual, &expected, area);
+            }
+        }
+    }
+
+    #[test]
+    fn shared_style_policy_has_independent_capability_no_color_and_fade_controls() {
+        let brand = Style::new()
+            .fg(Color::Rgb(0x19, 0x19, 0x1c))
+            .bg(Color::Rgb(0x48, 0xe0, 0x54))
+            .add_modifier(Modifier::BOLD | Modifier::ITALIC | Modifier::CROSSED_OUT);
+        let mono =
+            blit_style(brand, Position::new(2, 0), ColorLevel::Mono, false, None).into_style();
+        assert_eq!(mono.fg, Some(Color::Black));
+        assert_eq!(mono.bg, Some(Color::White));
+        assert!(
+            mono.add_modifier
+                .contains(Modifier::BOLD | Modifier::REVERSED)
+        );
+        assert!(
+            mono.sub_modifier
+                .contains(Modifier::ITALIC | Modifier::CROSSED_OUT)
+        );
+
+        let no_color =
+            blit_style(brand, Position::new(2, 0), ColorLevel::Mono, true, None).into_style();
+        assert_eq!(no_color.fg, Some(Color::Rgb(0x19, 0x19, 0x1c)));
+        assert_eq!(no_color.bg, Some(Color::Rgb(0x48, 0xe0, 0x54)));
+        assert!(!no_color.add_modifier.contains(Modifier::REVERSED));
+        assert!(
+            no_color
+                .sub_modifier
+                .contains(Modifier::ITALIC | Modifier::CROSSED_OUT)
+        );
+
+        let green = Style::new()
+            .fg(Color::Rgb(0x48, 0xe0, 0x54))
+            .bg(Color::Rgb(0, 0, 0));
+        assert_eq!(
+            blit_style(green, Position::new(1, 1), ColorLevel::Ansi256, true, None)
+                .into_style()
+                .fg,
+            Some(Color::Indexed(78))
+        );
+        assert_eq!(
+            blit_style(green, Position::new(1, 1), ColorLevel::Ansi16, true, None)
+                .into_style()
+                .fg,
+            Some(Color::LightGreen)
+        );
+
+        let area = Rect::new(0, 0, 100, 20);
+        let Some((x0, x1, y)) = fade_band(area) else {
+            panic!("measured cockpit fade band missing");
+        };
+        assert_eq!((x0, x1, y), (28, 71, 14));
+        let fade_source = Style::new()
+            .fg(Color::Rgb(0xe4, 0x45, 0x45))
+            .bg(Color::Rgb(0, 0, 0))
+            .add_modifier(Modifier::BOLD | Modifier::ITALIC | Modifier::CROSSED_OUT);
+        let truecolor_faded = blit_style(
+            fade_source,
+            Position::new(x0, y),
+            ColorLevel::TrueColor,
+            false,
+            Some((x0, x1, y)),
+        )
+        .into_style();
+        assert_eq!(truecolor_faded.fg, Some(Color::Rgb(125, 38, 38)));
+        assert!(truecolor_faded.add_modifier.contains(Modifier::BOLD));
+        assert!(
+            truecolor_faded
+                .sub_modifier
+                .contains(Modifier::ITALIC | Modifier::CROSSED_OUT)
+        );
+        let indexed_faded = blit_style(
+            fade_source,
+            Position::new(x0, y),
+            ColorLevel::Ansi16,
+            false,
+            Some((x0, x1, y)),
+        )
+        .into_style();
+        assert!(indexed_faded.add_modifier.contains(Modifier::DIM));
+        assert!(indexed_faded.add_modifier.contains(Modifier::BOLD));
+        assert!(
+            indexed_faded
+                .sub_modifier
+                .contains(Modifier::ITALIC | Modifier::CROSSED_OUT)
+        );
+        let outside_fade = blit_style(
+            fade_source,
+            Position::new(x1, y),
+            ColorLevel::TrueColor,
+            false,
+            Some((x0, x1, y)),
+        )
+        .into_style();
+        assert_eq!(outside_fade.fg, Some(Color::Rgb(0xe4, 0x45, 0x45)));
+    }
+
+    #[test]
+    fn retained_cockpit_buffer_painter_still_renders_through_shared_blit() {
+        let running = Harness::new(
+            App::for_scenario_at(
+                crate::scenario::Scenario::LaunchRunning,
+                crate::scenario::Motion::Paused,
+                40,
+            ),
+            Theme::junie(),
+            120,
+            40,
+        )
+        .with_color(ColorLevel::Ansi16);
+        assert!(running.diagnostics().is_empty());
+        assert!(!running.text().trim().is_empty());
+
+        let failure = Harness::new(
+            App::for_scenario_at(
+                crate::scenario::Scenario::LaunchFailure,
+                crate::scenario::Motion::Paused,
+                89,
+            ),
+            Theme::junie(),
+            120,
+            40,
+        )
+        .with_color(ColorLevel::TrueColor);
+        assert!(failure.diagnostics().is_empty());
+        assert!(!failure.text().trim().is_empty());
     }
 }
