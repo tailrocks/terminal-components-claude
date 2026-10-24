@@ -213,6 +213,28 @@ pub fn world_for(scenario: Scenario) -> World {
     w
 }
 
+/// Builds a dedicated nextest-capable task fixture for typed filter/profile input.
+///
+/// The existing `test` task remains `cargo test --workspace`; this fixture adds a
+/// separate producer-backed `test-nextest` task and does not change that task's
+/// historical behavior.
+pub fn nextest_args_world() -> World {
+    let mut world = world_for(Scenario::RustDirty);
+    if let Some(mise) = &mut world.mise {
+        mise.tasks.push(task(
+            "test-nextest",
+            "cargo nextest run",
+            "~/work/pave/mise.toml",
+        ));
+    }
+    for discovery in &mut world.discovery {
+        if discovery.domain == Domain::Mise {
+            discovery.done = true;
+        }
+    }
+    world
+}
+
 fn tool(name: &str, version: &str, state: ToolState) -> MiseTool {
     MiseTool {
         name: name.into(),
