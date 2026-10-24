@@ -2559,14 +2559,16 @@ impl TableProApp {
                     .find(|row| ItemKey::num(row.key.get()) == key)
                     .map(|row| row.key);
                 if let Some(tab_key) = tab_key {
-                    if self.workbench.close_tab_from_picker(tab_key) {
-                        self.sync_active_tab();
+                    let existed = self.workbench.generation(tab_key).is_some();
+                    self.request_close_tab(cx, tab_key);
+                    if existed && self.workbench.generation(tab_key).is_none() {
+                        // Clean tabs close immediately and reopen the picker with
+                        // a fresh query/cursor. Dirty tabs keep it beneath the
+                        // confirmation so Cancel restores the exact picker state.
+                        cx.close_layer(tab_list::ID, None);
+                        self.tab_list = TabList::default();
+                        let _ = self.open_tab_list(cx);
                     }
-                    // The reference closes and reopens the picker after Delete.
-                    // Reopening clears its query and places its cursor on the
-                    // active tab while preserving the picker flow.
-                    cx.close_layer(tab_list::ID, None);
-                    let _ = self.open_tab_list(cx);
                 }
             }
             _ => {}
@@ -2743,6 +2745,10 @@ impl TableProApp {
                         if self.workbench.generation(key) != Some(generation) {
                             self.stale_destructive();
                         } else if self.workbench.close_tab_confirmed(key) {
+                            if cx.is_open(tab_list::ID) {
+                                cx.close_layer(tab_list::ID, None);
+                                self.tab_list = TabList::default();
+                            }
                             self.sync_active_tab();
                             let focus = self
                                 .query_id()
