@@ -1,7 +1,9 @@
 //! Narrow workspace manager frame, composed from the live world state.
 
-use termrock::feedback::{ManagerFrame, ManagerLeaf, paint_manager_frame};
-use termrock::{Rect, Ui};
+use termrock::feedback::{
+    ManagerFrame, ManagerFrameLayout, ManagerLeaf, paint_manager_frame_with_layout,
+};
+use termrock::{FrameRead, ItemKey, Rect, Ui};
 
 use crate::domain::instance::{Instance, InstanceStatus};
 use crate::scenario::{Motion, Scenario};
@@ -9,9 +11,23 @@ use crate::screens::manager::ManagerRowKey;
 
 use super::{App, Route};
 
+struct PresentedRow {
+    key: ItemKey,
+    area: Rect,
+    leaf: LeafModel,
+}
+
+pub(super) struct Presentation {
+    layout: ManagerFrameLayout,
+    rows: Vec<PresentedRow>,
+}
+
 /// The paused narrow manager paints the approved frame while every
-/// transient state stays closed and the list rests on its first row.
-pub(super) fn approved(app: &App, _ui: &Ui<'_>, screen: Rect) -> bool {
+/// transient state stays closed and the list rests on its first row at the top
+/// of its scroll range or has one active press on a painted row.
+///
+/// Prepare one row/key layout for both the full-screen painter and its owner.
+pub(super) fn prepare(app: &App, ui: &Ui<'_>, screen: Rect) -> Option<Presentation> {
     if !(screen.width < 120
         && app.route == Route::Manager
         && app.world.scenario == Scenario::HardCases
@@ -30,9 +46,48 @@ pub(super) fn approved(app: &App, _ui: &Ui<'_>, screen: Rect) -> bool {
         && app.active_instance.is_none()
         && !app.manager.detail_open())
     {
-        return false;
+        return None;
     }
-    on_first_row(app)
+
+    let shown = app
+        .world
+        .workspaces
+        .len()
+        .min(ManagerFrameLayout::row_capacity(screen.height));
+    if shown == 0 {
+        return None;
+    }
+    let layout = ManagerFrameLayout::new(screen, shown);
+    let mut rows = Vec::with_capacity(shown);
+    for (index, workspace) in app.world.workspaces.iter().take(shown).enumerate() {
+        let domain = ManagerRowKey::Workspace(workspace.id);
+        let row = app
+            .manager_rows_cache
+            .iter()
+            .find(|row| row.domain == domain)?;
+        let area = layout.row_rect(index)?;
+        rows.push(PresentedRow {
+            key: row.key,
+            area,
+            leaf: leaf_for(app, workspace),
+        });
+    }
+
+    // The prior exact area proves this press began in the painted-row owner,
+    // not in the stock list after it handed off to a scrolled presentation.
+    let frame_owner_was_presented = ui.area(crate::MANAGER_LIST) == Some(layout.rows_area());
+    let pressed_row = frame_owner_was_presented
+        && ui
+            .state(crate::MANAGER_LIST)
+            .contains(termrock::StateFlags::PRESSED)
+        && ui.pressed_part(crate::MANAGER_LIST).is_some_and(|part| {
+            part.part == termrock::Part::ROW
+                && part
+                    .item
+                    .is_some_and(|key| rows.iter().any(|row| row.key == key))
+        });
+    let first_row_at_top = on_first_row(app) && app.manager.list.scroll().offset() == 0;
+    (first_row_at_top || pressed_row).then_some(Presentation { layout, rows })
 }
 
 fn on_first_row(app: &App) -> bool {
@@ -104,43 +159,84 @@ fn leaf_for(app: &App, workspace: &crate::domain::workspace::Workspace) -> LeafM
     }
 }
 
-/// Rows that fit between the frame header and the detail band at this
-/// height; the frame list scrolls with the same window as the page list.
-fn capacity(height: u16) -> usize {
-    usize::from(height.saturating_sub(14))
-}
-
-pub(super) fn paint(app: &App, ui: &mut Ui<'_>, screen: Rect) {
-    if !approved(app, ui, screen) {
+/// Register the only manager-list owner at the painted leaf rows.
+pub(super) fn register(app: &App, ui: &mut Ui<'_>, presentation: &Presentation) {
+    let area = presentation.layout.rows_area();
+    if ui.is_inert() || area.is_empty() {
         return;
     }
+
+    let list = App::manager_list();
+    let live = ui.state(crate::MANAGER_LIST);
+    ui.register_control(crate::MANAGER_LIST, area, termrock::Focusability::Focusable);
+    ui.publish_bindings(crate::MANAGER_LIST, live, list.table());
+    let selection_table = list.selection_table();
+    if !presentation.rows.is_empty()
+        && !selection_table.is_empty()
+        && !live.contains(termrock::StateFlags::DISABLED)
+    {
+        ui.publish_additional_bindings(crate::MANAGER_LIST, live, selection_table);
+    }
+    let viewport = usize::from(area.height);
+    let mut scroll = *app.manager.list.scroll();
+    // App::manager_list uses the default one-line rows with no gaps.
+    scroll.apply_layout(viewport, app.manager_rows_cache.len().max(viewport));
+    ui.register_scroll(
+        crate::MANAGER_LIST,
+        area,
+        termrock::runtime::Axes::V,
+        scroll.headroom_v(),
+    );
+    ui.report_layout(
+        crate::MANAGER_LIST,
+        termrock::LayoutFacts::new(
+            viewport,
+            app.manager_rows_cache.len(),
+            area.height,
+            area.width,
+        )
+        .with_vertical_window(termrock::author::VerticalWindow::full(area)),
+    );
+}
+
+/// Register row hits after the content Panel's decorative chrome so it cannot
+/// mask the visible painted-row labels.
+pub(super) fn register_rows(ui: &mut Ui<'_>, presentation: &Presentation) {
+    if ui.is_inert() {
+        return;
+    }
+    for row in &presentation.rows {
+        ui.register_part(
+            crate::MANAGER_LIST,
+            termrock::PartRef::item(termrock::Part::ROW, row.key),
+            row.area,
+        );
+    }
+}
+
+pub(super) fn paint(app: &App, ui: &mut Ui<'_>, presentation: &Presentation) {
     // Approved frame hides the cursor. This path must not call set_cursor
     // or set_bar_cursor, and it must not write cursor bytes.
     let menus = ["File", "Go", "Help"];
-    let leaves: Vec<LeafModel> = app
-        .world
-        .workspaces
-        .iter()
-        .map(|workspace| leaf_for(app, workspace))
-        .collect();
     // The page list ends with the new-workspace action row.
     let unassigned = app.manager_instances(None).count();
     let total = 2 + app.world.workspaces.len() + unassigned;
-    let shown = leaves.len().min(capacity(screen.height));
+    let shown = presentation.rows.len();
     let summary = format!(
         "{} running · 1–{} of {total}",
         app.world.running_count(),
         1 + shown
     );
-    let rows: Vec<ManagerLeaf<'_>> = leaves[..shown]
+    let rows: Vec<ManagerLeaf<'_>> = presentation
+        .rows
         .iter()
-        .map(|leaf| ManagerLeaf {
-            name: &leaf.name,
-            expanded: leaf.expanded,
-            status: &leaf.status,
-            danger: leaf.danger,
-            muted: leaf.muted,
-            faint: leaf.faint,
+        .map(|row| ManagerLeaf {
+            name: &row.leaf.name,
+            expanded: row.leaf.expanded,
+            status: &row.leaf.status,
+            danger: row.leaf.danger,
+            muted: row.leaf.muted,
+            faint: row.leaf.faint,
         })
         .collect();
     let focus = &app.world.workspaces[0];
@@ -210,7 +306,7 @@ pub(super) fn paint(app: &App, ui: &mut Ui<'_>, screen: Rect) {
                     " Could not confirm running instances: {} · list may be incomplete",
                     error.label()
                 ),
-                screen.width.saturating_sub(14),
+                presentation.layout.area().width.saturating_sub(14),
             )
         })
         .unwrap_or_default();
@@ -220,9 +316,9 @@ pub(super) fn paint(app: &App, ui: &mut Ui<'_>, screen: Rect) {
         .first()
         .map(|workspace| workspace.name.clone())
         .unwrap_or_default();
-    paint_manager_frame(
+    paint_manager_frame_with_layout(
         ui,
-        screen,
+        presentation.layout,
         &ManagerFrame {
             brand: "jackin❯",
             menus: &menus,

@@ -1549,6 +1549,27 @@ impl App {
         Panel::new(APP).title("Jackin Preview").meta(meta)
     }
 
+    fn shell_areas(inner: Rect) -> (Rect, Rect, Rect) {
+        let header_height = inner.height.min(3);
+        let footer_height = inner.height.saturating_sub(header_height).min(2);
+        let header = Rect {
+            height: header_height,
+            ..inner
+        };
+        let footer_y = inner.bottom().saturating_sub(footer_height);
+        let content = Rect {
+            y: header.bottom(),
+            height: footer_y.saturating_sub(header.bottom()),
+            ..inner
+        };
+        let footer = Rect {
+            y: footer_y,
+            height: footer_height,
+            ..inner
+        };
+        (header, content, footer)
+    }
+
     fn capsule_menu_bar() -> MenuBar<'static> {
         MenuBar::new(CAPSULE_MENU_BAR, CAPSULE_MENUS).hover_scope(MenuBarHoverScope::Title)
     }
@@ -7037,7 +7058,7 @@ impl App {
         Self::blit_buffer(ui, area, &buf);
     }
 
-    fn draw_manager(&self, ui: &mut Ui<'_>, area: Rect) {
+    fn draw_manager(&self, ui: &mut Ui<'_>, area: Rect, frame_owns_list: bool) {
         let list_area = Rect {
             y: area.y.saturating_add(2),
             height: area.height.saturating_sub(5),
@@ -7048,7 +7069,9 @@ impl App {
             Rect { height: 2, ..area },
             std::slice::from_ref(&self.manager_header),
         );
-        Self::manager_list().draw(ui, list_area, &self.manager.list, &self.manager_rows_cache);
+        if !frame_owns_list {
+            Self::manager_list().draw(ui, list_area, &self.manager.list, &self.manager_rows_cache);
+        }
         if self.manager.detail_open() {
             ui.paint_str(
                 Rect::new(area.x, area.y.saturating_add(1), area.width, 1),
@@ -10342,12 +10365,12 @@ impl App {
             .draw(ui, area);
     }
 
-    fn draw_content(&self, ui: &mut Ui<'_>, area: Rect) {
+    fn draw_content(&self, ui: &mut Ui<'_>, area: Rect, frame_owns_list: bool) {
         Panel::new(APP.sub("content"))
             .title(self.route.title())
             .draw(ui, area, |ui, inner| match self.route {
                 Route::Intro => self.draw_intro(ui, inner),
-                Route::Manager => self.draw_manager(ui, inner),
+                Route::Manager => self.draw_manager(ui, inner, frame_owns_list),
                 Route::Prelude => self.draw_prelude(ui, inner),
                 Route::Editor => self.draw_editor(ui, inner),
                 Route::Accounts => self.draw_accounts(ui, inner),
@@ -11375,42 +11398,59 @@ impl TuiApp for App {
         } else {
             &self.hint_layers.default
         };
-        Self::shell_panel(&self.shell_meta).draw(ui, full, |ui, inner| {
-            let header_height = inner.height.min(3);
-            let footer_height = inner.height.saturating_sub(header_height).min(2);
-            let header = Rect {
-                height: header_height,
-                ..inner
-            };
-            let footer_y = inner.bottom().saturating_sub(footer_height);
-            let content = Rect {
-                y: header.bottom(),
-                height: footer_y.saturating_sub(header.bottom()),
-                ..inner
-            };
-            let footer = Rect {
-                y: footer_y,
-                height: footer_height,
-                ..inner
-            };
-            if self.route == Route::Intro {
-                self.draw_intro(ui, content);
-            } else {
-                self.draw_header(ui, header);
-                self.draw_content(ui, content);
-            }
-            let style = ui.surface_style();
-            if let Some(status) = &self.status {
-                ui.paint_str(
-                    Rect {
-                        height: 1,
-                        ..footer
-                    },
-                    status,
-                    style,
-                );
-            }
-        });
+        let shell_panel = Self::shell_panel(&self.shell_meta);
+        let inner = shell_panel.inner(ui, full);
+        let manager_presentation = manager_frame_view::prepare(self, ui, full);
+        if let Some(presentation) = &manager_presentation {
+            let (header, content, footer) = Self::shell_areas(inner);
+            shell_panel.draw(ui, full, |_, _| {});
+            let panel_surface = ui.theme_ref().raise(ui.surface());
+            ui.with_surface(panel_surface, |ui| {
+                ui.with_area(inner, |ui| self.draw_header(ui, header));
+            });
+            // Register the sole List control before content to preserve focus
+            // order; its keyed row hits follow the content Panel below.
+            manager_frame_view::register(self, ui, presentation);
+            ui.with_surface(panel_surface, |ui| {
+                ui.with_area(inner, |ui| {
+                    self.draw_content(ui, content, true);
+                    let style = ui.surface_style();
+                    if let Some(status) = &self.status {
+                        ui.paint_str(
+                            Rect {
+                                height: 1,
+                                ..footer
+                            },
+                            status,
+                            style,
+                        );
+                    }
+                });
+            });
+            // Let the List rows win hit tests over the content Panel chrome.
+            manager_frame_view::register_rows(ui, presentation);
+        } else {
+            shell_panel.draw(ui, full, |ui, inner| {
+                let (header, content, footer) = Self::shell_areas(inner);
+                if self.route == Route::Intro {
+                    self.draw_intro(ui, content);
+                } else {
+                    self.draw_header(ui, header);
+                    self.draw_content(ui, content, false);
+                }
+                let style = ui.surface_style();
+                if let Some(status) = &self.status {
+                    ui.paint_str(
+                        Rect {
+                            height: 1,
+                            ..footer
+                        },
+                        status,
+                        style,
+                    );
+                }
+            });
+        }
         HintBar::new(APP.sub("hint"), hints).draw(
             ui,
             Rect {
@@ -11587,7 +11627,9 @@ impl TuiApp for App {
         self.draw_usage_detail_live(ui, full);
 
         manager_locked_view::paint(self, ui, full);
-        manager_frame_view::paint(self, ui, full);
+        if let Some(presentation) = &manager_presentation {
+            manager_frame_view::paint(self, ui, presentation);
+        }
         manager_help_overlay_view::paint(self, ui, full);
     }
 

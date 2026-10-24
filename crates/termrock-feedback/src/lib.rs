@@ -53,7 +53,10 @@ pub use capsule_menu::{
 pub use hintbar::{DerivedHintBar, HintBar};
 pub use inspector_body::{InspectLine, InspectSpan, InspectTone, paint_inspector_body};
 pub use keyhint::{ChordText, HintText, KeyHint};
-pub use manager_frame::{ManagerFrame, ManagerLeaf, paint_manager_frame};
+pub use manager_frame::{
+    ManagerFrame, ManagerFrameLayout, ManagerLeaf, paint_manager_frame,
+    paint_manager_frame_with_layout,
+};
 pub use manager_split::{
     ManagerSplit, SplitAlert, SplitInstance, SplitMode, SplitMount, SplitWorkspace,
     paint_manager_detail_drawer, paint_manager_split,
