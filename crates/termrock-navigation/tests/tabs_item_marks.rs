@@ -811,7 +811,10 @@ fn narrow_overflow_and_clipped_plans_keep_marks_inside_allocated_geometry() {
             marks: TabMarks::default().error(true),
         },
     ];
-    let tabs = Tabs::new(TABS).closable(true).item_marks(item_marks);
+    let tabs = Tabs::new(TABS)
+        .closable(true)
+        .overflow_menu(false)
+        .item_marks(item_marks);
     let plan = tabs.layout_default(
         Rect::new(0, 0, 12, 2),
         Rect::new(3, 0, 9, 2),

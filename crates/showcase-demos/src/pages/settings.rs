@@ -855,7 +855,18 @@ impl Page for SettingsPage {
                 ui.with_area(body, |ui| {
                     let member_tab = active_tab(&self.tabs) == 1;
                     if let Some(tabs_area) = row_band(body, 0, 2) {
-                        Tabs::new(TAB).draw(ui, tabs_area, &self.tabs, TABS);
+                        let tabs = Tabs::new(TAB);
+                        let previous = ui.layout(TAB).map(|facts| {
+                            termrock::navigation::tabs::TabWindowReceipt {
+                                viewport_len: facts.viewport_len,
+                                content_len: facts.content_len,
+                            }
+                        });
+                        let layout =
+                            tabs.layout_default(tabs_area, ui.full(), &self.tabs, TABS, previous);
+                        if tabs.draw_layout(ui, &layout).is_err() {
+                            let _ = tabs.draw(ui, tabs_area, &self.tabs, TABS);
+                        }
                     }
                     if member_tab {
                         if let Some(list_area) = row_band(body, 3, 12) {

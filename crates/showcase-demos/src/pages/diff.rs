@@ -823,15 +823,27 @@ impl Page for DiffPage {
                         return;
                     }
                     let tabs_height = body.height.min(2);
-                    Tabs::new(PAGE_TABS).draw(
-                        ui,
-                        Rect {
-                            height: tabs_height,
-                            ..body
-                        },
+                    let tabs_area = Rect {
+                        height: tabs_height,
+                        ..body
+                    };
+                    let tabs = Tabs::new(PAGE_TABS);
+                    let previous = ui.layout(PAGE_TABS).map(|facts| {
+                        termrock::navigation::tabs::TabWindowReceipt {
+                            viewport_len: facts.viewport_len,
+                            content_len: facts.content_len,
+                        }
+                    });
+                    let layout = tabs.layout_default(
+                        tabs_area,
+                        ui.full(),
                         &self.tabs,
                         PAGE_TABS_ITEMS,
+                        previous,
                     );
+                    if tabs.draw_layout(ui, &layout).is_err() {
+                        let _ = tabs.draw(ui, tabs_area, &self.tabs, PAGE_TABS_ITEMS);
+                    }
                     // Stacked state specimens use six logical rows each.
                     // Reuse the blank row below the tabs so a short viewport
                     // can expose each whole card at ordinary wheel offsets.

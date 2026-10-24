@@ -155,6 +155,7 @@ struct Page {
     next_digit_jump: Option<bool>,
     custom_groups: bool,
     passive: bool,
+    overflow_menu: bool,
     reference_tabs: bool,
     plan: bool,
     state: TabsState,
@@ -182,6 +183,7 @@ impl Page {
             next_digit_jump: None,
             custom_groups: false,
             passive: false,
+            overflow_menu: true,
             reference_tabs: false,
             plan: false,
             state,
@@ -194,7 +196,10 @@ impl Page {
     }
 
     fn widget(&self, digit_jump: Option<bool>) -> TabsWidget {
-        let mut tabs = Tabs::new(TABS).allow_new(true).closable(true);
+        let mut tabs = Tabs::new(TABS)
+            .allow_new(true)
+            .closable(true)
+            .overflow_menu(self.overflow_menu);
         if let Some(enabled) = digit_jump {
             tabs = tabs.digit_jump(enabled);
         }
@@ -702,10 +707,12 @@ fn digit_setting_survives_key_and_row_type_changes_and_builder_orders() {
 #[test]
 fn false_keeps_planned_rendering_and_reference_nonpublication_contracts() {
     let mut legacy_page = Page::new(Some(false), 12, 5);
+    legacy_page.overflow_menu = false;
     let legacy = harness(legacy_page, 28);
-    legacy_page = Page::new(Some(false), 12, 5);
-    legacy_page.plan = true;
-    let planned = harness(legacy_page, 28);
+    let mut planned_page = Page::new(Some(false), 12, 5);
+    planned_page.overflow_menu = false;
+    planned_page.plan = true;
+    let planned = harness(planned_page, 28);
     assert!(!planned.app().plan_rejected.get());
     assert_eq!(legacy.buffer(), planned.buffer());
     assert_eq!(legacy.ring().entries(), planned.ring().entries());

@@ -63,10 +63,11 @@ fn tab_mark(tab: &Tab) -> TabMarks {
     tab.mark
 }
 
-fn widget(passive: bool) -> TabsWidget {
+fn widget(passive: bool, overflow_menu: bool) -> TabsWidget {
     Tabs::new(TABS)
         .allow_new(true)
         .closable(true)
+        .overflow_menu(overflow_menu)
         .wrap(true)
         .passive(passive)
         .key(tab_key as KeyFn)
@@ -110,6 +111,7 @@ struct Page {
     keymap: KeyMap,
     previous: Cell<Option<TabWindowReceipt>>,
     passive: bool,
+    overflow_menu: bool,
     empty_clip: bool,
     empty_area: bool,
     render_tabs: Cell<bool>,
@@ -136,6 +138,7 @@ impl Page {
             keymap: KeyMap::new(),
             previous: Cell::new(None),
             passive: false,
+            overflow_menu: true,
             empty_clip: false,
             empty_area: false,
             render_tabs: Cell::new(true),
@@ -152,14 +155,18 @@ impl Page {
         }
     }
 
+    fn without_overflow_menu(mut self) -> Self {
+        self.overflow_menu = false;
+        self
+    }
+
     fn update_tabs(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         if self.modal && !cx.is_open(OVERLAY) {
             cx.open_layer(OVERLAY, LayerSpec::modal(OVERLAY).initial_focus(OVERLAY));
         }
-        let mut response =
-            widget(self.passive)
-                .status(self.status)
-                .update(cx, &mut self.state, &self.items);
+        let mut response = widget(self.passive, self.overflow_menu)
+            .status(self.status)
+            .update(cx, &mut self.state, &self.items);
         if let Some(action) = response.take_action() {
             self.actions.push(action);
         }
@@ -184,7 +191,7 @@ impl Page {
         } else {
             area
         };
-        let tabs = widget(self.passive).status(self.status);
+        let tabs = widget(self.passive, self.overflow_menu).status(self.status);
         if !self.planned.get() {
             let first_index = self
                 .state
@@ -1006,7 +1013,12 @@ fn resize_uses_fresh_planned_geometry_and_converges_on_the_next_update() {
 
 #[test]
 fn same_count_label_replacement_rebuilds_the_exact_manual_bound() {
-    let mut h = Harness::new(Page::new(), Theme::junie(), WIDTH, HEIGHT);
+    let mut h = Harness::new(
+        Page::new().without_overflow_menu(),
+        Theme::junie(),
+        WIDTH,
+        HEIGHT,
+    );
     let _ = h.tick();
     let limit = h.app().items.len().saturating_add(2);
     scroll_to_endpoint(&mut h, TABS, Axis::H, limit);

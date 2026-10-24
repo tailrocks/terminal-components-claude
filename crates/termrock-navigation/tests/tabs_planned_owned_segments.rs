@@ -174,6 +174,7 @@ impl Page {
             .close_reveal(TabCloseReveal::Always)
             .status(Status::Error)
             .patch_part(&PART_PATCHES)
+            .overflow_menu(false)
     }
 }
 
