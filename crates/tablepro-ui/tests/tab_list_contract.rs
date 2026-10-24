@@ -6,11 +6,93 @@ use termrock::{Id, KeyCode, MouseKind, Theme};
 use termrock_test_support::Harness;
 
 const TAB_LIST: Id = Id::root("tablepro.tab-list");
+const QUIT_DIALOG: Id = Id::root("tablepro.quit-dialog");
 
 fn connected() -> Harness<TableProApp> {
     let mut app = TableProApp::new();
     assert!(app.connect(0));
     Harness::new(app, Theme::junie(), 120, 40)
+}
+
+type AppHarness = Harness<TableProApp>;
+
+struct DirtyQueryPicker {
+    harness: AppHarness,
+    neighbor_key: tablepro_ui::TabKey,
+    dirty_key: tablepro_ui::TabKey,
+    draft: String,
+}
+
+fn live_query_draft(h: &AppHarness, key: tablepro_ui::TabKey) -> Option<String> {
+    match h.app().workbench.tab(key)? {
+        tablepro_ui::Tab::Query(query) => Some(query.editor_state.editor().text().to_owned()),
+        tablepro_ui::Tab::Table(_) | tablepro_ui::Tab::History(_) => None,
+    }
+}
+
+fn dirty_query_picker() -> Result<DirtyQueryPicker, &'static str> {
+    let mut app = TableProApp::new();
+    if !app.connect(0) {
+        return Err("production connection");
+    }
+    let Some(neighbor_key) = app.workbench.active_key() else {
+        return Err("initial neighbor query");
+    };
+    let Some(dirty_key) = app.workbench.new_query("SELECT 'saved'") else {
+        return Err("dirty query fixture");
+    };
+    let mut h = Harness::new(app, Theme::junie(), 120, 40);
+    if !tab_navigation::tab_to(&mut h, dirty_key.control("query")) {
+        return Err("focus the real query editor");
+    }
+    let _ = h.type_str(" -- live unsaved edit");
+    let Some(tablepro_ui::Tab::Query(query)) = h.app().workbench.tab(dirty_key) else {
+        return Err("dirty target remains a query");
+    };
+    if !query.dirty() {
+        return Err("keyboard-edited query is actually dirty");
+    }
+    let draft = query.editor_state.editor().text().to_owned();
+    let _ = h.ctrl('g');
+    let _ = h.type_str("Query 2");
+    if h.focus() != Some(TAB_LIST) {
+        return Err("tab picker owns focus after filtering");
+    }
+    if h.area_of_part(
+        TAB_LIST,
+        termrock::PartRef::item(termrock::Part::ROW, termrock::ItemKey::num(dirty_key.get())),
+    )
+    .is_none()
+    {
+        return Err("filtered dirty row is registered");
+    }
+    Ok(DirtyQueryPicker {
+        harness: h,
+        neighbor_key,
+        dirty_key,
+        draft,
+    })
+}
+
+fn assert_close_confirmation(h: &AppHarness) -> Result<(), &'static str> {
+    if h.layer_area(QUIT_DIALOG).is_none() {
+        return Err("dirty delete opens the existing confirmation dialog");
+    }
+    if !h.text().contains("Close tab with unsaved work?")
+        || !h.text().contains("Close anyway")
+        || !h.text().contains("Cancel")
+    {
+        return Err("confirmation exposes Cancel and explicit Close anyway");
+    }
+    Ok(())
+}
+
+fn click_close_anyway(h: &mut AppHarness) -> Result<(), &'static str> {
+    let Some((x, y)) = h.find("Close anyway") else {
+        return Err("visible Close anyway action");
+    };
+    let _ = h.click(x, y);
+    Ok(())
 }
 
 #[test]
@@ -440,61 +522,192 @@ fn delete_closes_clean_tab_and_reopens_picker_with_empty_filter() {
 }
 
 #[test]
-fn delete_discards_dirty_query_tab_from_picker() {
-    let mut harness = connected();
-    let Some(query_key) = harness.app_mut().workbench.new_query("SELECT 1") else {
-        unreachable!("fixture has available tab identities")
-    };
-    let Some(tablepro_ui::Tab::Query(query)) = harness.app_mut().workbench.tab_mut(query_key)
-    else {
-        unreachable!("created tab is a query")
-    };
-    query.saved_text = String::new();
-    assert!(query.dirty());
-    harness.draw();
+fn delete_dirty_query_cancel_preserves_picker_and_live_draft() -> Result<(), &'static str> {
+    use termrock::PartRef;
 
-    let _ = harness.ctrl('g');
-    let _ = harness.type_str("Query 2");
-    let _ = harness.key(KeyCode::Delete);
-
-    assert!(harness.app().workbench.tab(query_key).is_none());
-    assert!(harness.layer_area(TAB_LIST).is_some());
-    assert!(!harness.text().contains("Close tab with unsaved work?"));
-    assert!(
-        harness.diagnostics().is_empty(),
-        "{:?}",
-        harness.diagnostics()
+    let DirtyQueryPicker {
+        harness: mut h,
+        neighbor_key,
+        dirty_key,
+        draft,
+    } = dirty_query_picker()?;
+    let neighbor_draft = live_query_draft(&h, neighbor_key)
+        .ok_or("neighbor query draft exists before confirmation")?;
+    let _ = h.key(KeyCode::Delete);
+    assert_close_confirmation(&h)?;
+    assert!(h.layer_area(TAB_LIST).is_some());
+    assert_eq!(h.app().workbench.active_key(), Some(dirty_key));
+    assert_eq!(
+        live_query_draft(&h, dirty_key).as_deref(),
+        Some(draft.as_str())
     );
+    assert!(matches!(
+        h.app().workbench.tab(dirty_key),
+        Some(tablepro_ui::Tab::Query(query)) if query.dirty()
+    ));
+    assert!(h.app().workbench.tab(neighbor_key).is_some());
+    assert_eq!(
+        live_query_draft(&h, neighbor_key).as_deref(),
+        Some(neighbor_draft.as_str())
+    );
+
+    let _ = h.key(KeyCode::Esc);
+    assert!(h.layer_area(QUIT_DIALOG).is_none());
+    assert!(h.layer_area(TAB_LIST).is_some());
+    assert_eq!(h.focus(), Some(TAB_LIST));
+    assert_eq!(h.app().workbench.active_key(), Some(dirty_key));
+    assert_eq!(
+        live_query_draft(&h, dirty_key).as_deref(),
+        Some(draft.as_str())
+    );
+    assert!(h.text().contains("Query 2"), "{}", h.text());
+    assert!(
+        h.area_of_part(
+            TAB_LIST,
+            PartRef::item(termrock::Part::ROW, termrock::ItemKey::num(dirty_key.get())),
+        )
+        .is_some()
+    );
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+
+    // The preserved filter/cursor still chooses the dirty query after Cancel.
+    let _ = h.key(KeyCode::Enter);
+    assert!(h.layer_area(TAB_LIST).is_none());
+    assert_eq!(h.app().workbench.active_key(), Some(dirty_key));
+    assert_eq!(h.focus(), Some(dirty_key.control("query")));
+    assert_eq!(
+        live_query_draft(&h, dirty_key).as_deref(),
+        Some(draft.as_str())
+    );
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+    Ok(())
 }
 
 #[test]
-fn delete_discards_pending_table_edits_from_picker() {
-    let mut app = TableProApp::new();
-    assert!(app.connect(0));
-    assert!(app.workbench.open_table("customers"));
-    let mut harness = Harness::new(app, Theme::junie(), 120, 40);
-    let Some(table_key) = harness.app().workbench.active_key() else {
-        unreachable!("connected fixture has a table tab")
-    };
-    let Some(tablepro_ui::Tab::Table(table)) = harness.app_mut().workbench.tab_mut(table_key)
-    else {
-        unreachable!("connected fixture opens a table")
-    };
-    assert!(table.result.model.insert_row().is_some());
-    assert!(table.result.pending_total() > 0);
-    harness.draw();
-
-    let _ = harness.ctrl('g');
-    let _ = harness.key(KeyCode::Delete);
-
-    assert!(harness.app().workbench.tab(table_key).is_none());
-    assert!(harness.layer_area(TAB_LIST).is_some());
-    assert!(!harness.text().contains("Close tab with unsaved work?"));
-    assert!(
-        harness.diagnostics().is_empty(),
-        "{:?}",
-        harness.diagnostics()
+fn delete_dirty_query_confirms_exact_target_and_closes_picker_owner() -> Result<(), &'static str> {
+    let DirtyQueryPicker {
+        harness: mut h,
+        neighbor_key,
+        dirty_key,
+        draft,
+    } = dirty_query_picker()?;
+    let neighbor_draft = live_query_draft(&h, neighbor_key)
+        .ok_or("neighbor query draft exists before confirmation")?;
+    let _ = h.key(KeyCode::Delete);
+    assert_close_confirmation(&h)?;
+    assert_eq!(
+        live_query_draft(&h, dirty_key).as_deref(),
+        Some(draft.as_str())
     );
+    click_close_anyway(&mut h)?;
+
+    assert!(h.layer_area(QUIT_DIALOG).is_none());
+    assert!(h.layer_area(TAB_LIST).is_none());
+    assert!(h.app().workbench.tab(dirty_key).is_none());
+    assert!(h.app().workbench.tab(neighbor_key).is_some());
+    assert_eq!(h.app().workbench.tabs().len(), 1);
+    assert_eq!(h.app().workbench.active_key(), Some(neighbor_key));
+    assert_eq!(
+        live_query_draft(&h, neighbor_key).as_deref(),
+        Some(neighbor_draft.as_str())
+    );
+    assert_eq!(h.focus(), Some(neighbor_key.control("query")));
+
+    // Enter after confirmation is delivered to live content, never a stale row.
+    let _ = h.key(KeyCode::Enter);
+    assert!(h.app().workbench.tab(dirty_key).is_none());
+    assert_eq!(h.app().workbench.tabs().len(), 1);
+    assert_eq!(h.app().workbench.active_key(), Some(neighbor_key));
+    let _ = h.ctrl('g');
+    assert!(h.layer_area(TAB_LIST).is_some());
+    assert!(h.text().contains("Query 1"), "{}", h.text());
+    assert!(!h.text().contains("Query 2"), "{}", h.text());
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+    let _ = h.key(KeyCode::Esc);
+    assert!(h.layer_area(TAB_LIST).is_none());
+    assert_eq!(h.focus(), Some(neighbor_key.control("query")));
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+    Ok(())
+}
+
+#[test]
+fn delete_pending_table_edits_cancel_preserves_rows_and_picker_filter() -> Result<(), &'static str>
+{
+    use termrock::{ItemKey, Part, PartRef};
+
+    let mut app = TableProApp::new();
+    if !app.connect(0) || !app.workbench.open_table("customers") {
+        return Err("production table fixture");
+    }
+    let Some(table_key) = app.workbench.active_key() else {
+        return Err("dirty table key");
+    };
+    let Some(tablepro_ui::Tab::Table(table)) = app.workbench.tab_mut(table_key) else {
+        return Err("customers is a table tab");
+    };
+    if table.result.model.insert_row().is_none() || table.result.pending_total() == 0 {
+        return Err("table has an actual pending inserted row");
+    }
+    let pending_before = table.result.pending_total();
+    let rows_before = table.result.model.row_count();
+    let Some(neighbor_key) = app.workbench.new_query("SELECT 'neighbor'") else {
+        return Err("neighbor query fixture");
+    };
+    let neighbor_draft = match app.workbench.tab(neighbor_key) {
+        Some(tablepro_ui::Tab::Query(query)) => query.editor_state.editor().text().to_owned(),
+        _ => return Err("neighbor query exists"),
+    };
+
+    let mut h = Harness::new(app, Theme::junie(), 120, 40);
+    let _ = h.ctrl('g');
+    let _ = h.type_str("customers");
+    let row = PartRef::item(Part::ROW, ItemKey::num(table_key.get()));
+    if h.area_of_part(TAB_LIST, row).is_none() {
+        return Err("filtered pending table row is registered");
+    }
+    let _ = h.key(KeyCode::Delete);
+    assert_close_confirmation(&h)?;
+    let Some(tablepro_ui::Tab::Table(table)) = h.app().workbench.tab(table_key) else {
+        return Err("pending table remains before confirmation");
+    };
+    assert!(
+        h.app()
+            .workbench
+            .tab(table_key)
+            .is_some_and(tablepro_ui::Tab::dirty)
+    );
+    assert_eq!(table.result.pending_total(), pending_before);
+    assert_eq!(table.result.model.row_count(), rows_before);
+    assert_eq!(h.app().workbench.active_key(), Some(neighbor_key));
+    assert_eq!(
+        live_query_draft(&h, neighbor_key).as_deref(),
+        Some(neighbor_draft.as_str())
+    );
+
+    let _ = h.key(KeyCode::Esc);
+    assert!(h.layer_area(QUIT_DIALOG).is_none());
+    assert!(h.layer_area(TAB_LIST).is_some());
+    assert_eq!(h.focus(), Some(TAB_LIST));
+    assert!(h.text().contains("customers"), "{}", h.text());
+    assert!(h.area_of_part(TAB_LIST, row).is_some());
+    let Some(tablepro_ui::Tab::Table(table)) = h.app().workbench.tab(table_key) else {
+        return Err("pending table remains after Cancel");
+    };
+    assert!(
+        h.app()
+            .workbench
+            .tab(table_key)
+            .is_some_and(tablepro_ui::Tab::dirty)
+    );
+    assert_eq!(table.result.pending_total(), pending_before);
+    assert_eq!(table.result.model.row_count(), rows_before);
+    assert_eq!(h.app().workbench.active_key(), Some(neighbor_key));
+    assert_eq!(
+        live_query_draft(&h, neighbor_key).as_deref(),
+        Some(neighbor_draft.as_str())
+    );
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+    Ok(())
 }
 
 #[test]
