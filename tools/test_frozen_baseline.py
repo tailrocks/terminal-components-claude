@@ -711,6 +711,51 @@ class RunnerGuards(unittest.TestCase):
                 strict = {key: (frame["ansi_sha256"], frame["semantic_frame_sha256"], None)}
                 runner._validate_reference_receipts_collectively(strict, selected, phase, decisions, decision_hash)
 
+    def test_synthetic_validated_decisions_partition_and_inject_only_selected_reference(self) -> None:
+        decisions = [
+            self._synthetic_reference_decision("fixture::a", "fixture/a", "a" * 64, "b" * 64),
+            self._synthetic_reference_decision("fixture::b", "fixture/b", "c" * 64, "d" * 64),
+        ]
+        decisions[0]["environment"] = {"values": {"FIXTURE_ONLY": "a"}}
+        decisions[1]["environment"] = {"values": {"FIXTURE_ONLY": "b"}}
+        selected_cases = ["ordinary::0", "fixture::b", "ordinary::1", "ordinary::2", "fixture::a", "ordinary::3"]
+        chunks = runner._scenario_chunks_for_decisions(selected_cases, 2, decisions)
+        self.assertEqual(
+            chunks,
+            [["ordinary::0", "ordinary::1"], ["ordinary::2", "ordinary::3"], ["fixture::b"], ["fixture::a"]],
+        )
+        decision_hash = "e" * 64
+        self.assertEqual(runner._selected_reference_decisions(decisions, ["fixture::a", "fixture::b"]), decisions)
+        for chunk in chunks:
+            active = runner._selected_reference_decisions(decisions, chunk)
+            self.assertLessEqual(len(active), 1)
+            if not active:
+                runner._validate_reference_receipts_collectively({}, chunk, "baseline-capture", decisions, decision_hash)
+                continue
+            decision = active[0]
+            reference_tuple = decision["tuple"]
+            expected_marker = "b" if reference_tuple["test_id"] == "fixture::b" else "a"
+            decision_values, reference_values = runner._reference_environment_layers(decision, decision_hash)
+            self.assertEqual(decision_values, {"FIXTURE_ONLY": expected_marker})
+            self.assertEqual(
+                reference_values,
+                {
+                    "TERMROCK_PAIR_REFERENCE_CASE": reference_tuple["case_id"],
+                    "TERMROCK_PAIR_REFERENCE_ORDINAL": "0",
+                    "TERMROCK_PAIR_REFERENCE_LOGICAL": reference_tuple["logical_name"],
+                    "TERMROCK_PAIR_REFERENCE_ANSI_SHA256": decision["live_frame"]["ansi_sha256"],
+                    "TERMROCK_PAIR_REFERENCE_SEMANTIC_FRAME_SHA256": decision["live_frame"]["semantic_frame_sha256"],
+                    "TERMROCK_PAIR_REFERENCE_DECISION_SHA256": decision_hash,
+                },
+            )
+            key = (reference_tuple["case_id"], reference_tuple["ordinal"], reference_tuple["logical_name"])
+            frame = decision["live_frame"]
+            receipt = {key: (frame["ansi_sha256"], frame["semantic_frame_sha256"], decision_hash)}
+            runner._validate_reference_receipts_collectively(receipt, chunk, "baseline-capture", decisions, decision_hash)
+        with self.assertRaisesRegex(runner.RunnerError, "duplicated"):
+            runner._scenario_chunks_for_decisions(["fixture::a", "fixture::a"], 2, decisions)
+        self.assertEqual(runner._selected_reference_decisions(decisions, ["fixture::a"]), [decisions[0]])
+
     def test_synthetic_collective_receipts_reject_missing_and_mismatched_selected_frames(self) -> None:
         decisions = [
             self._synthetic_reference_decision("fixture::a", "fixture/a", "a" * 64, "b" * 64),
