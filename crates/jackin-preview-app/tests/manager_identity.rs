@@ -1,7 +1,9 @@
-use jackin_preview_app::screens::manager::ManagerRowKey;
-use jackin_preview_app::{ACCOUNTS, App, MANAGER_LIST, Motion, Scenario};
+use jackin_preview_app::screens::manager::{DETAIL, ManagerRowKey};
+use jackin_preview_app::{App, MANAGER, MANAGER_LIST, Motion, Scenario};
 use termrock::{Axis, ItemKey, KeyCode, MouseKind, Part, PartRef, Rect, StateFlags, Theme};
 use termrock_test_support::Harness;
+
+const MANAGER_DETAIL_ACTION: termrock::Id = DETAIL.sub("activate-selected");
 
 fn hard_cases_manager() -> Harness<App> {
     let mut h = Harness::new(
@@ -10,9 +12,18 @@ fn hard_cases_manager() -> Harness<App> {
         100,
         30,
     );
-    assert!(h.tab_to(MANAGER_LIST));
+    focus_manager_list(&mut h);
     let _ = h.key(KeyCode::Home);
     h
+}
+
+fn focus_manager_list(h: &mut Harness<App>) {
+    if h.focus() == Some(MANAGER) {
+        let _ = h.key(KeyCode::Tab);
+        assert_eq!(h.focus(), Some(MANAGER_DETAIL_ACTION));
+        let _ = h.key(KeyCode::Esc);
+    }
+    assert_eq!(h.focus(), Some(MANAGER_LIST));
 }
 
 fn workspace_part(id: u32) -> PartRef {
@@ -28,7 +39,7 @@ fn ordinary_manager_pointer_chose_opens_live_detail() -> Result<(), Box<dyn std:
         120,
         40,
     );
-    assert!(h.tab_to(MANAGER_LIST));
+    focus_manager_list(&mut h);
     let _ = h.key(KeyCode::Home);
     let target = h
         .app()
@@ -51,24 +62,89 @@ fn ordinary_manager_pointer_chose_opens_live_detail() -> Result<(), Box<dyn std:
 }
 
 #[test]
-fn tab_from_the_manager_paints_the_detail_drawer_hints() {
+fn tab_from_the_manager_opens_the_real_selected_row_details()
+-> Result<(), Box<dyn std::error::Error>> {
     let mut h = Harness::new(
         App::for_scenario_at(Scenario::Returning, Motion::Paused, 40),
         Theme::junie(),
         120,
         40,
     );
-    assert!(h.text().contains("Tab Details"), "{}", h.text());
+    assert_eq!(h.focus(), Some(MANAGER));
+    let selected_row = h.app().manager.selected_row().clone();
+    let selected_key = selected_row.stable_key();
     let _ = h.key(KeyCode::Tab);
-    assert_eq!(h.focus(), Some(ACCOUNTS));
+    assert_eq!(h.focus(), Some(MANAGER_DETAIL_ACTION));
+    assert!(h.app().manager.detail_open());
     let text = h.text();
-    assert!(text.contains("Tab Actions"), "{text}");
-    assert!(text.contains("Esc Back"), "{text}");
-    assert!(!text.contains("Tab Details"), "{text}");
+    assert!(text.contains(selected_key.as_str()), "{text}");
+    match selected_row {
+        ManagerRowKey::Workspace(id) => {
+            let selected = h
+                .app()
+                .world
+                .workspace(id)
+                .ok_or("selected workspace remains in World")?;
+            assert!(text.contains(&selected.name), "{text}");
+            assert!(text.contains(&selected.workdir), "{text}");
+        }
+        ManagerRowKey::CurrentDirectory => {
+            assert!(text.contains("Current directory"), "{text}");
+            assert!(text.contains(&h.app().world.cwd), "{text}");
+        }
+        _ => return Err("initial Manager selection has no expected detail".into()),
+    }
+    assert_eq!(h.diagnostics(), []);
+    Ok(())
 }
 
 #[test]
-fn detail_drawer_repaints_from_live_world_data() {
+fn real_current_directory_detail_repaints_from_live_world_data()
+-> Result<(), Box<dyn std::error::Error>> {
+    let mut h = Harness::new(
+        App::for_scenario_at(Scenario::Returning, Motion::Paused, 40),
+        Theme::junie(),
+        120,
+        40,
+    );
+    focus_manager_list(&mut h);
+    let current_directory_key = ManagerRowKey::CurrentDirectory.stable_key();
+    let current_directory_part = PartRef::item(Part::ROW, ItemKey::text(&current_directory_key));
+    let current_directory_area = h
+        .area_of_part(MANAGER_LIST, current_directory_part)
+        .ok_or("registered CurrentDirectory Manager row")?;
+    assert!(
+        h.click(current_directory_area.x, current_directory_area.y)
+            .is_changed()
+    );
+    assert_eq!(
+        h.app().manager.selected_row(),
+        &ManagerRowKey::CurrentDirectory
+    );
+    assert!(h.app().manager.detail_open());
+    assert_eq!(h.focus(), Some(MANAGER_DETAIL_ACTION));
+    assert!(h.area_of(MANAGER_DETAIL_ACTION).is_some());
+    let changed_cwd = "/tmp/updated-manager-cwd";
+    let changed_home = "/tmp/updated-manager-home";
+    h.app_mut().world.cwd = changed_cwd.to_owned();
+    h.app_mut().world.home = changed_home.to_owned();
+    h.app_mut().manager.invalidate_rows();
+    let _ = h.tick();
+    let text = h.text();
+    assert!(text.contains("Current directory"), "{text}");
+    assert!(text.contains(changed_cwd), "{text}");
+    assert!(text.contains(changed_home), "{text}");
+    assert_eq!(
+        h.app().manager.selected_row(),
+        &ManagerRowKey::CurrentDirectory
+    );
+    assert_eq!(h.diagnostics(), []);
+    Ok(())
+}
+
+#[test]
+fn real_closed_manager_frame_repaints_daemon_age_from_live_world()
+-> Result<(), Box<dyn std::error::Error>> {
     let mut h = Harness::new(
         App::for_scenario_at(Scenario::Returning, Motion::Paused, 40),
         Theme::junie(),
@@ -76,17 +152,27 @@ fn detail_drawer_repaints_from_live_world_data() {
         40,
     );
     let _ = h.key(KeyCode::Tab);
-    let text = h.text();
-    assert!(
-        text.contains("Current directory · payments-platform"),
-        "{text}"
-    );
-    assert!(text.contains("↑↓"), "{text}");
-    // The drawer composes over the live split: shifting the daemon age in
-    // the world must reach the painted frame with no fixed-cell overlay.
+    let _ = h.key(KeyCode::Esc);
+    assert_eq!(h.focus(), Some(MANAGER_LIST));
+    assert!(!h.app().manager.detail_open());
+    let _ = h.key(KeyCode::Home);
+    assert_eq!(h.area_of(MANAGER_DETAIL_ACTION), None);
+
+    let before = h.text();
+    let before_daemon = before
+        .lines()
+        .find(|line| line.contains("daemon ·"))
+        .ok_or("closed Manager split paints its daemon age")?;
     h.app_mut().world.last_refresh_secs -= 3600;
     let _ = h.tick();
-    assert_ne!(text, h.text(), "drawer must repaint from live world data");
+    let after = h.text();
+    let after_daemon = after
+        .lines()
+        .find(|line| line.contains("daemon ·"))
+        .ok_or("repainted Manager split keeps its daemon age")?;
+    assert_ne!(before_daemon, after_daemon);
+    assert_eq!(h.diagnostics(), []);
+    Ok(())
 }
 
 #[test]
@@ -119,7 +205,7 @@ fn selected_workspace_survives_world_reordering() {
         40,
     );
     assert!(h.app().world.workspaces.len() >= 2);
-    assert!(h.tab_to(MANAGER_LIST));
+    focus_manager_list(&mut h);
     let _ = h.key(KeyCode::Home);
     let selected = h.app().manager.selected_row().clone();
     h.app_mut().world.workspaces.swap(0, 1);
@@ -135,7 +221,7 @@ fn manager() -> Harness<App> {
         120,
         40,
     );
-    assert!(h.tab_to(MANAGER_LIST));
+    focus_manager_list(&mut h);
     let _ = h.key(KeyCode::Home);
     h
 }
@@ -401,7 +487,7 @@ fn hard_cases_painted_workspace_row_matches_keyboard_selection()
         100,
         30,
     );
-    assert!(keyboard.tab_to(MANAGER_LIST));
+    focus_manager_list(&mut keyboard);
     let _ = keyboard.key(KeyCode::Home);
     let keyboard_first = keyboard
         .app()
@@ -491,7 +577,100 @@ fn hard_cases_painted_workspace_row_matches_keyboard_selection()
     );
     assert_eq!(pointer.runtime().capture_owner(), None);
     assert_eq!(pointer.app().route(), jackin_preview_app::Route::Manager);
+    assert_eq!(pointer.focus(), Some(MANAGER_DETAIL_ACTION));
+    assert_eq!(pointer.diagnostics(), []);
+    Ok(())
+}
+
+#[test]
+fn active_split_keeps_master_row_geometry_through_chose() -> Result<(), Box<dyn std::error::Error>>
+{
+    let mut pointer = Harness::new(
+        App::for_scenario_at(Scenario::HardCases, Motion::Paused, 0),
+        Theme::paper(),
+        120,
+        40,
+    );
+    focus_manager_list(&mut pointer);
+    let _ = pointer.key(KeyCode::Home);
+
+    let (first_id, target_id, target_name) = {
+        let workspaces = &pointer.app().world.workspaces;
+        let first = workspaces.first().ok_or("HardCases first workspace")?;
+        let target = workspaces.get(1).ok_or("HardCases second workspace")?;
+        (first.id, target.id, target.name.clone())
+    };
+    assert_eq!(pointer.app().manager.selected(), Some(first_id));
+    let _ = pointer.key(KeyCode::Tab);
+    assert!(pointer.app().manager.detail_open());
+    assert_eq!(pointer.focus(), Some(MANAGER_DETAIL_ACTION));
+
+    let master = pointer
+        .area_of(MANAGER_LIST)
+        .ok_or("active split keeps the real master owner")?;
+    let detail = pointer
+        .area_of(DETAIL)
+        .ok_or("active split keeps the real detail owner")?;
+    let action = pointer
+        .area_of(MANAGER_DETAIL_ACTION)
+        .ok_or("active split keeps its real detail action")?;
+    assert!(master.width > 0 && detail.width > 0 && action.width > 0);
+    assert!(
+        master.right() <= detail.x,
+        "master {master:?}, detail {detail:?}"
+    );
+    let target_row = ManagerRowKey::Workspace(target_id);
+    let target_key = target_row.stable_key();
+    let target_part = workspace_part(target_id);
+    let target_area = pointer
+        .area_of_part(MANAGER_LIST, target_part)
+        .ok_or("active split registers the target workspace row")?;
+    assert!(target_area.width > 0 && target_area.height > 0);
+    let x = target_area.x.saturating_add(target_area.width / 2);
+
+    let press = pointer.mouse(MouseKind::Down, x, target_area.y);
+    assert!(
+        press.is_changed(),
+        "press selects the real split master row"
+    );
+    assert_eq!(pointer.app().manager.selected(), Some(target_id));
+    assert_eq!(pointer.app().manager.selected_row(), &target_row);
+    assert!(pointer.app().manager.detail_open());
     assert_eq!(pointer.focus(), Some(MANAGER_LIST));
+    assert!(pointer.state_of(MANAGER_LIST).contains(StateFlags::PRESSED));
+    assert_eq!(
+        pointer.area_of_part(MANAGER_LIST, target_part),
+        Some(target_area),
+        "active detail stays painted with the registered row under the press"
+    );
+    assert_eq!(pointer.area_of(DETAIL), Some(detail));
+    assert_eq!(pointer.area_of(MANAGER_DETAIL_ACTION), Some(action));
+    assert_eq!(pointer.diagnostics(), []);
+
+    let release = pointer.mouse(MouseKind::Up, x, target_area.y);
+    assert!(
+        release.is_changed(),
+        "release preserves List Chose behavior"
+    );
+    assert_eq!(pointer.app().manager.selected(), Some(target_id));
+    assert_eq!(pointer.app().manager.selected_row(), &target_row);
+    assert!(pointer.app().manager.detail_open());
+    assert_eq!(pointer.focus(), Some(MANAGER_DETAIL_ACTION));
+    assert!(pointer.text().contains(target_key.as_str()));
+    assert!(
+        pointer
+            .text()
+            .contains(&format!("Workspaces › {target_name}")),
+        "real selected detail follows the chosen row: {}",
+        pointer.text()
+    );
+    assert_eq!(
+        pointer.area_of_part(MANAGER_LIST, target_part),
+        Some(target_area),
+        "release retains the same registered row geometry"
+    );
+    assert_eq!(pointer.area_of(DETAIL), Some(detail));
+    assert_eq!(pointer.area_of(MANAGER_DETAIL_ACTION), Some(action));
     assert_eq!(pointer.diagnostics(), []);
     Ok(())
 }
