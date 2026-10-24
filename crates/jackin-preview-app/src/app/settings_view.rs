@@ -155,7 +155,7 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
         1 => paint_mounts_body(ui),
         2 => paint_env_body(ui),
         3 => paint_agents_body(ui, full),
-        4 => paint_trust_body(ui),
+        4 => paint_trust_body(app, ui, full),
         _ => paint_general_body(app, ui),
     }
 
@@ -1001,7 +1001,7 @@ fn paint_agents_page(app: &App, ui: &mut Ui<'_>, full: Rect) {
 fn paint_trust_page(app: &App, ui: &mut Ui<'_>, full: Rect) {
     use termrock::feedback::{
         SettingsCluster, SettingsHint, SettingsPage, SettingsPageChrome, SettingsTab,
-        SettingsTrust, SettingsTrustRow, paint_settings_page_with_trust,
+        SettingsTrust, paint_settings_page_with_trust,
     };
 
     let preview = app.settings_save_preview;
@@ -1056,44 +1056,9 @@ fn paint_trust_page(app: &App, ui: &mut Ui<'_>, full: Rect) {
             action: "Back",
         },
     ];
-    let trusted = app
-        .world
-        .global
-        .trust
-        .iter()
-        .filter(|row| row.trusted)
-        .count();
-    let untrusted = app.world.global.trust.len().saturating_sub(trusted);
-    let summary = format!("{trusted} trusted · {untrusted} untrusted");
-    let counts: Vec<String> = app
-        .world
-        .global
-        .trust
-        .iter()
-        .map(|row| trust_role_label(app, &row.source))
-        .collect();
-    let rows: Vec<SettingsTrustRow<'_>> = app
-        .world
-        .global
-        .trust
-        .iter()
-        .zip(counts.iter())
-        .enumerate()
-        .map(|(index, (row, count))| {
-            SettingsTrustRow::new(
-                &row.source,
-                trust_source_kind(&row.source),
-                row.trusted,
-                count,
-            )
-            .dirty(
-                app.settings_trust_origin
-                    .get(index)
-                    .is_some_and(|before| *before != row.trusted),
-            )
-            .selected(index == app.settings_trust_cursor)
-        })
-        .collect();
+    let summary = trust_summary(app);
+    let counts = trust_role_counts(app);
+    let rows = trust_rows(app, &counts);
     const NOTES: &[&str] = &[
         "An untrusted source blocks + Load role until it is trusted here or",
         "in the trust dialog that the load opens.",
@@ -1141,6 +1106,54 @@ fn paint_trust_page(app: &App, ui: &mut Ui<'_>, full: Rect) {
         paint_preview_footer(app, ui, y);
         paint_save_preview(app, ui, full);
     }
+}
+
+fn trust_summary(app: &App) -> String {
+    let trusted = app
+        .world
+        .global
+        .trust
+        .iter()
+        .filter(|row| row.trusted)
+        .count();
+    let untrusted = app.world.global.trust.len().saturating_sub(trusted);
+    format!("{trusted} trusted · {untrusted} untrusted")
+}
+
+fn trust_role_counts(app: &App) -> Vec<String> {
+    app.world
+        .global
+        .trust
+        .iter()
+        .map(|row| trust_role_label(app, &row.source))
+        .collect()
+}
+
+fn trust_rows<'a>(
+    app: &'a App,
+    counts: &'a [String],
+) -> Vec<termrock::feedback::SettingsTrustRow<'a>> {
+    app.world
+        .global
+        .trust
+        .iter()
+        .zip(counts.iter())
+        .enumerate()
+        .map(|(index, (row, count))| {
+            termrock::feedback::SettingsTrustRow::new(
+                &row.source,
+                trust_source_kind(&row.source),
+                row.trusted,
+                count,
+            )
+            .dirty(
+                app.settings_trust_origin
+                    .get(index)
+                    .is_some_and(|before| *before != row.trusted),
+            )
+            .selected(index == app.settings_trust_cursor)
+        })
+        .collect()
 }
 
 struct TrustDiff {
@@ -1347,7 +1360,33 @@ fn paint_agents_body_legacy(ui: &mut Ui<'_>) {
     paint_str(ui, 34, 13, "★ Grok · Team", MUTED, BLACK, false);
 }
 
-fn paint_trust_body(ui: &mut Ui<'_>) {
+fn paint_trust_body(app: &App, ui: &mut Ui<'_>, full: Rect) {
+    if !trust_body_clear_precedes_native_controls(full) {
+        paint_trust_body_legacy(ui);
+        return;
+    }
+
+    let summary = trust_summary(app);
+    let counts = trust_role_counts(app);
+    let rows = trust_rows(app, &counts);
+    let trust = termrock::feedback::SettingsTrust::new("Role sources", &summary, &rows, &[])
+        .preview(app.settings_save_preview);
+    let result = termrock::feedback::paint_settings_trust_body(ui, full, &trust);
+    debug_assert!(
+        result.is_ok(),
+        "fixed Trust settings body rejected: {result:?}"
+    );
+    let _ = result;
+}
+
+/// The shared Trust body's fixed clear occupies screen rows 6 through 13.
+/// Keep the existing app-owned fallback when that band would reach the
+/// Settings controls below the content panel.
+fn trust_body_clear_precedes_native_controls(full: Rect) -> bool {
+    full.y.saturating_add(14) <= full.bottom().saturating_sub(7)
+}
+
+fn paint_trust_body_legacy(ui: &mut Ui<'_>) {
     paint_str(ui, 4, 6, "Role sources", SECONDARY, BLACK, true);
     paint_str(
         ui,

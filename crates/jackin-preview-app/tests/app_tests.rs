@@ -1642,6 +1642,250 @@ fn settings_trust_five_enter_paints_the_approved_trust_frame() {
     assert_eq!(h.harness.cursor(), None);
 }
 
+fn settings_trust_body_reference_scene(
+    app: &jackin_preview_app::App,
+    width: u16,
+    height: u16,
+    selected: usize,
+    original: &[bool],
+    include_notes: bool,
+) -> Scene {
+    use termrock::feedback::{SettingsTrust, SettingsTrustRow, SettingsTrustSourceKind};
+
+    const NOTES: &[&str] = &[
+        "An untrusted source blocks + Load role until it is trusted here or",
+        "in the trust dialog that the load opens.",
+    ];
+
+    let fixture = [
+        (
+            "github.com/chainargos/roles",
+            SettingsTrustSourceKind::Git,
+            "4 roles",
+        ),
+        (
+            "github.com/acme-labs/roles-experimental",
+            SettingsTrustSourceKind::Git,
+            "1 role",
+        ),
+        ("~/roles", SettingsTrustSourceKind::Path, "1 role"),
+        (
+            "git@corp:infra/roles",
+            SettingsTrustSourceKind::Git,
+            "2 roles",
+        ),
+    ];
+    assert_eq!(app.world.global.trust.len(), fixture.len());
+    let trusted = app
+        .world
+        .global
+        .trust
+        .iter()
+        .filter(|row| row.trusted)
+        .count();
+    let summary = format!(
+        "{trusted} trusted · {} untrusted",
+        app.world.global.trust.len().saturating_sub(trusted)
+    );
+    let rows: Vec<_> = app
+        .world
+        .global
+        .trust
+        .iter()
+        .zip(fixture)
+        .enumerate()
+        .map(|(index, (row, (source, kind, count)))| {
+            assert_eq!(row.source, source, "trust fixture row {index}");
+            SettingsTrustRow::new(&row.source, kind, row.trusted, count)
+                .dirty(
+                    original
+                        .get(index)
+                        .is_some_and(|before| *before != row.trusted),
+                )
+                .selected(index == selected)
+        })
+        .collect();
+    let notes = if include_notes { NOTES } else { &[] };
+    let trust = SettingsTrust::new("Role sources", &summary, &rows, notes);
+    let mut expected = Scene::new(
+        "settings_trust_shared_body_reference",
+        Theme::junie(),
+        termrock::ColorLevel::TrueColor,
+        width,
+        height,
+    );
+    expected.draw(|ui, area| {
+        assert_eq!(
+            termrock::feedback::paint_settings_trust_body(ui, area, &trust),
+            Ok(())
+        );
+    });
+    expected
+}
+
+fn assert_settings_trust_body_matches(
+    h: &H,
+    width: u16,
+    height: u16,
+    selected: usize,
+    original: &[bool],
+    include_notes: bool,
+) {
+    let expected = settings_trust_body_reference_scene(
+        h.app(),
+        width,
+        height,
+        selected,
+        original,
+        include_notes,
+    );
+    for y in 6..14 {
+        for x in 0..width {
+            let position = (x, y);
+            let actual = h.buffer().cell(position).expect("App Trust body cell");
+            let expected = expected
+                .buffer()
+                .cell(position)
+                .expect("shared Trust body cell");
+            assert_eq!(
+                format!("{actual:?}"),
+                format!("{expected:?}"),
+                "full native Trust body cell at {position:?} for {width}x{height}"
+            );
+        }
+    }
+}
+
+#[test]
+fn settings_trust_shared_body_matches_live_rows_and_keeps_native_save_flow() {
+    fn open_trust(h: &mut H) {
+        h.key(KeyCode::Char('s'));
+        h.key(KeyCode::Char('5'));
+        h.key(KeyCode::Enter);
+        assert_eq!(h.app().route(), Route::Settings);
+        assert_eq!(h.app().settings.tab, 4);
+    }
+
+    for (width, height, include_notes) in [(80, 24, false), (120, 40, true)] {
+        let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, width, height);
+        open_trust(&mut h);
+        let original: Vec<bool> = h
+            .app()
+            .world
+            .global
+            .trust
+            .iter()
+            .map(|row| row.trusted)
+            .collect();
+        assert_settings_trust_body_matches(&h, width, height, 0, &original, include_notes);
+        if include_notes {
+            assert!(h.text().contains("trust dialog that the load opens"));
+        } else {
+            assert!(!h.text().contains("An untrusted source blocks"));
+        }
+        assert_eq!(h.harness.cursor(), None);
+        assert_eq!(h.harness.diagnostics(), []);
+
+        if width == 80 {
+            h.key(KeyCode::Char(' '));
+            assert_settings_trust_body_matches(&h, width, height, 0, &original, false);
+            h.key(KeyCode::Down);
+            assert_settings_trust_body_matches(&h, width, height, 1, &original, false);
+            h.key(KeyCode::Char(' '));
+            assert_settings_trust_body_matches(&h, width, height, 1, &original, false);
+            assert!(h.app().settings.dirty);
+            h.ctrl('s');
+            let confirm = jackin_preview_app::screens::settings::ROOT.sub("save-confirm");
+            assert!(h.text().contains("Save settings"), "{}", h.text());
+            assert_eq!(h.focus(), Some(confirm));
+            assert!(
+                h.harness
+                    .state_of(confirm)
+                    .contains(termrock::StateFlags::FOCUSED)
+            );
+            assert_eq!(h.harness.runtime().capture_owner(), None);
+            h.key(KeyCode::Esc);
+            assert_eq!(h.harness.area_of(confirm), None);
+            assert_ne!(h.focus(), Some(confirm));
+            assert_eq!(h.harness.runtime().capture_owner(), None);
+            let save = jackin_preview_app::screens::settings::SAVE;
+            h.tab_to(save);
+            assert_eq!(h.focus(), Some(save));
+            assert!(h.app().settings.dirty, "cancel keeps the Trust draft");
+            assert!(h.text().contains("Role sources"), "{}", h.text());
+            assert_eq!(h.harness.diagnostics(), []);
+        }
+    }
+
+    // At 72x20 the shared body's fixed clear reaches the native Save row, so
+    // keep the established short-frame body and prove the real Button lifecycle.
+    let mut short = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 72, 20);
+    open_trust(&mut short);
+    let save = jackin_preview_app::screens::settings::SAVE;
+    let save_area = short
+        .harness
+        .area_of(save)
+        .expect("native Settings Save publishes its hit area");
+    assert_eq!(save_area, termrock::Rect::new(4, 14, 15, 1));
+    assert_eq!(short.find("Save settings"), Some((5, 14)));
+    short.key(KeyCode::Char(' '));
+    assert!(short.app().settings.dirty);
+    short.tab_to(save);
+    assert_eq!(short.focus(), Some(save));
+    assert!(
+        short
+            .harness
+            .state_of(save)
+            .contains(termrock::StateFlags::FOCUSED)
+    );
+    assert!(
+        !short
+            .harness
+            .state_of(save)
+            .contains(termrock::StateFlags::DISABLED)
+    );
+    assert_eq!(short.harness.runtime().capture_owner(), None);
+    let save_x = save_area.x.saturating_add(save_area.width / 2);
+    short.mouse(MouseKind::Down, save_x, save_area.y);
+    assert!(
+        short
+            .harness
+            .state_of(save)
+            .contains(termrock::StateFlags::PRESSED)
+    );
+    assert_eq!(short.harness.runtime().capture_owner(), None);
+    short.mouse(MouseKind::Up, save_x, save_area.y);
+    assert_eq!(short.harness.runtime().capture_owner(), None);
+    assert_eq!(
+        short
+            .harness
+            .activation_feedback()
+            .map(|feedback| feedback.owner),
+        Some(save)
+    );
+    let confirm = jackin_preview_app::screens::settings::ROOT.sub("save-confirm");
+    assert!(short.text().contains("Save settings"), "{}", short.text());
+    assert_eq!(short.focus(), Some(confirm));
+    assert!(
+        short
+            .harness
+            .state_of(confirm)
+            .contains(termrock::StateFlags::FOCUSED)
+    );
+    assert!(short.harness.area_of(confirm).is_some());
+    assert_eq!(short.harness.runtime().capture_owner(), None);
+
+    short.key(KeyCode::Esc);
+    assert_eq!(short.harness.area_of(confirm), None);
+    assert_eq!(short.harness.runtime().capture_owner(), None);
+    assert!(short.app().settings.dirty, "cancel keeps the Trust draft");
+    assert_eq!(short.find("Save settings"), Some((5, 14)));
+    short.tab_to(save);
+    assert_eq!(short.focus(), Some(save));
+    assert_eq!(short.harness.area_of(save), Some(save_area));
+    assert_eq!(short.harness.diagnostics(), []);
+}
+
 #[test]
 fn settings_save_preview_keys_paint_the_approved_dialog() {
     let apply_save = |h: &H| {
