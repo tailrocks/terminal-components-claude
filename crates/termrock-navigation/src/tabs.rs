@@ -675,7 +675,7 @@ pub struct TabWindowReceipt {
 }
 
 /// One immutable semantic row allocation for a [`TabLayout`].
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone)]
 pub struct TabRowLayout {
     pub key: ItemKey,
     pub index: usize,
@@ -695,16 +695,175 @@ pub struct TabRowLayout {
     logical_mark: Option<Rect>,
     visible_mark: Option<Rect>,
     mark: Option<TabItemMark>,
+    close_enabled: bool,
     label_segments: Vec<String>,
     pub label_extent: u16,
 }
 
+impl PartialEq for TabRowLayout {
+    fn eq(&self, other: &Self) -> bool {
+        self.key == other.key
+            && self.index == other.index
+            && self.logical_content == other.logical_content
+            && self.visible_content == other.visible_content
+            && self.logical_tab == other.logical_tab
+            && self.visible_tab == other.visible_tab
+            && self.logical_close == other.logical_close
+            && self.visible_close == other.visible_close
+            && self.logical_mark == other.logical_mark
+            && self.visible_mark == other.visible_mark
+            && self.mark == other.mark
+            && self.label_segments == other.label_segments
+            && self.label_extent == other.label_extent
+    }
+}
+
+impl Eq for TabRowLayout {}
+
+impl fmt::Debug for TabRowLayout {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("TabRowLayout")
+            .field("key", &self.key)
+            .field("index", &self.index)
+            .field("logical_content", &self.logical_content)
+            .field("visible_content", &self.visible_content)
+            .field("logical_tab", &self.logical_tab)
+            .field("visible_tab", &self.visible_tab)
+            .field("logical_close", &self.logical_close)
+            .field("visible_close", &self.visible_close)
+            .field("logical_mark", &self.logical_mark)
+            .field("visible_mark", &self.visible_mark)
+            .field("mark", &self.mark)
+            .field("label_segments", &self.label_segments)
+            .field("label_extent", &self.label_extent)
+            .finish()
+    }
+}
+
+/// One item snapshot owned by a fresh planned default layout.
+#[derive(Clone, PartialEq, Eq, Debug)]
+struct OwnedTabMeasurement {
+    key: ItemKey,
+    mark: Option<TabItemMark>,
+    close_enabled: bool,
+    label_segments: Vec<String>,
+}
+
+/// One row's exact native allocation, before choosing how to retain it.
+///
+/// Terminal probes keep only the last record; the committed layout sink turns
+/// records into public rows and copies the captured display segments once.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+struct DefaultRowGeometry {
+    key: ItemKey,
+    index: usize,
+    logical_content: Rect,
+    visible_content: Rect,
+    logical_tab: Rect,
+    visible_tab: Rect,
+    logical_close: Option<Rect>,
+    visible_close: Option<Rect>,
+    logical_mark: Option<Rect>,
+    visible_mark: Option<Rect>,
+    mark: Option<TabItemMark>,
+    close_enabled: bool,
+    label_extent: u16,
+}
+
+impl DefaultRowGeometry {
+    #[cfg(test)]
+    fn from_tab_row(row: &TabRowLayout) -> Self {
+        Self {
+            key: row.key,
+            index: row.index,
+            logical_content: row.logical_content,
+            visible_content: row.visible_content,
+            logical_tab: row.logical_tab,
+            visible_tab: row.visible_tab,
+            logical_close: row.logical_close,
+            visible_close: row.visible_close,
+            logical_mark: row.logical_mark,
+            visible_mark: row.visible_mark,
+            mark: row.mark,
+            close_enabled: row.close_enabled,
+            label_extent: row.label_extent,
+        }
+    }
+
+    fn into_tab_row(self, label_segments: Vec<String>) -> TabRowLayout {
+        TabRowLayout {
+            key: self.key,
+            index: self.index,
+            logical_content: self.logical_content,
+            visible_content: self.visible_content,
+            logical_tab: self.logical_tab,
+            visible_tab: self.visible_tab,
+            logical_close: self.logical_close,
+            visible_close: self.visible_close,
+            logical_mark: self.logical_mark,
+            visible_mark: self.visible_mark,
+            mark: self.mark,
+            close_enabled: self.close_enabled,
+            label_segments,
+            label_extent: self.label_extent,
+        }
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+struct DefaultRowHeader {
+    row_area: Rect,
+    used_area: Rect,
+    rule_area: Option<Rect>,
+    first_tab_x: u16,
+    right_limit: u16,
+    left_overflow: Option<Rect>,
+    status_w: u16,
+    new_w: u16,
+}
+
+impl DefaultRowHeader {
+    fn available_width(self) -> u16 {
+        self.right_limit.saturating_sub(self.first_tab_x)
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+struct DefaultRowWalk {
+    row_area: Rect,
+    used_area: Rect,
+    rule_area: Option<Rect>,
+    first_tab_x: u16,
+    right_limit: u16,
+    left_overflow: Option<Rect>,
+    right_overflow: Option<Rect>,
+    new_area: Option<Rect>,
+    status_area: Option<Rect>,
+    hidden_right: usize,
+    viewport_len: usize,
+    last_row: Option<DefaultRowGeometry>,
+}
+
+fn max_rows_for_width_budget(available: u16) -> usize {
+    // Compute A + 1 in a wider type; `available` can be u16::MAX.
+    ((u32::from(available).saturating_add(1)) / 4) as usize
+}
+
+fn positive_terminal_candidate_range(len: usize, max_rows: usize) -> core::ops::Range<usize> {
+    let first = if len == 0 {
+        0
+    } else {
+        len.saturating_sub(max_rows).max(1)
+    };
+    first..len
+}
+
 /// Pure layout result for default display rows.
 ///
-/// Layout owns the formatted row segments and all tab allocations. Drawing a
-/// layout never invokes the item's `Display` implementation or scans rendered
-/// buffer cells to recover label extents.
-#[derive(Clone, PartialEq, Eq, Debug)]
+/// Layout owns every formatted default-row segment and all tab allocations.
+/// Drawing a layout never invokes item Display or mark callbacks and never
+/// scans rendered buffer cells to recover label extents.
+#[derive(Clone)]
 pub struct TabLayout {
     id: Id,
     area: Rect,
@@ -713,6 +872,11 @@ pub struct TabLayout {
     used_area: Rect,
     rule_area: Option<Rect>,
     rows: Vec<TabRowLayout>,
+    // Some holds every item in a nonempty planned layout. None is the
+    // callback-free empty-area plan. Excluded from historical public Eq/Debug.
+    owned_items: Option<Vec<OwnedTabMeasurement>>,
+    // Private bound: the earliest suffix whose final allocated tab is visible.
+    terminal_first_index: Option<usize>,
     first_index: usize,
     active: Option<ItemKey>,
     cursor: Option<ItemKey>,
@@ -744,6 +908,96 @@ pub struct TabLayout {
     pub viewport_len: usize,
     pub content_len: usize,
     pub overflow_reserved: bool,
+}
+
+impl PartialEq for TabLayout {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+            && self.area == other.area
+            && self.clip == other.clip
+            && self.row_area == other.row_area
+            && self.used_area == other.used_area
+            && self.rule_area == other.rule_area
+            && self.rows == other.rows
+            && self.first_index == other.first_index
+            && self.active == other.active
+            && self.cursor == other.cursor
+            && self.first == other.first
+            && self.first_tab_x == other.first_tab_x
+            && self.allow_new == other.allow_new
+            && self.new_key_bindings == other.new_key_bindings
+            && self.closable == other.closable
+            && self.closable_keys == other.closable_keys
+            && self.close_key_bindings == other.close_key_bindings
+            && self.close_reveal == other.close_reveal
+            && self.close_target_w == other.close_target_w
+            && self.close_danger_hover == other.close_danger_hover
+            && self.close_reveal_press == other.close_reveal_press
+            && self.status == other.status
+            && self.rule == other.rule
+            && self.rule_focus_hidden == other.rule_focus_hidden
+            && self.passive == other.passive
+            && self.passive_focused == other.passive_focused
+            && self.left_overflow == other.left_overflow
+            && self.right_overflow == other.right_overflow
+            && self.new_area == other.new_area
+            && self.status_area == other.status_area
+            && self.item_marks_enabled == other.item_marks_enabled
+            && self.right_limit == other.right_limit
+            && self.hidden_right == other.hidden_right
+            && self.logical_area == other.logical_area
+            && self.visible_area == other.visible_area
+            && self.viewport_len == other.viewport_len
+            && self.content_len == other.content_len
+            && self.overflow_reserved == other.overflow_reserved
+    }
+}
+
+impl Eq for TabLayout {}
+
+impl fmt::Debug for TabLayout {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("TabLayout")
+            .field("id", &self.id)
+            .field("area", &self.area)
+            .field("clip", &self.clip)
+            .field("row_area", &self.row_area)
+            .field("used_area", &self.used_area)
+            .field("rule_area", &self.rule_area)
+            .field("rows", &self.rows)
+            .field("first_index", &self.first_index)
+            .field("active", &self.active)
+            .field("cursor", &self.cursor)
+            .field("first", &self.first)
+            .field("first_tab_x", &self.first_tab_x)
+            .field("allow_new", &self.allow_new)
+            .field("new_key_bindings", &self.new_key_bindings)
+            .field("closable", &self.closable)
+            .field("closable_keys", &self.closable_keys)
+            .field("close_key_bindings", &self.close_key_bindings)
+            .field("close_reveal", &self.close_reveal)
+            .field("close_target_w", &self.close_target_w)
+            .field("close_danger_hover", &self.close_danger_hover)
+            .field("close_reveal_press", &self.close_reveal_press)
+            .field("status", &self.status)
+            .field("rule", &self.rule)
+            .field("rule_focus_hidden", &self.rule_focus_hidden)
+            .field("passive", &self.passive)
+            .field("passive_focused", &self.passive_focused)
+            .field("left_overflow", &self.left_overflow)
+            .field("right_overflow", &self.right_overflow)
+            .field("new_area", &self.new_area)
+            .field("status_area", &self.status_area)
+            .field("item_marks_enabled", &self.item_marks_enabled)
+            .field("right_limit", &self.right_limit)
+            .field("hidden_right", &self.hidden_right)
+            .field("logical_area", &self.logical_area)
+            .field("visible_area", &self.visible_area)
+            .field("viewport_len", &self.viewport_len)
+            .field("content_len", &self.content_len)
+            .field("overflow_reserved", &self.overflow_reserved)
+            .finish()
+    }
 }
 
 impl TabLayout {
@@ -832,6 +1086,29 @@ impl TabLayout {
         Some(TabWindowReceipt {
             viewport_len: self.viewport_len,
             content_len: self.content_len,
+        })
+    }
+
+    fn owned_snapshot_is_consistent(&self) -> bool {
+        let Some(owned_items) = self.owned_items.as_ref() else {
+            return self.area.is_empty()
+                && self.rows.is_empty()
+                && self.terminal_first_index.is_none();
+        };
+        if self.area.is_empty()
+            || owned_items.len() != self.content_len
+            || self
+                .terminal_first_index
+                .is_some_and(|first| first >= self.content_len)
+        {
+            return false;
+        }
+        self.rows.iter().all(|row| {
+            owned_items.get(row.index).is_some_and(|item| {
+                item.key == row.key
+                    && item.mark == row.mark
+                    && item.close_enabled == row.close_enabled
+            })
         })
     }
 }
@@ -1953,7 +2230,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
             };
             let close_enabled = match row_source {
                 TabsRowSource::Legacy(_) => self.close_enabled(key),
-                TabsRowSource::Planned(_) => self.close_enabled(key),
+                TabsRowSource::Planned(row) => row.close_enabled,
             };
             let mark_width = if mark.is_some() { 2 } else { 0 };
             let close_w: u16 = if close_enabled { 2 } else { 0 };
@@ -2462,7 +2739,66 @@ fn item_mark_glyph_area(area: Rect, glyph_width: u16) -> Rect {
 }
 
 impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
+    fn empty_default_layout(
+        &self,
+        area: Rect,
+        clip: Rect,
+        state: &TabsState,
+        len: usize,
+        first_index: usize,
+        overflow_reserved: bool,
+    ) -> TabLayout {
+        TabLayout {
+            id: self.id,
+            area,
+            clip,
+            row_area: first_row(area),
+            used_area: area,
+            rule_area: None,
+            rows: Vec::new(),
+            owned_items: None,
+            terminal_first_index: None,
+            first_index,
+            active: state.active,
+            cursor: state.core.cursor(),
+            first: state.first,
+            first_tab_x: area.x,
+            allow_new: self.allow_new,
+            new_key_bindings: self.new_key_bindings,
+            closable: self.closable,
+            closable_keys: self.closable_keys.map(<[ItemKey]>::to_vec),
+            close_key_bindings: self.close_key_bindings,
+            close_reveal: self.close_reveal,
+            close_target_w: self.close_target_w,
+            close_danger_hover: self.close_danger_hover,
+            close_reveal_press: state.close_reveal_press,
+            status: self.status,
+            rule: self.rule,
+            rule_focus_hidden: self.rule_focus_hidden,
+            passive: self.passive,
+            passive_focused: self.passive_focused,
+            left_overflow: None,
+            right_overflow: None,
+            new_area: None,
+            status_area: None,
+            item_marks_enabled: self.item_marks.is_some(),
+            right_limit: area.x,
+            hidden_right: len.saturating_sub(first_index),
+            logical_area: area,
+            visible_area: area.intersection(clip),
+            viewport_len: 0,
+            content_len: len,
+            overflow_reserved,
+        }
+    }
+
     /// Resolve default display rows without painting or reading a buffer.
+    ///
+    /// Every fresh nonempty plan formats each item once and captures its key,
+    /// visible mark, close eligibility, and original Display write segments,
+    /// including items that are not allocated in the visible window. Rebuild
+    /// after item content changes; there is no persistent same-key text cache.
+    /// Empty-area plans preserve the original callback/key lookup behavior.
     ///
     /// `previous` is the caller-owned receipt from the last committed draw.
     /// It preserves the existing overflow reservation behavior across cold
@@ -2476,11 +2812,347 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
         previous: Option<TabWindowReceipt>,
     ) -> TabLayout {
         let len = items.len();
+        if area.is_empty() {
+            // Match the original empty-area key lookup exactly, including its
+            // optional hinted lookup and repeated hinted key call on fallback.
+            let first_index = state
+                .first
+                .and_then(|first| self.index_of(items, first, Some(state.first_index)))
+                .unwrap_or(0)
+                .min(len);
+            let overflow_reserved =
+                previous.is_some_and(|receipt| receipt.viewport_len < receipt.content_len);
+            return self.empty_default_layout(
+                area,
+                clip,
+                state,
+                len,
+                first_index,
+                overflow_reserved,
+            );
+        }
+        let owned_items: Vec<_> = items
+            .iter()
+            .enumerate()
+            .map(|(index, item)| {
+                let key = self.key.key(item, index);
+                let mark = self.item_marks.and_then(|mapper| mapper(item).visible());
+                let close_enabled = self.close_enabled(key);
+                let mut writer = SegmentWriter(Vec::new());
+                let _ = fmt::write(&mut writer, format_args!("{item}"));
+                OwnedTabMeasurement {
+                    key,
+                    mark,
+                    close_enabled,
+                    label_segments: writer.0,
+                }
+            })
+            .collect();
+        let len = owned_items.len();
         let first_index = state
             .first
-            .and_then(|first| self.index_of(items, first, Some(state.first_index)))
+            .map(|first| {
+                let hint = state.first_index;
+                if owned_items.get(hint).is_some_and(|item| item.key == first) {
+                    hint
+                } else {
+                    owned_items
+                        .iter()
+                        .position(|item| item.key == first)
+                        .unwrap_or(0)
+                }
+            })
             .unwrap_or(0)
             .min(len);
+
+        // Preserve the exact current terminal predicate and ascending candidate
+        // order while skipping only positive starts that cannot emit enough
+        // rows to reach the final item. Candidate zero has different lane
+        // reservations, so it is probed separately.
+        let mut extent_scratch = Vec::new();
+        let terminal_first_index =
+            self.find_terminal_first_index(area, clip, &owned_items, previous, &mut extent_scratch);
+
+        let mut layout = self.layout_default_from_owned(
+            area,
+            clip,
+            state,
+            &owned_items,
+            first_index,
+            previous,
+            &mut extent_scratch,
+        );
+        layout.owned_items = Some(owned_items);
+        layout.terminal_first_index = terminal_first_index;
+        layout
+    }
+
+    fn find_terminal_first_index(
+        &self,
+        area: Rect,
+        clip: Rect,
+        items: &[OwnedTabMeasurement],
+        previous: Option<TabWindowReceipt>,
+        extent_scratch: &mut Vec<bool>,
+    ) -> Option<usize> {
+        let len = items.len();
+        if len == 0 {
+            return None;
+        }
+
+        let final_index = len - 1;
+        let reaches_final = |walk: DefaultRowWalk| {
+            walk.last_row
+                .is_some_and(|row| row.index == final_index && !row.visible_tab.is_empty())
+        };
+
+        // Start zero has different left/right reservations; preserve its
+        // original first place in the exhaustive search explicitly.
+        let start_zero =
+            self.walk_default_owned(area, clip, items, 0, previous, extent_scratch, |_| {});
+        if reaches_final(start_zero) {
+            return Some(0);
+        }
+
+        // Every positive start has the same four-cell left and right lanes.
+        // At least three cells are consumed by each emitted row, and each
+        // non-final row advances x by at least four. Thus K bounds the number
+        // of rows any positive-start walk can emit. This header is shared with
+        // the walker, so the bound follows the actual status/New/reservation
+        // geometry rather than a separate width approximation.
+        let positive_header = self.default_row_header(area, 1, previous);
+        let max_rows = max_rows_for_width_budget(positive_header.available_width());
+        positive_terminal_candidate_range(len, max_rows).find(|&candidate_first| {
+            let walk = self.walk_default_owned(
+                area,
+                clip,
+                items,
+                candidate_first,
+                previous,
+                extent_scratch,
+                |_| {},
+            );
+            reaches_final(walk)
+        })
+    }
+
+    fn default_row_header(
+        &self,
+        area: Rect,
+        first_index: usize,
+        previous: Option<TabWindowReceipt>,
+    ) -> DefaultRowHeader {
+        debug_assert!(!area.is_empty(), "empty geometry has no row header");
+        let overflow_reserved =
+            previous.is_some_and(|receipt| receipt.viewport_len < receipt.content_len);
+        let status_w: u16 = if matches!(self.status, Status::Ready) {
+            0
+        } else {
+            2
+        };
+        let new_w: u16 = if self.allow_new { 4 } else { 0 };
+        let left_w: u16 = if first_index > 0 { 4 } else { 0 };
+        let right_w: u16 = if overflow_reserved || first_index > 0 {
+            4
+        } else {
+            0
+        };
+        let row_area = first_row(area);
+        let rule_area = (area.height >= 2).then(|| Rect {
+            y: area.y.saturating_add(1),
+            height: 1,
+            ..row_area
+        });
+        let first_tab_x = row_area.x.saturating_add(left_w);
+        let right_limit = row_area
+            .right()
+            .saturating_sub(status_w)
+            .saturating_sub(right_w)
+            .saturating_sub(new_w);
+        let used_area = Rect {
+            height: area.height.min(2),
+            ..area
+        };
+        let left_overflow = (first_index > 0).then(|| Rect {
+            x: row_area.x,
+            y: row_area.y,
+            width: left_w.min(row_area.width),
+            height: 1,
+        });
+
+        DefaultRowHeader {
+            row_area,
+            used_area,
+            rule_area,
+            first_tab_x,
+            right_limit,
+            left_overflow,
+            status_w,
+            new_w,
+        }
+    }
+
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "one shared geometry walk feeds both the scalar probe and final row sink"
+    )]
+    fn walk_default_owned(
+        &self,
+        area: Rect,
+        clip: Rect,
+        items: &[OwnedTabMeasurement],
+        first_index: usize,
+        previous: Option<TabWindowReceipt>,
+        extent_scratch: &mut Vec<bool>,
+        mut emit: impl FnMut(DefaultRowGeometry),
+    ) -> DefaultRowWalk {
+        debug_assert!(
+            !area.is_empty(),
+            "empty geometry is handled before the walk"
+        );
+        let len = items.len();
+        let first_index = first_index.min(len);
+        let header = self.default_row_header(area, first_index, previous);
+        let row_area = header.row_area;
+        let first_tab_x = header.first_tab_x;
+        let right_limit = header.right_limit;
+        let used_area = header.used_area;
+        let status_w = header.status_w;
+        let new_w = header.new_w;
+
+        let mut x = first_tab_x;
+        let mut viewport_len = 0;
+        let mut last_row = None;
+        for (index, item) in items.iter().enumerate().skip(first_index) {
+            let mark = item.mark;
+            let mark_width = if mark.is_some() { 2 } else { 0 };
+            let close_enabled = item.close_enabled;
+            let close_w: u16 = if close_enabled { 2 } else { 0 };
+            let avail = right_limit.saturating_sub(x);
+            if avail < 3 {
+                break;
+            }
+            if mark.is_some() && avail < 1 + 1 + mark_width + 1 + close_w {
+                break;
+            }
+            let content = Rect {
+                x: x.saturating_add(1),
+                y: row_area.y,
+                width: avail
+                    .saturating_sub(1)
+                    .saturating_sub(mark_width)
+                    .saturating_sub(u16::from(mark.is_some()))
+                    .saturating_sub(if mark.is_some() { close_w } else { 0 }),
+                height: 1,
+            };
+            let label_extent = semantic_label_extent_with_scratch(
+                &item.label_segments,
+                content,
+                clip,
+                extent_scratch,
+            )
+            .max(1);
+            let tab_w = 1u16
+                .saturating_add(label_extent)
+                .saturating_add(mark_width)
+                .saturating_add(1)
+                .saturating_add(close_w);
+            let tab = Rect {
+                x,
+                y: row_area.y,
+                width: tab_w.min(avail),
+                height: 1,
+            };
+            let close = close_enabled
+                .then(|| close_target_rect(tab, self.close_target_w))
+                .flatten();
+            let logical_mark = mark.map(|_| Rect {
+                x: x.saturating_add(1).saturating_add(label_extent),
+                y: row_area.y,
+                width: 2,
+                height: 1,
+            });
+            let row = DefaultRowGeometry {
+                key: item.key,
+                index,
+                logical_content: content,
+                visible_content: content.intersection(clip),
+                logical_tab: tab,
+                visible_tab: tab.intersection(clip),
+                logical_close: close,
+                visible_close: close.map(|rect| rect.intersection(clip)),
+                logical_mark,
+                visible_mark: logical_mark.map(|rect| rect.intersection(clip)),
+                mark,
+                close_enabled,
+                label_extent,
+            };
+            emit(row);
+            last_row = Some(row);
+            viewport_len += 1;
+            x = tab.right().saturating_add(1);
+        }
+
+        let hidden_right = len.saturating_sub(first_index.saturating_add(viewport_len));
+        let right_overflow = (hidden_right > 0).then(|| Rect {
+            x: row_area
+                .right()
+                .saturating_sub(status_w)
+                .saturating_sub(new_w)
+                .saturating_sub(4)
+                .max(row_area.x),
+            y: row_area.y,
+            width: 4.min(row_area.width),
+            height: 1,
+        });
+        let new_area = self.allow_new.then(|| Rect {
+            x: row_area
+                .right()
+                .saturating_sub(status_w)
+                .saturating_sub(new_w)
+                .max(row_area.x),
+            y: row_area.y,
+            width: new_w.min(row_area.width),
+            height: 1,
+        });
+        let status_area = (status_w > 0).then(|| Rect {
+            x: row_area.right().saturating_sub(status_w).max(row_area.x),
+            y: row_area.y,
+            width: 1.min(row_area.width),
+            height: 1,
+        });
+        DefaultRowWalk {
+            row_area,
+            used_area,
+            rule_area: header.rule_area,
+            first_tab_x,
+            right_limit,
+            left_overflow: header.left_overflow,
+            right_overflow,
+            new_area,
+            status_area,
+            hidden_right,
+            viewport_len,
+            last_row,
+        }
+    }
+
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "one pure allocation pass consumes the complete current default Tabs configuration"
+    )]
+    fn layout_default_from_owned(
+        &self,
+        area: Rect,
+        clip: Rect,
+        state: &TabsState,
+        items: &[OwnedTabMeasurement],
+        first_index: usize,
+        previous: Option<TabWindowReceipt>,
+        extent_scratch: &mut Vec<bool>,
+    ) -> TabLayout {
+        let len = items.len();
+        let first_index = first_index.min(len);
         let overflow_reserved =
             previous.is_some_and(|receipt| receipt.viewport_len < receipt.content_len);
         if area.is_empty() {
@@ -2492,6 +3164,8 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
                 used_area: area,
                 rule_area: None,
                 rows: Vec::new(),
+                owned_items: None,
+                terminal_first_index: None,
                 first_index,
                 active: state.active,
                 cursor: state.core.cursor(),
@@ -2525,148 +3199,33 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
                 overflow_reserved,
             };
         }
-        let status_w: u16 = if matches!(self.status, Status::Ready) {
-            0
-        } else {
-            2
-        };
-        let new_w: u16 = if self.allow_new { 4 } else { 0 };
-        let left_w: u16 = if first_index > 0 { 4 } else { 0 };
-        let right_w: u16 = if overflow_reserved || first_index > 0 {
-            4
-        } else {
-            0
-        };
-        let row0 = first_row(area);
-        let rule_area = (area.height >= 2).then(|| Rect {
-            y: area.y.saturating_add(1),
-            height: 1,
-            ..row0
-        });
-        let first_tab_x = row0.x.saturating_add(left_w);
-        let right_limit = row0
-            .right()
-            .saturating_sub(status_w)
-            .saturating_sub(right_w)
-            .saturating_sub(new_w);
-        let mut x = first_tab_x;
         let mut rows = Vec::new();
-        for i in first_index..len {
-            let Some(item) = items.get(i) else { break };
-            let key = self.key_at(items, i);
-            let mark = self.item_marks.and_then(|mapper| mapper(item).visible());
-            let mark_width = if mark.is_some() { 2 } else { 0 };
-            let close_enabled = self.close_enabled(key);
-            let close_w: u16 = if close_enabled { 2 } else { 0 };
-            let avail = right_limit.saturating_sub(x);
-            if avail < 3 {
-                break;
-            }
-            if mark.is_some() && avail < 1 + 1 + mark_width + 1 + close_w {
-                break;
-            }
-            let content = Rect {
-                x: x.saturating_add(1),
-                y: row0.y,
-                width: avail
-                    .saturating_sub(1)
-                    .saturating_sub(mark_width)
-                    .saturating_sub(u16::from(mark.is_some()))
-                    .saturating_sub(if mark.is_some() { close_w } else { 0 }),
-                height: 1,
-            };
-            let mut writer = SegmentWriter(Vec::new());
-            let _ = fmt::write(&mut writer, format_args!("{item}"));
-            let label_extent = semantic_label_extent(&writer.0, content, clip).max(1);
-            let tab_w = 1u16
-                .saturating_add(label_extent)
-                .saturating_add(mark_width)
-                .saturating_add(1)
-                .saturating_add(close_w);
-            let tab = Rect {
-                x,
-                y: row0.y,
-                width: tab_w.min(avail),
-                height: 1,
-            };
-            let close = close_enabled
-                .then(|| close_target_rect(tab, self.close_target_w))
-                .flatten();
-            let logical_mark = mark.map(|_| Rect {
-                x: x.saturating_add(1).saturating_add(label_extent),
-                y: row0.y,
-                width: 2,
-                height: 1,
-            });
-            rows.push(TabRowLayout {
-                key,
-                index: i,
-                logical_content: content,
-                visible_content: content.intersection(clip),
-                logical_tab: tab,
-                visible_tab: tab.intersection(clip),
-                logical_close: close,
-                visible_close: close.map(|rect| rect.intersection(clip)),
-                logical_mark,
-                visible_mark: logical_mark.map(|rect| rect.intersection(clip)),
-                mark,
-                label_segments: writer.0,
-                label_extent,
-            });
-            x = tab.right().saturating_add(1);
-        }
-        let viewport_len = rows.len();
-        let used = Rect {
-            height: area.height.min(2),
-            ..area
-        };
-        let left_overflow = (first_index > 0).then(|| Rect {
-            x: row0.x,
-            y: row0.y,
-            width: left_w.min(row0.width),
-            height: 1,
-        });
-        let hidden_right = len.saturating_sub(first_index.saturating_add(viewport_len));
-        let right_overflow = (hidden_right > 0).then(|| Rect {
-            x: row0
-                .right()
-                .saturating_sub(status_w)
-                .saturating_sub(new_w)
-                .saturating_sub(4)
-                .max(row0.x),
-            y: row0.y,
-            width: 4.min(row0.width),
-            height: 1,
-        });
-        let new_area = self.allow_new.then(|| Rect {
-            x: row0
-                .right()
-                .saturating_sub(status_w)
-                .saturating_sub(new_w)
-                .max(row0.x),
-            y: row0.y,
-            width: new_w.min(row0.width),
-            height: 1,
-        });
-        let status_area = (status_w > 0).then(|| Rect {
-            x: row0.right().saturating_sub(status_w).max(row0.x),
-            y: row0.y,
-            width: 1.min(row0.width),
-            height: 1,
-        });
+        let walk = self.walk_default_owned(
+            area,
+            clip,
+            items,
+            first_index,
+            previous,
+            extent_scratch,
+            |row| {
+                rows.push(row.into_tab_row(items[row.index].label_segments.clone()));
+            },
+        );
         TabLayout {
             id: self.id,
             area,
             clip,
-            row_area: row0,
-            used_area: used,
-            rule_area,
+            row_area: walk.row_area,
+            used_area: walk.used_area,
+            rule_area: walk.rule_area,
             rows,
+            owned_items: None,
+            terminal_first_index: None,
             first_index,
             active: state.active,
             cursor: state.core.cursor(),
             first: state.first,
-            first_tab_x,
+            first_tab_x: walk.first_tab_x,
             allow_new: self.allow_new,
             new_key_bindings: self.new_key_bindings,
             closable: self.closable,
@@ -2681,16 +3240,16 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
             rule_focus_hidden: self.rule_focus_hidden,
             passive: self.passive,
             passive_focused: self.passive_focused,
+            left_overflow: walk.left_overflow,
+            right_overflow: walk.right_overflow,
+            new_area: walk.new_area,
+            status_area: walk.status_area,
             item_marks_enabled: self.item_marks.is_some(),
-            left_overflow,
-            right_overflow,
-            new_area,
-            status_area,
-            right_limit,
-            hidden_right,
-            logical_area: used,
-            visible_area: used.intersection(clip),
-            viewport_len,
+            right_limit: walk.right_limit,
+            hidden_right: walk.hidden_right,
+            logical_area: walk.used_area,
+            visible_area: walk.used_area.intersection(clip),
+            viewport_len: walk.viewport_len,
             content_len: len,
             overflow_reserved,
         }
@@ -2705,7 +3264,8 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
         ui: &mut Ui<'_>,
         layout: &TabLayout,
     ) -> Result<Rect, TabLayoutMismatch> {
-        if layout.id != self.id
+        if !layout.owned_snapshot_is_consistent()
+            || layout.id != self.id
             || layout.allow_new != self.allow_new
             || layout.new_key_bindings != self.new_key_bindings
             || layout.closable != self.closable
@@ -2759,6 +3319,8 @@ fn close_glyph_cell(tab: Rect) -> Rect {
     cell_at(tab, tab.right().saturating_sub(2))
 }
 
+// Preserve the allocating pre-v3 implementation as an independent test oracle.
+#[cfg(test)]
 fn semantic_label_extent(segments: &[String], content: Rect, clip: Rect) -> u16 {
     // `RowUi::label_fmt` writes each Display segment independently. Each write
     // clips from the current logical writer position, while the painter starts
@@ -2772,6 +3334,79 @@ fn semantic_label_extent(segments: &[String], content: Rect, clip: Rect) -> u16 
     }
 
     let mut cells = vec![false; usize::from(visible.width)];
+    let mut writer_x = content.x;
+    let content_right = content.right();
+
+    for segment in segments {
+        if writer_x >= content_right {
+            break;
+        }
+        let write_x = writer_x.max(clip.x).max(content.x);
+        let write_right = content_right.min(clip.right());
+        if write_x >= write_right || content.y < clip.y || content.y >= clip.bottom() {
+            continue;
+        }
+
+        let mut x = write_x;
+        let mut remaining = write_right.saturating_sub(write_x);
+        for (_, grapheme) in termrock_text::measure::graphemes(segment) {
+            if grapheme.contains(char::is_control) {
+                continue;
+            }
+            let width = grapheme.cell_width();
+            if width == 0 {
+                continue;
+            }
+            let Some(next_remaining) = remaining.checked_sub(width) else {
+                break;
+            };
+
+            let offset = usize::from(x.saturating_sub(visible.x));
+            if let Some(cell) = cells.get_mut(offset) {
+                *cell = grapheme != " ";
+            }
+            for continuation in 1..width {
+                let offset = usize::from(x.saturating_add(continuation).saturating_sub(visible.x));
+                if let Some(cell) = cells.get_mut(offset) {
+                    *cell = false;
+                }
+            }
+
+            remaining = next_remaining;
+            x = x.saturating_add(width);
+            if remaining == 0 {
+                break;
+            }
+        }
+        writer_x = writer_x.saturating_add(x.saturating_sub(write_x));
+    }
+
+    cells
+        .iter()
+        .rposition(|nonblank| *nonblank)
+        .map_or(0, |index| u16::try_from(index + 1).unwrap_or(u16::MAX))
+}
+
+// Same semantic walk as the test oracle, using capacity owned by the caller.
+fn semantic_label_extent_with_scratch(
+    segments: &[String],
+    content: Rect,
+    clip: Rect,
+    cells: &mut Vec<bool>,
+) -> u16 {
+    // `RowUi::label_fmt` writes each Display segment independently. Each write
+    // clips from the current logical writer position, while the painter starts
+    // at the clipped left edge. Before the writer reaches that edge, successive
+    // segments can therefore overlap and replace cells. Model only those
+    // visible semantic cells; do not render into a scratch Buffer or inspect a
+    // Ui during measurement.
+    let visible = content.intersection(clip);
+    if visible.is_empty() {
+        return 0;
+    }
+
+    cells.clear();
+    cells.resize(usize::from(visible.width), false);
     let mut writer_x = content.x;
     let content_right = content.right();
 
@@ -3291,6 +3926,254 @@ mod tests {
         }
     }
 
+    struct CountedOwnedItem {
+        key: u64,
+        segments: &'static [&'static str],
+        formats: Cell<usize>,
+        keys: Cell<usize>,
+        marks: Cell<usize>,
+        mark: TabMarks,
+    }
+
+    impl fmt::Display for CountedOwnedItem {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            self.formats.set(self.formats.get() + 1);
+            for segment in self.segments {
+                f.write_str(segment)?;
+            }
+            Ok(())
+        }
+    }
+
+    fn counted_owned_key(item: &CountedOwnedItem) -> ItemKey {
+        item.keys.set(item.keys.get() + 1);
+        ItemKey::num(item.key)
+    }
+
+    fn counted_owned_marks(item: &CountedOwnedItem) -> TabMarks {
+        item.marks.set(item.marks.get() + 1);
+        item.mark
+    }
+
+    struct MutableOwnedItem {
+        key: u64,
+        label: Cell<&'static str>,
+        mark: Cell<TabMarks>,
+    }
+
+    impl fmt::Display for MutableOwnedItem {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            f.write_str(self.label.get())
+        }
+    }
+
+    fn mutable_owned_key(item: &MutableOwnedItem) -> ItemKey {
+        ItemKey::num(item.key)
+    }
+
+    fn mutable_owned_marks(item: &MutableOwnedItem) -> TabMarks {
+        item.mark.get()
+    }
+
+    // Frozen preimage-shaped Debug views: new private planning fields and the
+    // new row close_enabled field are deliberately not represented here.
+    mod frozen_layout_debug {
+        use super::*;
+
+        struct LegacyTabRowLayout<'a> {
+            key: &'a ItemKey,
+            index: &'a usize,
+            logical_content: &'a Rect,
+            visible_content: &'a Rect,
+            logical_tab: &'a Rect,
+            visible_tab: &'a Rect,
+            logical_close: &'a Option<Rect>,
+            visible_close: &'a Option<Rect>,
+            logical_mark: &'a Option<Rect>,
+            visible_mark: &'a Option<Rect>,
+            mark: &'a Option<TabItemMark>,
+            label_segments: &'a Vec<String>,
+            label_extent: &'a u16,
+        }
+
+        impl fmt::Debug for LegacyTabRowLayout<'_> {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                f.debug_struct("LegacyTabRowLayout")
+                    .field("key", &self.key)
+                    .field("index", &self.index)
+                    .field("logical_content", &self.logical_content)
+                    .field("visible_content", &self.visible_content)
+                    .field("logical_tab", &self.logical_tab)
+                    .field("visible_tab", &self.visible_tab)
+                    .field("logical_close", &self.logical_close)
+                    .field("visible_close", &self.visible_close)
+                    .field("logical_mark", &self.logical_mark)
+                    .field("visible_mark", &self.visible_mark)
+                    .field("mark", &self.mark)
+                    .field("label_segments", &self.label_segments)
+                    .field("label_extent", &self.label_extent)
+                    .finish()
+            }
+        }
+
+        struct LegacyTabLayout<'a> {
+            id: &'a Id,
+            area: &'a Rect,
+            clip: &'a Rect,
+            row_area: &'a Rect,
+            used_area: &'a Rect,
+            rule_area: &'a Option<Rect>,
+            rows: Vec<LegacyTabRowLayout<'a>>,
+            first_index: &'a usize,
+            active: &'a Option<ItemKey>,
+            cursor: &'a Option<ItemKey>,
+            first: &'a Option<ItemKey>,
+            first_tab_x: &'a u16,
+            allow_new: &'a bool,
+            new_key_bindings: &'a Option<&'static [Binding<TabsCmd>]>,
+            closable: &'a bool,
+            closable_keys: &'a Option<Vec<ItemKey>>,
+            close_key_bindings: &'a Option<&'static [Binding<TabsCmd>]>,
+            close_reveal: &'a TabCloseReveal,
+            close_target_w: &'a Option<u16>,
+            close_danger_hover: &'a bool,
+            close_reveal_press: &'a Option<ItemKey>,
+            status: &'a Status,
+            rule: &'a Option<TabRule>,
+            rule_focus_hidden: &'a Option<bool>,
+            passive: &'a bool,
+            passive_focused: &'a bool,
+            left_overflow: &'a Option<Rect>,
+            right_overflow: &'a Option<Rect>,
+            new_area: &'a Option<Rect>,
+            status_area: &'a Option<Rect>,
+            item_marks_enabled: &'a bool,
+            right_limit: &'a u16,
+            hidden_right: &'a usize,
+            logical_area: &'a Rect,
+            visible_area: &'a Rect,
+            viewport_len: &'a usize,
+            content_len: &'a usize,
+            overflow_reserved: &'a bool,
+        }
+
+        impl fmt::Debug for LegacyTabLayout<'_> {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                f.debug_struct("LegacyTabLayout")
+                    .field("id", &self.id)
+                    .field("area", &self.area)
+                    .field("clip", &self.clip)
+                    .field("row_area", &self.row_area)
+                    .field("used_area", &self.used_area)
+                    .field("rule_area", &self.rule_area)
+                    .field("rows", &self.rows)
+                    .field("first_index", &self.first_index)
+                    .field("active", &self.active)
+                    .field("cursor", &self.cursor)
+                    .field("first", &self.first)
+                    .field("first_tab_x", &self.first_tab_x)
+                    .field("allow_new", &self.allow_new)
+                    .field("new_key_bindings", &self.new_key_bindings)
+                    .field("closable", &self.closable)
+                    .field("closable_keys", &self.closable_keys)
+                    .field("close_key_bindings", &self.close_key_bindings)
+                    .field("close_reveal", &self.close_reveal)
+                    .field("close_target_w", &self.close_target_w)
+                    .field("close_danger_hover", &self.close_danger_hover)
+                    .field("close_reveal_press", &self.close_reveal_press)
+                    .field("status", &self.status)
+                    .field("rule", &self.rule)
+                    .field("rule_focus_hidden", &self.rule_focus_hidden)
+                    .field("passive", &self.passive)
+                    .field("passive_focused", &self.passive_focused)
+                    .field("left_overflow", &self.left_overflow)
+                    .field("right_overflow", &self.right_overflow)
+                    .field("new_area", &self.new_area)
+                    .field("status_area", &self.status_area)
+                    .field("item_marks_enabled", &self.item_marks_enabled)
+                    .field("right_limit", &self.right_limit)
+                    .field("hidden_right", &self.hidden_right)
+                    .field("logical_area", &self.logical_area)
+                    .field("visible_area", &self.visible_area)
+                    .field("viewport_len", &self.viewport_len)
+                    .field("content_len", &self.content_len)
+                    .field("overflow_reserved", &self.overflow_reserved)
+                    .finish()
+            }
+        }
+
+        fn row(value: &super::TabRowLayout) -> LegacyTabRowLayout<'_> {
+            LegacyTabRowLayout {
+                key: &value.key,
+                index: &value.index,
+                logical_content: &value.logical_content,
+                visible_content: &value.visible_content,
+                logical_tab: &value.logical_tab,
+                visible_tab: &value.visible_tab,
+                logical_close: &value.logical_close,
+                visible_close: &value.visible_close,
+                logical_mark: &value.logical_mark,
+                visible_mark: &value.visible_mark,
+                mark: &value.mark,
+                label_segments: &value.label_segments,
+                label_extent: &value.label_extent,
+            }
+        }
+
+        pub(super) fn row_string(value: &super::TabRowLayout) -> String {
+            format!("{:?}", row(value)).replace("LegacyTabRowLayout", "TabRowLayout")
+        }
+
+        pub(super) fn layout_string(value: &super::TabLayout) -> String {
+            let rows = value.rows.iter().map(row).collect();
+            format!(
+                "{:?}",
+                LegacyTabLayout {
+                    id: &value.id,
+                    area: &value.area,
+                    clip: &value.clip,
+                    row_area: &value.row_area,
+                    used_area: &value.used_area,
+                    rule_area: &value.rule_area,
+                    rows,
+                    first_index: &value.first_index,
+                    active: &value.active,
+                    cursor: &value.cursor,
+                    first: &value.first,
+                    first_tab_x: &value.first_tab_x,
+                    allow_new: &value.allow_new,
+                    new_key_bindings: &value.new_key_bindings,
+                    closable: &value.closable,
+                    closable_keys: &value.closable_keys,
+                    close_key_bindings: &value.close_key_bindings,
+                    close_reveal: &value.close_reveal,
+                    close_target_w: &value.close_target_w,
+                    close_danger_hover: &value.close_danger_hover,
+                    close_reveal_press: &value.close_reveal_press,
+                    status: &value.status,
+                    rule: &value.rule,
+                    rule_focus_hidden: &value.rule_focus_hidden,
+                    passive: &value.passive,
+                    passive_focused: &value.passive_focused,
+                    left_overflow: &value.left_overflow,
+                    right_overflow: &value.right_overflow,
+                    new_area: &value.new_area,
+                    status_area: &value.status_area,
+                    item_marks_enabled: &value.item_marks_enabled,
+                    right_limit: &value.right_limit,
+                    hidden_right: &value.hidden_right,
+                    logical_area: &value.logical_area,
+                    visible_area: &value.visible_area,
+                    viewport_len: &value.viewport_len,
+                    content_len: &value.content_len,
+                    overflow_reserved: &value.overflow_reserved,
+                }
+            )
+            .replace("LegacyTabLayout", "TabLayout")
+            .replace("LegacyTabRowLayout", "TabRowLayout")
+        }
+    }
+
     struct KeyedDisplay {
         key: u64,
         label: &'static str,
@@ -3415,6 +4298,386 @@ mod tests {
             })
             .commit_presented();
         assert_eq!(mismatch.get(), Some(Err(TabLayoutMismatch)));
+    }
+
+    #[test]
+    fn planned_public_eq_and_debug_keep_preimage_fields_only() {
+        let items = vec![
+            MutableOwnedItem {
+                key: 1,
+                label: Cell::new("a"),
+                mark: Cell::new(TabMarks::default()),
+            },
+            MutableOwnedItem {
+                key: 2,
+                label: Cell::new("b"),
+                mark: Cell::new(TabMarks::default()),
+            },
+            MutableOwnedItem {
+                key: 3,
+                label: Cell::new("c"),
+                mark: Cell::new(TabMarks::default()),
+            },
+            MutableOwnedItem {
+                key: 4,
+                label: Cell::new("hidden"),
+                mark: Cell::new(TabMarks::default()),
+            },
+        ];
+        let tabs = Tabs::new(TABS)
+            .key(mutable_owned_key as fn(&MutableOwnedItem) -> ItemKey)
+            .item_marks(mutable_owned_marks as fn(&MutableOwnedItem) -> TabMarks);
+        let state = TabsState::default();
+        let area = Rect::new(0, 0, 12, 2);
+        let original = tabs.layout_default(area, area, &state, &items, None);
+        assert_eq!(original.rows().len(), 3, "the fourth item is unallocated");
+        assert_eq!(
+            format!("{original:?}"),
+            frozen_layout_debug::layout_string(&original),
+            "TabLayout Debug must match the frozen preimage field rendering"
+        );
+        assert_eq!(
+            format!("{:?}", original.rows()[0]),
+            frozen_layout_debug::row_string(&original.rows()[0]),
+            "TabRowLayout Debug must match the frozen preimage field rendering"
+        );
+
+        let old_layout_debug = format!("{original:?}");
+        let old_rows = original.rows().to_vec();
+        let mut only_new_row_flag_changed = original.rows()[0].clone();
+        only_new_row_flag_changed.close_enabled = !only_new_row_flag_changed.close_enabled;
+        assert_eq!(only_new_row_flag_changed, original.rows()[0]);
+        assert_eq!(
+            format!("{only_new_row_flag_changed:?}"),
+            frozen_layout_debug::row_string(&only_new_row_flag_changed)
+        );
+
+        items[3].label.set("a longer unseen label");
+        items[3].mark.set(TabMarks::default().error(true));
+        let hidden_changed = tabs.layout_default(area, area, &state, &items, None);
+        assert_eq!(original, hidden_changed);
+        assert_eq!(old_rows.as_slice(), hidden_changed.rows());
+        assert_eq!(format!("{hidden_changed:?}"), old_layout_debug);
+        assert_ne!(original.owned_items, hidden_changed.owned_items);
+
+        items[0].label.set("visible label changed");
+        let visible_changed = tabs.layout_default(area, area, &state, &items, None);
+        assert_ne!(original, visible_changed);
+        assert_ne!(format!("{visible_changed:?}"), old_layout_debug);
+    }
+
+    #[test]
+    fn planned_empty_area_preserves_preimage_callback_and_key_lookup_counts() {
+        let cases = [
+            (Rect::new(0, 0, 0, 2), None, 1, [0, 0, 0], 0),
+            (
+                Rect::new(0, 0, 5, 0),
+                Some(ItemKey::num(2)),
+                1,
+                [0, 1, 0],
+                1,
+            ),
+            (
+                Rect::new(0, 0, 0, 1),
+                Some(ItemKey::num(3)),
+                1,
+                [1, 2, 1],
+                2,
+            ),
+        ];
+
+        for (area, wanted_first, hint, expected_keys, expected_first_index) in cases {
+            let items = [
+                CountedOwnedItem {
+                    key: 1,
+                    segments: &["one"],
+                    formats: Cell::new(0),
+                    keys: Cell::new(0),
+                    marks: Cell::new(0),
+                    mark: TabMarks::default().dirty(true),
+                },
+                CountedOwnedItem {
+                    key: 2,
+                    segments: &["two"],
+                    formats: Cell::new(0),
+                    keys: Cell::new(0),
+                    marks: Cell::new(0),
+                    mark: TabMarks::default().done(true),
+                },
+                CountedOwnedItem {
+                    key: 3,
+                    segments: &["three"],
+                    formats: Cell::new(0),
+                    keys: Cell::new(0),
+                    marks: Cell::new(0),
+                    mark: TabMarks::default().error(true),
+                },
+            ];
+            let tabs = Tabs::new(TABS)
+                .key(counted_owned_key as fn(&CountedOwnedItem) -> ItemKey)
+                .item_marks(counted_owned_marks as fn(&CountedOwnedItem) -> TabMarks);
+            let state = TabsState {
+                first: wanted_first,
+                first_index: hint,
+                ..TabsState::default()
+            };
+            let layout = tabs.layout_default(area, area, &state, &items, None);
+
+            assert_eq!(layout.first_index(), expected_first_index);
+            assert!(layout.owned_items.is_none());
+            assert!(layout.terminal_first_index.is_none());
+            assert!(layout.owned_snapshot_is_consistent());
+            for (item, expected_key_calls) in items.iter().zip(expected_keys) {
+                assert_eq!(
+                    item.formats.get(),
+                    0,
+                    "empty geometry does not format items"
+                );
+                assert_eq!(
+                    item.marks.get(),
+                    0,
+                    "empty geometry does not map item marks"
+                );
+                assert_eq!(
+                    item.keys.get(),
+                    expected_key_calls,
+                    "matches old index_of lookup"
+                );
+            }
+
+            let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+            let mut buffer = Buffer::empty(area);
+            let result = Cell::new(None);
+            runtime
+                .draw_scene(area, &mut buffer, |ui, _| {
+                    result.set(Some(tabs.draw_layout(ui, &layout)));
+                })
+                .commit_presented();
+            assert_eq!(result.get(), Some(Ok(area)));
+            assert!(runtime.diagnostics().is_empty());
+            for (item, expected_key_calls) in items.iter().zip(expected_keys) {
+                assert_eq!(item.formats.get(), 0);
+                assert_eq!(item.marks.get(), 0);
+                assert_eq!(
+                    item.keys.get(),
+                    expected_key_calls,
+                    "planned empty draw is inert"
+                );
+            }
+        }
+
+        let items = [
+            CountedOwnedItem {
+                key: 11,
+                segments: &["left"],
+                formats: Cell::new(0),
+                keys: Cell::new(0),
+                marks: Cell::new(0),
+                mark: TabMarks::default().dirty(true),
+            },
+            CountedOwnedItem {
+                key: 12,
+                segments: &["right"],
+                formats: Cell::new(0),
+                keys: Cell::new(0),
+                marks: Cell::new(0),
+                mark: TabMarks::default().done(true),
+            },
+        ];
+        let tabs = Tabs::new(TABS)
+            .key(counted_owned_key as fn(&CountedOwnedItem) -> ItemKey)
+            .item_marks(counted_owned_marks as fn(&CountedOwnedItem) -> TabMarks);
+        let area = Rect::new(0, 0, 12, 2);
+        let clip = Rect::new(40, 0, 0, 2);
+        assert!(!area.is_empty());
+        assert!(clip.is_empty());
+        let layout = tabs.layout_default(area, clip, &TabsState::default(), &items, None);
+        assert_eq!(
+            layout.owned_items.as_ref().map_or(0, |items| items.len()),
+            2
+        );
+        for item in &items {
+            assert_eq!(
+                item.formats.get(),
+                1,
+                "nonempty but fully clipped area still plans"
+            );
+            assert_eq!(item.keys.get(), 1);
+            assert_eq!(item.marks.get(), 1);
+        }
+    }
+
+    #[test]
+    fn planned_owned_measurement_visits_zero_one_and_many_items_once_per_fresh_plan() {
+        const SEGMENTED: &[&str] = &["e", "\u{301}", "界", " "];
+        const SHORT: &[&str] = &["x"];
+        const WIDE: &[&str] = &["wide", " ", "label "];
+        const CONTROL: &[&str] = &["\t", "tail "];
+
+        for count in [0usize, 1, 8] {
+            let items: Vec<_> = (0..count)
+                .map(|index| CountedOwnedItem {
+                    key: index as u64 + 1,
+                    segments: match index % 4 {
+                        0 => SEGMENTED,
+                        1 => SHORT,
+                        2 => WIDE,
+                        _ => CONTROL,
+                    },
+                    formats: Cell::new(0),
+                    keys: Cell::new(0),
+                    marks: Cell::new(0),
+                    mark: if index % 3 == 0 {
+                        TabMarks::default().dirty(true)
+                    } else {
+                        TabMarks::default()
+                    },
+                })
+                .collect();
+            let close_keys: Vec<_> = items
+                .iter()
+                .filter(|item| item.key % 2 == 0)
+                .map(|item| ItemKey::num(item.key))
+                .collect();
+            let tabs = Tabs::new(TABS)
+                .key(counted_owned_key as fn(&CountedOwnedItem) -> ItemKey)
+                .item_marks(counted_owned_marks as fn(&CountedOwnedItem) -> TabMarks)
+                .closable_keys(&close_keys)
+                .allow_new(true)
+                .status(Status::Busy);
+            let state = TabsState::default();
+            let area = Rect::new(0, 0, 16, 2);
+            let layout = tabs.layout_default(area, area, &state, &items, None);
+
+            assert_eq!(
+                layout.owned_items.as_ref().map_or(0, |items| items.len()),
+                count
+            );
+            assert_eq!(layout.content_len, count);
+            if count == 8 {
+                assert!(layout.viewport_len < count, "fixture includes unseen items");
+            }
+            for item in &items {
+                assert_eq!(item.formats.get(), 1, "one Display pass per item");
+                assert_eq!(item.keys.get(), 1, "one key resolution per item");
+                assert_eq!(item.marks.get(), 1, "one mark resolution per item");
+            }
+
+            let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+            let mut buffer = Buffer::empty(area);
+            runtime
+                .draw_scene(area, &mut buffer, |ui, _| {
+                    tabs.draw_layout(ui, &layout)
+                        .expect("the fresh plan matches its Tabs configuration");
+                })
+                .commit_presented();
+            for item in &items {
+                assert_eq!(item.formats.get(), 1, "planned draw does not format");
+                assert_eq!(item.keys.get(), 1, "planned draw uses captured keys");
+                assert_eq!(item.marks.get(), 1, "planned draw uses captured marks");
+            }
+            if let Some(owned_items) = layout.owned_items.as_ref() {
+                assert_eq!(owned_items.len(), count);
+                if !owned_items.is_empty() {
+                    let mut inconsistent = layout.clone();
+                    inconsistent
+                        .owned_items
+                        .as_mut()
+                        .expect("nonempty plan stores its owned snapshot")[0]
+                        .key = ItemKey::num(u64::MAX);
+                    let rejected = Cell::new(None);
+                    runtime
+                        .draw_scene(area, &mut buffer, |ui, _| {
+                            rejected.set(Some(tabs.draw_layout(ui, &inconsistent)));
+                        })
+                        .commit_presented();
+                    assert_eq!(rejected.get(), Some(Err(TabLayoutMismatch)));
+                }
+            }
+
+            let warm = tabs.layout_default(area, area, &state, &items, layout.window_receipt());
+            assert_eq!(
+                warm.owned_items.as_ref().map_or(0, |items| items.len()),
+                count
+            );
+            assert_eq!(warm.overflow_reserved, layout.viewport_len < count);
+            for item in &items {
+                assert_eq!(item.formats.get(), 2, "a fresh plan remeasures all items");
+                assert_eq!(item.keys.get(), 2, "a fresh plan resolves all keys");
+                assert_eq!(item.marks.get(), 2, "a fresh plan resolves all marks");
+            }
+        }
+    }
+
+    #[test]
+    fn planned_terminal_start_reuses_current_geometry_and_clipping_policy() {
+        let area = Rect::new(0, 0, 24, 2);
+        let items = vec!["a"; 8];
+        let state = TabsState::default();
+        let tabs = Tabs::new(TABS);
+        let cold = tabs.layout_default(area, area, &state, &items, None);
+        assert_eq!(cold.viewport_len, 6);
+        assert_eq!(cold.terminal_first_index, Some(4));
+
+        let warm = tabs.layout_default(
+            area,
+            area,
+            &state,
+            &items,
+            Some(TabWindowReceipt {
+                viewport_len: 3,
+                content_len: items.len(),
+            }),
+        );
+        assert!(warm.overflow_reserved);
+        assert_eq!(warm.terminal_first_index, Some(4));
+
+        let clipped_items = ["a", "a", "a", "a", "a", "a", "a", "abcdefghijklmnop"];
+        let clip = Rect::new(18, 0, 6, 2);
+        let scrolled = TabsState {
+            first: Some(ItemKey::index(4)),
+            first_index: 4,
+            ..TabsState::default()
+        };
+        let clipped = tabs.layout_default(area, clip, &scrolled, &clipped_items, None);
+        assert_eq!(
+            clipped.terminal_first_index,
+            Some(4),
+            "the existing allocator includes the partially visible clipped final tab"
+        );
+        let final_row = clipped.rows.last().expect("suffix includes the final item");
+        assert_eq!(final_row.index, 7);
+        assert_eq!(final_row.label_extent, 2);
+        assert_eq!(final_row.logical_tab.width, 4);
+        assert_eq!(final_row.visible_tab.width, 2);
+
+        // The exact terminal predicate is not monotone in candidate start:
+        // this clip shows the final item at start 4 but hides it at start 5.
+        // Keep the retained candidate domain in ascending order; do not use a
+        // monotone-search assumption inside it.
+        let owned = clipped
+            .owned_items
+            .as_ref()
+            .expect("nonempty clipped plans retain owned rows");
+        let mut scratch = Vec::new();
+        let start_four = tabs.walk_default_owned(area, clip, owned, 4, None, &mut scratch, |_| {});
+        let start_five = tabs.walk_default_owned(area, clip, owned, 5, None, &mut scratch, |_| {});
+        let at_four = start_four
+            .last_row
+            .expect("suffix at four allocates final item");
+        let at_five = start_five
+            .last_row
+            .expect("suffix at five allocates final item");
+        assert_eq!(at_four.index, 7);
+        assert_eq!(at_four.logical_tab, Rect::new(16, 0, 4, 1));
+        assert_eq!(at_four.visible_tab, Rect::new(18, 0, 2, 1));
+        assert_eq!(at_five.index, 7);
+        assert_eq!(at_five.logical_tab, Rect::new(12, 0, 4, 1));
+        assert!(at_five.visible_tab.is_empty());
+
+        let too_narrow = Rect::new(0, 0, 10, 2);
+        let unrepresentable = tabs.layout_default(too_narrow, too_narrow, &state, &items, None);
+        assert_eq!(unrepresentable.terminal_first_index, None);
     }
 
     #[test]
@@ -3619,5 +4882,573 @@ mod tests {
         assert_eq!(result.get(), Some(Err(TabLayoutMismatch)));
         assert_eq!(buffer, unpainted);
         assert_eq!(runtime.registry().regions(), &[]);
+    }
+
+    // Frozen pre-v3 row loop. Keeping this allocating reference under cfg(test)
+    // lets the new shared walker prove exact geometry without using itself as
+    // the expected-value oracle.
+    fn preimage_default_rows<T, K>(
+        tabs: &Tabs<'_, T, K, DefaultRow>,
+        area: Rect,
+        clip: Rect,
+        items: &[OwnedTabMeasurement],
+        first_index: usize,
+        previous: Option<TabWindowReceipt>,
+    ) -> Vec<TabRowLayout>
+    where
+        T: fmt::Display,
+        K: KeyFn<T>,
+    {
+        let len = items.len();
+        let first_index = first_index.min(len);
+        let overflow_reserved =
+            previous.is_some_and(|receipt| receipt.viewport_len < receipt.content_len);
+        if area.is_empty() {
+            return Vec::new();
+        }
+        let status_w: u16 = if matches!(tabs.status, Status::Ready) {
+            0
+        } else {
+            2
+        };
+        let new_w: u16 = if tabs.allow_new { 4 } else { 0 };
+        let left_w: u16 = if first_index > 0 { 4 } else { 0 };
+        let right_w: u16 = if overflow_reserved || first_index > 0 {
+            4
+        } else {
+            0
+        };
+        let row0 = first_row(area);
+        let right_limit = row0
+            .right()
+            .saturating_sub(status_w)
+            .saturating_sub(right_w)
+            .saturating_sub(new_w);
+        let mut x = row0.x.saturating_add(left_w);
+        let mut rows = Vec::new();
+        for (index, item) in items.iter().enumerate().skip(first_index) {
+            let mark = item.mark;
+            let mark_width = if mark.is_some() { 2 } else { 0 };
+            let close_enabled = item.close_enabled;
+            let close_w: u16 = if close_enabled { 2 } else { 0 };
+            let avail = right_limit.saturating_sub(x);
+            if avail < 3 {
+                break;
+            }
+            if mark.is_some() && avail < 1 + 1 + mark_width + 1 + close_w {
+                break;
+            }
+            let content = Rect {
+                x: x.saturating_add(1),
+                y: row0.y,
+                width: avail
+                    .saturating_sub(1)
+                    .saturating_sub(mark_width)
+                    .saturating_sub(u16::from(mark.is_some()))
+                    .saturating_sub(if mark.is_some() { close_w } else { 0 }),
+                height: 1,
+            };
+            let label_extent = semantic_label_extent(&item.label_segments, content, clip).max(1);
+            let tab_w = 1u16
+                .saturating_add(label_extent)
+                .saturating_add(mark_width)
+                .saturating_add(1)
+                .saturating_add(close_w);
+            let tab = Rect {
+                x,
+                y: row0.y,
+                width: tab_w.min(avail),
+                height: 1,
+            };
+            let close = close_enabled
+                .then(|| close_target_rect(tab, tabs.close_target_w))
+                .flatten();
+            let logical_mark = mark.map(|_| Rect {
+                x: x.saturating_add(1).saturating_add(label_extent),
+                y: row0.y,
+                width: 2,
+                height: 1,
+            });
+            rows.push(TabRowLayout {
+                key: item.key,
+                index,
+                logical_content: content,
+                visible_content: content.intersection(clip),
+                logical_tab: tab,
+                visible_tab: tab.intersection(clip),
+                logical_close: close,
+                visible_close: close.map(|rect| rect.intersection(clip)),
+                logical_mark,
+                visible_mark: logical_mark.map(|rect| rect.intersection(clip)),
+                mark,
+                close_enabled,
+                label_segments: item.label_segments.clone(),
+                label_extent,
+            });
+            x = tab.right().saturating_add(1);
+        }
+        rows
+    }
+
+    #[test]
+    fn planned_shared_row_walker_matches_preimage_geometry_and_reuses_extent_scratch() {
+        let items = [
+            OwnedTabMeasurement {
+                key: ItemKey::num(1),
+                mark: Some(TabItemMark::Dirty),
+                close_enabled: true,
+                label_segments: ["e", "\u{301}", "界", " "]
+                    .into_iter()
+                    .map(str::to_owned)
+                    .collect(),
+            },
+            OwnedTabMeasurement {
+                key: ItemKey::num(2),
+                mark: None,
+                close_enabled: false,
+                label_segments: ["wide label", " "].into_iter().map(str::to_owned).collect(),
+            },
+            OwnedTabMeasurement {
+                key: ItemKey::num(3),
+                mark: Some(TabItemMark::Error),
+                close_enabled: true,
+                label_segments: ["\t", "👩‍👩‍👧‍👦", "tail "]
+                    .into_iter()
+                    .map(str::to_owned)
+                    .collect(),
+            },
+            OwnedTabMeasurement {
+                key: ItemKey::num(4),
+                mark: None,
+                close_enabled: true,
+                label_segments: ["", "  "].into_iter().map(str::to_owned).collect(),
+            },
+            OwnedTabMeasurement {
+                key: ItemKey::num(5),
+                mark: Some(TabItemMark::Done),
+                close_enabled: false,
+                label_segments: ["last", "界", " "].into_iter().map(str::to_owned).collect(),
+            },
+        ];
+        let tabs = Tabs::<&str>::new(TABS)
+            .allow_new(true)
+            .status(Status::Busy)
+            .close_target_w(4);
+        let area = Rect::new(3, 2, 31, 2);
+        let clips = [
+            area,
+            Rect::new(9, 2, 17, 2),
+            Rect::new(27, 2, 7, 2),
+            Rect::new(45, 2, 0, 2),
+        ];
+        let receipts = [
+            None,
+            Some(TabWindowReceipt {
+                viewport_len: 2,
+                content_len: items.len(),
+            }),
+        ];
+
+        for clip in clips {
+            for previous in receipts {
+                let mut scratch = Vec::new();
+                // Candidate zero may have a narrower content area than later
+                // starts because its left overflow lane is absent. Warm every
+                // suffix first so this check compares the stable capacity only
+                // after the widest tested row has been seen.
+                for first_index in 0..=items.len() {
+                    let _ = tabs.walk_default_owned(
+                        area,
+                        clip,
+                        &items,
+                        first_index,
+                        previous,
+                        &mut scratch,
+                        |_| {},
+                    );
+                }
+                let warmed_capacity = scratch.capacity();
+                for first_index in 0..=items.len() {
+                    let expected =
+                        preimage_default_rows(&tabs, area, clip, &items, first_index, previous);
+                    let mut emitted = Vec::new();
+                    let mut emitted_geometry = Vec::new();
+                    let walk = tabs.walk_default_owned(
+                        area,
+                        clip,
+                        &items,
+                        first_index,
+                        previous,
+                        &mut scratch,
+                        |geometry| {
+                            emitted_geometry.push(geometry);
+                            emitted.push(
+                                geometry.into_tab_row(items[geometry.index].label_segments.clone()),
+                            );
+                        },
+                    );
+                    assert_eq!(
+                        emitted, expected,
+                        "rows differ for clip={clip:?}, first={first_index}, receipt={previous:?}"
+                    );
+                    assert_eq!(walk.viewport_len, expected.len());
+                    let expected_geometry: Vec<_> = expected
+                        .iter()
+                        .map(DefaultRowGeometry::from_tab_row)
+                        .collect();
+                    assert_eq!(emitted_geometry, expected_geometry);
+                    let expected_last = expected.last().map(DefaultRowGeometry::from_tab_row);
+                    assert_eq!(walk.last_row, expected_last);
+
+                    let scalar = tabs.walk_default_owned(
+                        area,
+                        clip,
+                        &items,
+                        first_index,
+                        previous,
+                        &mut scratch,
+                        |_| {},
+                    );
+                    assert_eq!(scalar.viewport_len, expected.len());
+                    assert_eq!(scalar.last_row, expected_last);
+                    assert_eq!(
+                        scratch.capacity(),
+                        warmed_capacity,
+                        "all suffix probes reuse capacity after every candidate was warmed"
+                    );
+                }
+            }
+        }
+    }
+
+    fn terminal_fixture_items(count: usize) -> Vec<OwnedTabMeasurement> {
+        const SEGMENTS: &[&[&str]] = &[
+            &["short"],
+            &["e", "\u{301}", "tail "],
+            &["界", "joined"],
+            &["\t", "👩‍👩‍👧‍👦", "end"],
+            &["   "],
+            &["wide label"],
+            &["x", "\u{301}", "界"],
+            &["abcdefghijklmnop"],
+        ];
+        (0..count)
+            .map(|index| OwnedTabMeasurement {
+                key: ItemKey::index(index),
+                mark: match index % 4 {
+                    0 => Some(TabItemMark::Dirty),
+                    1 => Some(TabItemMark::Busy),
+                    2 => Some(TabItemMark::Error),
+                    _ => None,
+                },
+                close_enabled: index % 3 == 0,
+                label_segments: SEGMENTS[index % SEGMENTS.len()]
+                    .iter()
+                    .map(|segment| (*segment).to_owned())
+                    .collect(),
+            })
+            .collect()
+    }
+
+    fn exhaustive_terminal_start<T, K>(
+        tabs: &Tabs<'_, T, K, DefaultRow>,
+        area: Rect,
+        clip: Rect,
+        items: &[OwnedTabMeasurement],
+        previous: Option<TabWindowReceipt>,
+    ) -> Option<usize>
+    where
+        T: fmt::Display,
+        K: KeyFn<T>,
+    {
+        let final_index = items.len().checked_sub(1)?;
+        let mut scratch = Vec::new();
+        (0..items.len()).find(|&candidate_first| {
+            tabs.walk_default_owned(
+                area,
+                clip,
+                items,
+                candidate_first,
+                previous,
+                &mut scratch,
+                |_| {},
+            )
+            .last_row
+            .is_some_and(|row| row.index == final_index && !row.visible_tab.is_empty())
+        })
+    }
+
+    #[test]
+    fn bounded_terminal_search_matches_the_exhaustive_domain() {
+        let counts = [0, 1, 2, 5, 8];
+
+        for count in counts {
+            let items = terminal_fixture_items(count);
+            let receipts = [
+                None,
+                Some(TabWindowReceipt {
+                    viewport_len: 0,
+                    content_len: count,
+                }),
+            ];
+            let areas = [
+                Rect::new(0, 0, 2, 2),
+                Rect::new(0, 0, 4, 2),
+                Rect::new(0, 0, 10, 2),
+                Rect::new(3, 2, 31, 2),
+                Rect::new(u16::MAX - 2, 0, 8, 2),
+            ];
+
+            for (status, allow_new, closable) in [
+                (Status::Ready, false, false),
+                (Status::Busy, true, false),
+                (Status::Error, true, true),
+            ] {
+                let tabs = Tabs::<&str>::new(TABS)
+                    .status(status)
+                    .allow_new(allow_new)
+                    .closable(closable)
+                    .close_target_w(5);
+                for area in areas {
+                    let clips = [
+                        area,
+                        Rect::new(
+                            area.x.saturating_add(area.width / 2),
+                            area.y,
+                            area.width / 2,
+                            1,
+                        ),
+                        Rect::new(area.x, area.y.saturating_add(4), 5, 1),
+                        Rect::new(area.x, area.y, 0, 1),
+                    ];
+                    for clip in clips {
+                        for previous in receipts {
+                            let expected =
+                                exhaustive_terminal_start(&tabs, area, clip, &items, previous);
+                            let mut scratch = Vec::new();
+                            let actual = tabs.find_terminal_first_index(
+                                area,
+                                clip,
+                                &items,
+                                previous,
+                                &mut scratch,
+                            );
+                            assert_eq!(
+                                actual, expected,
+                                concat!(
+                                    "count={}, status={:?}, allow_new={}, ",
+                                    "closable={}, area={:?}, clip={:?}, receipt={:?}"
+                                ),
+                                count, status, allow_new, closable, area, clip, previous
+                            );
+
+                            if !items.is_empty() {
+                                let budget =
+                                    tabs.default_row_header(area, 1, previous).available_width();
+                                let max_rows = max_rows_for_width_budget(budget);
+                                let lower =
+                                    positive_terminal_candidate_range(count, max_rows).start;
+                                let positive_walk = tabs.walk_default_owned(
+                                    area,
+                                    clip,
+                                    &items,
+                                    1,
+                                    previous,
+                                    &mut scratch,
+                                    |_| {},
+                                );
+                                assert_eq!(
+                                    positive_walk
+                                        .right_limit
+                                        .saturating_sub(positive_walk.first_tab_x),
+                                    budget,
+                                    "positive-start bound uses the exact walker header"
+                                );
+                                for candidate_first in 1..lower {
+                                    let walk = tabs.walk_default_owned(
+                                        area,
+                                        clip,
+                                        &items,
+                                        candidate_first,
+                                        previous,
+                                        &mut scratch,
+                                        |_| {},
+                                    );
+                                    let required_rows = count - candidate_first;
+                                    assert!(required_rows > max_rows);
+                                    assert!(walk.viewport_len <= max_rows);
+                                    assert!(walk.viewport_len < required_rows);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn terminal_row_budget_and_positive_range_use_wide_exact_arithmetic() {
+        assert_eq!(max_rows_for_width_budget(0), 0);
+        assert_eq!(max_rows_for_width_budget(1), 0);
+        assert_eq!(max_rows_for_width_budget(2), 0);
+        assert_eq!(max_rows_for_width_budget(3), 1);
+        assert_eq!(max_rows_for_width_budget(6), 1);
+        assert_eq!(max_rows_for_width_budget(7), 2);
+        assert_eq!(max_rows_for_width_budget(u16::MAX), 16_384);
+
+        assert_eq!(positive_terminal_candidate_range(0, 0), 0..0);
+        assert_eq!(positive_terminal_candidate_range(1, 0), 1..1);
+        assert_eq!(positive_terminal_candidate_range(8, 0), 8..8);
+        assert_eq!(positive_terminal_candidate_range(8, 1), 7..8);
+        assert_eq!(positive_terminal_candidate_range(8, 8), 1..8);
+        assert_eq!(positive_terminal_candidate_range(8, usize::MAX), 1..8);
+
+        let area = Rect::new(3, 2, 31, 2);
+        for (status, allow_new, expected_budget, expected_rows) in [
+            (Status::Ready, false, 23, 6),
+            (Status::Busy, false, 21, 5),
+            (Status::Error, true, 17, 4),
+        ] {
+            let tabs = Tabs::<&str>::new(TABS).status(status).allow_new(allow_new);
+            let header = tabs.default_row_header(area, 1, None);
+            assert_eq!(header.first_tab_x, 7);
+            assert_eq!(header.available_width(), expected_budget);
+            assert_eq!(
+                max_rows_for_width_budget(header.available_width()),
+                expected_rows
+            );
+        }
+    }
+
+    #[test]
+    fn bounded_terminal_search_matches_exhaustive_large_input() {
+        let items = terminal_fixture_items(128);
+        for (status, allow_new, closable) in
+            [(Status::Ready, false, false), (Status::Busy, true, true)]
+        {
+            let tabs = Tabs::<&str>::new(TABS)
+                .status(status)
+                .allow_new(allow_new)
+                .closable(closable);
+            for area in [
+                Rect::new(0, 0, 4, 2),
+                Rect::new(3, 2, 31, 2),
+                Rect::new(0, 0, 80, 2),
+            ] {
+                let clips = [
+                    area,
+                    Rect::new(
+                        area.x.saturating_add(area.width / 2),
+                        area.y,
+                        area.width / 2,
+                        1,
+                    ),
+                    Rect::new(area.x, area.y.saturating_add(4), 5, 1),
+                ];
+                for clip in clips {
+                    for previous in [
+                        None,
+                        Some(TabWindowReceipt {
+                            viewport_len: 0,
+                            content_len: items.len(),
+                        }),
+                    ] {
+                        let expected =
+                            exhaustive_terminal_start(&tabs, area, clip, &items, previous);
+                        let mut scratch = Vec::new();
+                        let actual = tabs.find_terminal_first_index(
+                            area,
+                            clip,
+                            &items,
+                            previous,
+                            &mut scratch,
+                        );
+                        assert_eq!(
+                            actual, expected,
+                            concat!(
+                                "large input: status={:?}, allow_new={}, ",
+                                "closable={}, area={:?}, clip={:?}, receipt={:?}"
+                            ),
+                            status, allow_new, closable, area, clip, previous
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn terminal_probe_work_is_bounded_by_fixed_viewport_width() {
+        let tabs = Tabs::<&str>::new(TABS);
+        let area = Rect::new(0, 0, 80, 2);
+        let clip = Rect::new(100, 0, 1, 1);
+        let mut measurements = Vec::new();
+
+        for count in [8, 128, 4096] {
+            measurements.clear();
+            measurements.extend((0..count).map(|index| OwnedTabMeasurement {
+                key: ItemKey::index(index),
+                mark: None,
+                close_enabled: false,
+                label_segments: vec!["x".to_owned()],
+            }));
+
+            let positive_budget = tabs.default_row_header(area, 1, None).available_width();
+            let max_rows = max_rows_for_width_budget(positive_budget);
+            let candidates = positive_terminal_candidate_range(count, max_rows);
+            let mut scratch = Vec::new();
+            let mut probes = 0usize;
+            let mut row_visits = 0usize;
+
+            let start_zero =
+                tabs.walk_default_owned(area, clip, &measurements, 0, None, &mut scratch, |_| {});
+            probes += 1;
+            row_visits += start_zero.viewport_len;
+            assert!(
+                !start_zero
+                    .last_row
+                    .is_some_and(|row| row.index + 1 == count && !row.visible_tab.is_empty())
+            );
+
+            let mut positive_row_visits = 0usize;
+            for candidate_first in candidates.clone() {
+                let walk = tabs.walk_default_owned(
+                    area,
+                    clip,
+                    &measurements,
+                    candidate_first,
+                    None,
+                    &mut scratch,
+                    |_| {},
+                );
+                probes += 1;
+                row_visits += walk.viewport_len;
+                positive_row_visits += walk.viewport_len;
+                assert!(
+                    !walk
+                        .last_row
+                        .is_some_and(|row| row.index + 1 == count && !row.visible_tab.is_empty())
+                );
+            }
+
+            assert_eq!(
+                tabs.find_terminal_first_index(area, clip, &measurements, None, &mut scratch,),
+                None
+            );
+            assert_eq!(max_rows, 18);
+            assert_eq!(probes, 1 + candidates.len());
+            assert!(probes <= 1 + max_rows);
+            assert!(positive_row_visits <= max_rows * max_rows);
+            assert_eq!(row_visits, start_zero.viewport_len + positive_row_visits);
+            if count == 8 {
+                assert_eq!(probes, 8);
+                assert_eq!(row_visits, 36);
+            } else {
+                assert_eq!(probes, 19);
+                assert_eq!(positive_row_visits, 171);
+                assert_eq!(row_visits, 191);
+            }
+        }
     }
 }
