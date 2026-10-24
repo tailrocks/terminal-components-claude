@@ -51,6 +51,58 @@ pub struct ManagerFrame<'a> {
     pub warning: &'a str,
 }
 
+/// Shared full-screen geometry for painted workspace rows and their owner.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ManagerFrameLayout {
+    area: Rect,
+    rows: usize,
+}
+
+impl ManagerFrameLayout {
+    pub const fn new(area: Rect, rows: usize) -> Self {
+        Self { area, rows }
+    }
+
+    /// Rows that fit between the frame header and the detail band at this
+    /// height; the frame list scrolls with the same window as the page list.
+    pub fn row_capacity(height: u16) -> usize {
+        usize::from(height.saturating_sub(14))
+    }
+
+    pub const fn area(self) -> Rect {
+        self.area
+    }
+
+    /// Painted leaf-row allocation, including the frame's side rules.
+    pub fn row_rect(self, index: usize) -> Option<Rect> {
+        if index >= self.rows {
+            return None;
+        }
+        let row_offset = u16::try_from(index).ok()?;
+        let y = self.area.y.checked_add(4)?.checked_add(row_offset)?;
+        let rect = Rect::new(
+            self.area.x.saturating_add(1),
+            y,
+            self.area.width.saturating_sub(2),
+            1,
+        )
+        .intersection(self.area);
+        (!rect.is_empty()).then_some(rect)
+    }
+
+    pub fn rows_area(self) -> Rect {
+        let y = self.area.y.saturating_add(4);
+        let available = self.area.bottom().saturating_sub(y);
+        let rows = u16::try_from(self.rows).unwrap_or(u16::MAX).min(available);
+        Rect::new(
+            self.area.x.saturating_add(1),
+            y,
+            self.area.width.saturating_sub(2),
+            rows,
+        )
+    }
+}
+
 struct Ink {
     canvas: Color,
     chrome: Color,
@@ -66,6 +118,15 @@ struct Ink {
 }
 
 pub fn paint_manager_frame(ui: &mut Ui<'_>, area: Rect, frame: &ManagerFrame<'_>) {
+    paint_manager_frame_with_layout(ui, ManagerFrameLayout::new(area, frame.rows.len()), frame);
+}
+
+pub fn paint_manager_frame_with_layout(
+    ui: &mut Ui<'_>,
+    layout: ManagerFrameLayout,
+    frame: &ManagerFrame<'_>,
+) {
+    let area = layout.area();
     if area.width < 40 || area.height < 20 {
         return;
     }
@@ -78,7 +139,10 @@ pub fn paint_manager_frame(ui: &mut Ui<'_>, area: Rect, frame: &ManagerFrame<'_>
     paint_box_top(ui, area, frame, &ink);
     paint_selected(ui, area, row_y, frame, &ink);
     for (i, row) in frame.rows.iter().enumerate() {
-        let y = row_y.saturating_add(1).saturating_add(i as u16);
+        let Some(row_area) = layout.row_rect(i) else {
+            continue;
+        };
+        let y = row_area.y;
         let fade = i + 1 == frame.rows.len();
         paint_leaf(ui, area, y, row, fade, &ink);
     }
@@ -488,4 +552,22 @@ fn paint_hint(ui: &mut Ui<'_>, area: Rect, frame: &ManagerFrame<'_>, ink: &Ink) 
         frame.warning,
         plain(ink.warning, ink.canvas),
     );
+}
+
+#[cfg(test)]
+mod tests {
+    use ratatui_core::layout::Rect;
+
+    use super::ManagerFrameLayout;
+
+    #[test]
+    fn row_rect_rejects_unrepresentable_and_off_area_rows() {
+        let layout = ManagerFrameLayout::new(Rect::new(0, 0, 100, 30), usize::MAX);
+        assert_eq!(layout.row_rect(usize::MAX), None);
+        assert_eq!(layout.row_rect(usize::from(u16::MAX) + 1), None);
+        assert_eq!(layout.row_rect(26), None);
+
+        let edge = ManagerFrameLayout::new(Rect::new(0, u16::MAX - 2, 100, 10), 1);
+        assert_eq!(edge.row_rect(0), None);
+    }
 }
