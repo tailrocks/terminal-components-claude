@@ -42,6 +42,7 @@ const PREVIEW: ActionKey = ActionKey::application("holla.preview");
 const ACTIONS: ActionKey = ActionKey::application("holla.actions");
 const TOP_FILES: ActionKey = ActionKey::application("holla.top-files");
 const CLEANUP_REVIEW: ActionKey = ActionKey::application("holla.cleanup-review");
+const DISK_SELECT: ActionKey = ActionKey::application("holla.disk.select-candidates");
 const FOLDER_BROWSER: ActionKey = ActionKey::application("holla.folder-browser");
 const FILES_OPEN: ActionKey = ActionKey::application("holla.files.open-directory");
 const FILES_PARENT: ActionKey = ActionKey::application("holla.files.parent-directory");
@@ -175,6 +176,7 @@ enum Overlay {
     Clone(ClonePicker),
     Actions(Actions),
     Gate(PlanGate),
+    DiskSelection(disk::SelectionChooser),
 }
 
 pub struct App {
@@ -1461,6 +1463,15 @@ impl App {
                 }
                 self.open_dialog(dialogs::Intent::FolderBrowser, cx);
             }
+            DISK_SELECT if self.route == Route::Disk => {
+                if let Some(selection) = disk::SelectionChooser::open(&self.world, cx) {
+                    self.overlay = Some(Overlay::DiskSelection(selection));
+                } else {
+                    self.set_status(
+                        "Disk candidates are unavailable · review the current inventory".into(),
+                    );
+                }
+            }
             FILES_OPEN if self.route == Route::Files => self.files.open_selected(cx),
             FILES_PARENT if self.route == Route::Files => {
                 if !self.files.close_preview(cx) {
@@ -1667,6 +1678,24 @@ impl App {
                         self.open_dialog(dialogs::Intent::CloneReview(request), cx);
                     } else {
                         self.set_status("Clone target changed · review it again".to_owned());
+                    }
+                }
+                (response, done)
+            }
+            Overlay::DiskSelection(selection) => {
+                let (response, event, closed) = selection.update(cx, &self.world);
+                let done = event.is_some() || closed;
+                if let Some(event) = event {
+                    match event {
+                        disk::SelectionEvent::Cancelled => {}
+                        disk::SelectionEvent::Stale => self.set_status(
+                            "Disk inventory changed · reopen candidate selection".to_owned(),
+                        ),
+                        disk::SelectionEvent::Invalid => self
+                            .set_status("Disk selection is invalid · nothing changed".to_owned()),
+                        disk::SelectionEvent::Review(review) => {
+                            self.destination(Destination::Plan(Box::new(review)), cx);
+                        }
                     }
                 }
                 (response, done)
@@ -2186,7 +2215,7 @@ impl App {
         let editing = match &self.overlay {
             Some(Overlay::Dialog(dialog)) => dialog.is_editing(),
             Some(Overlay::Gate(gate)) => gate.is_editing(),
-            Some(Overlay::Clone(_) | Overlay::Actions(_)) => false,
+            Some(Overlay::Clone(_) | Overlay::Actions(_) | Overlay::DiskSelection(_)) => false,
             None => self.route == Route::Home && self.home.is_editing(),
         };
         let home_hints = (self.route == Route::Home
@@ -2244,6 +2273,17 @@ impl App {
             {
                 self.keymap.add(KeyPhase::Capture, space, TOGGLE);
             }
+        }
+        if self.route == Route::Disk
+            && self.overlay.is_none()
+            && !self.menu.is_open()
+            && self
+                .world
+                .disk
+                .as_ref()
+                .is_some_and(|disk| disk.validate(&self.world.cwd).is_ok())
+        {
+            self.keymap.add(KeyPhase::Capture, space, DISK_SELECT);
         }
         let quit = Chord::key(KeyCode::Char('q'));
         self.keymap.remove(KeyPhase::Capture, quit);
@@ -2340,15 +2380,20 @@ impl App {
         }
     }
     fn update_controls(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        let retired = self
-            .retired_overlay
-            .take()
-            .map_or_else(Response::ignored, |mut overlay| match &mut overlay {
-                Overlay::Dialog(dialog) => dialog.poll(cx).0,
-                Overlay::Gate(gate) => gate.poll(cx).0,
-                Overlay::Clone(picker) => picker.update(cx).0,
-                Overlay::Actions(picker) => picker.update(cx).0,
-            });
+        let retired = match self.retired_overlay.take() {
+            None => Response::ignored(),
+            Some(Overlay::Dialog(mut dialog)) => dialog.poll(cx).0,
+            Some(Overlay::Gate(mut gate)) => gate.poll(cx).0,
+            Some(Overlay::Clone(mut picker)) => picker.update(cx).0,
+            Some(Overlay::Actions(mut picker)) => picker.update(cx).0,
+            Some(Overlay::DiskSelection(mut selection)) => {
+                let (response, ready) = selection.poll_retired(cx);
+                if !ready {
+                    self.retired_overlay = Some(Overlay::DiskSelection(selection));
+                }
+                response
+            }
+        };
 
         let viewport = cx.viewport();
         let (home_response, home_action) =
@@ -2372,6 +2417,7 @@ impl App {
                     Overlay::Gate(gate) => gate.poll(cx).0,
                     Overlay::Clone(picker) => picker.update(cx).0,
                     Overlay::Actions(picker) => picker.update(cx).0,
+                    Overlay::DiskSelection(selection) => selection.poll(cx),
                 });
             if cx.update_cause() == termrock::UpdateCause::Event && cx.command() == Some(INTERRUPT)
             {
@@ -2532,6 +2578,7 @@ impl termrock::App for App {
                 Overlay::Clone(picker) => picker.draw(ui),
                 Overlay::Actions(picker) => picker.draw(ui),
                 Overlay::Gate(gate) => gate.draw(ui),
+                Overlay::DiskSelection(selection) => selection.draw(ui),
             }
         }
 
@@ -6669,3 +6716,7 @@ mod independent_draw_review {
 #[cfg(test)]
 #[path = "app/files_tests.rs"]
 mod files_tests;
+
+#[cfg(test)]
+#[path = "app/disk_tests.rs"]
+mod disk_tests;
