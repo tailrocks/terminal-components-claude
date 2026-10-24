@@ -9,8 +9,8 @@
 //! framework; the consumer application itself never computes a rectangle.
 
 use external_consumer_demo::{
-    Action, MENU_BAR, NOTE_ITEM, Note, RECIPE_FACTS, RECIPE_LIST, RecipeBox, SCALE_BUTTON,
-    STATUS_BAR,
+    Action, COOK_BUTTON, MENU_BAR, NOTE_ITEM, Note, RECIPE_FACTS, RECIPE_LIST, RecipeBox,
+    SCALE_BUTTON, STATUS_BAR,
 };
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
@@ -208,6 +208,46 @@ fn external_consumer_summary_button_produces_a_typed_domain_action() {
     );
     assert_eq!(runtime.app().servings(), 3);
     assert_eq!(runtime.app().note(), Note::Scaled);
+}
+
+#[test]
+fn both_detail_buttons_return_consumed_repaint_before_the_next_frame() {
+    for button_id in [SCALE_BUTTON, COOK_BUTTON] {
+        let (mut runtime, mut terminal) = consumer();
+        present(&mut runtime, &mut terminal);
+        let button = runtime
+            .area_of(button_id)
+            .expect("detail button has bounds");
+        let position = Position::new(button.x, button.y);
+        let _ = runtime
+            .handle(Input::Mouse(Mouse {
+                kind: MouseKind::Down,
+                pos: position,
+                mods: KeyModifiers::NONE,
+            }))
+            .expect("button accepts press");
+        present(&mut runtime, &mut terminal);
+        let response = runtime
+            .handle(Input::Mouse(Mouse {
+                kind: MouseKind::Up,
+                pos: position,
+                mods: KeyModifiers::NONE,
+            }))
+            .expect("button accepts release");
+        assert!(response.is_consumed(), "{button_id:?}");
+        assert!(
+            response.is_changed(),
+            "domain action requests paint: {button_id:?}"
+        );
+        let expected = if button_id == SCALE_BUTTON {
+            Note::Scaled
+        } else {
+            Note::Cooked
+        };
+        assert_eq!(runtime.app().note(), expected);
+        present(&mut runtime, &mut terminal);
+        assert!(rendered_text(terminal.backend().buffer()).contains(expected.text()));
+    }
 }
 
 #[test]
