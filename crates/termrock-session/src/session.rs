@@ -18,11 +18,13 @@ use ratatui_crossterm::crossterm::{execute, queue};
 
 use termrock_core::event::RoutedInput;
 use termrock_core::keys::keyboard::KeyboardProtocol;
-use termrock_runtime::{App, FeedbackClock, Moment, PreparedFrameError, Runtime};
+use termrock_runtime::{App, FeedbackClock, Moment, PreparedFrameError, Runtime, SizeWatch};
 use termrock_terminal::KeyboardNegotiation;
 use termrock_theme::Theme;
 
 pub type DefaultTerminal = Terminal<CrosstermBackend<Stdout>>;
+
+const SIZE_CHECK_INTERVAL: Duration = Duration::from_millis(50);
 
 /// Terminal caret shape used before the first rendered cursor request.
 ///
@@ -464,14 +466,21 @@ fn run_with_cursor_shape_startup<A: App>(
     let caret_supported = TerminalShapeSupport::current().caret;
     let mut session =
         TerminalSession::enter_with_cursor_shape_support(cursor_shape, caret_supported)?;
+    // The bridge and configured startup-input drain are complete. Prime now,
+    // while the terminal session owns the correct stdin binding, without reading.
+    prime_input()?;
+    // Propagate a failed size query; do not invent a 0×0 starting size.
+    let initial_size = session.terminal().size()?;
+    let mut size_watch = SizeWatch::new(Some((initial_size.width, initial_size.height)));
+    let mut first_poll_delay = first_poll_delay_from_env();
     let origin = Instant::now();
     let mut rt = Runtime::new_with_feedback_clock(app, theme.for_terminal(), clock);
     let _ = rt.initialize();
     let suppress_colors = Colored::ansi_color_disabled_memoized();
     let mut pending = None;
     loop {
-        rt.advance_to(Moment::from_duration(origin.elapsed()))
-            .map_err(io::Error::other)?;
+        let now = Moment::from_duration(origin.elapsed());
+        advance_runtime_for_session(&mut rt, now, pending.is_some())?;
         loop {
             if rt.needs_settle() {
                 let _ = rt.settle();
@@ -519,35 +528,101 @@ fn run_with_cursor_shape_startup<A: App>(
             break;
         }
         if let Some(input) = pending.take() {
+            if let RoutedInput::Input(input) = &input {
+                size_watch.observe(input);
+            }
             match rt.handle_routed(input) {
                 Ok(_) => {}
                 Err(event) => pending = Some(event.into_routed_input()),
             }
             continue;
         }
+        // Propagate query errors and preserve the previous known size.
+        let actual_size = session.terminal().size()?;
+        if let Some(resize) = size_watch.check((actual_size.width, actual_size.height)) {
+            pending = Some(resize.into());
+            continue;
+        }
+        // This one-shot delay follows a successful first presentation and the
+        // initial size baseline, immediately before the first input wait.
+        sleep_after_first_present(&mut first_poll_delay, std::thread::sleep);
         let now = Moment::from_duration(origin.elapsed());
-        let ready = if bridged {
-            match rt.next_deadline() {
-                Some(at) => crate::esc_bridge::wait_for_event(Some(
-                    at.saturating_duration_since(now)
-                        .min(Duration::from_secs(60)),
-                ))?,
-                None => crate::esc_bridge::wait_for_event(None)?,
-            }
-        } else {
-            match rt.next_deadline() {
-                Some(at) => poll(
-                    at.saturating_duration_since(now)
-                        .min(Duration::from_secs(60)),
-                )?,
-                None => true,
-            }
-        };
+        let ready = wait_for_session_input(&rt, now, |wait| {
+            let ready = if bridged {
+                crate::esc_bridge::wait_for_event(Some(wait))?
+            } else {
+                poll(wait)?
+            };
+            Ok(ready)
+        })?;
         if ready {
             pending = decode_session_input(read()?);
         }
     }
     session.leave()
+}
+
+fn prime_input() -> io::Result<()> {
+    prime_input_with(poll)
+}
+
+fn prime_input_with(poll_once: impl FnOnce(Duration) -> io::Result<bool>) -> io::Result<()> {
+    match poll_once(Duration::ZERO) {
+        Ok(_) => Ok(()),
+        Err(error) if error.kind() == io::ErrorKind::Interrupted => Ok(()),
+        Err(error) => Err(error),
+    }
+}
+
+fn first_poll_delay_from_env() -> Option<Duration> {
+    std::env::var("JUNIE_TUI_FIRST_POLL_DELAY_MS")
+        .ok()
+        .and_then(|value| parse_first_poll_delay(Some(&value)))
+}
+
+fn parse_first_poll_delay(value: Option<&str>) -> Option<Duration> {
+    value?.parse::<u64>().ok().map(Duration::from_millis)
+}
+
+fn sleep_after_first_present(delay: &mut Option<Duration>, sleep: impl FnOnce(Duration)) {
+    if let Some(delay) = delay.take() {
+        sleep(delay);
+    }
+}
+
+fn input_wait_duration(deadline: Option<Duration>) -> Duration {
+    deadline.map_or(SIZE_CHECK_INTERVAL, |remaining| {
+        remaining.min(SIZE_CHECK_INTERVAL)
+    })
+}
+
+fn wait_for_session_input<A: App>(
+    runtime: &Runtime<A>,
+    now: Moment,
+    poll_once: impl FnOnce(Duration) -> io::Result<bool>,
+) -> io::Result<bool> {
+    let deadline = runtime
+        .next_deadline()
+        .map(|at| at.saturating_duration_since(now));
+    poll_once(input_wait_duration(deadline))
+}
+
+fn advance_runtime_for_session<A: App>(
+    runtime: &mut Runtime<A>,
+    now: Moment,
+    pending_input: bool,
+) -> io::Result<()> {
+    if pending_input
+        || runtime
+            .next_deadline()
+            .is_some_and(|deadline| deadline <= now)
+    {
+        // Runtime::advance_to invalidates the presented frame when time changes.
+        // A size-probe timeout with no input or due Runtime deadline is not an
+        // application wakeup and must not cause a periodic redraw.
+        runtime.advance_to(now).map_err(io::Error::other)?;
+    }
+    Ok(())
 }
 
 fn decode_session_input(event: Event) -> Option<RoutedInput> {
@@ -604,8 +679,243 @@ fn reset_frame_colors(buffer: &mut ratatui_core::buffer::Buffer) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ratatui::Terminal;
+    use ratatui::backend::TestBackend;
+    use ratatui_core::layout::Rect;
     use std::cell::Cell;
     use std::sync::{Arc, Mutex};
+
+    struct SessionWaitProbe {
+        repaint_after: Option<Duration>,
+        updates: usize,
+        ticks: usize,
+        draws: Cell<usize>,
+    }
+
+    impl SessionWaitProbe {
+        fn new(repaint_after: Option<Duration>) -> Self {
+            Self {
+                repaint_after,
+                updates: 0,
+                ticks: 0,
+                draws: Cell::new(0),
+            }
+        }
+    }
+
+    impl App for SessionWaitProbe {
+        fn update(&mut self, cx: &mut termrock_runtime::Cx<'_>) -> termrock_runtime::Response<()> {
+            self.updates += 1;
+            if cx.update_cause() == termrock_runtime::UpdateCause::Bootstrap {
+                if let Some(delay) = self.repaint_after {
+                    cx.request_repaint_after(delay);
+                }
+            } else if cx.update_cause() == termrock_runtime::UpdateCause::Tick {
+                self.ticks += 1;
+            }
+            termrock_runtime::Response::ignored()
+        }
+
+        fn draw(&self, ui: &mut termrock_runtime::Ui<'_>) {
+            self.draws.set(self.draws.get() + 1);
+            ui.paint_str(ui.full(), "session wait probe", ui.surface_style());
+        }
+    }
+
+    struct PresentedSessionProbe {
+        runtime: Runtime<SessionWaitProbe>,
+        terminal: Terminal<TestBackend>,
+        area: Rect,
+    }
+
+    fn presented_session_probe(repaint_after: Option<Duration>) -> PresentedSessionProbe {
+        let area = Rect::new(0, 0, 32, 4);
+        let mut runtime = Runtime::new(SessionWaitProbe::new(repaint_after), Theme::junie());
+        let _ = runtime.initialize();
+        let mut terminal = Terminal::new(TestBackend::new(area.width, area.height))
+            .expect("test backend initializes");
+        present_session_probe(&mut runtime, &mut terminal, area);
+        assert!(
+            runtime.app().draws.get() > 0,
+            "App drew the initial test frame"
+        );
+        assert!(
+            !runtime.needs_present(),
+            "the initial TestBackend frame was acknowledged"
+        );
+        PresentedSessionProbe {
+            runtime,
+            terminal,
+            area,
+        }
+    }
+
+    fn present_session_probe(
+        runtime: &mut Runtime<SessionWaitProbe>,
+        terminal: &mut Terminal<TestBackend>,
+        area: Rect,
+    ) {
+        for _ in 0..16 {
+            if runtime.needs_settle() {
+                let _ = runtime.settle();
+            }
+            if runtime.needs_present() {
+                let prepared = runtime.prepare(area).expect("runtime prepares a frame");
+                terminal
+                    .draw(|frame| {
+                        runtime
+                            .draw_prepared(prepared, frame)
+                            .expect("runtime draws the prepared frame");
+                    })
+                    .expect("test backend presents the frame");
+                runtime
+                    .acknowledge_presented(prepared)
+                    .expect("test backend presentation is acknowledged");
+            }
+            if !runtime.needs_settle() && !runtime.needs_present() {
+                return;
+            }
+        }
+        panic!("session probe did not settle and present");
+    }
+
+    #[test]
+    fn priming_polls_once_without_consuming_a_ready_event() {
+        let queued = Cell::new(true);
+        let calls = Cell::new(0);
+        prime_input_with(|timeout| {
+            assert_eq!(timeout, Duration::ZERO);
+            calls.set(calls.get() + 1);
+            Ok(queued.get())
+        })
+        .expect("zero-duration input prime");
+        assert_eq!(calls.get(), 1);
+        assert!(queued.get(), "priming must not read a queued event");
+    }
+
+    #[test]
+    fn priming_tolerates_interrupts_and_preserves_other_errors() {
+        assert!(prime_input_with(|_| Err(io::Error::from(io::ErrorKind::Interrupted))).is_ok());
+        let error = prime_input_with(|_| Err(io::Error::from(io::ErrorKind::BrokenPipe)))
+            .expect_err("non-interrupt poll error must propagate");
+        assert_eq!(error.kind(), io::ErrorKind::BrokenPipe);
+    }
+
+    #[test]
+    fn first_poll_delay_parses_and_the_helper_takes_it_once() {
+        assert_eq!(parse_first_poll_delay(None), None);
+        assert_eq!(
+            parse_first_poll_delay(Some("1500")),
+            Some(Duration::from_millis(1500))
+        );
+        assert_eq!(parse_first_poll_delay(Some("invalid")), None);
+        assert_eq!(parse_first_poll_delay(Some("-1")), None);
+
+        let mut delay = Some(Duration::from_millis(17));
+        let mut sleeps = Vec::new();
+        sleep_after_first_present(&mut delay, |duration| sleeps.push(duration));
+        sleep_after_first_present(&mut delay, |duration| sleeps.push(duration));
+        assert_eq!(sleeps, vec![Duration::from_millis(17)]);
+        assert_eq!(delay, None);
+    }
+
+    #[test]
+    fn size_probe_wait_is_finite_without_deadlines_and_respects_real_deadlines() {
+        assert_eq!(input_wait_duration(None), Duration::from_millis(50));
+        assert_eq!(
+            input_wait_duration(Some(Duration::from_millis(12))),
+            Duration::from_millis(12)
+        );
+        assert_eq!(
+            input_wait_duration(Some(Duration::from_secs(10))),
+            Duration::from_millis(50)
+        );
+        assert_eq!(input_wait_duration(Some(Duration::ZERO)), Duration::ZERO);
+    }
+
+    #[test]
+    fn unchanged_size_probe_timeouts_do_not_redraw_without_a_runtime_deadline() {
+        let mut fixture = presented_session_probe(None);
+        let initial_now = fixture.runtime.now();
+        let initial_updates = fixture.runtime.app().updates;
+        let initial_ticks = fixture.runtime.app().ticks;
+        let initial_draws = fixture.runtime.app().draws.get();
+        let mut elapsed = Duration::ZERO;
+        let mut size_watch = SizeWatch::new(Some((32, 4)));
+
+        assert_eq!(fixture.runtime.next_deadline(), None);
+        for _ in 0..3 {
+            let size = fixture.terminal.size().expect("test terminal size");
+            assert_eq!(size_watch.check((size.width, size.height)), None);
+            let now = Moment::from_duration(elapsed);
+            let ready = wait_for_session_input(&fixture.runtime, now, |timeout| {
+                assert_eq!(timeout, SIZE_CHECK_INTERVAL);
+                elapsed = elapsed.saturating_add(timeout);
+                Ok(false)
+            })
+            .expect("bounded session wait");
+            assert!(!ready);
+            advance_runtime_for_session(
+                &mut fixture.runtime,
+                Moment::from_duration(elapsed),
+                false,
+            )
+            .expect("no due Runtime work");
+
+            assert_eq!(
+                fixture.runtime.now(),
+                initial_now,
+                "idle size probes do not advance Runtime"
+            );
+            assert_eq!(fixture.runtime.app().updates, initial_updates);
+            assert_eq!(fixture.runtime.app().ticks, initial_ticks);
+            assert_eq!(fixture.runtime.app().draws.get(), initial_draws);
+            assert!(!fixture.runtime.needs_settle());
+            assert!(!fixture.runtime.needs_present());
+            assert_eq!(fixture.runtime.next_deadline(), None);
+        }
+    }
+
+    #[test]
+    fn session_wait_stops_at_and_dispatches_an_earlier_runtime_deadline() {
+        let deadline = Duration::from_millis(12);
+        let mut fixture = presented_session_probe(Some(deadline));
+        let initial_updates = fixture.runtime.app().updates;
+        let initial_draws = fixture.runtime.app().draws.get();
+        let mut elapsed = Duration::ZERO;
+
+        assert_eq!(
+            fixture.runtime.next_deadline(),
+            Some(Moment::from_millis(12))
+        );
+        let ready = wait_for_session_input(&fixture.runtime, Moment::ZERO, |timeout| {
+            assert_eq!(timeout, deadline);
+            elapsed = elapsed.saturating_add(timeout);
+            Ok(false)
+        })
+        .expect("bounded wait reaches the real deadline");
+        assert!(!ready);
+        advance_runtime_for_session(&mut fixture.runtime, Moment::from_duration(elapsed), false)
+            .expect("advance only because the deadline is due");
+
+        assert_eq!(
+            fixture.runtime.app().ticks,
+            0,
+            "Runtime records the due tick before settling it"
+        );
+        assert!(fixture.runtime.needs_settle());
+        assert_eq!(
+            fixture.runtime.next_deadline(),
+            Some(Moment::from_millis(12))
+        );
+        present_session_probe(&mut fixture.runtime, &mut fixture.terminal, fixture.area);
+        assert_eq!(fixture.runtime.app().ticks, 1);
+        assert_eq!(fixture.runtime.app().updates, initial_updates + 1);
+        assert!(fixture.runtime.app().draws.get() > initial_draws);
+        assert_eq!(fixture.runtime.next_deadline(), None);
+        assert!(!fixture.runtime.needs_settle());
+        assert!(!fixture.runtime.needs_present());
+    }
 
     #[test]
     fn startup_delay_precedes_discard_and_drain_errors_are_ignored() {
