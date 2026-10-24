@@ -25,7 +25,9 @@ use termrock::controls::{Button, PropsList, PropsRow, PropsState};
 use termrock::feedback::{StatusAction, StatusBar, StatusItem};
 use termrock::navigation::{NavList, NavListAction, NavListState};
 use termrock::overlays::{Menu, MenuAction, MenuBar, MenuItem, MenuState};
-use termrock::{ActionKey, App, Cx, Id, ItemKey, Rect, Response, RowUi, Ui, UpdateCause};
+use termrock::{
+    ActionKey, App, Cx, FrameRead, Id, ItemKey, Rect, Response, RowUi, Ui, UpdateCause,
+};
 
 use crate::recipes::{RECIPES, Recipe};
 
@@ -321,6 +323,21 @@ impl App for RecipeBox {
             if let Some(action) = mapped {
                 self.dispatch(action);
             }
+        }
+        if matches!(
+            nav_response.action_ref(),
+            Some(NavListAction::Chose(_) | NavListAction::EnterContent(_))
+        ) && cx
+            .layout(WORKSPACE)
+            .and_then(|facts| facts.logical_area)
+            .filter(|area| !area.is_empty())
+            .is_some_and(|area| self.policy().is_collapsed(area.width))
+        {
+            let opened = block.open_detail(cx, &mut self.layout);
+            if opened.action_ref() == Some(&MasterDetailAction::DrawerOpened) {
+                self.dispatch(Action::DetailOpened);
+            }
+            response |= opened.erase();
         }
         response |= nav_response.erase();
 

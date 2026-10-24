@@ -321,3 +321,83 @@ fn external_consumer_renders_identically_on_two_runs() {
         }
     }
 }
+
+fn assert_narrow_detail_journey(code: KeyCode, nav_action: Action) {
+    let narrow = Rect::new(0, 0, 48, 12);
+    let (mut runtime, mut terminal) = consumer_with(narrow);
+    present_in(&mut runtime, &mut terminal, narrow);
+
+    assert_eq!(runtime.focus(), Some(RECIPE_LIST));
+    assert!(runtime.area_of(RECIPE_LIST).is_some());
+    assert!(runtime.area_of(RECIPE_FACTS).is_none());
+    assert_eq!(runtime.app().selected(), Some(ItemKey::num(101)));
+    assert!(
+        runtime.diagnostics().is_empty(),
+        "{:?}",
+        runtime.diagnostics()
+    );
+
+    let response = runtime
+        .handle(Input::Key(Key {
+            code,
+            mods: KeyModifiers::NONE,
+        }))
+        .expect("the focused recipe list accepts navigation input");
+    assert!(response.is_consumed(), "{nav_action:?}");
+    assert!(response.is_changed(), "{nav_action:?}");
+    assert!(runtime.app().actions().contains(&nav_action));
+    assert_eq!(runtime.app().selected(), Some(ItemKey::num(101)));
+
+    present_in(&mut runtime, &mut terminal, narrow);
+    assert_eq!(
+        runtime.app().last_action(),
+        Some(Action::DetailOpened),
+        "a narrow {nav_action:?} must open the real detail drawer"
+    );
+    let facts = runtime
+        .area_of(RECIPE_FACTS)
+        .expect("opening the drawer publishes the real facts area");
+    assert!(facts.width > 0 && facts.height > 0, "{facts:?}");
+    assert!(facts.x >= narrow.x && facts.y >= narrow.y, "{facts:?}");
+    assert!(facts.right() <= narrow.right(), "{facts:?}");
+    assert!(facts.bottom() <= narrow.bottom(), "{facts:?}");
+    assert_eq!(runtime.focus(), Some(RECIPE_FACTS));
+    assert_eq!(runtime.app().selected(), Some(ItemKey::num(101)));
+    assert!(runtime.app().actions().contains(&nav_action));
+    assert!(
+        runtime.diagnostics().is_empty(),
+        "{:?}",
+        runtime.diagnostics()
+    );
+
+    let close = runtime
+        .handle(Input::Key(Key {
+            code: KeyCode::Esc,
+            mods: KeyModifiers::NONE,
+        }))
+        .expect("the detail drawer accepts Escape");
+    assert!(close.is_consumed(), "{close:?}");
+    assert!(close.is_changed(), "{close:?}");
+    assert_eq!(runtime.app().last_action(), Some(Action::DetailClosed));
+    present_in(&mut runtime, &mut terminal, narrow);
+
+    assert!(runtime.area_of(RECIPE_FACTS).is_none());
+    assert!(runtime.area_of(RECIPE_LIST).is_some());
+    assert_eq!(runtime.focus(), Some(RECIPE_LIST));
+    assert_eq!(runtime.app().selected(), Some(ItemKey::num(101)));
+    assert!(
+        runtime.diagnostics().is_empty(),
+        "{:?}",
+        runtime.diagnostics()
+    );
+}
+
+#[test]
+fn narrow_choice_opens_detail_and_escape_restores_the_list() {
+    assert_narrow_detail_journey(KeyCode::Enter, Action::Chose(ItemKey::num(101)));
+}
+
+#[test]
+fn narrow_content_entry_opens_detail_and_escape_restores_the_list() {
+    assert_narrow_detail_journey(KeyCode::Right, Action::Focused(ItemKey::num(101)));
+}
