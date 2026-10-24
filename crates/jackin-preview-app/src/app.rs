@@ -4202,11 +4202,12 @@ impl App {
             }
         }
 
-        if self.editor_exit_open {
-            let dialog = Self::editor_exit_dialog();
-            let response = dialog.update(cx, &mut self.editor_exit_state);
-            let action = response.action_ref().copied();
-            result |= response.erase();
+        let editor_exit_was_open = self.editor_exit_open;
+        let dialog = Self::editor_exit_dialog();
+        let response = dialog.update(cx, &mut self.editor_exit_state);
+        let action = response.action_ref().copied();
+        result |= response.erase();
+        if editor_exit_was_open {
             match action {
                 Some(DialogAction::Action(EXIT_SAVE)) => {
                     if cx.is_open(EDITOR_EXIT_DIALOG) {
@@ -10767,6 +10768,29 @@ impl App {
         result |= self.sync_account_form_layer(cx);
         if cx.update_cause() == UpdateCause::Settle {
             result |= accounts_page::settle_retired_detail_focus(self, cx);
+            let editor_save = crate::screens::editor::SAVE;
+            let editor_confirm = EDITOR_SAVE_CONFIRM;
+            let editor_save_focus_out = [editor_save, editor_confirm].iter().any(|owner| {
+                cx.intents(*owner)
+                    .any(|intent| matches!(intent, Intent::FocusOut { .. }))
+            });
+            if self.route == Route::Manager
+                && editor_save_focus_out
+                && [editor_save, editor_confirm].iter().all(|owner| {
+                    cx.intents(*owner).all(|intent| {
+                        matches!(intent, Intent::FocusIn { .. } | Intent::FocusOut { .. })
+                    })
+                })
+            {
+                // A completed Editor save can move to Manager before the old
+                // Save owners receive their commandless focus-settle pass.
+                result |= Self::editor_save_button("Save workspace")
+                    .update(cx)
+                    .erase();
+                result |= Self::editor_save_confirm_button(self.world.workspaces.is_empty())
+                    .update(cx)
+                    .erase();
+            }
             if self.route == Route::Settings
                 && cx
                     .intents(ACCOUNTS_LIST)
