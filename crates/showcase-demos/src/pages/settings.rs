@@ -1,8 +1,10 @@
 use termrock::author::PaintStyle;
 use termrock::{
-    Button, Color, Cx, Dialog, DialogAction, DialogState, FrameRead, GlyphRole, Id, ItemKey, List,
-    ListAction, ListState, Modifier, Part, Rect, Response, Role, RowUi, StateFlags, StylePatch,
-    Tabs, TabsAction, TabsState, Ui, Variant, truncate_parts, width,
+    Align, BlurPolicy, Button, CellRef, Color, Column, ColumnKey, Cx, Dialog, DialogAction,
+    DialogState, EditIntent, FgStep, FieldError, FrameRead, GlyphRole, Grid, GridEditor, GridModel,
+    GridState, Id, ItemKey, List, ListAction, ListState, Modifier, NavUnit, Part, Rect, Response,
+    Role, RowUi, StateFlags, StylePatch, Tabs, TabsAction, TabsState, Ui, Variant, truncate_parts,
+    width,
 };
 
 use super::{Page, PageUpdate, frame, paint_boundary_meta};
@@ -11,6 +13,8 @@ const TAB: Id = termrock::Id::root("showcase_ui::pages::settings::settings.tabs"
 const MEMBERS: Id = termrock::Id::root("showcase_ui::pages::settings::settings.members");
 const INVITE: Id = termrock::Id::root("showcase_ui::pages::settings::settings.invite");
 const REMOVE: Id = termrock::Id::root("showcase_ui::pages::settings::settings.remove");
+const MEMBER_GRID: Id = termrock::Id::root("showcase_ui::pages::settings::settings.member_grid");
+const MEMBER_BACK: Id = termrock::Id::root("showcase_ui::pages::settings::settings.member_back");
 const REMOVE_DIALOG: Id =
     termrock::Id::root("showcase_ui::pages::settings::settings.remove.dialog");
 const TABS: &[&str] = &["General", "Members", "Security"];
@@ -19,9 +23,47 @@ const TABS: &[&str] = &["General", "Members", "Security"];
 struct Member {
     id: u8,
     name: &'static str,
+    edited_name: Option<String>,
     email: &'static str,
+    role: MemberRole,
+    last_active: &'static str,
     account_kind: AccountKind,
     lifecycle: MemberLifecycle,
+}
+
+impl Member {
+    fn display_name(&self) -> &str {
+        self.edited_name.as_deref().unwrap_or(self.name)
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum MemberRole {
+    Owner,
+    Admin,
+    Member,
+    Viewer,
+}
+
+impl MemberRole {
+    const fn label(self) -> &'static str {
+        match self {
+            Self::Owner => "Owner",
+            Self::Admin => "Admin",
+            Self::Member => "Member",
+            Self::Viewer => "Viewer",
+        }
+    }
+
+    fn parse(value: &str) -> Option<Self> {
+        match value.trim() {
+            "Owner" => Some(Self::Owner),
+            "Admin" => Some(Self::Admin),
+            "Member" => Some(Self::Member),
+            "Viewer" => Some(Self::Viewer),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -86,42 +128,60 @@ const INITIAL_MEMBERS: &[Member] = &[
     Member {
         id: 1,
         name: "Mira Okafor",
+        edited_name: None,
         email: "mira@acme.dev",
+        role: MemberRole::Owner,
+        last_active: "today",
         account_kind: AccountKind::Person,
         lifecycle: MemberLifecycle::Active,
     },
     Member {
         id: 2,
         name: "Jonas Weber",
+        edited_name: None,
         email: "jonas@acme.dev",
+        role: MemberRole::Admin,
+        last_active: "2 h ago",
         account_kind: AccountKind::Person,
         lifecycle: MemberLifecycle::Active,
     },
     Member {
         id: 3,
         name: "Ana Costa",
+        edited_name: None,
         email: "ana@acme.dev",
+        role: MemberRole::Member,
+        last_active: "yesterday",
         account_kind: AccountKind::Person,
         lifecycle: MemberLifecycle::Active,
     },
     Member {
         id: 4,
         name: "Kai Tanaka",
+        edited_name: None,
         email: "kai@acme.dev",
+        role: MemberRole::Member,
+        last_active: "3 d ago",
         account_kind: AccountKind::Person,
         lifecycle: MemberLifecycle::Active,
     },
     Member {
         id: 5,
         name: "Sofia Rossi",
+        edited_name: None,
         email: "sofia@acme.dev",
+        role: MemberRole::Viewer,
+        last_active: "never",
         account_kind: AccountKind::Person,
         lifecycle: MemberLifecycle::InvitationPending,
     },
     Member {
         id: 6,
         name: "deploy-bot",
+        edited_name: None,
         email: "bot@acme.dev",
+        role: MemberRole::Member,
+        last_active: "1 m ago",
         account_kind: AccountKind::Service,
         lifecycle: MemberLifecycle::Active,
     },
@@ -155,11 +215,179 @@ fn member_row(member: &Member, row: &mut RowUi<'_>) {
     row.marker_patched(member.account_kind.glyph(), &marker_patch);
     row.label(member.account_kind.label());
     row.label(" · ");
-    row.label(member.name);
+    row.label(member.display_name());
 }
 fn member_list()
 -> List<'static, Member, impl Fn(&Member) -> ItemKey, impl Fn(&Member, &mut RowUi<'_>)> {
     List::new(MEMBERS).key(member_key).row(member_row)
+}
+
+const MEMBER_NAME_COLUMN: ColumnKey = ColumnKey::num(0);
+const MEMBER_EMAIL_COLUMN: ColumnKey = ColumnKey::num(1);
+const MEMBER_ROLE_COLUMN: ColumnKey = ColumnKey::num(2);
+const MEMBER_LAST_ACTIVE_COLUMN: ColumnKey = ColumnKey::num(3);
+
+const MEMBER_COLUMNS: [Column<'static>; 4] = [
+    Column {
+        key: MEMBER_NAME_COLUMN,
+        title: "Name",
+        subtitle: None,
+        align: Align::Left,
+        min_width: 18,
+        max_width: 32,
+        sortable: false,
+        editable: true,
+        sticky: false,
+        prefix_glyph: None,
+        badge: None,
+    },
+    Column {
+        key: MEMBER_EMAIL_COLUMN,
+        title: "Email",
+        subtitle: None,
+        align: Align::Left,
+        min_width: 22,
+        max_width: 32,
+        sortable: false,
+        editable: false,
+        sticky: false,
+        prefix_glyph: None,
+        badge: None,
+    },
+    Column {
+        key: MEMBER_ROLE_COLUMN,
+        title: "Role",
+        subtitle: None,
+        align: Align::Left,
+        min_width: 10,
+        max_width: 12,
+        sortable: false,
+        editable: true,
+        sticky: false,
+        prefix_glyph: None,
+        badge: None,
+    },
+    Column {
+        key: MEMBER_LAST_ACTIVE_COLUMN,
+        title: "Last active",
+        subtitle: None,
+        align: Align::Left,
+        min_width: 12,
+        max_width: 16,
+        sortable: false,
+        editable: false,
+        sticky: false,
+        prefix_glyph: None,
+        badge: None,
+    },
+];
+
+struct MemberGridModel<'a, M> {
+    members: M,
+    row_ids: &'a [u8],
+    committed: Option<&'a mut bool>,
+}
+
+impl<M: AsRef<[Member]>> MemberGridModel<'_, M> {
+    fn member(&self, row: usize) -> Option<&Member> {
+        let id = *self.row_ids.get(row)?;
+        self.members.as_ref().iter().find(|member| member.id == id)
+    }
+}
+
+impl<M: AsRef<[Member]>> GridModel for MemberGridModel<'_, M> {
+    fn row_count(&self) -> usize {
+        self.row_ids.len()
+    }
+
+    fn row_key(&self, row: usize) -> ItemKey {
+        self.row_ids
+            .get(row)
+            .copied()
+            .map_or(ItemKey::num(0), |id| ItemKey::num(u64::from(id)))
+    }
+
+    fn cell(&self, row: usize, column: usize) -> Option<CellRef<'_>> {
+        let member = self.member(row)?;
+        Some(match column {
+            0 => CellRef::new(member.display_name()),
+            1 => CellRef::new(member.email),
+            2 => CellRef::new(member.role.label()),
+            3 => CellRef::new(member.last_active).tone(Role::Fg(FgStep::Muted)),
+            _ => return None,
+        })
+    }
+}
+
+impl<M: AsRef<[Member]> + AsMut<[Member]>> GridEditor for MemberGridModel<'_, M> {
+    fn edit_intent(&self, row: usize, column: usize) -> EditIntent<'_> {
+        let Some(member) = self.member(row) else {
+            return EditIntent::Refuse {
+                reason: "Unknown member row",
+            };
+        };
+        if column == 0 {
+            EditIntent::Inline {
+                initial: member.display_name(),
+            }
+        } else if column == 2 {
+            EditIntent::Inline {
+                initial: member.role.label(),
+            }
+        } else {
+            EditIntent::Refuse {
+                reason: "Email and last active are read-only",
+            }
+        }
+    }
+
+    fn apply_cycle(&mut self, _row: usize, _column: usize) {}
+
+    fn commit_cell(&mut self, row: usize, column: usize, text: &str) -> Result<(), FieldError> {
+        let id = *self
+            .row_ids
+            .get(row)
+            .ok_or_else(|| FieldError::new("Unknown member row"))?;
+        let member = self
+            .members
+            .as_mut()
+            .iter_mut()
+            .find(|member| member.id == id)
+            .ok_or_else(|| FieldError::new("Unknown member row"))?;
+        if column == 0 {
+            if text.trim().is_empty() {
+                return Err(FieldError::new("Name cannot be blank"));
+            }
+            member.edited_name = Some(text.to_owned());
+        } else if column == 2 {
+            let Some(role) = MemberRole::parse(text) else {
+                return Err(FieldError::new(
+                    "Role must be Owner, Admin, Member, or Viewer",
+                ));
+            };
+            member.role = role;
+        } else {
+            return Err(FieldError::new("Email and last active are read-only"));
+        }
+        if let Some(committed) = self.committed.as_deref_mut() {
+            *committed = true;
+        }
+        Ok(())
+    }
+
+    fn is_editable(&self, _row: usize, column: usize) -> bool {
+        matches!(column, 0 | 2)
+    }
+}
+
+fn member_grid() -> Grid<'static> {
+    Grid::new(MEMBER_GRID, &MEMBER_COLUMNS)
+        .nav(NavUnit::Cell)
+        .blur(BlurPolicy::Keep)
+}
+
+fn member_back_button() -> Button<'static> {
+    Button::new(MEMBER_BACK, "Back to members").variant(Variant::SECONDARY)
 }
 
 fn invite_button() -> Button<'static> {
@@ -288,7 +516,7 @@ fn paint_member_summary(ui: &mut Ui<'_>, body: Rect, members: &[Member]) {
     let mut line = format!("{} members", members.len());
     for member in members {
         line.push_str("  ");
-        line.push_str(member.name);
+        line.push_str(member.display_name());
         line.push(' ');
         line.push_str(member.email);
     }
@@ -745,8 +973,13 @@ pub struct SettingsPage {
     tabs: TabsState,
     members: Vec<Member>,
     member_state: ListState,
+    member_edit_open: bool,
+    member_edit_id: Option<u8>,
+    member_edit_order: Vec<u8>,
+    member_grid_state: GridState,
     remove_state: DialogState,
     remove_open: bool,
+    remove_target: Option<u8>,
     selected: usize,
     message: &'static str,
 }
@@ -757,8 +990,13 @@ impl SettingsPage {
             tabs: TabsState::default(),
             members: INITIAL_MEMBERS.to_vec(),
             member_state: ListState::default(),
+            member_edit_open: false,
+            member_edit_id: None,
+            member_edit_order: Vec::new(),
+            member_grid_state: GridState::default(),
             remove_state: DialogState::default(),
             remove_open: false,
+            remove_target: None,
             selected: 0,
             message: "workspace settings",
         }
@@ -766,6 +1004,44 @@ impl SettingsPage {
 
     fn selected_member(&self) -> Option<&Member> {
         self.members.get(self.selected)
+    }
+
+    fn open_member_editor(&mut self, id: u8, cx: &mut Cx<'_>) {
+        self.member_edit_open = true;
+        self.member_edit_id = Some(id);
+        self.member_edit_order.clear();
+        self.member_edit_order.push(id);
+        self.member_edit_order.extend(
+            self.members
+                .iter()
+                .filter(|member| member.id != id)
+                .map(|member| member.id),
+        );
+        self.member_grid_state = GridState::default();
+        self.message = "editing member";
+        cx.focus(MEMBER_GRID);
+    }
+
+    fn close_member_editor(&mut self, cx: &mut Cx<'_>) {
+        self.member_edit_open = false;
+        self.member_grid_state = GridState::default();
+        self.member_edit_order.clear();
+        if let Some(id) = self.member_edit_id.take()
+            && let Some(index) = self.members.iter().position(|member| member.id == id)
+        {
+            self.selected = index;
+            if let Some(member) = self.members.get(index) {
+                self.member_state.set_cursor(index, member_key(member));
+            }
+        } else if !self.members.is_empty() {
+            self.selected = self.selected.min(self.members.len().saturating_sub(1));
+            if let Some(member) = self.members.get(self.selected) {
+                self.member_state
+                    .set_cursor(self.selected, member_key(member));
+            }
+        }
+        self.message = "members";
+        cx.focus(MEMBERS);
     }
 }
 
@@ -781,7 +1057,40 @@ impl Page for SettingsPage {
     }
 
     fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
+        if self.member_edit_open {
+            let mut result = Response::ignored();
+            let grid = member_grid();
+            let mut committed = false;
+            let edited = {
+                let mut model = MemberGridModel {
+                    members: self.members.as_mut_slice(),
+                    row_ids: &self.member_edit_order,
+                    committed: Some(&mut committed),
+                };
+                grid.update_editable(cx, &mut self.member_grid_state, &mut model)
+            };
+            result |= edited.erase();
+            if committed {
+                self.message = "member updated";
+            }
+
+            let back = member_back_button().update(cx);
+            if back.activated() {
+                if self.member_grid_state.is_editing() {
+                    self.message = "commit or cancel the active cell edit first";
+                    cx.focus(grid.editor_id());
+                } else {
+                    self.close_member_editor(cx);
+                }
+            }
+            result |= back.erase();
+            return result.into();
+        }
+
         let mut result = Response::ignored();
+        // The editor mode may have just closed while Runtime still has its
+        // focus-retirement notification queued for the Back owner.
+        result |= member_back_button().update(cx).erase();
         let tabs = Tabs::new(TAB).update(cx, &mut self.tabs, TABS);
         if let Some(TabsAction::Activated(key)) = tabs.action_ref() {
             self.message = match key {
@@ -793,6 +1102,10 @@ impl Page for SettingsPage {
         }
         result |= tabs.erase();
         let list = member_list().update(cx, &mut self.member_state, &self.members);
+        let activated = match list.action_ref() {
+            Some(ListAction::Activated(key)) => Some(*key),
+            _ => None,
+        };
         if let Some(ListAction::Moved | ListAction::Chose(_) | ListAction::Activated(_)) =
             list.action_ref()
             && let Some(key) = list.action_ref().and_then(|action| match action {
@@ -809,6 +1122,12 @@ impl Page for SettingsPage {
             self.message = "member selected";
         }
         result |= list.erase();
+        if let Some(key) = activated
+            && let Some(member) = self.members.iter().find(|member| member_key(member) == key)
+        {
+            let id = member.id;
+            self.open_member_editor(id, cx);
+        }
         let invite = invite_button().update(cx);
         if invite.activated() {
             self.message = "invite flow ready";
@@ -816,6 +1135,7 @@ impl Page for SettingsPage {
         result |= invite.erase();
         let remove = remove_button(!self.members.is_empty()).update(cx);
         if remove.activated() && self.selected_member().is_some() && !cx.is_open(REMOVE_DIALOG) {
+            self.remove_target = self.selected_member().map(|member| member.id);
             self.remove_open = true;
             cx.open_layer(REMOVE_DIALOG, remove_dialog().layer(cx));
         }
@@ -824,14 +1144,21 @@ impl Page for SettingsPage {
         if let Some(action) = dialog.action_ref() {
             match action {
                 DialogAction::Action(key) if *key == termrock::ActionKey::CONFIRM => {
-                    if !self.members.is_empty() {
-                        self.members
-                            .remove(self.selected.min(self.members.len().saturating_sub(1)));
+                    if let Some(target) = self.remove_target.take()
+                        && let Some(index) =
+                            self.members.iter().position(|member| member.id == target)
+                    {
+                        self.members.remove(index);
+                        self.selected = index.min(self.members.len().saturating_sub(1));
+                        if let Some(member) = self.members.get(self.selected) {
+                            self.member_state
+                                .set_cursor(self.selected, member_key(member));
+                        }
                     }
-                    self.selected = self.selected.min(self.members.len().saturating_sub(1));
                     self.message = "member removed";
                 }
                 DialogAction::Action(_) | DialogAction::Dismissed(_) => {
+                    self.remove_target = None;
                     self.message = "remove cancelled";
                 }
             }
@@ -853,6 +1180,43 @@ impl Page for SettingsPage {
                     return;
                 }
                 ui.with_area(body, |ui| {
+                    if self.member_edit_open {
+                        paint_at(
+                            ui,
+                            body,
+                            0,
+                            body.y,
+                            "Member details · edit Name and Role; Email and Last active are read-only",
+                            ink(SECONDARY, SURFACE),
+                        );
+                        // Keep the regular Grid band, moving Back to the last row
+                        // only when a shortened frame clips its normal action row.
+                        let back_row = if body.height > 16 {
+                            16
+                        } else {
+                            body.height.saturating_sub(1)
+                        };
+                        let grid_row = if body.height > 5 { 3 } else { 1 };
+                        let grid_height = back_row.saturating_sub(grid_row).saturating_sub(1);
+                        if let Some(grid_area) = row_band(body, grid_row, grid_height) {
+                            let model = MemberGridModel {
+                                members: self.members.as_slice(),
+                                row_ids: &self.member_edit_order,
+                                committed: None,
+                            };
+                            member_grid().draw(
+                                ui,
+                                grid_area,
+                                &self.member_grid_state,
+                                &model,
+                            );
+                        }
+                        if let Some(action_row) = row_band(body, back_row, 1) {
+                            member_back_button().draw(ui, action_row);
+                        }
+                        return;
+                    }
+
                     let member_tab = active_tab(&self.tabs) == 1;
                     if let Some(tabs_area) = row_band(body, 0, 2) {
                         let tabs = Tabs::new(TAB);
@@ -901,10 +1265,22 @@ impl Page for SettingsPage {
     }
 
     fn hints(&self, ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
-        if ui.state(TAB).contains(StateFlags::FOCUSED) {
+        if self.member_edit_open
+            && ui
+                .state(MEMBER_GRID.part(Part::TEXT))
+                .contains(StateFlags::EDITING)
+        {
+            &[
+                ("Enter", "Commit cell"),
+                ("Esc", "Cancel cell"),
+                ("Tab", "Next"),
+            ]
+        } else if self.member_edit_open {
+            &[("Enter", "Edit cell"), ("← →", "Cell"), ("Tab", "Back")]
+        } else if ui.state(TAB).contains(StateFlags::FOCUSED) {
             &[("← →", "Switch tab"), ("1 2 3", "Jump")]
         } else if ui.state(MEMBERS).contains(StateFlags::FOCUSED) {
-            &[("↑ ↓ ← →", "Cell"), ("Enter", "Edit"), ("s", "Sort")]
+            &[("↑ ↓", "Select member"), ("Enter", "Edit member")]
         } else {
             &[("Enter", "Edit / activate"), ("Ctrl+S", "Save")]
         }
