@@ -582,6 +582,7 @@ pub struct App {
     pub world: World,
     pub manager: ManagerState,
     pub accounts: AccountsState,
+    accounts_view: accounts_page::AccountsViewState,
     account_form_return: Option<AccountFormReturn>,
     account_form_opening: Option<LayerOpening>,
     account_form_closing: Vec<LayerOpening>,
@@ -802,6 +803,7 @@ impl App {
             world,
             manager: ManagerState::default(),
             accounts: AccountsState::default(),
+            accounts_view: accounts_page::AccountsViewState::default(),
             account_form_return: None,
             account_form_opening: None,
             account_form_closing: Vec::new(),
@@ -4623,10 +4625,11 @@ impl App {
             return result;
         }
 
+        let mut result = accounts_page::update_master(self, cx);
         let rows = self.account_rows();
         let list = List::new(ACCOUNTS_LIST).update(cx, &mut self.accounts.list, &rows);
         let list_action = list.action_ref().copied();
-        let mut result = list.erase();
+        result |= list.erase();
         let previous = self.accounts.selected_id.clone();
         self.accounts.selected_id = self.selected_account_id();
         if matches!(list_action, Some(ListAction::Moved)) && self.accounts.selected_id != previous {
@@ -4636,6 +4639,9 @@ impl App {
         if matches!(list_action, Some(ListAction::Chose(_))) && !self.filter_field_open() {
             // A committed row choice selects in the detail view. Opening the
             // drawer remains an explicit Enter or inspector action.
+            if self.accounts.drawer_open {
+                accounts_page::close_drawer(&mut self.accounts_view, cx, self.screen);
+            }
             self.accounts.drawer_open = false;
             result |= Response::changed();
         }
@@ -4691,6 +4697,7 @@ impl App {
                 cx.focus(ACCOUNTS_LIST);
                 result |= Response::changed();
             }
+            accounts_page::sync_selection(self);
             return result;
         }
         let add = Self::account_add_button().update(cx);
@@ -4699,7 +4706,7 @@ impl App {
         if chosen {
             self.open_account_picker(cx);
         }
-        result
+        result | accounts_page::update_detail(self, cx)
     }
 
     fn save_account(&mut self) {
@@ -5672,6 +5679,10 @@ impl App {
                     return Some(Response::changed());
                 }
                 if self.route == Route::Accounts {
+                    if self.accounts.drawer_open {
+                        accounts_page::close_drawer(&mut self.accounts_view, cx, self.screen);
+                        self.accounts.drawer_open = false;
+                    }
                     self.account_form_return = Some(AccountFormReturn {
                         selected_id: self.accounts.selected_id.clone(),
                         list: self.accounts.list.clone(),
@@ -6276,6 +6287,9 @@ impl App {
                 Some(Response::changed())
             }
             CMD_ACCOUNT_FILTER if self.route == Route::Accounts && !self.accounts.form_open => {
+                if self.accounts.drawer_open {
+                    accounts_page::close_drawer(&mut self.accounts_view, cx, self.screen);
+                }
                 self.accounts.filtering = true;
                 self.accounts.drawer_open = false;
                 // The field opens on the committed query, so the filter can be
@@ -6303,6 +6317,7 @@ impl App {
                     self.accounts.list.set_cursor(index, ItemKey::index(index));
                 }
                 self.accounts.drawer_open = true;
+                accounts_page::open_drawer(&mut self.accounts_view, cx, self.screen);
                 self.status = Some("Account inspector".into());
                 Some(Response::changed())
             }
@@ -6324,6 +6339,7 @@ impl App {
                 // Enter on this row opens the drawer. Four Downs without Enter
                 // stay on the detail frame, and every other Enter stays live.
                 self.accounts.drawer_open = true;
+                accounts_page::open_drawer(&mut self.accounts_view, cx, self.screen);
                 Some(Response::changed())
             }
             CMD_PRELUDE_SPACE if self.route == Route::Prelude => {
@@ -10627,6 +10643,18 @@ impl App {
 
     fn update_parts(&mut self, cx: &mut Cx<'_>, product_tick: bool) -> Response<()> {
         self.screen = cx.viewport();
+        if cx.update_cause() == UpdateCause::Bootstrap
+            && self.route == Route::Accounts
+            && !self.accounts.form_open
+            && !self.accounts.drawer_open
+        {
+            // The split control is registered before the Accounts children so its
+            // container hit region cannot cover their rows. Preserve the page's
+            // initial keyboard owner explicitly without overriding later seam focus.
+            // Bootstrap runs before the first viewport is available; an undersized
+            // frame will reconcile this request against the controls it actually draws.
+            cx.focus(ACCOUNTS_LIST);
+        }
         self.screen_junie = Self::junie_truecolor(cx.theme());
         manager_detail::close_off_route_state(self);
         if cx.update_cause() == UpdateCause::Settle {
@@ -10635,6 +10663,9 @@ impl App {
         let _shell = Self::shell_panel(&self.shell_meta);
         let mut result = self.advance_virtual_state(cx, product_tick);
         result |= self.sync_account_form_layer(cx);
+        if cx.update_cause() == UpdateCause::Settle {
+            result |= accounts_page::settle_retired_detail_focus(self, cx);
+        }
 
         let entry = Self::enter_button().update(cx);
         let enter_chosen = entry.activated();
@@ -10694,6 +10725,9 @@ impl App {
                         .erase();
                 }
                 result |= self.sync_account_form_layer(cx);
+            }
+            if self.route == Route::Accounts && !self.accounts.form_open {
+                accounts_page::sync_selection(self);
             }
             if self.route == Route::Manager {
                 self.ensure_manager_rows();
@@ -11835,9 +11869,11 @@ impl TuiApp for App {
                 self.status = None;
                 // The field is gone: the list takes the focus back.
                 cx.focus(ACCOUNTS_LIST);
+                accounts_page::sync_selection(self);
                 return self.route_changed();
             }
             if self.accounts.drawer_open {
+                accounts_page::close_drawer(&mut self.accounts_view, cx, self.screen);
                 self.accounts.drawer_open = false;
                 self.status = None;
                 return self.route_changed();

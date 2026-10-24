@@ -10,8 +10,13 @@
 //! from the registry, and no screen size picks a different screen.
 
 use jackin_preview_app::{App, Motion, Route, Scenario};
-use termrock::{KeyCode, Theme};
+use ratatui::style::{Color, Modifier};
+use termrock::{Axis, Id, KeyCode, Part, PartRef, Rect, Theme};
 use termrock_test_support::Harness;
+
+const ACCOUNTS_SPLIT: Id = Id::root("jackin.accounts.split");
+const ACCOUNTS_DETAIL: Id = Id::root("jackin.accounts.detail");
+const ACCOUNTS_DETAIL_SCROLL: Id = Id::root("jackin.accounts.detail.scroll");
 
 fn accounts_app() -> App {
     App::for_scenario(Scenario::AccountsMixed, Motion::Paused)
@@ -423,4 +428,166 @@ fn the_add_row_control_sits_on_the_painted_row() {
         h.is_open(jackin_preview_app::ACCOUNT_PICKER),
         "the add row must open the account picker:\n{text}"
     );
+}
+
+#[test]
+fn the_resizable_accounts_split_keeps_the_original_39_cell_frame() {
+    for (width, height) in [(120, 40), (102, 24)] {
+        let mut h = Harness::new(accounts_app(), Theme::junie(), width, height);
+        let _ = h.key(KeyCode::Home);
+        h.draw();
+        let master_rows = h
+            .area_of(jackin_preview_app::ACCOUNTS_LIST)
+            .expect("the split publishes the real Accounts list owner");
+        let detail = h
+            .area_of(ACCOUNTS_DETAIL)
+            .expect("the split publishes the live detail owner");
+        let seam = h
+            .area_of_part(ACCOUNTS_SPLIT, PartRef::of(Part::SEAM))
+            .expect("the split publishes its resizable seam");
+
+        assert_eq!(master_rows, Rect::new(1, 3, 39, height - 6));
+        assert_eq!(detail, Rect::new(42, 2, width - 43, height - 4));
+        assert_eq!(seam, Rect::new(41, 2, 1, height - 4));
+        assert!(h.text().contains("Overview"), "{}", h.text());
+        let selected_name = h.cell(master_rows.x + 6, master_rows.y);
+        assert_eq!(selected_name.symbol(), "O");
+        assert_eq!(selected_name.fg, Theme::junie().color.accent);
+        assert_eq!(selected_name.bg, Color::Rgb(0x17, 0x3f, 0x1c));
+        assert_eq!(selected_name.modifier, Modifier::BOLD);
+        assert_eq!(h.diagnostics(), []);
+    }
+}
+
+#[test]
+fn the_accounts_seam_drag_keeps_its_grab_offset_across_resize() {
+    let mut h = Harness::new(accounts_app(), Theme::junie(), 120, 40);
+    let before = h
+        .area_of(jackin_preview_app::ACCOUNTS_LIST)
+        .expect("the initial list owner");
+    let seam = h
+        .area_of_part(ACCOUNTS_SPLIT, PartRef::of(Part::SEAM))
+        .expect("the initial seam");
+    assert_eq!(before.width, 39);
+
+    let _ = h.drag((seam.x, seam.y + 5), (seam.x + 6, seam.y + 5));
+    let resized = h
+        .area_of(jackin_preview_app::ACCOUNTS_LIST)
+        .expect("the dragged list owner");
+    let moved_seam = h
+        .area_of_part(ACCOUNTS_SPLIT, PartRef::of(Part::SEAM))
+        .expect("the dragged seam");
+    assert_eq!(resized.width, before.width + 6);
+    assert_eq!(moved_seam.x, seam.x + 6);
+    let (add_x, add_y) = h
+        .find("+ Add account…")
+        .expect("the live tree still paints its add row");
+    let add_area = h
+        .area_of(jackin_preview_app::ACCOUNT_ADD)
+        .expect("the add-row hit target follows the split master");
+    assert_eq!((add_area.x, add_area.y), (add_x, add_y));
+    assert_eq!(h.runtime().capture_owner(), None);
+    assert_eq!(h.diagnostics(), []);
+
+    let selected = h.app().accounts.list.cursor();
+    let _ = h.resize(80, 24);
+    assert_eq!(h.app().accounts.list.cursor(), selected);
+    let _ = h.resize(120, 40);
+    let restored = h
+        .area_of(jackin_preview_app::ACCOUNTS_LIST)
+        .expect("the split returns after resize");
+    assert_eq!(restored.width, before.width + 6);
+    assert_eq!(h.diagnostics(), []);
+}
+
+#[test]
+fn the_live_account_detail_scrolls_without_moving_the_registry_cursor() {
+    let mut h = Harness::new(accounts_app(), Theme::junie(), 102, 24);
+    let cursor = h.app().accounts.list.cursor();
+    assert_eq!(h.focus(), Some(jackin_preview_app::ACCOUNTS_LIST));
+
+    let _ = h.key(KeyCode::Tab);
+    assert_eq!(h.focus(), Some(ACCOUNTS_DETAIL));
+    let body = h
+        .area_of(ACCOUNTS_DETAIL_SCROLL)
+        .expect("the inspector body owns its real scroll viewport");
+    assert!(body.height > 0 && body.width > 0);
+    let focused_top = h.text();
+    let _ = h.key(KeyCode::End);
+    let at_end = h.text();
+    assert_ne!(
+        at_end, focused_top,
+        "End scrolls the focused inspector to its tail"
+    );
+    assert_eq!(h.app().accounts.list.cursor(), cursor);
+
+    let _ = h.wheel(Axis::V, -1, body.x + 1, body.y + 1);
+    assert_ne!(
+        h.text(),
+        at_end,
+        "wheel input changes the visible inspector"
+    );
+    let _ = h.key(KeyCode::Home);
+    assert_eq!(h.text(), focused_top);
+    let _ = h.key(KeyCode::PageDown);
+    assert_ne!(
+        h.text(),
+        focused_top,
+        "PageDown scrolls the focused inspector"
+    );
+    assert_eq!(h.app().accounts.list.cursor(), cursor);
+    assert_eq!(h.focus(), Some(ACCOUNTS_DETAIL));
+    assert_eq!(h.diagnostics(), []);
+
+    let _ = h.key(KeyCode::Esc);
+    assert_eq!(h.app().route(), Route::Accounts);
+    assert_eq!(h.focus(), Some(jackin_preview_app::ACCOUNTS_LIST));
+    assert_eq!(h.diagnostics(), []);
+
+    let _ = h.key(KeyCode::Down);
+    let next_cursor = h.app().accounts.list.cursor();
+    assert_ne!(next_cursor, cursor);
+    let _ = h.key(KeyCode::Tab);
+    assert_eq!(h.focus(), Some(ACCOUNTS_DETAIL));
+    assert!(
+        h.row(4).contains("Provider"),
+        "a new selected identity starts at its first detail row:\n{}",
+        h.text()
+    );
+    assert_eq!(h.app().accounts.list.cursor(), next_cursor);
+    assert_eq!(h.diagnostics(), []);
+}
+
+#[test]
+fn the_narrow_account_drawer_restores_the_tree_after_escape() {
+    let mut h = Harness::new(accounts_app(), Theme::junie(), 80, 24);
+    for _ in 0..4 {
+        let _ = h.key(KeyCode::Down);
+    }
+    assert_eq!(
+        h.app().accounts.selected_id.as_deref(),
+        Some("acct-claude-work")
+    );
+
+    let _ = h.key(KeyCode::Enter);
+    assert_eq!(h.app().route(), Route::Accounts);
+    assert_eq!(h.focus(), Some(ACCOUNTS_DETAIL));
+    assert_eq!(h.area_of(jackin_preview_app::ACCOUNTS_LIST), None);
+    assert_eq!(h.area_of(ACCOUNTS_DETAIL), Some(Rect::new(1, 2, 78, 20)));
+    assert!(
+        h.text().contains("Accounts › Claude › Work"),
+        "{}",
+        h.text()
+    );
+    assert_eq!(h.diagnostics(), []);
+
+    let _ = h.key(KeyCode::Esc);
+    assert_eq!(h.app().route(), Route::Accounts);
+    assert_eq!(h.focus(), Some(jackin_preview_app::ACCOUNTS_LIST));
+    assert!(h.area_of(jackin_preview_app::ACCOUNTS_LIST).is_some());
+    assert_eq!(
+        h.app().accounts.selected_id.as_deref(),
+        Some("acct-claude-work")
+    );
+    assert_eq!(h.diagnostics(), []);
 }

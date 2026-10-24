@@ -235,6 +235,31 @@ pub struct AccountsDrawer<'a> {
     pub chrome: PaneChrome,
 }
 
+/// Explicit rectangles for an Accounts drawer composed around a live split.
+///
+/// `master_box` and `detail_box` exclude the shared page header and footer.
+/// `master_rows` is the physical row window inside the master box. The split
+/// control owns `seam`; the drawer painter leaves its live seam feedback
+/// visible. `detail_content` is the unscrolled line-layout origin, while
+/// `detail_body` is the logical scroll viewport and `detail_clip` is the
+/// physical content window after scrollbar allocation. The title and fixed
+/// action row remain outside that window.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct AccountsDrawerLayout {
+    pub outer: Rect,
+    pub header: Rect,
+    pub footer: Rect,
+    pub master_box: Rect,
+    pub master_rows: Rect,
+    pub seam: Rect,
+    pub detail_box: Rect,
+    pub detail_header: Rect,
+    pub detail_body: Rect,
+    pub detail_content: Rect,
+    pub detail_clip: Rect,
+    pub detail_footer: Rect,
+}
+
 struct Ink {
     canvas: Color,
     chrome: Color,
@@ -348,6 +373,175 @@ pub fn paint_accounts_drawer(ui: &mut Ui<'_>, area: Rect, page: &AccountsDrawer<
         line_y = line_y.saturating_add(1);
     }
     paint_hints(ui, area, page, &ink);
+}
+
+/// Paint the shared Accounts shell using caller-owned split and body geometry.
+///
+/// Unlike [`paint_accounts_drawer`], this entrypoint does not choose pane
+/// widths or paint scrolling body rows. It paints the same page header, master
+/// frame/rows, drawer title/rule/action row, and footer using explicit
+/// rectangles. The caller uses the window painters for `detail_body` and owns
+/// its scrollbar and input state. The existing whole-page entrypoint retains
+/// its fixed39-column behavior.
+pub fn paint_accounts_drawer_layout(
+    ui: &mut Ui<'_>,
+    layout: AccountsDrawerLayout,
+    page: &AccountsDrawer<'_>,
+) {
+    let area = layout.outer;
+    if area.is_empty() {
+        return;
+    }
+    let ink = drawer_ink(ui);
+    let fill = plain(ink.primary, ink.canvas);
+    let seam = layout.seam.intersection(area);
+    if seam.is_empty() {
+        ui.fill(area, fill);
+    } else {
+        let above = Rect::new(area.x, area.y, area.width, seam.y.saturating_sub(area.y));
+        let below = Rect::new(
+            area.x,
+            seam.bottom(),
+            area.width,
+            area.bottom().saturating_sub(seam.bottom()),
+        );
+        let left = Rect::new(area.x, seam.y, seam.x.saturating_sub(area.x), seam.height);
+        let right = Rect::new(
+            seam.right(),
+            seam.y,
+            area.right().saturating_sub(seam.right()),
+            seam.height,
+        );
+        for rect in [above, below, left, right] {
+            if !rect.is_empty() {
+                ui.fill(rect, fill);
+            }
+        }
+    }
+    if !layout.header.is_empty() {
+        paint_header(ui, area, page, &ink);
+    }
+
+    if !layout.master_box.is_empty() && layout.master_box.width >= 2 {
+        let list_x = layout.master_box.x;
+        let list_right = layout.master_box.right().saturating_sub(1);
+        let box_top = layout.master_box.y;
+        let box_bottom = layout.master_box.bottom().saturating_sub(1);
+        paint_list_top(
+            ui,
+            area,
+            box_top,
+            list_x,
+            list_right,
+            page,
+            &ink,
+            page.chrome,
+        );
+        let mut y = layout.master_rows.y;
+        let end = layout.master_rows.bottom().min(box_bottom);
+        let mut rows = page.rows.iter();
+        while y < end {
+            if let Some(row) = rows.next() {
+                paint_pane_row(ui, area, y, list_x, list_right, row, &ink, page.chrome);
+            } else {
+                paint_pane_edges(ui, area, y, list_x, list_right, &ink, page.chrome);
+            }
+            y = y.saturating_add(1);
+        }
+        if box_bottom >= layout.master_rows.y {
+            let dashes = "─".repeat(usize::from(layout.master_box.width.saturating_sub(2)));
+            put(
+                ui,
+                area,
+                list_x,
+                box_bottom,
+                &format!("╰{dashes}╯"),
+                list_edge(page.chrome, &ink),
+            );
+        }
+    }
+
+    if !layout.detail_box.is_empty() {
+        let box_right = layout.detail_box.right().saturating_sub(1);
+        if layout.master_box.is_empty() {
+            let edge = plain(ink.border, ink.canvas);
+            let mut y = layout.detail_box.y;
+            while y < layout.detail_box.bottom() {
+                put(ui, area, layout.detail_box.x, y, "│", edge);
+                put(ui, area, box_right, y, "│", edge);
+                y = y.saturating_add(1);
+            }
+        }
+        let fill_x = if layout.master_box.is_empty() {
+            layout.detail_box.x.saturating_add(1)
+        } else {
+            layout.detail_box.x
+        };
+        let content_width = if layout.master_box.is_empty() {
+            box_right.saturating_sub(fill_x)
+        } else {
+            layout.detail_box.width
+        };
+        ui.fill(
+            Rect::new(
+                fill_x,
+                layout.detail_box.y,
+                content_width,
+                layout.detail_box.height,
+            ),
+            plain(ink.primary, ink.chrome),
+        );
+        if let Some(title) = page.lines.first() {
+            paint_line(
+                ui,
+                area,
+                layout.detail_header.y,
+                layout.detail_header.x,
+                title,
+                &ink,
+                LinePaintOptions {
+                    chrome: page.chrome,
+                    clip: Some(layout.detail_header),
+                },
+            );
+        }
+        if let Some(rule) = page.lines.get(1) {
+            paint_line(
+                ui,
+                area,
+                layout.detail_header.y.saturating_add(1),
+                layout.detail_header.x,
+                rule,
+                &ink,
+                LinePaintOptions {
+                    chrome: page.chrome,
+                    clip: Some(layout.detail_header),
+                },
+            );
+        }
+        if let Some(buttons) = page
+            .lines
+            .iter()
+            .find(|line| matches!(line, DrawerLine::Buttons(_)))
+        {
+            paint_line(
+                ui,
+                area,
+                layout.detail_footer.y,
+                layout.detail_footer.x,
+                buttons,
+                &ink,
+                LinePaintOptions {
+                    chrome: page.chrome,
+                    clip: Some(layout.detail_footer),
+                },
+            );
+        }
+    }
+
+    if !layout.footer.is_empty() {
+        paint_hints(ui, area, page, &ink);
+    }
 }
 
 /// Paint borrowed account-drawer rows through a bounded physical window.
