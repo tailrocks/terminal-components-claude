@@ -220,6 +220,23 @@ impl Workbench {
         Some(key)
     }
     pub fn open_history(&mut self) -> Option<TabKey> {
+        if let Some(index) = self
+            .tabs
+            .iter()
+            .position(|record| matches!(record.payload(), Tab::History(_)))
+        {
+            let key = {
+                let record = self.tabs.get_mut(index)?;
+                let key = record.key();
+                let Tab::History(history) = record.payload_mut() else {
+                    return None;
+                };
+                history.filter(&self.history);
+                key
+            };
+            self.active = Some(key);
+            return Some(key);
+        }
         self.insert_tab(
             self.tabs.len(),
             Tab::History(HistoryTab::new(&self.history)),
@@ -416,6 +433,29 @@ mod identity_tests {
         assert!(workbench.close_tab(index));
         assert!(workbench.new_query("still refused").is_none());
     }
+    #[test]
+    fn existing_history_reopens_when_tab_key_allocation_is_exhausted() {
+        let mut workbench = crate::app::TableProApp::default().workbench;
+        let Some(history_key) = workbench.open_history() else {
+            unreachable!("history tab opens");
+        };
+        let tab_order: Vec<_> = workbench.tabs().iter().map(|tab| tab.key()).collect();
+        let tab_count = workbench.tabs().len();
+        workbench.next_tab_key = None;
+
+        assert_eq!(workbench.open_history(), Some(history_key));
+        assert_eq!(workbench.active_key(), Some(history_key));
+        assert_eq!(workbench.tabs().len(), tab_count);
+        assert_eq!(
+            workbench
+                .tabs()
+                .iter()
+                .map(|tab| tab.key())
+                .collect::<Vec<_>>(),
+            tab_order
+        );
+    }
+
     #[test]
     fn exhausted_app_insert_and_reconnect_preserve_existing_state() {
         let mut app = crate::app::TableProApp::default();

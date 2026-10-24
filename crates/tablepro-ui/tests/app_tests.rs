@@ -10,18 +10,34 @@
 #[path = "common/tab_navigation.rs"]
 mod tab_navigation;
 
+use tablepro_ui::model::{HistoryEntry, HistorySource};
 use tablepro_ui::{
     CONNECTION_NAME, Catalog, Decision, Filter, FilterOp, History, HistoryTab, PendingEdits,
     QueryOutcome, ResultGrid, SafeMode, Screen, Surface, Tab, TableProApp, Value, complete,
     form_fields, gate, parse, preview_for,
 };
-use termrock::{Axis, GridEditor, KeyCode, MouseKind, Part, PartRef, Theme};
+use termrock::{Axis, GridEditor, Id, KeyCode, MouseKind, Part, PartRef, Theme};
 use termrock_test_support::Harness;
 
 fn connected() -> TableProApp {
     let mut app = TableProApp::default();
     assert!(app.connect(0));
     app
+}
+
+fn history_entry(sql: &str) -> HistoryEntry {
+    HistoryEntry {
+        id: 0,
+        sql: sql.to_owned(),
+        connection: "Production".to_owned(),
+        database: "acme_prod".to_owned(),
+        schema: "public".to_owned(),
+        minutes_ago: 0,
+        duration_ms: Some(1),
+        rows: Some(1),
+        error: None,
+        source: HistorySource::Editor,
+    }
 }
 
 #[test]
@@ -433,6 +449,117 @@ fn history_tab_reopens_query() {
     ));
     assert!(!app.workbench.history.is_empty());
 }
+
+#[test]
+fn reopening_history_reuses_tab_and_refreshes_current_filter() {
+    let mut app = connected();
+    let seeded = app.workbench.history.entries.clone();
+    let history_key = app.workbench.open_history().expect("history tab opens");
+
+    let Some(Tab::History(history)) = app.workbench.tab_mut(history_key) else {
+        panic!("history tab is present")
+    };
+    history.search = "refresh marker".to_owned();
+    history.selected = 1;
+
+    app.workbench
+        .history
+        .push(history_entry("SELECT * FROM refresh_marker alpha"));
+    app.workbench
+        .history
+        .push(history_entry("SELECT * FROM refresh_marker beta"));
+    let query_key = app
+        .workbench
+        .new_query("SELECT 1")
+        .expect("query tab opens");
+    let tab_order: Vec<_> = app.workbench.tabs().iter().map(|tab| tab.key()).collect();
+    let tab_count = app.workbench.tabs().len();
+    let query_counter = app.workbench.query_counter;
+    let history_count = app.workbench.history.entries.len();
+
+    assert_eq!(app.workbench.open_history(), Some(history_key));
+    assert_eq!(app.workbench.active_key(), Some(history_key));
+    assert_eq!(app.workbench.tabs().len(), tab_count);
+    assert_eq!(
+        app.workbench
+            .tabs()
+            .iter()
+            .map(|tab| tab.key())
+            .collect::<Vec<_>>(),
+        tab_order
+    );
+    assert_eq!(app.workbench.query_counter, query_counter);
+    assert!(app.workbench.tab(query_key).is_some());
+    assert_eq!(app.workbench.history.entries.len(), history_count);
+    assert_eq!(&app.workbench.history.entries[2..], seeded.as_slice());
+
+    let Some(Tab::History(history)) = app.workbench.tab(history_key) else {
+        panic!("the existing history tab is reused")
+    };
+    assert_eq!(history.search, "refresh marker");
+    assert_eq!(history.selected, 1);
+    assert_eq!(history.entries.len(), 2);
+    assert_eq!(history.entries[0].sql, "SELECT * FROM refresh_marker beta");
+    assert_eq!(history.entries[1].sql, "SELECT * FROM refresh_marker alpha");
+
+    let Some(Tab::History(history)) = app.workbench.tab_mut(history_key) else {
+        panic!("the existing history tab is reused")
+    };
+    history.search = "no matching row".to_owned();
+    history.selected = usize::MAX;
+    assert_eq!(app.workbench.open_history(), Some(history_key));
+    let Some(Tab::History(history)) = app.workbench.tab(history_key) else {
+        panic!("the existing history tab is reused")
+    };
+    assert_eq!(history.search, "no matching row");
+    assert!(history.entries.is_empty());
+    assert_eq!(history.selected, 0);
+    assert_eq!(app.workbench.tabs().len(), tab_count);
+}
+
+#[test]
+fn ctrl_y_reuses_history_tab_and_keeps_list_focus() {
+    let mut harness = Harness::new(connected(), Theme::junie(), 120, 40);
+    let history_list = Id::root("tablepro.workbench.history.list");
+
+    let _ = harness.ctrl('y');
+    let history_key = harness
+        .app()
+        .workbench
+        .active_key()
+        .expect("history tab is active");
+    assert!(matches!(
+        harness.app().workbench.active(),
+        Some(Tab::History(_))
+    ));
+    assert_eq!(harness.focus(), Some(history_list));
+    let history_area = harness
+        .area_of(history_list)
+        .expect("history list is laid out");
+    assert!(history_area.width > 0 && history_area.height > 0);
+
+    let _ = harness.ctrl('t');
+    assert!(matches!(
+        harness.app().workbench.active(),
+        Some(Tab::Query(_))
+    ));
+    let tab_count = harness.app().workbench.tabs().len();
+    let _ = harness.ctrl('y');
+
+    assert_eq!(harness.app().workbench.active_key(), Some(history_key));
+    assert_eq!(harness.app().workbench.tabs().len(), tab_count);
+    assert!(matches!(
+        harness.app().workbench.active(),
+        Some(Tab::History(_))
+    ));
+    assert_eq!(harness.focus(), Some(history_list));
+    assert_eq!(harness.area_of(history_list), Some(history_area));
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+}
 #[test]
 fn tab_strip_overflow_and_tab_list() {
     let mut app = connected();
@@ -718,7 +845,7 @@ fn focus_is_restored_after_every_overlay_closes() {
         harness.app().connection_form_open(),
         "first Esc cancels the focused field, matching reference794b095"
     );
-    let cancel = termrock::Id::root("tablepro.connections.form")
+    let cancel = Id::root("tablepro.connections.form")
         .part(Part::ACTIONS)
         .index(1);
 
