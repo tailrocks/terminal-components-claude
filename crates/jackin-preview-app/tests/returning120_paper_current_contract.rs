@@ -1,10 +1,12 @@
 use jackin_preview_app::screens::manager::ManagerRowKey;
-use jackin_preview_app::{ACCOUNTS, ACCOUNTS_LIST, App, MANAGER, Motion, Route, Scenario};
+use jackin_preview_app::{ACCOUNTS_LIST, App, MANAGER, MANAGER_LIST, Motion, Route, Scenario};
 use termrock::{ColorLevel, ItemKey, KeyCode, Rect, Theme};
 use termrock_test_support::Harness;
 
 const WIDTH: u16 = 120;
 const HEIGHT: u16 = 40;
+const MANAGER_DETAIL_ACTION: termrock::Id =
+    jackin_preview_app::screens::manager::DETAIL.sub("activate-selected");
 
 fn returning_paper(level: ColorLevel) -> Harness<App> {
     Harness::new(
@@ -260,23 +262,60 @@ fn assert_new_and_edit_commands(level: ColorLevel) {
     assert_clean_diagnostics(&edit, "e Edit");
 }
 
-fn assert_manager_detail_command(level: ColorLevel) {
+fn assert_manager_detail_command(level: ColorLevel) -> Result<(), Box<dyn std::error::Error>> {
     let mut details = returning_paper(level);
+    assert_eq!(details.focus(), Some(MANAGER));
+    let selected = details.app().manager.selected_row().clone();
+    let selected_key = selected.stable_key();
     let _ = details.key(KeyCode::Tab);
     assert_eq!(details.app().route(), Route::Manager);
-    assert_eq!(details.focus(), Some(ACCOUNTS));
-    assert!(!details.app().manager.detail_open());
-    assert!(details.text().contains("Tab Details"), "{}", details.text());
-    assert!(
-        !details.text().contains("Tab Actions"),
-        "{}",
-        details.text()
-    );
-    assert_clean_diagnostics(&details, "Tab Details");
+    assert_eq!(details.focus(), Some(MANAGER_DETAIL_ACTION));
+    assert!(details.app().manager.detail_open());
+    let text = details.text();
+    assert!(text.contains(selected_key.as_str()), "{text}");
+    match selected {
+        ManagerRowKey::Workspace(id) => {
+            let workspace = details
+                .app()
+                .world
+                .workspace(id)
+                .ok_or("selected workspace remains in World")?;
+            assert!(text.contains(&workspace.name), "{text}");
+            assert!(text.contains(&workspace.workdir), "{text}");
+        }
+        ManagerRowKey::Instance(id) => {
+            let instance = details
+                .app()
+                .world
+                .instance(&id)
+                .ok_or("selected instance remains in World")?;
+            assert!(text.contains(instance.status.label()), "{text}");
+            assert!(text.contains(&instance.workdir), "{text}");
+        }
+        ManagerRowKey::CurrentDirectory => {
+            assert!(text.contains("Current directory"), "{text}");
+            assert!(text.contains(&details.app().world.cwd), "{text}");
+            assert!(text.contains(&details.app().world.home), "{text}");
+        }
+        ManagerRowKey::NewWorkspace => {
+            assert!(text.contains("New workspace"), "{text}");
+            assert!(text.contains("Create a workspace"), "{text}");
+        }
+    }
+    assert_clean_diagnostics(&details, "Tab real Manager detail");
     let _ = details.key(KeyCode::Esc);
     assert_eq!(details.app().route(), Route::Manager);
-    assert!(details.app().should_quit());
-    assert_clean_diagnostics(&details, "Esc from the Paper manager");
+    assert_eq!(details.focus(), Some(MANAGER_LIST));
+    assert!(!details.app().manager.detail_open());
+    assert!(!details.app().should_quit());
+    assert_clean_diagnostics(&details, "Esc closes real Manager detail");
+
+    let mut quit = returning_paper(level);
+    let _ = quit.key(KeyCode::Esc);
+    assert_eq!(quit.app().route(), Route::Manager);
+    assert!(quit.app().should_quit());
+    assert_clean_diagnostics(&quit, "Esc from the closed Paper manager");
+    Ok(())
 }
 
 fn assert_accounts_and_usage_commands(level: ColorLevel) {
@@ -390,7 +429,7 @@ fn assert_help_and_quit_commands(level: ColorLevel) {
 fn assert_hint_commands(level: ColorLevel) -> Result<(), Box<dyn std::error::Error>> {
     assert_launch_command(level)?;
     assert_new_and_edit_commands(level);
-    assert_manager_detail_command(level);
+    assert_manager_detail_command(level)?;
     assert_accounts_and_usage_commands(level);
     assert_settings_command(level);
     assert_help_and_quit_commands(level);

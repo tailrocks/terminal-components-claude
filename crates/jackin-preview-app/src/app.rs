@@ -12,12 +12,12 @@ use termrock::{
     Dialog, DialogAction, DialogState, Dismiss, FrameRead, GlyphRole, HelpAction, HelpOverlay,
     HelpOverlayState, HelpSection, Hint, HintBar, HintLayer, Id, Intent, Item, ItemKey, KeyCode,
     KeyMap, KeyModifiers, KeyPhase, LayerEvent, LayerOpening, LayerSpec, List, ListAction,
-    ListState, Menu, MenuAction, MenuBar, MenuBarHoverScope, MenuItem, MenuState, Modifier, Moment,
-    NavList, NavListAction, NavListState, Panel, Part, PartRef, Phase, Picker, PickerAction,
-    PickerState, Position, ProjectedText, PropsList, PropsRow, PropsState, Reconcile, Rect,
-    Response, RowUi, SecretPolicy, StatusBar, StatusItem, Tabs, TabsAction, TabsState, TextAction,
-    TextInput, TextInputState, TextViewport, TooSmall, Ui, UpdateCause, Variant, ViewportAction,
-    ViewportLine, ViewportState,
+    ListState, MasterDetailState, Menu, MenuAction, MenuBar, MenuBarHoverScope, MenuItem,
+    MenuState, Modifier, Moment, NavList, NavListAction, NavListState, Panel, Part, PartRef, Phase,
+    Picker, PickerAction, PickerState, Position, ProjectedText, PropsList, PropsRow, PropsState,
+    Reconcile, Rect, Response, RowUi, SecretPolicy, StatusBar, StatusItem, Tabs, TabsAction,
+    TabsState, TextAction, TextInput, TextInputState, TextViewport, TooSmall, Ui, UpdateCause,
+    Variant, ViewportAction, ViewportLine, ViewportState,
 };
 
 use crate::domain::account::{
@@ -366,6 +366,7 @@ mod capsule_zoom_view;
 
 mod launch_cockpit;
 mod launch_dialog_plate;
+mod manager_detail;
 mod manager_detail_drawer_view;
 mod manager_frame_view;
 mod manager_help;
@@ -598,6 +599,7 @@ pub struct App {
     pub inspect: InspectState,
     manager_rows_cache: Vec<ManagerRow>,
     manager_rows_revision: u64,
+    manager_detail_state: MasterDetailState,
     shell_meta: String,
     manager_header: String,
     manager_header_running: usize,
@@ -817,6 +819,7 @@ impl App {
             inspect: InspectState::default(),
             manager_rows_cache: Vec::new(),
             manager_rows_revision: 0,
+            manager_detail_state: MasterDetailState::default(),
             shell_meta: format!("scenario · {}", scenario.name()),
             manager_header,
             manager_header_running,
@@ -1253,6 +1256,36 @@ impl App {
             .or_else(|| self.world.workspaces.first().map(|workspace| workspace.id));
         let workspace = id.and_then(|id| self.world.workspace(id));
         self.world.has_offered_agents(workspace)
+    }
+
+    fn activate_selected_manager_row(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        if let Some(instance_id) = self.selected_instance_id()
+            && self
+                .world
+                .instance(&instance_id)
+                .is_some_and(|instance| instance.status.reconnectable())
+        {
+            self.active_instance = Some(instance_id);
+            self.route = Route::Capsule;
+            self.capsule_interaction.focus_pane();
+            self.sync_capsule_projection();
+            if let Some(pane) = self
+                .active_running_instance_id()
+                .and_then(|id| self.world.daemons.get(&id))
+                .and_then(|daemon| daemon.focused_pane())
+            {
+                self.capsule_viewport_focused = true;
+                cx.focus(Self::capsule_viewport_id(pane));
+            }
+        } else if matches!(
+            self.manager.selected_row(),
+            ManagerRowKey::Workspace(_)
+                | ManagerRowKey::CurrentDirectory
+                | ManagerRowKey::NewWorkspace
+        ) {
+            self.open_agent_picker(cx);
+        }
+        Response::changed()
     }
 
     fn selected_instance_id(&self) -> Option<String> {
@@ -4371,17 +4404,21 @@ impl App {
 
     fn update_manager(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         self.ensure_manager_rows();
+        let mut result = manager_detail::update(self, cx);
+        if self.route != Route::Manager {
+            return result;
+        }
         if cx.activation_key() == Some(ActivationKey::Enter)
             && (self.launch_picker_enter(cx) || self.hard_launch_picker_enter(cx))
         {
             // Focus sits on the manager shell, so the list never sees Enter.
             self.open_agent_picker(cx);
-            return Response::changed();
+            return result | Response::changed();
         }
         let list =
             Self::manager_list().update(cx, &mut self.manager.list, &self.manager_rows_cache);
         let list_action = list.action_ref().copied();
-        let mut result = list.erase();
+        result |= list.erase();
         let selected_key = match list_action {
             Some(ListAction::Activated(key) | ListAction::Chose(key)) => Some(key),
             _ => self.manager.list.cursor(),
@@ -4394,25 +4431,7 @@ impl App {
         }
         match list_action {
             Some(ListAction::Activated(_)) => {
-                if let Some(instance_id) = self.selected_instance_id()
-                    && self
-                        .world
-                        .instance(&instance_id)
-                        .is_some_and(|instance| instance.status.reconnectable())
-                {
-                    self.active_instance = Some(instance_id);
-                    self.route = Route::Capsule;
-                    self.capsule_interaction.focus_pane();
-                    self.sync_capsule_projection();
-                } else if matches!(
-                    self.manager.selected_row(),
-                    ManagerRowKey::Workspace(_)
-                        | ManagerRowKey::CurrentDirectory
-                        | ManagerRowKey::NewWorkspace
-                ) {
-                    self.open_agent_picker(cx);
-                }
-                result |= Response::changed();
+                result |= self.activate_selected_manager_row(cx);
             }
             Some(ListAction::Chose(_)) => {
                 self.manager.set_detail_open(true);
@@ -4424,13 +4443,10 @@ impl App {
                     ManagerRowKey::Instance(id) => Some(format!("Instance › {id}")),
                     ManagerRowKey::CurrentDirectory | ManagerRowKey::NewWorkspace => None,
                 };
+                manager_detail::open_from(self, cx, MANAGER_LIST);
                 result |= Response::changed();
             }
             _ => {}
-        }
-        if self.manager.detail_open() {
-            let detail = Button::new(crate::screens::manager::DETAIL, "Live topology").update(cx);
-            result |= detail.erase();
         }
         let new_workspace = Self::new_workspace_button().update(cx);
         let new_workspace_chosen = new_workspace.activated();
@@ -6735,6 +6751,7 @@ impl App {
                 .draw(ui, Rect::new(x, y, width, 1));
             x = x.saturating_add(width);
         }
+        manager_detail::register_shell_tab(self, ui);
     }
 
     fn blit_buffer(ui: &mut Ui<'_>, area: Rect, buf: &termrock::Buffer) {
@@ -7062,6 +7079,16 @@ impl App {
     }
 
     fn draw_manager(&self, ui: &mut Ui<'_>, area: Rect, frame_owns_list: bool) {
+        // A wide split stays mounted when a master-row press takes focus from detail.
+        if self.manager_detail_state.drawer_open() || self.manager.detail_open() {
+            manager_detail::draw(self, ui, area, frame_owns_list);
+            return;
+        }
+        self.draw_manager_master(ui, area, frame_owns_list);
+        manager_detail::register_list_tab(ui);
+    }
+
+    fn draw_manager_master(&self, ui: &mut Ui<'_>, area: Rect, frame_owns_list: bool) {
         let list_area = Rect {
             y: area.y.saturating_add(2),
             height: area.height.saturating_sub(5),
@@ -7074,13 +7101,6 @@ impl App {
         );
         if !frame_owns_list {
             Self::manager_list().draw(ui, list_area, &self.manager.list, &self.manager_rows_cache);
-        }
-        if self.manager.detail_open() {
-            ui.paint_str(
-                Rect::new(area.x, area.y.saturating_add(1), area.width, 1),
-                "Live topology · Workspaces › infra-control-plane",
-                ui.surface_style(),
-            );
         }
         Self::new_workspace_button().draw(
             ui,
@@ -10608,6 +10628,10 @@ impl App {
     fn update_parts(&mut self, cx: &mut Cx<'_>, product_tick: bool) -> Response<()> {
         self.screen = cx.viewport();
         self.screen_junie = Self::junie_truecolor(cx.theme());
+        manager_detail::close_off_route_state(self);
+        if cx.update_cause() == UpdateCause::Settle {
+            manager_detail::settle_off_route_focus(self, cx);
+        }
         let _shell = Self::shell_panel(&self.shell_meta);
         let mut result = self.advance_virtual_state(cx, product_tick);
         result |= self.sync_account_form_layer(cx);
@@ -10639,6 +10663,7 @@ impl App {
             && let Some(command_result) = self.update_command(cx, command)
         {
             result |= command_result;
+            manager_detail::close_off_route_state(self);
             result |= self.sync_account_form_layer(cx);
             if cx.update_cause() == UpdateCause::Settle {
                 if self.account_form_owns_input(cx) {
@@ -10700,11 +10725,13 @@ impl App {
         {
             self.route = route;
             self.status = None;
+            manager_detail::close_off_route_state(self);
         }
         if self.route == Route::Intro && enter_chosen {
             self.enter_intro();
         }
         result |= self.update_route(cx, product_tick);
+        manager_detail::close_off_route_state(self);
         result |= self.sync_account_form_layer(cx);
         if self.route == Route::Manager {
             self.ensure_manager_rows();
