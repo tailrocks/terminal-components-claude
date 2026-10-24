@@ -79,6 +79,13 @@ fn own14_findings(report: &termrock_xtask::ownership::Report) -> Vec<(String, us
     findings
 }
 
+fn own14_source_lines(lines: &[usize]) -> Vec<(String, usize)> {
+    lines
+        .iter()
+        .map(|line| ("crates/demo-preview/src/lib.rs".to_string(), *line))
+        .collect()
+}
+
 fn empty_workspace() -> tempfile::TempDir {
     scratch_workspace("", &empty_exceptions())
 }
@@ -86,6 +93,25 @@ fn empty_workspace() -> tempfile::TempDir {
 fn check_scratch(dir: &tempfile::TempDir) -> termrock_xtask::ownership::Report {
     let root = std::fs::canonicalize(dir.path()).expect("canonical scratch workspace");
     check_workspace(&root, &root.join("exceptions.json"))
+}
+
+fn inline_cfg_test_boundary_source(expression: &str) -> String {
+    let template = concat!(
+        "fn production_before() { None::<u8>.expect(\"before\"); }\n",
+        "fn production_scan() {\n",
+        "    let _predicate = || {\n",
+        "        __CLOSURE_EXPRESSION__\n",
+        "    };\n",
+        "}\n",
+        "fn production_opening() { None::<u8>.expect(\"opening\"); } #[cfg(test)] mod candidate {\n",
+        "    use super::*;\n",
+        "    #[test]\n",
+        "    fn candidate_test() { None::<u8>.expect(\"candidate\"); }\n",
+        "} fn production_closing() { None::<u8>.expect(\"closing\"); }\n",
+        "fn production_after() { None::<u8>.expect(\"after\"); }\n",
+    );
+    assert_eq!(template.matches("__CLOSURE_EXPRESSION__").count(), 1);
+    template.replace("__CLOSURE_EXPRESSION__", expression)
 }
 
 fn assert_skipped_body_attribute_is_conservative(attribute: &str, local_item: &str) {
@@ -703,6 +729,351 @@ fn expression_macros_do_not_disable_test_module_proof() {
     assert_eq!(
         own14_findings(&check_scratch(&dir)),
         [("crates/demo-preview/src/lib.rs".to_string(), 4)]
+    );
+}
+
+#[test]
+fn closure_leading_matches_reproduces_inline_cfg_test_classification_mismatch() {
+    let dir = empty_workspace();
+    let source = inline_cfg_test_boundary_source("matches!(Some(1_u8), Some(_))");
+    write_member_file(&dir, "src/lib.rs", &source);
+
+    let canonical_root = std::fs::canonicalize(dir.path()).expect("canonical fixture root");
+    let member = canonical_root.join("crates/demo-preview");
+    let analysis = module_graph::analyze_member(&member);
+    assert!(
+        !analysis.complete,
+        "full-graph analysis remains conservative for this inline test module: {analysis:?}"
+    );
+    assert!(
+        analysis.test_only.is_empty(),
+        "incomplete full-graph analysis must not authorize test-only pruning: {analysis:?}"
+    );
+    assert_eq!(
+        analysis.sources,
+        vec![member.join("src/lib.rs")],
+        "direct analysis uses one canonical source identity"
+    );
+    let ranges: Vec<_> = module_graph::cfg_test_ranges(&source)
+        .iter()
+        .map(|range| (range.start, range.end))
+        .collect();
+    assert!(
+        ranges == [(8, 10)],
+        "range-only analysis recovers only the independently certified inline cfg(test) body: {ranges:?}"
+    );
+
+    let actual = own14_findings(&check_scratch(&dir));
+    assert_eq!(
+        actual,
+        own14_source_lines(&[1, 7, 11, 12]),
+        "the closure expression macro must not erase the proven inline cfg(test) body"
+    );
+}
+
+#[test]
+fn unknown_function_body_macro_recovers_only_inline_range_and_keeps_external_route() {
+    let dir = empty_workspace();
+    let mut source = inline_cfg_test_boundary_source("unknown_body_items!()");
+    source
+        .push_str("#[cfg(test)]\n#[path = \"../outside/candidate.rs\"] mod external_candidate;\n");
+    write_member_file(&dir, "src/lib.rs", &source);
+    write_member_file(
+        &dir,
+        "outside/candidate.rs",
+        "fn candidate() { None::<u8>.expect(\"candidate\"); }\n",
+    );
+
+    let canonical_root = std::fs::canonicalize(dir.path()).expect("canonical fixture root");
+    let member = canonical_root.join("crates/demo-preview");
+    let candidate = std::fs::canonicalize(member.join("outside/candidate.rs"))
+        .expect("literal out-of-src candidate route");
+    let analysis = module_graph::analyze_member(&member);
+    assert!(
+        !analysis.complete,
+        "the unknown function-body macro keeps full graph analysis conservative: {analysis:?}"
+    );
+    assert!(
+        analysis.test_only.is_empty(),
+        "range recovery must not authorize full-graph test-only pruning: {analysis:?}"
+    );
+    assert!(analysis.sources.contains(&candidate));
+    let mut expected_sources = vec![member.join("src/lib.rs"), candidate.clone()];
+    expected_sources.sort();
+    assert_eq!(analysis.sources, expected_sources);
+
+    let ranges: Vec<_> = module_graph::cfg_test_ranges(&source)
+        .iter()
+        .map(|range| (range.start, range.end))
+        .collect();
+    assert_eq!(
+        ranges,
+        [(8, 10)],
+        "the uncertified external declaration is not admitted with the inline proof"
+    );
+    let mut expected_findings = own14_source_lines(&[1, 7, 11, 12]);
+    expected_findings.push(("crates/demo-preview/outside/candidate.rs".to_string(), 1));
+    expected_findings.sort();
+    assert_eq!(
+        own14_findings(&check_scratch(&dir)),
+        expected_findings,
+        "the outside candidate stays production while only the inline body is removed"
+    );
+}
+
+#[test]
+fn uncertainty_after_a_bounded_body_macro_still_rejects_all_ranges() {
+    for suffix in [
+        "#[unknown::route]\nfn later() {}\n",
+        "include!(concat!(\"later.inc.rs\"));\n",
+    ] {
+        let source = format!(
+            "{}{}",
+            inline_cfg_test_boundary_source("unknown_body_items!()"),
+            suffix
+        );
+        assert!(
+            module_graph::cfg_test_ranges(&source).is_empty(),
+            "later uncertainty must invalidate a prior body-macro proof: {suffix:?}"
+        );
+    }
+}
+
+#[test]
+fn body_macro_range_recovery_rejects_uncertain_ancestors_and_non_body_macros() {
+    let ancestor = concat!(
+        "#[unknown::route]\nmod outer {\n",
+        "    fn production() { unknown_body_items!(); }\n",
+        "    #[cfg(test)] mod candidate { fn test_case() {} }\n",
+        "}\n",
+    );
+    assert!(module_graph::cfg_test_ranges(ancestor).is_empty());
+
+    let signature_macro = inline_cfg_test_boundary_source("signature_body!()").replace(
+        "fn production_scan() {\n",
+        "fn production_scan(_: [u8; signature_items!()]) {\n",
+    );
+    assert!(
+        module_graph::cfg_test_ranges(&signature_macro).is_empty(),
+        "a macro before the structurally proven function body is not body-local"
+    );
+
+    let signature_macro_without_body_macro = inline_cfg_test_boundary_source("let _ = ()").replace(
+        "fn production_scan() {\n",
+        "fn production_scan(_: signature_type!()) {\n",
+    );
+    assert_eq!(
+        module_graph::cfg_test_ranges(&signature_macro_without_body_macro)
+            .iter()
+            .map(|range| (range.start, range.end))
+            .collect::<Vec<_>>(),
+        [(8, 10)],
+        "a signature invocation alone preserves the prior range-only result"
+    );
+
+    let signature_only_dynamic_include = inline_cfg_test_boundary_source("let _ = ()").replace(
+        "fn production_scan() {\n",
+        "fn production_scan(_: include!(concat!(\"signature.rs\"))) {\n",
+    );
+    assert!(
+        module_graph::cfg_test_ranges(&signature_only_dynamic_include).is_empty(),
+        "an unresolved include in the function signature preserves the prior empty-range result"
+    );
+
+    let parameter_macro_with_body_macro = inline_cfg_test_boundary_source("unknown_body_items!()")
+        .replace(
+            "fn production_scan() {\n",
+            "fn production_scan(_: signature_type!()) {\n",
+        );
+    assert!(
+        module_graph::cfg_test_ranges(&parameter_macro_with_body_macro).is_empty(),
+        "a parameter type invocation prevents the bounded-body exception"
+    );
+
+    let return_macro_with_body_macro = inline_cfg_test_boundary_source("unknown_body_items!()")
+        .replace(
+            "fn production_scan() {\n",
+            "fn production_scan() -> signature_return!() {\n",
+        );
+    assert!(
+        module_graph::cfg_test_ranges(&return_macro_with_body_macro).is_empty(),
+        "a return type invocation prevents the bounded-body exception"
+    );
+
+    let root_item_macro = format!(
+        "root_items!();\n{}",
+        inline_cfg_test_boundary_source("unknown_body_items!()")
+    );
+    assert!(module_graph::cfg_test_ranges(&root_item_macro).is_empty());
+
+    let non_function_item = concat!(
+        "const PRODUCTION: () = { non_function_items!(); };\n",
+        "#[cfg(test)] mod candidate { fn test_case() {} }\n",
+    );
+    assert!(module_graph::cfg_test_ranges(non_function_item).is_empty());
+
+    for definition in [
+        "macro_rules! local { () => {}; }",
+        "macro_rules! local ( () => {}; );",
+        "macro_rules! local [ () => {}; ];",
+    ] {
+        for invocation in ["local!();", "local![];"] {
+            let source = format!(
+                "fn production() {{\n    {definition}\n    {invocation}\n}}\n\
+                 #[cfg(test)] mod candidate {{ fn test_case() {{}} }}\n"
+            );
+            assert!(
+                module_graph::cfg_test_ranges(&source).is_empty(),
+                "a local macro definition with invocation delimiters {invocation:?} is not the bounded unknown-macro exception: {definition}"
+            );
+        }
+    }
+
+    for malformed_definition in [
+        "macro_rules! local ( () => {}; )",
+        "macro_rules! local [ () => {}; ]",
+    ] {
+        let source = format!(
+            "fn production() {{\n    {malformed_definition}\n    local!();\n}}\n\
+             #[cfg(test)] mod candidate {{ fn test_case() {{}} }}\n"
+        );
+        assert!(
+            module_graph::cfg_test_ranges(&source).is_empty(),
+            "malformed definition-like syntax stays conservative: {malformed_definition}"
+        );
+    }
+
+    let unbalanced = concat!(
+        "fn production() { unknown_body_items!();\n",
+        "#[cfg(test)] mod candidate { fn test_case() {} }\n",
+    );
+    assert!(module_graph::cfg_test_ranges(unbalanced).is_empty());
+}
+
+#[test]
+fn unused_local_macro_definition_preserves_full_graph_completeness_and_routes() {
+    let dir = empty_workspace();
+    write_member_file(
+        &dir,
+        "src/lib.rs",
+        "fn production() {\n\
+             macro_rules! unused {}\n\
+         }\n\
+         #[cfg(test)]\n\
+         #[path = \"../outside/fixture.rs\"]\n\
+         mod fixture;\n",
+    );
+    write_member_file(&dir, "outside/fixture.rs", "fn fixture() {}\n");
+
+    let member = std::fs::canonicalize(dir.path().join("crates/demo-preview"))
+        .expect("canonical fixture member");
+    let root_source = member.join("src/lib.rs");
+    let external_fixture = std::fs::canonicalize(member.join("outside/fixture.rs"))
+        .expect("canonical external test fixture");
+    let analysis = module_graph::analyze_member(&member);
+
+    assert!(
+        analysis.complete,
+        "an unused local macro definition did not make the pre-existing member graph incomplete: {analysis:?}"
+    );
+    let mut expected_sources = vec![root_source, external_fixture.clone()];
+    expected_sources.sort();
+    assert_eq!(analysis.sources, expected_sources);
+    assert_eq!(
+        analysis.test_only.iter().cloned().collect::<Vec<_>>(),
+        [external_fixture],
+        "the literal external cfg(test) route remains the only test-only source"
+    );
+}
+
+#[test]
+fn closure_leading_ordinary_match_control_preserves_only_production_expectations() {
+    let dir = empty_workspace();
+    let source =
+        inline_cfg_test_boundary_source("match Some(1_u8) { Some(_) => true, None => false }");
+    write_member_file(&dir, "src/lib.rs", &source);
+
+    let canonical_root = std::fs::canonicalize(dir.path()).expect("canonical fixture root");
+    let member = canonical_root.join("crates/demo-preview");
+    let analysis = module_graph::analyze_member(&member);
+    assert!(
+        !analysis.complete,
+        "full-graph analysis remains conservative for the wildcard-imported test module: {analysis:?}"
+    );
+    assert!(
+        analysis.test_only.is_empty(),
+        "incomplete full-graph analysis must not authorize test-only pruning: {analysis:?}"
+    );
+    assert_eq!(
+        analysis.sources,
+        vec![member.join("src/lib.rs")],
+        "direct analysis uses one canonical source identity"
+    );
+    let ranges: Vec<_> = module_graph::cfg_test_ranges(&source)
+        .iter()
+        .map(|range| (range.start, range.end))
+        .collect();
+    assert_eq!(ranges, vec![(8, 10)]);
+    assert_eq!(
+        own14_findings(&check_scratch(&dir)),
+        own14_source_lines(&[1, 7, 11, 12]),
+        "the candidate body is excluded while production on both shared boundary lines remains"
+    );
+}
+
+#[test]
+fn shadowed_matches_macro_keeps_external_cfg_test_route_production() {
+    let dir = empty_workspace();
+    write_member_file(
+        &dir,
+        "src/lib.rs",
+        r#"macro_rules! matches {
+    ($($tokens:tt)*) => { include!("../outside/matches_expansion.inc.rs") };
+}
+fn production_scan() {
+    let _predicate = || {
+        matches!(Some(1_u8), Some(_))
+    };
+}
+#[cfg(test)]
+#[path = "../outside/candidate.rs"]
+mod candidate;
+"#,
+    );
+    write_member_file(&dir, "outside/matches_expansion.inc.rs", "true\n");
+    write_member_file(
+        &dir,
+        "outside/candidate.rs",
+        "fn candidate() { None::<u8>.expect(\"candidate\"); }\n",
+    );
+
+    let canonical_root = std::fs::canonicalize(dir.path()).expect("canonical fixture root");
+    let member = canonical_root.join("crates/demo-preview");
+    let candidate = std::fs::canonicalize(member.join("outside/candidate.rs"))
+        .expect("literal out-of-src candidate route");
+    let analysis = module_graph::analyze_member(&member);
+    assert!(
+        !analysis.complete,
+        "full-graph traversal stays conservative for the shadowed macro and external candidate: {analysis:?}"
+    );
+    assert!(
+        analysis.sources.contains(&candidate),
+        "the separate literal out-of-src route remains inventoried: {analysis:?}"
+    );
+    assert!(
+        analysis.test_only.is_empty(),
+        "unresolved macro provenance must not authorize pruning the candidate"
+    );
+    let mut expected_sources = vec![member.join("src/lib.rs"), candidate.clone()];
+    expected_sources.sort();
+    assert_eq!(
+        analysis.sources, expected_sources,
+        "the canonical source inventory retains the root and literal external candidate only"
+    );
+    assert_eq!(
+        own14_findings(&check_scratch(&dir)),
+        [("crates/demo-preview/outside/candidate.rs".to_string(), 1)],
+        "the external candidate's production finding remains visible"
     );
 }
 

@@ -372,7 +372,14 @@ struct ParsedSource {
     modules: Vec<ModuleDecl>,
     includes: Vec<IncludeDecl>,
     test_ranges: Vec<LineRange>,
+    certified_inline_test_ranges: Vec<LineRange>,
+    range_uncertainty: RangeUncertainty,
     complete: bool,
+}
+
+#[derive(Debug, Default)]
+struct RangeUncertainty {
+    bounded_function_body_item_macro: bool,
 }
 
 /// Enumerates the current physical `src` inventory and source files reached
@@ -468,7 +475,9 @@ pub fn analyze_member(member: &Path) -> MemberAnalysis {
 }
 
 /// Returns line ranges for items proven to compile only when `test` is true.
-/// Any uncertain syntax returns no ranges, retaining the source as production.
+/// A bounded function-body item macro preserves only independently certified
+/// literal inline `cfg(test)` module ranges; other uncertain syntax returns no
+/// ranges, retaining the source as production.
 pub fn cfg_test_ranges(source: &str) -> Vec<LineRange> {
     let Some(tokens) = lex(source) else {
         return Vec::new();
@@ -492,7 +501,14 @@ pub fn cfg_test_ranges(source: &str) -> Vec<LineRange> {
             expression_fragment: false,
         },
     ) {
-        Some(parsed) if parsed.complete => normalize_ranges(parsed.test_ranges),
+        Some(parsed) if parsed.complete => {
+            let ranges = if parsed.range_uncertainty.bounded_function_body_item_macro {
+                parsed.certified_inline_test_ranges
+            } else {
+                parsed.test_ranges
+            };
+            normalize_ranges(ranges)
+        }
         _ => Vec::new(),
     }
 }
@@ -1016,6 +1032,8 @@ fn parse_expression_fragment(
         modules: Vec::new(),
         includes: Vec::new(),
         test_ranges: Vec::new(),
+        certified_inline_test_ranges: Vec::new(),
+        range_uncertainty: RangeUncertainty::default(),
         complete: true,
     };
     let known_include_origins = BTreeSet::new();
@@ -1074,10 +1092,13 @@ fn parse_scope(
         collect_body_routes,
         expression_fragment,
     } = mode;
+    let range_only = collect_ranges && !collect_body_routes && !expression_fragment;
     let mut parsed = ParsedSource {
         modules: Vec::new(),
         includes: Vec::new(),
         test_ranges: Vec::new(),
+        certified_inline_test_ranges: Vec::new(),
+        range_uncertainty: RangeUncertainty::default(),
         complete: true,
     };
     let mut scope_predicate = inherited;
@@ -1178,6 +1199,12 @@ fn parse_scope(
                     && effective.test_only()
                 {
                     push_range(tokens, item_start, close + 1, &mut parsed.test_ranges);
+                    push_range(
+                        tokens,
+                        item_start,
+                        close + 1,
+                        &mut parsed.certified_inline_test_ranges,
+                    );
                     index = close + 1;
                     saw_item = true;
                     continue;
@@ -1208,6 +1235,11 @@ fn parse_scope(
                 parsed.modules.extend(nested.modules);
                 parsed.includes.extend(nested.includes);
                 parsed.test_ranges.extend(nested.test_ranges);
+                parsed
+                    .certified_inline_test_ranges
+                    .extend(nested.certified_inline_test_ranges);
+                parsed.range_uncertainty.bounded_function_body_item_macro |=
+                    nested.range_uncertainty.bounded_function_body_item_macro;
                 if collect_ranges && effective.test_only() {
                     push_range(tokens, item_start, close + 1, &mut parsed.test_ranges);
                 }
@@ -1321,15 +1353,30 @@ fn parse_scope(
         parsed.complete = false;
     }
     for (item_start, item_end, effective) in skipped_items {
-        if !(collect_ranges && effective.test_only())
-            && skipped_item_has_unmodeled_routes(
+        if !(collect_ranges && effective.test_only()) {
+            if range_only {
+                match range_skipped_item_uncertainty(
+                    tokens,
+                    item_start,
+                    item_end,
+                    &imported_test_attributes,
+                ) {
+                    SkippedItemUncertainty::None => {}
+                    SkippedItemUncertainty::BoundedFunctionBodyMacro => {
+                        parsed.range_uncertainty.bounded_function_body_item_macro = true;
+                    }
+                    SkippedItemUncertainty::Other => parsed.complete = false,
+                }
+            } else if skipped_item_has_unmodeled_routes(
                 tokens,
                 item_start,
                 item_end,
                 &imported_test_attributes,
-            )
-        {
-            parsed.complete = false;
+            ) {
+                // Preserve the pre-existing graph and body-route uncertainty
+                // policy. The bounded-body exception applies only to RANGE.
+                parsed.complete = false;
+            }
         }
         if collect_body_routes {
             let routes = collect_body_routes_in_item(
@@ -1382,6 +1429,8 @@ fn collect_body_routes_in_item(
         modules: Vec::new(),
         includes: Vec::new(),
         test_ranges: Vec::new(),
+        certified_inline_test_ranges: Vec::new(),
+        range_uncertainty: RangeUncertainty::default(),
         complete: true,
     };
     if !matches!(
@@ -2272,6 +2321,217 @@ fn skipped_item_has_unmodeled_routes(
     test_attributes
         .iter()
         .any(|name| enclosing_imports.may_shadow(name) || local_imports.may_shadow(name))
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum SkippedItemUncertainty {
+    None,
+    BoundedFunctionBodyMacro,
+    Other,
+}
+
+fn range_skipped_item_uncertainty(
+    tokens: &Tokens,
+    start: usize,
+    end: usize,
+    enclosing_imports: &TestAttributeImports,
+) -> SkippedItemUncertainty {
+    let mut index = start;
+    let mut test_attributes = BTreeSet::new();
+    let mut local_imports = TestAttributeImports::default();
+    let mut bounded_function_body_macro = false;
+    let mut signature_macro = false;
+    let function_body = ordinary_function_body(tokens, start, end);
+    while index < end {
+        if is_punct(tokens, index, '#') {
+            let Some((next, inner, attribute)) = parse_attribute(tokens, index, end) else {
+                return SkippedItemUncertainty::Other;
+            };
+            let bracket = index + usize::from(inner) + 1;
+            let is_derive = ident_at(tokens, bracket + 1) == Some("derive");
+            if !attribute.complete || (!inner && is_derive) {
+                return SkippedItemUncertainty::Other;
+            }
+            if !inner {
+                test_attributes.extend(attribute.test_attributes);
+            }
+            // Advance over the complete attribute, including its arguments. A
+            // hash-like token inside known inert metadata is not a second
+            // attached attribute.
+            index = next;
+            continue;
+        }
+        if item_head(tokens, index, end) == Some("use") {
+            let Some(item_end) = skip_item(tokens, index, end) else {
+                return SkippedItemUncertainty::Other;
+            };
+            if item_end <= index {
+                return SkippedItemUncertainty::Other;
+            }
+            record_test_attribute_imports(tokens, index, item_end, &mut local_imports);
+            index = item_end;
+            continue;
+        }
+        if let Some((body_open, _)) = function_body
+            && index < body_open
+            && macro_invocation_group(tokens, index, body_open).is_some()
+        {
+            signature_macro = true;
+        }
+        if let Some((body_open, body_close)) = function_body
+            && index > body_open
+            && index < body_close
+        {
+            match macro_rules_definition(tokens, index, body_close) {
+                MacroRulesDefinition::NotDefinition => {}
+                MacroRulesDefinition::Valid | MacroRulesDefinition::Malformed => {
+                    return SkippedItemUncertainty::Other;
+                }
+            }
+        }
+        if ident_at(tokens, index) == Some("mod") {
+            if ident_at(tokens, index + 1).is_none() {
+                return SkippedItemUncertainty::Other;
+            }
+            if is_punct(tokens, index + 2, ';') {
+                index += 3;
+                continue;
+            }
+            if is_punct(tokens, index + 2, '{')
+                && let Some(close) = tokens.pairs.get(index + 2).and_then(|value| *value)
+                && close < end
+            {
+                index = close + 1;
+                continue;
+            }
+            return SkippedItemUncertainty::Other;
+        }
+        if let Some((path, next)) = parse_include_invocation(tokens, index, end) {
+            if path.is_none() {
+                return SkippedItemUncertainty::Other;
+            }
+            index = next;
+            continue;
+        }
+        if is_item_macro(tokens, index, end) && macro_starts_block_item(tokens, start, index) {
+            let Some((_, macro_close)) = macro_invocation_group(tokens, index, end) else {
+                return SkippedItemUncertainty::Other;
+            };
+            if function_body.is_some_and(|(body_open, body_close)| {
+                index > body_open && macro_close < body_close
+            }) {
+                bounded_function_body_macro = true;
+                index = macro_close + 1;
+                continue;
+            }
+            return SkippedItemUncertainty::Other;
+        }
+        index += 1;
+    }
+    if test_attributes
+        .iter()
+        .any(|name| enclosing_imports.may_shadow(name) || local_imports.may_shadow(name))
+        || (bounded_function_body_macro && signature_macro)
+    {
+        SkippedItemUncertainty::Other
+    } else if bounded_function_body_macro {
+        SkippedItemUncertainty::BoundedFunctionBodyMacro
+    } else {
+        SkippedItemUncertainty::None
+    }
+}
+
+fn ordinary_function_body(tokens: &Tokens, start: usize, end: usize) -> Option<(usize, usize)> {
+    if item_head(tokens, start, end) != Some("fn") {
+        return None;
+    }
+
+    let mut function_keyword = start;
+    while function_keyword < end && ident_at(tokens, function_keyword) != Some("fn") {
+        if is_open(tokens, function_keyword) {
+            let close = tokens
+                .pairs
+                .get(function_keyword)
+                .and_then(|close| *close)?;
+            if close >= end {
+                return None;
+            }
+            function_keyword = close + 1;
+        } else {
+            function_keyword += 1;
+        }
+    }
+    if function_keyword >= end {
+        return None;
+    }
+
+    let mut angle_depth = 0usize;
+    let mut index = function_keyword + 1;
+    while index < end {
+        if is_punct(tokens, index, ';') {
+            return None;
+        }
+        if is_punct(tokens, index, '<') {
+            angle_depth = angle_depth.checked_add(1)?;
+            index += 1;
+            continue;
+        }
+        if is_punct(tokens, index, '>') && angle_depth > 0 {
+            angle_depth -= 1;
+            index += 1;
+            continue;
+        }
+        if is_open(tokens, index) {
+            let close = tokens.pairs.get(index).and_then(|close| *close)?;
+            if close >= end {
+                return None;
+            }
+            if is_punct(tokens, index, '{') && angle_depth == 0 {
+                return (close + 1 == end).then_some((index, close));
+            }
+            index = close + 1;
+            continue;
+        }
+        index += 1;
+    }
+    None
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum MacroRulesDefinition {
+    NotDefinition,
+    Valid,
+    Malformed,
+}
+
+fn macro_rules_definition(tokens: &Tokens, at: usize, end: usize) -> MacroRulesDefinition {
+    if ident_at(tokens, at) != Some("macro_rules") || !is_punct(tokens, at + 1, '!') {
+        return MacroRulesDefinition::NotDefinition;
+    }
+    if ident_at(tokens, at + 2).is_none() {
+        return MacroRulesDefinition::Malformed;
+    }
+
+    let opener = at + 3;
+    let (closing, requires_semicolon) = if is_punct(tokens, opener, '{') {
+        ('}', false)
+    } else if is_punct(tokens, opener, '(') {
+        (')', true)
+    } else if is_punct(tokens, opener, '[') {
+        (']', true)
+    } else {
+        return MacroRulesDefinition::Malformed;
+    };
+    let Some(close) = tokens.pairs.get(opener).and_then(|close| *close) else {
+        return MacroRulesDefinition::Malformed;
+    };
+    if close >= end || !is_punct(tokens, close, closing) {
+        return MacroRulesDefinition::Malformed;
+    }
+    if requires_semicolon && (close + 1 >= end || !is_punct(tokens, close + 1, ';')) {
+        return MacroRulesDefinition::Malformed;
+    }
+    MacroRulesDefinition::Valid
 }
 
 fn macro_starts_block_item(tokens: &Tokens, item_start: usize, macro_start: usize) -> bool {
