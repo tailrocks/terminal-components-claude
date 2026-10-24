@@ -1,7 +1,7 @@
 use showcase_demos::pages::{Page, settings::SettingsPage};
 use termrock::{
     App, Color, Cx, Id, ItemKey, KeyCode, LayerId, Modifier, Part, PartRef, Rect, Response, Role,
-    StylePatch, Theme, Ui,
+    StateFlags, StylePatch, Theme, Ui,
 };
 use termrock_test_support::Harness;
 
@@ -9,6 +9,9 @@ const TABS: Id = Id::root("showcase_ui::pages::settings::settings.tabs");
 const MEMBERS: Id = Id::root("showcase_ui::pages::settings::settings.members");
 const INVITE: Id = Id::root("showcase_ui::pages::settings::settings.invite");
 const REMOVE: Id = Id::root("showcase_ui::pages::settings::settings.remove");
+const MEMBER_GRID: Id = Id::root("showcase_ui::pages::settings::settings.member_grid");
+const MEMBER_GRID_EDITOR: Id = MEMBER_GRID.part(Part::TEXT);
+const MEMBER_BACK: Id = Id::root("showcase_ui::pages::settings::settings.member_back");
 const REMOVE_DIALOG: Id = Id::root("showcase_ui::pages::settings::settings.remove.dialog");
 
 struct PageHost {
@@ -109,7 +112,7 @@ fn escaped_presentation(h: &Harness<PageHost>, allowed: &[Rect]) -> Vec<String> 
         .filter(|entry| !allowed.iter().any(|area| contains_rect(*area, entry.area)))
         .map(|entry| format!("focus {:?} {:?}", entry.id, entry.area))
         .collect::<Vec<_>>();
-    for id in [TABS, MEMBERS, INVITE, REMOVE] {
+    for id in [TABS, MEMBERS, INVITE, REMOVE, MEMBER_GRID, MEMBER_BACK] {
         if let Some(area) = h.area_of(id)
             && !allowed.iter().any(|outer| contains_rect(*outer, area))
         {
@@ -449,6 +452,10 @@ fn member_selection_invite_and_remove_confirm_keep_the_existing_actions() {
     let _ = h.click_part(MEMBERS, second_member);
     assert!(format!("{:?}", h.app().page).contains("selected: 1"));
     assert!(format!("{:?}", h.app().page).contains("message: \"member selected\""));
+    assert!(
+        !h.text().contains("Member details"),
+        "Chose keeps the List view"
+    );
 
     assert!(h.tab_to(INVITE), "Invite remains a real keyboard target");
     let _ = h.key(KeyCode::Enter);
@@ -471,5 +478,248 @@ fn member_selection_invite_and_remove_confirm_keep_the_existing_actions() {
     assert!(
         !text.contains("Jonas Weber"),
         "the selected member was removed"
+    );
+}
+
+#[test]
+fn member_grid_edits_name_and_validated_role_then_returns_to_same_member() {
+    let area = Rect::new(0, 0, 120, 40);
+    let mut h = host(120, 40, area);
+    activate_tab(&mut h, 1);
+    assert!(h.tab_to(MEMBERS), "Members remains keyboard reachable");
+    let _ = h.key(KeyCode::Down);
+    let _ = h.key(KeyCode::Enter);
+
+    assert_eq!(h.focus(), Some(MEMBER_GRID));
+    assert_contained(&h, &[area], "opened member Grid");
+    assert!(h.text().contains("Member details"));
+    assert!(h.text().contains("Jonas Weber"));
+    assert!(h.text().contains("jonas@acme.dev"));
+    assert!(h.text().contains("Admin"));
+    assert!(h.text().contains("2 h ago"));
+    assert_eq!(
+        h.find("Admin").expect("Jonas role is visible").1,
+        h.find("Jonas Weber").expect("selected row is visible").1,
+        "the restored role belongs to the selected stable member"
+    );
+
+    let _ = h.key(KeyCode::Enter);
+    assert!(h.state_of(MEMBER_GRID_EDITOR).contains(StateFlags::EDITING));
+    let _ = h.ctrl('l');
+    let _ = h.type_str("   ");
+    let _ = h.key(KeyCode::Enter);
+    let name_editor = h
+        .area_of(MEMBER_GRID_EDITOR)
+        .expect("invalid Name remains in the active editor");
+    assert_eq!(
+        h.cell(name_editor.right().saturating_sub(1), name_editor.y)
+            .symbol(),
+        "!",
+        "the native editor marker identifies an invalid Name draft"
+    );
+    assert!(h.state_of(MEMBER_GRID_EDITOR).contains(StateFlags::EDITING));
+    assert_eq!(h.focus(), Some(MEMBER_GRID_EDITOR));
+    let _ = h.key(KeyCode::Esc);
+    assert!(h.text().contains("Jonas Weber"));
+
+    let _ = h.key(KeyCode::Enter);
+    let _ = h.ctrl('l');
+    let _ = h.type_str("Jonas Weber Jr");
+    let _ = h.key(KeyCode::Enter);
+    assert!(h.text().contains("Jonas Weber Jr"));
+    assert!(format!("{:?}", h.app().page).contains("message: \"member updated\""));
+
+    let _ = h.key(KeyCode::Right);
+    let _ = h.key(KeyCode::Enter);
+    assert!(
+        !h.state_of(MEMBER_GRID_EDITOR).contains(StateFlags::EDITING),
+        "Email is a real read-only Grid cell"
+    );
+    let _ = h.paste("wrong@example.dev");
+    assert!(
+        h.text().contains("jonas@acme.dev"),
+        "read-only Email still shows its original value"
+    );
+    assert!(!h.text().contains("wrong@example.dev"));
+
+    let _ = h.key(KeyCode::Right);
+    let _ = h.key(KeyCode::Enter);
+    let _ = h.ctrl('l');
+    let _ = h.type_str("Superuser");
+    let _ = h.key(KeyCode::Enter);
+    let role_editor = h
+        .area_of(MEMBER_GRID_EDITOR)
+        .expect("invalid Role remains in the active editor");
+    assert_eq!(
+        h.cell(role_editor.right().saturating_sub(1), role_editor.y)
+            .symbol(),
+        "!",
+        "the native editor marker identifies an invalid Role draft"
+    );
+    assert!(h.state_of(MEMBER_GRID_EDITOR).contains(StateFlags::EDITING));
+    assert_eq!(h.focus(), Some(MEMBER_GRID_EDITOR));
+    let _ = h.key(KeyCode::Esc);
+    assert!(
+        h.text().contains("Admin"),
+        "Esc cancels the invalid role draft"
+    );
+
+    let _ = h.key(KeyCode::Enter);
+    let _ = h.ctrl('l');
+    let _ = h.type_str("Owner");
+    let _ = h.key(KeyCode::Enter);
+    let owner_row = h.find("Owner").expect("edited role is visible").1;
+
+    let _ = h.key(KeyCode::Right);
+    let _ = h.key(KeyCode::Enter);
+    let _ = h.paste("10m ago");
+    assert!(h.text().contains("2 h ago"));
+    assert!(!h.text().contains("10m ago"));
+
+    let _ = h.key(KeyCode::Home);
+    assert_eq!(
+        h.find("Jonas Weber Jr")
+            .expect("Home reveals the edited Name cell")
+            .1,
+        owner_row,
+        "the Name and Role edits remain on the same stable member"
+    );
+    assert!(
+        h.text().contains("jonas@acme.dev"),
+        "Email remains unchanged"
+    );
+
+    let _ = h.key(KeyCode::Tab);
+    assert_eq!(h.focus(), Some(MEMBER_BACK), "Grid Tab reaches native Back");
+    let _ = h.key(KeyCode::Enter);
+    assert_eq!(h.focus(), Some(MEMBERS), "Back restores the List owner");
+    assert!(
+        h.area_of_part(MEMBERS, PartRef::item(Part::ROW, ItemKey::num(2)))
+            .is_some()
+    );
+    assert!(format!("{:?}", h.app().page).contains("selected: 1"));
+    assert!(h.text().contains("Jonas Weber Jr"));
+    assert!(
+        h.text().matches("Jonas Weber Jr").count() >= 2,
+        "the list row and compact summary both use the committed name"
+    );
+
+    let _ = h.key(KeyCode::Enter);
+    assert_eq!(h.focus(), Some(MEMBER_GRID));
+    let jonas = h
+        .find("Jonas Weber Jr")
+        .expect("the same member row reopens first");
+    let mira = h
+        .find("Mira Okafor")
+        .expect("the neighboring member row remains");
+    assert!(
+        jonas.1 < mira.1,
+        "editor restores the stable selected member ID"
+    );
+    assert_eq!(
+        h.find("Owner").expect("the committed role persists").1,
+        jonas.1
+    );
+    assert!(
+        h.text().contains("jonas@acme.dev"),
+        "read-only Email remains unchanged"
+    );
+    assert!(h.text().contains("2 h ago"), "read-only facts persist");
+    let _ = h.key(KeyCode::Tab);
+    let _ = h.key(KeyCode::Enter);
+    assert_eq!(h.focus(), Some(MEMBERS));
+
+    let _ = h.click_id(REMOVE);
+    assert!(h.is_open(REMOVE_DIALOG));
+    let _ = h.key(KeyCode::Right);
+    let _ = h.key(KeyCode::Enter);
+    assert!(!h.is_open(REMOVE_DIALOG));
+    let text = h.text();
+    assert!(
+        !text.contains("Jonas Weber Jr"),
+        "Remove targets the same stable ID"
+    );
+    assert!(
+        text.contains("Ana Costa"),
+        "the next member remains untouched"
+    );
+    let diagnostics = h.diagnostics();
+    assert!(
+        diagnostics.is_empty(),
+        "removing a member leaves no runtime diagnostics"
+    );
+}
+
+#[test]
+fn member_grid_back_refuses_an_active_draft_until_explicit_cancel() {
+    let area = Rect::new(0, 0, 120, 40);
+    let mut h = host(120, 40, area);
+    activate_tab(&mut h, 1);
+    assert!(h.tab_to(MEMBERS));
+    let _ = h.key(KeyCode::Enter);
+    assert_eq!(h.focus(), Some(MEMBER_GRID));
+    let _ = h.key(KeyCode::Enter);
+    let _ = h.ctrl('l');
+    let _ = h.type_str("Uncommitted Mira");
+    assert!(h.text().contains("Uncommitted Mira"));
+
+    let back = h.area_of(MEMBER_BACK).expect("Back has a real button area");
+    let _ = h.click(back.x, back.y);
+    assert!(h.text().contains("Member details"));
+    assert!(h.text().contains("Uncommitted Mira"));
+    assert!(
+        h.state_of(MEMBER_GRID_EDITOR).contains(StateFlags::EDITING),
+        "clicking Back cannot silently commit or discard a live draft"
+    );
+    assert_eq!(h.focus(), Some(MEMBER_GRID_EDITOR));
+
+    let _ = h.key(KeyCode::Esc);
+    assert!(!h.text().contains("Uncommitted Mira"));
+    assert!(h.text().contains("Mira Okafor"));
+    assert!(!h.state_of(MEMBER_GRID_EDITOR).contains(StateFlags::EDITING));
+    let _ = h.click_id(MEMBER_BACK);
+    assert!(!h.text().contains("Member details"));
+    assert_eq!(h.focus(), Some(MEMBERS));
+    let diagnostics = h.diagnostics();
+    assert!(
+        diagnostics.is_empty(),
+        "cancelling the draft leaves no runtime diagnostics"
+    );
+}
+
+#[test]
+fn member_grid_back_remains_reachable_after_short_resize() {
+    let area = Rect::new(0, 0, 120, 40);
+    let mut h = host(120, 40, area);
+    activate_tab(&mut h, 1);
+    assert!(h.tab_to(MEMBERS));
+    let _ = h.key(KeyCode::Enter);
+    assert_eq!(h.focus(), Some(MEMBER_GRID));
+
+    h.app_mut().area = Rect::new(0, 0, 72, 20);
+    let _ = h.resize(72, 20);
+    assert_contained(&h, &[h.app().area], "member Grid at 72x20");
+    let back = h
+        .area_of(MEMBER_BACK)
+        .expect("short layout keeps a real Back owner");
+    assert!(contains_rect(h.app().area, back));
+    assert!(h.area_of(MEMBER_GRID).is_some());
+
+    h.app_mut().area = Rect::new(0, 0, 80, 18);
+    let _ = h.resize(80, 18);
+    assert_contained(&h, &[h.app().area], "member Grid at 80x18");
+    let back = h
+        .area_of(MEMBER_BACK)
+        .expect("a shorter frame moves Back into the visible last row");
+    assert!(contains_rect(h.app().area, back));
+    assert!(h.tab_to(MEMBER_BACK));
+    let _ = h.key(KeyCode::Enter);
+    assert!(!h.text().contains("Member details"));
+    assert_eq!(h.focus(), Some(MEMBERS));
+    assert!(h.text().contains("Mira Okafor"));
+    let diagnostics = h.diagnostics();
+    assert!(
+        diagnostics.is_empty(),
+        "resizing and leaving the Grid leaves no runtime diagnostics"
     );
 }
