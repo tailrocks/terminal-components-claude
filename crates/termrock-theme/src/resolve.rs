@@ -842,50 +842,16 @@ pub fn bind_defaults(
     defaults: StyleDefaults<'_>,
     local: Option<&StylePatch>,
 ) -> Resolved {
-    let requested_variant = variant;
-    let (mut acc, variant) = match theme.recipes.get(family) {
-        Some(recipe) => apply_recipe(recipe, requested_variant, part, flags, defaults.base),
-        None => (defaults.base, requested_variant),
-    };
-    let (profiled, exact_profile_patch) = apply_level_profiles(
-        theme,
-        ProfileContext {
-            family,
-            requested_variant,
-            variant,
-            part,
-            live: flags,
-            surface,
-        },
-        acc,
-    );
-    acc = profiled;
-    let mut exact_profile = ProfiledStyle::from_patch(exact_profile_patch);
-    if theme.capability.color == super::ColorLevel::Mono {
-        let before_mono = acc;
-        acc = super::downgrade::apply_mono_with_defaults(
-            acc,
-            &theme.recipes,
-            family,
-            part,
-            flags,
-            Some(defaults.mono),
-        );
-        let targeted = authored_mono_override(theme, family, part, flags, Some(defaults.mono));
-        exact_profile.restore_profiled_channels(before_mono, &mut acc, targeted);
-        exact_profile.retain_unchanged(before_mono, acc);
-        exact_profile.suppress_targeted_exact_channels(targeted);
-    }
-    let explicit = apply_explicit(
+    bind_defaults_details(
         theme,
         (family, variant, part),
         flags,
         overlays,
-        StylePatch::new(),
-    );
-    exact_profile.suppress(explicit);
-    acc = acc.merge(explicit);
-    bind_with_profile(theme, acc, local, surface, exact_profile)
+        surface,
+        defaults,
+        local,
+    )
+    .0
 }
 
 pub fn bind_defaults_with_explicit(
@@ -897,7 +863,54 @@ pub fn bind_defaults_with_explicit(
     defaults: StyleDefaults<'_>,
     local: Option<&StylePatch>,
 ) -> ResolvedStyle {
-    let requested_variant = variant;
+    let (resolved, explicit, _) = bind_defaults_details(
+        theme,
+        (family, variant, part),
+        flags,
+        overlays,
+        surface,
+        defaults,
+        local,
+    );
+    ResolvedStyle { resolved, explicit }
+}
+
+/// Resolve canonical defaults and report the channels that own component fallback choices.
+///
+/// The returned ownership patch includes eligible capability profiles, authored Mono rules,
+/// global and scoped overrides, and the local patch in their existing precedence order. Built-in
+/// Mono fallback rules do not claim ownership. The resolved paint is identical to
+/// [`bind_defaults`]; profile colors retain their canonical capability binding.
+pub fn bind_defaults_with_fallback_ownership(
+    theme: &Theme,
+    (family, variant, part): (Family, Variant, Part),
+    flags: StateFlags,
+    overlays: &[Overlay],
+    surface: Surface,
+    defaults: StyleDefaults<'_>,
+    local: Option<&StylePatch>,
+) -> (Resolved, StylePatch) {
+    let (resolved, _, ownership) = bind_defaults_details(
+        theme,
+        (family, variant, part),
+        flags,
+        overlays,
+        surface,
+        defaults,
+        local,
+    );
+    (resolved, ownership)
+}
+
+fn bind_defaults_details(
+    theme: &Theme,
+    (family, requested_variant, part): (Family, Variant, Part),
+    flags: StateFlags,
+    overlays: &[Overlay],
+    surface: Surface,
+    defaults: StyleDefaults<'_>,
+    local: Option<&StylePatch>,
+) -> (Resolved, StylePatch, StylePatch) {
     let (mut acc, variant) = match theme.recipes.get(family) {
         Some(recipe) => apply_recipe(recipe, requested_variant, part, flags, defaults.base),
         None => (defaults.base, requested_variant),
@@ -916,6 +929,7 @@ pub fn bind_defaults_with_explicit(
     );
     acc = profiled;
     let mut exact_profile = ProfiledStyle::from_patch(exact_profile_patch);
+    let mut ownership = exact_profile_patch;
     if theme.capability.color == super::ColorLevel::Mono {
         let before_mono = acc;
         acc = super::downgrade::apply_mono_with_defaults(
@@ -930,6 +944,7 @@ pub fn bind_defaults_with_explicit(
         exact_profile.restore_profiled_channels(before_mono, &mut acc, targeted);
         exact_profile.retain_unchanged(before_mono, acc);
         exact_profile.suppress_targeted_exact_channels(targeted);
+        ownership = ownership.merge(targeted);
     }
     let explicit = apply_explicit(
         theme,
@@ -940,14 +955,17 @@ pub fn bind_defaults_with_explicit(
     );
     exact_profile.suppress(explicit);
     acc = acc.merge(explicit);
+    ownership = ownership.merge(explicit);
     if let Some(local) = local {
         exact_profile.suppress(*local);
+        ownership = ownership.merge(*local);
     }
     let resolved = bind_with_profile(theme, acc, local, surface, exact_profile);
-    ResolvedStyle {
+    (
         resolved,
-        explicit: local.map_or(explicit, |local| explicit.merge(*local)),
-    }
+        local.map_or(explicit, |local| explicit.merge(*local)),
+        ownership,
+    )
 }
 
 fn apply_explicit(

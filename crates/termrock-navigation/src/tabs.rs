@@ -4,6 +4,7 @@ use core::time::Duration;
 
 use ratatui_core::buffer::CellWidth;
 use ratatui_core::layout::{Position, Rect};
+use ratatui_core::style::Modifier;
 
 use super::{Acc, PartStyle, SlotFn, cell_at, first_row, paint_pressed_bracket};
 use crate::event::{Chord, KeyCode, KeyModifiers};
@@ -14,7 +15,7 @@ use crate::keymap::{Binding, BindingState, Bindings};
 use crate::list::{List, ListAction, ListState};
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
-use crate::theme::{Family, GlyphRole, Role, Slot, StyleDefaults, StylePatch, Variant};
+use crate::theme::{Family, FgStep, GlyphRole, Role, Slot, StyleDefaults, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, LayoutFacts, Ui};
 use termrock_collections::collection::{
     ByIndex, CollectionCore, DefaultRow, KeyFn, Reconcile, Reconciliation,
@@ -174,6 +175,35 @@ impl TabMarks {
         } else {
             None
         }
+    }
+}
+
+/// Optional semantic text placed before or after a planned default-row label.
+///
+/// Affixes are captured only by [`Tabs::item_affixes`] and are styled as
+/// [`Part::PREFIX`] and [`Part::META`] respectively. Tabs supplies one-cell
+/// separators around the affixes, so callers provide only their text.
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
+pub struct TabAffixes {
+    prefix: Option<String>,
+    suffix: Option<String>,
+}
+
+impl TabAffixes {
+    /// Set the optional text displayed before the original label.
+    #[must_use]
+    pub fn prefix(mut self, text: impl Into<String>) -> Self {
+        let text = text.into();
+        self.prefix = (!text.is_empty()).then_some(text);
+        self
+    }
+
+    /// Set the optional text displayed after the original label.
+    #[must_use]
+    pub fn suffix(mut self, text: impl Into<String>) -> Self {
+        let text = text.into();
+        self.suffix = (!text.is_empty()).then_some(text);
+        self
     }
 }
 
@@ -839,6 +869,53 @@ pub struct TabWindowReceipt {
     pub content_len: usize,
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+struct AffixSegment {
+    index: usize,
+    width: u16,
+}
+
+/// Segment boundaries and cell widths captured while the original Display is
+/// formatted. The indexes point into the composed public row segments, so the
+/// visible text and its semantic style spans share one snapshot.
+#[derive(Clone, PartialEq, Eq, Debug)]
+struct OwnedTabAffixes {
+    display_start: usize,
+    display_end: usize,
+    display_width: u16,
+    prefix: Option<AffixSegment>,
+    suffix: Option<AffixSegment>,
+}
+
+impl OwnedTabAffixes {
+    fn is_consistent(&self, label_segments: &[String]) -> bool {
+        if self.display_start > self.display_end || self.display_end > label_segments.len() {
+            return false;
+        }
+        let prefix_matches = match self.prefix {
+            Some(prefix) => {
+                prefix.index.saturating_add(2) == self.display_start
+                    && label_segments.get(prefix.index).is_some()
+                    && label_segments
+                        .get(prefix.index.saturating_add(1))
+                        .is_some_and(|gap| gap == " ")
+            }
+            None => self.display_start == 0,
+        };
+        let suffix_matches = match self.suffix {
+            Some(suffix) => {
+                suffix.index == self.display_end.saturating_add(1)
+                    && label_segments.get(suffix.index).is_some()
+                    && label_segments
+                        .get(self.display_end)
+                        .is_some_and(|gap| gap == " ")
+            }
+            None => self.display_end == label_segments.len(),
+        };
+        prefix_matches && suffix_matches
+    }
+}
+
 /// One immutable semantic row allocation for a [`TabLayout`].
 #[derive(Clone)]
 pub struct TabRowLayout {
@@ -862,6 +939,7 @@ pub struct TabRowLayout {
     mark: Option<TabItemMark>,
     close_enabled: bool,
     label_segments: Vec<String>,
+    affixes: Option<OwnedTabAffixes>,
     pub label_extent: u16,
 }
 
@@ -879,6 +957,7 @@ impl PartialEq for TabRowLayout {
             && self.visible_mark == other.visible_mark
             && self.mark == other.mark
             && self.label_segments == other.label_segments
+            && self.affixes == other.affixes
             && self.label_extent == other.label_extent
     }
 }
@@ -905,6 +984,40 @@ impl fmt::Debug for TabRowLayout {
     }
 }
 
+impl TabRowLayout {
+    fn affix_bounds(&self, part: Part) -> Option<(Rect, Rect)> {
+        let affixes = self.affixes.as_ref()?;
+        let (x, width) = match part {
+            Part::PREFIX => {
+                let prefix = affixes.prefix?;
+                (self.logical_content.x, prefix.width.saturating_add(1))
+            }
+            Part::META => {
+                let suffix = affixes.suffix?;
+                let prefix_width = affixes
+                    .prefix
+                    .map_or(0, |prefix| prefix.width.saturating_add(1));
+                (
+                    self.logical_content
+                        .x
+                        .saturating_add(prefix_width)
+                        .saturating_add(affixes.display_width),
+                    suffix.width.saturating_add(1),
+                )
+            }
+            _ => return None,
+        };
+        let logical = Rect {
+            x,
+            y: self.logical_content.y,
+            width,
+            height: 1,
+        }
+        .intersection(self.logical_content);
+        Some((logical, logical.intersection(self.visible_content)))
+    }
+}
+
 /// One item snapshot owned by a fresh planned default layout.
 #[derive(Clone, PartialEq, Eq, Debug)]
 struct OwnedTabMeasurement {
@@ -912,6 +1025,7 @@ struct OwnedTabMeasurement {
     mark: Option<TabItemMark>,
     close_enabled: bool,
     label_segments: Vec<String>,
+    affixes: Option<OwnedTabAffixes>,
 }
 
 /// One row's exact native allocation, before choosing how to retain it.
@@ -955,7 +1069,11 @@ impl DefaultRowGeometry {
         }
     }
 
-    fn into_tab_row(self, label_segments: Vec<String>) -> TabRowLayout {
+    fn into_tab_row(
+        self,
+        label_segments: Vec<String>,
+        affixes: Option<OwnedTabAffixes>,
+    ) -> TabRowLayout {
         TabRowLayout {
             key: self.key,
             index: self.index,
@@ -970,6 +1088,7 @@ impl DefaultRowGeometry {
             mark: self.mark,
             close_enabled: self.close_enabled,
             label_segments,
+            affixes,
             label_extent: self.label_extent,
         }
     }
@@ -1072,6 +1191,7 @@ pub struct TabLayout {
     new_area: Option<Rect>,
     status_area: Option<Rect>,
     item_marks_enabled: bool,
+    item_affixes_enabled: bool,
     right_limit: u16,
     hidden_right: usize,
     pub logical_area: Rect,
@@ -1117,6 +1237,7 @@ impl PartialEq for TabLayout {
             && self.new_area == other.new_area
             && self.status_area == other.status_area
             && self.item_marks_enabled == other.item_marks_enabled
+            && self.item_affixes_enabled == other.item_affixes_enabled
             && self.right_limit == other.right_limit
             && self.hidden_right == other.hidden_right
             && self.logical_area == other.logical_area
@@ -1240,6 +1361,11 @@ impl TabLayout {
                 .iter()
                 .find(|row| Some(row.key) == part.item)
                 .map(|row| (row.logical_tab, row.visible_tab)),
+            Part::PREFIX | Part::META => self
+                .rows
+                .iter()
+                .find(|row| Some(row.key) == part.item)
+                .and_then(|row| row.affix_bounds(part.part)),
             Part::CLOSE => self
                 .rows
                 .iter()
@@ -1301,6 +1427,12 @@ impl TabLayout {
                 item.key == row.key
                     && item.mark == row.mark
                     && item.close_enabled == row.close_enabled
+                    && item.label_segments == row.label_segments
+                    && item.affixes == row.affixes
+                    && item
+                        .affixes
+                        .as_ref()
+                        .is_none_or(|affixes| affixes.is_consistent(&item.label_segments))
             })
         });
         let more_matches = self.more_area.is_none_or(|more| {
@@ -1348,6 +1480,62 @@ impl fmt::Display for DisplaySegments<'_> {
         }
         Ok(())
     }
+}
+
+fn capture_label_affixes(
+    display_segments: Vec<String>,
+    affixes: TabAffixes,
+) -> (Vec<String>, Option<OwnedTabAffixes>) {
+    let prefix = affixes.prefix.and_then(|text| {
+        let width = crate::text::width(&text);
+        (width > 0).then_some((text, width))
+    });
+    let suffix = affixes.suffix.and_then(|text| {
+        let width = crate::text::width(&text);
+        (width > 0).then_some((text, width))
+    });
+    if prefix.is_none() && suffix.is_none() {
+        return (display_segments, None);
+    }
+    let display_width = display_segments.iter().fold(0_u16, |width, segment| {
+        width.saturating_add(crate::text::width(segment))
+    });
+
+    let extra_segments = usize::from(prefix.is_some()) * 2 + usize::from(suffix.is_some()) * 2;
+    let mut label_segments =
+        Vec::with_capacity(display_segments.len().saturating_add(extra_segments));
+    let prefix = prefix.map(|(text, width)| {
+        let segment = AffixSegment {
+            index: label_segments.len(),
+            width,
+        };
+        label_segments.push(text);
+        label_segments.push(" ".to_owned());
+        segment
+    });
+    let display_start = label_segments.len();
+    label_segments.extend(display_segments);
+    let display_end = label_segments.len();
+    let suffix = suffix.map(|(text, width)| {
+        label_segments.push(" ".to_owned());
+        let segment = AffixSegment {
+            index: label_segments.len(),
+            width,
+        };
+        label_segments.push(text);
+        segment
+    });
+
+    (
+        label_segments,
+        Some(OwnedTabAffixes {
+            display_start,
+            display_end,
+            display_width,
+            prefix,
+            suffix,
+        }),
+    )
 }
 
 enum TabsRenderSource<'a, T> {
@@ -1402,6 +1590,7 @@ pub struct Tabs<'a, T, K = ByIndex, R = DefaultRow> {
     passive_focused: bool,
     overflow_menu: bool,
     item_marks: Option<fn(&T) -> TabMarks>,
+    item_affixes: Option<fn(&T) -> TabAffixes>,
     ov: PartStyle<'a>,
     _t: PhantomData<fn(&T)>,
 }
@@ -1457,6 +1646,7 @@ impl<T> Tabs<'_, T, ByIndex, DefaultRow> {
             passive_focused: false,
             overflow_menu: true,
             item_marks: None,
+            item_affixes: None,
             ov: PartStyle::new(),
             _t: PhantomData,
         }
@@ -1468,6 +1658,7 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
         Part::CONTAINER,
         Part::TAB,
         Part::LABEL,
+        Part::PREFIX,
         Part::META,
         Part::CLOSE,
         Part::NEW,
@@ -1526,6 +1717,7 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
             passive_focused: self.passive_focused,
             overflow_menu: self.overflow_menu,
             item_marks: self.item_marks,
+            item_affixes: self.item_affixes,
             ov: self.ov,
             _t: PhantomData,
         }
@@ -1555,6 +1747,7 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
             passive_focused: self.passive_focused,
             overflow_menu: self.overflow_menu,
             item_marks: self.item_marks,
+            item_affixes: self.item_affixes,
             ov: self.ov,
             _t: PhantomData,
         }
@@ -2758,6 +2951,96 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
         termrock_runtime::author::patch_style(ui, area, icon.style, explicit);
     }
 
+    fn paint_item_affix(
+        &self,
+        ui: &mut Ui<'_>,
+        row: &TabRowLayout,
+        part: Part,
+        flags: StateFlags,
+        segment: AffixSegment,
+        tab_style: crate::theme::PaintStyle,
+    ) {
+        let Some((style_area, _)) = row.affix_bounds(part) else {
+            return;
+        };
+        let Some(text) = row.label_segments.get(segment.index).map(String::as_str) else {
+            return;
+        };
+        let text_x = match part {
+            Part::PREFIX => style_area.x,
+            Part::META => style_area.x.saturating_add(1),
+            _ => return,
+        };
+        let text_area = Rect {
+            x: text_x,
+            width: segment.width,
+            ..style_area
+        }
+        .intersection(style_area);
+        if style_area.is_empty() || text_area.is_empty() {
+            return;
+        }
+
+        let foreground = Role::Fg(if flags.contains(StateFlags::ACTIVE) {
+            FgStep::Secondary
+        } else {
+            FgStep::Muted
+        });
+        let defaults = StylePatch::new().set_fg(foreground).remove(Modifier::BOLD);
+        let local = self.ov.part_patch(part);
+        let (mut semantic, ownership) = ui.style_defaults_with_fallback_ownership(
+            Family::TABS,
+            Variant::DEFAULT,
+            part,
+            flags,
+            StyleDefaults::new(defaults),
+            local.as_ref(),
+        );
+
+        // META recipes provide the ordinary muted treatment. These semantic
+        // affixes instead use their active/inactive fallback unless a theme,
+        // capability profile, overlay, or instance patch owns the foreground.
+        // The resolved style stays canonical so profile-bound roles retain
+        // their capability-specific color.
+        if ownership.fg == Slot::Inherit {
+            semantic.style = semantic
+                .style
+                .patch(ui.paint_patch(&StylePatch::new().set_fg(foreground)));
+        }
+        // Affixes stay subordinate to the label by default. An authored BOLD
+        // addition is still authoritative, just like an owned foreground.
+        if !ownership.add.contains(Modifier::BOLD) {
+            semantic.style = semantic
+                .style
+                .patch(ui.paint_patch(&StylePatch::new().remove(Modifier::BOLD)));
+        }
+
+        self.ov
+            .note(ui, self.id, Family::TABS, Variant::DEFAULT, part, semantic);
+        let style = semantic.over(tab_style);
+        ui.paint_style(style_area, style);
+        let clip = ui.full();
+        paint_logical_text(ui, text_area, clip, text, style);
+    }
+
+    fn paint_planned_affixes(
+        &self,
+        ui: &mut Ui<'_>,
+        row: &TabRowLayout,
+        flags: StateFlags,
+        tab_style: crate::theme::PaintStyle,
+    ) {
+        let Some(affixes) = row.affixes.as_ref() else {
+            return;
+        };
+        if let Some(prefix) = affixes.prefix {
+            self.paint_item_affix(ui, row, Part::PREFIX, flags, prefix, tab_style);
+        }
+        if let Some(suffix) = affixes.suffix {
+            self.paint_item_affix(ui, row, Part::META, flags, suffix, tab_style);
+        }
+    }
+
     #[expect(
         clippy::too_many_lines,
         reason = "one shared paint pass consumes either legacy rows or an owned semantic layout"
@@ -3064,9 +3347,23 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                 match row_source {
                     TabsRowSource::Legacy(item) => self.row.row(item, &mut r),
                     TabsRowSource::Planned(row) => {
-                        r.label_fmt(format_args!("{}", DisplaySegments(&row.label_segments)));
+                        if row.affixes.is_none() {
+                            r.label_fmt(format_args!("{}", DisplaySegments(&row.label_segments)));
+                        }
                     }
                 }
+            }
+            if let TabsRowSource::Planned(row) = row_source
+                && row.affixes.is_some()
+            {
+                let label = ui.style(Family::TABS, Variant::DEFAULT, Part::LABEL, flags);
+                paint_logical_segments(
+                    ui,
+                    content,
+                    row.visible_content,
+                    &row.label_segments,
+                    label.style,
+                );
             }
             let label_w = match row_source {
                 TabsRowSource::Legacy(_) => painted_width(ui, content).max(1),
@@ -3116,6 +3413,9 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
             ui.fill(tail, strip.style);
             let ts = ov.style(ui, id, Family::TABS, Variant::DEFAULT, Part::TAB, flags);
             ui.paint_style(tab, ts.style);
+            if let TabsRowSource::Planned(row) = row_source {
+                self.paint_planned_affixes(ui, row, flags, ts.style);
+            }
 
             if flags.contains(StateFlags::PRESSED) {
                 let ls = ov.style(ui, id, Family::TABS, Variant::DEFAULT, Part::LABEL, flags);
@@ -3573,6 +3873,20 @@ fn item_mark_glyph_area(area: Rect, glyph_width: u16) -> Rect {
 }
 
 impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
+    /// Map each item to optional prefix and suffix text for fresh planned
+    /// default-row layouts.
+    ///
+    /// The mapper runs once for every item in each nonempty fresh plan,
+    /// including items outside the visible window. Its owned text is captured
+    /// with the original Display segments and reused for row geometry,
+    /// rendering, and the hidden-tabs menu. Empty-area plans do not invoke it.
+    /// The legacy custom-row renderer is unchanged.
+    #[must_use]
+    pub fn item_affixes(mut self, mapper: fn(&T) -> TabAffixes) -> Self {
+        self.item_affixes = Some(mapper);
+        self
+    }
+
     fn empty_default_layout(
         &self,
         area: Rect,
@@ -3619,6 +3933,7 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
             new_area: None,
             status_area: None,
             item_marks_enabled: self.item_marks.is_some(),
+            item_affixes_enabled: self.item_affixes.is_some(),
             right_limit: area.x,
             hidden_right: len.saturating_sub(first_index),
             logical_area: area,
@@ -3677,11 +3992,16 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
                 let close_enabled = self.close_enabled(key);
                 let mut writer = SegmentWriter(Vec::new());
                 let _ = fmt::write(&mut writer, format_args!("{item}"));
+                let affixes = self
+                    .item_affixes
+                    .map_or_else(TabAffixes::default, |mapper| mapper(item));
+                let (label_segments, affixes) = capture_label_affixes(writer.0, affixes);
                 OwnedTabMeasurement {
                     key,
                     mark,
                     close_enabled,
-                    label_segments: writer.0,
+                    label_segments,
+                    affixes,
                 }
             })
             .collect();
@@ -3988,12 +4308,16 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
                     .saturating_sub(if mark.is_some() { close_w } else { 0 }),
                 height: 1,
             };
-            let label_extent = semantic_label_extent_with_scratch(
-                &item.label_segments,
-                content,
-                clip,
-                extent_scratch,
-            )
+            let label_extent = if item.affixes.is_some() {
+                logical_label_extent(&item.label_segments, content)
+            } else {
+                semantic_label_extent_with_scratch(
+                    &item.label_segments,
+                    content,
+                    clip,
+                    extent_scratch,
+                )
+            }
             .max(1);
             let tab_w = 1u16
                 .saturating_add(label_extent)
@@ -4180,6 +4504,7 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
                 new_area: None,
                 status_area: None,
                 item_marks_enabled: self.item_marks.is_some(),
+                item_affixes_enabled: self.item_affixes.is_some(),
                 right_limit: area.x,
                 hidden_right: len.saturating_sub(first_index),
                 logical_area: area,
@@ -4198,7 +4523,8 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
             previous,
             extent_scratch,
             |row| {
-                rows.push(row.into_tab_row(items[row.index].label_segments.clone()));
+                let item = &items[row.index];
+                rows.push(row.into_tab_row(item.label_segments.clone(), item.affixes.clone()));
             },
         );
         TabLayout {
@@ -4238,6 +4564,7 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
             new_area: walk.new_area,
             status_area: walk.status_area,
             item_marks_enabled: self.item_marks.is_some(),
+            item_affixes_enabled: self.item_affixes.is_some(),
             right_limit: walk.right_limit,
             hidden_right: walk.hidden_right,
             logical_area: walk.used_area,
@@ -4274,6 +4601,7 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
             || layout.passive != self.passive
             || layout.passive_focused != self.passive_focused
             || layout.item_marks_enabled != self.item_marks.is_some()
+            || layout.item_affixes_enabled != self.item_affixes.is_some()
         {
             *ui.cache::<TabsMenuFrame>(self.id) = TabsMenuFrame::default();
             return Err(TabLayoutMismatch);
@@ -4312,6 +4640,83 @@ fn close_target_rect(tab: Rect, requested: Option<u16>) -> Option<Rect> {
 
 fn close_glyph_cell(tab: Rect) -> Rect {
     cell_at(tab, tab.right().saturating_sub(2))
+}
+
+/// Paint text at its captured logical cell positions instead of restarting it
+/// at the left edge when a nested Ui clip cuts through the text.
+fn paint_logical_text(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    clip: Rect,
+    text: &str,
+    style: crate::theme::PaintStyle,
+) {
+    let visible = area.intersection(clip).intersection(ui.full());
+    if visible.is_empty() || area.y < visible.y || area.y >= visible.bottom() {
+        return;
+    }
+
+    let mut x = area.x;
+    let area_right = area.right();
+    for (_, grapheme) in crate::text::measure::graphemes(text) {
+        let width = crate::text::measure::grapheme_width(grapheme);
+        if width == 0 {
+            continue;
+        }
+        let right = x.saturating_add(width);
+        // A clipped wide grapheme is left blank rather than reflowed to the
+        // clip edge. Later graphemes retain their captured logical positions.
+        if x >= visible.x && right <= visible.right() && right <= area_right {
+            ui.paint_str(Rect::new(x, area.y, width, 1), grapheme, style);
+        }
+        x = right;
+    }
+}
+
+fn paint_logical_segments(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    clip: Rect,
+    segments: &[String],
+    style: crate::theme::PaintStyle,
+) {
+    let mut x = area.x;
+    let area_right = area.right();
+    for segment in segments {
+        let width = crate::text::width(segment);
+        if width > 0 && x < area_right {
+            let segment_area = Rect::new(x, area.y, width.min(area_right.saturating_sub(x)), 1);
+            paint_logical_text(ui, segment_area, clip, segment, style);
+        }
+        x = x.saturating_add(width);
+    }
+}
+
+fn logical_label_extent(segments: &[String], content: Rect) -> u16 {
+    let content_right = content.right();
+    let mut x = content.x;
+    let mut last_nonblank_end = content.x;
+
+    'segments: for segment in segments {
+        for (_, grapheme) in crate::text::measure::graphemes(segment) {
+            let width = crate::text::measure::grapheme_width(grapheme);
+            if width == 0 {
+                continue;
+            }
+            let Some(remaining) = content_right.checked_sub(x) else {
+                break 'segments;
+            };
+            if width > remaining {
+                break 'segments;
+            }
+            x = x.saturating_add(width);
+            if grapheme != " " {
+                last_nonblank_end = x;
+            }
+        }
+    }
+
+    last_nonblank_end.saturating_sub(content.x)
 }
 
 // Preserve the allocating pre-v3 implementation as an independent test oracle.
@@ -6070,6 +6475,7 @@ mod tests {
                 mark,
                 close_enabled,
                 label_segments: item.label_segments.clone(),
+                affixes: item.affixes.clone(),
                 label_extent,
             });
             x = tab.right().saturating_add(1);
@@ -6088,12 +6494,14 @@ mod tests {
                     .into_iter()
                     .map(str::to_owned)
                     .collect(),
+                affixes: None,
             },
             OwnedTabMeasurement {
                 key: ItemKey::num(2),
                 mark: None,
                 close_enabled: false,
                 label_segments: ["wide label", " "].into_iter().map(str::to_owned).collect(),
+                affixes: None,
             },
             OwnedTabMeasurement {
                 key: ItemKey::num(3),
@@ -6103,18 +6511,21 @@ mod tests {
                     .into_iter()
                     .map(str::to_owned)
                     .collect(),
+                affixes: None,
             },
             OwnedTabMeasurement {
                 key: ItemKey::num(4),
                 mark: None,
                 close_enabled: true,
                 label_segments: ["", "  "].into_iter().map(str::to_owned).collect(),
+                affixes: None,
             },
             OwnedTabMeasurement {
                 key: ItemKey::num(5),
                 mark: Some(TabItemMark::Done),
                 close_enabled: false,
                 label_segments: ["last", "界", " "].into_iter().map(str::to_owned).collect(),
+                affixes: None,
             },
         ];
         let tabs = Tabs::<&str>::new(TABS)
@@ -6160,20 +6571,22 @@ mod tests {
                         preimage_default_rows(&tabs, area, clip, &items, first_index, previous);
                     let mut emitted = Vec::new();
                     let mut emitted_geometry = Vec::new();
-                    let walk = tabs.walk_default_owned(
-                        area,
-                        clip,
-                        &items,
-                        first_index,
-                        previous,
-                        &mut scratch,
-                        |geometry| {
-                            emitted_geometry.push(geometry);
-                            emitted.push(
-                                geometry.into_tab_row(items[geometry.index].label_segments.clone()),
-                            );
-                        },
-                    );
+                    let walk =
+                        tabs.walk_default_owned(
+                            area,
+                            clip,
+                            &items,
+                            first_index,
+                            previous,
+                            &mut scratch,
+                            |geometry| {
+                                emitted_geometry.push(geometry);
+                                emitted.push(geometry.into_tab_row(
+                                    items[geometry.index].label_segments.clone(),
+                                    None,
+                                ));
+                            },
+                        );
                     assert_eq!(
                         emitted, expected,
                         "rows differ for clip={clip:?}, first={first_index}, receipt={previous:?}"
@@ -6233,6 +6646,7 @@ mod tests {
                     .iter()
                     .map(|segment| (*segment).to_owned())
                     .collect(),
+                affixes: None,
             })
             .collect()
     }
@@ -6692,6 +7106,7 @@ mod tests {
                 mark: None,
                 close_enabled: false,
                 label_segments: vec!["x".to_owned()],
+                affixes: None,
             }));
 
             let positive_budget = tabs.default_row_header(area, 1, None).available_width();
@@ -6769,6 +7184,7 @@ mod tests {
                 mark: None,
                 close_enabled: false,
                 label_segments: vec!["x".to_owned()],
+                affixes: None,
             }));
 
             let reserve_more = tabs.more_lane_fits(area, clip, 1, None);
@@ -7104,6 +7520,7 @@ mod tests {
                 mark: None,
                 close_enabled: false,
                 label_segments: vec![label.clone()],
+                affixes: None,
             })
             .collect::<Vec<_>>();
         let mut scratch = Vec::new();
