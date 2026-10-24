@@ -766,9 +766,9 @@ fn raw_dispatch_child() -> Pty {
 fn finish_raw_dispatch_child(mut pty: Pty, expected: &[&str], sent: &[u8]) {
     let expected_line = format!("R11_ACTIONS={expected:?}");
     pty.send(&[0x11]);
-    pty.wait_for("the complete expected action summary", |text| {
-        text.contains(&expected_line)
-    });
+    let wait_label =
+        format!("the complete expected action summary {expected_line} for raw bytes {sent:?}");
+    pty.wait_for(&wait_label, |text| text.contains(&expected_line));
     let code = pty.wait_exit();
     let output = pty.text();
     assert_eq!(
