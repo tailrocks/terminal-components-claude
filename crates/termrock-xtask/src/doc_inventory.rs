@@ -239,27 +239,30 @@ fn scan_cargo_inventory(
         if let Some(targets) = package.get("targets").and_then(serde_json::Value::as_array) {
             report.target_count += targets.len();
             for target in targets {
-                let target_path = target
-                    .get("src_path")
-                    .and_then(serde_json::Value::as_str)
-                    .and_then(|path| Path::new(path).strip_prefix(root).ok());
-                let Some(target_path) = target_path else {
-                    report.issues.push(issue(
+                let target_path = match cargo_target_src_path(target) {
+                    Ok(path) => path,
+                    Err(detail) => {
+                        report.issues.push(issue(
+                            &manifest,
+                            1,
+                            format!("Cargo target source metadata is invalid: {detail}"),
+                        ));
+                        continue;
+                    }
+                };
+                match resolve_cargo_target_source(root, target_path, tracked) {
+                    Ok(paths) => {
+                        // Keep both spellings: includes are relative to the declared alias,
+                        // while the physical path is an independently tracked source root.
+                        source_paths.insert(paths.declared);
+                        source_paths.insert(paths.physical);
+                    }
+                    Err(detail) => report.issues.push(issue(
                         &manifest,
                         1,
-                        "Cargo target source is missing or outside the workspace root",
-                    ));
-                    continue;
-                };
-                let target_path = slash_path(target_path);
-                if !tracked.contains(&target_path) || !root.join(&target_path).is_file() {
-                    report.issues.push(issue(
-                        &target_path,
-                        1,
-                        "Cargo target source is absent from the tracked source inventory",
-                    ));
+                        format!("Cargo target source `{target_path}` is invalid: {detail}"),
+                    )),
                 }
-                source_paths.insert(target_path);
             }
         }
         match package.get("readme") {
@@ -307,6 +310,166 @@ fn scan_cargo_inventory(
         ));
     }
     source_paths
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct CargoTargetPaths {
+    declared: String,
+    physical: String,
+}
+
+fn cargo_target_src_path(target: &serde_json::Value) -> Result<&str, String> {
+    match target.get("src_path") {
+        Some(serde_json::Value::String(path)) => Ok(path),
+        Some(serde_json::Value::Null) => Err("`src_path` is null".to_string()),
+        Some(_) => Err("`src_path` is not a string".to_string()),
+        None => Err("`src_path` is missing".to_string()),
+    }
+}
+
+fn resolve_cargo_target_source(
+    root: &Path,
+    source: &str,
+    tracked: &BTreeSet<String>,
+) -> Result<CargoTargetPaths, String> {
+    let canonical_root = root
+        .canonicalize()
+        .map_err(|error| format!("workspace root cannot be resolved: {error}"))?;
+    let source_path = Path::new(source);
+    if !source_path.is_absolute() {
+        return Err("`src_path` is not absolute".to_string());
+    }
+    let relative = source_path
+        .strip_prefix(root)
+        .or_else(|_| source_path.strip_prefix(&canonical_root))
+        .map_err(|_| "absolute path is outside the workspace root".to_string())?;
+    let normalized_relative = normalize_workspace_relative(relative)?;
+    let declared = workspace_git_key(&normalized_relative)?;
+    if !tracked.contains(&declared) {
+        return Err(format!("declared source `{declared}` is not tracked"));
+    }
+
+    let physical_path = source_path
+        .canonicalize()
+        .map_err(|error| format!("declared source `{declared}` cannot be resolved: {error}"))?;
+    if !physical_path.starts_with(&canonical_root) {
+        return Err(format!(
+            "declared source `{declared}` resolves outside the workspace root to `{}`",
+            physical_path.display()
+        ));
+    }
+    if !physical_path.is_file() {
+        return Err(format!(
+            "declared source `{declared}` is not a regular file"
+        ));
+    }
+
+    let normalized_path = canonical_root.join(&normalized_relative);
+    let normalized_physical = normalized_path
+        .canonicalize()
+        .map_err(|error| format!("normalized source `{declared}` cannot be resolved: {error}"))?;
+    if normalized_physical != physical_path {
+        return Err(format!(
+            "original path resolves to `{}` but normalized path resolves to `{}`; source identity is ambiguous",
+            physical_path.display(),
+            normalized_physical.display()
+        ));
+    }
+
+    let physical_relative = physical_path.strip_prefix(&canonical_root).map_err(|_| {
+        format!(
+            "physical source `{}` is outside the workspace",
+            physical_path.display()
+        )
+    })?;
+    let physical = workspace_git_key(physical_relative)?;
+    if !tracked.contains(&physical) {
+        return Err(format!("physical source `{physical}` is not tracked"));
+    }
+    std::fs::File::open(source_path)
+        .map_err(|error| format!("declared source `{declared}` cannot be read: {error}"))?;
+
+    Ok(CargoTargetPaths { declared, physical })
+}
+
+fn resolve_rust_input(
+    root: &Path,
+    canonical_root: &Path,
+    relative: &str,
+    tracked: &BTreeSet<String>,
+) -> Result<CargoTargetPaths, String> {
+    let relative_path = Path::new(relative);
+    if relative_path.is_absolute() {
+        return Err("Rust source root is not workspace-relative".to_string());
+    }
+    let normalized_relative = normalize_workspace_relative(relative_path)?;
+    let declared = workspace_git_key(&normalized_relative)?;
+    if declared != relative {
+        return Err(format!(
+            "Rust source root `{relative}` is not in normalized workspace form"
+        ));
+    }
+    if !tracked.contains(&declared) {
+        return Err(format!("declared source `{declared}` is not tracked"));
+    }
+
+    let source_path = root.join(&normalized_relative);
+    let physical_path = source_path
+        .canonicalize()
+        .map_err(|error| format!("declared source `{declared}` cannot be resolved: {error}"))?;
+    if !physical_path.starts_with(canonical_root) {
+        return Err(format!(
+            "declared source `{declared}` resolves outside the workspace root to `{}`",
+            physical_path.display()
+        ));
+    }
+    if !physical_path.is_file() {
+        return Err(format!(
+            "declared source `{declared}` is not a regular file"
+        ));
+    }
+    let normalized_physical = canonical_root
+        .join(&normalized_relative)
+        .canonicalize()
+        .map_err(|error| format!("normalized source `{declared}` cannot be resolved: {error}"))?;
+    if normalized_physical != physical_path {
+        return Err(format!(
+            "original path resolves to `{}` but normalized path resolves to `{}`; source identity is ambiguous",
+            physical_path.display(),
+            normalized_physical.display()
+        ));
+    }
+    let physical_relative = physical_path.strip_prefix(canonical_root).map_err(|_| {
+        format!(
+            "physical source `{}` is outside the workspace",
+            physical_path.display()
+        )
+    })?;
+    let physical = workspace_git_key(physical_relative)?;
+    if !tracked.contains(&physical) {
+        return Err(format!("physical source `{physical}` is not tracked"));
+    }
+    std::fs::File::open(source_path)
+        .map_err(|error| format!("declared source `{declared}` cannot be read: {error}"))?;
+
+    Ok(CargoTargetPaths { declared, physical })
+}
+
+fn workspace_git_key(path: &Path) -> Result<String, String> {
+    let mut components = Vec::new();
+    for component in path.components() {
+        let Component::Normal(part) = component else {
+            return Err("path is not a normalized workspace-relative path".to_string());
+        };
+        components.push(
+            part.to_str()
+                .ok_or_else(|| "workspace path is not valid UTF-8".to_string())?,
+        );
+    }
+    if components.is_empty() {
+        return Err("path does not name a file".to_string());
+    }
+    Ok(components.join("/"))
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -438,6 +601,17 @@ fn scan_rust_inputs(
             ));
             continue;
         }
+        let paths = match resolve_rust_input(root, &canonical_root, &relative, tracked) {
+            Ok(paths) => paths,
+            Err(detail) => {
+                report.issues.push(issue(
+                    &relative,
+                    1,
+                    format!("Rust source root is invalid: {detail}"),
+                ));
+                continue;
+            }
+        };
         let source = match std::fs::read_to_string(root.join(&relative)) {
             Ok(source) => source,
             Err(error) => {
@@ -449,6 +623,9 @@ fn scan_rust_inputs(
                 continue;
             }
         };
+        if paths.physical != relative {
+            pending.push(paths.physical);
+        }
         scan_rust_source(&relative, &source, report);
         for include in include_literals(&source) {
             let (line, included) = match include {
@@ -481,7 +658,27 @@ fn scan_rust_inputs(
                 ));
                 continue;
             };
-            let canonical_relative = slash_path(canonical_relative);
+            if !canonical.is_file() {
+                report.issues.push(issue(
+                    &relative,
+                    line,
+                    format!("include! input {included:?} is not a regular file"),
+                ));
+                continue;
+            }
+            let canonical_relative = match workspace_git_key(canonical_relative) {
+                Ok(path) => path,
+                Err(detail) => {
+                    report.issues.push(issue(
+                        &relative,
+                        line,
+                        format!(
+                            "include! input {included:?} has invalid workspace identity: {detail}"
+                        ),
+                    ));
+                    continue;
+                }
+            };
             if !tracked.contains(&canonical_relative) {
                 report.issues.push(issue(
                     &canonical_relative,
@@ -1357,7 +1554,10 @@ pub fn inspect_fixture(path: &str, source: &str) -> Vec<Issue> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Issue, PackageReadmePaths, Report, resolve_package_readme, scan_rust_inputs};
+    use super::{
+        CargoTargetPaths, Issue, PackageReadmePaths, Report, cargo_target_src_path,
+        resolve_cargo_target_source, resolve_package_readme, scan_rust_inputs, workspace_git_key,
+    };
     use std::collections::BTreeSet;
     use std::fs;
 
@@ -1599,6 +1799,490 @@ mod tests {
                     .to_str()
                     .expect("UTF-8 path")
             )
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn workspace_git_keys_reject_non_utf8_components() {
+        use std::ffi::OsStr;
+        use std::os::unix::ffi::OsStrExt;
+
+        let path = std::path::Path::new(OsStr::from_bytes(b"source-\xff.rs"));
+        assert!(
+            workspace_git_key(path)
+                .expect_err("non-UTF8 workspace component")
+                .contains("not valid UTF-8")
+        );
+    }
+
+    #[test]
+    fn cargo_target_metadata_requires_a_string_source_path() {
+        for target in [
+            serde_json::json!({}),
+            serde_json::json!({"src_path": null}),
+            serde_json::json!({"src_path": 7}),
+            serde_json::json!({"src_path": []}),
+        ] {
+            assert!(
+                cargo_target_src_path(&target).is_err(),
+                "accepted malformed target metadata: {target}"
+            );
+        }
+        assert_eq!(
+            cargo_target_src_path(&serde_json::json!({"src_path": "/tmp/source.rs"}))
+                .expect("string source path"),
+            "/tmp/source.rs"
+        );
+    }
+
+    #[test]
+    fn cargo_target_paths_normalize_siblings_and_accept_canonical_absolute_paths() {
+        let root = tempfile::tempdir().expect("workspace root");
+        let mut tracked = BTreeSet::new();
+        fs::create_dir_all(root.path().join("crates/visual-harness"))
+            .expect("target package directory");
+        let paths = [
+            "../showcase/src/main.rs",
+            "../tablepro/src/main.rs",
+            "../jackin-preview/src/main.rs",
+            "../holla/src/main.rs",
+        ];
+        for path in paths {
+            let target = root.path().join("crates/visual-harness").join(path);
+            fs::create_dir_all(target.parent().expect("target parent")).expect("target directory");
+            fs::write(&target, "fn main() {}\n").expect("target source");
+            let name = path.split('/').nth(1).expect("sibling package name");
+            tracked.insert(format!("crates/{name}/src/main.rs"));
+            let resolved = resolve_cargo_target_source(
+                root.path(),
+                target.to_str().expect("absolute UTF-8 target"),
+                &tracked,
+            )
+            .expect("tracked sibling target");
+            let expected = format!("crates/{name}/src/main.rs");
+            assert_eq!(
+                resolved,
+                CargoTargetPaths {
+                    declared: expected.clone(),
+                    physical: expected,
+                }
+            );
+        }
+
+        let canonical_root = root.path().canonicalize().expect("canonical root");
+        let dotted = root
+            .path()
+            .join("crates/visual-harness/./../showcase/src/main.rs");
+        assert_eq!(
+            resolve_cargo_target_source(
+                root.path(),
+                dotted.to_str().expect("dotted UTF-8 target"),
+                &tracked,
+            )
+            .expect("CurDir and ParentDir source path")
+            .declared,
+            "crates/showcase/src/main.rs"
+        );
+        let canonical = canonical_root.join("crates/showcase/src/main.rs");
+        assert_eq!(
+            resolve_cargo_target_source(
+                root.path(),
+                canonical.to_str().expect("canonical UTF-8 target"),
+                &tracked,
+            )
+            .expect("canonical absolute source"),
+            CargoTargetPaths {
+                declared: "crates/showcase/src/main.rs".to_string(),
+                physical: "crates/showcase/src/main.rs".to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn cargo_target_rejects_escape_missing_untracked_and_non_file_sources() {
+        let root = tempfile::tempdir().expect("workspace root");
+        let tracked_file = root.path().join("crates/showcase/src/main.rs");
+        fs::create_dir_all(tracked_file.parent().expect("target parent"))
+            .expect("target directory");
+        fs::write(&tracked_file, "fn main() {}\n").expect("target source");
+        let canonical_root = root.path().canonicalize().expect("canonical root");
+        let key = "crates/showcase/src/main.rs".to_string();
+
+        assert!(
+            resolve_cargo_target_source(
+                root.path(),
+                "crates/showcase/src/main.rs",
+                &BTreeSet::from([key.clone()]),
+            )
+            .expect_err("relative source path")
+            .contains("not absolute")
+        );
+        let escaped_absolute = root.path().join("../../outside.rs");
+        assert!(
+            resolve_cargo_target_source(
+                root.path(),
+                escaped_absolute.to_str().expect("escaped UTF-8 path"),
+                &BTreeSet::from([key.clone()]),
+            )
+            .expect_err("parent traversal leaves workspace")
+            .contains("escapes the workspace root")
+        );
+        let outside = tempfile::tempdir().expect("outside root");
+        let outside_source = outside.path().join("main.rs");
+        fs::write(&outside_source, "fn outside() {}\n").expect("outside source");
+        assert!(
+            resolve_cargo_target_source(
+                root.path(),
+                outside_source.to_str().expect("outside UTF-8 path"),
+                &BTreeSet::from([key.clone()]),
+            )
+            .expect_err("absolute outside path")
+            .contains("outside the workspace root")
+        );
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::symlink;
+
+            let outside_alias = outside.path().join("alias-to-inside.rs");
+            symlink(&tracked_file, &outside_alias).expect("outside alias to in-workspace source");
+            assert!(
+                resolve_cargo_target_source(
+                    root.path(),
+                    outside_alias.to_str().expect("outside alias UTF-8 path"),
+                    &BTreeSet::from([key.clone()]),
+                )
+                .expect_err("outside spelling is rejected even when it resolves inside")
+                .contains("outside the workspace root")
+            );
+        }
+        assert!(
+            resolve_cargo_target_source(
+                root.path(),
+                canonical_root
+                    .join("crates/showcase/src/missing.rs")
+                    .to_str()
+                    .expect("missing UTF-8 path"),
+                &BTreeSet::from(["crates/showcase/src/missing.rs".to_string()]),
+            )
+            .expect_err("tracked but missing target")
+            .contains("cannot be resolved")
+        );
+        assert!(
+            resolve_cargo_target_source(
+                root.path(),
+                tracked_file.to_str().expect("target UTF-8 path"),
+                &BTreeSet::new(),
+            )
+            .expect_err("untracked target")
+            .contains("declared source `crates/showcase/src/main.rs` is not tracked")
+        );
+
+        let directory = root.path().join("crates/showcase/src/directory.rs");
+        fs::create_dir_all(&directory).expect("directory with Rust-looking suffix");
+        assert!(
+            resolve_cargo_target_source(
+                root.path(),
+                directory.to_str().expect("directory UTF-8 path"),
+                &BTreeSet::from(["crates/showcase/src/directory.rs".to_string()]),
+            )
+            .expect_err("target source must be a regular file")
+            .contains("not a regular file")
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn cargo_target_symlinks_require_tracked_alias_and_physical_source() {
+        use std::os::unix::fs::symlink;
+
+        let root = tempfile::tempdir().expect("workspace root");
+        let package = root.path().join("crates/showcase/src");
+        fs::create_dir_all(&package).expect("source directory");
+        fs::write(package.join("main.rs"), "fn main() {}\n").expect("physical source");
+        symlink("main.rs", package.join("alias.rs")).expect("tracked direct alias");
+        let root_path = root.path().canonicalize().expect("canonical root");
+        let tracked = BTreeSet::from([
+            "crates/showcase/src/alias.rs".to_string(),
+            "crates/showcase/src/main.rs".to_string(),
+        ]);
+        assert_eq!(
+            resolve_cargo_target_source(
+                &root_path,
+                root_path
+                    .join("crates/showcase/src/alias.rs")
+                    .to_str()
+                    .expect("alias UTF-8 path"),
+                &tracked,
+            )
+            .expect("tracked alias and physical source"),
+            CargoTargetPaths {
+                declared: "crates/showcase/src/alias.rs".to_string(),
+                physical: "crates/showcase/src/main.rs".to_string(),
+            }
+        );
+
+        symlink("main.rs", package.join("alias-untracked.rs"))
+            .expect("untracked alias to tracked source");
+        assert!(
+            resolve_cargo_target_source(
+                &root_path,
+                root_path
+                    .join("crates/showcase/src/alias-untracked.rs")
+                    .to_str()
+                    .expect("alias UTF-8 path"),
+                &tracked,
+            )
+            .expect_err("alias itself must be tracked")
+            .contains("declared source `crates/showcase/src/alias-untracked.rs` is not tracked")
+        );
+
+        fs::write(package.join("untracked.rs"), "fn untracked() {}\n")
+            .expect("untracked physical source");
+        symlink("untracked.rs", package.join("alias-to-untracked.rs"))
+            .expect("tracked alias to untracked source");
+        let tracked_alias =
+            BTreeSet::from(["crates/showcase/src/alias-to-untracked.rs".to_string()]);
+        assert!(
+            resolve_cargo_target_source(
+                &root_path,
+                root_path
+                    .join("crates/showcase/src/alias-to-untracked.rs")
+                    .to_str()
+                    .expect("alias UTF-8 path"),
+                &tracked_alias,
+            )
+            .expect_err("physical target must be tracked")
+            .contains("physical source `crates/showcase/src/untracked.rs` is not tracked")
+        );
+
+        symlink("missing.rs", package.join("dangling.rs")).expect("dangling alias");
+        assert!(
+            resolve_cargo_target_source(
+                &root_path,
+                root_path
+                    .join("crates/showcase/src/dangling.rs")
+                    .to_str()
+                    .expect("dangling UTF-8 path"),
+                &BTreeSet::from(["crates/showcase/src/dangling.rs".to_string()]),
+            )
+            .expect_err("dangling source alias")
+            .contains("cannot be resolved")
+        );
+
+        let outside = tempfile::tempdir().expect("outside directory");
+        let outside_source = outside.path().join("outside.rs");
+        fs::write(
+            &outside_source,
+            "/// ```rust\n/// fn outside() {}\n/// ```\n",
+        )
+        .expect("outside canary source");
+        symlink(&outside_source, package.join("escape.rs")).expect("outside source alias");
+        let escape = root_path.join("crates/showcase/src/escape.rs");
+        assert!(
+            resolve_cargo_target_source(
+                &root_path,
+                escape.to_str().expect("escape UTF-8 path"),
+                &BTreeSet::from(["crates/showcase/src/escape.rs".to_string()]),
+            )
+            .expect_err("outside symlink is rejected")
+            .contains("resolves outside the workspace root")
+        );
+        let mut report = Report::default();
+        scan_rust_inputs(
+            &root_path,
+            BTreeSet::from(["crates/showcase/src/escape.rs".to_string()]),
+            &BTreeSet::from(["crates/showcase/src/escape.rs".to_string()]),
+            &mut report,
+        );
+        assert!(
+            report.issues.iter().any(|issue| {
+                issue.path == "crates/showcase/src/escape.rs"
+                    && issue.detail.contains("outside the workspace root")
+            }),
+            "escape was not rejected before source reading: {:?}",
+            report.issues
+        );
+        assert!(
+            !report
+                .issues
+                .iter()
+                .any(|issue| issue.detail.contains("unregistered Rust documentation")),
+            "outside canary contents were scanned: {:?}",
+            report.issues
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn cargo_target_rejects_symlink_then_parent_source_ambiguity() {
+        use std::os::unix::fs::symlink;
+
+        let root = tempfile::tempdir().expect("workspace root");
+        let root_path = root.path().canonicalize().expect("canonical root");
+        fs::create_dir_all(root_path.join("a")).expect("lexical directory");
+        fs::create_dir_all(root_path.join("b/nested")).expect("symlink target directory");
+        fs::write(root_path.join("a/source.rs"), "fn lexical_decoy() {}\n")
+            .expect("lexically normalized source");
+        fs::write(root_path.join("b/source.rs"), "fn resolved_source() {}\n")
+            .expect("physically resolved source");
+        symlink("../b/nested", root_path.join("a/jump")).expect("symlink changes parent traversal");
+        let original = root_path.join("a/jump/../source.rs");
+        let tracked = BTreeSet::from(["a/source.rs".to_string(), "b/source.rs".to_string()]);
+        let detail = resolve_cargo_target_source(
+            &root_path,
+            original.to_str().expect("UTF-8 ambiguous source"),
+            &tracked,
+        )
+        .expect_err("symlink-before-parent path is ambiguous");
+        assert!(
+            detail.contains("source identity is ambiguous"),
+            "wrong ambiguity rejection: {detail}"
+        );
+        assert!(detail.contains("b/source.rs") && detail.contains("a/source.rs"));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn includes_reject_untracked_and_outside_files_without_scanning_outside_content() {
+        use std::os::unix::fs::symlink;
+
+        let root = tempfile::tempdir().expect("workspace root");
+        fs::create_dir_all(root.path().join("src")).expect("source directory");
+        fs::write(
+            root.path().join("src/lib.rs"),
+            "include!(\"untracked.inc\");\ninclude!(\"escape.inc\");\n",
+        )
+        .expect("source with include paths");
+        fs::write(root.path().join("src/untracked.inc"), "fn untracked() {}\n")
+            .expect("untracked included file");
+        let outside = tempfile::tempdir().expect("outside directory");
+        fs::write(
+            outside.path().join("outside.inc"),
+            "/// ```rust\n/// fn outside_include_example() {}\n/// ```\n",
+        )
+        .expect("outside include canary");
+        symlink(
+            outside.path().join("outside.inc"),
+            root.path().join("src/escape.inc"),
+        )
+        .expect("outside include alias");
+        let tracked = BTreeSet::from(["src/lib.rs".to_string(), "src/escape.inc".to_string()]);
+        let mut report = Report::default();
+        scan_rust_inputs(
+            root.path(),
+            BTreeSet::from(["src/lib.rs".to_string()]),
+            &tracked,
+            &mut report,
+        );
+        assert!(
+            report.issues.iter().any(|issue| {
+                issue.path == "src/untracked.inc" && issue.detail.contains("not tracked")
+            }),
+            "untracked include was not rejected: {:?}",
+            report.issues
+        );
+        assert!(
+            report.issues.iter().any(|issue| {
+                issue.path == "src/lib.rs"
+                    && issue.detail.contains("resolves outside the workspace")
+            }),
+            "outside include was not rejected: {:?}",
+            report.issues
+        );
+        let documentation_issues = report
+            .issues
+            .iter()
+            .filter(|issue| {
+                issue
+                    .detail
+                    .contains("unregistered Rust documentation example")
+            })
+            .collect::<Vec<_>>();
+        assert!(
+            documentation_issues.is_empty(),
+            "outside include produced a Rust documentation issue: {:?}",
+            documentation_issues
+        );
+        assert_eq!(
+            report.issues.len(),
+            2,
+            "expected only the untracked and outside-include rejections: {:?}",
+            report.issues
+        );
+        assert!(
+            report.issues.iter().any(|issue| {
+                issue.path == "src/untracked.inc"
+                    && issue.line == 1
+                    && issue.detail == "include! input is not tracked"
+            }),
+            "untracked include rejection changed: {:?}",
+            report.issues
+        );
+        assert!(
+            report.issues.iter().any(|issue| {
+                issue.path == "src/lib.rs"
+                    && issue.line == 2
+                    && issue.detail
+                        == r#"include! input "escape.inc" resolves outside the workspace"#
+            }),
+            "outside include rejection changed: {:?}",
+            report.issues
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn scanned_symlink_source_keeps_alias_relative_include_context() {
+        use std::os::unix::fs::symlink;
+
+        let root = tempfile::tempdir().expect("workspace root");
+        let crate_dir = root.path().join("crate");
+        fs::create_dir_all(crate_dir.join("physical")).expect("physical source directory");
+        fs::write(
+            crate_dir.join("physical/main.rs"),
+            "include!(\"part.inc\");\n",
+        )
+        .expect("physical target source");
+        symlink("physical/main.rs", crate_dir.join("alias.rs")).expect("source alias");
+        fs::write(
+            crate_dir.join("part.inc"),
+            "/// ```rust\n/// fn alias_relative_example() {}\n/// ```\n",
+        )
+        .expect("alias-relative included input");
+        fs::write(
+            crate_dir.join("physical/part.inc"),
+            "/// ```rust\n/// fn physical_relative_example() {}\n/// ```\n",
+        )
+        .expect("physical-relative included input");
+        let tracked = BTreeSet::from([
+            "crate/alias.rs".to_string(),
+            "crate/physical/main.rs".to_string(),
+            "crate/part.inc".to_string(),
+            "crate/physical/part.inc".to_string(),
+        ]);
+        let mut report = Report::default();
+        scan_rust_inputs(
+            root.path(),
+            BTreeSet::from(["crate/alias.rs".to_string()]),
+            &tracked,
+            &mut report,
+        );
+        assert!(
+            report.issues.iter().any(|issue| {
+                issue.path == "crate/part.inc"
+                    && issue.detail.contains("unregistered Rust documentation")
+            }),
+            "alias-relative include was lost: {:?}",
+            report.issues
+        );
+        assert!(
+            report.issues.iter().any(|issue| {
+                issue.path == "crate/physical/part.inc"
+                    && issue.detail.contains("unregistered Rust documentation")
+            }),
+            "physical-source include was lost: {:?}",
+            report.issues
         );
     }
 }

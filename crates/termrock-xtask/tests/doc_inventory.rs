@@ -57,6 +57,74 @@ fn package_readme_fixture(readme: &str) -> tempfile::TempDir {
     root
 }
 
+fn cargo_targets_fixture(targets: &[(&str, &str, &str)]) -> tempfile::TempDir {
+    let root = tempfile::tempdir().expect("temporary workspace");
+    let package = root.path().join("crates/visual-harness");
+    fs::create_dir_all(&package).expect("fixture package directory");
+    fs::write(
+        root.path().join("Cargo.toml"),
+        "[workspace]\nresolver = \"3\"\nmembers = [\"crates/visual-harness\"]\n",
+    )
+    .expect("workspace manifest");
+    fs::write(
+        root.path().join("Cargo.lock"),
+        "version = 4\n\n[[package]]\nname = \"doc-target-fixture\"\nversion = \"0.1.0\"\n",
+    )
+    .expect("workspace lockfile");
+
+    let mut manifest = String::from(
+        "[package]\nname = \"doc-target-fixture\"\nversion = \"0.1.0\"\nedition = \"2024\"\nautobins = false\nreadme = false\n",
+    );
+    for &(name, path, source) in targets {
+        manifest.push_str(&format!(
+            "\n[[bin]]\nname = \"{name}\"\npath = \"{path}\"\n"
+        ));
+        let target_path = package.join(path);
+        fs::create_dir_all(target_path.parent().expect("target parent")).expect("target directory");
+        fs::write(target_path, source).expect("target source");
+    }
+    fs::write(package.join("Cargo.toml"), manifest).expect("package manifest");
+
+    let reviewed_ignore = root.path().join("crates/termrock-runtime/src/ui/paint.rs");
+    fs::create_dir_all(reviewed_ignore.parent().expect("ignore parent"))
+        .expect("reviewed-ignore directory");
+    fs::write(
+        reviewed_ignore,
+        "/// ```ignore\n/// let view = ScrollRegion::view(st.core.scroll(), content, visible_len);\n/// ui.fade_picker_overflow(content, &view);\n/// ```\n",
+    )
+    .expect("reviewed illustrative ignore");
+
+    let init = Command::new("git")
+        .args(["init", "--quiet"])
+        .current_dir(root.path())
+        .output()
+        .expect("initialize Cargo target fixture");
+    assert!(init.status.success(), "git init failed: {init:?}");
+    let add = Command::new("git")
+        .args(["add", "--all"])
+        .current_dir(root.path())
+        .output()
+        .expect("track Cargo target fixture");
+    assert!(add.status.success(), "git add failed: {add:?}");
+    root
+}
+
+fn cargo_target_admission_issues(
+    report: &termrock_xtask::doc_inventory::Report,
+) -> Vec<&termrock_xtask::doc_inventory::Issue> {
+    report
+        .issues
+        .iter()
+        .filter(|issue| {
+            issue.detail.contains("Cargo target source")
+                || issue.detail.contains("Rust source root is invalid")
+                || issue
+                    .detail
+                    .contains("Rust source or include input is not tracked")
+        })
+        .collect()
+}
+
 fn package_readme_issue(report: &termrock_xtask::doc_inventory::Report) -> bool {
     report.issues.iter().any(|issue| {
         issue.path == "tools/refactor-proof/Cargo.toml" && issue.detail.contains("package README")
@@ -409,4 +477,107 @@ fn inner_and_outer_block_doc_examples_survive_nested_comments() {
 
     let ordinary = "/*\n * ```rust\n * fn ordinary_comment() {}\n * ```\n */";
     assert!(inspect_fixture("src/lib.rs", ordinary).is_empty());
+}
+
+#[test]
+fn shared_sibling_cargo_targets_are_normalized_and_still_scanned() {
+    let rustdoc =
+        "/// # Examples\n/// ```rust\n/// fn tracked_target_example() {}\n/// ```\nfn main() {}\n";
+    let root = cargo_targets_fixture(&[
+        ("showcase", "../showcase/src/main.rs", rustdoc),
+        ("tablepro", "../tablepro/src/main.rs", "fn main() {}\n"),
+        (
+            "jackin-preview",
+            "../jackin-preview/src/main.rs",
+            "fn main() {}\n",
+        ),
+        ("holla", "../holla/src/main.rs", "fn main() {}\n"),
+    ]);
+    let workspace = root
+        .path()
+        .canonicalize()
+        .expect("canonical Cargo workspace root");
+    let report = scan_workspace(&workspace);
+
+    assert_eq!(report.package_count, 1, "{}", report.describe());
+    assert_eq!(report.target_count, 4, "{}", report.describe());
+    assert_eq!(report.package_readmes, 0, "{}", report.describe());
+    assert_eq!(report.ignored_examples, 1, "{}", report.describe());
+    assert!(
+        cargo_target_admission_issues(&report).is_empty(),
+        "valid sibling target roots were not normalized: {}",
+        report.describe()
+    );
+    assert!(
+        report.issues.iter().any(|issue| {
+            issue.path == "crates/showcase/src/main.rs"
+                && issue
+                    .detail
+                    .contains("unregistered Rust documentation example")
+        }),
+        "normalized target content was skipped instead of scanned: {}",
+        report.describe()
+    );
+
+    fs::write(
+        workspace.join("crates/showcase/src/main.rs"),
+        "/// ```bash\n/// fn shell_example() {}\n/// ```\nfn main() {}\n",
+    )
+    .expect("replace Rustdoc example with shell-only documentation");
+    let shell_only = scan_workspace(&workspace);
+    assert_eq!(shell_only.target_count, 4, "{}", shell_only.describe());
+    assert_eq!(shell_only.ignored_examples, 1, "{}", shell_only.describe());
+    assert!(
+        cargo_target_admission_issues(&shell_only).is_empty(),
+        "source-only replacement changed target admission: {}",
+        shell_only.describe()
+    );
+    assert!(
+        shell_only.issues.is_empty(),
+        "shell-only fixture should remove only the content-policy issue: {}",
+        shell_only.describe()
+    );
+}
+
+#[test]
+fn duplicate_cargo_targets_keep_counts_and_non_rs_sources_are_scanned() {
+    let root = cargo_targets_fixture(&[
+        ("first", "../showcase/src/main.rs", "fn main() {}\n"),
+        ("second", "../showcase/src/main.rs", "fn main() {}\n"),
+        (
+            "module-source",
+            "../tablepro/src/entry.module",
+            "/// ```rust\n/// fn non_rs_target_example() {}\n/// ```\n",
+        ),
+    ]);
+    let workspace = root
+        .path()
+        .canonicalize()
+        .expect("canonical Cargo workspace root");
+    let report = scan_workspace(&workspace);
+
+    assert_eq!(report.package_count, 1, "{}", report.describe());
+    assert_eq!(
+        report.target_count,
+        3,
+        "duplicate targets were deduplicated: {}",
+        report.describe()
+    );
+    assert_eq!(report.package_readmes, 0, "{}", report.describe());
+    assert_eq!(report.ignored_examples, 1, "{}", report.describe());
+    assert!(
+        cargo_target_admission_issues(&report).is_empty(),
+        "valid duplicate/non-Rust target source was rejected: {}",
+        report.describe()
+    );
+    assert!(
+        report.issues.iter().any(|issue| {
+            issue.path == "crates/tablepro/src/entry.module"
+                && issue
+                    .detail
+                    .contains("unregistered Rust documentation example")
+        }),
+        "non-.rs Cargo target was not scanned: {}",
+        report.describe()
+    );
 }
