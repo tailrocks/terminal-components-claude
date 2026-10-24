@@ -663,6 +663,7 @@ pub struct App {
     op_item_key: String,
     picker_mode: Option<PickerMode>,
     selected_role: usize,
+    explicit_manager_role: Option<String>,
     launch: Option<LaunchRun>,
     status: Option<String>,
     trusted: bool,
@@ -892,6 +893,7 @@ impl App {
             op_item_key: String::new(),
             picker_mode: None,
             selected_role,
+            explicit_manager_role: None,
             launch,
             status: None,
             trusted: false,
@@ -1263,12 +1265,16 @@ impl App {
     }
 
     fn launch_available(&self) -> bool {
+        self.manager_launch_context()
+            .is_some_and(|context| self.world.has_offered_agents(context.workspace()))
+    }
+
+    fn manager_launch_context(&self) -> Option<LaunchContext> {
         LaunchContext::for_manager(
             &self.world,
             self.manager.selected_row(),
-            self.selected_role(),
+            self.explicit_manager_role.as_deref(),
         )
-        .is_some_and(|context| self.world.has_offered_agents(context.workspace()))
     }
 
     fn activate_selected_manager_row(&mut self, cx: &mut Cx<'_>) -> Response<()> {
@@ -2687,11 +2693,7 @@ impl App {
     fn open_agent_picker(&mut self, cx: &mut Cx<'_>) {
         self.pending_launch_context = None;
         self.agent_options.clear();
-        let Some(context) = LaunchContext::for_manager(
-            &self.world,
-            self.manager.selected_row(),
-            self.selected_role(),
-        ) else {
+        let Some(context) = self.manager_launch_context() else {
             self.status = Some("Select a workspace or current directory to launch".into());
             return;
         };
@@ -3142,13 +3144,9 @@ impl App {
         let context = if retry {
             self.active_launch_context.clone()
         } else {
-            self.pending_launch_context.clone().or_else(|| {
-                LaunchContext::for_manager(
-                    &self.world,
-                    self.manager.selected_row(),
-                    self.selected_role(),
-                )
-            })
+            self.pending_launch_context
+                .clone()
+                .or_else(|| self.manager_launch_context())
         };
         let Some(context) = context else {
             self.status = Some("Select a workspace or current directory to launch".into());
@@ -4390,6 +4388,9 @@ impl App {
                 self.status = Some(format!("Add role override · {}", self.role_label(&role)));
             } else {
                 self.selected_role = index;
+                if let Some(role) = self.roles.get(index) {
+                    self.explicit_manager_role = Some(role.key.clone());
+                }
             }
             cx.close_layer(ROLE_PICKER, Some(ActionKey::CONFIRM));
             result |= Response::changed();
