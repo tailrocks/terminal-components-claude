@@ -3684,7 +3684,11 @@ def _read_self_sealed_plan(
     check_work: Callable[[], None] | None = None,
     directory_fd: int | None = None,
     expected_advance_budget: int = FRESH_PLAN_MAX_TIMEOUT,
+    expected_identity: tuple[int, int, int] | None = None,
+    expected_mode: int | None = None,
 ) -> dict[str, object]:
+    if (expected_identity is not None or expected_mode is not None) and directory_fd is None:
+        raise RunnerError("fresh plan identity and mode checks require a held directory")
     if check_work is not None:
         check_work()
     try:
@@ -3695,6 +3699,12 @@ def _read_self_sealed_plan(
         )
         if stat.S_ISLNK(before.st_mode) or not stat.S_ISREG(before.st_mode):
             raise RunnerError("fresh plan is symlinked or non-regular")
+        if expected_identity is not None and _owned_file_identity(before) != expected_identity:
+            raise RunnerError("fresh plan is not the created file")
+        if expected_mode is not None and stat.S_IMODE(before.st_mode) != expected_mode:
+            raise RunnerError("fresh plan mode differs from the requested mode")
+        if expected_identity is not None and before.st_nlink != 1:
+            raise RunnerError("fresh plan is linked after publication")
         if directory_fd is not None and before.st_nlink != 1:
             raise RunnerError("fresh plan is symlinked, linked, or non-regular")
         flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
@@ -3808,6 +3818,707 @@ def _atomic_create_plan(
     if check_work is not None:
         check_work()
     return digest
+
+def _canonical_document_bytes(document: dict[str, object]) -> bytes:
+    return (json.dumps(document, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n").encode()
+
+
+def _external_commitment_destination(path: Path, root: Path) -> Path:
+    """Resolve destination ancestors while preserving the final component for no-follow checks."""
+    if not isinstance(path, Path) or not path.name or "\0" in os.fspath(path):
+        raise RunnerError("owned fresh-plan output path must be a non-empty filesystem path")
+    destination = path.parent.resolve(strict=False) / path.name
+    if destination.is_relative_to(root.resolve(strict=True)):
+        raise RunnerError("fresh plan creation commitment and pending receipt must be outside the plan root")
+    return destination
+
+
+def _directory_identity(value: os.stat_result) -> tuple[int, int, int]:
+    return value.st_dev, value.st_ino, stat.S_IFMT(value.st_mode)
+
+
+def _open_owned_directory_capability(
+    path: Path,
+    *,
+    check_work: Callable[[], None],
+    expected_identity: tuple[int, int, int] | None = None,
+) -> tuple[int, tuple[int, int, int]]:
+    """Open one no-follow directory chain and retain its final directory identity."""
+    check_work()
+    canonical = Path(os.path.abspath(os.fspath(path)))
+    try:
+        resolved = canonical.resolve(strict=False)
+        if resolved != canonical:
+            raise RunnerError("owned output directory path is not canonical")
+        directory_fd = os.open(os.sep, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
+        try:
+            for component in canonical.parts[1:]:
+                check_work()
+                flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0)
+                child_fd = os.open(component, flags, dir_fd=directory_fd)
+                try:
+                    entry = os.stat(component, dir_fd=directory_fd, follow_symlinks=False)
+                    opened = os.fstat(child_fd)
+                    if not stat.S_ISDIR(entry.st_mode) or _directory_identity(entry) != _directory_identity(opened):
+                        raise RunnerError("owned output directory component changed during open")
+                except BaseException:
+                    os.close(child_fd)
+                    raise
+                os.close(directory_fd)
+                directory_fd = child_fd
+            opened = os.fstat(directory_fd)
+            entry = canonical.lstat()
+            resolved_after = canonical.resolve(strict=True)
+            if resolved_after != canonical:
+                raise RunnerError("owned output directory path became symlinked during open")
+            if not stat.S_ISDIR(entry.st_mode) or _directory_identity(entry) != _directory_identity(opened):
+                raise RunnerError("owned output directory path changed during open")
+            identity = _directory_identity(opened)
+            if expected_identity is not None and identity != expected_identity:
+                raise RunnerError("owned output directory identity no longer matches its original binding")
+            check_work()
+            return directory_fd, identity
+        except BaseException:
+            os.close(directory_fd)
+            raise
+    except RunnerError:
+        raise
+    except FileNotFoundError:
+        raise
+    except OSError as error:
+        raise RunnerError(f"owned output directory cannot be safely opened: {error}") from error
+
+
+def _check_owned_directory_capability(
+    path: Path,
+    directory_fd: int,
+    identity: tuple[int, int, int],
+    *,
+    check_work: Callable[[], None],
+) -> None:
+    check_work()
+    opened = os.fstat(directory_fd)
+    if _directory_identity(opened) != identity:
+        raise RunnerError("owned output directory descriptor identity changed")
+    try:
+        current_fd, current_identity = _open_owned_directory_capability(
+            path, check_work=check_work, expected_identity=identity
+        )
+    except OSError as error:
+        raise RunnerError("owned output directory pathname no longer names its held identity") from error
+    try:
+        if current_identity != _directory_identity(os.fstat(directory_fd)):
+            raise RunnerError("owned output directory pathname no longer names its held identity")
+    finally:
+        os.close(current_fd)
+    check_work()
+
+
+def _require_unoccupied_owned_output_at(directory_fd: int, name: str, label: str) -> None:
+    if not name or Path(name).name != name or name in {".", ".."}:
+        raise RunnerError(f"owned fresh-plan {label} must be one file name")
+    try:
+        os.stat(name, dir_fd=directory_fd, follow_symlinks=False)
+    except FileNotFoundError:
+        return
+    except OSError as error:
+        raise RunnerError(f"owned fresh-plan {label} destination cannot be safely checked: {error}") from error
+    raise RunnerError(f"refusing to replace immutable {label}: {name}")
+
+
+def _owned_file_identity(value: os.stat_result) -> tuple[int, int, int]:
+    return value.st_dev, value.st_ino, stat.S_IFMT(value.st_mode)
+
+
+def _owned_file_version(value: os.stat_result) -> tuple[int, int, int, int, int, int]:
+    return (*_owned_file_identity(value), stat.S_IMODE(value.st_mode), value.st_size, value.st_mtime_ns)
+
+
+def _atomic_create_owned_document_at(
+    path: Path,
+    document: dict[str, object],
+    *,
+    directory_fd: int,
+    directory_identity: tuple[int, int, int],
+    check_work: Callable[[], None],
+    label: str,
+) -> tuple[str, tuple[int, int, int]]:
+    """Exclusively publish one immutable 0400 document through a held parent descriptor."""
+    if not path.name or Path(path.name).name != path.name or path.name in {".", ".."}:
+        raise RunnerError(f"owned fresh-plan {label} must be one file name")
+    _check_owned_directory_capability(
+        path.parent, directory_fd, directory_identity, check_work=check_work
+    )
+    payload = _canonical_document_bytes(document)
+    temporary_name = f".{path.name}.{secrets.token_hex(16)}.tmp"
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
+    check_work()
+    file_fd = os.open(temporary_name, flags, 0o600, dir_fd=directory_fd)
+    temporary_identity: tuple[int, int, int] | None = _owned_file_identity(os.fstat(file_fd))
+    temporary_version: tuple[int, int, int, int, int] | None = None
+    try:
+        check_work()
+        os.fchmod(file_fd, 0o400)
+        view = memoryview(payload)
+        while view:
+            check_work()
+            count = os.write(file_fd, view[: 1024 * 1024])
+            if count <= 0:
+                raise RunnerError(f"owned fresh-plan {label} write was incomplete")
+            view = view[count:]
+        check_work()
+        os.fsync(file_fd)
+        file_info = os.fstat(file_fd)
+        if _owned_file_identity(file_info) != temporary_identity:
+            raise RunnerError(f"owned fresh-plan {label} temporary descriptor changed")
+        if stat.S_IMODE(file_info.st_mode) != 0o400:
+            raise RunnerError(f"owned fresh-plan {label} temporary descriptor mode is not 0400")
+        temporary_version = _owned_file_version(file_info)
+        entry = os.stat(temporary_name, dir_fd=directory_fd, follow_symlinks=False)
+        if (
+            not stat.S_ISREG(entry.st_mode)
+            or stat.S_IMODE(entry.st_mode) != 0o400
+            or _owned_file_version(entry) != temporary_version
+        ):
+            raise RunnerError(f"owned fresh-plan {label} temporary entry changed before publication")
+        _check_owned_directory_capability(
+            path.parent, directory_fd, directory_identity, check_work=check_work
+        )
+        current = os.stat(temporary_name, dir_fd=directory_fd, follow_symlinks=False)
+        if stat.S_IMODE(current.st_mode) != 0o400 or _owned_file_version(current) != temporary_version:
+            raise RunnerError(f"owned fresh-plan {label} temporary entry changed before publication")
+        try:
+            os.link(
+                temporary_name,
+                path.name,
+                src_dir_fd=directory_fd,
+                dst_dir_fd=directory_fd,
+                follow_symlinks=False,
+            )
+        except FileExistsError as error:
+            raise RunnerError(f"refusing to replace immutable {label}: {path}") from error
+        published = os.stat(path.name, dir_fd=directory_fd, follow_symlinks=False)
+        if (
+            not stat.S_ISREG(published.st_mode)
+            or stat.S_IMODE(published.st_mode) != 0o400
+            or _owned_file_version(published) != temporary_version
+        ):
+            raise RunnerError(f"owned fresh-plan {label} temporary entry changed during publication")
+        os.fsync(directory_fd)
+        check_work()
+        _check_owned_directory_capability(
+            path.parent, directory_fd, directory_identity, check_work=check_work
+        )
+    finally:
+        try:
+            os.close(file_fd)
+        finally:
+            if temporary_identity is not None:
+                try:
+                    current = os.stat(temporary_name, dir_fd=directory_fd, follow_symlinks=False)
+                except FileNotFoundError:
+                    pass
+                except OSError:
+                    pass
+                else:
+                    if stat.S_ISREG(current.st_mode) and _owned_file_identity(current) == temporary_identity:
+                        try:
+                            os.unlink(temporary_name, dir_fd=directory_fd)
+                        except OSError:
+                            pass
+    check_work()
+    if temporary_identity is None:
+        raise RunnerError(f"owned fresh-plan {label} file identity was not captured")
+    return hashlib.sha256(payload).hexdigest(), temporary_identity
+
+
+def _read_owned_document_at(
+    path: Path,
+    *,
+    directory_fd: int,
+    directory_identity: tuple[int, int, int],
+    check_work: Callable[[], None],
+    label: str,
+    expected_identity: tuple[int, int, int] | None = None,
+    expected_mode: int | None = None,
+) -> bytes:
+    _check_owned_directory_capability(
+        path.parent, directory_fd, directory_identity, check_work=check_work
+    )
+    try:
+        before = os.stat(path.name, dir_fd=directory_fd, follow_symlinks=False)
+        if stat.S_ISLNK(before.st_mode) or not stat.S_ISREG(before.st_mode) or before.st_nlink != 1:
+            raise RunnerError(f"{label} is symlinked, linked, or non-regular")
+        if expected_identity is not None and _owned_file_identity(before) != expected_identity:
+            raise RunnerError(f"{label} is not the file created by this operation")
+        if expected_mode is not None and stat.S_IMODE(before.st_mode) != expected_mode:
+            raise RunnerError(f"{label} mode differs from the requested mode")
+        fd = os.open(path.name, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0), dir_fd=directory_fd)
+        try:
+            opened = os.fstat(fd)
+            chunks: list[bytes] = []
+            while True:
+                check_work()
+                chunk = os.read(fd, 1024 * 1024)
+                if not chunk:
+                    break
+                chunks.append(chunk)
+            after_fd = os.fstat(fd)
+        finally:
+            os.close(fd)
+        after = os.stat(path.name, dir_fd=directory_fd, follow_symlinks=False)
+    except OSError as error:
+        raise RunnerError(f"{label} cannot be safely read: {error}") from error
+    identity = lambda value: (
+        value.st_dev, value.st_ino, value.st_mode, value.st_size,
+        value.st_mtime_ns, value.st_ctime_ns, value.st_nlink,
+    )
+    if identity(before) != identity(opened) or identity(opened) != identity(after_fd) or identity(after_fd) != identity(after):
+        raise RunnerError(f"{label} changed during read")
+    _check_owned_directory_capability(
+        path.parent, directory_fd, directory_identity, check_work=check_work
+    )
+    return b"".join(chunks)
+
+
+def _read_document_bytes(
+    path: Path,
+    *,
+    check_work: Callable[[], None],
+    directory_fd: int | None,
+    directory_identity: tuple[int, int, int] | None,
+    label: str,
+    expected_identity: tuple[int, int, int] | None = None,
+    expected_mode: int | None = None,
+) -> bytes:
+    if directory_fd is not None:
+        if directory_identity is None:
+            raise RunnerError(f"{label} requires a bound directory identity")
+        return _read_owned_document_at(
+            path,
+            directory_fd=directory_fd,
+            directory_identity=directory_identity,
+            check_work=check_work,
+            label=label,
+            expected_identity=expected_identity,
+            expected_mode=expected_mode,
+        )
+    if expected_identity is not None or expected_mode is not None:
+        raise RunnerError(f"{label} identity and mode checks require a held directory")
+    check_work()
+    try:
+        before = path.lstat()
+        if stat.S_ISLNK(before.st_mode) or not stat.S_ISREG(before.st_mode) or before.st_nlink != 1:
+            raise RunnerError(f"{label} is symlinked, linked, or non-regular")
+        fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+        try:
+            opened = os.fstat(fd)
+            chunks: list[bytes] = []
+            while True:
+                check_work()
+                chunk = os.read(fd, 1024 * 1024)
+                if not chunk:
+                    break
+                chunks.append(chunk)
+            after_fd = os.fstat(fd)
+        finally:
+            os.close(fd)
+        after = path.lstat()
+    except OSError as error:
+        raise RunnerError(f"{label} cannot be safely read: {error}") from error
+    identity = lambda value: (
+        value.st_dev, value.st_ino, value.st_mode, value.st_size,
+        value.st_mtime_ns, value.st_ctime_ns, value.st_nlink,
+    )
+    if identity(before) != identity(opened) or identity(opened) != identity(after_fd) or identity(after_fd) != identity(after):
+        raise RunnerError(f"{label} changed during read")
+    check_work()
+    return b"".join(chunks)
+
+
+def _atomic_create_creation_commitment(
+    path: Path,
+    document: dict[str, object],
+    *,
+    directory_fd: int,
+    directory_identity: tuple[int, int, int],
+    check_work: Callable[[], None],
+) -> tuple[str, tuple[int, int, int]]:
+    return _atomic_create_owned_document_at(
+        path,
+        document,
+        directory_fd=directory_fd,
+        directory_identity=directory_identity,
+        check_work=check_work,
+        label="fresh plan creation commitment",
+    )
+
+
+def _read_creation_commitment(
+    path: Path,
+    expected_sha256: str,
+    *,
+    check_work: Callable[[], None],
+    directory_fd: int | None = None,
+    directory_identity: tuple[int, int, int] | None = None,
+    expected_identity: tuple[int, int, int] | None = None,
+    expected_mode: int | None = None,
+) -> dict[str, object]:
+    check_work()
+    if not isinstance(expected_sha256, str) or not re.fullmatch(r"[0-9a-f]{64}", expected_sha256):
+        raise RunnerError("expected creation commitment SHA-256 is malformed")
+    raw = _read_document_bytes(
+        path,
+        check_work=check_work,
+        directory_fd=directory_fd,
+        directory_identity=directory_identity,
+        label="fresh plan creation commitment",
+        expected_identity=expected_identity,
+        expected_mode=expected_mode,
+    )
+    if hashlib.sha256(raw).hexdigest() != expected_sha256:
+        raise RunnerError("fresh plan creation commitment does not match the externally pinned digest")
+    try:
+        document = json.loads(raw)
+    except json.JSONDecodeError as error:
+        raise RunnerError("fresh plan creation commitment is not valid JSON") from error
+    if not isinstance(document, dict) or _canonical_document_bytes(document) != raw:
+        raise RunnerError("fresh plan creation commitment is not canonical JSON")
+    if document.get("schema_version") != "termrock-fresh-plan-creation-commitment.v1":
+        raise RunnerError("fresh plan creation commitment schema is unsupported")
+    required = {
+        "schema_version", "plan_id", "plan_basename", "plan_creation_sha256",
+        "plan_self_sha256", "cohort_id", "frozen_source_sha256", "inventory_sha256",
+        "plan_root_path", "plan_root_canonical_path", "plan_root_device", "plan_root_inode",
+    }
+    if set(document) != required or any(not isinstance(document.get(key), str) for key in required):
+        raise RunnerError("fresh plan creation commitment fields are malformed")
+    if not re.fullmatch(r"[0-9a-f]{32}", document["plan_id"]) or any(
+        not re.fullmatch(r"[0-9a-f]{64}", document[key])
+        for key in ("plan_creation_sha256", "plan_self_sha256", "frozen_source_sha256", "inventory_sha256")
+    ) or any(not document[key].isdigit() for key in ("plan_root_device", "plan_root_inode")):
+        raise RunnerError("fresh plan creation commitment identity or digest is malformed")
+    return document
+
+
+def _atomic_create_pending_receipt(
+    path: Path,
+    document: dict[str, object],
+    *,
+    directory_fd: int,
+    directory_identity: tuple[int, int, int],
+    check_work: Callable[[], None],
+) -> tuple[str, tuple[int, int, int]]:
+    return _atomic_create_owned_document_at(
+        path,
+        document,
+        directory_fd=directory_fd,
+        directory_identity=directory_identity,
+        check_work=check_work,
+        label="fresh plan pending receipt",
+    )
+
+
+def _read_pending_receipt(
+    path: Path,
+    *,
+    check_work: Callable[[], None],
+    directory_fd: int | None = None,
+    directory_identity: tuple[int, int, int] | None = None,
+    expected_identity: tuple[int, int, int] | None = None,
+    expected_mode: int | None = None,
+) -> dict[str, object]:
+    check_work()
+    raw = _read_document_bytes(
+        path,
+        check_work=check_work,
+        directory_fd=directory_fd,
+        directory_identity=directory_identity,
+        label="fresh plan pending receipt",
+        expected_identity=expected_identity,
+        expected_mode=expected_mode,
+    )
+    try:
+        document = json.loads(raw)
+    except json.JSONDecodeError as error:
+        raise RunnerError("fresh plan pending receipt is not valid JSON") from error
+    if not isinstance(document, dict) or _canonical_document_bytes(document) != raw:
+        raise RunnerError("fresh plan pending receipt is not canonical JSON")
+    required = {
+        "schema_version", "status", "creation_commitment_sha256", "plan_id", "plan_basename",
+        "plan_creation_sha256", "cohort_id", "plan_root_path", "plan_root_canonical_path",
+        "plan_root_device", "plan_root_inode",
+    }
+    if set(document) != required or any(not isinstance(document.get(key), str) for key in required):
+        raise RunnerError("fresh plan pending receipt fields are malformed")
+    if document["schema_version"] != "termrock-fresh-plan-pending-receipt.v1" or document["status"] != "pending-plan-publication":
+        raise RunnerError("fresh plan pending receipt schema or state is unsupported")
+    return document
+
+
+def _atomic_create_plan_owned(
+    path: Path,
+    document: dict[str, object],
+    *,
+    directory_fd: int,
+    directory_identity: tuple[int, int, int],
+    check_work: Callable[[], None],
+) -> tuple[str, tuple[int, int, int]]:
+    return _atomic_create_owned_document_at(
+        path,
+        document,
+        directory_fd=directory_fd,
+        directory_identity=directory_identity,
+        check_work=check_work,
+        label="fresh plan",
+    )
+
+
+def _create_fresh_plan_owned(
+    repo: Path,
+    root: Path,
+    cohort_id: str,
+    baseline_bin_dir: Path,
+    timeout: int,
+    chunk_size: int,
+    term_profile: str | None,
+    *,
+    execution: PrepareExecution,
+    commitment_path: Path,
+    pending_receipt_path: Path,
+) -> dict[str, object]:
+    """Create an owned plan under one deadline; external output parents must already exist."""
+    check_work = execution.check_work
+    check_work()
+    if cohort_id != PREPARE_LIVE_OWNED_COHORT:
+        raise RunnerError("--owned-lifecycle requires the pinned frozen-20261021-serial-nonincr-r1-r2 cohort")
+    if type(timeout) is not int or not 1 <= timeout <= FRESH_PLAN_MAX_TIMEOUT:
+        raise RunnerError(f"fresh plan command timeout must be 1..{FRESH_PLAN_MAX_TIMEOUT} seconds")
+    if not isinstance(commitment_path, Path) or not isinstance(pending_receipt_path, Path):
+        raise RunnerError("owned fresh-plan creation requires Path commitment and pending destinations")
+
+    opened_directories: list[int] = []
+    try:
+        root_binding = _owned_root_binding(root, check_work=check_work)
+        bound_root = Path(root_binding["plan_root_canonical_path"])
+        root_identity_expected = (
+            int(root_binding["plan_root_device"]),
+            int(root_binding["plan_root_inode"]),
+            stat.S_IFDIR,
+        )
+        root_fd, root_identity = _open_owned_directory_capability(
+            bound_root,
+            check_work=check_work,
+            expected_identity=root_identity_expected,
+        )
+        opened_directories.append(root_fd)
+        commitment_path = _external_commitment_destination(commitment_path, bound_root)
+        pending_receipt_path = _external_commitment_destination(pending_receipt_path, bound_root)
+        if commitment_path == pending_receipt_path:
+            raise RunnerError("fresh plan pending receipt and creation commitment must use distinct files")
+        try:
+            commitment_parent_fd, commitment_parent_identity = _open_owned_directory_capability(
+                commitment_path.parent, check_work=check_work
+            )
+        except FileNotFoundError as error:
+            raise RunnerError("owned fresh-plan creation commitment parent must already exist") from error
+        opened_directories.append(commitment_parent_fd)
+        _require_unoccupied_owned_output_at(
+            commitment_parent_fd, commitment_path.name, "fresh plan creation commitment"
+        )
+        try:
+            pending_parent_fd, pending_parent_identity = _open_owned_directory_capability(
+                pending_receipt_path.parent, check_work=check_work
+            )
+        except FileNotFoundError as error:
+            raise RunnerError("owned fresh-plan pending receipt parent must already exist") from error
+        opened_directories.append(pending_parent_fd)
+        _require_unoccupied_owned_output_at(
+            pending_parent_fd, pending_receipt_path.name, "fresh plan pending receipt"
+        )
+        _check_owned_directory_capability(
+            commitment_path.parent, commitment_parent_fd, commitment_parent_identity,
+            check_work=check_work,
+        )
+        _check_owned_directory_capability(
+            pending_receipt_path.parent, pending_parent_fd, pending_parent_identity,
+            check_work=check_work,
+        )
+        plan_path = bound_root / FRESH_PLAN_FILE
+        _require_unoccupied_owned_output_at(root_fd, plan_path.name, "fresh plan")
+        check_work()
+        _check_owned_root_binding(root_binding, check_work=check_work, directory_fd=root_fd)
+
+        repo, resolved_root, source = paths(repo, bound_root)
+        if resolved_root != bound_root:
+            raise RunnerError("owned fresh plan root canonical pathname changed during path resolution")
+        _check_owned_root_binding(root_binding, check_work=check_work, directory_fd=root_fd)
+        verify_source(resolved_root, source, check_work=check_work)
+        _check_owned_root_binding(root_binding, check_work=check_work, directory_fd=root_fd)
+        capture = require_capture_eligible_cohort(
+            repo, cohort_id, baseline_bin_dir.resolve(), check_work=check_work
+        )
+        _check_owned_root_binding(root_binding, check_work=check_work, directory_fd=root_fd)
+        live, live_record = verify_live_source(
+            repo,
+            resolved_root,
+            source,
+            timeout,
+            fresh_cohort_id=cohort_id,
+            baseline_bin_dir=baseline_bin_dir,
+            execution=execution,
+        )
+        _check_owned_root_binding(root_binding, check_work=check_work, directory_fd=root_fd)
+        extension_manifest = load_extension_manifest(repo / EXTENSION_MANIFEST, check_work=check_work)
+        _check_owned_root_binding(root_binding, check_work=check_work, directory_fd=root_fd)
+        env = fresh_clean_env()
+        env.update({"CARGO_TARGET_DIR": str(resolved_root / "live-target"), "NEXTEST_EXPERIMENTAL_LIBTEST_JSON": "1"})
+        check_work()
+        inventory = nextest_inventory(live, timeout, env, extension_manifest, execution=execution)
+        validate_extension_inventory(inventory, extension_manifest, check_work=check_work)
+        require_inventory_matches(inventory, str(live_record.get("test_inventory_sha256")), check_work=check_work)
+        _check_owned_root_binding(root_binding, check_work=check_work, directory_fd=root_fd)
+
+        plan_id = secrets.token_hex(16)
+        created_at = datetime.now(timezone.utc).isoformat()
+        plan = build_fresh_plan_payload(
+            repo=repo,
+            root=resolved_root,
+            cohort=capture,
+            live_record=live_record,
+            inventory=inventory,
+            extension_manifest=extension_manifest,
+            chunk_size=chunk_size,
+            term_profile=term_profile,
+            plan_id=plan_id,
+            created_at=created_at,
+            execution=execution,
+            advance_budget_seconds=execution.work_budget,
+        )
+        check_work()
+        _check_owned_root_binding(root_binding, check_work=check_work, directory_fd=root_fd)
+
+        plan_creation_sha256 = hashlib.sha256(_canonical_document_bytes(plan)).hexdigest()
+        commitment = {
+            "schema_version": "termrock-fresh-plan-creation-commitment.v1",
+            **root_binding,
+            "plan_id": plan["plan_id"],
+            "plan_basename": FRESH_PLAN_FILE,
+            "plan_creation_sha256": plan_creation_sha256,
+            "plan_self_sha256": plan["plan_sha256"],
+            "cohort_id": cohort_id,
+            "frozen_source_sha256": plan["source"]["source_sha256"],
+            "inventory_sha256": plan["inventory"]["sha256"],
+        }
+        _check_owned_root_binding(root_binding, check_work=check_work, directory_fd=root_fd)
+        commitment_sha256, commitment_identity = _atomic_create_creation_commitment(
+            commitment_path,
+            commitment,
+            directory_fd=commitment_parent_fd,
+            directory_identity=commitment_parent_identity,
+            check_work=check_work,
+        )
+        _check_owned_root_binding(root_binding, check_work=check_work, directory_fd=root_fd)
+        _check_owned_directory_capability(
+            commitment_path.parent, commitment_parent_fd, commitment_parent_identity, check_work=check_work
+        )
+        if _read_creation_commitment(
+            commitment_path,
+            commitment_sha256,
+            check_work=check_work,
+            directory_fd=commitment_parent_fd,
+            directory_identity=commitment_parent_identity,
+            expected_identity=commitment_identity,
+            expected_mode=0o400,
+        ) != commitment:
+            raise RunnerError("durable fresh plan creation commitment changed before pending publication")
+
+        pending = {
+            "schema_version": "termrock-fresh-plan-pending-receipt.v1",
+            "status": "pending-plan-publication",
+            "creation_commitment_sha256": commitment_sha256,
+            **root_binding,
+            "plan_id": plan["plan_id"],
+            "plan_basename": FRESH_PLAN_FILE,
+            "plan_creation_sha256": plan_creation_sha256,
+            "cohort_id": cohort_id,
+        }
+        _check_owned_root_binding(root_binding, check_work=check_work, directory_fd=root_fd)
+        _pending_sha256, pending_identity = _atomic_create_pending_receipt(
+            pending_receipt_path,
+            pending,
+            directory_fd=pending_parent_fd,
+            directory_identity=pending_parent_identity,
+            check_work=check_work,
+        )
+        _check_owned_root_binding(root_binding, check_work=check_work, directory_fd=root_fd)
+        _check_owned_directory_capability(
+            pending_receipt_path.parent, pending_parent_fd, pending_parent_identity, check_work=check_work
+        )
+        if _read_pending_receipt(
+            pending_receipt_path,
+            check_work=check_work,
+            directory_fd=pending_parent_fd,
+            directory_identity=pending_parent_identity,
+            expected_identity=pending_identity,
+            expected_mode=0o400,
+        ) != pending:
+            raise RunnerError("durable fresh plan pending receipt changed before plan publication")
+        check_work()
+        _check_owned_root_binding(root_binding, check_work=check_work, directory_fd=root_fd)
+        print(json.dumps({
+            **pending,
+            "pending_receipt_path": str(pending_receipt_path),
+            "creation_commitment_path": str(commitment_path),
+            "plan_path": str(plan_path),
+            "plan_published": False,
+            "verified": False,
+            "candidate_comparison_eligible": False,
+            "product_acceptance": False,
+        }, separators=(",", ":"), sort_keys=True), flush=True)
+        check_work()
+        _check_owned_root_binding(root_binding, check_work=check_work, directory_fd=root_fd)
+
+        creation_file_sha256, plan_identity = _atomic_create_plan_owned(
+            plan_path,
+            plan,
+            directory_fd=root_fd,
+            directory_identity=root_identity,
+            check_work=check_work,
+        )
+        check_work()
+        _check_owned_root_binding(root_binding, check_work=check_work, directory_fd=root_fd)
+        durable_plan = _read_self_sealed_plan(
+            plan_path,
+            creation_file_sha256,
+            check_work=check_work,
+            directory_fd=root_fd,
+            expected_advance_budget=execution.work_budget,
+            expected_identity=plan_identity,
+            expected_mode=0o400,
+        )
+        if durable_plan != plan:
+            raise RunnerError("published owned fresh plan changed during readback")
+        _check_owned_root_binding(root_binding, check_work=check_work, directory_fd=root_fd)
+        success = json.dumps({
+            "plan_path": str(plan_path),
+            "plan_sha256": plan["plan_sha256"],
+            "creation_file_sha256": creation_file_sha256,
+            "status": plan["status"],
+            "visual_cases": plan["inventory"]["visual_count"],
+            "ordinary_checks": plan["inventory"]["ordinary_count"],
+            "creation_commitment_path": str(commitment_path),
+            "creation_commitment_sha256": commitment_sha256,
+        }, indent=2)
+        check_work()
+        _check_owned_root_binding(root_binding, check_work=check_work, directory_fd=root_fd)
+        print(success, flush=True)
+        check_work()
+        _check_owned_root_binding(root_binding, check_work=check_work, directory_fd=root_fd)
+        return plan
+    finally:
+        for directory_fd in reversed(opened_directories):
+            os.close(directory_fd)
 
 def create_fresh_plan(
     repo: Path,
@@ -4029,11 +4740,26 @@ def _owned_root_binding(root: Path, *, check_work: Callable[[], None]) -> dict[s
     }
 
 
-def _check_owned_root_binding(root_binding: dict[str, str], *, check_work: Callable[[], None]) -> Path:
+def _check_owned_root_binding(
+    root_binding: dict[str, str],
+    *,
+    check_work: Callable[[], None],
+    directory_fd: int | None = None,
+) -> Path:
     current = _owned_root_binding(Path(root_binding["plan_root_path"]), check_work=check_work)
     if current != root_binding:
         raise RunnerError("owned fresh plan root pathname or directory identity no longer matches its pinned identity")
-    return Path(root_binding["plan_root_canonical_path"])
+    canonical_root = Path(root_binding["plan_root_canonical_path"])
+    if directory_fd is not None:
+        expected = (
+            int(root_binding["plan_root_device"]),
+            int(root_binding["plan_root_inode"]),
+            stat.S_IFDIR,
+        )
+        _check_owned_directory_capability(
+            canonical_root, directory_fd, expected, check_work=check_work
+        )
+    return canonical_root
 
 
 def _read_self_sealed_plan_at_root(
