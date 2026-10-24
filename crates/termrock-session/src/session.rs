@@ -19,7 +19,7 @@ use ratatui_crossterm::crossterm::{execute, queue};
 use termrock_core::event::RoutedInput;
 use termrock_core::keys::keyboard::KeyboardProtocol;
 use termrock_runtime::{App, FeedbackClock, Moment, PreparedFrameError, Runtime, SizeWatch};
-use termrock_terminal::KeyboardNegotiation;
+use termrock_terminal::{FLAGS, KeyboardNegotiation, POP};
 use termrock_theme::Theme;
 
 pub type DefaultTerminal = Terminal<CrosstermBackend<Stdout>>;
@@ -147,9 +147,149 @@ impl core::fmt::Debug for TerminalSession {
     }
 }
 
-fn restore_modes(reset_cursor_shape: bool, pop_keyboard: bool) -> io::Result<()> {
+struct KeyboardWriteTracker<'a, W: Write> {
+    out: &'a mut W,
+    expected: &'a [u8],
+    accepted: usize,
+    pushed_after_write: bool,
+    keyboard_pushed: &'a AtomicBool,
+}
+
+impl<'a, W: Write> KeyboardWriteTracker<'a, W> {
+    fn new(
+        out: &'a mut W,
+        expected: &'a [u8],
+        pushed_after_write: bool,
+        keyboard_pushed: &'a AtomicBool,
+    ) -> Self {
+        Self {
+            out,
+            expected,
+            accepted: 0,
+            pushed_after_write,
+            keyboard_pushed,
+        }
+    }
+}
+
+impl<W: Write> Write for KeyboardWriteTracker<'_, W> {
+    fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+        let remaining = &self.expected[self.accepted..];
+        if !remaining.starts_with(bytes) {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "keyboard writer received bytes outside the tracked protocol sequence",
+            ));
+        }
+        let accepted = self.out.write(bytes)?;
+        if accepted > bytes.len() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "keyboard writer reported more accepted bytes than supplied",
+            ));
+        }
+        self.accepted += accepted;
+        if self.accepted == self.expected.len() {
+            self.keyboard_pushed
+                .store(self.pushed_after_write, Ordering::Relaxed);
+        }
+        Ok(accepted)
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        self.out.flush()
+    }
+}
+
+fn keyboard_enter_with(
+    keyboard: &mut KeyboardNegotiation,
+    out: &mut impl Write,
+    keyboard_pushed: &AtomicBool,
+    policy: KeyboardProtocol,
+    detect: impl FnOnce() -> bool,
+) -> io::Result<bool> {
+    let sequence = termrock_core::keys::keyboard::push(FLAGS);
+    let result = {
+        let mut tracked =
+            KeyboardWriteTracker::new(out, sequence.as_bytes(), true, keyboard_pushed);
+        keyboard.enter(&mut tracked, policy, detect)
+    };
+    keyboard_pushed.store(keyboard.is_pushed(), Ordering::Relaxed);
+    result
+}
+
+struct PreviouslyConsumedKeyboardPop;
+
+impl Write for PreviouslyConsumedKeyboardPop {
+    fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+        // A prior same-session cleanup accepted and recorded the POP already.
+        Ok(bytes.len())
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+}
+
+fn keyboard_leave_with(
+    keyboard: &mut KeyboardNegotiation,
+    out: &mut impl Write,
+    keyboard_pushed: &AtomicBool,
+) -> io::Result<bool> {
+    if keyboard.is_pushed() && !keyboard_pushed.load(Ordering::Relaxed) {
+        // The panic/entry cleanup hook can consume the owned frame without
+        // access to this local value. Reconcile only that stale pushed bit;
+        // the cleared mirror proves this session's POP was already accepted.
+        let mut consumed = PreviouslyConsumedKeyboardPop;
+        let _ = keyboard.leave(&mut consumed)?;
+        return Ok(false);
+    }
+
+    let result = {
+        let mut tracked = KeyboardWriteTracker::new(out, POP.as_bytes(), false, keyboard_pushed);
+        keyboard.leave(&mut tracked)
+    };
+    keyboard_pushed.store(keyboard.is_pushed(), Ordering::Relaxed);
+    result
+}
+
+fn keyboard_resume_with(
+    keyboard: &mut KeyboardNegotiation,
+    out: &mut impl Write,
+    keyboard_pushed: &AtomicBool,
+) -> io::Result<bool> {
+    let sequence = termrock_core::keys::keyboard::push(FLAGS);
+    let result = {
+        let mut tracked =
+            KeyboardWriteTracker::new(out, sequence.as_bytes(), true, keyboard_pushed);
+        keyboard.resume(&mut tracked)
+    };
+    keyboard_pushed.store(keyboard.is_pushed(), Ordering::Relaxed);
+    result
+}
+
+fn pop_owned_keyboard_with(out: &mut impl Write, keyboard_pushed: &AtomicBool) -> io::Result<()> {
+    if !keyboard_pushed.load(Ordering::Relaxed) {
+        return Ok(());
+    }
+    let mut tracked = KeyboardWriteTracker::new(out, POP.as_bytes(), false, keyboard_pushed);
+    tracked.write_all(POP.as_bytes())?;
+    tracked.flush()
+}
+
+fn restore_modes(
+    reset_cursor_shape: bool,
+    pop_keyboard: bool,
+    keyboard_pushed: &AtomicBool,
+) -> io::Result<()> {
     let mut out = stdout();
-    restore_modes_with(&mut out, disable_raw_mode, reset_cursor_shape, pop_keyboard)
+    restore_modes_with(
+        &mut out,
+        disable_raw_mode,
+        reset_cursor_shape,
+        pop_keyboard,
+        keyboard_pushed,
+    )
 }
 
 fn restore_modes_with(
@@ -157,13 +297,14 @@ fn restore_modes_with(
     restore_raw: impl FnOnce() -> io::Result<()>,
     reset_cursor_shape: bool,
     pop_keyboard: bool,
+    keyboard_pushed: &AtomicBool,
 ) -> io::Result<()> {
-    let mut first = Ok(());
-
-    if pop_keyboard {
-        // Reverse order of entry: a pushed kitty flag set pops first.
-        first = first.and(write_str(out, termrock_terminal::POP));
-    }
+    let mut first = if pop_keyboard {
+        // Reverse order of entry: consume only the flag set this session owns.
+        pop_owned_keyboard_with(out, keyboard_pushed)
+    } else {
+        Ok(())
+    };
     if reset_cursor_shape {
         first = first.and(execute!(out, SetCursorStyle::DefaultUserShape));
     }
@@ -174,11 +315,6 @@ fn restore_modes_with(
     first = first.and(execute!(out, LeaveAlternateScreen));
     first = first.and(restore_raw());
     first.and(out.flush())
-}
-
-fn write_str(out: &mut impl Write, sequence: &str) -> io::Result<()> {
-    out.write_all(sequence.as_bytes())?;
-    out.flush()
 }
 
 fn enter_terminal_modes(
@@ -240,13 +376,17 @@ fn enter_guarded<T>(
 
 fn leave_with(
     left: &mut bool,
+    leave_keyboard: impl FnOnce() -> io::Result<()>,
     show_cursor: impl FnOnce() -> io::Result<()>,
     restore: impl FnOnce() -> io::Result<()>,
 ) -> io::Result<()> {
     if *left {
         return Ok(());
     }
-    let result = show_cursor().and(restore());
+    let keyboard = leave_keyboard();
+    let shown = show_cursor();
+    let restored = restore();
+    let result = keyboard.and(shown).and(restored);
     *left = result.is_ok();
     result
 }
@@ -309,7 +449,8 @@ impl TerminalSession {
         chain_panic_hook(move || {
             let _ = restore_modes(
                 panic_shape_changed.load(Ordering::Relaxed),
-                panic_keyboard_pushed.load(Ordering::Relaxed),
+                true,
+                &panic_keyboard_pushed,
             );
         });
         let cleanup_shape_changed = Arc::clone(&cursor_shape_changed);
@@ -321,11 +462,13 @@ impl TerminalSession {
             || {
                 enable_raw_mode()?;
                 let mut out = stdout();
-                let push = keyboard.enter(&mut out, keyboard_protocol, keyboard_detect);
-                if let Ok(true) = push {
-                    enter_keyboard_pushed.store(true, Ordering::Relaxed);
-                }
-                push?;
+                keyboard_enter_with(
+                    &mut keyboard,
+                    &mut out,
+                    &enter_keyboard_pushed,
+                    keyboard_protocol,
+                    keyboard_detect,
+                )?;
                 enter_terminal_modes(&mut out, cursor_shape, caret_supported, || {
                     enter_shape_changed.store(true, Ordering::Relaxed);
                 })?;
@@ -334,7 +477,8 @@ impl TerminalSession {
             || {
                 restore_modes(
                     cleanup_shape_changed.load(Ordering::Relaxed),
-                    cleanup_keyboard_pushed.load(Ordering::Relaxed),
+                    true,
+                    &cleanup_keyboard_pushed,
                 )
             },
         )?;
@@ -359,28 +503,27 @@ impl TerminalSession {
     /// Suspend the protocol (pop) while an external program runs. A
     /// session that never pushed pops nothing and writes no bytes.
     pub fn suspend_keyboard(&mut self) -> io::Result<bool> {
-        let popped = self.keyboard.leave(&mut stdout())?;
-        self.keyboard_pushed
-            .store(self.keyboard.is_pushed(), Ordering::Relaxed);
-        Ok(popped)
+        keyboard_leave_with(&mut self.keyboard, &mut stdout(), &self.keyboard_pushed)
     }
 
     /// Continue after [`TerminalSession::suspend_keyboard`] (push again).
     pub fn resume_keyboard(&mut self) -> io::Result<bool> {
-        let pushed = self.keyboard.resume(&mut stdout())?;
-        self.keyboard_pushed
-            .store(self.keyboard.is_pushed(), Ordering::Relaxed);
-        Ok(pushed)
+        keyboard_resume_with(&mut self.keyboard, &mut stdout(), &self.keyboard_pushed)
     }
 
     pub fn leave(&mut self) -> io::Result<()> {
+        let Self {
+            left,
+            terminal,
+            reset_cursor_shape,
+            keyboard,
+            keyboard_pushed,
+        } = self;
         leave_with(
-            &mut self.left,
-            || self.terminal.show_cursor(),
-            || {
-                let pop = self.keyboard.leave(&mut stdout())?;
-                restore_modes(self.reset_cursor_shape, pop)
-            },
+            left,
+            || keyboard_leave_with(keyboard, &mut stdout(), keyboard_pushed).map(|_| ()),
+            || terminal.show_cursor(),
+            || restore_modes(*reset_cursor_shape, false, keyboard_pushed),
         )
     }
 }
@@ -1209,6 +1352,7 @@ mod tests {
             },
             false,
             false,
+            &AtomicBool::new(false),
         );
         assert_eq!(
             result.err().map(|error| error.kind()),
@@ -1232,6 +1376,7 @@ mod tests {
             || Err(io::Error::from(io::ErrorKind::PermissionDenied)),
             true,
             false,
+            &AtomicBool::new(false),
         );
         assert_eq!(
             result.err().map(|error| error.kind()),
@@ -1274,7 +1419,15 @@ mod tests {
                     shape_changed.set(true);
                 })
             },
-            || restore_modes_with(&mut cleanup, || Ok(()), shape_changed.get(), false),
+            || {
+                restore_modes_with(
+                    &mut cleanup,
+                    || Ok(()),
+                    shape_changed.get(),
+                    false,
+                    &AtomicBool::new(false),
+                )
+            },
         );
         assert_eq!(
             result.err().map(|error| error.kind()),
@@ -1304,7 +1457,15 @@ mod tests {
                     shape_changed.set(true);
                 })
             },
-            || restore_modes_with(&mut cleanup, || Ok(()), shape_changed.get(), false),
+            || {
+                restore_modes_with(
+                    &mut cleanup,
+                    || Ok(()),
+                    shape_changed.get(),
+                    false,
+                    &AtomicBool::new(false),
+                )
+            },
         );
         assert_eq!(
             result.err().map(|error| error.kind()),
@@ -1342,7 +1503,14 @@ mod tests {
 
             let mut cleanup = Vec::new();
             assert!(
-                restore_modes_with(&mut cleanup, || Ok(()), shape_changed.get(), false).is_ok()
+                restore_modes_with(
+                    &mut cleanup,
+                    || Ok(()),
+                    shape_changed.get(),
+                    false,
+                    &AtomicBool::new(false),
+                )
+                .is_ok()
             );
             let cleanup = String::from_utf8_lossy(&cleanup);
             assert_eq!(cleanup.contains("\x1b[0 q"), expected_shape_change);
@@ -1394,7 +1562,9 @@ mod tests {
     #[test]
     fn terminal_cleanup_restores_cursor_style_and_visibility() {
         let mut out = Vec::new();
-        assert!(restore_modes_with(&mut out, || Ok(()), true, false).is_ok());
+        assert!(
+            restore_modes_with(&mut out, || Ok(()), true, false, &AtomicBool::new(false),).is_ok()
+        );
         let bytes = String::from_utf8_lossy(&out);
         assert!(bytes.contains("\x1b[0 q"), "cursor style reset");
         assert!(bytes.contains("\x1b[?25h"), "cursor shown");
@@ -1432,7 +1602,16 @@ mod tests {
         assert!(!String::from_utf8_lossy(&enter).contains("\x1b[6 q"));
 
         let mut cleanup = Vec::new();
-        assert!(restore_modes_with(&mut cleanup, || Ok(()), false, false).is_ok());
+        assert!(
+            restore_modes_with(
+                &mut cleanup,
+                || Ok(()),
+                false,
+                false,
+                &AtomicBool::new(false),
+            )
+            .is_ok()
+        );
         assert!(!String::from_utf8_lossy(&cleanup).contains("\x1b[0 q"));
         assert!(String::from_utf8_lossy(&cleanup).contains("\x1b[?25h"));
     }
@@ -1453,6 +1632,7 @@ mod tests {
         let restored = Cell::new(0);
         let result = leave_with(
             &mut left,
+            || Ok(()),
             || Err(io::Error::from(io::ErrorKind::BrokenPipe)),
             || {
                 restored.set(restored.get() + 1);
@@ -1468,6 +1648,7 @@ mod tests {
             leave_with(
                 &mut left,
                 || Ok(()),
+                || Ok(()),
                 || {
                     restored.set(restored.get() + 1);
                     Ok(())
@@ -1480,6 +1661,7 @@ mod tests {
         assert!(
             leave_with(
                 &mut left,
+                || Ok(()),
                 || Err(io::Error::from(io::ErrorKind::Other)),
                 || Err(io::Error::from(io::ErrorKind::Other))
             )
@@ -1494,6 +1676,7 @@ mod tests {
         let result = leave_with(
             &mut left,
             || Ok(()),
+            || Ok(()),
             || Err(io::Error::from(io::ErrorKind::PermissionDenied)),
         );
         assert_eq!(
@@ -1501,7 +1684,7 @@ mod tests {
             Some(io::ErrorKind::PermissionDenied)
         );
         assert!(!left);
-        assert!(leave_with(&mut left, || Ok(()), || Ok(())).is_ok());
+        assert!(leave_with(&mut left, || Ok(()), || Ok(()), || Ok(())).is_ok());
         assert!(left);
     }
 
@@ -1533,6 +1716,7 @@ mod tests {
 #[cfg(test)]
 mod keyboard_tests {
     use super::*;
+    use std::cell::Cell;
 
     /// A plain capturing writer.
     #[derive(Default)]
@@ -1557,7 +1741,7 @@ mod keyboard_tests {
     #[test]
     fn the_default_restore_writes_no_protocol_bytes() {
         let mut out = Capture::default();
-        restore_modes_with(&mut out, || Ok(()), false, false).unwrap();
+        restore_modes_with(&mut out, || Ok(()), false, false, &AtomicBool::new(false)).unwrap();
         assert!(
             !captured(&out).contains("\x1b[<u"),
             "the frozen cleanup pops nothing: {:?}",
@@ -1568,7 +1752,9 @@ mod keyboard_tests {
     #[test]
     fn a_pushed_protocol_pops_first_on_restore() {
         let mut out = Capture::default();
-        restore_modes_with(&mut out, || Ok(()), false, true).unwrap();
+        let keyboard_pushed = AtomicBool::new(true);
+        restore_modes_with(&mut out, || Ok(()), false, true, &keyboard_pushed).unwrap();
+        assert!(!keyboard_pushed.load(Ordering::Relaxed));
         let text = captured(&out);
         assert!(text.starts_with(termrock_terminal::POP), "{text:?}");
         assert!(
@@ -1587,5 +1773,467 @@ mod keyboard_tests {
             "no negotiation on the default path"
         );
         assert!(text.starts_with("\x1b[?1049h"), "{text:?}");
+    }
+
+    #[derive(Debug, PartialEq, Eq)]
+    struct ScriptedError(&'static str);
+
+    impl std::fmt::Display for ScriptedError {
+        fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            formatter.write_str(self.0)
+        }
+    }
+
+    impl std::error::Error for ScriptedError {}
+
+    #[derive(Default)]
+    struct ScriptedOutput {
+        bytes: Vec<u8>,
+        fail_after: Option<usize>,
+        flushes: usize,
+        fail_flush_call: Option<usize>,
+        panic_flush_call: Option<usize>,
+    }
+
+    impl ScriptedOutput {
+        fn fail_after(accepted: usize) -> Self {
+            Self {
+                fail_after: Some(accepted),
+                ..Self::default()
+            }
+        }
+
+        fn fail_flush_call(call: usize) -> Self {
+            Self {
+                fail_flush_call: Some(call),
+                ..Self::default()
+            }
+        }
+
+        fn panic_flush_call(call: usize) -> Self {
+            Self {
+                panic_flush_call: Some(call),
+                ..Self::default()
+            }
+        }
+    }
+
+    impl Write for ScriptedOutput {
+        fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+            if let Some(limit) = self.fail_after {
+                if self.bytes.len() >= limit {
+                    self.fail_after = None;
+                    return Err(io::Error::new(
+                        io::ErrorKind::BrokenPipe,
+                        ScriptedError("scripted write failure"),
+                    ));
+                }
+                let accepted = bytes.len().min(limit - self.bytes.len());
+                self.bytes.extend_from_slice(&bytes[..accepted]);
+                return Ok(accepted);
+            }
+            self.bytes.extend_from_slice(bytes);
+            Ok(bytes.len())
+        }
+
+        fn flush(&mut self) -> io::Result<()> {
+            self.flushes += 1;
+            if self.panic_flush_call == Some(self.flushes) {
+                panic!("scripted flush panic");
+            }
+            if self.fail_flush_call == Some(self.flushes) {
+                self.fail_flush_call = None;
+                return Err(io::Error::new(
+                    io::ErrorKind::BrokenPipe,
+                    ScriptedError("scripted flush failure"),
+                ));
+            }
+            Ok(())
+        }
+    }
+
+    fn assert_scripted_error(error: &io::Error, marker: &'static str) {
+        assert_eq!(error.kind(), io::ErrorKind::BrokenPipe);
+        assert_eq!(
+            error
+                .get_ref()
+                .and_then(|source| source.downcast_ref::<ScriptedError>())
+                .map(|source| source.0),
+            Some(marker)
+        );
+    }
+
+    fn count_sequence(bytes: &[u8], sequence: &[u8]) -> usize {
+        bytes
+            .windows(sequence.len())
+            .filter(|window| *window == sequence)
+            .count()
+    }
+
+    #[test]
+    fn session_mirror_tracks_partial_suspend_and_resume_failures() {
+        let mut keyboard = KeyboardNegotiation::default();
+        let keyboard_pushed = AtomicBool::new(false);
+        let mut enter = Capture::default();
+        assert!(
+            keyboard_enter_with(
+                &mut keyboard,
+                &mut enter,
+                &keyboard_pushed,
+                KeyboardProtocol::On,
+                || false,
+            )
+            .unwrap()
+        );
+        assert!(keyboard.is_pushed());
+        assert!(keyboard_pushed.load(Ordering::Relaxed));
+
+        let pushed_state = keyboard;
+        for accepted in 0..POP.len() {
+            let mut partial_keyboard = pushed_state;
+            let partial_mirror = AtomicBool::new(true);
+            let mut partial_pop = ScriptedOutput::fail_after(accepted);
+            let error =
+                keyboard_leave_with(&mut partial_keyboard, &mut partial_pop, &partial_mirror)
+                    .unwrap_err();
+            assert_scripted_error(&error, "scripted write failure");
+            assert_eq!(partial_pop.bytes.as_slice(), &POP.as_bytes()[..accepted]);
+            assert!(partial_keyboard.is_pushed());
+            assert!(partial_mirror.load(Ordering::Relaxed));
+        }
+
+        let mut complete_pop = Capture::default();
+        assert!(keyboard_leave_with(&mut keyboard, &mut complete_pop, &keyboard_pushed,).unwrap());
+        assert!(!keyboard.is_pushed());
+        assert!(!keyboard_pushed.load(Ordering::Relaxed));
+
+        let suspended_state = keyboard;
+        let push = termrock_core::keys::keyboard::push(FLAGS);
+        for accepted in 0..push.len() {
+            let mut partial_keyboard = suspended_state;
+            let partial_mirror = AtomicBool::new(false);
+            let mut partial_push = ScriptedOutput::fail_after(accepted);
+            let error =
+                keyboard_resume_with(&mut partial_keyboard, &mut partial_push, &partial_mirror)
+                    .unwrap_err();
+            assert_scripted_error(&error, "scripted write failure");
+            assert_eq!(partial_push.bytes.as_slice(), &push.as_bytes()[..accepted]);
+            assert!(!partial_keyboard.is_pushed());
+            assert!(!partial_mirror.load(Ordering::Relaxed));
+        }
+
+        let mut complete_push = Capture::default();
+        assert!(
+            keyboard_resume_with(&mut keyboard, &mut complete_push, &keyboard_pushed,).unwrap()
+        );
+        assert!(keyboard.is_pushed());
+        assert!(keyboard_pushed.load(Ordering::Relaxed));
+    }
+
+    #[test]
+    fn session_mirror_tracks_complete_suspend_and_resume_flush_errors() {
+        let mut keyboard = KeyboardNegotiation::default();
+        let keyboard_pushed = AtomicBool::new(false);
+        let mut enter = Capture::default();
+        assert!(
+            keyboard_enter_with(
+                &mut keyboard,
+                &mut enter,
+                &keyboard_pushed,
+                KeyboardProtocol::On,
+                || false,
+            )
+            .unwrap()
+        );
+
+        let mut pop = ScriptedOutput::fail_flush_call(1);
+        let error = keyboard_leave_with(&mut keyboard, &mut pop, &keyboard_pushed).unwrap_err();
+        assert_scripted_error(&error, "scripted flush failure");
+        assert_eq!(pop.bytes.as_slice(), POP.as_bytes());
+        assert!(!keyboard.is_pushed());
+        assert!(!keyboard_pushed.load(Ordering::Relaxed));
+
+        let push = termrock_core::keys::keyboard::push(FLAGS);
+        let mut resumed = ScriptedOutput::fail_flush_call(1);
+        let error =
+            keyboard_resume_with(&mut keyboard, &mut resumed, &keyboard_pushed).unwrap_err();
+        assert_scripted_error(&error, "scripted flush failure");
+        assert_eq!(resumed.bytes, push.as_bytes());
+        assert!(keyboard.is_pushed());
+        assert!(keyboard_pushed.load(Ordering::Relaxed));
+    }
+
+    #[test]
+    fn entry_cleanup_consumes_only_a_fully_written_push_and_keeps_entry_error() {
+        let mut keyboard = KeyboardNegotiation::default();
+        let keyboard_pushed = AtomicBool::new(false);
+        let mut entry_output = ScriptedOutput::fail_flush_call(1);
+        let mut cleanup_output = Capture::default();
+        let ownership_seen_by_cleanup = Cell::new(false);
+        let result = enter_guarded(
+            || {
+                keyboard_enter_with(
+                    &mut keyboard,
+                    &mut entry_output,
+                    &keyboard_pushed,
+                    KeyboardProtocol::On,
+                    || false,
+                )
+                .map(|_| ())
+            },
+            || {
+                ownership_seen_by_cleanup.set(keyboard_pushed.load(Ordering::Relaxed));
+                restore_modes_with(
+                    &mut cleanup_output,
+                    || Ok(()),
+                    false,
+                    true,
+                    &keyboard_pushed,
+                )
+            },
+        );
+        let error = result.unwrap_err();
+        assert_scripted_error(&error, "scripted flush failure");
+        assert!(ownership_seen_by_cleanup.get());
+        assert!(!keyboard_pushed.load(Ordering::Relaxed));
+        let push = termrock_core::keys::keyboard::push(FLAGS);
+        assert_eq!(count_sequence(&entry_output.bytes, push.as_bytes()), 1);
+        assert_eq!(count_sequence(&cleanup_output.bytes, POP.as_bytes()), 1);
+        restore_modes_with(
+            &mut cleanup_output,
+            || Ok(()),
+            false,
+            true,
+            &keyboard_pushed,
+        )
+        .unwrap();
+        assert_eq!(count_sequence(&cleanup_output.bytes, POP.as_bytes()), 1);
+    }
+
+    #[test]
+    fn owned_pop_failure_preserves_first_error_and_attempts_every_restore() {
+        let keyboard_pushed = AtomicBool::new(true);
+        let raw_restores = Cell::new(0);
+        let mut out = ScriptedOutput::fail_after(1);
+        let result = restore_modes_with(
+            &mut out,
+            || {
+                raw_restores.set(raw_restores.get() + 1);
+                Err(io::Error::new(
+                    io::ErrorKind::PermissionDenied,
+                    ScriptedError("raw restore failure"),
+                ))
+            },
+            false,
+            true,
+            &keyboard_pushed,
+        );
+        let error = result.unwrap_err();
+        assert_scripted_error(&error, "scripted write failure");
+        assert_eq!(raw_restores.get(), 1);
+        assert!(keyboard_pushed.load(Ordering::Relaxed));
+        assert_eq!(out.bytes.first(), Some(&POP.as_bytes()[0]));
+        for sequence in [
+            b"\x1b[?25h".as_slice(),
+            b"\x1b[?7h".as_slice(),
+            b"\x1b[?2004l".as_slice(),
+            b"\x1b[?1006l".as_slice(),
+            b"\x1b[?1003l".as_slice(),
+            b"\x1b[?1049l".as_slice(),
+        ] {
+            assert!(
+                out.bytes
+                    .windows(sequence.len())
+                    .any(|window| window == sequence)
+            );
+        }
+        let mut retry = Capture::default();
+        restore_modes_with(&mut retry, || Ok(()), false, true, &keyboard_pushed).unwrap();
+        assert!(!keyboard_pushed.load(Ordering::Relaxed));
+        assert_eq!(count_sequence(&retry.bytes, POP.as_bytes()), 1);
+    }
+
+    #[test]
+    fn leave_orders_pop_before_cursor_and_restoration_and_does_not_pop_twice() {
+        let mut keyboard = KeyboardNegotiation::default();
+        let keyboard_pushed = AtomicBool::new(false);
+        let mut enter = Capture::default();
+        keyboard_enter_with(
+            &mut keyboard,
+            &mut enter,
+            &keyboard_pushed,
+            KeyboardProtocol::On,
+            || false,
+        )
+        .unwrap();
+        let mut pop_output = ScriptedOutput::fail_flush_call(1);
+        let mut restore_output = Capture::default();
+        let events = std::cell::RefCell::new(Vec::new());
+        let mut left = false;
+        let result = leave_with(
+            &mut left,
+            || {
+                events.borrow_mut().push("keyboard");
+                keyboard_leave_with(&mut keyboard, &mut pop_output, &keyboard_pushed).map(|_| ())
+            },
+            || {
+                events.borrow_mut().push("cursor");
+                Ok(())
+            },
+            || {
+                events.borrow_mut().push("restore");
+                restore_modes_with(
+                    &mut restore_output,
+                    || Ok(()),
+                    false,
+                    false,
+                    &keyboard_pushed,
+                )
+            },
+        );
+        let error = result.unwrap_err();
+        assert_scripted_error(&error, "scripted flush failure");
+        assert_eq!(*events.borrow(), vec!["keyboard", "cursor", "restore"]);
+        assert!(!left);
+        assert!(!keyboard.is_pushed());
+        assert!(!keyboard_pushed.load(Ordering::Relaxed));
+        assert_eq!(count_sequence(&pop_output.bytes, POP.as_bytes()), 1);
+        assert_eq!(count_sequence(&restore_output.bytes, POP.as_bytes()), 0);
+
+        let mut retry_keyboard_output = Capture::default();
+        let mut retry_restore_output = Capture::default();
+        assert!(
+            leave_with(
+                &mut left,
+                || {
+                    keyboard_leave_with(&mut keyboard, &mut retry_keyboard_output, &keyboard_pushed)
+                        .map(|_| ())
+                },
+                || Ok(()),
+                || {
+                    restore_modes_with(
+                        &mut retry_restore_output,
+                        || Ok(()),
+                        false,
+                        false,
+                        &keyboard_pushed,
+                    )
+                },
+            )
+            .is_ok()
+        );
+        assert!(left);
+        assert_eq!(
+            count_sequence(&retry_keyboard_output.bytes, POP.as_bytes()),
+            0
+        );
+        assert_eq!(
+            count_sequence(&retry_restore_output.bytes, POP.as_bytes()),
+            0
+        );
+    }
+
+    #[test]
+    fn panic_during_entry_flush_is_not_popped_again_by_session_leave() {
+        let mut keyboard = KeyboardNegotiation::default();
+        let keyboard_pushed = AtomicBool::new(false);
+        let mut out = ScriptedOutput::panic_flush_call(1);
+        let mut cleanup = Capture::default();
+        let panic = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let _ = enter_guarded(
+                || {
+                    keyboard_enter_with(
+                        &mut keyboard,
+                        &mut out,
+                        &keyboard_pushed,
+                        KeyboardProtocol::On,
+                        || false,
+                    )
+                },
+                || restore_modes_with(&mut cleanup, || Ok(()), false, true, &keyboard_pushed),
+            );
+        }));
+        assert!(panic.is_err());
+        assert!(
+            keyboard.is_pushed(),
+            "the hook cannot mutate the local copy"
+        );
+        assert!(!keyboard_pushed.load(Ordering::Relaxed));
+        let push = termrock_core::keys::keyboard::push(FLAGS);
+        assert_eq!(count_sequence(&out.bytes, push.as_bytes()), 1);
+        assert_eq!(count_sequence(&cleanup.bytes, POP.as_bytes()), 1);
+
+        let mut left = false;
+        let mut leave_keyboard_output = Capture::default();
+        let mut leave_restore_output = Capture::default();
+        assert!(
+            leave_with(
+                &mut left,
+                || {
+                    keyboard_leave_with(&mut keyboard, &mut leave_keyboard_output, &keyboard_pushed)
+                        .map(|_| ())
+                },
+                || Ok(()),
+                || {
+                    restore_modes_with(
+                        &mut leave_restore_output,
+                        || Ok(()),
+                        false,
+                        false,
+                        &keyboard_pushed,
+                    )
+                },
+            )
+            .is_ok()
+        );
+        assert!(left);
+        assert!(
+            !keyboard.is_pushed(),
+            "leave reconciles the local state after hook-owned POP"
+        );
+        assert!(!keyboard_pushed.load(Ordering::Relaxed));
+        assert_eq!(
+            count_sequence(&leave_keyboard_output.bytes, POP.as_bytes()),
+            0
+        );
+        assert_eq!(
+            count_sequence(&leave_restore_output.bytes, POP.as_bytes()),
+            0
+        );
+        assert_eq!(count_sequence(&cleanup.bytes, POP.as_bytes()), 1);
+    }
+
+    #[test]
+    fn owned_session_pop_preserves_a_caller_protocol_stack_frame() {
+        let push = termrock_core::keys::keyboard::push(FLAGS);
+        let mut out = Capture {
+            bytes: push.as_bytes().to_vec(),
+        };
+        let keyboard_pushed = AtomicBool::new(false);
+        let mut keyboard = KeyboardNegotiation::default();
+        assert!(
+            keyboard_enter_with(
+                &mut keyboard,
+                &mut out,
+                &keyboard_pushed,
+                KeyboardProtocol::On,
+                || false,
+            )
+            .unwrap()
+        );
+        assert!(keyboard_leave_with(&mut keyboard, &mut out, &keyboard_pushed).unwrap());
+        assert_eq!(
+            out.bytes,
+            [push.as_bytes(), push.as_bytes(), POP.as_bytes()].concat()
+        );
+        assert_eq!(count_sequence(&out.bytes, push.as_bytes()), 2);
+        assert_eq!(count_sequence(&out.bytes, POP.as_bytes()), 1);
+        assert!(!keyboard_pushed.load(Ordering::Relaxed));
+
+        let mut no_owner_output = Capture {
+            bytes: push.as_bytes().to_vec(),
+        };
+        pop_owned_keyboard_with(&mut no_owner_output, &keyboard_pushed).unwrap();
+        assert_eq!(no_owner_output.bytes.as_slice(), push.as_bytes());
     }
 }
