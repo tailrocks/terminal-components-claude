@@ -99,13 +99,26 @@ const VERTICAL: &[Binding<SplitCmd>] = &[
     ),
 ];
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct SplitPaneState {
     percent: u8,
     initial_percent: u8,
     basis_points: u16,
     maximized: Maximized,
     grab_offset: Option<i32>,
+    initial_cells_active: bool,
+}
+
+impl fmt::Debug for SplitPaneState {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("SplitPaneState")
+            .field("percent", &self.percent)
+            .field("initial_percent", &self.initial_percent)
+            .field("basis_points", &self.basis_points)
+            .field("maximized", &self.maximized)
+            .field("grab_offset", &self.grab_offset)
+            .finish()
+    }
 }
 
 impl Default for SplitPaneState {
@@ -116,6 +129,7 @@ impl Default for SplitPaneState {
             basis_points: (BALANCED as u16) * BASIS_POINTS_PER_PERCENT,
             maximized: Maximized::None,
             grab_offset: None,
+            initial_cells_active: false,
         }
     }
 }
@@ -128,6 +142,7 @@ impl SplitPaneState {
             basis_points: (clamp_percent(percent) as u16) * BASIS_POINTS_PER_PERCENT,
             maximized: Maximized::None,
             grab_offset: None,
+            initial_cells_active: false,
         }
     }
 
@@ -138,17 +153,33 @@ impl SplitPaneState {
     pub const fn set_percent(&mut self, p: u8) {
         self.percent = clamp_percent(p);
         self.basis_points = (clamp_percent(p) as u16) * BASIS_POINTS_PER_PERCENT;
+        self.initial_cells_active = false;
+    }
+
+    pub(crate) const fn new_with_initial_cells(percent: u8) -> Self {
+        SplitPaneState {
+            percent: clamp_percent(percent),
+            initial_percent: clamp_percent(percent),
+            basis_points: (clamp_percent(percent) as u16) * BASIS_POINTS_PER_PERCENT,
+            maximized: Maximized::None,
+            grab_offset: None,
+            initial_cells_active: true,
+        }
     }
 
     pub const fn maximized(&self) -> Maximized {
         self.maximized
     }
 
+    /// Precise ratio retained after a manual resize.
+    ///
+    /// An opted-in initial-cell split uses its configured cell extent until
+    /// manual input changes this value; query the resolved pane for that width.
     pub const fn basis_points(&self) -> u16 {
         self.basis_points
     }
 
-    fn reset(&mut self, policy: ResetPolicy) {
+    fn reset(&mut self, policy: ResetPolicy, has_initial_cells: bool) {
         let percent = match policy {
             ResetPolicy::Initial => self.initial_percent,
             ResetPolicy::Percent(percent) => clamp_percent(percent),
@@ -158,6 +189,7 @@ impl SplitPaneState {
         self.basis_points = (percent as u16) * BASIS_POINTS_PER_PERCENT;
         self.maximized = Maximized::None;
         self.grab_offset = None;
+        self.initial_cells_active = has_initial_cells && policy == ResetPolicy::Initial;
     }
 
     pub fn toggle_max(&mut self, which: Maximized) {
@@ -192,6 +224,7 @@ pub struct SplitPane<'a> {
     preserve_drag_offset: bool,
     fixed_first_share: Option<(u8, u16, u16)>,
     fixed_second_share: Option<(u8, u16, u16)>,
+    initial_first_cells: Option<u16>,
     fixed_sizing: bool,
     resize_step_cells: u16,
     resize_bindings: Option<&'static [Binding<SplitCmd>]>,
@@ -201,7 +234,8 @@ pub struct SplitPane<'a> {
 
 impl fmt::Debug for SplitPane<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("SplitPane")
+        let mut debug = f.debug_struct("SplitPane");
+        debug
             .field("id", &self.id)
             .field("axis", &self.axis)
             .field("gap", &self.gap)
@@ -215,7 +249,11 @@ impl fmt::Debug for SplitPane<'_> {
             .field("hit_padding", &self.hit_padding)
             .field("preserve_drag_offset", &self.preserve_drag_offset)
             .field("fixed_first_share", &self.fixed_first_share)
-            .field("fixed_second_share", &self.fixed_second_share)
+            .field("fixed_second_share", &self.fixed_second_share);
+        if self.initial_first_cells.is_some() {
+            debug.field("initial_first_cells", &self.initial_first_cells);
+        }
+        debug
             .field("fixed_sizing", &self.fixed_sizing)
             .field("resize_step_cells", &self.resize_step_cells)
             .field("resize_bindings", &self.resize_bindings)
@@ -244,6 +282,7 @@ impl<'a> SplitPane<'a> {
             preserve_drag_offset: false,
             fixed_first_share: None,
             fixed_second_share: None,
+            initial_first_cells: None,
             fixed_sizing: false,
             resize_step_cells: 1,
             resize_bindings: None,
@@ -261,8 +300,7 @@ impl<'a> SplitPane<'a> {
     }
 
     /// Smallest extent at which the resolved panes can hold their requested
-    /// along-axis sizes. The current state ratio and the pane's configured
-    /// minima are included by the shared split model.
+    /// along-axis sizes under the current sizing policy and configured minima.
     pub fn required_extent(&self, state: &SplitPaneState, first: u16, second: u16) -> u16 {
         let model = self.model(*state);
         let first = first.max(model.min_first);
@@ -274,6 +312,16 @@ impl<'a> SplitPane<'a> {
         if let Some((percent, min, max)) = self.fixed_second_share {
             return model
                 .required_extent_with_second_share(self.gap, percent, min, max, first, second);
+        }
+        if state.initial_cells_active
+            && let Some(initial_first_cells) = self.initial_first_cells
+        {
+            return model.required_extent_with_first_extent(
+                self.gap,
+                initial_first_cells,
+                first,
+                second,
+            );
         }
         model.required_extent_with_basis_points(self.gap, state.basis_points, first, second)
     }
@@ -430,6 +478,13 @@ impl<'a> SplitPane<'a> {
         self
     }
 
+    /// Use an exact first-pane extent until the split is manually resized.
+    #[must_use]
+    pub(crate) const fn initial_first_cells(mut self, cells: u16) -> Self {
+        self.initial_first_cells = Some(cells);
+        self
+    }
+
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
         self.ov = self.ov.global(p);
@@ -466,6 +521,12 @@ impl<'a> SplitPane<'a> {
             }
             (_, Some((percent, min, max))) => {
                 model.layout_with_second_share(area, self.gap, percent, min, max)
+            }
+            (None, None)
+                if st.initial_cells_active
+                    && let Some(first) = self.initial_first_cells =>
+            {
+                model.layout_with_first_extent(area, self.gap, first)
             }
             (None, None) => model.layout_with_basis_points(area, self.gap, st.basis_points),
         }
@@ -535,14 +596,17 @@ impl<'a> SplitPane<'a> {
     fn apply(
         &self,
         st: &mut SplitPaneState,
-        f: impl FnOnce(&mut SplitModel, &mut u16),
+        f: impl FnOnce(&mut SplitModel, &mut u16) -> bool,
         acc: &mut Acc<SplitAction>,
     ) {
         let before = *st;
         let mut m = self.model(*st);
-        f(&mut m, &mut st.basis_points);
+        let changed = f(&mut m, &mut st.basis_points);
         st.percent = m.percent;
         st.maximized = m.maximized;
+        if changed {
+            st.initial_cells_active = false;
+        }
         if *st == before {
             acc.consumed();
         } else {
@@ -581,7 +645,6 @@ impl<'a> SplitPane<'a> {
             .layout(self.id)
             .and_then(|facts| facts.logical_area)
             .unwrap_or(Rect::ZERO);
-        let gap = self.gap;
         let table = self.table();
         let mut acc = Acc::<SplitAction>::new();
         let step = i16::try_from(self.resize_step_cells).unwrap_or(i16::MAX);
@@ -592,24 +655,14 @@ impl<'a> SplitPane<'a> {
             match it {
                 Intent::Binding(action) => match Binding::command(table, action) {
                     Some(SplitCmd::Shrink) => {
-                        self.apply(
-                            st,
-                            |m, basis_points| {
-                                m.nudge_with_basis_points(area, gap, -step, basis_points);
-                            },
-                            &mut acc,
-                        );
+                        self.nudge(st, area, -step, &mut acc);
                     }
-                    Some(SplitCmd::Grow) => self.apply(
-                        st,
-                        |m, basis_points| {
-                            m.nudge_with_basis_points(area, gap, step, basis_points);
-                        },
-                        &mut acc,
-                    ),
+                    Some(SplitCmd::Grow) => {
+                        self.nudge(st, area, step, &mut acc);
+                    }
                     Some(SplitCmd::Reset) => {
                         let before = *st;
-                        st.reset(self.reset_policy);
+                        st.reset(self.reset_policy, self.initial_first_cells.is_some());
                         if *st == before {
                             acc.consumed();
                         } else {
@@ -637,6 +690,38 @@ impl<'a> SplitPane<'a> {
             }
         }
         acc.finish(self.id)
+    }
+
+    fn nudge(&self, st: &mut SplitPaneState, area: Rect, delta: i16, acc: &mut Acc<SplitAction>) {
+        if st.initial_cells_active && self.initial_first_cells.is_some() {
+            let (first, _) = self.panes(*st, area);
+            let current = match self.axis {
+                SplitAxis::Horizontal => first.width,
+                SplitAxis::Vertical => first.height,
+            };
+            let target = i32::from(current)
+                .saturating_add(i32::from(delta))
+                .clamp(0, i32::from(u16::MAX)) as u16;
+            let pos = match self.axis {
+                SplitAxis::Horizontal => Position::new(area.x.saturating_add(target), area.y),
+                SplitAxis::Vertical => Position::new(area.x, area.y.saturating_add(target)),
+            };
+            self.apply(
+                st,
+                |model, basis_points| {
+                    model.drag_to_with_basis_points(area, self.gap, pos, basis_points)
+                },
+                acc,
+            );
+        } else {
+            self.apply(
+                st,
+                |model, basis_points| {
+                    model.nudge_with_basis_points(area, self.gap, delta, basis_points)
+                },
+                acc,
+            );
+        }
     }
 
     fn pointer(
@@ -681,9 +766,7 @@ impl<'a> SplitPane<'a> {
                 let target = drag_target(self.axis, pos, st.grab_offset.unwrap_or(0));
                 self.apply(
                     st,
-                    |m, basis_points| {
-                        let _ = m.drag_to_with_basis_points(area, gap, target, basis_points);
-                    },
+                    |m, basis_points| m.drag_to_with_basis_points(area, gap, target, basis_points),
                     acc,
                 );
             }
@@ -723,7 +806,7 @@ impl<'a> SplitPane<'a> {
 
     fn reset_for_double_click(&self, st: &mut SplitPaneState, acc: &mut Acc<SplitAction>) {
         let before = *st;
-        st.reset(self.reset_policy);
+        st.reset(self.reset_policy, self.initial_first_cells.is_some());
         if *st == before {
             acc.consumed();
         } else {
@@ -1211,14 +1294,50 @@ mod tests {
     fn split_reset_policy_retains_the_initial_position() {
         let mut state = SplitPaneState::new(38);
         state.set_percent(63);
-        state.reset(ResetPolicy::Initial);
+        state.reset(ResetPolicy::Initial, false);
         assert_eq!(state.percent(), 38);
         assert_eq!(state.basis_points(), 3_800);
 
-        state.reset(ResetPolicy::Percent(42));
+        state.reset(ResetPolicy::Percent(42), false);
         assert_eq!(state.percent(), 42);
-        state.reset(ResetPolicy::Balanced);
+        state.reset(ResetPolicy::Balanced, false);
         assert_eq!(state.percent(), 50);
+    }
+
+    #[test]
+    fn rejected_initial_cell_nudges_preserve_the_policy_for_a_later_wide_layout() {
+        let split = SplitPane::new(ID, SplitAxis::Horizontal)
+            .gap(2)
+            .min_first(28)
+            .min_second(40)
+            .initial_first_cells(39);
+        let wide = Rect::new(0, 0, 120, 24);
+
+        for (area, label) in [
+            (Rect::ZERO, "empty area"),
+            (Rect::new(0, 0, 69, 24), "area below pane minima"),
+        ] {
+            let mut state = SplitPaneState::new_with_initial_cells(32);
+            let before = state;
+            let mut acc = Acc::<SplitAction>::new();
+
+            split.nudge(&mut state, area, 1, &mut acc);
+            let _ = acc.finish(ID);
+
+            assert_eq!(
+                state, before,
+                "{label}: rejected resize must not mutate state"
+            );
+            assert!(
+                state.initial_cells_active,
+                "{label}: initial-cell policy remains active"
+            );
+            assert_eq!(
+                split.panes(state, wide).0.width,
+                39,
+                "{label}: later valid layout retains the configured cell extent"
+            );
+        }
     }
 
     #[test]
@@ -1239,7 +1358,10 @@ mod tests {
         let mut acc = Acc::new();
         sp.apply(
             &mut st,
-            |model, _| model.maximized = Maximized::None,
+            |model, _| {
+                model.maximized = Maximized::None;
+                true
+            },
             &mut acc,
         );
         assert_eq!(acc.finish(ID).into_action(), Some(SplitAction::Resized(50)));

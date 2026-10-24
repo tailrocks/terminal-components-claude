@@ -63,6 +63,8 @@ struct PolicyPage {
     state: MasterDetailState,
     area: Rect,
     master_share: u8,
+    initial_master_cells: Option<u16>,
+    reset_policy: termrock_controls::ResetPolicy,
     sizing: Sizing,
     resize_bindings: Option<&'static [Binding<SplitCmd>]>,
     preserve_drag_offset: bool,
@@ -76,6 +78,8 @@ impl Default for PolicyPage {
             state: MasterDetailState::default(),
             area: AREA,
             master_share: 50,
+            initial_master_cells: None,
+            reset_policy: termrock_controls::ResetPolicy::Balanced,
             sizing: Sizing::Resizable,
             resize_bindings: None,
             preserve_drag_offset: false,
@@ -89,6 +93,7 @@ impl PolicyPage {
     fn control(&self) -> MasterDetail {
         let control = MasterDetail::new(CONTAINER, MASTER, DETAIL)
             .master_share(self.master_share)
+            .reset_policy(self.reset_policy)
             .min_master(26)
             .min_detail(34)
             .gap(2)
@@ -96,6 +101,10 @@ impl PolicyPage {
             .detail_owns(&[DETAIL_CHILD])
             .preserve_drag_offset(self.preserve_drag_offset)
             .resize_step_cells(self.step);
+        let control = match self.initial_master_cells {
+            Some(cells) => control.initial_master_cells(cells),
+            None => control,
+        };
         let control = match self.resize_bindings {
             Some(bindings) => control.resize_bindings(bindings),
             None => control,
@@ -196,6 +205,159 @@ fn legacy_default_and_master_share_keep_their_initial_resizable_geometry() {
         70,
         "explicit resizable mode restores the stored initial share"
     );
+}
+
+#[test]
+fn initial_master_cells_stays_exact_across_supported_widths_and_respects_limits() {
+    let control = MasterDetail::new(CONTAINER, MASTER, DETAIL)
+        .initial_master_cells(39)
+        .min_master(28)
+        .min_detail(40)
+        .gap(2)
+        .collapse_below(100);
+    let state = MasterDetailState::default();
+    for width in [100, 102, 120, 160] {
+        let area = Rect::new(5, 3, width, 24);
+        let split = control.layout(area, &state);
+        assert_eq!(split.mode, MasterDetailMode::Split);
+        assert_eq!(split.master.width, 39, "width={width}");
+        assert_eq!(split.detail.x, split.master.right() + 2);
+        assert_eq!(split.master.width + 2 + split.detail.width, width);
+    }
+
+    let limited = control.clone().min_detail(80);
+    assert_eq!(
+        limited
+            .layout(Rect::new(0, 0, 120, 24), &state)
+            .master
+            .width,
+        38,
+        "the detail minimum limits the requested initial width"
+    );
+
+    let too_narrow = control
+        .clone()
+        .collapse_below(0)
+        .layout(Rect::new(0, 0, 69, 24), &state);
+    assert_eq!(too_narrow.master.width, 69);
+    assert!(too_narrow.detail.is_empty());
+
+    assert_eq!(
+        control
+            .clone()
+            .master_share(70)
+            .layout(Rect::new(0, 0, 120, 24), &state)
+            .master
+            .width,
+        78,
+        "the retained detail minimum clamps the later percentage layout"
+    );
+    assert_eq!(
+        MasterDetail::new(CONTAINER, MASTER, DETAIL)
+            .layout(AREA, &state)
+            .master
+            .width,
+        37,
+        "the legacy default is unchanged"
+    );
+
+    assert_eq!(
+        MasterDetail::new(CONTAINER, MASTER, DETAIL)
+            .fixed_master_share(33, 26, 40)
+            .initial_master_cells(39)
+            .layout(Rect::new(0, 0, 120, 24), &state)
+            .master
+            .width,
+        39,
+        "the cell policy selects resizable sizing when called after a fixed mode"
+    );
+    let fixed_after_cells = MasterDetail::new(CONTAINER, MASTER, DETAIL)
+        .initial_master_cells(39)
+        .fixed_master_share(33, 26, 40);
+    assert_eq!(
+        fixed_after_cells
+            .layout(Rect::new(0, 0, 120, 24), &state)
+            .master
+            .width,
+        40,
+        "a later fixed-share builder still selects fixed sizing"
+    );
+    assert_eq!(
+        fixed_after_cells
+            .resizable()
+            .layout(Rect::new(0, 0, 120, 24), &state)
+            .master
+            .width,
+        39,
+        "explicit resizable mode restores the configured cell policy"
+    );
+}
+
+#[test]
+fn initial_cell_policy_supports_keyboard_resize_pointer_drag_resize_and_reset() {
+    let mut h = harness_sized(
+        PolicyPage {
+            area: Rect::new(0, 0, 120, 30),
+            initial_master_cells: Some(39),
+            reset_policy: termrock_controls::ResetPolicy::Initial,
+            resize_bindings: Some(RESIZE_BINDINGS),
+            preserve_drag_offset: true,
+            ..PolicyPage::default()
+        },
+        120,
+        30,
+    );
+    h.runtime_mut().set_focus(Some(MASTER));
+    h.draw();
+    assert_eq!(layout(&h).master.width, 39);
+
+    let _ = h.key_mod(KeyCode::Char('l'), KeyModifiers::CONTROL);
+    assert_eq!(
+        layout(&h).master.width,
+        40,
+        "the first key resize starts at 39"
+    );
+    let _ = h.key_mod(KeyCode::Char('r'), KeyModifiers::CONTROL);
+    assert_eq!(
+        layout(&h).master.width,
+        39,
+        "Initial reset restores the cell width"
+    );
+
+    let seam = h
+        .area_of_part(CONTAINER, PartRef::of(Part::SEAM))
+        .expect("the configured split keeps its real seam");
+    let _ = h.mouse(MouseKind::Down, seam.x, seam.y + 5);
+    let _ = h.mouse(MouseKind::Drag, seam.x + 5, seam.y + 5);
+    assert_eq!(layout(&h).master.width, 44, "the first drag starts at 39");
+    let _ = h.mouse(MouseKind::Up, seam.x + 5, seam.y + 5);
+    assert_eq!(h.runtime().capture_owner(), None);
+
+    let adjusted = h.app().state.split().expect("drag initializes split state");
+    let adjusted_basis_points = adjusted.basis_points();
+    h.app_mut().area = Rect::new(0, 0, 140, 30);
+    let _ = h.resize(140, 30);
+    h.draw();
+    assert_eq!(
+        h.app().state.split().unwrap().basis_points(),
+        adjusted_basis_points,
+        "a manual ratio survives terminal resize"
+    );
+    assert_eq!(
+        layout(&h).master.width,
+        (138u32 * u32::from(adjusted_basis_points) / 10_000) as u16
+    );
+
+    h.runtime_mut().set_focus(Some(MASTER));
+    h.draw();
+    let _ = h.key_mod(KeyCode::Char('r'), KeyModifiers::CONTROL);
+    assert_eq!(
+        layout(&h).master.width,
+        39,
+        "Initial reset returns to cells"
+    );
+    assert_eq!(h.runtime().capture_owner(), None);
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
 }
 
 #[test]
