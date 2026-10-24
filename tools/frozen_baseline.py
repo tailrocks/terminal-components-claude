@@ -6260,11 +6260,17 @@ def corpus_modifier_parity(store: Path, cases: list[str] | None = None, snapshot
     return report
 
 
+class _StoreExplicitTimeout(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        setattr(namespace, self.dest, values)
+        setattr(namespace, "_explicit_timeout", values)
+
+
 def parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--repo", type=Path, default=Path.cwd())
     ap.add_argument("--root", type=Path, default=Path("target/frozen-baseline"))
-    ap.add_argument("--timeout", type=int, default=MAX_TIMEOUT)
+    ap.add_argument("--timeout", type=int, default=MAX_TIMEOUT, action=_StoreExplicitTimeout)
     sub = ap.add_subparsers(dest="command", required=True)
     prepare_parser = sub.add_parser("prepare")
     prepare_parser.add_argument("--owned-lifecycle", action="store_true", help="use one cancellation-safe stage-one deadline and anchored child cleanup")
@@ -6284,6 +6290,10 @@ def parser() -> argparse.ArgumentParser:
     plan.add_argument("--baseline-bin-dir", type=Path, required=True)
     plan.add_argument("--chunk-size", type=int, default=DEFAULT_CHUNK_SIZE)
     plan.add_argument("--term-profile", choices=sorted(TERM_PROFILES), default=None)
+    plan.add_argument("--owned-lifecycle", action="store_true", help="create a nonaccepting plan under one cancellation-safe deadline")
+    plan.add_argument("--owned-budget", type=int, default=None, help="owned work seconds; defaults to the maximum 200-second work budget, with the fixed cleanup reserve additional")
+    plan.add_argument("--creation-commitment-path", type=Path, default=None, help="external immutable commitment destination; parent directory must already exist")
+    plan.add_argument("--pending-receipt-path", type=Path, default=None, help="external pending receipt destination; parent directory must already exist")
     verify_plan = sub.add_parser("verify-fresh-plan")
     verify_plan.set_defaults(timeout=min(MAX_TIMEOUT, FRESH_PLAN_MAX_TIMEOUT))
     verify_plan.add_argument("--cohort", required=True)
@@ -6428,7 +6438,43 @@ def main() -> int:
                 )
                 print(json.dumps({"live_source": str(live), "verified": True, "record": record}, indent=2))
         elif args.command == "fresh-plan":
-            create_fresh_plan(args.repo, args.root, args.cohort, args.baseline_bin_dir, args.timeout, args.chunk_size, args.term_profile)
+            command_timeout = getattr(args, "_explicit_timeout", args.timeout)
+            if args.owned_lifecycle:
+                if args.cohort != PREPARE_LIVE_OWNED_COHORT:
+                    raise RunnerError("--owned-lifecycle requires the pinned fresh-capture cohort")
+                if args.creation_commitment_path is None:
+                    raise RunnerError("--owned-lifecycle requires --creation-commitment-path")
+                if args.pending_receipt_path is None:
+                    raise RunnerError("--owned-lifecycle requires --pending-receipt-path")
+                owned_budget = (
+                    PREPARE_OWNED_MAX_BUDGET
+                    if args.owned_budget is None
+                    else args.owned_budget
+                )
+                with PrepareExecution(owned_budget) as execution:
+                    _create_fresh_plan_owned(
+                        args.repo,
+                        args.root,
+                        args.cohort,
+                        args.baseline_bin_dir,
+                        command_timeout,
+                        args.chunk_size,
+                        args.term_profile,
+                        execution=execution,
+                        commitment_path=args.creation_commitment_path,
+                        pending_receipt_path=args.pending_receipt_path,
+                    )
+            else:
+                if args.owned_budget is not None:
+                    raise RunnerError("--owned-budget requires --owned-lifecycle")
+                if args.creation_commitment_path is not None:
+                    raise RunnerError("--creation-commitment-path requires --owned-lifecycle")
+                if args.pending_receipt_path is not None:
+                    raise RunnerError("--pending-receipt-path requires --owned-lifecycle")
+                create_fresh_plan(
+                    args.repo, args.root, args.cohort, args.baseline_bin_dir,
+                    command_timeout, args.chunk_size, args.term_profile,
+                )
         elif args.command == "verify-fresh-plan":
             if args.owned_lifecycle:
                 budget = PREPARE_OWNED_MAX_BUDGET if args.owned_budget is None else args.owned_budget

@@ -1614,7 +1614,33 @@ class RunnerGuards(unittest.TestCase):
         fresh_plan = runner.parser().parse_args([
             "fresh-plan", "--cohort", "fixture", "--baseline-bin-dir", "/bins",
         ])
-        self.assertFalse(hasattr(fresh_plan, "owned_lifecycle"))
+        self.assertFalse(fresh_plan.owned_lifecycle)
+        self.assertIsNone(fresh_plan.owned_budget)
+        self.assertIsNone(fresh_plan.creation_commitment_path)
+        self.assertIsNone(fresh_plan.pending_receipt_path)
+        self.assertEqual(fresh_plan.timeout, runner.FRESH_PLAN_MAX_TIMEOUT)
+        self.assertFalse(hasattr(fresh_plan, "_explicit_timeout"))
+        explicit_zero_timeout = runner.parser().parse_args([
+            "--timeout", "0", "fresh-plan", "--cohort", "fixture", "--baseline-bin-dir", "/bins",
+        ])
+        self.assertEqual(explicit_zero_timeout.timeout, runner.FRESH_PLAN_MAX_TIMEOUT)
+        self.assertEqual(explicit_zero_timeout._explicit_timeout, 0)
+        other_command_timeout = runner.parser().parse_args([
+            "--timeout", "41", "verify-fresh-plan", "--cohort", "fixture",
+            "--baseline-bin-dir", "/bins", "--expected-plan-sha256", "a" * 64,
+        ])
+        self.assertEqual(other_command_timeout.timeout, runner.FRESH_PLAN_MAX_TIMEOUT)
+        self.assertEqual(other_command_timeout._explicit_timeout, 41)
+        owned_fresh_plan = runner.parser().parse_args([
+            "fresh-plan", "--cohort", runner.PREPARE_LIVE_OWNED_COHORT,
+            "--baseline-bin-dir", "/bins", "--owned-lifecycle",
+            "--owned-budget", "20", "--creation-commitment-path", "/outside/creation.json",
+            "--pending-receipt-path", "/outside/pending.json",
+        ])
+        self.assertTrue(owned_fresh_plan.owned_lifecycle)
+        self.assertEqual(owned_fresh_plan.owned_budget, 20)
+        self.assertEqual(owned_fresh_plan.creation_commitment_path, Path("/outside/creation.json"))
+        self.assertEqual(owned_fresh_plan.pending_receipt_path, Path("/outside/pending.json"))
 
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
@@ -1667,6 +1693,366 @@ class RunnerGuards(unittest.TestCase):
             self.assertIs(verify.call_args.kwargs["execution"], prepare_execution.return_value.__enter__.return_value)
             self.assertEqual(output.getvalue(), "")
             self.assertIn("synthetic verify failure", errors.getvalue())
+
+    @staticmethod
+    def _recording_prepare_execution_type(events: list[object]):
+        original = runner.PrepareExecution
+
+        class RecordingPrepareExecution(original):
+            reuse_instance = None
+
+            def __new__(cls, work_budget):
+                events.append(("construct", work_budget))
+                if cls.reuse_instance is not None:
+                    return cls.reuse_instance
+                return super().__new__(cls)
+
+            def __init__(self, work_budget):
+                if getattr(self, "_stage_c2_initialized", False):
+                    return
+                super().__init__(work_budget)
+                self._stage_c2_initialized = True
+
+            def __enter__(self):
+                events.append(("enter", self.work_budget, self))
+                return super().__enter__()
+
+            def __exit__(self, exc_type, exc, traceback):
+                events.append(("exit", self.work_budget, self))
+                return super().__exit__(exc_type, exc, traceback)
+
+        return RecordingPrepareExecution
+
+    def test_fresh_plan_cli_keeps_legacy_dispatch_and_rejects_owned_options_without_opt_in(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp).resolve()
+            repo, root, bins = base / "repo", base / "root", base / "bins"
+            legacy_argv = [
+                "frozen_baseline.py", "--repo", str(repo), "--root", str(root),
+                "--timeout", "41", "fresh-plan", "--cohort", "legacy-cohort",
+                "--baseline-bin-dir", str(bins), "--chunk-size", "3", "--term-profile", "unset",
+            ]
+            with (
+                patch.object(runner, "create_fresh_plan") as legacy_create,
+                patch.object(runner, "_create_fresh_plan_owned") as owned_create,
+                patch.object(runner, "PrepareExecution") as prepare_execution,
+                patch.object(runner, "paths") as paths,
+                patch.object(runner, "verify_source") as verify_source,
+                patch.object(runner, "nextest_inventory") as inventory,
+                patch.object(sys, "argv", legacy_argv),
+                redirect_stdout(io.StringIO()) as output,
+                redirect_stderr(io.StringIO()) as errors,
+            ):
+                self.assertEqual(runner.main(), 0)
+            legacy_create.assert_called_once_with(repo, root, "legacy-cohort", bins, 41, 3, "unset")
+            owned_create.assert_not_called()
+            prepare_execution.assert_not_called()
+            paths.assert_not_called()
+            verify_source.assert_not_called()
+            inventory.assert_not_called()
+            self.assertEqual(output.getvalue(), "")
+            self.assertEqual(errors.getvalue(), "")
+
+            owned_options = (
+                (["--owned-budget", "200"], "--owned-budget requires --owned-lifecycle"),
+                (["--creation-commitment-path", str(base / "creation.json")], "--creation-commitment-path requires --owned-lifecycle"),
+                (["--pending-receipt-path", str(base / "pending.json")], "--pending-receipt-path requires --owned-lifecycle"),
+            )
+            for option_args, expected_error in owned_options:
+                with self.subTest(option_args=option_args):
+                    with (
+                        patch.object(runner, "create_fresh_plan") as legacy_create,
+                        patch.object(runner, "_create_fresh_plan_owned") as owned_create,
+                        patch.object(runner, "PrepareExecution") as prepare_execution,
+                        patch.object(runner, "paths") as paths,
+                        patch.object(runner, "verify_source") as verify_source,
+                        patch.object(runner, "nextest_inventory") as inventory,
+                        patch.object(sys, "argv", [*legacy_argv, *option_args]),
+                        redirect_stdout(io.StringIO()) as output,
+                        redirect_stderr(io.StringIO()) as errors,
+                    ):
+                        self.assertEqual(runner.main(), 1)
+                    legacy_create.assert_not_called()
+                    owned_create.assert_not_called()
+                    prepare_execution.assert_not_called()
+                    paths.assert_not_called()
+                    verify_source.assert_not_called()
+                    inventory.assert_not_called()
+                    self.assertEqual(output.getvalue(), "")
+                    self.assertIn(expected_error, errors.getvalue())
+
+    def test_fresh_plan_owned_preflight_and_budget_errors_precede_probes(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp).resolve()
+            repo, root, bins = base / "repo", base / "root", base / "bins"
+            commitment, pending = base / "commitment.json", base / "pending.json"
+            base_argv = [
+                "frozen_baseline.py", "--repo", str(repo), "--root", str(root),
+                "--timeout", "41", "fresh-plan", "--baseline-bin-dir", str(bins),
+                "--owned-lifecycle",
+            ]
+            cases = (
+                ("wrong cohort", "not-the-pinned-cohort", ["--creation-commitment-path", str(commitment), "--pending-receipt-path", str(pending)], "pinned fresh-capture cohort"),
+                ("missing commitment", runner.PREPARE_LIVE_OWNED_COHORT, ["--pending-receipt-path", str(pending)], "requires --creation-commitment-path"),
+                ("missing pending", runner.PREPARE_LIVE_OWNED_COHORT, ["--creation-commitment-path", str(commitment)], "requires --pending-receipt-path"),
+            )
+            for label, cohort, options, expected_error in cases:
+                with self.subTest(case=label):
+                    argv = [*base_argv, "--cohort", cohort, *options]
+                    with (
+                        patch.object(runner, "create_fresh_plan") as legacy_create,
+                        patch.object(runner, "_create_fresh_plan_owned") as owned_create,
+                        patch.object(runner, "PrepareExecution") as prepare_execution,
+                        patch.object(runner, "paths") as paths,
+                        patch.object(runner, "verify_source") as verify_source,
+                        patch.object(runner, "nextest_inventory") as inventory,
+                        patch.object(sys, "argv", argv),
+                        redirect_stdout(io.StringIO()) as output,
+                        redirect_stderr(io.StringIO()) as errors,
+                    ):
+                        self.assertEqual(runner.main(), 1)
+                    legacy_create.assert_not_called()
+                    owned_create.assert_not_called()
+                    prepare_execution.assert_not_called()
+                    paths.assert_not_called()
+                    verify_source.assert_not_called()
+                    inventory.assert_not_called()
+                    self.assertEqual(output.getvalue(), "")
+                    self.assertIn(expected_error, errors.getvalue())
+
+            original_prepare_execution = runner.PrepareExecution
+            for invalid_budget in (0, runner.PREPARE_OWNED_MAX_BUDGET + 1):
+                with self.subTest(invalid_budget=invalid_budget):
+                    argv = [
+                        *base_argv, "--cohort", runner.PREPARE_LIVE_OWNED_COHORT,
+                        "--owned-budget", str(invalid_budget),
+                        "--creation-commitment-path", str(commitment),
+                        "--pending-receipt-path", str(pending),
+                    ]
+                    with (
+                        patch.object(runner, "create_fresh_plan") as legacy_create,
+                        patch.object(runner, "_create_fresh_plan_owned") as owned_create,
+                        patch.object(runner, "PrepareExecution", side_effect=original_prepare_execution) as prepare_execution,
+                        patch.object(runner, "paths") as paths,
+                        patch.object(runner, "verify_source") as verify_source,
+                        patch.object(runner, "nextest_inventory") as inventory,
+                        patch.object(sys, "argv", argv),
+                        redirect_stdout(io.StringIO()) as output,
+                        redirect_stderr(io.StringIO()) as errors,
+                    ):
+                        self.assertEqual(runner.main(), 1)
+                    prepare_execution.assert_called_once_with(invalid_budget)
+                    prepare_execution.return_value.__enter__.assert_not_called()
+                    legacy_create.assert_not_called()
+                    owned_create.assert_not_called()
+                    paths.assert_not_called()
+                    verify_source.assert_not_called()
+                    inventory.assert_not_called()
+                    self.assertEqual(output.getvalue(), "")
+                    self.assertIn("owned prepare budget", errors.getvalue())
+
+    def test_fresh_plan_owned_timeout_delegates_strict_validation_before_probes(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp).resolve()
+            repo, root, bins = base / "repo", base / "root", base / "bins"
+            commitment, pending = base / "commitment.json", base / "pending.json"
+            argv = [
+                "frozen_baseline.py", "--repo", str(repo), "--root", str(root),
+                "--timeout", str(runner.FRESH_PLAN_MAX_TIMEOUT + 1),
+                "fresh-plan", "--cohort", runner.PREPARE_LIVE_OWNED_COHORT,
+                "--baseline-bin-dir", str(bins), "--owned-lifecycle", "--owned-budget", "20",
+                "--creation-commitment-path", str(commitment), "--pending-receipt-path", str(pending),
+            ]
+            with (
+                patch.object(runner, "paths") as paths,
+                patch.object(runner, "_owned_root_binding") as root_binding,
+                patch.object(runner, "verify_source") as verify_source,
+                patch.object(runner, "require_capture_eligible_cohort") as capture,
+                patch.object(runner, "verify_live_source") as verify_live,
+                patch.object(runner, "load_extension_manifest") as manifest,
+                patch.object(runner, "nextest_inventory") as inventory,
+                patch.object(sys, "argv", argv),
+                redirect_stdout(io.StringIO()) as output,
+                redirect_stderr(io.StringIO()) as errors,
+            ):
+                self.assertEqual(runner.main(), 1)
+            for probe in (paths, root_binding, verify_source, capture, verify_live, manifest, inventory):
+                probe.assert_not_called()
+            self.assertEqual(output.getvalue(), "")
+            self.assertIn("fresh plan command timeout must be", errors.getvalue())
+            self.assertFalse(commitment.exists())
+            self.assertFalse(pending.exists())
+
+    def test_fresh_plan_owned_cli_dispatch_has_one_scope_and_propagates_failure(self) -> None:
+        for requested_budget, fail in ((None, False), (20, False), (20, True)):
+            with self.subTest(requested_budget=requested_budget, fail=fail), tempfile.TemporaryDirectory() as temp:
+                base = Path(temp).resolve()
+                repo, root, bins = base / "repo", base / "root", base / "bins"
+                commitment, pending = base / "commitment.json", base / "pending.json"
+                events: list[object] = []
+                execution_type = self._recording_prepare_execution_type(events)
+                argv = [
+                    "frozen_baseline.py", "--repo", str(repo), "--root", str(root),
+                    "--timeout", "41", "fresh-plan", "--cohort", runner.PREPARE_LIVE_OWNED_COHORT,
+                    "--baseline-bin-dir", str(bins), "--chunk-size", "3", "--term-profile", "unset",
+                    "--owned-lifecycle",
+                ]
+                if requested_budget is not None:
+                    argv.extend(["--owned-budget", str(requested_budget)])
+                argv.extend(["--creation-commitment-path", str(commitment), "--pending-receipt-path", str(pending)])
+                captured: list[tuple[tuple[object, ...], dict[str, object]]] = []
+
+                def private_create(*args, **kwargs):
+                    captured.append((args, kwargs))
+                    kwargs["execution"].check_work()
+                    if fail:
+                        raise runner.RunnerError("synthetic owned creation failure")
+                    print('{"status":"synthetic-owned-creation"}')
+                    return {}
+
+                with (
+                    patch.object(runner, "PrepareExecution", new=execution_type),
+                    patch.object(runner, "_create_fresh_plan_owned", side_effect=private_create) as owned_create,
+                    patch.object(runner, "create_fresh_plan") as legacy_create,
+                    patch.object(runner, "paths") as paths,
+                    patch.object(runner, "verify_source") as verify_source,
+                    patch.object(runner, "nextest_inventory") as inventory,
+                    patch.object(sys, "argv", argv),
+                    redirect_stdout(io.StringIO()) as output,
+                    redirect_stderr(io.StringIO()) as errors,
+                ):
+                    self.assertEqual(runner.main(), 1 if fail else 0)
+
+                budget = runner.PREPARE_OWNED_MAX_BUDGET if requested_budget is None else requested_budget
+                self.assertEqual(events[0], ("construct", budget))
+                self.assertEqual([event[:2] for event in events[1:]], [("enter", budget), ("exit", budget)])
+                owned_create.assert_called_once()
+                legacy_create.assert_not_called()
+                paths.assert_not_called()
+                verify_source.assert_not_called()
+                inventory.assert_not_called()
+                self.assertEqual(len(captured), 1)
+                args, kwargs = captured[0]
+                self.assertEqual(args, (repo, root, runner.PREPARE_LIVE_OWNED_COHORT, bins, 41, 3, "unset"))
+                self.assertEqual(set(kwargs), {"execution", "commitment_path", "pending_receipt_path"})
+                self.assertEqual(kwargs["execution"].work_budget, budget)
+                self.assertIs(events[1][2], kwargs["execution"])
+                self.assertIs(events[2][2], kwargs["execution"])
+                self.assertEqual(kwargs["commitment_path"], commitment)
+                self.assertEqual(kwargs["pending_receipt_path"], pending)
+                if fail:
+                    self.assertEqual(output.getvalue(), "")
+                    self.assertIn("synthetic owned creation failure", errors.getvalue())
+                else:
+                    self.assertEqual(output.getvalue(), '{"status":"synthetic-owned-creation"}\n')
+                    self.assertEqual(errors.getvalue(), "")
+
+    def test_fresh_plan_owned_cli_reaches_real_private_creator_once(self) -> None:
+        for explicit_budget in (None, 20):
+            with self.subTest(explicit_budget=explicit_budget), tempfile.TemporaryDirectory() as temp:
+                base = Path(temp).resolve()
+                root = base / "plan-root"
+                budget = runner.PREPARE_OWNED_MAX_BUDGET if explicit_budget is None else explicit_budget
+                commitment = base / "commitment-parent" / "creation.json"
+                pending = base / "pending-parent" / "pending.json"
+                commitment.parent.mkdir()
+                pending.parent.mkdir()
+                repo, bins = root / "repo", root / "bins"
+                timeout, chunk_size, term_profile = 41, 2, "unset"
+                events: list[object] = []
+                execution_type = self._recording_prepare_execution_type(events)
+                execution = execution_type(budget)
+                events.clear()
+                execution_type.reuse_instance = execution
+                plan_fixture = self._fresh_plan_fixture(
+                    root, chunk_size=chunk_size, advance_budget_seconds=budget,
+                    cohort_id=runner.PREPARE_LIVE_OWNED_COHORT,
+                )
+                (root / "source" / "Cargo.toml").write_text("[workspace]\n")
+                dependencies, mocks = self._owned_fresh_plan_dependencies(root, plan_fixture, execution)
+                build_calls: list[dict[str, object]] = []
+                writer_order: list[str] = []
+                original_builder = runner.build_fresh_plan_payload
+
+                def observe_builder(**kwargs):
+                    build_calls.append(dict(kwargs))
+                    return original_builder(**kwargs)
+
+                with (
+                    dependencies,
+                    patch.object(runner, "build_fresh_plan_payload", side_effect=observe_builder),
+                    patch.object(runner, "PrepareExecution", new=execution_type),
+                    patch.object(runner, "create_fresh_plan") as legacy_create,
+                    patch.object(sys, "argv", [
+                        "frozen_baseline.py", "--repo", str(repo), "--root", str(root),
+                        "--timeout", str(timeout), "fresh-plan", "--cohort", runner.PREPARE_LIVE_OWNED_COHORT,
+                        "--baseline-bin-dir", str(bins), "--chunk-size", str(chunk_size),
+                        "--term-profile", term_profile, "--owned-lifecycle",
+                        *([] if explicit_budget is None else ["--owned-budget", str(explicit_budget)]),
+                        "--creation-commitment-path", str(commitment), "--pending-receipt-path", str(pending),
+                    ]),
+                    redirect_stdout(io.StringIO()) as output,
+                    redirect_stderr(io.StringIO()) as errors,
+                ):
+                    for name in ("_atomic_create_creation_commitment", "_atomic_create_pending_receipt", "_atomic_create_plan_owned"):
+                        original_writer = getattr(runner, name)
+
+                        def observe_writer(*args, _name=name, _writer=original_writer, **kwargs):
+                            callback = kwargs["check_work"]
+                            self.assertIs(getattr(callback, "__self__", None), execution)
+                            writer_order.append(_name)
+                            return _writer(*args, **kwargs)
+
+                        dependencies.enter_context(
+                            patch.object(runner, name, side_effect=observe_writer)
+                        )
+                    self.assertEqual(runner.main(), 0)
+
+                self.assertEqual(events[0], ("construct", budget))
+                self.assertEqual([event[:2] for event in events[1:]], [("enter", budget), ("exit", budget)])
+                self.assertIs(events[1][2], execution)
+                self.assertIs(events[2][2], execution)
+                legacy_create.assert_not_called()
+                self.assertEqual(len(build_calls), 1)
+                built = build_calls[0]
+                self.assertEqual(built["chunk_size"], chunk_size)
+                self.assertEqual(built["term_profile"], term_profile)
+                self.assertIs(built["execution"], execution)
+                self.assertEqual(built["advance_budget_seconds"], budget)
+                self.assertEqual(mocks["verify_live"].call_args.args[3], timeout)
+                self.assertEqual(mocks["nextest"].call_args.args[1], timeout)
+                self.assertEqual(writer_order, [
+                    "_atomic_create_creation_commitment",
+                    "_atomic_create_pending_receipt",
+                    "_atomic_create_plan_owned",
+                ])
+                self.assertEqual(mocks["verify_source"].call_count, 1)
+                self.assertEqual(mocks["require_capture"].call_count, 1)
+                self.assertEqual(mocks["verify_live"].call_count, 1)
+                self.assertEqual(mocks["nextest"].call_count, 1)
+                self.assertEqual(mocks["tools"].call_count, 1)
+                plan_path = root / runner.FRESH_PLAN_FILE
+                plan = json.loads(plan_path.read_text())
+                self.assertEqual(plan["status"], "prepared-not-executed")
+                self.assertEqual(plan["execution"]["timeout_seconds_per_advance"], budget)
+                self.assertEqual(plan["execution"]["chunk_size"], chunk_size)
+                self.assertEqual(plan["runtime"]["terminal_profile"]["profile"], term_profile)
+                self.assertFalse(plan["execution"]["candidate_comparison_eligible"])
+                self.assertFalse(plan["execution"]["product_acceptance"])
+                self.assertEqual((plan_path.stat().st_mode & 0o777), 0o400)
+                self.assertEqual((commitment.stat().st_mode & 0o777), 0o400)
+                self.assertEqual((pending.stat().st_mode & 0o777), 0o400)
+                pending_line, success_text = output.getvalue().split("\n", 1)
+                pending_record = json.loads(pending_line)
+                success_record = json.loads(success_text)
+                self.assertEqual(pending_record["status"], "pending-plan-publication")
+                self.assertFalse(pending_record["plan_published"])
+                self.assertFalse(pending_record["verified"])
+                self.assertFalse(pending_record["candidate_comparison_eligible"])
+                self.assertFalse(pending_record["product_acceptance"])
+                self.assertEqual(success_record["status"], "prepared-not-executed")
+                self.assertEqual(success_record["creation_commitment_path"], str(commitment))
+                self.assertEqual(errors.getvalue(), "")
 
     def test_owned_fresh_plan_builder_checks_during_inventory_work(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
