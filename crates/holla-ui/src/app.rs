@@ -1423,8 +1423,12 @@ impl App {
                 }
                 self.open_dialog(dialogs::Intent::FolderBrowser, cx);
             }
-            FILES_OPEN if self.route == Route::Files => self.files.open_selected(),
-            FILES_PARENT if self.route == Route::Files => self.files.go_parent(),
+            FILES_OPEN if self.route == Route::Files => self.files.open_selected(cx),
+            FILES_PARENT if self.route == Route::Files => {
+                if !self.files.close_preview(cx) {
+                    self.files.go_parent();
+                }
+            }
             FILES_HIDDEN if self.route == Route::Files => self.files.toggle_hidden(),
             HOME_FIND => self.open_dialog(dialogs::Intent::HomeFind, cx),
             CUSTOM_ACTION => self.open_dialog(dialogs::Intent::CustomAction, cx),
@@ -2403,6 +2407,7 @@ impl termrock::App for App {
         let route_before_update = self.route;
         let response = self.update_controls(cx);
         if route_before_update == Route::Files && self.route != Route::Files {
+            self.files.clear_preview();
             self.files_return = None;
         }
         if plan_key && response.is_consumed() {
@@ -2494,6 +2499,9 @@ impl termrock::App for App {
     }
     fn on_esc(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         if self.route == Route::Files {
+            if self.files.close_preview(cx) {
+                return Response::changed();
+            }
             if let Some(location) = self.files_return.take() {
                 self.route = location.route;
                 if let Some(focus) = location.focus {

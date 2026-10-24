@@ -7,7 +7,10 @@ pub mod plans;
 pub mod scenario;
 pub mod world;
 
-pub use files::{FileEntry, FileKind, FilesError, FilesSnapshot};
+pub use files::{
+    BinaryPreviewReason, FileEntry, FileKind, FilePreview, FilePreviewContent, FilePreviewError,
+    FilesError, FilesSnapshot, PREVIEW_MAX_BYTES, PREVIEW_MAX_LINE_CHARS, PREVIEW_MAX_LINES,
+};
 pub use fixtures::world_for;
 pub use scenario::{Motion, Scenario};
 pub use world::World;

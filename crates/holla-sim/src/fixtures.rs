@@ -72,17 +72,20 @@ pub fn files_for_cwd(cwd: &str) -> crate::files::FilesSnapshot {
     snapshot.insert(FileEntry::directory(drafts.clone()));
     snapshot.insert(FileEntry::directory(private).unreadable());
     snapshot.insert(FileEntry::file(FilesSnapshot::join(cwd, ".notes-index")));
-    snapshot.insert(FileEntry::file(FilesSnapshot::join(cwd, "README.md")));
+    snapshot.insert(FileEntry::file_with_bytes(
+        FilesSnapshot::join(cwd, "README.md"),
+        b"# Simulated workspace\n\nThis file is part of the in-memory fixture.\n".to_vec(),
+    ));
     snapshot.insert(FileEntry::file(FilesSnapshot::join(cwd, "résumé.txt")));
     snapshot.insert(FileEntry::symlink(
         FilesSnapshot::join(cwd, "broken-shortcut"),
         FilesSnapshot::join(cwd, "missing-target"),
     ));
     snapshot.insert(FileEntry::file(FilesSnapshot::join(&archive, "2025.txt")));
-    snapshot.insert(FileEntry::file(FilesSnapshot::join(
-        &drafts,
-        "meeting-notes.md",
-    )));
+    snapshot.insert(FileEntry::file_with_bytes(
+        FilesSnapshot::join(&drafts, "meeting-notes.md"),
+        b"Meeting notes\n\n- Review the preview flow\n".to_vec(),
+    ));
     snapshot.insert(FileEntry::file(FilesSnapshot::join(&drafts, "秘密.md")));
     snapshot
 }
