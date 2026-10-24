@@ -1370,6 +1370,164 @@ class RunnerGuards(unittest.TestCase):
             with self.assertRaisesRegex(runner.RunnerError, "duplicate fresh plan JSON field"):
                 runner._read_self_sealed_plan(duplicate)
 
+    def test_fresh_plan_writer_checks_chunk_and_publication_boundaries(self) -> None:
+        def run_failure(payload: str, fail_at: int) -> tuple[bool, bytes | None]:
+            with tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                plan_path = root / runner.FRESH_PLAN_FILE
+                calls = 0
+
+                def check_work() -> None:
+                    nonlocal calls
+                    calls += 1
+                    if calls == fail_at:
+                        raise runner.RunnerError("injected work deadline")
+
+                with self.assertRaisesRegex(runner.RunnerError, "injected work deadline"):
+                    runner._atomic_create_plan(
+                        plan_path, {"payload": payload}, check_work=check_work
+                    )
+                self.assertFalse(list(root.glob(f".{plan_path.name}.*")))
+                return plan_path.exists(), plan_path.read_bytes() if plan_path.exists() else None
+
+        before_first_write, _ = run_failure("small", 5)
+        self.assertFalse(before_first_write, "a deadline before the first chunk must prevent publication")
+        between_chunks, _ = run_failure("x" * (1024 * 1024 + 64), 6)
+        self.assertFalse(between_chunks, "a deadline between chunks must prevent publication")
+        before_link, _ = run_failure("small", 7)
+        self.assertFalse(before_link, "a deadline after fsync but before link must prevent publication")
+        after_link, published = run_failure("small", 8)
+        self.assertTrue(after_link, "post-link cancellation preserves the immutable published file")
+        self.assertEqual(published, b'{"payload":"small"}\n')
+
+    def test_fresh_plan_writer_preserves_file_and_symlink_collisions(self) -> None:
+        for collision in ("file", "symlink"):
+            with self.subTest(collision=collision), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                plan_path = root / runner.FRESH_PLAN_FILE
+                target = root / "existing-target.json"
+                if collision == "file":
+                    plan_path.write_bytes(b"existing\n")
+                else:
+                    target.write_bytes(b"existing\n")
+                    plan_path.symlink_to(target)
+                before = target.read_bytes() if collision == "symlink" else plan_path.read_bytes()
+                with self.assertRaisesRegex(runner.RunnerError, "refusing to replace"):
+                    runner._atomic_create_plan(
+                        plan_path, {"payload": "replacement"}, check_work=lambda: None
+                    )
+                if collision == "file":
+                    self.assertEqual(plan_path.read_bytes(), before)
+                else:
+                    self.assertTrue(plan_path.is_symlink())
+                    self.assertEqual(target.read_bytes(), before)
+                self.assertFalse(list(root.glob(f".{plan_path.name}.*")))
+
+    def test_fresh_plan_check_work_reaches_inventory_and_validation_loops(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            plan = self._fresh_plan_fixture(Path(temp))
+            calls = 0
+
+            def check_work() -> None:
+                nonlocal calls
+                calls += 1
+
+            with patch.object(runner, "EXPECTED_SCENARIOS", 1), patch.object(runner, "EXPECTED_ORDINARY_TESTS", 2), patch.object(runner, "ordinary_test_groups", return_value=(["source_only::fixture"], ["modes::showcase_boot_sets_terminal_modes"])):
+                self.assertEqual(
+                    runner.validate_fresh_plan_document(plan, check_work=check_work), plan
+                )
+            self.assertGreater(calls, len(plan["inventory"]["full_sorted"]))
+            self.assertEqual(
+                runner.inventory_digest({"b": False, "a": True}, check_work=lambda: None),
+                runner.inventory_digest({"b": False, "a": True}),
+            )
+            self.assertEqual(
+                runner._chunk_records(["a", "b", "c"], 2, check_work=lambda: None),
+                runner._chunk_records(["a", "b", "c"], 2),
+            )
+            stopped = 0
+
+            def stop_work() -> None:
+                nonlocal stopped
+                stopped += 1
+                if stopped == 4:
+                    raise runner.RunnerError("injected validation deadline")
+
+            with patch.object(runner, "EXPECTED_SCENARIOS", 1), patch.object(runner, "EXPECTED_ORDINARY_TESTS", 2), patch.object(runner, "ordinary_test_groups", return_value=(["source_only::fixture"], ["modes::showcase_boot_sets_terminal_modes"])):
+                with self.assertRaisesRegex(runner.RunnerError, "injected validation deadline"):
+                    runner.validate_fresh_plan_document(plan, check_work=stop_work)
+
+    def test_bound_plan_reader_is_no_follow_link_safe_and_rechecks_root(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "plan-root"
+            root.mkdir()
+            plan_path = root / "plan.json"
+            document = {"origin": "bound-root"}
+            raw = json.dumps(document, separators=(",", ":")).encode()
+            plan_path.write_bytes(raw)
+            digest = runner.hashlib.sha256(raw).hexdigest()
+            checks = []
+
+            with patch.object(runner, "validate_fresh_plan_document", side_effect=lambda value, *, check_work=None: value):
+                loaded = runner._read_self_sealed_plan_at_root(
+                    root, "plan.json", digest, check_work=lambda: checks.append(1)
+                )
+                self.assertEqual(loaded, document)
+                self.assertGreater(len(checks), 0)
+                plan_link = root / "plan-link.json"
+                plan_link.symlink_to(plan_path)
+                self.assertTrue(plan_link.is_symlink())
+                self.assertEqual(plan_link.resolve(strict=True), plan_path.resolve(strict=True))
+                with self.assertRaisesRegex(runner.RunnerError, "symlinked or non-regular"):
+                    runner._read_self_sealed_plan_at_root(
+                        root, "plan-link.json", digest, check_work=lambda: None
+                    )
+                self.assertTrue(plan_link.is_symlink())
+                self.assertEqual(plan_link.resolve(strict=True), plan_path.resolve(strict=True))
+                self.assertEqual(plan_path.read_bytes(), raw)
+                os.link(plan_path, root / "plan-hardlink.json")
+                with self.assertRaisesRegex(runner.RunnerError, "symlinked, linked, or non-regular"):
+                    runner._read_self_sealed_plan_at_root(
+                        root, "plan-hardlink.json", digest, check_work=lambda: None
+                    )
+
+    def test_bound_plan_reader_detects_directory_replacement_after_open(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp)
+            root = base / "plan-root"
+            moved = base / "moved-original-root"
+            root.mkdir()
+            original_document = {"origin": "original-root"}
+            original_raw = json.dumps(original_document, separators=(",", ":")).encode()
+            (root / "plan.json").write_bytes(original_raw)
+            replacement_document = {"origin": "replacement-root"}
+            replacement_raw = json.dumps(replacement_document, separators=(",", ":")).encode()
+            original_digest = runner.hashlib.sha256(original_raw).hexdigest()
+            captured = []
+            real_reader = runner._read_self_sealed_plan
+
+            def replace_path_after_dirfd_open(path, expected_sha256=None, *, check_work=None, directory_fd=None):
+                root.rename(moved)
+                root.mkdir()
+                (root / "plan.json").write_bytes(replacement_raw)
+                result = real_reader(
+                    path,
+                    expected_sha256,
+                    check_work=check_work,
+                    directory_fd=directory_fd,
+                )
+                captured.append(result)
+                return result
+
+            with patch.object(runner, "validate_fresh_plan_document", side_effect=lambda value, *, check_work=None: value):
+                with patch.object(runner, "_read_self_sealed_plan", side_effect=replace_path_after_dirfd_open):
+                    with self.assertRaisesRegex(runner.RunnerError, "identity no longer matches"):
+                        runner._read_self_sealed_plan_at_root(
+                            root, "plan.json", original_digest, check_work=lambda: None
+                        )
+            self.assertEqual(captured, [original_document], "the open dirfd reads the originally bound directory")
+            self.assertEqual((root / "plan.json").read_bytes(), replacement_raw)
+
     def test_fresh_environment_binds_locale_color_timezone_and_tool_bytes(self) -> None:
         baseline = {key: "stable" for key in runner.FRESH_RUNTIME_ENV_KEYS}
         baseline.pop("LC_ALL")

@@ -2382,13 +2382,23 @@ def validate_extension_inventory(inventory: dict[str, bool], manifest: dict[str,
     return original, sorted(extension_ids)
 
 
-def inventory_digest(inventory: dict[str, bool]) -> str:
-    serialized = json.dumps(sorted(inventory.items()), separators=(",", ":")).encode()
+def inventory_digest(inventory: dict[str, bool], *, check_work: Callable[[], None] | None = None) -> str:
+    if check_work is None:
+        serialized = json.dumps(sorted(inventory.items()), separators=(",", ":")).encode()
+    else:
+        ordered = []
+        for name, ignored in sorted(inventory.items()):
+            check_work()
+            ordered.append((name, ignored))
+        serialized = json.dumps(ordered, separators=(",", ":")).encode()
+        check_work()
     return hashlib.sha256(serialized).hexdigest()
 
 
-def require_inventory_matches(inventory: dict[str, bool], expected_digest: str) -> None:
-    actual = inventory_digest(inventory)
+def require_inventory_matches(
+    inventory: dict[str, bool], expected_digest: str, *, check_work: Callable[[], None] | None = None
+) -> None:
+    actual = inventory_digest(inventory, check_work=check_work)
     if actual != expected_digest:
         raise RunnerError(f"Nextest inventory hash mismatch: expected {expected_digest}, got {actual}")
 
@@ -3108,16 +3118,37 @@ def cli_coverage_report_fields(registered_cli_complete: bool) -> dict[str, objec
     }
 
 
-def scenario_chunks(names: list[str], size: int) -> list[list[str]]:
+def scenario_chunks(
+    names: list[str], size: int, *, check_work: Callable[[], None] | None = None
+) -> list[list[str]]:
     if not 1 <= size <= 512:
         raise RunnerError("chunk size must be 1..512 cases")
-    reference_names = [name for name in names if name == REFERENCE_CASE]
+    if check_work is None:
+        reference_names = [name for name in names if name == REFERENCE_CASE]
+        if len(reference_names) > 1:
+            raise RunnerError("reference checkpoint scenario is duplicated in selection")
+        ordinary = [name for name in names if name != REFERENCE_CASE]
+        chunks = [ordinary[start : start + size] for start in range(0, len(ordinary), size)]
+        if reference_names:
+            chunks.append(reference_names)
+        return chunks
+    reference_names = []
+    ordinary = []
+    for name in names:
+        check_work()
+        if name == REFERENCE_CASE:
+            reference_names.append(name)
+        else:
+            ordinary.append(name)
     if len(reference_names) > 1:
         raise RunnerError("reference checkpoint scenario is duplicated in selection")
-    ordinary = [name for name in names if name != REFERENCE_CASE]
-    chunks = [ordinary[start : start + size] for start in range(0, len(ordinary), size)]
+    chunks = []
+    for start in range(0, len(ordinary), size):
+        check_work()
+        chunks.append(ordinary[start : start + size])
     if reference_names:
         chunks.append(reference_names)
+    check_work()
     return chunks
 
 
@@ -3134,11 +3165,17 @@ def _visual_case_conditions(names: list[str]) -> dict[str, dict[str, object]]:
     return conditions
 
 
-def _chunk_records(names: list[str], size: int) -> list[dict[str, object]]:
-    return [
-        {"index": index, "selected_cases": chunk}
-        for index, chunk in enumerate(scenario_chunks(names, size))
-    ]
+def _chunk_records(
+    names: list[str], size: int, *, check_work: Callable[[], None] | None = None
+) -> list[dict[str, object]]:
+    chunks = scenario_chunks(names, size, check_work=check_work)
+    if check_work is None:
+        return [{"index": index, "selected_cases": chunk} for index, chunk in enumerate(chunks)]
+    records = []
+    for index, chunk in enumerate(chunks):
+        check_work()
+        records.append({"index": index, "selected_cases": chunk})
+    return records
 
 
 def build_fresh_plan_payload(
@@ -3294,7 +3331,7 @@ def build_fresh_plan_payload(
     return plan
 
 
-def validate_fresh_plan_document(document: object) -> dict[str, object]:
+def validate_fresh_plan_document(document: object, *, check_work: Callable[[], None] | None = None) -> dict[str, object]:
     fields = {"schema", "schema_version", "status", "plan_id", "created_at_utc", "cohort", "source", "runner_inputs", "runtime", "inventory", "execution", "plan_sha256"}
     if not isinstance(document, dict) or set(document) != fields:
         raise RunnerError("fresh plan fields differ from schema version 1")
@@ -3320,6 +3357,8 @@ def validate_fresh_plan_document(document: object) -> dict[str, object]:
     if not isinstance(document["runner_inputs"], dict) or set(document["runner_inputs"]) != {"runner_sha256", "harness_patch_sha256", "frame_helper_sha256", "extension_manifest_sha256", "extension_source_sha256", "frozen_test_harness_sha256", "frozen_source_manifest_sha256", "live_source_manifest_sha256", "capture_decision_sha256", "capture_evidence_index_sha256", "cohort_registry_sha256", "cohort_review_registry_sha256", "resumable_contract_sha256"}:
         raise RunnerError("fresh plan runner input fields are invalid")
     for field, digest in document["runner_inputs"].items():
+        if check_work is not None:
+            check_work()
         if not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest):
             raise RunnerError(f"fresh plan runner input digest is invalid: {field}")
     if not isinstance(document["runtime"], dict) or set(document["runtime"]) != {"policy", "effective_environment", "selected_tools", "overrides", "child_time_policy", "controlled_clock", "terminal_profile", "font_profile", "unknown_parent_environment_values_recorded"}:
@@ -3328,13 +3367,25 @@ def validate_fresh_plan_document(document: object) -> dict[str, object]:
     if not isinstance(inventory, dict) or set(inventory) != {"sha256", "full_sorted", "visual_original", "visual_extensions", "visual_selected", "ordinary_selected", "ordinary_source_only", "ordinary_baseline_cli", "visual_count", "original_visual_count", "extension_visual_count", "ordinary_count", "case_terminal_inputs", "checkpoint_obligations"}:
         raise RunnerError("fresh plan inventory fields are invalid")
     rows = inventory["full_sorted"]
-    if not isinstance(rows, list) or not rows or any(not isinstance(row, dict) or set(row) != {"name", "ignored"} or not isinstance(row["name"], str) or type(row["ignored"]) is not bool for row in rows):
+    if not isinstance(rows, list) or not rows:
         raise RunnerError("fresh plan inventory rows are invalid")
-    names = [row["name"] for row in rows]
-    if names != sorted(names) or len(names) != len(set(names)) or inventory["sha256"] != inventory_digest({row["name"]: row["ignored"] for row in rows}):
+    names = []
+    row_inventory: dict[str, bool] = {}
+    for row in rows:
+        if check_work is not None:
+            check_work()
+        if not isinstance(row, dict) or set(row) != {"name", "ignored"} or not isinstance(row["name"], str) or type(row["ignored"]) is not bool:
+            raise RunnerError("fresh plan inventory rows are invalid")
+        names.append(row["name"])
+        row_inventory[row["name"]] = row["ignored"]
+    if names != sorted(names) or len(names) != len(set(names)) or inventory["sha256"] != inventory_digest(row_inventory, check_work=check_work):
         raise RunnerError("fresh plan inventory is unsorted, duplicated, or has a false digest")
-    visual = [row["name"] for row in rows if row["ignored"]]
-    ordinary = [row["name"] for row in rows if not row["ignored"]]
+    visual = []
+    ordinary = []
+    for row in rows:
+        if check_work is not None:
+            check_work()
+        (visual if row["ignored"] else ordinary).append(row["name"])
     if visual != inventory["visual_selected"] or ordinary != inventory["ordinary_selected"]:
         raise RunnerError("fresh plan inventory selection differs from complete registered inventory")
     extensions = inventory["visual_extensions"]
@@ -3357,6 +3408,8 @@ def validate_fresh_plan_document(document: object) -> dict[str, object]:
     if set(inventory["case_terminal_inputs"]) != set(visual) or set(inventory["checkpoint_obligations"]) != set(visual):
         raise RunnerError("fresh plan case inputs or checkpoint obligations are incomplete")
     for name, condition in inventory["case_terminal_inputs"].items():
+        if check_work is not None:
+            check_work()
         if not isinstance(condition, dict) or set(condition) != {"cols", "rows", "color_mode"} or type(condition["cols"]) is not int or type(condition["rows"]) is not int or min(condition["cols"], condition["rows"]) < 1 or condition["color_mode"] not in {"truecolor", "256", "16", "none", "nocolor"}:
             raise RunnerError(f"fresh plan has invalid terminal inputs for {name}")
     execution = document["execution"]
@@ -3369,7 +3422,7 @@ def validate_fresh_plan_document(document: object) -> dict[str, object]:
     phase_names = [phase.get("name") for phase in execution["phases"]]
     if phase_names != ["baseline-capture", "baseline-replay", "baseline-ordinary-checks"]:
         raise RunnerError("fresh plan phase inventory is incomplete or out of order")
-    visual_chunks = _chunk_records(visual, execution.get("chunk_size"))
+    visual_chunks = _chunk_records(visual, execution.get("chunk_size"), check_work=check_work)
     for phase in execution["phases"][:2]:
         if phase != {"name": phase["name"], "chunks": visual_chunks}:
             raise RunnerError("fresh plan visual phase chunk membership differs from inventory")
@@ -3377,8 +3430,8 @@ def validate_fresh_plan_document(document: object) -> dict[str, object]:
     if not isinstance(ordinary_groups, list) or [group.get("name") for group in ordinary_groups if isinstance(group, dict)] != ["source-only", "baseline-cli"]:
         raise RunnerError("fresh plan ordinary group order is invalid")
     if ordinary_groups != [
-        {"name": "source-only", "chunks": _chunk_records(source_only, execution["chunk_size"])},
-        {"name": "baseline-cli", "chunks": _chunk_records(baseline_cli, execution["chunk_size"])},
+        {"name": "source-only", "chunks": _chunk_records(source_only, execution["chunk_size"], check_work=check_work)},
+        {"name": "baseline-cli", "chunks": _chunk_records(baseline_cli, execution["chunk_size"], check_work=check_work)},
     ]:
         raise RunnerError("fresh plan ordinary chunk membership differs from inventory")
     runtime = document["runtime"]
@@ -3394,26 +3447,54 @@ def validate_fresh_plan_document(document: object) -> dict[str, object]:
     }:
         raise RunnerError("fresh plan controlled clock inputs are invalid")
     payload = {key: value for key, value in document.items() if key != "plan_sha256"}
-    if not isinstance(document["plan_sha256"], str) or document["plan_sha256"] != canonical_json_digest(payload):
+    if check_work is not None:
+        check_work()
+    content_digest = canonical_json_digest(payload)
+    if check_work is not None:
+        check_work()
+    if not isinstance(document["plan_sha256"], str) or document["plan_sha256"] != content_digest:
         raise RunnerError("fresh plan content digest mismatch")
+    if check_work is not None:
+        check_work()
     return document
 
 
-def _read_self_sealed_plan(path: Path, expected_sha256: str | None = None) -> dict[str, object]:
+def _read_self_sealed_plan(
+    path: Path,
+    expected_sha256: str | None = None,
+    *,
+    check_work: Callable[[], None] | None = None,
+    directory_fd: int | None = None,
+) -> dict[str, object]:
+    if check_work is not None:
+        check_work()
     try:
-        before = path.lstat()
+        before = (
+            os.stat(path.name, dir_fd=directory_fd, follow_symlinks=False)
+            if directory_fd is not None
+            else path.lstat()
+        )
         if stat.S_ISLNK(before.st_mode) or not stat.S_ISREG(before.st_mode):
             raise RunnerError("fresh plan is symlinked or non-regular")
-        fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+        if directory_fd is not None and before.st_nlink != 1:
+            raise RunnerError("fresh plan is symlinked, linked, or non-regular")
+        flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+        fd = os.open(path.name, flags, dir_fd=directory_fd) if directory_fd is not None else os.open(path, flags)
         try:
             opened = os.fstat(fd)
             chunks: list[bytes] = []
             while chunk := os.read(fd, 1024 * 1024):
+                if check_work is not None:
+                    check_work()
                 chunks.append(chunk)
             after_fd = os.fstat(fd)
         finally:
             os.close(fd)
-        after = path.lstat()
+        after = (
+            os.stat(path.name, dir_fd=directory_fd, follow_symlinks=False)
+            if directory_fd is not None
+            else path.lstat()
+        )
     except OSError as error:
         raise RunnerError(f"fresh plan cannot be safely read: {error}") from error
     identity = lambda value: (value.st_dev, value.st_ino, value.st_mode, value.st_size, value.st_mtime_ns, value.st_ctime_ns, value.st_nlink)
@@ -3427,6 +3508,8 @@ def _read_self_sealed_plan(path: Path, expected_sha256: str | None = None) -> di
             result[key] = value
         return result
     raw = b"".join(chunks)
+    if check_work is not None:
+        check_work()
     if expected_sha256 is not None:
         if not re.fullmatch(r"[0-9a-f]{64}", expected_sha256) or hashlib.sha256(raw).hexdigest() != expected_sha256:
             raise RunnerError("fresh plan does not match the externally retained creation digest")
@@ -3434,20 +3517,52 @@ def _read_self_sealed_plan(path: Path, expected_sha256: str | None = None) -> di
         parsed = json.loads(raw, object_pairs_hook=strict_object)
     except json.JSONDecodeError as error:
         raise RunnerError("fresh plan is not valid JSON") from error
-    return validate_fresh_plan_document(parsed)
+    if check_work is not None:
+        check_work()
+    result = validate_fresh_plan_document(parsed, check_work=check_work)
+    if check_work is not None:
+        check_work()
+    return result
 
-
-def _atomic_create_plan(path: Path, document: dict[str, object]) -> str:
+def _atomic_create_plan(
+    path: Path,
+    document: dict[str, object],
+    *,
+    check_work: Callable[[], None] | None = None,
+) -> str:
+    if check_work is not None:
+        check_work()
     path.parent.mkdir(parents=True, exist_ok=True)
+    if check_work is not None:
+        check_work()
     payload = (json.dumps(document, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n").encode()
+    if check_work is not None:
+        check_work()
     fd, temporary_name = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
     temporary = Path(temporary_name)
     try:
+        if check_work is not None:
+            check_work()
         os.fchmod(fd, 0o400)
-        with os.fdopen(fd, "wb") as stream:
-            stream.write(payload)
+        stream = os.fdopen(fd, "wb")
+        fd = -1
+        with stream:
+            if check_work is None:
+                stream.write(payload)
+            else:
+                chunk_size = 1024 * 1024
+                for offset in range(0, len(payload), chunk_size):
+                    check_work()
+                    chunk = payload[offset : offset + chunk_size]
+                    if stream.write(chunk) != len(chunk):
+                        raise RunnerError("fresh plan write was incomplete")
+                    stream.flush()
             stream.flush()
+            if check_work is not None:
+                check_work()
             os.fsync(stream.fileno())
+        if check_work is not None:
+            check_work()
         try:
             os.link(temporary, path, follow_symlinks=False)
         except FileExistsError as error:
@@ -3457,10 +3572,16 @@ def _atomic_create_plan(path: Path, document: dict[str, object]) -> str:
             os.fsync(directory_fd)
         finally:
             os.close(directory_fd)
+        if check_work is not None:
+            check_work()
     finally:
+        if fd >= 0:
+            os.close(fd)
         temporary.unlink(missing_ok=True)
-    return hashlib.sha256(payload).hexdigest()
-
+    digest = hashlib.sha256(payload).hexdigest()
+    if check_work is not None:
+        check_work()
+    return digest
 
 def create_fresh_plan(
     repo: Path,
@@ -3536,6 +3657,72 @@ def _open_directory_chain(path: Path) -> tuple[int, os.stat_result]:
     except OSError:
         os.close(fd)
         raise
+
+
+def _owned_root_binding(root: Path, *, check_work: Callable[[], None]) -> dict[str, str]:
+    """Bind one real directory path and identity at a work-check boundary."""
+    check_work()
+    lexical = Path(os.path.abspath(os.fspath(root)))
+    try:
+        before = lexical.lstat()
+        if stat.S_ISLNK(before.st_mode) or not stat.S_ISDIR(before.st_mode):
+            raise RunnerError("owned fresh plan root must be a real directory, not a symlink")
+        canonical = lexical.resolve(strict=True)
+        directory_fd, opened = _open_directory_chain(canonical)
+        try:
+            after = lexical.lstat()
+            canonical_after = lexical.resolve(strict=True)
+        finally:
+            os.close(directory_fd)
+    except OSError as error:
+        raise RunnerError(f"owned fresh plan root cannot be safely opened: {error}") from error
+    identity = lambda value: (value.st_dev, value.st_ino, stat.S_IFMT(value.st_mode))
+    if canonical != canonical_after or identity(before) != identity(opened) or identity(opened) != identity(after):
+        raise RunnerError("owned fresh plan root pathname or directory identity changed")
+    check_work()
+    return {
+        "plan_root_path": str(lexical),
+        "plan_root_canonical_path": str(canonical),
+        "plan_root_device": str(opened.st_dev),
+        "plan_root_inode": str(opened.st_ino),
+    }
+
+
+def _check_owned_root_binding(root_binding: dict[str, str], *, check_work: Callable[[], None]) -> Path:
+    current = _owned_root_binding(Path(root_binding["plan_root_path"]), check_work=check_work)
+    if current != root_binding:
+        raise RunnerError("owned fresh plan root pathname or directory identity no longer matches its pinned identity")
+    return Path(root_binding["plan_root_canonical_path"])
+
+
+def _read_self_sealed_plan_at_root(
+    root: Path,
+    filename: str,
+    expected_sha256: str | None = None,
+    *,
+    check_work: Callable[[], None],
+) -> dict[str, object]:
+    relative = Path(filename)
+    if not filename or relative.is_absolute() or relative.name != filename or filename in {".", ".."}:
+        raise RunnerError("fresh plan name must be one relative path component")
+    root_binding = _owned_root_binding(root, check_work=check_work)
+    canonical_root = Path(root_binding["plan_root_canonical_path"])
+    root_fd, root_info = _open_directory_chain(canonical_root)
+    try:
+        if (str(root_info.st_dev), str(root_info.st_ino)) != (
+            root_binding["plan_root_device"], root_binding["plan_root_inode"]
+        ):
+            raise RunnerError("fresh plan root directory identity changed before read")
+        plan = _read_self_sealed_plan(
+            canonical_root / filename,
+            expected_sha256,
+            check_work=check_work,
+            directory_fd=root_fd,
+        )
+    finally:
+        os.close(root_fd)
+    _check_owned_root_binding(root_binding, check_work=check_work)
+    return plan
 
 
 def _private_custody_directory(path: Path, *, create: bool) -> tuple[int, os.stat_result, Path]:
