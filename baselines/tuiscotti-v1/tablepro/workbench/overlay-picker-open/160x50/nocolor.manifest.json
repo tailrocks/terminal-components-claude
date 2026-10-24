@@ -1,40 +1,40 @@
 {
-  "ansi_sha256": "6c7acf46de14dbecccb1130bebff85eed51847e769632bd5810b1aa8d55ab4d4",
+  "ansi_sha256": "11574af0a8af59db378bbac04ce6ac318d82faf0d41debcdd1da34c17c4302e4",
   "artifacts": {
     "ansi": {
-      "bytes": 9992,
+      "bytes": 10816,
       "file": "tablepro/workbench/overlay-picker-open/160x50/nocolor.ansi",
-      "sha256": "6c7acf46de14dbecccb1130bebff85eed51847e769632bd5810b1aa8d55ab4d4"
+      "sha256": "11574af0a8af59db378bbac04ce6ac318d82faf0d41debcdd1da34c17c4302e4"
     },
     "ascii": {
-      "bytes": 7679,
+      "bytes": 7678,
       "file": "tablepro/workbench/overlay-picker-open/160x50/nocolor.ascii",
-      "sha256": "e2e2cf4e8b13a3e454608ac1bc72f4d93506f278f502201efba1c87539504f50"
+      "sha256": "2fa65e417527ae4524c48f9d173a79f10dc4b3ddde276c7dff9f01594368d67e"
     },
     "ascii_loss_json": {
-      "bytes": 78639,
+      "bytes": 83879,
       "file": "tablepro/workbench/overlay-picker-open/160x50/nocolor.ascii.loss.json",
-      "sha256": "79b05e3a3433be016a4535c67a8db408e30fd6cdf69296c33a16a982f8c1e807"
+      "sha256": "de5de07292068a14ac98e48a0a6c27d8896a98c50abb332f903450dae669cc0a"
     },
     "frame_json": {
-      "bytes": 1794655,
+      "bytes": 1786950,
       "file": "tablepro/workbench/overlay-picker-open/160x50/nocolor.frame.json",
-      "sha256": "bc387d6f497cd2a0c11d42423958534cc5ba29e6be3857bfc31b5a57921e942b"
+      "sha256": "ef5876043c28074397497c69746d2b376f51bf3830f08e2968a038c4f81028df"
     },
     "html": {
-      "bytes": 692926,
+      "bytes": 688557,
       "file": "tablepro/workbench/overlay-picker-open/160x50/nocolor.html",
-      "sha256": "48c3a9a08d3c7006ce19e1f3e0280c8af770e684d1cefc221e6e5c25890f0831"
+      "sha256": "409c9724a41dabc9af6e182ca67ff1bee4c16d58d4f711e3d178ba2aa33427c3"
     },
     "observations_json": {
-      "bytes": 480,
+      "bytes": 481,
       "file": "tablepro/workbench/overlay-picker-open/160x50/nocolor.observations.json",
-      "sha256": "f51395f2a65f620d0ede09952a34c39fe5780f33c80f2bb7e8b134f3c3da818e"
+      "sha256": "740d516ea38aeac95f4d8c13e7182c6eb1fbc64d4e47dab3482501a78c8df866"
     },
     "png": {
-      "bytes": 501575,
+      "bytes": 495559,
       "file": "tablepro/workbench/overlay-picker-open/160x50/nocolor.png",
-      "sha256": "e2bbac1847c92a58c11064f6042810943097cc0229971b558f203aa42aaba457"
+      "sha256": "5ba6e58fd87ed77c5b98fed3398e03584c5260761fee73d51bbb286b844d283d"
     },
     "png_fidelity_json": {
       "bytes": 276,
@@ -42,26 +42,26 @@
       "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
     },
     "txt": {
-      "bytes": 9349,
+      "bytes": 9460,
       "file": "tablepro/workbench/overlay-picker-open/160x50/nocolor.txt",
-      "sha256": "703b4f6fbf5d21755a489cc5dbf1a4da6ea01efbde821184b86d9eae6d4fe007"
+      "sha256": "143a2df4b10c27b091db1de6b1d2bdd69f388fd51385c8d9893e205740085799"
     }
   },
-  "ascii_substitutions_count": 846,
+  "ascii_substitutions_count": 902,
   "complete": true,
   "dimensions": {
     "cols": 160,
     "rows": 50
   },
-  "frame_digest": 2365250904321327696,
-  "frame_sha256": "bc387d6f497cd2a0c11d42423958534cc5ba29e6be3857bfc31b5a57921e942b",
-  "generation": "430eb7e557f1b72011e3e181575ac5f98a3485b84f664c3d6c65075a4b1225b6",
-  "html_sha256": "48c3a9a08d3c7006ce19e1f3e0280c8af770e684d1cefc221e6e5c25890f0831",
+  "frame_digest": 131601709805523871,
+  "frame_sha256": "ef5876043c28074397497c69746d2b376f51bf3830f08e2968a038c4f81028df",
+  "generation": "65de09ff9c9a2233f14836f436cd462e034729dd18045ed0914a538df106be61",
+  "html_sha256": "409c9724a41dabc9af6e182ca67ff1bee4c16d58d4f711e3d178ba2aa33427c3",
   "legacy_name": "tablepro/overlays/picker_open/160x50/nocolor",
   "name": "tablepro/workbench/overlay-picker-open/160x50/nocolor",
-  "png_sha256": "e2bbac1847c92a58c11064f6042810943097cc0229971b558f203aa42aaba457",
+  "png_sha256": "5ba6e58fd87ed77c5b98fed3398e03584c5260761fee73d51bbb286b844d283d",
   "profile": "tuiscotti-default",
   "schema_version": 1,
-  "timestamp_utc": "2026-10-03T22:11:15Z",
-  "txt_sha256": "703b4f6fbf5d21755a489cc5dbf1a4da6ea01efbde821184b86d9eae6d4fe007"
+  "timestamp_utc": "2026-10-21T00:00:00Z",
+  "txt_sha256": "143a2df4b10c27b091db1de6b1d2bdd69f388fd51385c8d9893e205740085799"
 }

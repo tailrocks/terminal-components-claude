@@ -4,8 +4,8 @@ use ratatui_core::buffer::Buffer;
 use ratatui_core::layout::{Position, Rect};
 use ratatui_core::style::Style;
 use termrock::{
-    Anchor, App, Axis, BindingState, Chord, CollectionCore, ColorLevel, CrossAlign, Cx, Diagnostic,
-    Flow, Focusability, Id, Invalidate, ItemKey, KeyCode, KeyMap, KeyModifiers, LayerId, LayerKind,
+    Anchor, App, Axis, Chord, CollectionCore, ColorLevel, CrossAlign, Cx, Diagnostic, Flow,
+    Focusability, Id, Invalidate, ItemKey, KeyCode, KeyMap, KeyModifiers, LayerId, LayerKind,
     LayerSize, LayerSpec, MouseKind, ReferenceState, ReferenceTarget, Region, RegionKind, Response,
     Side, StateFlags, Theme, Ui,
 };
@@ -211,6 +211,11 @@ fn activate_part<C: Conformance>(
     activate_at::<C>(h, x, y)
 }
 
+fn needs_layer_opened<C: Conformance>() -> bool {
+    has::<C>(Caps::OVERLAY)
+        && (C::activation_id() != C::control_id() || C::opener_id() != C::control_id())
+}
+
 fn open_component_layer<C: Conformance>(h: &mut Harness<CaseApp<C>>) -> Option<Chord> {
     h.app_mut().open_component = true;
     let _ = h.tick();
@@ -222,11 +227,75 @@ fn open_component_layer<C: Conformance>(h: &mut Harness<CaseApp<C>>) -> Option<C
     chord
 }
 
+fn prepare_binding_probe<C: Conformance>(h: &mut Harness<CaseApp<C>>, owner: Id) {
+    if needs_layer_opened::<C>() || C::binding_probes_require_overlay() {
+        let initial_focus = if C::binding_probes_require_overlay() {
+            C::opener_id()
+        } else {
+            owner
+        };
+        assert!(
+            h.tab_to(initial_focus),
+            "{}: cannot focus binding setup control {initial_focus:?}",
+            C::NAME
+        );
+        let _ = open_component_layer::<C>(h);
+        let layer = C::layer_id()
+            .unwrap_or_else(|| panic!("{}: binding setup requires an owning layer ID", C::NAME));
+        assert!(
+            h.is_open(layer),
+            "{}: binding setup did not open layer {layer:?}",
+            C::NAME
+        );
+    }
+    assert!(
+        h.tab_to(owner),
+        "{}: cannot focus binding owner {owner:?}",
+        C::NAME
+    );
+}
+
+fn prepare_activation<C: Conformance>(h: &mut Harness<CaseApp<C>>) {
+    let requires_overlay = C::activation_requires_overlay();
+    let initial_focus = if requires_overlay {
+        C::opener_id()
+    } else {
+        C::control_id()
+    };
+    assert!(
+        h.tab_to(initial_focus),
+        "{}: cannot focus activation setup control {initial_focus:?}",
+        C::NAME
+    );
+    let opened_layer =
+        if requires_overlay || (has::<C>(Caps::OVERLAY) && C::activation_id() != C::control_id()) {
+            let _ = open_component_layer::<C>(h);
+            C::layer_id()
+        } else {
+            None
+        };
+    if let Some(layer) = opened_layer {
+        assert!(
+            h.runtime().is_open(layer),
+            "{}: activation setup did not open layer {layer:?}",
+            C::NAME
+        );
+    }
+    if requires_overlay && C::control_id() != initial_focus {
+        assert!(
+            h.tab_to(C::control_id()),
+            "{}: cannot focus activation control {:?} after opening its layer",
+            C::NAME,
+            C::control_id()
+        );
+    }
+}
+
 pub fn disabled_cannot_activate<C: Conformance>() {
     if !has::<C>(Caps::DISABLEABLE) {
         return;
     }
-    let mut f = Fixture::default();
+    let mut f = C::fixture();
     f.disabled = true;
     let mut h = harness::<C>(f);
     let before = h.app().st.clone();
@@ -279,11 +348,9 @@ pub fn keyboard_and_mouse_activation_are_equivalent<C: Conformance>() {
         "{}: ACTIVATES without activation chords",
         C::NAME
     );
-    let mut mouse = harness::<C>(Fixture::default());
-    assert!(mouse.tab_to(C::control_id()), "{}: cannot focus", C::NAME);
-    if has::<C>(Caps::OVERLAY) && C::activation_id() != C::control_id() {
-        let _ = open_component_layer::<C>(&mut mouse);
-    }
+    let mut mouse = harness::<C>(C::fixture());
+    prepare_activation::<C>(&mut mouse);
+    clear_activation_setup::<C>(&mut mouse);
     let area = part_area::<C>(&mouse);
     let (x, y) = centre(area);
     let _ = activate_at::<C>(&mut mouse, x, y);
@@ -295,14 +362,19 @@ pub fn keyboard_and_mouse_activation_are_equivalent<C: Conformance>() {
         C::NAME,
         C::activation_gesture(),
     );
+    assert_not_opener_action::<C>(&by_mouse, "mouse");
     for chord in chords {
-        let mut kb = harness::<C>(Fixture::default());
-        assert!(kb.tab_to(C::control_id()));
-        if has::<C>(Caps::OVERLAY) && C::activation_id() != C::control_id() {
-            let _ = open_component_layer::<C>(&mut kb);
-        }
+        let mut kb = harness::<C>(C::fixture());
+        prepare_activation::<C>(&mut kb);
+        clear_activation_setup::<C>(&mut kb);
         let _ = kb.key_mod(chord.code, chord.mods);
         let by_key = kb.app_mut().last.take();
+        assert!(
+            by_key.is_some(),
+            "{}: {chord} did not produce an activation response",
+            C::NAME
+        );
+        assert_not_opener_action::<C>(&by_key, "keyboard");
         assert_eq!(
             by_key,
             by_mouse,
@@ -319,11 +391,42 @@ pub fn keyboard_and_mouse_activation_are_equivalent<C: Conformance>() {
     }
 }
 
+fn clear_activation_setup<C: Conformance>(h: &mut Harness<CaseApp<C>>) {
+    if let Some(opener_action) = C::opener_action() {
+        assert_eq!(
+            h.app_mut().last.take(),
+            Some(opener_action),
+            "{}: expected the owning-layer opener response before activation",
+            C::NAME
+        );
+    } else {
+        // Other setup paths may produce a harmless response. It must never be
+        // mistaken for the result of the gesture under test.
+        let _ = h.app_mut().last.take();
+    }
+    assert!(
+        h.app().last.is_none(),
+        "{}: stale setup response remained before activation",
+        C::NAME
+    );
+}
+
+fn assert_not_opener_action<C: Conformance>(action: &Option<C::Action>, gesture: &str) {
+    if let Some(opener_action) = C::opener_action() {
+        assert_ne!(
+            *action,
+            Some(opener_action),
+            "{}: {gesture} activation reused the opener response",
+            C::NAME
+        );
+    }
+}
+
 pub fn traversal_order_is_registration_order<C: Conformance>() {
     if !has::<C>(Caps::FOCUSABLE) {
         return;
     }
-    let mut app = CaseApp::<C>::new(Fixture::default());
+    let mut app = CaseApp::<C>::new(C::fixture());
     app.sentinels = true;
     let h = Harness::new(app, Theme::junie(), 40, 12);
     let ids: Vec<Id> = h.ring().reachable().map(|e| e.id).collect();
@@ -342,7 +445,7 @@ pub fn traversal_order_is_registration_order<C: Conformance>() {
 }
 
 pub fn hover_does_not_steal_focus<C: Conformance>() {
-    let mut app = CaseApp::<C>::new(Fixture::default());
+    let mut app = CaseApp::<C>::new(C::fixture());
     app.sentinels = true;
     let mut h = Harness::new(app, Theme::junie(), 40, 12);
     let focus = h.focus();
@@ -381,7 +484,7 @@ pub fn hover_does_not_steal_focus<C: Conformance>() {
 }
 
 pub fn draw_twice_is_byte_identical<C: Conformance>() {
-    let mut h = harness::<C>(Fixture::default()).with_auto_draw(false);
+    let mut h = harness::<C>(C::fixture()).with_auto_draw(false);
     h.draw();
     let a = h.buffer().clone();
     let ra = regions_of::<C>(&h);
@@ -394,8 +497,8 @@ pub fn draw_twice_is_byte_identical<C: Conformance>() {
 
 pub fn draw_twice_leaves_state_equal<C: Conformance>() {
     let variants: Vec<Fixture> = {
-        let mut v = vec![Fixture::default()];
-        let mut d = Fixture::default();
+        let mut v = vec![C::fixture()];
+        let mut d = C::fixture();
         d.disabled = true;
         v.push(d);
         v
@@ -426,7 +529,7 @@ pub fn draw_does_not_commit_or_cancel<C: Conformance>() {
     if !has::<C>(Caps::EDITS) {
         return;
     }
-    let mut h = harness::<C>(Fixture::default());
+    let mut h = harness::<C>(C::fixture());
     assert!(h.tab_to(C::control_id()));
     let _ = h.type_str("x");
     h.blur();
@@ -440,7 +543,7 @@ pub fn draw_does_not_commit_or_cancel<C: Conformance>() {
 }
 
 pub fn draw_stays_inside_its_area<C: Conformance>() {
-    let f = Fixture::default();
+    let f = C::fixture();
     let inner = f.area;
     let mut scene = crate::Scene::new(C::NAME, f.theme.clone(), f.color, 40, 12);
     let st = C::State::default();
@@ -611,26 +714,37 @@ pub fn mono_states_are_distinguishable<C: Conformance>() {
 }
 
 pub fn local_override_does_not_mutate_the_theme<C: Conformance>() {
-    let plain = harness::<C>(Fixture::default());
-    let before = plain.runtime().theme().fingerprint();
+    let plain = harness::<C>(C::fixture());
     let plain_digest = plain.snapshot().digest();
     let patch_part = C::PARTS
         .first()
         .copied()
         .unwrap_or(termrock::Part::CONTAINER);
-    let mut f = Fixture::default();
+    let mut f = C::fixture();
     f.patch = Some((
         patch_part,
         termrock::StylePatch::new().set_fg(termrock::Role::Warning),
     ));
-    let patched = harness::<C>(f);
+    // Capture the exact runtime's semantic theme before the widget receives
+    // its local patch. This detects mutation of the runtime being rendered;
+    // Theme equality deliberately ignores only generated recipe revisions.
+    let mut patched = harness::<C>(C::fixture()).with_auto_draw(false);
+    let before = patched.runtime().theme().clone();
+    let before_fingerprint = patched.runtime().theme().fingerprint();
+    patched.app_mut().fixture.patch = f.patch;
+    patched.draw();
     assert_eq!(
-        patched.runtime().theme().fingerprint(),
-        before,
+        patched.runtime().theme(),
+        &before,
         "{}: the theme changed",
         C::NAME
     );
-    assert_eq!(plain.runtime().theme().fingerprint(), before);
+    assert_eq!(
+        patched.runtime().theme().fingerprint(),
+        before_fingerprint,
+        "{}: the installed theme recipe revision changed",
+        C::NAME
+    );
     if patched.app().fixture.patch.is_some() && C::caps().bits() != 0 && !C::PARTS.is_empty() {
         if patched.snapshot().digest() == plain_digest {
             assert_ne!(
@@ -655,7 +769,7 @@ pub fn local_override_does_not_mutate_the_theme<C: Conformance>() {
 }
 
 pub fn id_separator_collision_free<C: Conformance>() {
-    let h = harness::<C>(Fixture::default());
+    let h = harness::<C>(C::fixture());
     let dups = h
         .diagnostics()
         .iter()
@@ -687,7 +801,7 @@ pub fn item_identity_survives_reorder<C: Conformance>() {
     if !has::<C>(Caps::COLLECTION) {
         return;
     }
-    let mut h = harness::<C>(Fixture::default());
+    let mut h = harness::<C>(C::fixture());
     let keys = C::item_keys(&h.app().fixture);
     assert!(keys.len() >= 2, "{}: need at least two rows", C::NAME);
     if has::<C>(Caps::OVERLAY) {
@@ -832,7 +946,7 @@ pub fn focus_reconcile_follows_the_rule<C: Conformance>() {
     if !has::<C>(Caps::FOCUSABLE) {
         return;
     }
-    let mut app = CaseApp::<C>::new(Fixture::default());
+    let mut app = CaseApp::<C>::new(C::fixture());
     app.sentinels = true;
     let mut h = Harness::new(app, Theme::junie(), 40, 12);
     assert!(h.tab_to(C::control_id()));
@@ -889,7 +1003,7 @@ pub fn focus_trap_and_restore<C: Conformance>() {
     if !has::<C>(Caps::OVERLAY) {
         return;
     }
-    let mut app = CaseApp::<C>::new(Fixture::default());
+    let mut app = CaseApp::<C>::new(C::fixture());
     app.sentinels = true;
     let mut h = Harness::new(app, Theme::junie(), 40, 12);
     assert!(h.tab_to(C::opener_id()));
@@ -1027,7 +1141,7 @@ pub fn pointer_capture_delivers_drag_and_release<C: Conformance>() {
     if !has::<C>(Caps::CAPTURES) {
         return;
     }
-    let mut h = harness::<C>(Fixture::default());
+    let mut h = harness::<C>(C::fixture());
     let area = part_area::<C>(&h);
     let (x, y) = centre(area);
     let _ = h.mouse(MouseKind::Down, x, y);
@@ -1064,7 +1178,7 @@ pub fn wheel_at_boundary_is_consumed_without_repaint<C: Conformance>() {
     if !has::<C>(Caps::SCROLLS) {
         return;
     }
-    let mut fixture = Fixture::default();
+    let mut fixture = C::fixture();
     C::prepare_scroll_fixture(&mut fixture);
     let theme = fixture.theme.clone().downgrade(fixture.color);
     let mut app = CaseApp::<C>::new(fixture);
@@ -1124,7 +1238,7 @@ pub fn cursor_write_is_rejected_off_top_layer<C: Conformance>() {
     if !has::<C>(Caps::CURSOR) {
         return;
     }
-    let mut h = harness::<C>(Fixture::default());
+    let mut h = harness::<C>(C::fixture());
     assert!(h.tab_to(C::control_id()));
     assert!(
         h.cursor().is_some(),
@@ -1155,7 +1269,7 @@ pub fn secret_never_appears_in_debug<C: Conformance>() {
         "{}: SECRET without secret bytes",
         C::NAME
     );
-    let mut f = Fixture::default();
+    let mut f = C::fixture();
     f.secret = Some(secret);
     let mut h = harness::<C>(f);
     assert!(h.tab_to(C::control_id()));
@@ -1165,7 +1279,7 @@ pub fn secret_never_appears_in_debug<C: Conformance>() {
     assert!(!h.text().contains(secret), "{}: secret on screen", C::NAME);
     let d1 = h.snapshot().digest();
     let other: String = secret.chars().map(|_| 'z').collect();
-    let mut f2 = Fixture::default();
+    let mut f2 = C::fixture();
     f2.secret = Some(secret);
     let mut h2 = harness::<C>(f2);
     assert!(h2.tab_to(C::control_id()));
@@ -1181,7 +1295,7 @@ pub fn secret_never_appears_in_debug<C: Conformance>() {
 pub fn survives_tiny_rects_0x0_to_3x3<C: Conformance>() {
     for w in 0..=3u16 {
         for hgt in 0..=3u16 {
-            let mut f = Fixture::default();
+            let mut f = C::fixture();
             f.area = Rect::new(5, 5, w, hgt);
             let inner = f.area;
             let mut scene = crate::Scene::new(C::NAME, f.theme.clone(), f.color, 12, 12);
@@ -1233,7 +1347,7 @@ pub fn survives_tiny_rects_0x0_to_3x3<C: Conformance>() {
             C::layer_id().unwrap_or_else(|| panic!("{}: OVERLAY without a layer id", C::NAME));
         for width in 0..=3u16 {
             for height in 0..=3u16 {
-                let mut h = harness::<C>(Fixture::default());
+                let mut h = harness::<C>(C::fixture());
                 assert!(h.tab_to(C::opener_id()));
                 let _ = open_component_layer::<C>(&mut h);
                 assert!(h.is_open(layer), "{}: overlay did not open", C::NAME);
@@ -1308,7 +1422,7 @@ fn dynamic_bindings_follow_keymap<C: Conformance>(
     for (action, chord) in dynamic {
         let owner = C::dynamic_binding_id(*action);
         let mut default = harness::<C>(fixture.clone());
-        assert!(default.tab_to(owner));
+        prepare_binding_probe::<C>(&mut default, owner);
         assert!(
             default.key_mod(chord.code, chord.mods).is_consumed(),
             "{}: dynamic binding {chord} was not consumed",
@@ -1317,7 +1431,7 @@ fn dynamic_bindings_follow_keymap<C: Conformance>(
 
         let replacement = Chord::key(KeyCode::F(11));
         let mut remapped = harness::<C>(fixture.clone());
-        assert!(remapped.tab_to(owner));
+        prepare_binding_probe::<C>(&mut remapped, owner);
         remapped
             .app_mut()
             .keymap
@@ -1331,7 +1445,7 @@ fn dynamic_bindings_follow_keymap<C: Conformance>(
         );
 
         let mut removed = harness::<C>(fixture.clone());
-        assert!(removed.tab_to(owner));
+        prepare_binding_probe::<C>(&mut removed, owner);
         removed.app_mut().keymap.remove_component(owner, *action);
         assert!(
             !removed.key_mod(chord.code, chord.mods).is_consumed(),
@@ -1341,31 +1455,134 @@ fn dynamic_bindings_follow_keymap<C: Conformance>(
     }
 }
 
-pub fn bindings_match_handled_keys<C: Conformance>() {
-    let states = [
-        BindingState::default(),
-        BindingState {
-            flags: StateFlags::FOCUSED,
-        },
-    ];
-    let fixture = Fixture::default();
+/// The chords a case declares outside its own binding table: the tables of
+/// the nested child controls it composes, and the chord that opens it.
+fn declared_outside_table<C: Conformance>() -> Vec<Chord> {
+    let mut out = C::nested_binding_chords();
+    if let Some(chord) = C::open_chord() {
+        out.push(chord);
+    }
+    out
+}
+
+/// One chord the case consumes, and whether a declared table accounts for it.
+struct ConsumedChord {
+    chord: Chord,
+    declared: bool,
+}
+
+/// Every chord the case consumes, with the tables that declare it.
+fn consumed_chords<C: Conformance>() -> Vec<ConsumedChord> {
+    let states = C::binding_states();
+    let fixture = C::fixture();
     let dynamic = C::dynamic_bindings(&fixture);
     if states.iter().all(|state| C::bindings(*state).is_empty())
         && dynamic.is_empty()
+        && C::nested_binding_chords().is_empty()
+        && C::legacy_key_chords().is_empty()
+    {
+        return Vec::new();
+    }
+    let outside = declared_outside_table::<C>();
+    let mut out = Vec::new();
+    for &st in states {
+        let table = C::bindings(st);
+        for chord in chord_universe() {
+            if chord.code == KeyCode::Esc {
+                continue;
+            }
+            if has::<C>(Caps::TYPES) && chord.is_bare_char() {
+                continue;
+            }
+            let mut h = harness::<C>(C::fixture());
+            let owner = dynamic
+                .iter()
+                .find_map(|(action, declared)| {
+                    declared
+                        .matches(&termrock::Key {
+                            code: chord.code,
+                            mods: chord.mods,
+                        })
+                        .then(|| C::dynamic_binding_id(*action))
+                })
+                .unwrap_or_else(C::control_id);
+            prepare_binding_probe::<C>(&mut h, owner);
+            let r = h.key_mod(chord.code, chord.mods);
+            if r.is_consumed() {
+                let key = termrock::Key {
+                    code: chord.code,
+                    mods: chord.mods,
+                };
+                let declared = table
+                    .iter()
+                    .any(|b| b.chord.is_some_and(|chord| chord.matches(&key)))
+                    || dynamic.iter().any(|(_, chord)| chord.matches(&key))
+                    || outside.iter().any(|chord| chord.matches(&key));
+                out.push(ConsumedChord { chord, declared });
+            }
+        }
+    }
+    out
+}
+
+/// The legacy-chord audit of one case.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LegacyChords {
+    /// Chords the case consumes that no declared table accounts for.
+    pub needed: Vec<Chord>,
+    /// The case's legacy list.
+    pub legacy: Vec<Chord>,
+    /// Legacy entries that no undeclared consumed chord needs.
+    pub unused: Vec<Chord>,
+}
+
+/// The chords a case needs a legacy entry for, and the legacy entries it
+/// carries.
+///
+/// The legacy list is the exact set of chords a case consumes without a
+/// declared table behind it. An entry that no undeclared consumed chord
+/// needs, or a chord that no legacy entry covers, is a defect: the list
+/// would grow into a rubber stamp and the binding audit would stop proving
+/// anything.
+pub fn audit_legacy_chords<C: Conformance>() -> LegacyChords {
+    let consumed = consumed_chords::<C>();
+    let mut needed: Vec<Chord> = Vec::new();
+    for entry in &consumed {
+        if !entry.declared && !needed.iter().any(|c| c.effective_eq(&entry.chord)) {
+            needed.push(entry.chord);
+        }
+    }
+    let legacy = C::legacy_key_chords().to_vec();
+    let unused = legacy
+        .iter()
+        .filter(|l| !needed.iter().any(|n| n.effective_eq(l)))
+        .copied()
+        .collect();
+    LegacyChords {
+        needed,
+        legacy,
+        unused,
+    }
+}
+
+pub fn bindings_match_handled_keys<C: Conformance>() {
+    let states = C::binding_states();
+    let fixture = C::fixture();
+    let dynamic = C::dynamic_bindings(&fixture);
+    if states.iter().all(|state| C::bindings(*state).is_empty())
+        && dynamic.is_empty()
+        && C::nested_binding_chords().is_empty()
         && C::legacy_key_chords().is_empty()
     {
         return;
     }
     dynamic_bindings_follow_keymap::<C>(&fixture, &dynamic);
-    for st in states {
+    for &st in states {
         let table = C::bindings(st);
 
         for b in table {
-            let mut h = harness::<C>(Fixture::default());
-            assert!(h.tab_to(C::control_id()));
-            if has::<C>(Caps::OVERLAY) && C::activation_id() != C::control_id() {
-                let _ = open_component_layer::<C>(&mut h);
-            }
+            let mut h = harness::<C>(C::fixture());
+            prepare_binding_probe::<C>(&mut h, C::control_id());
             let chord = if let Some(chord) = b.chord {
                 chord
             } else {
@@ -1383,48 +1600,22 @@ pub fn bindings_match_handled_keys<C: Conformance>() {
                 chord
             );
         }
-
-        for chord in chord_universe() {
-            if chord.code == KeyCode::Esc {
-                continue;
-            }
-            if has::<C>(Caps::TYPES) && chord.is_bare_char() {
-                continue;
-            }
-            let mut h = harness::<C>(Fixture::default());
-            let owner = dynamic
-                .iter()
-                .find_map(|(action, declared)| {
-                    declared
-                        .matches(&termrock::Key {
-                            code: chord.code,
-                            mods: chord.mods,
-                        })
-                        .then(|| C::dynamic_binding_id(*action))
-                })
-                .unwrap_or_else(C::control_id);
-            assert!(h.tab_to(owner));
-            if has::<C>(Caps::OVERLAY) && C::activation_id() != C::control_id() {
-                let _ = open_component_layer::<C>(&mut h);
-            }
-            let r = h.key_mod(chord.code, chord.mods);
-            if r.is_consumed() {
-                let key = termrock::Key {
-                    code: chord.code,
-                    mods: chord.mods,
-                };
-                assert!(
-                    table
-                        .iter()
-                        .any(|b| b.chord.is_some_and(|chord| chord.matches(&key)))
-                        || dynamic.iter().any(|(_, chord)| chord.matches(&key))
-                        || C::legacy_key_chords()
-                            .iter()
-                            .any(|chord| chord.matches(&key)),
-                    "{}: consumed {chord} which is not in the binding table or legacy set",
-                    C::NAME
-                );
-            }
-        }
     }
+
+    let audit = audit_legacy_chords::<C>();
+    for chord in &audit.needed {
+        assert!(
+            C::legacy_key_chords()
+                .iter()
+                .any(|legacy| legacy.effective_eq(chord)),
+            "{}: consumed {chord} which is not in the binding table or legacy set",
+            C::NAME
+        );
+    }
+    assert!(
+        audit.unused.is_empty(),
+        "{}: legacy entries no consumed chord needs: {:?}",
+        C::NAME,
+        audit.unused
+    );
 }

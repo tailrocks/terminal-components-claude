@@ -1,0 +1,137 @@
+{
+  "schema": "component-contract-diagnosis-v1",
+  "reviewer": "/root/tablepro_name_edit_architect",
+  "created_at": "2026-10-21T02:27:03.468872+00:00",
+  "source_commit": "c8f92ea0c0df2bc13a507e97b14ef6f65a90ea48",
+  "baseline": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "finding": "TP-RADIO-BASELINE-INTERACTION-01",
+  "severity": "P1",
+  "decision": "reproduced_red_required_shared_component_correction",
+  "source_sha256": {
+    "crates/termrock-controls/src/choice.rs": "de30f18693f9b17dcf09a1926895dba8ef6c1edc7204d0b3cccbd912f9daf561",
+    "crates/termrock-forms/src/form.rs": "b9870c74bdc8c69dd830db80826e189041623151703bc748742ca166a5dea54e",
+    "crates/termrock-core/src/intent.rs": "e38b83c2ee74547e771a965c0930802708fb90d29c64df6e7e9854db13393235",
+    "crates/tablepro-domain/src/connections.rs": "16fc204c3e9968789b91eb16ed23d2066c6fea5da552f6394b6f9cfa31bd7d2a",
+    "crates/tablepro-ui/src/app.rs": "19757947e9d7a20e2f30b43196d0bcd82441f4e3d8e80143114297ea99b87ed5"
+  },
+  "executed_proof": {
+    "command": "cargo nextest run --manifest-path consumer/Cargo.toml --test frozen_radio --no-fail-fast",
+    "exit": 100,
+    "run": 3,
+    "passed": 0,
+    "failed": 3,
+    "skipped": 0,
+    "seconds": 14.02,
+    "dedicated_target": "/private/tmp/tablepro-radio-contract-red-target-20261021",
+    "tests": [
+      {
+        "name": "frozen_environment_down_selects_immediately",
+        "observed": "expected environment1, actual0 after real focused Down"
+      },
+      {
+        "name": "frozen_safe_mode_down_selects_immediately",
+        "observed": "expected safe-mode1, actual0 after real focused Down"
+      },
+      {
+        "name": "frozen_radio_enter_does_not_submit_valid_form",
+        "observed": "Name and Database entered through real UI; Enter on Environment closed the form instead of choosing the radio and retaining the form."
+      }
+    ]
+  },
+  "trace": [
+    {
+      "owner": "termrock-controls RadioGroup",
+      "path": "crates/termrock-controls/src/choice.rs:857-965",
+      "cause": "Published RADIO bindings route Up/Down/Home/End to move_cursor; it only changes CollectionCore cursor and emits changed. Space/Enter call choose and emit RadioGroupAction::Chose.",
+      "effect": "Controlled value does not change on keyboard navigation."
+    },
+    {
+      "owner": "termrock-controls Form adapter",
+      "path": "crates/termrock-controls/src/choice.rs:733-747",
+      "cause": "update_in_form writes usize only for a Chose action.",
+      "effect": "The missing navigation action leaves ConnectionDraft environment/safe_mode unchanged."
+    },
+    {
+      "owner": "termrock-forms Form",
+      "path": "crates/termrock-forms/src/form.rs:1422-1430 and1552-1562",
+      "cause": "Default EnterPolicy::SubmitsWhenIdle claims the focused nonediting child Enter binding before calling update_field. Both flat and lane update paths do this.",
+      "effect": "RadioGroup never receives its own Enter Choose binding, and Form queues its configured submit action."
+    },
+    {
+      "owner": "termrock-core IntentQueue",
+      "path": "crates/termrock-core/src/intent.rs:420-434 and519-521",
+      "cause": "claim_binding_chord sets the stored binding claimed; IntentIter skips claimed bindings.",
+      "effect": "This is ownership interception, not missing key decoding or an application raw key."
+    },
+    {
+      "owner": "TablePro composition",
+      "path": "crates/tablepro-ui/src/app.rs:1562-1570 and crates/tablepro-domain/src/connections.rs:109-123",
+      "cause": "Both radios use ordinary RadioGroup::new; connection_form uses Form::new default Enter policy.",
+      "effect": "The application config currently requests the shared behavior that differs from frozen."
+    }
+  ],
+  "existing_api": {
+    "Form": "Form::enter(EnterPolicy::Never) already disables implicit Form Enter interception. Real action buttons retain their own Enter activation and configured Ctrl+S action route. This must be checked through real controls after configuration. No global Form default change is needed for TablePro.",
+    "RadioGroup": "No navigation-selection policy exists. value, read_only, disabled, key, row and style builders do not make arrows choose. A component-owned configurable policy is needed."
+  },
+  "decisions": [
+    "Use existing runtime binding publication, IntentQueue and RadioGroupAction; do not add application raw key handling, synthetic selection, second input routing or hidden state.",
+    "Add a shared RadioGroup navigation-selection policy and builder, carried unchanged through key(), row(), with_form_value(), LabelRadio, RadioField wrapping and Form update/draw adapters.",
+    "Normal radio keyboard navigation should choose immediately to satisfy the frozen reference. Preserve cursor-only/deferred selection as an explicit option. Making this the default changes current semantics and requires a documented compatibility decision plus consumer inventory; keeping the existing default requires explicit baseline configuration on TablePro. Do not silently claim both defaults are preserved.",
+    "Do not implement the policy by unconditionally changing move_cursor: pointer Press also calls that helper. Keyboard navigation may choose under policy; pointer Press must retain baseline press/cancel semantics and pointer Click chooses through the same typed action.",
+    "Configure the single TablePro connection_form factory with existing EnterPolicy::Never so its visible radio owns Enter; test real action-button Enter, Tab, Shift+Tab and Ctrl+S separately.",
+    "Keep new-draft initialization and Name/Port versus Database validation discrepancies outside this behavior increment and recorded."
+  ],
+  "writer_plan": [
+    {
+      "stage": 1,
+      "owner": "one controls-family writer",
+      "files": [
+        "crates/termrock-controls/src/choice.rs",
+        "crates/termrock-controls/src/lib.rs",
+        "crates/termrock/src/lib.rs",
+        "public catalog/compiled examples as required"
+      ],
+      "work": "Introduce the smallest public navigation-selection policy. Emit Chose from keyboard navigation under immediate policy; retain explicit deferred mode. Preserve stable keys, read-only/disabled behavior, pointer capture/release distinctions and controlled value ownership."
+    },
+    {
+      "stage": 2,
+      "owner": "same coordinated writer after API agreement",
+      "files": [
+        "crates/tablepro-ui/src/app.rs",
+        "crates/tablepro-ui/tests/form_radio.rs",
+        "crates/termrock-forms/src/form.rs tests only if needed"
+      ],
+      "work": "Configure existing EnterPolicy::Never in the common factory. Replace candidate-only TablePro expectations with baseline-qualified immediate arrow/Enter-choice tests. Retain deferred navigation and implicit Enter-submit coverage in a separate shared Form consumer using explicit configuration."
+    },
+    {
+      "stage": 3,
+      "owner": "independent verifier",
+      "work": "Run unchanged external three-test probe on before and after; before must remain3RED, after3GREEN. Review cells, registered bounds, focus, cursor, actual actions, both Form layout paths and pointer cancellation. Then perform required paired frozen CLI comparison before any product parity claim."
+    }
+  ],
+  "required_matrix": [
+    "Environment and Safe Mode initial0; Down/Up/Home/End/repeat immediately choose and keep focus/visible marker on the chosen stable key.",
+    "Enter on each radio chooses, keeps form open, emits no Save/SaveConnect and appends no connection. Use valid Name/Database to avoid false pass through validation rejection.",
+    "Space chooses; pointer Press alone does not commit, release-outside cancels, Click chooses; hover/pressed/selected/focus remain distinct.",
+    "Empty, disabled, read-only, reordered stable-key data and narrow/scrolling Form windows remain safe.",
+    "Both flat Form::update and lane update route Enter to children under Never; normal Save/SaveConnect button Enter and Ctrl+S still reach typed domain actions.",
+    "Deferred policy remains executable in a public consumer with different data; no app/test-name variants."
+  ],
+  "artifacts": {
+    "consumer/Cargo.lock": "3b222d4222f66f51b996741c8a4d4ee71ccbfdf8549650b7015bb98e5da52633",
+    "consumer/Cargo.toml": "45dbe528cb73f8205bbb78e6bcbc91e403102ba2fe3f3148d10bbc7a98767b0f",
+    "consumer/tests/frozen_radio.rs": "be25ea5cb54a22a6b0e63104ede7ebabda88db0ed6ab98f6e07f1987cab9f469",
+    "execution.json": "0cd1f6018d04a740f01a15f08fcd4244189020be64ccb751d534a8cd2b59ade5",
+    "nextest.log": "997f0b6029cd5d62a929c080157849d3b6ef0210577cdad274e3b444bdb83f3d"
+  },
+  "repository_source_edits": false,
+  "expected_artifact_edits": false,
+  "captures_executed": false,
+  "key_access": false,
+  "limitations": [
+    "The three tests drive real candidate TableProApp/Form/widgets through public Harness and actual focus routing, but are not real CLI/tuiscotti paired captures.",
+    "Frozen expected behavior is source-qualified; the frozen application was not executed in this diagnosis.",
+    "No production correction or independent review of a correction has yet occurred."
+  ]
+}

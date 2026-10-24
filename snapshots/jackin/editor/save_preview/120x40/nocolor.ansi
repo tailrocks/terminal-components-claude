@@ -1,0 +1,41 @@
+[0m[2m  jackin❯    File   Go   Help     Workspaces › payments-platform › edit  • 1 change  inside the Construct  ● 2 running  [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m   General •    Mounts    Roles    Environments    Accounts                                                             [0m
+[0m[2m  ━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────────────────────  [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m      Name *                                                                                                            [0m
+[0m[2m    [0m [0m[2m payments-platform                                                                                                 [0m
+[0m[2m      Directory basename by default                                                                                     [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m    Working directory *                                                                                                 [0m
+[0m[2m    /workspace/payments-platform                                 [0m [0m[2mChoose…                                               [0m
+[0m[2m    Inside the Construct                                                                                                [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m    [0m [0m[2m[ ] Keep awake        ╭──────────────────────────────────────────────────────────── × ─╮                           [0m
+[0m[2m    [0m [0m[2m[✓] Git pull before la│                                                                │                           [0m
+[0m[2m                           │  [0m[1;2mSave workspace[0m[2m                                                │                           [0m
+[0m[2m      On dirty exit        │                                                                │                           [0m
+[0m[2m    [0m [0m[2m ask · show the exit d│  [0mWorkspace  payments-platform                                [0m[2m  │                           [0m
+[0m[2m                           │  [0mScope      workspace config · ~/.jackin/workspaces/payments…[0m[2m  │                           [0m
+[0m[2m                           │  [0mChanges    1 change                                         [0m[2m  │                           [0m
+[0m[2m                           │  [0m                                                            [0m[2m  │                           [0m
+[0m[2m                           │  [0m~ keep_awake true → false                                   [0m[2m  │                           [0m
+[0m[2m                           │                                                                │                           [0m
+[0m[2m                           │                                              ▎[0m[1;2;4mC[0m[1;2mancel [0m[2m   [0m[1;2;4;7mS[0m[1;2;7mave [0m[2m  │                           [0m
+[0m[2m                           │                                                                │                           [0m
+[0m[2m                           ╰────────────────────────────────────────────────────────────────╯                           [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m                                                                                                 [0m [0m[2mCancel    [0m [0m[2mSave…      [0m
+[0m[2m                                                                                                                        [0m
+ [0m[1m←→ Ch[0moose  [0m[1mEnter [0mCancel [0m[1m Esc[0m Cancel     [0m[1m      [0m       [0m[1m   [0m                                                               [0m
+[?25l

@@ -1,0 +1,57 @@
+{
+  "schema": "termrock.stage2.evidence-archive.v1",
+  "files": [
+    {
+      "original_path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-supervisor-v12-stage2-20261021.py",
+      "archived_file": "external-supervisor-v12.py.txt",
+      "sha256": "12a3dd78de61bd38a95dfe3b44ed43804380aa8df039b89168f666c7a231e5f9"
+    },
+    {
+      "original_path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/test_fresh_plan_stage3d_atomic_supervisor_v12-stage2-20261021.py",
+      "archived_file": "external-supervisor-v12-tests.py.txt",
+      "sha256": "36e5b2f9b09ea8072dcb1ce53e1c86e50f19088a4084962f7947fdae9b1ed458"
+    },
+    {
+      "original_path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-supervisor-v12-stage2-author-handoff-20261021.json",
+      "archived_file": "external-supervisor-v12-author-handoff.json",
+      "sha256": "d312879e62198f37702afade1222fc37088673c629dcf969c76e905ca56e9378"
+    },
+    {
+      "original_path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-supervisor-v11-stage2-admission-mismatch-independent-diagnosis-20261021.json",
+      "archived_file": "v11-admission-mismatch-independent-diagnosis.json",
+      "sha256": "d11094914e68c89f80013b077bc11582c458c743d6fc4ca93b9ec00663d7c003"
+    },
+    {
+      "original_path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-supervisor-v12-stage2-independent-review-20261021.json",
+      "archived_file": "v12-independent-source-clearance.json",
+      "sha256": "6ff4c1015c4b51fa666da014eeac3c2eb85ba174268cafe684a4002c66858fb5"
+    },
+    {
+      "original_path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-stage2-result-independent-review-20261021.json",
+      "archived_file": "stage2-independent-result-admission.json",
+      "sha256": "37ec0db680822aa74cfe5c15754d868f6cc3959f8628ad049c8ebb999fd0e994"
+    },
+    {
+      "original_path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-stage2-result-independent-evidence-20261021.json",
+      "archived_file": "stage2-independent-result-evidence.json",
+      "sha256": "0272e7bdde4b829cf1ba255c73b208f9d6e3ac59bb53cd08a50f160021419a94"
+    },
+    {
+      "original_path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-supervisor-v12-parent-v12-stage2-20261021-0425-stage-02-event.json",
+      "archived_file": "stage2-success-event.json",
+      "sha256": "e8d22eebf16dfb578ef7d701dba46919b50317a87f3fcceba659b6ab78fd0817"
+    },
+    {
+      "original_path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-supervisor-v12-parent-v12-stage2-20261021-0425-stage-02.log",
+      "archived_file": "stage2-success.log",
+      "sha256": "e87bbc54cc7bb34d65feb9e3a28740aa4aeba90853272f119ff8350d4e0ffd18"
+    },
+    {
+      "original_path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-243af5-20261021/live-source.json",
+      "archived_file": "live-source-manifest.json",
+      "sha256": "8fc52aa144847276fd9df62b133f7d8815995c50ba9a0cc0001b6b5da46ad75a"
+    }
+  ],
+  "production_dependency": false,
+  "reference_data_modified": false
+}

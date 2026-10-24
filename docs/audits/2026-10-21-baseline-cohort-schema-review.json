@@ -1,0 +1,25 @@
+{
+  "commit": "cf346dd4ba85b165cefcbec3bbeeccab21fb2a23",
+  "tests48": "pass",
+  "negative_cases": {
+    "integer_bool_incremental_rejected": true,
+    "integer_bool_stage_hashes_match_rejected": true,
+    "integer_bool_build_admitted_rejected": true,
+    "integer_bool_reference_frames_approved_rejected": true,
+    "forged_arbitrary_cohort_rejected": true,
+    "registry_replace_during_read_rejected": true,
+    "registry_inplace_during_read_rejected": true,
+    "private_copy_binary_mutation_during_read_rejected": true,
+    "nested_duplicate_json_key_rejected": true
+  },
+  "real_pinned_binaries_verified": true,
+  "diagnostic_capture_rejected": true,
+  "old_v1_reference_sha256": "2a43fb118c268300c8bbd6439ea11bb9a24ffff03dc3c9f4601893eee26a096b",
+  "changed_paths_from_cf9133c": [
+    "docs/architecture/termrock-migration-matrix.md",
+    "docs/audits/2026-10-21-frozen-query-focus-entry-review.json",
+    "tools/frozen_baseline.py",
+    "tools/frozen_cli_build_cohorts.json",
+    "tools/test_frozen_baseline.py"
+  ]
+}

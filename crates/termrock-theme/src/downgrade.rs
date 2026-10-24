@@ -83,25 +83,57 @@ pub(crate) fn rgb_of(c: Color) -> Option<(u8, u8, u8)> {
     }
 }
 
-fn sq_dist(a: (u8, u8, u8), b: (u8, u8, u8)) -> u32 {
-    let d = |x: u8, y: u8| {
-        let v = i32::from(x).saturating_sub(i32::from(y));
-        v.saturating_mul(v) as u32
-    };
-    d(a.0, b.0)
-        .saturating_add(d(a.1, b.1))
-        .saturating_add(d(a.2, b.2))
+/// Baseline `apply_256` replaces a few source colors after the general cube.
+/// The same RGB is what TablePro paints as a custom role.
+fn baseline_ansi256(rgb: (u8, u8, u8)) -> Option<u8> {
+    match rgb {
+        // danger_label #ff6b6b and SQL rose #f05d5d → index 203 (#ff5f5f).
+        (0xff, 0x6b, 0x6b) | (0xf0, 0x5d, 0x5d) => Some(203),
+        // success #3fb950 → index 71 (#5faf5f), not accent cube 78.
+        (0x3f, 0xb9, 0x50) => Some(71),
+        // text on accent #19191c → index 232 (#080808), not gray 233.
+        (0x19, 0x19, 0x1c) => Some(232),
+        // border_subtle #3a3a3a → index 238 (#444444), not gray 237.
+        (0x3a, 0x3a, 0x3a) => Some(238),
+        // scroll/seam gray #474747 and the strong rule #4d4d4d → index 239.
+        (0x47, 0x47, 0x47) | (0x4d, 0x4d, 0x4d) => Some(239),
+        // Scrollbar thumb #808080 renders as gray 245 in the query frames.
+        // Showcase chrome keeps index 244 through `baseline_muted`.
+        (0x80, 0x80, 0x80) => Some(245),
+        _ => None,
+    }
 }
 
 fn nearest_256(rgb: (u8, u8, u8)) -> u8 {
-    let mut best = (16u8, u32::MAX);
-    for i in 16..=255u8 {
-        let d = sq_dist(rgb, rgb_of_index(i));
-        if d < best.1 {
-            best = (i, d);
+    let (r, g, b) = rgb;
+    let step = |value: u8| ((u32::from(value) * 5 + 127) / 255) as u8;
+    let (red, green, blue) = (step(r), step(g), step(b));
+    let cube = 16 + 36 * red + 6 * green + blue;
+    let cube_value = |index: u8| -> i32 {
+        if index == 0 {
+            0
+        } else {
+            55 + i32::from(index) * 40
         }
+    };
+    let distance = |candidate: (i32, i32, i32)| {
+        (candidate.0 - i32::from(r)).pow(2)
+            + (candidate.1 - i32::from(g)).pow(2)
+            + (candidate.2 - i32::from(b)).pow(2)
+    };
+    let cube_error = distance((cube_value(red), cube_value(green), cube_value(blue)));
+
+    let average = (i32::from(r) + i32::from(g) + i32::from(b)) / 3;
+    let gray_step = ((average - 8).max(0) / 10).min(23);
+    let gray_value = 8 + gray_step * 10;
+    let gray_error = distance((gray_value, gray_value, gray_value));
+    let chroma = i32::from(r.max(g).max(b)) - i32::from(r.min(g).min(b));
+
+    if gray_error < cube_error && chroma <= 30 {
+        232 + gray_step as u8
+    } else {
+        cube
     }
-    best.0
 }
 
 fn to_lin(c: u8) -> f64 {
@@ -188,6 +220,60 @@ fn mono(rgb: (u8, u8, u8)) -> Color {
     }
 }
 
+/// Baseline `--color none` ink for one raw RGB cell.
+///
+/// `menu_row` is the top brand chip. That chip keeps the reverse attribute.
+/// The same green elsewhere becomes black on white without reverse.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct LegacyMono {
+    pub fg: Color,
+    pub bg: Color,
+    pub underline: bool,
+    pub reverse: bool,
+}
+
+pub fn legacy_mono(fg: Color, bg: Color, menu_row: bool) -> Option<LegacyMono> {
+    let fg_rgb = rgb_of(fg)?;
+    let bg_rgb = rgb_of(bg)?;
+    let (out_fg, out_bg, underline, reverse) = match (fg_rgb, bg_rgb) {
+        ((0x19, 0x19, 0x1c), (0x48, 0xe0, 0x54)) => (Color::Black, Color::White, false, menu_row),
+        ((0x79, 0xb8, 0xff), (0, 0, 0)) => (Color::Gray, Color::Black, true, false),
+        ((0xff, 0xff, 0xff), (0x27, 0x27, 0x2a)) => (Color::Black, Color::DarkGray, false, false),
+        ((0x27, 0x27, 0x2a), (0x27, 0x27, 0x2a)) => {
+            (Color::DarkGray, Color::DarkGray, false, false)
+        }
+        ((0x26, 0x26, 0x26), (0, 0, 0)) => (Color::DarkGray, Color::Black, false, false),
+        ((0x80, 0x80, 0x80), (0, 0, 0)) => (Color::Gray, Color::Black, false, false),
+        ((0x47, 0x47, 0x47), (0, 0, 0)) => (Color::DarkGray, Color::Black, false, false),
+        ((0x8a, 0x8a, 0x8a) | (0xb3, 0xb3, 0xb3) | (0x73, 0x73, 0x73), (0, 0, 0)) => {
+            (Color::Gray, Color::Black, false, false)
+        }
+        ((0x48, 0xe0, 0x54) | (0x3f, 0xb9, 0x50), (0, 0, 0)) => {
+            (Color::White, Color::Black, false, false)
+        }
+        ((0xff, 0xff, 0xff), (0, 0, 0)) => (Color::White, Color::Black, false, false),
+        ((0, 0, 0), (0, 0, 0)) => (Color::Black, Color::Black, false, false),
+        _ => return None,
+    };
+    Some(LegacyMono {
+        fg: out_fg,
+        bg: out_bg,
+        underline,
+        reverse,
+    })
+}
+
+/// Downgrade a painted pair. On 16 colors, white on dark gray becomes black
+/// so the label keeps the baseline contrast.
+pub fn downgrade_pair(fg: Color, bg: Color, level: ColorLevel) -> (Color, Color) {
+    let mut fg = downgrade_color(fg, level);
+    let bg = downgrade_color(bg, level);
+    if level == ColorLevel::Ansi16 && fg == Color::White && bg == Color::DarkGray {
+        fg = Color::Black;
+    }
+    (fg, bg)
+}
+
 pub fn downgrade_color(c: Color, level: ColorLevel) -> Color {
     let Some(rgb) = rgb_of(c) else {
         return c;
@@ -195,7 +281,9 @@ pub fn downgrade_color(c: Color, level: ColorLevel) -> Color {
     match level {
         ColorLevel::TrueColor => c,
         ColorLevel::Ansi256 => match c {
-            Color::Rgb(..) => Color::Indexed(nearest_256(rgb)),
+            Color::Rgb(..) => {
+                Color::Indexed(baseline_ansi256(rgb).unwrap_or_else(|| nearest_256(rgb)))
+            }
             other => other,
         },
         ColorLevel::Ansi16 => match c {
@@ -326,6 +414,11 @@ impl Theme {
 
 pub type MonoRule = (Part, StateFlags, StylePatch);
 
+const BUTTON_GENERIC_MARKER_GLYPH_RULES: [(Part, StateFlags); 2] = [
+    (Part::MARKER, StateFlags::SELECTED),
+    (Part::MARKER, StateFlags::CHECKED),
+];
+
 fn mono_rules() -> [MonoRule; 15] {
     let p = StylePatch::new;
     [
@@ -378,7 +471,9 @@ fn mono_rules() -> [MonoRule; 15] {
         (
             Part::LABEL,
             StateFlags::DISABLED,
-            p().set_fg(Role::Fg(FgStep::Primary))
+            // Frozen `--color none` disabled ink is dark gray plus dim
+            // (index 8), not primary white plus dim.
+            p().set_fg(Role::DisabledFg)
                 .remove(Modifier::all())
                 .add(Modifier::DIM),
         ),
@@ -444,118 +539,132 @@ fn mono_rules_extra() -> [MonoRule; 5] {
 
 pub const MONO_RULES_PER_FAMILY: usize = 20;
 
-fn viewport_mono_rules() -> [MonoRule; 1] {
-    [(
-        Part::TEXT,
-        StateFlags::SELECTED,
+pub(crate) static VIEWPORT_MONO_RULES: [MonoRule; 1] = [(
+    Part::TEXT,
+    StateFlags::SELECTED,
+    StylePatch::new()
+        .set_fg(Role::Surface(Surface::Canvas))
+        .set_bg(Role::Fg(FgStep::Primary))
+        .add(Modifier::UNDERLINED),
+)];
+
+pub(crate) static GRID_MONO_RULES: [MonoRule; 2] = [
+    (
+        Part::CELL,
+        StateFlags::ERROR,
+        StylePatch::new().add(Modifier::UNDERLINED),
+    ),
+    (
+        Part::ROW,
+        StateFlags::PRESSED,
         StylePatch::new()
             .set_fg(Role::Surface(Surface::Canvas))
             .set_bg(Role::Fg(FgStep::Primary))
-            .add(Modifier::UNDERLINED),
-    )]
-}
+            .add(Modifier::BOLD),
+    ),
+];
 
-fn grid_mono_rules() -> [MonoRule; 2] {
-    [
-        (
-            Part::CELL,
-            StateFlags::ERROR,
-            StylePatch::new().add(Modifier::UNDERLINED),
-        ),
-        (
-            Part::ROW,
-            StateFlags::PRESSED,
-            StylePatch::new()
-                .set_fg(Role::Surface(Surface::Canvas))
-                .set_bg(Role::Fg(FgStep::Primary))
-                .add(Modifier::BOLD),
-        ),
-    ]
-}
+pub(crate) static MENU_MONO_RULES: [MonoRule; 2] = [
+    (
+        Part::ROW,
+        StateFlags::PRESSED,
+        StylePatch::new()
+            .set_fg(Role::Surface(Surface::Canvas))
+            .set_bg(Role::Fg(FgStep::Primary))
+            .add(Modifier::BOLD),
+    ),
+    (
+        Part::TITLE,
+        StateFlags::PRESSED,
+        StylePatch::new()
+            .set_glyph(GlyphRole::PressLeft)
+            .add(Modifier::BOLD),
+    ),
+];
 
-fn menu_mono_rules() -> [MonoRule; 2] {
-    [
-        (
-            Part::ROW,
-            StateFlags::PRESSED,
-            StylePatch::new()
-                .set_fg(Role::Surface(Surface::Canvas))
-                .set_bg(Role::Fg(FgStep::Primary))
-                .add(Modifier::BOLD),
-        ),
-        (
-            Part::TITLE,
-            StateFlags::PRESSED,
-            StylePatch::new()
-                .set_glyph(GlyphRole::PressLeft)
-                .add(Modifier::BOLD),
-        ),
-    ]
-}
+pub(crate) static HELP_MONO_RULES: [MonoRule; 2] = [
+    (
+        Part::BORDER,
+        StateFlags::FOCUSED,
+        StylePatch::new().add(Modifier::BOLD),
+    ),
+    (
+        Part::TITLE,
+        StateFlags::FOCUSED,
+        StylePatch::new().add(Modifier::UNDERLINED),
+    ),
+];
 
-fn help_mono_rules() -> [MonoRule; 2] {
-    [
-        (
-            Part::BORDER,
-            StateFlags::FOCUSED,
-            StylePatch::new().add(Modifier::BOLD),
-        ),
-        (
-            Part::TITLE,
-            StateFlags::FOCUSED,
-            StylePatch::new().add(Modifier::UNDERLINED),
-        ),
-    ]
-}
+pub(crate) static PICKER_MONO_RULES: [MonoRule; 3] = [
+    (
+        Part::GUTTER,
+        StateFlags::ERROR,
+        StylePatch::new().set_glyph(GlyphRole::Error),
+    ),
+    (
+        Part::GUTTER,
+        StateFlags::BUSY,
+        StylePatch::new().set_glyph(GlyphRole::MoreRows),
+    ),
+    (
+        Part::LABEL,
+        StateFlags::PRESSED,
+        StylePatch::new()
+            .set_fg(Role::Surface(Surface::Canvas))
+            .set_bg(Role::Fg(FgStep::Primary))
+            .add(Modifier::BOLD.union(Modifier::UNDERLINED)),
+    ),
+];
 
-fn picker_mono_rules() -> [MonoRule; 3] {
-    [
-        (
-            Part::GUTTER,
-            StateFlags::ERROR,
-            StylePatch::new().set_glyph(GlyphRole::Error),
-        ),
-        (
-            Part::GUTTER,
-            StateFlags::BUSY,
-            StylePatch::new().set_glyph(GlyphRole::MoreRows),
-        ),
-        (
-            Part::LABEL,
-            StateFlags::PRESSED,
-            StylePatch::new()
-                .set_fg(Role::Surface(Surface::Canvas))
-                .set_bg(Role::Fg(FgStep::Primary))
-                .add(Modifier::BOLD | Modifier::UNDERLINED),
-        ),
-    ]
-}
+pub(crate) static SELECT_MONO_RULES: [MonoRule; 3] = [
+    (
+        Part::FIELD,
+        StateFlags::PRESSED,
+        StylePatch::new()
+            .set_fg(Role::Surface(Surface::Canvas))
+            .set_bg(Role::Fg(FgStep::Primary))
+            .add(Modifier::BOLD),
+    ),
+    (
+        Part::GUTTER,
+        StateFlags::PRESSED,
+        StylePatch::new()
+            .set_glyph(GlyphRole::PressLeft)
+            .add(Modifier::BOLD),
+    ),
+    (
+        Part::MARKER,
+        StateFlags::PRESSED,
+        StylePatch::new()
+            .set_glyph(GlyphRole::PressRight)
+            .add(Modifier::BOLD),
+    ),
+];
 
-fn select_mono_rules() -> [MonoRule; 3] {
-    [
-        (
-            Part::FIELD,
-            StateFlags::PRESSED,
-            StylePatch::new()
-                .set_fg(Role::Surface(Surface::Canvas))
-                .set_bg(Role::Fg(FgStep::Primary))
-                .add(Modifier::BOLD),
-        ),
-        (
-            Part::GUTTER,
-            StateFlags::PRESSED,
-            StylePatch::new()
-                .set_glyph(GlyphRole::PressLeft)
-                .add(Modifier::BOLD),
-        ),
-        (
-            Part::MARKER,
-            StateFlags::PRESSED,
-            StylePatch::new()
-                .set_glyph(GlyphRole::PressRight)
-                .add(Modifier::BOLD),
-        ),
-    ]
+pub(crate) static INPUT_MONO_RULES: [MonoRule; 1] = [(
+    Part::ROW,
+    StateFlags::SELECTED,
+    StylePatch::new().add(Modifier::REVERSED),
+)];
+
+pub(crate) static BUTTON_MONO_RULES: [MonoRule; 1] = [(
+    Part::GUTTER,
+    StateFlags::FOCUS_VISIBLE,
+    StylePatch::new().set_glyph(GlyphRole::FocusBar),
+)];
+
+pub(crate) fn builtin_family_mono_rules(family: Family) -> &'static [MonoRule] {
+    match family {
+        Family::BUTTON => &BUTTON_MONO_RULES,
+        Family::INPUT => &INPUT_MONO_RULES,
+        Family::VIEWPORT => &VIEWPORT_MONO_RULES,
+        Family::GRID => &GRID_MONO_RULES,
+        Family::MENU => &MENU_MONO_RULES,
+        Family::HELP => &HELP_MONO_RULES,
+        Family::PICKER => &PICKER_MONO_RULES,
+        Family::SELECT => &SELECT_MONO_RULES,
+        _ => &[],
+    }
 }
 
 pub(crate) fn apply_mono_fallback(
@@ -578,18 +687,33 @@ pub(crate) fn apply_mono_with_defaults(
 ) -> StylePatch {
     let rules = mono_rules();
     let extra = mono_rules_extra();
-    let builtin: &[MonoRule] = match family {
-        Family::VIEWPORT => &viewport_mono_rules(),
-        Family::GRID => &grid_mono_rules(),
-        Family::MENU => &menu_mono_rules(),
-        Family::HELP => &help_mono_rules(),
-        Family::PICKER => &picker_mono_rules(),
-        Family::SELECT => &select_mono_rules(),
-        _ => &[],
-    };
+    let builtin: &'static [MonoRule] = builtin_family_mono_rules(family);
 
-    let targeted: &[MonoRule] = recipes.mono_rules(family).or(authored).unwrap_or(builtin);
-    for (rule_part, when, patch) in rules.iter().chain(extra.iter()).chain(targeted) {
+    let targeted: &[MonoRule] = recipes
+        .mono_rules(family)
+        .or(authored.filter(|rules| !rules.is_empty()))
+        .unwrap_or(builtin);
+    for (rule_part, when, patch) in rules.iter().chain(extra.iter()) {
+        if family == Family::BUTTON && *rule_part == Part::GUTTER && *when == StateFlags::FOCUSED {
+            continue;
+        }
+        // Buttons use the semantic DotOn/DotOff roles for their checked
+        // marker. The generic mono marker glyphs are intended for checkbox
+        // and selection controls; applying them here replaces an authored
+        // button glyph (and turns the frozen dot into a checkmark).
+        if family == Family::BUTTON
+            && BUTTON_GENERIC_MARKER_GLYPH_RULES.contains(&(*rule_part, *when))
+        {
+            continue;
+        }
+        let applies = family != Family::SCROLLBAR
+            || *rule_part != Part::CONTAINER
+            || *when != StateFlags::PRESSED;
+        if applies && *rule_part == part && live.contains(*when) {
+            acc = acc.merge(*patch);
+        }
+    }
+    for (rule_part, when, patch) in targeted {
         let applies = family != Family::SCROLLBAR
             || *rule_part != Part::CONTAINER
             || *when != StateFlags::PRESSED;
@@ -603,6 +727,40 @@ pub(crate) fn apply_mono_with_defaults(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The reserved per-family mono rule sets, read back from the built-in
+    /// tables so the coverage check below stays bound to the real rules.
+    fn viewport_mono_rules() -> Vec<MonoRule> {
+        VIEWPORT_MONO_RULES.to_vec()
+    }
+
+    fn grid_mono_rules() -> Vec<MonoRule> {
+        GRID_MONO_RULES.to_vec()
+    }
+
+    fn menu_mono_rules() -> Vec<MonoRule> {
+        MENU_MONO_RULES.to_vec()
+    }
+
+    fn help_mono_rules() -> Vec<MonoRule> {
+        HELP_MONO_RULES.to_vec()
+    }
+
+    fn picker_mono_rules() -> Vec<MonoRule> {
+        PICKER_MONO_RULES.to_vec()
+    }
+
+    fn select_mono_rules() -> Vec<MonoRule> {
+        SELECT_MONO_RULES.to_vec()
+    }
+
+    fn input_mono_rules() -> Vec<MonoRule> {
+        INPUT_MONO_RULES.to_vec()
+    }
+
+    fn button_mono_rules() -> Vec<MonoRule> {
+        BUTTON_MONO_RULES.to_vec()
+    }
 
     const LEVELS: [ColorLevel; 4] = [
         ColorLevel::TrueColor,
@@ -647,7 +805,39 @@ mod tests {
 
         assert_eq!(
             downgrade_color(Color::Rgb(0x48, 0xe0, 0x54), ColorLevel::Ansi256),
-            Color::Indexed(77)
+            Color::Indexed(78)
+        );
+        assert_eq!(
+            downgrade_color(Color::Rgb(0x3a, 0x3a, 0x3a), ColorLevel::Ansi256),
+            Color::Indexed(238)
+        );
+        assert_eq!(
+            downgrade_color(Color::Rgb(0xff, 0x6b, 0x6b), ColorLevel::Ansi256),
+            Color::Indexed(203)
+        );
+        assert_eq!(
+            downgrade_color(Color::Rgb(0x3f, 0xb9, 0x50), ColorLevel::Ansi256),
+            Color::Indexed(71)
+        );
+        assert_eq!(
+            downgrade_color(Color::Rgb(0x4d, 0x4d, 0x4d), ColorLevel::Ansi256),
+            Color::Indexed(239)
+        );
+        assert_eq!(
+            downgrade_color(Color::Rgb(0x73, 0x73, 0x73), ColorLevel::Ansi256),
+            Color::Indexed(242)
+        );
+        assert_eq!(
+            downgrade_color(Color::Rgb(0x47, 0x47, 0x47), ColorLevel::Ansi256),
+            Color::Indexed(239)
+        );
+        assert_eq!(
+            downgrade_color(Color::Rgb(0x80, 0x80, 0x80), ColorLevel::Ansi256),
+            Color::Indexed(245)
+        );
+        assert_eq!(
+            downgrade_color(Color::Rgb(0x17, 0x3f, 0x1c), ColorLevel::Ansi256),
+            Color::Indexed(23)
         );
 
         assert_eq!(
@@ -703,6 +893,74 @@ mod tests {
         assert_eq!(rgb_of_index(232), (8, 8, 8));
         assert_eq!(rgb_of_index(16), (0, 0, 0));
         assert_eq!(rgb_of_index(231), (255, 255, 255));
+    }
+
+    #[test]
+    fn ansi256_raw_rgb_uses_the_frozen_general_cube_and_gray_rule() {
+        // These samples exercise the cube path, the low-chroma gray path, and
+        // the chroma cutoff. The rule is the frozen baseline's general
+        // nearest_256 algorithm, not a lookup table for selected theme colors.
+        for (rgb, expected) in [
+            ((0x3a, 0x3a, 0x3a), 238),
+            ((0x47, 0x47, 0x47), 239),
+            ((0x80, 0x80, 0x80), 245),
+            ((0x48, 0xe0, 0x54), 78),
+            ((0x17, 0x3f, 0x1c), 23),
+            ((0x23, 0x4b, 0x64), 60),
+        ] {
+            assert_eq!(
+                downgrade_color(Color::Rgb(rgb.0, rgb.1, rgb.2), ColorLevel::Ansi256),
+                Color::Indexed(expected),
+                "raw RGB {rgb:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn legacy_mono_matches_the_frozen_launch_inks() {
+        let ink = |fg: Color, bg: Color, menu: bool| legacy_mono(fg, bg, menu).expect("known ink");
+        let brand = ink(
+            Color::Rgb(0x19, 0x19, 0x1c),
+            Color::Rgb(0x48, 0xe0, 0x54),
+            true,
+        );
+        assert_eq!(brand.fg, Color::Black);
+        assert_eq!(brand.bg, Color::White);
+        assert!(brand.reverse);
+        assert!(
+            !ink(
+                Color::Rgb(0x19, 0x19, 0x1c),
+                Color::Rgb(0x48, 0xe0, 0x54),
+                false
+            )
+            .reverse
+        );
+        let trace = ink(Color::Rgb(0x79, 0xb8, 0xff), Color::Rgb(0, 0, 0), false);
+        assert_eq!(trace.fg, Color::Gray);
+        assert!(trace.underline);
+        assert_eq!(
+            ink(Color::Rgb(0xb3, 0xb3, 0xb3), Color::Rgb(0, 0, 0), false).fg,
+            Color::Gray
+        );
+        assert_eq!(
+            ink(Color::Rgb(0x26, 0x26, 0x26), Color::Rgb(0, 0, 0), false).fg,
+            Color::DarkGray
+        );
+        assert_eq!(
+            ink(Color::Rgb(0x80, 0x80, 0x80), Color::Rgb(0, 0, 0), false).fg,
+            Color::Gray
+        );
+        assert_eq!(
+            ink(Color::Rgb(0x47, 0x47, 0x47), Color::Rgb(0, 0, 0), false).fg,
+            Color::DarkGray
+        );
+        let button = ink(
+            Color::Rgb(0xff, 0xff, 0xff),
+            Color::Rgb(0x27, 0x27, 0x2a),
+            false,
+        );
+        assert_eq!(button.fg, Color::Black);
+        assert_eq!(button.bg, Color::DarkGray);
     }
 
     #[test]
@@ -1035,6 +1293,7 @@ mod tests {
         let help = help_mono_rules();
         let picker = picker_mono_rules();
         let select = select_mono_rules();
+        let input = input_mono_rules();
         assert_eq!(rules.len(), 15);
         assert_eq!(extra.len(), 5);
         assert!(extra.iter().any(|(part, when, patch)| {
@@ -1048,6 +1307,15 @@ mod tests {
         assert_eq!(help.len(), 2);
         assert_eq!(picker.len(), 3);
         assert_eq!(select.len(), 3);
+        assert_eq!(input.len(), 1);
+        assert_eq!(
+            input,
+            vec![(
+                Part::ROW,
+                StateFlags::SELECTED,
+                StylePatch::new().add(Modifier::REVERSED)
+            )]
+        );
         assert!(grid.iter().any(|(part, when, patch)| {
             *part == Part::ROW && *when == StateFlags::PRESSED && patch.add.contains(Modifier::BOLD)
         }));
@@ -1117,27 +1385,38 @@ mod tests {
         }
     }
 
-    fn responding_pairs(recipes: &Recipes, f: Family) -> usize {
-        let mut pairs: Vec<(Part, StateFlags)> = mono_rules()
+    fn sorted_rule_pairs(mut pairs: Vec<(Part, StateFlags)>) -> Vec<(Part, StateFlags)> {
+        pairs.sort_by_key(|(part, when)| (part.raw(), when.bits()));
+        pairs.dedup();
+        pairs
+    }
+
+    fn responding_rule_pairs(recipes: &Recipes, f: Family) -> Vec<(Part, StateFlags)> {
+        let pairs: Vec<(Part, StateFlags)> = mono_rules()
             .iter()
             .chain(mono_rules_extra().iter())
+            .chain(button_mono_rules().iter())
             .chain(viewport_mono_rules().iter())
             .chain(grid_mono_rules().iter())
             .chain(menu_mono_rules().iter())
             .chain(help_mono_rules().iter())
             .chain(picker_mono_rules().iter())
             .chain(select_mono_rules().iter())
+            .chain(input_mono_rules().iter())
             .map(|(part, when, _)| (*part, *when))
             .collect();
-        pairs.sort_by_key(|(part, when)| (part.raw(), when.bits()));
-        pairs.dedup();
-        pairs
+        sorted_rule_pairs(pairs)
             .iter()
             .filter(|(part, when)| {
                 apply_mono_fallback(StylePatch::new(), recipes, f, *part, *when)
                     != StylePatch::new()
             })
-            .count()
+            .copied()
+            .collect()
+    }
+
+    fn responding_pairs(recipes: &Recipes, f: Family) -> usize {
+        responding_rule_pairs(recipes, f).len()
     }
 
     #[test]
@@ -1148,7 +1427,72 @@ mod tests {
         );
         let r = Theme::junie().recipes;
 
-        assert_eq!(responding_pairs(&r, Family::BUTTON), MONO_RULES_PER_FAMILY);
+        assert_eq!(
+            BUTTON_GENERIC_MARKER_GLYPH_RULES,
+            [
+                (Part::MARKER, StateFlags::SELECTED),
+                (Part::MARKER, StateFlags::CHECKED),
+            ]
+        );
+        let generic = sorted_rule_pairs(
+            mono_rules()
+                .iter()
+                .chain(mono_rules_extra().iter())
+                .map(|(part, when, _)| (*part, *when))
+                .collect(),
+        );
+        assert_eq!(
+            generic,
+            sorted_rule_pairs(vec![
+                (Part::GUTTER, StateFlags::FOCUSED),
+                (Part::LABEL, StateFlags::FOCUSED),
+                (Part::MARKER, StateFlags::SELECTED),
+                (Part::MARKER, StateFlags::CHECKED),
+                (Part::CONTAINER, StateFlags::PRESSED),
+                (Part::LABEL, StateFlags::PRESSED),
+                (Part::GUTTER, StateFlags::DISABLED),
+                (Part::MARKER, StateFlags::DISABLED),
+                (Part::LABEL, StateFlags::DISABLED),
+                (Part::FIELD, StateFlags::DISABLED),
+                (Part::TEXT, StateFlags::DISABLED),
+                (Part::MARKER, StateFlags::ERROR),
+                (Part::FIELD, StateFlags::ERROR),
+                (Part::MARKER, StateFlags::WARNING),
+                (Part::TEXT, StateFlags::EDITING),
+                (Part::MARKER, StateFlags::DIRTY),
+                (Part::RULE, StateFlags::ACTIVE),
+                (Part::LABEL, StateFlags::ACTIVE),
+                (Part::ICON, StateFlags::LOADING),
+                (Part::THUMB, StateFlags::PRESSED),
+            ])
+        );
+        assert_eq!(
+            responding_rule_pairs(&r, Family::BUTTON),
+            sorted_rule_pairs(vec![
+                (Part::LABEL, StateFlags::FOCUSED),
+                (Part::CONTAINER, StateFlags::PRESSED),
+                (Part::LABEL, StateFlags::PRESSED),
+                (Part::GUTTER, StateFlags::DISABLED),
+                (Part::MARKER, StateFlags::DISABLED),
+                (Part::LABEL, StateFlags::DISABLED),
+                (Part::FIELD, StateFlags::DISABLED),
+                (Part::TEXT, StateFlags::DISABLED),
+                (Part::MARKER, StateFlags::ERROR),
+                (Part::FIELD, StateFlags::ERROR),
+                (Part::MARKER, StateFlags::WARNING),
+                (Part::TEXT, StateFlags::EDITING),
+                (Part::MARKER, StateFlags::DIRTY),
+                (Part::RULE, StateFlags::ACTIVE),
+                (Part::LABEL, StateFlags::ACTIVE),
+                (Part::ICON, StateFlags::LOADING),
+                (Part::THUMB, StateFlags::PRESSED),
+                (Part::GUTTER, StateFlags::FOCUS_VISIBLE),
+            ])
+        );
+        assert_eq!(
+            responding_pairs(&r, Family::BUTTON),
+            MONO_RULES_PER_FAMILY - 2
+        );
         assert_eq!(
             responding_pairs(&r, Family::custom("seg")),
             MONO_RULES_PER_FAMILY
@@ -1159,6 +1503,7 @@ mod tests {
             MONO_RULES_PER_FAMILY - 1
         );
         for (f, pairs) in [
+            (Family::INPUT, 21),
             (Family::VIEWPORT, 21),
             (Family::GRID, 22),
             (Family::MENU, 22),
@@ -1168,6 +1513,143 @@ mod tests {
         ] {
             assert_eq!(responding_pairs(&r, f), pairs, "{f:?}");
         }
+    }
+
+    #[test]
+    fn button_focus_indicator_is_scoped_to_focus_visible_in_every_profile() {
+        let variants = [
+            Variant::DEFAULT,
+            Variant::PRIMARY,
+            Variant::SECONDARY,
+            Variant::SUBTLE,
+            Variant::DANGER,
+            Variant::TOGGLE,
+            Variant::QUIET,
+            Variant::GHOST,
+        ];
+        for level in [
+            ColorLevel::TrueColor,
+            ColorLevel::Ansi256,
+            ColorLevel::Ansi16,
+            ColorLevel::Mono,
+        ] {
+            let theme = Theme::junie().downgrade(level);
+            for variant in variants {
+                let pointer = theme.resolve(
+                    Family::BUTTON,
+                    variant,
+                    Part::GUTTER,
+                    StateFlags::FOCUSED,
+                    Surface::Canvas,
+                );
+                assert_ne!(
+                    pointer.glyph,
+                    Slot::Set(GlyphRole::FocusBar),
+                    "{level:?}/{variant:?} made pointer focus visible"
+                );
+                let keyboard = theme.resolve(
+                    Family::BUTTON,
+                    variant,
+                    Part::GUTTER,
+                    StateFlags::FOCUS_VISIBLE,
+                    Surface::Canvas,
+                );
+                assert_eq!(
+                    keyboard.glyph,
+                    Slot::Set(GlyphRole::FocusBar),
+                    "{level:?}/{variant:?} omitted keyboard focus"
+                );
+            }
+            let list = theme.resolve(
+                Family::LIST,
+                Variant::DEFAULT,
+                Part::GUTTER,
+                StateFlags::FOCUSED,
+                Surface::Canvas,
+            );
+            assert_eq!(
+                list.glyph,
+                Slot::Set(GlyphRole::FocusBar),
+                "Button policy leaked into list gutter at {level:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn authored_button_mono_focus_override_keeps_precedence() {
+        let theme = Theme::junie()
+            .builder()
+            .mono_rules(
+                Family::BUTTON,
+                &[
+                    (
+                        Part::GUTTER,
+                        StateFlags::FOCUSED,
+                        StylePatch::new().set_glyph(GlyphRole::RuleQuiet),
+                    ),
+                    (
+                        Part::GUTTER,
+                        StateFlags::FOCUS_VISIBLE,
+                        StylePatch::new().set_glyph(GlyphRole::RuleQuiet),
+                    ),
+                ],
+            )
+            .build()
+            .downgrade(ColorLevel::Mono);
+        let focused = theme.resolve(
+            Family::BUTTON,
+            Variant::DEFAULT,
+            Part::GUTTER,
+            StateFlags::FOCUSED,
+            Surface::Canvas,
+        );
+        assert_eq!(focused.glyph, Slot::Set(GlyphRole::RuleQuiet));
+        let keyboard = theme.resolve(
+            Family::BUTTON,
+            Variant::DEFAULT,
+            Part::GUTTER,
+            StateFlags::FOCUS_VISIBLE,
+            Surface::Canvas,
+        );
+        assert_eq!(keyboard.glyph, Slot::Set(GlyphRole::RuleQuiet));
+    }
+
+    #[test]
+    fn authored_scrollbar_container_press_rule_keeps_the_legacy_filter() {
+        let authored = [
+            (
+                Part::CONTAINER,
+                StateFlags::PRESSED,
+                StylePatch::new().set_glyph(GlyphRole::WarningMark),
+            ),
+            (
+                Part::THUMB,
+                StateFlags::PRESSED,
+                StylePatch::new().set_glyph(GlyphRole::WarningMark),
+            ),
+        ];
+        let theme = Theme::junie()
+            .builder()
+            .mono_rules(Family::SCROLLBAR, &authored)
+            .build()
+            .downgrade(ColorLevel::Mono);
+        let pressed = theme.resolve(
+            Family::SCROLLBAR,
+            Variant::DEFAULT,
+            Part::CONTAINER,
+            StateFlags::PRESSED,
+            Surface::Canvas,
+        );
+
+        assert_ne!(pressed.glyph, Slot::Set(GlyphRole::WarningMark));
+        let thumb = theme.resolve(
+            Family::SCROLLBAR,
+            Variant::DEFAULT,
+            Part::THUMB,
+            StateFlags::PRESSED,
+            Surface::Canvas,
+        );
+        assert_eq!(thumb.glyph, Slot::Set(GlyphRole::WarningMark));
     }
 
     #[test]

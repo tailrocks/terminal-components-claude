@@ -196,6 +196,8 @@ impl ThemeBuilder {
         g.set_rule_quiet(ASCII_RULE_QUIET);
         g.set_rule_active(ASCII_RULE_ACTIVE);
         g.set_scrollbar(ASCII_SCROLLBAR);
+        g.set(GlyphRole::DotOn, "*");
+        g.set(GlyphRole::DotOff, "o");
         self
     }
 
@@ -240,7 +242,9 @@ impl ThemeBuilder {
 
     #[must_use]
     pub fn mono_rules(mut self, f: Family, rules: &[MonoRule]) -> Self {
-        self.theme.recipes.set_mono_rules(f, rules.to_vec());
+        self.theme
+            .recipes
+            .set_consumer_mono_rules(f, rules.to_vec());
         self
     }
 
@@ -509,6 +513,17 @@ pub(crate) fn derive_unset(c: &mut ColorTokens) {
     fill(&mut c.disabled_fg, || c.fg[3]);
     fill(&mut c.disabled_bg, || s[2]);
     fill(&mut c.read_only_fg, || c.fg[1]);
+    // Application chrome roles. The derivation keeps a themed palette's own
+    // ladder: the status strip sits on the chrome surface, the rule is a
+    // dimmed rule, the scroll track and thumb are dimmer and stronger inks
+    // than the rule, and the tag ink is the muted step.
+    fill(&mut c.status_bar_bg, || s[1]);
+    fill(&mut c.status_bar_fg, || fg0);
+    fill(&mut c.status_accent, || c.accent);
+    fill(&mut c.chrome_rule, || c.border_subtle);
+    fill(&mut c.scroll_track, || c.border_subtle);
+    fill(&mut c.scroll_thumb, || c.fg[2]);
+    fill(&mut c.tag_ink, || c.fg[2]);
 
     let sy = &mut c.syntax;
     fill(&mut sy.keyword, || fg0);
@@ -591,6 +606,15 @@ mod tests {
 
         assert_eq!(overridden.design.glyphs.get(GlyphRole::RuleActive), "=");
         assert_eq!(overridden.design.glyphs.scrollbar().begin, "|");
+
+        let dot_override = Theme::junie()
+            .builder()
+            .ascii_glyphs()
+            .glyph(GlyphRole::DotOn, "on")
+            .glyph(GlyphRole::DotOff, "off")
+            .build();
+        assert_eq!(dot_override.design.glyphs.get(GlyphRole::DotOn), "on");
+        assert_eq!(dot_override.design.glyphs.get(GlyphRole::DotOff), "off");
     }
 
     #[test]

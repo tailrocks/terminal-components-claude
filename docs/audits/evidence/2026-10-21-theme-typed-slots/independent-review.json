@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "reviewer": "/root/code_editor_footer_defaults_writer",
+  "decision": "CLEAR_BOUNDED_STAGE_1",
+  "commit": "312b8f38a7d946edddddf640e32db47cbde99e24",
+  "parent": "e830877cdebe2461466f643f476a2dc1575b6ae8",
+  "branch": "wip/termrock-theme-typed-slots-20261021",
+  "worktree": "/private/tmp/theme-stage1-api-review-312b8f38-20261021",
+  "findings": [],
+  "coverage_notes": [
+    "PartEdit unit test stores Slot::Set, Slot::Clear, and Slot::Inherit for glyph and size; repeated same-value glyph Set remains Slot::Set. Source confirms no equality-based inference: glyph/size store Slot directly and PartRecipe::merge_from applies Slot::over.",
+    "Runtime integration tests exercise glyph Inherit/Set/Clear through the public Theme::define_family closure and verify rendered marker and suffix cells. Both formerly direct-mutation fixtures now use typed declarations.",
+    "No public runtime consumer fixture exercises size_slot output. The existing metrics_is_the_sizing_path_for_update test covers size resolution but mutates the installed recipe directly. This is a follow-up coverage opportunity; the added size_slot implementation is a direct Slot assignment and is covered for all variants by the PartEdit unit test.",
+    "The public `glyph` and `size` builders retain signatures and Set behavior by delegation. This commit removes or deprecates no public API. Recipes::get_mut and iter_mut remain; stage 2 migration is still pending.",
+    "No review of raw mutation stage 2 or MenuBar precedence is implied. No frozen parity or application acceptance is implied."
+  ],
+  "source_review": {
+    "PartEdit::glyph_slot": "Directly assigns Slot<GlyphRole>; `glyph` delegates with Slot::Set.",
+    "PartEdit::size_slot": "Directly assigns Slot<u16>; `size` delegates with Slot::Set.",
+    "RecipeEdit::into_parts": "Clones PartEdit recipes without collapsing equal values.",
+    "Theme::define_family": "Merges through PartRecipe::merge_from; Slot::Inherit leaves lower recipe value, Set replaces, Clear remains explicit.",
+    "facade": "Both termrock-theme and termrock reexport Slot, GlyphRole, and Theme; external fixture compiles inferred RecipeEdit/PartEdit closure without naming either type."
+  },
+  "checks": {
+    "cargo_nextest_run_theme": "182 passed, 0 skipped",
+    "cargo_nextest_run_runtime_rowui_glyph_contract": "2 passed, 0 skipped",
+    "cargo_clippy_theme_runtime_all_targets_deny_warnings": "passed",
+    "cargo_fmt_all_check": "passed",
+    "git_diff_check": "passed",
+    "worktree": "clean detached checkout at exact commit"
+  },
+  "commands": [
+    "CARGO_TARGET_DIR=/private/tmp/theme-stage1-api-review-target-20261021 CARGO_BUILD_JOBS=4 rustup run 1.99.1 cargo nextest run -p termrock-theme",
+    "CARGO_TARGET_DIR=/private/tmp/theme-stage1-api-review-target-20261021 CARGO_BUILD_JOBS=4 rustup run 1.99.1 cargo nextest run -p termrock-runtime --test rowui_glyph_contract",
+    "CARGO_TARGET_DIR=/private/tmp/theme-stage1-api-review-target-20261021 CARGO_BUILD_JOBS=4 rustup run 1.99.1 cargo clippy -p termrock-theme -p termrock-runtime --all-targets -- -D warnings",
+    "rustup run 1.99.1 cargo fmt --all -- --check",
+    "git diff --check"
+  ]
+}

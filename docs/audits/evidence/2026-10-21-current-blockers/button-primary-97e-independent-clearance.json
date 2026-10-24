@@ -1,0 +1,121 @@
+{
+  "reviewed_commit": "97e339521322d1e85756e09327d2285469051eed",
+  "parent_commit": "160cd7006f82c55e285e54fe1c23e3ee0d8c7775",
+  "frozen_commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "reviewer": "/root/button_hint_profile_architect",
+  "created_utc": "2026-10-21T04:20:26.359781+00:00",
+  "status": "Code contract cleared within the stated scope; integration held for required audit corrections.",
+  "required_findings": [
+    {
+      "id": "BUTTON-PROFILE-DOC-1",
+      "path": "docs/audits/2026-10-21-primary-button-pressed-profile.md:5",
+      "finding": "The audit calls this PTY-backed proof. Harness uses Ratatui TestBackend (crates/termrock-test-support/src/harness.rs:1,51), not a real terminal process. Correct to component TestBackend proof; actual application paired CLI captures are missing."
+    },
+    {
+      "id": "BUTTON-PROFILE-DOC-2",
+      "path": "docs/audits/2026-10-21-primary-button-pressed-profile.md:5",
+      "finding": "The audit conflates the ANSI16 accent_pressed scalar with the actual accent ladder. Frozen scalar is Green (src/theme.rs:1014), whereas actual Primary Button pressed ladder is LightGreen (src/theme.rs:1046). Truecolor source516/790; ANSI256945; Mono1082. Explain that interactive uses the body ladder, not the scalar directly."
+    }
+  ],
+  "implementation": {
+    "changed_channels": "Junie Primary Button container pressed BG only; HOVERED profile entry repeats existing semantic Role::AccentHover to satisfy active-state coverage when HOVERED and PRESSED coexist. No global scalar, quantizer, 73 expected data, renderer or binding changes.",
+    "precedence": "apply_level_profile resolve.rs455-548 checks unchanged recipe channels, complete active state coverage and unchanged token dependencies; explicit overrides merge above it. HOVERED entry is necessary because original hovered BG rule is active concurrently with pressed and profile_covers_active_states requires each active BG rule to be represented.",
+    "frozen_actual_pressed_backgrounds": {
+      "TrueColor": "Rgb(46,154,56)",
+      "Ansi256": "Indexed(65)",
+      "Ansi16": "LightGreen",
+      "Mono": "White"
+    },
+    "observed_before_backgrounds": {
+      "TrueColor": "Rgb(43,134,50)",
+      "Ansi256": "Indexed(238)",
+      "Ansi16": "Green",
+      "Mono": "White"
+    }
+  },
+  "verification": {
+    "native_nextest": {
+      "command": "cargo nextest run -p termrock-controls -p termrock-theme --all-targets --no-fail-fast",
+      "exit": 100,
+      "run": 332,
+      "pass": 331,
+      "fail": 1,
+      "skip": 0,
+      "only_failure": "termrock-theme::capability_palettes all_73_junie_slots_match_reference_capability_output; existing unresolved failure, not weakened or excluded"
+    },
+    "external_unchanged_probe": {
+      "command": "cargo nextest run --manifest-path <consumer-{revision}/Cargo.toml> --test contract --no-fail-fast",
+      "source_identical_between_revisions": true,
+      "before": {
+        "run": 21,
+        "pass": 19,
+        "fail": 2,
+        "skip": 0,
+        "exit": 100
+      },
+      "after": {
+        "run": 21,
+        "pass": 21,
+        "fail": 0,
+        "skip": 0,
+        "exit": 0
+      },
+      "before_failures": [
+        "primary_button_pressed_background_matches_frozen_palette_at_each_color_level",
+        "independent_complete_primary_pressed_cells"
+      ],
+      "separate_targets": [
+        "/private/tmp/button-profile-review-97e3395-20261021/target-before-160cd70",
+        "/private/tmp/button-profile-review-97e3395-20261021/target-after-97e3395"
+      ],
+      "complete_pressed_combinations": 16,
+      "complete_pressed_details": "Four color profiles by checked/unset by icon/unset. Every physical allocated cell checked, including background Reset on Ratatui wide-grapheme continuation slots. Actual pointer down establishes pressed+hovered+focused.",
+      "unchanged_frames": 956,
+      "unchanged_cells": 19120,
+      "unchanged_sha256": "7b7357ddb2dea7aee2f7b2ec65995eb3765ba1f42360c13ae0e5a4b51be50979",
+      "unchanged_output_equal": true,
+      "unchanged_scope": "Two themes, four profiles, four variants, rest/hover/press/disabled/busy/custom recipe+token/token-only/family override/variant override/recipe override, instance global and part patches; excludes exactly four intended default Junie Primary press frames. Includes full raw Cell values, cursor position, cursor_bar and focus.",
+      "changed_frame_other_channels_identical": true
+    },
+    "strict_clippy": {
+      "command": "cargo clippy -p termrock-theme -p termrock-controls --all-targets -- -D warnings",
+      "exit": 0
+    },
+    "format": {
+      "command": "cargo fmt --all --check",
+      "exit": 0
+    },
+    "diff_check": 0,
+    "toolchain": "Both dedicated Cargo target .rustc_info.json report Rustup Rust 1.99.1, commit58cf8f9c35b355199727627d07ae34a4e2846d67, LLVM23.1.1. A standalone shell rustc earlier reported Homebrew LLVM23.1.3; Cargo target metadata is the build evidence.",
+    "probe_diagnostics": "Initial independent probe did not compile because ColorLevel has no ALL; corrected external test-only source. A later assertion incorrectly assumed wide-character continuation cells carry the leading cell BG; corrected to assert explicit Reset at the known continuation position. Those invalid probe runs remain under the private review root, not accepted as product failures."
+  },
+  "limits": [
+    "No application CLI or Tuiscotti paired captures were run in this review.",
+    "No full workspace acceptance or required hosted CI result.",
+    "All four application product parity and reusable-library acceptance remain incomplete.",
+    "Read-only review: no product source edits, commits, pushes or helpers."
+  ],
+  "worktrees": {
+    "before": "/private/tmp/button-profile-review-97e3395-20261021/before",
+    "after": "/private/tmp/button-profile-review-97e3395-20261021/after"
+  },
+  "source_sha256": {
+    "crates/termrock-theme/src/lib.rs": "8a2c7afcfa133ad6640870a87e72ab9cea9ea0c7610038fba0a03d8b3c440ade",
+    "crates/termrock-controls/tests/button_contract.rs": "11d9ff54b63e349db123ea259ba635ef53ee8f72597071c735f7999263f08309",
+    "docs/audits/2026-10-21-primary-button-pressed-profile.md": "e84a25b73645068e77afd3964fceb60436c25571bd5ac27e1f6010b9f1b6d652"
+  },
+  "artifacts": {
+    "after-consumer-Cargo.toml": "5d6b447c94c678344ca5f10bff18a3048dcef251a8daac2b500f2a2a230c8263",
+    "after-verified-cells.txt": "7b7357ddb2dea7aee2f7b2ec65995eb3765ba1f42360c13ae0e5a4b51be50979",
+    "after-verified-cells.txt.intentional": "6a1463d77a6f846bf554076c8f5b9f7c85eee2b6155f8246364ad6525069f186",
+    "after-verified.log": "2a381bdeccb7937d6d1dae68e8fe5041cb07ce7ed5d5de5f2c563bb323e7ed26",
+    "before-consumer-Cargo.toml": "d8d56c450f6c787ac64b2700c80fc5bddaab05e88c0dd83fa0fb9a646c830250",
+    "before-verified-cells.txt": "7b7357ddb2dea7aee2f7b2ec65995eb3765ba1f42360c13ae0e5a4b51be50979",
+    "before-verified-cells.txt.intentional": "6481c35a7f5dca29fe58052890e8fc15dae75d4f0d9d4016b04383eaf296b3d2",
+    "before-verified.log": "4a5a8164383aa60d101c4822498f64a2d7a70e40d4b35ba6220cde417000cea9",
+    "fmt.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "native-controls-theme.log": "d41b45fb9b5f119f4ef75a48640dd29debb7f58f197df636487aa225ac429f22",
+    "public-consumer-contract.rs": "33e335882350231fb3813b5389590b36c547618914421eba46cad8a93eb7202b",
+    "strict-clippy.log": "b5aa0fc1ab6daffa27113a522e05b2f5279bf044c739e8677ce1be9073cd9e33"
+  }
+}

@@ -6,10 +6,10 @@
     "x": 0,
     "y": 0
   },
-  "frame_digest": 1370804050108749618,
+  "frame_digest": 11254977715791195924,
   "legacy_name": "tablepro/overlays/safemode_picker/160x50/none",
   "name": "tablepro/workbench/overlay-safemode-picker/160x50/none",
-  "non_empty_cells": 1682,
+  "non_empty_cells": 8000,
   "provenance": {
     "argv": [],
     "created_unix": 0,

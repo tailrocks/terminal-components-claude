@@ -1,0 +1,40 @@
+ ▪ Junie Design system / Components / Diff                                   truecolor · 120×40   i Inspector   ? Help
+
+   Foundations            Diff viewer  Unified or old / new review · narrow panes use unified · select and copy text
+   Overview
+                           ● Review   ▎● Empty
+   Components
+   Buttons                ╭─ Diff ─────────────────────────────────────────────────────────────────────────────────────╮
+   Inputs                 │  No file selected                                                                          │
+   Text areas             │                                                                                            │
+   Forms                  │                                                                                            │
+   Lists                  │                                                                                            │
+   Trees                  │                                                                                            │
+   Tables                 │                                                                                            │
+   Editable tables        │                                                                                            │
+   Panels                 │                                                                                            │
+   Sidebars               │                                                                                            │
+   Dialogs                │                                                                                            │
+   Progress               │                                                                                            │
+   Scrolling              │                                                                                            │
+   Terminal               │                                                                                            │
+   Code editor            │                                                                                            │
+ › Diff                   │                                                                                            │
+   Data grid              │                                                                                            │
+   Chips & selects        │                                                                                            │
+   Pickers                │                                                                                            │
+   Chrome                 │                                                                                            │
+                          │                                                                                            │
+   Screens                │                                                                                            │
+   Settings               │                                                                                            │
+   Task runner            │                                                                                            │
+                          │                                                                                            │
+                          │                                                                                            │
+                          │                                                                                            │
+                          │                                                                                            │
+                          │                                                                                            │
+                          │                                                                                            │
+                          │                                                                                            │
+                          ╰────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ Enter Toggle  Tab Next control

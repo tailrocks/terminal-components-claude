@@ -15,10 +15,12 @@
     clippy::expect_used
 )]
 
-use termrock::{KeyCode, MouseKind};
+use termrock::{GlyphRole, KeyCode, MouseKind, Part, PartRef, Theme};
 
 use jackin_preview_app::Route;
+use jackin_preview_app::app::{ACCOUNT_FORM_LAYER, ACCOUNTS_LIST};
 use jackin_preview_app::{Motion, Scenario};
+use termrock_test_support::Scene;
 mod support;
 use support::H;
 
@@ -44,6 +46,35 @@ fn first_use_plays_intro_then_manager_and_no_replay_when_returning() {
         "an active Construct joins without replay"
     );
     assert!(r.text().contains("2 running"));
+}
+
+#[test]
+fn paused_intro_outro_and_failed_launch_match_the_baseline_first_frame() {
+    let intro = H::new(Scenario::FirstUse, Motion::Paused, 300, 120, 40);
+    let intro_text = intro.text();
+    assert!(
+        intro_text.contains("Enter Skip"),
+        "intro warp hint missing: {intro_text}"
+    );
+    assert!(
+        intro_text.contains('─') || intro_text.contains('+'),
+        "intro warp rain missing: {intro_text}"
+    );
+    let outro = H::new(Scenario::OutroLast, Motion::Paused, 40, 120, 40);
+    let outro_text = outro.text();
+    assert!(
+        outro_text.contains("Enter Skip"),
+        "outro warp hint missing: {outro_text}"
+    );
+    assert!(
+        outro_text.contains('─') || outro_text.contains('+'),
+        "outro warp rain missing: {outro_text}"
+    );
+    let phrases = H::new(Scenario::FirstUse, Motion::Paused, 40, 120, 40);
+    assert!(phrases.text().contains("Enter Skip"), "{}", phrases.text());
+    assert!(phrases.text().contains("jackin❯"), "{}", phrases.text());
+    let failed = H::new(Scenario::LaunchFailure, Motion::Paused, 240, 120, 40);
+    assert!(failed.text().contains("Launch failed"), "{}", failed.text());
 }
 
 #[test]
@@ -649,6 +680,9 @@ fn settings_trust_toggle_and_failed_save_keep_edits() {
     h.key(KeyCode::Enter);
     h.key(KeyCode::Char(' '));
     assert!(h.text().contains("• 1 change"), "{}", h.text());
+    // `5` then Enter only selects Trust. Space toggles. Toggle back off
+    // so the saved draft stays untrusted.
+    h.key(KeyCode::Char(' '));
     h.ctrl('s');
     assert!(h.text().contains("Save settings"));
     h.key(KeyCode::Right);
@@ -1186,6 +1220,83 @@ fn editor_accounts_tab_switches_inherited_defaults_off_and_extra_accounts_on() {
 }
 
 #[test]
+fn editor_accounts_enter_toggles_the_selected_account_after_tab_transition() {
+    let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Char('e'));
+    h.key(KeyCode::Char('5'));
+    h.key(KeyCode::Enter); // Clears the intentional Editor-tab transition.
+
+    let account_index = h
+        .app()
+        .world
+        .accounts
+        .sorted()
+        .iter()
+        .position(|account| account.id == "acct-claude-personal")
+        .expect("fixture has the inherited Claude account");
+    let list_id = jackin_preview_app::screens::editor::ROOT.sub("accounts-list");
+    let row = h
+        .harness
+        .area_of_part(
+            list_id,
+            PartRef::item(Part::ROW, termrock::ItemKey::index(account_index)),
+        )
+        .expect("the selected account has a real row target");
+    assert!(row.width > 1 && row.height > 0, "account row: {row:?}");
+    assert_eq!(h.focus(), Some(list_id));
+
+    let before_disabled = h.app().editor.pending.accounts.disabled_defaults.clone();
+    assert!(!before_disabled.contains("acct-claude-personal"));
+    assert!(
+        h.app()
+            .editor
+            .pending
+            .effective_accounts(&h.app().world.accounts)
+            .iter()
+            .any(|account| account.id == "acct-claude-personal")
+    );
+
+    h.key(KeyCode::Enter);
+
+    let mut expected_disabled = before_disabled;
+    expected_disabled.insert("acct-claude-personal".to_owned());
+    assert_eq!(
+        h.app().editor.pending.accounts.disabled_defaults,
+        expected_disabled,
+        "one real Enter toggles only the selected inherited account"
+    );
+    let effective = h
+        .app()
+        .editor
+        .pending
+        .effective_accounts(&h.app().world.accounts);
+    assert!(
+        effective
+            .iter()
+            .all(|account| account.id != "acct-claude-personal")
+    );
+    assert!(
+        effective
+            .iter()
+            .any(|account| account.id == "acct-claude-work")
+    );
+    assert!(h.text().contains("off for this Workspace"), "{}", h.text());
+
+    let chosen = Theme::junie().design.glyphs.get(GlyphRole::Chosen);
+    assert_eq!(
+        h.harness.cell(row.x.saturating_add(1), row.y).symbol(),
+        chosen,
+        "Enter retains the chosen marker on the domain row"
+    );
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "{:?}",
+        h.harness.diagnostics()
+    );
+}
+
+#[test]
 fn manager_launch_picker_hides_agents_without_an_account() {
     let mut h = H::new(Scenario::FirstUse, Motion::Reduced, 0, 120, 40);
     h.ticks(3);
@@ -1375,6 +1486,1279 @@ fn usage_enter_opens_the_read_only_detail_and_escape_closes_it() {
 }
 
 #[test]
+fn settings_route_s_paints_the_approved_settings_frame() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    assert!(
+        !h.text().contains("Settings › global"),
+        "accounts list must stay off the settings frame: {}",
+        h.text()
+    );
+    h.key(KeyCode::Char('s'));
+    assert_eq!(h.app().route(), Route::Settings);
+    assert_eq!(h.app().settings.tab, 0);
+    assert!(!h.app().settings.dirty);
+    assert!(h.text().contains("Settings › global"), "{}", h.text());
+    let crumb = h.buffer().cell((56, 0)).expect("settings breadcrumb");
+    assert_eq!(crumb.symbol(), "S");
+    assert_eq!(crumb.fg, termrock::Color::from_u32(0xb3_b3_b3));
+    assert_eq!(crumb.bg, termrock::Color::from_u32(0x00_00_00));
+    assert!(!crumb.modifier.contains(termrock::Modifier::BOLD));
+    let mark = h.buffer().cell((2, 0)).expect("jackin prompt");
+    assert_eq!(mark.symbol(), "j");
+    assert_eq!(mark.fg, termrock::Color::from_u32(0x19_19_1c));
+    assert_eq!(mark.bg, termrock::Color::from_u32(0x48_e0_54));
+    assert!(mark.modifier.contains(termrock::Modifier::BOLD));
+    let tab = h.buffer().cell((2, 3)).expect("general tab mark");
+    assert_eq!(tab.symbol(), "▎");
+    assert_eq!(tab.fg, termrock::Color::from_u32(0x48_e0_54));
+    assert_eq!(tab.bg, termrock::Color::from_u32(0x27_27_2a));
+    assert!(tab.modifier.contains(termrock::Modifier::BOLD));
+    assert_eq!(h.harness.cursor(), None);
+    h.key(KeyCode::Char('5'));
+    assert_eq!(h.app().settings.tab, 0);
+    h.key(KeyCode::Enter);
+    assert_eq!(h.app().settings.tab, 4);
+    let general = h.buffer().cell((2, 3)).expect("left of general");
+    assert_ne!(
+        general.symbol(),
+        "▎",
+        "Trust must not keep the General gutter: {}",
+        h.text()
+    );
+}
+
+#[test]
+fn settings_route_80_paints_the_approved_breadcrumb_cell() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 80, 24);
+    h.key(KeyCode::Char('s'));
+    assert_eq!(h.app().route(), Route::Settings);
+    assert_eq!(h.app().settings.tab, 0);
+    let crumb = h.buffer().cell((51, 0)).expect("settings breadcrumb");
+    assert_eq!(crumb.symbol(), "S");
+    assert_eq!(crumb.fg, termrock::Color::from_u32(0xb3_b3_b3));
+    assert_eq!(crumb.bg, termrock::Color::from_u32(0x00_00_00));
+    assert!(!crumb.modifier.contains(termrock::Modifier::BOLD));
+    assert!(!crumb.modifier.contains(termrock::Modifier::ITALIC));
+    assert_eq!(h.harness.cursor(), None);
+}
+
+#[test]
+fn settings_mounts_80_paints_the_approved_destination_cell() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 80, 24);
+    h.key(KeyCode::Char('s'));
+    assert_eq!(h.app().settings.tab, 0);
+    let general = h.buffer().cell((8, 6)).expect("general body");
+    assert_ne!(general.symbol(), "D", "General must not show Destination");
+    h.key(KeyCode::Char('2'));
+    assert_eq!(h.app().settings.tab, 0);
+    h.key(KeyCode::Enter);
+    assert_eq!(h.app().settings.tab, 1);
+    let dest = h.buffer().cell((8, 6)).expect("destination heading");
+    assert_eq!(dest.symbol(), "D");
+    assert_eq!(dest.fg, termrock::Color::from_u32(0x8a_8a_8a));
+    assert_eq!(dest.bg, termrock::Color::from_u32(0x00_00_00));
+    assert!(!dest.modifier.contains(termrock::Modifier::BOLD));
+    assert!(!dest.modifier.contains(termrock::Modifier::ITALIC));
+    assert_eq!(h.harness.cursor(), None);
+}
+
+#[test]
+fn settings_env_three_enter_paints_the_approved_env_frame() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    h.key(KeyCode::Char('s'));
+    assert_eq!(h.app().settings.tab, 0);
+    let general = h.buffer().cell((8, 7)).expect("general body");
+    assert_ne!(general.symbol(), "G", "General must not show GH_TOKEN");
+    h.key(KeyCode::Char('3'));
+    assert_eq!(h.app().settings.tab, 0);
+    let armed = h.buffer().cell((8, 7)).expect("armed general body");
+    assert_ne!(armed.symbol(), "G", "`3` alone must stay on General");
+    h.key(KeyCode::Enter);
+    assert_eq!(h.app().settings.tab, 2);
+    let token = h.buffer().cell((8, 7)).expect("GH_TOKEN");
+    assert_eq!(token.symbol(), "G");
+    assert_eq!(token.fg, termrock::Color::from_u32(0xff_ff_ff));
+    assert_eq!(token.bg, termrock::Color::from_u32(0x17_3f_1c));
+    assert!(token.modifier.contains(termrock::Modifier::BOLD));
+    assert!(h.text().contains("GH_TOKEN"), "{}", h.text());
+    assert_eq!(h.harness.cursor(), None);
+
+    let mut mounts = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    mounts.key(KeyCode::Char('s'));
+    mounts.key(KeyCode::Char('2'));
+    mounts.key(KeyCode::Enter);
+    assert_eq!(mounts.app().settings.tab, 1);
+    let mount_cell = mounts.buffer().cell((8, 7)).expect("mounts body");
+    assert_ne!(mount_cell.symbol(), "G", "Mounts must not show GH_TOKEN");
+    assert!(
+        !mounts.text().contains("GH_TOKEN"),
+        "Mounts must stay off the environment table: {}",
+        mounts.text()
+    );
+}
+
+#[test]
+fn settings_trust_five_enter_paints_the_approved_trust_frame() {
+    let closed = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    assert!(
+        !closed.text().contains("github.com/chainargos/roles"),
+        "closed settings must stay off the trust frame: {}",
+        closed.text()
+    );
+
+    let mut agents = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    agents.key(KeyCode::Char('s'));
+    agents.key(KeyCode::Char('4'));
+    agents.key(KeyCode::Enter);
+    assert_eq!(agents.app().settings.tab, 3);
+    assert!(
+        !agents.text().contains("github.com/chainargos/roles"),
+        "Agents must stay off the trust frame: {}",
+        agents.text()
+    );
+
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    h.key(KeyCode::Char('s'));
+    assert_eq!(h.app().settings.tab, 0);
+    h.key(KeyCode::Char('5'));
+    assert_eq!(h.app().settings.tab, 0);
+    assert!(
+        !h.text().contains("github.com/chainargos/roles"),
+        "`5` alone must stay on General: {}",
+        h.text()
+    );
+    h.key(KeyCode::Enter);
+    assert_eq!(h.app().settings.tab, 4);
+    let role = h.buffer().cell((7, 7)).expect("chainargos role");
+    assert_eq!(role.symbol(), "g");
+    assert_eq!(role.fg, termrock::Color::from_u32(0xff_ff_ff));
+    assert_eq!(role.bg, termrock::Color::from_u32(0x17_3f_1c));
+    assert!(role.modifier.contains(termrock::Modifier::BOLD));
+    assert!(
+        h.text().contains("github.com/chainargos/roles"),
+        "{}",
+        h.text()
+    );
+    assert_eq!(h.harness.cursor(), None);
+}
+
+#[test]
+fn settings_save_preview_keys_paint_the_approved_dialog() {
+    let apply_save = |h: &H| {
+        let cell = h.buffer().cell((85, 24)).expect("apply save");
+        cell.symbol() == "S"
+            && cell.fg == termrock::Color::from_u32(0x19_19_1c)
+            && cell.bg == termrock::Color::from_u32(0x48_e0_54)
+            && cell.modifier.contains(termrock::Modifier::BOLD)
+            && cell.modifier.contains(termrock::Modifier::UNDERLINED)
+    };
+
+    let closed = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    assert!(
+        !apply_save(&closed),
+        "closed settings must stay off the save preview: {}",
+        closed.text()
+    );
+
+    let mut trust = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    trust.key(KeyCode::Char('s'));
+    trust.key(KeyCode::Char('5'));
+    trust.key(KeyCode::Enter);
+    assert_eq!(trust.app().settings.tab, 4);
+    assert!(
+        !apply_save(&trust),
+        "clean Trust must stay off the save preview: {}",
+        trust.text()
+    );
+
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    h.key(KeyCode::Char('s'));
+    h.key(KeyCode::Char('5'));
+    assert_eq!(h.app().settings.tab, 0);
+    h.key(KeyCode::Enter);
+    h.key(KeyCode::Char(' '));
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Char(' '));
+    h.ctrl('s');
+    assert_eq!(h.app().settings.tab, 4);
+    let cell = h.buffer().cell((85, 24)).expect("apply save");
+    assert_eq!(cell.symbol(), "S");
+    assert_eq!(cell.fg, termrock::Color::from_u32(0x19_19_1c));
+    assert_eq!(cell.bg, termrock::Color::from_u32(0x48_e0_54));
+    assert!(cell.modifier.contains(termrock::Modifier::BOLD));
+    assert!(cell.modifier.contains(termrock::Modifier::UNDERLINED));
+    assert!(apply_save(&h));
+    assert!(h.text().contains("Save settings"), "{}", h.text());
+    assert_eq!(h.harness.cursor(), None);
+}
+
+#[test]
+fn settings_agents_four_enter_paints_the_approved_agents_frame() {
+    let closed = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    assert!(
+        !closed.text().contains("Agent runtime mode"),
+        "closed settings must stay off the agents frame: {}",
+        closed.text()
+    );
+
+    let mut env = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    env.key(KeyCode::Char('s'));
+    env.key(KeyCode::Char('3'));
+    env.key(KeyCode::Enter);
+    assert_eq!(env.app().settings.tab, 2);
+    assert!(
+        !env.text().contains("Agent runtime mode"),
+        "Environments must stay off the agents frame: {}",
+        env.text()
+    );
+
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    h.key(KeyCode::Char('s'));
+    assert_eq!(h.app().settings.tab, 0);
+    let general = h.buffer().cell((4, 6)).expect("general body");
+    assert_ne!(
+        general.symbol(),
+        "A",
+        "General must not show Agent runtime mode"
+    );
+    h.key(KeyCode::Char('4'));
+    assert_eq!(h.app().settings.tab, 0);
+    let armed = h.buffer().cell((4, 6)).expect("armed general body");
+    assert_ne!(armed.symbol(), "A", "`4` alone must stay on General");
+    h.key(KeyCode::Enter);
+    assert_eq!(h.app().settings.tab, 3);
+    let mode = h.buffer().cell((4, 6)).expect("agent runtime mode");
+    assert_eq!(mode.symbol(), "A");
+    assert_eq!(mode.fg, termrock::Color::from_u32(0xb3_b3_b3));
+    assert_eq!(mode.bg, termrock::Color::from_u32(0x00_00_00));
+    assert!(mode.modifier.contains(termrock::Modifier::BOLD));
+    assert!(h.text().contains("Agent runtime mode"), "{}", h.text());
+    assert_eq!(h.harness.cursor(), None);
+}
+
+fn settings_agents_reference_scene(width: u16, height: u16, running_count: usize) -> Scene {
+    let rows = [
+        termrock::feedback::SettingsAgentRow::new(
+            " Claude Code   ",
+            "sync        ",
+            "★ Claude · Personal",
+        )
+        .selected(true),
+        termrock::feedback::SettingsAgentRow::new(
+            " Codex         ",
+            "api key     ",
+            "★ Codex · Primary",
+        ),
+        termrock::feedback::SettingsAgentRow::new(
+            " Amp           ",
+            "sync        ",
+            "discovered · ~/.config/amp/secrets.json",
+        ),
+        termrock::feedback::SettingsAgentRow::new(
+            " Kimi Code     ",
+            "ignore      ",
+            "no credentials handed to the container",
+        ),
+        termrock::feedback::SettingsAgentRow::new(
+            " OpenCode      ",
+            "sync        ",
+            "★ OpenCode · Go subscription",
+        ),
+        termrock::feedback::SettingsAgentRow::new(
+            " Grok Build    ",
+            "api key     ",
+            "★ Grok · Team",
+        ),
+    ];
+    let notes = [
+        "sync mirrors the host login · api key and oauth token take material from the registry account",
+        "ignore starts the agent without credentials and removes it from session pickers",
+    ];
+    let agents = termrock::feedback::SettingsAgents::new(
+        "Agent runtime mode",
+        "accounts are registered in Accounts (c)",
+        "Agent         Mode         Registry default",
+        &rows,
+        &notes,
+    );
+    let menus = ["File", "Go", "Help"];
+    let tabs = [
+        termrock::feedback::SettingsTab {
+            label: "General",
+            selected: false,
+        },
+        termrock::feedback::SettingsTab {
+            label: "Mounts",
+            selected: false,
+        },
+        termrock::feedback::SettingsTab {
+            label: "Environments",
+            selected: false,
+        },
+        termrock::feedback::SettingsTab {
+            label: "Agents",
+            selected: true,
+        },
+        termrock::feedback::SettingsTab {
+            label: "Trust",
+            selected: false,
+        },
+    ];
+    let hints = [
+        termrock::feedback::SettingsHint {
+            key: "Space",
+            action: "Cycle mode",
+        },
+        termrock::feedback::SettingsHint {
+            key: "d",
+            action: "Remove override",
+        },
+        termrock::feedback::SettingsHint {
+            key: "c",
+            action: "Manage accounts",
+        },
+        termrock::feedback::SettingsHint {
+            key: "[ ]",
+            action: "Switch tab",
+        },
+        termrock::feedback::SettingsHint {
+            key: "Ctrl+S",
+            action: "Save",
+        },
+        termrock::feedback::SettingsHint {
+            key: "Esc",
+            action: "Back",
+        },
+    ];
+    let running = format!("{running_count} running");
+    let page = termrock::feedback::SettingsPage {
+        brand: "jackin❯",
+        menus: &menus,
+        crumb: "Settings › global › Agents",
+        tabs: &tabs,
+        sections: &[],
+        cancel: "Cancel",
+        save: "Save…",
+        save_enabled: false,
+        hints: &hints,
+        hint_overflow: None,
+        mounts: &[],
+        add_mount: None,
+        cluster: Some(termrock::feedback::SettingsCluster {
+            note: "inside the Construct",
+            mark: "●",
+            value: &running,
+        }),
+    };
+    let offsets = [1, 19, 38, 57, 73, 86];
+    let mut expected = Scene::new(
+        "settings_agents_shared_page_reference",
+        Theme::junie(),
+        termrock::ColorLevel::TrueColor,
+        width,
+        height,
+    );
+    expected.draw(|ui, area| {
+        assert_eq!(
+            termrock::feedback::paint_settings_page_with_agents(
+                ui,
+                area,
+                &page,
+                &agents,
+                termrock::feedback::SettingsPageChrome::new().hint_offsets(&offsets),
+            ),
+            Ok(())
+        );
+    });
+    expected
+}
+
+#[test]
+fn settings_agents_wide_path_retains_full_shared_page_cells() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    h.key(KeyCode::Char('s'));
+    h.key(KeyCode::Char('4'));
+    h.key(KeyCode::Enter);
+    assert_eq!(h.app().settings.tab, 3);
+
+    let expected = settings_agents_reference_scene(120, 40, h.app().world.running_count());
+    for position in h.buffer().area().positions() {
+        let actual = h.buffer().cell(position).expect("App frame cell");
+        let expected = expected
+            .buffer()
+            .cell(position)
+            .expect("reference frame cell");
+        assert_eq!(
+            format!("{actual:?}"),
+            format!("{expected:?}"),
+            "cell {position:?}"
+        );
+    }
+}
+
+fn assert_clean_agents_body(h: &H, complete_notes: bool) {
+    let text = h.text();
+    for expected in [
+        "Agent runtime mode",
+        "Claude Code",
+        "Codex",
+        "Amp",
+        "Kimi Code",
+        "OpenCode",
+        "Grok Build",
+        "sync mirrors the host login",
+        "ignore starts the agent without credentials",
+    ] {
+        assert!(text.contains(expected), "missing {expected:?}: {text}");
+    }
+    if complete_notes {
+        assert!(text.contains(
+            "sync mirrors the host login · api key and oauth token take material from the registry account"
+        ));
+        assert!(text.contains(
+            "ignore starts the agent without credentials and removes it from session pickers"
+        ));
+    }
+    assert!(!text.contains("DCO signoff"), "stale General row: {text}");
+    for (x, y) in [(4, 10), (5, 10), (4, 11), (5, 11)] {
+        assert_eq!(
+            h.buffer()
+                .cell((x, y))
+                .expect("cleared owned-body cell")
+                .symbol(),
+            " ",
+            "stale General fragment at ({x}, {y})"
+        );
+    }
+    let marker = h.buffer().cell((2, 8)).expect("selected Agents gutter");
+    assert_eq!(marker.symbol(), "▎");
+    assert_eq!(marker.bg, termrock::Color::Rgb(0x17, 0x3f, 0x1c));
+    assert!(marker.modifier.contains(termrock::Modifier::BOLD));
+    assert_eq!(h.harness.cursor(), None);
+    assert_eq!(h.harness.diagnostics(), []);
+}
+
+fn settings_agent_column(h: &H, y: u16, x: u16, width: u16) -> String {
+    let mut text = String::new();
+    for column in x..x.saturating_add(width) {
+        text.push_str(
+            h.buffer()
+                .cell((column, y))
+                .expect("Agents column cell")
+                .symbol(),
+        );
+    }
+    text.trim().to_owned()
+}
+
+fn assert_settings_agent_values(h: &H) {
+    let rows = [
+        (8, "Claude Code", "sync", "★ Claude · Personal"),
+        (9, "Codex", "api key", "★ Codex · Primary"),
+        (10, "Amp", "sync", "discovered · ~/.config/amp/secrets.json"),
+        (
+            11,
+            "Kimi Code",
+            "ignore",
+            "no credentials handed to the container",
+        ),
+        (12, "OpenCode", "sync", "★ OpenCode · Go subscription"),
+        (13, "Grok Build", "api key", "★ Grok · Team"),
+    ];
+    let registry_width = h.buffer().area().width.saturating_sub(34);
+    for (y, name, mode, registry) in rows {
+        assert_eq!(settings_agent_column(h, y, 6, 15), name, "name row {y}");
+        assert_eq!(settings_agent_column(h, y, 21, 13), mode, "mode row {y}");
+        assert_eq!(
+            settings_agent_column(h, y, 34, registry_width),
+            registry,
+            "registry row {y}"
+        );
+    }
+}
+
+#[test]
+fn settings_agents_shared_body_stays_clear_of_native_controls() {
+    fn open_agents(h: &mut H) {
+        h.key(KeyCode::Char('s'));
+        h.key(KeyCode::Char('4'));
+        h.key(KeyCode::Enter);
+        assert_eq!(h.app().settings.tab, 3);
+        assert_eq!(h.app().route(), Route::Settings);
+    }
+
+    for (width, height, complete_notes) in [(80, 24, false), (100, 30, true)] {
+        let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, width, height);
+        open_agents(&mut h);
+        assert_clean_agents_body(&h, complete_notes);
+        assert_settings_agent_values(&h);
+
+        let expected =
+            settings_agents_reference_scene(width, height, h.app().world.running_count());
+        for y in 6..17 {
+            for x in 0..width {
+                let position = (x, y);
+                let actual = h.buffer().cell(position).expect("App Agents body cell");
+                let expected = expected
+                    .buffer()
+                    .cell(position)
+                    .expect("shared Agents body cell");
+                assert_eq!(
+                    format!("{actual:?}"),
+                    format!("{expected:?}"),
+                    "full native body cell at {position:?} for {width}x{height}"
+                );
+            }
+        }
+    }
+
+    // At 72x20 the shared body's page-relative clear would cover the native
+    // Save control. Keep the existing short painter and prove the published
+    // Settings owner remains visible and can open/cancel its real preview.
+    let mut short = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 72, 20);
+    open_agents(&mut short);
+    let save = jackin_preview_app::screens::settings::SAVE;
+    let save_area = short
+        .harness
+        .area_of(save)
+        .expect("native Settings Save publishes its hit area");
+    assert_eq!(save_area, termrock::Rect::new(4, 14, 15, 1));
+    assert_eq!(short.find("Save settings"), Some((5, 14)));
+
+    short.key(KeyCode::Char(' '));
+    assert!(short.app().settings.dirty);
+    short.tab_to(save);
+    assert_eq!(short.focus(), Some(save));
+    assert!(
+        short
+            .harness
+            .state_of(save)
+            .contains(termrock::StateFlags::FOCUSED)
+    );
+    assert!(
+        !short
+            .harness
+            .state_of(save)
+            .contains(termrock::StateFlags::PRESSED)
+    );
+    assert_eq!(short.harness.runtime().capture_owner(), None);
+    let before_preview = short.text();
+
+    let save_x = save_area.x.saturating_add(save_area.width / 2);
+    short.mouse(MouseKind::Down, save_x, save_area.y);
+    assert_eq!(short.focus(), Some(save));
+    assert!(
+        short
+            .harness
+            .state_of(save)
+            .contains(termrock::StateFlags::PRESSED)
+    );
+    assert!(
+        !short
+            .harness
+            .state_of(save)
+            .contains(termrock::StateFlags::DISABLED)
+    );
+    assert_eq!(short.harness.runtime().capture_owner(), None);
+    short.mouse(MouseKind::Up, save_x, save_area.y);
+    assert_eq!(short.harness.runtime().capture_owner(), None);
+    assert_eq!(
+        short
+            .harness
+            .activation_feedback()
+            .map(|feedback| feedback.owner),
+        Some(save),
+        "the click must activate the published Save owner"
+    );
+    assert_eq!(
+        short.find("Save settings"),
+        Some((6, 5)),
+        "preview title is visible"
+    );
+    let save_confirm = jackin_preview_app::screens::settings::ROOT.sub("save-confirm");
+    assert_eq!(short.focus(), Some(save_confirm));
+    assert!(
+        short
+            .harness
+            .state_of(save_confirm)
+            .contains(termrock::StateFlags::FOCUSED)
+    );
+    assert_eq!(
+        short.harness.area_of(save_confirm),
+        Some(termrock::Rect::new(24, 14, 16, 1))
+    );
+
+    short.key(KeyCode::Esc);
+    assert_eq!(
+        short.harness.area_of(save_confirm),
+        None,
+        "cancel removes the published preview owner"
+    );
+    assert_eq!(short.harness.runtime().capture_owner(), None);
+    assert_eq!(
+        short.find("Save settings"),
+        Some((5, 14)),
+        "native Save returns visibly"
+    );
+    assert!(short.app().settings.dirty, "cancel keeps the draft");
+    short.tab_to(save);
+    assert_eq!(
+        short.focus(),
+        Some(save),
+        "Save remains reachable after cancel"
+    );
+    assert_eq!(short.harness.area_of(save), Some(save_area));
+    assert_eq!(short.find("Save settings"), Some((5, 14)));
+    assert_eq!(
+        short.text(),
+        before_preview,
+        "cancel returns to the same short frame"
+    );
+    assert_eq!(short.harness.area_of(save_confirm), None);
+    assert_eq!(short.harness.runtime().capture_owner(), None);
+    assert_eq!(short.harness.diagnostics(), []);
+
+    short.key(KeyCode::Left);
+    assert_eq!(short.app().settings.tab, 2);
+    short.key(KeyCode::Left);
+    assert_eq!(short.app().settings.tab, 1);
+    short.key(KeyCode::Left);
+    assert_eq!(short.app().settings.tab, 0);
+    short.key(KeyCode::Char('4'));
+    short.key(KeyCode::Enter);
+    assert_eq!(short.app().settings.tab, 3);
+    assert!(short.app().settings.dirty);
+}
+
+#[test]
+fn settings_mounts_two_enter_paints_the_approved_mounts_frame() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    h.key(KeyCode::Char('s'));
+    assert_eq!(h.app().settings.tab, 0);
+    let general = h.buffer().cell((8, 6)).expect("general body");
+    assert_ne!(general.symbol(), "D", "General must not show Destination");
+    h.key(KeyCode::Char('2'));
+    assert_eq!(h.app().settings.tab, 0);
+    let armed = h.buffer().cell((8, 6)).expect("armed general body");
+    assert_ne!(armed.symbol(), "D", "`2` alone must stay on General");
+    h.key(KeyCode::Enter);
+    assert_eq!(h.app().settings.tab, 1);
+    let dest = h.buffer().cell((8, 6)).expect("destination heading");
+    assert_eq!(dest.symbol(), "D");
+    assert_eq!(dest.fg, termrock::Color::from_u32(0x8a_8a_8a));
+    assert_eq!(dest.bg, termrock::Color::from_u32(0x00_00_00));
+    assert!(!dest.modifier.contains(termrock::Modifier::BOLD));
+    assert!(h.text().contains("/home/agent/.gitconfig"), "{}", h.text());
+    assert_eq!(h.harness.cursor(), None);
+}
+
+#[test]
+fn accounts_detail_downs_paint_the_approved_work_frame() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    assert!(
+        !h.text().contains("Accounts › Claude › Work"),
+        "closed list must stay off the detail frame: {}",
+        h.text()
+    );
+    for _ in 0..4 {
+        h.key(KeyCode::Down);
+    }
+    assert_eq!(
+        h.app().accounts.selected_id.as_deref(),
+        Some("acct-claude-work")
+    );
+    assert_eq!(
+        h.app().accounts.list.cursor(),
+        Some(termrock::ItemKey::index(4))
+    );
+    assert!(
+        h.text().contains("Accounts › Claude › Work"),
+        "{}",
+        h.text()
+    );
+    let (crumb_x, crumb_y) = h.find("Accounts › Claude › Work").expect("work breadcrumb");
+    let crumb = h
+        .buffer()
+        .cell((crumb_x, crumb_y))
+        .expect("work breadcrumb");
+    assert_eq!(crumb.symbol(), "A");
+    assert_eq!(crumb.fg, termrock::Color::from_u32(0xb3_b3_b3));
+    assert_eq!(crumb.bg, termrock::Color::from_u32(0x00_00_00));
+    assert!(!crumb.modifier.contains(termrock::Modifier::BOLD));
+    let mark = h.buffer().cell((2, 0)).expect("jackin prompt");
+    assert_eq!(mark.symbol(), "j");
+    assert_eq!(mark.fg, termrock::Color::from_u32(0x19_19_1c));
+    assert_eq!(mark.bg, termrock::Color::from_u32(0x48_e0_54));
+    assert!(mark.modifier.contains(termrock::Modifier::BOLD));
+    let title = h.buffer().cell((44, 2)).expect("work title");
+    assert_eq!(title.symbol(), "C");
+    assert_eq!(title.fg, termrock::Color::from_u32(0xb3_b3_b3));
+    assert_eq!(title.bg, termrock::Color::from_u32(0x11_11_11));
+    assert_eq!(h.harness.cursor(), None);
+    h.key(KeyCode::Down);
+    assert_ne!(
+        h.app().accounts.selected_id.as_deref(),
+        Some("acct-claude-work")
+    );
+    assert!(
+        !h.text().contains("Accounts › Claude › Work"),
+        "the next row must keep the live list: {}",
+        h.text()
+    );
+}
+
+#[test]
+fn accounts_detail_downs_paint_the_approved_80_work_cell() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 80, 24);
+    let closed = h.buffer().cell((38, 0)).expect("overview crumb");
+    assert_ne!(
+        closed.symbol(),
+        "A",
+        "overview must stay off the detail crumb"
+    );
+    for _ in 0..4 {
+        h.key(KeyCode::Down);
+    }
+    assert_eq!(
+        h.app().accounts.selected_id.as_deref(),
+        Some("acct-claude-work")
+    );
+    let crumb = h.buffer().cell((38, 0)).expect("work breadcrumb");
+    assert_eq!(crumb.symbol(), "A");
+    assert_eq!(crumb.fg, termrock::Color::from_u32(0xb3_b3_b3));
+    assert_eq!(crumb.bg, termrock::Color::from_u32(0x00_00_00));
+    assert!(!crumb.modifier.contains(termrock::Modifier::BOLD));
+    assert_eq!(h.harness.cursor(), None);
+}
+
+#[test]
+fn accounts_drawer_enter_paints_the_approved_work_drawer() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    for _ in 0..4 {
+        h.key(KeyCode::Down);
+    }
+    let defaults_before = h
+        .app()
+        .world
+        .accounts
+        .accounts
+        .iter()
+        .filter(|account| {
+            account.provider == jackin_preview_app::domain::agent::Provider::Anthropic
+        })
+        .filter(|account| account.default_for_provider)
+        .map(|account| account.id.clone())
+        .collect::<Vec<_>>();
+    assert!(!h.app().accounts.drawer_open);
+    assert!(
+        !h.text().contains("Tab Actions"),
+        "detail must stay off the drawer footer: {}",
+        h.text()
+    );
+    h.key(KeyCode::Enter);
+    assert!(h.app().accounts.drawer_open);
+    assert_eq!(
+        h.app().accounts.selected_id.as_deref(),
+        Some("acct-claude-work")
+    );
+    assert_eq!(
+        h.app()
+            .world
+            .accounts
+            .accounts
+            .iter()
+            .filter(|account| account.provider
+                == jackin_preview_app::domain::agent::Provider::Anthropic)
+            .filter(|account| account.default_for_provider)
+            .map(|account| account.id.clone())
+            .collect::<Vec<_>>(),
+        defaults_before,
+        "Enter opens the drawer without changing the provider default"
+    );
+    assert!(h.text().contains("Tab Actions"), "{}", h.text());
+    // The open drawer keeps the crumb: the selection is still the account.
+    assert!(
+        h.text().contains("Accounts › Claude › Work"),
+        "{}",
+        h.text()
+    );
+    let mark = h.buffer().cell((2, 0)).expect("jackin prompt");
+    assert_eq!(mark.symbol(), "j");
+    assert_eq!(mark.fg, termrock::Color::from_u32(0x19_19_1c));
+    assert_eq!(mark.bg, termrock::Color::from_u32(0x48_e0_54));
+    assert!(mark.modifier.contains(termrock::Modifier::BOLD));
+    let title = h.buffer().cell((44, 2)).expect("drawer title");
+    assert_eq!(title.symbol(), "C");
+    assert_eq!(title.fg, termrock::Color::from_u32(0xff_ff_ff));
+    assert_eq!(title.bg, termrock::Color::from_u32(0x11_11_11));
+    assert!(title.modifier.contains(termrock::Modifier::BOLD));
+    let tab = h.buffer().cell((12, 39)).expect("drawer tab hint");
+    assert_eq!(tab.symbol(), "T");
+    assert_eq!(tab.fg, termrock::Color::from_u32(0xff_ff_ff));
+    assert_eq!(tab.bg, termrock::Color::from_u32(0x00_00_00));
+    assert!(tab.modifier.contains(termrock::Modifier::BOLD));
+    assert_eq!(h.harness.cursor(), None);
+    h.key(KeyCode::Esc);
+    assert!(!h.app().accounts.drawer_open);
+    assert!(
+        !h.text().contains("Tab Actions"),
+        "escape must leave the drawer frame: {}",
+        h.text()
+    );
+}
+
+#[test]
+fn accounts_row_click_selects_without_opening_drawer_or_mutating_account() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    let account_id = "acct-claude-personal";
+    let account = h
+        .app()
+        .world
+        .accounts
+        .get(account_id)
+        .expect("fixture account");
+    let source_before = account.source.clone();
+    let enabled_before = account.enabled;
+    let defaults_before = h
+        .app()
+        .world
+        .accounts
+        .accounts
+        .iter()
+        .filter(|account| account.default_for_provider)
+        .map(|account| account.id.clone())
+        .collect::<Vec<_>>();
+    let registry_revision = h.app().world.accounts.revision;
+    let account_count = h.app().world.accounts.accounts.len();
+
+    let (x, y) = h.find("★ Personal").expect("painted account row");
+    assert!(x > 0 && x < 40, "click must hit the left tree: ({x}, {y})");
+    h.click(x, y);
+
+    assert_eq!(
+        h.app().accounts.list.cursor(),
+        Some(termrock::ItemKey::index(2)),
+        "the click must select the painted account row"
+    );
+    assert_eq!(h.app().accounts.selected_id.as_deref(), Some(account_id));
+    assert!(
+        !h.app().accounts.drawer_open,
+        "a row click selects the account without opening its drawer"
+    );
+    assert!(!h.text().contains("Tab Actions"), "{}", h.text());
+    let selected = h
+        .app()
+        .world
+        .accounts
+        .get(account_id)
+        .expect("selected fixture account");
+    assert!(
+        selected.source == source_before,
+        "click must preserve credentials"
+    );
+    assert_eq!(selected.enabled, enabled_before);
+    assert_eq!(
+        h.app()
+            .world
+            .accounts
+            .accounts
+            .iter()
+            .filter(|account| account.default_for_provider)
+            .map(|account| account.id.clone())
+            .collect::<Vec<_>>(),
+        defaults_before,
+        "click must not change a provider default"
+    );
+    assert_eq!(h.app().world.accounts.revision, registry_revision);
+    assert_eq!(h.app().world.accounts.accounts.len(), account_count);
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "{:?}",
+        h.harness.diagnostics()
+    );
+}
+
+#[test]
+fn accounts_click_closes_open_drawer_for_same_and_different_rows() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    let (personal_x, personal_y) = h.find("★ Personal").expect("Personal row");
+    assert!(
+        personal_x < 40,
+        "Personal must be in the tree: {personal_x}"
+    );
+    h.click(personal_x, personal_y);
+    assert_eq!(
+        h.app().accounts.selected_id.as_deref(),
+        Some("acct-claude-personal")
+    );
+    assert!(!h.app().accounts.drawer_open);
+
+    h.key(KeyCode::Enter);
+    assert!(h.app().accounts.drawer_open, "root Enter opens the drawer");
+    assert!(h.text().contains("Tab Actions"), "{}", h.text());
+    advance_past_junie_double_click_window(&mut h);
+
+    let (same_x, same_y) = h.find("★ Personal").expect("Personal row while open");
+    assert!(same_x < 40, "same-row click must target the tree: {same_x}");
+    h.click(same_x, same_y);
+    assert_eq!(
+        h.app().accounts.selected_id.as_deref(),
+        Some("acct-claude-personal")
+    );
+    assert!(
+        !h.app().accounts.drawer_open,
+        "same-row click closes the drawer; cursor={:?}, chosen={:?}, focus={:?}, diagnostics={:?}",
+        h.app().accounts.list.cursor(),
+        h.app().accounts.list.chosen(),
+        h.focus(),
+        h.harness.diagnostics()
+    );
+    assert!(!h.text().contains("Tab Actions"), "{}", h.text());
+    assert!(
+        h.text().contains("Enter Details"),
+        "detail hints remain visible: {}",
+        h.text()
+    );
+    assert_eq!(h.focus(), Some(ACCOUNTS_LIST));
+
+    h.key(KeyCode::Enter);
+    assert!(h.app().accounts.drawer_open);
+    advance_past_junie_double_click_window(&mut h);
+    let (work_x, work_y) = h.find("Work").expect("Work row while drawer is open");
+    assert!(
+        work_x < 40,
+        "different-row click must target the tree: {work_x}"
+    );
+    h.click(work_x, work_y);
+    assert_eq!(
+        h.app().accounts.selected_id.as_deref(),
+        Some("acct-claude-work")
+    );
+    assert!(
+        !h.app().accounts.drawer_open,
+        "different-row click closes the drawer"
+    );
+    assert!(!h.text().contains("Tab Actions"), "{}", h.text());
+    assert!(
+        h.text().contains("Enter Details"),
+        "detail hints remain visible: {}",
+        h.text()
+    );
+    assert_eq!(h.focus(), Some(ACCOUNTS_LIST));
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "{:?}",
+        h.harness.diagnostics()
+    );
+}
+
+fn advance_past_junie_double_click_window(h: &mut H) {
+    let threshold = Theme::junie().design.motion.double_click_ms;
+    let _ = h.harness.advance(std::time::Duration::from_millis(
+        threshold.saturating_add(1),
+    ));
+}
+
+#[test]
+fn accounts_double_click_activation_does_not_open_the_drawer() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    let (x, y) = h.find("★ Personal").expect("Personal row");
+    assert!(x > 0 && x < 40);
+
+    let _ = h.harness.double_click(x, y);
+
+    assert_eq!(
+        h.app().accounts.selected_id.as_deref(),
+        Some("acct-claude-personal")
+    );
+    assert!(!h.app().accounts.drawer_open);
+    assert!(!h.text().contains("Tab Actions"), "{}", h.text());
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "{:?}",
+        h.harness.diagnostics()
+    );
+}
+
+#[test]
+fn accounts_row_click_keeps_selection_only_at_supported_narrow_size() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 80, 24);
+    let (x, y) = h.find("★ Personal").expect("painted Personal row at 80x24");
+    assert!(x > 0 && x < 40, "click must hit the left tree: ({x}, {y})");
+    h.click(x, y);
+    assert_eq!(
+        h.app().accounts.selected_id.as_deref(),
+        Some("acct-claude-personal")
+    );
+    assert!(!h.app().accounts.drawer_open);
+    assert!(!h.text().contains("Tab Actions"), "{}", h.text());
+    assert_eq!(h.focus(), Some(ACCOUNTS_LIST));
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "{:?}",
+        h.harness.diagnostics()
+    );
+}
+
+#[test]
+fn accounts_space_sets_work_default_once_without_opening_drawer() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    for _ in 0..4 {
+        h.key(KeyCode::Down);
+    }
+    assert_eq!(
+        h.app().accounts.selected_id.as_deref(),
+        Some("acct-claude-work")
+    );
+    assert!(!h.app().accounts.drawer_open);
+    let revision_before = h.app().world.accounts.revision;
+
+    h.key(KeyCode::Char(' '));
+
+    assert!(!h.app().accounts.drawer_open);
+    assert_eq!(h.app().world.accounts.revision, revision_before + 1);
+    assert!(
+        h.app()
+            .world
+            .accounts
+            .get("acct-claude-work")
+            .unwrap()
+            .default_for_provider
+    );
+    assert!(
+        !h.app()
+            .world
+            .accounts
+            .get("acct-claude-personal")
+            .unwrap()
+            .default_for_provider
+    );
+    assert!(h.text().contains("Default set"), "{}", h.text());
+    h.ticks(3);
+    assert_eq!(h.app().world.accounts.revision, revision_before + 1);
+    assert!(!h.app().accounts.drawer_open);
+}
+
+#[test]
+fn accounts_filter_click_dismisses_input_and_selects_without_opening_drawer() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    h.key(KeyCode::Char('/'));
+    assert!(h.app().accounts.filter_input.is_editing());
+    assert_eq!(
+        h.focus(),
+        Some(jackin_preview_app::screens::accounts::FILTER)
+    );
+    assert!(h.harness.cursor().is_some(), "filter owns a visible caret");
+    h.type_str("work");
+    assert_eq!(h.app().accounts.filter_query, "work");
+    assert!(h.app().accounts.filter_input.is_editing());
+
+    let (x, y) = h.find("Work").expect("filtered Work result");
+    assert!(
+        x > 0 && x < 40,
+        "click must hit the filtered tree: ({x}, {y})"
+    );
+    h.click(x, y);
+
+    assert_eq!(
+        h.app().accounts.selected_id.as_deref(),
+        Some("acct-claude-work")
+    );
+    assert!(!h.app().accounts.drawer_open);
+    assert!(h.app().accounts.filtering);
+    assert!(!h.app().accounts.filter_input.is_editing());
+    assert_eq!(h.app().accounts.filter_query, "work");
+    assert_eq!(h.focus(), Some(ACCOUNTS_LIST));
+    assert!(h.text().contains("Accounts · filt"), "{}", h.text());
+    assert!(!h.text().contains("Tab Actions"), "{}", h.text());
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "{:?}",
+        h.harness.diagnostics()
+    );
+}
+
+#[test]
+fn accounts_form_owns_enter_and_space_without_mutating_the_underlay() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 120, 40);
+    let selected_before = h.app().accounts.selected_id.clone();
+    let registry_before = h.app().world.accounts.clone();
+    let defaults_before = h
+        .app()
+        .world
+        .accounts
+        .accounts
+        .iter()
+        .filter(|account| account.default_for_provider)
+        .map(|account| account.id.clone())
+        .collect::<Vec<_>>();
+
+    start_live_account_form(&mut h);
+    // The inline form owns the route input while its fields are active. Its
+    // underlying account tree is intentionally not addressable through the
+    // form's painted controls, so verify the real form-owned key path here.
+    h.key(KeyCode::Enter);
+    h.key(KeyCode::Char(' '));
+
+    assert_eq!(h.app().route(), Route::Accounts);
+    assert!(h.app().accounts.form_open);
+    assert!(!h.app().accounts.drawer_open);
+    assert_eq!(h.app().accounts.selected_id, selected_before);
+    assert_eq!(h.app().world.accounts, registry_before);
+    assert_eq!(
+        h.app()
+            .world
+            .accounts
+            .accounts
+            .iter()
+            .filter(|account| account.default_for_provider)
+            .map(|account| account.id.clone())
+            .collect::<Vec<_>>(),
+        defaults_before
+    );
+    assert!(h.harness.is_open(ACCOUNT_FORM_LAYER));
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "{:?}",
+        h.harness.diagnostics()
+    );
+}
+
+#[test]
+fn usage_detail_80_paints_back_to_list() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 80, 24);
+    h.key(KeyCode::Char('u'));
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Enter);
+    assert!(h.app().usage.detail_open());
+    assert!(h.text().contains("Back to list"), "{}", h.text());
+    assert!(h.text().contains("Session · 5-hour"), "{}", h.text());
+    let back = h.buffer().cell((49, 23)).expect("back to list");
+    assert_eq!(back.symbol(), "B");
+    assert_eq!(back.fg, termrock::Color::Rgb(0x8a, 0x8a, 0x8a));
+}
+
+#[test]
+fn usage_overview_80_paints_the_narrow_account_tree() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 80, 24);
+    h.key(KeyCode::Char('u'));
+    assert_eq!(h.app().route(), Route::Usage);
+    let ellipsis = h.buffer().cell((37, 0)).expect("crumb ellipsis");
+    assert_eq!(ellipsis.symbol(), "…");
+    assert_eq!(ellipsis.fg, termrock::Color::Rgb(0x8a, 0x8a, 0x8a));
+    let gutter = h.buffer().cell((4, 3)).expect("overview gutter");
+    assert_eq!(gutter.symbol(), "▎");
+    assert_eq!(gutter.fg, termrock::Color::Rgb(0x48, 0xe0, 0x54));
+    assert_eq!(gutter.bg, termrock::Color::Rgb(0x17, 0x3f, 0x1c));
+    let title = h.buffer().cell((7, 3)).expect("overview label");
+    assert_eq!(title.symbol(), "O");
+    assert!(h.text().contains("disabled"), "{}", h.text());
+    assert!(h.text().contains("Esc Close"), "{}", h.text());
+    assert!(
+        !h.text().contains("Jackin Preview"),
+        "the narrow usage page keeps the jackin menu: {}",
+        h.text()
+    );
+}
+
+#[test]
+fn usage_overview_u_paints_the_approved_overview_frame() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    assert!(
+        !h.text().contains("Usage › Overview"),
+        "accounts list must stay off the usage frame: {}",
+        h.text()
+    );
+    h.key(KeyCode::Char('u'));
+    assert_eq!(h.app().route(), Route::Usage);
+    assert_eq!(
+        h.app().usage.tab,
+        jackin_preview_app::screens::usage::Tab::Overview
+    );
+    assert!(!h.app().usage.detail_open());
+    assert!(h.text().contains("Usage › Overview"), "{}", h.text());
+    let crumb = h.buffer().cell((67, 0)).expect("usage breadcrumb");
+    assert_eq!(crumb.symbol(), "U");
+    assert_eq!(crumb.fg, termrock::Color::from_u32(0xb3_b3_b3));
+    assert_eq!(crumb.bg, termrock::Color::from_u32(0x00_00_00));
+    assert!(!crumb.modifier.contains(termrock::Modifier::BOLD));
+    let mark = h.buffer().cell((2, 0)).expect("jackin prompt");
+    assert_eq!(mark.symbol(), "j");
+    assert_eq!(mark.fg, termrock::Color::from_u32(0x19_19_1c));
+    assert_eq!(mark.bg, termrock::Color::from_u32(0x48_e0_54));
+    assert!(mark.modifier.contains(termrock::Modifier::BOLD));
+    let tab = h.buffer().cell((4, 3)).expect("overview tab mark");
+    assert_eq!(tab.symbol(), "▎");
+    assert_eq!(tab.fg, termrock::Color::from_u32(0x48_e0_54));
+    assert_eq!(tab.bg, termrock::Color::from_u32(0x17_3f_1c));
+    assert!(tab.modifier.contains(termrock::Modifier::BOLD));
+    assert_eq!(h.harness.cursor(), None);
+    h.key(KeyCode::Down);
+    assert_ne!(
+        h.app().usage.tab,
+        jackin_preview_app::screens::usage::Tab::Overview
+    );
+    assert!(
+        !h.text().contains("Usage › Overview"),
+        "the next tab must keep the live usage page: {}",
+        h.text()
+    );
+}
+
+#[test]
+fn usage_detail_down_enter_paints_the_approved_detail_frame() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    let back_before = h.buffer().cell((49, 39)).expect("accounts footer");
+    assert_ne!(
+        back_before.symbol(),
+        "B",
+        "accounts list must stay off the detail footer"
+    );
+    h.key(KeyCode::Char('u'));
+    assert_eq!(h.app().route(), Route::Usage);
+    assert_eq!(
+        h.app().usage.tab,
+        jackin_preview_app::screens::usage::Tab::Overview
+    );
+    assert!(!h.app().usage.detail_open());
+    let back_overview = h.buffer().cell((49, 39)).expect("overview footer");
+    assert_ne!(
+        back_overview.symbol(),
+        "B",
+        "overview host must stay off the detail footer: {}",
+        h.text()
+    );
+    assert!(h.text().contains("Usage › Overview"), "{}", h.text());
+    h.key(KeyCode::Down);
+    assert_eq!(
+        h.app().usage.tab,
+        jackin_preview_app::screens::usage::Tab::Registration
+    );
+    assert!(!h.app().usage.detail_open());
+    let back_tab = h.buffer().cell((49, 39)).expect("registration footer");
+    assert_ne!(back_tab.symbol(), "B", "{}", h.text());
+    h.key(KeyCode::Enter);
+    assert!(h.app().usage.detail_open());
+    assert!(h.text().contains("Back to list"), "{}", h.text());
+    assert!(
+        h.text().contains("Usage › Claude › Personal"),
+        "{}",
+        h.text()
+    );
+    let back = h.buffer().cell((49, 39)).expect("detail back hint");
+    assert_eq!(back.symbol(), "B");
+    assert_eq!(back.fg, termrock::Color::from_u32(0x8a_8a_8a));
+    assert_eq!(back.bg, termrock::Color::from_u32(0x00_00_00));
+    assert!(!back.modifier.contains(termrock::Modifier::BOLD));
+    let mark = h.buffer().cell((2, 0)).expect("jackin prompt");
+    assert_eq!(mark.symbol(), "j");
+    assert_eq!(mark.fg, termrock::Color::from_u32(0x19_19_1c));
+    assert_eq!(mark.bg, termrock::Color::from_u32(0x48_e0_54));
+    assert!(mark.modifier.contains(termrock::Modifier::BOLD));
+    assert_eq!(h.harness.cursor(), None);
+}
+
+#[test]
 fn settings_tabs_and_save_preview_stay_on_the_settings_route() {
     let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
     h.key(KeyCode::Char('s'));
@@ -1382,10 +2766,10 @@ fn settings_tabs_and_save_preview_stay_on_the_settings_route() {
     assert_eq!(h.app().settings.tab, 0);
     assert!(h.text().contains("▸ General"), "{}", h.text());
     h.key(KeyCode::Char('5'));
+    h.key(KeyCode::Enter);
     assert_eq!(h.app().settings.tab, 4);
     assert!(h.text().contains("▸ Trust"), "{}", h.text());
     assert!(!h.text().contains("▸ General"), "{}", h.text());
-    h.key(KeyCode::Enter);
     h.key(KeyCode::Char(' '));
     h.ctrl('s');
     let preview = h.text();
@@ -1393,6 +2777,63 @@ fn settings_tabs_and_save_preview_stay_on_the_settings_route() {
     assert!(preview.contains("Scope · global config"), "{preview}");
     assert!(preview.contains("Changes · trust draft"), "{preview}");
     assert_eq!(h.app().route(), Route::Settings);
+}
+
+#[test]
+fn accounts_filter_enter_paints_the_approved_filter_frame() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    assert!(
+        !h.text().contains("Accounts · filt"),
+        "closed list must stay off the filter frame: {}",
+        h.text()
+    );
+    h.key(KeyCode::Char('/'));
+    h.type_str("work");
+    h.key(KeyCode::Enter);
+    assert!(
+        !h.app().accounts.drawer_open,
+        "filter Enter is owned by its field"
+    );
+    assert!(h.app().accounts.filtering);
+    assert!(!h.app().accounts.filter_input.is_editing());
+    assert_eq!(h.app().accounts.filter_query, "work");
+    assert!(h.text().contains("Accounts · filt"), "{}", h.text());
+    let title = h.buffer().cell((4, 2)).expect("filter title");
+    assert_eq!(title.symbol(), "A");
+    assert_eq!(title.fg, termrock::Color::from_u32(0xff_ff_ff));
+    assert_eq!(title.bg, termrock::Color::from_u32(0x00_00_00));
+    assert!(title.modifier.contains(termrock::Modifier::BOLD));
+    let mark = h.buffer().cell((2, 0)).expect("jackin prompt");
+    assert_eq!(mark.symbol(), "j");
+    assert_eq!(mark.fg, termrock::Color::from_u32(0x19_19_1c));
+    assert_eq!(mark.bg, termrock::Color::from_u32(0x48_e0_54));
+    assert_eq!(h.harness.cursor(), None);
+}
+
+#[test]
+fn accounts_filter_enter_paints_the_approved_80_filter_cell() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 80, 24);
+    assert!(
+        !h.text().contains("Accounts · filt"),
+        "closed list must stay off the filter frame: {}",
+        h.text()
+    );
+    h.key(KeyCode::Char('/'));
+    h.type_str("work");
+    h.key(KeyCode::Enter);
+    assert!(
+        !h.app().accounts.drawer_open,
+        "filter Enter is owned by its field"
+    );
+    assert!(h.app().accounts.filtering);
+    assert!(!h.app().accounts.filter_input.is_editing());
+    assert_eq!(h.app().accounts.filter_query, "work");
+    let title = h.buffer().cell((4, 2)).expect("filter title");
+    assert_eq!(title.symbol(), "A");
+    assert_eq!(title.fg, termrock::Color::from_u32(0xff_ff_ff));
+    assert_eq!(title.bg, termrock::Color::from_u32(0x00_00_00));
+    assert!(title.modifier.contains(termrock::Modifier::BOLD));
+    assert_eq!(h.harness.cursor(), None);
 }
 
 #[test]
@@ -1429,10 +2870,511 @@ fn accounts_filter_and_inspector_open_without_writing_a_credential() {
     assert!(!h.text().contains("Filter accounts"), "{}", h.text());
     h.key(KeyCode::Char('i'));
     assert!(h.app().accounts.drawer_open);
-    assert!(h.text().contains("Inspector ·"), "{}", h.text());
+    assert!(h.text().contains("Tab Actions"), "{}", h.text());
     h.key(KeyCode::Esc);
     assert!(!h.app().accounts.drawer_open);
     assert_eq!(h.app().route(), Route::Accounts);
     assert_eq!(h.app().world.accounts.accounts.len(), before);
     assert!(h.app().world.clipboard.is_none());
+}
+
+#[test]
+fn manager_help_overlay_paints_the_approved_shortcuts_cell() {
+    let mut h = H::new(Scenario::Returning, Motion::Paused, 40, 120, 40);
+    let closed = h.buffer().cell((15, 4)).expect("manager cell");
+    assert_ne!(closed.symbol(), "K");
+    assert!(
+        !h.text().contains("Keyboard shortcuts"),
+        "manager without ? must stay off the help frame: {}",
+        h.text()
+    );
+    h.key(KeyCode::Char('?'));
+    let title = h.buffer().cell((15, 4)).expect("keyboard shortcuts");
+    assert_eq!(title.symbol(), "K");
+    assert_eq!(title.fg, termrock::Color::from_u32(0x00_ff_ff_ff));
+    assert_eq!(title.bg, termrock::Color::from_u32(0x00_18_18_1b));
+    assert!(title.modifier.contains(termrock::Modifier::BOLD));
+    assert!(h.text().contains("Keyboard shortcuts"), "{}", h.text());
+    assert_eq!(h.harness.cursor(), None);
+}
+
+#[test]
+fn manager_launch_picker_paints_the_approved_agent_cell() {
+    let mut h = H::new(Scenario::Returning, Motion::Paused, 40, 120, 40);
+    let closed = h.buffer().cell((20, 16)).expect("manager cell");
+    assert_ne!(
+        (closed.symbol(), closed.bg),
+        ("L", termrock::Color::from_u32(0x00_18_18_1b)),
+        "closed manager must stay off the launch picker frame: {}",
+        h.text()
+    );
+    h.key(KeyCode::Enter);
+    let title = h.buffer().cell((20, 16)).expect("launch picker title");
+    assert_eq!(title.symbol(), "L");
+    assert_eq!(title.fg, termrock::Color::from_u32(0x00_ff_ff_ff));
+    assert_eq!(title.bg, termrock::Color::from_u32(0x00_18_18_1b));
+    assert!(title.modifier.contains(termrock::Modifier::BOLD));
+    assert!(!title.modifier.contains(termrock::Modifier::ITALIC));
+    assert!(h.text().contains("Launch · choose Agent"), "{}", h.text());
+    assert_eq!(h.harness.cursor(), None);
+}
+
+#[test]
+fn manager_file_menu_paints_the_approved_menu_frame() {
+    let mut h = H::new(Scenario::Returning, Motion::Paused, 40, 120, 40);
+    assert!(
+        !h.text().contains("New workspace…"),
+        "closed manager must stay off the menu frame: {}",
+        h.text()
+    );
+    h.key(KeyCode::F(10));
+    assert!(h.text().contains("New workspace…"), "{}", h.text());
+    let item = h.buffer().cell((15, 2)).expect("new workspace");
+    assert_eq!(item.symbol(), "N");
+    assert_eq!(item.fg, termrock::Color::from_u32(0x00_ff_ff_ff));
+    assert_eq!(item.bg, termrock::Color::from_u32(0x00_2f_5a_a8));
+    assert!(item.modifier.contains(termrock::Modifier::BOLD));
+    let mark = h.buffer().cell((2, 0)).expect("jackin prompt");
+    assert_eq!(mark.symbol(), "j");
+    assert_eq!(mark.fg, termrock::Color::from_u32(0x00_19_19_1c));
+    assert_eq!(mark.bg, termrock::Color::from_u32(0x00_48_e0_54));
+    assert_eq!(h.harness.cursor(), None);
+}
+
+#[test]
+fn paused_returning_down_paints_the_expanded_payments_tree() {
+    let mut h = H::new(Scenario::Returning, Motion::Paused, 40, 120, 40);
+    assert!(h.text().contains("▸ payments-platform"), "{}", h.text());
+    assert!(!h.text().contains("Prewarm"), "{}", h.text());
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Char(' '));
+    let text = h.text();
+    assert!(text.contains("▾"), "{text}");
+    assert!(text.contains("the-archite…ude Code"), "{text}");
+    assert!(text.contains("saved workspace · 1 running"), "{text}");
+    assert!(text.contains("Prewarm"), "{text}");
+    assert!(text.contains("→"), "{text}");
+    assert!(text.contains("Workspaces › payments-platform"), "{text}");
+}
+
+fn start_live_account_form(h: &mut H) {
+    h.key(KeyCode::Char('a'));
+    assert_eq!(h.app().route(), Route::Accounts);
+    assert!(h.app().accounts.form_open);
+    assert_eq!(
+        h.focus(),
+        Some(jackin_preview_app::screens::accounts::START)
+    );
+
+    h.key(KeyCode::Enter);
+    assert!(h.app().accounts.started);
+    assert_eq!(h.focus(), Some(jackin_preview_app::screens::accounts::NAME));
+}
+
+#[test]
+fn account_name_escape_reverts_the_field_without_closing_the_form() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 120, 40);
+    start_live_account_form(&mut h);
+
+    h.type_str("discard this field edit");
+    assert!(h.app().accounts.name_input.is_editing());
+    assert!(h.text().contains("discard this field edit"), "{}", h.text());
+
+    h.key(KeyCode::Esc);
+
+    assert_eq!(h.app().route(), Route::Accounts);
+    assert!(
+        h.app().accounts.form_open,
+        "field Esc must not cancel the form"
+    );
+    assert!(!h.app().accounts.name_input.is_editing());
+    assert_eq!(h.app().accounts.draft_name, "");
+    assert!(h.text().contains("New account · register"), "{}", h.text());
+}
+
+#[test]
+fn account_form_cancel_preserves_the_selected_account_and_registry() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 120, 40);
+    for _ in 0..4 {
+        h.key(KeyCode::Down);
+    }
+    let selected_id = h
+        .app()
+        .accounts
+        .selected_id
+        .clone()
+        .expect("four Down inputs select Claude · Work");
+    assert_eq!(selected_id, "acct-claude-work");
+    let list_before = h.app().accounts.list.clone();
+    let registry_before = h.app().world.accounts.clone();
+
+    start_live_account_form(&mut h);
+    h.type_str("temporary account");
+    h.key(KeyCode::Enter);
+    assert_eq!(h.app().accounts.draft_name, "temporary account");
+    h.key(KeyCode::Esc);
+
+    assert_eq!(h.app().route(), Route::Accounts);
+    assert!(!h.app().accounts.form_open);
+    assert_eq!(
+        h.app().accounts.selected_id.as_deref(),
+        Some(selected_id.as_str())
+    );
+    assert_eq!(h.app().accounts.list, list_before);
+    assert_eq!(h.app().world.accounts, registry_before);
+    assert_eq!(h.focus(), Some(ACCOUNTS_LIST));
+}
+
+#[test]
+fn account_form_cancel_clears_name_and_credential_draft_immediately() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 120, 40);
+    start_live_account_form(&mut h);
+
+    h.type_str("temporary account");
+    h.key(KeyCode::Enter);
+    h.tab_to(jackin_preview_app::screens::accounts::SOURCE);
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Down);
+    assert_eq!(h.app().accounts.source_index, 2);
+    h.tab_to(jackin_preview_app::screens::accounts::SECRET);
+    h.key(KeyCode::Enter);
+    h.type_str("sk-cancel-secret-1234");
+    assert!(!h.text().contains("sk-cancel-secret-1234"));
+    h.key(KeyCode::Enter);
+    assert_eq!(h.app().accounts.masked_input, "sk-cancel-secret-1234");
+
+    h.key(KeyCode::Esc);
+
+    assert!(!h.app().accounts.form_open);
+    assert_eq!(h.app().accounts.draft_name, "");
+    assert_eq!(h.app().accounts.masked_input, "");
+    assert!(h.app().accounts.selected_op.is_none());
+    assert_eq!(h.app().accounts.op_item, "");
+    assert_eq!(h.app().accounts.op_stage, 0);
+}
+
+#[test]
+fn account_picker_escape_closes_only_the_nested_picker() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 120, 40);
+    start_live_account_form(&mut h);
+    h.tab_to(jackin_preview_app::screens::accounts::OP);
+    h.key(KeyCode::Enter);
+    assert!(
+        h.harness
+            .layer_area(jackin_preview_app::ACCOUNT_PICKER)
+            .is_some(),
+        "the real 1Password picker should own input above the form"
+    );
+
+    h.key(KeyCode::Esc);
+
+    assert!(
+        h.harness
+            .layer_area(jackin_preview_app::ACCOUNT_PICKER)
+            .is_none(),
+        "Esc should close the nested picker"
+    );
+    assert_eq!(h.app().route(), Route::Accounts);
+    assert!(
+        h.app().accounts.form_open,
+        "Esc must leave the parent form open"
+    );
+    assert_eq!(h.app().accounts.op_stage, 0);
+    assert!(h.app().accounts.selected_op.is_none());
+    assert!(h.app().world.accounts.get("acct-claude-work").is_some());
+}
+
+#[test]
+fn account_form_ignores_clicks_on_blank_content_outside_its_controls() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 120, 40);
+    start_live_account_form(&mut h);
+    h.type_str("draft survives an outside click");
+    assert_eq!(
+        h.app().accounts.name_input.draft_text(),
+        Some("draft survives an outside click")
+    );
+    let focus = h.focus();
+    let registry = h.app().world.accounts.clone();
+
+    // The live inline form has no control at this blank lower-right content cell.
+    let _ = h.harness.click(118, 30);
+
+    assert_eq!(h.app().route(), Route::Accounts);
+    assert!(h.app().accounts.form_open);
+    assert_eq!(
+        h.app().accounts.name_input.draft_text(),
+        Some("draft survives an outside click")
+    );
+    assert_eq!(h.focus(), focus);
+    assert_eq!(h.app().world.accounts, registry);
+}
+
+#[test]
+fn account_form_does_not_let_an_underlying_navigation_click_change_route() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 120, 40);
+    start_live_account_form(&mut h);
+    h.type_str("draft stays owned by the form");
+    assert_eq!(
+        h.app().accounts.name_input.draft_text(),
+        Some("draft stays owned by the form")
+    );
+    let registry = h.app().world.accounts.clone();
+    let (manager_x, manager_y) = h.find("Manager").expect("underlay Manager navigation");
+    let _ = h.harness.click(manager_x, manager_y);
+
+    assert_eq!(h.app().route(), Route::Accounts);
+    assert!(h.app().accounts.form_open);
+    assert_eq!(
+        h.app().accounts.name_input.draft_text(),
+        Some("draft stays owned by the form")
+    );
+    assert_eq!(h.app().world.accounts, registry);
+}
+
+#[test]
+fn account_form_consumes_every_underlying_route_key() {
+    for route_key in ['m', 'a', 'u', 's', 'c'] {
+        let mut h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 120, 40);
+        h.key(KeyCode::Char('a'));
+        assert!(h.app().accounts.form_open);
+        assert!(!h.app().accounts.started);
+        let registry = h.app().world.accounts.clone();
+
+        h.key(KeyCode::Char(route_key));
+
+        assert_eq!(h.app().route(), Route::Accounts, "route key {route_key:?}");
+        assert!(h.app().accounts.form_open, "route key {route_key:?}");
+        assert!(!h.app().accounts.started, "route key {route_key:?}");
+        assert_eq!(h.app().world.accounts, registry, "route key {route_key:?}");
+        assert!(
+            h.harness.layer_area(ACCOUNT_FORM_LAYER).is_some(),
+            "route key {route_key:?} must leave the host open"
+        );
+    }
+}
+
+#[test]
+fn nested_account_picker_keeps_the_parent_form_route_keys_blocked() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 120, 40);
+    start_live_account_form(&mut h);
+    h.tab_to(jackin_preview_app::screens::accounts::OP);
+    h.key(KeyCode::Enter);
+    assert!(h.harness.is_open(jackin_preview_app::ACCOUNT_PICKER));
+
+    h.key(KeyCode::Char('m'));
+
+    assert_eq!(h.app().route(), Route::Accounts);
+    assert!(h.app().accounts.form_open);
+    assert!(h.harness.is_open(jackin_preview_app::ACCOUNT_PICKER));
+    assert!(h.harness.is_open(ACCOUNT_FORM_LAYER));
+}
+
+#[test]
+fn account_add_save_does_not_overwrite_the_selected_existing_account() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 120, 40);
+    for _ in 0..4 {
+        h.key(KeyCode::Down);
+    }
+    let selected_id = h.app().accounts.selected_id.clone().unwrap();
+    assert_eq!(selected_id, "acct-claude-work");
+    let existing = h.app().world.accounts.get(&selected_id).unwrap().clone();
+    let account_count = h.app().world.accounts.accounts.len();
+
+    start_live_account_form(&mut h);
+    h.type_str("Fresh");
+    h.tab_to(jackin_preview_app::screens::accounts::SOURCE);
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Down);
+    h.tab_to(jackin_preview_app::screens::accounts::SECRET);
+    h.key(KeyCode::Enter);
+    h.type_str("sk-ant-new-account-abcdef1234");
+    h.key(KeyCode::Enter);
+    h.tab_to(jackin_preview_app::screens::accounts::FORM.sub("save"));
+    h.key(KeyCode::Enter);
+
+    assert!(!h.app().accounts.form_open);
+    assert_eq!(h.app().world.accounts.accounts.len(), account_count + 1);
+    assert_eq!(h.app().world.accounts.get(&selected_id), Some(&existing));
+    assert!(h.app().world.accounts.get("acct-anthropic-fresh").is_some());
+    assert_eq!(
+        h.app().accounts.selected_id.as_deref(),
+        Some("acct-anthropic-fresh")
+    );
+}
+
+#[test]
+fn account_add_cancel_reconciles_when_the_return_account_disappears() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 120, 40);
+    for _ in 0..4 {
+        h.key(KeyCode::Down);
+    }
+    let removed_id = h.app().accounts.selected_id.clone().unwrap();
+    start_live_account_form(&mut h);
+    h.app_mut()
+        .world
+        .accounts
+        .remove(&removed_id)
+        .expect("selected account exists before removal");
+    h.key(KeyCode::Enter);
+
+    h.key(KeyCode::Esc);
+
+    assert!(!h.app().accounts.form_open);
+    assert_ne!(
+        h.app().accounts.selected_id.as_deref(),
+        Some(removed_id.as_str())
+    );
+    assert!(
+        h.app()
+            .accounts
+            .selected_id
+            .as_ref()
+            .is_none_or(|id| { h.app().world.accounts.get(id).is_some() })
+    );
+}
+
+#[test]
+fn account_form_focus_continuation_is_acknowledged_across_repeated_open_close() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 120, 40);
+    for _ in 0..4 {
+        h.key(KeyCode::Down);
+    }
+    let selected_id = h.app().accounts.selected_id.clone();
+    let list_cursor = h.app().accounts.list.cursor();
+    assert_eq!(selected_id.as_deref(), Some("acct-claude-work"));
+
+    for cycle in 0..36 {
+        h.key(KeyCode::Char('a'));
+        assert!(h.app().accounts.form_open, "open cycle {cycle}");
+        assert!(h.harness.is_open(ACCOUNT_FORM_LAYER), "layer cycle {cycle}");
+        assert!(
+            h.harness.diagnostics().is_empty(),
+            "open cycle {cycle}: {:?}",
+            h.harness.diagnostics()
+        );
+
+        h.key(KeyCode::Esc);
+        assert!(!h.app().accounts.form_open, "close cycle {cycle}");
+        assert_eq!(h.focus(), Some(ACCOUNTS_LIST), "focus cycle {cycle}");
+        assert_eq!(
+            h.app().accounts.selected_id,
+            selected_id,
+            "selection cycle {cycle}"
+        );
+        assert_eq!(
+            h.app().accounts.list.cursor(),
+            list_cursor,
+            "cursor cycle {cycle}"
+        );
+        assert!(
+            h.harness.diagnostics().is_empty(),
+            "close cycle {cycle}: {:?}",
+            h.harness.diagnostics()
+        );
+    }
+
+    // Runtime continuation receipts expire after 32 presented frames unless the
+    // owner applies and acknowledges the settled focus result.
+    h.ticks(40);
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "post-close continuation expiry: {:?}",
+        h.harness.diagnostics()
+    );
+}
+
+#[test]
+fn account_add_invalid_save_keeps_the_same_form_open_for_correction() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 120, 40);
+    start_live_account_form(&mut h);
+    let registry = h.app().world.accounts.clone();
+
+    h.tab_to(jackin_preview_app::screens::accounts::FORM.sub("save"));
+    h.key(KeyCode::Enter);
+
+    assert!(h.app().accounts.form_open);
+    assert!(h.app().accounts.started);
+    assert!(h.text().contains("Choose a 1Password reference first"));
+    assert_eq!(h.app().world.accounts, registry);
+    assert!(h.harness.is_open(ACCOUNT_FORM_LAYER));
+    assert!(
+        h.harness.diagnostics().is_empty(),
+        "{:?}",
+        h.harness.diagnostics()
+    );
+}
+
+#[test]
+fn account_edit_save_and_cancel_use_the_live_host_without_touching_credentials() {
+    let mut save = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 120, 40);
+    for _ in 0..4 {
+        save.key(KeyCode::Down);
+    }
+    save.key(KeyCode::Char('e'));
+    assert!(save.app().accounts.form_open);
+    assert!(save.harness.is_open(ACCOUNT_FORM_LAYER));
+    let id = save
+        .app()
+        .accounts
+        .editing
+        .clone()
+        .expect("selected account edit");
+    let before = save.app().world.accounts.get(&id).unwrap().clone();
+    save.type_str("-updated");
+    save.tab_to(jackin_preview_app::screens::accounts::FORM.sub("save"));
+    save.key(KeyCode::Enter);
+
+    assert!(!save.app().accounts.form_open);
+    let updated = save
+        .app()
+        .world
+        .accounts
+        .get(&id)
+        .expect("edited account remains");
+    assert_eq!(updated.display_name, "Work-updated");
+    assert_eq!(updated.source, before.source);
+    assert_eq!(updated.id, before.id);
+    assert!(!save.harness.is_open(ACCOUNT_FORM_LAYER));
+    assert_eq!(save.focus(), Some(ACCOUNTS_LIST));
+    assert!(
+        save.harness.diagnostics().is_empty(),
+        "{:?}",
+        save.harness.diagnostics()
+    );
+
+    let mut cancel = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 120, 40);
+    for _ in 0..4 {
+        cancel.key(KeyCode::Down);
+    }
+    let id = cancel.app().accounts.selected_id.clone().unwrap();
+    let registry = cancel.app().world.accounts.clone();
+    cancel.key(KeyCode::Char('e'));
+    cancel.type_str("-discarded");
+    cancel.key(KeyCode::Esc);
+    assert!(
+        cancel.app().accounts.form_open,
+        "first Esc reverts the field"
+    );
+    assert_eq!(cancel.app().accounts.draft_name, "Work");
+    assert!(cancel.harness.is_open(ACCOUNT_FORM_LAYER));
+    assert!(
+        cancel.harness.diagnostics().is_empty(),
+        "field revert frame: {:?}",
+        cancel.harness.diagnostics()
+    );
+    cancel.key(KeyCode::Esc);
+
+    assert!(!cancel.app().accounts.form_open);
+    assert_eq!(cancel.app().world.accounts, registry);
+    assert_eq!(
+        cancel.app().accounts.selected_id.as_deref(),
+        Some(id.as_str())
+    );
+    assert!(!cancel.harness.is_open(ACCOUNT_FORM_LAYER));
+    assert_eq!(cancel.focus(), Some(ACCOUNTS_LIST));
+    assert!(
+        cancel.harness.diagnostics().is_empty(),
+        "{:?}",
+        cancel.harness.diagnostics()
+    );
 }

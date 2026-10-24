@@ -266,8 +266,7 @@ mod tests {
         height: 5,
     };
 
-    fn render(e: &EmptyState<'_>, frame: usize) -> (String, u16) {
-        let theme = Theme::junie();
+    fn render_buffer(e: &EmptyState<'_>, frame: usize, theme: Theme) -> (Buffer, u16) {
         let mut fs = FrameState::default();
         fs.reset(1, SCREEN);
         let mut page = Buffer::empty(SCREEN);
@@ -277,6 +276,12 @@ mod tests {
             let mut ui = Ui::new(&mut fs, &mut page, &mut core, &theme, &last);
             e.draw(&mut ui, SCREEN, frame)
         };
+        assert!(fs.diagnostics.items().is_empty());
+        (page, rows)
+    }
+
+    fn render(e: &EmptyState<'_>, frame: usize) -> (String, u16) {
+        let (page, rows) = render_buffer(e, frame, Theme::junie());
         let mut text = String::new();
         for y in 0..SCREEN.height {
             for x in 0..SCREEN.width {
@@ -287,6 +292,110 @@ mod tests {
             text.push('\n');
         }
         (text, rows)
+    }
+
+    fn assert_loading_cells(buffer: &Buffer, glyph: &str, label: &str) {
+        let glyph_width = width(glyph);
+        let prefix_width = if glyph_width == 0 {
+            0
+        } else {
+            glyph_width.saturating_add(1)
+        };
+        let total_width = prefix_width.saturating_add(width(label)).min(SCREEN.width);
+        let x = SCREEN
+            .x
+            .saturating_add(SCREEN.width.saturating_sub(total_width) / 2);
+        if glyph_width > 0 {
+            assert_eq!(
+                buffer.cell((x, SCREEN.y)).map(|cell| cell.symbol()),
+                Some(glyph)
+            );
+        }
+        let label_x = x.saturating_add(prefix_width.min(total_width));
+        for (offset, byte) in label.bytes().enumerate() {
+            let symbol = char::from(byte).to_string();
+            assert_eq!(
+                buffer
+                    .cell((
+                        label_x + u16::try_from(offset).expect("short test label"),
+                        SCREEN.y
+                    ))
+                    .map(|cell| cell.symbol()),
+                Some(symbol.as_str()),
+                "expected {label:?} after spinner {glyph:?} at x={label_x}"
+            );
+        }
+    }
+
+    #[test]
+    fn loading_renders_the_configured_junie_cycle_and_wraps_full_buffers() {
+        let theme = Theme::junie();
+        let frames = theme.design.motion.spinner_frames;
+        assert!(!frames.is_empty());
+        let loading = EmptyState::Loading { label: "Loading" };
+        assert_eq!(loading.status(), Status::Loading);
+        assert_eq!(loading.status().flags(), StateFlags::LOADING);
+
+        let mut first = None;
+        for (frame, glyph) in frames.iter().enumerate() {
+            let (buffer, rows) = render_buffer(&loading, frame, theme.clone());
+            assert_eq!(rows, 1);
+            assert_loading_cells(&buffer, glyph, "Loading");
+            if frame == 0 {
+                first = Some(buffer);
+            }
+        }
+
+        let first = first.expect("configured Junie spinner has frame zero");
+        assert_eq!(
+            render_buffer(&loading, frames.len(), theme).0,
+            first,
+            "the complete styled frame must wrap at the configured sequence length"
+        );
+    }
+
+    #[test]
+    fn loading_uses_a_custom_three_frame_sequence_without_a_ten_frame_assumption() {
+        const FRAMES: &[&str] = &["A", "界", "*"];
+        let mut theme = Theme::junie();
+        theme.design.motion.spinner_frames = FRAMES;
+        let loading = EmptyState::Loading { label: "Load" };
+        let mut buffers = Vec::new();
+
+        for frame in [0, 1, 2, 3, 4, 5, usize::MAX] {
+            let (buffer, rows) = render_buffer(&loading, frame, theme.clone());
+            assert_eq!(rows, 1);
+            assert_loading_cells(&buffer, FRAMES[frame % FRAMES.len()], "Load");
+            buffers.push((frame, buffer));
+        }
+
+        assert_eq!(buffers[0].1, buffers[3].1);
+        assert_eq!(buffers[1].1, buffers[4].1);
+        assert_eq!(buffers[2].1, buffers[5].1);
+        assert_eq!(
+            buffers[usize::MAX % FRAMES.len()].1,
+            buffers[6].1,
+            "extreme frame indexes use the configured sequence length"
+        );
+    }
+
+    #[test]
+    fn loading_empty_sequences_draw_the_same_full_buffer() {
+        let loading = EmptyState::Loading { label: "Loading" };
+        for frame in [0, usize::MAX] {
+            let mut no_frames = Theme::junie();
+            no_frames.design.motion.spinner_frames = &[];
+            let mut blank_frame = Theme::junie();
+            blank_frame.design.motion.spinner_frames = &[""];
+
+            let (without_glyph, rows) = render_buffer(&loading, frame, no_frames);
+            let (with_blank_glyph, blank_rows) = render_buffer(&loading, frame, blank_frame);
+            assert_eq!(rows, 1);
+            assert_eq!(blank_rows, 1);
+            assert_loading_cells(&without_glyph, "", "Loading");
+            assert_loading_cells(&with_blank_glyph, "", "Loading");
+            assert_eq!(without_glyph, with_blank_glyph);
+        }
     }
 
     #[test]

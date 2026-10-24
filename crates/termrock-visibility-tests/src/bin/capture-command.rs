@@ -474,11 +474,16 @@ fn install_parent_signal_handlers() -> io::Result<()> {
     action.sa_sigaction = record_parent_signal as *const () as usize;
     action.sa_flags = 0;
 
+    // SAFETY: `action.sa_mask` is writable, aligned storage in the live local action.
+    // `sigemptyset` initializes it before use, and the result is checked.
     if unsafe { libc::sigemptyset(&mut action.sa_mask) } != 0 {
         return Err(io::Error::last_os_error());
     }
     for signal in [libc::SIGINT, libc::SIGTERM, libc::SIGHUP] {
 
+        // SAFETY: The handler is a static extern "C" function that only updates
+        // `AtomicI32`; the mask was initialized successfully, and `action` stays live
+        // while `sigaction` reads it.
         if unsafe { libc::sigaction(signal, &action, std::ptr::null_mut()) } != 0 {
             return Err(io::Error::last_os_error());
         }

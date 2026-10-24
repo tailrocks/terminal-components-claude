@@ -1,0 +1,50 @@
+ ▪ Junie Design system / Components / Pickers                                                                         no color · 160×50   i Inspector   ? Help  [0m
+                                                                                                                                                                [0m
+   Foundations            Pickers  One modal list for files, tabs and levels: search, scope, tag, alternate action                                              [0m
+   Overview                                                                                                                                                     [0m
+                            Open a picker                                                                                                                       [0m
+   Components                                                                                                                                                   [0m
+   Buttons                   Open quickly    Switch tab    Choose a level                                                                                       [0m
+   Inputs                                                                                                                                                       [0m
+   Text areas               Quick: fuzzy over files and tasks, Tab cycles the scope, Alt+Enter is the alternate action · Tabs: Delete closes a row · Level: n…  [0m
+   Forms                                                                                                                                                        [0m
+   Lists                                ╭──────────────────────────────────────────────────────────────────────────────╮                                        [0m
+   Trees                                │ [0m[1mOpen quickly[0m                                                 All · Tab scope │                                        [0m
+   Tables                   Result      │ ▎ Files and tasks…                                                           │                                        [0m
+   Editable tables                      │                                                                              │                                        [0m
+   Panels                   Chosen      │ [0m[1m▎[0mF[0m[1m Cargo.toml                         [0mCargo.toml[0m[1m                     [0mFiles[0m[1m [0m┃ │                                        [0m
+   Sidebars                 Detail      │  F README.md                          README.md                            ┃ │                                        [0m
+   Dialogs                  Level       │  F architecture.md                    docs/architecture.md                 ┃ │                                        [0m
+   Progress                 Open tabs   │  F auth.rs                            src/api/auth.rs                      ┃ │                                        [0m
+   Scrolling                Pickers open│  F auth_flow.rs                       tests/auth_flow.rs                   │ │                                        [0m
+   Terminal                             │  F billing.rs                         src/api/billing.rs                   │ │                                        [0m
+   Code editor                          │  F checkout.rs                        tests/checkout.rs                    │ │                                        [0m
+   Diff                                 │  F config.rs                          src/config.rs                        │ │                                        [0m
+   Data grid                            │  F dispatch.rs                        src/api/webhooks/dispatch.rs         │ │                                        [0m
+   Chips & selects                      │  F lib.rs                             src/lib.rs                           │ │                                        [0m
+ › Pickers                              │  F mailer.rs                          src/workers/mailer.rs                │ │                                        [0m
+   Chrome                               │  F main.rs                            src/main.rs                          │ │                                        [0m
+                                        │ [0m[2m F migrations.rs                      src/db/migrations.rs                 [0m│ │                                        [0m
+   Screens                              │ ↑↓ Move · Enter Open · Alt+Enter New tab · Tab Scope · Esc Clear / Close     │                                        [0m
+   Settings                             ╰──────────────────────────────────────────────────────────────────────────────╯                                        [0m
+   Task runner                                                                                                                                                  [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+ [0m[1mEsc[0m Close  [0m[1mTab[0m Next                                                                                                                                            [0m

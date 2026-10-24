@@ -1,0 +1,21 @@
+ ▪ [0m[1mJunie[0m Design system  Text & code › [0m[1mTerminal[0m    i Inspector   ? Help  [0m
+                                                                        [0m
+ [0m[1mComponents[0m      54  [0m[1mTerminal[0m  Viewport with scrollback, selection and… [0m
+ ──────────────────                                                     [0m
+    Overview      ┃  [0m[1m Playground  [0m  Options    States                   [0m
+  ▸ App shell     ┃  ━━━━━━━━━━━━━──────────────────────────────────────[0m
+  ▸ Inputs & for… ┃                                                     [0m
+  ▸ Tables        ┃  ╭─ Viewport ────── 38 lines ─╮ │  Step rail   7/7  [0m
+  ▸ Navigation    ┃  │  [0m[2m  1Password  Engineerin [0m┆ │ │  ───────────────  [0m
+  ▸ Overlays      ┃  │  ✓ Resolve credentials   ┆ │ │   ✓ 01 Resolv… ┃  [0m
+  ▸ Feedback      ┃  │  [0m[1m▶ Start agent[0m           ┆ │ │   ✓ 02 Pull b… ┃  [0m
+  ▸ Layout        ┃  │    claude --resume  pid  ┆ │ │   ✓ 03 Build … ┃  [0m
+  ▾ Text & code   ┃  │  ✓ Start agent           ┆ │ │     04 Mount … ┆  [0m
+      Code editor ┃  │  [0m[1m▶ Ready[0m                 ┆ │ │  [0m[2m ✓ 05 Resolv… [0m┆  [0m
+      Diff        ┃  │  ✓ Ready                 ┆ │ │                   [0m
+ [0m[1m▎  › Terminal    [0m┃  │  [0m[1mpayments-platform ❯ [0m    ┃ │ │   [0m[1;7mRun [0m            [0m
+ [0m[2m     Text utili… [0m┆  │  ━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄  │ │   Run with a f…   [0m
+                     ╰────────────────────────────╯ │                   [0m
+                                                                        [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                   [0m
+[?25l

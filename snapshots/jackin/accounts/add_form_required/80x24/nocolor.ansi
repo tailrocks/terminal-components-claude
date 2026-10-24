@@ -1,0 +1,25 @@
+[0m[2m  jackin❯    File   Go   Help           …  Accounts › Overview  ⠋ refreshing 1  [0m
+[0m[2m                                                                                [0m
+[0m[2m ╭─ A╭─[0m[1;2m New account [0m[2m───────────────────────────────── form · unsaved ─ × ─╮3 ─╮ [0m
+[0m[2m │ [0m [0m[2m │   [0m[1;2mDisplay name *                                                 [0m[2m ┃│ ┃ │ [0m
+[0m[2m │ [0m [0m[2m │ ▎ Personal, Work, Team…                                        [0m[1;2m![0m[2m  ┃│ ┃ │ [0m
+[0m[2m │ [0m [0m[2m │   Required                                                        ┃│ ┃ │ [0m
+[0m[2m │ [0m [0m[2m │                                                                   ┃│ ┃ │ [0m
+[0m[2m │ [0m [0m[2m │   Purpose label  optional                                         ┃│ ┃ │ [0m
+[0m[2m │ [0m [0m[2m │   personal · work · experiments                                   ┃│ ┆ │ [0m
+[0m[2m │ [0m [0m[2m │                                                                   ┃│ ┆ │ [0m
+[0m[2m │ [0m [0m[2m │                                                                   ┃│ ┆ │ [0m
+[0m[2m │ [0m [0m[2m │   Provider                                                        ┃│ ┆ │ [0m
+[0m[2m │ [0m [0m[2m │   Claude Code · Anthropic / Claude                             ▾  ┆│ ┆ │ [0m
+[0m[2m │ [0m [0m[2m │                                                                   ┆│ ┆ │ [0m
+[0m[2m ╰───│                                                                   ┆│───╯ [0m
+[0m[2m     │   Agent runtime Claude Code · provider Anthropic / Claude · usa…  ┆│     [0m
+[0m[2m   Ov│                                                                   ┆│ls   [0m
+[0m[2m   ──│   Credential source                                               ┆│──   [0m
+[0m[2m   He│                                                                    │ …   [0m
+[0m[2m   Re│                                                                    │     [0m
+[0m[2m   So│              Enter plain text instead   Validate   Cancel   [0m[1;2;7mSave [0m[2m  │     [0m
+[0m[2m     ╰────────────────────────────────────────────────────────────────────╯     [0m
+[0m[2m                                                                                [0m
+ [0m[1m EDIT [0m  [0m[1mEnter[0m Apply  [0m[1mEsc[0m Cancel  [0m[1mTab[0m N[0m[1me[0mxt fiel[0m[1md[0m         [0m[1m [0m        [0m[1m   [0m           [0m
+[?25h[5;10H[6 q

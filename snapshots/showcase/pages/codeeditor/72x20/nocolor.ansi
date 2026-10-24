@@ -1,0 +1,21 @@
+ ▪ [0m[1mJunie[0m Design system  … › [0m[1mCode editor[0m           i Inspector   ? Help  [0m
+                                                                        [0m
+ [0m[1mComponents[0m      54  [0m[1mCode editor[0m  Blocks, tones, diagnostics and compl… [0m
+ ──────────────────                                                     [0m
+    Overview      ┃  [0m[1m Playground  [0m  Options    States                   [0m
+  ▸ App shell     ┃  ━━━━━━━━━━━━━──────────────────────────────────────[0m
+  ▸ Inputs & for… ┃                                                     [0m
+  ▸ Tables        ┃    retry.rs                             3 blocks   ┃[0m
+  ▸ Navigation    ┃    ─────────────────────────────────────────────   ┃[0m
+  ▸ Overlays      ┃     ›  1 [0m[3m// Retry a request with exponential …[0m ┃   ┆[0m
+  ▸ Feedback      ┃        2 [0m[1mpub[0m [0m[1masync[0m [0m[1mfn[0m fetch(url: &str) -> Res… ┃   ┆[0m
+  ▸ Layout        ┃        3     [0m[1mlet[0m [0m[1mmut[0m delay = [0m[3m200[0m;              ┃   ┆[0m
+  ▾ Text & code   ┃        4     [0m[1mfor[0m attempt [0m[1min[0m [0m[3m1..[0m=[0m[3m5[0m {            ┃   ┆[0m
+ [0m[1m▎  › Code editor [0m┃        5         [0m[1mmatch[0m client().get(url).[0m[1mawai…[0m ┃   ┆[0m
+      Diff        ┃        6             Ok(body) => [0m[1mreturn[0m Ok(bo… ┃   ┆[0m
+      Terminal    ┃        7             Err(e) [0m[1mif[0m e.is_transient… ┃   ┆[0m
+ [0m[2m     Text utili… [0m┆        8                 log::warn!("attempt … ┃   ┆[0m
+                           9                 sleep(delay).[0m[1mawait[0m;   ┃   ┆[0m
+                                                                        [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                   [0m
+[?25l

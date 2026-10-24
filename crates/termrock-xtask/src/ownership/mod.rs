@@ -1,4 +1,5 @@
 pub mod exceptions;
+pub mod module_graph;
 pub mod rules;
 pub mod scan;
 
@@ -15,6 +16,7 @@ pub struct Report {
     pub findings: Vec<Finding>,
     pub failures: Vec<Failure>,
     pub wrappers: Vec<Wrapper>,
+    /// Number of inventoried Rust files, including files proven test-only.
     pub files_scanned: usize,
 }
 
@@ -87,13 +89,22 @@ pub fn check_workspace(root: &Path, exceptions_path: &Path) -> Report {
     };
 
     let mut files: BTreeMap<String, ScannedFile> = BTreeMap::new();
+    let mut inventory = BTreeSet::new();
     for member in &members {
-        for source in member_sources(root, member) {
+        let analysis = module_graph::analyze_member(&root.join(member));
+        for source in analysis.sources {
             let rel = match source.strip_prefix(root) {
                 Ok(rel) => rel,
                 Err(_) => continue,
             };
             let rel_string = rel.to_string_lossy().replace('\\', "/");
+            inventory.insert(rel_string.clone());
+            let test_only = std::fs::canonicalize(&source)
+                .ok()
+                .is_some_and(|canonical| analysis.test_only.contains(&canonical));
+            if test_only {
+                continue;
+            }
             match std::fs::read_to_string(&source) {
                 Ok(text) => {
                     files.insert(rel_string.clone(), scan_file(&rel_string, member, &text));
@@ -121,7 +132,7 @@ pub fn check_workspace(root: &Path, exceptions_path: &Path) -> Report {
             .entry((finding.file.clone(), finding.rule.to_string()))
             .or_insert(0) += 1;
     }
-    let files_scanned = files.len();
+    let files_scanned = inventory.len();
     failures.extend(reconcile(&counts, &known_files, &exceptions));
 
     Report {
@@ -179,27 +190,6 @@ fn quoted_strings(line: &str) -> Vec<String> {
         rest = &tail[close + 1..];
     }
     out
-}
-
-fn member_sources(root: &Path, member: &str) -> Vec<PathBuf> {
-    let mut sources = Vec::new();
-    let mut stack = vec![root.join(member).join("src")];
-    while let Some(dir) = stack.pop() {
-        let entries = match std::fs::read_dir(&dir) {
-            Ok(entries) => entries,
-            Err(_) => continue,
-        };
-        for entry in entries.flatten() {
-            let path = entry.path();
-            if path.is_dir() {
-                stack.push(path);
-            } else if path.extension().is_some_and(|ext| ext == "rs") {
-                sources.push(path);
-            }
-        }
-    }
-    sources.sort();
-    sources
 }
 
 pub fn find_workspace_root(start: &Path) -> Option<PathBuf> {

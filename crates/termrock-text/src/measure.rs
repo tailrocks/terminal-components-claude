@@ -29,25 +29,35 @@ pub(crate) fn is_word_grapheme(g: &str) -> bool {
     g.chars().any(is_word_char)
 }
 
-pub fn truncate(s: &str, max: u16) -> String {
+pub fn truncate_parts(s: &str, max: u16) -> (&str, &str) {
     if width(s) <= max {
-        return s.to_owned();
+        return (s, "");
     }
     if max == 0 {
-        return String::new();
+        return ("", "");
     }
     let budget = max.saturating_sub(1);
-    let mut out = String::new();
+    let mut head_end = 0;
     let mut w = 0u16;
-    for g in s.graphemes(true) {
+    for (i, g) in s.grapheme_indices(true) {
         let gw = grapheme_width(g);
         if w.saturating_add(gw) > budget {
             break;
         }
-        out.push_str(g);
+        head_end = i.saturating_add(g.len());
         w = w.saturating_add(gw);
     }
-    out.push('…');
+    (s.get(..head_end).unwrap_or(""), "…")
+}
+
+pub fn truncate(s: &str, max: u16) -> String {
+    let (head, ellipsis) = truncate_parts(s, max);
+    if ellipsis.is_empty() {
+        return head.to_owned();
+    }
+    let mut out = String::with_capacity(head.len() + ellipsis.len());
+    out.push_str(head);
+    out.push_str(ellipsis);
     out
 }
 

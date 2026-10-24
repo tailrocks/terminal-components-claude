@@ -1,0 +1,200 @@
+{
+  "checks": [
+    {
+      "command": "python3 -m unittest tools.test_frozen_baseline",
+      "exit": 0,
+      "result": "75 passed"
+    },
+    {
+      "command": "cargo nextest run --locked --offline --manifest-path crates/termrock-xtask/Cargo.toml --package termrock-xtask --test doc_inventory --no-tests fail",
+      "exit": 0,
+      "result": "8 passed, 0 skipped"
+    },
+    {
+      "command": "cargo nextest run --locked --offline --manifest-path crates/termrock-shell/Cargo.toml --package termrock-shell --all-targets --no-tests fail",
+      "exit": 0,
+      "result": "48 passed, 0 skipped"
+    },
+    {
+      "command": "cargo clippy --locked --offline --manifest-path Cargo.toml -p termrock-shell -p termrock-xtask --all-targets -- -D warnings",
+      "exit": 0
+    },
+    {
+      "command": "RUSTDOCFLAGS='-D warnings' cargo doc --locked --offline --no-deps --manifest-path Cargo.toml -p termrock-shell -p termrock-forms -p termrock-xtask",
+      "exit": 0
+    },
+    {
+      "command": "cargo fmt --all -- --check && git diff --check",
+      "exit": 0
+    },
+    {
+      "command": "mise exec -- actionlint [two documented ignores] .github/workflows/ci.yml",
+      "exit": 0
+    }
+  ],
+  "commit": "bd517d7cda5a4178b84542d07fa7db7c61d48701",
+  "gaps": [
+    "Hosted GitHub Actions was not run or verified.",
+    "Complete four-application baseline visual/functional comparison was not run.",
+    "Velnor plan continues to warn Rust toolchain checksums are not verified until install on CI platform; this remains disclosed unresolved."
+  ],
+  "generation": {
+    "actionlint_command": "mise exec -- actionlint -ignore '^unexpected key \"background\" for step to (run shell command|execute action)\\. ' -ignore '^step must run script with \"run\" section or run action with \"uses\" section$' .github/workflows/ci.yml",
+    "actionlint_exit": 0,
+    "all_generated_path_type_mode_symlink_content_equal_commit_and_preview": true,
+    "commands": [
+      "mise exec -- velnor-actions generate",
+      "mise exec -- velnor-actions generate --output-dir /private/tmp/termrock-velnor-0132-independent-preview-20261021",
+      "mise exec -- velnor-actions plan"
+    ],
+    "entry_count": 21,
+    "entry_manifest": {
+      ".github/AGENTS.md": {
+        "mode": "0o644",
+        "sha256": "4d9946e72dc4eb04402da1a132281275d784a9fab3c143dd6447056f2af98fb2",
+        "type": "file"
+      },
+      ".github/CLAUDE.md": {
+        "target": "AGENTS.md",
+        "type": "symlink"
+      },
+      ".github/PULL_REQUEST_TEMPLATE.md": {
+        "mode": "0o644",
+        "sha256": "776076cc8ce2747ed4707a374c9dabeedfb42e14426a0b822f72d55cb2289c6d",
+        "type": "file"
+      },
+      ".github/actionlint.yaml": {
+        "mode": "0o644",
+        "sha256": "ef9f522abdbb6e6629f867b0a3a3842de7c960270bb158545db4c925702ad521",
+        "type": "file"
+      },
+      ".github/actions": {
+        "mode": "0o755",
+        "type": "directory"
+      },
+      ".github/actions/declared-task-0": {
+        "mode": "0o755",
+        "type": "directory"
+      },
+      ".github/actions/declared-task-0/action.yml": {
+        "mode": "0o644",
+        "sha256": "ba720792952faddd47a41c3d8cbd4dc726fb2730feb4f0d79c446583d996c49f",
+        "type": "file"
+      },
+      ".github/actions/u26": {
+        "mode": "0o755",
+        "type": "directory"
+      },
+      ".github/actions/u26/action.yml": {
+        "mode": "0o644",
+        "sha256": "bc45efa9991e83994280a8060e466aad4bf4f8de3a786fcf00ac60b871d05d10",
+        "type": "file"
+      },
+      ".github/actions/velnor-tool-seed": {
+        "mode": "0o755",
+        "type": "directory"
+      },
+      ".github/actions/velnor-tool-seed/action.yml": {
+        "mode": "0o644",
+        "sha256": "300519b3cb57252a33a0078a69f7c3fd238f834a53426e26a8cf5193bdad7fcd",
+        "type": "file"
+      },
+      ".github/actions/velnor-tools-cache-restore": {
+        "mode": "0o755",
+        "type": "directory"
+      },
+      ".github/actions/velnor-tools-cache-restore/action.yml": {
+        "mode": "0o644",
+        "sha256": "6bf5b27e2bad15558a6a21fde5c3bd4b0d390ebcda579424be2420af633c5ab5",
+        "type": "file"
+      },
+      ".github/actions/velnor-tools-prelude-u26": {
+        "mode": "0o755",
+        "type": "directory"
+      },
+      ".github/actions/velnor-tools-prelude-u26/action.yml": {
+        "mode": "0o644",
+        "sha256": "b4641c8f96fde145e61a6915e2ebe2a7c9e8922233c12eb318f2ad76ea2a0445",
+        "type": "file"
+      },
+      ".github/scripts": {
+        "mode": "0o755",
+        "type": "directory"
+      },
+      ".github/scripts/velnor-tools-cache-identity.sh": {
+        "mode": "0o644",
+        "sha256": "1804e4f3d16c5f7ca67a0bf219f35d6363425a3dcffbf0c740424cb183740bab",
+        "type": "file"
+      },
+      ".github/velnor": {
+        "mode": "0o755",
+        "type": "directory"
+      },
+      ".github/velnor/task-execution-manifest-v1.json": {
+        "mode": "0o644",
+        "sha256": "58a8269fdba1e7d2c4d4806ee7174d7f80bf1c9de7e35be2dddc764536ee0d1e",
+        "type": "file"
+      },
+      ".github/workflows": {
+        "mode": "0o755",
+        "type": "directory"
+      },
+      ".github/workflows/ci.yml": {
+        "mode": "0o644",
+        "sha256": "18502dbb16390eeefd95ccd141d807140b6335a9f85f2f35cb3da02c61721c14",
+        "type": "file"
+      }
+    },
+    "exit_statuses": [
+      0,
+      0,
+      0
+    ],
+    "task_manifest_sha256": "58a8269fdba1e7d2c4d4806ee7174d7f80bf1c9de7e35be2dddc764536ee0d1e",
+    "workflow_sha256": "18502dbb16390eeefd95ccd141d807140b6335a9f85f2f35cb3da02c61721c14"
+  },
+  "release": {
+    "draft": false,
+    "installed_binary_matches_asset": true,
+    "installed_generator_version": "0.1.32",
+    "latest_api": "https://api.github.com/repos/tailrocks/velnor-new/releases/latest",
+    "local_release_manifest_sha256": "3f15c73233b0a37f6fc50a869fe81b94626e5a2e002122c184af9ec634a894a3",
+    "macos_arm64_generator_sha256": "f51e3e64a004c64e86d846212e95994a0fad46c027b10e613e7dcbad7fd2b731",
+    "official_asset_bytes_equal_local": true,
+    "official_manifest_asset_sha256": "3f15c73233b0a37f6fc50a869fe81b94626e5a2e002122c184af9ec634a894a3",
+    "prerelease": false,
+    "published_at": "2026-10-21T00:19:07Z",
+    "source_commit": "f4db80ddd75173269a7b9e4bab47c1121ec682b7",
+    "tag": "v0.1.32"
+  },
+  "result": "CLEAR for source, release pin and generated-workflow integrity at exact commit; no hosted CI or product parity claim.",
+  "reviewer": "Independent read-only source worktree; no source changes or commit/push performed.",
+  "schema": "termrock.velnor-0.1.32-independent-review-v1",
+  "source_review": {
+    "non_generated_files": {
+      "crates/termrock-shell/src/footer.rs": "rustdoc-link wording only",
+      "crates/termrock-shell/src/router.rs": "rustdoc-link wording only",
+      "crates/termrock-shell/src/status.rs": "rustdoc-link wording only",
+      "docs and manifests": "pin/audit updates"
+    },
+    "runtime_or_public_api_changes": false,
+    "shell_doctest_regression_guard_present": true,
+    "shell_lib_doctests_disabled": true
+  },
+  "task_inventory": {
+    "no_cargo_test_commands": true,
+    "no_empty_termrock_shell_doctest_tasks": true,
+    "parent_commit": "51a3601c0d2a4a4162e84161b53393aec2022231",
+    "per_kind": {
+      "build": 90,
+      "clippy": 90,
+      "doc": 90,
+      "fmt": 90,
+      "nextest": 90
+    },
+    "semantic_task_definitions_unchanged_excluding_generator_execution_digest_metadata": true,
+    "task_ids_unchanged": true,
+    "tasks": 450,
+    "workspace_crates": 48
+  }
+}

@@ -1,0 +1,31 @@
+ ▪ [0m[1mJunie[0m Design system  Inputs & forms › [0m[1mChips & selects[0m  no color · 100×30   i Inspector   ? Help  [0m
+                                                                                                    [0m
+ [0m[1mComponents[0m      54  [0m[1mChips & selects[0m  Removable chips, a popup select, and strips that drop what d… [0m
+ ──────────────────                                                                                 [0m
+    Overview         [0m[1m Playground  [0m  Options    States                               the live widget [0m
+  ▸ App shell        ━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────[0m
+  ▾ Inputs & forms                                                                                  [0m
+      Buttons          Filters                                                                     ┃[0m
+      Inputs           ─────────────────────────────────────────────────────────────────────────── ┃[0m
+      Text areas        match all ▾  [0m[1m status = 'pending' [0m×[0m[1m  [0m [0m[1m total > 100 [0m×[0m[1m  [0m  country in (DE, FR) ┃[0m
+ [0m[1m▎  › Chips & sel… [0m                                                                                ┃[0m
+      Forms            last action: nothing yet                                                    ┃[0m
+      Checks & ra…                                                                                 ┃[0m
+      Toolbars                                                                                     ┃[0m
+  ▸ Tables             Streams                                                                     ┃[0m
+  ▸ Navigation         ─────────────────────────────────────────────────────────────────────────── ┃[0m
+  ▸ Overlays            streams  [0m[1m api  [0m [0m[1m worker  [0m [0m[1m db  [0m  cron                                      ┃[0m
+  ▸ Feedback                                                                                       ┆[0m
+  ▸ Layout                                                                                         ┆[0m
+  ▸ Text & code                                                                                    ┆[0m
+  ▸ Screens            Selects                                                                     ┆[0m
+                       ─────────────────────────────────────────────────────────────────────────── ┆[0m
+                         Sort by                               Page size                           ┆[0m
+                         created_at                      ▾     50                              ▾   ┆[0m
+                         Applies to the next query                                                 ┆[0m
+                                                                                                   ┆[0m
+                                                                                                   ┆[0m
+                     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄ [0m
+                                                                                                    [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                               [0m
+[?25l

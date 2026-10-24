@@ -1,0 +1,50 @@
+ ▪ Junie Design system / Components / Pickers                                                                         no color · 160×50   i Inspector   ? Help  [0m
+                                                                                                                                                                [0m
+   Foundations            Pickers  One modal list for files, tabs and levels: search, scope, tag, alternate action                                              [0m
+   Overview                                                                                                                                                     [0m
+                            Open a picker                                                                                                                       [0m
+   Components                                                                                                                                                   [0m
+   Buttons                   Open quickly    Switch tab    Choose a level                                                                                       [0m
+   Inputs                                                                                                                                                       [0m
+   Text areas               Quick: fuzzy over files and tasks, Tab cycles the scope, Alt+Enter is the alternate action · Tabs: Delete closes a row · Level: n…  [0m
+   Forms                                                                                                                                                        [0m
+   Lists                                                                                                                                                        [0m
+   Trees                                                                                                                                                        [0m
+   Tables                   Result                                                                                                                              [0m
+   Editable tables                                      ╭──────────────────────────────────────────────╮                                                        [0m
+   Panels                   Chosen          nothing yet │ [0m[1mOpen tabs[0m                                    │                                                        [0m
+   Sidebars                 Detail          —           │ ▎ Filter tabs…                               │                                                        [0m
+   Dialogs                  Level           Safe Mode   │                                              │                                                        [0m
+   Progress                 Open tabs       Query 1 · or│ [0m[1m▎[0m≡[0m[1m Query 1      [0mquery[0m[1m             [0mOpen tabs[0m[1m [0m │                                                        [0m
+   Scrolling                Pickers opened  1           │  T orders       public ·… active             │                                                        [0m
+   Terminal                                             │  T order_items  public ·…                    │                                                        [0m
+   Code editor                                          │  T History      public ·…                    │                                                        [0m
+   Diff                                                 │                                              │                                                        [0m
+   Data grid                                            │ ↑↓ Move · Enter Switch · Delete Close tab ·… │                                                        [0m
+   Chips & selects                                      ╰──────────────────────────────────────────────╯                                                        [0m
+ › Pickers                                                                                                                                                      [0m
+   Chrome                                                                                                                                                       [0m
+                                                                                                                                                                [0m
+   Screens                                                                                                                                                      [0m
+   Settings                                                                                                                                                     [0m
+   Task runner                                                                                                                                                  [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+ [0m[1mEsc[0m Close  [0m[1mTab[0m Next                                                                                                                                            [0m

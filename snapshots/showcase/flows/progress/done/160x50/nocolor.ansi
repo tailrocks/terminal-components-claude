@@ -1,0 +1,50 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Progress                                                                        no color · 160×50   i Inspector   ? Help  [0m
+                                                                                                                                                                [0m
+   Foundations            [0m[1mProgress[0m  Determinate, indeterminate, compact activity, terminal states                                                               [0m
+   Overview                                                                                                                                                     [0m
+                            Live                                                                                                                ticks at 80 ms  [0m
+   Components                                                                                                                                                   [0m
+   Buttons                  Building    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% ✓                                                              [0m
+   Inputs                                                                                                                                                       [0m
+   Text areas               Resolving   ━━────────────────────────────────────────────────────────                                                              [0m
+   Forms                                                                                                                                                        [0m
+   Lists                    ⠋ Waiting for the test runner                                                                                                       [0m
+   Trees                    ⠋ 3 of 12 files                                                                                                                     [0m
+   Tables                                                                                                                                                       [0m
+   Editable tables           Restart    Pause                                                                                                                   [0m
+   Panels                                                                                                                                                       [0m
+   Sidebars                                                                                                                                                     [0m
+   Dialogs                                                                                                                                                      [0m
+[0m[1m▎› Progress             [0m    States                                                                                                                      static  [0m
+   Scrolling                                                                                                                                                    [0m
+   Terminal                 Queued      ───────────────────────────────────────────────────   0%                                                                [0m
+   Code editor              Halfway     ━━━━━━━━━━━━━━━━━━━━━━━━━━─────────────────────────  50%                                                                [0m
+   Diff                     Completed   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% ✓                                                              [0m
+   Data grid                Failed      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━──────────────────  64% !                                                              [0m
+   Chips & selects          Paused      ━━━━━━━━━━━━━━━────────────────────────────────────  30% ‖                                                              [0m
+   Pickers                                                                                                                                                      [0m
+   Chrome                   Narrow bars keep the percentage and drop the label:                                                                                 [0m
+                            ━━━────  42%                                                                                                                        [0m
+   Screens                                                                                                                                                      [0m
+   Settings                 Capacity meters are never green: low ≤ 59 % white, medium ≤ 84 % warning, high error. Line and block visuals.                       [0m
+   Task runner              Low        ━━━━━━━━━────────────── 38% used                            [0m[1m 38% used   [0m                                                 [0m
+                            Medium     ━━━━━━━━━━━━━━━━━────── 72% used                            [0m[1m 72% used              [0m                                      [0m
+                            High       ━━━━━━━━━━━━━━━━━━━━━── 91% used                            [0m[1m 91% used                    [0m                                [0m
+                            Warning    ━━━━━━━━━━━━━━━━━━━──── 82% used ▲                          [0m[1m 82% used                 [0m       ▲                           [0m
+                            Exhausted  ━━━━━━━━━━━━━━━━━━━━━━ 100% used[0m[1m ![0m                          [0m[1m 100% used                       ![0m                           [0m
+                            Stale      ━━━━━━━━━━━━─────────── 54% used                            [0m[1m 54% used        [0m                                            [0m
+                            Refreshing ━━━━━━━━━━───────── ⠋ refreshing                            [0m[1m ⠋ refreshing    [0m                                            [0m
+                            Error      quota read failed !                                         quota read failed !                                          [0m
+                            Unknown    —                                                           —                                                            [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                                                                    [0m

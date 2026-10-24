@@ -1,0 +1,29 @@
+[workspace]
+resolver = "3"
+
+[package]
+name = "workbench-tabs-privacy-api-contract"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.99"
+publish = false
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
+
+[dependencies]
+tablepro-ui = { path = "../.." }
+
+[[bin]]
+name = "workbench_tabs_positive"
+path = "src/bin/workbench_tabs_positive.rs"
+test = false
+bench = false
+
+[[bin]]
+name = "workbench_tabs_negative"
+path = "src/bin/workbench_tabs_negative.rs"
+test = false
+bench = false

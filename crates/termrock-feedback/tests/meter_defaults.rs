@@ -78,27 +78,64 @@ fn capture_unchanged_default_cells() {
         }
     }
 
+    // Frame 3 replaces c62's Junie/Ansi256 OnAccent=233 pin with current 232:
+    // 1c17d8f2 matches frozen 4169783 and PR26 f2f6eb7 (`text_on_accent=i(232)`).
+    // Cell proof manifest SHA-256: a9e5e57d194001e235815b59837daa07a71e5a13eb480291e716d60092730e42.
     assert_eq!(
         hashes,
         [
             10_772_714_535_040_698_230,
             7_536_098_631_154_068_646,
             17_260_405_213_946_973_771,
-            8_246_685_266_941_457_616,
+            3_780_206_778_626_185_295,
             14_818_118_036_683_959_920,
             16_562_180_527_847_283_635,
             3_973_918_168_754_095_168,
             1_980_463_968_318_773_821,
             13_755_095_515_169_827_076,
             15_886_380_626_526_385_761,
-            15_862_199_869_115_132_544,
-            4_620_123_589_686_111_913,
+            17_063_219_247_404_305_728,
+            13_524_053_227_225_361_950,
             17_447_104_656_905_611_786,
             2_205_268_342_521_374_261,
             7_812_222_032_887_116_840,
             6_390_485_324_615_177_875
         ]
     );
+}
+
+#[test]
+fn junie_ansi256_block_renders_the_captured_literal_cells() {
+    let mut scene = Scene::new("meter_base", Theme::junie(), ColorLevel::Ansi256, 30, 1);
+    scene.draw(|ui, area| {
+        Meter::new(ID)
+            .ratio(0.5)
+            .value("50%")
+            .visual(MeterVisual::Block)
+            .draw(ui, area);
+    });
+
+    for x in 0..30 {
+        let cell = scene
+            .buffer()
+            .cell((x, 0))
+            .unwrap_or_else(|| panic!("missing cell {x}"));
+        let expected_symbol = match x {
+            1 => "5",
+            2 => "0",
+            3 => "%",
+            _ => " ",
+        };
+        assert_eq!(cell.symbol(), expected_symbol, "x={x}");
+
+        let expected_style = if x < 15 {
+            (Color::Indexed(232), Color::Indexed(249))
+        } else {
+            (Color::Indexed(235), Color::Indexed(233))
+        };
+        assert_eq!((cell.fg, cell.bg), expected_style, "x={x}");
+        assert_eq!(cell.modifier.bits(), 0, "x={x}");
+    }
 }
 
 #[test]

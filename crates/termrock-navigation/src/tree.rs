@@ -480,6 +480,7 @@ pub struct Tree<'a, T, K = ByIndex, R = DefaultRow> {
     node: Option<&'a dyn Fn(&T) -> TreeNode>,
     icon: Option<TreeIconFn<'a, T>>,
     trailing_mark: Option<TreeTrailingMarkFn<'a, T>>,
+    trailing_reserve: u16,
     focused_patch: Option<&'a StylePatch>,
     branch_activation: TreeBranchActivation,
     branch_click: TreeBranchClick,
@@ -532,6 +533,7 @@ impl<T> Tree<'_, T, ByIndex, DefaultRow> {
             node: None,
             icon: None,
             trailing_mark: None,
+            trailing_reserve: 2,
             focused_patch: None,
             branch_activation: TreeBranchActivation::Toggle,
             branch_click: TreeBranchClick::Toggle,
@@ -589,6 +591,22 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
         self
     }
 
+    /// Set the right-side cell budget used when a row has a trailing mark.
+    ///
+    /// The budget includes the mark and its following row-fill cells. The
+    /// default is two: the mark is painted at `row.right() - 2`, leaving one
+    /// cell after it. A value of three paints at `row.right() - 3`, leaving
+    /// two cells after it. Values below two are normalized to two.
+    ///
+    /// This only narrows the default [`RowUi`] content lane for rows whose
+    /// [`Tree::trailing_mark`] callback returns a mark. A custom full-row
+    /// [`Tree::render_row`] renderer retains its full row and is not narrowed.
+    #[must_use]
+    pub const fn trailing_reserve(mut self, cells: u16) -> Self {
+        self.trailing_reserve = if cells < 2 { 2 } else { cells };
+        self
+    }
+
     #[must_use]
     pub const fn focused_patch(mut self, patch: &'a StylePatch) -> Self {
         self.focused_patch = Some(patch);
@@ -640,6 +658,7 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
             node: self.node,
             icon: self.icon,
             trailing_mark: self.trailing_mark,
+            trailing_reserve: self.trailing_reserve,
             focused_patch: self.focused_patch,
             branch_activation: self.branch_activation,
             branch_click: self.branch_click,
@@ -666,7 +685,19 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
         tree
     }
 
+    /// Set a row painter closure.
+    ///
+    /// Keep the `Fn` bound here (rather than only `RowFn`) so the item type
+    /// remains inferable for existing unannotated closure consumers.
     pub fn row<R2: Fn(&T, &mut RowUi<'_>)>(self, r: R2) -> Tree<'a, T, K, R2> {
+        self.row_adapter(r)
+    }
+
+    /// Set a reusable row adapter implementing [`RowFn`].
+    ///
+    /// Use this for semantic row types such as `SemanticItemRow`; closures
+    /// should normally use [`Tree::row`] to preserve their inferred item type.
+    pub fn row_adapter<R2: RowFn<T>>(self, r: R2) -> Tree<'a, T, K, R2> {
         Tree {
             id: self.id,
             key: self.key,
@@ -675,6 +706,7 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
             node: self.node,
             icon: self.icon,
             trailing_mark: self.trailing_mark,
+            trailing_reserve: self.trailing_reserve,
             focused_patch: self.focused_patch,
             branch_activation: self.branch_activation,
             branch_click: self.branch_click,
@@ -1834,10 +1866,10 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
         row: Row,
         role: GlyphRole,
         patch: StylePatch,
-        reserve: u16,
+        x: u16,
         row_style: crate::theme::PaintStyle,
     ) {
-        let mark = cell_at(row.rect, row.rect.right().saturating_sub(reserve));
+        let mark = cell_at(row.rect, x);
         let style = ui
             .style_patched(
                 Family::TREE,
@@ -1899,12 +1931,17 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
                 .min(row.rect.width),
             ..row.rect
         };
-        let reserve = if trailing.is_some() { 2 } else { 0 };
+        let content_lane = rest;
+        let reserve = if trailing.is_some() {
+            self.trailing_reserve
+        } else {
+            0
+        };
         if reserve > 0 {
             rest.width = rest.width.saturating_sub(reserve);
         }
         if rest.width > 0 && rest.x < row.rect.right() {
-            let mut r = RowUi::new_with_patches(
+            let mut r = RowUi::new_with_patches_and_container_width(
                 ui,
                 self.id,
                 Family::TREE,
@@ -1912,13 +1949,26 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
                 row.flags,
                 row.key,
                 rest,
+                row.rect.width,
                 merge_focus(self.ov.part_patch(Part::CONTAINER), focus),
                 merge_focus(self.ov.part_patch(Part::LABEL), focus),
             );
             self.row.row(item, &mut r);
         }
         if let Some((role, patch)) = trailing {
-            Self::paint_trailing(ui, row, role, patch, reserve, row_style);
+            let mark_x = if reserve == 2 {
+                Some(row.rect.right().saturating_sub(reserve))
+            } else {
+                row.rect.right().checked_sub(reserve).filter(|x| {
+                    *x >= row.rect.x
+                        && *x < row.rect.right()
+                        && *x >= content_lane.x
+                        && *x < content_lane.right()
+                })
+            };
+            if let Some(mark_x) = mark_x {
+                Self::paint_trailing(ui, row, role, patch, mark_x, row_style);
+            }
         }
         if ui.is_inert() {
             return;

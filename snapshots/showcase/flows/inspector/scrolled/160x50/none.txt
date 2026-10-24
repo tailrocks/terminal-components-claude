@@ -1,0 +1,50 @@
+ ▪ Junie Design system / Components / Lists                                                                      no color · 160×50   i Inspector · on   ? Help
+
+   Foundations            Lists  Single and multiple selection, disabled items, scrolling, empty state                              State
+   Overview
+                            Language           7–19 of 20      Files to include   2 selected      Search results                    mode        NAV
+   Components                                                                                                                       focus       0·2 24×46
+   Buttons                  Chosen: Rust                       Space toggle · a all · Shift…                                        hover       suppressed
+   Inputs                                                                                                                           pressed     —
+   Text areas                  Swift                    │       ✓ src/api/auth.rs  modified                                         mouse       31·10
+   Forms                       C#                       │       ✓ src/api/billing… modified                                         last key    i
+▎› Lists                       Ruby                     │         src/db/schema.… generated                                         focus ring  4 stops
+   Trees                       Scala                    │         tests/checkout.rs     new                                         hit regions 58
+   Tables                      Elixir                   ┃         Cargo.lock         locked                                         tick        0
+   Editable tables             Haskell                  ┃         docs/webhooks.md modified          No results for “retry”         colors      no color
+   Panels                      Zig                      ┃         src/workers/mai… modified
+   Sidebars                    Dart                     ┃         src/config.rs    modified
+   Dialogs                     PHP                      ┃         README.md        modified
+   Progress                    C++                      ┃         src/main.rs      modified
+   Scrolling                   Lua                      ┃         tests/auth_flow.rs    new
+   Terminal                    OCaml                    ┃         src/db/pool.rs   modified
+   Code editor                 Clojure                  │
+   Diff
+   Data grid
+   Chips & selects
+   Pickers
+   Chrome
+
+   Screens
+   Settings
+   Task runner
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit

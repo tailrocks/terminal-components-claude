@@ -6,9 +6,10 @@
 use crate::domain::ResultGrid;
 use crate::filter_editor::Filter;
 use crate::model::{History, HistoryEntry};
+use std::time::{Duration, Instant};
 use tablepro_demo::db::{Catalog, ColType, Table, Value};
 use tablepro_sql::sql::{self, PlanNode};
-use termrock::{GridModel, GridState, Id, ItemKey, TextInputState};
+use termrock::{CompletingCodeEditorState, GridModel, GridState, Id, ItemKey, SyntaxRole};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct TabKey(u64);
@@ -205,17 +206,27 @@ impl TableTab {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct QueryStatus {
+    pub summary: String,
+    pub is_error: bool,
+    pub duration_ms: u32,
+}
+
 #[derive(Clone)]
 pub struct QueryTab {
     pub id: usize,
     pub name: String,
     pub query: String,
-    pub editor_state: TextInputState,
+    /// Shared multiline editor and completion state for this query tab.
+    pub editor_state: Box<CompletingCodeEditorState>,
     pub saved_text: String,
     pub result: Option<GridView>,
     pub error: Option<String>,
     pub plan: Option<PlanNode>,
     pub running: bool,
+    /// Most recent execution summary and whether it represents an error.
+    pub last_status: Option<Box<QueryStatus>>,
 }
 
 impl core::fmt::Debug for QueryTab {
@@ -230,6 +241,7 @@ impl core::fmt::Debug for QueryTab {
             .field("has_error", &self.error.is_some())
             .field("has_plan", &self.plan.is_some())
             .field("running", &self.running)
+            .field("last_status", &self.last_status)
             .finish()
     }
 }
@@ -237,22 +249,70 @@ impl core::fmt::Debug for QueryTab {
 impl QueryTab {
     pub fn new(id: usize, query: impl Into<String>) -> Self {
         let query = query.into();
+        let editor_state = CompletingCodeEditorState::new(&query);
         Self {
             id,
             name: format!("Query {id}"),
             saved_text: query.clone(),
+            editor_state: Box::new(editor_state),
             query,
-            editor_state: TextInputState::default(),
             result: None,
             error: None,
             plan: None,
             running: false,
+            last_status: None,
         }
     }
+
+    pub fn record_status(&mut self, summary: impl Into<String>, is_error: bool, duration_ms: u32) {
+        self.last_status = Some(Box::new(QueryStatus {
+            summary: summary.into(),
+            is_error,
+            duration_ms,
+        }));
+    }
+
+    pub fn record_execution_status(&mut self, succeeded: bool, elapsed: Duration) {
+        let duration_ms = u32::try_from(elapsed.as_millis()).unwrap_or(u32::MAX);
+        let summary = if succeeded {
+            format!("ok · {}", compact_duration(duration_ms))
+        } else {
+            "error".to_owned()
+        };
+        self.record_status(summary, !succeeded, duration_ms);
+    }
+
     pub fn execute(&mut self, catalog: &Catalog) -> Result<usize, String> {
+        self.prepare_execution()?;
+        let started = Instant::now();
+        let outcome = self.execute_untimed(catalog);
+        self.record_execution_status(outcome.is_ok(), started.elapsed());
+        outcome
+    }
+
+    /// Executes the query while recording the supplied elapsed duration.
+    ///
+    /// This deterministic path does not sample a host clock.
+    pub fn execute_with_duration(
+        &mut self,
+        catalog: &Catalog,
+        elapsed: Duration,
+    ) -> Result<usize, String> {
+        self.prepare_execution()?;
+        let outcome = self.execute_untimed(catalog);
+        self.record_execution_status(outcome.is_ok(), elapsed);
+        outcome
+    }
+
+    fn prepare_execution(&mut self) -> Result<(), String> {
+        self.sync_query_text();
         if self.has_pending_result() {
             return Err("Pending result edits require confirmation".to_owned());
         }
+        Ok(())
+    }
+
+    fn execute_untimed(&mut self, catalog: &Catalog) -> Result<usize, String> {
         let statement = sql::parse(self.query.trim()).map_err(|error| error.message)?;
         let sql::Statement::Select(select) = statement else {
             return Err("The demo executor only runs SELECT statements".to_owned());
@@ -264,6 +324,7 @@ impl QueryTab {
         Ok(rows)
     }
     pub fn explain(&mut self, catalog: &Catalog) -> Result<(), String> {
+        self.sync_query_text();
         let statement = sql::parse(self.query.trim()).map_err(|error| error.message)?;
         let sql::Statement::Select(select) = statement else {
             return Err("Explain accepts SELECT statements".to_owned());
@@ -277,7 +338,71 @@ impl QueryTab {
             .is_some_and(|grid| grid.pending_total() > 0)
     }
     pub fn dirty(&self) -> bool {
-        self.editor_state.draft_text().unwrap_or(&self.query) != self.saved_text
+        self.editor_state.editor().text() != self.saved_text
+    }
+
+    /// Copies the editor's authoritative buffer into the SQL execution snapshot.
+    pub fn sync_query_text(&mut self) {
+        self.editor_state
+            .editor()
+            .text()
+            .clone_into(&mut self.query);
+    }
+
+    /// Replaces the query and resets editor mechanics for a newly loaded statement.
+    pub fn replace_query(&mut self, query: impl Into<String>) {
+        let query = query.into();
+        *self.editor_state = CompletingCodeEditorState::new(&query);
+        self.query = query;
+    }
+
+    /// Commits active editing without changing the editor's text.
+    pub fn commit_query_edit(&mut self) {
+        self.editor_state.editor_mut().commit();
+        self.sync_query_text();
+    }
+}
+
+/// SQL syntax ranges used by the shared code editor.
+pub fn highlight_sql(src: &str) -> Vec<(core::ops::Range<usize>, SyntaxRole)> {
+    sql::tokenize(src)
+        .into_iter()
+        .filter_map(|token| {
+            let role = match token.kind {
+                sql::TokKind::Keyword => SyntaxRole::Keyword,
+                sql::TokKind::Ident => SyntaxRole::Ident,
+                sql::TokKind::Number => SyntaxRole::Number,
+                sql::TokKind::String => SyntaxRole::Str,
+                sql::TokKind::Operator => SyntaxRole::Operator,
+                sql::TokKind::Punct => SyntaxRole::Punct,
+                sql::TokKind::Comment => SyntaxRole::Comment,
+                sql::TokKind::Whitespace => return None,
+            };
+            Some((token.start..token.end, role))
+        })
+        .collect()
+}
+
+/// Statement boundaries used for running the SQL statement at the cursor.
+pub fn segment_sql(src: &str) -> Vec<core::ops::Range<usize>> {
+    sql::split_statements(src)
+        .into_iter()
+        .map(|(start, end)| start..end)
+        .collect()
+}
+
+fn compact_duration(duration_ms: u32) -> String {
+    match duration_ms {
+        0 => "<1 ms".to_owned(),
+        milliseconds if milliseconds < 1_000 => format!("{milliseconds} ms"),
+        milliseconds if milliseconds < 60_000 => {
+            format!("{:.2} s", f64::from(milliseconds) / 1_000.0)
+        }
+        milliseconds => format!(
+            "{}m {}s",
+            milliseconds / 60_000,
+            (milliseconds % 60_000) / 1_000
+        ),
     }
 }
 
@@ -457,5 +582,124 @@ mod generation_tests {
         assert_eq!(record.generation(), None);
         let _ = record.lifecycle_payload_mut();
         assert_eq!(record.generation(), None);
+    }
+}
+
+#[cfg(test)]
+mod query_execution_timing_tests {
+    use super::*;
+
+    fn result_values(tab: &QueryTab) -> (Vec<(String, ColType)>, Vec<Vec<Value>>) {
+        let Some(grid) = tab.result.as_ref() else {
+            unreachable!("query result")
+        };
+        let rows = (0..grid.model.row_count())
+            .map(|row| {
+                (0..grid.columns.len())
+                    .map(|column| {
+                        let Some(value) = grid.model.pending().value(row, column) else {
+                            unreachable!("result cell")
+                        };
+                        value.clone()
+                    })
+                    .collect()
+            })
+            .collect();
+        (grid.columns.clone(), rows)
+    }
+
+    fn status(tab: &QueryTab) -> (String, bool, u32) {
+        let Some(status) = tab.last_status.as_deref() else {
+            unreachable!("execution status")
+        };
+        (status.summary.clone(), status.is_error, status.duration_ms)
+    }
+
+    #[test]
+    fn explicit_duration_changes_only_the_reported_query_timing() {
+        let catalog = Catalog::acme_prod();
+        let query = "SELECT id, currency FROM orders LIMIT 2";
+        let mut live = QueryTab::new(1, query);
+        let mut fixed = live.clone();
+
+        assert_eq!(
+            live.execute(&catalog),
+            fixed.execute_with_duration(&catalog, Duration::from_millis(1234))
+        );
+        assert!(!status(&live).1);
+        assert_eq!(status(&fixed), ("ok · 1.23 s".to_owned(), false, 1234));
+        assert_eq!(result_values(&live), result_values(&fixed));
+    }
+
+    #[test]
+    fn explicit_duration_clamps_milliseconds_and_formats_submillisecond_time() {
+        let catalog = Catalog::acme_prod();
+        let mut tab = QueryTab::new(1, "SELECT id FROM orders LIMIT 1");
+
+        assert_eq!(
+            tab.execute_with_duration(&catalog, Duration::from_nanos(999_999)),
+            Ok(1)
+        );
+        assert_eq!(status(&tab), ("ok · <1 ms".to_owned(), false, 0));
+
+        let beyond_u32 = Duration::from_millis(u64::from(u32::MAX) + 1);
+        assert_eq!(tab.execute_with_duration(&catalog, beyond_u32), Ok(1));
+        assert_eq!(
+            status(&tab),
+            ("ok · 71582m 47s".to_owned(), false, u32::MAX)
+        );
+    }
+
+    #[test]
+    fn explicit_duration_records_errors_without_replacing_the_last_result() {
+        let catalog = Catalog::acme_prod();
+        let mut tab = QueryTab::new(1, "SELECT id, currency FROM orders LIMIT 2");
+        assert_eq!(
+            tab.execute_with_duration(&catalog, Duration::from_millis(10)),
+            Ok(2)
+        );
+        let result = result_values(&tab);
+
+        tab.replace_query("SELECT FROM");
+        assert!(
+            tab.execute_with_duration(&catalog, Duration::from_millis(1234))
+                .is_err()
+        );
+        assert_eq!(status(&tab), ("error".to_owned(), true, 1234));
+        assert_eq!(result_values(&tab), result);
+
+        tab.replace_query("SELECT missing_column FROM orders LIMIT 1");
+        assert!(
+            tab.execute_with_duration(&catalog, Duration::from_millis(2345))
+                .is_err()
+        );
+        assert_eq!(status(&tab), ("error".to_owned(), true, 2345));
+        assert_eq!(result_values(&tab), result);
+    }
+
+    #[test]
+    fn pending_result_rejection_preserves_status_and_pending_rows() {
+        let catalog = Catalog::acme_prod();
+        let mut tab = QueryTab::new(1, "SELECT id, currency FROM orders LIMIT 1");
+        assert_eq!(
+            tab.execute_with_duration(&catalog, Duration::from_millis(1234)),
+            Ok(1)
+        );
+        let previous_status = status(&tab);
+        let Some(grid) = tab.result.as_mut() else {
+            unreachable!("result")
+        };
+        assert!(grid.model.delete_row(0));
+        let pending = grid.model.pending().clone();
+
+        assert_eq!(
+            tab.execute_with_duration(&catalog, Duration::from_millis(9000)),
+            Err("Pending result edits require confirmation".to_owned())
+        );
+        assert_eq!(status(&tab), previous_status);
+        let Some(grid) = tab.result.as_ref() else {
+            unreachable!("result")
+        };
+        assert_eq!(grid.model.pending(), &pending);
     }
 }

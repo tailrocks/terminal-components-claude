@@ -1,0 +1,77 @@
+{
+  "source_commit": "38a375bb4fbd0bd6f083bce9254fe181d96f8444",
+  "published_source_merge": "be1ef0e320332b6ce32b8b0f8e3e401389451bb6",
+  "integration_commit": "759858e6f46dee746fe202a988e9716777db2fdd",
+  "checks": [
+    {
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "-p",
+        "termrock-controls",
+        "-p",
+        "termrock-runtime",
+        "--all-targets",
+        "--features",
+        "termrock-runtime/testing",
+        "--status-level",
+        "fail",
+        "--final-status-level",
+        "fail"
+      ],
+      "exit_code": 0,
+      "log": "/private/tmp/termrock-parent-button-narrow-0.log",
+      "sha256": "7573b33c1de5919a5c83b71496111f1f1fdf7f532d7a0a0d5e3bd2db34bc7564"
+    },
+    {
+      "command": [
+        "cargo",
+        "clippy",
+        "-p",
+        "termrock-controls",
+        "-p",
+        "termrock-runtime",
+        "--all-targets",
+        "--features",
+        "termrock-runtime/testing",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "log": "/private/tmp/termrock-parent-button-narrow-1.log",
+      "sha256": "46ef9b13d52123ffc05e16a22f4c65bbb5423f6e99d4d615bb646aa9e6288224"
+    },
+    {
+      "command": [
+        "cargo",
+        "fmt",
+        "-p",
+        "termrock-controls",
+        "-p",
+        "termrock-runtime",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log": "/private/tmp/termrock-parent-button-narrow-2.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log": "/private/tmp/termrock-parent-button-narrow-3.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "nextest": {
+    "passed": 482,
+    "failed": 0,
+    "skipped": 3
+  },
+  "acceptance": "Bounded Controls and Runtime regression checks only. Theme palette failure and four-application parity remain unresolved."
+}

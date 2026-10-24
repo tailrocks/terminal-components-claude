@@ -1,0 +1,30 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Scrolling           no color · 100×30   i Inspector   ? Help  [0m
+                                                                                                    [0m
+   Overview          [0m[1mScrolling[0m  Wheel under the pointer, keys on the focused container, thumb show… [0m
+   Buttons                                                                                          [0m
+   Inputs              Wrapped … 1–21 of 141      Long list 1–21 of 120      Log 1974–1994 of 2000  [0m
+   Text areas                                                                                       [0m
+   Forms               Junie works through ┃         Row 001          ┃      [0m[2m 730.01s  info   C… [0m│  [0m
+   Lists               a task the way a    ┃         Row 002          ┃       730.38s  info   R… │  [0m
+   Trees               careful engineer    ┃         Row 003          ┃       730.75s  info   t… │  [0m
+   Tables              would: it reads the │         Row 004          │       731.12s  info   t… │  [0m
+   Editable tables     relevant code,      │         Row 005          │       731.49s  error  t… │  [0m
+   Panels              forms a plan, makes │         Row 006          │       731.86s  info   t… │  [0m
+   Sidebars            focused changes,    │         Row 007          │       732.23s  info   L… │  [0m
+   Dialogs             runs the tests, and │         Row 008          │       732.60s  info   R… │  [0m
+   Progress            reports back with a │         Row 009          │       732.97s  info   F… │  [0m
+[0m[1m▎› Scrolling       [0m    summary you can     │         Row 010          │       733.34s  info   C… │  [0m
+   Terminal            review before       │         Row 011          │       733.71s  info   C… │  [0m
+   Code editor         anything is merged. │         Row 012          │       734.08s  warn   u… │  [0m
+   Diff                                    │         Row 013          │       734.45s  info   C… │  [0m
+   Data grid           Each step is        │         Row 014          │       734.82s  info   R… │  [0m
+   Chips & selects     visible. You can    │         Row 015          │       735.19s  info   t… │  [0m
+   Pickers             pause, redirect, or │         Row 016          │       735.56s  info   t… │  [0m
+   Chrome              take over at any    │         Row 017          │       735.93s  error  t… │  [0m
+   Settings            point, and every    │         Row 018          │       736.30s  info   t… │  [0m
+   Task runner         change lands as an  │         Row 019          │       736.67s  info   L… │  [0m
+                       ordinary diff in    │         Row 020          │       737.04s  info   R… │  [0m
+                       [0m[2myour working tree.  [0m│      [0m[2m   Row 021          [0m│      [0m[2m 737.41s  info   F… [0m┃  [0m
+                                                                                                    [0m
+                                                                                                    [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                        [0m

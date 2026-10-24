@@ -1,0 +1,20 @@
+ ▪ Junie Design system / Screens / Settings       i Inspector   ? Help
+
+   Trees          │  Project settings  Composed: tabs, form, editable …
+   Tables         │
+   Editable tabl… │   General    Members    Environment
+   Panels         │  ───────────━━━━━━━━━━──────────────────────────────
+   Sidebars       ┃
+   Dialogs        ┃   ▎Members                    6 members · 1–5 of 6
+   Progress       ┃
+   Scrolling      ┃       Name                   Email              …
+   Terminal       ┃       Mira Okafor            mira@acme.dev       ┃
+   Code editor    ┃    ▎  Jonas Weber            jonas@acme.dev      ┃
+   Diff           ┃       Ana Costa              ana@acme.dev        ┃
+   Data grid      ┃       Kai Tanaka             kai@acme.dev        ┃
+   Chips & selec… ┃       Sofia Rossi            sofia@acme.dev      │
+   Pickers        ┃
+   Chrome         ┃     Invite    Remove…   cursor: Jonas Weber
+ › Settings       │
+
+ ↑ ↓ ← → Cell  Enter Edit  s Sort  Tab Next

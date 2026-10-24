@@ -1,50 +1,50 @@
- #  TablePro  Production  ? production  acme_prod ? public  safe                                                                     16 colors . 160x50  ? help
+  #  TablePro  Production  ? production  acme_prod ? public  v safe                                                                 16 colors . 160x50  ? help
 
   ? Query 1 x                                                                                                                                               +
  ??????????????------------------------------------------------------------------------------------------------------------------------------------------------
- +- Explorer ----------------- public -+ +- Query 1 -------------------------------------------------------------------------------------------------------  -+
- |                                     | |      1 Type SQL. Ctrl+R runs the statement under the cursor.                                                       |
- |   Filter objects                    | |                                                                                                                    |
- |  ? D acme_prod                      | |                                                                                                                    |
- | ?  ? S public                       | |                                                                                                                    |
- |      ? Tables                    7  | |                                                                                                                    |
- |        ? T organizations     1.2 k  | |                                                                                                                    |
- |        ? T customers        48.9 k  | |                                                                                                                    |
- |        ? T products            312  | |                                                                                                                    |
- |        ? T orders    +--------------------------------------------------------------------------------------------------------------+                      |
- |        ? T order_item| Safe Mode . this connection                                                                                  |                      |
- |        ? T payments  |    Silent            Writes run without asking. Destructive statements still confirm.                        |                      |
- |        ? T subscripti|    Alert             Every write asks for confirmation before it runs.                                       |                      |
- |      ? Views         |    Alert (Full)      Every statement, reads included, asks for confirmation.                                 |                      |
- |      ? Functions     | ?? Safe Mode         Writes ask for confirmation and a deliberate acknowledgement.                 current   |                      |
- |      ? Sequences     |    Safe Mode (Full)  Every statement asks for confirmation and a deliberate acknowledgement.                 |                      |
- |    ? S analytics     |    Read-Only         Writes are refused. Reads and exports still work.                                       |                      |
- |    ? S audit         |                                                                                                              |                      |
+ +- Explorer ------------- public   ? -+|+- Query 1 ----------------------------------------------------------------------------------------------------------+
+ |                                     |||   Run   Run all   Explain                                                                                          |
+ |   Filter objects                    |||      1 Type SQL. Ctrl+R runs the statement under the cursor.                                                       |
+ |  ? D acme_prod                      |||                                                                                                                    |
+ |    ? S public                       |||                                                                                                                    |
+ |      ? Tables                    7  |||                                                                                                                    |
+ |        ? T organizations     1.2 k  |||                                                                                                                    |
+ |        ? T customers        48.9 k  |||                                                                                                                    |
+ |        ? T products            312  |||                                                                                                                    |
+ |        ? T orders            1.2 M  |||                                                                                                                    |
+ |        ? T order_items       3.8 M  |||                                                                                                                    |
+ |        ? T payments          1.2 M  |||                                                                                                                    |
+ |        ? T subscriptions     1.1 k  |||                                                                                                                    |
+ |      ? Views                     2  |||                                                                                                                    |
+ |      ? Functions                 1  |||                                                                                                                    |
+ |      ? Sequences     +--------------------------------------------------------------------------------------------------------------+                      |
+ |    ? S analytics     | Safe Mode . this connection                                                                                  |--------------------- |
+ |    ? S audit         |    Silent            Writes run without asking. Destructive statements still confirm.                        |                      |
+ |                      |    Alert             Every write asks for confirmation before it runs.                                       |                      |
+ |                      |    Alert (Full)      Every statement, reads included, asks for confirmation.                                 |                      |
+ |                      |  ? Safe Mode         Writes ask for confirmation and a deliberate acknowledgement.                 current   |                      |
+ |                      |    Safe Mode (Full)  Every statement asks for confirmation and a deliberate acknowledgement.                 |                      |
+ |                      |    Read-Only         Writes are refused. Reads and exports still work.                                       |                      |
+ |                      |                                                                                                              |                      |
  |                      | ^v Move . Enter Set level . Esc Keep . levels are saved to the connection                                    |                      |
  |                      +--------------------------------------------------------------------------------------------------------------+                      |
- |                                     | |                                                                                                                    |
- |                                     | |                                                                                                                    |
- |                                     | |                                                                                                                    |
- |                                     | |                                                                                                                    |
- |                                     | |                                                                                                                    |
- |                                     | |                                                                                                                    |
- |                                     | |                                                                                                                    |
- |                                     | |                                                                                                                    |
- |                                     | |                                                   No results yet                                                   |
- |                                     | |                                                                                                                    |
- |                                     | |                             Ctrl+R runs the statement under the cursor . Alt+R runs all                            |
- |                                     | |                                                                                                                    |
- |                                     | |                                                                                                                    |
- |                                     | |                                                                                                                    |
- |                                     | |                                                                                                                    |
- |                                     | |                                                                                                                    |
- |                                     | |                                                                                                                    |
- |                                     | |                                                                                                                    |
- |                                     | |                                                                                                                    |
- |                                     | |                                                                                                                    |
- |                                     | |                                                                                                                    |
- |                                     | |                                                                                                                    |
- |                                     | |                                                                                                                    |
- +-------------------------------------+ +--------------------------------------------------------------------------------------------------------------------+
+ |                                     |||                                                                                                                    |
+ |                                     |||                                                                                                                    |
+ |                                     |||                                                   No results yet                                                   |
+ |                                     |||                                                                                                                    |
+ |                                     |||                             Ctrl+R runs the statement under the cursor . Alt+R runs all                            |
+ |                                     |||                                                                                                                    |
+ |                                     |||                                                                                                                    |
+ |                                     |||                                                                                                                    |
+ |                                     |||                                                                                                                    |
+ |                                     |||                                                                                                                    |
+ |                                     |||                                                                                                                    |
+ |                                     |||                                                                                                                    |
+ |                                     |||                                                                                                                    |
+ |                                     |||                                                                                                                    |
+ |                                     |||                                                                                                                    |
+ |                                     |||                                                                                                                    |
+ |                                     |||                                                                                                                    |
+ +-------------------------------------+|+--------------------------------------------------------------------------------------------------------------------+
 
-                                                                                                                                        Connected to Production
+ ^v Move  Enter Choose  Esc Cancel                                                                                                    v Connected to Production

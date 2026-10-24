@@ -1,0 +1,108 @@
+{
+  "kind": "Read-only architecture proposal; no implementation or acceptance clearance",
+  "architect": "/root/resize_layout_runtime_architect",
+  "inspected_commit": "277c420e89e5c016e2f0cdf6385e86258a236d2b",
+  "independent_review": {
+    "path": "/private/tmp/pure-layout-api-independent-review-20261021.json",
+    "sha256": "15aaf48d83c76dedb6b260fddb7c94770b1f3bf82bb8a132890e9d3b46847474"
+  },
+  "decision": "Accept all five review constraints. Do not implement hidden rendering, scratch rendering, guessed widths, an immediate owner-before-overlay dependency, or a second interaction registry. Existing run_update invalidation already supplies the presentation guard; no redundant guard change is proposed.",
+  "source_evidence": [
+    "crates/termrock-navigation/src/tabs.rs:591 reads previous Ui.layout for overflow reservation.",
+    "crates/termrock-navigation/src/tabs.rs:654 calls arbitrary RowFn::row; :656 derives label width from painted_width; :906 scans raw buffer cells.",
+    "crates/termrock-runtime/src/rowui.rs:17 already has an optional intrinsic_label_width hook. Some(width) is not proof that arbitrary RowUi painting has a pure layout contract.",
+    "crates/termrock-runtime/src/rowui.rs:36 DefaultRow renders with label_fmt, not label. Preserve formatted clipping semantics rather than silently introducing label ellipsis.",
+    "crates/termrock-runtime/src/rowui.rs:844 CellWriter is the existing formatted text painter to inspect for shared text planning.",
+    "crates/termrock-navigation/src/tabs.rs:365 and :865 support ICON slot rendering. That contract must remain available.",
+    "crates/termrock/src/composition.rs:267 TabsLeaf is the existing facade adapter.",
+    "crates/jackin-preview-app/src/app.rs:7839 is an actual DefaultRow/String CAPSULE_TABS consumer.",
+    "crates/termrock-runtime/src/runtime.rs:1374 run_update invalidates prepared output already.",
+    "crates/termrock-runtime/src/ui/mod.rs:1004 register_part creates interaction regions; runtime.rs:2051 commit_geometry publishes registry/bindings/typing and is not a bounds-only operation."
+  ],
+  "stage_1_semantic_tabs": {
+    "objective": "Extract an opt-in semantic Tabs layout for the actual DefaultRow/String tab-menu owner before introducing generic runtime publication.",
+    "proposed_types": [
+      "TabLayoutInput: immutable root allocation, clip, resolved first key/index, active/cursor keys, component configuration, frozen style metrics and an explicit optional previously committed TabWindow receipt.",
+      "TabLayout: owned immutable row text plans, keyed tab/close/overflow/new/status allocations, logical and visible bounds, used strip bounds, viewport/content counts and overflow reservation result.",
+      "PureTabRow<T>: optional component-author capability for producing owned semantic row content. Implement only DefaultRow initially. Existing RowFn remains unchanged; arbitrary closures remain legacy unless a future real consumer supplies an explicit pure semantic row implementation."
+    ],
+    "algorithm": "Format each DefaultRow item once per layout epoch. Extract or reuse the existing shared text clipping/grapheme/cell-width algorithm to produce a semantic text plan, including the occupied nonblank extent currently inferred by painted_width. Drawing consumes that exact stored text plan and tab allocations; it does not call Display again or inspect buffer cells for measurement. Preserve empty-label minimum width, ASCII trailing spaces, combining and wide text, formatted clipping, closable/new/status widths, key resolution, fit counts and icon slots.",
+    "overflow": "Make existing previous-window overflow reservation an explicit, immutable component input. The adapter may obtain only committed viewport/content counts through a narrowly specified publication receipt; it cannot query arbitrary previous areas or invoke Ui.layout during pure arrangement. Do not silently replace the current cold/warm-frame behavior with a new fixed-point algorithm. Capture before/after sequences proving reservation behavior. If those semantics cannot be represented faithfully, stop this increment and return the concrete mismatch for review.",
+    "compatibility": "Add planned layout/draw methods for R: PureTabRow<T>. Keep existing generic draw, RowFn closures, row builders and slots source/behavior compatible on their legacy path. Do not claim their raw scan or previous-layout dependencies have been removed. Intrinsic width alone must not opt a custom painter into planned geometry.",
+    "consumer": "Demonstrate DefaultRow/String tabs using the actual CAPSULE_TABS configuration and a separate public consumer with different labels and keys. Application adoption occurs with the runtime/menu stage; do not replace application rendering in this first extraction.",
+    "checks": "Compare existing and semantic complete tab-strip frames, registered parts, layout counts and cursor/focus observations across cold/warm frames, adjacent sizes, first-key scrolling, closable/new/status combinations, ICON slots, themes, custom metrics and Unicode. Exercise unchanged arbitrary RowUi callbacks on the legacy path. No scratch painting during layout."
+  },
+  "stage_2_runtime_contract": {
+    "api": [
+      "App::layout(&self, cx: &mut LayoutCx) -> Result<(), LayoutError> defaults to Ok(()), explicitly legacy/no publication.",
+      "LayoutRead is a restricted immutable snapshot: viewport, effective theme/metrics/surface/overlay style context, effective binding labels, focused/hovered/pressed/disabled/inactive flags and narrowly specified committed count receipts. No raw buffer, intents, mutable Ui, previous area/part lookup, arbitrary previous LayoutFacts, layer mutation or domain callbacks.",
+      "LayoutCx reuses existing CompositionSlots measurement/remeasurement/resolution and collects component plans; it does not paint or invoke update. Existing Measure(&Ui) is compatibility-only and is not automatically accepted for planned components.",
+      "ResolvedLayout owns immutable component plans and a separate bounds map keyed by runtime, layer opening identity, Id and PartRef. Bounds retain logical and visible clipped rectangles. This map is not Registry.",
+      "LayerSpec gains an optional owner-part descriptor/builder; preserve the exhaustive Anchor enum. ContextMenu carries the descriptor through update instead of replacing it with stale concrete rectangles."
+    ],
+    "epoch": "Resolve into a temporary builder and publish atomically only after all validation succeeds. Epoch identity covers runtime, viewport, application update revision, theme/keymap/style revision, layer opening/spec revision and the frozen interaction snapshot. Conservatively increment the application revision after every update/settle callback; app_mut and theme mutations invalidate it. Prepared output binds the exact epoch. Drawing consumes that owned epoch unchanged; rebuilding callback configuration must not remeasure or alter allocations.",
+    "purity": "Safe &self is not proof of consumer purity. The contract forbids interior-mutating measurements, domain effects, time reads and renderer callbacks. Store formatted semantic content in the epoch. Tests instrument callback counts/effects; invalid consumers are diagnosed, never treated as proven pure merely because they compile.",
+    "input_sequence": "Resolve against current state before dispatch when invalid, supply planned geometry to Cx owner lookup without replacing live interaction registration, dispatch one physical event, then resolve post-update state before drawing. Responsive route/data changes therefore produce a new epoch without replaying the event. Existing focus/layer settle callbacks remain lifecycle work, not physical input replay.",
+    "registration": "Only actual draw registers controls, parts, bindings, focus and cursor requests. Planned draw adapters consume stored bounds and validate their emitted regions and cursor containment against the epoch. No commit_geometry or commit_frame during layout; no invisible controls. Existing registry/router/compositor remain authoritative.",
+    "errors": "Failed or partial layout publishes no new epoch and creates no usable prepared token. Keep input blocked. Surface a deterministic diagnostic and fail preparation rather than retrying input forever or falling back to stale geometry. Existing public error enums require compatibility review before adding variants."
+  },
+  "overlay_rules": {
+    "ordering": "Collect page and component plans first, then resolve overlay plans in opening order before any drawing. A descriptor may refer only to a planned owner in the page or an earlier parent layer. Drawing owner before or after overlay within its layer produces the same result.",
+    "lookup": "Use the owner part visible clipped rectangle. Keep logical bounds separately. Zero-sized or fully clipped owner is unavailable. Layer opening identity prevents accidentally resolving a reused Id from an obsolete opening.",
+    "failures": "Duplicate owner/part identity, self/cyclic/forward dependencies and missing required planned configuration are hard layout errors with no publication. A previously valid owner disappearing or becoming fully clipped is normal owner loss: omit that overlay from usable output and queue exactly one existing programmatic close/focus-restoration lifecycle result outside the pure callback, keyed by LayerOpening. Do not silently use stale rectangles or run domain handlers during resolution.",
+    "compatibility": "Fixed Screen/Point/Rect anchors retain existing semantics. Opted-in owner-part anchors never fall back to the old registry when their plan is absent."
+  },
+  "exclusive_writer_steps": [
+    {
+      "writer": "Semantic Tabs writer",
+      "owns": [
+        "crates/termrock-navigation/src/tabs.rs",
+        "its focused tests",
+        "task audit"
+      ],
+      "conditional_shared_ownership": "Any required shared text/RowUi extraction must be explicitly assigned before editing those files; do not overlap another writer.",
+      "deliverable": "Owned semantic DefaultRow TabLayout and planned draw; legacy custom renderers and slots preserved. No runtime hook or application adoption yet."
+    },
+    {
+      "writer": "Runtime publication writer, after semantic review",
+      "owns": [
+        "crates/termrock-runtime/src/ui/layout.rs (new)",
+        "crates/termrock-runtime/src/ui/composition.rs",
+        "crates/termrock-runtime/src/runtime.rs",
+        "crates/termrock-runtime/src/ui/cx.rs",
+        "crates/termrock-runtime/src/ui/mod.rs",
+        "crates/termrock-runtime/src/layer.rs",
+        "runtime tests/reexports/task audit"
+      ],
+      "deliverable": "Restricted immutable snapshot, atomic epochs, descriptor resolution, actual-registration validation and existing presentation barrier; no second registry or hidden drawing."
+    },
+    {
+      "writer": "Facade and actual consumer writer, after APIs are agreed",
+      "owns": [
+        "crates/termrock/src/composition.rs",
+        "ContextMenu adapter in crates/termrock-overlays/src/menu.rs",
+        "bounded actual Jackin tab-menu composition and tests",
+        "external consumer/example/task audit"
+      ],
+      "deliverable": "Use the same semantic tab configuration for planning and rendering, owner-part menu anchors, data/actions only in app. No baseline painters, candidate snapshot blessing or private correction code."
+    },
+    {
+      "writer": "Independent reviewers",
+      "owns": [],
+      "deliverable": "Read-only API/boundary, Rust/runtime and interaction/test-integrity review against exact commits with revision-specific targets."
+    }
+  ],
+  "regression_plan": [
+    "Unchanged real runtime 80x24 to 100x30 menu-owner anchor reaches x51 without another key; exactly one physical resize update.",
+    "Post-resize update changes route, label widths, order or owner visibility; final draw uses post-update epoch, not pre-update geometry.",
+    "Queued pointer uses new hit bounds only after successful presentation; aborted or stale prepared output cannot unblock input.",
+    "Overlay-first and owner-first drawing match complete frames; parent-layer anchor works; self/forward/cyclic anchors fail atomically.",
+    "Owner removal, fully clipped and zero-sized parts close once with ordinary focus restoration and no background activation.",
+    "Pure layout instruments zero renderer/domain/input calls; no Registry entries, binding registration, focus movement or cursor requests before drawing.",
+    "Cold/warm overflow receipts, stable keyed reorder, duplicate keys, empty/large lists, wide/combining text, trailing spaces, narrow regions, all color profiles and overridden glyph metrics.",
+    "Existing custom RowUi callback, ICON slot, patches and unchanged legacy App compile and render as before. Legacy support is not claimed to have pure layout.",
+    "Prepared epoch includes all relevant revisions; focus settlement or model mutation invalidates it; failed builder cannot leak partial planned parts.",
+    "Actual application tab-menu flow plus compiled external public-API consumer, followed by pinned real-CLI comparisons; no candidate-derived expected updates."
+  ],
+  "acceptance": "All four product/library gates remain incomplete. This proposal is not implementation, test execution or source integration approval."
+}

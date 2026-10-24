@@ -1,6 +1,6 @@
 use core::fmt;
 
-use ratatui_core::layout::Rect;
+use ratatui_core::layout::{Position, Rect};
 
 use super::{PartStyle, SlotFn, cell_at, first_row};
 use crate::id::{Id, Part, PartRef};
@@ -8,7 +8,7 @@ use crate::layout::{Insets, inset};
 use crate::measure::{Constraints, Size};
 use crate::response::StateFlags;
 use crate::theme::{Family, GlyphRole, Slot, StylePatch, Surface, Variant};
-use crate::ui::{FrameRead, Ui};
+use crate::ui::{FrameRead, Ui, VerticalWindow};
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum PanelKind {
@@ -16,6 +16,31 @@ pub enum PanelKind {
     Card,
     Framed,
 }
+
+/// Why a panel could not be drawn through a clipped vertical window.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PanelWindowError {
+    /// The window does not map rows from the supplied logical panel area.
+    InvalidWindow,
+    /// A partial window cannot safely replay a legacy arbitrary painter slot.
+    UnsupportedLegacySlot(Part),
+}
+
+impl fmt::Display for PanelWindowError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InvalidWindow => f.write_str("window does not match the panel logical area"),
+            Self::UnsupportedLegacySlot(part) => {
+                write!(
+                    f,
+                    "partial panel window does not support the {part:?} legacy slot"
+                )
+            }
+        }
+    }
+}
+
+impl core::error::Error for PanelWindowError {}
 
 pub struct Panel<'a> {
     id: Id,
@@ -137,20 +162,21 @@ impl<'a> Panel<'a> {
         }
     }
 
-    pub fn inner(&self, ui: &Ui<'_>, area: Rect) -> Rect {
+    fn insets(&self, ui: &Ui<'_>) -> Insets {
         let side = match self.kind {
             PanelKind::Card => ui.design().space.card_inset,
             PanelKind::Framed => ui.design().space.frame_inset,
         };
-        let r = inset(
-            area,
-            Insets {
-                l: side,
-                t: self.top_inset(),
-                r: side,
-                b: 1,
-            },
-        );
+        Insets {
+            l: side,
+            t: self.top_inset(),
+            r: side,
+            b: 1,
+        }
+    }
+
+    pub fn inner(&self, ui: &Ui<'_>, area: Rect) -> Rect {
+        let r = inset(area, self.insets(ui));
         if r.is_empty() {
             return Rect {
                 x: area.x,
@@ -181,12 +207,9 @@ impl<'a> Panel<'a> {
     }
 
     pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
-        let side = match self.kind {
-            PanelKind::Card => ui.design().space.card_inset,
-            PanelKind::Framed => ui.design().space.frame_inset,
-        };
-        let chrome_w = side.saturating_mul(2);
-        let chrome_h = self.top_inset().saturating_add(1);
+        let insets = self.insets(ui);
+        let chrome_w = insets.l.saturating_add(insets.r);
+        let chrome_h = insets.t.saturating_add(insets.b);
         let title_w = self.title.map_or(0, crate::text::width);
         let meta_w = self.meta.map_or(0, crate::text::width);
         let head = title_w
@@ -204,6 +227,61 @@ impl<'a> Panel<'a> {
         .fit(c)
     }
 
+    /// Measure this panel around its actual body content.
+    ///
+    /// The body receives constraints reduced by the same insets used by
+    /// [`Self::inner`]. Its measured size is then combined with panel chrome,
+    /// title, metadata, and badge requirements before fitting the outer
+    /// constraints. The callback must measure only; it must not draw, update
+    /// input state, or perform application effects.
+    pub fn measure_with_body(
+        &self,
+        ui: &Ui<'_>,
+        constraints: Constraints,
+        measure_body: impl FnOnce(Constraints) -> Size,
+    ) -> Size {
+        let insets = self.insets(ui);
+        let chrome_w = insets.l.saturating_add(insets.r);
+        let chrome_h = insets.t.saturating_add(insets.b);
+        let body_constraints = Constraints {
+            max: (
+                constraints.max.0.saturating_sub(chrome_w),
+                constraints.max.1.saturating_sub(chrome_h),
+            ),
+            tight_w: constraints.tight_w,
+            tight_h: constraints.tight_h,
+        };
+        let body = measure_body(body_constraints);
+        let title_w = self.title.map_or(0, crate::text::width);
+        let meta_w = self.meta.map_or(0, crate::text::width);
+        let head = title_w
+            .saturating_add(meta_w)
+            .saturating_add(u16::from(meta_w != 0))
+            .saturating_add(2);
+        let head = self.badge_lane_width().map_or(head, |lane| lane.max(head));
+        let one_body_cell = 1;
+        Size {
+            min: (
+                chrome_w
+                    .saturating_add(body.min.0)
+                    .max(chrome_w.saturating_add(one_body_cell)),
+                chrome_h
+                    .saturating_add(body.min.1)
+                    .max(chrome_h.saturating_add(one_body_cell)),
+            ),
+            preferred: (
+                chrome_w
+                    .saturating_add(body.preferred.0)
+                    .max(chrome_w.saturating_add(one_body_cell))
+                    .max(head),
+                chrome_h
+                    .saturating_add(body.preferred.1)
+                    .max(chrome_h.saturating_add(one_body_cell)),
+            ),
+        }
+        .fit(constraints)
+    }
+
     pub fn draw<R>(
         &self,
         ui: &mut Ui<'_>,
@@ -216,6 +294,140 @@ impl<'a> Panel<'a> {
             self.chrome(ui, area);
             ui.with_area(inner, |ui| body(ui, inner))
         })
+    }
+
+    /// Draw the panel rows visible through a validated window into its original
+    /// logical area.
+    ///
+    /// The callback receives the visible portion of the panel's original inner
+    /// body, rebased to that body's source rows. A partial window cannot replay
+    /// arbitrary legacy slots; it returns an error before painting, registering
+    /// decoration, or invoking the callback. Full windows preserve [`Self::draw`]
+    /// behavior.
+    pub fn draw_window<R>(
+        &self,
+        ui: &mut Ui<'_>,
+        logical_area: Rect,
+        window: VerticalWindow,
+        body: impl FnOnce(&mut Ui<'_>, Option<VerticalWindow>) -> R,
+    ) -> Result<R, PanelWindowError> {
+        if window == VerticalWindow::full(logical_area) {
+            if !logical_area.is_empty()
+                && VerticalWindow::new(logical_area, usize::from(logical_area.height), 0).is_err()
+            {
+                return Err(PanelWindowError::InvalidWindow);
+            }
+            return Ok(self.draw(ui, logical_area, |ui, inner| {
+                let body_window = (!inner.is_empty()).then(|| VerticalWindow::full(inner));
+                body(ui, body_window)
+            }));
+        }
+
+        let visible = window.visible_body();
+        let valid = window.logical_rows() == usize::from(logical_area.height)
+            && visible.x == logical_area.x
+            && visible.width == logical_area.width
+            && !visible.is_empty()
+            && VerticalWindow::new(
+                visible,
+                usize::from(logical_area.height),
+                window.first_source_row(),
+            )
+            .is_ok();
+        if !valid {
+            return Err(PanelWindowError::InvalidWindow);
+        }
+        if let Some((part, _)) = self.ov.slot {
+            return Err(PanelWindowError::UnsupportedLegacySlot(part));
+        }
+
+        let plane = self.plane(ui);
+        Ok(ui.with_surface(plane, |ui| {
+            ui.with_area(visible, |ui| {
+                let inner = self.inner(ui, logical_area);
+                let live = PartStyle::flags(StateFlags::empty(), self.derived());
+                let container = self.ov.style(
+                    ui,
+                    self.id,
+                    Family::PANEL,
+                    Variant::DEFAULT,
+                    Part::CONTAINER,
+                    live,
+                );
+                ui.fill(visible, container.style);
+                ui.register_decor(self.id, PartRef::of(Part::CONTAINER), visible);
+
+                if self.kind == PanelKind::Framed {
+                    let border = self.ov.style(
+                        ui,
+                        self.id,
+                        Family::PANEL,
+                        Variant::DEFAULT,
+                        Part::BORDER,
+                        live,
+                    );
+                    self.frame_window(ui, logical_area, window, border.style);
+                    ui.register_decor(self.id, PartRef::of(Part::BORDER), visible);
+                }
+
+                if let Some(head_y) = window.physical_row_for_source(0) {
+                    let head = Rect::new(logical_area.x, head_y, logical_area.width, 1);
+                    self.head(ui, head, live, container.style);
+                }
+
+                let body_window = body_window(inner, logical_area, window);
+                if let Some(body_window) = body_window {
+                    ui.with_area(body_window.visible_body(), |ui| body(ui, Some(body_window)))
+                } else {
+                    let empty = Rect::new(inner.x, visible.y, inner.width, 0);
+                    ui.with_area(empty, |ui| body(ui, None))
+                }
+            })
+        }))
+    }
+
+    fn frame_window(
+        &self,
+        ui: &mut Ui<'_>,
+        logical_area: Rect,
+        window: VerticalWindow,
+        style: crate::theme::PaintStyle,
+    ) {
+        if logical_area.width < 2 || logical_area.height < 2 {
+            return;
+        }
+
+        let borders = ui.theme_ref().design.borders;
+        let left = logical_area.left();
+        let right = logical_area.right().saturating_sub(1);
+        let bottom_source = usize::from(logical_area.height.saturating_sub(1));
+        for source_row in window.visible_source_range() {
+            let Some(y) = window.physical_row_for_source(source_row) else {
+                continue;
+            };
+            let top = source_row == 0;
+            let bottom = source_row == bottom_source;
+            if top || bottom {
+                let horizontal = if top {
+                    borders.horizontal_top
+                } else {
+                    borders.horizontal_bottom
+                };
+                for col in logical_area.columns().map(|col| col.x) {
+                    ui.paint_cell(Position::new(col, y), horizontal, style);
+                }
+                let (left_corner, right_corner) = if top {
+                    (borders.top_left, borders.top_right)
+                } else {
+                    (borders.bottom_left, borders.bottom_right)
+                };
+                ui.paint_cell(Position::new(left, y), left_corner, style);
+                ui.paint_cell(Position::new(right, y), right_corner, style);
+            } else {
+                ui.paint_cell(Position::new(left, y), borders.vertical_left, style);
+                ui.paint_cell(Position::new(right, y), borders.vertical_right, style);
+            }
+        }
     }
 
     fn chrome(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -437,6 +649,30 @@ impl<'a> Panel<'a> {
             }
         }
     }
+}
+
+fn body_window(
+    inner: Rect,
+    logical_area: Rect,
+    panel_window: VerticalWindow,
+) -> Option<VerticalWindow> {
+    if inner.is_empty() {
+        return None;
+    }
+
+    let body_start = usize::from(inner.y.checked_sub(logical_area.y)?);
+    let body_end = body_start.saturating_add(usize::from(inner.height));
+    let visible = panel_window.visible_source_range();
+    let first = visible.start.max(body_start);
+    let end = visible.end.min(body_end);
+    if first >= end {
+        return None;
+    }
+
+    let physical_y = panel_window.physical_row_for_source(first)?;
+    let visible_height = u16::try_from(end.saturating_sub(first)).ok()?;
+    let visible_body = Rect::new(inner.x, physical_y, inner.width, visible_height);
+    VerticalWindow::new(visible_body, usize::from(inner.height), first - body_start).ok()
 }
 
 fn paint_label(

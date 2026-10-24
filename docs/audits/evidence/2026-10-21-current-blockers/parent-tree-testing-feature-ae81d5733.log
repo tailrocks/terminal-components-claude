@@ -1,0 +1,17 @@
+COMMAND ['cargo', 'nextest', 'run', '--locked', '-p', 'termrock', '--features', 'testing', '--all-targets', '--status-level', 'fail', '--final-status-level', 'fail']
+    Blocking waiting for file lock on package cache
+   Compiling termrock v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 15.83s
+────────────
+ Nextest run ID 5dbd7e94-80e0-4c8a-987d-f15e1c53ed4e with nextest profile: default
+    Starting 58 tests across 13 binaries
+────────────
+     Summary [   0.116s] 58 tests run: 58 passed, 0 skipped
+
+EXIT 0
+COMMAND ['cargo', 'clippy', '--locked', '-p', 'termrock', '--features', 'testing', '--all-targets', '--no-deps', '--', '-D', 'warnings']
+    Blocking waiting for file lock on package cache
+    Checking termrock v0.1.0 (/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020/crates/termrock)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 14.13s
+
+EXIT 0

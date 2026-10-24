@@ -1,0 +1,21 @@
+ [0m[1;7m holla❯ [0m   File   Go   Help         acme · mise monorepo  [0m[1mmbp · local[0m  [0m
+                                                                        [0m
+ [0m[1m Here  [0m                                                                [0m
+ ━━━━━━━─────────────────────────────────────────────────────────────── [0m
+ ▎ Search actions and resources…                        scope ‹ here ›  [0m
+                                                                        [0m
+    Suggested here                                                    ┃ [0m
+    Follow acme-api-1 logs   docker   here   service is unhealthy     ┃ [0m
+ [0m[1;7m › Inspect 10 GB of gener…  [0m[7mdisk   [0m[1;7m  [0m[7mhere [0m[1;7m  [0m[7m10 GB generated artifac…[0m[1;7m [0m┃ [0m
+    Install missing tools …  task     here   1 tool missing           ┃ [0m
+    Review cleanup candida…  cleanup  host   10.6 GiB across 4 categ… ┃ [0m
+    Deploy preview           custom   here   Current folder…          ┆ [0m
+                                                                      ┆ [0m
+    Recent here                                                       ┆ [0m
+ [0m[2m   nothing used here yet                                             [0m┆ [0m
+                                                                        [0m
+    → 'holla disk analyze --artifacts' · here · read-only               [0m
+                                                                        [0m
+ [0m[1m~/work/acme[0m   main   ↑1                               no color · 72×20 [0m
+ [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1mAlt+Enter[0m Alternatives…  …           [0m
+[?25h[5;4H[6 q

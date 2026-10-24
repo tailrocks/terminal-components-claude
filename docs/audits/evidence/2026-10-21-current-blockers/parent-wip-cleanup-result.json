@@ -1,0 +1,13 @@
+{
+  "schema": "termrock.parent-owned-wip-retirement.v1",
+  "deleted_exact_tips": {
+    "wip/parent-picker-gate-20261021": "9f6659a51b793fe60f9ffee86e986afc1d4824ba",
+    "wip/parent-tablepro-blank-validation-20261021": "2ff8d9348962b8334da39c1552f6b9087e1a4ffb"
+  },
+  "verified_absent": true,
+  "source_head_before_docs": "a7724e1fec319299406dc9c62259dfddd3d05b83",
+  "independent_review_sha256": "a0589ef31546f7ed83259f2a353478a2fb1b0eacdd0ee506a086e332754f3b09",
+  "history_rewritten": false,
+  "protected_or_reference_branches_changed": false,
+  "retained_unproven_ownership": "parity/picker-stack-integration-20261020"
+}

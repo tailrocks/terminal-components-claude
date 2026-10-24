@@ -1,0 +1,26 @@
+[package]
+name = "termrock-consumer-example"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "External public consumer of the Termrock component library"
+repository = "https://github.com/tailrocks/terminal-components-claude"
+publish = false
+
+# This crate is the external-consumer proof: it depends on the public Termrock
+# facade only. No application crate (showcase, holla, tablepro, jackin-preview)
+# and no test-only crate is reachable from it.
+[dependencies]
+termrock.workspace = true
+
+# The test harness drives the consumer through the public production render
+# path (`prepare` / `draw_prepared` / `acknowledge_presented`) on Ratatui's
+# public test backend. Ratatui is already part of the Termrock dependency
+# graph, so this adds no crate to it.
+[dev-dependencies]
+ratatui.workspace = true
+
+# Rust documentation examples are guarded by the workspace doc inventory test.
+[lib]
+doctest = false

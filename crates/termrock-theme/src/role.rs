@@ -94,6 +94,9 @@ pub enum MeterRole {
     Series(u8),
 }
 
+/// Semantic color roles used by theme recipes and local style patches.
+///
+/// Downstream exhaustive matches must handle variants added by newer releases.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum Role {
     CurrentSurface,
@@ -130,6 +133,20 @@ pub enum Role {
     DisabledFg,
     DisabledBg,
     ReadOnlyFg,
+    /// The background of an application status strip.
+    StatusBarBg,
+    /// The primary ink of an application status strip.
+    StatusBarFg,
+    /// The accent ink of an application status strip.
+    StatusAccent,
+    /// The rule that separates application chrome from its content.
+    ChromeRule,
+    /// The track of a scroll bar.
+    ScrollTrack,
+    /// The thumb of a scroll bar.
+    ScrollThumb,
+    /// The ink of a small tag or label chip.
+    TagInk,
     Syntax(SyntaxRole),
     Meter(MeterRole),
     Custom(Color),

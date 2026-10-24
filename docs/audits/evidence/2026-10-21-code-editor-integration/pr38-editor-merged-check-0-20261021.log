@@ -1,0 +1,146 @@
+COMMAND 1: ['rustup', 'run', '1.99.1', 'cargo', 'nextest', 'run', '--offline', '-p', 'termrock-editors', '--lib', '--filter-expr', 'test(focus_out_commits_by_default_but_can_preserve_the_edit_session)', '--target-dir', '/private/tmp/pr38-editor-before-target-20261021']
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling unicode-ident v1.0.27
+   Compiling libc v0.2.191
+   Compiling unicode-segmentation v1.13.3
+   Compiling cfg-if v1.0.5
+   Compiling rustversion v1.0.23
+   Compiling strsim v0.11.1
+   Compiling foldhash v0.2.0
+   Compiling equivalent v1.0.3
+   Compiling allocator-api2 v0.2.21
+   Compiling ident_case v1.0.1
+   Compiling thiserror v2.0.21
+   Compiling bitflags v2.13.2
+   Compiling heck v0.5.0
+   Compiling either v1.19.0
+   Compiling unicode-width v0.2.2
+   Compiling static_assertions v1.1.0
+   Compiling ryu v1.0.23
+   Compiling itoa v1.0.18
+   Compiling parking_lot_core v0.9.12
+   Compiling signal-hook v0.3.18
+   Compiling log v0.4.34
+   Compiling rustix v1.1.5
+   Compiling smallvec v1.16.3
+   Compiling itertools v0.14.0
+   Compiling critical-section v1.2.0
+   Compiling indoc v2.0.8
+   Compiling scopeguard v1.2.0
+   Compiling lock_api v0.4.14
+   Compiling litrs v1.0.1
+   Compiling time-core v0.1.9
+   Compiling powerfmt v0.2.1
+   Compiling num-conv v0.2.2
+   Compiling deranged v0.5.9
+   Compiling line-clipping v0.3.8
+   Compiling convert_case v0.10.0
+   Compiling hashbrown v0.17.1
+   Compiling document-features v0.2.12
+   Compiling castaway v0.2.4
+   Compiling syn v3.0.9
+   Compiling syn v2.0.119
+   Compiling compact_str v0.9.1
+   Compiling lru v0.18.5
+   Compiling errno v0.3.14
+   Compiling mio v1.2.4
+   Compiling num_threads v0.1.8
+   Compiling signal-hook-registry v1.4.8
+   Compiling parking_lot v0.12.5
+   Compiling time v0.3.55
+   Compiling unicode-truncate v2.0.1
+   Compiling signal-hook-mio v0.2.5
+   Compiling strum_macros v0.28.0
+   Compiling derive_more-impl v2.1.1
+   Compiling darling_core v0.24.1
+   Compiling derive_more v2.1.1
+   Compiling crossterm v0.29.0
+   Compiling strum v0.28.0
+   Compiling thiserror-impl v2.0.21
+   Compiling darling_macro v0.24.1
+   Compiling kasuari v0.4.13
+   Compiling ratatui-core v0.1.2
+   Compiling darling v0.24.1
+   Compiling instability v0.3.14
+   Compiling ratatui-crossterm v0.1.2
+   Compiling ratatui-widgets v0.3.2
+   Compiling termrock-core v0.1.0 (/Users/donbeave/Projects/termrock-main-parity/crates/termrock-core)
+   Compiling termrock-theme v0.1.0 (/Users/donbeave/Projects/termrock-main-parity/crates/termrock-theme)
+   Compiling ratatui-macros v0.7.2
+   Compiling ratatui v0.30.2
+   Compiling termrock-layout v0.1.0 (/Users/donbeave/Projects/termrock-main-parity/crates/termrock-layout)
+   Compiling termrock-text v0.1.0 (/Users/donbeave/Projects/termrock-main-parity/crates/termrock-text)
+   Compiling termrock-render v0.1.0 (/Users/donbeave/Projects/termrock-main-parity/crates/termrock-render)
+   Compiling termrock-collections v0.1.0 (/Users/donbeave/Projects/termrock-main-parity/crates/termrock-collections)
+   Compiling termrock-runtime v0.1.0 (/Users/donbeave/Projects/termrock-main-parity/crates/termrock-runtime)
+   Compiling termrock-controls v0.1.0 (/Users/donbeave/Projects/termrock-main-parity/crates/termrock-controls)
+   Compiling termrock-fields v0.1.0 (/Users/donbeave/Projects/termrock-main-parity/crates/termrock-fields)
+   Compiling termrock-feedback v0.1.0 (/Users/donbeave/Projects/termrock-main-parity/crates/termrock-feedback)
+   Compiling termrock-viewport v0.1.0 (/Users/donbeave/Projects/termrock-main-parity/crates/termrock-viewport)
+   Compiling termrock-navigation v0.1.0 (/Users/donbeave/Projects/termrock-main-parity/crates/termrock-navigation)
+   Compiling termrock-overlays v0.1.0 (/Users/donbeave/Projects/termrock-main-parity/crates/termrock-overlays)
+   Compiling termrock-editors v0.1.0 (/Users/donbeave/Projects/termrock-main-parity/crates/termrock-editors)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 39.79s
+────────────
+ Nextest run ID f69851e1-34c4-409a-9958-a9320cddf21e with nextest profile: default
+    Starting 1 test across 1 binary (34 tests skipped)
+        FAIL [   0.019s] (1/1) termrock-editors code::tests::focus_out_commits_by_default_but_can_preserve_the_edit_session
+  stdout ───
+
+    running 1 test
+    test code::tests::focus_out_commits_by_default_but_can_preserve_the_edit_session ... FAILED
+
+    failures:
+
+    failures:
+        code::tests::focus_out_commits_by_default_but_can_preserve_the_edit_session
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 34 filtered out; finished in 0.01s
+
+  stderr ───
+
+    thread 'code::tests::focus_out_commits_by_default_but_can_preserve_the_edit_session' (148525036) panicked at crates/termrock-editors/src/code.rs:2481:9:
+    assertion failed: retaining.diagnostics().is_empty()
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+────────────
+     Summary [   0.019s] 1 test run: 0 passed, 1 failed, 34 skipped
+        FAIL [   0.019s] (1/1) termrock-editors code::tests::focus_out_commits_by_default_but_can_preserve_the_edit_session
+error: test run failed
+RESULT 1: exit=100 timeout=False seconds=40.85
+COMMAND 2: ['rustup', 'run', '1.99.1', 'cargo', 'nextest', 'run', '--offline', '-p', 'termrock-editors', '--test', 'completing_code_editor', '--filter-expr', 'test(focus_loss_dismisses_completion_but_preserves_configured_edit_session)', '--target-dir', '/private/tmp/pr38-editor-before-target-20261021']
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+   Compiling termrock-editors v0.1.0 (/Users/donbeave/Projects/termrock-main-parity/crates/termrock-editors)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.21s
+────────────
+ Nextest run ID 970a1caa-1cb1-408b-b2bc-e640fff0d1d5 with nextest profile: default
+    Starting 1 test across 1 binary (17 tests skipped)
+        FAIL [   0.019s] (1/1) termrock-editors::completing_code_editor focus_loss_dismisses_completion_but_preserves_configured_edit_session
+  stdout ───
+
+    running 1 test
+    test focus_loss_dismisses_completion_but_preserves_configured_edit_session ... FAILED
+
+    failures:
+
+    failures:
+        focus_loss_dismisses_completion_but_preserves_configured_edit_session
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 17 filtered out; finished in 0.01s
+
+  stderr ───
+
+    thread 'focus_loss_dismisses_completion_but_preserves_configured_edit_session' (148526544) panicked at crates/termrock-editors/tests/completing_code_editor.rs:581:5:
+    [CursorRejected { owner: completion.composite.editor, layer: LayerId(0) }]
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+────────────
+     Summary [   0.019s] 1 test run: 0 passed, 1 failed, 17 skipped
+        FAIL [   0.019s] (1/1) termrock-editors::completing_code_editor focus_loss_dismisses_completion_but_preserves_configured_edit_session
+error: test run failed
+RESULT 2: exit=100 timeout=False seconds=3.16

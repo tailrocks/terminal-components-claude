@@ -1,0 +1,25 @@
+[0m[2m  holla❯    File   Go   Help                 acme · mise monorepo  mbp · local  [0m
+[0m[2m                                                                                [0m
+[0m[2m      Here    frontend dev ⠋ ×    api dev ⠋ ×    api tests ✓ ×           2› +2  [0m
+[0m[2m ────━━━━━━━─────────────────────────────────────────────────────────────────── [0m
+[0m[2m [0m [0m[2m Search actions and resources…                                scope ‹ here ›  [0m
+[0m[2m                                                                                [0m
+[0m[2m    Suggested here                                                            ┃ [0m
+[0m[2m    F╭────────────────────────────────────────────────────────────────────╮   ┃ [0m
+[0m[2m  › I│ [0m[1;2mActivities[0m[2m                                                  4 live │   ┃ [0m
+[0m[2m    I│ [0m[1;2;7m [0m[2;7m⠋[0m[1;2;7m frontend dev                 [0m[2;7mrunning · child · 3 s[0m[1;2;7m  [0m[2;7mactivities[0m[1;2;7m [0m[2m │   ┃ [0m
+[0m[2m    R│  ⠋ api dev                      running · child · 3 s              │es ┃ [0m
+[0m[2m    D│  ✓ api tests                    succeeded · project …              │   ┃ [0m
+[0m[2m     │  ⠋ logs · api worker scheduler  running · here · 3 s               │   ┃ [0m
+[0m[2m    R│  ○ btm                          detached · host · 3 s              │   ┃ [0m
+[0m[2m    n│                                                                    │   ┆ [0m
+[0m[2m     │                                                                    │   ┆ [0m
+[0m[2m    R╰────────────────────────────────────────────────────────────────────╯   ┆ [0m
+[0m[2m    logs · api worker schedul…  activity  here   ⠋ running · 3 s              ┆ [0m
+[0m[2m    api dev                     activity  child  ⠋ running · 3 s              ┆ [0m
+[0m[2m                                                                                [0m
+[0m[2m    → 'holla disk analyze --artifacts' · here · read-only                       [0m
+[0m[2m                                                                                [0m
+[0m[2m ~/work/acme   main   ↑1                        ⠋ 4 running    no color · 80×24 [0m
+ [0m[1m↑↓ M[0move  [0m[1mEnter [0mSwitch [0m[1m Esc [0mCancel                  api tests finished · exit 0 [0m
+[?25l

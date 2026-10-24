@@ -1,0 +1,51 @@
+{
+  "schema": "termrock.independent-review.v1",
+  "created_utc": "2026-10-21T11:49:32.985306+00:00",
+  "reviewer": "tree_adapter_independent_review",
+  "review_effort": "medium",
+  "reviewed_commit": "cab4b913271babbcae5aac35b92bdf9626dfc9a6",
+  "before_commit": "05a85a0065005eddb9979b852ff15f9036c8099c",
+  "decision": "CLEAR_BOUNDED_TEST_ONLY_REPAIR",
+  "findings": [],
+  "source_scope": {
+    "files_changed": [
+      "crates/termrock-overlays/src/dialog.rs cfg(test) module only",
+      "docs/audits/2026-10-21-overlay-dialog-test-lifecycle.md"
+    ],
+    "production_prefix_byte_identical": true,
+    "production_prefix_sha256": "f6bb6ef21aa16fc41d69733bb79b8d5e2710bf3beb3794aef5c375099a6b342e",
+    "expected_output_changes": false,
+    "API_changes": false,
+    "runtime_changes": false
+  },
+  "correctness": {
+    "annotations": "Duplicate #[test] removed from border title test. Missing #[test] restored on preexisting total/clipped body test. Static before-source checks and independent Nextest discovery confirm distinct before/after annotations.",
+    "actual_execution": "Nextest JSON discovers each of the two named tests exactly once, not ignored, filter-matched. Full run156pass0skip includes clipped body PASS11/156 and border title PASS20/156.",
+    "frame_lifecycle": "Runtime::draw_scene paints raw buffer then returns PaintedFrame. #[must_use] states dropping aborts publication; Drop invalidates prepared frame unless committed. Previous ignored temporary was already dropped at statement end. Explicit drop preserves that lifecycle and satisfies must_use, without pretending terminal output occurred.",
+    "test_assertions": "Four affected tests inspect buffer cells or measured height and do not subsequently depend on published registry/focus/input for those frames. Existing body test retains its existing simulated commit for registry/clipping assertions; no new publication code added.",
+    "default_compatibility": "All changes to Rust behavior are inside cfg(test); production code prefix is byte-identical. No production defaults, ownership, input, rendering, errors, concurrency or unsafe code changed."
+  },
+  "independent_checks": {
+    "native": "cargo nextest run --locked --offline -p termrock-overlays --all-targets --no-fail-fast:156run156pass0skip",
+    "discovery": "cargo nextest list --locked --offline -p termrock-overlays --all-targets --message-format json:156tests; restored body and border tests each exactly once, ignored=false.",
+    "clippy": "cargo clippy --locked --offline -p termrock-overlays --all-targets --no-deps -- -D warnings:exit0",
+    "fmt": "cargo fmt --all --check:exit0",
+    "git_diff_check": "exit0; isolated detached reviewer source clean",
+    "tooling": "Rust1.99.1,pinnedNextest0.9.148,distinctcab4b913 target; no cargo test invocations"
+  },
+  "limits": [
+    "No full workspace/hostedCI/application baseline acceptance claimed. This test-only repair does not resolve existing product or architecture holds.",
+    "Before six Clippy diagnostics were source-inspected (and independently confirmed inherited by coordinator); reviewer did not build a second parent target solely to reproduce already-established diagnostics.",
+    "No original checkout mutation, product edits, expected changes, source backups, pushes or helper agents by reviewer."
+  ],
+  "artifacts": {
+    "clippy.log": "b0ed0d8bd61ff1d53562e75fb91becdc43608895014e24fe20849dfe84ea3f75",
+    "discovery-proof.json": "c4398edb113010d9330e22c35be0f83b77c3178c4c4e79739a35da2f2640643c",
+    "fmt.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "list.log": "091f7063100ce3f34c242597c7891737f2b56bbfadc7fcb99c93d03367d8673a",
+    "native.log": "829bd70a5fa71a0d5dffbbd974d91028568737c5349c3e8f9aca3a46224c3cbd",
+    "results.json": "ba04c30f4caa241306d3ad21dea2125032dd247c2363d9797f4ecddc4159c40a",
+    "reviewed.diff": "0dd41d9b845326c860580c6b90c3513908083dc0d7212aa0d3e4312c68b7da9a",
+    "source-proof.json": "1491d6d63d2053d887c03534affeffe62560ce36fa794b9672a2fa7f0f7ec4fa"
+  }
+}

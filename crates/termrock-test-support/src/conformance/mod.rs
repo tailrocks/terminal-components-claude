@@ -171,14 +171,33 @@ pub trait Conformance: 'static {
     fn activation_id() -> Id {
         Self::control_id()
     }
+    /// Some controls are only actionable after their owning layer is opened.
+    /// The shared activation checks should exercise that real user flow even
+    /// when the action control itself is hidden before opening.
+    fn activation_requires_overlay() -> bool {
+        false
+    }
     fn scroll_id() -> Id {
         Self::id()
     }
     fn opener_id() -> Id {
         Self::control_id()
     }
+    /// The action emitted while opening an owning layer, when it is distinct
+    /// from activating the control inside that layer. Conformance probes use
+    /// this to ensure setup responses cannot satisfy activation assertions.
+    fn opener_action() -> Option<Self::Action> {
+        None
+    }
     fn update(cx: &mut Cx<'_>, st: &mut Self::State, f: &Fixture) -> Response<Self::Action>;
     fn draw(ui: &mut Ui<'_>, area: Rect, st: &Self::State, f: &Fixture);
+    /// Base fixture each driver check starts from.
+    ///
+    /// A case whose widget cannot paint or register its focus target in the
+    /// default 30x6 rect widens it here instead of special-casing a check.
+    fn fixture() -> Fixture {
+        Fixture::default()
+    }
 
     fn activation_chords() -> &'static [Chord] {
         &[]
@@ -192,8 +211,35 @@ pub trait Conformance: 'static {
     fn bindings(_s: BindingState) -> &'static [Binding<Self::Cmd>] {
         &[]
     }
+    fn binding_states() -> &'static [BindingState] {
+        const STATES: &[BindingState] = &[
+            BindingState {
+                flags: StateFlags::empty(),
+            },
+            BindingState {
+                flags: StateFlags::FOCUSED,
+            },
+        ];
+        STATES
+    }
+    /// Binding probes for this case must open its owning layer first.
+    ///
+    /// This is separate from activation setup: a case may need its real
+    /// binding table to be live only after an overlay opens, even when the
+    /// component and activation control share an ID.
+    fn binding_probes_require_overlay() -> bool {
+        false
+    }
     fn legacy_key_chords() -> &'static [Chord] {
         &[]
+    }
+    /// Chords published by nested child controls the case composes.
+    ///
+    /// A composite control publishes the child's table under the same owner,
+    /// so the case's own table cannot carry it. The chords come from the
+    /// child's real table, never from a hand-written list.
+    fn nested_binding_chords() -> Vec<Chord> {
+        Vec::new()
     }
     fn dynamic_bindings(_fixture: &Fixture) -> Vec<(ActionKey, Chord)> {
         Vec::new()

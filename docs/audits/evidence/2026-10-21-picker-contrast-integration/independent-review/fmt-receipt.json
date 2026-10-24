@@ -1,0 +1,13 @@
+{
+  "argv": [
+    "/Users/donbeave/.cargo/bin/cargo",
+    "fmt",
+    "--all",
+    "--check"
+  ],
+  "cwd": "/private/tmp/picker-contrast-c932adb-independent-source-20261021",
+  "target": "/private/tmp/picker-contrast-c932adb-independent-owned-target-20261021",
+  "exit": 0,
+  "timeout": false,
+  "seconds": 2.507166124996729
+}

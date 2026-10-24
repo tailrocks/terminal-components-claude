@@ -1,0 +1,42 @@
+{
+  "commit": "c1ed94e0e445908c27965ec581d2459c491ddc15",
+  "decision": "BLOCKED",
+  "predecessor": "386b895597b220d949304e506bd5c629792b8b25",
+  "findings": [
+    {
+      "id": "PS7-theme",
+      "priority": "P2",
+      "file": "crates/termrock-controls/src/props.rs",
+      "line": 916,
+      "problem": "Repair recognizes only instance self.ov container foreground; hardcoded scoped Clear still overrides explicit theme family/variant and overlay CONTAINER foreground. Component default must remain below all explicit sources.",
+      "reproduction": "Scene TrueColor Junie prepaintMagenta; Theme::override_family(PROPS,CONTAINER Cyan); LABEL clear_fg; Sheet value cell(7,0) is Magenta, expected inherited configured Cyan. Public real-widget nextest RED exit100.",
+      "probe": "container_theme_precedence.rs",
+      "qualification": "Probe loops family then overlay. Assertion fails first family case, so overlay behavior is source-inferred and not independently executed; do not claim observed overlay failure."
+    }
+  ],
+  "resolved": {
+    "PS6": "Unchanged real Down wrapped continuation probe PASS all four profiles; source now preserves logical value_area and uses Ui.with_area solely for clipping.",
+    "PS7_instance": "Unchanged instance CONTAINER Set/LABEL Clear probe PASS; explicit theme source still fails.",
+    "PS1_PS5": "Previous bounds/hint/label repairs retained; canonical Set/Clear profile probe3rditeration passed."
+  },
+  "checks": {
+    "qualified_v2": "3PASS0FAIL0SKIP",
+    "native": "347PASS0FAIL0SKIP Controls/Runtime libs+props_sheet_regressions+rowui_glyph_contract",
+    "clippy": "PASS Controls/Runtime libs -Dwarnings",
+    "fmt": "PASS Controls/Runtime",
+    "theme_container_probe": "0PASS1FAIL0SKIP",
+    "default480": {
+      "checkpoints": 480,
+      "changed_checkpoints": 96,
+      "inside_host_changed_cells": 0,
+      "outside_host_changed_cells": 584,
+      "changed_focus_cursor_scroll_area_tails": 0,
+      "old_canonical_hash": "da95cef52b6b93438596bf232d42c54a247459b6d688636cb86dd2263f33a53e",
+      "candidate_hash": "27cfda065951151a7373d88f9f2eaf896c36aeacec613288bc62cb0b3f36868f",
+      "decision": "Default480 is not fully byte-identical. Remaining changes are removal of painting outside declared host. Requires explicit documented bounds/reference decision; no silent artifact update."
+    }
+  },
+  "test_integrity": "Original9 probes, original480 probe, original old/new logs preserved immutable. Separate canonical qualified probe accounts for Mono Blue->Black,Cyan->Reset->None inheritance proven resolve.rs. Original rawBlue style assertions remain known probe-reference defects, not silently edited.",
+  "architecture": "New RowUi author constructor additive. Existing constructor behavior unchanged. No raw geometry added to ordinary consumer APIs, no new input stack, no domain effects or unsafe code introduced. Native runtime checks pass; full applications and full workspace verification not claimed.",
+  "ownership": "Author source/worktree untouched; separate reviewer checkout exactc1. External probes/evidence only written. Pre-existing1301tracked artifact deletions retained. No commands active."
+}

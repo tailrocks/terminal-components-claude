@@ -51,7 +51,12 @@ impl std::error::Error for CliError {}
 pub const HELP: &str = "holla — context-adaptive action launcher (deterministic simulation)\n\n\
 USAGE: holla [--scenario NAME] [--motion full|reduced|paused] [--frame N] [--color truecolor|256|16|none]\n\n\
 Scenarios: first-use, rust-dirty, monorepo-root, monorepo-child, docker-cleanup,\n\
-\x20          disk-cleanup, upgrade-plan, activities-multi, remote-host, launch-failure, hard-cases\n\
+\x20          disk-cleanup, upgrade-plan, activities-multi, remote-host, launch-failure, hard-cases,\n\
+\x20          parity-discovery, parity-history, parity-files, parity-browser, parity-git-current,\n\
+\x20          parity-git-batch, parity-task-sources, parity-cargo, parity-docker, parity-brew-services,\n\
+\x20          parity-gradle, parity-idea, parity-upgrade-managers, parity-executor, parity-task-input,\n\
+\x20          parity-custom-actions, parity-disk-scan, parity-disk-navigation, parity-insights,\n\
+\x20          parity-delete-safety, parity-cleanup-results, parity-platforms, parity-platforms-linux\n\
 Motion:    explicit --motion wins; otherwise HOLLA_NO_MOTION=1 selects reduced motion\n\
 Frame:     with --motion paused, the exact fixture tick to render\n\n\
 Keys: type to filter · ↑↓ move · Enter run · Ctrl+O actions · Ctrl+P preview · F10 menu · F1 help · q quit\n\
@@ -117,6 +122,7 @@ pub fn parse(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::scenario::Screen;
 
     fn args<'a>(values: &'a [&str]) -> impl Iterator<Item = String> + 'a {
         values.iter().map(|value| (*value).to_owned())
@@ -147,6 +153,54 @@ mod tests {
                 ..
             }))
         ));
+    }
+
+    #[test]
+    fn tag_scenario_names_select_the_baseline_screen() {
+        let expected = [
+            ("first-use", Screen::Finder),
+            ("rust-dirty", Screen::Finder),
+            ("monorepo-root", Screen::Finder),
+            ("monorepo-child", Screen::Finder),
+            ("docker-cleanup", Screen::Finder),
+            ("disk-cleanup", Screen::Disk),
+            ("upgrade-plan", Screen::Plan),
+            ("activities-multi", Screen::Finder),
+            ("remote-host", Screen::Finder),
+            ("launch-failure", Screen::Activity),
+            ("hard-cases", Screen::Finder),
+            ("parity-discovery", Screen::Finder),
+            ("parity-history", Screen::Finder),
+            ("parity-files", Screen::Finder),
+            ("parity-browser", Screen::Finder),
+            ("parity-git-current", Screen::Finder),
+            ("parity-git-batch", Screen::Finder),
+            ("parity-task-sources", Screen::Finder),
+            ("parity-cargo", Screen::Finder),
+            ("parity-docker", Screen::Finder),
+            ("parity-brew-services", Screen::Finder),
+            ("parity-gradle", Screen::Finder),
+            ("parity-idea", Screen::Finder),
+            ("parity-upgrade-managers", Screen::Finder),
+            ("parity-executor", Screen::Finder),
+            ("parity-task-input", Screen::Finder),
+            ("parity-custom-actions", Screen::Finder),
+            ("parity-disk-scan", Screen::Finder),
+            ("parity-disk-navigation", Screen::Finder),
+            ("parity-insights", Screen::Finder),
+            ("parity-delete-safety", Screen::Finder),
+            ("parity-cleanup-results", Screen::Finder),
+            ("parity-platforms", Screen::Finder),
+            ("parity-platforms-linux", Screen::Finder),
+        ];
+        assert_eq!(expected.len(), Scenario::ALL.len());
+        for (name, screen) in expected {
+            let parsed = parse(args(&["--scenario", name]), None);
+            assert!(
+                matches!(parsed, Ok(ParseOutcome::Run(options)) if options.scenario.screen() == screen && options.scenario.screen().id() == screen.id()),
+                "{name} -> {parsed:?}"
+            );
+        }
     }
 
     #[test]

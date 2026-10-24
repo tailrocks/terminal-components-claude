@@ -1,0 +1,21 @@
+[0m[2m  ▪  TablePro  Production  ◆ production  acme_prod › public  ✓ safe  …  [0m
+[0m[2m                                                                        [0m
+[0m[2m  ≡ Que╭─[0m[1;2m Keyboard shortcuts [0m[2m───────────────── 1–13 of 41 ─ × ─╮    +   [0m
+[0m[2m ━━━━━━│  [0m[1;2mShell and workbench[0m[2m                                 ┃│─────── [0m
+[0m[2m › ╭─ Q│  [0m[1;2m] Ctrl+PgDn[0m[2m    Next page                            ┃│──────╮ [0m
+[0m[2m   │  [0m [0m[2m│  [0m[1;2m[ [0m[1mC[0m[1;2mtrl+PgUp[0m[2m [0m [0m[2m  Previous page                        ┃│      │ [0m
+[0m[2m E │  [0m [0m[2m│  [0m[1;2mEsc[0m[2m            Cancel the running query             ┃│.     │ [0m
+[0m[2m x │   │  [0m[1;2mCtrl+R[0m[2m         Run the statement at the cursor      ┆│      │ [0m
+[0m[2m p │   │  [0m[1;2mF5[0m[2m             Run, or refresh the table            ┆│      │ [0m
+[0m[2m l │  ─│  [0m[1;2mAlt+R Shift+F5[0m[2m Run all statements                   ┆│───── │ [0m
+[0m[2m o │   │  [0m[1;2mCtrl+X[0m[2m         EXPLAIN                              ┆│      │ [0m
+[0m[2m r │   │  [0m[1;2mAlt+X Shift+F7[0m[2m EXPLAIN ANALYZE                      ┆│      │ [0m
+[0m[2m e │   │  [0m[1;2mCtrl+T[0m[2m         New query tab                        ┆│      │ [0m
+[0m[2m r │   │  [0m[1;2mCtrl+W[0m[2m         Close tab                            ┆│      │ [0m
+[0m[2m   │   │  [0m[1;2mCtrl+O Ctrl+P[0m[2m  Open Quickly                         ┆│all   │ [0m
+[0m[2m   │   │  [0m[1;2mCtrl+G[0m[2m         Tab list                             ┆│      │ [0m
+[0m[2m   │   │                                               ▎[0m[1;2mDone [0m[2m  │      │ [0m
+[0m[2m   ╰───╰───────────────────────────────────────────────────────╯──────╯ [0m
+[0m[2m                                                                        [0m
+ [0m[1m↑↓[0m Scroll  [0m[1mEsc[0m Close                         ✓ Connected to Production [0m
+[?25l

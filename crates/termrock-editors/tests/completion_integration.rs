@@ -21,6 +21,7 @@ const AREA: Rect = Rect::new(0, 0, 80, 24);
 const FIRST: ItemKey = ItemKey::num(1);
 const SECOND: ItemKey = ItemKey::num(2);
 const ITEMS: &[Item<'static>] = &[Item::new(FIRST, "alpha"), Item::new(SECOND, "beta")];
+const NO_ITEMS: &[Item<'static>] = &[];
 
 struct RoutingApp {
     editor: CodeEditorState,
@@ -90,8 +91,9 @@ fn routing_runtime() -> (Runtime<RoutingApp>, Buffer) {
     runtime.draw_buffer(AREA, &mut buffer).commit_presented();
     runtime.set_focus(Some(EDITOR));
     runtime.draw_buffer(AREA, &mut buffer).commit_presented();
-    let _ = termrock_runtime::stub::deliver(&mut runtime, key(KeyCode::Char('i')));
-    runtime.draw_buffer(AREA, &mut buffer).commit_presented();
+    // The default Immediate policy enters edit mode on FocusIn. Keep the
+    // first user character for the assertion below instead of simulating
+    // the pre-policy first-key entry gesture.
     runtime.app_mut().open_next = true;
     let _ = termrock_runtime::stub::deliver(&mut runtime, Input::Tick);
     runtime.draw_buffer(AREA, &mut buffer).commit_presented();
@@ -102,9 +104,13 @@ struct ControllerApp {
     controller: CompletionController,
     completion: CompletionState,
     buffer: TextBuffer,
+    editor: CodeEditorState,
     request: bool,
     accept: bool,
     editor_motion: bool,
+    use_editor_splice: bool,
+    splice_changes_text: bool,
+    splice_calls: usize,
     items: &'static [Item<'static>],
 }
 
@@ -121,9 +127,27 @@ impl App for ControllerApp {
             self.request = false;
         }
         if self.accept {
-            let _ =
-                self.controller
-                    .accept(cx, &mut self.completion, &mut self.buffer, self.items[0]);
+            if self.use_editor_splice {
+                let changes_text = self.splice_changes_text;
+                let (controller, completion, editor, calls) = (
+                    &self.controller,
+                    &mut self.completion,
+                    &mut self.editor,
+                    &mut self.splice_calls,
+                );
+                let _ =
+                    controller.accept_with(cx, completion, self.items[0], |replace_len, text| {
+                        *calls += 1;
+                        changes_text && editor.splice_completion(replace_len, text)
+                    });
+            } else {
+                let _ = self.controller.accept(
+                    cx,
+                    &mut self.completion,
+                    &mut self.buffer,
+                    self.items[0],
+                );
+            }
             self.accept = false;
         }
         if self.editor_motion {
@@ -150,9 +174,17 @@ fn controller_runtime() -> Runtime<ControllerApp> {
             controller: CompletionController::new(EDITOR, POPUP),
             completion: CompletionState::default(),
             buffer: TextBuffer::single("SEL cou"),
+            editor: {
+                let mut editor = CodeEditorState::new("SEL cou");
+                editor.jump_to("SEL cou".len());
+                editor
+            },
             request: false,
             accept: false,
             editor_motion: false,
+            use_editor_splice: false,
+            splice_changes_text: true,
+            splice_calls: 0,
             items: ITEMS,
         },
         Theme::junie(),
@@ -176,6 +208,73 @@ fn completion_controller_accept_splices_and_dismisses_atomically() {
     let _ = termrock_runtime::stub::deliver(&mut runtime, Input::Tick);
 
     assert_eq!(runtime.app().buffer.text(), "SEL alpha");
+    assert!(!runtime.app().completion.is_open());
+    assert!(!runtime.is_open(POPUP));
+}
+
+#[test]
+fn completion_controller_accepts_through_editor_once_and_stays_dismissed() {
+    let mut runtime = controller_runtime();
+    let mut buffer = Buffer::empty(AREA);
+    runtime.draw_buffer(AREA, &mut buffer).commit_presented();
+    runtime.app_mut().use_editor_splice = true;
+    runtime.app_mut().request = true;
+    let _ = termrock_runtime::stub::deliver(&mut runtime, Input::Tick);
+    runtime.draw_buffer(AREA, &mut buffer).commit_presented();
+    assert!(runtime.app().completion.is_open());
+
+    runtime.app_mut().accept = true;
+    let _ = termrock_runtime::stub::deliver(&mut runtime, Input::Tick);
+    runtime.draw_buffer(AREA, &mut buffer).commit_presented();
+    assert_eq!(runtime.app().editor.text(), "SEL alpha");
+    assert_eq!(runtime.app().editor.cursor_offset(), "SEL alpha".len());
+    assert_eq!(runtime.app().splice_calls, 1);
+    assert!(!runtime.app().completion.is_open());
+    assert!(!runtime.is_open(POPUP));
+
+    let _ = termrock_runtime::stub::deliver(&mut runtime, Input::Tick);
+    runtime.draw_buffer(AREA, &mut buffer).commit_presented();
+    assert_eq!(runtime.app().splice_calls, 1);
+    assert!(!runtime.app().completion.is_open());
+    assert!(!runtime.is_open(POPUP));
+}
+
+#[test]
+fn completion_controller_dismisses_when_editor_splice_reports_no_change() {
+    let mut runtime = controller_runtime();
+    let mut buffer = Buffer::empty(AREA);
+    runtime.draw_buffer(AREA, &mut buffer).commit_presented();
+    runtime.app_mut().use_editor_splice = true;
+    runtime.app_mut().splice_changes_text = false;
+    runtime.app_mut().request = true;
+    let _ = termrock_runtime::stub::deliver(&mut runtime, Input::Tick);
+    runtime.draw_buffer(AREA, &mut buffer).commit_presented();
+    assert!(runtime.is_open(POPUP));
+
+    runtime.app_mut().accept = true;
+    let _ = termrock_runtime::stub::deliver(&mut runtime, Input::Tick);
+
+    assert_eq!(runtime.app().editor.text(), "SEL cou");
+    assert_eq!(runtime.app().splice_calls, 1);
+    assert!(!runtime.app().completion.is_open());
+    assert!(!runtime.is_open(POPUP));
+}
+
+#[test]
+fn empty_completion_request_closes_an_existing_popup() {
+    let mut runtime = controller_runtime();
+    let mut buffer = Buffer::empty(AREA);
+    runtime.draw_buffer(AREA, &mut buffer).commit_presented();
+    runtime.app_mut().request = true;
+    let _ = termrock_runtime::stub::deliver(&mut runtime, Input::Tick);
+    runtime.draw_buffer(AREA, &mut buffer).commit_presented();
+    assert!(runtime.app().completion.is_open());
+    assert!(runtime.is_open(POPUP));
+
+    runtime.app_mut().items = NO_ITEMS;
+    runtime.app_mut().request = true;
+    let _ = termrock_runtime::stub::deliver(&mut runtime, Input::Tick);
+
     assert!(!runtime.app().completion.is_open());
     assert!(!runtime.is_open(POPUP));
 }

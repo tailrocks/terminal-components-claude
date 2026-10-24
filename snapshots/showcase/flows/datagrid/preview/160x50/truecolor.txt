@@ -1,0 +1,50 @@
+ ▪ Junie Design system / Components / Data grid                                                                      truecolor · 160×50   i Inspector   ? Help
+
+   Foundations            Data grid  Typed cells, a pending-change queue, paging and local sort
+   Overview
+                            customers                                                                                    rows 1–24 of 40 loaded · ~4,812 total
+   Components
+   Buttons                        ⚷ id       customer                   plan          seats      mrr  active    renewed_at    notes
+   Inputs                     • 1 1001       Northwind Traders          enterprise      600    57.00  true      2026-01-01    {"owner":"mira","seats":3}     ┃
+   Text areas                 • 2 1002       Blue Yonder Airlines       team             12  1920.00  true      2026-02-04    NULL                           ┃
+   Forms                        3 1003       Contoso Pharmaceuticals    pro              12   348.00  true      2026-03-07    NULL                           ┃
+   Lists                        4 1004       Fabrikam Robotics          free              1     0.00  false     NULL          NULL                           ┃
+   Trees                        5 1005       Litware Analytics          enterprise       40   760.00  true      2026-05-13    {"owner":"mira","seats":40}    ┃
+   Tables                       6 1006       Tailspin Toys              team              5   120.00  true      2026-06-16    NULL                           ┃
+   Editable tables              7 1007       Wide World Importers       pro             150  4350.00  true      2026-07-19    NULL                           ┃
+   Panels                       8 1008       Adventure Works            free             25     0.00  true      NULL          NULL                           ┃
+   Sidebars                     9 1009       Proseware Studio           enterprise        3    57.00  false     2026-09-25    {"owner":"mira","seats":3}     ┃
+   Dialogs                     10 1010       Woodgrove Bank             team             80  1920.00  true      2026-10-28    NULL                           ┃
+   Progress                    11 1011       Alpine Ski House           pro              12   348.00  true      2026-11-03    NULL                           ┃
+   Scrolling                   12 1012       Co╭────────────────────────────────────────────────────────────────╮ULL          NULL                           ┃
+   Terminal                    13 1013       Lu│                                                                │026-01-09    {"owner":"mira","seats":40}    ┃
+   Code editor                 14 1014       Ma│  Pending changes                                               │026-02-12    NULL                           ┃
+   Diff                        15 1015       Tr│                                                                │026-03-15    NULL                           │
+ › Data grid                   16 1016       Hu│  Statements  2                                                 │ULL          NULL                           │
+   Chips & selects             17 1017       No│  Rows        2 changed · 0 inserted · 0 deleted                │026-05-21    {"owner":"mira","seats":3}     │
+   Pickers                     18 1018       Bl│  Target      customers                                         │026-06-24    NULL                           │
+   Chrome                      19 1019       Co│                                                                │026-07-27    NULL                           │
+                               20 1020       Fa│  UPDATE customers SET seats = 600 WHERE id = 1001;             │ULL          NULL                           │
+   Screens                     21 1021       Li│  UPDATE customers SET seats = 12 WHERE id = 1002;              │026-09-05    {"owner":"mira","seats":40}    │
+   Settings                    22 1022       Ta│                                                                │026-10-08    NULL                           │
+   Task runner                 23 1023       Wi│                                           ▎Cancel   Copy SQL   │026-11-11    NULL                           │
+                               24 1024       Ad│                                                                │ULL          NULL                           │
+                                               ╰────────────────────────────────────────────────────────────────╯
+                             • 2 pending · 2 updates                                                                            Preview SQL   Discard   Save
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ ← → Choose  Enter Confirm  Esc Cancel                                                                                                                2 pending

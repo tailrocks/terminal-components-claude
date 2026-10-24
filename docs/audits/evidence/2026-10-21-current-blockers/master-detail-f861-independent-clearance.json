@@ -1,0 +1,135 @@
+{
+  "schema": "independent-rust-review-v1",
+  "reviewer": "/root/master_detail_policy_review",
+  "source": "f861b24518132a0f8e1ba177fab88f67da82a188",
+  "unchanged_default_parent": "491f9cfc8193718b284797d251db585cef81c022",
+  "previous_rejected_source": "23fb59a40da6724a9bb478c5deb79a88bfb7f065",
+  "decision": "clear_bounded_opt_in_component_contract_no_actionable_findings",
+  "source_edits": false,
+  "remote_ref": "f861b24518132a0f8e1ba177fab88f67da82a188\trefs/heads/wip/master-detail-policy-20261021",
+  "resolved_findings": [
+    {
+      "id": "MASTER-DETAIL-API-1",
+      "result": "The existing exhaustive MasterDetailAction enum and update signature are restored. The unchanged standalone consumer previously passing parent and failing23fb E0004 now passes1/1 against exactf861. No wildcard or adapter was added."
+    },
+    {
+      "id": "MASTER-DETAIL-RESET-2",
+      "result": "Controls default remains Balanced; new documented reset_policy setter is additive; only facade resizable mode selects Initial. Unchanged independent real Runtime double-click34 probe previously RED50vs34 now PASS. Native new reset test covers34 and45."
+    }
+  ],
+  "response_metadata_review": {
+    "all_fields": [
+      "id",
+      "flow",
+      "invalidate",
+      "state",
+      "action"
+    ],
+    "result": "Response contains exactly these five fields; discard_action preserves every non-action field and removes only the action. All Flow and Invalidate variants are exhaustively handled and all state flag bits retained. Actual independent facade-vs-existing-controls Runtime probe compares complete erased Response equality and split state across Press,Drag,Release,Home reset: PASS.",
+    "reuse_note": "Existing erase/on_action return Response<()>; map_action preserves optional action but cannot discard it into a differently typed Response without additional mapping. The local helper is correct for current metadata; a future general typed action-discard helper could remove duplication, but no API/correctness blocker is present."
+  },
+  "verification": {
+    "native": "cargo nextest run --locked -p termrock --features testing --test master_detail_consumer:12/12 PASS0skipped",
+    "exhaustive_external": "cargo nextest run --manifest-path /private/tmp/master-detail-external-f861b24-20261021/Cargo.toml --lib:1/1PASS0skipped",
+    "independent_behavior": "3/3PASS with one explicitly excluded previously unsupported Escape-release hypothesis; reset34, input-equivalence and resize/collapse/out-of-bounds-drag/fresh-capture/release. This is not an all-cases green claim.",
+    "live_response_metadata": "1/1PASS0skipped",
+    "default_frames": {
+      "checkpoints": 165,
+      "matrix": "11widthsx5heightsxinitial/Tab/Escape, defaultJunie only",
+      "equal": true,
+      "sha256": "8db0c2b022f950c5bb0fa9d5eef91cd3d2b30a612bed8378adeff11c508dd965",
+      "fields": "Full Buffer characters/styles/attributes/underline color; focus ID/visibility; cursor presence/position/bar shape; workspace/master/detail/summary bounds."
+    },
+    "strict_clippy": "cargo clippy --locked -p termrock -p termrock-controls --all-targets --features termrock/testing -- -D warnings:exit0",
+    "scoped_format": "rustfmt --check --edition2024 four changedRustfiles:exit0",
+    "targets": "Separate fresh f861 target from491before and23fb rejected after; no cross-revision Cargo cache evidence accepted."
+  },
+  "history_integrity": {
+    "first_parent": "9305b7469b0fd0c03321c0932531449180884b85",
+    "second_parent": "23fb59a40da6724a9bb478c5deb79a88bfb7f065",
+    "old_remote_tip_is_ancestor": true,
+    "merge_tree_equals_first_parent": true,
+    "delta_from_rebased_base": "0b524f16d to f861 changes only the five assigned implementation/example/test/audit files; normal-history merge retained old published tip without source overwrite from it."
+  },
+  "harness_notes": [
+    "Initial re-review external command accidentally included an unrelated stale exploratory default_frames test copied with its old semicolon omission. This was a harness compile error, not candidate failure; rerunning the original exhaustive library-only consumer passes. The rejected attempt log is preserved.",
+    "Escape-release expectation is still unproven against frozen routing and intentionally unchanged; no requirement to alter it was inferred."
+  ],
+  "gaps": [
+    "No real CLI tuiscotti frozen baseline/candidate comparison or application adoption. No complete architecture or product acceptance.",
+    "No all-profile default matrix, full remapped/modal opt-in routing matrix, nonzero/clipped-root proof or full workspace gate.",
+    "Existing fixed path and new opt-in engine share correct source ownership, but application bypass removal/Showcase demonstration remain separate required work."
+  ],
+  "artifacts": [
+    {
+      "file": "default-candidate-receipt.txt",
+      "sha256": "8db0c2b022f950c5bb0fa9d5eef91cd3d2b30a612bed8378adeff11c508dd965",
+      "bytes": 222860
+    },
+    {
+      "file": "default-parent-receipt.txt",
+      "sha256": "8db0c2b022f950c5bb0fa9d5eef91cd3d2b30a612bed8378adeff11c508dd965",
+      "bytes": 222860
+    },
+    {
+      "file": "independent-behavior-probes.rs",
+      "sha256": "2c764dfc82f8f2c51cbc0ebf2a65f0c449f3b077ce28152dbd94844c8ed75b97",
+      "bytes": 5511
+    },
+    {
+      "file": "independent-response-metadata.rs",
+      "sha256": "323f1b2c38f1ec07e93606c872202b16035e5bf7a9d1d22c1ae9129ad422310a",
+      "bytes": 2810
+    },
+    {
+      "file": "master-detail-f861b24-behavior-20261021.log",
+      "sha256": "f9cd681d4a9bbf4cb419536cb7be6ceb08d44ea8eda5213c1641b6b4aef5fd51",
+      "bytes": 3008
+    },
+    {
+      "file": "master-detail-f861b24-clippy-corrected-20261021.log",
+      "sha256": "8b09d6a3b530a9011fff1f96b0ff974d3453cc3cc05bff8cc8dacd78ed60b58e",
+      "bytes": 4306
+    },
+    {
+      "file": "master-detail-f861b24-exhaustive-corrected-20261021.log",
+      "sha256": "932faeafcfd86fe45e458a66d50945c4fb4a3e278a54632bb4e7dd54a93c251f",
+      "bytes": 410
+    },
+    {
+      "file": "master-detail-f861b24-external-20261021.log",
+      "sha256": "4ada03c80dbc99b4c10061bc18d2479504a565cc494c950e3051171d2de4e80d",
+      "bytes": 5781
+    },
+    {
+      "file": "master-detail-f861b24-frames-20261021.log",
+      "sha256": "77d743d2b3832790c4dfd0de9b4114893f5361ab9ba0850ba0aca12b082010c4",
+      "bytes": 1515
+    },
+    {
+      "file": "master-detail-f861b24-metadata-20261021.log",
+      "sha256": "eca65361c4021bf3b58a412bb199ad417c3b9f1644823e0a693597c3296c6d04",
+      "bytes": 534
+    },
+    {
+      "file": "master-detail-f861b24-native-corrected-20261021.log",
+      "sha256": "44f197a976dd6e85b9feab6c05323bb094882cc996281325d76664f37303f98d",
+      "bytes": 6397
+    },
+    {
+      "file": "unchanged-before-public-example.rs",
+      "sha256": "04f9c3462c279d395fd15564f75f561e2c4b74e8306a21953b4832c02a7db726",
+      "bytes": 6019
+    },
+    {
+      "file": "unchanged-default-consumer.rs",
+      "sha256": "767d9915e1c8f5a6eaee651dc92e7c9d433e2ff963564b866b5ca254c45b8d66",
+      "bytes": 1327
+    },
+    {
+      "file": "unchanged-exhaustive-consumer.rs",
+      "sha256": "b5a599daa1eac52bf047c194d1f16ff3cab1fec6f6458fade28e5568540e62ce",
+      "bytes": 353
+    }
+  ]
+}

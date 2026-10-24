@@ -1,0 +1,87 @@
+{
+  "status": "CLEAR_FOR_BOUNDED_COMPONENT_INTEGRATION",
+  "reviewer": "/root/editor_backtab_independent_review",
+  "reviewed_commit": "b82ce794deb7b4d2ca5fc16db8a03e5b1c4bd049",
+  "previous_reviewed_commit": "2505fec7a4041154e8d7ff1c1ccd26c9efcd51dd",
+  "frozen_source": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "supersedes_finding": {
+    "packet": "editor-backtab-independent-review-2505fec-20261021/review.json",
+    "sha256": "bcb094c2e78610886b87088057b0b25bd614030a8c1e5937c8c9a4b557daec92",
+    "status": "fixed",
+    "explanation": "Actual deletion ranges are expanded with shared grapheme iteration to frozen floor/ceil boundaries before cursor and anchor offset mapping. Applying those already aligned ranges through the existing TextEditorCore no longer floors a removal end into the same grapheme or maps a different byte count than actually removed."
+  },
+  "findings": [],
+  "checks": [
+    {
+      "command": "cargo nextest run --all-targets (unchanged public consumer)",
+      "before_commit": "2505fec7a4041154e8d7ff1c1ccd26c9efcd51dd",
+      "before_exit": 100,
+      "before_result": "6 run: 5 passed, 1 required combining-indentation regression failed, 0 skipped",
+      "after_commit": "b82ce794deb7b4d2ca5fc16db8a03e5b1c4bd049",
+      "after_exit": 0,
+      "after_result": "6 run: 6 passed, 0 skipped",
+      "probe_source_sha256": "2ad3a0ab2c7239fd426907154e3609bb03838027e81a2216ebf54e72dd3a715a"
+    },
+    {
+      "command": "cargo nextest run -p termrock-editors --all-targets",
+      "exit": 0,
+      "result": "69 passed, 0 skipped"
+    },
+    {
+      "command": "cargo clippy -p termrock-editors --all-targets -- -D warnings",
+      "exit": 0
+    },
+    {
+      "command": "cargo fmt --all --check",
+      "exit": 0
+    },
+    {
+      "command": "git diff --check 2505fec7 b82ce794",
+      "exit": 0
+    }
+  ],
+  "review_scope": [
+    "One and two leading spaces with attached combining marks, multiline and reversed selections, next-line-start exclusion, no-selection cursor lines, tabs, zero indent and zero-sized render regions.",
+    "No-op BackTab retains Changed action while text, cursor, selected text and edit generation remain unchanged. Read-only and disabled paths retain guards. Existing TabBehavior::Leave and inactive bindings unchanged by correction.",
+    "No second text buffer, set_text reset, public API/dependency changes, unsafe code or concurrent state ownership introduced. Existing core mutation is reused; cursor and selection direction remap using actual expanded deletion ranges."
+  ],
+  "limitations": [
+    "No whole-application real-CLI comparison, final PR38 integrated gate, full workspace gate or hosted CI validation. This is component integration clearance only.",
+    "Temporary public probe emits unused Response warnings; strict Clippy result applies to unchanged candidate crate all-targets.",
+    "Separate sparse detached copy and new Cargo target for b82ce794; previous2505 uses its separate existing target. No product source changes or helpers. All command groups explicitly bounded below220 seconds."
+  ],
+  "artifacts": {
+    "before-2505fec7.log": {
+      "sha256": "bb9e56cda16bdb298ff9ad3ec586fcc520d3e6aa39f899ed79cbb8874445ba31",
+      "bytes": 6648
+    },
+    "after-public.log": {
+      "sha256": "cc74b8aafcbc4f696895205e3e4cbf468062dbc02e94d36c4c28ea5343eeb874",
+      "bytes": 10122
+    },
+    "native.log": {
+      "sha256": "f1ac59e32b57f4a4dd19541ffbc68ec9755d02a2be430c278e8908dc561cd189",
+      "bytes": 12872
+    },
+    "clippy.log": {
+      "sha256": "3cb7da6fdd4695ece5cda8ca67edaf96cc5593716d328f335b7d458e5d18beea",
+      "bytes": 3488
+    },
+    "fmt.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "unchanged-probes.rs": {
+      "sha256": "2ad3a0ab2c7239fd426907154e3609bb03838027e81a2216ebf54e72dd3a715a",
+      "bytes": 4246
+    },
+    "correction.diff": {
+      "sha256": "10450edd271dda2a272cfb13f509f72e2391bc8594d663b2517331031d335c0e",
+      "bytes": 3790
+    },
+    "reviewed-code.rs": {
+      "sha256": "dfd5a981db1dfed26ae780bdbaba77d16b29551aea53238aeaec1fa73971428b",
+      "bytes": 89009
+    }
+  }
+}

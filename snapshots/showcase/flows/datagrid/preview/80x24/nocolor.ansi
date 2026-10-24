@@ -1,0 +1,24 @@
+ ▪ Junie Design system / Components / Data grid           i Inspector   ? Help  [0m
+                                                                                [0m
+   Overview       ┃  Data grid  Typed cells, a pending-change queue, paging an… [0m
+   Buttons        ┃                                                             [0m
+   Inputs         ┃    cus… rows 1–12 of 40 loaded · ~4,812 total · cols 3–6 …  [0m
+   Text╭────────────────────────────────────────────────────────────────╮       [0m
+   Form│                                                                │ 2›    [0m
+   List│  [0m[1mPending changes[0m                                               │    ┃  [0m
+   Tree│                                                                │    ┃  [0m
+   Tabl│  Statements  2                                                 │    ┃  [0m
+   Edit│  Rows        2 changed · 0 inserted · 0 deleted                │    │  [0m
+   Pane│  Target      customers                                         │    │  [0m
+   Side│                                                                │    │  [0m
+   Dial│  UPDATE customers SET seats = 600 WHERE id = 1001;             │    │  [0m
+   Prog│  UPDATE customers SET seats = 12 WHERE id = 1002;              │    │  [0m
+   Scro│                                                                │    │  [0m
+   Term│                                           ▎[0m[1mCancel [0m  [0m[1mCopy SQL [0m  │    │  [0m
+   Code│                                                                │    │  [0m
+   Diff╰────────────────────────────────────────────────────────────────╯    │  [0m
+ › Data grid      │                                                             [0m
+   Chips & selec… │     • 2 pending · 2 upda…   Preview SQL   Discard   Save    [0m
+   Pickers        │                                                             [0m
+                                                                                [0m
+ [0m[1m← →[0m Choose  [0m[1mEnter[0m Confirm  [0m[1mEsc[0m Cancel                                2 pending [0m

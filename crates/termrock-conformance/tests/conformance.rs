@@ -11,31 +11,31 @@
 
 use termrock::author::{
     Activated, Binding, BindingState, Bindings, Chord, Cx, Family, FgStep, Focusability, FrameRead,
-    GlyphRole, Id, Intent, ItemKey, KeyCode, Part, PartRef, Phase, Position, Rect, Response,
-    ScrollState, StateFlags, StylePatch, Ui, Variant,
+    GlyphRole, Id, Intent, ItemKey, KeyCode, KeyModifiers, Part, PartRef, Phase, Position, Rect,
+    Response, ScrollState, StateFlags, StylePatch, Ui, Variant,
 };
 use termrock::{
-    Action, ActionKey, Anchor, Brand, Button, ButtonCmd, CellDecor, CellPos, CellRef, Checkbox,
-    ChipBar, ChipBarAction, ChipBarCmd, ChoiceCmd, CodeAction, CodeCmd, CodeEditor,
+    Action, ActionKey, Anchor, App, Brand, Button, ButtonCmd, CellDecor, CellPos, CellRef,
+    Checkbox, ChipBar, ChipBarAction, ChipBarCmd, ChoiceCmd, CodeAction, CodeCmd, CodeEditor,
     CodeEditorState, Column, ColumnKey, Completion, CompletionAction, CompletionCmd,
     CompletionController, CompletionState, ContextMenu, Diagnostic, Dialog, DialogAction,
     DiffLineKind, DiffRow, DiffSource, DiffView, DiffViewState, EditIntent, Empty, EmptyState,
     Field, FieldError, FieldKind, FieldMut, FieldRef, FieldSpec, FilterList, FilterListAction,
     FilterListCmd, FilterListState, Form, FormAction, FormData, FormState, Grid, GridAction,
     GridCmd, GridEditor, GridModel, GridState, HelpAction, HelpCmd, HelpOverlay, HelpOverlayState,
-    HelpSection, Hint, HintBar, HintLayer, Item, KeyHint, KeyPhase, LayerSize, LayerSpec, List,
-    ListAction, ListCmd, Menu, MenuAction, MenuBar, MenuCmd, MenuItem, MenuState, Meter, NavList,
-    NavListAction, NavListCmd, NavListState, NavUnit, Panel, Picker, PickerAction, PickerChain,
-    PickerChainAction, PickerChainCmd, PickerChainState, PickerStage, PickerState, ProgressBar,
-    Props, PropsAction, PropsCmd, PropsList, PropsRow, PropsState, RadioGroup, RadioGroupAction,
-    RadioGroupState, Role, RowUi, ScreenAlign, ScrollRegion, Secret, SecretPolicy, Select,
-    SelectAction, SelectCmd, SelectMode, SelectState, Slot, Span, Spinner, SplitAction, SplitAxis,
-    SplitCmd, SplitPane, SplitPaneState, Status, StatusAction, StatusBar, StatusItem, StepState,
-    Steps, StepsAction, StepsCmd, StepsState, Tabs, TabsAction, TabsCmd, TextAction, TextArea,
-    TextAreaState, TextCmd, TextInput, TextInputState, TextViewport, Theme, Toggle, TooSmall, Tree,
-    TreeAction, TreeCmd, TreeNode, TreeState, ViewportAction, ViewportCmd, ViewportLine,
-    ViewportState, Wizard, WizardAction, WizardCmd, WizardState, WizardStep, binding_conflicts,
-    resolve_anchor,
+    HelpSection, Hint, HintBar, HintLayer, Item, KeyHint, KeyMap, KeyPhase, LayerSize, LayerSpec,
+    List, ListAction, ListCmd, Menu, MenuAction, MenuBar, MenuCmd, MenuItem, MenuState, Meter,
+    NavList, NavListAction, NavListCmd, NavListState, NavUnit, Panel, Picker, PickerAction,
+    PickerChain, PickerChainAction, PickerChainCmd, PickerChainState, PickerStage, PickerState,
+    ProgressBar, Props, PropsAction, PropsCmd, PropsList, PropsRow, PropsState, RadioGroup,
+    RadioGroupAction, RadioGroupState, Role, RowUi, ScreenAlign, ScrollRegion, Secret,
+    SecretPolicy, Select, SelectAction, SelectCmd, SelectMode, SelectState, Slot, Span, Spinner,
+    SplitAction, SplitAxis, SplitCmd, SplitPane, SplitPaneState, Status, StatusAction, StatusBar,
+    StatusItem, StepState, Steps, StepsAction, StepsCmd, StepsState, Tabs, TabsAction, TabsCmd,
+    TextAction, TextArea, TextAreaState, TextCmd, TextInput, TextInputState, TextViewport, Theme,
+    Toggle, TooSmall, Tree, TreeAction, TreeCmd, TreeNode, TreeState, ViewportAction, ViewportCmd,
+    ViewportLine, ViewportState, Wizard, WizardAction, WizardCmd, WizardState, WizardStep,
+    binding_conflicts, resolve_anchor,
 };
 use termrock_test_support::conformance::{
     Caps, Conformance, Fixture, FixtureRow, PointerGesture, mono_states_required_by,
@@ -43,6 +43,14 @@ use termrock_test_support::conformance::{
 use termrock_test_support::{Harness, Scene, conformance_suite};
 
 const PROBE: Id = Id::root("conformance.probe");
+
+/// The edit-menu key.
+///
+/// A text control consumes `Shift+F10` to request its edit menu. The
+/// request is not a binding-table entry, so the conformance contract
+/// declares it here. Every case's binding audit proves that this is the
+/// only chord the control needs a legacy entry for.
+const EDIT_MENU_LEGACY_CHORDS: &[Chord] = &[Chord::with(KeyCode::F(10), KeyModifiers::SHIFT)];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum ProbeCmd {
@@ -350,6 +358,10 @@ impl Conformance for TextInputCase {
         TextInput::new(INPUT).bindings(s)
     }
 
+    fn legacy_key_chords() -> &'static [Chord] {
+        EDIT_MENU_LEGACY_CHORDS
+    }
+
     fn mono_setup_chords(state: StateFlags) -> &'static [Chord] {
         const EDIT: &[Chord] = &[Chord::key(KeyCode::Char('x'))];
         if state.contains(StateFlags::EDITING) {
@@ -418,6 +430,10 @@ impl Conformance for FieldCase {
 
     fn bindings(s: BindingState) -> &'static [Binding<TextCmd>] {
         TextInput::new(FIELD_INPUT).bindings(s)
+    }
+
+    fn legacy_key_chords() -> &'static [Chord] {
+        EDIT_MENU_LEGACY_CHORDS
     }
 
     fn mono_setup_chords(state: StateFlags) -> &'static [Chord] {
@@ -717,8 +733,28 @@ impl Conformance for DialogCase {
         DLG.part(Part::ACTIONS).index(0)
     }
 
+    fn activation_id() -> Id {
+        DLG.part(Part::ACTIONS).index(0)
+    }
+
+    fn activation_part() -> PartRef {
+        PartRef::of(Part::CONTAINER)
+    }
+
     fn opener_id() -> Id {
         LAUNCH
+    }
+
+    fn opener_action() -> Option<Self::Action> {
+        Some(DialogAction::Action(K_OPEN))
+    }
+
+    fn activation_requires_overlay() -> bool {
+        true
+    }
+
+    fn open_overlay(_cx: &mut Cx<'_>, _st: &mut Self::State, _f: &Fixture) -> bool {
+        false
     }
 
     fn update(
@@ -729,6 +765,9 @@ impl Conformance for DialogCase {
         let launch = Button::new(LAUNCH, "Open").update(cx);
         let open = launch.activated()
             || cx.intents(LAUNCH).any(
+                |intent| matches!(intent, Intent::Key(key) if Chord::key(KeyCode::F(4)).matches(&key)),
+            )
+            || cx.intents(DLG.part(Part::ACTIONS).index(0)).any(
                 |intent| matches!(intent, Intent::Key(key) if Chord::key(KeyCode::F(4)).matches(&key)),
             );
         if open {
@@ -828,6 +867,102 @@ impl Conformance for DialogCase {
     }
 }
 
+#[cfg(test)]
+mod activation_probe_guards {
+    use super::*;
+    use termrock_test_support::conformance::driver;
+
+    struct DialogProbe<const FAULT: u8>;
+
+    impl<const FAULT: u8> Conformance for DialogProbe<FAULT> {
+        const NAME: &'static str = "dialog-probe-guard";
+        const FAMILY: Family = DialogCase::FAMILY;
+        const PARTS: &'static [Part] = DialogCase::PARTS;
+        type State = termrock::DialogState;
+        type Action = DialogAction;
+        type Cmd = ButtonCmd;
+
+        fn caps() -> Caps {
+            DialogCase::caps()
+        }
+        fn id() -> Id {
+            DialogCase::id()
+        }
+        fn control_id() -> Id {
+            DialogCase::control_id()
+        }
+        fn opener_id() -> Id {
+            DialogCase::opener_id()
+        }
+        fn opener_action() -> Option<Self::Action> {
+            DialogCase::opener_action()
+        }
+        fn activation_requires_overlay() -> bool {
+            true
+        }
+        fn activation_chords() -> &'static [Chord] {
+            DialogCase::activation_chords()
+        }
+        fn open_chord() -> Option<Chord> {
+            DialogCase::open_chord()
+        }
+        fn layer_id() -> Option<Id> {
+            DialogCase::layer_id()
+        }
+        fn open_overlay(_: &mut Cx<'_>, _: &mut Self::State, _: &Fixture) -> bool {
+            // Fault 2 claims the hook opened the layer, but leaves it closed.
+            FAULT == 2
+        }
+        fn update(cx: &mut Cx<'_>, st: &mut Self::State, f: &Fixture) -> Response<Self::Action> {
+            let response = DialogCase::update(cx, st, f);
+            let activated = response
+                .action_ref()
+                .is_some_and(|action| action != &DialogAction::Action(K_OPEN));
+            if activated && FAULT == 1 {
+                Response::ignored()
+            } else if activated && FAULT == 3 {
+                Response::action(DialogAction::Action(K_OPEN))
+            } else {
+                response
+            }
+        }
+        fn draw(ui: &mut Ui<'_>, area: Rect, st: &Self::State, f: &Fixture) {
+            DialogCase::draw(ui, area, st, f);
+        }
+    }
+
+    #[test]
+    fn real_modal_activation_passes_the_probe() {
+        driver::keyboard_and_mouse_activation_are_equivalent::<DialogProbe<0>>();
+    }
+
+    #[test]
+    #[should_panic(expected = "over the activation part did nothing")]
+    fn discarded_modal_response_is_rejected() {
+        driver::keyboard_and_mouse_activation_are_equivalent::<DialogProbe<1>>();
+    }
+
+    #[test]
+    #[should_panic(expected = "activation setup did not open layer")]
+    fn unopened_modal_is_rejected() {
+        driver::keyboard_and_mouse_activation_are_equivalent::<DialogProbe<2>>();
+    }
+
+    #[test]
+    #[should_panic(expected = "activation reused the opener response")]
+    fn repeated_opener_response_is_rejected() {
+        driver::keyboard_and_mouse_activation_are_equivalent::<DialogProbe<3>>();
+    }
+
+    #[test]
+    fn theme_probe_fingerprint_retains_recipe_revision() {
+        let before = Theme::junie();
+        let mut after = before.clone();
+        let _ = after.recipes.get_mut(Family::BUTTON);
+        assert_eq!(before, after);
+        assert_ne!(before.fingerprint(), after.fingerprint());
+    }
+}
 #[test]
 fn dialog_prompt_renders_caller_owned_error_in_the_field() {
     const ERROR: &str = "Name cannot be empty";
@@ -1118,6 +1253,10 @@ impl Conformance for TextAreaCase {
 
     fn bindings(s: BindingState) -> &'static [Binding<TextCmd>] {
         TextArea::new(TEXT_AREA, 4).bindings(s)
+    }
+
+    fn legacy_key_chords() -> &'static [Chord] {
+        EDIT_MENU_LEGACY_CHORDS
     }
 
     fn mono_setup_chords(state: StateFlags) -> &'static [Chord] {
@@ -2283,6 +2422,10 @@ impl Conformance for TextViewportCase {
         TextViewport::new(TEXT_VIEWPORT).bindings(s)
     }
 
+    fn dynamic_bindings(_fixture: &Fixture) -> Vec<(ActionKey, Chord)> {
+        TextViewport::selection_binding_chords().collect()
+    }
+
     fn mono_states() -> &'static [StateFlags] {
         const STATES: [StateFlags; 3] = [
             StateFlags::empty(),
@@ -2354,6 +2497,15 @@ impl Conformance for CodeEditorCase {
 
     fn bindings(state: BindingState) -> &'static [Binding<CodeCmd>] {
         CodeEditor::new(CODE_EDITOR, 6).bindings(state)
+    }
+
+    fn binding_states() -> &'static [BindingState] {
+        static STATES: std::sync::OnceLock<[BindingState; 1]> = std::sync::OnceLock::new();
+        STATES.get_or_init(|| {
+            [BindingState {
+                flags: StateFlags::FOCUSED | StateFlags::EDITING,
+            }]
+        })
     }
 
     fn mono_setup_chords(state: StateFlags) -> &'static [Chord] {
@@ -2465,6 +2617,10 @@ impl Conformance for DiffViewCase {
         TextViewport::new(DIFF_VIEW).bindings(state)
     }
 
+    fn dynamic_bindings(_fixture: &Fixture) -> Vec<(ActionKey, Chord)> {
+        TextViewport::selection_binding_chords().collect()
+    }
+
     fn mono_states() -> &'static [StateFlags] {
         const STATES: &[StateFlags] = &[
             StateFlags::empty(),
@@ -2477,6 +2633,190 @@ impl Conformance for DiffViewCase {
     fn mono_narrowing_reason() -> &'static str {
         "SELECTED DISABLED ERROR WARNING EDITING BUSY ACTIVE: DiffView is a read-only viewport projection with range selection and no validation, edit, readiness, or active-item state"
     }
+}
+
+const SELECTION_PROBE: Id = Id::root("conformance.viewport.selection-proof");
+const SELECTION_PROBE_LINES: &[ViewportLine<'static>] = &[ViewportLine::Plain("abc")];
+
+#[derive(Default)]
+struct SelectionProbe {
+    state: ViewportState,
+    actions: Vec<ViewportAction>,
+}
+
+impl App for SelectionProbe {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        TextViewport::new(SELECTION_PROBE)
+            .wrap(true)
+            .update(cx, &mut self.state, SELECTION_PROBE_LINES)
+            .on_action(|action| self.actions.push(action))
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        TextViewport::new(SELECTION_PROBE).wrap(true).draw(
+            ui,
+            Rect::new(0, 0, 24, 3),
+            &self.state,
+            SELECTION_PROBE_LINES,
+        );
+    }
+}
+
+#[test]
+fn text_viewport_shift_binding_selects_and_copies_source_bytes() {
+    let mut app = SelectionProbe::default();
+    app.state.set_caret(Some(CellPos::new(0, 2)));
+    app.state.set_follow(false);
+    let mut harness = Harness::new(app, Theme::junie(), 24, 4);
+    assert!(harness.tab_to(SELECTION_PROBE));
+
+    assert_eq!(harness.focus(), Some(SELECTION_PROBE));
+    assert_eq!(harness.app().state.selection(), None);
+    assert_eq!(harness.app().state.caret(), Some(CellPos::new(0, 2)));
+    assert_eq!(harness.app().state.scroll().offset(), 0);
+    let text = harness
+        .area_of_part(SELECTION_PROBE, PartRef::of(Part::TEXT))
+        .expect("TextViewport registers its rendered text area");
+    assert!(text.width >= 3, "the full source line must be visible");
+    assert!(
+        text.height >= 1,
+        "the text area must contain the source line"
+    );
+    assert_eq!(harness.cell(text.x, text.y).symbol(), "a");
+    assert_eq!(harness.cell(text.x + 1, text.y).symbol(), "b");
+    assert_eq!(harness.cell(text.x + 2, text.y).symbol(), "c");
+
+    let response = harness.key_mod(KeyCode::Left, KeyModifiers::SHIFT);
+    assert!(response.is_consumed() && response.is_changed());
+    assert_eq!(
+        harness.app().state.selection(),
+        Some((CellPos::new(0, 2), CellPos::new(0, 3)))
+    );
+    assert_eq!(harness.app().state.caret(), Some(CellPos::new(0, 2)));
+    assert!(
+        harness
+            .app()
+            .actions
+            .contains(&ViewportAction::SelectionChanged)
+    );
+
+    let response = harness.key(KeyCode::Char('y'));
+    assert!(response.is_consumed());
+    assert_eq!(
+        harness.app().actions.last(),
+        Some(&ViewportAction::Copy("c".to_owned()))
+    );
+    assert_eq!(harness.app().state.caret(), Some(CellPos::new(0, 2)));
+    assert!(harness.diagnostics().is_empty());
+}
+
+struct TextViewportMissingSelectionLeft;
+
+impl Conformance for TextViewportMissingSelectionLeft {
+    const NAME: &'static str = "text_viewport_missing_selection_left";
+    const FAMILY: Family = Family::VIEWPORT;
+    const PARTS: &'static [Part] = TextViewport::PARTS;
+    type State = ViewportState;
+    type Action = ViewportAction;
+    type Cmd = ViewportCmd;
+
+    fn caps() -> Caps {
+        TextViewportCase::caps()
+    }
+
+    fn id() -> Id {
+        TEXT_VIEWPORT
+    }
+
+    fn update(
+        cx: &mut Cx<'_>,
+        state: &mut Self::State,
+        fixture: &Fixture,
+    ) -> Response<Self::Action> {
+        TextViewportCase::update(cx, state, fixture)
+    }
+
+    fn draw(ui: &mut Ui<'_>, area: Rect, state: &Self::State, fixture: &Fixture) {
+        TextViewportCase::draw(ui, area, state, fixture);
+    }
+
+    fn bindings(state: BindingState) -> &'static [Binding<Self::Cmd>] {
+        TextViewportCase::bindings(state)
+    }
+
+    fn dynamic_bindings(_fixture: &Fixture) -> Vec<(ActionKey, Chord)> {
+        TextViewport::selection_binding_chords()
+            .filter(|(action, _)| *action != termrock::viewport::viewport::SELECTION_LEFT)
+            .collect()
+    }
+}
+
+struct DiffViewMissingSelectionLeft;
+
+impl Conformance for DiffViewMissingSelectionLeft {
+    const NAME: &'static str = "diff_view_missing_selection_left";
+    const FAMILY: Family = Family::DIFF;
+    const PARTS: &'static [Part] = DiffView::PARTS;
+    type State = DiffViewState;
+    type Action = ViewportAction;
+    type Cmd = ViewportCmd;
+
+    fn caps() -> Caps {
+        DiffViewCase::caps()
+    }
+
+    fn id() -> Id {
+        DIFF_VIEW
+    }
+
+    fn update(
+        cx: &mut Cx<'_>,
+        state: &mut Self::State,
+        fixture: &Fixture,
+    ) -> Response<Self::Action> {
+        DiffViewCase::update(cx, state, fixture)
+    }
+
+    fn draw(ui: &mut Ui<'_>, area: Rect, state: &Self::State, fixture: &Fixture) {
+        DiffViewCase::draw(ui, area, state, fixture);
+    }
+
+    fn bindings(state: BindingState) -> &'static [Binding<Self::Cmd>] {
+        DiffViewCase::bindings(state)
+    }
+
+    fn dynamic_bindings(_fixture: &Fixture) -> Vec<(ActionKey, Chord)> {
+        TextViewport::selection_binding_chords()
+            .filter(|(action, _)| *action != termrock::viewport::viewport::SELECTION_LEFT)
+            .collect()
+    }
+}
+
+fn assert_omitted_selection_left_is_rejected<C: Conformance>() {
+    assert!(C::legacy_key_chords().is_empty());
+    let result = std::panic::catch_unwind(|| {
+        termrock_test_support::conformance::driver::bindings_match_handled_keys::<C>();
+    });
+    let panic = result.expect_err("the audit accepted omitted Shift+Left selection metadata");
+    let message = panic
+        .downcast_ref::<String>()
+        .map(String::as_str)
+        .or_else(|| panic.downcast_ref::<&str>().copied())
+        .unwrap_or("unexpected audit panic");
+    assert!(
+        message.contains("consumed Shift+← which is not in the binding table or legacy set"),
+        "expected omitted Shift+Left (rendered Shift+←) to be rejected, got: {message}"
+    );
+}
+
+#[test]
+fn text_viewport_binding_audit_rejects_omitted_selection_left() {
+    assert_omitted_selection_left_is_rejected::<TextViewportMissingSelectionLeft>();
+}
+
+#[test]
+fn diff_view_binding_audit_rejects_omitted_selection_left() {
+    assert_omitted_selection_left_is_rejected::<DiffViewMissingSelectionLeft>();
 }
 
 const TREE: Id = Id::root("conformance.tree");
@@ -3175,6 +3515,20 @@ impl Conformance for FilterListCase {
     fn bindings(state: BindingState) -> &'static [Binding<Self::Cmd>] {
         FilterList::<Item<'static>>::new(FILTER_LIST).bindings(state)
     }
+    fn nested_binding_chords() -> Vec<Chord> {
+        // The searchable list owns a query field that publishes the text
+        // control's table under the same owner.
+        TextInput::new(FILTER_LIST)
+            .bindings(BindingState {
+                flags: StateFlags::FOCUSED,
+            })
+            .iter()
+            .filter_map(|binding| binding.chord)
+            .collect()
+    }
+    fn legacy_key_chords() -> &'static [Chord] {
+        EDIT_MENU_LEGACY_CHORDS
+    }
     fn item_keys(f: &Fixture) -> Vec<ItemKey> {
         f.rows.iter().map(|r| r.key).collect()
     }
@@ -3263,12 +3617,35 @@ impl Conformance for PickerCase {
     fn layer_id() -> Option<Id> {
         Some(PICKER)
     }
+    fn scroll_id() -> Id {
+        PICKER.sub("results")
+    }
+    fn prepare_scroll_fixture(fixture: &mut Fixture) {
+        for value in 5..15 {
+            fixture.rows.push(FixtureRow {
+                key: ItemKey::num(100 + value),
+                label: format!("row {value}"),
+                meta: format!("meta {value}"),
+                disabled: false,
+            });
+        }
+    }
     fn bindings(state: BindingState) -> &'static [Binding<Self::Cmd>] {
         FilterList::<Item<'static>>::new(PICKER).bindings(state)
     }
+    fn nested_binding_chords() -> Vec<Chord> {
+        // The picker's query row is a text control that publishes its own
+        // table under the picker's owner.
+        TextInput::new(PICKER)
+            .bindings(BindingState {
+                flags: StateFlags::FOCUSED,
+            })
+            .iter()
+            .filter_map(|binding| binding.chord)
+            .collect()
+    }
     fn legacy_key_chords() -> &'static [Chord] {
-        const CHORDS: &[Chord] = &[Chord::key(KeyCode::F(4))];
-        CHORDS
+        EDIT_MENU_LEGACY_CHORDS
     }
     fn item_keys(f: &Fixture) -> Vec<ItemKey> {
         f.rows.iter().map(|r| r.key).collect()
@@ -3414,7 +3791,6 @@ const MENU_ITEMS: [MenuItem<'static>; 2] = [
     MenuItem::new(ActionKey::CLOSE, "Close"),
 ];
 const MENUS: [Menu<'static>; 1] = [Menu::new("File", &MENU_ITEMS)];
-const CONTEXT_LEGACY_CHORDS: &[Chord] = &[Chord::key(KeyCode::F(4))];
 
 macro_rules! menu_case {
     ($case:ident, $name:literal, $id:ident, $ty:ty, $part:expr, $akey:expr, $make:expr, $dynamic:expr, $legacy:expr, $open:expr, $prepare:expr, $layer_draw:expr) => {
@@ -3478,7 +3854,7 @@ menu_case!(
         )
     },
     vec![(ActionKey::SAVE, Chord::key(KeyCode::Char('s')))],
-    CONTEXT_LEGACY_CHORDS,
+    &[],
     Chord::key(KeyCode::F(4)),
     |cx: &mut Cx<'_>, component: &ContextMenu<'_>| {
         if cx.intents(CONTEXT_MENU).any(
@@ -3594,17 +3970,17 @@ impl Conformance for HelpOverlayCase {
         const EMPTY: &[HelpSection<'static>] = &[];
         HelpOverlay::new(HELP_OVERLAY, "Application", EMPTY).bindings(state)
     }
-    fn legacy_key_chords() -> &'static [Chord] {
-        const CHORDS: &[Chord] = &[Chord::key(KeyCode::F(4))];
-        CHORDS
-    }
     fn open_chord() -> Option<Chord> {
         Some(Chord::key(KeyCode::F(4)))
     }
     fn layer_id() -> Option<Id> {
         Some(HELP_OVERLAY)
     }
+    fn binding_probes_require_overlay() -> bool {
+        true
+    }
     fn prepare_scroll_fixture(fixture: &mut Fixture) {
+        fixture.area.height = 10;
         for value in 5..12 {
             fixture.rows.push(FixtureRow {
                 key: ItemKey::num(100 + value),
@@ -3620,6 +3996,331 @@ impl Conformance for HelpOverlayCase {
     }
     fn mono_narrowing_reason() -> &'static str {
         "SELECTED PRESSED DISABLED ERROR WARNING EDITING BUSY ACTIVE: help rows are decorative reference data"
+    }
+}
+
+#[cfg(test)]
+mod help_launcher_contract_tests {
+    use super::*;
+    use termrock_test_support::conformance::{driver, driver::CaseApp};
+
+    const LAUNCHER: Id = Id::root("conformance.help_launcher.launch");
+    const UNDERLAY: Id = Id::root("conformance.help_launcher.underlay");
+    const CLOSE_BINDING: &[Binding<HelpCmd>] = &[Binding {
+        action: ActionKey::custom("help-case.close"),
+        chord: Some(Chord::key(KeyCode::Enter)),
+        cmd: HelpCmd::Close,
+        label: "Close",
+        priority: 80,
+        visible: true,
+    }];
+
+    #[derive(Clone, Debug, Default, PartialEq)]
+    struct LauncherState {
+        help: HelpOverlayState,
+        underlay_activations: u32,
+    }
+
+    struct LauncherCase;
+
+    impl Conformance for LauncherCase {
+        const NAME: &'static str = "help_launcher_contract";
+        const FAMILY: Family = Family::HELP;
+        const PARTS: &'static [Part] = HelpOverlay::PARTS;
+
+        type State = LauncherState;
+        type Action = HelpAction;
+        type Cmd = HelpCmd;
+
+        fn caps() -> Caps {
+            Caps::FOCUSABLE | Caps::OVERLAY | Caps::TRAPS_FOCUS | Caps::SCROLLS
+        }
+
+        fn id() -> Id {
+            HELP_OVERLAY
+        }
+
+        fn opener_id() -> Id {
+            LAUNCHER
+        }
+
+        fn fixture() -> Fixture {
+            let mut fixture = Fixture::default();
+            fixture.area = Rect::new(2, 2, 30, 10);
+            fixture
+        }
+
+        fn update(
+            cx: &mut Cx<'_>,
+            state: &mut Self::State,
+            fixture: &Fixture,
+        ) -> Response<Self::Action> {
+            let mut opened_by_button = false;
+            let launcher_response = Button::new(LAUNCHER, "Help").update(cx).on_activated(|| {
+                opened_by_button = true;
+                open_help(cx, fixture);
+            });
+            if opened_by_button {
+                return Response::changed().for_id(HELP_OVERLAY);
+            }
+            if launcher_response.is_consumed() {
+                return Response::consumed().for_id(LAUNCHER);
+            }
+
+            let underlay_response = Button::new(UNDERLAY, "Probe").update(cx).on_activated(|| {
+                state.underlay_activations = state.underlay_activations.saturating_add(1);
+            });
+            if underlay_response.is_consumed() {
+                return Response::changed().for_id(UNDERLAY);
+            }
+
+            let f4 = Chord::key(KeyCode::F(4));
+            let open_requested = cx
+                .intents(LAUNCHER)
+                .any(|intent| matches!(intent, Intent::Key(key) if f4.matches(&key)))
+                || cx
+                    .intents(HELP_OVERLAY)
+                    .any(|intent| matches!(intent, Intent::Key(key) if f4.matches(&key)));
+            if open_requested {
+                open_help(cx, fixture);
+                return Response::changed().for_id(HELP_OVERLAY);
+            }
+
+            with_help(fixture, |help| help.update(cx, &mut state.help))
+        }
+
+        fn draw(ui: &mut Ui<'_>, area: Rect, state: &Self::State, fixture: &Fixture) {
+            with_help(fixture, |help| {
+                let used = Button::new(LAUNCHER, "Help").draw(ui, area);
+                let below = below_launcher(area, used);
+                if ui
+                    .layer(HELP_OVERLAY, |ui, layer_area| {
+                        help.draw(ui, layer_area, &state.help);
+                    })
+                    .is_none()
+                {
+                    help.draw(ui, below, &state.help);
+                }
+            });
+            let _ = Button::new(UNDERLAY, "Probe").draw(ui, Rect::new(35, 11, 5, 1));
+        }
+
+        fn bindings(state: BindingState) -> &'static [Binding<Self::Cmd>] {
+            const EMPTY: &[HelpSection<'static>] = &[];
+            HelpOverlay::new(HELP_OVERLAY, "Application", EMPTY).bindings(state)
+        }
+
+        fn binding_probes_require_overlay() -> bool {
+            true
+        }
+
+        fn nested_binding_chords() -> Vec<Chord> {
+            Button::new(LAUNCHER, "Help")
+                .bindings(BindingState::default())
+                .iter()
+                .filter_map(|binding| binding.chord)
+                .collect()
+        }
+
+        fn open_chord() -> Option<Chord> {
+            Some(Chord::key(KeyCode::F(4)))
+        }
+
+        fn open_overlay(cx: &mut Cx<'_>, _state: &mut Self::State, fixture: &Fixture) -> bool {
+            open_help(cx, fixture);
+            true
+        }
+
+        fn layer_id() -> Option<Id> {
+            Some(HELP_OVERLAY)
+        }
+    }
+
+    fn with_help<R>(
+        fixture: &Fixture,
+        draw_or_update: impl for<'a> FnOnce(HelpOverlay<'a>) -> R,
+    ) -> R {
+        let layer = HintLayer::from_bindings(CLOSE_BINDING);
+        let sections: Vec<_> = fixture
+            .rows
+            .iter()
+            .map(|row| HelpSection::new(row.label.as_str(), &layer))
+            .collect();
+        let help = HelpOverlay::new(HELP_OVERLAY, "Application", &sections);
+        draw_or_update(help)
+    }
+
+    fn open_help(cx: &mut Cx<'_>, fixture: &Fixture) {
+        with_help(fixture, |help| cx.open_layer(HELP_OVERLAY, help.layer(cx)));
+    }
+
+    fn below_launcher(area: Rect, used: Rect) -> Rect {
+        let y = used.bottom();
+        Rect {
+            y,
+            height: area.bottom().saturating_sub(y),
+            ..area
+        }
+    }
+
+    fn harness(fixture: Fixture) -> Harness<CaseApp<LauncherCase>> {
+        Harness::new(
+            CaseApp::<LauncherCase>::new(fixture),
+            Theme::junie(),
+            40,
+            12,
+        )
+    }
+
+    fn assert_clean(h: &mut Harness<CaseApp<LauncherCase>>) {
+        let before = h.diagnostics().to_vec();
+        assert!(before.is_empty(), "Help launcher diagnostics: {before:?}");
+        h.draw();
+        assert_eq!(h.diagnostics(), before);
+    }
+
+    fn assert_open(h: &Harness<CaseApp<LauncherCase>>) {
+        let done = HELP_OVERLAY.part(Part::ACTIONS);
+        assert!(h.is_open(HELP_OVERLAY));
+        assert!(
+            h.area_of(done).is_some(),
+            "the real Done action is not drawn"
+        );
+        assert_eq!(h.focus(), Some(done));
+        assert!(
+            h.app().last.is_none(),
+            "opening produced a Help close action"
+        );
+    }
+
+    #[test]
+    fn small_fixture_draws_launcher_and_measured_closed_help_below_it() {
+        let fixture = LauncherCase::fixture();
+        let mut h = harness(fixture.clone());
+        let launcher = h
+            .area_of(LAUNCHER)
+            .expect("real Help launcher is registered");
+        let help = h
+            .area_of(HELP_OVERLAY)
+            .expect("closed Help reference is registered");
+        assert!(h.app().last.is_none(), "closed Help produced an action");
+
+        assert_eq!(launcher.height, 1);
+        assert_eq!(help.y, launcher.bottom());
+        assert_eq!(help.x, fixture.area.x);
+        assert_eq!(help.width, fixture.area.width);
+        assert_eq!(help.bottom(), fixture.area.bottom());
+        assert_eq!(launcher, launcher.intersection(fixture.area));
+        assert_eq!(help, help.intersection(fixture.area));
+        assert!(
+            h.text().contains("row 0"),
+            "first fixture Help section is not painted"
+        );
+        for region in h.runtime().registry().regions() {
+            if region.owner == LAUNCHER || region.owner == HELP_OVERLAY {
+                assert_eq!(region.area, region.area.intersection(fixture.area));
+            }
+        }
+        assert_clean(&mut h);
+
+        let mut no_remainder = LauncherCase::fixture();
+        no_remainder.area.height = 1;
+        let mut tiny = harness(no_remainder);
+        assert_eq!(tiny.area_of(LAUNCHER).map(|area| area.height), Some(1));
+        assert!(tiny.area_of(HELP_OVERLAY).is_none());
+        assert!(
+            tiny.tab_to(LAUNCHER),
+            "zero remainder removed launcher focus"
+        );
+        assert!(tiny.app().last.is_none(), "clipped Help produced an action");
+        assert_clean(&mut tiny);
+    }
+
+    #[test]
+    fn click_enter_and_space_open_the_real_layer_and_restore_the_launcher() {
+        for route in [None, Some(KeyCode::Enter), Some(KeyCode::Char(' '))] {
+            let mut h = harness(LauncherCase::fixture());
+            assert!(h.tab_to(LAUNCHER));
+            if let Some(key) = route {
+                assert!(h.key(key).is_consumed(), "launcher did not consume {key:?}");
+            } else {
+                assert!(
+                    h.click_id(LAUNCHER).is_consumed(),
+                    "real launcher click was ignored"
+                );
+            }
+            assert_open(&h);
+
+            assert!(h.key(KeyCode::Esc).is_consumed());
+            assert!(!h.is_open(HELP_OVERLAY));
+            assert_eq!(h.focus(), Some(LAUNCHER));
+            assert!(matches!(h.app().last, Some(HelpAction::Closed(_))));
+            assert_eq!(h.app().st.underlay_activations, 0);
+
+            assert!(matches!(
+                h.app_mut().last.take(),
+                Some(HelpAction::Closed(_))
+            ));
+            assert!(
+                h.key(KeyCode::Enter).is_consumed(),
+                "restored launcher did not reopen"
+            );
+            assert_open(&h);
+            assert!(h.click_id(HELP_OVERLAY.part(Part::ACTIONS)).is_consumed());
+            assert!(!h.is_open(HELP_OVERLAY));
+            assert_eq!(h.focus(), Some(LAUNCHER));
+            assert!(matches!(h.app().last, Some(HelpAction::Closed(_))));
+            assert_eq!(h.app().st.underlay_activations, 0);
+            assert_clean(&mut h);
+        }
+    }
+
+    #[test]
+    fn f4_routes_from_both_real_owners_and_outside_dismissal_does_not_activate_underlay() {
+        for owner in [LAUNCHER, HELP_OVERLAY] {
+            let mut h = harness(LauncherCase::fixture());
+            assert!(h.tab_to(owner));
+            assert!(h.key(KeyCode::F(4)).is_consumed());
+            assert_open(&h);
+            let close = if owner == LAUNCHER {
+                KeyCode::Enter
+            } else {
+                KeyCode::Esc
+            };
+            assert!(h.key(close).is_consumed());
+            assert!(!h.is_open(HELP_OVERLAY));
+            assert_eq!(h.focus(), Some(owner));
+            assert!(matches!(h.app().last, Some(HelpAction::Closed(_))));
+            assert_clean(&mut h);
+        }
+
+        let mut h = harness(LauncherCase::fixture());
+        assert!(h.tab_to(LAUNCHER));
+        let underlay = h
+            .area_of(UNDERLAY)
+            .expect("real underlay is registered while closed");
+        let _ = h.click_id(LAUNCHER);
+        assert_open(&h);
+        let layer = h
+            .layer_area(HELP_OVERLAY)
+            .expect("opened Help layer has an area");
+        assert!(underlay.intersection(layer).is_empty());
+        let _ = h.click(underlay.x, underlay.y);
+        assert!(!h.is_open(HELP_OVERLAY));
+        assert_eq!(h.app().st.underlay_activations, 0);
+        assert_eq!(h.focus(), Some(LAUNCHER));
+        assert!(
+            h.area_of(UNDERLAY).is_some(),
+            "underlay registration did not return"
+        );
+        assert!(h.click_id(UNDERLAY).is_consumed());
+        assert_eq!(h.app().st.underlay_activations, 1);
+        assert_clean(&mut h);
+    }
+
+    #[test]
+    fn binding_probe_uses_focused_opener_hook_and_real_help_bindings() {
+        driver::bindings_match_handled_keys::<LauncherCase>();
     }
 }
 
@@ -3893,6 +4594,10 @@ impl Conformance for FormCase {
             .bindings(state)
     }
 
+    fn legacy_key_chords() -> &'static [Chord] {
+        EDIT_MENU_LEGACY_CHORDS
+    }
+
     fn prepare_scroll_fixture(fixture: &mut Fixture) {
         fixture.area.height = 4;
     }
@@ -3930,6 +4635,27 @@ impl Conformance for FormCase {
     fn mono_narrowing_reason() -> &'static str {
         "SELECTED PRESSED DISABLED ERROR WARNING BUSY ACTIVE: Form's real secret TextInput child owns focus and editing; this fixture has no selection, disabled, validation, readiness, or active-item state"
     }
+}
+
+/// The edit-menu key is a real contract, not an allowlist filler: a text
+/// control consumes `Shift+F10` and asks its owner for the edit menu.
+#[test]
+fn the_edit_menu_key_requests_the_edit_menu() {
+    use termrock_test_support::conformance::driver::CaseApp;
+
+    let fixture = Fixture::default();
+    let mut harness = Harness::new(
+        CaseApp::<TextInputCase>::new(fixture),
+        Theme::junie(),
+        40,
+        12,
+    );
+    assert!(harness.tab_to(INPUT));
+    let _ = harness.key_mod(KeyCode::F(10), KeyModifiers::SHIFT);
+    assert!(
+        harness.app_mut().st.st.take_edit_menu_request().is_some(),
+        "Shift+F10 must request the edit menu"
+    );
 }
 
 conformance_suite!(
@@ -3978,6 +4704,134 @@ conformance_suite!(
     wizard => WizardCase,
     form => FormCase,
 );
+
+struct CodeEditorAuditApp {
+    state: CodeEditorState,
+    keymap: KeyMap,
+}
+
+impl App for CodeEditorAuditApp {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        CodeEditor::new(CODE_EDITOR, 6)
+            .update(cx, &mut self.state)
+            .on_action(|_| ())
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        CodeEditor::new(CODE_EDITOR, 6).draw(ui, Rect::new(2, 2, 30, 6), &self.state);
+    }
+
+    fn keymap(&self) -> &KeyMap {
+        &self.keymap
+    }
+}
+
+#[test]
+fn code_editor_ctrl_u_deletes_to_line_start_in_real_runtime() {
+    let mut h = Harness::new(
+        CodeEditorAuditApp {
+            state: CodeEditorState::new("abc"),
+            keymap: KeyMap::new(),
+        },
+        Theme::junie(),
+        40,
+        12,
+    );
+    assert!(h.tab_to(CODE_EDITOR));
+    assert_eq!(h.focus(), Some(CODE_EDITOR));
+    assert_eq!(h.app().state.text(), "abc");
+    assert!(
+        h.find("abc").is_some(),
+        "editor text should render before editing"
+    );
+
+    assert!(h.key(KeyCode::End).is_consumed());
+    let line_end = h.cursor().expect("editing focus should publish a cursor");
+    assert_eq!(line_end.y, 2);
+    assert!(h.ctrl('u').is_consumed());
+    assert_eq!(h.focus(), Some(CODE_EDITOR));
+    assert_eq!(h.app().state.text(), "");
+    assert!(
+        h.find("abc").is_none(),
+        "Ctrl+U should remove the rendered text"
+    );
+    assert_eq!(
+        h.cursor(),
+        Some(Position::new(line_end.x.saturating_sub(3), line_end.y)),
+        "deleting three characters should move the cursor to line start",
+    );
+}
+
+struct CodeEditorMissingDeleteToStart;
+
+impl Conformance for CodeEditorMissingDeleteToStart {
+    const NAME: &'static str = "code_editor_missing_delete_to_start";
+    const FAMILY: Family = Family::CODE;
+    const PARTS: &'static [Part] = CodeEditor::PARTS;
+    type State = CodeEditorCaseState;
+    type Action = CodeAction;
+    type Cmd = CodeCmd;
+
+    fn caps() -> Caps {
+        CodeEditorCase::caps()
+    }
+
+    fn id() -> Id {
+        Id::root("conformance.code_editor.negative_control")
+    }
+
+    fn update(cx: &mut Cx<'_>, st: &mut Self::State, f: &Fixture) -> Response<CodeAction> {
+        CodeEditor::new(Self::id(), 6)
+            .disabled(f.disabled)
+            .read_only(f.read_only)
+            .update(cx, &mut st.0)
+    }
+
+    fn draw(ui: &mut Ui<'_>, area: Rect, st: &Self::State, f: &Fixture) {
+        CodeEditor::new(Self::id(), 6)
+            .disabled(f.disabled)
+            .read_only(f.read_only)
+            .draw(ui, area, &st.0);
+    }
+
+    fn bindings(state: BindingState) -> &'static [Binding<CodeCmd>] {
+        static OMITTED: std::sync::OnceLock<Vec<Binding<CodeCmd>>> = std::sync::OnceLock::new();
+        OMITTED
+            .get_or_init(|| {
+                CodeEditor::new(Self::id(), 6)
+                    .bindings(state)
+                    .iter()
+                    .copied()
+                    .filter(|binding| binding.cmd != CodeCmd::DeleteToLineStart)
+                    .collect()
+            })
+            .as_slice()
+    }
+
+    fn binding_states() -> &'static [BindingState] {
+        CodeEditorCase::binding_states()
+    }
+}
+
+#[test]
+fn code_editor_binding_audit_rejects_omitted_ctrl_u_even_when_real_editor_deletes() {
+    let result = std::panic::catch_unwind(|| {
+        termrock_test_support::conformance::driver::bindings_match_handled_keys::<
+            CodeEditorMissingDeleteToStart,
+        >();
+    });
+    let panic = result.expect_err("the audit accepted an omitted published Ctrl+U action");
+    let message = panic
+        .downcast_ref::<String>()
+        .map(String::as_str)
+        .or_else(|| panic.downcast_ref::<&str>().copied())
+        .unwrap_or("unexpected audit panic");
+    assert!(
+        message.contains("consumed Ctrl+u which is not in the binding table or legacy set"),
+        "expected the omitted Ctrl+u chord to be rejected, got: {message}"
+    );
+    assert!(CodeEditorCase::legacy_key_chords().is_empty());
+}
 
 #[test]
 fn mono_states_required_by_is_a_union() {

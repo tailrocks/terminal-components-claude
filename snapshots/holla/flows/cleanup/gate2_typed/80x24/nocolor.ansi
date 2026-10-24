@@ -1,0 +1,25 @@
+[0m[2m  holla❯    File   Go   Help                  safe · Rust project  mbp · local  [0m
+[0m[2m  Here › Disk › Usage › Review                                                  [0m
+[0m[2m  H╭──────────────────────────────────────────────────────────────────── × ─╮   [0m
+[0m[2m ━━│                                                                        │── [0m
+[0m[2m  R│  [0m[1;2mTrash 1 items · gate 2 of 2[0m[2m                                           │…  [0m
+[0m[2m   │                                                                        │   [0m
+[0m[2m  A│  [0mAction        move to Trash 1 item under ~/Projects/safe            [0m[2m ┃│┃  [0m
+[0m[2m  H│  [0mHost          mbp · local                                           [0m[2m ┃│┃  [0m
+[0m[2m  M│  [0mMode          Trash · native macOS Trash · space returns after the  [0m[2m ┃│┃  [0m
+[0m[2m   │  [0m              Trash is emptied                                      [0m[2m ┃│┆  [0m
+[0m[2m  E│  [0mEstimate      1000.0 MiB allocated · APFS clones may overcount ·    [0m[2m ┆│┆  [0m
+[0m[2m   │  [0m              purgeable space excluded · not a free-space guarantee [0m[2m ┆│┆  [0m
+[0m[2m  D│  [0mDenied        none · every path passed the lexical, protected-root, [0m[2m ┆│┆  [0m
+[0m[2m   │  [0m              user-data and symlink rules                           [0m[2m ┆│   [0m
+[0m[2m ╭─│  ↓ 8 more                                                              │─╮ [0m
+[0m[2m │ │  [0m[1;2mType TRASH 1 UNDER /Users/alex/Projects/safe ON mbp to confirm      [0m[2m  │ │ [0m
+[0m[2m │ │▎ [0m[2;4mTRASH 1 UNDER /Users/alex/Projects/safe ON mbp[0m[2m                        │ │ [0m
+[0m[2m │ │                                                                        │ │ [0m
+[0m[2m ╰─│                                                    Cancel    Execute   │─╯ [0m
+[0m[2m   │                                                                        │   [0m
+[0m[2m   ╰─────────────────────────────────────────────────────[0m─[0m[2m─────────[0m─[0m[2m────────╯   [0m
+[0m[2m                                                                                [0m
+[0m[2m ~/Projects/safe             review · gate 1 of 2              no color · 80×24 [0m
+ [0m[1m EDIT [0m  [0m[1mEnter[0m Execu[0m[1mte [0m [0m[1mEsc[0m Cancel       1 item selected · 1000.0 MiB estimated [0m
+[?25h[17;53H[6 q

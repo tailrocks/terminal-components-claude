@@ -1,8 +1,9 @@
 use std::time::Duration;
 
 use termrock::{
-    Button, Constraints, Cx, Family, FrameRead, Id, Moment, Panel, PanelKind, Part, PartRef, Rect,
-    ReferenceState, ReferenceTarget, Response, RowAlign, StateFlags, Status, Ui, Variant, layout,
+    BusyMarkerPolicy, Button, Constraints, Cx, FrameRead, Id, Moment, Panel, PanelKind, Part,
+    PartRef, Rect, ReferenceState, ReferenceTarget, Response, RowAlign, StateFlags, Status, Ui,
+    Variant, layout,
 };
 
 use super::{Page, PageStatus, PageUpdate, frame};
@@ -12,11 +13,43 @@ const PLAYGROUND_PANEL: Id = termrock::Id::root("showcase_ui::pages::buttons::bu
 const MATRIX: Id = termrock::Id::root("showcase_ui::pages::buttons::buttons.matrix");
 const MATRIX_PANEL: Id = termrock::Id::root("showcase_ui::pages::buttons::buttons.matrix.panel");
 
+const CARD_TITLE: &[(Part, termrock::StylePatch)] = &[(
+    Part::TITLE,
+    termrock::StylePatch::new()
+        .set_fg(termrock::Role::Fg(termrock::FgStep::Secondary))
+        .remove(termrock::Modifier::BOLD),
+)];
+
+const DANGER_INK: &[(Part, termrock::StylePatch)] = &[(
+    Part::CONTAINER,
+    termrock::StylePatch::new().set_fg(termrock::Role::Danger),
+)];
+
+const DISABLED_PLATE: &[(Part, termrock::StylePatch)] = &[(
+    Part::CONTAINER,
+    termrock::StylePatch::new().set_bg(termrock::Role::Custom(termrock::Color::from_u32(
+        0x0011_1111,
+    ))),
+)];
+
+const PRESSED_BOLD: &[(Part, termrock::StylePatch)] = &[
+    (
+        Part::CONTAINER,
+        termrock::StylePatch::new().add(termrock::Modifier::BOLD),
+    ),
+    (
+        Part::LABEL,
+        termrock::StylePatch::new().add(termrock::Modifier::BOLD),
+    ),
+];
+
 fn playground_panel() -> Panel<'static> {
     Panel::new(PLAYGROUND_PANEL)
         .kind(PanelKind::Card)
         .title("Playground")
         .meta("hover · click · Tab · Enter / Space ")
+        .patch_part(CARD_TITLE)
+        .slot(Part::DETAIL, &paint_playground_meta)
 }
 
 fn matrix_panel() -> Panel<'static> {
@@ -24,6 +57,53 @@ fn matrix_panel() -> Panel<'static> {
         .kind(PanelKind::Card)
         .title("State matrix")
         .meta("reference rendering ")
+        .patch_part(CARD_TITLE)
+        .slot(Part::DETAIL, &paint_matrix_meta)
+}
+
+fn paint_playground_meta(ui: &mut Ui<'_>, rect: Rect) {
+    paint_faint(ui, rect, "hover · click · Tab · Enter / Space");
+}
+
+fn paint_matrix_meta(ui: &mut Ui<'_>, rect: Rect) {
+    paint_faint(ui, rect, "reference rendering");
+}
+
+fn paint_faint(ui: &mut Ui<'_>, rect: Rect, text: &str) {
+    let columns = termrock::width(text);
+    let _ = ui.paint_str(
+        Rect {
+            width: columns.min(rect.width),
+            ..rect
+        },
+        text,
+        faint_ink(ui),
+    );
+}
+
+fn paint_toggle_off(ui: &mut Ui<'_>, rect: Rect) {
+    ui.glyph(rect, termrock::GlyphRole::DotOff, toggle_ink(ui, false));
+}
+
+fn paint_toggle_on(ui: &mut Ui<'_>, rect: Rect) {
+    ui.glyph(rect, termrock::GlyphRole::DotOn, toggle_ink(ui, true));
+}
+
+fn toggle_ink(ui: &Ui<'_>, on: bool) -> termrock::author::PaintStyle {
+    let level = ui.theme().capability.color;
+    let fg = if on {
+        ui.theme().color.accent
+    } else {
+        termrock::theme::baseline_muted(level)
+    };
+    ui.surface_style()
+        .fg(fg)
+        .bg(ui.theme().bg(termrock::Surface::Overlay))
+}
+
+fn faint_ink(ui: &Ui<'_>) -> termrock::author::PaintStyle {
+    ui.surface_style()
+        .fg(termrock::theme::baseline_faint(ui.theme().capability.color))
 }
 
 const SPECS: [(&str, Variant, bool, Option<bool>); 9] = [
@@ -60,7 +140,12 @@ const MATRIX_STATES: [(&str, StateFlags); 6] = [
             .union(StateFlags::FOCUS_VISIBLE)
             .union(StateFlags::HOVERED),
     ),
-    ("pressed", StateFlags::PRESSED.union(StateFlags::FOCUSED)),
+    (
+        "pressed",
+        StateFlags::PRESSED
+            .union(StateFlags::FOCUSED)
+            .union(StateFlags::FOCUS_VISIBLE),
+    ),
     ("disabled", StateFlags::DISABLED),
 ];
 
@@ -70,20 +155,6 @@ const MATRIX_VARIANTS: [(Variant, &str); 4] = [
     (Variant::SUBTLE, "Subtle"),
     (Variant::DANGER, "Danger"),
 ];
-
-fn legacy_gutter(ui: &mut Ui<'_>, area: Rect, variant: Variant, flags: StateFlags) {
-    if area.is_empty() {
-        return;
-    }
-    let container = ui.style(Family::BUTTON, variant, Part::CONTAINER, flags);
-    let mut gutter = ui.style(Family::BUTTON, variant, Part::GUTTER, flags).style;
-
-    gutter = gutter.with_bg_from(container.style);
-    if !flags.contains(StateFlags::FOCUSED) {
-        gutter = gutter.with_fg_from_bg(container.style);
-    }
-    let _ = ui.paint_str(Rect { width: 1, ..area }, "▎", gutter);
-}
 
 fn matrix_reference(flags: StateFlags) -> Option<ReferenceState> {
     let mut state = ReferenceState::default();
@@ -132,12 +203,23 @@ impl ButtonsPage {
         let (label, variant, disabled, _) = SPECS.get(index).copied()?;
         let mut button = Button::new(Self::button_id(index), label)
             .variant(variant)
-            .disabled(disabled);
+            .disabled(disabled)
+            .busy_marker_policy(BusyMarkerPolicy::Replace);
         if let Some(checked) = self.checked.get(index).copied().flatten() {
             button = button.checked(checked);
         }
         if index == LONG_JOB && self.busy_until.is_some() {
             button = button.status(Status::Busy);
+        }
+        if variant == Variant::DANGER {
+            button = button.patch_part(DANGER_INK);
+        }
+        if variant == Variant::TOGGLE {
+            button = if self.checked.get(index).copied().flatten() == Some(true) {
+                button.slot(Part::MARKER, &paint_toggle_on)
+            } else {
+                button.slot(Part::MARKER, &paint_toggle_off)
+            };
         }
         Some(button)
     }
@@ -225,7 +307,27 @@ impl Page for ButtonsPage {
                     |ui, inner| self.draw_playground(ui, inner),
                 );
                 let matrix_area = regions.get(2).copied().unwrap_or(body);
-                if matrix_area.width < 70 && !matrix_area.is_empty() {
+                if area.width < 70 && matrix_area.is_empty() {
+                    let row = Rect {
+                        y: area.bottom(),
+                        height: 1,
+                        ..area
+                    };
+                    let ink = ui
+                        .surface_style()
+                        .fg(termrock::theme::baseline_muted(ui.theme().capability.color))
+                        .bg(termrock::Color::from_u32(0x0011_1111));
+                    for (index, title) in ["Primary", "Secondary"].into_iter().enumerate() {
+                        let x = area
+                            .x
+                            .saturating_add(15)
+                            .saturating_add(15 * u16::try_from(index).unwrap_or(0));
+                        if x.saturating_add(15) > area.right() {
+                            break;
+                        }
+                        ui.paint_str(Rect::new(x, row.y, 15, 1), title, ink);
+                    }
+                } else if matrix_area.width < 70 && !matrix_area.is_empty() {
                     matrix_panel().draw(ui, matrix_area, |_, _| ());
                     Self::draw_matrix(
                         ui,
@@ -239,11 +341,17 @@ impl Page for ButtonsPage {
                 } else {
                     matrix_panel().draw(ui, matrix_area, Self::draw_matrix);
                 }
-                if let Some(status) = regions.get(3).copied()
-                    && let Some(last) = &self.last
-                {
-                    let text = format!("last: {last} · {} activations", self.clicks);
-                    let _ = ui.paint_str(status, &text, ui.surface_style());
+                if let Some(status) = regions.get(3).copied() {
+                    if let Some(last) = &self.last {
+                        let text = format!("last: {last} · {} activations", self.clicks);
+                        let _ = ui.paint_str(status, &text, ui.surface_style());
+                    } else if !status.is_empty() {
+                        ui.fill(
+                            status,
+                            ui.surface_style()
+                                .bg(termrock::Color::from_u32(0x0011_1111)),
+                        );
+                    }
                 }
             },
         );
@@ -265,7 +373,8 @@ impl ButtonsPage {
                     ..area
                 },
                 caption,
-                ui.surface_style(),
+                ui.surface_style()
+                    .fg(termrock::theme::baseline_muted(ui.theme().capability.color)),
             );
             let widths: Vec<u16> = indices
                 .iter()
@@ -288,34 +397,8 @@ impl ButtonsPage {
                     .iter()
                     .zip(layout::action_row(line, &widths, gap, RowAlign::Start))
             {
-                if let Some(button) = self.button(index)
-                    && let Some(&(_, variant, disabled, _)) = SPECS.get(index)
-                {
-                    let mut flags = ui.state(button.id());
-                    if disabled {
-                        flags |= StateFlags::DISABLED;
-                    }
-                    if self.checked.get(index).copied().flatten() == Some(true) {
-                        flags |= StateFlags::CHECKED | StateFlags::SELECTED;
-                    }
-                    if self.busy_until.is_some() && index == LONG_JOB {
-                        flags |= StateFlags::BUSY;
-                    }
+                if let Some(button) = self.button(index) {
                     button.draw(ui, button_area);
-                    legacy_gutter(ui, button_area, variant, flags);
-                    if let Some(checked) = self.checked.get(index).copied().flatten() {
-                        let marker = ui.style(Family::BUTTON, variant, Part::MARKER, flags).style;
-                        let _ = ui.paint_str(
-                            Rect {
-                                x: button_area.x.saturating_add(1),
-                                y: button_area.y,
-                                width: 1,
-                                height: 1,
-                            },
-                            if checked { "●" } else { "○" },
-                            marker,
-                        );
-                    }
                 }
             }
             y = y.saturating_add(3);
@@ -343,9 +426,14 @@ impl ButtonsPage {
                     height: 1,
                 },
                 title,
-                ui.surface_style(),
+                ui.surface_style()
+                    .fg(termrock::theme::baseline_muted(ui.theme().capability.color))
+                    .bg(termrock::Color::from_u32(0x0011_1111)),
             );
         }
+        let row_ink = ui
+            .surface_style()
+            .fg(ui.theme().color.fg[termrock::FgStep::Secondary.index()]);
         for (state_index, (name, flags)) in MATRIX_STATES.iter().enumerate() {
             let y = area.y.saturating_add(1).saturating_add(state_index as u16);
             if y >= area.bottom() {
@@ -359,7 +447,7 @@ impl ButtonsPage {
                     height: 1,
                 },
                 name,
-                ui.surface_style(),
+                row_ink,
             );
             for (variant_index, (variant, _)) in MATRIX_VARIANTS.iter().enumerate() {
                 let x = column_x(variant_index);
@@ -371,19 +459,21 @@ impl ButtonsPage {
                     ReferenceTarget::new(id, state).part(PartRef::of(Part::CONTAINER))
                 });
                 ui.reference(target, |ui| {
-                    Button::new(id, " Label")
+                    let mut button = Button::new(id, " Label")
                         .variant(*variant)
                         .disabled(flags.contains(StateFlags::DISABLED))
-                        .draw(
-                            ui,
-                            Rect {
-                                x,
-                                y,
-                                width: column_width,
-                                height: 1,
-                            },
-                        );
-                    legacy_gutter(
+                        .busy_marker_policy(BusyMarkerPolicy::Replace);
+                    if *variant == Variant::SUBTLE && flags.contains(StateFlags::DISABLED) {
+                        button = button.patch_part(DISABLED_PLATE);
+                    } else if *variant == Variant::PRIMARY && flags.contains(StateFlags::PRESSED) {
+                        button = button.patch_part(PRESSED_BOLD);
+                    } else if *variant == Variant::DANGER
+                        && !flags.contains(StateFlags::PRESSED)
+                        && !flags.contains(StateFlags::DISABLED)
+                    {
+                        button = button.patch_part(DANGER_INK);
+                    }
+                    button.draw(
                         ui,
                         Rect {
                             x,
@@ -391,26 +481,56 @@ impl ButtonsPage {
                             width: column_width,
                             height: 1,
                         },
-                        *variant,
-                        *flags,
                     );
-                    if flags.contains(StateFlags::PRESSED) {
-                        let container = ui
-                            .style(Family::BUTTON, *variant, Part::CONTAINER, *flags)
-                            .style;
-                        let _ = ui.paint_str(
-                            Rect {
-                                x: x.saturating_add(7),
-                                y,
-                                width: 1,
-                                height: 1,
-                            },
-                            " ",
-                            container,
-                        );
-                    }
                 });
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{BUTTONS, ButtonsPage, MATRIX, Page};
+    use termrock::{App, Cx, GlyphRole, Response, Theme, Ui};
+    use termrock_test_support::Harness;
+
+    struct ShowcaseButtons(ButtonsPage);
+
+    impl App for ShowcaseButtons {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            self.0.update(cx).response
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let area = ui.full();
+            self.0.draw(ui, area);
+        }
+    }
+
+    #[test]
+    fn toggle_activation_uses_button_owned_marker_and_reference_rows_are_inert() {
+        let page = ShowcaseButtons(ButtonsPage::new());
+        let theme = Theme::junie()
+            .builder()
+            .glyph(GlyphRole::DotOff, "o")
+            .glyph(GlyphRole::DotOn, "x")
+            .glyph(GlyphRole::FocusBar, "f")
+            .build();
+        let mut harness = Harness::new(page, theme, 120, 40);
+        let toggle = BUTTONS.index(4);
+        let area = harness.area_of(toggle).expect("toggle is registered");
+
+        assert_eq!(harness.app().0.checked[4], Some(false));
+        assert_eq!(harness.cell(area.x.saturating_add(1), area.y).symbol(), "o");
+        assert!(harness.tab_to(toggle));
+        assert_eq!(harness.cell(area.x, area.y).symbol(), "f");
+        assert!(harness.click_id(toggle).is_changed());
+        assert_eq!(harness.app().0.checked[4], Some(true));
+        assert_eq!(harness.cell(area.x.saturating_add(1), area.y).symbol(), "x");
+
+        let reference_button = MATRIX.index(0).index(0);
+        assert!(harness.area_of(reference_button).is_none());
+        assert!(harness.text().contains("focus + hover"));
+        assert!(area.width > 0);
     }
 }

@@ -1,40 +1,40 @@
 {
-  "ansi_sha256": "20c98d896cc5644783d402e01f4840d6d33dc6b17471bf5f646b884299c81e44",
+  "ansi_sha256": "94080777a1455b6747e6d1be0f08954cebb1682f56e39c0953ab3919fd33bec3",
   "artifacts": {
     "ansi": {
-      "bytes": 6026,
+      "bytes": 4916,
       "file": "tablepro/workbench/overlay-picker-open/72x20/none.ansi",
-      "sha256": "20c98d896cc5644783d402e01f4840d6d33dc6b17471bf5f646b884299c81e44"
+      "sha256": "94080777a1455b6747e6d1be0f08954cebb1682f56e39c0953ab3919fd33bec3"
     },
     "ascii": {
-      "bytes": 1429,
+      "bytes": 1435,
       "file": "tablepro/workbench/overlay-picker-open/72x20/none.ascii",
-      "sha256": "1233697876a3d0a7ea9b581c851fbb1237fa5c15df7ace968ec8f10e58dd15c6"
+      "sha256": "453bf6a9496d57a196564edf69df705b07e619ecba5425a36ddcfeb323b5d34b"
     },
     "ascii_loss_json": {
-      "bytes": 22032,
+      "bytes": 22223,
       "file": "tablepro/workbench/overlay-picker-open/72x20/none.ascii.loss.json",
-      "sha256": "a8f70bd04eb13563181e89c2c91b7a2cc7ed4d2b82e1676192d6838a74114f21"
+      "sha256": "45726f6a1d8ea72ca025c0f4689da3426edf5c36ad47ffd34d33b6b719de642d"
     },
     "frame_json": {
-      "bytes": 334454,
+      "bytes": 333013,
       "file": "tablepro/workbench/overlay-picker-open/72x20/none.frame.json",
-      "sha256": "cd3df971ea2db2fc890637af8e503b92e17a268814600682ba695e2eda1b6544"
+      "sha256": "142daf1c1ccd466f73643d5a9e7d2dffaaa634dde4da339229f6059a3c5cac7e"
     },
     "html": {
-      "bytes": 280753,
+      "bytes": 310989,
       "file": "tablepro/workbench/overlay-picker-open/72x20/none.html",
-      "sha256": "d143eb255ea014d6d1d4770cd3efe50afab36c87c6179ea0eeb6c653c7d5dffa"
+      "sha256": "605d69724529c7910fb2f64cad7d4168f88cec3a97ad6035817edaebcc97b0b7"
     },
     "observations_json": {
-      "bytes": 471,
+      "bytes": 472,
       "file": "tablepro/workbench/overlay-picker-open/72x20/none.observations.json",
-      "sha256": "779c207609a0a09b162b79c23d0d3795675b798a4f796033413cf34ec4a9f0c4"
+      "sha256": "9f8d5073df747c2fd3ed0a2a759c4918b04509b6dc2df319fa16b65bd1bbd754"
     },
     "png": {
-      "bytes": 197233,
+      "bytes": 222924,
       "file": "tablepro/workbench/overlay-picker-open/72x20/none.png",
-      "sha256": "2f9c9265e28be2201930077e24fa7b94658cc2c2e0757a3ad196d4f9e524f004"
+      "sha256": "a672c070044fd8c6aeaebc962c6170fdd3478e58552d4516022ec1324b133e75"
     },
     "png_fidelity_json": {
       "bytes": 276,
@@ -44,24 +44,24 @@
     "txt": {
       "bytes": 1898,
       "file": "tablepro/workbench/overlay-picker-open/72x20/none.txt",
-      "sha256": "6653d0eee5aa563b3b547c7624705c5fd4804105cff167c50da359faa50691dd"
+      "sha256": "699c4da5095d225b909307a18199e4578ac8419d3b11df832ed562d21c6165ab"
     }
   },
-  "ascii_substitutions_count": 238,
+  "ascii_substitutions_count": 240,
   "complete": true,
   "dimensions": {
     "cols": 72,
     "rows": 20
   },
-  "frame_digest": 15235477951238743059,
-  "frame_sha256": "cd3df971ea2db2fc890637af8e503b92e17a268814600682ba695e2eda1b6544",
-  "generation": "a3087428d79039c892ff5a0e6ae4cea4ad5a48e69ce7f1a960623ea9db0a40be",
-  "html_sha256": "d143eb255ea014d6d1d4770cd3efe50afab36c87c6179ea0eeb6c653c7d5dffa",
+  "frame_digest": 16223114260234079296,
+  "frame_sha256": "142daf1c1ccd466f73643d5a9e7d2dffaaa634dde4da339229f6059a3c5cac7e",
+  "generation": "08c191e7c126128b4af53259286417c0bdd5951c1c3b37a3051b3cdf25e15891",
+  "html_sha256": "605d69724529c7910fb2f64cad7d4168f88cec3a97ad6035817edaebcc97b0b7",
   "legacy_name": "tablepro/overlays/picker_open/72x20/none",
   "name": "tablepro/workbench/overlay-picker-open/72x20/none",
-  "png_sha256": "2f9c9265e28be2201930077e24fa7b94658cc2c2e0757a3ad196d4f9e524f004",
+  "png_sha256": "a672c070044fd8c6aeaebc962c6170fdd3478e58552d4516022ec1324b133e75",
   "profile": "tuiscotti-default",
   "schema_version": 1,
-  "timestamp_utc": "2026-10-03T22:11:17Z",
-  "txt_sha256": "6653d0eee5aa563b3b547c7624705c5fd4804105cff167c50da359faa50691dd"
+  "timestamp_utc": "2026-10-21T00:00:00Z",
+  "txt_sha256": "699c4da5095d225b909307a18199e4578ac8419d3b11df832ed562d21c6165ab"
 }

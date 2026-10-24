@@ -1,0 +1,30 @@
+{
+  "scope": "standalone public API consumer proof",
+  "source_index_tree": "cf291f16578d6fca37551ca1453b15fdb49f89ab",
+  "manifest": "external-consumer-demo/Cargo.toml",
+  "dependency_boundary": "The standalone crate depends on the public termrock facade only; tests assert manifest and source imports use no internal termrock-* crates.",
+  "gates": {
+    "nextest": {
+      "command": "cargo nextest run --locked --all-targets --manifest-path external-consumer-demo/Cargo.toml",
+      "result": "9 passed, 0 failed, 0 skipped",
+      "exit_code": 0,
+      "sha256": "ed3c62838faaa1afb266fcac88a5ec7e7013c8c5360b03e1415fd6d30697e66f"
+    },
+    "clippy": {
+      "command": "cargo clippy --locked --all-targets --manifest-path external-consumer-demo/Cargo.toml -- -D warnings",
+      "result": "passed",
+      "exit_code": 0,
+      "sha256": "27463270b08ba217ed846b39dcb05856af3ee4fcee5d8bc6109edb9a50902b8f"
+    },
+    "fmt": {
+      "command": "cargo fmt --manifest-path external-consumer-demo/Cargo.toml -- --check",
+      "result": "passed",
+      "exit_code": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "limitations": [
+    "This is a library API demonstration only; it does not prove adoption in Showcase, TablePro, Jackin, or Holla.",
+    "It does not prove either complete acceptance requirement or full workspace CI."
+  ]
+}

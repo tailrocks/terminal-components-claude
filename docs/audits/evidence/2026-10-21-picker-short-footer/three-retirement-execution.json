@@ -1,0 +1,30 @@
+{
+  "integration": "da6e9a184ad14bb3c3ac82906ca81a7bde3d9e82",
+  "checks": [
+    {
+      "branch": "wip/holla-nav-header-policy-20261021",
+      "sha": "aec8661ec2e3ab9c602f1b4efed2806072a58751",
+      "protected": false,
+      "rules": [],
+      "associated_head_prs": []
+    },
+    {
+      "branch": "wip/picker-card-layout-20261021",
+      "sha": "6cd63d2270b85dac30c63018070e00ed80510925",
+      "protected": false,
+      "rules": [],
+      "associated_head_prs": []
+    },
+    {
+      "branch": "wip/dialog-primary-action-20261021",
+      "sha": "8a9af56bcb39d3fe810191fc8da85d149996eccf",
+      "protected": false,
+      "rules": [],
+      "associated_head_prs": []
+    }
+  ],
+  "protected_refs_before_and_after": "f2f6eb716c4a512be3dc9423742fa06e86879b32\trefs/heads/design/interaction-polish\na97e351df736b576904bc450619ca347ea64d65b\trefs/heads/main\n2718a6b8127a522a3d351d0b4bdb7542fc8da542\trefs/tags/visual-baseline",
+  "utc": "2026-10-21T13:17:18.144878+00:00",
+  "atomic": true,
+  "deleted_refs_absent": true
+}

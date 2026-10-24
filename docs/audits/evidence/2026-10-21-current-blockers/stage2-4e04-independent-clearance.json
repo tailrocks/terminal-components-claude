@@ -1,0 +1,86 @@
+{
+  "schema": "termrock.canonical-owned-stage2.independent-review.v2",
+  "source_commit": "4e04be07a15377f902316633e859c41a9ba50d58",
+  "source_runner": {
+    "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/canonical-stage2-independent-review-4e04be07/tools/frozen_baseline.py",
+    "sha256": "e97361a954743231716a228646dd96f8fcf5b951780459a36e1842b08e0cfd80"
+  },
+  "reviewed_parent": "d66e18a7f53d7185397438591983a6b2791b4460",
+  "previous_hold": {
+    "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/canonical-stage2-independent-review-082548-d66e18-20261021.json",
+    "sha256": "43a68b05442644ad39e335f7f669fae5f427b78a498245618a028ce37c1bd929"
+  },
+  "decision": "CLEAR exact canonical opt-in owned prepare-live source for bounded stage2 integration; operational execution still requires a separately reviewed, pinned external supervisor and verified source publication.",
+  "scope": "Stage2 live-source preparation and inventory discovery only. No sealed fresh plan, key, capture, replay, ordinary CLI execution, candidate comparison, or product acceptance is admitted.",
+  "tests": {
+    "unchanged_suite_runs": [
+      {
+        "tests": 105,
+        "seconds": 17.908,
+        "exit": 0
+      },
+      {
+        "tests": 105,
+        "exit_code": 0,
+        "elapsed_seconds": 16.386,
+        "log_sha256": "90c7ea7fb95871c62c8835fdaad022866bf290063aec6d3bcdd500a2b92235b8"
+      }
+    ],
+    "log": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/canonical-stage2-independent-review-4e04be07/unchanged-full-suite.log",
+      "sha256": "90c7ea7fb95871c62c8835fdaad022866bf290063aec6d3bcdd500a2b92235b8"
+    },
+    "retained_before": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/canonical-stage2-independent-review-4e04be07/canonical-stage2-independent-review-d66e18a7-probe-result.json",
+      "sha256": "6b4d28ba28861513be3ca8ee1d869eae0b730cf9fdb0cc3e4124d3093b60a13a"
+    },
+    "corrected_after": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/canonical-stage2-independent-review-4e04be07/canonical-stage2-independent-review-4e04be07-probe-result.json",
+      "sha256": "224acced4bcb4a3417f175b736346a8670858a34e221b2c811266cd8bdcf4c91"
+    },
+    "probe_source": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/canonical-stage2-independent-review-4e04be07/independent_probes_v2.py",
+      "sha256": "c257f2e1d28016b4adcb74848b8562b6d297f12c75821bb0ec910424682ba6f2"
+    },
+    "final_status_matrix": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/canonical-stage2-independent-review-4e04be07/independent-final-status-matrix.json",
+      "sha256": "9b56ef033de04769dcaafb4f5c2c507d6d7953c061fc0ba8675a46a47d0c617a"
+    }
+  },
+  "resolved_findings": [
+    {
+      "id": "STAGE2-1",
+      "source": "tools/frozen_baseline.py:919",
+      "before": "A delayed real synthetic broker RuntimeError became visible during cleanup but optional local timeout returned None.",
+      "after": "Final status is refreshed after cleanup and classified before optional timeout. The unchanged delayed broker injection now raises its internal failure. Additional malformed JSON, boolean return code and internal errors propagate; explicitly ordinary spawn failure remains optional.",
+      "status": "resolved"
+    },
+    {
+      "id": "STAGE2-2",
+      "source": "tools/frozen_baseline.py:1416",
+      "before": "Dangling .live-source.json.tmp symlink created outside-root metadata and was published as final manifest symlink.",
+      "after": "Exclusive O_CREAT|O_EXCL|O_NOFOLLOW regular temporary creation, inode verification and no-overwrite hard-link publication reject dangling and valid symlinks, existing partial/foreign files and synthetic destination/temporary replacement races. Outside files remain untouched; ordinary successful publication produces the same owned regular inode and removes only its verified temporary entry.",
+      "status": "resolved"
+    }
+  ],
+  "adjacent_review": [
+    "Existing full tests retain stage1 signal, EOF orphan cleanup, same-group anchoring, delayed archive metadata and deadline regressions. New version has 105 rather than 103 tests.",
+    "Cleanup failure, cancellation and global deadline remain fatal; refreshed status malformed/internal failure is not converted into optional absence. No post-reap group signalling was added.",
+    "The single PrepareExecution and checked copy/hash/freeze loops, fixed cohort gate, exact seven-path validation, pinned helper inputs and full inventory validation before manifest publication remain intact.",
+    "Legacy non-owned APIs retain their signatures and default execution routing; manifest publication is hardened for both paths. No private key reader, monkeypatch-based operational wrapper or source hash bypass is introduced.",
+    "The independent probe uses reduced synthetic inventory only to reach publication; it is not evidence that actual 29069 visual scenarios and 20 ordinary checks have been discovered or executed."
+  ],
+  "limits": [
+    "Only synthetic subprocesses and temporary fixture source trees were run; no actual frozen prepare-live, actual private key read, capture or candidate process was launched.",
+    "No universal hostile process-tree or intentional setsid descendant guarantee is claimed. Ownership remains the documented same-group canonical broker contract, with failed cleanup preventing success.",
+    "Synchronous filesystem operations and uninterruptible kernel operations remain subject to the documented bounded-work assumption; cold nextest inventory discovery may legitimately fail its work budget and preserve partial evidence.",
+    "Publication does not claim defense against an adversary with continual write access to the evidence root after successful return. Existing concurrent replacement probes must fail closed, and do.",
+    "The first external probe script imported two module identities, so its manifest case stopped at the pinned-patch gate; it is retained as a non-proof trial. Version2 corrects module binding and repeats the same end-to-end before/after mechanism successfully.",
+    "New stage3d root remains source-prepared only from stage1; stage2 has not run. Existing stage3c receipts, partial frames, old plan and custody remain unchanged."
+  ],
+  "required_next_steps": [
+    "Integrate this exact reviewed source, fetch/rebase under shared push lock, rerun focused gate on final HEAD, push and verify remote SHA. Record any changed runner hash in the migration decision.",
+    "Author and independently review a new external stage2-only supervisor pinning this runner, prior admitted stage1 source, exact 482 driver/input hashes, fixed cohort, environment and explicit owned CLI flags. Retain total 220 seconds including cleanup/finalization and disable stages3+.",
+    "Only after that approval perform one bounded owned prepare-live. Preserve incomplete source/target/logs on failure; do not auto-reset, reuse credit, weaken inventory or access old keys."
+  ]
+}

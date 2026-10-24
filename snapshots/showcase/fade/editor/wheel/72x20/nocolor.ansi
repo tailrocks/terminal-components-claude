@@ -1,0 +1,20 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Code editor i Inspector   ? Help  [0m
+                                                                        [0m
+   Overview       ┃  [0m[1mCode editor[0m  Blocks, tones, diagnostics and compl… [0m
+   Buttons        ┃                                                     [0m
+   Inputs         ┃    retry.rs                               3 blocks  [0m
+   Text areas     ┃                                                     [0m
+   Forms          ┃        7             Err(e) [0m[1mif[0m e.is_transient() …│  [0m
+   Lists          ┃        8                 log::warn!("attempt {at…┃  [0m
+   Trees          ┃        9                 sleep(delay).[0m[1mawait[0m;     │  [0m
+   Tables         ┃                                         7–9 of 26   [0m
+   Editable tabl… ┃                                                     [0m
+   Panels         ┃    State                                            [0m
+   Sidebars       ┃                                                     [0m
+   Dialogs        │    Mode         navigating                          [0m
+   Progress       │    Cursor       ln 1 · col 1                        [0m
+   Scrolling      │    Block        1 of 3                              [0m
+   Terminal       │    Runs         0                                   [0m
+[0m[1m▎› Code editor    [0m│                                                     [0m
+                                                                        [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                            [0m

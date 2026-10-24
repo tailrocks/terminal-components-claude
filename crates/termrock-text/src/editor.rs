@@ -143,6 +143,13 @@ impl TextEditorCore {
         self.hscroll
     }
 
+    /// Keep the cursor column from scrolling past the last visible glyph.
+    pub fn clamp_hscroll(&mut self, max: u16) {
+        if self.hscroll > max {
+            self.hscroll = max;
+        }
+    }
+
     pub fn line_count(&self) -> usize {
         self.buf.line_count()
     }
@@ -157,6 +164,26 @@ impl TextEditorCore {
 
     pub fn select_range(&mut self, a: usize, b: usize) {
         self.buf.select_range(a, b);
+    }
+
+    pub fn select_word_at(&mut self, offset: usize) -> EditOutcome {
+        let before = (self.selection(), self.cursor_offset());
+        self.buf.select_word_at(offset);
+        if (self.selection(), self.cursor_offset()) == before {
+            EditOutcome::Ignored
+        } else {
+            EditOutcome::Moved
+        }
+    }
+
+    pub fn select_line_at(&mut self, offset: usize) -> EditOutcome {
+        let before = (self.selection(), self.cursor_offset());
+        self.buf.select_line_at(offset);
+        if (self.selection(), self.cursor_offset()) == before {
+            EditOutcome::Ignored
+        } else {
+            EditOutcome::Moved
+        }
     }
 
     pub fn zeroize(&mut self) {
@@ -324,5 +351,35 @@ mod tests {
             EditOutcome::Ignored
         );
         assert_eq!(multi.text(), "a\nb");
+    }
+
+    #[test]
+    fn word_and_line_selection_use_grapheme_boundaries() {
+        let mut editor = TextEditorCore::multi("éclair cafe\u{301} !\nnext");
+        assert_eq!(editor.select_word_at(2), EditOutcome::Moved);
+        assert_eq!(editor.selected_text(), Some("éclair"));
+        assert_eq!(
+            editor.select_word_at("éclair ".len() + 2),
+            EditOutcome::Moved
+        );
+        assert_eq!(editor.selected_text(), Some("cafe\u{301}"));
+        assert_eq!(
+            editor.select_word_at("éclair cafe\u{301} ".len()),
+            EditOutcome::Moved
+        );
+        assert_eq!(editor.selected_text(), Some("!"));
+        assert_eq!(
+            editor.select_line_at("éclair cafe\u{301} !\nnext".len()),
+            EditOutcome::Moved
+        );
+        assert_eq!(editor.selected_text(), Some("next"));
+    }
+
+    #[test]
+    fn sensitive_word_selection_stays_redacted() {
+        let mut editor = TextEditorCore::sensitive_single("hunter2");
+        assert_eq!(editor.select_word_at(2), EditOutcome::Moved);
+        assert_eq!(editor.selected_text(), Some("hunter2"));
+        assert!(!format!("{editor:?}").contains("hunter2"));
     }
 }

@@ -1,0 +1,41 @@
+ ▪ [0m[1mJunie[0m Design system  Layout › [0m[1mScrolling[0m                                    no color · 120×40   i Inspector   ? Help  [0m
+                                                                                                                        [0m
+ [0m[1mComponents[0m           54  [0m[1mScrolling[0m  Wheel under the pointer, keys on the focused container, thumb shows where you are… [0m
+ ───────────────────────                                                                                                [0m
+    Overview              [0m[1m Playground  [0m  Options    States                                              the live widget [0m
+  ▸ App shell             ━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────[0m
+  ▸ Inputs & forms                                                                                                      [0m
+  ▸ Tables                  Wrapped text    1–7 of 120      Long list       1–7 of 120      Log         1995–2000/2000  [0m
+  ▸ Navigation              ──────────────────────────      ──────────────────────────      ──────────────────────────  [0m
+  ▸ Overlays                Junie works through a    ┃         Row 001               ┃      [0m[2m 737.78s  info   Compil… [0m┆  [0m
+  ▸ Feedback                task the way a careful   ┆         Row 002               ┆       738.15s  info   Compil… ┆  [0m
+  ▾ Layout                  engineer would: it reads ┆         Row 003               ┆       738.52s  warn   unused… ┆  [0m
+      Panels                the relevant code, forms ┆         Row 004               ┆       738.89s  info   Compil… ┆  [0m
+ [0m[1m▎  › Scrolling         [0m    a plan, makes focused    ┆         Row 005               ┆       739.26s  info   Runnin… ┆  [0m
+      Splits & stacks       changes, runs the tests, ┆         Row 006               ┆       739.63s  info   test a… ┃  [0m
+      Master-detail         [0m[2mand reports back with a  [0m┆      [0m[2m   Row 007               [0m┆      ━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄   [0m
+      Pane tree                                                                                                         [0m
+  ▸ Text & code                                                                                                         [0m
+  ▸ Screens                 Hand-drawn                          Divider or bar          Cursor                          [0m
+                            ──────────────────────────────      ──────────────────      ──────────────────────────────  [0m
+                            Host          Region        …       fits      over          row 1 · vertical                [0m
+                            api-01        ap-south-1    …┃      item 1 │  item 1 ┃      wrap off · skip disabled on     [0m
+                            auth-01       ap-southeast-2…┆      item 2 │  item 2 ┆      RowFn: 108 of 120 open          [0m
+                            billing-01    ca-central-1  …┆      item 3 │  item 3 ┆      Last: no key yet                [0m
+                            cache-01      eu-central-1  …┆      item 4 │  item 4 ┆      KeyStep: Nav · Type             [0m
+                            [0m[2mdb-01         eu-north-1    …[0m┆      item 5 │  item 5 ┆      Moved: To · Stayed · Ignored    [0m
+                            ━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄       item 6 │  item 6 ┆      Desktop · 1s · shortcuts first  [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                            Type to jump · select, tree, table, grid                                                    [0m
+                            ──────────────────────────────────────────────────────────────────────────────────────────  [0m
+                              Region                 api             ┃     Region                   Service             [0m
+                              eu-west-1       ▾      auth            ┃     ap-south-1      ┃      1 api              ┃  [0m
+                                                     billing         ┆     ap-southeast-2  ┆      2 auth             ┆  [0m
+                                                     cache           ┆     ca-central-1    ┆      3 billing          ┆  [0m
+                                                  [0m[2m   db              [0m┆  [0m[2m   eu-central-1    [0m┆  [0m[2m    4 cache            [0m┆  [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                   [0m
+[?25l

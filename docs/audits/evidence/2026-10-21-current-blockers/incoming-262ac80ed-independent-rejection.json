@@ -1,0 +1,203 @@
+{
+  "schema": "termrock.independent-review.v1",
+  "reviewed_commit": "262ac80ed138f14a204f8a1a32d4a48fe0cde111",
+  "before_commit": "4cc10c3a7158123500fbe38435f2b68874b50561",
+  "integrated_but_not_approved_commit": "6841e67ed4d240d9b39478b2e99f39ff48b8189b",
+  "frozen_reference": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "decision": "HOLD",
+  "review_scope": "Exact source changes and native/external-consumer regression checks; no product-source edits or pushes. Separate sparse before/after worktrees and revision-specific Cargo targets.",
+  "native": {
+    "command": [
+      "cargo",
+      "nextest",
+      "run",
+      "-p",
+      "jackin-preview-app",
+      "-p",
+      "termrock-viewport",
+      "--all-targets",
+      "--no-fail-fast"
+    ],
+    "before": {
+      "passed": 238,
+      "failed": 0,
+      "skipped": 0
+    },
+    "after": {
+      "passed": 232,
+      "failed": 6,
+      "skipped": 0
+    },
+    "introduced_failing_tests": [
+      "app::paint_contract_tests::historical_failure_and_action_labels_remain_readable_in_mono",
+      "capsule_has_a_menu_bar_and_a_status_bar_instead_of_the_identity_line",
+      "tab_context_menu_renames_and_closes_by_mouse_and_keyboard",
+      "every_named_scenario_renders_a_deterministic_frame",
+      "viewport::tests::the_text_width_does_not_depend_on_whether_the_bar_is_painted",
+      "jackin_visual_baseline"
+    ],
+    "qualification": "All six are newly red on the exact parent/candidate pair. Native digest/chrome expectations are not themselves the frozen authority; do not infer that every changed cell must be restored to the old port. Native visual first failure100x30capsule digest74506c127684005e->fb5f5e65066e5e67."
+  },
+  "overlays": {
+    "before": "125/125pass0skip",
+    "after": "124pass1fail0skip"
+  },
+  "external_consumers": {
+    "same_two_capsule_probes": "before2pass0fail; after0pass2fail",
+    "two_new_api_probes": "after0pass2fail; not compilable before since new methods absent",
+    "backend": "real public Runtime through Harness/TestBackend, not PTY or Tuiscotti CLI"
+  },
+  "findings": [
+    {
+      "id": "R1",
+      "priority": "P1",
+      "path": "crates/jackin-preview-app/src/app.rs",
+      "lines": [
+        7975,
+        8175,
+        8236,
+        8266
+      ],
+      "title": "Application erases the real shared Tabs and repaints a second tab implementation",
+      "evidence": "Tabs::draw publishes the real component, then paint_capsule_tab_strip fills both rows and independently remeasures/paints daemon labels, prefixes, glyphs, active fill and rule. Its daemon-derived labels ignore capsule_tab_title used by build_capsule_tabs. Native tab_context_menu_renames_and_closes_by_mouse_and_keyboard passes on4cc and fails on262: rename ops commits but displayed row remains Mix/Shell/docs. Drawing and hit regions also have separate geometry owners.",
+      "repair": "Add borrowed tab content/parts and baseline layout/style policy to shared Tabs; use one semantic tab data/configuration source for update/draw. Remove application correction painter only after rename, close, overflow, pointer, resize and frozen paired checks pass."
+    },
+    {
+      "id": "R2",
+      "priority": "P1",
+      "path": "crates/jackin-preview-app/src/app.rs",
+      "lines": [
+        4429,
+        4454,
+        4521,
+        7759,
+        7908,
+        7919
+      ],
+      "title": "Scenario-selected input owner is no longer drawn, and ordinary typing disappears",
+      "evidence": "historical_capsule_frame depends on CapsuleMulti/Paused/state; new reserve_input excludes TextInput in that path, while update_capsule still handles CAPSULE_INPUT and buffers text there. New end-of-update focus redirects to selection-only TextViewport. Independent identical Paper121x41 probes: before rendered input and hello visible2/2; after0/2. Frozen capsule forward_key immediately sends Char/Backspace/Enter to pane instead of a second input buffer.",
+      "repair": "Make real pane terminal component own focus, typing, paste, selection and cursor; forward typed actions to application-owned domain source. Use one layout independent of scenario/test clock. Do not restore hidden control or add a non-reference input row."
+    },
+    {
+      "id": "R3",
+      "priority": "P1",
+      "path": "crates/termrock-viewport/src/viewport.rs",
+      "lines": [
+        1249,
+        1281,
+        1306,
+        1354,
+        1416
+      ],
+      "title": "Default TextViewport changes its layout and silently adds a nonfunctional horizontal scrollbar",
+      "evidence": "All unwrapped callers now conditionally change text width by vertical overflow and reserve one row for horizontal overflow. Existing the_text_width_does_not_depend_on_whether_the_bar_is_painted passes before and fails after23vs22. paint_h_bar creates a fresh offset-zero ScrollState each draw and registers no horizontal interaction, so displayed scrollbar cannot reveal clipped text. No opt-in preserves existing default contract.",
+      "repair": "Keep existing default dimensions/overflow behavior; add explicit shared overflow policy and real horizontal state, input, hit regions and resolved-layout facts where required by terminal consumers. Verify all existing viewport callers and policy boundaries."
+    },
+    {
+      "id": "R4",
+      "priority": "P1",
+      "path": "crates/termrock-overlays/src/menu.rs",
+      "lines": [
+        1217,
+        1221,
+        1229
+      ],
+      "title": "MenuBar title patch now colors padding under the default title-only policy",
+      "evidence": "New padded string is painted at full rect instead of title-shifted label rect. Existing default_menu_bar_scope_keeps_title_patches_off_the_padding_cells: beforePASS, afterFAIL. Full Overlays125/125before;124pass1failafter,0skip.",
+      "repair": "Preserve label-only painting for default title scope; any full-title-padding styling needs an explicit shared opt-in contract. Coordinate with the current MenuReason writer; do not replace unrelated menu behavior."
+    },
+    {
+      "id": "R5",
+      "priority": "P1",
+      "path": "crates/jackin-preview-app/src/app.rs",
+      "lines": [
+        2572,
+        2587,
+        9882
+      ],
+      "title": "New span/color projection introduces unreadable monochrome text",
+      "evidence": "Existing historical_failure_and_action_labels_remain_readable_in_mono passes before and fails after at10789 with foreground Black equal background Black. The change preserves domain tones via projection, including raw success/error RGB overrides, but does not validate supported profile contrast. Exact failing tone/glyph was not separately isolated; do not assume all raw roles are responsible.",
+      "repair": "Diagnose failing projected role and resolve through shared semantic theme/profile rules, keeping baseline-specific appearance as documented generic variant if needed. Preserve span data in the application, not per-cell repair painters. Re-run both themes and all four profiles."
+    },
+    {
+      "id": "R6",
+      "priority": "P2",
+      "path": "crates/termrock-viewport/src/viewport.rs",
+      "lines": [
+        986,
+        1295
+      ],
+      "title": "Gutterless drawing and pointer mapping disagree by one column",
+      "evidence": "reserve_gutter(false) draws at area.x, but pos_at always subtracts area.x+1. External real runtime probe with aa bb: visible b atx3, clickx3 yields no selection because mapping hits preceding space; expected bb selection CellPos(0,3)..(0,5).",
+      "repair": "Resolve and reuse exact text rectangle for drawing, pointer mapping, clipping and cursor; do not patch pointer coordinates in Jackin."
+    },
+    {
+      "id": "R7",
+      "priority": "P2",
+      "path": "crates/termrock-viewport/src/viewport.rs",
+      "lines": [
+        955,
+        1361
+      ],
+      "title": "Public scroll_gap accepts values that panic during layout",
+      "evidence": "scroll_gap(u16::MAX) causes attempt to add with overflow atviewport.rs956 in unchanged public-consumer runtime probe. Both1+gutter+gap and1+gap use unchecked u16 addition before saturating subtraction.",
+      "repair": "Normalize/clamp configuration or use saturating arithmetic consistently; add zero/narrow/u16::MAX measurement, update and draw coverage."
+    },
+    {
+      "id": "R8",
+      "priority": "P2",
+      "path": "crates/termrock-viewport/src/viewport.rs",
+      "lines": [
+        426,
+        1249
+      ],
+      "title": "Every redraw now scans all text, bypassing warm layout cache and work accounting",
+      "evidence": "widest_line iterates every line and line_cols scans graphemes before layout cache lookup, even when wrap=true. Existing incremental work probes only count indexed/visible rows, so they do not account for the new O(total content) work. Static source finding; no performance benchmark claimed.",
+      "repair": "Use generation-aware cached intrinsic width, append/suffix invalidation, and skip horizontal-width work when disabled/wrapped. Extend work probe to cover width scanning with large warm data."
+    },
+    {
+      "id": "R9",
+      "priority": "P2",
+      "path": "crates/jackin-preview-app/src/app.rs",
+      "lines": [
+        2277,
+        2280
+      ],
+      "title": "Unfocused pane caret requests introduce runtime cursor rejection",
+      "evidence": "capsule_viewport now unconditionally enables caret_when_unfocused(true) for every pane. Existing every_named_scenario_renders_a_deterministic_frame passes before; after fails onoutro-last with CursorRejected ownerjackin.capsule Num(1)layer0. This exposes unresolved active-pane/layer cursor ownership; no specific low-level cursor fix is inferred solely from the diagnostic.",
+      "repair": "Only the actually active rendered terminal owner should publish cursor state through shared layer rules; preserve frozen visibility/position/shape and test modal/outro transitions. Never register an undrawn cursor owner."
+    }
+  ],
+  "repair_sequence": [
+    "Keep262 unapproved; record all newly red tests and architecture findings against exact revisions. Do not weaken expectations or restore captured frames.",
+    "Shared Overlays owner fixes default title-padding regression independently of MenuReason feature.",
+    "Viewport owner restores compatible defaults, fixes overflow arithmetic and gutterless mapping, introduces real opt-in horizontal state/layout, and accounts for warm width-scan work.",
+    "TerminalView owner supplies real terminal focus/input/cursor contract; Jackin keeps source/domain actions only, removing scenario-selected TextInput paths.",
+    "Tabs owner exposes semantic prefix/label/suffix/selected rule slots; Jackin composes the real component without repaint, retaining rename data and shared hit geometry.",
+    "Shared status/meter/shell blocks replace new private layout/painters with explicit view data and generic policies; live data alone is insufficient architecture proof.",
+    "Repeat native scopes and independent profile/state/layout probes, then frozen real-CLI Tuiscotti comparisons atadjacent sizes and all affected flows before acceptance."
+  ],
+  "remaining_gaps": [
+    "No paired frozen/candidate real CLI or Tuiscotti capture was performed in this bounded review.",
+    "No full workspace Nextest, Clippy, CI or twice-complete application comparisons.",
+    "Production historical_menu_80/zoom plates, captured cursor override and other pre-existing private paths still exist and were not accepted by this review.",
+    "The single120x40truecolor0-cell matrix claim neither satisfies reusable-library gate nor establishes other sizes/profiles/flows.",
+    "No unsafe code added in inspected changes; no independent concurrency failure identified."
+  ],
+  "evidence_files": {
+    "after-consumer-Cargo.toml": "981f0cd43ab66f8279b23b7fedca6abd0f35d2de84383b6e8ab3f41e4df6c4c9",
+    "after-consumer.log": "cb007e2e99f59c34e0e1f73b3256754150c6ba84f75c2b893393939b0b4998ab",
+    "after-consumer.rs": "fb043e324d90a0979b0516587aa1ef801acb92b3f46712dda081dde764a75e6c",
+    "after-nextest.log": "a816e064c7ae2a134e16fdc02d2b71792463d91f516d92c4b4568905bf46681b",
+    "after-overlays.log": "ec155ef003312edee4e03902c3e64068aa6c156a9fad4eb107f985a4df9f957a",
+    "before-consumer-Cargo.toml": "dfad42b8eb134cdb9c4cf095f5145c26a8167c959858665fed4c813f4efda3b7",
+    "before-consumer.log": "cbf0d9e78e1509c494a7d458f9335a25a7257056f006f0106527393338d33b12",
+    "before-consumer.rs": "3b52beb2ae10ba781b23b62ae444409b4feb2117ac6506eb23ab1acba9a7fa44",
+    "before-nextest.log": "7753d19654e6e495589e44d84c3682880a6ec0aa3432a9698dcb585c066d3edd",
+    "before-overlays.log": "8841ed698dd31638187fe9a45a76a7cc52a6d47cc58dd139b807002ed2220033",
+    "consumer-status.json": "cbb454111699b257c5d31bd6cc76482f106f9d00fab59e5f784d1e0a96538584",
+    "native-status.json": "c6c86613216f280e98f1c864e154fc1b6e5324253f9428a5c3335544a0c2bd7c",
+    "overlays-status.json": "cbb454111699b257c5d31bd6cc76482f106f9d00fab59e5f784d1e0a96538584",
+    "run.py": "3fc2df91bf62b9d047718fc94b68bd1ac8373eccbbb2caaa9b0172ae4aec51b7"
+  }
+}

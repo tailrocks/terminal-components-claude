@@ -1,0 +1,41 @@
+[0m[2m  holla❯    File   Go   Help                                                          no project  devbox · development  [0m
+[0m[2m  Here › Upgrade everything                                                                                             [0m
+[0m[2m  Here › Upgrade everything                                                                                             [0m
+[0m[2m ━━━━━━━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────── [0m
+[0m[2m  Upgrade everything ·╭────────────────────────────────────────────────────────────────────── × ─╮· 1 excluded · ~16 s  [0m
+[0m[2m  upgrade Debian packa│                                                                          │                      [0m
+[0m[2m                      │  [0m[1;2mStart upgrade everything?[0m[2m                                               │                      [0m
+[0m[2m         step         │                                                                          │ tools     optional   [0m
+[0m[2m [0m [0m[2m[✓] 01 Preflight    │  [0mPlan       Upgrade everything · upgrade Debian packages and global    [0m[2m  │───────────────────   [0m
+[0m[2m [0m [0m[2m[✓] 02 Refresh Debia│  [0m           mise tools on devbox                                       [0m[2m  │exclude go            [0m
+[0m[2m [0m [0m[2m[✓] 03 Review Debian│  [0mHost       devbox                                                     [0m[2m  │                      [0m
+[0m[2m [0m [0m[2m[✓] 04 Apply Debian │  [0mSteps      7 included · 1 excluded · ~16 s                            [0m[2m  │al mise tools         [0m
+[0m[2m [0m [0m[2m[✓] 05 Inspect globa│  [0mPrivilege  sudo · cached for this session                             [0m[2m  │cation                [0m
+[0m[2m [0m [0m[2m[ ] 06 Upgrade selec│  [0mDebian     14 upgradable · 2 security                                 [0m[2m  │                      [0m
+[0m[2m [0m [0m[2m[✓] 07 Package clean│  [0mmise       4 outdated global tools · go excluded                      [0m[2m  │6.1.0 · python        [0m
+[0m[2m [0m [0m[2m[✓] 08 Final verific│  [0mReboot     required after the kernel upgrade                          [0m[2m  │ · pnpm 10.4.0 →      [0m
+[0m[2m                      │  [0m                                                                      [0m[2m  │luded                 [0m
+[0m[2m    08 Final verificat│  [0mcat /etc/os-release                                                   [0m[2m  │                      [0m
+[0m[2m                      │  [0msudo -n true                                                          [0m[2m  │                      [0m
+[0m[2m                      │  [0mfuser /var/lib/dpkg/lock-frontend                                     [0m[2m  │                      [0m
+[0m[2m                      │  [0mdf -h /                                                               [0m[2m  │                      [0m
+[0m[2m                      │  [0mtest -f /var/run/reboot-required                                      [0m[2m  │                      [0m
+[0m[2m                      │  [0msudo apt-get update                                                   [0m[2m  │                      [0m
+[0m[2m                      │  [0mapt list --upgradable                                                 [0m[2m  │                      [0m
+[0m[2m                      │  [0msudo apt-get upgrade -y                                               [0m[2m  │                      [0m
+[0m[2m                      │  [0mmise outdated --json                                                  [0m[2m  │                      [0m
+[0m[2m                      │  [0msudo apt-get autoremove --purge -y                                    [0m[2m  │                      [0m
+[0m[2m                      │  [0mapt list --upgradable                                                 [0m[2m  │                      [0m
+[0m[2m                      │  [0mmise ls --json                                                        [0m[2m  │                      [0m
+[0m[2m                      │  [0msystemctl --failed                                                    [0m[2m  │                      [0m
+[0m[2m                      │  [0mtest -f /var/run/reboot-required                                      [0m[2m  │                      [0m
+[0m[2m                      │                                                                          │                      [0m
+[0m[2m                      │                                                  ▎[0m[1;2;4mC[0m[1;2mancel [0m[2m   [0m[1;2;4;7mS[0m[1;2;7mtart plan [0m[2m  │                      [0m
+[0m[2m                      │                                                                          │                      [0m
+[0m[2m                      ╰──────────────────────────────────────────────────────────────────────────╯                      [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m                                                                                              [0m [0m[2mCancel   [0m [0m[2mConfirm plan   [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m ~                               review · 7 steps · 2 branches parallel                               no color · 120×40 [0m
+ [0m[1m←→[0m Choose[0m[1m  Enter[0m Cancel[0m[1m [0m [0m[1mEsc[0m Ca[0m[1mn[0mcel             [0m[1m [0m          [0m[1m   [0m                            06 excluded · 08 now blocked [0m
+[?25l

@@ -442,3 +442,256 @@ fn explicit_clear_does_not_reapply_the_row_tone() {
         assert_eq!((cell.fg, cell.bg), (Color::Magenta, Color::Blue));
     }
 }
+
+#[test]
+fn sheet_rows_keep_a_single_focus_gutter_and_copy_hint_tracks_live_focus() {
+    use termrock_controls::{PropsAction, PropsList, PropsState};
+
+    const SHEET: termrock_runtime::Id = termrock_runtime::Id::root("props.sheet-contract");
+    const RUN: ItemKey = ItemKey::num(7001);
+    const ROLE: ItemKey = ItemKey::num(7002);
+    const ROWS: [PropsRow<'static>; 2] = [
+        PropsRow::new(RUN, "Run id:", "run-0123456789abcdef-XYZ")
+            .copyable()
+            .wrap(),
+        PropsRow::new(ROLE, "Role:", "builder"),
+    ];
+
+    #[derive(Default)]
+    struct Model {
+        state: PropsState,
+        copied: Option<ItemKey>,
+    }
+
+    impl App for Model {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            if cx.update_cause() == UpdateCause::Bootstrap {
+                cx.focus(SHEET);
+            }
+            let response = PropsList::new(SHEET)
+                .sheet()
+                .update(cx, &mut self.state, &ROWS);
+            if let Some(PropsAction::Copy(key)) = response.action_ref() {
+                self.copied = Some(*key);
+            }
+            response.erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            PropsList::new(SHEET)
+                .sheet()
+                .draw(ui, Rect::new(0, 0, 40, 5), &self.state, &ROWS);
+        }
+    }
+
+    let mut harness = Harness::new(Model::default(), Theme::junie(), 40, 5);
+    assert_eq!(harness.focus(), Some(SHEET));
+    fn line(harness: &Harness<Model>, y: u16) -> String {
+        (0..40)
+            .map(|x| harness.buffer().cell((x, y)).unwrap().symbol())
+            .collect::<String>()
+    }
+    let focus_glyph = Theme::junie().design.glyphs.get(GlyphRole::FocusBar);
+    assert_eq!(line(&harness, 0).chars().next(), focus_glyph.chars().next());
+    assert_eq!(
+        line(&harness, 0).chars().nth(2),
+        Some('R'),
+        "sheet labels start after the focus gutter and its spacer"
+    );
+    assert!(
+        line(&harness, 0).contains("y copy"),
+        "focused copy row advertises y"
+    );
+    assert!(
+        !line(&harness, 1).contains("y copy"),
+        "non-copy row has no hint"
+    );
+    assert!(
+        line(&harness, 1).contains("XYZ"),
+        "focused wrapped value reveals its tail"
+    );
+    assert_eq!(harness.cursor(), None, "read-only rows own no text cursor");
+
+    let hit = harness
+        .area_of_part(
+            SHEET,
+            termrock_runtime::PartRef::item(termrock_runtime::Part::ROW, RUN),
+        )
+        .expect("sheet row must publish a keyed pointer target");
+    let _ = harness.click(hit.x.saturating_add(2), hit.y);
+    assert_eq!(harness.app().copied, Some(RUN));
+    harness.app_mut().copied = None;
+
+    let _ = harness.key(KeyCode::Char('y'));
+    assert_eq!(harness.app().copied, Some(RUN));
+    let _ = harness.key(KeyCode::Down);
+    assert!(
+        !harness
+            .text()
+            .lines()
+            .next()
+            .unwrap_or_default()
+            .contains("y copy")
+    );
+    assert!(
+        line(&harness, 1).contains("Role:"),
+        "collapsed prior row restores row geometry"
+    );
+}
+
+#[test]
+fn sheet_measurement_uses_live_rows_and_handles_unicode_and_zero_width() {
+    use termrock_controls::{PropsList, PropsState};
+
+    const ID: termrock_runtime::Id = termrock_runtime::Id::root("props.sheet-measure");
+    let long = String::from("界界 e\u{301} 👩‍💻 and a long run identifier");
+    let rows = [
+        PropsRow::new(ItemKey::num(7101), "Agent:", "Claude").wrap(),
+        PropsRow::new(ItemKey::num(7102), "Run id:", long.as_str())
+            .copyable()
+            .wrap(),
+    ];
+    let props = PropsList::new(ID).sheet();
+    let state = PropsState::default();
+    let mut scene = Scene::new(
+        "props_sheet_measure",
+        Theme::junie(),
+        ColorLevel::TrueColor,
+        24,
+        8,
+    );
+    scene.draw(|ui, area| {
+        let measured = props.measure_rows(
+            ui,
+            Constraints::loose(area.width, area.height),
+            &state,
+            &rows,
+        );
+        assert!(measured.preferred.0 > 0);
+        assert!(measured.preferred.1 >= 2);
+        assert_ne!(
+            measured.preferred,
+            PropsList::new(ID)
+                .measure(ui, Constraints::loose(area.width, area.height))
+                .preferred,
+            "data-aware sheet measurement must use the actual row content"
+        );
+        props.draw(ui, area, &state, &rows);
+
+        let zero_width = props.measure_rows(ui, Constraints::loose(0, 0), &state, &rows);
+        assert_eq!(zero_width.preferred, (0, 0));
+        props.draw(ui, Rect::new(0, 0, 0, 0), &state, &rows);
+    });
+    assert!(
+        scene
+            .buffer()
+            .content
+            .iter()
+            .any(|cell| cell.symbol() == "界")
+    );
+    assert_eq!(rows[1].value.text(), Some(long.as_str()));
+
+    for color in [
+        ColorLevel::TrueColor,
+        ColorLevel::Ansi256,
+        ColorLevel::Ansi16,
+        ColorLevel::Mono,
+    ] {
+        let mut profile = Scene::new("props_sheet_profiles", Theme::junie(), color, 24, 8);
+        profile.draw(|ui, area| {
+            props.draw(ui, area, &state, &rows);
+        });
+        assert!(
+            profile
+                .buffer()
+                .content
+                .iter()
+                .any(|cell| cell.symbol() == "界")
+        );
+    }
+}
+
+#[test]
+fn sheet_scroll_and_reordered_live_rows_keep_stable_item_identity() {
+    use termrock_controls::{PropsList, PropsState};
+
+    const ID: termrock_runtime::Id = termrock_runtime::Id::root("props.sheet-scroll");
+    const KEYS: [ItemKey; 5] = [
+        ItemKey::num(7201),
+        ItemKey::num(7202),
+        ItemKey::num(7203),
+        ItemKey::num(7204),
+        ItemKey::num(7205),
+    ];
+
+    fn rows(reversed: bool) -> [PropsRow<'static>; 5] {
+        let entries = ["Alpha", "Bravo", "Charlie", "Delta", "Echo"];
+        std::array::from_fn(|index| {
+            let source = if reversed { 4 - index } else { index };
+            PropsRow::new(KEYS[source], entries[source], "value")
+        })
+    }
+
+    #[derive(Default)]
+    struct Model {
+        state: PropsState,
+        reversed: bool,
+    }
+
+    impl App for Model {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            if cx.update_cause() == UpdateCause::Bootstrap {
+                cx.focus(ID);
+            }
+            let rows = rows(self.reversed);
+            PropsList::new(ID)
+                .sheet()
+                .update(cx, &mut self.state, &rows)
+                .erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let rows = rows(self.reversed);
+            PropsList::new(ID)
+                .sheet()
+                .draw(ui, Rect::new(0, 0, 32, 3), &self.state, &rows);
+        }
+    }
+
+    let mut harness = Harness::new(Model::default(), Theme::paper(), 32, 3);
+    let _ = harness.key(KeyCode::End);
+    let _ = harness.key(KeyCode::Char('!'));
+    assert_eq!(harness.app().state.cursor(), Some(KEYS[4]));
+    assert!(harness.app().state.scroll().offset() > 0);
+    let last = harness
+        .area_of_part(
+            ID,
+            termrock_runtime::PartRef::item(termrock_runtime::Part::ROW, KEYS[4]),
+        )
+        .expect("scrolling keeps the focused stable key registered");
+    assert!(last.y < 3);
+
+    harness.app_mut().reversed = true;
+    let _ = harness.key(KeyCode::Char('!'));
+    let _ = harness.key(KeyCode::Char('!'));
+    assert_eq!(harness.app().state.cursor(), Some(KEYS[4]));
+    assert_eq!(harness.app().state.cursor_index(), 0);
+    assert!(
+        harness
+            .text()
+            .lines()
+            .next()
+            .unwrap_or_default()
+            .contains("Echo"),
+        "the selected value follows its key after the live rows reorder"
+    );
+    assert!(
+        harness
+            .area_of_part(
+                ID,
+                termrock_runtime::PartRef::item(termrock_runtime::Part::ROW, KEYS[4]),
+            )
+            .is_some(),
+        "the same key still owns its actual rendered row"
+    );
+}

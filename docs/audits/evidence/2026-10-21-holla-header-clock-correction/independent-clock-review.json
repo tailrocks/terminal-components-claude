@@ -1,0 +1,95 @@
+{
+  "reviewed_commit": "b7963f5241b584cb239a66724f7a6ac33be9654f",
+  "verdict": "Home row painter defect confirmed; Menu Escape defect rejected as feedback-clock fixture mismatch",
+  "source_unchanged": [
+    {
+      "path": "crates/holla-ui/src/screens/home.rs",
+      "sha256": "eccea66cc0ba6b876748de311e7549e5e6910738cc2b6d83d9dd16332051b267"
+    },
+    {
+      "path": "crates/holla-ui/src/app.rs",
+      "sha256": "d45017fad972368dd321c11a29b3f1f47ad3ffc24985e576e5ea346599f69ff0"
+    },
+    {
+      "path": "crates/termrock-navigation/src/nav_list.rs",
+      "sha256": "82fcad90ec7f4381fbf9d0c2d6e6d6330af18b5171626a8ebca04d30f7e58464"
+    },
+    {
+      "path": "crates/termrock-overlays/src/menu.rs",
+      "sha256": "9e2c9ea0d188ce4214e679e2961f90f8c8fff6e78de1022c4fdc073762dd4184"
+    },
+    {
+      "path": "crates/termrock-runtime/src/runtime.rs",
+      "sha256": "7e0e65a139c28c9ef49b534a64540e41747a7de47356a138fab102ed2faa0648"
+    },
+    {
+      "path": "crates/termrock-runtime/src/rowui.rs",
+      "sha256": "8b5c5e0c03120f20786d6ece6158241d5822bd435725dbf9ebb2263e86e8e9be"
+    }
+  ],
+  "checks": [
+    {
+      "command": "rustup run 1.99.1 cargo nextest run --manifest-path /private/tmp/holla-focus-contract-consumer-20261021/Cargo.toml --no-fail-fast --nocapture",
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0,
+      "profile_cases": 12,
+      "log": "/private/tmp/holla-focus-contract-matrix-20261021.log"
+    }
+  ],
+  "findings": [
+    {
+      "severity": "high",
+      "path": "crates/holla-ui/src/screens/home.rs:493",
+      "evidence": "paint_action fills each row and writes literal \u258e at line 501 irrespective of StateFlags or resolved gutter glyph. Correctly clocked RustDirty frame4000 120x40: query focus green bar (1,4), fifteen white bars at x1 rows7,8,9,10,13,16..25; all fifteen persist under menu while actual query focus bar disappears. These are not domain text: renderer itself writes each in the designated GUTTER cell. NavList lines928..951 supplies FOCUSED/FOCUS_VISIBLE only to cursor row, so flags distribution is not cause.",
+      "fix_contract": "Remove raw render_row/paint_action bypass only when shared row replacement passes real-App focused/blurred/inactive-layer decoded-cell and hit/focus checks. Use NavList::row with RowUi/ColumnsUi semantic parts, cursor_style Fill for query-owned rows. Domain supplies view data and typed actions; shared component owns gutter glyph, selected fill, hover/press/disabled styling, clipping and row hit area. Do not replace literal glyph with another app-side focus condition."
+    }
+  ],
+  "rejected_findings": [
+    {
+      "claim": "MenuBar remains open after Escape",
+      "cause": "Header test uses Harness::new monotonic clock for simulation App. synchronize_feedback app.rs1992 fails; app.update app.rs2191 adds Response::changed, which core/response.rs81 marks Flow::Consumed. Runtime runtime.rs1766..1805 only performs automatic Esc dismissal when unconsumed. Correct FeedbackClock::Simulation initialized from App::fixture_time_ms closes menu, restores home.query, diagnostics empty across widths119/120/121 and all four color profiles. Monotonic negative control reproduces mismatch status and menu remaining open.",
+      "required_correction": "Fix header test clock setup and restore actual Escape/focus-restoration assertions; no MenuBar or Runtime workaround."
+    }
+  ],
+  "frozen_contract": {
+    "commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+    "paths": [
+      "src/bin/holla/screens/finder.rs:705",
+      "src/bin/holla/screens/finder.rs:860",
+      "src/bin/holla/screens/finder.rs:933",
+      "src/theme.rs:1811"
+    ],
+    "meaning": "One FINDER query focus owner; query uses conditional gutter_symbol; result rows use cursor_row(CursorStyle::Fill), selected \u203a at x+1, no unconditional \u258e. Five measured columns and heterogeneous Explore rows mean replacing current Home generic painter alone cannot establish complete frozen Finder parity."
+  },
+  "shared_contract": {
+    "reuse": [
+      "NavList::row (not render_row)",
+      "RowUi leading/trailing semantic parts",
+      "RowUi::columns_with_gap / ColumnsUi::cell_part",
+      "CursorStyle::Fill",
+      "existing ColumnSpec measured width solver",
+      "FilterList query-owned navigation kernel for full Finder migration"
+    ],
+    "missing_for_full_frozen_finder": [
+      "heterogeneous heading/blank/Explore chip rows",
+      "query-owned result cursor and scope/query Escape sequencing",
+      "measured label/kind/scope/reason/risk columns and droppable policies",
+      "preview scrolling/master-detail composition"
+    ],
+    "boundaries": "Application maps Action/domain data to view rows and consumes chosen stable keys. Library owns layout, internal row styling/input/scroll/focus/overlay behavior. Do not copy old application renderer into Termrock."
+  },
+  "required_regression_checks": [
+    "Real Holla App with explicit Simulation feedback clock, normal and adjacent widths, four color profiles",
+    "Inspect GUTTER part cells and owner IDs, not global \u258e count; include legitimate content glyph in changed data",
+    "Query focused, row cursor moved by keyboard/pointer, another same-layer owner focused, Menu opened/closed, focus restored; inactive layer contains no focus gutter",
+    "Hover/down/up/drag/cancel, disabled item cannot activate, pressed distinct from selection",
+    "Stable keyed changed/reordered/empty/long Unicode data, horizontal clipping and scroll reveal",
+    "Preserve actual row Part::ROW hit bounds and one shared resolved layout after resize",
+    "Compare frozen real-binary decoded frames and functional outcomes after each meaningful checkpoint; this review is in-process Harness evidence only"
+  ],
+  "limitations": [
+    "No product source edits. Only isolated external consumer tests and evidence files written.",
+    "No full frozen/candidate binary parity claim. No review of already-cleared header216-cell equivalence duplicated."
+  ]
+}

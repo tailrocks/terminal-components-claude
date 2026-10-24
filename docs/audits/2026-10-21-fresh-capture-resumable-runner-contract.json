@@ -1,0 +1,92 @@
+{
+  "schema": "termrock.reviewed-fresh-capture-resumable-contract",
+  "schema_version": 1,
+  "status": "proposed-implementation-contract-not-executed",
+  "basis_commit": "be9fca4baf1477f57ab1a252117c368fb2bfe657",
+  "scope": "Reuse frozen tuiscotti harness and current runner for fresh approved-cohort capture and baseline replay only. No alternate PTY/capture harness.",
+  "reuse": [
+    "prepare_live_source and verify_live_source with an explicit reviewed-fresh-cohort mode",
+    "nextest_inventory, validate_extension_inventory and inventory_digest",
+    "scenario_chunks, run_live_chunk and validate_chunk_coverage",
+    "existing launch HMAC, checkpoint ordering, phase_receipts and exact frame comparison validators",
+    "existing ordinary CLI checks and terminal profile controls"
+  ],
+  "inventory": {
+    "original_scenarios": 28895,
+    "extension_scenarios": 174,
+    "visual_scenarios_total": 29069,
+    "ordinary_checks": 20,
+    "tests_total": 29089,
+    "original_inventory_sha256": "d260d2f0644d63a3a1b4c1611c0d7c61777e59e61249e3ca513d1d6217b0639c",
+    "full_inventory_sha256": "f98b90a93e3d45438be49eca4962ebbdbd83624ba7738ad448d783bb3046135f",
+    "correction": "28,895 is the original visual count, not the extension-inclusive count. Earlier chat shorthand 28,721 original plus174 was incorrect; no inventory changed."
+  },
+  "plan": {
+    "operation": "Create once using exclusive atomic publication. Store immutable canonical JSON and its digest before any application spawn.",
+    "bind": [
+      "cohort id, exact four final binary hashes, physical source paths and source/toolchain identity",
+      "cohort registry and independent eligibility-review registry digests",
+      "runner revision and exact Python/helper/patch/extension/test-harness input digests",
+      "frozen source/test/snapshot digests and full sorted inventory including ignored flags",
+      "full original/extension/ordinary selections, exact chunk membership and checkpoint obligations",
+      "explicit environment, terminal profile/capabilities, fonts, controlled clocks, case data and dimensions",
+      "allowed phase capabilities, artifact roots, expected-store ownership and timeout<=225 seconds",
+      "run id and runner-secret identifier; never key bytes"
+    ],
+    "phases": [
+      "baseline-capture",
+      "baseline-replay",
+      "baseline-ordinary-checks"
+    ],
+    "candidate_phase": "Not present. A future separately reviewed comparison plan must reference immutable baseline evidence and checkpoint decisions; never mutate this plan to acquire comparison privileges."
+  },
+  "advance": {
+    "operation": "Acquire exclusive run lock; validate plan digest and all bindings; execute at most one preplanned chunk or bounded ordinary-check group; atomically journal verified completion; return within225seconds.",
+    "pre_post": [
+      "Validate all source/harness/cohort/review/tool inputs and private regular executable identities/hashes before and after each step.",
+      "Observe actual spawned image and process-start identity; validate complete ordered launch/checkpoint/close inventories using the existing HMAC protocol.",
+      "Check semantic readiness, input/resize/time intermediate checkpoints, full cell+cursor frames, mode restoration and cleanup.",
+      "Each visual scenario must produce its required nonzero ordered checkpoints; ordinary checks need their own prescribed outcomes, not invented frame checkpoints.",
+      "Capture attempts write to fresh isolated staging. Commit only a wholly verified chunk; failed or interrupted attempts remain evidence and cannot be reused as completed output.",
+      "Seal each committed expected chunk/store with exact manifest+digest and immutable ownership. Replay reads the same sealed expected bytes; reject missing, extra or changed artifacts.",
+      "Resume by re-verifying committed receipts/artifacts; do not trust an editable passed flag. Reject duplicate/reordered/skipped/wrong-case or zero-checkpoint records."
+    ],
+    "receipt_secret": "Keep the existing signing boundary. If resume needs retained per-run/per-chunk keys, store them only in a reviewed private0600 runner-owned location outside application working directories, artifact stores and Git; never log keys, put them in the immutable public plan, or pass them to application environments. Wrong/missing key fails closed.",
+    "crash_rule": "Use atomic chunk/result publication and an authenticated verification journal. A crash between staging and publication must leave a resumable uncommitted attempt, never a blessed partially captured expected store."
+  },
+  "finalize": {
+    "operation": "No application launch. Revalidate every input pin, sealed store and ordered receipt chain, and union verified chunks against the entire registered inventory and all20ordinary checks.",
+    "requirements": [
+      "No missing, duplicate, extra, skipped or zero-checkpoint visual case.",
+      "Every baseline replay frame and functional result exactly matches its captured counterpart under identical conditions.",
+      "Every prescribed ordinary CLI assertion, terminal mode and cleanup check completed.",
+      "Raw artifacts, recipe/argv/environment fingerprints, binary identities, checkpoint receipts and legacy-conflict observations remain linked and hashed."
+    ],
+    "result": "fresh-baseline-evidence-complete or incomplete, with candidate_comparison_eligible=false, checkpoint_reference_approval=none, product_acceptance=false."
+  },
+  "remove_circularity": {
+    "current_blockers": [
+      "prepare_live_source unconditionally calls load_reference_decisions",
+      "verify_live_source unconditionally calls load_reference_decisions",
+      "compare_live unconditionally calls load_reference_decisions and assumes candidate comparison"
+    ],
+    "minimal_change": "An explicit separately reviewed fresh-cohort mode loads cohort eligibility and fixed source/harness pins without requiring any old tuple exception or historical build.json loader. Preserve the legacy path and its exact old-cohort checks. Use the existing phase-aware tuiscotti adapter to capture/replay fresh expected frames; collect old approval comparisons as separate diagnostic observations.",
+    "critical_rules": [
+      "Do not rewrite or fabricate build-provenance.json, old build.json, old approvals or the old v1 decision.",
+      "Do not transfer the old stale-approval exception by source commit, similar image or matching live-frame hash.",
+      "Fresh baseline capture/replay may complete while legacy approval conflicts remain red and unresolved; report that honestly.",
+      "Only visual legacy-approval discrepancies belong in the diagnostic observer. Do not swallow functional/readiness/input/harness/IO errors or broadly convert failures to success.",
+      "Each conflict preserves both complete raw/decoded frames and context. Candidate comparison/acceptance requires an independent tuple- and cohort-specific decision after repeatable fresh baseline evidence."
+    ]
+  },
+  "required_regressions": [
+    "Interrupted capture/replay step resumed with unchanged inputs; completed chunks are not silently rerun or omitted.",
+    "Plan, inventory, chunk partition, artifact, expected-frame, source, binary, physical identity, review row, or environment mutation rejected before next spawn.",
+    "Wrong/missing HMAC key, forged/truncated/reordered launch/checkpoint/close receipts, and cleanup failure rejected.",
+    "Unknown/mixed cohort, review aliases, symlink/hardlink/substituted candidate images and preexisting candidate-cache substitution remain rejected.",
+    "A deliberately altered cell, color, attribute, cursor, functional action, terminal mode or checkpoint order fails the relevant comparison.",
+    "Fresh baseline collection does not require historical tuple approval; old exception remains unusable by new cohort.",
+    "Candidate phase cannot be enabled with this fresh-capture-only review, and unresolved conflicts cannot become product acceptance."
+  ],
+  "boundedness": "One advance<=225seconds. Choose immutable small chunks up front; if an individual case exceeds the bound, preserve an incomplete result and diagnose without dropping the case or changing the reference."
+}

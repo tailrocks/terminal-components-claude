@@ -1,0 +1,165 @@
+{
+  "packet": "showcase-editor-replacement-review",
+  "date": "2026-10-21",
+  "kind": "read-only implementation review",
+  "reviewed_refs": {
+    "candidate_remote_head_at_review": "0af662eef433c7dde6c9c7685ac2b5256290ccc3",
+    "candidate_integration_merge": "a7724e1fec319299406dc9c62259dfddd3d05b83",
+    "incoming_docs_commit": "a130b4041847772d4fa6f3533bb0490546dc2437",
+    "actual_editor_source_change": "fb6ed4f839d89673c82b8c316fd0b25d6664acd6",
+    "actual_editor_source_change_parent": "4db067a8a183bc7d7ee7027432d7afe82a613352",
+    "fixed_visual_baseline_commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+    "frozen_baseline_tag_object": "2718a6b8127a522a3d351d0b4bdb7542fc8da542",
+    "design_reference_commit": "f2f6eb716c4a512be3dc9423742fa06e86879b32",
+    "shared_editor_find_api_commit": "306d72f28627c39aa875ae14647ce6ddb68474b2"
+  },
+  "commit_attribution": {
+    "finding": "a130b404 is documentation-only; it is not the application-source commit. The editor rewrite is fb6ed4f, inherited by d8720b1 then integrated in a7724e1. Current remote branch advanced to 0af662e after that merge.",
+    "source_change_summary": "fb6ed4f changes crates/showcase-demos/src/pages/editor.rs (2550 lines removed), deletes crates/showcase-demos/src/pages/editor_baseline.inc.rs (90 lines), and edits 24 native visual digest entries (48 changed lines) in crates/showcase-ui/tests/baselines/showcase.txt."
+  },
+  "verdict": {
+    "replay_elimination": "PASS: the fixed cell-run replay and include are removed from production Showcase editor drawing. This is a material correction.",
+    "baseline_replacement": "INCOMPLETE: the replacement is a semantic shared-CodeEditor consumer for basic edit/render, but it omits several original screens and flows, advertises an unhandled run action, fails to render the standalone completion popup, and repaints the shared editor after draw. Do not accept product parity or the library ownership gate from this change alone.",
+    "review_scope": "No source changes made. No candidate-generated digest is treated as frozen-reference approval. No CLI capture was performed."
+  },
+  "source_evidence": [
+    {
+      "file": "crates/showcase-demos/src/pages/editor.rs",
+      "revision": "fb6ed4f839d89673c82b8c316fd0b25d6664acd6",
+      "lines": "1-48, 56-164, 190-239, 241-401",
+      "facts": [
+        "Live document SAMPLE and CodeEditorState are used, and update delegates to CodeEditor::update; captured RUNS/include path is gone.",
+        "The replacement sets TabBehavior::Leave explicitly and has no .indent(...) call; current CodeEditor defaults to TabBehavior::Indent and indent 2 (crates/termrock-editors/src/code.rs:68-73, 835-845). Frozen editor defaults Tab-leaves=false and indent=4 (baseline options.rs:1631, 1649; editor.rs:237-293). The demo therefore changes Tab behavior and indentation, and the page has no options route to restore them.",
+        "SAMPLE's client builder is .timeout(10).build() at lines 40-42, while frozen sample includes .timeout(10).gzip(true).build() (baseline editor.rs:22-60). The visible demo document differs when scrolled to that block.",
+        "Only EditorPage Playground is rendered: no Template/Section or Options/States path. Frozen page renders Playground, Options, and States (baseline editor.rs:620-652); baseline state matrix and option tests are in baseline app_tests_code.rs:167-188 and :44-110.",
+        "The hint table advertises Ctrl+R Run block at lines 317-333, but editor update is the only command path; current CodeAction has no Run variant (termrock-editors/src/code.rs:113-164) and this page defines no button, run action, timer, completion handler, diagnostic-producing simulation, or status transition. This is a misleading/unhandled hint, not a preserved run flow.",
+        "State props at lines 280-309 hard-code cursor `ln 1 · col 1`, Runs `0`, Last run `—`, and Diagnostics `0|1`, omit Find, and use a fixed diagnostics boolean-like count. `self.last` is mutated at lines 220-229 but never drawn. Frozen flow derives live cursor/block/run/diagnostic/completion/find data at baseline editor.rs:391-478.",
+        "Standalone Completion is updated at lines 231-233, but draw() lines 241-315 never calls Completion::draw, ui.layer, or CompletingCodeEditor::draw. The shared CompletingCodeEditor::draw is the overlay owner and opens popup layer when state is open (termrock-editors/src/completion.rs:391-407). Current CodeEditor::draw alone does not draw completion. Baseline separately draws its open completion overlay (baseline editor.rs:655-657, 695-709, 745-761, 578-581).",
+        "draw_code calls CodeEditor::draw and then paints a focus gutter, marker, and fixed footer over its cells at lines 341-400. The glyph `▎` is unconditional (not actual focus), and `1–5 of 26` is fixed, so scrolling or viewport/layout state can be wrong. This violates shared component ownership and the single-top-layer focus indicator contract.",
+        "The page hand-calculates split geometry at lines 248-261. This is also a consumer-owned layout policy instead of the requested shared composition block; baseline uses measured responsive constraints (baseline editor.rs:485-643).",
+        "A page-local Rust syntax lexer and blank-line block segmenter are implemented at lines 50-156. The library intentionally accepts Highlighter/Segmenter callback contracts, so these may be demo-provided behavior, but application ownership and duplicate mechanics should be reviewed against the Showcase rule that pages are wiring/data only."
+      ]
+    },
+    {
+      "file": "crates/showcase-ui/tests/app_tests.rs",
+      "revision": "0af662eef433c7dde6c9c7685ac2b5256290ccc3",
+      "lines": "14-60, 268-276",
+      "facts": [
+        "There is a viable in-process real-app test path: Harness<App> initializes the actual app (line 14-16) and delivers keyboard, text, mouse, resize inputs (lines 18-60), without CLI capture.",
+        "The candidate Editor scenario only tabs, enters edit, inserts `x`, checks repaint/title, and escapes. It does not test options/states, Tab indentation/focus, find/button/results, completion popup/acceptance, run/hints/status, diagnostics, cursor/scroll, or resize."
+      ]
+    },
+    {
+      "file": "crates/showcase-ui/tests/visual.rs",
+      "revision": "0af662eef433c7dde6c9c7685ac2b5256290ccc3",
+      "lines": "5-28",
+      "facts": [
+        "The native showcase digest test iterates candidate App::with_page(PageId::Editor) through four sizes, two themes, and four color levels. It is not paired with the frozen-tag binary and is not a substitute for tuiscotti paired captures."
+      ]
+    },
+    {
+      "file": "crates/termrock-test-support/src/digest.rs",
+      "revision": "0af662eef433c7dde6c9c7685ac2b5256290ccc3",
+      "lines": "265-294, 353-398",
+      "facts": [
+        "The native digest test compares digests and writes the current candidate digest when BLESS=1 (or UPDATE_BASELINE=1). Its 16-hex digests are mutable candidate expectations, not immutable frozen-baseline receipts."
+      ]
+    },
+    {
+      "file": "crates/termrock-editors/src/code.rs",
+      "revision": "306d72f28627c39aa875ae14647ce6ddb68474b2",
+      "lines": "513-532, 603-629, 616-628, 1024-1038",
+      "facts": [
+        "The public CodeFindInfo, CodeEditorState::cursor_pos/find_info and CodeEditor::open_find APIs were added in later candidate commit 306d72f (not an ancestor of fb6ed4f); they are now available in integrated parent but the earlier editor rewrite does not consume them. The public API is re-exported from termrock-editors/src/lib.rs:26-35."
+      ]
+    },
+    {
+      "file": "crates/termrock-editors/tests/code_editor_external_find.rs",
+      "revision": "306d72f28627c39aa875ae14647ce6ddb68474b2",
+      "lines": "41-107, 156-247, 248-273",
+      "facts": [
+        "A separate external-consumer test demonstrates real button and keyboard find entry/focus equivalence, Unicode cell cursor and match counts, Enter/reopen/Escape behavior, completion dismissal, and disabled editor handling. It proves an API route exists, not that Showcase currently consumes it."
+      ]
+    },
+    {
+      "file": "src/bin/showcase/pages/editor.rs",
+      "revision": "4169783ae883788186d161af09ba9c481bd84e5c (also identical in design reference)",
+      "lines": "220-318, 375-478, 485-652, 655-827",
+      "facts": [
+        "Frozen/design implementation owns all three template sections, configurable editor/completion behavior, measured responsive layout, live editor state, find and run controls, run ticks/status/diagnostics, and explicit popup layering."
+      ]
+    },
+    {
+      "file": "src/bin/showcase/app_tests_code.rs",
+      "revision": "4169783ae883788186d161af09ba9c481bd84e5c (also identical in design reference)",
+      "lines": "34-188",
+      "facts": [
+        "Frozen contracts exercise read-only/edit, Tab departure option, Esc revert, custom find keymap, Vim navigation, syntax and block toggles, empty document, completion and popup options, Find button/query/match count, Run block/tick/status, and every CodeEditor state in States."
+      ]
+    },
+    {
+      "file": "src/bin/showcase/pages/editor.rs",
+      "revision": "fb6ed4f839d89673c82b8c316fd0b25d6664acd6^",
+      "lines": "434-485, 241-244",
+      "facts": [
+        "The deleted replay renderer selected fixed row tables by body width exactly 51, 59, 94, or 134 cells and skipped semantic rendering for those widths. These widths correspond to known inner terminal widths; the hidden `include!(editor_baseline.inc.rs)` contained the 72/80/120/160-style captured rows. Removing it is required false-parity cleanup."
+      ]
+    },
+    {
+      "file": "src/bin/showcase/pages/editor.rs",
+      "revision": "4169783ae883788186d161af09ba9c481bd84e5c",
+      "lines": "620-652",
+      "facts": [
+        "The fixed baseline renderer asserted a sample list viewport footer `1–21 of 26` (line 2955), while the replacement private painter writes `1–5 of 26` (candidate editor.rs:391-399). This is direct evidence the app-level correction paint can change the shared widget output and is not a valid slot/style customization."
+      ]
+    }
+  ],
+  "native_digest_delta": {
+    "file": "crates/showcase-ui/tests/baselines/showcase.txt",
+    "changed_by": "fb6ed4f839d89673c82b8c316fd0b25d6664acd6",
+    "changed_pairs": [
+      ["Code editor 120 40 junie 16", "c311b375220ed771", "032b8d2abedb7775"],
+      ["Code editor 120 40 junie 256", "4652ad19e0e9558a", "4d5e01ad2f872dd7"],
+      ["Code editor 120 40 junie mono", "ed4f70ecb4c3d996", "f20cb40ef6d1bab2"],
+      ["Code editor 120 40 junie truecolor", "a5360b0165e1c1b7", "5829239954b016f9"],
+      ["Code editor 120 40 paper 16", "e9085a4fe3883d5b", "ba7f7e693c6fc199"],
+      ["Code editor 120 40 paper 256", "a52499ce2aa42210", "74801803b018cbae"],
+      ["Code editor 120 40 paper mono", "3b104b8ec0872d70", "43f26a8cf702e9ce"],
+      ["Code editor 120 40 paper truecolor", "5efd207452244bee", "24b818bb5eed9a9b"],
+      ["Code editor 160 50 junie 16", "d4d5fb5a9ed64eb8", "af0abc80a3f048d2"],
+      ["Code editor 160 50 junie 256", "4a165d10ea19fba7", "357b5607e34e66fb"],
+      ["Code editor 160 50 junie mono", "a3d4bdf9cdd060ed", "0f27776df6d1bab2"],
+      ["Code editor 160 50 junie truecolor", "4009e1616169a2f8", "5234e4a61fe6a731"],
+      ["Code editor 160 50 paper 16", "6e9c0fe9a1b9dbc8", "7be254439a16f930"],
+      ["Code editor 160 50 paper 256", "10a7bce3cef85adb", "5685d768250188fe"],
+      ["Code editor 160 50 paper mono", "edd67e1370d3c189", "dd04867a28904b45"],
+      ["Code editor 160 50 paper truecolor", "3e6bc577299c487d", "993ec3b706161240"],
+      ["Code editor 80 24 junie 16", "145fd75584b026be", "92ac09e4f1ded635"],
+      ["Code editor 80 24 junie 256", "483805a3b61f68fb", "7895548e3d433484"],
+      ["Code editor 80 24 junie mono", "43c5db7240ccd4b6", "cc07dd5a0a0b2c3d"],
+      ["Code editor 80 24 junie truecolor", "5129067f6aaf5ac0", "51810bce52f8582e"],
+      ["Code editor 80 24 paper 16", "5bbc9a5b44ed63b7", "c95bc5c87c6be840"],
+      ["Code editor 80 24 paper 256", "01dea473f1ecc8a7", "57a858024a67b2eb"],
+      ["Code editor 80 24 paper mono", "fd8bd18aa2e8b6c8", "8c7b971e27c0603d"],
+      ["Code editor 80 24 paper truecolor", "24b195f1544f5d5b", "017fe6153aaee4ea"]
+    ],
+    "provenance_assessment": "The before values are the prior page's harness digests; after values are new candidate harness digests. They are native mutable hashes, not captured paired baseline receipts. Exactly 24 changed entries = 3 sizes (80x24, 120x40, 160x50) x 2 themes x 4 color levels; these are the sizes whose Showcase body widths map to the removed replay table. The 100x30 entries did not change because the prior replay selector did not match that page body width. The commit does not provide an independent pinned-baseline/tuiscotti receipt for these values. Treat the changed expectations as unapproved candidate refreshes, not proof of parity; retain old values/evidence until a paired run resolves them."
+  },
+  "test_path_and_probe_status": {
+    "real_app_path_exists": true,
+    "path": "crates/showcase-ui/tests/app_tests.rs Harness<App> for PageId::Editor; use the existing in-process App harness, not CLI capture. Baseline contract is in src/bin/showcase/app_tests_code.rs. Shared widget API proof remains in crates/termrock-editors/tests/code_editor_external_find.rs.",
+    "probes_run": [],
+    "reason": "This was a read-only source review. No new test source was written; no application binary/CLI capture was run. Existing candidate Editor app test only covers basic edit/repaint/escape, so it is not evidence for missing flows."
+  },
+  "minimal_replacement_staging": [
+    "Keep the replay/include deletion; do not restore captured rows.",
+    "Use shared CodeEditor::indent(4) plus TabBehavior::Indent as baseline default and expose option toggles through Showcase's public options/template layer; preserve States and Options sections with real shared components.",
+    "Replace editor draw_code postpaint with shared CodeEditor-owned gutter/marker/cursor/footer rendering or a real documented slot/style contract; derive cursor/scroll readouts from CodeEditorState, never constants.",
+    "Use public CodeEditor::open_find(cx, state) for the Find button and CodeFindInfo for live property/status data; keep `/` keyboard entry; test equivalence through Harness<App>.",
+    "Choose one completion owner: use CompletingCodeEditor with a live provider and its draw() overlay, or explicitly call shared Completion::draw via the runtime layer; test keyboard, mouse, dismiss, acceptance, focus/cursor, and resize.",
+    "Restore the app-owned Run block demo action/ticks/status/diagnostics as typed Showcase domain behavior and route both button and Ctrl+R through it; keep actual button, status, diagnostics and progress rendered via shared widgets. Remove Run hint unless command is functional.",
+    "Restore exact source sample (including gzip call), live diagnostics/counts/last-run/find and measured responsive layout; add app flow regressions for Playground/Options/States, Tab+indent, Run, Find, completion and scrolling/Unicode. Pair expected frames against frozen baseline with pinned tuiscotti before updating any expected data."
+  ],
+  "no_source_edits": true,
+  "no_candidate_expectation_blessing": true
+}

@@ -1,0 +1,64 @@
+{
+  "review": "SCOPED_CLEAR_WITH_DOCUMENTATION_HOLD",
+  "source_commit": "69ebe3360b8410eb55070bc1fb7283409e3c71e9",
+  "parent_commit": "dbf726455e0565f3f2956db0fb8832bfc93d1b2e",
+  "source_worktree": "/private/tmp/owned-worker-69ebe-review-20261021",
+  "review_copy": "isolated detached worktree at exact source commit; no tracked changes",
+  "prior_reviews_preserved": [
+    {
+      "path": "/private/tmp/owned-worker-09e0-independent-review.json",
+      "sha256": "137d421365977ebe566eb781dfd361d66d4c57e35f56e2a4bccc7df088dbcc02",
+      "status": "P1 nested parent detached-FD race on 09e0; correction reviewed in dbf726"
+    },
+    {
+      "path": "/private/tmp/owned-worker-dbf726-independent-review.json",
+      "sha256": "d7c317730f5f401c9b3e02e5e4535faa654eb454f7beba9dd449e178272a541c",
+      "status": "P1 post-worker file replacement accepted without parent content check; correction reviewed in 69ebe"
+    }
+  ],
+  "code_findings": [],
+  "prior_issue_revalidation": {
+    "nested_parent_detachment": {
+      "result": "addressed at bounded checkpoints",
+      "evidence": "Independent targeted test `test_owned_rooted_filesystem_worker_rejects_detached_nested_parent_at_each_boundary` passed as part of the focused run. It injects parent directory/symlink replacement before/during/after link, before receipt, and between worker return and parent acceptance. Worker rejects observed detachments and only removes entries whose inode is proven to be its own.",
+      "limitation": "Source docs state no portable atomic operation pins an entire directory ancestry across path-relative filesystem operations; checkpoint-bounded checks do not guarantee against a swap/restore or a race after the final check. This is accurately scoped, not a claim of universal atomicity."
+    },
+    "post_worker_file_tamper": {
+      "result": "addressed at parent receipt acceptance checkpoint",
+      "evidence": "Parent reopens the destination relative to the verified parent FD with O_NOFOLLOW, verifies regular-file owner/mode/link count/dev/inode/size against receipt, reads bounded blocks and hashes against receipt/request, compares descriptor and path identity before/after, then revalidates the parent chain. New regression tests same-inode content mutation and new-inode replacement after worker completion; both fail closed."
+    }
+  },
+  "tests": {
+    "full_suite": {
+      "command": "python3 -m unittest -q test_frozen_baseline (Python 3.15; 180s alarm)",
+      "result": "158 tests passed, 0 skipped, 90.015s"
+    },
+    "focused_regressions": {
+      "command": "python3 -m unittest -q test_frozen_baseline.RunnerGuards.test_owned_rooted_filesystem_worker_rejects_detached_nested_parent_at_each_boundary test_frozen_baseline.RunnerGuards.test_owned_rooted_filesystem_parent_rejects_file_changed_after_worker",
+      "result": "2 tests passed, 0 skipped, 7.136s"
+    },
+    "static": {
+      "commands": [
+        "python3 -m py_compile tools/frozen_baseline.py tools/test_frozen_baseline.py",
+        "git diff --check 69ebe3360b8410eb55070bc1fb7283409e3c71e9^..HEAD"
+      ],
+      "result": "passed"
+    }
+  },
+  "record_gap": {
+    "severity": "P2",
+    "summary": "The committed audit record says the previous 156-test evidence is superseded and instructs the author to rerun/record the correction result. At exact 69ebe, the record does not yet contain the new 158-test result or independent review evidence.",
+    "location": "docs/audits/2026-10-21-owned-fresh-plan-create-verify.md, section 'Root-bound immutable filesystem worker primitive (scoped groundwork only)'",
+    "required_action": "Update the migration record in a follow-up commit with the exact 158/0-skip result and independent packet path/SHA before treating this source revision as fully documented."
+  },
+  "scope_limits": {
+    "no_operational_access": "No live plan, key, capture, replay, or lifecycle CLI was accessed or executed.",
+    "component_scope_only": "This review covers the immutable rooted file publication primitive and its PrepareExecution integration only. It does not clear owned advance, chunk, ordinary-check, lifecycle admission, or product acceptance.",
+    "durability_and_failure": "The worker retains file and directory fsyncs, no-overwrite link, bounded request/result and payload, checked I/O, descriptor-relative no-follow operations, and preserves ambiguous entries. Existing PrepareExecution broker remains the only supervisor."
+  },
+  "exact_source": {
+    "commit": "69ebe3360b8410eb55070bc1fb7283409e3c71e9",
+    "parent": "dbf726455e0565f3f2956db0fb8832bfc93d1b2e",
+    "worktree_clean": true
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "command": [
+    "/Users/donbeave/.local/share/mise/installs/actionlint/1.7.12/actionlint",
+    "-ignore",
+    "^unexpected key \"background\" for step to (run shell command|execute action)\\. ",
+    "-ignore",
+    "^step must run script with \"run\" section or run action with \"uses\" section$",
+    ".github/workflows/ci.yml"
+  ],
+  "exit": 0,
+  "reason": "Confirmed exact generated regex with one regex escape before dot; preliminary invocation used extra escape. Both exited0. No source edits.",
+  "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

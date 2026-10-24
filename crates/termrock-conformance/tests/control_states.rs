@@ -556,31 +556,47 @@ const LEVELS: [ColorLevel; 4] = [
 
 #[test]
 fn w02_button_variants_all_states_and_focus_gutter() {
+    use termrock::controls::ButtonFocusVisibility as Bfv;
+
     for level in LEVELS {
         let theme = Theme::junie().downgrade(level);
         for variant in BUTTON_VARIANTS {
-            for (focused, disabled, expected) in [(true, false, "▎"), (false, false, " ")] {
-                let state = if focused {
-                    ReferenceState::FOCUSED
-                } else {
-                    ReferenceState::default()
-                };
+            // The gutter recipe keys on FOCUS_VISIBLE (decision recorded in
+            // docs/audits/2026-10-21-button-shared-contract.md). `Always`
+            // promotes the runtime's FOCUSED to FOCUS_VISIBLE only in a live
+            // scope; every leg here draws inside a `ui.reference` scope, which
+            // is inert (`Ui::is_inert`), so the reference must carry
+            // FOCUS_VISIBLE itself for the `▎` to appear. A focused button
+            // under `KeyboardOnly` stays gutter-free until the reference
+            // carries FOCUS_VISIBLE, and an unfocused button never paints it.
+            // Live pointer/keyboard focus promotion is pinned by the
+            // `button_contract` tests through the real Harness.
+            for (visibility, state, expected) in [
+                (None, ReferenceState::FOCUSED, " "),
+                (Some(Bfv::KeyboardOnly), ReferenceState::FOCUSED, " "),
+                (
+                    Some(Bfv::KeyboardOnly),
+                    ReferenceState::FOCUSED.union(ReferenceState::FOCUS_VISIBLE),
+                    "▎",
+                ),
+                (None, ReferenceState::default(), " "),
+            ] {
                 let buf = paint(BUTTON_AREA, theme.clone(), |ui, area| {
                     ui.reference(Some(ReferenceTarget::new(BUTTON, state)), |ui| {
-                        Button::new(BUTTON, "Action")
-                            .variant(variant)
-                            .disabled(disabled)
-                            .draw(ui, area);
+                        let mut button = Button::new(BUTTON, "Action").variant(variant);
+                        if let Some(visibility) = visibility {
+                            button = button.focus_visible(visibility);
+                        }
+                        button.draw(ui, area);
                     });
                 });
                 assert_eq!(
                     cell_symbol(&buf, 0, 0),
                     expected,
-                    "W02-01 {level:?} {variant:?}: focused={focused}, disabled={disabled}"
+                    "W02-01 {level:?} {variant:?}: visibility={visibility:?}, state={state:?}"
                 );
-                assert_eq!(
-                    cell_dim(&buf, 1, 0),
-                    disabled && level == ColorLevel::Mono,
+                assert!(
+                    !cell_dim(&buf, 1, 0),
                     "W02-01 {level:?} {variant:?}: mono DIM marks disabled only"
                 );
             }
@@ -595,10 +611,15 @@ fn w02_button_variants_all_states_and_focus_gutter() {
                     .variant(variant)
                     .draw(ui, area);
             });
+            // The reference carries FOCUS_VISIBLE: a `ui.reference` scope is
+            // inert, so `Always` never self-promotes FOCUSED there (contract:
+            // docs/audits/2026-10-21-button-shared-contract.md).
             let focus_hover = paint_state(
                 BUTTON_AREA,
                 BUTTON,
-                ReferenceState::FOCUSED.union(ReferenceState::HOVERED),
+                ReferenceState::FOCUSED
+                    .union(ReferenceState::FOCUS_VISIBLE)
+                    .union(ReferenceState::HOVERED),
                 |ui, area| {
                     Button::new(BUTTON, "Action")
                         .variant(variant)
@@ -660,25 +681,10 @@ fn w02_button_disabled_suppresses_focus_gutter() {
                 );
             });
 
-            let expected = if matches!(level, ColorLevel::Mono) {
-                " ".to_string()
-            } else {
-                let focused = paint(BUTTON_AREA, theme.clone(), |ui, area| {
-                    ui.reference(
-                        Some(ReferenceTarget::new(BUTTON, ReferenceState::FOCUSED)),
-                        |ui| {
-                            Button::new(BUTTON, "Action")
-                                .variant(variant)
-                                .draw(ui, area);
-                        },
-                    );
-                });
-                cell_symbol(&focused, 0, 0)
-            };
             assert_eq!(
                 cell_symbol(&buf, 0, 0),
-                expected,
-                "W02-01 {level:?} {variant:?}: disabled must not change the focused gutter"
+                " ",
+                "W02-01 {level:?} {variant:?}: disabled must suppress the focused gutter"
             );
         }
     }
@@ -2474,6 +2480,11 @@ fn w08_input_masked_clicks_follow_display() {
         Some(Position::new(2, 0)),
         "W08-02: target maps the second mask cell onto the wide grapheme"
     );
+    // The two target cells sit one apart, inside the default
+    // `pointer_click_slop` of 1, so an intervening far click resets the
+    // press count and both probes stay single clicks (decision recorded in
+    // docs/audits/2026-10-20-picker-family-contracts.md).
+    let _ = rig.app.click(0, 0);
     let _ = rig.app.click(4, 0);
     assert_eq!(
         rig.app.cursor(),
@@ -4955,8 +4966,15 @@ fn w13_filter_backspace_removes_grapheme() {
 
     assert_eq!(
         rig.query.borrow().as_str(),
-        "a👩\u{200d}",
-        "W13-02: target backspace removes one char, got {:?}",
+        "a",
+        "W13-02: backspace removes grapheme cluster, got {:?}",
+        rig.query.borrow()
+    );
+    let _ = rig.app.key(KeyCode::Backspace);
+    assert_eq!(
+        rig.query.borrow().as_str(),
+        "",
+        "W13-02: the second backspace must consume the rest of the query with no dangling ZWJ, got {:?}",
         rig.query.borrow()
     );
 }

@@ -1,9 +1,16 @@
 use std::io::{self, Write};
+use std::time::Duration;
 
 use termrock::{ColorLevel, Theme};
 
+use crate::app::Motion;
+
 const HELP: &str = "tablepro — TablePro's core workflow as a terminal application\n\n\
-USAGE: tablepro [--color truecolor|256|16|none] [--connect NAME] [--theme junie|paper]\n\n\
+USAGE: tablepro [--color truecolor|256|16|none] [--connect NAME] [--theme junie|paper]\n\
+         [--motion full|reduced|paused] [--frame N] [--query-duration-ms N]\n\n\
+Motion:    explicit --motion wins; otherwise TABLEPRO_NO_MOTION=1 selects reduced motion\n\
+Frame:     with --motion paused, the exact tick to render\n\n\
+Query time: fixed reported duration for deterministic replay; absent means live timing\n\
 Keys: Ctrl+O open quickly · Ctrl+T new query · Ctrl+R run · Ctrl+Y history · ? help · q quit\n";
 
 #[derive(Clone, Copy)]
@@ -28,17 +35,38 @@ enum Command {
         theme: ThemeChoice,
         level: ColorLevel,
         connect: Option<String>,
+        motion: Motion,
+        frame: u64,
+        query_duration: Option<Duration>,
     },
 }
 
 pub fn run() -> io::Result<()> {
-    match parse_args(std::env::args().skip(1), ColorLevel::detect())? {
+    let no_motion = std::env::var_os("TABLEPRO_NO_MOTION")
+        .is_some_and(|value| !value.is_empty() && value != "0");
+    match parse_args(std::env::args().skip(1), ColorLevel::detect(), no_motion)? {
         Command::Help => io::stdout().lock().write_all(HELP.as_bytes()),
         Command::Run {
             theme,
             level,
             connect,
-        } => crate::run_with(theme.resolve(level), connect.as_deref()),
+            motion,
+            frame,
+            query_duration,
+        } => {
+            let theme = theme.resolve(level);
+            if let Some(duration) = query_duration {
+                crate::app::run_session_with_query_duration(
+                    theme,
+                    connect.as_deref(),
+                    motion,
+                    frame,
+                    duration,
+                )
+            } else {
+                crate::app::run_session(theme, connect.as_deref(), motion, frame)
+            }
+        }
     }
 }
 
@@ -46,10 +74,17 @@ fn invalid_arg(message: &'static str) -> io::Error {
     io::Error::new(io::ErrorKind::InvalidInput, message)
 }
 
-fn parse_args(args: impl IntoIterator<Item = String>, detected: ColorLevel) -> io::Result<Command> {
+fn parse_args(
+    args: impl IntoIterator<Item = String>,
+    detected: ColorLevel,
+    no_motion: bool,
+) -> io::Result<Command> {
     let mut theme = ThemeChoice::Junie;
     let mut level = detected;
     let mut connect = None;
+    let mut motion = None;
+    let mut frame = 0u64;
+    let mut query_duration = None;
     let mut args = args.into_iter();
     while let Some(arg) = args.next() {
         match arg.as_str() {
@@ -77,6 +112,34 @@ fn parse_args(args: impl IntoIterator<Item = String>, detected: ColorLevel) -> i
             }
 
             "--connect" => connect = args.next(),
+            "--motion" | "-m" => {
+                let value = args
+                    .next()
+                    .ok_or_else(|| invalid_arg("--motion requires a value"))?;
+                motion = Some(match value.to_ascii_lowercase().as_str() {
+                    "full" => Motion::Full,
+                    "reduced" => Motion::Reduced,
+                    "paused" => Motion::Paused,
+                    _ => return Err(invalid_arg("--motion must be full, reduced, or paused")),
+                });
+            }
+            "--frame" | "-f" => {
+                let value = args
+                    .next()
+                    .ok_or_else(|| invalid_arg("--frame requires a value"))?;
+                frame = value
+                    .parse()
+                    .map_err(|_| invalid_arg("--frame must be a non-negative integer"))?;
+            }
+            "--query-duration-ms" => {
+                let value = args
+                    .next()
+                    .ok_or_else(|| invalid_arg("--query-duration-ms requires a value"))?;
+                let milliseconds = value.parse::<u64>().map_err(|_| {
+                    invalid_arg("--query-duration-ms must be a non-negative integer")
+                })?;
+                query_duration = Some(Duration::from_millis(milliseconds));
+            }
             "-h" | "--help" => return Ok(Command::Help),
             _ => {}
         }
@@ -85,6 +148,13 @@ fn parse_args(args: impl IntoIterator<Item = String>, detected: ColorLevel) -> i
         theme,
         level,
         connect,
+        motion: motion.unwrap_or(if no_motion {
+            Motion::Reduced
+        } else {
+            Motion::Full
+        }),
+        frame,
+        query_duration,
     })
 }
 
@@ -109,7 +179,7 @@ mod tests {
                     [flag, name, "--theme", "paper"],
                     ["--theme", "paper", flag, name],
                 ] {
-                    let command = parse_args(args.map(str::to_owned), ColorLevel::Mono)?;
+                    let command = parse_args(args.map(str::to_owned), ColorLevel::Mono, false)?;
                     let Command::Run {
                         theme,
                         level: actual,
@@ -131,9 +201,13 @@ mod tests {
             theme,
             level,
             connect,
+            motion,
+            frame,
+            ..
         } = parse_args(
             ["--unknown", "value", "--connect"].map(str::to_owned),
             ColorLevel::Ansi16,
+            false,
         )?
         else {
             return Err(io::Error::other("expected run command"));
@@ -143,6 +217,149 @@ mod tests {
             Theme::junie().for_level(ColorLevel::Ansi16)
         );
         assert!(connect.is_none());
+        assert_eq!((motion, frame), (Motion::Full, 0));
+        assert!(matches!(
+            parse_args(std::iter::empty::<String>(), ColorLevel::TrueColor, false)?,
+            Command::Run {
+                query_duration: None,
+                ..
+            }
+        ));
+        Ok(())
+    }
+
+    #[test]
+    fn query_duration_flag_is_optional_numeric_and_documented() -> io::Result<()> {
+        let Command::Run {
+            query_duration,
+            connect,
+            motion,
+            frame,
+            ..
+        } = parse_args(
+            ["--query-duration-ms", "42", "--connect", "Production"].map(str::to_owned),
+            ColorLevel::TrueColor,
+            false,
+        )?
+        else {
+            return Err(io::Error::other("expected run command"));
+        };
+        assert_eq!(query_duration, Some(Duration::from_millis(42)));
+        assert_eq!(connect.as_deref(), Some("Production"));
+        assert_eq!((motion, frame), (Motion::Full, 0));
+        assert!(HELP.contains("--query-duration-ms N"));
+        assert!(HELP.contains("absent means live timing"));
+
+        for args in [
+            &["--query-duration-ms"][..],
+            &["--query-duration-ms", "-1"],
+            &["--query-duration-ms", "1.5"],
+            &["--query-duration-ms", "18446744073709551616"],
+        ] {
+            let Err(error) = parse_args(
+                args.iter().map(|arg| (*arg).to_owned()),
+                ColorLevel::TrueColor,
+                false,
+            ) else {
+                return Err(io::Error::other("invalid query duration was accepted"));
+            };
+            assert_eq!(error.kind(), io::ErrorKind::InvalidInput);
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn motion_frame_flags_and_schema_rows_match_the_baseline() -> io::Result<()> {
+        use crate::app::{Surface, TableProApp};
+        use termrock::Theme;
+        use termrock_test_support::Harness;
+
+        let Command::Run {
+            motion: paused,
+            frame: paused_frame,
+            ..
+        } = parse_args(
+            ["--motion", "paused", "--frame", "40"].map(str::to_owned),
+            ColorLevel::TrueColor,
+            true,
+        )?
+        else {
+            return Err(io::Error::other("expected run command"));
+        };
+        assert_eq!((paused, paused_frame), (Motion::Paused, 40));
+        let Command::Run { motion, frame, .. } = parse_args(
+            ["-m", "reduced", "-f", "3"].map(str::to_owned),
+            ColorLevel::TrueColor,
+            false,
+        )?
+        else {
+            return Err(io::Error::other("expected run command"));
+        };
+        assert_eq!((motion, frame), (Motion::Reduced, 3));
+        let Command::Run { motion, frame, .. } = parse_args(
+            ["--motion", "full"].map(str::to_owned),
+            ColorLevel::TrueColor,
+            true,
+        )?
+        else {
+            return Err(io::Error::other("expected run command"));
+        };
+        assert_eq!((motion, frame), (Motion::Full, 0));
+        let Command::Run { motion, .. } =
+            parse_args(std::iter::empty::<String>(), ColorLevel::TrueColor, true)?
+        else {
+            return Err(io::Error::other("expected run command"));
+        };
+        assert_eq!(motion, Motion::Reduced);
+        for args in [
+            &["--motion", "slow"][..],
+            &["--motion"],
+            &["--frame", "-1"],
+            &["--frame"],
+        ] {
+            let Err(error) = parse_args(
+                args.iter().map(|arg| (*arg).to_owned()),
+                ColorLevel::TrueColor,
+                false,
+            ) else {
+                return Err(io::Error::other("invalid motion or frame was accepted"));
+            };
+            assert_eq!(error.kind(), io::ErrorKind::InvalidInput);
+            assert!(!error.to_string().contains("slow"));
+            assert!(!error.to_string().contains("-1"));
+        }
+
+        let mut app = TableProApp::default();
+        app.set_surface(Surface::WorkbenchDefault);
+        app.set_motion(Motion::Paused, paused_frame);
+        let debug = format!("{app:?}");
+        assert!(debug.contains("motion: Paused"), "{debug}");
+        assert!(debug.contains("tick: 40"), "{debug}");
+        assert!(matches!(
+            crate::app::feedback_clock(Motion::Paused),
+            termrock::FeedbackClock::Simulation { .. }
+        ));
+        let harness = Harness::new(app, Theme::junie(), 120, 40);
+        let text = harness.text();
+        assert!(
+            text.contains("S public"),
+            "schema row must use the baseline glyph"
+        );
+        assert!(!text.contains("▾ public"));
+        let schema_rows: Vec<_> = text
+            .lines()
+            .filter(|line| {
+                line.contains("S public")
+                    || line.contains("S analytics")
+                    || line.contains("S audit")
+            })
+            .collect();
+        assert!(schema_rows.iter().any(|line| line.contains("S public")));
+        let barred = schema_rows.iter().filter(|line| line.contains('▎')).count();
+        assert!(
+            barred <= 1,
+            "one focus bar across schema rows, got {barred}: {schema_rows:?}"
+        );
         Ok(())
     }
 }

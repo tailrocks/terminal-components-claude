@@ -1,0 +1,25 @@
+  ▪ [0m[1m TablePro  Production [0m [0m[1m◆ production[0m  acme_prod › public  ✓ safe  …  ? help  [0m
+                                                                                [0m
+ [0m[1m [0m≡[0m[1m Query 1 [0m×[0m[1m  [0m                                                             +   [0m
+ ━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────── [0m
+ › ╭─[0m[1m Query 1 [0m────────────────────────────────────────────────────────────────╮ [0m
+   │   [0m[1;7mRun [0m  Run all   Explain                                                │ [0m
+ E │  ▎› [0m[1m 1[0m [0m[1;4mSELECT[0m[4m * [0m[1;4mFROM[0m[4m ord                                                [0m │ [0m
+ x │                  ╭────────────────────────────────────────────╮          │ [0m
+ p │                  │[0m[1;7m [0m[7mT[0m[1;7m orders               [0m[7mpublic · 1.2 M rows[0m[1;7m [0m│          │ [0m
+ l │                  │ T [0m[1mord[0mer_items          public · 3.8 M rows │· col 18  │ [0m
+ o │  ────────────────│ V [0m[1mord[0mer_totals_by_day  public · 1.5 k rows │───────── │ [0m
+ r │                  │ K [0m[1mORD[0mER BY                                 │          │ [0m
+ e │                  ╰────────────────────────────────────────────╯          │ [0m
+ r │                                                                          │ [0m
+   │                              No results yet                              │ [0m
+   │                                                                          │ [0m
+   │        Ctrl+R runs the statement under the cursor · Alt+R runs all       │ [0m
+   │                                                                          │ [0m
+   │                                                                          │ [0m
+   │                                                                          │ [0m
+   │                                                                          │ [0m
+   ╰──────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                [0m
+ [0m[1m EDIT [0m  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Accept  [0m[1mEsc[0m Close             ✓ Connected to Production [0m
+[?25h[7;30H[6 q

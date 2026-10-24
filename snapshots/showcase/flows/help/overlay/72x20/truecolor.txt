@@ -1,0 +1,20 @@
+ ▪ Junie Design system / Foundations / Overview   i Inspector   ? Help
+  ╭──────────────────────────────────────────────────────────────────╮
+ ›│                                                                  │…
+  │  Keyboard & mouse                                                │
+  │                                                                  │
+  │  Tab / Shift+Tab   move keyboard focus                           │
+  │  ↑ ↓ ← →           move inside the focused control               │
+  │  Enter / Space     activate · start editing                      │
+  │  Esc               cancel editing · back to navigation           │
+  │  [ ]               previous / next page                          │
+  │  0                 jump to navigation                            │
+  │  i                 toggle state inspector                        │
+  │  q                 quit                                          │
+  │                                                                  │
+  │  Mouse: hover to preview, click to focus and activate, wheel to  │
+  │                                                                  │
+  │                                                         ▎Close   │
+  │                                                                  │
+  ╰──────────────────────────────────────────────────────────────────╯
+ ← → Choose  Enter Confirm  Esc Cancel

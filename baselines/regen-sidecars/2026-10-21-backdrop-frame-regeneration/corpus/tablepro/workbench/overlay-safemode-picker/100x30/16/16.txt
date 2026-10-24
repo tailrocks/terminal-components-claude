@@ -1,0 +1,30 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe         16 colors · 100×30  ? help
+
+  ≡ Query 1 ×                                                                                   +
+ ━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────
+ ╭─ Explorer ──────────────────────────────────────────────────────────────────────────── public ─╮
+ │                                                                                                │
+ │╭──────────────────────────────────────────────────────────────────────────────────────────────╮│
+ ││ Safe Mode · this connection                                                                  ││
+ ││    Silent            Writes run without asking. Destructive statements still conf…           ││
+ ││    Alert             Every write asks for confirmation before it runs.                       ││
+ ││    Alert (Full)      Every statement, reads included, asks for confirmation.                 ││
+ ││ ▎› Safe Mode         Writes ask for confirmation and a deliberate acknowledgement. current   ││
+ ││    Safe Mode (Full)  Every statement asks for confirmation and a deliberate ackno…           ││
+ ││    Read-Only         Writes are refused. Reads and exports still work.                       ││
+ ││                                                                                              ││
+ ││ ↑↓ Move · Enter Set level · Esc Keep · levels are saved to the connection                    ││
+ │╰──────────────────────────────────────────────────────────────────────────────────────────────╯│
+ │      ▸ Views                                                                                2  │
+ │      ▸ Functions                                                                            1  │
+ │      ▸ Sequences                                                                            1  │
+ │    ▸ S analytics                                                                               │
+ │    ▸ S audit                                                                                   │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+                                                                            Connected to Production

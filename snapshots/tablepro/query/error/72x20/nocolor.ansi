@@ -1,0 +1,21 @@
+  ▪ [0m[1m TablePro  Production [0m [0m[1m◆ production[0m  acme_prod › public  ✓ safe  …  [0m
+                                                                        [0m
+ [0m[1m [0m≡[0m[1m Query 1 [0m×[0m[1m  [0m                                                     +   [0m
+ ━━━━━━━━━━━━━━──────────────────────────────────────────────────────── [0m
+ › ╭─[0m[1m Query 1 [0m───────────────────────────────────────────────── 2 ms ─╮ [0m
+   │   [0m[1;7mRun [0m  Run all   Explain                                        │ [0m
+ E │  ▎[0m[1m![0m [0m[1m 1[0m [0m[1;4mSELECT[0m[4m * [0m[1;4mFROM[0m[4m missing_table[0m                               │ [0m
+ x │                                                                  │ [0m
+ p │   relation "missing_table" does not exist       ln 1/1 · col 28  │ [0m
+ l │  ─────────────────────────────────────────────────────────────── │ [0m
+ o │  [0m[1m Error 1 ! [0m×[0m[1m  [0m                                                  │ [0m
+ r │  ━━━━━━━━━━━━━━───────────────────────────────────────────────── │ [0m
+ e │   [0m[1m✗[0m failed · 2 ms                                                │ [0m
+ r │    Error                                                         │ [0m
+   │    ───────────────────────────────────────────────────────────   │ [0m
+   │    [0m[1m![0m relation "missing_table" does not exist                     │ [0m
+   │                                                                  │ [0m
+   ╰──────────────────────────────────────────────────────────────────╯ [0m
+                                                                        [0m
+ [0m[1mEnter[0m Edit  [0m[1mCtrl+R[0m Run  [0m[1mAlt+R[0m Run all  …     ✓ Connected to Production [0m
+[?25l

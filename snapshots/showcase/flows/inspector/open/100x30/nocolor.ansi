@@ -1,0 +1,30 @@
+ ▪ [0m[1mJunie[0m Design system / Foundations / Overview      no color · 100×30   i Inspector · on   ? Help  [0m
+                                                                                                    [0m
+[0m[1m▎› Overview        [0m  [0m[1mOverview[0m  Tokens and principles behind every …     State                       [0m
+   Buttons                                                                                          [0m
+   Inputs              Tokens                                           mode        NAV             [0m
+   Text areas                                                           focus       0·2 19×26       [0m
+   Forms                   ▏ canvas                       #000000       hover       suppressed      [0m
+   Lists                   ▏ surface                      #111111       pressed     —               [0m
+   Trees                   ▏ surface.elevated             #18181b       mouse       —               [0m
+   Tables                  ▏ surface.overlay              #27272a       last key    i               [0m
+   Editable tables         ▏ field                        #1e1e22       focus ring  1 stops         [0m
+   Panels                  ▏ popover                      #3f3f46       hit regions 26              [0m
+   Sidebars                ▏ border.subtle              white 15%       tick        0               [0m
+   Dialogs                 ▏ border.strong              white 30%       colors      no color        [0m
+   Progress                ▏ text.primary                 #ffffff                                   [0m
+   Scrolling                                                                                        [0m
+   Terminal            Principles                                                                   [0m
+   Code editor                                                                                      [0m
+   Diff                                                                                             [0m
+   Data grid           State language                                                               [0m
+   Chips & selects                                                                                  [0m
+   Pickers             ▎  focus                                                                     [0m
+   Chrome              ░  hover lifts the surface                                                   [0m
+   Settings            ›  current / chosen                                                          [0m
+   Task runner         ✓  checked                                                                   [0m
+                       !  error                                                                     [0m
+                       ▁  editing: cursor + underline                                               [0m
+                                                                                                    [0m
+                                                                                                    [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                        [0m

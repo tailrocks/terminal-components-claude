@@ -1,0 +1,31 @@
+  ▪ [0m[1m TablePro  Production [0m [0m[1m◆ production[0m  acme_prod › public  ✓ safe      no color · 100×30  ? help  [0m
+                                                                                                    [0m
+ [0m[1m [0m≡[0m[1m Query 1 [0m×[0m[1m  [0m                                                                                 +   [0m
+ ━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────── [0m
+ › ╭─[0m[1m Query 1 [0m────────────────────────────────────────────────────────────────────────────────────╮ [0m
+   │   [0m[1;7mRun [0m  Run all   Explain                                                                    │ [0m
+ E │  ▎› [0m[1m 1[0m [0m[1;4mSELECT[0m[4m o. [0m[1;4mFROM[0m[4m orders o                                                              [0m │ [0m
+ x │             ╭────────────────────────────────────────╮                                       │ [0m
+ p │             │[0m[1;7m [0m[7mC[0m[1;7m id                        [0m[7muuid · pk[0m[1;7m [0m┃│                                       │ [0m
+ l │             │ C notes                   text · null ┃│                                       │ [0m
+ o │             │ C status                         text ┃│                                       │ [0m
+ r │             │ C is_gift                     boolean ┃│                      ln 1/1 · col 10  │ [0m
+ e │  ───────────│ C currency                       text ┆│────────────────────────────────────── │ [0m
+ r │             │ C created_at              timestamptz ┆│                                       │ [0m
+   │             │ C shipped_at       timestamptz · null ┆│                                       │ [0m
+   │             │[0m[2m C updated_at       timestamptz · null [0m┆│                                       │ [0m
+   │             ╰────────────────────────────────────────╯                                       │ [0m
+   │                                                                                              │ [0m
+   │                                        No results yet                                        │ [0m
+   │                                                                                              │ [0m
+   │                  Ctrl+R runs the statement under the cursor · Alt+R runs all                 │ [0m
+   │                                                                                              │ [0m
+   │                                                                                              │ [0m
+   │                                                                                              │ [0m
+   │                                                                                              │ [0m
+   │                                                                                              │ [0m
+   │                                                                                              │ [0m
+   ╰──────────────────────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                                    [0m
+ [0m[1m EDIT [0m  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Accept  [0m[1mEsc[0m Close                                 ✓ Connected to Production [0m
+[?25h[7;22H[6 q

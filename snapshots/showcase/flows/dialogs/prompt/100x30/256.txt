@@ -1,0 +1,30 @@
+ ▪ Junie Design system / Components / Dialogs           256 colors · 100×30   i Inspector   ? Help
+
+   Overview          Dialogs  Focus is trapped, the page dims, Esc always cancels
+   Buttons
+   Inputs              Open a dialog
+   Text areas
+   Forms                Confirm run    Rename task…    Three choices…    Delete branch…
+   Lists
+   Trees               Confirm: primary action focused first · y / n answer directly
+   Tables              Prompt: editing inside a modal, Enter submits, validation blocks
+   Editable tables     ╭────────────────────────────────────────────────────╮yle
+   Panels              │                                                    │
+   Sidebars            │  Rename task                                       │
+ › Dialogs             │                                                    │
+   Progress            │   Task name *                                      │
+   Scrolling           │ ▎ Migrate sessions table                           │
+   Terminal            │   Shown in the task list and PR title              │
+   Code editor         │                                                    │
+   Diff                │                                  Cancel   Rename   │
+   Data grid           │                                                    │
+   Chips & selects     ╰────────────────────────────────────────────────────╯
+   Pickers
+   Chrome
+   Settings
+   Task runner
+
+
+
+
+ ← → Choose  Enter Confirm  Esc Cancel

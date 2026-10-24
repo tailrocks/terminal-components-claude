@@ -1,0 +1,20 @@
+ ▪ Junie Design system / Components / Pickers     i Inspector   ? Help  [0m
+  ╭──────────────────────────────────────────────────────────────────╮  [0m
+  │ [0m[1mOpen quickly[0m                                     All · Tab scope │… [0m
+  │ ▎ Files and tasks…                                               │  [0m
+  │                                                                  │  [0m
+  │ [0m[1m▎[0mF[0m[1m Cargo.toml                    [0mCargo.toml[0m[1m              [0mFiles[0m[1m [0m┃ │  [0m
+  │  F README.md                     README.md                     ┃ │  [0m
+  │  F architecture.md               docs/architecture.md          ┃ │  [0m
+  │  F auth.rs                       src/api/auth.rs               ┃ │  [0m
+  │  F auth_flow.rs                  tests/auth_flow.rs            │ │  [0m
+  │  F billing.rs                    src/api/billing.rs            │ │  [0m
+  │  F checkout.rs                   tests/checkout.rs             │ │  [0m
+  │  F config.rs                     src/config.rs                 │ │  [0m
+  │  F dispatch.rs                   src/api/webhooks/dispa…       │ │  [0m
+  │  F lib.rs                        src/lib.rs                    │ │  [0m
+  │  F mailer.rs                     src/workers/mailer.rs         │ │  [0m
+  │ [0m[2m F main.rs                       src/main.rs                   [0m│ │  [0m
+ ›│ ↑↓ Move · Enter Open · Alt+Enter New tab · Tab Scope · Esc Clea… │  [0m
+  ╰──────────────────────────────────────────────────────────────────╯  [0m
+ [0m[1mEsc[0m Close  [0m[1mTab[0m Next                                                    [0m

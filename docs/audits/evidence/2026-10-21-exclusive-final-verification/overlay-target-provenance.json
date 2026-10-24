@@ -1,0 +1,120 @@
+{
+  "created_utc": "2026-10-21T11:50:15.614534+00:00",
+  "reviewer": "tree_adapter_independent_review",
+  "reviewed_commit": "cab4b913271babbcae5aac35b92bdf9626dfc9a6",
+  "source_worktree": "/private/tmp/overlay-dialog-tests-independent-cab4b913-20261021",
+  "unique_task_owned_target": "/private/tmp/overlay-dialog-tests-independent-cab4b913-target-20261021",
+  "never_used_parent_or_author_target": true,
+  "source_binding": [
+    {
+      "suite": "termrock-overlays",
+      "package_id": "path+file:///private/tmp/overlay-dialog-tests-independent-cab4b913-20261021/crates/termrock-overlays#0.1.0",
+      "cwd": "/private/tmp/overlay-dialog-tests-independent-cab4b913-20261021/crates/termrock-overlays",
+      "binary_path": "/private/tmp/overlay-dialog-tests-independent-cab4b913-target-20261021/debug/deps/termrock_overlays-91bc464d13227249",
+      "binary_sha256": "37357507522f6ef761c253af142e5c92bb0d22e9996ca5a7885cc18fbafa92c6"
+    },
+    {
+      "suite": "termrock-overlays::context_menu_cursor_contract",
+      "package_id": "path+file:///private/tmp/overlay-dialog-tests-independent-cab4b913-20261021/crates/termrock-overlays#0.1.0",
+      "cwd": "/private/tmp/overlay-dialog-tests-independent-cab4b913-20261021/crates/termrock-overlays",
+      "binary_path": "/private/tmp/overlay-dialog-tests-independent-cab4b913-target-20261021/debug/deps/context_menu_cursor_contract-bb35c6f6f9543dc1",
+      "binary_sha256": "ed89f95f02be1d735ac5066b8dea91639521602b868106b9a86f454adc95a36b"
+    },
+    {
+      "suite": "termrock-overlays::context_menu_danger_profile",
+      "package_id": "path+file:///private/tmp/overlay-dialog-tests-independent-cab4b913-20261021/crates/termrock-overlays#0.1.0",
+      "cwd": "/private/tmp/overlay-dialog-tests-independent-cab4b913-20261021/crates/termrock-overlays",
+      "binary_path": "/private/tmp/overlay-dialog-tests-independent-cab4b913-target-20261021/debug/deps/context_menu_danger_profile-deb7bd116353d565",
+      "binary_sha256": "e51ecc4425f08098b44196e42e93ba3f6489ba27802ff65c8485671698de8494"
+    },
+    {
+      "suite": "termrock-overlays::context_menu_disabled_reason",
+      "package_id": "path+file:///private/tmp/overlay-dialog-tests-independent-cab4b913-20261021/crates/termrock-overlays#0.1.0",
+      "cwd": "/private/tmp/overlay-dialog-tests-independent-cab4b913-20261021/crates/termrock-overlays",
+      "binary_path": "/private/tmp/overlay-dialog-tests-independent-cab4b913-target-20261021/debug/deps/context_menu_disabled_reason-3d21f9bf85d39d6b",
+      "binary_sha256": "c073f0b019e2f1076542e7af63a4212b658ab1d232c4afa8c8c11eaf7af36d37"
+    },
+    {
+      "suite": "termrock-overlays::context_menu_underlay_shared",
+      "package_id": "path+file:///private/tmp/overlay-dialog-tests-independent-cab4b913-20261021/crates/termrock-overlays#0.1.0",
+      "cwd": "/private/tmp/overlay-dialog-tests-independent-cab4b913-20261021/crates/termrock-overlays",
+      "binary_path": "/private/tmp/overlay-dialog-tests-independent-cab4b913-target-20261021/debug/deps/context_menu_underlay_shared-ef0c786e4974819a",
+      "binary_sha256": "32515f6938207bc531119dd3d29be97cdcbfe2863f73b1ff53fa5556cbb90133"
+    },
+    {
+      "suite": "termrock-overlays::dialog_ack_keyboard",
+      "package_id": "path+file:///private/tmp/overlay-dialog-tests-independent-cab4b913-20261021/crates/termrock-overlays#0.1.0",
+      "cwd": "/private/tmp/overlay-dialog-tests-independent-cab4b913-20261021/crates/termrock-overlays",
+      "binary_path": "/private/tmp/overlay-dialog-tests-independent-cab4b913-target-20261021/debug/deps/dialog_ack_keyboard-c1614dd200f8a42e",
+      "binary_sha256": "a43fdf860d3e40a8d8f312c26a6fc6f63cf48046a6c37cdbd74c7b68661db19d"
+    },
+    {
+      "suite": "termrock-overlays::dialog_acknowledgement",
+      "package_id": "path+file:///private/tmp/overlay-dialog-tests-independent-cab4b913-20261021/crates/termrock-overlays#0.1.0",
+      "cwd": "/private/tmp/overlay-dialog-tests-independent-cab4b913-20261021/crates/termrock-overlays",
+      "binary_path": "/private/tmp/overlay-dialog-tests-independent-cab4b913-target-20261021/debug/deps/dialog_acknowledgement-f22c1e81a7f0c681",
+      "binary_sha256": "8442b1d2bd1a4dfaa4cf6d4f84391444dfed0f01b1776a6eb3644c9894b679c8"
+    },
+    {
+      "suite": "termrock-overlays::dialog_navigation",
+      "package_id": "path+file:///private/tmp/overlay-dialog-tests-independent-cab4b913-20261021/crates/termrock-overlays#0.1.0",
+      "cwd": "/private/tmp/overlay-dialog-tests-independent-cab4b913-20261021/crates/termrock-overlays",
+      "binary_path": "/private/tmp/overlay-dialog-tests-independent-cab4b913-target-20261021/debug/deps/dialog_navigation-29b47c9e17680625",
+      "binary_sha256": "beea682cd57ad1145606bcb073d2ea6f4b1cb92d82b602f3b8cff79b3dbf1bea"
+    },
+    {
+      "suite": "termrock-overlays::menu_chord_case",
+      "package_id": "path+file:///private/tmp/overlay-dialog-tests-independent-cab4b913-20261021/crates/termrock-overlays#0.1.0",
+      "cwd": "/private/tmp/overlay-dialog-tests-independent-cab4b913-20261021/crates/termrock-overlays",
+      "binary_path": "/private/tmp/overlay-dialog-tests-independent-cab4b913-target-20261021/debug/deps/menu_chord_case-e7711436db85d40e",
+      "binary_sha256": "aab41ecceae267eb6d7ee7b1b9dba5dc746622a1a01f0314c428023bac4c056d"
+    },
+    {
+      "suite": "termrock-overlays::overlay",
+      "package_id": "path+file:///private/tmp/overlay-dialog-tests-independent-cab4b913-20261021/crates/termrock-overlays#0.1.0",
+      "cwd": "/private/tmp/overlay-dialog-tests-independent-cab4b913-20261021/crates/termrock-overlays",
+      "binary_path": "/private/tmp/overlay-dialog-tests-independent-cab4b913-target-20261021/debug/deps/overlay-a7e2b9cbad42352d",
+      "binary_sha256": "e6a0c0b7b279c44e1e0df800fbcc3bed1a30043ce31bd920c55589df41f137d4"
+    },
+    {
+      "suite": "termrock-overlays::picker_nonsearchable",
+      "package_id": "path+file:///private/tmp/overlay-dialog-tests-independent-cab4b913-20261021/crates/termrock-overlays#0.1.0",
+      "cwd": "/private/tmp/overlay-dialog-tests-independent-cab4b913-20261021/crates/termrock-overlays",
+      "binary_path": "/private/tmp/overlay-dialog-tests-independent-cab4b913-target-20261021/debug/deps/picker_nonsearchable-0f415936243f7004",
+      "binary_sha256": "68d2fef64d033f8d57a5ddefd51ef6905ba0a1a0a46cb4d90fbb189ec6f9fd23"
+    },
+    {
+      "suite": "termrock-overlays::picker_projection",
+      "package_id": "path+file:///private/tmp/overlay-dialog-tests-independent-cab4b913-20261021/crates/termrock-overlays#0.1.0",
+      "cwd": "/private/tmp/overlay-dialog-tests-independent-cab4b913-20261021/crates/termrock-overlays",
+      "binary_path": "/private/tmp/overlay-dialog-tests-independent-cab4b913-target-20261021/debug/deps/picker_projection-e2f73525a00ffca7",
+      "binary_sha256": "c4b5a7c81379f54d4fe1d3fa27b212140d3fa1185554c7440f042c42f7ee7f27"
+    },
+    {
+      "suite": "termrock-overlays::picker_scope",
+      "package_id": "path+file:///private/tmp/overlay-dialog-tests-independent-cab4b913-20261021/crates/termrock-overlays#0.1.0",
+      "cwd": "/private/tmp/overlay-dialog-tests-independent-cab4b913-20261021/crates/termrock-overlays",
+      "binary_path": "/private/tmp/overlay-dialog-tests-independent-cab4b913-target-20261021/debug/deps/picker_scope-c60108d840e40ec2",
+      "binary_sha256": "5a5265b2e9c841966b5494ce0cb504c096af0bdc10b558a28c0ca94ea89ce260"
+    },
+    {
+      "suite": "termrock-overlays::picker_width",
+      "package_id": "path+file:///private/tmp/overlay-dialog-tests-independent-cab4b913-20261021/crates/termrock-overlays#0.1.0",
+      "cwd": "/private/tmp/overlay-dialog-tests-independent-cab4b913-20261021/crates/termrock-overlays",
+      "binary_path": "/private/tmp/overlay-dialog-tests-independent-cab4b913-target-20261021/debug/deps/picker_width-d3e1ac780304c4e4",
+      "binary_sha256": "2e1d7f7c4dc2c0e9d676650678281991be53118624bf4d731167e1e9e1cb2a71"
+    },
+    {
+      "suite": "termrock-overlays::visible_terminal_cursor",
+      "package_id": "path+file:///private/tmp/overlay-dialog-tests-independent-cab4b913-20261021/crates/termrock-overlays#0.1.0",
+      "cwd": "/private/tmp/overlay-dialog-tests-independent-cab4b913-20261021/crates/termrock-overlays",
+      "binary_path": "/private/tmp/overlay-dialog-tests-independent-cab4b913-target-20261021/debug/deps/visible_terminal_cursor-cdb209dec11ea90f",
+      "binary_sha256": "8e00ce24fb3327244d13b3e2df6812b79b063ade6a5cc04f1187c634ac0a60e6"
+    }
+  ],
+  "full_compile_log_sha256": "829bd70a5fa71a0d5dffbbd974d91028568737c5349c3e8f9aca3a46224c3cbd",
+  "nextest_discovery_log_sha256": "091f7063100ce3f34c242597c7891737f2b56bbfadc7fcb99c93d03367d8673a",
+  "decision": "Independent cab4 proof remains valid and bound to own isolated source and binaries.",
+  "author_proof_disposition": "Author cached156/shared-target claims are not used or counted as independent proof. Parent reports a different shared-target source-contamination issue; ambiguous author/parent cached results require invalidation and exact-head fresh-target rerun. This receipt does not bless those results.",
+  "no_original_mutations": true
+}

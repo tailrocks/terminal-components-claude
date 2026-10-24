@@ -1,0 +1,25 @@
+  ▪ [0m[1m TablePro  Production [0m [0m[1m◆ production[0m  acme_prod › public  ✓ safe  …  ? help  [0m
+                                                                                [0m
+ [0m[1m▎[0m≡[0m[1m Query 1 [0m×[0m[1m  [0m                                                             +   [0m
+ ━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────── [0m
+ ╭─ Query 1 ──────────────────────────────────────────────────────────────────╮ [0m
+ │                                                                            │ [0m
+ │                                                                            │ [0m
+ │                                                                            │ [0m
+ │                                                                            │ [0m
+ │                                                                            │ [0m
+ │                                                                            │ [0m
+ │                               No results yet                               │ [0m
+ │                                                                            │ [0m
+ │         Ctrl+R runs the statement under the cursor · Alt+R runs all        │ [0m
+ │                                                                            │ [0m
+ │                                                                            │ [0m
+ │                                                                            │ [0m
+ │                                                                            │ [0m
+ │                                                                            │ [0m
+ │                                                                            │ [0m
+ │                                                                            │ [0m
+ ╰────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                [0m
+ [0m[1m←→[0m Switch  [0m[1mCtrl+T[0m New query  [0m[1mx[0m Close  …              ✓ Connected to Production [0m
+[?25l

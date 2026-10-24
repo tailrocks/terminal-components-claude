@@ -1,0 +1,50 @@
+ ▪ Junie Design system / Components / Code editor                                                                    truecolor · 160×50   i Inspector   ? Help
+
+   Foundations            Code editor  Blocks, tones, diagnostics and completion; the gutter says where you are
+   Overview
+                            retry.rs                                                               3 blocks      State
+   Components
+   Buttons                      5         match client().get(url).await {                                 │      Mode         navigating
+   Inputs                       6             Ok(body) => return Ok(body),                                │      Cursor       ln 1 · col 1
+   Text areas                   7             Err(e) if e.is_transient() => {                             │      Block        1 of 3
+   Forms                        8                 log::warn!("attempt {attempt} failed: {e}");            │      Runs         0
+   Lists                        9                 sleep(delay).await;                                     ┃      Last run     —
+   Trees                       10                 delay *= 2;                                             ┃      Diagnostics  0
+   Tables                      11             }                                                           ┃      Completion   closed
+   Editable tables             12             Err(e) => return Err(e),                                    ┃
+   Panels                      13         }                                                               ┃
+   Sidebars                    14     }                                                                   ┃
+   Dialogs                     15     Err(Error::Exhausted)                                               ┃      Diagnostics
+   Progress                    16 }                                                                       ┃
+   Scrolling                   17                                                                         ┃
+   Terminal                    18 fn client() -> Client {                                                 ┃                     Nothing flagged
+▎› Code editor                 19     Client::builder().timeout(10).build().unwrap()                      ┃
+   Diff                        20 }                                                                       ┃        Run the second block: its unwrap() gets a
+   Data grid                   21                                                                         ┃                         warning
+   Chips & selects             22 #[test]                                                                 ┃
+   Pickers                     23 fn backoff_doubles() {                                                  ┃
+   Chrome                      24     assert_eq!(schedule(3), vec![200, 400, 800]);                       ┃
+                               25 }                                                                       ┃
+   Screens                     26                                                                         ┃
+   Settings                                                                                     5–26 of 26
+   Task runner
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit

@@ -59,13 +59,13 @@ fn every_hover_plane_uses_reference_tokens_in_all_color_modes() {
         (
             ColorLevel::TrueColor,
             [
-                0x18_18_1b, 0x27_27_2a, 0x27_27_2a, 0x3f_3f_46, 0x3f_3f_46, 0x23_23_28, 0x3f_3f_46,
+                0x18_18_1b, 0x27_27_2a, 0x27_27_2a, 0x3f_3f_46, 0x3f_3f_46, 0x2f_2f_34, 0x3f_3f_46,
             ]
             .map(Color::from_u32),
         ),
         (
             ColorLevel::Ansi256,
-            [233, 235, 235, 237, 237, 234, 237].map(Color::Indexed),
+            [233, 235, 235, 237, 237, 237, 237].map(Color::Indexed),
         ),
         (
             ColorLevel::Ansi16,
@@ -814,24 +814,71 @@ impl App for NestedPaintOrigins {
 #[test]
 fn nested_public_layers_dim_the_composited_origin_and_preserve_unwritten_cells() {
     use ratatui_core::style::Color;
+    use ratatui_core::style::Modifier;
     for reverse in [false, true] {
         for raw in [false, true] {
             let h = Harness::new(NestedPaintOrigins { reverse, raw }, Theme::junie(), 16, 2);
-            assert_eq!(h.cell(1, 0).symbol(), if raw { "R" } else { " " });
+            let ghost = Color::Rgb(38, 38, 38);
+            let overlay = Color::Rgb(39, 39, 42);
+            let page = h.cell(0, 0);
+            let composed = h.cell(1, 0);
+            let upper = h.cell(15, 0);
+
+            // Frozen source Theme::backdrop keeps the glyph and maps Ghost over Overlay to
+            // Ghost/Overlay, including the raw-painted glyph whose origin carries Overlay.
             assert_eq!(
-                h.cell(1, 0).bg,
+                (
+                    composed.symbol(),
+                    composed.fg,
+                    composed.bg,
+                    composed.underline_color,
+                    composed.modifier,
+                ),
                 if raw {
-                    Color::Rgb(0, 0, 0)
+                    ("R", ghost, overlay, Color::Reset, Modifier::empty())
                 } else {
-                    Color::Rgb(39, 39, 42)
-                }
+                    ("X", ghost, overlay, Color::Reset, Modifier::empty())
+                },
+                "ordinary and raw painted glyphs survive the modal backdrop"
+            );
+
+            // The backdrop dims existing page text in place. The top layer paints after the
+            // backdrop and remains bright. Check full cell appearance, not only glyphs.
+            assert_eq!(
+                (
+                    page.symbol(),
+                    page.fg,
+                    page.bg,
+                    page.underline_color,
+                    page.modifier,
+                ),
+                (
+                    "P",
+                    Color::Rgb(138, 138, 138),
+                    Color::Rgb(0, 0, 0),
+                    Color::Reset,
+                    Modifier::empty(),
+                ),
+                "unwritten page cell retains glyph with frozen dim style"
             );
             assert_eq!(
-                h.cell(0, 0).symbol(),
-                "P",
-                "unwritten layer cell keeps page"
+                (
+                    upper.symbol(),
+                    upper.fg,
+                    upper.bg,
+                    upper.underline_color,
+                    upper.modifier,
+                ),
+                (
+                    "U",
+                    Color::Rgb(255, 255, 255),
+                    Color::Reset,
+                    Color::Reset,
+                    Modifier::empty()
+                ),
+                "top layer remains undimmed"
             );
-            assert_eq!(h.cell(15, 0).symbol(), "U", "top layer remains undimmed");
+            assert_eq!(h.cursor(), None, "layers do not manufacture a cursor");
         }
     }
 }

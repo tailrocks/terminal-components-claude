@@ -1,0 +1,9 @@
+{
+  "crates/showcase-ui/tests/baselines/showcase.txt": "6de3fa5a291c4427a360eabab99b39f2c2b95909",
+  "crates/holla-ui/tests/baselines/app.txt": "863944e34816bbe3cb5f2482f413ab48ae10ebc1",
+  "crates/showcase-ui/tests/fixtures/holla-page-headings.tsv": "937469be55bff7007cfac8c036dc0909f0ad8647",
+  "crates/showcase-ui/tests/fixtures/holla-shell-headers.tsv": "6e6cebb12984f023ccdeab6d80f59dbb19267a9f",
+  "crates/jackin-preview-app/tests/baselines/jackin.txt": "0e45e5d0caaef4af0706b1dd5db92fd3b2ca40cf",
+  "crates/showcase-ui/tests/page_headings.rs": "48729f448c73823cc58ee5eb1a06640b348355a3",
+  "crates/tablepro-ui/tests/baselines/tablepro.txt": "e4c7211e95ba021bc88cf4fd039133051dac56ae"
+}

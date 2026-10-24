@@ -1,0 +1,20 @@
+ ▪ Junie Design system / Components / Chips & sel i Inspector   ? Help
+
+   Text areas     │  Chips & selects  Removable chips, a popup select,…
+   Forms          │
+   Lists          ┃    Filters                                2 active
+   Trees          ┃
+   Tables         ┃     match all ▾   status = 'pending' ×   …
+   Editable tabl… ┃
+   Panels         ┃    ╭───────────╮nothing yet
+   Sidebars       ┃    │▎› created…│
+   Dialogs        ┃    │   total   │
+   Progress       ┃    │   status  │
+   Scrolling      ┃    │   customer│
+   Terminal       ┃    ╰───────────╯    Page size      Engine
+   Code editor    ┃    ▎ created… ▴     50       ▾     PostgreSQL   ▾
+   Diff           │      Applies to…                   Fixed by the c…
+   Data grid      │
+ › Chips & selec… │
+                      ▪  Acme  ◆ production  acme_prod › public  safe
+ Enter Open  ↑ ↓ Choose  Esc Close  Tab Next

@@ -1,0 +1,78 @@
+{
+  "schema": "termrock.independent-review.v1",
+  "decision": "HOLD",
+  "previous_findings_status": "Both177 review findingsT1dragcollapse andT2releasedclickselecting are fixed; original unchanged10public probes now10/10pass0skip. Remaining new boundary finding concerns link activation during captured selection drag.",
+  "reviewed_source_commit": "33e4eb7565e980912522116471ca90f4db23e3e1",
+  "reviewed_source_parent": "2f74af500e5ea906b024a1e01569d10022b64103",
+  "published_wip_normal_merge": "cf9f5cac09d70a96221dc358f165450bd4d7d5fb",
+  "public_source_blob_identical_in33_and_cf9": "ac1e26cba3c4f92e841c712f87e9a18539b15869",
+  "native": "Exact33:9/9termrock-terminal alltargets testingfeature pass0skip.",
+  "strict_clippy": "Exact33: cargo clippy -p termrock-terminal --all-targets --features termrock-runtime/testing -- -D warnings exits0.",
+  "unchanged_ten_probes": "Exact prior reviewer fixture copied byte-for-byte:10/10pass0skip at33. CharASCII/wideUnicode/Backspace/Enter/Paste, real capture, complete ordinary drag, releasedclick, outside release, readOnly/selectionOnly, modal paste/cursor isolation, modal-close focus/paste restoration and exhaustive public-state literal remain covered.",
+  "additional_probe": {
+    "name": "dragging_onto_link_never_activates_it",
+    "actual_input": "Public Harness/Runtime physical Down(1,1), Drag(5,1), Up(5,1), using TerminalView::link_resolver with a link only atcolumn5.",
+    "original_6841_result": "PASS: complete drag selects without OpenLink.",
+    "intermediate_177_result": "FAIL: emitsOpenLink(endpoint).",
+    "corrected_33_result": "FAIL: emitsOpenLink(endpoint).",
+    "full_eleven_unfiltered_results": {
+      "6841_original": "7pass4fail0skip; four known paste/capture/clickselection failures",
+      "177_intermediate": "8pass3fail0skip; original two selection failures plus linkactivation",
+      "33_corrected": "10pass1fail0skip; onlylinkactivation"
+    },
+    "evidence": "Intermediate and corrected actions: SelectionChanged(start1end1), SelectionChanged(start1end5), OpenLink(endpoint). New pointer capture changes release delivery toRelease,DragEnd,Click. Link resolution executes at419-423 before the corrected trailingClick dragged-range guard at427-435.",
+    "qualification": "Initial separate link probe mistakenly usedLinkKey::new(&str), which does not satisfyInto<ItemKey>; those compile-error logs are preserved and rejected as fixture error. Corrected publicLinkKey::from(&'staticstr) fixture compiles unchanged on allthree revisions. Initial filtered runs preserved separately; final full11runs have0skips."
+  },
+  "findings": [
+    {
+      "id": "T3",
+      "priority": "P1",
+      "status": "introduced_by177_and_unfixed_at33",
+      "path": "crates/termrock-terminal/src/terminal_view.rs",
+      "lines": [
+        419,
+        422,
+        427
+      ],
+      "title": "Releasing a captured text-selection drag over a link activates that link",
+      "problem": "The handler resolves and emits OpenLink for the runtime-generated trailingClick before recognizing that this click belongs to a completed drag. Users selecting text can trigger an application domain action unintentionally. The original non-captured pointer path suppressesClick afterdrag, so this is introduced by the new capture mechanism, not a pre-existing link behavior.",
+      "repair": "Classify/suppress the trailing activation of a completed drag before calling link_resolver or emittingOpenLink. Retain actual capture, focus, typing and sourcecursor. Add the unchanged link-boundary regression alongside all10previous probes. Do not fix in Jackin, synthesize direct handler phases, restore cursor painters or introduce another input system."
+    }
+  ],
+  "api_architecture": "No public state fields/signatures changed by33. The correction uses existing state and real runtime phases. No application, Runtime, Viewport or hidden-cursor workaround was added by33. Source diff33..publishedcf9 includesRuntimeui/paint.rs from normal synchronization, so this report tests33 exactsource and verifies matchingTerminalblob; it does not claim fullcf9 integration gates.",
+  "remaining_limits": [
+    "Source-selected cursor shape remains unsupported; defaultBlock only, no frozenCapsule parity claim.",
+    "Selection/render/scroll/follow/full cancellation and sharedViewport reuse remain future contracts; no full library or product acceptance.",
+    "No fullworkspace gates, realCLI Tuiscotti paired comparison or hostedCI acceptance run in this review."
+  ],
+  "evidence_files": {
+    "after-clippy.log": "4d3f20392d8ebee38712c62ce5e0e35a6ea906f4b3f92831169612623c5d34a1",
+    "after-consumer-Cargo.toml": "d5f76f452088ed538edcf707ce27bb38468d7040a697f5bad6f1ccd7ff5b8a88",
+    "after-consumer.log": "e0bd7f8423658d2fe7ab010754037bb522e754cc01938f48d484cbc66b5cfda2",
+    "after-consumer.rs": "58f8cac5d5039257f0fd3b650b974d6025686c7c8d6b35358e2b57099de32a18",
+    "after-link-consumer-Cargo.toml": "d5f76f452088ed538edcf707ce27bb38468d7040a697f5bad6f1ccd7ff5b8a88",
+    "after-link-consumer-fixture-compile-error.log": "ed622dace98364d71f6b32305dedf1a291669a0f862e9e83da4a31d853449712",
+    "after-link-consumer.log": "7893262eae926c7384f1adfb3834e9dc017cdd80b545279c505435946f9ce290",
+    "after-link-consumer.rs": "927c1ee480c8a49422fdbe0aeb257239cecd83cf02f20203af1e8c979ef6df83",
+    "after-link-filtered-consumer.log": "78a42e25a8b2edd45e4b5151f947b9a383de31803db14198d3e93d77389e8c4d",
+    "after-nextest.log": "159d23da238517be9aa4aed17a0bf03ee66232632ed8636e0065a7c1d43841f2",
+    "clippy-status.json": "dfe50a8d5492f6cbf6e957f190b884172173854aacf7c0728d2046627c08a3a0",
+    "consumer-run.py": "f70b35164cc78fb19538635191b07a7d7c6e5163c28a43b585d9a40eed71b76a",
+    "consumer-status.json": "6ab041aa0a23b7c330a2aa1eb758a785f37f6f9470d6fdce525816ed496dfc6c",
+    "intermediate-consumer-status.json": "9c748f54a3aeeb355c57ac86e019312ceef7512c8711903bbb26505fba1efa7e",
+    "intermediate-link-consumer-Cargo.toml": "3733ed51a0be05a1156f0141a5bf20c87e4a3be7a9797ddc13be050d88d19279",
+    "intermediate-link-consumer.log": "9a3697e8e0d1875f04ab33c2eee73ab8a42084042c7cc8d2404f9cb229f3b155",
+    "intermediate-link-consumer.rs": "927c1ee480c8a49422fdbe0aeb257239cecd83cf02f20203af1e8c979ef6df83",
+    "intermediate-run.py": "43e240de5da67e0960cf9819b34692959b8d2f9b14007a2556069c5a87e41ca1",
+    "link-all-run.py": "fa106d09480ec40871ea05685bd6449d41bdc8df877379b238e3ae6ab8ab44f5",
+    "link-consumer-status.json": "63d971f31e21c6ad6252e045763db1334b33307523750f297d242a912f8cb57e",
+    "link-run.py": "e06da6e7b78abed7990520e4ca659b1d5dd6076b688ec101dc5ff9a40dad03a5",
+    "native-run.py": "a51f6ee093fa920ff5df6b886cec8fc034dce49e95600340c38100eec50f2f54",
+    "native-status.json": "5656554d6b80fe930e3e0e620bc5812b49ae75e8df84b3391d31ce3f0a305580",
+    "original-link-consumer-Cargo.toml": "7075c39b24017ebc88a819e415fad78dec524cdfc11f2caa01675bac46010b9c",
+    "original-link-consumer-fixture-compile-error.log": "f4c2cbf10ed3e40219bcb29b61e74fb98377ef8f713cd08595931b77045f0664",
+    "original-link-consumer.log": "2fc7199d07b43afaa6d6eee191b558528f5f71f5115b7d704be85f789666c983",
+    "original-link-consumer.rs": "927c1ee480c8a49422fdbe0aeb257239cecd83cf02f20203af1e8c979ef6df83",
+    "original-link-filtered-consumer.log": "fe6178eb3b2411d8b2065d7fe52968a9fb2163f5dc2c0272e1d36f012e6d9de2"
+  }
+}

@@ -502,7 +502,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
             cx.resize_layer(self.id, size);
             cx.reanchor_layer(self.id, anchor);
         } else if st.open {
-            st.open = false;
+            self.close_restoring(st, items);
         }
         let mut acc = Acc::<SelectAction>::new();
         if open {
@@ -1072,6 +1072,58 @@ mod tests {
             "Esc restores the cursor to the value"
         );
         assert_eq!(st.value(), Some(ItemKey::index(1)));
+    }
+
+    #[test]
+    fn stale_open_branch_restores_value_cursor_but_closed_cursor_stays_free() {
+        let items = vec!["a", "b", "c"];
+        let s: Select<'_, &str> = Select::new(SEL);
+
+        let mut stale_open = SelectState::default();
+        let _ = stale_open.reconcile(items.len(), |i| s.key_at(&items, i));
+        stale_open.set_value(Some(ItemKey::index(1)));
+        stale_open.core.set_cursor(2, ItemKey::index(2));
+        stale_open.open = true;
+        let app = SelectPage {
+            st: stale_open,
+            items: items.clone(),
+            closed: 0,
+        };
+        let mut runtime = Runtime::new(app, Theme::junie());
+
+        // Branch control: stored-open state has no corresponding Runtime layer.
+        // The Inputs test covers the actual inactive-page lifecycle.
+        let _ = runtime.initialize();
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+
+        assert!(!runtime.app().st.is_open());
+        assert_eq!(runtime.app().st.value(), Some(ItemKey::index(1)));
+        assert_eq!(runtime.app().st.cursor(), Some(ItemKey::index(1)));
+        assert_eq!(
+            runtime.app().closed,
+            0,
+            "no dismissal action was fabricated"
+        );
+
+        let mut already_closed = SelectState::default();
+        let _ = already_closed.reconcile(items.len(), |i| s.key_at(&items, i));
+        already_closed.set_value(Some(ItemKey::index(1)));
+        already_closed.core.set_cursor(2, ItemKey::index(2));
+        let app = SelectPage {
+            st: already_closed,
+            items,
+            closed: 0,
+        };
+        let mut runtime = Runtime::new(app, Theme::junie());
+        let _ = runtime.initialize();
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+
+        assert!(!runtime.app().st.is_open());
+        assert_eq!(runtime.app().st.value(), Some(ItemKey::index(1)));
+        assert_eq!(runtime.app().st.cursor(), Some(ItemKey::index(2)));
+        assert_eq!(runtime.app().closed, 0);
     }
 
     #[test]

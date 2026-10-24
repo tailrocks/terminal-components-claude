@@ -368,19 +368,36 @@ impl Baseline {
     }
 
     fn bless(&self, key: &str, digest: &str) {
-        let mut store = store();
-        let entries = store.entry(self.path).or_default();
-        let on_disk = std::fs::read_to_string(self.path).ok();
-        if let Some(text) = on_disk.as_deref() {
-            for (k, v) in parse(text) {
-                entries.entry(k).or_insert(v);
+        let lock_path = format!("{}.lock", self.path);
+        let start = std::time::Instant::now();
+        let _lock = loop {
+            match std::fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&lock_path)
+            {
+                Ok(file) => break file,
+                Err(_) => {
+                    if start.elapsed() > std::time::Duration::from_secs(10) {
+                        let _ = std::fs::remove_file(&lock_path);
+                    }
+                    std::thread::sleep(std::time::Duration::from_millis(5));
+                }
+            }
+        };
+        struct LockGuard<'a>(&'a str);
+        impl Drop for LockGuard<'_> {
+            fn drop(&mut self) {
+                let _ = std::fs::remove_file(self.0);
             }
         }
+        let _guard = LockGuard(&lock_path);
+
+        let mut entries = std::fs::read_to_string(self.path)
+            .map(|t| parse(&t))
+            .unwrap_or_default();
         entries.insert(key.to_owned(), digest.to_owned());
-        let text = render(entries);
-        if on_disk.as_deref() == Some(text.as_str()) {
-            return;
-        }
+        let text = render(&entries);
         self.publish(&text);
     }
 

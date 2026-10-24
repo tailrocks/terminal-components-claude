@@ -1,0 +1,8 @@
+   Compiling independent-picker-contrast v0.0.0 (/private/tmp/picker-contrast-c932adb-independent-consumer-20261021)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.14s
+────────────
+ Nextest run ID 0a142a00-edef-47d3-87dd-a60bed1f5f38 with nextest profile: default
+    Starting 1 test across 1 binary (1 test skipped)
+        PASS [   1.363s] (1/1) independent-picker-contrast::authored_bg authored_background_contrast_preserves_explicit_channels
+────────────
+     Summary [   1.363s] 1 test run: 1 passed, 1 skipped

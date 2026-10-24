@@ -1,0 +1,56 @@
+{
+  "schema": "termrock.stage3d.external-supervisor-v10-stage2.independent-review.v1",
+  "decision": "HOLD stage2 operation pending final report deadline correction.",
+  "method": "Independent source review, complete synthetic suite rerun with a 180-second subprocess timeout, and an additional mocked descriptor/main probe. No actual preflight, prepare-live, key access, application, capture, replay, or candidate comparison was executed. No product source or test source was edited.",
+  "reviewed_inputs": {
+    "source": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-supervisor-v10-stage2-20261021.py",
+      "sha256": "c31451abcc91d61d46e69cfb1294e40f5d5de1d0457c009e81f8f9975705c289"
+    },
+    "tests": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/test_fresh_plan_stage3d_atomic_supervisor_v10-stage2-20261021.py",
+      "sha256": "1ad25804a689f8f468ccf88fa437b3bf20c584cdd5d4cb544bc5a430de7abc26"
+    },
+    "handoff": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-supervisor-v10-stage2-author-handoff-20261021.json",
+      "sha256": "f76a12ab071b32822f79c19570b53831930db5cdf3a3f78bed49773c5f0c3a41"
+    },
+    "canonical_runner": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/canonical-stage2-independent-review-4e04be07/tools/frozen_baseline.py",
+      "sha256": "e97361a954743231716a228646dd96f8fcf5b951780459a36e1842b08e0cfd80"
+    },
+    "independent_suite": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-supervisor-v10-stage2-independent-tests-20261021.log",
+      "sha256": "463615d559283452e67eb34cd1ce2a58ced0e57eb68979afb7b1318fc359f58f"
+    },
+    "late_output_probe": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-supervisor-v10-stage2-independent-late-output-probe-20261021.json",
+      "sha256": "1907f89b350521ad8a16fa66f130ea4046e25382b0f1b792b9b1562a8b36a69b"
+    }
+  },
+  "synthetic_suite": {
+    "exit_status": 0,
+    "result": "27 tests passed, zero failures, zero skips. See immutable log for exact elapsed duration.",
+    "timeout_seconds": 180
+  },
+  "findings": [
+    {
+      "id": "V10-STAGE2-1",
+      "severity": "P2",
+      "location": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-supervisor-v10-stage2-20261021.py:415; main at lines 487-492",
+      "problem": "write_fd_bounded checks the deadline before select/write but not after the final successful os.write or after restoring descriptor flags. A delayed kernel write can return after the deadline and main still returns 0. This contradicts the narrowed guarantee that kernel calls are checked on return and late completion fails closed. The new event receipt rule requires wrapper exit 0 plus complete event publication, so it does not reject this successful late final-report path.",
+      "evidence": "Additional main-level synthetic probe uses a 10 ms deadline and a mocked write that returns after 40 ms. Observed elapsed 0.048957833 seconds and wrapper exit status 0; no operation or child was launched.",
+      "required_fix": "Check the deadline after the final report write and descriptor-flag restoration before returning success. Add main-level regressions for a delayed final write and delayed restoration, asserting nonzero timeout exit. Preserve the explicit exclusion for kernel stalls while they remain blocked.",
+      "status": "required-before-operation"
+    }
+  ],
+  "reviewed_topics": {
+    "v8_cleanup": "The exceptional supervision path retains the exact Popen object, gives TERM up to 15 seconds within the remaining absolute budget, then uses direct-PID kill and bounded reap. No process-name, unrelated group, or descendant-containment claim was found. The independent synthetic suite exercised real cooperative and TERM-resistant children.",
+    "v9_filesystem_deadline": "The previous impossible hard wall-clock filesystem guarantee is explicitly narrowed in the module docstring and event field. _exclusive_json runs through _run_finalizer and rejects late sink completion; its synthetic delayed sink regression passes. Kernel stalls remain an explicit operational limitation. The stdout path still has the finding above.",
+    "pins": "Canonical source hash e97361a954743231716a228646dd96f8fcf5b951780459a36e1842b08e0cfd80 and independent review 15feeaf89d5b07cbf6b9204299b6f9170a2552fd8070e33ad901a20367da5090 are exact. Stage1 admission and fixed reference tuple are explicitly checked. All eleven evidence entries in the supplied handoff matched their recorded hashes.",
+    "stage_scope": "Only stage 2 prepare-live is admitted; stages 1 and 3 through 8 are rejected before preflight/launch. No plan or key operation exists in the enabled argv.",
+    "flaky_log_provenance": "The author retained and accurately labeled final3 as a failing suite: the real cooperative cleanup test observed -9 rather than 0. Subsequent authored passing logs remain separate; independent current suite passed. The historical failure is not erased or treated as green.",
+    "publication": "Event creation is exclusive, size-limited, fsynced, checked on return, and paired with nonzero exit on finalization failures. A persisted success event alone is explicitly insufficient. Deadline violation during final stdout completion is the remaining gap."
+  },
+  "disposition": "Do not execute stage2 using these exact V10 bytes until V10-STAGE2-1 is fixed and the successor source plus targeted regression receives independent review. Product and library acceptance remain unverified."
+}

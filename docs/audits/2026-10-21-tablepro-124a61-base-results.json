@@ -1,0 +1,30 @@
+{
+  "commit": "124a61a035eeff34767edc8d9aa7e61f3007ebf8",
+  "command": "cargo nextest run --locked -p tablepro-ui --all-targets --no-fail-fast",
+  "exit": 100,
+  "run": 180,
+  "passed": 159,
+  "failed": 21,
+  "skipped": 0,
+  "log": "/private/tmp/termrock-tablepro-parent-base-124a61-all-targets-20261021.log",
+  "log_sha256": "0ff573a7edea399735b392b1887a5abfbc7fc423a7ffc689d64e6c89211216d5",
+  "comparison_commit": "ecb271501618508aa6fadc9c9b75c178fcaaa41e",
+  "added_failure_names": [
+    "tablepro-ui::app_tests unfocused_grid_cursor_does_not_style_the_cursor_row"
+  ],
+  "cleared_failure_names": [],
+  "removed_test_names": [
+    "tablepro-ui app::historical_workbench_explorer_hidden::tests::ctrl_b_shows_the_approved_hidden_explorer_cell",
+    "tablepro-ui app::historical_workbench_maximized::tests::approved_maximized_frame_covers_every_cell"
+  ],
+  "added_test_names": [
+    "tablepro-ui app::explorer_collapsed::tests::ctrl_b_shows_the_approved_hidden_explorer_cell"
+  ],
+  "acceptance_complete": false,
+  "notes": [
+    "The hidden-explorer test was renamed with its replacement module; it remains present.",
+    "The maximized golden-frame module test was removed with production replay; real CLI maximized flow coverage must be verified independently.",
+    "The new unfocused-row style failure is assigned to the shared Grid replacement owner; expected output was not changed.",
+    "Some existing form failures conflict with frozen source assumptions and require preserved independent reference diagnosis rather than blanket product-regression attribution."
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "review": "critical Rust/runtime review",
+  "commit": "bfefea9ce4b3ab91f846239d5f315534ccc2ff43",
+  "worktree": "/private/tmp/session-escape-alt-review-bfefea9-20261021",
+  "decision": "HOLD: do not accept promote_escaped_alt as written",
+  "findings": [
+    {
+      "severity": "high",
+      "path": "crates/termrock-session/src/session.rs",
+      "lines": "537-551",
+      "evidence": "After any decoded Esc event, any subsequent bare character arriving within 100ms is rewritten to Alt+character, regardless of whether Crossterm had already completed the Escape event and the character is a new ordinary input. Thus a user can dismiss/cancel with Escape and immediately type a character that the app instead receives as an Alt chord. This reclassification is performed after decoding and does not retain the byte framing or key origin needed to establish the commit's alleged lost Alt prefix.",
+      "source_basis": "Pinned Crossterm 0.29.0 parser: src/event/sys/unix/parse.rs lines 30-82. A lone ESC returns no event while input_available=true and emits Esc when input_available=false; ESC followed by an ordinary character is converted to Alt+character; ESC ESC emits one Esc and consumes both prefix bytes. Crossterm TTY Parser::advance in src/event/source/unix/tty.rs lines 245-275 passes whether more bytes are available in the current read to this parser. Therefore standalone Esc followed by a later ordinary character can be delivered as separate Esc then bare-char events, which this code rewrites based solely on a 100ms wall-clock interval. The exact user-intent distinction is ambiguous after decoding; timing cannot prove the second event was a swallowed Alt prefix."
+    }
+  ],
+  "bounded_remedy": "Remove post-decode promotion of arbitrary bare characters. Preserve typed Crossterm events and explicit ALT modifiers. Address the ESC ESC x swallowed-prefix case at the decoder/input-adapter boundary with tests against pinned Crossterm/Tuiscotti traces; do not claim the synthetic Esc-then-bare-x unit test establishes parity. If the pinned decoder cannot distinguish ordinary Esc then x from the Alt sequence under identical bytes/timing, record that protocol ambiguity and retain the behavior actually emitted by the decoder instead of globally rewriting user input.",
+  "tablepro": "The TablePro Alt+x mapping in crates/tablepro-ui/src/app.rs:614 and action arm at :9895 depend on the session reclassification for the ESC ESC x workaround. The arm change to retain editor state is separate and should be evaluated independently. Existing TablePro tests found by source inspection do not establish actual terminal byte-to-action behavior for Escape then typed x versus Escape then Alt+x.",
+  "verification": {
+    "command": "CARGO_TARGET_DIR=/private/tmp/session-escape-alt-review-target-bfefea9-20261021 cargo nextest run -p termrock-session",
+    "result": "PASS: 21 passed, 1 skipped (existing package profile); includes session::tests::a_bare_character_right_after_esc_becomes_alt, which confirms the disputed global promotion rather than ruling out cancel-then-type corruption.",
+    "crossterm_decoder": "Inspected pinned Cargo.lock crossterm 0.29.0 source, especially parser and TTY event source. No PTY emulator/alternative capture tool used. No Tuiscotti terminal trace was run in this read-only review, so end-to-end binary behavior remains unverified."
+  },
+  "scope": "Read-only. No product files changed, no branch pushed, no reference artifacts or references modified."
+}

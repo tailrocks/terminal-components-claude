@@ -7,6 +7,228 @@ use crate::action::ActionKey;
 use crate::focus::ScopeId;
 use crate::id::Id;
 
+/// Identifies one application update callback within a runtime.
+///
+/// Tokens are intentionally opaque: consumers may compare them to associate a
+/// component action with a programmatic layer close from that same callback.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct UpdateToken {
+    runtime: u64,
+    callback: u64,
+}
+
+impl UpdateToken {
+    pub(crate) const fn new(runtime: u64, callback: u64) -> Self {
+        Self { runtime, callback }
+    }
+}
+
+/// The lifecycle event for one exact layer opening.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct LayerEventReceipt {
+    pub(crate) opening: LayerOpening,
+    pub(crate) event: LayerEvent,
+    pub(crate) update: Option<UpdateToken>,
+}
+
+impl LayerEventReceipt {
+    pub const fn opening(self) -> LayerOpening {
+        self.opening
+    }
+
+    pub const fn event(self) -> LayerEvent {
+        self.event
+    }
+
+    pub const fn update(self) -> Option<UpdateToken> {
+        self.update
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct PendingLayerEvent {
+    pub(crate) opening: LayerOpening,
+    pub(crate) event: LayerEvent,
+    pub(crate) update: Option<UpdateToken>,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct LayerOpening {
+    runtime: u64,
+    generation: u64,
+    id: Id,
+    owner: Id,
+    layer: LayerId,
+    parent: Option<LayerParent>,
+}
+
+impl LayerOpening {
+    const fn new(
+        runtime: u64,
+        generation: u64,
+        id: Id,
+        owner: Id,
+        layer: LayerId,
+        parent: Option<LayerParent>,
+    ) -> Self {
+        Self {
+            runtime,
+            generation,
+            id,
+            owner,
+            layer,
+            parent,
+        }
+    }
+
+    pub const fn owner(self) -> Id {
+        self.owner
+    }
+
+    pub const fn layer_id(self) -> LayerId {
+        self.layer
+    }
+
+    pub(crate) const fn runtime(self) -> u64 {
+        self.runtime
+    }
+
+    pub(crate) const fn generation(self) -> u64 {
+        self.generation
+    }
+
+    pub(crate) const fn id(self) -> Id {
+        self.id
+    }
+
+    pub(crate) const fn parent(self) -> Option<LayerParent> {
+        self.parent
+    }
+}
+
+impl core::fmt::Debug for LayerOpening {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("LayerOpening")
+            .field("id", &self.id)
+            .field("owner", &self.owner)
+            .field("layer", &self.layer)
+            .finish_non_exhaustive()
+    }
+}
+
+/// Receipt for a closed opening after replacement layout and focus have settled.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct LayerCompletion {
+    opening: LayerOpening,
+    event: LayerEvent,
+    restored_focus: Option<Id>,
+    continuation_owner: Option<Id>,
+    continuation_acknowledged: bool,
+}
+
+/// Settled outcome for a field that continued focus through one exact layer opening.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct FocusContinuationOutcome {
+    opening: LayerOpening,
+    owner: Id,
+    restored_focus: Option<Id>,
+    continued: bool,
+}
+
+impl FocusContinuationOutcome {
+    pub(crate) const fn new(
+        opening: LayerOpening,
+        owner: Id,
+        restored_focus: Option<Id>,
+        continued: bool,
+    ) -> Self {
+        Self {
+            opening,
+            owner,
+            restored_focus,
+            continued,
+        }
+    }
+
+    pub const fn opening(self) -> LayerOpening {
+        self.opening
+    }
+    pub const fn owner(self) -> Id {
+        self.owner
+    }
+    pub const fn restored_focus(self) -> Option<Id> {
+        self.restored_focus
+    }
+    pub const fn continued(self) -> bool {
+        self.continued
+    }
+
+    pub(crate) const fn with_continued(mut self, continued: bool) -> Self {
+        self.continued = continued;
+        self
+    }
+}
+
+impl LayerCompletion {
+    pub(crate) const fn new(
+        opening: LayerOpening,
+        event: LayerEvent,
+        restored_focus: Option<Id>,
+        continuation_owner: Option<Id>,
+        continuation_acknowledged: bool,
+    ) -> Self {
+        Self {
+            opening,
+            event,
+            restored_focus,
+            continuation_owner,
+            continuation_acknowledged,
+        }
+    }
+
+    pub const fn opening(self) -> LayerOpening {
+        self.opening
+    }
+
+    pub const fn event(self) -> LayerEvent {
+        self.event
+    }
+
+    pub const fn restored_focus(self) -> Option<Id> {
+        self.restored_focus
+    }
+
+    pub const fn continuation_owner(self) -> Option<Id> {
+        self.continuation_owner
+    }
+
+    pub const fn continuation_acknowledged(self) -> bool {
+        self.continuation_acknowledged
+    }
+
+    pub(crate) const fn with_continuation_acknowledged(mut self, acknowledged: bool) -> Self {
+        self.continuation_acknowledged = acknowledged;
+        self
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub(crate) struct LayerParent {
+    pub(crate) generation: u64,
+    pub(crate) id: Id,
+    pub(crate) layer: LayerId,
+}
+
+impl From<LayerOpening> for LayerParent {
+    fn from(opening: LayerOpening) -> Self {
+        Self {
+            generation: opening.generation,
+            id: opening.id,
+            layer: opening.layer,
+        }
+    }
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum LayerKind {
     Modal,
@@ -35,6 +257,12 @@ pub enum Anchor {
 pub enum ScreenAlign {
     Center,
 
+    GeometricCenter,
+
+    /// Vertically centred with any odd leftover row placed above the layer,
+    /// matching ratatui's `Flex::Center` splitting.
+    Balanced,
+
     UpperThird,
 
     Bottom,
@@ -60,6 +288,22 @@ pub enum CrossAlign {
     End,
 }
 
+/// What a layer shows when a dismissal is refused.
+///
+/// Ported from the PR #26 reference popup vocabulary
+/// (`src/ui/popup.rs` at f4867e9b5f8a08a3bb61ce80d644198a29f51984). Nothing
+/// in the runtime renders the feedback yet; the knob exists so overlays can
+/// adopt it without another type change. [`RefuseFeedback::default`] keeps the
+/// current no-feedback behavior until that adoption lands.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub enum RefuseFeedback {
+    /// Flash the layer once to mark the refused dismissal.
+    #[default]
+    Flash,
+    /// Stay silent.
+    None,
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct Dismiss {
     pub esc: bool,
@@ -67,6 +311,20 @@ pub struct Dismiss {
     pub outside_click: bool,
 
     pub focus_out: bool,
+
+    /// Keys and pointer presses inside the layer still reach the page below.
+    ///
+    /// Reference `popup::Dismiss::pass_through`: while the layer is open the
+    /// runtime keeps routing input through it instead of trapping it. The
+    /// runtime does not consult this yet (adoption handoff); it defaults to
+    /// `false`, the current trapping behavior.
+    pub pass_through: bool,
+
+    /// The layer may show a close affordance; see [`Dismiss::shows_close`].
+    pub close_button: bool,
+
+    /// What to show when a dismissal is refused.
+    pub refuse_feedback: RefuseFeedback,
 }
 
 impl Dismiss {
@@ -74,25 +332,73 @@ impl Dismiss {
         esc: false,
         outside_click: false,
         focus_out: false,
+        pass_through: false,
+        close_button: false,
+        refuse_feedback: RefuseFeedback::Flash,
     };
 
     pub const ESC: Dismiss = Dismiss {
         esc: true,
         outside_click: false,
         focus_out: false,
+        pass_through: false,
+        close_button: true,
+        refuse_feedback: RefuseFeedback::Flash,
     };
 
     pub const ESC_AND_OUTSIDE: Dismiss = Dismiss {
         esc: true,
         outside_click: true,
         focus_out: false,
+        pass_through: false,
+        close_button: true,
+        refuse_feedback: RefuseFeedback::Flash,
     };
 
     pub const ALL: Dismiss = Dismiss {
         esc: true,
         outside_click: true,
         focus_out: true,
+        pass_through: false,
+        close_button: true,
+        refuse_feedback: RefuseFeedback::Flash,
     };
+
+    pub const fn pass_through(mut self, on: bool) -> Self {
+        self.pass_through = on;
+        self
+    }
+
+    pub const fn close_button(mut self, on: bool) -> Self {
+        self.close_button = on;
+        self
+    }
+
+    pub const fn refuse_feedback(mut self, feedback: RefuseFeedback) -> Self {
+        self.refuse_feedback = feedback;
+        self
+    }
+
+    /// Whether a dismissal `reason` may close this layer.
+    ///
+    /// Ported from the reference `Dismiss::allows`. Programmatic dismissal is
+    /// never refused: an owner closing its own layer is not a user gesture.
+    pub const fn allows(self, reason: DismissReason) -> bool {
+        match reason {
+            DismissReason::Esc => self.esc,
+            DismissReason::OutsideClick => self.outside_click,
+            DismissReason::FocusOut => self.focus_out,
+            // `DismissReason` is `#[non_exhaustive]`; a reason added later is
+            // owner-initiated until this match learns about it, so it is
+            // allowed — the same verdict as `Programmatic`.
+            _ => true,
+        }
+    }
+
+    /// A close affordance is only honest when Esc actually dismisses.
+    pub const fn shows_close(self) -> bool {
+        self.close_button && self.esc
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -127,6 +433,12 @@ pub struct LayerSpec {
 
     pub size: LayerSize,
 
+    /// Total horizontal and vertical viewport space reserved outside this layer.
+    pub viewport_margin: (u16, u16),
+
+    /// Keep this live underlying control logically active while this layer owns input.
+    pub continues_focus_owner: Option<Id>,
+
     pub backdrop: Backdrop,
 
     pub inert_below: bool,
@@ -142,6 +454,8 @@ impl LayerSpec {
             restore_focus: true,
             initial_focus: None,
             size: LayerSize::Fill,
+            viewport_margin: (0, 0),
+            continues_focus_owner: None,
             backdrop: Backdrop::Dim {
                 exclude_footer: true,
             },
@@ -158,6 +472,8 @@ impl LayerSpec {
             restore_focus: true,
             initial_focus: None,
             size: LayerSize::Fill,
+            viewport_margin: (0, 0),
+            continues_focus_owner: None,
             backdrop: Backdrop::None,
             inert_below: false,
         }
@@ -172,6 +488,8 @@ impl LayerSpec {
             restore_focus: false,
             initial_focus: None,
             size: LayerSize::Fill,
+            viewport_margin: (0, 0),
+            continues_focus_owner: None,
             backdrop: Backdrop::None,
             inert_below: false,
         }
@@ -180,6 +498,12 @@ impl LayerSpec {
     #[must_use]
     pub const fn anchor(mut self, a: Anchor) -> Self {
         self.anchor = a;
+        self
+    }
+
+    #[must_use]
+    pub const fn continues_focus(mut self, owner: Id) -> Self {
+        self.continues_focus_owner = Some(owner);
         self
     }
 
@@ -208,6 +532,12 @@ impl LayerSpec {
     }
 
     #[must_use]
+    pub const fn viewport_margin(mut self, horizontal_total: u16, vertical_total: u16) -> Self {
+        self.viewport_margin = (horizontal_total, vertical_total);
+        self
+    }
+
+    #[must_use]
     pub const fn inert_below(mut self, yes: bool) -> Self {
         self.inert_below = yes;
         self
@@ -222,6 +552,23 @@ impl LayerSpec {
     pub const fn dismisses_on_focus_out(&self) -> bool {
         self.dismiss.focus_out && !matches!(self.kind, LayerKind::Modal)
     }
+}
+
+pub(crate) fn resolve_layer_area(viewport: Rect, spec: LayerSpec) -> Rect {
+    let LayerSize::Fixed(desired_width, desired_height) = spec.size else {
+        return resolve_anchor(viewport, spec.anchor, spec.size);
+    };
+    if viewport.width == 0 || viewport.height == 0 {
+        return Rect::ZERO;
+    }
+    let max_width = viewport.width.saturating_sub(spec.viewport_margin.0).max(1);
+    let max_height = viewport
+        .height
+        .saturating_sub(spec.viewport_margin.1)
+        .max(1);
+    let width = desired_width.min(max_width).min(viewport.width);
+    let height = desired_height.min(max_height).min(viewport.height);
+    resolve_anchor(viewport, spec.anchor, LayerSize::Fixed(width, height))
 }
 
 #[expect(
@@ -240,6 +587,8 @@ pub fn resolve_anchor(screen: Rect, anchor: Anchor, size: LayerSize) -> Rect {
             let free = screen.height.saturating_sub(h);
             let y = match align {
                 ScreenAlign::Center => screen.y.saturating_add(free / 3),
+                ScreenAlign::GeometricCenter => screen.y.saturating_add(free / 2),
+                ScreenAlign::Balanced => screen.y.saturating_add(free.div_ceil(2)),
                 ScreenAlign::UpperThird => screen.y.saturating_add(free / 6),
                 ScreenAlign::Bottom => screen.y.saturating_add(free),
             };
@@ -343,6 +692,8 @@ pub(crate) struct OpenLayer {
     pub(crate) id: Id,
     pub(crate) layer: LayerId,
     pub(crate) spec: LayerSpec,
+    pub(crate) opening: LayerOpening,
+    pub(crate) closed_event: Option<LayerEvent>,
 
     pub(crate) restore_to: Option<Id>,
 }
@@ -357,9 +708,11 @@ impl OpenLayer {
 pub(crate) struct LayerStack {
     open: Vec<OpenLayer>,
 
-    pending: Vec<(Id, LayerEvent)>,
+    pending: Vec<PendingLayerEvent>,
 
     next: u32,
+
+    next_generation: u64,
 }
 
 impl Default for LayerStack {
@@ -368,6 +721,7 @@ impl Default for LayerStack {
             open: Vec::new(),
             pending: Vec::new(),
             next: 1,
+            next_generation: 1,
         }
     }
 }
@@ -408,44 +762,89 @@ impl LayerStack {
             .map_or(LayerId::PAGE, |l| l.layer)
     }
 
+    #[cfg(test)]
     pub(crate) fn open(
         &mut self,
         id: Id,
         spec: LayerSpec,
         restore_to: Option<Id>,
     ) -> Option<LayerId> {
+        self.open_with_runtime(id, spec, restore_to, 0)
+            .map(LayerOpening::layer_id)
+    }
+
+    pub(crate) fn open_with_runtime(
+        &mut self,
+        id: Id,
+        spec: LayerSpec,
+        restore_to: Option<Id>,
+        runtime: u64,
+    ) -> Option<LayerOpening> {
         if self.is_open(id) {
             return None;
         }
         let layer = LayerId(u16::try_from(self.next).ok()?);
         self.next = self.next.saturating_add(1);
+        let generation = self.next_generation;
+        self.next_generation = self.next_generation.checked_add(1)?;
+        let parent = self.open.last().map(|open| LayerParent::from(open.opening));
+        let opening = LayerOpening::new(runtime, generation, id, spec.owner, layer, parent);
         self.open.push(OpenLayer {
             id,
             layer,
             spec,
+            opening,
+            closed_event: None,
             restore_to,
         });
-        self.pending.push((id, LayerEvent::Opened));
-        Some(layer)
+        self.pending.push(PendingLayerEvent {
+            opening,
+            event: LayerEvent::Opened,
+            update: None,
+        });
+        Some(opening)
     }
 
+    #[cfg(test)]
     pub(crate) fn close(&mut self, id: Id, event: LayerEvent) -> Vec<OpenLayer> {
+        self.close_with_update(id, event, None)
+    }
+
+    pub(crate) fn close_with_update(
+        &mut self,
+        id: Id,
+        event: LayerEvent,
+        update: Option<UpdateToken>,
+    ) -> Vec<OpenLayer> {
         let Some(pos) = self.open.iter().position(|l| l.id == id) else {
             return Vec::new();
         };
-        let closed: Vec<OpenLayer> = self.open.drain(pos..).collect();
-        for (i, l) in closed.iter().enumerate() {
+        let mut closed: Vec<OpenLayer> = self.open.drain(pos..).collect();
+        for (i, l) in closed.iter_mut().enumerate() {
             let ev = if i == 0 {
                 event
             } else {
                 LayerEvent::Dismissed(DismissReason::Programmatic)
             };
-            self.pending.push((l.id, ev));
+            l.closed_event = Some(ev);
+            self.pending.push(PendingLayerEvent {
+                opening: l.opening,
+                event: ev,
+                update: if i == 0 { update } else { None },
+            });
         }
         closed
     }
 
+    #[cfg(test)]
     pub(crate) fn take_pending(&mut self) -> Vec<(Id, LayerEvent)> {
+        self.take_pending_receipts()
+            .into_iter()
+            .map(|pending| (pending.opening.id(), pending.event))
+            .collect()
+    }
+
+    pub(crate) fn take_pending_receipts(&mut self) -> Vec<PendingLayerEvent> {
         core::mem::take(&mut self.pending)
     }
 }
@@ -494,6 +893,74 @@ mod tests {
         assert_eq!(s.open(DLG, LayerSpec::modal(DLG), None), Some(LayerId(1)));
         assert_eq!(s.close(DLG, LayerEvent::Closed(ActionKey::CANCEL)).len(), 1);
         assert_eq!(s.open(PICK, LayerSpec::modal(PICK), None), Some(LayerId(2)));
+    }
+
+    #[test]
+    fn receipts_retain_each_reopened_layer_opening_and_close_callback() {
+        let mut stack = LayerStack::default();
+        let first = stack
+            .open_with_runtime(DLG, LayerSpec::modal(DLG), None, 7)
+            .expect("first opening");
+        let first_update = UpdateToken::new(7, 11);
+        stack.close_with_update(
+            DLG,
+            LayerEvent::Dismissed(DismissReason::Programmatic),
+            Some(first_update),
+        );
+        let second = stack
+            .open_with_runtime(DLG, LayerSpec::modal(DLG), None, 7)
+            .expect("reopened layer");
+        let second_update = UpdateToken::new(7, 12);
+        stack.close_with_update(
+            DLG,
+            LayerEvent::Dismissed(DismissReason::Programmatic),
+            Some(second_update),
+        );
+
+        let receipts = stack.take_pending_receipts();
+        let closed: Vec<_> = receipts
+            .iter()
+            .filter(|receipt| receipt.event == LayerEvent::Dismissed(DismissReason::Programmatic))
+            .collect();
+        assert_eq!(closed.len(), 2);
+        assert_eq!(closed[0].opening, first);
+        assert_eq!(closed[0].update, Some(first_update));
+        assert_eq!(closed[1].opening, second);
+        assert_eq!(closed[1].update, Some(second_update));
+        assert_ne!(closed[0].opening, closed[1].opening);
+    }
+
+    #[test]
+    fn opening_tokens_identify_runtime_generation_and_concrete_parent() {
+        let mut stack = LayerStack::default();
+        let parent = stack
+            .open_with_runtime(DLG, LayerSpec::modal(DLG), None, 17)
+            .expect("parent layer opens");
+        let child = stack
+            .open_with_runtime(
+                PICK,
+                LayerSpec::popover(PICK, Anchor::Screen(ScreenAlign::Center)),
+                None,
+                17,
+            )
+            .expect("child layer opens");
+        assert_eq!(parent.runtime(), 17);
+        assert_eq!(parent.generation(), 1);
+        assert_eq!(parent.id(), DLG);
+        assert_eq!(child.parent(), Some(parent.into()));
+
+        let _ = stack.close(DLG, LayerEvent::Dismissed(DismissReason::Esc));
+        let reopened = stack
+            .open_with_runtime(DLG, LayerSpec::modal(DLG), None, 17)
+            .expect("same layer id can open again");
+        assert_ne!(reopened, parent);
+        assert_eq!(reopened.generation(), 3);
+
+        let mut other_runtime = LayerStack::default();
+        let other = other_runtime
+            .open_with_runtime(DLG, LayerSpec::modal(DLG), None, 18)
+            .expect("same layer identity in another runtime");
+        assert_ne!(other, parent);
     }
 
     #[test]
@@ -607,6 +1074,60 @@ mod tests {
     }
 
     #[test]
+    fn anchor_screen_geometric_center_centers_inside_offset_viewport() {
+        let screen = Rect::new(7, 11, 120, 40);
+        let r = resolve_anchor(
+            screen,
+            Anchor::Screen(ScreenAlign::GeometricCenter),
+            LayerSize::Fixed(60, 12),
+        );
+        assert_eq!(r, Rect::new(37, 25, 60, 12));
+    }
+
+    #[test]
+    fn anchor_screen_balanced_centers_with_the_odd_row_above() {
+        // Ratatui `Flex::Center` splitting: free 29 around an 11-row layer
+        // puts 15 rows above and 14 below.
+        for (height, expected_y) in [(20u16, 5u16), (24, 7), (30, 10), (40, 15), (50, 20)] {
+            let screen = Rect::new(0, 0, 120, height);
+            let r = resolve_anchor(
+                screen,
+                Anchor::Screen(ScreenAlign::Balanced),
+                LayerSize::Fixed(54, 11),
+            );
+            assert_eq!(r, Rect::new(33, expected_y, 54, 11), "height {height}");
+        }
+        // An even leftover leaves no rounding bias.
+        let even = resolve_anchor(
+            Rect::new(0, 0, 120, 41),
+            Anchor::Screen(ScreenAlign::Balanced),
+            LayerSize::Fixed(54, 11),
+        );
+        assert_eq!(even.y, 15);
+    }
+
+    #[test]
+    fn anchor_screen_geometric_center_clamps_oversize_and_handles_tiny_viewports() {
+        let screen = Rect::new(9, 13, 3, 2);
+        assert_eq!(
+            resolve_anchor(
+                screen,
+                Anchor::Screen(ScreenAlign::GeometricCenter),
+                LayerSize::Fixed(20, 8),
+            ),
+            screen
+        );
+        assert_eq!(
+            resolve_anchor(
+                screen,
+                Anchor::Screen(ScreenAlign::GeometricCenter),
+                LayerSize::Fixed(1, 1),
+            ),
+            Rect::new(10, 13, 1, 1)
+        );
+    }
+
+    #[test]
     fn fill_resolves_to_the_whole_screen() {
         let screen = Rect::new(0, 0, 120, 40);
         for anchor in [
@@ -663,6 +1184,40 @@ mod tests {
             LayerSize::Fixed(10, 4),
         );
         assert_eq!((small.width, small.height), (10, 4));
+    }
+
+    #[test]
+    fn viewport_margin_limits_fixed_size_without_changing_anchor_viewport() {
+        let viewport = Rect::new(7, 5, 120, 12);
+        let spec = LayerSpec::popover(DLG, Anchor::Screen(ScreenAlign::GeometricCenter))
+            .size(LayerSize::Fixed(88, 19))
+            .viewport_margin(4, 2);
+        assert_eq!(spec.size, LayerSize::Fixed(88, 19));
+        assert_eq!(resolve_layer_area(viewport, spec), Rect::new(23, 6, 88, 10));
+        assert_eq!(
+            resolve_layer_area(Rect::new(7, 5, 120, 40), spec),
+            Rect::new(23, 15, 88, 19)
+        );
+    }
+
+    #[test]
+    fn viewport_margin_handles_tiny_and_empty_viewports() {
+        let spec = LayerSpec::popover(DLG, Anchor::Screen(ScreenAlign::GeometricCenter))
+            .size(LayerSize::Fixed(88, 19))
+            .viewport_margin(4, 2);
+        assert_eq!(
+            resolve_layer_area(Rect::new(9, 13, 1, 1), spec),
+            Rect::new(9, 13, 1, 1)
+        );
+        assert_eq!(resolve_layer_area(Rect::new(9, 13, 0, 5), spec), Rect::ZERO);
+        assert_eq!(resolve_layer_area(Rect::new(9, 13, 5, 0), spec), Rect::ZERO);
+    }
+
+    #[test]
+    fn viewport_margin_does_not_change_fill_layer_semantics() {
+        let viewport = Rect::new(7, 5, 120, 40);
+        let spec = LayerSpec::modal(DLG).viewport_margin(4, 2);
+        assert_eq!(resolve_layer_area(viewport, spec), viewport);
     }
 
     #[test]
@@ -775,6 +1330,32 @@ mod runtime_tests {
     const PICK: Id = Id::root("pick");
     const ROW: Id = Id::root("pick.row");
 
+    #[derive(Default)]
+    struct BootstrapLayer {
+        opened: bool,
+        bootstrap_viewport: Option<Rect>,
+    }
+
+    impl crate::runtime::App for BootstrapLayer {
+        fn update(&mut self, cx: &mut crate::ui::Cx<'_>) -> crate::response::Response<()> {
+            if !self.opened {
+                self.bootstrap_viewport = Some(cx.viewport());
+                self.opened = true;
+                cx.open_layer(
+                    PICK,
+                    LayerSpec::popover(PICK, Anchor::Screen(ScreenAlign::GeometricCenter))
+                        .size(LayerSize::Fixed(88, 19))
+                        .viewport_margin(4, 2),
+                );
+            }
+            crate::response::Response::ignored()
+        }
+
+        fn draw(&self, ui: &mut crate::ui::Ui<'_>) {
+            let _ = ui.layer(PICK, |_, _| ());
+        }
+    }
+
     fn dialog_stub() -> Stub {
         Stub {
             page: vec![Control::new(PAGE_A, Rect::new(0, 0, 10, 1))],
@@ -830,6 +1411,30 @@ mod runtime_tests {
         rt.app_mut().resize_request = Some((DLG, LayerSize::Fixed(40, 10)));
         let _ = step(&mut rt, &mut buf, key(KeyCode::Char('x')));
         assert_eq!(rt.layer_area(DLG), Some(grown));
+    }
+
+    #[test]
+    fn bootstrap_layer_resolves_against_actual_viewport_and_restores_desired_size() {
+        use ratatui_core::buffer::Buffer;
+
+        let mut rt =
+            crate::runtime::Runtime::new(BootstrapLayer::default(), crate::theme::Theme::junie());
+        let _ = rt.initialize();
+        assert_eq!(rt.app().bootstrap_viewport, Some(Rect::ZERO));
+
+        let mut short = Buffer::empty(Rect::new(0, 0, 120, 12));
+        rt.draw_buffer(Rect::new(0, 0, 120, 12), &mut short)
+            .commit_presented();
+        assert_eq!(rt.layer_area(PICK), Some(Rect::new(16, 1, 88, 10)));
+
+        let mut tall = Buffer::empty(Rect::new(0, 0, 120, 40));
+        rt.draw_buffer(Rect::new(0, 0, 120, 40), &mut tall)
+            .commit_presented();
+        assert_eq!(rt.layer_area(PICK), Some(Rect::new(16, 10, 88, 19)));
+        assert_eq!(
+            rt.open_spec(PICK).map(|spec| spec.size),
+            Some(LayerSize::Fixed(88, 19))
+        );
     }
 
     #[test]

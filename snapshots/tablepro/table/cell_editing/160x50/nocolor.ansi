@@ -1,0 +1,51 @@
+  ▪ [0m[1m TablePro  Production [0m [0m[1m◆ production[0m  acme_prod › public  ✓ safe                                                                  no color · 160×50  ? help  [0m
+                                                                                                                                                                [0m
+  ≡ Query 1 ×   [0m[1m [0mT[0m[1m orders [0m×[0m[1m  [0m                                                                                                                               +   [0m
+ ───────────────━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+ ╭─ Explorer ───────────── public   ‹ ─╮│╭─[0m[1m public › orders [0m──────────────────────────────────────────────────────────────────────────────────────── 14 cols ─╮ [0m
+ │                                     │││  [0m[1m Data  [0m  Structure                                                                                                │ [0m
+ │   Filter objects                    │││  ━━━━━━━────────────────────────────────────────────────────────────────────────────────────────────────────────── │ [0m
+ │  ▾ D acme_prod                      │││                                                                                                                    │ [0m
+ │    ▾ S public                       │││   ‹1      order_number  customer_id                           organization_id                       [0m[1mstatus   [0m 9›   │ [0m
+ │      ▾ Tables                    7  │││  [0m[1m▎  [0m  1[0m[1m          10000  f92c5e53-3ebb-4a35-a2f…55b014ba7e9 →  2bd03496-f7c6-428c-95c…2ef815fbb5d →  [0m[1;4m…ivered[0m[1m      [0m┃ │ [0m
+ │        ▸ T organizations     1.2 k  │││       2          10001  1b3a6759-b804-4ed8-b95…b7428564812 →  a1cc5725-426b-4be8-b1d…4c2d5a36aa8 →  pending      ┃ │ [0m
+ │        ▸ T customers        48.9 k  │││       3          10002  64e6f4de-3e02-4ca0-9a5…24565132551 →  45e4f51f-21b8-4d1a-bf0…43208da8925 →  pending      ┆ │ [0m
+ │        ▸ T products            312  │││       4          10003  32143a01-1da3-4ac1-b99…c6075254378 →  216371dc-bcdb-491e-816…d0cc6d4df3e →  pending      ┆ │ [0m
+ │ [0m[1m       ▸ [0mT[0m[1m orders            1.2 M [0m │││       5          10004  1c78fd05-5f61-47a4-97b…33a34f15f6a →  855a73fc-8e39-4909-829…7f93a51e6b3 →  refunded     ┆ │ [0m
+ │        ▸ T order_items       3.8 M  │││       6          10005  59fec2d8-1726-43b9-b97…1a2ad2f9ee0 →  3082dad1-58d6-4907-ac6…4151df94d71 →  shipped      ┆ │ [0m
+ │        ▸ T payments          1.2 M  │││       7          10006  ede350f8-5b4f-43c6-aff…8400f9c14bd →  b51d60b6-6603-463e-af6…750272ceb33 →  delivered    ┆ │ [0m
+ │        ▸ T subscriptions     1.1 k  │││       8          10007  0f9c14bd-5840-4ffd-b63…603b51d60b6 →  272ceb33-e750-4f60-a03…fe3ac0de925 →  refunded     ┆ │ [0m
+ │      ▸ Views                     2  │││       9          10008  fb78dd25-a96f-4296-b51…1c3440148c6 →  e420b1cb-f102-48d9-944…c74d87ca6b7 →  pending      ┆ │ [0m
+ │      ▸ Functions                 1  │││      10          10009  dd2c444c-7d3a-4a51-94f…e11c0218d65 →  cbc419eb-5897-4d5d-84b…b4e319a287a →  pending      ┆ │ [0m
+ │      ▸ Sequences                 1  │││      11          10010  d8755486-2a99-4a4c-8da…e8cf504ad9b →  2beeba6e-17fa-465c-b93…117497e7f9f →  cancelled    ┆ │ [0m
+ │    ▸ S analytics                    │││      12          10011  7557d493-6762-4302-a06…a3ecf869377 →  26e6126e-3678-4861-91b…f7a2e505aaa →  refunded     ┆ │ [0m
+ │    ▸ S audit                        │││      13          10012  03ec066a-66ba-4257-bf2…7f3450f7c29 →  c04a0d90-92db-4247-93b…57a5ae74dff →  refunded     ┆ │ [0m
+ │                                     │││      14          10013  1fd69c1a-6c1d-4004-a21…29d250e5b5e →  5e08138a-c572-4d88-a74…8e49ab0daa2 →  paid         ┆ │ [0m
+ │                                     │││      15          10014  250e5b5e-529d-421b-9d8…5725e08138a →  9ab0daa2-e8e4-474c-946…286d04a5c2b →  shipped      ┆ │ [0m
+ │                                     │││      16          10015  44842f3f-c910-4cc2-86b…bdcbfbaee95 →  c7c8457e-da6b-40e9-b90…cbbfeb56e8b →  refunded     ┆ │ [0m
+ │                                     │││      17          10016  e0ada9f0-d147-4112-800…2d482f763e1 →  856eb1ff-ef23-4b8b-b3e…8c43bcce08f →  pending      ┆ │ [0m
+ │                                     │││      18          10017  b6d7e92a-e7c9-49f9-902…c684f35e139 →  c180d977-7033-43c3-9a4…0779d6c73ea →  pending      ┆ │ [0m
+ │                                     │││      19          10018  6dd6c286-1380-4f45-9c4…150e6054eef →  71ff0ea9-6c71-4faf-8df…aae78d5ece4 →  refunded     ┆ │ [0m
+ │                                     │││      20          10019  33ba912f-50d1-46c2-887…ed0e88c0329 →  e20af405-1eec-458e-bc5…6fa0b0d0c1c →  pending      ┆ │ [0m
+ │                                     │││      21          10020  454b51cc-dd84-4ffc-b6e…ae7c3a06f9f →  3126689d-fa5f-413d-835…ccce612ed16 →  cancelled    ┆ │ [0m
+ │                                     │││      22          10021  c3a06f9f-eae7-46ea-b13…a5f3126689d →  e612ed16-fccc-4359-9e8…86a95bd1a52 →  refunded     ┆ │ [0m
+ │                                     │││      23          10022  1fefdf3e-34b8-452d-807…13c9d71d63d →  10fd6c6e-7543-41f7-89f…1e420c21a44 →  refunded     ┆ │ [0m
+ │                                     │││      24          10023  9d628e15-01b2-4964-bbe…dc4e3c55c7c →  91a5a928-35bc-4764-826…96dc9078779 →  delivered    ┆ │ [0m
+ │                                     │││      25          10024  24272296-50a8-4f23-9e7…c9b49c3cc26 →  dee472bd-2c4c-4496-a2f…9c1e26a9aba →  delivered    ┆ │ [0m
+ │                                     │││      26          10025  2a817425-9c74-4067-ab9…0fbe5c51c05 →  d996d5c1-c0bd-4756-b09…c45666fd5f3 →  pending      ┆ │ [0m
+ │                                     │││      27          10026  c893cab9-945c-41dc-8d9…3307b22ab96 →  7258ca86-d512-48fd-96f…f0160378d74 →  refunded     ┆ │ [0m
+ │                                     │││      28          10027  7665634f-12f1-4cf4-b7a…cfdc372ce2e →  7a82cdfc-6725-4dd7-863…12750400819 →  cancelled    ┆ │ [0m
+ │                                     │││      29          10028  f1e838f5-f4cf-446e-978…18996788054 →  36d1bc3c-c112-4f02-b0b…a1f96d494e2 →  shipped      ┆ │ [0m
+ │                                     │││      30          10029  96788054-d189-4781-bf0…11236d1bc3c →  96d494e2-5a1f-40bc-941…0b50fa931a8 →  pending      ┆ │ [0m
+ │                                     │││      31          10030  af5bcdb0-3264-4b3c-91c…841dcdbe12d →  8cfdc5a2-1467-458c-8fd…dff567144f9 →  delivered    ┆ │ [0m
+ │                                     │││      32          10031  29133d87-5162-4dbe-a53…f8a93fd6f8a →  b5ef3cdf-d4e1-4a95-bbd…b1708c5160b →  pending      ┆ │ [0m
+ │                                     │││      33          10032  6e37043f-66ce-4cdc-b8c…284635784fd →  747ddec2-ceb1-4513-ae7…72e5acedfb6 →  delivered    ┆ │ [0m
+ │                                     │││      34          10033  f936ac92-9fc2-4e6b-9a3…ac1b78bc2bf →  9ba3e636-bf30-41c0-8a7…e692c00d1ea →  pending      ┆ │ [0m
+ │                                     │││      35          10034  1a520bd3-fa9c-442c-95d…20a89f59ed9 →  3c565a32-1994-4ac4-83a…beeb48eab70 →  cancelled    ┆ │ [0m
+ │                                     │││  [0m[2m    36          10035  c3781648-7078-4f5e-afe…ddb4866f00d →  76bcdd61-37a0-418c-814…5d2202aa3f4 →  cancelled    [0m┆ │ [0m
+ │                                     │││         ┄┄┄┄┄┄┄┄━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄  │ [0m
+ │                                     │││   rows 1–36 of 500 loaded · 1,203,338 total · cols 2–5 of 14                                                       │ [0m
+ ╰─────────────────────────────────────╯│╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                                                                                                [0m
+ [0m[1m EDIT [0m  [0m[1mEnter[0m Apply  [0m[1mEsc[0m Cancel  [0m[1mTab[0m Next cell                                                                                       ✓ Connected to Production [0m
+[?25h[10;151H[6 q

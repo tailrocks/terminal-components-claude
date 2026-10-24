@@ -31,6 +31,56 @@ pub enum RadioGroupAction {
     Chose(ItemKey),
 }
 
+/// Controls whether keyboard navigation also chooses the focused radio option.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub enum RadioNavigation {
+    /// Arrow, Home, and End navigation immediately choose the destination.
+    #[default]
+    Immediate,
+    /// Navigation moves the cursor; Space or Enter chooses the destination.
+    Deferred,
+}
+
+/// Keyboard binding profile for a radio group.
+///
+/// The default preserves the existing arrow, `j`/`k`, Home, and End bindings.
+/// Use another profile to opt into a desktop, Vim, or no-Home/End table.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+#[non_exhaustive]
+pub enum RadioKeyPolicy {
+    /// Preserve the existing arrow, `j`/`k`, Home, and End bindings.
+    #[default]
+    Default,
+    /// Use arrows and Home/End, without Vim keys.
+    Desktop,
+    /// Use arrows, Vim `j`/`k`/`J`/`K`/`g`/`G`, and Home/End.
+    Vim,
+    /// Use arrows without Vim keys or default Home/End bindings.
+    NoHomeEnd,
+}
+
+/// The three values of an opt-in tri-state checkbox.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+#[non_exhaustive]
+pub enum CheckboxState {
+    /// The checkbox is not selected.
+    #[default]
+    Unchecked,
+    /// The checkbox is selected.
+    Checked,
+    /// The checkbox represents a partial selection.
+    Mixed,
+}
+
+impl CheckboxState {
+    const fn after_activation(self) -> Self {
+        match self {
+            Self::Checked => Self::Unchecked,
+            Self::Unchecked | Self::Mixed => Self::Checked,
+        }
+    }
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ChoiceCmd {
     Choose,
@@ -96,6 +146,135 @@ const RADIO: &[Binding<ChoiceCmd>] = &[
     b(Chord::key(KeyCode::Home), ChoiceCmd::First, "First", false),
     b(Chord::key(KeyCode::End), ChoiceCmd::Last, "Last", false),
 ];
+
+const fn action_without_default_chord(cmd: ChoiceCmd, label: &'static str) -> Binding<ChoiceCmd> {
+    // Keep semantic action IDs available to component key remaps when a
+    // profile omits the default Home/End chords.
+    Binding {
+        action: ActionKey::custom(label),
+        chord: None,
+        cmd,
+        label,
+        priority: 10,
+        visible: false,
+    }
+}
+
+const RADIO_DESKTOP: &[Binding<ChoiceCmd>] = &[
+    b(
+        Chord::key(KeyCode::Char(' ')),
+        ChoiceCmd::Choose,
+        "Choose",
+        true,
+    ),
+    b(
+        Chord::key(KeyCode::Enter),
+        ChoiceCmd::Choose,
+        "Choose (Enter)",
+        false,
+    ),
+    b(Chord::key(KeyCode::Up), ChoiceCmd::Prev, "Up", true),
+    b(Chord::key(KeyCode::Down), ChoiceCmd::Next, "Down", true),
+    b(Chord::key(KeyCode::Home), ChoiceCmd::First, "First", false),
+    b(Chord::key(KeyCode::End), ChoiceCmd::Last, "Last", false),
+];
+
+const RADIO_VIM: &[Binding<ChoiceCmd>] = &[
+    b(
+        Chord::key(KeyCode::Char(' ')),
+        ChoiceCmd::Choose,
+        "Choose",
+        true,
+    ),
+    b(
+        Chord::key(KeyCode::Enter),
+        ChoiceCmd::Choose,
+        "Choose (Enter)",
+        false,
+    ),
+    b(Chord::key(KeyCode::Up), ChoiceCmd::Prev, "Up", true),
+    b(Chord::key(KeyCode::Down), ChoiceCmd::Next, "Down", true),
+    b(
+        Chord::key(KeyCode::Char('k')),
+        ChoiceCmd::Prev,
+        "Up (k)",
+        false,
+    ),
+    b(
+        Chord::key(KeyCode::Char('K')),
+        ChoiceCmd::Prev,
+        "Up (K)",
+        false,
+    ),
+    b(
+        Chord::key(KeyCode::Char('j')),
+        ChoiceCmd::Next,
+        "Down (j)",
+        false,
+    ),
+    b(
+        Chord::key(KeyCode::Char('J')),
+        ChoiceCmd::Next,
+        "Down (J)",
+        false,
+    ),
+    b(
+        Chord::key(KeyCode::Home),
+        ChoiceCmd::First,
+        "First (Home)",
+        false,
+    ),
+    b(
+        Chord::key(KeyCode::End),
+        ChoiceCmd::Last,
+        "Last (End)",
+        false,
+    ),
+    b(
+        Chord::key(KeyCode::Char('g')),
+        ChoiceCmd::First,
+        "First (g)",
+        true,
+    ),
+    b(
+        Chord::key(KeyCode::Char('G')),
+        ChoiceCmd::Last,
+        "Last (G)",
+        true,
+    ),
+    action_without_default_chord(ChoiceCmd::First, "First"),
+    action_without_default_chord(ChoiceCmd::Last, "Last"),
+];
+
+const RADIO_NO_HOME_END: &[Binding<ChoiceCmd>] = &[
+    b(
+        Chord::key(KeyCode::Char(' ')),
+        ChoiceCmd::Choose,
+        "Choose",
+        true,
+    ),
+    b(
+        Chord::key(KeyCode::Enter),
+        ChoiceCmd::Choose,
+        "Choose (Enter)",
+        false,
+    ),
+    b(Chord::key(KeyCode::Up), ChoiceCmd::Prev, "Up", true),
+    b(Chord::key(KeyCode::Down), ChoiceCmd::Next, "Down", true),
+    action_without_default_chord(ChoiceCmd::First, "First"),
+    action_without_default_chord(ChoiceCmd::Last, "Last"),
+];
+
+impl RadioKeyPolicy {
+    const fn bindings(self) -> &'static [Binding<ChoiceCmd>] {
+        match self {
+            Self::Default => RADIO,
+            Self::Desktop => RADIO_DESKTOP,
+            Self::Vim => RADIO_VIM,
+            Self::NoHomeEnd => RADIO_NO_HOME_END,
+        }
+    }
+}
 
 struct FlagRow<'r> {
     id: Id,
@@ -182,6 +361,7 @@ pub struct Checkbox<'a> {
     id: Id,
     label: &'a str,
     checked: bool,
+    mixed: bool,
     read_only: bool,
     disabled: bool,
     ov: PartStyle<'a>,
@@ -193,6 +373,7 @@ impl fmt::Debug for Checkbox<'_> {
             .field("id", &self.id)
             .field("label", &self.label)
             .field("checked", &self.checked)
+            .field("mixed", &self.mixed)
             .field("read_only", &self.read_only)
             .field("disabled", &self.disabled)
             .finish_non_exhaustive()
@@ -209,6 +390,7 @@ impl<'a> Checkbox<'a> {
             id,
             label,
             checked: false,
+            mixed: false,
             read_only: false,
             disabled: false,
             ov: PartStyle::new(),
@@ -218,6 +400,27 @@ impl<'a> Checkbox<'a> {
     #[must_use]
     pub const fn checked(mut self, yes: bool) -> Self {
         self.checked = yes;
+        self.mixed = false;
+        self
+    }
+
+    /// Sets the checkbox value for drawing a tri-state checkbox.
+    #[must_use]
+    pub const fn state(mut self, state: CheckboxState) -> Self {
+        match state {
+            CheckboxState::Unchecked => {
+                self.checked = false;
+                self.mixed = false;
+            }
+            CheckboxState::Checked => {
+                self.checked = true;
+                self.mixed = false;
+            }
+            CheckboxState::Mixed => {
+                self.checked = false;
+                self.mixed = true;
+            }
+        }
         self
     }
 
@@ -260,20 +463,21 @@ impl<'a> Checkbox<'a> {
             id: self.id,
             label: self.label,
             checked: self.checked,
+            mixed: self.mixed,
             read_only: self.read_only,
             disabled: self.disabled || inherited,
             ov: self.ov,
         }
     }
 
-    pub fn update(&self, cx: &mut Cx<'_>, value: &mut bool) -> Response<Activated> {
+    fn update_with(&self, cx: &mut Cx<'_>, mut activate: impl FnMut()) -> Response<Activated> {
         let mut acc = Acc::<Activated>::new();
         let can = self.editable();
         for it in cx.intents(self.id) {
             match it {
                 Intent::Binding(action) if can => {
                     if Binding::command(FLAG, action).is_some() {
-                        *value = !*value;
+                        activate();
                         acc.action(Activated);
                     }
                 }
@@ -281,7 +485,7 @@ impl<'a> Checkbox<'a> {
                     phase: Phase::Click | Phase::DoubleClick,
                     ..
                 } if can => {
-                    *value = !*value;
+                    activate();
                     acc.action(Activated);
                 }
                 Intent::Pointer { .. } => acc.consumed(),
@@ -289,6 +493,17 @@ impl<'a> Checkbox<'a> {
             }
         }
         acc.finish(self.id)
+    }
+
+    /// Updates a two-state checkbox without changing its existing bool API.
+    pub fn update(&self, cx: &mut Cx<'_>, value: &mut bool) -> Response<Activated> {
+        self.update_with(cx, || *value = !*value)
+    }
+
+    /// Updates an opt-in tri-state checkbox. An activation moves Mixed to
+    /// Checked, Checked to Unchecked, and Unchecked to Checked.
+    pub fn update_state(&self, cx: &mut Cx<'_>, value: &mut CheckboxState) -> Response<Activated> {
+        self.update_with(cx, || *value = (*value).after_activation())
     }
 
     pub fn update_in_form(
@@ -299,6 +514,17 @@ impl<'a> Checkbox<'a> {
     ) -> Response<Activated> {
         self.with_inherited_disabled(inherited_disabled)
             .update(cx, value)
+    }
+
+    /// Updates a tri-state checkbox while applying its inherited form state.
+    pub fn update_state_in_form(
+        &self,
+        cx: &mut Cx<'_>,
+        value: &mut CheckboxState,
+        inherited_disabled: bool,
+    ) -> Response<Activated> {
+        self.with_inherited_disabled(inherited_disabled)
+            .update_state(cx, value)
     }
 
     fn natural_width(&self) -> u16 {
@@ -314,7 +540,7 @@ impl<'a> Checkbox<'a> {
         }
 
         let mut derived = StateFlags::empty();
-        if self.checked {
+        if self.checked || self.mixed {
             derived |= StateFlags::CHECKED | StateFlags::SELECTED;
         }
         if self.read_only {
@@ -324,7 +550,7 @@ impl<'a> Checkbox<'a> {
             derived |= StateFlags::DISABLED;
         }
         let mut live = PartStyle::flags(crate::ui::FrameRead::state(ui, self.id), derived);
-        if !self.checked {
+        if !(self.checked || self.mixed) {
             live = live.difference(StateFlags::SELECTED);
         }
         if self.disabled {
@@ -342,6 +568,7 @@ impl<'a> Checkbox<'a> {
             ui.publish_bindings(self.id, live, FLAG);
         }
         let on = live.contains(StateFlags::CHECKED);
+        let mixed = self.mixed;
         FlagRow {
             id: self.id,
             ov: self.ov,
@@ -354,12 +581,17 @@ impl<'a> Checkbox<'a> {
             area,
             live,
             &move |ui: &mut Ui<'_>, cell: Rect, style| {
-                let g = if on {
-                    GlyphRole::CheckboxOn
+                if mixed {
+                    let mark = if cell.width >= 3 { "[-]" } else { "-" };
+                    ui.paint_str(cell, mark, style);
                 } else {
-                    GlyphRole::CheckboxOff
-                };
-                ui.glyph(cell, g, style);
+                    let g = if on {
+                        GlyphRole::CheckboxOn
+                    } else {
+                        GlyphRole::CheckboxOff
+                    };
+                    ui.glyph(cell, g, style);
+                }
             },
         )
     }
@@ -373,6 +605,19 @@ impl<'a> Checkbox<'a> {
     ) -> Rect {
         self.with_inherited_disabled(inherited_disabled)
             .checked(value)
+            .draw(ui, area)
+    }
+
+    /// Draws an opt-in tri-state checkbox with inherited form state.
+    pub fn draw_state_in_form(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        value: CheckboxState,
+        inherited_disabled: bool,
+    ) -> Rect {
+        self.with_inherited_disabled(inherited_disabled)
+            .state(value)
             .draw(ui, area)
     }
 
@@ -684,6 +929,8 @@ pub struct RadioGroup<'a, T, K = ByIndex, R = DefaultRow> {
     key: K,
     row: R,
     value: Option<ItemKey>,
+    navigation: RadioNavigation,
+    key_policy: RadioKeyPolicy,
     read_only: bool,
     disabled: bool,
     ov: PartStyle<'a>,
@@ -695,6 +942,8 @@ impl<T, K, R> fmt::Debug for RadioGroup<'_, T, K, R> {
         f.debug_struct("RadioGroup")
             .field("id", &self.id)
             .field("value", &self.value)
+            .field("navigation", &self.navigation)
+            .field("key_policy", &self.key_policy)
             .field("read_only", &self.read_only)
             .field("disabled", &self.disabled)
             .finish_non_exhaustive()
@@ -708,6 +957,8 @@ impl<T> RadioGroup<'_, T, ByIndex, DefaultRow> {
             key: ByIndex,
             row: DefaultRow,
             value: None,
+            navigation: RadioNavigation::Immediate,
+            key_policy: RadioKeyPolicy::Default,
             read_only: false,
             disabled: false,
             ov: PartStyle::new(),
@@ -723,6 +974,8 @@ impl<'a> RadioGroup<'a, &'a str, ByIndex, DefaultRow> {
             key: ByIndex,
             row: DefaultRow,
             value: Some(ItemKey::index(value)),
+            navigation: self.navigation,
+            key_policy: self.key_policy,
             read_only: self.read_only,
             disabled: self.disabled || inherited_disabled,
             ov: self.ov,
@@ -759,6 +1012,23 @@ impl<'a> RadioGroup<'a, &'a str, ByIndex, DefaultRow> {
         self.with_form_value(value, inherited.disabled)
             .draw(ui, area, st, items)
     }
+
+    /// Draws a clipped window while keeping original option indices as keys.
+    /// Update and input handling must continue to receive the full `items`.
+    #[allow(clippy::too_many_arguments)]
+    pub fn draw_in_form_window(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        st: &RadioGroupState,
+        value: usize,
+        items: &[&'a str],
+        inherited: InheritedFormState,
+        first_row: usize,
+    ) -> Rect {
+        self.with_form_value(value, inherited.disabled)
+            .draw_window(ui, area, st, items, first_row)
+    }
 }
 
 impl<'a, T, K, R> RadioGroup<'a, T, K, R> {
@@ -776,6 +1046,8 @@ impl<'a, T, K, R> RadioGroup<'a, T, K, R> {
             key: k,
             row: self.row,
             value: self.value,
+            navigation: self.navigation,
+            key_policy: self.key_policy,
             read_only: self.read_only,
             disabled: self.disabled,
             ov: self.ov,
@@ -789,6 +1061,8 @@ impl<'a, T, K, R> RadioGroup<'a, T, K, R> {
             key: self.key,
             row: r,
             value: self.value,
+            navigation: self.navigation,
+            key_policy: self.key_policy,
             read_only: self.read_only,
             disabled: self.disabled,
             ov: self.ov,
@@ -799,6 +1073,19 @@ impl<'a, T, K, R> RadioGroup<'a, T, K, R> {
     #[must_use]
     pub const fn value(mut self, k: ItemKey) -> Self {
         self.value = Some(k);
+        self
+    }
+
+    #[must_use]
+    pub const fn navigation(mut self, policy: RadioNavigation) -> Self {
+        self.navigation = policy;
+        self
+    }
+
+    /// Sets radio key bindings independently of immediate/deferred choice.
+    #[must_use]
+    pub const fn key_policy(mut self, policy: RadioKeyPolicy) -> Self {
+        self.key_policy = policy;
         self
     }
 
@@ -889,6 +1176,30 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
         acc.action(RadioGroupAction::Chose(key));
     }
 
+    fn navigate(
+        &self,
+        st: &mut RadioGroupState,
+        items: &[T],
+        to: usize,
+        acc: &mut Acc<RadioGroupAction>,
+    ) {
+        if items.is_empty() {
+            acc.consumed();
+            return;
+        }
+        let to = to.min(items.len().saturating_sub(1));
+        let key = self.key_at(items, to);
+        let previous = st.core.cursor();
+        st.core.set_cursor(to, key);
+        if self.navigation == RadioNavigation::Immediate && self.value != Some(key) {
+            acc.action(RadioGroupAction::Chose(key));
+        } else if previous == Some(key) {
+            acc.consumed();
+        } else {
+            acc.changed();
+        }
+    }
+
     pub fn update(
         &self,
         cx: &mut Cx<'_>,
@@ -909,20 +1220,21 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
             }
         }
         let mut acc = Acc::<RadioGroupAction>::new();
+        let bindings = self.key_policy.bindings();
         for it in cx.intents(self.id) {
             match it {
                 Intent::Binding(action) if can => {
                     let cur = st.core.cursor_index();
-                    match Binding::command(RADIO, action) {
+                    match Binding::command(bindings, action) {
                         Some(ChoiceCmd::Prev) => {
-                            self.move_cursor(st, items, cur.saturating_sub(1), &mut acc);
+                            self.navigate(st, items, cur.saturating_sub(1), &mut acc);
                         }
                         Some(ChoiceCmd::Next) => {
-                            self.move_cursor(st, items, cur.saturating_add(1), &mut acc);
+                            self.navigate(st, items, cur.saturating_add(1), &mut acc);
                         }
-                        Some(ChoiceCmd::First) => self.move_cursor(st, items, 0, &mut acc),
+                        Some(ChoiceCmd::First) => self.navigate(st, items, 0, &mut acc),
                         Some(ChoiceCmd::Last) => {
-                            self.move_cursor(st, items, usize::MAX, &mut acc);
+                            self.navigate(st, items, usize::MAX, &mut acc);
                         }
                         Some(ChoiceCmd::Choose) => self.choose(st, items, cur, &mut acc),
                         None => {}
@@ -1102,10 +1414,24 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
     }
 
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &RadioGroupState, items: &[T]) -> Rect {
+        self.draw_window(ui, area, st, items, 0)
+    }
+
+    /// Draws a visible row window from the original option collection.
+    /// Keys and state continue to use the original collection indexes.
+    pub fn draw_window(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        st: &RadioGroupState,
+        items: &[T],
+        first_row: usize,
+    ) -> Rect {
         if area.is_empty() {
             return area;
         }
-        let used = Self::used_rect(area, items.len());
+        let first_row = first_row.min(items.len());
+        let used = Self::used_rect(area, items.len().saturating_sub(first_row));
         if used.is_empty() {
             return used;
         }
@@ -1116,15 +1442,21 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
             StateFlags::empty(),
         );
         if !ui.is_inert() {
-            ui.publish_bindings(self.id, live, RADIO);
+            ui.publish_bindings(self.id, live, self.key_policy.bindings());
         }
         let cursor = st.core.cursor();
-        let rows = usize::from(used.height);
-        for (i, item) in items.iter().enumerate().take(rows) {
+        for (i, item) in items
+            .iter()
+            .enumerate()
+            .skip(first_row)
+            .take(usize::from(used.height))
+        {
             let key = self.key.key(item, i);
             let row = Rect {
                 x: used.x,
-                y: used.y.saturating_add(i.min(usize::from(u16::MAX)) as u16),
+                y: used
+                    .y
+                    .saturating_add(i.saturating_sub(first_row).min(usize::from(u16::MAX)) as u16),
                 width: used.width,
                 height: 1,
             };
@@ -1157,15 +1489,15 @@ impl<T, K, R> Bindings for RadioGroup<'_, T, K, R> {
     type Cmd = ChoiceCmd;
 
     fn bindings(&self, _s: BindingState) -> &'static [Binding<ChoiceCmd>] {
-        RADIO
+        self.key_policy.bindings()
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::event::Input;
-    use crate::runtime::stub::{SCREEN, Stub};
+    use crate::event::{Input, MouseKind};
+    use crate::runtime::stub::{SCREEN, Stub, key, mouse};
     use crate::runtime::{App, Runtime};
     use crate::theme::Theme;
     use ratatui_core::buffer::Buffer;
@@ -1189,21 +1521,33 @@ mod tests {
         fn draw(&self, _ui: &mut Ui<'_>) {}
     }
 
+    #[derive(Clone)]
     struct ControlledRadioApp {
         state: RadioGroupState,
         value: ItemKey,
+        navigation: RadioNavigation,
     }
 
     impl App for ControlledRadioApp {
         fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
             let items = ["a", "b", "c"];
-            RadioGroup::new(RG)
+            let response = RadioGroup::new(RG)
                 .value(self.value)
-                .update(cx, &mut self.state, &items)
-                .erase()
+                .navigation(self.navigation)
+                .update(cx, &mut self.state, &items);
+            if let Some(RadioGroupAction::Chose(key)) = response.action_ref() {
+                self.value = *key;
+            }
+            response.erase()
         }
 
-        fn draw(&self, _ui: &mut Ui<'_>) {}
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let items = ["a", "b", "c"];
+            RadioGroup::new(RG)
+                .value(self.value)
+                .navigation(self.navigation)
+                .draw(ui, SCREEN, &self.state, &items);
+        }
     }
 
     fn draw_checkbox(checked: bool) -> Buffer {
@@ -1229,6 +1573,30 @@ mod tests {
     }
 
     #[test]
+    fn a_zero_offset_row_window_matches_the_legacy_radio_draw() {
+        let items = ["alpha", "beta", "gamma"];
+        let state = RadioGroupState::default();
+        let area = Rect::new(0, 0, 30, 8);
+        let draw = |window: bool| {
+            let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+            let mut buffer = Buffer::empty(area);
+            runtime
+                .draw_scene(area, &mut buffer, |ui, area| {
+                    let radio = RadioGroup::new(RG);
+                    if window {
+                        radio.draw_window(ui, area, &state, &items, 0);
+                    } else {
+                        radio.draw(ui, area, &state, &items);
+                    }
+                })
+                .commit_presented();
+            (buffer, runtime.registry().regions().to_vec())
+        };
+
+        assert_eq!(draw(false), draw(true));
+    }
+
+    #[test]
     fn checked_painting_comes_only_from_the_checkbox_prop() {
         assert_ne!(draw_checkbox(true), draw_checkbox(false));
     }
@@ -1250,7 +1618,7 @@ mod tests {
     fn radio_group_separates_cursor_from_value() {
         let items = ["a", "b", "c"];
         let mut st = RadioGroupState::default();
-        let g: RadioGroup<'_, &str> = RadioGroup::new(RG);
+        let g: RadioGroup<'_, &str> = RadioGroup::new(RG).navigation(RadioNavigation::Deferred);
         let mut acc = Acc::<RadioGroupAction>::new();
         let _ = st.core.reconcile(3, |i| g.key_at(&items, i));
         st.set_cursor(0, ItemKey::index(0));
@@ -1273,7 +1641,9 @@ mod tests {
         );
 
         let mut fresh = RadioGroupState::default();
-        let valued: RadioGroup<'_, &str> = RadioGroup::new(RG).value(ItemKey::index(1));
+        let valued: RadioGroup<'_, &str> = RadioGroup::new(RG)
+            .navigation(RadioNavigation::Deferred)
+            .value(ItemKey::index(1));
         let _ = fresh.core.reconcile(3, |i| valued.key_at(&items, i));
         assert!(fresh.cursor().is_none());
         assert_eq!(valued.index_of(&items, ItemKey::index(1), None), Some(1));
@@ -1288,6 +1658,7 @@ mod tests {
             ControlledRadioApp {
                 state: RadioGroupState::default(),
                 value: selected,
+                navigation: RadioNavigation::Immediate,
             },
             Theme::junie(),
         );
@@ -1319,6 +1690,93 @@ mod tests {
                 .1,
             "choosing emits an action; it does not mutate the caller's value"
         );
+    }
+
+    #[test]
+    fn keyboard_navigation_selects_immediately_or_can_be_deferred() {
+        fn app_after_down(navigation: RadioNavigation) -> ControlledRadioApp {
+            let mut runtime = Runtime::new(
+                ControlledRadioApp {
+                    state: RadioGroupState::default(),
+                    value: ItemKey::index(0),
+                    navigation,
+                },
+                Theme::junie(),
+            );
+            let _ = runtime.initialize();
+            let mut buffer = Buffer::empty(SCREEN);
+            runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+            let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Tab));
+            assert_eq!(runtime.focus(), Some(RG));
+            let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Down));
+            runtime.app().clone()
+        }
+
+        let immediate = app_after_down(RadioNavigation::Immediate);
+        assert_eq!(immediate.value, ItemKey::index(1));
+        assert_eq!(immediate.state.cursor(), Some(ItemKey::index(1)));
+
+        let deferred = app_after_down(RadioNavigation::Deferred);
+        assert_eq!(deferred.value, ItemKey::index(0));
+        assert_eq!(deferred.state.cursor(), Some(ItemKey::index(1)));
+    }
+
+    #[test]
+    fn immediate_pointer_press_moves_cursor_without_choosing_until_click() {
+        let mut runtime = Runtime::new(
+            ControlledRadioApp {
+                state: RadioGroupState::default(),
+                value: ItemKey::index(0),
+                navigation: RadioNavigation::Immediate,
+            },
+            Theme::junie(),
+        );
+        let _ = runtime.initialize();
+        let mut buffer = Buffer::empty(SCREEN);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, 5, 1));
+        assert_eq!(runtime.app().value, ItemKey::index(0));
+        assert_eq!(runtime.app().state.cursor(), Some(ItemKey::index(1)));
+
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, 5, 5));
+        assert_eq!(runtime.app().value, ItemKey::index(0));
+
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, 5, 1));
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, 5, 1));
+        assert_eq!(runtime.app().value, ItemKey::index(1));
+    }
+
+    #[test]
+    fn immediate_keyboard_navigation_chooses_cursor_after_cancelled_pointer_press() {
+        for (navigation, key_code, expected_value) in [
+            (RadioNavigation::Immediate, KeyCode::End, ItemKey::index(2)),
+            (RadioNavigation::Immediate, KeyCode::Down, ItemKey::index(2)),
+            (RadioNavigation::Deferred, KeyCode::End, ItemKey::index(0)),
+            (RadioNavigation::Deferred, KeyCode::Down, ItemKey::index(0)),
+        ] {
+            let mut runtime = Runtime::new(
+                ControlledRadioApp {
+                    state: RadioGroupState::default(),
+                    value: ItemKey::index(0),
+                    navigation,
+                },
+                Theme::junie(),
+            );
+            let _ = runtime.initialize();
+            let mut buffer = Buffer::empty(SCREEN);
+            runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+
+            let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, 5, 2));
+            assert_eq!(runtime.app().value, ItemKey::index(0));
+            assert_eq!(runtime.app().state.cursor(), Some(ItemKey::index(2)));
+            let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, 5, 5));
+            assert_eq!(runtime.app().value, ItemKey::index(0));
+
+            let _ = crate::runtime::stub::deliver(&mut runtime, key(key_code));
+            assert_eq!(runtime.app().value, expected_value);
+            assert_eq!(runtime.app().state.cursor(), Some(ItemKey::index(2)));
+        }
     }
 
     #[test]

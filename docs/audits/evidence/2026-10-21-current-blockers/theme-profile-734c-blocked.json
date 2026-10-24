@@ -1,0 +1,80 @@
+{
+  "reviewed_commit": "734c8662a015b85bcddf9f85081124ae5d1ae785",
+  "original_blocked_commit": "d5c8e655158cec48cf0e4ff24d3ac87f7157f048",
+  "original_parent": "34f73e3066da7a77eac2d4719a697dc085906dda",
+  "status": "requires_changes_for_required_profile_contract",
+  "prior_P1_regression": "Fixed. Unchanged no-profile regression now passes. FG/BG/underline through bind_defaults and bind_defaults_with_explicit keep canonical Mono binding. d5 negative control still fails; parent and correction pass.",
+  "findings": [
+    {
+      "priority": "P2",
+      "classification": "Inherited required contract gap, not a new regression introduced by correction",
+      "file": "crates/termrock-theme/src/resolve.rs",
+      "lines": [
+        378,
+        844,
+        898
+      ],
+      "title": "Track authored Mono channel ownership even when its value equals the profile",
+      "evidence": "A qualified Mono profile supplies bg Custom(DarkGray), and an authored targeted Mono rule supplies the same Custom(DarkGray). Both bind_defaults adapters retain exact-profile provenance because retain_unchanged only compares values; they return DarkGray. Canonical ordinary authored binding returns Black. An identical no-profile authored rule correctly returns Black. The parent existing family-profile API has the same defect, confirmed by replacing only the new variant-profile declaration with define_family_for_level.",
+      "requested_change": "Suppress exact-profile color binding on each channel actually supplied by targeted authored Mono rules, independent of before/after equality, while retaining exact binding for unoverridden qualified profile channels. Cover same-valued foreground/background/underline through both adapters."
+    }
+  ],
+  "verification": {
+    "candidate_package_with_seven_review_probes": {
+      "tests": 156,
+      "passed": 154,
+      "failed": 2,
+      "skipped": 0,
+      "exit": 100,
+      "failures": [
+        "all_73_junie_slots_match_reference_capability_output",
+        "same_valued_authored_mono_rule_still_owns_binding"
+      ]
+    },
+    "native_cases": "149 native tests contribute 148 pass and the known 73-slot oracle failure; this is not a green native gate.",
+    "review_only_focused": {
+      "tests": 7,
+      "passed": 6,
+      "failed": 1,
+      "skipped": 0
+    },
+    "before_controls": "Parent no-profile all-channel regressions pass. Adapted existing-family-profile same-valued provenance test fails, establishing inherited behavior.",
+    "original_d5_negative_control": "Five review tests: 3 pass, 2 fail. The two profile-free canonical binding probes fail as expected.",
+    "default_corpus": {
+      "rows": 11520,
+      "identical_to_parent": true,
+      "sha256": "ef41b890706668aa16b28bce9229e0dfc58d64f02a4d4b1f31e281a0c556cdce"
+    },
+    "qualified_profiles": "DarkGray foreground, Gray background, White underline remain exact through empty/pressed/hovered states and repeated StyleCache hits; no double downgrade.",
+    "token_provenance": "AccentPressed edits disable dependent profile BG; unrelated Warning edits preserve profile; all four capabilities, both converted and manually selected capability paths pass. Ansi256 then Ansi16 conversion retains profile.",
+    "public_consumers": "All nine author tests pass, including Runtime/Button rendering and independent custom-family data.",
+    "strict_checks": "cargo clippy -p termrock-theme --lib --test level_profiles -- -D warnings: 0. rustfmt --edition 2024 --check on all four authored Rust files: 0.",
+    "source_integrity": "All four authored Rust files byte-match exact 734c commit. No author worktree or production source edits. Dedicated target. Every supervised command timeout 215 seconds; no timeout."
+  },
+  "landing_scope": {
+    "remote_tracking_tip_observed": "7c94b00331413350f37365c7a3a34151dc952e38",
+    "remote_changes_not_reviewed": [
+      "a329d6394 focus/selection ink API and new visual.rs",
+      "7f8adf0ec Esc vocabulary test",
+      "7c94b0033 backdrop audit"
+    ],
+    "note": "No fetch, merge, rebase, or remote publication was performed. Remote tracking tip may already be stale. These changes require integration review and exact-head gates; they are not cleared by this packet."
+  },
+  "remaining_gaps": [
+    "New public API catalog/Showcase declarations remain outstanding.",
+    "No Junie ladder wiring, raw quantizer changes, expected data updates, or four-app visual acceptance.",
+    "No full-workspace checks or paired CLI comparison."
+  ],
+  "artifacts": {
+    "candidate-nextest.log": "f4bd82eb365dbd7acb73db9d84313f9726154f5ed0a40dd3daa2768cb29697c4",
+    "focused-provenance.log": "79f7b8c320319b396b04779caaaae61e65f88ad1e5c93bb30b1583cb5cb8b303",
+    "parent-control.log": "b9c48ba66dd93b5a5e576813832cba635ae1c639de57b415d3bbacc38f87a9c5",
+    "parent-inherited-provenance.log": "2cd728b8ae44796a400aeca331b172a219f3868be84dc3698033c0b11abeb853",
+    "d5-negative-control.log": "722bf80d15f1209ba6dad594ca42eeeebb08a3f5bf95f41f9dfff30595245903",
+    "clippy.log": "21eb1cf651cda703199a96e55eb910973ba278dff0c8893f6dc2059ffae1a957",
+    "candidate-probes.rs": "d8acc42e9fb6fd86469bf1ac2e6a04a12ef2437c6722ddb2848b186734f11af6",
+    "parent-probes.rs": "43e0c51549c856a2f3deb86a79cab2a690b59d782a8c67b068c67157d242a4d0",
+    "parent-corpus.txt": "ef41b890706668aa16b28bce9229e0dfc58d64f02a4d4b1f31e281a0c556cdce",
+    "candidate-corpus.txt": "ef41b890706668aa16b28bce9229e0dfc58d64f02a4d4b1f31e281a0c556cdce"
+  }
+}

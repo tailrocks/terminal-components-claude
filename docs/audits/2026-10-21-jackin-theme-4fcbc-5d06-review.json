@@ -1,0 +1,76 @@
+{
+  "reviewed_commits": [
+    "4fcbc23ef26a3b6300499ef5aee1a1f6500511ba",
+    "5d06c610ea9c72bf770edbaf480288c3a85d4277"
+  ],
+  "integrated_source": "67ebf35cdc2ae6c51169ab7939b51e70d045fadd",
+  "reference_source": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "design_reference": "f4867e9b5f8a08a3bb61ce80d644198a29f51984",
+  "disposition": "Not cleared. These commits expand production replay and captured-output correction paths. This is a source audit, not a visual or functional acceptance run.",
+  "findings": [
+    {
+      "severity": "P1",
+      "path": "crates/jackin-preview-app/src/app.rs:709",
+      "issue": "Scenario-selected captured run identity. LaunchRunning and LaunchFailure overwrite trace_label with run-202609030914-b5df. LaunchRun now has a second identity string whose documentation explicitly says it retains the captured ID.",
+      "reference": "Frozen and design cockpit.rs:82-95 derive the displayed run ID from the injected world clock and generated instance suffix; cockpit.rs:969 uses the same run.run_id.",
+      "replacement_owner": "The Jackin domain owns one real run identity derived from its clock and instance identity. Determinism belongs in injected clock/data, not a scenario-specific captured string. The UI consumes that identity."
+    },
+    {
+      "severity": "P1",
+      "path": "crates/jackin-preview-app/src/app.rs:7152-7203",
+      "issue": "Private trace correction painter uses literal link RGB, manual coordinates and character counts. Its NO_COLOR branch repaints the brand only at exactly 120 by 40. It runs after the historical launch frame at lines 9545-9549. This is an exact-size production alternate implementation and an application correction painter.",
+      "reference": "Frozen and design cockpit.rs:969-979 use terminal-cell width, semantic link styling and contrast, plus a real CHIP_RUN clickable region. Frozen app_tests_colour.rs:169 tests the debug run chip as a link at 140 by 40.",
+      "replacement_owner": "Use a real shared link/action or toolbar content component with live run label, semantic style and stable ID. Shared layout owns placement and terminal-cell width; the same resolved region owns pointer/focus/cursor behavior. Retain the domain action and click semantics."
+    },
+    {
+      "severity": "P1",
+      "path": "crates/jackin-preview-app/src/app.rs:7131-7149,7273-7318",
+      "issue": "The pre-existing historical launch selector remains tied to exact 120 by 40, LaunchRunning, paused motion and frame 40. The new changes extend its fixed 4800-cell production replay to ANSI256/16 and Mono. The production presentation crate supplies fixed RUNS, not live component output.",
+      "reference": "crates/jackin-preview-presentation/src/launch_running.rs:1623-1636 writes fixed positions, text and RGB runs; its module comment identifies the paused frame-40 120 by 40 reference screen.",
+      "replacement_owner": "Replace this complete replay path with live shared blocks/widgets supplied by launch view data. Keep captured frames and RUNS only in test artifacts. Remove the selector and replay dependency in the same verified migration increment."
+    },
+    {
+      "severity": "P1",
+      "path": "crates/termrock-theme/src/downgrade.rs:96-118,216-255",
+      "issue": "Generic raw-color conversion now gains more exact RGB exceptions, and public LegacyMono/legacy_mono translates captured color pairs into link underline and top-menu reverse via a menu_row flag. Color pairs cannot identify semantic component roles. This moves reference-frame correction into Termrock rather than replacing it with reusable behavior.",
+      "reference": "Frozen theme.rs:3002-3073 converts arbitrary RGB through general algorithms. Frozen theme.rs:920 onward and 1053-1112 independently author semantic palette roles by profile. Semantic accent index 78 and Mono link/brand styling must remain semantic decisions.",
+      "replacement_owner": "Theme owns authored semantic palettes and component recipes, with provenance preserved through generic custom-color conversion. Shared link and brand components own underline/reverse state. Replace raw captured-pair exceptions with role-based input; retain arbitrary custom RGB behavior and neighboring-color coverage."
+    },
+    {
+      "severity": "P2",
+      "path": "crates/termrock-theme/src/downgrade.rs:257-265",
+      "issue": "The new public downgrade_pair unconditionally replaces ANSI16 White on DarkGray with Black, including explicitly named colors. A contrast repair can be legitimate, but this exact-pair rule is not a general contrast policy and is justified only as baseline matching in its comment.",
+      "reference": "Frozen theme.rs:1624-1655 has a general legible() contract: contrast threshold, semantic strong colors, text ladder and best contrasting text ink.",
+      "replacement_owner": "Reuse or expose the existing semantic contrast policy at component resolution, or document an explicit general opt-in pair policy with custom-color tests. Do not infer a reference component from one painted pair."
+    },
+    {
+      "severity": "P2",
+      "path": "crates/jackin-preview-sim/src/launch.rs:159,241",
+      "issue": "Adding public trace_label introduces a required field for external LaunchRun struct literals and a second mutable source for run identity. No consumer compatibility proof was supplied.",
+      "replacement_owner": "Prefer an accessor or a constructor-owned single domain identity, with external consumer compilation if a public shape change is retained."
+    }
+  ],
+  "important_qualification": "Do not claim raw #48e054 must map to index 77 under the frozen algorithm. Frozen nearest_256 uses coarse channel quantization and produces 78 for that RGB. The objection is the captured-value exception mechanism and mixed semantic/custom-color ownership, not a blanket rejection of index 78. The pre-existing frozen_ansi256 table is an older unresolved concern; these commits expand it.",
+  "useful_changes_to_retain": [
+    "The intent to remove the old historical_cockpit_debug file is valid, but its captured label and repaint mechanism have been recreated elsewhere and are not a completed removal.",
+    "Live run identity and a capability-aware debug link are valid product requirements. Implement them through domain data and shared semantic components.",
+    "Explicit semantic palette values such as ANSI256 accent 78 and Mono text/link roles can legitimately differ from raw RGB approximation. Preserve reviewed palette provenance and custom overrides."
+  ],
+  "next_bounded_increments": [
+    "First repair theme ownership: remove newly introduced captured RGB/pair attribute inference while keeping semantic palette projection. Add arbitrary and neighboring RGB tests, explicit named-color tests, and all-four-profile semantic component tests. Review any general raw-conversion algorithm change against both the frozen implementation and current public custom-color contracts.",
+    "Then replace the Jackin debug trace correction with a shared live link/action component and one real domain run ID. Test displayed identity against copy/log domain results, pointer activation, focus, hover, Unicode cell width, all color profiles, NO_COLOR, and adjacent dimensions 119/120/121 by 39/40/41.",
+    "Finally migrate the paused launch cockpit from fixed RUNS to live shared composition. Verify changed launch stages/data and controlled times, frame 39/40/41, normal and failure flows, then remove production replay and the exact selector. Compare pinned real CLI reference/candidate checkpoints without updating expected output from the candidate."
+  ],
+  "verification": "Read-only git object inspection and exact commit diff. No source edits, no helper agents, no screenshot or native-test pass claimed. Existing tests mirroring LegacyMono captured mappings do not establish acceptance.",
+  "quantizer_followup": {
+    "source_function_sha256_both_references": "ac267a2f1a8e04f204d1daa317b87e9af02c656f0a335f923a59ae5e423b9686",
+    "source": "Frozen and design src/theme.rs:3017-3034 have byte-identical nearest_256 bodies.",
+    "pure_formula_results": {
+      "#3a3a3a": 237,
+      "#48e054": 78,
+      "#262626": 235,
+      "#19191c": 233
+    },
+    "recommendation": "Remove captured exceptions by restoring a documented general source-backed raw RGB quantizer, with arbitrary neighboring-color tests. If choosing a different generic approximation for API reasons, record an explicit reference/API decision and its parity limits. Do not combine Euclidean approximation with a special accent exception or silently retain a captured gray238 expectation. Keep authored semantic palette values independent."
+  }
+}

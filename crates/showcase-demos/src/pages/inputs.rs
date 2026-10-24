@@ -1,7 +1,7 @@
 use termrock::{
-    BlurPolicy, Cx, Family, Field, FieldError, FrameRead, Id, Panel, PanelKind, Part, Rect,
-    Response, StateFlags, Status, TextAction, TextInput, TextInputState, Track, Ui, Variant,
-    layout, truncate,
+    BlurPolicy, Cx, Family, Field, FieldError, FocusSelect, FrameRead, Id, Panel, PanelKind, Part,
+    Rect, Select, SelectState, StateFlags, Status, TextAction, TextInput, TextInputState, Track,
+    Ui, Variant, layout, truncate,
 };
 
 use super::{Page, PageUpdate, frame};
@@ -15,6 +15,13 @@ const SEARCH: Id = termrock::Id::root("showcase_ui::pages::inputs::inputs.search
 const API_KEY: Id = termrock::Id::root("showcase_ui::pages::inputs::inputs.api_key");
 const STATE_REFERENCE: Id =
     termrock::Id::root("showcase_ui::pages::inputs::inputs.state_reference");
+const FOCUS_SELECT: Id = termrock::Id::root("showcase_ui::pages::inputs.focus_select");
+
+const FOCUS_SELECT_ITEMS: &[&str] = &[
+    "Focus selects: Select all",
+    "Focus selects: Caret end",
+    "Focus selects: Caret start",
+];
 
 fn email(value: &str) -> Result<(), FieldError> {
     if value.contains('@') && value.contains('.') {
@@ -24,12 +31,23 @@ fn email(value: &str) -> Result<(), FieldError> {
     }
 }
 
-fn name_input<'a>() -> TextInput<'a> {
-    TextInput::new(NAME).blur(BlurPolicy::CommitAndValidate)
+fn focus_select_policy(index: usize) -> FocusSelect {
+    match index {
+        1 => FocusSelect::CaretEnd,
+        2 => FocusSelect::CaretStart,
+        _ => FocusSelect::SelectAll,
+    }
 }
 
-fn branch_input<'a>() -> TextInput<'a> {
+fn name_input<'a>(policy: FocusSelect) -> TextInput<'a> {
+    TextInput::new(NAME)
+        .focus_select(policy)
+        .blur(BlurPolicy::CommitAndValidate)
+}
+
+fn branch_input<'a>(policy: FocusSelect) -> TextInput<'a> {
     TextInput::new(BRANCH)
+        .focus_select(policy)
         .placeholder("feat/…")
         .blur(BlurPolicy::Commit)
 }
@@ -55,14 +73,14 @@ fn state_reference_panel() -> Panel<'static> {
         .meta("static ")
 }
 
-fn project_field(value: &str) -> Field<'_, TextInput<'_>> {
-    Field::new("Project name", name_input().value(value))
+fn project_field(value: &str, policy: FocusSelect) -> Field<'_, TextInput<'_>> {
+    Field::new("Project name", name_input(policy).value(value))
         .required(true)
         .help("Used as the working directory name")
 }
 
-fn branch_field(value: &str) -> Field<'_, TextInput<'_>> {
-    Field::new("Branch", branch_input().value(value))
+fn branch_field(value: &str, policy: FocusSelect) -> Field<'_, TextInput<'_>> {
+    Field::new("Branch", branch_input(policy).value(value))
         .help("Leave empty to work on a detached checkout")
 }
 
@@ -162,6 +180,8 @@ pub struct InputsPage {
     branch: String,
     name_state: TextInputState,
     branch_state: TextInputState,
+    focus_select_index: usize,
+    focus_select_state: SelectState,
     last: &'static str,
 }
 
@@ -172,8 +192,14 @@ impl InputsPage {
             branch: String::new(),
             name_state: TextInputState::default(),
             branch_state: TextInputState::default(),
+            focus_select_index: 0,
+            focus_select_state: SelectState::default(),
             last: "ready",
         }
+    }
+
+    fn focus_select_policy(&self) -> FocusSelect {
+        focus_select_policy(self.focus_select_index)
     }
 }
 
@@ -189,7 +215,17 @@ impl Page for InputsPage {
     }
 
     fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
-        let mut response = Response::ignored();
+        let mut response = Select::new(FOCUS_SELECT)
+            .popup_rows(3)
+            .update_in_form(
+                cx,
+                &mut self.focus_select_state,
+                &mut self.focus_select_index,
+                FOCUS_SELECT_ITEMS,
+                false,
+            )
+            .erase();
+        let focus_select = self.focus_select_policy();
 
         let _ = fields_panel();
         let _ = playground_panel();
@@ -198,7 +234,7 @@ impl Page for InputsPage {
         let _ = token_field();
         let _ = search_field();
         let _ = api_key_field();
-        let name = name_input().update(cx, &mut self.name_state, &mut self.name);
+        let name = name_input(focus_select).update(cx, &mut self.name_state, &mut self.name);
         if let Some(action) = name.action_ref() {
             self.last = match action {
                 TextAction::Committed => "name committed",
@@ -208,7 +244,8 @@ impl Page for InputsPage {
             };
         }
         response |= name.erase();
-        let branch = branch_input().update(cx, &mut self.branch_state, &mut self.branch);
+        let branch =
+            branch_input(focus_select).update(cx, &mut self.branch_state, &mut self.branch);
         if let Some(action) = branch.action_ref() {
             self.last = match action {
                 TextAction::Committed => "branch committed",
@@ -223,6 +260,7 @@ impl Page for InputsPage {
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
         let meta = "Focus is a bar; editing is a cursor. Enter to edit, Esc to revert.";
+        let focus_select = self.focus_select_policy();
         frame(ui, area, self.title(), meta, |ui, body| {
             let regions = layout::rows(body, &[Track::Fixed(17), Track::Fixed(1), Track::Flex(1)]);
             let fields = regions.first().copied().unwrap_or(body);
@@ -251,7 +289,7 @@ impl Page for InputsPage {
                 let right_rows =
                     layout::rows(right, &[Track::Fixed(3), Track::Fixed(3), Track::Flex(1)]);
                 let project_area = left_rows.first().copied().unwrap_or(inner);
-                project_field(&self.name).draw(ui, project_area, &self.name_state);
+                project_field(&self.name, focus_select).draw(ui, project_area, &self.name_state);
                 legacy_field_gutter(
                     ui,
                     Rect {
@@ -268,7 +306,7 @@ impl Page for InputsPage {
                     -1,
                 );
                 let branch_area = right_rows.first().copied().unwrap_or(inner);
-                branch_field(&self.branch).draw(ui, branch_area, &self.branch_state);
+                branch_field(&self.branch, focus_select).draw(ui, branch_area, &self.branch_state);
                 legacy_field_gutter(
                     ui,
                     Rect {
@@ -286,6 +324,14 @@ impl Page for InputsPage {
                 );
                 Self::draw_reference_fields(ui, inner, &left_rows, &right_rows, body);
             });
+            if let Some(select_area) = regions.get(1).copied().filter(|area| !area.is_empty()) {
+                let _ = Select::new(FOCUS_SELECT).popup_rows(3).draw(
+                    ui,
+                    select_area,
+                    &self.focus_select_state,
+                    FOCUS_SELECT_ITEMS,
+                );
+            }
             if let Some(reference_area) = regions.get(2).copied() {
                 state_reference_panel().draw(ui, reference_area, |ui, inner| {
                     Self::draw_state_reference(ui, inner);
@@ -453,5 +499,447 @@ impl InputsPage {
                 legacy_field_gutter(ui, field_area, flags);
             });
         }
+    }
+}
+
+#[cfg(test)]
+mod focus_select_tests {
+    use super::*;
+    use termrock::{App, Button, ItemKey, KeyCode, PartRef, Response, Theme};
+    use termrock_test_support::Harness;
+
+    const OWNER_PEER: Id =
+        termrock::Id::root("showcase_ui::pages::inputs.focus_select_tests.owner_peer");
+    const INPUTS_AREA: Rect = Rect::new(0, 0, 100, 35);
+    const PEER_AREA: Rect = Rect::new(104, 2, 16, 1);
+
+    struct Host {
+        page: InputsPage,
+        area: Option<Rect>,
+        paint_sentinels: bool,
+        inputs_active: bool,
+        persistent_peer: bool,
+        inputs_updates: usize,
+        peer_activations: usize,
+    }
+
+    impl App for Host {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            let mut response = Response::ignored();
+            if self.persistent_peer || !self.inputs_active {
+                let peer_response = Button::new(OWNER_PEER, "Replacement page").update(cx);
+                if peer_response.activated() {
+                    self.peer_activations = self.peer_activations.saturating_add(1);
+                    if self.persistent_peer {
+                        self.inputs_active = true;
+                    }
+                }
+                response |= peer_response.erase();
+            }
+            if self.inputs_active {
+                self.inputs_updates = self.inputs_updates.saturating_add(1);
+                response |= self.page.update(cx).response;
+            }
+            response
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let full = ui.full();
+            if self.paint_sentinels {
+                let row = "S".repeat(usize::from(full.width));
+                for y in full.y..full.bottom() {
+                    let _ = ui.paint_str(
+                        Rect {
+                            y,
+                            height: 1,
+                            ..full
+                        },
+                        &row,
+                        ui.surface_style(),
+                    );
+                }
+            }
+            if self.inputs_active {
+                self.page.draw(ui, self.area.unwrap_or(full));
+            }
+            if self.persistent_peer || !self.inputs_active {
+                Button::new(OWNER_PEER, "Replacement page").draw(ui, PEER_AREA);
+            }
+        }
+    }
+
+    fn host(width: u16, height: u16) -> Harness<Host> {
+        Harness::new(
+            Host {
+                page: InputsPage::new(),
+                area: None,
+                paint_sentinels: false,
+                inputs_active: true,
+                persistent_peer: false,
+                inputs_updates: 0,
+                peer_activations: 0,
+            },
+            Theme::junie(),
+            width,
+            height,
+        )
+    }
+
+    fn offset_host(width: u16, height: u16, area: Rect) -> Harness<Host> {
+        Harness::new(
+            Host {
+                page: InputsPage::new(),
+                area: Some(area),
+                paint_sentinels: true,
+                inputs_active: true,
+                persistent_peer: false,
+                inputs_updates: 0,
+                peer_activations: 0,
+            },
+            Theme::junie(),
+            width,
+            height,
+        )
+    }
+
+    fn choose_by_keyboard(h: &mut Harness<Host>, index: usize) {
+        assert!(h.tab_to(FOCUS_SELECT), "focus the Inputs policy selector");
+        let _ = h.key(KeyCode::Enter);
+        for _ in 0..index {
+            let _ = h.key(KeyCode::Down);
+        }
+        let _ = h.key(KeyCode::Enter);
+        assert_eq!(h.app().page.focus_select_index, index);
+    }
+
+    fn choose_by_pointer(h: &mut Harness<Host>, index: usize) {
+        let _ = h.click_part(FOCUS_SELECT, PartRef::of(Part::FIELD));
+        assert!(h.is_open(FOCUS_SELECT), "the real Select popup opens");
+        let _ = h.click_part(
+            FOCUS_SELECT,
+            PartRef::item(Part::ROW, ItemKey::index(index)),
+        );
+        assert_eq!(h.app().page.focus_select_index, index);
+        assert!(!h.is_open(FOCUS_SELECT), "choosing closes the Select popup");
+    }
+
+    fn assert_sentinels_outside(h: &Harness<Host>, area: Rect, width: u16, height: u16) {
+        let sentinel = h.cell(0, 0);
+        assert_eq!(sentinel.symbol(), "S", "the underlay sentinel is present");
+        for y in 0..height {
+            for x in 0..width {
+                if x < area.x || x >= area.right() || y < area.y || y >= area.bottom() {
+                    assert_eq!(h.cell(x, y), sentinel, "outside page at ({x}, {y})");
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn inputs_defaults_to_select_all_while_pointer_focus_remains_caret_driven() {
+        let mut h = host(120, 40);
+        assert_eq!(h.app().page.focus_select_index, 0);
+        assert_eq!(
+            h.app().page.focus_select_state.value(),
+            Some(ItemKey::index(0))
+        );
+        assert!(h.tab_to(NAME));
+        assert_eq!(h.focus(), Some(NAME));
+        assert_eq!(
+            h.app().page.name_state.selection(),
+            Some(0.."payments-gateway".len())
+        );
+        let _ = h.type_str("x");
+        assert_eq!(h.app().page.name_state.draft_text(), Some("x"));
+        let _ = h.key(KeyCode::Enter);
+        assert_eq!(h.app().page.name, "x");
+
+        let mut pointer = host(120, 40);
+        let name_text = pointer
+            .area_of_part(NAME, PartRef::of(Part::TEXT))
+            .expect("the visible NAME text has its mandatory text part");
+        assert!(name_text.width > 1, "the NAME text has a second cell");
+        assert!(name_text.height > 0, "the NAME text has a visible row");
+        let _ = pointer.click(name_text.x + 1, name_text.y);
+        assert_eq!(pointer.focus(), Some(NAME));
+        assert!(
+            pointer
+                .state_of(NAME)
+                .contains(StateFlags::FOCUSED | StateFlags::EDITING)
+        );
+        assert!(pointer.app().page.name_state.is_editing());
+        assert_eq!(pointer.app().page.name_state.selection(), None);
+        assert_eq!(pointer.app().page.name_state.cursor_offset(), Some(1));
+        assert_eq!(
+            pointer.app().page.name_state.draft_text(),
+            Some("payments-gateway")
+        );
+        assert_eq!(pointer.app().page.name, "payments-gateway");
+        assert!(pointer.diagnostics().is_empty());
+    }
+
+    #[test]
+    fn keyboard_caret_end_policy_applies_to_a_fresh_name_session() {
+        let mut h = host(120, 40);
+        choose_by_keyboard(&mut h, 1);
+        assert_eq!(
+            h.app().page.focus_select_state.value(),
+            Some(ItemKey::index(1))
+        );
+
+        assert!(h.tab_to(NAME));
+        assert_eq!(h.app().page.name_state.selection(), None);
+        assert_eq!(
+            h.app().page.name_state.cursor_offset(),
+            Some("payments-gateway".len())
+        );
+        let _ = h.type_str("x");
+        assert_eq!(
+            h.app().page.name_state.draft_text(),
+            Some("payments-gatewayx")
+        );
+    }
+
+    #[test]
+    fn pointer_caret_start_policy_keeps_branch_data_and_applies_to_a_fresh_session() {
+        let mut h = host(120, 40);
+        assert!(h.tab_to(BRANCH));
+        let _ = h.type_str("topic");
+        let _ = h.key(KeyCode::Enter);
+        assert_eq!(h.app().page.branch, "topic");
+
+        choose_by_pointer(&mut h, 2);
+        assert_eq!(h.app().page.name, "payments-gateway");
+        assert_eq!(h.app().page.branch, "topic");
+
+        assert!(h.tab_to(BRANCH));
+        assert_eq!(h.app().page.branch_state.selection(), None);
+        assert_eq!(h.app().page.branch_state.cursor_offset(), Some(0));
+        let _ = h.type_str("x");
+        assert_eq!(h.app().page.branch_state.draft_text(), Some("xtopic"));
+    }
+
+    #[test]
+    fn selector_stays_in_its_page_row_and_keeps_policy_when_the_row_is_absent() {
+        const WIDTH: u16 = 120;
+        const HEIGHT: u16 = 40;
+        let page_area = Rect::new(7, 5, 104, 29);
+        let mut h = offset_host(WIDTH, HEIGHT, page_area);
+        let selector = h.area_of(FOCUS_SELECT).expect("selector row is registered");
+        let selector_field = PartRef::of(Part::FIELD);
+        assert!(h.area_of_part(FOCUS_SELECT, selector_field).is_some());
+        assert!(h.ring().is_registered(FOCUS_SELECT));
+        assert!(h.ring().contains(FOCUS_SELECT));
+        assert_eq!(selector.height, 1);
+        assert!(selector.x >= page_area.x && selector.y >= page_area.y);
+        assert!(selector.right() <= page_area.right());
+        assert!(selector.bottom() <= page_area.bottom());
+        assert_sentinels_outside(&h, page_area, WIDTH, HEIGHT);
+
+        choose_by_pointer(&mut h, 2);
+        let chosen = h.app().page.focus_select_index;
+        let short_area = Rect::new(61, 25, 45, 9);
+        h.app_mut().area = Some(short_area);
+        h.draw();
+        assert!(h.area_of(FOCUS_SELECT).is_none());
+        assert!(h.area_of_part(FOCUS_SELECT, selector_field).is_none());
+        assert!(!h.ring().is_registered(FOCUS_SELECT));
+        assert!(!h.ring().contains(FOCUS_SELECT));
+        assert_eq!(h.app().page.focus_select_index, chosen);
+        assert_eq!(
+            h.app().page.focus_select_state.value(),
+            Some(ItemKey::index(chosen))
+        );
+        assert_sentinels_outside(&h, short_area, WIDTH, HEIGHT);
+
+        h.app_mut().area = Some(page_area);
+        h.draw();
+        assert!(h.area_of(FOCUS_SELECT).is_some());
+        assert!(h.area_of_part(FOCUS_SELECT, selector_field).is_some());
+        assert!(h.ring().is_registered(FOCUS_SELECT));
+        assert_eq!(h.app().page.focus_select_index, chosen);
+    }
+
+    #[test]
+    fn inactive_inputs_owner_closes_open_selector_and_reconciles_on_return() {
+        // This host models an inactive page owner, not Showcase navigation itself.
+        let mut h = Harness::new(
+            Host {
+                page: InputsPage::new(),
+                area: Some(INPUTS_AREA),
+                paint_sentinels: false,
+                inputs_active: true,
+                persistent_peer: true,
+                inputs_updates: 0,
+                peer_activations: 0,
+            },
+            Theme::junie(),
+            120,
+            40,
+        );
+
+        choose_by_keyboard(&mut h, 1);
+        assert!(h.tab_to(BRANCH));
+        let _ = h.type_str("saved-branch");
+        let _ = h.key(KeyCode::Enter);
+        assert_eq!(h.app().page.branch, "saved-branch");
+        assert!(!h.app().page.branch_state.is_editing());
+
+        let committed_policy = h.app().page.focus_select_index;
+        let committed_select_value = h.app().page.focus_select_state.value();
+        let committed_name = h.app().page.name.clone();
+        let committed_branch = h.app().page.branch.clone();
+        let name_state = h.app().page.name_state.clone();
+        let branch_state = h.app().page.branch_state.clone();
+        assert_eq!(committed_policy, 1);
+        assert_eq!(committed_select_value, Some(ItemKey::index(1)));
+
+        let _ = h.click_part(FOCUS_SELECT, PartRef::of(Part::FIELD));
+        assert!(h.app().page.focus_select_state.is_open());
+        assert!(h.is_open(FOCUS_SELECT));
+        let _ = h.key(KeyCode::Down);
+        assert_eq!(
+            h.app().page.focus_select_state.cursor(),
+            Some(ItemKey::index(2))
+        );
+        assert_eq!(h.app().page.focus_select_index, committed_policy);
+        assert_eq!(
+            h.app().page.focus_select_state.value(),
+            committed_select_value
+        );
+        let popup_row = h
+            .area_of_part(FOCUS_SELECT, PartRef::item(Part::ROW, ItemKey::index(2)))
+            .expect("the open popup publishes its CaretStart row hit");
+        assert!(!popup_row.is_empty());
+        let popup_area = h
+            .layer_area(FOCUS_SELECT)
+            .expect("the open selector has a live popup layer");
+        assert!(popup_area.right() <= PEER_AREA.x || popup_area.x >= PEER_AREA.right());
+        assert!(h.diagnostics().is_empty());
+        assert_eq!(h.runtime().capture_owner(), None);
+
+        let open_select_state = h.app().page.focus_select_state.clone();
+        let active_update_count = h.app().inputs_updates;
+        h.app_mut().inputs_active = false;
+        // Harness::draw performs the ordinary prepare/draw/ack path; prepare settles focus work.
+        h.draw();
+
+        assert_eq!(h.runtime().capture_owner(), None);
+        assert_eq!(h.app().inputs_updates, active_update_count);
+        assert_eq!(h.app().page.focus_select_state, open_select_state);
+        assert_eq!(h.app().page.name_state, name_state);
+        assert_eq!(h.app().page.branch_state, branch_state);
+        assert_eq!(h.app().page.name, committed_name);
+        assert_eq!(h.app().page.branch, committed_branch);
+        assert!(!h.is_open(FOCUS_SELECT));
+        assert!(h.layer_area(FOCUS_SELECT).is_none());
+        assert!(h.area_of(FOCUS_SELECT).is_none());
+        assert!(
+            h.area_of_part(FOCUS_SELECT, PartRef::of(Part::FIELD))
+                .is_none()
+        );
+        assert!(
+            h.area_of_part(FOCUS_SELECT, PartRef::item(Part::ROW, ItemKey::index(2)),)
+                .is_none()
+        );
+        assert!(!h.ring().is_registered(FOCUS_SELECT));
+        assert!(!h.ring().contains(FOCUS_SELECT));
+        assert_ne!(h.focus(), Some(FOCUS_SELECT));
+        assert!(h.find("Focus selects: Caret start").is_none());
+        let blank = h.cell(119, 39).clone();
+        for y in popup_area.y..popup_area.bottom() {
+            for x in popup_area.x..popup_area.right() {
+                assert_eq!(h.cell(x, y), &blank, "former popup ink at ({x}, {y})");
+            }
+        }
+        let peer = h.area_of(OWNER_PEER).expect("replacement page is drawn");
+        assert!(peer.x >= INPUTS_AREA.right());
+        assert!(
+            h.area_of_part(OWNER_PEER, PartRef::of(Part::CONTAINER))
+                .is_some()
+        );
+        assert!(h.ring().is_registered(OWNER_PEER));
+        assert!(h.ring().contains(OWNER_PEER));
+        assert!(h.tab_to(OWNER_PEER));
+        assert_eq!(h.focus(), Some(OWNER_PEER));
+        assert!(!h.app().inputs_active);
+        assert_eq!(h.app().inputs_updates, active_update_count);
+        let _ = h.click_part(OWNER_PEER, PartRef::of(Part::CONTAINER));
+        assert_eq!(h.app().peer_activations, 1);
+        assert!(
+            h.app().inputs_active,
+            "the native peer activation routes back"
+        );
+        assert!(
+            h.app().inputs_updates > active_update_count,
+            "the newly active Inputs page receives the same ordinary update pass"
+        );
+        assert!(h.diagnostics().is_empty());
+
+        assert_eq!(h.runtime().capture_owner(), None);
+        assert!(!h.app().page.focus_select_state.is_open());
+        assert!(!h.is_open(FOCUS_SELECT));
+        assert_eq!(
+            h.app().page.focus_select_state.cursor(),
+            Some(ItemKey::index(1)),
+            "dismissal restores the cursor to the committed CaretEnd value"
+        );
+        assert_eq!(h.app().page.focus_select_index, committed_policy);
+        assert_eq!(
+            h.app().page.focus_select_state.value(),
+            committed_select_value
+        );
+        assert_eq!(h.app().page.name, committed_name);
+        assert_eq!(h.app().page.branch, committed_branch);
+        assert!(h.area_of(FOCUS_SELECT).is_some());
+        assert!(
+            h.area_of_part(FOCUS_SELECT, PartRef::of(Part::FIELD))
+                .is_some()
+        );
+        let peer = h
+            .area_of(OWNER_PEER)
+            .expect("persistent shell peer remains drawn on return");
+        assert!(peer.x >= INPUTS_AREA.right());
+        assert!(
+            h.area_of_part(OWNER_PEER, PartRef::of(Part::CONTAINER))
+                .is_some()
+        );
+        assert!(h.ring().is_registered(OWNER_PEER));
+        assert!(h.ring().contains(OWNER_PEER));
+        assert!(h.ring().is_registered(FOCUS_SELECT));
+        assert!(h.ring().contains(FOCUS_SELECT));
+        assert!(
+            h.area_of_part(FOCUS_SELECT, PartRef::item(Part::ROW, ItemKey::index(2)),)
+                .is_none()
+        );
+        assert!(
+            h.diagnostics().is_empty(),
+            "Inputs owner return diagnostics: {:?}",
+            h.diagnostics()
+        );
+
+        assert_eq!(h.focus(), Some(OWNER_PEER));
+        let _ = h.click_part(FOCUS_SELECT, PartRef::of(Part::FIELD));
+        assert!(h.is_open(FOCUS_SELECT));
+        assert_eq!(h.focus(), Some(FOCUS_SELECT));
+        assert!(h.ring().is_registered(OWNER_PEER));
+        assert_eq!(h.app().peer_activations, 1);
+        assert_eq!(h.runtime().capture_owner(), None);
+        assert!(h.diagnostics().is_empty());
+        let _ = h.click_part(FOCUS_SELECT, PartRef::item(Part::ROW, ItemKey::index(2)));
+        assert_eq!(h.app().page.focus_select_index, 2);
+        assert!(!h.is_open(FOCUS_SELECT));
+        assert!(h.tab_to(BRANCH));
+        assert_eq!(h.app().page.branch_state.selection(), None);
+        assert_eq!(h.app().page.branch_state.cursor_offset(), Some(0));
+        let _ = h.type_str("x");
+        assert_eq!(
+            h.app().page.branch_state.draft_text(),
+            Some("xsaved-branch")
+        );
+        assert_eq!(h.app().page.branch, committed_branch);
+        assert_eq!(h.app().peer_activations, 1);
+        assert_eq!(h.runtime().capture_owner(), None);
+        assert!(h.diagnostics().is_empty());
     }
 }

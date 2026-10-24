@@ -1,0 +1,21 @@
+[0m[2m  holla❯    File   Go   Help          no project  devbox · development  [0m
+[0m[2m  Here › Upgrade everything                                             [0m
+[0m[2m  H╭──────────────────────────────────────────────────────────── × ─╮   [0m
+[0m[2m ━━│                                                                │── [0m
+[0m[2m  U│  [0m[1;2mStart upgrade everything?[0m[2m                                     │   [0m
+[0m[2m  u│                                                                │   [0m
+[0m[2m   │  [0mPlan       Upgrade everything · upgrade Debian packages and [0m[2m ┃│   [0m
+[0m[2m   │  [0m           global mise tools on devbox                      [0m[2m ┃│   [0m
+[0m[2m [0m [0m[2m[│  [0mHost       devbox                                           [0m[2m ┆│ ┆ [0m
+[0m[2m [0m [0m[2m[│  [0mSteps      7 included · 1 excluded · ~16 s                  [0m[2m ┆│ ┃ [0m
+[0m[2m [0m [0m[2m[│  [0mPrivilege  sudo · cached for this session                   [0m[2m ┆│ ┃ [0m
+[0m[2m [0m [0m[2m[│  [0mDebian     14 upgradable · 2 security                       [0m[2m ┆│ ┃ [0m
+[0m[2m [0m [0m[2m[│  [0mmise       4 outdated global tools · go excluded            [0m[2m ┆│ ┆ [0m
+[0m[2m   │  ↓ 16 more                                                     │   [0m
+[0m[2m   │                                        ▎[0m[1;2;4mC[0m[1;2mancel [0m[2m   [0m[1;2;4;7mS[0m[1;2;7mtart plan [0m[2m  │…  [0m
+[0m[2m   │                                                                │   [0m
+[0m[2m   ╰──────────────────────────────────────────[0m─[0m[2m─────────[0m─[0m[2m───────────╯   [0m
+[0m[2m                                                                        [0m
+[0m[2m ~       review · 7 steps · 2 branches parallel        no color · 72×20 [0m
+ [0m[1m←→[0m Choose[0m[1m  Enter[0m Cancel  [0m[1mEsc[0m Cancel  …    06 excluded · 08 now blocked [0m
+[?25l

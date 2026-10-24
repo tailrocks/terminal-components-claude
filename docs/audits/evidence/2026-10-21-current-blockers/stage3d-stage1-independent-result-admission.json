@@ -1,0 +1,133 @@
+{
+  "schema": "termrock.stage3d.stage1-operational-result.independent-review.v1",
+  "reviewer": "/root/runner_atomic_step_architect",
+  "created_at_utc": "2026-10-21T03:05:44.371219+00:00",
+  "decision": "ADMIT stage1 source preparation only. The extracted frozen source and snapshots match the fixed reference, and the reviewed owned stage1 CLI completed successfully. This is not a prepared live driver, plan, run, new key, capture, replay, candidate comparison or application acceptance.",
+  "operation": {
+    "parent_run_id": "parent-v7-stage1-20261021-1003",
+    "reported_wrapper_exit_status": 0,
+    "worker_elapsed_seconds": 21.144,
+    "work_budget_seconds": 199,
+    "canonical_cleanup_reserve_seconds": 15,
+    "finalization_reserve_seconds": 5,
+    "inclusive_supervisor_budget_seconds": 220,
+    "elapsed_precision": "21.144 is the event worker elapsed value. It is not represented here as an independently measured total including preflight and finalization.",
+    "actual_argv": [
+      "/Users/donbeave/.local/share/mise/installs/python/3.15.0/bin/python3.15",
+      "/private/tmp/canonical-stage1-owned-20261021/tools/frozen_baseline.py",
+      "--repo",
+      "/private/tmp/ci-doc-inventory-20261021",
+      "--root",
+      "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-243af5-20261021",
+      "--timeout",
+      "199",
+      "prepare",
+      "--owned-lifecycle",
+      "--owned-budget",
+      "199"
+    ],
+    "argv_sha256_matches": true,
+    "log_sha256_matches": true,
+    "timed_out": false,
+    "reaped_direct_child": true
+  },
+  "source_admission": {
+    "new_root": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-243af5-20261021",
+    "independent_source_digest": {
+      "sha256": "f74646a92505bd9baff29c89398af4d31a4812dd7d51acc84d755be61a383850",
+      "files": 1152,
+      "bytes": 90561173
+    },
+    "independent_snapshots_digest": {
+      "sha256": "6b547179584d2fb708993fb5ccd415a89423547263836271105b52be0294e1a8",
+      "files": 12625,
+      "bytes": 3100617792
+    },
+    "matches_new_manifest": true,
+    "matches_old_fixed_plan": true,
+    "fixed_reference_tuple": {
+      "tag": "visual-baseline",
+      "tag_object": "2718a6b8127a522a3d351d0b4bdb7542fc8da542",
+      "source_commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+      "source_tree": "ad0f7cf8899df8c5fea3ced3f60adf0ac9a2d297",
+      "tuiscotti_rev": "a1ea27f757d75d07b05499276cd932e9f8e067ad"
+    },
+    "lock_records_fixed_tuiscotti": true,
+    "cargo_lock_sha256": "46c1c71d85de829b277feffc959e6e8feab99deb171b1e48521c12d5cf14c2ed",
+    "rust_toolchain_sha256": "007a7e2abbd4afe192a3ef190dfa54914800621e221196747cff9e172735dc00",
+    "root_entries": [
+      "provenance.json",
+      "source"
+    ],
+    "independent_hash_review_seconds": 5.961
+  },
+  "implementation_binding": {
+    "supervisor_path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-supervisor-v7-20261021.py",
+    "supervisor_sha256": "30bb46c94af9590712d176e9e958978980d06969afe47ded23012d4a76dcd000",
+    "supervisor_independent_review_sha256": "564722475625af4ff72a41f250411ac7eb30d3f9537827edee15d09c4614ce46",
+    "canonical_runner_path": "/private/tmp/canonical-stage1-owned-20261021/tools/frozen_baseline.py",
+    "canonical_runner_sha256": "00f967a0b603997875bc712ae5d5969c32486aec17a83e1f6317e941f217bc06",
+    "canonical_clearance_sha256": "96305b593325c7014fc7ce42313e27cc414554b5bff23edff2987923c92636ee",
+    "reviewed_source_commit": "a46842108149a1421030e4a040c890fadecc671e",
+    "published_wip_commit": "9cd3f9f733065b452d13926ca0ae28049c0840dd",
+    "reviewed_commit_is_ancestor_of_published": true,
+    "remote_wip_verified": "9cd3f9f733065b452d13926ca0ae28049c0840dd\trefs/heads/wip/canonical-stage1-owned-20261021",
+    "legacy_event_labels": "Schema and filenames contain v6 as documented in v7 review. Exact v7 source and independent-review SHA are bound here; filenames alone are not treated as executable identity.",
+    "provenance_limit": "The event does not itself record the external supervisor SHA. Exact v7 invocation identity relies on the parent execution record plus the preserved matching reviewed source. This is not represented as a cryptographically authenticated wrapper-exec receipt."
+  },
+  "pin_review": {
+    "all_nine_driver_inputs_match": true,
+    "tool_hash_map_matches_old_plan": true,
+    "checked_tool_entries": 15,
+    "font_and_time_scope": "Stage1 extracts source only; it performs no terminal/font rendering or controlled-time application flow. Fixed Tuiscotti and future driver environment are retained as recorded inputs.",
+    "controlled_environment": "Event records successful allowlist/hash verification with only new-root target directory difference; no raw environment values are stored or reconstructed in this review.",
+    "actual_environment_preflight_repeated_by_reviewer": false
+  },
+  "cleanup_evidence": {
+    "admitted": "Event records direct canonical CLI reaped, exit0 and no timeout. Exact reviewed canonical stage1 source permits success only after broker/group normal cleanup and release. This supports the declared fixed Git and same-group child scope.",
+    "not_claimed": "No separately preserved per-broker live process inventory or arbitrary-descendant/PTY cleanup proof exists in this operation record. No process-name signal or broad containment claim is inferred.",
+    "actual_worker_or_application_started_by_reviewer": false
+  },
+  "old_evidence_preservation": {
+    "old_plan_external_anchor_matches": true,
+    "nine_receipt_chain_matches": true,
+    "tip_matches_existing_ordinal8_record": true,
+    "checkpoint_count": 288,
+    "new_hmac_authentication_performed": false,
+    "key_bytes_read": false,
+    "old_captured_frames_and707_partial_rehashed": false,
+    "credit_transferred": false
+  },
+  "next_missing_contract": "Stage2 prepare-live still uses legacy subprocess ownership for patch, Cargo/Nextest inventory and tool observation. It needs a separately implemented, tested and reviewed cancellation/deadline/child-ownership contract before execution. Stages2-8 remain disabled in the reviewed external wrapper.",
+  "next_actions": [
+    "Commit stage1 admission/evidence to migration records through the authorized integration path.",
+    "Assign a bounded stage2 canonical ownership design/implementation; preserve exact482 driver bytes and complete inventory.",
+    "Do not run stage2, create a plan/key/run or capture under this stage1 result."
+  ],
+  "artifacts": [
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-stage1-result-independent-evidence-20261021.json",
+      "sha256": "c0410c096b9d44aa61af3e3373a9251a9efecd10cbf6392629b7f50929e77dea"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-stage1-old-journal-preservation-20261021.json",
+      "sha256": "7ffe8d41b66f4af810ceb97300f61899799a74340937d7ea98acfa3a6cf22a5a"
+    },
+    {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-supervisor-v6-parent-v7-stage1-20261021-1003-stage-01-event.json",
+      "sha256": "66a27d3c9d6d84827d4e8e65ebf502d6847f0e4c46fb0dd3d3f1b788fc0ffdc7"
+    }
+  ],
+  "reviewer_performed": {
+    "read_only_source_snapshot_hashes": true,
+    "read_only_manifest_event_log_and_pins": true,
+    "read_only_remote_ref_and_ancestry_check": true,
+    "operational_cli_or_app_launch": false,
+    "key_access": false,
+    "source_plan_run_mutation": false
+  },
+  "admitted_scope": [
+    "Stage1 frozen source preparation"
+  ],
+  "application_acceptance": false
+}

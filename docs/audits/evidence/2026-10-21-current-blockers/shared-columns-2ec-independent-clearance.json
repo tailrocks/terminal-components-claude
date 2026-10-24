@@ -1,0 +1,81 @@
+{
+  "reviewed_commit": "2ec603902db0666eb6cb16d0055ff9222335d8d4",
+  "before_commit": "277c420e89e5c016e2f0cdf6385e86258a236d2b",
+  "ancestry": "before is exact first parent, independently verified with merge-base --is-ancestor and rev-parse",
+  "status": "clear for bounded source publication and integration; no blocking findings",
+  "source_sha256": {
+    "crates/termrock-layout/src/columns.rs": "63c9909218e42b0b6a0b7699a1be5c67e2db88978b90b87b5efcb84b19ad86cd",
+    "crates/termrock-layout/src/lib.rs": "74668741281884cb40474137db98e2c9dc7064b195ac5e2dd02a46ddb3ed2679",
+    "crates/termrock-navigation/src/item.rs": "11e737b578b969c12a84211d8fd8801a88f601c59c62dfd0739fcf61a77f9812",
+    "docs/audits/column-spec-solver-extraction-20261021.md": "383bac4c60869307fb10127b99a0ac45bc9a252f7611fc6ccdeecbcfc0915a19"
+  },
+  "tests": {
+    "native_layout_library": 32,
+    "native_layout_external_consumer": 1,
+    "native_navigation": 208,
+    "native_total_passed": 241,
+    "native_skipped": 0,
+    "public_consumer_passed": 16,
+    "public_consumer_skipped": 0,
+    "independent_reference_cases": 12000,
+    "independent_max_column_count": 100000,
+    "strict_scoped_clippy": "passed -D warnings",
+    "full_workspace_format": "passed",
+    "git_diff_check": "passed"
+  },
+  "differential": {
+    "checkpoints": 11340,
+    "profiles": [
+      "TrueColor",
+      "Ansi256",
+      "Ansi16",
+      "Mono"
+    ],
+    "widths": "0 through 80 inclusive",
+    "heights": [
+      0,
+      1,
+      2,
+      4,
+      6
+    ],
+    "ordered_inputs": [
+      "initial",
+      "Down",
+      "Down",
+      "Up",
+      "End",
+      "Home",
+      "Enter"
+    ],
+    "compared": "lossless ordered complete Cell Debug RLE including symbol, foreground, background, underline color, modifier, diff option and skip; buffer area; cursor; focus; focus-visible; row hit geometry; list cursor key; chosen actions",
+    "byte_identical": true,
+    "bytes_per_revision": 76503062,
+    "sha256": "0951fb9cd9b707d4a88dca20f62461ddc691b883ea2c2803b7047900599cf179",
+    "capture_tests": "Each revision one focused capture test passed; 14 other fixture tests filtered in that focused invocation. After revision separately ran all 16 external tests, none skipped.",
+    "identical_probe_source": true
+  },
+  "architecture": "Single shared layout solver used by real ItemColumns measurement; old four-column implementation remains only a cfg(test) differential oracle. No production replay, app imports, extra input/state system, unsafe code, or new dependency direction found. Stack workspace preserves <=4-column warmed no-allocation render. Arbitrary slices use general allocated results without truncation.",
+  "nonblocking_findings": [
+    {
+      "severity": "P3",
+      "file": "crates/termrock-layout/src/columns.rs",
+      "line": 5,
+      "issue": "Rustdoc claims normalization occurs again during solving and allows struct-update construction; resolver directly reads invariant-preserving private fields, with construction restricted to new/default. Public callers cannot perform the described struct update.",
+      "recommendation": "Describe normalization in ColumnSpec::new and private-field invariant preservation, rather than promising a second normalization pass.",
+      "risk": "Documentation only; no reachable malformed public construction or runtime failure found."
+    }
+  ],
+  "limits": [
+    "No Holla/Showcase consumer migration approved.",
+    "No complete four-application real-CLI frozen comparison, full workspace Nextest/Clippy, hosted CI, or twice-complete acceptance gate performed.",
+    "No PR38 push or branch cleanup performed by reviewer.",
+    "Visible zero-width columns deliberately retain gaps; dropped columns remove gaps. This matches documented policy and predecessor behavior; no invented Fixed(0) tracks are introduced."
+  ],
+  "working_copies": {
+    "before": "/private/tmp/shared-columns-independent-review-2ec6039-20261021/before",
+    "after": "/private/tmp/shared-columns-independent-review-2ec6039-20261021/after",
+    "targets": "Distinct before-target and after-target; neither author target reused."
+  },
+  "created_utc": "2026-10-21T04:46:10.549664+00:00"
+}

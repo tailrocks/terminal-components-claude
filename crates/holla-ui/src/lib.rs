@@ -1,6 +1,7 @@
 pub mod app;
 pub mod cli;
 pub mod dispatch;
+pub mod layout;
 pub mod screens;
 
 pub mod clock {

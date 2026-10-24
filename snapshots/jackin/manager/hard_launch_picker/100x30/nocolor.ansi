@@ -1,0 +1,31 @@
+[0m[2m  jackin❯    File   Go   Help           …  Workspaces  ! instance index unreadable  ▲ daemon stale  [0m
+[0m[2m                                                                                                    [0m
+[0m[2m ╭─ Workspaces ─────────────────────────────────────────────────────────────────────── 3 running ─╮ [0m
+[0m[2m │ [0m [0m[2m   Current directory                                              saved as payments-platform  │ [0m
+[0m[2m │ [0m [0m[2m ▸ payments-platform                                                               1 running  │ [0m
+[0m[2m │ [0m [0m[2m ▸ infra-control-plane                                                             1 running  │ [0m
+[0m[2m │ [0m [0m[2m ▸ release-automation                                                               ! failed  │ [0m
+[0m[2m │ [0m [0m[2m ▸ customer-portal                                                                  ! failed  │ [0m
+[0m[2m │ [0m [0m[2m ▸ data-pipeline                                                                   1 running  │ [0m
+[0m[2m │ [0m [0m[2m ▸ docs-site                                                                        1 record  │ [0m
+[0m[2m │ [0m [0m[2m   a╭──────────────────────────────────────────────────────────────────────────────────╮idle  │ [0m
+[0m[2m │ [0m [0m[2m   g│ [0m[1;2mLaunch · choose Agent[0m[2m                          payments-platform › the-architect │idle  │ [0m
+[0m[2m │ [0m [0m[2m   m│ [0m[1;2;7m [0m[2;7m▪[0m[1;2;7m Claude Code  [0m[2;7maccount Claude · Personal · provider …[0m[1;2;7m  [0m[2;7mchoose at start[0m[1;2;7m  [0m[2;7magents[0m[1;2;7m [0m[2m │idle  │ [0m
+[0m[2m │ [0m [0m[2m   m│  ▪ Codex        account Codex · Primary · provider de…  ready                    │idle  │ [0m
+[0m[2m │ [0m [0m[2m   s│  ▪ OpenCode     account OpenCode · Go subscription · …  ready                    │idle  │ [0m
+[0m[2m │ [0m [0m[2m   s│  ▪ Grok Build   account Grok · Team · provider default  ready                    │idle  │ [0m
+[0m[2m │ [0m [0m[2m   b│                                                                                  │idle  │ [0m
+[0m[2m │ [0m [0m[2m   l│                                                                                  │idle  │ [0m
+[0m[2m │ [0m [0m[2m   +╰──────────────────────────────────────────────────────────────────────────────────╯      │ [0m
+[0m[2m │                                                                                                │ [0m
+[0m[2m ╰────────────────────────────────────────────────────────────────────────────────────────────────╯ [0m
+[0m[2m                                                                                                    [0m
+[0m[2m   Current directory                                                                  Tab details   [0m
+[0m[2m   ──────────────────────────────────────────────────────────────────────────────────────────────   [0m
+[0m[2m   /workspace/payments-platform · 2 mounts · 5 vars                                                 [0m
+[0m[2m   Roles the-architect ★ · 3 allowed · Auth Claude · Personal                                       [0m
+[0m[2m   ◉ 7f3a  the-architect · Claude Code · running                                                    [0m
+[0m[2m                                                                                                    [0m
+[0m[2m                                                                                                    [0m
+ [0m[1mEsc[0m Cancel  [0m[1m…[0m   [0m[1m▲[0m Could not confirm running instances: instance index unreadable · list may be in… [0m
+[?25l

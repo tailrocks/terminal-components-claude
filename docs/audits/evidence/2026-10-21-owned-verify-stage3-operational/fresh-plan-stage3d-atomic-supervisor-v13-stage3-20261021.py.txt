@@ -1,0 +1,705 @@
+#!/usr/bin/env python3
+"""Stage-3-only deadline-checked supervisor for canonical frozen baseline verification.
+
+This wrapper admits only the reviewed stage-3 verify-live operation against the
+independently admitted stage-2 live-source tree. Stages 1–2 and 4–8 are hard-disabled.
+It never reads the private run key, creates a plan, captures/replays a baseline,
+launches an application, compares a candidate, or accepts product parity. The
+canonical runner owns its broker and same-group children; this wrapper owns and
+reaps only its exact direct child and makes no universal process-containment claim.
+The monotonic deadline bounds active work and process cleanup. Local filesystem
+open/write/flush/fsync/close calls and writes to some output descriptors can block
+inside the kernel; the wrapper checks the deadline after each such call and fails
+closed when the call returns, but cannot guarantee a hard wall-clock bound while
+one of these kernel calls is stalled.
+"""
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+import platform
+import re
+import signal
+import subprocess
+import select
+import fcntl
+import sys
+import time
+from pathlib import Path
+from typing import Sequence
+
+START_NS = time.monotonic_ns()
+TOTAL_SECONDS = 220
+RUNNER_SECONDS = 200
+CLEANUP_RESERVE_SECONDS = 15
+FINALIZATION_RESERVE_SECONDS = 5
+EVENT_RECEIPT_RULE = 'persisted event alone is not a receipt; require wrapper exit status 0 and complete event publication; this is never product acceptance'
+REPO = Path('/private/tmp/ci-doc-inventory-20261021')
+REPO_COMMIT = '482cdaf48c42d8355a173e1faeee74e159c46d0b'
+RUNNER = Path('/Users/donbeave/Projects/termrock-cli-evidence-20261021/canonical-stage3-runner-f82b2bf4-20261021.py')
+RUNNER_SHA256 = 'e486b17728062193fa3af243c93d7e1fd14c70fd73726c1bc4e73a317306e257'
+PYTHON = Path('/Users/donbeave/.local/share/mise/installs/python/3.15.0/bin/python3.15')
+ROOT = Path('/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-243af5-20261021')
+BASE = Path('/Users/donbeave/Projects/termrock-cli-evidence-20261021')
+COHORT = 'frozen-20261021-serial-nonincr-r1-r2'
+BIN_DIR = BASE / 'controlled-baseline-serial-incremental-off-archive/run-2/sealed-bin'
+KEY_PATH = BASE / 'stage3d-atomic-run-key-custody/run.key'
+PLAN_PATH = ROOT / 'fresh-capture-plan.json'
+ARTIFACT_DIR = BASE
+READINESS_PATH = BASE / 'stage3d-atomic-readiness-independent-243af5-20261021.json'
+CANONICAL_REVIEW_PATH = BASE / 'canonical-stage3-independent-review-5891c872-20261021.json'
+CANONICAL_REVIEW_SHA256 = '21c3aadd4088bcef9696ab6621873bd2f32f6243b5a3fb89f067a0403d6f2f20'
+READINESS_SHA256 = '47e7c04615b69d552b55396eff0d41c0e34801cf118513c0ed5406edfafa5577'
+OLD_PLAN_PATH = BASE / 'fresh-plan-stage3c-fixed-482-20261021/fresh-capture-plan.json'
+OLD_PLAN_SHA256 = '48ab669c719815a7899c55d8a4b5a4444e514701a947f85c541907fa83550bc7'
+ENV_PACKET_PATH = BASE / 'fresh-plan-stage3c-exact-env-verification-packet.json'
+ENV_PACKET_SHA256 = 'e0def641b251b52091844e9c9c6481e3e01643f7222e6fc82fe1480397f42f78'
+EXPECTED_SOURCE_SHA256 = 'f74646a92505bd9baff29c89398af4d31a4812dd7d51acc84d755be61a383850'
+EXPECTED_SNAPSHOTS_SHA256 = '6b547179584d2fb708993fb5ccd415a89423547263836271105b52be0294e1a8'
+
+
+
+def _sha256_file(path: Path, deadline_ns: int, *, minimum_remaining: float | None = None) -> str:
+    digest = hashlib.sha256()
+    minimum_remaining = CLEANUP_RESERVE_SECONDS / 3 if minimum_remaining is None else minimum_remaining
+    with path.open('rb') as src:
+        while True:
+            if remaining(deadline_ns) <= minimum_remaining:
+                raise TimeoutError('inclusive deadline leaves insufficient evidence-finalization time')
+            chunk = src.read(1 << 20)
+            if not chunk:
+                if remaining(deadline_ns) <= 0:
+                    raise TimeoutError('inclusive deadline expired during evidence hash finalization')
+                return digest.hexdigest()
+            digest.update(chunk)
+
+
+def remaining(deadline_ns: int) -> float:
+    return (deadline_ns - time.monotonic_ns()) / 1_000_000_000
+
+
+def validate_harness_inputs(repo: Path, expected_files: dict[str, object], deadline_ns: int, git_runner=None) -> dict[str, object]:
+    """Check committed blobs and any materialized sparse-worktree copies against readiness hashes."""
+    def git(args: list[str], timeout: float = 2.0) -> subprocess.CompletedProcess[bytes]:
+        if git_runner is not None:
+            return git_runner(args, timeout)
+        left = remaining(deadline_ns) - CLEANUP_RESERVE_SECONDS / 2
+        if left <= 0:
+            raise TimeoutError('deadline expired during frozen-input verification')
+        return subprocess.run(['git', '-C', str(repo), *args], check=True, capture_output=True,
+                              timeout=min(timeout, left))
+    tree_records = git(['ls-tree', '-r', '-z', 'HEAD', '--', *expected_files.keys()]).stdout.split(b'\0')
+    tree: dict[str, tuple[bytes, bytes, bytes]] = {}
+    for record in tree_records:
+        if not record:
+            continue
+        header, raw_path = record.split(b'\t', 1)
+        mode, kind, blob = header.split(b' ', 2)
+        tree[os.fsdecode(raw_path)] = (mode, kind, blob)
+    results: dict[str, object] = {}
+    for relative, item in expected_files.items():
+        entry = tree.get(relative)
+        if entry is None or entry[0] not in (b'100644', b'100755') or entry[1] != b'blob':
+            raise RuntimeError(f'expected regular Git blob missing for frozen input: {relative}')
+        committed = git(['cat-file', 'blob', f'HEAD:{relative}'], timeout=3.0).stdout
+        digest = hashlib.sha256(committed).hexdigest()
+        if digest != item['sha256']:
+            raise RuntimeError(f'committed frozen input digest mismatch: {relative}')
+        path = repo / relative
+        state = 'sparse-absent'
+        if path.exists() or path.is_symlink():
+            if path.is_symlink() or not path.is_file():
+                raise RuntimeError(f'working frozen input is not a regular file: {relative}')
+            actual = _sha256_file(path, deadline_ns)
+            if actual != item['sha256']:
+                raise RuntimeError(f'working frozen input differs: {relative}')
+            state = 'present-and-matched'
+        elif item['present_in_guard_worktree']:
+            raise RuntimeError(f'readiness-required worktree input absent: {relative}')
+        results[relative] = {'sha256': digest, 'worktree': state}
+    return results
+
+
+def _require_regular_hash(path: Path, expected: str, deadline_ns: int, label: str) -> None:
+    if path.is_symlink() or not path.is_file():
+        raise RuntimeError(f'{label} is not a regular file')
+    if _sha256_file(path, deadline_ns) != expected:
+        raise RuntimeError(f'{label} digest mismatch')
+
+
+STAGE2_ADMISSION_PATH = BASE / 'stage3d-stage2-result-independent-review-20261021.json'
+STAGE2_ADMISSION_SHA256 = '37ec0db680822aa74cfe5c15754d868f6cc3959f8628ad049c8ebb999fd0e994'
+STAGE2_EVIDENCE_PATH = BASE / 'stage3d-stage2-result-independent-evidence-20261021.json'
+STAGE2_EVIDENCE_SHA256 = '0272e7bdde4b829cf1ba255c73b208f9d6e3ac59bb53cd08a50f160021419a94'
+STAGE2_EVENT_PATH = BASE / 'fresh-plan-stage3d-supervisor-v12-parent-v12-stage2-20261021-0425-stage-02-event.json'
+STAGE2_EVENT_SHA256 = 'e8d22eebf16dfb578ef7d701dba46919b50317a87f3fcceba659b6ab78fd0817'
+STAGE2_LOG_PATH = BASE / 'fresh-plan-stage3d-supervisor-v12-parent-v12-stage2-20261021-0425-stage-02.log'
+STAGE2_LOG_SHA256 = 'e87bbc54cc7bb34d65feb9e3a28740aa4aeba90853272f119ff8350d4e0ffd18'
+LIVE_SOURCE_MANIFEST_SHA256 = '8fc52aa144847276fd9df62b133f7d8815995c50ba9a0cc0001b6b5da46ad75a'
+STAGE3_SOURCE_COMMIT = 'f82b2bf4a3983da8c6e11306bfd9dabbd6c9c9e4'
+STAGE3_SOURCE_SHA256 = 'e486b17728062193fa3af243c93d7e1fd14c70fd73726c1bc4e73a317306e257'
+STAGE3_REVIEW_SHA256 = '21c3aadd4088bcef9696ab6621873bd2f32f6243b5a3fb89f067a0403d6f2f20'
+
+def validate_admitted_stage2(root: Path, deadline_ns: int) -> dict[str, object]:
+    """Read-only validation of the exact independently admitted stage-two live source."""
+    for path, digest, label in ((STAGE2_ADMISSION_PATH, STAGE2_ADMISSION_SHA256, 'stage-two independent admission'),
+                                (STAGE2_EVIDENCE_PATH, STAGE2_EVIDENCE_SHA256, 'stage-two independent evidence'),
+                                (STAGE2_EVENT_PATH, STAGE2_EVENT_SHA256, 'stage-two event'),
+                                (STAGE2_LOG_PATH, STAGE2_LOG_SHA256, 'stage-two log')):
+        _require_regular_hash(path, digest, deadline_ns, label)
+    admission=json.loads(STAGE2_ADMISSION_PATH.read_text())
+    evidence=json.loads(STAGE2_EVIDENCE_PATH.read_text())
+    event=json.loads(STAGE2_EVENT_PATH.read_text())
+    if (admission.get('schema') != 'termrock.stage3d.stage2-operational-result.independent-review.v1'
+            or not admission.get('decision', '').startswith('ADMIT stage2 live-source preparation only.')
+            or admission.get('findings') != []):
+        raise RuntimeError('stage-two independent admission is not the exact admitted result')
+    operation=admission.get('operation', {})
+    if (operation.get('reported_parent_wrapper_exit_status') != 0
+            or operation.get('worker_exit_status') != 0
+            or operation.get('timed_out') is not False
+            or operation.get('worker_reaped') is not True
+            or operation.get('total_inclusive_seconds') != TOTAL_SECONDS
+            or operation.get('event_sha256') != STAGE2_EVENT_SHA256
+            or operation.get('log_sha256') != STAGE2_LOG_SHA256):
+        raise RuntimeError('stage-two operation receipt differs from immutable admission')
+    if (evidence.get('schema') != 'termrock.stage3d.stage2-operational-result.independent-evidence.v1'
+            or evidence.get('manifest', {}).get('sha256') != LIVE_SOURCE_MANIFEST_SHA256
+            or evidence.get('live_source_digest') != '74a5ca639350d9e70767576f5283469a8d57db4adf0a9758da8ae14f6aee1430'
+            or evidence.get('frozen_source_digest') != EXPECTED_SOURCE_SHA256
+            or evidence.get('snapshot_hashes_from_canonical_manifest', {}).get('live') != EXPECTED_SNAPSHOTS_SHA256
+            or evidence.get('changed_files') != json.loads(STAGE2_ADMISSION_PATH.read_text()).get('source_admission', {}).get('changed_files')):
+        raise RuntimeError('stage-two evidence does not bind the admitted live-source manifest')
+    admitted=admission.get('source_admission', {})
+    if (admitted.get('root') != str(root)
+            or admitted.get('manifest_sha256') != LIVE_SOURCE_MANIFEST_SHA256
+            or admitted.get('independent_live_source_sha256') != evidence.get('live_source_digest')
+            or admitted.get('live_source_matches_old_fixed_plan') is not True):
+        raise RuntimeError('stage-two source admission differs from fixed root and manifest')
+    if (event.get('schema') != 'termrock.stage3d.external-supervisor-v12-stage2-event.v1'
+            or event.get('stage') != 2 or event.get('stage_name') != 'prepare-live'
+            or event.get('run_id') != operation.get('run_id')
+            or event.get('success') is not True or event.get('timed_out') is not False
+            or event.get('exit_status') != 0 or event.get('direct_child_reaped') is not True
+            or event.get('key_read_or_created') is not False or event.get('plan_created') is not False
+            or event.get('capture_replay_candidate_comparison') is not False):
+        raise RuntimeError('stage-two persisted event does not satisfy admitted operation fields')
+    if not root.is_dir() or root.is_symlink():
+        raise RuntimeError('admitted stage-two root missing or unsafe')
+    manifest_path=root/'live-source.json'
+    _require_regular_hash(manifest_path, LIVE_SOURCE_MANIFEST_SHA256, deadline_ns, 'stage-two live-source manifest')
+    manifest=json.loads(manifest_path.read_text())
+    if (manifest.get('frozen_source_sha256') != EXPECTED_SOURCE_SHA256
+            or manifest.get('live_source_sha256') != evidence.get('live_source_digest')
+            or manifest.get('frozen_snapshots_sha256') != EXPECTED_SNAPSHOTS_SHA256
+            or manifest.get('live_snapshots_sha256') != EXPECTED_SNAPSHOTS_SHA256
+            or manifest.get('fresh_capture_cohort', {}).get('cohort_id') != COHORT
+            or manifest.get('fresh_capture_cohort', {}).get('candidate_comparison_eligible') is not False
+            or manifest.get('fresh_capture_cohort', {}).get('product_acceptance_eligible') is not False):
+        raise RuntimeError('stage-two live-source manifest contents differ from admitted evidence')
+    entries=sorted(item.name for item in root.iterdir())
+    if entries != ['live-source', 'live-source.json', 'live-target', 'provenance.json', 'source']:
+        raise RuntimeError('stage-two root entries differ from immutable admission')
+    if any(not (root/name).is_dir() or (root/name).is_symlink() for name in ('live-source','live-target','source')):
+        raise RuntimeError('stage-two source directories are missing or unsafe')
+    for forbidden in (KEY_PATH, PLAN_PATH, ROOT/'fresh-run.json'):
+        if forbidden.exists() or forbidden.is_symlink():
+            raise RuntimeError(f'refusing unexpected key, plan, or run output: {forbidden.name}')
+    return {'admission_sha256':STAGE2_ADMISSION_SHA256, 'evidence_sha256':STAGE2_EVIDENCE_SHA256,
+            'event_sha256':STAGE2_EVENT_SHA256, 'log_sha256':STAGE2_LOG_SHA256,
+            'live_source_manifest_sha256':LIVE_SOURCE_MANIFEST_SHA256, 'root_entries':entries,
+            'actual_stage2_admission_validated_read_only':True, 'key_read_or_created':False,
+            'plan_created':False, 'stage2_outputs_modified':False}
+
+
+def validate_pin(repo: Path, runner: Path, deadline_ns: int) -> dict[str, object]:
+    """Check exact stage-three runner/review, fixed inputs, stage-two admission and host pins."""
+    def git(args: list[str], timeout: float = 2.0) -> subprocess.CompletedProcess[bytes]:
+        left = remaining(deadline_ns) - CLEANUP_RESERVE_SECONDS / 2
+        if left <= 0:
+            raise TimeoutError('deadline expired during frozen-input verification')
+        return subprocess.run(['git', '-C', str(repo), *args], check=True, capture_output=True,
+                              timeout=min(timeout, left))
+
+    head = git(['rev-parse', 'HEAD']).stdout.decode('ascii').strip()
+    if head != REPO_COMMIT:
+        raise RuntimeError('pinned harness repository commit mismatch')
+    _require_regular_hash(runner, RUNNER_SHA256, deadline_ns, 'pinned canonical stage-three runner')
+    _require_regular_hash(CANONICAL_REVIEW_PATH, CANONICAL_REVIEW_SHA256, deadline_ns,
+                          'canonical stage-three independent review')
+    review = json.loads(CANONICAL_REVIEW_PATH.read_text())
+    source_entry = review.get('source_runner', {})
+    if (review.get('schema') != 'termrock.canonical-owned-stage3.independent-review.v2'
+            or review.get('source_commit') != '5891c8727ff814e329ac6042a80a35adfc900099'
+            or not review.get('decision', '').startswith('CLEAR exact executable canonical stage3 source e486b17728062193fa3af243c93d7e1fd14c70fd73726c1bc4e73a317306e257')
+            or source_entry.get('sha256') != RUNNER_SHA256):
+        raise RuntimeError('canonical review does not clear the exact pinned stage-three source')
+    stage2 = validate_admitted_stage2(ROOT, deadline_ns)
+
+    _require_regular_hash(READINESS_PATH, READINESS_SHA256, deadline_ns,
+                          'independent readiness packet')
+    readiness = json.loads(READINESS_PATH.read_text())
+    if readiness['proposed_new_paths']['root'] != str(ROOT) or readiness['proposed_new_paths']['key_path'] != str(KEY_PATH):
+        raise RuntimeError('readiness packet paths differ from fixed stage3d inputs')
+    if readiness['fixed_references']['baseline_commit'] != '4169783ae883788186d161af09ba9c481bd84e5c' or readiness['fixed_references']['tag_object'] != '2718a6b8127a522a3d351d0b4bdb7542fc8da542' or readiness['fixed_references']['tuiscotti'] != 'a1ea27f757d75d07b05499276cd932e9f8e067ad':
+        raise RuntimeError('readiness packet fixed references differ')
+    if readiness['fixed_references']['cohort'] != COHORT or readiness['inventory']['chunk_size'] != 32:
+        raise RuntimeError('readiness packet cohort/inventory differs')
+    expected_files = readiness['project_inputs']['files']
+    if len(expected_files) != 9:
+        raise RuntimeError('readiness packet does not contain exactly nine frozen harness inputs')
+    input_results = validate_harness_inputs(repo, expected_files, deadline_ns, git)
+
+    if OLD_PLAN_PATH.is_symlink() or not OLD_PLAN_PATH.is_file() or ENV_PACKET_PATH.is_symlink() or not ENV_PACKET_PATH.is_file():
+        raise RuntimeError('controlled environment reference is not a regular file')
+    old_plan_sha = _sha256_file(OLD_PLAN_PATH, deadline_ns)
+    env_packet_sha = _sha256_file(ENV_PACKET_PATH, deadline_ns)
+    if old_plan_sha != OLD_PLAN_SHA256 or env_packet_sha != ENV_PACKET_SHA256:
+        raise RuntimeError('controlled environment reference packet changed')
+    old_plan = json.loads(OLD_PLAN_PATH.read_text())
+    env_packet = json.loads(ENV_PACKET_PATH.read_text())
+    expected_env = old_plan['runtime']['effective_environment']
+    expected_tools = old_plan['runtime']['selected_tools']
+    env = build_controlled_env(expected_env, deadline_ns)
+    compare_environment(env, expected_env)
+    tool_report = verify_selected_tools(expected_tools, deadline_ns, env)
+    return {'repo_commit': head, 'runner_sha256': RUNNER_SHA256,
+            'canonical_review_sha256': CANONICAL_REVIEW_SHA256,
+            'stage2_admission': stage2,
+            'readiness_sha256': READINESS_SHA256, 'verified_harness_inputs': input_results,
+            'old_plan_sha256': old_plan_sha, 'controlled_env_packet_sha256': env_packet_sha,
+            'controlled_environment': {'sha256': environment_digest(env, expected_env),
+                                       'only_cargo_target_dir_changed': True,
+                                       'raw_values_recorded': False},
+            'tool_preconditions': tool_report, 'environment': env,
+            'font_profile': env_packet.get('fixed_references', {}).get('tuiscotti_rev')}
+
+
+def build_controlled_env(expected: dict[str, object], deadline_ns: int, *, ambient: dict[str, str] | None = None,
+                         target_dir: Path | None = None) -> dict[str, str]:
+    env: dict[str, str] = {}
+    ambient = os.environ if ambient is None else ambient
+    target_dir = ROOT / 'live-target' if target_dir is None else target_dir
+    values = expected['values']
+    for key in expected['keys']:
+        record = values[key]
+        if key == 'CARGO_TARGET_DIR':
+            value = str(target_dir)
+            env[key] = value
+        elif key == 'NEXTEST_EXPERIMENTAL_LIBTEST_JSON':
+            if record['present']:
+                env[key] = '1'
+        elif record['present']:
+            if key not in ambient:
+                raise RuntimeError(f'controlled environment key absent: {key}')
+            env[key] = ambient[key]
+    compare_environment(env, expected, target_dir=target_dir)
+    env.update({'VISUAL_BIN_DIR': str(BIN_DIR), 'VISUAL_FULL': '1', 'VISUAL_REVIEW': '0'})
+    expected_present = {k for k in expected['keys'] if expected['values'][k]['present']}
+    expected_present.add('CARGO_TARGET_DIR')
+    if set(env) != expected_present | {'VISUAL_BIN_DIR', 'VISUAL_FULL', 'VISUAL_REVIEW'}:
+        raise RuntimeError('sanitized environment contains an unreviewed key set')
+    return env
+
+
+def compare_environment(env: dict[str, str], expected: dict[str, object], *, target_dir: Path | None = None) -> None:
+    changed: list[str] = []
+    target_dir = ROOT / 'live-target' if target_dir is None else target_dir
+    for key in expected['keys']:
+        record = expected['values'][key]
+        present = key in env
+        digest = hashlib.sha256(env[key].encode()).hexdigest() if present else None
+        if key == 'CARGO_TARGET_DIR':
+            if not present or Path(env[key]) != target_dir:
+                changed.append(key)
+        elif present != record['present'] or (present and digest != record['value_sha256']):
+            changed.append(key)
+    if changed:
+        raise RuntimeError('controlled environment differs for keys: ' + ','.join(changed))
+
+
+def environment_digest(env: dict[str, str], expected: dict[str, object]) -> str:
+    public = []
+    for key in expected['keys']:
+        present = key in env
+        public.append((key, hashlib.sha256(env[key].encode()).hexdigest() if present else None))
+    return hashlib.sha256(json.dumps(public, separators=(',', ':')).encode()).hexdigest()
+
+
+def verify_selected_tools(expected: dict[str, object], deadline_ns: int,
+                          env: dict[str, str]) -> dict[str, object]:
+    checked: dict[str, str] = {}
+    def walk(value: object, prefix: str) -> None:
+        if remaining(deadline_ns) <= CLEANUP_RESERVE_SECONDS / 2:
+            raise TimeoutError('deadline expired during tool identity verification')
+        if isinstance(value, dict):
+            path = value.get('path')
+            sha = value.get('sha256')
+            if isinstance(path, str) and isinstance(sha, str):
+                p = Path(path)
+                if not p.is_file():
+                    raise RuntimeError(f'pinned selected tool unavailable: {prefix}')
+                actual = _sha256_file(p, deadline_ns)
+                if actual != sha:
+                    raise RuntimeError(f'pinned selected tool changed: {prefix}')
+                checked[prefix] = actual
+            for key, item in value.items():
+                walk(item, f'{prefix}.{key}' if prefix else key)
+        elif isinstance(value, list):
+            for i, item in enumerate(value):
+                walk(item, f'{prefix}[{i}]')
+    walk(expected, 'tools')
+    host = expected.get('host', {})
+    if host.get('system') != platform.system() or host.get('machine') != platform.machine() or host.get('release') != platform.release():
+        raise RuntimeError('host platform differs from reviewed tool observation')
+    python = expected.get('invocation_tools', {}).get('python', {})
+    actual_python = Path(sys.executable).resolve()
+    if actual_python != Path(python.get('path', '')).resolve():
+        raise RuntimeError('invocation Python path differs from reviewed tool observation')
+    # Ensure cargo/rustc lookup is stable under the exact sanitized PATH without module imports.
+    invocation = expected.get('invocation_tools', {})
+    toolchain = expected.get('selected_toolchain', {})
+    expected_lookup = {
+        'cargo': invocation.get('cargo', {}).get('path'),
+        'rustc': invocation.get('rustc_path_entry', {}).get('path'),
+        'cargo-nextest': invocation.get('cargo_nextest', {}).get('path'),
+        'cc': toolchain.get('cc', {}).get('path'),
+        'clang': toolchain.get('clang', {}).get('path'),
+        'ld': toolchain.get('linker', {}).get('path'),
+    }
+    for executable, expected_path in expected_lookup.items():
+        p = subprocess.run(['which', executable], env=env, capture_output=True, text=True,
+                           timeout=min(1.0, max(0.1, remaining(deadline_ns) - CLEANUP_RESERVE_SECONDS / 2)))
+        actual_path = p.stdout.strip() if p.returncode == 0 else None
+        if not isinstance(actual_path, str) or not actual_path:
+            raise RuntimeError(f'tool lookup failed under reviewed PATH: {executable}')
+        if not isinstance(expected_path, str) or not expected_path:
+            raise RuntimeError(f'tool lookup observation is missing: {executable}')
+        try:
+            # `which` preserves the PATH entry, while the canonical observation
+            # records resolved identity (for example, rustc -> rustup).
+            actual_resolved = Path(actual_path).resolve(strict=True)
+            expected_resolved = Path(expected_path).resolve(strict=True)
+        except (OSError, RuntimeError) as exc:
+            raise RuntimeError(f'tool lookup entry is missing or dangling: {executable}') from exc
+        if actual_resolved != expected_resolved:
+            raise RuntimeError(f'tool lookup target differs from reviewed observation: {executable}')
+    return {'checked_executable_sha256': checked, 'host_matches': True,
+            'invocation_python_matches': True, 'tool_lookup_targets_match': True,
+            'raw_values_recorded': False}
+
+
+def official_argv(stage: int, work_budget: int) -> list[str]:
+    if stage != 3:
+        raise ValueError('only stage 3 verify-live is enabled; stages 1–2 and 4–8 are disabled')
+    if type(work_budget) is not int or not 1 <= work_budget <= RUNNER_SECONDS:
+        raise ValueError('owned verify work budget must be 1..200 seconds')
+    return [str(PYTHON), str(RUNNER), '--repo', str(REPO), '--root', str(ROOT),
+            '--timeout', str(work_budget), 'verify-live', '--owned-lifecycle',
+            '--owned-budget', str(work_budget), '--fresh-cohort', COHORT,
+            '--baseline-bin-dir', str(BIN_DIR)]
+
+
+def write_fd_bounded(fd: int, data: bytes, deadline_ns: int) -> None:
+    """Poll writable fds against deadline; kernel-blocked device/file writes may outlast it."""
+    old_flags = fcntl.fcntl(fd, fcntl.F_GETFL)
+    try:
+        fcntl.fcntl(fd, fcntl.F_SETFL, old_flags | os.O_NONBLOCK)
+        view = memoryview(data)
+        while view:
+            left = remaining(deadline_ns)
+            if left <= 0:
+                raise TimeoutError('inclusive deadline expired during final report output')
+            _, writable, _ = select.select([], [fd], [], left)
+            if not writable:
+                raise TimeoutError('inclusive deadline expired waiting for report output')
+            try:
+                count = os.write(fd, view)
+            except BlockingIOError:
+                continue
+            view = view[count:]
+            if remaining(deadline_ns) <= 0:
+                raise TimeoutError('inclusive deadline expired during report write')
+    finally:
+        fcntl.fcntl(fd, fcntl.F_SETFL, old_flags)
+    if remaining(deadline_ns) <= 0:
+        raise TimeoutError('inclusive deadline expired restoring report descriptor flags')
+
+
+def _run_finalizer(deadline_ns: int, sink) -> None:
+    """Run a sink, then reject it if its completion crossed the deadline.
+
+    The deadline check is enforceable around user-space work. A filesystem
+    syscall may remain in the kernel beyond the deadline; see the module-level
+    deadline scope and event field.
+    """
+    sink()
+    if remaining(deadline_ns) <= 0:
+        raise TimeoutError('inclusive deadline expired during evidence finalization')
+
+
+def _exclusive_json(path: Path, payload: dict[str, object], deadline_ns: int) -> None:
+    if remaining(deadline_ns) <= 1.0:
+        raise TimeoutError('inclusive deadline expired before exclusive evidence write')
+    raw = (json.dumps(payload, indent=2, sort_keys=True) + '\n').encode()
+    if len(raw) > 64 * 1024:
+        raise RuntimeError('evidence record exceeds bounded-size limit')
+    def write_sync_close() -> None:
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(fd, 'wb') as out:
+            out.write(raw)
+            out.flush()
+            os.fsync(out.fileno())
+    _run_finalizer(deadline_ns, write_sync_close)
+
+
+def supervisor_identity(deadline_ns: int, *, minimum_remaining: float | None = None) -> dict[str, str]:
+    path = Path(__file__)
+    if path.is_symlink() or not path.is_file():
+        raise RuntimeError('external supervisor source is missing or not a regular file')
+    return {'path': str(path.resolve()), 'sha256': _sha256_file(path, deadline_ns, minimum_remaining=minimum_remaining)}
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--stage', type=int, required=True, choices=(3,))
+    parser.add_argument('--run-id', required=True)
+    args = parser.parse_args(argv)
+    deadline = START_NS + TOTAL_SECONDS * 1_000_000_000
+    try:
+        run_id = _safe_run_id(args.run_id)
+        event = run_stage(args.stage, run_id)
+    except Exception as exc:
+        error_payload = (json.dumps({'error': type(exc).__name__, 'message': str(exc)[:1000]}) + '\n').encode()
+        try:
+            write_fd_bounded(sys.stderr.fileno(), error_payload, deadline)
+        except BaseException:
+            pass
+        return 124 if isinstance(exc, TimeoutError) else 2
+    payload = (json.dumps(event, indent=2, sort_keys=True) + '\n').encode()
+    try:
+        write_fd_bounded(sys.stdout.fileno(), payload, deadline)
+    except TimeoutError:
+        return 124
+    return 0 if event.get('success') else (124 if event.get('timed_out') else 1)
+
+
+def _record_exception(event: dict[str, object], field: str, error: BaseException) -> None:
+    prior = event.get(field)
+    item = {'type': type(error).__name__, 'message': str(error)[:500]}
+    if prior is None:
+        event[field] = item
+    elif isinstance(prior, list) and len(prior) < 16:
+        prior.append(item)
+
+
+def _wait_for_direct_child(proc: object, until_ns: int, event: dict[str, object]) -> tuple[bool, int | None]:
+    """Poll/wait only through the exact owned Popen object until an absolute bound."""
+    while time.monotonic_ns() < until_ns:
+        try:
+            status = proc.poll()
+            if status is not None:
+                return True, status
+        except BaseException as exc:
+            _record_exception(event, 'cleanup_observer_errors', exc)
+        left = (until_ns - time.monotonic_ns()) / 1_000_000_000
+        if left <= 0:
+            break
+        try:
+            status = proc.wait(timeout=min(0.1, left))
+            if status is not None:
+                return True, status
+        except subprocess.TimeoutExpired:
+            continue
+        except BaseException as exc:
+            _record_exception(event, 'cleanup_observer_errors', exc)
+            try:
+                time.sleep(min(0.02, max(0.0, (until_ns - time.monotonic_ns()) / 1_000_000_000)))
+            except BaseException as sleep_error:
+                _record_exception(event, 'cleanup_observer_errors', sleep_error)
+    try:
+        status = proc.poll()
+        if status is not None:
+            return True, status
+    except BaseException as exc:
+        _record_exception(event, 'cleanup_observer_errors', exc)
+    return False, None
+
+
+def _cleanup_direct_child(proc: object, *, deadline_ns: int,
+                          event: dict[str, object], reason: str) -> tuple[bool, int | None]:
+    """TERM exact owned PID for the canonical reserve, then KILL/reap before finalization."""
+    event['timeout_cleanup'] = reason + ': SIGTERM to exact direct canonical CLI PID; canonical runner owns broker cleanup'
+    try:
+        proc.send_signal(signal.SIGTERM)
+    except BaseException as exc:
+        _record_exception(event, 'cleanup_signal_errors', exc)
+    term_end = min(deadline_ns - int(FINALIZATION_RESERVE_SECONDS * 1e9),
+                   time.monotonic_ns() + CLEANUP_RESERVE_SECONDS * 1_000_000_000)
+    reaped, status = _wait_for_direct_child(proc, term_end, event)
+    if reaped:
+        event['timeout_cleanup'] = reason + ': direct child reaped after SIGTERM'
+        return True, status
+
+    event['timeout_cleanup'] = reason + ': SIGTERM grace expired; SIGKILL to exact owned direct PID'
+    try:
+        proc.kill()
+    except BaseException as exc:
+        _record_exception(event, 'cleanup_kill_errors', exc)
+    # Keep 1.5 seconds for log hash and event publication inside the 5s reserve.
+    reap_end = deadline_ns - 1_500_000_000
+    reaped, status = _wait_for_direct_child(proc, reap_end, event)
+    if reaped:
+        event['timeout_cleanup'] += '; direct child reaped after SIGKILL fallback'
+    else:
+        event['timeout_cleanup'] += '; direct child reap unverified before inclusive deadline'
+    return reaped, status
+
+
+def run_supervised(command: Sequence[str], *, log_path: Path, deadline_ns: int,
+                   env: dict[str, str], worker_timeout: int,
+                   popen_factory=subprocess.Popen) -> dict[str, object]:
+    """Run canonical CLI and own/reap only its exact direct child via Popen."""
+    if log_path.exists() or log_path.is_symlink():
+        raise FileExistsError(f'refusing to overwrite log: {log_path.name}')
+    if remaining(deadline_ns) <= CLEANUP_RESERVE_SECONDS + FINALIZATION_RESERVE_SECONDS:
+        raise TimeoutError('insufficient inclusive budget before canonical CLI launch')
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    event: dict[str, object] = {'worker_started': False, 'timed_out': False,
+                                'timeout_cleanup': 'not-needed',
+                                'canonical_internal_cleanup_contract': 'opt-in-owned-lifecycle',
+                                'direct_worker_reaped': None, 'exit_status': None,
+                                'success': False, 'universal_descendant_containment_claimed': False,
+                                'process_name_kill_used': False}
+    began = time.monotonic_ns()
+    work_end = min(deadline_ns - int((CLEANUP_RESERVE_SECONDS + FINALIZATION_RESERVE_SECONDS) * 1e9),
+                   began + worker_timeout * 1_000_000_000)
+    with log_path.open('xb') as log:
+        proc = None
+        try:
+            proc = popen_factory(list(command), stdin=subprocess.DEVNULL, stdout=log,
+                                 stderr=subprocess.STDOUT, env=env, close_fds=True)
+            event.update({'worker_started': True, 'worker_pid': proc.pid})
+        except BaseException as exc:
+            _record_exception(event, 'spawn_exception', exc)
+
+        if proc is not None:
+            reason = None
+            try:
+                while True:
+                    status = proc.poll()
+                    if status is not None:
+                        event['direct_worker_reaped'] = True
+                        event['exit_status'] = status
+                        break
+                    left = (work_end - time.monotonic_ns()) / 1_000_000_000
+                    if left <= 0:
+                        event['timed_out'] = True
+                        reason = 'work budget expired'
+                        break
+                    try:
+                        status = proc.wait(timeout=min(0.1, left))
+                        if status is not None:
+                            event['direct_worker_reaped'] = True
+                            event['exit_status'] = status
+                            break
+                    except subprocess.TimeoutExpired:
+                        continue
+                if reason is not None:
+                    reaped, status = _cleanup_direct_child(proc, deadline_ns=deadline_ns,
+                                                           event=event, reason=reason)
+                    event['direct_worker_reaped'] = reaped
+                    event['exit_status'] = status
+            except BaseException as exc:
+                _record_exception(event, 'supervision_exception', exc)
+                reaped, status = _cleanup_direct_child(proc, deadline_ns=deadline_ns,
+                                                       event=event, reason='supervision exception')
+                event['direct_worker_reaped'] = reaped
+                event['exit_status'] = status
+
+        event['canonical_owned_cleanup_reported_success'] = False
+        event['canonical_cleanup_result'] = 'not-accepted'
+        event['success'] = False
+        event['elapsed_seconds'] = round((time.monotonic_ns() - began) / 1e9, 3)
+        try:
+            event['log_sha256'] = _sha256_file(log_path, deadline_ns, minimum_remaining=1.25)
+        except BaseException as exc:
+            _record_exception(event, 'log_hash_exception', exc)
+            event['log_sha256'] = None
+            event['direct_worker_reaped'] = False if proc is not None and event['direct_worker_reaped'] is not True else event['direct_worker_reaped']
+        success = (proc is not None and event.get('direct_worker_reaped') is True
+                   and event.get('exit_status') == 0 and not event.get('timed_out')
+                   and 'supervision_exception' not in event
+                   and 'spawn_exception' not in event and 'log_hash_exception' not in event)
+        event['canonical_owned_cleanup_reported_success'] = bool(success)
+        event['canonical_cleanup_result'] = 'runner-exit-zero' if success else 'unverified-or-failed'
+        event['success'] = bool(success)
+        event['direct_child_reaped'] = event['direct_worker_reaped'] is True
+    return event
+
+
+def calculate_work_budget(remaining_seconds: float) -> int:
+    # Reserve canonical cleanup and bounded supervisor finalization inside 220s.
+    budget = min(RUNNER_SECONDS, int(remaining_seconds - CLEANUP_RESERVE_SECONDS - FINALIZATION_RESERVE_SECONDS))
+    if budget < 1:
+        raise TimeoutError('less than one work second remains after cleanup/finalization reserves')
+    return budget
+
+
+def run_stage(stage: int, run_id: str) -> dict[str, object]:
+    if stage != 3:
+        raise RuntimeError('BLOCKED: only canonical stage 3 verify-live is enabled; stages 1–2 and 4–8 are disabled')
+    deadline = START_NS + TOTAL_SECONDS * 1_000_000_000
+    supervisor = supervisor_identity(deadline)
+    pins = validate_pin(REPO, RUNNER, deadline)
+    if supervisor_identity(deadline, minimum_remaining=1.25) != supervisor:
+        raise RuntimeError('external supervisor source changed during preflight')
+    env = pins.pop('environment')
+    left = remaining(deadline)
+    budget = calculate_work_budget(left)
+    command = official_argv(stage, budget)
+    log_path = ARTIFACT_DIR / f'fresh-plan-stage3d-supervisor-v13-{run_id}-stage-03.log'
+    event_path = ARTIFACT_DIR / f'fresh-plan-stage3d-supervisor-v13-{run_id}-stage-03-event.json'
+    if log_path.exists() or log_path.is_symlink() or event_path.exists() or event_path.is_symlink():
+        raise FileExistsError('refusing to overwrite stage log or event')
+    event = run_supervised(command, log_path=log_path, deadline_ns=deadline,
+                           env=env, worker_timeout=budget)
+    if supervisor_identity(deadline, minimum_remaining=1.25) != supervisor:
+        event.update({'success': False, 'canonical_owned_cleanup_reported_success': False,
+                      'canonical_cleanup_result': 'supervisor-source-changed-during-stage',
+                      'operational_stage_result': 'not-accepted'})
+    event.update({'schema': 'termrock.stage3d.external-supervisor-v13-stage3-event.v1',
+                  'stage': 3, 'stage_name': 'verify-live', 'run_id': run_id, 'pin': pins,
+                  'supervisor': supervisor,
+                  'argv': command,
+                  'argv_sha256': hashlib.sha256(json.dumps(command, separators=(',', ':')).encode()).hexdigest(),
+                  'work_budget_seconds': budget, 'total_inclusive_seconds': TOTAL_SECONDS,
+                  'canonical_cleanup_reserve_seconds': CLEANUP_RESERVE_SECONDS,
+                  'finalization_reserve_seconds': FINALIZATION_RESERVE_SECONDS,
+                  'deadline_scope': 'monotonic budget bounds user-space work and child cleanup; kernel-blocked filesystem calls may outlast deadline, are checked on return, and fail closed',
+                  'event_receipt_rule': EVENT_RECEIPT_RULE,
+                  'log_path': str(log_path), 'root_created_by_wrapper': False, 'root_may_be_created_by_runner': False,
+                  'live_source_created_by_runner': False, 'live_target_may_be_created_by_runner': False,
+                  'key_read_or_created': False, 'plan_created': False,
+                  'stages_1_2_and_4_to_8_enabled': False, 'capture_replay_candidate_comparison': False,
+                  'application_acceptance': False})
+    event['operational_stage_result'] = 'not-accepted' if not event.get('success') else 'verify-live-cli-returned-success-not-product-acceptance'
+    if remaining(deadline) <= 1.0:
+        raise TimeoutError('inclusive deadline expired before exclusive event finalization; worker evidence retained')
+    _exclusive_json(event_path, event, deadline)
+    if remaining(deadline) <= 0:
+        raise TimeoutError('inclusive deadline expired after event finalization')
+    event['event_path'] = str(event_path)
+    return event
+
+
+def _safe_run_id(value: str) -> str:
+    if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._-]{0,63}', value):
+        raise ValueError('run-id must be 1–64 safe filename characters')
+    return value
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())

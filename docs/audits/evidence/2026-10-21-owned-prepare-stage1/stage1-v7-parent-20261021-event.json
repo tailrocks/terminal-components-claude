@@ -1,0 +1,120 @@
+{
+  "argv": [
+    "/Users/donbeave/.local/share/mise/installs/python/3.15.0/bin/python3.15",
+    "/private/tmp/canonical-stage1-owned-20261021/tools/frozen_baseline.py",
+    "--repo",
+    "/private/tmp/ci-doc-inventory-20261021",
+    "--root",
+    "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-243af5-20261021",
+    "--timeout",
+    "199",
+    "prepare",
+    "--owned-lifecycle",
+    "--owned-budget",
+    "199"
+  ],
+  "argv_sha256": "8b7a48dc768ca05d8040e55e5e4f78dbe3e710d9653ccef6332a7e5acefe98db",
+  "canonical_cleanup_reserve_seconds": 15,
+  "canonical_cleanup_result": "runner-exit-zero",
+  "canonical_internal_cleanup_contract": "opt-in-owned-lifecycle",
+  "canonical_owned_cleanup_reported_success": true,
+  "direct_child_reaped": true,
+  "direct_worker_reaped": true,
+  "elapsed_seconds": 21.144,
+  "exit_status": 0,
+  "finalization_reserve_seconds": 5,
+  "key_read_or_created": false,
+  "log_path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-supervisor-v6-parent-v7-stage1-20261021-1003-stage-01.log",
+  "log_sha256": "b417a232d9f865e0dda578e92ccbe512abcdab3f1b9adde8c5a583807d907f65",
+  "operational_stage_result": "prepare-cli-returned-success",
+  "pin": {
+    "controlled_env_packet_sha256": "e0def641b251b52091844e9c9c6481e3e01643f7222e6fc82fe1480397f42f78",
+    "controlled_environment": {
+      "only_cargo_target_dir_changed": true,
+      "raw_values_recorded": false,
+      "sha256": "466f20b8e6bb2c798e8613c106daa9e468abe042ff2d6290732819c1e94e071c"
+    },
+    "font_profile": "a1ea27f757d75d07b05499276cd932e9f8e067ad",
+    "old_plan_sha256": "48ab669c719815a7899c55d8a4b5a4444e514701a947f85c541907fa83550bc7",
+    "readiness_sha256": "47e7c04615b69d552b55396eff0d41c0e34801cf118513c0ed5406edfafa5577",
+    "repo_commit": "482cdaf48c42d8355a173e1faeee74e159c46d0b",
+    "runner_sha256": "00f967a0b603997875bc712ae5d5969c32486aec17a83e1f6317e941f217bc06",
+    "tool_preconditions": {
+      "checked_executable_sha256": {
+        "tools.invocation_tools.cargo": "9cfafb636d06f397aa5c48a68ac7755865d424f7acafe075e6fce3bcaa723843",
+        "tools.invocation_tools.cargo_nextest": "aac4a0d9109efcfb4d83ec729c6e3204d5c15bf16ff554b5ee4476f6c5f60b37",
+        "tools.invocation_tools.python": "75146f6f98972d4de8ea82fc9189a98df4a1113af442ec7db2d45a33283f9dac",
+        "tools.invocation_tools.rustc_path_entry": "ec1b9233e7f72990ecd8e62063fa7f6c3dfc2bec8e97f88bff165f9100ac696a",
+        "tools.selected_toolchain.cargo_path_entry": "9cfafb636d06f397aa5c48a68ac7755865d424f7acafe075e6fce3bcaa723843",
+        "tools.selected_toolchain.cargo_selected_toolchain": "6d576d8058f8ca643e8fce55b64ee3c614ba64c9da2e536bae843e6a2e1f3951",
+        "tools.selected_toolchain.cc": "34129c71a01a74f7f3b2443521519b2e5447553fa187f5fcafaaf8c42cc192e2",
+        "tools.selected_toolchain.clang": "34129c71a01a74f7f3b2443521519b2e5447553fa187f5fcafaaf8c42cc192e2",
+        "tools.selected_toolchain.linker": "34129c71a01a74f7f3b2443521519b2e5447553fa187f5fcafaaf8c42cc192e2",
+        "tools.selected_toolchain.rustc_selected_toolchain": "1ba7bb8e273bd64125f4048d2ecce530e0a6470e565ab1b3aecf0b82b532f7b1",
+        "tools.selected_toolchain.rustc_sysroot_identity_files[0]": "1d4d24a7194aea5e759695758088efb81cff49b963edd683df64638a467e08aa",
+        "tools.selected_toolchain.rustc_sysroot_identity_files[1]": "48419307eb32e389a25ac360b6bccd4d196f3c4f35ce9d67a223319eff017c6c",
+        "tools.selected_toolchain.rustup": "ec1b9233e7f72990ecd8e62063fa7f6c3dfc2bec8e97f88bff165f9100ac696a",
+        "tools.selected_toolchain.xcode_select": "49cf1e59551a8a401d86ac444aa6b2a9ab7ec6d3882c98c004dab02a0e484e53",
+        "tools.selected_toolchain.xcrun": "bbe7671518a3905f9d3fce54312fbc77c2876b0d62aca74a0688fa869d31a8a9"
+      },
+      "host_matches": true,
+      "invocation_python_matches": true,
+      "raw_values_recorded": false,
+      "tool_lookup_targets_match": true
+    },
+    "verified_harness_inputs": {
+      "docs/audits/2026-10-21-fresh-baseline-capture-eligibility.json": {
+        "sha256": "446273ce18d3caaea939263b37687be5aec770cf1ab54c62110f6c945ec9c2f6",
+        "worktree": "present-and-matched"
+      },
+      "docs/audits/2026-10-21-fresh-baseline-capture-evidence-index.json": {
+        "sha256": "7333d762ddbbc25f7fafbc78fd49fe016358b787123dbfdabce422172121ba2c",
+        "worktree": "present-and-matched"
+      },
+      "docs/audits/2026-10-21-fresh-capture-resumable-runner-contract.json": {
+        "sha256": "81df800e4b16a8240acf7c569a9c5c9472fa1678c96aa78947928ca7a082ebfb",
+        "worktree": "present-and-matched"
+      },
+      "tools/frozen-cli-frame-support/src/lib.rs": {
+        "sha256": "d656a3aea96f17ed6e31b237fabdc138d4732a209d3cc4944b08cfcb4681571c",
+        "worktree": "present-and-matched"
+      },
+      "tools/frozen_cli_build_cohort_reviews.json": {
+        "sha256": "65d1343138d5c817186bbd9486e6149ef554fc0fd4b3a96bf70cb916f0883718",
+        "worktree": "present-and-matched"
+      },
+      "tools/frozen_cli_build_cohorts.json": {
+        "sha256": "96a83bee520e148bbecf7115644d88f8057a74438029c12c4a3a83253fa0b0b4",
+        "worktree": "present-and-matched"
+      },
+      "tools/frozen_cli_extensions.json": {
+        "sha256": "b995c00f0dc14d4e0a81d1d56140e1c10ba7936a043e0135196f8fe8421cabb8",
+        "worktree": "present-and-matched"
+      },
+      "tools/frozen_cli_extensions.rs": {
+        "sha256": "332bd4eac4dc65be1a1478f97177cc658113a063900d8b9c6a0ba2ddc6dc67d9",
+        "worktree": "present-and-matched"
+      },
+      "tools/frozen_cli_pair.patch": {
+        "sha256": "17de30ad69fea9c7f514cd6530727283637d090958020ebe13a311aad4506ff4",
+        "worktree": "present-and-matched"
+      }
+    }
+  },
+  "process_name_kill_used": false,
+  "root_created_by_wrapper": false,
+  "root_may_be_created_by_runner": true,
+  "run_id": "parent-v7-stage1-20261021-1003",
+  "schema": "termrock.stage3d.external-supervisor-v6-event.v1",
+  "stage": 1,
+  "stage2_to_stage8_enabled": false,
+  "stage_name": "prepare",
+  "success": true,
+  "timed_out": false,
+  "timeout_cleanup": "not-needed",
+  "total_inclusive_seconds": 220,
+  "universal_descendant_containment_claimed": false,
+  "work_budget_seconds": 199,
+  "worker_pid": 39064,
+  "worker_started": true
+}

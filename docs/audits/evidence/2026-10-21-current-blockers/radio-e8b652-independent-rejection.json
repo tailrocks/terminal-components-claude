@@ -1,0 +1,129 @@
+{
+  "schema": "independent-component-review-v1",
+  "reviewer": "/root/radio_navigation_independent_reviewer",
+  "created_at": "2026-10-21T02:50:24.939567+00:00",
+  "source_commit": "e8b65260555a3d46b389f97a2f443f42f8404aef",
+  "before_commit": "4f40bb294da89bbfcb2a6716c88a3158427aa0b2",
+  "decision": "blocked_required_radio_navigation_correction",
+  "findings": [
+    {
+      "id": "RADIO-IMMEDIATE-SAME-CURSOR-01",
+      "severity": "P1",
+      "path": "crates/termrock-controls/src/choice.rs:946",
+      "problem": "Immediate navigation checks the previous cursor rather than the controlled chosen value. A cancelled pointer press can leave the cursor on C while A remains chosen. End, or Down at the last row, then consumes the key without emitting Chose(C). This violates the new Immediate contract and frozen on_key navigation assignment.",
+      "reproduction": "Public Harness: initial value A; mouse Down row C; mouse Up outside; assert cursor C/value A; End or Down; actual value A, expected C. Both independently executed tests fail.",
+      "fix": "Under Immediate, choose the navigation destination when it differs from the chosen value even if the cursor already identifies that destination. Preserve Deferred no-choice behavior and pointer cancellation. Add regression coverage for these mixed pointer/keyboard sequences and missing controlled values."
+    }
+  ],
+  "executed": {
+    "external": {
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "--manifest-path",
+        "/Users/donbeave/Projects/termrock-cli-evidence-20261021/branch-consolidation/radio-navigation-review-e8b6526-20261021/consumer/Cargo.toml",
+        "--all-targets",
+        "--no-fail-fast"
+      ],
+      "exit": 100,
+      "seconds": 7.960929540975485
+    },
+    "conformance-before": {
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "-p",
+        "termrock-conformance",
+        "--test",
+        "control_states",
+        "--no-fail-fast"
+      ],
+      "exit": 100,
+      "seconds": 15.048607082979288
+    },
+    "conformance-after": {
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "-p",
+        "termrock-conformance",
+        "--test",
+        "control_states",
+        "--no-fail-fast"
+      ],
+      "exit": 100,
+      "seconds": 16.792163833975792
+    },
+    "native": {
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "-p",
+        "termrock-controls",
+        "-p",
+        "termrock-forms",
+        "--all-targets",
+        "--no-fail-fast"
+      ],
+      "exit": 0,
+      "seconds": 8.7512824999867
+    },
+    "tablepro-native": {
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "-p",
+        "tablepro-ui",
+        "--test",
+        "form_radio",
+        "--no-fail-fast"
+      ],
+      "exit": 0,
+      "seconds": 4.38776491698809
+    }
+  },
+  "classification": {
+    "control_states": "Both revisions independently run with different source copies and targets: 107 run,104 passed,3 failed,1 skipped. Identical pre-existing failures: w02_button_variants_all_states_and_focus_gutter,w08_input_masked_clicks_follow_display,w13_filter_backspace_removes_grapheme. The same test source SHA256 is 5df38e3024f672c6e13c8358766f0a39599ccb660877c00a83139877b7f3e516.",
+    "external": "Original three TablePro probe source bytes unchanged; all3 pass. Default Down positive probe passes; two independent cancellation/navigation probes fail."
+  },
+  "source_inspection": {
+    "api": "The new public enum is exported by controls and facade. New defaults are intentional and documented. key(), row(), and with_form_value preserve navigation. Existing binding dispatch and editable guards remain in place. Pointer Press still only moves the cursor; Click/DoubleClick chooses. No unsafe code added.",
+    "form": "Only the TablePro common Form factory opts into existing EnterPolicy::Never. Global Form defaults and mechanics are unchanged. Separate f076 blank-draft prerequisite is included in this exact tip.",
+    "coverage_gap": "RadioNavigation and Deferred are not demonstrated by Showcase or a new capability declaration/allowlist in this change. Existing Form consumer tests exercise Deferred, but this does not satisfy the required Showcase capability coverage. Resolve through a baseline-safe public example/allowlist decision, not an unapproved baseline screen redesign."
+  },
+  "limitations": [
+    "No real CLI/tuiscotti paired comparison executed.",
+    "No complete application parity or library acceptance claim.",
+    "Full workspace formatting, Clippy and tests were not run in this focused independent review.",
+    "Existing skipped conformance case remains skipped; it is not a pass."
+  ],
+  "repository_source_edits": false,
+  "expected_artifact_edits": false,
+  "source_hashes": {
+    "crates/termrock-controls/src/choice.rs": "e4bda3f88079d7bf97f28d624b8d00ac4d13775b9621fdb6d287bf599a907e1b",
+    "crates/tablepro-ui/src/app.rs": "71dee6d31a34b37faf564d243cb169d280b59879eac0d96c24318133b1b617b3",
+    "crates/termrock-forms/src/form.rs": "b9870c74bdc8c69dd830db80826e189041623151703bc748742ca166a5dea54e",
+    "crates/termrock/src/lib.rs": "1eca83dfadc45c20020d3fb74969143aec2a731d5a5dc6f7c8d2945b7b51ce67"
+  },
+  "artifacts": {
+    "conformance-before.log": "99f94397ac0c461a0303fd2d3efebff2255519e2124c47d7f182327feac4585a",
+    "tablepro-native.log": "09ccad8f4922709513aac891e66225d9efee10740e3e0b44198b7d020cc80d32",
+    "conformance-after.log": "f5dac3d25bbbf69670017b4409a9ec0cb55e793198f8ad1def9067566ab383d1",
+    "conformance-before-execution.json": "cae7f3920ca35190fcfcc9e65684142ae5d4f57b9643a5b22b9e5f6ec81a64fc",
+    "native-execution.json": "80164fcd3466478bc544688138d18e5643c383e56fa85d403a6eabe9897e149e",
+    "native.log": "e8971d35b8f322f89ac4d7bb94da4ca06375e3afe7d9f6cee28b3f4667a9a837",
+    "external.log": "9ef2101432cc19703cf8e38cb1680472e05cbafdee667c7cd12922f339a51762",
+    "tablepro-native-execution.json": "02000dc466795b2e9ee899f1e65ba82765a79b9a0e521cdde5bf74b9c8a9b341",
+    "external-execution.json": "54ee7b4a18c720834010007b8d3e8e9c471239830a5372e7f737070592d65a78",
+    "conformance-after-execution.json": "3501a187ea1781e778e4d9ccd43581d6e57075f71a23bf301d7233e5f566309c",
+    "consumer/Cargo.toml": "cad6e44520f322d0103518248abd4dbe72d336b85a9321af0d8329596f581b4f",
+    "consumer/Cargo.lock": "3b222d4222f66f51b996741c8a4d4ee71ccbfdf8549650b7015bb98e5da52633",
+    "consumer/tests/navigation.rs": "babadcce31a42a1cd80411210ecb28cc2dea58b788c7a564a0369b1945385adc",
+    "consumer/tests/frozen_radio.rs": "be25ea5cb54a22a6b0e63104ede7ebabda88db0ed6ab98f6e07f1987cab9f469"
+  }
+}

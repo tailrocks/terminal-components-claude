@@ -1,0 +1,121 @@
+{
+  "schema": "termrock.stage3d.external-supervisor-v13-stage3.independent-review.v1",
+  "decision": "CLEAR exact V13 stage3-only supervisor source under documented kernel-stall and direct-child scope limitations. No actual stage3 operation or result is admitted by this source review.",
+  "findings": [],
+  "reviewed_inputs": {
+    "source": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-supervisor-v13-stage3-20261021.py",
+      "sha256": "49a10dcc5cf82775287459ababbd22012d61c92f802c504dcf1264b92b834808"
+    },
+    "tests": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/test_fresh_plan_stage3d_atomic_supervisor_v13-stage3-20261021.py",
+      "sha256": "2e2bf98fefc9fe2db086a83ba083faa6c477bd301d52c612b910583cf98d786e"
+    },
+    "handoff": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/fresh-plan-stage3d-atomic-supervisor-v13-stage3-author-handoff-20261021.json",
+      "sha256": "8f513879ea74cab5c95981c15907173b6f8b5bfa06b40ba096a85bb8c1beda1a"
+    },
+    "test_results": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-supervisor-v13-stage3-independent-test-results-20261021.json",
+      "sha256": "d740278f7430fa4abc585f6613f69670c35d7bfa10b2f468d6e4b0f9c7695c17"
+    },
+    "structure": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-supervisor-v13-stage3-independent-structure-20261021.json",
+      "sha256": "dd04374bdf8b726ed75e46378bb75d47497df9ef5233bff560377ff969e91661"
+    }
+  },
+  "method": "Read-only V12-to-V13 exact-source review and AST helper comparison; complete current 16-case suite plus 12 unchanged applicable generic V12 regressions independently executed against V13. No operational preflight or verify-live command, key read, application, capture, replay, or product source edit. Tests include directly calling the read-only immutable stage2 admission function against real pinned metadata.",
+  "tests": {
+    "retained_generic": {
+      "run": 12,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0,
+      "names": [
+        "test_all_nine_driver_inputs_are_hash_checked_with_fake_git",
+        "test_controlled_environment_is_allowlisted_and_new_target_only",
+        "test_environment_difference_rejected_without_value_disclosure",
+        "test_event_identity_uses_exact_external_supervisor_bytes",
+        "test_fake_subprocess_term_cleanup",
+        "test_inclusive_220_budget_reserves_cleanup_and_finalization",
+        "test_log_is_exclusive",
+        "test_nonzero_exit_never_succeeds",
+        "test_success_requires_zero_exit_no_timeout_and_reaped",
+        "test_timeout_cooperatively_signals_exact_direct_child_and_fails_closed",
+        "test_unreaped_direct_child_never_claims_success",
+        "test_v7_source_and_tests_remain_byte_identical"
+      ],
+      "log": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-supervisor-v13-stage3-independent-retained-generic-tests-20261021.log",
+      "sha256": "b3c46f51d249ab6b1ca89566ce063d6a76ffcef3d555e3a03f6e3907f4d32053"
+    },
+    "v13_full_suite": {
+      "exit_status": 0,
+      "log": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/stage3d-supervisor-v13-stage3-independent-full-tests-20261021.log",
+      "sha256": "f84ea177c03e2a83131658b84c1837bc29f3f41e763660d41719a2fbad85bc90"
+    },
+    "all_handoff_artifacts_match": {
+      "canonical_source_copy": true,
+      "canonical_stage3_review": true,
+      "final_test_log": true,
+      "first_test_log": true,
+      "live_source_manifest": true,
+      "rerun_test_log": true,
+      "source": true,
+      "stage2_event": true,
+      "stage2_evidence": true,
+      "stage2_log": true,
+      "stage2_review": true,
+      "tests": true
+    }
+  },
+  "test_coverage_accounting": {
+    "v12_count": 30,
+    "v13_count": 16,
+    "common_test_names": 12,
+    "stage_specific_old_cases_replaced": 6,
+    "new_stage3_specific_cases": 4,
+    "generic_v12_cases_missing_from_author_v13_suite": 12,
+    "independent_supplement_count": 12,
+    "combined_independent_cases": 28,
+    "result": "All 16 current cases passed in18.291s; all12 supplemental generic cases passed in28.711s; zero failures/errors/skips.",
+    "scope": "The16-case author suite alone is not equivalent to V12 coverage. This review explicitly closes the missing generic proof with unchanged inherited cases: environment allowlist/rejection, source identity, all-nine-input hashes, inclusive budget, successful/nonzero/timeout/unreaped outcomes, exclusive logs, cooperative subprocess and V7 preservation. Stage1/2-only admission/argv/clearance cases are superseded by actual stage2 admission, stage3 exact argv/nonstage3 rejection and stage3 source/admission pin tests. Future complete gate runs must retain the supplemental applicable generic coverage or carry it into the successor suite.",
+    "test_configuration": "For supplemental cases only, the immutable V12 test module references V13 as mod and uses V13 SOURCE for the source-identity assertion. Production helper implementations are neither edited nor replaced. Existing tests retain their own synthetic fault mocks."
+  },
+  "reviewed_topics": {
+    "actual_admission": "validate_admitted_stage2 passes against actual immutable stage2 review37ec0db680822aa74cfe5c15754d868f6cc3959f8628ad049c8ebb999fd0e994, evidence0272e7bdde4b829cf1ba255c73b208f9d6e3ac59bb53cd08a50f160021419a94, event/log and live-source manifest8fc52aa144847276fd9df62b133f7d8815995c50ba9a0cc0001b6b5da46ad75a. Actual schemas and documented operation/source fields match; test checks root metadata remains unchanged. No invented stage2 fixture substitutes for the actual documents.",
+    "canonical_pin": "Canonical source copy hashes to e486b17728062193fa3af243c93d7e1fd14c70fd73726c1bc4e73a317306e257; review21c3aadd4088bcef9696ab6621873bd2f32f6243b5a3fb89f067a0403d6f2f20 clears those exact executable bytes.",
+    "docs_closure": "Read-only exact f82b2bf4a3983da8c6e11306bfd9dabbd6c9c9e4 Git blob inspection confirms STAGE3-OWNED-DOC-1 is closed: stale current stage2 limitation removed, actual stage3-only supervisor/result gate named, admitted V12stage2 retained. Executable hash is unchanged. Original14bee2db is an ancestor of f82.",
+    "stage_scope": "CLI parser, official_argv and run_stage enable only3/verify-live. Stages1\u20132 and4\u20138 reject before preflight/launch. Explicit argv fixes482 repo, root, cohort, sealed binaries, owned lifecycle and bounded1..200 budget.",
+    "fixed_preflight": "Unchanged hash-checked nine harness inputs, controlled environment allowlist, old-plan/environment packet hashes, selected executable hashes/lookup and host checks remain. No full preflight was run by this reviewer.",
+    "deadline_and_cleanup": "START_NS-based220 budget, 15-second cleanup/5-second finalization reserves, direct Popen TERM/KILL/reap, exceptional observer handling, exclusive events and post-final-write/flag-restoration deadline checks are unchanged AST-identical helpers from reviewed V12. Main only changes stage choice; run_stage changes stage-specific names and flags.",
+    "publication": "Require wrapper exit0 plus complete exclusive event publication. Persisted success-shaped event/stdout alone does not authorize admission. Source identity is checked before and after execution. False/nonzero/timed-out/unreaped/error outcomes remain failures.",
+    "historical_failures": "Author retained initial V13 fixture/stage1-assumption failures and corrected tests before final green run. Earlier V10 flaky cooperative-child failure remains preserved in prior evidence. No failure is erased or represented as green."
+  },
+  "unchanged_helpers": [
+    "_cleanup_direct_child",
+    "_exclusive_json",
+    "_record_exception",
+    "_require_regular_hash",
+    "_run_finalizer",
+    "_safe_run_id",
+    "_sha256_file",
+    "_wait_for_direct_child",
+    "build_controlled_env",
+    "calculate_work_budget",
+    "compare_environment",
+    "environment_digest",
+    "remaining",
+    "run_supervised",
+    "supervisor_identity",
+    "validate_harness_inputs",
+    "verify_selected_tools",
+    "write_fd_bounded"
+  ],
+  "limits": [
+    "Kernel-blocked filesystem/output syscalls may outlast the deadline while blocked; late completion fails closed on return. This is not a universal hard wall-clock guarantee.",
+    "External wrapper owns only its exact direct child; canonical runner owns its declared broker/child scope. No universal descendant containment is claimed.",
+    "This review calls only read-only actual stage2 metadata admission plus synthetic tests. It performs no actual stage3 source/snapshot verification or tool observation.",
+    "Actual stage3 needs a separately preserved execution receipt and independent result review. Stage4 sealing remains blocked on complete remaining canonical owned lifecycle implementation.",
+    "No plan, key, capture, replay, candidate comparison, product or reusable-library acceptance is granted."
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "schema": "termrock-architecture-policy/v1",
+  "production_library_packages": [
+    "termrock-core",
+    "termrock-layout",
+    "termrock-theme",
+    "termrock-controls",
+    "termrock-collections",
+    "termrock-text",
+    "termrock",
+    "termrock-editors",
+    "termrock-navigation",
+    "termrock-feedback",
+    "termrock-render",
+    "termrock-runtime",
+    "termrock-session",
+    "termrock-shell",
+    "termrock-viewport",
+    "termrock-fields",
+    "termrock-overlays",
+    "termrock-forms",
+    "termrock-grid",
+    "termrock-terminal"
+  ],
+  "application_binary_targets": ["showcase", "jackin-preview", "tablepro", "holla"],
+  "application_package_prefixes": ["showcase", "jackin-preview", "tablepro", "holla"],
+  "forbidden_production_dependency_names": [
+    "termrock-test-support",
+    "termrock-conformance",
+    "visual-harness",
+    "termrock-xtask",
+    "termrock-visibility-publisher"
+  ],
+  "forbidden_application_dependency_prefixes": [
+    "showcase-",
+    "jackin-preview-",
+    "holla-",
+    "tablepro-"
+  ],
+  "unresolved_acceptance_requirements": [
+    "full real-CLI workflow inventory and exact paired comparisons",
+    "independent source-bound semantic review of application thinness and behavior ownership",
+    "full workspace nextest, clippy, and formatting results bound to this source manifest",
+    "isolated production-library build and nextest result",
+    "reviewed complete production-input coverage including generated inputs"
+  ]
+}

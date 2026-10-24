@@ -48,6 +48,7 @@ impl CapabilityPalettes {
 pub(crate) fn junie() -> CapabilityPalettes {
     CapabilityPalettes::new(super::builtin::junie::tokens())
         .with(ColorLevel::Ansi256, junie_256())
+        .with(ColorLevel::Ansi16, junie_16())
         .with(ColorLevel::Mono, junie_mono())
 }
 
@@ -61,19 +62,26 @@ const fn junie_256() -> ColorTokens {
             Color::Indexed(237),
         ],
         field: Color::Indexed(234),
-        field_hover: Color::Indexed(234),
+        field_hover: Color::Indexed(237),
         fg: [
             Color::Indexed(231),
             Color::Indexed(249),
-            Color::Indexed(244),
+            // The frozen source at 4169783 paints text_muted in MUTED
+            // (0x8a8a8a), which the cube rule renders as 245, and text_faint
+            // in WHITE_43 (0x737373), which renders as 242. The approved 256
+            // frames use those indices.
+            Color::Indexed(245),
+            Color::Indexed(242),
+            // The frozen ghost dim ink renders as cell 238 at this level: the
+            // covered page blanks in the approved 256 frames carry i(238)
+            // (the apply_256 text_ghost), not the source #262626 cube cell.
             Color::Indexed(238),
-            Color::Indexed(235),
         ],
-        on_accent: Color::Indexed(233),
+        on_accent: Color::Indexed(232),
         on_danger: Color::Indexed(231),
         on_surface_inverse: Color::Indexed(16),
-        border_subtle: Color::Indexed(235),
-        border_strong: Color::Indexed(238),
+        border_subtle: Color::Indexed(238),
+        border_strong: Color::Indexed(242),
         accent: Color::Indexed(78),
         accent_hover: Color::Indexed(77),
         accent_pressed: Color::Indexed(238),
@@ -82,62 +90,103 @@ const fn junie_256() -> ColorTokens {
         focus_ring: Color::Indexed(238),
         selection_bg: Color::Indexed(237),
         selection_fg: Color::Indexed(231),
-        highlight_bg: Color::Indexed(67),
+        highlight_bg: Color::Indexed(25),
         highlight_fg: Color::Indexed(231),
-        highlight_danger_bg: Color::Indexed(238),
+        // Frozen ladder highlight danger plate (baseline apply_256
+        // `highlight_danger = i(88)`); the corpus never renders this slot.
+        highlight_danger_bg: Color::Indexed(88),
         highlight_danger_fg: Color::Indexed(231),
-        backdrop_fg: Color::Indexed(235),
+        backdrop_fg: Color::Indexed(238),
         backdrop_bg: Color::Indexed(16),
-        danger: Color::Indexed(167),
-        danger_soft: Color::Indexed(181),
-        danger_tint: Color::Indexed(233),
+        // apply_256 error is 203 (#ff5f5f). Nearest of #f05d5d is 210.
+        danger: Color::Indexed(203),
+        // Frozen `DANGER_SOFT` ink uses ANSI-256 cell 174.
+        danger_soft: Color::Indexed(174),
+        danger_tint: Color::Indexed(52),
         warning: Color::Indexed(214),
         warning_tint: Color::Indexed(234),
-        success: Color::Indexed(78),
+        // Frozen apply_256 (`self.success = i(71)`): the status green renders
+        // cube cell 71, distinct from the accent cell 78.
+        success: Color::Indexed(71),
         info: Color::Indexed(147),
-        disabled_fg: Color::Indexed(238),
+        disabled_fg: Color::Indexed(239),
         disabled_bg: Color::Indexed(235),
         read_only_fg: Color::Indexed(249),
+        // The chrome rule and the scroll track keep the frozen 256 cells:
+        // `#3a3a3a` is cell 238 and `#474747` is cell 239.
+        status_bar_bg: Color::Indexed(232),
+        status_bar_fg: Color::Indexed(231),
+        status_accent: Color::Indexed(71),
+        chrome_rule: Color::Indexed(238),
+        scroll_track: Color::Indexed(239),
+        scroll_thumb: Color::Indexed(245),
+        tag_ink: Color::Indexed(245),
 
         syntax: SyntaxTokens {
-            keyword: Color::Indexed(231),
+            // The frozen source at 4169783 sets the 256-tier keyword to
+            // i(111), the string to i(116) and the literal to i(183); the
+            // approved 256 frames paint the operator in 245.
+            keyword: Color::Indexed(111),
             ident: Color::Indexed(231),
-            string: Color::Indexed(249),
-            number: Color::Indexed(249),
-            operator: Color::Indexed(244),
-            punct: Color::Indexed(244),
-            comment: Color::Indexed(238),
+            string: Color::Indexed(116),
+            number: Color::Indexed(183),
+            operator: Color::Indexed(245),
+            punct: Color::Indexed(245),
+            comment: Color::Indexed(242),
             plain: Color::Indexed(231),
             type_name: Color::Indexed(231),
             function: Color::Indexed(231),
             constant: Color::Indexed(249),
-            invalid: Color::Indexed(167),
+            invalid: Color::Indexed(203),
             deprecated: Color::Indexed(244),
             match_bg: Color::Indexed(233),
-            match_current_bg: Color::Indexed(67),
+            match_current_bg: Color::Indexed(55),
             bracket_match: Color::Indexed(78),
-            diagnostic_error: Color::Indexed(167),
+            // apply_256 error is 203 (#ff5f5f). 210 is error_strong.
+            diagnostic_error: Color::Indexed(203),
             diagnostic_warning: Color::Indexed(214),
             diagnostic_info: Color::Indexed(147),
         },
         meter: MeterTokens {
             low: Color::Indexed(249),
             medium: Color::Indexed(214),
-            high: Color::Indexed(167),
+            high: Color::Indexed(203),
             track: Color::Indexed(235),
             fill_rest: crate::theme::MeterFillRest::ReferenceLift,
-            stale: Color::Indexed(238),
-            unknown: Color::Indexed(238),
+            stale: Color::Indexed(242),
+            unknown: Color::Indexed(242),
             series: [
                 Color::Indexed(78),
                 Color::Indexed(214),
-                Color::Indexed(167),
+                Color::Indexed(203),
                 Color::Indexed(147),
                 Color::Indexed(249),
                 Color::Indexed(244),
             ],
         },
     }
+}
+
+fn junie_16() -> ColorTokens {
+    // Start with the existing generic ANSI16 projection for every token, then
+    // author only the source-qualified FieldHover surface. This is a profile
+    // derivation, not a frozen-output table for unrelated semantic roles.
+    let mut tokens = super::Theme::from_tokens(super::builtin::junie::tokens())
+        .downgrade(ColorLevel::Ansi16)
+        .color;
+    tokens.field_hover = Color::DarkGray;
+    // Frozen apply_16 (`self.text_faint = Gray`): the dimmed faint hint ink
+    // paints Gray, not the DarkGray the generic rule derives from 0x4d4d4d.
+    tokens.fg[3] = Color::Gray;
+    // Frozen apply_16 (`self.border_strong = Gray`): the dimmed popup border
+    // paints Gray, not the DarkGray the generic rule derives from 0x4d4d4d.
+    tokens.border_strong = Color::Gray;
+    // Frozen apply_16 (`self.success = Green`): base ladder slot, not bright.
+    tokens.success = Color::Green;
+    tokens.danger_soft = Color::LightRed;
+    tokens.meter.stale = Color::Gray;
+    tokens.meter.unknown = Color::Gray;
+    tokens
 }
 
 const fn junie_mono() -> ColorTokens {
@@ -155,14 +204,18 @@ const fn junie_mono() -> ColorTokens {
             Color::White,
             Color::Gray,
             Color::Gray,
-            Color::DarkGray,
+            // apply_mono sets text_faint to Gray. #737373 averages to Gray.
+            Color::Gray,
             Color::Black,
         ],
         on_accent: Color::Black,
         on_danger: Color::White,
         on_surface_inverse: Color::Black,
         border_subtle: Color::Black,
-        border_strong: Color::DarkGray,
+        // Frozen apply_mono (`self.border_strong = Gray`): the dimmed popup
+        // border paints Gray, not the DarkGray the generic rule derives from
+        // 0x4d4d4d.
+        border_strong: Color::Gray,
         accent: Color::Gray,
         accent_hover: Color::DarkGray,
         accent_pressed: Color::DarkGray,
@@ -178,21 +231,32 @@ const fn junie_mono() -> ColorTokens {
         backdrop_fg: Color::Black,
         backdrop_bg: Color::Black,
         danger: Color::Gray,
-        danger_soft: Color::Gray,
+        danger_soft: Color::White,
         danger_tint: Color::Black,
         warning: Color::Gray,
         warning_tint: Color::Black,
-        success: Color::Gray,
+        // Frozen apply_mono (`self.success = White`, tag `src/theme.rs:1088`).
+        success: Color::White,
         info: Color::Gray,
         disabled_fg: Color::DarkGray,
         disabled_bg: Color::Black,
         read_only_fg: Color::Gray,
+        status_bar_bg: Color::Black,
+        status_bar_fg: Color::White,
+        status_accent: Color::White,
+        chrome_rule: Color::DarkGray,
+        scroll_track: Color::DarkGray,
+        scroll_thumb: Color::Gray,
+        tag_ink: Color::Gray,
 
         syntax: SyntaxTokens {
-            keyword: Color::White,
+            // The mono tier is the luma projection of the truecolor syntax
+            // tokens: the keyword, the string and the operator land on Gray,
+            // the literal on White and the comment on DarkGray.
+            keyword: Color::Gray,
             ident: Color::White,
             string: Color::Gray,
-            number: Color::Gray,
+            number: Color::White,
             operator: Color::Gray,
             punct: Color::Gray,
             comment: Color::DarkGray,
@@ -215,8 +279,8 @@ const fn junie_mono() -> ColorTokens {
             high: Color::Gray,
             track: Color::Black,
             fill_rest: crate::theme::MeterFillRest::ReferenceLift,
-            stale: Color::DarkGray,
-            unknown: Color::DarkGray,
+            stale: Color::Gray,
+            unknown: Color::Gray,
             series: [
                 Color::Gray,
                 Color::Gray,
@@ -226,5 +290,25 @@ const fn junie_mono() -> ColorTokens {
                 Color::Gray,
             ],
         },
+    }
+}
+
+/// Frozen showcase chrome ink. Truecolor is `0x808080`; mono and 16 stay gray
+/// so `--color none` still captures as `#e5e5e5`.
+pub fn baseline_muted(level: crate::ColorLevel) -> Color {
+    match level {
+        crate::ColorLevel::TrueColor => Color::from_u32(0x0080_8080),
+        crate::ColorLevel::Ansi256 => Color::Indexed(244),
+        crate::ColorLevel::Ansi16 | crate::ColorLevel::Mono => Color::Gray,
+    }
+}
+
+/// Frozen showcase faint ink. Truecolor is `0x4d4d4d`; mono and 16 are dark gray
+/// (`#666666`).
+pub fn baseline_faint(level: crate::ColorLevel) -> Color {
+    match level {
+        crate::ColorLevel::TrueColor => Color::from_u32(0x004d_4d4d),
+        crate::ColorLevel::Ansi256 => Color::Indexed(238),
+        crate::ColorLevel::Ansi16 | crate::ColorLevel::Mono => Color::DarkGray,
     }
 }

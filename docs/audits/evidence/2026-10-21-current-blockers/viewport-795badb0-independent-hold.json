@@ -1,0 +1,96 @@
+{
+  "schema": "termrock.independent-review.v1",
+  "created_utc": "2026-10-21T05:26:59.406612+00:00",
+  "reviewer": "/root/semantic_tabs_independent_review",
+  "reviewed_commit": "795badb0adb2a9d118bb2cce6eb467b13e35be36",
+  "pre_262_reference": "4cc10c3a7158123500fbe38435f2b68874b50561",
+  "decision": "HOLD",
+  "findings": [
+    {
+      "id": "VP795-R1",
+      "priority": "P2",
+      "path": "crates/termrock-viewport/src/viewport.rs",
+      "lines": [
+        1022,
+        1030,
+        1031,
+        1259
+      ],
+      "title": "Pointer update substitutes clipped hit width for the logical wrapped layout width",
+      "evidence": "The registered Part::TEXT rectangle is clipped by the runtime. update_lines now builds LayoutKey from its visible width, while draw_lines/rows wrap using the full logical text width. A real public Runtime consumer uses logical viewport Rect(0,0,24,4), clip Rect(0,0,10,4), wrap(true), and line \"abcdefghijklmnopqrstuv WORD\". It confirms W is visibly rendered at (2,1), then presses/releases there. Exact pre2624cc selects WORD at CellPos(0,23)..(0,27);795 selects the preceding identifier at CellPos(0,0)..(0,22). Same consumer source, different manifests and revision-specific Cargo targets. Draw wraps at22 columns while update reconstructs rows at clipped Part::TEXT width9.",
+      "repair": "Keep logical text geometry and wrapping width from the committed resolved layout separate from the visible hit/clipping rectangle. Pointer mapping must use the same visual-row layout as drawing, with the appropriate visible origin, not rebuild wrapping from clipped hit width. Add this exact clipped wrapped regression and left/top/right-clipping/resize cases."
+    }
+  ],
+  "checks": [
+    {
+      "command": "cargo nextest run --manifest-path /private/tmp/viewport-review-external-before-20261021/Cargo.toml",
+      "revision": "4cc10c3a7158123500fbe38435f2b68874b50561",
+      "exit": 0,
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "log": "before.log",
+      "target": "/private/tmp/viewport-review-external-before-target"
+    },
+    {
+      "command": "cargo nextest run --manifest-path /private/tmp/viewport-review-external-20261021/Cargo.toml",
+      "revision": "795badb0adb2a9d118bb2cce6eb467b13e35be36",
+      "exit": 100,
+      "passed": 0,
+      "failed": 1,
+      "skipped": 0,
+      "log": "after.log",
+      "target": "/private/tmp/viewport-review-external-after-target"
+    },
+    {
+      "command": "cargo nextest run -p termrock-viewport --all-targets --features testing --no-fail-fast",
+      "exit": 0,
+      "passed": 56,
+      "failed": 0,
+      "skipped": 0,
+      "log": "native.log",
+      "target": "/private/tmp/viewport-review-native-after-target"
+    },
+    {
+      "command": "cargo clippy -p termrock-viewport --all-targets --features testing -- -D warnings",
+      "exit": 0,
+      "log": "clippy.log"
+    },
+    {
+      "command": "cargo fmt --check",
+      "exit": 0,
+      "log": "fmt.log"
+    },
+    {
+      "command": "git diff --check",
+      "exit": 0
+    }
+  ],
+  "reviewed_repairs": {
+    "R3": "The inert horizontal scrollbar path and conditional row/width reservation are removed. Default reserve_gutter=true/scroll_gap=0 retains width.saturating_sub(2), all area rows, and preferred82-column width, matching the pre262 source formulas.",
+    "R6": "Gutterless horizontal origin correction is present and native runtime word-selection regression passes across all four profiles. The clipped wrapped geometry change introduces VP795-R1 above.",
+    "R7": "Reserved-width and preferred-size arithmetic now use saturating u16 operations. Native maximum-gap measurement/update/draw cases pass, including zero/narrow bounds.",
+    "R8": "Unconditional widest_line scan is removed entirely; the existing generation-aware layout cache remains. Native incremental-work and large data tests pass. No independent benchmark or full content-read instrumentation was added by this review.",
+    "API": "reserve_gutter,scroll_gap,bar_cursor remain additive builders; ViewportState public API preserved. No horizontal scrolling completeness is claimed. No new unsafe code or concurrency mechanism found.",
+    "resize": "The existing real-runtime resize publication test passes in the56-test scope. No new stale-before-presentation dispatch regression was identified; this does not fix the clipped wrapping mismatch."
+  },
+  "consumer_source_sha256": "67c7ebce2f0d4c0453cb349e0b83cf3eef82db11c27e906eccfbf65b58585109",
+  "coverage_limits": [
+    "Review stopped acceptance at the demonstrated new clipping regression; complete lossless default frame/hit/cursor equivalence to pre262 across all data/profiles was not established.",
+    "Native checks include all four profile caret/width tests and existing scrolling fade oracle, but these are not a complete frozen application comparison.",
+    "No paired Tuiscotti real CLI captures, full workspace gate, hosted CI result or application/TerminalView adoption verified.",
+    "Unrelated incoming commits, menu changes and application repaint/replay paths are outside this source repair approval."
+  ],
+  "workspace_integrity": "Detached sparse copies at exact795 and4cc, separate revision targets, identical external consumer source, explicit bounded process groups under220s, all owned commands reaped. No product edits, commits, pushes or expected-reference changes.",
+  "artifacts": {
+    "Cargo.lock": "de26b83fb82b16b9d068f0631f5bb9d5b5b63beaf7158e5e492930eac02ba7f2",
+    "Cargo.toml": "16db14f7d1df81694615b29a14f26cc7de5c55ceb1537d1b8bbd8e3e7b56f278",
+    "after.log": "7e8f91d7de94c1dfffd3faaa7557225a7a5be591f549b85a9543576fce53387d",
+    "before-Cargo.toml": "7b067dff9a1528cdec0d467ea070057c4936a62ddcdad7fcd7a418208f9d5644",
+    "before.log": "187110e1aa34df41209854445dd57f368629b075d7a74f707e161ae7e880b87a",
+    "clippy.log": "50e498e9f6954410e084a6cdb7132a4343041e3b323ad78d16b03b87c2a3e7f0",
+    "consumer.rs": "67c7ebce2f0d4c0453cb349e0b83cf3eef82db11c27e906eccfbf65b58585109",
+    "fmt.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "native.log": "47cdc7a44dbf86572bb6bc78d5394cc35a95532ef31b673a16f2231315e0c39e"
+  }
+}

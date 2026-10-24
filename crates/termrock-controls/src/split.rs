@@ -15,6 +15,7 @@ use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, LayoutFacts, Ui};
 
 const BALANCED: u8 = 50;
+const BASIS_POINTS_PER_PERCENT: u16 = 100;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum SplitAction {
@@ -26,6 +27,18 @@ pub enum SplitCmd {
     Shrink,
     Grow,
     Reset,
+}
+
+/// Reset destination for keyboard and pointer reset gestures.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub enum ResetPolicy {
+    /// Return to the constructor position held by `SplitPaneState`.
+    Initial,
+    /// Return to the configured percentage.
+    Percent(u8),
+    /// Return to a balanced split.
+    #[default]
+    Balanced,
 }
 
 const fn b(
@@ -86,17 +99,37 @@ const VERTICAL: &[Binding<SplitCmd>] = &[
     ),
 ];
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct SplitPaneState {
     percent: u8,
+    initial_percent: u8,
+    basis_points: u16,
     maximized: Maximized,
+    grab_offset: Option<i32>,
+    initial_cells_active: bool,
+}
+
+impl fmt::Debug for SplitPaneState {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("SplitPaneState")
+            .field("percent", &self.percent)
+            .field("initial_percent", &self.initial_percent)
+            .field("basis_points", &self.basis_points)
+            .field("maximized", &self.maximized)
+            .field("grab_offset", &self.grab_offset)
+            .finish()
+    }
 }
 
 impl Default for SplitPaneState {
     fn default() -> Self {
         SplitPaneState {
             percent: BALANCED,
+            initial_percent: BALANCED,
+            basis_points: (BALANCED as u16) * BASIS_POINTS_PER_PERCENT,
             maximized: Maximized::None,
+            grab_offset: None,
+            initial_cells_active: false,
         }
     }
 }
@@ -105,7 +138,11 @@ impl SplitPaneState {
     pub const fn new(percent: u8) -> Self {
         SplitPaneState {
             percent: clamp_percent(percent),
+            initial_percent: clamp_percent(percent),
+            basis_points: (clamp_percent(percent) as u16) * BASIS_POINTS_PER_PERCENT,
             maximized: Maximized::None,
+            grab_offset: None,
+            initial_cells_active: false,
         }
     }
 
@@ -115,10 +152,44 @@ impl SplitPaneState {
 
     pub const fn set_percent(&mut self, p: u8) {
         self.percent = clamp_percent(p);
+        self.basis_points = (clamp_percent(p) as u16) * BASIS_POINTS_PER_PERCENT;
+        self.initial_cells_active = false;
+    }
+
+    pub(crate) const fn new_with_initial_cells(percent: u8) -> Self {
+        SplitPaneState {
+            percent: clamp_percent(percent),
+            initial_percent: clamp_percent(percent),
+            basis_points: (clamp_percent(percent) as u16) * BASIS_POINTS_PER_PERCENT,
+            maximized: Maximized::None,
+            grab_offset: None,
+            initial_cells_active: true,
+        }
     }
 
     pub const fn maximized(&self) -> Maximized {
         self.maximized
+    }
+
+    /// Precise ratio retained after a manual resize.
+    ///
+    /// An opted-in initial-cell split uses its configured cell extent until
+    /// manual input changes this value; query the resolved pane for that width.
+    pub const fn basis_points(&self) -> u16 {
+        self.basis_points
+    }
+
+    fn reset(&mut self, policy: ResetPolicy, has_initial_cells: bool) {
+        let percent = match policy {
+            ResetPolicy::Initial => self.initial_percent,
+            ResetPolicy::Percent(percent) => clamp_percent(percent),
+            ResetPolicy::Balanced => BALANCED,
+        };
+        self.percent = percent;
+        self.basis_points = (percent as u16) * BASIS_POINTS_PER_PERCENT;
+        self.maximized = Maximized::None;
+        self.grab_offset = None;
+        self.initial_cells_active = has_initial_cells && policy == ResetPolicy::Initial;
     }
 
     pub fn toggle_max(&mut self, which: Maximized) {
@@ -135,6 +206,7 @@ enum SeamAlign {
     Start,
     Center,
     End,
+    Offset(u16),
 }
 
 pub struct SplitPane<'a> {
@@ -146,12 +218,24 @@ pub struct SplitPane<'a> {
     min_second: u16,
     resizable: bool,
     disabled: bool,
+    focusability: Focusability,
+    keyboard_navigation: bool,
+    hit_padding: u16,
+    preserve_drag_offset: bool,
+    fixed_first_share: Option<(u8, u16, u16)>,
+    fixed_second_share: Option<(u8, u16, u16)>,
+    initial_first_cells: Option<u16>,
+    fixed_sizing: bool,
+    resize_step_cells: u16,
+    resize_bindings: Option<&'static [Binding<SplitCmd>]>,
+    reset_policy: ResetPolicy,
     ov: PartStyle<'a>,
 }
 
 impl fmt::Debug for SplitPane<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("SplitPane")
+        let mut debug = f.debug_struct("SplitPane");
+        debug
             .field("id", &self.id)
             .field("axis", &self.axis)
             .field("gap", &self.gap)
@@ -160,6 +244,20 @@ impl fmt::Debug for SplitPane<'_> {
             .field("min_second", &self.min_second)
             .field("resizable", &self.resizable)
             .field("disabled", &self.disabled)
+            .field("focusability", &self.focusability)
+            .field("keyboard_navigation", &self.keyboard_navigation)
+            .field("hit_padding", &self.hit_padding)
+            .field("preserve_drag_offset", &self.preserve_drag_offset)
+            .field("fixed_first_share", &self.fixed_first_share)
+            .field("fixed_second_share", &self.fixed_second_share);
+        if self.initial_first_cells.is_some() {
+            debug.field("initial_first_cells", &self.initial_first_cells);
+        }
+        debug
+            .field("fixed_sizing", &self.fixed_sizing)
+            .field("resize_step_cells", &self.resize_step_cells)
+            .field("resize_bindings", &self.resize_bindings)
+            .field("reset_policy", &self.reset_policy)
             .field("overrides", &self.ov)
             .finish()
     }
@@ -178,12 +276,70 @@ impl<'a> SplitPane<'a> {
             min_second: 1,
             resizable: false,
             disabled: false,
+            focusability: Focusability::Focusable,
+            keyboard_navigation: true,
+            hit_padding: 0,
+            preserve_drag_offset: false,
+            fixed_first_share: None,
+            fixed_second_share: None,
+            initial_first_cells: None,
+            fixed_sizing: false,
+            resize_step_cells: 1,
+            resize_bindings: None,
+            reset_policy: ResetPolicy::Balanced,
             ov: PartStyle::new(),
         }
     }
 
     pub const fn id(&self) -> Id {
         self.id
+    }
+
+    pub const fn axis(&self) -> SplitAxis {
+        self.axis
+    }
+
+    /// Smallest extent at which the resolved panes can hold their requested
+    /// along-axis sizes under the current sizing policy and configured minima.
+    pub fn required_extent(&self, state: &SplitPaneState, first: u16, second: u16) -> u16 {
+        let model = self.model(*state);
+        let first = first.max(model.min_first);
+        let second = second.max(model.min_second);
+        if let Some((percent, min, max)) = self.fixed_first_share {
+            return model
+                .required_extent_with_first_share(self.gap, percent, min, max, first, second);
+        }
+        if let Some((percent, min, max)) = self.fixed_second_share {
+            return model
+                .required_extent_with_second_share(self.gap, percent, min, max, first, second);
+        }
+        if state.initial_cells_active
+            && let Some(initial_first_cells) = self.initial_first_cells
+        {
+            return model.required_extent_with_first_extent(
+                self.gap,
+                initial_first_cells,
+                first,
+                second,
+            );
+        }
+        model.required_extent_with_basis_points(self.gap, state.basis_points, first, second)
+    }
+
+    /// Return the child constraints for the pane rectangles resolved from the
+    /// supplied root constraints and current state. Consumers can measure pane
+    /// content at its actual split width without reproducing split arithmetic.
+    pub fn pane_constraints(
+        &self,
+        state: &SplitPaneState,
+        constraints: Constraints,
+    ) -> (Constraints, Constraints) {
+        let root = Rect::new(0, 0, constraints.max.0, constraints.max.1);
+        let (first, second) = self.panes(*state, root);
+        (
+            Constraints::loose(first.width, first.height),
+            Constraints::loose(second.width, second.height),
+        )
     }
 
     #[must_use]
@@ -207,6 +363,12 @@ impl<'a> SplitPane<'a> {
     #[must_use]
     pub const fn seam_end(mut self, width: u16) -> Self {
         self.seam = Some((width, SeamAlign::End));
+        self
+    }
+
+    #[must_use]
+    pub const fn seam_at_offset(mut self, width: u16, offset: u16) -> Self {
+        self.seam = Some((width, SeamAlign::Offset(offset)));
         self
     }
 
@@ -235,6 +397,95 @@ impl<'a> SplitPane<'a> {
     }
 
     #[must_use]
+    pub const fn focusability(mut self, focusability: Focusability) -> Self {
+        self.focusability = focusability;
+        self
+    }
+
+    #[must_use]
+    pub const fn keyboard_navigation(mut self, enabled: bool) -> Self {
+        self.keyboard_navigation = enabled;
+        self
+    }
+
+    #[must_use]
+    pub const fn hit_padding(mut self, padding: u16) -> Self {
+        self.hit_padding = padding;
+        self
+    }
+
+    /// Preserve the pointer's grab offset when dragging a narrow aligned seam.
+    ///
+    /// By default, narrow seam drags continue to use the pointer's raw
+    /// coordinate as the first-pane edge. Enable this policy when the seam
+    /// should move by the same number of cells as the pointer.
+    #[must_use]
+    pub const fn preserve_drag_offset(mut self, preserve: bool) -> Self {
+        self.preserve_drag_offset = preserve;
+        self
+    }
+
+    /// Set the number of terminal cells moved by each keyboard resize command.
+    /// The default remains one cell.
+    #[must_use]
+    pub const fn resize_step_cells(mut self, cells: u16) -> Self {
+        self.resize_step_cells = if cells == 0 { 1 } else { cells };
+        self
+    }
+
+    pub(crate) const fn resize_bindings(mut self, table: &'static [Binding<SplitCmd>]) -> Self {
+        self.resize_bindings = Some(table);
+        self
+    }
+
+    /// Resolve a fixed first-pane share with nearest-cell rounding.
+    #[must_use]
+    pub(crate) const fn fixed_first_share(mut self, percent: u8, min: u16, max: u16) -> Self {
+        let percent = if percent > 100 { 100 } else { percent };
+        let low = if min < max { min } else { max };
+        let high = if min > max { min } else { max };
+        self.fixed_first_share = Some((percent, low, high));
+        self.fixed_second_share = None;
+        self
+    }
+
+    /// Apply the non-interactive sizing policy used by fixed MasterDetail modes.
+    #[must_use]
+    pub(crate) const fn fixed_sizing(mut self) -> Self {
+        self.fixed_sizing = true;
+        self.resizable = false;
+        self.seam = Some((0, SeamAlign::Offset(0)));
+        self
+    }
+
+    /// Set a fixed share for the second pane. Intended for reusable blocks
+    /// with a documented responsive policy; interactive splits keep using
+    /// their stateful ratio by default.
+    #[doc(hidden)]
+    #[must_use]
+    pub const fn fixed_second_share(mut self, percent: u8, min: u16, max: u16) -> Self {
+        let percent = if percent > 100 { 100 } else { percent };
+        let low = if min < max { min } else { max };
+        let high = if min > max { min } else { max };
+        self.fixed_first_share = None;
+        self.fixed_second_share = Some((percent, low, high));
+        self
+    }
+
+    #[must_use]
+    pub const fn reset_policy(mut self, policy: ResetPolicy) -> Self {
+        self.reset_policy = policy;
+        self
+    }
+
+    /// Use an exact first-pane extent until the split is manually resized.
+    #[must_use]
+    pub(crate) const fn initial_first_cells(mut self, cells: u16) -> Self {
+        self.initial_first_cells = Some(cells);
+        self
+    }
+
+    #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
         self.ov = self.ov.global(p);
         self
@@ -254,16 +505,54 @@ impl<'a> SplitPane<'a> {
 
     const fn model(&self, st: SplitPaneState) -> SplitModel {
         let mut m = SplitModel::new(self.axis, st.percent, self.min_first, self.min_second);
-        m.maximized = st.maximized;
+        m.maximized = if self.fixed_sizing {
+            Maximized::None
+        } else {
+            st.maximized
+        };
         m
     }
 
     pub(crate) fn panes(&self, st: SplitPaneState, area: Rect) -> (Rect, Rect) {
-        self.model(st).layout(area, self.gap)
+        let model = self.model(st);
+        match (self.fixed_first_share, self.fixed_second_share) {
+            (Some((percent, min, max)), _) => {
+                model.layout_with_first_share(area, self.gap, percent, min, max)
+            }
+            (_, Some((percent, min, max))) => {
+                model.layout_with_second_share(area, self.gap, percent, min, max)
+            }
+            (None, None)
+                if st.initial_cells_active
+                    && let Some(first) = self.initial_first_cells =>
+            {
+                model.layout_with_first_extent(area, self.gap, first)
+            }
+            (None, None) => model.layout_with_basis_points(area, self.gap, st.basis_points),
+        }
     }
 
     pub(crate) fn seam(&self, st: SplitPaneState, area: Rect) -> Rect {
-        let mut seam = self.model(st).handle(area, self.gap);
+        let (first, second) = self.panes(st, area);
+        let thickness = if first.is_empty() || second.is_empty() {
+            0
+        } else {
+            self.gap
+        };
+        let mut seam = match self.axis {
+            SplitAxis::Horizontal => Rect {
+                x: first.right(),
+                y: area.y,
+                width: thickness,
+                height: area.height,
+            },
+            SplitAxis::Vertical => Rect {
+                x: area.x,
+                y: first.bottom(),
+                width: area.width,
+                height: thickness,
+            },
+        };
         if let Some((width, align)) = self.seam {
             let extent = match self.axis {
                 SplitAxis::Horizontal => seam.width,
@@ -275,6 +564,7 @@ impl<'a> SplitPane<'a> {
                 SeamAlign::Start => 0,
                 SeamAlign::Center => spare / 2,
                 SeamAlign::End => spare,
+                SeamAlign::Offset(offset) => offset.min(spare),
             };
             match self.axis {
                 SplitAxis::Horizontal => {
@@ -291,8 +581,11 @@ impl<'a> SplitPane<'a> {
     }
 
     const fn table(&self) -> &'static [Binding<SplitCmd>] {
-        if self.disabled || !self.resizable {
+        if self.fixed_sizing || self.disabled || !self.resizable || !self.keyboard_navigation {
             return &[];
+        }
+        if let Some(table) = self.resize_bindings {
+            return table;
         }
         match self.axis {
             SplitAxis::Horizontal => HORIZONTAL,
@@ -303,14 +596,17 @@ impl<'a> SplitPane<'a> {
     fn apply(
         &self,
         st: &mut SplitPaneState,
-        f: impl FnOnce(&mut SplitModel),
+        f: impl FnOnce(&mut SplitModel, &mut u16) -> bool,
         acc: &mut Acc<SplitAction>,
     ) {
         let before = *st;
         let mut m = self.model(*st);
-        f(&mut m);
+        let changed = f(&mut m, &mut st.basis_points);
         st.percent = m.percent;
         st.maximized = m.maximized;
+        if changed {
+            st.initial_cells_active = false;
+        }
         if *st == before {
             acc.consumed();
         } else {
@@ -319,31 +615,60 @@ impl<'a> SplitPane<'a> {
     }
 
     pub fn update(&self, cx: &mut Cx<'_>, st: &mut SplitPaneState) -> Response<SplitAction> {
+        self.update_for_owner(cx, st, self.id, true)
+    }
+
+    pub(crate) fn update_from_owner(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut SplitPaneState,
+        owner: Id,
+    ) -> Response<SplitAction> {
+        self.update_for_owner(cx, st, owner, false)
+    }
+
+    fn update_for_owner(
+        &self,
+        cx: &mut Cx<'_>,
+        st: &mut SplitPaneState,
+        owner: Id,
+        allow_pointer: bool,
+    ) -> Response<SplitAction> {
+        if self.fixed_sizing {
+            if cx.capture_owner() == Some(self.id) {
+                cx.release_capture();
+            }
+            st.grab_offset = None;
+            return Response::ignored();
+        }
         let area = cx
             .layout(self.id)
             .and_then(|facts| facts.logical_area)
             .unwrap_or(Rect::ZERO);
-        let gap = self.gap;
         let table = self.table();
         let mut acc = Acc::<SplitAction>::new();
-        for it in cx.intents(self.id) {
+        let step = i16::try_from(self.resize_step_cells).unwrap_or(i16::MAX);
+        for it in cx.intents(owner) {
             if self.disabled {
                 continue;
             }
             match it {
                 Intent::Binding(action) => match Binding::command(table, action) {
                     Some(SplitCmd::Shrink) => {
-                        self.apply(st, |m| m.nudge(area, gap, -1), &mut acc);
+                        self.nudge(st, area, -step, &mut acc);
                     }
-                    Some(SplitCmd::Grow) => self.apply(st, |m| m.nudge(area, gap, 1), &mut acc),
-                    Some(SplitCmd::Reset) => self.apply(
-                        st,
-                        |m| {
-                            m.percent = BALANCED;
-                            m.maximized = Maximized::None;
-                        },
-                        &mut acc,
-                    ),
+                    Some(SplitCmd::Grow) => {
+                        self.nudge(st, area, step, &mut acc);
+                    }
+                    Some(SplitCmd::Reset) => {
+                        let before = *st;
+                        st.reset(self.reset_policy, self.initial_first_cells.is_some());
+                        if *st == before {
+                            acc.consumed();
+                        } else {
+                            acc.action(SplitAction::Resized(st.percent));
+                        }
+                    }
                     None => {}
                 },
                 Intent::Pointer {
@@ -354,11 +679,49 @@ impl<'a> SplitPane<'a> {
                         },
                     pos,
                     ..
-                } => self.pointer(cx, st, phase, pos, area, &mut acc),
+                } if allow_pointer => self.pointer(cx, st, phase, pos, area, &mut acc),
+                Intent::Cancel if allow_pointer => {
+                    if cx.capture_owner() == Some(self.id) {
+                        cx.release_capture();
+                    }
+                    st.grab_offset = None;
+                }
                 _ => {}
             }
         }
         acc.finish(self.id)
+    }
+
+    fn nudge(&self, st: &mut SplitPaneState, area: Rect, delta: i16, acc: &mut Acc<SplitAction>) {
+        if st.initial_cells_active && self.initial_first_cells.is_some() {
+            let (first, _) = self.panes(*st, area);
+            let current = match self.axis {
+                SplitAxis::Horizontal => first.width,
+                SplitAxis::Vertical => first.height,
+            };
+            let target = i32::from(current)
+                .saturating_add(i32::from(delta))
+                .clamp(0, i32::from(u16::MAX)) as u16;
+            let pos = match self.axis {
+                SplitAxis::Horizontal => Position::new(area.x.saturating_add(target), area.y),
+                SplitAxis::Vertical => Position::new(area.x, area.y.saturating_add(target)),
+            };
+            self.apply(
+                st,
+                |model, basis_points| {
+                    model.drag_to_with_basis_points(area, self.gap, pos, basis_points)
+                },
+                acc,
+            );
+        } else {
+            self.apply(
+                st,
+                |model, basis_points| {
+                    model.nudge_with_basis_points(area, self.gap, delta, basis_points)
+                },
+                acc,
+            );
+        }
     }
 
     fn pointer(
@@ -374,17 +737,36 @@ impl<'a> SplitPane<'a> {
         match phase {
             Phase::Press | Phase::DragStart => {
                 let _ = cx.capture(self.id, PartRef::of(Part::SEAM));
+                if st.grab_offset.is_none() {
+                    let (first, _) = self.panes(*st, area);
+                    let edge = match self.axis {
+                        SplitAxis::Horizontal => first.right(),
+                        SplitAxis::Vertical => first.bottom(),
+                    };
+                    let coordinate = match self.axis {
+                        SplitAxis::Horizontal => pos.x,
+                        SplitAxis::Vertical => pos.y,
+                    };
+                    // Preserve the click offset for the full-gap target,
+                    // explicitly padded targets, and opt-in narrow seams.
+                    // Narrow aligned seams retain their raw-coordinate drag
+                    // contract by default.
+                    st.grab_offset = Some(
+                        if self.hit_padding > 0 || self.seam.is_none() || self.preserve_drag_offset
+                        {
+                            i32::from(coordinate) - i32::from(edge)
+                        } else {
+                            0
+                        },
+                    );
+                }
                 acc.consumed();
             }
             Phase::Drag => {
-                let capture_area = cx.capture_area().unwrap_or_else(|| self.seam(*st, area));
-                let origin = cx.capture_origin().unwrap_or(pos);
-                let target = drag_target(self.axis, pos, capture_area, origin);
+                let target = drag_target(self.axis, pos, st.grab_offset.unwrap_or(0));
                 self.apply(
                     st,
-                    |m| {
-                        let _ = m.drag_to(area, gap, target);
-                    },
+                    |m, basis_points| m.drag_to_with_basis_points(area, gap, target, basis_points),
                     acc,
                 );
             }
@@ -392,20 +774,43 @@ impl<'a> SplitPane<'a> {
                 if cx.capture_owner() == Some(self.id) {
                     cx.release_capture();
                 }
+                st.grab_offset = None;
                 acc.consumed();
             }
-            Phase::DoubleClick => self.apply(
-                st,
-                |m| {
-                    m.percent = BALANCED;
-                    m.maximized = Maximized::None;
-                },
-                acc,
-            ),
-            Phase::Click | Phase::Secondary => acc.consumed(),
+            Phase::DoubleClick => {
+                if cx
+                    .pointer_click_count(self.id, PartRef::of(Part::SEAM))
+                    .is_some_and(|count| count != 2)
+                {
+                    acc.consumed();
+                } else {
+                    self.reset_for_double_click(st, acc);
+                }
+            }
+            Phase::Click => {
+                if cx
+                    .pointer_click_count(self.id, PartRef::of(Part::SEAM))
+                    .is_some_and(|count| count == 2)
+                {
+                    self.reset_for_double_click(st, acc);
+                } else {
+                    acc.consumed();
+                }
+            }
+            Phase::Secondary => acc.consumed(),
             Phase::Move => {}
 
             _ => {}
+        }
+    }
+
+    fn reset_for_double_click(&self, st: &mut SplitPaneState, acc: &mut Acc<SplitAction>) {
+        let before = *st;
+        st.reset(self.reset_policy, self.initial_first_cells.is_some());
+        if *st == before {
+            acc.consumed();
+        } else {
+            acc.action(SplitAction::Resized(st.percent));
         }
     }
 
@@ -442,6 +847,9 @@ impl<'a> SplitPane<'a> {
             StateFlags::empty()
         };
         let live = PartStyle::flags(ui.state(self.id), own);
+        if seam.is_empty() {
+            return ui.with_area(area, |ui| body(ui, first, second));
+        }
         if self.resizable || self.disabled {
             ui.register_control(
                 self.id,
@@ -449,21 +857,22 @@ impl<'a> SplitPane<'a> {
                 if self.disabled {
                     Focusability::Disabled
                 } else {
-                    Focusability::Focusable
+                    self.focusability
                 },
             );
         }
         ui.register_decor(self.id, PartRef::of(Part::CONTAINER), area);
         ui.publish_bindings(self.id, live, self.table());
-        if seam.is_empty() {
-            return ui.with_area(area, |ui| body(ui, first, second));
-        }
         if let Some(f) = self.ov.slot_for(Part::SEAM) {
             f(ui, seam);
         } else {
             self.paint_seam(ui, seam, live);
         }
-        ui.register_part(self.id, PartRef::of(Part::SEAM), seam);
+        ui.register_part(
+            self.id,
+            PartRef::of(Part::SEAM),
+            hit_area(seam, area, self.hit_padding),
+        );
         ui.with_area(area, |ui| body(ui, first, second))
     }
 
@@ -476,7 +885,7 @@ impl<'a> SplitPane<'a> {
             Part::SEAM,
             live,
         );
-        let rule = if live.contains(StateFlags::PRESSED) {
+        let rule = if live.contains(StateFlags::PRESSED) || live.contains(StateFlags::HOVERED) {
             let set = ui.design().glyphs.rule_active();
             match self.axis {
                 SplitAxis::Horizontal => set.vertical,
@@ -539,24 +948,24 @@ const fn clamp_percent(percent: u8) -> u8 {
     }
 }
 
-const fn drag_target(
-    axis: SplitAxis,
-    pos: Position,
-    capture_area: Rect,
-    origin: Position,
-) -> Position {
+fn drag_target(axis: SplitAxis, pos: Position, grab_offset: i32) -> Position {
+    let shifted = |coordinate: u16| {
+        (i32::from(coordinate) - grab_offset).clamp(0, i32::from(u16::MAX)) as u16
+    };
     match axis {
-        SplitAxis::Horizontal => Position::new(
-            pos.x
-                .saturating_sub(origin.x.saturating_sub(capture_area.x)),
-            pos.y,
-        ),
-        SplitAxis::Vertical => Position::new(
-            pos.x,
-            pos.y
-                .saturating_sub(origin.y.saturating_sub(capture_area.y)),
-        ),
+        SplitAxis::Horizontal => Position::new(shifted(pos.x), pos.y),
+        SplitAxis::Vertical => Position::new(pos.x, shifted(pos.y)),
     }
+}
+
+fn hit_area(seam: Rect, area: Rect, padding: u16) -> Rect {
+    Rect {
+        x: seam.x.saturating_sub(padding),
+        y: seam.y.saturating_sub(padding),
+        width: seam.width.saturating_add(padding.saturating_mul(2)),
+        height: seam.height.saturating_add(padding.saturating_mul(2)),
+    }
+    .intersection(area)
 }
 
 impl Bindings for SplitPane<'_> {
@@ -576,11 +985,16 @@ mod tests {
     use ratatui_core::layout::Position;
 
     use super::*;
+    use crate::Button;
     use crate::runtime::Runtime;
     use crate::runtime::stub::{SCREEN, Stub};
     use crate::theme::{ColorLevel, Role, Theme};
+    use termrock_core::event::MouseKind;
+    use termrock_core::response::Response;
+    use termrock_runtime::{App, Cx};
 
     const ID: Id = Id::root("split.tests");
+    const EDITOR_ID: Id = Id::root("split.tests.editor");
 
     const AREA: Rect = Rect {
         x: 0,
@@ -588,6 +1002,155 @@ mod tests {
         width: 40,
         height: 10,
     };
+
+    struct DragProbe {
+        state: SplitPaneState,
+        actions: Vec<SplitAction>,
+    }
+
+    impl DragProbe {
+        fn split() -> SplitPane<'static> {
+            SplitPane::new(ID, SplitAxis::Vertical)
+                .gap(1)
+                .min_first(4)
+                .min_second(6)
+                .resizable(true)
+                .focusability(Focusability::ClickOnly)
+                .keyboard_navigation(false)
+                .hit_padding(1)
+                .reset_policy(ResetPolicy::Initial)
+        }
+    }
+
+    impl App for DragProbe {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            let response = Self::split().update(cx, &mut self.state);
+            if let Some(action) = response.action_ref().copied() {
+                self.actions.push(action);
+            }
+            response.erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let area = ui.full();
+            Self::split().draw(ui, area, &self.state, |ui, first, _| {
+                Button::new(EDITOR_ID, "Editor").draw(ui, first);
+            });
+        }
+    }
+
+    #[test]
+    fn padded_seam_drag_keeps_precise_position_and_editor_focus() {
+        let area = Rect::new(0, 0, 40, 35);
+        let mut runtime = Runtime::new(
+            DragProbe {
+                state: SplitPaneState::new(38),
+                actions: Vec::new(),
+            },
+            Theme::junie(),
+        );
+        let _ = runtime.initialize();
+        let mut buffer = Buffer::empty(area);
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        runtime.set_focus(Some(EDITOR_ID));
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+
+        assert_eq!(runtime.app().state.percent(), 38);
+        assert_eq!(runtime.focus(), Some(EDITOR_ID));
+        assert!(!runtime.ring().is_registered(ID));
+        assert_eq!(
+            runtime.area_of_part(ID, PartRef::of(Part::SEAM)),
+            Some(Rect::new(0, 11, 40, 3))
+        );
+
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            crate::runtime::stub::mouse(MouseKind::Down, 8, 11),
+        );
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            crate::runtime::stub::mouse(MouseKind::Drag, 8, 12),
+        );
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+
+        assert_eq!(runtime.app().state.percent(), 38);
+        assert_eq!(runtime.app().state.basis_points(), 3_824);
+        assert_eq!(DragProbe::first_height(&runtime.app().state, area), 13);
+        assert_eq!(runtime.focus(), Some(EDITOR_ID));
+
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            crate::runtime::stub::mouse(MouseKind::Up, 8, 12),
+        );
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+
+        let mut reset_runtime = Runtime::new(
+            DragProbe {
+                state: SplitPaneState::new(38),
+                actions: Vec::new(),
+            },
+            Theme::junie(),
+        );
+        let _ = reset_runtime.initialize();
+        reset_runtime.app_mut().state.set_percent(45);
+        let mut reset_buffer = Buffer::empty(area);
+        reset_runtime
+            .draw_buffer(area, &mut reset_buffer)
+            .commit_presented();
+        reset_runtime.set_focus(Some(EDITOR_ID));
+        reset_runtime
+            .draw_buffer(area, &mut reset_buffer)
+            .commit_presented();
+        let seam_y = DragProbe::first_height(&reset_runtime.app().state, area);
+        for _ in 0..2 {
+            let _ = crate::runtime::stub::deliver(
+                &mut reset_runtime,
+                crate::runtime::stub::mouse(MouseKind::Down, 8, seam_y),
+            );
+            let _ = crate::runtime::stub::deliver(
+                &mut reset_runtime,
+                crate::runtime::stub::mouse(MouseKind::Up, 8, seam_y),
+            );
+            reset_runtime
+                .draw_buffer(area, &mut reset_buffer)
+                .commit_presented();
+        }
+        assert_eq!(reset_runtime.app().state.percent(), 38);
+        assert_eq!(reset_runtime.app().state.basis_points(), 3_800);
+        assert!(
+            reset_runtime
+                .app()
+                .actions
+                .contains(&SplitAction::Resized(38))
+        );
+        assert_eq!(reset_runtime.focus(), Some(EDITOR_ID));
+
+        reset_runtime.app_mut().state.set_percent(45);
+        reset_runtime
+            .draw_buffer(area, &mut reset_buffer)
+            .commit_presented();
+        let seam_y = DragProbe::first_height(&reset_runtime.app().state, area);
+        for _ in 0..2 {
+            let _ = crate::runtime::stub::deliver(
+                &mut reset_runtime,
+                crate::runtime::stub::mouse(MouseKind::Down, 8, seam_y),
+            );
+            let _ = crate::runtime::stub::deliver(
+                &mut reset_runtime,
+                crate::runtime::stub::mouse(MouseKind::Up, 8, seam_y),
+            );
+            reset_runtime
+                .draw_buffer(area, &mut reset_buffer)
+                .commit_presented();
+        }
+        assert_eq!(reset_runtime.app().state.percent(), 45);
+    }
+
+    impl DragProbe {
+        fn first_height(state: &SplitPaneState, area: Rect) -> u16 {
+            Self::split().panes(*state, area).0.height
+        }
+    }
 
     #[test]
     fn body_runs_once_for_empty_input_with_anchored_rects() {
@@ -637,6 +1200,64 @@ mod tests {
     }
 
     #[test]
+    fn authored_split_seam_colors_reach_cells_at_each_capability_level() {
+        let cases = [
+            (
+                ColorLevel::TrueColor,
+                ratatui_core::style::Color::Rgb(77, 77, 77),
+            ),
+            (
+                ColorLevel::Ansi256,
+                ratatui_core::style::Color::Indexed(239),
+            ),
+            (ColorLevel::Ansi16, ratatui_core::style::Color::DarkGray),
+            (ColorLevel::Mono, ratatui_core::style::Color::DarkGray),
+        ];
+        for (level, expected) in cases {
+            let mut theme = Theme::junie();
+            theme.capability.color = level;
+            let mut rt = Runtime::new(Stub::default(), theme);
+            let mut buf = Buffer::empty(SCREEN);
+            let split = SplitPane::new(ID, SplitAxis::Horizontal).resizable(true);
+            let seam = split.seam(SplitPaneState::default(), AREA);
+            rt.draw_scene(SCREEN, &mut buf, |ui, _| {
+                split.draw(ui, AREA, &SplitPaneState::default(), |_, _, _| ());
+            })
+            .commit_presented();
+
+            assert_eq!(
+                buf.cell((seam.x, seam.y)).unwrap().fg,
+                expected,
+                "{level:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn explicit_same_value_custom_split_seam_still_uses_generic_downgrade() {
+        let theme = Theme::junie()
+            .override_family(Family::SPLIT, |recipe| {
+                recipe.part(Part::SEAM).base(
+                    StylePatch::new().set_fg(Role::Custom(ratatui_core::style::Color::DarkGray)),
+                );
+            })
+            .downgrade(ColorLevel::Mono);
+        let mut rt = Runtime::new(Stub::default(), theme);
+        let mut buf = Buffer::empty(SCREEN);
+        let split = SplitPane::new(ID, SplitAxis::Horizontal).resizable(true);
+        let seam = split.seam(SplitPaneState::default(), AREA);
+        rt.draw_scene(SCREEN, &mut buf, |ui, _| {
+            split.draw(ui, AREA, &SplitPaneState::default(), |_, _, _| ());
+        })
+        .commit_presented();
+
+        assert_eq!(
+            buf.cell((seam.x, seam.y)).unwrap().fg,
+            ratatui_core::style::Color::Black
+        );
+    }
+
+    #[test]
     fn body_paint_is_clipped_to_the_split_area() {
         let mut rt = Runtime::new(Stub::default(), Theme::junie());
         let mut buf = Buffer::empty(SCREEN);
@@ -670,35 +1291,118 @@ mod tests {
     }
 
     #[test]
+    fn split_reset_policy_retains_the_initial_position() {
+        let mut state = SplitPaneState::new(38);
+        state.set_percent(63);
+        state.reset(ResetPolicy::Initial, false);
+        assert_eq!(state.percent(), 38);
+        assert_eq!(state.basis_points(), 3_800);
+
+        state.reset(ResetPolicy::Percent(42), false);
+        assert_eq!(state.percent(), 42);
+        state.reset(ResetPolicy::Balanced, false);
+        assert_eq!(state.percent(), 50);
+    }
+
+    #[test]
+    fn rejected_initial_cell_nudges_preserve_the_policy_for_a_later_wide_layout() {
+        let split = SplitPane::new(ID, SplitAxis::Horizontal)
+            .gap(2)
+            .min_first(28)
+            .min_second(40)
+            .initial_first_cells(39);
+        let wide = Rect::new(0, 0, 120, 24);
+
+        for (area, label) in [
+            (Rect::ZERO, "empty area"),
+            (Rect::new(0, 0, 69, 24), "area below pane minima"),
+        ] {
+            let mut state = SplitPaneState::new_with_initial_cells(32);
+            let before = state;
+            let mut acc = Acc::<SplitAction>::new();
+
+            split.nudge(&mut state, area, 1, &mut acc);
+            let _ = acc.finish(ID);
+
+            assert_eq!(
+                state, before,
+                "{label}: rejected resize must not mutate state"
+            );
+            assert!(
+                state.initial_cells_active,
+                "{label}: initial-cell policy remains active"
+            );
+            assert_eq!(
+                split.panes(state, wide).0.width,
+                39,
+                "{label}: later valid layout retains the configured cell extent"
+            );
+        }
+    }
+
+    #[test]
+    fn split_hit_padding_expands_pointer_area_without_changing_the_seam() {
+        let seam = Rect::new(10, 4, 1, 8);
+        assert_eq!(
+            hit_area(seam, Rect::new(0, 0, 30, 20), 1),
+            Rect::new(9, 3, 3, 10)
+        );
+        assert_eq!(hit_area(seam, Rect::new(10, 4, 1, 8), 1), seam);
+    }
+
+    #[test]
     fn resetting_maximization_is_a_full_state_change() {
         let sp = SplitPane::new(ID, SplitAxis::Horizontal);
         let mut st = SplitPaneState::default();
         st.toggle_max(Maximized::First);
         let mut acc = Acc::new();
-        sp.apply(&mut st, |model| model.maximized = Maximized::None, &mut acc);
+        sp.apply(
+            &mut st,
+            |model, _| {
+                model.maximized = Maximized::None;
+                true
+            },
+            &mut acc,
+        );
         assert_eq!(acc.finish(ID).into_action(), Some(SplitAction::Resized(50)));
     }
 
     #[test]
     fn drag_preserves_the_pointer_offset_inside_a_wide_seam() {
-        let seam = Rect::new(19, 2, 3, 8);
         assert_eq!(
-            drag_target(
-                SplitAxis::Horizontal,
-                Position::new(25, 6),
-                seam,
-                Position::new(21, 6),
-            ),
+            drag_target(SplitAxis::Horizontal, Position::new(25, 6), 2,),
             Position::new(23, 6)
         );
         assert_eq!(
-            drag_target(
-                SplitAxis::Vertical,
-                Position::new(6, 14),
-                Rect::new(2, 8, 8, 3),
-                Position::new(6, 10),
-            ),
+            drag_target(SplitAxis::Vertical, Position::new(6, 14), 2,),
             Position::new(6, 12)
+        );
+        assert_eq!(
+            drag_target(SplitAxis::Horizontal, Position::new(18, 6), -1),
+            Position::new(19, 6)
+        );
+    }
+
+    #[test]
+    fn explicit_seam_offset_matches_master_detail_odd_and_even_gaps() {
+        let area = Rect::new(5, 3, 120, 40);
+        for (gap, expected_x) in [(2, 43), (3, 43), (4, 44), (5, 43)] {
+            let split = SplitPane::new(ID, SplitAxis::Horizontal)
+                .gap(gap)
+                .seam_at_offset(1, gap / 2);
+            assert_eq!(
+                split.seam(SplitPaneState::new(32), area),
+                Rect::new(expected_x, area.y, 1, area.height),
+                "gap {gap}"
+            );
+        }
+        let centered = SplitPane::new(ID, SplitAxis::Horizontal)
+            .gap(2)
+            .seam_center(1);
+        assert_eq!(
+            centered.seam(SplitPaneState::new(32), area),
+            Rect::new(42, area.y, 1, area.height),
+            "existing centered seam contract remains unchanged"
         );
     }
 
@@ -786,11 +1490,18 @@ mod tests {
             out
         };
         let base = seam_cells(crate::ReferenceState::default());
+        let hovered = seam_cells(crate::ReferenceState::HOVERED);
         let focused = seam_cells(crate::ReferenceState::FOCUSED);
         let pressed = seam_cells(crate::ReferenceState::PRESSED);
         assert!(!base.is_empty(), "the seam painted nothing");
+        assert_ne!(base, hovered, "hover is indistinguishable from default");
         assert_ne!(base, focused, "focused is indistinguishable from default");
         assert_ne!(base, pressed, "pressed is indistinguishable from default");
+        assert_eq!(
+            hovered.keys().map(|(glyph, _)| glyph).collect::<Vec<_>>(),
+            pressed.keys().map(|(glyph, _)| glyph).collect::<Vec<_>>(),
+            "hover and press should share the heavy seam glyph in mono"
+        );
         assert_ne!(
             focused, pressed,
             "pressed is indistinguishable from focused"

@@ -1,0 +1,41 @@
+[0m[2m  ▪  TablePro  Production  ◆ production  acme_prod › public  ✓ safe             • 1 pending  no color · 120×40  ? help  [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m  ≡ Query 1 ×    T orders ×                                                                                         +   [0m
+[0m[2m ───────────────━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────── [0m
+[0m[2m ╭─ Explorer ─── public   ‹ ─╮│╭─ public › orders ────────────────────────────────────────────────────────── 14 cols ─╮ [0m
+[0m[2m │                           │││   Data    Structure                                                                  │ [0m
+[0m[2m │ [0m [0m[2m Filter objects          │││  ━━━━━━━──────────────────────────────────────────────────────────────────────────── │ [0m
+[0m[2m │ [0m [0m[2m▾ D acme_prod            │││                                                                                      │ [0m
+[0m[2m │ [0m [0m[2m  ▾ S public             │││   ‹3    organization_id                       status       total_amount  curre… 8›   │ [0m
+[0m[2m │ [0m [0m[2m    ▾ Tables             │││  [0m [0m[2m •  1 2bd03496-f7c6-428c-95c…2ef815fbb5d →  paid                25.90  USD       ┃ │ [0m
+[0m[2m │ [0m [0m[2m      ▸ T organiz╭────────────[0m─[0m[2m─────────────────────────────────────────────────────────── × ─╮17.64  USD       ┆ │ [0m
+[0m[2m │ [0m [0m[2m      ▸ T custome│            [0m [0m[2m                                                               │36.65  EUR       ┆ │ [0m
+[0m[2m │ [0m [0m[2m      ▸ T product│  [0m[1;2mSave chang[0m[1me[0m[1;2ms?[0m[2m                                                             │76.57  EUR       ┆ │ [0m
+[0m[2m │ [0m [0m[2m      ▸ T orders │            [0m [0m[2m                                                               │67.52  USD       ┆ │ [0m
+[0m[2m │ [0m [0m[2m      ▸ T order_i│  [0mAction       Save changes                                               [0m[2m  │75.78  GBP       ┆ │ [0m
+[0m[2m │ [0m [0m[2m      ▸ T payment│  [0mTarget       Production · production · acme_prod · public.orders        [0m[2m  │97.83  GBP       ┆ │ [0m
+[0m[2m │ [0m [0m[2m      ▸ T subscri│  [0mScope        1 update · 0 inserts · 0 deletes                           [0m[2m  │77.55  EUR       ┆ │ [0m
+[0m[2m │ [0m [0m[2m    ▸ Views      │  [0mTransaction  All statements run in one transaction; a failure rolls     [0m[2m  │50.69  USD       ┆ │ [0m
+[0m[2m │ [0m [0m[2m    ▸ Functions  │  [0m             everything back.                                           [0m[2m  │90.26  EUR       ┆ │ [0m
+[0m[2m │ [0m [0m[2m    ▸ Sequences  │  [0mSafe Mode    Safe Mode · type to confirm                                [0m[2m  │50.75  USD       ┆ │ [0m
+[0m[2m │ [0m [0m[2m  ▸ S analytics  │  [0m                                                                        [0m[2m  │19.88  USD       ┆ │ [0m
+[0m[2m │ [0m [0m[2m  ▸ S audit      │  [0mUPDATE public.orders SET status = 'paid' WHERE id = '1d9f28fc-3e09-4488…[0m[2m  │21.90  USD       ┆ │ [0m
+[0m[2m │                   │  ━━━━━━━━━━[0m━[0m[2m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄  │14.34  GBP       ┆ │ [0m
+[0m[2m │                   │            [0m [0m[2m                                                               │24.67  USD       ┆ │ [0m
+[0m[2m │                   │  [0m[1;2mType order[0m[1ms[0m[1;2m to confirm                                                  [0m[2m  │97.09  USD       ┆ │ [0m
+[0m[2m │                   │▎           [0m [0m[2m                                                               │26.75  USD       ┆ │ [0m
+[0m[2m │                   │            [0m [0m[2m                                                               │92.98  USD       ┆ │ [0m
+[0m[2m │                   │            [0m [0m[2m                                              Cancel    Save   │85.85  USD       ┆ │ [0m
+[0m[2m │                   │            [0m [0m[2m                                                               │97.22  EUR       ┆ │ [0m
+[0m[2m │                   ╰────────────[0m─[0m[2m───────────────────────────────────────────────────────────────╯02.17  USD       ┆ │ [0m
+[0m[2m │                           │││  [0m [0m[2m   22 e612ed16-fccc-4359-9e8…86a95bd1a52 →  refunded          1645.69  USD       ┆ │ [0m
+[0m[2m │                           │││  [0m [0m[2m   23 10fd6c6e-7543-41f7-89f…1e420c21a44 →  refunded          2412.74  EUR       ┆ │ [0m
+[0m[2m │                           │││  [0m [0m[2m   24 91a5a928-35bc-4764-826…96dc9078779 →  delivered         1282.42  USD       ┆ │ [0m
+[0m[2m │                           │││         ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄  │ [0m
+[0m[2m │                           │││                                                                                      │ [0m
+[0m[2m │                           │││   • 1 pending · 1 update                             [0m [0m[2mPreview SQL  [0m [0m[2mDiscard  [0m [0m[2mSave   │ [0m
+[0m[2m │                           │││   rows 1–24 of 500 loaded · 1,203,338 total · cols 4–6 of 14                         │ [0m
+[0m[2m ╰───────────────────────────╯│╰──────────────────────────────────────────────────────────────────────────────────────╯ [0m
+[0m[2m                                                                                                                        [0m
+ [0m[1mType[0m "orders" to confirm  [0m[1mEsc[0m Cancel                                                         ✓ Connected to Production [0m
+[?25h[26;25H[6 q

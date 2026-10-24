@@ -1,0 +1,360 @@
+{
+  "schema": "termrock.independent-combined-integration-verification.v1",
+  "created_utc": "2026-10-21T11:54:54.394685+00:00",
+  "reviewer": "/root/menu_reason_independent_review",
+  "integration_commit": "649a158843eab8bb25f042def6c621c8ce279f09",
+  "candidate_worktree": "/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020",
+  "decision": "BOUNDED_COMBINED_PUBLIC_CONTRACT_PASS",
+  "findings": [],
+  "public_inventory": {
+    "menu": 26,
+    "runtime": 21,
+    "total": 47,
+    "passed": 47,
+    "failed": 0,
+    "skipped": 0
+  },
+  "checks": [
+    {
+      "job": "menu",
+      "command": [
+        "rustup",
+        "run",
+        "1.99.1",
+        "cargo",
+        "nextest",
+        "run",
+        "--all-targets",
+        "--no-fail-fast"
+      ],
+      "result": "26 passed, zero skipped",
+      "log": "menu-649a158843ea.log"
+    },
+    {
+      "job": "runtime",
+      "command": [
+        "rustup",
+        "run",
+        "1.99.1",
+        "cargo",
+        "nextest",
+        "run",
+        "--all-targets",
+        "--no-fail-fast"
+      ],
+      "result": "21 passed, zero skipped",
+      "log": "runtime-649a158843ea.log"
+    },
+    {
+      "job": "matrix",
+      "command": [
+        "python3",
+        "compare-matrix.py"
+      ],
+      "result": "96 actual modifier samples equal preserved48 fixed416 semantic-state samples; zero differences",
+      "log": "matrix-649a158843ea.log",
+      "qualification": "Modifiers only; no complete color/frame parity claim."
+    },
+    {
+      "job": "capsule",
+      "command": [
+        "rustup",
+        "run",
+        "1.99.1",
+        "cargo",
+        "nextest",
+        "run",
+        "-p",
+        "jackin-preview-app",
+        "--all-targets",
+        "--no-fail-fast",
+        "-E",
+        "test(capsule_prefix_m_paints_the_change_title_cell)"
+      ],
+      "result": "Unchanged selected BOLD test1 passed;183 filtered/unrun",
+      "log": "capsule-649a158843ea.log",
+      "qualification": "Selected test is guarded by source SHA f32e15487bc5d597ac7aaaa059df8c6b5a4adc6ac6e5476a5a6bc78fbf42957e;183 filtered cases are not passes."
+    }
+  ],
+  "fixture_integrity": {
+    "only_adjustments": "Dependency checkout and artifact output paths. No assertion/fixture logic edits across47 tests; previous immutable packets untouched.",
+    "runtime_source_sha256": "b511d5a5530172a9b43bb6abd4976a3cbf114e2acf6bd9b0855554a050bc6dff",
+    "menu_source_hash_records": [
+      {
+        "name": "activation_paths.rs",
+        "original_sha256": "7cf2da7bee683b4911b7400a4d8f7531eead266b36adeae8c8cfd28ba8775538",
+        "adjusted_sha256": "7cf2da7bee683b4911b7400a4d8f7531eead266b36adeae8c8cfd28ba8775538",
+        "only_adjustment": "artifact output root"
+      },
+      {
+        "name": "navigation_guard.rs",
+        "original_sha256": "4f67d4c7e6cc90d9ba2b9232d355a1cd2aa5cbc04de169b9256e97105d665360",
+        "adjusted_sha256": "4f67d4c7e6cc90d9ba2b9232d355a1cd2aa5cbc04de169b9256e97105d665360",
+        "only_adjustment": "artifact output root"
+      },
+      {
+        "name": "hidden.rs",
+        "original_sha256": "e0c128c297bd583877130e8f69c897ca261d13393e1a990acbd96a2d4ab566fb",
+        "adjusted_sha256": "e0c128c297bd583877130e8f69c897ca261d13393e1a990acbd96a2d4ab566fb",
+        "only_adjustment": "artifact output root"
+      },
+      {
+        "name": "scoped.rs",
+        "original_sha256": "837dc7d0e4f91caef0d2099898533f46899901d1262bf6e305045187ea3aa8d0",
+        "adjusted_sha256": "837dc7d0e4f91caef0d2099898533f46899901d1262bf6e305045187ea3aa8d0",
+        "only_adjustment": "artifact output root"
+      },
+      {
+        "name": "edges.rs",
+        "original_sha256": "d5efb65520c29983744d0a94a2a4d670c0aaf2a3f748b5d2a34c0a058d8e7b8c",
+        "adjusted_sha256": "d5efb65520c29983744d0a94a2a4d670c0aaf2a3f748b5d2a34c0a058d8e7b8c",
+        "only_adjustment": "artifact output root"
+      },
+      {
+        "name": "reason.rs",
+        "original_sha256": "0ebbcedf6e11fc52fac159eea2a3ae633eb8283e99f83443a34bf47a6987543f",
+        "adjusted_sha256": "0ebbcedf6e11fc52fac159eea2a3ae633eb8283e99f83443a34bf47a6987543f",
+        "only_adjustment": "artifact output root"
+      },
+      {
+        "name": "unification.rs",
+        "original_sha256": "d13539e9b6af692ae19a1992624cc3c611f15fa9e948e8a92206c77c310b263f",
+        "adjusted_sha256": "d13539e9b6af692ae19a1992624cc3c611f15fa9e948e8a92206c77c310b263f",
+        "only_adjustment": "artifact output root"
+      },
+      {
+        "name": "frozen_assertions.rs",
+        "original_sha256": "56c7227e694b9afb566e8bad462c54ff95ce878fb4ef7820b3cfa4912df84ed5",
+        "adjusted_sha256": "56c7227e694b9afb566e8bad462c54ff95ce878fb4ef7820b3cfa4912df84ed5",
+        "only_adjustment": "artifact output root"
+      },
+      {
+        "name": "menu_observation.rs",
+        "original_sha256": "f0244150da90b59268dcd756ecb807c40176137751aec087cbe21d39c33dcdc0",
+        "adjusted_sha256": "61f4990e95d0d8aaf2c92c3be2ef5f6963c185af0028c93a0832d37518bd15b5",
+        "only_adjustment": "artifact output root"
+      },
+      {
+        "name": "menu_state_matrix.rs",
+        "original_sha256": "ae7428f00243cbcc28c900bdd6214d2119984405ee304d59149f94030c022139",
+        "adjusted_sha256": "9d7d3a857b5d9c8004c4d25248f3ae33169c71a46c7b37846e1a1d96aa0b01c9",
+        "only_adjustment": "artifact output root"
+      },
+      {
+        "name": "release_restore.rs",
+        "original_sha256": "44f98093da2ca26c36b54f81a6adcbf4a9c49f2b7f53a1c160b1cee936ed222a",
+        "adjusted_sha256": "44f98093da2ca26c36b54f81a6adcbf4a9c49f2b7f53a1c160b1cee936ed222a",
+        "only_adjustment": "artifact output root"
+      },
+      {
+        "name": "modifier_overrides.rs",
+        "original_sha256": "68add54267dd2e2e964c865392ae998f853b5b59e40683804def742540fa4a03",
+        "adjusted_sha256": "68add54267dd2e2e964c865392ae998f853b5b59e40683804def742540fa4a03",
+        "only_adjustment": "artifact output root"
+      }
+    ],
+    "frozen_matrix_sha256": "3025f9ac95b62288be112af6b1d403e0577470e86c21b37f4a7d9f95eaaa5103",
+    "fixed_baseline_source": "4169783ae883788186d161af09ba9c481bd84e5c",
+    "fixed_tag_object": "2718a6b8127a522a3d351d0b4bdb7542fc8da542",
+    "tuiscotti_pin": "a1ea27f757d75d07b05499276cd932e9f8e067ad",
+    "nested_layer_proof": "Strong admitted-UPPER test passes. Historical weak ignored-Tick PASS is a control only, never accepted as admission/nearest-layer proof."
+  },
+  "source_identities": {
+    "head": "649a158843eab8bb25f042def6c621c8ce279f09",
+    "status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sources": [
+      {
+        "path": "crates/termrock-runtime/src/ui/layer_buf.rs",
+        "actual_sha256": "e878b27b9aec2fc4995db80ab616cbe0c735bfd2769381236708c649c8310cff",
+        "05a85_sha256": "e878b27b9aec2fc4995db80ab616cbe0c735bfd2769381236708c649c8310cff",
+        "identical_to_05a85": true
+      },
+      {
+        "path": "crates/termrock-runtime/src/ui/mod.rs",
+        "actual_sha256": "9c131823905d55e56992154762634a62520061325477bbbf455613c97c1138d4",
+        "05a85_sha256": "9f61ea60bfc66cfa3fb7f979e7a044ff4bbdca97bfaaea876f1f2e20166db39a",
+        "identical_to_05a85": false
+      },
+      {
+        "path": "crates/termrock-overlays/src/menu.rs",
+        "actual_sha256": "9e2c9ea0d188ce4214e679e2961f90f8c8fff6e78de1022c4fdc073762dd4184",
+        "05a85_sha256": "9e2c9ea0d188ce4214e679e2961f90f8c8fff6e78de1022c4fdc073762dd4184",
+        "identical_to_05a85": true
+      },
+      {
+        "path": "crates/termrock-theme/src/lib.rs",
+        "actual_sha256": "abcd6a7fff00260bee2d69bd6fde3ee5af1b7c32392702b043a6266149a56812",
+        "05a85_sha256": "abcd6a7fff00260bee2d69bd6fde3ee5af1b7c32392702b043a6266149a56812",
+        "identical_to_05a85": true
+      },
+      {
+        "path": "crates/termrock-runtime/src/rowui.rs",
+        "actual_sha256": "8b5c5e0c03120f20786d6ece6158241d5822bd435725dbf9ebb2263e86e8e9be",
+        "05a85_sha256": null,
+        "identical_to_05a85": null
+      }
+    ]
+  },
+  "execution": {
+    "toolchain": [
+      "rustup",
+      "run",
+      "1.99.1",
+      "cargo"
+    ],
+    "environment": {
+      "CARGO_BUILD_JOBS": "4",
+      "NEXTEST_TEST_THREADS": "4"
+    },
+    "target_ownership": "Fresh exclusive child-owned per-job target directories suffixed649a158843ea; parent /private/tmp/termrock-root-exclusive-649a158843ea-20261021 target never accessed or reused.",
+    "head_status_guard": "Exact649a158843eab8bb25f042def6c621c8ce279f09 and strictly empty git porcelain-v1 -z status verified before and after every job and matrix check.",
+    "raw_status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "deadlines": "205second main deadline, new owned process session/group, TERM5/KILL3 cleanup bound213seconds. All jobs finished normally38.8\u2013128.5seconds, no interruption/timeout/signal, leaders reaped and groups gone.",
+    "receipts": {
+      "menu": {
+        "job": "menu",
+        "head": "649a158843eab8bb25f042def6c621c8ce279f09",
+        "command": [
+          "rustup",
+          "run",
+          "1.99.1",
+          "cargo",
+          "nextest",
+          "run",
+          "--all-targets",
+          "--no-fail-fast"
+        ],
+        "cwd": "/private/tmp/menu-runtime-final-649a1588-menu-consumer-20261021",
+        "target": "/private/tmp/menu-runtime-final-owned-menu-target-20261021-649a158843ea",
+        "exit": 0,
+        "cargo_exit": 0,
+        "timed_out": false,
+        "owned_pgid": 24234,
+        "cleanup": {
+          "term_sent": false,
+          "kill_sent": false,
+          "group_gone": true,
+          "leader_reaped": true,
+          "elapsed_seconds": 60.57636237499537
+        },
+        "bound_preexisting_status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "log": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/branch-consolidation/menu-runtime-final-649a1588-integration-review-20261021/menu-649a158843ea.log",
+        "log_sha256": "c2f8a9e4e9f46aac2f9116349683eaa357f6d7675f92903161e5f8a85b1c02eb"
+      },
+      "runtime": {
+        "job": "runtime",
+        "head": "649a158843eab8bb25f042def6c621c8ce279f09",
+        "command": [
+          "rustup",
+          "run",
+          "1.99.1",
+          "cargo",
+          "nextest",
+          "run",
+          "--all-targets",
+          "--no-fail-fast"
+        ],
+        "cwd": "/private/tmp/menu-runtime-final-649a1588-runtime-consumer-20261021",
+        "target": "/private/tmp/menu-runtime-final-owned-runtime-target-20261021-649a158843ea",
+        "exit": 0,
+        "cargo_exit": 0,
+        "timed_out": false,
+        "owned_pgid": 24242,
+        "cleanup": {
+          "term_sent": false,
+          "kill_sent": false,
+          "group_gone": true,
+          "leader_reaped": true,
+          "elapsed_seconds": 38.789443458023015
+        },
+        "bound_preexisting_status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "log": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/branch-consolidation/menu-runtime-final-649a1588-integration-review-20261021/runtime-649a158843ea.log",
+        "log_sha256": "fc163ccb568c72c04eda1e07fbcdc1143f8ff9998d42bb48f0c7fdcab401f3e7"
+      },
+      "capsule": {
+        "job": "capsule",
+        "head": "649a158843eab8bb25f042def6c621c8ce279f09",
+        "command": [
+          "rustup",
+          "run",
+          "1.99.1",
+          "cargo",
+          "nextest",
+          "run",
+          "-p",
+          "jackin-preview-app",
+          "--all-targets",
+          "--no-fail-fast",
+          "-E",
+          "test(capsule_prefix_m_paints_the_change_title_cell)"
+        ],
+        "cwd": "/Users/donbeave/Projects/termrock-worktrees/pr38-style-delivery-20261020",
+        "target": "/private/tmp/menu-runtime-final-owned-native-target-20261021-649a158843ea",
+        "exit": 0,
+        "cargo_exit": 0,
+        "timed_out": false,
+        "owned_pgid": 24291,
+        "cleanup": {
+          "term_sent": false,
+          "kill_sent": false,
+          "group_gone": true,
+          "leader_reaped": true,
+          "elapsed_seconds": 128.41630041698227
+        },
+        "bound_preexisting_status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "log": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/branch-consolidation/menu-runtime-final-649a1588-integration-review-20261021/capsule-649a158843ea.log",
+        "log_sha256": "7a22f0704b69355497f07e9245342c00533870ad117c82659bef7dd022851236"
+      }
+    }
+  },
+  "previous_packet": {
+    "commit": "05a85a0065005eddb9979b852ff15f9036c8099c",
+    "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/branch-consolidation/menu-runtime-next-integration-review-20261021/review.json",
+    "sha256": "c157fe15d342aa1ca62c34869f7ab7a2854e57ea019697b913efb3ed3123f94c"
+  },
+  "exclusions": [
+    "This is an exact-HEAD regate of unchanged public Menu/Runtime contracts and one unchanged App test, not an independent architecture/API approval of remotee937 Ui::with_theme, RowUi container-width additions or cab4 test-only repairs. Relevant Runtime diff and actual source hashes are preserved.",
+    "LayerBuf/Menu/Theme source files match05. Ui::mod and RowUi include additional additive source changes; unchanged existing consumers pass, while new API behavior requires its own review/tests.",
+    "No approval of stored/new expectation values, snapshot updates, palettes, scalar73 reference-data decisions or additional Menu/Theme color behavior.",
+    "No full frozen real CLI/Tuiscotti paired application inventory, twice-repeated full application gate, complete color/cursor/terminal cleanup comparison, full architecture acceptance or hosted CI verification.",
+    "Parent-owned native811/Clippy/fmt/final remote publication checks are not claimed as independently run by this child.",
+    "No helper agents, production/original checkout edits, commits, pushes, tag changes or reference changes."
+  ],
+  "artifacts": {
+    "bound-empty-status.raw": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "candidate-menu-observation.txt": "35005066eddfcecdd0bd611d3448389555be71c77fc7d1643abcffd3e2829cb1",
+    "candidate-state-matrix.txt": "7f5cc0d27b299212d88d08c5596c3bbbb9cf6190def6456b72b116feaaf6d3e0",
+    "candidate-unowned-cursor.txt": "46257e7eead3eb0c9b7d5d037219b771c96ea137e9f0a10f222bc14669f4ca15",
+    "capsule-649a158843ea-receipt.json": "b1f6ca3f68faee9d1626bcc5ac4030015a5e1f0e479e2f5b40948e8e1555b458",
+    "capsule-649a158843ea.log": "7a22f0704b69355497f07e9245342c00533870ad117c82659bef7dd022851236",
+    "compare-matrix.py": "08b16cd6473fda3847f56a9bd51be52050f7b91ae29546201b4a0719187e3b23",
+    "fixture-menu-activation_paths.rs": "7cf2da7bee683b4911b7400a4d8f7531eead266b36adeae8c8cfd28ba8775538",
+    "fixture-menu-edges.rs": "d5efb65520c29983744d0a94a2a4d670c0aaf2a3f748b5d2a34c0a058d8e7b8c",
+    "fixture-menu-frozen_assertions.rs": "56c7227e694b9afb566e8bad462c54ff95ce878fb4ef7820b3cfa4912df84ed5",
+    "fixture-menu-hidden.rs": "e0c128c297bd583877130e8f69c897ca261d13393e1a990acbd96a2d4ab566fb",
+    "fixture-menu-menu_observation.rs": "61f4990e95d0d8aaf2c92c3be2ef5f6963c185af0028c93a0832d37518bd15b5",
+    "fixture-menu-menu_state_matrix.rs": "9d7d3a857b5d9c8004c4d25248f3ae33169c71a46c7b37846e1a1d96aa0b01c9",
+    "fixture-menu-modifier_overrides.rs": "68add54267dd2e2e964c865392ae998f853b5b59e40683804def742540fa4a03",
+    "fixture-menu-navigation_guard.rs": "4f67d4c7e6cc90d9ba2b9232d355a1cd2aa5cbc04de169b9256e97105d665360",
+    "fixture-menu-reason.rs": "0ebbcedf6e11fc52fac159eea2a3ae633eb8283e99f83443a34bf47a6987543f",
+    "fixture-menu-release_restore.rs": "44f98093da2ca26c36b54f81a6adcbf4a9c49f2b7f53a1c160b1cee936ed222a",
+    "fixture-menu-scoped.rs": "837dc7d0e4f91caef0d2099898533f46899901d1262bf6e305045187ea3aa8d0",
+    "fixture-menu-unification.rs": "d13539e9b6af692ae19a1992624cc3c611f15fa9e948e8a92206c77c310b263f",
+    "fixture-runtime.rs": "b511d5a5530172a9b43bb6abd4976a3cbf114e2acf6bd9b0855554a050bc6dff",
+    "frozen-state-matrix.txt": "3025f9ac95b62288be112af6b1d403e0577470e86c21b37f4a7d9f95eaaa5103",
+    "matrix-649a158843ea.log": "da0b78fb41b76c36a770391df30c1a71838ecc352ff54b72d716dde0a7a8f737",
+    "matrix-comparison.json": "34f765f5733d90109aae41508492df8ddbc470b8432ce115c34d8d6e6695d000",
+    "menu-649a158843ea-receipt.json": "d13209d118d5a3254672e8ae648d7c5c43b934f2f732d831cae6366ec0b32da0",
+    "menu-649a158843ea.log": "c2f8a9e4e9f46aac2f9116349683eaa357f6d7675f92903161e5f8a85b1c02eb",
+    "menu-Cargo.lock": "2646178e26bdffd64499a57cb266a8ac79e0212f02f4cd92b55e22dca923ea0e",
+    "menu-Cargo.toml": "e49436730c50f439a209457f4906da7c2a4ea5eafb57d33d25dc2d9461c880ae",
+    "prepared.json": "5f1993e42304be07e464355fb947a42ea0322790ef0276dd96275746562c13c2",
+    "run-bounded.py": "38a06566848b4b87561bda32f5ded72b0efc029fd21a09204b88ceda380fa2cb",
+    "runtime-649a158843ea-receipt.json": "78a4eb9daa5c22aaee498979cae0a714ffc0390250fffa74294d272a373a06b6",
+    "runtime-649a158843ea.log": "fc163ccb568c72c04eda1e07fbcdc1143f8ff9998d42bb48f0c7fdcab401f3e7",
+    "runtime-Cargo.lock": "5295d6cd18767768c1fe111ec1e04cd2aeff68d68a7433bf4b6fed05b2f7f905",
+    "runtime-Cargo.toml": "3fddefee81117dd28a6c5bdbdf2e84a48233f615be11fed466ed5bb00c5f5eb1",
+    "runtime-source-changes-since-05a85.diff": "328219efc0c8d5ce8177112a5afab72556de964f6a5f08522c1dd55612ef63ca",
+    "source-identities-649a158843ea.json": "dfa0c99a6cb8c48a8946323927146abf87a7db2788ba1eec839a724727c5a92e"
+  }
+}

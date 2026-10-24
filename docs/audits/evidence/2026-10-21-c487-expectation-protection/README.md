@@ -1,0 +1,5 @@
+# Restore the pre-approval test gate
+
+Commit c487a61ac05a674b4e9f54358da98d6ce7a2db1f changed 38 candidate-native expected digests: six Buttons and 32 CodeEditor cases. Product and harness source were identical before and after. Independent execution with BLESS and UPDATE_BASELINE absent changed the same native gate from failing to passing. No fixed-baseline repeat capture or independently documented reference decision authorizes those replacements; existing Buttons records expressly withhold that authority.
+
+This change restores only the prior expectation bytes and preserves both versions and the independent rejection. It does not bless the prior file as a new frozen oracle or resolve existing reference-data conflicts. Those need the pinned baseline, identical conditions and a separate documented decision. No application renderer is restored. No captured baseline CLI frame is changed. The native gate is expected to remain red while candidate parity or reference-data decisions are incomplete.

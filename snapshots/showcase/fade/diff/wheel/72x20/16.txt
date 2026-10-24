@@ -1,0 +1,20 @@
+ ▪ Junie Design system / Components / Diff        i Inspector   ? Help
+
+   Buttons        │  Diff viewer  Unified or old / new review · narrow…
+   Inputs         ┃
+   Text areas     ┃  ▎● Review    ○ Empty
+   Forms          ┃
+   Lists          ┃  ╭─ Diff ──────────────────────────────────────────╮
+   Trees          ┃  │    3 region = "東京"   │   4 region = "東京"  │ │
+   Tables         ┃  │    4 label = "café ☕" │   5 label = "café ☕"┃ │
+   Editable tabl… ┃  │    5 endpoint = "http… │   6 endpoint = "http…┃ │
+   Panels         ┃  │    6 enabled = true    │   7 enabled = true   │ │
+   Sidebars       ┃  │  ─────────────────────────────────────────────│ │
+   Dialogs        ┃  │  @@ -9,6 +10,7 @@                             │ │
+   Progress       ┃  │    9 [service.worker_… │  10 [service.worker_…│ │
+   Scrolling      │  │   10 attempts = 3      │  11 attempts = 5     │ │
+   Terminal       │  │                        │  12 backoff = "expon…│ │
+   Code editor    │  │   11 region = "東京"   │  13 region = "東京"  │ │
+ › Diff           │  ╰─────────────────────────────────────────────────╯
+
+ Enter Toggle  Tab Next control

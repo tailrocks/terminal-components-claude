@@ -1,0 +1,16 @@
+    Blocking waiting for file lock on package cache
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.66s
+────────────
+ Nextest run ID 4bfc7a9a-c035-48dc-a5a0-8a03c8c45b29 with nextest profile: default
+    Starting 9 tests across 4 binaries
+        PASS [   0.020s] (1/9) external-consumer-demo::public_api_only sources_import_only_the_public_facade
+        PASS [   0.023s] (2/9) external-consumer-demo::public_api_only manifest_depends_on_the_public_facade_only
+        PASS [   0.024s] (3/9) external-consumer-demo::consumer external_consumer_collapses_to_one_pane_on_a_narrow_terminal
+        PASS [   0.026s] (4/9) external-consumer-demo::consumer external_consumer_renders_identically_on_two_runs
+        PASS [   0.027s] (5/9) external-consumer-demo::consumer external_consumer_renders_its_own_domain_data_in_a_stable_layout
+        PASS [   0.029s] (6/9) external-consumer-demo::consumer external_consumer_pointer_input_produces_typed_actions
+        PASS [   0.029s] (7/9) external-consumer-demo::consumer external_consumer_keyboard_input_produces_typed_actions
+        PASS [   0.029s] (8/9) external-consumer-demo::consumer external_consumer_summary_button_produces_a_typed_domain_action
+        PASS [   0.032s] (9/9) external-consumer-demo::consumer external_consumer_status_bar_reports_a_typed_action
+────────────
+     Summary [   0.032s] 9 tests run: 9 passed, 0 skipped

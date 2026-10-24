@@ -1,0 +1,90 @@
+{
+  "schema": "termrock.independent-review.v1",
+  "created_utc": "2026-10-21T05:15:43.199136+00:00",
+  "reviewer": "/root/semantic_tabs_independent_review",
+  "commit": "c4b5e3fc1ef162a11bcc0cfb5746e0cddf8a60b8",
+  "verdict": "CLEAR_BOUNDED_COMPONENT",
+  "findings": [],
+  "resolved_findings": [
+    {
+      "original_commit": "d403804b8831376c775478eb7b7826d6579bec68",
+      "severity": "P2",
+      "path": "crates/termrock-navigation/src/tabs.rs",
+      "original_line": 1257,
+      "status": "Resolved",
+      "explanation": "semantic_label_extent now retains logical writer position, intersects each write independently, tracks bounded visible nonblank occupancy including overwrite and wide continuation reset, and advances the logical writer by the same painted width returned to CellWriter. No Ui, buffer lookup, input dispatch or painting occurs during measurement. The exact prior public reproduction fails at d403 and passes at detached c4b5."
+    }
+  ],
+  "source_sha256": "0844f07bb5127ad11d2a2796d3b716d632686543faf7f219521869c13ec11700",
+  "checks": [
+    {
+      "command": "cargo nextest run -p termrock-navigation --lib",
+      "exit": 0,
+      "passed": 107,
+      "failed": 0,
+      "skipped": 0,
+      "log": "native.log",
+      "tree": "/private/tmp/tabs-independent-c4b5-20261021",
+      "target": "/private/tmp/tabs-review-consumer-c4b5-target"
+    },
+    {
+      "command": "cargo nextest run --manifest-path /private/tmp/tabs-review-consumer-c4b5-20261021/Cargo.toml --no-fail-fast",
+      "exit": 0,
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0,
+      "log": "expanded-exact.log",
+      "target": "/private/tmp/tabs-review-consumer-c4b5-exact-target",
+      "details": {
+        "unchanged_original_probe_count": 4,
+        "unchanged_original_probe_sha256": "f23108ada136239f0a558d2d575b1ca96704130612f7f2b3e974a57d453c3842",
+        "unicode_split_write_clipped_buffer_pairs": 8928,
+        "buffer_region_cursor_geometry_profile_pairs": 240,
+        "profiles": [
+          "TrueColor",
+          "Ansi256",
+          "Ansi16",
+          "Mono"
+        ],
+        "geometry": "Zero-sized, widths 1/2/8, left/vertical clipping, and origin (65520,65530) width15 height3; closable and allow_new combinations; Error status.",
+        "text": "Empty and split Display writes, combining marks split across writes, wide glyphs, trailing/overwriting spaces, controls, and wide glyph truncation followed by further writes."
+      }
+    },
+    {
+      "command": "cargo clippy -p termrock-navigation --all-targets -- -D warnings",
+      "exit": 0,
+      "log": "clippy.log"
+    },
+    {
+      "command": "cargo fmt --check",
+      "exit": 0,
+      "log": "fmt.log"
+    },
+    {
+      "command": "git diff --check",
+      "exit": 0
+    }
+  ],
+  "purity_and_ownership": "Pure semantic layout accepts immutable component state/data/geometry and owns formatted write segments; no runtime/input/domain handlers. Drawing consumes owned segments without invoking item Display. State and stable keys remain in the existing TabsState; explicit warm-window receipt remains caller-owned. Existing arbitrary RowFn path and public signatures remain compatible. No unsafe code or new concurrency mechanism.",
+  "preserved_prior_evidence": "semantic-tabs-independent-review-d403804b-20261021/review.json remains the immutable original HOLD. Its archived external-consumer.rs is the unchanged prefix of this expanded consumer source.",
+  "rejected_exploratory_runs": "repro.log and expanded.log passed but were rejected for exact-commit evidence: copied manifest inherited an author-modified path to /private/tmp/tabs-semantic-layout-writer-20261021. The initial reviewer-owned original consumer manifest had been relinked by the author. Corrected consumer manifest now explicitly names the detached c4b5 tree. expanded-exact.log rebuilt with a new clean target and is the only accepted expanded external run. Author and parent notified to preserve reviewer-owned artifacts.",
+  "limitations": [
+    "This clears the bounded semantic Tabs library increment only, including the reviewed P2 correction.",
+    "It does not approve unrelated commits inherited through the normal PR38 merge.",
+    "No facade/runtime publication integration or real application adoption yet.",
+    "No full frozen tuiscotti CLI comparison, terminal-mode/cleanup proof, or full workspace gate performed.",
+    "No exhaustive independent actual input dispatch/modal/disabled/custom-part-slot matrix. Existing native tests cover reference focus/hover/pressed state comparisons, warm receipt and key reorder."
+  ],
+  "workspace_integrity": "Detached sparse read-only product worktree at exact c4b5. No product source edits, commits, pushes, tag changes or expected-reference modifications. All owned subprocess groups bounded under 220 seconds and reaped.",
+  "artifacts": {
+    "Cargo.lock": "738717b22cfcf7928e38ea23c2e3dfb673a722da21a3f20771a384d9e7be5d99",
+    "Cargo.toml": "943de9d787e4b77ed72aaa65cb2b9231f0989ef65df466a28d33728fe9e9696b",
+    "clippy.log": "91d8e18b154f5e3c8872dbe6d33e4315aa7d54066c748fd8e2d6823e717af44e",
+    "expanded-exact.log": "c9606b1ca1212b77f59b26a9c3d0a19959cbb5e7411cad9a4bcefb24c35a9752",
+    "expanded.log": "3919824a0de294a354e31664fe700bfa47ba9de3cf25728a31c16c1149f08527",
+    "external-consumer.rs": "4bc0fa1949d21b27f2827bff842b5400f7a926d41315f7820304aee6aa2714ed",
+    "fmt.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "native.log": "3eba5a7269fadceae871cd13619deb59dee8804a7f0d89af762007fcd7b4b85f",
+    "repro.log": "6d8160bb04b8c05002211d9a5ea17e531b966e89c2239cdbfb6835e98f627e03"
+  }
+}

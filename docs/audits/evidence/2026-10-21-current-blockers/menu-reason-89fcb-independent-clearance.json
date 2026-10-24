@@ -1,0 +1,150 @@
+{
+  "schema": "termrock.independent-review.v1",
+  "reviewer": "/root/menu_reason_independent_review",
+  "created_utc": "2026-10-21T05:27:42.380473+00:00",
+  "reviewed_commit": "89fcb288f1c72b22fcebc2a30fd69db9e9f7ed11",
+  "feature_base": "6841e67ed4d240d9b39478b2e99f39ff48b8189b",
+  "previous_reviewed_commit": "c78e449b5d4f7f41f1f53d94260bde9aff2c068f",
+  "decision": "CLEAR for the bounded shared Menu disabled-reason implementation and authorized title-padding repair. No actionable findings remain in the reviewed increment. This is not application, architecture, or full product parity acceptance.",
+  "findings": [],
+  "prior_findings": [
+    {
+      "id": "MENU-REASON-01",
+      "status": "fixed",
+      "path": "crates/termrock-overlays/src/menu.rs:646",
+      "evidence": "item_reason filters disabled/nonempty text before status_reason applies pointed-then-highlighted fallback. Original public runtime probe source is unchanged and changes RED on c78e to GREEN on 89fcb. Author public test additionally covers empty-reason fallback."
+    },
+    {
+      "id": "MENU-REASON-02",
+      "status": "fixed",
+      "path": "crates/termrock-overlays/src/menu.rs:991",
+      "evidence": "Disabled rows no longer derive HOVERED or PRESSED. Original held-row full-Cell probe changes RED on c78e to GREEN on 89fcb. New independent custom-recipe test checks that explicit hover/press rules do not leak through disabled state. Author native test verifies rest/hover/held/drag/release full row equality in all four profiles. This intentionally repairs an inherited candidate defect rather than claiming unchanged disabled-pointer frames."
+    }
+  ],
+  "supersedes": {
+    "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/branch-consolidation/menu-disabled-reason-review-c78e-20261021/review.json",
+    "sha256": "22edadfe23e4a8a82ee2c75bb92b6df42fd2a5788a3aace66c9888615c5004c7",
+    "scope": "Closes both previous actionable findings for this corrected source; preserves previous evidence and its rejected fixture analysis."
+  },
+  "checks": [
+    {
+      "command": "cargo nextest run -p termrock-overlays --all-targets --no-fail-fast",
+      "exit": 0,
+      "passed": 134,
+      "failed": 0,
+      "skipped": 0,
+      "log": "native-nextest.log"
+    },
+    {
+      "command": "cargo nextest run --manifest-path /private/tmp/menu-reason-independent-external-89fcb-20261021/Cargo.toml --no-fail-fast",
+      "exit": 0,
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0,
+      "log": "external-nextest.log",
+      "scope": "Both unchanged original regression functions, custom recipe precedence, default paired cell capture, and default press-before-release behavior."
+    },
+    {
+      "command": "cargo nextest run --manifest-path /private/tmp/menu-reason-independent-external-89fcb-20261021/Cargo.toml --test edges --no-fail-fast",
+      "exit": 0,
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "log": "edges-theme-clippy-fmt.log",
+      "scope": "520 independent consumer configurations: four profiles, widths 0..12, heights 0..4, empty or all-disabled Unicode data; Home/End/Up/Down/Enter/Space and pointer operations where addressable; no panic or chosen action."
+    },
+    {
+      "command": "cargo nextest run -p termrock-theme --lib",
+      "exit": 0,
+      "passed": 94,
+      "failed": 0,
+      "skipped": 0,
+      "log": "edges-theme-clippy-fmt.log"
+    },
+    {
+      "command": "cargo clippy -p termrock-overlays -p termrock-theme --all-targets -- -D warnings",
+      "exit": 0,
+      "log": "edges-theme-clippy-fmt.log"
+    },
+    {
+      "command": "cargo fmt --all -- --check",
+      "exit": 0,
+      "log": "edges-theme-clippy-fmt.log"
+    },
+    {
+      "command": "git diff --check",
+      "exit": 0,
+      "log": "edges-theme-clippy-fmt.log"
+    }
+  ],
+  "default_compatibility": {
+    "base": "6841e67ed4d240d9b39478b2e99f39ff48b8189b",
+    "candidate": "89fcb288f1c72b22fcebc2a30fd69db9e9f7ed11",
+    "result": "32 full Cell-field event snapshots identical byte for byte",
+    "profiles": [
+      "TrueColor",
+      "Ansi256",
+      "Ansi16",
+      "Mono"
+    ],
+    "cell_observations": 7680,
+    "bytes_each": 1023736,
+    "sha256_each": "1bf37c86f96c7fe4bca64a9411db5425b66e2efbd21855dab72d93a0365e5167",
+    "before_file": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/branch-consolidation/menu-disabled-reason-review-c78e-20261021/default-before-full-cells.txt",
+    "after_file": "default-after-full-cells.txt",
+    "intentional_difference": "Disabled hover and held-press frames change to inert appearance; unchanged-frame claim only covers the recorded enabled interactions and ordinary default content.",
+    "limits": "Cell fields only; no cursor/terminal mode or all application flow parity claim."
+  },
+  "source_review": {
+    "public_API": "MenuItem and MenuState fields remain private; borrowed reason uses existing lifetime, additive const builders/getter; action enums and existing signatures unchanged.",
+    "state_ownership": "MenuState owns navigation/hover suppression/reason selection; no caller repaint or fake control. Disabled items retain reasons independently of hints/chords and cannot activate.",
+    "theme": "The complete 6841..89fcb theme diff is one MENU DEFAULT HELP muted recipe line; no global palette, other family, or scalar changes.",
+    "override_precedence": "Existing HELP part patch and slot tests remain green; custom MENU ROW HOVERED/PRESSED recipe cannot override disabled inert state because those flags are withheld. Disabled keyboard ACTIVE remains separate from transient press.",
+    "frozen_contract": "Frozen menu assigns disabled state before RowUi resolution and excludes disabled release-activation targets; scoped correction follows that responsibility without claiming exact frozen cell colors.",
+    "title_padding": "Authorized d148 repair restores label painting through the inset rect; existing title-padding native regression passes.",
+    "foreign_source": "e4eae58e1b105f51d8e2ed7f580885498397ff2a is not an ancestor of reviewed source; no foreign e4 changes merged into this review copy.",
+    "safety": "No unsafe code, new dependencies, baseline changes, replay mechanism, application edits, extra input/rendering system, or component ownership violation introduced in reviewed diff."
+  },
+  "remaining_limits": [
+    "No real pinned CLI Capsule adoption or paired baseline/candidate capture was performed.",
+    "Existing resize/reanchor and overflow contracts remain outside this increment; no general Menu lifecycle or pure-layout approval.",
+    "Full overlay-stack/cursor/focus restoration and arbitrary dynamic data interleavings were not exhaustively independently proven.",
+    "No full workspace Nextest/Clippy, hosted CI, Showcase capability adoption, or application/library final acceptance claimed."
+  ],
+  "source_sha256": {
+    "crates/termrock-overlays/src/menu.rs": "7acd907a40d1d7aee81c7a463848df7bf3b312aa2d9db3148e2b8204437c1d0f",
+    "crates/termrock-theme/src/builtin/mod.rs": "f332de27d13683c7020a6c883c3fe2a4b1422d1d23b28709de686169fc6cc815",
+    "crates/termrock-overlays/tests/context_menu_disabled_reason.rs": "9b8320d0f328aca649e353891329d3e408c964bf9c7c29a2c1501cb91f246253",
+    "docs/audits/2026-10-21-menu-disabled-reason.md": "6547ca626cea28304404cb4b274b1385278ae06f9839064a58d45515f609b8d2"
+  },
+  "artifacts": {
+    "default-after-full-cells.txt": {
+      "sha256": "1bf37c86f96c7fe4bca64a9411db5425b66e2efbd21855dab72d93a0365e5167",
+      "bytes": 1023736
+    },
+    "edges-theme-clippy-fmt.log": {
+      "sha256": "58f8e4413318d5fba72b463344b210df0666f90653f35bddc19bb3bf838c6e66",
+      "bytes": 16094
+    },
+    "external-default.rs": {
+      "sha256": "93aadc1598f71790ae1a6c7be19504536475dca3b3bfdac0e0664d70e8475e0c",
+      "bytes": 2702
+    },
+    "external-edges.rs": {
+      "sha256": "d5efb65520c29983744d0a94a2a4d670c0aaf2a3f748b5d2a34c0a058d8e7b8c",
+      "bytes": 1993
+    },
+    "external-nextest.log": {
+      "sha256": "ddf20a3033fb042ca3328931685b427693ce6d331598d334020399ae8db60240",
+      "bytes": 5988
+    },
+    "external-reason.rs": {
+      "sha256": "0ebbcedf6e11fc52fac159eea2a3ae633eb8283e99f83443a34bf47a6987543f",
+      "bytes": 3574
+    },
+    "native-nextest.log": {
+      "sha256": "b75db2b39ef40db51014fe2c90da8c2490c33d6ba9e1e54bab653beda0a83316",
+      "bytes": 21916
+    }
+  }
+}

@@ -1,0 +1,88 @@
+{
+  "schema": "independent-production-path-review-v1",
+  "reviewer": "/root/radio_navigation_independent_reviewer",
+  "created_at": "2026-10-21T02:58:11.965610+00:00",
+  "pinned_remote_commit": "3387a22b37df758fcb536d503122cabf33340413",
+  "inspected_commits": [
+    "501cd02170cfb6cebab9be4c6ecb9e69425b475c",
+    "4f40bb294da89bbfcb2a6716c88a3158427aa0b2"
+  ],
+  "baseline_source": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "decision": "blocked_production_replay_and_missing_shared_controls",
+  "findings": [
+    {
+      "id": "ACCOUNTS-DRAWER-REPLAY-01",
+      "severity": "P1",
+      "path": "crates/jackin-preview-app/src/app.rs:7338-7539",
+      "problem": "The new painter replaces deleted RUNS files but retains exact120x40,TrueColor,exact accent RGB(0x48,0xe0,0x54),AccountsMixed,Paused,acct-claude-work,cursor4,and literal status predicates. It paints after live content/layers, selecting a second screen implementation for a captured state. The same predicate remains in pinned remote source.",
+      "replacement_owner": "Remove the alternate render selectors and route every account state through one responsive shared master-detail composition with real controls and explicit view data."
+    },
+    {
+      "id": "ACCOUNTS-DRAWER-LIVE-DATA-02",
+      "severity": "P1",
+      "path": "crates/jackin-preview-app/src/app/accounts_drawer_view.rs:16-455",
+      "problem": "paint_page receives only Ui and PaneChrome, not current account/registry/usage data. It supplies literal account rows, identity,Team,enabled yes,fixed validation/status/time strings,prewrapped fragments,11 blank rows,and meter fill/track cell counts. Two real-App probes mutate the selected domain account: plan remains Team and enabled remains yes.",
+      "baseline_evidence": "Frozen accounts.rs inspector_lines reads a.identity.plan at1583 and a.enabled at1613; draw_inspector measures/wraps current lines.",
+      "replacement_owner": "Application derives semantic live view data; shared List/Props/Progress/Button and master-detail block own layout and mechanics."
+    },
+    {
+      "id": "ACCOUNTS-DRAWER-CONTROLS-03",
+      "severity": "P1",
+      "path": "crates/termrock-feedback/src/accounts_drawer.rs:672",
+      "problem": "paint_buttons paints labels but registers no IDs, focus regions, input/update actions or cursor. PaneRow has selected bool rather than shared collection state. All accounts_drawer.rs is drawing-only with no control registration. Real rendered drawer ring contains only5 navigation IDs,accounts.list,andaccount-add; no visible Refresh/Validate/Edit/Set default/Disable/Remove controls.",
+      "baseline_evidence": "Frozen rebuild_actions creates Button::new(INSPECTOR.sub(n),label,kind) at1120; draw_inspector uses ButtonRow and stored actions at1702; keyboard/pointer paths dispatch those buttons.",
+      "replacement_owner": "Use real shared buttons/list state and typed actions with matching layout bounds; do not register invisible controls as a workaround."
+    }
+  ],
+  "test_results": {
+    "external": {
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "--manifest-path",
+        "/Users/donbeave/Projects/termrock-cli-evidence-20261021/branch-consolidation/accounts-drawer-review-3387a22-20261021/consumer/Cargo.toml",
+        "--all-targets",
+        "--no-fail-fast"
+      ],
+      "exit": 100,
+      "seconds": 16.427587540994864
+    },
+    "summary": "3 run,0 passed,3 failed,0 skipped",
+    "tests": [
+      "drawer_identity_plan_uses_live_domain_data",
+      "drawer_enabled_field_uses_live_domain_data",
+      "drawer_action_labels_have_real_registered_controls"
+    ]
+  },
+  "fixture_provenance": {
+    "501cd_4f40": "Neither commit edits expected fixture files. Their commit messages claim selected truecolor cases match; no paired capture evidence is committed with these changes. This review does not infer they refreshed account approvals.",
+    "separate_refresh_commit": "9ab3bde9ad69c2ac10ec5387477ddf6b9180f832",
+    "separate_refresh_path": "crates/jackin-preview-app/tests/baselines/jackin.txt",
+    "separate_refresh_scope": "Exactly4 capsule-multi120x40 records change: junie mono,truecolor,paper mono,truecolor. Old four values ff0e389265cd0e98 replaced by858523b61b8956da,de16e66c68e1e2b2,40522e1a790d21d0,02282e8117d750ae respectively. These are capsule fixture changes, not account drawer approval changes.",
+    "authority_gap": "The native visual.rs obtains candidate App::for_scenario snapshots and checks local digest file across2sizes/2themes/2colorlevels. This file itself does not prove frozen CLI authority or authenticated paired captures. Preserve old/new values pending independent pinned-baseline evidence; no approval decision is made here."
+  },
+  "limitations": [
+    "No real CLI or tuiscotti capture executed. Frozen behavior cited from immutable source only.",
+    "No claim of exact visual differences, complete application parity,or full-workspace checks.",
+    "Public mutations prove candidate live-data failure; no frozen binary mutation flow was executed."
+  ],
+  "repository_source_edits": false,
+  "expected_artifact_edits": false,
+  "artifacts": {
+    "candidate-refresh.diff": "cf78a3b307153c84e66c104dfddce7460fa91811fbe32ca6303993963fcba7b2",
+    "501cd.diff": "d1deb1605fd6b90c4bec6e3eefb2373c5b627c974533f8025cb98959ec816809",
+    "4f40.diff": "b0f91624b692226de8568712e814826c484f163d734ef34cdc352bf84dbdd412",
+    "external.log": "46394370f240c27fa12dbd0e1b5495b3619b56bd6390a52c1aec48fe3d560feb",
+    "execution.json": "975a9e9e3f5746271f3cac4cdbba9714d7c4be6fe5aabdaa2dfd79776d1bc4a5",
+    "frozen-accounts.rs": "b716d3d68a2de0b1965a436b38bd6ede38e6a371e1c4c3d9f6256ef1b3d426c3",
+    "consumer/Cargo.toml": "4e5e08ae4db63faaf88a7a8e06dd075d3135a23b580cc5cb6c068ca949c5d96d",
+    "consumer/Cargo.lock": "9e34f7041f506dfae8f804180315d2f26df15aa0e1269bfd79962e5d43854089",
+    "consumer/tests/live.rs": "3ec06bafe4ff94ca1b5e7f8d7e06b5286dbca52af81243f8f4986a3ffa70aefb",
+    "source/crates/jackin-preview-app/tests/visual.rs": "40a5ebb807dcb164168a014e4fc00c2da57bad3ff63fdfce712fd310fae82313",
+    "source/crates/jackin-preview-app/src/app.rs": "8a2c190b610d3f6f4c004bcd90901c18e8ad8c9ffa7d49569fa1727c3d7919f1",
+    "source/crates/jackin-preview-app/src/app/accounts_drawer_view.rs": "cf362c94b5f06b28aa936632cbef6fa0e4ecc554af87215a6ea3f73a97b3aaf3",
+    "source/crates/termrock-feedback/src/accounts_drawer.rs": "892b18891a152175abb21fdef872311932e1fe13de4c4b657d389499e66c8016"
+  },
+  "subsequent_remote_observation": "2b3595a55fdcd15083946942676f378f70c9e124 (observed after review; not reviewed by this packet)"
+}

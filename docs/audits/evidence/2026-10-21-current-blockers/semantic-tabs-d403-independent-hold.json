@@ -1,0 +1,94 @@
+{
+  "schema": "termrock.independent-review.v1",
+  "created_utc": "2026-10-21T05:09:55.032925+00:00",
+  "reviewer": "/root/semantic_tabs_independent_review",
+  "commit": "d403804b8831376c775478eb7b7826d6579bec68",
+  "parent": "6841e67ed4d240d9b39478b2e99f39ff48b8189b",
+  "verdict": "HOLD",
+  "scope": "Semantic default-row Tabs extraction only; no product acceptance.",
+  "findings": [
+    {
+      "severity": "P2",
+      "path": "crates/termrock-navigation/src/tabs.rs",
+      "line": 1257,
+      "related_lines": [
+        1375,
+        1396
+      ],
+      "problem": "Semantic label extent loses the logical origin of each Display write under a left clip. It sums segment widths while RowUi::CellWriter advances from the logical content origin and clips each individual write. Repeated segments can overwrite earlier text at the clip edge. Consequently the semantic tab width, close cell, following-tab placement, and rendered styles differ from legacy drawing under the identical clip.",
+      "reproducer": "External consumer left_clipped_segmented: area Rect(0,0,30,3); clip Rect(5,0,20,3); closable(true); first Display emits write_str(\"ab\"), write_str(\"cd\"); second emits \"next\". Both runtime draws use ui.with_area(clip).",
+      "legacy_row": "     c  next \u00d7                ",
+      "semantic_row": "     c\u00d7   next \u00d7              ",
+      "requested_fix": "Resolve semantic extents using the same per-write logical-origin/clipping semantics as CellWriter and paint_str, without painting or reading a buffer. Add a split-write left-clip regression comparing complete buffers and registered regions."
+    }
+  ],
+  "checks": [
+    {
+      "command": "cargo nextest run -p termrock-navigation --lib",
+      "revision": "6841e67ed4d240d9b39478b2e99f39ff48b8189b",
+      "target": "/private/tmp/tabs-review-before-6841-target",
+      "exit": 0,
+      "passed": 101,
+      "failed": 0,
+      "skipped": 0,
+      "log": "before-native.log"
+    },
+    {
+      "command": "cargo nextest run -p termrock-navigation --lib",
+      "revision": "d403804b8831376c775478eb7b7826d6579bec68",
+      "target": "/private/tmp/tabs-review-consumer-d403-target",
+      "exit": 0,
+      "passed": 106,
+      "failed": 0,
+      "skipped": 0,
+      "log": "native.log"
+    },
+    {
+      "command": "cargo nextest run --manifest-path /private/tmp/tabs-review-consumer-d403-20261021/Cargo.toml --no-fail-fast",
+      "exit": 100,
+      "passed": 3,
+      "failed": 1,
+      "skipped": 0,
+      "log": "repro.log",
+      "note": "Actual public-API external consumer; full Buffer equality, including cell styles. Normal split writes, vertically clipped row, and trailing wide-space cases pass; left-clipped split writes fail."
+    },
+    {
+      "command": "cargo clippy -p termrock-navigation --all-targets -- -D warnings",
+      "exit": 0,
+      "log": "clippy.log"
+    },
+    {
+      "command": "cargo fmt --check",
+      "exit": 0,
+      "log": "fmt.log"
+    },
+    {
+      "command": "git diff --check",
+      "exit": 0
+    }
+  ],
+  "source_review": {
+    "public_api": "Existing Tabs constructors/state/update/row callback signatures preserved. New opt-in TabLayout stores owned text and keys; no second persistent component state owner. Committed receipt explicitly caller-owned. No unsafe code or new concurrency paths.",
+    "purity": "layout_default does not accept Ui, execute update, register controls, or paint; it does call item Display once to own segments. Planned drawing formats only the owned DisplaySegments wrapper and does not invoke item Display.",
+    "compatibility": "Legacy arbitrary RowFn path retained in shared draw loop. Native before/after suites both pass. This is not a lossless cross-revision full-frame proof for every legacy configuration.",
+    "author_tests": "106-test suite contains buffer/regions/cursor comparisons across four color profiles, widths 0/1/2/8/13/24/40, several reference focus/hover/press/close states, warm overflow receipt, segmented Unicode, stable-key reordering and custom RowFn. It never applies a nontrivial left clip, allowing this defect.",
+    "limitations": [
+      "No complete frozen application CLI flow or tuiscotti comparison run.",
+      "No runtime publication adapter, application or facade adoption in this source increment.",
+      "No exhaustive actual input/focus/disabled/inactive/custom-part-slot differential matrix performed independently.",
+      "Source review does not certify all application boundaries or architecture acceptance."
+    ]
+  },
+  "workspace_integrity": "Separate detached sparse review worktrees; no product source edits, commits, pushes, reference changes or expected-frame modifications. Initial external Cargo metadata failure was caused by an unrelated /private/tmp/Cargo.toml ancestor; consumer added its own [workspace] and reran. Revision-specific Cargo targets remain distinct.",
+  "artifacts": {
+    "Cargo.lock": "738717b22cfcf7928e38ea23c2e3dfb673a722da21a3f20771a384d9e7be5d99",
+    "Cargo.toml": "13bc1f72a0c34919a7cdb5f7e7ced82355e4836225c5a208b3bbcb57eeeb4dc5",
+    "before-native.log": "78c2344530815db48340f4374848e5aa638dbed5fa99929eb315bc3cb67b3b03",
+    "clippy.log": "ab8f7716bad8ad44b99dacef2193fd3d2c4ce13239234c39c32a113b8df05b07",
+    "external-consumer.rs": "f23108ada136239f0a558d2d575b1ca96704130612f7f2b3e974a57d453c3842",
+    "fmt.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "native.log": "f2d124940de31659d9e394f7fed27573a4cabba3d6808a1b7858c2aa12626a51",
+    "repro.log": "3dc587ba96822a459fa9d506867e278d38f2a0c6cb8159c6553665136ebccb02",
+    "run.log": "bb2918d658eef2dfb77a6580da68a60661dee731d43ba917ab4052384430fdcf"
+  }
+}

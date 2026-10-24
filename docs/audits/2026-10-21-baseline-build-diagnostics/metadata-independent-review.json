@@ -1,0 +1,33 @@
+{
+  "reviewer": "branches_components_review",
+  "recipe_sha256": "2409404d35f3d92424c9a416436a91fe1578045ecc45110dd9c509b97ae09f62",
+  "diagnostic_only": true,
+  "build_admitted": false,
+  "raw_files": {
+    "A2": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/controlled-baseline-a2/metadata.raw.json",
+      "sha256": "168a7c72269def35ae9748ab1f1acd056cbfa4e55f1b8183216b1b643436863f"
+    },
+    "B2": {
+      "path": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/controlled-baseline-b2/metadata.log",
+      "sha256": "18093b50ba22779e1c63323ad4de19faeb37593d3e724dec5aba8ba9db8c695c"
+    }
+  },
+  "root_only_normalization": {
+    "algorithm": "replace exact absolute respective root bytes with <ROOT>, no JSON reserialization",
+    "A2_sha256": "36824d48483e1bae4a0fa8f1ac4399263c8048f6beff0e5887fcaff999e07db8",
+    "B2_sha256": "36824d48483e1bae4a0fa8f1ac4399263c8048f6beff0e5887fcaff999e07db8",
+    "byte_identical": true
+  },
+  "canonical_json_comparison": {
+    "algorithm": "json.loads(root-only bytes), json.dumps(sort_keys=True,separators=(comma,colon)) plus newline",
+    "A2_sha256": "6a29b8c854a6900ff335fa5ac2b95b624d225c64964fa54a8733396e42649a80",
+    "B2_sha256": "6a29b8c854a6900ff335fa5ac2b95b624d225c64964fa54a8733396e42649a80",
+    "full_semantic_equality": true,
+    "package_counts": [
+      263,
+      263
+    ]
+  },
+  "finding": "Reported36824d versus6a29 discrepancy is serialization-only. No package/features/dependency-edge/source difference: complete JSON values equal after approved root-only replacement. Original receipt hashes and raw files preserved; this is an additional explicitly labeled diagnostic comparison, not admission or product proof."
+}

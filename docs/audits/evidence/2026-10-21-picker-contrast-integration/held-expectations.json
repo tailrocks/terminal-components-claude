@@ -1,0 +1,48 @@
+{
+  "reference_commit": "52e1572caaf7d9effd0265bbfdf6edcd0e57533b",
+  "integration_base": "8e502d7fb9e40420b844964ec933bac497ebb2ae",
+  "protected_blobs": [
+    {
+      "path": "crates/showcase-ui/tests/baselines/showcase.txt",
+      "blob_52e1572": "6de3fa5a291c4427a360eabab99b39f2c2b95909",
+      "blob_pr38_base": "6de3fa5a291c4427a360eabab99b39f2c2b95909",
+      "equal": true
+    },
+    {
+      "path": "crates/holla-ui/tests/baselines/app.txt",
+      "blob_52e1572": "863944e34816bbe3cb5f2482f413ab48ae10ebc1",
+      "blob_pr38_base": "863944e34816bbe3cb5f2482f413ab48ae10ebc1",
+      "equal": true
+    },
+    {
+      "path": "crates/showcase-ui/tests/fixtures/holla-page-headings.tsv",
+      "blob_52e1572": "937469be55bff7007cfac8c036dc0909f0ad8647",
+      "blob_pr38_base": "937469be55bff7007cfac8c036dc0909f0ad8647",
+      "equal": true
+    },
+    {
+      "path": "crates/showcase-ui/tests/fixtures/holla-shell-headers.tsv",
+      "blob_52e1572": "6e6cebb12984f023ccdeab6d80f59dbb19267a9f",
+      "blob_pr38_base": "6e6cebb12984f023ccdeab6d80f59dbb19267a9f",
+      "equal": true
+    },
+    {
+      "path": "crates/jackin-preview-app/tests/baselines/jackin.txt",
+      "blob_52e1572": "0e45e5d0caaef4af0706b1dd5db92fd3b2ca40cf",
+      "blob_pr38_base": "0e45e5d0caaef4af0706b1dd5db92fd3b2ca40cf",
+      "equal": true
+    },
+    {
+      "path": "crates/showcase-ui/tests/page_headings.rs",
+      "blob_52e1572": "48729f448c73823cc58ee5eb1a06640b348355a3",
+      "blob_pr38_base": "48729f448c73823cc58ee5eb1a06640b348355a3",
+      "equal": true
+    },
+    {
+      "path": "crates/tablepro-ui/tests/baselines/tablepro.txt",
+      "blob_52e1572": "e4c7211e95ba021bc88cf4fd039133051dac56ae",
+      "blob_pr38_base": "e4c7211e95ba021bc88cf4fd039133051dac56ae",
+      "equal": true
+    }
+  ]
+}

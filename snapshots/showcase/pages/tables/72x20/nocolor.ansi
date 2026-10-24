@@ -1,0 +1,21 @@
+ ▪ [0m[1mJunie[0m Design system  Tables › [0m[1mBasic table[0m      i Inspector   ? Help  [0m
+                                                                        [0m
+ [0m[1mComponents[0m      54  [0m[1mTables[0m  Sort by header, hover rows, select with E… [0m
+ ──────────────────                                                     [0m
+    Overview      ┃  [0m[1m Playground  [0m  Options    States                   [0m
+  ▸ App shell     ┃  ━━━━━━━━━━━━━──────────────────────────────────────[0m
+  ▸ Inputs & for… ┃                                                     [0m
+  ▾ Tables        ┃    Tasks                   unsorted · 1–20 of 24   ┃[0m
+ [0m[1m▎  › Basic table [0m┃    ─────────────────────────────────────────────   ┃[0m
+      Editable    ┃       ID     Task                             …    ┆[0m
+      Data grid   ┃       #1040  Add rate limiting to auth endpo…  ┃   ┆[0m
+      Selection   ┃       #1041  Migrate sessions table to UUID …  ┃   ┆[0m
+      Cell edito… ┃       #1042  Fix flaky checkout integration …  ┃   ┆[0m
+      Columns     ┃       #1043  Write release notes for 3.2       ┃   ┆[0m
+  ▸ Navigation    ┆       #1044  Replace deprecated Vue mixins     ┃   ┆[0m
+  ▸ Overlays      ┆       #1045  Upgrade Postgres driver to 0.9    ┃   ┆[0m
+ [0m[2m ▸ Feedback      [0m┆       #1046  Extract billing service module    ┃   ┆[0m
+                          #1047  Add OpenTelemetry tracing spans   ┃   ┆[0m
+                                                                        [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                   [0m
+[?25l

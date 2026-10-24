@@ -1,0 +1,168 @@
+{
+  "decision": "HOLD",
+  "before": "1e6957cc51d1a7c0e1a7212b4ad042cb71239c20",
+  "after": "3360d98f43ddb35f8e234691686b0ff0c0450050",
+  "actual_parent": "ae81d5733d69173ac60ff5405e70c9d6c44e0460",
+  "scope": "Exact foreign336 increment separately source-reviewed against its actual parent; runtime probes compare requested exact1e and336. No source edits, helpers, pushes or moving-tip acceptance.",
+  "attribution": "Actual336 changes App19 lines, editor_view179 lines, matrix2 lines. Requested1e..336 range also contains previously independently reviewed Terminal/Viewport/tree integration and audit records. Those unrelated changes receive no new approval from these Jackin probes.",
+  "prior_packet": "incoming-1e6957cc-independent-review-20261021/review.json SHA256 985d8bbc92f70961eb6e33adb2e229b3eed9293785e27f469f19b62721e781ed",
+  "tests": {
+    "native": {
+      "command": "cargo nextest run -p jackin-preview-app --all-targets --no-fail-fast",
+      "both": {
+        "run": 182,
+        "passed": 176,
+        "failed": 6,
+        "skipped": 0
+      },
+      "failing_names": [
+        "historical_failure_and_action_labels_remain_readable_in_mono",
+        "returning_editor_mounts_dirty_paints_the_approved_120x40_frame",
+        "capsule_has_a_menu_bar_and_a_status_bar_instead_of_the_identity_line",
+        "tab_context_menu_renames_and_closes_by_mouse_and_keyboard",
+        "every_named_scenario_renders_a_deterministic_frame",
+        "jackin_visual_baseline"
+      ]
+    },
+    "unchanged_prior_public9": {
+      "both": {
+        "run": 9,
+        "passed": 4,
+        "failed": 5,
+        "skipped": 0
+      },
+      "failing_names": [
+        "third_mount_is_visible_or_scrollable",
+        "painted_mounts_tab_is_clickable",
+        "general_name_renders_pending_draft",
+        "dirty_mounts_render_pending_draft_values",
+        "dirty_general_indicator_remains_visible_at_adjacent_sizes"
+      ]
+    },
+    "new_roles_public7": {
+      "before": {
+        "run": 7,
+        "passed": 1,
+        "failed": 6,
+        "skipped": 0
+      },
+      "after": {
+        "run": 7,
+        "passed": 3,
+        "failed": 4,
+        "skipped": 0
+      },
+      "improvements": [
+        "changed_role_label_is_live",
+        "empty_registry_has_no_invented_roles"
+      ],
+      "remaining_failures": [
+        "end_reveals_last_role",
+        "pending_policy_is_rendered",
+        "down_moves_visible_role_cursor",
+        "checkbox_click_changes_pending_policy"
+      ],
+      "observation": "enter_sequence_facts passes only as an observation collector. After e,3,Enter the armed capture suppresses the prior Default role status and keeps the special painted page active; this is not proven frozen behavior."
+    },
+    "execution": "Exact detached sparse copies, distinct targets per revision and consumer workspace, <=200-second process-group deadlines. Native and prior public groups each completed within26 seconds. Roles groups completed in1.3 seconds after correcting the external fixture.",
+    "fixture_correction": "Initial Roles fixture incorrectly accessed private App.status and did not compile on either revision (E0616). Rejected logs preserved. Corrected identical fixtures observe public text/focus instead; all reported7-case results come from the corrected run. No product API was changed."
+  },
+  "findings": [
+    {
+      "id": "R1",
+      "priority": "P1",
+      "path": "crates/jackin-preview-app/src/app/editor_view.rs:33-51,386-454; crates/jackin-preview-app/src/app.rs:9842 (selector block near editor_view::paint)",
+      "status": "Prohibited replacement renderer expanded",
+      "evidence": "Roles joins General/Mounts full-root canvas clearing behind the unchanged exact120x40/Returning/Paused/TrueColor/exact-accent selector. It paints row checkboxes, selected gutter, metadata, fixed scrollbar and Save/Cancel directly instead of using live shared controls. The app still passes whole App to the private painter.",
+      "repair": "Adopt real shared list/form/tab/header components using borrowed view data and typed actions, then remove the selector and correction painter together. Do not move this renderer into a library."
+    },
+    {
+      "id": "R2",
+      "priority": "P1",
+      "path": "crates/jackin-preview-app/src/app/editor_view.rs:387-440,457-507",
+      "status": "New painter retains inert selection/scroll mechanics",
+      "evidence": "Every draw uses visible=29, thumb=17, selected=index==0, fresh ScrollState at offset0, and literal bar at117. Real Runtime Down leaves first selected gutter unchanged; End does not reveal last role; clicking drawn checkbox at8,7 does not mutate pending policy. All3 fail before and after. Calling shared scroll_edges only blends pixels; it does not provide shared input/list ownership.",
+      "repair": "One explicit shared selectable/checked list state must own stable keys, selection, scrolling, checkbox actions, focus/hit regions and scrollbar. Derive thumb and visible range from resolved layout and list size."
+    },
+    {
+      "id": "R3",
+      "priority": "P1",
+      "path": "crates/jackin-preview-app/src/app/editor_view.rs:387-427",
+      "status": "Wrong state owner remains despite useful live labels",
+      "evidence": "Allowed/default/checked values come from persisted world.workspaces.first(), not editor.pending. Public pending allowed=Custom(empty) and unique default remains absent after redraw. Frozen editor source uses self.pending.roles for checked/default state and keyboard edits.",
+      "repair": "Application maps the selected pending workspace into semantic role items; shared component receives explicit checked/default/selection state without accessing application world."
+    },
+    {
+      "id": "R4",
+      "priority": "P2",
+      "path": "crates/jackin-preview-app/src/app.rs:888-893,5310-5325",
+      "status": "New application-owned deferred input mechanic without regression coverage",
+      "evidence": "New editor_roles_armed flag and Capture Enter command suppress focused Default role button activation after numeric tab selection. No test was added. Runtime evidence confirms changed Enter result, but frozen exact paired behavior has not been established. This special application routing preserves a painted fixture instead of introducing shared Tabs/list focus behavior.",
+      "repair": "Specify and prove frozen tab-selection/Enter focus contract through shared components, with real runtime regression cases for numeric selection, intervening events, repeat and pointer focus; retain only application domain actions."
+    },
+    {
+      "id": "R5",
+      "priority": "P2",
+      "path": "crates/jackin-preview-app/src/app/editor_view.rs:429-435,510-559, paint_str/paint_styled helpers",
+      "status": "Profile/text/layout limitations remain",
+      "evidence": "Literal RGB palettes and hardcoded columns remain; metadata advances chars().count() rather than terminal-cell widths and labels are not bounded by named content slots. New role data expands long/wide text exposure. This increment did not run exhaustive Unicode/profile/bounds proofs; those remain unverified rather than passing.",
+      "repair": "Use shared semantic theme tokens and measured/truncated cell-aware text slots, with empty/large/Unicode/profile probes and common drawing/hit bounds."
+    }
+  ],
+  "retained_prior_holds": "All5 prior editor public failures remain. The General dirty header regression is still present at120 only, and Roles now enters the same no-dirty-badge chrome branch. Earlier Manager/Help and other component findings remain separate.",
+  "legitimate_improvements": [
+    "Role labels, descriptions, registry membership, load error, trust and source metadata are now drawn from actual RoleEntry data.",
+    "Empty registry no longer invents the fixed the-architect row.",
+    "Domain-to-label conversion may remain app-owned; actual list mechanics and layout must be shared."
+  ],
+  "api_and_integrity": "No public library API changes or test expectation edits in actual336 increment. Existing182 native test inventory retained. External consumer sources identical across revisions; compiler rejection is explicitly separated. Author-only zero-cell matrix claims remain unadmitted.",
+  "limits": [
+    "No full real CLI/tuiscotti paired inventory, cursor shape/mode/cleanup proof or frozen frame comparison was run.",
+    "No full workspace fmt/clippy gate; this bounded source/runtime review is RED.",
+    "No clearance of unrelated integration changes or all-app architecture/product gates."
+  ],
+  "sequence": [
+    "Shared list/Tabs/form/header contract owner implements interaction, identity, measure/update/draw and theme policies.",
+    "Jackin application supplies selected draft role data and domain handlers; remove correction painter and exact selectors during adoption.",
+    "Independent unchanged public/native regression replay and pinned paired CLI capture must pass before admission."
+  ],
+  "artifact_sha256": {
+    "after-consumer/Cargo.lock": "e40ed2bb65baa352bb761c34d18d2f1c43f91b84110701c1d843ab522bc9d3d5",
+    "after-consumer/Cargo.toml": "3b41ccbfd101673e262ff3ef383d159ca5ba3aa56953e53713fcec5f6cccfd29",
+    "after-consumer/facts.txt": "ffb87b6a365f90d91709d05e0251a4e99492362f24052121d2b679c88b067b60",
+    "after-consumer/src/lib.rs": "a4f4181bf38613a861eb1b81e35aedeff74ea35c78880086a8efad7921cef6bc",
+    "after-consumer.log": "8a36d5db4fd63c8a24571b0d251a793bdbf9ebba1aec71075b2c40ab16ea9a31",
+    "after-nextest.log": "c60e07dcec39b5882c5479553a6bf2ccc1d5ea4dd38fdf0fc0c52292ce670bd4",
+    "after-roles-consumer/Cargo.lock": "f80d4d90a4b249956bb8d1a35aba952e586b1f018a4b4be99bd6060f18dd2951",
+    "after-roles-consumer/Cargo.toml": "f53d8422795803db9b00600c1d69f77f6edca19ab8308ff8545c511dbdca924d",
+    "after-roles-consumer/facts.txt": "e576b3c041087e2c32a5bf684067ce608609fe031873fa0963bdc243b10b53ba",
+    "after-roles-consumer/src/lib.rs": "8811131126c472b40ab73c665dffce555e029519236d2a2b189d7ff196a8e6d9",
+    "after-roles-fixture-private-status-rejected.log": "8c4ca7451dd8fc293501e4eb95b48a3c6819733806659ea195c3938e8aa96986",
+    "after-roles.log": "59db186ef39c8758b854c7eb5fa858847dbe02ba6d671f1a856612eaeb62dad0",
+    "after-source/crates/jackin-preview-app/src/app/editor_view.rs": "a73006c9fd17845e293350c4dec2b179c58cbba8da45b508b5db3995d741923b",
+    "after-source/crates/jackin-preview-app/src/app.rs": "bcdfbcbe9f67bee4c4f918628a95777269553204168b9c5dbd6b0811497af323",
+    "before-consumer/Cargo.lock": "e40ed2bb65baa352bb761c34d18d2f1c43f91b84110701c1d843ab522bc9d3d5",
+    "before-consumer/Cargo.toml": "5537d82d76d101917140485930a34d806a4c18a83a50056dc3dcbd3fdd59101f",
+    "before-consumer/facts.txt": "ffb87b6a365f90d91709d05e0251a4e99492362f24052121d2b679c88b067b60",
+    "before-consumer/src/lib.rs": "a4f4181bf38613a861eb1b81e35aedeff74ea35c78880086a8efad7921cef6bc",
+    "before-consumer.log": "ad14f8c40a487cbf31f3d380290713deffbfd36fbaeb25c1a6d389332521eb84",
+    "before-nextest.log": "82f2a9bb9431a4e4df47147c127280551e71013a78738c06147ed586cc6f1da0",
+    "before-roles-consumer/Cargo.lock": "f80d4d90a4b249956bb8d1a35aba952e586b1f018a4b4be99bd6060f18dd2951",
+    "before-roles-consumer/Cargo.toml": "67ef5115f6fd609883fc7d46b2be67755c1d7d48bf4107dc1216c62615c9da0c",
+    "before-roles-consumer/facts.txt": "ebd8a8cdcd05183af63833e0ca7bde9f500015381e4d8456de5d6c0d9865d7a5",
+    "before-roles-consumer/src/lib.rs": "8811131126c472b40ab73c665dffce555e029519236d2a2b189d7ff196a8e6d9",
+    "before-roles-fixture-private-status-rejected.log": "19f6aa8cc7e0c3b1ff7bf9e4468930be96dd5dab0372abb210d8916db197c7b5",
+    "before-roles.log": "84ce5bdb9eff7e84b47111ac0638025c7949141263ff6de2e5b0d437c96e235e",
+    "before-source/crates/jackin-preview-app/src/app/editor_view.rs": "d35146444ae0adc84ccedb0bb76ada927f14d82528ced2c87eeb5cb07ee7d6d0",
+    "before-source/crates/jackin-preview-app/src/app.rs": "9dc9ad0df73d8ae1b747c440cdade3d364b57aa7fadc332f83b02b71f84ce657",
+    "consumer-run.py": "d5855b3f3166862c697f71243f83aa0fe989c852147180339bcc820d7a11b04d",
+    "consumer-status.json": "ccaf28a7013c34a44ff982496662a5708682bfb960e0324d05cc3f7ef82f057d",
+    "increment.diff": "19ddc66260c4d8d354487e90269fcda0f19156600dbb153a8f25d9281bc98760",
+    "native-run.py": "208250bb937c81025517e32b90fde3ba8258b1dc2ba5dfbd1c41790e63eba693",
+    "native-status.json": "4168fd639c3fe2bbf5106d42e5f1f7c67814fcc3da74e9706044e1417bb9ba71",
+    "requested-range.diff": "19ddc66260c4d8d354487e90269fcda0f19156600dbb153a8f25d9281bc98760",
+    "roles-fixture-private-status-rejected-status.json": "76c5289fe48071da2707374606065c6610d13496564d9f2fac51f2e5db68b132",
+    "roles-run.py": "426952d5d5762eb92790f4e1b8e2cca8491ca368a0fb98c989e3e52cf1071ce1",
+    "roles-status.json": "d45355c6465f64c4754b881040bc38e88bea68cf21d9b3dae377a9eb1a864926"
+  }
+}

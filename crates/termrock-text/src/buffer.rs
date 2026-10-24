@@ -275,6 +275,71 @@ impl TextBuffer {
             .map_or(self.text.len(), |i| from.saturating_add(i))
     }
 
+    /// Return the baseline word, whitespace, or punctuation-grapheme range at `offset`.
+    pub fn word_range_at(&self, offset: usize) -> Range<usize> {
+        let offset = Self::floor_boundary(&self.text, offset);
+        let (start, end) = (self.line_start(offset), self.line_end(offset));
+        let line = &self.text[start..end];
+        let clusters: Vec<(usize, &str)> = graphemes(line)
+            .map(|(index, grapheme)| (start.saturating_add(index), grapheme))
+            .collect();
+        let Some(at) = clusters
+            .iter()
+            .position(|(index, grapheme)| offset < index.saturating_add(grapheme.len()))
+            .or_else(|| clusters.len().checked_sub(1))
+        else {
+            return offset..offset;
+        };
+
+        #[derive(Clone, Copy, PartialEq, Eq)]
+        enum Class {
+            Word,
+            Space,
+            Other,
+        }
+
+        let class = |grapheme: &str| {
+            if grapheme.chars().any(|ch| ch.is_alphanumeric() || ch == '_') {
+                Class::Word
+            } else if grapheme.chars().all(char::is_whitespace) {
+                Class::Space
+            } else {
+                Class::Other
+            }
+        };
+        let selected_class = class(clusters[at].1);
+        if selected_class == Class::Other {
+            let (index, grapheme) = clusters[at];
+            return index..index.saturating_add(grapheme.len());
+        }
+
+        let mut first = at;
+        while first > 0 && class(clusters[first - 1].1) == selected_class {
+            first -= 1;
+        }
+        let mut last = at;
+        while last + 1 < clusters.len() && class(clusters[last + 1].1) == selected_class {
+            last += 1;
+        }
+        let start = clusters[first].0;
+        let (last_start, last_grapheme) = clusters[last];
+        start..last_start.saturating_add(last_grapheme.len())
+    }
+
+    /// Select the word or punctuation grapheme at `offset`.
+    pub fn select_word_at(&mut self, offset: usize) {
+        let range = self.word_range_at(offset);
+        self.select_range(range.start, range.end);
+    }
+
+    /// Select the current line, excluding its newline, like the baseline text fields.
+    pub fn select_line_at(&mut self, offset: usize) {
+        let offset = Self::floor_boundary(&self.text, offset);
+        let start = self.line_start(offset);
+        let end = self.line_end(offset);
+        self.select_range(start, end);
+    }
+
     fn prev_word(&self, from: usize) -> usize {
         let end = Self::floor_boundary(&self.text, from);
         let mut clusters = graphemes(&self.text[..end]).rev().peekable();
@@ -392,7 +457,7 @@ impl TextBuffer {
 
     fn delete_selection(&mut self) -> bool {
         if let Some(r) = self.selection() {
-            self.remove_range(r.clone());
+            self.remove_range_raw(r.clone());
             self.cursor = r.start;
             self.anchor = None;
             self.normalize_positions();
@@ -425,9 +490,12 @@ impl TextBuffer {
             self.normalize_positions();
             return true;
         }
-        self.delete_selection();
-        self.text.insert(self.cursor, c);
-        self.cursor = self.cursor.saturating_add(c.len_utf8());
+        let range = self.selection().unwrap_or(self.cursor..self.cursor);
+        let mut encoded = [0; 4];
+        let inserted = c.encode_utf8(&mut encoded);
+        self.text.replace_range(range.clone(), inserted);
+        self.cursor = range.start.saturating_add(inserted.len());
+        self.anchor = None;
         self.normalize_positions();
         true
     }
@@ -467,7 +535,7 @@ impl TextBuffer {
         if start == self.cursor {
             return false;
         }
-        self.remove_range(start..self.cursor);
+        self.remove_range_raw(start..self.cursor);
         self.cursor = start;
         self.normalize_positions();
         true
@@ -481,7 +549,7 @@ impl TextBuffer {
         if end == self.cursor {
             return false;
         }
-        self.remove_range(self.cursor..end);
+        self.remove_range_raw(self.cursor..end);
         self.normalize_positions();
         true
     }
@@ -494,7 +562,7 @@ impl TextBuffer {
         if start == self.cursor {
             return false;
         }
-        self.remove_range(start..self.cursor);
+        self.remove_range_raw(start..self.cursor);
         self.cursor = start;
         self.normalize_positions();
         true
@@ -508,7 +576,7 @@ impl TextBuffer {
         if end == self.cursor {
             return false;
         }
-        self.remove_range(self.cursor..end);
+        self.remove_range_raw(self.cursor..end);
         self.normalize_positions();
         true
     }
@@ -521,13 +589,98 @@ impl TextBuffer {
         if start == self.cursor {
             return false;
         }
-        self.remove_range(start..self.cursor);
+        self.remove_range_raw(start..self.cursor);
         self.cursor = start;
         self.normalize_positions();
         true
     }
 
-    fn remove_range(&mut self, range: Range<usize>) {
+    /// Insert normalized text at a UTF-8 byte offset without consuming the selection.
+    ///
+    /// The offset is clamped to the buffer and floored to a grapheme boundary.
+    /// Existing cursor and anchor offsets at or after the insertion point move
+    /// after the inserted bytes. The cursor then ceils and the anchor floors to
+    /// grapheme boundaries in the resulting text.
+    pub fn insert_at(&mut self, at: usize, text: &str) {
+        let at = Self::floor_boundary(&self.text, at.min(self.text.len()));
+        let inserted = normalized_text(text, self.multiline);
+        let inserted_len = inserted.len();
+        if inserted_len == 0 {
+            if self.sensitive
+                && let Cow::Owned(normalized) = inserted
+            {
+                wipe_string(normalized);
+            }
+            return;
+        }
+
+        if self.sensitive {
+            let mut next = String::with_capacity(self.text.len().saturating_add(inserted_len));
+            next.push_str(&self.text[..at]);
+            next.push_str(&inserted);
+            next.push_str(&self.text[at..]);
+            self.replace_text(next);
+            if let Cow::Owned(normalized) = inserted {
+                wipe_string(normalized);
+            }
+        } else {
+            self.text.insert_str(at, &inserted);
+        }
+
+        if self.cursor >= at {
+            self.cursor = self.cursor.saturating_add(inserted_len);
+        }
+        if let Some(anchor) = self.anchor {
+            self.anchor = Some(if anchor >= at {
+                anchor.saturating_add(inserted_len)
+            } else {
+                anchor
+            });
+        }
+        self.normalize_positions();
+    }
+
+    /// Remove the graphemes touched by a clamped half-open UTF-8 byte range.
+    ///
+    /// Empty or reversed ranges are no-ops. Cursor and anchor positions before
+    /// or at the expanded start remain in place; positions strictly inside the
+    /// removed range collapse to its start, and positions at or after its end
+    /// move left by the removed byte length. Afterward the cursor ceils and the
+    /// anchor floors to grapheme boundaries in the resulting text.
+    pub fn remove_range(&mut self, range: Range<usize>) {
+        let len = self.text.len();
+        let start = range.start.min(len);
+        let end = range.end.min(len);
+        if start >= end {
+            return;
+        }
+
+        let start = Self::floor_boundary(&self.text, start);
+        let end = Self::ceil_boundary(&self.text, end);
+        let removed_len = end.saturating_sub(start);
+        if removed_len == 0 {
+            return;
+        }
+
+        self.remove_range_raw(start..end);
+        if self.cursor >= end {
+            self.cursor = self.cursor.saturating_sub(removed_len);
+        } else if self.cursor > start {
+            self.cursor = start;
+        }
+        if let Some(anchor) = self.anchor {
+            self.anchor = Some(if anchor >= end {
+                anchor.saturating_sub(removed_len)
+            } else if anchor > start {
+                start
+            } else {
+                anchor
+            });
+        }
+        self.normalize_positions();
+    }
+
+    fn remove_range_raw(&mut self, range: Range<usize>) {
         if self.sensitive {
             self.replace_text(without_range(&self.text, range));
         } else {
@@ -543,11 +696,20 @@ impl TextBuffer {
         Self::pos_of(&self.text, self.cursor)
     }
 
+    /// Return the line and display column at a UTF-8 byte offset.
+    ///
+    /// Offsets past the end clamp to the end. An offset inside a UTF-8 scalar
+    /// moves back to that scalar's start. Valid UTF-8 boundaries are measured
+    /// as given, including boundaries inside a grapheme cluster.
     pub fn pos_of(text: &str, offset: usize) -> CursorPos {
-        let before = text.get(..offset.min(text.len())).unwrap_or("");
+        let mut end = offset.min(text.len());
+        while !text.is_char_boundary(end) {
+            end = end.saturating_sub(1);
+        }
+        let before = &text[..end];
         let line = before.matches('\n').count();
         let line_start = before.rfind('\n').map_or(0, |i| i.saturating_add(1));
-        let col = usize::from(width(before.get(line_start..).unwrap_or("")));
+        let col = usize::from(width(&before[line_start..]));
         CursorPos { line, col }
     }
 
@@ -628,6 +790,95 @@ mod tests {
     }
 
     #[test]
+    fn selection_lifecycle_normalizes_reduces_collapses_and_clears() {
+        let mut b = TextBuffer::single("hello world");
+        assert_eq!(b.selection(), None);
+
+        b.move_home(false);
+        for _ in 0..5 {
+            b.move_right(true);
+        }
+        assert_eq!(b.selection(), Some(0..5));
+        b.move_right(true);
+        assert_eq!(b.selection(), Some(0..6));
+        b.move_left(true);
+        b.move_left(true);
+        assert_eq!(b.selection(), Some(0..4));
+
+        b.select_range(5, 1);
+        assert_eq!(b.cursor_offset(), 1);
+        assert_eq!(b.selection(), Some(1..5));
+        b.move_left(false);
+        assert_eq!(b.selection(), None);
+        assert_eq!(b.cursor_offset(), 1);
+
+        b.select_range(1, 5);
+        b.move_right(false);
+        assert_eq!(b.selection(), None);
+        assert_eq!(b.cursor_offset(), 5);
+
+        b.select_all();
+        assert_eq!(b.selection(), Some(0..11));
+        b.clear_selection();
+        assert_eq!(b.selection(), None);
+        assert_eq!(b.cursor_offset(), 11);
+    }
+
+    #[test]
+    fn selection_lines_handles_unicode_and_exclusive_newline() {
+        let mut b = TextBuffer::multi("é\n日本\n👩‍💻");
+        b.select_all();
+        assert_eq!(b.selection_lines(), (0, 2));
+
+        let first_line_end = "é\n".len();
+        b.select_range(0, first_line_end);
+        assert_eq!(b.selection_lines(), (0, 0));
+
+        b.select_range(first_line_end, "é\n日本".len());
+        assert_eq!(b.selection_lines(), (1, 1));
+    }
+
+    #[test]
+    fn public_offsets_clamp_to_graphemes_for_every_byte_position() {
+        let text = "e\u{301}日👩‍💻";
+        let mut b = TextBuffer::single(text);
+        let combining_end = "e\u{301}".len();
+        let cjk_end = "e\u{301}日".len();
+
+        // Check every byte offset, including one past the end. The expected
+        // values mark the known grapheme starts rather than using the same
+        // segmentation routine as the code under test.
+        for offset in 0..=text.len() + 1 {
+            let expected = if offset < combining_end {
+                0
+            } else if offset < cjk_end {
+                combining_end
+            } else if offset < text.len() {
+                cjk_end
+            } else {
+                text.len()
+            };
+            b.select_range(0, offset);
+            assert_eq!(b.cursor_offset(), expected, "offset {offset}");
+            let _ = b.cursor_pos();
+            let _ = b.selection_lines();
+        }
+
+        // Every pair of byte offsets must still produce a valid UTF-8 slice.
+        for start in 0..=text.len() + 1 {
+            for end in 0..=text.len() + 1 {
+                b.select_range(start, end);
+                if let Some(range) = b.selection() {
+                    assert!(text.get(range).is_some(), "range from {start} to {end}");
+                }
+            }
+        }
+
+        b.select_range(usize::MAX, usize::MAX);
+        assert_eq!(b.cursor_offset(), text.len());
+    }
+
+    #[test]
     fn word_motion_and_deletion() {
         let mut b = TextBuffer::single("alpha beta  gamma");
         b.move_word_left(false);
@@ -640,6 +891,23 @@ mod tests {
         b.move_end(false);
         b.delete_word_left();
         assert_eq!(b.text(), "alpha beta  ");
+    }
+
+    #[test]
+    fn delete_word_left_keeps_combining_graphemes_whole() {
+        let mut b = TextBuffer::single("cafe\u{301} 日本");
+        b.move_home(false);
+        b.move_word_right(true);
+        assert_eq!(b.selected_text(), Some("cafe\u{301}"));
+        b.clear_selection();
+        b.move_word_left(false);
+        assert_eq!(b.cursor_offset(), 0);
+
+        b.move_end(false);
+        assert!(b.delete_word_left());
+        assert_eq!(b.text(), "cafe\u{301} ");
+        assert!(b.delete_word_left());
+        assert_eq!(b.text(), "");
     }
 
     #[test]
@@ -743,12 +1011,150 @@ mod tests {
     }
 
     #[test]
+    fn inserted_zwj_joins_emoji_and_backspace_removes_the_cluster() {
+        let mut buffer = TextBuffer::single("👩💻");
+        buffer.set_cursor_line_col(0, 2);
+        assert!(buffer.insert_char('\u{200d}'));
+        assert_eq!(buffer.text(), "👩‍💻");
+        assert_eq!(buffer.cursor_pos(), CursorPos { line: 0, col: 2 });
+        assert!(buffer.backspace());
+        assert_eq!(buffer.text(), "");
+    }
+
+    #[test]
+    fn removing_separator_joins_regional_indicators_and_repairs_caret() {
+        let mut buffer = TextBuffer::single("🇺 🇸");
+        buffer.select_range(4, 5);
+        assert!(buffer.backspace());
+        assert_eq!(buffer.text(), "🇺🇸");
+        assert_eq!(buffer.cursor_pos(), CursorPos { line: 0, col: 2 });
+        buffer.move_left(false);
+        assert_eq!(buffer.cursor_pos(), CursorPos { line: 0, col: 0 });
+    }
+
+    #[test]
+    fn inserting_char_replaces_separator_between_regional_indicators() {
+        for (anchor, cursor) in [(4, 5), (5, 4)] {
+            let mut buffer = TextBuffer::single("🇺 🇸");
+            buffer.select_range(anchor, cursor);
+            assert_eq!(buffer.selection(), Some(4..5));
+            assert!(buffer.insert_char('X'));
+            assert_eq!(buffer.text(), "🇺X🇸");
+            assert_eq!(buffer.cursor_offset(), 5);
+            // The standalone left regional indicator and X each occupy one cell.
+            assert_eq!(buffer.cursor_pos(), CursorPos { line: 0, col: 2 });
+            assert!(buffer.selection().is_none());
+        }
+    }
+
+    #[test]
+    fn paste_replaces_separator_between_regional_indicators() {
+        let mut buffer = TextBuffer::single("🇺 🇸");
+        buffer.select_range(4, 5);
+        assert!(buffer.insert_str("X"));
+        assert_eq!(buffer.text(), "🇺X🇸");
+        assert_eq!(buffer.cursor_offset(), 5);
+        // The standalone left regional indicator and X each occupy one cell.
+        assert_eq!(buffer.cursor_pos(), CursorPos { line: 0, col: 2 });
+        assert!(buffer.selection().is_none());
+    }
+
+    #[test]
+    fn sensitive_char_replacement_matches_selection_and_cursor_behavior() {
+        for (anchor, cursor) in [(4, 5), (5, 4)] {
+            let mut buffer = TextBuffer::sensitive_single("🇺 🇸");
+            buffer.select_range(anchor, cursor);
+            assert_eq!(buffer.selection(), Some(4..5));
+            assert!(buffer.insert_char('X'));
+            assert_eq!(buffer.text(), "🇺X🇸");
+            assert_eq!(buffer.cursor_offset(), 5);
+            // The standalone left regional indicator and X each occupy one cell.
+            assert_eq!(buffer.cursor_pos(), CursorPos { line: 0, col: 2 });
+            assert!(buffer.selection().is_none());
+            assert!(buffer.sensitive);
+        }
+    }
+
+    #[test]
+    fn replacing_a_selection_can_be_undone_and_redone() {
+        let mut buffer = TextBuffer::single("🇺 🇸");
+        buffer.select_range(4, 5);
+        let mut undo = crate::UndoStack::new();
+        undo.record(&buffer, crate::EditKind::Other);
+
+        assert!(buffer.insert_char('X'));
+        assert_eq!(buffer.text(), "🇺X🇸");
+        assert_eq!(buffer.cursor_offset(), 5);
+        assert!(buffer.selection().is_none());
+
+        assert!(undo.undo(&mut buffer));
+        assert_eq!(buffer.text(), "🇺 🇸");
+        assert_eq!(buffer.cursor_offset(), 5);
+        assert!(buffer.selection().is_none());
+
+        assert!(undo.redo(&mut buffer));
+        assert_eq!(buffer.text(), "🇺X🇸");
+        assert_eq!(buffer.cursor_offset(), 5);
+        assert!(buffer.selection().is_none());
+    }
+
+    #[test]
     fn wide_characters_count_as_two_columns() {
         let b = TextBuffer::single("日本");
         assert_eq!(b.cursor_pos().col, 4);
         assert_eq!(b.offset_at(0, 2), 3);
         assert_eq!(b.offset_at(0, 1), 0);
         assert_eq!(b.width(), 4);
+    }
+
+    #[test]
+    fn pos_of_retains_nonempty_prefix_before_malformed_byte() {
+        assert_eq!(TextBuffer::pos_of("xé", 2), CursorPos { line: 0, col: 1 });
+    }
+
+    #[test]
+    fn pos_of_retains_newline_before_malformed_byte() {
+        assert_eq!(TextBuffer::pos_of("a\né", 3), CursorPos { line: 1, col: 0 });
+    }
+
+    #[test]
+    fn pos_of_preserves_original_direct_offset_values() {
+        assert_eq!(TextBuffer::pos_of("é", usize::MAX).col, 1);
+        assert_eq!(TextBuffer::pos_of("é", 1).col, 0);
+    }
+
+    #[test]
+    fn pos_of_floors_only_inside_utf8_scalars() {
+        assert_eq!(TextBuffer::pos_of("x日", 2), CursorPos { line: 0, col: 1 });
+        assert_eq!(TextBuffer::pos_of("x😀", 2), CursorPos { line: 0, col: 1 });
+        assert_eq!(
+            TextBuffer::pos_of("e\u{301}", 2),
+            CursorPos { line: 0, col: 1 }
+        );
+        assert_eq!(
+            TextBuffer::pos_of("x👩\u{200d}💻", 6),
+            CursorPos { line: 0, col: 3 }
+        );
+        assert_eq!(TextBuffer::pos_of("", usize::MAX), CursorPos::default());
+        assert_eq!(TextBuffer::pos_of("a\né", 1), CursorPos { line: 0, col: 1 });
+        assert_eq!(TextBuffer::pos_of("a\né", 2), CursorPos { line: 1, col: 0 });
+        assert_eq!(TextBuffer::pos_of("a\né", 4), CursorPos { line: 1, col: 1 });
+        assert_eq!(
+            TextBuffer::pos_of("a\né", usize::MAX),
+            CursorPos { line: 1, col: 1 }
+        );
+    }
+
+    #[test]
+    fn pos_of_preserves_valid_offsets_inside_graphemes() {
+        assert_eq!(
+            TextBuffer::pos_of("e\u{301}", 1),
+            CursorPos { line: 0, col: 1 }
+        );
+        assert_eq!(
+            TextBuffer::pos_of("x👩\u{200d}💻", 5),
+            CursorPos { line: 0, col: 3 }
+        );
     }
 
     #[test]
@@ -792,6 +1198,108 @@ mod tests {
         assert!(b.is_empty());
         assert!(b.sensitive);
         assert!(!format!("{b:?}").contains("hunter2"));
+    }
+
+    #[test]
+    fn renamed_raw_deletion_callers_keep_cursor_local_behavior() {
+        let mut selected_backspace = TextBuffer::single("abcdef");
+        selected_backspace.select_range(4, 2);
+        assert!(selected_backspace.backspace());
+        assert_eq!(selected_backspace.text(), "abef");
+        assert_eq!(selected_backspace.cursor_offset(), 2);
+        assert_eq!(selected_backspace.selection(), None);
+
+        let mut selected_delete = TextBuffer::single("abcdef");
+        selected_delete.select_range(2, 4);
+        assert!(selected_delete.delete());
+        assert_eq!(selected_delete.text(), "abef");
+        assert_eq!(selected_delete.cursor_offset(), 2);
+        assert_eq!(selected_delete.selection(), None);
+
+        let mut backspace = TextBuffer::single("abcdef");
+        backspace.set_cursor_line_col(0, 4);
+        assert!(backspace.backspace());
+        assert_eq!(backspace.text(), "abcef");
+        assert_eq!(backspace.cursor_offset(), 3);
+
+        let mut delete = TextBuffer::single("abcdef");
+        delete.set_cursor_line_col(0, 2);
+        assert!(delete.delete());
+        assert_eq!(delete.text(), "abdef");
+        assert_eq!(delete.cursor_offset(), 2);
+
+        let mut word_left = TextBuffer::single("one two");
+        assert!(word_left.delete_word_left());
+        assert_eq!(word_left.text(), "one ");
+        assert_eq!(word_left.cursor_offset(), 4);
+
+        let mut line_end = TextBuffer::multi("ab\ncd");
+        line_end.set_cursor_line_col(1, 1);
+        assert!(line_end.delete_to_line_end());
+        assert_eq!(line_end.text(), "ab\nc");
+        assert_eq!(line_end.cursor_offset(), 4);
+
+        let mut line_start = TextBuffer::multi("ab\ncd");
+        line_start.set_cursor_line_col(1, 1);
+        assert!(line_start.delete_to_line_start());
+        assert_eq!(line_start.text(), "ab\nd");
+        assert_eq!(line_start.cursor_offset(), 3);
+    }
+
+    #[test]
+    fn renamed_raw_deletion_callers_keep_empty_noop_results() {
+        let mut backspace = TextBuffer::single("a");
+        backspace.set_cursor_line_col(0, 0);
+        assert!(!backspace.backspace());
+        assert_eq!(backspace.text(), "a");
+        assert_eq!(backspace.cursor_offset(), 0);
+
+        let mut delete = TextBuffer::single("a");
+        assert!(!delete.delete());
+        assert_eq!(delete.text(), "a");
+        assert_eq!(delete.cursor_offset(), 1);
+
+        let mut word_left = TextBuffer::single("a");
+        word_left.set_cursor_line_col(0, 0);
+        assert!(!word_left.delete_word_left());
+        assert_eq!(word_left.text(), "a");
+        assert_eq!(word_left.cursor_offset(), 0);
+
+        let mut line_end = TextBuffer::multi("a\nb");
+        line_end.set_cursor_line_col(1, 1);
+        assert!(!line_end.delete_to_line_end());
+        assert_eq!(line_end.text(), "a\nb");
+        assert_eq!(line_end.cursor_offset(), 3);
+
+        let mut line_start = TextBuffer::multi("a\nb");
+        line_start.set_cursor_line_col(0, 0);
+        assert!(!line_start.delete_to_line_start());
+        assert_eq!(line_start.text(), "a\nb");
+        assert_eq!(line_start.cursor_offset(), 0);
+    }
+
+    #[test]
+    fn sensitive_off_cursor_edits_replace_storage_and_rebase_reverse_selection() {
+        let mut buffer = TextBuffer::sensitive_multi("abcdef");
+        buffer.select_range(4, 2);
+        let original_storage = buffer.text.as_ptr() as usize;
+
+        buffer.insert_at(0, "\r\nZ\r");
+        assert_eq!(buffer.text(), "\nZ\nabcdef");
+        assert_eq!(buffer.cursor_offset(), 5);
+        assert_eq!(buffer.selection(), Some(5..7));
+        assert!(buffer.sensitive);
+        assert_ne!(buffer.text.as_ptr() as usize, original_storage);
+        assert!(!format!("{buffer:?}").contains("abcdef"));
+
+        let inserted_storage = buffer.text.as_ptr() as usize;
+        buffer.remove_range(0..3);
+        assert_eq!(buffer.text(), "abcdef");
+        assert_eq!(buffer.cursor_offset(), 2);
+        assert_eq!(buffer.selection(), Some(2..4));
+        assert!(buffer.sensitive);
+        assert_ne!(buffer.text.as_ptr() as usize, inserted_storage);
+        assert!(!format!("{buffer:?}").contains("abcdef"));
     }
 
     #[test]

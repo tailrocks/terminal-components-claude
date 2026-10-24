@@ -1,0 +1,35 @@
+{
+  "commit": "c932adb5ee29ef8ed9f90cc022c39cb9c0472e5d",
+  "source": [
+    {
+      "path": "crates/termrock-runtime/src/rowui.rs",
+      "sha256": "9d4598e8e930cb2ae727ae48aa98cac15e48a46ffed1cd6c0a9af98c218472c6",
+      "matches_git": true
+    },
+    {
+      "path": "crates/termrock-navigation/src/filter_list.rs",
+      "sha256": "aca4b424497c464812e517fe21129294a92b1463d84b1525ffc5be37bba9cf96",
+      "matches_git": true
+    },
+    {
+      "path": "crates/termrock-navigation/tests/item_row_columns.rs",
+      "sha256": "605a54d61d2f2d0201c8598bc549f6687c617ba3959e2743f749a182973ff77b",
+      "matches_git": true
+    },
+    {
+      "path": "docs/audits/2026-10-21-picker-row-contrast-defaults.md",
+      "sha256": "cb2a6dfa9aa7fcdaf25e35ae9f5ee0fd01d6c5c89a552a0dffba66d63728f82d",
+      "matches_git": true
+    },
+    {
+      "path": "Cargo.toml",
+      "sha256": "193a03b13a248aa022fcaa2c72c4b8bbddeb5169523360ec3d7e57b555e78074",
+      "matches_git": true
+    },
+    {
+      "path": "Cargo.lock",
+      "sha256": "b0c5412c430bb522fea7a865823c11493d89da4b8aeb3816e43ba54f0008b68a",
+      "matches_git": true
+    }
+  ]
+}

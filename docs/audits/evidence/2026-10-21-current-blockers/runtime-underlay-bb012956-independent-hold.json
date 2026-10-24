@@ -1,0 +1,147 @@
+{
+  "schema": "termrock.independent-review.v1",
+  "created_utc": "2026-10-21T06:04:53.239388+00:00",
+  "reviewer": "/root/semantic_tabs_independent_review",
+  "reviewed_commit": "bb012956690d08381b16aa28985b474ad7501d1c",
+  "comparison_revision": "860529a316dd1e45e6e2f9f3921d93e964fa0e66",
+  "decision": "HOLD",
+  "fixed_prior_findings": [
+    "Admitted upper overlay now inherits actual lower-layer Blue ink rather than base-page Red. Strong fixture verifies layer admission, resolved area and Black background.",
+    "Ordinary page-space fill now resets ForcedWidth(4). Original underline-color test, role-aware modal dim comparison and20 clipping/profile/zero/wide cases pass."
+  ],
+  "findings": [
+    {
+      "id": "BB-R1",
+      "priority": "P2",
+      "path": "crates/termrock-runtime/src/ui/paint.rs",
+      "lines": [
+        302,
+        310,
+        316
+      ],
+      "title": "Deferred underlay intent overwrites scroll-edge fades applied after the fill",
+      "evidence": "fade_edge_row directly updates layer-cell foreground/DIM without updating or canceling the deferred intent. LayerDraw::composite_onto later re-applies the pre-fade intent, losing the fade. Unchanged public Runtime full-Buffer test postfill_scroll_fade_is_not_overwritten_by_composition compares underlay fill plus an explicit X label and scroll_edges against equivalent ordinary fill. It passes at860 and fails atbb. Both scroll_edges and fade_picker_overflow reach this untracked mutation path.",
+      "repair": "Preserve the exact fade operation/provenance through the existing compositor path, including inherited channels; do not materialize an unknown underlay from placeholder colors. Audit all read/modify paint entrypoints and add this unchanged real-runtime regression."
+    },
+    {
+      "id": "BB-R2",
+      "priority": "P2",
+      "path": "crates/termrock-runtime/src/ui/layer_buf.rs",
+      "lines": [
+        87,
+        90,
+        102
+      ],
+      "title": "Deferred modifier precedence disagrees with Ratatui for overlapping add/remove fields",
+      "evidence": "Ratatui Cell::set_style inserts add_modifier then removes sub_modifier. CellUnderlayStyle::composite instead removes then unions add, so overlapping BOLD remains enabled. Public Style fields allow overlap; no invariant prohibits it. Same public Runtime full-Buffer test overlapping_modifier_fields_keep_ratatui_remove_precedence passes at860 and fails atbb. Explicit patch_style has different documented remove-then-add ordering; the single accumulator must model both correctly.",
+      "repair": "Normalize/compose tracked paint and explicit patch modifier operations according to their actual operation ordering, preserving later-call precedence. Test overlapping fields and successive add/remove/clear operations against the canonical non-underlay painter."
+    },
+    {
+      "id": "BB-R3",
+      "priority": "P2",
+      "path": "crates/termrock-runtime/src/ui/mod.rs",
+      "lines": [
+        1294,
+        1300,
+        1314
+      ],
+      "title": "Moving aligned text restores attributes that source-cell reset explicitly cleared",
+      "evidence": "move_cell resets the vacated source cell, preserving fg/bg only, but marks it with a partial PaintStyle without resetting the existing deferred underline/modifier intent. Composition restores inherited Green underline and BOLD|UNDERLINED there. Public CellUi::new(...).align(Right).padding_style(PaintStyle::new()).text(\"X\") full-Buffer comparison to ordinary fill passes at860 and fails atbb: the vacated source should have Reset underline and empty modifiers.",
+      "repair": "Transfer destination intent as implemented, then model the complete vacated-source reset: retain only channels the canonical move reset retains, explicitly clear underline/modifier inheritance, and apply reset overrides. Preserve normal role semantics and add this actual public CellUi alignment regression."
+    }
+  ],
+  "additional_review_comments": [
+    {
+      "priority": "P3",
+      "path": "crates/termrock-runtime/src/ui/layer_buf.rs",
+      "lines": [
+        131,
+        162,
+        283
+      ],
+      "issue": "The no-underlay path now allocates/resets a full-screen intent vector and clones the existing destination cell for every written cell even when intent is None. The prior ordinary path cloned only the source cell. This does not match the requested ordinary-path fast-path intent.",
+      "requested_action": "At least branch on intent before cloning destination style; assess lazy intent storage or document/measure the bounded cost of dense storage. No independent latency/allocation benchmark is claimed, and dense optional storage was permitted by the architecture proposal."
+    }
+  ],
+  "checks": [
+    {
+      "command": "cargo nextest run -p termrock-runtime --all-targets --no-fail-fast",
+      "exit": 0,
+      "run": 403,
+      "passed": 403,
+      "failed": 0,
+      "skipped": 3,
+      "log": "native.log",
+      "target": "/private/tmp/underlay-bb-native-target"
+    },
+    {
+      "command": "cargo nextest run --manifest-path /private/tmp/underlay-bb-consumer-20261021/Cargo.toml --no-fail-fast",
+      "exit": 100,
+      "run": 16,
+      "passed": 10,
+      "failed": 6,
+      "skipped": 0,
+      "log": "final-public-16.log",
+      "target": "/private/tmp/underlay-bb-external-target",
+      "failure_attribution": "Three existing Menu holds plus three newly introduced Runtime regressions BB-R1/R2/R3. The invalid old weak nested fixture is retained as historical source but never credited; the strong admitted fixture passes."
+    },
+    {
+      "command": "cargo nextest run --manifest-path /private/tmp/underlay-bb-before-consumer-20261021/Cargo.toml -E three-regressions --no-fail-fast",
+      "revision": "860529a316dd1e45e6e2f9f3921d93e964fa0e66",
+      "exit": 0,
+      "passed": 3,
+      "failed": 0,
+      "filtered": 13,
+      "log": "before-regressions-3.log",
+      "target": "/private/tmp/underlay-860-external-target",
+      "qualification": "Intentional exact regression subset, not full pre-repair acceptance."
+    },
+    {
+      "command": "cargo clippy -p termrock-runtime --all-targets -- -D warnings",
+      "exit": 0,
+      "log": "clippy.log"
+    },
+    {
+      "command": "cargo fmt --check",
+      "exit": 0,
+      "log": "fmt.log"
+    },
+    {
+      "command": "git diff --check",
+      "exit": 0
+    }
+  ],
+  "architecture_review": {
+    "shape": "Private per-cell style intent extends the existing LayerDraw compositor; no application data, captured output, second input engine or public layout engine introduced. Public fill API preserved.",
+    "source_and_destination_roles": "Compositor now resolves against the actual lower destination Cell plus matching roles and applies explicit role override provenance. Four-profile role-aware modal comparison passes. Mutation operations must still remain coherent as the three findings show.",
+    "cleanup": "LayerDraw::reset clears/resizes every intent entry; LayerPool reuse calls reset. No static unsafe/concurrent lifetime hazard identified. Public raw()/buffer_in mark(None) cancels affected-cell intent; native raw cancellation passes.",
+    "remaining_edge_limits": "No independent panic-injection/backend-error recovery test or exhaustive frame/layer deletion/resize stress test run. Native existing panic/resize scopes remain green. No complete color/modifier power-set differential or performance benchmark run."
+  },
+  "fixture_integrity": "Original860 consumer source retained unchanged as prefix, followed by three new public Runtime regression tests. Identical final source used at860 andbb with manifests pointing to detached immutable copies and revision-specific targets. Initial fade fixture accidentally called nonexistent ScrollState::set_offset; its compile failure is preserved in fade.log, corrected to public scroll_by before accepted comparisons.",
+  "acceptance_limits": [
+    "No waiver of Menu chord/disabled/theme holds.",
+    "No full UI/application integration, frozen/candidate Tuiscotti CLI comparison, terminal cleanup/modes proof, full workspace gate or hosted CI green result.",
+    "No source changes, commits, pushes or reference modifications in this review; all owned subprocess groups bounded under220s and reaped."
+  ],
+  "artifacts": {
+    "Cargo.lock": "2a96426ac6812855ae6a1099e77d2c89b9a11fb61e676410ab0b88eb93f040bd",
+    "Cargo.toml": "38eb9b3e615829f7d08b0d16e4d38dc9bc69318139fb2f11936e7b6047ebaebf",
+    "before-Cargo.toml": "1434ce58a9785f2f6ecad9f62ec5a75e37284fc7cc503c02a067487e26038b9b",
+    "before-consumer.rs": "50abd0f27b32c90ddd668dfc653dfd467fd912ab7e9c6a350856746d71a81f29",
+    "before-fade.log": "3ebac7adf055be0d0158698498544c3403ff2a6ec03f93d4a57768a7f7e443dc",
+    "before-regressions-3.log": "1939f01bec41f51adbd92115f17f747e2ef52bbc38c216d77ab066071494c808",
+    "before-regressions.log": "9bd13ff1ba30e6a26b5df44b35e0b39b01619b9eb4178d6f173faa21bea16b23",
+    "clippy.log": "284f5971bd631ecf2b346fb5cae658944dd88ab9adce0b8404dc89e2190df0f1",
+    "consumer.rs": "50abd0f27b32c90ddd668dfc653dfd467fd912ab7e9c6a350856746d71a81f29",
+    "fade-corrected-fixture.log": "2eb0733b2f308e3c72517ab449d4857e22235f5100c4908f2121ced5d44f50f2",
+    "fade.log": "9964ee491688ac4e1d9be79fd7b2cc997f3014d197e2db49b008769273c46dd8",
+    "final-public-16.log": "ca57dffb90954c21522ae6fb061b671d97ceb20a79e19eeb77ba44b08a620589",
+    "final-public.log": "b1426fc60e217c6af3bb33b040a2081e03dadbe364d92a8ec28ab5fe535bd579",
+    "fmt.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "modifiers.log": "4b802f10a0b95a4f61f6c9d367bcf7fc7e0d12e0a240ccc8f15a63165ae1aa5c",
+    "move.log": "d1b3ebda10717ffde7ea345ded94537e03a47d520125c304d63aefd31f043c65",
+    "native.log": "6d51a268d9f79270effc1bb599e673e83c0b6e230dc5bb954411628c9d4e3aab",
+    "public-original.log": "3337852e4bb4a65329348e30c2e53c47517f80e92bbed485bca2e85825aa59ea",
+    "source.diff": "01a4b255d371c61261e4fbc11094780f1021bfce7b8b2438e334c28be967ca4c"
+  }
+}

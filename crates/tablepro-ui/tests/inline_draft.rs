@@ -1,5 +1,8 @@
+#[path = "common/tab_navigation.rs"]
+mod tab_navigation;
+
 use tablepro_ui::{GridView, Surface, TableProApp, Value};
-use termrock::{App, Dialog, Id, KeyCode, Part, Theme};
+use termrock::{App, ColumnKey, Dialog, GridModel, Id, ItemKey, KeyCode, Part, Position, Theme};
 use termrock_test_support::Harness;
 
 fn draft(surface: Surface, value: &str) -> Harness<TableProApp> {
@@ -9,7 +12,7 @@ fn draft(surface: Surface, value: &str) -> Harness<TableProApp> {
     let Some(id) = h.app().result_id() else {
         unreachable!("grid")
     };
-    assert!(h.tab_to(id));
+    assert!(tab_navigation::tab_to(&mut h, id));
     for _ in 0..6 {
         let _ = h.key(KeyCode::Right);
     }
@@ -27,6 +30,107 @@ fn view(h: &Harness<TableProApp>) -> &GridView {
         unreachable!("grid")
     };
     view
+}
+
+fn assert_grid_editor_caret(
+    h: &Harness<TableProApp>,
+    grid_id: Id,
+    cell: (ItemKey, ColumnKey),
+) -> Position {
+    let Some((active_id, grid)) = h.app().workbench.active_grid() else {
+        unreachable!("the TablePro grid stays active while editing")
+    };
+    assert_eq!(active_id, grid_id);
+    assert_eq!(grid.state.edit_cell(), Some(cell));
+
+    let editor_id = grid_id.part(Part::TEXT);
+    assert_eq!(h.focus(), Some(editor_id), "the Grid owns editor focus");
+    let Some(grid_area) = h.area_of(grid_id) else {
+        unreachable!("the active Grid is visible")
+    };
+    let Some(editor_area) = h.area_of(editor_id) else {
+        unreachable!("the active Grid cell registers its embedded TextInput")
+    };
+    assert!(!editor_area.is_empty(), "the editor has visible cell area");
+    assert_eq!(
+        editor_area.intersection(grid_area),
+        editor_area,
+        "the cell editor remains inside the actual Grid bounds"
+    );
+
+    let Some(cursor) = h.cursor() else {
+        unreachable!("the visible Grid editor publishes a cursor")
+    };
+    assert!(
+        editor_area.contains(cursor),
+        "Grid editor cursor {cursor:?} must stay inside {editor_area:?}"
+    );
+    assert!(
+        h.cursor_bar(),
+        "the Grid editor publishes its steady bar caret"
+    );
+    cursor
+}
+
+#[test]
+fn inline_grid_unicode_draft_keeps_its_visible_bar_caret_without_mutating_the_result() {
+    let mut app = TableProApp::default();
+    app.set_surface(Surface::TableGrid);
+    let mut h = Harness::new(app, Theme::junie(), 120, 40);
+    let Some(grid_id) = h.app().result_id() else {
+        unreachable!("the customer result Grid exists")
+    };
+    assert!(tab_navigation::tab_to(&mut h, grid_id));
+    for _ in 0..6 {
+        let _ = h.key(KeyCode::Right);
+    }
+
+    let row_key = GridModel::row_key(&view(&h).model, 0);
+    let cell = (row_key, ColumnKey::num(7));
+    assert_eq!(
+        row_key,
+        ItemKey::num(1),
+        "the first customer has a stable key"
+    );
+    assert_eq!(
+        view(&h).columns.get(6).map(|(name, _)| name.as_str()),
+        Some("currency"),
+        "the edited key is the currency column"
+    );
+    assert_eq!(view(&h).state.cursor(), Some(cell));
+    assert_eq!(
+        h.app().result().pending().value(0, 6),
+        Some(&Value::Text("USD".to_owned()))
+    );
+
+    let query_before = h.app().query().to_owned();
+    let pending_before = h.app().result().pending().clone();
+    assert_eq!(h.app().result().pending_total(), 0);
+    let _ = h.key(KeyCode::F(2));
+    assert_eq!(view(&h).state.edit_cell(), Some(cell));
+    let _ = assert_grid_editor_caret(&h, grid_id, cell);
+
+    let _ = h.key(KeyCode::End);
+    for _ in 0..3 {
+        let _ = h.key(KeyCode::Backspace);
+    }
+    let _ = h.type_str("界");
+    let _ = h.paste("🙂");
+    assert_eq!(view(&h).state.edit_draft(), Some("界🙂"));
+    assert_eq!(h.app().query(), query_before);
+    assert_eq!(h.app().result().pending(), &pending_before);
+    assert_eq!(h.app().result().pending_total(), 0);
+    assert_eq!(
+        h.app().result().pending().value(0, 6),
+        Some(&Value::Text("USD".to_owned())),
+        "typing in Grid's draft does not change the result model"
+    );
+    let cursor_before_repeat_draw = assert_grid_editor_caret(&h, grid_id, cell);
+
+    h.draw();
+    let cursor_after_repeat_draw = assert_grid_editor_caret(&h, grid_id, cell);
+    assert_eq!(cursor_after_repeat_draw, cursor_before_repeat_draw);
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
 }
 
 #[test]
@@ -66,7 +170,10 @@ fn draft_survives_tab_and_structure_blur_then_explicit_enter_commits() {
         unreachable!("table")
     };
     let _ = h.ctrl('t');
-    assert!(h.tab_to(Id::root("tablepro.workbench.tab-strip")));
+    assert!(tab_navigation::tab_to(
+        &mut h,
+        Id::root("tablepro.workbench.tab-strip")
+    ));
     let _ = h.key(KeyCode::Left);
     assert_eq!(h.app().workbench.active_key(), Some(key));
     assert_eq!(view(&h).state.edit_draft(), Some("EUR"));
@@ -75,7 +182,7 @@ fn draft_survives_tab_and_structure_blur_then_explicit_enter_commits() {
     assert_eq!(view(&h).state.edit_draft(), Some("EUR"));
     assert_eq!(h.app().result().pending_total(), 0);
     let editor = key.control("data").part(Part::TEXT);
-    assert!(h.tab_to(editor));
+    assert!(tab_navigation::tab_to(&mut h, editor));
     let _ = h.key(KeyCode::Enter);
     assert_eq!(view(&h).state.edit_draft(), None);
     assert_eq!(h.app().result().pending_total(), 1);
@@ -134,7 +241,7 @@ fn inserted_row_and_deleted_row_accounting_keep_distinct_operations() {
     let Some(id) = inserted.app().result_id() else {
         unreachable!("grid")
     };
-    assert!(inserted.tab_to(id));
+    assert!(tab_navigation::tab_to(&mut inserted, id));
     let _ = inserted.key_mod(KeyCode::End, termrock::KeyModifiers::CONTROL);
     for _ in 0..6 {
         let _ = inserted.key(KeyCode::Right);

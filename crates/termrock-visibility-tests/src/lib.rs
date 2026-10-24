@@ -589,11 +589,15 @@ fn spawn_stdin_writer(
 #[cfg(unix)]
 fn set_nonblocking(fd: libc::c_int) -> io::Result<()> {
 
+    // SAFETY: Each caller retains the pipe File while this helper borrows its
+    // descriptor; F_GETFL only reads flags and does not transfer ownership.
     let flags = unsafe { libc::fcntl(fd, libc::F_GETFL) };
     if flags < 0 {
         return Err(io::Error::last_os_error());
     }
 
+    // SAFETY: The same pipe File remains live; `flags` came from F_GETFL, and
+    // F_SETFL receives that value with O_NONBLOCK added without transferring ownership.
     if unsafe { libc::fcntl(fd, libc::F_SETFL, flags | libc::O_NONBLOCK) } < 0 {
         return Err(io::Error::last_os_error());
     }
@@ -646,6 +650,9 @@ fn child_exited_without_reaping(child: &Child) -> io::Result<bool> {
         let mut info: libc::siginfo_t = unsafe { std::mem::zeroed() };
 
 
+        // SAFETY: This runner has not waited on the owned Child. `info` is live,
+        // initialized writable storage, and WNOWAIT leaves a reported child waitable.
+        // This does not exclude an unrelated external reaper.
         let result = unsafe {
             libc::waitid(
                 libc::P_PID,
@@ -656,6 +663,8 @@ fn child_exited_without_reaping(child: &Child) -> io::Result<bool> {
         };
         if result == 0 {
 
+            // SAFETY: waitid succeeded, so `si_pid` is initialized. Zero is handled
+            // as no event; this reads no raw padding bytes.
             let observed_pid = unsafe { info.si_pid() };
             if observed_pid == 0 {
                 return Ok(false);
@@ -938,6 +947,7 @@ fn exit_signal(status: &std::process::ExitStatus) -> Option<i32> {
 #[cfg(unix)]
 fn effective_uid() -> io::Result<u32> {
 
+    // SAFETY: `geteuid` has no preconditions and returns the current effective UID.
     Ok(unsafe { libc::geteuid() })
 }
 
@@ -946,6 +956,8 @@ fn flock_file(file: &File, operation: c_int) -> io::Result<()> {
     use std::os::fd::AsRawFd;
 
 
+    // SAFETY: The borrowed File keeps its descriptor open for this call; callers
+    // pass LOCK_EX or LOCK_UN without transferring descriptor ownership.
     let result = unsafe { libc::flock(file.as_raw_fd(), operation) };
     if result == 0 {
         Ok(())
@@ -986,11 +998,15 @@ fn open_directory_chain_no_follow(path: &Path) -> io::Result<File> {
     let flags = libc::O_RDONLY | libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC;
 
 
+    // SAFETY: `root_name` is a live NUL-terminated CString for "/"; these flags
+    // request a directory descriptor without following a symlink.
     let root_fd = unsafe { libc::open(root_name.as_ptr(), flags) };
     if root_fd < 0 {
         return Err(io::Error::last_os_error());
     }
 
+    // SAFETY: The negative open result was rejected above. This fresh root
+    // descriptor has no Rust owner and is transferred to File exactly once.
     let mut directory = unsafe { File::from_raw_fd(root_fd) };
     for component in path.components() {
         let Component::Normal(name) = component else {
@@ -1008,11 +1024,16 @@ fn open_directory_chain_no_follow(path: &Path) -> io::Result<File> {
 
 
 
+        // SAFETY: `directory` remains live as the parent File, and `name` is a live
+        // CString made from one normal path component. O_NOFOLLOW and O_DIRECTORY
+        // apply at each step; the parent is dropped only after the child opens.
         let child_fd = unsafe { libc::openat(directory.as_raw_fd(), name.as_ptr(), flags) };
         if child_fd < 0 {
             return Err(io::Error::last_os_error());
         }
 
+        // SAFETY: The negative openat result was rejected above. This fresh child
+        // descriptor is transferred to File once before replacing the parent owner.
         let child_directory = unsafe { File::from_raw_fd(child_fd) };
         directory = child_directory;
     }
@@ -1027,6 +1048,9 @@ fn open_private_lock_directory_at(parent: &File, name: &str) -> io::Result<File>
     let name = CString::new(name)
         .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "lock directory name has NUL"))?;
 
+    // SAFETY: `parent` remains a live directory descriptor and `name` is a CString.
+    // The private caller supplies one UID-based component; CString rejects NUL.
+    // Ownership and permissions are checked later on the opened directory.
     if unsafe { libc::mkdirat(parent.as_raw_fd(), name.as_ptr(), 0o700) } != 0 {
         let error = io::Error::last_os_error();
         if error.kind() != io::ErrorKind::AlreadyExists {
@@ -1035,11 +1059,16 @@ fn open_private_lock_directory_at(parent: &File, name: &str) -> io::Result<File>
     }
     let flags = libc::O_RDONLY | libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC;
 
+    // SAFETY: The parent File and the private caller's generated single-component CString
+    // remain live; directory/no-follow flags reject a final symlink or non-directory.
+    // Metadata for the opened directory is checked afterwards.
     let directory_fd = unsafe { libc::openat(parent.as_raw_fd(), name.as_ptr(), flags) };
     if directory_fd < 0 {
         return Err(io::Error::last_os_error());
     }
 
+    // SAFETY: The negative openat result was rejected above; File takes this fresh
+    // descriptor once and closes it if a later metadata check fails.
     let directory = unsafe { File::from_raw_fd(directory_fd) };
     let metadata = directory.metadata()?;
     if !metadata.is_dir()
@@ -1064,11 +1093,16 @@ fn open_private_lock_file_at(parent: &File, name: &str) -> io::Result<File> {
     let flags = libc::O_RDWR | libc::O_CREAT | libc::O_NOFOLLOW | libc::O_CLOEXEC;
 
 
+    // SAFETY: The checked parent File and private caller-generated hexadecimal
+    // `.lock` name are valid openat inputs. O_CREAT uses mode 0600 and O_NOFOLLOW
+    // prevents following a final symlink; this makes no hard-link or wider race claim.
     let file_fd = unsafe { libc::openat(parent.as_raw_fd(), name.as_ptr(), flags, 0o600) };
     if file_fd < 0 {
         return Err(io::Error::last_os_error());
     }
 
+    // SAFETY: The negative openat result was rejected above; File takes this fresh
+    // lock-file descriptor once and closes it on a later metadata failure.
     let file = unsafe { File::from_raw_fd(file_fd) };
     let metadata = file.metadata()?;
     if !metadata.is_file()

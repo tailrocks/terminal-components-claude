@@ -3,13 +3,13 @@
   "cols": 160,
   "cursor": {
     "visible": false,
-    "x": 0,
-    "y": 0
+    "x": 40,
+    "y": 17
   },
-  "frame_digest": 8056947331121118790,
+  "frame_digest": 11584992338762455569,
   "legacy_name": "tablepro/overlays/picker_open/160x50/16",
   "name": "tablepro/workbench/overlay-picker-open/160x50/16",
-  "non_empty_cells": 1718,
+  "non_empty_cells": 8000,
   "provenance": {
     "argv": [],
     "created_unix": 0,

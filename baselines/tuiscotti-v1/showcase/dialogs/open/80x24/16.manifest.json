@@ -1,40 +1,40 @@
 {
-  "ansi_sha256": "69e815cdecf1b153cb02eb9a759b7eb48eb4382eb17c846a305144122f683e55",
+  "ansi_sha256": "db518536dd825cd06e3d02f65663fd596075b701a86507504170b51fe7e92e73",
   "artifacts": {
     "ansi": {
-      "bytes": 5865,
+      "bytes": 4549,
       "file": "showcase/dialogs/open/80x24/16.ansi",
-      "sha256": "69e815cdecf1b153cb02eb9a759b7eb48eb4382eb17c846a305144122f683e55"
+      "sha256": "db518536dd825cd06e3d02f65663fd596075b701a86507504170b51fe7e92e73"
     },
     "ascii": {
-      "bytes": 1235,
+      "bytes": 1582,
       "file": "showcase/dialogs/open/80x24/16.ascii",
-      "sha256": "96f7e431d2aa279a12fb698de2075c7bfd7b1c337ae82f7af9e3660d7aac7160"
+      "sha256": "850838ba094980d75068b652c73bb75cfb21a3d8f16bfbcd6400a96b8c1f02db"
     },
     "ascii_loss_json": {
-      "bytes": 13764,
+      "bytes": 29371,
       "file": "showcase/dialogs/open/80x24/16.ascii.loss.json",
-      "sha256": "65b2055d892a365f5e431aa022167492effd5f4d9347e78c36066620479d97fa"
+      "sha256": "6fbc17b15911f83242e3ed2672f2c5211f377532e976a2cc15798c51a648087f"
     },
     "frame_json": {
-      "bytes": 444968,
+      "bytes": 443570,
       "file": "showcase/dialogs/open/80x24/16.frame.json",
-      "sha256": "336a0177f3b0a44db7b94b3d75fbcb943e8bc888ec2351c44990cd733450aca7"
+      "sha256": "dcf599dd757cc9d010ab53092a72b397bfa32c6a00b8cffe3e6384a5f84f2bc6"
     },
     "html": {
-      "bytes": 315183,
+      "bytes": 356968,
       "file": "showcase/dialogs/open/80x24/16.html",
-      "sha256": "53f225ca5f761da8849dfced4873b852ae8062f2509c99a15385b68d06b875ca"
+      "sha256": "714a066aa67b86dbf9ea7a840e2452ab795f5a06b7c2fda9117611729bfacd5a"
     },
     "observations_json": {
-      "bytes": 447,
+      "bytes": 448,
       "file": "showcase/dialogs/open/80x24/16.observations.json",
-      "sha256": "ee7c3278828f16fc4b3f32ef018da702482e27b5e7b91adab6683bce16b21341"
+      "sha256": "89499f872ce04768350bbf3393fb333d5b107e0a83b37f0f038252e196085f2a"
     },
     "png": {
-      "bytes": 224035,
+      "bytes": 258914,
       "file": "showcase/dialogs/open/80x24/16.png",
-      "sha256": "1b4184beee28fb6cb89c37503a7ab0c40bc8f92eefd92d791cc2ba716180a986"
+      "sha256": "e0edc3579fd454cac4150048ef7eb179b426122bb73c608dc76643532fcd24be"
     },
     "png_fidelity_json": {
       "bytes": 276,
@@ -42,26 +42,26 @@
       "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
     },
     "txt": {
-      "bytes": 1531,
+      "bytes": 2209,
       "file": "showcase/dialogs/open/80x24/16.txt",
-      "sha256": "01c07e4098f9605532a89a9b5acb7c7ed91d86bfdc22df07be4d723421ffddae"
+      "sha256": "a045094a59c5c34c4c856e8a89cf844cd7409fd0b8da5432850ecbf17031f8c2"
     }
   },
-  "ascii_substitutions_count": 148,
+  "ascii_substitutions_count": 317,
   "complete": true,
   "dimensions": {
     "cols": 80,
     "rows": 24
   },
-  "frame_digest": 6619517308825460840,
-  "frame_sha256": "336a0177f3b0a44db7b94b3d75fbcb943e8bc888ec2351c44990cd733450aca7",
-  "generation": "78795c2adc5def89aeb9576e351ed6e2bad7eca6a8a31c140e6b053abafdc1a6",
-  "html_sha256": "53f225ca5f761da8849dfced4873b852ae8062f2509c99a15385b68d06b875ca",
+  "frame_digest": 5434144019305321468,
+  "frame_sha256": "dcf599dd757cc9d010ab53092a72b397bfa32c6a00b8cffe3e6384a5f84f2bc6",
+  "generation": "582f4c7915ae2bb5f86baa0f704027e9c2ffd069e8bc956518da506482ce87cc",
+  "html_sha256": "714a066aa67b86dbf9ea7a840e2452ab795f5a06b7c2fda9117611729bfacd5a",
   "legacy_name": "showcase/flows/dialogs/open/80x24/16",
   "name": "showcase/dialogs/open/80x24/16",
-  "png_sha256": "1b4184beee28fb6cb89c37503a7ab0c40bc8f92eefd92d791cc2ba716180a986",
+  "png_sha256": "e0edc3579fd454cac4150048ef7eb179b426122bb73c608dc76643532fcd24be",
   "profile": "tuiscotti-default",
   "schema_version": 1,
-  "timestamp_utc": "2026-10-03T22:09:18Z",
-  "txt_sha256": "01c07e4098f9605532a89a9b5acb7c7ed91d86bfdc22df07be4d723421ffddae"
+  "timestamp_utc": "2026-10-21T00:00:00Z",
+  "txt_sha256": "a045094a59c5c34c4c856e8a89cf844cd7409fd0b8da5432850ecbf17031f8c2"
 }

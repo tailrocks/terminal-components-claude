@@ -1,0 +1,51 @@
+{
+  "title": "InspectorBody and Jackin presentation deletion source/behavior audit",
+  "pinned_source": {
+    "branch": "origin/parity/termrock-visual-baseline",
+    "commit": "f8f3a576f2149b58d6e05ecfa42acb1f7605c307",
+    "parents": [
+      "a7a8a4cf6357cf9162d2afb01ee736648fb75a87",
+      "961795738ac2b56ab454bc41f6a035d27e5089d6"
+    ],
+    "relevant_introduction": "208ef6418d9378aeed69ff183c2152166e4301ee",
+    "previous_capability_packet": {
+      "path": "/private/tmp/termrock-audit-packets/showcase-capability-coverage-20261021.json",
+      "sha256": "01eb9390204336f8f78427c99b1c4e2b1f8026aa6d8f7a514e8126f816a82143",
+      "preserved": "No edits or contradictory change to its public API/coverage findings; this packet narrows to account inspector + Jackin deletion."
+    }
+  },
+  "source_blobs": {
+    "crates/termrock-feedback/src/inspector_body.rs": "f5ab13860dcf19037d577d3a4437351f45a8c0ac",
+    "crates/termrock-feedback/src/accounts_drawer.rs": "806de970d24b0a0a2d6536771f1b7f12d51789e6",
+    "crates/jackin-preview-app/src/app/accounts_filter_wide.rs": "bcb4e4c91cc38efffb7149b3531bb440a8c27113",
+    "crates/jackin-preview-app/src/app.rs": "90d450cfdb59096e4e27cb9613f5c88dea1fa7a4",
+    "crates/jackin-preview-app/tests/app_tests.rs": "c3e293f3677b28f8a39829d937403d53a22487ae",
+    "crates/jackin-preview-app/src/app/launch_picker_view.rs": "b355e8abf6f5417e298788a9c87ef42f6de0ffcd",
+    "crates/jackin-preview-app/src/app/hard_launch_picker_view.rs": "314245f390db8e544a8147a6c9bb6d219917c195"
+  },
+  "finding": {
+    "classification": "Partial reduction of fixed screenshot data, not completion of the real-component/product gate.",
+    "live_data": "Yes, part of the inspector content is composed from live domain/view data: `accounts_filter_wide::paint` computes OverallSummary from world.accounts, passes current summary counts, sources, comparable windows, warnings/statuses, account issues/staleness, unresolved identities, and clock labels into InspectLine values (accounts_filter_wide.rs:18-22, 115-267, 270-358). `paint_inspector_body` consumes caller-provided InspectLine data rather than a captured RUNS/frame table (inspector_body.rs:123-169).",
+    "still_fixed": "The enclosing screen remains a fixed fixture: pane rows are literal Overview/Claude/Work with literal alert markers; title, summary, brand/menu/crumb/status/hints and 32 blank rows are literals (accounts_filter_wide.rs:25-89, 93-110). `sources_line` uses live values, while fixed header status is `⠋ refreshing 1`, title is `Accounts · filt…`, and summary is `12 · 4 ▲ · 4 !`.",
+    "selector": "The only app call goes through `historical_accounts_filter` exact-state gate: 120x40, TrueColor, exact accent RGB, Route::Accounts, Scenario::AccountsMixed, paused, filtering query exactly `work`, input not editing, and many app/overlay fields clear (app.rs:7163-7194). `draw_historical_accounts_filter` paints the helper only after that gate (app.rs:7196-7201), and the draw pass invokes it after regular page content (app.rs:9385-9390). This is still a test-scenario/viewport/theme-selected alternate render path. There is a separate similarly gated 80x24 helper that still calls accounts_filter_view::paint rather than InspectorBody (app.rs:7203-7244).",
+    "state_and_controls": "InspectorBody and AccountsDrawer are stateless paint APIs: no update method, state object, actions, control/hit/focus registration, measure contract, or owned scroll offset. AccountsDrawer accepts presentation rows/lines/hints and paints them; account selection/filter text/focus remain owned by Jackin's `self.accounts` and the normal app handlers/draw path (accounts_drawer.rs:16-107, 135-216; app.rs:1832-1869, 3517-3547, 6773-6784). `paint_accounts_drawer` manually paints the shell, rows, line contents and hints, including fixed 39-column list and fixed positions/bar widths (accounts_drawer.rs:122-135, 152-216; constants 130-133). It does not render interactive buttons/controls from DrawerButton labels.",
+    "layout_and_scroll": "InspectorBody has a private layout and wrap implementation, hardcodes a split based on LIST_W=39, panel insets, min 80x24 region, and label bounds (inspector_body.rs:63-72, 171-210). It retries at a narrower text width only if rows overflow. It paints the first `height` rows; overflow triggers edge fade and a scrollbar, but the scrollbar has no state/offset and paints its thumb from track index zero (inspector_body.rs:123-169, 380-403, 446-451). No shared ScrollPane/ScrollRegion or application scroll input is consumed. This is an overflow indicator, not functional scrolling.",
+    "theme_and_text": "The component resolves primary/secondary/muted/faint from theme but warning/danger/info/seam/fade values are literal RGB constants (inspector_body.rs:63-69, 127-134, 630-647). Wrapping uses the shared width helper but custom `char` iteration in `wrap_para` and `fit` (inspector_body.rs:453-549, 592-607), so grapheme-safe behavior is not established; combining sequences can be split. Only fixed string-wrap tests exist in this file (662-704), not live consumer tests for wide data, reordering or scroll interaction.",
+    "consumer_count": "`git grep` at pinned HEAD finds InspectorLine/paint_inspector_body only in this Jackin helper, the public facade, and tests within inspector_body.rs; AccountsDrawer is also used by accounts_drawer_view (a second app-local painter). No distinct public consumer demonstrates arbitrary inspector data/layout policy. termrock-feedback/src/lib.rs publicly exports the APIs (17-23, 37-50), but public visibility does not make these behavior-complete shared components.",
+    "real_app_probes": "Existing app test accounts_filter_and_inspector_open_without_writing_a_credential exercises opening/filtering/closing on a Returning 120x40 live app and asserts query, route, account count, and clipboard remain valid (app_tests.rs:1974-2012). It does not prove the special mixed-scenario inspector body is live, scrollable, selectable, or data-reordered. accounts_filter_enter_paints_the_approved_filter_frame explicitly drives `/`, `work`, Enter then asserts the special filtered frame and hidden cursor (app_tests.rs:1924-1949); it tests the bypass state, not parity with the immutable CLI baseline."
+  },
+  "jackin_deletion_assessment": {
+    "positive": "At f8f3a576, crates/jackin-preview-presentation/src/capsule.rs, launch_failure.rs, and launch_running.rs are deleted (large fixed presentation implementation files); presentation lib.rs drops references. Keeping those removed is consistent with reducing duplicate screen renderers.",
+    "not_proof_of_replacement": "The app at pinned HEAD still defines and invokes `draw_historical_launch_picker`, `draw_historical_hard_launch_picker`, and `draw_historical_hard_launch_locked` (app.rs:8293-8355, 8357-8390; called at :9428-9430). Each has reference-screen state checks and app-private view painters. `launch_picker_view.rs` and `hard_launch_picker_view.rs` still contain coordinate/color `ENTRIES` fixed tables (both define Entry at line 7 and `const ENTRIES` at line 9). Deleting the old presentation crate files therefore removes duplicate old paths but leaves separate production replay tables and selectors; no acceptance credit for those remnants until replaced by live shared components and exact paired checks."
+  },
+  "test_evidence_and_limits": {
+    "not_run": true,
+    "commands_run": "Read-only `git fetch`, `git show`, `git grep`, `git ls-tree`, and source hash inspection only. No Cargo tests or candidate/reference executions.",
+    "recommended_focused_nextest": [
+      "cargo nextest run -p termrock-feedback (new InspectorBody wrapping unit tests and related component tests)",
+      "cargo nextest run -p jackin-preview-app --test app_tests accounts_filter (but these tests currently assert special approved-frame output and must not be mistaken for baseline parity)",
+      "pinned tuiscotti real CLI paired baseline/candidate filter journey at supported terminal sizes, including before/after filter input, Enter, resize, and data changes"
+    ],
+    "review_status": "Independent read-only source audit only; no reviewer approval, baseline comparison, or accepted deletion claim." 
+  }
+}

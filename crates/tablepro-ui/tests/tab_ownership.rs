@@ -1,9 +1,15 @@
+#[path = "common/tab_navigation.rs"]
+mod tab_navigation;
+
 use tablepro_ui::{Surface, Tab, TabKey, TableProApp, Value};
 use termrock::{App, GridEditor, GridModel, Id, KeyCode, Theme};
 use termrock_test_support::Harness;
 
 fn activate(h: &mut Harness<TableProApp>, key: TabKey) {
-    assert!(h.tab_to(Id::root("tablepro.workbench.tab-strip")));
+    assert!(tab_navigation::tab_to(
+        h,
+        Id::root("tablepro.workbench.tab-strip")
+    ));
     for _ in 0..h.app().workbench.tabs().len() {
         if h.app().workbench.active_key() == Some(key) {
             break;
@@ -24,7 +30,7 @@ fn keyboard_cell_edit_survives_tab_switch_with_pending_cursor_and_undo() {
     let Some(grid_id) = h.app().result_id() else {
         unreachable!("grid fixture")
     };
-    assert!(h.tab_to(grid_id));
+    assert!(tab_navigation::tab_to(&mut h, grid_id));
     for _ in 0..6 {
         let _ = h.key(KeyCode::Right);
     }
@@ -132,11 +138,13 @@ fn query_headers_results_and_uncommitted_draft_survive_switch() {
     let Some(query_id) = h.app().query_id() else {
         unreachable!("editor")
     };
-    assert!(h.tab_to(query_id));
+    assert!(tab_navigation::tab_to(&mut h, query_id));
     let _ = h.key(KeyCode::End);
     let _ = h.type_str(" -- draft");
     let draft = match h.app().workbench.active() {
-        Some(Tab::Query(tab)) => tab.editor_state.draft_text().map(str::to_owned),
+        Some(Tab::Query(tab)) if tab.editor_state.editor().is_editing() => {
+            Some(tab.editor_state.editor().text().to_owned())
+        }
         _ => None,
     };
     assert!(
@@ -154,7 +162,14 @@ fn query_headers_results_and_uncommitted_draft_survive_switch() {
     let Some(Tab::Query(query)) = h.app().workbench.active() else {
         unreachable!("query")
     };
-    assert_eq!(query.editor_state.draft_text(), draft.as_deref());
+    assert_eq!(
+        query
+            .editor_state
+            .editor()
+            .is_editing()
+            .then(|| query.editor_state.editor().text()),
+        draft.as_deref()
+    );
     let Some(result) = &query.result else {
         unreachable!("result")
     };
@@ -171,7 +186,7 @@ fn structure_grid_is_separate_and_data_pending_undo_survives_toggle() {
         unreachable!("data")
     };
     let mut h = Harness::new(app, Theme::junie(), 120, 40);
-    assert!(h.tab_to(data_id));
+    assert!(tab_navigation::tab_to(&mut h, data_id));
     let _ = h.key(KeyCode::Down);
     let cursor = h
         .app()
@@ -211,7 +226,7 @@ fn reconnect_never_reuses_old_editor_focus_or_pointer_capture() {
     let Some(old) = h.app().query_id() else {
         unreachable!("editor")
     };
-    assert!(h.tab_to(old));
+    assert!(tab_navigation::tab_to(&mut h, old));
     let Some(area) = h.area_of(old) else {
         unreachable!("editor area")
     };
@@ -228,7 +243,7 @@ fn reconnect_never_reuses_old_editor_focus_or_pointer_capture() {
     let Some(Tab::Query(query)) = h.app().workbench.active() else {
         unreachable!("replacement")
     };
-    assert!(query.editor_state.draft_text().is_none());
+    assert_eq!(query.editor_state.editor().text(), "");
     assert_ne!(h.focus(), Some(old));
     assert_ne!(h.focus(), Some(new));
     assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
@@ -246,7 +261,7 @@ fn focused_query_identity_and_draft_survive_earlier_insert_close_and_reorder() {
     let Some(id) = h.app().query_id() else {
         unreachable!("editor")
     };
-    assert!(h.tab_to(id));
+    assert!(tab_navigation::tab_to(&mut h, id));
     let _ = h.type_str("draft survives identity changes");
     assert!(h.app_mut().workbench.close_tab(0));
     assert!(
@@ -278,8 +293,8 @@ fn focused_query_identity_and_draft_survive_earlier_insert_close_and_reorder() {
         unreachable!("query")
     };
     assert_eq!(
-        query.editor_state.draft_text(),
-        Some("draft survives identity changes")
+        query.editor_state.editor().text(),
+        "draft survives identity changes"
     );
     assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
 }

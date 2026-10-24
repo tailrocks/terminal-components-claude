@@ -1,0 +1,51 @@
+[0m[2;38;5;7;48;5;0m [0m[2;38;5;7;48;5;8m holla❯ [0m[2;38;5;7;48;5;0m   File   Go   Help                                                                                                 acme · mise monorepo  mbp · local  [0m
+[0m[2;38;5;7;48;5;0m                                                                                                                                                                [0m
+[0m[2;38;5;7;48;5;0m  Here    frontend dev ⠋ ×    api dev ⠋ ×    api tests ✓ ×    logs · api worker sched… ⠋ ×    btm ○ ×                                                           [0m
+[0m[2;38;5;7;48;5;0m ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+[0m[2;38;5;7;48;5;0m [0m[38;5;0;48;5;0m [0m[2;38;5;7;48;5;0m Search actions and resources…                                                                                                                scope ‹ here ›  [0m
+[0m[2;38;5;7;48;5;0m                                                                                                                                                                [0m
+[0m[2;38;5;7;48;5;0m    Suggested here                                                                                               Inspect 10 GB of generated arti… disk · here   [0m
+[0m[2;38;5;7;48;5;0m    Follow acme-api-1 logs                docker    here   service is unhealthy                                  ────────────────────────────────────────────   [0m
+[0m[2;38;5;7;48;5;0m  › Inspect 10 GB of generated artifacts  disk      here   10 GB generated artifacts                             Does       2 rebuildable candidates below      [0m
+[0m[2;38;5;7;48;5;0m    Install missing tools · sqlx-cli      task      here   1 tool missing                                                   this folder · 0 stale enough to     [0m
+[0m[2;38;5;7;48;5;0m    Review cleanup candidates             cleanup   host   10.6 GiB across 4 categories                                     start selected                      [0m
+[0m[2;38;5;7;48;5;0m    Deploy preview                        custom    here   Current folder · ⚠ unreviewed                         Runs       'holla disk analyze --artifacts'    [0m
+[0m[2;38;5;7;48;5;0m                                                                                                                 In         ~/work/acme                         [0m
+[0m[2;38;5;7;48;5;0m    Recent here                                                                                                  Host       mbp · local                         [0m
+[0m[2;38;5;7;48;5;0m    nothing used here yet                                                                                        Scope      here                                [0m
+[0m[2;38;5;7;48;5;0m                                                                                                                 Why        10 GB generated artifacts           [0m
+[0m[2;38;5;7;48;5;0m    Running                                                                                                      Changes    none · read-only                    [0m
+[0m[2;38;5;7;48;5;0m    logs · api worker scheduler           activity  here   ⠋ running · 3 s                                       Risk       read-only                           [0m
+[0m[2;38;5;7;48;5;0m    api dev                               activity  child  ⠋ running · 3 s                                       Data       live · 3 s ago                      [0m
+[0m[2;38;5;7;48;5;0m    btm                                   activity  h╭──────────────────────────────────────────────── × ─╮      Gate       opens a review · the deletion is    [0m
+[0m[2;38;5;7;48;5;0m    frontend dev                          activity  c│                                                    │                 gated there (typed phrase)          [0m
+[0m[2;38;5;7;48;5;0m                                                     │  [0m[1;2;38;5;15;48;5;0mQuit holla❯?[0m[2;38;5;7;48;5;0m                                      │      Alt+Enter  Pin · Alias · Why here?             [0m
+[0m[2;38;5;7;48;5;0m    Explore                                          │                                                    │                                                     [0m
+[0m[2;38;5;7;48;5;0m [0m[38;5;0;48;5;0m [0m[2;38;5;7;48;5;0m   Tasks   Git   Files   Disk   Services   System  │  4 activities are still running. Quitting stops    │                                                     [0m
+[0m[2;38;5;7;48;5;0m    Children · 3 projects                 explore   c│  what holla started; detached monitors keep        │                                                     [0m
+[0m[2;38;5;7;48;5;0m    System · mbp                          explore   h│  running.                                          │                                                     [0m
+[0m[2;38;5;7;48;5;0m                                                     │                                                    │                                                     [0m
+[0m[2;38;5;7;48;5;0m                                                     │                           [0m[2;38;5;15;48;5;8m▎[0m[1;2;4;38;5;0;48;5;8mS[0m[1;2;38;5;0;48;5;8mtay [0m[2;38;5;7;48;5;0m  [0m[2;38;5;8;48;5;8m [0m[2;38;5;0;48;5;8mS[0m[2;4;38;5;0;48;5;8mt[0m[2;38;5;0;48;5;8mop and quit [0m[2;38;5;7;48;5;0m  │                                                     [0m
+[0m[2;38;5;7;48;5;0m                                                     │                                                    │                                                     [0m
+[0m[2;38;5;7;48;5;0m                                                     ╰────────────────────────────────────────────────────╯                                                     [0m
+[0m[2;38;5;7;48;5;0m                                                                                                                                                                [0m
+[0m[2;38;5;7;48;5;0m                                                                                                                                                                [0m
+[0m[2;38;5;7;48;5;0m                                                                                                                                                                [0m
+[0m[2;38;5;7;48;5;0m                                                                                                                                                                [0m
+[0m[2;38;5;7;48;5;0m                                                                                                                                                                [0m
+[0m[2;38;5;7;48;5;0m                                                                                                                                                                [0m
+[0m[2;38;5;7;48;5;0m                                                                                                                                                                [0m
+[0m[2;38;5;7;48;5;0m                                                                                                                                                                [0m
+[0m[2;38;5;7;48;5;0m                                                                                                                                                                [0m
+[0m[2;38;5;7;48;5;0m                                                                                                                                                                [0m
+[0m[2;38;5;7;48;5;0m                                                                                                                                                                [0m
+[0m[2;38;5;7;48;5;0m                                                                                                                                                                [0m
+[0m[2;38;5;7;48;5;0m                                                                                                                                                                [0m
+[0m[2;38;5;7;48;5;0m                                                                                                                                                                [0m
+[0m[2;38;5;7;48;5;0m                                                                                                                                                                [0m
+[0m[2;38;5;7;48;5;0m                                                                                                                                                                [0m
+[0m[2;38;5;7;48;5;0m                                                                                                                                                                [0m
+[0m[2;38;5;7;48;5;0m                                                                                                                                                                [0m
+[0m[2;38;5;7;48;5;0m ~/work/acme   main   ↑1                                                                                                      ⠋ 4 running    16 colors · 160×50 [0m
+[0m[38;5;15;48;5;0m [0m[1;38;5;15;48;5;0m←→ [0m[1;38;5;7;48;5;0mC[0m[38;5;7;48;5;0mhoose[0m[38;5;15;48;5;0m  [0m[1;38;5;15;48;5;0mEnter[0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0mStay[0m[38;5;15;48;5;0m [0m[1;38;5;15;48;5;0m Esc [0m[38;5;7;48;5;0mStay[0m[38;5;15;48;5;0m   [0m[1;38;5;15;48;5;0m         [0m[38;5;15;48;5;0m                [0m[1;38;5;15;48;5;0m   [0m[38;5;15;48;5;0m          [0m[1;38;5;15;48;5;0m       [0m[38;5;15;48;5;0m        [0m[1;38;5;15;48;5;0m      [0m[38;5;15;48;5;0m                                      [0m[38;5;7;48;5;0mapi tests finished · exit 0[0m[38;5;15;48;5;0m [0m
+[?25l

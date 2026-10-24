@@ -1,0 +1,275 @@
+{
+  "schema": 1,
+  "reviewed_at": "2026-10-21T03:03:30.226176+00:00",
+  "reviewer": "independent Rust reviewer /root/menu_dynamic_collision_review",
+  "candidate_commit": "1011159a72fc652ac1d849683ac03f9305502b8c",
+  "previous_commit": "ec82158cf42ce43e1b22f75ec889b33ed4053361",
+  "status": "Scoped clearance; no new actionable findings in reviewed change",
+  "findings": [],
+  "resolved_findings": [
+    {
+      "id": "MENU-DANGER-03",
+      "status": "closed",
+      "evidence": "Unchanged independent_custom_disabled_surface.rs SHA b3531d9fbb92436ab8b357e5a9fb53f6e69105a48caf77f0cf480274b4ce20d0 previously failed at ec82158; now passes. ANSI16/Mono public semantic surfaces[4]=Black retain DisabledFg, with no ANSI16 DIM and ordinary Mono DIM. Both ROW/LABEL checked."
+    }
+  ],
+  "source_review": {
+    "mechanism": "Resolver binds merged profile/local channels before collision check. Fallback applies only when authored roles are DisabledFg and CurrentSurface, both resolve to the same nonempty color; foreground becomes semantic Muted and DIM is added unless explicitly removed. Other roles, cleared channels and explicit custom overrides avoid fallback. No public signature/state/ownership/input/concurrency/unsafe changes.",
+    "broader_scope": "The shared binder also affects non-menu families and other themes when that exact role pair collides. This is not MENU-specific. Independent LIST probes check the frozen interactive collision rule across 4 capabilities, 6 surfaces, 4 disabled multistates (96 cases), including hover/press/selected-focus. This is bounded coverage, not proof of every component/theme."
+  },
+  "checks": {
+    "diff": {
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exit": 0,
+      "seconds": 0.32238854200113565
+    },
+    "clippy": {
+      "command": [
+        "cargo",
+        "clippy",
+        "-p",
+        "termrock-theme",
+        "-p",
+        "termrock-overlays",
+        "--all-targets",
+        "--no-deps",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit": 0,
+      "seconds": 5.237798750051297
+    },
+    "independent-corrected": {
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "-p",
+        "termrock-theme",
+        "-p",
+        "termrock-overlays",
+        "-E",
+        "test(independent_)",
+        "--no-fail-fast",
+        "--success-output",
+        "immediate"
+      ],
+      "exit": 0,
+      "seconds": 1.6933585840160958
+    },
+    "scoped-fmt": {
+      "command": [
+        "cargo",
+        "fmt",
+        "--check",
+        "--package",
+        "termrock-theme",
+        "--package",
+        "termrock-overlays"
+      ],
+      "exit": 0,
+      "seconds": 0.16107358294539154
+    },
+    "native": {
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "-p",
+        "termrock-theme",
+        "-p",
+        "termrock-overlays",
+        "-E",
+        "not binary(independent_)",
+        "--no-fail-fast"
+      ],
+      "exit": 94,
+      "seconds": 0.28780933399684727
+    },
+    "native-clean": {
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "-p",
+        "termrock-theme",
+        "-p",
+        "termrock-overlays",
+        "--no-fail-fast"
+      ],
+      "exit": 100,
+      "seconds": 1.0663012499571778
+    },
+    "packages": {
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "-p",
+        "termrock-theme",
+        "-p",
+        "termrock-overlays",
+        "--no-fail-fast"
+      ],
+      "exit": 100,
+      "seconds": 13.098375834000763
+    },
+    "independent": {
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "-p",
+        "termrock-theme",
+        "-p",
+        "termrock-overlays",
+        "-E",
+        "test(independent_)",
+        "--no-fail-fast",
+        "--success-output",
+        "immediate"
+      ],
+      "exit": 101,
+      "seconds": 0.6098758750013076
+    }
+  },
+  "independent_proofs": {
+    "selected_tests": "10/10 pass, 309 other tests filtered; selection is only temporary independent probes, not the native acceptance gate.",
+    "unchanged_frozen_probe": "Complete disabled-row label and leading-cell FG/BG/modifiers at rest, hover and press across all4 profiles; typed pointer release action passes.",
+    "overrides": "Retained independent FG/BG matrices each 144 conditions: 4 profiles x4 precedence scopes x3 Set/Clear cases x3 pointer states. Read-only/inactive resolution probes retained. New direct local probes verify clear_fg, clear_bg, custom foreground, different semantic background and explicit DIM removal across all4 profiles with ACTIVE|DISABLED|HOVERED|PRESSED.",
+    "normal_menu_corpus": {
+      "frames": 28,
+      "cells": 21504,
+      "exact_equal_to_ec82158_and_recorded_current_base": true,
+      "sha256": "e545c01e5151ca35b0ebb773c77e20f34d25cd0a0db81a8626029a8c3d028fdd",
+      "comparison_note": "Identical complete cells, recorded focus/cursor/menu geometry/action. Extraction preserves prior trailing four log-indent spaces; raw initial extraction differed only in those trailing spaces.",
+      "limitations": "No cursor shape, terminal modes, actual PTY or modal input-scope proof."
+    }
+  },
+  "native_gate": "283 run:282 pass,1 known all_73_junie_slots_match_reference_capability_output failure,0 skipped. Strict scoped Clippy all-targets --no-deps -D warnings, scoped cargo fmt, git diff --check pass. Full workspace checks not run.",
+  "invalid_checks_preserved": [
+    "First broad run also executed copied historical fixture tests whose fixtures were intentionally modified or expectations predated corrections; 7 irrelevant copied failures plus known all73. They are not source regressions and not counted as native gate. Native gate rerun after removing all task-owned temporary tests.",
+    "First new reviewer probe did not compile because as_style returns a reference to a temporary; corrected by copying Style. Original probe source/log preserved.",
+    "Initial native filter used binary(independent_) which matched no binary names; corrected by removing all temporary probes and running complete native packages."
+  ],
+  "integrity": {
+    "product_source_edited": false,
+    "review_worktree_clean": true,
+    "dedicated_target_per_revision": "/private/tmp/menu-dynamic-review-target-1011159-20261021",
+    "source_sha256": {
+      "crates/termrock-theme/src/lib.rs": "2ea794cdf7008d2f36220ed5b10e9bc99db968572b5b95c0b45df1987a991062",
+      "crates/termrock-theme/src/resolve.rs": "1ffebb215a87af1388058d7d8574073248333d46c8255ecbb85804450dcadc4c",
+      "crates/termrock-overlays/src/menu.rs": "f167755d6145f501616feaa2a65b4bc97fa2d6f716696c06fa0d1574d460c606",
+      "crates/termrock-overlays/tests/context_menu_danger_profile.rs": "291731e45d09a4e6b817f923290e6aa07c94ce8a1d75f2b9ab9361f92ad7b48d"
+    },
+    "previous_negative_evidence": "/Users/donbeave/Projects/termrock-cli-evidence-20261021/menu-danger-independent-review-ec82158/review.json"
+  },
+  "limitations": [
+    "No actual CLI execution, tuiscotti captures, key access or baseline artifacts changed.",
+    "No claim of application adoption, full reusable-library completion, complete frozen product parity or whole-workspace acceptance.",
+    "Known all73 native failure remains unresolved. Full workspace formatting was not rerun; prior unrelated incoming Jackin formatting failure remains recorded."
+  ],
+  "evidence": {
+    "diff.json": {
+      "sha256": "1c2485655b9df252de7288aa76a8ee86ed365db8687952a35252d2f87b6a56fa",
+      "bytes": 106
+    },
+    "clippy.json": {
+      "sha256": "fb948251baf3f4f5f73a3976f811f7f349759e79a2b6920bc3bd87acfd7157dc",
+      "bytes": 234
+    },
+    "independent_no_danger_corpus.rs": {
+      "sha256": "71579e5be6b6bc8571763586abbfd46dd42d379dbee87ae98aa1a7089fe33a2e",
+      "bytes": 13693
+    },
+    "scoped-fmt.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "packages.log": {
+      "sha256": "4af536756468f2e35ad496b07a1bf54f95f82c2a83bd87aacc2c3d676fadcc4c",
+      "bytes": 55007
+    },
+    "independent-corrected.json": {
+      "sha256": "e7ca43a0c1781aa443c5bbe5035e9bcc792ad3eb8655db911153d9d180c63f1d",
+      "bytes": 272
+    },
+    "clippy.log": {
+      "sha256": "bd08b8ae0ea9e40aada3b34433688869ec5559e7d96983126a100ff127b2e56a",
+      "bytes": 4909
+    },
+    "native-clean.log": {
+      "sha256": "381bb3629a6093a327d6b1d0d0dea1b5cd9ad00d688f87f1ee9de1866e779285",
+      "bytes": 39126
+    },
+    "independent-corrected.log": {
+      "sha256": "d5be328e87a1955c06e9eaa2db5eda3c0e8cad8e7d98a5993b91b8fe0c5981a4",
+      "bytes": 2870865
+    },
+    "independent_menu_probe.rs": {
+      "sha256": "0252be1495e4875a6301be30cf68ddca1d327a9783b1c6567a9ab399eaecc201",
+      "bytes": 15107
+    },
+    "scoped-fmt.json": {
+      "sha256": "e8dbf6f185c430ea5f4888d73ac0a8dae1ccdae314b2e46da9f31a60f5b2c326",
+      "bytes": 188
+    },
+    "normal-menu.frames": {
+      "sha256": "e545c01e5151ca35b0ebb773c77e20f34d25cd0a0db81a8626029a8c3d028fdd",
+      "bytes": 2864981
+    },
+    "native.json": {
+      "sha256": "3e24d6b09647049531f5e58d5212520b8ef27efe23cee01cf40ffbbaead4d357",
+      "bytes": 239
+    },
+    "native-clean.json": {
+      "sha256": "6ebc73226ee39a151d12b2baa6de90a5e278f2bdc08f1cc6513af1822886c31a",
+      "bytes": 197
+    },
+    "native.log": {
+      "sha256": "a0b14bb78345967629655939c16a35ffde714b4be63c1e33c68af7c0a909cd1d",
+      "bytes": 268
+    },
+    "independent_custom_disabled_surface.rs": {
+      "sha256": "b3531d9fbb92436ab8b357e5a9fb53f6e69105a48caf77f0cf480274b4ce20d0",
+      "bytes": 1183
+    },
+    "independent_menu_fg_overrides.rs": {
+      "sha256": "db23b179bbeb0d82b801396d9e6c316607698a42495b3d22f0e7947693154de3",
+      "bytes": 18178
+    },
+    "packages.json": {
+      "sha256": "ae44dfd40288a0d1d5f0719e27a6699a6c5796d24c774943b68a7b1e5cfd0b04",
+      "bytes": 197
+    },
+    "independent_menu_overrides.rs": {
+      "sha256": "9f034d6e551b598ea1471cf24ccca7f9966acffe76f8e2a7a40441f84d7c05f5",
+      "bytes": 18158
+    },
+    "independent_dynamic_disabled.rs": {
+      "sha256": "354dadbcc4fc87957d43a021cd81fe01bcec1488156768c77e8657fae7af0c2a",
+      "bytes": 2415
+    },
+    "independent.log": {
+      "sha256": "bfee702dbc6a6e77bef8c50fed446df7c5a57e6242d238cd1a3664a2663e7e7f",
+      "bytes": 2089
+    },
+    "independent.json": {
+      "sha256": "fdc67b8d52c8a57fb904ce6452a59ea8ca5de37ed4f5fc2cf9ab9e0804b689cb",
+      "bytes": 274
+    },
+    "independent_dynamic_disabled_v1_compile_error.rs": {
+      "sha256": "b0ad951d170605780b19adef590186b2bf9ef610f39a8337ec5517ca42b5b485",
+      "bytes": 2413
+    },
+    "diff.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    }
+  }
+}

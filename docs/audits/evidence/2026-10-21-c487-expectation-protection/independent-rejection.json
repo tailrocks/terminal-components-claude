@@ -1,0 +1,94 @@
+{
+  "decision": "HOLD \u2014 unauthorized expectation refresh; preserve the red parity gate",
+  "priority": "P1",
+  "source": "c487a61ac05a674b4e9f54358da98d6ce7a2db1f",
+  "actual_parent": "5b5abd7070cf5ce36b5a9dbf8ff4ab4305937fd3",
+  "settings_commit_is_separate_descendant": "3a933c8822b21f6a052d795932c771535203c00f",
+  "changed_path": "crates/showcase-ui/tests/baselines/showcase.txt",
+  "previous_expectation_blob": "6de3fa5a291c4427a360eabab99b39f2c2b95909",
+  "replacement_blob": "23726ab2481c8ef933bf301c15f4e7200c97b6ae",
+  "changed_count": 38,
+  "inventory": {
+    "Buttons": {
+      "replaced": 6,
+      "scope": "Junie120x40 and160x50 atAnsi16,Ansi256,TrueColor; Mono andPaper unchanged"
+    },
+    "Code editor": {
+      "replaced": 32,
+      "scope": "All4sizes80x24/100x30/120x40/160x50 \u00d7Junie/Paper \u00d716/256/Mono/TrueColor"
+    }
+  },
+  "findings": [
+    {
+      "id": "T1",
+      "priority": "P1",
+      "path": "crates/showcase-ui/tests/baselines/showcase.txt:10-22,98-129",
+      "evidence": "The exact commit replaces38 existing digest expectations and changes no implementation or harness. With approval environment variables removed, identical candidate source goes from native visual test RED to GREEN solely by expected-data replacement. No frozen source recapture, baseline replay, independent reference defect diagnosis or scoped reference decision is added.",
+      "requirement": "User prohibits updating expected output from candidate, weakening tests, or silently blessing reference conflicts. Native snapshot refresh is not evidence of frozen product parity.",
+      "repair": "Do not admit c487 as verification. If not integrated, exclude this expectation-only commit. If mechanically synchronized, have the integration owner restore only these38 replaced entries from parent5b5abd7070cf5ce36b5a9dbf8ff4ab4305937fd3 / blob6de3fa5a291c4427a360eabab99b39f2c2b95909 while preserving candidate replacements and logs as rejected evidence. Then fix real components and run frozen paired comparisons. Do not restore old application renderers."
+    },
+    {
+      "id": "T2",
+      "priority": "P1",
+      "path": "docs/audits/2026-10-20-buttons-baseline-reference.md:3-13; docs/audits/2026-10-21-showcase-buttons-reference-diagnosis.json",
+      "evidence": "Existing decision authorizes only exact showcase::audit::buttons::120x40::truecolor baseline-capture tuple and explicitly forbids other sizes/profiles and candidate privilege. It preserves old stored approval as red; documented candidate comparison differs2982/4800cells and hidden cursor Bar\u2192Block. Separate diagnosis explicitly says it is not expected-output approval or reference revision decision. Neither authorizes six Buttons native hashes or32Code editor hashes.",
+      "repair": "Preserve all old/new results. Only a new independently diagnosed frozen reference-data defect with exact repeated416 source outputs and a documented scoped decision can authorize a reference correction; application candidate output cannot."
+    }
+  ],
+  "test": {
+    "command": "cargo nextest run -p showcase-ui --test visual --no-fail-fast",
+    "before": {
+      "run": 1,
+      "passed": 0,
+      "failed": 1,
+      "skipped": 0,
+      "exit": 100
+    },
+    "after": {
+      "run": 1,
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "exit": 0
+    },
+    "environment": "Both BLESS and UPDATE_BASELINE removed in runner; no acceptance writes.",
+    "runner_semantics": "visual.rs constructs candidate App/Harness for PageId::ALL,4sizes,2themes,4profiles and checks local native digest file. It never launches frozen CLI binary. digest.rs exposes BLESS/UPDATE_BASELINE candidate blessing path; reviewer did not enable it.",
+    "duration": "Before5.3seconds;after10seconds,200-second process-group deadlines; distinct exact detached revision Cargo targets.",
+    "source_identity": {
+      "crates/showcase-ui/src": {
+        "before": "43edb6bd58b856b2fc1cbe430d049b3773bc82f8",
+        "after": "43edb6bd58b856b2fc1cbe430d049b3773bc82f8"
+      },
+      "crates/showcase-ui/tests/visual.rs": {
+        "before": "bcbd4a1b00ee7fe9fc93dd8206625cd7d8ee6dbf",
+        "after": "bcbd4a1b00ee7fe9fc93dd8206625cd7d8ee6dbf"
+      },
+      "crates/termrock-test-support/src/digest.rs": {
+        "before": "a68a9a9b4cc4e0934b8944bbeb946bf4bf7752f4",
+        "after": "a68a9a9b4cc4e0934b8944bbeb946bf4bf7752f4"
+      }
+    }
+  },
+  "reference_review": "Frozen416 source has real CLI/Tuiscotti visual harness, not this refactor-native baseline path. Prior native digests are preexisting regression expectations, not newly asserted frozen authority. Neither old nor new native hashes alone prove full frozen parity. No38-entry frozen correction authority found in exact commit or inspected reference records.",
+  "evidence_preservation": "Both baseline byte files, machine-readable38-key delta, exact commit diff, source proof, existing reference records, Nextest logs and statuses retained. No production source, expectations, branches or PRs were edited by reviewer.",
+  "limits": [
+    "No fresh frozen CLI recapture or full application comparison run. Native RED\u2192GREEN proves gate laundering by expectation change, not which exact frozen frame each native digest should equal.",
+    "No intent inferred from commit message; finding rests on exact diff, unchanged source identities, test execution and reference decision scope."
+  ],
+  "next": "Parent/integration owner must keep c487 unadmitted and explicitly protect expected preimage before any synchronization/publication. Audit3a source increment separately; c487 is its parent, not its child.",
+  "artifact_sha256": {
+    "after-nextest.log": "d440cb37a78d9ae9c4f4668dd34d817d508c00363b3d1bd9c6270ab9312674ad",
+    "before-nextest.log": "86ed58537f41b1516c3f3a293a5979fca191cc7752c362d3dc3d456bc138c3d6",
+    "changed-expectations.json": "7ce3aceaa1fee733c21ffac19daf096a024061690a135fcb9b0a6024af7ff962",
+    "commit.diff": "a028ff98866ff8c9c083255cddf2dadfcde3dfb43d82ebce5b2c3fd68f291f4f",
+    "native-run.py": "a27848c0560cec89faca575d21bfe0dbb196f229ff6463b7c50fb540f660b746",
+    "native-status.json": "fd9be46a75beeb49de1e6be9d839301c3eea3b24716e0b5f890b4685b6873a2f",
+    "showcase-after.txt": "84764ed7c608628ff82ab4014db4cbe48d2f4b4a05e3fa0f7c101b51b354ca2e",
+    "showcase-before.txt": "41f705abaabafc3e9630c64b8e41fa1e965d659159b45b026b7934bd3c32346a",
+    "source-evidence/crates/showcase-ui/tests/visual.rs": "74ec49a158edaf45ea7c052daece4a368dc6cf7e3513c42dfcd16acf38cda4e2",
+    "source-evidence/crates/termrock-test-support/src/digest.rs": "e47eb876f62bd82f3f3825434fdcd318bdf28bd8f8be28ea07a42e466854ce46",
+    "source-evidence/docs/audits/2026-10-20-buttons-baseline-reference.md": "d6eff38fbdfc3d25a10d93b55614b9852ec4cc4e797a7bbbccd9327db85497a1",
+    "source-evidence/docs/audits/2026-10-21-showcase-buttons-reference-diagnosis.json": "1b06a34bb9640a7b4b52950edb9c465233d09123818b400440ea5258db8a4d13",
+    "source-evidence/tools/frozen_cli_references.json": "2a43fb118c268300c8bbd6439ea11bb9a24ffff03dc3c9f4601893eee26a096b"
+  }
+}

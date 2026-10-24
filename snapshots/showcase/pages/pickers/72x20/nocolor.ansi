@@ -1,0 +1,21 @@
+ ▪ [0m[1mJunie[0m Design system  Overlays › [0m[1mPickers[0m        i Inspector   ? Help  [0m
+                                                                        [0m
+ [0m[1mComponents[0m      54  [0m[1mPickers[0m  One modal list for files, tabs, levels, … [0m
+ ──────────────────                                                     [0m
+    Overview      ┃  [0m[1m Playground  [0m  Options    States                   [0m
+  ▸ App shell     ┃  ━━━━━━━━━━━━━──────────────────────────────────────[0m
+  ▸ Inputs & for… ┃                                                     [0m
+  ▸ Tables        ┃    Open a picker                   Enter · click   ┃[0m
+  ▸ Navigation    ┃    ─────────────────────────────────────────────   ┃[0m
+  ▾ Overlays      ┃     [0m[1;7mOpen quickly [0m   Switch tab                     ┆[0m
+      Dialogs     ┃     Choose a level    Run command                  ┆[0m
+ [0m[1m▎  › Pickers     [0m┃     Remote branch                                  ┆[0m
+      Dialog kin… ┃                                                    ┆[0m
+      Popups & t… ┃    Quick: fuzzy as you type, Tab scope,            ┆[0m
+      File brows… ┃    Alt+Enter alternate · Tabs: live, Delete        ┆[0m
+  ▸ Feedback      ┆    closes · Level: no search box · Commands:       ┆[0m
+ [0m[2m ▸ Layout        [0m┆    disabled rows say why · Remote: loads, r        ┆[0m
+                       retries                                         ┆[0m
+                                                                        [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                   [0m
+[?25l

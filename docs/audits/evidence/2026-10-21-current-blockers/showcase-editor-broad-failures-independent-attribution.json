@@ -1,0 +1,133 @@
+{
+  "schema": 1,
+  "role": "Independent read-only Rust/UI gate attribution",
+  "before": "161284db95710d9d2d0290a28a31fc7fd53da838",
+  "after": "9c99356abe26a6e82ffcdc2e4f3f089d70050af4",
+  "parent_preservation_commit": "f94f36fd30e9b8a87871103b6d3345ebb7b86cca",
+  "comparison": "Unchanged failing tests executed against separate exact detached sparse worktrees and revision-specific Cargo target directories. No product source, tests, fixtures, expected artifacts, or reference revisions edited. No BLESS or expected-output update performed.",
+  "runs": {
+    "before": {
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "-p",
+        "showcase-ui",
+        "--test",
+        "page_headings",
+        "--test",
+        "visual",
+        "--no-fail-fast"
+      ],
+      "exit": 100,
+      "seconds": 11.86033833300462,
+      "target": "/private/tmp/showcase-broad-gate-review-20261021/target-before"
+    },
+    "after": {
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "-p",
+        "showcase-ui",
+        "--test",
+        "page_headings",
+        "--test",
+        "visual",
+        "--no-fail-fast"
+      ],
+      "exit": 100,
+      "seconds": 15.156470916990656,
+      "target": "/private/tmp/showcase-broad-gate-review-20261021/target-after"
+    }
+  },
+  "log_sha256": {
+    "before": "6589a5621b74a5cecb32da387d6b6d57fb3239d4f83f08bccffa8cef8489de15",
+    "after": "55b4988fabd066cb9756139ee8d07e5e2550444b2a1053338469dde03c271f14"
+  },
+  "failure_signatures_identical": true,
+  "failure_signatures": [
+    "assertion `left == right` failed: buttons 100x30 16 row 2",
+    "left: \" Components      54  Buttons  Primary, secondary, subtle, danger, toggle, disabled, busy\"",
+    "right: \"▎  Overview          Buttons  Primary, secondary, subtle, danger, toggle, disabled, busy\"",
+    "assertion `left == right` failed: buttons 100x30 16 row 0",
+    "left: \" ▪ Junie Design system  Inputs & forms › Buttons         16 colors · 100×30   i Inspector   ? Help\"",
+    "right: \" ▪ Junie Design system / Components / Buttons            16 colors · 100×30   i Inspector   ? Help\"",
+    "digest of `Buttons 120 40 junie truecolor` changed: baseline 2ba3aba5d9baca1c, got dcd0198f4e49fff0; classify the change against §20.10, capture it, then BLESS=1"
+  ],
+  "failed_frame_text_identical": true,
+  "failed_frame_text_sha256": "8d6f28629ea253713661074045b9333c5b302466b76c7137c27b5c749d5ff520",
+  "native_digest": {
+    "case": "Buttons 120 40 junie truecolor",
+    "expected": "2ba3aba5d9baca1c",
+    "actual_before": "dcd0198f4e49fff0",
+    "actual_after": "dcd0198f4e49fff0",
+    "coverage": "FNV glyph, foreground, background, modifier bits at every buffer position; does not hash cursor visibility, shape, position or terminal modes. Printed text is also identical, but not independent proof against collisions or complete terminal state."
+  },
+  "source_delta_paths": [
+    "crates/showcase-demos/src/pages/editor.rs",
+    "crates/showcase-ui/tests/app_tests.rs",
+    "docs/architecture/termrock-migration-matrix.md",
+    "docs/audits/2026-10-21-showcase-editor-playground-restoration.md",
+    "docs/audits/evidence/2026-10-21-current-blockers/showcase-editor-de754-independent-clearance.json",
+    "docs/audits/evidence/2026-10-21-current-blockers/showcase-editor-f4a4-independent-review.json"
+  ],
+  "unchanged_resource_sha256": {
+    "crates/showcase-ui/tests/page_headings.rs": {
+      "161284db95710d9d2d0290a28a31fc7fd53da838": "9d1646c9500d7e6cf143e5f9873451308fcf814e8ec41efa7667b4af723f6d16",
+      "9c99356abe26a6e82ffcdc2e4f3f089d70050af4": "9d1646c9500d7e6cf143e5f9873451308fcf814e8ec41efa7667b4af723f6d16"
+    },
+    "crates/showcase-ui/tests/visual.rs": {
+      "161284db95710d9d2d0290a28a31fc7fd53da838": "74ec49a158edaf45ea7c052daece4a368dc6cf7e3513c42dfcd16acf38cda4e2",
+      "9c99356abe26a6e82ffcdc2e4f3f089d70050af4": "74ec49a158edaf45ea7c052daece4a368dc6cf7e3513c42dfcd16acf38cda4e2"
+    },
+    "crates/showcase-ui/tests/fixtures/holla-page-headings.tsv": {
+      "161284db95710d9d2d0290a28a31fc7fd53da838": "faa2a62d72736bc6ead7b99135a7d6e3f1ff1193b8bf48dc5f424241e3ccf0c9",
+      "9c99356abe26a6e82ffcdc2e4f3f089d70050af4": "faa2a62d72736bc6ead7b99135a7d6e3f1ff1193b8bf48dc5f424241e3ccf0c9"
+    },
+    "crates/showcase-ui/tests/fixtures/holla-shell-headers.tsv": {
+      "161284db95710d9d2d0290a28a31fc7fd53da838": "0c049901918b25d610dca3b3d4a693cd2621af2a6d673056159bb16988fc098b",
+      "9c99356abe26a6e82ffcdc2e4f3f089d70050af4": "0c049901918b25d610dca3b3d4a693cd2621af2a6d673056159bb16988fc098b"
+    },
+    "crates/showcase-ui/tests/baselines/showcase.txt": {
+      "161284db95710d9d2d0290a28a31fc7fd53da838": "41f705abaabafc3e9630c64b8e41fa1e965d659159b45b026b7934bd3c32346a",
+      "9c99356abe26a6e82ffcdc2e4f3f089d70050af4": "41f705abaabafc3e9630c64b8e41fa1e965d659159b45b026b7934bd3c32346a"
+    },
+    "crates/showcase-ui/src/app.rs": {
+      "161284db95710d9d2d0290a28a31fc7fd53da838": "46917235048d03f96788a66f6518a349562b9fab63c4dba839bad6511d80a2e8",
+      "9c99356abe26a6e82ffcdc2e4f3f089d70050af4": "46917235048d03f96788a66f6518a349562b9fab63c4dba839bad6511d80a2e8"
+    },
+    "crates/showcase-demos/src/pages/buttons.rs": {
+      "161284db95710d9d2d0290a28a31fc7fd53da838": "0fd8582e377e8322560b86a1ec743ef31a5b42c48f774ccab21467641b63b92e",
+      "9c99356abe26a6e82ffcdc2e4f3f089d70050af4": "0fd8582e377e8322560b86a1ec743ef31a5b42c48f774ccab21467641b63b92e"
+    },
+    "crates/termrock-test-support/src/digest.rs": {
+      "161284db95710d9d2d0290a28a31fc7fd53da838": "e47eb876f62bd82f3f3825434fdcd318bdf28bd8f8be28ea07a42e466854ce46",
+      "9c99356abe26a6e82ffcdc2e4f3f089d70050af4": "e47eb876f62bd82f3f3825434fdcd318bdf28bd8f8be28ea07a42e466854ce46"
+    },
+    "Cargo.lock": {
+      "161284db95710d9d2d0290a28a31fc7fd53da838": "b0c5412c430bb522fea7a865823c11493d89da4b8aeb3816e43ba54f0008b68a",
+      "9c99356abe26a6e82ffcdc2e4f3f089d70050af4": "b0c5412c430bb522fea7a865823c11493d89da4b8aeb3816e43ba54f0008b68a"
+    }
+  },
+  "source_delta_sha256": "52320290fa6001892d8fd65fc679eef30f2c5888d97c8ea9071e51f03faccfd7",
+  "findings": [
+    {
+      "classification": "Proven pre-existing relative to this Editor merge",
+      "tests": [
+        "showcase-ui::page_headings::all_page_headings_match_the_reference_capture_matrix",
+        "showcase-ui::page_headings::all_shell_headers_match_reference_captures_and_visibility_thresholds",
+        "showcase-ui::visual::showcase_visual_baseline"
+      ],
+      "evidence": "Both exact revisions run all three tests and fail all three with identical first mismatch, expected/actual rows, Buttons native digest and printed Buttons frame. Each run exits 100, 0 passed, 3 failed, 0 skipped. Editor merge does not change Buttons, application shell, these tests, fixtures or stored native digests."
+    }
+  ],
+  "recommendation": "No new regression demonstrated by these three broad failures. Bounded publication of independently reviewed Editor work can proceed only with explicit pre-existing RED records; do not report the broad gate or Showcase/product/library acceptance as passing. These failures alone do not justify reverting the Editor change.",
+  "coverage_gaps": [
+    "The native visual loop panics on Buttons 120x40 truecolor before later page coverage; it does not establish Editor visual parity. Heading fixtures also stop on the first Buttons mismatch.",
+    "No real CLI/tuiscotti capture, cursor/mode comparison, frozen-reference adjudication, full workspace gate, or complete twice-repeated product inventory was performed.",
+    "This attribution does not independently re-review all Editor semantics or replace existing focused Editor review.",
+    "Matching native output on two candidate revisions does not establish correctness of either candidate against visual-baseline."
+  ],
+  "artifacts_root": "/private/tmp/showcase-broad-gate-review-20261021"
+}

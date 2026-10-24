@@ -1,0 +1,51 @@
+ ▪ [0m[1mJunie[0m Design system  Tables › [0m[1mSelection[0m                                                                            no color · 160×50   i Inspector   ? Help  [0m
+                                                                                                                                                                [0m
+ [0m[1mComponents[0m           54  [0m[1mSelectable table[0m  Select rows, edit one or many together, delete with a confirmation                                                  [0m
+ ───────────────────────                                                                                                                                        [0m
+    Overview              [0m[1m Playground  [0m  Options    States                                                                                      the live widget [0m
+  ▸ App shell             ━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+  ▸ Inputs & forms                                                                                                                                              [0m
+  ▾ Tables                  Members                                                                                   Details                                   [0m
+      Basic table           ─────────────────────────────────────────────────────────────────────────────────────     ────────────────────────────────────────  [0m
+      Editable                 [ ] Name                Role    Status     Region  On call  Email                …                                               [0m
+      Data grid                [0m[2m[ ][0m Dana Whitfield      Owner   Active     EU      Yes      dana@northwind.dev                                                   [0m
+ [0m[1m▎  › Selection         [0m       [ ] Ari Moreno          Admin   Active     US      Yes      ari@northwind.dev                                                    [0m
+      Cell editors             [ ] Cleo Barnes         Editor  Active     EU      —        cleo@northwind.dev                                                   [0m
+      Columns                  [ ] Bo Lindqvist        Editor  Invited    EU      —        bo@northwind.dev                      No member selected             [0m
+  ▸ Navigation                 [ ] Eli Nakamura        Viewer  Active     APAC    —        eli@contractor.io                                                    [0m
+  ▸ Overlays                   [ ] Fay Okafor          Editor  Active     US      Yes      fay@northwind.dev              Select rows in the table to edit      [0m
+  ▸ Feedback                   [ ] Gus Petrov          Viewer  Suspended  EU      —        gus@northwind.dev             them here. Space selects, Shift+↑↓     [0m
+  ▸ Layout                     [ ] Hana Sato           Editor  Active     APAC    —        hana@northwind.dev               extends, Ctrl+A selects all.        [0m
+  ▸ Text & code                [ ] Ivo Brandt          Admin   Active     EU      Yes      ivo@northwind.dev                                                    [0m
+  ▸ Screens                    [ ] June Park           Viewer  Invited    US      —        june@northwind.dev                                                   [0m
+                               [ ] Kai Mensah          Editor  Active     APAC    —        kai@northwind.dev                                                    [0m
+                               [ ] Lena Varga          Viewer  Active     EU      —        lena@northwind.dev                                                   [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄                                               [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                                                           [0m
+[?25l

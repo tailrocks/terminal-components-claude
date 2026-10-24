@@ -1,7 +1,7 @@
 pub(crate) mod junie;
 pub(crate) mod paper;
 
-use ratatui_core::style::Modifier;
+use ratatui_core::style::{Color, Modifier};
 
 use super::glyph::GlyphRole;
 use super::patch::StylePatch;
@@ -20,7 +20,7 @@ fn part(m: &mut PartMap<PartRecipe>, part: Part, base: StylePatch) -> &mut PartR
     r
 }
 
-fn row_like(m: &mut PartMap<PartRecipe>) {
+fn row_like(m: &mut PartMap<PartRecipe>, picker_rows: bool) {
     part(
         m,
         Part::CONTAINER,
@@ -60,7 +60,9 @@ fn row_like(m: &mut PartMap<PartRecipe>) {
         )
         .when(StateFlags::DISABLED, p().set_fg(Role::DisabledFg));
     part(m, Part::LABEL, p()).when(StateFlags::DISABLED, p().set_fg(Role::DisabledFg));
-    part(m, Part::META, p().set_fg(Role::Fg(FgStep::Muted)));
+    if !picker_rows {
+        part(m, Part::META, p().set_fg(Role::Fg(FgStep::Muted)));
+    }
     part(
         m,
         Part::HEADER,
@@ -81,7 +83,9 @@ fn row_like(m: &mut PartMap<PartRecipe>) {
     .when(StateFlags::HOVERED, p().set_fg(Role::Fg(FgStep::Secondary)))
     .when(StateFlags::FOCUSED, p().set_fg(Role::Fg(FgStep::Primary)));
     part(m, Part::EMPTY, p().set_fg(Role::Fg(FgStep::Muted)));
-    part(m, Part::ICON, p().set_fg(Role::Fg(FgStep::Secondary)));
+    if !picker_rows {
+        part(m, Part::ICON, p().set_fg(Role::Fg(FgStep::Secondary)));
+    }
 }
 
 fn button_variant(m: &mut PartMap<PartRecipe>, v: Variant) {
@@ -94,7 +98,10 @@ fn button_variant(m: &mut PartMap<PartRecipe>, v: Variant) {
                 .add(Modifier::BOLD),
         )
         .when(StateFlags::HOVERED, p().set_bg(Role::AccentHover))
-        .when(StateFlags::PRESSED, p().set_bg(Role::AccentPressed))
+        .when(
+            StateFlags::PRESSED,
+            p().set_fg(Role::OnAccent).set_bg(Role::AccentPressed),
+        )
         .when(
             StateFlags::DISABLED,
             p().set_fg(Role::DisabledFg)
@@ -104,7 +111,7 @@ fn button_variant(m: &mut PartMap<PartRecipe>, v: Variant) {
         Variant::DANGER => part(
             m,
             Part::CONTAINER,
-            p().set_fg(Role::Danger)
+            p().set_fg(Role::Custom(Color::from_u32(0x00ff_6b6b)))
                 .set_bg(Role::Surface(Surface::Overlay)),
         )
         .when(
@@ -114,7 +121,9 @@ fn button_variant(m: &mut PartMap<PartRecipe>, v: Variant) {
         .when(StateFlags::FOCUSED, p().add(Modifier::BOLD))
         .when(
             StateFlags::PRESSED,
-            p().set_fg(Role::OnDanger).set_bg(Role::Danger),
+            p().set_fg(Role::OnDanger)
+                .set_bg(Role::Danger)
+                .remove(Modifier::BOLD),
         )
         .when(
             StateFlags::DISABLED,
@@ -131,7 +140,7 @@ fn button_variant(m: &mut PartMap<PartRecipe>, v: Variant) {
         .when(
             StateFlags::HOVERED,
             p().set_fg(Role::Fg(FgStep::Primary))
-                .set_bg(Role::RaisedSurface),
+                .set_bg(Role::Surface(Surface::Overlay)),
         )
         .when(
             StateFlags::FOCUSED,
@@ -140,7 +149,8 @@ fn button_variant(m: &mut PartMap<PartRecipe>, v: Variant) {
         .when(
             StateFlags::PRESSED,
             p().set_fg(Role::Surface(Surface::Canvas))
-                .set_bg(Role::Fg(FgStep::Primary)),
+                .set_bg(Role::Fg(FgStep::Primary))
+                .remove(Modifier::BOLD),
         )
         .when(
             StateFlags::DISABLED,
@@ -160,7 +170,8 @@ fn button_variant(m: &mut PartMap<PartRecipe>, v: Variant) {
         .when(
             StateFlags::PRESSED,
             p().set_fg(Role::Surface(Surface::Canvas))
-                .set_bg(Role::Fg(FgStep::Primary)),
+                .set_bg(Role::Fg(FgStep::Primary))
+                .remove(Modifier::BOLD),
         )
         .when(
             StateFlags::DISABLED,
@@ -175,12 +186,47 @@ fn button_variant(m: &mut PartMap<PartRecipe>, v: Variant) {
     } else {
         Role::Focus
     };
-    part(m, Part::GUTTER, p()).when(
-        StateFlags::FOCUSED,
-        p().set_glyph(GlyphRole::FocusBar).set_fg(gutter_fg),
+    let gutter = if v == Variant::DANGER {
+        p().set_fg(Role::Surface(Surface::Overlay))
+    } else {
+        p()
+    };
+    part(m, Part::GUTTER, gutter).when(
+        StateFlags::FOCUS_VISIBLE,
+        p().set_glyph(GlyphRole::FocusBar)
+            .set_fg(gutter_fg)
+            .remove(Modifier::BOLD),
     );
-    part(m, Part::LABEL, p());
-    part(m, Part::ICON, p());
+    part(m, Part::LABEL, p())
+        .when(
+            StateFlags::BUSY,
+            if v == Variant::PRIMARY {
+                p().set_fg(Role::OnAccent)
+            } else {
+                p().set_fg(Role::Fg(FgStep::Secondary))
+            },
+        )
+        .when(StateFlags::DISABLED, p().set_fg(Role::DisabledFg));
+    part(m, Part::ICON, p())
+        .when(
+            StateFlags::BUSY,
+            p().set_fg(if v == Variant::PRIMARY {
+                Role::OnAccent
+            } else {
+                Role::Accent
+            }),
+        )
+        .when(StateFlags::ERROR, p().set_fg(Role::Danger))
+        .when(StateFlags::DISABLED, p().set_fg(Role::DisabledFg));
+    let pressed_marker_fg = match v {
+        Variant::PRIMARY => Role::OnAccent,
+        Variant::DANGER => Role::OnDanger,
+        _ => Role::Surface(Surface::Canvas),
+    };
+    part(m, Part::MARKER, p().set_fg(Role::Fg(FgStep::Muted)))
+        .when(StateFlags::CHECKED, p().set_fg(Role::Accent))
+        .when(StateFlags::PRESSED, p().set_fg(pressed_marker_fg))
+        .when(StateFlags::DISABLED, p().set_fg(Role::DisabledFg));
 }
 
 fn field_like(m: &mut PartMap<PartRecipe>) {
@@ -282,17 +328,14 @@ fn container_like(m: &mut PartMap<PartRecipe>) {
 }
 
 fn tabs(m: &mut PartMap<PartRecipe>) {
-    row_like(m);
+    row_like(m, false);
     part(m, Part::TAB, p().set_fg(Role::Fg(FgStep::Secondary)))
         .when(
             StateFlags::HOVERED,
             p().set_fg(Role::Fg(FgStep::Primary))
                 .set_bg(Role::RaisedSurface),
         )
-        .when(
-            StateFlags::ACTIVE,
-            p().set_fg(Role::Fg(FgStep::Primary)).add(Modifier::BOLD),
-        );
+        .when(StateFlags::ACTIVE, p().set_fg(Role::Fg(FgStep::Primary)));
     part(
         m,
         Part::RULE,
@@ -301,7 +344,8 @@ fn tabs(m: &mut PartMap<PartRecipe>) {
     )
     .when(
         StateFlags::ACTIVE,
-        p().set_fg(Role::Accent).set_glyph(GlyphRole::RuleActive),
+        p().set_fg(Role::BorderSubtle)
+            .set_glyph(GlyphRole::RuleActive),
     );
     part(
         m,
@@ -328,11 +372,13 @@ fn tabs(m: &mut PartMap<PartRecipe>) {
 
 fn menu(r: &mut Recipe) {
     let m = &mut r.parts;
-    row_like(m);
+    row_like(m, false);
     part(m, Part::ROW, p())
         .when(
             StateFlags::ACTIVE,
-            p().set_bg(Role::HighlightBg).set_fg(Role::HighlightFg),
+            p().set_bg(Role::HighlightBg)
+                .set_fg(Role::HighlightFg)
+                .add(Modifier::BOLD),
         )
         .when(
             StateFlags::HOVERED,
@@ -344,11 +390,40 @@ fn menu(r: &mut Recipe) {
                 .set_bg(Role::Fg(FgStep::Primary))
                 .add(Modifier::BOLD),
         );
-    part(m, Part::TITLE, p()).when(
+    part(m, Part::LABEL, p()).when(
+        StateFlags::ACTIVE,
+        p().set_bg(Role::HighlightBg)
+            .set_fg(Role::HighlightFg)
+            .add(Modifier::BOLD),
+    );
+    part(
+        m,
+        Part::TITLE,
+        p().set_fg(Role::Fg(FgStep::Muted)).add(Modifier::BOLD),
+    )
+    .when(
         StateFlags::PRESSED,
         p().set_glyph(GlyphRole::PressLeft).add(Modifier::BOLD),
     );
-    part(m, Part::KEY, p().set_fg(Role::Fg(FgStep::Muted)));
+    part(m, Part::KEY, p().set_fg(Role::Fg(FgStep::Secondary))).when(
+        StateFlags::ACTIVE,
+        p().set_fg(Role::HighlightFg).remove(Modifier::BOLD),
+    );
+    part(m, Part::HELP, p().set_fg(Role::Fg(FgStep::Muted)));
+    part(
+        r.variant_mut(Variant::custom("termrock.menu-bar-title")),
+        Part::TITLE,
+        p().set_fg(Role::Fg(FgStep::Secondary)),
+    )
+    .when(
+        StateFlags::HOVERED,
+        p().set_fg(Role::Fg(FgStep::Primary))
+            .set_bg(Role::HoverSurface),
+    )
+    .when(
+        StateFlags::PRESSED,
+        p().set_glyph(GlyphRole::PressLeft).add(Modifier::BOLD),
+    );
     part(
         r.variant_mut(Variant::DANGER),
         Part::ROW,
@@ -385,13 +460,15 @@ fn scrollbar(m: &mut PartMap<PartRecipe>) {
     part(
         m,
         Part::TRACK,
-        p().set_fg(Role::BorderSubtle)
+        // Baseline scroll track is WHITE_28, not the border-subtle token.
+        p().set_fg(Role::Custom(Color::from_u32(0x0047_4747)))
             .set_glyph(GlyphRole::ScrollTrack),
     );
     part(
         m,
         Part::THUMB,
-        p().set_fg(Role::Fg(FgStep::Muted))
+        // Rest is the handle ladder's neutral grey. Muted text is a different token.
+        p().set_fg(Role::Custom(Color::from_u32(0x0080_8080)))
             .set_glyph(GlyphRole::ScrollThumb),
     )
     .when(StateFlags::HOVERED, p().set_fg(Role::Fg(FgStep::Secondary)))
@@ -522,7 +599,7 @@ fn too_small(m: &mut PartMap<PartRecipe>) {
 }
 
 fn choice(m: &mut PartMap<PartRecipe>) {
-    row_like(m);
+    row_like(m, false);
     part(m, Part::MARKER, p())
         .when(
             StateFlags::CHECKED,
@@ -542,7 +619,7 @@ fn choice(m: &mut PartMap<PartRecipe>) {
 }
 
 fn chip(m: &mut PartMap<PartRecipe>) {
-    row_like(m);
+    row_like(m, false);
     part(m, Part::MARKER, p()).when(
         StateFlags::CHECKED,
         p().set_glyph(GlyphRole::Checked).set_fg(Role::Accent),
@@ -557,10 +634,10 @@ fn chip(m: &mut PartMap<PartRecipe>) {
 }
 
 fn grid(m: &mut PartMap<PartRecipe>) {
-    row_like(m);
+    row_like(m, false);
 
     m.entry(Part::ICON).base = p();
-    part(m, Part::ROW, p());
+    part(m, Part::ROW, p()).when(StateFlags::FOCUSED, p().add(Modifier::BOLD));
     part(m, Part::CELL, p())
         .when(
             StateFlags::ACTIVE,
@@ -575,15 +652,56 @@ fn grid(m: &mut PartMap<PartRecipe>) {
                 .add(Modifier::BOLD)
                 .remove(Modifier::REVERSED),
         );
+    part(
+        m,
+        Part::TEXT,
+        p().add(Modifier::UNDERLINED).set_underline(Role::Accent),
+    )
+    .when(StateFlags::ERROR, p().set_underline(Role::Danger));
     part(m, Part::OVERFLOW, p().set_fg(Role::Fg(FgStep::Muted)));
     part(m, Part::ACTIONS, p().set_fg(Role::Fg(FgStep::Secondary)));
 }
 
 fn picker(m: &mut PartMap<PartRecipe>) {
-    row_like(m);
-    part(m, Part::LABEL, p()).when(
+    row_like(m, true);
+    part(
+        m,
+        Part::CONTAINER,
+        p().set_fg(Role::Fg(FgStep::Muted))
+            .set_bg(Role::CurrentSurface),
+    );
+    part(m, Part::BORDER, p().set_fg(Role::BorderStrong));
+    // Baseline picker titles are bold on the card surface. The label focus
+    // underline stays on LABEL and must not move onto TITLE.
+    part(
+        m,
+        Part::TITLE,
+        p().set_fg(Role::Fg(FgStep::Primary))
+            .set_bg(Role::CurrentSurface)
+            .add(Modifier::BOLD),
+    );
+    part(m, Part::LABEL, p().set_fg(Role::Fg(FgStep::Primary))).when(
         StateFlags::ACTIVE | StateFlags::FOCUSED,
         p().set_fg(Role::Focus).add(Modifier::UNDERLINED),
+    );
+    part(
+        m,
+        Part::QUERY,
+        p().set_fg(Role::Fg(FgStep::Primary))
+            .set_bg(Role::Surface(Surface::Field)),
+    );
+    part(
+        m,
+        Part::PLACEHOLDER,
+        p().set_fg(Role::Fg(FgStep::Muted))
+            .set_bg(Role::Surface(Surface::Field)),
+    );
+    // Field background belongs to the editing query, not to list-row gutters.
+    part(m, Part::GUTTER, p()).when(
+        StateFlags::FOCUSED | StateFlags::EDITING,
+        p().set_glyph(GlyphRole::FocusBar)
+            .set_fg(Role::Focus)
+            .set_bg(Role::Surface(Surface::Field)),
     );
 }
 
@@ -604,7 +722,7 @@ fn button(r: &mut Recipe) {
 
 pub(crate) fn neutral_recipe() -> Recipe {
     let mut r = Recipe::default();
-    row_like(&mut r.parts);
+    row_like(&mut r.parts, false);
     r
 }
 
@@ -655,7 +773,7 @@ pub(crate) fn default_recipes() -> Recipes {
             Family::CHIP => chip(&mut r.parts),
             Family::GRID => grid(&mut r.parts),
             Family::PICKER => picker(&mut r.parts),
-            _ => row_like(&mut r.parts),
+            _ => row_like(&mut r.parts, false),
         }
     }
     rs
@@ -681,10 +799,9 @@ mod tests {
         }
     }
 
-    fn hovered_and_disabled_parts() -> Vec<(Family, Variant, Part, StylePatch)> {
-        let rs = default_recipes();
+    fn hovered_and_disabled_parts(theme: &Theme) -> Vec<(Family, Variant, Part, StylePatch)> {
         let mut out = Vec::new();
-        for (f, r) in rs.iter() {
+        for (f, r) in theme.recipes.iter() {
             let mut variants = vec![Variant::DEFAULT];
             for (v, _) in &r.variants {
                 if !variants.contains(v) {
@@ -726,7 +843,7 @@ mod tests {
 
     #[test]
     fn hovered_and_disabled_are_declared_together_on_the_parts_that_matter() {
-        let found = hovered_and_disabled_parts();
+        let found = hovered_and_disabled_parts(&Theme::junie());
         for anchor in [
             (Family::BUTTON, Variant::PRIMARY, Part::CONTAINER),
             (Family::FIELD, Variant::DEFAULT, Part::FIELD),
@@ -759,6 +876,7 @@ mod tests {
             }
         }
         let mut t = Theme::junie();
+        let found = hovered_and_disabled_parts(&t);
         for (_, r) in t.recipes.iter_mut() {
             mark(&mut r.parts);
             for (_, m) in &mut r.variants {
@@ -767,20 +885,19 @@ mod tests {
         }
 
         let live = StateFlags::HOVERED | StateFlags::DISABLED;
-        for (f, v, part, _) in hovered_and_disabled_parts() {
+        for (f, v, part, _) in found {
             let r = t.resolve(f, v, part, live, Surface::Canvas);
             assert_eq!(
                 r.style.fg,
                 Some(t.color.danger),
                 "{f:?}/{v:?}/{part:?}: with HOVERED | DISABLED live the HOVERED rule won. \
-                 `DISABLED` must be declared after `HOVERED` — both are single-flag, so \
-                 declaration order in crates/tui/src/theme/builtin/mod.rs is the only \
-                 thing that decides it (§44.2)"
+                 the equal-specificity family/variant tie break must preserve disabled \
+                 ownership for this combination"
             );
         }
     }
 
-    const DISABLED_BG_LOST_TO_HOVER: [(Family, Variant, Part); 3] = [
+    const CROSS_SCOPE_DISABLED_BG: [(Family, Variant, Part); 3] = [
         (Family::BUTTON, Variant::SUBTLE, Part::CONTAINER),
         (Family::BUTTON, Variant::QUIET, Part::CONTAINER),
         (Family::BUTTON, Variant::GHOST, Part::CONTAINER),
@@ -789,33 +906,74 @@ mod tests {
     #[test]
     fn a_hovered_disabled_part_keeps_every_slot_the_disabled_rule_writes() {
         let live = StateFlags::HOVERED | StateFlags::DISABLED;
-        for t in [Theme::junie(), Theme::paper()] {
-            for (f, v, part, d) in hovered_and_disabled_parts() {
-                let only = t
-                    .resolve(f, v, part, StateFlags::DISABLED, Surface::Canvas)
-                    .style;
-                let both = t.resolve(f, v, part, live, Surface::Canvas).style;
-                let at = format!("{f:?}/{v:?}/{part:?}");
-                if d.fg.speaks() {
-                    assert_eq!(both.fg, only.fg, "{at}: hover overrode the disabled fg");
-                }
-                if DISABLED_BG_LOST_TO_HOVER.contains(&(f, v, part)) {
-                    assert_ne!(
-                        both.bg, only.bg,
-                        "{at}: the disabled background now survives hover — delete this entry \
-                         from DISABLED_BG_LOST_TO_HOVER"
+        let levels = [
+            crate::ColorLevel::TrueColor,
+            crate::ColorLevel::Ansi256,
+            crate::ColorLevel::Ansi16,
+            crate::ColorLevel::Mono,
+        ];
+        for (brand, base) in [("Junie", Theme::junie()), ("Paper", Theme::paper())] {
+            for level in levels {
+                let theme = base.downgrade(level);
+                for (f, v, part, d) in hovered_and_disabled_parts(&theme) {
+                    let only = theme.resolve(f, v, part, StateFlags::DISABLED, Surface::Canvas);
+                    let both = theme.resolve(f, v, part, live, Surface::Canvas);
+                    let at = format!("{brand}/{level:?}/{f:?}/{v:?}/{part:?}");
+                    if d.fg.speaks() {
+                        assert_eq!(both.style.fg, only.style.fg, "{at}: disabled fg changed");
+                        assert_eq!(
+                            both.style.fg_role, only.style.fg_role,
+                            "{at}: disabled fg ownership changed"
+                        );
+                    }
+                    if d.bg.speaks() {
+                        assert_eq!(both.style.bg, only.style.bg, "{at}: disabled bg changed");
+                        assert_eq!(
+                            both.style.bg_role, only.style.bg_role,
+                            "{at}: disabled bg ownership changed"
+                        );
+                    }
+                    if d.underline.speaks() {
+                        assert_eq!(
+                            both.style.underline_color, only.style.underline_color,
+                            "{at}: disabled underline changed"
+                        );
+                        assert_eq!(
+                            both.style.underline_role(),
+                            only.style.underline_role(),
+                            "{at}: disabled underline ownership changed"
+                        );
+                        assert_eq!(
+                            both.style.underline_cleared(),
+                            only.style.underline_cleared(),
+                            "{at}: disabled underline clear changed"
+                        );
+                    }
+                    if d.glyph.speaks() {
+                        assert_eq!(both.glyph, only.glyph, "{at}: disabled glyph changed");
+                    }
+                    if d.size.speaks() {
+                        assert_eq!(both.size, only.size, "{at}: disabled size changed");
+                    }
+                    if d.align.speaks() {
+                        assert_eq!(both.align, only.align, "{at}: disabled alignment changed");
+                    }
+                    assert!(
+                        both.style.add_modifier.contains(d.add),
+                        "{at}: hover dropped a modifier the disabled rule adds"
                     );
-                } else if d.bg.speaks() {
-                    assert_eq!(both.bg, only.bg, "{at}: hover overrode the disabled bg");
+                    assert!(
+                        !both.style.add_modifier.intersects(d.remove),
+                        "{at}: hover re-added a modifier the disabled rule removes"
+                    );
+                    if CROSS_SCOPE_DISABLED_BG.contains(&(f, v, part)) {
+                        assert!(d.bg.speaks(), "{at}: target row lost its disabled bg rule");
+                        assert_eq!(
+                            both.style.bg_role, only.style.bg_role,
+                            "{at}: same-valued palette roles must still preserve disabled ownership"
+                        );
+                    }
                 }
-                assert!(
-                    both.add_modifier.contains(d.add),
-                    "{at}: hover dropped a modifier the disabled rule adds"
-                );
-                assert!(
-                    !both.add_modifier.intersects(d.remove),
-                    "{at}: hover re-added a modifier the disabled rule removes"
-                );
             }
         }
     }
@@ -912,7 +1070,7 @@ mod tests {
         let picker = recipes
             .get(Family::PICKER)
             .expect("PICKER must have a dedicated built-in recipe");
-        assert!(picker.parts.get(Part::TITLE).is_none());
+        assert!(picker.parts.get(Part::TITLE).is_some());
 
         for base in [Theme::junie(), Theme::paper()] {
             for theme in [base.clone(), base.downgrade(crate::ColorLevel::Mono)] {
@@ -925,6 +1083,9 @@ mod tests {
                         Surface::Canvas,
                     )
                 };
+                let title = resolve(Part::TITLE, StateFlags::empty());
+                assert!(title.style.add_modifier.contains(Modifier::BOLD));
+                assert!(!title.style.add_modifier.contains(Modifier::UNDERLINED));
                 let active = resolve(Part::LABEL, StateFlags::ACTIVE);
                 let focused = resolve(Part::LABEL, StateFlags::FOCUSED);
                 let both = resolve(Part::LABEL, StateFlags::ACTIVE | StateFlags::FOCUSED);
@@ -935,16 +1096,15 @@ mod tests {
                 assert!(!focused.style.add_modifier.contains(Modifier::UNDERLINED));
                 assert_eq!(both.style.fg, expected_focus);
                 assert!(both.style.add_modifier.contains(Modifier::UNDERLINED));
-                assert_eq!(
-                    resolve(Part::CONTAINER, StateFlags::ACTIVE | StateFlags::FOCUSED),
-                    theme.resolve(
-                        Family::LIST,
-                        Variant::DEFAULT,
-                        Part::CONTAINER,
-                        StateFlags::ACTIVE | StateFlags::FOCUSED,
-                        Surface::Canvas,
-                    )
+                // The card keeps muted ink. Focused bold still comes from the shared row rule.
+                let card = resolve(Part::CONTAINER, StateFlags::ACTIVE | StateFlags::FOCUSED);
+                let muted = crate::theme::resolve::bind_role(
+                    &theme,
+                    Role::Fg(FgStep::Muted),
+                    Surface::Canvas,
                 );
+                assert_eq!(card.style.fg, muted);
+                assert!(card.style.add_modifier.contains(Modifier::BOLD));
             }
         }
     }
@@ -952,6 +1112,15 @@ mod tests {
     #[test]
     fn menu_pressed_and_help_focused_have_exact_non_color_affordances() {
         let theme = Theme::junie();
+        let danger_row = theme.resolve(
+            Family::MENU,
+            Variant::DANGER,
+            Part::ROW,
+            StateFlags::empty(),
+            Surface::Canvas,
+        );
+        assert_eq!(danger_row.style.fg, Some(theme.color.danger_soft));
+
         for variant in [Variant::DEFAULT, Variant::DANGER] {
             let row = theme.resolve(
                 Family::MENU,
@@ -1065,6 +1234,37 @@ mod tests {
     }
 
     #[test]
+    fn menu_danger_row_custom_ink_downgrades_with_the_authored_recipe() {
+        let custom = Color::Rgb(255, 0, 0);
+        let overridden = Theme::junie().override_variant(Family::MENU, Variant::DANGER, |recipe| {
+            recipe
+                .part(Part::ROW)
+                .base(StylePatch::new().set_fg(Role::Custom(custom)));
+        });
+
+        for level in [
+            crate::ColorLevel::TrueColor,
+            crate::ColorLevel::Ansi256,
+            crate::ColorLevel::Ansi16,
+            crate::ColorLevel::Mono,
+        ] {
+            let theme = overridden.clone().for_level(level);
+            let row = theme.resolve(
+                Family::MENU,
+                Variant::DANGER,
+                Part::ROW,
+                StateFlags::empty(),
+                Surface::Canvas,
+            );
+            assert_eq!(
+                row.style.fg,
+                Some(crate::downgrade_color(custom, level)),
+                "custom danger row at {level:?}"
+            );
+        }
+    }
+
+    #[test]
     fn junie_tokens_equal_the_legacy_palette_exactly() {
         let c = Theme::junie().color;
         assert_eq!(
@@ -1078,14 +1278,16 @@ mod tests {
             ]
         );
         assert_eq!(c.field, Color::from_u32(0x1e1e22));
-        assert_eq!(c.field_hover, Color::from_u32(0x232328));
+        assert_eq!(c.field_hover, Color::from_u32(0x2f2f34));
         assert_eq!(
             c.fg,
             [
                 Color::from_u32(0xffffff),
                 Color::from_u32(0xb3b3b3),
-                Color::from_u32(0x808080),
-                Color::from_u32(0x4d4d4d),
+                // TablePro results use muted #8a8a8a and faint #737373.
+                // Showcase chrome keeps #808080 and #4d4d4d on baseline_muted.
+                Color::from_u32(0x8a8a8a),
+                Color::from_u32(0x737373),
                 Color::from_u32(0x262626)
             ]
         );
@@ -1096,8 +1298,10 @@ mod tests {
         assert_eq!(c.on_accent, Color::from_u32(0x19191c));
         assert_eq!(c.highlight_bg, Color::from_u32(0x2f5aa8));
         assert_eq!(c.highlight_danger_bg, Color::from_u32(0x7a2a2a));
-        assert_eq!(c.danger, Color::from_u32(0xe44545));
-        assert_eq!(c.danger_soft, Color::from_u32(0xd98a8a));
+        // Frozen source 4169783 sets danger (RED) to 0xf05d5d.
+        assert_eq!(c.danger, Color::from_u32(0xf05d5d));
+        assert_eq!(c.syntax.diagnostic_error, Color::from_u32(0xf05d5d));
+        assert_eq!(c.danger_soft, Color::from_u32(0xe8a0a0));
         assert_eq!(c.danger_tint, Color::from_u32(0x2e0f0f));
         assert_eq!(c.warning, Color::from_u32(0xf59e09));
         assert_eq!(c.info, Color::from_u32(0x8787ff));

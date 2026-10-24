@@ -1,0 +1,665 @@
+{
+  "baseline": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "reviewer": "branches_components_review",
+  "source_proof": [
+    "src/bin/tablepro/tabs.rs:2022-2024 renders open Completion after editor",
+    "src/widgets/code.rs:1224-1227 actual editing CodeEditor sets visible in-viewport cursor",
+    "src/widgets/completion.rs:207-245 schedules overlay; does not clear editor cursor",
+    "src/widgets/completion.rs:449-465 regression explicitly retains editor sole focusbar"
+  ],
+  "count": 50,
+  "all_visible_steadybar": true,
+  "rows": [
+    {
+      "scene": "completion",
+      "size": "72x20",
+      "profile": "truecolor",
+      "path": "snapshots/tablepro/query/completion/72x20/truecolor.ansi",
+      "artifact_sha256": "fab710dabc4c4ff4e23b5d983f22885e6755ae0c21eeb0cf3d36bfa1bb21b655",
+      "visible": true,
+      "position_zero_based": [
+        29,
+        6
+      ],
+      "shape": 6
+    },
+    {
+      "scene": "completion",
+      "size": "72x20",
+      "profile": "256",
+      "path": "snapshots/tablepro/query/completion/72x20/256.ansi",
+      "artifact_sha256": "2b5e515e6bc17cc519b369da8ce94e4a216f85f07d9f1a2e9c9bb0d8c819bca6",
+      "visible": true,
+      "position_zero_based": [
+        29,
+        6
+      ],
+      "shape": 6
+    },
+    {
+      "scene": "completion",
+      "size": "72x20",
+      "profile": "16",
+      "path": "snapshots/tablepro/query/completion/72x20/16.ansi",
+      "artifact_sha256": "ac5409448e764e27b45213610971697b7832438ea0118456eb11f073165142f1",
+      "visible": true,
+      "position_zero_based": [
+        29,
+        6
+      ],
+      "shape": 6
+    },
+    {
+      "scene": "completion",
+      "size": "72x20",
+      "profile": "none",
+      "path": "snapshots/tablepro/query/completion/72x20/none.ansi",
+      "artifact_sha256": "c042d1397dcaeee4f7c5369dd9b36aa2eba5b8ead3674017bfbc8fdd23e8c275",
+      "visible": true,
+      "position_zero_based": [
+        29,
+        6
+      ],
+      "shape": 6
+    },
+    {
+      "scene": "completion",
+      "size": "72x20",
+      "profile": "nocolor",
+      "path": "snapshots/tablepro/query/completion/72x20/nocolor.ansi",
+      "artifact_sha256": "239c1f85959f208ad301bcb25fb2c53d63c2c0a7eb5aa163f6f96bbda84b91b4",
+      "visible": true,
+      "position_zero_based": [
+        29,
+        6
+      ],
+      "shape": 6
+    },
+    {
+      "scene": "completion",
+      "size": "80x24",
+      "profile": "truecolor",
+      "path": "snapshots/tablepro/query/completion/80x24/truecolor.ansi",
+      "artifact_sha256": "6dd19fe9870b1825f0848be9ade090594dbfe739a5e3c5892f28f44b9c41eac5",
+      "visible": true,
+      "position_zero_based": [
+        29,
+        6
+      ],
+      "shape": 6
+    },
+    {
+      "scene": "completion",
+      "size": "80x24",
+      "profile": "256",
+      "path": "snapshots/tablepro/query/completion/80x24/256.ansi",
+      "artifact_sha256": "a1d34d5601ceb7f76ae15160dba6b6982f69a5c2606289ad483251712420f639",
+      "visible": true,
+      "position_zero_based": [
+        29,
+        6
+      ],
+      "shape": 6
+    },
+    {
+      "scene": "completion",
+      "size": "80x24",
+      "profile": "16",
+      "path": "snapshots/tablepro/query/completion/80x24/16.ansi",
+      "artifact_sha256": "bfd5babe029cc1aa94c7cd2930cb560a6cb055d37686183f9eb414bb96bffa83",
+      "visible": true,
+      "position_zero_based": [
+        29,
+        6
+      ],
+      "shape": 6
+    },
+    {
+      "scene": "completion",
+      "size": "80x24",
+      "profile": "none",
+      "path": "snapshots/tablepro/query/completion/80x24/none.ansi",
+      "artifact_sha256": "3b5510126850a56f952281ad351e5c49dd76c6da5efd0d364d23ceca07d31665",
+      "visible": true,
+      "position_zero_based": [
+        29,
+        6
+      ],
+      "shape": 6
+    },
+    {
+      "scene": "completion",
+      "size": "80x24",
+      "profile": "nocolor",
+      "path": "snapshots/tablepro/query/completion/80x24/nocolor.ansi",
+      "artifact_sha256": "23a422691f748dfb935d25c944fbdb8eba9a0f0fbafbbc4aa20a11bfff89763a",
+      "visible": true,
+      "position_zero_based": [
+        29,
+        6
+      ],
+      "shape": 6
+    },
+    {
+      "scene": "completion",
+      "size": "100x30",
+      "profile": "truecolor",
+      "path": "snapshots/tablepro/query/completion/100x30/truecolor.ansi",
+      "artifact_sha256": "5a3e86158528fc5c44625d493c1d9ddd0b24e427534f34b62be926a503c51f8e",
+      "visible": true,
+      "position_zero_based": [
+        29,
+        6
+      ],
+      "shape": 6
+    },
+    {
+      "scene": "completion",
+      "size": "100x30",
+      "profile": "256",
+      "path": "snapshots/tablepro/query/completion/100x30/256.ansi",
+      "artifact_sha256": "cb145384f7f7b1003d4b35f5853525061c5c286911cb57883ee1e52075fe77f8",
+      "visible": true,
+      "position_zero_based": [
+        29,
+        6
+      ],
+      "shape": 6
+    },
+    {
+      "scene": "completion",
+      "size": "100x30",
+      "profile": "16",
+      "path": "snapshots/tablepro/query/completion/100x30/16.ansi",
+      "artifact_sha256": "d4ee539dedc04fc5f4e4f8fbb12dcd962ae516addaba05ee301ed61ca68351ff",
+      "visible": true,
+      "position_zero_based": [
+        29,
+        6
+      ],
+      "shape": 6
+    },
+    {
+      "scene": "completion",
+      "size": "100x30",
+      "profile": "none",
+      "path": "snapshots/tablepro/query/completion/100x30/none.ansi",
+      "artifact_sha256": "d91d89a6aff4cc9b2f92281ba29e9017b639cddd50bde92f17ea1999b19b4111",
+      "visible": true,
+      "position_zero_based": [
+        29,
+        6
+      ],
+      "shape": 6
+    },
+    {
+      "scene": "completion",
+      "size": "100x30",
+      "profile": "nocolor",
+      "path": "snapshots/tablepro/query/completion/100x30/nocolor.ansi",
+      "artifact_sha256": "650cb913427fcd05422e12d6ecbd6a80ea1ab4b8931a51dc48251f2f5084f14c",
+      "visible": true,
+      "position_zero_based": [
+        29,
+        6
+      ],
+      "shape": 6
+    },
+    {
+      "scene": "completion",
+      "size": "120x40",
+      "profile": "truecolor",
+      "path": "snapshots/tablepro/query/completion/120x40/truecolor.ansi",
+      "artifact_sha256": "0d7cd525ff2de05335ea7f3ba5ab20b674849bbb2eefd986df00c507dda7ad19",
+      "visible": true,
+      "position_zero_based": [
+        57,
+        6
+      ],
+      "shape": 6
+    },
+    {
+      "scene": "completion",
+      "size": "120x40",
+      "profile": "256",
+      "path": "snapshots/tablepro/query/completion/120x40/256.ansi",
+      "artifact_sha256": "82a38453385c00ef336f2009327db8b448f0d92a90c6ec28522bdae0e12334e1",
+      "visible": true,
+      "position_zero_based": [
+        57,
+        6
+      ],
+      "shape": 6
+    },
+    {
+      "scene": "completion",
+      "size": "120x40",
+      "profile": "16",
+      "path": "snapshots/tablepro/query/completion/120x40/16.ansi",
+      "artifact_sha256": "3d8311e05cb89ee75c93658a4f5bac9340094fd85e991f71d3152619cc49cd15",
+      "visible": true,
+      "position_zero_based": [
+        57,
+        6
+      ],
+      "shape": 6
+    },
+    {
+      "scene": "completion",
+      "size": "120x40",
+      "profile": "none",
+      "path": "snapshots/tablepro/query/completion/120x40/none.ansi",
+      "artifact_sha256": "0e6fe55c82e13db6d5b6413454b9027ae131a8f4190202b3711a067433a39ef2",
+      "visible": true,
+      "position_zero_based": [
+        57,
+        6
+      ],
+      "shape": 6
+    },
+    {
+      "scene": "completion",
+      "size": "120x40",
+      "profile": "nocolor",
+      "path": "snapshots/tablepro/query/completion/120x40/nocolor.ansi",
+      "artifact_sha256": "eab48ab8b171a277c5929e9bae8294ab2411c451557f939cad75bf93e010347b",
+      "visible": true,
+      "position_zero_based": [
+        57,
+        6
+      ],
+      "shape": 6
+    },
+    {
+      "scene": "completion",
+      "size": "160x50",
+      "profile": "truecolor",
+      "path": "snapshots/tablepro/query/completion/160x50/truecolor.ansi",
+      "artifact_sha256": "aa467ef207c2631cecbb721ffe794b75c0f9d5f4b5f7af099b5b2c9bfc1be126",
+      "visible": true,
+      "position_zero_based": [
+        67,
+        6
+      ],
+      "shape": 6
+    },
+    {
+      "scene": "completion",
+      "size": "160x50",
+      "profile": "256",
+      "path": "snapshots/tablepro/query/completion/160x50/256.ansi",
+      "artifact_sha256": "b17a9e1fc01aafaf6248bf549f471322ece71319af296a66ff2e88ec1ee62444",
+      "visible": true,
+      "position_zero_based": [
+        67,
+        6
+      ],
+      "shape": 6
+    },
+    {
+      "scene": "completion",
+      "size": "160x50",
+      "profile": "16",
+      "path": "snapshots/tablepro/query/completion/160x50/16.ansi",
+      "artifact_sha256": "eb4c6cc8874c4e3ce9cd5fbba794025f5a74be671bd2c6e46264c693e3c447f9",
+      "visible": true,
+      "position_zero_based": [
+        67,
+        6
+      ],
+      "shape": 6
+    },
+    {
+      "scene": "completion",
+      "size": "160x50",
+      "profile": "none",
+      "path": "snapshots/tablepro/query/completion/160x50/none.ansi",
+      "artifact_sha256": "40987ecb2ca12c399587fa192deceaeedc5d6ecd08554ee61ad969e5300141b2",
+      "visible": true,
+      "position_zero_based": [
+        67,
+        6
+      ],
+      "shape": 6
+    },
+    {
+      "scene": "completion",
+      "size": "160x50",
+      "profile": "nocolor",
+      "path": "snapshots/tablepro/query/completion/160x50/nocolor.ansi",
+      "artifact_sha256": "939826b9b2c87337b7849fc127c95cc897434b9c61fb7de159f92c95b62975d0",
+      "visible": true,
+      "position_zero_based": [
+        67,
+        6
+      ],
+      "shape": 6
+    },
+    {
+      "scene": "completion_columns",
+      "size": "72x20",
+      "profile": "truecolor",
+      "path": "snapshots/tablepro/query/completion_columns/72x20/truecolor.ansi",
+      "artifact_sha256": "4c014dc6fef76b5b6bef0153e10cca26c602657185ba9648a9547e0e73ab30a2",
+      "visible": true,
+      "position_zero_based": [
+        21,
+        6
+      ],
+      "shape": 6
+    },
+    {
+      "scene": "completion_columns",
+      "size": "72x20",
+      "profile": "256",
+      "path": "snapshots/tablepro/query/completion_columns/72x20/256.ansi",
+      "artifact_sha256": "fbc25e1484ca6621eeb457c39d99736b9e499639b3fd8cebd538c9039054b53b",
+      "visible": true,
+      "position_zero_based": [
+        21,
+        6
+      ],
+      "shape": 6
+    },
+    {
+      "scene": "completion_columns",
+      "size": "72x20",
+      "profile": "16",
+      "path": "snapshots/tablepro/query/completion_columns/72x20/16.ansi",
+      "artifact_sha256": "01b16e3f51c1f2aabe401731cfbce2719644e53b6f9ac264ec6f21f4822bc43e",
+      "visible": true,
+      "position_zero_based": [
+        21,
+        6
+      ],
+      "shape": 6
+    },
+    {
+      "scene": "completion_columns",
+      "size": "72x20",
+      "profile": "none",
+      "path": "snapshots/tablepro/query/completion_columns/72x20/none.ansi",
+      "artifact_sha256": "9d91a8060be412287959b8eda6d2a75af7b7d165a94ffc003780aad9b2593e5c",
+      "visible": true,
+      "position_zero_based": [
+        21,
+        6
+      ],
+      "shape": 6
+    },
+    {
+      "scene": "completion_columns",
+      "size": "72x20",
+      "profile": "nocolor",
+      "path": "snapshots/tablepro/query/completion_columns/72x20/nocolor.ansi",
+      "artifact_sha256": "78a2eeb8fc8fe2d5087c6d686c708c9182f2ff03d47f0bec385086c70a019b56",
+      "visible": true,
+      "position_zero_based": [
+        21,
+        6
+      ],
+      "shape": 6
+    },
+    {
+      "scene": "completion_columns",
+      "size": "80x24",
+      "profile": "truecolor",
+      "path": "snapshots/tablepro/query/completion_columns/80x24/truecolor.ansi",
+      "artifact_sha256": "325e34192e5deb9265e83ca5cba02590f7e3b01c03f62bbe5b7c34fcbea0ced2",
+      "visible": true,
+      "position_zero_based": [
+        21,
+        6
+      ],
+      "shape": 6
+    },
+    {
+      "scene": "completion_columns",
+      "size": "80x24",
+      "profile": "256",
+      "path": "snapshots/tablepro/query/completion_columns/80x24/256.ansi",
+      "artifact_sha256": "1060ca02f8284681c1abd21bfc31c416330b9aaec53a4d19ca655024d7de528a",
+      "visible": true,
+      "position_zero_based": [
+        21,
+        6
+      ],
+      "shape": 6
+    },
+    {
+      "scene": "completion_columns",
+      "size": "80x24",
+      "profile": "16",
+      "path": "snapshots/tablepro/query/completion_columns/80x24/16.ansi",
+      "artifact_sha256": "6e88564e9f76430cf59128df043e1032a9146333e6802a3554d6ea8cb39bf205",
+      "visible": true,
+      "position_zero_based": [
+        21,
+        6
+      ],
+      "shape": 6
+    },
+    {
+      "scene": "completion_columns",
+      "size": "80x24",
+      "profile": "none",
+      "path": "snapshots/tablepro/query/completion_columns/80x24/none.ansi",
+      "artifact_sha256": "9f173e01be1da85e2926ff1ee17f762bb5d892c3bfd5c5a1d405d92aaf968f8b",
+      "visible": true,
+      "position_zero_based": [
+        21,
+        6
+      ],
+      "shape": 6
+    },
+    {
+      "scene": "completion_columns",
+      "size": "80x24",
+      "profile": "nocolor",
+      "path": "snapshots/tablepro/query/completion_columns/80x24/nocolor.ansi",
+      "artifact_sha256": "c976bc3b57ef723e0f73c08f08dda3c331583cbb80d316f01685721beb52fbf3",
+      "visible": true,
+      "position_zero_based": [
+        21,
+        6
+      ],
+      "shape": 6
+    },
+    {
+      "scene": "completion_columns",
+      "size": "100x30",
+      "profile": "truecolor",
+      "path": "snapshots/tablepro/query/completion_columns/100x30/truecolor.ansi",
+      "artifact_sha256": "92dfca8990cc5b358807135c9a1e75c2d22cd0deebf6f7bbd7b3bf6c8d1c5859",
+      "visible": true,
+      "position_zero_based": [
+        21,
+        6
+      ],
+      "shape": 6
+    },
+    {
+      "scene": "completion_columns",
+      "size": "100x30",
+      "profile": "256",
+      "path": "snapshots/tablepro/query/completion_columns/100x30/256.ansi",
+      "artifact_sha256": "4ddc6b6447db4bd7740ac6e70a78b105778882c76eaf48146b713f5843875a42",
+      "visible": true,
+      "position_zero_based": [
+        21,
+        6
+      ],
+      "shape": 6
+    },
+    {
+      "scene": "completion_columns",
+      "size": "100x30",
+      "profile": "16",
+      "path": "snapshots/tablepro/query/completion_columns/100x30/16.ansi",
+      "artifact_sha256": "dedae84b81105cba4dce26b709c062dcd4f434e9c0ca6e9d88ba91180d0acf6c",
+      "visible": true,
+      "position_zero_based": [
+        21,
+        6
+      ],
+      "shape": 6
+    },
+    {
+      "scene": "completion_columns",
+      "size": "100x30",
+      "profile": "none",
+      "path": "snapshots/tablepro/query/completion_columns/100x30/none.ansi",
+      "artifact_sha256": "c94c5e3789ecd7035379afb1a7f691b78abfca6d2c608ddf4e0d45ee1d671d31",
+      "visible": true,
+      "position_zero_based": [
+        21,
+        6
+      ],
+      "shape": 6
+    },
+    {
+      "scene": "completion_columns",
+      "size": "100x30",
+      "profile": "nocolor",
+      "path": "snapshots/tablepro/query/completion_columns/100x30/nocolor.ansi",
+      "artifact_sha256": "49350d1d3b9589b906fda83840d16517c114b54747c9156e75805aa0ea6a5df1",
+      "visible": true,
+      "position_zero_based": [
+        21,
+        6
+      ],
+      "shape": 6
+    },
+    {
+      "scene": "completion_columns",
+      "size": "120x40",
+      "profile": "truecolor",
+      "path": "snapshots/tablepro/query/completion_columns/120x40/truecolor.ansi",
+      "artifact_sha256": "620fc60e9f2847fce1e633e776f6ba02b30db9cbdc1366cf020cd0c36cbdbec4",
+      "visible": true,
+      "position_zero_based": [
+        49,
+        6
+      ],
+      "shape": 6
+    },
+    {
+      "scene": "completion_columns",
+      "size": "120x40",
+      "profile": "256",
+      "path": "snapshots/tablepro/query/completion_columns/120x40/256.ansi",
+      "artifact_sha256": "0ab0cda834650da86b5d61ee11bcacc3add50d52785b3053e0514f5fdc9bb74a",
+      "visible": true,
+      "position_zero_based": [
+        49,
+        6
+      ],
+      "shape": 6
+    },
+    {
+      "scene": "completion_columns",
+      "size": "120x40",
+      "profile": "16",
+      "path": "snapshots/tablepro/query/completion_columns/120x40/16.ansi",
+      "artifact_sha256": "6253a88d061bb30116a1a91cebc1cc0a2a9953a12638c70ae374264e0d5eb3c8",
+      "visible": true,
+      "position_zero_based": [
+        49,
+        6
+      ],
+      "shape": 6
+    },
+    {
+      "scene": "completion_columns",
+      "size": "120x40",
+      "profile": "none",
+      "path": "snapshots/tablepro/query/completion_columns/120x40/none.ansi",
+      "artifact_sha256": "2009d7318eaaed079154978aa4ddae9071a07e43e804190325fe70a66d9b2949",
+      "visible": true,
+      "position_zero_based": [
+        49,
+        6
+      ],
+      "shape": 6
+    },
+    {
+      "scene": "completion_columns",
+      "size": "120x40",
+      "profile": "nocolor",
+      "path": "snapshots/tablepro/query/completion_columns/120x40/nocolor.ansi",
+      "artifact_sha256": "bad38f97266006f65201d83805dbcc6d810c8477adcfcdc091a5a3eee42b25dd",
+      "visible": true,
+      "position_zero_based": [
+        49,
+        6
+      ],
+      "shape": 6
+    },
+    {
+      "scene": "completion_columns",
+      "size": "160x50",
+      "profile": "truecolor",
+      "path": "snapshots/tablepro/query/completion_columns/160x50/truecolor.ansi",
+      "artifact_sha256": "929a1b5b205ba4dfe306eee2f14e26225b7cc4bba8b7853b292054fe0535fa53",
+      "visible": true,
+      "position_zero_based": [
+        59,
+        6
+      ],
+      "shape": 6
+    },
+    {
+      "scene": "completion_columns",
+      "size": "160x50",
+      "profile": "256",
+      "path": "snapshots/tablepro/query/completion_columns/160x50/256.ansi",
+      "artifact_sha256": "9c0d63e8bae09987391d0c601db46141044f7a3d21852b5d5844c202e6f474c9",
+      "visible": true,
+      "position_zero_based": [
+        59,
+        6
+      ],
+      "shape": 6
+    },
+    {
+      "scene": "completion_columns",
+      "size": "160x50",
+      "profile": "16",
+      "path": "snapshots/tablepro/query/completion_columns/160x50/16.ansi",
+      "artifact_sha256": "aa5a2ec89385b87246ce23dfbf506c37c8cd78528c576325eec947a09be78bca",
+      "visible": true,
+      "position_zero_based": [
+        59,
+        6
+      ],
+      "shape": 6
+    },
+    {
+      "scene": "completion_columns",
+      "size": "160x50",
+      "profile": "none",
+      "path": "snapshots/tablepro/query/completion_columns/160x50/none.ansi",
+      "artifact_sha256": "14f482dcd068efe772d221261d1f5ad2e62681d1b06047317e9664a706ef4f89",
+      "visible": true,
+      "position_zero_based": [
+        59,
+        6
+      ],
+      "shape": 6
+    },
+    {
+      "scene": "completion_columns",
+      "size": "160x50",
+      "profile": "nocolor",
+      "path": "snapshots/tablepro/query/completion_columns/160x50/nocolor.ansi",
+      "artifact_sha256": "99f2d2a7972d1cf8c9a7ae60115232e8655856b357f191f57b557177bb8b8876",
+      "visible": true,
+      "position_zero_based": [
+        59,
+        6
+      ],
+      "shape": 6
+    }
+  ],
+  "limits": "Stored frozen artifact/source diagnosis, not repeated frozen CLI capture. Unicode intermediate input not represented by these named artifacts; requires paired checkpoint."
+}

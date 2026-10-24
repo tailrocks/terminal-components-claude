@@ -1,0 +1,225 @@
+{
+  "schema": "independent-review-v1",
+  "created_at": "2026-10-21T00:49:19.562683+00:00",
+  "reviewer": "/root/incoming_tablepro_runtime_review",
+  "decision": "changes_required",
+  "candidate": "34f73e3066da7a77eac2d4719a697dc085906dda",
+  "incoming_commits": [
+    "d0e7ec9bfb8f77861cedbfa35bd1ec678f195a64",
+    "05d63fe9c8a0e9a327489ae657a4ff6dc6571324"
+  ],
+  "before": "5f82c4d35d12e0fb77b0f580a8ef200240661602",
+  "frozen": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "design_reference": "f4867e9b5f8a08a3bb61ce80d644198a29f51984",
+  "toolchain": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+  "nextest": "0.9.148 (cd1d6d5467322dbc0d39a80cb671d000ac302798)",
+  "process_deadline_seconds": 210,
+  "dedicated_target": "/private/tmp/incoming-tablepro-runtime-review-target-20261021",
+  "findings": [
+    {
+      "id": "R1",
+      "severity": "P1",
+      "path": "crates/termrock-runtime/src/ui/paint.rs",
+      "line": 255,
+      "problem": "The fixed eight-entry table silently discards later distinct backgrounds, changing exact majority semantics and rendered scroll-edge fading.",
+      "proof": "Identical public Ui::scroll_edges/Harness test passes at 5f82 and fails at 34f. Ninth black background occupies 32/40 cells; bottom cell foreground changes from Rgb(140,140,140) before to un-faded Rgb(255,255,255) after.",
+      "fix": "Count every distinct background exactly, using a fallback if retaining a small-table fast path; preserve tie semantics and add a public render regression."
+    },
+    {
+      "id": "R2",
+      "severity": "P1",
+      "path": "crates/tablepro-ui/src/app.rs",
+      "line": 1251,
+      "problem": "New connection now clones active connection data instead of blank creation fields. The test helper was changed to accept this behavior.",
+      "proof": "Unchanged real TableProApp/Harness test passes at 5f82 and fails at 34f. Observed name/database/user before empty; after Local PostgreSQL/acme_dev/postgres. Frozen connections.rs:138\u2013184 and open_new:528 use ConnForm::new(None,None).",
+      "fix": "Separate creation defaults from edit/duplicate initialization; restore blank new name/database/user and unchanged real App regression."
+    },
+    {
+      "id": "R3",
+      "severity": "P1",
+      "path": "crates/tablepro-ui/src/app.rs",
+      "line": 10219,
+      "problem": "Replacing the reference-screen painter with a live form also replaces the frozen New connection layout and title with a full-width Connect to database panel.",
+      "proof": "Source comparison only: frozen connections.rs:1194\u20131214 composes master/detail and :1385\u20131397 uses New connection plus Ctrl+S Save metadata and width min(84). Candidate form branch skips draw_connections, uses rows[1] directly and changed title.",
+      "fix": "Preserve the legitimate live Form replacement; implement missing shared panel/form/master-detail contracts and restore frozen composition. Do not restore the overwritten/invisible-control painter."
+    },
+    {
+      "id": "R4",
+      "severity": "P2",
+      "path": "crates/tablepro-ui/src/app.rs",
+      "line": 3556,
+      "problem": "Exact SQL text selects additional status text absent from frozen non-analyzed plan footer.",
+      "proof": "Source comparison only: candidate adds Explain plan ready only for sql.trim()==SELECT * FROM orders; frozen tabs.rs:1715\u20131722 emits Planning ... \u00b7 r Raw for all plans without execution time.",
+      "fix": "Use actual plan/domain state consistently and retain frozen visible status, without exact query-string presentation selectors."
+    },
+    {
+      "id": "R5",
+      "severity": "P1",
+      "path": "crates/tablepro-ui/tests/baselines/tablepro.txt",
+      "line": 2,
+      "problem": "157 of 168 native digest expectations changed without frozen-reference evidence or documented reference-data decision.",
+      "proof": "Source inventory comparison has 168 cases before and after, 157 changed hashes, zero added/removed cases. The commit contains no pinned real CLI paired capture receipts or reference decision. This review does not prove which old/native hash is authoritative.",
+      "fix": "Preserve both artifacts and independently diagnose against fixed frozen real binaries before any approved reference update. Candidate-native refresh cannot establish parity."
+    }
+  ],
+  "checks": [
+    {
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "--manifest-path",
+        "/Users/donbeave/Projects/termrock-cli-evidence-20261021/branch-consolidation/incoming-tablepro-runtime-review-34f73e3/consumer/Cargo.toml",
+        "--test",
+        "regressions",
+        "--no-fail-fast"
+      ],
+      "exit": 100,
+      "counts": {
+        "run": 2,
+        "passed": 0,
+        "failed": 2,
+        "skipped": 0
+      },
+      "log": "candidate-first.log"
+    },
+    {
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "--manifest-path",
+        "/Users/donbeave/Projects/termrock-cli-evidence-20261021/branch-consolidation/incoming-tablepro-runtime-review-34f73e3/consumer/Cargo.toml",
+        "--test",
+        "observations",
+        "--no-capture"
+      ],
+      "exit": 0,
+      "counts": {
+        "run": 1,
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0
+      },
+      "log": "candidate-observations.log",
+      "observable_values": {
+        "cell": {
+          "symbol": "x",
+          "fg": [
+            255,
+            255,
+            255
+          ],
+          "bg": [
+            0,
+            0,
+            0
+          ],
+          "underline": "Reset",
+          "modifier": "NONE"
+        },
+        "new_form": {
+          "name": "Local PostgreSQL",
+          "database": "acme_dev",
+          "user": "postgres"
+        }
+      }
+    },
+    {
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "--manifest-path",
+        "/Users/donbeave/Projects/termrock-cli-evidence-20261021/branch-consolidation/incoming-tablepro-runtime-review-34f73e3/consumer-before/Cargo.toml",
+        "--test",
+        "regressions",
+        "--no-fail-fast"
+      ],
+      "exit": 0,
+      "counts": {
+        "run": 2,
+        "passed": 2,
+        "failed": 0,
+        "skipped": 0
+      },
+      "log": "before-first.log"
+    },
+    {
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "--manifest-path",
+        "/Users/donbeave/Projects/termrock-cli-evidence-20261021/branch-consolidation/incoming-tablepro-runtime-review-34f73e3/consumer-before/Cargo.toml",
+        "--test",
+        "observations",
+        "--no-capture"
+      ],
+      "exit": 0,
+      "counts": {
+        "run": 1,
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0
+      },
+      "log": "before-observations.log",
+      "observable_values": {
+        "cell": {
+          "symbol": "x",
+          "fg": [
+            140,
+            140,
+            140
+          ],
+          "bg": [
+            0,
+            0,
+            0
+          ],
+          "underline": "Reset",
+          "modifier": "NONE"
+        },
+        "new_form": {
+          "name": "",
+          "database": "",
+          "user": ""
+        }
+      }
+    }
+  ],
+  "native_reference_blobs": {
+    "before": "4eef5c3473aa52342d743b36a3e8d17a1b8fa28a",
+    "after": "e4c7211e95ba021bc88cf4fd039133051dac56ae"
+  },
+  "valid_cleanup": [
+    "tab_ownership.rs removes only a redundant match arm; no assertion or test removed.",
+    "Removing advanced_connection_page exact 120x40/truecolor/focus painter and the form repaint is architecturally appropriate; the replacement still must preserve reference behavior."
+  ],
+  "no_additional_source_proven_defect": [
+    "Grid::move_cursor_to deferred ensure-visible addition; targeted resize/keyed-state verification remains absent.",
+    "No unsafe code or concurrency change introduced in the inspected deltas."
+  ],
+  "preexisting_architecture_gaps": [
+    "Public Tabs draws then app paint_legacy_tabs repaints it at app.rs:10238\u201310262.",
+    "App-owned pin_tab_window and manual Grid/header/connection painters remain.",
+    "prepare_grid_slots directly writes terminal cursor escape based on stdout terminal detection."
+  ],
+  "gaps": [
+    "No real CLI/tuiscotti paired comparison was run by this review.",
+    "No Color::Reset-specific or cursor/resize behavioral probe was run; RGB ninth-color regression is proven.",
+    "No broad Clippy, formatting, full workspace, or product acceptance claim.",
+    "Current remote changes after reviewed34f are outside this review."
+  ],
+  "preservation": "Product sources were read-only archives. README.md and probe.rs preserved unchanged. Native expected values were not modified; both Git blob contents preserved as separate evidence files.",
+  "artifacts": {
+    "candidate-tablepro-native-baseline.txt": "eaddd6b3099a1af851641d156f5aa754a5d2a85fb859bbcc92350092eb420ecb",
+    "candidate-observations.log": "cdce952503a9a6336e1e8c3cbebdf1f421a5b3b16f3dea3a749ec399af55c7f5",
+    "before-observations.log": "f79e1308569be880b4e7646afd1a196694cde80d9032779e313582634fce00fe",
+    "README.md": "02f209084c315fa172ba5eee002a5f46129df3b76b946d3315ddbb71b13b294c",
+    "candidate-first.log": "c8e47483fb23b2dffe067a494a5f9110e4c082c0052fbdb4dd4a1e8c3405553b",
+    "probe.rs": "7bd90e6968f7d254266aabfde9e73f1d41fe41749fb02ecbaa0ae8e5b14c1562",
+    "before-tablepro-native-baseline.txt": "b57236945081f8da4586e03d64839f9214accd10604d141a720c91b3f3804ac3",
+    "before-first.log": "5df893c648bc166a337aa8b2cda92f7059bc5a0491935ebb65c6cc5cd6f4c2b6"
+  }
+}

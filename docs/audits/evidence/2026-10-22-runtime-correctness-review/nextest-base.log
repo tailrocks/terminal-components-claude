@@ -1,0 +1,16 @@
+# nextest @ 5dfff7f20f (stream base, parent of ef35a7f6b)
+# same crate set, separate private CARGO_TARGET_DIR
+
+     Summary [ 374.317s] 909 tests run: 899 passed (2 slow), 10 failed, 0 skipped
+        FAIL [   0.148s] (212/909) holla-ui::visual holla_visual_baseline
+        FAIL [   1.069s] (392/909) jackin-preview-app::visual jackin_visual_baseline
+        FAIL [   0.867s] (462/909) showcase-ui::app_tests editor_playground_keeps_live_find_completion_and_run_contracts
+        FAIL [   0.661s] (464/909) showcase-ui::app_tests editor_shell_completion_accepts_enter_then_tab_indents
+        FAIL [   0.282s] (465/909) showcase-ui::app_tests editor_shell_completion_accepts_tab_then_next_tab_indents
+        FAIL [   0.189s] (507/909) showcase-ui::page_headings all_shell_headers_match_reference_captures_and_visibility_thresholds
+        FAIL [   0.222s] (508/909) showcase-ui::page_headings all_page_headings_match_the_reference_capture_matrix
+        FAIL [   0.094s] (530/909) showcase-ui::visual showcase_visual_baseline
+        FAIL [   0.031s] (582/909) termrock-overlays menu::tests::menu_bar_keeps_public_default_variant_overlay_and_local_patch_precedence
+        FAIL [   0.076s] (826/909) termrock-theme::capability_palettes all_73_junie_slots_match_reference_capability_output
+error: test run failed
+mbx[cache]: 116 hits, 89 misses, 2 not looked up; 0 B downloaded, 0 B uploaded, 575.3 MiB stored locally

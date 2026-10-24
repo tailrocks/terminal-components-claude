@@ -1,0 +1,69 @@
+{
+  "changed_paths": [
+    "crates/termrock-runtime/src/rowui.rs",
+    "crates/termrock-navigation/src/list.rs",
+    "crates/termrock-navigation/src/filter_list.rs",
+    "crates/termrock-navigation/src/tree.rs",
+    "crates/termrock-navigation/tests/row_container_width.rs"
+  ],
+  "coverage_note": "No direct container_width value assertion is added for List or FilterList; production assignments are simple and the new API leaves rendering untouched, but targeted owner-width assertions for those two consumers would strengthen coverage.",
+  "decision": "CLEAR_ROWUI_CONTAINER_WIDTH_COMMIT_E7AC8D5",
+  "implementation_review": [
+    "Additive public accessor and constructors; existing constructors preserve row.width as default container_width. area() still returns the supplied local Rect.",
+    "List and FilterList pass the owner row width; Tree passes the row allocation before internal tree indentation/disclosure/trailing reservations. No drawing, hit testing, focus, or input behavior changes in diff.",
+    "The new Tree tests demonstrate 43/44/45 cell width behavior, nested row area narrower than owner width, trailing mark/internal prefix reservations, external scrollbar subtracting one cell, and zero-width public author row without panic."
+  ],
+  "known_preexisting_failures": [
+    {
+      "e7_parent_and_commit": "identical failure; actual hash 11294538839117913365 vs expected 5235702202963140133",
+      "location": "crates/termrock-navigation/tests/item_row_columns.rs:483",
+      "test": "item_row_columns::constructor_defaults_match_the_pre_policy_full_cell_fixture"
+    },
+    {
+      "e7_parent_and_commit": "identical failure: ICON/META are white foreground on RGB(61,21,97).",
+      "location": "crates/termrock-navigation/tests/item_row_columns.rs:979",
+      "test": "item_row_columns::owner_part_styles_win_over_painter_defaults_in_columns_mode"
+    }
+  ],
+  "limitations": [
+    "No application binaries, visual baseline, interactions outside the navigation package, or product comparison were run.",
+    "No source edits, commits, or pushes were made.",
+    "Exact e7 worktree materialization was stopped due slow 95k-file checkout; tests/clippy instead ran from an exact Git archive checkout with unique target. An attempted detached worktree was not used for validation."
+  ],
+  "log_artifacts": [
+    {
+      "path": "/private/tmp/row-width-e7-feature-all.log",
+      "sha256": "70409ecb05fdf71097d06487bdd5a5d3f7280099b8292641a81e0b806d0990bb"
+    },
+    {
+      "path": "/private/tmp/row-width-e7-feature-reds.log",
+      "sha256": "b59766a2613986443d66741349c9d767855b38d6ce52e99d4f832725eb946b80"
+    },
+    {
+      "path": "/private/tmp/row-width-e7-parent-archive-20261021/parent-reds.log",
+      "sha256": "f08dfb74e7c76ad8be8c4ddf03f6f00a72a86b7c803dd6b26a333816154635f4"
+    }
+  ],
+  "parent_commit": "7649ee7ed8e8645e49f859a171ea0193fccc1e82",
+  "review_commit": "e7ac8d50809d60b6eb8a72c62481bdf828771955",
+  "review_source": "git archive of exact commit under /private/tmp/row-width-e7-feature-archive-20261021; unique CARGO_TARGET_DIR at that archive/target",
+  "review_tree": "9cd1d4666f5060ecefbefccaabb1054c7cf6ad72",
+  "verification": [
+    {
+      "command": "CARGO_BUILD_JOBS=4 CARGO_TARGET_DIR=<unique archive target> cargo nextest run --manifest-path Cargo.toml -p termrock-navigation --test row_container_width",
+      "result": "PASS 3/3, 0 skipped, exact e7 source."
+    },
+    {
+      "command": "CARGO_BUILD_JOBS=4 CARGO_TARGET_DIR=<unique archive target> cargo clippy --all-targets -p termrock-navigation -p termrock-runtime -- -D warnings",
+      "result": "PASS, 25.62s, exact e7 source."
+    },
+    {
+      "command": "CARGO_BUILD_JOBS=4 CARGO_TARGET_DIR=<unique archive target> cargo nextest run --manifest-path Cargo.toml -p termrock-navigation --all-targets",
+      "result": "229 passed, 2 failed, 0 skipped (231 total), exact e7 source."
+    },
+    {
+      "command": "At exact parent 7649ee7, run the same two failing item_row_columns filters in a separate archive and unique target",
+      "result": "Both fail with identical assertion locations/messages and same expected/actual hash values as e7. They are pre-existing; the failing test file is unchanged in the e7 diff."
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+ ▪ Junie Design system / Components / Trees                                                                         256 colors · 160×50   i Inspector   ? Help
+
+   Foundations            Trees  Indent carries hierarchy; the focus bar never moves
+   Overview
+                            Project                                                           2–16 of 16      Selection
+   Components
+   Buttons                     ▸ api                                                                   │      Nothing selected
+   Inputs                      ▸ db                                                                    ┃      Enter on a file selects it
+   Text areas                  ▸ workers                                                               ┃
+   Forms                         config.rs                                                      1.9 KB ┃      cursor  src
+   Lists                         lib.rs                                                          640 B ┃      visible 16 rows
+▎› Trees                         main.rs                                                        1.2 KB ┃      open    5 folders
+   Tables                    ▾ tests                                                                   ┃
+   Editable tables               checkout.rs                                                    5.3 KB ┃
+   Panels                        auth_flow.rs                                                   3.0 KB ┃
+   Sidebars                    ▸ fixtures                                                              ┃
+   Dialogs                   ▾ docs                                                                    ┃
+   Progress                      architecture.md                                                7.7 KB ┃
+   Scrolling                     webhooks.md                                                    2.2 KB ┃
+   Terminal                    Cargo.toml                                                       1.4 KB ┃
+   Code editor                 README.md                                                        3.5 KB ┃
+   Diff
+   Data grid
+   Chips & selects
+   Pickers
+   Chrome
+
+   Screens
+   Settings
+   Task runner
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit

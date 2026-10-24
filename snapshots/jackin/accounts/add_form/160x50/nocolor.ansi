@@ -1,0 +1,51 @@
+[0m[2m  jackin❯    File   Go   Help                                                           Accounts › Overview  ⠋ refreshing 1  inside the Construct  ● 2 running  [0m
+[0m[2m                                                                                                                                                                [0m
+[0m[2m ╭─ Accounts ─────────────────────── 12 · 4 ▲ · 4 ! ─╮ │  Overview                                                                  12 accounts · 8 providers   [0m
+[0m[2m │ [0m [0m[2m   Overview                                      │ │  ───────────────────────────────────────────────────────────────────────────────────────────────────   [0m
+[0m[2m │ [0m [0m[2m ▾ Claude                                 !   3  │ │  Health        degraded · 4 warnings · 1 exhausted · 2 stale · 1 refreshing · 3 failed · 1 quota not   [0m
+[0m[2m │ [0m [0m[2m   ★ Personal                     current 4 min  │ │                visible · 2 identities unresolved                                                       [0m
+[0m[2m │ [0m [0m[2m     Archived contractor laptop prof…  disabled  │ │  Registry      12 accounts · 11 enabled · 1 disabled · 8 providers                                     [0m
+[0m[2m │ [0m [0m[2m     Work                      !   stale 47 min  │ │  Sources       7 registered · 5 discovered · 1Password available                                       [0m
+[0m[2m │ [0m [0m[2m ▾ Codex                                      2  │ │                                                                                                        [0m
+[0m[2m │ [0m [0m[2m   ★ Primary                      current 2 min  │ │  Comparable windows                                         identical provider, window and unit only   [0m
+[0m[2m │ [0m [0m[2m     Experiments                   ⠋ refr╭─[0m[1;2m New account [0m[2m───────────────────────────────── form · unsaved ─ × ─╮ing (1 last good)                            [0m
+[0m[2m │ [0m [0m[2m ▾ Amp                                   │   [0m[1;2mDisplay name *                                                 [0m[2m  │aining (1 last good)                         [0m
+[0m[2m │ [0m [0m[2m     discovered               ▲   current│ ▎ Personal, Work, Team…                                            │(1 last good)                                [0m
+[0m[2m │ [0m [0m[2m ▾ Grok                                  │                                                                    │good)                                        [0m
+[0m[2m │ [0m [0m[2m   ★ Team                         current│                                                                    │ (1 last good)                               [0m
+[0m[2m │ [0m [0m[2m ▾ Z.AI                                  │   Purpose label  optional                                          │1 last good)                                 [0m
+[0m[2m │ [0m [0m[2m     discovered                   ▲   sta│   personal · work · experiments                                    │                                             [0m
+[0m[2m │ [0m [0m[2m ▾ Kimi                                  │                                                                    │                                             [0m
+[0m[2m │ [0m [0m[2m     discovered                !   needs │                                                                    │ccount or different windows) · Z.AI          [0m
+[0m[2m │ [0m [0m[2m ▾ MiniMax                               │   Provider                                                         │ccount or different windows) · OpenCode      [0m
+[0m[2m │ [0m [0m[2m     discovered                 !   unava│   Claude Code · Anthropic / Claude                             ▾   │                                             [0m
+[0m[2m │ [0m [0m[2m ▾ OpenCode                              │                                                                    │                                             [0m
+[0m[2m │ [0m [0m[2m   ★ Go subscription           !   rate l│                                                                    │                                             [0m
+[0m[2m │ [0m [0m[2m     ci-bot · discovered            unsup│   Agent runtime Claude Code · provider Anthropic / Claude · usa…   │ h 5 min                                     [0m
+[0m[2m │ [0m [0m[2m   Unsupported                         se│                                                                    │un 19:14                                     [0m
+[0m[2m │ [0m [0m[2m   + Add account…                        │   Credential source                                                │:14                                          [0m
+[0m[2m │                                           │  (●) 1Password item / field  (recommended)                         │                                             [0m
+[0m[2m │                                           │  ( ) Local agent folder                                            │n 10 h                                       [0m
+[0m[2m │                                           │  ( ) Plain-text API key                                            │                                             [0m
+[0m[2m │                                           │                                                                    │                                             [0m
+[0m[2m │                                           │   1Password reference                                              │ api key                                     [0m
+[0m[2m │                                           │   not chosen                                            Choose…    │d not respond                                [0m
+[0m[2m │                                           │                                                                    │25 min                                       [0m
+[0m[2m │                                           │                                                                    │                                             [0m
+[0m[2m │                                           │                                                                    │                                             [0m
+[0m[2m │                                           │                                                                    │authenticated account                        [0m
+[0m[2m │                                           │                                                                    │ authenticated account                       [0m
+[0m[2m │                                           │                                                                    │                                             [0m
+[0m[2m │                                           │              Enter plain text instead   Validate   Cancel   [0m[1;2;7mSave [0m[2m  │                                             [0m
+[0m[2m │                                           ╰────────────────────────────────────────────────────────────────────╯                                             [0m
+[0m[2m │                                                   │ │                                                                                                        [0m
+[0m[2m │                                                   │ │                                                                                                        [0m
+[0m[2m │                                                   │ │                                                                                                        [0m
+[0m[2m │                                                   │ │                                                                                                        [0m
+[0m[2m │                                                   │ │                                                                                                        [0m
+[0m[2m │                                                   │ │                                                                                                        [0m
+[0m[2m │                                                   │ │ [0m [0m[2mRefresh all   [0m [0m[2mAdd account…                                                                           [0m
+[0m[2m ╰───────────────────────────────────────────────────╯ │                                                                                                        [0m
+[0m[2m                                                                                                                                                                [0m
+ [0m[1m EDIT [0m  [0m[1mEnter[0m Apply  [0m[1mEsc[0m Cancel  [0m[1mTab[0m N[0m[1me[0mxt fiel[0m[1md[0m         [0m[1m [0m        [0m[1m   [0m                                                                                           [0m
+[?25h[13;50H[6 q

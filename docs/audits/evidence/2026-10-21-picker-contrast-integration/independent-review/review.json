@@ -1,0 +1,280 @@
+{
+  "schema": 1,
+  "reviewer": "/root/tree_adapter_independent_review",
+  "commit": "c932adb5ee29ef8ed9f90cc022c39cb9c0472e5d",
+  "decision": "CLEAR bounded authored-background contrast correction; inherited required gate gaps remain incomplete",
+  "new_blocking_findings": [],
+  "prior_findings_resolution": [
+    {
+      "finding": "Default MonoFill9-cell regression from cd1",
+      "resolution": "Runtime now requires explicit BG ownership and inherited FG. Untouched default full cells/focus/ring/cursor/state equal f46 across actual4profiles×BarFill×initial/down/resize.",
+      "evidence": "default-comparison.json; both98,899byte dumps SHA c91f80953226446a1748ce7a2790b6b6ac3d03f0cbfb24c9af8f8c30c953c6e3"
+    },
+    {
+      "finding": "Existing per-channel component test red under cd1",
+      "resolution": "Test now explicitly exercises owner override BG readability, retains owner BG and Fill compatibility checks, and adds semantic-muted authored FG control. Changed define_family→override_family establishes actual owner override provenance rather than redefining component recipe defaults. Native test passes.",
+      "not_weakening": "Expected default token assertions remain; contrast>=4.5 adds an objective owner-BG requirement; explicit muted foreground remains strict token equality despite low contrast."
+    },
+    {
+      "finding": "Nominal capability marker test did not cover normal downgraded profiles/focus",
+      "resolution": "New native test uses actual Harness.with_color on original Junie, nonsearchable real result owner and asserts owner focus. Default token references, owner-white overlay and same-valued explicit black control pass all4profiles×BarFill."
+    }
+  ],
+  "source_review": [
+    "Explicit FG ownership remains Slot metadata; no output equality guessing. BG eligibility also uses Slot ownership, including same-valued owned BG.",
+    "Second resolver remains pure &self theme resolution with same component/family/variant/part/flags/surface/patch; only component FG fallback changes. No input effects, measurement mutation, cache poisoning, geometry changes or alternate runtime found.",
+    "Runtime guard is private and additive; no public API removals or app coupling introduced.",
+    "Authored modifiers/backgrounds/foregrounds remain independent. Recreated matrix verifies216 authored FG cell comparisons plus288 modifier/BG cells; owner FG follows ordinary canonical capability binding, including intentional unreadable choices.",
+    "Audit marks cd1 superseded/HOLD, cites independent exact packet, records intended owner-BG behavior, native known fixture failure, and explicitly rejects product parity completion.",
+    "No expected/reference artifacts changed in correction."
+  ],
+  "checks": {
+    "unchanged_global_probe": {
+      "source_sha256": "940da3fa57e92eaf6220f0e3a0ff3da587abfaae0ab4a802507cc846487b8407",
+      "pass": 1,
+      "fail": 1,
+      "skip": 0,
+      "remaining_red": "Only3 inherited default MonoFill white/DarkGray ICON/META cells at4.00410696; same values exist at f46. Original test/assertions preserved and not called green.",
+      "positive": "All48 custom-BG default-ink cells meet>=4.5 and explicit FG/BG/modifier controls pass."
+    },
+    "separate_scoped_observer": {
+      "pass": 1,
+      "fail": 0,
+      "filtered_capture_writer": 1,
+      "contract": "Separately named authored-background contrast observer scopes >=4.5 assertion to owned backgrounds; original global observer remains unchanged alongside it. This is an explicit separate contract, not silent weakening.",
+      "matrix": "96configs:4actualprofiles×2cursorstyles×3BG×4FG policies,288decoded ICON/detail/tag cells"
+    },
+    "default_compatibility": {
+      "equal": true,
+      "before_bytes": 98899,
+      "candidate_bytes": 98899,
+      "before_sha256": "c91f80953226446a1748ce7a2790b6b6ac3d03f0cbfb24c9af8f8c30c953c6e3",
+      "candidate_sha256": "c91f80953226446a1748ce7a2790b6b6ac3d03f0cbfb24c9af8f8c30c953c6e3",
+      "cases": 8,
+      "checkpoints": 24,
+      "comparison": "complete Cell debug incl underline/skip plus focus/ring/cursor/state; actual downgraded4profiles×BarFill; initial/down/resize"
+    },
+    "native_navigation_runtime_all_targets": {
+      "run": 647,
+      "pass": 646,
+      "fail": 1,
+      "skip": 3,
+      "failure": "constructor_defaults_match_the_pre_policy_full_cell_fixture inherited and unwaived",
+      "corrected_new_and_per_channel_tests": "PASS"
+    },
+    "strict_clippy": "PASS -p termrock-navigation -p termrock-runtime --all-targets --no-deps -- -D warnings",
+    "format": "PASS cargo fmt --all --check",
+    "diff_check": "PASS scoped tracked source matches exact commit"
+  },
+  "remaining_inherited_gaps": [
+    "Historical full-cell fixture failure unchanged, unwaived; no expectation approval",
+    "Default MonoFill reference white/DarkGray contrast4.00410696 remains below4.5; preserve reference until documented decision, not a new regression introduced by c932",
+    "Three native skipped tests are not credited as passing required gates",
+    "Active/inactive-layer expected appearance gap from prior review remains outside this contract"
+  ],
+  "source": "/private/tmp/picker-contrast-c932adb-independent-source-20261021",
+  "target": "/private/tmp/picker-contrast-c932adb-independent-owned-target-20261021",
+  "source_diff_exit": 0,
+  "toolchain": "Rust1.99.1; Nextest0.9.148",
+  "binary_receipts": [
+    {
+      "path": "/private/tmp/picker-contrast-c932adb-independent-owned-target-20261021/debug/deps/authored_bg-ad4937dd07742333",
+      "sha256": "db3149194939e29fffc0870d1aea562c13ae63c860358ad003acc185e873f503"
+    },
+    {
+      "path": "/private/tmp/picker-contrast-c932adb-independent-owned-target-20261021/debug/deps/item_row_columns-3704c591dfc8adf3",
+      "sha256": "32bf62fd4af4e4a9264a3a78883ad1a898676eb112e104476b3e42f0d0f7ca2d"
+    },
+    {
+      "path": "/private/tmp/picker-contrast-c932adb-independent-owned-target-20261021/debug/deps/contrast-54cbbb7a41008487",
+      "sha256": "aeb74e7c93d6669a2e5255b3b4c0a44c7a1b389098e894867707f3c91dfd8a65"
+    }
+  ],
+  "receipts": {
+    "fmt-receipt": {
+      "argv": [
+        "/Users/donbeave/.cargo/bin/cargo",
+        "fmt",
+        "--all",
+        "--check"
+      ],
+      "cwd": "/private/tmp/picker-contrast-c932adb-independent-source-20261021",
+      "target": "/private/tmp/picker-contrast-c932adb-independent-owned-target-20261021",
+      "exit": 0,
+      "timeout": false,
+      "seconds": 2.507166124996729
+    },
+    "native-receipt": {
+      "argv": [
+        "/Users/donbeave/.cargo/bin/cargo",
+        "nextest",
+        "run",
+        "--locked",
+        "--offline",
+        "-p",
+        "termrock-navigation",
+        "-p",
+        "termrock-runtime",
+        "--all-targets",
+        "--no-fail-fast"
+      ],
+      "cwd": "/private/tmp/picker-contrast-c932adb-independent-source-20261021",
+      "target": "/private/tmp/picker-contrast-c932adb-independent-owned-target-20261021",
+      "exit": 100,
+      "timeout": false,
+      "seconds": 66.96469875000184
+    },
+    "scoped-authored-receipt": {
+      "argv": [
+        "/Users/donbeave/.cargo/bin/cargo",
+        "nextest",
+        "run",
+        "--locked",
+        "--offline",
+        "--test",
+        "authored_bg",
+        "-E",
+        "test(authored_background_contrast_preserves_explicit_channels)"
+      ],
+      "cwd": "/private/tmp/picker-contrast-c932adb-independent-consumer-20261021",
+      "target": "/private/tmp/picker-contrast-c932adb-independent-owned-target-20261021",
+      "exit": 0,
+      "timeout": false,
+      "seconds": 3.284575917001348
+    },
+    "clippy-receipt": {
+      "argv": [
+        "/Users/donbeave/.cargo/bin/cargo",
+        "clippy",
+        "--locked",
+        "--offline",
+        "-p",
+        "termrock-navigation",
+        "-p",
+        "termrock-runtime",
+        "--all-targets",
+        "--no-deps",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "cwd": "/private/tmp/picker-contrast-c932adb-independent-source-20261021",
+      "target": "/private/tmp/picker-contrast-c932adb-independent-owned-target-20261021",
+      "exit": 0,
+      "timeout": false,
+      "seconds": 11.09765845903894
+    },
+    "unchanged-global-receipt": {
+      "argv": [
+        "/Users/donbeave/.cargo/bin/cargo",
+        "nextest",
+        "run",
+        "--locked",
+        "--offline",
+        "--test",
+        "contrast",
+        "--no-fail-fast"
+      ],
+      "cwd": "/private/tmp/picker-contrast-c932adb-independent-consumer-20261021",
+      "target": "/private/tmp/picker-contrast-c932adb-independent-owned-target-20261021",
+      "exit": 100,
+      "timeout": false,
+      "seconds": 25.7434794579749
+    }
+  },
+  "scope_limits": [
+    "No complete frozen416 CLI/Tuiscotti capture/replay comparison or4app acceptance",
+    "Default comparison is exact f46→c932 contract evidence, not new approval of f46 as frozen authority",
+    "No product edits, original checkout/ref changes, expected changes, helpers, shared targets, merge, push lock, commit or push"
+  ],
+  "artifacts": [
+    {
+      "path": "clippy-receipt.json",
+      "sha256": "f442135ae407233df356dc955764d7139fd5196cc1ed2e827c3be8637c3eae23"
+    },
+    {
+      "path": "clippy.log",
+      "sha256": "604cba06e01f3388372b9fe288a89ff15f0d3b6701dcbf5b3b076c6c02898a39"
+    },
+    {
+      "path": "consumer/Cargo.lock",
+      "sha256": "9f77d68d4bc8e8eb00eff604513794f762f33f057da20c32c4a61b9e39a76de7"
+    },
+    {
+      "path": "consumer/Cargo.toml",
+      "sha256": "1a423501877b349621a209d0c6e5d82f2a92d431cb4612f5132b56789b0a6c11"
+    },
+    {
+      "path": "consumer/tests/authored_bg.rs",
+      "sha256": "3869c7044fbb06c9f8776210c0570aa46336349bdd894734545c791da258c6ae"
+    },
+    {
+      "path": "consumer/tests/contrast.rs",
+      "sha256": "940da3fa57e92eaf6220f0e3a0ff3da587abfaae0ab4a802507cc846487b8407"
+    },
+    {
+      "path": "contrast-summary.json",
+      "sha256": "02694aa1156c763d34c420ec0e581e7c457455d88464e0f29b75489b87e6d6f4"
+    },
+    {
+      "path": "default-comparison.json",
+      "sha256": "be9d1dbb6caa814856d77ab7624765fbd8e864df2d6f6ababa1a9d2f6a082bb4"
+    },
+    {
+      "path": "fmt-receipt.json",
+      "sha256": "a04cece756182aa9010d6561d104cad5b1257f2297561d5a8390974baa09cbc8"
+    },
+    {
+      "path": "fmt.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "native-receipt.json",
+      "sha256": "a801397135fa33a19b869ff49c6f5e1974287d3feb3db25aa4099321d207238c"
+    },
+    {
+      "path": "native.log",
+      "sha256": "f0da32ca5d94b239307f92ab1a7313c013f130e415ab4b7b5e72ac4313e547aa"
+    },
+    {
+      "path": "prior-cd1-hold-review.json",
+      "sha256": "b224e58cdb4db6bfca40587d4ac9c21a3424a759add2d3d705ab3981d62a6ab3"
+    },
+    {
+      "path": "reviewed.patch",
+      "sha256": "e39454ea62999a55b3e6e773f272949de8a6951a2b372d19877f6d9e5c157f1e"
+    },
+    {
+      "path": "scoped-authored-cells.txt",
+      "sha256": "8a18d27b0150fcefdba7ee3bfe51aae076cc7b1c25672d9ef7477e570266a6d2"
+    },
+    {
+      "path": "scoped-authored-receipt.json",
+      "sha256": "d4eeea4420ea777a7479f8e1559cdb26ddef05fb0d6c344b0820ce7facf69571"
+    },
+    {
+      "path": "scoped-authored.log",
+      "sha256": "27b42a2ce7b036da7969b5cd96f542303bd03038d705cb61ae18e63c1f1bed90"
+    },
+    {
+      "path": "source-identities.json",
+      "sha256": "c31932f06b1d592becded7746e5695146571fcf653e29122c7369595716b597f"
+    },
+    {
+      "path": "unchanged-global-cells.txt",
+      "sha256": "8a18d27b0150fcefdba7ee3bfe51aae076cc7b1c25672d9ef7477e570266a6d2"
+    },
+    {
+      "path": "unchanged-global-default.rle",
+      "sha256": "c91f80953226446a1748ce7a2790b6b6ac3d03f0cbfb24c9af8f8c30c953c6e3"
+    },
+    {
+      "path": "unchanged-global-receipt.json",
+      "sha256": "702451342a9b04be746a3cd08c693d807846c3916a1b4c0528db9d35add0a54a"
+    },
+    {
+      "path": "unchanged-global.log",
+      "sha256": "a243911a61ac193a4330a7c991d826c147d30bbab6d94fc1ee6021fcbac4b8a6"
+    }
+  ]
+}

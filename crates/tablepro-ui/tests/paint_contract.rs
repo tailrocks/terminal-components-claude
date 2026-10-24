@@ -1,6 +1,43 @@
 use tablepro_ui::{Surface, TableProApp};
-use termrock::{ColorLevel, Theme};
+use termrock::{Color, ColorLevel, Theme};
 use termrock_test_support::Harness;
+
+#[test]
+fn connections_header_rule_and_focus_bar_match_the_tag() {
+    let harness = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
+    let shows = |x, y, symbol: &str| {
+        harness
+            .buffer()
+            .cell((x, y))
+            .is_some_and(|cell| cell.symbol() == symbol)
+    };
+    let ink = |x, y, color: Color| {
+        harness
+            .buffer()
+            .cell((x, y))
+            .is_some_and(|cell| cell.fg == color)
+    };
+    assert!(shows(1, 0, " "), "brand keeps the chrome edge");
+    assert!(shows(2, 0, "▪"));
+    assert!(shows(28, 0, "6"));
+    assert!(ink(28, 0, Color::from_u32(0x008a_8a8a)));
+    assert!(shows(92, 0, "t"));
+    assert!(ink(92, 0, Color::from_u32(0x008a_8a8a)));
+    assert!(shows(110, 0, " "));
+    assert!(shows(112, 0, "?"));
+    assert!(shows(44, 3, "─"));
+    assert!(shows(109, 3, "─"));
+    assert!(shows(110, 3, " "));
+    assert!(ink(44, 3, Color::from_u32(0x003a_3a3a)));
+    assert!(
+        harness
+            .buffer()
+            .cell((44, 3))
+            .is_some_and(|cell| cell.bg == Color::from_u32(0x0011_1111))
+    );
+    assert!(shows(3, 4, " "), "filter row has no focus bar");
+    assert!(shows(3, 5, "▎"), "focus bar stays on the tree row");
+}
 
 #[test]
 fn all_connection_action_labels_keep_distinct_foreground_and_background() {

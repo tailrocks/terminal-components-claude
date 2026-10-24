@@ -1,0 +1,25 @@
+ ▪ [0m[1mJunie[0m Design system  [0m[1mOverview[0m       no color · 80×24   i Inspector   ? Help  [0m
+                                                                                [0m
+ [0m[1mComponents[0m      54  [0m[1mOverview[0m  Tokens and principles behind every component     [0m
+ ──────────────────                                                             [0m
+ [0m[1m▎› Overview       [0m  [0m[1m Playground  [0m  Options    States                           [0m
+  ▸ App shell        ━━━━━━━━━━━━━──────────────────────────────────────────────[0m
+  ▸ Inputs & forms                                                              [0m
+  ▸ Tables             Tokens · planes and text                                ┃[0m
+  ▸ Navigation         ─────────────────────────────────────────────────────── ┆[0m
+  ▸ Overlays               ▏ canvas                                       Blac ┆[0m
+  ▸ Feedback               ▏ surface                                      Blac ┆[0m
+  ▸ Layout                 ▏ surface.elevated                             Blac ┆[0m
+  ▸ Text & code            ▏ surface.overlay                           DarkGra ┆[0m
+  ▸ Screens                ▏ field                                        Blac ┆[0m
+                           ▏ field.hover                                  Blac ┆[0m
+                           ▏ popover                                   DarkGra ┆[0m
+                           ▏ highlight                                 DarkGra ┆[0m
+                           ▏ highlight.danger                          DarkGra ┆[0m
+                           ▏ selection                                 DarkGra ┆[0m
+                           ▏ border.subtle                             DarkGra ┆[0m
+                           ▏ border.strong                                 Gra ┆[0m
+                     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┄┄┄ [0m
+                                                                                [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                           [0m
+[?25l

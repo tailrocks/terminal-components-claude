@@ -1,0 +1,326 @@
+{
+  "schema": 1,
+  "reviewed_at": "2026-10-21T02:20:12.142016+00:00",
+  "reviewer": "independent Rust reviewer /root/list_multiline_independent_reviewer",
+  "status": "helper removal cleared for integration after prerequisite; broader native form gate remains incomplete",
+  "candidate_commit": "c8f92ea0c0df2bc13a507e97b14ef6f65a90ea48",
+  "parent_commit": "95626f9eaac50b6935997a0c848b3da913129ed5",
+  "prerequisite": "f0760cc204afc533e202604d0437f913b72bfd10; candidate parent has an equivalent production implementation",
+  "findings_in_helper_delta": [],
+  "existing_findings": [
+    {
+      "id": "TP-NAME-REVIEW-RADIO-01",
+      "severity": "P2",
+      "path": "crates/tablepro-ui/tests/form_radio.rs:117",
+      "issue": "form_radio_enter_submits expects a newly created connection to inherit Production/Safe (3,3). It fails on both exact parent and candidate with (0,0). The frozen source opens a new form with None and explicitly defaults environment and safe-mode indices to0.",
+      "action": "Give this native test an explicit domain fixture consistent with the behavior it intends to exercise. Preserve the observed failures and frozen-source evidence; do not alter the baseline or candidate rendering to satisfy the inherited-data assumption. Reverify the intended radio commit/submit path independently.",
+      "candidate_gate": "18 passed1 failed35 filtered in scoped form/connection gate; no claim that complete native gate passes."
+    }
+  ],
+  "source_review": {
+    "mechanism": "Removes only arm_fresh_name_replacement and its pre-Form::update call. Typing or pasting after a draft first equals the active connection label no longer selects all and destroys the prefix. All component update/routing/domain-action paths remain in place.",
+    "candidate_source_sha256": "19757947e9d7a20e2f30b43196d0bcd82441f4e3d8e80143114297ea99b87ed5",
+    "parent_source_sha256": "7b5c4b47ef5042f97e4ef912c4c2ba871ce4d05baba40c07424966e899be2057",
+    "parent_app_equals_prerequisite_app": true,
+    "regression_file_after_sha256": "04545dbbf875ea76739db842e8dfcc2eeb0d350dbb0e4e7ec222f7d829ae1be7",
+    "regression_file_before_sha256": "04545dbbf875ea76739db842e8dfcc2eeb0d350dbb0e4e7ec222f7d829ae1be7",
+    "mirror_name_edit_unchanged": true,
+    "architecture_gap": "mirror_name_edit remains existing application-to-form draft synchronization; this review does not approve it as a complete single-owner library API.",
+    "candidate_copy_clean": true
+  },
+  "paired_checks": {
+    "before": "Same candidate regression bytes on parent:6 run2 passed4 failed25 filtered. Typed/pasted active-name prefixes collapse to suffix; Unicode and domain-save cases also fail.",
+    "after": "6 focused tests passed25 filtered; all31 native library tests passed0 skipped.",
+    "targets": "Before and after use separate dedicated Cargo target directories.",
+    "environment": {
+      "TERM": "dumb",
+      "NO_COLOR": "1"
+    }
+  },
+  "independent_probe": {
+    "source": "independent_name_probe.rs",
+    "sha256": "81da5112a3d86395fb9fcd3bca93fd612bba9d1aa087e96e99bb0d5b3cd97660",
+    "result": "1 independent test passed0 skipped;48 complete open/edit/cancel flows",
+    "matrix": {
+      "profiles": [
+        "TrueColor",
+        "Ansi256",
+        "Ansi16",
+        "Mono"
+      ],
+      "sizes": [
+        [
+          120,
+          40
+        ],
+        [
+          160,
+          50
+        ]
+      ],
+      "active_connection_indices": [
+        0,
+        1,
+        5
+      ],
+      "active_connection_labels": [
+        "Local PostgreSQL",
+        "Development",
+        "Scratch"
+      ],
+      "cycles_per_configuration": 2
+    },
+    "coverage": [
+      "Typed active-name prefix then pasted combining and wide-text suffix",
+      "Name value rendered; focus on NAME and terminal cursor inside actual NAME bounds",
+      "HOST receives focus, explicit select-all, replacement text, and Tab commit; NAME preserved",
+      "NAME focus reacquired; End then append retains full prior value",
+      "Active workbench connection unchanged through edits and cancel",
+      "Cancel closes form, removes public draft, and transfers focus away from NAME; repeated New remains usable"
+    ],
+    "invalid_attempt_preserved": "The initial independent fixture requested Analytics index3, which is intentionally Unreachable and makes connect returnfalse. This setup error is preserved in independent-probe.log and independent_name_probe_v1_invalid_fixture.rs. Corrected test uses successful Development index1; no production/test-under-review changes."
+  },
+  "fixed_reference_evidence": {
+    "source_files": "fixed-reference-source.json contains matching source hashes for frozen baseline4169783 and fixed designf4867e9 connections.rs/input.rs/edit.rs; all three files are byte-identical.",
+    "behavior_inference": "The baseline New form uses blank name, focus-on-entry selection, and no comparison with the active connection name in its text editing path. This supports removing the workaround; no executable frozen CLI parity was performed."
+  },
+  "checks": {
+    "after-clippy": {
+      "command": [
+        "cargo",
+        "clippy",
+        "-p",
+        "tablepro-ui",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit": 0,
+      "seconds": 7.109604666009545
+    },
+    "after-diff": {
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exit": 0,
+      "seconds": 1.3539969999692403
+    },
+    "after-fmt": {
+      "command": [
+        "cargo",
+        "fmt",
+        "--check"
+      ],
+      "exit": 0,
+      "seconds": 2.9518834999762475
+    },
+    "after-focus": {
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "-p",
+        "tablepro-ui",
+        "--lib",
+        "connection_form_focus",
+        "--no-fail-fast"
+      ],
+      "exit": 0,
+      "seconds": 3.7393225000123493,
+      "target": "/private/tmp/tablepro-name-review-after-target-20261021"
+    },
+    "after-lib": {
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "-p",
+        "tablepro-ui",
+        "--lib",
+        "--no-fail-fast"
+      ],
+      "exit": 0,
+      "seconds": 0.703995208023116
+    },
+    "before-existing-radio-failure": {
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "-p",
+        "tablepro-ui",
+        "--test",
+        "form_radio",
+        "form_radio_enter_submits"
+      ],
+      "exit": 100,
+      "seconds": 4.314434750005603
+    },
+    "before-focus": {
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "-p",
+        "tablepro-ui",
+        "--lib",
+        "connection_form_focus",
+        "--no-fail-fast"
+      ],
+      "exit": 100,
+      "seconds": 10.608259957982227,
+      "target": "/private/tmp/tablepro-name-review-before-target-20261021"
+    },
+    "independent-probe-valid-fixture": {
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "-p",
+        "tablepro-ui",
+        "--test",
+        "independent_name_probe"
+      ],
+      "exit": 0,
+      "seconds": 7.988337499962654
+    },
+    "independent-probe": {
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "-p",
+        "tablepro-ui",
+        "--test",
+        "independent_name_probe"
+      ],
+      "exit": 100,
+      "seconds": 3.6116449169931
+    },
+    "native-form-interactions": {
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "-p",
+        "tablepro-ui",
+        "--test",
+        "app_tests",
+        "--test",
+        "form_radio",
+        "-E",
+        "test(form) or test(connection)",
+        "--no-fail-fast"
+      ],
+      "exit": 100,
+      "seconds": 2.2664052080363035
+    }
+  },
+  "limitations": [
+    "No tuiscotti paired real-CLI comparison or approved snapshots were generated.",
+    "No complete product parity, full workspace native gate, or architecture acceptance is implied.",
+    "Existing radio test remains red; it was neither skipped away nor updated.",
+    "Domain-save author regression directly populates database data before clicking Save; the independent probe does not establish a complete real-CLI form/save flow."
+  ],
+  "evidence": {
+    "after-clippy.json": {
+      "sha256": "b657768354f9c58a51ae9fa282eb72efcf09ecf73ec84974c3418a32ca188a50",
+      "bytes": 180
+    },
+    "after-clippy.log": {
+      "sha256": "3fff44dffbf4316c548d4498b6b1b742d78ab5ce8109de77e1a2d37bed171bf3",
+      "bytes": 5369
+    },
+    "after-diff.json": {
+      "sha256": "c74aee24399fa7a91c05846f5360bd662a1326e20f3ca67c7b9c98786341fc34",
+      "bytes": 106
+    },
+    "after-diff.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "after-fmt.json": {
+      "sha256": "8e341cdd5417fb3092a347813fe3965247efcfe7903e0774c06655673923c949",
+      "bytes": 107
+    },
+    "after-fmt.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "after-focus.json": {
+      "sha256": "aa5843593280e3756b81973b46190b0361ef37973c0cf14ef6ecf537360f9f56",
+      "bytes": 271
+    },
+    "after-focus.log": {
+      "sha256": "a4687d08ed7c880d4b77d5d1cf257d1331deab31da3dfc376de0eb775fd5dc96",
+      "bytes": 6463
+    },
+    "after-lib.json": {
+      "sha256": "24c2ea7c9a04c23d5aad180271513df4d3210503ab3e4bfb919a9a943574ef26",
+      "bytes": 170
+    },
+    "after-lib.log": {
+      "sha256": "cee202a07101bd6fb1098bc3719f6e01acb23280ec12713bee0971d3504ee253",
+      "bytes": 4199
+    },
+    "before-existing-radio-failure.json": {
+      "sha256": "5608d04fda2b28dbfa20b09a1c830a8518e1bb7e9b5ae12ddd3f115d0352eb26",
+      "bytes": 201
+    },
+    "before-existing-radio-failure.log": {
+      "sha256": "0995f2488d343af9a9360312f1007ac8ec1941e319e02457e84436de4be96040",
+      "bytes": 1392
+    },
+    "before-focus.json": {
+      "sha256": "7d0d40dae1379d6919987751638abbd8509d0f6ed7897934ceb9d252edc67098",
+      "bytes": 274
+    },
+    "before-focus.log": {
+      "sha256": "e53b54baff0b5aff133b2e0cb261cbea11cdd0e57ae576a15eef2a83abfee730",
+      "bytes": 10224
+    },
+    "fixed-reference-source-excerpts.txt": {
+      "sha256": "e7f7fd5f4bc3d04041a8c4302ebdc5015a59e347648dede6686a6a8e426300f5",
+      "bytes": 3969
+    },
+    "fixed-reference-source.json": {
+      "sha256": "541b214f33e37da7369e183eed4b3211c97c83b4f498ffde6afc3ce9bea75eeb",
+      "bytes": 703
+    },
+    "independent-probe-valid-fixture.json": {
+      "sha256": "336124981dae342dd0a29b801b2731ca8dd0f4d23c458176f692e2d42b1727bb",
+      "bytes": 179
+    },
+    "independent-probe-valid-fixture.log": {
+      "sha256": "61baa348f662ea20066821798115dc1b54acf24873de0c7c2aae1940e1a24834",
+      "bytes": 721
+    },
+    "independent-probe.json": {
+      "sha256": "ffa0ced3e89a0b480d0451602697abcdf23d82879e6f412f7425a47e84e765d5",
+      "bytes": 179
+    },
+    "independent-probe.log": {
+      "sha256": "662a922ef68d32b69350a87542f381e2c31216b0a36c0def467f89e7247b9053",
+      "bytes": 1514
+    },
+    "independent_name_probe.rs": {
+      "sha256": "81da5112a3d86395fb9fcd3bca93fd612bba9d1aa087e96e99bb0d5b3cd97660",
+      "bytes": 2818
+    },
+    "independent_name_probe_v1_invalid_fixture.rs": {
+      "sha256": "89e3fff4eea6524b71811f24586f4e371c8684186aeba6f683a281846a5103b0",
+      "bytes": 2818
+    },
+    "native-form-interactions.json": {
+      "sha256": "c236ee8ec6ed1838e76d091e86eebeb812e180091c1d1235c861ea117649242e",
+      "bytes": 271
+    },
+    "native-form-interactions.log": {
+      "sha256": "1aacf65774eb4486fad9c36fe9f7adca31c078c92579151323635f2c45e3e935",
+      "bytes": 3233
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "argv": [
+    "/Users/donbeave/.cargo/bin/cargo",
+    "nextest",
+    "run",
+    "--locked",
+    "--offline",
+    "-p",
+    "termrock-navigation",
+    "-p",
+    "termrock-runtime",
+    "--all-targets",
+    "--no-fail-fast"
+  ],
+  "cwd": "/private/tmp/picker-contrast-c932adb-independent-source-20261021",
+  "target": "/private/tmp/picker-contrast-c932adb-independent-owned-target-20261021",
+  "exit": 100,
+  "timeout": false,
+  "seconds": 66.96469875000184
+}

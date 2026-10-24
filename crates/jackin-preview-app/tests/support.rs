@@ -9,12 +9,33 @@ pub struct H {
     pub harness: Harness<App>,
 }
 
+// Integration tests compile this shared adapter separately and use different subsets.
+#[allow(dead_code)]
 impl H {
     pub fn new(scenario: Scenario, motion: Motion, frame: u64, w: u16, h: u16) -> Self {
         Self {
             harness: Harness::new(
                 App::for_scenario_at(scenario, motion, frame),
                 Theme::junie(),
+                w,
+                h,
+            ),
+        }
+    }
+
+    /// A harness whose theme is narrowed to a colour level.
+    pub fn new_with_color(
+        scenario: Scenario,
+        motion: Motion,
+        frame: u64,
+        w: u16,
+        h: u16,
+        level: termrock::ColorLevel,
+    ) -> Self {
+        Self {
+            harness: Harness::new(
+                App::for_scenario_at(scenario, motion, frame),
+                Theme::junie().downgrade(level),
                 w,
                 h,
             ),

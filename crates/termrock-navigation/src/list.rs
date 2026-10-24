@@ -11,6 +11,7 @@ use termrock_collections::collection::{
 };
 use termrock_core::id::{Id, ItemKey, Part, PartRef};
 use termrock_core::response::{Response, StateFlags};
+use termrock_runtime::UpdateCause;
 use termrock_runtime::empty::{EmptyState, Status};
 use termrock_runtime::event::{Chord, KeyCode, KeyModifiers};
 use termrock_runtime::focus::Focusability;
@@ -46,6 +47,15 @@ pub enum ListCmd {
     Choose,
     Activate,
     ToggleAll,
+}
+
+/// An additive selection command separate from the exhaustive [`ListCmd`] and
+/// [`ListAction`] APIs.
+#[non_exhaustive]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum ListSelectionCmd {
+    /// Select every enabled item without clearing an existing full selection.
+    SelectAll,
 }
 
 const fn b(
@@ -204,6 +214,39 @@ const MULTI: [Binding<ListCmd>; 15] = [
 
 const NONE: [Binding<ListCmd>; 11] = BASE;
 
+const fn selection_binding(
+    action: &'static str,
+    chord: Chord,
+    label: &'static str,
+    visible: bool,
+) -> Binding<ListSelectionCmd> {
+    Binding {
+        action: crate::ActionKey::custom(action),
+        chord: Some(chord),
+        cmd: ListSelectionCmd::SelectAll,
+        label,
+        priority: if visible { 60 } else { 10 },
+        visible,
+    }
+}
+
+// Distinct stable action identities allow each default chord to be remapped
+// or unbound independently without duplicate binding descriptors.
+const DEFAULT_SELECTION: [Binding<ListSelectionCmd>; 2] = [
+    selection_binding(
+        "list.select-all",
+        Chord::with(KeyCode::Char('a'), KeyModifiers::CONTROL),
+        "Select all",
+        true,
+    ),
+    selection_binding(
+        "list.select-all-super",
+        Chord::with(KeyCode::Char('a'), KeyModifiers::SUPER),
+        "Select all",
+        false,
+    ),
+];
+
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct ListState {
     core: CollectionCore,
@@ -244,6 +287,10 @@ impl ListState {
     pub fn choose(&mut self, key: Option<ItemKey>) {
         self.chosen = key;
     }
+
+    fn clear_click_cursor(&mut self) {
+        self.click_cursor = None;
+    }
 }
 
 impl Reconcile for ListState {
@@ -283,6 +330,7 @@ pub struct List<'a, T, K = ByIndex, R = DefaultRow> {
     row_gap: u16,
     whole_rows: bool,
     select_mode: SelectMode,
+    selection_bindings: Option<&'static [Binding<ListSelectionCmd>]>,
     leave_at_boundary: bool,
     activate_focused_on_click: bool,
     empty: Option<EmptyState<'a>>,
@@ -291,6 +339,7 @@ pub struct List<'a, T, K = ByIndex, R = DefaultRow> {
     bare: bool,
     bare_item: Option<&'a dyn Fn(&T) -> bool>,
     status: Status,
+    fade_edges: Option<bool>,
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
     ov: PartStyle<'a>,
@@ -336,6 +385,7 @@ impl<T> List<'_, T, ByIndex, DefaultRow> {
             row_gap: 0,
             whole_rows: false,
             select_mode: SelectMode::Single,
+            selection_bindings: None,
             leave_at_boundary: false,
             activate_focused_on_click: false,
             empty: None,
@@ -344,6 +394,7 @@ impl<T> List<'_, T, ByIndex, DefaultRow> {
             bare: false,
             bare_item: None,
             status: Status::Ready,
+            fade_edges: None,
             patch: None,
             parts: &[],
             ov: PartStyle::new(),
@@ -369,6 +420,35 @@ impl<'a, T, K, R> List<'a, T, K, R> {
 
     pub const fn id(&self) -> Id {
         self.id
+    }
+
+    /// Handle an isolated focus loss without reconciling the list's source or layout.
+    ///
+    /// `None` means the update cause is not `Settle`, or this owner has another
+    /// intent. Inspecting the owner bucket acknowledges it for diagnostics; any
+    /// unclaimed intents remain available to the ordinary update loop. Call
+    /// [`Self::update`] on this same list and state in the same pass after `None`.
+    /// An empty bucket returns `Some(Response::ignored())`.
+    pub fn update_focus_out(&self, cx: &mut Cx<'_>, state: &mut ListState) -> Option<Response<()>> {
+        if cx.update_cause() != UpdateCause::Settle {
+            return None;
+        }
+
+        let mut focus_out = false;
+        let mut unsupported = false;
+        for intent in cx.intents(self.id) {
+            match intent {
+                Intent::FocusOut { .. } => focus_out = true,
+                _ => unsupported = true,
+            }
+        }
+        if unsupported {
+            return None;
+        }
+        if focus_out {
+            state.clear_click_cursor();
+        }
+        Some(Response::ignored())
     }
 
     #[must_use]
@@ -398,6 +478,20 @@ impl<'a, T, K, R> List<'a, T, K, R> {
     #[must_use]
     pub const fn whole_rows(mut self, enabled: bool) -> Self {
         self.whole_rows = enabled;
+        self
+    }
+
+    /// Enable or disable the final scroll-edge fade for this list.
+    ///
+    /// By default, the built-in row renderer fades overflowing content. A
+    /// custom [`Self::render_row`] renderer keeps its output unchanged unless
+    /// this is set to `true`. Set this to `false` when the built-in renderer's
+    /// authored edge colors must remain unchanged. Fading runs only when an
+    /// overflowing scrollbar reserves a column and the full vertical content
+    /// viewport is visible.
+    #[must_use]
+    pub const fn fade_edges(mut self, enabled: bool) -> Self {
+        self.fade_edges = Some(enabled);
         self
     }
 
@@ -462,6 +556,7 @@ impl<'a, T, K, R> List<'a, T, K, R> {
             row_gap: self.row_gap,
             whole_rows: self.whole_rows,
             select_mode: self.select_mode,
+            selection_bindings: self.selection_bindings,
             leave_at_boundary: self.leave_at_boundary,
             activate_focused_on_click: self.activate_focused_on_click,
             empty: self.empty,
@@ -470,6 +565,7 @@ impl<'a, T, K, R> List<'a, T, K, R> {
             bare: self.bare,
             bare_item: self.bare_item,
             status: self.status,
+            fade_edges: self.fade_edges,
             patch: self.patch,
             parts: self.parts,
             ov: self.ov,
@@ -487,6 +583,7 @@ impl<'a, T, K, R> List<'a, T, K, R> {
             row_gap: self.row_gap,
             whole_rows: self.whole_rows,
             select_mode: self.select_mode,
+            selection_bindings: self.selection_bindings,
             leave_at_boundary: self.leave_at_boundary,
             activate_focused_on_click: self.activate_focused_on_click,
             empty: self.empty,
@@ -495,6 +592,7 @@ impl<'a, T, K, R> List<'a, T, K, R> {
             bare: self.bare,
             bare_item: self.bare_item,
             status: self.status,
+            fade_edges: self.fade_edges,
             patch: self.patch,
             parts: self.parts,
             ov: self.ov,
@@ -512,6 +610,22 @@ impl<'a, T, K, R> List<'a, T, K, R> {
     #[must_use]
     pub fn select_mode(mut self, m: SelectMode) -> Self {
         self.select_mode = m;
+        self
+    }
+
+    /// Replace the default Multi/Range Select All bindings with a static table.
+    ///
+    /// The table is ignored in [`SelectMode::Single`] and [`SelectMode::None`].
+    /// Passing an empty slice disables this extra command. The default table
+    /// uses the stable component actions `list.select-all` and
+    /// `list.select-all-super`, which can be remapped or unbound through a
+    /// component [`KeyMap`](termrock_runtime::keymap::KeyMap).
+    #[must_use]
+    pub const fn selection_bindings(
+        mut self,
+        bindings: &'static [Binding<ListSelectionCmd>],
+    ) -> Self {
+        self.selection_bindings = Some(bindings);
         self
     }
 
@@ -584,11 +698,28 @@ impl<'a, T, K, R> List<'a, T, K, R> {
         sr
     }
 
-    fn table(&self) -> &'static [Binding<ListCmd>] {
+    pub const fn table(&self) -> &'static [Binding<ListCmd>] {
         match self.select_mode {
             SelectMode::Single => &SINGLE,
             SelectMode::Multi | SelectMode::Range => &MULTI,
             SelectMode::None => &NONE,
+        }
+    }
+
+    /// Bindings for additive multi-selection commands such as SelectAll.
+    ///
+    /// Single and non-selectable lists return an empty table. Multi and range
+    /// lists return their static override when one was configured, or the
+    /// shared default table otherwise. An explicitly empty override disables
+    /// these additional commands. Callers that publish the table must apply
+    /// the same non-inert, non-empty, and non-disabled guards as [`List::draw`].
+    pub const fn selection_table(&self) -> &'static [Binding<ListSelectionCmd>] {
+        match self.select_mode {
+            SelectMode::Multi | SelectMode::Range => match self.selection_bindings {
+                Some(bindings) => bindings,
+                None => &DEFAULT_SELECTION,
+            },
+            SelectMode::Single | SelectMode::None => &[],
         }
     }
 
@@ -675,6 +806,31 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
             }
         }
         acc.action(ListAction::ToggledAll);
+    }
+
+    fn select_all(&self, st: &mut ListState, items: &[T], acc: &mut Acc<ListAction>) {
+        let mut changed = false;
+        for i in 0..items.len() {
+            if st.core.checked().contains(self.key_at(items, i)) != self.enabled_at(items, i) {
+                changed = true;
+                break;
+            }
+        }
+        if !changed {
+            acc.consumed();
+            return;
+        }
+
+        // Keep the collection's existing AllExcept semantics for future keys,
+        // while explicitly removing disabled keys in the current source.
+        let checked = st.core.checked_mut();
+        checked.all();
+        for i in 0..items.len() {
+            if !self.enabled_at(items, i) {
+                checked.remove(self.key_at(items, i));
+            }
+        }
+        acc.changed();
     }
 
     fn choose(&self, st: &mut ListState, items: &[T], i: usize, acc: &mut Acc<ListAction>) {
@@ -777,17 +933,30 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
             scroll.scroll_to(aligned);
         }
         acc.fold(&bar);
-        let viewport = self.item_at_line(st.core.scroll().viewport_len()).max(1);
+        let page_rows = self.item_at_line(st.core.scroll().viewport_len()).max(1);
         let table = self.table();
+        let selection_table = if len == 0 {
+            &[][..]
+        } else {
+            self.selection_table()
+        };
         let mut released = false;
         for it in cx.intents(self.id) {
             match it {
-                Intent::FocusOut { .. } | Intent::Cancel => {
-                    st.click_cursor = None;
-                }
+                Intent::FocusOut { .. } | Intent::Cancel => st.clear_click_cursor(),
                 Intent::Binding(action) => {
                     st.click_cursor = None;
                     let cur = st.core.cursor_index();
+                    if Binding::command(selection_table, action)
+                        == Some(ListSelectionCmd::SelectAll)
+                    {
+                        if !cx.state(self.id).contains(StateFlags::DISABLED)
+                            && matches!(self.select_mode, SelectMode::Multi | SelectMode::Range)
+                        {
+                            self.select_all(st, items, &mut acc);
+                        }
+                        continue;
+                    }
                     match Binding::command(table, action) {
                         Some(ListCmd::Up)
                             if self.leave_at_boundary
@@ -816,14 +985,14 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                         Some(ListCmd::PageUp) => self.move_cursor(
                             st,
                             items,
-                            cur.saturating_sub(viewport),
+                            cur.saturating_sub(page_rows),
                             false,
                             &mut acc,
                         ),
                         Some(ListCmd::PageDown) => self.move_cursor(
                             st,
                             items,
-                            cur.saturating_add(viewport),
+                            cur.saturating_add(page_rows),
                             false,
                             &mut acc,
                         ),
@@ -840,7 +1009,11 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                         Some(ListCmd::Choose) => self.choose(st, items, cur, &mut acc),
                         Some(ListCmd::Activate) => {
                             if self.enabled_at(items, cur) && len > 0 {
-                                acc.action(ListAction::Activated(self.key_at(items, cur)));
+                                let key = self.key_at(items, cur);
+                                if self.select_mode == SelectMode::Single {
+                                    st.chosen = Some(key);
+                                }
+                                acc.action(ListAction::Activated(key));
                             } else {
                                 acc.consumed();
                             }
@@ -935,6 +1108,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
         if released {
             st.click_cursor = None;
         }
+        *st.core.scroll_mut() = self.scroll_view(st, len, viewport);
         acc.finish(self.id)
     }
 
@@ -953,6 +1127,14 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
         let live = PartStyle::flags(ui.state(self.id), self.status.flags());
         if !ui.is_inert() {
             ui.publish_bindings(self.id, live, self.table());
+            let selection_table = if len == 0 {
+                &[][..]
+            } else {
+                self.selection_table()
+            };
+            if !selection_table.is_empty() && !live.contains(StateFlags::DISABLED) {
+                ui.publish_additional_bindings(self.id, live, selection_table);
+            }
         }
         let ov = self.ov;
         let id = self.id;
@@ -1021,6 +1203,8 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
             return area;
         }
         let cursor = st.core.cursor();
+        let should_fade = self.fade_edges.unwrap_or(self.render_row.is_none());
+        let mut visible_cursor_block = None;
         let hovered = ui.hovered_part(self.id);
         let pressed = ui.pressed_part(self.id);
 
@@ -1072,6 +1256,12 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                 width: content.width,
                 height: self.row_height,
             };
+            if is_cursor {
+                let visible = row.intersection(content).intersection(ui.full());
+                if !visible.is_empty() {
+                    visible_cursor_block = Some(visible);
+                }
+            }
             if let Some(renderer) = self.render_row {
                 if !row.intersection(ui.full()).is_empty() {
                     ui.with_area(content, |ui| {
@@ -1135,8 +1325,16 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                     }
                 };
                 if !rest.is_empty() {
-                    let mut r =
-                        RowUi::new(ui, id, Family::LIST, Variant::DEFAULT, flags, key, rest);
+                    let mut r = RowUi::new_with_container_width(
+                        ui,
+                        id,
+                        Family::LIST,
+                        Variant::DEFAULT,
+                        flags,
+                        key,
+                        rest,
+                        row.width,
+                    );
                     self.row.row(item, &mut r);
                 }
             });
@@ -1148,6 +1346,35 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                 };
                 ui.register_part(self.id, part, row.intersection(content));
             }
+        }
+        let full_vertical_content_visible =
+            content.y >= ui.full().y && content.bottom() <= ui.full().bottom();
+        if should_fade
+            && view.overflows()
+            && surface.width < area.width
+            && !content.is_empty()
+            && full_vertical_content_visible
+        {
+            let mut kept_rows = [0_u16; 4];
+            let mut kept_len = 0;
+            if let Some(cursor_block) = visible_cursor_block {
+                let candidates = [
+                    content.y,
+                    content.y.saturating_add(1),
+                    content.bottom().saturating_sub(2),
+                    content.bottom().saturating_sub(1),
+                ];
+                for y in candidates {
+                    if cursor_block.y <= y
+                        && y < cursor_block.bottom()
+                        && !kept_rows[..kept_len].contains(&y)
+                    {
+                        kept_rows[kept_len] = y;
+                        kept_len += 1;
+                    }
+                }
+            }
+            ui.scroll_edges_except(content, &view, &kept_rows[..kept_len]);
         }
         area
     }

@@ -1,0 +1,20 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Data grid   i Inspector   ? Help  [0m
+                                                                        [0m
+[0m[2m   Inputs         [0m│  [0m[1mData grid[0m  Typed cells, a pending-change queue, p… [0m
+   Text areas     ┃                                                     [0m
+   Forms          ┃   ▎[0m[1mcus… rows[0m 1–8 of 40 loaded · ~4,812 total · co…  [0m
+   Lists          ┃                                                     [0m
+   Trees          ┃     ‹3     seats      mrr  active    renewed… 2›    [0m
+   Tables         ┃      [0m[1m![0m 1     600    57.00  true      2026-01…    ┃  [0m
+   Editable tabl… ┃    [0m[1m▎ •[0m 2[0m[1m      12  1920.00  true      2026-02…    [0m│  [0m
+   Panels         ┃        3      12   348.00  true      2026-03…    │  [0m
+   Sidebars       ┃        4       1     0.00  false     [0m[3mNULL    [0m    │  [0m
+   Dialogs        ┃        5      40   760.00  true      2026-05…    │  [0m
+   Progress       ┃        6       5   120.00  true      2026-06…    │  [0m
+   Scrolling      ┃        7     150  4350.00  true      2026-07…    │  [0m
+   Terminal       │    [0m[2m    8      25     0.00  true      [0m[2;3mNULL    [0m[2m    [0m│  [0m
+   Code editor    │                                                     [0m
+   Diff           │     • 2 pending …   Preview SQL   Discard   [0m[1mSave [0m   [0m
+[0m[2m › Data grid      [0m│                                                     [0m
+                                                                        [0m
+ [0m[1m↑↓←→[0m Cell  [0m[1mEnter[0m Edit  [0m[1ms[0m Sort  …       Save failed · the row is marked [0m

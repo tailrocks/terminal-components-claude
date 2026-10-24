@@ -1,5 +1,8 @@
 use ratatui_core::style::Color;
-use termrock_theme::{CapabilityPalettes, ColorLevel, Theme, downgrade_color};
+use termrock_theme::{
+    CapabilityPalettes, ColorLevel, Family, Part, Role, StateFlags, Surface, Theme, Variant,
+    downgrade_color,
+};
 
 #[expect(
     clippy::arithmetic_side_effects,
@@ -19,7 +22,8 @@ fn reference256(r: u8, g: u8, b: u8) -> Color {
     let gray = 8 + gi * 10;
     let gray_error =
         (gray - i32::from(r)).pow(2) + (gray - i32::from(g)).pow(2) + (gray - i32::from(b)).pow(2);
-    Color::Indexed(if gray_error < cube_error {
+    let chroma = i32::from(r.max(g).max(b)) - i32::from(r.min(g).min(b));
+    Color::Indexed(if gray_error < cube_error && chroma <= 30 {
         (232 + gi) as u8
     } else {
         cube as u8
@@ -39,32 +43,216 @@ fn reference_mono(r: u8, g: u8, b: u8) -> Color {
 }
 
 #[test]
-fn all_73_junie_slots_match_reference_capability_output() {
+fn all_80_junie_slots_match_reference_capability_output() {
     let original = Theme::junie();
-    assert_eq!(original.color.semantic_colors().len(), 73);
+    assert_eq!(original.color.semantic_colors().len(), 80);
+    assert_eq!(original.color.colors().len(), 79);
     for level in [
         ColorLevel::TrueColor,
         ColorLevel::Ansi256,
         ColorLevel::Ansi16,
         ColorLevel::Mono,
     ] {
-        let expected = original
+        let mut expected = original
             .color
             .map_colors(&mut |color| match (level, color) {
                 (ColorLevel::Ansi256, Color::Rgb(r, g, b)) => reference256(r, g, b),
                 (ColorLevel::Mono, Color::Rgb(r, g, b)) => reference_mono(r, g, b),
                 _ => downgrade_color(color, level),
             });
+        if level == ColorLevel::Ansi256 {
+            // Frozen authored slots. Slots whose corpus rendering equals the
+            // generic cube/gray rule stay on the formula; the rest carry the
+            // index the frozen corpus (baselines/tuiscotti-v1) renders, or —
+            // where the corpus never draws the slot — the frozen baseline
+            // apply_256 table (visual-baseline src/theme.rs:921-962).
+            // The frozen source at 4169783 paints text_muted in MUTED
+            // (0x8a8a8a, index 245) and text_faint in WHITE_43 (0x737373,
+            // index 242); the approved 256 frames use those indices.
+            expected.fg[2] = Color::Indexed(245);
+            expected.fg[3] = Color::Indexed(242);
+            // The frozen ghost dim ink renders as cell 238 at this level: the
+            // covered page blanks in the approved 256 frames carry i(238)
+            // (the apply_256 text_ghost), not the source #262626 cube cell.
+            // Frozen-corpus evidence: docs/audits/2026-10-22-dim-wave-3-per-source-ink.md.
+            expected.fg[4] = Color::Indexed(238);
+            // #19191c is gray 233 by the cube rule. apply_256 uses 232.
+            expected.on_accent = Color::Indexed(232);
+            // #4d4d4d is gray 238 by the cube rule. apply_256 border_strong
+            // is 242. Query seams use a custom role that stays 239.
+            expected.border_strong = Color::Indexed(242);
+            // The frozen quiet borders render as cell 238 at this level
+            // (the apply_256 border_subtle), not the source #262626 cube
+            // cell. Frozen-corpus evidence:
+            // docs/audits/2026-10-22-dim-wave-3-per-source-ink.md.
+            expected.border_subtle = Color::Indexed(238);
+            // The frozen source apply_256 table sets the syntax keyword to
+            // i(111), the string to i(116) and the literal to i(183); the
+            // approved 256 code editor frame paints 111, 116, 183, 245 and
+            // 242 for those roles. Diagnostics use error 203, not 210.
+            expected.syntax.keyword = Color::Indexed(111);
+            expected.syntax.string = Color::Indexed(116);
+            expected.syntax.number = Color::Indexed(183);
+            expected.syntax.operator = Color::Indexed(245);
+            expected.syntax.punct = Color::Indexed(245);
+            expected.syntax.comment = Color::Indexed(242);
+            expected.syntax.diagnostic_error = Color::Indexed(203);
+            // Danger, invalid, and the meter high slot follow apply_256
+            // error 203. The cube rule on #f05d5d would pick 210.
+            expected.danger = Color::Indexed(203);
+            // The menu danger row has a separate soft-danger ANSI-256 slot.
+            expected.danger_soft = Color::Indexed(174);
+            expected.syntax.invalid = Color::Indexed(203);
+            expected.meter.high = Color::Indexed(203);
+            expected.meter.series[2] = Color::Indexed(203);
+            expected.field_hover = Color::Indexed(237);
+            expected.accent_hover = Color::Indexed(77);
+            expected.accent_pressed = Color::Indexed(238);
+            expected.accent_tint = Color::Indexed(233);
+            expected.focus_ring = Color::Indexed(238);
+            expected.syntax.match_bg = Color::Indexed(233);
+            expected.highlight_bg = Color::Indexed(25);
+            expected.syntax.match_current_bg = Color::Indexed(55);
+            expected.highlight_danger_bg = Color::Indexed(88);
+            // Frozen apply_256 (`self.success = i(71)`): the status green is
+            // its own ladder slot, off the accent cube cell 78.
+            expected.success = Color::Indexed(71);
+            // Frozen apply_256 maps `text_faint` to cell 242; stale and
+            // unknown meter ink retain that faint channel at this level.
+            expected.meter.stale = Color::Indexed(242);
+            expected.meter.unknown = Color::Indexed(242);
+            // The frozen dim backdrop ink renders as cell 238 at this level
+            // (the apply_256 text_ghost), not the source #262626 cube cell.
+            // Frozen-corpus evidence:
+            // docs/audits/2026-10-22-dim-wave-3-per-source-ink.md.
+            expected.backdrop_fg = Color::Indexed(238);
+            expected.disabled_fg = Color::Indexed(239);
+            expected.status_bar_bg = Color::Indexed(232);
+            expected.status_bar_fg = Color::Indexed(231);
+            expected.status_accent = Color::Indexed(71);
+            expected.chrome_rule = Color::Indexed(238);
+            expected.scroll_track = Color::Indexed(239);
+            expected.scroll_thumb = Color::Indexed(245);
+            expected.tag_ink = Color::Indexed(245);
+        }
+        if level == ColorLevel::Ansi16 {
+            // Frozen apply_16 (`self.text_faint = Gray`): the dimmed faint
+            // hint ink paints Gray, not the DarkGray the generic rule
+            // derives from the 0x4d4d4d source.
+            expected.fg[3] = Color::Gray;
+            // Frozen apply_16 (`self.border_strong = Gray`): the dimmed
+            // popup border paints Gray, not the DarkGray the generic rule
+            // derives from the 0x4d4d4d source.
+            expected.border_strong = Color::Gray;
+            // Frozen apply_16 (`self.success = Green`): base ladder slot.
+            expected.success = Color::Green;
+            // Frozen apply_16 maps `text_faint` to Gray; meter stale and
+            // unknown ink use that channel in the ANSI16 projection.
+            expected.meter.stale = Color::Gray;
+            expected.meter.unknown = Color::Gray;
+            expected.danger_soft = Color::LightRed;
+        }
+        if level == ColorLevel::Mono {
+            // Frozen baseline apply_mono keeps the hovered field black.
+            expected.field_hover = Color::Black;
+            // Frozen apply_mono (`self.border_strong = Gray`): the dimmed
+            // popup border paints Gray, not the DarkGray the generic rule
+            // derives from the 0x4d4d4d source.
+            expected.border_strong = Color::Gray;
+            // Frozen apply_mono (`self.success = White`): the status slot
+            // lifts to White on the mono ladder.
+            expected.success = Color::White;
+            expected.danger_soft = Color::White;
+            expected.status_bar_bg = Color::Black;
+            expected.status_bar_fg = Color::White;
+            expected.status_accent = Color::White;
+            expected.chrome_rule = Color::DarkGray;
+            expected.scroll_track = Color::DarkGray;
+            expected.scroll_thumb = Color::Gray;
+            expected.tag_ink = Color::Gray;
+        }
         assert_eq!(original.downgrade(level).color, expected, "{level:?}");
     }
     assert_eq!(
         downgrade_color(Color::Rgb(72, 224, 84), ColorLevel::Ansi256),
-        Color::Indexed(77)
+        Color::Indexed(78)
     );
     assert_eq!(
         original.downgrade(ColorLevel::Ansi256).color.accent,
         Color::Indexed(78)
     );
+}
+
+#[test]
+fn danger_soft_and_danger_keep_their_separate_frozen_profile_slots() {
+    let source = Theme::junie();
+    assert_eq!(source.color.danger_soft, Color::Rgb(0xe8, 0xa0, 0xa0));
+    assert_eq!(source.color.danger, Color::Rgb(0xf0, 0x5d, 0x5d));
+
+    for (level, expected_soft, expected_danger) in [
+        (
+            ColorLevel::TrueColor,
+            Color::Rgb(0xe8, 0xa0, 0xa0),
+            Color::Rgb(0xf0, 0x5d, 0x5d),
+        ),
+        (
+            ColorLevel::Ansi256,
+            Color::Indexed(174),
+            Color::Indexed(203),
+        ),
+        (ColorLevel::Ansi16, Color::LightRed, Color::LightRed),
+        (ColorLevel::Mono, Color::White, Color::Gray),
+    ] {
+        let projected = source.clone().for_level(level);
+        assert_eq!(projected.color.danger_soft, expected_soft, "{level:?}");
+        assert_eq!(projected.color.danger, expected_danger, "{level:?}");
+    }
+}
+
+#[test]
+fn direct_danger_soft_mutations_project_and_reset_without_reusing_authored_ink() {
+    let source = Theme::junie();
+    let levels = [
+        ColorLevel::TrueColor,
+        ColorLevel::Ansi256,
+        ColorLevel::Ansi16,
+        ColorLevel::Mono,
+    ];
+
+    for custom in [Color::Rgb(255, 0, 0), Color::Reset] {
+        let mut changed = source.clone();
+        changed.color.danger_soft = custom;
+
+        for level in levels {
+            let projected = changed.clone().for_level(level);
+            let expected = if custom == Color::Reset {
+                None
+            } else {
+                Some(downgrade_color(custom, level))
+            };
+            assert_eq!(
+                projected.color.danger_soft,
+                expected.unwrap_or(Color::Reset),
+                "token at {level:?} for {custom:?}"
+            );
+            assert_eq!(
+                termrock_theme::resolve::bind_role(&projected, Role::DangerSoft, Surface::Canvas),
+                expected,
+                "role binding at {level:?} for {custom:?}"
+            );
+            let row = projected.resolve(
+                Family::MENU,
+                Variant::DANGER,
+                Part::ROW,
+                StateFlags::empty(),
+                Surface::Canvas,
+            );
+            assert_eq!(
+                row.style.fg, expected,
+                "menu row at {level:?} for {custom:?}"
+            );
+        }
+    }
 }
 
 #[test]
@@ -152,7 +340,8 @@ fn direct_token_mutation_and_quantization_collision_never_reattach() {
     let original = Theme::junie();
     let mut custom = original.clone();
 
-    let changed = Color::Rgb(95, 215, 135);
+    // Distinct raw RGB values collide on the same frozen cube index.
+    let changed = Color::Rgb(55, 215, 100);
     custom.color.accent = changed;
     let narrowed = custom.for_level(ColorLevel::Ansi256);
     assert_eq!(narrowed.color.accent, Color::Indexed(78));
@@ -276,6 +465,59 @@ fn explicit_palette_contents_fingerprint_and_missing_level_fallback() {
         )
         .build();
     assert_ne!(authored.fingerprint(), different.fingerprint());
+}
+
+#[test]
+fn public_caller_authored_mono_palette_is_used_and_other_levels_fall_back() {
+    let source = Theme::from_tokens(Theme::junie().color);
+    let source_tokens = source.color;
+    let generic = source.clone().builder().clear_capability_palettes().build();
+    assert!(generic.capability_palettes.is_none());
+
+    let mut authored_tokens = source.downgrade(ColorLevel::Mono).color;
+    assert_eq!(
+        authored_tokens,
+        source_tokens.map_colors(&mut |color| downgrade_color(color, ColorLevel::Mono))
+    );
+    authored_tokens.accent = Color::Gray;
+    // The generic luminance projection maps Junie's danger source to Black;
+    // this caller-authored value ensures the table differs from fallback.
+    authored_tokens.danger = Color::LightRed;
+
+    let authored = source
+        .clone()
+        .builder()
+        .capability_palettes(
+            CapabilityPalettes::new(source_tokens).with(ColorLevel::Mono, authored_tokens),
+        )
+        .build();
+
+    let generic_mono = generic.for_level(ColorLevel::Mono).color;
+    let authored_mono = authored.for_level(ColorLevel::Mono).color;
+    assert_eq!(
+        generic_mono,
+        source_tokens.map_colors(&mut |color| downgrade_color(color, ColorLevel::Mono))
+    );
+    assert_eq!(generic_mono.danger, Color::Black);
+    assert_eq!(authored_mono, authored_tokens);
+    assert_eq!(authored_mono.accent, Color::Gray);
+    assert_eq!(authored_mono.danger, Color::LightRed);
+    assert_ne!(authored_mono, generic_mono);
+    assert_eq!(authored.for_level(ColorLevel::Mono).color, authored_mono);
+
+    for level in [
+        ColorLevel::TrueColor,
+        ColorLevel::Ansi256,
+        ColorLevel::Ansi16,
+    ] {
+        assert_eq!(
+            authored.for_level(level).color,
+            generic.for_level(level).color,
+            "custom Mono palette changed {level:?} output"
+        );
+    }
+    assert_eq!(source.color, source_tokens);
+    assert!(source.capability_palettes.is_none());
 }
 
 #[test]

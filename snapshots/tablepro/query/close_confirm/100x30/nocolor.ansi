@@ -1,0 +1,31 @@
+[0m[2m  ▪  TablePro  Production  ◆ production  acme_prod › public  ✓ safe      no color · 100×30  ? help  [0m
+[0m[2m                                                                                                    [0m
+[0m[2m  ≡ Query 1 ×    ≡ Query 2 ×                                                                    +   [0m
+[0m[2m ───────────────━━━━━━━━━━━━━━───────────────────────────────────────────────────────────────────── [0m
+[0m[2m › ╭─ Query 2 ────────────────────────────────────────────────────────────────────────────────────╮ [0m
+[0m[2m   │  [0m [0m[2mRun  [0m [0m[2mRun all  [0m [0m[2mExplain                                                                    │ [0m
+[0m[2m E │  [0m [0m[2m›  1 x                                                                                     │ [0m
+[0m[2m x │                                                                                              │ [0m
+[0m[2m p │                                                                                              │ [0m
+[0m[2m l │                                                                                              │ [0m
+[0m[2m o │                   ╭──────────────────────────────────────────────── × ─╮                     │ [0m
+[0m[2m r │                   │                                                    │                     │ [0m
+[0m[2m e │  ─────────────────│  [0m[1;2mClose tab with unsaved work?[0m[2m                      │──────────────────── │ [0m
+[0m[2m r │                   │                                                    │                     │ [0m
+[0m[2m   │                   │  Pending row edits and unsaved query text in this  │                     │ [0m
+[0m[2m   │                   │  tab will be lost.                                 │                     │ [0m
+[0m[2m   │                   │                                                    │                     │ [0m
+[0m[2m   │                   │                          ▎[0m[1;2;4mC[0m[1;2mancel [0m[2m   C[0m[2;4ml[0m[2mose anyway   │                     │ [0m
+[0m[2m   │                   │                                                    │                     │ [0m
+[0m[2m   │                   ╰────────────────────────────────────────────────────╯                     │ [0m
+[0m[2m   │                  Ctrl+R runs the statement under the cursor · Alt+R runs all                 │ [0m
+[0m[2m   │                                                                                              │ [0m
+[0m[2m   │                                                                                              │ [0m
+[0m[2m   │                                                                                              │ [0m
+[0m[2m   │                                                                                              │ [0m
+[0m[2m   │                                                                                              │ [0m
+[0m[2m   │                                                                                              │ [0m
+[0m[2m   ╰──────────────────────────────────────────────────────────────────────────────────────────────╯ [0m
+[0m[2m                                                                                                    [0m
+ [0m[1m←→[0m Choose  [0m[1mEnter[0m Cancel  [0m[1mEsc[0m Cancel                                      ✓ Connected to Production [0m
+[?25l

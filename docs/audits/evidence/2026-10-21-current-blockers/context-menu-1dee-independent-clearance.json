@@ -1,0 +1,76 @@
+{
+  "reviewer": "/root/context_menu_live_contract_review",
+  "candidate_commit": "1dee009130ca11876a8d5e53e04fe1046edb9888",
+  "prior_review_commit": "383d72e9bc705f50e8ee79be4ad6250b50a279bd",
+  "frozen_commit": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "decision": "CLEARED FOR BOUNDED SOURCE INTEGRATION: borrowed display hints, public owner-PartRef anchoring, and corrected measured/rendered menu geometry. No further actionable defect found in this bounded correction. This is not a green whole-suite, completed resize contract, application adoption, or product parity decision. Runtime actual-resize anchor and inherited separator parity remain HOLD and must stay in the migration record.",
+  "findings_status": {
+    "CONTEXT-LIVE-1": "Resolved: no extra gap for absent hint/chord; direct width16 and actual MenuBar dropdown36 pass.",
+    "CONTEXT-LIVE-2": "Resolved: unhinted/rejected-hint label clip row.width\u22123; four profiles pass.",
+    "CONTEXT-LIVE-3": "Resolved: title starts inner.x+2 and clips inner.width\u22123; four profiles pass.",
+    "CONTEXT-LIVE-4": "Resolved: shortcut/hint right inset1; four profiles pass.",
+    "CONTEXT-LIVE-5": "OPEN separate runtime/layout contract. Actual resize80x24 to100x30 leaves layer x41 while rendered owner x51. Existing registry is previous frame during resize update. Do not claim resize-safe anchoring.",
+    "CONTEXT-LIVE-6": "Resolved: executable chord now uses frozen +3 gap, exact width40 regression, audit corrected. Same independent four-profile probe passes at final1dee009, failed correction383d72e, passed first541c57f, failed original parent6825."
+  },
+  "checks": [
+    {
+      "command": "cargo nextest run --manifest-path <consumer>/Cargo.toml --tests --no-fail-fast",
+      "exit": 100,
+      "result": "10 tests run:9 passed,1 failed,0 skipped. Sole failure is unchanged actual_resize_reanchors_open_menu. Nine successful probes cover direct natural width, MenuBar dropdown width, label/title clipping, right shortcut inset, present-chord width, absent-owner close through real layer/runtime, display-only hint no false key binding plus pointer typed action, zero/narrow safety."
+    },
+    {
+      "command": "cargo nextest run -p termrock-overlays --lib -E test(menu::tests::) --no-fail-fast",
+      "exit": 0,
+      "result": "16 passed,57 explicitly filtered. Includes dynamic key remap/remove/chord fallback, keyboard skip/wrap, pointer cursor/press behavior, default MenuBar style/patch precedence, all-profile menu activation, hint no-binding rendering, moved-owner and absent-owner behavior. This is not full overlays validation."
+    }
+  ],
+  "compatibility_and_scope": [
+    "Public additions retain existing constructors, private struct fields, typed actions, runtime/input system, and lifetime borrowing. No copied widget or new application renderer.",
+    "Review compared frozen source geometry directly; preserving wrong original-candidate executable-chord width was rejected and corrected. Source change intentionally fixes that pre-existing frozen discrepancy instead of treating old candidate output as authority.",
+    "Actual MenuBar dropdown is exercised, not only standalone ContextMenu. Unhinted width, text clipping, and shortcut positioning tested across TrueColor/Ansi256/Ansi16/Mono.",
+    "No new fake editor/control/cursor registration. Existing retained-visible-owner cursor delegation unchanged.",
+    "No product source edits, expected artifacts, CLI captures, helpers, or application acceptance changes by reviewer."
+  ],
+  "remaining_holds": [
+    "Runtime resize sequencing must refresh owner-part layout before presenting or dispatching subsequent input; current unchanged real-resize test remains RED.",
+    "Inherited separator still paints full inner row instead of frozen one-cell inset each side. Not resolved by this increment.",
+    "Showcase/catalog adoption, live Jackin menu adoption and replay removal, complete Unicode/key-remapping-with-explicit-hint/reordered-owner matrix, and pinned real-CLI comparisons remain incomplete.",
+    "No full workspace Nextest/Clippy/fmt or application gate claimed from these focused checks."
+  ],
+  "isolated_paths": {
+    "source": "/private/tmp/context-menu-independent-1dee009-20261021",
+    "external_target": "/private/tmp/context-menu-independent-1dee009-external-target-20261021",
+    "native_target": "/private/tmp/context-menu-independent-1dee009-native-target-20261021",
+    "note": "Fresh exact-commit sparse source and exclusive revision-specific targets; independent probe bytes unchanged from preceding review."
+  },
+  "artifacts": {
+    "consumer/Cargo.toml": {
+      "sha256": "e4b2feff25ad4066acc3810cd4b4492ce9a78e02609e9ce8908fb831b75ba728",
+      "bytes": 420
+    },
+    "consumer/src/lib.rs": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "consumer/tests/chord_width.rs": {
+      "sha256": "d17fb21f80aac19cc5fef418632b37161899bf19437e74dcc0c99fed82d59d78",
+      "bytes": 1065
+    },
+    "consumer/tests/live.rs": {
+      "sha256": "9a7db4ea0246a6d1780fadb74f5eb0134a91ffe639a6ddda24cb1359736ff4ee",
+      "bytes": 2970
+    },
+    "consumer/tests/probes.rs": {
+      "sha256": "445b7715f10f1b26fb75d2b1bc087c5b4f848fca2fcbe5d1138de7497efc2aa9",
+      "bytes": 3500
+    },
+    "external.log": {
+      "sha256": "aa98dbb09a83a39674bee6dbfc3b6708c94c295c60b24e3d645a26345a5e47b5",
+      "bytes": 18179
+    },
+    "native.log": {
+      "sha256": "a6d227a5f4c333d86f5f3f28b9e67a4daaa638a23ecba8ce52fe87a813d94949",
+      "bytes": 7420
+    }
+  }
+}

@@ -1,0 +1,218 @@
+{
+  "schema": "termrock.nine-integrated-wip-retirement-preconditions.v1",
+  "checked_at_utc": "2026-10-21T06:20:23.414159+00:00",
+  "integration_parent": "00a56948212fc3927ae0db3305ca86f64bd9058f",
+  "independent_review_sha256": "d9453cde4630618f46e033fa2c7fa24caa300a4f9a61dea7ee43745bfa011370",
+  "transaction": "Publish this record and delete precisely these nine remote refs atomically with exact old-OID leases; all local refs, worktrees and evidence remain.",
+  "refs": [
+    {
+      "ref": "wip/select-composition-adapter-20261021",
+      "oid": "215c71df6caf22c2d28032b1f3c588fbfc780168",
+      "ancestor": true,
+      "protected": false,
+      "open_pr": false,
+      "preserved_clean_worktrees": [
+        "/private/tmp/select-composition-adapter-20261021"
+      ]
+    },
+    {
+      "ref": "wip/editor-backtab-dedent-20261021",
+      "oid": "b82ce794deb7b4d2ca5fc16db8a03e5b1c4bd049",
+      "ancestor": true,
+      "protected": false,
+      "open_pr": false,
+      "preserved_clean_worktrees": [
+        "/private/tmp/editor-backtab-dedicated-20261021"
+      ]
+    },
+    {
+      "ref": "wip/button-pressed-profile-20261021",
+      "oid": "165ef0ef132527ac78897fb2cec57e8f9865abc4",
+      "ancestor": true,
+      "protected": false,
+      "open_pr": false,
+      "preserved_clean_worktrees": [
+        "/private/tmp/button-pressed-profile-writer-20261021"
+      ]
+    },
+    {
+      "ref": "wip/parent-showcase-editor-validation-20261021",
+      "oid": "d1acbfc35b1f9aa4d609fb0d5f7ea6dcebb7141f",
+      "ancestor": true,
+      "protected": false,
+      "open_pr": false,
+      "preserved_clean_worktrees": []
+    },
+    {
+      "ref": "wip/showcase-editor-live-20261021",
+      "oid": "59a4eae3bfc4b3a420f3999864efb763a7523573",
+      "ancestor": true,
+      "protected": false,
+      "open_pr": false,
+      "preserved_clean_worktrees": [
+        "/private/tmp/showcase-editor-live-d"
+      ]
+    },
+    {
+      "ref": "wip/tabs-semantic-layout-20261021",
+      "oid": "c4b5e3fc1ef162a11bcc0cfb5746e0cddf8a60b8",
+      "ancestor": true,
+      "protected": false,
+      "open_pr": false,
+      "preserved_clean_worktrees": [
+        "/private/tmp/tabs-semantic-layout-writer-20261021"
+      ]
+    },
+    {
+      "ref": "wip/shared-column-spec-20261021",
+      "oid": "ee669114e8ade4ba1ad7f882085741eeaa259f5f",
+      "ancestor": true,
+      "protected": false,
+      "open_pr": false,
+      "preserved_clean_worktrees": [
+        "/private/tmp/shared-column-spec-6825-20261021"
+      ]
+    },
+    {
+      "ref": "wip/canonical-verify-owned-20261021",
+      "oid": "14bee2db097876479f005a82b04cafe4b09c7eeb",
+      "ancestor": true,
+      "protected": false,
+      "open_pr": false,
+      "preserved_clean_worktrees": [
+        "/private/tmp/canonical-verify-owned-20261021"
+      ]
+    },
+    {
+      "ref": "wip/canonical-verify-owned-corrected-20261021",
+      "oid": "f82b2bf4a3983da8c6e11306bfd9dabbd6c9c9e4",
+      "ancestor": true,
+      "protected": false,
+      "open_pr": false,
+      "preserved_clean_worktrees": []
+    }
+  ],
+  "active_rulesets": [
+    {
+      "id": 24883153,
+      "name": "protect-main",
+      "target": "branch",
+      "source_type": "Repository",
+      "source": "tailrocks/terminal-components-claude",
+      "enforcement": "active",
+      "conditions": {
+        "ref_name": {
+          "exclude": [],
+          "include": [
+            "~DEFAULT_BRANCH"
+          ]
+        }
+      },
+      "rules": [
+        {
+          "type": "deletion"
+        },
+        {
+          "type": "required_linear_history"
+        },
+        {
+          "type": "pull_request",
+          "parameters": {
+            "required_approving_review_count": 0,
+            "dismiss_stale_reviews_on_push": true,
+            "required_reviewers": [],
+            "require_code_owner_review": false,
+            "dismissal_restriction": {
+              "enabled": false,
+              "allowed_actors": []
+            },
+            "require_last_push_approval": false,
+            "required_review_thread_resolution": true,
+            "require_extra_approval_for_unattributed_changes": true,
+            "allowed_merge_methods": [
+              "squash"
+            ]
+          }
+        },
+        {
+          "type": "required_status_checks",
+          "parameters": {
+            "strict_required_status_checks_policy": false,
+            "do_not_enforce_on_create": false,
+            "required_status_checks": [
+              {
+                "context": "Required"
+              }
+            ]
+          }
+        },
+        {
+          "type": "non_fast_forward"
+        }
+      ],
+      "node_id": "RRS_lACqUmVwb3NpdG9yec5Qto5WzgF7r9E",
+      "created_at": "2026-10-11T22:12:01.043+07:00",
+      "updated_at": "2026-10-11T22:12:01.090+07:00",
+      "bypass_actors": [],
+      "current_user_can_bypass": "never",
+      "_links": {
+        "self": {
+          "href": "https://api.github.com/repos/tailrocks/terminal-components-claude/rulesets/24883153"
+        },
+        "html": {
+          "href": "https://github.com/tailrocks/terminal-components-claude/rules/24883153"
+        }
+      }
+    },
+    {
+      "id": 24883130,
+      "name": "protect-tags",
+      "target": "tag",
+      "source_type": "Repository",
+      "source": "tailrocks/terminal-components-claude",
+      "enforcement": "active",
+      "conditions": {
+        "ref_name": {
+          "exclude": [],
+          "include": [
+            "~ALL"
+          ]
+        }
+      },
+      "rules": [
+        {
+          "type": "deletion"
+        },
+        {
+          "type": "non_fast_forward"
+        }
+      ],
+      "node_id": "RRS_lACqUmVwb3NpdG9yec5Qto5WzgF7r7o",
+      "created_at": "2026-10-11T22:11:33.371+07:00",
+      "updated_at": "2026-10-18T23:07:48.260+07:00",
+      "bypass_actors": [],
+      "current_user_can_bypass": "never",
+      "_links": {
+        "self": {
+          "href": "https://api.github.com/repos/tailrocks/terminal-components-claude/rulesets/24883130"
+        },
+        "html": {
+          "href": "https://github.com/tailrocks/terminal-components-claude/rules/24883130"
+        }
+      }
+    }
+  ],
+  "remote_heads_before": 125,
+  "open_prs_checked": [
+    {
+      "headRefName": "parity/termrock-visual-baseline",
+      "number": 38,
+      "url": "https://github.com/tailrocks/terminal-components-claude/pull/38"
+    },
+    {
+      "headRefName": "design/interaction-polish",
+      "number": 26,
+      "url": "https://github.com/tailrocks/terminal-components-claude/pull/26"
+    }
+  ]
+}

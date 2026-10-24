@@ -1,0 +1,51 @@
+ ▪ [0m[1mJunie[0m Design system  Inputs & forms › [0m[1mChips & selects[0m                                                              no color · 160×50   i Inspector   ? Help  [0m
+                                                                                                                                                                [0m
+ [0m[1mComponents[0m           54  [0m[1mChips & selects[0m  Removable chips, a popup select, and strips that drop what does not fit                                              [0m
+ ───────────────────────                                                                                                                                        [0m
+    Overview              [0m[1m Playground  [0m  Options    States                                                                                      the live widget [0m
+  ▸ App shell             ━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+  ▾ Inputs & forms                                                                                                                                              [0m
+      Buttons               Filters                                                                                                                   3 active  [0m
+      Inputs                ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  [0m
+      Text areas             match all ▾  [0m[1m status = 'pending' [0m×[0m[1m  [0m [0m[1m total > 100 [0m×[0m[1m  [0m  country in (DE, FR) ×   [0m[1m amount > 'abc' [0m×[0m[1m  [0m  + Add filter                   [0m
+ [0m[1m▎  › Chips & selects   [0m                                                                                                                                        [0m
+      Forms                 last action: nothing yet                                                                                                            [0m
+      Checks & radios                                                                                                                                           [0m
+      Toolbars                                                                                                                                                  [0m
+  ▸ Tables                  Streams                                                                                        not removable · 1–9 switch a stream  [0m
+  ▸ Navigation              ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  [0m
+  ▸ Overlays                 streams  [0m[1m api  [0m [0m[1m worker  [0m [0m[1m db  [0m  cron                                                                                              [0m
+  ▸ Feedback                                                                                                                                                    [0m
+  ▸ Layout                                                                                                                                                      [0m
+  ▸ Text & code                                                                                                                                                 [0m
+  ▸ Screens                 Selects                                                                                                                             [0m
+                            ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  [0m
+                              Sort by                                    Page size                                  Engine                                      [0m
+                              created_at                           ▾     50                                   ▾   [0m[2m  PostgreSQL                              ▾ [0m  [0m
+                              Applies to the next query                                                             Fixed by the connection                     [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                            Segment strip                                                                                                                       [0m
+                            ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  [0m
+                              ▪  [0m[1mAcme[0m  [0m[1m◆ production[0m  acme_prod › public  [0m[1msafe[0m                                          3 pending  truecolor · 120×40  ? help    [0m
+                                                                                                                                                                [0m
+                              ▪  [0m[1mAcme[0m  [0m[1m◆ production[0m  [0m[1msafe[0m            …                                                                                          [0m
+                            the same strip at 44 columns: low-priority segments leave first, from the right                                                     [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                            Properties                                                          Empty state                                                     [0m
+                            ──────────────────────────────────────────────────────────────      ──────────────────────────────────────────────────────────────  [0m
+                            Engine       PostgreSQL 16.3                                                                                                        [0m
+                            Host         prod-db-1.acme.io:5432                                                         No results yet                          [0m
+                            Environment  production                                                                                                             [0m
+                            Safe Mode    Writes ask for confirmation and a deliberate                 A title and one hint, centred in whatever is left         [0m
+                                         acknowledgement.                                                                                                       [0m
+                            Last used    1 hour ago                                                                                                             [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                                                           [0m
+[?25l

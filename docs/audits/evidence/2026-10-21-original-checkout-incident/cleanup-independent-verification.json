@@ -1,0 +1,21 @@
+{
+  "created_utc": "2026-10-21T11:26:54.888824+00:00",
+  "reviewer": "tree_adapter_independent_review",
+  "decision": "PASS",
+  "head": "f2f6eb716c4a512be3dc9423742fa06e86879b32",
+  "symbolic_HEAD": "refs/heads/design/interaction-polish",
+  "all13795_index_stage_blob_mode_path_entries_identical_before_recovery": true,
+  "full_status_entry_count": 0,
+  "six_roots_absent": {
+    ".github-gen": true,
+    ".github/actions/u26": true,
+    ".github/actions/velnor-tools-prelude-u26": true,
+    "baseline": true,
+    "baselines/regen-sidecars": true,
+    "baselines/tuiscotti-v1": true
+  },
+  "parent_cleanup_receipt": "/private/tmp/termrock-original-six-folder-cleanup-ad248a0e-dd5e-4ce6-b3e9-842e4559a5ba.json",
+  "parent_cleanup_receipt_sha256": "9a6ebeecdc8684bfde96d6dace31454a98ccbf1b120211628919a29d1b09c931",
+  "scope": "Postcleanup filesystem/index/ref state independently checked. Removal authorization,67315-file provenance and sole empty placeholder exception are recorded by parent; reviewer did not execute deletion or independently reperform the prior classification.",
+  "no_original_writes_or_source_backups_by_reviewer": true
+}

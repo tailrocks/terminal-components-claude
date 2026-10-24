@@ -1,0 +1,181 @@
+{
+  "schema": "independent-review-v1",
+  "created_at": "2026-10-21T01:28:56.610479+00:00",
+  "reviewer": "/root/incoming_tablepro_runtime_review",
+  "decision": "cleared_bounded_domain_initialization_with_existing_findings",
+  "candidate": "f0760cc204afc533e202604d0437f913b72bfd10",
+  "before": "eedfcf01de0f18fc8b16608f82d666c6787be978",
+  "frozen": "4169783ae883788186d161af09ba9c481bd84e5c",
+  "scope": "New-connection domain defaults only; not full New/Edit connection interaction or visual parity.",
+  "new_findings_in_correction": [],
+  "resolved_finding": "The original new-connection cloning finding R2 in review f9f30a36ace1b7aca6639a0a8a0abf3679e6313cc9d1e928a3f889bdb6874963 is resolved by this bounded increment.",
+  "existing_required_finding": {
+    "id": "TP-NAME-REPLACEMENT",
+    "severity": "P1",
+    "path": "crates/tablepro-ui/src/app.rs",
+    "line": 9726,
+    "problem": "The app-owned arm_fresh_name_replacement selects all text whenever the draft and editing text equal the active connection name. Continuing to type then destroys the user-entered prefix.",
+    "reproduction": "Ctrl+N; type Local PostgreSQL; type \" replica\". Expected Local PostgreSQL replica, actual \" replica\".",
+    "before_after": "The identical real App/Harness test fails both eedfcf01 and f0760cc with the same result. This is pre-existing and is not attributed to the constructor correction.",
+    "required_fix": "Remove the content-dependent application editing workaround. If prefilled edit selection is required, configure selection once on editor entry through shared component state, never by comparing typed text to an active connection name. Preserve the independent regression and do not weaken its expected text.",
+    "probe": "consumer/tests/name_suffix.rs"
+  },
+  "checks": [
+    {
+      "command": "cargo nextest run --manifest-path consumer/Cargo.toml --test contracts --test name_suffix --no-fail-fast",
+      "exit": 100,
+      "run": 5,
+      "passed": 4,
+      "failed": 1,
+      "skipped": 0,
+      "failure": "Pre-existing TP-NAME-REPLACEMENT",
+      "log": "candidate-contracts.log"
+    },
+    {
+      "command": "cargo nextest run --manifest-path consumer/Cargo.toml --test contracts --no-capture",
+      "exit": 0,
+      "run": 4,
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0,
+      "log": "candidate-focused-green.log"
+    },
+    {
+      "command": "cargo nextest run --manifest-path consumer-before/Cargo.toml --test original --test name_suffix --no-fail-fast -E not test(ninth_background_majority_receives_scroll_edge_fade)",
+      "exit": 100,
+      "run": 2,
+      "passed": 0,
+      "failed": 2,
+      "skipped": 1,
+      "skip_reason": "The preserved original probe file also contains the unrelated runtime ninth-color probe, explicitly filtered out of this domain review.",
+      "failures": [
+        "Original blank new-connection contract: actual Local PostgreSQL instead of blank.",
+        "Pre-existing name-suffix typing defect."
+      ],
+      "log": "before-original-and-suffix.log"
+    },
+    {
+      "command": "cargo nextest run --manifest-path consumer/Cargo.toml --test original -E test(new_connection_starts_with_blank_domain_fields)",
+      "exit": 0,
+      "run": 1,
+      "passed": 1,
+      "failed": 0,
+      "skipped": 1,
+      "skip_reason": "Unrelated runtime probe retained unchanged in original.rs but outside the domain-only filter.",
+      "log": "candidate-original.log"
+    },
+    {
+      "command": "cargo clippy --manifest-path /private/tmp/tablepro-new-domain-review-f0760cc-20261021/Cargo.toml -p tablepro-domain -p tablepro-ui --all-targets -- -D warnings",
+      "exit": 101,
+      "log": "candidate-clippy.log",
+      "preexisting_failure": "crates/termrock-feedback/src/settings_page.rs:509 paint_field_parts has too many arguments (8/7). Clippy does not reach the changed crates."
+    },
+    {
+      "command": "cargo clippy --manifest-path /private/tmp/tablepro-new-domain-review-before-eedfcf0-20261021/Cargo.toml -p tablepro-domain -p tablepro-ui --all-targets -- -D warnings",
+      "exit": 101,
+      "log": "before-clippy.log",
+      "preexisting_failure": "Same settings_page.rs:509 error, independently reproduced on parent."
+    },
+    {
+      "command": "cargo fmt --manifest-path /private/tmp/tablepro-new-domain-review-f0760cc-20261021/Cargo.toml --all --check",
+      "exit": 0,
+      "log": "candidate-fmt.log"
+    }
+  ],
+  "contract_coverage": {
+    "real_ctrl_n_scenes": 32,
+    "active_connection_indices": [
+      0,
+      1,
+      4,
+      5
+    ],
+    "active_engine_coverage": [
+      "PostgreSQL",
+      "SQLite"
+    ],
+    "color_profiles": [
+      "TrueColor",
+      "Ansi256",
+      "Ansi16",
+      "Mono"
+    ],
+    "sizes": [
+      [
+        120,
+        40
+      ],
+      [
+        80,
+        24
+      ]
+    ],
+    "represented_new_draft_fields": [
+      "name blank",
+      "database blank",
+      "user blank",
+      "engine0",
+      "host localhost",
+      "port5432",
+      "password absent",
+      "ask_password false",
+      "environment0",
+      "group0",
+      "safe_mode0",
+      "ssl false",
+      "ssh false",
+      "ssh_host blank",
+      "startup blank"
+    ],
+    "live_input_checks": [
+      "Ctrl+N dispatch, focused Name ID, visible registered Name area, actual visible cursor, rendered Name/localhost/5432.",
+      "Real BackTab+Right changes focus to actual Test connection action, clears Name focused flag, hides cursor.",
+      "Click real Name control, type Unicode r\u00e9plica, verify domain value and rendered text.",
+      "Three dirty Cancel/open/close cycles per color profile using actual rendered Cancel hit region; draft blank on reopen and active Workbench connection unchanged."
+    ],
+    "prefill_check": "ConnectionDraft::from_connection public API verified against all six demo connections including MySQL, without modifying its implementation. No real Edit UI flow was proven."
+  },
+  "source_review": [
+    "Only production changes are ConnectionDraft::new and begin_connection_form calling it. Constructor has no theme, viewport, fixture, terminal or test selectors.",
+    "All15 represented new-domain fields match frozen ConnForm::new(None,None) defaults. Existing Default semantics remain unchanged; explicit new constructor supplies driver defaults.",
+    "from_connection remains unchanged and separate, including close_connection_form internal prefill. Public connection_draft still hides closed drafts.",
+    "blank_new_connection_draft is cfg(test) only and now checks genuine blank defaults; changing it does not introduce a production replay selector.",
+    "No layout/title/sidebar, SQL footer, expected snapshots, captured ANSI, or generated production code changed in this increment.",
+    "No unsafe, synchronization, error suppression or application-independent Termrock API changes introduced."
+  ],
+  "remaining_findings": [
+    "Original R3 form layout/title/sidebar differences remain.",
+    "Original R4 exact SQL-string footer branch remains.",
+    "Original R5 unsupported native fixture refresh remains.",
+    "Pre-existing TP-NAME-REPLACEMENT typing defect now independently reproduced."
+  ],
+  "gaps": [
+    "No real Edit route could be established in candidate source: from_connection appears only in the hidden closed-draft reset. Prefill API preservation does not prove a functioning Edit UI.",
+    "Frozen SSH user deploy and local-only control have no represented ConnectionDraft field; this initializer fix does not restore those missing broader form contracts.",
+    "No successful active MySQL App flow was available through the existing public demo connection API; its supplied MySQL connection intentionally fails. MySQL prefill was checked as domain API only.",
+    "No real CLI/tuiscotti paired comparison, broad workspace nextest, or full application parity claim.",
+    "Strict scoped all-targets Clippy remains blocked by independently reproduced pre-existing feedback dependency failure."
+  ],
+  "product_edits": false,
+  "expected_artifact_edits": false,
+  "process_group_deadline_seconds": 210,
+  "dedicated_target": "/private/tmp/tablepro-new-domain-review-target-20261021",
+  "artifacts": {
+    "candidate-fmt.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "candidate-contracts.log": "37bad91a2230a523d236ce4982d4ed9fa20f2dddf3d03137a174a6f9c16409af",
+    "candidate-focused-green.log": "1233f7e9963223224706e9b18383f2e54ea50c7d1f6c4e18e86a34b06edc9e5f",
+    "before-clippy.log": "a143c576fe38fe9e1ce6e1d353da21c1ad83c4805159371dc021c90d4472a8f2",
+    "before-original-and-suffix.log": "978e1cce6a9a2792085ef6d326d9a9649e921a97c50b0a9e8abd0ba9c4a64e2c",
+    "candidate-original.log": "e2235da6fd4fd54a938d8d550107dea606d4cdadf667be830be5a42c8e217240",
+    "candidate-clippy.log": "453d423b2ca5c344c70008d8d149cfa15a2238eb0aa814d302e2c4d34a0c4f30",
+    "consumer-before/Cargo.toml": "bc4a49c96744dc26fe54535985f7bb784ecba525eb8cc4d0fba20000f20da933",
+    "consumer/Cargo.toml": "2eabd9a156685ba60639c83383e6c72c2a5a45cc860257eeb00cdf2e887626ce",
+    "consumer/tests/original.rs": "7bd90e6968f7d254266aabfde9e73f1d41fe41749fb02ecbaa0ae8e5b14c1562",
+    "consumer/tests/contracts.rs": "ce3443039022b8114ebe3f5c07858f93ccb2e7c9f4ef29ee9b9c6a024d3d052c",
+    "consumer/tests/name_suffix.rs": "6185db5e82ef4b4a1c86a9e41f54ca00cc0dad03b8ede2a631efc8dcd2e639cb",
+    "consumer/src/lib.rs": "6e8a509666454fe4ecbad104b0f746f61f4ce68f0b128278896392cb1d5859c2",
+    "consumer-before/tests/original.rs": "7bd90e6968f7d254266aabfde9e73f1d41fe41749fb02ecbaa0ae8e5b14c1562",
+    "consumer-before/tests/name_suffix.rs": "6185db5e82ef4b4a1c86a9e41f54ca00cc0dad03b8ede2a631efc8dcd2e639cb",
+    "consumer-before/src/lib.rs": "b38af2ae964265795aa61548baad378403414fb4da98fa9556bc52a60dd64e16"
+  }
+}

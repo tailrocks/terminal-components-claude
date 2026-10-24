@@ -1,0 +1,30 @@
+ ▪ Junie Design system / Components / Lists         16 colors · 100×30   i Inspector · on   ? Help
+
+   Overview          Lists  Single and multiple selection, disable…     State
+   Buttons
+   Inputs              Lan… 7–19…      Fil… 2 se…      Search res…      mode        NAV
+   Text areas                                                           focus       0·2 19×26
+   Forms               Chosen: Rust    Space tog…                       hover       suppressed
+▎› Lists                                                                pressed     —
+   Trees                  Swift │       ✓ src/ap…                       mouse       26·10
+   Tables                 C#    │       ✓ src/ap…                       last key    i
+   Editable tables        Ruby  │         src/db…                       focus ring  4 stops
+   Panels                 Scala │         tests/…                       hit regions 58
+   Sidebars               Elixir┃         Cargo.…                       tick        0
+   Dialogs                Haske…┃         docs/w…      No results…      colors      16 colors
+   Progress               Zig   ┃         src/wo…
+   Scrolling              Dart  ┃         src/co…
+   Terminal               PHP   ┃         README…
+   Code editor            C++   ┃         src/ma…
+   Diff                   Lua   ┃         tests/…
+   Data grid              OCaml ┃         src/db…
+   Chips & selects        Cloju…│
+   Pickers
+   Chrome
+   Settings
+   Task runner
+
+
+
+
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit

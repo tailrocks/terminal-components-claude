@@ -1,0 +1,230 @@
+{
+  "schema": "termrock.independent-review.v1",
+  "created_utc": "2026-10-21T05:44:40.040835+00:00",
+  "reviewer": "/root/menu_reason_independent_review",
+  "reviewed_commit": "72b47055598317e0b0671e938b5bb8d066c35827",
+  "source_fix_commit": "ef89a58c8b58f9410d7a953144dbc2d71e166900",
+  "pre_262_reference": "4cc10c3a7158123500fbe38435f2b68874b50561",
+  "decision": "HOLD",
+  "findings": [
+    {
+      "id": "VP72-R1",
+      "priority": "P2",
+      "path": "crates/termrock-viewport/src/viewport.rs",
+      "lines": [
+        1365,
+        1369
+      ],
+      "title": "Unconditional edge fading still changes default no-option viewport cells compared with the pre262 implementation",
+      "classification": "Unresolved incoming262 default visual change, retained in this repair series; not introduced by ef89 alone.",
+      "evidence": "An identical public Runtime consumer at4cc and72 captures2592 ordered checkpoints from288 configurations across TrueColor/Ansi256/Ansi16/Mono, wrapping on/off, widths0/1/2/3/8/9/23/24/25 and heights0/1/2/4.432 checkpoints across48 configurations differ in Cell fields; every captured registry/ring/focus/cursor/selection/scroll/action/text-part field remains identical. Difference already appears on initial render. Example TrueColor8x4 wrap=false at area(1,1): visible \u754c at(2,4) and e+combining accent at(5,4) change fgRgb(255,255,255) toRgb(140,140,140). The pre262 draw has no scroll_edges call; the reviewed draw unconditionally invokes it.",
+      "repair": "Preserve the existing default visual contract. If fading is needed for a real consumer, expose an explicit documented opt-in through the shared viewport rather than applying it silently to every consumer. Record any intentional reference decision and prove affected real application output separately; do not bless candidate cells.",
+      "artifacts": [
+        "default-before-checkpoints.txt",
+        "default-after-checkpoints.txt",
+        "default-comparison.json",
+        "default.rs"
+      ]
+    },
+    {
+      "id": "VP72-R2",
+      "priority": "P2",
+      "path": "crates/termrock-viewport/src/viewport.rs",
+      "lines": [
+        1487,
+        1494
+      ],
+      "title": "Caret and rendered text use different horizontal origins under left clipping",
+      "classification": "Inherited pre262 geometry gap, now explicitly exercised by this clipping contract; not claimed as a new ef89 regression.",
+      "evidence": "Real Runtime consumer: logicalRect(0,0,24,4), clipRect(4,1,8,3), wrapped \"abcdefghijklmnopqrstuv WORD\", caretCellPos(0,23), follow=false. Rendered W is visibly at(5,1), viewport has focus, but cursor_position() isNone on both4cc and72. Pointer mapping correctly uses the visible horizontal origin after this repair, while caret() still adds dx to un-clipped text.x and runtime rejects the resulting(2,1) outside the clip. Public regression visible_caret_matches_horizontally_clipped_rendered_character is RED on both revisions.",
+      "repair": "Use one explicit resolved visual origin for row rendering, pointer mapping, selection rendering and caret placement, while preserving logical wrapping width/vertical origin. Fix the responsible shared geometry/rendering contract, not an app cursor workaround. Correct the audit claim that current clipping geometry already reaches cursor placement.",
+      "artifacts": [
+        "clipping-before.log",
+        "clipping-after.log",
+        "clipping.rs"
+      ]
+    }
+  ],
+  "prior_finding": {
+    "id": "VP795-R1",
+    "status": "fixed for demonstrated pointer regression",
+    "previous_packet_sha256": "49df6d35a24ed29cbbe4c77672be35024b0e453e7166b07febc963fead6f292f",
+    "original_consumer_sha256": "67c7ebce2f0d4c0453cb349e0b83cf3eef82db11c27e906eccfbf65b58585109",
+    "result": "Original unchanged public consumer passes on4cc and72; previous795 immutable packet recorded its failure. New32-case clipping matrix passes on72 across4profiles, wraptrue/false and right/top/left combined clips. Same matrix fails at4cc on inherited top clipping pointer offset, showing the new logical vertical origin also repairs that case."
+  },
+  "checks": [
+    {
+      "command": "cargo nextest run -p termrock-viewport --all-targets --features testing --no-fail-fast",
+      "exit": 0,
+      "passed": 58,
+      "failed": 0,
+      "skipped": 0,
+      "log": "native-testing.log"
+    },
+    {
+      "command": "cargo nextest run -p termrock-viewport --all-targets --no-fail-fast",
+      "exit": 0,
+      "passed": 58,
+      "failed": 0,
+      "skipped": 0,
+      "log": "native-default-clippy-fmt.log"
+    },
+    {
+      "command": "cargo nextest run --manifest-path /private/tmp/viewport-independent-external-before-20261021/Cargo.toml --no-fail-fast",
+      "revision": "4cc",
+      "exit": 0,
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0,
+      "log": "external-before.log",
+      "scope": "Unchanged original pointer regression and lossless default matrix capture; equality judged separately and is RED."
+    },
+    {
+      "command": "cargo nextest run --manifest-path /private/tmp/viewport-independent-external-after-20261021/Cargo.toml --no-fail-fast",
+      "revision": "72b",
+      "exit": 0,
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0,
+      "log": "external-after.log",
+      "scope": "Unchanged original pointer regression and lossless default matrix capture; equality judged separately and is RED."
+    },
+    {
+      "command": "cargo nextest run --manifest-path /private/tmp/viewport-independent-external-before-20261021/Cargo.toml --test clipping --no-fail-fast",
+      "exit": 100,
+      "passed": 0,
+      "failed": 2,
+      "skipped": 0,
+      "log": "clipping-before.log"
+    },
+    {
+      "command": "cargo nextest run --manifest-path /private/tmp/viewport-independent-external-after-20261021/Cargo.toml --test clipping --no-fail-fast",
+      "exit": 100,
+      "passed": 1,
+      "failed": 1,
+      "skipped": 0,
+      "log": "clipping-after.log",
+      "scope": "32 profile/wrap/clip pointer cases pass; inherited visible caret probe fails."
+    },
+    {
+      "command": "cargo nextest run --manifest-path /private/tmp/viewport-independent-external-after-20261021/Cargo.toml --test warm",
+      "exit": 0,
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "log": "warm-after.log",
+      "scope": "100000 wrapped lines, logical24x4 clipped to(4,1,8,3). After cold layout reset, repeat draw and pointer down/up require zero indexed_lines and at most64 visible rows across paints. This is work-counter proof, not a latency benchmark or instrumentation of every grapheme read."
+    },
+    {
+      "command": "cargo clippy -p termrock-viewport --all-targets --features testing -- -D warnings",
+      "exit": 0,
+      "log": "native-default-clippy-fmt.log"
+    },
+    {
+      "command": "cargo fmt --all -- --check",
+      "exit": 0,
+      "log": "native-default-clippy-fmt.log"
+    },
+    {
+      "command": "git diff --check",
+      "exit": 0,
+      "log": "native-default-clippy-fmt.log"
+    }
+  ],
+  "default_comparison": {
+    "configurations": 288,
+    "checkpoints_per_configuration": 9,
+    "total_checkpoints": 2592,
+    "cells_per_checkpoint": 180,
+    "cell_observations_per_revision": 466560,
+    "differing_checkpoints": 432,
+    "differing_configurations": 48,
+    "noncell_metadata_differences": 0,
+    "before_bytes": 56114040,
+    "after_bytes": 56112621,
+    "before_sha256": "7272621df736dee66932e7f8cec325f0b80fb3640e467c8de44b87681fd26b50",
+    "after_sha256": "c1e6d0e00a8f13850bbff85dbc088f1e075171c09d49004d988f62957f67b34e",
+    "source_identical_before_after": true
+  },
+  "source_review": {
+    "layout": "update uses committed LayoutFacts logical_area and cols; hit clipping no longer changes layout cache width. Logical vertical row origin is preserved; visible horizontal hit origin matches the current clipped painter. No second persistent state owner introduced. Caret mismatch remains VP72-R2.",
+    "resize": "Existing real Runtime resize_updates_current_viewport_before_replacing_published_geometry test passes in both58-test runs. Runtime::handle rejects physical input while no frame is presented; Resize performs update/invalidation before returning. No added stale-input bypass found. This is not a full app resize acceptance run.",
+    "arithmetic_and_API": "Public builders reserve_gutter/scroll_gap/bar_cursor remain additive; width/preferred-size reservation uses saturating arithmetic. Zero/narrow/u16::MAX native cases pass. No public state field removal, unsafe code, extra dependencies, or new concurrency owner identified.",
+    "performance": "Full-content widest_line scan is absent; generation/width-aware layout cache remains. Independent100000-line warm clipping probe performs zero index work across draw and pointer update; visible rows stay bounded.",
+    "ownership": "No app or baseline data changed in this reviewed source. Normal merge incorporatesc079; review does not approve unrelated application/menu/runtime painter changes."
+  },
+  "coverage_limits": [
+    "No pinned Tuiscotti real CLI captures or frozen application acceptance; all four application gates remain outside this review.",
+    "Default matrix compares pre262 candidate implementation, not the frozen416 source. It proves a default library change and does not independently settle whether a specific app needs opt-in fading.",
+    "No exhaustive selection/row-span/Unicode/cursor clipping policy or resize-under-capture matrix acceptance; reported inherited caret gap remains.",
+    "No full workspace Nextest/Clippy, hosted CI, or Jackin renderer bypass approval."
+  ],
+  "workspace_integrity": "Separate exact sparse detached copies and revision-specific targets; no product source edits, commits, pushes, baseline mutation or edits to the original reviewer probe. All owned commands completed within explicit210-second subprocess bounds.",
+  "source_sha256": "36c4dd87b96e7b4b18e774ea79660a84c80602f64233babb4304b52f2e71ce7b",
+  "artifacts": {
+    "after-Cargo.toml": {
+      "sha256": "18b4e7ce0a94c9529da0b7e78df6111da51f7b9723e8d99a921eff953e87fdf9",
+      "bytes": 565
+    },
+    "before-Cargo.toml": {
+      "sha256": "af3d426375ea7622f2d20bdb88a18825c29a8f6fe57e495105dc66732bd69c44",
+      "bytes": 545
+    },
+    "clipping-after.log": {
+      "sha256": "46f7a2f7d0e0273f58f57021b640965cb61bc10e7106806bd63035b4c5f05a05",
+      "bytes": 4225
+    },
+    "clipping-before.log": {
+      "sha256": "16af45900a650516050a86cf708a76d91e630d1dcfcd981a2724ef63f87c5f4c",
+      "bytes": 5191
+    },
+    "clipping.rs": {
+      "sha256": "1e0226956b84ee68594c9a3b64fe6ef3a9e032a3f3b13cbaeb518811552db8a8",
+      "bytes": 2673
+    },
+    "default-after-checkpoints.txt": {
+      "sha256": "c1e6d0e00a8f13850bbff85dbc088f1e075171c09d49004d988f62957f67b34e",
+      "bytes": 56112621
+    },
+    "default-before-checkpoints.txt": {
+      "sha256": "7272621df736dee66932e7f8cec325f0b80fb3640e467c8de44b87681fd26b50",
+      "bytes": 56114040
+    },
+    "default-comparison.json": {
+      "sha256": "1e12e0e13832a72f37863b01e24cc87a3d598595fed37ffa0538ec6d57963f48",
+      "bytes": 45511
+    },
+    "default.rs": {
+      "sha256": "d2dcd385fea579f03e463064b2095b8a40c32ea90dc8deb7039bd3f17e0243e0",
+      "bytes": 2810
+    },
+    "external-after.log": {
+      "sha256": "c9d4c2c223df813c5999c89a4e8f5d516b0678f824393ce1eef031935054eae1",
+      "bytes": 6773
+    },
+    "external-before.log": {
+      "sha256": "42ee85f1f9e92899fbffe65986ebafa9f64c9957db7953e45d4806a635824ef7",
+      "bytes": 6799
+    },
+    "native-default-clippy-fmt.log": {
+      "sha256": "359b04439297826cc7a403d656ea4527c490e6c997290f362578f3a713886e47",
+      "bytes": 12424
+    },
+    "native-testing.log": {
+      "sha256": "69af0837164f5f30903a305eba11abe3e1bbe58736d4a76a6d82f852aa6bb6e2",
+      "bytes": 12019
+    },
+    "original-consumer.rs": {
+      "sha256": "67c7ebce2f0d4c0453cb349e0b83cf3eef82db11c27e906eccfbf65b58585109",
+      "bytes": 1341
+    },
+    "warm-after.log": {
+      "sha256": "41c795eb7f7e5e3de2b10d29297f923235b3e6dbf11d5caff629b0fa72ad5429",
+      "bytes": 2659
+    },
+    "warm.rs": {
+      "sha256": "bf5bfa50525dc1d2ca4f24f36bb1db3f50bc7b69fc6582c44fa27119c465ba33",
+      "bytes": 1604
+    }
+  }
+}

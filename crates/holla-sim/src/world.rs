@@ -143,6 +143,14 @@ impl World {
         self.discovery.iter().any(|d| !d.done && !d.failed)
     }
 
+    /// Returns whether every scheduled discovery has reached a terminal state.
+    ///
+    /// An empty discovery list is settled. This reports discovery state only;
+    /// it does not advance the clock or run pending discovery work.
+    pub fn settled(&self) -> bool {
+        self.discovery.iter().all(|d| d.done || d.failed)
+    }
+
     pub fn discovered(&self, domain: Domain) -> bool {
         self.discovery.iter().any(|d| d.domain == domain && d.done)
     }
@@ -231,6 +239,71 @@ mod tests {
         assert!(w.tick(100).is_empty());
         let _ = Environment::Local;
     }
+
+    #[test]
+    fn settled_is_true_for_an_empty_discovery_list() {
+        let w = World::new(Scenario::FirstUse, Host::local("devbox"), "~/scratch/empty");
+        assert!(w.settled());
+    }
+
+    #[test]
+    fn settled_requires_each_discovery_to_finish_or_fail() {
+        let mut w = World::new(Scenario::FirstUse, Host::local("devbox"), "~/scratch/empty");
+        w.discovery = vec![
+            Discovery {
+                done: true,
+                ..Discovery::at(Domain::Git, 100)
+            },
+            Discovery {
+                failed: true,
+                ..Discovery::failing(Domain::Docker, 200)
+            },
+            Discovery::at(Domain::Ssh, 300),
+        ];
+
+        assert!(!w.settled());
+
+        w.clock.now_ms = 1_000;
+        assert!(!w.settled(), "time alone does not finish a discovery");
+        w.discovery[2].done = true;
+        assert!(w.settled());
+    }
+
+    #[test]
+    fn settled_is_true_when_all_discoveries_succeed() {
+        let mut w = World::new(Scenario::FirstUse, Host::local("devbox"), "~/scratch/empty");
+        w.discovery = vec![
+            Discovery {
+                done: true,
+                ..Discovery::at(Domain::Git, 100)
+            },
+            Discovery {
+                done: true,
+                ..Discovery::at(Domain::Docker, 200)
+            },
+        ];
+
+        w.clock.now_ms = 0;
+        assert!(w.settled(), "settled state does not depend on clock time");
+    }
+
+    #[test]
+    fn settled_is_true_when_all_discoveries_fail() {
+        let mut w = World::new(Scenario::FirstUse, Host::local("devbox"), "~/scratch/empty");
+        w.discovery = vec![
+            Discovery {
+                failed: true,
+                ..Discovery::failing(Domain::Git, 100)
+            },
+            Discovery {
+                failed: true,
+                ..Discovery::failing(Domain::Docker, 200)
+            },
+        ];
+
+        assert!(w.settled());
+    }
+
     #[test]
     fn seek_preserves_reference_quantization_and_pause() {
         let mut w = World::new(Scenario::FirstUse, Host::local("devbox"), "~/scratch/empty");

@@ -1,0 +1,30 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Lists          no color · 100×30   i Inspector · on   ? Help  [0m
+                                                                                                    [0m
+   Overview          [0m[1mLists[0m  Single and multiple selection, disable…     State                       [0m
+   Buttons                                                                                          [0m
+   Inputs              Lan… 7–19…      Fil… 2 se…      Search res…      mode        NAV             [0m
+   Text areas                                                           focus       0·2 19×26       [0m
+   Forms               Chosen: Rust    Space tog…                       hover       suppressed      [0m
+[0m[1m▎› Lists           [0m                                                     pressed     —               [0m
+   Trees               [0m[2m   Swift [0m│       ✓ src/ap…                       mouse       26·10           [0m
+   Tables                 C#    │       ✓ src/ap…                       last key    i               [0m
+   Editable tables        Ruby  │      [0m[2m   src/db…[0m                       focus ring  4 stops         [0m
+   Panels                 Scala │         tests/…                       hit regions 58              [0m
+   Sidebars               Elixir┃      [0m[2m   Cargo.…[0m                       tick        0               [0m
+   Dialogs                Haske…┃         docs/w…      No results…      colors      no color        [0m
+   Progress               Zig   ┃         src/wo…                                                   [0m
+   Scrolling              Dart  ┃         src/co…                                                   [0m
+   Terminal               PHP   ┃         README…                                                   [0m
+   Code editor            C++   ┃         src/ma…                                                   [0m
+   Diff                   Lua   ┃         tests/…                                                   [0m
+   Data grid              OCaml ┃         src/db…                                                   [0m
+   Chips & selects     [0m[2m   Cloju…[0m│                                                                   [0m
+   Pickers                                                                                          [0m
+   Chrome                                                                                           [0m
+   Settings                                                                                         [0m
+   Task runner                                                                                      [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                        [0m
