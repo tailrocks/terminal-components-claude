@@ -1198,8 +1198,10 @@ impl<'a> CodeEditor<'a> {
                         },
                     local,
                     ..
-                } if !self.read_only && !self.disabled => {
-                    st.editing = true;
+                } if !self.disabled => {
+                    if !self.read_only {
+                        st.editing = true;
+                    }
                     let line = st
                         .scroll
                         .offset()
