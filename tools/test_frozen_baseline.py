@@ -1033,7 +1033,14 @@ class RunnerGuards(unittest.TestCase):
                 runner.fcntl.flock(owner_fd, runner.fcntl.LOCK_UN)
                 runner.os.close(owner_fd)
 
-    def _fresh_plan_fixture(self, root: Path, *, chunk_size: int = 1) -> dict[str, object]:
+    def _fresh_plan_fixture(
+        self,
+        root: Path,
+        *,
+        chunk_size: int = 1,
+        advance_budget_seconds: int = runner.FRESH_PLAN_MAX_TIMEOUT,
+        cohort_id: str = "fixture-cohort",
+    ) -> dict[str, object]:
         repo = root / "repo"
         source = root / "source"
         live = root / "live-source"
@@ -1063,7 +1070,7 @@ class RunnerGuards(unittest.TestCase):
         }
         live_record = {"test_inventory_sha256": runner.inventory_digest(inventory), "module_sha256": "a" * 64}
         cohort = {
-            "cohort_id": "fixture-cohort",
+            "cohort_id": cohort_id,
             "cohort_registry_sha256": "b" * 64,
             "review_registry_sha256": "c" * 64,
             "decision_sha256": "d" * 64,
@@ -1085,9 +1092,106 @@ class RunnerGuards(unittest.TestCase):
             plan = runner.build_fresh_plan_payload(
                 repo=repo, root=root, cohort=cohort, live_record=live_record, inventory=inventory,
                 extension_manifest=manifest, chunk_size=chunk_size, term_profile=None, plan_id="1" * 32,
-                created_at="2026-10-21T00:00:00+00:00",
+                created_at="2026-10-21T00:00:00+00:00", advance_budget_seconds=advance_budget_seconds,
             )
         return plan
+
+    def _owned_fresh_plan_fixture(
+        self,
+        root: Path,
+        *,
+        budget: int = 200,
+        cohort_id: str = runner.PREPARE_LIVE_OWNED_COHORT,
+    ) -> tuple[dict[str, object], str]:
+        root.mkdir(parents=True, exist_ok=True)
+        root = root.resolve(strict=True)
+        source = root / "source"
+        source.mkdir(exist_ok=True)
+        (source / "Cargo.toml").write_text("[workspace]\n")
+        plan = self._fresh_plan_fixture(
+            root, advance_budget_seconds=budget, cohort_id=cohort_id
+        )
+        creation_sha256 = runner._atomic_create_plan(root / runner.FRESH_PLAN_FILE, plan)
+        return plan, creation_sha256
+
+    def _owned_fresh_plan_dependencies(
+        self, root: Path, plan: dict[str, object], execution: runner.PrepareExecution
+    ) -> tuple[ExitStack, dict[str, object]]:
+        stack = ExitStack()
+        inventory = {row["name"]: row["ignored"] for row in plan["inventory"]["full_sorted"]}
+        extension = plan["inventory"]["visual_extensions"][0]
+        original = {name: ignored for name, ignored in inventory.items() if name != extension}
+        manifest = {
+            "generated_case_ids": [extension],
+            "checkpoint_obligations": {extension: ["initial", "done"]},
+        }
+        live_record = {
+            "test_inventory_sha256": runner.inventory_digest(inventory),
+            "module_sha256": "a" * 64,
+        }
+
+        def owned_callback(callback) -> None:
+            self.assertIs(getattr(callback, "__self__", None), execution)
+            self.assertIs(getattr(callback, "__func__", None), runner.PrepareExecution.check_work)
+
+        def verify_source(_root, _source, *, check_work=None):
+            owned_callback(check_work)
+            check_work()
+            return "source"
+
+        def capture(_repo, _cohort, _bins, *, check_work=None):
+            owned_callback(check_work)
+            check_work()
+            return plan["cohort"]
+
+        def verify_live(_repo, _root, _source, _timeout, *, fresh_cohort_id, baseline_bin_dir, execution=None):
+            self.assertIs(execution, execution_expected)
+            execution.check_work()
+            return root / "live-source", live_record
+
+        def load_manifest(_path, *, check_work=None):
+            owned_callback(check_work)
+            check_work()
+            return manifest
+
+        def nextest(_source, _timeout, _env, _manifest, *, execution=None):
+            self.assertIs(execution, execution_expected)
+            execution.check_work()
+            return inventory
+
+        def validate_inventory(actual, _manifest, *, check_work=None):
+            owned_callback(check_work)
+            check_work()
+            return original, [extension]
+
+        def groups(_inventory, *, check_work=None):
+            owned_callback(check_work)
+            check_work()
+            return ["source_only::fixture"], ["modes::showcase_boot_sets_terminal_modes"]
+
+        def observe_tools(_source, _env, *, execution=None):
+            self.assertIs(execution, execution_expected)
+            execution.check_work()
+            return {"cargo": {"path": "/pinned/cargo", "sha256": "1" * 64}}
+
+        execution_expected = execution
+        stack.enter_context(patch.object(runner, "EXPECTED_SCENARIOS", 1))
+        stack.enter_context(patch.object(runner, "EXPECTED_ORDINARY_TESTS", 2))
+        mocks = {
+            "verify_source": stack.enter_context(patch.object(runner, "verify_source", side_effect=verify_source)),
+            "require_capture": stack.enter_context(patch.object(runner, "require_capture_eligible_cohort", side_effect=capture)),
+            "verify_live": stack.enter_context(patch.object(runner, "verify_live_source", side_effect=verify_live)),
+            "load_manifest": stack.enter_context(patch.object(runner, "load_extension_manifest", side_effect=load_manifest)),
+            "nextest": stack.enter_context(patch.object(runner, "nextest_inventory", side_effect=nextest)),
+            "validate_inventory": stack.enter_context(patch.object(runner, "validate_extension_inventory", side_effect=validate_inventory)),
+            "groups": stack.enter_context(patch.object(runner, "ordinary_test_groups", side_effect=groups)),
+            "tools": stack.enter_context(patch.object(runner, "fresh_tool_observation", side_effect=observe_tools)),
+            "env": stack.enter_context(patch.object(runner, "fresh_clean_env", return_value={
+                "LANG": "C", "TERM": "xterm-256color", "CARGO_TARGET_DIR": str(root / "live-target"),
+                "NEXTEST_EXPERIMENTAL_LIBTEST_JSON": "1",
+            })),
+        }
+        return stack, mocks
 
     def _fresh_advance_fixture(self, base: Path, *, chunk_size: int = 1) -> dict[str, object]:
         base = base.resolve()
@@ -1337,6 +1441,381 @@ class RunnerGuards(unittest.TestCase):
             self.assertEqual(runner.sha256(journal_path), receipt_sha)
             self.assertEqual(runner._fresh_expected_tree_sha256(committed), chunk_sha)
             self.assertFalse((committed.parent / "chunk-00001").exists())
+
+    def test_fresh_plan_builder_keeps_legacy_225_and_accepts_exact_owned_200(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            legacy_root = Path(temp) / "legacy"
+            legacy = self._fresh_plan_fixture(legacy_root)
+            self.assertEqual(legacy["execution"]["timeout_seconds_per_advance"], 225)
+            owned_root = Path(temp) / "owned"
+            owned = self._fresh_plan_fixture(owned_root, advance_budget_seconds=200)
+            self.assertEqual(owned["execution"]["timeout_seconds_per_advance"], 200)
+            with patch.object(runner, "EXPECTED_SCENARIOS", 1), patch.object(
+                runner, "EXPECTED_ORDINARY_TESTS", 2
+            ):
+                runner.validate_fresh_plan_document(legacy)
+                runner.validate_fresh_plan_document(owned, expected_advance_budget=200)
+                with self.assertRaisesRegex(runner.RunnerError, "chunk or timeout bounds"):
+                    runner.validate_fresh_plan_document(owned)
+
+    def test_prepare_execution_retains_validated_work_budget_and_deadlines(self) -> None:
+        with patch.object(runner.time, "monotonic", return_value=100.0):
+            execution = runner.PrepareExecution(37)
+        self.assertEqual(execution.work_budget, 37)
+        self.assertEqual(execution.work_deadline, 137.0)
+        self.assertEqual(
+            execution.hard_deadline,
+            137.0 + runner.PREPARE_OWNED_CLEANUP_RESERVE,
+        )
+        for invalid_budget in (True, False, 0, runner.PREPARE_OWNED_MAX_BUDGET + 1):
+            with self.subTest(invalid_budget=invalid_budget):
+                with self.assertRaisesRegex(runner.RunnerError, "owned prepare budget"):
+                    runner.PrepareExecution(invalid_budget)
+
+    def test_owned_fresh_plan_verification_regenerates_exact_plan_with_one_execution(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "owned-root"
+            plan, creation_sha256 = self._owned_fresh_plan_fixture(root)
+            plan_bytes = (root / runner.FRESH_PLAN_FILE).read_bytes()
+            with runner.PrepareExecution(200) as execution:
+                stack, mocks = self._owned_fresh_plan_dependencies(root, plan, execution)
+                with stack, patch.object(runner, "_atomic_create_plan") as create_plan, redirect_stdout(io.StringIO()) as output:
+                    verified = runner.verify_fresh_plan(
+                            root / "repo", root, runner.PREPARE_LIVE_OWNED_COHORT, root / "bins", 200,
+                        creation_sha256, execution=execution,
+                    )
+                self.assertEqual(verified, plan)
+                self.assertEqual((root / runner.FRESH_PLAN_FILE).read_bytes(), plan_bytes)
+                create_plan.assert_not_called()
+                self.assertTrue(json.loads(output.getvalue())["verified"])
+                for name in ("verify_source", "require_capture", "verify_live", "load_manifest", "nextest", "validate_inventory", "groups", "tools"):
+                    self.assertTrue(mocks[name].called, name)
+
+    def test_owned_fresh_plan_rejects_legacy_or_mismatched_budget_before_probes(self) -> None:
+        for plan_budget, owned_budget, cohort_id, message in (
+            (225, 200, runner.PREPARE_LIVE_OWNED_COHORT, "chunk or timeout bounds"),
+            (200, 199, runner.PREPARE_LIVE_OWNED_COHORT, "chunk or timeout bounds"),
+            (200, 200, "wrong-cohort", "pinned frozen-20261021-serial-nonincr-r1-r2 cohort"),
+        ):
+            with self.subTest(plan_budget=plan_budget, owned_budget=owned_budget, cohort=cohort_id), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp) / "owned-root"
+                plan, creation_sha256 = self._owned_fresh_plan_fixture(root, budget=plan_budget)
+                with runner.PrepareExecution(owned_budget) as execution:
+                    with (
+                        patch.object(runner, "EXPECTED_SCENARIOS", 1),
+                        patch.object(runner, "EXPECTED_ORDINARY_TESTS", 2),
+                        patch.object(runner, "paths") as paths,
+                        patch.object(runner, "verify_source") as verify_source,
+                        patch.object(runner, "require_capture_eligible_cohort") as capture,
+                        patch.object(runner, "verify_live_source") as verify_live,
+                        patch.object(runner, "nextest_inventory") as inventory,
+                        redirect_stdout(io.StringIO()) as output,
+                        self.assertRaisesRegex(runner.RunnerError, message),
+                    ):
+                        runner.verify_fresh_plan(
+                            root / "repo", root, cohort_id, root / "bins", 200,
+                            creation_sha256, execution=execution,
+                        )
+                    paths.assert_not_called()
+                    verify_source.assert_not_called()
+                    capture.assert_not_called()
+                    verify_live.assert_not_called()
+                    inventory.assert_not_called()
+                    self.assertEqual(output.getvalue(), "")
+
+    def test_owned_fresh_plan_rejects_matching_unpinned_plan_and_caller_before_root_access(self) -> None:
+        other_cohort = "another-capture-eligible-cohort"
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "owned-root"
+            plan, creation_sha256 = self._owned_fresh_plan_fixture(
+                root, cohort_id=other_cohort
+            )
+            self.assertNotEqual(other_cohort, runner.PREPARE_LIVE_OWNED_COHORT)
+            self.assertEqual(plan["cohort"]["cohort_id"], other_cohort)
+            self.assertEqual(
+                plan["cohort"]["status"], runner.CAPTURE_ELIGIBLE_COHORT_STATUS
+            )
+            self.assertTrue(plan["cohort"]["fresh_baseline_capture_eligible"])
+            with runner.PrepareExecution(200) as execution:
+                with (
+                    patch.object(runner, "_owned_root_binding") as bind_root,
+                    patch.object(runner, "_read_self_sealed_plan_at_root") as read_plan,
+                    patch.object(runner, "_check_owned_root_binding") as check_root,
+                    patch.object(runner, "paths") as paths,
+                    patch.object(runner, "verify_source") as verify_source,
+                    patch.object(runner, "require_capture_eligible_cohort") as capture,
+                    patch.object(runner, "verify_live_source") as verify_live,
+                    patch.object(runner, "load_extension_manifest") as manifest,
+                    patch.object(runner, "fresh_clean_env") as clean_env,
+                    patch.object(runner, "nextest_inventory") as inventory,
+                    patch.object(runner, "validate_extension_inventory") as validate_extensions,
+                    patch.object(runner, "require_inventory_matches") as match_inventory,
+                    patch.object(runner, "fresh_tool_observation") as tools,
+                    patch.object(runner, "build_fresh_plan_payload") as rebuild,
+                    redirect_stdout(io.StringIO()) as output,
+                    self.assertRaisesRegex(
+                        runner.RunnerError,
+                        "pinned frozen-20261021-serial-nonincr-r1-r2 cohort",
+                    ),
+                ):
+                    runner.verify_fresh_plan(
+                        root / "repo", root, other_cohort, root / "bins", 200,
+                        creation_sha256, execution=execution,
+                    )
+                bind_root.assert_not_called()
+                read_plan.assert_not_called()
+                check_root.assert_not_called()
+                paths.assert_not_called()
+                verify_source.assert_not_called()
+                capture.assert_not_called()
+                verify_live.assert_not_called()
+                manifest.assert_not_called()
+                clean_env.assert_not_called()
+                inventory.assert_not_called()
+                validate_extensions.assert_not_called()
+                match_inventory.assert_not_called()
+                tools.assert_not_called()
+                rebuild.assert_not_called()
+                self.assertEqual(output.getvalue(), "")
+
+    def test_owned_fresh_plan_requires_external_digest_before_root_or_source_access(self) -> None:
+        for digest in (None, "x" * 64):
+            with self.subTest(digest=digest), runner.PrepareExecution(200) as execution:
+                with (
+                    patch.object(runner, "_owned_root_binding") as bind_root,
+                    patch.object(runner, "paths") as paths,
+                    patch.object(runner, "verify_source") as verify_source,
+                    self.assertRaisesRegex(
+                        runner.RunnerError,
+                        "requires the externally retained creation digest",
+                    ),
+                ):
+                    runner.verify_fresh_plan(
+                        Path("/missing/repo"), Path("/missing/root"), runner.PREPARE_LIVE_OWNED_COHORT,
+                        Path("/missing/bins"), 200, digest, execution=execution,
+                    )
+                bind_root.assert_not_called()
+                paths.assert_not_called()
+                verify_source.assert_not_called()
+
+    def test_verify_fresh_plan_owned_cli_is_additive_and_budget_requires_opt_in(self) -> None:
+        legacy = runner.parser().parse_args([
+            "verify-fresh-plan", "--cohort", "fixture", "--baseline-bin-dir", "/bins",
+            "--expected-plan-sha256", "a" * 64,
+        ])
+        self.assertFalse(legacy.owned_lifecycle)
+        self.assertIsNone(legacy.owned_budget)
+        owned_default = runner.parser().parse_args([
+            "verify-fresh-plan", "--cohort", "fixture", "--baseline-bin-dir", "/bins",
+            "--expected-plan-sha256", "a" * 64, "--owned-lifecycle",
+        ])
+        self.assertTrue(owned_default.owned_lifecycle)
+        self.assertIsNone(owned_default.owned_budget)
+        fresh_plan = runner.parser().parse_args([
+            "fresh-plan", "--cohort", "fixture", "--baseline-bin-dir", "/bins",
+        ])
+        self.assertFalse(hasattr(fresh_plan, "owned_lifecycle"))
+
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            legacy_argv = [
+                "frozen_baseline.py", "--repo", str(root / "repo"), "--root", str(root / "root"),
+                "verify-fresh-plan", "--cohort", "fixture", "--baseline-bin-dir", str(root / "bins"),
+                "--expected-plan-sha256", "a" * 64,
+            ]
+            with patch.object(runner, "verify_fresh_plan", return_value={}) as verify:
+                with patch.object(sys, "argv", legacy_argv), redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+                    self.assertEqual(runner.main(), 0)
+            verify.assert_called_once_with(
+                root / "repo", root / "root", "fixture", root / "bins", runner.FRESH_PLAN_MAX_TIMEOUT, "a" * 64
+            )
+
+            budget_argv = [*legacy_argv, "--owned-budget", "200"]
+            with patch.object(runner, "verify_fresh_plan") as verify:
+                with patch.object(sys, "argv", budget_argv), redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()) as errors:
+                    self.assertEqual(runner.main(), 1)
+            verify.assert_not_called()
+            self.assertIn("--owned-budget requires --owned-lifecycle", errors.getvalue())
+
+            owned_argv = [*legacy_argv]
+            owned_argv[owned_argv.index("fixture")] = runner.PREPARE_LIVE_OWNED_COHORT
+            owned_argv.append("--owned-lifecycle")
+            with patch.object(runner, "verify_fresh_plan", return_value={}) as verify:
+                with patch.object(sys, "argv", owned_argv), redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+                    self.assertEqual(runner.main(), 0)
+            execution = verify.call_args.kwargs["execution"]
+            self.assertEqual(execution.work_budget, runner.PREPARE_OWNED_MAX_BUDGET)
+
+            smaller_budget_argv = [*legacy_argv, "--owned-lifecycle", "--owned-budget", "100"]
+            with patch.object(runner, "verify_fresh_plan", return_value={}) as verify:
+                with patch.object(sys, "argv", smaller_budget_argv), redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+                    self.assertEqual(runner.main(), 0)
+            self.assertEqual(verify.call_args.kwargs["execution"].work_budget, 100)
+
+            failed_argv = [*legacy_argv, "--owned-lifecycle", "--owned-budget", "100"]
+            with (
+                patch.object(runner, "PrepareExecution") as prepare_execution,
+                patch.object(runner, "verify_fresh_plan", side_effect=runner.RunnerError("synthetic verify failure")) as verify,
+                patch.object(sys, "argv", failed_argv),
+                redirect_stdout(io.StringIO()) as output,
+                redirect_stderr(io.StringIO()) as errors,
+            ):
+                self.assertEqual(runner.main(), 1)
+            prepare_execution.assert_called_once_with(100)
+            prepare_execution.return_value.__enter__.assert_called_once_with()
+            prepare_execution.return_value.__exit__.assert_called_once()
+            self.assertIs(verify.call_args.kwargs["execution"], prepare_execution.return_value.__enter__.return_value)
+            self.assertEqual(output.getvalue(), "")
+            self.assertIn("synthetic verify failure", errors.getvalue())
+
+    def test_owned_fresh_plan_builder_checks_during_inventory_work(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "owned-root"
+            plan, _creation_sha256 = self._owned_fresh_plan_fixture(root)
+            inventory = {row["name"]: row["ignored"] for row in plan["inventory"]["full_sorted"]}
+            extension = plan["inventory"]["visual_extensions"][0]
+            manifest = {
+                "generated_case_ids": [extension],
+                "checkpoint_obligations": {extension: ["initial", "done"]},
+            }
+            live_record = {
+                "test_inventory_sha256": runner.inventory_digest(inventory),
+                "module_sha256": "a" * 64,
+            }
+            checks = 0
+            with runner.PrepareExecution(200) as execution:
+                original_check = execution.check_work
+                def stop_inside_inventory_loop() -> None:
+                    nonlocal checks
+                    checks += 1
+                    original_check()
+                    if checks == 5:
+                        raise runner.RunnerError("injected owned inventory deadline")
+                execution.check_work = stop_inside_inventory_loop
+                with (
+                    patch.object(runner, "EXPECTED_SCENARIOS", 1),
+                    patch.object(runner, "EXPECTED_ORDINARY_TESTS", 2),
+                    patch.object(runner, "fresh_tool_observation") as tools,
+                    self.assertRaisesRegex(runner.RunnerError, "injected owned inventory deadline"),
+                ):
+                    runner.build_fresh_plan_payload(
+                        repo=root / "repo", root=root, cohort=plan["cohort"],
+                        live_record=live_record, inventory=inventory, extension_manifest=manifest,
+                        chunk_size=1, term_profile=None, plan_id="1" * 32,
+                        created_at="2026-10-21T00:00:00+00:00", execution=execution,
+                        advance_budget_seconds=200,
+                    )
+            self.assertEqual(checks, 5)
+            tools.assert_not_called()
+
+    def test_owned_fresh_plan_cancellation_at_inventory_tool_and_regeneration_stops_success(self) -> None:
+        for stage in ("inventory", "tool", "regeneration"):
+            with self.subTest(stage=stage), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp) / "owned-root"
+                plan, creation_sha256 = self._owned_fresh_plan_fixture(root)
+                with runner.PrepareExecution(200) as execution:
+                    stack, mocks = self._owned_fresh_plan_dependencies(root, plan, execution)
+                    original_builder = runner.build_fresh_plan_payload
+                    if stage == "inventory":
+                        original = mocks["nextest"].side_effect
+                        def cancel_after_inventory(*args, **kwargs):
+                            result = original(*args, **kwargs)
+                            signal.raise_signal(signal.SIGTERM)
+                            return result
+                        mocks["nextest"].side_effect = cancel_after_inventory
+                    elif stage == "tool":
+                        original = mocks["tools"].side_effect
+                        def cancel_after_tool(*args, **kwargs):
+                            result = original(*args, **kwargs)
+                            signal.raise_signal(signal.SIGTERM)
+                            return result
+                        mocks["tools"].side_effect = cancel_after_tool
+                    else:
+                        def cancel_after_regeneration(*args, **kwargs):
+                            result = original_builder(*args, **kwargs)
+                            signal.raise_signal(signal.SIGTERM)
+                            return result
+                    with stack, redirect_stdout(io.StringIO()) as output:
+                        builder_patch = (
+                            patch.object(runner, "build_fresh_plan_payload", side_effect=cancel_after_regeneration)
+                            if stage == "regeneration" else ExitStack()
+                        )
+                        with builder_patch, self.assertRaisesRegex(runner.RunnerError, "cancelled by signal"):
+                            runner.verify_fresh_plan(
+                            root / "repo", root, runner.PREPARE_LIVE_OWNED_COHORT, root / "bins", 200,
+                                creation_sha256, execution=execution,
+                            )
+                    self.assertEqual(output.getvalue(), "")
+                    if stage == "inventory":
+                        mocks["nextest"].assert_called_once()
+                        mocks["tools"].assert_not_called()
+                    elif stage == "tool":
+                        mocks["tools"].assert_called_once()
+                    else:
+                        self.assertTrue(mocks["tools"].called)
+
+    def test_owned_fresh_plan_verification_postchecks_a_flushed_success_line(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "owned-root"
+            plan, creation_sha256 = self._owned_fresh_plan_fixture(root)
+            original_print = print
+            with runner.PrepareExecution(200) as execution:
+                stack, mocks = self._owned_fresh_plan_dependencies(root, plan, execution)
+                def cancel_after_flush(*args, **kwargs):
+                    self.assertTrue(kwargs.get("flush"))
+                    original_print(*args, **kwargs)
+                    signal.raise_signal(signal.SIGTERM)
+                with (
+                    stack,
+                    patch("builtins.print", side_effect=cancel_after_flush),
+                    redirect_stdout(io.StringIO()) as output,
+                    self.assertRaisesRegex(runner.RunnerError, "cancelled by signal"),
+                ):
+                    runner.verify_fresh_plan(
+                        root / "repo", root, runner.PREPARE_LIVE_OWNED_COHORT, root / "bins", 200,
+                        creation_sha256, execution=execution,
+                    )
+            self.assertTrue(json.loads(output.getvalue())["verified"])
+            self.assertTrue(mocks["tools"].called)
+
+    def test_owned_fresh_plan_verification_rechecks_root_after_regeneration_and_flush(self) -> None:
+        for replace_during in ("regeneration", "flush"):
+            with self.subTest(replace_during=replace_during), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp) / "owned-root"
+                plan, creation_sha256 = self._owned_fresh_plan_fixture(root)
+                moved = root.with_name("moved-owned-root")
+                with runner.PrepareExecution(200) as execution:
+                    stack, _mocks = self._owned_fresh_plan_dependencies(root, plan, execution)
+                    original_builder = runner.build_fresh_plan_payload
+                    original_print = print
+                    def replace_root() -> None:
+                        root.rename(moved)
+                        root.mkdir()
+                    with stack, redirect_stdout(io.StringIO()) as output:
+                        if replace_during == "regeneration":
+                            def replace_during_regeneration(*_args, **_kwargs):
+                                replace_root()
+                                return plan
+                            with patch.object(runner, "build_fresh_plan_payload", side_effect=replace_during_regeneration):
+                                with self.assertRaisesRegex(runner.RunnerError, "root pathname or directory identity"):
+                                    runner.verify_fresh_plan(
+                                        root / "repo", root, runner.PREPARE_LIVE_OWNED_COHORT, root / "bins", 200,
+                                        creation_sha256, execution=execution,
+                                    )
+                        else:
+                            def replace_during_flush(*args, **kwargs):
+                                original_print(*args, **kwargs)
+                                replace_root()
+                            with patch("builtins.print", side_effect=replace_during_flush):
+                                with self.assertRaisesRegex(runner.RunnerError, "root pathname or directory identity"):
+                                    runner.verify_fresh_plan(
+                                        root / "repo", root, runner.PREPARE_LIVE_OWNED_COHORT, root / "bins", 200,
+                                        creation_sha256, execution=execution,
+                                    )
+                    if replace_during == "regeneration":
+                        self.assertEqual(output.getvalue(), "")
+                    else:
+                        self.assertTrue(json.loads(output.getvalue())["verified"])
 
     def test_fresh_plan_is_complete_capture_only_inventory_and_verifiable(self) -> None:
         with tempfile.TemporaryDirectory() as temp:

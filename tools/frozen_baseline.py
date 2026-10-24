@@ -754,6 +754,7 @@ class PrepareExecution:
             raise RunnerError("owned prepare cleanup reserve is fixed")
         if work_budget + cleanup_reserve > PREPARE_OWNED_HARD_MAX:
             raise RunnerError("owned prepare budget exceeds its hard supervisor deadline")
+        self.work_budget = work_budget
         self.started = time.monotonic()
         self.work_deadline = self.started + work_budget
         self.hard_deadline = self.work_deadline + cleanup_reserve
@@ -2269,11 +2270,15 @@ def load_reference_decisions(repo: Path, root: Path, source: Path) -> tuple[list
     return [decision], REFERENCE_DECISIONS_SHA256
 
 
-def load_extension_manifest(path: Path) -> dict[str, object]:
+def load_extension_manifest(path: Path, *, check_work: Callable[[], None] | None = None) -> dict[str, object]:
+    if check_work is not None:
+        check_work()
     try:
         manifest = json.loads(path.read_text())
     except (OSError, ValueError) as error:
         raise RunnerError(f"could not read extension manifest: {path}") from error
+    if check_work is not None:
+        check_work()
     if not isinstance(manifest, dict) or manifest.get("schema_version") != 1:
         raise RunnerError("unsupported extension manifest schema")
     if set(manifest) != {"schema_version", "extension_id_prefix", "journeys", "sizes", "color_modes", "generated_cases"}:
@@ -2289,6 +2294,8 @@ def load_extension_manifest(path: Path) -> dict[str, object]:
     journey_checkpoints: dict[str, list[str]] = {}
     journey_ids: set[str] = set()
     for journey in journeys:
+        if check_work is not None:
+            check_work()
         if not isinstance(journey, dict) or set(journey) != {"id", "title", "checkpoints"} or not isinstance(journey.get("id"), str) or not journey["id"] or not isinstance(journey.get("title"), str):
             raise RunnerError("invalid extension journey")
         journey_id = journey["id"]
@@ -2302,6 +2309,8 @@ def load_extension_manifest(path: Path) -> dict[str, object]:
     size_pairs: set[tuple[int, int]] = set()
     narrow_sizes = {(40, 12), (60, 18)}
     for size in sizes:
+        if check_work is not None:
+            check_work()
         if not isinstance(size, dict) or set(size) != {"cols", "rows", "allow_narrow_fallback"} or type(size.get("cols")) is not int or type(size.get("rows")) is not int or size["cols"] < 1 or size["rows"] < 1 or not isinstance(size.get("allow_narrow_fallback"), bool):
             raise RunnerError("invalid extension terminal size")
         pair = (size["cols"], size["rows"])
@@ -2312,6 +2321,8 @@ def load_extension_manifest(path: Path) -> dict[str, object]:
         size_pairs.add(pair)
     if size_pairs != set(EXTENSION_SIZES):
         raise RunnerError("extension terminal-size inventory changed")
+    if check_work is not None:
+        check_work()
     if any(not isinstance(color, str) for color in colors) or len(set(colors)) != len(colors) or any(color not in {"truecolor", "256", "16", "none", "nocolor"} for color in colors):
         raise RunnerError("invalid or duplicate extension color mode")
     if tuple(colors) != EXTENSION_COLORS:
@@ -2319,6 +2330,8 @@ def load_extension_manifest(path: Path) -> dict[str, object]:
     generated_ids: set[str] = set()
     generated_combinations: set[tuple[str, int, int, str]] = set()
     for case in generated:
+        if check_work is not None:
+            check_work()
         if not isinstance(case, dict) or set(case) != {"id", "journey_id", "cols", "rows", "color_mode", "checkpoints"} or not isinstance(case.get("id"), str) or not case["id"].startswith(EXTENSION_CASE_PREFIX) or not isinstance(case.get("journey_id"), str):
             raise RunnerError("extension case ID is missing the reserved prefix")
         case_id = case["id"]
@@ -2351,37 +2364,72 @@ def load_extension_manifest(path: Path) -> dict[str, object]:
             raise RunnerError(f"invalid case checkpoint obligations: {case_id}")
         if case_checkpoints != allowed_checkpoints:
             raise RunnerError(f"extension case checkpoint obligations differ from exact journey checkpoints: {case_id}")
-    expected_combinations = {
-        (journey_id, width, height, color)
-        for journey_id in journey_ids
-        for width, height in EXTENSION_SIZES
-        for color in (("truecolor", "nocolor") if (width, height) in narrow_sizes else EXTENSION_COLORS)
-    }
+    expected_combinations = set()
+    for journey_id in journey_ids:
+        if check_work is not None:
+            check_work()
+        for width, height in EXTENSION_SIZES:
+            if check_work is not None:
+                check_work()
+            colors_for_size = ("truecolor", "nocolor") if (width, height) in narrow_sizes else EXTENSION_COLORS
+            for color in colors_for_size:
+                if check_work is not None:
+                    check_work()
+                expected_combinations.add((journey_id, width, height, color))
     if generated_combinations != expected_combinations:
         raise RunnerError(f"extension case matrix incomplete: missing={sorted(expected_combinations - generated_combinations)[:5]}, extra={sorted(generated_combinations - expected_combinations)[:5]}")
+    if check_work is not None:
+        check_work()
     return {**manifest, "generated_case_ids": sorted(generated_ids), "checkpoint_obligations": {case["id"]: case["checkpoints"] for case in generated}}
 
 
-def validate_extension_inventory(inventory: dict[str, bool], manifest: dict[str, object]) -> tuple[dict[str, bool], list[str]]:
+def validate_extension_inventory(
+    inventory: dict[str, bool],
+    manifest: dict[str, object],
+    *,
+    check_work: Callable[[], None] | None = None,
+) -> tuple[dict[str, bool], list[str]]:
+    if check_work is not None:
+        check_work()
     extension_ids = set(manifest["generated_case_ids"])
     if len(inventory) != EXPECTED_SCENARIOS + EXPECTED_ORDINARY_TESTS + len(extension_ids):
         raise RunnerError("registered inventory count differs from original inventory plus declared extensions")
-    extension_inventory = {name: inventory[name] for name in inventory if name in extension_ids}
+    extension_inventory = {}
+    for name, ignored in inventory.items():
+        if check_work is not None:
+            check_work()
+        if name in extension_ids:
+            extension_inventory[name] = ignored
     missing = extension_ids - set(extension_inventory)
     if missing:
         raise RunnerError(f"extension manifest cases missing from Nextest inventory: {sorted(missing)[:5]}")
     if any(not ignored for ignored in extension_inventory.values()):
         raise RunnerError("extension visual cases must be ignored Nextest scenarios")
-    original = {name: ignored for name, ignored in inventory.items() if name not in extension_ids}
+    original = {}
+    for name, ignored in inventory.items():
+        if check_work is not None:
+            check_work()
+        if name not in extension_ids:
+            original[name] = ignored
     if len(original) != EXPECTED_SCENARIOS + EXPECTED_ORDINARY_TESTS:
         raise RunnerError("extension IDs overlap or alter the original registered inventory")
-    scenarios = sum(original.values())
+    scenarios = 0
+    for ignored in original.values():
+        if check_work is not None:
+            check_work()
+        scenarios += int(ignored)
     ordinary = len(original) - scenarios
     if (scenarios, ordinary) != (EXPECTED_SCENARIOS, EXPECTED_ORDINARY_TESTS):
         raise RunnerError(f"original registered coverage changed: {scenarios} scenarios and {ordinary} ordinary")
+    if check_work is not None:
+        check_work()
+        ordered_extension_ids = []
+        for name in sorted(extension_ids):
+            check_work()
+            ordered_extension_ids.append(name)
+        check_work()
+        return original, ordered_extension_ids
     return original, sorted(extension_ids)
-
-
 def inventory_digest(inventory: dict[str, bool], *, check_work: Callable[[], None] | None = None) -> str:
     if check_work is None:
         serialized = json.dumps(sorted(inventory.items()), separators=(",", ":")).encode()
@@ -3174,9 +3222,13 @@ def scenario_chunks(
     return _scenario_chunks_for_reference_names(names, size, (REFERENCE_CASE,), check_work=check_work)
 
 
-def _visual_case_conditions(names: list[str]) -> dict[str, dict[str, object]]:
+def _visual_case_conditions(
+    names: list[str], *, check_work: Callable[[], None] | None = None
+) -> dict[str, dict[str, object]]:
     conditions: dict[str, dict[str, object]] = {}
     for name in names:
+        if check_work is not None:
+            check_work()
         parts = name.rsplit("::", 2)
         if len(parts) != 3 or not re.fullmatch(r"[0-9]+x[0-9]+", parts[1]) or parts[2] not in {"truecolor", "256", "16", "none", "nocolor"}:
             raise RunnerError(f"visual scenario does not encode a supported terminal size and color mode: {name}")
@@ -3184,9 +3236,9 @@ def _visual_case_conditions(names: list[str]) -> dict[str, dict[str, object]]:
         if cols < 1 or rows < 1:
             raise RunnerError(f"visual scenario encodes a zero-sized terminal: {name}")
         conditions[name] = {"cols": cols, "rows": rows, "color_mode": parts[2]}
+    if check_work is not None:
+        check_work()
     return conditions
-
-
 def _chunk_records(
     names: list[str], size: int, *, check_work: Callable[[], None] | None = None
 ) -> list[dict[str, object]]:
@@ -3212,21 +3264,50 @@ def build_fresh_plan_payload(
     term_profile: str | None,
     plan_id: str,
     created_at: str,
+    execution: PrepareExecution | None = None,
+    advance_budget_seconds: int = FRESH_PLAN_MAX_TIMEOUT,
 ) -> dict[str, object]:
+    check_work = execution.check_work if execution is not None else None
+    if type(advance_budget_seconds) is not int or not 1 <= advance_budget_seconds <= FRESH_PLAN_MAX_TIMEOUT:
+        raise RunnerError(f"fresh plan advance budget must be 1..{FRESH_PLAN_MAX_TIMEOUT} seconds")
+    if execution is not None and execution.work_budget != advance_budget_seconds:
+        raise RunnerError("fresh plan advance budget must equal the owned work budget")
+    if check_work is not None:
+        check_work()
     if not 1 <= chunk_size <= DEFAULT_CHUNK_SIZE:
         raise RunnerError(f"fresh plan chunk size must be 1..{DEFAULT_CHUNK_SIZE}")
-    original_inventory, extension_ids = validate_extension_inventory(inventory, extension_manifest)
-    require_inventory_matches(inventory, str(live_record.get("test_inventory_sha256")))
-    visual = sorted(name for name, ignored in inventory.items() if ignored)
-    source_only, baseline_cli = ordinary_test_groups(inventory)
+    if check_work is not None:
+        original_inventory, extension_ids = validate_extension_inventory(
+            inventory, extension_manifest, check_work=check_work
+        )
+        require_inventory_matches(
+            inventory, str(live_record.get("test_inventory_sha256")), check_work=check_work
+        )
+        visual = []
+        ordinary = []
+        for name, ignored in inventory.items():
+            check_work()
+            (visual if ignored else ordinary).append(name)
+        visual.sort()
+        source_only, baseline_cli = ordinary_test_groups(inventory, check_work=check_work)
+        conditions = _visual_case_conditions(visual, check_work=check_work)
+    else:
+        original_inventory, extension_ids = validate_extension_inventory(inventory, extension_manifest)
+        require_inventory_matches(inventory, str(live_record.get("test_inventory_sha256")))
+        visual = sorted(name for name, ignored in inventory.items() if ignored)
+        source_only, baseline_cli = ordinary_test_groups(inventory)
+        conditions = _visual_case_conditions(visual)
     if len(visual) != EXPECTED_SCENARIOS + len(extension_ids) or len(source_only) + len(baseline_cli) != EXPECTED_ORDINARY_TESTS:
         raise RunnerError("fresh plan selection is incomplete or includes a zero-case group")
-    conditions = _visual_case_conditions(visual)
+    if check_work is not None:
+        check_work()
     extension_obligations = extension_manifest["checkpoint_obligations"]
     if set(extension_obligations) != set(extension_ids):
         raise RunnerError("fresh plan extension checkpoint obligations are incomplete")
     obligations: dict[str, dict[str, object]] = {}
     for name in visual:
+        if check_work is not None:
+            check_work()
         if name in extension_obligations:
             obligations[name] = {"kind": "exact", "checkpoints": extension_obligations[name]}
         else:
@@ -3235,15 +3316,22 @@ def build_fresh_plan_payload(
                 "harness_sha256": live_record["module_sha256"],
                 "scenario_test_id": name,
             }
-    visual_chunks = _chunk_records(visual, chunk_size)
+    if check_work is not None:
+        visual_chunks = _chunk_records(visual, chunk_size, check_work=check_work)
+        source_chunks = _chunk_records(source_only, chunk_size, check_work=check_work)
+        cli_chunks = _chunk_records(baseline_cli, chunk_size, check_work=check_work)
+    else:
+        visual_chunks = _chunk_records(visual, chunk_size)
+        source_chunks = _chunk_records(source_only, chunk_size)
+        cli_chunks = _chunk_records(baseline_cli, chunk_size)
     phases = [
         {"name": "baseline-capture", "chunks": visual_chunks},
         {"name": "baseline-replay", "chunks": visual_chunks},
         {
             "name": "baseline-ordinary-checks",
             "groups": [
-                {"name": "source-only", "chunks": _chunk_records(source_only, chunk_size)},
-                {"name": "baseline-cli", "chunks": _chunk_records(baseline_cli, chunk_size)},
+                {"name": "source-only", "chunks": source_chunks},
+                {"name": "baseline-cli", "chunks": cli_chunks},
             ],
         },
     ]
@@ -3251,10 +3339,21 @@ def build_fresh_plan_payload(
     env = fresh_clean_env()
     env["CARGO_TARGET_DIR"] = str(root / "live-target")
     env["NEXTEST_EXPERIMENTAL_LIBTEST_JSON"] = "1"
+    if check_work is not None:
+        check_work()
+    effective_environment = fresh_environment_fingerprint(env)
+    if check_work is not None:
+        check_work()
+    if execution is None:
+        selected_tools = fresh_tool_observation(live, env)
+    else:
+        selected_tools = fresh_tool_observation(live, env, execution=execution)
+    if check_work is not None:
+        check_work()
     runtime_env = {
         "policy": "fresh-clean-env-with-explicit-runtime-allowlist",
-        "effective_environment": fresh_environment_fingerprint(env),
-        "selected_tools": fresh_tool_observation(live, env),
+        "effective_environment": effective_environment,
+        "selected_tools": selected_tools,
         "overrides": {
             "VISUAL_FULL": "1",
             "VISUAL_REVIEW": "0",
@@ -3270,11 +3369,75 @@ def build_fresh_plan_payload(
         "unknown_parent_environment_values_recorded": False,
     }
     source = root / "source"
-    live = root / "live-source"
     extension_path = repo / EXTENSION_MANIFEST
     patch_path = repo / "tools" / "frozen_cli_pair.patch"
     helper_path = repo / "tools" / "frozen-cli-frame-support" / "src" / "lib.rs"
     runner_path = Path(__file__).resolve()
+    if check_work is not None:
+        check_work()
+    if check_work is None:
+        source_sha = digest_source(source)
+        source_tree_sha = digest_tree(source)
+        cargo_lock_sha = sha256(source / "Cargo.lock")
+        toolchain_sha = sha256(source / "rust-toolchain.toml")
+        visual_tree_sha = digest_tree(source / "tests" / "visual_baseline")
+        snapshots_sha = digest_tree(source / "snapshots")
+        live_source_sha = digest_source(live)
+        live_visual_sha = digest_tree(live / "tests" / "visual_baseline")
+        runner_sha = sha256(runner_path)
+        patch_sha = sha256(patch_path)
+        helper_sha = sha256(helper_path)
+        extension_sha = sha256(extension_path)
+        extension_source_sha = sha256(repo / EXTENSION_SOURCE)
+        frozen_harness_sha = digest_tree(live / "tests" / "visual_baseline")
+        frozen_manifest_sha = sha256(root / "provenance.json")
+        live_manifest_sha = sha256(root / "live-source.json")
+    else:
+        source_sha = digest_source(source, check_work=check_work)
+        source_tree_sha = digest_tree(source, check_work=check_work)
+        cargo_lock_sha = sha256(source / "Cargo.lock", check_work=check_work)
+        toolchain_sha = sha256(source / "rust-toolchain.toml", check_work=check_work)
+        visual_tree_sha = digest_tree(source / "tests" / "visual_baseline", check_work=check_work)
+        snapshots_sha = digest_tree(source / "snapshots", check_work=check_work)
+        live_source_sha = digest_source(live, check_work=check_work)
+        live_visual_sha = digest_tree(live / "tests" / "visual_baseline", check_work=check_work)
+        runner_sha = sha256(runner_path, check_work=check_work)
+        patch_sha = sha256(patch_path, check_work=check_work)
+        helper_sha = sha256(helper_path, check_work=check_work)
+        extension_sha = sha256(extension_path, check_work=check_work)
+        extension_source_sha = sha256(repo / EXTENSION_SOURCE, check_work=check_work)
+        frozen_harness_sha = digest_tree(live / "tests" / "visual_baseline", check_work=check_work)
+        frozen_manifest_sha = sha256(root / "provenance.json", check_work=check_work)
+        live_manifest_sha = sha256(root / "live-source.json", check_work=check_work)
+    if check_work is not None:
+        full_sorted = []
+        for name in sorted(inventory):
+            check_work()
+            full_sorted.append({"name": name, "ignored": inventory[name]})
+        visual_original = []
+        for name, ignored in original_inventory.items():
+            check_work()
+            if ignored:
+                visual_original.append(name)
+        visual_original.sort()
+        ordinary_selected = []
+        for name, ignored in inventory.items():
+            check_work()
+            if not ignored:
+                ordinary_selected.append(name)
+        ordinary_selected.sort()
+    else:
+        full_sorted = [
+            {"name": name, "ignored": inventory[name]} for name in sorted(inventory)
+        ]
+        visual_original = sorted(
+            name for name, ignored in original_inventory.items() if ignored
+        )
+        ordinary_selected = sorted(
+            name for name, ignored in inventory.items() if not ignored
+        )
+    if check_work is not None:
+        check_work()
     payload: dict[str, object] = {
         "schema": FRESH_PLAN_SCHEMA,
         "schema_version": FRESH_PLAN_VERSION,
@@ -3289,25 +3452,25 @@ def build_fresh_plan_payload(
             "tree": BASELINE_TREE,
             "tuiscotti_rev": TUISCOTTI_REV,
             "source_path": str(source.resolve()),
-            "source_sha256": digest_source(source),
-            "source_tree_sha256": digest_tree(source),
-            "cargo_lock_sha256": sha256(source / "Cargo.lock"),
-            "rust_toolchain_sha256": sha256(source / "rust-toolchain.toml"),
-            "visual_test_tree_sha256": digest_tree(source / "tests" / "visual_baseline"),
-            "snapshots_sha256": digest_tree(source / "snapshots"),
+            "source_sha256": source_sha,
+            "source_tree_sha256": source_tree_sha,
+            "cargo_lock_sha256": cargo_lock_sha,
+            "rust_toolchain_sha256": toolchain_sha,
+            "visual_test_tree_sha256": visual_tree_sha,
+            "snapshots_sha256": snapshots_sha,
             "live_source_path": str(live.resolve()),
-            "live_source_sha256": digest_source(live),
-            "live_test_tree_sha256": digest_tree(live / "tests" / "visual_baseline"),
+            "live_source_sha256": live_source_sha,
+            "live_test_tree_sha256": live_visual_sha,
         },
         "runner_inputs": {
-            "runner_sha256": sha256(runner_path),
-            "harness_patch_sha256": sha256(patch_path),
-            "frame_helper_sha256": sha256(helper_path),
-            "extension_manifest_sha256": sha256(extension_path),
-            "extension_source_sha256": sha256(repo / EXTENSION_SOURCE),
-            "frozen_test_harness_sha256": digest_tree(live / "tests" / "visual_baseline"),
-            "frozen_source_manifest_sha256": sha256(root / "provenance.json"),
-            "live_source_manifest_sha256": sha256(root / "live-source.json"),
+            "runner_sha256": runner_sha,
+            "harness_patch_sha256": patch_sha,
+            "frame_helper_sha256": helper_sha,
+            "extension_manifest_sha256": extension_sha,
+            "extension_source_sha256": extension_source_sha,
+            "frozen_test_harness_sha256": frozen_harness_sha,
+            "frozen_source_manifest_sha256": frozen_manifest_sha,
+            "live_source_manifest_sha256": live_manifest_sha,
             "capture_decision_sha256": cohort["decision_sha256"],
             "capture_evidence_index_sha256": cohort["evidence_index_sha256"],
             "cohort_registry_sha256": cohort["cohort_registry_sha256"],
@@ -3316,12 +3479,12 @@ def build_fresh_plan_payload(
         },
         "runtime": runtime_env,
         "inventory": {
-            "sha256": inventory_digest(inventory),
-            "full_sorted": [{"name": name, "ignored": inventory[name]} for name in sorted(inventory)],
-            "visual_original": sorted(name for name, ignored in original_inventory.items() if ignored),
+            "sha256": inventory_digest(inventory, check_work=check_work) if check_work is not None else inventory_digest(inventory),
+            "full_sorted": full_sorted,
+            "visual_original": visual_original,
             "visual_extensions": extension_ids,
             "visual_selected": visual,
-            "ordinary_selected": sorted(name for name, ignored in inventory.items() if not ignored),
+            "ordinary_selected": ordinary_selected,
             "ordinary_source_only": source_only,
             "ordinary_baseline_cli": baseline_cli,
             "visual_count": len(visual),
@@ -3332,7 +3495,7 @@ def build_fresh_plan_payload(
             "checkpoint_obligations": obligations,
         },
         "execution": {
-            "timeout_seconds_per_advance": FRESH_PLAN_MAX_TIMEOUT,
+            "timeout_seconds_per_advance": advance_budget_seconds,
             "chunk_size": chunk_size,
             "phases": phases,
             "candidate_phase": None,
@@ -3348,12 +3511,40 @@ def build_fresh_plan_payload(
             "receipt_secret": "not stored in plan; generated only by a future per-step process and never passed to application env",
         },
     }
+    if check_work is not None:
+        check_work()
     plan = {**payload, "plan_sha256": canonical_json_digest(payload)}
-    validate_fresh_plan_document(plan)
+    if check_work is not None:
+        check_work()
+    if advance_budget_seconds == FRESH_PLAN_MAX_TIMEOUT:
+        if check_work is None:
+            validate_fresh_plan_document(plan)
+        else:
+            validate_fresh_plan_document(plan, check_work=check_work)
+    elif check_work is None:
+        validate_fresh_plan_document(
+            plan, expected_advance_budget=advance_budget_seconds
+        )
+    else:
+        validate_fresh_plan_document(
+            plan,
+            check_work=check_work,
+            expected_advance_budget=advance_budget_seconds,
+        )
+    if check_work is not None:
+        check_work()
     return plan
 
-
-def validate_fresh_plan_document(document: object, *, check_work: Callable[[], None] | None = None) -> dict[str, object]:
+def validate_fresh_plan_document(
+    document: object,
+    *,
+    check_work: Callable[[], None] | None = None,
+    expected_advance_budget: int = FRESH_PLAN_MAX_TIMEOUT,
+) -> dict[str, object]:
+    if type(expected_advance_budget) is not int or not 1 <= expected_advance_budget <= FRESH_PLAN_MAX_TIMEOUT:
+        raise RunnerError(f"fresh plan advance budget must be 1..{FRESH_PLAN_MAX_TIMEOUT} seconds")
+    if check_work is not None:
+        check_work()
     fields = {"schema", "schema_version", "status", "plan_id", "created_at_utc", "cohort", "source", "runner_inputs", "runtime", "inventory", "execution", "plan_sha256"}
     if not isinstance(document, dict) or set(document) != fields:
         raise RunnerError("fresh plan fields differ from schema version 1")
@@ -3437,7 +3628,12 @@ def validate_fresh_plan_document(document: object, *, check_work: Callable[[], N
     execution = document["execution"]
     if not isinstance(execution, dict) or set(execution) != {"timeout_seconds_per_advance", "chunk_size", "phases", "candidate_phase", "candidate_comparison_eligible", "checkpoint_reference_approval", "product_acceptance", "artifact_roots", "receipt_secret"} or execution.get("candidate_phase") is not None or execution.get("candidate_comparison_eligible") is not False or execution.get("checkpoint_reference_approval") != "none" or execution.get("product_acceptance") is not False:
         raise RunnerError("fresh plan execution scope enables a forbidden phase")
-    if type(execution.get("chunk_size")) is not int or not 1 <= execution["chunk_size"] <= DEFAULT_CHUNK_SIZE or execution.get("timeout_seconds_per_advance") != FRESH_PLAN_MAX_TIMEOUT:
+    if (
+        type(execution.get("chunk_size")) is not int
+        or not 1 <= execution["chunk_size"] <= DEFAULT_CHUNK_SIZE
+        or type(execution.get("timeout_seconds_per_advance")) is not int
+        or execution["timeout_seconds_per_advance"] != expected_advance_budget
+    ):
         raise RunnerError("fresh plan chunk or timeout bounds are invalid")
     if not isinstance(execution.get("phases"), list) or len(execution["phases"]) != 3 or any(not isinstance(phase, dict) for phase in execution["phases"]):
         raise RunnerError("fresh plan phase records are malformed")
@@ -3487,6 +3683,7 @@ def _read_self_sealed_plan(
     *,
     check_work: Callable[[], None] | None = None,
     directory_fd: int | None = None,
+    expected_advance_budget: int = FRESH_PLAN_MAX_TIMEOUT,
 ) -> dict[str, object]:
     if check_work is not None:
         check_work()
@@ -3541,7 +3738,14 @@ def _read_self_sealed_plan(
         raise RunnerError("fresh plan is not valid JSON") from error
     if check_work is not None:
         check_work()
-    result = validate_fresh_plan_document(parsed, check_work=check_work)
+    if expected_advance_budget == FRESH_PLAN_MAX_TIMEOUT:
+        result = validate_fresh_plan_document(parsed, check_work=check_work)
+    else:
+        result = validate_fresh_plan_document(
+            parsed,
+            check_work=check_work,
+            expected_advance_budget=expected_advance_budget,
+        )
     if check_work is not None:
         check_work()
     return result
@@ -3639,9 +3843,125 @@ def create_fresh_plan(
     return plan
 
 
-def verify_fresh_plan(repo: Path, root: Path, cohort_id: str, baseline_bin_dir: Path, timeout: int, expected_plan_sha256: str) -> dict[str, object]:
+def _verify_fresh_plan_owned(
+    repo: Path,
+    root: Path,
+    cohort_id: str,
+    baseline_bin_dir: Path,
+    timeout: int,
+    expected_plan_sha256: str,
+    execution: PrepareExecution,
+) -> dict[str, object]:
+    if cohort_id != PREPARE_LIVE_OWNED_COHORT:
+        raise RunnerError(
+            "--owned-lifecycle requires the pinned frozen-20261021-serial-nonincr-r1-r2 cohort"
+        )
+    if not isinstance(expected_plan_sha256, str) or not re.fullmatch(r"[0-9a-f]{64}", expected_plan_sha256):
+        raise RunnerError("owned fresh plan verification requires the externally retained creation digest")
+    check_work = execution.check_work
+    check_work()
+    root_binding = _owned_root_binding(root, check_work=check_work)
+    bound_root = Path(root_binding["plan_root_canonical_path"])
+    plan = _read_self_sealed_plan_at_root(
+        bound_root,
+        FRESH_PLAN_FILE,
+        expected_plan_sha256,
+        check_work=check_work,
+        expected_advance_budget=execution.work_budget,
+    )
+    if plan["cohort"].get("cohort_id") != cohort_id:
+        raise RunnerError("fresh plan belongs to another reviewed executable cohort")
+    check_work()
+    repo, resolved_root, source = paths(repo, bound_root)
+    if resolved_root != bound_root:
+        raise RunnerError("owned fresh plan root resolution changed")
+    _check_owned_root_binding(root_binding, check_work=check_work)
+
+    verify_source(resolved_root, source, check_work=check_work)
+    _check_owned_root_binding(root_binding, check_work=check_work)
+    capture = require_capture_eligible_cohort(
+        repo, cohort_id, baseline_bin_dir.resolve(), check_work=check_work
+    )
+    _check_owned_root_binding(root_binding, check_work=check_work)
+    live, live_record = verify_live_source(
+        repo,
+        resolved_root,
+        source,
+        timeout,
+        fresh_cohort_id=cohort_id,
+        baseline_bin_dir=baseline_bin_dir,
+        execution=execution,
+    )
+    _check_owned_root_binding(root_binding, check_work=check_work)
+    extension_manifest = load_extension_manifest(
+        repo / EXTENSION_MANIFEST, check_work=check_work
+    )
+    _check_owned_root_binding(root_binding, check_work=check_work)
+    env = fresh_clean_env()
+    env.update({"CARGO_TARGET_DIR": str(resolved_root / "live-target"), "NEXTEST_EXPERIMENTAL_LIBTEST_JSON": "1"})
+    check_work()
+    inventory = nextest_inventory(
+        live, timeout, env, extension_manifest, execution=execution
+    )
+    validate_extension_inventory(
+        inventory, extension_manifest, check_work=check_work
+    )
+    require_inventory_matches(
+        inventory, str(live_record.get("test_inventory_sha256")), check_work=check_work
+    )
+    _check_owned_root_binding(root_binding, check_work=check_work)
+    regenerated = build_fresh_plan_payload(
+        repo=repo,
+        root=resolved_root,
+        cohort=capture,
+        live_record=live_record,
+        inventory=inventory,
+        extension_manifest=extension_manifest,
+        chunk_size=plan["execution"]["chunk_size"],
+        term_profile=None
+        if plan["runtime"]["terminal_profile"]["profile"] == "harness-default"
+        else plan["runtime"]["terminal_profile"]["profile"],
+        plan_id=plan["plan_id"],
+        created_at=plan["created_at_utc"],
+        execution=execution,
+        advance_budget_seconds=execution.work_budget,
+    )
+    check_work()
+    if regenerated != plan:
+        raise RunnerError("fresh plan no longer matches source, tool, cohort, environment, or complete test inventory pins")
+    _check_owned_root_binding(root_binding, check_work=check_work)
+    success = json.dumps(
+        {
+            "plan_sha256": plan["plan_sha256"],
+            "creation_file_sha256": expected_plan_sha256,
+            "status": plan["status"],
+            "verified": True,
+        },
+        indent=2,
+    )
+    check_work()
+    print(success, flush=True)
+    check_work()
+    _check_owned_root_binding(root_binding, check_work=check_work)
+    return plan
+
+
+def verify_fresh_plan(
+    repo: Path,
+    root: Path,
+    cohort_id: str,
+    baseline_bin_dir: Path,
+    timeout: int,
+    expected_plan_sha256: str,
+    *,
+    execution: PrepareExecution | None = None,
+) -> dict[str, object]:
     if timeout > FRESH_PLAN_MAX_TIMEOUT:
         raise RunnerError(f"fresh plan verification timeout must be <= {FRESH_PLAN_MAX_TIMEOUT} seconds")
+    if execution is not None:
+        return _verify_fresh_plan_owned(
+            repo, root, cohort_id, baseline_bin_dir, timeout, expected_plan_sha256, execution
+        )
     repo, root, source = paths(repo, root)
     plan_path = root / FRESH_PLAN_FILE
     plan = _read_self_sealed_plan(plan_path, expected_plan_sha256)
@@ -3664,7 +3984,6 @@ def verify_fresh_plan(repo: Path, root: Path, cohort_id: str, baseline_bin_dir: 
         raise RunnerError("fresh plan no longer matches source, tool, cohort, environment, or complete test inventory pins")
     print(json.dumps({"plan_sha256": plan["plan_sha256"], "creation_file_sha256": expected_plan_sha256, "status": plan["status"], "verified": True}, indent=2))
     return plan
-
 
 def _open_directory_chain(path: Path) -> tuple[int, os.stat_result]:
     """Open a canonical directory path component-by-component without following links."""
@@ -3723,6 +4042,7 @@ def _read_self_sealed_plan_at_root(
     expected_sha256: str | None = None,
     *,
     check_work: Callable[[], None],
+    expected_advance_budget: int = FRESH_PLAN_MAX_TIMEOUT,
 ) -> dict[str, object]:
     relative = Path(filename)
     if not filename or relative.is_absolute() or relative.name != filename or filename in {".", ".."}:
@@ -3735,12 +4055,21 @@ def _read_self_sealed_plan_at_root(
             root_binding["plan_root_device"], root_binding["plan_root_inode"]
         ):
             raise RunnerError("fresh plan root directory identity changed before read")
-        plan = _read_self_sealed_plan(
-            canonical_root / filename,
-            expected_sha256,
-            check_work=check_work,
-            directory_fd=root_fd,
-        )
+        if expected_advance_budget == FRESH_PLAN_MAX_TIMEOUT:
+            plan = _read_self_sealed_plan(
+                canonical_root / filename,
+                expected_sha256,
+                check_work=check_work,
+                directory_fd=root_fd,
+            )
+        else:
+            plan = _read_self_sealed_plan(
+                canonical_root / filename,
+                expected_sha256,
+                check_work=check_work,
+                directory_fd=root_fd,
+                expected_advance_budget=expected_advance_budget,
+            )
     finally:
         os.close(root_fd)
     _check_owned_root_binding(root_binding, check_work=check_work)
@@ -4731,16 +5060,39 @@ def phase_receipts(run_root: Path, phase: str, selected: list[str], expected_roo
     return combined
 
 
-def ordinary_test_groups(inventory: dict[str, bool]) -> tuple[list[str], list[str]]:
-    selected = sorted(name for name, ignored in inventory.items() if not ignored)
+def ordinary_test_groups(
+    inventory: dict[str, bool], *, check_work: Callable[[], None] | None = None
+) -> tuple[list[str], list[str]]:
+    if check_work is not None:
+        check_work()
+    selected_unsorted = []
+    for name, ignored in inventory.items():
+        if check_work is not None:
+            check_work()
+        if not ignored:
+            selected_unsorted.append(name)
+    selected = sorted(selected_unsorted)
     if len(selected) != EXPECTED_ORDINARY_TESTS:
         raise RunnerError(f"ordinary test inventory changed: {len(selected)}; expected {EXPECTED_ORDINARY_TESTS}")
-    cli = sorted(name for name in selected if name == "isolation::env_isolation" or name.startswith(("modes::", "startup_input::", "startup_resize::")))
+    cli = []
+    for name in selected:
+        if check_work is not None:
+            check_work()
+        if name == "isolation::env_isolation" or name.startswith(("modes::", "startup_input::", "startup_resize::")):
+            cli.append(name)
+    cli = sorted(cli)
     if set(cli) != EXPECTED_CLI_ORDINARY_TESTS:
         raise RunnerError(f"CLI ordinary-check inventory changed: expected {sorted(EXPECTED_CLI_ORDINARY_TESTS)}, got {cli}")
+    if check_work is not None:
+        check_work()
+        source_only = []
+        for name in selected:
+            check_work()
+            if name not in EXPECTED_CLI_ORDINARY_TESTS:
+                source_only.append(name)
+        check_work()
+        return source_only, cli
     return [name for name in selected if name not in EXPECTED_CLI_ORDINARY_TESTS], cli
-
-
 def run_ordinary_checks(live: Path, root: Path, run_root: Path, inventory: dict[str, bool], baseline_bins: Path, candidate_bins: Path, timeout: int) -> dict[str, object]:
     source_only, cli = ordinary_test_groups(inventory)
     suites = (("source-only", source_only, None), ("baseline-cli", cli, baseline_bins), ("candidate-cli", cli, candidate_bins))
@@ -5211,6 +5563,8 @@ def parser() -> argparse.ArgumentParser:
     verify_plan.add_argument("--cohort", required=True)
     verify_plan.add_argument("--baseline-bin-dir", type=Path, required=True)
     verify_plan.add_argument("--expected-plan-sha256", required=True, help="digest retained from fresh-plan creation; self-digest alone is not an approval anchor")
+    verify_plan.add_argument("--owned-lifecycle", action="store_true", help="use one cancellation-safe deadline for pinned fresh-plan verification")
+    verify_plan.add_argument("--owned-budget", type=int, default=None, help="work seconds for --owned-lifecycle; default is the maximum owned work budget")
     fresh_run_init = sub.add_parser("fresh-run-init", help="create authenticated PREPARED metadata only; launches no application")
     fresh_run_init.add_argument("--cohort", required=True)
     fresh_run_init.add_argument("--baseline-bin-dir", type=Path, required=True)
@@ -5350,7 +5704,17 @@ def main() -> int:
         elif args.command == "fresh-plan":
             create_fresh_plan(args.repo, args.root, args.cohort, args.baseline_bin_dir, args.timeout, args.chunk_size, args.term_profile)
         elif args.command == "verify-fresh-plan":
-            verify_fresh_plan(args.repo, args.root, args.cohort, args.baseline_bin_dir, args.timeout, args.expected_plan_sha256)
+            if args.owned_lifecycle:
+                budget = PREPARE_OWNED_MAX_BUDGET if args.owned_budget is None else args.owned_budget
+                with PrepareExecution(budget) as execution:
+                    verify_fresh_plan(
+                        args.repo, args.root, args.cohort, args.baseline_bin_dir,
+                        args.timeout, args.expected_plan_sha256, execution=execution,
+                    )
+            elif args.owned_budget is not None:
+                raise RunnerError("--owned-budget requires --owned-lifecycle")
+            else:
+                verify_fresh_plan(args.repo, args.root, args.cohort, args.baseline_bin_dir, args.timeout, args.expected_plan_sha256)
         elif args.command == "fresh-run-init":
             create_fresh_run(args.repo, args.root, args.cohort, args.baseline_bin_dir, args.timeout, args.expected_plan_sha256, args.key_path)
         elif args.command == "fresh-run-verify":
