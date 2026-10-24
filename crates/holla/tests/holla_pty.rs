@@ -155,12 +155,23 @@ impl Pty {
 
     fn wait_for(&self, what: &str, mut cond: impl FnMut(&str) -> bool) {
         let start = Instant::now();
-        while !cond(&self.text()) {
-            assert!(
-                start.elapsed() < BOUND,
-                "timed out waiting for {what}; output: {:?}",
-                self.text()
-            );
+        loop {
+            let output = self.text();
+            if cond(&output) {
+                return;
+            }
+
+            if start.elapsed() >= BOUND {
+                // Re-read once at the deadline: the output may have advanced after
+                // the ordinary poll snapshot but before this timeout decision.
+                let final_output = self.text();
+                assert!(
+                    cond(&final_output),
+                    "timed out waiting for {what}; output: {final_output:?}"
+                );
+                return;
+            }
+
             std::thread::sleep(Duration::from_millis(20));
         }
     }
