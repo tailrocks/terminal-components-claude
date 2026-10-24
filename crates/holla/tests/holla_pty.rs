@@ -5,6 +5,7 @@ use std::fs::File;
 use std::io::{Read, Write};
 use std::os::fd::FromRawFd;
 use std::os::unix::process::CommandExt;
+use std::path::Path;
 use std::process::{Command, Stdio};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -45,6 +46,22 @@ struct Pty {
 
 impl Pty {
     fn spawn(args: &[&str], env: &[(&str, Option<&str>)], cols: u16, rows: u16) -> Self {
+        Self::spawn_program(
+            Path::new(env!("CARGO_BIN_EXE_holla")),
+            args,
+            env,
+            cols,
+            rows,
+        )
+    }
+
+    fn spawn_program(
+        program: &Path,
+        args: &[&str],
+        env: &[(&str, Option<&str>)],
+        cols: u16,
+        rows: u16,
+    ) -> Self {
         let mut master: c_int = -1;
         let mut slave: c_int = -1;
         let win = Winsize {
@@ -73,7 +90,7 @@ impl Pty {
         let slave_in = unsafe { File::from_raw_fd(slave) };
         let slave_out = slave_in.try_clone().unwrap();
         let slave_err = slave_in.try_clone().unwrap();
-        let mut cmd = Command::new(env!("CARGO_BIN_EXE_holla"));
+        let mut cmd = Command::new(program);
         cmd.args(args)
             .env("TERM", "xterm-256color")
             .env("COLORTERM", "truecolor")
@@ -105,8 +122,7 @@ impl Pty {
         let child = match cmd.spawn() {
             Ok(child) => child,
             Err(error) => panic!(
-                "spawn holla on the pty: {error:?}; command: {:?}; args: {args:?}; terminal dimensions: {cols}x{rows}",
-                env!("CARGO_BIN_EXE_holla"),
+                "spawn child on the pty: {error:?}; command: {program:?}; args: {args:?}; terminal dimensions: {cols}x{rows}",
             ),
         };
         drop(cmd);
@@ -633,4 +649,200 @@ fn normal_session_off_never_queries_or_pushes() {
     assert_eq!(wire_count(&output, PRIMARY_DEVICE_ATTRIBUTES_QUERY), 0);
     assert_eq!(wire_count(&output, &push), 0);
     assert_terminal_restore_order(&output, false);
+}
+
+const R11_ESC: termrock::ActionKey = termrock::ActionKey::custom("holla.r11.escape");
+const R11_X: termrock::ActionKey = termrock::ActionKey::custom("holla.r11.x");
+const R11_ALT_X: termrock::ActionKey = termrock::ActionKey::custom("holla.r11.alt_x");
+const R11_FINISH: termrock::ActionKey = termrock::ActionKey::custom("holla.r11.finish");
+
+struct RawBridgeDispatch {
+    actions: Arc<Mutex<Vec<&'static str>>>,
+    quit: bool,
+}
+
+impl termrock::App for RawBridgeDispatch {
+    fn update(&mut self, cx: &mut termrock::Cx<'_>) -> termrock::Response<()> {
+        let Some(command) = cx.command() else {
+            return termrock::Response::ignored();
+        };
+        let action = match command {
+            R11_ESC => "ESC",
+            R11_X => "X",
+            R11_ALT_X => "ALT_X",
+            R11_FINISH => {
+                self.quit = true;
+                "FINISH"
+            }
+            _ => return termrock::Response::ignored(),
+        };
+        self.actions.lock().expect("R11 action log").push(action);
+        termrock::Response::changed()
+    }
+
+    fn draw(&self, ui: &mut termrock::Ui<'_>) {
+        let area = ui.full();
+        ui.paint_str(
+            termrock::Rect::new(area.x, area.y, area.width, 1),
+            "R11_READY",
+            termrock::Style::default(),
+        );
+        let actions = self.actions.lock().expect("R11 action log").clone();
+        if !actions.is_empty() {
+            let marker = format!("A11_ACTIONS={actions:?}");
+            ui.paint_str(
+                termrock::Rect::new(area.x, area.y.saturating_add(1), area.width, 1),
+                &marker,
+                termrock::Style::default(),
+            );
+        }
+    }
+
+    fn should_quit(&self) -> bool {
+        self.quit
+    }
+
+    fn keymap(&self) -> &termrock::KeyMap {
+        static KEYMAP: std::sync::OnceLock<termrock::KeyMap> = std::sync::OnceLock::new();
+        KEYMAP.get_or_init(|| {
+            termrock::KeyMap::new()
+                .bind(
+                    termrock::KeyPhase::Capture,
+                    termrock::Chord::key(termrock::KeyCode::Esc),
+                    R11_ESC,
+                )
+                .bind(
+                    termrock::KeyPhase::Capture,
+                    termrock::Chord::key(termrock::KeyCode::Char('x')),
+                    R11_X,
+                )
+                .bind(
+                    termrock::KeyPhase::Capture,
+                    termrock::Chord::with(
+                        termrock::KeyCode::Char('x'),
+                        termrock::KeyModifiers::ALT,
+                    ),
+                    R11_ALT_X,
+                )
+                .bind(
+                    termrock::KeyPhase::Capture,
+                    termrock::Chord::with(
+                        termrock::KeyCode::Char('q'),
+                        termrock::KeyModifiers::CONTROL,
+                    ),
+                    R11_FINISH,
+                )
+        })
+    }
+}
+
+fn raw_dispatch_child() -> Pty {
+    let executable = std::env::current_exe().expect("integration-test executable path");
+    let args = [
+        "--exact",
+        "raw_keyboard_dispatch_fixture",
+        "--ignored",
+        "--nocapture",
+        "--test-threads=1",
+    ];
+    let env = [
+        ("TERMROCK_KEYBOARD_PROTOCOL", Some("off")),
+        ("JUNIE_TUI_KEYBOARD_PROTOCOL", None),
+    ];
+    Pty::spawn_program(&executable, &args, &env, 100, 30)
+}
+
+fn finish_raw_dispatch_child(mut pty: Pty, expected: &[&str], sent: &[u8]) {
+    let expected_line = format!("R11_ACTIONS={expected:?}");
+    pty.send(&[0x11]);
+    pty.wait_for("the complete expected action summary", |text| {
+        text.contains(&expected_line)
+    });
+    let code = pty.wait_exit();
+    let output = pty.text();
+    assert_eq!(
+        code, 0,
+        "fixture exit for raw bytes {sent:?}; output: {output:?}"
+    );
+
+    assert!(
+        output.contains(&expected_line),
+        "raw bytes {sent:?} should dispatch {expected_line}; actual output: {output:?}"
+    );
+    let push = termrock::core::keys::keyboard::push(termrock::core::keys::keyboard::FLAGS);
+    for (sequence, label) in [
+        (KEYBOARD_QUERY, "keyboard flags query"),
+        (push.as_str(), "keyboard protocol push"),
+        (KEYBOARD_POP, "keyboard protocol pop"),
+        (PRIMARY_DEVICE_ATTRIBUTES_QUERY, "DA query"),
+    ] {
+        assert!(
+            !output.contains(sequence),
+            "Off fixture emitted {label} for raw bytes {sent:?}; output: {output:?}"
+        );
+    }
+    assert_terminal_restore_order(&output, false);
+    let restore = output
+        .rfind(LEAVE_ALTERNATE_SCREEN)
+        .expect("normal Session alternate-screen restoration");
+    let summary = output
+        .rfind("R11_ACTIONS=")
+        .expect("post-session action summary");
+    assert!(
+        restore < summary,
+        "action summary follows Session restoration for raw bytes {sent:?}; output: {output:?}"
+    );
+}
+
+#[test]
+fn raw_esc_and_alt_x_streams_dispatch_through_fresh_normal_sessions() {
+    let mut separate = raw_dispatch_child();
+    separate.wait_for("the fixture's first presented frame", |text| {
+        text.contains("R11_READY")
+    });
+    separate.send(b"\x1b");
+    separate.wait_for("the Esc command's presented acknowledgment", |text| {
+        text.contains("A11_ACTIONS=[\"ESC\"]")
+    });
+    separate.send(b"x");
+    finish_raw_dispatch_child(separate, &["ESC", "X", "FINISH"], &[0x1b, b'x', 0x11]);
+
+    let mut single_prefix = raw_dispatch_child();
+    single_prefix.wait_for("the fixture's first presented frame", |text| {
+        text.contains("R11_READY")
+    });
+    single_prefix.send(&[0x1b, b'x']);
+    finish_raw_dispatch_child(single_prefix, &["ALT_X", "FINISH"], &[0x1b, b'x', 0x11]);
+
+    let mut doubled_prefix = raw_dispatch_child();
+    doubled_prefix.wait_for("the fixture's first presented frame", |text| {
+        text.contains("R11_READY")
+    });
+    doubled_prefix.send(&[0x1b, 0x1b, b'x']);
+    finish_raw_dispatch_child(
+        doubled_prefix,
+        &["ESC", "ALT_X", "FINISH"],
+        &[0x1b, 0x1b, b'x', 0x11],
+    );
+}
+
+#[test]
+#[ignore = "fresh-child fixture for the raw keyboard bridge PTY contract"]
+fn raw_keyboard_dispatch_fixture() {
+    assert_eq!(
+        std::env::var("TERMROCK_KEYBOARD_PROTOCOL").unwrap_or_default(),
+        "off"
+    );
+    assert!(
+        std::env::var_os("JUNIE_TUI_KEYBOARD_PROTOCOL").is_none(),
+        "the child must not inherit a conflicting keyboard policy"
+    );
+
+    let actions = Arc::new(Mutex::new(Vec::new()));
+    let app = RawBridgeDispatch {
+        actions: Arc::clone(&actions),
+        quit: false,
+    };
+    termrock::run(app, termrock::Theme::junie()).expect("normal Session run");
+    println!("R11_ACTIONS={:?}", *actions.lock().expect("R11 action log"));
 }
