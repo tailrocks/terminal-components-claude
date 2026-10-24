@@ -235,3 +235,171 @@ pub(super) fn assert_historical_returning_paper_replay() {
 fn jackin_returning_100x30_paper_truecolor_gutter_replay_matches_held_frame() {
     assert_historical_returning_paper_replay();
 }
+
+pub(super) fn is_historical_returning_paper_mono_case(
+    scenario: Scenario,
+    width: u16,
+    height: u16,
+    theme: &Theme,
+    color: ColorLevel,
+) -> bool {
+    scenario == Scenario::Returning
+        && (width, height) == (100, 30)
+        && *theme == Theme::paper()
+        && color == ColorLevel::Mono
+}
+
+const PAPER_MONO_PRIMARY_POSITIONS: [(u16, u16); 2] = [(4, 24), (4, 25)];
+const CURRENT_PAPER_MONO_PRIMARY_DEBUG: &str = r#"Cell { symbol: Some(" "), fg: Black, bg: Black, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }"#;
+const HISTORICAL_PAPER_MONO_PRIMARY_DEBUG: &str = r#"Cell { symbol: Some(" "), fg: White, bg: Black, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }"#;
+
+fn apply_historical_paper_mono_primary_gutter_recipe(harness: &mut Harness<App>) {
+    let mut theme = harness.runtime().theme().clone();
+    theme.design.glyphs.set(GlyphRole::SwitchOff, " ");
+
+    let button = theme.recipes.get_mut(Family::BUTTON);
+    assert_eq!(
+        button.default_variant,
+        Variant::SECONDARY,
+        "Paper's ordinary button default remains SECONDARY"
+    );
+    let primary_parts = button.variant_mut(Variant::PRIMARY);
+    assert!(
+        primary_parts.get(Part::GUTTER).is_some(),
+        "Paper primary button keeps its authored gutter state rules"
+    );
+    let primary_gutter = primary_parts.entry(Part::GUTTER);
+    primary_gutter.glyph = Slot::Set(GlyphRole::SwitchOff);
+    primary_gutter.base = StylePatch::new()
+        .set_fg(Role::OnAccent)
+        .set_bg(Role::Accent)
+        .add(Modifier::BOLD);
+
+    harness.runtime_mut().set_theme(theme);
+    harness.draw();
+}
+
+fn assert_current_paper_mono_primary_gutter(buffer: &Buffer) {
+    for &position in &PAPER_MONO_PRIMARY_POSITIONS {
+        assert_complete_cell_tuple(
+            buffer,
+            position,
+            Color::Black,
+            Color::Black,
+            Modifier::empty(),
+            CURRENT_PAPER_MONO_PRIMARY_DEBUG,
+            "current Paper Mono primary gutter",
+        );
+    }
+}
+
+fn assert_paper_mono_primary_pair(current: &Buffer, historical: &Buffer) {
+    assert_eq!(current.area, Rect::new(0, 0, 100, 30));
+    assert_eq!(historical.area, current.area);
+    assert_eq!(
+        u32::from(current.area.width).checked_mul(u32::from(current.area.height)),
+        Some(3_000)
+    );
+
+    for y in 0..current.area.height {
+        for x in 0..current.area.width {
+            let current_cell = cell_at(current, x, y);
+            let historical_cell = cell_at(historical, x, y);
+            let position = (x, y);
+            if PAPER_MONO_PRIMARY_POSITIONS.contains(&position) {
+                assert_ne!(
+                    current_cell, historical_cell,
+                    "Paper Mono primary gutter must be a measured change at ({x}, {y})"
+                );
+                assert_complete_cell_tuple(
+                    current,
+                    position,
+                    Color::Black,
+                    Color::Black,
+                    Modifier::empty(),
+                    CURRENT_PAPER_MONO_PRIMARY_DEBUG,
+                    "current Paper Mono primary gutter",
+                );
+                assert_complete_cell_tuple(
+                    historical,
+                    position,
+                    Color::White,
+                    Color::Black,
+                    Modifier::BOLD,
+                    HISTORICAL_PAPER_MONO_PRIMARY_DEBUG,
+                    "historical Paper Mono primary gutter",
+                );
+            } else {
+                assert_eq!(
+                    current_cell, historical_cell,
+                    "logical/native Paper Mono Cell changed outside the two measured primary gutters at ({x}, {y})"
+                );
+                assert_eq!(
+                    format!("{current_cell:?}"),
+                    format!("{historical_cell:?}"),
+                    "native Paper Mono Cell Debug changed outside the two measured primary gutters at ({x}, {y})"
+                );
+            }
+        }
+    }
+}
+
+pub(super) fn assert_historical_returning_paper_mono_replay() {
+    let app = App::for_scenario(Scenario::Returning, Motion::Paused);
+    let mut harness = Harness::new(app, Theme::paper(), 100, 30).with_color(ColorLevel::Mono);
+    harness.draw();
+    assert_eq!(
+        harness.runtime().theme().capability.color,
+        ColorLevel::Mono,
+        "actual Runtime capability is Mono before historical adaptation"
+    );
+    assert_returning_paper_context(&harness, "ordinary current frame");
+
+    let current_scene = harness.snapshot().named(Scenario::Returning.name());
+    assert_eq!(current_scene.key(), "returning 100 30 paper mono");
+    assert_eq!(
+        format!("{:016x}", current_scene.digest()),
+        "f6dd49a7500b69b0",
+        "unadapted current Paper Mono frame is asserted before historical recipe application"
+    );
+
+    let current = harness.buffer().clone();
+    let current_cursor = harness.cursor();
+    let current_cursor_bar = harness.cursor_bar();
+    let current_focus = harness.runtime().focus();
+    assert_eq!(current.area, Rect::new(0, 0, 100, 30));
+    assert_eq!(current_cursor, None);
+    assert!(!current_cursor_bar);
+    assert!(
+        current_focus.is_some(),
+        "current Paper Mono frame retains its actual focused owner"
+    );
+    assert_current_paper_mono_primary_gutter(&current);
+
+    apply_historical_paper_mono_primary_gutter_recipe(&mut harness);
+    assert_eq!(
+        harness.runtime().theme().capability.color,
+        ColorLevel::Mono,
+        "historical recipe redraw keeps the actual Runtime capability Mono"
+    );
+    assert_returning_paper_context(&harness, "historical recipe frame");
+    let historical = harness.buffer().clone();
+    assert_eq!(harness.cursor(), current_cursor);
+    assert_eq!(harness.cursor_bar(), current_cursor_bar);
+    assert_eq!(harness.runtime().focus(), current_focus);
+    assert_paper_mono_primary_pair(&current, &historical);
+
+    let historical_scene = harness.snapshot().named(Scenario::Returning.name());
+    assert_eq!(historical_scene.key(), "returning 100 30 paper mono");
+    assert_eq!(
+        format!("{:016x}", historical_scene.digest()),
+        "ff946d9c5f14b514",
+        "held digest is checked only after current tuples and the full-cell pair proof"
+    );
+    historical_scene.assert_against(&BASELINE);
+}
+
+#[test]
+fn jackin_returning_100x30_paper_mono_primary_gutter_replay_matches_held_key() {
+    assert_historical_returning_paper_mono_replay();
+}

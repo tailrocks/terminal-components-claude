@@ -382,6 +382,12 @@ fn jackin_visual_baseline() {
                         paper_replay::assert_historical_returning_paper_replay();
                         continue;
                     }
+                    if paper_replay::is_historical_returning_paper_mono_case(
+                        scenario, width, height, &theme, color,
+                    ) {
+                        paper_replay::assert_historical_returning_paper_mono_replay();
+                        continue;
+                    }
                     if is_historical_returning_case(scenario, width, height, &theme, color) {
                         assert_historical_returning_replay();
                         continue;
