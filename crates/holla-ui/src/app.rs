@@ -32,6 +32,7 @@ const MENU: Id = Id::root("holla.menu");
 const STRIP: Id = Id::root("holla.activities");
 const FOOTER: Id = Id::root("holla.footer");
 const PARITY_BROWSER_STATUS: Id = Id::root("holla.status.parity-browser");
+const PARITY_FILES_STATUS: Id = Id::root("holla.status.parity-files");
 const HELP: ActionKey = ActionKey::application("holla.help");
 const ABOUT: ActionKey = ActionKey::application("holla.about");
 const QUIT: ActionKey = ActionKey::application("holla.quit");
@@ -498,6 +499,33 @@ fn draw_parity_browser_status(ui: &mut Ui<'_>, area: Rect) {
         .draw(ui, area);
 }
 
+/// Tag parity-files status at 80–159 columns: cwd, then the size label. No branch.
+fn draw_parity_files_status(ui: &mut Ui<'_>, area: Rect) {
+    if area.is_empty() {
+        return;
+    }
+    let screen = ui.full();
+    let size = format!(
+        "{} · {}×{}",
+        ui.theme_ref().capability.color.label(),
+        screen.width,
+        screen.height
+    );
+    let left = [StatusItem::new("~/work/notes")
+        .tone(Role::Custom(STATUS_FG))
+        .strong()];
+    let right = [StatusItem::new(&size).tone(Role::Custom(STATUS_GREY))];
+    let patch = StylePatch::new()
+        .set_fg(Role::Custom(STATUS_FG))
+        .set_bg(Role::Custom(STATUS_BG))
+        .remove(termrock::Modifier::BOLD);
+    StatusBar::new(PARITY_FILES_STATUS)
+        .left(&left)
+        .right(&right)
+        .patch(&patch)
+        .draw(ui, area);
+}
+
 /// Retained oracle for the ParityBrowser status before StatusBar owned its paint.
 #[cfg(test)]
 fn paint_legacy_parity_browser_status(ui: &mut Ui<'_>, area: Rect) {
@@ -594,8 +622,9 @@ fn paint_parity_git_batch_status(ui: &mut Ui<'_>, area: Rect) {
     let _ = paint_size_label(ui, area);
 }
 
-/// Tag parity-files status at 80×24, 100×30, and 120×40: cwd, then the size label. No branch.
-fn paint_parity_files_status(ui: &mut Ui<'_>, area: Rect) {
+/// Retained oracle for the ParityFiles status before StatusBar owned its paint.
+#[cfg(test)]
+fn paint_legacy_parity_files_status(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
         return;
     }
@@ -1907,7 +1936,7 @@ impl App {
         } else if parity_history_tag_plate(&self.world, ui.full().width, ui.full().height) {
             paint_parity_history_status(ui, status);
         } else if parity_files_tag_plate(&self.world, ui.full().width, ui.full().height) {
-            paint_parity_files_status(ui, status);
+            draw_parity_files_status(ui, status);
         } else if parity_browser_tag_plate(&self.world, ui.full().width, ui.full().height) {
             draw_parity_browser_status(ui, status);
         } else if parity_git_current_tag_plate(&self.world, ui.full().width, ui.full().height) {
@@ -3054,6 +3083,21 @@ mod tests {
         .with_color(color)
     }
 
+    fn parity_files_harness(
+        theme: Theme,
+        width: u16,
+        height: u16,
+        color: termrock::ColorLevel,
+    ) -> Harness<App> {
+        harness(
+            App::for_scenario_without_history(Scenario::ParityFiles, Motion::Paused, 80),
+            theme,
+            width,
+            height,
+        )
+        .with_color(color)
+    }
+
     #[test]
     fn parity_browser_statusbar_matches_retained_native_cells_across_the_real_gate() {
         let colors = [
@@ -3209,6 +3253,227 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn parity_files_statusbar_matches_retained_native_cells_across_the_real_gate() {
+        let colors = [
+            termrock::ColorLevel::TrueColor,
+            termrock::ColorLevel::Ansi256,
+            termrock::ColorLevel::Ansi16,
+            termrock::ColorLevel::Mono,
+        ];
+        for (theme_name, theme) in [("Junie", Theme::junie()), ("Paper", Theme::paper())] {
+            for color in colors {
+                for (width, height) in [(80, 24), (100, 30), (120, 40), (159, 40)] {
+                    let actual = parity_files_harness(theme.clone(), width, height, color);
+                    assert_eq!(actual.app().world.now_ms(), 80);
+                    assert!(catalogue::parity_files_tag_frame(&actual.app().world));
+                    assert!(parity_files_tag_plate(&actual.app().world, width, height));
+                    assert!(matches!(actual.app().route, Route::Home));
+
+                    let mut retained = Scene::new(
+                        "retained ParityFiles status row",
+                        theme.clone(),
+                        color,
+                        width,
+                        height,
+                    );
+                    let status = Rect::new(0, height.saturating_sub(2), width, 1);
+                    retained.draw(|ui, _full| paint_legacy_parity_files_status(ui, status));
+
+                    for x in status.x..status.right() {
+                        let y = status.y;
+                        let actual_cell = actual
+                            .buffer()
+                            .cell((x, y))
+                            .expect("actual App status cell is inside its frame");
+                        let retained_cell = retained
+                            .buffer()
+                            .cell((x, y))
+                            .expect("retained status cell is inside its frame");
+                        assert_eq!(
+                            actual_cell, retained_cell,
+                            "status cell ({x},{y}); {theme_name} {color:?} {width}x{height}"
+                        );
+                        assert_eq!(
+                            format!("{actual_cell:?}"),
+                            format!("{retained_cell:?}"),
+                            "Cell Debug ({x},{y}); {theme_name} {color:?} {width}x{height}"
+                        );
+                    }
+                    assert!(
+                        actual.diagnostics().is_empty(),
+                        "unexpected diagnostics for {theme_name}/{color:?}/{width}x{height}: {:?}",
+                        actual.diagnostics()
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn parity_files_statusbar_preserves_native_cells_outside_nested_offset_clip() {
+        let width = 80;
+        let height = 24;
+        let theme = Theme::paper();
+        let color = termrock::ColorLevel::Ansi16;
+        let area = Rect::new(5, 5, 70, 1);
+        let outer_clip = Rect::new(7, 5, 66, 1);
+        let inner_clip = Rect::new(9, 5, 55, 1);
+        let mut actual = Scene::new("StatusBar nested clip", theme.clone(), color, width, height);
+        let mut actual_seed = None;
+        actual.draw_over(
+            |buffer| {
+                for y in 0..height {
+                    for x in 0..width {
+                        let cell = buffer
+                            .cell_mut((x, y))
+                            .expect("actual sentinel cell is inside its frame");
+                        cell.set_symbol("S");
+                        cell.fg = Color::Rgb(1, 2, 3);
+                        cell.bg = Color::Rgb(4, 5, 6);
+                        cell.modifier = termrock::Modifier::BOLD;
+                    }
+                }
+                actual_seed = Some(buffer.clone());
+            },
+            |ui, _full| {
+                ui.with_area(outer_clip, |ui| {
+                    ui.with_area(inner_clip, |ui| draw_parity_files_status(ui, area));
+                });
+            },
+        );
+        let actual_seed = actual_seed.expect("actual full-frame sentinel was captured");
+
+        let mut retained = Scene::new("retained status nested clip", theme, color, width, height);
+        let mut retained_seed = None;
+        retained.draw_over(
+            |buffer| {
+                for y in 0..height {
+                    for x in 0..width {
+                        let cell = buffer
+                            .cell_mut((x, y))
+                            .expect("retained sentinel cell is inside its frame");
+                        cell.set_symbol("S");
+                        cell.fg = Color::Rgb(1, 2, 3);
+                        cell.bg = Color::Rgb(4, 5, 6);
+                        cell.modifier = termrock::Modifier::BOLD;
+                    }
+                }
+                retained_seed = Some(buffer.clone());
+            },
+            |ui, _full| {
+                ui.with_area(outer_clip, |ui| {
+                    ui.with_area(inner_clip, |ui| {
+                        paint_legacy_parity_files_status(ui, area);
+                    });
+                });
+            },
+        );
+        let retained_seed = retained_seed.expect("retained full-frame sentinel was captured");
+
+        for y in 0..height {
+            for x in 0..width {
+                let actual_cell = actual
+                    .buffer()
+                    .cell((x, y))
+                    .expect("actual clipped cell is inside its frame");
+                let retained_cell = retained
+                    .buffer()
+                    .cell((x, y))
+                    .expect("retained clipped cell is inside its frame");
+                assert_eq!(actual_cell, retained_cell, "cell at ({x},{y})");
+                assert_eq!(
+                    format!("{actual_cell:?}"),
+                    format!("{retained_cell:?}"),
+                    "complete Cell Debug at ({x},{y})"
+                );
+                let inside_clip = x >= inner_clip.x
+                    && x < inner_clip.right()
+                    && y >= inner_clip.y
+                    && y < inner_clip.bottom();
+                if !inside_clip {
+                    assert_eq!(
+                        actual_cell,
+                        actual_seed
+                            .cell((x, y))
+                            .expect("actual seed cell is inside its frame"),
+                        "StatusBar changed a cell outside the nested clip at ({x},{y})"
+                    );
+                    assert_eq!(
+                        retained_cell,
+                        retained_seed
+                            .cell((x, y))
+                            .expect("retained seed cell is inside its frame"),
+                        "retained painter changed a cell outside the nested clip at ({x},{y})"
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn parity_files_status_route_keeps_real_files_preview_controls() {
+        let mut harness =
+            parity_files_harness(Theme::junie(), 80, 24, termrock::ColorLevel::TrueColor);
+        assert!(matches!(harness.app().route, Route::Home));
+        assert_eq!(harness.app().world.now_ms(), 80);
+        assert!(catalogue::parity_files_tag_frame(&harness.app().world));
+        assert!(parity_files_tag_plate(&harness.app().world, 80, 24));
+
+        let _ = harness.key(KeyCode::F(4));
+        assert!(harness.text().contains("Folder browser"));
+        assert!(harness.text().contains("Directory"));
+        let browse = Dialog::new(dialogs::DIALOG).action_id(1);
+        assert!(
+            harness.tab_to(browse),
+            "Browse action must be a real dialog owner"
+        );
+        let _ = harness.key(KeyCode::Enter);
+        assert!(matches!(harness.app().route, Route::Files));
+        assert_eq!(harness.focus(), Some(files::LIST));
+        assert_eq!(harness.app().world.now_ms(), 80);
+        assert!(catalogue::parity_files_tag_frame(&harness.app().world));
+        assert!(parity_files_tag_plate(&harness.app().world, 80, 24));
+
+        let cwd = harness.app().world.cwd.clone();
+        let revision = harness.app().world.effect_revision;
+        let selected_path = format!("{cwd}/README.md");
+        let row = PartRef::item(Part::ROW, ItemKey::text(&selected_path));
+        assert!(harness.area_of_part(files::LIST, row).is_some());
+        assert!(harness.text().contains("~/work/notes"));
+        let _ = harness.click_part(files::LIST, row);
+        assert_eq!(
+            harness.app().files.selected_path(),
+            Some(selected_path.as_str())
+        );
+        assert_eq!(harness.focus(), Some(files::LIST));
+
+        let _ = harness.key(KeyCode::Right);
+        assert!(matches!(harness.app().route, Route::Files));
+        assert_eq!(
+            harness.app().files.preview_path(),
+            Some(selected_path.as_str())
+        );
+        assert_eq!(harness.focus(), Some(files::PREVIEW));
+        assert!(harness.text().contains("Simulated workspace"));
+
+        let _ = harness.key(KeyCode::Esc);
+        assert!(matches!(harness.app().route, Route::Files));
+        assert_eq!(harness.app().files.preview_path(), None);
+        assert_eq!(
+            harness.app().files.selected_path(),
+            Some(selected_path.as_str())
+        );
+        assert_eq!(harness.focus(), Some(files::LIST));
+        assert_eq!(harness.app().world.cwd, cwd);
+        assert_eq!(harness.app().world.effect_revision, revision);
+        assert!(
+            harness.diagnostics().is_empty(),
+            "{:?}",
+            harness.diagnostics()
+        );
     }
 
     #[test]
