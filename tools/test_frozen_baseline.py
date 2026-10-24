@@ -685,6 +685,118 @@ class RunnerGuards(unittest.TestCase):
         runner.validate_reference_receipts({key: strict}, selected, "baseline-check", decision, runner.REFERENCE_DECISIONS_SHA256)
         runner.validate_reference_receipts({key: strict}, selected, "candidate-check", decision, runner.REFERENCE_DECISIONS_SHA256)
 
+    @staticmethod
+    def _synthetic_reference_decision(test_id: str, case_id: str, ansi_sha256: str, semantic_sha256: str) -> dict[str, object]:
+        """Build validator-only fixture data; this is not a production pin."""
+        return {
+            "tuple": {"test_id": test_id, "case_id": case_id, "ordinal": 0, "logical_name": f"{case_id}/frame"},
+            "live_frame": {"ansi_sha256": ansi_sha256, "semantic_frame_sha256": semantic_sha256},
+        }
+
+    def test_synthetic_two_pin_receipts_validate_each_selected_pin_collectively(self) -> None:
+        decisions = [
+            self._synthetic_reference_decision("fixture::a", "fixture/a", "a" * 64, "b" * 64),
+            self._synthetic_reference_decision("fixture::b", "fixture/b", "c" * 64, "d" * 64),
+        ]
+        decision_hash = "e" * 64
+        for index, decision in enumerate(decisions):
+            reference = decision["tuple"]
+            selector = reference["test_id"] if index == 0 else reference["case_id"]
+            selected = [selector]
+            key = (reference["case_id"], reference["ordinal"], reference["logical_name"])
+            frame = decision["live_frame"]
+            capture = {key: (frame["ansi_sha256"], frame["semantic_frame_sha256"], decision_hash)}
+            runner._validate_reference_receipts_collectively(capture, selected, "baseline-capture", decisions, decision_hash)
+            for phase in ("baseline-check", "candidate-check"):
+                strict = {key: (frame["ansi_sha256"], frame["semantic_frame_sha256"], None)}
+                runner._validate_reference_receipts_collectively(strict, selected, phase, decisions, decision_hash)
+
+    def test_synthetic_collective_receipts_reject_missing_and_mismatched_selected_frames(self) -> None:
+        decisions = [
+            self._synthetic_reference_decision("fixture::a", "fixture/a", "a" * 64, "b" * 64),
+            self._synthetic_reference_decision("fixture::b", "fixture/b", "c" * 64, "d" * 64),
+        ]
+        decision_hash = "e" * 64
+        decision = decisions[0]
+        reference = decision["tuple"]
+        selected = [reference["test_id"]]
+        key = (reference["case_id"], reference["ordinal"], reference["logical_name"])
+        frame = decision["live_frame"]
+        with self.assertRaisesRegex(runner.RunnerError, "selected stale-approval reference checkpoint is missing"):
+            runner._validate_reference_receipts_collectively({}, selected, "baseline-capture", decisions, decision_hash)
+        for altered in (
+            {key: ("0" * 64, frame["semantic_frame_sha256"], decision_hash)},
+            {key: (frame["ansi_sha256"], "0" * 64, decision_hash)},
+        ):
+            with self.assertRaisesRegex(runner.RunnerError, "reviewed live-frame reference mismatch"):
+                runner._validate_reference_receipts_collectively(altered, selected, "baseline-capture", decisions, decision_hash)
+        for claim in (None, "f" * 64):
+            altered = {key: (frame["ansi_sha256"], frame["semantic_frame_sha256"], claim)}
+            with self.assertRaisesRegex(runner.RunnerError, "reference decision receipt binding"):
+                runner._validate_reference_receipts_collectively(altered, selected, "baseline-capture", decisions, decision_hash)
+
+    def test_synthetic_collective_receipts_reject_inactive_and_unrelated_claims(self) -> None:
+        decisions = [
+            self._synthetic_reference_decision("fixture::a", "fixture/a", "a" * 64, "b" * 64),
+            self._synthetic_reference_decision("fixture::b", "fixture/b", "c" * 64, "d" * 64),
+        ]
+        decision_hash = "e" * 64
+        active = decisions[0]
+        inactive = decisions[1]
+        active_tuple = active["tuple"]
+        inactive_tuple = inactive["tuple"]
+        active_key = (active_tuple["case_id"], active_tuple["ordinal"], active_tuple["logical_name"])
+        inactive_key = (inactive_tuple["case_id"], inactive_tuple["ordinal"], inactive_tuple["logical_name"])
+        active_frame = active["live_frame"]
+        inactive_frame = inactive["live_frame"]
+        selected_receipt = {active_key: (active_frame["ansi_sha256"], active_frame["semantic_frame_sha256"], decision_hash)}
+        selected = [active_tuple["test_id"]]
+        for receipts in (
+            selected_receipt | {inactive_key: (inactive_frame["ansi_sha256"], inactive_frame["semantic_frame_sha256"], decision_hash)},
+            selected_receipt | {("fixture/unrelated", 0, "fixture/unrelated"): ("0" * 64, "1" * 64, decision_hash)},
+        ):
+            with self.assertRaisesRegex(runner.RunnerError, "unselected or unrelated checkpoint claims a reference decision"):
+                runner._validate_reference_receipts_collectively(receipts, selected, "baseline-capture", decisions, decision_hash)
+        with self.assertRaisesRegex(runner.RunnerError, "unselected or unrelated checkpoint claims a reference decision"):
+            runner._validate_reference_receipts_collectively(
+                {("fixture/unrelated", 0, "fixture/unrelated"): ("0" * 64, "1" * 64, decision_hash)},
+                ["ordinary::case"],
+                "baseline-capture",
+                decisions,
+                decision_hash,
+            )
+        for phase in ("baseline-check", "candidate-check"):
+            claimed = {active_key: (active_frame["ansi_sha256"], active_frame["semantic_frame_sha256"], decision_hash)}
+            with self.assertRaisesRegex(runner.RunnerError, "reference decision receipt binding mismatch"):
+                runner._validate_reference_receipts_collectively(claimed, selected, phase, decisions, decision_hash)
+
+    def test_synthetic_collective_receipts_reject_duplicate_selected_checkpoint_and_empty_claims(self) -> None:
+        first = self._synthetic_reference_decision("fixture::a", "fixture/a", "a" * 64, "b" * 64)
+        second = self._synthetic_reference_decision("fixture::b", "fixture/a", "c" * 64, "d" * 64)
+        decision_hash = "e" * 64
+        first_tuple = first["tuple"]
+        first_frame = first["live_frame"]
+        first_key = (first_tuple["case_id"], first_tuple["ordinal"], first_tuple["logical_name"])
+        valid_first_receipt = {
+            first_key: (first_frame["ansi_sha256"], first_frame["semantic_frame_sha256"], decision_hash)
+        }
+        runner._validate_reference_receipts_collectively(
+            valid_first_receipt, ["fixture::a"], "baseline-capture", [first], decision_hash
+        )
+        with self.assertRaisesRegex(runner.RunnerError, "duplicate selected reference checkpoint"):
+            runner._validate_reference_receipts_collectively(
+                valid_first_receipt, ["fixture::a", "fixture::b"], "baseline-capture", [first, second], decision_hash
+            )
+        runner._validate_reference_receipts_collectively({}, ["ordinary::case"], "candidate-check", [], decision_hash)
+        with self.assertRaisesRegex(runner.RunnerError, "unselected or unrelated checkpoint claims a reference decision"):
+            runner._validate_reference_receipts_collectively(
+                {("fixture/unrelated", 0, "fixture/unrelated"): ("0" * 64, "1" * 64, decision_hash)},
+                ["ordinary::case"],
+                "candidate-check",
+                [],
+                decision_hash,
+            )
+
     def test_checkpoint_paths_remain_below_portable_filename_limit(self) -> None:
         case = "holla/activities/activities-multi-with-history/120x40/truecolor"
         logical = "holla/activities/activities-multi-with-history/120x40/truecolor"
