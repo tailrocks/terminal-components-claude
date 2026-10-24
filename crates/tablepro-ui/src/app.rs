@@ -1,5 +1,6 @@
 use core::fmt::Write as _;
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
 use termrock::author::{PaintStyle, StyleDefaults};
@@ -30,12 +31,14 @@ use crate::workbench::Workbench;
 mod connection_form_focus;
 mod explorer_collapsed;
 mod filter_editor;
+mod history_controls;
 mod query_panes;
 mod query_safety;
 mod result_grid;
 
 use filter_editor::{FILTER_APPLY, FILTER_CANCEL, FILTER_COLUMN, FILTER_OPERATOR, FILTER_VALUE2};
 use filter_editor::{FilterEditor, FilterOutcome};
+use history_controls::{ConnectionScope, HistoryControls};
 use query_panes::{QueryContent, QueryLayout, QueryPaneMode, QueryPaneState, idle_query_top};
 use result_grid::ResultGridView;
 
@@ -760,6 +763,7 @@ pub struct TableProApp {
     switcher: QuickSwitcher,
     tab_list: TabList,
     safe_mode_picker: SafeModePicker,
+    history_controls: HashMap<TabKey, HistoryControls>,
     result_grid: ResultGridView,
     help_state: termrock::HelpOverlayState,
 
@@ -907,6 +911,7 @@ impl TableProApp {
             switcher: QuickSwitcher::default(),
             tab_list: TabList::default(),
             safe_mode_picker: SafeModePicker::default(),
+            history_controls: HashMap::new(),
             result_grid: ResultGridView::default(),
             help_state: termrock::HelpOverlayState::default(),
             screen: Screen::Connections,
@@ -2827,6 +2832,103 @@ impl TableProApp {
         }
     }
 
+    fn update_history_controls(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let active_key = self.workbench.active_key();
+        let current_connection = self.workbench.connection.name.clone();
+        let history_visible = self.screen == Screen::Workbench && !self.form_open;
+        let mut response = Response::ignored();
+        let mut live_history_keys = Vec::new();
+        let mut refreshes = Vec::new();
+
+        {
+            let workbench = &mut self.workbench;
+            let controls_by_key = &mut self.history_controls;
+            for (key, tab) in workbench.payloads_mut() {
+                let Tab::History(history) = tab else {
+                    continue;
+                };
+                live_history_keys.push(key);
+                let controls = controls_by_key.entry(key).or_default();
+                let active = history_visible && active_key == Some(key);
+                let (control_response, refresh, _) =
+                    controls.update(cx, key, &mut history.search, &current_connection, active);
+                response |= control_response;
+                if active && refresh {
+                    refreshes.push((
+                        key,
+                        history.search.clone(),
+                        controls.scope(),
+                        controls.failed_only(),
+                    ));
+                }
+            }
+        }
+
+        let known_keys: Vec<_> = self.history_controls.keys().copied().collect();
+        let mut prune = Vec::new();
+        for key in known_keys {
+            if live_history_keys.contains(&key) {
+                continue;
+            }
+            let Some(controls) = self.history_controls.get_mut(&key) else {
+                continue;
+            };
+            let (orphan_response, ready_to_prune) = controls.service_orphan(cx, key);
+            response |= orphan_response;
+            if ready_to_prune {
+                prune.push(key);
+            }
+        }
+        for key in prune {
+            self.history_controls.remove(&key);
+        }
+
+        for (key, search, scope, failed_only) in refreshes {
+            self.apply_history_filter(key, &search, scope, failed_only, &current_connection);
+        }
+        response
+    }
+
+    fn refresh_history_tab(&mut self, key: TabKey) {
+        let Some(Tab::History(history)) = self.workbench.tab(key) else {
+            return;
+        };
+        let search = history.search.clone();
+        let current_connection = self.workbench.connection.name.clone();
+        let controls = self.history_controls.entry(key).or_default();
+        let scope = controls.scope();
+        let failed_only = controls.failed_only();
+        controls.mark_refreshed(&search, &current_connection);
+        self.apply_history_filter(key, &search, scope, failed_only, &current_connection);
+    }
+
+    fn apply_history_filter(
+        &mut self,
+        key: TabKey,
+        search: &str,
+        scope: ConnectionScope,
+        failed_only: bool,
+        current_connection: &str,
+    ) {
+        let connection = match scope {
+            ConnectionScope::All => None,
+            ConnectionScope::Current => Some(current_connection),
+        };
+        let entries = self
+            .workbench
+            .history
+            .search(search, connection, failed_only)
+            .into_iter()
+            .cloned()
+            .collect();
+        if let Some(Tab::History(history)) = self.workbench.tab_mut(key) {
+            history.entries = entries;
+            history.selected = history
+                .selected
+                .min(history.entries.len().saturating_sub(1));
+        }
+    }
+
     fn update_tab_controls(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut response = Response::ignored();
         let active_key = self.workbench.active_key();
@@ -3603,32 +3705,22 @@ impl TableProApp {
         panel.draw(ui, area, |ui, inner| {
             self.draw_tab_body(ui, area, inner, explorer_focused);
         });
-        if let Some(Tab::History(_)) = self.workbench.active() {
-            // The frame clip stops one cell before the border. The scope's
-            // last letter and the detail pad sit on that cell.
+        if let Some(Tab::History(_)) = self.workbench.active()
+            && let Some(key) = self.workbench.active_key()
+        {
+            let fallback = HistoryControls::default();
+            let controls = self.history_controls.get(&key).unwrap_or(&fallback);
+            let list_y = controls.layout(inner).list_y;
+            // The detail edge is outside the clipped body allocation. Keep its
+            // pad aligned to the actual list/detail start and stop at that body.
             let edge = area.right().saturating_sub(3);
-            let scope = ui
-                .surface_style()
-                .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_CHROME_FG)));
-            ui.paint_str(
-                termrock::Rect::new(edge, area.y.saturating_add(2), 1, 1),
-                "y",
-                scope,
-            );
             let pad = PaintStyle::new()
                 .fg(termrock::Color::Rgb(255, 255, 255))
                 .bg(termrock::Color::Rgb(17, 17, 17));
-            for offset in 0..29 {
-                ui.paint_str(
-                    termrock::Rect::new(
-                        edge,
-                        area.y.saturating_add(4).saturating_add(offset),
-                        1,
-                        1,
-                    ),
-                    " ",
-                    pad,
-                );
+            let mut y = list_y;
+            while y < inner.bottom() {
+                ui.paint_str(termrock::Rect::new(edge, y, 1, 1), " ", pad);
+                y = y.saturating_add(1);
             }
         }
         if pane_mode == QueryPaneMode::None
@@ -3820,7 +3912,13 @@ impl TableProApp {
                     self.draw_table_data(ui, inner);
                 }
             }
-            Some(Tab::History(history)) => paint_history_card(ui, inner, history),
+            Some(Tab::History(history)) => {
+                if let Some(key) = self.workbench.active_key() {
+                    let fallback = HistoryControls::default();
+                    let controls = self.history_controls.get(&key).unwrap_or(&fallback);
+                    paint_history_card(ui, inner, key, history, controls);
+                }
+            }
             None => {
                 ui.paint_str(inner, "No tab open", ui.surface_style());
             }
@@ -7741,8 +7839,13 @@ fn data_footer_hints(filtered: bool, pending: bool) -> Vec<Hint> {
     hints
 }
 
-fn paint_history_card(ui: &mut Ui<'_>, inner: termrock::Rect, history: &crate::tabs::HistoryTab) {
-    ui.register_control(HISTORY_LIST, inner, Focusability::Focusable);
+fn paint_history_card(
+    ui: &mut Ui<'_>,
+    inner: termrock::Rect,
+    key: TabKey,
+    history: &crate::tabs::HistoryTab,
+    controls: &HistoryControls,
+) {
     let quiet_fg = ui
         .surface_style()
         .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_PATH_FG)));
@@ -7752,32 +7855,18 @@ fn paint_history_card(ui: &mut Ui<'_>, inner: termrock::Rect, history: &crate::t
         &" ".repeat(46),
         quiet_fg,
     );
-    let muted = ui
-        .surface_style()
-        .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_CHROME_FG).set_bg(TAG_FIELD_BG)));
-    let field = PaintStyle::new()
-        .fg(termrock::Color::Rgb(255, 255, 255))
-        .bg(termrock::Color::Rgb(30, 30, 34));
-    ui.fill(
-        termrock::Rect::new(inner.x, inner.y.saturating_add(1), 48, 1),
-        field,
+    let layout = controls.draw(ui, inner, key, &history.search);
+    let list_y = layout.list_y;
+    ui.register_control(
+        HISTORY_LIST,
+        termrock::Rect::new(
+            inner.x,
+            list_y,
+            inner.width,
+            inner.bottom().saturating_sub(list_y),
+        ),
+        Focusability::Focusable,
     );
-    ui.paint_str(
-        termrock::Rect::new(inner.x, inner.y.saturating_add(1), 1, 1),
-        " ",
-        field.fg(termrock::Color::Rgb(30, 30, 34)),
-    );
-    let prompt = termrock::Rect::new(inner.x.saturating_add(2), inner.y.saturating_add(1), 32, 1);
-    ui.paint_str(prompt, "Search history · terms are ANDed", muted);
-    let scope = ui
-        .surface_style()
-        .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_CHROME_FG)));
-    ui.paint_str(
-        termrock::Rect::new(inner.x.saturating_add(50), inner.y.saturating_add(1), 33, 1),
-        "scope: Production  ·  status: any",
-        scope,
-    );
-    let list_y = inner.y.saturating_add(3);
     let selected_bg = termrock::Color::Rgb(23, 63, 28);
     let time_right = inner.x.saturating_add(39);
     for (offset, entry) in history.entries.iter().take(10).enumerate() {
@@ -8702,6 +8791,7 @@ impl App for TableProApp {
         self.query_panes.get_mut().sync(&self.workbench);
         let mut response = self.roll_connection_status(cx);
         response |= Self::update_history_focus(cx);
+        response |= self.update_history_controls(cx);
         // A status tick must not run the grid. Its first update steals focus
         // onto the result row, and the baseline frame keeps the editor focused.
         if cx.update_cause() == UpdateCause::Tick {
@@ -8737,13 +8827,25 @@ impl App for TableProApp {
                 .update(cx, &mut self.tabs_state, self.workbench.tabs())
                 .erase();
         }
+        let active_before_routing = self.workbench.active_key();
         response |= self.update_switcher(cx);
         response |= self.update_tab_list(cx);
         response |= self.update_safe_mode(cx);
         response |= self.update_help(cx);
         response |= self.update_delete_dialog(cx);
         self.query_safety.sync_layer_scope(&mut self.keymap, cx);
+        let mut focus_history = false;
+        if active_before_routing != self.workbench.active_key()
+            && matches!(self.workbench.active(), Some(Tab::History(_)))
+            && let Some(key) = self.workbench.active_key()
+        {
+            self.refresh_history_tab(key);
+            focus_history = true;
+        }
         if switcher_was_open {
+            if focus_history {
+                cx.focus(HISTORY_LIST);
+            }
             return response;
         }
 
@@ -8872,8 +8974,11 @@ impl App for TableProApp {
                     response |= Response::changed();
                 }
                 c if c == HISTORY => {
-                    self.workbench.open_history();
-                    self.sync_active_tab();
+                    if let Some(key) = self.workbench.open_history() {
+                        self.sync_active_tab();
+                        self.refresh_history_tab(key);
+                        focus_history = true;
+                    }
                     response |= Response::changed();
                 }
                 c if c == STRUCTURE => {
@@ -9088,6 +9193,12 @@ impl App for TableProApp {
                             let _ = self.workbench.activate(key);
                         }
                         self.sync_active_tab();
+                        if let Some(active_key) = self.workbench.active_key()
+                            && matches!(self.workbench.active(), Some(Tab::History(_)))
+                        {
+                            self.refresh_history_tab(active_key);
+                            focus_history = true;
+                        }
                     }
                 }
                 TabsAction::Close(key) => {
@@ -9104,9 +9215,16 @@ impl App for TableProApp {
             self.pin_tab_window();
         }
         if cx.update_cause() == UpdateCause::Bootstrap && self.screen == Screen::Workbench {
-            cx.focus(EXPLORER);
+            if matches!(self.workbench.active(), Some(Tab::History(_))) {
+                if let Some(key) = self.workbench.active_key() {
+                    self.refresh_history_tab(key);
+                }
+                focus_history = true;
+            } else {
+                cx.focus(EXPLORER);
+            }
         }
-        if self.surface == Surface::HistoryTab && self.screen == Screen::Workbench {
+        if focus_history {
             cx.focus(HISTORY_LIST);
         }
         if self.explorer_pin > 0

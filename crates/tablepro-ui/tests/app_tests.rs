@@ -16,7 +16,9 @@ use tablepro_ui::{
     QueryOutcome, ResultGrid, SafeMode, Screen, Surface, Tab, TableProApp, Value, complete,
     form_fields, gate, parse, preview_for,
 };
-use termrock::{Axis, GridEditor, Id, KeyCode, MouseKind, Part, PartRef, Theme};
+use termrock::{
+    Axis, GridEditor, Id, ItemKey, KeyCode, MouseKind, Part, PartRef, StateFlags, Theme,
+};
 use termrock_test_support::Harness;
 
 fn connected() -> TableProApp {
@@ -38,6 +40,15 @@ fn history_entry(sql: &str) -> HistoryEntry {
         error: None,
         source: HistorySource::Editor,
     }
+}
+
+fn history_entry_for(sql: &str, connection: &str, failed: bool) -> HistoryEntry {
+    let mut entry = history_entry(sql);
+    entry.connection = connection.to_owned();
+    if failed {
+        entry.error = Some("query failed".to_owned());
+    }
+    entry
 }
 
 #[test]
@@ -190,7 +201,7 @@ fn vertically_scrolled_grid_does_not_repaint_top_rows_after_horizontal_scroll() 
     let header = harness
         .area_of_part(
             grid_id,
-            PartRef::item(Part::HEADER, termrock::ItemKey::num(column_key as u64)),
+            PartRef::item(Part::HEADER, ItemKey::num(column_key as u64)),
         )
         .expect("visible created_at header hit region");
     let top_data_y = header.y.saturating_add(1);
@@ -915,5 +926,460 @@ fn history_search_is_multi_term_and() {
     assert_eq!(
         history.selected_query().as_deref(),
         Some("SELECT * FROM orders WHERE status = 'pending' ORDER BY created_at DESC LIMIT 200")
+    );
+}
+
+#[test]
+fn history_search_combines_terms_connection_status_and_keeps_legacy_tab_filter() {
+    let mut source = History::default();
+    source.push(history_entry_for(
+        "SELECT alpha FROM beta",
+        "Production",
+        true,
+    ));
+    source.push(history_entry_for(
+        "SELECT beta FROM alpha",
+        "Production",
+        true,
+    ));
+    source.push(history_entry_for("SELECT alpha FROM beta", "Staging", true));
+    source.push(history_entry_for(
+        "SELECT alpha FROM beta",
+        "Production",
+        false,
+    ));
+
+    let filtered = source.search("ALPHA beta", Some("pROdUcTiOn"), true);
+    assert_eq!(filtered.len(), 2);
+    assert_eq!(filtered[0].sql, "SELECT beta FROM alpha");
+    assert_eq!(filtered[1].sql, "SELECT alpha FROM beta");
+    assert_eq!(source.search("", Some("production"), false).len(), 3);
+    assert!(source.search("no matching SQL", None, false).is_empty());
+
+    let mut tab = HistoryTab::new(&source);
+    tab.search = "alpha beta".to_owned();
+    tab.selected = usize::MAX;
+    tab.filter(&source);
+    assert_eq!(
+        tab.entries.len(),
+        4,
+        "legacy filter stays all-scope/any-status"
+    );
+    assert_eq!(tab.selected, 3);
+    tab.search = "no matching SQL".to_owned();
+    tab.selected = usize::MAX;
+    tab.filter(&source);
+    assert!(tab.entries.is_empty());
+    assert_eq!(tab.selected, 0);
+}
+
+#[test]
+fn history_native_filters_apply_search_scope_status_and_survive_reopen() {
+    let mut app = connected();
+    app.workbench.history = History::default();
+    let current = app.workbench.connection.name.clone();
+    app.workbench
+        .history
+        .push(history_entry_for("SELECT alpha FROM beta", &current, true));
+    app.workbench
+        .history
+        .push(history_entry_for("SELECT beta FROM alpha", &current, false));
+    app.workbench
+        .history
+        .push(history_entry_for("SELECT alpha FROM beta", "Staging", true));
+    app.workbench.history.push(history_entry_for(
+        "SELECT alpha FROM beta",
+        "Staging",
+        false,
+    ));
+
+    let mut harness = Harness::new(app, Theme::junie(), 120, 40);
+    let _ = harness.ctrl('y');
+    let history_key = harness
+        .app()
+        .workbench
+        .active_key()
+        .expect("history tab is active");
+    let search = history_key.control("history.search");
+    let connection = history_key.control("history.connection");
+    let status = history_key.control("history.status");
+    let history_list = Id::root("tablepro.workbench.history.list");
+
+    assert_eq!(
+        harness
+            .app()
+            .workbench
+            .tab(history_key)
+            .and_then(|tab| match tab {
+                Tab::History(history) => Some(history.entries.len()),
+                _ => None,
+            }),
+        Some(4)
+    );
+    if let Some(Tab::History(history)) = harness.app_mut().workbench.tab_mut(history_key) {
+        history.selected = usize::MAX;
+    }
+    assert!(harness.find("All connections").is_some());
+    assert!(harness.find("Any status").is_some());
+    assert!(harness.tab_to(search));
+    let _ = harness.paste("ALPHA beta");
+    assert!(
+        matches!(harness.app().workbench.tab(history_key), Some(Tab::History(history)) if history.search.is_empty())
+    );
+    let _ = harness.key(KeyCode::Enter);
+    let Some(Tab::History(history)) = harness.app().workbench.tab(history_key) else {
+        panic!("history remains active")
+    };
+    assert_eq!(history.search, "ALPHA beta");
+    assert_eq!(history.entries.len(), 4);
+    assert_eq!(history.selected, 3);
+
+    assert!(harness.tab_to(connection));
+    let _ = harness.key(KeyCode::Enter);
+    let Some(Tab::History(history)) = harness.app().workbench.tab(history_key) else {
+        panic!("history remains active")
+    };
+    assert_eq!(history.entries.len(), 2);
+    assert_eq!(history.selected, 1);
+    assert!(
+        history
+            .entries
+            .iter()
+            .all(|entry| entry.connection == current)
+    );
+
+    let _ = harness.key(KeyCode::Char(' '));
+    let Some(Tab::History(history)) = harness.app().workbench.tab(history_key) else {
+        panic!("history remains active")
+    };
+    assert_eq!(
+        history.entries.len(),
+        4,
+        "the scope button returns to all connections"
+    );
+
+    let _ = harness.click_id(connection);
+    assert!(harness.tab_to(status));
+    let _ = harness.key(KeyCode::Enter);
+    let Some(Tab::History(history)) = harness.app().workbench.tab(history_key) else {
+        panic!("history remains active")
+    };
+    assert_eq!(history.entries.len(), 1);
+    assert!(history.entries[0].error.is_some());
+    assert!(harness.find("SELECT alpha FROM beta").is_some());
+
+    harness.app_mut().workbench.connection.name = "Staging".to_owned();
+    let _ = harness.tick();
+    let Some(Tab::History(history)) = harness.app().workbench.tab(history_key) else {
+        panic!("history remains active")
+    };
+    assert_eq!(history.entries.len(), 1);
+    assert_eq!(history.entries[0].connection, "Staging");
+    assert!(history.entries[0].error.is_some());
+
+    let _ = harness.click_id(status);
+    let Some(Tab::History(history)) = harness.app().workbench.tab(history_key) else {
+        panic!("history remains active")
+    };
+    assert_eq!(history.entries.len(), 2);
+    assert!(harness.find("SELECT alpha FROM beta").is_some());
+
+    let tab_count = harness.app().workbench.tabs().len();
+    assert!(harness.tab_to(history_list));
+    let _ = harness.ctrl('t');
+    assert!(matches!(
+        harness.app().workbench.active(),
+        Some(Tab::Query(_))
+    ));
+    harness.app_mut().workbench.history.push(history_entry_for(
+        "SELECT alpha FROM beta -- new",
+        "Staging",
+        false,
+    ));
+    let _ = harness.ctrl('y');
+
+    assert_eq!(harness.app().workbench.active_key(), Some(history_key));
+    assert_eq!(harness.app().workbench.tabs().len(), tab_count + 1);
+    let Some(Tab::History(history)) = harness.app().workbench.tab(history_key) else {
+        panic!("the same history tab is reused")
+    };
+    assert_eq!(history.search, "ALPHA beta");
+    assert_eq!(history.entries.len(), 3);
+    assert!(
+        history
+            .entries
+            .iter()
+            .all(|entry| entry.connection == "Staging")
+    );
+    assert!(harness.find("Current connection").is_some());
+    assert!(harness.find("Any status").is_some());
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+}
+
+#[test]
+fn history_native_search_accepts_unicode_paste_and_escape_discards_draft() {
+    let mut app = connected();
+    app.workbench.history = History::default();
+    app.workbench
+        .history
+        .push(history_entry_for("SELECT '界🙂'", "Production", false));
+    let mut harness = Harness::new(app, Theme::junie(), 120, 40);
+    let _ = harness.ctrl('y');
+    let key = harness
+        .app()
+        .workbench
+        .active_key()
+        .expect("history tab is active");
+    let search = key.control("history.search");
+    assert!(harness.tab_to(search));
+    let _ = harness.paste("界🙂");
+    let _ = harness.key(KeyCode::Enter);
+
+    let Some(Tab::History(history)) = harness.app().workbench.tab(key) else {
+        panic!("history remains active")
+    };
+    assert_eq!(history.search, "界🙂");
+    assert_eq!(history.entries.len(), 1);
+    let committed_rows = history.entries.clone();
+
+    let _ = harness.click_id(search);
+    let _ = harness.paste(" discarded");
+    let _ = harness.key(KeyCode::Esc);
+    let Some(Tab::History(history)) = harness.app().workbench.tab(key) else {
+        panic!("history remains active")
+    };
+    assert_eq!(history.search, "界🙂");
+    assert_eq!(history.entries, committed_rows);
+
+    let _ = harness.click_id(search);
+    let _ = harness.ctrl('l');
+    let _ = harness.paste("no matching row");
+    let _ = harness.key(KeyCode::Enter);
+    let Some(Tab::History(history)) = harness.app().workbench.tab(key) else {
+        panic!("history remains active")
+    };
+    assert_eq!(history.search, "no matching row");
+    assert!(history.entries.is_empty());
+
+    let _ = harness.click_id(search);
+    let _ = harness.ctrl('l');
+    let _ = harness.key(KeyCode::Backspace);
+    let _ = harness.key(KeyCode::Enter);
+    let Some(Tab::History(history)) = harness.app().workbench.tab(key) else {
+        panic!("history remains active")
+    };
+    assert!(history.search.is_empty());
+    assert_eq!(history.entries.len(), 1);
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+}
+
+#[test]
+fn history_search_draft_survives_switch_reopen_and_owner_retirement() {
+    let mut app = connected();
+    app.workbench.history = History::default();
+    app.workbench
+        .history
+        .push(history_entry_for("SELECT retained", "Production", false));
+    let mut harness = Harness::new(app, Theme::junie(), 120, 40);
+    let _ = harness.ctrl('y');
+    let history_key = harness
+        .app()
+        .workbench
+        .active_key()
+        .expect("history tab is active");
+    let search = history_key.control("history.search");
+    let history_list = Id::root("tablepro.workbench.history.list");
+    assert!(harness.tab_to(search));
+    let _ = harness.paste("hidden draft");
+
+    let Some(Tab::History(history)) = harness.app().workbench.tab(history_key) else {
+        panic!("history remains open")
+    };
+    assert!(history.search.is_empty(), "typing stays a draft");
+    assert_eq!(history.entries.len(), 1);
+
+    let _ = harness.ctrl('t');
+    assert!(matches!(
+        harness.app().workbench.active(),
+        Some(Tab::Query(_))
+    ));
+    let Some(Tab::History(history)) = harness.app().workbench.tab(history_key) else {
+        panic!("the inactive history tab remains present")
+    };
+    assert!(
+        history.search.is_empty(),
+        "hidden lifecycle cannot commit a draft"
+    );
+    assert_eq!(history.entries.len(), 1);
+
+    let _ = harness.ctrl('y');
+    assert_eq!(harness.app().workbench.active_key(), Some(history_key));
+    assert_eq!(
+        harness.focus(),
+        Some(history_list),
+        "reentry focuses the list"
+    );
+    assert!(
+        harness.find("hidden draft").is_some(),
+        "the native draft is retained"
+    );
+    let Some(Tab::History(history)) = harness.app().workbench.tab(history_key) else {
+        panic!("the same history tab is reused")
+    };
+    assert!(history.search.is_empty());
+    assert_eq!(history.entries.len(), 1);
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+
+    let _ = harness.ctrl('w');
+    assert!(harness.app().workbench.tab(history_key).is_none());
+    let _ = harness.tick();
+    assert!(harness.area_of(search).is_none());
+    assert!(
+        harness
+            .area_of(history_key.control("history.connection"))
+            .is_none()
+    );
+    assert!(
+        harness
+            .area_of(history_key.control("history.status"))
+            .is_none()
+    );
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+
+    let _ = harness.ctrl('y');
+    let focused_history_key = harness
+        .app()
+        .workbench
+        .active_key()
+        .expect("a new history tab is active");
+    let focused_search = focused_history_key.control("history.search");
+    assert!(harness.tab_to(focused_search));
+    assert_eq!(harness.focus(), Some(focused_search));
+    let _ = harness.click_part(
+        Id::root("tablepro.workbench.tab-strip"),
+        PartRef::item(Part::CLOSE, ItemKey::num(focused_history_key.get())),
+    );
+    assert!(harness.app().workbench.tab(focused_history_key).is_none());
+    let _ = harness.tick();
+    assert!(harness.area_of(focused_search).is_none());
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+}
+
+#[test]
+fn history_native_post_paint_preserves_panel_bottom_border() {
+    for (width, height) in [(72, 20), (120, 40)] {
+        let mut app = connected();
+        app.workbench.history = History::default();
+        app.workbench
+            .history
+            .push(history_entry_for("SELECT retained", "Production", false));
+        let mut harness = Harness::new(app, Theme::junie(), width, height);
+        let _ = harness.ctrl('y');
+        assert!(harness.find("All connections").is_some());
+        assert!(harness.find("Any status").is_some());
+
+        let panel = harness
+            .area_of(Id::root("tablepro.workbench.content.frame"))
+            .expect("content frame is registered");
+        let edge = panel.right().saturating_sub(3);
+        let bottom = panel.bottom().saturating_sub(1);
+        assert_eq!(
+            harness.cell(edge, bottom).symbol(),
+            "─",
+            "the bounded history detail pad must leave the framed bottom border intact at {width}x{height}"
+        );
+        assert!(
+            harness.diagnostics().is_empty(),
+            "{:?}",
+            harness.diagnostics()
+        );
+    }
+}
+
+#[test]
+fn history_native_controls_are_nonoverlapping_and_reachable_at_minimum_size() {
+    let mut harness = Harness::new(connected(), Theme::junie(), 72, 20);
+    let _ = harness.ctrl('y');
+    let key = harness
+        .app()
+        .workbench
+        .active_key()
+        .expect("history tab is active");
+    let search = key.control("history.search");
+    let connection = key.control("history.connection");
+    let status = key.control("history.status");
+    let history_list = Id::root("tablepro.workbench.history.list");
+    let areas = [
+        harness.area_of(search).expect("search is registered"),
+        harness
+            .area_of(connection)
+            .expect("connection filter is registered"),
+        harness
+            .area_of(status)
+            .expect("status filter is registered"),
+        harness
+            .area_of(history_list)
+            .expect("history list is registered"),
+    ];
+    for area in areas {
+        assert!(area.x.saturating_add(area.width) <= 72, "{area:?}");
+        assert!(area.y.saturating_add(area.height) <= 20, "{area:?}");
+    }
+    for left in 0..areas.len() {
+        for right in left + 1..areas.len() {
+            let a = areas[left];
+            let b = areas[right];
+            let overlap = a.x < b.x.saturating_add(b.width)
+                && b.x < a.x.saturating_add(a.width)
+                && a.y < b.y.saturating_add(b.height)
+                && b.y < a.y.saturating_add(a.height);
+            assert!(!overlap, "controls overlap: {a:?} and {b:?}");
+        }
+    }
+    assert!(harness.tab_to(search));
+    assert!(harness.tab_to(connection));
+    assert!(harness.tab_to(status));
+    let _ = harness.click_id(status);
+    let feedback = harness
+        .activation_feedback()
+        .expect("the real status click publishes activation feedback");
+    assert_eq!(feedback.owner, status);
+    let _ = harness.advance(feedback.remaining + core::time::Duration::from_millis(1));
+    assert!(!harness.state_of(status).contains(StateFlags::PRESSED));
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+
+    let _ = harness.resize(120, 40);
+    assert!(harness.area_of(search).is_some());
+    assert!(harness.area_of(connection).is_some());
+    assert!(harness.area_of(status).is_some());
+    assert!(harness.area_of(history_list).is_some());
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
     );
 }
