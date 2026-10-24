@@ -1,11 +1,12 @@
-use std::time::Duration;
+use std::{cell::Cell, time::Duration};
 
 use termrock::{
     Action, ActionKey, BlurPolicy, Button, Checkbox, Constraints, Cx, Family, Field, FieldError,
-    FieldKind, FieldMut, FieldRef, FieldSpec, Form, FormData, FormState, FrameRead, Id, ItemKey,
-    Moment, Panel, PanelKind, Part, RadioGroup, RadioGroupState, Rect, Response, RowAlign, Select,
-    SelectState, StateFlags, Status, TextArea, TextAreaState, TextInput, TextInputState, Toggle,
-    Track, Ui, UpdateCause, Variant, Wizard, WizardState, WizardStep, layout, truncate,
+    FieldKind, FieldMut, FieldRef, FieldSpec, Focusability, Form, FormData, FormState, FrameRead,
+    Id, ItemKey, Moment, Panel, PanelKind, Part, RadioGroup, RadioGroupState, Rect, Response,
+    RowAlign, ScopeId, ScrollRegion, ScrollState, Select, SelectState, StateFlags, Status,
+    TextArea, TextAreaState, TextInput, TextInputState, Toggle, Track, Ui, UpdateCause, Variant,
+    Wizard, WizardState, WizardStep, layout, truncate,
 };
 
 use super::{Page, PageStatus, PageUpdate, frame};
@@ -24,6 +25,8 @@ const OPEN_PR: Id = termrock::Id::root("showcase_ui::pages::forms::forms.open_pr
 const AUTO_APPROVE: Id = termrock::Id::root("showcase_ui::pages::forms::forms.auto_approve");
 const NOTIFY: Id = termrock::Id::root("showcase_ui::pages::forms::forms.notify");
 const RESET: Id = termrock::Id::root("showcase_ui::pages::forms::forms.reset");
+const TASK_CARD: Id = termrock::Id::root("showcase_ui::pages::forms::forms.new_task");
+const TASK_CARD_SCROLL: Id = termrock::Id::root("showcase_ui::pages::forms::forms.new_task.scroll");
 const FLOW: Id = termrock::Id::root("showcase_ui::pages::forms::forms.flow");
 const DEPLOY_FORM: Id = termrock::Id::root("showcase_ui::pages::forms::forms.deploy.form");
 const DEPLOY_PANEL: Id = termrock::Id::root("showcase_ui::pages::forms::forms.deploy.panel");
@@ -41,6 +44,150 @@ const REGIONS: &[&str] = &["us-east", "eu-west", "ap-south"];
 const DEFAULT_DETAILS: &str = "Describe the change and its rollback plan.";
 const SUBMISSION_TICKS: u8 = 23;
 const SUBMISSION_INTERVAL: Duration = Duration::from_millis(80);
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum TaskCardSection {
+    Summary,
+    Details,
+    Reviewer,
+    Mode,
+    TestOptions,
+    Confirmation,
+    ToggleOptions,
+}
+
+impl TaskCardSection {
+    const ORDERED: [Self; 7] = [
+        Self::Summary,
+        Self::Details,
+        Self::Reviewer,
+        Self::Mode,
+        Self::TestOptions,
+        Self::Confirmation,
+        Self::ToggleOptions,
+    ];
+
+    const fn owners(self) -> &'static [Id] {
+        match self {
+            Self::Summary => &[SUMMARY],
+            Self::Details => &[DETAILS],
+            Self::Reviewer => &[REVIEWER],
+            Self::Mode => &[MODE],
+            Self::TestOptions => &[RUN_TESTS, OPEN_PR],
+            Self::Confirmation => &[CONFIRM],
+            Self::ToggleOptions => &[AUTO_APPROVE, NOTIFY],
+        }
+    }
+
+    fn for_owner(owner: Id) -> Option<Self> {
+        Self::ORDERED
+            .into_iter()
+            .find(|section| section.owners().contains(&owner))
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct TaskCardSpan {
+    section: TaskCardSection,
+    start: usize,
+    len: usize,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct TaskCardPlan {
+    spans: Vec<TaskCardSpan>,
+    content_len: usize,
+}
+
+impl TaskCardPlan {
+    fn new(summary_error: bool, reviewer_error: bool) -> Self {
+        let section_lengths = [
+            if summary_error { 4 } else { 3 },
+            6,
+            if reviewer_error { 5 } else { 4 },
+            5,
+            2,
+            1,
+            3,
+        ];
+        let mut start = 0usize;
+        let spans: Vec<_> = TaskCardSection::ORDERED
+            .into_iter()
+            .zip(section_lengths)
+            .map(|(section, len)| {
+                let span = TaskCardSpan {
+                    section,
+                    start,
+                    len,
+                };
+                start = start
+                    .checked_add(len)
+                    .expect("Task-card section rows fit usize");
+                span
+            })
+            .collect();
+        Self {
+            spans,
+            content_len: start,
+        }
+    }
+
+    fn span(&self, section: TaskCardSection) -> TaskCardSpan {
+        *self
+            .spans
+            .iter()
+            .find(|span| span.section == section)
+            .expect("each Task-card section has one row span")
+    }
+
+    fn nearest_anchor(&self, offset: usize) -> usize {
+        self.spans
+            .iter()
+            .map(|span| span.start)
+            .min_by_key(|anchor| anchor.abs_diff(offset))
+            .unwrap_or(0)
+    }
+
+    fn wheel_anchor(&self, before: usize, delta: i32, viewport: u16) -> usize {
+        if delta > 0 {
+            let steps = usize::try_from(delta).unwrap_or(usize::MAX);
+            self.spans
+                .iter()
+                .filter(|span| span.start > before)
+                .nth(steps.saturating_sub(1))
+                .map_or_else(|| self.max_offset(viewport), |span| span.start)
+        } else if delta < 0 {
+            let steps = usize::try_from(delta.unsigned_abs()).unwrap_or(usize::MAX);
+            self.spans
+                .iter()
+                .rev()
+                .filter(|span| span.start < before)
+                .nth(steps.saturating_sub(1))
+                .map_or(0, |span| span.start)
+        } else {
+            before
+        }
+    }
+
+    fn max_offset(&self, viewport: u16) -> usize {
+        self.content_len.saturating_sub(usize::from(viewport))
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct TaskCardFrame {
+    viewport: Rect,
+    focused: Option<Id>,
+    content_len: usize,
+}
+
+fn task_card_focusability(owner: Id, confirmed: bool) -> Focusability {
+    if owner == NOTIFY || (owner == SAVE && !confirmed) {
+        Focusability::Disabled
+    } else {
+        Focusability::Focusable
+    }
+}
 
 fn task_name_field<'a>(value: &'a str, error: Option<&'a str>) -> Field<'a, TextInput<'a>> {
     Field::new("Task name", FormsPage::summary().value(value))
@@ -255,6 +402,9 @@ pub struct FormsPage {
     flow: WizardState<()>,
     deploy: Deploy,
     deploy_state: FormState,
+    task_scroll: ScrollState,
+    task_scroll_frame: Cell<Option<TaskCardFrame>>,
+    task_reveal_request: Cell<Option<Id>>,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -292,6 +442,9 @@ impl FormsPage {
             flow: WizardState::default(),
             deploy: Deploy::default(),
             deploy_state: FormState::default(),
+            task_scroll: ScrollState::default(),
+            task_scroll_frame: Cell::new(None),
+            task_reveal_request: Cell::new(None),
         }
     }
 
@@ -390,6 +543,14 @@ mod task_card_contract {
         assert_eq!(page.submission, Submission::Idle);
         assert_eq!(page.next_deadline, None);
         assert_eq!(page.error, None);
+    }
+
+    fn contains_rect(outer: Rect, inner: Rect) -> bool {
+        !inner.is_empty()
+            && inner.x >= outer.x
+            && inner.y >= outer.y
+            && inner.right() <= outer.right()
+            && inner.bottom() <= outer.bottom()
     }
 
     #[test]
@@ -637,9 +798,32 @@ mod task_card_contract {
     #[test]
     fn reset_remains_reachable_in_the_existing_short_card_geometry() {
         let mut h = harness(72, 20);
+        let frame = h
+            .app()
+            .page
+            .task_scroll_frame
+            .get()
+            .expect("the short Task card publishes its field viewport");
+        assert!(
+            frame.viewport.height >= 6,
+            "the supported minimum retains the largest six-row section"
+        );
+        let footer = Rect {
+            y: frame.viewport.bottom(),
+            height: 1,
+            ..frame.viewport
+        };
+        let card = h.area_of(TASK_CARD).expect("the Task card is visible");
+        assert!(
+            contains_rect(card, footer),
+            "the action footer stays in the card"
+        );
         let reset = h
             .area_of(RESET)
             .expect("the clipped task-card Reset stays reachable");
+        assert_eq!(reset.y, footer.y, "Reset occupies the adjacent footer row");
+        assert_eq!(reset.height, 1);
+        assert!(contains_rect(footer, reset));
         assert!(reset.width > 0 && reset.height > 0);
         assert!(reset.right() <= 72 && reset.bottom() <= 20, "{reset:?}");
         let _ = h.click_id(RESET);
@@ -771,17 +955,20 @@ impl FormsPage {
         if self.summary.trim().is_empty() {
             self.reviewer_state.set_error(None);
             self.error = Some("Required: summary");
+            self.task_reveal_request.set(Some(SUMMARY));
             cx.focus(SUMMARY);
             return Response::changed();
         }
         if self.details.trim().is_empty() {
             self.reviewer_state.set_error(None);
             self.error = Some("Required: details");
+            self.task_reveal_request.set(Some(DETAILS));
             cx.focus(DETAILS);
             return Response::changed();
         }
         if reviewer_result.is_err() {
             self.error = Some("Invalid reviewer");
+            self.task_reveal_request.set(Some(REVIEWER));
             cx.focus(REVIEWER);
             return Response::changed();
         }
@@ -817,6 +1004,8 @@ impl FormsPage {
         self.error = None;
         self.submission = Submission::Idle;
         self.next_deadline = None;
+        self.task_scroll.jump_start();
+        self.task_reveal_request.set(Some(SUMMARY));
         cx.focus(SUMMARY);
     }
 
@@ -934,6 +1123,11 @@ impl Page for FormsPage {
         if status.is_none() {
             status = self.service_submission_clock(cx, &mut result);
         }
+        if self.task_scroll_frame.get().is_none() {
+            // Full-fit and unsupported layouts have no short-frame scroll state.
+            self.task_scroll.jump_start();
+        }
+        result |= self.update_task_scroll(cx);
         PageUpdate {
             response: result,
             status,
@@ -1016,73 +1210,78 @@ impl FormsPage {
             height: card_body.height.min(24),
             ..card_body
         };
-        let panel = Panel::new(termrock::Id::root(
-            "showcase_ui::pages::forms::forms.new_task",
-        ))
-        .kind(PanelKind::Card)
-        .title("New task")
-        .meta(if card_body.width < 70 {
-            "Ctrl+S Submit"
-        } else {
-            "Ctrl+S Submit "
-        });
+        let panel = Panel::new(TASK_CARD)
+            .kind(PanelKind::Card)
+            .title("New task")
+            .meta(if card_body.width < 70 {
+                "Ctrl+S Submit"
+            } else {
+                "Ctrl+S Submit "
+            });
         let panel_inner = panel.inner(ui, panel_area);
         panel.draw(ui, panel_area, |ui, inner| {
-            let columns = layout::columns(inner, &[Track::Flex(1), Track::Flex(1)], 3);
-            let left = columns.first().copied().unwrap_or(inner);
-            let right = columns.get(1).copied().unwrap_or(inner);
-            self.draw_task_fields(ui, left);
-            let _ = ui.paint_str(Rect { height: 1, ..right }, "Options", ui.surface_style());
-            let _ = ui.paint_str(
-                Rect {
-                    x: right.x.saturating_add(2),
-                    width: right.width.saturating_sub(2),
-                    y: right.y.saturating_add(1),
-                    height: 1,
-                },
-                "Mode",
-                ui.surface_style(),
-            );
-            let mode_area = Rect {
-                y: right.y.saturating_add(2),
-                height: 3,
-                ..right
-            };
-            mode_group().value(ItemKey::index(self.mode)).draw(
-                ui,
-                mode_area,
-                &self.mode_state,
-                MODES,
-            );
-            for index in 0..MODES.len() {
-                let selected = self.mode == index;
-                let row = Rect {
-                    y: mode_area.y.saturating_add(index as u16),
-                    height: 1,
-                    ..mode_area
-                };
-                let flags = ui.state(MODE)
-                    | if selected {
-                        StateFlags::SELECTED
-                    } else {
-                        StateFlags::default()
-                    };
-                legacy_gutter(
-                    ui,
-                    row,
-                    Family::CHOICE,
-                    Variant::DEFAULT,
-                    Part::CONTAINER,
-                    flags,
+            if panel_inner.height < 16 {
+                self.draw_task_card_short(ui, inner);
+            } else {
+                self.task_scroll_frame.set(None);
+                self.task_reveal_request.set(None);
+                let columns = layout::columns(inner, &[Track::Flex(1), Track::Flex(1)], 3);
+                let left = columns.first().copied().unwrap_or(inner);
+                let right = columns.get(1).copied().unwrap_or(inner);
+                self.draw_task_fields(ui, left);
+                let _ = ui.paint_str(Rect { height: 1, ..right }, "Options", ui.surface_style());
+                let _ = ui.paint_str(
+                    Rect {
+                        x: right.x.saturating_add(2),
+                        width: right.width.saturating_sub(2),
+                        y: right.y.saturating_add(1),
+                        height: 1,
+                    },
+                    "Mode",
+                    ui.surface_style(),
                 );
-                legacy_marker(ui, row, flags, if selected { "(●)" } else { "( )" });
-            }
-            self.draw_test_options(ui, right);
-            self.draw_notification_options(ui, right);
+                let mode_area = Rect {
+                    y: right.y.saturating_add(2),
+                    height: 3,
+                    ..right
+                };
+                mode_group().value(ItemKey::index(self.mode)).draw(
+                    ui,
+                    mode_area,
+                    &self.mode_state,
+                    MODES,
+                );
+                for index in 0..MODES.len() {
+                    let selected = self.mode == index;
+                    let row = Rect {
+                        y: mode_area.y.saturating_add(index as u16),
+                        height: 1,
+                        ..mode_area
+                    };
+                    let flags = ui.state(MODE)
+                        | if selected {
+                            StateFlags::SELECTED
+                        } else {
+                            StateFlags::default()
+                        };
+                    legacy_gutter(
+                        ui,
+                        row,
+                        Family::CHOICE,
+                        Variant::DEFAULT,
+                        Part::CONTAINER,
+                        flags,
+                    );
+                    legacy_marker(ui, row, flags, if selected { "(●)" } else { "( )" });
+                }
+                self.draw_test_options(ui, right);
+                self.draw_notification_options(ui, right);
 
-            self.draw_actions(ui, inner);
+                self.draw_actions(ui, inner);
+            }
         });
-        if card_body.width < 70
+        if panel_inner.height >= 16
+            && card_body.width < 70
             && !panel_inner.is_empty()
             && let Some(right) = layout::columns(panel_inner, &[Track::Flex(1), Track::Flex(1)], 3)
                 .get(1)
@@ -1099,6 +1298,443 @@ impl FormsPage {
                 ui.surface_style(),
             );
         }
+    }
+
+    fn draw_task_card_short(&self, ui: &mut Ui<'_>, inner: Rect) {
+        let reviewer_error = self.reviewer_state.error().is_some();
+        let summary_error = self.error == Some("Required: summary");
+        let footer_height = u16::from(!inner.is_empty());
+        let viewport = Rect {
+            height: inner.height.saturating_sub(footer_height),
+            ..inner
+        };
+        let footer = Rect {
+            y: viewport.bottom(),
+            height: footer_height,
+            ..inner
+        };
+        let plan = TaskCardPlan::new(summary_error, reviewer_error);
+        let focused = [
+            SUMMARY,
+            DETAILS,
+            REVIEWER,
+            MODE,
+            RUN_TESTS,
+            OPEN_PR,
+            CONFIRM,
+            AUTO_APPROVE,
+            NOTIFY,
+            SAVE,
+            RESET,
+        ]
+        .into_iter()
+        .find(|owner| ui.state(*owner).contains(StateFlags::FOCUSED));
+        let previous = self.task_scroll_frame.get();
+        let viewport_changed = previous
+            .as_ref()
+            .is_none_or(|frame| frame.viewport != viewport);
+        let transition = previous.as_ref().is_none_or(|frame| {
+            frame.viewport != viewport
+                || frame.focused != focused
+                || frame.content_len != plan.content_len
+        });
+        let mut view = ScrollRegion::view(&self.task_scroll, viewport, plan.content_len);
+        let requested = self.task_reveal_request.get();
+        let reveal = requested
+            .filter(|owner| TaskCardSection::for_owner(*owner).is_some())
+            .or_else(|| transition.then_some(focused).flatten());
+        if let Some(owner) = reveal
+            && let Some(section) = TaskCardSection::for_owner(owner)
+        {
+            let span = plan.span(section);
+            let _ = view.reveal_span(span.start, span.len);
+            if viewport_changed && view.offset() != self.task_scroll.offset() {
+                self.task_reveal_request.set(Some(owner));
+            }
+        }
+        let content =
+            ScrollRegion::new(TASK_CARD_SCROLL).draw(ui, viewport, &view, plan.content_len);
+        ui.with_area(content, |ui| {
+            for span in &plan.spans {
+                self.draw_task_card_section(ui, content, *span, view.offset());
+            }
+        });
+        if footer_height > 0 {
+            self.draw_actions(ui, footer);
+        }
+        self.task_scroll_frame.set(Some(TaskCardFrame {
+            viewport,
+            focused,
+            content_len: plan.content_len,
+        }));
+    }
+
+    fn draw_task_card_section(
+        &self,
+        ui: &mut Ui<'_>,
+        viewport: Rect,
+        span: TaskCardSpan,
+        offset: usize,
+    ) {
+        let viewport_start = offset;
+        let viewport_end = viewport_start
+            .checked_add(usize::from(viewport.height))
+            .expect("Task-card viewport rows fit usize");
+        let span_end = span
+            .start
+            .checked_add(span.len)
+            .expect("Task-card section rows fit usize");
+        let starts_in_view = span.start >= viewport_start && span.start < viewport_end;
+        let intersects_view = span.start < viewport_end && span_end > viewport_start;
+        if !starts_in_view || !intersects_view {
+            for owner in span.section.owners() {
+                ui.register_focus_only(*owner, task_card_focusability(*owner, self.confirm));
+            }
+            return;
+        }
+        if span.start < viewport_start || span_end > viewport_end {
+            // Keep clipped sections atomic; focus reveals can bring them fully into view.
+            for owner in span.section.owners() {
+                ui.register_focus_only(*owner, task_card_focusability(*owner, self.confirm));
+            }
+            return;
+        }
+        let Some(row_offset) = span.start.checked_sub(offset) else {
+            for owner in span.section.owners() {
+                ui.register_focus_only(*owner, task_card_focusability(*owner, self.confirm));
+            }
+            return;
+        };
+        let Ok(row_offset) = u16::try_from(row_offset) else {
+            for owner in span.section.owners() {
+                ui.register_focus_only(*owner, task_card_focusability(*owner, self.confirm));
+            }
+            return;
+        };
+        let Some(y) = viewport.y.checked_add(row_offset) else {
+            for owner in span.section.owners() {
+                ui.register_focus_only(*owner, task_card_focusability(*owner, self.confirm));
+            }
+            return;
+        };
+        let Ok(height) = u16::try_from(span.len) else {
+            for owner in span.section.owners() {
+                ui.register_focus_only(*owner, task_card_focusability(*owner, self.confirm));
+            }
+            return;
+        };
+        let section_area = Rect {
+            y,
+            height,
+            ..viewport
+        };
+        match span.section {
+            TaskCardSection::Summary => self.draw_short_summary(ui, section_area),
+            TaskCardSection::Details => self.draw_short_details(ui, section_area),
+            TaskCardSection::Reviewer => self.draw_short_reviewer(ui, section_area),
+            TaskCardSection::Mode => self.draw_short_mode(ui, section_area),
+            TaskCardSection::TestOptions => self.draw_short_test_options(ui, section_area),
+            TaskCardSection::Confirmation => {
+                Self::confirmation().checked(self.confirm).draw(
+                    ui,
+                    Rect {
+                        height: 1,
+                        ..section_area
+                    },
+                );
+            }
+            TaskCardSection::ToggleOptions => self.draw_short_toggle_options(ui, section_area),
+        }
+    }
+
+    fn draw_short_summary(&self, ui: &mut Ui<'_>, area: Rect) {
+        let _ = ui.paint_str(Rect { height: 1, ..area }, "Task", ui.surface_style());
+        let summary_error =
+            (self.error == Some("Required: summary")).then_some("Required: summary");
+        let task = Rect {
+            y: area.y.saturating_add(1),
+            height: if summary_error.is_some() { 3 } else { 2 },
+            ..area
+        };
+        task_name_field(&self.summary, summary_error).draw(ui, task, &self.summary_state);
+        if self.summary.is_empty() {
+            legacy_input_placeholder(ui, task, "Short imperative summary");
+        }
+        legacy_gutter(
+            ui,
+            Rect {
+                y: task.y.saturating_add(1),
+                height: 1,
+                ..task
+            },
+            Family::FIELD,
+            Variant::DEFAULT,
+            Part::FIELD,
+            StateFlags::empty(),
+        );
+    }
+
+    fn draw_short_details(&self, ui: &mut Ui<'_>, area: Rect) {
+        Field::new("Description", Self::details().value(&self.details))
+            .optional_suffix(false)
+            .help("Optional · Markdown")
+            .draw(ui, area, &self.details_state);
+        legacy_gutter(
+            ui,
+            Rect {
+                y: area.y.saturating_add(1),
+                height: 4,
+                ..area
+            },
+            Family::FIELD,
+            Variant::DEFAULT,
+            Part::FIELD,
+            StateFlags::empty(),
+        );
+    }
+
+    fn draw_short_reviewer(&self, ui: &mut Ui<'_>, area: Rect) {
+        let _ = ui.paint_str(Rect { height: 1, ..area }, "Review", ui.surface_style());
+        let reviewer = Rect {
+            y: area.y.saturating_add(1),
+            height: area.height.saturating_sub(1),
+            ..area
+        };
+        let reviewer_error = self
+            .reviewer_state
+            .error()
+            .map(|error| error.message.as_ref());
+        reviewer_field(&self.reviewer, reviewer_error).draw(ui, reviewer, &self.reviewer_state);
+        legacy_gutter(
+            ui,
+            Rect {
+                y: reviewer.y.saturating_add(1),
+                height: 1,
+                ..reviewer
+            },
+            Family::FIELD,
+            Variant::DEFAULT,
+            Part::FIELD,
+            ui.state(REVIEWER),
+        );
+    }
+
+    fn draw_short_mode(&self, ui: &mut Ui<'_>, area: Rect) {
+        let _ = ui.paint_str(Rect { height: 1, ..area }, "Options", ui.surface_style());
+        let _ = ui.paint_str(
+            Rect {
+                x: area.x.saturating_add(2),
+                width: area.width.saturating_sub(2),
+                y: area.y.saturating_add(1),
+                height: 1,
+            },
+            "Mode",
+            ui.surface_style(),
+        );
+        let mode_area = Rect {
+            y: area.y.saturating_add(2),
+            height: 3,
+            ..area
+        };
+        mode_group()
+            .value(ItemKey::index(self.mode))
+            .draw(ui, mode_area, &self.mode_state, MODES);
+        for index in 0..MODES.len() {
+            let selected = self.mode == index;
+            let row = Rect {
+                y: mode_area.y.saturating_add(index as u16),
+                height: 1,
+                ..mode_area
+            };
+            let flags = ui.state(MODE)
+                | if selected {
+                    StateFlags::SELECTED
+                } else {
+                    StateFlags::default()
+                };
+            legacy_gutter(
+                ui,
+                row,
+                Family::CHOICE,
+                Variant::DEFAULT,
+                Part::CONTAINER,
+                flags,
+            );
+            legacy_marker(ui, row, flags, if selected { "(●)" } else { "( )" });
+        }
+    }
+
+    fn draw_short_test_options(&self, ui: &mut Ui<'_>, area: Rect) {
+        let run_tests = Rect { height: 1, ..area };
+        run_tests_checkbox(self.run_tests).draw(ui, run_tests);
+        let run_tests_flags = ui.state(RUN_TESTS)
+            | if self.run_tests {
+                StateFlags::CHECKED | StateFlags::SELECTED
+            } else {
+                StateFlags::empty()
+            };
+        legacy_choice_label(
+            ui,
+            run_tests,
+            run_tests_flags,
+            "Run tests before opening a PR",
+        );
+        legacy_gutter(
+            ui,
+            run_tests,
+            Family::CHOICE,
+            Variant::DEFAULT,
+            Part::CONTAINER,
+            run_tests_flags,
+        );
+        let open_pr = Rect {
+            y: area.y.saturating_add(1),
+            height: 1,
+            ..area
+        };
+        open_pr_checkbox(self.open_pr).draw(ui, open_pr);
+        let open_pr_flags = ui.state(OPEN_PR)
+            | if self.open_pr {
+                StateFlags::CHECKED | StateFlags::SELECTED
+            } else {
+                StateFlags::empty()
+            };
+        legacy_choice_label(ui, open_pr, open_pr_flags, "Open a pull request when done");
+        legacy_gutter(
+            ui,
+            open_pr,
+            Family::CHOICE,
+            Variant::DEFAULT,
+            Part::CONTAINER,
+            open_pr_flags,
+        );
+    }
+
+    fn draw_short_toggle_options(&self, ui: &mut Ui<'_>, area: Rect) {
+        let auto_approve = Rect { height: 1, ..area };
+        auto_approve_toggle(self.auto_approve).draw(ui, auto_approve);
+        let auto_approve_flags = ui.state(AUTO_APPROVE)
+            | if self.auto_approve {
+                StateFlags::CHECKED | StateFlags::SELECTED
+            } else {
+                StateFlags::empty()
+            };
+        legacy_gutter(
+            ui,
+            auto_approve,
+            Family::CHOICE,
+            Variant::DEFAULT,
+            Part::CONTAINER,
+            auto_approve_flags,
+        );
+        legacy_marker(
+            ui,
+            auto_approve,
+            auto_approve_flags,
+            if self.auto_approve {
+                "●──"
+            } else {
+                "○──"
+            },
+        );
+        let notify = Rect {
+            y: area.y.saturating_add(1),
+            height: 1,
+            ..area
+        };
+        notify_toggle(self.notify).draw(ui, notify);
+        let notify_flags = ui.state(NOTIFY)
+            | StateFlags::DISABLED
+            | if self.notify {
+                StateFlags::CHECKED | StateFlags::SELECTED
+            } else {
+                StateFlags::empty()
+            };
+        legacy_gutter(
+            ui,
+            notify,
+            Family::CHOICE,
+            Variant::DEFAULT,
+            Part::CONTAINER,
+            notify_flags,
+        );
+        legacy_marker(
+            ui,
+            notify,
+            notify_flags,
+            if self.notify {
+                "──●"
+            } else {
+                "──○"
+            },
+        );
+        let _ = ui.paint_str(
+            Rect {
+                y: area.y.saturating_add(2),
+                height: 1,
+                width: area.width.saturating_add(1),
+                ..area
+            },
+            "  Managed by your organization",
+            ui.surface_style(),
+        );
+    }
+
+    fn update_task_scroll(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let Some(frame) = self.task_scroll_frame.get() else {
+            return Response::ignored();
+        };
+        let plan = TaskCardPlan::new(
+            self.error == Some("Required: summary"),
+            self.reviewer_state.error().is_some(),
+        );
+        let request = self.task_reveal_request.take();
+        if let Some(owner) = request.filter(|owner| TaskCardSection::for_owner(*owner).is_some())
+            && let Some(section) = TaskCardSection::for_owner(owner)
+        {
+            let scroll = ScrollRegion::new(TASK_CARD_SCROLL);
+            let _ = scroll.prepare(cx, &mut self.task_scroll, plan.content_len);
+            let span = plan.span(section);
+            let _ = self.task_scroll.reveal_span(span.start, span.len);
+        }
+        let wheel_delta = cx
+            .intents(TASK_CARD_SCROLL)
+            .filter_map(|intent| match intent {
+                termrock::Intent::Wheel { delta, .. } => Some(i32::from(delta)),
+                _ => None,
+            })
+            .sum::<i32>();
+        let before = self.task_scroll.offset();
+        let response =
+            ScrollRegion::new(TASK_CARD_SCROLL).update(cx, &mut self.task_scroll, plan.content_len);
+        let after = self.task_scroll.offset();
+        if plan.content_len != frame.content_len {
+            self.task_scroll.scroll_to(plan.nearest_anchor(after));
+        } else if wheel_delta != 0 && after != before {
+            self.task_scroll.scroll_to(plan.wheel_anchor(
+                before,
+                wheel_delta,
+                frame.viewport.height,
+            ));
+        } else if after != before {
+            self.task_scroll.scroll_to(plan.nearest_anchor(after));
+        }
+        let focused = cx
+            .focused_in_scope(ScopeId::ROOT)
+            .filter(|owner| TaskCardSection::for_owner(*owner).is_some());
+        let focus_moved = focused != frame.focused;
+        let plan_changed = plan.content_len != frame.content_len;
+        let focus_reveal = (focus_moved || plan_changed).then_some(focused).flatten();
+        let reveal_owner = (wheel_delta == 0)
+            .then(|| focus_reveal.or(request))
+            .flatten();
+        if let Some(owner) = reveal_owner
+            && let Some(section) = TaskCardSection::for_owner(owner)
+        {
+            let span = plan.span(section);
+            let _ = self.task_scroll.reveal_span(span.start, span.len);
+        }
+        response
     }
 
     fn draw_deploy_form(&self, ui: &mut Ui<'_>, area: Rect) {
