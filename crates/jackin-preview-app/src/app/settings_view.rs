@@ -210,12 +210,12 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
 
     // Body
     match app.settings.tab {
-        0 => paint_general_body(app, ui),
+        0 => paint_general_body(app, ui, full),
         1 => paint_mounts_body(ui, full),
         2 => paint_env_body(ui),
         3 => paint_agents_body(ui, full),
         4 => paint_trust_body(app, ui, full),
-        _ => paint_general_body(app, ui),
+        _ => paint_general_body(app, ui, full),
     }
 
     // Save preview dialog
@@ -494,34 +494,20 @@ fn paint_general_page(ui: &mut Ui<'_>, full: Rect) {
     );
 }
 
-fn paint_general_body(app: &App, ui: &mut Ui<'_>) {
-    paint_str(ui, 4, 6, "Default agent", SECONDARY, BLACK, false);
-    paint_str(ui, 4, 7, "Claude Code", WHITE, BLACK, false);
-
-    paint_str(ui, 4, 10, "Workspace", SECONDARY, BLACK, false);
-    paint_str(ui, 4, 11, "payments-platform", WHITE, BLACK, false);
-
-    paint_str(ui, 4, 14, "DCO signoff", SECONDARY, BLACK, false);
-    paint_str(ui, 4, 15, "enabled", WHITE, BLACK, false);
-
-    paint_str(ui, 4, 18, "Secret policy", SECONDARY, BLACK, false);
-    paint_str(
-        ui,
-        4,
-        19,
-        "references only; resolved bytes are transient",
-        WHITE,
-        BLACK,
-        false,
-    );
-
-    paint_str(ui, 4, 22, "Trust", SECONDARY, BLACK, false);
+fn paint_general_body(app: &App, ui: &mut Ui<'_>, full: Rect) {
     let trust_label = if app.trusted {
         "trusted · sources verified"
     } else {
         "untrusted · explicit prompt"
     };
-    paint_str(ui, 4, 23, trust_label, WHITE, BLACK, false);
+    let facts = termrock::feedback::SettingsGeneralFacts::new(
+        "Claude Code",
+        "payments-platform",
+        "enabled",
+        "references only; resolved bytes are transient",
+        trust_label,
+    );
+    termrock::feedback::paint_settings_general_body(ui, full, &facts);
 }
 
 fn paint_mounts_body(ui: &mut Ui<'_>, full: Rect) {

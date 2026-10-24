@@ -10681,6 +10681,19 @@ impl App {
         result |= self.sync_account_form_layer(cx);
         if cx.update_cause() == UpdateCause::Settle {
             result |= accounts_page::settle_retired_detail_focus(self, cx);
+            if self.route == Route::Settings
+                && cx
+                    .intents(ACCOUNTS_LIST)
+                    .any(|intent| matches!(intent, Intent::FocusOut { .. }))
+                && cx.intents(ACCOUNTS_LIST).all(|intent| {
+                    matches!(intent, Intent::FocusIn { .. } | Intent::FocusOut { .. })
+                })
+            {
+                // A route command can retire the Accounts List before the commandless
+                // focus-settle pass. Deliver only its queued focus transition here.
+                result |= self.update_account_list_focus_transition(cx);
+                self.acknowledge_account_list_focus_results(cx);
+            }
         }
 
         let entry = Self::enter_button().update(cx);
