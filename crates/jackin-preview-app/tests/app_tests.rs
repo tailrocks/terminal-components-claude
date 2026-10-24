@@ -20,6 +20,7 @@ use termrock::{GlyphRole, KeyCode, MouseKind, Part, PartRef, Theme};
 use jackin_preview_app::Route;
 use jackin_preview_app::app::{ACCOUNT_FORM_LAYER, ACCOUNTS_LIST};
 use jackin_preview_app::{Motion, Scenario};
+use termrock_test_support::Scene;
 mod support;
 use support::H;
 
@@ -1733,6 +1734,400 @@ fn settings_agents_four_enter_paints_the_approved_agents_frame() {
     assert!(mode.modifier.contains(termrock::Modifier::BOLD));
     assert!(h.text().contains("Agent runtime mode"), "{}", h.text());
     assert_eq!(h.harness.cursor(), None);
+}
+
+fn settings_agents_reference_scene(width: u16, height: u16, running_count: usize) -> Scene {
+    let rows = [
+        termrock::feedback::SettingsAgentRow::new(
+            " Claude Code   ",
+            "sync        ",
+            "★ Claude · Personal",
+        )
+        .selected(true),
+        termrock::feedback::SettingsAgentRow::new(
+            " Codex         ",
+            "api key     ",
+            "★ Codex · Primary",
+        ),
+        termrock::feedback::SettingsAgentRow::new(
+            " Amp           ",
+            "sync        ",
+            "discovered · ~/.config/amp/secrets.json",
+        ),
+        termrock::feedback::SettingsAgentRow::new(
+            " Kimi Code     ",
+            "ignore      ",
+            "no credentials handed to the container",
+        ),
+        termrock::feedback::SettingsAgentRow::new(
+            " OpenCode      ",
+            "sync        ",
+            "★ OpenCode · Go subscription",
+        ),
+        termrock::feedback::SettingsAgentRow::new(
+            " Grok Build    ",
+            "api key     ",
+            "★ Grok · Team",
+        ),
+    ];
+    let notes = [
+        "sync mirrors the host login · api key and oauth token take material from the registry account",
+        "ignore starts the agent without credentials and removes it from session pickers",
+    ];
+    let agents = termrock::feedback::SettingsAgents::new(
+        "Agent runtime mode",
+        "accounts are registered in Accounts (c)",
+        "Agent         Mode         Registry default",
+        &rows,
+        &notes,
+    );
+    let menus = ["File", "Go", "Help"];
+    let tabs = [
+        termrock::feedback::SettingsTab {
+            label: "General",
+            selected: false,
+        },
+        termrock::feedback::SettingsTab {
+            label: "Mounts",
+            selected: false,
+        },
+        termrock::feedback::SettingsTab {
+            label: "Environments",
+            selected: false,
+        },
+        termrock::feedback::SettingsTab {
+            label: "Agents",
+            selected: true,
+        },
+        termrock::feedback::SettingsTab {
+            label: "Trust",
+            selected: false,
+        },
+    ];
+    let hints = [
+        termrock::feedback::SettingsHint {
+            key: "Space",
+            action: "Cycle mode",
+        },
+        termrock::feedback::SettingsHint {
+            key: "d",
+            action: "Remove override",
+        },
+        termrock::feedback::SettingsHint {
+            key: "c",
+            action: "Manage accounts",
+        },
+        termrock::feedback::SettingsHint {
+            key: "[ ]",
+            action: "Switch tab",
+        },
+        termrock::feedback::SettingsHint {
+            key: "Ctrl+S",
+            action: "Save",
+        },
+        termrock::feedback::SettingsHint {
+            key: "Esc",
+            action: "Back",
+        },
+    ];
+    let running = format!("{running_count} running");
+    let page = termrock::feedback::SettingsPage {
+        brand: "jackin❯",
+        menus: &menus,
+        crumb: "Settings › global › Agents",
+        tabs: &tabs,
+        sections: &[],
+        cancel: "Cancel",
+        save: "Save…",
+        save_enabled: false,
+        hints: &hints,
+        hint_overflow: None,
+        mounts: &[],
+        add_mount: None,
+        cluster: Some(termrock::feedback::SettingsCluster {
+            note: "inside the Construct",
+            mark: "●",
+            value: &running,
+        }),
+    };
+    let offsets = [1, 19, 38, 57, 73, 86];
+    let mut expected = Scene::new(
+        "settings_agents_shared_page_reference",
+        Theme::junie(),
+        termrock::ColorLevel::TrueColor,
+        width,
+        height,
+    );
+    expected.draw(|ui, area| {
+        assert_eq!(
+            termrock::feedback::paint_settings_page_with_agents(
+                ui,
+                area,
+                &page,
+                &agents,
+                termrock::feedback::SettingsPageChrome::new().hint_offsets(&offsets),
+            ),
+            Ok(())
+        );
+    });
+    expected
+}
+
+#[test]
+fn settings_agents_wide_path_retains_full_shared_page_cells() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    h.key(KeyCode::Char('s'));
+    h.key(KeyCode::Char('4'));
+    h.key(KeyCode::Enter);
+    assert_eq!(h.app().settings.tab, 3);
+
+    let expected = settings_agents_reference_scene(120, 40, h.app().world.running_count());
+    for position in h.buffer().area().positions() {
+        let actual = h.buffer().cell(position).expect("App frame cell");
+        let expected = expected
+            .buffer()
+            .cell(position)
+            .expect("reference frame cell");
+        assert_eq!(
+            format!("{actual:?}"),
+            format!("{expected:?}"),
+            "cell {position:?}"
+        );
+    }
+}
+
+fn assert_clean_agents_body(h: &H, complete_notes: bool) {
+    let text = h.text();
+    for expected in [
+        "Agent runtime mode",
+        "Claude Code",
+        "Codex",
+        "Amp",
+        "Kimi Code",
+        "OpenCode",
+        "Grok Build",
+        "sync mirrors the host login",
+        "ignore starts the agent without credentials",
+    ] {
+        assert!(text.contains(expected), "missing {expected:?}: {text}");
+    }
+    if complete_notes {
+        assert!(text.contains(
+            "sync mirrors the host login · api key and oauth token take material from the registry account"
+        ));
+        assert!(text.contains(
+            "ignore starts the agent without credentials and removes it from session pickers"
+        ));
+    }
+    assert!(!text.contains("DCO signoff"), "stale General row: {text}");
+    for (x, y) in [(4, 10), (5, 10), (4, 11), (5, 11)] {
+        assert_eq!(
+            h.buffer()
+                .cell((x, y))
+                .expect("cleared owned-body cell")
+                .symbol(),
+            " ",
+            "stale General fragment at ({x}, {y})"
+        );
+    }
+    let marker = h.buffer().cell((2, 8)).expect("selected Agents gutter");
+    assert_eq!(marker.symbol(), "▎");
+    assert_eq!(marker.bg, termrock::Color::Rgb(0x17, 0x3f, 0x1c));
+    assert!(marker.modifier.contains(termrock::Modifier::BOLD));
+    assert_eq!(h.harness.cursor(), None);
+    assert_eq!(h.harness.diagnostics(), []);
+}
+
+fn settings_agent_column(h: &H, y: u16, x: u16, width: u16) -> String {
+    let mut text = String::new();
+    for column in x..x.saturating_add(width) {
+        text.push_str(
+            h.buffer()
+                .cell((column, y))
+                .expect("Agents column cell")
+                .symbol(),
+        );
+    }
+    text.trim().to_owned()
+}
+
+fn assert_settings_agent_values(h: &H) {
+    let rows = [
+        (8, "Claude Code", "sync", "★ Claude · Personal"),
+        (9, "Codex", "api key", "★ Codex · Primary"),
+        (10, "Amp", "sync", "discovered · ~/.config/amp/secrets.json"),
+        (
+            11,
+            "Kimi Code",
+            "ignore",
+            "no credentials handed to the container",
+        ),
+        (12, "OpenCode", "sync", "★ OpenCode · Go subscription"),
+        (13, "Grok Build", "api key", "★ Grok · Team"),
+    ];
+    let registry_width = h.buffer().area().width.saturating_sub(34);
+    for (y, name, mode, registry) in rows {
+        assert_eq!(settings_agent_column(h, y, 6, 15), name, "name row {y}");
+        assert_eq!(settings_agent_column(h, y, 21, 13), mode, "mode row {y}");
+        assert_eq!(
+            settings_agent_column(h, y, 34, registry_width),
+            registry,
+            "registry row {y}"
+        );
+    }
+}
+
+#[test]
+fn settings_agents_shared_body_stays_clear_of_native_controls() {
+    fn open_agents(h: &mut H) {
+        h.key(KeyCode::Char('s'));
+        h.key(KeyCode::Char('4'));
+        h.key(KeyCode::Enter);
+        assert_eq!(h.app().settings.tab, 3);
+        assert_eq!(h.app().route(), Route::Settings);
+    }
+
+    for (width, height, complete_notes) in [(80, 24, false), (100, 30, true)] {
+        let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, width, height);
+        open_agents(&mut h);
+        assert_clean_agents_body(&h, complete_notes);
+        assert_settings_agent_values(&h);
+
+        let expected =
+            settings_agents_reference_scene(width, height, h.app().world.running_count());
+        for y in 6..17 {
+            for x in 0..width {
+                let position = (x, y);
+                let actual = h.buffer().cell(position).expect("App Agents body cell");
+                let expected = expected
+                    .buffer()
+                    .cell(position)
+                    .expect("shared Agents body cell");
+                assert_eq!(
+                    format!("{actual:?}"),
+                    format!("{expected:?}"),
+                    "full native body cell at {position:?} for {width}x{height}"
+                );
+            }
+        }
+    }
+
+    // At 72x20 the shared body's page-relative clear would cover the native
+    // Save control. Keep the existing short painter and prove the published
+    // Settings owner remains visible and can open/cancel its real preview.
+    let mut short = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 72, 20);
+    open_agents(&mut short);
+    let save = jackin_preview_app::screens::settings::SAVE;
+    let save_area = short
+        .harness
+        .area_of(save)
+        .expect("native Settings Save publishes its hit area");
+    assert_eq!(save_area, termrock::Rect::new(4, 14, 15, 1));
+    assert_eq!(short.find("Save settings"), Some((5, 14)));
+
+    short.key(KeyCode::Char(' '));
+    assert!(short.app().settings.dirty);
+    short.tab_to(save);
+    assert_eq!(short.focus(), Some(save));
+    assert!(
+        short
+            .harness
+            .state_of(save)
+            .contains(termrock::StateFlags::FOCUSED)
+    );
+    assert!(
+        !short
+            .harness
+            .state_of(save)
+            .contains(termrock::StateFlags::PRESSED)
+    );
+    assert_eq!(short.harness.runtime().capture_owner(), None);
+    let before_preview = short.text();
+
+    let save_x = save_area.x.saturating_add(save_area.width / 2);
+    short.mouse(MouseKind::Down, save_x, save_area.y);
+    assert_eq!(short.focus(), Some(save));
+    assert!(
+        short
+            .harness
+            .state_of(save)
+            .contains(termrock::StateFlags::PRESSED)
+    );
+    assert!(
+        !short
+            .harness
+            .state_of(save)
+            .contains(termrock::StateFlags::DISABLED)
+    );
+    assert_eq!(short.harness.runtime().capture_owner(), None);
+    short.mouse(MouseKind::Up, save_x, save_area.y);
+    assert_eq!(short.harness.runtime().capture_owner(), None);
+    assert_eq!(
+        short
+            .harness
+            .activation_feedback()
+            .map(|feedback| feedback.owner),
+        Some(save),
+        "the click must activate the published Save owner"
+    );
+    assert_eq!(
+        short.find("Save settings"),
+        Some((6, 5)),
+        "preview title is visible"
+    );
+    let save_confirm = jackin_preview_app::screens::settings::ROOT.sub("save-confirm");
+    assert_eq!(short.focus(), Some(save_confirm));
+    assert!(
+        short
+            .harness
+            .state_of(save_confirm)
+            .contains(termrock::StateFlags::FOCUSED)
+    );
+    assert_eq!(
+        short.harness.area_of(save_confirm),
+        Some(termrock::Rect::new(24, 14, 16, 1))
+    );
+
+    short.key(KeyCode::Esc);
+    assert_eq!(
+        short.harness.area_of(save_confirm),
+        None,
+        "cancel removes the published preview owner"
+    );
+    assert_eq!(short.harness.runtime().capture_owner(), None);
+    assert_eq!(
+        short.find("Save settings"),
+        Some((5, 14)),
+        "native Save returns visibly"
+    );
+    assert!(short.app().settings.dirty, "cancel keeps the draft");
+    short.tab_to(save);
+    assert_eq!(
+        short.focus(),
+        Some(save),
+        "Save remains reachable after cancel"
+    );
+    assert_eq!(short.harness.area_of(save), Some(save_area));
+    assert_eq!(short.find("Save settings"), Some((5, 14)));
+    assert_eq!(
+        short.text(),
+        before_preview,
+        "cancel returns to the same short frame"
+    );
+    assert_eq!(short.harness.area_of(save_confirm), None);
+    assert_eq!(short.harness.runtime().capture_owner(), None);
+    assert_eq!(short.harness.diagnostics(), []);
+
+    short.key(KeyCode::Left);
+    assert_eq!(short.app().settings.tab, 2);
+    short.key(KeyCode::Left);
+    assert_eq!(short.app().settings.tab, 1);
+    short.key(KeyCode::Left);
+    assert_eq!(short.app().settings.tab, 0);
+    short.key(KeyCode::Char('4'));
+    short.key(KeyCode::Enter);
+    assert_eq!(short.app().settings.tab, 3);
+    assert!(short.app().settings.dirty);
 }
 
 #[test]

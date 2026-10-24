@@ -689,6 +689,45 @@ pub fn paint_settings_page_with_agents(
     Ok(())
 }
 
+/// Paint only the fixed Agents content band within a Settings page area.
+///
+/// The band is page-relative rows 6 through 16, clipped to both `area` and the
+/// current Ui clip. Unlike the full-page painter, this entrypoint does not draw
+/// chrome or impose a minimum page height. Row and note capacities are checked
+/// before any cell is changed.
+pub fn paint_settings_agents_body(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    agents: &SettingsAgents<'_>,
+) -> Result<(), SettingsBodyPaintError> {
+    if agents.rows.len() > SETTINGS_AGENT_MAX_ROWS {
+        return Err(SettingsBodyPaintError::TooManyRows {
+            maximum: SETTINGS_AGENT_MAX_ROWS,
+            actual: agents.rows.len(),
+        });
+    }
+    if agents.notes.len() > SETTINGS_FIXED_NOTE_MAX_ROWS {
+        return Err(SettingsBodyPaintError::TooManyNotes {
+            maximum: SETTINGS_FIXED_NOTE_MAX_ROWS,
+            actual: agents.notes.len(),
+        });
+    }
+
+    let body = Rect::new(area.x, area.y.saturating_add(6), area.width, 11)
+        .intersection(area)
+        .intersection(ui.full());
+    if body.is_empty() {
+        return Ok(());
+    }
+
+    let ink = settings_ink(ui);
+    ui.with_area(body, |ui| {
+        ui.fill(body, plain(ink.primary, ink.canvas));
+        paint_settings_agents(ui, area, agents, &ink);
+    });
+    Ok(())
+}
+
 /// Paint a Trust table with the existing Settings page chrome.
 ///
 /// `page.sections`, `page.mounts`, and `page.add_mount` must be empty. The
@@ -3279,5 +3318,249 @@ mod tests {
             );
         });
         assert!(narrow.text().is_empty() || narrow.text().trim().is_empty());
+    }
+
+    #[test]
+    fn agents_body_matches_shared_body_cells_and_keeps_both_notes() {
+        let tabs = [SettingsTab {
+            label: "Agents",
+            selected: true,
+        }];
+        let hints = [SettingsHint {
+            key: "Space",
+            action: "Cycle mode",
+        }];
+        let page = heritage_page("Settings › global › Agents", &tabs, &hints, None);
+        let rows = [
+            SettingsAgentRow::new("Claude Code", "sync", "Claude · Personal").selected(true),
+            SettingsAgentRow::new("Codex", "api key", "Codex · Primary"),
+            SettingsAgentRow::new("Amp", "sync", "~/.config/amp/secrets.json"),
+            SettingsAgentRow::new(
+                "Kimi Code",
+                "ignore",
+                "no credentials handed to the container",
+            ),
+            SettingsAgentRow::new("OpenCode", "sync", "OpenCode · Go subscription"),
+            SettingsAgentRow::new("Grok Build", "api key", "Grok · Team"),
+        ];
+        let notes = [
+            "sync mirrors the host login · api key and oauth token take material from the registry account",
+            "ignore starts the agent without credentials and removes it from session pickers",
+        ];
+        let agents = SettingsAgents::new(
+            "Agent runtime mode",
+            "accounts are registered in Accounts (c)",
+            "Agent         Mode         Registry default",
+            &rows,
+            &notes,
+        );
+        for (width, height) in [(80, 24), (100, 30)] {
+            let mut full = Scene::new(
+                "settings_agents_body_full_page_reference",
+                Theme::junie(),
+                ColorLevel::TrueColor,
+                width,
+                height,
+            );
+            full.draw(|ui, area| {
+                assert_eq!(
+                    paint_settings_page_with_agents(
+                        ui,
+                        area,
+                        &page,
+                        &agents,
+                        SettingsPageChrome::new(),
+                    ),
+                    Ok(())
+                );
+            });
+
+            let mut body = Scene::new(
+                "settings_agents_body_only",
+                Theme::junie(),
+                ColorLevel::TrueColor,
+                width,
+                height,
+            );
+            body.draw(|ui, area| {
+                assert_eq!(paint_settings_agents_body(ui, area, &agents), Ok(()));
+            });
+
+            for y in 6..=16 {
+                for x in 0..width {
+                    let expected = full.buffer().cell((x, y)).expect("full-page cell");
+                    let actual = body.buffer().cell((x, y)).expect("body-only cell");
+                    assert_eq!(
+                        format!("{actual:?}"),
+                        format!("{expected:?}"),
+                        "native cell changed at {width}x{height} ({x}, {y})"
+                    );
+                }
+            }
+            for expected in [
+                "Agent runtime mode",
+                "Claude Code",
+                "Codex",
+                "Amp",
+                "Kimi Code",
+                "OpenCode",
+                "Grok Build",
+                "sync mirrors the host login",
+                "ignore starts the agent without credentials",
+            ] {
+                assert!(body.text().contains(expected), "missing {expected:?}");
+            }
+            let selected = body.buffer().cell((2, 8)).expect("selected gutter");
+            assert_eq!(selected.symbol(), "▎");
+            assert_eq!(selected.bg, SELECT_BG);
+            assert!(selected.modifier.contains(Modifier::BOLD));
+        }
+    }
+
+    #[test]
+    fn agents_body_respects_page_and_parent_clips_and_checks_bounds_first() {
+        use ratatui_core::style::{Modifier, Style};
+        use std::cell::RefCell;
+
+        let rows = [SettingsAgentRow::new(
+            "Claude Code",
+            "sync",
+            "Claude · Personal",
+        )];
+        let notes = ["first note", "second note"];
+        let agents = SettingsAgents::new("Agents", "", "Agent", &rows, &notes);
+        let mut scene = Scene::new(
+            "settings_agents_body_nested_clip",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            40,
+            24,
+        );
+        let sentinel = RefCell::new(None);
+        scene.draw_over(
+            |buffer| {
+                buffer.set_style(
+                    Rect::new(0, 0, 40, 24),
+                    Style::default()
+                        .fg(Color::Rgb(0x11, 0x22, 0x33))
+                        .bg(Color::Rgb(0x44, 0x55, 0x66))
+                        .add_modifier(Modifier::ITALIC),
+                );
+                *sentinel.borrow_mut() =
+                    Some(format!("{:?}", buffer.cell((0, 0)).expect("sentinel cell")));
+            },
+            |ui, _| {
+                let page = Rect::new(3, 3, 24, 9);
+                ui.with_area(Rect::new(8, 9, 10, 2), |ui| {
+                    assert_eq!(paint_settings_agents_body(ui, page, &agents), Ok(()));
+                });
+            },
+        );
+        let sentinel = sentinel.into_inner().expect("recorded sentinel");
+        let changed = Rect::new(8, 9, 10, 2);
+        for y in 0..24 {
+            for x in 0..40 {
+                let cell = scene.buffer().cell((x, y)).expect("scene cell");
+                if changed.contains(Position::new(x, y)) {
+                    assert_ne!(format!("{cell:?}"), sentinel, "clip cell ({x}, {y})");
+                } else {
+                    assert_eq!(format!("{cell:?}"), sentinel, "outside clip ({x}, {y})");
+                }
+            }
+        }
+
+        let empty_page = Rect::new(0, 0, 30, 6);
+        let mut empty = Scene::new(
+            "settings_agents_body_empty_clip",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            30,
+            6,
+        );
+        let empty_sentinel = RefCell::new(None);
+        empty.draw_over(
+            |buffer| {
+                buffer.set_style(
+                    empty_page,
+                    Style::default()
+                        .fg(Color::Rgb(0x11, 0x22, 0x33))
+                        .bg(Color::Rgb(0x44, 0x55, 0x66)),
+                );
+                *empty_sentinel.borrow_mut() =
+                    Some(format!("{:?}", buffer.cell((0, 0)).expect("sentinel cell")));
+            },
+            |ui, _| assert_eq!(paint_settings_agents_body(ui, empty_page, &agents), Ok(())),
+        );
+        let empty_sentinel = empty_sentinel.into_inner().expect("recorded sentinel");
+        for y in 0..6 {
+            for x in 0..30 {
+                let cell = empty.buffer().cell((x, y)).expect("scene cell");
+                assert_eq!(
+                    format!("{cell:?}"),
+                    empty_sentinel,
+                    "empty clip wrote ({x}, {y})"
+                );
+            }
+        }
+
+        let seven_rows = [
+            SettingsAgentRow::new("a", "", ""),
+            SettingsAgentRow::new("b", "", ""),
+            SettingsAgentRow::new("c", "", ""),
+            SettingsAgentRow::new("d", "", ""),
+            SettingsAgentRow::new("e", "", ""),
+            SettingsAgentRow::new("f", "", ""),
+            SettingsAgentRow::new("g", "", ""),
+        ];
+        let too_many_rows = SettingsAgents::new("Agents", "", "Agent", &seven_rows, &notes);
+        let three_notes = ["first", "second", "third"];
+        let too_many_notes = SettingsAgents::new("Agents", "", "Agent", &rows, &three_notes);
+        let mut invalid = Scene::new(
+            "settings_agents_body_invalid_capacity",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            40,
+            24,
+        );
+        let invalid_sentinel = RefCell::new(None);
+        invalid.draw_over(
+            |buffer| {
+                buffer.set_style(
+                    Rect::new(0, 0, 40, 24),
+                    Style::default()
+                        .fg(Color::Rgb(0x11, 0x22, 0x33))
+                        .bg(Color::Rgb(0x44, 0x55, 0x66)),
+                );
+                *invalid_sentinel.borrow_mut() =
+                    Some(format!("{:?}", buffer.cell((0, 0)).expect("sentinel cell")));
+            },
+            |ui, area| {
+                assert_eq!(
+                    paint_settings_agents_body(ui, area, &too_many_rows),
+                    Err(SettingsBodyPaintError::TooManyRows {
+                        maximum: 6,
+                        actual: 7
+                    })
+                );
+                assert_eq!(
+                    paint_settings_agents_body(ui, area, &too_many_notes),
+                    Err(SettingsBodyPaintError::TooManyNotes {
+                        maximum: 2,
+                        actual: 3
+                    })
+                );
+            },
+        );
+        let invalid_sentinel = invalid_sentinel.into_inner().expect("recorded sentinel");
+        for y in 0..24 {
+            for x in 0..40 {
+                let cell = invalid.buffer().cell((x, y)).expect("scene cell");
+                assert_eq!(
+                    format!("{cell:?}"),
+                    invalid_sentinel,
+                    "invalid wrote ({x}, {y})"
+                );
+            }
+        }
     }
 }

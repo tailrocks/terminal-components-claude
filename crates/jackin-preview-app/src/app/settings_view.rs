@@ -26,6 +26,48 @@ const TABS: &[(&str, u16, u16)] = &[
     ("Trust", 49, 8),
 ];
 
+const SETTINGS_AGENT_ROWS: &[termrock::feedback::SettingsAgentRow<'static>] = &[
+    termrock::feedback::SettingsAgentRow::new(
+        " Claude Code   ",
+        "sync        ",
+        "★ Claude · Personal",
+    )
+    .selected(true),
+    termrock::feedback::SettingsAgentRow::new(
+        " Codex         ",
+        "api key     ",
+        "★ Codex · Primary",
+    ),
+    termrock::feedback::SettingsAgentRow::new(
+        " Amp           ",
+        "sync        ",
+        "discovered · ~/.config/amp/secrets.json",
+    ),
+    termrock::feedback::SettingsAgentRow::new(
+        " Kimi Code     ",
+        "ignore      ",
+        "no credentials handed to the container",
+    ),
+    termrock::feedback::SettingsAgentRow::new(
+        " OpenCode      ",
+        "sync        ",
+        "★ OpenCode · Go subscription",
+    ),
+    termrock::feedback::SettingsAgentRow::new(" Grok Build    ", "api key     ", "★ Grok · Team"),
+];
+const SETTINGS_AGENT_NOTES: &[&str] = &[
+    "sync mirrors the host login · api key and oauth token take material from the registry account",
+    "ignore starts the agent without credentials and removes it from session pickers",
+];
+const SETTINGS_AGENTS: termrock::feedback::SettingsAgents<'static> =
+    termrock::feedback::SettingsAgents::new(
+        "Agent runtime mode",
+        "accounts are registered in Accounts (c)",
+        "Agent         Mode         Registry default",
+        SETTINGS_AGENT_ROWS,
+        SETTINGS_AGENT_NOTES,
+    );
+
 pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
     if full.is_empty() {
         return;
@@ -112,7 +154,7 @@ pub(crate) fn paint(app: &App, ui: &mut Ui<'_>, full: Rect) {
         0 => paint_general_body(app, ui),
         1 => paint_mounts_body(ui),
         2 => paint_env_body(ui),
-        3 => paint_agents_body(ui),
+        3 => paint_agents_body(ui, full),
         4 => paint_trust_body(ui),
         _ => paint_general_body(app, ui),
     }
@@ -868,35 +910,10 @@ fn paint_env_body(ui: &mut Ui<'_>) {
 
 fn paint_agents_page(app: &App, ui: &mut Ui<'_>, full: Rect) {
     use termrock::feedback::{
-        SettingsAgentRow, SettingsAgents, SettingsCluster, SettingsHint, SettingsPage,
-        SettingsPageChrome, SettingsTab, paint_settings_page_with_agents,
+        SettingsCluster, SettingsHint, SettingsPage, SettingsPageChrome, SettingsTab,
+        paint_settings_page_with_agents,
     };
 
-    const ROWS: &[SettingsAgentRow<'_>] = &[
-        SettingsAgentRow::new(" Claude Code   ", "sync        ", "★ Claude · Personal")
-            .selected(true),
-        SettingsAgentRow::new(" Codex         ", "api key     ", "★ Codex · Primary"),
-        SettingsAgentRow::new(
-            " Amp           ",
-            "sync        ",
-            "discovered · ~/.config/amp/secrets.json",
-        ),
-        SettingsAgentRow::new(
-            " Kimi Code     ",
-            "ignore      ",
-            "no credentials handed to the container",
-        ),
-        SettingsAgentRow::new(
-            " OpenCode      ",
-            "sync        ",
-            "★ OpenCode · Go subscription",
-        ),
-        SettingsAgentRow::new(" Grok Build    ", "api key     ", "★ Grok · Team"),
-    ];
-    const NOTES: &[&str] = &[
-        "sync mirrors the host login · api key and oauth token take material from the registry account",
-        "ignore starts the agent without credentials and removes it from session pickers",
-    ];
     const HINT_OFFSETS: &[u16] = &[1, 19, 38, 57, 73, 86];
     let menus = ["File", "Go", "Help"];
     let tabs = [
@@ -967,18 +984,11 @@ fn paint_agents_page(app: &App, ui: &mut Ui<'_>, full: Rect) {
             value: &running,
         }),
     };
-    let agents = SettingsAgents::new(
-        "Agent runtime mode",
-        "accounts are registered in Accounts (c)",
-        "Agent         Mode         Registry default",
-        ROWS,
-        NOTES,
-    );
     let result = paint_settings_page_with_agents(
         ui,
         full,
         &page,
-        &agents,
+        &SETTINGS_AGENTS,
         SettingsPageChrome::new().hint_offsets(HINT_OFFSETS),
     );
     debug_assert!(
@@ -1235,7 +1245,32 @@ fn trust_source_has(role: &crate::domain::workspace::RoleEntry, source: &str) ->
     }
 }
 
-fn paint_agents_body(ui: &mut Ui<'_>) {
+fn paint_agents_body(ui: &mut Ui<'_>, full: Rect) {
+    if !agents_body_clear_precedes_native_controls(full) {
+        paint_agents_body_legacy(ui);
+        return;
+    }
+
+    let result = termrock::feedback::paint_settings_agents_body(ui, full, &SETTINGS_AGENTS);
+    debug_assert!(
+        result.is_ok(),
+        "fixed Agents settings body rejected: {result:?}"
+    );
+    let _ = result;
+}
+
+/// Keep the shared clear inside its page-owned band, above the native Settings
+/// controls drawn by `App::draw_settings` on short terminals.
+///
+/// The shared body clears page-relative rows 6 through 16 (exclusive end 17).
+/// The existing shell/content titled panels place Trust at `full.bottom() - 7`
+/// and Save one row below. Only delegate when the complete clear band ends no
+/// later than that first control row; otherwise retain the old short painter.
+fn agents_body_clear_precedes_native_controls(full: Rect) -> bool {
+    full.y.saturating_add(17) <= full.bottom().saturating_sub(7)
+}
+
+fn paint_agents_body_legacy(ui: &mut Ui<'_>) {
     paint_str(ui, 4, 6, "Agent runtime mode", SECONDARY, BLACK, true);
     paint_str(
         ui,
