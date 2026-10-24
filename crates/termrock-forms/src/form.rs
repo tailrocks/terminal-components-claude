@@ -3535,6 +3535,9 @@ mod tests {
             &mut runtime,
             crate::runtime::stub::mouse(crate::event::MouseKind::Down, x, y),
         );
+        runtime
+            .draw_buffer(POINTER_SCREEN, &mut buffer)
+            .commit_presented();
         let after_down = runtime
             .area_of(POINTER_CHOOSER)
             .expect("chooser remains registered during press");
@@ -3542,6 +3545,9 @@ mod tests {
         assert_eq!(runtime.focus(), Some(POINTER_CHOOSER));
 
         let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
+        runtime
+            .draw_buffer(POINTER_SCREEN, &mut buffer)
+            .commit_presented();
         assert_eq!(
             runtime.area_of(POINTER_CHOOSER),
             Some(before),
@@ -3728,8 +3734,10 @@ mod tests {
             &mut runtime,
             crate::runtime::stub::mouse(crate::event::MouseKind::Down, x, y),
         );
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
         assert_eq!(runtime.area_of(POINTER_CHOOSER), Some(before));
         let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
         assert_eq!(runtime.area_of(POINTER_CHOOSER), Some(before));
         let _ = crate::runtime::stub::deliver(
             &mut runtime,
