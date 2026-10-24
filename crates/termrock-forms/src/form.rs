@@ -1037,7 +1037,10 @@ impl<'a> Form<'a> {
         (field.group == GroupKey::ALL || field.group == self.group) && data.visible(field.id)
     }
 
-    fn reveal_index(placement: Placement, viewport: usize) -> usize {
+    fn reveal_index(placement: Placement, viewport: usize, offset: usize) -> usize {
+        if placement.top < offset {
+            return placement.top;
+        }
         let bottom = placement
             .top
             .saturating_add(usize::from(placement.height).saturating_sub(1));
@@ -1524,8 +1527,9 @@ impl<'a> Form<'a> {
             }
         {
             let viewport = st.scroll.viewport_len();
+            let offset = st.scroll.offset();
             st.scroll
-                .ensure_visible_on_next_layout(Self::reveal_index(placement, viewport));
+                .ensure_visible_on_next_layout(Self::reveal_index(placement, viewport, offset));
         }
 
         let enter_requested = self.enter == EnterPolicy::SubmitsWhenIdle
@@ -1550,8 +1554,9 @@ impl<'a> Form<'a> {
             };
             if !pointer_held && cx.state(field.id).contains(StateFlags::FOCUSED) {
                 let viewport = st.scroll.viewport_len();
+                let offset = st.scroll.offset();
                 st.scroll
-                    .ensure_visible_on_next_layout(Self::reveal_index(placement, viewport));
+                    .ensure_visible_on_next_layout(Self::reveal_index(placement, viewport, offset));
             }
             let disabled = data.disabled(field.id);
             let (value, options) = data.value_and_options(field.id);
@@ -1654,8 +1659,9 @@ impl<'a> Form<'a> {
             })
         {
             let viewport = st.lane_scroll(plan.id).viewport_len();
+            let offset = st.lane_scroll(plan.id).offset();
             st.lane_scroll_mut(plan.id)
-                .ensure_visible_on_next_layout(Self::reveal_index(*placement, viewport));
+                .ensure_visible_on_next_layout(Self::reveal_index(*placement, viewport, offset));
         }
 
         let placed: Vec<usize> = plans
@@ -1682,8 +1688,11 @@ impl<'a> Form<'a> {
                 };
                 if !pointer_held && cx.state(field.id).contains(StateFlags::FOCUSED) {
                     let viewport = st.lane_scroll(plan.id).viewport_len();
+                    let offset = st.lane_scroll(plan.id).offset();
                     st.lane_scroll_mut(plan.id)
-                        .ensure_visible_on_next_layout(Self::reveal_index(*placement, viewport));
+                        .ensure_visible_on_next_layout(Self::reveal_index(
+                            *placement, viewport, offset,
+                        ));
                 }
                 let disabled = data.disabled(field.id);
                 let (value, options) = data.value_and_options(field.id);
@@ -2530,6 +2539,63 @@ mod tests {
         POINTER_LANE_ROWS,
     )];
     const POINTER_FORM_LAYOUT: FormLayout<'static> = FormLayout::new(POINTER_LANES);
+    const UPWARD_REVEAL_LANE: Id = Id::root("form.tests.upward-reveal.lane");
+    const UPWARD_REVEAL_FIELDS: &[FieldSpec<'static>] = &[
+        FieldSpec::new(
+            POINTER_DRIVER,
+            "Driver",
+            FieldKind::Select(LabelSelect::new(POINTER_DRIVER)),
+        ),
+        FieldSpec::new(
+            POINTER_NAME,
+            "Name",
+            FieldKind::Text(TextInput::new(POINTER_NAME)),
+        ),
+        FieldSpec::new(
+            POINTER_HOST,
+            "Host",
+            FieldKind::Text(TextInput::new(POINTER_HOST)),
+        ),
+        FieldSpec::new(
+            POINTER_SECRET,
+            "Password",
+            FieldKind::Text(TextInput::new(POINTER_SECRET).secret(SecretPolicy {
+                mask: crate::theme::GlyphRole::SecretMask,
+                synthetic_tail: 2,
+            })),
+        ),
+        FieldSpec::new(
+            POINTER_SSL,
+            "SSL mode",
+            FieldKind::Radio(LabelRadio::new(POINTER_SSL)),
+        ),
+        FieldSpec::new(
+            POINTER_TUNNEL,
+            "",
+            FieldKind::Check(Checkbox::new(
+                POINTER_TUNNEL,
+                "Connect through an SSH tunnel",
+            )),
+        ),
+        FieldSpec::new(
+            POINTER_CHOOSER,
+            "SSH key",
+            FieldKind::Chooser(Button::new(POINTER_CHOOSER, "Choose…")),
+        ),
+    ];
+    const UPWARD_REVEAL_ROWS: &[FormRow] = &[
+        FormRow::Field(POINTER_DRIVER),
+        FormRow::Field(POINTER_NAME),
+        FormRow::Field(POINTER_HOST),
+        FormRow::Field(POINTER_SECRET),
+        FormRow::Field(POINTER_SSL),
+        FormRow::Field(POINTER_TUNNEL),
+        FormRow::Field(POINTER_CHOOSER),
+    ];
+    const UPWARD_REVEAL_LANES: &[FormLane<'static>] =
+        &[FormLane::new(UPWARD_REVEAL_LANE, UPWARD_REVEAL_ROWS)];
+    const UPWARD_REVEAL_LAYOUT: FormLayout<'static> = FormLayout::new(UPWARD_REVEAL_LANES);
+    const UPWARD_REVEAL_SCREEN: Rect = Rect::new(0, 0, 80, 4);
 
     struct PointerData {
         name: String,
@@ -2686,6 +2752,59 @@ mod tests {
             self.form.draw(ui, ui.full(), &self.state, &self.data);
         }
     }
+
+    #[derive(Clone, Copy)]
+    enum UpwardRevealLayout {
+        Linear,
+        OneLane,
+    }
+
+    struct UpwardRevealApp {
+        layout: UpwardRevealLayout,
+        state: FormState,
+        data: PointerData,
+    }
+
+    impl UpwardRevealApp {
+        fn new(layout: UpwardRevealLayout) -> Self {
+            Self {
+                layout,
+                state: FormState::default(),
+                data: PointerData::default(),
+            }
+        }
+
+        fn form(&self) -> Form<'static> {
+            let form = Form::new(POINTER_DIALOG, UPWARD_REVEAL_FIELDS).enter(EnterPolicy::Never);
+            match self.layout {
+                UpwardRevealLayout::Linear => form,
+                UpwardRevealLayout::OneLane => form
+                    .try_layout(&UPWARD_REVEAL_LAYOUT)
+                    .expect("valid upward-reveal lane layout"),
+            }
+        }
+
+        fn scroll_offset(&self) -> usize {
+            match self.layout {
+                UpwardRevealLayout::Linear => self.state.scroll.offset(),
+                UpwardRevealLayout::OneLane => self.state.lane_scroll(UPWARD_REVEAL_LANE).offset(),
+            }
+        }
+    }
+
+    impl App for UpwardRevealApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            self.form()
+                .update(cx, &mut self.state, &mut self.data)
+                .erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            self.form()
+                .draw(ui, UPWARD_REVEAL_SCREEN, &self.state, &self.data);
+        }
+    }
+
     const CLIP_OPTIONS: &[&str] = &[
         "alpha", "beta", "gamma", "delta", "epsilon", "zeta", "eta", "theta", "iota", "kappa",
     ];
@@ -3507,6 +3626,129 @@ mod tests {
         let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
         runtime.draw_buffer(tiny, &mut buffer).commit_presented();
         assert!(runtime.app().state.scroll.offset() > 0);
+    }
+
+    fn reveal_key(runtime: &mut Runtime<UpwardRevealApp>, buffer: &mut Buffer, code: KeyCode) {
+        let _ = crate::runtime::stub::deliver(runtime, press(code));
+        runtime
+            .draw_buffer(UPWARD_REVEAL_SCREEN, buffer)
+            .commit_presented();
+    }
+
+    fn assert_upward_reveal(layout: UpwardRevealLayout, backward: bool) {
+        let mut runtime = Runtime::new(UpwardRevealApp::new(layout), Theme::junie());
+        let _ = runtime.initialize();
+        let mut buffer = Buffer::empty(UPWARD_REVEAL_SCREEN);
+        runtime
+            .draw_buffer(UPWARD_REVEAL_SCREEN, &mut buffer)
+            .commit_presented();
+        assert_eq!(runtime.focus(), Some(POINTER_DRIVER));
+
+        let tab_budget = runtime.ring().reachable().count();
+        let mut reached_scrolled_field = false;
+        for _ in 0..tab_budget {
+            reveal_key(&mut runtime, &mut buffer, KeyCode::Tab);
+            if runtime.focus() != Some(POINTER_DRIVER) && runtime.app().scroll_offset() >= 3 {
+                reached_scrolled_field = true;
+                break;
+            }
+        }
+        assert!(reached_scrolled_field, "Tab reaches a lower scrolled field");
+        assert!(
+            runtime.app().scroll_offset() >= 3,
+            "lower fields establish a scrolled viewport before revealing the top select"
+        );
+
+        let return_key = if backward {
+            KeyCode::BackTab
+        } else {
+            KeyCode::Tab
+        };
+        let mut returned_to_top = false;
+        let mut return_trace = Vec::new();
+        for _ in 0..tab_budget {
+            let offset_before_return = runtime.app().scroll_offset();
+            reveal_key(&mut runtime, &mut buffer, return_key);
+            return_trace.push((
+                runtime.focus(),
+                offset_before_return,
+                runtime.app().scroll_offset(),
+            ));
+            if runtime.focus() == Some(POINTER_DRIVER) {
+                assert!(
+                    offset_before_return >= 3,
+                    "the top Select is reached while the viewport is still scrolled"
+                );
+                returned_to_top = true;
+                break;
+            }
+        }
+        assert!(
+            returned_to_top,
+            "native navigation returns to the top Select: backward={backward} trace={return_trace:?} ring={:?}",
+            runtime.ring().entries()
+        );
+
+        let field_area = runtime
+            .area_of_part(POINTER_DRIVER, PartRef::of(Part::FIELD))
+            .expect("the focused top Select has a native FIELD area");
+        let viewport = match layout {
+            UpwardRevealLayout::Linear => runtime
+                .area_of_part(POINTER_DIALOG, PartRef::of(Part::BODY))
+                .expect("the linear Form exposes its content viewport"),
+            UpwardRevealLayout::OneLane => runtime
+                .area_of_part(
+                    lane_scroll_id(POINTER_DIALOG, UPWARD_REVEAL_LANE),
+                    PartRef::of(Part::CONTAINER),
+                )
+                .expect("the one-lane Form exposes its content viewport"),
+        };
+        assert!(
+            field_area.x >= viewport.x
+                && field_area.y >= viewport.y
+                && field_area.right() <= viewport.right()
+                && field_area.bottom() <= viewport.bottom(),
+            "native Select field {field_area:?} fits viewport {viewport:?}"
+        );
+
+        runtime
+            .draw_buffer(UPWARD_REVEAL_SCREEN, &mut buffer)
+            .commit_presented();
+        assert_eq!(runtime.focus(), Some(POINTER_DRIVER));
+        assert!(
+            runtime
+                .area_of_part(POINTER_DRIVER, PartRef::of(Part::FIELD))
+                .is_some()
+        );
+        let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::Enter));
+        runtime
+            .draw_buffer(UPWARD_REVEAL_SCREEN, &mut buffer)
+            .commit_presented();
+        assert!(
+            runtime
+                .app()
+                .state
+                .slots
+                .iter()
+                .any(|slot| { slot.id == POINTER_DRIVER && slot.select.is_open() })
+        );
+        assert!(
+            runtime.diagnostics().is_empty(),
+            "{:?}",
+            runtime.diagnostics()
+        );
+    }
+
+    #[test]
+    fn linear_form_reveals_scrolled_top_select_with_tab_and_backtab() {
+        assert_upward_reveal(UpwardRevealLayout::Linear, false);
+        assert_upward_reveal(UpwardRevealLayout::Linear, true);
+    }
+
+    #[test]
+    fn one_lane_form_reveals_scrolled_top_select_with_tab_and_backtab() {
+        assert_upward_reveal(UpwardRevealLayout::OneLane, false);
+        assert_upward_reveal(UpwardRevealLayout::OneLane, true);
     }
 
     #[test]
