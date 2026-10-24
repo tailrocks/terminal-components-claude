@@ -1781,3 +1781,73 @@ fn sidebar_reveals_long_rows_at_frozen_width_breakpoints() {
         assert!(thumb.y >= track.y && thumb.bottom() <= track.bottom());
     }
 }
+
+#[test]
+fn inspector_props_page_follows_real_navigation_and_closes() {
+    let mut h = harness(PageId::Buttons);
+    let inspector_id = Id::root("showcase_ui::app::inspector");
+
+    // Use the existing shell command to open the real Inspector dock.
+    press(&mut h, KeyCode::Char('i'));
+    let inspector = require(
+        h.area_of(inspector_id),
+        "Inspector body has a registered rectangle after opening",
+    );
+    let opened = area_text(&h, inspector);
+    let opened_page = require(
+        opened.lines().find(|row| row.contains("page")),
+        "Props page row is painted inside the Inspector rectangle",
+    );
+    assert!(
+        opened_page.contains("Buttons"),
+        "page Props row shows the current route: {opened_page:?}"
+    );
+
+    // Click a visible leaf in the real navigation Tree, not a direct App route.
+    let (x, y) = require(
+        visible_nav_leaf_row(&h, "Inputs"),
+        "Inputs is a visible leaf beside the current Buttons route",
+    );
+    click(&mut h, x, y);
+    assert_eq!(
+        h.focus(),
+        Some(APP_NAV),
+        "choosing a different tree row keeps navigation focused"
+    );
+    assert!(
+        h.runtime().typing_owner().is_none(),
+        "the chosen route has no active text-input owner"
+    );
+    assert_eq!(h.app().page(), PageId::Inputs);
+
+    let after_area = require(
+        h.area_of(inspector_id),
+        "Inspector remains registered after navigation",
+    );
+    assert_eq!(
+        after_area, inspector,
+        "navigation preserves the dock geometry"
+    );
+    let after = area_text(&h, after_area);
+    let after_page = require(
+        after.lines().find(|row| row.contains("page")),
+        "updated Props page row remains inside the Inspector rectangle",
+    );
+    assert!(
+        after_page.contains("Inputs") && !after_page.contains("Buttons"),
+        "page Props row follows the newly selected route: {after_page:?}"
+    );
+
+    // Close through the same documented shell key and verify the owner disappears.
+    press(&mut h, KeyCode::Char('i'));
+    assert_eq!(h.app().page(), PageId::Inputs);
+    assert!(
+        h.area_of(inspector_id).is_none(),
+        "the Inspector owner is absent after its close command"
+    );
+    assert!(
+        h.diagnostics().is_empty(),
+        "real open, route and close journey has no diagnostics: {:?}",
+        h.diagnostics()
+    );
+}
