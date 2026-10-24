@@ -956,9 +956,25 @@ fn complete_jackin_flow_keyboard_first() {
     h.key(KeyCode::Esc);
     h.key(KeyCode::Char(']'));
     h.key(KeyCode::Enter);
+    assert!(h.text().contains("Choose default role"), "{}", h.text());
+    assert!(h.harness.is_open(jackin_preview_app::ROLE_PICKER));
     h.key(KeyCode::Enter);
-    assert!(h.text().contains("Default role ★"), "{}", h.text());
+    assert!(!h.harness.is_open(jackin_preview_app::ROLE_PICKER));
+    assert_eq!(
+        h.app().editor.pending.roles.default.as_deref(),
+        Some("chainargos/the-architect")
+    );
+    assert!(
+        h.text().contains("Default role ★ chainargos/the-architect"),
+        "{}",
+        h.text()
+    );
     h.key(KeyCode::Esc);
+    assert!(
+        h.text().contains("Default role ★ chainargos/the-architect"),
+        "{}",
+        h.text()
+    );
     h.key(KeyCode::Char(']'));
     h.key(KeyCode::Enter);
     h.key(KeyCode::Char('a'));
