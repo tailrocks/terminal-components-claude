@@ -354,17 +354,21 @@ impl App for RecipeBox {
         response |= status_response.erase();
 
         let scale = Button::new(SCALE_BUTTON, "Scale servings");
-        if scale.update(cx).activated()
+        let scale_response = scale.update(cx);
+        if scale_response.activated()
             && let Some(key) = self.selected
         {
             self.dispatch(Action::Scaled(key));
         }
+        response |= scale_response.erase();
         let cook = Button::new(COOK_BUTTON, "Mark cooked");
-        if cook.update(cx).activated()
+        let cook_response = cook.update(cx);
+        if cook_response.activated()
             && let Some(key) = self.selected
         {
             self.dispatch(Action::Cooked(key));
         }
+        response |= cook_response.erase();
 
         response
     }
