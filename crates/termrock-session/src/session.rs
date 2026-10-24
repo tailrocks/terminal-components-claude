@@ -576,6 +576,10 @@ pub fn run_with_cursor_shape<A: App>(
     )
 }
 
+fn keyboard_protocol_for_app(app: &dyn App) -> KeyboardProtocol {
+    app.keyboard_protocol()
+}
+
 #[expect(
     clippy::needless_pass_by_value,
     reason = "session owns the supplied theme API and narrows capability once before runtime construction"
@@ -606,9 +610,23 @@ fn run_with_cursor_shape_startup<A: App>(
         }
     }
     let _restore_real_stdin = RestoreRealStdin;
+    let keyboard_protocol = keyboard_protocol_for_app(&app);
     let caret_supported = TerminalShapeSupport::current().caret;
-    let mut session =
-        TerminalSession::enter_with_cursor_shape_support(cursor_shape, caret_supported)?;
+    let mut session = TerminalSession::enter_with_support(
+        cursor_shape,
+        caret_supported,
+        keyboard_protocol,
+        || {
+            if bridged {
+                crate::esc_bridge::probe_keyboard_enhancement().unwrap_or(false)
+            } else {
+                // REVIEW: the unbridged path has no source-proven lossless raw-input handoff.
+                // Keep the existing fallback until that ownership contract is admitted.
+                ratatui_crossterm::crossterm::terminal::supports_keyboard_enhancement()
+                    .unwrap_or(false)
+            }
+        },
+    )?;
     // The bridge and configured startup-input drain are complete. Prime now,
     // while the terminal session owns the correct stdin binding, without reading.
     prime_input()?;
@@ -827,6 +845,42 @@ mod tests {
     use ratatui_core::layout::Rect;
     use std::cell::Cell;
     use std::sync::{Arc, Mutex};
+
+    struct KeyboardPolicyProbe {
+        policy: KeyboardProtocol,
+        calls: std::cell::Cell<usize>,
+    }
+
+    impl App for KeyboardPolicyProbe {
+        fn update(&mut self, _cx: &mut termrock_runtime::Cx<'_>) -> termrock_runtime::Response<()> {
+            termrock_runtime::Response::ignored()
+        }
+
+        fn draw(&self, _ui: &mut termrock_runtime::Ui<'_>) {}
+
+        fn keyboard_protocol(&self) -> KeyboardProtocol {
+            self.calls.set(self.calls.get() + 1);
+            self.policy
+        }
+    }
+
+    #[test]
+    fn app_policy_selection_uses_the_object_safe_hook_once() {
+        for policy in [
+            KeyboardProtocol::Auto,
+            KeyboardProtocol::On,
+            KeyboardProtocol::Off,
+        ] {
+            let app = KeyboardPolicyProbe {
+                policy,
+                calls: std::cell::Cell::new(0),
+            };
+            let erased_app: &dyn App = &app;
+
+            assert_eq!(keyboard_protocol_for_app(erased_app), policy);
+            assert_eq!(app.calls.get(), 1);
+        }
+    }
 
     struct SessionWaitProbe {
         repaint_after: Option<Duration>,
