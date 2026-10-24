@@ -31,6 +31,50 @@ fn workspace_part(id: u32) -> PartRef {
     PartRef::item(Part::ROW, ItemKey::text(&key))
 }
 
+fn instance_part(id: &str) -> PartRef {
+    let key = ManagerRowKey::Instance(id.to_owned()).stable_key();
+    PartRef::item(Part::ROW, ItemKey::text(&key))
+}
+
+fn manager_with_one_child(
+    width: u16,
+    height: u16,
+) -> Result<(Harness<App>, u32, String), Box<dyn std::error::Error>> {
+    let mut h = Harness::new(
+        App::for_scenario_at(Scenario::HardCases, Motion::Paused, 0),
+        Theme::junie(),
+        width,
+        height,
+    );
+    focus_manager_list(&mut h);
+    let parent = h
+        .app()
+        .world
+        .workspaces
+        .first()
+        .map(|workspace| workspace.id)
+        .ok_or("Manager tree workspace fixture")?;
+    let child = h
+        .app()
+        .world
+        .instances
+        .iter()
+        .find(|instance| !instance.status.hidden())
+        .map(|instance| instance.id.clone())
+        .ok_or("visible Manager child fixture")?;
+    for instance in &mut h.app_mut().world.instances {
+        instance.workspace = (instance.id == child).then_some(parent);
+    }
+    h.app_mut().manager.invalidate_rows();
+    let _ = h.tick();
+    let _ = h.key(KeyCode::Home);
+    assert_eq!(
+        h.app().manager.selected_row(),
+        &ManagerRowKey::Workspace(parent)
+    );
+    Ok((h, parent, child))
+}
+
 #[test]
 fn ordinary_manager_pointer_chose_opens_live_detail() -> Result<(), Box<dyn std::error::Error>> {
     let mut h = Harness::new(
@@ -827,5 +871,275 @@ fn hard_cases_scroll_hands_off_to_stock_list_rows() -> Result<(), Box<dyn std::e
     );
     assert_eq!(h.focus(), Some(MANAGER_LIST));
     assert_eq!(h.diagnostics(), []);
+    Ok(())
+}
+
+#[test]
+fn left_and_h_return_to_parent_then_collapse_the_same_workspace()
+-> Result<(), Box<dyn std::error::Error>> {
+    for key in [KeyCode::Left, KeyCode::Char('h')] {
+        let (mut h, parent, child) = manager_with_one_child(120, 40)?;
+        let before_world = (
+            h.app().world.workspaces.clone(),
+            h.app().world.instances.clone(),
+            h.app().world.jobs.clone(),
+            h.app().world.saved,
+        );
+
+        let _ = h.key(KeyCode::Right);
+        assert!(h.app().manager.is_expanded(parent));
+        let _ = h.key(KeyCode::Right);
+        assert_eq!(
+            h.app().manager.selected_row(),
+            &ManagerRowKey::Instance(child.clone())
+        );
+        assert!(
+            h.area_of_part(MANAGER_LIST, instance_part(&child))
+                .is_some()
+        );
+
+        let _ = h.key(key);
+        assert_eq!(
+            h.app().manager.selected_row(),
+            &ManagerRowKey::Workspace(parent)
+        );
+        assert_eq!(
+            h.app().manager.list.cursor(),
+            Some(ItemKey::text(
+                &ManagerRowKey::Workspace(parent).stable_key()
+            ))
+        );
+        assert_eq!(h.focus(), Some(MANAGER_LIST));
+        assert!(h.app().manager.is_expanded(parent));
+        assert!(
+            h.area_of_part(MANAGER_LIST, instance_part(&child))
+                .is_some()
+        );
+
+        let _ = h.key(key);
+        assert_eq!(
+            h.app().manager.selected_row(),
+            &ManagerRowKey::Workspace(parent)
+        );
+        assert_eq!(h.focus(), Some(MANAGER_LIST));
+        assert!(!h.app().manager.is_expanded(parent));
+        assert!(
+            h.area_of_part(MANAGER_LIST, instance_part(&child))
+                .is_none()
+        );
+        assert_eq!(
+            (
+                h.app().world.workspaces.clone(),
+                h.app().world.instances.clone(),
+                h.app().world.jobs.clone(),
+                h.app().world.saved,
+            ),
+            before_world,
+            "tree navigation changes selection/expansion without changing World effects"
+        );
+        assert_eq!(h.app().route(), jackin_preview_app::Route::Manager);
+        assert_eq!(h.diagnostics(), []);
+    }
+    Ok(())
+}
+
+#[test]
+fn manager_tree_keys_are_safe_noops_on_collapsed_current_and_orphan_rows()
+-> Result<(), Box<dyn std::error::Error>> {
+    let (mut h, parent, child) = manager_with_one_child(120, 40)?;
+    let collapsed = h.app().manager.selected_row().clone();
+    for key in [KeyCode::Left, KeyCode::Char('h')] {
+        let _ = h.key(key);
+        assert_eq!(h.app().manager.selected_row(), &collapsed);
+        assert!(!h.app().manager.is_expanded(parent));
+    }
+
+    let workspace_count = h.app().world.workspaces.len();
+    for _ in 0..workspace_count {
+        let _ = h.key(KeyCode::Down);
+    }
+    assert_eq!(
+        h.app().manager.selected_row(),
+        &ManagerRowKey::CurrentDirectory
+    );
+    for key in [KeyCode::Left, KeyCode::Char('h')] {
+        let _ = h.key(key);
+        assert_eq!(
+            h.app().manager.selected_row(),
+            &ManagerRowKey::CurrentDirectory
+        );
+        assert!(!h.app().manager.is_expanded(parent));
+    }
+
+    for instance in &mut h.app_mut().world.instances {
+        instance.workspace = None;
+    }
+    h.app_mut().manager.invalidate_rows();
+    let _ = h.tick();
+    let _ = h.key(KeyCode::Home);
+    assert_eq!(
+        h.app().manager.selected_row(),
+        &ManagerRowKey::Workspace(parent)
+    );
+    for key in [KeyCode::Left, KeyCode::Char('h')] {
+        let _ = h.key(key);
+        assert_eq!(
+            h.app().manager.selected_row(),
+            &ManagerRowKey::Workspace(parent)
+        );
+        assert!(!h.app().manager.is_expanded(parent));
+    }
+    for _ in 0..workspace_count.saturating_add(1) {
+        let _ = h.key(KeyCode::Down);
+    }
+    assert_eq!(
+        h.app().manager.selected_row(),
+        &ManagerRowKey::Instance(child.clone())
+    );
+    for key in [KeyCode::Left, KeyCode::Char('h')] {
+        let _ = h.key(key);
+        assert_eq!(
+            h.app().manager.selected_row(),
+            &ManagerRowKey::Instance(child.clone())
+        );
+        assert!(!h.app().manager.is_expanded(parent));
+        assert_eq!(h.app().route(), jackin_preview_app::Route::Manager);
+        assert_eq!(h.diagnostics(), []);
+    }
+    Ok(())
+}
+
+#[test]
+fn detail_left_restores_the_list_before_a_later_left_collapses()
+-> Result<(), Box<dyn std::error::Error>> {
+    for width in [120, 80] {
+        let (mut h, parent, child) = manager_with_one_child(width, 40)?;
+        let _ = h.key(KeyCode::Right);
+        assert!(h.app().manager.is_expanded(parent));
+        let child_area_before_detail = h.area_of_part(MANAGER_LIST, instance_part(&child));
+        if width < 120 {
+            // The paused narrow frame publishes workspace rows, not child rows.
+            assert!(
+                h.area_of_part(MANAGER_LIST, workspace_part(parent))
+                    .is_some()
+            );
+            assert_eq!(child_area_before_detail, None);
+        } else {
+            assert!(child_area_before_detail.is_some());
+        }
+        let rows_revision = h.app().manager.rows_revision();
+        let _ = h.key(KeyCode::Tab);
+        assert!(h.app().manager.detail_open());
+        assert!(
+            matches!(h.focus(), Some(DETAIL | MANAGER_DETAIL_ACTION)),
+            "detail opens under its existing owner"
+        );
+
+        let _ = h.key(KeyCode::Left);
+        assert!(!h.app().manager.detail_open());
+        assert_eq!(h.focus(), Some(MANAGER_LIST));
+        assert!(h.app().manager.is_expanded(parent));
+        assert_eq!(h.app().manager.rows_revision(), rows_revision);
+        assert_eq!(
+            h.area_of_part(MANAGER_LIST, instance_part(&child)),
+            child_area_before_detail
+        );
+
+        let _ = h.key(KeyCode::Left);
+        assert!(!h.app().manager.is_expanded(parent));
+        assert_eq!(
+            h.app().manager.selected_row(),
+            &ManagerRowKey::Workspace(parent)
+        );
+        assert!(
+            h.area_of_part(MANAGER_LIST, instance_part(&child))
+                .is_none()
+        );
+        assert_eq!(h.diagnostics(), []);
+    }
+    Ok(())
+}
+
+#[test]
+fn manager_tree_keys_remain_list_owned_and_global_space_capture_is_unchanged()
+-> Result<(), Box<dyn std::error::Error>> {
+    let mut shell = Harness::new(
+        App::for_scenario_at(Scenario::HardCases, Motion::Paused, 0),
+        Theme::junie(),
+        120,
+        40,
+    );
+    assert_eq!(shell.focus(), Some(MANAGER));
+    let shell_selection = shell.app().manager.selected_row().clone();
+    let _ = shell.key(KeyCode::Char('h'));
+    let _ = shell.key(KeyCode::Left);
+    assert_eq!(shell.app().manager.selected_row(), &shell_selection);
+    assert!(!shell.app().manager.detail_open());
+    assert_eq!(shell.diagnostics(), []);
+
+    let (mut h, parent, _) = manager_with_one_child(120, 40)?;
+    let selected = h.app().manager.selected_row().clone();
+    let expanded = h.app().manager.is_expanded(parent);
+    let focus = h.focus();
+    let before_world = (
+        h.app().world.workspaces.clone(),
+        h.app().world.instances.clone(),
+        h.app().world.jobs.clone(),
+        h.app().world.saved,
+    );
+    let _ = h.key(KeyCode::Char(' '));
+    assert_eq!(h.app().route(), jackin_preview_app::Route::Manager);
+    assert!(!h.app().manager.detail_open());
+    assert_eq!(h.app().manager.selected_row(), &selected);
+    assert_eq!(h.app().manager.is_expanded(parent), expanded);
+    assert_eq!(h.focus(), focus);
+    assert_eq!(
+        (
+            h.app().world.workspaces.clone(),
+            h.app().world.instances.clone(),
+            h.app().world.jobs.clone(),
+            h.app().world.saved,
+        ),
+        before_world
+    );
+    assert_eq!(h.diagnostics(), []);
+    Ok(())
+}
+
+#[test]
+fn removed_child_navigation_does_not_toggle_a_workspace() -> Result<(), Box<dyn std::error::Error>>
+{
+    for key in [KeyCode::Left, KeyCode::Char('h')] {
+        let (mut h, parent, child) = manager_with_one_child(120, 40)?;
+        let _ = h.key(KeyCode::Right);
+        let _ = h.key(KeyCode::Right);
+        assert_eq!(
+            h.app().manager.selected_row(),
+            &ManagerRowKey::Instance(child.clone())
+        );
+        h.app_mut()
+            .world
+            .instances
+            .retain(|instance| instance.id != child);
+        h.app_mut().manager.invalidate_rows();
+        let world_after_removal = (
+            h.app().world.workspaces.clone(),
+            h.app().world.instances.clone(),
+            h.app().world.jobs.clone(),
+        );
+
+        let _ = h.key(key);
+        assert!(h.app().manager.is_expanded(parent));
+        assert_eq!(h.app().route(), jackin_preview_app::Route::Manager);
+        assert_eq!(
+            (
+                h.app().world.workspaces.clone(),
+                h.app().world.instances.clone(),
+                h.app().world.jobs.clone(),
+            ),
+            world_after_removal
+        );
+        assert_eq!(h.diagnostics(), []);
+    }
     Ok(())
 }

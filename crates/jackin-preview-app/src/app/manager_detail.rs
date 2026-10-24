@@ -16,6 +16,9 @@ const CLOSE_DETAIL: ActionKey = ActionKey::custom("master_detail.close_detail");
 const CLOSE_DETAIL_LEFT: ActionKey = ActionKey::custom("master_detail.close_detail_left");
 const CLOSE_DETAIL_BACKTAB: ActionKey = ActionKey::custom("master_detail.close_detail_backtab");
 const SHELL_OPEN_DETAIL: ActionKey = ActionKey::custom("manager.detail.open_from_shell");
+pub(super) const TREE_PARENT_LEFT: ActionKey =
+    ActionKey::custom("manager.tree.parent_or_collapse_left");
+pub(super) const TREE_PARENT_H: ActionKey = ActionKey::custom("manager.tree.parent_or_collapse_h");
 
 const SHELL_TAB: &[Binding<MasterDetailCmd>] = &[Binding {
     action: SHELL_OPEN_DETAIL,
@@ -35,6 +38,25 @@ const LIST_TAB: &[Binding<MasterDetailCmd>] = &[Binding {
     visible: true,
 }];
 
+const LIST_TREE_BINDINGS: &[Binding<()>] = &[
+    Binding {
+        action: TREE_PARENT_LEFT,
+        chord: Some(Chord::key(KeyCode::Left)),
+        cmd: (),
+        label: "Collapse or parent",
+        priority: 40,
+        visible: false,
+    },
+    Binding {
+        action: TREE_PARENT_H,
+        chord: Some(Chord::key(KeyCode::Char('h'))),
+        cmd: (),
+        label: "Collapse or parent",
+        priority: 40,
+        visible: false,
+    },
+];
+
 fn master_detail() -> MasterDetail {
     MasterDetail::new(LAYOUT, MANAGER_LIST, DETAIL)
         .collapse_below(100)
@@ -53,6 +75,11 @@ pub(super) fn register_shell_tab(app: &App, ui: &mut Ui<'_>) {
 pub(super) fn register_list_tab(ui: &mut Ui<'_>) {
     let live = ui.state(MANAGER_LIST);
     ui.publish_additional_bindings(MANAGER_LIST, live, LIST_TAB);
+}
+
+pub(super) fn register_list_tree_bindings(ui: &mut Ui<'_>) {
+    let live = ui.state(MANAGER_LIST);
+    ui.publish_additional_bindings(MANAGER_LIST, live, LIST_TREE_BINDINGS);
 }
 
 pub(super) fn update(app: &mut App, cx: &mut Cx<'_>) -> Response<()> {

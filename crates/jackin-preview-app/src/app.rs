@@ -2397,6 +2397,90 @@ impl App {
         self.manager.select_row(domain);
     }
 
+    fn update_manager_tree_binding(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        if self.route != Route::Manager
+            || !cx
+                .state(MANAGER_LIST)
+                .contains(termrock::StateFlags::FOCUSED)
+        {
+            return Response::ignored();
+        }
+
+        let action = cx.intents(MANAGER_LIST).find_map(|intent| match intent {
+            Intent::Binding(action)
+                if action == manager_detail::TREE_PARENT_LEFT
+                    || action == manager_detail::TREE_PARENT_H =>
+            {
+                Some(action)
+            }
+            _ => None,
+        });
+        if action.is_none() {
+            return Response::ignored();
+        }
+
+        match self.manager.selected_row().clone() {
+            ManagerRowKey::Workspace(workspace) => {
+                let row_is_live = self.world.workspace(workspace).is_some()
+                    && self
+                        .manager_rows_cache
+                        .iter()
+                        .any(|row| row.domain == ManagerRowKey::Workspace(workspace));
+                if !row_is_live || !self.manager.is_expanded(workspace) {
+                    return Response::consumed();
+                }
+
+                self.manager.toggle(workspace);
+                self.ensure_manager_rows();
+                let _ = self.select_manager_row(&ManagerRowKey::Workspace(workspace));
+                Response::changed()
+            }
+            ManagerRowKey::Instance(instance_id) => {
+                let Some(parent) = self
+                    .world
+                    .instance(&instance_id)
+                    .and_then(|instance| instance.workspace)
+                else {
+                    return Response::consumed();
+                };
+                let instance_is_live_child = self.world.workspace(parent).is_some()
+                    && self.manager.is_expanded(parent)
+                    && self
+                        .manager_rows_cache
+                        .iter()
+                        .any(|row| row.domain == ManagerRowKey::Instance(instance_id.clone()))
+                    && self
+                        .manager_rows_cache
+                        .iter()
+                        .any(|row| row.domain == ManagerRowKey::Workspace(parent));
+                if !instance_is_live_child {
+                    return Response::consumed();
+                }
+                if self.select_manager_row(&ManagerRowKey::Workspace(parent)) {
+                    Response::changed()
+                } else {
+                    Response::consumed()
+                }
+            }
+            ManagerRowKey::CurrentDirectory | ManagerRowKey::NewWorkspace => Response::consumed(),
+        }
+    }
+
+    fn select_manager_row(&mut self, selected: &ManagerRowKey) -> bool {
+        let Some((index, key, domain)) = self
+            .manager_rows_cache
+            .iter()
+            .enumerate()
+            .find(|(_, row)| &row.domain == selected)
+            .map(|(index, row)| (index, row.key, row.domain.clone()))
+        else {
+            return false;
+        };
+        self.manager.list.set_cursor(index, key);
+        self.manager.select_row(domain);
+        true
+    }
+
     fn move_accounts_cursor(&mut self, forward: bool) {
         let len = self.account_rows().len();
         if len == 0 {
@@ -4417,6 +4501,7 @@ impl App {
             self.open_agent_picker(cx);
             return result | Response::changed();
         }
+        result |= self.update_manager_tree_binding(cx);
         let list =
             Self::manager_list().update(cx, &mut self.manager.list, &self.manager_rows_cache);
         let list_action = list.action_ref().copied();
@@ -7118,6 +7203,7 @@ impl App {
         if !frame_owns_list {
             Self::manager_list().draw(ui, list_area, &self.manager.list, &self.manager_rows_cache);
         }
+        manager_detail::register_list_tree_bindings(ui);
         Self::new_workspace_button().draw(
             ui,
             Rect {
