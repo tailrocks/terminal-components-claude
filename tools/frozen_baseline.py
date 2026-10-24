@@ -3118,38 +3118,60 @@ def cli_coverage_report_fields(registered_cli_complete: bool) -> dict[str, objec
     }
 
 
-def scenario_chunks(
-    names: list[str], size: int, *, check_work: Callable[[], None] | None = None
+def _scenario_chunks_for_reference_names(
+    names: list[str],
+    size: int,
+    reference_names: tuple[str, ...],
+    *,
+    check_work: Callable[[], None] | None = None,
 ) -> list[list[str]]:
+    """Partition ordinary scenarios and already-validated reference IDs."""
     if not 1 <= size <= 512:
         raise RunnerError("chunk size must be 1..512 cases")
+    reference_name_set = set(reference_names)
     if check_work is None:
-        reference_names = [name for name in names if name == REFERENCE_CASE]
-        if len(reference_names) > 1:
+        selected_references = [name for name in names if name in reference_name_set]
+        if len(selected_references) != len(set(selected_references)):
             raise RunnerError("reference checkpoint scenario is duplicated in selection")
-        ordinary = [name for name in names if name != REFERENCE_CASE]
+        ordinary = [name for name in names if name not in reference_name_set]
         chunks = [ordinary[start : start + size] for start in range(0, len(ordinary), size)]
-        if reference_names:
-            chunks.append(reference_names)
+        chunks.extend([[name] for name in selected_references])
         return chunks
-    reference_names = []
+    selected_references = []
     ordinary = []
     for name in names:
         check_work()
-        if name == REFERENCE_CASE:
-            reference_names.append(name)
+        if name in reference_name_set:
+            selected_references.append(name)
         else:
             ordinary.append(name)
-    if len(reference_names) > 1:
+    if len(selected_references) != len(set(selected_references)):
         raise RunnerError("reference checkpoint scenario is duplicated in selection")
     chunks = []
     for start in range(0, len(ordinary), size):
         check_work()
         chunks.append(ordinary[start : start + size])
-    if reference_names:
-        chunks.append(reference_names)
+    chunks.extend([[name] for name in selected_references])
     check_work()
     return chunks
+
+
+def _scenario_chunks_for_decisions(
+    names: list[str],
+    size: int,
+    decisions: list[dict[str, object]],
+    *,
+    check_work: Callable[[], None] | None = None,
+) -> list[list[str]]:
+    """Partition using only tuple IDs from an already-validated decision sequence."""
+    reference_names = tuple(decision["tuple"]["test_id"] for decision in decisions)
+    return _scenario_chunks_for_reference_names(names, size, reference_names, check_work=check_work)
+
+
+def scenario_chunks(
+    names: list[str], size: int, *, check_work: Callable[[], None] | None = None
+) -> list[list[str]]:
+    return _scenario_chunks_for_reference_names(names, size, (REFERENCE_CASE,), check_work=check_work)
 
 
 def _visual_case_conditions(names: list[str]) -> dict[str, dict[str, object]]:
@@ -4486,6 +4508,32 @@ def reference_case_selected(decision: dict[str, object], selected: list[str]) ->
     return decision["tuple"]["test_id"] in selected or decision["tuple"]["case_id"] in selected
 
 
+def _selected_reference_decisions(
+    decisions: list[dict[str, object]], selected: list[str]
+) -> list[dict[str, object]]:
+    """Keep the validated input order while selecting decisions for one chunk."""
+    return [decision for decision in decisions if reference_case_selected(decision, selected)]
+
+
+def _reference_environment_layers(
+    decision: dict[str, object], decision_sha256: str
+) -> tuple[dict[str, object], dict[str, str]]:
+    """Split decision values from reference metadata to preserve profile ordering."""
+    reference_tuple = decision["tuple"]
+    live_frame = decision["live_frame"]
+    return (
+        dict(decision["environment"]["values"]),
+        {
+            "TERMROCK_PAIR_REFERENCE_CASE": reference_tuple["case_id"],
+            "TERMROCK_PAIR_REFERENCE_ORDINAL": str(reference_tuple["ordinal"]),
+            "TERMROCK_PAIR_REFERENCE_LOGICAL": reference_tuple["logical_name"],
+            "TERMROCK_PAIR_REFERENCE_ANSI_SHA256": live_frame["ansi_sha256"],
+            "TERMROCK_PAIR_REFERENCE_SEMANTIC_FRAME_SHA256": live_frame["semantic_frame_sha256"],
+            "TERMROCK_PAIR_REFERENCE_DECISION_SHA256": decision_sha256,
+        },
+    )
+
+
 def _validate_reference_receipts_collectively(receipts: dict[tuple[str, int, str], tuple[str, str, str | None]], selected: list[str], phase: str, decisions: list[dict[str, object]], decision_sha256: str) -> None:
     """Validate receipts against the complete, already-pinned decision sequence."""
     selected_decisions = [decision for decision in decisions if reference_case_selected(decision, selected)]
@@ -4564,23 +4612,15 @@ def run_live_chunk(live: Path, root: Path, run_root: Path, phase: str, bins: Pat
     if term_profile is not None:
         env["TERMROCK_PAIR_TERM_PROFILE"] = term_profile
     reference_decisions = reference_decisions or []
-    active_references = [decision for decision in reference_decisions if reference_case_selected(decision, selected)]
+    active_references = _selected_reference_decisions(reference_decisions, selected)
     if phase == "baseline-capture" and active_references:
         if len(active_references) != 1 or reference_decision_sha256 != REFERENCE_DECISIONS_SHA256:
             raise RunnerError("invalid or unpinned paired-reference decision")
         decision = active_references[0]
-        for name, value in decision["environment"]["values"].items():
-            env[name] = value
+        decision_values, reference_values = _reference_environment_layers(decision, reference_decision_sha256)
+        env.update(decision_values)
         controlled_environment = apply_term_profile(env, term_profile)
-        ref_tuple = decision["tuple"]
-        env.update({
-            "TERMROCK_PAIR_REFERENCE_CASE": ref_tuple["case_id"],
-            "TERMROCK_PAIR_REFERENCE_ORDINAL": str(ref_tuple["ordinal"]),
-            "TERMROCK_PAIR_REFERENCE_LOGICAL": ref_tuple["logical_name"],
-            "TERMROCK_PAIR_REFERENCE_ANSI_SHA256": decision["live_frame"]["ansi_sha256"],
-            "TERMROCK_PAIR_REFERENCE_SEMANTIC_FRAME_SHA256": decision["live_frame"]["semantic_frame_sha256"],
-            "TERMROCK_PAIR_REFERENCE_DECISION_SHA256": reference_decision_sha256,
-        })
+        env.update(reference_values)
     elif any(name.startswith("TERMROCK_PAIR_REFERENCE_") for name in env):
         raise RunnerError("reference env unexpectedly survived clean environment")
     expression = selected_expression(selected)
