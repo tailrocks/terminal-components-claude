@@ -173,6 +173,8 @@ const EDITOR_ROLE_EDIT: Id = crate::screens::editor::ROOT.sub("role-edit");
 const EDITOR_ROLE_LOAD: Id = crate::screens::editor::ROOT.sub("role-load");
 const EDITOR_ACCOUNTS_LIST: Id = crate::screens::editor::ROOT.sub("accounts-list");
 const EDITOR_SAVE_CONFIRM: Id = crate::screens::editor::ROOT.sub("save-confirm");
+// The shared Roles painter places its native Save owner on this fixed row.
+const EDITOR_VIEW_ROLE_SAVE_ROW: u16 = 37;
 const SETTINGS_SAVE_CONFIRM: Id = crate::screens::settings::ROOT.sub("save-confirm");
 
 const CMD_QUIT: ActionKey = ActionKey::application("jackin.quit");
@@ -452,6 +454,20 @@ enum PickerMode {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct EditorRoleTarget {
+    generation: u64,
+    workspace_id: Option<crate::domain::workspace::WorkspaceId>,
+    is_create: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum RolePickerPurpose {
+    Launch,
+    EditorEnvOverride,
+    EditorDefault(EditorRoleTarget),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum CapsuleAction {
     NewTab,
     Split(SplitDir),
@@ -662,6 +678,7 @@ pub struct App {
     op_options: Vec<AccountOption>,
     op_item_key: String,
     picker_mode: Option<PickerMode>,
+    role_picker_purpose: Option<RolePickerPurpose>,
     selected_role: usize,
     explicit_manager_role: Option<String>,
     launch: Option<LaunchRun>,
@@ -690,7 +707,7 @@ pub struct App {
     capsule_interaction: CapsuleInteraction,
     editor_accounts: ListState,
     editor_accounts_transition: bool,
-    editor_role_picker: bool,
+    editor_generation: u64,
     editor_env_role: Option<String>,
     help_open: bool,
     capsule_help_open: bool,
@@ -892,6 +909,7 @@ impl App {
             op_options: Vec::new(),
             op_item_key: String::new(),
             picker_mode: None,
+            role_picker_purpose: None,
             selected_role,
             explicit_manager_role: None,
             launch,
@@ -921,7 +939,7 @@ impl App {
             capsule_interaction: CapsuleInteraction::default(),
             editor_accounts: ListState::default(),
             editor_accounts_transition: false,
-            editor_role_picker: false,
+            editor_generation: 0,
             editor_env_role: None,
             help_open: false,
             capsule_help_open: false,
@@ -1457,6 +1475,38 @@ impl App {
         .variant(Variant::PRIMARY)
     }
 
+    fn editor_view_active(&self, full: Rect, theme: &termrock::Theme) -> bool {
+        let editor_allowed = (!self.editor.preview_open && self.status.is_none())
+            || (!self.editor.preview_open
+                && self
+                    .status
+                    .as_deref()
+                    .is_some_and(|status| status.starts_with("Default role")))
+            || (self.editor.preview_open
+                && self
+                    .status
+                    .as_deref()
+                    .is_some_and(|status| status.starts_with("Save workspace")));
+        // Short supported layouts use the normal Roles renderer, whose
+        // controls follow the measured content area instead of this fixed row.
+        let roles_have_complete_shared_controls =
+            self.editor.tab != EditorTab::Roles || full.height > EDITOR_VIEW_ROLE_SAVE_ROW;
+        self.route == Route::Editor
+            && full.width >= 120
+            && roles_have_complete_shared_controls
+            && self.world.scenario == Scenario::Returning
+            && self.motion == Motion::Paused
+            && theme.capability.color == termrock::ColorLevel::TrueColor
+            && theme.color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
+            && editor_allowed
+            && !self.editor.env_form_open
+            && self.role_picker_purpose.is_none()
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+            && !self.editor_exit_open
+    }
+
     fn draw_editor_save_footer(&self, ui: &mut Ui<'_>, area: Rect) {
         Self::editor_save_button("Save workspace").draw(ui, area);
         if self.editor.preview_open {
@@ -1547,6 +1597,111 @@ impl App {
 
     fn role_picker(title: &'static str) -> Picker<'static, RoleOption> {
         Picker::new(ROLE_PICKER).title(title)
+    }
+
+    fn role_picker_title(&self) -> &'static str {
+        match self.role_picker_purpose {
+            Some(RolePickerPurpose::EditorEnvOverride) => "Add role override",
+            Some(RolePickerPurpose::EditorDefault(_)) => "Choose default role",
+            Some(RolePickerPurpose::Launch) | None => "Choose a role",
+        }
+    }
+
+    fn role_picker_for_current_purpose(&self) -> Picker<'static, RoleOption> {
+        let picker = Self::role_picker(self.role_picker_title());
+        if matches!(
+            self.role_picker_purpose,
+            Some(RolePickerPurpose::EditorDefault(_))
+        ) {
+            picker
+                .layout(termrock::PickerLayout::card())
+                .hints("Enter chooses · current default clears · Esc cancels")
+                .width(72)
+        } else {
+            picker
+        }
+    }
+
+    fn role_picker_items(&self) -> Vec<RoleOption> {
+        if !matches!(
+            self.role_picker_purpose,
+            Some(RolePickerPurpose::EditorDefault(_))
+        ) {
+            return self.roles.clone();
+        }
+
+        self.world
+            .roles
+            .iter()
+            .filter(|role| {
+                role.in_registry
+                    && (self.editor.pending.roles.allows(&role.full_name())
+                        || self.editor.pending.roles.allows(&role.name))
+            })
+            .map(|role| {
+                let key = role.full_name();
+                RoleOption {
+                    label: key.clone(),
+                    key,
+                    detail: format!(
+                        "{} · {}",
+                        if role.trusted { "trusted" } else { "untrusted" },
+                        role.description
+                    ),
+                }
+            })
+            .collect()
+    }
+
+    fn editor_role_target(&self) -> EditorRoleTarget {
+        EditorRoleTarget {
+            generation: self.editor_generation,
+            workspace_id: self.editor.workspace_id(),
+            is_create: self.editor.is_create(),
+        }
+    }
+
+    fn editor_role_target_is_current(&self, target: EditorRoleTarget) -> bool {
+        self.route == Route::Editor
+            && self.editor_generation == target.generation
+            && self.editor.workspace_id() == target.workspace_id
+            && self.editor.is_create() == target.is_create
+            && target.workspace_id.is_none_or(|workspace_id| {
+                self.world
+                    .workspaces
+                    .iter()
+                    .any(|workspace| workspace.id == workspace_id)
+            })
+    }
+
+    fn current_role_is_allowed(&self, key: &str) -> bool {
+        self.world.roles.iter().any(|role| {
+            role.in_registry
+                && role.full_name() == key
+                && (self.editor.pending.roles.allows(key)
+                    || self.editor.pending.roles.allows(&role.name))
+        })
+    }
+
+    fn reset_editor_session(&mut self) {
+        self.editor_generation = self.editor_generation.wrapping_add(1);
+        self.role_picker_purpose = None;
+        self.role_state = PickerState::default();
+        self.editor_env_role = None;
+    }
+
+    fn finish_role_picker(&mut self, cx: &mut Cx<'_>, restore_default_focus: bool) {
+        let purpose = self.role_picker_purpose.take();
+        if matches!(purpose, Some(RolePickerPurpose::EditorDefault(_))) {
+            self.role_state = PickerState::default();
+        }
+        if restore_default_focus
+            && matches!(purpose, Some(RolePickerPurpose::EditorDefault(target))
+                if self.editor_role_target_is_current(target))
+        {
+            self.editor_leaf_focused = true;
+            cx.focus(EDITOR_ROLE_EDIT);
+        }
     }
 
     fn launch_agent_picker(&self) -> Picker<'static, AgentOption> {
@@ -2231,7 +2386,7 @@ impl App {
             && self.status.is_none()
             && !self.editor.preview_open
             && !self.editor.env_form_open
-            && !self.editor_role_picker
+            && self.role_picker_purpose.is_none()
             && !self.help_open
             && !self.quit_open
             && !self.cancel_open
@@ -2716,17 +2871,27 @@ impl App {
     }
 
     fn open_role_picker(&mut self, cx: &mut Cx<'_>) {
+        self.role_picker_purpose = Some(RolePickerPurpose::Launch);
         let picker = Self::role_picker("Choose a role");
         let spec = picker.layer(cx, &self.roles);
         cx.open_layer(ROLE_PICKER, spec);
     }
 
-    fn open_editor_role_picker(&mut self, cx: &mut Cx<'_>) {
-        self.editor_role_picker = true;
+    fn open_editor_env_role_picker(&mut self, cx: &mut Cx<'_>) {
+        self.role_picker_purpose = Some(RolePickerPurpose::EditorEnvOverride);
         self.role_state = PickerState::default();
         let picker = Self::role_picker("Add role override");
         let spec = picker.layer(cx, &self.roles);
         cx.open_layer(ROLE_PICKER, spec);
+    }
+
+    fn open_editor_default_role_picker(&mut self, cx: &mut Cx<'_>) {
+        self.role_picker_purpose =
+            Some(RolePickerPurpose::EditorDefault(self.editor_role_target()));
+        self.role_state = PickerState::default();
+        let items = self.role_picker_items();
+        let picker = self.role_picker_for_current_purpose();
+        cx.open_layer(ROLE_PICKER, picker.layer(cx, &items));
     }
 
     fn open_account_picker(&mut self, cx: &mut Cx<'_>) {
@@ -4355,47 +4520,122 @@ impl App {
             result |= Response::changed();
         }
 
-        let picker = Self::role_picker(if self.editor_role_picker {
-            "Add role override"
-        } else {
-            "Choose a role"
-        });
-        let response = picker.update(cx, &mut self.role_state, &self.roles);
-        let action = response.action_ref().copied();
-        result |= response.erase();
+        // Picker also settles its FilterList focus lifecycle after the layer closes.
+        // Only actions from a layer open at the start of this update are semantic choices.
         if cx.is_open(ROLE_PICKER)
-            && let Some(PickerAction::Chosen(key)) = action
-            && let Some(index) = self.roles.iter().position(|role| {
-                if self.editor_role_picker && !self.role_state.query().is_empty() {
-                    role.key
-                        .to_ascii_lowercase()
-                        .contains(&self.role_state.query().to_ascii_lowercase())
-                } else {
-                    ItemKey::text(&role.key) == key
-                }
-            })
+            && let Some(RolePickerPurpose::EditorDefault(target)) = self.role_picker_purpose
+            && !self.editor_role_target_is_current(target)
         {
-            if self.editor_role_picker {
-                let role = self
-                    .roles
-                    .get(index)
-                    .map_or_else(String::new, |role| role.key.clone());
-                self.editor_role_picker = false;
-                self.editor_env_role = Some(role.clone());
-                self.editor.open_env_form();
-                self.editor_leaf_focused = true;
-                cx.focus(crate::screens::editor::ENV_KEY);
-                self.status = Some(format!("Add role override · {}", self.role_label(&role)));
-            } else {
-                self.selected_role = index;
-                if let Some(role) = self.roles.get(index) {
-                    self.explicit_manager_role = Some(role.key.clone());
-                }
-            }
-            cx.close_layer(ROLE_PICKER, Some(ActionKey::CONFIRM));
+            cx.close_layer(ROLE_PICKER, Some(ActionKey::CANCEL));
+            self.finish_role_picker(cx, false);
+            self.status = Some("Editor changed; reopen the default role picker".into());
             result |= Response::changed();
         }
-
+        let role_picker_was_open = cx.is_open(ROLE_PICKER);
+        let role_picker_purpose = self.role_picker_purpose;
+        let items = self.role_picker_items();
+        let picker = self.role_picker_for_current_purpose();
+        if matches!(
+            role_picker_purpose,
+            Some(RolePickerPurpose::EditorDefault(_))
+        ) {
+            picker.reconcile(&mut self.role_state, &items);
+        }
+        let response = picker.update(cx, &mut self.role_state, &items);
+        let action = response.action_ref().copied();
+        result |= response.erase();
+        if role_picker_was_open
+            && let Some(PickerAction::Chosen(key)) = action
+            && let Some(purpose) = role_picker_purpose
+        {
+            match purpose {
+                RolePickerPurpose::Launch => {
+                    if let Some(index) = items
+                        .iter()
+                        .position(|role| ItemKey::text(&role.key) == key)
+                    {
+                        self.selected_role = index;
+                        self.explicit_manager_role = items.get(index).map(|role| role.key.clone());
+                        self.finish_role_picker(cx, false);
+                        cx.close_layer(ROLE_PICKER, Some(ActionKey::CONFIRM));
+                        result |= Response::changed();
+                    }
+                }
+                RolePickerPurpose::EditorEnvOverride => {
+                    let selected = if !self.role_state.query().is_empty() {
+                        items.iter().find(|role| {
+                            role.key
+                                .to_ascii_lowercase()
+                                .contains(&self.role_state.query().to_ascii_lowercase())
+                        })
+                    } else {
+                        items.iter().find(|role| ItemKey::text(&role.key) == key)
+                    };
+                    if let Some(role) = selected {
+                        let role = role.key.clone();
+                        self.finish_role_picker(cx, false);
+                        self.editor_env_role = Some(role.clone());
+                        self.editor.open_env_form();
+                        self.editor_leaf_focused = true;
+                        cx.focus(crate::screens::editor::ENV_KEY);
+                        self.status =
+                            Some(format!("Add role override · {}", self.role_label(&role)));
+                        cx.close_layer(ROLE_PICKER, Some(ActionKey::CONFIRM));
+                        result |= Response::changed();
+                    }
+                }
+                RolePickerPurpose::EditorDefault(target) => {
+                    let selected = items
+                        .iter()
+                        .find(|role| ItemKey::text(&role.key) == key)
+                        .filter(|role| {
+                            self.editor_role_target_is_current(target)
+                                && self.current_role_is_allowed(&role.key)
+                        })
+                        .map(|role| role.key.clone());
+                    if let Some(role) = selected {
+                        let selects_current = self
+                            .editor
+                            .pending
+                            .roles
+                            .default
+                            .as_deref()
+                            .is_some_and(|current| {
+                                current == role.as_str()
+                                    || self.world.roles.iter().any(|entry| {
+                                        entry.full_name() == role && entry.name.as_str() == current
+                                    })
+                            });
+                        let next = (!selects_current).then_some(role);
+                        if self.editor.pending.roles.default != next {
+                            self.editor.pending.roles.default = next.clone();
+                            self.editor.mark_dirty();
+                            self.status = Some(match next {
+                                Some(role) => format!("Default role ★ {role}"),
+                                None => "Default role cleared".to_owned(),
+                            });
+                            result |= Response::changed();
+                        }
+                        cx.close_layer(ROLE_PICKER, Some(ActionKey::CONFIRM));
+                        self.finish_role_picker(cx, true);
+                        result |= Response::changed();
+                    } else {
+                        self.status = Some(if self.editor_role_target_is_current(target) {
+                            "Role is no longer allowed for this editor".into()
+                        } else {
+                            "Editor changed; reopen the default role picker".into()
+                        });
+                        cx.close_layer(ROLE_PICKER, Some(ActionKey::CANCEL));
+                        self.finish_role_picker(cx, true);
+                        result |= Response::changed();
+                    }
+                }
+            }
+        }
+        if self.role_picker_purpose.is_some() && !cx.is_open(ROLE_PICKER) {
+            self.finish_role_picker(cx, true);
+            result |= Response::changed();
+        }
         if cx.is_open(MANAGER_FILE_MENU) {
             let menu = self.manager_file_menu();
             let menu_response = menu.update(cx, &mut self.manager_file_menu_state);
@@ -5153,6 +5393,7 @@ impl App {
                     ));
                 } else {
                     self.route = Route::Editor;
+                    self.reset_editor_session();
                     self.editor = EditorState::default();
                     self.editor.pending.name = self.prelude.name().into();
                     self.editor.pending.workdir =
@@ -5281,9 +5522,7 @@ impl App {
                 let chosen = role.activated();
                 result |= role.erase();
                 if chosen {
-                    self.editor.pending.roles.default = Some("chainargos/the-architect".into());
-                    self.editor.mark_dirty();
-                    self.status = Some("Default role ★ chainargos/the-architect".into());
+                    self.open_editor_default_role_picker(cx);
                     result |= Response::changed();
                 }
                 let load = Self::editor_role_load_button().update(cx);
@@ -5314,7 +5553,7 @@ impl App {
                 let chosen = load.activated();
                 result |= load.erase();
                 if chosen {
-                    self.open_editor_role_picker(cx);
+                    self.open_editor_env_role_picker(cx);
                     result |= Response::changed();
                 }
             }
@@ -6213,6 +6452,7 @@ impl App {
             }
             CMD_EDITOR_OPEN if self.route == Route::Manager => {
                 self.route = Route::Editor;
+                self.reset_editor_session();
                 if let Some(workspace) = self.world.workspaces.first() {
                     self.editor.load_workspace(workspace);
 
@@ -6229,8 +6469,6 @@ impl App {
                 }
                 self.editor.select_alias(1);
                 self.editor_accounts = ListState::default();
-                self.editor_role_picker = false;
-                self.editor_env_role = None;
                 self.editor_leaf_focused = false;
                 self.editor_general_cursor = 0;
                 Some(Response::changed())
@@ -7022,6 +7260,7 @@ impl App {
     }
 
     fn draw_editor(&self, ui: &mut Ui<'_>, area: Rect) {
+        let shared_editor_view = self.editor_view_active(ui.full(), ui.theme_ref());
         let workspace = self
             .world
             .workspaces
@@ -7171,22 +7410,36 @@ impl App {
                 .default
                 .as_deref()
                 .unwrap_or("none");
-            paint_lines(
-                ui,
-                area,
-                &[
-                    format!("{workspace} › edit · Roles"),
-                    format!("Default role ★ {default}"),
-                    format!(
-                        "Role overrides · {} configured · {} in registry",
-                        self.editor.pending.configured_role_count(),
-                        self.world.roles.len()
-                    ),
-                ],
-            );
-            Self::editor_role_button().draw(ui, Rect::new(area.x, area.y.saturating_add(4), 20, 1));
-            Self::editor_role_load_button()
-                .draw(ui, Rect::new(area.x, area.y.saturating_add(5), 18, 1));
+            let mut lines = vec![
+                format!("{workspace} › edit · Roles"),
+                format!("Default role ★ {default}"),
+                format!(
+                    "Role overrides · {} configured · {} in registry",
+                    self.editor.pending.configured_role_count(),
+                    self.world.roles.len()
+                ),
+            ];
+            if self.editor.preview_open {
+                lines.push("Review changes".into());
+                lines.extend(
+                    editor_view::editor_changes(self)
+                        .into_iter()
+                        .map(|change| format!("  {change}")),
+                );
+            }
+            paint_lines(ui, area, &lines);
+            if !shared_editor_view && !self.editor.preview_open {
+                Self::editor_role_button()
+                    .draw(ui, Rect::new(area.x, area.y.saturating_add(4), 20, 1));
+                Self::editor_role_load_button()
+                    .draw(ui, Rect::new(area.x, area.y.saturating_add(5), 18, 1));
+            }
+            if !shared_editor_view {
+                self.draw_editor_save_footer(
+                    ui,
+                    Rect::new(area.x, area.bottom().saturating_sub(1), 18, 1),
+                );
+            }
             return;
         }
         if self.editor.tab == EditorTab::Accounts {
@@ -10735,13 +10988,10 @@ impl App {
                 self.role_choose_button().draw(ui, body)
             })
         });
-        let role_picker = Self::role_picker(if self.editor_role_picker {
-            "Add role override"
-        } else {
-            "Choose a role"
-        });
+        let role_items = self.role_picker_items();
+        let role_picker = self.role_picker_for_current_purpose();
         let _ = ui.layer(ROLE_PICKER, |ui, area| {
-            role_picker.draw(ui, area, &self.role_state, &self.roles)
+            role_picker.draw(ui, area, &self.role_state, &role_items)
         });
         let agent_picker = self.launch_agent_picker();
         let _ = ui.layer(crate::screens::manager::AGENT_PICKER, |ui, area| {
@@ -11893,27 +12143,16 @@ impl TuiApp for App {
         {
             prelude_view::paint(self, ui, full);
         }
-        let editor_allowed = (!self.editor.preview_open && self.status.is_none())
-            || (self.editor.preview_open
-                && self
-                    .status
-                    .as_deref()
-                    .is_some_and(|status| status.starts_with("Save workspace")));
-        if self.route == Route::Editor
-            && full.width >= 120
-            && self.world.scenario == Scenario::Returning
-            && self.motion == Motion::Paused
-            && ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
-            && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54)
-            && editor_allowed
-            && !self.editor.env_form_open
-            && !self.editor_role_picker
-            && !self.help_open
-            && !self.quit_open
-            && !self.cancel_open
-            && !self.editor_exit_open
-        {
+        if self.editor_view_active(full, ui.theme_ref()) {
             editor_view::paint(self, ui, full);
+            if self.editor.tab == EditorTab::Roles && !self.editor.preview_open {
+                Self::editor_role_button().draw(ui, Rect::new(96, 5, 20, 1));
+                Self::editor_save_button("Save…").draw(ui, Rect::new(109, 37, 10, 1));
+            } else if self.editor.tab == EditorTab::Roles && self.editor.preview_open {
+                Button::new(EDITOR_SAVE_CONFIRM, "Save")
+                    .variant(Variant::PRIMARY)
+                    .draw(ui, Rect::new(84, 24, 9, 1));
+            }
         }
         // Reduced color levels still read the approved info frame off the
         // page until the shared capability ladders reproduce the frozen card

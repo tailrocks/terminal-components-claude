@@ -516,15 +516,17 @@ fn isolation_word(isolation: crate::domain::workspace::Isolation) -> &'static st
 }
 
 fn paint_roles_body(app: &App, ui: &mut Ui<'_>) {
-    let workspace = app.world.workspaces.first();
-    let default_leaf = workspace
-        .and_then(|workspace| workspace.roles.default.as_deref())
+    let default_leaf = app
+        .editor
+        .pending
+        .roles
+        .default
+        .as_deref()
         .map(role_leaf)
         .unwrap_or("");
-    let allowed_count = match workspace.map(|workspace| &workspace.roles.allowed) {
-        Some(crate::domain::workspace::AllowedRoles::Custom(list)) => list.len(),
-        Some(crate::domain::workspace::AllowedRoles::All) => app.world.roles.len(),
-        None => 0,
+    let allowed_count = match &app.editor.pending.roles.allowed {
+        crate::domain::workspace::AllowedRoles::Custom(list) => list.len(),
+        crate::domain::workspace::AllowedRoles::All => app.world.roles.len(),
     };
     paint_str(
         ui,
@@ -553,9 +555,8 @@ fn paint_roles_body(app: &App, ui: &mut Ui<'_>) {
     for (index, role) in app.world.roles.iter().take(visible).enumerate() {
         let y = 7 + index as u16;
         let selected = index == 0;
-        let checked = workspace.is_some_and(|workspace| {
-            workspace.roles.allows(&role.full_name()) || workspace.roles.allows(&role.name)
-        });
+        let checked = app.editor.pending.roles.allows(&role.full_name())
+            || app.editor.pending.roles.allows(&role.name);
         paint_role_row(ui, y, role, checked, selected, default_leaf);
         let bar = if index < thumb { "┃" } else { "┆" };
         let bar_ink = if index < thumb {
@@ -1193,24 +1194,33 @@ fn paint_split_field(
     flush(ui, &mut column, &mut current, spaces);
 }
 
-fn editor_changes(app: &App) -> Vec<String> {
-    let Some(workspace) = app.world.workspaces.first() else {
-        return Vec::new();
-    };
+pub(super) fn editor_changes(app: &App) -> Vec<String> {
     let mut lines = Vec::new();
-    if app.editor.pending.keep_awake != workspace.keep_awake {
+    let original = app.editor.workspace_id().and_then(|id| {
+        app.world
+            .workspaces
+            .iter()
+            .find(|workspace| workspace.id == id)
+    });
+    let original_keep_awake = original.is_some_and(|workspace| workspace.keep_awake);
+    if app.editor.pending.keep_awake != original_keep_awake {
         lines.push(format!(
             "~ keep_awake {} → {}",
-            if workspace.keep_awake {
-                "true"
-            } else {
-                "false"
-            },
+            if original_keep_awake { "true" } else { "false" },
             if app.editor.pending.keep_awake {
                 "true"
             } else {
                 "false"
             }
+        ));
+    }
+    let original_default = original.and_then(|workspace| workspace.roles.default.as_deref());
+    let pending_default = app.editor.pending.roles.default.as_deref();
+    if original_default != pending_default {
+        lines.push(format!(
+            "~ default role {} → {}",
+            original_default.unwrap_or("none"),
+            pending_default.unwrap_or("none")
         ));
     }
     lines
@@ -1339,12 +1349,12 @@ fn paint_save_preview(app: &App, ui: &mut Ui<'_>, full: Rect, changes: &[String]
         "Changes",
         &change_label(changes.len()),
     );
-    if let Some(line) = changes.first() {
+    for (index, line) in changes.iter().enumerate() {
         paint_styled(
             ui,
             x.saturating_add(3),
-            y.saturating_add(8),
-            line,
+            y.saturating_add(8).saturating_add(index as u16),
+            &clip_cols(line, 59),
             SECONDARY,
             bg,
             false,
@@ -1566,9 +1576,9 @@ fn paint_key(ui: &mut Ui<'_>, x: u16, y: u16, key: &str, desc: &str) {
 #[cfg(test)]
 mod tests {
     use super::paint_preimage;
-    use crate::domain::workspace::{EnvValue, EnvVar};
+    use crate::domain::workspace::{AllowedRoles, EnvValue, EnvVar};
     use crate::{App, Motion, Scenario};
-    use termrock::{Color, ColorLevel, KeyCode, StateFlags, Theme};
+    use termrock::{Color, ColorLevel, KeyCode, Rect, StateFlags, Theme};
     use termrock_test_support::{Harness, Scene};
 
     const WIDTH: u16 = 120;
@@ -1596,6 +1606,33 @@ mod tests {
         harness
     }
 
+    fn editor_roles_harness() -> Harness<App> {
+        let theme = Theme::junie();
+        assert_eq!(theme.capability.color, ColorLevel::TrueColor);
+        assert_eq!(theme.color.accent, Color::Rgb(0x48, 0xe0, 0x54));
+        let mut harness = Harness::new(
+            App::for_scenario_at(Scenario::Returning, Motion::Paused, 0),
+            theme,
+            WIDTH,
+            HEIGHT,
+        );
+        let workspace_id = harness.app().world.workspaces[0].id;
+        harness
+            .app_mut()
+            .world
+            .workspace_mut(workspace_id)
+            .expect("fixture workspace")
+            .roles
+            .allowed = AllowedRoles::All;
+        let _ = harness.key(KeyCode::Down);
+        let _ = harness.key(KeyCode::Char('e'));
+        let _ = harness.key(KeyCode::Char('3'));
+        let _ = harness.key(KeyCode::Enter);
+        assert_eq!(harness.app().route(), crate::Route::Editor);
+        assert_eq!(harness.app().editor.tab, crate::screens::editor::Tab::Roles);
+        harness
+    }
+
     fn assert_actual_editor_gate(harness: &Harness<App>) {
         let app = harness.app();
         assert_eq!(app.world.scenario, Scenario::Returning);
@@ -1603,7 +1640,7 @@ mod tests {
         assert_eq!(app.route(), crate::Route::Editor);
         assert_eq!(app.editor.tab, crate::screens::editor::Tab::Environments);
         assert!(!app.editor.env_form_open);
-        assert!(!app.editor_role_picker);
+        assert!(app.role_picker_purpose.is_none());
         assert!(!app.help_open);
         assert!(!app.quit_open);
         assert!(!app.cancel_open);
@@ -2231,6 +2268,118 @@ mod tests {
             "editor_env_taller_screen_legacy_fallback",
             WIDTH,
             HEIGHT + 1,
+        );
+    }
+
+    #[test]
+    fn gated_roles_preview_saves_pending_default_after_the_paused_review_phase() {
+        let mut harness = editor_roles_harness();
+        let workspace_id = harness.app().world.workspaces[0].id;
+        let role_edit = crate::app::EDITOR_ROLE_EDIT;
+        harness.draw();
+        assert_eq!(
+            harness.area_of(role_edit),
+            Some(Rect::new(96, 5, 14, 1)),
+            "the gated Roles painter retains the real default-role owner"
+        );
+        assert!(harness.tab_to(role_edit));
+        let _ = harness.key(KeyCode::Enter);
+        assert!(harness.is_open(crate::app::ROLE_PICKER));
+        let _ = harness.type_str("chainargos/sre");
+        let _ = harness.key(KeyCode::Enter);
+        assert_eq!(
+            harness.app().editor.pending.roles.default.as_deref(),
+            Some("chainargos/sre")
+        );
+
+        let _ = harness.key(KeyCode::Char('['));
+        let _ = harness.key(KeyCode::Char('['));
+        assert_eq!(
+            harness.app().editor.tab,
+            crate::screens::editor::Tab::General
+        );
+        for _ in 0..3 {
+            let _ = harness.key(KeyCode::Tab);
+        }
+        let _ = harness.key(KeyCode::Char(' '));
+        assert!(!harness.app().editor.pending.keep_awake);
+
+        let _ = harness.key(KeyCode::Char(']'));
+        let _ = harness.key(KeyCode::Char(']'));
+        assert_eq!(harness.app().editor.tab, crate::screens::editor::Tab::Roles);
+        assert!(harness.tab_to(crate::screens::editor::SAVE));
+        let _ = harness.key(KeyCode::Enter);
+        assert!(harness.app().editor.preview_open);
+        harness.draw();
+        let frame = harness.text();
+        assert!(frame.contains("default ★ sre"), "{frame}");
+        assert!(frame.contains("~ keep_awake true → false"), "{frame}");
+        assert!(
+            frame.contains("~ default role chainargos/the-architect → chainargos/sre"),
+            "{frame}"
+        );
+        let confirm = crate::app::EDITOR_SAVE_CONFIRM;
+        assert!(
+            harness.tab_to(confirm),
+            "gated review has a real confirm owner"
+        );
+        let _ = harness.key(KeyCode::Enter);
+        assert!(harness.app().editor.is_saving());
+        assert_eq!(harness.app().motion, Motion::Paused);
+        assert!(!harness.app().world.clock.running);
+        harness.ticks(20);
+        assert!(harness.app().editor.is_saving());
+        assert_eq!(
+            harness
+                .app()
+                .world
+                .workspace(workspace_id)
+                .expect("fixture workspace")
+                .roles
+                .default
+                .as_deref(),
+            Some("chainargos/the-architect"),
+            "paused product ticks must not commit the pending default"
+        );
+        assert!(
+            harness
+                .app()
+                .world
+                .workspace(workspace_id)
+                .expect("fixture workspace")
+                .keep_awake,
+            "paused product ticks must not commit the other pending change"
+        );
+
+        // Paused-frame assertions are complete. Enable both clocks so the
+        // ordinary save completion path can settle without claiming that a
+        // paused preview advances time.
+        harness.app_mut().motion = Motion::Full;
+        harness.app_mut().world.clock.running = true;
+        let _ = harness.tick();
+        for _ in 0..24 {
+            if !harness.app().editor.is_saving() {
+                break;
+            }
+            let _ = harness.advance(core::time::Duration::from_millis(200));
+        }
+        assert_eq!(
+            harness.app().route(),
+            crate::Route::Manager,
+            "{}",
+            harness.text()
+        );
+        let saved = harness
+            .app()
+            .world
+            .workspace(workspace_id)
+            .expect("fixture workspace");
+        assert_eq!(saved.roles.default.as_deref(), Some("chainargos/sre"));
+        assert!(!saved.keep_awake);
+        assert!(
+            harness.diagnostics().is_empty(),
+            "{:?}",
+            harness.diagnostics()
         );
     }
 }
