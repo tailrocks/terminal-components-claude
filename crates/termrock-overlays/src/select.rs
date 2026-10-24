@@ -237,6 +237,17 @@ impl<'a> Select<'a, &'a str, ByIndex, DefaultRow> {
         self.with_inherited_disabled(inherited.disabled)
             .draw(ui, area, st, items)
     }
+
+    /// Registers this Form select's keyboard stop without a pointer region.
+    ///
+    /// Use only when Form layout clips the native select body. The native
+    /// disabled and read-only policy is preserved, including inherited Form
+    /// disabling.
+    pub fn register_focus_only_in_form(&self, ui: &mut Ui<'_>, inherited_disabled: bool) {
+        if !ui.is_inert() {
+            ui.register_focus_only(self.id, self.form_focusability(inherited_disabled));
+        }
+    }
 }
 
 impl<'a, T, K, R> Select<'a, T, K, R> {
@@ -355,6 +366,16 @@ impl<'a, T, K, R> Select<'a, T, K, R> {
 
     const fn editable(&self) -> bool {
         !self.disabled && !self.read_only
+    }
+
+    const fn form_focusability(&self, inherited_disabled: bool) -> Focusability {
+        if self.disabled || inherited_disabled {
+            Focusability::Disabled
+        } else if self.read_only {
+            Focusability::FocusableReadOnly
+        } else {
+            Focusability::Focusable
+        }
     }
 
     fn max_rows(&self, d: &crate::theme::DesignTokens) -> u16 {
@@ -615,13 +636,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
         if ui.is_inert() {
             return;
         }
-        let f = if self.disabled {
-            Focusability::Disabled
-        } else if self.read_only {
-            Focusability::FocusableReadOnly
-        } else {
-            Focusability::Focusable
-        };
+        let f = self.form_focusability(false);
         ui.register_control(self.id, area, f);
     }
 

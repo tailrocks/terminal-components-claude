@@ -6,7 +6,6 @@ use ratatui_core::layout::Rect;
 use super::{Acc, PartStyle};
 use crate::action::{Action, ActionKey};
 use crate::event::{Chord, KeyCode};
-use crate::focus::Focusability;
 use crate::form_layout::{FormLayout, FormLayoutError, FormRow};
 use crate::id::{Id, Part, PartRef, fnv1a};
 use crate::intent::{Intent, Phase};
@@ -788,6 +787,43 @@ fn resolve_field_window(content: Rect, placement: Placement, offset: usize) -> O
     })
 }
 
+fn native_body_visible(ui: &Ui<'_>, body: Rect) -> bool {
+    !body.is_empty() && !body.intersection(ui.full()).is_empty()
+}
+
+fn native_first_row_visible(ui: &Ui<'_>, body: Rect) -> bool {
+    native_body_visible(
+        ui,
+        Rect {
+            height: body.height.min(1),
+            ..body
+        },
+    )
+}
+
+fn native_radio_area(body: Rect, first_option: usize, option_count: usize) -> Rect {
+    let remaining = option_count.saturating_sub(first_option);
+    Rect {
+        height: body
+            .height
+            .min(u16::try_from(remaining).unwrap_or(u16::MAX)),
+        ..body
+    }
+}
+
+fn native_button_area(ui: &Ui<'_>, button: &Button<'_>, body: Rect) -> Rect {
+    let width = button
+        .measure(ui, Constraints::loose(body.width, 1))
+        .preferred
+        .0
+        .min(body.width);
+    Rect {
+        width,
+        height: body.height.min(1),
+        ..body
+    }
+}
+
 fn textarea_window(
     body: Rect,
     first_source_row: usize,
@@ -1037,34 +1073,118 @@ impl<'a> Form<'a> {
         (field.group == GroupKey::ALL || field.group == self.group) && data.visible(field.id)
     }
 
-    fn reveal_index(placement: Placement, viewport: usize, offset: usize) -> usize {
-        if placement.top < offset {
+    fn native_source_row<D: FormData + ?Sized>(
+        &self,
+        field: &FieldSpec<'_>,
+        data: &D,
+        logical_height: u16,
+    ) -> Option<usize> {
+        if !self.shown(data, field) {
+            return None;
+        }
+        match (&field.kind, data.value(field.id)) {
+            (FieldKind::Text(_), FieldRef::Text(_) | FieldRef::Secret(_))
+                if logical_height >= 3 =>
+            {
+                Some(1)
+            }
+            (FieldKind::Area(control), FieldRef::Text(_) | FieldRef::Secret(_))
+                if control.rows_in_form().min(logical_height.saturating_sub(2)) > 0 =>
+            {
+                Some(1)
+            }
+            (FieldKind::Select(_), FieldRef::Choice(_)) if logical_height >= 3 => Some(1),
+            (FieldKind::Radio(_), FieldRef::Choice(_)) if !data.options(field.id).is_empty() => {
+                Some(1)
+            }
+            (FieldKind::Chips(_), FieldRef::Chips(_)) if logical_height >= 3 => Some(1),
+            (FieldKind::Check(_), FieldRef::Flag(_)) if logical_height >= 3 => Some(1),
+            (FieldKind::Toggle(_), FieldRef::Flag(_)) if logical_height >= 3 => Some(1),
+            (FieldKind::Chooser(_), FieldRef::Display { .. })
+                if (self.sizing == FieldSizingPolicy::Intrinsic && logical_height > 1)
+                    || (self.sizing != FieldSizingPolicy::Intrinsic && logical_height >= 3) =>
+            {
+                Some(1)
+            }
+            _ => None,
+        }
+    }
+
+    fn reveal_index<D: FormData + ?Sized>(
+        &self,
+        placement: Placement,
+        viewport: usize,
+        offset: usize,
+        data: &D,
+    ) -> usize {
+        if viewport == 0 {
             return placement.top;
         }
-        let bottom = placement
-            .top
-            .saturating_add(usize::from(placement.height).saturating_sub(1));
-        if viewport > 0 && usize::from(placement.height) <= viewport {
+        let height = usize::from(placement.height);
+        let native_row = self
+            .fields
+            .get(placement.index)
+            .and_then(|field| self.native_source_row(field, data, placement.height))
+            .map_or(0, |row| row.min(height.saturating_sub(1)));
+        if placement.top < offset {
+            return if viewport == 1 {
+                placement.top.saturating_add(native_row)
+            } else {
+                placement.top
+            };
+        }
+        let bottom = placement.top.saturating_add(height.saturating_sub(1));
+        if height <= viewport {
             bottom
+        } else if native_row > 0 {
+            placement.top.saturating_add(native_row)
         } else {
             placement.top
         }
     }
 
     fn register_clipped_field<D: FormData + ?Sized>(
+        &self,
         ui: &mut Ui<'_>,
         field: &FieldSpec<'_>,
         data: &D,
+        logical_height: u16,
     ) {
-        if ui.is_inert() {
+        if ui.is_inert()
+            || self
+                .native_source_row(field, data, logical_height)
+                .is_none()
+        {
             return;
         }
-        let focus = if data.disabled(field.id) {
-            Focusability::Disabled
-        } else {
-            Focusability::Focusable
-        };
-        ui.register_focus_only(field.id, focus);
+        let inherited_disabled = data.disabled(field.id);
+        match (&field.kind, data.value(field.id)) {
+            (FieldKind::Text(control), FieldRef::Text(_) | FieldRef::Secret(_)) => {
+                control.register_focus_only_in_form(ui, inherited_disabled);
+            }
+            (FieldKind::Area(control), FieldRef::Text(_) | FieldRef::Secret(_)) => {
+                control.register_focus_only_in_form(ui, inherited_disabled);
+            }
+            (FieldKind::Select(control), FieldRef::Choice(_)) => {
+                control.register_focus_only_in_form(ui, inherited_disabled);
+            }
+            (FieldKind::Radio(control), FieldRef::Choice(_)) => {
+                control.register_focus_only_in_form(ui, inherited_disabled);
+            }
+            (FieldKind::Chips(control), FieldRef::Chips(_)) => {
+                control.register_focus_only_in_form(ui, inherited_disabled);
+            }
+            (FieldKind::Check(control), FieldRef::Flag(_)) => {
+                control.register_focus_only_in_form(ui, inherited_disabled);
+            }
+            (FieldKind::Toggle(control), FieldRef::Flag(_)) => {
+                control.register_focus_only_in_form(ui, inherited_disabled);
+            }
+            (FieldKind::Chooser(control), FieldRef::Display { .. }) => {
+                control.register_focus_only_in_form(ui, inherited_disabled);
+            }
+            _ => {}
+        }
     }
 
     /// Keeps automatic reveal from moving a child hit target between pointer
@@ -1528,8 +1648,9 @@ impl<'a> Form<'a> {
         {
             let viewport = st.scroll.viewport_len();
             let offset = st.scroll.offset();
-            st.scroll
-                .ensure_visible_on_next_layout(Self::reveal_index(placement, viewport, offset));
+            st.scroll.ensure_visible_on_next_layout(
+                self.reveal_index(placement, viewport, offset, data),
+            );
         }
 
         let enter_requested = self.enter == EnterPolicy::SubmitsWhenIdle
@@ -1555,8 +1676,9 @@ impl<'a> Form<'a> {
             if !pointer_held && cx.state(field.id).contains(StateFlags::FOCUSED) {
                 let viewport = st.scroll.viewport_len();
                 let offset = st.scroll.offset();
-                st.scroll
-                    .ensure_visible_on_next_layout(Self::reveal_index(placement, viewport, offset));
+                st.scroll.ensure_visible_on_next_layout(
+                    self.reveal_index(placement, viewport, offset, data),
+                );
             }
             let disabled = data.disabled(field.id);
             let (value, options) = data.value_and_options(field.id);
@@ -1660,8 +1782,9 @@ impl<'a> Form<'a> {
         {
             let viewport = st.lane_scroll(plan.id).viewport_len();
             let offset = st.lane_scroll(plan.id).offset();
-            st.lane_scroll_mut(plan.id)
-                .ensure_visible_on_next_layout(Self::reveal_index(*placement, viewport, offset));
+            st.lane_scroll_mut(plan.id).ensure_visible_on_next_layout(
+                self.reveal_index(*placement, viewport, offset, data),
+            );
         }
 
         let placed: Vec<usize> = plans
@@ -1689,10 +1812,9 @@ impl<'a> Form<'a> {
                 if !pointer_held && cx.state(field.id).contains(StateFlags::FOCUSED) {
                     let viewport = st.lane_scroll(plan.id).viewport_len();
                     let offset = st.lane_scroll(plan.id).offset();
-                    st.lane_scroll_mut(plan.id)
-                        .ensure_visible_on_next_layout(Self::reveal_index(
-                            *placement, viewport, offset,
-                        ));
+                    st.lane_scroll_mut(plan.id).ensure_visible_on_next_layout(
+                        self.reveal_index(*placement, viewport, offset, data),
+                    );
                 }
                 let disabled = data.disabled(field.id);
                 let (value, options) = data.value_and_options(field.id);
@@ -1836,7 +1958,7 @@ impl<'a> Form<'a> {
                 &fallback
             };
             let Some(window) = resolve_field_window(content, placement, base) else {
-                Self::register_clipped_field(ui, field, data);
+                self.register_clipped_field(ui, field, data, placement.height);
                 continue;
             };
             self.draw_control(
@@ -1901,7 +2023,7 @@ impl<'a> Form<'a> {
                     continue;
                 };
                 let Some(window) = resolve_field_window(content, *placement, base) else {
-                    Self::register_clipped_field(ui, field, data);
+                    self.register_clipped_field(ui, field, data, placement.height);
                     continue;
                 };
                 let fallback;
@@ -2023,7 +2145,7 @@ impl<'a> Form<'a> {
             && let (FieldKind::Chooser(control), FieldRef::Display { value, detail }) =
                 (&field.kind, data.value(field.id))
         {
-            self.draw_intrinsic_chooser(
+            let native_button_visible = self.draw_intrinsic_chooser(
                 ui,
                 area,
                 source_first_row,
@@ -2034,6 +2156,9 @@ impl<'a> Form<'a> {
                 detail,
                 disabled,
             );
+            if logical_height > 1 && !native_button_visible {
+                control.register_focus_only_in_form(ui, disabled);
+            }
             return;
         }
         if let (FieldKind::Radio(control), FieldRef::Choice(value)) =
@@ -2041,68 +2166,122 @@ impl<'a> Form<'a> {
         {
             let (body, first_body_row) =
                 self.draw_chrome_window(ui, area, field, error, source_first_row, logical_height);
-            control.draw_in_form_window(
-                ui,
-                body,
-                &slot.radio,
-                value,
-                options,
-                InheritedFormState { disabled },
-                first_body_row,
-            );
+            if !options.is_empty() {
+                if native_body_visible(ui, native_radio_area(body, first_body_row, options.len())) {
+                    control.draw_in_form_window(
+                        ui,
+                        body,
+                        &slot.radio,
+                        value,
+                        options,
+                        InheritedFormState { disabled },
+                        first_body_row,
+                    );
+                } else {
+                    control.register_focus_only_in_form(ui, disabled);
+                }
+            }
             return;
         }
         let (control_area, body_first_row) =
             self.draw_chrome_window(ui, area, field, error, source_first_row, logical_height);
         match (&field.kind, data.value(field.id)) {
-            (FieldKind::Text(control), FieldRef::Text(value)) => {
-                control.draw_in_form(ui, control_area, &slot.input, value, disabled);
+            (FieldKind::Text(control), FieldRef::Text(value)) if logical_height >= 3 => {
+                if native_first_row_visible(ui, control_area) {
+                    control.draw_in_form(ui, control_area, &slot.input, value, disabled);
+                } else {
+                    control.register_focus_only_in_form(ui, disabled);
+                }
             }
-            (FieldKind::Text(control), FieldRef::Secret(value)) => {
-                control.draw_secret_in_form(ui, control_area, &slot.input, value, disabled);
+            (FieldKind::Text(control), FieldRef::Secret(value)) if logical_height >= 3 => {
+                if native_first_row_visible(ui, control_area) {
+                    control.draw_secret_in_form(ui, control_area, &slot.input, value, disabled);
+                } else {
+                    control.register_focus_only_in_form(ui, disabled);
+                }
             }
             (FieldKind::Area(control), FieldRef::Text(value)) => {
-                if let Some(window) = textarea_window(
+                let logical_rows = control.rows_in_form().min(logical_height.saturating_sub(2));
+                let window = textarea_window(
                     control_area,
                     body_first_row,
                     logical_height,
                     control.rows_in_form(),
-                ) {
+                );
+                if let Some(window) =
+                    window.filter(|window| native_body_visible(ui, window.visible_body()))
+                {
                     control.draw_in_form_window(ui, window, &slot.area, value, disabled);
+                } else if logical_rows > 0 {
+                    control.register_focus_only_in_form(ui, disabled);
                 }
             }
             (FieldKind::Area(control), FieldRef::Secret(value)) => {
-                if let Some(window) = textarea_window(
+                let logical_rows = control.rows_in_form().min(logical_height.saturating_sub(2));
+                let window = textarea_window(
                     control_area,
                     body_first_row,
                     logical_height,
                     control.rows_in_form(),
-                ) {
+                );
+                if let Some(window) =
+                    window.filter(|window| native_body_visible(ui, window.visible_body()))
+                {
                     control.draw_secret_in_form_window(ui, window, &slot.area, value, disabled);
+                } else if logical_rows > 0 {
+                    control.register_focus_only_in_form(ui, disabled);
                 }
             }
-            (FieldKind::Select(control), FieldRef::Choice(value)) => {
-                control.draw_in_form(
-                    ui,
-                    control_area,
-                    &slot.select,
-                    value,
-                    options,
-                    InheritedFormState { disabled },
-                );
+            (FieldKind::Select(control), FieldRef::Choice(value)) if logical_height >= 3 => {
+                if native_first_row_visible(ui, control_area) {
+                    control.draw_in_form(
+                        ui,
+                        control_area,
+                        &slot.select,
+                        value,
+                        options,
+                        InheritedFormState { disabled },
+                    );
+                } else {
+                    control.register_focus_only_in_form(ui, disabled);
+                }
             }
             (FieldKind::Radio(_), FieldRef::Choice(_)) => unreachable!("radio handled above"),
-            (FieldKind::Chips(control), FieldRef::Chips(_)) => {
-                control.draw_in_form(ui, control_area, &slot.chips, options, disabled);
+            (FieldKind::Chips(control), FieldRef::Chips(_)) if logical_height >= 3 => {
+                if native_first_row_visible(ui, control_area) {
+                    control.draw_in_form(ui, control_area, &slot.chips, options, disabled);
+                } else {
+                    control.register_focus_only_in_form(ui, disabled);
+                }
             }
-            (FieldKind::Check(control), FieldRef::Flag(value)) => {
-                control.draw_in_form(ui, control_area, value, disabled);
+            (FieldKind::Check(control), FieldRef::Flag(value)) if logical_height >= 3 => {
+                if native_first_row_visible(ui, control_area) {
+                    control.draw_in_form(ui, control_area, value, disabled);
+                } else {
+                    control.register_focus_only_in_form(ui, disabled);
+                }
             }
-            (FieldKind::Toggle(control), FieldRef::Flag(value)) => {
-                control.draw_in_form(ui, control_area, value, disabled);
+            (FieldKind::Toggle(control), FieldRef::Flag(value)) if logical_height >= 3 => {
+                if native_first_row_visible(ui, control_area) {
+                    control.draw_in_form(ui, control_area, value, disabled);
+                } else {
+                    control.register_focus_only_in_form(ui, disabled);
+                }
             }
-            (FieldKind::Chooser(control), FieldRef::Display { value, detail }) => {
-                let painted = control.draw_in_form(ui, control_area, disabled);
+            (FieldKind::Chooser(control), FieldRef::Display { value, detail })
+                if logical_height >= 3 =>
+            {
+                let painted =
+                    if native_body_visible(ui, native_button_area(ui, control, control_area)) {
+                        control.draw_in_form(ui, control_area, disabled)
+                    } else {
+                        control.register_focus_only_in_form(ui, disabled);
+                        Rect {
+                            width: 0,
+                            height: 0,
+                            ..control_area
+                        }
+                    };
                 let value_area = Rect {
                     x: painted.right().saturating_add(1),
                     width: control_area
@@ -2151,7 +2330,8 @@ impl<'a> Form<'a> {
         value: &str,
         detail: Option<&str>,
         disabled: bool,
-    ) {
+    ) -> bool {
+        let mut native_button_visible = false;
         let source_end = source_first_row.saturating_add(usize::from(area.height));
         for source_row in source_first_row..source_end.min(usize::from(logical_height)) {
             let row = Rect {
@@ -2211,7 +2391,8 @@ impl<'a> Form<'a> {
                         ..row
                     };
                     ui.paint_str(value_area, value, ui.surface_style());
-                    control.draw_in_form(ui, button_area, disabled);
+                    let native_button = control.draw_in_form(ui, button_area, disabled);
+                    native_button_visible |= native_body_visible(ui, native_button);
                 }
                 2 => {
                     if let Some(detail) = detail {
@@ -2229,6 +2410,7 @@ impl<'a> Form<'a> {
                 _ => {}
             }
         }
+        native_button_visible
     }
 
     fn draw_chrome_window(
@@ -2437,6 +2619,7 @@ mod tests {
 
     use super::*;
     use crate::event::{Input, Key, KeyModifiers};
+    use crate::focus::Focusability;
     use crate::form_dialog::{
         FormDialog, FormDialogAction, FormDialogLayoutPolicy, FormDialogState,
     };
@@ -2753,7 +2936,7 @@ mod tests {
         }
     }
 
-    #[derive(Clone, Copy)]
+    #[derive(Clone, Copy, Debug)]
     enum UpwardRevealLayout {
         Linear,
         OneLane,
@@ -3237,7 +3420,372 @@ mod tests {
         let _ = runtime.initialize();
         let mut buffer = Buffer::empty(SCREEN);
         runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
-        assert_eq!(runtime.focus(), Some(MATRIX));
+        if kind == MatrixKind::Note {
+            let save = FORM.part(Part::ACTIONS).index(0);
+            assert_eq!(runtime.focus(), Some(save));
+            assert_eq!(focus_entry_count(&runtime, MATRIX), 0);
+        } else {
+            assert_eq!(runtime.focus(), Some(MATRIX));
+        }
+        (runtime, buffer)
+    }
+
+    const PARTIAL_DRIVER: Id = Id::root("form.tests.partial.driver");
+    const PARTIAL_HOST: Id = Id::root("form.tests.partial.host");
+    const PARTIAL_LANE: Id = Id::root("form.tests.partial.lane");
+    const PARTIAL_SCREEN: Rect = Rect::new(0, 0, 80, 4);
+    const PARTIAL_DRIVER_OPTIONS: &[&str] = &["Primary", "Secondary"];
+    const PARTIAL_ROWS: &[FormRow] = &[
+        FormRow::Field(PARTIAL_DRIVER),
+        FormRow::Field(MATRIX),
+        FormRow::Field(PARTIAL_HOST),
+    ];
+    const PARTIAL_LANES: &[FormLane<'static>] = &[FormLane::new(PARTIAL_LANE, PARTIAL_ROWS)];
+    const PARTIAL_LAYOUT: FormLayout<'static> = FormLayout::new(PARTIAL_LANES);
+    const PARTIAL_NOTES: &[(&str, Role)] = &[("Target note", Role::Info)];
+
+    #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+    enum PartialFieldPolicy {
+        Default,
+        OwnDisabled,
+        ReadOnly,
+        ClickOnly,
+    }
+
+    fn partial_fields(
+        kind: MatrixKind,
+        policy: PartialFieldPolicy,
+        secret_mode: bool,
+    ) -> [FieldSpec<'static>; 3] {
+        let target = match kind {
+            MatrixKind::Text => {
+                let control = TextInput::new(MATRIX);
+                let control = if secret_mode {
+                    control.secret(SecretPolicy::default())
+                } else {
+                    control
+                };
+                let control = match policy {
+                    PartialFieldPolicy::OwnDisabled => control.disabled(true),
+                    PartialFieldPolicy::ReadOnly => control.read_only(true),
+                    _ => control,
+                };
+                FieldKind::Text(control)
+            }
+            MatrixKind::Area => {
+                let control = TextArea::new(MATRIX, 3);
+                let control = if secret_mode {
+                    control.secret(SecretPolicy::default())
+                } else {
+                    control
+                };
+                let control = match policy {
+                    PartialFieldPolicy::OwnDisabled => control.disabled(true),
+                    PartialFieldPolicy::ReadOnly => control.read_only(true),
+                    _ => control,
+                };
+                FieldKind::Area(control)
+            }
+            MatrixKind::Select => {
+                let control = LabelSelect::new(MATRIX);
+                let control = match policy {
+                    PartialFieldPolicy::OwnDisabled => control.disabled(true),
+                    PartialFieldPolicy::ReadOnly => control.read_only(true),
+                    _ => control,
+                };
+                FieldKind::Select(control)
+            }
+            MatrixKind::Radio => {
+                let control = LabelRadio::new(MATRIX);
+                let control = match policy {
+                    PartialFieldPolicy::OwnDisabled => control.disabled(true),
+                    PartialFieldPolicy::ReadOnly => control.read_only(true),
+                    _ => control,
+                };
+                FieldKind::Radio(control)
+            }
+            MatrixKind::Chips => {
+                let control = LabelChips::new(MATRIX);
+                let control = match policy {
+                    PartialFieldPolicy::OwnDisabled => control.disabled(true),
+                    PartialFieldPolicy::ReadOnly => control.read_only(true),
+                    _ => control,
+                };
+                FieldKind::Chips(control)
+            }
+            MatrixKind::Check => {
+                let control = Checkbox::new(MATRIX, "Check");
+                let control = match policy {
+                    PartialFieldPolicy::OwnDisabled => control.disabled(true),
+                    PartialFieldPolicy::ReadOnly => control.read_only(true),
+                    _ => control,
+                };
+                FieldKind::Check(control)
+            }
+            MatrixKind::Toggle => {
+                let control = Toggle::new(MATRIX, "Toggle");
+                let control = match policy {
+                    PartialFieldPolicy::OwnDisabled => control.disabled(true),
+                    PartialFieldPolicy::ReadOnly => control.read_only(true),
+                    _ => control,
+                };
+                FieldKind::Toggle(control)
+            }
+            MatrixKind::Chooser => {
+                let control = Button::new(MATRIX, "Choose");
+                let control = match policy {
+                    PartialFieldPolicy::OwnDisabled => control.disabled(true),
+                    PartialFieldPolicy::ClickOnly => control.focusability(Focusability::ClickOnly),
+                    _ => control,
+                };
+                FieldKind::Chooser(control)
+            }
+            MatrixKind::Note => FieldKind::Note,
+        };
+        let target = FieldSpec::new(MATRIX, "Target", target).help("Target help");
+        [
+            FieldSpec::new(
+                PARTIAL_DRIVER,
+                "Driver",
+                FieldKind::Select(LabelSelect::new(PARTIAL_DRIVER)),
+            ),
+            target,
+            FieldSpec::new(
+                PARTIAL_HOST,
+                "Host",
+                FieldKind::Text(TextInput::new(PARTIAL_HOST)),
+            ),
+        ]
+    }
+
+    struct PartialData {
+        kind: MatrixKind,
+        driver: usize,
+        host: String,
+        text: String,
+        secret: Secret,
+        secret_mode: bool,
+        choice: usize,
+        chips: KeySet,
+        flag: bool,
+        inherited_disabled: bool,
+        hidden: bool,
+        mismatch: bool,
+        empty_options: bool,
+    }
+
+    impl PartialData {
+        fn new(kind: MatrixKind) -> Self {
+            Self {
+                kind,
+                driver: 0,
+                host: String::new(),
+                text: String::from("existing"),
+                secret: Secret::default(),
+                secret_mode: false,
+                choice: 0,
+                chips: KeySet::default(),
+                flag: false,
+                inherited_disabled: false,
+                hidden: false,
+                mismatch: false,
+                empty_options: false,
+            }
+        }
+    }
+
+    impl FormData for PartialData {
+        fn value(&self, id: Id) -> FieldRef<'_> {
+            if id == PARTIAL_DRIVER {
+                return FieldRef::Choice(self.driver);
+            }
+            if id == PARTIAL_HOST {
+                return FieldRef::Text(&self.host);
+            }
+            if self.mismatch && id == MATRIX {
+                return FieldRef::Choice(self.choice);
+            }
+            if id == MATRIX && self.secret_mode {
+                return FieldRef::Secret(&self.secret);
+            }
+            match self.kind {
+                MatrixKind::Text | MatrixKind::Area => FieldRef::Text(&self.text),
+                MatrixKind::Select | MatrixKind::Radio => FieldRef::Choice(self.choice),
+                MatrixKind::Chips => FieldRef::Chips(&self.chips),
+                MatrixKind::Check | MatrixKind::Toggle => FieldRef::Flag(self.flag),
+                MatrixKind::Chooser => FieldRef::Display {
+                    value: "chosen",
+                    detail: None,
+                },
+                MatrixKind::Note => FieldRef::Note(PARTIAL_NOTES),
+            }
+        }
+
+        fn value_mut(&mut self, id: Id) -> FieldMut<'_> {
+            if id == PARTIAL_DRIVER {
+                return FieldMut::Choice(&mut self.driver);
+            }
+            if id == PARTIAL_HOST {
+                return FieldMut::Text(&mut self.host);
+            }
+            if id == MATRIX && self.secret_mode {
+                return FieldMut::Secret(&mut self.secret);
+            }
+            match self.kind {
+                MatrixKind::Text | MatrixKind::Area => FieldMut::Text(&mut self.text),
+                MatrixKind::Select | MatrixKind::Radio => FieldMut::Choice(&mut self.choice),
+                MatrixKind::Chips => FieldMut::Chips(&mut self.chips),
+                MatrixKind::Check | MatrixKind::Toggle => FieldMut::Flag(&mut self.flag),
+                MatrixKind::Chooser | MatrixKind::Note => FieldMut::ReadOnly,
+            }
+        }
+
+        fn options(&self, id: Id) -> &[&str] {
+            if id == PARTIAL_DRIVER {
+                return PARTIAL_DRIVER_OPTIONS;
+            }
+            if id == MATRIX && self.empty_options && self.kind == MatrixKind::Radio {
+                return &[];
+            }
+            if matches!(
+                self.kind,
+                MatrixKind::Select | MatrixKind::Radio | MatrixKind::Chips
+            ) {
+                OPTIONS
+            } else {
+                &[]
+            }
+        }
+
+        fn value_and_options(&mut self, id: Id) -> (FieldMut<'_>, &[&str]) {
+            let options = if id == PARTIAL_DRIVER {
+                PARTIAL_DRIVER_OPTIONS
+            } else if id == MATRIX && self.empty_options && self.kind == MatrixKind::Radio {
+                &[]
+            } else if matches!(
+                self.kind,
+                MatrixKind::Select | MatrixKind::Radio | MatrixKind::Chips
+            ) {
+                OPTIONS
+            } else {
+                &[]
+            };
+            (self.value_mut(id), options)
+        }
+
+        fn visible(&self, id: Id) -> bool {
+            id != MATRIX || !self.hidden
+        }
+
+        fn disabled(&self, id: Id) -> bool {
+            id == MATRIX && self.inherited_disabled
+        }
+    }
+
+    struct PartialEnrollmentApp {
+        state: FormState,
+        data: PartialData,
+        layout: UpwardRevealLayout,
+        sizing: FieldSizingPolicy,
+        policy: PartialFieldPolicy,
+        area: Rect,
+        nested_clip: Option<Rect>,
+        keymap: KeyMap,
+    }
+
+    impl PartialEnrollmentApp {
+        fn new(
+            kind: MatrixKind,
+            layout: UpwardRevealLayout,
+            sizing: FieldSizingPolicy,
+            policy: PartialFieldPolicy,
+            area: Rect,
+        ) -> Self {
+            Self {
+                state: FormState::default(),
+                data: PartialData::new(kind),
+                layout,
+                sizing,
+                policy,
+                area,
+                nested_clip: None,
+                keymap: KeyMap::new(),
+            }
+        }
+
+        fn form<'a>(&self, fields: &'a [FieldSpec<'static>]) -> Form<'a> {
+            let form = Form::new(FORM, fields)
+                .enter(EnterPolicy::Never)
+                .field_sizing(self.sizing);
+            match self.layout {
+                UpwardRevealLayout::Linear => form,
+                UpwardRevealLayout::OneLane => form
+                    .try_layout(&PARTIAL_LAYOUT)
+                    .expect("valid partial-enrollment lane layout"),
+            }
+        }
+    }
+
+    impl App for PartialEnrollmentApp {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            let fields = partial_fields(self.data.kind, self.policy, self.data.secret_mode);
+            self.form(&fields)
+                .update(cx, &mut self.state, &mut self.data)
+                .erase()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let fields = partial_fields(self.data.kind, self.policy, self.data.secret_mode);
+            if let Some(clip) = self.nested_clip {
+                ui.with_area(clip, |ui| {
+                    self.form(&fields)
+                        .draw(ui, self.area, &self.state, &self.data);
+                });
+            } else {
+                self.form(&fields)
+                    .draw(ui, self.area, &self.state, &self.data);
+            }
+        }
+
+        fn keymap(&self) -> &KeyMap {
+            &self.keymap
+        }
+    }
+
+    fn partial_runtime(
+        kind: MatrixKind,
+        layout: UpwardRevealLayout,
+        sizing: FieldSizingPolicy,
+        policy: PartialFieldPolicy,
+        area: Rect,
+    ) -> (Runtime<PartialEnrollmentApp>, Buffer) {
+        let app = PartialEnrollmentApp::new(kind, layout, sizing, policy, area);
+        let mut runtime = Runtime::new(app, Theme::junie());
+        let _ = runtime.initialize();
+        let mut buffer = Buffer::empty(area);
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        (runtime, buffer)
+    }
+
+    fn partial_secret_runtime(
+        kind: MatrixKind,
+        layout: UpwardRevealLayout,
+    ) -> (Runtime<PartialEnrollmentApp>, Buffer) {
+        let mut app = PartialEnrollmentApp::new(
+            kind,
+            layout,
+            FieldSizingPolicy::Fixed,
+            PartialFieldPolicy::Default,
+            PARTIAL_SCREEN,
+        );
+        app.data.secret = Secret::new(String::from("private-partial-secret"));
+        app.data.secret_mode = true;
+        let mut runtime = Runtime::new(app, Theme::junie());
+        let _ = runtime.initialize();
+        let mut buffer = Buffer::empty(PARTIAL_SCREEN);
+        runtime
+            .draw_buffer(PARTIAL_SCREEN, &mut buffer)
+            .commit_presented();
         (runtime, buffer)
     }
 
@@ -3280,6 +3828,737 @@ mod tests {
                 .group(group)
                 .draw(ui, self.area, &self.state, &self.data);
         }
+    }
+
+    fn focus_entry_count<A: App>(runtime: &Runtime<A>, id: Id) -> usize {
+        runtime
+            .ring()
+            .entries()
+            .iter()
+            .filter(|entry| entry.id == id)
+            .count()
+    }
+
+    fn assert_no_native_regions<A: App>(runtime: &Runtime<A>, id: Id) {
+        assert!(
+            runtime.registry().regions().iter().all(|region| {
+                region.owner != id
+                    || !matches!(
+                        region.kind,
+                        termrock_runtime::RegionKind::Control | termrock_runtime::RegionKind::Part
+                    )
+            }),
+            "{id:?} has no native control or part region"
+        );
+    }
+
+    fn assert_no_regions<A: App>(runtime: &Runtime<A>, id: Id) {
+        assert!(
+            runtime
+                .registry()
+                .regions()
+                .iter()
+                .all(|region| region.owner != id),
+            "{id:?} has no registered regions"
+        );
+    }
+
+    fn assert_partial_text_enrollment(layout: UpwardRevealLayout) {
+        let app = PartialEnrollmentApp::new(
+            MatrixKind::Text,
+            layout,
+            FieldSizingPolicy::Fixed,
+            PartialFieldPolicy::Default,
+            PARTIAL_SCREEN,
+        );
+        let mut runtime = Runtime::new(app, Theme::junie());
+        let _ = runtime.initialize();
+        let mut buffer = Buffer::empty(PARTIAL_SCREEN);
+        runtime
+            .draw_buffer(PARTIAL_SCREEN, &mut buffer)
+            .commit_presented();
+
+        assert_eq!(runtime.focus(), Some(PARTIAL_DRIVER));
+        assert!(row_text(&buffer, 3).contains("Target"));
+        assert_eq!(focus_entry_count(&runtime, MATRIX), 1);
+        assert_eq!(
+            runtime.ring().entry(MATRIX).map(|entry| entry.area),
+            Some(Rect::ZERO)
+        );
+        assert_no_native_regions(&runtime, MATRIX);
+        assert_eq!(runtime.area_of_part(MATRIX, PartRef::of(Part::TEXT)), None);
+
+        let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::Tab));
+        runtime
+            .draw_buffer(PARTIAL_SCREEN, &mut buffer)
+            .commit_presented();
+        assert_eq!(runtime.focus(), Some(MATRIX));
+        assert_eq!(focus_entry_count(&runtime, MATRIX), 1);
+        assert!(
+            runtime
+                .ring()
+                .entry(MATRIX)
+                .is_some_and(|entry| !entry.area.is_empty())
+        );
+        assert!(runtime.area_of(MATRIX).is_some());
+
+        let original = runtime.app().data.text.clone();
+        let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::Char('x')));
+        runtime
+            .draw_buffer(PARTIAL_SCREEN, &mut buffer)
+            .commit_presented();
+        assert_eq!(
+            runtime.app().data.text,
+            original,
+            "typing remains a draft until commit"
+        );
+        assert!(
+            runtime
+                .app()
+                .state
+                .slots
+                .iter()
+                .find(|slot| slot.id == MATRIX)
+                .is_some_and(|slot| slot.input.is_editing())
+        );
+
+        let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::Enter));
+        runtime
+            .draw_buffer(PARTIAL_SCREEN, &mut buffer)
+            .commit_presented();
+        let committed = runtime.app().data.text.clone();
+        assert_ne!(
+            committed, original,
+            "Enter commits the revealed TextInput draft"
+        );
+        assert!(
+            !runtime
+                .app()
+                .state
+                .slots
+                .iter()
+                .find(|slot| slot.id == MATRIX)
+                .is_some_and(|slot| slot.input.is_editing())
+        );
+
+        let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::Tab));
+        runtime
+            .draw_buffer(PARTIAL_SCREEN, &mut buffer)
+            .commit_presented();
+        assert_eq!(runtime.focus(), Some(PARTIAL_HOST));
+        let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::BackTab));
+        runtime
+            .draw_buffer(PARTIAL_SCREEN, &mut buffer)
+            .commit_presented();
+        assert_eq!(runtime.focus(), Some(MATRIX));
+        assert_eq!(runtime.app().data.text, committed);
+        assert!(
+            runtime
+                .app()
+                .state
+                .slots
+                .iter()
+                .find(|slot| slot.id == MATRIX)
+                .is_some_and(|slot| slot.input.is_editing()),
+            "returning focus begins a fresh draft without changing the committed value"
+        );
+    }
+
+    #[test]
+    fn linear_form_keeps_label_only_text_field_in_native_tab_order() {
+        assert_partial_text_enrollment(UpwardRevealLayout::Linear);
+    }
+
+    #[test]
+    fn lane_form_keeps_label_only_text_field_in_native_tab_order() {
+        assert_partial_text_enrollment(UpwardRevealLayout::OneLane);
+    }
+
+    #[test]
+    fn partial_native_field_matrix_enrolls_once_then_uses_real_child_geometry() {
+        for layout in [UpwardRevealLayout::Linear, UpwardRevealLayout::OneLane] {
+            for kind in [
+                MatrixKind::Text,
+                MatrixKind::Area,
+                MatrixKind::Select,
+                MatrixKind::Radio,
+                MatrixKind::Chips,
+                MatrixKind::Check,
+                MatrixKind::Toggle,
+                MatrixKind::Chooser,
+            ] {
+                let sizing = if kind == MatrixKind::Chooser {
+                    FieldSizingPolicy::Intrinsic
+                } else {
+                    FieldSizingPolicy::Fixed
+                };
+                let (mut runtime, mut buffer) = partial_runtime(
+                    kind,
+                    layout,
+                    sizing,
+                    PartialFieldPolicy::Default,
+                    PARTIAL_SCREEN,
+                );
+                assert_eq!(runtime.focus(), Some(PARTIAL_DRIVER), "{layout:?} {kind:?}");
+                assert!(
+                    row_text(&buffer, 3).contains("Target"),
+                    "{layout:?} {kind:?}"
+                );
+                assert_eq!(
+                    focus_entry_count(&runtime, MATRIX),
+                    1,
+                    "{layout:?} {kind:?}"
+                );
+                assert_eq!(
+                    runtime.ring().entry(MATRIX).map(|entry| entry.area),
+                    Some(Rect::ZERO)
+                );
+                assert_no_native_regions(&runtime, MATRIX);
+                assert_eq!(
+                    focus_entry_count(&runtime, PARTIAL_HOST),
+                    1,
+                    "offscreen {kind:?}"
+                );
+                assert_eq!(
+                    runtime.ring().entry(PARTIAL_HOST).map(|entry| entry.area),
+                    Some(Rect::ZERO)
+                );
+                assert_eq!(runtime.area_of(PARTIAL_HOST), None, "offscreen {kind:?}");
+                assert!(runtime.diagnostics().is_empty(), "{layout:?} {kind:?}");
+
+                let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::Tab));
+                runtime
+                    .draw_buffer(PARTIAL_SCREEN, &mut buffer)
+                    .commit_presented();
+                assert_eq!(runtime.focus(), Some(MATRIX), "{layout:?} {kind:?}");
+                assert_eq!(
+                    focus_entry_count(&runtime, MATRIX),
+                    1,
+                    "{layout:?} {kind:?}"
+                );
+                assert!(
+                    runtime
+                        .ring()
+                        .entry(MATRIX)
+                        .is_some_and(|entry| !entry.area.is_empty()),
+                    "{layout:?} {kind:?}"
+                );
+                assert!(runtime.area_of(MATRIX).is_some(), "{layout:?} {kind:?}");
+                assert!(runtime.diagnostics().is_empty(), "{layout:?} {kind:?}");
+
+                let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::Tab));
+                runtime
+                    .draw_buffer(PARTIAL_SCREEN, &mut buffer)
+                    .commit_presented();
+                assert_eq!(runtime.focus(), Some(PARTIAL_HOST), "{layout:?} {kind:?}");
+                assert_eq!(
+                    focus_entry_count(&runtime, PARTIAL_HOST),
+                    1,
+                    "{layout:?} {kind:?}"
+                );
+                assert!(
+                    runtime
+                        .ring()
+                        .entry(PARTIAL_HOST)
+                        .is_some_and(|entry| !entry.area.is_empty()),
+                    "{layout:?} {kind:?}"
+                );
+                assert!(
+                    runtime.area_of(PARTIAL_HOST).is_some(),
+                    "{layout:?} {kind:?}"
+                );
+                assert!(runtime.diagnostics().is_empty(), "{layout:?} {kind:?}");
+            }
+        }
+    }
+
+    #[test]
+    fn oversized_area_reveal_targets_a_stable_native_body_row() {
+        for layout in [UpwardRevealLayout::Linear, UpwardRevealLayout::OneLane] {
+            for height in [4, 1] {
+                let area = Rect::new(0, 0, PARTIAL_SCREEN.width, height);
+                let (mut runtime, mut buffer) = partial_runtime(
+                    MatrixKind::Area,
+                    layout,
+                    FieldSizingPolicy::Fixed,
+                    PartialFieldPolicy::Default,
+                    area,
+                );
+                assert_eq!(runtime.focus(), Some(PARTIAL_DRIVER), "{layout:?} {height}");
+                assert_eq!(
+                    focus_entry_count(&runtime, MATRIX),
+                    1,
+                    "{layout:?} {height}"
+                );
+                assert_eq!(
+                    runtime.ring().entry(MATRIX).map(|entry| entry.area),
+                    Some(Rect::ZERO),
+                    "{layout:?} {height}"
+                );
+
+                let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::Tab));
+                runtime.draw_buffer(area, &mut buffer).commit_presented();
+                assert_eq!(runtime.focus(), Some(MATRIX), "{layout:?} {height}");
+                assert_eq!(
+                    focus_entry_count(&runtime, MATRIX),
+                    1,
+                    "{layout:?} {height}"
+                );
+                let native_entry_area = runtime.ring().entry(MATRIX).map(|entry| entry.area);
+                assert!(
+                    native_entry_area.is_some_and(|area| !area.is_empty()),
+                    "Tab publishes a nonempty native focus entry in {layout:?} at height {height}"
+                );
+                let native_area = runtime.area_of(MATRIX);
+                assert!(
+                    native_area.is_some_and(|area| !area.is_empty()),
+                    "Tab reveals the native Area body in {layout:?} at height {height}"
+                );
+                assert!(
+                    runtime.registry().regions().iter().any(|region| {
+                        region.owner == MATRIX
+                            && matches!(
+                                region.kind,
+                                termrock_runtime::RegionKind::Control
+                                    | termrock_runtime::RegionKind::Part
+                            )
+                            && !region.area.is_empty()
+                    }),
+                    "Tab publishes a native hit region in {layout:?} at height {height}"
+                );
+                assert!(runtime.diagnostics().is_empty(), "{layout:?} {height}");
+
+                let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
+                runtime.draw_buffer(area, &mut buffer).commit_presented();
+                assert_eq!(runtime.focus(), Some(MATRIX), "{layout:?} {height}");
+                assert_eq!(
+                    runtime.ring().entry(MATRIX).map(|entry| entry.area),
+                    native_entry_area,
+                    "{layout:?} {height}"
+                );
+                assert_eq!(runtime.area_of(MATRIX), native_area, "{layout:?} {height}");
+                assert!(
+                    runtime.registry().regions().iter().any(|region| {
+                        region.owner == MATRIX
+                            && matches!(
+                                region.kind,
+                                termrock_runtime::RegionKind::Control
+                                    | termrock_runtime::RegionKind::Part
+                            )
+                            && !region.area.is_empty()
+                    }),
+                    "repaint retains the native hit region in {layout:?} at height {height}"
+                );
+                assert!(runtime.diagnostics().is_empty(), "{layout:?} {height}");
+            }
+        }
+    }
+
+    #[test]
+    fn partial_focus_only_enrollment_preserves_widget_policy() {
+        for (policy, disabled, read_only) in [
+            (PartialFieldPolicy::OwnDisabled, true, false),
+            (PartialFieldPolicy::ReadOnly, false, true),
+        ] {
+            let (runtime, _) = partial_runtime(
+                MatrixKind::Text,
+                UpwardRevealLayout::Linear,
+                FieldSizingPolicy::Fixed,
+                policy,
+                PARTIAL_SCREEN,
+            );
+            assert_eq!(focus_entry_count(&runtime, MATRIX), 1, "{policy:?}");
+            assert_eq!(
+                runtime.ring().entry(MATRIX).map(|entry| entry.area),
+                Some(Rect::ZERO),
+                "{policy:?}"
+            );
+            assert_eq!(
+                runtime.ring().entry(MATRIX).map(|entry| entry.disabled),
+                Some(disabled),
+                "{policy:?}"
+            );
+            assert_eq!(
+                runtime.state_of(MATRIX).contains(StateFlags::READ_ONLY),
+                read_only,
+                "{policy:?}"
+            );
+            assert_eq!(
+                runtime.ring().reachable().any(|entry| entry.id == MATRIX),
+                !disabled,
+                "{policy:?}"
+            );
+            assert_no_native_regions(&runtime, MATRIX);
+        }
+
+        let (runtime, _) = partial_runtime(
+            MatrixKind::Chooser,
+            UpwardRevealLayout::Linear,
+            FieldSizingPolicy::Fixed,
+            PartialFieldPolicy::ClickOnly,
+            PARTIAL_SCREEN,
+        );
+        assert_eq!(focus_entry_count(&runtime, MATRIX), 0);
+        assert_no_native_regions(&runtime, MATRIX);
+        assert!(!runtime.ring().reachable().any(|entry| entry.id == MATRIX));
+    }
+
+    #[test]
+    fn partial_secret_text_controls_keep_focus_without_exposing_value() {
+        for layout in [UpwardRevealLayout::Linear, UpwardRevealLayout::OneLane] {
+            for kind in [MatrixKind::Text, MatrixKind::Area] {
+                let (mut runtime, mut buffer) = partial_secret_runtime(kind, layout);
+                assert_eq!(runtime.focus(), Some(PARTIAL_DRIVER), "{layout:?} {kind:?}");
+                assert!(
+                    row_text(&buffer, 3).contains("Target"),
+                    "{layout:?} {kind:?}"
+                );
+                assert_eq!(
+                    focus_entry_count(&runtime, MATRIX),
+                    1,
+                    "{layout:?} {kind:?}"
+                );
+                assert_eq!(
+                    runtime.ring().entry(MATRIX).map(|entry| entry.area),
+                    Some(Rect::ZERO)
+                );
+                assert_no_native_regions(&runtime, MATRIX);
+                assert!(runtime.diagnostics().is_empty(), "{layout:?} {kind:?}");
+                for y in 0..PARTIAL_SCREEN.height {
+                    assert!(
+                        !row_text(&buffer, y).contains("private-partial-secret"),
+                        "secret value stays masked before reveal"
+                    );
+                }
+
+                let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::Tab));
+                runtime
+                    .draw_buffer(PARTIAL_SCREEN, &mut buffer)
+                    .commit_presented();
+                assert_eq!(runtime.focus(), Some(MATRIX), "{layout:?} {kind:?}");
+                assert_eq!(
+                    focus_entry_count(&runtime, MATRIX),
+                    1,
+                    "{layout:?} {kind:?}"
+                );
+                assert!(runtime.area_of(MATRIX).is_some(), "{layout:?} {kind:?}");
+                assert!(runtime.diagnostics().is_empty(), "{layout:?} {kind:?}");
+                for y in 0..PARTIAL_SCREEN.height {
+                    assert!(
+                        !row_text(&buffer, y).contains("private-partial-secret"),
+                        "secret value stays masked after reveal"
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn help_only_window_keeps_one_keyboard_entry_without_a_hit_region() {
+        for layout in [UpwardRevealLayout::Linear, UpwardRevealLayout::OneLane] {
+            let area = Rect::new(0, 0, PARTIAL_SCREEN.width, 1);
+            let (mut runtime, mut buffer) = partial_runtime(
+                MatrixKind::Text,
+                layout,
+                FieldSizingPolicy::Fixed,
+                PartialFieldPolicy::Default,
+                area,
+            );
+            match layout {
+                UpwardRevealLayout::Linear => runtime.app_mut().state.scroll.scroll_to(5),
+                UpwardRevealLayout::OneLane => runtime
+                    .app_mut()
+                    .state
+                    .lane_scroll_mut(PARTIAL_LANE)
+                    .scroll_to(5),
+            }
+            runtime.draw_buffer(area, &mut buffer).commit_presented();
+            assert!(row_text(&buffer, 0).contains("Target help"), "{layout:?}");
+            assert_eq!(focus_entry_count(&runtime, MATRIX), 1, "{layout:?}");
+            assert_eq!(
+                runtime.ring().entry(MATRIX).map(|entry| entry.area),
+                Some(Rect::ZERO)
+            );
+            assert_no_native_regions(&runtime, MATRIX);
+        }
+    }
+
+    #[test]
+    fn help_only_radio_keeps_one_keyboard_entry_after_the_last_option() {
+        for layout in [UpwardRevealLayout::Linear, UpwardRevealLayout::OneLane] {
+            let area = Rect::new(0, 0, PARTIAL_SCREEN.width, 1);
+            let (mut runtime, mut buffer) = partial_runtime(
+                MatrixKind::Radio,
+                layout,
+                FieldSizingPolicy::Fixed,
+                PartialFieldPolicy::Default,
+                area,
+            );
+            match layout {
+                UpwardRevealLayout::Linear => runtime.app_mut().state.scroll.scroll_to(7),
+                UpwardRevealLayout::OneLane => runtime
+                    .app_mut()
+                    .state
+                    .lane_scroll_mut(PARTIAL_LANE)
+                    .scroll_to(7),
+            }
+            runtime.draw_buffer(area, &mut buffer).commit_presented();
+
+            assert!(row_text(&buffer, 0).contains("Target help"), "{layout:?}");
+            assert_eq!(focus_entry_count(&runtime, MATRIX), 1, "{layout:?}");
+            assert_eq!(
+                runtime.ring().entry(MATRIX).map(|entry| entry.area),
+                Some(Rect::ZERO),
+                "the help row is visible after all three options"
+            );
+            assert_no_native_regions(&runtime, MATRIX);
+            assert!(runtime.diagnostics().is_empty(), "{layout:?}");
+        }
+    }
+
+    #[test]
+    fn nested_clips_use_the_actual_native_registration_projection() {
+        let area = Rect::new(0, 0, 80, 14);
+        // The fixed Form row is five cells tall here. MATRIX's chrome body
+        // covers rows y=6..8, but TextInput and Button register only at y=6.
+        let clip = Rect::new(0, 7, 80, 1);
+        assert!(!Rect::new(0, 6, 80, 3).intersection(clip).is_empty());
+        assert!(Rect::new(0, 6, 80, 1).intersection(clip).is_empty());
+
+        for kind in [MatrixKind::Text, MatrixKind::Chooser] {
+            let mut app = PartialEnrollmentApp::new(
+                kind,
+                UpwardRevealLayout::Linear,
+                FieldSizingPolicy::Fixed,
+                PartialFieldPolicy::Default,
+                area,
+            );
+            app.nested_clip = Some(clip);
+            let mut theme = Theme::junie();
+            theme.design.size.field_height = 5;
+            let mut runtime = Runtime::new(app, theme);
+            let _ = runtime.initialize();
+            let mut buffer = Buffer::empty(area);
+            runtime.draw_buffer(area, &mut buffer).commit_presented();
+
+            assert_eq!(focus_entry_count(&runtime, MATRIX), 1, "{kind:?}");
+            assert_eq!(
+                runtime.ring().entry(MATRIX).map(|entry| entry.area),
+                Some(Rect::ZERO),
+                "the native first row is clipped, so Form owns a focus-only stop"
+            );
+            assert_eq!(runtime.area_of(MATRIX), None, "{kind:?}");
+            assert!(runtime.diagnostics().is_empty(), "{kind:?}");
+        }
+
+        // Radio has three real option rows and two unused body rows under
+        // this theme. A clip in the unused tail must not be mistaken for a
+        // visible native option window.
+        let radio_area = Rect::new(0, 0, 80, 18);
+        let radio_clip = Rect::new(0, 11, 80, 1);
+        assert!(!Rect::new(0, 8, 80, 5).intersection(radio_clip).is_empty());
+        assert!(Rect::new(0, 8, 80, 3).intersection(radio_clip).is_empty());
+        let mut app = PartialEnrollmentApp::new(
+            MatrixKind::Radio,
+            UpwardRevealLayout::Linear,
+            FieldSizingPolicy::Fixed,
+            PartialFieldPolicy::Default,
+            radio_area,
+        );
+        app.nested_clip = Some(radio_clip);
+        let mut theme = Theme::junie();
+        theme.design.size.field_height = 7;
+        let mut runtime = Runtime::new(app, theme);
+        let _ = runtime.initialize();
+        let mut buffer = Buffer::empty(radio_area);
+        runtime
+            .draw_buffer(radio_area, &mut buffer)
+            .commit_presented();
+
+        assert_eq!(focus_entry_count(&runtime, MATRIX), 1);
+        assert_eq!(
+            runtime.ring().entry(MATRIX).map(|entry| entry.area),
+            Some(Rect::ZERO),
+            "padding outside the used option rows is not native registration"
+        );
+        assert_eq!(runtime.area_of(MATRIX), None);
+        assert!(runtime.diagnostics().is_empty());
+    }
+
+    #[test]
+    fn native_form_focus_only_seams_preserve_widget_focusability_policy() {
+        const TEXT_DISABLED: Id = Id::root("form.tests.focus-only.text-disabled");
+        const AREA_READ_ONLY: Id = Id::root("form.tests.focus-only.area-read-only");
+        const SELECT_READ_ONLY: Id = Id::root("form.tests.focus-only.select-read-only");
+        const CHIPS_READ_ONLY: Id = Id::root("form.tests.focus-only.chips-read-only");
+        const CHECK_DISABLED: Id = Id::root("form.tests.focus-only.check-disabled");
+        const TOGGLE_INHERITED: Id = Id::root("form.tests.focus-only.toggle-inherited");
+        const RADIO_READ_ONLY: Id = Id::root("form.tests.focus-only.radio-read-only");
+        const BUTTON_DISABLED: Id = Id::root("form.tests.focus-only.button-disabled");
+        const BUTTON_INHERITED: Id = Id::root("form.tests.focus-only.button-inherited");
+        const BUTTON_CLICK_ONLY: Id = Id::root("form.tests.focus-only.button-click-only");
+        const SEAM_SCREEN: Rect = Rect::new(0, 0, 40, 4);
+
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(SEAM_SCREEN);
+        runtime
+            .draw_scene(SEAM_SCREEN, &mut buffer, |ui, _| {
+                TextInput::new(TEXT_DISABLED)
+                    .disabled(true)
+                    .register_focus_only_in_form(ui, false);
+                TextArea::new(AREA_READ_ONLY, 2)
+                    .read_only(true)
+                    .register_focus_only_in_form(ui, false);
+                LabelSelect::new(SELECT_READ_ONLY)
+                    .read_only(true)
+                    .register_focus_only_in_form(ui, false);
+                LabelChips::new(CHIPS_READ_ONLY)
+                    .read_only(true)
+                    .register_focus_only_in_form(ui, false);
+                Checkbox::new(CHECK_DISABLED, "Check")
+                    .disabled(true)
+                    .register_focus_only_in_form(ui, false);
+                Toggle::new(TOGGLE_INHERITED, "Toggle").register_focus_only_in_form(ui, true);
+                LabelRadio::new(RADIO_READ_ONLY)
+                    .read_only(true)
+                    .register_focus_only_in_form(ui, false);
+                Button::new(BUTTON_DISABLED, "Disabled")
+                    .disabled(true)
+                    .register_focus_only_in_form(ui, false);
+                Button::new(BUTTON_INHERITED, "Inherited").register_focus_only_in_form(ui, true);
+                Button::new(BUTTON_CLICK_ONLY, "Click only")
+                    .focusability(Focusability::ClickOnly)
+                    .register_focus_only_in_form(ui, false);
+            })
+            .commit_presented();
+
+        assert_eq!(runtime.ring().entries().len(), 9);
+        for (id, disabled, read_only) in [
+            (TEXT_DISABLED, true, false),
+            (AREA_READ_ONLY, false, true),
+            (SELECT_READ_ONLY, false, true),
+            (CHIPS_READ_ONLY, false, true),
+            (CHECK_DISABLED, true, false),
+            (TOGGLE_INHERITED, true, false),
+            (RADIO_READ_ONLY, false, true),
+        ] {
+            let entry = runtime.ring().entry(id).expect("one focus-only entry");
+            assert!(entry.area.is_empty());
+            assert_eq!(entry.disabled, disabled, "{id:?}");
+            assert_eq!(
+                runtime.state_of(id).contains(StateFlags::READ_ONLY),
+                read_only,
+                "{id:?}"
+            );
+            assert_eq!(
+                runtime.area_of(id),
+                None,
+                "focus-only stop adds no hit area"
+            );
+        }
+        for id in [BUTTON_DISABLED, BUTTON_INHERITED] {
+            let entry = runtime
+                .ring()
+                .entry(id)
+                .expect("disabled Button is registered");
+            assert!(entry.area.is_empty());
+            assert!(entry.disabled, "{id:?}");
+            assert!(!runtime.ring().reachable().any(|entry| entry.id == id));
+            assert_eq!(runtime.area_of(id), None);
+        }
+        assert!(runtime.ring().entry(BUTTON_CLICK_ONLY).is_none());
+        assert_eq!(runtime.area_of(BUTTON_CLICK_ONLY), None);
+    }
+
+    #[test]
+    fn busy_button_focus_only_seam_matches_native_keyboard_reachability() {
+        const BUSY_NATIVE: Id = Id::root("form.tests.focus-only.busy-native");
+        const BUSY_CLIPPED: Id = Id::root("form.tests.focus-only.busy-clipped");
+        const BUSY_SCREEN: Rect = Rect::new(0, 0, 40, 2);
+
+        let mut runtime = Runtime::new(Stub::default(), Theme::junie());
+        let mut buffer = Buffer::empty(BUSY_SCREEN);
+        runtime
+            .draw_scene(BUSY_SCREEN, &mut buffer, |ui, _| {
+                Button::new(BUSY_NATIVE, "Working")
+                    .status(termrock_runtime::Status::Busy)
+                    .draw(ui, Rect::new(0, 0, 20, 1));
+                Button::new(BUSY_CLIPPED, "Working")
+                    .status(termrock_runtime::Status::Busy)
+                    .register_focus_only_in_form(ui, false);
+            })
+            .commit_presented();
+
+        for id in [BUSY_NATIVE, BUSY_CLIPPED] {
+            assert_eq!(
+                runtime.ring().entry(id).map(|entry| entry.disabled),
+                Some(false)
+            );
+            assert!(runtime.ring().reachable().any(|entry| entry.id == id));
+        }
+        assert!(runtime.area_of(BUSY_NATIVE).is_some());
+        assert_eq!(
+            runtime.ring().entry(BUSY_CLIPPED).map(|entry| entry.area),
+            Some(Rect::ZERO)
+        );
+        assert_eq!(runtime.area_of(BUSY_CLIPPED), None);
+    }
+
+    #[test]
+    fn partial_form_does_not_enroll_notes_hidden_invalid_or_empty_radio_controls() {
+        let (note, _note_buffer) = partial_runtime(
+            MatrixKind::Note,
+            UpwardRevealLayout::Linear,
+            FieldSizingPolicy::Fixed,
+            PartialFieldPolicy::Default,
+            PARTIAL_SCREEN,
+        );
+        assert_eq!(focus_entry_count(&note, MATRIX), 0);
+        assert_no_native_regions(&note, MATRIX);
+
+        let (mut hidden, mut hidden_buffer) = partial_runtime(
+            MatrixKind::Text,
+            UpwardRevealLayout::Linear,
+            FieldSizingPolicy::Fixed,
+            PartialFieldPolicy::Default,
+            PARTIAL_SCREEN,
+        );
+        hidden.app_mut().data.hidden = true;
+        hidden
+            .draw_buffer(PARTIAL_SCREEN, &mut hidden_buffer)
+            .commit_presented();
+        assert_eq!(focus_entry_count(&hidden, MATRIX), 0);
+        assert_no_regions(&hidden, MATRIX);
+
+        let (mut invalid, mut invalid_buffer) = partial_runtime(
+            MatrixKind::Text,
+            UpwardRevealLayout::Linear,
+            FieldSizingPolicy::Fixed,
+            PartialFieldPolicy::Default,
+            PARTIAL_SCREEN,
+        );
+        invalid.app_mut().data.mismatch = true;
+        invalid
+            .draw_buffer(PARTIAL_SCREEN, &mut invalid_buffer)
+            .commit_presented();
+        assert_eq!(focus_entry_count(&invalid, MATRIX), 0);
+        assert_no_native_regions(&invalid, MATRIX);
+
+        let (mut empty_radio, mut radio_buffer) = partial_runtime(
+            MatrixKind::Radio,
+            UpwardRevealLayout::Linear,
+            FieldSizingPolicy::Fixed,
+            PartialFieldPolicy::Default,
+            PARTIAL_SCREEN,
+        );
+        empty_radio.app_mut().data.empty_options = true;
+        empty_radio
+            .draw_buffer(PARTIAL_SCREEN, &mut radio_buffer)
+            .commit_presented();
+        assert_eq!(focus_entry_count(&empty_radio, MATRIX), 0);
+        assert_no_native_regions(&empty_radio, MATRIX);
+
+        let _ = note;
     }
 
     #[test]

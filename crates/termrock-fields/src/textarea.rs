@@ -743,6 +743,27 @@ impl<'a> TextArea<'a> {
         !self.disabled && !self.read_only
     }
 
+    const fn form_focusability(&self, inherited_disabled: bool) -> Focusability {
+        if self.disabled || inherited_disabled {
+            Focusability::Disabled
+        } else if self.read_only {
+            Focusability::FocusableReadOnly
+        } else {
+            Focusability::Focusable
+        }
+    }
+
+    /// Registers this Form text area's keyboard stop without a pointer region.
+    ///
+    /// Use only when Form layout clips the native text area body. The native
+    /// disabled and read-only policy is preserved, including inherited Form
+    /// disabling.
+    pub fn register_focus_only_in_form(&self, ui: &mut Ui<'_>, inherited_disabled: bool) {
+        if !ui.is_inert() {
+            ui.register_focus_only(self.id, self.form_focusability(inherited_disabled));
+        }
+    }
+
     const fn with_inherited_disabled(&self, inherited: bool) -> Self {
         TextArea {
             id: self.id,
@@ -1211,13 +1232,7 @@ impl<'a> TextArea<'a> {
         let validation_error = st.error.is_some();
         let status_error = matches!(self.status, termrock_runtime::Status::Error);
         let error = validation_error || status_error;
-        let focusability = if self.disabled {
-            Focusability::Disabled
-        } else if self.read_only {
-            Focusability::FocusableReadOnly
-        } else {
-            Focusability::Focusable
-        };
+        let focusability = self.form_focusability(false);
         let declared = if editing {
             StateFlags::EDITING
         } else {

@@ -458,6 +458,26 @@ impl<'a> Checkbox<'a> {
         !self.disabled && !self.read_only
     }
 
+    const fn form_focusability(&self, inherited_disabled: bool) -> Focusability {
+        if self.disabled || inherited_disabled {
+            Focusability::Disabled
+        } else if self.read_only {
+            Focusability::FocusableReadOnly
+        } else {
+            Focusability::Focusable
+        }
+    }
+
+    /// Registers this Form checkbox's keyboard stop without a pointer region.
+    ///
+    /// Use only when Form layout clips the native checkbox body. Its native
+    /// disabled and read-only policy remains authoritative.
+    pub fn register_focus_only_in_form(&self, ui: &mut Ui<'_>, inherited_disabled: bool) {
+        if !ui.is_inert() {
+            ui.register_focus_only(self.id, self.form_focusability(inherited_disabled));
+        }
+    }
+
     const fn with_inherited_disabled(&self, inherited: bool) -> Self {
         Checkbox {
             id: self.id,
@@ -557,13 +577,7 @@ impl<'a> Checkbox<'a> {
             live = live.difference(StateFlags::HOVERED | StateFlags::PRESSED);
         }
         if !ui.is_inert() {
-            let f = if self.disabled {
-                Focusability::Disabled
-            } else if self.read_only {
-                Focusability::FocusableReadOnly
-            } else {
-                Focusability::Focusable
-            };
+            let f = self.form_focusability(false);
             ui.register_control(self.id, area, f);
             ui.publish_bindings(self.id, live, FLAG);
         }
@@ -733,6 +747,26 @@ impl<'a> Toggle<'a> {
         !self.disabled && !self.read_only
     }
 
+    const fn form_focusability(&self, inherited_disabled: bool) -> Focusability {
+        if self.disabled || inherited_disabled {
+            Focusability::Disabled
+        } else if self.read_only {
+            Focusability::FocusableReadOnly
+        } else {
+            Focusability::Focusable
+        }
+    }
+
+    /// Registers this Form toggle's keyboard stop without a pointer region.
+    ///
+    /// Use only when Form layout clips the native toggle body. Its native
+    /// disabled and read-only policy remains authoritative.
+    pub fn register_focus_only_in_form(&self, ui: &mut Ui<'_>, inherited_disabled: bool) {
+        if !ui.is_inert() {
+            ui.register_focus_only(self.id, self.form_focusability(inherited_disabled));
+        }
+    }
+
     const fn with_inherited_disabled(&self, inherited: bool) -> Self {
         Toggle {
             id: self.id,
@@ -810,13 +844,7 @@ impl<'a> Toggle<'a> {
             live = live.difference(StateFlags::HOVERED | StateFlags::PRESSED);
         }
         if !ui.is_inert() {
-            let f = if self.disabled {
-                Focusability::Disabled
-            } else if self.read_only {
-                Focusability::FocusableReadOnly
-            } else {
-                Focusability::Focusable
-            };
+            let f = self.form_focusability(false);
             ui.register_control(self.id, area, f);
             ui.publish_bindings(self.id, live, FLAG);
         }
@@ -1028,6 +1056,16 @@ impl<'a> RadioGroup<'a, &'a str, ByIndex, DefaultRow> {
     ) -> Rect {
         self.with_form_value(value, inherited.disabled)
             .draw_window(ui, area, st, items, first_row)
+    }
+
+    /// Registers this Form radio group's keyboard stop without a pointer region.
+    ///
+    /// Form calls this only when at least one original option remains but its
+    /// native option window is clipped. Empty groups remain noninteractive.
+    pub fn register_focus_only_in_form(&self, ui: &mut Ui<'_>, inherited_disabled: bool) {
+        if !ui.is_inert() {
+            ui.register_focus_only(self.id, self.form_focusability(inherited_disabled));
+        }
     }
 }
 
@@ -1274,18 +1312,21 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
         }
     }
 
-    fn register(&self, ui: &mut Ui<'_>, used: Rect) {
-        if ui.is_inert() {
-            return;
-        }
-        let f = if self.disabled {
+    const fn form_focusability(&self, inherited_disabled: bool) -> Focusability {
+        if self.disabled || inherited_disabled {
             Focusability::Disabled
         } else if self.read_only {
             Focusability::FocusableReadOnly
         } else {
             Focusability::Focusable
-        };
-        ui.register_control(self.id, used, f);
+        }
+    }
+
+    fn register(&self, ui: &mut Ui<'_>, used: Rect) {
+        if ui.is_inert() {
+            return;
+        }
+        ui.register_control(self.id, used, self.form_focusability(false));
     }
 
     fn row_flags(

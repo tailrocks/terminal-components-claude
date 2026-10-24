@@ -220,6 +220,25 @@ impl<'a> Button<'a> {
         self.disabled || self.focusability == Focusability::Disabled
     }
 
+    fn form_focusability(&self, inherited_disabled: bool) -> Focusability {
+        let control = self.with_inherited_disabled(inherited_disabled);
+        if control.effectively_disabled() {
+            Focusability::Disabled
+        } else {
+            control.focusability
+        }
+    }
+
+    /// Registers this Form button's keyboard stop without a pointer region.
+    ///
+    /// Use only when Form layout clips the native button body. Disabled and
+    /// ClickOnly policy remains identical to the native draw path.
+    pub fn register_focus_only_in_form(&self, ui: &mut Ui<'_>, inherited_disabled: bool) {
+        if !ui.is_inert() {
+            ui.register_focus_only(self.id, self.form_focusability(inherited_disabled));
+        }
+    }
+
     fn can_activate(&self) -> bool {
         !self.effectively_disabled() && !self.busy()
     }
@@ -350,12 +369,7 @@ impl<'a> Button<'a> {
         }
         let disabled = self.effectively_disabled();
         if !ui.is_inert() {
-            let f = if disabled {
-                Focusability::Disabled
-            } else {
-                self.focusability
-            };
-            ui.register_control(self.id, area, f);
+            ui.register_control(self.id, area, self.form_focusability(false));
         }
 
         let mut derived = self.status.flags();
