@@ -39,6 +39,19 @@ name = "testing"
 features = ["default", "testing"]
 target = "host"
 
+[[stacks.rust.inputs]]
+globs = [
+    "crates/showcase/Cargo.toml",
+    "crates/showcase/src/main.rs",
+    "crates/tablepro/Cargo.toml",
+    "crates/tablepro/src/main.rs",
+    "crates/jackin-preview/Cargo.toml",
+    "crates/jackin-preview/src/main.rs",
+    "crates/holla/Cargo.toml",
+    "crates/holla/src/main.rs",
+]
+packages = ["visual-harness"]
+
 [stacks.rust.release]
 enabled = false
 manifest_path = "Cargo.toml"

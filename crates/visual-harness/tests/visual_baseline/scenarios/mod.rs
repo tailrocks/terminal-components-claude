@@ -18,6 +18,19 @@ pub enum Bin {
     Holla,
 }
 
+fn cargo_path_for(
+    nextest_path: Option<std::ffi::OsString>,
+    cargo_path: &str,
+) -> std::path::PathBuf {
+    nextest_path
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(|| std::path::PathBuf::from(cargo_path))
+}
+
+fn visual_override_path(dir: &std::ffi::OsStr, bin: Bin) -> std::path::PathBuf {
+    std::path::Path::new(dir).join(bin.exe_name())
+}
+
 impl Bin {
     pub const ALL: [Bin; 4] = [Bin::Showcase, Bin::Tablepro, Bin::Jackin, Bin::Holla];
 
@@ -37,12 +50,29 @@ impl Bin {
         }
     }
 
+    const fn nextest_exe_env(self) -> &'static str {
+        match self {
+            Bin::Showcase => "NEXTEST_BIN_EXE_visual_harness_showcase",
+            Bin::Tablepro => "NEXTEST_BIN_EXE_visual_harness_tablepro",
+            Bin::Jackin => "NEXTEST_BIN_EXE_visual_harness_jackin_preview",
+            Bin::Holla => "NEXTEST_BIN_EXE_visual_harness_holla",
+        }
+    }
+
+    const fn cargo_exe_path(self) -> &'static str {
+        match self {
+            Bin::Showcase => env!("CARGO_BIN_EXE_visual-harness-showcase"),
+            Bin::Tablepro => env!("CARGO_BIN_EXE_visual-harness-tablepro"),
+            Bin::Jackin => env!("CARGO_BIN_EXE_visual-harness-jackin-preview"),
+            Bin::Holla => env!("CARGO_BIN_EXE_visual-harness-holla"),
+        }
+    }
+
     fn cargo_path(self) -> &'static str {
-        let workspace = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .parent()
-            .and_then(|dir| dir.parent())
-            .expect("crates/visual-harness is two directories under the workspace");
-        let path = workspace.join("target/debug").join(self.exe_name());
+        let path = cargo_path_for(
+            std::env::var_os(self.nextest_exe_env()),
+            self.cargo_exe_path(),
+        );
         Box::leak(path.to_string_lossy().into_owned().into_boxed_str())
     }
 
@@ -51,7 +81,7 @@ impl Bin {
         let paths = PATHS.get_or_init(|| {
             Bin::ALL.map(|bin| match std::env::var_os("VISUAL_BIN_DIR") {
                 Some(dir) => {
-                    let path = std::path::Path::new(&dir).join(bin.exe_name());
+                    let path = visual_override_path(&dir, bin);
                     &*Box::leak(path.to_string_lossy().into_owned().into_boxed_str())
                 }
                 None => bin.cargo_path(),
@@ -523,8 +553,119 @@ pub fn all() -> Vec<Scenario> {
     out
 }
 
+fn check_native_bin_targets() -> Result<(), String> {
+    let expected = [
+        (
+            Bin::Showcase,
+            "showcase",
+            "visual-harness-showcase",
+            "../showcase/src/main.rs",
+            "NEXTEST_BIN_EXE_visual_harness_showcase",
+        ),
+        (
+            Bin::Tablepro,
+            "tablepro",
+            "visual-harness-tablepro",
+            "../tablepro/src/main.rs",
+            "NEXTEST_BIN_EXE_visual_harness_tablepro",
+        ),
+        (
+            Bin::Jackin,
+            "jackin-preview",
+            "visual-harness-jackin-preview",
+            "../jackin-preview/src/main.rs",
+            "NEXTEST_BIN_EXE_visual_harness_jackin_preview",
+        ),
+        (
+            Bin::Holla,
+            "holla",
+            "visual-harness-holla",
+            "../holla/src/main.rs",
+            "NEXTEST_BIN_EXE_visual_harness_holla",
+        ),
+    ];
+    let manifest_path = support::manifest_path("crates/visual-harness/Cargo.toml");
+    let manifest = std::fs::read_to_string(&manifest_path)
+        .map_err(|error| format!("read {}: {error}", manifest_path.display()))?;
+    let sections: Vec<_> = manifest.split("[[bin]]").skip(1).collect();
+    if sections.len() != expected.len() {
+        return Err(format!(
+            "visual-harness declares {} support bin targets; expected {}",
+            sections.len(),
+            expected.len()
+        ));
+    }
+    let mut target_names = std::collections::BTreeSet::new();
+    for (section, (bin, canonical, target, source, nextest_env)) in sections.iter().zip(expected) {
+        let body = section
+            .lines()
+            .take_while(|line| !line.trim_start().starts_with('['))
+            .map(str::trim)
+            .collect::<Vec<_>>();
+        for (field, expected_value) in [
+            ("name", format!("name = \"{target}\"")),
+            ("path", format!("path = \"{source}\"")),
+            ("test", "test = false".to_owned()),
+            ("bench", "bench = false".to_owned()),
+            ("doc", "doc = false".to_owned()),
+        ] {
+            if !body.contains(&expected_value.as_str()) {
+                return Err(format!(
+                    "visual-harness {field} target contract differs for {target}"
+                ));
+            }
+        }
+        if body
+            .iter()
+            .any(|line| line.starts_with("required-features ="))
+        {
+            return Err(format!(
+                "visual-harness support target {target} is feature-gated"
+            ));
+        }
+        if !target_names.insert(target) {
+            return Err(format!("duplicate visual-harness target name {target}"));
+        }
+        if bin.exe_name() != canonical {
+            return Err(format!(
+                "VISUAL_BIN_DIR canonical name changed for {target}"
+            ));
+        }
+        if bin.nextest_exe_env() != nextest_env {
+            return Err(format!("Nextest runtime path mapping differs for {target}"));
+        }
+        if std::path::Path::new(bin.cargo_exe_path()).file_stem()
+            != Some(std::ffi::OsStr::new(target))
+        {
+            return Err(format!(
+                "Cargo compile-time path mapping differs for {target}"
+            ));
+        }
+        let override_dir = std::ffi::OsStr::new("visual-bin-override");
+        if visual_override_path(override_dir, bin)
+            != std::path::Path::new(override_dir).join(canonical)
+        {
+            return Err(format!("VISUAL_BIN_DIR path join changed for {target}"));
+        }
+    }
+    let compile_path = "compiled-support-bin";
+    if cargo_path_for(None, compile_path).as_path() != std::path::Path::new(compile_path) {
+        return Err("Cargo compile-time path fallback changed".to_owned());
+    }
+    let runtime_path = std::ffi::OsString::from("missing-runtime-bin");
+    if cargo_path_for(Some(runtime_path.clone()), compile_path).as_os_str()
+        != runtime_path.as_os_str()
+    {
+        return Err("configured Nextest runtime path fell back unexpectedly".to_owned());
+    }
+    Ok(())
+}
+
 pub fn check_tables() -> Result<(), String> {
     let mut problems = Vec::new();
+    if let Err(error) = check_native_bin_targets() {
+        problems.push(error);
+    }
     let mut roots = std::collections::BTreeSet::new();
     for (app, kind, table) in tables() {
         for row in table {
