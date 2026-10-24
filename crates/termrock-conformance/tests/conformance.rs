@@ -3999,6 +3999,331 @@ impl Conformance for HelpOverlayCase {
     }
 }
 
+#[cfg(test)]
+mod help_launcher_contract_tests {
+    use super::*;
+    use termrock_test_support::conformance::{driver, driver::CaseApp};
+
+    const LAUNCHER: Id = Id::root("conformance.help_launcher.launch");
+    const UNDERLAY: Id = Id::root("conformance.help_launcher.underlay");
+    const CLOSE_BINDING: &[Binding<HelpCmd>] = &[Binding {
+        action: ActionKey::custom("help-case.close"),
+        chord: Some(Chord::key(KeyCode::Enter)),
+        cmd: HelpCmd::Close,
+        label: "Close",
+        priority: 80,
+        visible: true,
+    }];
+
+    #[derive(Clone, Debug, Default, PartialEq)]
+    struct LauncherState {
+        help: HelpOverlayState,
+        underlay_activations: u32,
+    }
+
+    struct LauncherCase;
+
+    impl Conformance for LauncherCase {
+        const NAME: &'static str = "help_launcher_contract";
+        const FAMILY: Family = Family::HELP;
+        const PARTS: &'static [Part] = HelpOverlay::PARTS;
+
+        type State = LauncherState;
+        type Action = HelpAction;
+        type Cmd = HelpCmd;
+
+        fn caps() -> Caps {
+            Caps::FOCUSABLE | Caps::OVERLAY | Caps::TRAPS_FOCUS | Caps::SCROLLS
+        }
+
+        fn id() -> Id {
+            HELP_OVERLAY
+        }
+
+        fn opener_id() -> Id {
+            LAUNCHER
+        }
+
+        fn fixture() -> Fixture {
+            let mut fixture = Fixture::default();
+            fixture.area = Rect::new(2, 2, 30, 10);
+            fixture
+        }
+
+        fn update(
+            cx: &mut Cx<'_>,
+            state: &mut Self::State,
+            fixture: &Fixture,
+        ) -> Response<Self::Action> {
+            let mut opened_by_button = false;
+            let launcher_response = Button::new(LAUNCHER, "Help").update(cx).on_activated(|| {
+                opened_by_button = true;
+                open_help(cx, fixture);
+            });
+            if opened_by_button {
+                return Response::changed().for_id(HELP_OVERLAY);
+            }
+            if launcher_response.is_consumed() {
+                return Response::consumed().for_id(LAUNCHER);
+            }
+
+            let underlay_response = Button::new(UNDERLAY, "Probe").update(cx).on_activated(|| {
+                state.underlay_activations = state.underlay_activations.saturating_add(1);
+            });
+            if underlay_response.is_consumed() {
+                return Response::changed().for_id(UNDERLAY);
+            }
+
+            let f4 = Chord::key(KeyCode::F(4));
+            let open_requested = cx
+                .intents(LAUNCHER)
+                .any(|intent| matches!(intent, Intent::Key(key) if f4.matches(&key)))
+                || cx
+                    .intents(HELP_OVERLAY)
+                    .any(|intent| matches!(intent, Intent::Key(key) if f4.matches(&key)));
+            if open_requested {
+                open_help(cx, fixture);
+                return Response::changed().for_id(HELP_OVERLAY);
+            }
+
+            with_help(fixture, |help| help.update(cx, &mut state.help))
+        }
+
+        fn draw(ui: &mut Ui<'_>, area: Rect, state: &Self::State, fixture: &Fixture) {
+            with_help(fixture, |help| {
+                let used = Button::new(LAUNCHER, "Help").draw(ui, area);
+                let below = below_launcher(area, used);
+                if ui
+                    .layer(HELP_OVERLAY, |ui, layer_area| {
+                        help.draw(ui, layer_area, &state.help);
+                    })
+                    .is_none()
+                {
+                    help.draw(ui, below, &state.help);
+                }
+            });
+            let _ = Button::new(UNDERLAY, "Probe").draw(ui, Rect::new(35, 11, 5, 1));
+        }
+
+        fn bindings(state: BindingState) -> &'static [Binding<Self::Cmd>] {
+            const EMPTY: &[HelpSection<'static>] = &[];
+            HelpOverlay::new(HELP_OVERLAY, "Application", EMPTY).bindings(state)
+        }
+
+        fn binding_probes_require_overlay() -> bool {
+            true
+        }
+
+        fn nested_binding_chords() -> Vec<Chord> {
+            Button::new(LAUNCHER, "Help")
+                .bindings(BindingState::default())
+                .iter()
+                .filter_map(|binding| binding.chord)
+                .collect()
+        }
+
+        fn open_chord() -> Option<Chord> {
+            Some(Chord::key(KeyCode::F(4)))
+        }
+
+        fn open_overlay(cx: &mut Cx<'_>, _state: &mut Self::State, fixture: &Fixture) -> bool {
+            open_help(cx, fixture);
+            true
+        }
+
+        fn layer_id() -> Option<Id> {
+            Some(HELP_OVERLAY)
+        }
+    }
+
+    fn with_help<R>(
+        fixture: &Fixture,
+        draw_or_update: impl for<'a> FnOnce(HelpOverlay<'a>) -> R,
+    ) -> R {
+        let layer = HintLayer::from_bindings(CLOSE_BINDING);
+        let sections: Vec<_> = fixture
+            .rows
+            .iter()
+            .map(|row| HelpSection::new(row.label.as_str(), &layer))
+            .collect();
+        let help = HelpOverlay::new(HELP_OVERLAY, "Application", &sections);
+        draw_or_update(help)
+    }
+
+    fn open_help(cx: &mut Cx<'_>, fixture: &Fixture) {
+        with_help(fixture, |help| cx.open_layer(HELP_OVERLAY, help.layer(cx)));
+    }
+
+    fn below_launcher(area: Rect, used: Rect) -> Rect {
+        let y = used.bottom();
+        Rect {
+            y,
+            height: area.bottom().saturating_sub(y),
+            ..area
+        }
+    }
+
+    fn harness(fixture: Fixture) -> Harness<CaseApp<LauncherCase>> {
+        Harness::new(
+            CaseApp::<LauncherCase>::new(fixture),
+            Theme::junie(),
+            40,
+            12,
+        )
+    }
+
+    fn assert_clean(h: &mut Harness<CaseApp<LauncherCase>>) {
+        let before = h.diagnostics().to_vec();
+        assert!(before.is_empty(), "Help launcher diagnostics: {before:?}");
+        h.draw();
+        assert_eq!(h.diagnostics(), before);
+    }
+
+    fn assert_open(h: &Harness<CaseApp<LauncherCase>>) {
+        let done = HELP_OVERLAY.part(Part::ACTIONS);
+        assert!(h.is_open(HELP_OVERLAY));
+        assert!(
+            h.area_of(done).is_some(),
+            "the real Done action is not drawn"
+        );
+        assert_eq!(h.focus(), Some(done));
+        assert!(
+            h.app().last.is_none(),
+            "opening produced a Help close action"
+        );
+    }
+
+    #[test]
+    fn small_fixture_draws_launcher_and_measured_closed_help_below_it() {
+        let fixture = LauncherCase::fixture();
+        let mut h = harness(fixture.clone());
+        let launcher = h
+            .area_of(LAUNCHER)
+            .expect("real Help launcher is registered");
+        let help = h
+            .area_of(HELP_OVERLAY)
+            .expect("closed Help reference is registered");
+        assert!(h.app().last.is_none(), "closed Help produced an action");
+
+        assert_eq!(launcher.height, 1);
+        assert_eq!(help.y, launcher.bottom());
+        assert_eq!(help.x, fixture.area.x);
+        assert_eq!(help.width, fixture.area.width);
+        assert_eq!(help.bottom(), fixture.area.bottom());
+        assert_eq!(launcher, launcher.intersection(fixture.area));
+        assert_eq!(help, help.intersection(fixture.area));
+        assert!(
+            h.text().contains("row 0"),
+            "first fixture Help section is not painted"
+        );
+        for region in h.runtime().registry().regions() {
+            if region.owner == LAUNCHER || region.owner == HELP_OVERLAY {
+                assert_eq!(region.area, region.area.intersection(fixture.area));
+            }
+        }
+        assert_clean(&mut h);
+
+        let mut no_remainder = LauncherCase::fixture();
+        no_remainder.area.height = 1;
+        let mut tiny = harness(no_remainder);
+        assert_eq!(tiny.area_of(LAUNCHER).map(|area| area.height), Some(1));
+        assert!(tiny.area_of(HELP_OVERLAY).is_none());
+        assert!(
+            tiny.tab_to(LAUNCHER),
+            "zero remainder removed launcher focus"
+        );
+        assert!(tiny.app().last.is_none(), "clipped Help produced an action");
+        assert_clean(&mut tiny);
+    }
+
+    #[test]
+    fn click_enter_and_space_open_the_real_layer_and_restore_the_launcher() {
+        for route in [None, Some(KeyCode::Enter), Some(KeyCode::Char(' '))] {
+            let mut h = harness(LauncherCase::fixture());
+            assert!(h.tab_to(LAUNCHER));
+            if let Some(key) = route {
+                assert!(h.key(key).is_consumed(), "launcher did not consume {key:?}");
+            } else {
+                assert!(
+                    h.click_id(LAUNCHER).is_consumed(),
+                    "real launcher click was ignored"
+                );
+            }
+            assert_open(&h);
+
+            assert!(h.key(KeyCode::Esc).is_consumed());
+            assert!(!h.is_open(HELP_OVERLAY));
+            assert_eq!(h.focus(), Some(LAUNCHER));
+            assert!(matches!(h.app().last, Some(HelpAction::Closed(_))));
+            assert_eq!(h.app().st.underlay_activations, 0);
+
+            assert!(matches!(
+                h.app_mut().last.take(),
+                Some(HelpAction::Closed(_))
+            ));
+            assert!(
+                h.key(KeyCode::Enter).is_consumed(),
+                "restored launcher did not reopen"
+            );
+            assert_open(&h);
+            assert!(h.click_id(HELP_OVERLAY.part(Part::ACTIONS)).is_consumed());
+            assert!(!h.is_open(HELP_OVERLAY));
+            assert_eq!(h.focus(), Some(LAUNCHER));
+            assert!(matches!(h.app().last, Some(HelpAction::Closed(_))));
+            assert_eq!(h.app().st.underlay_activations, 0);
+            assert_clean(&mut h);
+        }
+    }
+
+    #[test]
+    fn f4_routes_from_both_real_owners_and_outside_dismissal_does_not_activate_underlay() {
+        for owner in [LAUNCHER, HELP_OVERLAY] {
+            let mut h = harness(LauncherCase::fixture());
+            assert!(h.tab_to(owner));
+            assert!(h.key(KeyCode::F(4)).is_consumed());
+            assert_open(&h);
+            let close = if owner == LAUNCHER {
+                KeyCode::Enter
+            } else {
+                KeyCode::Esc
+            };
+            assert!(h.key(close).is_consumed());
+            assert!(!h.is_open(HELP_OVERLAY));
+            assert_eq!(h.focus(), Some(owner));
+            assert!(matches!(h.app().last, Some(HelpAction::Closed(_))));
+            assert_clean(&mut h);
+        }
+
+        let mut h = harness(LauncherCase::fixture());
+        assert!(h.tab_to(LAUNCHER));
+        let underlay = h
+            .area_of(UNDERLAY)
+            .expect("real underlay is registered while closed");
+        let _ = h.click_id(LAUNCHER);
+        assert_open(&h);
+        let layer = h
+            .layer_area(HELP_OVERLAY)
+            .expect("opened Help layer has an area");
+        assert!(underlay.intersection(layer).is_empty());
+        let _ = h.click(underlay.x, underlay.y);
+        assert!(!h.is_open(HELP_OVERLAY));
+        assert_eq!(h.app().st.underlay_activations, 0);
+        assert_eq!(h.focus(), Some(LAUNCHER));
+        assert!(
+            h.area_of(UNDERLAY).is_some(),
+            "underlay registration did not return"
+        );
+        assert!(h.click_id(UNDERLAY).is_consumed());
+        assert_eq!(h.app().st.underlay_activations, 1);
+        assert_clean(&mut h);
+    }
+
+    #[test]
+    fn binding_probe_uses_focused_opener_hook_and_real_help_bindings() {
+        driver::bindings_match_handled_keys::<LauncherCase>();
+    }
+}
+
 const WIZARD: Id = Id::root("conformance.wizard");
 
 struct WizardCase;
