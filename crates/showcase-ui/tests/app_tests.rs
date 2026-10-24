@@ -1527,20 +1527,143 @@ fn keyboard_navigation_between_pages() {
     assert_eq!(tables.app().page(), PageId::Tables);
 }
 
-#[test]
-fn quit_keys() {
-    let mut h = harness(PageId::Overview);
-    press(&mut h, KeyCode::Char('q'));
-    assert!(h.app().quit());
+fn visible_text_part(h: &Harness<App>, id: Id, message: &str) -> (Rect, String) {
+    let area = require(h.area_of_part(id, PartRef::of(Part::TEXT)), message);
+    let text = area_text(h, area).trim_end_matches(' ').to_owned();
+    (area, text)
+}
+
+fn quit_keys_with_default_select_all() {
+    const INPUTS_NAME: Id = Id::root("showcase_ui::pages::inputs::inputs.name");
+    const PROJECT_NAME: &str = "payments-gateway";
 
     let mut h = harness(PageId::Inputs);
-    press(&mut h, KeyCode::Tab);
+    let (name_text_area, initial_name) =
+        visible_text_part(&h, INPUTS_NAME, "visible NAME TEXT part");
+    assert_eq!(initial_name, PROJECT_NAME, "default NAME value");
+    assert!(h.tab_to(INPUTS_NAME), "Tab reaches NAME");
+    assert_eq!(h.focus(), Some(INPUTS_NAME));
+    assert!(
+        h.state_of(INPUTS_NAME)
+            .contains(StateFlags::FOCUSED | StateFlags::EDITING)
+    );
+    assert_eq!(
+        visible_text_part(&h, INPUTS_NAME, "focused NAME TEXT part").1,
+        PROJECT_NAME,
+        "focus does not change the committed NAME value"
+    );
+
     type_text(&mut h, "q");
     assert!(!h.app().quit(), "printable q belongs to the active editor");
-    assert!(h.text().contains("payments-gatewayq"));
+    assert_eq!(
+        visible_text_part(&h, INPUTS_NAME, "edited NAME TEXT part").1,
+        "q",
+        "default SelectAll replaces the selected project name"
+    );
+    let cursor = require(h.cursor(), "focused NAME publishes a cursor");
+    assert!(name_text_area.contains(cursor), "cursor stays in NAME TEXT");
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+
     press(&mut h, KeyCode::Esc);
+    assert_eq!(
+        visible_text_part(&h, INPUTS_NAME, "restored NAME TEXT part").1,
+        PROJECT_NAME,
+        "Esc restores the original project name"
+    );
     control(&mut h, 'c');
     assert!(h.app().quit());
+}
+
+fn quit_keys_with_explicit_caret_end() {
+    const INPUTS_NAME: Id = Id::root("showcase_ui::pages::inputs::inputs.name");
+    const FOCUS_SELECT: Id = Id::root("showcase_ui::pages::inputs.focus_select");
+    const PROJECT_NAME: &str = "payments-gateway";
+    const CARET_END_LABEL: &str = "Focus selects: Caret end";
+
+    let mut h = harness(PageId::Inputs);
+    let (name_text_area, initial_name) =
+        visible_text_part(&h, INPUTS_NAME, "visible NAME TEXT part");
+    assert_eq!(
+        initial_name, PROJECT_NAME,
+        "fresh CaretEnd journey starts unchanged"
+    );
+    assert!(h.tab_to(FOCUS_SELECT), "Tab reaches focus policy selector");
+    press(&mut h, KeyCode::Enter);
+    assert!(h.is_open(FOCUS_SELECT), "Enter opens the real selector");
+    press(&mut h, KeyCode::Down);
+    press(&mut h, KeyCode::Enter);
+    assert!(!h.is_open(FOCUS_SELECT), "Enter closes the selector");
+    let selector_area = require(h.area_of(FOCUS_SELECT), "focus selector owner area");
+    let selector_text = area_text(&h, selector_area);
+    assert!(
+        selector_text.contains(CARET_END_LABEL),
+        "selector shows the chosen CaretEnd policy: {selector_text:?}"
+    );
+
+    assert!(
+        h.tab_to(INPUTS_NAME),
+        "Tab reaches NAME after policy selection"
+    );
+    assert_eq!(h.focus(), Some(INPUTS_NAME));
+    assert!(
+        h.state_of(INPUTS_NAME)
+            .contains(StateFlags::FOCUSED | StateFlags::EDITING)
+    );
+    assert_eq!(
+        visible_text_part(&h, INPUTS_NAME, "fresh NAME TEXT part").1,
+        PROJECT_NAME
+    );
+    let appended_value = "payments-gatewayq";
+    let appended_width = u16::try_from(appended_value.len()).expect("ASCII value fits u16");
+    assert!(
+        name_text_area.width > appended_width,
+        "NAME TEXT fits full value and end cursor: {name_text_area:?}"
+    );
+    let initial_cursor_x = name_text_area
+        .x
+        .saturating_add(u16::try_from(PROJECT_NAME.len()).expect("ASCII project name fits u16"));
+    assert_eq!(
+        h.cursor().map(|cursor| (cursor.x, cursor.y)),
+        Some((initial_cursor_x, name_text_area.y)),
+        "CaretEnd starts after the existing visible text"
+    );
+
+    type_text(&mut h, "q");
+    assert!(
+        !h.app().quit(),
+        "printable q still belongs to the active editor"
+    );
+    assert_eq!(
+        visible_text_part(&h, INPUTS_NAME, "appended NAME TEXT part").1,
+        appended_value,
+        "CaretEnd preserves append behavior"
+    );
+    let appended_cursor_x = name_text_area.x.saturating_add(appended_width);
+    assert_eq!(
+        h.cursor().map(|cursor| (cursor.x, cursor.y)),
+        Some((appended_cursor_x, name_text_area.y)),
+        "CaretEnd cursor remains after the appended text"
+    );
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+
+    press(&mut h, KeyCode::Esc);
+    assert_eq!(
+        visible_text_part(&h, INPUTS_NAME, "restored NAME TEXT part").1,
+        PROJECT_NAME,
+        "Esc restores the original project name"
+    );
+    control(&mut h, 'c');
+    assert!(h.app().quit());
+}
+
+#[test]
+fn quit_keys() {
+    let mut overview = harness(PageId::Overview);
+    press(&mut overview, KeyCode::Char('q'));
+    assert!(overview.app().quit());
+
+    quit_keys_with_default_select_all();
+    quit_keys_with_explicit_caret_end();
 }
 
 #[test]
