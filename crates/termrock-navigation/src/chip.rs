@@ -289,9 +289,29 @@ impl<'a> ChipBar<'a, &'a str, ByIndex, DefaultRow> {
         self.with_inherited_disabled(inherited_disabled)
             .draw(ui, area, st, items)
     }
+
+    /// Registers this Form chip bar's keyboard stop without a pointer region.
+    ///
+    /// Use only when Form layout clips the native chip bar body. Its native
+    /// disabled and read-only policy remains authoritative.
+    pub fn register_focus_only_in_form(&self, ui: &mut Ui<'_>, inherited_disabled: bool) {
+        if !ui.is_inert() {
+            ui.register_focus_only(self.id, self.form_focusability(inherited_disabled));
+        }
+    }
 }
 
 impl<'a, T, K, R> ChipBar<'a, T, K, R> {
+    const fn form_focusability(&self, inherited_disabled: bool) -> Focusability {
+        if self.disabled || inherited_disabled {
+            Focusability::Disabled
+        } else if self.read_only {
+            Focusability::FocusableReadOnly
+        } else {
+            Focusability::Focusable
+        }
+    }
+
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
         Part::MARKER,
@@ -596,13 +616,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
             return row0;
         }
         if !ui.is_inert() {
-            let f = if self.disabled {
-                Focusability::Disabled
-            } else if self.read_only {
-                Focusability::FocusableReadOnly
-            } else {
-                Focusability::Focusable
-            };
+            let f = self.form_focusability(false);
             ui.register_control(self.id, row0, f);
         }
 

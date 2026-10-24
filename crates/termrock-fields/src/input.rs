@@ -1173,6 +1173,27 @@ impl<'a> TextInput<'a> {
         !self.disabled && !self.read_only
     }
 
+    const fn form_focusability(&self, inherited_disabled: bool) -> Focusability {
+        if self.disabled || inherited_disabled {
+            Focusability::Disabled
+        } else if self.read_only {
+            Focusability::FocusableReadOnly
+        } else {
+            Focusability::Focusable
+        }
+    }
+
+    /// Registers this Form input's keyboard stop without a pointer region.
+    ///
+    /// Use only when Form layout clips the native input body. The native
+    /// disabled and read-only policy is preserved, including inherited Form
+    /// disabling.
+    pub fn register_focus_only_in_form(&self, ui: &mut Ui<'_>, inherited_disabled: bool) {
+        if !ui.is_inert() {
+            ui.register_focus_only(self.id, self.form_focusability(inherited_disabled));
+        }
+    }
+
     fn includes_command(&self, command: TextCmd) -> bool {
         !self.excluded_commands.contains(&command)
     }
@@ -1235,13 +1256,7 @@ impl<'a> TextInput<'a> {
             return;
         }
         let editing = st.is_editing();
-        let focusability = if self.disabled {
-            Focusability::Disabled
-        } else if self.read_only {
-            Focusability::FocusableReadOnly
-        } else {
-            Focusability::Focusable
-        };
+        let focusability = self.form_focusability(false);
         let declared = if editing {
             StateFlags::EDITING
         } else {
