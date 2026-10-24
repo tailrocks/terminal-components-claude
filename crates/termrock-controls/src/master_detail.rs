@@ -1,3 +1,5 @@
+use core::fmt;
+
 use ratatui_core::layout::Rect;
 
 use crate::action::ActionKey;
@@ -131,12 +133,13 @@ impl MasterDetailState {
 
 /// Responsive master/detail layout that delegates split geometry and seam input
 /// to [`SplitPane`].
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct MasterDetail {
     id: Id,
     master: Id,
     detail: Id,
     master_share: u8,
+    initial_master_cells: Option<u16>,
     min_master: u16,
     min_detail: u16,
     gap: u16,
@@ -151,6 +154,34 @@ pub struct MasterDetail {
     resize_bindings: Option<&'static [Binding<SplitCmd>]>,
 }
 
+impl fmt::Debug for MasterDetail {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut debug = f.debug_struct("MasterDetail");
+        debug
+            .field("id", &self.id)
+            .field("master", &self.master)
+            .field("detail", &self.detail)
+            .field("master_share", &self.master_share);
+        if self.initial_master_cells.is_some() {
+            debug.field("initial_master_cells", &self.initial_master_cells);
+        }
+        debug
+            .field("min_master", &self.min_master)
+            .field("min_detail", &self.min_detail)
+            .field("gap", &self.gap)
+            .field("collapse_below", &self.collapse_below)
+            .field("summary_rows", &self.summary_rows)
+            .field("esc_returns", &self.esc_returns)
+            .field("detail_owners", &self.detail_owners)
+            .field("reset_policy", &self.reset_policy)
+            .field("split_sizing", &self.split_sizing)
+            .field("preserve_drag_offset", &self.preserve_drag_offset)
+            .field("resize_step_cells", &self.resize_step_cells)
+            .field("resize_bindings", &self.resize_bindings)
+            .finish()
+    }
+}
+
 impl MasterDetail {
     pub const fn new(id: Id, master: Id, detail: Id) -> Self {
         Self {
@@ -158,6 +189,7 @@ impl MasterDetail {
             master,
             detail,
             master_share: 32,
+            initial_master_cells: None,
             min_master: 28,
             min_detail: 40,
             gap: 2,
@@ -218,6 +250,20 @@ impl MasterDetail {
     #[must_use]
     pub const fn master_share(mut self, percent: u8) -> Self {
         self.master_share = percent;
+        self.initial_master_cells = None;
+        self
+    }
+
+    /// Keep this exact master-pane width until the split is manually resized.
+    /// Configured minima can clamp the extent. `ResetPolicy::Initial` restores
+    /// the cell width, and a later `master_share` call replaces this policy.
+    /// This selects the resizable sizing mode; a later fixed-share builder can
+    /// still select fixed sizing. Other builders and the legacy default keep
+    /// their existing percentage.
+    #[must_use]
+    pub const fn initial_master_cells(mut self, cells: u16) -> Self {
+        self.initial_master_cells = Some(cells);
+        self.split_sizing = SplitSizing::Resizable;
         self
     }
 
@@ -377,7 +423,7 @@ impl MasterDetail {
         }
         let split = state
             .split
-            .get_or_insert_with(|| SplitPaneState::new(self.master_share));
+            .get_or_insert_with(|| self.initial_split_state());
         let pane = self.split_pane();
         let mut response = pane.update(cx, split);
         if self.split_sizing == SplitSizing::Resizable && self.resize_bindings.is_some() {
@@ -411,9 +457,7 @@ impl MasterDetail {
         let mut layout = self.resolve_responsive_layout(area, state.drawer_open);
         if layout.mode == MasterDetailMode::Split {
             let split = self.split_pane();
-            let split_state = state
-                .split
-                .unwrap_or_else(|| SplitPaneState::new(self.master_share));
+            let split_state = state.split.unwrap_or_else(|| self.initial_split_state());
             let (master, detail) = split.panes(split_state, area);
             layout.master = master;
             layout.detail = detail;
@@ -472,9 +516,7 @@ impl MasterDetail {
         let layout = self.layout(area, state);
         if layout.mode == MasterDetailMode::Split {
             let split = self.split_pane();
-            let split_state = state
-                .split
-                .unwrap_or_else(|| SplitPaneState::new(self.master_share));
+            let split_state = state.split.unwrap_or_else(|| self.initial_split_state());
             return split.draw(ui, area, &split_state, |ui, _, _| {
                 let result = body(ui, layout);
                 self.publish_navigation_bindings(ui, true);
@@ -515,6 +557,13 @@ impl MasterDetail {
         }
     }
 
+    fn initial_split_state(&self) -> SplitPaneState {
+        match self.initial_master_cells {
+            Some(_) => SplitPaneState::new_with_initial_cells(self.master_share),
+            None => SplitPaneState::new(self.master_share),
+        }
+    }
+
     /// Build the split pane used by this block's layout, update, and draw paths.
     ///
     /// Exposed for component-author adapters that need to measure the same
@@ -529,6 +578,9 @@ impl MasterDetail {
             .reset_policy(self.reset_policy)
             .seam_at_offset(1, self.gap / 2)
             .preserve_drag_offset(self.preserve_drag_offset);
+        if let Some(cells) = self.initial_master_cells {
+            split = split.initial_first_cells(cells);
+        }
         if let Some(table) = self.resize_bindings {
             split = split.resize_bindings(table);
         }

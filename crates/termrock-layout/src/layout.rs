@@ -404,6 +404,66 @@ impl SplitModel {
         self.layout_with_ratio(area, gap, u32::from(basis_points.clamp(500, 9_500)), 10_000)
     }
 
+    /// Resolve this split with an exact first-pane extent before applying
+    /// configured minima. The extent is measured along the split axis and does
+    /// not include the gap.
+    pub fn layout_with_first_extent(
+        &self,
+        area: Rect,
+        gap: u16,
+        first_extent: u16,
+    ) -> (Rect, Rect) {
+        match self.maximized {
+            Maximized::First => return (area, self.collapsed(area, true)),
+            Maximized::Second => return (self.collapsed(area, false), area),
+            Maximized::None => {}
+        }
+
+        let usable = self.length(area).saturating_sub(gap);
+        if usable < self.min_first.saturating_add(self.min_second) {
+            return (area, self.collapsed(area, true));
+        }
+        let first = first_extent.clamp(self.min_first, usable.saturating_sub(self.min_second));
+        match self.axis {
+            SplitAxis::Vertical => {
+                let (first, rest) = split_v(area, first);
+                let (_, second) = split_v(rest, gap.min(rest.height));
+                (first, second)
+            }
+            SplitAxis::Horizontal => {
+                let (first, rest) = split_h(area, first);
+                let (_, second) = split_h(rest, gap.min(rest.width));
+                (first, second)
+            }
+        }
+    }
+
+    /// Return the smallest extent that can hold requested pane sizes when the
+    /// initial first-pane extent remains fixed across untouched resizes.
+    pub fn required_extent_with_first_extent(
+        self,
+        gap: u16,
+        first_extent: u16,
+        first: u16,
+        second: u16,
+    ) -> u16 {
+        if self.maximized == Maximized::First {
+            return first;
+        }
+        if self.maximized == Maximized::Second {
+            return second;
+        }
+
+        let first_extent = first_extent.max(self.min_first);
+        let first = first.max(self.min_first);
+        if first > first_extent {
+            return u16::MAX;
+        }
+        first_extent
+            .saturating_add(gap)
+            .saturating_add(second.max(self.min_second))
+    }
+
     /// Resolve this split from a fixed percentage of the full extent for the
     /// first pane. The requested extent is rounded to the nearest cell, then
     /// clamped to its configured bounds and the second pane's minimum. The
@@ -1110,6 +1170,47 @@ mod tests {
         let (master, detail) =
             model.layout_with_first_share(Rect::new(7, 4, required - 1, 1), 2, 33, 26, 40);
         assert!(master.width < 35 || detail.width < 34);
+    }
+
+    #[test]
+    fn exact_first_extent_stays_constant_and_respects_minima() {
+        let model = SplitModel::new(SplitAxis::Horizontal, 50, 28, 40);
+        for width in [100, 102, 120, 160] {
+            let area = Rect::new(5, 3, width, 8);
+            let (first, second) = model.layout_with_first_extent(area, 2, 39);
+            assert_eq!(first.width, 39, "width={width}");
+            assert_eq!(second.x, first.right() + 2);
+            assert_eq!(first.width + 2 + second.width, width);
+        }
+
+        let detail_limited = SplitModel::new(SplitAxis::Horizontal, 50, 28, 80);
+        let (first, second) =
+            detail_limited.layout_with_first_extent(Rect::new(0, 0, 120, 8), 2, 39);
+        assert_eq!(first.width, 38, "the detail minimum bounds the first pane");
+        assert_eq!(second.width, 80);
+
+        let too_small = Rect::new(7, 4, 69, 8);
+        let (first, second) = model.layout_with_first_extent(too_small, 2, 39);
+        assert_eq!(first, too_small);
+        assert!(second.is_empty());
+
+        assert_eq!(
+            model.required_extent_with_first_extent(2, 39, 35, 34),
+            81,
+            "minima are included in the required extent"
+        );
+        assert_eq!(
+            model.required_extent_with_first_extent(2, 39, 40, 34),
+            u16::MAX,
+            "a fixed initial first pane cannot satisfy a larger request"
+        );
+
+        let vertical = SplitModel::new(SplitAxis::Vertical, 50, 4, 6);
+        let area = Rect::new(2, 3, 18, 35);
+        let (first, second) = vertical.layout_with_first_extent(area, 2, 13);
+        assert_eq!(first.height, 13);
+        assert_eq!(second.y, first.bottom() + 2);
+        assert_eq!(first.height + 2 + second.height, area.height);
     }
 
     #[test]
