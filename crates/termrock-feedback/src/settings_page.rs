@@ -774,6 +774,39 @@ pub fn paint_settings_trust_body(
     Ok(())
 }
 
+/// Paint only the borrowed Mounts table within a Settings page area.
+///
+/// The table starts at page-relative row 6 and is clipped to the supplied
+/// page area, the available body band above the native footer, and the current
+/// Ui clip. It paints the shared Mounts columns and rows without page chrome,
+/// actions, hints, input handling, or focus ownership.
+pub fn paint_settings_mounts_body(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    mounts: &[SettingsMount<'_>],
+    add_mount: Option<&str>,
+) {
+    if mounts.is_empty() {
+        return;
+    }
+    let mount_rows = u16::try_from(mounts.len()).unwrap_or(u16::MAX);
+    let add_row = if add_mount.is_some() { 1 } else { 0 };
+    let content_height = 1u16.saturating_add(mount_rows).saturating_add(add_row);
+    let body_height = content_height.min(area.height.saturating_sub(9));
+    let body = Rect::new(area.x, area.y.saturating_add(6), area.width, body_height)
+        .intersection(area)
+        .intersection(ui.full());
+    if body.is_empty() {
+        return;
+    }
+
+    let ink = settings_ink(ui);
+    ui.with_area(body, |ui| {
+        ui.fill(body, plain(ink.primary, ink.canvas));
+        paint_mount_rows(ui, area, mounts, add_mount, &ink);
+    });
+}
+
 /// Paint a Trust table with the existing Settings page chrome.
 ///
 /// `page.sections`, `page.mounts`, and `page.add_mount` must be empty. The
@@ -1865,10 +1898,20 @@ fn path_cell(path: &str, cols: u16) -> String {
 }
 
 fn paint_mounts(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>, ink: &Ink) {
-    if page.mounts.is_empty() {
+    paint_mount_rows(ui, area, page.mounts, page.add_mount, ink);
+}
+
+fn paint_mount_rows(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    mounts: &[SettingsMount<'_>],
+    add_mount: Option<&str>,
+    ink: &Ink,
+) {
+    if mounts.is_empty() {
         return;
     }
-    let cols = if page.mounts.iter().any(|row| row.kind.is_some()) {
+    let cols = if mounts.iter().any(|row| row.kind.is_some()) {
         wide_cols(area.width)
     } else {
         narrow_cols()
@@ -1933,14 +1976,12 @@ fn paint_mounts(ui: &mut Ui<'_>, area: Rect, page: &SettingsPage<'_>, ink: &Ink)
             plain(ink.faint, ink.canvas),
         );
     }
-    for (i, row) in page.mounts.iter().enumerate() {
+    for (i, row) in mounts.iter().enumerate() {
         let y = y0.saturating_add(1).saturating_add(i as u16);
         paint_mount_row(ui, area, y, row, ink, &cols);
     }
-    if let Some(add) = page.add_mount {
-        let y = y0
-            .saturating_add(1)
-            .saturating_add(page.mounts.len() as u16);
+    if let Some(add) = add_mount {
+        let y = y0.saturating_add(1).saturating_add(mounts.len() as u16);
         put(
             ui,
             area,
@@ -2498,7 +2539,7 @@ fn paint_env_add(ui: &mut Ui<'_>, area: Rect, y: u16, label: &str, ink: &Ink) {
 mod tests {
     use super::*;
     use ratatui_core::layout::Position;
-    use termrock::{ColorLevel, Theme};
+    use termrock::{ColorLevel, FgStep, Surface, Theme};
     use termrock_test_support::Scene;
 
     fn legacy_page<'a>(
@@ -2543,6 +2584,191 @@ mod tests {
             mounts: &[],
             add_mount: None,
             cluster,
+        }
+    }
+
+    #[test]
+    fn mounts_body_respects_nested_clip_and_short_content_band() {
+        let rows = [SettingsMount {
+            path: "/workspace/資料/long-project-name",
+            scope: "global",
+            mode: "ro",
+            isolation: "shared",
+            kind: Some("host"),
+            source: Some("~/sources/資料/project"),
+            selected: true,
+        }];
+        let mut wide = Scene::new(
+            "settings_mounts_body_wide_grapheme_values",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            120,
+            24,
+        );
+        wide.draw(|ui, area| {
+            paint_settings_mounts_body(ui, area, &rows, Some("+ Add mount"));
+        });
+        assert!(wide.text().contains("/workspace/資料/long-project-na"));
+        assert!(wide.text().contains("~/sources/資料/project"));
+
+        let sentinel = plain(Color::Rgb(1, 2, 3), Color::Rgb(4, 5, 6));
+        let mut clipped = Scene::new(
+            "settings_mounts_body_nested_clip",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            80,
+            20,
+        );
+        clipped.draw(|ui, area| {
+            ui.paint_cell(Position::new(3, 7), "!", sentinel);
+            ui.paint_cell(Position::new(50, 7), "!", sentinel);
+            ui.paint_cell(Position::new(4, 9), "!", sentinel);
+            ui.with_area(Rect::new(4, 6, 40, 3), |ui| {
+                paint_settings_mounts_body(ui, area, &rows, Some("+ Add mount"));
+            });
+        });
+        assert_eq!(
+            clipped.buffer().cell((3, 7)).map(|cell| cell.symbol()),
+            Some("!")
+        );
+        assert_eq!(
+            clipped.buffer().cell((50, 7)).map(|cell| cell.symbol()),
+            Some("!")
+        );
+        assert_eq!(
+            clipped.buffer().cell((4, 9)).map(|cell| cell.symbol()),
+            Some("!")
+        );
+        assert_eq!(
+            clipped.buffer().cell((8, 6)).map(|cell| cell.symbol()),
+            Some("D")
+        );
+        assert_eq!(
+            clipped.buffer().cell((8, 7)).map(|cell| cell.symbol()),
+            Some("/")
+        );
+
+        let mut offset = Scene::new(
+            "settings_mounts_body_offset_area",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            120,
+            30,
+        );
+        offset.draw(|ui, _| {
+            ui.paint_cell(Position::new(9, 9), "!", sentinel);
+            ui.paint_cell(Position::new(70, 9), "!", sentinel);
+            ui.paint_cell(Position::new(10, 11), "!", sentinel);
+            ui.with_area(Rect::new(10, 8, 60, 5), |ui| {
+                paint_settings_mounts_body(ui, Rect::new(5, 2, 80, 20), &rows, Some("+ Add mount"));
+            });
+        });
+        assert_eq!(
+            offset.buffer().cell((9, 9)).map(|cell| cell.symbol()),
+            Some("!")
+        );
+        assert_eq!(
+            offset.buffer().cell((70, 9)).map(|cell| cell.symbol()),
+            Some("!")
+        );
+        assert_eq!(
+            offset.buffer().cell((10, 11)).map(|cell| cell.symbol()),
+            Some("!")
+        );
+        assert_eq!(
+            offset.buffer().cell((13, 8)).map(|cell| cell.symbol()),
+            Some("D")
+        );
+        assert_eq!(
+            offset.buffer().cell((14, 9)).map(|cell| cell.symbol()),
+            Some("/")
+        );
+
+        let mut short = Scene::new(
+            "settings_mounts_body_short_page_area",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            80,
+            20,
+        );
+        short.draw(|ui, _| {
+            ui.paint_cell(Position::new(4, 8), "!", sentinel);
+            paint_settings_mounts_body(ui, Rect::new(0, 0, 80, 11), &rows, Some("+ Add mount"));
+        });
+        assert_eq!(
+            short.buffer().cell((8, 6)).map(|cell| cell.symbol()),
+            Some("D")
+        );
+        assert_eq!(
+            short.buffer().cell((8, 7)).map(|cell| cell.symbol()),
+            Some("/")
+        );
+        assert_eq!(
+            short.buffer().cell((4, 8)).map(|cell| cell.symbol()),
+            Some("!")
+        );
+    }
+
+    #[test]
+    fn mounts_body_uses_semantic_theme_palette_at_every_capability() {
+        fn column(scene: &Scene, y: u16, x: u16, width: u16) -> String {
+            let mut text = String::new();
+            for column in x..x.saturating_add(width) {
+                text.push_str(
+                    scene
+                        .buffer()
+                        .cell((column, y))
+                        .expect("Mounts body cell")
+                        .symbol(),
+                );
+            }
+            text.trim().to_owned()
+        }
+
+        let rows = [SettingsMount {
+            path: "/home/agent/.gitconfig",
+            scope: "global",
+            mode: "ro",
+            isolation: "shared",
+            kind: Some("host"),
+            source: Some("~/.gitconfig"),
+            selected: true,
+        }];
+        for width in [80, 120] {
+            for level in [
+                ColorLevel::TrueColor,
+                ColorLevel::Ansi256,
+                ColorLevel::Ansi16,
+                ColorLevel::Mono,
+            ] {
+                let mut scene = Scene::new(
+                    "settings_mounts_body_semantic_palette",
+                    Theme::junie(),
+                    level,
+                    width,
+                    24,
+                );
+                scene.draw(|ui, area| {
+                    paint_settings_mounts_body(ui, area, &rows, Some("+ Add mount"));
+                });
+
+                let resolved = Theme::junie().downgrade(level);
+                let heading = scene
+                    .buffer()
+                    .cell((8, 6))
+                    .expect("shared Destination heading");
+                assert_eq!(
+                    heading.fg,
+                    resolved.color.fg[FgStep::Muted.index()],
+                    "header uses the Muted semantic role at {level:?}"
+                );
+                assert_eq!(heading.bg, resolved.bg(Surface::Canvas));
+                assert_eq!(column(&scene, 7, 72, 6), "host");
+                assert_eq!(column(&scene, 8, 8, 11), "+ Add mount");
+                if width >= 120 {
+                    assert_eq!(column(&scene, 7, 80, 12), "~/.gitconfig");
+                }
+            }
         }
     }
 

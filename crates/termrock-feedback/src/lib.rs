@@ -74,9 +74,9 @@ pub use settings_page::{
     SettingsEnv, SettingsEnvGroup, SettingsEnvPaintError, SettingsEnvRole, SettingsEnvRow,
     SettingsHint, SettingsHintOverflow, SettingsHintOverflowTone, SettingsMount, SettingsPage,
     SettingsPageChrome, SettingsSection, SettingsTab, SettingsTrust, SettingsTrustRow,
-    SettingsTrustSourceKind, paint_settings_agents_body, paint_settings_page,
-    paint_settings_page_with_agents, paint_settings_page_with_env, paint_settings_page_with_trust,
-    paint_settings_trust_body,
+    SettingsTrustSourceKind, paint_settings_agents_body, paint_settings_mounts_body,
+    paint_settings_page, paint_settings_page_with_agents, paint_settings_page_with_env,
+    paint_settings_page_with_trust, paint_settings_trust_body,
 };
 pub use status::{Emphasis, Group, MAX_ITEMS, StatusAction, StatusBar, StatusItem};
 pub use usage_overview::{

@@ -1643,6 +1643,194 @@ fn settings_mounts_80_paints_the_approved_destination_cell() {
     assert_eq!(h.harness.cursor(), None);
 }
 
+fn settings_mounts_body_rows() -> [termrock::feedback::SettingsMount<'static>; 3] {
+    [
+        termrock::feedback::SettingsMount {
+            path: "/home/agent/.gitconfig",
+            scope: "global",
+            mode: "ro",
+            isolation: "shared",
+            kind: Some("host"),
+            source: Some("~/.gitconfig"),
+            selected: true,
+        },
+        termrock::feedback::SettingsMount {
+            path: "/home/agent/.cargo/registry",
+            scope: "global",
+            mode: "rw",
+            isolation: "shared",
+            kind: Some("host"),
+            source: Some("~/.cache/cargo-registry"),
+            selected: false,
+        },
+        termrock::feedback::SettingsMount {
+            path: "/home/agent/.kube",
+            scope: "role sre",
+            mode: "ro",
+            isolation: "shared",
+            kind: Some("host"),
+            source: Some("~/roles/sre-kube"),
+            selected: false,
+        },
+    ]
+}
+
+fn settings_mounts_body_reference_scene(width: u16, height: u16) -> Scene {
+    let mounts = settings_mounts_body_rows();
+    let mut expected = Scene::new(
+        "settings_mounts_shared_body_reference",
+        Theme::junie(),
+        termrock::ColorLevel::TrueColor,
+        width,
+        height,
+    );
+    expected.draw(|ui, area| {
+        termrock::feedback::paint_settings_mounts_body(ui, area, &mounts, Some("+ Add mount"));
+    });
+    expected
+}
+
+fn settings_mount_body_column(h: &H, y: u16, x: u16, width: u16) -> String {
+    let mut text = String::new();
+    for column in x..x.saturating_add(width) {
+        text.push_str(
+            h.buffer()
+                .cell((column, y))
+                .expect("Mounts body column cell")
+                .symbol(),
+        );
+    }
+    text.trim().to_owned()
+}
+
+fn open_settings_mounts(h: &mut H) {
+    h.key(KeyCode::Char('s'));
+    h.key(KeyCode::Char('2'));
+    h.key(KeyCode::Enter);
+    assert_eq!(h.app().route(), Route::Settings);
+    assert_eq!(h.app().settings.tab, 1);
+}
+
+#[test]
+fn settings_mounts_shared_body_matches_transient_app_rows_and_keeps_controls() {
+    for (width, height) in [(80, 24), (120, 40)] {
+        let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, width, height);
+        open_settings_mounts(&mut h);
+        let save = jackin_preview_app::screens::settings::SAVE;
+        let save_area = h
+            .harness
+            .area_of(save)
+            .expect("Settings Save publishes its hit area");
+        let focus_before = h.focus();
+        h.key(KeyCode::Char(' '));
+        assert!(
+            h.app().settings.dirty,
+            "transient table keeps the Settings draft"
+        );
+        assert_eq!(h.focus(), focus_before);
+        assert_eq!(h.harness.area_of(save), Some(save_area));
+        assert_eq!(h.harness.runtime().capture_owner(), None);
+        assert_eq!(h.harness.diagnostics(), []);
+
+        let expected = settings_mounts_body_reference_scene(width, height);
+        for y in 6..11 {
+            for x in 0..width {
+                let position = (x, y);
+                let actual = h.buffer().cell(position).expect("App Mounts body cell");
+                let expected = expected
+                    .buffer()
+                    .cell(position)
+                    .expect("shared Mounts body cell");
+                assert_eq!(
+                    format!("{actual:?}"),
+                    format!("{expected:?}"),
+                    "full native body cell at {position:?} for {width}x{height}"
+                );
+            }
+        }
+        assert_eq!(
+            settings_mount_body_column(&h, 7, 4, 35),
+            "/home/agent/.gitconfig"
+        );
+        assert_eq!(settings_mount_body_column(&h, 7, 39, 14), "global");
+        assert_eq!(settings_mount_body_column(&h, 7, 55, 4), "ro");
+        assert_eq!(settings_mount_body_column(&h, 7, 61, 9), "shared");
+        assert_eq!(
+            settings_mount_body_column(&h, 8, 4, 35),
+            "/home/agent/.cargo/registry"
+        );
+        assert_eq!(settings_mount_body_column(&h, 9, 39, 14), "role sre");
+        assert!(h.text().contains("+ Add mount"), "{}", h.text());
+        assert_eq!(
+            settings_mount_body_column(&h, 7, 72, 6),
+            "host",
+            "the narrow wide-row projection keeps Kind visible at 80 columns"
+        );
+        if width >= 120 {
+            assert_eq!(settings_mount_body_column(&h, 7, 80, 37), "~/.gitconfig");
+            assert_eq!(
+                settings_mount_body_column(&h, 8, 80, 37),
+                "~/.cache/cargo-registry"
+            );
+        }
+    }
+
+    let mut short = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 72, 20);
+    open_settings_mounts(&mut short);
+    short.key(KeyCode::Char(' '));
+    assert!(short.app().settings.dirty);
+    let expected = settings_mounts_body_reference_scene(72, 20);
+    for y in 6..11 {
+        for x in 0..72 {
+            let position = (x, y);
+            assert_eq!(
+                format!(
+                    "{:?}",
+                    short.buffer().cell(position).expect("short App body")
+                ),
+                format!(
+                    "{:?}",
+                    expected.buffer().cell(position).expect("short shared body")
+                ),
+                "short full native body cell at {position:?}"
+            );
+        }
+    }
+    let save = jackin_preview_app::screens::settings::SAVE;
+    let save_area = short
+        .harness
+        .area_of(save)
+        .expect("short Settings Save publishes its hit area");
+    assert_eq!(save_area, termrock::Rect::new(4, 14, 15, 1));
+    short.tab_to(save);
+    assert_eq!(short.focus(), Some(save));
+    assert_eq!(short.harness.area_of(save), Some(save_area));
+    assert_eq!(short.harness.runtime().capture_owner(), None);
+    let confirm = jackin_preview_app::screens::settings::ROOT.sub("save-confirm");
+    short.ctrl('s');
+    assert_eq!(short.focus(), Some(confirm));
+    assert!(short.harness.area_of(confirm).is_some());
+    assert_eq!(short.harness.runtime().capture_owner(), None);
+    assert_eq!(short.harness.diagnostics(), []);
+}
+
+#[test]
+fn settings_mounts_below_minimum_keeps_the_too_small_gate() {
+    for height in [17, 18] {
+        let h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 80, height);
+        let trust = jackin_preview_app::app::SETTINGS_TRUST;
+        let save = jackin_preview_app::screens::settings::SAVE;
+
+        assert!(h.text().contains("Terminal too small"), "{}", h.text());
+        assert!(!h.text().contains("Trust local incident role"));
+        assert!(!h.text().contains("Save settings"));
+        assert_eq!(h.harness.area_of(trust), None);
+        assert_eq!(h.harness.area_of(save), None);
+        assert_eq!(h.harness.runtime().capture_owner(), None);
+        assert_eq!(h.harness.diagnostics(), []);
+    }
+}
+
 #[test]
 fn settings_env_three_enter_paints_the_approved_env_frame() {
     let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
