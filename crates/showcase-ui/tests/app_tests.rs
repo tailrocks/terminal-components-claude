@@ -14,6 +14,10 @@ const EDITOR: Id = Id::root("showcase_ui::pages::editor::editor.code");
 const EDITOR_FIND: Id = Id::root("showcase_ui::pages::editor::editor.find");
 const EDITOR_RUN: Id = Id::root("showcase_ui::pages::editor::editor.run");
 const EDITOR_STATE_LIST: Id = Id::root("showcase_ui::pages::editor::editor.state.list");
+const HEADER_INSPECT: Id = Id::root("showcase_ui::app::header.inspect");
+const HELP: Id = Id::root("showcase_ui::app::help");
+const INSPECTOR: Id = Id::root("showcase_ui::app::inspector");
+const INSPECTOR_CLOSE: Id = INSPECTOR.part(Part::ACTIONS).index(0);
 const DIALOG_OPEN: Id = Id::root("showcase_ui::pages::dialog_kinds::dialog_kinds.open_form");
 const DIALOG_FORM: Id = Id::root("showcase_ui::pages::dialog_kinds::dialog_kinds.connection");
 const DIALOG_NAME: Id = DIALOG_FORM.part(Part::BODY).part(Part::FIELD).index(0);
@@ -1971,6 +1975,355 @@ fn inspector_props_page_follows_real_navigation_and_closes() {
     assert!(
         h.diagnostics().is_empty(),
         "real open, route and close journey has no diagnostics: {:?}",
+        h.diagnostics()
+    );
+}
+
+#[test]
+fn narrow_inspector_is_a_focused_dismissible_modal() {
+    let mut h = Harness::new(App::with_page(PageId::Buttons), Theme::junie(), 80, 24);
+    let prior_focus = h.focus();
+    let prior_page = h.app().page();
+    assert_eq!(prior_focus, Some(APP_NAV));
+
+    press(&mut h, KeyCode::Char('i'));
+    let modal = require(
+        h.layer_area(INSPECTOR),
+        "narrow Inspector opens a registered native layer",
+    );
+    assert_eq!(
+        modal,
+        Rect::new(44, 1, 34, 22),
+        "80x24 Inspector keeps the PR26 right anchor, width, and vertical margin",
+    );
+    assert!(h.is_open(INSPECTOR));
+    assert!(h.top_layer().index() > LayerId::PAGE.index());
+    let body = area_text(&h, modal);
+    assert!(body.contains("Inspector"), "modal title is visible: {body}");
+    assert!(body.contains("State"), "state heading is visible: {body}");
+    assert!(
+        body.contains("page") && body.contains("Buttons") && body.contains("inspector"),
+        "live Props body is visible: {body}"
+    );
+
+    let close = require(h.focus(), "modal initial focus is its Close action");
+    assert_eq!(close, INSPECTOR_CLOSE);
+    let close_area = require(h.area_of(close), "the focused Close action is registered");
+    assert!(close_area.width > 0 && close_area.height > 0);
+    assert!(
+        close_area.x >= modal.x
+            && close_area.y >= modal.y
+            && close_area.right() <= modal.right()
+            && close_area.bottom() <= modal.bottom(),
+        "focused control stays inside the modal: {close_area:?} vs {modal:?}"
+    );
+    assert!(h.state_of(close).contains(StateFlags::FOCUSED));
+    assert!(h.runtime().typing_owner().is_none());
+    let focused_owners = h
+        .ring()
+        .entries()
+        .iter()
+        .filter(|entry| h.state_of(entry.id).contains(StateFlags::FOCUSED))
+        .count();
+    assert_eq!(focused_owners, 1, "the modal has exactly one focus owner");
+
+    for _ in 0..6 {
+        press(&mut h, KeyCode::Tab);
+        assert_eq!(
+            h.focus(),
+            Some(close),
+            "Tab stays inside the modal focus trap"
+        );
+    }
+    for _ in 0..6 {
+        press(&mut h, KeyCode::BackTab);
+        assert_eq!(
+            h.focus(),
+            Some(close),
+            "BackTab stays inside the modal focus trap"
+        );
+    }
+    press(&mut h, KeyCode::Char(']'));
+    assert_eq!(
+        h.app().page(),
+        prior_page,
+        "route commands do not escape the modal"
+    );
+
+    press(&mut h, KeyCode::Esc);
+    assert!(!h.is_open(INSPECTOR));
+    assert!(h.layer_area(INSPECTOR).is_none());
+    assert!(
+        h.area_of(INSPECTOR_CLOSE).is_none(),
+        "Esc unregisters the Close action"
+    );
+    assert_eq!(h.app().page(), prior_page);
+    assert_eq!(h.focus(), prior_focus, "Esc restores the exact prior owner");
+    assert_eq!(
+        h.runtime().capture_owner(),
+        None,
+        "Esc clears pointer capture"
+    );
+
+    let header = require(
+        h.area_of_part(HEADER_INSPECT, PartRef::of(Part::LABEL)),
+        "real Inspector header hit is registered",
+    );
+    click(&mut h, header.x.saturating_add(header.width / 2), header.y);
+    require(
+        h.layer_area(INSPECTOR),
+        "real header activation reopens the narrow modal",
+    );
+    let close_area = require(
+        h.area_of(INSPECTOR_CLOSE),
+        "the real Close action has a registered pointer target",
+    );
+    assert!(close_area.width > 0 && close_area.height > 0);
+    click(
+        &mut h,
+        close_area.x.saturating_add(close_area.width / 2),
+        close_area.y.saturating_add(close_area.height / 2),
+    );
+    assert!(
+        !h.is_open(INSPECTOR),
+        "real Close action activation closes the modal"
+    );
+    assert!(h.layer_area(INSPECTOR).is_none());
+    assert!(
+        h.area_of(INSPECTOR_CLOSE).is_none(),
+        "closed action target is unregistered"
+    );
+    assert_eq!(
+        h.app().page(),
+        prior_page,
+        "Close preserves the current page"
+    );
+    assert_eq!(
+        h.focus(),
+        prior_focus,
+        "Close restores the exact prior owner"
+    );
+    assert_eq!(
+        h.runtime().capture_owner(),
+        None,
+        "Close clears pointer capture"
+    );
+    assert!(
+        h.diagnostics().is_empty(),
+        "no Close diagnostics: {:?}",
+        h.diagnostics()
+    );
+
+    press(&mut h, KeyCode::Char('i'));
+    let modal = require(
+        h.layer_area(INSPECTOR),
+        "the shared i command reopens Inspector before outside dismissal",
+    );
+    let outside = (2, 10);
+    assert!(
+        outside.0 < modal.x
+            || outside.0 >= modal.right()
+            || outside.1 < modal.y
+            || outside.1 >= modal.bottom(),
+        "the backdrop test point is outside the modal"
+    );
+    click(&mut h, outside.0, outside.1);
+    assert!(
+        !h.is_open(INSPECTOR),
+        "a real outside click dismisses the modal"
+    );
+    assert!(h.layer_area(INSPECTOR).is_none());
+    assert!(
+        h.area_of(INSPECTOR_CLOSE).is_none(),
+        "outside dismissal unregisters Close"
+    );
+    assert_eq!(
+        h.app().page(),
+        prior_page,
+        "outside click does not activate the page"
+    );
+    assert_eq!(
+        h.focus(),
+        prior_focus,
+        "outside dismissal restores prior focus"
+    );
+    assert_eq!(
+        h.runtime().capture_owner(),
+        None,
+        "outside dismissal clears pointer capture"
+    );
+    assert!(
+        h.diagnostics().is_empty(),
+        "no diagnostics: {:?}",
+        h.diagnostics()
+    );
+
+    press(&mut h, KeyCode::Char('i'));
+    assert!(
+        h.is_open(INSPECTOR),
+        "the shared i command reopens the modal"
+    );
+    press(&mut h, KeyCode::Char('i'));
+    assert!(
+        !h.is_open(INSPECTOR),
+        "the shared i command closes the modal"
+    );
+    assert!(h.layer_area(INSPECTOR).is_none());
+    assert!(
+        h.area_of(INSPECTOR_CLOSE).is_none(),
+        "the i toggle unregisters Close"
+    );
+    assert_eq!(h.focus(), prior_focus, "the i toggle restores prior focus");
+    assert_eq!(
+        h.runtime().capture_owner(),
+        None,
+        "the i toggle clears pointer capture"
+    );
+    assert!(
+        h.diagnostics().is_empty(),
+        "no diagnostics after the i toggle: {:?}",
+        h.diagnostics()
+    );
+}
+
+#[test]
+fn narrow_inspector_geometry_matches_supported_reference_and_minimum_sizes() {
+    let mut h = Harness::new(App::with_page(PageId::Buttons), Theme::junie(), 80, 24);
+    let prior_focus = h.focus();
+
+    press(&mut h, KeyCode::Char('i'));
+    let reference = require(
+        h.layer_area(INSPECTOR),
+        "80x24 Inspector opens at the reference size",
+    );
+    assert_eq!(
+        reference,
+        Rect::new(44, 1, 34, 22),
+        "80x24 Inspector uses exact right-anchored geometry",
+    );
+
+    resize(&mut h, 72, 20);
+    let minimum = require(
+        h.layer_area(INSPECTOR),
+        "Inspector stays open at the existing 72x20 shell minimum",
+    );
+    assert_eq!(
+        minimum,
+        Rect::new(36, 1, 34, 18),
+        "72x20 Inspector keeps its exact width, anchor, and clamped height",
+    );
+    let body = area_text(&h, minimum);
+    assert!(
+        body.contains("Inspector")
+            && body.contains("State")
+            && body.contains("page")
+            && body.contains("Buttons")
+            && body.contains("inspector"),
+        "native headings and live page Props remain visible at the shell minimum: {body}",
+    );
+    assert_eq!(h.focus(), Some(INSPECTOR_CLOSE));
+
+    press(&mut h, KeyCode::Esc);
+    assert!(!h.is_open(INSPECTOR));
+    assert!(h.layer_area(INSPECTOR).is_none());
+    assert!(h.area_of(INSPECTOR_CLOSE).is_none());
+    assert_eq!(
+        h.focus(),
+        prior_focus,
+        "Esc restores focus after the minimum-size resize"
+    );
+    assert_eq!(
+        h.runtime().capture_owner(),
+        None,
+        "Esc clears pointer capture"
+    );
+    assert!(
+        h.diagnostics().is_empty(),
+        "no diagnostics: {:?}",
+        h.diagnostics()
+    );
+}
+
+#[test]
+fn narrow_inspector_resize_preserves_help_and_reconciles_the_100_column_mode() {
+    let mut h = Harness::new(App::with_page(PageId::Buttons), Theme::junie(), 80, 24);
+    let prior_focus = h.focus();
+    press(&mut h, KeyCode::Char('i'));
+    assert!(h.is_open(INSPECTOR));
+
+    // Help becomes a child of Inspector. A resize must keep that unrelated top
+    // layer open until its user dismissal lets Inspector reconcile to the dock.
+    press(&mut h, KeyCode::Char('?'));
+    assert!(h.is_open(HELP));
+    let help_top = h.top_layer();
+    resize(&mut h, 100, 40);
+    assert!(h.is_open(HELP), "resize preserves the unrelated Help layer");
+    assert!(
+        h.is_open(INSPECTOR),
+        "Inspector waits while Help owns the top layer"
+    );
+    assert_eq!(
+        h.top_layer(),
+        help_top,
+        "resize does not replace the Help opening"
+    );
+
+    press(&mut h, KeyCode::Esc);
+    assert!(!h.is_open(HELP));
+    assert!(
+        !h.is_open(INSPECTOR),
+        "100 columns reconcile Inspector into the dock"
+    );
+    assert!(
+        h.area_of(INSPECTOR_CLOSE).is_none(),
+        "dock mode unregisters modal Close"
+    );
+    let dock = require(
+        h.area_of(INSPECTOR),
+        "wide mode paints the existing Inspector dock",
+    );
+    assert!(area_text(&h, dock).contains("Buttons"));
+    assert_eq!(
+        h.focus(),
+        prior_focus,
+        "mode transition restores prior focus"
+    );
+    assert_eq!(
+        h.runtime().capture_owner(),
+        None,
+        "dock transition clears pointer capture"
+    );
+
+    resize(&mut h, 80, 24);
+    let modal = require(
+        h.layer_area(INSPECTOR),
+        "shrinking the same Runtime reopens the native Inspector modal",
+    );
+    assert!(h.is_open(INSPECTOR));
+    assert!(modal.width > 0 && modal.right() <= 80);
+    assert_eq!(h.focus(), Some(INSPECTOR_CLOSE));
+    assert!(h.area_of(INSPECTOR_CLOSE).is_some());
+    assert!(h.state_of(INSPECTOR_CLOSE).contains(StateFlags::FOCUSED));
+
+    press(&mut h, KeyCode::Esc);
+    assert!(
+        !h.is_open(INSPECTOR),
+        "a closed modal does not revive on the next update"
+    );
+    assert!(h.layer_area(INSPECTOR).is_none());
+    assert!(
+        h.area_of(INSPECTOR_CLOSE).is_none(),
+        "closed modal unregisters Close"
+    );
+    assert_eq!(h.focus(), prior_focus);
+    assert_eq!(
+        h.runtime().capture_owner(),
+        None,
+        "final dismissal clears pointer capture"
+    );
+    assert!(
+        h.diagnostics().is_empty(),
+        "no diagnostics: {:?}",
         h.diagnostics()
     );
 }

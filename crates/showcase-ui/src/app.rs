@@ -2,11 +2,11 @@ use showcase_demos::render_number::RenderNumber;
 use termrock::author::PaintStyle;
 use termrock::overlays::NoticeReveal;
 use termrock::{
-    ActionKey, App as TuiApp, Brand, Chord, ColorLevel, Cx, Dialog, DialogAction, DialogState,
-    EmptyState, FrameRead, GlyphRole, Id, Intent, ItemKey, KeyCode, KeyMap, KeyPhase, Moment,
-    Panel, PanelKind, Part, PartRef, Phase, Position, Props, Rect, Response, RowFn, Size,
-    StateFlags, Status, StatusBar, StatusItem, Theme, TooSmall, Tree, TreeAction, TreeNode,
-    TreeState, Ui, Variant, id, width,
+    ActionKey, Anchor, App as TuiApp, Brand, Chord, ColorLevel, CrossAlign, Cx, Dialog,
+    DialogAction, DialogState, Dismiss, EmptyState, FrameRead, GlyphRole, Id, Intent, ItemKey,
+    KeyCode, KeyMap, KeyPhase, LayerOpening, Moment, Panel, PanelKind, Part, PartRef, Phase,
+    Position, Props, Rect, Response, RowFn, Side, Size, StateFlags, Status, StatusBar, StatusItem,
+    Theme, TooSmall, Tree, TreeAction, TreeNode, TreeState, Ui, Variant, id, width,
 };
 
 use showcase_demos::pages::forms::SUBMIT as FORM_SUBMIT;
@@ -57,6 +57,7 @@ const TOO_SMALL: Id = id!("too-small");
 const HEADER_HELP: Id = id!("header.help");
 const HEADER_INSPECT: Id = id!("header.inspect");
 const INSPECTOR: Id = id!("inspector");
+const INSPECTOR_CLOSE: Id = INSPECTOR.part(Part::ACTIONS).index(0);
 const QUIT: ActionKey = ActionKey::application("showcase.quit");
 const QUIT_CTRL: ActionKey = ActionKey::application("showcase.quit.ctrl");
 const HELP_COMMAND: ActionKey = ActionKey::application("showcase.help");
@@ -1306,6 +1307,9 @@ pub struct App {
     help_state: DialogState,
     help_open: bool,
     overlay_open: bool,
+    inspector_state: DialogState,
+    inspector_opening: Option<LayerOpening>,
+    inspector_programmatic_close: Option<LayerOpening>,
     selectable: showcase_demos::pages::selectable::Model,
     keymap: KeyMap,
     inspector: bool,
@@ -1346,6 +1350,12 @@ impl core::fmt::Debug for App {
             .field("help_state", &self.help_state)
             .field("help_open", &self.help_open)
             .field("overlay_open", &self.overlay_open)
+            .field("inspector_state", &self.inspector_state)
+            .field("inspector_opening", &self.inspector_opening)
+            .field(
+                "inspector_programmatic_close",
+                &self.inspector_programmatic_close,
+            )
             .field("selectable", &self.selectable)
             .field("keymap", &self.keymap)
             .field("inspector", &self.inspector)
@@ -1419,6 +1429,9 @@ impl App {
             help_state: DialogState::default(),
             help_open: false,
             overlay_open: false,
+            inspector_state: DialogState::default(),
+            inspector_opening: None,
+            inspector_programmatic_close: None,
             selectable: showcase_demos::pages::selectable::Model::default(),
             keymap: keymap(),
             inspector: false,
@@ -1606,16 +1619,17 @@ impl App {
     }
 
     fn resolved_shell_layout(&self, area: Rect) -> ShellLayout {
+        let inspector_dock = self.inspector && self.inspector_opening.is_none();
         if let Some(cached) = self.shell_layout_cache.get()
             && cached.area == area
-            && cached.inspector == self.inspector
+            && cached.inspector == inspector_dock
         {
             return cached.layout;
         }
-        let layout = shell_layout(area, self.inspector);
+        let layout = shell_layout(area, inspector_dock);
         self.shell_layout_cache.set(Some(CachedShellLayout {
             area,
-            inspector: self.inspector,
+            inspector: inspector_dock,
             layout,
         }));
         layout
@@ -1719,6 +1733,113 @@ impl App {
             .width(70)
     }
 
+    fn inspector_dialog(viewport: Rect) -> Dialog<'static> {
+        Dialog::info(INSPECTOR, "Inspector")
+            .description("State")
+            .body_rows(viewport.height.saturating_sub(11))
+            .width(34)
+    }
+
+    fn inspector_anchor(viewport: Rect) -> Anchor {
+        Anchor::Rect {
+            rect: Rect::new(
+                viewport.right().saturating_sub(2),
+                viewport.y.saturating_add(1),
+                1,
+                1,
+            ),
+            side: Side::Left,
+            align: CrossAlign::Center,
+        }
+    }
+
+    fn inspector_layer_spec(cx: &Cx<'_>) -> termrock::LayerSpec {
+        let viewport = cx.viewport();
+        let dialog = Self::inspector_dialog(viewport);
+        dialog
+            .layer(cx)
+            .anchor(Self::inspector_anchor(viewport))
+            .dismiss(Dismiss::ESC_AND_OUTSIDE)
+            .initial_focus(dialog.action_id(0))
+            .viewport_margin(2, 1)
+    }
+
+    fn inspector_modal_supported(viewport: Rect) -> bool {
+        (72..100).contains(&viewport.width) && viewport.height >= 20
+    }
+
+    fn inspector_modal_active(&self, cx: &Cx<'_>) -> bool {
+        self.inspector
+            && self.inspector_opening.is_some_and(|opening| {
+                cx.layer_opening(INSPECTOR) == Some(opening) && cx.top_layer() == opening.layer_id()
+            })
+    }
+
+    fn toggle_inspector(&mut self, response: &mut Response<()>) {
+        self.inspector = !self.inspector;
+        *response |= Response::changed();
+    }
+
+    fn update_inspector(&mut self, cx: &mut Cx<'_>, response: &mut Response<()>) {
+        let viewport = cx.viewport();
+        let modal_expected = self.inspector && Self::inspector_modal_supported(viewport);
+
+        if modal_expected
+            && self
+                .inspector_opening
+                .is_some_and(|opening| cx.layer_opening(INSPECTOR) == Some(opening))
+        {
+            cx.reanchor_layer(INSPECTOR, Self::inspector_anchor(viewport));
+        }
+
+        if let Some(opening) = self.inspector_opening
+            && cx.layer_opening(INSPECTOR) == Some(opening)
+            && !modal_expected
+            && cx.top_layer() == opening.layer_id()
+        {
+            self.inspector_programmatic_close = Some(opening);
+            cx.close_layer(INSPECTOR, None);
+            *response |= Response::changed();
+        }
+
+        let dialog = Self::inspector_dialog(viewport);
+        let update = dialog.update(cx, &mut self.inspector_state);
+        let action = update.action_ref().copied();
+        *response |= update.erase();
+        if matches!(
+            action,
+            Some(DialogAction::Action(ActionKey::CLOSE) | DialogAction::Dismissed(_))
+        ) {
+            let opening = self.inspector_opening;
+            let app_closed =
+                opening.is_some_and(|opening| self.inspector_programmatic_close == Some(opening));
+            if !app_closed {
+                self.inspector = false;
+            }
+            if let Some(opening) = opening
+                && cx.layer_opening(INSPECTOR) == Some(opening)
+                && cx.top_layer() == opening.layer_id()
+            {
+                cx.close_layer(INSPECTOR, None);
+            }
+            self.inspector_opening = None;
+            self.inspector_programmatic_close = None;
+            *response |= Response::changed();
+        }
+
+        if self.inspector_opening.is_none()
+            && cx.layer_opening(INSPECTOR).is_none()
+            && self.inspector
+            && Self::inspector_modal_supported(viewport)
+        {
+            let spec = Self::inspector_layer_spec(cx);
+            if let Some(opening) = cx.open_layer_with_token(INSPECTOR, spec) {
+                self.inspector_opening = Some(opening);
+                *response |= Response::changed();
+            }
+        }
+    }
+
     fn update_help(&mut self, cx: &mut Cx<'_>, response: &mut Response<()>) {
         let help = Self::help_dialog(&self.help_description).update(cx, &mut self.help_state);
         if let Some(action) = help.action_ref() {
@@ -1760,8 +1881,7 @@ impl App {
             )
         });
         if inspector_clicked {
-            self.inspector = !self.inspector;
-            *response |= Response::changed();
+            self.toggle_inspector(response);
         }
     }
 }
@@ -2268,31 +2388,37 @@ fn clip_label(label: &str, max: u16) -> String {
     out
 }
 
+fn paint_inspector_props(ui: &mut Ui<'_>, area: Rect, app: &App) {
+    let focus = if ui.state(NAV).contains(StateFlags::FOCUSED) {
+        "navigation"
+    } else if ui.state(INSPECTOR_CLOSE).contains(StateFlags::FOCUSED) {
+        "inspector"
+    } else {
+        "page"
+    };
+    let hover = if ui.hovered_part(NAV).is_some() {
+        "navigation"
+    } else {
+        "—"
+    };
+    let pressed = if ui.pressed_part(NAV).is_some() {
+        "navigation"
+    } else {
+        "—"
+    };
+    let rows = [
+        ("page", app.nav_label()),
+        ("focus", focus),
+        ("hover", hover),
+        ("pressed", pressed),
+        ("colors", ui.theme().capability.color.label()),
+    ];
+    Props::new(&rows).draw(ui, area);
+}
+
 fn paint_inspector(ui: &mut Ui<'_>, area: Rect, app: &App) {
     inspector_panel().draw(ui, area, |ui, inner| {
-        let focus = if ui.state(NAV).contains(StateFlags::FOCUSED) {
-            "navigation"
-        } else {
-            "page"
-        };
-        let hover = if ui.hovered_part(NAV).is_some() {
-            "navigation"
-        } else {
-            "—"
-        };
-        let pressed = if ui.pressed_part(NAV).is_some() {
-            "navigation"
-        } else {
-            "—"
-        };
-        let rows = [
-            ("page", app.nav_label()),
-            ("focus", focus),
-            ("hover", hover),
-            ("pressed", pressed),
-            ("colors", ui.theme().capability.color.label()),
-        ];
-        Props::new(&rows).draw(ui, inner);
+        paint_inspector_props(ui, inner, app);
     });
 }
 
@@ -2518,6 +2644,7 @@ impl TuiApp for App {
         let _ = missing_page_panel();
         let _ = inspector_panel();
         let command = cx.command();
+        let inspector_modal_active = self.inspector_modal_active(cx);
         let consume_nav_tree_key = match nav_query_input(cx, self.nav_query.is_some()) {
             Some(NavQueryInput::Consume) => {
                 response |= Response::consumed();
@@ -2536,14 +2663,14 @@ impl TuiApp for App {
                 self.quit = true;
                 cx.quit();
             }
-            Some(NEXT_PAGE) => {
+            Some(NEXT_PAGE) if !inspector_modal_active => {
                 let count = NAV_ENTRIES.len();
                 if count > 0 {
                     let current = nav_index_for_target(self.nav_target).unwrap_or(0);
                     self.goto_entry(current.saturating_add(1) % count);
                 }
             }
-            Some(PREV_PAGE) => {
+            Some(PREV_PAGE) if !inspector_modal_active => {
                 let count = NAV_ENTRIES.len();
                 if count > 0 {
                     let current = nav_index_for_target(self.nav_target).unwrap_or(0);
@@ -2551,11 +2678,12 @@ impl TuiApp for App {
                     self.goto_entry(previous);
                 }
             }
+            Some(NEXT_PAGE | PREV_PAGE) => {}
             Some(HELP_COMMAND) if !cx.is_open(HELP) => {
                 cx.open_layer(HELP, Self::help_dialog(&self.help_description).layer(cx));
             }
-            Some(INSPECTOR_COMMAND) => {
-                self.inspector = !self.inspector;
+            Some(INSPECTOR_COMMAND) if cx.update_cause() == termrock::UpdateCause::Event => {
+                self.toggle_inspector(&mut response);
             }
             _ => {}
         }
@@ -2655,6 +2783,7 @@ impl TuiApp for App {
             cx.focus_next();
         }
         self.update_help(cx, &mut response);
+        self.update_inspector(cx, &mut response);
         self.help_open = cx.is_open(HELP);
         self.overlay_open = cx.top_layer() != termrock::LayerId::PAGE;
         self.update_notice_reveals(cx, &mut response);
@@ -2827,6 +2956,11 @@ impl TuiApp for App {
                     let _ = ui.paint_str(body, "q quit   ? help   Esc close", ui.surface_style());
                 },
             );
+        });
+        ui.layer(INSPECTOR, |ui, area| {
+            Self::inspector_dialog(full).draw(ui, area, &self.inspector_state, |ui, body| {
+                paint_inspector_props(ui, body, self)
+            });
         });
         if label == "Selection" {
             showcase_demos::pages::selectable::Model::draw_dialog(ui, &self.selectable);
