@@ -728,6 +728,52 @@ pub fn paint_settings_agents_body(
     Ok(())
 }
 
+/// Paint only the fixed Trust content band within a Settings page area.
+///
+/// The band is page-relative rows 6 through 13, clipped to both `area` and
+/// the current Ui clip. Unlike the full-page painter, this entrypoint does
+/// not draw chrome or impose a minimum page height. Row and note capacities
+/// are checked before any cell is changed. This function does not handle
+/// input, counts, or a caller-owned save preview.
+///
+/// # Errors
+///
+/// Returns [`SettingsBodyPaintError::TooManyRows`] or
+/// [`SettingsBodyPaintError::TooManyNotes`] when the input exceeds the fixed
+/// Trust body capacities. Either error is returned before painting.
+pub fn paint_settings_trust_body(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    trust: &SettingsTrust<'_>,
+) -> Result<(), SettingsBodyPaintError> {
+    if trust.rows.len() > SETTINGS_TRUST_MAX_ROWS {
+        return Err(SettingsBodyPaintError::TooManyRows {
+            maximum: SETTINGS_TRUST_MAX_ROWS,
+            actual: trust.rows.len(),
+        });
+    }
+    if trust.notes.len() > SETTINGS_FIXED_NOTE_MAX_ROWS {
+        return Err(SettingsBodyPaintError::TooManyNotes {
+            maximum: SETTINGS_FIXED_NOTE_MAX_ROWS,
+            actual: trust.notes.len(),
+        });
+    }
+
+    let body = Rect::new(area.x, area.y.saturating_add(6), area.width, 8)
+        .intersection(area)
+        .intersection(ui.full());
+    if body.is_empty() {
+        return Ok(());
+    }
+
+    let ink = settings_ink(ui);
+    ui.with_area(body, |ui| {
+        ui.fill(body, plain(ink.primary, ink.canvas));
+        paint_settings_trust(ui, area, trust, &ink);
+    });
+    Ok(())
+}
+
 /// Paint a Trust table with the existing Settings page chrome.
 ///
 /// `page.sections`, `page.mounts`, and `page.add_mount` must be empty. The
@@ -2800,6 +2846,218 @@ mod tests {
                     pos.y,
                 );
             }
+        }
+    }
+
+    #[test]
+    fn trust_body_matches_the_shared_page_table_at_narrow_and_wide_sizes() {
+        let rows = [
+            SettingsTrustRow::new(
+                "github.com/chainargos/roles",
+                SettingsTrustSourceKind::Git,
+                true,
+                "4 roles",
+            )
+            .selected(true),
+            SettingsTrustRow::new(
+                "github.com/acme-labs/roles-experimental",
+                SettingsTrustSourceKind::Git,
+                false,
+                "1 role",
+            ),
+            SettingsTrustRow::new("~/roles", SettingsTrustSourceKind::Path, true, "1 role")
+                .dirty(true),
+            SettingsTrustRow::new(
+                "git@corp:infra/roles",
+                SettingsTrustSourceKind::Git,
+                true,
+                "2 roles",
+            ),
+        ];
+        let notes = [
+            "An untrusted source blocks + Load role until it is trusted here or",
+            "in the trust dialog that the load opens.",
+        ];
+        let tabs = [SettingsTab {
+            label: "Trust",
+            selected: true,
+        }];
+        let hints = [SettingsHint {
+            key: "Space",
+            action: "Toggle trust",
+        }];
+
+        for preview in [false, true] {
+            let trust =
+                SettingsTrust::new("Role sources", "3 trusted · 1 untrusted", &rows, &notes)
+                    .preview(preview);
+            let page = heritage_page("Settings › global › Trust", &tabs, &hints, None);
+            for (width, height) in [(80, 24), (120, 40)] {
+                let mut full = Scene::new(
+                    "settings_trust_body_full_page_reference",
+                    Theme::junie(),
+                    ColorLevel::TrueColor,
+                    width,
+                    height,
+                );
+                full.draw(|ui, area| {
+                    assert_eq!(
+                        paint_settings_page_with_trust(
+                            ui,
+                            area,
+                            &page,
+                            &trust,
+                            SettingsPageChrome::new(),
+                        ),
+                        Ok(())
+                    );
+                });
+
+                let mut body = Scene::new(
+                    "settings_trust_body_only",
+                    Theme::junie(),
+                    ColorLevel::TrueColor,
+                    width,
+                    height,
+                );
+                body.draw(|ui, area| {
+                    assert_eq!(paint_settings_trust_body(ui, area, &trust), Ok(()));
+                });
+
+                for y in 6..14 {
+                    for x in 0..width {
+                        let expected = full.buffer().cell((x, y)).expect("full-page cell");
+                        let actual = body.buffer().cell((x, y)).expect("body-only cell");
+                        assert_eq!(
+                            format!("{actual:?}"),
+                            format!("{expected:?}"),
+                            "native cell changed at {width}x{height} ({x}, {y}), preview={preview}"
+                        );
+                    }
+                }
+                assert!(body.text().contains("github.com/chainargos/roles"));
+                assert!(body.text().contains("trust dialog that the load opens"));
+                let gutter = body.buffer().cell((2, 7)).expect("selected gutter");
+                if preview {
+                    assert_eq!(gutter.symbol(), " ");
+                } else {
+                    assert_eq!(gutter.symbol(), "▎");
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn trust_body_respects_offset_nested_clip_and_short_area() {
+        use ratatui_core::style::{Modifier, Style};
+        use std::cell::RefCell;
+
+        let rows = [
+            SettingsTrustRow::new("source-one", SettingsTrustSourceKind::Git, true, "2 roles")
+                .selected(true),
+            SettingsTrustRow::new("source-two", SettingsTrustSourceKind::Path, false, "1 role"),
+        ];
+        let notes: [&str; 0] = [];
+        let trust = SettingsTrust::new("Role sources", "1 trusted · 1 untrusted", &rows, &notes);
+        let page = Rect::new(4, 2, 100, 10);
+        let clip = Rect::new(10, 8, 30, 2);
+        let sentinel_style = Style::default()
+            .fg(Color::Rgb(0x11, 0x22, 0x33))
+            .bg(Color::Rgb(0x44, 0x55, 0x66))
+            .add_modifier(Modifier::ITALIC);
+        let sentinel = RefCell::new(None);
+        let mut scene = Scene::new(
+            "settings_trust_body_nested_clip",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            120,
+            20,
+        );
+        scene.draw_over(
+            |buffer| {
+                buffer.set_style(Rect::new(0, 0, 120, 20), sentinel_style);
+                *sentinel.borrow_mut() =
+                    Some(format!("{:?}", buffer.cell((0, 0)).expect("sentinel cell")));
+            },
+            |ui, _| {
+                ui.with_area(clip, |ui| {
+                    assert_eq!(paint_settings_trust_body(ui, page, &trust), Ok(()));
+                });
+            },
+        );
+        let sentinel = sentinel.into_inner().expect("recorded sentinel");
+        for y in 0..20 {
+            for x in 0..120 {
+                let cell = scene.buffer().cell((x, y)).expect("scene cell");
+                if clip.contains(Position::new(x, y)) {
+                    assert_ne!(format!("{cell:?}"), sentinel, "clip cell ({x}, {y})");
+                } else {
+                    assert_eq!(format!("{cell:?}"), sentinel, "outside clip ({x}, {y})");
+                }
+            }
+        }
+        assert_eq!(
+            scene.buffer().cell((10, 8)).map(|cell| cell.symbol()),
+            Some("R"),
+            // `put_clipped` trims to the page, then `Ui::paint_str` intersects
+            // the destination with the nested clip and starts the untrimmed
+            // string at that clipped left edge.
+            "the nested clip starts the title at its leading cell"
+        );
+    }
+
+    #[test]
+    fn trust_body_rejections_leave_the_prefilled_buffer_unchanged() {
+        use ratatui_core::style::Style;
+        use std::cell::RefCell;
+
+        let too_many_rows: Vec<_> = (0..5)
+            .map(|_| SettingsTrustRow::new("source", SettingsTrustSourceKind::Unknown, true, "1"))
+            .collect();
+        let too_many_notes = ["one", "two", "three"];
+        let invalid_rows = SettingsTrust::new("Trust", "", &too_many_rows, &[]);
+        let invalid_notes = SettingsTrust::new("Trust", "", &[], &too_many_notes);
+        let area = Rect::new(0, 0, 80, 24);
+        let mut scene = Scene::new(
+            "settings_trust_body_invalid_capacity",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            80,
+            24,
+        );
+        let sentinel = RefCell::new(None);
+        scene.draw_over(
+            |buffer| {
+                buffer.set_style(area, Style::default().fg(Color::Rgb(0x11, 0x22, 0x33)));
+                *sentinel.borrow_mut() =
+                    Some(format!("{:?}", buffer.cell((0, 0)).expect("sentinel cell")));
+            },
+            |ui, _| {
+                assert_eq!(
+                    paint_settings_trust_body(ui, area, &invalid_rows),
+                    Err(SettingsBodyPaintError::TooManyRows {
+                        maximum: 4,
+                        actual: 5,
+                    })
+                );
+                assert_eq!(
+                    paint_settings_trust_body(ui, area, &invalid_notes),
+                    Err(SettingsBodyPaintError::TooManyNotes {
+                        maximum: 2,
+                        actual: 3,
+                    })
+                );
+            },
+        );
+        let sentinel = sentinel.into_inner().expect("recorded sentinel");
+        for pos in area.positions() {
+            assert_eq!(
+                format!("{:?}", scene.buffer().cell(pos).expect("scene cell")),
+                sentinel,
+                "invalid Trust body wrote ({}, {})",
+                pos.x,
+                pos.y
+            );
         }
     }
 
