@@ -1,5 +1,5 @@
 use core::fmt;
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
 use ratatui::crossterm::event::{Event, MouseButton, MouseEvent, MouseEventKind};
@@ -8,13 +8,13 @@ use ratatui_core::style::{Color, Modifier, Style};
 use termrock_controls::Button;
 use termrock_core::event::{KeyModifiers, RoutedInput};
 use termrock_core::response::Response;
-use termrock_core::{Id, ItemKey, KeyCode, MouseKind, Part, PartRef, StateFlags};
+use termrock_core::{Axis, Id, ItemKey, KeyCode, MouseKind, Part, PartRef, StateFlags};
 use termrock_navigation::tabs::TabWindowReceipt;
 use termrock_navigation::{TabMarks, TabRule, Tabs, TabsAction, TabsState};
 use termrock_runtime::rowui::RowUi;
 use termrock_runtime::{
-    Anchor, App, Cx, Dismiss, FrameRead, LayerSize, LayerSpec, Position, ReferenceState,
-    ReferenceTarget, Status, Ui,
+    Anchor, App, Axes, Cx, Dismiss, FrameRead, LayerId, LayerSize, LayerSpec, Position,
+    ReferenceState, ReferenceTarget, RegionKind, Status, Ui,
 };
 use termrock_test_support::Harness;
 use termrock_theme::resolve::bind_role;
@@ -103,6 +103,7 @@ struct Page {
     rule: Option<TabRule>,
     rule_focus_hidden: Option<bool>,
     planned: bool,
+    planned_wheel_area: Cell<Option<Rect>>,
     marks: MarkMode,
     status: Status,
     close_reveal: termrock_navigation::TabCloseReveal,
@@ -133,6 +134,7 @@ impl Page {
             rule,
             rule_focus_hidden: None,
             planned: false,
+            planned_wheel_area: Cell::new(None),
             marks: MarkMode::None,
             status: Status::Ready,
             close_reveal: termrock_navigation::TabCloseReveal::Always,
@@ -196,6 +198,11 @@ impl App for Page {
                     content_len: facts.content_len,
                 });
                 let layout = tabs.layout_default(area, area, &self.state, &self.items, previous);
+                let wheel_area = (!layout.visible_area.is_empty()
+                    && layout.viewport_len > 0
+                    && layout.content_len > layout.viewport_len)
+                    .then_some(layout.visible_area);
+                self.planned_wheel_area.set(wheel_area);
                 tabs.draw_layout(ui, &layout)
                     .expect("a rule policy is part of the planned rendering configuration");
             } else {
@@ -408,6 +415,83 @@ fn assert_same_regions(left: &Harness<ContextPage>, right: &Harness<ContextPage>
         assert_eq!(left.pointer_enabled(), right.pointer_enabled());
         assert_eq!(left.pass_through(), right.pass_through());
     }
+}
+
+fn assert_legacy_regions_match_with_planned_scroll(
+    legacy: &Harness<Page>,
+    planned: &Harness<Page>,
+) {
+    let legacy_generation = legacy.runtime().registry().generation();
+    let planned_generation = planned.runtime().registry().generation();
+    let mut legacy_regions = legacy.runtime().registry().regions().to_vec();
+    let mut planned_regions = planned.runtime().registry().regions().to_vec();
+    assert!(
+        legacy_regions
+            .iter()
+            .all(|region| region.generation == legacy_generation)
+    );
+    assert!(
+        planned_regions
+            .iter()
+            .all(|region| region.generation == planned_generation)
+    );
+
+    let expected_area = planned.app().planned_wheel_area.get();
+    let planned_scrolls = planned_regions
+        .iter()
+        .filter(|region| region.kind == RegionKind::Scroll)
+        .count();
+    assert_eq!(
+        planned_scrolls,
+        if expected_area.is_some() { 1 } else { 0 },
+        "planned scroll registration matches the overflowing plan"
+    );
+    assert!(
+        legacy_regions
+            .iter()
+            .all(|region| region.kind != RegionKind::Scroll),
+        "legacy rendering has no planned scroll registration"
+    );
+    if let Some(area) = expected_area {
+        let scroll = planned_regions
+            .first()
+            .copied()
+            .expect("the planned scroll registration is the leading region");
+        assert_eq!(scroll.kind, RegionKind::Scroll);
+        assert_eq!(scroll.id, TABS);
+        assert_eq!(scroll.owner, TABS);
+        assert_eq!(scroll.part, PartRef::of(Part::CONTAINER));
+        assert_eq!(scroll.layer, LayerId::PAGE);
+        assert_eq!(scroll.area, area);
+        assert_eq!(
+            scroll.scroll().map(|(axes, _)| axes),
+            Some(Axes::Both),
+            "planned registration handles both wheel axes"
+        );
+        let point = Position::new(area.x, area.y);
+        for axis in [Axis::H, Axis::V] {
+            let hit = planned
+                .runtime()
+                .registry()
+                .hit_scroll(point, axis)
+                .expect("the planned scroll area resolves for both axes");
+            assert_eq!(hit.owner, TABS);
+            assert_eq!(hit.part, PartRef::of(Part::CONTAINER));
+            assert_eq!(hit.layer, LayerId::PAGE);
+            assert_eq!(hit.kind, RegionKind::Scroll);
+        }
+        planned_regions.remove(0);
+    }
+    for region in &mut legacy_regions {
+        region.generation = 0;
+    }
+    for region in &mut planned_regions {
+        region.generation = 0;
+    }
+    assert_eq!(
+        planned_regions, legacy_regions,
+        "all existing full Region records remain equal in order"
+    );
 }
 
 #[test]
@@ -762,11 +846,7 @@ fn absent_policy_keeps_legacy_and_planned_defaults_across_the_full_theme_matrix(
                             planned.buffer(),
                             "{theme_name} {level:?} marks={marks:?} status={status:?} reveal={close_reveal:?}"
                         );
-                        assert_eq!(
-                            legacy.runtime().registry().regions(),
-                            planned.runtime().registry().regions(),
-                            "legacy/planned hit geometry must remain equal"
-                        );
+                        assert_legacy_regions_match_with_planned_scroll(&legacy, &planned);
                     }
                 }
             }

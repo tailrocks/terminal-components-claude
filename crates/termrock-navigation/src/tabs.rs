@@ -19,6 +19,7 @@ use termrock_collections::collection::{
     ByIndex, CollectionCore, DefaultRow, KeyFn, Reconcile, Reconciliation,
 };
 use termrock_runtime::empty::Status;
+use termrock_runtime::hit::{Axes, Headroom};
 use termrock_runtime::rowui::{RowFn, RowUi};
 
 /// Keyboard aliases used for adjacent tab navigation.
@@ -605,7 +606,7 @@ fn profile_tables(profile: TabNavProfile) -> TabsProfileTables {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Debug, Default)]
+#[derive(Clone, Default)]
 pub struct TabsState {
     core: CollectionCore,
     active: Option<ItemKey>,
@@ -613,6 +614,36 @@ pub struct TabsState {
     first_index: usize,
     // Defer the live CLOSE target while its hidden cell belongs to a TAB press.
     close_reveal_press: Option<ItemKey>,
+    // The current keyed active identity owns a manually browsed planned window.
+    // This is semantic state: it changes whether the next update follows active.
+    manual_window_active: Option<Option<ItemKey>>,
+}
+
+impl PartialEq for TabsState {
+    fn eq(&self, other: &Self) -> bool {
+        self.core == other.core
+            && self.active == other.active
+            && self.first == other.first
+            && self.first_index == other.first_index
+            && self.close_reveal_press == other.close_reveal_press
+            && self.manual_window_active == other.manual_window_active
+    }
+}
+
+impl Eq for TabsState {}
+
+impl fmt::Debug for TabsState {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // Preserve the historical public Debug shape while keeping the
+        // implementation-only manual-follow marker private.
+        f.debug_struct("TabsState")
+            .field("core", &self.core)
+            .field("active", &self.active)
+            .field("first", &self.first)
+            .field("first_index", &self.first_index)
+            .field("close_reveal_press", &self.close_reveal_press)
+            .finish()
+    }
 }
 
 impl TabsState {
@@ -629,13 +660,18 @@ impl TabsState {
     }
 
     pub fn set_active(&mut self, index: usize, key: ItemKey) {
-        self.active = Some(key);
+        let next = Some(key);
+        if self.active != next {
+            self.manual_window_active = None;
+        }
+        self.active = next;
         self.core.set_cursor(index, key);
     }
 }
 
 impl Reconcile for TabsState {
     fn reconcile(&mut self, len: usize, key: impl Fn(usize) -> ItemKey) -> Reconciliation {
+        let previous_active = self.active;
         let r = self.core.reconcile(len, &key);
         if let Some(a) = self.active
             && !(0..len).any(|i| key(i) == a)
@@ -654,13 +690,72 @@ impl Reconcile for TabsState {
             }
             None => self.first_index = 0,
         }
+        if self.active != previous_active {
+            self.manual_window_active = None;
+        }
         r
     }
 
     fn invalidate(&mut self) {
         self.core.invalidate();
         self.close_reveal_press = None;
+        self.manual_window_active = None;
     }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+enum TabsWheelFrameKind {
+    #[default]
+    Unknown,
+    Legacy,
+    Planned,
+}
+
+/// Exact facts from the most recently committed planned Tabs frame.
+///
+/// This is routing authority for the hit registry that was just published,
+/// not a revision or a claim that same-key item text has remained unchanged.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+struct TabsWheelFrame {
+    kind: TabsWheelFrameKind,
+    eligible: bool,
+    content_len: usize,
+    viewport_len: usize,
+    rows: u16,
+    cols: u16,
+    first_index: usize,
+    first_key: Option<ItemKey>,
+    last_key: Option<ItemKey>,
+    terminal_first_index: Option<usize>,
+    area: Rect,
+    visible_area: Rect,
+}
+
+impl Default for TabsWheelFrame {
+    fn default() -> Self {
+        Self {
+            kind: TabsWheelFrameKind::Unknown,
+            eligible: false,
+            content_len: 0,
+            viewport_len: 0,
+            rows: 0,
+            cols: 0,
+            first_index: 0,
+            first_key: None,
+            last_key: None,
+            terminal_first_index: None,
+            area: Rect::new(0, 0, 0, 0),
+            visible_area: Rect::new(0, 0, 0, 0),
+        }
+    }
+}
+
+fn manual_window_owns_follow(
+    frame_kind: TabsWheelFrameKind,
+    manual_window_active: Option<Option<ItemKey>>,
+    active: Option<ItemKey>,
+) -> bool {
+    frame_kind != TabsWheelFrameKind::Legacy && manual_window_active == Some(active)
 }
 
 /// Committed viewport counts supplied to a pure tabs layout pass.
@@ -1803,7 +1898,97 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
         }
     }
 
+    fn committed_wheel_bounds(
+        &self,
+        frame: TabsWheelFrame,
+        layout: Option<LayoutFacts>,
+        st: &TabsState,
+        items: &[T],
+    ) -> Option<usize> {
+        if self.passive
+            || frame.kind != TabsWheelFrameKind::Planned
+            || !frame.eligible
+            || frame.content_len != items.len()
+            || frame.viewport_len == 0
+            || frame.visible_area.is_empty()
+            || frame.area.is_empty()
+            || items.is_empty()
+        {
+            return None;
+        }
+        let facts = layout?;
+        if facts.content_len != frame.content_len
+            || facts.viewport_len != frame.viewport_len
+            || facts.rows != frame.rows
+            || facts.cols != frame.cols
+        {
+            return None;
+        }
+        let terminal = frame.terminal_first_index?;
+        if terminal == 0 || terminal >= items.len() {
+            return None;
+        }
+        let last_index = items.len().saturating_sub(1);
+        if frame.last_key != Some(self.key_at(items, last_index)) {
+            return None;
+        }
+        let first_key = frame.first_key?;
+        if st.first != Some(first_key) {
+            return None;
+        }
+        let first_index = self.index_of(items, first_key, Some(frame.first_index))?;
+        if first_index != frame.first_index || st.first_index != first_index {
+            return None;
+        }
+        Some(terminal)
+    }
+
+    fn converge_manual_window(
+        &self,
+        frame: TabsWheelFrame,
+        layout: Option<LayoutFacts>,
+        st: &mut TabsState,
+        items: &[T],
+    ) -> bool {
+        if st.manual_window_active != Some(st.active)
+            || frame.kind != TabsWheelFrameKind::Planned
+            || frame.content_len != items.len()
+            || frame.area.is_empty()
+            || items.is_empty()
+        {
+            return false;
+        }
+        let Some(facts) = layout else {
+            return false;
+        };
+        if facts.content_len != frame.content_len
+            || facts.viewport_len != frame.viewport_len
+            || facts.rows != frame.rows
+            || facts.cols != frame.cols
+        {
+            return false;
+        }
+        let last_index = items.len().saturating_sub(1);
+        if frame.last_key != Some(self.key_at(items, last_index)) {
+            return false;
+        }
+        let Some(first_key) = frame.first_key else {
+            return false;
+        };
+        let Some(first_index) = self.index_of(items, first_key, Some(frame.first_index)) else {
+            return false;
+        };
+        if st.first == Some(first_key) && st.first_index == first_index {
+            return false;
+        }
+        st.first = Some(first_key);
+        st.first_index = first_index;
+        true
+    }
+
     pub fn update(&self, cx: &mut Cx<'_>, st: &mut TabsState, items: &[T]) -> Response<TabsAction> {
+        let frame = *cx.cache::<TabsWheelFrame>(self.id);
+        let layout = cx.layout(self.id);
         let len = items.len();
         let _ = st.reconcile(len, |i| self.key_at(items, i));
         if st.close_reveal_press.is_some_and(|key| {
@@ -1817,14 +2002,25 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
             let key = self.key_at(items, 0);
             st.core.set_cursor(0, key);
         }
+        let active_before_initialization = st.active;
         if st.active.is_none() {
             st.active = st.core.cursor();
+        }
+        if st.active != active_before_initialization {
+            st.manual_window_active = None;
         }
         if st.first.is_none() && len > 0 {
             st.first = Some(self.key_at(items, 0));
             st.first_index = 0;
         }
+        if frame.kind == TabsWheelFrameKind::Legacy {
+            st.manual_window_active = None;
+        }
         let mut acc = Acc::<TabsAction>::new();
+        if self.converge_manual_window(frame, layout, st, items) {
+            acc.changed();
+        }
+        let mut committed_bounds = None;
         let key_groups = self.effective_key_groups();
         for it in cx.intents(self.id) {
             match it {
@@ -1878,6 +2074,30 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                         }
                         Some(TabsCmd::New) => acc.action(TabsAction::New),
                         None => {}
+                    }
+                }
+                Intent::Wheel { delta, .. } => {
+                    acc.consumed();
+                    if delta == 0 {
+                        continue;
+                    }
+                    let bounds = *committed_bounds.get_or_insert_with(|| {
+                        self.committed_wheel_bounds(frame, layout, st, items)
+                    });
+                    let Some(terminal) = bounds else {
+                        continue;
+                    };
+                    let current = st.first_index.min(terminal);
+                    let next = if delta > 0 {
+                        current.saturating_add(1).min(terminal)
+                    } else {
+                        current.saturating_sub(1)
+                    };
+                    if next != st.first_index {
+                        st.first_index = next;
+                        st.first = items.get(next).map(|_| self.key_at(items, next));
+                        st.manual_window_active = Some(st.active);
+                        acc.changed();
                     }
                 }
                 Intent::Pointer { phase, part, .. } => {
@@ -1940,16 +2160,46 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                         (Phase::Middle, _, _) => {}
                         (Phase::Click, Part::NEW, _) => acc.action(TabsAction::New),
                         (Phase::Click, Part::OVERFLOW, Some(ItemKey::Index(0))) => {
-                            let i = st.first_index.saturating_sub(1);
-                            st.first_index = i;
-                            st.first = (len > 0).then(|| self.key_at(items, i));
-                            acc.changed();
+                            let bounds = *committed_bounds.get_or_insert_with(|| {
+                                self.committed_wheel_bounds(frame, layout, st, items)
+                            });
+                            if let Some(terminal) = bounds {
+                                let next = st.first_index.min(terminal).saturating_sub(1);
+                                if next != st.first_index {
+                                    st.first_index = next;
+                                    st.first = items.get(next).map(|_| self.key_at(items, next));
+                                    st.manual_window_active = Some(st.active);
+                                    acc.changed();
+                                } else {
+                                    acc.consumed();
+                                }
+                            } else {
+                                let i = st.first_index.saturating_sub(1);
+                                st.first_index = i;
+                                st.first = (len > 0).then(|| self.key_at(items, i));
+                                acc.changed();
+                            }
                         }
                         (Phase::Click, Part::OVERFLOW, Some(ItemKey::Index(_))) => {
-                            let i = st.first_index.saturating_add(1).min(len.saturating_sub(1));
-                            st.first_index = i;
-                            st.first = (len > 0).then(|| self.key_at(items, i));
-                            acc.changed();
+                            let bounds = *committed_bounds.get_or_insert_with(|| {
+                                self.committed_wheel_bounds(frame, layout, st, items)
+                            });
+                            if let Some(terminal) = bounds {
+                                let next = st.first_index.saturating_add(1).min(terminal);
+                                if next != st.first_index {
+                                    st.first_index = next;
+                                    st.first = items.get(next).map(|_| self.key_at(items, next));
+                                    st.manual_window_active = Some(st.active);
+                                    acc.changed();
+                                } else {
+                                    acc.consumed();
+                                }
+                            } else {
+                                let i = st.first_index.saturating_add(1).min(len.saturating_sub(1));
+                                st.first_index = i;
+                                st.first = (len > 0).then(|| self.key_at(items, i));
+                                acc.changed();
+                            }
                         }
                         _ => acc.consumed(),
                     }
@@ -1978,7 +2228,14 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                 cx.request_repaint_after(Duration::from_millis(delay));
             }
         }
-        if let Some(l) = cx.layout(self.id) {
+        // The semantic marker survives derived-cache invalidation. In
+        // particular, Runtime resize can expose an Unknown frame with the
+        // preceding layout while the fresh plan is still pending. Unknown
+        // still cannot authorize wheel input; only a committed legacy update
+        // clears this marker before the guard.
+        let manual_window_owned =
+            manual_window_owns_follow(frame.kind, st.manual_window_active, st.active);
+        if !manual_window_owned && let Some(l) = layout {
             self.follow(st, items, l.viewport_len);
         }
         acc.finish(self.id)
@@ -2069,8 +2326,62 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
         reason = "one shared paint pass consumes either legacy rows or an owned semantic layout"
     )]
     fn draw_impl(&self, ui: &mut Ui<'_>, area: Rect, source: TabsRenderSource<'_, T>) -> Rect {
+        let mut wheel_frame = TabsWheelFrame::default();
+        match source {
+            TabsRenderSource::Legacy { items, .. } => {
+                wheel_frame.kind = TabsWheelFrameKind::Legacy;
+                wheel_frame.content_len = items.len();
+                wheel_frame.area = area;
+                wheel_frame.visible_area = area;
+            }
+            TabsRenderSource::Planned(layout) => {
+                wheel_frame.kind = TabsWheelFrameKind::Planned;
+                wheel_frame.content_len = layout.content_len;
+                wheel_frame.viewport_len = layout.viewport_len;
+                wheel_frame.rows = layout.used_area.height;
+                wheel_frame.cols = layout.used_area.width;
+                wheel_frame.first_index = layout.first_index;
+                wheel_frame.first_key = layout.first_key();
+                wheel_frame.last_key = layout
+                    .owned_items
+                    .as_ref()
+                    .and_then(|items| items.last())
+                    .map(|item| item.key);
+                wheel_frame.terminal_first_index = layout.terminal_first_index;
+                wheel_frame.area = layout.area;
+                wheel_frame.visible_area = layout.visible_area;
+                wheel_frame.eligible = !ui.is_inert()
+                    && !self.passive
+                    && !layout.passive
+                    && !layout.visible_area.is_empty()
+                    && layout.viewport_len > 0
+                    && layout
+                        .terminal_first_index
+                        .is_some_and(|terminal| terminal > 0 && terminal < layout.content_len);
+            }
+        }
+        *ui.cache::<TabsWheelFrame>(self.id) = wheel_frame;
         if area.is_empty() {
             return area;
+        }
+        if wheel_frame.eligible
+            && let TabsRenderSource::Planned(layout) = source
+            && let Some(terminal) = wheel_frame.terminal_first_index
+        {
+            let backward = u16::try_from(wheel_frame.first_index).unwrap_or(u16::MAX);
+            let forward =
+                u16::try_from(terminal.saturating_sub(wheel_frame.first_index)).unwrap_or(u16::MAX);
+            ui.register_scroll(
+                self.id,
+                layout.visible_area,
+                Axes::Both,
+                Headroom {
+                    up: backward,
+                    down: forward,
+                    left: backward,
+                    right: forward,
+                },
+            );
         }
         let len = match source {
             TabsRenderSource::Legacy { items, .. } => items.len(),
@@ -2873,10 +3184,24 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
         let terminal_first_index =
             self.find_terminal_first_index(area, clip, &owned_items, previous, &mut extent_scratch);
 
+        let requested_first_index = first_index;
+        let first_index = if state.manual_window_active == Some(state.active) {
+            terminal_first_index.map_or(first_index, |terminal| first_index.min(terminal))
+        } else {
+            first_index
+        };
+        let mut adjusted_state = None;
+        if first_index != requested_first_index {
+            let mut planned = state.clone();
+            planned.first_index = first_index;
+            planned.first = owned_items.get(first_index).map(|item| item.key);
+            adjusted_state = Some(planned);
+        }
+        let state_for_layout = adjusted_state.as_ref().map_or(state, |planned| planned);
         let mut layout = self.layout_default_from_owned(
             area,
             clip,
-            state,
+            state_for_layout,
             &owned_items,
             first_index,
             previous,
@@ -3493,6 +3818,8 @@ mod tests {
     use ratatui_core::buffer::{Buffer, Cell as BufferCell};
     use ratatui_core::layout::{Position, Rect};
     use ratatui_core::style::Modifier;
+    use termrock_runtime::hit::{RegionKind, Registry};
+    use termrock_runtime::layer::LayerId;
 
     use super::*;
     use crate::runtime::Runtime;
@@ -3506,6 +3833,75 @@ mod tests {
         width: 12,
         height: 2,
     };
+
+    fn assert_planned_regions_match_legacy(
+        planned: &Registry,
+        legacy: &Registry,
+        layout: &TabLayout,
+    ) {
+        let planned_generation = planned.generation();
+        let legacy_generation = legacy.generation();
+        assert!(
+            planned
+                .regions()
+                .iter()
+                .all(|region| region.generation == planned_generation)
+        );
+        assert!(
+            legacy
+                .regions()
+                .iter()
+                .all(|region| region.generation == legacy_generation)
+        );
+
+        let mut expected = legacy.regions().to_vec();
+        assert!(
+            expected
+                .iter()
+                .all(|region| region.kind != RegionKind::Scroll)
+        );
+        let scroll_is_eligible = !layout.passive
+            && !layout.visible_area.is_empty()
+            && layout.viewport_len > 0
+            && layout
+                .terminal_first_index
+                .is_some_and(|terminal| terminal > 0 && terminal < layout.content_len);
+        if scroll_is_eligible {
+            let terminal = layout
+                .terminal_first_index
+                .expect("eligible planned scrolling has a terminal first index");
+            let backward = u16::try_from(layout.first_index).unwrap_or(u16::MAX);
+            let forward =
+                u16::try_from(terminal.saturating_sub(layout.first_index)).unwrap_or(u16::MAX);
+            let mut expected_scroll = Registry::new(planned_generation);
+            expected_scroll.register_scroll(
+                TABS,
+                layout.visible_area,
+                LayerId::PAGE,
+                Axes::Both,
+                Headroom {
+                    up: backward,
+                    down: forward,
+                    left: backward,
+                    right: forward,
+                },
+            );
+            let scroll_region = *expected_scroll
+                .regions()
+                .first()
+                .expect("the expected planned scroll registration is present");
+            expected.insert(0, scroll_region);
+        }
+
+        let mut actual = planned.regions().to_vec();
+        for region in &mut actual {
+            region.generation = 0;
+        }
+        for region in &mut expected {
+            region.generation = 0;
+        }
+        assert_eq!(actual, expected);
+    }
 
     fn row_text(buf: &Buffer, width: u16) -> String {
         let mut text = String::new();
@@ -3893,7 +4289,7 @@ mod tests {
             })
             .commit_presented();
         assert_eq!(semantic_buf, legacy_buf);
-        assert_eq!(semantic.registry().regions(), legacy.registry().regions());
+        assert_planned_regions_match_legacy(semantic.registry(), legacy.registry(), &warm);
     }
 
     struct SegmentedDisplay;
@@ -4803,10 +5199,10 @@ mod tests {
                             .commit_presented();
 
                         assert_eq!(semantic, legacy, "cells differ for {area:?} / {clip:?}");
-                        assert_eq!(
-                            semantic_runtime.registry().regions(),
-                            legacy_runtime.registry().regions(),
-                            "parts differ for {area:?} / {clip:?}"
+                        assert_planned_regions_match_legacy(
+                            semantic_runtime.registry(),
+                            legacy_runtime.registry(),
+                            &layout,
                         );
                         assert_eq!(
                             semantic_runtime.cursor(),
@@ -5450,5 +5846,155 @@ mod tests {
                 assert_eq!(row_visits, 191);
             }
         }
+    }
+
+    #[test]
+    fn manual_window_marker_changes_equality_but_not_legacy_debug_shape() {
+        let ordinary = TabsState::default();
+        let mut manual = ordinary.clone();
+        manual.manual_window_active = Some(None);
+
+        assert_ne!(
+            ordinary, manual,
+            "manual follow changes the next update policy"
+        );
+        assert_eq!(ordinary, ordinary.clone());
+        assert_eq!(manual, manual.clone());
+        let old_shape = format!(
+            "TabsState {{ core: {:?}, active: {:?}, first: {:?}, first_index: {}, close_reveal_press: {:?} }}",
+            manual.core, manual.active, manual.first, manual.first_index, manual.close_reveal_press,
+        );
+        assert_eq!(format!("{manual:?}"), old_shape);
+        assert_eq!(format!("{manual:?}"), format!("{ordinary:?}"));
+        assert!(!format!("{manual:?}").contains("manual_window_active"));
+    }
+
+    #[test]
+    fn unknown_frame_preserves_manual_follow_but_cannot_authorize_wheel_bounds() {
+        let key = ItemKey::index(2);
+        assert!(manual_window_owns_follow(
+            TabsWheelFrameKind::Unknown,
+            Some(Some(key)),
+            Some(key),
+        ));
+        assert!(!manual_window_owns_follow(
+            TabsWheelFrameKind::Unknown,
+            None,
+            Some(key),
+        ));
+        assert!(!manual_window_owns_follow(
+            TabsWheelFrameKind::Legacy,
+            Some(Some(key)),
+            Some(key),
+        ));
+
+        let items = ["Overview", "Editor", "Terminal", "Metrics"];
+        let tabs = Tabs::new(TABS);
+        let state = TabsState {
+            active: Some(ItemKey::index(0)),
+            first: Some(key),
+            first_index: 2,
+            manual_window_active: Some(Some(ItemKey::index(0))),
+            ..TabsState::default()
+        };
+        let frame = TabsWheelFrame {
+            kind: TabsWheelFrameKind::Unknown,
+            eligible: true,
+            content_len: items.len(),
+            viewport_len: 2,
+            rows: 2,
+            cols: 12,
+            first_index: 2,
+            first_key: Some(key),
+            last_key: Some(ItemKey::index(3)),
+            terminal_first_index: Some(2),
+            area: Rect::new(0, 0, 12, 2),
+            visible_area: Rect::new(0, 0, 12, 2),
+        };
+        let old_layout = Some(LayoutFacts::new(2, items.len(), 2, 12));
+
+        assert_eq!(
+            tabs.committed_wheel_bounds(frame, old_layout, &state, &items),
+            None,
+            "Unknown remains ineligible even with otherwise matching old geometry"
+        );
+    }
+
+    #[test]
+    fn manual_window_owner_survives_same_key_and_reorder_but_clears_on_identity_loss() {
+        let first = ItemKey::num(10);
+        let second = ItemKey::num(20);
+        let third = ItemKey::num(30);
+        let mut state = TabsState {
+            active: Some(first),
+            manual_window_active: Some(Some(first)),
+            ..TabsState::default()
+        };
+
+        state.set_active(0, first);
+        assert_eq!(state.manual_window_active, Some(Some(first)));
+        state.set_active(1, second);
+        assert_eq!(state.manual_window_active, None);
+
+        state.manual_window_active = Some(Some(second));
+        let reordered = [second, first, third];
+        let _ = state.reconcile(reordered.len(), |index| reordered[index]);
+        assert_eq!(state.active(), Some(second));
+        assert_eq!(state.manual_window_active, Some(Some(second)));
+
+        let removed = [first, third];
+        let _ = state.reconcile(removed.len(), |index| removed[index]);
+        assert_ne!(state.active(), Some(second));
+        assert_eq!(state.manual_window_active, None);
+
+        state.manual_window_active = Some(state.active());
+        state.invalidate();
+        assert_eq!(state.manual_window_active, None);
+    }
+
+    #[test]
+    fn manual_default_plan_clamps_to_the_fresh_terminal_and_empty_plan_stays_legacy() {
+        let items = [
+            "Overview",
+            "Editor",
+            "Network",
+            "Terminal",
+            "History",
+            "Inspector",
+            "Settings",
+            "Plugins",
+            "Search",
+            "Tasks",
+            "Metrics",
+        ];
+        let tabs = Tabs::new(TABS).allow_new(true).closable(true);
+        let mut state = TabsState::default();
+        state.active = Some(ItemKey::index(0));
+        state.first = Some(ItemKey::index(items.len() - 1));
+        state.first_index = items.len() - 1;
+        state.manual_window_active = Some(state.active);
+        let area = Rect::new(0, 0, 48, 2);
+
+        let layout = tabs.layout_default(area, area, &state, &items, None);
+        let terminal = layout
+            .terminal_first_index
+            .expect("the fixture terminal is representable at 48 cells");
+        assert!(terminal > 0);
+        assert_eq!(layout.first_index(), terminal);
+        assert_eq!(layout.first_key(), Some(ItemKey::index(terminal)));
+
+        let fit_area = Rect::new(0, 0, 200, 2);
+        let fit = tabs.layout_default(fit_area, fit_area, &state, &items, None);
+        assert_eq!(fit.terminal_first_index, Some(0));
+        assert_eq!(
+            fit.first_index(),
+            0,
+            "fitting fresh geometry clamps to the start"
+        );
+
+        let empty = tabs.layout_default(Rect::new(0, 0, 0, 2), area, &state, &items, None);
+        assert_eq!(empty.first_index(), items.len() - 1);
+        assert_eq!(empty.terminal_first_index, None);
+        assert!(empty.owned_items.is_none());
     }
 }
