@@ -1566,6 +1566,267 @@ fn usage_enter_opens_the_read_only_detail_and_escape_closes_it() {
     assert_eq!(h.app().route(), Route::Usage);
 }
 
+fn assert_settings_general_body_matches(
+    h: &H,
+    width: u16,
+    height: u16,
+    trust_label: &str,
+    include_trust_pair: bool,
+) {
+    let facts = termrock::feedback::SettingsGeneralFacts::new(
+        "Claude Code",
+        "payments-platform",
+        "enabled",
+        "references only; resolved bytes are transient",
+        trust_label,
+    );
+    let mut expected = Scene::new(
+        "settings_general_body_app_reference",
+        Theme::junie(),
+        termrock::ColorLevel::TrueColor,
+        width,
+        height,
+    );
+    expected.draw(|ui, area| {
+        termrock::feedback::paint_settings_general_body(ui, area, &facts);
+    });
+    let rows = [
+        ("Default agent", "Claude Code", 6, 7),
+        ("Workspace", "payments-platform", 10, 11),
+        ("DCO signoff", "enabled", 14, 15),
+        (
+            "Secret policy",
+            "references only; resolved bytes are transient",
+            18,
+            19,
+        ),
+        ("Trust", trust_label, 22, 23),
+    ];
+    for (index, (label, value, label_y, value_y)) in rows.into_iter().enumerate() {
+        if index == 4 && !include_trust_pair {
+            continue;
+        }
+        for (text, row) in [(label, label_y), (value, value_y)] {
+            if row >= height {
+                continue;
+            }
+            for x in 4..4_u16
+                .saturating_add(u16::try_from(text.chars().count()).unwrap_or(u16::MAX))
+                .min(width)
+            {
+                let position = (x, row);
+                let actual = h.buffer().cell(position).expect("App General native cell");
+                let expected = expected
+                    .buffer()
+                    .cell(position)
+                    .expect("shared General native cell");
+                assert_eq!(actual.symbol(), expected.symbol(), "symbol at {position:?}");
+                assert_eq!(actual.fg, expected.fg, "foreground at {position:?}");
+                assert_eq!(actual.bg, expected.bg, "background at {position:?}");
+                assert_eq!(
+                    actual.modifier, expected.modifier,
+                    "modifiers at {position:?}"
+                );
+                assert_eq!(
+                    format!("{actual:?}"),
+                    format!("{expected:?}"),
+                    "complete native App cell at {position:?} for {width}x{height}"
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn settings_general_fallback_body_uses_shared_facts_and_native_save_lifecycle() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    h.key(KeyCode::Char('s'));
+    assert_eq!(h.app().route(), Route::Settings);
+    assert_eq!(h.app().settings.tab, 0);
+    let trust = jackin_preview_app::screens::settings::TRUST;
+    let trust_area = h
+        .harness
+        .area_of(trust)
+        .expect("native General Trust owner");
+    assert_eq!(trust_area, termrock::Rect::new(4, 33, 29, 1));
+
+    let trust_x = trust_area.x.saturating_add(trust_area.width / 2);
+    h.mouse(MouseKind::Down, trust_x, trust_area.y);
+    assert!(
+        h.harness
+            .state_of(trust)
+            .contains(termrock::StateFlags::PRESSED)
+    );
+    assert_eq!(h.harness.runtime().capture_owner(), None);
+    h.mouse(MouseKind::Up, trust_x, trust_area.y);
+    assert_eq!(
+        h.harness
+            .activation_feedback()
+            .map(|feedback| feedback.owner),
+        Some(trust)
+    );
+    assert!(h.app().settings.dirty, "Trust activation creates the draft");
+    assert_eq!(h.focus(), Some(trust));
+    assert_settings_general_body_matches(&h, 120, 40, "trusted · sources verified", true);
+
+    let save = jackin_preview_app::screens::settings::SAVE;
+    let save_area = h.harness.area_of(save).expect("native General Save owner");
+    assert_eq!(save_area, termrock::Rect::new(4, 34, 15, 1));
+    let save_x = save_area.x.saturating_add(save_area.width / 2);
+    h.mouse(MouseKind::Down, save_x, save_area.y);
+    assert!(
+        h.harness
+            .state_of(save)
+            .contains(termrock::StateFlags::PRESSED)
+    );
+    assert_eq!(h.harness.runtime().capture_owner(), None);
+    h.mouse(MouseKind::Up, save_x, save_area.y);
+    assert_eq!(
+        h.harness
+            .activation_feedback()
+            .map(|feedback| feedback.owner),
+        Some(save)
+    );
+    let confirm = jackin_preview_app::screens::settings::ROOT.sub("save-confirm");
+    assert_eq!(h.focus(), Some(confirm));
+    assert_eq!(
+        h.harness.area_of(confirm),
+        Some(termrock::Rect::new(24, 34, 16, 1))
+    );
+    assert!(h.text().contains("Save settings"), "{}", h.text());
+    assert_eq!(h.harness.runtime().capture_owner(), None);
+
+    h.key(KeyCode::Esc);
+    assert_eq!(h.harness.area_of(confirm), None);
+    assert_ne!(h.focus(), Some(confirm));
+    assert_eq!(h.harness.runtime().capture_owner(), None);
+    assert!(h.app().settings.dirty, "cancel keeps the General draft");
+    assert_settings_general_body_matches(&h, 120, 40, "trusted · sources verified", true);
+
+    h.app_mut().world.refresh_fails = true;
+    h.mouse(MouseKind::Down, save_x, save_area.y);
+    h.mouse(MouseKind::Up, save_x, save_area.y);
+    assert_eq!(h.focus(), Some(confirm));
+    assert_eq!(
+        h.harness.area_of(confirm),
+        Some(termrock::Rect::new(24, 34, 16, 1))
+    );
+    let confirm_area = h.harness.area_of(confirm).expect("save confirmation owner");
+    let confirm_x = confirm_area.x.saturating_add(confirm_area.width / 2);
+    h.mouse(MouseKind::Down, confirm_x, confirm_area.y);
+    assert!(
+        h.harness
+            .state_of(confirm)
+            .contains(termrock::StateFlags::PRESSED)
+    );
+    assert_eq!(h.harness.runtime().capture_owner(), None);
+    h.mouse(MouseKind::Up, confirm_x, confirm_area.y);
+    assert_eq!(
+        h.harness
+            .activation_feedback()
+            .map(|feedback| feedback.owner),
+        Some(confirm)
+    );
+    assert_eq!(h.app().route(), Route::Settings);
+    assert!(h.app().settings.dirty);
+    assert!(h.app().settings.save_error.is_some());
+    assert!(h.text().contains("Settings error"), "{}", h.text());
+    assert_eq!(h.harness.area_of(confirm), None);
+    assert_eq!(h.harness.runtime().capture_owner(), None);
+    assert_settings_general_body_matches(&h, 120, 40, "trusted · sources verified", true);
+    assert_eq!(h.harness.diagnostics(), []);
+}
+
+#[test]
+fn settings_general_short_fallback_keeps_native_trust_and_save_owners() {
+    let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 72, 20);
+    h.key(KeyCode::Char('s'));
+    assert_eq!(h.app().route(), Route::Settings);
+    assert_eq!(h.app().settings.tab, 0);
+    let trust = jackin_preview_app::screens::settings::TRUST;
+    let trust_area = h.harness.area_of(trust).expect("short General Trust owner");
+    assert_eq!(trust_area, termrock::Rect::new(4, 13, 29, 1));
+    let save = jackin_preview_app::screens::settings::SAVE;
+    let save_area = h.harness.area_of(save).expect("short General Save owner");
+    assert_eq!(save_area, termrock::Rect::new(4, 14, 15, 1));
+
+    // The historical DCO label at y=14 shares the Save row at this size.
+    // Preserve that presentation and prove the native owner remains usable.
+    let trust_x = trust_area.x.saturating_add(trust_area.width / 2);
+    h.mouse(MouseKind::Down, trust_x, trust_area.y);
+    assert!(
+        h.harness
+            .state_of(trust)
+            .contains(termrock::StateFlags::PRESSED)
+    );
+    h.mouse(MouseKind::Up, trust_x, trust_area.y);
+    assert_eq!(
+        h.harness
+            .activation_feedback()
+            .map(|feedback| feedback.owner),
+        Some(trust)
+    );
+    assert_eq!(h.focus(), Some(trust));
+    assert!(h.app().settings.dirty);
+    assert_eq!(h.harness.runtime().capture_owner(), None);
+
+    let save_x = save_area.x.saturating_add(save_area.width / 2);
+    h.mouse(MouseKind::Down, save_x, save_area.y);
+    assert!(
+        h.harness
+            .state_of(save)
+            .contains(termrock::StateFlags::PRESSED)
+    );
+    h.mouse(MouseKind::Up, save_x, save_area.y);
+    assert_eq!(
+        h.harness
+            .activation_feedback()
+            .map(|feedback| feedback.owner),
+        Some(save)
+    );
+    let confirm = jackin_preview_app::screens::settings::ROOT.sub("save-confirm");
+    assert_eq!(h.focus(), Some(confirm));
+    assert_eq!(
+        h.harness.area_of(confirm),
+        Some(termrock::Rect::new(24, 14, 16, 1))
+    );
+    h.key(KeyCode::Esc);
+    assert_eq!(h.harness.area_of(confirm), None);
+    assert_eq!(h.harness.runtime().capture_owner(), None);
+    assert!(h.app().settings.dirty);
+    assert_eq!(h.harness.diagnostics(), []);
+}
+
+#[test]
+fn settings_general_nonapproved_size_uses_body_and_approved_page_keeps_commits_trailers() {
+    let mut fallback = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 100, 30);
+    fallback.key(KeyCode::Char('s'));
+    assert_eq!(fallback.app().route(), Route::Settings);
+    assert_eq!(fallback.app().settings.tab, 0);
+    assert_settings_general_body_matches(&fallback, 100, 30, "untrusted · explicit prompt", true);
+    assert_eq!(fallback.harness.diagnostics(), []);
+
+    let mut approved = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);
+    approved.key(KeyCode::Char('s'));
+    assert_eq!(approved.app().route(), Route::Settings);
+    assert!(!approved.app().settings.dirty);
+    for expected in [
+        "Commits",
+        "Trailers",
+        "Add Co-authored-by trailer",
+        "Sign off commits (DCO)",
+        "Co-authored-by: <agent>",
+        "Signed-off-by: Alexey",
+    ] {
+        assert!(
+            approved.text().contains(expected),
+            "missing {expected:?}: {}",
+            approved.text()
+        );
+    }
+    assert_eq!(approved.harness.diagnostics(), []);
+}
+
 #[test]
 fn settings_route_s_paints_the_approved_settings_frame() {
     let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 40, 120, 40);

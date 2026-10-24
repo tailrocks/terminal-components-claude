@@ -45,6 +45,36 @@ pub struct SettingsMount<'a> {
     pub selected: bool,
 }
 
+/// Borrowed values for the fixed fact pairs on the General fallback body.
+#[derive(Clone, Copy, Debug)]
+#[non_exhaustive]
+pub struct SettingsGeneralFacts<'a> {
+    default_agent: &'a str,
+    workspace: &'a str,
+    dco_signoff: &'a str,
+    secret_policy: &'a str,
+    trust_label: &'a str,
+}
+
+impl<'a> SettingsGeneralFacts<'a> {
+    /// Create the five borrowed values shown by the General fallback body.
+    pub const fn new(
+        default_agent: &'a str,
+        workspace: &'a str,
+        dco_signoff: &'a str,
+        secret_policy: &'a str,
+        trust_label: &'a str,
+    ) -> Self {
+        Self {
+            default_agent,
+            workspace,
+            dco_signoff,
+            secret_policy,
+            trust_label,
+        }
+    }
+}
+
 #[derive(Clone, Copy)]
 pub struct SettingsCluster<'a> {
     pub note: &'a str,
@@ -726,6 +756,50 @@ pub fn paint_settings_agents_body(
         paint_settings_agents(ui, area, agents, &ink);
     });
     Ok(())
+}
+
+/// Paint the five fixed General label/value pairs without clearing surrounding cells.
+///
+/// Positions are relative to `area`, with labels at page-relative rows 6, 10,
+/// 14, 18, and 22 and their values on the following rows. The caller retains
+/// ownership of page chrome, controls, state, and any short-layout overlap.
+pub fn paint_settings_general_body(ui: &mut Ui<'_>, area: Rect, facts: &SettingsGeneralFacts<'_>) {
+    const SECONDARY: Color = Color::Rgb(0xb3, 0xb3, 0xb3);
+    const WHITE: Color = Color::Rgb(255, 255, 255);
+    const BLACK: Color = Color::Rgb(0, 0, 0);
+    let x = area.x.saturating_add(4);
+    let rows = [
+        ("Default agent", facts.default_agent, 6, 7),
+        ("Workspace", facts.workspace, 10, 11),
+        ("DCO signoff", facts.dco_signoff, 14, 15),
+        ("Secret policy", facts.secret_policy, 18, 19),
+        ("Trust", facts.trust_label, 22, 23),
+    ];
+
+    ui.with_area(area, |ui| {
+        for (label, value, label_row, value_row) in rows {
+            ui.paint_str(
+                Rect::new(
+                    x,
+                    area.y.saturating_add(label_row),
+                    u16::try_from(label.chars().count()).unwrap_or(u16::MAX),
+                    1,
+                ),
+                label,
+                PaintStyle::new().fg(SECONDARY).bg(BLACK),
+            );
+            ui.paint_str(
+                Rect::new(
+                    x,
+                    area.y.saturating_add(value_row),
+                    u16::try_from(value.chars().count()).unwrap_or(u16::MAX),
+                    1,
+                ),
+                value,
+                PaintStyle::new().fg(WHITE).bg(BLACK),
+            );
+        }
+    });
 }
 
 /// Paint only the fixed Trust content band within a Settings page area.
@@ -4044,6 +4118,245 @@ mod tests {
                     invalid_sentinel,
                     "invalid wrote ({x}, {y})"
                 );
+            }
+        }
+    }
+
+    fn paint_original_general_spans(ui: &mut Ui<'_>, area: Rect, facts: &SettingsGeneralFacts<'_>) {
+        const SECONDARY: Color = Color::Rgb(0xb3, 0xb3, 0xb3);
+        const WHITE: Color = Color::Rgb(255, 255, 255);
+        const BLACK: Color = Color::Rgb(0, 0, 0);
+        let x = area.x.saturating_add(4);
+        let rows = [
+            ("Default agent", facts.default_agent, 6, 7),
+            ("Workspace", facts.workspace, 10, 11),
+            ("DCO signoff", facts.dco_signoff, 14, 15),
+            ("Secret policy", facts.secret_policy, 18, 19),
+            ("Trust", facts.trust_label, 22, 23),
+        ];
+        for (label, value, label_row, value_row) in rows {
+            ui.paint_str(
+                Rect::new(
+                    x,
+                    area.y.saturating_add(label_row),
+                    u16::try_from(label.chars().count()).unwrap_or(u16::MAX),
+                    1,
+                ),
+                label,
+                PaintStyle::new().fg(SECONDARY).bg(BLACK),
+            );
+            ui.paint_str(
+                Rect::new(
+                    x,
+                    area.y.saturating_add(value_row),
+                    u16::try_from(value.chars().count()).unwrap_or(u16::MAX),
+                    1,
+                ),
+                value,
+                PaintStyle::new().fg(WHITE).bg(BLACK),
+            );
+        }
+    }
+
+    fn draw_general_body_case(
+        ui: &mut Ui<'_>,
+        area: Rect,
+        facts: &SettingsGeneralFacts<'_>,
+        shared: bool,
+    ) {
+        if shared {
+            paint_settings_general_body(ui, area, facts);
+        } else {
+            ui.with_area(area, |ui| paint_original_general_spans(ui, area, facts));
+        }
+    }
+
+    fn render_general_body_case(
+        width: u16,
+        height: u16,
+        color: ColorLevel,
+        area: Rect,
+        clip: Option<Rect>,
+        facts: &SettingsGeneralFacts<'_>,
+        shared: bool,
+    ) -> Scene {
+        let mut scene = Scene::new(
+            "settings_general_body_native_cells",
+            Theme::junie(),
+            color,
+            width,
+            height,
+        );
+        scene.draw(|ui, screen| {
+            ui.fill(
+                screen,
+                PaintStyle::new()
+                    .fg(Color::Rgb(0x13, 0x25, 0x37))
+                    .bg(Color::Rgb(0x42, 0x54, 0x66))
+                    .add_modifier(Modifier::BOLD | Modifier::ITALIC),
+            );
+            if let Some(clip) = clip {
+                ui.with_area(clip, |ui| draw_general_body_case(ui, area, facts, shared));
+            } else {
+                draw_general_body_case(ui, area, facts, shared);
+            }
+        });
+        scene
+    }
+
+    fn general_body_span_contains(
+        area: Rect,
+        facts: &SettingsGeneralFacts<'_>,
+        visible: Rect,
+        x: u16,
+        y: u16,
+    ) -> bool {
+        let first_x = area.x.saturating_add(4);
+        let rows = [
+            ("Default agent", facts.default_agent, 6, 7),
+            ("Workspace", facts.workspace, 10, 11),
+            ("DCO signoff", facts.dco_signoff, 14, 15),
+            ("Secret policy", facts.secret_policy, 18, 19),
+            ("Trust", facts.trust_label, 22, 23),
+        ];
+        for (label, value, label_row, value_row) in rows {
+            let label_y = area.y.saturating_add(label_row);
+            let value_y = area.y.saturating_add(value_row);
+            if y == label_y
+                && x >= first_x
+                && x < first_x
+                    .saturating_add(u16::try_from(label.chars().count()).unwrap_or(u16::MAX))
+            {
+                return visible.x <= x
+                    && x < visible.right()
+                    && visible.y <= y
+                    && y < visible.bottom();
+            }
+            if y == value_y
+                && x >= first_x
+                && x < first_x
+                    .saturating_add(u16::try_from(value.chars().count()).unwrap_or(u16::MAX))
+            {
+                return visible.x <= x
+                    && x < visible.right()
+                    && visible.y <= y
+                    && y < visible.bottom();
+            }
+        }
+        false
+    }
+
+    fn assert_general_cells_equal(left: &Scene, right: &Scene, width: u16, height: u16) {
+        for y in 0..height {
+            for x in 0..width {
+                let position = (x, y);
+                let actual = left.buffer().cell(position).expect("left native cell");
+                let expected = right.buffer().cell(position).expect("right native cell");
+                assert_eq!(actual.symbol(), expected.symbol(), "symbol at {position:?}");
+                assert_eq!(actual.fg, expected.fg, "foreground at {position:?}");
+                assert_eq!(actual.bg, expected.bg, "background at {position:?}");
+                assert_eq!(
+                    actual.modifier, expected.modifier,
+                    "modifiers at {position:?}"
+                );
+                assert_eq!(
+                    format!("{actual:?}"),
+                    format!("{expected:?}"),
+                    "complete native Cell debug at {position:?}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn general_body_matches_original_spans_without_clearing_underlay() {
+        let geometries = [
+            (80, 24, Rect::new(0, 0, 80, 24), None),
+            (120, 40, Rect::new(0, 0, 120, 40), None),
+            (100, 30, Rect::new(0, 0, 100, 30), None),
+            (72, 20, Rect::new(0, 0, 72, 20), None),
+            (80, 24, Rect::new(3, 2, 70, 20), None),
+            (
+                80,
+                24,
+                Rect::new(2, 1, 74, 22),
+                Some(Rect::new(8, 8, 35, 7)),
+            ),
+            (
+                80,
+                24,
+                Rect::new(4, 5, 60, 12),
+                Some(Rect::new(0, 0, 80, 24)),
+            ),
+            (80, 24, Rect::new(4, 4, 0, 0), None),
+            (80, 24, Rect::new(76, 22, 12, 8), None),
+            (80, 24, Rect::new(0, 0, 80, 24), Some(Rect::new(8, 9, 0, 4))),
+        ];
+        let colors = [
+            ColorLevel::TrueColor,
+            ColorLevel::Ansi256,
+            ColorLevel::Ansi16,
+            ColorLevel::Mono,
+        ];
+
+        for trusted in [false, true] {
+            let trust_label = if trusted {
+                "trusted · sources verified"
+            } else {
+                "untrusted · explicit prompt"
+            };
+            let facts = SettingsGeneralFacts::new(
+                "Claude Code",
+                "payments-platform",
+                "enabled",
+                "references only; resolved bytes are transient",
+                trust_label,
+            );
+            for color in colors {
+                for (width, height, area, clip) in geometries {
+                    let mut seed = Scene::new(
+                        "settings_general_body_seed",
+                        Theme::junie(),
+                        color,
+                        width,
+                        height,
+                    );
+                    seed.draw(|ui, screen| {
+                        ui.fill(
+                            screen,
+                            PaintStyle::new()
+                                .fg(Color::Rgb(0x13, 0x25, 0x37))
+                                .bg(Color::Rgb(0x42, 0x54, 0x66))
+                                .add_modifier(Modifier::BOLD | Modifier::ITALIC),
+                        );
+                    });
+                    let expected =
+                        render_general_body_case(width, height, color, area, clip, &facts, false);
+                    let actual =
+                        render_general_body_case(width, height, color, area, clip, &facts, true);
+                    assert_general_cells_equal(&actual, &expected, width, height);
+
+                    let screen = Rect::new(0, 0, width, height);
+                    let visible = area
+                        .intersection(screen)
+                        .intersection(clip.unwrap_or(screen));
+                    for y in 0..height {
+                        for x in 0..width {
+                            if general_body_span_contains(area, &facts, visible, x, y) {
+                                continue;
+                            }
+                            let position = (x, y);
+                            let painted =
+                                actual.buffer().cell(position).expect("painted native cell");
+                            let untouched = seed.buffer().cell(position).expect("seed native cell");
+                            assert_eq!(
+                                format!("{painted:?}"),
+                                format!("{untouched:?}"),
+                                "shared General body touched outside its authored spans at {position:?} for {width}x{height}"
+                            );
+                        }
+                    }
+                }
             }
         }
     }
