@@ -18,6 +18,75 @@ pub fn expand_home(path: &str) -> String {
     path.replacen('~', HOME, 1)
 }
 
+/// Build the deterministic simulated file snapshot used by the Files route.
+///
+/// This fixture is data only; it never inspects the host filesystem. The empty
+/// scratch scenario stays empty, while other starting directories contain a
+/// small tree with hidden, Unicode, unreadable, and broken-link entries.
+pub fn files_for_cwd(cwd: &str) -> crate::files::FilesSnapshot {
+    use crate::files::{FileEntry, FilesSnapshot};
+
+    fn add_directory_chain(snapshot: &mut FilesSnapshot, cwd: &str) {
+        if cwd.starts_with("~/") || cwd == "~" {
+            snapshot.insert(FileEntry::directory("~"));
+            let mut current = "~".to_owned();
+            let suffix = if cwd == "~" {
+                ""
+            } else {
+                cwd.trim_start_matches("~/")
+            };
+            for segment in suffix.split('/').filter(|part| !part.is_empty()) {
+                current = FilesSnapshot::join(&current, segment);
+                snapshot.insert(FileEntry::directory(current.clone()));
+            }
+        } else {
+            snapshot.insert(FileEntry::directory("/"));
+            let mut current = "/".to_owned();
+            for segment in cwd
+                .trim_start_matches('/')
+                .split('/')
+                .filter(|part| !part.is_empty())
+            {
+                current = FilesSnapshot::join(&current, segment);
+                snapshot.insert(FileEntry::directory(current.clone()));
+            }
+        }
+    }
+
+    let cwd = if cwd.is_empty() {
+        "/"
+    } else {
+        cwd.trim_end_matches('/')
+    };
+    let cwd = if cwd.is_empty() { "/" } else { cwd };
+    let mut snapshot = FilesSnapshot::new();
+    add_directory_chain(&mut snapshot, cwd);
+    if cwd.ends_with("/empty") || cwd == "~" || cwd == "/" {
+        return snapshot;
+    }
+
+    let archive = FilesSnapshot::join(cwd, "archive");
+    let drafts = FilesSnapshot::join(cwd, "drafts");
+    let private = FilesSnapshot::join(cwd, "restricted");
+    snapshot.insert(FileEntry::directory(archive.clone()));
+    snapshot.insert(FileEntry::directory(drafts.clone()));
+    snapshot.insert(FileEntry::directory(private).unreadable());
+    snapshot.insert(FileEntry::file(FilesSnapshot::join(cwd, ".notes-index")));
+    snapshot.insert(FileEntry::file(FilesSnapshot::join(cwd, "README.md")));
+    snapshot.insert(FileEntry::file(FilesSnapshot::join(cwd, "résumé.txt")));
+    snapshot.insert(FileEntry::symlink(
+        FilesSnapshot::join(cwd, "broken-shortcut"),
+        FilesSnapshot::join(cwd, "missing-target"),
+    ));
+    snapshot.insert(FileEntry::file(FilesSnapshot::join(&archive, "2025.txt")));
+    snapshot.insert(FileEntry::file(FilesSnapshot::join(
+        &drafts,
+        "meeting-notes.md",
+    )));
+    snapshot.insert(FileEntry::file(FilesSnapshot::join(&drafts, "秘密.md")));
+    snapshot
+}
+
 pub fn cwd_for(scenario: Scenario) -> &'static str {
     match scenario {
         Scenario::FirstUse => "~/scratch/empty",

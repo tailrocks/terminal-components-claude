@@ -42,6 +42,9 @@ const ACTIONS: ActionKey = ActionKey::application("holla.actions");
 const TOP_FILES: ActionKey = ActionKey::application("holla.top-files");
 const CLEANUP_REVIEW: ActionKey = ActionKey::application("holla.cleanup-review");
 const FOLDER_BROWSER: ActionKey = ActionKey::application("holla.folder-browser");
+const FILES_OPEN: ActionKey = ActionKey::application("holla.files.open-directory");
+const FILES_PARENT: ActionKey = ActionKey::application("holla.files.parent-directory");
+const FILES_HIDDEN: ActionKey = ActionKey::application("holla.files.toggle-hidden");
 const HOME_FIND: ActionKey = ActionKey::application("holla.home-find");
 const CUSTOM_ACTION: ActionKey = ActionKey::application("holla.custom-action");
 const SNAPSHOT_PAGE: ActionKey = ActionKey::application("holla.snapshot-page");
@@ -160,6 +163,12 @@ fn opening_route(scenario: Scenario) -> Route {
         Screen::Finder | Screen::Plan => Route::Home,
     }
 }
+#[derive(Clone, Copy)]
+struct ReturnLocation {
+    route: Route,
+    focus: Option<Id>,
+}
+
 enum Overlay {
     Dialog(Box<ProductDialog>),
     Clone(ClonePicker),
@@ -175,6 +184,8 @@ pub struct App {
     home: HomeState,
     plan: Option<PlanState>,
     activities: Activities,
+    files: files::State,
+    files_return: Option<ReturnLocation>,
     overlay: Option<Overlay>,
     retired_overlay: Option<Overlay>,
     menu: MenuState,
@@ -1243,6 +1254,15 @@ impl App {
         self
     }
 
+    /// Use an explicit simulated file snapshot for a read-only Files browser.
+    ///
+    /// The snapshot is owned by this app instance and never reads the host filesystem.
+    #[must_use]
+    pub fn with_files_snapshot(mut self, snapshot: crate::sim::FilesSnapshot) -> Self {
+        self.files = files::State::new(snapshot, &self.world.cwd);
+        self
+    }
+
     pub fn effect_revision(&self) -> u64 {
         self.world.effect_revision
     }
@@ -1299,6 +1319,8 @@ impl App {
         }
         let mut home = HomeState::default();
         home.history = crate::sim::catalogue::history_enabled();
+        let file_snapshot = crate::sim::fixtures::files_for_cwd(&world.cwd);
+        let files = files::State::new(file_snapshot, &world.cwd);
         Self {
             world,
             source_theme: None,
@@ -1307,6 +1329,8 @@ impl App {
             home,
             plan: None,
             activities,
+            files,
+            files_return: None,
             overlay: None,
             retired_overlay: None,
             menu: MenuState::default(),
@@ -1381,12 +1405,27 @@ impl App {
             cx.focus(activity::output_id(id));
         }
     }
+    fn capture_return_location(&self, cx: &Cx<'_>) -> ReturnLocation {
+        ReturnLocation {
+            route: self.route,
+            focus: cx.focused_in_scope(termrock::ScopeId::ROOT),
+        }
+    }
+
     fn command(&mut self, command: ActionKey, cx: &mut Cx<'_>) {
         match command {
             HELP => self.open_dialog(dialogs::Intent::Help, cx),
             TOP_FILES => self.open_dialog(dialogs::Intent::TopFiles, cx),
             CLEANUP_REVIEW => self.open_dialog(dialogs::Intent::CleanupReview, cx),
-            FOLDER_BROWSER => self.open_dialog(dialogs::Intent::FolderBrowser, cx),
+            FOLDER_BROWSER => {
+                if self.route != Route::Files {
+                    self.files_return = Some(self.capture_return_location(cx));
+                }
+                self.open_dialog(dialogs::Intent::FolderBrowser, cx);
+            }
+            FILES_OPEN if self.route == Route::Files => self.files.open_selected(),
+            FILES_PARENT if self.route == Route::Files => self.files.go_parent(),
+            FILES_HIDDEN if self.route == Route::Files => self.files.toggle_hidden(),
             HOME_FIND => self.open_dialog(dialogs::Intent::HomeFind, cx),
             CUSTOM_ACTION => self.open_dialog(dialogs::Intent::CustomAction, cx),
             SNAPSHOT_PAGE => self.open_dialog(dialogs::Intent::SnapshotPage, cx),
@@ -1549,11 +1588,20 @@ impl App {
         };
         let (response, closed) = match &mut overlay {
             Overlay::Dialog(dialog) => {
+                let is_folder_browser = dialog.is_folder_browser();
                 let (response, event) = dialog.update(cx, &mut self.world);
                 let closed = event.is_some();
                 if let Some(event) = event {
                     match event {
-                        dialogs::Event::Close => {}
+                        dialogs::Event::Close => {
+                            if is_folder_browser && self.route != Route::Files {
+                                self.files_return = None;
+                            }
+                        }
+                        dialogs::Event::BrowseFiles => {
+                            self.route = Route::Files;
+                            cx.focus(files::LIST);
+                        }
                         dialogs::Event::Quit => self.quit = true,
                         dialogs::Event::Destination(destination) => {
                             self.destination(*destination, cx);
@@ -2163,6 +2211,20 @@ impl App {
                 self.keymap.add_before_typing(home::QUERY, chord, command);
             }
         }
+        let files_bindings = [
+            (Chord::key(KeyCode::Right), FILES_OPEN),
+            (Chord::key(KeyCode::Left), FILES_PARENT),
+            (Chord::key(KeyCode::Backspace), FILES_PARENT),
+            (Chord::key(KeyCode::Char('h')), FILES_HIDDEN),
+        ];
+        for (chord, _) in files_bindings {
+            self.keymap.remove(KeyPhase::Capture, chord);
+        }
+        if self.route == Route::Files && self.overlay.is_none() && !self.menu.is_open() {
+            for (chord, command) in files_bindings {
+                self.keymap.add(KeyPhase::Capture, chord, command);
+            }
+        }
         let escape = Chord::key(KeyCode::Esc);
         self.keymap.remove(KeyPhase::Capture, escape);
         if self.route == Route::Home
@@ -2241,9 +2303,10 @@ impl App {
             .as_mut()
             .map_or_else(|| (Response::ignored(), None), |plan| plan.update(cx));
         let activity_response = self.activities.update(&self.world, cx);
+        let files_response = self.files.update(cx);
         let mut menu = menu_bar().update(cx, &mut self.menu);
         let brand = brand().update(cx);
-        let controls = retired | home_response | plan_response | activity_response;
+        let controls = retired | home_response | plan_response | activity_response | files_response;
         if too_small(cx.viewport()) {
             let overlay = self
                 .overlay
@@ -2337,7 +2400,11 @@ impl termrock::App for App {
             && !self.menu.is_open()
             && !too_small(cx.viewport())
             && cx.activation_key().is_some();
+        let route_before_update = self.route;
         let response = self.update_controls(cx);
+        if route_before_update == Route::Files && self.route != Route::Files {
+            self.files_return = None;
+        }
         if plan_key && response.is_consumed() {
             if matches!(self.overlay, Some(Overlay::Gate(_))) {
                 cx.flash_activation(gate_dialog().input_id());
@@ -2402,7 +2469,7 @@ impl termrock::App for App {
             Route::Disk => {
                 disk::draw(&self.world, ui, body);
             }
-            Route::Files => files::draw(&self.world, ui, body),
+            Route::Files => files::draw(&self.files, ui, body),
             Route::Cleanup => cleanup::draw(&self.world, ui, body),
             Route::Review => review::draw(&self.world, ui, body),
             Route::Snapshot => snapshot::draw(&self.world, ui, body),
@@ -2426,6 +2493,18 @@ impl termrock::App for App {
         &self.keymap
     }
     fn on_esc(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        if self.route == Route::Files {
+            if let Some(location) = self.files_return.take() {
+                self.route = location.route;
+                if let Some(focus) = location.focus {
+                    cx.focus(focus);
+                }
+            } else {
+                self.route = Route::Home;
+                cx.focus(home::QUERY);
+            }
+            return Response::changed();
+        }
         if self.route != Route::Home {
             self.route = Route::Home;
             cx.focus(home::QUERY);
@@ -5963,3 +6042,7 @@ mod independent_draw_review {
         let _ = count;
     }
 }
+
+#[cfg(test)]
+#[path = "app/files_tests.rs"]
+mod files_tests;

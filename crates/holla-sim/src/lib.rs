@@ -1,11 +1,13 @@
 pub mod catalogue;
 pub mod clock;
+pub mod files;
 pub mod fixtures;
 pub mod pg;
 pub mod plans;
 pub mod scenario;
 pub mod world;
 
+pub use files::{FileEntry, FileKind, FilesError, FilesSnapshot};
 pub use fixtures::world_for;
 pub use scenario::{Motion, Scenario};
 pub use world::World;
