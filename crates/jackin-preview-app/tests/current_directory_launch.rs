@@ -309,18 +309,146 @@ fn nonfirst_workspace_launch_uses_selected_workspace() {
     set_only_global_claude_default(&mut h, "cwd-global");
     make_workspace_offer(&mut h, target.id, "selected-workspace");
     let initial_instances = h.app().world.instances.len();
+    let initial_daemons = h.app().world.daemons.len();
 
     open_agent_picker(&mut h, &ManagerRowKey::Workspace(target.id));
+    assert!(
+        h.text().contains("infra-control-plane › chainargos/sre"),
+        "Workspace default role is captured in the real picker: {}",
+        h.text()
+    );
+    assert!(h.text().contains("Claude Code"), "{}", h.text());
+    assert!(
+        h.text().contains("selected-workspace"),
+        "Workspace account offer remains available: {}",
+        h.text()
+    );
     choose_claude(&mut h);
     finish_launch(&mut h);
     let instance = launched_instance(&h);
     assert_eq!(instance.workspace, Some(target.id));
+    assert_eq!(instance.role, "chainargos/sre");
     assert_eq!(instance.workdir, target.workdir);
     assert_eq!(
         instance.accounts.first().map(String::as_str),
         Some("selected-workspace")
     );
     assert_eq!(h.app().world.instances.len(), initial_instances + 1);
+    assert_eq!(h.app().world.daemons.len(), initial_daemons + 1);
+}
+
+#[test]
+fn workspace_without_default_uses_its_last_role() {
+    let mut h = harness();
+    let target_id = 4;
+    let target = h
+        .app()
+        .world
+        .workspace(target_id)
+        .expect("customer portal workspace")
+        .clone();
+    assert_eq!(target.roles.default, None);
+    assert_eq!(target.roles.last.as_deref(), Some("local/writer"));
+    for instance in &mut h.app_mut().world.instances {
+        if instance.workspace == Some(target.id) {
+            instance.status = InstanceStatus::FailedSetup;
+        }
+    }
+    h.app_mut().world.cwd = "/tmp/unmounted/current".into();
+    set_only_global_claude_default(&mut h, "cwd-global");
+    make_workspace_offer(&mut h, target.id, "selected-workspace");
+    let initial_instances = h.app().world.instances.len();
+    let initial_daemons = h.app().world.daemons.len();
+
+    open_agent_picker(&mut h, &ManagerRowKey::Workspace(target.id));
+    assert!(
+        h.text().contains("customer-portal › local/writer"),
+        "last role is captured in the real picker: {}",
+        h.text()
+    );
+    assert!(h.text().contains("Claude Code"), "{}", h.text());
+    assert!(
+        h.text().contains("selected-workspace"),
+        "Workspace account offer remains available: {}",
+        h.text()
+    );
+    choose_claude(&mut h);
+    finish_launch(&mut h);
+    let instance = launched_instance(&h);
+    assert_eq!(instance.workspace, Some(target.id));
+    assert_eq!(instance.role, "local/writer");
+    assert_eq!(instance.workdir, target.workdir);
+    assert_eq!(
+        instance.accounts.first().map(String::as_str),
+        Some("selected-workspace")
+    );
+    assert_eq!(h.app().world.instances.len(), initial_instances + 1);
+    assert_eq!(h.app().world.daemons.len(), initial_daemons + 1);
+}
+
+#[test]
+fn workspace_without_role_history_uses_architect_fallback() {
+    let mut h = harness();
+    let target_id = 1;
+    {
+        let target = h
+            .app_mut()
+            .world
+            .workspace_mut(target_id)
+            .expect("payments workspace");
+        target.roles.default = None;
+        target.roles.last = None;
+    }
+    let target = h
+        .app()
+        .world
+        .workspace(target_id)
+        .expect("payments workspace")
+        .clone();
+    for instance in &mut h.app_mut().world.instances {
+        if instance.workspace == Some(target.id) {
+            instance.status = InstanceStatus::FailedSetup;
+        }
+    }
+    h.app_mut().world.cwd = "/tmp/unmounted/current".into();
+    set_only_global_claude_default(&mut h, "cwd-global");
+    make_workspace_offer(&mut h, target.id, "selected-workspace");
+    let initial_instances = h.app().world.instances.len();
+    let initial_daemons = h.app().world.daemons.len();
+
+    open_agent_picker(&mut h, &ManagerRowKey::Workspace(target.id));
+    assert!(
+        h.text()
+            .contains("payments-platform › chainargos/the-architect"),
+        "architect fallback is captured in the real picker: {}",
+        h.text()
+    );
+    assert!(
+        h.area_of_part(
+            manager::AGENT_PICKER,
+            PartRef::item(Part::ROW, ItemKey::text("claude")),
+        )
+        .is_some(),
+        "Claude is a real registered picker item: {}",
+        h.text()
+    );
+    assert!(
+        h.text().contains("selected-workspace"),
+        "Workspace account offer remains available: {}",
+        h.text()
+    );
+    choose_claude(&mut h);
+    finish_launch(&mut h);
+    let instance = launched_instance(&h);
+    assert_eq!(instance.workspace, Some(target.id));
+    assert_eq!(instance.role, "chainargos/the-architect");
+    assert_eq!(instance.workdir, target.workdir);
+    assert_eq!(
+        instance.accounts.first().map(String::as_str),
+        Some("selected-workspace")
+    );
+    assert_eq!(h.app().world.instances.len(), initial_instances + 1);
+    assert_eq!(h.app().world.daemons.len(), initial_daemons + 1);
 }
 
 #[test]

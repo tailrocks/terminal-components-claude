@@ -2,6 +2,8 @@ use crate::domain::workspace::{Workspace, WorkspaceId};
 use crate::screens::manager::ManagerRowKey;
 use crate::sim::world::World;
 
+const DEFAULT_MANAGER_ROLE: &str = "chainargos/the-architect";
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) enum LaunchContextError {
     TargetChanged,
@@ -38,18 +40,36 @@ pub(super) struct LaunchContext {
 }
 
 impl LaunchContext {
-    pub(super) fn for_manager(world: &World, row: &ManagerRowKey, role: &str) -> Option<Self> {
-        let target = match row {
-            ManagerRowKey::Workspace(id) => LaunchTarget::Workspace(world.workspace(*id)?.clone()),
-            ManagerRowKey::CurrentDirectory => LaunchTarget::CurrentDirectory {
-                raw_cwd: world.cwd.clone(),
-                workspace: world.cwd_workspace().cloned(),
-            },
+    pub(super) fn for_manager(
+        world: &World,
+        row: &ManagerRowKey,
+        explicit_role: Option<&str>,
+    ) -> Option<Self> {
+        let (target, default_role) = match row {
+            ManagerRowKey::Workspace(id) => {
+                let workspace = world.workspace(*id)?;
+                (
+                    LaunchTarget::Workspace(workspace.clone()),
+                    workspace
+                        .roles
+                        .default
+                        .as_deref()
+                        .or(workspace.roles.last.as_deref())
+                        .unwrap_or(DEFAULT_MANAGER_ROLE),
+                )
+            }
+            ManagerRowKey::CurrentDirectory => (
+                LaunchTarget::CurrentDirectory {
+                    raw_cwd: world.cwd.clone(),
+                    workspace: world.cwd_workspace().cloned(),
+                },
+                DEFAULT_MANAGER_ROLE,
+            ),
             ManagerRowKey::Instance(_) | ManagerRowKey::NewWorkspace => return None,
         };
         Some(Self {
             target,
-            role: role.to_owned(),
+            role: explicit_role.unwrap_or(default_role).to_owned(),
         })
     }
 
@@ -200,12 +220,8 @@ mod tests {
         )];
         world.workspaces[1] = mounted.clone();
         world.cwd = cwd.to_owned();
-        let context = LaunchContext::for_manager(
-            &world,
-            &ManagerRowKey::CurrentDirectory,
-            "chainargos/the-architect",
-        )
-        .expect("CurrentDirectory launch context");
+        let context = LaunchContext::for_manager(&world, &ManagerRowKey::CurrentDirectory, None)
+            .expect("CurrentDirectory launch context");
         assert_eq!(context.workspace(), Some(&mounted));
         assert_eq!(context.workspace_id(), Some(mounted.id));
         assert_eq!(context.workdir(), mounted.workdir);
@@ -229,8 +245,9 @@ mod tests {
     fn context_preserves_the_exact_selected_role() {
         let world = world_for(Scenario::Returning);
         let role = "chainargos/backend";
-        let context = LaunchContext::for_manager(&world, &ManagerRowKey::CurrentDirectory, role)
-            .expect("CurrentDirectory launch context");
+        let context =
+            LaunchContext::for_manager(&world, &ManagerRowKey::CurrentDirectory, Some(role))
+                .expect("CurrentDirectory launch context");
 
         assert_eq!(context.role(), role);
         assert!(context.validate(&world).is_ok());
@@ -240,15 +257,81 @@ mod tests {
     fn unsaved_current_directory_uses_global_context_and_safe_basename() {
         let mut world = world_for(Scenario::Returning);
         world.cwd = "/".to_owned();
-        let context = LaunchContext::for_manager(
-            &world,
-            &ManagerRowKey::CurrentDirectory,
-            "chainargos/the-architect",
-        )
-        .expect("CurrentDirectory launch context");
+        let context = LaunchContext::for_manager(&world, &ManagerRowKey::CurrentDirectory, None)
+            .expect("CurrentDirectory launch context");
         assert_eq!(context.workspace(), None);
         assert_eq!(context.workdir(), "/workspace/current-directory");
         assert_eq!(context.container(), "jackin-current-directory");
         assert!(context.validate(&world).is_ok());
+    }
+
+    #[test]
+    fn workspace_role_policy_prefers_default_then_last_then_architect() {
+        let mut world = world_for(Scenario::Returning);
+        let workspace_id = 2;
+        let workspace = world.workspace_mut(workspace_id).expect("infra workspace");
+        workspace.roles.default = Some("chainargos/backend".into());
+        workspace.roles.last = Some("chainargos/sre".into());
+
+        let row = ManagerRowKey::Workspace(workspace_id);
+        let context = LaunchContext::for_manager(&world, &row, None).expect("workspace context");
+        assert_eq!(context.role(), "chainargos/backend");
+
+        world
+            .workspace_mut(workspace_id)
+            .expect("infra workspace")
+            .roles
+            .default = None;
+        let context = LaunchContext::for_manager(&world, &row, None).expect("workspace context");
+        assert_eq!(context.role(), "chainargos/sre");
+
+        world
+            .workspace_mut(workspace_id)
+            .expect("infra workspace")
+            .roles
+            .last = None;
+        let context = LaunchContext::for_manager(&world, &row, None).expect("workspace context");
+        assert_eq!(context.role(), DEFAULT_MANAGER_ROLE);
+    }
+
+    #[test]
+    fn current_directory_keeps_architect_for_a_matched_workspace() {
+        let mut world = world_for(Scenario::Returning);
+        let workspace = world.workspace_mut(1).expect("payments workspace");
+        workspace.roles.default = Some("chainargos/backend".into());
+        workspace.roles.last = Some("chainargos/reviewer".into());
+
+        let context = LaunchContext::for_manager(&world, &ManagerRowKey::CurrentDirectory, None)
+            .expect("CurrentDirectory context");
+
+        assert_eq!(context.workspace_id(), Some(1));
+        assert_eq!(context.role(), DEFAULT_MANAGER_ROLE);
+    }
+
+    #[test]
+    fn explicit_role_overrides_policy_and_unavailable_roles_are_not_replaced() {
+        let mut world = world_for(Scenario::Returning);
+        let row = ManagerRowKey::Workspace(2);
+        let explicit = LaunchContext::for_manager(&world, &row, Some("chainargos/backend"))
+            .expect("workspace context");
+        assert_eq!(explicit.role(), "chainargos/backend");
+        assert!(explicit.validate(&world).is_ok());
+
+        let missing_explicit =
+            LaunchContext::for_manager(&world, &row, Some("missing/role")).expect("context");
+        assert_eq!(
+            missing_explicit.validate(&world),
+            Err(LaunchContextError::RoleUnavailable)
+        );
+
+        let workspace = world.workspace_mut(2).expect("infra workspace");
+        workspace.roles.default = Some("missing/default".into());
+        workspace.roles.last = Some("chainargos/backend".into());
+        let invalid_default = LaunchContext::for_manager(&world, &row, None).expect("context");
+        assert_eq!(invalid_default.role(), "missing/default");
+        assert_eq!(
+            invalid_default.validate(&world),
+            Err(LaunchContextError::RoleUnavailable)
+        );
     }
 }
