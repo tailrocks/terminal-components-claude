@@ -45,6 +45,7 @@ use crate::sim::launch::{BUILD_LOG, LaunchEvent, LaunchPlan, LaunchRun, Stage};
 use crate::sim::provider;
 use crate::sim::pty::{Daemon, Maximized, Pane, PaneId, PaneNode, SplitDir, Tab};
 use crate::sim::world::{World, world_for};
+use launch_target::{LaunchContext, LaunchContextError};
 
 #[derive(Debug, Clone)]
 struct ManagerRow {
@@ -366,6 +367,7 @@ mod capsule_zoom_view;
 
 mod launch_cockpit;
 mod launch_dialog_plate;
+mod launch_target;
 mod manager_detail;
 mod manager_detail_drawer_view;
 mod manager_frame_view;
@@ -651,6 +653,8 @@ pub struct App {
     role_state: PickerState,
     agent_state: PickerState,
     launch_picker_open: bool,
+    pending_launch_context: Option<LaunchContext>,
+    active_launch_context: Option<LaunchContext>,
     account_state: PickerState,
     roles: Vec<RoleOption>,
     agent_options: Vec<AgentOption>,
@@ -794,6 +798,12 @@ impl App {
                 run.trace_label = "run-202609030914-b5df".into();
             }
         }
+        let active_launch_context = launch.as_ref().map(|_| {
+            let role = roles
+                .get(selected_role)
+                .map_or("chainargos/the-architect", |role| role.key.as_str());
+            LaunchContext::seeded(&world, role)
+        });
         let manager_header_running = world.running_count();
         let manager_header = format!(
             "Current directory · {} · {} running",
@@ -872,6 +882,8 @@ impl App {
             role_state: PickerState::default(),
             agent_state: PickerState::default(),
             launch_picker_open: false,
+            pending_launch_context: None,
+            active_launch_context,
             account_state: PickerState::default(),
             roles,
             agent_options: Vec::new(),
@@ -925,8 +937,14 @@ impl App {
             add_form_required: false,
         };
         app.handle_launch_events(launch_events);
-        if app.launch.as_ref().is_some_and(|run| run.done) {
-            app.materialize_launch();
+        if app.launch.as_ref().is_some_and(|run| run.done)
+            && let Err(error) = app.materialize_launch()
+        {
+            app.launch = None;
+            app.active_launch_context = None;
+            app.route = Route::Manager;
+            app.handoff_frame = None;
+            app.status = Some(error.status().into());
         }
         if app.route == Route::Handoff {
             app.cockpit.handoff.start();
@@ -1195,31 +1213,24 @@ impl App {
         Response::changed()
     }
 
-    fn launch_candidates(&self) -> Vec<AgentOption> {
-        let workspace = self
-            .manager
-            .selected()
-            .or_else(|| self.world.workspaces.first().map(|workspace| workspace.id));
-        let workspace_ref = workspace.and_then(|id| self.world.workspace(id));
-        let role = self.selected_role();
+    fn launch_candidates_for(&self, context: &LaunchContext) -> Vec<AgentOption> {
+        let workspace = context.workspace();
+        let role = context.role();
 
         self.world
-            .offered_agents(workspace_ref, Some(role))
+            .offered_agents(workspace, Some(role))
             .into_iter()
             .map(|(agent, offer)| {
                 let glyph = if agent.registerable() { "▪" } else { "·" };
                 let (detail, tag) = match (&offer.preselected, &offer.blocked) {
                     (Some(id), _) => {
                         let acc = self.world.accounts.get(id);
-                        let r = self.world.account_for(
-                            agent.provider(),
-                            workspace_ref,
-                            Some(role),
-                            None,
-                        );
+                        let resolved =
+                            self.world
+                                .account_for(agent.provider(), workspace, Some(role), None);
                         let more = self
                             .world
-                            .eligible_accounts(agent, workspace_ref, Some(role))
+                            .eligible_accounts(agent, workspace, Some(role))
                             .len()
                             .saturating_sub(1);
                         let more_str = if more > 0 {
@@ -1229,7 +1240,7 @@ impl App {
                         };
                         let acc_title = acc.map_or_else(|| id.clone(), |a| a.title());
                         (
-                            format!("account {acc_title} · {}{more_str}", r.level_label()),
+                            format!("account {acc_title} · {}{more_str}", resolved.level_label()),
                             Some(if more > 0 { "choose at start" } else { "ready" }),
                         )
                     }
@@ -1252,46 +1263,55 @@ impl App {
     }
 
     fn launch_available(&self) -> bool {
-        let id = self
-            .manager
-            .selected()
-            .or_else(|| self.world.workspaces.first().map(|workspace| workspace.id));
-        let workspace = id.and_then(|id| self.world.workspace(id));
-        self.world.has_offered_agents(workspace)
+        LaunchContext::for_manager(
+            &self.world,
+            self.manager.selected_row(),
+            self.selected_role(),
+        )
+        .is_some_and(|context| self.world.has_offered_agents(context.workspace()))
     }
 
     fn activate_selected_manager_row(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        if let Some(instance_id) = self.selected_instance_id()
-            && self
-                .world
-                .instance(&instance_id)
-                .is_some_and(|instance| instance.status.reconnectable())
-        {
-            self.active_instance = Some(instance_id);
-            self.route = Route::Capsule;
-            self.capsule_interaction.focus_pane();
-            self.sync_capsule_projection();
-            if let Some(pane) = self
-                .active_running_instance_id()
-                .and_then(|id| self.world.daemons.get(&id))
-                .and_then(|daemon| daemon.focused_pane())
-            {
-                self.capsule_viewport_focused = true;
-                cx.focus(Self::capsule_viewport_id(pane));
+        let selected = self.manager.selected_row().clone();
+        match selected.clone() {
+            ManagerRowKey::CurrentDirectory => self.open_agent_picker(cx),
+            ManagerRowKey::NewWorkspace => {
+                self.pending_launch_context = None;
+                self.route = Route::Prelude;
+                self.prelude = PreludeState::default();
             }
-        } else if matches!(
-            self.manager.selected_row(),
-            ManagerRowKey::Workspace(_)
-                | ManagerRowKey::CurrentDirectory
-                | ManagerRowKey::NewWorkspace
-        ) {
-            self.open_agent_picker(cx);
+            ManagerRowKey::Workspace(_) | ManagerRowKey::Instance(_) => {
+                if let Some(instance_id) = self.selected_instance_id()
+                    && self
+                        .world
+                        .instance(&instance_id)
+                        .is_some_and(|instance| instance.status.reconnectable())
+                {
+                    self.active_instance = Some(instance_id);
+                    self.route = Route::Capsule;
+                    self.capsule_interaction.focus_pane();
+                    self.sync_capsule_projection();
+                    if let Some(pane) = self
+                        .active_running_instance_id()
+                        .and_then(|id| self.world.daemons.get(&id))
+                        .and_then(|daemon| daemon.focused_pane())
+                    {
+                        self.capsule_viewport_focused = true;
+                        cx.focus(Self::capsule_viewport_id(pane));
+                    }
+                } else if matches!(selected, ManagerRowKey::Workspace(_)) {
+                    self.open_agent_picker(cx);
+                }
+            }
         }
         Response::changed()
     }
 
     fn selected_instance_id(&self) -> Option<String> {
-        if self.world.scenario == Scenario::Returning && self.motion == Motion::Paused {
+        if matches!(self.manager.selected_row(), ManagerRowKey::Workspace(_))
+            && self.world.scenario == Scenario::Returning
+            && self.motion == Motion::Paused
+        {
             return Some("jk-7f3a".to_owned());
         }
         match self.manager.selected_row() {
@@ -1362,15 +1382,10 @@ impl App {
             .set_active(active_tab, ItemKey::index(active_tab));
     }
 
-    fn refresh_cockpit_account_line(&mut self, agent: Agent) {
-        let workspace = self.world.workspaces.first().or_else(|| {
-            self.manager
-                .selected()
-                .and_then(|id| self.world.workspace(id))
-        });
+    fn refresh_cockpit_account_line(&mut self, agent: Agent, context: &LaunchContext) {
         let labels = self
             .world
-            .offer_for(agent, workspace, Some(self.selected_role()))
+            .offer_for(agent, context.workspace(), Some(context.role()))
             .accounts
             .into_iter()
             .filter_map(|id| self.world.accounts.get(&id).map(Account::title));
@@ -1529,15 +1544,14 @@ impl App {
     }
 
     fn launch_agent_picker(&self) -> Picker<'static, AgentOption> {
-        let workspace = self
-            .manager
-            .selected()
-            .or_else(|| self.world.workspaces.first().map(|workspace| workspace.id));
-        let workspace_name = workspace
-            .and_then(|id| self.world.workspace(id))
-            .map(|ws| ws.name.as_str())
-            .unwrap_or("payments-platform");
-        let scope = format!("{} › {}", workspace_name, self.selected_role());
+        let scope = self
+            .pending_launch_context
+            .as_ref()
+            .or(self.active_launch_context.as_ref())
+            .map_or_else(
+                || format!("Current directory › {}", self.selected_role()),
+                LaunchContext::scope_label,
+            );
 
         Picker::new(crate::screens::manager::AGENT_PICKER)
             .title("Launch · choose Agent")
@@ -2259,6 +2273,8 @@ impl App {
     fn acknowledge_launch_failure(&mut self) {
         let run_id = self.launch.as_ref().map(|run| run.run_id);
         self.launch = None;
+        self.active_launch_context = None;
+        self.pending_launch_context = None;
         self.route = Route::Manager;
         self.ensure_manager_rows();
         if let Some(run_id) = run_id {
@@ -2669,12 +2685,27 @@ impl App {
     }
 
     fn open_agent_picker(&mut self, cx: &mut Cx<'_>) {
-        self.agent_options = self.launch_candidates();
+        self.pending_launch_context = None;
+        self.agent_options.clear();
+        let Some(context) = LaunchContext::for_manager(
+            &self.world,
+            self.manager.selected_row(),
+            self.selected_role(),
+        ) else {
+            self.status = Some("Select a workspace or current directory to launch".into());
+            return;
+        };
+        if let Err(error) = context.validate(&self.world) {
+            self.status = Some(error.status().into());
+            return;
+        }
+        self.agent_options = self.launch_candidates_for(&context);
         self.agent_state = PickerState::default();
         if self.agent_options.is_empty() {
             self.status = Some("No configured agent account is available".into());
             return;
         }
+        self.pending_launch_context = Some(context);
         let picker = self.launch_agent_picker();
         let spec = picker.layer(cx, &self.agent_options);
         cx.open_layer(crate::screens::manager::AGENT_PICKER, spec);
@@ -3104,7 +3135,27 @@ impl App {
     }
 
     fn begin_launch(&mut self) {
-        self.begin_launch_with(self.launch_agent, self.launch_account.clone());
+        let retry = self
+            .launch
+            .as_ref()
+            .is_some_and(|run| run.failure.is_some());
+        let context = if retry {
+            self.active_launch_context.clone()
+        } else {
+            self.pending_launch_context.clone().or_else(|| {
+                LaunchContext::for_manager(
+                    &self.world,
+                    self.manager.selected_row(),
+                    self.selected_role(),
+                )
+            })
+        };
+        let Some(context) = context else {
+            self.status = Some("Select a workspace or current directory to launch".into());
+            return;
+        };
+        let account = retry.then(|| self.launch_account.clone()).flatten();
+        self.begin_launch_with(self.launch_agent, account, context);
     }
 
     fn next_launch_run_id(&self) -> crate::RunId {
@@ -3120,34 +3171,62 @@ impl App {
         crate::RunId::new(value)
     }
 
-    fn begin_launch_with(&mut self, agent: Agent, account: Option<String>) {
+    fn begin_launch_with(&mut self, agent: Agent, account: Option<String>, context: LaunchContext) {
+        if let Err(error) = context.validate(&self.world) {
+            self.pending_launch_context = None;
+            self.status = Some(error.status().into());
+            return;
+        }
+        let eligible = self
+            .world
+            .offer_for(agent, context.workspace(), Some(context.role()))
+            .accounts;
+        let account = match account {
+            Some(account) if eligible.contains(&account) => Some(account),
+            Some(_) => {
+                self.pending_launch_context = None;
+                self.status = Some(LaunchContextError::AccountUnavailable.status().into());
+                return;
+            }
+            None => eligible.first().cloned(),
+        };
+        let Some(account) = account else {
+            self.pending_launch_context = None;
+            self.status = Some(LaunchContextError::AccountUnavailable.status().into());
+            return;
+        };
+
         let plan = if self.world.scenario == Scenario::LaunchFailure {
             LaunchPlan::FailNetwork
         } else {
             LaunchPlan::Clean
         };
+        let container = context.container();
         self.launch = Some(LaunchRun::new(
             plan,
             agent,
-            "jackin-payments-platform",
+            &container,
             self.next_launch_run_id(),
         ));
         self.launch_agent = agent;
-        self.launch_account = account;
-        self.refresh_cockpit_account_line(agent);
+        self.launch_account = Some(account);
+        self.active_launch_context = Some(context.clone());
+        self.pending_launch_context = None;
+        self.refresh_cockpit_account_line(agent, &context);
         self.cockpit.handoff = Default::default();
         self.route = Route::Cockpit;
         self.handoff_frame = None;
-        self.status = Some(format!(
-            "Queued {} · {}",
-            self.selected_role(),
-            plan_label(plan)
-        ));
+        self.status = Some(format!("Queued {} · {}", context.role(), plan_label(plan)));
     }
 
-    fn materialize_launch(&mut self) {
+    fn materialize_launch(&mut self) -> Result<(), LaunchContextError> {
+        let context = self
+            .active_launch_context
+            .clone()
+            .ok_or(LaunchContextError::TargetChanged)?;
+        context.validate(&self.world)?;
         let Some(run) = self.launch.as_ref() else {
-            return;
+            return Err(LaunchContextError::TargetChanged);
         };
         let run_id = run.run_id;
         if self
@@ -3156,23 +3235,28 @@ impl App {
             .iter()
             .any(|instance| instance.run_id == run_id)
         {
-            return;
+            return Ok(());
         }
 
         let agent = run.agent;
         let container = run.container.clone();
-        let role = self.selected_role().to_owned();
-        let workspace = self.world.workspaces.first().cloned();
+        if container != context.container() {
+            return Err(LaunchContextError::TargetChanged);
+        }
+        let role = context.role().to_owned();
+        let workspace = context.workspace().cloned();
         let mut accounts = self
             .world
             .offer_for(agent, workspace.as_ref(), Some(&role))
             .accounts;
-        if let Some(account) = self.launch_account.clone()
-            && self.world.accounts.get(&account).is_some()
-        {
-            accounts.retain(|id| id != &account);
-            accounts.insert(0, account);
-        }
+        let requested = self.launch_account.as_ref().or_else(|| accounts.first());
+        let Some(requested) = requested.filter(|account| accounts.contains(account)) else {
+            return Err(LaunchContextError::AccountUnavailable);
+        };
+        let selected = requested.clone();
+        accounts.retain(|id| id != &selected);
+        accounts.insert(0, selected);
+
         let now_ms = self.world.now_ms();
         let now_secs = self.world.now_secs();
 
@@ -3207,10 +3291,8 @@ impl App {
         );
         instance.id = self.world.new_instance_id();
         instance.container = container;
-        instance.workspace = workspace.as_ref().map(|workspace| workspace.id);
-        instance.workdir = workspace
-            .as_ref()
-            .map_or_else(String::new, |workspace| workspace.workdir.clone());
+        instance.workspace = context.workspace_id();
+        instance.workdir = context.workdir();
         instance.role = role;
         instance.agent = agent;
         instance.created_secs = now_secs;
@@ -3220,9 +3302,10 @@ impl App {
         let instance_id = instance.id.clone();
         self.world.daemons.insert(instance_id.clone(), daemon);
         self.world.instances.push(instance);
-        self.active_instance = Some(instance_id.clone());
+        self.active_instance = Some(instance_id);
         self.world.sync_arbiter();
         self.manager_rows_cache.clear();
+        Ok(())
     }
 
     fn capsule_input() -> TextInput<'static> {
@@ -4154,6 +4237,8 @@ impl App {
                     self.cancel_open = false;
                     self.cancel_from_x = false;
                     self.launch = None;
+                    self.active_launch_context = None;
+                    self.pending_launch_context = None;
                     self.route = Route::Manager;
                     self.status = Some("Launch cancelled · nothing was attached".into());
                     cx.focus(MANAGER_LIST);
@@ -4368,14 +4453,18 @@ impl App {
                 Some(ActionKey::CONFIRM),
             );
             if option.blocked {
+                self.pending_launch_context = None;
                 self.status = Some(format!("{} unavailable · {}", option.label, option.detail));
+            } else if let Some(context) = self.pending_launch_context.clone() {
+                self.begin_launch_with(option.agent, option.account, context);
             } else {
-                self.begin_launch_with(option.agent, option.account);
+                self.status = Some(LaunchContextError::TargetChanged.status().into());
             }
             result |= Response::changed();
         }
         if !cx.is_open(crate::screens::manager::AGENT_PICKER) {
             self.launch_picker_open = false;
+            self.pending_launch_context = None;
         }
 
         let picker = self.active_account_picker();
@@ -5316,12 +5405,23 @@ impl App {
                     self.status = Some(format!("{} failed", failure.stage.label()));
                     self.launch_failure_open = true;
                 }
-                LaunchEvent::Ready => {
-                    self.materialize_launch();
-                    self.status = Some("Capsule ready".into());
-                    self.route = Route::Handoff;
-                    self.handoff_frame = Some(0);
-                }
+                LaunchEvent::Ready => match self.materialize_launch() {
+                    Ok(()) => {
+                        self.status = Some("Capsule ready".into());
+                        self.route = Route::Handoff;
+                        self.handoff_frame = Some(0);
+                    }
+                    Err(error) => {
+                        self.launch = None;
+                        self.active_launch_context = None;
+                        self.pending_launch_context = None;
+                        self.route = Route::Manager;
+                        self.handoff_frame = None;
+                        self.status = Some(error.status().into());
+                        self.manager_rows_cache.clear();
+                        break;
+                    }
+                },
                 LaunchEvent::StageChanged(stage_kind, step_state) => {
                     self.status = Some(format!("{} · {}", stage_kind.label(), step_state.label()));
                 }
@@ -10903,6 +11003,8 @@ impl App {
             && let Some(route) = navigation_route
             && !self.account_form_owns_input(cx)
         {
+            self.pending_launch_context = None;
+            self.launch_picker_open = false;
             self.route = route;
             self.status = None;
             manager_detail::close_off_route_state(self);
