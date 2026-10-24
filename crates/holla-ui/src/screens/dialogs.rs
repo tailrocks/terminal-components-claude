@@ -14,6 +14,7 @@ use termrock::{
 pub(crate) const DIALOG: Id = Id::root("holla.dialog");
 const CODE: Id = Id::root("holla.dialog.code");
 const TERMINATE: ActionKey = ActionKey::application("holla.pg.terminate");
+const BROWSE_FILES: ActionKey = ActionKey::application("holla.folder-browser.browse");
 
 pub(crate) enum Intent {
     About,
@@ -44,6 +45,7 @@ pub(crate) enum Intent {
 }
 pub(crate) enum Event {
     Close,
+    BrowseFiles,
     Quit,
     Destination(Box<Destination>),
 }
@@ -348,6 +350,10 @@ impl ProductDialog {
             Intent::FolderBrowser => {
                 view.title = "Folder browser".into();
                 view.facts = vec![facts_row("Directory", world.cwd.clone())];
+                view.actions = vec![
+                    UiAction::quiet(ActionKey::CANCEL, "Close"),
+                    UiAction::new(BROWSE_FILES, "Browse"),
+                ];
             }
             Intent::HomeFind => {
                 view.title = "Find in home".into();
@@ -444,6 +450,10 @@ impl ProductDialog {
     }
     pub(crate) fn is_editing(&self) -> bool {
         self.dialog.is_editing()
+    }
+
+    pub(crate) fn is_folder_browser(&self) -> bool {
+        matches!(self.intent, Intent::FolderBrowser)
     }
 
     pub(crate) fn open(&self, cx: &mut Cx<'_>) {
@@ -576,11 +586,17 @@ impl ProductDialog {
                     Err(error) => notice(error.to_string()),
                 }
             }
+            Intent::FolderBrowser => {
+                if key == BROWSE_FILES {
+                    Event::BrowseFiles
+                } else {
+                    Event::Close
+                }
+            }
             Intent::About
             | Intent::Help
             | Intent::TopFiles
             | Intent::CleanupReview
-            | Intent::FolderBrowser
             | Intent::HomeFind
             | Intent::CustomAction
             | Intent::SnapshotPage
