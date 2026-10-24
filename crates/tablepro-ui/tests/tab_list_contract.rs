@@ -574,3 +574,192 @@ fn query_tab_detail_uses_its_last_execution_status() {
         harness.diagnostics()
     );
 }
+
+fn assert_tab_list_margin_geometry(
+    h: &Harness<TableProApp>,
+    expected: (u16, u16, u16, u16),
+) -> Result<(), &'static str> {
+    use termrock::{Part, PartRef};
+
+    let Some(area) = h.layer_area(TAB_LIST) else {
+        return Err("tab-list layer remains open");
+    };
+    assert_eq!((area.x, area.y, area.width, area.height), expected);
+    if h.focus() != Some(TAB_LIST) || h.ring().entry(TAB_LIST).is_none() {
+        return Err("tab-list query owner remains focused and registered");
+    }
+    if h.area_of_part(TAB_LIST, PartRef::of(Part::BORDER))
+        .is_none()
+        || h.find("Filter tabs").is_none()
+        || h.find("Delete Close tab").is_none()
+    {
+        return Err("tab-list border, query, and hint remain visible");
+    }
+    Ok(())
+}
+
+fn assert_last_tab_row_visible(
+    h: &Harness<TableProApp>,
+    last_key: termrock::ItemKey,
+) -> Result<(), &'static str> {
+    use termrock::{Part, PartRef};
+
+    if h.area_of_part(TAB_LIST, PartRef::item(Part::ROW, last_key))
+        .is_none()
+    {
+        return Err("selected tail tab row remains registered after resize");
+    }
+    if !h.text().contains("Query 12") {
+        return Err("selected tail tab remains visible");
+    }
+    Ok(())
+}
+
+#[test]
+fn tab_list_margin_tracks_selection_through_short_resize_and_escape() -> Result<(), &'static str> {
+    use termrock::{ItemKey, Part, PartRef};
+
+    let mut app = TableProApp::new();
+    if !app.connect(0) {
+        return Err("production connection");
+    }
+    let Some(first_key) = app.workbench.active_key() else {
+        return Err("initial query tab");
+    };
+    let mut last_key = first_key;
+    for index in 1..12 {
+        let Some(key) = app.workbench.new_query(format!("SELECT {index}")) else {
+            return Err("twelve-tab geometry fixture");
+        };
+        last_key = key;
+    }
+    if !app.workbench.activate(first_key) {
+        return Err("activate first query before opening tab list");
+    }
+
+    let mut h = Harness::new(app, Theme::junie(), 120, 40);
+    let _ = h.ctrl('g');
+    assert_tab_list_margin_geometry(&h, (28, 10, 64, 19))?;
+    if h.area_of_part(
+        TAB_LIST,
+        PartRef::item(Part::ROW, ItemKey::num(last_key.get())),
+    )
+    .is_none()
+    {
+        return Err("tab-list tail row is registered before resize");
+    }
+    let picker_focus = h.focus();
+    for _ in 0..11 {
+        let _ = h.key(KeyCode::Down);
+    }
+
+    let _ = h.resize(120, 20);
+    assert_tab_list_margin_geometry(&h, (28, 1, 64, 18))?;
+    assert_last_tab_row_visible(&h, ItemKey::num(last_key.get()))?;
+    assert_eq!(h.focus(), picker_focus);
+
+    let _ = h.resize(120, 21);
+    assert_tab_list_margin_geometry(&h, (28, 1, 64, 19))?;
+    assert_last_tab_row_visible(&h, ItemKey::num(last_key.get()))?;
+    assert_eq!(h.focus(), picker_focus);
+    assert_eq!(h.app().workbench.active_key(), Some(first_key));
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+
+    let _ = h.resize(120, 24);
+    assert_tab_list_margin_geometry(&h, (28, 2, 64, 19))?;
+    let _ = h.resize(120, 40);
+    assert_tab_list_margin_geometry(&h, (28, 10, 64, 19))?;
+    assert_eq!(h.focus(), picker_focus);
+    let _ = h.key(KeyCode::Enter);
+    assert!(h.layer_area(TAB_LIST).is_none());
+    assert_eq!(h.app().workbench.active_key(), Some(last_key));
+    assert_eq!(h.focus(), Some(last_key.control("query")));
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+
+    let _ = h.ctrl('g');
+    let _ = h.resize(120, 20);
+    assert_tab_list_margin_geometry(&h, (28, 1, 64, 18))?;
+    let _ = h.key(KeyCode::Esc);
+    assert!(h.layer_area(TAB_LIST).is_none());
+    assert_eq!(h.focus(), Some(last_key.control("query")));
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+    Ok(())
+}
+
+#[test]
+fn tab_list_preserves_query_and_selection_across_minimum_width_resize() -> Result<(), &'static str>
+{
+    use termrock::{ItemKey, Part, PartRef};
+
+    let mut app = TableProApp::new();
+    if !app.connect(0) {
+        return Err("production connection");
+    }
+    let Some(active_before) = app.workbench.active_key() else {
+        return Err("initial active tab");
+    };
+    let mut last_key = active_before;
+    for index in 1..12 {
+        let Some(key) = app.workbench.new_query(format!("SELECT {index}")) else {
+            return Err("twelve-tab fixture");
+        };
+        last_key = key;
+    }
+    if !app.workbench.activate(active_before) {
+        return Err("activate the initial tab before opening the list");
+    }
+
+    let mut h = Harness::new(app, Theme::junie(), 72, 40);
+    let _ = h.ctrl('g');
+    let Some(narrow) = h.layer_area(TAB_LIST) else {
+        return Err("Ctrl+G opens at the narrow viewport");
+    };
+    assert_eq!(
+        (narrow.x, narrow.y, narrow.width, narrow.height),
+        (4, 10, 64, 19)
+    );
+    assert_eq!(h.focus(), Some(TAB_LIST));
+    assert!(h.ring().entry(TAB_LIST).is_some());
+
+    let _ = h.type_str("Query 12");
+    let last_item = ItemKey::num(last_key.get());
+    assert!(h.text().contains("Query 12"), "{}", h.text());
+    assert!(h.cursor().is_some(), "tab-list query cursor is visible");
+    assert!(
+        h.area_of_part(TAB_LIST, PartRef::item(Part::ROW, last_item))
+            .is_some()
+    );
+    assert_eq!(h.app().workbench.active_key(), Some(active_before));
+
+    let _ = h.resize(120, 40);
+    let Some(wide) = h.layer_area(TAB_LIST) else {
+        return Err("tab list remains open after a real Resize input");
+    };
+    assert_eq!((wide.x, wide.y, wide.width, wide.height), (28, 10, 64, 19));
+    assert_eq!(h.focus(), Some(TAB_LIST));
+    assert!(h.ring().entry(TAB_LIST).is_some());
+    assert!(
+        h.cursor().is_some(),
+        "tab-list query cursor remains visible after reflow"
+    );
+    let _ = h.type_str("x");
+    assert!(
+        h.text().contains("Query 12x"),
+        "the caret remains after the query: {}",
+        h.text()
+    );
+    let _ = h.key(KeyCode::Backspace);
+    assert!(h.text().contains("Query 12"), "{}", h.text());
+    assert!(
+        h.area_of_part(TAB_LIST, PartRef::item(Part::ROW, last_item))
+            .is_some()
+    );
+    assert_eq!(h.app().workbench.active_key(), Some(active_before));
+
+    let _ = h.key(KeyCode::Enter);
+    assert!(h.layer_area(TAB_LIST).is_none());
+    assert_eq!(h.app().workbench.active_key(), Some(last_key));
+    assert_eq!(h.focus(), Some(last_key.control("query")));
+    assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+    Ok(())
+}
