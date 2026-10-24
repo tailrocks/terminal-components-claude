@@ -1,4 +1,4 @@
-use crate::domain::disk::Freshness;
+use crate::domain::disk::{Candidate, DiskState, Freshness};
 use crate::domain::docker::{ContainerState, Health};
 use crate::domain::effect::Mutation;
 use crate::domain::human_bytes;
@@ -227,6 +227,43 @@ pub fn plan_for(w: &World, action_id: &str) -> Option<ReviewedPlan> {
         id if id.starts_with("docker.restart:") => restart_service(w, &id[15..]),
         _ => None,
     }?;
+    Some(ReviewedPlan::new(plan, w))
+}
+
+/// Build the existing disk-reclaim review for an exact nonempty subset of the current inventory.
+///
+/// The full inventory is validated; duplicate or absent candidate paths and ActiveToday rows are refused.
+/// This path-only API cannot detect metadata changes at an unchanged path before construction, so
+/// callers must compare their complete opening inventory and context. The resulting review then
+/// binds its full target for approval.
+pub fn plan_for_disk_selection(w: &World, selected_paths: &[String]) -> Option<ReviewedPlan> {
+    let disk = w.disk.as_ref()?;
+    disk.validate(&w.cwd).ok()?;
+    if selected_paths.is_empty() {
+        return None;
+    }
+
+    let mut selected = std::collections::BTreeSet::<&str>::new();
+    for path in selected_paths {
+        if !selected.insert(path.as_str()) {
+            return None;
+        }
+    }
+    let selected_count = disk
+        .candidates
+        .iter()
+        .filter(|candidate| selected.contains(candidate.path.as_str()))
+        .count();
+    if selected_count != selected.len()
+        || disk.candidates.iter().any(|candidate| {
+            selected.contains(candidate.path.as_str())
+                && candidate.freshness == Freshness::ActiveToday
+        })
+    {
+        return None;
+    }
+
+    let plan = disk_reclaim_plan(w, disk, Some(&selected))?;
     Some(ReviewedPlan::new(plan, w))
 }
 
@@ -490,6 +527,22 @@ fn docker_cleanup(w: &World) -> Option<Plan> {
 fn disk_reclaim(w: &World) -> Option<Plan> {
     let disk = w.disk.as_ref()?;
     disk.validate(&w.cwd).ok()?;
+    disk_reclaim_plan(w, disk, None)
+}
+
+fn disk_reclaim_plan(
+    w: &World,
+    disk: &DiskState,
+    selected_paths: Option<&std::collections::BTreeSet<&str>>,
+) -> Option<Plan> {
+    let candidates: Vec<&Candidate> = disk
+        .candidates
+        .iter()
+        .filter(|candidate| {
+            selected_paths.is_none_or(|selected| selected.contains(candidate.path.as_str()))
+        })
+        .collect();
+    let selected_subset = selected_paths.is_some();
     let host = w.host.name.clone();
     let mut steps = vec![
         PlanStep::new(
@@ -507,7 +560,7 @@ fn disk_reclaim(w: &World) -> Option<Plan> {
             disk.used_percent()
         )]),
     ];
-    for c in &disk.candidates {
+    for c in &candidates {
         let title = format!("Remove {}", basename(&c.path));
         let step = PlanStep::new(
             &format!("rm:{}", c.path),
@@ -516,7 +569,7 @@ fn disk_reclaim(w: &World) -> Option<Plan> {
             &c.freshness.label(),
             &[0],
         )
-        .succeeds_with(vec![Mutation::RemoveDisk(c.clone())]);
+        .succeeds_with(vec![Mutation::RemoveDisk((*c).clone())]);
         let step = match c.freshness {
             Freshness::ActiveToday => step.policy_skipped("active today · never removed"),
             _ => step,
@@ -529,20 +582,36 @@ fn disk_reclaim(w: &World) -> Option<Plan> {
             .lines(&["df -h /", "free space recounted · next scan is honest"]),
     );
 
-    let reclaim: u64 = disk
-        .candidates
-        .iter()
-        .filter(|c| !matches!(c.freshness, Freshness::ActiveToday))
-        .map(|c| c.size_bytes)
-        .sum();
+    let reclaim = crate::domain::accounting::bytes(
+        candidates
+            .iter()
+            .filter(|candidate| !matches!(candidate.freshness, Freshness::ActiveToday))
+            .map(|candidate| candidate.size_bytes),
+    )
+    .ok()?;
+    let (title, will_change) = if selected_subset {
+        (
+            "Reclaim selected disk space",
+            format!(
+                "deletes {} across {} selected candidates · unselected candidates stay",
+                human_bytes(reclaim),
+                candidates.len()
+            ),
+        )
+    } else {
+        (
+            "Reclaim disk space",
+            format!(
+                "deletes {} of generated artifacts · active-today artifacts stay",
+                human_bytes(reclaim)
+            ),
+        )
+    };
     Plan::try_new(PlanSpec {
         action_id: "disk.reclaim".into(),
-        title: "Reclaim disk space".into(),
+        title: title.into(),
         phrase: format!("DELETE GENERATED ARTIFACTS ON {host}"),
-        will_change: format!(
-            "deletes {} of generated artifacts · active-today artifacts stay",
-            human_bytes(reclaim)
-        ),
+        will_change,
         host,
         steps,
         effect: Some(PlanEffect::DiskReclaim),
@@ -1027,6 +1096,107 @@ mod tests {
             .find(|s| matches!(s.state, StepState::PolicySkipped(_)))
             .unwrap();
         assert!(active.title.contains("node_modules"));
+    }
+
+    #[test]
+    fn disk_selected_subset_reclaims_only_the_exact_unknown_candidate() {
+        let mut world = settled(Scenario::DiskCleanup);
+        let original = world.disk.as_ref().unwrap().clone();
+        let selected = original
+            .candidates
+            .iter()
+            .find(|candidate| candidate.path == "~/work/shop/.gradle")
+            .unwrap()
+            .clone();
+        assert_eq!(selected.freshness, Freshness::Unknown);
+        let selected_paths = vec![selected.path.clone()];
+        let mut review = plan_for_disk_selection(&world, &selected_paths).unwrap();
+
+        let plan = review.plan();
+        assert_eq!(plan.action_id(), "disk.reclaim");
+        assert_eq!(plan.phrase(), "DELETE GENERATED ARTIFACTS ON devbox");
+        assert_eq!(
+            plan.will_change(),
+            format!(
+                "deletes {} across 1 selected candidates · unselected candidates stay",
+                human_bytes(selected.size_bytes)
+            )
+        );
+        assert_eq!(plan.steps().len(), 3);
+        assert_eq!(plan.steps()[1].id, format!("rm:{}", selected.path));
+        assert_eq!(plan.steps()[1].branch, "activity unknown");
+        assert_eq!(
+            plan.steps()[1].success_effects,
+            vec![Mutation::RemoveDisk(selected.clone())]
+        );
+
+        let untouched: Vec<_> = original
+            .candidates
+            .iter()
+            .filter(|candidate| candidate.path != selected.path)
+            .cloned()
+            .collect();
+        let report = execute_review(&mut review, &mut world);
+        let disk = world.disk.as_ref().unwrap();
+        assert_eq!(report.reclaimed_bytes, selected.size_bytes);
+        assert_eq!(report.applied_steps.len(), 1);
+        assert_eq!(disk.used_bytes, original.used_bytes - selected.size_bytes);
+        assert_eq!(disk.candidates, untouched);
+        assert_eq!(world.effect_revision, 1);
+    }
+
+    #[test]
+    fn disk_selected_subset_refuses_empty_duplicate_unknown_and_active_candidates() {
+        let world = settled(Scenario::DiskCleanup);
+        let eligible = "~/work/forge/target".to_owned();
+        assert!(plan_for_disk_selection(&world, &[]).is_none());
+        assert!(plan_for_disk_selection(&world, &[eligible.clone(), eligible.clone()]).is_none());
+        assert!(plan_for_disk_selection(&world, &["~/work/missing/target".into()]).is_none());
+        assert!(
+            plan_for_disk_selection(
+                &world,
+                &["~/work/monorepo/apps/frontend/node_modules".into()]
+            )
+            .is_none()
+        );
+    }
+
+    #[test]
+    fn disk_selected_subset_rejects_an_invalid_full_inventory() {
+        let selected = vec!["~/work/forge/target".to_owned()];
+        let mut bad_capacity = settled(Scenario::DiskCleanup);
+        bad_capacity.disk.as_mut().unwrap().used_bytes = 1;
+        assert!(plan_for_disk_selection(&bad_capacity, &selected).is_none());
+
+        let mut overlapping = settled(Scenario::DiskCleanup);
+        overlapping.disk.as_mut().unwrap().candidates[2].path = "~/work/forge/target/child".into();
+        assert!(plan_for_disk_selection(&overlapping, &selected).is_none());
+    }
+
+    #[test]
+    fn disk_selected_subset_review_binds_unselected_inventory_too() {
+        let mut world = settled(Scenario::DiskCleanup);
+        let selected = vec!["~/work/forge/target".to_owned()];
+        let mut review = plan_for_disk_selection(&world, &selected).unwrap();
+        let phrase = review.plan().phrase().to_owned();
+        let unselected = world
+            .disk
+            .as_mut()
+            .unwrap()
+            .candidates
+            .iter_mut()
+            .find(|candidate| candidate.path == "~/work/shop/.gradle")
+            .unwrap();
+        unselected.size_bytes += 1;
+        let changed_inventory = world.disk.clone();
+
+        assert!(matches!(
+            review.approve(&phrase, &world),
+            Err(ApprovalError::StaleTarget)
+        ));
+        assert_eq!(world.disk, changed_inventory);
+        assert_eq!(world.effect_revision, 0);
+        assert!(!review.plan().ran());
     }
     #[test]
     fn approval_revalidates_target_after_phrase_before_any_effect() {
