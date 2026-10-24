@@ -4299,11 +4299,17 @@ def reference_case_selected(decision: dict[str, object], selected: list[str]) ->
     return decision["tuple"]["test_id"] in selected or decision["tuple"]["case_id"] in selected
 
 
-def validate_reference_receipts(receipts: dict[tuple[str, int, str], tuple[str, str, str | None]], selected: list[str], phase: str, decision: dict[str, object], decision_sha256: str) -> None:
-    reference = decision["tuple"]
-    key = (reference["case_id"], reference["ordinal"], reference["logical_name"])
-    matched = receipts.get(key)
-    if reference_case_selected(decision, selected):
+def _validate_reference_receipts_collectively(receipts: dict[tuple[str, int, str], tuple[str, str, str | None]], selected: list[str], phase: str, decisions: list[dict[str, object]], decision_sha256: str) -> None:
+    """Validate receipts against the complete, already-pinned decision sequence."""
+    selected_decisions = [decision for decision in decisions if reference_case_selected(decision, selected)]
+    allowed_claims: dict[tuple[str, int, str], dict[str, object]] = {}
+    for decision in selected_decisions:
+        reference = decision["tuple"]
+        key = (reference["case_id"], reference["ordinal"], reference["logical_name"])
+        if key in allowed_claims:
+            raise RunnerError(f"duplicate selected reference checkpoint: {key}")
+        allowed_claims[key] = decision
+        matched = receipts.get(key)
         if matched is None:
             raise RunnerError(f"selected stale-approval reference checkpoint is missing: {key}")
         if matched[0] != decision["live_frame"]["ansi_sha256"] or matched[1] != decision["live_frame"]["semantic_frame_sha256"]:
@@ -4311,11 +4317,18 @@ def validate_reference_receipts(receipts: dict[tuple[str, int, str], tuple[str, 
         expected_decision_hash = decision_sha256 if phase == "baseline-capture" else None
         if matched[2] != expected_decision_hash:
             raise RunnerError(f"reference decision receipt binding mismatch at {key}: {matched[2]}")
-    for receipt_key, receipt in receipts.items():
-        if receipt[2] is None:
+    for key, receipt in receipts.items():
+        claim = receipt[2]
+        if claim is None:
             continue
-        if phase != "baseline-capture" or not reference_case_selected(decision, selected) or receipt_key != key or receipt[2] != decision_sha256:
-            raise RunnerError(f"unselected or unrelated checkpoint claims a reference decision: {receipt_key}")
+        decision = allowed_claims.get(key)
+        if phase != "baseline-capture" or decision is None or claim != decision_sha256:
+            raise RunnerError(f"unselected or unrelated checkpoint claims a reference decision: {key}")
+
+
+def validate_reference_receipts(receipts: dict[tuple[str, int, str], tuple[str, str, str | None]], selected: list[str], phase: str, decision: dict[str, object], decision_sha256: str) -> None:
+    """Compatibility wrapper for existing one-decision callers."""
+    _validate_reference_receipts_collectively(receipts, selected, phase, [decision], decision_sha256)
 
 
 def paired_reference_report(decisions: list[dict[str, object]], selected: list[str], decision_sha256: str) -> list[dict[str, object]]:
@@ -4421,8 +4434,13 @@ def run_live_chunk(live: Path, root: Path, run_root: Path, phase: str, bins: Pat
                 receipt_root, selected, phase, bins, expected_binary_hashes, extension_manifest,
                 process_receipt_run_id, process_receipt_key, receipts,
             )
-            for decision in reference_decisions:
-                validate_reference_receipts(receipts, [scenario_receipt_id(name, extension_manifest) for name in selected], phase, decision, reference_decision_sha256 or "")
+            _validate_reference_receipts_collectively(
+                receipts,
+                [scenario_receipt_id(name, extension_manifest) for name in selected],
+                phase,
+                reference_decisions,
+                reference_decision_sha256 or "",
+            )
         except RunnerError as error:
             failure = str(error)
     artifact_digest = None
