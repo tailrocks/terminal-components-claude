@@ -389,3 +389,248 @@ fn a_bounded_input_flood_is_drained_fairly_and_a_quit_behind_it_is_honoured() {
 
     eprintln!("F23d pty flood: 2000 ignored events + quit in {elapsed:?}");
 }
+
+const KEYBOARD_QUERY: &str = termrock::core::keys::keyboard::QUERY;
+const PRIMARY_DEVICE_ATTRIBUTES_QUERY: &str = "\x1b[c";
+const KEYBOARD_POP: &str = termrock::core::keys::keyboard::POP;
+const LEAVE_ALTERNATE_SCREEN: &str = "\x1b[?1049l";
+
+fn keyboard_policy_pty(policy: &str) -> Pty {
+    Pty::spawn(
+        &[
+            "--scenario",
+            "rust-dirty",
+            "--motion",
+            "paused",
+            "--frame",
+            "40",
+            "--color",
+            "truecolor",
+        ],
+        &[
+            (
+                termrock::core::keys::keyboard::KeyboardProtocol::ENV,
+                Some(policy),
+            ),
+            (
+                termrock::core::keys::keyboard::KeyboardProtocol::LEGACY_ENV,
+                None,
+            ),
+        ],
+        100,
+        30,
+    )
+}
+
+fn wait_for_holla_ready(pty: &Pty) {
+    pty.wait_for("the normal first frame", |text| {
+        text.contains("holla") && text.contains("Suggested")
+    });
+}
+
+fn wire_count(output: &str, sequence: &str) -> usize {
+    output.matches(sequence).count()
+}
+
+fn finish_keyboard_policy_child(mut pty: Pty) -> String {
+    // Holla's `q` opens a confirmation dialog; Ctrl-C is the existing tested
+    // bounded shutdown event and makes no exact-once ordinary-key claim.
+    pty.send(b"\x03");
+    let status = pty.wait_exit();
+    assert_eq!(status, 0, "controlled PTY shutdown: {:?}", pty.text());
+    pty.wait_for("alternate-screen restoration", |text| {
+        text.contains(LEAVE_ALTERNATE_SCREEN)
+    });
+    pty.text()
+}
+
+fn assert_terminal_restore_order(output: &str, owned_pop: bool) {
+    let cleanup = concat!(
+        "\x1b[?25h",
+        "\x1b[0 q",
+        "\x1b[?25h",
+        "\x1b[?7h",
+        "\x1b[?2004l",
+        "\x1b[?1006l\x1b[?1015l\x1b[?1003l\x1b[?1002l\x1b[?1000l",
+        "\x1b[?1049l",
+    );
+    if owned_pop {
+        assert_eq!(
+            wire_count(output, KEYBOARD_POP),
+            1,
+            "one owned keyboard POP"
+        );
+        let mut expected = String::from(KEYBOARD_POP);
+        expected.push_str(cleanup);
+        assert_eq!(
+            wire_count(output, &expected),
+            1,
+            "owned POP precedes the contiguous terminal cleanup wire sequence"
+        );
+    } else {
+        assert_eq!(
+            wire_count(output, KEYBOARD_POP),
+            0,
+            "no unowned keyboard POP"
+        );
+        assert_eq!(
+            wire_count(output, cleanup),
+            1,
+            "the exact terminal cleanup wire sequence is emitted once"
+        );
+    }
+    // Pty observes terminal wire output and child exit, not kernel termios.
+}
+
+fn assert_query_waiting_without_push(output: &str) {
+    let push = termrock::core::keys::keyboard::push(termrock::core::keys::keyboard::FLAGS);
+    assert_eq!(
+        wire_count(output, KEYBOARD_QUERY),
+        1,
+        "one real keyboard query"
+    );
+    assert_eq!(wire_count(output, &push), 0, "no push before a query reply");
+    assert_eq!(
+        wire_count(output, PRIMARY_DEVICE_ATTRIBUTES_QUERY),
+        0,
+        "the bridged query does not retry through Crossterm's DA probe"
+    );
+}
+
+fn assert_query_then_push_before_ready(output: &str) {
+    let push = termrock::core::keys::keyboard::push(termrock::core::keys::keyboard::FLAGS);
+    assert_eq!(
+        wire_count(output, KEYBOARD_QUERY),
+        1,
+        "one real keyboard query"
+    );
+    assert_eq!(wire_count(output, &push), 1, "one owned keyboard PUSH");
+    assert_eq!(
+        wire_count(output, PRIMARY_DEVICE_ATTRIBUTES_QUERY),
+        0,
+        "the bridged query does not retry through Crossterm's DA probe"
+    );
+    let query_at = output.find(KEYBOARD_QUERY).unwrap_or(usize::MAX);
+    let push_at = output.find(&push).unwrap_or(usize::MAX);
+    let ready_at = output.find("Suggested").unwrap_or(usize::MAX);
+    assert!(
+        query_at < push_at && push_at < ready_at,
+        "query, push, then ready"
+    );
+}
+
+fn assert_ready_before_push(output: &str) {
+    let push = termrock::core::keys::keyboard::push(termrock::core::keys::keyboard::FLAGS);
+    assert_eq!(
+        wire_count(output, KEYBOARD_QUERY),
+        0,
+        "explicit policy does not query"
+    );
+    assert_eq!(
+        wire_count(output, PRIMARY_DEVICE_ATTRIBUTES_QUERY),
+        0,
+        "explicit policy does not invoke a DA probe"
+    );
+    assert_eq!(wire_count(output, &push), 1, "one owned keyboard PUSH");
+    let push_at = output.find(&push).unwrap_or(usize::MAX);
+    let ready_at = output.find("Suggested").unwrap_or(usize::MAX);
+    assert!(
+        push_at < ready_at,
+        "explicit On pushes before the ready frame"
+    );
+}
+
+#[test]
+fn normal_session_auto_accepts_zero_keyboard_flags() {
+    let mut pty = keyboard_policy_pty("auto");
+    pty.wait_for("the real keyboard query", |text| {
+        text.contains(KEYBOARD_QUERY)
+    });
+    assert_query_waiting_without_push(&pty.text());
+    pty.send(b"\x1b[?0u");
+    wait_for_holla_ready(&pty);
+    let before_exit = pty.text();
+    assert_query_then_push_before_ready(&before_exit);
+
+    let output = finish_keyboard_policy_child(pty);
+    assert_query_then_push_before_ready(&output);
+    assert_terminal_restore_order(&output, true);
+}
+
+#[test]
+fn normal_session_auto_accepts_nonzero_keyboard_flags() {
+    let mut pty = keyboard_policy_pty("auto");
+    pty.wait_for("the real keyboard query", |text| {
+        text.contains(KEYBOARD_QUERY)
+    });
+    assert_query_waiting_without_push(&pty.text());
+    pty.send(b"\x1b[?5u");
+    wait_for_holla_ready(&pty);
+    let before_exit = pty.text();
+    assert_query_then_push_before_ready(&before_exit);
+
+    let output = finish_keyboard_policy_child(pty);
+    assert_query_then_push_before_ready(&output);
+    assert_terminal_restore_order(&output, true);
+}
+
+#[test]
+fn normal_session_auto_without_reply_does_not_push() {
+    let pty = keyboard_policy_pty("auto");
+    pty.wait_for("the real keyboard query", |text| {
+        text.contains(KEYBOARD_QUERY)
+    });
+    assert_query_waiting_without_push(&pty.text());
+    let query_observed_at = Instant::now();
+    wait_for_holla_ready(&pty);
+    let elapsed = query_observed_at.elapsed();
+    eprintln!("Auto without reply: first frame observed after {elapsed:?}");
+    let before_exit = pty.text();
+    let push = termrock::core::keys::keyboard::push(termrock::core::keys::keyboard::FLAGS);
+    assert_eq!(
+        wire_count(&before_exit, KEYBOARD_QUERY),
+        1,
+        "one real query"
+    );
+    assert_eq!(wire_count(&before_exit, PRIMARY_DEVICE_ATTRIBUTES_QUERY), 0);
+    assert_eq!(
+        wire_count(&before_exit, &push),
+        0,
+        "no push without a reply"
+    );
+
+    let output = finish_keyboard_policy_child(pty);
+    assert_eq!(wire_count(&output, KEYBOARD_QUERY), 1, "no retry query");
+    assert_eq!(wire_count(&output, PRIMARY_DEVICE_ATTRIBUTES_QUERY), 0);
+    assert_eq!(wire_count(&output, &push), 0, "no push without a reply");
+    assert_terminal_restore_order(&output, false);
+}
+
+#[test]
+fn normal_session_on_pushes_without_query() {
+    let pty = keyboard_policy_pty("on");
+    wait_for_holla_ready(&pty);
+    let before_exit = pty.text();
+    assert_ready_before_push(&before_exit);
+
+    let output = finish_keyboard_policy_child(pty);
+    assert_ready_before_push(&output);
+    assert_terminal_restore_order(&output, true);
+}
+
+#[test]
+fn normal_session_off_never_queries_or_pushes() {
+    let pty = keyboard_policy_pty("off");
+    wait_for_holla_ready(&pty);
+    let before_exit = pty.text();
+    let push = termrock::core::keys::keyboard::push(termrock::core::keys::keyboard::FLAGS);
+    assert_eq!(wire_count(&before_exit, KEYBOARD_QUERY), 0);
+    assert_eq!(wire_count(&before_exit, PRIMARY_DEVICE_ATTRIBUTES_QUERY), 0);
+    assert_eq!(wire_count(&before_exit, &push), 0);
+
+    let output = finish_keyboard_policy_child(pty);
+    assert_eq!(wire_count(&output, KEYBOARD_QUERY), 0);
+    assert_eq!(wire_count(&output, PRIMARY_DEVICE_ATTRIBUTES_QUERY), 0);
+    assert_eq!(wire_count(&output, &push), 0);
+    assert_terminal_restore_order(&output, false);
+}

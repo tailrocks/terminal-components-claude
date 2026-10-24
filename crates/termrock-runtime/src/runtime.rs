@@ -86,10 +86,28 @@ fn next_runtime_id() -> u64 {
         .expect("runtime identity space exhausted")
 }
 
+fn default_app_keyboard_protocol(
+    explicit_override: Option<termrock_core::keys::keyboard::KeyboardProtocol>,
+) -> termrock_core::keys::keyboard::KeyboardProtocol {
+    explicit_override.unwrap_or(termrock_core::keys::keyboard::KeyboardProtocol::Off)
+}
+
 pub trait App {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()>;
 
     fn draw(&self, ui: &mut Ui<'_>);
+
+    /// Select the keyboard-protocol policy used by a normal session launch.
+    ///
+    /// The default honors an explicit `TERMROCK_KEYBOARD_PROTOCOL` or legacy
+    /// `JUNIE_TUI_KEYBOARD_PROTOCOL` override, and stays Off when neither is
+    /// set. An application can return `Auto`, `On`, or `Off` directly; that
+    /// application choice takes precedence over environment overrides.
+    fn keyboard_protocol(&self) -> termrock_core::keys::keyboard::KeyboardProtocol {
+        default_app_keyboard_protocol(
+            termrock_core::keys::keyboard::KeyboardProtocol::current_override(),
+        )
+    }
 
     /// Service one explicitly addressed, opt-in wheel fallback attempt.
     ///
@@ -3565,6 +3583,20 @@ mod tests {
     const RETIRED_FOCUS_CONTROL: Id = Id::root("retired-focus-control");
     const RETIRED_FOCUS_NEXT: Id = Id::root("retired-focus-next");
     const SELECTIVE_LAYER: Id = Id::root("selective-layer");
+
+    #[test]
+    fn app_keyboard_policy_default_uses_optional_override_and_off_fallback() {
+        use termrock_core::keys::keyboard::KeyboardProtocol;
+
+        assert_eq!(default_app_keyboard_protocol(None), KeyboardProtocol::Off);
+        for protocol in [
+            KeyboardProtocol::Auto,
+            KeyboardProtocol::On,
+            KeyboardProtocol::Off,
+        ] {
+            assert_eq!(default_app_keyboard_protocol(Some(protocol)), protocol);
+        }
+    }
 
     #[test]
     fn visible_cursor_retention_respects_top_layer_cursor_owners() {
