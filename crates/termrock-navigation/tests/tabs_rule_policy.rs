@@ -102,6 +102,7 @@ struct Page {
     items: Vec<Tab>,
     rule: Option<TabRule>,
     rule_focus_hidden: Option<bool>,
+    overflow_menu: bool,
     planned: bool,
     planned_wheel_area: Cell<Option<Rect>>,
     marks: MarkMode,
@@ -133,6 +134,7 @@ impl Page {
             ],
             rule,
             rule_focus_hidden: None,
+            overflow_menu: true,
             planned: false,
             planned_wheel_area: Cell::new(None),
             marks: MarkMode::None,
@@ -152,7 +154,8 @@ impl Page {
             .allow_new(true)
             .middle_click_closes(true)
             .close_reveal(self.close_reveal)
-            .status(self.status);
+            .status(self.status)
+            .overflow_menu(self.overflow_menu);
         let base = match self.rule {
             Some(rule) => base.rule(rule),
             None => base,
@@ -831,6 +834,7 @@ fn absent_policy_keeps_legacy_and_planned_defaults_across_the_full_theme_matrix(
                         termrock_navigation::TabCloseReveal::Hover,
                     ] {
                         let mut legacy_page = Page::new(None);
+                        legacy_page.overflow_menu = false;
                         legacy_page.items = items.clone();
                         legacy_page.marks = marks;
                         legacy_page.status = status;

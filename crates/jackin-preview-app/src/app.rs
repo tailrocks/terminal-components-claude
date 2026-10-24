@@ -7628,7 +7628,23 @@ impl App {
         }
 
         let tabs_area = Rect::new(area.x, area.y, area.width, area.height.min(2));
-        Tabs::new(crate::screens::usage::TABS).draw(ui, tabs_area, &self.usage_tabs, &USAGE_TABS);
+        let tabs = Tabs::new(crate::screens::usage::TABS);
+        let previous = ui.layout(crate::screens::usage::TABS).map(|facts| {
+            termrock::navigation::tabs::TabWindowReceipt {
+                viewport_len: facts.viewport_len,
+                content_len: facts.content_len,
+            }
+        });
+        let layout = tabs.layout_default(
+            tabs_area,
+            ui.full(),
+            &self.usage_tabs,
+            &USAGE_TABS,
+            previous,
+        );
+        if tabs.draw_layout(ui, &layout).is_err() {
+            let _ = tabs.draw(ui, tabs_area, &self.usage_tabs, &USAGE_TABS);
+        }
         let rows = self.usage_navigation_rows();
         let body_y = tabs_area.bottom();
         let body_height = area.bottom().saturating_sub(body_y);

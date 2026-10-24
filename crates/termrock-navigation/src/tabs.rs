@@ -11,6 +11,7 @@ use crate::focus::Focusability;
 use crate::id::{Id, ItemKey, Part, PartRef};
 use crate::intent::{Intent, Phase};
 use crate::keymap::{Binding, BindingState, Bindings};
+use crate::list::{List, ListAction, ListState};
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
 use crate::theme::{Family, GlyphRole, Role, Slot, StyleDefaults, StylePatch, Variant};
@@ -18,8 +19,12 @@ use crate::ui::{Cx, FrameRead, LayoutFacts, Ui};
 use termrock_collections::collection::{
     ByIndex, CollectionCore, DefaultRow, KeyFn, Reconcile, Reconciliation,
 };
+use termrock_controls::Panel;
 use termrock_runtime::empty::Status;
 use termrock_runtime::hit::{Axes, Headroom};
+use termrock_runtime::layer::{
+    Anchor, CrossAlign, Dismiss, LayerEvent, LayerOpening, LayerSize, LayerSpec, Side,
+};
 use termrock_runtime::rowui::{RowFn, RowUi};
 
 /// Keyboard aliases used for adjacent tab navigation.
@@ -223,6 +228,21 @@ pub enum TabsCmd {
     Close,
     New,
 }
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum TabsMenuCmd {
+    ShowHidden,
+}
+
+const SHOW_HIDDEN_ACTION: crate::ActionKey = crate::ActionKey::custom("tabs.show-hidden");
+const SHOW_HIDDEN_BINDINGS: &[Binding<TabsMenuCmd>] = &[Binding {
+    action: SHOW_HIDDEN_ACTION,
+    chord: Some(Chord::key(KeyCode::Down)),
+    cmd: TabsMenuCmd::ShowHidden,
+    label: "Show hidden tabs",
+    priority: 50,
+    visible: true,
+}];
 
 /// Configuration errors for Tabs navigation and replacement New/Close groups.
 ///
@@ -617,6 +637,7 @@ pub struct TabsState {
     // The current keyed active identity owns a manually browsed planned window.
     // This is semantic state: it changes whether the next update follows active.
     manual_window_active: Option<Option<ItemKey>>,
+    menu: Option<TabsOpenMenu>,
 }
 
 impl PartialEq for TabsState {
@@ -627,6 +648,7 @@ impl PartialEq for TabsState {
             && self.first_index == other.first_index
             && self.close_reveal_press == other.close_reveal_press
             && self.manual_window_active == other.manual_window_active
+            && self.menu == other.menu
     }
 }
 
@@ -700,7 +722,55 @@ impl Reconcile for TabsState {
         self.core.invalidate();
         self.close_reveal_press = None;
         self.manual_window_active = None;
+        self.menu = None;
     }
+}
+
+#[derive(Clone, PartialEq, Eq, Debug)]
+struct TabsMenuItem {
+    key: ItemKey,
+    label_segments: Vec<String>,
+}
+
+impl fmt::Display for TabsMenuItem {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for segment in &self.label_segments {
+            f.write_str(segment)?;
+        }
+        Ok(())
+    }
+}
+
+fn tabs_menu_key(item: &TabsMenuItem) -> ItemKey {
+    item.key
+}
+
+#[derive(Clone, PartialEq, Eq, Debug)]
+struct TabsOpenMenu {
+    opening: LayerOpening,
+    items: Vec<TabsMenuItem>,
+    list: ListState,
+    more_area: Rect,
+    content_len: usize,
+    first_key: Option<ItemKey>,
+}
+
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
+struct TabsMenuFrame {
+    eligible: bool,
+    owner: Option<Id>,
+    area: Rect,
+    visible_area: Rect,
+    more_area: Rect,
+    visible_more_area: Rect,
+    content_len: usize,
+    viewport_len: usize,
+    rows: u16,
+    cols: u16,
+    first_index: usize,
+    first_key: Option<ItemKey>,
+    last_key: Option<ItemKey>,
+    items: Vec<TabsMenuItem>,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
@@ -913,6 +983,8 @@ struct DefaultRowHeader {
     first_tab_x: u16,
     right_limit: u16,
     left_overflow: Option<Rect>,
+    right_overflow_lane: Option<Rect>,
+    more_area: Option<Rect>,
     status_w: u16,
     new_w: u16,
 }
@@ -932,6 +1004,7 @@ struct DefaultRowWalk {
     right_limit: u16,
     left_overflow: Option<Rect>,
     right_overflow: Option<Rect>,
+    more_area: Option<Rect>,
     new_area: Option<Rect>,
     status_area: Option<Rect>,
     hidden_right: usize,
@@ -977,6 +1050,8 @@ pub struct TabLayout {
     cursor: Option<ItemKey>,
     first: Option<ItemKey>,
     first_tab_x: u16,
+    overflow_menu: bool,
+    menu: Option<TabsOpenMenu>,
     allow_new: bool,
     new_key_bindings: Option<&'static [Binding<TabsCmd>]>,
     closable: bool,
@@ -993,6 +1068,7 @@ pub struct TabLayout {
     passive_focused: bool,
     left_overflow: Option<Rect>,
     right_overflow: Option<Rect>,
+    more_area: Option<Rect>,
     new_area: Option<Rect>,
     status_area: Option<Rect>,
     item_marks_enabled: bool,
@@ -1019,6 +1095,8 @@ impl PartialEq for TabLayout {
             && self.cursor == other.cursor
             && self.first == other.first
             && self.first_tab_x == other.first_tab_x
+            && self.overflow_menu == other.overflow_menu
+            && self.menu == other.menu
             && self.allow_new == other.allow_new
             && self.new_key_bindings == other.new_key_bindings
             && self.closable == other.closable
@@ -1035,6 +1113,7 @@ impl PartialEq for TabLayout {
             && self.passive_focused == other.passive_focused
             && self.left_overflow == other.left_overflow
             && self.right_overflow == other.right_overflow
+            && self.more_area == other.more_area
             && self.new_area == other.new_area
             && self.status_area == other.status_area
             && self.item_marks_enabled == other.item_marks_enabled
@@ -1128,6 +1207,22 @@ impl TabLayout {
         self.hidden_right
     }
 
+    fn hidden_menu_items(&self) -> Vec<TabsMenuItem> {
+        let Some(items) = self.owned_items.as_ref() else {
+            return Vec::new();
+        };
+        let visible_end = self.first_index.saturating_add(self.viewport_len);
+        items
+            .iter()
+            .enumerate()
+            .filter(|(index, _)| *index < self.first_index || *index >= visible_end)
+            .map(|(_, item)| TabsMenuItem {
+                key: item.key,
+                label_segments: item.label_segments.clone(),
+            })
+            .collect()
+    }
+
     pub const fn used_area(&self) -> Rect {
         self.used_area
     }
@@ -1156,6 +1251,9 @@ impl TabLayout {
                     .map(|area| (area, area.intersection(self.clip))),
                 Some(ItemKey::Index(1)) => self
                     .right_overflow
+                    .map(|area| (area, area.intersection(self.clip))),
+                Some(ItemKey::Index(2)) => self
+                    .more_area
                     .map(|area| (area, area.intersection(self.clip))),
                 _ => None,
             },
@@ -1198,13 +1296,34 @@ impl TabLayout {
         {
             return false;
         }
-        self.rows.iter().all(|row| {
+        let rows_match = self.rows.iter().all(|row| {
             owned_items.get(row.index).is_some_and(|item| {
                 item.key == row.key
                     && item.mark == row.mark
                     && item.close_enabled == row.close_enabled
             })
-        })
+        });
+        let more_matches = self.more_area.is_none_or(|more| {
+            self.overflow_menu
+                && self.first_index.saturating_add(self.hidden_right) > 0
+                && more.width == 4
+                && more.height == 1
+                && more.intersection(self.row_area) == more
+                && [
+                    self.left_overflow,
+                    self.right_overflow,
+                    self.new_area,
+                    self.status_area,
+                ]
+                .into_iter()
+                .flatten()
+                .all(|area| more.intersection(area).is_empty())
+                && self
+                    .rows
+                    .iter()
+                    .all(|row| more.intersection(row.logical_tab).is_empty())
+        });
+        rows_match && more_matches
     }
 }
 
@@ -1281,6 +1400,7 @@ pub struct Tabs<'a, T, K = ByIndex, R = DefaultRow> {
     rule_focus_hidden: Option<bool>,
     passive: bool,
     passive_focused: bool,
+    overflow_menu: bool,
     item_marks: Option<fn(&T) -> TabMarks>,
     ov: PartStyle<'a>,
     _t: PhantomData<fn(&T)>,
@@ -1335,6 +1455,7 @@ impl<T> Tabs<'_, T, ByIndex, DefaultRow> {
             rule_focus_hidden: None,
             passive: false,
             passive_focused: false,
+            overflow_menu: true,
             item_marks: None,
             ov: PartStyle::new(),
             _t: PhantomData,
@@ -1403,6 +1524,7 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
             rule_focus_hidden: self.rule_focus_hidden,
             passive: self.passive,
             passive_focused: self.passive_focused,
+            overflow_menu: self.overflow_menu,
             item_marks: self.item_marks,
             ov: self.ov,
             _t: PhantomData,
@@ -1431,6 +1553,7 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
             rule_focus_hidden: self.rule_focus_hidden,
             passive: self.passive,
             passive_focused: self.passive_focused,
+            overflow_menu: self.overflow_menu,
             item_marks: self.item_marks,
             ov: self.ov,
             _t: PhantomData,
@@ -1440,6 +1563,17 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
     #[must_use]
     pub fn allow_new(mut self, yes: bool) -> Self {
         self.allow_new = yes;
+        self
+    }
+
+    /// Show a default-row hidden-tabs menu when the planned strip overflows.
+    ///
+    /// The default is enabled for the planned `DefaultRow` path. The legacy
+    /// callback renderer remains unchanged. Disable this option to preserve
+    /// the prior planned geometry exactly.
+    #[must_use]
+    pub fn overflow_menu(mut self, enabled: bool) -> Self {
+        self.overflow_menu = enabled;
         self
     }
 
@@ -1986,8 +2120,280 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
         true
     }
 
+    const fn menu_layer_id(&self) -> Id {
+        self.id.sub("overflow-menu")
+    }
+
+    fn show_hidden_binding_available(&self) -> bool {
+        let Some(chord) = SHOW_HIDDEN_BINDINGS[0].chord else {
+            return false;
+        };
+        let action = SHOW_HIDDEN_BINDINGS[0].action;
+        let groups = self.effective_key_groups();
+        ![groups.base, groups.new, groups.close]
+            .into_iter()
+            .flatten()
+            .any(|binding| {
+                binding.action == action
+                    || binding
+                        .chord
+                        .is_some_and(|configured| configured.effective_eq(&chord))
+            })
+    }
+
+    fn menu_size(&self, cx: &Cx<'_>, items: &[TabsMenuItem]) -> LayerSize {
+        let design = cx.design();
+        let body_width = items
+            .iter()
+            .map(|item| {
+                item.label_segments.iter().fold(0u16, |width, segment| {
+                    width.saturating_add(crate::text::width(segment))
+                })
+            })
+            .max()
+            .unwrap_or(0);
+        let title_width = crate::text::width("Hidden tabs").saturating_add(2);
+        let chrome_width = design.space.card_inset.saturating_mul(2);
+        let width = body_width
+            .max(title_width)
+            .saturating_add(chrome_width)
+            .clamp(design.size.popup_min_width, design.size.popup_max_width);
+        let rows = items
+            .len()
+            .min(usize::from(design.size.popup_max_rows))
+            .max(1)
+            .min(usize::from(u16::MAX)) as u16;
+        LayerSize::Fixed(width, rows.saturating_add(3))
+    }
+
+    fn menu_frame_matches(&self, cx: &Cx<'_>, frame: &TabsMenuFrame, items: &[T]) -> bool {
+        if !frame.eligible
+            || frame.owner != Some(self.id)
+            || !self.overflow_menu
+            || self.passive
+            || items.is_empty()
+            || frame.content_len != items.len()
+            || frame.items.is_empty()
+            || frame.more_area.is_empty()
+            || frame.visible_more_area.is_empty()
+            || frame.more_area.intersection(frame.area) != frame.more_area
+            || cx.area(self.id) != Some(frame.visible_area)
+            || cx.area_of_part(self.id, PartRef::item(Part::OVERFLOW, ItemKey::index(2)))
+                != Some(frame.visible_more_area)
+        {
+            return false;
+        }
+        let Some(layout) = cx.layout(self.id) else {
+            return false;
+        };
+        if layout.content_len != frame.content_len
+            || layout.viewport_len != frame.viewport_len
+            || layout.rows != frame.rows
+            || layout.cols != frame.cols
+        {
+            return false;
+        }
+        let first = items
+            .get(frame.first_index)
+            .map(|_| self.key_at(items, frame.first_index));
+        let last = items.last().map(|_| self.key_at(items, items.len() - 1));
+        frame.first_key == first && frame.last_key == last
+    }
+
+    fn open_menu(
+        &self,
+        cx: &mut Cx<'_>,
+        state: &mut TabsState,
+        items: &[T],
+        frame: &TabsMenuFrame,
+    ) -> bool {
+        if !self.menu_frame_matches(cx, frame, items)
+            || cx.is_open(self.menu_layer_id())
+            || cx.state(self.id).contains(StateFlags::DISABLED)
+        {
+            return false;
+        }
+        let Some(first) = frame.items.first() else {
+            return false;
+        };
+        let mut list = ListState::default();
+        let cursor = state
+            .active
+            .and_then(|active| frame.items.iter().position(|item| item.key == active))
+            .unwrap_or(0);
+        let cursor_key = frame.items.get(cursor).map_or(first.key, |item| item.key);
+        list.set_cursor(cursor, cursor_key);
+        let layer_id = self.menu_layer_id();
+        let list_id = layer_id.sub("items");
+        let spec = LayerSpec::popover(
+            self.id,
+            Anchor::Rect {
+                rect: frame.more_area,
+                side: Side::Below,
+                align: CrossAlign::Start,
+            },
+        )
+        .dismiss(Dismiss::ESC_AND_OUTSIDE)
+        .initial_focus(list_id)
+        .size(self.menu_size(cx, &frame.items));
+        let Some(opening) = cx.open_layer_with_token(layer_id, spec) else {
+            return false;
+        };
+        state.menu = Some(TabsOpenMenu {
+            opening,
+            items: frame.items.clone(),
+            list,
+            more_area: frame.more_area,
+            content_len: frame.content_len,
+            first_key: frame.first_key,
+        });
+        true
+    }
+
+    fn update_menu(
+        &self,
+        cx: &mut Cx<'_>,
+        state: &mut TabsState,
+        items: &[T],
+        frame: &TabsMenuFrame,
+        acc: &mut Acc<TabsAction>,
+    ) -> bool {
+        let layer_id = self.menu_layer_id();
+        let mut dismissed_current = false;
+        while let Some(receipt) = cx.take_layer_intent_receipt(layer_id) {
+            if state
+                .menu
+                .as_ref()
+                .is_some_and(|menu| menu.opening == receipt.opening())
+            {
+                match receipt.event() {
+                    LayerEvent::Opened => {}
+                    LayerEvent::Closed(_) | LayerEvent::Dismissed(_) => {
+                        state.menu = None;
+                        dismissed_current = true;
+                        acc.changed();
+                    }
+                }
+            }
+        }
+
+        if state.menu.is_none() {
+            if let Some(opening) = cx.layer_opening(layer_id)
+                && opening.owner() == self.id
+            {
+                cx.close_layer(layer_id, None);
+                for _ in cx.intents(self.id) {
+                    acc.consumed();
+                }
+                acc.changed();
+                return true;
+            }
+            if dismissed_current {
+                for _ in cx.intents(self.id) {
+                    acc.consumed();
+                }
+            }
+            return dismissed_current;
+        }
+
+        let opening = state.menu.as_ref().map(|menu| menu.opening);
+        let current_opening = cx.layer_opening(layer_id);
+        let valid = opening == current_opening
+            && !cx.state(self.id).contains(StateFlags::DISABLED)
+            && self.menu_frame_matches(cx, frame, items);
+        if !valid {
+            if opening.is_some() && opening == current_opening {
+                cx.close_layer(layer_id, None);
+            }
+            state.menu = None;
+            for _ in cx.intents(self.id) {
+                acc.consumed();
+            }
+            acc.changed();
+            return true;
+        }
+
+        let selected_key_was_removed = state
+            .menu
+            .as_ref()
+            .and_then(|menu| menu.list.cursor())
+            .is_some_and(|key| self.index_of(items, key, None).is_none());
+        if selected_key_was_removed {
+            if opening.is_some() && opening == current_opening {
+                cx.close_layer(layer_id, None);
+            }
+            state.menu = None;
+            for _ in cx.intents(self.id) {
+                acc.consumed();
+            }
+            acc.changed();
+            return true;
+        }
+
+        let Some(menu) = state.menu.as_mut() else {
+            return true;
+        };
+        menu.items
+            .retain(|item| self.index_of(items, item.key, None).is_some());
+        if menu.items.is_empty() {
+            cx.close_layer(layer_id, None);
+            state.menu = None;
+            for _ in cx.intents(self.id) {
+                acc.consumed();
+            }
+            acc.changed();
+            return true;
+        }
+        let anchor = Anchor::Rect {
+            rect: frame.more_area,
+            side: Side::Below,
+            align: CrossAlign::Start,
+        };
+        if menu.more_area != frame.more_area {
+            cx.reanchor_layer(layer_id, anchor);
+            menu.more_area = frame.more_area;
+            acc.changed();
+        }
+        if menu.content_len != frame.content_len || menu.first_key != frame.first_key {
+            menu.content_len = frame.content_len;
+            menu.first_key = frame.first_key;
+            acc.changed();
+        }
+        let size = self.menu_size(cx, &menu.items);
+        cx.resize_layer(layer_id, size);
+
+        let list_id = layer_id.sub("items");
+        let list = List::new(list_id)
+            .key(tabs_menu_key as fn(&TabsMenuItem) -> ItemKey)
+            .whole_rows(true);
+        let response = list.update(cx, &mut menu.list, &menu.items);
+        let selected = response.action_ref().copied();
+        for _ in cx.intents(self.id) {
+            acc.consumed();
+        }
+        match selected {
+            Some(ListAction::Chose(key) | ListAction::Activated(key)) => {
+                if let Some(index) = self.index_of(items, key, None) {
+                    self.activate(state, items, index, acc);
+                    self.follow(state, items, frame.viewport_len);
+                    state.manual_window_active = None;
+                } else {
+                    acc.consumed();
+                }
+                cx.close_layer(layer_id, None);
+                state.menu = None;
+                true
+            }
+            _ => {
+                acc.fold(&response.erase());
+                true
+            }
+        }
+    }
+
     pub fn update(&self, cx: &mut Cx<'_>, st: &mut TabsState, items: &[T]) -> Response<TabsAction> {
         let frame = *cx.cache::<TabsWheelFrame>(self.id);
+        let menu_frame = cx.cache::<TabsMenuFrame>(self.id).clone();
         let layout = cx.layout(self.id);
         let len = items.len();
         let _ = st.reconcile(len, |i| self.key_at(items, i));
@@ -2017,12 +2423,19 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
             st.manual_window_active = None;
         }
         let mut acc = Acc::<TabsAction>::new();
+        if self.update_menu(cx, st, items, &menu_frame, &mut acc) {
+            return acc.finish(self.id);
+        }
         if self.converge_manual_window(frame, layout, st, items) {
             acc.changed();
         }
         let mut committed_bounds = None;
         let key_groups = self.effective_key_groups();
         for it in cx.intents(self.id) {
+            if st.menu.is_some() {
+                acc.consumed();
+                continue;
+            }
             match it {
                 Intent::Cancel | Intent::FocusOut { .. } | Intent::Layer(_) => {
                     st.close_reveal_press = None;
@@ -2030,6 +2443,16 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                 Intent::Binding(action) => {
                     if self.passive {
                         acc.consumed();
+                        continue;
+                    }
+                    if action == SHOW_HIDDEN_ACTION {
+                        if self.show_hidden_binding_available()
+                            && self.open_menu(cx, st, items, &menu_frame)
+                        {
+                            acc.changed();
+                        } else {
+                            acc.consumed();
+                        }
                         continue;
                     }
                     let cur = st.core.cursor_index();
@@ -2159,6 +2582,17 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                         }
                         (Phase::Middle, _, _) => {}
                         (Phase::Click, Part::NEW, _) => acc.action(TabsAction::New),
+                        (
+                            Phase::Click | Phase::DoubleClick,
+                            Part::OVERFLOW,
+                            Some(ItemKey::Index(2)),
+                        ) => {
+                            if !self.passive && self.open_menu(cx, st, items, &menu_frame) {
+                                acc.changed();
+                            } else {
+                                acc.consumed();
+                            }
+                        }
                         (Phase::Click, Part::OVERFLOW, Some(ItemKey::Index(0))) => {
                             let bounds = *committed_bounds.get_or_insert_with(|| {
                                 self.committed_wheel_bounds(frame, layout, st, items)
@@ -2206,6 +2640,9 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                 }
                 _ => {}
             }
+        }
+        if st.menu.is_some() {
+            return acc.finish(self.id);
         }
         if let Some(mapper) = self.item_marks
             && items.iter().any(|item| mapper(item).busy)
@@ -2327,6 +2764,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
     )]
     fn draw_impl(&self, ui: &mut Ui<'_>, area: Rect, source: TabsRenderSource<'_, T>) -> Rect {
         let mut wheel_frame = TabsWheelFrame::default();
+        let mut menu_frame = TabsMenuFrame::default();
         match source {
             TabsRenderSource::Legacy { items, .. } => {
                 wheel_frame.kind = TabsWheelFrameKind::Legacy;
@@ -2358,9 +2796,35 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                     && layout
                         .terminal_first_index
                         .is_some_and(|terminal| terminal > 0 && terminal < layout.content_len);
+                let hidden = layout.hidden_menu_items();
+                if let Some(more_area) = layout.more_area {
+                    menu_frame.owner = Some(self.id);
+                    menu_frame.area = layout.area;
+                    menu_frame.visible_area = layout.visible_area;
+                    menu_frame.more_area = more_area;
+                    menu_frame.visible_more_area = more_area.intersection(layout.clip);
+                    menu_frame.content_len = layout.content_len;
+                    menu_frame.viewport_len = layout.viewport_len;
+                    menu_frame.rows = layout.used_area.height;
+                    menu_frame.cols = layout.used_area.width;
+                    menu_frame.first_index = layout.first_index;
+                    menu_frame.first_key = layout.first_key();
+                    menu_frame.last_key = wheel_frame.last_key;
+                    menu_frame.items = hidden;
+                    menu_frame.eligible = layout.overflow_menu
+                        && !ui.is_inert()
+                        && !self.passive
+                        && !layout.passive
+                        && !ui.state(self.id).contains(StateFlags::DISABLED)
+                        && !menu_frame.visible_area.is_empty()
+                        && !menu_frame.visible_more_area.is_empty()
+                        && !menu_frame.items.is_empty();
+                }
             }
         }
+        let menu_eligible = menu_frame.eligible;
         *ui.cache::<TabsWheelFrame>(self.id) = wheel_frame;
+        *ui.cache::<TabsMenuFrame>(self.id) = menu_frame;
         if area.is_empty() {
             return area;
         }
@@ -2415,6 +2879,9 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
             }
             if !key_groups.close.is_empty() {
                 ui.publish_additional_bindings(self.id, live, key_groups.close);
+            }
+            if menu_eligible && self.show_hidden_binding_available() {
+                ui.publish_additional_bindings(self.id, live, SHOW_HIDDEN_BINDINGS);
             }
         }
         let ov = self.ov;
@@ -2941,6 +3408,47 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                 );
             }
         }
+        if let TabsRenderSource::Planned(layout) = source
+            && let Some(cell) = layout.more_area
+        {
+            let menu_count = layout.first_index.saturating_add(layout.hidden_right);
+            let os = ov.style(
+                ui,
+                id,
+                Family::TABS,
+                Variant::DEFAULT,
+                Part::OVERFLOW,
+                StateFlags::empty(),
+            );
+            ui.fill(cell, strip.style);
+            match os.glyph {
+                Slot::Set(glyph) => {
+                    ui.glyph(cell_at(cell, cell.x), glyph, os.style);
+                }
+                Slot::Inherit => {
+                    ui.glyph(cell_at(cell, cell.x), GlyphRole::MoreRows, os.style);
+                }
+                Slot::Clear => {
+                    ui.fill(cell_at(cell, cell.x), os.style);
+                }
+            }
+            let count = digits(menu_count, &mut buf);
+            let count_width = crate::text::width(count);
+            let count_area = Rect {
+                x: cell.right().saturating_sub(1).saturating_sub(count_width),
+                width: count_width,
+                ..cell
+            }
+            .intersection(cell);
+            ui.paint_str(count_area, count, os.style);
+            if !ui.is_inert() {
+                ui.register_part(
+                    self.id,
+                    PartRef::item(Part::OVERFLOW, ItemKey::index(2)),
+                    cell,
+                );
+            }
+        }
         if self.allow_new {
             let fallback = Rect {
                 x: row0
@@ -3024,6 +3532,21 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
             self.id,
             LayoutFacts::new(viewport_len, len, used.height, used.width),
         );
+        if menu_eligible
+            && let TabsRenderSource::Planned(layout) = source
+            && let Some(menu) = layout.menu.as_ref()
+        {
+            let layer_id = self.menu_layer_id();
+            let panel = Panel::new(layer_id.sub("panel")).title("Hidden tabs");
+            let list = List::new(layer_id.sub("items"))
+                .key(tabs_menu_key as fn(&TabsMenuItem) -> ItemKey)
+                .whole_rows(true);
+            let _ = ui.layer(layer_id, |layer_ui, layer_area| {
+                panel.draw(layer_ui, layer_area, |body, inner| {
+                    list.draw(body, inner, &menu.list, &menu.items);
+                });
+            });
+        }
         used
     }
 
@@ -3074,6 +3597,8 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
             cursor: state.core.cursor(),
             first: state.first,
             first_tab_x: area.x,
+            overflow_menu: self.overflow_menu,
+            menu: state.menu.clone(),
             allow_new: self.allow_new,
             new_key_bindings: self.new_key_bindings,
             closable: self.closable,
@@ -3090,6 +3615,7 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
             passive_focused: self.passive_focused,
             left_overflow: None,
             right_overflow: None,
+            more_area: None,
             new_area: None,
             status_area: None,
             item_marks_enabled: self.item_marks.is_some(),
@@ -3234,7 +3760,7 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
         // Start zero has different left/right reservations; preserve its
         // original first place in the exhaustive search explicitly.
         let start_zero =
-            self.walk_default_owned(area, clip, items, 0, previous, extent_scratch, |_| {});
+            self.walk_default_resolved(area, clip, items, 0, previous, extent_scratch, |_| {});
         if reaches_final(start_zero) {
             return Some(0);
         }
@@ -3245,10 +3771,11 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
         // of rows any positive-start walk can emit. This header is shared with
         // the walker, so the bound follows the actual status/New/reservation
         // geometry rather than a separate width approximation.
-        let positive_header = self.default_row_header(area, 1, previous);
+        let reserve_more = self.overflow_menu && self.more_lane_fits(area, clip, 1, previous);
+        let positive_header = self.default_row_header_with_more(area, 1, previous, reserve_more);
         let max_rows = max_rows_for_width_budget(positive_header.available_width());
         positive_terminal_candidate_range(len, max_rows).find(|&candidate_first| {
-            let walk = self.walk_default_owned(
+            let walk = self.walk_default_resolved(
                 area,
                 clip,
                 items,
@@ -3267,6 +3794,16 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
         first_index: usize,
         previous: Option<TabWindowReceipt>,
     ) -> DefaultRowHeader {
+        self.default_row_header_with_more(area, first_index, previous, false)
+    }
+
+    fn default_row_header_with_more(
+        &self,
+        area: Rect,
+        first_index: usize,
+        previous: Option<TabWindowReceipt>,
+        reserve_more: bool,
+    ) -> DefaultRowHeader {
         debug_assert!(!area.is_empty(), "empty geometry has no row header");
         let overflow_reserved =
             previous.is_some_and(|receipt| receipt.viewport_len < receipt.content_len);
@@ -3277,7 +3814,12 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
         };
         let new_w: u16 = if self.allow_new { 4 } else { 0 };
         let left_w: u16 = if first_index > 0 { 4 } else { 0 };
-        let right_w: u16 = if overflow_reserved || first_index > 0 {
+        let more_w: u16 = if reserve_more && self.overflow_menu {
+            4
+        } else {
+            0
+        };
+        let right_w: u16 = if overflow_reserved || first_index > 0 || more_w > 0 {
             4
         } else {
             0
@@ -3292,6 +3834,7 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
         let right_limit = row_area
             .right()
             .saturating_sub(status_w)
+            .saturating_sub(more_w)
             .saturating_sub(right_w)
             .saturating_sub(new_w);
         let used_area = Rect {
@@ -3304,6 +3847,27 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
             width: left_w.min(row_area.width),
             height: 1,
         });
+        let more_area = (more_w > 0).then(|| Rect {
+            x: row_area
+                .right()
+                .saturating_sub(status_w)
+                .saturating_sub(new_w)
+                .saturating_sub(more_w),
+            y: row_area.y,
+            width: more_w,
+            height: 1,
+        });
+        let right_overflow_lane = (right_w > 0).then(|| Rect {
+            x: row_area
+                .right()
+                .saturating_sub(status_w)
+                .saturating_sub(new_w)
+                .saturating_sub(more_w)
+                .saturating_sub(right_w),
+            y: row_area.y,
+            width: right_w,
+            height: 1,
+        });
 
         DefaultRowHeader {
             row_area,
@@ -3312,9 +3876,36 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
             first_tab_x,
             right_limit,
             left_overflow,
+            right_overflow_lane,
+            more_area,
             status_w,
             new_w,
         }
+    }
+
+    fn more_lane_fits(
+        &self,
+        area: Rect,
+        clip: Rect,
+        first_index: usize,
+        previous: Option<TabWindowReceipt>,
+    ) -> bool {
+        if !self.overflow_menu || area.is_empty() {
+            return false;
+        }
+        let base = self.default_row_header(area, first_index, previous);
+        let required = if first_index > 0 { 4_u32 } else { 0_u32 }
+            .saturating_add(4) // right-arrow lane
+            .saturating_add(4) // More lane
+            .saturating_add(u32::from(base.new_w))
+            .saturating_add(u32::from(base.status_w))
+            .saturating_add(3); // minimum tab allocation
+        if u32::from(base.row_area.width) < required {
+            return false;
+        }
+        self.default_row_header_with_more(area, first_index, previous, true)
+            .more_area
+            .is_some_and(|more| !more.intersection(clip).is_empty())
     }
 
     #[expect(
@@ -3329,6 +3920,33 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
         first_index: usize,
         previous: Option<TabWindowReceipt>,
         extent_scratch: &mut Vec<bool>,
+        emit: impl FnMut(DefaultRowGeometry),
+    ) -> DefaultRowWalk {
+        self.walk_default_owned_with_more(
+            area,
+            clip,
+            items,
+            first_index,
+            previous,
+            extent_scratch,
+            false,
+            emit,
+        )
+    }
+
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "one shared geometry walk feeds scalar probes and the final row sink"
+    )]
+    fn walk_default_owned_with_more(
+        &self,
+        area: Rect,
+        clip: Rect,
+        items: &[OwnedTabMeasurement],
+        first_index: usize,
+        previous: Option<TabWindowReceipt>,
+        extent_scratch: &mut Vec<bool>,
+        reserve_more: bool,
         mut emit: impl FnMut(DefaultRowGeometry),
     ) -> DefaultRowWalk {
         debug_assert!(
@@ -3337,7 +3955,7 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
         );
         let len = items.len();
         let first_index = first_index.min(len);
-        let header = self.default_row_header(area, first_index, previous);
+        let header = self.default_row_header_with_more(area, first_index, previous, reserve_more);
         let row_area = header.row_area;
         let first_tab_x = header.first_tab_x;
         let right_limit = header.right_limit;
@@ -3419,16 +4037,22 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
         }
 
         let hidden_right = len.saturating_sub(first_index.saturating_add(viewport_len));
-        let right_overflow = (hidden_right > 0).then(|| Rect {
-            x: row_area
-                .right()
-                .saturating_sub(status_w)
-                .saturating_sub(new_w)
-                .saturating_sub(4)
-                .max(row_area.x),
-            y: row_area.y,
-            width: 4.min(row_area.width),
-            height: 1,
+        let right_overflow = (hidden_right > 0).then(|| {
+            if reserve_more {
+                header.right_overflow_lane.unwrap_or_default()
+            } else {
+                Rect {
+                    x: row_area
+                        .right()
+                        .saturating_sub(status_w)
+                        .saturating_sub(new_w)
+                        .saturating_sub(4)
+                        .max(row_area.x),
+                    y: row_area.y,
+                    width: 4.min(row_area.width),
+                    height: 1,
+                }
+            }
         });
         let new_area = self.allow_new.then(|| Rect {
             x: row_area
@@ -3454,12 +4078,50 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
             right_limit,
             left_overflow: header.left_overflow,
             right_overflow,
+            more_area: header.more_area,
             new_area,
             status_area,
             hidden_right,
             viewport_len,
             last_row,
         }
+    }
+
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "one resolved walk derives More eligibility then emits from the same owned segments"
+    )]
+    fn walk_default_resolved(
+        &self,
+        area: Rect,
+        clip: Rect,
+        items: &[OwnedTabMeasurement],
+        first_index: usize,
+        previous: Option<TabWindowReceipt>,
+        extent_scratch: &mut Vec<bool>,
+        emit: impl FnMut(DefaultRowGeometry),
+    ) -> DefaultRowWalk {
+        let base = self.walk_default_owned(
+            area,
+            clip,
+            items,
+            first_index,
+            previous,
+            extent_scratch,
+            |_| {},
+        );
+        let reserve_more = first_index.saturating_add(base.hidden_right) > 0
+            && self.more_lane_fits(area, clip, first_index, previous);
+        self.walk_default_owned_with_more(
+            area,
+            clip,
+            items,
+            first_index,
+            previous,
+            extent_scratch,
+            reserve_more,
+            emit,
+        )
     }
 
     #[expect(
@@ -3496,6 +4158,8 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
                 cursor: state.core.cursor(),
                 first: state.first,
                 first_tab_x: area.x,
+                overflow_menu: self.overflow_menu,
+                menu: state.menu.clone(),
                 allow_new: self.allow_new,
                 new_key_bindings: self.new_key_bindings,
                 closable: self.closable,
@@ -3512,6 +4176,7 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
                 passive_focused: self.passive_focused,
                 left_overflow: None,
                 right_overflow: None,
+                more_area: None,
                 new_area: None,
                 status_area: None,
                 item_marks_enabled: self.item_marks.is_some(),
@@ -3525,7 +4190,7 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
             };
         }
         let mut rows = Vec::new();
-        let walk = self.walk_default_owned(
+        let walk = self.walk_default_resolved(
             area,
             clip,
             items,
@@ -3551,6 +4216,8 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
             cursor: state.core.cursor(),
             first: state.first,
             first_tab_x: walk.first_tab_x,
+            overflow_menu: self.overflow_menu,
+            menu: state.menu.clone(),
             allow_new: self.allow_new,
             new_key_bindings: self.new_key_bindings,
             closable: self.closable,
@@ -3567,6 +4234,7 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
             passive_focused: self.passive_focused,
             left_overflow: walk.left_overflow,
             right_overflow: walk.right_overflow,
+            more_area: walk.more_area,
             new_area: walk.new_area,
             status_area: walk.status_area,
             item_marks_enabled: self.item_marks.is_some(),
@@ -3591,6 +4259,7 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
     ) -> Result<Rect, TabLayoutMismatch> {
         if !layout.owned_snapshot_is_consistent()
             || layout.id != self.id
+            || layout.overflow_menu != self.overflow_menu
             || layout.allow_new != self.allow_new
             || layout.new_key_bindings != self.new_key_bindings
             || layout.closable != self.closable
@@ -3606,6 +4275,7 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
             || layout.passive_focused != self.passive_focused
             || layout.item_marks_enabled != self.item_marks.is_some()
         {
+            *ui.cache::<TabsMenuFrame>(self.id) = TabsMenuFrame::default();
             return Err(TabLayoutMismatch);
         }
         Ok(self.draw_impl(ui, layout.area, TabsRenderSource::Planned(layout)))
@@ -3833,6 +4503,14 @@ mod tests {
         width: 12,
         height: 2,
     };
+    const DOWN_NEW: [Binding<TabsCmd>; 1] = [Binding {
+        action: crate::ActionKey::custom("tabs.tests.new-down"),
+        chord: Some(Chord::key(KeyCode::Down)),
+        cmd: TabsCmd::New,
+        label: "New tab",
+        priority: 70,
+        visible: true,
+    }];
 
     fn assert_planned_regions_match_legacy(
         planned: &Registry,
@@ -4125,7 +4803,8 @@ mod tests {
             .allow_new(true)
             .closable(true)
             .close_reveal(mode.close_reveal)
-            .status(Status::Error);
+            .status(Status::Error)
+            .overflow_menu(false);
         let layout = tabs.layout_default(area, area, state, items, previous);
         let mut runtime = Runtime::new(Stub::default(), Theme::junie().downgrade(level));
         let mut buffer = Buffer::empty(area);
@@ -4255,7 +4934,7 @@ mod tests {
         let items = ["one", "two", "three", "four", "five"];
         let area = Rect::new(0, 0, 18, 2);
         let state = TabsState::default();
-        let tabs = Tabs::new(TABS).closable(true);
+        let tabs = Tabs::new(TABS).closable(true).overflow_menu(false);
         let mut legacy = Runtime::new(Stub::default(), Theme::junie());
         let mut semantic = Runtime::new(Stub::default(), Theme::junie());
         let mut legacy_buf = Buffer::empty(area);
@@ -4722,7 +5401,8 @@ mod tests {
         ];
         let tabs = Tabs::new(TABS)
             .key(mutable_owned_key as fn(&MutableOwnedItem) -> ItemKey)
-            .item_marks(mutable_owned_marks as fn(&MutableOwnedItem) -> TabMarks);
+            .item_marks(mutable_owned_marks as fn(&MutableOwnedItem) -> TabMarks)
+            .overflow_menu(false);
         let state = TabsState::default();
         let area = Rect::new(0, 0, 12, 2);
         let original = tabs.layout_default(area, area, &state, &items, None);
@@ -5010,10 +5690,18 @@ mod tests {
         let area = Rect::new(0, 0, 24, 2);
         let items = vec!["a"; 8];
         let state = TabsState::default();
-        let tabs = Tabs::new(TABS);
+        let tabs = Tabs::new(TABS).overflow_menu(false);
         let cold = tabs.layout_default(area, area, &state, &items, None);
         assert_eq!(cold.viewport_len, 6);
         assert_eq!(cold.terminal_first_index, Some(4));
+
+        let with_menu = Tabs::new(TABS).layout_default(area, area, &state, &items, None);
+        assert_eq!(with_menu.more_area.map(|area| area.width), Some(4));
+        assert!(
+            with_menu.viewport_len < cold.viewport_len,
+            "the default-on More lane reserves real strip width"
+        );
+        assert!(!with_menu.hidden_menu_items().is_empty());
 
         let warm = tabs.layout_default(
             area,
@@ -5096,7 +5784,9 @@ mod tests {
         state.set_active(1, ItemKey::num(20));
         state.first = Some(ItemKey::num(10));
         state.first_index = 0;
-        let tabs = Tabs::new(TABS).key(|item: &KeyedDisplay| ItemKey::num(item.key));
+        let tabs = Tabs::new(TABS)
+            .key(|item: &KeyedDisplay| ItemKey::num(item.key))
+            .overflow_menu(false);
         let area = Rect::new(0, 0, 24, 2);
         let layout = tabs.layout_default(area, area, &state, &items, None);
         assert_eq!(layout.first_index(), 1);
@@ -5148,7 +5838,8 @@ mod tests {
                 .allow_new(true)
                 .closable(false)
                 .closable_keys(&eligible)
-                .close_reveal(reveal);
+                .close_reveal(reveal)
+                .overflow_menu(false);
             let mut offset = TabsState::default();
             offset.set_active(4, ItemKey::index(4));
             offset.first = Some(ItemKey::index(3));
@@ -5574,6 +6265,34 @@ mod tests {
         })
     }
 
+    fn exhaustive_terminal_start_with_more<T, K>(
+        tabs: &Tabs<'_, T, K, DefaultRow>,
+        area: Rect,
+        clip: Rect,
+        items: &[OwnedTabMeasurement],
+        previous: Option<TabWindowReceipt>,
+    ) -> Option<usize>
+    where
+        T: fmt::Display,
+        K: KeyFn<T>,
+    {
+        let final_index = items.len().checked_sub(1)?;
+        let mut scratch = Vec::new();
+        (0..items.len()).find(|&candidate_first| {
+            tabs.walk_default_resolved(
+                area,
+                clip,
+                items,
+                candidate_first,
+                previous,
+                &mut scratch,
+                |_| {},
+            )
+            .last_row
+            .is_some_and(|row| row.index == final_index && !row.visible_tab.is_empty())
+        })
+    }
+
     #[test]
     fn bounded_terminal_search_matches_the_exhaustive_domain() {
         let counts = [0, 1, 2, 5, 8];
@@ -5604,7 +6323,8 @@ mod tests {
                     .status(status)
                     .allow_new(allow_new)
                     .closable(closable)
-                    .close_target_w(5);
+                    .close_target_w(5)
+                    .overflow_menu(false);
                 for area in areas {
                     let clips = [
                         area,
@@ -5684,6 +6404,128 @@ mod tests {
     }
 
     #[test]
+    fn bounded_more_terminal_search_matches_the_resolved_exhaustive_domain() {
+        let counts = [0, 1, 2, 5, 8];
+        let mut saw_reserved_more_lane = false;
+
+        for count in counts {
+            let items = terminal_fixture_items(count);
+            let receipts = [
+                None,
+                Some(TabWindowReceipt {
+                    viewport_len: 0,
+                    content_len: count,
+                }),
+            ];
+            let areas = [
+                Rect::new(0, 0, 2, 2),
+                Rect::new(0, 0, 4, 2),
+                Rect::new(0, 0, 10, 2),
+                Rect::new(3, 2, 31, 2),
+                Rect::new(u16::MAX - 2, 0, 8, 2),
+            ];
+
+            for (status, allow_new, closable) in [
+                (Status::Ready, false, false),
+                (Status::Busy, true, false),
+                (Status::Error, true, true),
+            ] {
+                let tabs = Tabs::<&str>::new(TABS)
+                    .status(status)
+                    .allow_new(allow_new)
+                    .closable(closable)
+                    .close_target_w(5);
+                for area in areas {
+                    let clips = [
+                        area,
+                        Rect::new(
+                            area.x.saturating_add(area.width / 2),
+                            area.y,
+                            area.width / 2,
+                            1,
+                        ),
+                        Rect::new(area.x, area.y.saturating_add(4), 5, 1),
+                        Rect::new(area.x, area.y, 0, 1),
+                    ];
+                    for clip in clips {
+                        for previous in receipts {
+                            let expected = exhaustive_terminal_start_with_more(
+                                &tabs, area, clip, &items, previous,
+                            );
+                            let mut scratch = Vec::new();
+                            let actual = tabs.find_terminal_first_index(
+                                area,
+                                clip,
+                                &items,
+                                previous,
+                                &mut scratch,
+                            );
+                            assert_eq!(
+                                actual, expected,
+                                concat!(
+                                    "More count={}, status={:?}, allow_new={}, ",
+                                    "closable={}, area={:?}, clip={:?}, receipt={:?}"
+                                ),
+                                count, status, allow_new, closable, area, clip, previous
+                            );
+
+                            if !items.is_empty() {
+                                let reserve_more = tabs.more_lane_fits(area, clip, 1, previous);
+                                saw_reserved_more_lane |= reserve_more;
+                                let header = tabs.default_row_header_with_more(
+                                    area,
+                                    1,
+                                    previous,
+                                    reserve_more,
+                                );
+                                let budget = header.available_width();
+                                let max_rows = max_rows_for_width_budget(budget);
+                                let lower =
+                                    positive_terminal_candidate_range(count, max_rows).start;
+                                let positive_walk = tabs.walk_default_resolved(
+                                    area,
+                                    clip,
+                                    &items,
+                                    1,
+                                    previous,
+                                    &mut scratch,
+                                    |_| {},
+                                );
+                                assert_eq!(
+                                    positive_walk
+                                        .right_limit
+                                        .saturating_sub(positive_walk.first_tab_x),
+                                    budget,
+                                    "More positive-start K uses the resolved exact header"
+                                );
+                                for candidate_first in 1..lower {
+                                    let walk = tabs.walk_default_resolved(
+                                        area,
+                                        clip,
+                                        &items,
+                                        candidate_first,
+                                        previous,
+                                        &mut scratch,
+                                        |_| {},
+                                    );
+                                    let required_rows = count - candidate_first;
+                                    assert!(required_rows > max_rows);
+                                    assert!(walk.viewport_len <= max_rows);
+                                    assert!(walk.viewport_len < required_rows);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        assert!(
+            saw_reserved_more_lane,
+            "the exhaustive domain includes a visible More-reserved header"
+        );
+    }
+
+    #[test]
     fn terminal_row_budget_and_positive_range_use_wide_exact_arithmetic() {
         assert_eq!(max_rows_for_width_budget(0), 0);
         assert_eq!(max_rows_for_width_budget(1), 0);
@@ -5706,7 +6548,10 @@ mod tests {
             (Status::Busy, false, 21, 5),
             (Status::Error, true, 17, 4),
         ] {
-            let tabs = Tabs::<&str>::new(TABS).status(status).allow_new(allow_new);
+            let tabs = Tabs::<&str>::new(TABS)
+                .status(status)
+                .allow_new(allow_new)
+                .overflow_menu(false);
             let header = tabs.default_row_header(area, 1, None);
             assert_eq!(header.first_tab_x, 7);
             assert_eq!(header.available_width(), expected_budget);
@@ -5726,7 +6571,8 @@ mod tests {
             let tabs = Tabs::<&str>::new(TABS)
                 .status(status)
                 .allow_new(allow_new)
-                .closable(closable);
+                .closable(closable)
+                .overflow_menu(false);
             for area in [
                 Rect::new(0, 0, 4, 2),
                 Rect::new(3, 2, 31, 2),
@@ -5775,8 +6621,66 @@ mod tests {
     }
 
     #[test]
+    fn bounded_more_terminal_search_matches_resolved_large_input() {
+        let items = terminal_fixture_items(128);
+        for (status, allow_new, closable) in
+            [(Status::Ready, false, false), (Status::Busy, true, true)]
+        {
+            let tabs = Tabs::<&str>::new(TABS)
+                .status(status)
+                .allow_new(allow_new)
+                .closable(closable);
+            for area in [
+                Rect::new(0, 0, 4, 2),
+                Rect::new(3, 2, 31, 2),
+                Rect::new(0, 0, 80, 2),
+            ] {
+                let clips = [
+                    area,
+                    Rect::new(
+                        area.x.saturating_add(area.width / 2),
+                        area.y,
+                        area.width / 2,
+                        1,
+                    ),
+                    Rect::new(area.x, area.y.saturating_add(4), 5, 1),
+                ];
+                for clip in clips {
+                    for previous in [
+                        None,
+                        Some(TabWindowReceipt {
+                            viewport_len: 0,
+                            content_len: items.len(),
+                        }),
+                    ] {
+                        let expected = exhaustive_terminal_start_with_more(
+                            &tabs, area, clip, &items, previous,
+                        );
+                        let mut scratch = Vec::new();
+                        let actual = tabs.find_terminal_first_index(
+                            area,
+                            clip,
+                            &items,
+                            previous,
+                            &mut scratch,
+                        );
+                        assert_eq!(
+                            actual, expected,
+                            concat!(
+                                "More large input: status={:?}, allow_new={}, ",
+                                "closable={}, area={:?}, clip={:?}, receipt={:?}"
+                            ),
+                            status, allow_new, closable, area, clip, previous
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
     fn terminal_probe_work_is_bounded_by_fixed_viewport_width() {
-        let tabs = Tabs::<&str>::new(TABS);
+        let tabs = Tabs::<&str>::new(TABS).overflow_menu(false);
         let area = Rect::new(0, 0, 80, 2);
         let clip = Rect::new(100, 0, 1, 1);
         let mut measurements = Vec::new();
@@ -5845,6 +6749,102 @@ mod tests {
                 assert_eq!(positive_row_visits, 171);
                 assert_eq!(row_visits, 191);
             }
+        }
+    }
+
+    #[test]
+    fn more_terminal_probe_work_is_bounded_by_the_resolved_positive_header() {
+        let tabs = Tabs::<&str>::new(TABS);
+        let area = Rect::new(0, 0, 80, 2);
+        // This clip exposes the More/right-arrow lanes but not the tab rows.
+        // Every terminal candidate is probed, while its final tab remains
+        // outside the clip, so the bounded search returns None.
+        let clip = Rect::new(72, 0, 8, 1);
+        let mut measurements = Vec::new();
+
+        for count in [8, 128, 4096] {
+            measurements.clear();
+            measurements.extend((0..count).map(|index| OwnedTabMeasurement {
+                key: ItemKey::index(index),
+                mark: None,
+                close_enabled: false,
+                label_segments: vec!["x".to_owned()],
+            }));
+
+            let reserve_more = tabs.more_lane_fits(area, clip, 1, None);
+            assert!(reserve_more);
+            let header = tabs.default_row_header_with_more(area, 1, None, reserve_more);
+            let positive_budget = header.available_width();
+            let max_rows = max_rows_for_width_budget(positive_budget);
+            let candidates = positive_terminal_candidate_range(count, max_rows);
+            let mut scratch = Vec::new();
+            let mut probes = 0usize;
+            let mut row_visits = 0usize;
+
+            let start_zero = tabs.walk_default_resolved(
+                area,
+                clip,
+                &measurements,
+                0,
+                None,
+                &mut scratch,
+                |_| {},
+            );
+            probes += 1;
+            row_visits += start_zero.viewport_len;
+            assert!(
+                !start_zero
+                    .last_row
+                    .is_some_and(|row| row.index + 1 == count && !row.visible_tab.is_empty())
+            );
+
+            let positive_walk = tabs.walk_default_resolved(
+                area,
+                clip,
+                &measurements,
+                1,
+                None,
+                &mut scratch,
+                |_| {},
+            );
+            assert_eq!(
+                positive_walk
+                    .right_limit
+                    .saturating_sub(positive_walk.first_tab_x),
+                positive_budget,
+                "positive-start K budget comes from the More-aware header"
+            );
+
+            let mut positive_row_visits = 0usize;
+            for candidate_first in candidates.clone() {
+                let walk = tabs.walk_default_resolved(
+                    area,
+                    clip,
+                    &measurements,
+                    candidate_first,
+                    None,
+                    &mut scratch,
+                    |_| {},
+                );
+                probes += 1;
+                row_visits += walk.viewport_len;
+                positive_row_visits += walk.viewport_len;
+                assert!(
+                    !walk
+                        .last_row
+                        .is_some_and(|row| row.index + 1 == count && !row.visible_tab.is_empty())
+                );
+            }
+
+            assert_eq!(
+                tabs.find_terminal_first_index(area, clip, &measurements, None, &mut scratch,),
+                None
+            );
+            assert!(tabs.more_lane_fits(area, clip, 1, None));
+            assert_eq!(probes, 1 + candidates.len());
+            assert!(probes <= 1 + max_rows);
+            assert!(positive_row_visits <= max_rows * max_rows);
+            assert_eq!(row_visits, start_zero.viewport_len + positive_row_visits);
         }
     }
 
@@ -5996,5 +6996,163 @@ mod tests {
         assert_eq!(empty.first_index(), items.len() - 1);
         assert_eq!(empty.terminal_first_index, None);
         assert!(empty.owned_items.is_none());
+    }
+
+    #[test]
+    fn default_more_lane_tracks_the_hidden_key_order_without_stealing_neighbor_lanes() {
+        let items = (0..12)
+            .map(|index| format!("Workspace-{index:02}-long"))
+            .collect::<Vec<_>>();
+        let area = Rect::new(11, 3, 46, 2);
+        let state = TabsState {
+            active: Some(ItemKey::index(0)),
+            first: Some(ItemKey::index(2)),
+            first_index: 2,
+            ..TabsState::default()
+        };
+        let tabs = Tabs::new(TABS)
+            .allow_new(true)
+            .status(Status::Error)
+            .closable(false);
+
+        let layout = tabs.layout_default(area, area, &state, &items, None);
+        let left = layout
+            .left_overflow
+            .expect("the scrolled window has a left lane");
+        let right = layout
+            .right_overflow
+            .expect("the remaining rows have a right lane");
+        let more = layout
+            .more_area
+            .expect("the planned default row exposes hidden rows");
+        let new = layout.new_area.expect("New keeps its authored lane");
+        let status = layout.status_area.expect("status keeps its authored lane");
+
+        assert_eq!(more.width, 4);
+        assert_eq!(more.height, 1);
+        assert_eq!(more.y, area.y);
+        assert!(
+            left.right()
+                <= layout
+                    .rows()
+                    .first()
+                    .map_or(more.x, |row| row.logical_tab.x)
+        );
+        assert!(right.right() <= more.x);
+        assert!(more.right() <= new.x);
+        assert!(new.right() <= status.x);
+        for row in layout.rows() {
+            assert!(more.intersection(row.logical_tab).is_empty());
+        }
+        assert_eq!(
+            layout.part_bounds(PartRef::item(Part::OVERFLOW, ItemKey::index(2))),
+            Some((more, more)),
+            "the published More part uses the one resolved geometry",
+        );
+
+        let expected_hidden = (0..items.len())
+            .filter(|index| {
+                *index < layout.first_index()
+                    || *index >= layout.first_index().saturating_add(layout.viewport_len)
+            })
+            .map(ItemKey::index)
+            .collect::<Vec<_>>();
+        let actual_hidden = layout
+            .hidden_menu_items()
+            .into_iter()
+            .map(|item| item.key)
+            .collect::<Vec<_>>();
+        assert_eq!(actual_hidden, expected_hidden);
+        assert!(actual_hidden.len() > 1);
+
+        let short = ["A", "B"];
+        let short_tabs = Tabs::<&str>::new(TABS);
+        let short_layout =
+            short_tabs.layout_default(area, area, &TabsState::default(), &short, None);
+        assert!(short_layout.more_area.is_none());
+        assert!(
+            short_layout
+                .part_bounds(PartRef::item(Part::OVERFLOW, ItemKey::index(2)))
+                .is_none()
+        );
+    }
+
+    #[test]
+    fn more_opt_out_and_clipped_lane_keep_the_old_arrow_new_status_geometry() {
+        let items = (0..12)
+            .map(|index| format!("Workspace-{index:02}-long"))
+            .collect::<Vec<_>>();
+        let area = Rect::new(5, 2, 46, 2);
+        let state = TabsState {
+            active: Some(ItemKey::index(0)),
+            first: Some(ItemKey::index(2)),
+            first_index: 2,
+            ..TabsState::default()
+        };
+        let tabs = Tabs::new(TABS)
+            .allow_new(true)
+            .status(Status::Error)
+            .overflow_menu(false);
+        let layout = tabs.layout_default(area, area, &state, &items, None);
+        assert!(layout.more_area.is_none());
+
+        let owned = items
+            .iter()
+            .enumerate()
+            .map(|(index, label)| OwnedTabMeasurement {
+                key: ItemKey::index(index),
+                mark: None,
+                close_enabled: false,
+                label_segments: vec![label.clone()],
+            })
+            .collect::<Vec<_>>();
+        let mut scratch = Vec::new();
+        let old_walk = tabs.walk_default_owned(
+            area,
+            area,
+            &owned,
+            state.first_index,
+            None,
+            &mut scratch,
+            |_| {},
+        );
+        assert_eq!(layout.left_overflow, old_walk.left_overflow);
+        assert_eq!(layout.right_overflow, old_walk.right_overflow);
+        assert_eq!(layout.new_area, old_walk.new_area);
+        assert_eq!(layout.status_area, old_walk.status_area);
+        assert_eq!(layout.rows().len(), old_walk.viewport_len);
+        assert!(
+            layout
+                .rows()
+                .iter()
+                .zip(owned.iter().skip(state.first_index))
+                .all(|(row, item)| row.key == item.key && row.logical_tab.height == 1)
+        );
+
+        let narrow_clip = Rect::new(area.x, area.y, 18, 2);
+        let clipped = Tabs::new(TABS).layout_default(area, narrow_clip, &state, &items, None);
+        assert!(clipped.more_area.is_none());
+        assert!(
+            clipped
+                .part_bounds(PartRef::item(Part::OVERFLOW, ItemKey::index(2)))
+                .is_none()
+        );
+    }
+
+    #[test]
+    fn show_hidden_does_not_shadow_an_authored_down_binding() {
+        let plain = Tabs::<&str>::new(TABS);
+        assert!(plain.show_hidden_binding_available());
+
+        let authored_new_disabled = Tabs::<&str>::new(TABS)
+            .try_new_key_bindings(Some(&DOWN_NEW))
+            .expect("the authored New chord does not conflict with the base table");
+        assert!(authored_new_disabled.show_hidden_binding_available());
+
+        let authored = Tabs::<&str>::new(TABS)
+            .allow_new(true)
+            .try_new_key_bindings(Some(&DOWN_NEW))
+            .expect("the authored New chord does not conflict with the base table");
+        assert!(!authored.show_hidden_binding_available());
     }
 }

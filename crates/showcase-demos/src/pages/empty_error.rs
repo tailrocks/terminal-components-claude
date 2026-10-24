@@ -768,7 +768,23 @@ impl Page for EmptyErrorPage {
                     return;
                 }
                 let tabs_area = Rect { height: 1, ..body };
-                let _ = Tabs::new(PAGE_TABS).draw(ui, tabs_area, &self.page_tabs, PAGE_SECTIONS);
+                let tabs = Tabs::new(PAGE_TABS);
+                let previous = ui.layout(PAGE_TABS).map(|facts| {
+                    termrock::navigation::tabs::TabWindowReceipt {
+                        viewport_len: facts.viewport_len,
+                        content_len: facts.content_len,
+                    }
+                });
+                let layout = tabs.layout_default(
+                    tabs_area,
+                    ui.full(),
+                    &self.page_tabs,
+                    PAGE_SECTIONS,
+                    previous,
+                );
+                if tabs.draw_layout(ui, &layout).is_err() {
+                    let _ = tabs.draw(ui, tabs_area, &self.page_tabs, PAGE_SECTIONS);
+                }
                 let content = Rect {
                     y: body.y.saturating_add(1),
                     height: body.height.saturating_sub(1),
