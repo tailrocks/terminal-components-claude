@@ -529,10 +529,16 @@ impl ProductDialog {
                     return notice("Task changed · review it again");
                 }
                 if world.trust_mise_file(file) {
-                    notice(format!(
+                    let acknowledgement = format!(
                         "Trusted {} · task re-resolved",
                         file.rsplit('/').next().unwrap_or(file)
-                    ))
+                    );
+                    match dispatch::invoke(world, action) {
+                        Destination::Notice(message) => {
+                            notice(format!("{acknowledgement} · {message}"))
+                        }
+                        destination => Event::Destination(Box::new(destination)),
+                    }
                 } else {
                     notice("Task file changed · nothing trusted")
                 }
