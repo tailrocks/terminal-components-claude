@@ -134,6 +134,14 @@ fn main() {
             startup_resize::a_resize_queued_with_a_key_still_reaches_the_app,
         ),
         check(
+            "startup_resize::a_resize_co_ready_with_a_key_preserves_both_effects",
+            startup_resize::a_resize_co_ready_with_a_key_preserves_both_effects,
+        ),
+        check(
+            "startup_resize::a_resize_without_input_repaints_when_idle",
+            startup_resize::a_resize_without_input_repaints_when_idle,
+        ),
+        check(
             "startup_input::showcase_discards_keys_typed_before_start",
             startup_input::showcase_discards_keys_typed_before_start,
         ),

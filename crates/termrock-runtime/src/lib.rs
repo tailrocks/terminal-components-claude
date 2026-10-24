@@ -28,6 +28,7 @@ pub mod layer;
 pub mod rowui;
 pub mod runtime;
 pub mod scroll_region;
+pub mod size_watch;
 pub mod support;
 pub mod ui;
 
@@ -45,6 +46,7 @@ pub use layer::*;
 pub use rowui::*;
 pub use runtime::*;
 pub use scroll_region::*;
+pub use size_watch::SizeWatch;
 pub use termrock_core::event::Chord;
 pub use termrock_core::intent::Intent;
 pub use ui::cx;
