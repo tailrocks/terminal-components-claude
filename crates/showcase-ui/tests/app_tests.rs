@@ -24,6 +24,12 @@ const DIALOG_NAME: Id = DIALOG_FORM.part(Part::BODY).part(Part::FIELD).index(0);
 const DIALOG_KEY: Id = DIALOG_FORM.part(Part::BODY).part(Part::FIELD).index(6);
 const DIALOG_SAVE: Id = DIALOG_FORM.part(Part::BODY).part(Part::ACTIONS).index(2);
 const DIALOG_PICKER: Id = Id::root("showcase_ui::pages::dialog_kinds::dialog_kinds.ssh_keys");
+const PICKERS_LAYER: Id = Id::root("showcase_ui::pages::pickers::pickers.layer");
+const PICKERS_OPEN_QUICK: Id = Id::root("showcase_ui::pages::pickers::pickers.open.quick");
+const PICKERS_OPEN_TABS: Id = Id::root("showcase_ui::pages::pickers::pickers.open.tabs");
+const PICKERS_OPEN_LEVEL: Id = Id::root("showcase_ui::pages::pickers::pickers.open.level");
+const PICKERS_OPEN_COMMANDS: Id = Id::root("showcase_ui::pages::pickers::pickers.open.commands");
+const PICKERS_OPEN_REMOTE: Id = Id::root("showcase_ui::pages::pickers::pickers.open.remote");
 fn harness(page: PageId) -> Harness<App> {
     Harness::new(App::with_page(page), Theme::junie(), 120, 40)
 }
@@ -1071,6 +1077,232 @@ fn picker_launcher_is_reachable_after_navigation_focus() {
     assert_ne!(focused, APP_NAV, "Tab stayed on the shell navigation");
     press(&mut h, KeyCode::Enter);
     assert!(h.text().contains("Open quickly"), "{focused:?}");
+}
+
+#[test]
+fn remote_picker_loads_and_selects_a_branch() {
+    let mut h = harness(PageId::Pickers);
+    let (x, y) = require(h.find("Remote branch"), "remote launcher");
+    click(&mut h, x, y);
+    assert!(h.text().contains("Fetching branches from origin"));
+
+    h.ticks(3);
+    assert!(h.text().contains("feat/rate-limit"), "{}", h.text());
+    press(&mut h, KeyCode::Down);
+    press(&mut h, KeyCode::Enter);
+    assert!(h.text().contains("feat/rate-limit"), "{}", h.text());
+    assert!(!h.text().contains("Remote branches · origin"));
+}
+
+#[test]
+fn remote_fetch_failure_retries_only_after_the_focused_error_state() {
+    let mut h = harness(PageId::Pickers);
+    let (x, y) = require(h.find("Remote branch"), "remote launcher");
+    click(&mut h, x, y);
+    h.ticks(3);
+    press(&mut h, KeyCode::Esc);
+
+    let (x, y) = require(h.find("Remote branch"), "remote launcher after first fetch");
+    click(&mut h, x, y);
+    assert!(h.text().contains("Fetching branches from origin"));
+    press(&mut h, KeyCode::Char('r'));
+    assert!(h.text().contains("Fetching branches from origin"));
+    h.ticks(3);
+    assert!(h.text().contains("Could not reach origin"), "{}", h.text());
+    assert!(h.text().contains("Press r to retry"));
+
+    press(&mut h, KeyCode::Char('r'));
+    assert!(h.text().contains("Fetching branches from origin"));
+    h.ticks(3);
+    assert!(h.text().contains("feat/rate-limit"), "{}", h.text());
+}
+
+#[test]
+fn command_picker_filters_stable_keys_and_refuses_disabled_rows() {
+    let mut h = harness(PageId::Pickers);
+    let (x, y) = require(h.find("Run command"), "command launcher");
+    click(&mut h, x, y);
+    assert!(h.text().contains("Run a query first"));
+    type_text(&mut h, "export");
+    press(&mut h, KeyCode::Enter);
+    assert!(h.text().contains("Run a query first"));
+    assert!(h.text().contains("Export results"));
+
+    press(&mut h, KeyCode::Esc);
+    type_text(&mut h, "format");
+    let layer = require(h.layer_area(PICKERS_LAYER), "filtered command layer");
+    let visible = area_text(&h, layer);
+    assert!(visible.contains("Format SQL"), "{visible}");
+    assert!(
+        !visible.contains("Run query"),
+        "unmatched rows must be hidden: {visible}"
+    );
+    assert!(
+        !visible.contains("Explain query"),
+        "unmatched rows must be hidden: {visible}"
+    );
+    let (x, y) = require(h.find("Format SQL"), "the matching command is visible");
+    click(&mut h, x, y);
+    assert!(h.text().contains("Format SQL"), "{}", h.text());
+    assert!(
+        h.text().contains("edit.format"),
+        "the displayed row keeps its stable key"
+    );
+
+    let (x, y) = require(h.find("Run command"), "command launcher after selection");
+    click(&mut h, x, y);
+    type_text(&mut h, "zzzz");
+    let layer = require(h.layer_area(PICKERS_LAYER), "zero-match command layer");
+    let visible = area_text(&h, layer);
+    assert!(visible.contains("No matches"), "{visible}");
+    assert!(
+        !visible.contains("Run query"),
+        "zero matches paint no command rows: {visible}"
+    );
+    assert!(
+        !visible.contains("Format SQL"),
+        "zero matches paint no command rows: {visible}"
+    );
+}
+
+#[test]
+fn command_picker_scroll_projects_effective_rows_for_cursor_and_pointer() {
+    let mut h = harness(PageId::Pickers);
+    let (x, y) = require(h.find("Run command"), "command launcher");
+    click(&mut h, x, y);
+
+    // Run query -> Explain query -> Format SQL (skip disabled Export) ->
+    // Reconnect (skip disabled Commit).
+    press(&mut h, KeyCode::Down);
+    press(&mut h, KeyCode::Down);
+    press(&mut h, KeyCode::Down);
+    let layer = require(h.layer_area(PICKERS_LAYER), "scrolled command layer");
+    let at_end = area_text(&h, layer);
+    assert!(
+        at_end.contains("Reconnect"),
+        "Down to the last enabled row reveals Reconnect: {at_end}"
+    );
+    assert!(
+        !at_end.contains("Run query"),
+        "the first row leaves the effective view: {at_end}"
+    );
+
+    // Reverse the same three enabled-row moves across the two disabled rows.
+    press(&mut h, KeyCode::Up);
+    press(&mut h, KeyCode::Up);
+    press(&mut h, KeyCode::Up);
+    let layer = require(h.layer_area(PICKERS_LAYER), "command layer at first row");
+    let at_start = area_text(&h, layer);
+    assert!(
+        at_start.contains("Run query"),
+        "Up to the first enabled row restores Run query: {at_start}"
+    );
+    assert!(
+        !at_start.contains("Reconnect"),
+        "the last row leaves the effective view: {at_start}"
+    );
+    press(&mut h, KeyCode::Enter);
+    assert!(
+        !h.is_open(PICKERS_LAYER),
+        "Enter chooses the first enabled row"
+    );
+    let chosen_y = require(h.find("Chosen"), "chosen result row").1;
+    assert!(
+        h.row(chosen_y).contains("Run query"),
+        "the cursor returned to the first row: {}",
+        h.row(chosen_y)
+    );
+    assert!(
+        h.row(chosen_y.saturating_add(1)).contains("run.query"),
+        "the first row keeps its exact stable key: {}",
+        h.row(chosen_y.saturating_add(1))
+    );
+
+    let (x, y) = require(h.find("Run command"), "command launcher after selection");
+    click(&mut h, x, y);
+    press(&mut h, KeyCode::Down);
+    press(&mut h, KeyCode::Down);
+    press(&mut h, KeyCode::Down);
+    let layer = require(h.layer_area(PICKERS_LAYER), "command layer at Reconnect");
+    let at_end = area_text(&h, layer);
+    assert!(
+        at_end.contains("Reconnect"),
+        "Down reaches the displayed Reconnect row: {at_end}"
+    );
+    assert!(
+        !at_end.contains("Run query"),
+        "the stale first row is not painted at the end: {at_end}"
+    );
+    let (x, y) = require(h.find("Reconnect"), "displayed scrolled command");
+    click(&mut h, x, y);
+
+    assert!(
+        !h.is_open(PICKERS_LAYER),
+        "pointer selects the displayed row"
+    );
+    let chosen_y = require(h.find("Chosen"), "chosen Reconnect result row").1;
+    assert!(
+        h.row(chosen_y).contains("Reconnect"),
+        "the pointer selected the displayed label: {}",
+        h.row(chosen_y)
+    );
+    let detail_row = h.row(chosen_y.saturating_add(1));
+    assert!(
+        detail_row.contains("Detail") && detail_row.contains("conn.reconnect"),
+        "the pointer selected the displayed stable key: {detail_row}"
+    );
+}
+
+#[test]
+fn empty_query_backspace_keeps_picker_layer_drawn_and_usable() {
+    let mut h = harness(PageId::Pickers);
+    for (launcher, title) in [
+        (PICKERS_OPEN_QUICK, "Open quickly"),
+        (PICKERS_OPEN_TABS, "Open tabs"),
+        (PICKERS_OPEN_LEVEL, "Safe Mode"),
+        (PICKERS_OPEN_COMMANDS, "Run command"),
+        (PICKERS_OPEN_REMOTE, "Remote branches · origin"),
+    ] {
+        assert!(
+            h.tab_to(launcher),
+            "picker launcher {launcher:?} is reachable"
+        );
+        let prior_focus = h.focus();
+        assert_eq!(prior_focus, Some(launcher));
+        press(&mut h, KeyCode::Enter);
+        let modal_focus = h.focus();
+        press(&mut h, KeyCode::Backspace);
+        assert!(
+            h.is_open(PICKERS_LAYER),
+            "Backspace keeps {launcher:?} open"
+        );
+        let layer = require(h.layer_area(PICKERS_LAYER), "picker remains drawn");
+        let visible = area_text(&h, layer);
+        assert!(
+            visible.contains(title),
+            "{launcher:?} stays visible: {visible}"
+        );
+        assert_eq!(
+            h.focus(),
+            modal_focus,
+            "Backspace retains modal focus for {launcher:?}"
+        );
+
+        press(&mut h, KeyCode::Esc);
+        assert!(!h.is_open(PICKERS_LAYER), "Escape closes {launcher:?}");
+        assert!(h.layer_area(PICKERS_LAYER).is_none());
+        assert_eq!(
+            h.focus(),
+            prior_focus,
+            "Escape restores focus after {launcher:?}"
+        );
+        if launcher == PICKERS_OPEN_REMOTE {
+            h.ticks(3);
+            assert!(!h.is_open(PICKERS_LAYER));
+            assert!(h.layer_area(PICKERS_LAYER).is_none());
+            assert!(!h.text().contains("feat/rate-limit"));
+        }
+    }
 }
 
 #[test]

@@ -1,9 +1,13 @@
+use std::sync::LazyLock;
+use std::time::Duration;
+
 use termrock::author::PaintStyle;
 use termrock::{
-    ActionKey, Button, Color, ContextMenu, Cx, Family, FilterList, FilterListState, FrameRead,
-    GlyphRole, Id, Item, ItemKey, LayerSize, Menu, MenuBar, MenuItem, MenuState, Modifier, Part,
-    Picker, PickerAction, PickerChain, PickerChainState, PickerStage, PickerState, Position, Rect,
-    Response, ScreenAlign, ScrollState, SelectionPolicy, StateFlags, Surface, Ui, Variant, width,
+    ActionKey, Binding, Button, Chord, Color, ContextMenu, Cx, EmptyState, Family, FilterList,
+    FilterListState, FrameRead, GlyphRole, Id, Item, ItemKey, KeyCode, KeyModifiers, LayerSize,
+    Menu, MenuBar, MenuItem, MenuState, Modifier, Part, Picker, PickerAction, PickerChain,
+    PickerChainState, PickerStage, PickerState, Position, Rect, Response, ScreenAlign, ScrollState,
+    SelectionPolicy, StateFlags, Surface, Ui, Variant, width,
 };
 
 use super::{Page, PageUpdate, frame};
@@ -11,6 +15,17 @@ use super::{Page, PageUpdate, frame};
 const OPEN_QUICK: Id = termrock::Id::root("showcase_ui::pages::pickers::pickers.open.quick");
 const OPEN_TABS: Id = termrock::Id::root("showcase_ui::pages::pickers::pickers.open.tabs");
 const OPEN_LEVEL: Id = termrock::Id::root("showcase_ui::pages::pickers::pickers.open.level");
+const OPEN_COMMANDS: Id = termrock::Id::root("showcase_ui::pages::pickers::pickers.open.commands");
+const OPEN_REMOTE: Id = termrock::Id::root("showcase_ui::pages::pickers::pickers.open.remote");
+const REMOTE_RETRY_ACTION: ActionKey = ActionKey::application("showcase.pickers.remote.retry");
+const REMOTE_RETRY_BINDINGS: &[Binding<()>] = &[Binding {
+    action: REMOTE_RETRY_ACTION,
+    chord: Some(Chord::with(KeyCode::Char('r'), KeyModifiers::NONE)),
+    cmd: (),
+    label: "Retry",
+    priority: 70,
+    visible: true,
+}];
 const PICKER: Id = termrock::Id::root("showcase_ui::pages::pickers::pickers.layer");
 const FILTER: Id = termrock::Id::root("showcase_ui::pages::pickers::pickers.filter");
 const CHAIN: Id = termrock::Id::root("showcase_ui::pages::pickers::pickers.chain");
@@ -27,6 +42,15 @@ enum PickerKind {
     Quick,
     Tabs,
     Level,
+    Commands,
+    Remote,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum RemoteStatus {
+    Loading,
+    Error,
+    Ready,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -267,6 +291,69 @@ const QUICK_NOTE: &str = "Quick: fuzzy as you type, Tab scope, Alt+Enter alterna
 const APPLIED_META: &str = "read back from a built picker";
 const LAST_ACTION: &str = "none yet · QueryChanged · Chosen(i) · ChosenAlt(i) · Submit · Secondary(i) · NextScope · PrevScope · Back · Cancelled";
 const OPEN_TAB_LINE: &str = "Query 1 · orders · order_items · History";
+const FETCH_TICKS: u8 = 3;
+
+static COMMAND_ITEMS: LazyLock<[Item<'static>; 6]> = LazyLock::new(|| {
+    [
+        Item::new(ItemKey::text("run.query"), "Run query")
+            .glyph("▶")
+            .detail("run.query")
+            .group("Commands"),
+        Item::new(ItemKey::text("run.explain"), "Explain query")
+            .glyph("?")
+            .detail("run.explain")
+            .group("Commands"),
+        Item::new(ItemKey::text("results.export"), "Export results…")
+            .glyph("⇩")
+            .detail("Run a query first")
+            .group("Commands")
+            .disabled(true),
+        Item::new(ItemKey::text("edit.format"), "Format SQL")
+            .glyph("≡")
+            .detail("edit.format")
+            .group("Commands"),
+        Item::new(ItemKey::text("tx.commit"), "Commit transaction")
+            .glyph("✓")
+            .detail("No open transaction")
+            .group("Commands")
+            .disabled(true),
+        Item::new(ItemKey::text("conn.reconnect"), "Reconnect")
+            .glyph("↻")
+            .detail("conn.reconnect")
+            .group("Commands"),
+    ]
+});
+
+static REMOTE_ITEMS: LazyLock<[Item<'static>; 5]> = LazyLock::new(|| {
+    [
+        Item::new(ItemKey::text("origin/main"), "main")
+            .glyph("⎇")
+            .detail("origin")
+            .group("origin"),
+        Item::new(ItemKey::text("origin/feat/rate-limit"), "feat/rate-limit")
+            .glyph("⎇")
+            .detail("origin")
+            .group("origin"),
+        Item::new(
+            ItemKey::text("origin/fix/session-expiry"),
+            "fix/session-expiry",
+        )
+        .glyph("⎇")
+        .detail("origin")
+        .group("origin"),
+        Item::new(
+            ItemKey::text("origin/chore/uuid-sessions"),
+            "chore/uuid-sessions",
+        )
+        .glyph("⎇")
+        .detail("origin")
+        .group("origin"),
+        Item::new(ItemKey::text("origin/release/4.2"), "release/4.2")
+            .glyph("⎇")
+            .detail("origin")
+            .group("origin"),
+    ]
+});
 const CARD_GAP: u16 = 1;
 const VALUE_MIN: u16 = 12;
 const SCROLL_ROOM: u16 = 2;
@@ -308,7 +395,11 @@ const APPLIED: &[(&str, &str)] = &[
     ("Remote", "Loading, then Ready"),
 ];
 
-fn picker(kind: PickerKind, item_count: usize) -> Picker<'static, Item<'static>> {
+fn picker(
+    kind: PickerKind,
+    item_count: usize,
+    remote_status: RemoteStatus,
+) -> Picker<'static, Item<'static>> {
     let (title, placeholder, searchable, width, height) = match kind {
         PickerKind::Quick => {
             let rows = item_count.clamp(1, 12) as u16;
@@ -325,6 +416,8 @@ fn picker(kind: PickerKind, item_count: usize) -> Picker<'static, Item<'static>>
         }
         PickerKind::Tabs => ("Open tabs", "Filter tabs…", true, 48, 11),
         PickerKind::Level => ("Safe Mode · this connection", "", false, 112, 11),
+        PickerKind::Commands => ("Run command", "Commands…", true, 64, 11),
+        PickerKind::Remote => ("Remote branches · origin", "", false, 56, 11),
     };
     let picker = Picker::new(PICKER)
         .title(title)
@@ -332,12 +425,30 @@ fn picker(kind: PickerKind, item_count: usize) -> Picker<'static, Item<'static>>
         .searchable(searchable)
         .size(LayerSize::Fixed(width, height))
         .align(ScreenAlign::Center);
-    if matches!(kind, PickerKind::Quick) {
-        picker
+    match kind {
+        PickerKind::Quick => picker
             .scopes(SCOPES)
-            .selection_policy(SelectionPolicy::FirstEnabledOnFilterChange)
-    } else {
-        picker
+            .selection_policy(SelectionPolicy::FirstEnabledOnFilterChange),
+        PickerKind::Commands => picker
+            .hints("↑↓ Move · Enter Run · Esc Close")
+            .delete_is_secondary(false),
+        PickerKind::Remote => picker
+            .hints("↑↓ Move · Enter Check out · r Retry · Esc Close")
+            .delete_is_secondary(false)
+            .empty(match remote_status {
+                RemoteStatus::Loading => EmptyState::Loading {
+                    label: "Fetching branches from origin…",
+                },
+                RemoteStatus::Error => EmptyState::Error {
+                    message: "Could not reach origin",
+                    detail: Some("Press r to retry"),
+                },
+                RemoteStatus::Ready => EmptyState::Empty {
+                    title: "No branches",
+                    hint: None,
+                },
+            }),
+        PickerKind::Tabs | PickerKind::Level => picker,
     }
 }
 
@@ -351,6 +462,14 @@ fn tabs_button() -> Button<'static> {
 
 fn level_button() -> Button<'static> {
     Button::new(OPEN_LEVEL, "Choose a level").variant(Variant::SECONDARY)
+}
+
+fn commands_button() -> Button<'static> {
+    Button::new(OPEN_COMMANDS, "Run command").variant(Variant::SECONDARY)
+}
+
+fn remote_button() -> Button<'static> {
+    Button::new(OPEN_REMOTE, "Remote branch").variant(Variant::SECONDARY)
 }
 
 fn filter_list() -> FilterList<'static, Item<'static>> {
@@ -823,6 +942,34 @@ fn picker_content(area: Rect) -> Rect {
     }
 }
 
+fn picker_label_matches(label: &str, query: &str) -> bool {
+    if query.is_empty() {
+        return true;
+    }
+    let mut wanted = query.chars().flat_map(char::to_lowercase);
+    let mut next = wanted.next();
+    for character in label.chars().flat_map(char::to_lowercase) {
+        if Some(character) == next {
+            next = wanted.next();
+            if next.is_none() {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+fn picker_visible_items<'a>(
+    kind: PickerKind,
+    items: &'a [Item<'static>],
+    query: &str,
+) -> Vec<&'a Item<'static>> {
+    items
+        .iter()
+        .filter(|item| kind != PickerKind::Commands || picker_label_matches(item.label, query))
+        .collect()
+}
+
 fn paint_picker(
     ui: &mut Ui<'_>,
     area: Rect,
@@ -830,6 +977,7 @@ fn paint_picker(
     state: &PickerState,
     items: &[Item<'static>],
     scope: QuickScope,
+    remote_status: RemoteStatus,
 ) {
     let content = picker_content(area);
     if content.is_empty() {
@@ -843,6 +991,8 @@ fn paint_picker(
         PickerKind::Quick => ("Open quickly", "Files and tasks…", 3u16),
         PickerKind::Tabs => ("Open tabs", "Filter tabs…", 3u16),
         PickerKind::Level => ("Safe Mode · this connection", "", 1u16),
+        PickerKind::Commands => ("Run command", "Commands…", 3u16),
+        PickerKind::Remote => ("Remote branches · origin", "", 1u16),
     };
     let title_style = picker_style(ui, Part::TITLE, live);
     ui.paint_str(
@@ -873,7 +1023,7 @@ fn paint_picker(
         );
     }
 
-    if !matches!(kind, PickerKind::Level) {
+    if !matches!(kind, PickerKind::Level | PickerKind::Remote) {
         let query = Rect {
             y: content.y.saturating_add(1),
             height: 1,
@@ -904,6 +1054,8 @@ fn paint_picker(
         }
         PickerKind::Tabs => "↑↓ Move · Enter Switch · Delete Close tab · Esc Close",
         PickerKind::Level => "↑↓ Move · Enter Set level · Esc Keep",
+        PickerKind::Commands => "↑↓ Move · Enter Run · Esc Close",
+        PickerKind::Remote => "↑↓ Move · Enter Check out · r Retry · Esc Close",
     };
     let footer_y = content.bottom().saturating_sub(1);
     let list_height = content.height.saturating_sub(list_offset).saturating_sub(1);
@@ -912,26 +1064,70 @@ fn paint_picker(
         height: list_height,
         ..content
     };
-    let has_scrollbar = items.len() > usize::from(list.height);
+    let visible_items = picker_visible_items(kind, items, state.query());
+    if kind == PickerKind::Remote && items.is_empty() {
+        let empty = match remote_status {
+            RemoteStatus::Loading => EmptyState::Loading {
+                label: "Fetching branches from origin…",
+            },
+            RemoteStatus::Error => EmptyState::Error {
+                message: "Could not reach origin",
+                detail: Some("Press r to retry"),
+            },
+            RemoteStatus::Ready => EmptyState::Empty {
+                title: "No branches",
+                hint: None,
+            },
+        };
+        let _ = empty.draw(ui, list, 0);
+    }
+    if kind == PickerKind::Commands && visible_items.is_empty() && !state.query().is_empty() {
+        let _ = EmptyState::Empty {
+            title: "No matches",
+            hint: None,
+        }
+        .draw(ui, list, 0);
+    }
+    let has_scrollbar = visible_items.len() > usize::from(list.height);
     let row_width = list.width.saturating_sub(u16::from(has_scrollbar));
-    let label_width = items
+    let label_width = visible_items
         .iter()
         .map(|item| width(item.label))
         .max()
         .unwrap_or(6)
         .clamp(6, (row_width * 45 / 100).max(6));
-    let tag_width = items
+    let tag_width = visible_items
         .iter()
         .filter_map(|item| item.tag.map(width))
         .max()
         .unwrap_or(0);
-    let group_width = items
+    let group_width = visible_items
         .iter()
         .filter_map(|item| item.group.map(width))
         .max()
         .unwrap_or(0);
     let mut last_group = None;
-    for (row_index, item) in items.iter().take(usize::from(list.height)).enumerate() {
+    // Match FilterList's draw-time reveal and clamp for the Commands overlay.
+    let command_scroll = if kind == PickerKind::Commands {
+        let mut scroll = *state.list().scroll();
+        scroll.apply_layout(usize::from(list.height), visible_items.len());
+        Some(scroll)
+    } else {
+        None
+    };
+    let (row_offset, row_count) = command_scroll.as_ref().map_or_else(
+        || (0, usize::from(list.height)),
+        |scroll| {
+            let range = scroll.visible_range();
+            (range.start, range.len())
+        },
+    );
+    for (row_index, item) in visible_items
+        .iter()
+        .skip(row_offset)
+        .take(row_count)
+        .enumerate()
+    {
         let Ok(row_index) = u16::try_from(row_index) else {
             break;
         };
@@ -942,11 +1138,14 @@ fn paint_picker(
             ..list
         };
         let focused = state.cursor() == Some(item.key);
-        let row_flags = if focused {
+        let mut row_flags = if focused {
             live | StateFlags::FOCUSED
         } else {
             StateFlags::empty()
         };
+        if item.disabled {
+            row_flags |= StateFlags::DISABLED;
+        }
         let row_style = picker_style(ui, Part::CONTAINER, row_flags);
         let gutter_style = picker_style(ui, Part::GUTTER, row_flags);
         let icon_style = picker_style(ui, Part::ICON, row_flags).remove_modifier(Modifier::BOLD);
@@ -1046,10 +1245,15 @@ fn paint_picker(
         }
     }
     if has_scrollbar {
-        let mut scroll = ScrollState::new(items.len());
-        scroll.set_viewport(usize::from(list.height));
-        scroll.scroll_to(state.list().scroll().offset());
-        let (thumb_start, thumb_len) = scroll.thumb(usize::from(list.height));
+        let (thumb_start, thumb_len) = command_scroll.as_ref().map_or_else(
+            || {
+                let mut scroll = ScrollState::new(visible_items.len());
+                scroll.set_viewport(usize::from(list.height));
+                scroll.scroll_to(state.list().scroll().offset());
+                scroll.thumb(usize::from(list.height))
+            },
+            |scroll| scroll.thumb(usize::from(list.height)),
+        );
         let track_style = ui
             .style(
                 Family::SCROLLBAR,
@@ -1125,6 +1329,12 @@ fn paint_launchers(ui: &mut Ui<'_>, inner: Rect) {
                 }
                 2 => {
                     level_button().draw(ui, hit);
+                }
+                3 => {
+                    commands_button().draw(ui, hit);
+                }
+                4 => {
+                    remote_button().draw(ui, hit);
                 }
                 _ => {}
             }
@@ -1250,6 +1460,10 @@ pub struct PickersPage {
     detail: String,
     level: usize,
     opened: u32,
+    remote_ticks: Option<u8>,
+    remote_error: bool,
+    remote_fail_on_completion: bool,
+    remote_fetches: u8,
 }
 
 impl PickersPage {
@@ -1267,6 +1481,10 @@ impl PickersPage {
             detail: String::new(),
             level: 3,
             opened: 0,
+            remote_ticks: None,
+            remote_error: false,
+            remote_fail_on_completion: false,
+            remote_fetches: 0,
         }
     }
 
@@ -1287,6 +1505,19 @@ impl PickersPage {
             PickerKind::Quick => &self.items,
             PickerKind::Tabs => TABS_ITEMS,
             PickerKind::Level => LEVEL_ITEMS,
+            PickerKind::Commands => &COMMAND_ITEMS[..],
+            PickerKind::Remote if self.remote_ticks.is_some() || self.remote_error => &[],
+            PickerKind::Remote => &REMOTE_ITEMS[..],
+        }
+    }
+
+    fn remote_status(&self) -> RemoteStatus {
+        if self.remote_ticks.is_some() {
+            RemoteStatus::Loading
+        } else if self.remote_error {
+            RemoteStatus::Error
+        } else {
+            RemoteStatus::Ready
         }
     }
 
@@ -1302,13 +1533,17 @@ impl PickersPage {
         {
             self.state.set_cursor(self.level, item.key);
         }
+        if kind == PickerKind::Remote {
+            self.remote_fetches = self.remote_fetches.saturating_add(1);
+            // The second demo fetch fails once so the local retry path is observable.
+            self.remote_fail_on_completion = self.remote_fetches == 2;
+            self.remote_error = false;
+            self.remote_ticks = Some(FETCH_TICKS);
+            cx.request_repaint_after(Duration::from_millis(40));
+        }
         self.opened = self.opened.saturating_add(1);
-        let items = match kind {
-            PickerKind::Quick => self.items.as_slice(),
-            PickerKind::Tabs => TABS_ITEMS,
-            PickerKind::Level => LEVEL_ITEMS,
-        };
-        let spec = picker(kind, items.len()).layer(cx, items);
+        let items = self.items(kind);
+        let spec = picker(kind, items.len(), self.remote_status()).layer(cx, items);
         cx.open_layer(PICKER, spec);
     }
 }
@@ -1335,6 +1570,46 @@ impl Page for PickersPage {
             self.open_picker(cx, PickerKind::Level);
         }
         result |= level.erase();
+        let commands = commands_button().update(cx);
+        if commands.activated() && !cx.is_open(PICKER) {
+            self.open_picker(cx, PickerKind::Commands);
+        }
+        result |= commands.erase();
+        let remote = remote_button().update(cx);
+        if remote.activated() && !cx.is_open(PICKER) {
+            self.open_picker(cx, PickerKind::Remote);
+        }
+        result |= remote.erase();
+        if self.open_kind == Some(PickerKind::Remote)
+            && self.remote_error
+            && cx.is_open(PICKER)
+            && cx.intents(PICKER).any(|intent| {
+                matches!(
+                    intent,
+                    termrock::Intent::Binding(action) if action == REMOTE_RETRY_ACTION
+                )
+            })
+        {
+            self.remote_ticks = Some(FETCH_TICKS);
+            self.remote_error = false;
+            self.remote_fail_on_completion = false;
+            cx.request_repaint_after(Duration::from_millis(40));
+            result |= Response::changed();
+        }
+        if cx.update_cause() == termrock::UpdateCause::Tick
+            && self.open_kind == Some(PickerKind::Remote)
+            && cx.is_open(PICKER)
+            && let Some(ticks) = self.remote_ticks
+        {
+            if ticks > 1 {
+                self.remote_ticks = Some(ticks.saturating_sub(1));
+                cx.request_repaint_after(Duration::from_millis(40));
+            } else {
+                self.remote_ticks = None;
+                self.remote_error = self.remote_fail_on_completion;
+                result |= Response::changed();
+            }
+        }
         result |= filter_list()
             .update(cx, &mut self.filter_state, REFERENCE_ITEMS)
             .erase();
@@ -1347,8 +1622,12 @@ impl Page for PickersPage {
             PickerKind::Quick => self.items.as_slice(),
             PickerKind::Tabs => TABS_ITEMS,
             PickerKind::Level => LEVEL_ITEMS,
+            PickerKind::Commands => &COMMAND_ITEMS[..],
+            PickerKind::Remote if self.remote_ticks.is_some() || self.remote_error => &[],
+            PickerKind::Remote => &REMOTE_ITEMS[..],
         };
-        let action = picker(kind, items.len()).update(cx, &mut self.state, items);
+        let remote_status = self.remote_status();
+        let action = picker(kind, items.len(), remote_status).update(cx, &mut self.state, items);
         let action_value = action.action_ref().copied();
         result |= action.erase();
         if let Some(action) = action_value {
@@ -1380,7 +1659,10 @@ impl Page for PickersPage {
                     };
                     self.rebuild_quick_items();
                 }
-                PickerAction::QueryChanged | PickerAction::Back | PickerAction::Scope(_) => {}
+                // Empty-query Backspace keeps this modal and its route active.
+                // Picker handles Escape as clear-or-cancel according to its query.
+                PickerAction::Back => {}
+                PickerAction::QueryChanged | PickerAction::Scope(_) => {}
             }
         }
         result.into()
@@ -1427,16 +1709,30 @@ impl Page for PickersPage {
             }
         });
         if let Some(kind) = self.open_kind {
+            let remote_status = self.remote_status();
             ui.layer(PICKER, |ui, layer| {
                 let items = self.items(kind);
-                picker(kind, items.len()).draw(ui, layer, &self.state, items);
-                paint_picker(ui, layer, kind, &self.state, items, self.quick_scope);
+                picker(kind, items.len(), remote_status).draw(ui, layer, &self.state, items);
+                paint_picker(
+                    ui,
+                    layer,
+                    kind,
+                    &self.state,
+                    items,
+                    self.quick_scope,
+                    remote_status,
+                );
+                if kind == PickerKind::Remote && remote_status == RemoteStatus::Error {
+                    ui.publish_additional_bindings(PICKER, ui.state(PICKER), REMOTE_RETRY_BINDINGS);
+                }
             });
         }
     }
 
     fn hints(&self, _ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
-        if self.open_kind.is_some() {
+        if self.open_kind == Some(PickerKind::Remote) && self.remote_error {
+            &[("r", "Retry"), ("Esc", "Close")]
+        } else if self.open_kind.is_some() {
             &[("Esc", "Close")]
         } else {
             &[("Enter", "Open")]
