@@ -4,7 +4,7 @@ use core::time::Duration;
 
 use ratatui_core::buffer::CellWidth;
 use ratatui_core::layout::{Position, Rect};
-use ratatui_core::style::Modifier;
+use ratatui_core::style::{Modifier, Style};
 
 use super::{Acc, PartStyle, SlotFn, cell_at, first_row, paint_pressed_bracket};
 use crate::event::{Chord, KeyCode, KeyModifiers};
@@ -183,10 +183,29 @@ impl TabMarks {
 /// Affixes are captured only by [`Tabs::item_affixes`] and are styled as
 /// [`Part::PREFIX`] and [`Part::META`] respectively. Tabs supplies one-cell
 /// separators around the affixes, so callers provide only their text.
-#[derive(Clone, PartialEq, Eq, Debug, Default)]
+/// Trailing plate padding applies only to the planned default-row layout.
+#[derive(Clone, PartialEq, Eq, Default)]
 pub struct TabAffixes {
     prefix: Option<String>,
     suffix: Option<String>,
+    trailing_padding: u16,
+    plate_separators: bool,
+}
+
+impl fmt::Debug for TabAffixes {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut debug = f.debug_struct("TabAffixes");
+        debug
+            .field("prefix", &self.prefix)
+            .field("suffix", &self.suffix);
+        if self.trailing_padding > 0 {
+            debug.field("trailing_padding", &self.trailing_padding);
+        }
+        if self.plate_separators {
+            debug.field("plate_separators", &self.plate_separators);
+        }
+        debug.finish()
+    }
 }
 
 impl TabAffixes {
@@ -203,6 +222,26 @@ impl TabAffixes {
     pub fn suffix(mut self, text: impl Into<String>) -> Self {
         let text = text.into();
         self.suffix = (!text.is_empty()).then_some(text);
+        self
+    }
+
+    /// Add terminal cells after semantic content and marks, before any close
+    /// affordance.
+    ///
+    /// These cells extend the tab plate only. They do not change label text,
+    /// affix bounds, or overflow-menu labels. Padding is clipped when the row
+    /// cannot fit its minimum content and the requested width.
+    #[must_use]
+    pub fn trailing_padding(mut self, cells: u16) -> Self {
+        self.trailing_padding = cells;
+        self
+    }
+
+    /// Keep the one-cell separators around semantic affix text in the tab
+    /// plate style instead of applying the affix text style to those cells.
+    #[must_use]
+    pub fn plate_separators(mut self, enabled: bool) -> Self {
+        self.plate_separators = enabled;
         self
     }
 }
@@ -885,9 +924,15 @@ struct OwnedTabAffixes {
     display_width: u16,
     prefix: Option<AffixSegment>,
     suffix: Option<AffixSegment>,
+    trailing_padding: u16,
+    plate_separators: bool,
 }
 
 impl OwnedTabAffixes {
+    fn has_text_affixes(&self) -> bool {
+        self.prefix.is_some() || self.suffix.is_some()
+    }
+
     fn is_consistent(&self, label_segments: &[String]) -> bool {
         if self.display_start > self.display_end || self.display_end > label_segments.len() {
             return false;
@@ -1494,9 +1539,15 @@ fn capture_label_affixes(
         let width = crate::text::width(&text);
         (width > 0).then_some((text, width))
     });
-    if prefix.is_none() && suffix.is_none() {
+    if prefix.is_none()
+        && suffix.is_none()
+        && affixes.trailing_padding == 0
+        && !affixes.plate_separators
+    {
         return (display_segments, None);
     }
+    let trailing_padding = affixes.trailing_padding;
+    let plate_separators = affixes.plate_separators;
     let display_width = display_segments.iter().fold(0_u16, |width, segment| {
         width.saturating_add(crate::text::width(segment))
     });
@@ -1534,6 +1585,8 @@ fn capture_label_affixes(
             display_width,
             prefix,
             suffix,
+            trailing_padding,
+            plate_separators,
         }),
     )
 }
@@ -3018,7 +3071,15 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
         self.ov
             .note(ui, self.id, Family::TABS, Variant::DEFAULT, part, semantic);
         let style = semantic.over(tab_style);
-        ui.paint_style(style_area, style);
+        if row
+            .affixes
+            .as_ref()
+            .is_some_and(|affixes| affixes.plate_separators)
+        {
+            ui.paint_style(text_area, style);
+        } else {
+            ui.paint_style(style_area, style);
+        }
         let clip = ui.full();
         paint_logical_text(ui, text_area, clip, text, style);
     }
@@ -3329,6 +3390,30 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                 flags |= StateFlags::PRESSED;
             }
 
+            let extended_row = match row_source {
+                TabsRowSource::Planned(row)
+                    if row.affixes.as_ref().is_some_and(|affixes| {
+                        affixes.trailing_padding > 0
+                            || (affixes.plate_separators && affixes.has_text_affixes())
+                    }) =>
+                {
+                    Some(row)
+                }
+                TabsRowSource::Planned(_) | TabsRowSource::Legacy(_) => None,
+            };
+            let initialized_owned_plate = if let Some(row) = extended_row {
+                let tab_style =
+                    self.ov
+                        .style(ui, id, Family::TABS, Variant::DEFAULT, Part::TAB, flags);
+                ui.fill(row.logical_tab, Style::reset());
+                ui.fill(row.logical_tab, strip.style);
+                ui.paint_style(row.logical_tab, tab_style.style);
+                Some(tab_style)
+            } else {
+                None
+            };
+            let owns_extended_plate = extended_row.is_some();
+
             let content = match row_source {
                 TabsRowSource::Legacy(_) => Rect {
                     x: x.saturating_add(1),
@@ -3342,28 +3427,76 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                 },
                 TabsRowSource::Planned(row) => row.logical_content,
             };
-            {
-                let mut r = RowUi::new(ui, id, Family::TABS, Variant::DEFAULT, flags, key, content);
+            let has_text_affixes = match row_source {
+                TabsRowSource::Planned(row) => row
+                    .affixes
+                    .as_ref()
+                    .is_some_and(OwnedTabAffixes::has_text_affixes),
+                TabsRowSource::Legacy(_) => false,
+            };
+            let row_ui_area = match row_source {
+                TabsRowSource::Planned(_) if owns_extended_plate && has_text_affixes => None,
+                TabsRowSource::Planned(row) if owns_extended_plate => Some(Rect {
+                    width: content.width.min(row.label_extent),
+                    ..content
+                }),
+                TabsRowSource::Planned(_) | TabsRowSource::Legacy(_) => Some(content),
+            };
+            if let Some(row_ui_area) = row_ui_area {
+                let mut r = RowUi::new(
+                    ui,
+                    id,
+                    Family::TABS,
+                    Variant::DEFAULT,
+                    flags,
+                    key,
+                    row_ui_area,
+                );
                 match row_source {
                     TabsRowSource::Legacy(item) => self.row.row(item, &mut r),
-                    TabsRowSource::Planned(row) => {
-                        if row.affixes.is_none() {
-                            r.label_fmt(format_args!("{}", DisplaySegments(&row.label_segments)));
-                        }
+                    TabsRowSource::Planned(row) if !has_text_affixes => {
+                        r.label_fmt(format_args!("{}", DisplaySegments(&row.label_segments)));
                     }
+                    TabsRowSource::Planned(_) => {}
                 }
             }
             if let TabsRowSource::Planned(row) = row_source
-                && row.affixes.is_some()
+                && let Some(affixes) = row.affixes.as_ref()
+                && affixes.has_text_affixes()
             {
                 let label = ui.style(Family::TABS, Variant::DEFAULT, Part::LABEL, flags);
-                paint_logical_segments(
-                    ui,
-                    content,
-                    row.visible_content,
-                    &row.label_segments,
-                    label.style,
-                );
+                if affixes.plate_separators {
+                    if let (Some(display_segments), Some(prefix_segments)) = (
+                        row.label_segments
+                            .get(affixes.display_start..affixes.display_end),
+                        row.label_segments.get(..affixes.display_start),
+                    ) {
+                        let display_offset =
+                            prefix_segments.iter().fold(0_u16, |width, segment| {
+                                width.saturating_add(crate::text::width(segment))
+                            });
+                        let display_area = Rect {
+                            x: content.x.saturating_add(display_offset),
+                            width: affixes.display_width,
+                            ..content
+                        };
+                        paint_logical_segments(
+                            ui,
+                            display_area,
+                            row.visible_content,
+                            display_segments,
+                            label.style,
+                        );
+                    }
+                } else {
+                    paint_logical_segments(
+                        ui,
+                        content,
+                        row.visible_content,
+                        &row.label_segments,
+                        label.style,
+                    );
+                }
             }
             let label_w = match row_source {
                 TabsRowSource::Legacy(_) => painted_width(ui, content).max(1),
@@ -3411,7 +3544,9 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                 height: 1,
             };
             ui.fill(tail, strip.style);
-            let ts = ov.style(ui, id, Family::TABS, Variant::DEFAULT, Part::TAB, flags);
+            let ts = initialized_owned_plate.unwrap_or_else(|| {
+                ov.style(ui, id, Family::TABS, Variant::DEFAULT, Part::TAB, flags)
+            });
             ui.paint_style(tab, ts.style);
             if let TabsRowSource::Planned(row) = row_source {
                 self.paint_planned_affixes(ui, row, flags, ts.style);
@@ -4298,6 +4433,12 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
             if mark.is_some() && avail < 1 + 1 + mark_width + 1 + close_w {
                 break;
             }
+            let requested_padding = item
+                .affixes
+                .as_ref()
+                .map_or(0, |affixes| affixes.trailing_padding);
+            let minimum_tab_width = 3_u16.saturating_add(mark_width).saturating_add(close_w);
+            let reserved_padding = requested_padding.min(avail.saturating_sub(minimum_tab_width));
             let content = Rect {
                 x: x.saturating_add(1),
                 y: row_area.y,
@@ -4305,10 +4446,19 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
                     .saturating_sub(1)
                     .saturating_sub(mark_width)
                     .saturating_sub(u16::from(mark.is_some()))
-                    .saturating_sub(if mark.is_some() { close_w } else { 0 }),
+                    .saturating_sub(if mark.is_some() || requested_padding > 0 {
+                        close_w
+                    } else {
+                        0
+                    })
+                    .saturating_sub(reserved_padding),
                 height: 1,
             };
-            let label_extent = if item.affixes.is_some() {
+            let label_extent = if item
+                .affixes
+                .as_ref()
+                .is_some_and(OwnedTabAffixes::has_text_affixes)
+            {
                 logical_label_extent(&item.label_segments, content)
             } else {
                 semantic_label_extent_with_scratch(
@@ -4319,10 +4469,17 @@ impl<T: fmt::Display, K: KeyFn<T>> Tabs<'_, T, K, DefaultRow> {
                 )
             }
             .max(1);
+            let semantic_tab_width = 1_u16
+                .saturating_add(label_extent)
+                .saturating_add(mark_width)
+                .saturating_add(1)
+                .saturating_add(close_w);
+            let trailing_padding = reserved_padding.min(avail.saturating_sub(semantic_tab_width));
             let tab_w = 1u16
                 .saturating_add(label_extent)
                 .saturating_add(mark_width)
                 .saturating_add(1)
+                .saturating_add(trailing_padding)
                 .saturating_add(close_w);
             let tab = Rect {
                 x,
