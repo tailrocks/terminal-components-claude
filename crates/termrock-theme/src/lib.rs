@@ -29,8 +29,8 @@ pub use glyph::{GlyphRole, GlyphSet};
 pub use palettes::{CapabilityPalettes, baseline_faint, baseline_muted};
 pub use patch::{Slot, StateRule, StylePatch};
 pub use recipe::{
-    Family, Overlay, OverlayRule, PartEdit, PartMap, PartRecipe, Recipe, RecipeEdit, Recipes,
-    Variant,
+    Family, ManagerPresentationProfile, Overlay, OverlayRule, PartEdit, PartMap, PartRecipe,
+    Recipe, RecipeEdit, Recipes, Variant,
 };
 pub use resolve::{PaintStyle, PartMetrics, Resolved, ResolvedStyle, StyleDefaults};
 pub use role::{Align, FG_STEPS, FgStep, MeterRole, Role, SURFACE_LEVELS, Surface, SyntaxRole};
@@ -124,8 +124,17 @@ pub struct Theme {
 }
 
 impl Theme {
+    /// Return the explicit presentation policy for the shared Manager.
+    ///
+    /// The policy is recipe metadata: cloning and capability downgrade retain
+    /// it, and a builder created from this theme inherits it.
+    #[must_use]
+    pub fn manager_presentation_profile(&self) -> ManagerPresentationProfile {
+        self.recipes.manager_presentation_profile()
+    }
+
     pub fn junie() -> Theme {
-        let theme = Theme {
+        let mut theme = Theme {
             color: builtin::junie::tokens(),
             design: builtin::junie::design(),
             recipes: builtin::junie::recipes(),
@@ -134,6 +143,9 @@ impl Theme {
             },
             capability_palettes: Some(std::sync::Arc::new(palettes::junie())),
         };
+        theme
+            .recipes
+            .set_manager_presentation_profile(ManagerPresentationProfile::Junie);
         use crate::id::Part;
         use crate::recipe::Family;
         use crate::recipe::Variant;
@@ -1342,5 +1354,69 @@ mod tests {
         assert_eq!(left_style.fg, Slot::Set(Role::Custom(Color::Indexed(38))));
         assert_eq!(right_style.fg, Slot::Set(Role::Custom(Color::Indexed(39))));
         assert_eq!(cache.stats(), (0, 2));
+    }
+}
+
+#[cfg(test)]
+mod manager_presentation_profile_tests {
+    use super::{ColorLevel, ManagerPresentationProfile, Theme};
+    use crate::CapabilityPalettes;
+
+    #[test]
+    fn profile_is_explicit_inherited_and_identity_bearing() {
+        let junie = Theme::junie();
+        assert_eq!(
+            junie.manager_presentation_profile(),
+            ManagerPresentationProfile::Junie
+        );
+        assert_eq!(
+            Theme::paper().manager_presentation_profile(),
+            ManagerPresentationProfile::Standard
+        );
+
+        let tokens = junie.color;
+        let from_tokens = Theme::from_tokens(tokens);
+        assert_eq!(
+            from_tokens.manager_presentation_profile(),
+            ManagerPresentationProfile::Standard
+        );
+        let custom_palette = from_tokens
+            .builder()
+            .capability_palettes(CapabilityPalettes::new(tokens))
+            .build();
+        assert_eq!(
+            custom_palette.manager_presentation_profile(),
+            ManagerPresentationProfile::Standard,
+            "Some capability palettes do not imply Junie provenance"
+        );
+
+        let inherited = junie.clone().builder().build();
+        assert_eq!(
+            inherited.manager_presentation_profile(),
+            ManagerPresentationProfile::Junie
+        );
+        assert_eq!(
+            junie
+                .downgrade(ColorLevel::Mono)
+                .manager_presentation_profile(),
+            ManagerPresentationProfile::Junie
+        );
+
+        let standard = junie
+            .clone()
+            .builder()
+            .manager_presentation_profile(ManagerPresentationProfile::Standard)
+            .build();
+        assert_eq!(
+            standard.manager_presentation_profile(),
+            ManagerPresentationProfile::Standard
+        );
+        assert_ne!(junie, standard, "declared profile participates in equality");
+        assert_ne!(
+            junie.fingerprint(),
+            standard.fingerprint(),
+            "declared profile participates in Theme Debug fingerprint"
+        );
+        assert_eq!(standard.clone(), standard);
     }
 }

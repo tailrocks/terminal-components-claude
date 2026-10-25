@@ -297,6 +297,20 @@ impl Recipe {
     }
 }
 
+/// Explicit shared-Manager presentation policy carried with a theme's recipes.
+///
+/// `Standard` keeps the component's current presentation. `Junie` opts the
+/// shared Manager into its authored semantic-ink and Mono layout policy.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
+#[non_exhaustive]
+pub enum ManagerPresentationProfile {
+    /// Preserve the shared Manager's standard presentation policy.
+    #[default]
+    Standard,
+    /// Use the Junie shared-Manager presentation policy when rendered in Mono.
+    Junie,
+}
+
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct GlobalOverride {
     pub family: Family,
@@ -313,6 +327,7 @@ pub struct Recipes {
     consumer_mono: Vec<Family>,
     declarations: Vec<AuthoredDeclaration>,
     level_families: Vec<LevelFamilyRecipe>,
+    manager_presentation_profile: ManagerPresentationProfile,
     revision: u64,
 }
 
@@ -324,6 +339,10 @@ impl fmt::Debug for Recipes {
             .field("neutral", &self.neutral)
             .field("mono", &self.mono)
             .field("level_families", &self.level_families)
+            .field(
+                "manager_presentation_profile",
+                &self.manager_presentation_profile,
+            )
             .field("revision", &self.revision)
             .finish()
     }
@@ -344,6 +363,7 @@ impl PartialEq for Recipes {
             && self.consumer_mono == other.consumer_mono
             && self.declarations == other.declarations
             && self.level_families == other.level_families
+            && self.manager_presentation_profile == other.manager_presentation_profile
     }
 }
 
@@ -428,6 +448,7 @@ impl Default for Recipes {
             consumer_mono: Vec::new(),
             declarations: Vec::new(),
             level_families: Vec::new(),
+            manager_presentation_profile: ManagerPresentationProfile::Standard,
             revision: 0,
         }
     }
@@ -597,6 +618,17 @@ impl Recipes {
             seed_level_tokens,
             parts,
         });
+    }
+
+    pub(crate) const fn manager_presentation_profile(&self) -> ManagerPresentationProfile {
+        self.manager_presentation_profile
+    }
+
+    pub(crate) fn set_manager_presentation_profile(&mut self, profile: ManagerPresentationProfile) {
+        if self.manager_presentation_profile != profile {
+            self.manager_presentation_profile = profile;
+            self.revision = next_recipe_revision();
+        }
     }
 
     pub(crate) const fn revision(&self) -> u64 {

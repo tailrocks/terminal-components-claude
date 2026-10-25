@@ -4,7 +4,7 @@ use super::Theme;
 use super::border::BorderSet;
 use super::downgrade::{MonoRule, lab_of, luminance, rgb_of};
 use super::glyph::{ASCII_RULE_ACTIVE, ASCII_RULE_QUIET, ASCII_SCROLLBAR, GlyphRole};
-use super::recipe::Family;
+use super::recipe::{Family, ManagerPresentationProfile};
 use super::role::{FG_STEPS, SURFACE_LEVELS};
 use super::tokens::{ColorTokens, Density, MotionTokens, SizeTokens, SpaceTokens};
 
@@ -43,6 +43,14 @@ impl ThemeBuilder {
             theme,
             explicit: Explicit::default(),
         }
+    }
+
+    /// Set the shared Manager's explicit presentation policy. A builder made
+    /// from a theme inherits its existing policy unless this setter changes it.
+    #[must_use]
+    pub fn manager_presentation_profile(mut self, profile: ManagerPresentationProfile) -> Self {
+        self.theme.recipes.set_manager_presentation_profile(profile);
+        self
     }
 
     #[must_use]
