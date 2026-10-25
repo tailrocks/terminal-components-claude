@@ -1,5 +1,9 @@
 # Safety rationales
 
+## Current maintained contract
+
+The current session ESC bridge contract and source-mapped rationale are in [docs/contracts/safety-invariants.md](docs/contracts/safety-invariants.md). The original records below remain historical evidence for their pinned source revision.
+
 These records preserve the original justifications for unsafe operations. They are maintenance obligations, not a new safety audit or evidence of product readiness. Compiler safety settings and existing tests remain authoritative constraints.
 
 ## Original rationales

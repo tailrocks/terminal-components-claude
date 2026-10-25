@@ -1,0 +1,40 @@
+{
+  "schema": "t37.safety-transfer.v1",
+  "task_id": "T37",
+  "work_input_commit": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+  "product_source_commit": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+  "source_file": {
+    "path": "crates/termrock-session/src/esc_bridge.rs",
+    "sha256": "2c406c21b3f9d97149bad97b5455dde72dc80439de6e81097d0503fe3b27f316"
+  },
+  "input_records": [
+    {
+      "name": "safety-rationales.json",
+      "source_path": "t37-foundations/safety-rationales.json",
+      "sha256": "6d4173b5b8b59af2f7bde4dc680bbd0e67acb73cedaafc4823803d95684fa7c5",
+      "records": 42
+    },
+    {
+      "name": "source-api-prose.json",
+      "source_path": "t37-foundations/source-api-prose.json",
+      "sha256": "6ead70836c20e3ad1c2dc15f0de44daf35d74c6507e1bbfd086de5fa6e85b619",
+      "records": 1122
+    }
+  ],
+  "transfer": {
+    "production_unsafe_rationales": 28,
+    "test_only_rationales_dispositioned_with_legacy_tests": 14,
+    "esc_bridge_api_prose_groups_mapped": 10,
+    "maintained_contract": "docs/contracts/safety-invariants.md",
+    "root_index": "SAFETY.md",
+    "lint_policy": "Preserve unsafe_code deny and existing undocumented_unsafe_blocks policy; no allowance added.",
+    "sol_high_decision": "T37-SAFETY-01: no active undocumented_unsafe_blocks conflict in foundation manifests."
+  },
+  "limits": [
+    "No source file changed.",
+    "No test or build ran.",
+    "This is a documentation transfer, not a new unsafe-code audit or product behavior proof."
+  ],
+  "maintained_contract_sha256": "44b635155f4b527524cbc0efcd802443b419a34a5c443eb07b6ebe57ab6873cb",
+  "root_safety_sha256": "c7050f7391717e6ac6257aa411fa19cab99e8ad5889001aec026d4dc41a38034"
+}
