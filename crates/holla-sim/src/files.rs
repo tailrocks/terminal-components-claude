@@ -10,6 +10,24 @@ pub const PREVIEW_MAX_BYTES: usize = 256 * 1024;
 pub const PREVIEW_MAX_LINES: usize = 2_000;
 pub const PREVIEW_MAX_LINE_CHARS: usize = 4_096;
 
+/// Explicit scan metadata for one simulated filesystem entry.
+///
+/// The identity is local to the modeled snapshot. It is not an operating
+/// system inode and is never inferred from a path or preview content.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ScanMetadata {
+    /// Identity used only to model hardlinks within one snapshot.
+    pub modeled_identity: u64,
+    /// Explicit allocated storage bytes for this entry.
+    pub allocated_bytes: u64,
+    /// Explicit logical or apparent bytes for this entry.
+    pub apparent_bytes: u64,
+    /// Explicit modeled modification time in Unix seconds.
+    pub modified_at_secs: i64,
+    /// Whether a directory is modeled as unavailable without materialization.
+    pub dataless: bool,
+}
+
 /// The subset of simulated node kinds needed by the first Files browser stage.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum FileKind {
@@ -26,6 +44,7 @@ pub struct FileEntry {
     kind: FileKind,
     readable: bool,
     content: Option<Arc<[u8]>>,
+    scan_metadata: Option<ScanMetadata>,
 }
 
 impl fmt::Debug for FileEntry {
@@ -50,6 +69,7 @@ impl FileEntry {
             kind: FileKind::File,
             readable: true,
             content: None,
+            scan_metadata: None,
         }
     }
 
@@ -72,6 +92,7 @@ impl FileEntry {
             kind: FileKind::Directory,
             readable: true,
             content: None,
+            scan_metadata: None,
         }
     }
 
@@ -84,6 +105,7 @@ impl FileEntry {
             },
             readable: true,
             content: None,
+            scan_metadata: None,
         }
     }
 
@@ -94,6 +116,7 @@ impl FileEntry {
             kind: FileKind::Special,
             readable: true,
             content: None,
+            scan_metadata: None,
         }
     }
 
@@ -102,6 +125,20 @@ impl FileEntry {
     pub fn unreadable(mut self) -> Self {
         self.readable = false;
         self
+    }
+
+    /// Attach explicit in-memory scan facts to this simulated entry.
+    ///
+    /// Constructors leave scan metadata absent; preview bytes and paths are
+    /// never used to synthesize sizes, identities, or modification times.
+    #[must_use]
+    pub fn with_scan_metadata(mut self, metadata: ScanMetadata) -> Self {
+        self.scan_metadata = Some(metadata);
+        self
+    }
+
+    pub(crate) fn scan_metadata(&self) -> Option<&ScanMetadata> {
+        self.scan_metadata.as_ref()
     }
 
     pub fn path(&self) -> &str {
@@ -472,7 +509,7 @@ fn sanitize_preview_line(line: &str) -> String {
 mod tests {
     use super::{
         BinaryPreviewReason, FileEntry, FileKind, FilePreviewContent, FilePreviewError, FilesError,
-        FilesSnapshot, PREVIEW_MAX_BYTES, PREVIEW_MAX_LINE_CHARS, PREVIEW_MAX_LINES,
+        FilesSnapshot, PREVIEW_MAX_BYTES, PREVIEW_MAX_LINE_CHARS, PREVIEW_MAX_LINES, ScanMetadata,
     };
 
     fn sample() -> FilesSnapshot {
@@ -647,6 +684,41 @@ mod tests {
             files.preview("/work/missing"),
             Err(FilePreviewError::NotFound("/work/missing".into()))
         );
+    }
+
+    #[test]
+    fn scan_metadata_is_opt_in_and_debug_keeps_preview_content_redacted() {
+        let plain = FileEntry::file("/work/plain");
+        assert!(plain.scan_metadata().is_none());
+
+        let entry = FileEntry::file_with_bytes("/work/secret", b"modeled-secret".to_vec())
+            .with_scan_metadata(ScanMetadata {
+                modeled_identity: 7,
+                allocated_bytes: 4_096,
+                apparent_bytes: 14,
+                modified_at_secs: 123,
+                dataless: false,
+            });
+        let debug = format!("{entry:?}");
+        assert!(debug.contains("content_bytes"));
+        assert!(!debug.contains("modeled-secret"));
+        assert!(!debug.contains("modeled_identity"));
+        assert_eq!(
+            entry
+                .scan_metadata()
+                .map(|metadata| metadata.allocated_bytes),
+            Some(4_096)
+        );
+
+        let mut files = FilesSnapshot::new();
+        files.insert(FileEntry::directory("/"));
+        files.insert(entry);
+        let preview = files.preview("/work/secret");
+        assert!(matches!(
+            preview.map(|preview| preview.content().clone()),
+            Ok(FilePreviewContent::Text { lines, .. })
+                if lines == vec!["modeled-secret".to_owned()]
+        ));
     }
 
     #[test]
