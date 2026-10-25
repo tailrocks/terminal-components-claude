@@ -1,0 +1,90 @@
+{
+  "input_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+  "T00_inventory_source_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
+  "T00_cfg_scope_candidate_count": 173,
+  "lexed_outer_cfg_test_attribute_count": 164,
+  "inner_cfg_test_attributes_not_in_scope_ledger": [
+    {
+      "path": "crates/holla-ui/src/app/disk_scan_tests.rs",
+      "line": 1,
+      "attribute": "#![cfg(test)]",
+      "file_sha256": "7cbd1a93d071715e643525d4e29cad6c6d4cdc6480ddd17c8b06bc0667e181c1"
+    },
+    {
+      "path": "crates/holla-ui/src/app/disk_tests.rs",
+      "line": 1,
+      "attribute": "#![cfg(test)]",
+      "file_sha256": "198f868a451867e1d7adc70b1d952a1609c2ddbe9b809c9f09b51b9d6bee30bb"
+    },
+    {
+      "path": "crates/holla-ui/src/app/port_args_tests.rs",
+      "line": 1,
+      "attribute": "#![cfg(test)]",
+      "file_sha256": "25673bf2b1f0188b3e33f38b09003ebc9efd9d578c4271e4e853c113623b8d5c"
+    },
+    {
+      "path": "crates/holla-ui/src/app/task_args_tests.rs",
+      "line": 1,
+      "attribute": "#![cfg(test)]",
+      "file_sha256": "c2611264c62c098229b0a0cad5eff7b24ea61bc5439260ca39929d31f538fd0e"
+    },
+    {
+      "path": "crates/holla-ui/src/app/task_run_tests.rs",
+      "line": 1,
+      "attribute": "#![cfg(test)]",
+      "file_sha256": "e0b3fb11e96de55679e9528e005929a2aaccbe97cc235790c18d80a52eb4638d"
+    }
+  ],
+  "T00_candidates_not_lexed_as_outer_cfg_items": [
+    {
+      "path": "crates/showcase-demos/tests/no_false_parity.rs",
+      "line": 449,
+      "count": 1
+    },
+    {
+      "path": "crates/showcase-demos/tests/no_false_parity.rs",
+      "line": 451,
+      "count": 1
+    },
+    {
+      "path": "crates/showcase-demos/tests/no_false_parity.rs",
+      "line": 453,
+      "count": 1
+    },
+    {
+      "path": "crates/showcase-demos/tests/no_false_parity.rs",
+      "line": 455,
+      "count": 1
+    },
+    {
+      "path": "crates/showcase-demos/tests/no_false_parity.rs",
+      "line": 456,
+      "count": 1
+    },
+    {
+      "path": "crates/showcase-demos/tests/no_false_parity.rs",
+      "line": 472,
+      "count": 1
+    },
+    {
+      "path": "crates/showcase-demos/tests/no_false_parity.rs",
+      "line": 491,
+      "count": 1
+    },
+    {
+      "path": "crates/showcase-ui/tests/coverage/scan.rs",
+      "line": 888,
+      "count": 1
+    },
+    {
+      "path": "crates/showcase-ui/tests/coverage/scan.rs",
+      "line": 930,
+      "count": 1
+    }
+  ],
+  "lexed_outer_cfg_items_missing_from_T00": [],
+  "lexed_total_cfg_test_declarations": 169,
+  "false_positive_cfg_candidates": 9,
+  "cfg_test_declarations_remaining": 0,
+  "test_feature_gates_found": 0
+}

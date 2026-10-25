@@ -261,20 +261,3 @@ impl AgentState {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn hidden_statuses_and_actions() {
-        assert!(InstanceStatus::Purged.hidden());
-        assert!(InstanceStatus::Superseded.hidden());
-        assert!(!InstanceStatus::Crashed.hidden());
-        assert!(InstanceStatus::Running.stoppable());
-        assert!(!InstanceStatus::CleanExited.stoppable());
-        assert!(InstanceStatus::PreservedUnpushed.reconnectable());
-        assert!(!InstanceStatus::FailedSetup.reconnectable());
-        assert_eq!(AgentState::Blocked.rank(), 4);
-    }
-}

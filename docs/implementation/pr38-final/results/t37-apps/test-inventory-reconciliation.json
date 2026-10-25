@@ -1,0 +1,41 @@
+{
+  "input_sha": "c817b99e9e43abbbf3519d56b2f5ee86924243d8",
+  "base_inventory_source_sha": "3a2c977c881cd1745de16425c982791ee3ef2cc3",
+  "overlay_source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+  "delta_source_sha": "1d6ee92adf6ccca38eeee64b1371cba1497e8fcd",
+  "base_inventory_candidate_count": 1721,
+  "overlay_added_test_count": 1,
+  "overlay_removed_test_count": 0,
+  "effective_inventory_candidate_count": 1722,
+  "lexed_test_attribute_count": 1721,
+  "T00_candidates_not_lexed_as_test_items": [
+    {
+      "path": "crates/showcase-demos/src/pages/editor.rs",
+      "function": "backoff_doubles",
+      "count": 1
+    }
+  ],
+  "lexed_test_items_missing_from_effective_inventory": [],
+  "overlay_file_sha256_checks": [
+    {
+      "path": "crates/showcase-ui/tests/fixtures/holla-page-headings.tsv",
+      "input_sha256": "b222ba034d68a509db33a684dd21c155385fdc61d2283be0ad73837d828c76e3",
+      "overlay_new_sha256": "b222ba034d68a509db33a684dd21c155385fdc61d2283be0ad73837d828c76e3",
+      "equal": true
+    },
+    {
+      "path": "crates/showcase-ui/tests/navigation_contract.rs",
+      "input_sha256": "eaeeaecae11b3a692091ee7e82ab180e2147e186bc1eda093c0db660dbf46ce5",
+      "overlay_new_sha256": "eaeeaecae11b3a692091ee7e82ab180e2147e186bc1eda093c0db660dbf46ce5",
+      "equal": true
+    }
+  ],
+  "classification": {
+    "T00_candidates_not_lexed_as_test_items": [
+      "crates/showcase-demos/src/pages/editor.rs::backoff_doubles is an #[test] example inside the production SAMPLE string; literal preserved by token/literal equality."
+    ],
+    "overlay_additions": [
+      "crates/showcase-ui/tests/navigation_contract.rs::narrow_buttons_route_keeps_tree_markers_thumb_and_body is recorded as a real added test by declaration-overlay-1d6.json and test-inventory-delta-1d6.json."
+    ]
+  }
+}
