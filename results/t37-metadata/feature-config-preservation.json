@@ -1269,5 +1269,22 @@
     }
   ],
   "retained_manifest_feature_tables_changed": [],
-  "high_decision": "T37-CI-TESTING-01 conditional: may retire the global testing configuration only after final combined-source proof that testing-conditioned non-test branches are removed and retained aliases add no production dependency/backend activation."
+  "high_decision": "T37-CI-TESTING-01 conditional: may retire the global testing configuration only after final combined-source proof that testing-conditioned non-test branches are removed and retained aliases add no production dependency/backend activation.",
+  "source_conditioned_branch_scan": {
+    "fixed_input": "d402f893d159ac26da5db4d18c13510afdbce12f",
+    "scope": "Rust and TOML source outside documentation, immutable evidence, and target outputs; tools source closure is not integrated",
+    "matches": [
+      {
+        "path": "crates/termrock-viewport/src/viewport.rs",
+        "line": 1566,
+        "item": "TextViewport::selection_binding_chords",
+        "attribute": "#[cfg(feature = \"testing\")]",
+        "decision": "T37-PROBE-02 retains this feature-gated helper; Sol high review must classify it for T37-CI-TESTING-01."
+      }
+    ],
+    "other_testing_gated_source_matches": 0,
+    "build_script_CARGO_FEATURE_TESTING_matches": 0,
+    "global_testing_configuration_changed": false,
+    "classification": "pending high review; do not remove global Velnor testing configuration until resolved"
+  }
 }
