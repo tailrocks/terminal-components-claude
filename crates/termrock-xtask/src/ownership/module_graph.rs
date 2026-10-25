@@ -1334,7 +1334,12 @@ fn parse_scope(
                 );
             }
             push_range(tokens, item_start, item_end, &mut parsed.test_ranges);
-            skipped_items.push((index, item_end, effective));
+            skipped_items.push((
+                index,
+                item_end,
+                effective,
+                attributes.derives.contains("Default"),
+            ));
             if let Some(path) = include {
                 let source_dir = source_context
                     .file
@@ -1365,7 +1370,12 @@ fn parse_scope(
             parsed.complete = false;
             return Some(parsed);
         }
-        skipped_items.push((index, item_end, effective));
+        skipped_items.push((
+            index,
+            item_end,
+            effective,
+            attributes.derives.contains("Default"),
+        ));
         collect_use_derive_imports(
             tokens,
             index,
@@ -1405,7 +1415,7 @@ fn parse_scope(
         // arbitrary module items.
         parsed.complete = false;
     }
-    for (item_start, item_end, effective) in skipped_items {
+    for (item_start, item_end, effective, has_default_derive) in skipped_items {
         if !(collect_ranges && effective.test_only()) {
             if range_only {
                 match range_skipped_item_uncertainty(
@@ -1413,6 +1423,7 @@ fn parse_scope(
                     item_start,
                     item_end,
                     &imported_test_attributes,
+                    has_default_derive,
                 ) {
                     SkippedItemUncertainty::None => {}
                     SkippedItemUncertainty::BoundedFunctionBodyMacro => {
@@ -2014,9 +2025,10 @@ fn record_test_attribute_imports(
     }
 }
 
-// Resolve only the local binding produced by a complete use tree. Path
-// segments that happen to spell `test` or `bench` do not shadow an attribute;
-// wildcard and unrecognized trees stay conservative at the containing scope.
+// Resolve only local bindings produced by a complete use tree. Path segments
+// that spell tracked attribute names do not shadow them; wildcard and unknown
+// trees stay conservative at the containing scope. The range-only enum proof
+// also tracks the local name `default` here.
 fn parse_test_attribute_imports(
     tokens: &Tokens,
     start: usize,
@@ -2158,7 +2170,8 @@ fn parse_use_tree(
 }
 
 fn record_imported_attribute(name: &str, imports: &mut TestAttributeImports) {
-    if matches!(name, "test" | "bench") {
+    // Keep this local name available for the narrow enum-variant exception.
+    if matches!(name, "test" | "bench" | "default") {
         imports.names.insert(name.to_string());
     }
 }
@@ -2390,9 +2403,17 @@ fn range_skipped_item_uncertainty(
     start: usize,
     end: usize,
     enclosing_imports: &TestAttributeImports,
+    has_default_derive: bool,
 ) -> SkippedItemUncertainty {
     let previous = range_skipped_item_uncertainty_legacy(tokens, start, end, enclosing_imports);
     if previous == SkippedItemUncertainty::Other
+        && item_head(tokens, start, end) == Some("enum")
+        && has_default_derive
+        && !enclosing_imports.may_shadow("default")
+        && range_default_unit_enum_is_closed(tokens, start, end)
+    {
+        SkippedItemUncertainty::None
+    } else if previous == SkippedItemUncertainty::Other
         && item_head(tokens, start, end) == Some("impl")
         && impl_method_range_uncertainty(tokens, start, end, enclosing_imports)
             == SkippedItemUncertainty::BoundedFunctionBodyMacro
@@ -2401,6 +2422,68 @@ fn range_skipped_item_uncertainty(
     } else {
         previous
     }
+}
+
+/// Proves a closed, nongeneric enum with exactly one bare `#[default]` unit variant.
+fn range_default_unit_enum_is_closed(tokens: &Tokens, start: usize, end: usize) -> bool {
+    let mut keyword = start;
+    if ident_at(tokens, keyword) == Some("pub") {
+        keyword += 1;
+        if is_punct(tokens, keyword, '(') {
+            return false;
+        }
+    }
+    if ident_at(tokens, keyword) != Some("enum")
+        || ident_at(tokens, keyword + 1).is_none()
+        || !is_punct(tokens, keyword + 2, '{')
+    {
+        return false;
+    }
+    let Some(body_close) = tokens.pairs.get(keyword + 2).and_then(|value| *value) else {
+        return false;
+    };
+    if body_close + 1 != end {
+        return false;
+    }
+
+    let mut index = keyword + 3;
+    let mut variants = 0usize;
+    let mut default_variants = 0usize;
+    while index < body_close {
+        if is_punct(tokens, index, '#') {
+            let attribute_open = index + 1;
+            let Some(attribute_close) = tokens.pairs.get(attribute_open).and_then(|value| *value)
+            else {
+                return false;
+            };
+            if !is_punct(tokens, attribute_open, '[')
+                || attribute_close >= body_close
+                || attribute_close != index + 3
+                || ident_at(tokens, index + 2) != Some("default")
+            {
+                return false;
+            }
+            default_variants += 1;
+            if default_variants != 1 {
+                return false;
+            }
+            index = attribute_close + 1;
+        }
+
+        if ident_at(tokens, index).is_none() {
+            return false;
+        }
+        variants += 1;
+        index += 1;
+        if index == body_close {
+            break;
+        }
+        if !is_punct(tokens, index, ',') {
+            return false;
+        }
+        index += 1;
+    }
+    variants > 0 && default_variants == 1 && index == body_close
 }
 
 fn range_skipped_item_uncertainty_legacy(
@@ -2575,7 +2658,7 @@ fn impl_method_range_uncertainty(
         if item_end <= index || ordinary_function_body(tokens, index, item_end).is_none() {
             return SkippedItemUncertainty::Other;
         }
-        match range_skipped_item_uncertainty(tokens, index, item_end, enclosing_imports) {
+        match range_skipped_item_uncertainty(tokens, index, item_end, enclosing_imports, false) {
             SkippedItemUncertainty::None => {}
             SkippedItemUncertainty::BoundedFunctionBodyMacro => {
                 bounded_function_body_macro = true;
@@ -3012,6 +3095,151 @@ mod tests {
         assert_eq!(
             ranges("#[cfg(all(test, feature = \"x\"))]\nfn test_only() {}\n"),
             [LineRange { start: 1, end: 2 }]
+        );
+    }
+
+    #[test]
+    fn default_enum_range_fallback_accepts_only_the_closed_unit_variant_shape() {
+        let positive = concat!(
+            "fn production() { value.expect(\"fixture\"); }\n",
+            "#[derive(Clone, Copy, PartialEq, Eq, Debug, Default,)]\n",
+            "enum ScrollRouting {\n",
+            "    #[default]\n",
+            "    Capture,\n",
+            "    PassiveReveal,\n",
+            "}\n",
+            "#[cfg(test)]\n",
+            "mod tests {\n",
+            "    use super::*;\n",
+            "}\n",
+        );
+        assert_eq!(
+            ranges(positive),
+            [LineRange { start: 8, end: 11 }],
+            "the actual Default derive shape and literal test module should be range-safe"
+        );
+        assert!(
+            ranges(positive).iter().all(|range| !range.contains(1)),
+            "the neighboring production expect stays outside test ranges"
+        );
+
+        let rejected = [
+            (
+                "missing Default derive",
+                "#[derive(Clone)]\nenum E { #[default] A, }\n#[cfg(test)]\nfn t() {}\n",
+            ),
+            (
+                "production function attribute",
+                "#[default]\nfn production() {}\n#[cfg(test)]\nfn t() {}\n",
+            ),
+            (
+                "production module attribute",
+                "#[default]\nmod production {}\n#[cfg(test)]\nfn t() {}\n",
+            ),
+            (
+                "imported attribute alias",
+                "use macros::rewrite as default;\n#[derive(Default)]\nenum E { #[default] A, }\n#[cfg(test)]\nfn t() {}\n",
+            ),
+            (
+                "imported default attribute leaf",
+                "use macros::default;\n#[derive(Default)]\nenum E { #[default] A, }\n#[cfg(test)]\nfn t() {}\n",
+            ),
+            (
+                "shadowed Default derive",
+                "use macros::Default;\n#[derive(Default)]\nenum E { #[default] A, }\n#[cfg(test)]\nfn t() {}\n",
+            ),
+            (
+                "renamed import to Default",
+                "use macros::Other as Default;\n#[derive(Default)]\nenum E { #[default] A, }\n#[cfg(test)]\nfn t() {}\n",
+            ),
+            (
+                "renamed Default derive import",
+                "use macros::Default as Shadow;\n#[derive(Default)]\nenum E { #[default] A, }\n#[cfg(test)]\nfn t() {}\n",
+            ),
+            (
+                "glob import",
+                "use macros::*;\n#[derive(Default)]\nenum E { #[default] A, }\n#[cfg(test)]\nfn t() {}\n",
+            ),
+            (
+                "qualified marker",
+                "#[derive(Default)]\nenum E { #[macros::default] A, }\n#[cfg(test)]\nfn t() {}\n",
+            ),
+            (
+                "marker arguments",
+                "#[derive(Default)]\nenum E { #[default(note)] A, }\n#[cfg(test)]\nfn t() {}\n",
+            ),
+            (
+                "inner marker",
+                "#[derive(Default)]\nenum E { #![default] A, }\n#[cfg(test)]\nfn t() {}\n",
+            ),
+            (
+                "duplicate marker",
+                "#[derive(Default)]\nenum E { #[default] #[default] A, }\n#[cfg(test)]\nfn t() {}\n",
+            ),
+            (
+                "tuple payload",
+                "#[derive(Default)]\nenum E { #[default] A(u8), }\n#[cfg(test)]\nfn t() {}\n",
+            ),
+            (
+                "struct payload",
+                "#[derive(Default)]\nenum E { #[default] A { field: u8 }, }\n#[cfg(test)]\nfn t() {}\n",
+            ),
+            (
+                "discriminant",
+                "#[derive(Default)]\nenum E { #[default] A = 1, }\n#[cfg(test)]\nfn t() {}\n",
+            ),
+            (
+                "unknown neighboring attribute",
+                "#[derive(Default)]\nenum E { #[default] A, #[custom_rewrite] B, }\n#[cfg(test)]\nfn t() {}\n",
+            ),
+            (
+                "item macro",
+                "#[derive(Default)]\nenum E { #[default] A, generated!(), }\n#[cfg(test)]\nfn t() {}\n",
+            ),
+            (
+                "dynamic include",
+                "#[derive(Default)]\nenum E { #[default] A, include!(\"variants.rs\"), }\n#[cfg(test)]\nfn t() {}\n",
+            ),
+            (
+                "variant derive",
+                "#[derive(Default)]\nenum E { #[derive(Default)] A, }\n#[cfg(test)]\nfn t() {}\n",
+            ),
+            (
+                "extra inert variant attribute",
+                "#[derive(Default)]\nenum E { #[allow(dead_code)] #[default] A, }\n#[cfg(test)]\nfn t() {}\n",
+            ),
+            (
+                "missing variant separator",
+                "#[derive(Default)]\nenum E { #[default] A B, }\n#[cfg(test)]\nfn t() {}\n",
+            ),
+            (
+                "generic enum",
+                "#[derive(Default)]\nenum E<T> { #[default] A, }\n#[cfg(test)]\nfn t() {}\n",
+            ),
+            (
+                "restricted visibility item macro",
+                "#[derive(Default)]\npub(generated!()) enum E { #[default] A, }\n#[cfg(test)]\nfn t() {}\n",
+            ),
+            (
+                "restricted visibility dynamic include",
+                "#[derive(Default)]\npub(in include!(concat!(\"route\", \".rs\"))) enum E { #[default] A, }\n#[cfg(test)]\nfn t() {}\n",
+            ),
+            (
+                "malformed enum",
+                "#[derive(Default)]\nenum E { #[default] A,\n#[cfg(test)]\nfn t() {}\n",
+            ),
+        ];
+        for (label, source) in rejected {
+            assert!(ranges(source).is_empty(), "{label} must fail closed");
+        }
+
+        let shared_boundary = concat!(
+            "fn before() {} #[derive(Default)] enum E { #[default] A, } ",
+            "#[cfg(test)] mod helpers { fn test_helper() {} } fn after() {}\n",
+        );
+        assert!(
+            ranges(shared_boundary).is_empty(),
+            "a shared line must not hide neighboring production tokens"
         );
     }
 
