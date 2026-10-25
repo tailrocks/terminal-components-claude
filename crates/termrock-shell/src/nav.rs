@@ -99,14 +99,11 @@ impl<P> Router<P> {
             .map_or(&[][..], std::vec::Vec::as_slice)
     }
 
-    /// The active stack, mutably. `None` when the active tab is gone.
-    ///
-    /// A router always keeps its active tab, so the live case is the only
-    /// one the app sees; the accessor stays total so a broken invariant
-    /// degrades to "no active stack" instead of panicking.
-    fn active_stack_mut(&mut self) -> Option<&mut Vec<Entry<P>>> {
+    fn active_stack_mut(&mut self) -> &mut Vec<Entry<P>> {
         let active = self.active;
-        self.tabs.get_mut(active)
+        self.tabs
+            .get_mut(active)
+            .expect("a router always keeps its active tab")
     }
 
     /// The page on top of the active stack.
@@ -116,9 +113,7 @@ impl<P> Router<P> {
 
     /// The page on top of the active stack, mutably.
     pub fn current_mut(&mut self) -> Option<&mut P> {
-        self.active_stack_mut()
-            .and_then(|stack| stack.last_mut())
-            .map(|e| &mut e.page)
+        self.active_stack_mut().last_mut().map(|e| &mut e.page)
     }
 
     /// The key of the top entry of the active stack.
@@ -133,11 +128,7 @@ impl<P> Router<P> {
 
     /// The active stack, mutably, root first.
     pub fn stack_mut(&mut self) -> impl DoubleEndedIterator<Item = &mut P> + ExactSizeIterator {
-        let stack: &mut [Entry<P>] = match self.active_stack_mut() {
-            Some(stack) => stack.as_mut_slice(),
-            None => &mut [],
-        };
-        stack.iter_mut().map(|e| &mut e.page)
+        self.active_stack_mut().iter_mut().map(|e| &mut e.page)
     }
 
     /// How deep the active stack is.
@@ -187,14 +178,12 @@ impl<P> Router<P> {
     /// Push `page` onto the active stack.
     pub fn push(&mut self, page: P) {
         let e = self.entry(page);
-        if let Some(stack) = self.active_stack_mut() {
-            stack.push(e);
-        }
+        self.active_stack_mut().push(e);
     }
 
     /// Pop the top of the active stack. The root stays.
     pub fn back(&mut self) -> Option<P> {
-        let stack = self.active_stack_mut()?;
+        let stack = self.active_stack_mut();
         if stack.len() < 2 {
             return None;
         }
@@ -203,9 +192,7 @@ impl<P> Router<P> {
 
     /// Pop the active stack down to `depth + 1` entries and return what left.
     pub fn pop_to(&mut self, depth: usize) -> Vec<P> {
-        let Some(stack) = self.active_stack_mut() else {
-            return Vec::new();
-        };
+        let stack = self.active_stack_mut();
         if depth.saturating_add(1) >= stack.len() {
             return Vec::new();
         }
@@ -216,7 +203,7 @@ impl<P> Router<P> {
     pub fn replace(&mut self, page: P) -> Option<P> {
         let e = self.entry(page);
         self.active_stack_mut()
-            .and_then(|stack| stack.last_mut())
+            .last_mut()
             .map(|top| core::mem::replace(top, e).page)
     }
 
@@ -224,11 +211,12 @@ impl<P> Router<P> {
     pub fn reset(&mut self, page: P) -> Vec<P> {
         let e = self.entry(page);
         let active = self.active;
-        let old = self
-            .tabs
-            .get_mut(active)
-            .map(|stack| core::mem::replace(stack, vec![e]))
-            .unwrap_or_default();
+        let old = core::mem::replace(
+            self.tabs
+                .get_mut(active)
+                .expect("a router always keeps its active tab"),
+            vec![e],
+        );
         old.into_iter().map(|e| e.page).collect()
     }
 
