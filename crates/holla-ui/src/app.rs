@@ -11,7 +11,7 @@ use crate::{
         cleanup,
         clone::ClonePicker,
         dialogs::{self, ProductDialog},
-        disk, files,
+        disk, disk_scan, files,
         home::{self, HomeState},
         plan::{self, PlanState},
         plan_gate::PlanGate,
@@ -51,6 +51,7 @@ const FOLDER_BROWSER: ActionKey = ActionKey::application("holla.folder-browser")
 const FILES_OPEN: ActionKey = ActionKey::application("holla.files.open-directory");
 const FILES_PARENT: ActionKey = ActionKey::application("holla.files.parent-directory");
 const FILES_HIDDEN: ActionKey = ActionKey::application("holla.files.toggle-hidden");
+const DISK_SCAN: ActionKey = ActionKey::application("holla.disk-scan.open");
 const HOME_FIND: ActionKey = ActionKey::application("holla.home-find");
 const CUSTOM_ACTION: ActionKey = ActionKey::application("holla.custom-action");
 const SNAPSHOT_PAGE: ActionKey = ActionKey::application("holla.snapshot-page");
@@ -156,6 +157,7 @@ enum Route {
     Cleanup,
     Review,
     Snapshot,
+    DiskScan,
 }
 
 fn opening_route(scenario: Scenario) -> Route {
@@ -209,6 +211,9 @@ pub struct App {
     activities: Activities,
     files: files::State,
     files_return: Option<ReturnLocation>,
+    disk_scan: disk_scan::State,
+    disk_scan_return: Option<ReturnLocation>,
+    disk_scan_menu_origin: Option<ReturnLocation>,
     overlay: Option<Overlay>,
     retired_overlay: Option<Overlay>,
     port_args_opening: Option<PortArgsOpening>,
@@ -267,7 +272,10 @@ fn menu_bar() -> MenuBar<'static> {
         KeyCode::Char('q'),
         termrock::KeyModifiers::CONTROL,
     ))];
-    const GO: &[MenuItem<'static>] = &[MenuItem::new(HOME, "Home")];
+    const GO: &[MenuItem<'static>] = &[
+        MenuItem::new(HOME, "Home"),
+        MenuItem::new(DISK_SCAN, "Modeled disk scan"),
+    ];
     const HELP_MENU: &[MenuItem<'static>] = &[
         MenuItem::new(HELP, "Key reference").chord(Chord::key(KeyCode::F(1))),
         MenuItem::new(ABOUT, "About holla"),
@@ -1448,6 +1456,9 @@ impl App {
             activities,
             files,
             files_return: None,
+            disk_scan: disk_scan::State::default(),
+            disk_scan_return: None,
+            disk_scan_menu_origin: None,
             overlay: None,
             retired_overlay: None,
             port_args_opening: None,
@@ -1666,6 +1677,78 @@ impl App {
         }
     }
 
+    fn open_disk_scan(&mut self, cx: &mut Cx<'_>, menu_origin: Option<ReturnLocation>) {
+        if self.route == Route::DiskScan
+            || self.overlay.is_some()
+            || self.retired_overlay.is_some()
+            || self.pending_port_review.is_some()
+            || self.port_args_opening.is_some()
+        {
+            return;
+        }
+        let return_location = menu_origin
+            .filter(|location| location.route == self.route && location.focus.is_some())
+            .unwrap_or_else(|| self.capture_return_location(cx));
+        match self.disk_scan.open(&self.world) {
+            Ok(_) => {
+                self.disk_scan_return = Some(return_location);
+                self.route = Route::DiskScan;
+                if let Some(tree) = self.disk_scan.tree_owner() {
+                    cx.focus(tree);
+                }
+            }
+            Err(error) => self.set_status(format!("Modeled disk scan unavailable · {error}")),
+        }
+    }
+
+    fn return_from_disk_scan(&mut self, cx: &mut Cx<'_>) {
+        self.disk_scan.leave(&self.world);
+        if let Some(location) = self.disk_scan_return.take() {
+            self.route = location.route;
+            if let Some(focus) = self.valid_disk_scan_return_focus(location) {
+                cx.focus(focus);
+            } else {
+                self.route = Route::Home;
+                cx.focus(home::QUERY);
+            }
+        } else {
+            self.route = Route::Home;
+            cx.focus(home::QUERY);
+        }
+    }
+
+    fn valid_disk_scan_return_focus(&self, location: ReturnLocation) -> Option<Id> {
+        match location.route {
+            Route::Home => location
+                .focus
+                .filter(|focus| *focus == home::QUERY || *focus == home::ROWS || *focus == MENU),
+            Route::Plan if self.plan.is_some() => location
+                .focus
+                .filter(|focus| *focus == plan::STEPS || *focus == MENU),
+            Route::Plan => None,
+            Route::Activity => {
+                let activity_id = self.activities.current_id()?;
+                let current = self
+                    .activities
+                    .current(&self.world)
+                    .is_some_and(|activity| activity.id == activity_id);
+                let focus = location.focus?;
+                (current && (focus == activity::output_id(activity_id) || focus == MENU))
+                    .then_some(focus)
+            }
+            Route::Files => {
+                // Leaving Files clears its preview before this route can be restored.
+                Some(files::LIST)
+            }
+            // These routes paint reports without retaining an input owner. A saved ID
+            // from chrome or an earlier route is not proof that the destination owns it.
+            Route::Disk | Route::Cleanup | Route::Review | Route::Snapshot => {
+                location.focus.filter(|focus| *focus == MENU)
+            }
+            Route::DiskScan => None,
+        }
+    }
+
     fn command(&mut self, command: ActionKey, cx: &mut Cx<'_>) {
         match command {
             HELP => self.open_dialog(dialogs::Intent::Help, cx),
@@ -1701,9 +1784,14 @@ impl App {
             QUIT => self.open_dialog(dialogs::Intent::Quit, cx),
             INTERRUPT => self.quit = true,
             HOME => {
+                if self.route == Route::DiskScan {
+                    self.disk_scan.leave(&self.world);
+                    self.disk_scan_return = None;
+                }
                 self.route = Route::Home;
                 cx.focus(home::QUERY);
             }
+            DISK_SCAN => self.open_disk_scan(cx, None),
             OPEN_MENU => {
                 let _ = menu_bar().open_menu(cx, &mut self.menu, 0);
             }
@@ -2651,6 +2739,18 @@ impl App {
         }
     }
     fn update_controls(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let retired_overlay_was_pending = self.retired_overlay.is_some();
+        let pending_port_review_was_pending = self.pending_port_review.is_some();
+        let menu_was_open = self.menu.is_open();
+        if !menu_was_open {
+            self.disk_scan_menu_origin = (cx.top_layer() == termrock::LayerId::PAGE
+                && self.overlay.is_none()
+                && self.retired_overlay.is_none()
+                && self.pending_port_review.is_none()
+                && self.port_args_opening.is_none())
+            .then(|| self.capture_return_location(cx))
+            .filter(|location| location.focus.is_some());
+        }
         let retired = match self.retired_overlay.take() {
             None => Response::ignored(),
             Some(Overlay::Dialog(mut dialog)) => dialog.poll(cx).0,
@@ -2681,12 +2781,44 @@ impl App {
         let files_response = self.files.update(cx);
         let mut menu = menu_bar().update(cx, &mut self.menu);
         let brand = brand().update(cx);
+        let menu_action_pending = menu.action_ref().is_some();
+        if menu_was_open
+            && !self.menu.is_open()
+            && !matches!(menu.action_ref(), Some(MenuAction::Chosen(_)))
+        {
+            self.disk_scan_menu_origin = None;
+        }
+        let disk_scan_open_blocked = retired_overlay_was_pending
+            || pending_port_review_was_pending
+            || self.retired_overlay.is_some()
+            || self.pending_port_review.is_some()
+            || self.port_args_opening.is_some()
+            || self.overlay.is_some();
+        let browser_active = self.route == Route::DiskScan
+            && !too_small(viewport)
+            && self.overlay.is_none()
+            && !retired_overlay_was_pending
+            && self.retired_overlay.is_none()
+            && !pending_port_review_was_pending
+            && self.pending_port_review.is_none()
+            && !menu_was_open
+            && !self.menu.is_open()
+            && !menu_action_pending
+            && !(cx.update_cause() == termrock::UpdateCause::Event && cx.command().is_some())
+            && !brand.activated();
+        let body = shell_areas(viewport).0;
+        let (disk_scan_response, disk_scan_event) =
+            self.disk_scan.update(&self.world, cx, body, browser_active);
+        if disk_scan_event == Some(disk_scan::Event::Back) {
+            self.return_from_disk_scan(cx);
+        }
         let controls = retired
             | port_review
             | home_response
             | plan_response
             | activity_response
-            | files_response;
+            | files_response
+            | disk_scan_response;
         if too_small(cx.viewport()) {
             let overlay = self
                 .overlay
@@ -2720,7 +2852,15 @@ impl App {
             return controls | menu.erase() | brand.erase() | Response::changed();
         }
         if let Some(MenuAction::Chosen(command)) = menu.take_action() {
-            self.command(command, cx);
+            let menu_origin = self.disk_scan_menu_origin.take();
+            if command == DISK_SCAN && disk_scan_open_blocked {
+                return controls | menu.erase() | brand.erase() | Response::consumed();
+            }
+            if command == DISK_SCAN {
+                self.open_disk_scan(cx, menu_origin);
+            } else {
+                self.command(command, cx);
+            }
             return controls | menu.erase() | brand.erase();
         }
         if self.menu.is_open() {
@@ -2730,6 +2870,9 @@ impl App {
             .command()
             .filter(|_| cx.update_cause() == termrock::UpdateCause::Event)
         {
+            if command == DISK_SCAN && disk_scan_open_blocked {
+                return controls | menu.erase() | brand.erase() | Response::consumed();
+            }
             self.command(command, cx);
             return controls | menu.erase() | brand.erase() | Response::changed();
         }
@@ -2752,6 +2895,7 @@ impl App {
             }
             Route::Activity
             | Route::Disk
+            | Route::DiskScan
             | Route::Files
             | Route::Cleanup
             | Route::Review
@@ -2788,6 +2932,10 @@ impl termrock::App for App {
             && cx.activation_key().is_some();
         let route_before_update = self.route;
         let response = self.update_controls(cx);
+        if route_before_update == Route::DiskScan && self.route != Route::DiskScan {
+            self.disk_scan.cancel_after_route_change(&self.world);
+            self.disk_scan_return = None;
+        }
         if route_before_update == Route::Files && self.route != Route::Files {
             self.files.clear_preview();
             self.files_return = None;
@@ -2869,6 +3017,10 @@ impl termrock::App for App {
                 snapshot::draw(&self.world, ui, body);
                 None
             }
+            Route::DiskScan => {
+                disk_scan::draw(&self.disk_scan, ui, body);
+                None
+            }
         };
         let peek = if self.route == Route::Home && self.overlay.is_none() && !self.menu.is_open() {
             peek
@@ -2897,6 +3049,10 @@ impl termrock::App for App {
         &self.keymap
     }
     fn on_esc(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        if self.route == Route::DiskScan {
+            self.return_from_disk_scan(cx);
+            return Response::changed();
+        }
         if self.route == Route::Files {
             if self.files.close_preview(cx) {
                 return Response::changed();
@@ -7377,6 +7533,10 @@ mod files_tests;
 #[cfg(test)]
 #[path = "app/disk_tests.rs"]
 mod disk_tests;
+
+#[cfg(test)]
+#[path = "app/disk_scan_tests.rs"]
+mod disk_scan_tests;
 
 #[cfg(test)]
 #[path = "app/task_args_tests.rs"]
