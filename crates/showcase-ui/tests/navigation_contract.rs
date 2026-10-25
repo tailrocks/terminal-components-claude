@@ -303,7 +303,9 @@ fn narrow_buttons_route_keeps_tree_markers_thumb_and_body() {
 
     assert_eq!(h.app().page(), PageId::Buttons);
     assert_eq!(h.focus(), Some(NAV));
-    let nav = h.area_of(NAV).expect("Tree registers the full sidebar region");
+    let nav = h
+        .area_of(NAV)
+        .expect("Tree registers the full sidebar region");
     assert_eq!(nav, Rect::new(0, 2, 20, 26));
 
     let (_, overview_y) = require_nav_row(&h, "Overview", 20);
