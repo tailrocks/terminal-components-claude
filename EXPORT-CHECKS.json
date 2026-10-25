@@ -1,0 +1,61 @@
+{
+  "artifact": "Termrock PR 38 implementation plan",
+  "status": "PLANNING_PACKAGE_REVIEWED",
+  "implementation_status": "NOT_IMPLEMENTED_BY_THIS_REVIEW",
+  "source": {
+    "target": "e08ac57d10ae54c87337eae0be08b1f5e8f4bda4",
+    "reference": "5b3dbd7ae799f325efbb4f4cc11b2f5518dec948"
+  },
+  "independent_review_agents": [
+    {
+      "scope": "crate and API design"
+    },
+    {
+      "scope": "UI and reference parity"
+    },
+    {
+      "scope": "performance and validation"
+    }
+  ],
+  "task_count": 37,
+  "finding_count": 20,
+  "production_crate_rows": 20,
+  "component_requirement_ids": 45,
+  "missing_showcase_routes": 24,
+  "route_batches": {
+    "S-A": 5,
+    "S-B": 5,
+    "S-C": 5,
+    "S-D": 9
+  },
+  "checks": {
+    "task_ids_unique": true,
+    "dependency_graph_acyclic": true,
+    "final_task_closure_complete": true,
+    "required_model_assignments_present": true,
+    "task_markdown_matches_index": true,
+    "local_markdown_links_resolve": true,
+    "source_paths_exist_at_pinned_commits": true,
+    "pinned_source_path_count": 83,
+    "root_patch_apply_check": "PASS",
+    "unregistered_rust_fences": 0,
+    "sentence_length_scan_violations": 0,
+    "sentence_length_scan_scope": "Procedural sentences: 20 words. Descriptive sentences: 25 words. Code and reference lists excluded."
+  },
+  "evidence_limits": {
+    "local_rust_build": "NOT_RUN",
+    "local_rust_tests": "NOT_RUN",
+    "local_clippy": "NOT_RUN",
+    "live_terminal_capture": "NOT_RUN",
+    "local_benchmark": "NOT_RUN",
+    "staged_package_execution": "NOT_RUN",
+    "full_ASD_dictionary_certification": "NOT_CLAIMED"
+  },
+  "source_worktrees_changed": false,
+  "github_state_changed": false,
+  "model_policy": {
+    "astra_prohibited": true,
+    "prohibition_scope": "All Astra models and variants; every task, scenario, fallback, and agent depth. No exceptions.",
+    "design_escalation": "Ask the user. Block the affected task until the design question is resolved."
+  }
+}

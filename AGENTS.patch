@@ -1,0 +1,12 @@
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -13,3 +13,9 @@
+ - For accepted feedback, fix, verify, commit, push, and reply on GitHub with the fixing commit URL before resolving. For rejected feedback, reply with evidence and rationale before resolving. Address general comments in linked PR replies. Never delete feedback or resolve it without a justified disposition.
+ - Re-fetch feedback at the final head SHA. Merge only with no unaddressed feedback or unresolved review threads and all required checks and approvals satisfied. Only explicit, PR-specific human authorization permits ignoring identified feedback; general merge approval is not a waiver.
+ - Keep agent instructions lean. Put explanations, plans, and progress in documentation, not here.
++
++## PR 38 completion
++
++- Follow [the API rules](docs/implementation/pr38-final/API-RULES.md) and [crate boundaries](docs/implementation/pr38-final/ARCHITECTURE.md).
++- Execute [the plan](docs/implementation/pr38-final/PLAN.md) and [exact tasks](docs/implementation/pr38-final/TASKS.md).
++- Use [the agent work rules](docs/implementation/pr38-final/AGENT-RUNBOOK.md) for model selection, file ownership, and review.
